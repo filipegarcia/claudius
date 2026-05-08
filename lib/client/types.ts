@@ -206,21 +206,10 @@ export type ChatState = {
   /** Persisted human-readable session title. Null until set by the user. */
   sessionTitle: string | null;
   /**
-   * Latest `/recap` response captured from the assistant. Persists per
-   * session via sessionStorage so a tab reload keeps the banner populated.
-   * Null until the user runs `/recap` for the first time in this session.
-   */
-  recap: SessionRecap | null;
-  /**
    * In-flight AskUserQuestion form from the agent. The browser shows a modal;
    * resolving is `submitAskAnswer(requestId, answers)`.
    */
   pendingAsk: AskUserQuestionEvent | null;
-};
-
-export type SessionRecap = {
-  text: string;
-  ts: string;
 };
 
 export type AttachedImage = {
@@ -264,8 +253,6 @@ export type ChatActions = {
   jumpToUuid(uuid: string): Promise<boolean>;
   /** Rename the current session (persists via SDK and broadcasts to the rail). */
   renameTitle(title: string): Promise<{ ok: true } | { ok: false; error: string }>;
-  /** Clear the recap banner for this session. */
-  dismissRecap(): void;
   /** Resolve a pending AskUserQuestion form. */
   submitAskAnswer(requestId: string, answers: AskAnswer[]): Promise<void>;
 };

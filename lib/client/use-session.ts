@@ -22,7 +22,6 @@ import type {
   QueuedMessage,
   RecentEdit,
   SessionInfo,
-  SessionRecap,
   SessionUsage,
   SystemEntry,
   TaskInfo,
@@ -122,24 +121,6 @@ type DeltaScratch = {
   >;
 };
 
-// Recap detection: an assistant message is treated as the recap response when
-// the most recent prior user message in the same transcript is the `/recap`
-// slash command (with or without trailing arguments).
-function isRecapTrigger(text: string): boolean {
-  const t = text.trim();
-  return t === "/recap" || /^\/recap\s/.test(t);
-}
-
-function deriveAssistantText(blocks: DisplayBlock[]): string {
-  return blocks
-    .filter((b): b is Extract<DisplayBlock, { kind: "text" }> => b.kind === "text")
-    .map((b) => b.text)
-    .join("\n")
-    .trim();
-}
-
-const RECAP_STORAGE_PREFIX = "claudius.recap.";
-
 export function useSession(): ChatState & ChatActions {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
@@ -169,15 +150,6 @@ export function useSession(): ChatState & ChatActions {
   const [backgroundBashes, setBackgroundBashes] = useState<Record<string, BackgroundBash>>({});
   const [toolHistory, setToolHistory] = useState<ToolHistoryEntry[]>([]);
   const [sessionTitle, setSessionTitle] = useState<string | null>(null);
-  const [recap, setRecap] = useState<SessionRecap | null>(null);
-  // Tracks the assistant uuid whose text mirrors into `recap` while the
-  // response streams in. Cleared on session reset / dismiss.
-  const recapAssistantUuidRef = useRef<string>("");
-  // Mirrors the most recent user message text synchronously. Used by the
-  // assistant branch of applyEvent to detect a /recap response without
-  // relying on messagesRef.current — that ref is populated by useEffect
-  // after commit, so it can be stale across back-to-back replay events.
-  const lastUserTextRef = useRef<string>("");
   const [permissionMode, setPermissionModeState] = useState<PermissionMode>("default");
   const [model, setModelState] = useState<string | null>(null);
   const [sessions, setSessions] = useState<SessionInfo[]>([]);
@@ -270,44 +242,6 @@ export function useSession(): ChatState & ChatActions {
     }
   }, []);
 
-  // ── recap persistence ────────────────────────────────────────────────
-  // Per-session, sessionStorage. A reload of the same tab keeps the banner
-  // populated; cross-tab coherence is left to the next /recap (the
-  // assistant message itself is on disk and would re-derive on replay).
-  const recapKey = (sid: string | null) => (sid ? `${RECAP_STORAGE_PREFIX}${sid}` : null);
-
-  const persistRecap = useCallback((sid: string | null, value: SessionRecap | null) => {
-    if (typeof window === "undefined") return;
-    const k = recapKey(sid);
-    if (!k) return;
-    try {
-      if (value === null) window.sessionStorage.removeItem(k);
-      else window.sessionStorage.setItem(k, JSON.stringify(value));
-    } catch {
-      // ignore — non-fatal
-    }
-  }, []);
-
-  const rehydrateRecap = useCallback((sid: string) => {
-    if (typeof window === "undefined") return;
-    const k = recapKey(sid);
-    if (!k) return;
-    try {
-      const raw = window.sessionStorage.getItem(k);
-      if (!raw) {
-        setRecap(null);
-        return;
-      }
-      const parsed = JSON.parse(raw) as SessionRecap;
-      if (parsed && typeof parsed.text === "string" && typeof parsed.ts === "string") {
-        setRecap(parsed);
-      } else {
-        setRecap(null);
-      }
-    } catch {
-      setRecap(null);
-    }
-  }, []);
 
   const wipeQueueStorage = useCallback((sid: string | null) => {
     if (typeof window === "undefined") return;
@@ -369,9 +303,6 @@ export function useSession(): ChatState & ChatActions {
     setBackgroundBashes({});
     setToolHistory([]);
     setSessionTitle(null);
-    setRecap(null);
-    recapAssistantUuidRef.current = "";
-    lastUserTextRef.current = "";
     setPermissionModeState("default");
     setModelState(null);
     scratchRef.current.clear();
@@ -410,7 +341,6 @@ export function useSession(): ChatState & ChatActions {
         ...(next.images && next.images.length ? { images: next.images } : {}),
       },
     ]);
-    lastUserTextRef.current = next.text.trim();
     setPendingTracked(true);
     let res: Response;
     try {
@@ -508,22 +438,6 @@ export function useSession(): ChatState & ChatActions {
           return;
         }
         lastAssistantUuidRef.current = uuid;
-        // If the prior user message was `/recap`, treat this assistant turn
-        // as the recap response and mirror its text into the banner state.
-        // Re-evaluating on every assistant event makes replay (history) and
-        // live capture share the same code path. Reads from a synchronous
-        // ref because messagesRef updates after commit and would be stale
-        // across back-to-back SSE replay events.
-        const prior = lastUserTextRef.current;
-        if (prior && isRecapTrigger(prior)) {
-          recapAssistantUuidRef.current = uuid;
-          const initialText = deriveAssistantText(blocks);
-          if (initialText) {
-            const next: SessionRecap = { text: initialText, ts: new Date().toISOString() };
-            setRecap(next);
-            persistRecap(sessionIdRef.current, next);
-          }
-        }
         setMessages((prev) => upsertMessage(prev, { uuid, role: "assistant", blocks, streaming: true }));
         setPendingTracked(true);
         // Activity-rail reducers: per-tool side effects.
@@ -673,7 +587,6 @@ export function useSession(): ChatState & ChatActions {
         } else {
           return;
         }
-        let mergedForAnchor: DisplayBlock[] | null = null;
         setMessages((prev) =>
           prev.map((m) => {
             if (m.uuid !== anchor) return m;
@@ -705,21 +618,9 @@ export function useSession(): ChatState & ChatActions {
             for (const b of merged) {
               if (b.kind === "tool_use" && preservedResults.has(b.id)) b.result = preservedResults.get(b.id);
             }
-            mergedForAnchor = merged;
             return { ...m, blocks: merged };
           }),
         );
-        // Mirror streaming text into the recap banner if this is the
-        // captured /recap response. Skips empty deltas so the banner
-        // doesn't blank out before the first text_delta lands.
-        if (mergedForAnchor && anchor === recapAssistantUuidRef.current) {
-          const text = deriveAssistantText(mergedForAnchor);
-          if (text) {
-            const next: SessionRecap = { text, ts: new Date().toISOString() };
-            setRecap(next);
-            persistRecap(sessionIdRef.current, next);
-          }
-        }
         return;
       }
 
@@ -828,7 +729,6 @@ export function useSession(): ChatState & ChatActions {
             }
           }
           if (text) {
-            lastUserTextRef.current = text.trim();
             const uuid = (msg as { uuid?: string }).uuid ?? crypto.randomUUID();
             setMessages((prev) => {
               if (prev.some((m) => m.uuid === uuid)) return prev;
@@ -1097,7 +997,7 @@ export function useSession(): ChatState & ChatActions {
         return;
       }
     },
-    [flushQueue, persistRecap, setPendingTracked],
+    [flushQueue, setPendingTracked],
   );
 
   const bindToSession = useCallback(
@@ -1106,7 +1006,6 @@ export function useSession(): ChatState & ChatActions {
       sessionIdRef.current = id;
       setSessionId(id);
       rehydrateQueue(id);
-      rehydrateRecap(id);
       // Reflect the bound session id in the URL so a refresh resumes it.
       // Use replaceState (no history entry) and strip the `at` cursor — it's
       // a one-shot resume anchor and shouldn't survive past the first bind.
@@ -1132,7 +1031,7 @@ export function useSession(): ChatState & ChatActions {
       };
       es.onerror = () => {};
     },
-    [applyEvent, rehydrateQueue, rehydrateRecap],
+    [applyEvent, rehydrateQueue],
   );
 
   const switchSession = useCallback(
@@ -1275,7 +1174,6 @@ export function useSession(): ChatState & ChatActions {
           ...(normalized ? { images: normalized } : {}),
         },
       ]);
-      lastUserTextRef.current = trimmedText;
       setPromptSuggestions([]);
       setPendingTracked(true);
       setErrors([]);
@@ -1488,12 +1386,6 @@ export function useSession(): ChatState & ChatActions {
     [sessionTitle, refreshSessions],
   );
 
-  const dismissRecap = useCallback(() => {
-    setRecap(null);
-    recapAssistantUuidRef.current = "";
-    persistRecap(sessionIdRef.current, null);
-  }, [persistRecap]);
-
   return {
     sessionId,
     ready,
@@ -1526,7 +1418,6 @@ export function useSession(): ChatState & ChatActions {
     backgroundBashes,
     toolHistory,
     sessionTitle,
-    recap,
     send,
     enqueue,
     cancelQueued,
@@ -1545,7 +1436,6 @@ export function useSession(): ChatState & ChatActions {
     loadOlder,
     jumpToUuid,
     renameTitle,
-    dismissRecap,
   };
 }
 
