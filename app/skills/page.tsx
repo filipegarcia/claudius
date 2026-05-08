@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowLeft, FilePlus, RefreshCw, Save, Sparkles, Trash2 } from "lucide-react";
 import { SideNav } from "@/components/nav/SideNav";
 import { ScopeToggle, type Scope as IaScope } from "@/components/nav/ScopeToggle";
+import { useActiveCwd } from "@/lib/client/useActiveCwd";
 import type { SkillFile, SkillScope } from "@/lib/server/skills";
 import { cn } from "@/lib/utils/cn";
 
@@ -35,7 +36,7 @@ short and opinionated — long skill docs get skipped.
  * frontmatter (name, description, allowed-tools) and a markdown body.
  */
 export default function SkillsPage() {
-  const [cwd, setCwd] = useState<string | null>(null);
+  const cwd = useActiveCwd();
   const [scopes, setScopes] = useState<{ scope: SkillScope; files: SkillFile[] }[]>([]);
   const [active, setActive] = useState<{ scope: SkillScope; name: string } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -43,11 +44,14 @@ export default function SkillsPage() {
   const [iaScope, setIaScope] = useState<IaScope>("workspace");
 
   useEffect(() => {
-    fetch("/api/sessions")
-      .then((r) => r.json())
-      .then((arr: Array<{ cwd?: string }>) => setCwd(arr?.[0]?.cwd ?? ""))
-      .catch(() => setCwd(""));
-  }, []);
+    // Drop the active selection on workspace switch so a stale skill from
+    // a different project doesn't appear to belong to this one. This is
+    // the canonical "external state changed → reset local UI state" use
+    // of useEffect; the rule's preferred alternatives don't fit.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setActive(null);
+    setError(null);
+  }, [cwd]);
 
   const refresh = useCallback(async () => {
     if (cwd == null) return;
@@ -80,6 +84,11 @@ export default function SkillsPage() {
   }, [cwd, iaScope]);
 
   useEffect(() => {
+    // Fetch on mount and whenever cwd / iaScope changes (refresh is
+    // memoized on those). Standard React data-fetching pattern; the
+    // setState calls inside refresh are the data load itself, not an
+    // effect chain — Suspense / external store would be overkill here.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void refresh();
   }, [refresh]);
 

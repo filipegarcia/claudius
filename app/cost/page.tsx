@@ -10,6 +10,7 @@ import { LimitsPanel } from "@/components/cost/LimitsPanel";
 import { cn } from "@/lib/utils/cn";
 import { SessionCostTable } from "@/components/cost/SessionCostTable";
 import { ModelBreakdown } from "@/components/cost/ModelBreakdown";
+import { useActiveCwd } from "@/lib/client/useActiveCwd";
 import { useCost } from "@/lib/client/useCost";
 
 function fmtUsd(n: number): string {
@@ -22,16 +23,9 @@ function fmtUsd(n: number): string {
 const ACCOUNT_USAGE_URL = "https://claude.ai/settings/usage";
 
 export default function CostPage() {
-  const [cwd, setCwd] = useState<string | null>(null);
+  const cwd = useActiveCwd();
   const [scope, setScope] = useState<Scope>("workspace");
   const [view, setView] = useState<"spend" | "limits">("spend");
-
-  useEffect(() => {
-    fetch("/api/sessions")
-      .then((r) => r.json())
-      .then((arr: Array<{ cwd?: string }>) => setCwd(arr?.[0]?.cwd ?? ""))
-      .catch(() => setCwd(""));
-  }, []);
 
   const { data, loading, error, refresh } = useCost(cwd);
 

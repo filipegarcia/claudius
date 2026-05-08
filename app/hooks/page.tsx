@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { SideNav } from "@/components/nav/SideNav";
 import { ScopeToggle, type Scope as IaScope } from "@/components/nav/ScopeToggle";
+import { useActiveCwd } from "@/lib/client/useActiveCwd";
 import { useHooks } from "@/lib/client/useHooks";
 import {
   CATEGORY_LABELS,
@@ -35,7 +36,7 @@ const SCOPE_LABELS: Record<SettingsScope, string> = {
 };
 
 export default function HooksPage() {
-  const [cwd, setCwd] = useState<string | null>(null);
+  const cwd = useActiveCwd();
   const [scope, setScope] = useState<SettingsScope>("project");
   const [showAdd, setShowAdd] = useState(false);
   const [iaScope, setIaScope] = useState<IaScope>("workspace");
@@ -46,13 +47,6 @@ export default function HooksPage() {
     if (next === "account") setScope("user");
     else if (scope === "user") setScope("project");
   }
-
-  useEffect(() => {
-    fetch("/api/sessions")
-      .then((r) => r.json())
-      .then((arr: Array<{ cwd?: string }>) => setCwd((arr?.[0]?.cwd) ?? ""))
-      .catch(() => setCwd(""));
-  }, []);
 
   const hooks = useHooks(cwd);
   const active = hooks.scopes.find((s) => s.scope === scope);

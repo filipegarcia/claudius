@@ -594,6 +594,23 @@ export class Session {
     // Tell the client the replay window is over so it can anchor and arm
     // the "load older" sentinel.
     fn({ type: "replay_done", hasMoreAbove });
+    // Now re-emit any interactive prompts that are STILL pending. The
+    // historical replay above is filtered to "resolved" prompts; questions
+    // and permission requests that the agent is still waiting on need to
+    // be redelivered to the new subscriber, otherwise reloading the page
+    // (or switching session tabs and coming back) leaves the user with no
+    // way to answer them.
+    for (const pending of this.pendingAskQuestions.values()) {
+      fn({
+        type: "ask_user_question",
+        requestId: pending.requestId,
+        toolUseId: pending.toolUseId,
+        questions: pending.questions,
+      });
+    }
+    for (const pending of this.pendingPermissions.values()) {
+      fn(pending.meta);
+    }
     this.subscribers.add(fn);
     // Pull the freshest SDK-derived title into this subscriber. Two reasons:
     //   1. start() captures the title once; if the SDK auto-generates an

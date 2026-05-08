@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowRight, Check, Minus, Pencil, X } from "lucide-react";
+import { ArrowRight, Check, CheckSquare, Minus, Pencil, X } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import type { AskAnswer, AskUserQuestionEvent } from "@/lib/shared/events";
 
@@ -210,6 +210,16 @@ export function AskUserQuestionPrompt({ request, onSubmit, onCancel, onMinimize 
           <span className="text-[var(--muted)]">
             {active + 1} of {total}
           </span>
+          {q.multiSelect && (
+            <span
+              data-testid="ask-multiselect-badge"
+              className="flex items-center gap-1 rounded-md border border-emerald-400/40 bg-emerald-400/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-emerald-300"
+              title="This question accepts multiple answers"
+            >
+              <CheckSquare className="h-3 w-3" />
+              Multiple choice
+            </span>
+          )}
           {/* Per-question header chips for navigation between questions. */}
           {total > 1 && (
             <div className="ml-2 flex flex-1 items-center gap-1 overflow-x-auto scroll-thin">
@@ -274,7 +284,18 @@ export function AskUserQuestionPrompt({ request, onSubmit, onCancel, onMinimize 
             <div className="px-5 pb-3 pt-4">
               <p className="text-sm font-medium leading-snug">{q.question}</p>
               {q.multiSelect && (
-                <p className="mt-1 text-[11px] text-[var(--muted)]">Select one or more</p>
+                <p
+                  className="mt-1 flex items-center gap-1.5 text-[11px] font-medium text-emerald-300"
+                  data-testid="ask-multiselect-hint"
+                >
+                  <CheckSquare className="h-3 w-3" />
+                  Select one or more
+                  {w.selectedLabels.length > 0 && (
+                    <span className="text-[var(--muted)]">
+                      · {w.selectedLabels.length} selected
+                    </span>
+                  )}
+                </p>
               )}
             </div>
             <ul className="flex-1 px-2 pb-2">
@@ -303,11 +324,14 @@ export function AskUserQuestionPrompt({ request, onSubmit, onCancel, onMinimize 
                     >
                       <span
                         className={cn(
-                          "mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-sm border",
+                          "mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center border",
+                          // Square = checkbox (multi), circle = radio (single).
+                          // Choose one shape — don't ship both rounded-sm and
+                          // rounded-full and rely on CSS source order.
+                          q.multiSelect ? "rounded" : "rounded-full",
                           selected
                             ? "border-[var(--accent)] bg-[var(--accent)] text-white"
                             : "border-[var(--border)]",
-                          q.multiSelect ? "rounded-sm" : "rounded-full",
                         )}
                       >
                         {selected && <Check className="h-3 w-3" />}
@@ -342,11 +366,11 @@ export function AskUserQuestionPrompt({ request, onSubmit, onCancel, onMinimize 
                 >
                   <span
                     className={cn(
-                      "mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-sm border",
+                      "mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center border",
+                      q.multiSelect ? "rounded" : "rounded-full",
                       w.showOther
                         ? "border-[var(--accent)] bg-[var(--accent)] text-white"
                         : "border-[var(--border)]",
-                      q.multiSelect ? "rounded-sm" : "rounded-full",
                     )}
                   >
                     {w.showOther && <Check className="h-3 w-3" />}
