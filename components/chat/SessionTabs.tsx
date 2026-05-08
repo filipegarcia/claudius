@@ -30,6 +30,9 @@ export function SessionTabs({ tabs, activeId, onSelect, onClose, onNew }: Props)
         return (
           <div
             key={t.id}
+            data-testid="session-tab"
+            data-tab-id={t.id}
+            data-tab-active={active ? "true" : "false"}
             className={cn(
               "group flex items-center gap-1.5 border-r border-[var(--border)] px-2 text-[11px]",
               active
@@ -47,7 +50,7 @@ export function SessionTabs({ tabs, activeId, onSelect, onClose, onNew }: Props)
               title={`${t.label ?? t.id}\n${t.status}`}
             >
               <StatusDot status={t.status} />
-              <span className="max-w-[180px] truncate font-mono">
+              <span data-testid="session-tab-label" className="max-w-[180px] truncate font-mono">
                 {t.label ?? t.id.slice(0, 8)}
               </span>
             </button>
@@ -106,10 +109,20 @@ export function activeTabStatus(opts: {
   return "idle";
 }
 
-/** Helper: pick a label for a session — short id is the v1 fallback. */
+/**
+ * Helper: pick a label for a session.
+ *
+ * Resolution order:
+ *   1. `titleOverride` — used by the active tab where `useSession` has the
+ *      freshest title in state (mirrors the SSE `session_title` event so
+ *      the tab updates the moment a rename succeeds).
+ *   2. The session's persisted `title` from the `/api/sessions` list — this
+ *      is what makes *non-active* tabs show their custom names.
+ *   3. The first 8 characters of the session id as the fallback.
+ */
 export function tabLabelFor(id: string, sessions: SessionInfo[], titleOverride?: string | null): string {
   if (titleOverride && titleOverride.trim()) return titleOverride.trim();
-  // Future: cwd basename, persisted title, etc.
-  void sessions;
+  const known = sessions.find((s) => s.id === id);
+  if (known?.title && known.title.trim()) return known.title.trim();
   return id.slice(0, 8);
 }

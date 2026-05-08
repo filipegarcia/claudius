@@ -13,7 +13,12 @@ import {
   type SDKUserMessage,
 } from "@anthropic-ai/claude-agent-sdk";
 import { AsyncQueue } from "./async-queue";
-import { getSessionTitle, setSessionTitle } from "./session-titles";
+import {
+  getSessionTitle,
+  setSessionTitle,
+  touchSession,
+  upsertSession,
+} from "./sessions-db";
 import type {
   AskAnswer,
   AskQuestion,
@@ -102,13 +107,13 @@ export class Session {
         const message = err instanceof Error ? err.message : String(err);
         this.broadcast({ type: "error", message: `Failed to load session history: ${message}` });
       }
-      // Pull the persisted title. Our local store is authoritative because
-      // it works even for sessions that haven't completed a turn yet (the
+      // Pull the persisted title. Our index is authoritative because it
+      // works even for sessions that haven't completed a turn yet (the
       // SDK's customTitle requires a JSONL on disk). Fall back to the SDK's
       // metadata if we have nothing locally — this picks up titles authored
-      // in another client.
+      // in another client (e.g. the TUI's `/rename`).
       try {
-        const local = await getSessionTitle(this.resumeFrom);
+        const local = await getSessionTitle(this.cwd, this.resumeFrom);
         if (local) {
           this.title = local;
         } else {
@@ -120,14 +125,28 @@ export class Session {
         // non-fatal — header just shows the prefix fallback
       }
     } else {
-      // Even for fresh (non-resume) sessions, check our local store in case
+      // Even for fresh (non-resume) sessions, check our index in case
       // the user renamed this session id in a previous boot of Claudius.
       try {
-        const local = await getSessionTitle(this.id);
+        const local = await getSessionTitle(this.cwd, this.id);
         if (local) this.title = local;
       } catch {
         // ignore
       }
+    }
+
+    // Upsert into the per-project sessions index so the row exists from
+    // the moment the session is bound, regardless of whether the SDK has
+    // written a JSONL yet.
+    try {
+      await upsertSession({
+        id: this.id,
+        cwd: this.cwd,
+        model: this.model,
+        title: this.title,
+      });
+    } catch {
+      // non-fatal — index is for listing; the session still works without it
     }
 
     const options: Options = {
@@ -144,7 +163,11 @@ export class Session {
       toolConfig: {
         askUserQuestion: { previewFormat: "html" },
       },
-      ...(this.resumeFrom ? { resume: this.resumeFrom } : {}),
+      // Pin the session id so the SDK names its on-disk JSONL with our id.
+      // This makes Claudius web ids match the TUI: `claude --resume <id>`
+      // resolves the same conversation. The SDK forbids `sessionId` together
+      // with `resume` (it'd be ambiguous), so only set it for new sessions.
+      ...(this.resumeFrom ? { resume: this.resumeFrom } : { sessionId: this.id }),
       ...(this.resumeAt ? { resumeSessionAt: this.resumeAt } : {}),
     };
     this.query = query({ prompt: this.inputQueue, options });
@@ -156,12 +179,13 @@ export class Session {
   async rename(title: string): Promise<{ ok: true } | { ok: false; error: string }> {
     const trimmed = title.trim();
     if (!trimmed) return { ok: false, error: "title required" };
-    // Local store is authoritative — it works regardless of whether the SDK's
-    // JSONL exists yet. If this throws we fail the whole operation; the user
-    // sees the error and the title doesn't change. Best-effort mirror to the
-    // SDK so external clients (the CLI's `/rename`, other tooling) see it too.
+    // The sessions index is authoritative — it works regardless of whether
+    // the SDK's JSONL exists yet. If this throws we fail the whole
+    // operation; the user sees the error and the title doesn't change.
+    // Best-effort mirror to the SDK so external clients (the CLI's
+    // `/rename`, other tooling) see it too.
     try {
-      await setSessionTitle(this.id, trimmed);
+      await setSessionTitle(this.cwd, this.id, trimmed);
     } catch (err) {
       return { ok: false, error: err instanceof Error ? err.message : String(err) };
     }
@@ -542,6 +566,14 @@ export class Session {
     try {
       for await (const message of this.query as AsyncIterable<SDKMessage>) {
         this.broadcast({ type: "sdk", message });
+        // Bump the sessions index on each completed turn so list views can
+        // sort newest-active first. `result` is the SDK's per-turn done
+        // marker — independent of subagent activity.
+        if ((message as { type?: string }).type === "result") {
+          void touchSession(this.cwd, this.id).catch(() => {
+            // index update is non-critical; never crash consume() over it
+          });
+        }
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);

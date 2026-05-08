@@ -75,6 +75,13 @@ test.describe("Session management workflow", () => {
     // Pill should re-render showing the new title.
     await expect(pillLabel).toHaveText(desiredTitle, { timeout: 10_000 });
 
+    // The active session tab in the SessionTabs row above the pill must
+    // mirror the renamed title — so the user can identify the tab by name.
+    const activeTabLabel = page.locator(
+      '[data-testid="session-tab"][data-tab-active="true"] [data-testid="session-tab-label"]',
+    );
+    await expect(activeTabLabel).toHaveText(desiredTitle, { timeout: 10_000 });
+
     // ── 6. Reload — the title must persist (this is the "internal db"
     //       persistence requirement: the SDK writes the customTitle into
     //       the JSONL header, so a fresh resume picks it back up) ────────
@@ -85,5 +92,10 @@ test.describe("Session management workflow", () => {
     await expect(page.getByTestId("session-picker-label")).toHaveText(desiredTitle, {
       timeout: 15_000,
     });
+    // After reload, the tab label is also reconstructed from persisted state
+    // (sessionTitle on the active tab; sessions[].title for inactive ones).
+    await expect(
+      page.locator('[data-testid="session-tab"][data-tab-active="true"] [data-testid="session-tab-label"]'),
+    ).toHaveText(desiredTitle, { timeout: 15_000 });
   });
 });

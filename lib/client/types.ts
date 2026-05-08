@@ -89,6 +89,8 @@ export type SessionInfo = {
   id: string;
   cwd?: string;
   model?: string;
+  /** Custom title set by the user. Null when none. */
+  title?: string | null;
 };
 
 export type PendingPlan = {
