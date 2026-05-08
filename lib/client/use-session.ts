@@ -125,20 +125,6 @@ type DeltaScratch = {
 // Recap detection: an assistant message is treated as the recap response when
 // the most recent prior user message in the same transcript is the `/recap`
 // slash command (with or without trailing arguments).
-function priorUserText(msgs: DisplayMessage[], excludeUuid?: string): string | null {
-  for (let i = msgs.length - 1; i >= 0; i--) {
-    const m = msgs[i];
-    if (excludeUuid && m.uuid === excludeUuid) continue;
-    if (m.role !== "user") continue;
-    return m.blocks
-      .filter((b): b is Extract<DisplayBlock, { kind: "text" }> => b.kind === "text")
-      .map((b) => b.text)
-      .join("")
-      .trim();
-  }
-  return null;
-}
-
 function isRecapTrigger(text: string): boolean {
   const t = text.trim();
   return t === "/recap" || /^\/recap\s/.test(t);
@@ -187,6 +173,11 @@ export function useSession(): ChatState & ChatActions {
   // Tracks the assistant uuid whose text mirrors into `recap` while the
   // response streams in. Cleared on session reset / dismiss.
   const recapAssistantUuidRef = useRef<string>("");
+  // Mirrors the most recent user message text synchronously. Used by the
+  // assistant branch of applyEvent to detect a /recap response without
+  // relying on messagesRef.current — that ref is populated by useEffect
+  // after commit, so it can be stale across back-to-back replay events.
+  const lastUserTextRef = useRef<string>("");
   const [permissionMode, setPermissionModeState] = useState<PermissionMode>("default");
   const [model, setModelState] = useState<string | null>(null);
   const [sessions, setSessions] = useState<SessionInfo[]>([]);
@@ -380,6 +371,7 @@ export function useSession(): ChatState & ChatActions {
     setSessionTitle(null);
     setRecap(null);
     recapAssistantUuidRef.current = "";
+    lastUserTextRef.current = "";
     setPermissionModeState("default");
     setModelState(null);
     scratchRef.current.clear();
@@ -418,6 +410,7 @@ export function useSession(): ChatState & ChatActions {
         ...(next.images && next.images.length ? { images: next.images } : {}),
       },
     ]);
+    lastUserTextRef.current = next.text.trim();
     setPendingTracked(true);
     let res: Response;
     try {
@@ -518,8 +511,10 @@ export function useSession(): ChatState & ChatActions {
         // If the prior user message was `/recap`, treat this assistant turn
         // as the recap response and mirror its text into the banner state.
         // Re-evaluating on every assistant event makes replay (history) and
-        // live capture share the same code path.
-        const prior = priorUserText(messagesRef.current, uuid);
+        // live capture share the same code path. Reads from a synchronous
+        // ref because messagesRef updates after commit and would be stale
+        // across back-to-back SSE replay events.
+        const prior = lastUserTextRef.current;
         if (prior && isRecapTrigger(prior)) {
           recapAssistantUuidRef.current = uuid;
           const initialText = deriveAssistantText(blocks);
@@ -833,6 +828,7 @@ export function useSession(): ChatState & ChatActions {
             }
           }
           if (text) {
+            lastUserTextRef.current = text.trim();
             const uuid = (msg as { uuid?: string }).uuid ?? crypto.randomUUID();
             setMessages((prev) => {
               if (prev.some((m) => m.uuid === uuid)) return prev;
@@ -1279,6 +1275,7 @@ export function useSession(): ChatState & ChatActions {
           ...(normalized ? { images: normalized } : {}),
         },
       ]);
+      lastUserTextRef.current = trimmedText;
       setPromptSuggestions([]);
       setPendingTracked(true);
       setErrors([]);
@@ -1477,13 +1474,18 @@ export function useSession(): ChatState & ChatActions {
           const body = (await res.json().catch(() => ({}))) as { error?: string };
           return { ok: false, error: body.error ?? `HTTP ${res.status}` };
         }
+        // Refresh the indexed sessions list so non-active *tabs* in the same
+        // browser tab pick up the new title via tabLabelFor's lookup. The
+        // active tab already reflects the rename through `sessionTitle` /
+        // the SSE `session_title` event.
+        void refreshSessions();
         return { ok: true };
       } catch (err) {
         setSessionTitle(prev);
         return { ok: false, error: err instanceof Error ? err.message : String(err) };
       }
     },
-    [sessionTitle],
+    [sessionTitle, refreshSessions],
   );
 
   const dismissRecap = useCallback(() => {
@@ -1543,6 +1545,7 @@ export function useSession(): ChatState & ChatActions {
     loadOlder,
     jumpToUuid,
     renameTitle,
+    dismissRecap,
   };
 }
 

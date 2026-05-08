@@ -75,7 +75,7 @@ export async function GET(req: Request) {
   }
   const list = sessionManager
     .list()
-    .map((s) => ({ id: s.id, cwd: s.cwd, model: s.model }))
+    .map((s) => ({ id: s.id, cwd: s.cwd, model: s.model, title: s.title ?? null }))
     .filter((s) => (filter ? filter(s.cwd) : true));
   return NextResponse.json(list);
 }

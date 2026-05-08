@@ -6,6 +6,7 @@ import { SideNav } from "@/components/nav/SideNav";
 import { StatusLine } from "@/components/chat/StatusLine";
 import { MessageList } from "@/components/chat/MessageList";
 import { TodosBanner } from "@/components/chat/TodosBanner";
+import { RecapBanner } from "@/components/chat/RecapBanner";
 import { PromptInput } from "@/components/chat/PromptInput";
 import { PermissionPrompt } from "@/components/chat/PermissionPrompt";
 import { AskUserQuestionPrompt } from "@/components/chat/AskUserQuestionPrompt";
@@ -630,6 +631,11 @@ export default function Home() {
             todosBannerHiddenFingerprintRef.current = todosFingerprint(session.latestTodos);
             setTodosBannerHidden(true);
           }}
+        />
+        <RecapBanner
+          recap={session.recap}
+          onRegenerate={() => handleSend("/recap")}
+          onDismiss={session.dismissRecap}
         />
         <div className="flex flex-1 flex-col overflow-hidden">
           {searchOpen && (
