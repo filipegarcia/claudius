@@ -632,11 +632,7 @@ export default function Home() {
             setTodosBannerHidden(true);
           }}
         />
-        <RecapBanner
-          recap={session.recap}
-          onRegenerate={() => handleSend("/recap")}
-          onDismiss={session.dismissRecap}
-        />
+        <RecapBanner title={session.sessionTitle} />
         <div className="flex flex-1 flex-col overflow-hidden">
           {searchOpen && (
             <TranscriptSearch
