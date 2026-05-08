@@ -5,7 +5,9 @@ import {
   getWorkspace,
   updateWorkspace,
   type Icon,
+  type WorkspaceDefaults,
 } from "@/lib/server/workspaces-store";
+import type { CommitPrefixConfig } from "@/lib/shared/commit-prefix";
 import { clearActiveCookie, readActiveCookie } from "@/lib/server/active-workspace";
 
 export const runtime = "nodejs";
@@ -17,7 +19,13 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
   return NextResponse.json(ws);
 }
 
-type Patch = Partial<{ name: string; rootPath: string; icon: Icon }>;
+type Patch = Partial<{
+  name: string;
+  rootPath: string;
+  icon: Icon;
+  defaults: WorkspaceDefaults;
+  commitPrefix: CommitPrefixConfig;
+}>;
 
 export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;

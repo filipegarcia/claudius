@@ -17,11 +17,11 @@ type Item = {
 // Account/Usage) live in WorkspaceSwitcher below the divider — see the IA
 // review note in TODO.md.
 const items: Item[] = [
-  // `?new=1` is consumed by the chat page (and useSession boot effect) and
-  // forces creation of a fresh session, even from the chat page itself.
-  // Without it, navigating /?session=X → /?session=X is a no-op and you'd
-  // stay in the same conversation.
-  { label: "Chat", icon: MessageSquare, href: "/?new=1" },
+  // The Chat button just routes to "/" — boot resumes the last-active tab
+  // (persisted in `ui_state.active_tab`) so coming back to the chat view
+  // from another page lands you on the conversation you left, instead of
+  // spawning a brand-new session on top of the persisted strip.
+  { label: "Chat", icon: MessageSquare, href: "/" },
   { label: "Sessions", icon: FolderTree, href: "/sessions" },
   { label: "Files", icon: Folder, href: "/files" },
   { label: "Git", icon: GitBranch, href: "/git" },

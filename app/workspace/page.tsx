@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Briefcase, Save } from "lucide-react";
 import type { PermissionMode } from "@anthropic-ai/claude-agent-sdk";
@@ -11,6 +11,11 @@ import {
 } from "@/components/chat/ModeSelector";
 import { useWorkspaces } from "@/lib/client/useWorkspaces";
 import { cn } from "@/lib/utils/cn";
+import {
+  compilePattern,
+  renderCommitPrefix,
+  type CommitPrefixConfig,
+} from "@/lib/shared/commit-prefix";
 
 type ModeChoice = "" | PermissionMode;
 
@@ -24,12 +29,38 @@ export default function WorkspacePage() {
   const [savedTick, setSavedTick] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
-  // Hydrate inputs from server state.
-  useEffect(() => {
-    if (!active) return;
+  // Commit prefix config — separate from defaults because it isn't a
+  // session-creation default.
+  const [prefixEnabled, setPrefixEnabled] = useState(false);
+  const [branchPattern, setBranchPattern] = useState("");
+  const [template, setTemplate] = useState("");
+  const [sampleBranch, setSampleBranch] = useState("");
+
+  // Hydrate inputs from server state. Uses the React 19 "set state during
+  // render" pattern (gated on the active workspace identity) so the lint
+  // rule `react-hooks/set-state-in-effect` stays clean.
+  const [hydratedFor, setHydratedFor] = useState<string | null>(null);
+  if (active && hydratedFor !== active.id) {
+    setHydratedFor(active.id);
     setModel(active.defaults?.model ?? "");
     setMode(active.defaults?.permissionMode ?? "");
-  }, [active]);
+    setPrefixEnabled(active.commitPrefix?.enabled ?? false);
+    setBranchPattern(active.commitPrefix?.branchPattern ?? "{type}/{id}-{rest}");
+    setTemplate(active.commitPrefix?.template ?? "{type} #{id} - ");
+  }
+
+  const previewConfig: CommitPrefixConfig = useMemo(
+    () => ({ enabled: true, branchPattern, template }),
+    [branchPattern, template],
+  );
+  const patternError = useMemo(() => {
+    if (!branchPattern.trim()) return null;
+    return compilePattern(branchPattern) ? null : "Pattern is empty or has duplicate placeholders.";
+  }, [branchPattern]);
+  const preview = useMemo(
+    () => renderCommitPrefix(sampleBranch || null, previewConfig),
+    [sampleBranch, previewConfig],
+  );
 
   async function onSave() {
     if (!active) return;
@@ -41,7 +72,12 @@ export default function WorkspacePage() {
       else delete defaults.model;
       if (mode) defaults.permissionMode = mode;
       else delete defaults.permissionMode;
-      const ok = await update(active.id, { defaults });
+      const commitPrefix: CommitPrefixConfig = {
+        enabled: prefixEnabled,
+        branchPattern: branchPattern.trim(),
+        template,
+      };
+      const ok = await update(active.id, { defaults, commitPrefix });
       if (ok) setSavedTick((t) => t + 1);
       else setError("Save failed");
     } finally {
@@ -49,10 +85,17 @@ export default function WorkspacePage() {
     }
   }
 
+  const prefixDirty =
+    !!active &&
+    ((active.commitPrefix?.enabled ?? false) !== prefixEnabled ||
+      (active.commitPrefix?.branchPattern ?? "{type}/{id}-{rest}") !== branchPattern ||
+      (active.commitPrefix?.template ?? "{type} #{id} - ") !== template);
+
   const dirty =
     !!active &&
     ((model.trim() || "") !== (active.defaults?.model ?? "") ||
-      (mode || "") !== (active.defaults?.permissionMode ?? ""));
+      (mode || "") !== (active.defaults?.permissionMode ?? "") ||
+      prefixDirty);
 
   return (
     <div className="flex h-full">
@@ -153,21 +196,6 @@ export default function WorkspacePage() {
                     </div>
                   </div>
 
-                  <div className="mt-5 flex items-center justify-end gap-2">
-                    {savedTick > 0 && !dirty && (
-                      <span className="text-[11px] text-emerald-400">Saved.</span>
-                    )}
-                    {error && (
-                      <span className="text-[11px] text-red-300">{error}</span>
-                    )}
-                    <button
-                      onClick={onSave}
-                      disabled={!dirty || saving}
-                      className="flex items-center gap-1 rounded-md bg-[var(--accent)] px-3 py-1.5 text-xs text-white hover:opacity-90 disabled:opacity-40"
-                    >
-                      <Save className="h-3 w-3" /> {saving ? "Saving…" : "Save defaults"}
-                    </button>
-                  </div>
                 </div>
 
                 <p className="mt-2 text-[10px] text-[var(--muted)]">
@@ -175,6 +203,106 @@ export default function WorkspacePage() {
                   the workspace JSON but are not yet applied at session-creation time.
                 </p>
               </section>
+
+              {/* Commit prefix */}
+              <section>
+                <header className="mb-3">
+                  <h2 className="text-base font-semibold">Commit message prefix</h2>
+                  <p className="mt-1 text-[11px] text-[var(--muted)]">
+                    Pre-fill the commit textarea on the Git page with a prefix derived from the
+                    current branch name. Use <code className="font-mono">{`{name}`}</code>{" "}
+                    placeholders in both the pattern and the template.
+                  </p>
+                </header>
+
+                <div className="rounded-lg border border-[var(--border)] bg-[var(--panel)]/40 p-4">
+                  <label className="flex items-start gap-2">
+                    <input
+                      type="checkbox"
+                      checked={prefixEnabled}
+                      onChange={(e) => setPrefixEnabled(e.target.checked)}
+                      className="mt-0.5"
+                    />
+                    <span>
+                      <span className="text-xs font-medium">Enable for this workspace</span>
+                      <span className="block text-[10px] text-[var(--muted)]">
+                        When the current branch matches the pattern, the empty commit textarea
+                        starts with the rendered prefix and the cursor is placed at the end.
+                      </span>
+                    </span>
+                  </label>
+
+                  <label className="mt-4 block">
+                    <div className="mb-1 text-[11px] font-medium">Branch pattern</div>
+                    <input
+                      value={branchPattern}
+                      onChange={(e) => setBranchPattern(e.target.value)}
+                      placeholder="{type}/{id}-{rest}"
+                      className="w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 font-mono text-xs focus:outline-none"
+                    />
+                    <div className="mt-1 text-[10px] text-[var(--muted)]">
+                      Each <code className="font-mono">{`{name}`}</code> matches one segment;
+                      everything else (slashes, dashes) is literal. The last placeholder absorbs the
+                      rest of the branch.
+                    </div>
+                    {patternError && (
+                      <div className="mt-1 text-[10px] text-red-300">{patternError}</div>
+                    )}
+                  </label>
+
+                  <label className="mt-3 block">
+                    <div className="mb-1 text-[11px] font-medium">Template</div>
+                    <input
+                      value={template}
+                      onChange={(e) => setTemplate(e.target.value)}
+                      placeholder="{type} #{id} - "
+                      className="w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 font-mono text-xs focus:outline-none"
+                    />
+                    <div className="mt-1 text-[10px] text-[var(--muted)]">
+                      Reference the same placeholders. Trailing whitespace is preserved so you can
+                      end with <code className="font-mono">&quot; - &quot;</code>.
+                    </div>
+                  </label>
+
+                  <label className="mt-3 block">
+                    <div className="mb-1 text-[11px] font-medium">Test against a branch</div>
+                    <input
+                      value={sampleBranch}
+                      onChange={(e) => setSampleBranch(e.target.value)}
+                      placeholder="feat/4715-natixis-trend"
+                      className="w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 font-mono text-xs focus:outline-none"
+                    />
+                    <div className="mt-2 text-[10px] text-[var(--muted)]">Resulting prefix:</div>
+                    <div className="mt-1 rounded-md border border-[var(--border)] bg-[var(--background)] px-2 py-1.5 font-mono text-xs">
+                      {preview != null ? (
+                        <span>{preview}</span>
+                      ) : sampleBranch ? (
+                        <span className="text-[var(--muted)]">
+                          (branch doesn&apos;t match — no prefix)
+                        </span>
+                      ) : (
+                        <span className="text-[var(--muted)]">(enter a branch above)</span>
+                      )}
+                    </div>
+                  </label>
+                </div>
+              </section>
+
+              <div className="sticky bottom-0 -mx-6 flex items-center justify-end gap-2 border-t border-[var(--border)] bg-[var(--background)]/95 px-6 py-3 backdrop-blur">
+                {savedTick > 0 && !dirty && (
+                  <span className="text-[11px] text-emerald-400">Saved.</span>
+                )}
+                {error && (
+                  <span className="text-[11px] text-red-300">{error}</span>
+                )}
+                <button
+                  onClick={onSave}
+                  disabled={!dirty || saving}
+                  className="flex items-center gap-1 rounded-md bg-[var(--accent)] px-3 py-1.5 text-xs text-white hover:opacity-90 disabled:opacity-40"
+                >
+                  <Save className="h-3 w-3" /> {saving ? "Saving…" : "Save"}
+                </button>
+              </div>
             </div>
           )}
         </div>

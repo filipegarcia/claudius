@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, X } from "lucide-react";
+import { Plus, X, XSquare } from "lucide-react";
 import type { SessionInfo } from "@/lib/client/types";
 import { cn } from "@/lib/utils/cn";
 
@@ -18,13 +18,14 @@ type Props = {
   activeId: string | null;
   onSelect: (id: string) => void;
   onClose: (id: string) => void;
+  onCloseAll: () => void;
   onNew: () => void;
 };
 
-export function SessionTabs({ tabs, activeId, onSelect, onClose, onNew }: Props) {
-  if (tabs.length === 0) return null;
+export function SessionTabs({ tabs, activeId, onSelect, onClose, onCloseAll, onNew }: Props) {
   return (
-    <div className="flex h-8 shrink-0 items-stretch gap-px overflow-x-auto border-b border-[var(--border)] bg-[var(--panel)] scroll-thin">
+    <div className="flex h-8 shrink-0 items-stretch border-b border-[var(--border)] bg-[var(--panel)]">
+      <div className="flex flex-1 items-stretch gap-px overflow-x-auto scroll-thin">
       {tabs.map((t) => {
         const active = t.id === activeId;
         return (
@@ -79,6 +80,17 @@ export function SessionTabs({ tabs, activeId, onSelect, onClose, onNew }: Props)
       >
         <Plus className="h-3.5 w-3.5" />
       </button>
+      </div>
+      {tabs.length > 0 && (
+        <button
+          type="button"
+          onClick={onCloseAll}
+          title="Close all tabs"
+          className="flex w-8 shrink-0 items-center justify-center border-l border-[var(--border)] text-[var(--muted)] hover:bg-[var(--panel-2)]/60 hover:text-[var(--foreground)]"
+        >
+          <XSquare className="h-3.5 w-3.5" />
+        </button>
+      )}
     </div>
   );
 }
