@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Activity, AlertTriangle, Bot, Check, Loader2, Wrench } from "lucide-react";
+import { Activity, AlertTriangle, Bot, Check, Loader2, Plus, Wrench } from "lucide-react";
 import type { PermissionMode } from "@anthropic-ai/claude-agent-sdk";
 import type {
   AgentTodo,
@@ -20,6 +20,7 @@ import { ContextBar } from "./widgets/ContextBar";
 import { TokenMeter } from "./widgets/TokenMeter";
 import { PermissionPending } from "./widgets/PermissionPending";
 import { TodoList } from "./widgets/TodoList";
+import { AddTodosForm } from "./widgets/AddTodosForm";
 import { BackgroundBashes } from "./widgets/BackgroundBashes";
 import { RecentEdits } from "./widgets/RecentEdits";
 import { fmtMs } from "./widgets/format";
@@ -41,6 +42,12 @@ type Props = {
   toolHistory: ToolHistoryEntry[];
   /** Open the live-tail viewer for this bash. */
   onOpenBash?: (b: BackgroundBash) => void;
+  /**
+   * Ask the agent to append items to its TodoWrite list. The handler
+   * should compose a prompt and pipe it through useSession.send (which
+   * queues if a turn is in flight). Omitting this hides the `+` button.
+   */
+  onAddTodos?: (texts: string[]) => Promise<void> | void;
 };
 
 const TASK_TONES: Record<string, string> = {
@@ -84,8 +91,10 @@ export function BackgroundTasksPanel({
   backgroundBashes,
   toolHistory,
   onOpenBash,
+  onAddTodos,
 }: Props) {
   const [showCost, setShowCost] = useState(false);
+  const [addTodosOpen, setAddTodosOpen] = useState(false);
 
   const runningCount = toolHistory.filter((e) => !e.done).length;
   const visibleHistory = toolHistory.slice(0, 30);
@@ -127,9 +136,48 @@ export function BackgroundTasksPanel({
         {/* Active group — render only when there's something to show. */}
         <PermissionPending request={pendingPermission} />
 
-        {latestTodos.length > 0 && (
-          <CollapsibleSection storageKey="todos" label="To-dos" badge={`(${latestTodos.length})`}>
-            <TodoList todos={latestTodos} />
+        {(latestTodos.length > 0 || onAddTodos) && (
+          <CollapsibleSection
+            storageKey="todos"
+            label="To-dos"
+            badge={`(${latestTodos.length})`}
+            action={
+              onAddTodos ? (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setAddTodosOpen((v) => !v);
+                  }}
+                  data-testid="todos-add-button"
+                  aria-label="Add tasks"
+                  title="Add tasks (asks the agent to update its todo list)"
+                  className={cn(
+                    "flex h-4 w-4 items-center justify-center rounded text-[var(--muted)] hover:bg-[var(--panel-2)] hover:text-[var(--foreground)]",
+                    addTodosOpen && "bg-[var(--panel-2)] text-[var(--foreground)]",
+                  )}
+                >
+                  <Plus className="h-3 w-3" />
+                </button>
+              ) : null
+            }
+          >
+            {addTodosOpen && onAddTodos && (
+              <AddTodosForm
+                onSubmit={async (texts) => {
+                  await onAddTodos(texts);
+                  setAddTodosOpen(false);
+                }}
+                onCancel={() => setAddTodosOpen(false)}
+              />
+            )}
+            {latestTodos.length > 0 ? (
+              <TodoList todos={latestTodos} />
+            ) : !addTodosOpen ? (
+              <div className="px-1 py-1 text-[10px] text-[var(--muted)]">
+                No tasks yet. Click + to add.
+              </div>
+            ) : null}
           </CollapsibleSection>
         )}
 

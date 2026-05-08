@@ -1,0 +1,555 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Claudius — Claude Code in the browser</title>
+    <meta
+      name="description"
+      content="Claude Code in your browser. Chat, tool calls, MCP, plugins, hooks, sub-agents, scheduling, memory, sessions, cost — all running locally on your machine."
+    />
+    <link rel="icon" type="image/svg+xml" href="icon.svg" />
+    <link rel="apple-touch-icon" href="apple-icon.png" />
+    <meta name="theme-color" content="#d97757" />
+    <meta property="og:title" content="Claudius — Claude Code in the browser" />
+    <meta
+      property="og:description"
+      content="Chat, sub-agents, MCP, plugins, hooks, scheduling, memory, cost — local-first, in your browser."
+    />
+    <meta property="og:image" content="screenshots/chat.png" />
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              bg: "#0b0b0c",
+              fg: "#e7e7ea",
+              panel: "#131316",
+              panel2: "#1a1a1f",
+              line: "#2a2a31",
+              muted: "#9a9aa3",
+              accent: "#d97757",
+            },
+            fontFamily: {
+              sans: [
+                "ui-sans-serif",
+                "system-ui",
+                "-apple-system",
+                "Segoe UI",
+                "Inter",
+                "sans-serif",
+              ],
+              mono: [
+                "ui-monospace",
+                "SFMono-Regular",
+                "Menlo",
+                "Monaco",
+                "Consolas",
+                "monospace",
+              ],
+            },
+          },
+        },
+      };
+    </script>
+
+    <style>
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        background: #0b0b0c;
+        color: #e7e7ea;
+        font-feature-settings: "ss01", "cv11";
+      }
+      .grain::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        opacity: 0.04;
+        background-image:
+          radial-gradient(#fff 1px, transparent 1px),
+          radial-gradient(#fff 1px, transparent 1px);
+        background-size: 3px 3px, 7px 7px;
+        background-position: 0 0, 1px 2px;
+      }
+      .glow {
+        background:
+          radial-gradient(60% 50% at 50% 0%, rgba(217, 119, 87, 0.18), transparent 70%),
+          radial-gradient(40% 40% at 80% 30%, rgba(139, 155, 255, 0.10), transparent 70%);
+      }
+      .shot {
+        background: #0b0b0c;
+      }
+      .shot img {
+        display: block;
+      }
+    </style>
+  </head>
+
+  <body class="font-sans antialiased">
+    <!-- ────────────────────────────── Top bar ────────────────────────────── -->
+    <header class="sticky top-0 z-30 border-b border-line/60 backdrop-blur bg-bg/70">
+      <div class="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
+        <a href="#top" class="flex items-center gap-2 group">
+          <img src="claudius.svg" alt="" class="h-6 w-6" />
+          <span class="font-mono text-sm tracking-tight text-fg/90 group-hover:text-fg">claudius</span>
+        </a>
+        <nav class="flex items-center gap-6 text-sm text-muted">
+          <a href="#features" class="hover:text-fg">Features</a>
+          <a href="#gallery" class="hover:text-fg">Screenshots</a>
+          <a
+            href="https://gitlab.com/filipegarcia/claudius"
+            class="hover:text-fg inline-flex items-center gap-1.5"
+          >
+            <span>Repo</span>
+            <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M7 17L17 7M17 7H8M17 7V16" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </a>
+        </nav>
+      </div>
+    </header>
+
+    <!-- ────────────────────────────── Hero ────────────────────────────── -->
+    <section id="top" class="relative overflow-hidden grain">
+      <div class="absolute inset-0 glow"></div>
+      <div class="relative max-w-6xl mx-auto px-6 pt-20 pb-24 text-center">
+        <div class="relative mx-auto mb-8 h-28 w-28">
+          <!-- Warm halo: a blurred radial wash sitting behind the bust so
+               the inverted linework doesn't read as a stark white sticker. -->
+          <div
+            class="absolute inset-0 -m-8 rounded-full bg-[radial-gradient(circle_at_center,rgba(217,119,87,0.35),rgba(217,119,87,0.10)_40%,transparent_70%)] blur-2xl"
+            aria-hidden="true"
+          ></div>
+          <img
+            src="claudius.svg"
+            alt="Claudius logo"
+            class="relative h-full w-full [filter:invert(1)_brightness(0.55)_drop-shadow(0_0_18px_rgba(217,119,87,0.45))_drop-shadow(0_0_50px_rgba(217,119,87,0.20))]"
+          />
+        </div>
+
+        <!-- Pseudo-imperial Latin flourish. Hover for the (loose) translation. -->
+        <blockquote
+          class="mb-10 font-mono text-[13px] leading-7 text-muted italic max-w-xl mx-auto cursor-help"
+          title="Hail Claudius, those about to code salute you. What the terminal closes, the browser opens. Come, see, refactor."
+        >
+          <span class="text-fg/80">“Ave Claudi, codicem morituri te salutant.</span><br />
+          Quod terminus claudit, fenestra aperit.<br />
+          Veni, vide, refactora.”
+        </blockquote>
+
+        <h1 class="text-5xl md:text-6xl font-semibold tracking-tight">
+          Claude Code<sup class="text-[0.32em] font-normal ml-1 align-super">
+            <a
+              href="#legal"
+              class="text-muted hover:text-accent transition-colors"
+              title="Claude Code® — see trademark notice"
+              aria-label="View trademark and legal notice"
+              >®</a
+            >
+          </sup>, <span class="text-accent">in the browser</span>.
+        </h1>
+        <p class="mt-6 text-lg md:text-xl text-muted max-w-2xl mx-auto leading-relaxed">
+          Chat, tool calls, MCP, plugins, hooks, sub-agents, scheduling,
+          memory, cost — every Claude Code surface, on the web. Runs on
+          your machine. Your sessions stay yours.
+        </p>
+        <div class="mt-10 flex items-center justify-center gap-3">
+          <a
+            href="https://gitlab.com/filipegarcia/claudius"
+            class="inline-flex items-center gap-2 rounded-md bg-accent px-5 py-2.5 text-sm font-medium text-bg hover:brightness-110 transition"
+          >
+            Get started
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M5 12h14M13 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </a>
+          <a
+            href="#gallery"
+            class="inline-flex items-center gap-2 rounded-md border border-line bg-panel px-5 py-2.5 text-sm font-medium text-fg hover:bg-panel2 transition"
+          >
+            See it in action
+          </a>
+        </div>
+        <p class="mt-8 font-mono text-xs text-muted/80">
+          <span class="text-accent">$</span> open http://localhost:3000 — fiat codex.
+        </p>
+      </div>
+    </section>
+
+    <!-- ────────────────────────────── Features ────────────────────────────── -->
+    <section id="features" class="border-t border-line/60">
+      <div class="max-w-6xl mx-auto px-6 py-20">
+        <div class="max-w-2xl">
+          <p class="font-mono text-xs uppercase tracking-widest text-accent">What's inside</p>
+          <h2 class="mt-2 text-3xl md:text-4xl font-semibold tracking-tight">
+            Every Claude Code surface, on the web.
+          </h2>
+          <p class="mt-4 text-muted leading-relaxed">
+            Claudius mirrors the TUI's session model and adds the views that
+            only make sense with a real screen: cost dashboards, file trees,
+            git operations, multi-workspace switching.
+          </p>
+        </div>
+
+        <div class="mt-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-px bg-line/60 border border-line/60 rounded-lg overflow-hidden">
+          <!-- card -->
+          <div class="bg-panel p-6">
+            <div class="font-mono text-xs text-accent">01 · chat</div>
+            <h3 class="mt-2 text-lg font-medium">Full agent chat</h3>
+            <p class="mt-2 text-sm text-muted leading-relaxed">
+              Streaming responses, tool calls, permissions UX, todos banner,
+              AskUserQuestion forms, interrupt — the lot.
+            </p>
+          </div>
+          <div class="bg-panel p-6">
+            <div class="font-mono text-xs text-accent">02 · workspaces</div>
+            <h3 class="mt-2 text-lg font-medium">Multiple workspaces</h3>
+            <p class="mt-2 text-sm text-muted leading-relaxed">
+              Switch project context without losing sessions, schedules, or
+              MCP config. Each workspace has its own SQLite store.
+            </p>
+          </div>
+          <div class="bg-panel p-6">
+            <div class="font-mono text-xs text-accent">03 · sub-agents</div>
+            <h3 class="mt-2 text-lg font-medium">Sub-agents</h3>
+            <p class="mt-2 text-sm text-muted leading-relaxed">
+              Define specialized agents with their own system prompts,
+              models, and tool sets. Launch them from chat.
+            </p>
+          </div>
+          <div class="bg-panel p-6">
+            <div class="font-mono text-xs text-accent">04 · mcp + plugins</div>
+            <h3 class="mt-2 text-lg font-medium">MCP &amp; plugins</h3>
+            <p class="mt-2 text-sm text-muted leading-relaxed">
+              First-class Model Context Protocol support and a plugin system
+              for extending the agent's tool surface.
+            </p>
+          </div>
+          <div class="bg-panel p-6">
+            <div class="font-mono text-xs text-accent">05 · hooks</div>
+            <h3 class="mt-2 text-lg font-medium">Lifecycle hooks</h3>
+            <p class="mt-2 text-sm text-muted leading-relaxed">
+              Run commands at any agent lifecycle event — pre-tool, post-tool,
+              session start, stop. Configurable per workspace.
+            </p>
+          </div>
+          <div class="bg-panel p-6">
+            <div class="font-mono text-xs text-accent">06 · schedule</div>
+            <h3 class="mt-2 text-lg font-medium">Scheduled agents</h3>
+            <p class="mt-2 text-sm text-muted leading-relaxed">
+              Cron-driven agent runs. Wake up at 9am, check the deploy,
+              file a ticket — without you having to be there.
+            </p>
+          </div>
+          <div class="bg-panel p-6">
+            <div class="font-mono text-xs text-accent">07 · cost</div>
+            <h3 class="mt-2 text-lg font-medium">Cost &amp; usage</h3>
+            <p class="mt-2 text-sm text-muted leading-relaxed">
+              Per-session, per-model, per-day spend. See where the tokens go
+              before the bill arrives.
+            </p>
+          </div>
+          <div class="bg-panel p-6">
+            <div class="font-mono text-xs text-accent">08 · git + files</div>
+            <h3 class="mt-2 text-lg font-medium">Git &amp; file tree</h3>
+            <p class="mt-2 text-sm text-muted leading-relaxed">
+              In-app file browser and git operations: stage, diff, commit,
+              with AI-drafted commit messages.
+            </p>
+          </div>
+          <div class="bg-panel p-6">
+            <div class="font-mono text-xs text-accent">09 · local-first</div>
+            <h3 class="mt-2 text-lg font-medium">Local-first storage</h3>
+            <p class="mt-2 text-sm text-muted leading-relaxed">
+              Sessions, schedules, assets — all persisted on your machine.
+              No cloud lock-in, no SaaS account required.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ────────────────────────────── Gallery ────────────────────────────── -->
+    <section id="gallery" class="border-t border-line/60 bg-panel/30">
+      <div class="max-w-6xl mx-auto px-6 py-20">
+        <div class="max-w-2xl">
+          <p class="font-mono text-xs uppercase tracking-widest text-accent">Screenshots</p>
+          <h2 class="mt-2 text-3xl md:text-4xl font-semibold tracking-tight">
+            See it in action.
+          </h2>
+          <p class="mt-4 text-muted leading-relaxed">
+            Live shots from a running Claudius instance — captured by the
+            Playwright suite. Run <code class="font-mono text-fg bg-panel2 px-1.5 py-0.5 rounded text-sm">make screenshots</code>
+            to refresh.
+          </p>
+        </div>
+
+        <div class="mt-12 grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- 1 chat -->
+          <figure class="shot group rounded-lg border border-line overflow-hidden cursor-zoom-in hover:border-accent/70 transition-colors" role="button" tabindex="0">
+            <img
+              src="screenshots/chat.png"
+              alt="Chat surface"
+              loading="lazy"
+              onerror="this.onerror=null;this.src='screenshots/_placeholder.svg'"
+            />
+            <figcaption class="px-5 py-4 border-t border-line">
+              <div class="font-mono text-xs text-accent">/</div>
+              <div class="text-sm text-fg">Just talk. Claude streams its replies in real time, calls tools as it goes, and asks before doing anything risky.</div>
+            </figcaption>
+          </figure>
+
+          <!-- 2 todos -->
+          <figure class="shot group rounded-lg border border-line overflow-hidden cursor-zoom-in hover:border-accent/70 transition-colors" role="button" tabindex="0">
+            <img
+              src="screenshots/todos.png"
+              alt="Todos banner"
+              loading="lazy"
+              onerror="this.onerror=null;this.src='screenshots/_placeholder.svg'"
+            />
+            <figcaption class="px-5 py-4 border-t border-line">
+              <div class="font-mono text-xs text-accent">/ · todos</div>
+              <div class="text-sm text-fg">Keep an eye on open tasks. When the agent picks up a multi-step plan, the banner shows what's done, what's next, and what's still pending.</div>
+            </figcaption>
+          </figure>
+
+          <!-- 3 ask user question -->
+          <figure class="shot group rounded-lg border border-line overflow-hidden cursor-zoom-in hover:border-accent/70 transition-colors" role="button" tabindex="0">
+            <img
+              src="screenshots/ask-user-question.png"
+              alt="AskUserQuestion form"
+              loading="lazy"
+              onerror="this.onerror=null;this.src='screenshots/_placeholder.svg'"
+            />
+            <figcaption class="px-5 py-4 border-t border-line">
+              <div class="font-mono text-xs text-accent">/ · ask</div>
+              <div class="text-sm text-fg">When Claude needs a decision from you, it asks — with proper options. You pick, and it carries on.</div>
+            </figcaption>
+          </figure>
+
+          <!-- 4 sessions -->
+          <figure class="shot group rounded-lg border border-line overflow-hidden cursor-zoom-in hover:border-accent/70 transition-colors" role="button" tabindex="0">
+            <img
+              src="screenshots/sessions.png"
+              alt="Sessions history"
+              loading="lazy"
+              onerror="this.onerror=null;this.src='screenshots/_placeholder.svg'"
+            />
+            <figcaption class="px-5 py-4 border-t border-line">
+              <div class="font-mono text-xs text-accent">/sessions</div>
+              <div class="text-sm text-fg">Every chat is kept. Pick up something from yesterday, search across last month, or start fresh — your call.</div>
+            </figcaption>
+          </figure>
+
+          <!-- 5 skills -->
+          <figure class="shot group rounded-lg border border-line overflow-hidden cursor-zoom-in hover:border-accent/70 transition-colors" role="button" tabindex="0">
+            <img
+              src="screenshots/skills.png"
+              alt="Skills editor"
+              loading="lazy"
+              onerror="this.onerror=null;this.src='screenshots/_placeholder.svg'"
+            />
+            <figcaption class="px-5 py-4 border-t border-line">
+              <div class="font-mono text-xs text-accent">/skills</div>
+              <div class="text-sm text-fg">Teach Claude tricks for your project. Skills are short, opinionated playbooks Claude can call up when the moment is right — write them once, reuse forever.</div>
+            </figcaption>
+          </figure>
+
+          <!-- 6 agents -->
+          <figure class="shot group rounded-lg border border-line overflow-hidden cursor-zoom-in hover:border-accent/70 transition-colors" role="button" tabindex="0">
+            <img
+              src="screenshots/agents.png"
+              alt="Sub-agents config"
+              loading="lazy"
+              onerror="this.onerror=null;this.src='screenshots/_placeholder.svg'"
+            />
+            <figcaption class="px-5 py-4 border-t border-line">
+              <div class="font-mono text-xs text-accent">/agents</div>
+              <div class="text-sm text-fg">Build little specialists. A reviewer, a planner, a debugger — each with their own brief, and Claude knows when to call them in.</div>
+            </figcaption>
+          </figure>
+
+          <!-- 6 mcp -->
+          <figure class="shot group rounded-lg border border-line overflow-hidden cursor-zoom-in hover:border-accent/70 transition-colors" role="button" tabindex="0">
+            <img
+              src="screenshots/mcp.png"
+              alt="MCP servers"
+              loading="lazy"
+              onerror="this.onerror=null;this.src='screenshots/_placeholder.svg'"
+            />
+            <figcaption class="px-5 py-4 border-t border-line">
+              <div class="font-mono text-xs text-accent">/mcp</div>
+              <div class="text-sm text-fg">Plug in tools. Drop in your favorite MCP servers, see them light up green when they connect, and Claude starts using them.</div>
+            </figcaption>
+          </figure>
+
+          <!-- 7 cost -->
+          <figure class="shot group rounded-lg border border-line overflow-hidden cursor-zoom-in hover:border-accent/70 transition-colors" role="button" tabindex="0">
+            <img
+              src="screenshots/cost.png"
+              alt="Cost dashboard"
+              loading="lazy"
+              onerror="this.onerror=null;this.src='screenshots/_placeholder.svg'"
+            />
+            <figcaption class="px-5 py-4 border-t border-line">
+              <div class="font-mono text-xs text-accent">/cost</div>
+              <div class="text-sm text-fg">Know what you're spending. Per session, per model, per day — long before the bill arrives.</div>
+            </figcaption>
+          </figure>
+
+          <!-- 8 git -->
+          <figure class="shot group rounded-lg border border-line overflow-hidden cursor-zoom-in hover:border-accent/70 transition-colors" role="button" tabindex="0">
+            <img
+              src="screenshots/git.png"
+              alt="Git view"
+              loading="lazy"
+              onerror="this.onerror=null;this.src='screenshots/_placeholder.svg'"
+            />
+            <figcaption class="px-5 py-4 border-t border-line">
+              <div class="font-mono text-xs text-accent">/git</div>
+              <div class="text-sm text-fg">Stage, diff, commit — without leaving the page. Stuck on what to write? Claude will draft the commit message for you.</div>
+            </figcaption>
+          </figure>
+
+          <!-- 9 files -->
+          <figure class="shot group rounded-lg border border-line overflow-hidden cursor-zoom-in hover:border-accent/70 transition-colors" role="button" tabindex="0">
+            <img
+              src="screenshots/files.png"
+              alt="File browser"
+              loading="lazy"
+              onerror="this.onerror=null;this.src='screenshots/_placeholder.svg'"
+            />
+            <figcaption class="px-5 py-4 border-t border-line">
+              <div class="font-mono text-xs text-accent">/files</div>
+              <div class="text-sm text-fg">Browse the project Claude is working in. Same tree it sees, with quick previews — handy when you want to double-check.</div>
+            </figcaption>
+          </figure>
+
+          <!-- 10 workspace -->
+          <figure class="shot group rounded-lg border border-line overflow-hidden cursor-zoom-in hover:border-accent/70 transition-colors" role="button" tabindex="0">
+            <img
+              src="screenshots/workspace.png"
+              alt="Workspace switcher"
+              loading="lazy"
+              onerror="this.onerror=null;this.src='screenshots/_placeholder.svg'"
+            />
+            <figcaption class="px-5 py-4 border-t border-line">
+              <div class="font-mono text-xs text-accent">/workspace</div>
+              <div class="text-sm text-fg">One Claudius, many projects. Switch — and your sessions, schedules, and settings follow you in.</div>
+            </figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <!-- ────────────────────────────── Footer ────────────────────────────── -->
+    <footer class="border-t border-line/60">
+      <div class="max-w-6xl mx-auto px-6 py-12 flex flex-col gap-8">
+        <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 text-sm text-muted">
+          <div class="flex items-center gap-3">
+            <img src="claudius.svg" alt="" class="h-5 w-5 invert opacity-60" />
+            <span class="font-mono">claudius</span>
+            <span>· Claude Code in the browser</span>
+          </div>
+          <div class="flex items-center gap-6">
+            <a class="hover:text-fg" href="https://gitlab.com/filipegarcia/claudius">Source</a>
+            <a class="hover:text-fg" href="https://docs.claude.com/en/docs/claude-code">Claude Code</a>
+            <span class="font-mono text-xs italic text-muted/70">requiescat in pace, terminale</span>
+          </div>
+        </div>
+
+        <!-- Trademark + non-affiliation notice. -->
+        <div
+          id="legal"
+          class="border-t border-line/40 pt-6 text-xs text-muted/70 leading-relaxed max-w-3xl scroll-mt-20"
+        >
+          <p>
+            <strong class="font-medium text-muted">Claude</strong>® and
+            <strong class="font-medium text-muted">Claude Code</strong>® are
+            registered trademarks of Anthropic, PBC. All other product names,
+            logos, and brands are property of their respective owners.
+          </p>
+          <p class="mt-2">
+            Claudius is an independent, open-source project. It is not
+            affiliated with, sponsored by, or endorsed by Anthropic, PBC.
+            Use of Anthropic's trademarks here is purely descriptive and
+            does not imply any partnership or endorsement.
+          </p>
+        </div>
+      </div>
+    </footer>
+
+    <!-- ────────────────────────────── Lightbox ────────────────────────────── -->
+    <dialog
+      id="lightbox"
+      class="bg-transparent p-0 m-auto max-w-none max-h-none w-full h-full backdrop:bg-black/80 backdrop:backdrop-blur-sm"
+    >
+      <div class="absolute inset-0 grid place-items-center p-4 sm:p-8">
+        <figure class="relative max-w-[94vw] max-h-[94vh] flex flex-col items-center gap-3">
+          <img
+            id="lightbox-img"
+            alt=""
+            class="block max-w-full max-h-[84vh] rounded-lg border border-line shadow-[0_30px_80px_-20px_rgba(0,0,0,0.8)]"
+          />
+          <figcaption
+            id="lightbox-caption"
+            class="text-center text-sm text-muted max-w-2xl px-4"
+          ></figcaption>
+          <button
+            id="lightbox-close"
+            type="button"
+            class="absolute -top-3 -right-3 h-9 w-9 grid place-items-center rounded-full bg-panel border border-line text-fg hover:bg-panel2 transition shadow-lg"
+            aria-label="Close"
+          >
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M6 6l12 12M18 6L6 18" stroke-linecap="round" />
+            </svg>
+          </button>
+        </figure>
+      </div>
+    </dialog>
+
+    <script>
+      (() => {
+        const dialog = document.getElementById("lightbox");
+        const img = document.getElementById("lightbox-img");
+        const cap = document.getElementById("lightbox-caption");
+        const closeBtn = document.getElementById("lightbox-close");
+
+        const open = (figure) => {
+          const sourceImg = figure.querySelector("img");
+          const figCap = figure.querySelector("figcaption");
+          if (!sourceImg) return;
+          img.src = sourceImg.src;
+          img.alt = sourceImg.alt || "";
+          cap.textContent = figCap ? figCap.innerText.replace(/\s+/g, " ").trim() : "";
+          dialog.showModal();
+        };
+
+        document.querySelectorAll("figure.shot").forEach((figure) => {
+          figure.addEventListener("click", () => open(figure));
+          figure.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              open(figure);
+            }
+          });
+        });
+
+        // Click on the dialog backdrop closes — the inner <figure> handles its
+        // own clicks, so an event reaching the dialog itself means the user
+        // clicked outside the image.
+        dialog.addEventListener("click", (e) => {
+          if (e.target === dialog) dialog.close();
+        });
+
+        closeBtn.addEventListener("click", () => dialog.close());
+      })();
+    </script>
+  </body>
+</html>

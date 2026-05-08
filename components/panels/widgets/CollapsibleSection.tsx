@@ -10,11 +10,17 @@ type Props = {
   label: string;
   /** Optional small badge after the label (e.g. count). */
   badge?: React.ReactNode;
+  /**
+   * Optional element rendered at the right edge of the header row, OUTSIDE
+   * the collapse-toggle button (so it can be its own clickable target — e.g.
+   * a `+` to add an item without toggling the section).
+   */
+  action?: React.ReactNode;
   defaultCollapsed?: boolean;
   children: React.ReactNode;
 };
 
-export function CollapsibleSection({ storageKey, label, badge, defaultCollapsed = false, children }: Props) {
+export function CollapsibleSection({ storageKey, label, badge, action, defaultCollapsed = false, children }: Props) {
   const fullKey = `claudius.activity.${storageKey}.collapsed`;
   const [collapsed, setCollapsed] = useState<boolean>(defaultCollapsed);
 
@@ -46,15 +52,18 @@ export function CollapsibleSection({ storageKey, label, badge, defaultCollapsed 
 
   return (
     <div className="mb-3">
-      <button
-        type="button"
-        onClick={toggle}
-        className="flex w-full items-center gap-1 px-1 pb-1 text-[10px] uppercase tracking-wide text-[var(--muted)] hover:text-[var(--foreground)]"
-      >
-        {collapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-        <span>{label}</span>
-        {badge != null && <span className="ml-1 normal-case tracking-normal">{badge}</span>}
-      </button>
+      <div className="flex items-center gap-1 pb-1 text-[10px] uppercase tracking-wide text-[var(--muted)]">
+        <button
+          type="button"
+          onClick={toggle}
+          className="flex flex-1 items-center gap-1 px-1 hover:text-[var(--foreground)]"
+        >
+          {collapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+          <span>{label}</span>
+          {badge != null && <span className="ml-1 normal-case tracking-normal">{badge}</span>}
+        </button>
+        {action && <div className="flex shrink-0 items-center pr-1">{action}</div>}
+      </div>
       <div className={cn(collapsed && "hidden")}>{children}</div>
     </div>
   );

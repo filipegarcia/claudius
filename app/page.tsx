@@ -55,6 +55,11 @@ export default function Home() {
   const [rewindingUuid, setRewindingUuid] = useState<string | null>(null);
   const [overlay, setOverlay] = useState<OverlayKind>(null);
   const [toast, setToast] = useState<string | null>(null);
+  // Tracks when the user has hidden the AskUserQuestion modal without
+  // answering — keyed by requestId so a fresh question pops up again.
+  // The modal renders only when there is a pendingAsk AND its requestId
+  // is not the one we just minimized.
+  const [askMinimizedFor, setAskMinimizedFor] = useState<string | null>(null);
   const ctxSummary = useContextWatcher(session.sessionId, session.pending);
   const [draftInjection, setDraftInjection] = useState<
     { token: number; text: string; images?: AttachedImage[] } | undefined
@@ -140,6 +145,10 @@ export default function Home() {
   // first render's empty array would PUT-and-clobber the saved list before
   // the GET comes back. See the hydration-race note in the migration file.
   const [tabsHydrated, setTabsHydrated] = useState(false);
+  // Persisted max-width applied to every tab label. Hydrated alongside the
+  // tab list. `null` until the first fetch resolves so SessionTabs uses its
+  // built-in default rather than flashing 0.
+  const [tabLabelMaxWidth, setTabLabelMaxWidth] = useState<number | null>(null);
   // Hydrate once on mount.
   useEffect(() => {
     let cancelled = false;
@@ -147,7 +156,7 @@ export default function Home() {
       try {
         const res = await fetch("/api/sessions/open-tabs");
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = (await res.json()) as { tabs?: unknown };
+        const data = (await res.json()) as { tabs?: unknown; labelMaxWidth?: unknown };
         if (cancelled) return;
         const saved = Array.isArray(data.tabs)
           ? (data.tabs.filter((x) => typeof x === "string") as string[])
@@ -160,6 +169,9 @@ export default function Home() {
           for (const id of prev) if (!merged.includes(id)) merged.push(id);
           return merged;
         });
+        if (typeof data.labelMaxWidth === "number" && Number.isFinite(data.labelMaxWidth)) {
+          setTabLabelMaxWidth(data.labelMaxWidth);
+        }
       } catch {
         // Network/parse failure — fall through with whatever the auto-add
         // effect put in place. Persistence stays gated until we mark
@@ -171,6 +183,17 @@ export default function Home() {
     return () => {
       cancelled = true;
     };
+  }, []);
+
+  const onTabLabelWidthChange = useCallback((width: number) => {
+    setTabLabelMaxWidth(width);
+    void fetch("/api/sessions/open-tabs", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ labelMaxWidth: width }),
+    }).catch(() => {
+      // Best-effort — next reload falls back to default if the save failed.
+    });
   }, []);
   // Persist on change. Skip until hydrated so the boot-time empty state
   // can't clobber the saved list before we've read it.
@@ -269,6 +292,27 @@ export default function Home() {
       if (!ok) return;
       setHighlightUuid(hit.messageUuid);
       setTimeout(() => setHighlightUuid((prev) => (prev === hit.messageUuid ? null : prev)), 1500);
+    },
+    [session],
+  );
+
+  // "+" button in the Activity rail's To-dos section asks the agent to
+  // append new TodoWrite items, preserving existing ones. Goes through
+  // session.send so an in-flight turn just queues the request.
+  const onAddTodos = useCallback(
+    async (texts: string[]) => {
+      const cleaned = texts.map((t) => t.trim()).filter(Boolean);
+      if (cleaned.length === 0) return;
+      const bullets = cleaned.map((t) => `- ${t}`).join("\n");
+      const prompt = [
+        "Use the TodoWrite tool to APPEND these item(s) to your current todo list.",
+        "Preserve every existing item unchanged. New items have status `pending`.",
+        "Do not run any other tool and do not write any text in your reply.",
+        "",
+        "Items to add:",
+        bullets,
+      ].join("\n");
+      await session.send(prompt);
     },
     [session],
   );
@@ -626,6 +670,8 @@ export default function Home() {
           onClose={closeTab}
           onCloseAll={closeAllTabs}
           onNew={() => void session.createNewSession()}
+          labelMaxWidth={tabLabelMaxWidth ?? undefined}
+          onLabelWidthChange={onTabLabelWidthChange}
         />
         {openTabs.length === 0 ? (
           <div className="flex flex-1 items-center justify-center text-center">
@@ -721,6 +767,7 @@ export default function Home() {
             loadingOlder={session.loadingOlder}
             onLoadOlder={session.loadOlder}
             highlightUuid={highlightUuid}
+            onPickExample={handleSend}
           />
           {session.errors.length > 0 && (
             <div className="mx-auto w-full max-w-3xl px-4 pb-2">
@@ -757,6 +804,24 @@ export default function Home() {
               onOverride={onOverride}
             />
           )}
+          {session.pendingAsk && askMinimizedFor === session.pendingAsk.requestId && (
+            <div className="mx-auto flex w-full max-w-3xl items-center gap-2 px-4 pb-2">
+              <button
+                type="button"
+                onClick={() => setAskMinimizedFor(null)}
+                className="flex w-full items-center gap-2 rounded-md border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-2 text-left text-xs text-[var(--foreground)] hover:bg-[var(--accent)]/15"
+              >
+                <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-[var(--accent)]" />
+                <span className="font-medium">Question pending</span>
+                <span className="truncate text-[var(--muted)]">
+                  {session.pendingAsk.questions[0]?.question ?? "Awaiting your answer"}
+                </span>
+                <span className="ml-auto shrink-0 rounded border border-[var(--border)] bg-[var(--panel-2)] px-1.5 py-0.5 text-[10px] text-[var(--muted)]">
+                  Click to answer
+                </span>
+              </button>
+            </div>
+          )}
           <PromptInput
             ready={session.ready}
             pending={session.pending}
@@ -787,6 +852,7 @@ export default function Home() {
         backgroundBashes={session.backgroundBashes}
         toolHistory={session.toolHistory}
         onOpenBash={setOpenBash}
+        onAddTodos={onAddTodos}
       />
 
       {liveOpenBash && (
@@ -871,7 +937,7 @@ export default function Home() {
         />
       )}
 
-      {session.pendingAsk && (
+      {session.pendingAsk && askMinimizedFor !== session.pendingAsk.requestId && (
         <AskUserQuestionPrompt
           request={session.pendingAsk}
           onSubmit={(answers) =>
@@ -882,6 +948,7 @@ export default function Home() {
             // doesn't hang. The model treats this as the user declining.
             session.submitAskAnswer(session.pendingAsk!.requestId, [])
           }
+          onMinimize={() => setAskMinimizedFor(session.pendingAsk!.requestId)}
         />
       )}
 

@@ -27,7 +27,19 @@ type Props = {
   onLoadOlder?: () => void;
   /** When set, scroll that message into view and briefly pulse it. */
   highlightUuid?: string | null;
+  /**
+   * Splash-screen example pills become clickable when this is provided —
+   * clicking sends the example string straight to the prompt pipeline.
+   */
+  onPickExample?: (prompt: string) => void;
 };
+
+const SPLASH_EXAMPLES = [
+  "Check for security vulnerabilities in the latest git commit",
+  "Improve test coverage",
+  "Find TODO comments in the codebase",
+  "Find performance bottlenecks and suggest fixes",
+];
 
 const NEAR_BOTTOM_PX = 80;
 
@@ -44,6 +56,7 @@ export function MessageList({
   loadingOlder = false,
   onLoadOlder,
   highlightUuid = null,
+  onPickExample,
 }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const topSentinelRef = useRef<HTMLDivElement>(null);
@@ -181,18 +194,22 @@ export function MessageList({
           A web interface for Claude Code. Type a prompt to start a session.
         </p>
         <div className="grid grid-cols-1 gap-2 text-left text-sm sm:grid-cols-2">
-          {[
-            "What's in this directory?",
-            "Read package.json and tell me about the project",
-            "Make a hello world Python script",
-            "Find TODO comments in the codebase",
-          ].map((s) => (
-            <div
+          {SPLASH_EXAMPLES.map((s) => (
+            <button
               key={s}
-              className="rounded-lg border border-[var(--border)] bg-[var(--panel)]/40 px-3 py-2 text-[var(--muted)]"
+              type="button"
+              onClick={onPickExample ? () => onPickExample(s) : undefined}
+              disabled={!onPickExample}
+              title={onPickExample ? "Send as prompt" : undefined}
+              className={cn(
+                "rounded-lg border border-[var(--border)] bg-[var(--panel)]/40 px-3 py-2 text-left text-[var(--muted)] transition",
+                onPickExample
+                  ? "cursor-pointer hover:border-[var(--accent)]/60 hover:bg-[var(--panel-2)]/60 hover:text-[var(--foreground)]"
+                  : "cursor-default",
+              )}
             >
               {s}
-            </div>
+            </button>
           ))}
         </div>
         {top.length > 0 && (

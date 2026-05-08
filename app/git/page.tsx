@@ -10,6 +10,9 @@ import {
   Minus,
   Undo2,
   AlertTriangle,
+  ArrowDownToLine,
+  ArrowUpFromLine,
+  CloudDownload,
 } from "lucide-react";
 import { SideNav } from "@/components/nav/SideNav";
 import { ChangesList, type DiffSelection, type GroupKey } from "@/components/git/ChangesList";
@@ -47,15 +50,11 @@ export default function GitPage() {
   // mount (or on workspace switch) and threaded into CommitBox so the
   // generated message survives leaving and coming back.
   const [draftMessage, setDraftMessage] = useState<string>("");
-  // Synchronously reset the draft when the workspace switches — React 19
-  // "set state during render" pattern, gated on workspace identity.
-  const [draftFor, setDraftFor] = useState<string | null>(wsId);
-  if (draftFor !== wsId) {
-    setDraftFor(wsId);
-    setDraftMessage("");
-  }
   useEffect(() => {
-    if (!wsId) return;
+    if (!wsId) {
+      setDraftMessage("");
+      return;
+    }
     let cancelled = false;
     (async () => {
       try {
@@ -169,6 +168,37 @@ export default function GitPage() {
     setCollapsedGroups((prev) => ({ ...prev, [g]: !prev[g] }));
   }, []);
 
+  async function runRemote(op: "fetch" | "pull" | "push") {
+    if (!wsId) return;
+    if (op === "push") {
+      const ahead = data?.ahead ?? 0;
+      const target = branchLabel ?? "current branch";
+      const detail = ahead > 0 ? ` (${ahead} commit${ahead === 1 ? "" : "s"} ahead)` : "";
+      if (!confirm(`Push ${target}${detail} to remote?`)) return;
+    } else if (op === "pull") {
+      const target = branchLabel ?? "current branch";
+      if (!confirm(`Pull --ff-only into ${target}? This aborts on non-fast-forward.`)) return;
+    }
+    setBusy(op);
+    setOpError(null);
+    try {
+      const res = await fetch(`/api/workspaces/${wsId}/git/remote`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ op }),
+      });
+      if (!res.ok) {
+        const j = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(j.error ?? `HTTP ${res.status}`);
+      }
+      await refresh();
+    } catch (err) {
+      setOpError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(null);
+    }
+  }
+
   async function runStage(op: "stage" | "unstage" | "discard") {
     if (!wsId) return;
     const paths = Array.from(checked);
@@ -251,10 +281,10 @@ export default function GitPage() {
     return null;
   }, [data]);
 
-  const commitPrefix = useMemo(() => {
-    if (!data?.isRepo) return null;
-    return renderCommitPrefix(data.branch ?? null, active?.commitPrefix);
-  }, [data, active?.commitPrefix]);
+  // Cheap pure call — no useMemo needed, React Compiler memoizes downstream.
+  const commitPrefix = data?.isRepo
+    ? renderCommitPrefix(data.branch ?? null, active?.commitPrefix)
+    : null;
 
   const aheadBehind = useMemo(() => {
     if (!data || !data.isRepo) return null;
@@ -288,6 +318,37 @@ export default function GitPage() {
             </span>
           )}
           <div className="ml-auto flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => void runRemote("fetch")}
+              disabled={!wsId || busy != null || !data?.isRepo}
+              title="git fetch --all --prune"
+              className="flex h-6 items-center gap-1 rounded px-1.5 text-[var(--muted)] hover:bg-[var(--panel-2)] hover:text-[var(--foreground)] disabled:opacity-40"
+            >
+              <CloudDownload className="h-3 w-3" />
+              <span className="text-[11px]">{busy === "fetch" ? "Fetching…" : "Fetch"}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => void runRemote("pull")}
+              disabled={!wsId || busy != null || !data?.isRepo}
+              title="git pull --ff-only"
+              className="flex h-6 items-center gap-1 rounded px-1.5 text-[var(--muted)] hover:bg-[var(--panel-2)] hover:text-[var(--foreground)] disabled:opacity-40"
+            >
+              <ArrowDownToLine className="h-3 w-3" />
+              <span className="text-[11px]">{busy === "pull" ? "Pulling…" : "Pull"}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => void runRemote("push")}
+              disabled={!wsId || busy != null || !data?.isRepo}
+              title="git push (auto-set-upstream when needed)"
+              className="flex h-6 items-center gap-1 rounded px-1.5 text-[var(--muted)] hover:bg-[var(--panel-2)] hover:text-[var(--foreground)] disabled:opacity-40"
+            >
+              <ArrowUpFromLine className="h-3 w-3" />
+              <span className="text-[11px]">{busy === "push" ? "Pushing…" : "Push"}</span>
+            </button>
+            <span className="mx-1 h-3 w-px bg-[var(--border)]" aria-hidden />
             <button
               type="button"
               onClick={() => void runStage("stage")}
