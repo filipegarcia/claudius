@@ -143,6 +143,25 @@ export default function GitPage() {
     }
   }
 
+  async function onGenerateMessage() {
+    if (!wsId) return { ok: false as const, error: "no workspace" };
+    const paths = Array.from(checked);
+    if (paths.length === 0) return { ok: false as const, error: "select at least one file" };
+    try {
+      const res = await fetch(`/api/workspaces/${wsId}/git/commit-message`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ paths }),
+      });
+      const j = (await res.json().catch(() => ({}))) as { message?: string; error?: string };
+      if (!res.ok) return { ok: false as const, error: j.error ?? `HTTP ${res.status}` };
+      if (!j.message) return { ok: false as const, error: "empty response" };
+      return { ok: true as const, message: j.message };
+    } catch (err) {
+      return { ok: false as const, error: err instanceof Error ? err.message : String(err) };
+    }
+  }
+
   async function onCommit(message: string) {
     if (!wsId) return { ok: false as const, error: "no workspace" };
     const paths = Array.from(checked);
@@ -275,6 +294,8 @@ export default function GitPage() {
                   onToggleAll={onToggleAll}
                   collapsedGroups={collapsedGroups}
                   onToggleGroup={onToggleGroup}
+                  onRefresh={() => void refresh()}
+                  refreshing={statusLoading}
                 />
               )}
             </div>
@@ -283,6 +304,7 @@ export default function GitPage() {
               busy={busy === "commit"}
               branchLabel={branchLabel}
               onCommit={onCommit}
+              onGenerate={onGenerateMessage}
             />
           </aside>
           <section className="flex flex-1 flex-col overflow-hidden">

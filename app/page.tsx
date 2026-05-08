@@ -130,33 +130,60 @@ export default function Home() {
   }, [newParam, createNewSessionAction]);
 
   // Session tabs (IntelliJ-style) ─────────────────────────────────────────
-  // Open tabs persist within a tab via sessionStorage so refresh keeps them.
-  // The active tab is whichever sessionId useSession is bound to.
-  const TABS_KEY = "claudius.openTabs";
+  // Open tabs persist in the per-cwd `.claudius.db` (via /api/sessions/open-tabs)
+  // so closing the browser and coming back later restores the same strip —
+  // labels resolve through the existing `sessions` table, which already holds
+  // custom titles. The active tab is whichever sessionId useSession is bound to.
   const [openTabs, setOpenTabs] = useState<string[]>([]);
+  // Gate persistence until the initial fetch has resolved — otherwise the
+  // first render's empty array would PUT-and-clobber the saved list before
+  // the GET comes back. See the hydration-race note in the migration file.
+  const [tabsHydrated, setTabsHydrated] = useState(false);
   // Hydrate once on mount.
   useEffect(() => {
-    try {
-      const raw = window.sessionStorage.getItem(TABS_KEY);
-      if (raw) {
-        const arr = JSON.parse(raw) as unknown;
-        if (Array.isArray(arr) && arr.every((x) => typeof x === "string")) {
-          setOpenTabs(arr);
-        }
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/sessions/open-tabs");
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = (await res.json()) as { tabs?: unknown };
+        if (cancelled) return;
+        const saved = Array.isArray(data.tabs)
+          ? (data.tabs.filter((x) => typeof x === "string") as string[])
+          : [];
+        // Merge: server list first, then anything the auto-add effect below
+        // already pushed in (e.g. the boot session id) before the fetch
+        // resolved, so we don't drop the active tab.
+        setOpenTabs((prev) => {
+          const merged = [...saved];
+          for (const id of prev) if (!merged.includes(id)) merged.push(id);
+          return merged;
+        });
+      } catch {
+        // Network/parse failure — fall through with whatever the auto-add
+        // effect put in place. Persistence stays gated until we mark
+        // hydrated so we don't overwrite the server with a stale empty.
+      } finally {
+        if (!cancelled) setTabsHydrated(true);
       }
-    } catch {
-      // ignore
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
-  // Persist on change.
+  // Persist on change. Skip until hydrated so the boot-time empty state
+  // can't clobber the saved list before we've read it.
   useEffect(() => {
-    try {
-      window.sessionStorage.setItem(TABS_KEY, JSON.stringify(openTabs));
-    } catch {
-      // ignore
-    }
-  }, [openTabs]);
+    if (!tabsHydrated) return;
+    void fetch("/api/sessions/open-tabs", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tabs: openTabs }),
+    }).catch(() => {
+      // Best-effort — a failed save just means the next reload sees the
+      // last successfully persisted strip.
+    });
+  }, [openTabs, tabsHydrated]);
   // Auto-add the active session id whenever it appears.
   useEffect(() => {
     if (!session.sessionId) return;
