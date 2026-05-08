@@ -411,6 +411,33 @@ export function useSession(): ChatState & ChatActions {
         // replay window is over.
         setMessages((prev) => prev.map((m) => (m.streaming ? { ...m, streaming: false } : m)));
         setPendingTracked(false);
+        // Recovery for in-flight interactive prompts. The server's
+        // subscribe() re-emits these on attach, but in dev-mode HMR an
+        // existing Session instance can stay bound to a pre-edit
+        // prototype — the resolved API route below always picks up edits,
+        // so this fetch is the belt to the subscribe()'s suspenders.
+        const id = sessionIdRef.current;
+        if (id) {
+          void fetch(`/api/sessions/${id}/pending-prompts`)
+            .then(async (res) => {
+              if (!res.ok) return;
+              const j = (await res.json().catch(() => ({}))) as {
+                asks?: AskUserQuestionEvent[];
+                permissions?: PermissionRequestEvent[];
+              };
+              if (sessionIdRef.current !== id) return; // user switched
+              const ask = j.asks?.[0];
+              if (ask) setPendingAsk(ask);
+              const perm = j.permissions?.[0];
+              if (perm) {
+                setPendingPermission(perm);
+                pendingPermissionRef.current = perm;
+              }
+            })
+            .catch(() => {
+              // Best-effort — the subscribe() path is the primary delivery.
+            });
+        }
         return;
       }
       if (ev.type !== "sdk") return;

@@ -59,8 +59,13 @@ async function snap(page: Page, name: string) {
   });
 }
 
-async function gotoStable(page: Page, path: string) {
-  await page.goto(path, { waitUntil: "networkidle" });
+async function gotoStable(page: Page, path: string, opts?: { networkIdle?: boolean }) {
+  // Pages that mount `useSession` open a long-lived SSE stream that keeps
+  // the network "active" forever, so `networkidle` never fires. For those,
+  // fall back to `load`. Static read-only pages still benefit from
+  // networkidle waiting for the initial data fetches to settle.
+  const waitUntil = opts?.networkIdle === false ? "load" : "networkidle";
+  await page.goto(path, { waitUntil });
   // Tiny settle for transitions/skeletons.
   await page.waitForTimeout(400);
 }
@@ -97,6 +102,7 @@ test.describe("site screenshots — static routes", () => {
     ["agents", "/agents"],
     ["skills", "/skills"],
     ["mcp", "/mcp"],
+    ["plugins", "/plugins"],
     ["cost", "/cost"],
     ["git", "/git"],
     ["files", "/files"],
@@ -128,6 +134,25 @@ test.describe("site screenshots — static routes", () => {
         await target.click();
         await page.waitForTimeout(400);
       }
+
+      // Git: open a changed file so the right pane shows a real diff.
+      // Prefer site/index.html (lots of marketing-site churn) and fall
+      // back to the first changed-file row.
+      if (name === "git") {
+        const preferred = page.locator("button", { hasText: "site/index.html" });
+        const target =
+          (await preferred.count()) > 0 ? preferred.first() : page.locator("ul li button").first();
+        await target.click();
+        await page.waitForTimeout(700); // diff fetch
+      }
+
+      // Files: open a readable file so the right pane shows content.
+      // README.md is the most universally meaningful project file.
+      if (name === "files") {
+        await page.getByRole("button", { name: /README\.md/ }).first().click();
+        await page.waitForTimeout(600);
+      }
+
 
       await snap(page, name);
     });

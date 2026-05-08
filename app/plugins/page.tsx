@@ -6,15 +6,21 @@ import {
   ArrowLeft,
   ChevronDown,
   ChevronRight,
+  Download,
+  ExternalLink,
+  Package,
   Plug,
   Plus,
   Power,
   RefreshCw,
+  Search,
   ShieldCheck,
   X,
 } from "lucide-react";
 import { SideNav } from "@/components/nav/SideNav";
+import { useActiveCwd } from "@/lib/client/useActiveCwd";
 import { usePlugins, type InstalledPlugin } from "@/lib/client/usePlugins";
+import type { AvailablePlugin } from "@/lib/server/plugins";
 import type { SettingsScope } from "@/lib/server/settings";
 import { cn } from "@/lib/utils/cn";
 
@@ -25,20 +31,33 @@ const SCOPE_LABELS: Record<SettingsScope, string> = {
 };
 
 export default function PluginsPage() {
-  const [cwd, setCwd] = useState<string | null>(null);
+  const cwd = useActiveCwd();
   const [sessionId, setSessionId] = useState<string | null>(null);
 
+  // Pick the first live session whose cwd matches the active workspace —
+  // /api/sessions returns in-memory sessions across all workspaces, so we
+  // can't blindly grab arr[0].id any more.
   useEffect(() => {
+    if (cwd == null) return;
+    let cancelled = false;
     fetch("/api/sessions")
       .then((r) => r.json())
       .then((arr: Array<{ id?: string; cwd?: string }>) => {
-        if (Array.isArray(arr) && arr[0]) {
-          setSessionId(arr[0].id ?? null);
-          setCwd(arr[0].cwd ?? "");
-        } else setCwd("");
+        if (cancelled) return;
+        if (!Array.isArray(arr)) {
+          setSessionId(null);
+          return;
+        }
+        const match = cwd ? arr.find((s) => s.cwd === cwd) : arr[0];
+        setSessionId(match?.id ?? null);
       })
-      .catch(() => setCwd(""));
-  }, []);
+      .catch(() => {
+        if (!cancelled) setSessionId(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [cwd]);
 
   const plugins = usePlugins(cwd, sessionId);
   const [scope, setScope] = useState<SettingsScope>("user");
@@ -124,6 +143,23 @@ export default function PluginsPage() {
 
         <div className="flex-1 overflow-y-auto scroll-thin">
           <div className="mx-auto max-w-4xl space-y-5 px-6 py-6">
+            <InstallSection
+              sessionId={sessionId}
+              onInstall={(ref) => plugins.install(ref)}
+              onRefresh={() => plugins.refresh()}
+            />
+
+            <AvailableSection
+              plugins={plugins.available}
+              loading={plugins.availableLoading}
+              installedRefs={
+                new Set(merged.map((r) => r.id).filter((id) => id.includes("@")))
+              }
+              sessionId={sessionId}
+              onInstall={(ref) => plugins.install(ref)}
+              onRefresh={() => plugins.refreshAvailable()}
+            />
+
             <section>
               <h2 className="mb-2 text-[11px] font-medium uppercase tracking-wide text-[var(--muted)]">
                 Installed plugins {!sessionId && "(open a session for live data)"}
@@ -162,6 +198,309 @@ export default function PluginsPage() {
       </main>
     </div>
   );
+}
+
+/**
+ * Install a plugin by sending `/plugin install <ref>` to the active
+ * session. The SDK's slash command owns marketplace resolution, download,
+ * and registration — we just expose a friendly form.
+ *
+ * `ref` accepts:
+ *   - <plugin-name>@<marketplace-id>  (e.g. frontend-design@claude-plugins-official)
+ *   - any plugin id the SDK recognizes
+ */
+function InstallSection({
+  sessionId,
+  onInstall,
+  onRefresh,
+}: {
+  sessionId: string | null;
+  onInstall: (ref: string) => Promise<{ ok: boolean; error?: string }>;
+  onRefresh: () => Promise<void> | void;
+}) {
+  const [draft, setDraft] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [status, setStatus] = useState<{ ok: boolean; msg: string } | null>(null);
+
+  return (
+    <section className="rounded-lg border border-[var(--border)] bg-[var(--panel)]/40 p-4">
+      <h2 className="mb-2 flex items-center gap-2 text-sm font-medium">
+        <Download className="h-4 w-4 text-[var(--accent)]" /> Install a plugin
+      </h2>
+      <p className="mb-3 text-[11px] text-[var(--muted)]">
+        Sends <code className="font-mono">/plugin install &lt;ref&gt;</code> to your active
+        chat session. Watch progress in chat — the SDK handles the marketplace lookup,
+        download, and any prompts for trust or permissions. Refresh the list once it
+        finishes.
+      </p>
+
+      <form
+        onSubmit={async (e) => {
+          e.preventDefault();
+          const v = draft.trim();
+          if (!v) return;
+          setSubmitting(true);
+          setStatus(null);
+          const r = await onInstall(v);
+          setSubmitting(false);
+          if (r.ok) {
+            setStatus({
+              ok: true,
+              msg: `Sent “/plugin install ${v}” to chat. Watch progress there, then refresh.`,
+            });
+            setDraft("");
+          } else {
+            setStatus({ ok: false, msg: r.error ?? "Install failed." });
+          }
+        }}
+        className="flex flex-wrap items-center gap-2"
+      >
+        <input
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          placeholder="frontend-design@claude-plugins-official"
+          spellCheck={false}
+          className="min-w-[280px] flex-1 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1 font-mono text-xs focus:outline-none"
+        />
+        <button
+          type="submit"
+          disabled={!sessionId || !draft.trim() || submitting}
+          title={sessionId ? "Send install command to chat" : "Open a session first"}
+          className="flex items-center gap-1 rounded-md bg-[var(--accent)] px-3 py-1 text-xs text-white hover:opacity-90 disabled:opacity-40"
+        >
+          <Download className="h-3 w-3" /> {submitting ? "Sending…" : "Install"}
+        </button>
+        <button
+          type="button"
+          onClick={() => void onRefresh()}
+          className="flex items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1 text-xs hover:bg-[var(--panel)]"
+          title="Refresh the installed list"
+        >
+          <RefreshCw className="h-3 w-3" /> Refresh
+        </button>
+      </form>
+
+      {status && (
+        <p
+          className={cn(
+            "mt-2 text-[11px]",
+            status.ok ? "text-emerald-300" : "text-red-400",
+          )}
+        >
+          {status.msg}
+        </p>
+      )}
+
+      {!sessionId && (
+        <p className="mt-2 text-[11px] text-amber-300">
+          No active session for this workspace yet — open the chat once and come back.
+        </p>
+      )}
+
+      <details className="mt-3 text-[11px] text-[var(--muted)]">
+        <summary className="cursor-pointer select-none hover:text-[var(--foreground)]">
+          What can I install?
+        </summary>
+        <div className="mt-2 space-y-1.5 pl-2">
+          <div>
+            <code className="font-mono">name@marketplace</code> — a plugin from a known
+            marketplace, e.g. <code className="font-mono">frontend-design@claude-plugins-official</code>.
+          </div>
+          <div>
+            A plain <code className="font-mono">name</code> if it&apos;s unique across known
+            marketplaces. The SDK will disambiguate.
+          </div>
+          <div>
+            Add custom marketplaces in the <em>Marketplaces</em> section below before
+            referencing plugins from them.
+          </div>
+        </div>
+      </details>
+    </section>
+  );
+}
+
+/**
+ * Browse every plugin in the cached marketplaces. Filter by category or
+ * free-text search. The Install button on each row delegates to the same
+ * `/plugin install` slash-command path the manual form uses, with the
+ * fully-qualified <name>@<marketplace> reference auto-filled.
+ */
+function AvailableSection({
+  plugins,
+  loading,
+  installedRefs,
+  sessionId,
+  onInstall,
+  onRefresh,
+}: {
+  plugins: AvailablePlugin[];
+  loading: boolean;
+  installedRefs: Set<string>;
+  sessionId: string | null;
+  onInstall: (ref: string) => Promise<{ ok: boolean; error?: string }>;
+  onRefresh: () => Promise<void> | void;
+}) {
+  const [query, setQuery] = useState("");
+  const [category, setCategory] = useState<string | null>(null);
+  const [installing, setInstalling] = useState<string | null>(null);
+
+  const categories = useMemo(() => {
+    const set = new Set<string>();
+    for (const p of plugins) if (p.category) set.add(p.category);
+    return [...set].sort();
+  }, [plugins]);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return plugins.filter((p) => {
+      if (category && p.category !== category) return false;
+      if (!q) return true;
+      const hay = `${p.name} ${p.description ?? ""} ${p.category ?? ""} ${p.marketplace}`.toLowerCase();
+      return hay.includes(q);
+    });
+  }, [plugins, query, category]);
+
+  return (
+    <section className="rounded-lg border border-[var(--border)] bg-[var(--panel)]/40">
+      <div className="flex items-center gap-2 border-b border-[var(--border)] px-4 py-2">
+        <Package className="h-4 w-4 text-[var(--accent)]" />
+        <h2 className="text-sm font-medium">Available plugins</h2>
+        <span className="text-[11px] text-[var(--muted)]">
+          {loading ? "loading…" : `${filtered.length} of ${plugins.length}`}
+        </span>
+        <button
+          onClick={() => void onRefresh()}
+          title="Re-read marketplace manifests from disk"
+          className="ml-auto flex items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-0.5 text-[11px] hover:bg-[var(--panel)]"
+        >
+          <RefreshCw className="h-3 w-3" /> Refresh
+        </button>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2 border-b border-[var(--border)] px-4 py-2">
+        <div className="relative flex-1 min-w-[220px]">
+          <Search className="absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-[var(--muted)]" />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search by name, description, marketplace…"
+            className="w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] py-1 pl-7 pr-2 text-xs focus:outline-none"
+          />
+        </div>
+        <button
+          onClick={() => setCategory(null)}
+          className={cn(
+            "rounded-md border border-[var(--border)] px-2 py-0.5 text-[11px]",
+            category === null ? "bg-[var(--panel-2)]" : "bg-[var(--panel)] text-[var(--muted)] hover:text-[var(--foreground)]",
+          )}
+        >
+          all
+        </button>
+        {categories.map((c) => (
+          <button
+            key={c}
+            onClick={() => setCategory(c === category ? null : c)}
+            className={cn(
+              "rounded-md border border-[var(--border)] px-2 py-0.5 text-[11px]",
+              category === c ? "bg-[var(--panel-2)]" : "bg-[var(--panel)] text-[var(--muted)] hover:text-[var(--foreground)]",
+            )}
+          >
+            {c}
+          </button>
+        ))}
+      </div>
+
+      {plugins.length === 0 && !loading ? (
+        <div className="px-4 py-8 text-center text-sm text-[var(--muted)]">
+          No marketplaces cached yet. Add one in the Marketplaces section below, then refresh.
+        </div>
+      ) : (
+        <ul className="max-h-[480px] divide-y divide-[var(--border)] overflow-y-auto scroll-thin">
+          {filtered.map((p) => {
+            const ref = `${p.name}@${p.marketplace}`;
+            const installedHere = installedRefs.has(ref);
+            const authorName =
+              typeof p.author === "string"
+                ? p.author
+                : p.author && typeof p.author === "object"
+                  ? p.author.name
+                  : undefined;
+            const isInstallingThis = installing === ref;
+            return (
+              <li key={ref} className="flex items-start gap-3 px-4 py-3">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">{p.name}</span>
+                    {p.category && (
+                      <span className="rounded-md bg-[var(--panel-2)] px-1.5 py-0.5 text-[10px] text-[var(--muted)]">
+                        {p.category}
+                      </span>
+                    )}
+                    <span className="font-mono text-[10px] text-[var(--muted)]">@{p.marketplace}</span>
+                    {typeof p.installs === "number" && (
+                      <span
+                        title={`${p.installs.toLocaleString()} unique installs`}
+                        className="rounded-md border border-[var(--border)] bg-[var(--panel)]/60 px-1.5 py-0.5 font-mono text-[10px] text-[var(--muted)]"
+                      >
+                        ↓ {formatInstalls(p.installs)}
+                      </span>
+                    )}
+                    {p.homepage && (
+                      <a
+                        href={p.homepage}
+                        target="_blank"
+                        rel="noreferrer"
+                        title={p.homepage}
+                        className="text-[var(--muted)] hover:text-[var(--foreground)]"
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    )}
+                  </div>
+                  {p.description && (
+                    <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-[var(--muted)]">
+                      {p.description}
+                    </p>
+                  )}
+                  {authorName && (
+                    <p className="mt-1 text-[10px] text-[var(--muted)]">by {authorName}</p>
+                  )}
+                </div>
+                {installedHere ? (
+                  <span className="shrink-0 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] text-emerald-200">
+                    installed
+                  </span>
+                ) : (
+                  <button
+                    disabled={!sessionId || isInstallingThis}
+                    onClick={async () => {
+                      setInstalling(ref);
+                      await onInstall(ref);
+                      setInstalling(null);
+                    }}
+                    title={sessionId ? `Send /plugin install ${ref}` : "Open a session first"}
+                    className="flex shrink-0 items-center gap-1 rounded-md bg-[var(--accent)] px-2 py-1 text-[11px] text-white hover:opacity-90 disabled:opacity-40"
+                  >
+                    <Download className="h-3 w-3" />
+                    {isInstallingThis ? "Sending…" : "Install"}
+                  </button>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+/** Compact install counts: 1.2k, 12k, 510k. */
+function formatInstalls(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
+  if (n >= 10_000) return `${Math.round(n / 1_000)}k`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1).replace(/\.0$/, "")}k`;
+  return `${n}`;
 }
 
 function PluginRow({

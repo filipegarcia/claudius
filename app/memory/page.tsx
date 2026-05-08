@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowLeft, BookText, FileText, Plus, Save, X } from "lucide-react";
 import { SideNav } from "@/components/nav/SideNav";
 import { ScopeToggle, type Scope as IaScope } from "@/components/nav/ScopeToggle";
+import { useActiveCwd } from "@/lib/client/useActiveCwd";
 import { useClaudeMd, type Scope } from "@/lib/client/useClaudeMd";
 import { useAutoMemory } from "@/lib/client/useAutoMemory";
 import { cn } from "@/lib/utils/cn";
@@ -19,19 +20,8 @@ const SCOPE_META: Record<Scope, { label: string; hint: string }> = {
 const SCOPE_ORDER: Scope[] = ["user", "project", "project-claude", "local"];
 
 export default function MemoryPage() {
-  const [cwd, setCwd] = useState<string | null>(null);
+  const cwd = useActiveCwd();
   const [iaScope, setIaScope] = useState<IaScope>("workspace");
-
-  // Use the most recently active session's cwd if known; otherwise process.cwd via API default.
-  useEffect(() => {
-    fetch("/api/sessions")
-      .then((r) => r.json())
-      .then((arr: Array<{ cwd?: string }>) => {
-        if (Array.isArray(arr) && arr[0]?.cwd) setCwd(arr[0].cwd);
-        else setCwd(""); // empty triggers default cwd handling on the server
-      })
-      .catch(() => setCwd(""));
-  }, []);
 
   return (
     <div className="flex h-full">

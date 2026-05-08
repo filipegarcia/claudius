@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, ChevronDown, ChevronRight, Network, Plug, Plug2, Plus, Power, RefreshCw, Trash2, Wrench } from "lucide-react";
 import { SideNav } from "@/components/nav/SideNav";
+import { useActiveCwd } from "@/lib/client/useActiveCwd";
 import { useMcp, type ConfiguredServer, type LiveStatus } from "@/lib/client/useMcp";
 import type { McpScope, McpServerConfig } from "@/lib/server/mcp";
 import { cn } from "@/lib/utils/cn";
@@ -23,21 +24,33 @@ const SCOPE_LABELS: Record<McpScope, string> = {
 };
 
 export default function McpPage() {
-  const [cwd, setCwd] = useState<string | null>(null);
+  const cwd = useActiveCwd();
   const [sessionId, setSessionId] = useState<string | null>(null);
 
-  // Pull cwd + active session from /api/sessions
+  // Pick the first live session whose cwd matches the active workspace —
+  // /api/sessions returns in-memory sessions across all workspaces, so
+  // we filter to the one MCP should reload-against.
   useEffect(() => {
+    if (cwd == null) return;
+    let cancelled = false;
     fetch("/api/sessions")
       .then((r) => r.json())
       .then((arr: Array<{ id?: string; cwd?: string }>) => {
-        if (Array.isArray(arr) && arr[0]) {
-          setSessionId(arr[0].id ?? null);
-          setCwd(arr[0].cwd ?? "");
-        } else setCwd("");
+        if (cancelled) return;
+        if (!Array.isArray(arr)) {
+          setSessionId(null);
+          return;
+        }
+        const match = cwd ? arr.find((s) => s.cwd === cwd) : arr[0];
+        setSessionId(match?.id ?? null);
       })
-      .catch(() => setCwd(""));
-  }, []);
+      .catch(() => {
+        if (!cancelled) setSessionId(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [cwd]);
 
   const mcp = useMcp(cwd, sessionId);
   const [showAdd, setShowAdd] = useState(false);

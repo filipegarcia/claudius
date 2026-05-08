@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowLeft, Bot, FilePlus, RefreshCw, Save, Trash2 } from "lucide-react";
 import { SideNav } from "@/components/nav/SideNav";
 import { ScopeToggle, type Scope as IaScope } from "@/components/nav/ScopeToggle";
+import { useActiveCwd } from "@/lib/client/useActiveCwd";
 import type { AgentFile, AgentScope } from "@/lib/server/agents";
 import { cn } from "@/lib/utils/cn";
 
@@ -24,7 +25,7 @@ You are a focused subagent. Describe how it should behave here.
 `;
 
 export default function AgentsPage() {
-  const [cwd, setCwd] = useState<string | null>(null);
+  const cwd = useActiveCwd();
   const [scopes, setScopes] = useState<{ scope: AgentScope; files: AgentFile[] }[]>([]);
   const [active, setActive] = useState<{ scope: AgentScope; name: string } | null>(null);
   const [draft, setDraft] = useState<string>("");
@@ -32,13 +33,6 @@ export default function AgentsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [iaScope, setIaScope] = useState<IaScope>("workspace");
-
-  useEffect(() => {
-    fetch("/api/sessions")
-      .then((r) => r.json())
-      .then((arr: Array<{ cwd?: string }>) => setCwd(arr?.[0]?.cwd ?? ""))
-      .catch(() => setCwd(""));
-  }, []);
 
   const refresh = useCallback(async () => {
     if (cwd == null) return;
@@ -60,6 +54,15 @@ export default function AgentsPage() {
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  // Reset selection / draft state on workspace switch — a stale selection
+  // from a different cwd would either render a missing file or, worse,
+  // pretend an unrelated workspace's agent belongs to this one.
+  useEffect(() => {
+    setActive(null);
+    setDirty(false);
+    setError(null);
+  }, [cwd]);
 
   // When the active agent changes, populate the draft from the loaded file.
   useEffect(() => {

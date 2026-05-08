@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, RefreshCw, Save, Settings as SettingsIcon, X } from "lucide-react";
 import { SideNav } from "@/components/nav/SideNav";
+import { useActiveCwd } from "@/lib/client/useActiveCwd";
 import { useSettings } from "@/lib/client/useSettings";
 import type { ClaudeSettings, SettingsScope } from "@/lib/server/settings";
 import { useTheme, THEMES, type ThemeId } from "@/lib/client/theme";
@@ -20,14 +21,7 @@ const SDK_THEMES = ["auto", "dark", "light", "dark-daltonized", "light-daltonize
 const OUTPUT_STYLES = ["default", "explanatory", "concise", "developer"];
 
 export default function SettingsPage() {
-  const [cwd, setCwd] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetch("/api/sessions")
-      .then((r) => r.json())
-      .then((arr: Array<{ cwd?: string }>) => setCwd(arr?.[0]?.cwd ?? ""))
-      .catch(() => setCwd(""));
-  }, []);
+  const cwd = useActiveCwd();
 
   const settings = useSettings(cwd);
   const [scope, setScope] = useState<SettingsScope>("user");

@@ -67,6 +67,55 @@ export function PromptInput({
   /** True while IME composition is active — diff-based deletion is suppressed. */
   const composingRef = useRef(false);
 
+  // ── User-resizable composer ─────────────────────────────────────────
+  // Default cap (px) when the user hasn't dragged the handle. Matches the
+  // historical autosize bound — prompts longer than this scroll inside
+  // the textarea.
+  const DEFAULT_MAX_PX = 320;
+  // Floor matches the autosize-empty height of the textarea (~one line
+  // + a sliver of padding). Lower than this and the resize feels fenced
+  // in; this also lets a drag-all-the-way-down land on the original
+  // single-line size.
+  const MIN_MAX_PX = 28;
+  // Dragging below this threshold on release clears the override and
+  // returns the composer to content-driven autosize. Gives the user a
+  // discoverable "drag to reset" gesture in addition to double-click.
+  const RESET_THRESHOLD_PX = 36;
+  // Max-of-max — keep some chat visible above the composer.
+  const HARD_CAP_VH = 0.7;
+  const STORAGE_KEY = "claudius.prompt.maxHeight";
+  const [userMaxPx, setUserMaxPx] = useState<number | null>(null);
+  // Mirror to a ref so autosize's plain function can read the latest value
+  // without re-binding through deps.
+  const userMaxPxRef = useRef<number | null>(null);
+  userMaxPxRef.current = userMaxPx;
+  // Load persisted preference on mount.
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(STORAGE_KEY);
+      if (raw == null) return;
+      const n = Number(raw);
+      if (Number.isFinite(n) && n >= MIN_MAX_PX) setUserMaxPx(n);
+    } catch {
+      // ignore — quota / privacy mode
+    }
+  }, []);
+
+  // Re-pin the textarea height whenever the user-set override changes —
+  // covers both hydration (mount → localStorage value applied) and the
+  // double-click reset (override cleared → fall back to autosize).
+  useEffect(() => {
+    const ta = taRef.current;
+    if (!ta) return;
+    if (userMaxPx != null) {
+      ta.style.height = userMaxPx + "px";
+    } else {
+      // Reset to content-driven sizing.
+      ta.style.height = "auto";
+      ta.style.height = Math.min(ta.scrollHeight, DEFAULT_MAX_PX) + "px";
+    }
+  }, [userMaxPx]);
+
   useEffect(() => setMounted(true), []);
   const inputDisabled = mounted && !ready;
 
@@ -117,8 +166,75 @@ export function PromptInput({
   function autosize() {
     const el = taRef.current;
     if (!el) return;
+    if (userMaxPxRef.current != null) {
+      // User dragged the handle to an explicit size — pin to that height
+      // regardless of content so the composer doesn't shrink back down
+      // when empty. Double-click the handle to clear the override.
+      el.style.height = userMaxPxRef.current + "px";
+      return;
+    }
     el.style.height = "auto";
-    el.style.height = Math.min(el.scrollHeight, 320) + "px";
+    el.style.height = Math.min(el.scrollHeight, DEFAULT_MAX_PX) + "px";
+  }
+
+  /**
+   * Drag handle on the top edge of the composer. Pull up to grow, down to
+   * shrink. Bounds:
+   *   - min 80px so two lines of text always fit
+   *   - max 70% of viewport so the chat above stays usable
+   * The chosen value persists in localStorage so it survives reload.
+   */
+  function onResizeHandleDown(e: React.MouseEvent<HTMLDivElement>) {
+    e.preventDefault();
+    const ta = taRef.current;
+    const startHeight = ta ? ta.getBoundingClientRect().height : (userMaxPx ?? DEFAULT_MAX_PX);
+    const startY = e.clientY;
+    const hardCap = Math.max(MIN_MAX_PX + 1, Math.floor(window.innerHeight * HARD_CAP_VH));
+    const onMove = (ev: MouseEvent) => {
+      // Drag UP (smaller clientY) → bigger composer.
+      const next = Math.max(MIN_MAX_PX, Math.min(hardCap, startHeight + (startY - ev.clientY)));
+      setUserMaxPx(next);
+      // Apply immediately without waiting for React commit — feels native.
+      if (ta) ta.style.height = next + "px";
+    };
+    const onUp = (ev: MouseEvent) => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+      const final = Math.max(MIN_MAX_PX, Math.min(hardCap, startHeight + (startY - ev.clientY)));
+      // Pulled (almost) all the way down → treat as a reset gesture so
+      // the composer returns to content-driven autosize. The user can
+      // then drag up again from the natural one-line baseline.
+      if (final <= RESET_THRESHOLD_PX) {
+        setUserMaxPx(null);
+        try {
+          window.localStorage.removeItem(STORAGE_KEY);
+        } catch {
+          // ignore
+        }
+        requestAnimationFrame(() => autosize());
+        return;
+      }
+      setUserMaxPx(final);
+      try {
+        window.localStorage.setItem(STORAGE_KEY, String(final));
+      } catch {
+        // ignore — quota / privacy mode
+      }
+      requestAnimationFrame(() => autosize());
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  }
+
+  /** Double-click the handle to clear the override and snap back to default. */
+  function onResizeHandleDoubleClick() {
+    setUserMaxPx(null);
+    try {
+      window.localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      // ignore
+    }
+    requestAnimationFrame(() => autosize());
   }
 
   function submit() {
@@ -310,6 +426,47 @@ export function PromptInput({
           </div>
         )}
 
+        {/*
+          Drag-up resize handle. Sits flush above the composer's rounded
+          frame, full-width, ns-resize cursor, with a subtle dashed
+          indicator on hover. Pull up to grow the textarea, down to
+          shrink. Double-click to reset to the default height. Persists
+          to localStorage.
+         */}
+        <div
+          role="separator"
+          aria-orientation="horizontal"
+          aria-label="Resize composer"
+          aria-valuemin={MIN_MAX_PX}
+          aria-valuemax={Math.floor((typeof window !== "undefined" ? window.innerHeight : 800) * HARD_CAP_VH)}
+          aria-valuenow={userMaxPx ?? DEFAULT_MAX_PX}
+          tabIndex={0}
+          onMouseDown={onResizeHandleDown}
+          onDoubleClick={onResizeHandleDoubleClick}
+          onKeyDown={(e) => {
+            // Keyboard a11y: arrow keys nudge by 24px, double-press to reset.
+            if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+              e.preventDefault();
+              const ta = taRef.current;
+              const cur = userMaxPx ?? (ta ? ta.getBoundingClientRect().height : DEFAULT_MAX_PX);
+              const cap = Math.max(MIN_MAX_PX + 1, Math.floor(window.innerHeight * HARD_CAP_VH));
+              const delta = e.key === "ArrowUp" ? 24 : -24;
+              const next = Math.max(MIN_MAX_PX, Math.min(cap, cur + delta));
+              setUserMaxPx(next);
+              try {
+                window.localStorage.setItem(STORAGE_KEY, String(next));
+              } catch {
+                // ignore
+              }
+              requestAnimationFrame(() => autosize());
+            }
+          }}
+          data-testid="prompt-resize-handle"
+          title="Drag to resize · double-click to reset"
+          className="group mx-auto h-2 w-full cursor-ns-resize select-none"
+        >
+          <div className="mx-auto h-[2px] w-12 rounded-full bg-[var(--border)] transition group-hover:bg-[var(--accent)]/60 group-focus-visible:bg-[var(--accent)]/60" />
+        </div>
         <div
           onDragOver={(e) => {
             e.preventDefault();

@@ -7,23 +7,23 @@ import { SideNav } from "@/components/nav/SideNav";
 import { ScopeToggle } from "@/components/nav/ScopeToggle";
 import { FileGrid } from "@/components/files/FileGrid";
 import { FileDetail } from "@/components/files/FileDetail";
+import { useActiveCwd } from "@/lib/client/useActiveCwd";
 import { useAssets } from "@/lib/client/useAssets";
 import type { AssetRow, Scope, TypeFilter } from "@/lib/server/asset-list";
 import { cn } from "@/lib/utils/cn";
 
 export default function AssetsPage() {
-  const [cwd, setCwd] = useState<string | null>(null);
+  const cwd = useActiveCwd();
   const [scope, setScope] = useState<Scope>("project");
   const [type, setType] = useState<TypeFilter>("all");
   const [q, setQ] = useState("");
   const [active, setActive] = useState<AssetRow | null>(null);
 
+  // Drop the active selection on workspace switch — a stale asset from a
+  // different project would otherwise stay open in the detail pane.
   useEffect(() => {
-    fetch("/api/sessions")
-      .then((r) => r.json())
-      .then((arr: Array<{ cwd?: string }>) => setCwd(arr?.[0]?.cwd ?? ""))
-      .catch(() => setCwd(""));
-  }, []);
+    setActive(null);
+  }, [cwd]);
 
   const { items, loading, error, refresh, loadMore, hasMore } = useAssets({ cwd, scope, type, q });
 
