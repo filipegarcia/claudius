@@ -17,7 +17,7 @@ export default defineConfig({
     trace: "on",
     screenshot: "only-on-failure",
     video: "retain-on-failure",
-    headless: false,
+    headless: !!process.env.CI,
     viewport: { width: 1280, height: 800 },
   },
 
