@@ -1,7 +1,16 @@
 "use client";
 
 import { useMemo } from "react";
-import { ChevronDown, ChevronRight, FileDiff, FilePlus, FileX, FileQuestion, ArrowRightLeft } from "lucide-react";
+import {
+  ArrowRightLeft,
+  ChevronDown,
+  ChevronRight,
+  FileDiff,
+  FilePlus,
+  FileQuestion,
+  FileX,
+  RefreshCw,
+} from "lucide-react";
 import type { GitFileChange } from "@/lib/server/git";
 import { cn } from "@/lib/utils/cn";
 
@@ -21,6 +30,10 @@ type Props = {
   onToggleAll: (next: boolean) => void;
   collapsedGroups: Record<GroupKey, boolean>;
   onToggleGroup: (g: GroupKey) => void;
+  /** Re-run `git status` against the filesystem so the list mirrors current state. */
+  onRefresh?: () => void;
+  /** True while a status refresh is in flight — disables the button and spins the icon. */
+  refreshing?: boolean;
 };
 
 export type GroupKey = "staged" | "unstaged" | "untracked";
@@ -55,36 +68,61 @@ export function ChangesList({
   onToggleAll,
   collapsedGroups,
   onToggleGroup,
+  onRefresh,
+  refreshing,
 }: Props) {
   const groups = useMemo(() => groupFiles(files), [files]);
   const totalCheckable = files.length;
   const allChecked = totalCheckable > 0 && files.every((f) => checked.has(f.path));
   const someChecked = !allChecked && files.some((f) => checked.has(f.path));
 
+  const header = (
+    <div className="flex items-center gap-2 border-b border-[var(--border)] px-3 py-1.5 text-[11px] uppercase tracking-wide text-[var(--muted)]">
+      <input
+        type="checkbox"
+        aria-label="Select all changes"
+        className="h-3 w-3 cursor-pointer accent-[var(--accent)]"
+        disabled={files.length === 0}
+        checked={allChecked}
+        ref={(el) => {
+          if (el) el.indeterminate = someChecked;
+        }}
+        onChange={(e) => onToggleAll(e.target.checked)}
+      />
+      <span>Changes</span>
+      <span className="ml-auto normal-case text-[var(--muted)]">
+        {files.length} file{files.length === 1 ? "" : "s"}
+      </span>
+      {onRefresh && (
+        <button
+          type="button"
+          onClick={onRefresh}
+          disabled={refreshing}
+          aria-label="Refresh changes"
+          title="Refresh — re-run git status"
+          data-testid="changes-refresh"
+          className="-mr-1 flex h-5 w-5 items-center justify-center rounded text-[var(--muted)] hover:bg-[var(--panel-2)] hover:text-[var(--foreground)] disabled:opacity-40"
+        >
+          <RefreshCw className={cn("h-3 w-3", refreshing && "animate-spin")} />
+        </button>
+      )}
+    </div>
+  );
+
   if (files.length === 0) {
     return (
-      <div className="px-4 py-12 text-center text-sm text-[var(--muted)]">
-        No changes — working tree is clean.
+      <div className="text-xs">
+        {header}
+        <div className="px-4 py-12 text-center text-sm text-[var(--muted)]">
+          No changes — working tree is clean.
+        </div>
       </div>
     );
   }
 
   return (
     <div className="text-xs">
-      <div className="flex items-center gap-2 border-b border-[var(--border)] px-3 py-1.5 text-[11px] uppercase tracking-wide text-[var(--muted)]">
-        <input
-          type="checkbox"
-          aria-label="Select all changes"
-          className="h-3 w-3 cursor-pointer accent-[var(--accent)]"
-          checked={allChecked}
-          ref={(el) => {
-            if (el) el.indeterminate = someChecked;
-          }}
-          onChange={(e) => onToggleAll(e.target.checked)}
-        />
-        <span>Changes</span>
-        <span className="ml-auto normal-case text-[var(--muted)]">{files.length} file{files.length === 1 ? "" : "s"}</span>
-      </div>
+      {header}
       <Group
         title="Staged"
         items={groups.staged}

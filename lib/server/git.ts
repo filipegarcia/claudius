@@ -376,6 +376,50 @@ export async function stagePaths(
   }
 }
 
+/**
+ * Build a single combined unified diff covering the given paths, suitable
+ * for feeding to a model that needs to summarise the change. Tracked paths
+ * are diffed `HEAD → working tree` (folds staged + unstaged into one view);
+ * untracked paths get a /dev/null diff so new content shows up.
+ */
+export async function getDiffForCommit(
+  cwd: string,
+  paths: string[],
+): Promise<{ diff: string } | GitError> {
+  if (paths.length === 0) return { diff: "" };
+  const root = await getRepoRoot(cwd);
+  if (!root) return { code: "not-a-repo", message: "not a git repository" };
+  const status = await getStatus(cwd);
+  if (isGitError(status)) return status;
+  const untrackedSet = new Set(status.files.filter((f) => f.untracked).map((f) => f.path));
+  const tracked = paths.filter((p) => !untrackedSet.has(p));
+  const newFiles = paths.filter((p) => untrackedSet.has(p));
+  const parts: string[] = [];
+  try {
+    if (tracked.length > 0) {
+      const { stdout } = await git(["diff", "HEAD", "--no-color", "--", ...tracked], root);
+      if (stdout) parts.push(stdout);
+    }
+  } catch (err) {
+    return {
+      code: "git-failed",
+      message: err instanceof Error ? err.message : String(err),
+    };
+  }
+  for (const p of newFiles) {
+    try {
+      const { diff } = await diffNoIndex(root, p);
+      if (diff) parts.push(diff);
+    } catch (err) {
+      return {
+        code: "git-failed",
+        message: err instanceof Error ? err.message : String(err),
+      };
+    }
+  }
+  return { diff: parts.join("\n") };
+}
+
 export type CommitResult = { ok: true; sha: string; subject: string } | GitError;
 
 /** Commit whatever is currently staged. Message goes via stdin (-F -). */

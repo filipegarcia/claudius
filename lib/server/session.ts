@@ -544,9 +544,52 @@ export class Session {
     // the "load older" sentinel.
     fn({ type: "replay_done", hasMoreAbove });
     this.subscribers.add(fn);
+    // Pull the freshest SDK-derived title into this subscriber. Two reasons:
+    //   1. start() captures the title once; if the SDK auto-generates an
+    //      aiTitle/summary AFTER a turn lands (which is the common case for
+    //      a fresh session), the original session_title broadcast is stale
+    //      or absent and a reload would otherwise see no banner.
+    //   2. tail-mode replay slices the buffer to the last N turns; the
+    //      session_title event broadcast at start() lives at index 0 and
+    //      gets pruned out for any session with more than `tail` turns,
+    //      so reconnecting tabs miss it.
+    void this.sendFreshTitle(fn);
     return () => {
       this.subscribers.delete(fn);
     };
+  }
+
+  private async sendFreshTitle(fn: Subscriber): Promise<void> {
+    try {
+      // Local rename store wins — that's the authoritative override for
+      // titles set inside Claudius (and survives across SDK weirdness).
+      const local = await getSessionTitle(this.cwd, this.id).catch(() => null);
+      const fromLocal = local ?? null;
+      let next = fromLocal;
+      if (!next) {
+        const info = await getSessionInfo(this.id, { dir: this.cwd }).catch(() => null);
+        next = info?.customTitle ?? info?.summary ?? null;
+      }
+      if (!next) return;
+      if (next !== this.title) {
+        // Title moved — broadcast so every open tab updates, and mirror
+        // into the sessions index so the picker reflects the new label.
+        this.title = next;
+        this.broadcast({ type: "session_title", title: next });
+        upsertSession({
+          id: this.id,
+          cwd: this.cwd,
+          model: this.model,
+          title: next,
+        }).catch(() => {});
+      } else {
+        // Title unchanged — only the new subscriber needs it (the buffer
+        // slice may have pruned the original broadcast).
+        fn({ type: "session_title", title: next });
+      }
+    } catch {
+      // non-fatal — banner stays empty, header still works
+    }
   }
 
   private broadcast(event: ServerEvent): void {
