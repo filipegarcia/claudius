@@ -1,14 +1,26 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowRight, Check, Pencil, X } from "lucide-react";
+import { ArrowRight, Check, Minus, Pencil, X } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import type { AskAnswer, AskUserQuestionEvent } from "@/lib/shared/events";
 
 type Props = {
   request: AskUserQuestionEvent;
   onSubmit: (answers: AskAnswer[]) => void | Promise<void>;
+  /**
+   * Explicit cancel — sends empty answers and the SDK treats it as decline.
+   * The X button in the header is the only path that calls this.
+   */
   onCancel: () => void | Promise<void>;
+  /**
+   * Hide the modal locally without sending a reply, leaving the request
+   * pending so the user can return to it. When provided, Esc and the
+   * click-outside gesture call this instead of `onCancel` so the user can
+   * never lose the question by mistake. Falls back to `onCancel` if not
+   * provided (backwards-compatible).
+   */
+  onMinimize?: () => void;
 };
 
 /**
@@ -28,7 +40,10 @@ function emptyWorking(): Working {
   return { selectedLabels: [], custom: "", showOther: false };
 }
 
-export function AskUserQuestionPrompt({ request, onSubmit, onCancel }: Props) {
+export function AskUserQuestionPrompt({ request, onSubmit, onCancel, onMinimize }: Props) {
+  // Soft dismissal — Esc / click-outside / minimize button. Falls back to
+  // `onCancel` for older call sites that don't pass `onMinimize`.
+  const dismiss = onMinimize ?? onCancel;
   const [active, setActive] = useState(0);
   const [working, setWorking] = useState<Working[]>(() =>
     request.questions.map(() => emptyWorking()),
@@ -130,7 +145,7 @@ export function AskUserQuestionPrompt({ request, onSubmit, onCancel }: Props) {
 
       if (e.key === "Escape") {
         e.preventDefault();
-        void onCancel();
+        void dismiss();
         return;
       }
       if (inField) return;
@@ -180,8 +195,10 @@ export function AskUserQuestionPrompt({ request, onSubmit, onCancel }: Props) {
       data-testid="ask-user-question"
       className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 p-4"
       onClick={(e) => {
-        // Click outside the form cancels — same gesture as the permission modal.
-        if (e.target === e.currentTarget) void onCancel();
+        // Click outside hides the modal. We prefer minimize (recoverable)
+        // over cancel (sends empty answers) so an accidental click can't
+        // throw away the question while the agent is still waiting.
+        if (e.target === e.currentTarget) void dismiss();
       }}
     >
       <div className="flex max-h-[85vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--panel)] shadow-2xl">
@@ -216,10 +233,24 @@ export function AskUserQuestionPrompt({ request, onSubmit, onCancel }: Props) {
               ))}
             </div>
           )}
+          {onMinimize && (
+            <button
+              onClick={() => onMinimize()}
+              className="ml-auto rounded p-1 text-[var(--muted)] hover:bg-[var(--panel-2)] hover:text-[var(--foreground)]"
+              title="Hide for now (Esc) — the question stays pending"
+              aria-label="Minimize"
+              data-testid="ask-minimize"
+            >
+              <Minus className="h-4 w-4" />
+            </button>
+          )}
           <button
             onClick={() => void onCancel()}
-            className="ml-auto rounded p-1 text-[var(--muted)] hover:bg-[var(--panel-2)] hover:text-[var(--foreground)]"
-            title="Cancel (Esc)"
+            className={cn(
+              "rounded p-1 text-[var(--muted)] hover:bg-[var(--panel-2)] hover:text-[var(--foreground)]",
+              !onMinimize && "ml-auto",
+            )}
+            title="Cancel — declines the question"
             aria-label="Cancel"
             data-testid="ask-cancel"
           >
@@ -397,7 +428,7 @@ export function AskUserQuestionPrompt({ request, onSubmit, onCancel }: Props) {
               : isLast
               ? "Enter submit"
               : "Enter next"}{" "}
-            · Esc cancel
+            · Esc {onMinimize ? "hide" : "cancel"}
           </span>
           <div className="ml-auto flex items-center gap-2">
             {active > 0 && (

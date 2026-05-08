@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Old Italic letter 𐌂 (U+10302). Path approximated from Noto Sans Old Italic (SIL Open Font License 1.1). -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <rect width="64" height="64" rx="14" ry="14" fill="#d97757"/>
+  <!--
+    Asymmetric C: top terminal flares slightly outward and right of the
+    bottom terminal — that asymmetry is what reads as Old Italic 𐌂 vs.
+    a generic Latin C. Drawn as a thick stroke so it stays legible at 16×16.
+  -->
+  <path
+    d="M 47.5 18 Q 30 11 19 22 Q 12 32 17 44 Q 26 53 45 49"
+    fill="none"
+    stroke="#ffffff"
+    stroke-width="6.5"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+</svg>

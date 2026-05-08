@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 800" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1a1a1f" stroke-width="1"/>
+    </pattern>
+  </defs>
+  <rect width="1280" height="800" fill="#0b0b0c"/>
+  <rect width="1280" height="800" fill="url(#grid)"/>
+  <g fill="#9a9aa3" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle">
+    <text x="640" y="380" font-size="36" font-weight="600" fill="#e7e7ea">Screenshot pending</text>
+    <text x="640" y="430" font-size="20">run `make screenshots` to populate this gallery</text>
+  </g>
+</svg>

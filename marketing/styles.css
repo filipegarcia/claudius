@@ -1,0 +1,272 @@
+/* Claudius marketing — single-file stylesheet. Mirrors the app's design
+   tokens (orange accent, dark surfaces, geist-style stack) without
+   depending on Tailwind, so this page can be hosted as plain static
+   assets on any CDN. */
+
+:root {
+  --background: #0b0b0c;
+  --foreground: #e7e7ea;
+  --panel: #131316;
+  --panel-2: #1a1a1f;
+  --border: #2a2a31;
+  --muted: #9a9aa3;
+  --accent: #d97757;
+  --accent-glow: rgba(217, 119, 87, 0.18);
+  --max-width: 56rem;
+  --radius: 12px;
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, sans-serif;
+  --font-mono:
+    ui-monospace, SFMono-Regular, "JetBrains Mono", Menlo, Consolas, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  /* Soft accent halo behind the hero, tapers off below the fold. */
+  background-image:
+    radial-gradient(80rem 40rem at 50% -10rem, var(--accent-glow), transparent 60%);
+  background-repeat: no-repeat;
+}
+
+main {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 4rem 1.5rem 6rem;
+}
+
+.hero {
+  text-align: center;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  color: inherit;
+  margin-bottom: 2rem;
+}
+.brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 7px;
+  background: var(--accent);
+  color: #fff;
+  font-family: "Noto Sans Old Italic", "Segoe UI Historic", serif;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+.brand-name {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.hero h1 {
+  margin: 0 0 1rem;
+  font-size: clamp(2rem, 5vw, 3.4rem);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  font-weight: 600;
+}
+
+.hero .lede {
+  margin: 0 auto 2.5rem;
+  max-width: 36rem;
+  color: var(--muted);
+  font-size: 1.1rem;
+}
+
+/* ── Install bar ───────────────────────────────────────────────────────── */
+.install {
+  margin: 0 auto 1.5rem;
+  max-width: 44rem;
+}
+
+.install-bar {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 24px 60px -30px rgba(0, 0, 0, 0.7);
+}
+.install-bar code {
+  flex: 1;
+  padding: 1rem 1.25rem;
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  color: var(--foreground);
+  text-align: left;
+  white-space: nowrap;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+#copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0 1rem;
+  border: none;
+  border-left: 1px solid var(--border);
+  background: var(--panel-2);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+#copy-btn:hover {
+  background: var(--accent);
+  color: #fff;
+}
+#copy-btn[data-copied="true"] {
+  background: #2c8c4f;
+  color: #fff;
+}
+#copy-btn .copy-icon {
+  font-size: 0.95rem;
+}
+
+.install-note {
+  margin: 0.75rem 0 0;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.install-note a {
+  color: var(--foreground);
+  text-decoration: underline;
+  text-decoration-color: var(--border);
+  text-underline-offset: 2px;
+}
+.install-note a:hover {
+  text-decoration-color: var(--accent);
+}
+
+.prereqs {
+  margin: 1.5rem auto 0;
+  max-width: 36rem;
+  font-size: 0.9rem;
+  color: var(--muted);
+  text-align: center;
+}
+.prereqs code {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--foreground);
+}
+.prereqs strong {
+  color: var(--foreground);
+  font-weight: 600;
+}
+
+/* ── Feature grid ──────────────────────────────────────────────────────── */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 4rem;
+}
+@media (max-width: 640px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+.grid article {
+  padding: 1.25rem 1.25rem 1.4rem;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.grid h2 {
+  margin: 0 0 0.4rem;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+}
+.grid p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.55;
+}
+.grid code {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--foreground);
+  background: var(--panel-2);
+  padding: 0.05rem 0.3rem;
+  border-radius: 4px;
+}
+
+/* ── Advanced block ────────────────────────────────────────────────────── */
+.advanced {
+  margin-top: 4rem;
+}
+.advanced h2 {
+  margin: 0 0 1rem;
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  font-weight: 500;
+}
+.advanced pre {
+  margin: 0;
+  padding: 1.25rem;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  line-height: 1.55;
+  color: var(--foreground);
+}
+
+/* ── Footer ────────────────────────────────────────────────────────────── */
+footer {
+  margin-top: 5rem;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+footer a {
+  color: var(--foreground);
+  text-decoration: none;
+}
+footer a:hover {
+  color: var(--accent);
+}
+footer .muted {
+  color: var(--muted);
+}
+
+::selection {
+  background: var(--accent-glow);
+}

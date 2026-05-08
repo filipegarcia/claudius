@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { MessageSquare, Network, Webhook, BookText, ShieldCheck, FolderTree, Bot, Calendar, BarChart3, Image as ImageIcon, Folder, Briefcase, GitBranch } from "lucide-react";
+import { MessageSquare, Network, Webhook, BookText, ShieldCheck, FolderTree, Bot, Calendar, BarChart3, Image as ImageIcon, Folder, Briefcase, GitBranch, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 
@@ -29,6 +29,7 @@ const items: Item[] = [
   { label: "Assets", icon: ImageIcon, href: "/assets" },
   { label: "Cost", icon: BarChart3, href: "/cost" },
   { label: "Agents", icon: Bot, href: "/agents" },
+  { label: "Skills", icon: Sparkles, href: "/skills" },
   { label: "MCP", icon: Network, href: "/mcp" },
   { label: "Hooks", icon: Webhook, href: "/hooks" },
   { label: "Schedule", icon: Calendar, href: "/schedule" },

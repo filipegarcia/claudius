@@ -442,6 +442,75 @@ export async function commitStaged(cwd: string, message: string): Promise<Commit
   }
 }
 
+export type RemoteOp = "fetch" | "pull" | "push";
+
+export type RemoteResult = { ok: true; output: string } | GitError;
+
+/**
+ * Run a remote-affecting git operation. Each op is hardcoded to a safe
+ * variant so the UI doesn't need to surface flag knobs:
+ *   - fetch: `git fetch --all --prune`
+ *   - pull:  `git pull --ff-only` (no auto-merge; surface conflicts loudly)
+ *   - push:  `git push`, falling back to `git push -u origin <branch>` when
+ *            the current branch has no upstream yet.
+ */
+export async function gitRemote(cwd: string, op: RemoteOp): Promise<RemoteResult> {
+  const root = await getRepoRoot(cwd);
+  if (!root) return { code: "not-a-repo", message: "not a git repository" };
+  try {
+    if (op === "fetch") {
+      const r = await git(["fetch", "--all", "--prune"], root);
+      return { ok: true, output: (r.stdout + r.stderr).trim() };
+    }
+    if (op === "pull") {
+      const r = await git(["pull", "--ff-only"], root);
+      return { ok: true, output: (r.stdout + r.stderr).trim() };
+    }
+    // push: try the plain form first; on "no upstream" fall back to -u origin.
+    try {
+      const r = await git(["push"], root);
+      return { ok: true, output: (r.stdout + r.stderr).trim() };
+    } catch (err) {
+      const msg =
+        err instanceof GitFailure
+          ? err.stderr
+          : err instanceof Error
+            ? err.message
+            : String(err);
+      if (/no upstream branch|--set-upstream/i.test(msg)) {
+        const br = (await git(["rev-parse", "--abbrev-ref", "HEAD"], root)).stdout.trim();
+        if (!br || br === "HEAD") {
+          return { code: "git-failed", message: "no current branch (detached HEAD)" };
+        }
+        // Prefer "origin" when present; fall back to the only remote if not.
+        // Repos with multiple non-origin remotes are ambiguous — surface the
+        // original "no upstream" message so the user can configure tracking.
+        const remotes = (await git(["remote"], root)).stdout
+          .split("\n")
+          .map((s) => s.trim())
+          .filter(Boolean);
+        if (remotes.length === 0) {
+          return { code: "git-failed", message: "no remotes configured" };
+        }
+        const remote = remotes.includes("origin")
+          ? "origin"
+          : remotes.length === 1
+            ? remotes[0]
+            : null;
+        if (!remote) return { code: "git-failed", message: msg };
+        const r2 = await git(["push", "-u", remote, br], root);
+        return { ok: true, output: (r2.stdout + r2.stderr).trim() };
+      }
+      return { code: "git-failed", message: msg };
+    }
+  } catch (err) {
+    return {
+      code: "git-failed",
+      message: err instanceof Error ? err.message : String(err),
+    };
+  }
+}
+
 /** True for known GitError shapes. */
 export function isGitError(x: unknown): x is GitError {
   return (

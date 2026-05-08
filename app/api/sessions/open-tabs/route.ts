@@ -1,6 +1,14 @@
 import { NextResponse } from "next/server";
 import { resolveActiveWorkspace } from "@/lib/server/active-workspace";
-import { getActiveTab, getOpenTabs, setActiveTab, setOpenTabs } from "@/lib/server/open-tabs-db";
+import {
+  getActiveTab,
+  getOpenTabs,
+  getTabLabelMaxWidth,
+  setActiveTab,
+  setOpenTabs,
+  setTabLabelMaxWidth,
+  TAB_LABEL_DEFAULT,
+} from "@/lib/server/open-tabs-db";
 
 export const runtime = "nodejs";
 
@@ -30,14 +38,26 @@ async function activeCwd(): Promise<string> {
 
 export async function GET() {
   const cwd = await activeCwd();
-  const [tabs, activeId] = await Promise.all([getOpenTabs(cwd), getActiveTab(cwd)]);
-  return NextResponse.json({ tabs, activeId });
+  const [tabs, activeId, labelWidth] = await Promise.all([
+    getOpenTabs(cwd),
+    getActiveTab(cwd),
+    getTabLabelMaxWidth(cwd),
+  ]);
+  return NextResponse.json({
+    tabs,
+    activeId,
+    labelMaxWidth: labelWidth ?? TAB_LABEL_DEFAULT,
+  });
 }
 
 export async function PUT(req: Request) {
-  let body: { tabs?: unknown; activeId?: unknown } = {};
+  let body: { tabs?: unknown; activeId?: unknown; labelMaxWidth?: unknown } = {};
   try {
-    body = (await req.json()) as { tabs?: unknown; activeId?: unknown };
+    body = (await req.json()) as {
+      tabs?: unknown;
+      activeId?: unknown;
+      labelMaxWidth?: unknown;
+    };
   } catch {
     return NextResponse.json({ error: "invalid JSON" }, { status: 400 });
   }
@@ -56,6 +76,12 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: "activeId must be a string or null" }, { status: 400 });
     }
     await setActiveTab(cwd, body.activeId);
+  }
+  if (body.labelMaxWidth !== undefined) {
+    if (typeof body.labelMaxWidth !== "number" || !Number.isFinite(body.labelMaxWidth)) {
+      return NextResponse.json({ error: "labelMaxWidth must be a number" }, { status: 400 });
+    }
+    await setTabLabelMaxWidth(cwd, body.labelMaxWidth);
   }
   return NextResponse.json({ ok: true });
 }

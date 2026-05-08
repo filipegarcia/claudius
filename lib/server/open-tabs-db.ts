@@ -19,6 +19,12 @@ import { openDb } from "./db";
 
 const KEY = "open_tabs";
 const ACTIVE_KEY = "active_tab";
+const TAB_LABEL_MAX_WIDTH_KEY = "tab_label_max_width";
+
+/** Bounds for the tab-label max width (px). Mirror these in the UI. */
+export const TAB_LABEL_MIN = 60;
+export const TAB_LABEL_MAX = 600;
+export const TAB_LABEL_DEFAULT = 180;
 
 export async function getOpenTabs(cwd: string): Promise<string[]> {
   const db = await openDb(cwd, "readonly").catch(() => null);
@@ -97,4 +103,47 @@ export async function setActiveTab(cwd: string, id: string | null): Promise<void
     `INSERT INTO ui_state(key, value) VALUES(?, ?)
      ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
   ).run(ACTIVE_KEY, JSON.stringify(id));
+}
+
+/**
+ * Per-cwd max width applied to every session-tab label. Lives in the same
+ * `ui_state` table so closing the browser doesn't drop the user's preferred
+ * tab size. Returns null when nothing has been saved yet (caller picks a
+ * sensible default).
+ */
+export async function getTabLabelMaxWidth(cwd: string): Promise<number | null> {
+  const db = await openDb(cwd, "readonly").catch(() => null);
+  if (!db) return null;
+  let row: { value: string } | undefined;
+  try {
+    row = db
+      .prepare<[string], { value: string } | undefined>(
+        "SELECT value FROM ui_state WHERE key = ?",
+      )
+      .get(TAB_LABEL_MAX_WIDTH_KEY);
+  } catch {
+    return null;
+  }
+  if (!row?.value) return null;
+  try {
+    const parsed = JSON.parse(row.value) as unknown;
+    if (typeof parsed !== "number" || !Number.isFinite(parsed)) return null;
+    return clampLabelWidth(parsed);
+  } catch {
+    return null;
+  }
+}
+
+export async function setTabLabelMaxWidth(cwd: string, width: number): Promise<void> {
+  const db = await openDb(cwd);
+  const v = clampLabelWidth(width);
+  db.prepare(
+    `INSERT INTO ui_state(key, value) VALUES(?, ?)
+     ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+  ).run(TAB_LABEL_MAX_WIDTH_KEY, JSON.stringify(v));
+}
+
+function clampLabelWidth(n: number): number {
+  if (!Number.isFinite(n)) return TAB_LABEL_DEFAULT;
+  return Math.min(TAB_LABEL_MAX, Math.max(TAB_LABEL_MIN, Math.round(n)));
 }

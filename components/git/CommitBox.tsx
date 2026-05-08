@@ -98,6 +98,48 @@ export function CommitBox({
     const len = ta.value.length;
     ta.setSelectionRange(len, len);
   }, [resetTick]);
+
+  // Drag-handle on the top edge of the commit box: dragging up grows the
+  // textarea (eats into the changes list above). Height persists in
+  // localStorage so the user's preferred size sticks across reloads.
+  const HEIGHT_STORAGE_KEY = "claudius.git.commitBoxHeight";
+  const MIN_HEIGHT = 60;
+  const MAX_HEIGHT = 600;
+  const [boxHeight, setBoxHeight] = useState<number | null>(() => {
+    if (typeof window === "undefined") return null;
+    const raw = window.localStorage.getItem(HEIGHT_STORAGE_KEY);
+    if (!raw) return null;
+    const n = Number(raw);
+    if (!Number.isFinite(n)) return null;
+    return Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT, n));
+  });
+  const dragRef = useRef<{ startY: number; startH: number } | null>(null);
+  function onDragStart(e: React.PointerEvent<HTMLDivElement>) {
+    const ta = taRef.current;
+    if (!ta) return;
+    e.preventDefault();
+    dragRef.current = {
+      startY: e.clientY,
+      startH: boxHeight ?? ta.getBoundingClientRect().height,
+    };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  }
+  function onDragMove(e: React.PointerEvent<HTMLDivElement>) {
+    const drag = dragRef.current;
+    if (!drag) return;
+    const delta = drag.startY - e.clientY; // up = grow
+    const next = Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT, drag.startH + delta));
+    setBoxHeight(next);
+  }
+  function onDragEnd(e: React.PointerEvent<HTMLDivElement>) {
+    if (!dragRef.current) return;
+    dragRef.current = null;
+    e.currentTarget.releasePointerCapture(e.pointerId);
+    if (boxHeight != null && typeof window !== "undefined") {
+      window.localStorage.setItem(HEIGHT_STORAGE_KEY, String(boxHeight));
+    }
+  }
+
   const canCommit = !busy && !generating && checkedCount > 0 && message.trim().length > 0;
   const canGenerate = !!onGenerate && !busy && !generating && checkedCount > 0;
 
@@ -145,6 +187,18 @@ export function CommitBox({
 
   return (
     <div className="flex shrink-0 flex-col border-t border-[var(--border)] bg-[var(--panel)]">
+      <div
+        role="separator"
+        aria-orientation="horizontal"
+        aria-label="Resize commit box"
+        onPointerDown={onDragStart}
+        onPointerMove={onDragMove}
+        onPointerUp={onDragEnd}
+        onPointerCancel={onDragEnd}
+        className="group flex h-1.5 cursor-ns-resize items-center justify-center select-none hover:bg-[var(--accent)]/30"
+      >
+        <span className="h-px w-8 bg-[var(--border)] group-hover:bg-[var(--accent)]" />
+      </div>
       <div className="flex items-center gap-2 px-3 py-1 text-[11px] text-[var(--muted)]">
         <GitCommit className="h-3 w-3" />
         <span>
@@ -164,6 +218,7 @@ export function CommitBox({
         rows={3}
         spellCheck
         disabled={generating}
+        style={boxHeight != null ? { height: `${boxHeight}px` } : undefined}
         onKeyDown={(e) => {
           // Cmd/Ctrl+Enter — submit shortcut, mirrors IntelliJ.
           if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
