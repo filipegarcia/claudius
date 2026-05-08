@@ -11,9 +11,14 @@ import { openDb } from "./db";
  *
  * The DB file is itself keyed by cwd (see `lib/server/db.ts`), so a single
  * `ui_state` key (`open_tabs`) is enough — no extra cwd column needed.
+ *
+ * `active_tab` records the id of the last-active tab so a fresh page load
+ * can resume that conversation instead of spawning a brand-new session on
+ * top of the persisted strip.
  */
 
 const KEY = "open_tabs";
+const ACTIVE_KEY = "active_tab";
 
 export async function getOpenTabs(cwd: string): Promise<string[]> {
   const db = await openDb(cwd, "readonly").catch(() => null);
@@ -58,4 +63,38 @@ export async function setOpenTabs(cwd: string, ids: string[]): Promise<void> {
     `INSERT INTO ui_state(key, value) VALUES(?, ?)
      ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
   ).run(KEY, JSON.stringify(cleaned));
+}
+
+export async function getActiveTab(cwd: string): Promise<string | null> {
+  const db = await openDb(cwd, "readonly").catch(() => null);
+  if (!db) return null;
+  let row: { value: string } | undefined;
+  try {
+    row = db
+      .prepare<[string], { value: string } | undefined>(
+        "SELECT value FROM ui_state WHERE key = ?",
+      )
+      .get(ACTIVE_KEY);
+  } catch {
+    return null;
+  }
+  if (!row?.value) return null;
+  try {
+    const parsed = JSON.parse(row.value) as unknown;
+    return typeof parsed === "string" ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function setActiveTab(cwd: string, id: string | null): Promise<void> {
+  const db = await openDb(cwd);
+  if (id === null) {
+    db.prepare("DELETE FROM ui_state WHERE key = ?").run(ACTIVE_KEY);
+    return;
+  }
+  db.prepare(
+    `INSERT INTO ui_state(key, value) VALUES(?, ?)
+     ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+  ).run(ACTIVE_KEY, JSON.stringify(id));
 }

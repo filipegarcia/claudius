@@ -17,6 +17,7 @@ import { DiffViewer } from "@/components/git/DiffViewer";
 import { CommitBox } from "@/components/git/CommitBox";
 import { useWorkspaces } from "@/lib/client/useWorkspaces";
 import { useGitStatus } from "@/lib/client/useGitStatus";
+import { renderCommitPrefix } from "@/lib/shared/commit-prefix";
 
 type DiffPayload = { diff: string; binary: boolean };
 
@@ -41,6 +42,62 @@ export default function GitPage() {
     unstaged: false,
     untracked: false,
   });
+
+  // Persisted commit-message draft. Loaded from /api/.../commit-draft on
+  // mount (or on workspace switch) and threaded into CommitBox so the
+  // generated message survives leaving and coming back.
+  const [draftMessage, setDraftMessage] = useState<string>("");
+  // Synchronously reset the draft when the workspace switches — React 19
+  // "set state during render" pattern, gated on workspace identity.
+  const [draftFor, setDraftFor] = useState<string | null>(wsId);
+  if (draftFor !== wsId) {
+    setDraftFor(wsId);
+    setDraftMessage("");
+  }
+  useEffect(() => {
+    if (!wsId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/workspaces/${wsId}/git/commit-draft`);
+        if (!res.ok) return;
+        const j = (await res.json().catch(() => ({}))) as { message?: string | null };
+        if (!cancelled) setDraftMessage(j.message ?? "");
+      } catch {
+        // non-fatal; box opens empty
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [wsId]);
+
+  const onPersistDraft = useCallback(
+    async (message: string) => {
+      if (!wsId) return;
+      try {
+        await fetch(`/api/workspaces/${wsId}/git/commit-draft`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message }),
+        });
+        setDraftMessage(message);
+      } catch {
+        // non-fatal
+      }
+    },
+    [wsId],
+  );
+
+  const onClearDraft = useCallback(async () => {
+    if (!wsId) return;
+    try {
+      await fetch(`/api/workspaces/${wsId}/git/commit-draft`, { method: "DELETE" });
+      setDraftMessage("");
+    } catch {
+      // non-fatal
+    }
+  }, [wsId]);
 
   // Keep `checked` in sync with the file list — drop stale entries when files
   // disappear (e.g. after a commit), but preserve user choices across a
@@ -194,6 +251,11 @@ export default function GitPage() {
     return null;
   }, [data]);
 
+  const commitPrefix = useMemo(() => {
+    if (!data?.isRepo) return null;
+    return renderCommitPrefix(data.branch ?? null, active?.commitPrefix);
+  }, [data, active?.commitPrefix]);
+
   const aheadBehind = useMemo(() => {
     if (!data || !data.isRepo) return null;
     const a = data.ahead ?? 0;
@@ -305,6 +367,11 @@ export default function GitPage() {
               branchLabel={branchLabel}
               onCommit={onCommit}
               onGenerate={onGenerateMessage}
+              initialMessage={draftMessage}
+              draftKey={wsId ?? ""}
+              onPersistDraft={onPersistDraft}
+              onClearDraft={onClearDraft}
+              prefix={commitPrefix}
             />
           </aside>
           <section className="flex flex-1 flex-col overflow-hidden">

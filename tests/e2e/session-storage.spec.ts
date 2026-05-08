@@ -96,14 +96,19 @@ test.describe("Session storage — TUI compatibility + internal DB", () => {
       db.close();
     }
 
-    // 6. Rename the session — the title persists into the same row.
-    await page.getByTestId("session-picker-button").dblclick();
-    const input = page.getByTestId("session-title-input");
+    // 6. Rename the session via the RecapBanner — the title persists into
+    //    the same row. The banner is always rendered (with an "Untitled
+    //    session" placeholder until the SDK surfaces a title), so the
+    //    rename surface is always reachable via single click.
+    const recapButton = page.getByTestId("recap-banner-button");
+    await expect(recapButton).toBeVisible();
+    await recapButton.click();
+    const input = page.getByTestId("recap-title-input");
     await expect(input).toBeVisible();
     const desiredTitle = `Storage Test ${Date.now().toString(36)}`;
     await input.fill(desiredTitle);
     await input.press("Enter");
-    await expect(page.getByTestId("session-picker-label")).toHaveText(desiredTitle, {
+    await expect(page.getByTestId("recap-banner-title")).toHaveText(desiredTitle, {
       timeout: 10_000,
     });
 

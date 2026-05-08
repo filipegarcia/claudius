@@ -299,26 +299,68 @@ export class Session {
   }
 
   /**
-   * Resolve a pending AskUserQuestion form. The SDK's tool-result protocol
-   * for this tool eats `updatedInput.answers` from the canUseTool reply —
-   * so by encoding the user's selections there we feed them straight into
-   * what the model sees as the tool's output.
+   * Resolve a pending AskUserQuestion form. The SDK's `AskUserQuestionOutput`
+   * (sdk-tools.d.ts) is shaped as `{ questions, answers, annotations? }`
+   * where `answers` is a MAP keyed by question text → string (multi-select
+   * values are comma-separated). The original `questions` array must be
+   * preserved on `updatedInput`, otherwise the SDK's post-processing
+   * (it `.map`s over `input.questions` to format the result) crashes with
+   * "undefined is not an object (evaluating 'H.map')".
    *
-   * Returns false if the requestId is unknown (e.g. duplicate submit, or
-   * the agent already aborted).
+   * If the user submits no answers (the cancel path), we deny instead of
+   * allow — that's a cleaner signal to the model than empty strings.
    */
   submitAskAnswer(requestId: string, answers: AskAnswer[]): boolean {
     const pending = this.pendingAskQuestions.get(requestId);
     if (!pending) return false;
     this.pendingAskQuestions.delete(requestId);
 
-    // Pad/truncate so we always send exactly one answer per question — the
-    // SDK is stricter with structured input than free-form tool output.
-    const padded: AskAnswer[] = pending.questions.map((_, i) => answers[i] ?? {});
+    const hasAnyContent = answers.some((a) => {
+      if (!a) return false;
+      if (typeof a.label === "string" && a.label) return true;
+      if (Array.isArray(a.selected) && a.selected.length > 0) return true;
+      if (typeof a.custom === "string" && a.custom.trim()) return true;
+      return false;
+    });
+    if (answers.length === 0 || !hasAnyContent) {
+      pending.resolve({ behavior: "deny", message: "User cancelled the question" });
+      return true;
+    }
+
+    // Build the answers map keyed by question text. For multi-select, the
+    // SDK expects values comma-separated. "Other" free text gets joined too
+    // when it accompanies a multi-select; otherwise it replaces the label.
+    const answersMap: Record<string, string> = {};
+    const annotations: Record<string, { preview?: string; notes?: string }> = {};
+    for (let i = 0; i < pending.questions.length; i++) {
+      const q = pending.questions[i];
+      const a = answers[i] ?? {};
+      let value = "";
+      if (q.multiSelect) {
+        const labels = Array.isArray(a.selected) ? a.selected : [];
+        const all = a.custom && a.custom.trim() ? [...labels, a.custom.trim()] : labels;
+        value = all.join(", ");
+      } else if (a.custom && a.custom.trim()) {
+        value = a.custom.trim();
+      } else if (typeof a.label === "string" && a.label) {
+        value = a.label;
+      }
+      answersMap[q.question] = value;
+      // If we know the preview for the chosen option, attach it as the
+      // annotation — gives the model the same context the user saw.
+      const chosen = q.options.find((o) => o.label === a.label);
+      if (chosen?.preview) {
+        annotations[q.question] = { preview: chosen.preview };
+      }
+    }
 
     pending.resolve({
       behavior: "allow",
-      updatedInput: { answers: padded },
+      updatedInput: {
+        questions: pending.questions,
+        answers: answersMap,
+        ...(Object.keys(annotations).length > 0 ? { annotations } : {}),
+      },
     });
     return true;
   }
@@ -539,7 +581,16 @@ export class Session {
         hasMoreAbove = true;
       }
     }
-    for (const ev of toReplay) fn(ev);
+    // Drop ephemeral interactive events from the replay. `permission_request`
+    // and `ask_user_question` represent live, in-flight UI prompts — once
+    // resolved, replaying them on a new subscriber (reload, second tab,
+    // late connect) would re-pop a stale modal whose answer is already on
+    // the wire. Live subscribers still see them when the original
+    // broadcast happens; only the buffer replay filters them out.
+    for (const ev of toReplay) {
+      if (ev.type === "permission_request" || ev.type === "ask_user_question") continue;
+      fn(ev);
+    }
     // Tell the client the replay window is over so it can anchor and arm
     // the "load older" sentinel.
     fn({ type: "replay_done", hasMoreAbove });

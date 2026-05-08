@@ -27,7 +27,7 @@ async function waitForBoundSession(page: Page, opts: { not?: string } = {}): Pro
 }
 
 test.describe("Session management workflow", () => {
-  test("clicking Chat creates a new session, refresh keeps it, naming persists", async ({ page }) => {
+  test("Chat resumes the last-active session, refresh keeps it, naming persists", async ({ page }) => {
     // ── 1. Open the app and capture the first auto-bound session ─────────
     await page.goto("/");
     const idA = await waitForBoundSession(page);
@@ -37,13 +37,26 @@ test.describe("Session management workflow", () => {
     // navigate away.
     await page.waitForTimeout(500);
 
-    // ── 2. Click the Chat side-nav button → expect a NEW session id ──────
-    await page.getByTitle("Chat").first().click();
+    // ── 2. Open a new tab via the "+" button → fresh session id ──────────
+    // This is the explicit "give me a new conversation" affordance now —
+    // the SideNav Chat button no longer forces new.
+    await page.locator('button[title="New session tab"]').click();
     const idB = await waitForBoundSession(page, { not: idA });
     test.info().annotations.push({ type: "second-session", description: idB });
     expect(idB).not.toBe(idA);
 
-    // ── 3. Reload — URL must keep the same session id ────────────────────
+    // ── 3. Navigate away, then click Chat → expect to land back on idB ───
+    // Chat is no longer "new session" — it resumes the last-active tab.
+    await page.waitForTimeout(500);
+    await page.goto("/sessions");
+    await page.getByTitle("Chat").first().click();
+    const idAfterChat = await waitForBoundSession(page);
+    expect(
+      idAfterChat,
+      `Chat must resume the last-active session — was ${idB}, now ${idAfterChat}`,
+    ).toBe(idB);
+
+    // ── 4. Reload — URL must keep the same session id ────────────────────
     await page.waitForTimeout(500);
     await page.reload();
     const idAfterReload = await waitForBoundSession(page);
@@ -57,23 +70,29 @@ test.describe("Session management workflow", () => {
     await expect(pill).toBeVisible();
     const pillLabel = page.getByTestId("session-picker-label");
     const beforeRename = (await pillLabel.textContent())?.trim() ?? "";
-    // Default fallback shape: "Session <8-char prefix>"
+    // Pill shape: "Session <8-char prefix>" — title now lives on the
+    // RecapBanner, so the pill is permanently terse.
     expect(beforeRename).toMatch(/^Session [0-9a-f]{8}$/i);
     expect(beforeRename.toLowerCase()).toContain(idB.slice(0, 8).toLowerCase());
 
-    // ── 5. Rename the session via the inline editor ─────────────────────
+    // ── 5. Rename the session via the RecapBanner inline editor ─────────
     const desiredTitle = `E2E Test ${Date.now().toString(36)}`;
-    // Double-click the pill to enter edit mode (a documented affordance —
-    // the inline pencil button works too but only appears on hover and is
-    // brittle for headless drivers).
-    await pill.dblclick();
-    const input = page.getByTestId("session-title-input");
+    // The banner is always rendered (showing "Untitled session" until the
+    // SDK surfaces a real title), so the rename surface is reachable
+    // immediately — no need to wait for an auto-summary.
+    const recapButton = page.getByTestId("recap-banner-button");
+    await expect(recapButton).toBeVisible();
+    const recapTitle = page.getByTestId("recap-banner-title");
+    await expect(recapTitle).toHaveText("Untitled session");
+    await recapButton.click();
+    const input = page.getByTestId("recap-title-input");
     await expect(input).toBeVisible();
     await input.fill(desiredTitle);
     await input.press("Enter");
 
-    // Pill should re-render showing the new title.
-    await expect(pillLabel).toHaveText(desiredTitle, { timeout: 10_000 });
+    // RecapBanner should re-render showing the new title; pill is unaffected.
+    await expect(recapTitle).toHaveText(desiredTitle, { timeout: 10_000 });
+    await expect(pillLabel).toHaveText(beforeRename);
 
     // The active session tab in the SessionTabs row above the pill must
     // mirror the renamed title — so the user can identify the tab by name.
@@ -89,7 +108,7 @@ test.describe("Session management workflow", () => {
     await page.reload();
     const idAfterRenameReload = await waitForBoundSession(page);
     expect(idAfterRenameReload).toBe(idB);
-    await expect(page.getByTestId("session-picker-label")).toHaveText(desiredTitle, {
+    await expect(page.getByTestId("recap-banner-title")).toHaveText(desiredTitle, {
       timeout: 15_000,
     });
     // After reload, the tab label is also reconstructed from persisted state

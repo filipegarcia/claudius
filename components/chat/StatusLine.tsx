@@ -10,8 +10,6 @@ import type { SessionInfo } from "@/lib/client/types";
 
 type Props = {
   sessionId: string | null;
-  sessionTitle?: string | null;
-  onRenameSession?: (title: string) => Promise<{ ok: true } | { ok: false; error: string }>;
   ready: boolean;
   pending: boolean;
   permissionMode: PermissionMode;
@@ -38,8 +36,6 @@ type Props = {
 
 export function StatusLine({
   sessionId,
-  sessionTitle,
-  onRenameSession,
   ready,
   pending,
   permissionMode,
@@ -78,8 +74,6 @@ export function StatusLine({
       <Circle className={`h-2.5 w-2.5 ${color}`} fill="currentColor" stroke="none" />
       <SessionPicker
         current={sessionId}
-        title={sessionTitle ?? null}
-        onRename={onRenameSession}
         sessions={sessions}
         onSwitch={onSwitchSession}
         onCreateNew={onCreateNewSession}

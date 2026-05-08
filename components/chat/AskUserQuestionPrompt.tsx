@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowRight, Check, X } from "lucide-react";
+import { ArrowRight, Check, Pencil, X } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import type { AskAnswer, AskUserQuestionEvent } from "@/lib/shared/events";
 
@@ -34,13 +34,26 @@ export function AskUserQuestionPrompt({ request, onSubmit, onCancel }: Props) {
     request.questions.map(() => emptyWorking()),
   );
   const [focusedOption, setFocusedOption] = useState(0);
-  const otherInputRef = useRef<HTMLInputElement>(null);
+  const otherInputRef = useRef<HTMLTextAreaElement>(null);
 
   const total = request.questions.length;
   const q = request.questions[active];
   const w = working[active] ?? emptyWorking();
   const focusedOptionPreview =
     q.options[focusedOption]?.preview ?? q.options[0]?.preview ?? "";
+
+  // Right pane mode decides what fills the column next to the options list.
+  // - "preview": one of the question's options has preview HTML — render it.
+  // - "other": no previews, but the user picked "Other" — give them a roomy
+  //   textarea on the right instead of a cramped input under the Other row.
+  // - "empty": nothing to show; the options list expands to full width so we
+  //   don't leave the right half visibly blank.
+  const hasPreview = q.options.some((o) => !!o.preview);
+  const rightMode: "preview" | "other" | "empty" = hasPreview
+    ? "preview"
+    : w.showOther
+    ? "other"
+    : "empty";
 
   // Reset focus into the option list when the active question changes.
   useEffect(() => {
@@ -214,10 +227,19 @@ export function AskUserQuestionPrompt({ request, onSubmit, onCancel }: Props) {
           </button>
         </div>
 
-        {/* Body — split layout: options on the left, preview on the right when present */}
+        {/* Body — split layout: options on the left, preview/Other-textarea on the right
+            when there's something to show. Otherwise the options list takes the full width
+            so the right half isn't left visibly empty. */}
         <div className="flex min-h-0 flex-1">
           {/* Options column */}
-          <div className="flex w-full min-w-0 shrink-0 flex-col overflow-y-auto border-r border-[var(--border)] scroll-thin md:w-1/2 lg:w-2/5">
+          <div
+            className={cn(
+              "flex w-full min-w-0 shrink-0 flex-col overflow-y-auto scroll-thin",
+              rightMode === "empty"
+                ? "border-r-0"
+                : "border-r border-[var(--border)] md:w-1/2 lg:w-2/5",
+            )}
+          >
             <div className="px-5 pb-3 pt-4">
               <p className="text-sm font-medium leading-snug">{q.question}</p>
               {q.multiSelect && (
@@ -305,15 +327,25 @@ export function AskUserQuestionPrompt({ request, onSubmit, onCancel }: Props) {
                     </span>
                   </span>
                 </button>
+                {/* Inline (left-column) Other input is only used when the right pane is
+                    occupied by a preview. Otherwise the textarea lives in the right pane,
+                    which gives the user real room to write. On small screens (no md:) the
+                    right pane is hidden, so we still need an inline fallback there. */}
                 {w.showOther && (
-                  <div className="mb-2 px-3">
-                    <input
-                      ref={otherInputRef}
-                      data-testid="ask-other-input"
+                  <div
+                    className={cn(
+                      "mb-2 px-3",
+                      // Hide on md+ when right pane will host the textarea instead.
+                      rightMode === "other" && "md:hidden",
+                    )}
+                  >
+                    <textarea
+                      data-testid="ask-other-input-inline"
                       value={w.custom}
                       onChange={(e) => setCustom(e.target.value)}
                       onKeyDown={(e) => {
-                        if (e.key === "Enter") {
+                        // Cmd/Ctrl+Enter advances or submits; plain Enter is a newline.
+                        if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
                           e.preventDefault();
                           if (isLast) {
                             if (allReady) void submit();
@@ -323,7 +355,8 @@ export function AskUserQuestionPrompt({ request, onSubmit, onCancel }: Props) {
                         }
                       }}
                       placeholder="Type your answer…"
-                      className="w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 text-sm outline-none focus:border-[var(--accent)]"
+                      rows={2}
+                      className="w-full resize-y rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 text-sm outline-none focus:border-[var(--accent)]"
                     />
                   </div>
                 )}
@@ -331,9 +364,25 @@ export function AskUserQuestionPrompt({ request, onSubmit, onCancel }: Props) {
             </ul>
           </div>
 
-          {/* Preview column — shown when any option in this question has a preview */}
-          {q.options.some((o) => !!o.preview) && (
+          {/* Right pane — preview when the model supplied one, otherwise the roomy
+              textarea for "Other". Hidden entirely when neither applies (the options
+              column has already expanded to fill the space). */}
+          {rightMode === "preview" && (
             <PreviewPane html={focusedOptionPreview} label={q.options[focusedOption]?.label ?? ""} />
+          )}
+          {rightMode === "other" && (
+            <OtherPane
+              value={w.custom}
+              onChange={setCustom}
+              textareaRef={otherInputRef}
+              onSubmitShortcut={() => {
+                if (isLast) {
+                  if (allReady) void submit();
+                } else if (isReady(active)) {
+                  setActive((a) => Math.min(total - 1, a + 1));
+                }
+              }}
+            />
           )}
         </div>
 
@@ -341,7 +390,14 @@ export function AskUserQuestionPrompt({ request, onSubmit, onCancel }: Props) {
         <div className="flex items-center gap-2 border-t border-[var(--border)] bg-[var(--panel-2)]/40 px-4 py-2 text-xs">
           <span className="text-[var(--muted)]">
             {q.multiSelect ? "↑/↓ navigate · 1–4 toggle" : "↑/↓ navigate · 1–4 select"} ·{" "}
-            {isLast ? "Enter submit" : "Enter next"} · Esc cancel
+            {w.showOther
+              ? isLast
+                ? "⌘/Ctrl+Enter submit"
+                : "⌘/Ctrl+Enter next"
+              : isLast
+              ? "Enter submit"
+              : "Enter next"}{" "}
+            · Esc cancel
           </span>
           <div className="ml-auto flex items-center gap-2">
             {active > 0 && (
@@ -375,6 +431,43 @@ export function AskUserQuestionPrompt({ request, onSubmit, onCancel }: Props) {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function OtherPane({
+  value,
+  onChange,
+  textareaRef,
+  onSubmitShortcut,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  textareaRef: React.RefObject<HTMLTextAreaElement | null>;
+  onSubmitShortcut: () => void;
+}) {
+  return (
+    <div className="hidden min-w-0 flex-1 flex-col p-4 md:flex">
+      <div className="mb-2 flex items-center gap-2 text-[10px] uppercase tracking-wide text-[var(--muted)]">
+        <Pencil className="h-3 w-3" />
+        Your answer
+      </div>
+      <textarea
+        ref={textareaRef}
+        data-testid="ask-other-input"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onKeyDown={(e) => {
+          // Cmd/Ctrl+Enter is the submit/advance shortcut. Plain Enter inserts
+          // a newline so the user can write paragraphs without surprises.
+          if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+            e.preventDefault();
+            onSubmitShortcut();
+          }
+        }}
+        placeholder="Type your answer… (⌘/Ctrl+Enter to continue)"
+        className="min-h-0 w-full flex-1 resize-none rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-3 py-2 text-sm leading-relaxed outline-none focus:border-[var(--accent)]"
+      />
     </div>
   );
 }

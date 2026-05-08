@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils/cn";
 import { AssistantMessage } from "./AssistantMessage";
 import { UserMessage } from "./UserMessage";
 import { SystemPill } from "./SystemPill";
+import { ClaudiusMark } from "@/components/brand/ClaudiusMark";
 import type { DisplayMessage, SystemEntry, TaskInfo } from "@/lib/client/types";
 
 type Props = {
@@ -174,6 +175,7 @@ export function MessageList({
     const top = grouped.get("") ?? [];
     return (
       <div className="flex flex-1 flex-col items-center justify-center px-8 text-center">
+        <ClaudiusMark color="var(--foreground)" size={120} className="mb-5 opacity-90" />
         <h1 className="mb-2 text-3xl font-semibold tracking-tight">Claudius</h1>
         <p className="mb-6 max-w-md text-sm text-[var(--muted)]">
           A web interface for Claude Code. Type a prompt to start a session.

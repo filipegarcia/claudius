@@ -32,6 +32,7 @@ import { SessionTabs, activeTabStatus, tabLabelFor } from "@/components/chat/Ses
 import { TabClaimBanner } from "@/components/chat/TabClaimBanner";
 import { useTabClaim } from "@/lib/client/useTabClaim";
 import { BashViewer } from "@/components/panels/BashViewer";
+import { ClaudiusMark } from "@/components/brand/ClaudiusMark";
 import type { BackgroundBash } from "@/lib/client/types";
 
 function todayKey(): string {
@@ -175,15 +176,21 @@ export default function Home() {
   // can't clobber the saved list before we've read it.
   useEffect(() => {
     if (!tabsHydrated) return;
+    // The active marker is what the next page load resumes. Only treat
+    // session.sessionId as "active" when it's actually in the strip —
+    // otherwise (e.g., closed-last-tab leaves sessionId lingering) we'd
+    // resume a tab the user explicitly closed.
+    const activeId =
+      session.sessionId && openTabs.includes(session.sessionId) ? session.sessionId : null;
     void fetch("/api/sessions/open-tabs", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ tabs: openTabs }),
+      body: JSON.stringify({ tabs: openTabs, activeId }),
     }).catch(() => {
       // Best-effort — a failed save just means the next reload sees the
       // last successfully persisted strip.
     });
-  }, [openTabs, tabsHydrated]);
+  }, [openTabs, tabsHydrated, session.sessionId]);
   // Auto-add the active session id whenever it appears.
   useEffect(() => {
     if (!session.sessionId) return;
@@ -201,17 +208,23 @@ export default function Home() {
           const target = next[Math.max(0, idx - 1)] ?? next[0] ?? null;
           if (target) {
             session.switchSession(target);
-          } else {
-            // No tabs left — start a fresh session, which the active-bind
-            // effect above will then add back to the strip.
-            void session.createNewSession();
           }
+          // If no tabs remain, leave the strip empty. session.sessionId
+          // lingers at the just-closed id (harmless since nothing renders
+          // against it while openTabs is empty); the next + click or
+          // sidebar pick will create/select a session and re-populate.
         }
         return next;
       });
     },
     [session],
   );
+
+  const closeAllTabs = useCallback(() => {
+    if (openTabs.length === 0) return;
+    if (!confirm(`Close all ${openTabs.length} tabs? Sessions remain on disk.`)) return;
+    setOpenTabs([]);
+  }, [openTabs.length]);
 
   // Bash live-tail viewer ─────────────────────────────────────────────────
   const [openBash, setOpenBash] = useState<BackgroundBash | null>(null);
@@ -611,19 +624,42 @@ export default function Home() {
             if (id !== session.sessionId) session.switchSession(id);
           }}
           onClose={closeTab}
+          onCloseAll={closeAllTabs}
           onNew={() => void session.createNewSession()}
         />
+        {openTabs.length === 0 ? (
+          <div className="flex flex-1 items-center justify-center text-center">
+            <div className="flex max-w-sm flex-col items-center px-6 py-12">
+              <ClaudiusMark color="var(--foreground)" size={120} className="mb-5 opacity-90" />
+              <h1 className="mb-2 text-3xl font-semibold tracking-tight">Claudius</h1>
+              <p className="mb-6 text-sm text-[var(--muted)]">No session open.</p>
+              <button
+                type="button"
+                onClick={() => void session.createNewSession()}
+                className="rounded-md border border-[var(--border)] bg-[var(--panel)] px-4 py-2 text-sm hover:bg-[var(--panel-2)]"
+              >
+                + New session
+              </button>
+            </div>
+          </div>
+        ) : (
+        <>
         <StatusLine
           sessionId={session.sessionId}
-          sessionTitle={session.sessionTitle}
-          onRenameSession={session.renameTitle}
           ready={session.ready}
           pending={session.pending}
           permissionMode={session.permissionMode}
           model={session.model}
           onModeChange={session.setPermissionMode}
           sessions={session.sessions}
-          onSwitchSession={session.switchSession}
+          onSwitchSession={(id) => {
+            // Re-add to strip in case the user closed all tabs and is
+            // re-picking the same session that's still bound internally —
+            // switchSession is a no-op when ids match, so the auto-add
+            // effect would never fire.
+            setOpenTabs((prev) => (prev.includes(id) ? prev : [...prev, id]));
+            session.switchSession(id);
+          }}
           onCreateNewSession={session.createNewSession}
           onRefreshSessions={session.refreshSessions}
           contextPercent={ctxSummary?.percentage}
@@ -659,7 +695,11 @@ export default function Home() {
             setTodosBannerHidden(true);
           }}
         />
-        <RecapBanner title={session.sessionTitle} />
+        <RecapBanner
+          sessionId={session.sessionId}
+          title={session.sessionTitle}
+          onRename={session.renameTitle}
+        />
         <div className="flex flex-1 flex-col overflow-hidden">
           {searchOpen && (
             <TranscriptSearch
@@ -729,6 +769,8 @@ export default function Home() {
             sendDisabled={capBreached || tabClaim.readOnly}
           />
         </div>
+        </>
+        )}
       </main>
       <BackgroundTasksPanel
         progress={session.toolProgress}

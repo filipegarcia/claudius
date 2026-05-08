@@ -1080,10 +1080,11 @@ export function useSession(): ChatState & ChatActions {
   // Boot on mount; honor URL ?session=, ?at=, and ?prompt= (seed initial input).
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    // ?new=1 forces creating a fresh session, even if ?session= is present.
-    // The Chat side-nav button uses this to mean "give me a new conversation."
+    // ?new=1 forces creating a fresh session, even if ?session= is present
+    // and even if a last-active tab is persisted. Used by /clear and any
+    // explicit "new chat" entry point.
     const forceNew = params.get("new") === "1";
-    const resume = forceNew ? undefined : params.get("session") || undefined;
+    let resume: string | undefined = forceNew ? undefined : params.get("session") || undefined;
     const at = forceNew ? undefined : params.get("at") || undefined;
     const seed = params.get("prompt") || undefined;
     if (forceNew && typeof window !== "undefined") {
@@ -1098,6 +1099,22 @@ export function useSession(): ChatState & ChatActions {
       }
     }
     (async () => {
+      // Fall back to the last-active tab when no explicit session was
+      // requested in the URL — otherwise every page load would spawn a
+      // brand-new session on top of the persisted strip.
+      if (!resume && !forceNew) {
+        try {
+          const r = await fetch("/api/sessions/open-tabs");
+          if (r.ok) {
+            const data = (await r.json()) as { activeId?: unknown };
+            if (typeof data.activeId === "string" && data.activeId) {
+              resume = data.activeId;
+            }
+          }
+        } catch {
+          // Best-effort: a network failure just means we create fresh.
+        }
+      }
       const created = await createSession(resume ? { resume, resumeSessionAt: at } : {});
       if (created && seed) {
         // Wait briefly for the session to be `ready` before sending.

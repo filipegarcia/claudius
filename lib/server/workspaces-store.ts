@@ -3,6 +3,8 @@ import { homedir } from "node:os";
 import { basename, dirname, join } from "node:path";
 import { randomUUID } from "node:crypto";
 
+import type { CommitPrefixConfig } from "@/lib/shared/commit-prefix";
+
 export type IconLetter = { kind: "letter"; letter: string; color: string };
 export type IconImage = { kind: "image"; ext: string };
 export type Icon = IconLetter | IconImage;
@@ -46,6 +48,11 @@ export type Workspace = {
   lastOpenedAt?: number;
   /** Per-workspace defaults for new sessions. Older files lack this key. */
   defaults?: WorkspaceDefaults;
+  /**
+   * Branch-derived commit-message prefix. When set and matched, the git
+   * page pre-fills the empty commit textarea with the rendered prefix.
+   */
+  commitPrefix?: CommitPrefixConfig;
 };
 
 type StoreShape = {

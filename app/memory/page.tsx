@@ -200,12 +200,19 @@ function AutoMemorySection({ cwd, iaScope }: { cwd: string | null; iaScope: IaSc
   // Bumped after each save/refresh so the edit form re-reads the file.
   const [reloadKey, setReloadKey] = useState(0);
 
+  // Callers must clear `content` before they bump `active`/`reloadKey` so the
+  // form unmounts into Loading… until the new raw arrives. EditMemoryForm
+  // initializes its state from `parsed` exactly once at mount; if it remounts
+  // (its key includes active+reloadKey) while `content` still holds the
+  // *previous* file's raw — and that raw doesn't parse, e.g. MEMORY.md has
+  // no frontmatter — useState locks to defaults. The raw prop then updates,
+  // `parsed.name` refreshes via inline recompute, but `type`/`description`/
+  // `body` stay stuck. Same race on save (reloadKey++ remounts the form
+  // against pre-save content). Click handlers, onDelete, and onSave below all
+  // clear content before triggering this effect.
   useEffect(() => {
-    if (active) {
-      void readFile(active).then(setContent);
-    } else {
-      setContent(null);
-    }
+    if (!active) return;
+    void readFile(active).then(setContent);
   }, [active, readFile, reloadKey]);
 
   // Auto-memory lives under ~/.claude/projects/<encoded-cwd>/ (workspace scope).
@@ -244,6 +251,9 @@ function AutoMemorySection({ cwd, iaScope }: { cwd: string | null; iaScope: IaSc
             const r = await createMemory(input);
             if (r.ok) {
               setCreating(false);
+              // Clear before switching active so the new file's form mounts
+              // with fresh raw — see the useEffect comment above.
+              if (r.name !== active) setContent(null);
               setActive(r.name);
             }
             return r;
@@ -258,7 +268,10 @@ function AutoMemorySection({ cwd, iaScope }: { cwd: string | null; iaScope: IaSc
             files.map((f) => (
               <li key={f.name}>
                 <button
-                  onClick={() => setActive(f.name)}
+                  onClick={() => {
+                    if (f.name !== active) setContent(null);
+                    setActive(f.name);
+                  }}
                   className={cn(
                     "flex w-full items-baseline justify-between gap-2 px-3 py-1.5 text-left text-[11px]",
                     "hover:bg-[var(--panel-2)]",
@@ -291,7 +304,13 @@ function AutoMemorySection({ cwd, iaScope }: { cwd: string | null; iaScope: IaSc
               raw={content}
               onSave={async (input) => {
                 const r = await updateMemory(active, input);
-                if (r.ok) setReloadKey((k) => k + 1);
+                if (r.ok) {
+                  // Clear before bumping reloadKey: see the comment on the
+                  // useEffect above. Otherwise the form remounts against
+                  // pre-save raw and useState locks to old values.
+                  setContent(null);
+                  setReloadKey((k) => k + 1);
+                }
                 return r;
               }}
               onDelete={async () => {
