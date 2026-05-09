@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type DragEvent } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Plus, Plug, Settings, UserCircle } from "lucide-react";
+import { Plus, Plug, Settings, UserCircle, WandSparkles } from "lucide-react";
 import { useWorkspaces } from "@/lib/client/useWorkspaces";
 import { WorkspaceIcon } from "@/components/workspaces/WorkspaceIcon";
 import { WorkspaceForm } from "@/components/workspaces/WorkspaceForm";
@@ -109,7 +109,7 @@ export function WorkspaceSwitcher() {
 
   return (
     <>
-      <aside className="flex h-full w-14 shrink-0 flex-col items-center gap-2 border-r border-[var(--border)] bg-[var(--background)] py-3">
+      <aside data-pane-name="workspace-switcher" className="flex h-full w-14 shrink-0 flex-col items-center gap-2 border-r border-[var(--border)] bg-[var(--background)] py-3">
         {items.map((w, i) => {
           const active = w.id === activeId;
           const dimmed = draggingId && draggingId !== w.id;
@@ -171,6 +171,13 @@ export function WorkspaceSwitcher() {
         {/* System / global tiles — independent active highlight from the
             workspace tiles above. */}
         <div className="mt-3 h-px w-8 bg-[var(--border)]" />
+        <SystemTile
+          href="/customize"
+          label="Customize Claudius"
+          active={pathname?.startsWith("/customize") ?? false}
+          icon={<WandSparkles className="h-4 w-4" />}
+          accent
+        />
         <SystemTile
           href="/plugins"
           label="Plugins"
@@ -244,19 +251,27 @@ function SystemTile({
   label,
   icon,
   active,
+  accent,
 }: {
   href: string;
   label: string;
   icon: React.ReactNode;
   active: boolean;
+  /** When true, render with the accent color so the tile stands out (e.g. Customize). */
+  accent?: boolean;
 }) {
   return (
     <Link
       href={href}
       title={label}
       className={cn(
-        "flex h-10 w-10 items-center justify-center rounded-lg text-[var(--muted)] hover:bg-[var(--panel-2)] hover:text-[var(--foreground)]",
-        active && "bg-[var(--panel-2)] text-[var(--foreground)] ring-1 ring-[var(--border)]",
+        "flex h-10 w-10 items-center justify-center rounded-lg hover:bg-[var(--panel-2)]",
+        accent
+          ? "text-[var(--accent)] hover:text-[var(--accent)]"
+          : "text-[var(--muted)] hover:text-[var(--foreground)]",
+        active && (accent
+          ? "bg-[var(--accent)]/15 ring-1 ring-[var(--accent)]/40"
+          : "bg-[var(--panel-2)] text-[var(--foreground)] ring-1 ring-[var(--border)]"),
       )}
     >
       {icon}

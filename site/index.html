@@ -99,6 +99,7 @@
           <span class="font-mono text-sm tracking-tight text-fg/90 group-hover:text-fg">claudius</span>
         </a>
         <nav class="flex items-center gap-6 text-sm text-muted">
+          <a href="#install" class="hover:text-fg">Install</a>
           <a href="#features" class="hover:text-fg">Features</a>
           <a href="#gallery" class="hover:text-fg">Screenshots</a>
           <a
@@ -160,7 +161,7 @@
         </p>
         <div class="mt-10 flex items-center justify-center gap-3">
           <a
-            href="https://gitlab.com/filipegarcia/claudius"
+            href="#install"
             class="inline-flex items-center gap-2 rounded-md bg-accent px-5 py-2.5 text-sm font-medium text-bg hover:brightness-110 transition"
           >
             Get started
@@ -178,6 +179,91 @@
         <p class="mt-8 font-mono text-xs text-muted/80">
           <span class="text-accent">$</span> open http://localhost:3000 — fiat codex.
         </p>
+      </div>
+    </section>
+
+    <!-- ────────────────────────────── Install ────────────────────────────── -->
+    <section id="install" class="border-t border-line/60 scroll-mt-20">
+      <div class="max-w-6xl mx-auto px-6 py-20">
+        <div class="max-w-2xl">
+          <p class="font-mono text-xs uppercase tracking-widest text-accent">Install</p>
+          <h2 class="mt-2 text-3xl md:text-4xl font-semibold tracking-tight">
+            One curl, then you're chatting.
+          </h2>
+          <p class="mt-4 text-muted leading-relaxed">
+            The script clones the repo into <code class="font-mono text-fg bg-panel2 px-1.5 py-0.5 rounded text-sm">~/claudius</code>,
+            runs <code class="font-mono text-fg bg-panel2 px-1.5 py-0.5 rounded text-sm">npm install</code>,
+            and prints the next steps. Re-running it pulls the latest commit on
+            <code class="font-mono text-fg bg-panel2 px-1.5 py-0.5 rounded text-sm">main</code>
+            and refreshes deps. Requires <code class="font-mono text-fg bg-panel2 px-1.5 py-0.5 rounded text-sm">git</code>
+            and Node 20+.
+          </p>
+        </div>
+
+        <!-- One-liner -->
+        <div class="mt-10 rounded-lg border border-line bg-panel overflow-hidden">
+          <div class="flex items-stretch">
+            <pre class="flex-1 overflow-x-auto px-5 py-4 font-mono text-sm text-fg leading-6 whitespace-pre"><code id="install-cmd">curl -fsSL https://filipegarcia.gitlab.io/claudius/setup.sh | bash</code></pre>
+            <button
+              id="install-copy"
+              type="button"
+              class="shrink-0 border-l border-line px-4 text-xs font-mono uppercase tracking-wide text-muted hover:bg-panel2 hover:text-fg transition"
+              aria-label="Copy install command"
+            >Copy</button>
+          </div>
+          <div class="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-line/60 bg-panel2/50 px-5 py-2.5 text-xs text-muted">
+            <span class="font-mono text-accent">macOS · Linux</span>
+            <span aria-hidden="true">·</span>
+            <a href="./setup.sh" class="hover:text-fg underline-offset-2 hover:underline">View the script</a>
+            <span aria-hidden="true">·</span>
+            <a href="https://gitlab.com/filipegarcia/claudius" class="hover:text-fg underline-offset-2 hover:underline">Read the source</a>
+          </div>
+        </div>
+
+        <!-- Side-by-side: options + manual -->
+        <div class="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- Options -->
+          <div class="rounded-lg border border-line bg-panel p-6">
+            <div class="font-mono text-xs text-accent">Options</div>
+            <h3 class="mt-2 text-lg font-medium">Customize the install</h3>
+            <p class="mt-2 text-sm text-muted leading-relaxed">
+              Pass flags after <code class="font-mono text-fg bg-panel2 px-1.5 py-0.5 rounded text-xs">--</code>
+              to change the destination, branch, or auto-start the dev server.
+            </p>
+            <pre class="mt-4 overflow-x-auto rounded-md bg-panel2 px-4 py-3 font-mono text-xs text-fg leading-6 whitespace-pre"><code>curl -fsSL https://filipegarcia.gitlab.io/claudius/setup.sh \
+  | bash -s -- \
+      --prefix=$HOME/code/claudius \
+      --branch=main \
+      --start</code></pre>
+            <ul class="mt-4 space-y-1.5 text-xs text-muted leading-relaxed">
+              <li><code class="font-mono text-fg">--prefix=DIR</code> — install destination (default <code class="font-mono">~/claudius</code>)</li>
+              <li><code class="font-mono text-fg">--branch=BRANCH</code> — git branch (default <code class="font-mono">main</code>)</li>
+              <li><code class="font-mono text-fg">--no-install</code> — clone only, skip <code class="font-mono">npm install</code></li>
+              <li><code class="font-mono text-fg">--start</code> — run <code class="font-mono">npm run dev</code> after install</li>
+            </ul>
+          </div>
+
+          <!-- Audit-then-run / manual -->
+          <div class="rounded-lg border border-line bg-panel p-6">
+            <div class="font-mono text-xs text-accent">Prefer to read it first?</div>
+            <h3 class="mt-2 text-lg font-medium">Audit, then run</h3>
+            <p class="mt-2 text-sm text-muted leading-relaxed">
+              Piping <code class="font-mono text-fg bg-panel2 px-1.5 py-0.5 rounded text-xs">curl</code>
+              into <code class="font-mono text-fg bg-panel2 px-1.5 py-0.5 rounded text-xs">bash</code> is fine when you trust the source — but if you'd rather see what runs, save it locally first.
+            </p>
+            <pre class="mt-4 overflow-x-auto rounded-md bg-panel2 px-4 py-3 font-mono text-xs text-fg leading-6 whitespace-pre"><code>curl -fsSL https://filipegarcia.gitlab.io/claudius/setup.sh \
+  -o setup.sh
+less setup.sh
+bash setup.sh --start    # runs npm run dev after</code></pre>
+            <p class="mt-4 text-xs text-muted leading-relaxed">
+              Or skip the script and clone it yourself:
+            </p>
+            <pre class="mt-2 overflow-x-auto rounded-md bg-panel2 px-4 py-3 font-mono text-xs text-fg leading-6 whitespace-pre"><code>git clone https://gitlab.com/filipegarcia/claudius.git
+cd claudius
+npm install
+npm run dev      # http://localhost:3000</code></pre>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -563,6 +649,36 @@
         });
 
         closeBtn.addEventListener("click", () => dialog.close());
+      })();
+    </script>
+
+    <!-- ────────────────────────────── Copy install ─────────────────────── -->
+    <script>
+      (() => {
+        const btn = document.getElementById("install-copy");
+        const cmd = document.getElementById("install-cmd");
+        if (!btn || !cmd) return;
+        const original = btn.textContent;
+        let resetTimer = 0;
+        btn.addEventListener("click", async () => {
+          const text = cmd.textContent ?? "";
+          try {
+            await navigator.clipboard.writeText(text);
+            btn.textContent = "Copied";
+          } catch {
+            // Fallback: select the text so the user can hit ⌘/Ctrl-C themselves.
+            const sel = window.getSelection();
+            const range = document.createRange();
+            range.selectNodeContents(cmd);
+            sel?.removeAllRanges();
+            sel?.addRange(range);
+            btn.textContent = "Press ⌘/Ctrl-C";
+          }
+          window.clearTimeout(resetTimer);
+          resetTimer = window.setTimeout(() => {
+            btn.textContent = original;
+          }, 1800);
+        });
       })();
     </script>
   </body>

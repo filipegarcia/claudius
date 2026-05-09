@@ -33,7 +33,18 @@ export function AssistantMessage({ message, tasks = {}, subagentMessages = {} }:
                 <Markdown>{b.text}</Markdown>
               </div>
             );
-          if (b.kind === "thinking") return <ThinkingBlock key={i} text={b.text} />;
+          if (b.kind === "thinking") {
+            // Don't pollute completed turns with empty thinking blocks —
+            // the placeholder is only useful while content is in flight.
+            if (!b.text && !b.redacted && !message.streaming) return null;
+            return (
+              <ThinkingBlock
+                key={i}
+                text={b.text}
+                variant={b.redacted ? "redacted" : "thinking"}
+              />
+            );
+          }
           if (b.kind === "tool_use") {
             if (b.name === "Task") {
               const inner = subagentMessages[b.id] ?? [];

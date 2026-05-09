@@ -136,7 +136,16 @@ function SubMessage({ message }: { message: DisplayMessage }) {
                 <Markdown>{b.text}</Markdown>
               </div>
             );
-          if (b.kind === "thinking") return <ThinkingBlock key={i} text={b.text} />;
+          if (b.kind === "thinking") {
+            if (!b.text && !b.redacted && !message.streaming) return null;
+            return (
+              <ThinkingBlock
+                key={i}
+                text={b.text}
+                variant={b.redacted ? "redacted" : "thinking"}
+              />
+            );
+          }
           if (b.kind === "tool_use")
             return <ToolCall key={i} name={b.name} input={b.input} result={b.result} />;
           return null;

@@ -77,6 +77,29 @@ export type AskUserQuestionEvent = {
   questions: AskQuestion[];
 };
 
+/**
+ * The agent invoked ExitPlanMode to surface a plan for the user to approve.
+ * Routed through canUseTool, so the browser must POST a decision back to the
+ * `plan` endpoint to unblock the SDK — accepting it also flips the session
+ * out of plan mode.
+ */
+export type PlanApprovalRequestEvent = {
+  type: "plan_approval_request";
+  requestId: string;
+  toolUseId: string;
+  plan: string;
+  raw?: Record<string, unknown>;
+};
+
+export type PlanDecision =
+  | { kind: "accept" }
+  | { kind: "reject"; message?: string };
+
+export type PlanDecisionSubmission = {
+  requestId: string;
+  decision: PlanDecision;
+};
+
 /** One answer per question, in the same order as `questions`. */
 export type AskAnswer = {
   /** For single-select: the chosen option label, or null when picking "Other". */
@@ -101,7 +124,8 @@ export type ServerEvent =
   | ModelChangedEvent
   | ReplayDoneEvent
   | SessionTitleEvent
-  | AskUserQuestionEvent;
+  | AskUserQuestionEvent
+  | PlanApprovalRequestEvent;
 
 export type PermissionDecision =
   | { kind: "allow_once" }

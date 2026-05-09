@@ -1,0 +1,177 @@
+#!/usr/bin/env node
+/* eslint-disable @typescript-eslint/no-require-imports */
+"use strict";
+
+/**
+ * Standalone revert tool. Restores base files from snapshots taken at publish
+ * time. Intentionally has zero Claudius runtime dependencies — uses only
+ * node:fs, node:path, node:os, node:process — so it can recover an instance
+ * whose UI was just broken by a bad publish.
+ *
+ * Usage:
+ *   node bin/claudius-revert [--last | --all | --id <pubId>] [--live <path>]
+ *
+ *   --last   (default) revert the most recent active publish
+ *   --all    revert every active publish, newest-first
+ *   --id     revert a specific publish id
+ *   --live   override the live-source dir (defaults to CLAUDIUS_LIVE_SOURCE
+ *            env var or process.cwd())
+ *
+ * Exit codes:
+ *   0  reverted (or nothing to revert)
+ *   1  invalid arguments
+ *   2  no matching publish
+ *   3  io error
+ */
+
+const fs = require("node:fs");
+const path = require("node:path");
+const os = require("node:os");
+
+const ROOT = path.join(os.homedir(), ".claude", ".claudius", "customizations");
+const INDEX_FILE = path.join(ROOT, "index.json");
+
+function parseArgs(argv) {
+  const args = { mode: "last", id: null, live: null };
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i];
+    if (a === "--last") args.mode = "last";
+    else if (a === "--all") args.mode = "all";
+    else if (a === "--id") {
+      args.id = argv[++i];
+      args.mode = "id";
+    } else if (a === "--live") args.live = argv[++i];
+    else if (a === "--help" || a === "-h") return { mode: "help" };
+    else {
+      console.error(`unknown arg: ${a}`);
+      return null;
+    }
+  }
+  return args;
+}
+
+function liveSourceDir(override) {
+  if (override) return path.resolve(override);
+  if (process.env.CLAUDIUS_LIVE_SOURCE) return path.resolve(process.env.CLAUDIUS_LIVE_SOURCE);
+  return process.cwd();
+}
+
+function readIndex() {
+  if (!fs.existsSync(INDEX_FILE)) {
+    return { version: 1, customizations: [], publishes: [] };
+  }
+  const raw = fs.readFileSync(INDEX_FILE, "utf8");
+  const parsed = JSON.parse(raw);
+  if (parsed.version !== 1 || !Array.isArray(parsed.publishes)) {
+    throw new Error(`unrecognized index file shape at ${INDEX_FILE}`);
+  }
+  return parsed;
+}
+
+function writeIndex(shape) {
+  const tmp = `${INDEX_FILE}.${process.pid}.${Date.now()}.tmp`;
+  fs.writeFileSync(tmp, JSON.stringify(shape, null, 2) + "\n", "utf8");
+  fs.renameSync(tmp, INDEX_FILE);
+}
+
+function copyFileEnsureDir(src, dst) {
+  fs.mkdirSync(path.dirname(dst), { recursive: true });
+  fs.copyFileSync(src, dst);
+}
+
+function revertOne(pub, live) {
+  let restored = 0;
+  let removed = 0;
+  for (const f of pub.files) {
+    const liveAbs = path.join(live, f.path);
+    if (f.baseHash == null) {
+      // File was added by the publish — remove it.
+      try {
+        fs.rmSync(liveAbs, { force: true });
+        removed++;
+      } catch (err) {
+        if (err && err.code !== "ENOENT") throw err;
+      }
+    } else {
+      const snapAbs = path.join(pub.snapshotDir, f.path);
+      if (!fs.existsSync(snapAbs)) {
+        console.warn(`  skip: snapshot missing for ${f.path}`);
+        continue;
+      }
+      copyFileEnsureDir(snapAbs, liveAbs);
+      restored++;
+    }
+  }
+  return { restored, removed };
+}
+
+function main(argv) {
+  const args = parseArgs(argv);
+  if (!args) return 1;
+  if (args.mode === "help") {
+    console.log(
+      "Usage: node bin/claudius-revert [--last | --all | --id <pubId>] [--live <path>]",
+    );
+    return 0;
+  }
+  const live = liveSourceDir(args.live);
+  const shape = readIndex();
+  const active = shape.publishes
+    .filter((p) => p.revertedAt == null)
+    .sort((a, b) => b.publishedAt - a.publishedAt);
+
+  let toRevert;
+  if (args.mode === "last") {
+    if (active.length === 0) {
+      console.log("Nothing to revert (no active publishes).");
+      return 0;
+    }
+    toRevert = [active[0]];
+  } else if (args.mode === "all") {
+    if (active.length === 0) {
+      console.log("Nothing to revert (no active publishes).");
+      return 0;
+    }
+    toRevert = active;
+  } else if (args.mode === "id") {
+    const found = shape.publishes.find((p) => p.id === args.id);
+    if (!found) {
+      console.error(`No publish with id ${args.id}`);
+      return 2;
+    }
+    if (found.revertedAt != null) {
+      console.log(`Publish ${args.id} already reverted at ${new Date(found.revertedAt).toISOString()}`);
+      return 0;
+    }
+    toRevert = [found];
+  } else {
+    return 1;
+  }
+
+  console.log(`Live source: ${live}`);
+  console.log(`Reverting ${toRevert.length} publish(es)…`);
+  for (const pub of toRevert) {
+    console.log(`\n• ${pub.id}  (${new Date(pub.publishedAt).toISOString()})`);
+    let stats;
+    try {
+      stats = revertOne(pub, live);
+    } catch (err) {
+      console.error(`  failed: ${err && err.message ? err.message : err}`);
+      return 3;
+    }
+    console.log(`  restored ${stats.restored}, removed ${stats.removed}`);
+    const idx = shape.publishes.findIndex((p) => p.id === pub.id);
+    if (idx !== -1) {
+      shape.publishes[idx] = {
+        ...shape.publishes[idx],
+        revertedAt: Date.now(),
+        revertReason: shape.publishes[idx].revertReason || "cli",
+      };
+    }
+  }
+  writeIndex(shape);
+  console.log("\nDone. If Claudius is running, the dev server will hot-reload.");
+  return 0;
+}
+
+process.exit(main(process.argv.slice(2)));

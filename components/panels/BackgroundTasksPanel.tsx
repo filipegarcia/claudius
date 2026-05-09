@@ -34,6 +34,8 @@ type Props = {
   permissionMode: PermissionMode;
   cwd: string | null;
   usage: SessionUsage | null;
+  /** Fallback turn count from the transcript when usage is null (resumed sessions). */
+  historicalTurnCount?: number;
   pending: boolean;
   pendingPermission: PermissionRequestEvent | null;
   latestTodos: AgentTodo[];
@@ -84,6 +86,7 @@ export function BackgroundTasksPanel({
   permissionMode,
   cwd,
   usage,
+  historicalTurnCount,
   pending,
   pendingPermission,
   latestTodos,
@@ -112,7 +115,7 @@ export function BackgroundTasksPanel({
     runningCount + subagents.length + (pendingPermission ? 1 : 0) + liveBashes.length;
 
   return (
-    <div className="flex h-full w-72 flex-col border-l border-[var(--border)] bg-[var(--panel)]">
+    <div data-pane-name="right-rail" className="flex h-full w-72 flex-col border-l border-[var(--border)] bg-[var(--panel)]">
       <div className="sticky top-0 z-10 flex h-9 items-center gap-2 border-b border-[var(--border)] bg-[var(--panel)] px-3 text-xs">
         <Activity className="h-3.5 w-3.5 text-[var(--accent)]" />
         <span className="font-medium">Activity</span>
@@ -126,6 +129,7 @@ export function BackgroundTasksPanel({
           permissionMode={permissionMode}
           cwd={cwd}
           usage={usage}
+          historicalTurnCount={historicalTurnCount}
           onOpenCost={() => setShowCost(true)}
         />
         <ContextBar sessionId={sessionId} pending={pending} />

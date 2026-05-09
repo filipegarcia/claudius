@@ -5,12 +5,13 @@ import type {
   AskUserQuestionEvent,
   PermissionDecision,
   PermissionRequestEvent,
+  PlanDecision,
   ServerEvent,
 } from "@/lib/shared/events";
 
 export type DisplayBlock =
   | { kind: "text"; text: string }
-  | { kind: "thinking"; text: string }
+  | { kind: "thinking"; text: string; redacted?: boolean }
   | {
       kind: "tool_use";
       id: string;
@@ -94,6 +95,8 @@ export type SessionInfo = {
 };
 
 export type PendingPlan = {
+  /** Server-minted id used to resolve the SDK's canUseTool promise. */
+  requestId: string;
   toolUseId: string;
   plan: string;
   /** Pulled from tool_use input if present (some agents pass extra metadata). */
@@ -245,8 +248,13 @@ export type ChatActions = {
   /** Open a fresh session in a specific working directory (e.g. a git worktree). */
   createSessionAt(cwd: string): Promise<void>;
   refreshSessions(): Promise<void>;
-  /** Clear the pending plan (e.g. after the agent answered or the user dismissed). */
-  dismissPlan(): void;
+  /**
+   * Resolve the pending ExitPlanMode prompt. Accept flips the session out of
+   * plan mode; reject sends feedback so the model can iterate. Closing the
+   * overlay should call this with `{ kind: "reject" }` — without a decision
+   * the SDK is left waiting on canUseTool and the agent hangs.
+   */
+  resolvePlan(decision: PlanDecision): Promise<void>;
   /** Fetch the page of messages older than the current head and prepend them. */
   loadOlder(): Promise<void>;
   /** Paginate older pages until the given uuid is loaded; returns whether it landed. */

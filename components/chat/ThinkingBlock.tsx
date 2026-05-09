@@ -1,11 +1,22 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, ChevronRight, Brain } from "lucide-react";
+import { ChevronDown, ChevronRight, Brain, Lock } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 
-export function ThinkingBlock({ text }: { text: string }) {
+type Variant = "thinking" | "redacted";
+
+export function ThinkingBlock({
+  text,
+  variant = "thinking",
+}: {
+  text: string;
+  variant?: Variant;
+}) {
   const [open, setOpen] = useState(false);
+  const isRedacted = variant === "redacted";
+  const hasBody = text.trim().length > 0;
+
   return (
     <div className="my-2 rounded-lg border border-[var(--border)] bg-[var(--panel)]/50">
       <button
@@ -16,12 +27,24 @@ export function ThinkingBlock({ text }: { text: string }) {
         )}
       >
         {open ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
-        <Brain className="h-3.5 w-3.5" />
-        <span>Thinking</span>
+        {isRedacted ? <Lock className="h-3.5 w-3.5" /> : <Brain className="h-3.5 w-3.5" />}
+        <span>{isRedacted ? "Thinking (encrypted)" : "Thinking"}</span>
       </button>
       {open && (
         <div className="border-t border-[var(--border)] px-3 py-2 font-mono text-xs whitespace-pre-wrap text-[var(--muted)]">
-          {text}
+          {isRedacted ? (
+            <span className="italic">
+              Reasoning was redacted by the model and is not available to the
+              client. The agent still uses it internally.
+            </span>
+          ) : hasBody ? (
+            text
+          ) : (
+            <span className="italic">
+              Streaming the reasoning… or the model returned no readable
+              thinking for this turn.
+            </span>
+          )}
         </div>
       )}
     </div>

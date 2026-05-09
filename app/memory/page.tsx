@@ -26,7 +26,7 @@ export default function MemoryPage() {
   return (
     <div className="flex h-full">
       <SideNav running={false} />
-      <main className="flex h-full flex-1 flex-col overflow-hidden">
+      <main data-pane-name="memory-main" className="flex h-full flex-1 flex-col overflow-hidden">
         <header className="flex h-9 shrink-0 items-center gap-3 border-b border-[var(--border)] bg-[var(--panel)] px-4 text-xs">
           <Link href="/" className="flex items-center gap-1 text-[var(--muted)] hover:text-[var(--foreground)]">
             <ArrowLeft className="h-3.5 w-3.5" /> Chat

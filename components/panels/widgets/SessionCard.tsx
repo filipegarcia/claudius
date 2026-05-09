@@ -12,6 +12,14 @@ type Props = {
   permissionMode: PermissionMode;
   cwd: string | null;
   usage: SessionUsage | null;
+  /**
+   * Fallback turn count derived from the message transcript, used when
+   * `usage` is null. SDK `result` events (which carry `numTurns`) aren't
+   * persisted in the JSONL — so a freshly-resumed session shows 0 turns
+   * until a new turn lands. Counting assistant messages we already
+   * received via replay is at least directionally correct.
+   */
+  historicalTurnCount?: number;
   onOpenCost?: () => void;
 };
 
@@ -22,7 +30,15 @@ const MODE_LABEL: Record<string, string> = {
   bypassPermissions: "bypass",
 };
 
-export function SessionCard({ sessionId, model, permissionMode, cwd, usage, onOpenCost }: Props) {
+export function SessionCard({
+  sessionId,
+  model,
+  permissionMode,
+  cwd,
+  usage,
+  historicalTurnCount,
+  onOpenCost,
+}: Props) {
   // Use `usage.durationMs` when present (server-known); otherwise track wall
   // time from when we first saw a non-null sessionId.
   const [boundAt, setBoundAt] = useState<number | null>(null);
@@ -42,7 +58,7 @@ export function SessionCard({ sessionId, model, permissionMode, cwd, usage, onOp
     : boundAt
       ? (now - boundAt) / 1000
       : 0;
-  const turns = usage?.numTurns ?? 0;
+  const turns = usage?.numTurns ?? historicalTurnCount ?? 0;
 
   return (
     <button

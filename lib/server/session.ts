@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { watch as watchFs, type FSWatcher } from "node:fs";
 import {
   getSessionInfo,
   getSessionMessages,
@@ -12,6 +13,7 @@ import {
   type SDKMessage,
   type SDKUserMessage,
 } from "@anthropic-ai/claude-agent-sdk";
+import { projectRoot } from "./db";
 import { AsyncQueue } from "./async-queue";
 import {
   getSessionTitle,
@@ -25,6 +27,7 @@ import type {
   AskQuestionOption,
   PermissionDecision,
   PermissionRequestEvent,
+  PlanDecision,
   ServerEvent,
 } from "@/lib/shared/events";
 
@@ -40,6 +43,14 @@ type PendingAskQuestion = {
   requestId: string;
   toolUseId: string;
   questions: AskQuestion[];
+  resolve: (result: PermissionResult) => void;
+};
+
+type PendingPlan = {
+  requestId: string;
+  toolUseId: string;
+  plan: string;
+  raw?: Record<string, unknown>;
   resolve: (result: PermissionResult) => void;
 };
 
@@ -63,9 +74,19 @@ export class Session {
 
   private buffer: ServerEvent[] = [];
   private subscribers = new Set<Subscriber>();
+  private subscriberCountListeners = new Set<(count: number) => void>();
   private pendingPermissions = new Map<string, PendingPermission>();
   private pendingAskQuestions = new Map<string, PendingAskQuestion>();
+  private pendingPlans = new Map<string, PendingPlan>();
   private done = false;
+  // Watches `~/.claude/projects/<encoded-cwd>/` for changes to this
+  // session's JSONL so external writers (`claude --resume <id>` in the
+  // terminal) trigger a live resync instead of waiting for a refresh.
+  private jsonlWatcher: FSWatcher | null = null;
+  private jsonlResyncTimer: ReturnType<typeof setTimeout> | null = null;
+  // Set to true while resyncFromDisk is in flight, so a watch event that
+  // arrives during the sync doesn't stack up redundant work.
+  private jsonlResyncBusy = false;
 
   constructor(opts: {
     id?: string;
@@ -156,6 +177,13 @@ export class Session {
       abortController: this.abortController,
       canUseTool: this.canUseTool,
       includePartialMessages: true,
+      // Opt into adaptive extended thinking explicitly so the agent
+      // emits the full reasoning text in `thinking` blocks. Without
+      // this, recent SDK builds default to a `display: 'omitted'`
+      // shape on short turns and the chat surface renders empty
+      // Thinking blocks. Leaving `display` unset means "full text"
+      // (the alternatives — 'summarized' / 'omitted' — both hide it).
+      thinking: { type: "adaptive" },
       // Tell the model to emit HTML (not markdown) in option `preview` fields,
       // so the AskUserQuestion modal can render rich previews (mockups, code
       // snippets, configuration examples) directly in the browser. Default
@@ -174,6 +202,69 @@ export class Session {
     this.broadcast({ type: "ready", sessionId: this.id });
     if (this.title) this.broadcast({ type: "session_title", title: this.title });
     void this.consume();
+    // Start watching the on-disk JSONL so external writers (CLI `claude
+    // --resume <id>`) trigger a resync that broadcasts new turns to all
+    // open browser tabs without a manual refresh.
+    this.startJsonlWatcher();
+  }
+
+  private startJsonlWatcher(): void {
+    if (this.jsonlWatcher) return;
+    const dir = projectRoot(this.cwd);
+    const target = `${this.id}.jsonl`;
+    try {
+      // Watch the parent directory rather than the file directly: the file
+      // may not exist yet for a brand-new session, and atomic-rename writes
+      // (some editors do this) replace the inode, breaking a file-level
+      // watch. Filtering by filename in the listener gives us a reliable
+      // signal regardless.
+      this.jsonlWatcher = watchFs(dir, { persistent: false }, (_event, filename) => {
+        if (filename !== target) return;
+        this.scheduleJsonlResync();
+      });
+      this.jsonlWatcher.on("error", () => {
+        // Best-effort — losing the watcher just means we're back to
+        // refresh-driven resync. Don't crash the session.
+        this.stopJsonlWatcher();
+      });
+    } catch {
+      // Directory might not exist on first-ever boot; the SDK creates it
+      // when it writes the session JSONL. The next subscribe() call still
+      // does a best-effort resyncFromDisk, so we're not stuck.
+    }
+  }
+
+  private stopJsonlWatcher(): void {
+    if (this.jsonlResyncTimer) {
+      clearTimeout(this.jsonlResyncTimer);
+      this.jsonlResyncTimer = null;
+    }
+    if (this.jsonlWatcher) {
+      try {
+        this.jsonlWatcher.close();
+      } catch {
+        // ignore
+      }
+      this.jsonlWatcher = null;
+    }
+  }
+
+  private scheduleJsonlResync(): void {
+    // Coalesce bursty filesystem events. The SDK writes one JSONL line per
+    // SDK message; a single user prompt produces several events back to
+    // back. 200ms is comfortably below human-noticeable latency and well
+    // above the OS event burst window.
+    if (this.jsonlResyncTimer) clearTimeout(this.jsonlResyncTimer);
+    this.jsonlResyncTimer = setTimeout(() => {
+      this.jsonlResyncTimer = null;
+      if (this.jsonlResyncBusy) {
+        // Another sync is already running — re-arm so we pick up anything
+        // that lands after it finishes.
+        this.scheduleJsonlResync();
+        return;
+      }
+      void this.resyncFromDisk();
+    }, 200);
   }
 
   async rename(title: string): Promise<{ ok: true } | { ok: false; error: string }> {
@@ -205,6 +296,40 @@ export class Session {
   private canUseTool: CanUseTool = (toolName, input, ctx) => {
     return new Promise<PermissionResult>((resolve) => {
       const requestId = randomUUID();
+
+      // ── ExitPlanMode is the model's "ready to execute" signal ─────────
+      // Don't show the generic Allow/Deny card — surface the plan in our own
+      // overlay so the user can read it and decide. Accepting flips the
+      // session out of plan mode (handled in resolvePlan); rejecting sends
+      // a deny message back so the model can iterate.
+      if (toolName === "ExitPlanMode") {
+        const planText =
+          typeof (input as { plan?: unknown }).plan === "string"
+            ? ((input as { plan: string }).plan)
+            : JSON.stringify(input, null, 2);
+        const pending: PendingPlan = {
+          requestId,
+          toolUseId: ctx.toolUseID,
+          plan: planText,
+          raw: input as Record<string, unknown>,
+          resolve,
+        };
+        this.pendingPlans.set(requestId, pending);
+        this.broadcast({
+          type: "plan_approval_request",
+          requestId,
+          toolUseId: ctx.toolUseID,
+          plan: planText,
+          raw: input as Record<string, unknown>,
+        });
+        ctx.signal.addEventListener("abort", () => {
+          const p = this.pendingPlans.get(requestId);
+          if (!p) return;
+          this.pendingPlans.delete(requestId);
+          p.resolve({ behavior: "deny", message: "Aborted" });
+        });
+        return;
+      }
 
       // ── AskUserQuestion is the model's interactive form ────────────────
       // Don't render the standard "Allow / Deny" permission card for it —
@@ -274,7 +399,17 @@ export class Session {
       return true;
     }
 
-    const result: PermissionResult = { behavior: "allow" };
+    // The SDK's PermissionResult schema requires `updatedInput` to be a record
+    // on every "allow" — it represents the (possibly-mutated) tool args that
+    // will run. We don't mutate args here, so just echo the original input
+    // captured when the prompt was raised. Without this the SDK rejects the
+    // response with a Zod error ("expected record, received undefined") and
+    // the tool call loops until the session aborts.
+    const inputRecord =
+      pending.meta.input && typeof pending.meta.input === "object" && !Array.isArray(pending.meta.input)
+        ? (pending.meta.input as Record<string, unknown>)
+        : {};
+    const result: PermissionResult = { behavior: "allow", updatedInput: inputRecord };
     if (decision.kind === "allow_always_session") {
       result.updatedPermissions = [
         {
@@ -362,6 +497,31 @@ export class Session {
         ...(Object.keys(annotations).length > 0 ? { annotations } : {}),
       },
     });
+    return true;
+  }
+
+  /**
+   * Resolve a pending ExitPlanMode prompt. Accepting also flips the session
+   * out of plan mode into `acceptEdits` so the agent can actually execute the
+   * plan it just laid out — that's the whole point of the exit. Rejecting
+   * keeps plan mode and forwards the user's feedback as the deny message,
+   * letting the model iterate.
+   */
+  async resolvePlan(requestId: string, decision: PlanDecision): Promise<boolean> {
+    const pending = this.pendingPlans.get(requestId);
+    if (!pending) return false;
+    this.pendingPlans.delete(requestId);
+
+    if (decision.kind === "reject") {
+      pending.resolve({
+        behavior: "deny",
+        message: decision.message ?? "User rejected the plan — keep iterating.",
+      });
+      return true;
+    }
+
+    await this.setPermissionMode("acceptEdits");
+    pending.resolve({ behavior: "allow" });
     return true;
   }
 
@@ -558,6 +718,46 @@ export class Session {
     this.inputQueue.close();
     this.abortController.abort();
     this.done = true;
+    this.stopJsonlWatcher();
+  }
+
+  /**
+   * Re-read the on-disk JSONL for this session and broadcast any messages
+   * whose uuid isn't already in the buffer. Used so a browser refresh picks
+   * up turns the user added via `claude --resume` in the terminal (or any
+   * other writer to the same session file).
+   *
+   * Idempotent and best-effort — the SDK reader can fail (file moved,
+   * permissions, malformed line) and we don't want to block the normal
+   * subscribe flow when it does.
+   */
+  async resyncFromDisk(): Promise<{ added: number }> {
+    let added = 0;
+    this.jsonlResyncBusy = true;
+    try {
+      const disk = await getSessionMessages(this.id, {
+        dir: this.cwd,
+        includeSystemMessages: true,
+      });
+      if (disk.length === 0) return { added: 0 };
+      const seen = new Set<string>();
+      for (const ev of this.buffer) {
+        if (ev.type !== "sdk") continue;
+        const m = ev.message as { uuid?: string };
+        if (m.uuid) seen.add(m.uuid);
+      }
+      for (const m of disk) {
+        const uuid = (m as { uuid?: string }).uuid;
+        if (!uuid || seen.has(uuid)) continue;
+        this.broadcast({ type: "sdk", message: m as unknown as SDKMessage });
+        added++;
+      }
+    } catch {
+      // non-fatal — the caller proceeds with whatever's already in the buffer
+    } finally {
+      this.jsonlResyncBusy = false;
+    }
+    return { added };
   }
 
   subscribe(fn: Subscriber, opts?: { tail?: number }): () => void {
@@ -588,12 +788,26 @@ export class Session {
     // the wire. Live subscribers still see them when the original
     // broadcast happens; only the buffer replay filters them out.
     for (const ev of toReplay) {
-      if (ev.type === "permission_request" || ev.type === "ask_user_question") continue;
+      if (
+        ev.type === "permission_request" ||
+        ev.type === "ask_user_question" ||
+        ev.type === "plan_approval_request"
+      )
+        continue;
       fn(ev);
     }
     // Tell the client the replay window is over so it can anchor and arm
     // the "load older" sentinel.
     fn({ type: "replay_done", hasMoreAbove });
+    // Re-emit `ready` for tail-truncated sessions. `ready` is broadcast
+    // exactly once at start() (sits at buffer index 0), so any session
+    // with more turns than `tail` slices it off the replay window —
+    // leaving the client stuck on the "starting" status indicator even
+    // though the SDK Query is healthy. Same shape of bug the
+    // `sendFreshTitle` path below works around for session_title.
+    if (this.query) {
+      fn({ type: "ready", sessionId: this.id });
+    }
     // Now re-emit any interactive prompts that are STILL pending. The
     // historical replay above is filtered to "resolved" prompts; questions
     // and permission requests that the agent is still waiting on need to
@@ -611,7 +825,17 @@ export class Session {
     for (const pending of this.pendingPermissions.values()) {
       fn(pending.meta);
     }
+    for (const pending of this.pendingPlans.values()) {
+      fn({
+        type: "plan_approval_request",
+        requestId: pending.requestId,
+        toolUseId: pending.toolUseId,
+        plan: pending.plan,
+        ...(pending.raw ? { raw: pending.raw } : {}),
+      });
+    }
     this.subscribers.add(fn);
+    this.notifySubscriberCount();
     // Pull the freshest SDK-derived title into this subscriber. Two reasons:
     //   1. start() captures the title once; if the SDK auto-generates an
     //      aiTitle/summary AFTER a turn lands (which is the common case for
@@ -624,7 +848,37 @@ export class Session {
     void this.sendFreshTitle(fn);
     return () => {
       this.subscribers.delete(fn);
+      this.notifySubscriberCount();
     };
+  }
+
+  /**
+   * Register a callback fired on every subscriber-count change. Used by
+   * SessionManager to drive idle reaping: if the count drops to zero and
+   * stays there past a grace window, the manager calls `end()` to release
+   * the SDK child process. Returns an unregister function.
+   */
+  onSubscriberCountChange(cb: (count: number) => void): () => void {
+    this.subscriberCountListeners.add(cb);
+    return () => {
+      this.subscriberCountListeners.delete(cb);
+    };
+  }
+
+  /** Current SSE subscriber count. */
+  subscriberCount(): number {
+    return this.subscribers.size;
+  }
+
+  private notifySubscriberCount(): void {
+    const n = this.subscribers.size;
+    for (const cb of this.subscriberCountListeners) {
+      try {
+        cb(n);
+      } catch {
+        // listener throws shouldn't break the subscribe path
+      }
+    }
   }
 
   private async sendFreshTitle(fn: Subscriber): Promise<void> {

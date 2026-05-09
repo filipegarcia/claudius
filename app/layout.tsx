@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
+import { PaneLabelsHost } from "@/components/overlays/PaneLabelsHost";
+import { CustomizationBanner } from "@/components/customize/CustomizationBanner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -49,7 +51,11 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           strategy="beforeInteractive"
           dangerouslySetInnerHTML={{ __html: themeBootstrap }}
         />
-        {children}
+        <div className="flex h-full flex-col">
+          <CustomizationBanner />
+          <div className="min-h-0 flex-1">{children}</div>
+        </div>
+        <PaneLabelsHost />
       </body>
     </html>
   );
