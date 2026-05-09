@@ -1,4 +1,4 @@
-.PHONY: install dev build start lint test test-ui ci site screenshots screenshots-full
+.PHONY: install dev build start lint test test-ui ci site screenshots screenshots-full claudius-revert claudius-revert-all
 
 install:
 	npm ci
@@ -41,3 +41,15 @@ screenshots:
 screenshots-full:
 	npx playwright install chromium
 	npm run site:screenshots:full
+
+# ── Self-modify revert (CLI escape hatch) ──────────────────────────────
+# `claudius-revert` undoes the most recent active publish. Use it from a
+# terminal when the running Claudius UI itself was broken by a bad publish —
+# this script has no Claudius runtime dependency, only node:fs.
+# `claudius-revert-all` rolls every active publish back, newest-first.
+
+claudius-revert:
+	node bin/claudius-revert --last
+
+claudius-revert-all:
+	node bin/claudius-revert --all

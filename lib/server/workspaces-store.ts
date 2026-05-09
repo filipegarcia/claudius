@@ -38,6 +38,16 @@ export type WorkspaceDefaults = {
   additionalDirectories?: string[];
 };
 
+/**
+ * Distinguishes regular project workspaces from "customization" workspaces —
+ * the latter point at a customization-mirror dir under
+ * `~/.claude/.claudius/customizations/<id>/src/`. The UI shows a wand badge
+ * and a banner when a customization workspace is active.
+ *
+ * Older `workspaces.json` files lack this key — treat absent as `"project"`.
+ */
+export type WorkspaceKind = "project" | "customization";
+
 export type Workspace = {
   id: string;
   name: string;
@@ -53,6 +63,8 @@ export type Workspace = {
    * page pre-fills the empty commit textarea with the rendered prefix.
    */
   commitPrefix?: CommitPrefixConfig;
+  /** Workspace kind. Absent on older files = "project". */
+  kind?: WorkspaceKind;
 };
 
 type StoreShape = {

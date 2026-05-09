@@ -8,6 +8,7 @@ import type {
   PermissionRequestEvent,
   AskUserQuestionEvent,
   AskAnswer,
+  PlanDecision,
   ServerEvent,
 } from "@/lib/shared/events";
 import type {
@@ -33,6 +34,7 @@ import type {
 type SDKContentBlock =
   | { type: "text"; text: string }
   | { type: "thinking"; thinking: string }
+  | { type: "redacted_thinking"; data?: string }
   | { type: "tool_use"; id: string; name: string; input: Record<string, unknown> }
   | {
       type: "tool_result";
@@ -50,6 +52,8 @@ function blocksFromSDKContent(content: unknown): DisplayBlock[] {
     if (raw.type === "text" && typeof raw.text === "string") out.push({ kind: "text", text: raw.text });
     else if (raw.type === "thinking" && typeof raw.thinking === "string")
       out.push({ kind: "thinking", text: raw.thinking });
+    else if (raw.type === "redacted_thinking")
+      out.push({ kind: "thinking", text: "", redacted: true });
     else if (raw.type === "tool_use") {
       const tu = raw as Extract<SDKContentBlock, { type: "tool_use" }>;
       out.push({ kind: "tool_use", id: tu.id, name: tu.name, input: tu.input ?? {} });
@@ -114,6 +118,7 @@ type DeltaScratch = {
     {
       kind: "text" | "thinking" | "tool_use";
       text?: string;
+      redacted?: boolean;
       toolUseId?: string;
       toolName?: string;
       partialJson?: string;
@@ -174,6 +179,7 @@ export function useSession(): ChatState & ChatActions {
 
   const queueRef = useRef<QueuedMessage[]>([]);
   const pendingPermissionRef = useRef<PermissionRequestEvent | null>(null);
+  const pendingPlanRef = useRef<PendingPlan | null>(null);
   const flushQueueRef = useRef<() => void>(() => {});
 
   // ── sessionStorage persistence ────────────────────────────────────────
@@ -293,6 +299,7 @@ export function useSession(): ChatState & ChatActions {
     setTasks({});
     setSubagentMessages({});
     setPendingPlan(null);
+    pendingPlanRef.current = null;
     setFastModeState(null);
     setPromptSuggestions([]);
     setReplaying(true);
@@ -390,6 +397,17 @@ export function useSession(): ChatState & ChatActions {
         setPendingAsk(ev);
         return;
       }
+      if (ev.type === "plan_approval_request") {
+        const next: PendingPlan = {
+          requestId: ev.requestId,
+          toolUseId: ev.toolUseId,
+          plan: ev.plan,
+          ...(ev.raw ? { raw: ev.raw } : {}),
+        };
+        setPendingPlan(next);
+        pendingPlanRef.current = next;
+        return;
+      }
       if (ev.type === "mode_changed") {
         setPermissionModeState(ev.mode);
         return;
@@ -485,15 +503,9 @@ export function useSession(): ChatState & ChatActions {
             return [entry, ...prev].slice(0, 100);
           });
 
-          // ExitPlanMode tool_use surfaces a plan for the user to accept.
-          if (b.name === "ExitPlanMode") {
-            const planText =
-              typeof (b.input as { plan?: unknown }).plan === "string"
-                ? ((b.input as { plan: string }).plan)
-                : JSON.stringify(b.input, null, 2);
-            setPendingPlan({ toolUseId: b.id, plan: planText, raw: b.input });
-            continue;
-          }
+          // ExitPlanMode is intercepted server-side in canUseTool — the
+          // browser receives a `plan_approval_request` event instead, so the
+          // tool_use block doesn't need any special handling here.
 
           // TodoWrite — capture the latest todos snapshot.
           if (b.name === "TodoWrite") {
@@ -596,6 +608,8 @@ export function useSession(): ChatState & ChatActions {
             scratch.blocks.set(evt.index, { kind: "text", text: typeof cb.text === "string" ? cb.text : "" });
           else if (cb.type === "thinking")
             scratch.blocks.set(evt.index, { kind: "thinking", text: typeof cb.thinking === "string" ? cb.thinking : "" });
+          else if (cb.type === "redacted_thinking")
+            scratch.blocks.set(evt.index, { kind: "thinking", text: "", redacted: true });
           else if (cb.type === "tool_use") {
             const tu = cb as Extract<SDKContentBlock, { type: "tool_use" }>;
             scratch.blocks.set(evt.index, { kind: "tool_use", toolUseId: tu.id, toolName: tu.name, partialJson: "" });
@@ -608,6 +622,16 @@ export function useSession(): ChatState & ChatActions {
             slot.text = (slot.text ?? "") + evt.delta.thinking;
           else if (evt.delta.type === "input_json_delta" && evt.delta.partial_json)
             slot.partialJson = (slot.partialJson ?? "") + evt.delta.partial_json;
+        } else if (evt.type === "content_block_stop" && typeof evt.index === "number" && evt.content_block) {
+          // Some SDK builds emit the final block payload here rather than
+          // streaming deltas through the whole turn (notably for short
+          // thinking blocks). Fold the stop payload into the slot if the
+          // deltas didn't fill it.
+          const cb = evt.content_block;
+          const slot = scratch.blocks.get(evt.index);
+          if (slot && slot.kind === "thinking" && !slot.text && typeof cb.thinking === "string") {
+            slot.text = cb.thinking;
+          }
         } else if (evt.type === "message_stop") {
           setMessages((prev) => prev.map((m) => (m.uuid === anchor ? { ...m, streaming: false } : m)));
           return;
@@ -622,7 +646,12 @@ export function useSession(): ChatState & ChatActions {
             for (const i of indices) {
               const slot = scratch!.blocks.get(i)!;
               if (slot.kind === "text") merged.push({ kind: "text", text: slot.text ?? "" });
-              else if (slot.kind === "thinking") merged.push({ kind: "thinking", text: slot.text ?? "" });
+              else if (slot.kind === "thinking")
+                merged.push({
+                  kind: "thinking",
+                  text: slot.text ?? "",
+                  ...(slot.redacted ? { redacted: true } : {}),
+                });
               else if (slot.kind === "tool_use") {
                 let parsed: Record<string, unknown> = {};
                 try {
@@ -1330,7 +1359,22 @@ export function useSession(): ChatState & ChatActions {
     }).catch(() => {});
   }, []);
 
-  const dismissPlan = useCallback(() => setPendingPlan(null), []);
+  const resolvePlan = useCallback(async (decision: PlanDecision) => {
+    const id = sessionIdRef.current;
+    if (!id) return;
+    // Snapshot the pending request so we can clear local state immediately
+    // (closes the modal) while the POST is in flight. If there's nothing
+    // pending, treat as a no-op — the prompt was already resolved.
+    const pending = pendingPlanRef.current;
+    if (!pending) return;
+    setPendingPlan(null);
+    pendingPlanRef.current = null;
+    await fetch(`/api/sessions/${id}/plan`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ requestId: pending.requestId, decision }),
+    }).catch(() => {});
+  }, []);
 
   const loadOlder = useCallback(async () => {
     const id = sessionIdRef.current;
@@ -1476,7 +1520,7 @@ export function useSession(): ChatState & ChatActions {
     createNewSession,
     createSessionAt,
     refreshSessions,
-    dismissPlan,
+    resolvePlan,
     loadOlder,
     jumpToUuid,
     renameTitle,

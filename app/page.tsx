@@ -647,7 +647,7 @@ export default function Home() {
   return (
     <div className="flex h-full">
       <SideNav running={session.pending} />
-      <main className="flex h-full flex-1 flex-col">
+      <main data-pane-name="chat-area" className="flex h-full flex-1 flex-col">
         <SessionTabs
           tabs={openTabs.map((id) => ({
             id,
@@ -822,17 +822,19 @@ export default function Home() {
               </button>
             </div>
           )}
-          <PromptInput
-            ready={session.ready}
-            pending={session.pending}
-            slashCommands={session.slashCommands}
-            skills={session.skills}
-            cwd={session.cwd}
-            onSend={handleSend}
-            onInterrupt={session.interrupt}
-            draftInjection={draftInjection}
-            sendDisabled={capBreached || tabClaim.readOnly}
-          />
+          <div data-pane-name="composer">
+            <PromptInput
+              ready={session.ready}
+              pending={session.pending}
+              slashCommands={session.slashCommands}
+              skills={session.skills}
+              cwd={session.cwd}
+              onSend={handleSend}
+              onInterrupt={session.interrupt}
+              draftInjection={draftInjection}
+              sendDisabled={capBreached || tabClaim.readOnly}
+            />
+          </div>
         </div>
         </>
         )}
@@ -845,6 +847,7 @@ export default function Home() {
         permissionMode={session.permissionMode}
         cwd={session.cwd}
         usage={session.usage}
+        historicalTurnCount={session.messages.filter((m) => m.role === "assistant").length}
         pending={session.pending}
         pendingPermission={session.pendingPermission}
         latestTodos={session.latestTodos}
@@ -917,15 +920,20 @@ export default function Home() {
       {session.pendingPlan && (
         <PlanOverlay
           plan={session.pendingPlan}
-          onClose={() => session.dismissPlan()}
+          onClose={() => {
+            // Closing without an explicit accept/reject is a soft reject —
+            // we still have to resolve the SDK's canUseTool promise or the
+            // agent hangs. Send a generic "user dismissed" deny.
+            void session.resolvePlan({ kind: "reject", message: "User dismissed the plan." });
+            showToast("Plan dismissed — still in plan mode");
+          }}
           onAccept={() => {
-            void session.setPermissionMode("acceptEdits");
-            session.dismissPlan();
+            void session.resolvePlan({ kind: "accept" });
             showToast("Plan accepted — switched to acceptEdits");
           }}
           onReject={() => {
-            session.dismissPlan();
-            showToast("Plan rejected — still in plan mode");
+            void session.resolvePlan({ kind: "reject" });
+            showToast("Plan rejected — keep iterating");
           }}
         />
       )}

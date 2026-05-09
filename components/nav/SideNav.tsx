@@ -77,7 +77,7 @@ export function SideNav({ running = false }: { running?: boolean }) {
   return (
     <>
       <WorkspaceSwitcher />
-      <aside className="flex h-full w-14 shrink-0 flex-col items-center gap-1 border-r border-[var(--border)] bg-[var(--panel)] py-3">
+      <aside data-pane-name="left-nav" className="flex h-full w-14 shrink-0 flex-col items-center gap-1 border-r border-[var(--border)] bg-[var(--panel)] py-3">
         <AnimatedGlyph running={running} />
         {items.map(({ label, icon: Icon, href }) => {
           // Strip query string when computing active state — Chat's href is
