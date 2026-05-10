@@ -3,7 +3,7 @@
 import { use, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ExternalLink, Loader2, Play, Square, RefreshCw, WandSparkles, Pencil, Check, X, MessageSquare, Keyboard } from "lucide-react";
+import { ArrowLeft, ExternalLink, Loader2, Play, Square, RefreshCw, WandSparkles, Pencil, Check, X, MessageSquare, Keyboard, RotateCw } from "lucide-react";
 import { PANE_LABELS_EVENT } from "@/components/overlays/PaneLabelsHost";
 import { SideNav } from "@/components/nav/SideNav";
 import { PublishRevertPanel } from "@/components/customize/PublishRevertPanel";
@@ -73,6 +73,23 @@ export default function CustomizationDetail({ params }: { params: Promise<{ id: 
     try {
       const res = await fetch(`/api/customizations/${id}/preview`, { method: "DELETE" });
       if (res.ok) setPreview((await res.json()) as PreviewState);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  }, [id]);
+
+  const onRestart = useCallback(async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/customizations/${id}/preview/restart`, { method: "POST" });
+      if (!res.ok) {
+        const e = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(e.error ?? `HTTP ${res.status}`);
+      }
+      setPreview((await res.json()) as PreviewState);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -260,7 +277,15 @@ export default function CustomizationDetail({ params }: { params: Promise<{ id: 
                         disabled={busy}
                         className="flex items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--panel)] px-3 py-1.5 text-sm hover:bg-[var(--panel-2)] disabled:opacity-50"
                       >
-                        <Square className="h-4 w-4" /> Stop preview
+                        <Square className="h-4 w-4" /> Stop
+                      </button>
+                      <button
+                        onClick={() => void onRestart()}
+                        disabled={busy}
+                        title="Stop the running preview, reap any worker grandchildren on the port, and start a fresh one"
+                        className="flex items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--panel)] px-3 py-1.5 text-sm hover:bg-[var(--panel-2)] disabled:opacity-50"
+                      >
+                        <RotateCw className="h-4 w-4" /> Restart
                       </button>
                       <span className="text-xs text-[var(--muted)]">
                         {preview.status === "starting" ? "Starting…" : "Running"} · port {preview.port} · pid {preview.pid}

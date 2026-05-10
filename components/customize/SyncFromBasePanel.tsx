@@ -1,7 +1,16 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { Loader2, RefreshCw, GitMerge, AlertTriangle, ArrowDownToLine } from "lucide-react";
+import {
+  Loader2,
+  RefreshCw,
+  GitMerge,
+  AlertTriangle,
+  ArrowDownToLine,
+  Settings as SettingsIcon,
+  Sparkles,
+} from "lucide-react";
 
 type Verdict =
   | "in-sync"
@@ -35,6 +44,8 @@ export function SyncFromBasePanel({ customizationId }: { customizationId: string
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastResult, setLastResult] = useState<SyncResult | null>(null);
+  const [autoFixBusy, setAutoFixBusy] = useState(false);
+  const [autoFixError, setAutoFixError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     setError(null);
@@ -55,6 +66,54 @@ export function SyncFromBasePanel({ customizationId }: { customizationId: string
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  /**
+   * Compose the auto-fix prompt server-side, switch the active workspace
+   * to the customization's workspace, and route the user to chat with
+   * the prompt prefilled (?prefill=<encoded>). They can review and send.
+   * The actual file edits happen inside Claude Code's agent loop.
+   */
+  const onAutoFix = useCallback(async () => {
+    setAutoFixError(null);
+    setAutoFixBusy(true);
+    try {
+      const r = await fetch(`/api/customizations/${customizationId}/auto-fix`, {
+        method: "POST",
+      });
+      if (!r.ok) {
+        const e = (await r.json().catch(() => ({}))) as { error?: string };
+        throw new Error(e.error ?? `HTTP ${r.status}`);
+      }
+      const data = (await r.json()) as {
+        workspaceId: string | null;
+        prompt: string;
+      };
+      if (data.workspaceId) {
+        const ws = await fetch(`/api/workspaces/${data.workspaceId}/select`, { method: "POST" });
+        if (!ws.ok) throw new Error("could not switch to the customization's workspace");
+      } else {
+        throw new Error(
+          "this customization isn't linked to a workspace — recreate it before using auto-fix",
+        );
+      }
+      // Stash the prompt in sessionStorage; chat page picks it up via
+      // ?prefill=1. URL-encoding the full prompt would balloon the URL
+      // for long templates.
+      try {
+        sessionStorage.setItem("claudius.autofix-draft", data.prompt);
+      } catch {
+        // sessionStorage might be unavailable (privacy mode) — fall back
+        // to URL param even if it's noisy.
+        window.location.assign(`/?new=1&prefill=${encodeURIComponent(data.prompt)}`);
+        return;
+      }
+      window.location.assign("/?new=1&prefill=1");
+    } catch (err) {
+      setAutoFixError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setAutoFixBusy(false);
+    }
+  }, [customizationId]);
 
   const onSync = useCallback(async () => {
     if (!status) return;
@@ -135,6 +194,39 @@ export function SyncFromBasePanel({ customizationId }: { customizationId: string
           Fork point: {new Date(status.manifestCreatedAt).toLocaleString()}
         </span>
       </div>
+
+      {conflictCount > 0 && (
+        <div className="mt-3 flex flex-wrap items-center gap-2 rounded-md border border-red-500/30 bg-red-500/5 px-3 py-2">
+          <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-red-300" />
+          <span className="text-xs text-red-200">
+            {conflictCount} file{conflictCount === 1 ? "" : "s"} need{conflictCount === 1 ? "s" : ""} a manual merge.
+          </span>
+          <button
+            onClick={() => void onAutoFix()}
+            disabled={autoFixBusy}
+            className="ml-auto flex items-center gap-1.5 rounded-md bg-[var(--accent)] px-2.5 py-1 text-xs font-medium text-white hover:opacity-90 disabled:opacity-50"
+          >
+            {autoFixBusy ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <Sparkles className="h-3 w-3" />
+            )}
+            Auto-fix conflicts
+          </button>
+          <Link
+            href="/customize/settings"
+            className="flex items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1 text-[11px] text-[var(--muted)] hover:bg-[var(--panel)] hover:text-[var(--foreground)]"
+            title="Configure the auto-fix prompt"
+          >
+            <SettingsIcon className="h-3 w-3" /> Configure prompt
+          </Link>
+        </div>
+      )}
+      {autoFixError && (
+        <div className="mt-2 rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+          {autoFixError}
+        </div>
+      )}
 
       {(safeCount > 0 || conflictCount > 0 || userCount > 0) && (
         <details className="mt-3">

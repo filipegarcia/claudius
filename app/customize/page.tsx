@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { WandSparkles, Plus, RefreshCw, Loader2, ExternalLink, HelpCircle, Trash2 } from "lucide-react";
+import { WandSparkles, Plus, RefreshCw, Loader2, ExternalLink, HelpCircle, Trash2, Power, PowerOff } from "lucide-react";
 import { SideNav } from "@/components/nav/SideNav";
 import { CustomizeHelpOverlay } from "@/components/overlays/CustomizeHelpOverlay";
 import type { Customization, PublishRecord } from "@/lib/server/customizations-store";
@@ -75,6 +75,65 @@ export default function CustomizePage() {
     }
     return map;
   }, [publishes]);
+
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+
+  const onActivate = useCallback(
+    async (c: Customization) => {
+      const msg =
+        `Activate "${c.name}"?\n\n` +
+        `Claudius will publish your changes — base files in the live install will be overwritten ` +
+        `with the customization's version, with snapshots taken first so a deactivate / revert can restore them.`;
+      if (!confirm(msg)) return;
+      setTogglingId(c.id);
+      setError(null);
+      try {
+        const res = await fetch(`/api/customizations/${c.id}/publish`, { method: "POST" });
+        if (!res.ok) {
+          const e = (await res.json().catch(() => ({}))) as { error?: string };
+          throw new Error(e.error ?? `HTTP ${res.status}`);
+        }
+        await refresh();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : String(err));
+      } finally {
+        setTogglingId(null);
+      }
+    },
+    [refresh],
+  );
+
+  const onDeactivate = useCallback(
+    async (c: Customization, activeCount: number) => {
+      const msg =
+        `Deactivate "${c.name}"?\n\n` +
+        `Will revert ${activeCount} active publish${activeCount === 1 ? "" : "es"} — base files restored ` +
+        `from snapshots. Your customization source is untouched; you can activate again later.`;
+      if (!confirm(msg)) return;
+      setTogglingId(c.id);
+      setError(null);
+      try {
+        const res = await fetch(`/api/customizations/${c.id}/deactivate`, { method: "POST" });
+        if (!res.ok && res.status !== 207) {
+          const e = (await res.json().catch(() => ({}))) as { error?: string };
+          throw new Error(e.error ?? `HTTP ${res.status}`);
+        }
+        const body = (await res.json()) as { reverted: number; errors?: { publishId: string; error: string }[] };
+        if (body.errors && body.errors.length > 0) {
+          setError(
+            `Reverted ${body.reverted}, but ${body.errors.length} failed: ` +
+              body.errors.map((e) => `${e.publishId} (${e.error})`).join("; "),
+          );
+        }
+        await refresh();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : String(err));
+      } finally {
+        setTogglingId(null);
+      }
+    },
+    [refresh],
+  );
 
   const onDelete = useCallback(
     async (c: Customization) => {
@@ -203,6 +262,35 @@ export default function CustomizePage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
+                      {activeCount > 0 ? (
+                        <button
+                          onClick={() => void onDeactivate(c, activeCount)}
+                          disabled={togglingId === c.id}
+                          title={`Revert ${activeCount} active publish${activeCount === 1 ? "" : "es"} — restores base files from snapshots`}
+                          className="flex items-center gap-1.5 rounded-md border border-emerald-500/40 bg-emerald-500/10 px-2 py-1 text-xs text-emerald-300 hover:bg-emerald-500/20 disabled:opacity-50"
+                        >
+                          {togglingId === c.id ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <Power className="h-3 w-3" />
+                          )}
+                          On
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => void onActivate(c)}
+                          disabled={togglingId === c.id}
+                          title="Publish this customization — applies the customization src to the live install"
+                          className="flex items-center gap-1.5 rounded-md border border-[var(--border)] px-2 py-1 text-xs text-[var(--muted)] hover:border-[var(--accent)]/40 hover:bg-[var(--accent)]/10 hover:text-[var(--foreground)] disabled:opacity-50"
+                        >
+                          {togglingId === c.id ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <PowerOff className="h-3 w-3" />
+                          )}
+                          Off
+                        </button>
+                      )}
                       <Link
                         href={`/customize/${c.id}`}
                         className="flex items-center gap-1 rounded-md border border-[var(--border)] px-2 py-1 text-xs hover:bg-[var(--panel-2)]"
@@ -211,6 +299,7 @@ export default function CustomizePage() {
                       </Link>
                       <button
                         onClick={() => void onDelete(c)}
+                        disabled={togglingId === c.id}
                         title={activeCount > 0 ? "Revert active publishes first" : "Delete customization"}
                         className="flex items-center justify-center rounded-md border border-[var(--border)] p-1.5 text-[var(--muted)] hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-300 disabled:opacity-50"
                       >

@@ -1,5 +1,6 @@
 import { sessionManager } from "@/lib/server/session-manager";
 import { info as sessionFileInfo } from "@/lib/server/sessions-store";
+import { listWorkspaces, type Workspace } from "@/lib/server/workspaces-store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,7 +16,25 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     try {
       const fileInfo = await sessionFileInfo(id);
       if (fileInfo?.cwd) {
-        session = await sessionManager.create({ resume: id, cwd: fileInfo.cwd });
+        // Apply the originating workspace's defaults the same way the POST
+        // /api/sessions handler does — otherwise auto-rebuilt sessions in
+        // (e.g.) customization workspaces miss their bypass-permissions
+        // default and the mode pill / SDK end up out of sync with the
+        // user's intent.
+        const all = await listWorkspaces().catch(() => [] as Workspace[]);
+        const originWs = all.find((w) => w.rootPath === fileInfo.cwd) ?? null;
+        const defaults = originWs?.defaults ?? {};
+        session = await sessionManager.create({
+          resume: id,
+          cwd: fileInfo.cwd,
+          model: defaults.model,
+          permissionMode: defaults.permissionMode,
+        });
+        // Reconcile: an in-memory hit (idempotent resume) doesn't pick up
+        // a freshly-changed workspace default — same fix as in POST.
+        if (defaults.permissionMode && session.getPermissionMode() !== defaults.permissionMode) {
+          await session.setPermissionMode(defaults.permissionMode);
+        }
       }
     } catch {
       // fall through to 404

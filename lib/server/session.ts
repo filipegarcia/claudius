@@ -808,6 +808,15 @@ export class Session {
     if (this.query) {
       fn({ type: "ready", sessionId: this.id });
     }
+    // Re-emit the current permission mode for the same reason. A
+    // `mode_changed` event broadcast mid-conversation (e.g. by the
+    // session-create reconciler when a workspace's default flips, or by
+    // the user clicking the mode pill) lives in the buffer at whatever
+    // turn it landed on — `tail`-truncated replays slice it off and the
+    // client falls back to its initial "default" state, even though the
+    // SDK is running with a different mode. Echoing the authoritative
+    // current mode here keeps the pill correct on every reconnect.
+    fn({ type: "mode_changed", mode: this.permissionMode });
     // Now re-emit any interactive prompts that are STILL pending. The
     // historical replay above is filtered to "resolved" prompts; questions
     // and permission requests that the agent is still waiting on need to

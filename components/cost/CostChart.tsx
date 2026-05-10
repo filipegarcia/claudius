@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { ByDay } from "@/lib/server/cost-aggregate";
 
@@ -25,8 +26,11 @@ function dayKey(ms: number): string {
 }
 
 export function CostChart({ data, days = 60 }: Props) {
+  // `Date.now()` is impure during render (the React 19 lint rule flags it).
+  // Pin "today" at first render via a lazy state initializer — it's stable
+  // for the lifetime of this mount, which matches the chart's contract.
+  const [today] = useState(() => Date.now());
   // Build a continuous trailing window so empty days render as zero bars.
-  const today = Date.now();
   const map = new Map(data.map((d) => [d.date, d]));
   const series: ByDay[] = [];
   for (let i = days - 1; i >= 0; i--) {

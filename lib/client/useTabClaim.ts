@@ -23,13 +23,13 @@ export function useTabClaim(sessionId: string | null): {
 } {
   const [readOnly, setReadOnly] = useState(false);
   const channelRef = useRef<BroadcastChannel | null>(null);
-  const tabIdRef = useRef<string>("");
+  // Per-tab id pinned at first render. `useState` with a lazy initializer
+  // gives us a stable value without triggering the ref-during-render rule
+  // and without calling the impure `Math.random()` in the component body.
+  // The setter is unused — this is "lazy const" not state.
+  const [tabId] = useState(() => "tab-" + Math.random().toString(36).slice(2, 10));
   const heldRef = useRef(false);
   const claimTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  if (!tabIdRef.current && typeof window !== "undefined") {
-    tabIdRef.current = "tab-" + Math.random().toString(36).slice(2, 10);
-  }
 
   const post = useCallback((msg: Record<string, unknown>) => {
     channelRef.current?.postMessage(msg);
@@ -49,7 +49,7 @@ export function useTabClaim(sessionId: string | null): {
     (id: string) => {
       heldRef.current = false;
       // Start the claim sequence: broadcast and wait 250ms for a `held` reply.
-      post({ kind: "claim", id, tab: tabIdRef.current });
+      post({ kind: "claim", id, tab: tabId });
       if (claimTimerRef.current) clearTimeout(claimTimerRef.current);
       claimTimerRef.current = setTimeout(() => {
         if (!heldRef.current) becomeHolder();
@@ -71,12 +71,12 @@ export function useTabClaim(sessionId: string | null): {
     ch.onmessage = (ev) => {
       const m = ev.data as { kind?: string; id?: string; tab?: string } | null;
       if (!m || m.id !== sessionId) return;
-      if (m.kind === "claim" && heldRef.current && m.tab !== tabIdRef.current) {
+      if (m.kind === "claim" && heldRef.current && m.tab !== tabId) {
         // Someone else is asking; assert ownership.
-        post({ kind: "held", id: sessionId, tab: tabIdRef.current });
+        post({ kind: "held", id: sessionId, tab: tabId });
         return;
       }
-      if (m.kind === "held" && m.tab !== tabIdRef.current) {
+      if (m.kind === "held" && m.tab !== tabId) {
         // Another tab claims this session — go read-only.
         if (claimTimerRef.current) {
           clearTimeout(claimTimerRef.current);
