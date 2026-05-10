@@ -23,19 +23,26 @@ sast:
 secret_detection:
   stage: secret-detection
 
-.node_cache: &node_cache
+.bun_cache: &bun_cache
   cache:
     key:
       files:
-        - package-lock.json
+        - bun.lock
     paths:
       - node_modules/
-      - .npm/
+      - .bun-cache/
+  variables:
+    BUN_INSTALL_CACHE_DIR: $CI_PROJECT_DIR/.bun-cache
 
 lint:
   stage: test
-  image: node:22-bookworm
-  <<: *node_cache
+  image: oven/bun:1
+  <<: *bun_cache
+  before_script:
+    # The Bun image is Debian-slim — `make` isn't preinstalled, but the
+    # Makefile is the single source of truth for install/lint/test commands
+    # so we want it available in CI too.
+    - apt-get update -qq && apt-get install -y --no-install-recommends make
   script:
     - make install
     - make lint
@@ -43,13 +50,16 @@ lint:
 e2e:
   stage: test
   image: mcr.microsoft.com/playwright:v1.59.1-jammy
-  <<: *node_cache
+  <<: *bun_cache
   before_script:
-    # The Playwright Jammy image doesn't ship with `make`. Install it so
-    # `make install` / `make test` work the same as locally and a future
-    # Makefile change is automatically picked up in CI.
-    - apt-get update -qq && apt-get install -y --no-install-recommends make
+    # The Playwright Jammy image ships with Node + the chromium runtime
+    # libs but not Bun or make. Install both so `make install` / `make test`
+    # use the same toolchain as locally.
+    - apt-get update -qq && apt-get install -y --no-install-recommends make curl unzip
+    - curl -fsSL https://bun.sh/install | bash
+    - export PATH="$HOME/.bun/bin:$PATH" && echo "export PATH=$HOME/.bun/bin:$PATH" >> ~/.bashrc
   script:
+    - export PATH="$HOME/.bun/bin:$PATH"
     - make install
     - make test
   artifacts:

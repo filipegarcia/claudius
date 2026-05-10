@@ -12,7 +12,7 @@
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:debug": "playwright test --debug",
     "test:e2e:report": "playwright show-report",
-    "site:preview": "npx --yes serve site -l 4321",
+    "site:preview": "bunx serve site -l 4321",
     "site:screenshots": "playwright test tests/e2e/site-screenshots.spec.ts",
     "site:screenshots:full": "SCREENSHOTS_INCLUDE_CHAT=1 playwright test tests/e2e/site-screenshots.spec.ts"
   },

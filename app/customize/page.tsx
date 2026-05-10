@@ -247,9 +247,9 @@ export default function CustomizePage() {
                     key={c.id}
                     className="flex items-center justify-between rounded-md border border-[var(--border)] bg-[var(--panel)] px-3 py-2"
                   >
-                    <div className="min-w-0">
+                    <div className="min-w-0 pr-3">
                       <div className="flex items-center gap-2">
-                        <WandSparkles className="h-4 w-4 text-[var(--accent)]" />
+                        <WandSparkles className="h-4 w-4 text-[var(--accent)] shrink-0" />
                         <span className="truncate font-medium">{c.name}</span>
                         {activeCount > 0 && (
                           <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-medium text-emerald-300">
@@ -257,9 +257,18 @@ export default function CustomizePage() {
                           </span>
                         )}
                       </div>
-                      <div className="text-xs text-[var(--muted)]">
-                        Created {new Date(c.createdAt).toLocaleString()}
-                      </div>
+                      {c.description ? (
+                        <p
+                          className="mt-0.5 line-clamp-2 text-xs leading-relaxed text-[var(--muted)]"
+                          title={c.description}
+                        >
+                          {c.description}
+                        </p>
+                      ) : (
+                        <div className="text-xs text-[var(--muted)]">
+                          Created {new Date(c.createdAt).toLocaleString()}
+                        </div>
+                      )}
                     </div>
                     <div className="flex items-center gap-2">
                       {activeCount > 0 ? (

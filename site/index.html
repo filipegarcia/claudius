@@ -192,11 +192,11 @@
           </h2>
           <p class="mt-4 text-muted leading-relaxed">
             The script clones the repo into <code class="font-mono text-fg bg-panel2 px-1.5 py-0.5 rounded text-sm">~/claudius</code>,
-            runs <code class="font-mono text-fg bg-panel2 px-1.5 py-0.5 rounded text-sm">npm install</code>,
+            runs <code class="font-mono text-fg bg-panel2 px-1.5 py-0.5 rounded text-sm">bun install</code>,
             and prints the next steps. Re-running it pulls the latest commit on
             <code class="font-mono text-fg bg-panel2 px-1.5 py-0.5 rounded text-sm">main</code>
-            and refreshes deps. Requires <code class="font-mono text-fg bg-panel2 px-1.5 py-0.5 rounded text-sm">git</code>
-            and Node 20+.
+            and refreshes deps. Requires <code class="font-mono text-fg bg-panel2 px-1.5 py-0.5 rounded text-sm">git</code>;
+            <a href="https://bun.sh" class="text-fg underline-offset-2 hover:underline">Bun</a> auto-installs if missing.
           </p>
         </div>
 
@@ -238,8 +238,8 @@
             <ul class="mt-4 space-y-1.5 text-xs text-muted leading-relaxed">
               <li><code class="font-mono text-fg">--prefix=DIR</code> — install destination (default <code class="font-mono">~/claudius</code>)</li>
               <li><code class="font-mono text-fg">--branch=BRANCH</code> — git branch (default <code class="font-mono">main</code>)</li>
-              <li><code class="font-mono text-fg">--no-install</code> — clone only, skip <code class="font-mono">npm install</code></li>
-              <li><code class="font-mono text-fg">--start</code> — run <code class="font-mono">npm run dev</code> after install</li>
+              <li><code class="font-mono text-fg">--no-install</code> — clone only, skip <code class="font-mono">bun install</code></li>
+              <li><code class="font-mono text-fg">--start</code> — run <code class="font-mono">bun run dev</code> after install</li>
             </ul>
           </div>
 
@@ -254,14 +254,14 @@
             <pre class="mt-4 overflow-x-auto rounded-md bg-panel2 px-4 py-3 font-mono text-xs text-fg leading-6 whitespace-pre"><code>curl -fsSL https://filipegarcia.gitlab.io/claudius/setup.sh \
   -o setup.sh
 less setup.sh
-bash setup.sh --start    # runs npm run dev after</code></pre>
+bash setup.sh --start    # runs bun run dev after</code></pre>
             <p class="mt-4 text-xs text-muted leading-relaxed">
               Or skip the script and clone it yourself:
             </p>
             <pre class="mt-2 overflow-x-auto rounded-md bg-panel2 px-4 py-3 font-mono text-xs text-fg leading-6 whitespace-pre"><code>git clone https://gitlab.com/filipegarcia/claudius.git
 cd claudius
-npm install
-npm run dev      # http://localhost:3000</code></pre>
+bun install
+bun run dev      # http://localhost:3000</code></pre>
           </div>
         </div>
       </div>

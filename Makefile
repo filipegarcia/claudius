@@ -1,26 +1,26 @@
 .PHONY: install dev build start lint test test-ui ci site screenshots screenshots-full claudius-revert claudius-revert-all
 
 install:
-	npm ci
+	bun install --frozen-lockfile
 
 dev:
-	npm run dev
+	bun run dev
 
 build:
-	npm run build
+	bun run build
 
 start:
-	npm start
+	bun start
 
 lint:
-	npm run lint
+	bun run lint
 
 test:
-	npx playwright install chromium
-	npm run test:e2e
+	bunx playwright install chromium
+	bun run test:e2e
 
 test-ui:
-	npm run test:e2e:ui
+	bun run test:e2e:ui
 
 ci: install lint test
 
@@ -32,15 +32,15 @@ ci: install lint test
 # needs ANTHROPIC_API_KEY and a few cents of budget.
 
 site:
-	npm run site:preview
+	bun run site:preview
 
 screenshots:
-	npx playwright install chromium
-	npm run site:screenshots
+	bunx playwright install chromium
+	bun run site:screenshots
 
 screenshots-full:
-	npx playwright install chromium
-	npm run site:screenshots:full
+	bunx playwright install chromium
+	bun run site:screenshots:full
 
 # ── Self-modify revert (CLI escape hatch) ──────────────────────────────
 # `claudius-revert` undoes the most recent active publish. Use it from a
@@ -49,7 +49,7 @@ screenshots-full:
 # `claudius-revert-all` rolls every active publish back, newest-first.
 
 claudius-revert:
-	node bin/claudius-revert --last
+	bun bin/claudius-revert --last
 
 claudius-revert-all:
-	node bin/claudius-revert --all
+	bun bin/claudius-revert --all

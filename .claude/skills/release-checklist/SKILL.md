@@ -20,9 +20,9 @@ The same boring list, every time. Don't skip steps just because the diff is smal
 ## 2. Verify the build
 
 ```bash
-npm run lint
-npm run build
-npm run test:e2e   # full suite, must be green
+bun run lint
+bun run build
+bun run test:e2e   # full suite, must be green
 ```
 
 If `test:e2e` flakes on agent-driven specs, retry once. A flake-then-pass is acceptable; two flakes in a row is a regression.
@@ -54,7 +54,7 @@ Fresh shell, fresh dir:
 
 ```bash
 curl -fsSL https://filipegarcia.gitlab.io/claudius/setup.sh | bash -s -- --prefix=/tmp/claudius-smoke
-cd /tmp/claudius-smoke && npm run dev
+cd /tmp/claudius-smoke && bun run dev
 ```
 
 Open <http://localhost:3000>, send one prompt, confirm the response renders. Then `rm -rf /tmp/claudius-smoke`.
