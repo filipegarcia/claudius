@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { WandSparkles, ExternalLink, Keyboard, Eye, Rocket, Loader2, RotateCw } from "lucide-react";
 import type { Workspace } from "@/lib/server/workspaces-store";
 import type { Customization } from "@/lib/server/customizations-store";
@@ -68,16 +69,32 @@ export function CustomizationBanner() {
     };
   }, []);
 
-  // Identify the customization in scope. Three sources of truth, in order:
+  // Identify the customization in scope. Sources of truth, in priority:
   //   1. the preview's own runtime (authoritative inside a preview process),
-  //   2. the active workspace's rootPath matched to a customization src dir,
-  //   3. nothing — banner stays hidden.
+  //   2. the URL — when the user is on /customize/<id>, that id wins so the
+  //      banner's "Open preview" never targets the wrong customization just
+  //      because the active workspace cookie still points elsewhere,
+  //   3. the active workspace's rootPath matched to a customization src dir,
+  //   4. nothing — banner stays hidden.
+  const pathname = usePathname();
+  const customizeIdFromUrl = useMemo(() => {
+    const m = pathname?.match(/^\/customize\/(cust_[a-z0-9]+)/i);
+    return m?.[1] ?? null;
+  }, [pathname]);
+  const customizationByUrl = useMemo(
+    () =>
+      customizeIdFromUrl
+        ? customizations.find((c) => c.id === customizeIdFromUrl) ?? null
+        : null,
+    [customizeIdFromUrl, customizations],
+  );
   const customizationByActive =
     active?.kind === "customization"
       ? customizations.find((c) => active.id === c.workspaceId) ?? null
       : null;
+  const customizationInScope = customizationByUrl ?? customizationByActive;
   const customizationId =
-    runtime?.isPreview ? runtime.customizationId : customizationByActive?.id ?? null;
+    runtime?.isPreview ? runtime.customizationId : customizationInScope?.id ?? null;
 
   const fetchPreview = useCallback(async (id: string) => {
     try {
@@ -167,8 +184,8 @@ export function CustomizationBanner() {
     );
   }
 
-  // ── Main server, customization workspace active ─────────────────────────
-  if (active?.kind === "customization") {
+  // ── Main server, customization workspace active OR /customize/<id> URL ──
+  if (active?.kind === "customization" || customizationByUrl) {
     const previewRunning = preview && (preview.status === "ready" || preview.status === "starting");
     return (
       <div

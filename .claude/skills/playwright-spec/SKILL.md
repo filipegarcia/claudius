@@ -12,7 +12,7 @@ allowed-tools:
 
 # Playwright spec
 
-Tests live at `tests/e2e/<feature>.spec.ts`. Run them with `npm run test:e2e` (or `:headed` to watch).
+Tests live at `tests/e2e/<feature>.spec.ts`. Run them with `bun run test:e2e` (or `:headed` to watch).
 
 ## Selectors
 

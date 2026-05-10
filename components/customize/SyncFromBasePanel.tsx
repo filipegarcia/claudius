@@ -38,6 +38,47 @@ type SyncResult = {
 
 const SAFE: Verdict[] = ["upstream-only", "new-upstream", "deleted-upstream"];
 
+/**
+ * Verdicts that mean "this file is part of this customization" — the user
+ * has edited it (or it conflicts with one they edited). Everything else is
+ * upstream activity unrelated to the customization's feature, hidden by
+ * default. The toggle reveals them.
+ */
+const CUSTOMIZATION_VERDICTS: Verdict[] = [
+  "user-only",
+  "new-user",
+  "deleted-user",
+  "conflict",
+];
+
+/**
+ * Lockfiles, runtime state, generated build artifacts. Always hidden in
+ * the default view; revealed (along with unrelated upstream changes) when
+ * the user toggles "Show all changes".
+ */
+const NOISE_PATTERNS: RegExp[] = [
+  /(^|\/)package-lock\.json$/,
+  /(^|\/)bun\.lock(b)?$/,
+  /\.lock$/,
+  /\.tsbuildinfo$/,
+  /^\.claude\//, // Claudius runtime state (sessions, tasks, etc.)
+  /^\.next\//, // Next.js build output
+  /^node_modules\//,
+  /^dist\//,
+  /^build\//,
+  /^playwright-report\//,
+  /^test-results\//,
+  /^site\/screenshots\//, // Auto-generated marketing PNGs
+];
+
+function isNoise(path: string): boolean {
+  return NOISE_PATTERNS.some((p) => p.test(path));
+}
+
+function isCustomizationRelevant(verdict: Verdict): boolean {
+  return CUSTOMIZATION_VERDICTS.includes(verdict);
+}
+
 export function SyncFromBasePanel({ customizationId }: { customizationId: string }) {
   const [status, setStatus] = useState<Status | null>(null);
   const [loading, setLoading] = useState(true);
@@ -46,6 +87,7 @@ export function SyncFromBasePanel({ customizationId }: { customizationId: string
   const [lastResult, setLastResult] = useState<SyncResult | null>(null);
   const [autoFixBusy, setAutoFixBusy] = useState(false);
   const [autoFixError, setAutoFixError] = useState<string | null>(null);
+  const [showNoise, setShowNoise] = useState(false);
 
   const refresh = useCallback(async () => {
     setError(null);
@@ -150,10 +192,27 @@ export function SyncFromBasePanel({ customizationId }: { customizationId: string
     return <div className="text-xs text-[var(--muted)]">{error ?? "Sync status unavailable."}</div>;
   }
 
+  // True totals — always reflect the full picture (used by the action
+  // button and the tiles, so the user sees the real scope of what a
+  // sync would do).
   const safeCount =
     status.totals["upstream-only"] + status.totals["new-upstream"] + status.totals["deleted-upstream"];
   const conflictCount = status.totals.conflict;
-  const userCount = status.totals["user-only"] + status.totals["new-user"] + status.totals["deleted-user"];
+  const userCount =
+    status.totals["user-only"] + status.totals["new-user"] + status.totals["deleted-user"];
+
+  // The breakdown defaults to ONLY this customization's footprint:
+  // files the user edited (U / +u / -u) plus any conflicts. Upstream-
+  // only churn in files this customization never touched is hidden.
+  // System files (lockfiles, build artifacts, runtime state) are also
+  // hidden. Toggle reveals everything.
+  const candidateEntries = status.entries.filter((e) => e.verdict !== "in-sync");
+  const visibleEntries = showNoise
+    ? candidateEntries
+    : candidateEntries.filter(
+        (e) => isCustomizationRelevant(e.verdict) && !isNoise(e.path),
+      );
+  const hiddenCount = candidateEntries.length - visibleEntries.length;
 
   return (
     <div>
@@ -228,23 +287,44 @@ export function SyncFromBasePanel({ customizationId }: { customizationId: string
         </div>
       )}
 
-      {(safeCount > 0 || conflictCount > 0 || userCount > 0) && (
-        <details className="mt-3">
-          <summary className="cursor-pointer text-xs text-[var(--muted)]">Show file-by-file breakdown</summary>
+      {candidateEntries.length > 0 && (
+        <details className="mt-3" open>
+          <summary className="cursor-pointer text-xs text-[var(--muted)]">
+            Files in this customization
+            {hiddenCount > 0 && !showNoise && (
+              <span className="ml-2 text-[10px] text-[var(--muted)]/70">
+                ({hiddenCount} unrelated upstream change{hiddenCount === 1 ? "" : "s"} hidden)
+              </span>
+            )}
+          </summary>
           <div className="mt-2 max-h-72 overflow-auto rounded-md border border-[var(--border)] bg-black/30 p-2 font-mono text-[11px]">
-            {status.entries
-              .filter((e) => e.verdict !== "in-sync")
-              .map((e) => (
+            {visibleEntries.length > 0 ? (
+              visibleEntries.map((e) => (
                 <div key={e.path} className="flex items-center gap-2">
                   {iconFor(e.verdict)}
                   <span className={tagClass(e.verdict)}>{labelFor(e.verdict)}</span>
                   <span className="truncate">{e.path}</span>
                 </div>
-              ))}
-            {status.entries.every((e) => e.verdict === "in-sync") && (
-              <div className="px-2 py-3 text-center text-[var(--muted)]">All files in sync.</div>
+              ))
+            ) : (
+              <div className="px-2 py-3 text-center text-[var(--muted)]">
+                {hiddenCount > 0
+                  ? `This customization has no edits yet — ${hiddenCount} upstream change${hiddenCount === 1 ? "" : "s"} hidden.`
+                  : "All files in sync."}
+              </div>
             )}
           </div>
+          {hiddenCount > 0 && (
+            <label className="mt-2 flex items-center gap-2 text-[11px] text-[var(--muted)] cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={showNoise}
+                onChange={(e) => setShowNoise(e.target.checked)}
+                className="h-3 w-3 cursor-pointer"
+              />
+              Show all changes (unrelated upstream edits + system files)
+            </label>
+          )}
         </details>
       )}
     </div>

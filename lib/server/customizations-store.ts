@@ -30,6 +30,23 @@ export type Customization = {
   workspaceId?: string;
   createdAt: number;
   updatedAt: number;
+  /** LLM-generated feature description. See customization-description.ts. */
+  description?: string;
+  /** ms since epoch when `description` was last regenerated. */
+  descriptionGeneratedAt?: number;
+  /**
+   * Hash of the diff state at the moment `description` was generated. The
+   * /customize/[id] page compares this to the live diff hash and shows a
+   * stale chip when they diverge. Cleared when the user edits the
+   * description manually — manual text never goes stale on its own.
+   */
+  descriptionDiffHash?: string;
+  /**
+   * True when the user typed/edited the description by hand. Suppresses the
+   * stale chip and labels the meta line "Edited" instead of "Generated" on
+   * the customize detail page.
+   */
+  descriptionIsManual?: boolean;
 };
 
 export type PublishRecord = {
@@ -142,6 +159,51 @@ export async function updateCustomizationRecord(
     ...shape.customizations[idx],
     ...patch,
     id,
+    updatedAt: Date.now(),
+  };
+  await writeShape(shape);
+  return shape.customizations[idx];
+}
+
+export async function setCustomizationDescription(
+  id: string,
+  description: string,
+  diffHash: string,
+): Promise<Customization | null> {
+  const shape = await readShape();
+  const idx = shape.customizations.findIndex((c) => c.id === id);
+  if (idx === -1) return null;
+  shape.customizations[idx] = {
+    ...shape.customizations[idx],
+    description,
+    descriptionGeneratedAt: Date.now(),
+    descriptionDiffHash: diffHash,
+    descriptionIsManual: false,
+    updatedAt: Date.now(),
+  };
+  await writeShape(shape);
+  return shape.customizations[idx];
+}
+
+/**
+ * Set the description from a user-typed string. Clears the diff hash so the
+ * stale chip stays hidden, and flags the entry so the UI labels it "Edited"
+ * instead of "Generated".
+ */
+export async function setCustomizationDescriptionManual(
+  id: string,
+  description: string,
+): Promise<Customization | null> {
+  const shape = await readShape();
+  const idx = shape.customizations.findIndex((c) => c.id === id);
+  if (idx === -1) return null;
+  const trimmed = description.trim();
+  shape.customizations[idx] = {
+    ...shape.customizations[idx],
+    description: trimmed || undefined,
+    descriptionGeneratedAt: trimmed ? Date.now() : undefined,
+    descriptionDiffHash: undefined,
+    descriptionIsManual: trimmed ? true : undefined,
     updatedAt: Date.now(),
   };
   await writeShape(shape);

@@ -8,27 +8,30 @@ Claude Code in the browser. A Next.js app that wraps the [Claude Agent SDK](http
 - Tailwind CSS v4
 - `better-sqlite3` for local persistence (sessions, schedules, assets)
 - `@anthropic-ai/claude-agent-sdk` for agent execution
+- [Bun](https://bun.sh) as the package manager (CI runs on `oven/bun:1`)
 - Playwright for end-to-end tests
 
 ## Getting started
 
 ```bash
-npm install
-npm run dev
+bun install
+bun run dev
 ```
 
 Open <http://localhost:3000>.
+
+If you don't have Bun yet: `curl -fsSL https://bun.sh/install | bash` (or `brew install bun`).
 
 ## Scripts
 
 | Command | What it does |
 | --- | --- |
-| `npm run dev` | Start the dev server |
-| `npm run build` | Production build |
-| `npm start` | Run the production build |
-| `npm run lint` | ESLint |
-| `npm run test:e2e` | Playwright end-to-end tests |
-| `npm run test:e2e:ui` | Playwright in UI mode |
+| `bun run dev` | Start the dev server |
+| `bun run build` | Production build |
+| `bun start` | Run the production build |
+| `bun run lint` | ESLint |
+| `bun run test:e2e` | Playwright end-to-end tests |
+| `bun run test:e2e:ui` | Playwright in UI mode |
 
 ## Layout
 

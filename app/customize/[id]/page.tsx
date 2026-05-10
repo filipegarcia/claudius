@@ -3,7 +3,7 @@
 import { use, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ExternalLink, Loader2, Play, Square, RefreshCw, WandSparkles, Pencil, Check, X, MessageSquare, Keyboard, RotateCw } from "lucide-react";
+import { ArrowLeft, ExternalLink, Loader2, Play, Square, RefreshCw, WandSparkles, Pencil, Check, X, MessageSquare, Keyboard, RotateCw, Sparkles, AlertTriangle } from "lucide-react";
 import { PANE_LABELS_EVENT } from "@/components/overlays/PaneLabelsHost";
 import { SideNav } from "@/components/nav/SideNav";
 import { PublishRevertPanel } from "@/components/customize/PublishRevertPanel";
@@ -268,6 +268,8 @@ export default function CustomizationDetail({ params }: { params: Promise<{ id: 
             <div className="text-sm text-[var(--muted)]">Customization not found.</div>
           ) : (
             <>
+              <DescriptionSection customizationId={id} />
+
               <Section title="Preview" subtitle="Spawns next dev on a separate port using your customization's source.">
                 <div className="flex items-center gap-3">
                   {preview?.status === "ready" || preview?.status === "starting" ? (
@@ -404,5 +406,234 @@ function Section({ title, subtitle, children }: { title: string; subtitle?: stri
       {children}
     </section>
   );
+}
+
+type DescriptionState = {
+  description: string | null;
+  descriptionGeneratedAt: number | null;
+  descriptionIsManual: boolean;
+  stale: boolean;
+};
+
+function DescriptionSection({ customizationId }: { customizationId: string }) {
+  const [state, setState] = useState<DescriptionState | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
+  const editingRef = useRef(false);
+
+  // Keep the ref in sync so the polling fetch can avoid clobbering an
+  // in-progress edit (the textarea would lose what the user typed).
+  useEffect(() => {
+    editingRef.current = editing;
+  }, [editing]);
+
+  const fetchState = useCallback(async () => {
+    if (editingRef.current) return;
+    try {
+      const res = await fetch(`/api/customizations/${customizationId}/description`);
+      if (res.ok) setState((await res.json()) as DescriptionState);
+    } catch {
+      // Non-fatal — leave previous state in place.
+    }
+  }, [customizationId]);
+
+  useEffect(() => {
+    void fetchState();
+    // Re-poll periodically so the stale chip updates as the user edits files.
+    const t = setInterval(() => {
+      void fetchState();
+    }, 5000);
+    return () => clearInterval(t);
+  }, [fetchState]);
+
+  const onGenerate = useCallback(async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/customizations/${customizationId}/description`, {
+        method: "POST",
+      });
+      if (!res.ok) {
+        const e = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(e.error ?? `HTTP ${res.status}`);
+      }
+      setState((await res.json()) as DescriptionState);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  }, [customizationId]);
+
+  const beginEdit = useCallback(() => {
+    setDraft(state?.description ?? "");
+    setEditing(true);
+    setError(null);
+  }, [state]);
+
+  const cancelEdit = useCallback(() => {
+    setEditing(false);
+    setDraft("");
+    setError(null);
+  }, []);
+
+  const saveEdit = useCallback(async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/customizations/${customizationId}/description`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ description: draft }),
+      });
+      if (!res.ok) {
+        const e = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(e.error ?? `HTTP ${res.status}`);
+      }
+      setState((await res.json()) as DescriptionState);
+      setEditing(false);
+      setDraft("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  }, [customizationId, draft]);
+
+  const has = !!state?.description;
+  const isManual = !!state?.descriptionIsManual;
+
+  return (
+    <Section
+      title="Feature description"
+      subtitle="What this customization does. Generated from the user-edited diff and your chat history — or write your own."
+    >
+      {error && (
+        <div className="mb-3 rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+          {error}
+        </div>
+      )}
+
+      {editing ? (
+        <div className="space-y-3">
+          <textarea
+            autoFocus
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") {
+                e.preventDefault();
+                cancelEdit();
+              } else if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                e.preventDefault();
+                void saveEdit();
+              }
+            }}
+            disabled={busy}
+            placeholder="Describe what this customization does. Empty + save clears the description."
+            rows={5}
+            className="w-full resize-y rounded-md border border-[var(--border)] bg-[var(--panel-2)] p-2 font-mono text-sm leading-relaxed text-[var(--foreground)] outline-none focus:border-[var(--accent)]/60 disabled:opacity-50"
+          />
+          <div className="flex flex-wrap items-center gap-2 text-[11px] text-[var(--muted)]">
+            <span>{draft.length} chars · ⌘/Ctrl-Enter to save · Esc to cancel</span>
+            <div className="ml-auto flex items-center gap-2">
+              <button
+                onClick={cancelEdit}
+                disabled={busy}
+                className="flex items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--panel)] px-2.5 py-1 text-xs hover:bg-[var(--panel-2)] disabled:opacity-50"
+              >
+                <X className="h-3 w-3" /> Cancel
+              </button>
+              <button
+                onClick={() => void saveEdit()}
+                disabled={busy}
+                className="flex items-center gap-1 rounded-md bg-[var(--accent)] px-2.5 py-1 text-xs font-medium text-white hover:opacity-90 disabled:opacity-50"
+              >
+                {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : has ? (
+        <div className="space-y-3">
+          <p className="whitespace-pre-wrap text-sm leading-relaxed text-[var(--foreground)]">
+            {state!.description}
+          </p>
+          <div className="flex flex-wrap items-center gap-2 text-[11px] text-[var(--muted)]">
+            {state!.descriptionGeneratedAt && (
+              <span>
+                {isManual ? "Edited" : "Generated"} {formatRelative(state!.descriptionGeneratedAt)}
+              </span>
+            )}
+            {isManual && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-[var(--border)] bg-[var(--panel-2)] px-2 py-0.5 text-[var(--muted)]">
+                <Pencil className="h-3 w-3" /> Manual
+              </span>
+            )}
+            {state!.stale && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-amber-300">
+                <AlertTriangle className="h-3 w-3" /> May be out of date
+              </span>
+            )}
+            <div className="ml-auto flex items-center gap-2">
+              <button
+                onClick={beginEdit}
+                disabled={busy}
+                title="Edit by hand"
+                className="flex items-center gap-1.5 rounded-md border border-[var(--border)] bg-[var(--panel)] px-2.5 py-1 text-xs hover:bg-[var(--panel-2)] disabled:opacity-50"
+              >
+                <Pencil className="h-3 w-3" /> Edit
+              </button>
+              <button
+                onClick={() => void onGenerate()}
+                disabled={busy}
+                title={isManual ? "Replace your text with a fresh LLM-generated description" : "Recompute from current diff + chat"}
+                className="flex items-center gap-1.5 rounded-md border border-[var(--border)] bg-[var(--panel)] px-2.5 py-1 text-xs hover:bg-[var(--panel-2)] disabled:opacity-50"
+              >
+                {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+                Regenerate
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={() => void onGenerate()}
+            disabled={busy}
+            className="flex items-center gap-2 rounded-md bg-[var(--accent)] px-3 py-1.5 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
+          >
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+            Generate description
+          </button>
+          <button
+            onClick={beginEdit}
+            disabled={busy}
+            className="flex items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--panel)] px-3 py-1.5 text-sm hover:bg-[var(--panel-2)] disabled:opacity-50"
+          >
+            <Pencil className="h-4 w-4" /> Write your own
+          </button>
+          <span className="text-xs text-[var(--muted)]">
+            Generation reads only the files YOU edited, plus the workspace&apos;s chat history.
+          </span>
+        </div>
+      )}
+    </Section>
+  );
+}
+
+function formatRelative(ts: number): string {
+  const diffMs = Date.now() - ts;
+  const diffSec = Math.round(diffMs / 1000);
+  if (diffSec < 60) return `${diffSec}s ago`;
+  const diffMin = Math.round(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHr = Math.round(diffMin / 60);
+  if (diffHr < 24) return `${diffHr}h ago`;
+  const diffDay = Math.round(diffHr / 24);
+  return `${diffDay}d ago`;
 }
 

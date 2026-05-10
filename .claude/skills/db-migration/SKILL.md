@@ -39,7 +39,7 @@ Migrations live at `lib/server/db-migrations/<id>_<slug>.sql` and run automatica
 4. **Open the DB once locally.**
 
    ```bash
-   npm run dev   # boot the server so openDb() runs
+   bun run dev   # boot the server so openDb() runs
    sqlite3 ~/.claude/projects/<encoded-cwd>/.claudius.db ".schema"
    ```
 

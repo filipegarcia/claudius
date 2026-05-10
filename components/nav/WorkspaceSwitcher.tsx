@@ -260,18 +260,21 @@ function SystemTile({
   /** When true, render with the accent color so the tile stands out (e.g. Customize). */
   accent?: boolean;
 }) {
+  // Idle state is always muted — only when `active && accent` do we paint
+  // the tile with the accent color. Previously `accent` showed the colored
+  // icon at all times, which made an unselected Customize tile look like
+  // it was the active route.
+  const accentActive = active && accent;
   return (
     <Link
       href={href}
       title={label}
       className={cn(
-        "flex h-10 w-10 items-center justify-center rounded-lg hover:bg-[var(--panel-2)]",
-        accent
-          ? "text-[var(--accent)] hover:text-[var(--accent)]"
-          : "text-[var(--muted)] hover:text-[var(--foreground)]",
-        active && (accent
-          ? "bg-[var(--accent)]/15 ring-1 ring-[var(--accent)]/40"
-          : "bg-[var(--panel-2)] text-[var(--foreground)] ring-1 ring-[var(--border)]"),
+        "flex h-10 w-10 items-center justify-center rounded-lg text-[var(--muted)] hover:bg-[var(--panel-2)] hover:text-[var(--foreground)]",
+        accentActive
+          ? "bg-[var(--accent)]/15 text-[var(--accent)] ring-1 ring-[var(--accent)]/40 hover:text-[var(--accent)]"
+          : active &&
+              "bg-[var(--panel-2)] text-[var(--foreground)] ring-1 ring-[var(--border)]",
       )}
     >
       {icon}

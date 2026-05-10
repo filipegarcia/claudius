@@ -10,8 +10,8 @@
 #   --prefix=DIR     Install destination (default: $HOME/claudius)
 #   --branch=BRANCH  Git branch to clone (default: main)
 #   --repo=URL       Source repo (overrides $CLAUDIUS_REPO)
-#   --no-install     Skip `npm install` (clone only)
-#   --start          Run `npm run dev` after install (default: don't)
+#   --no-install     Skip `bun install` (clone only)
+#   --start          Run `bun run dev` after install (default: don't)
 #   -h, --help       Print this and exit
 #
 # Environment overrides:
@@ -20,8 +20,13 @@
 #   CLAUDIUS_BRANCH  Git branch          (default: main)
 #
 # Re-running the script against an existing install pulls the latest commit
-# on `--branch` and re-runs `npm install`. Local edits in the working tree
+# on `--branch` and re-runs `bun install`. Local edits in the working tree
 # block the pull (we never `git reset --hard` for you).
+#
+# Bun is the package manager. If it's not on PATH we install it for you via
+# the official `https://bun.sh/install` curl one-liner — that drops a binary
+# into ~/.bun/bin and edits the relevant rc file. Pass --no-install to skip
+# the dependency step entirely if you'd rather wire up tooling yourself.
 #
 # To rebrand: change DEFAULT_REPO below to your fork. The marketed URLs
 # in this header are cosmetic — they're just what gets printed by --help.
@@ -35,7 +40,6 @@ PREFIX="${CLAUDIUS_PREFIX:-$HOME/claudius}"
 BRANCH="${CLAUDIUS_BRANCH:-main}"
 RUN_INSTALL=1
 START_DEV=0
-MIN_NODE_MAJOR=20
 
 # ── ANSI helpers (gracefully degrade when stdout isn't a tty) ─────────────
 if [ -t 1 ]; then
@@ -78,15 +82,27 @@ need() {
   command -v "$1" >/dev/null 2>&1 || fail "missing: $1 (please install and re-run)"
 }
 need git
-need node
-need npm
-
-NODE_MAJOR="$(node -p 'process.versions.node.split(".")[0]')"
-if [ "$NODE_MAJOR" -lt "$MIN_NODE_MAJOR" ]; then
-  fail "node $MIN_NODE_MAJOR+ required (you have $(node -v)). See https://nodejs.org/"
-fi
-ok "node $(node -v)"
 ok "git $(git --version | awk '{print $3}')"
+
+# Bun: prefer whatever's already on PATH; otherwise grab it via the official
+# installer. The installer adds ~/.bun/bin to the user's rc file, but a piped
+# bash session won't have re-sourced it — export it inline so the rest of
+# this script (and the optional `--start` exec at the end) can find `bun`.
+ensure_bun() {
+  if command -v bun >/dev/null 2>&1; then
+    ok "bun $(bun --version)"
+    return
+  fi
+  log "Bun not found — installing via https://bun.sh/install"
+  curl -fsSL https://bun.sh/install | bash >/dev/null 2>&1 \
+    || fail "bun install failed (try installing manually: https://bun.sh/)"
+  export BUN_INSTALL="${BUN_INSTALL:-$HOME/.bun}"
+  export PATH="$BUN_INSTALL/bin:$PATH"
+  command -v bun >/dev/null 2>&1 \
+    || fail "bun installed but not on PATH — open a new shell and re-run"
+  ok "bun $(bun --version) (just installed — restart your shell to pick up PATH)"
+}
+ensure_bun
 
 # ── Fetch ────────────────────────────────────────────────────────────────
 if [ -d "$PREFIX/.git" ]; then
@@ -113,18 +129,18 @@ fi
 
 # ── Install dependencies ─────────────────────────────────────────────────
 if [ "$RUN_INSTALL" -eq 1 ]; then
-  log "Running npm install (this can take a minute on first run)"
-  ( cd "$PREFIX" && npm install --silent ) || fail "npm install failed"
+  log "Running bun install (this can take a few seconds on first run)"
+  ( cd "$PREFIX" && bun install --frozen-lockfile ) || fail "bun install failed"
   ok "dependencies installed"
 fi
 
 # ── Done ─────────────────────────────────────────────────────────────────
 printf '\n'
 ok "claudius is ready at %s" "$PREFIX"
-printf '\n%sNext:%s\n  cd %s\n  npm run dev    # http://localhost:3000\n  npm run build && npm start\n' \
+printf '\n%sNext:%s\n  cd %s\n  bun run dev    # http://localhost:3000\n  bun run build && bun start\n' \
   "$C_ACCENT" "$C_RST" "$PREFIX"
 
 if [ "$START_DEV" -eq 1 ]; then
   printf '\n%sStarting dev server%s\n' "$C_DIM" "$C_RST"
-  exec env -C "$PREFIX" npm run dev
+  exec env -C "$PREFIX" bun run dev
 fi
