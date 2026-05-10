@@ -6,6 +6,7 @@ import {
 import { hashTree } from "./customization-hash";
 import { getLiveSourceDir } from "./runtime-dir";
 import { revertPublish } from "./customization-revert";
+import { listWorkspaces, updateWorkspace } from "./workspaces-store";
 
 /**
  * Boot-time upgrade detection.
@@ -38,6 +39,29 @@ export function isRunningInsideCustomizationMirror(): boolean {
   // Normalize trailing slash so a sibling dir starting with the same prefix
   // doesn't accidentally match.
   return live === root || live.startsWith(root.endsWith("/") ? root : root + "/");
+}
+
+/**
+ * Idempotent: any customization workspace that lacks an explicit
+ * `permissionMode` default is patched to `bypassPermissions`. Workspaces
+ * where the user already chose a mode (default / acceptEdits / etc.) are
+ * left alone — we only touch the absence-of-setting case so the rule is
+ * "new defaults" not "force this mode forever".
+ */
+export async function backfillCustomizationDefaults(): Promise<void> {
+  if (isRunningInsideCustomizationMirror()) return;
+  try {
+    const workspaces = await listWorkspaces();
+    for (const ws of workspaces) {
+      if (ws.kind !== "customization") continue;
+      if (ws.defaults?.permissionMode) continue;
+      await updateWorkspace(ws.id, {
+        defaults: { ...(ws.defaults ?? {}), permissionMode: "bypassPermissions" },
+      });
+    }
+  } catch (err) {
+    console.warn("[customizations] could not backfill workspace defaults:", err);
+  }
 }
 
 export async function runCustomizationsUpgradeCheck(): Promise<void> {

@@ -58,6 +58,16 @@ export async function POST(req: Request) {
     resume: body.resume,
     resumeSessionAt: body.resumeSessionAt,
   });
+
+  // If sessionManager returned an existing in-memory session via resume
+  // idempotency, its mode is whatever it was last set to — possibly stale
+  // relative to a freshly-changed workspace default. Reconcile so the
+  // session honours the current effective `permissionMode` regardless of
+  // when the underlying SDK process was originally spawned.
+  if (permissionMode && session.getPermissionMode() !== permissionMode) {
+    await session.setPermissionMode(permissionMode);
+  }
+
   return NextResponse.json({
     id: session.id,
     cwd: session.cwd,

@@ -13,6 +13,17 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
   ]),
+  // The React 19 / React Compiler rule set fires on patterns this codebase
+  // hasn't been migrated for (see `user_lint_policy.md` memory). Demote to
+  // warnings so feature work doesn't block on a codebase-wide refactor; we
+  // can re-tighten once the patterns are sorted.
+  {
+    rules: {
+      "react-hooks/set-state-in-effect": "warn",
+      "react-hooks/preserve-manual-memoization": "warn",
+      "react-hooks/refs": "warn",
+    },
+  },
 ]);
 
 export default eslintConfig;

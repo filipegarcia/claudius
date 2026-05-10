@@ -547,6 +547,189 @@ npm run dev      # http://localhost:3000</code></pre>
       </div>
     </section>
 
+    <!-- ────────────────────────────── One more thing ────────────────────────────── -->
+    <section id="meta" class="relative overflow-hidden border-t border-line/60">
+      <!-- Soft radial glow behind the headline so the section feels like a reveal. -->
+      <div class="pointer-events-none absolute inset-0">
+        <div
+          class="absolute -top-32 left-1/2 h-[640px] w-[960px] -translate-x-1/2 rounded-full blur-3xl"
+          style="background: radial-gradient(ellipse at center, rgba(217, 119, 87, 0.18), transparent 60%);"
+        ></div>
+      </div>
+
+      <div class="relative max-w-5xl mx-auto px-6 py-28 text-center">
+        <h2 class="font-semibold tracking-tight text-5xl md:text-7xl lg:text-[5.5rem] leading-[1.05]">
+          One more thing<span class="text-accent">&hellip;</span>
+        </h2>
+        <p class="mt-6 text-2xl md:text-3xl font-medium text-fg/90">
+          Build your own <span class="text-accent">features</span>, right in the app.
+        </p>
+        <p class="mx-auto mt-6 max-w-2xl text-base md:text-lg text-muted leading-relaxed">
+          The agent you&rsquo;re chatting with has the whole Claudius codebase
+          on the other end. Want a new page, a keyboard shortcut, a widget in
+          the activity rail? Just ask. The code is local, the agent has the
+          tools &mdash; Claudius edits itself.
+        </p>
+
+        <!-- Mock chat: the meta loop, cycling through 40 plausible asks. -->
+        <div
+          id="meta-mock"
+          class="mx-auto mt-12 max-w-2xl rounded-lg border border-line bg-panel/60 p-5 text-left font-mono text-sm leading-6 shadow-[0_24px_60px_-24px_rgba(0,0,0,0.6)] transition-opacity duration-300"
+        >
+          <div class="mb-1 text-[10px] uppercase tracking-wider text-muted/70">you · in chat</div>
+          <div id="meta-ask" class="text-fg min-h-[3rem]"></div>
+          <div class="mt-4 mb-1 text-[10px] uppercase tracking-wider text-muted/70">claudius · <span id="meta-elapsed">~90s</span> later</div>
+          <div class="text-fg">
+            <span class="text-accent">opened preview</span>
+            <span id="meta-branch"></span>
+            <span class="text-muted">&middot; <span id="meta-files">4</span> files &middot; ready to review</span>
+          </div>
+        </div>
+
+        <p class="mx-auto mt-10 max-w-xl text-sm text-muted/80">
+          Every screenshot above came out of a session that started with
+          <span class="text-fg">&ldquo;could you add&hellip;&rdquo;</span> &mdash;
+          including this very section.
+        </p>
+      </div>
+
+      <script>
+        // Forty plausible asks. Each becomes a `feat/<slug>` branch, with a
+        // hand-tuned file count and turn duration so the loop feels like
+        // real chat traffic instead of a stock ticker.
+        const META_FEATURES = [
+          ["play YouTube videos while Claude Code is working", "feat/youtube-while-coding", 5, "~2m"],
+          ["integrate my pipeline directly in the chat window", "feat/pipeline-inline", 7, "~3m"],
+          ["render the game I'm building in the browser window", "feat/inline-game-preview", 6, "~3m"],
+          ["add a /standup page that lists yesterday's commits and today's open todos", "feat/standup-page", 4, "~90s"],
+          ["add a 'snooze for 1 hour' button on the cap-breach banner", "feat/cap-snooze", 2, "~40s"],
+          ["add a cmd-shift-k shortcut for the workspace switcher", "feat/workspace-shortcut", 3, "~55s"],
+          ["add a dark/light toggle to the activity rail header", "feat/rail-theme-toggle", 2, "~35s"],
+          ["show a token-cost preview on the prompt input before I send", "feat/prompt-cost-preview", 5, "~2m"],
+          ["add an export-as-markdown action to the sessions list", "feat/sessions-md-export", 4, "~80s"],
+          ["add a 'duplicate session' action that forks at the latest message", "feat/session-duplicate", 3, "~70s"],
+          ["add a syntax-highlighted code preview to the file browser", "feat/files-syntax-preview", 6, "~3m"],
+          ["add a 'pin to top' toggle on session tabs", "feat/tabs-pin", 3, "~60s"],
+          ["add a /releases page that summarizes my git tags", "feat/releases-page", 5, "~2m"],
+          ["add an MCP-server health pinger that runs every 60 seconds", "feat/mcp-healthcheck", 7, "~3m"],
+          ["add a per-workspace cost cap with a warning at 80%", "feat/workspace-cap", 6, "~3m"],
+          ["add an emoji reaction on assistant messages", "feat/message-reactions", 4, "~90s"],
+          ["add a JSON viewer for tool input/output blocks", "feat/json-viewer", 3, "~75s"],
+          ["add a side-by-side compare view for two sessions", "feat/sessions-compare", 8, "~4m"],
+          ["add a sparkline next to each session showing turn frequency", "feat/session-sparkline", 4, "~2m"],
+          ["add a 'share read-only link' that exports a session as static HTML", "feat/session-share", 6, "~3m"],
+          ["add a clipboard history that captures every Bash stdout", "feat/bash-clipboard", 5, "~2m"],
+          ["add a 'what changed in this directory today' widget", "feat/dir-changes-widget", 4, "~90s"],
+          ["add a /todos page that aggregates open todos across every session", "feat/todos-aggregate", 5, "~2m"],
+          ["add a per-tool latency chart on the cost page", "feat/cost-latency-chart", 5, "~2m"],
+          ["add a 'narrate aloud' toggle that reads responses via TTS", "feat/tts-narration", 3, "~80s"],
+          ["add a 'save as skill' button on any conversation", "feat/save-as-skill", 4, "~2m"],
+          ["add permission-mode hotkeys (alt-1, alt-2, alt-3)", "feat/perm-hotkeys", 2, "~45s"],
+          ["add a cmd-/ shortcut for transcript search", "feat/search-shortcut", 2, "~40s"],
+          ["add a 'tui-phosphor' theme with amber-on-black terminal feel", "feat/theme-phosphor", 3, "~60s"],
+          ["add a hover preview for file paths in tool calls", "feat/path-preview", 3, "~70s"],
+          ["add a 'git blame this line' action in the file viewer", "feat/git-blame", 5, "~2m"],
+          ["add a /focus mode that hides the nav and rail", "feat/focus-mode", 3, "~75s"],
+          ["add a per-agent run history with cost totals", "feat/agent-history", 6, "~3m"],
+          ["add an 'auto-commit after passing tests' workflow", "feat/auto-commit", 5, "~2m"],
+          ["add a 'tools used this turn' inline widget", "feat/turn-tools-inline", 3, "~90s"],
+          ["add a /flake page that surfaces tests with intermittent failures", "feat/flake-page", 6, "~3m"],
+          ["add a draggable divider to resize the activity rail", "feat/rail-resize", 3, "~80s"],
+          ["add a 'remind me in 24h' action on schedule entries", "feat/schedule-remind", 4, "~90s"],
+          ["add a JSONL exporter for session transcripts", "feat/jsonl-export", 3, "~70s"],
+          ["add a /streak page tracking consecutive days I've coded", "feat/streak-page", 4, "~2m"],
+          ["add a rotating greeting in the empty chat state", "feat/empty-state-greeting", 2, "~50s"],
+          ["add a cmd-shift-s overlay that summarizes the current session", "feat/summary-overlay", 4, "~2m"],
+          ["add a per-MCP-server log viewer with level filters", "feat/mcp-logs", 6, "~3m"],
+        ];
+
+        (() => {
+          const card = document.getElementById("meta-mock");
+          const askEl = document.getElementById("meta-ask");
+          const branchEl = document.getElementById("meta-branch");
+          const filesEl = document.getElementById("meta-files");
+          const elapsedEl = document.getElementById("meta-elapsed");
+          if (!card || !askEl || !branchEl || !filesEl || !elapsedEl) return;
+
+          let idx = 0;
+          let timer = null;
+          let active = false;
+          // First three asks (YouTube, pipeline, game) play in order so the
+          // hook lands. After we've shown them, the queue empties and the
+          // loop falls through to random selection across all 40.
+          const orderedQueue = [1, 2];
+
+          function paint(i) {
+            const [ask, branch, files, elapsed] = META_FEATURES[i];
+            // Highlight any /slug-style command in the ask in accent color.
+            askEl.innerHTML = ask.replace(
+              /(\/[\w-]+)/g,
+              '<span class="text-accent">$1</span>',
+            );
+            branchEl.textContent = branch;
+            filesEl.textContent = String(files);
+            elapsedEl.textContent = elapsed;
+          }
+
+          function step() {
+            if (!active) return;
+            let n;
+            if (orderedQueue.length > 0) {
+              // Walk the ordered hook list first.
+              n = orderedQueue.shift();
+            } else {
+              // Then pick at random — never repeat what's currently shown.
+              do {
+                n = Math.floor(Math.random() * META_FEATURES.length);
+              } while (n === idx && META_FEATURES.length > 1);
+            }
+            idx = n;
+            // Crossfade out → swap → fade in.
+            card.style.opacity = "0";
+            setTimeout(() => {
+              paint(idx);
+              card.style.opacity = "1";
+            }, 280);
+            // Random interval between 1.5s and 5s for the next change.
+            const wait = 1500 + Math.random() * 3500;
+            timer = setTimeout(step, wait);
+          }
+
+          // Initial paint shows the first ask without a fade — that's the
+          // hook line ("play YouTube videos while Claude Code is working").
+          // The cycle only starts when the user scrolls the section into
+          // view, so the hook is what they see on first arrival.
+          paint(0);
+          card.style.opacity = "1";
+
+          if (typeof IntersectionObserver === "function") {
+            const obs = new IntersectionObserver(
+              ([entry]) => {
+                if (entry.isIntersecting && !active) {
+                  active = true;
+                  // Small delay so the user reads the hook line before it
+                  // starts moving.
+                  timer = setTimeout(step, 1800);
+                } else if (!entry.isIntersecting && active) {
+                  active = false;
+                  if (timer) {
+                    clearTimeout(timer);
+                    timer = null;
+                  }
+                }
+              },
+              { threshold: 0.25 },
+            );
+            obs.observe(card);
+          } else {
+            // No IO support → just start cycling.
+            active = true;
+            timer = setTimeout(step, 1800);
+          }
+        })();
+      </script>
+    </section>
+
     <!-- ────────────────────────────── Footer ────────────────────────────── -->
     <footer class="border-t border-line/60">
       <div class="max-w-6xl mx-auto px-6 py-12 flex flex-col gap-8">

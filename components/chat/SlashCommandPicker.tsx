@@ -96,9 +96,6 @@ export function SlashCommandPicker({ value, sdkSlashCommands, sdkSkills, onSelec
 
   if (visible.length === 0) return null;
 
-  // Group by category for visual structure when not actively filtering.
-  let lastCat: string | null = null;
-
   return (
     <div
       ref={ref}
@@ -108,8 +105,10 @@ export function SlashCommandPicker({ value, sdkSlashCommands, sdkSkills, onSelec
         Slash commands · Tab to insert
       </div>
       {visible.map((c, i) => {
-        const showHeader = !filter && c.category !== lastCat;
-        if (showHeader) lastCat = c.category;
+        // Group by category — show a header when the category differs from
+        // the previous visible item. Pure lookup (no render-time mutation).
+        const prevCat = i > 0 ? visible[i - 1].category : null;
+        const showHeader = !filter && c.category !== prevCat;
         const badge = HANDLER_BADGE[c.handler];
         const Icon = badge.icon;
         return (

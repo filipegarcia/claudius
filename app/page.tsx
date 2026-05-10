@@ -135,6 +135,43 @@ export default function Home() {
     void createNewSessionAction();
   }, [newParam, createNewSessionAction]);
 
+  // ?prefill=<text> | ?prefill=1 → drop a draft into the prompt input on
+  // mount. Used by Customize → "Auto-fix conflicts" so the user lands in
+  // chat with the composed prompt ready to send. `=1` means "look in
+  // sessionStorage under claudius.autofix-draft" (avoids ballooning the
+  // URL for long prompts). Anything else is the literal prefill text.
+  const prefillParam = searchParams?.get("prefill");
+  const consumedPrefillRef = useRef(false);
+  useEffect(() => {
+    if (!prefillParam) {
+      consumedPrefillRef.current = false;
+      return;
+    }
+    if (consumedPrefillRef.current) return;
+    consumedPrefillRef.current = true;
+
+    let text: string | null = null;
+    if (prefillParam === "1") {
+      try {
+        text = sessionStorage.getItem("claudius.autofix-draft");
+        sessionStorage.removeItem("claudius.autofix-draft");
+      } catch {
+        text = null;
+      }
+    } else {
+      text = prefillParam;
+    }
+
+    const url = new URL(window.location.href);
+    url.searchParams.delete("prefill");
+    window.history.replaceState(null, "", url.toString());
+
+    if (text && text.trim()) {
+      draftTokenRef.current += 1;
+      setDraftInjection({ token: draftTokenRef.current, text });
+    }
+  }, [prefillParam]);
+
   // Session tabs (IntelliJ-style) ─────────────────────────────────────────
   // Open tabs persist in the per-cwd `.claudius.db` (via /api/sessions/open-tabs)
   // so closing the browser and coming back later restores the same strip —

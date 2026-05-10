@@ -194,7 +194,11 @@ export async function bootstrapCustomization(input: { name: string }): Promise<B
   const ws = await createWorkspace({
     name: `Customize · ${cust.name}`,
     rootPath: dst,
-    defaults: undefined,
+    // Customization workspaces auto-allow tools by default. The whole point
+    // is to let the agent write/edit files freely against an isolated mirror;
+    // permission prompts on every Write would defeat the workflow. The user
+    // can still override per-session via the mode pill.
+    defaults: { permissionMode: "bypassPermissions" },
   });
   // Tag the workspace as a customization so the UI can differentiate it.
   // `createWorkspace` doesn't accept `kind` directly, so patch it after.

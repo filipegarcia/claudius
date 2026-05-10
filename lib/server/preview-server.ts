@@ -1,10 +1,13 @@
-import { spawn, type ChildProcess } from "node:child_process";
+import { execFile, spawn, type ChildProcess } from "node:child_process";
 import { promises as fs } from "node:fs";
 import { createServer } from "node:net";
 import { join } from "node:path";
+import { promisify } from "node:util";
 
 import { customizationSrcDir } from "./customizations-store";
 import { ensureNodeModulesMirror } from "./customization-bootstrap";
+
+const execFileP = promisify(execFile);
 
 /**
  * Manages auto-spawned `next dev` processes for customization previews.
@@ -39,7 +42,17 @@ const PORT_START = 3100;
 const PORT_END = 3199;
 const LOG_TAIL_MAX = 200;
 
-const entries = new Map<string, Entry>();
+declare global {
+  var __claudiusPreviewEntries: Map<string, Entry> | undefined;
+}
+
+// Survive Next dev's hot-module-reload of this file. Without globalThis the
+// Map gets re-initialised when preview-server.ts is edited, losing track of
+// running preview processes — the user clicks Restart, we don't see the old
+// entry, and an orphan keeps holding the port.
+const entries: Map<string, Entry> =
+  globalThis.__claudiusPreviewEntries ??
+  (globalThis.__claudiusPreviewEntries = new Map<string, Entry>());
 
 function pushLog(e: Entry, line: string): void {
   // Strip trailing newlines; split on newlines so a chunk doesn't squash
@@ -56,6 +69,14 @@ function pushLog(e: Entry, line: string): void {
   }
 }
 
+/**
+ * True if the port is bindable on every interface Next dev cares about.
+ * `next dev -p N` listens on `::` (IPv6 all-interfaces); a check against
+ * 127.0.0.1 alone misses ports already bound on that side and produces
+ * false-positives that cascade into EADDRINUSE at spawn time. We bind
+ * without a host (Node defaults to dualstack `::` when available) and
+ * fail-fast if either interface is taken.
+ */
 function isPortFree(port: number): Promise<boolean> {
   return new Promise((resolve) => {
     const srv = createServer();
@@ -63,7 +84,8 @@ function isPortFree(port: number): Promise<boolean> {
     srv.once("listening", () => {
       srv.close(() => resolve(true));
     });
-    srv.listen(port, "127.0.0.1");
+    // `host: undefined` → Node binds dualstack on `::` where supported.
+    srv.listen({ port, exclusive: true });
   });
 }
 
@@ -72,6 +94,101 @@ async function pickFreePort(): Promise<number> {
     if (await isPortFree(p)) return p;
   }
   throw new Error(`no free port in ${PORT_START}-${PORT_END}`);
+}
+
+/**
+ * Find the PIDs holding a TCP listening socket on `port`. macOS / Linux
+ * both ship `lsof`; if it isn't on PATH the function returns an empty
+ * array and the caller falls back to picking a different port.
+ */
+async function pidsOnPort(port: number): Promise<number[]> {
+  try {
+    const { stdout } = await execFileP("lsof", ["-nP", "-iTCP", `-iTCP:${port}`, "-sTCP:LISTEN", "-t"], {
+      timeout: 3_000,
+    });
+    return stdout
+      .split("\n")
+      .map((s) => Number(s.trim()))
+      .filter((n) => Number.isFinite(n) && n > 0);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Kill any listeners across the whole preview port range whose PIDs we
+ * don't currently own. Belt-and-suspenders for orphaned Next dev workers
+ * left over from prior crashes / HMR resets / dev-server restarts.
+ *
+ * CRUCIAL: never kill ourselves. The main Claudius dev server's port (3179
+ * by default) lives inside the preview port range, so its PID would
+ * otherwise show up as "unowned" and get reaped — which would shoot down
+ * the very process running this code.
+ */
+async function sweepStaleListeners(): Promise<number> {
+  const ownedPids = new Set<number>();
+  for (const e of entries.values()) {
+    if (e.child.pid) ownedPids.add(e.child.pid);
+  }
+  // Self-protection: this process and its direct parent (the `next dev`
+  // wrapper that spawned the bundler worker) must never be killed by the
+  // sweep. process.ppid is reliable on POSIX; on Windows it's still
+  // populated by Node.
+  ownedPids.add(process.pid);
+  if (typeof process.ppid === "number" && process.ppid > 0) {
+    ownedPids.add(process.ppid);
+  }
+  let killed = 0;
+  for (let p = PORT_START; p <= PORT_END; p++) {
+    const pids = await pidsOnPort(p);
+    for (const pid of pids) {
+      if (ownedPids.has(pid)) continue;
+      try {
+        process.kill(pid, "SIGTERM");
+        killed++;
+      } catch {
+        // ignore — not ours
+      }
+    }
+  }
+  if (killed > 0) {
+    await new Promise((res) => setTimeout(res, 800));
+    for (let p = PORT_START; p <= PORT_END; p++) {
+      for (const pid of await pidsOnPort(p)) {
+        if (ownedPids.has(pid)) continue;
+        try {
+          process.kill(pid, "SIGKILL");
+        } catch {
+          // ignore
+        }
+      }
+    }
+  }
+  return killed;
+}
+
+async function killSquatters(port: number): Promise<number> {
+  const pids = await pidsOnPort(port);
+  let killed = 0;
+  for (const pid of pids) {
+    try {
+      process.kill(pid, "SIGTERM");
+      killed++;
+    } catch {
+      // not our process, or already gone
+    }
+  }
+  if (killed === 0) return 0;
+  // Give them a moment to release the port, then SIGKILL anyone still alive.
+  await new Promise((res) => setTimeout(res, 800));
+  for (const pid of await pidsOnPort(port)) {
+    try {
+      process.kill(pid, "SIGKILL");
+    } catch {
+      // already gone
+    }
+  }
+  return killed;
 }
 
 
@@ -122,6 +239,10 @@ export async function startPreview(customizationId: string): Promise<PreviewStat
   if (existing && (existing.status === "starting" || existing.status === "ready")) {
     return snapshot(existing, customizationId);
   }
+  // If we tracked a previous run that's now exited, drop the entry first so
+  // a fresh log buffer + status starts clean instead of reading "exited".
+  if (existing) entries.delete(customizationId);
+
   const srcDir = customizationSrcDir(customizationId);
   // Sanity: src must exist (bootstrap creates it).
   try {
@@ -134,7 +255,20 @@ export async function startPreview(customizationId: string): Promise<PreviewStat
   // stale symlink at <src>/node_modules that Turbopack rejects. The mirror
   // function detects + replaces it.
   await ensureNodeModulesMirror(srcDir);
+
+  // If the previous Next dev process left a grandchild (worker) bound to its
+  // port, our port-free probe correctly skips it now that we bind on `::` —
+  // but if THIS customization's previous port still has a squatter (e.g.
+  // user manually restarted the dev server while a preview was open), reap
+  // it so we can keep using the same port. This is the "kill the old one"
+  // affordance: callers don't need to know about orphaned grandchildren.
+  if (existing?.port) {
+    await killSquatters(existing.port).catch(() => 0);
+  }
   const port = await pickFreePort();
+  // Final defensive sweep on the chosen port — handles the rare case where
+  // something raced in between the probe and the spawn.
+  await killSquatters(port).catch(() => 0);
 
   // Spawn `node_modules/.bin/next dev -p <port>` directly — faster than `npx`
   // and avoids the npx network check.
@@ -200,6 +334,33 @@ export async function stopPreview(customizationId: string): Promise<PreviewState
   // Don't keep the event loop alive for the kill timer.
   killTimer.unref?.();
   return snapshot(entry, customizationId);
+}
+
+/**
+ * Stop any running preview, wait for the OS to release the port (Next dev's
+ * worker grandchild can outlive the parent process by a few hundred ms), then
+ * start a fresh one. Used when the user hits "Restart preview" from the UI.
+ */
+export async function restartPreview(customizationId: string): Promise<PreviewState> {
+  const existing = entries.get(customizationId);
+  if (existing && (existing.status === "starting" || existing.status === "ready")) {
+    await stopPreview(customizationId);
+    // Give SIGTERM a moment to propagate to the worker grandchild.
+    await new Promise((res) => setTimeout(res, 600));
+  }
+  // Reap anything still bound to the old port — handles workers that
+  // survived the parent's SIGTERM.
+  if (existing?.port) {
+    await killSquatters(existing.port).catch(() => 0);
+  }
+  // Sweep the rest of the preview port range for orphans we don't own
+  // (e.g. previews from before an HMR reset of this module). Without this,
+  // an HMR-orphaned preview keeps :3100 forever and every restart picks a
+  // new port until the range is exhausted.
+  await sweepStaleListeners().catch(() => 0);
+  // Drop the old tracker so startPreview produces a fresh log buffer.
+  entries.delete(customizationId);
+  return startPreview(customizationId);
 }
 
 export function listPreviews(): PreviewState[] {

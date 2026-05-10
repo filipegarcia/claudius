@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { WandSparkles, ExternalLink, Keyboard, Eye, Rocket, Loader2 } from "lucide-react";
+import { WandSparkles, ExternalLink, Keyboard, Eye, Rocket, Loader2, RotateCw } from "lucide-react";
 import type { Workspace } from "@/lib/server/workspaces-store";
 import type { Customization } from "@/lib/server/customizations-store";
 import type { PreviewState } from "@/lib/server/preview-server";
@@ -36,6 +36,7 @@ export function CustomizationBanner() {
   const [customizations, setCustomizations] = useState<Customization[]>([]);
   const [preview, setPreview] = useState<PreviewState | null>(null);
   const [openingPreview, setOpeningPreview] = useState(false);
+  const [restartingPreview, setRestartingPreview] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -130,6 +131,17 @@ export function CustomizationBanner() {
     }
   }, []);
 
+  const onRestartPreview = useCallback(async () => {
+    if (!customizationId) return;
+    setRestartingPreview(true);
+    try {
+      const r = await fetch(`/api/customizations/${customizationId}/preview/restart`, { method: "POST" });
+      if (r.ok) setPreview((await r.json()) as PreviewState);
+    } finally {
+      setRestartingPreview(false);
+    }
+  }, [customizationId]);
+
   // ── Preview server banner ────────────────────────────────────────────────
   if (runtime?.isPreview) {
     return (
@@ -177,7 +189,7 @@ export function CustomizationBanner() {
         </button>
         <button
           onClick={() => void onOpenPreview()}
-          disabled={openingPreview || !customizationId}
+          disabled={openingPreview || restartingPreview || !customizationId}
           title={previewRunning ? `Open preview (port ${preview?.port})` : "Start preview and open"}
           className="flex shrink-0 items-center gap-1 rounded border border-[var(--accent)]/40 bg-[var(--accent)]/15 px-2 py-0.5 text-[var(--foreground)] hover:bg-[var(--accent)]/25 disabled:opacity-50"
         >
@@ -188,6 +200,17 @@ export function CustomizationBanner() {
           )}
           {previewRunning ? `Open preview · :${preview?.port}` : "Open preview"}
         </button>
+        {previewRunning && (
+          <button
+            onClick={() => void onRestartPreview()}
+            disabled={restartingPreview || openingPreview}
+            title="Restart the preview process — useful after syncing from base or when it gets wedged"
+            className="flex shrink-0 items-center gap-1 rounded border border-[var(--accent)]/40 bg-[var(--accent)]/15 px-2 py-0.5 text-[var(--foreground)] hover:bg-[var(--accent)]/25 disabled:opacity-50"
+          >
+            {restartingPreview ? <Loader2 className="h-3 w-3 animate-spin" /> : <RotateCw className="h-3 w-3" />}
+            Restart
+          </button>
+        )}
         <Link
           href={customizationId ? `/customize/${customizationId}` : "/customize"}
           className="flex shrink-0 items-center gap-1 rounded border border-[var(--accent)]/40 bg-[var(--accent)]/15 px-2 py-0.5 text-[var(--foreground)] hover:bg-[var(--accent)]/25"

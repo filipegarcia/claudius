@@ -44,6 +44,11 @@ e2e:
   stage: test
   image: mcr.microsoft.com/playwright:v1.59.1-jammy
   <<: *node_cache
+  before_script:
+    # The Playwright Jammy image doesn't ship with `make`. Install it so
+    # `make install` / `make test` work the same as locally and a future
+    # Makefile change is automatically picked up in CI.
+    - apt-get update -qq && apt-get install -y --no-install-recommends make
   script:
     - make install
     - make test
