@@ -62,5 +62,15 @@ export default defineConfig({
     timeout: 120_000,
     stdout: "pipe",
     stderr: "pipe",
+    env: {
+      // NEXT_PUBLIC_* env vars are baked into the client bundle at dev-server
+      // startup. Without this, /community renders the "not configured" empty
+      // state and tests that look for `data-testid="community-page"` fail.
+      // The community-nav.spec uses page.route to mock the chat-server URL,
+      // so the value doesn't have to be reachable — just present. Falls back
+      // to a local placeholder when nothing's exported (CI case).
+      NEXT_PUBLIC_CLAUDIUS_CHAT_SERVER_URL:
+        process.env.NEXT_PUBLIC_CLAUDIUS_CHAT_SERVER_URL ?? "http://localhost:8787",
+    },
   },
 });

@@ -146,6 +146,14 @@ export default function WorkspacePage() {
 
   async function onSave() {
     if (!active) return;
+    if (!name.trim()) {
+      setError("Name is required.");
+      return;
+    }
+    if (!rootPath.trim()) {
+      setError("Root folder is required.");
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
@@ -167,12 +175,64 @@ export default function WorkspacePage() {
         branchPattern: branchPattern.trim(),
         template,
       };
-      const ok = await update(active.id, { defaults, commitPrefix });
-      if (ok) setSavedTick((t) => t + 1);
-      else setError("Save failed");
+      // Identity payload. Image-icon updates land in two phases: the patch
+      // below saves with a letter placeholder (or carries the existing icon
+      // when none was picked), then the uploadIcon helper re-PATCHes with
+      // `{kind: "image", ext}` once the bytes hit disk.
+      const iconPatch: Icon | undefined =
+        iconKind === "letter"
+          ? { kind: "letter", letter, color }
+          : pendingImage
+            ? undefined // upload helper will set the final shape
+            : active.icon.kind === "image"
+              ? active.icon
+              : undefined;
+      const patch: Parameters<typeof update>[1] = {
+        name: name.trim(),
+        rootPath: rootPath.trim(),
+        defaults,
+        commitPrefix,
+        ...(iconPatch ? { icon: iconPatch } : {}),
+      };
+      const ok = await update(active.id, patch);
+      if (!ok) {
+        setError("Save failed.");
+        return;
+      }
+      if (pendingImage) {
+        const uploaded = await uploadIcon(active.id, pendingImage.file);
+        if (!uploaded) {
+          setError("Saved, but icon upload failed.");
+          return;
+        }
+        URL.revokeObjectURL(pendingImage.previewUrl);
+        setPendingImage(null);
+      }
+      setSavedTick((t) => t + 1);
     } finally {
       setSaving(false);
     }
+  }
+
+  async function onDelete() {
+    if (!active) return;
+    if (
+      !confirm(
+        `Delete workspace "${active.name}"? Sessions and files on disk are unaffected.`,
+      )
+    ) {
+      return;
+    }
+    const ok = await remove(active.id);
+    if (!ok) {
+      setError("Delete failed.");
+      return;
+    }
+    // The list will refresh and a new active workspace will be picked by
+    // the cookie/server hint; route back to chat so the user lands on the
+    // new active rather than a stale `/workspace` page pointing at a
+    // workspace that no longer exists.
+    router.push("/");
   }
 
   const prefixDirty =
@@ -187,9 +247,22 @@ export default function WorkspacePage() {
       (active.defaults?.notifications?.onClick ?? "jump") !== notifyOnClick ||
       !sameKindSet(active.defaults?.notifications?.enabledKinds, notifyKinds));
 
+  // Identity dirty check: name/root, icon kind, letter+color (when in letter
+  // mode), or a pending image upload.
+  const identityDirty =
+    !!active &&
+    (name.trim() !== active.name ||
+      rootPath.trim() !== active.rootPath ||
+      iconKind !== active.icon.kind ||
+      (iconKind === "letter" &&
+        active.icon.kind === "letter" &&
+        (letter !== active.icon.letter || color !== active.icon.color)) ||
+      pendingImage !== null);
+
   const dirty =
     !!active &&
-    ((model.trim() || "") !== (active.defaults?.model ?? "") ||
+    (identityDirty ||
+      (model.trim() || "") !== (active.defaults?.model ?? "") ||
       (mode || "") !== (active.defaults?.permissionMode ?? "") ||
       prefixDirty ||
       notifyDirty);
@@ -217,22 +290,182 @@ export default function WorkspacePage() {
             </div>
           ) : (
             <div className="mx-auto max-w-2xl space-y-5 px-6 py-6">
-              {/* Identity (read-only) */}
-              <section className="rounded-lg border border-[var(--border)] bg-[var(--panel)]/40 p-4">
-                <h2 className="mb-2 text-[11px] font-medium uppercase tracking-wide text-[var(--muted)]">
-                  Identity
-                </h2>
-                <dl className="grid grid-cols-[110px_1fr] gap-y-1 text-sm">
-                  <dt className="text-[var(--muted)]">Name</dt>
-                  <dd>{active.name}</dd>
-                  <dt className="text-[var(--muted)]">Root</dt>
-                  <dd className="truncate font-mono text-xs" title={active.rootPath}>
-                    {active.rootPath}
-                  </dd>
-                </dl>
-                <p className="mt-2 text-[10px] text-[var(--muted)]">
-                  Edit name, root, or icon by right-clicking the workspace tile in the left rail.
-                </p>
+              {/* Identity (editable) — used to live in a modal popped from
+                  the workspace tile; moved here so the rail-click can go
+                  straight to chat. */}
+              <section>
+                <header className="mb-3">
+                  <h2 className="text-base font-semibold">Identity</h2>
+                  <p className="mt-1 text-[11px] text-[var(--muted)]">
+                    Name, root folder, and icon. Renaming or moving the root only
+                    affects this Claudius workspace — files on disk are untouched.
+                  </p>
+                </header>
+                <div className="rounded-lg border border-[var(--border)] bg-[var(--panel)]/40 p-4">
+                  <label className="block">
+                    <div className="mb-1 text-[11px] font-medium">Name</div>
+                    <input
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="Claudius"
+                      className="w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 text-sm focus:outline-none"
+                    />
+                  </label>
+
+                  <label className="mt-3 block">
+                    <div className="mb-1 text-[11px] font-medium">Root folder (absolute path)</div>
+                    <div className="flex gap-2">
+                      <input
+                        value={rootPath}
+                        onChange={(e) => setRootPath(e.target.value)}
+                        placeholder="/Users/you/projects/claudius"
+                        className="flex-1 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 font-mono text-xs focus:outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPicker(true)}
+                        title="Browse for folder"
+                        className="flex shrink-0 items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--panel)] px-2 py-1.5 text-xs hover:bg-[var(--panel-2)]"
+                      >
+                        <FolderOpen className="h-3 w-3" /> Browse…
+                      </button>
+                    </div>
+                  </label>
+
+                  <div className="mt-3">
+                    <div className="mb-1 text-[11px] font-medium">Icon</div>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setIconKind("letter")}
+                        className={cn(
+                          "flex items-center gap-1 rounded-md border px-2 py-1 text-xs",
+                          iconKind === "letter"
+                            ? "border-[var(--accent)] bg-[var(--panel-2)]"
+                            : "border-[var(--border)] bg-[var(--panel)]",
+                        )}
+                      >
+                        <Type className="h-3 w-3" /> Letter
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIconKind("image")}
+                        className={cn(
+                          "flex items-center gap-1 rounded-md border px-2 py-1 text-xs",
+                          iconKind === "image"
+                            ? "border-[var(--accent)] bg-[var(--panel-2)]"
+                            : "border-[var(--border)] bg-[var(--panel)]",
+                        )}
+                      >
+                        <ImageIcon className="h-3 w-3" /> Image
+                      </button>
+                    </div>
+                    {iconKind === "letter" ? (
+                      <div className="mt-2 flex items-center gap-3">
+                        <div
+                          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg font-semibold text-white"
+                          style={{ background: color, fontSize: 24 }}
+                        >
+                          {letter || "?"}
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <input
+                            value={letter}
+                            onChange={(e) => setLetter(e.target.value.slice(0, 2))}
+                            className="w-16 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1 font-mono text-xs focus:outline-none"
+                          />
+                          <div className="flex gap-1">
+                            {ICON_PRESET_COLORS.map((c) => (
+                              <button
+                                key={c}
+                                type="button"
+                                onClick={() => setColor(c)}
+                                className={cn(
+                                  "h-4 w-4 rounded border",
+                                  c === color &&
+                                    "ring-2 ring-[var(--foreground)] ring-offset-2 ring-offset-[var(--panel)]",
+                                )}
+                                style={{ background: c, borderColor: c }}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="mt-2 flex items-start gap-3">
+                        {pendingImage ? (
+                          <div className="relative">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={pendingImage.previewUrl}
+                              alt="preview"
+                              className="h-12 w-12 rounded-lg border border-[var(--border)] object-cover"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                URL.revokeObjectURL(pendingImage.previewUrl);
+                                setPendingImage(null);
+                              }}
+                              title="Remove"
+                              className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--panel)] text-[var(--muted)] hover:text-red-400"
+                            >
+                              <X className="h-2.5 w-2.5" />
+                            </button>
+                          </div>
+                        ) : active.icon.kind === "image" ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={`/api/workspaces/${active.id}/icon`}
+                            alt="current"
+                            className="h-12 w-12 rounded-lg border border-[var(--border)] object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-12 w-12 items-center justify-center rounded-lg border border-dashed border-[var(--border)] text-[var(--muted)]">
+                            <ImageIcon className="h-5 w-5" />
+                          </div>
+                        )}
+                        <div className="flex flex-col gap-1">
+                          <button
+                            type="button"
+                            onClick={() => fileRef.current?.click()}
+                            className="rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-3 py-1.5 text-xs hover:bg-[var(--panel)]"
+                          >
+                            Choose image…
+                          </button>
+                          <span className="text-[11px] text-[var(--muted)]">
+                            PNG / JPEG / WebP, ≤ 2&nbsp;MB
+                          </span>
+                        </div>
+                        <input
+                          ref={fileRef}
+                          type="file"
+                          accept="image/png,image/jpeg,image/webp"
+                          hidden
+                          onChange={(e) => {
+                            const f = e.target.files?.[0];
+                            if (f) pickImageFile(f);
+                            e.target.value = "";
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mt-4 flex items-center justify-between border-t border-[var(--border)] pt-3">
+                    <span className="text-[10px] text-[var(--muted)]">
+                      Deleting only removes the workspace registration. Sessions
+                      and files on disk stay put.
+                    </span>
+                    <button
+                      type="button"
+                      onClick={onDelete}
+                      className="flex items-center gap-1 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs text-red-300 hover:bg-red-500/20"
+                    >
+                      <Trash2 className="h-3 w-3" /> Delete workspace
+                    </button>
+                  </div>
+                </div>
               </section>
 
               {/* Defaults */}
@@ -491,6 +724,16 @@ export default function WorkspacePage() {
           )}
         </div>
       </main>
+      {showPicker && (
+        <DirectoryPicker
+          initialPath={rootPath || undefined}
+          onCancel={() => setShowPicker(false)}
+          onPick={(p) => {
+            setRootPath(p);
+            setShowPicker(false);
+          }}
+        />
+      )}
     </div>
   );
 }

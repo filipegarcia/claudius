@@ -100,7 +100,14 @@ export function StatusLine({
         onRefresh={onRefreshSessions}
       />
       <span className="opacity-50">·</span>
-      <span data-testid="status-line-text" className="capitalize">{status}</span>
+      {/*
+        Render the capitalized string in JS, not via CSS `capitalize`, so
+        `textContent` matches what users see. The e2e specs in
+        tests/e2e/turn-status.spec.ts assert with `toHaveText("Idle")` —
+        CSS-only capitalization leaves the DOM text "idle" and the
+        assertion fails.
+      */}
+      <span data-testid="status-line-text">{status.charAt(0).toUpperCase() + status.slice(1)}</span>
       {model && (
         <>
           <span className="opacity-50">·</span>
