@@ -527,9 +527,22 @@ function OtherPane({
   );
 }
 
+/**
+ * Cheap sniff: HTML if there's a `<` followed by a tag-name character or
+ * a closing slash. Anything else (ASCII boxes, plain prose, markdown the
+ * CLI emitted because it didn't get our previewFormat='html' override) is
+ * treated as text and rendered in a <pre> so newlines and leading spaces
+ * survive — otherwise the browser collapses them and ASCII mockups
+ * become unreadable.
+ */
+function looksLikeHtml(s: string): boolean {
+  return /<\s*\/?[a-zA-Z][^>]*>/.test(s);
+}
+
 function PreviewPane({ html, label }: { html: string; label: string }) {
   // Memoize so React doesn't re-set innerHTML on every parent render.
-  const safeHtml = useMemo(() => html ?? "", [html]);
+  const content = useMemo(() => html ?? "", [html]);
+  const isHtml = useMemo(() => looksLikeHtml(content), [content]);
   return (
     <div className="hidden min-w-0 flex-1 flex-col overflow-y-auto p-4 scroll-thin md:flex">
       {label && (
@@ -537,15 +550,22 @@ function PreviewPane({ html, label }: { html: string; label: string }) {
           Preview · {label}
         </div>
       )}
-      {safeHtml ? (
+      {!content ? (
+        <div className="text-[11px] italic text-[var(--muted)]">No preview for this option.</div>
+      ) : isHtml ? (
         <div
           className="prose prose-invert max-w-none text-sm"
           // The model itself emits this HTML — same trust level as anything
           // else in the assistant message stream. Be deliberate about that.
-          dangerouslySetInnerHTML={{ __html: safeHtml }}
+          dangerouslySetInnerHTML={{ __html: content }}
         />
       ) : (
-        <div className="text-[11px] italic text-[var(--muted)]">No preview for this option.</div>
+        // Plain text / CLI-emitted markdown — preserve whitespace and use a
+        // monospace face so ASCII art and box-drawing chars render the same
+        // way the TUI shows them.
+        <pre className="whitespace-pre overflow-x-auto rounded-md border border-[var(--border)] bg-[var(--panel-2)]/40 p-3 font-mono text-[12px] leading-relaxed text-[var(--foreground)]">
+          {content}
+        </pre>
       )}
     </div>
   );

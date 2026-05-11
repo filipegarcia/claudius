@@ -391,3 +391,51 @@ test.describe("site screenshots — chat states", () => {
     await snap(page, "ask-user-question");
   });
 });
+
+/**
+ * Customize-feature shots: the management page and the two drawer states
+ * (closed-with-count-badge, open-with-popover). The rail and drawer read
+ * from the shared workspaces.json, so this run picks up whatever
+ * customizations exist on disk — names and count vary across machines. For
+ * marketing the variability is fine: the layout is what matters.
+ */
+test.describe("site screenshots — customize feature", () => {
+  test("customize-list", async ({ page }) => {
+    // The customize page auto-opens a guided-tour overlay on first visit
+    // (gated on `claudius.customize.help-seen` in localStorage). Pre-seed
+    // it so the screenshot shows the actual list, not the tutorial.
+    await page.addInitScript(() => {
+      try {
+        localStorage.setItem("claudius.customize.help-seen", "1");
+      } catch {
+        // sandboxed contexts may block storage — skip silently.
+      }
+    });
+    await gotoStable(page, "/customize");
+    await page.waitForTimeout(600);
+    await snap(page, "customize-list");
+  });
+
+  test("customize-drawer-closed", async ({ page }) => {
+    // `/` mounts an SSE stream — networkidle never fires. Wait for `load`.
+    await gotoStable(page, "/", { networkIdle: false });
+    const switcher = page.locator('[data-pane-name="workspace-switcher"]');
+    const drawerBtn = switcher.locator('button[title*="ustomization"]').first();
+    await drawerBtn.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(400);
+    await snap(page, "customize-drawer-closed");
+  });
+
+  test("customize-drawer-open", async ({ page }) => {
+    await gotoStable(page, "/", { networkIdle: false });
+    const switcher = page.locator('[data-pane-name="workspace-switcher"]');
+    const drawerBtn = switcher.locator('button[title*="ustomization"]').first();
+    await drawerBtn.click();
+    // Popover header confirms the panel mounted.
+    await expect(page.getByText("Customizations", { exact: true })).toBeVisible({
+      timeout: 5000,
+    });
+    await page.waitForTimeout(400);
+    await snap(page, "customize-drawer-open");
+  });
+});

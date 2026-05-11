@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -45,6 +45,51 @@ export default function GitPage() {
     unstaged: false,
     untracked: false,
   });
+
+  // Drag-handle on the seam between the changes list and the diff pane.
+  // Width persists in localStorage so the user's preferred size sticks
+  // across reloads. Default matches the old hard-coded `w-80` (320px).
+  const PANEL_WIDTH_KEY = "claudius.git.changesPanelWidth";
+  const MIN_PANEL_WIDTH = 200;
+  const MAX_PANEL_WIDTH = 720;
+  const DEFAULT_PANEL_WIDTH = 320;
+  const [panelWidth, setPanelWidth] = useState<number>(() => {
+    if (typeof window === "undefined") return DEFAULT_PANEL_WIDTH;
+    const raw = window.localStorage.getItem(PANEL_WIDTH_KEY);
+    if (!raw) return DEFAULT_PANEL_WIDTH;
+    const n = Number(raw);
+    if (!Number.isFinite(n)) return DEFAULT_PANEL_WIDTH;
+    return Math.min(MAX_PANEL_WIDTH, Math.max(MIN_PANEL_WIDTH, n));
+  });
+  const panelDragRef = useRef<{ startX: number; startW: number } | null>(null);
+  const onPanelDragStart = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    panelDragRef.current = { startX: e.clientX, startW: panelWidth };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+  const onPanelDragMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const drag = panelDragRef.current;
+    if (!drag) return;
+    const next = Math.min(
+      MAX_PANEL_WIDTH,
+      Math.max(MIN_PANEL_WIDTH, drag.startW + (e.clientX - drag.startX)),
+    );
+    setPanelWidth(next);
+  };
+  const onPanelDragEnd = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!panelDragRef.current) return;
+    panelDragRef.current = null;
+    e.currentTarget.releasePointerCapture(e.pointerId);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(PANEL_WIDTH_KEY, String(panelWidth));
+    }
+  };
+  const onPanelDragDoubleClick = () => {
+    setPanelWidth(DEFAULT_PANEL_WIDTH);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(PANEL_WIDTH_KEY, String(DEFAULT_PANEL_WIDTH));
+    }
+  };
 
   // Persisted commit-message draft. Loaded from /api/.../commit-draft on
   // mount (or on workspace switch) and threaded into CommitBox so the
@@ -397,7 +442,10 @@ export default function GitPage() {
           </div>
         )}
         <div className="flex flex-1 overflow-hidden">
-          <aside className="flex w-80 shrink-0 flex-col border-r border-[var(--border)]">
+          <aside
+            className="flex shrink-0 flex-col border-r border-[var(--border)]"
+            style={{ width: panelWidth }}
+          >
             <div className="flex-1 overflow-y-auto scroll-thin">
               {!active ? (
                 <div className="px-4 py-12 text-center text-sm text-[var(--muted)]">No active workspace.</div>
@@ -435,6 +483,23 @@ export default function GitPage() {
               prefix={commitPrefix}
             />
           </aside>
+          {/* Drag handle: grab to resize, double-click to reset to default. */}
+          <div
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Resize changes panel"
+            data-testid="git-panel-resizer"
+            onPointerDown={onPanelDragStart}
+            onPointerMove={onPanelDragMove}
+            onPointerUp={onPanelDragEnd}
+            onPointerCancel={onPanelDragEnd}
+            onDoubleClick={onPanelDragDoubleClick}
+            className="group relative w-1 shrink-0 cursor-col-resize select-none bg-transparent hover:bg-[var(--accent)]/30"
+          >
+            {/* Wider invisible hit-target so the handle is easy to grab even
+                when the visible seam is 1px wide. */}
+            <span className="absolute inset-y-0 -left-1 -right-1" />
+          </div>
           <section className="flex flex-1 flex-col overflow-hidden">
             {!selected ? (
               <div className="flex flex-1 items-center justify-center text-sm text-[var(--muted)]">

@@ -30,6 +30,10 @@ test.describe("Session storage — TUI compatibility + internal DB", () => {
     page,
     baseURL,
   }) => {
+    test.skip(
+      !process.env.ANTHROPIC_API_KEY,
+      "needs ANTHROPIC_API_KEY (or ~/.claude/.credentials.json on a logged-in machine) — this test drives the live Anthropic agent",
+    );
     test.setTimeout(180_000); // hits the real Anthropic API
 
     // 1. Open a fresh chat. The boot effect creates a session and writes

@@ -15,6 +15,10 @@ test.describe("Activity rail — add tasks via the agent", () => {
     page,
     baseURL,
   }) => {
+    test.skip(
+      !process.env.ANTHROPIC_API_KEY,
+      "needs ANTHROPIC_API_KEY (or ~/.claude/.credentials.json on a logged-in machine) — this test drives the live Anthropic agent",
+    );
     test.setTimeout(180_000);
 
     await page.goto("/");
