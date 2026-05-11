@@ -41,13 +41,17 @@ export default function CustomizationDetail({ params }: { params: Promise<{ id: 
     }
   }, [id]);
 
+  // Poll the preview state while it's transitional. Cheap — 2s tick. The
+  // initial call is scheduled via setTimeout(_, 0) so setState only fires
+  // from a timer callback (an external-system update), satisfying
+  // react-hooks/set-state-in-effect.
   useEffect(() => {
-    void refresh();
-    // Poll the preview state while it's transitional. Cheap — 2s tick.
-    const t = setInterval(() => {
-      void refresh();
-    }, 2000);
-    return () => clearInterval(t);
+    const initial = setTimeout(() => void refresh(), 0);
+    const poll = setInterval(() => void refresh(), 2000);
+    return () => {
+      clearTimeout(initial);
+      clearInterval(poll);
+    };
   }, [refresh]);
 
   const onStart = useCallback(async () => {
@@ -150,7 +154,10 @@ export default function CustomizationDetail({ params }: { params: Promise<{ id: 
     setDraftName("");
   }
 
-  const onGoToChat = useCallback(async () => {
+  // Plain async function — no useCallback. React 19's compiler memoizes
+  // automatically and the manual wrapper triggered preserve-manual-memoization
+  // because of the optional-chained `item?.workspaceId` dep.
+  const onGoToChat = async () => {
     if (!item?.workspaceId) {
       router.push("/");
       return;
@@ -169,7 +176,7 @@ export default function CustomizationDetail({ params }: { params: Promise<{ id: 
     } else {
       router.push("/");
     }
-  }, [item?.workspaceId, router]);
+  };
 
   return (
     <div className="flex h-full">
@@ -429,24 +436,33 @@ function DescriptionSection({ customizationId }: { customizationId: string }) {
     editingRef.current = editing;
   }, [editing]);
 
-  const fetchState = useCallback(async () => {
-    if (editingRef.current) return;
-    try {
-      const res = await fetch(`/api/customizations/${customizationId}/description`);
-      if (res.ok) setState((await res.json()) as DescriptionState);
-    } catch {
-      // Non-fatal — leave previous state in place.
-    }
-  }, [customizationId]);
-
+  // Polling effect: setState only ever fires from a timer-driven callback
+  // (an external-system update), never synchronously from the effect body —
+  // satisfies react-hooks/set-state-in-effect. The 0-delay setTimeout schedules
+  // the initial fetch on the next tick instead of in-line.
   useEffect(() => {
-    void fetchState();
-    // Re-poll periodically so the stale chip updates as the user edits files.
-    const t = setInterval(() => {
-      void fetchState();
-    }, 5000);
-    return () => clearInterval(t);
-  }, [fetchState]);
+    let cancelled = false;
+    const tick = async () => {
+      if (cancelled || editingRef.current) return;
+      try {
+        const res = await fetch(`/api/customizations/${customizationId}/description`);
+        if (cancelled) return;
+        if (res.ok) {
+          const data = (await res.json()) as DescriptionState;
+          if (!cancelled) setState(data);
+        }
+      } catch {
+        // Non-fatal — leave previous state in place.
+      }
+    };
+    const initial = setTimeout(tick, 0);
+    const poll = setInterval(tick, 5000);
+    return () => {
+      cancelled = true;
+      clearTimeout(initial);
+      clearInterval(poll);
+    };
+  }, [customizationId]);
 
   const onGenerate = useCallback(async () => {
     setBusy(true);

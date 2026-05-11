@@ -16,6 +16,10 @@ test.describe("AskUserQuestion — multi-question form drives the agent", () => 
     page,
     baseURL,
   }) => {
+    test.skip(
+      !process.env.ANTHROPIC_API_KEY,
+      "needs ANTHROPIC_API_KEY (or ~/.claude/.credentials.json on a logged-in machine) — this test drives the live Anthropic agent",
+    );
     test.setTimeout(360_000);
 
     await page.goto("/");

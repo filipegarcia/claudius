@@ -3,10 +3,11 @@
 import { useEffect, useRef, useState, type DragEvent } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Plus, Plug, Settings, UserCircle, WandSparkles } from "lucide-react";
+import { Plus, Plug, Settings, UserCircle } from "lucide-react";
 import { useWorkspaces } from "@/lib/client/useWorkspaces";
 import { WorkspaceIcon } from "@/components/workspaces/WorkspaceIcon";
 import { WorkspaceForm } from "@/components/workspaces/WorkspaceForm";
+import { CustomizationsDrawer } from "@/components/nav/CustomizationsDrawer";
 import { cn } from "@/lib/utils/cn";
 import type { Workspace } from "@/lib/server/workspaces-store";
 
@@ -17,10 +18,20 @@ export function WorkspaceSwitcher() {
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
 
+  // Customization workspaces live in the drawer, not the main rail loop.
+  // Splitting them here keeps the rendered list, the drag-reorder, and the
+  // keyboard shortcut handler all consistent — see `reorder` below where the
+  // hidden customization ids are appended to preserve `reorderWorkspaces`'s
+  // strict length check.
+  const projectItems = items.filter((w) => w.kind !== "customization");
+  const customizationItems = items.filter((w) => w.kind === "customization");
+
   // Refs that the global hotkey handler reads — avoids stale closures.
-  const itemsRef = useRef(items);
+  // Only project workspaces are reachable via Cmd+Shift+1..9 / [ / ]; the
+  // drawer is the path to customizations.
+  const itemsRef = useRef(projectItems);
   const activeIdRef = useRef(activeId);
-  itemsRef.current = items;
+  itemsRef.current = projectItems;
   activeIdRef.current = activeId;
 
   useEffect(() => {
@@ -92,14 +103,18 @@ export function WorkspaceSwitcher() {
       setDraggingId(null);
       setOverId(null);
       if (!sourceId || sourceId === targetId) return;
-      const ids = items.map((w) => w.id);
-      const from = ids.indexOf(sourceId);
-      const to = ids.indexOf(targetId);
+      // Reorder runs over visible project tiles only — customization ids are
+      // appended at the end so the server's length check (which requires the
+      // payload to include every workspace) still passes. Their relative
+      // order is preserved.
+      const projectIds = projectItems.map((w) => w.id);
+      const from = projectIds.indexOf(sourceId);
+      const to = projectIds.indexOf(targetId);
       if (from === -1 || to === -1) return;
-      const next = ids.slice();
-      next.splice(from, 1);
-      next.splice(to, 0, sourceId);
-      void reorder(next);
+      const nextProjects = projectIds.slice();
+      nextProjects.splice(from, 1);
+      nextProjects.splice(to, 0, sourceId);
+      void reorder([...nextProjects, ...customizationItems.map((w) => w.id)]);
     };
   }
   function onDragEnd() {
@@ -110,7 +125,7 @@ export function WorkspaceSwitcher() {
   return (
     <>
       <aside data-pane-name="workspace-switcher" className="flex h-full w-14 shrink-0 flex-col items-center gap-2 border-r border-[var(--border)] bg-[var(--background)] py-3">
-        {items.map((w, i) => {
+        {projectItems.map((w, i) => {
           const active = w.id === activeId;
           const dimmed = draggingId && draggingId !== w.id;
           const isOver = overId === w.id && draggingId && draggingId !== w.id;
@@ -161,6 +176,13 @@ export function WorkspaceSwitcher() {
             </div>
           );
         })}
+        {/* Customizations live behind a single drawer tile instead of getting
+            their own rail rows — see CustomizationsDrawer for the popover. */}
+        <CustomizationsDrawer
+          customizations={customizationItems}
+          activeId={activeId}
+          onSelect={select}
+        />
         <button
           onClick={() => setShowForm({ kind: "new" })}
           title="New workspace"
@@ -171,13 +193,6 @@ export function WorkspaceSwitcher() {
         {/* System / global tiles — independent active highlight from the
             workspace tiles above. */}
         <div className="mt-3 h-px w-8 bg-[var(--border)]" />
-        <SystemTile
-          href="/customize"
-          label="Customize Claudius"
-          active={pathname?.startsWith("/customize") ?? false}
-          icon={<WandSparkles className="h-4 w-4" />}
-          accent
-        />
         <SystemTile
           href="/plugins"
           label="Plugins"
@@ -196,7 +211,7 @@ export function WorkspaceSwitcher() {
           active={pathname?.startsWith("/usage") ?? false}
           icon={<UserCircle className="h-4 w-4" />}
         />
-        {items.length > 1 && (
+        {projectItems.length > 1 && (
           <span className="mt-auto px-1 text-center text-[8px] leading-tight text-[var(--muted)]/60">
             {shortcutPrefix()}⇧[ ]<br />or {shortcutPrefix()}⇧1–9
           </span>

@@ -102,6 +102,7 @@
           <a href="#install" class="hover:text-fg">Install</a>
           <a href="#features" class="hover:text-fg">Features</a>
           <a href="#gallery" class="hover:text-fg">Screenshots</a>
+          <a href="#customize" class="hover:text-fg">Customize</a>
           <a
             href="https://gitlab.com/filipegarcia/claudius"
             class="hover:text-fg inline-flex items-center gap-1.5"
@@ -543,6 +544,181 @@ bun run dev      # http://localhost:3000</code></pre>
               <div class="text-sm text-fg">One Claudius, many projects. Switch — and your sessions, schedules, and settings follow you in.</div>
             </figcaption>
           </figure>
+        </div>
+      </div>
+    </section>
+
+    <!-- ────────────────────────────── Customize ────────────────────────────── -->
+    <section id="customize" class="border-t border-line/60">
+      <div class="max-w-6xl mx-auto px-6 py-20">
+        <div class="max-w-2xl">
+          <p class="font-mono text-xs uppercase tracking-widest text-accent">Customize</p>
+          <h2 class="mt-2 text-3xl md:text-4xl font-semibold tracking-tight">
+            Edit Claudius from inside Claudius.
+          </h2>
+          <p class="mt-4 text-muted leading-relaxed">
+            Hit <code class="font-mono text-fg bg-panel2 px-1.5 py-0.5 rounded text-sm">New customization</code>
+            and Claudius mirrors its own source into a private folder, opens a
+            workspace pointing there, and auto-spawns a preview on a separate
+            port. Chat with the agent like normal &mdash; it edits the mirror,
+            not the running app. When you&rsquo;re happy, hit
+            <span class="text-fg">Publish</span>. If anything breaks, hit
+            <span class="text-fg">Revert</span> &mdash; or run
+            <code class="font-mono text-fg bg-panel2 px-1.5 py-0.5 rounded text-sm">make claudius-revert</code>
+            from a terminal if the UI itself is broken.
+          </p>
+        </div>
+
+        <!-- Top row: management page + the drawer (closed / open) -->
+        <div class="mt-12 grid grid-cols-1 md:grid-cols-2 gap-6">
+          <figure class="shot group rounded-lg border border-line overflow-hidden cursor-zoom-in hover:border-accent/70 transition-colors md:col-span-2" role="button" tabindex="0">
+            <img
+              src="screenshots/customize-list.png"
+              alt="The /customize management page"
+              loading="lazy"
+              onerror="this.onerror=null;this.src='screenshots/_placeholder.svg'"
+            />
+            <figcaption class="px-5 py-4 border-t border-line">
+              <div class="font-mono text-xs text-accent">/customize</div>
+              <div class="text-sm text-fg">One page lists every customization you&rsquo;ve started. Toggle one on, open its workspace, or wipe it &mdash; snapshots make every publish reversible.</div>
+            </figcaption>
+          </figure>
+
+          <figure class="shot group rounded-lg border border-line overflow-hidden cursor-zoom-in hover:border-accent/70 transition-colors" role="button" tabindex="0">
+            <img
+              src="screenshots/customize-drawer-closed.png"
+              alt="Workspace switcher with the customizations drawer (closed)"
+              loading="lazy"
+              onerror="this.onerror=null;this.src='screenshots/_placeholder.svg'"
+            />
+            <figcaption class="px-5 py-4 border-t border-line">
+              <div class="font-mono text-xs text-accent">drawer · closed</div>
+              <div class="text-sm text-fg">All your customizations collapse into one wand tile in the rail, with a count badge. The rail stays clean even with a dozen on the go.</div>
+            </figcaption>
+          </figure>
+
+          <figure class="shot group rounded-lg border border-line overflow-hidden cursor-zoom-in hover:border-accent/70 transition-colors" role="button" tabindex="0">
+            <img
+              src="screenshots/customize-drawer-open.png"
+              alt="Workspace switcher with the customizations drawer (open)"
+              loading="lazy"
+              onerror="this.onerror=null;this.src='screenshots/_placeholder.svg'"
+            />
+            <figcaption class="px-5 py-4 border-t border-line">
+              <div class="font-mono text-xs text-accent">drawer · open</div>
+              <div class="text-sm text-fg">Click it and the most-recently-opened customizations spill out. Jump between them; chat history and sessions stay scoped to each one.</div>
+            </figcaption>
+          </figure>
+        </div>
+
+        <!-- Showcase: six demos built in an afternoon -->
+        <div class="mt-20 max-w-2xl">
+          <p class="font-mono text-xs uppercase tracking-widest text-accent">Six demos, one afternoon</p>
+          <h3 class="mt-2 text-2xl md:text-3xl font-semibold tracking-tight">
+            Yes, you can put Clippy in there.
+          </h3>
+          <p class="mt-4 text-muted leading-relaxed">
+            We built every one of these by asking the agent to add the feature.
+            Each lives in its own mirror &mdash; toggle on, toggle off,
+            independent of the others.
+          </p>
+        </div>
+
+        <div class="mt-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <!-- Clippy -->
+          <figure class="shot group rounded-lg border border-line overflow-hidden cursor-zoom-in hover:border-accent/70 transition-colors" role="button" tabindex="0">
+            <img
+              src="screenshots/customization-clippy.png"
+              alt="Clippy mascot floating in the bottom-right with a context-aware tooltip"
+              loading="lazy"
+              onerror="this.onerror=null;this.src='screenshots/_placeholder.svg'"
+            />
+            <figcaption class="px-5 py-4 border-t border-line">
+              <div class="font-mono text-xs text-accent">cust · Clippy</div>
+              <div class="text-sm text-fg">A paperclip mascot with route-aware speech bubbles. &ldquo;It looks like you&rsquo;re writing a prompt!&rdquo; Yes. Yes it does.</div>
+            </figcaption>
+          </figure>
+
+          <!-- DOOM HUD -->
+          <figure class="shot group rounded-lg border border-line overflow-hidden cursor-zoom-in hover:border-accent/70 transition-colors" role="button" tabindex="0">
+            <img
+              src="screenshots/customization-doom-hud.png"
+              alt="The Cost page reskinned as a DOOM status bar with AMMO, HEALTH, ARMS and a pixel DOOMguy face"
+              loading="lazy"
+              onerror="this.onerror=null;this.src='screenshots/_placeholder.svg'"
+            />
+            <figcaption class="px-5 py-4 border-t border-line">
+              <div class="font-mono text-xs text-accent">cust · DOOM HUD</div>
+              <div class="text-sm text-fg">The Cost page becomes a 1993 DOOM HUD. Tokens are ammo, budget is health, the pixel face bloodies up as the day&rsquo;s spend climbs.</div>
+            </figcaption>
+          </figure>
+
+          <!-- Cat Spinner -->
+          <figure class="shot group rounded-lg border border-line overflow-hidden cursor-zoom-in hover:border-accent/70 transition-colors" role="button" tabindex="0">
+            <img
+              src="screenshots/customization-cat-spinner.png"
+              alt="ASCII dancing cat replaces the loading spinner"
+              loading="lazy"
+              onerror="this.onerror=null;this.src='screenshots/_placeholder.svg'"
+            />
+            <figcaption class="px-5 py-4 border-t border-line">
+              <div class="font-mono text-xs text-accent">cust · Cat Spinner</div>
+              <div class="text-sm text-fg">Every Lucide loading spinner is replaced with a four-frame ASCII cat. Loading takes the same time, vibes immeasurably better.</div>
+            </figcaption>
+          </figure>
+
+          <!-- Minecraft Thinking -->
+          <figure class="shot group rounded-lg border border-line overflow-hidden cursor-zoom-in hover:border-accent/70 transition-colors" role="button" tabindex="0">
+            <img
+              src="screenshots/customization-minecraft.png"
+              alt="The Minecraft Thinking customization's management page — preview, sync, publish/revert"
+              loading="lazy"
+              onerror="this.onerror=null;this.src='screenshots/_placeholder.svg'"
+            />
+            <figcaption class="px-5 py-4 border-t border-line">
+              <div class="font-mono text-xs text-accent">cust · Minecraft Thinking</div>
+              <div class="text-sm text-fg">Edits the ThinkingBlock so Claude&rsquo;s reasoning streams next to a Minecraft parkour loop. Subway-Surfers attention assist&trade; &mdash; previewed here from its dashboard.</div>
+            </figcaption>
+          </figure>
+
+          <!-- Lo-fi Loader -->
+          <figure class="shot group rounded-lg border border-line overflow-hidden cursor-zoom-in hover:border-accent/70 transition-colors" role="button" tabindex="0">
+            <img
+              src="screenshots/customization-lofi.png"
+              alt="A loading state with rotating lo-fi-emoji vibes messages"
+              loading="lazy"
+              onerror="this.onerror=null;this.src='screenshots/_placeholder.svg'"
+            />
+            <figcaption class="px-5 py-4 border-t border-line">
+              <div class="font-mono text-xs text-accent">cust · Lo-fi Loader</div>
+              <div class="text-sm text-fg">&ldquo;Loading&hellip;&rdquo; becomes a rotating cycle of vibes: 🎧 vibing while loading&hellip; ☕ brewing your data&hellip; 🐌 escargot.exe is on it.</div>
+            </figcaption>
+          </figure>
+
+          <!-- Konami Party -->
+          <figure class="shot group rounded-lg border border-line overflow-hidden cursor-zoom-in hover:border-accent/70 transition-colors" role="button" tabindex="0">
+            <img
+              src="screenshots/customization-konami.png"
+              alt="An 8-bit CHEAT ACTIVATED banner with confetti, triggered by typing the Konami code"
+              loading="lazy"
+              onerror="this.onerror=null;this.src='screenshots/_placeholder.svg'"
+            />
+            <figcaption class="px-5 py-4 border-t border-line">
+              <div class="font-mono text-xs text-accent">cust · Konami Party</div>
+              <div class="text-sm text-fg">↑ ↑ ↓ ↓ ← → ← → B A &mdash; chunky 8-bit banner, eighty falling-confetti particles, four seconds of nonsense. Worth it.</div>
+            </figcaption>
+          </figure>
+        </div>
+
+        <div class="mt-12 rounded-lg border border-line bg-panel/60 p-6 text-sm text-muted leading-relaxed">
+          <span class="text-fg font-medium">Snapshot-backed.</span>
+          Every publish takes byte-level snapshots of the files it&rsquo;s about
+          to overwrite, indexed in a plain JSON manifest under
+          <code class="font-mono text-fg bg-panel2 px-1.5 py-0.5 rounded text-xs">~/.claude/.claudius/customizations/</code>.
+          If a bad publish breaks the UI, run
+          <code class="font-mono text-fg bg-panel2 px-1.5 py-0.5 rounded text-xs">make claudius-revert</code>
+          from a terminal &mdash; the CLI has zero runtime dependencies, so
+          it works even when Claudius itself won&rsquo;t boot.
         </div>
       </div>
     </section>

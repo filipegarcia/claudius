@@ -15,6 +15,10 @@ const SESSION_RE = /[?&]session=([0-9a-f-]{36})/i;
  */
 test.describe("Agent todos — banner mirrors TodoWrite", () => {
   test("create 3 todos, then mark one complete", async ({ page, baseURL }) => {
+    test.skip(
+      !process.env.ANTHROPIC_API_KEY,
+      "needs ANTHROPIC_API_KEY (or ~/.claude/.credentials.json on a logged-in machine) — this test drives the live Anthropic agent",
+    );
     test.setTimeout(180_000); // 3 min — gives the model up to ~90s per turn.
 
     // 1. Open the chat and capture the session id.
