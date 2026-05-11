@@ -2,22 +2,26 @@
 
 import { useEffect, useRef, useState, type DragEvent } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Plus, Plug, Settings, UserCircle, Radio } from "lucide-react";
 import { useWorkspaces } from "@/lib/client/useWorkspaces";
 import { useNotificationsContext } from "@/components/notifications/NotificationsProvider";
+import { useCommunityNotifications } from "@/components/community/CommunityNotificationsProvider";
 import { WorkspaceIcon } from "@/components/workspaces/WorkspaceIcon";
 import { WorkspaceForm } from "@/components/workspaces/WorkspaceForm";
 import { CustomizationsDrawer } from "@/components/nav/CustomizationsDrawer";
-import { NotificationsDrawer } from "@/components/nav/NotificationsDrawer";
 import { cn } from "@/lib/utils/cn";
-import type { Workspace } from "@/lib/server/workspaces-store";
 
 export function WorkspaceSwitcher() {
-  const { items, activeId, select, create, update, uploadIcon, remove, reorder } = useWorkspaces();
+  const { items, activeId, select, create, uploadIcon, reorder } = useWorkspaces();
   const { counts } = useNotificationsContext();
+  const community = useCommunityNotifications();
   const pathname = usePathname();
-  const [showForm, setShowForm] = useState<null | { kind: "new" } | { kind: "edit"; workspace: Workspace }>(null);
+  const router = useRouter();
+  // The rail used to host both "new workspace" and "edit existing" — the
+  // edit path moved to /workspace (briefcase tile in SideNav) so the rail
+  // is now strictly a navigator. Only the "new" form survives here.
+  const [showForm, setShowForm] = useState<null | { kind: "new" }>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
 
@@ -30,8 +34,11 @@ export function WorkspaceSwitcher() {
   const customizationItems = items.filter((w) => w.kind === "customization");
 
   // Refs that the global hotkey handler reads — avoids stale closures.
-  // Only project workspaces are reachable via Cmd+Shift+1..9 / [ / ]; the
-  // drawer is the path to customizations.
+  // Only project workspaces are reachable via Cmd+Shift+[ / ]; the drawer is
+  // the path to customizations. The 1..9 number keys used to live here but
+  // moved to session tabs (see SessionTabs.tsx) — having one mnemonic owned
+  // by sessions matches the iTerm tab-bar feel the user wanted, and `[`/`]`
+  // is a natural pair for "previous/next workspace" alongside it.
   const itemsRef = useRef(projectItems);
   const activeIdRef = useRef(activeId);
   itemsRef.current = projectItems;
@@ -51,16 +58,6 @@ export function WorkspaceSwitcher() {
       if (!metaOrCtrl || !e.shiftKey || e.altKey) return;
       const ws = itemsRef.current;
       if (ws.length === 0) return;
-      // Direct: Cmd/Ctrl+Shift+1..9 → workspace at that index.
-      if (/^Digit[1-9]$/.test(e.code)) {
-        const idx = Number(e.code.slice(5)) - 1;
-        const target = ws[idx];
-        if (target && target.id !== activeIdRef.current) {
-          e.preventDefault();
-          void select(target.id);
-        }
-        return;
-      }
       // Cycle: Cmd/Ctrl+Shift+] → next, Cmd/Ctrl+Shift+[ → prev.
       if (e.key === "]" || e.code === "BracketRight") {
         e.preventDefault();
@@ -128,11 +125,10 @@ export function WorkspaceSwitcher() {
   return (
     <>
       <aside data-pane-name="workspace-switcher" className="flex h-full w-14 shrink-0 flex-col items-center gap-2 border-r border-[var(--border)] bg-[var(--background)] py-3">
-        {projectItems.map((w, i) => {
+        {projectItems.map((w) => {
           const active = w.id === activeId;
           const dimmed = draggingId && draggingId !== w.id;
           const isOver = overId === w.id && draggingId && draggingId !== w.id;
-          const shortcut = i < 9 ? `${shortcutPrefix()}+Shift+${i + 1}` : null;
           return (
             <div
               key={w.id}
@@ -159,12 +155,18 @@ export function WorkspaceSwitcher() {
                 />
               )}
               <button
-                onClick={() => (active ? setShowForm({ kind: "edit", workspace: w }) : void select(w.id))}
-                onContextMenu={(e) => {
-                  e.preventDefault();
-                  setShowForm({ kind: "edit", workspace: w });
+                onClick={() => {
+                  if (active) {
+                    // Active tile is a "home" button: navigate to chat (`/`)
+                    // when the user is anywhere else (community, git, files,
+                    // …). When already on chat it's a no-op rather than a
+                    // settings drawer — settings live in /workspace now.
+                    if (pathname !== "/") router.push("/");
+                    return;
+                  }
+                  void select(w.id);
                 }}
-                title={`${w.name}${active ? " (active — click to edit)" : ""}\n${w.rootPath}${shortcut ? `\nShortcut: ${shortcut}` : ""}\nDrag to reorder`}
+                title={`${w.name}${active ? " (active — click to open chat)" : ""}\n${w.rootPath}\nDrag to reorder`}
                 className={cn(
                   "relative block rounded-lg transition",
                   // Second cue: an accent ring + offset glow around the active
@@ -202,21 +204,28 @@ export function WorkspaceSwitcher() {
         >
           <Plus className="h-4 w-4" />
         </button>
-        {/* Notifications drawer — sits above the system-tile divider so it
-            reads as a workspace-scoped surface, not a global setting. */}
-        <NotificationsDrawer activeWorkspaceId={activeId} />
+        {/* Notifications used to live here as a bell tile; it now sits at
+            the top of the Activity rail (BackgroundTasksPanel) so it's next
+            to the session/turn context the user is glancing at. Per-workspace
+            unread badges on the workspace tiles above stay. */}
         {/* System / global tiles — independent active highlight from the
             workspace tiles above. */}
         <div className="mt-3 h-px w-8 bg-[var(--border)]" />
         {/* Community lives in the system-tile cluster because it's a
             cross-workspace destination, not something tied to one project.
             See `chat-server/` for the backend; the page renders an empty
-            state when NEXT_PUBLIC_CHAT_SERVER_URL is unset. */}
+            state when NEXT_PUBLIC_CLAUDIUS_CHAT_SERVER_URL is unset. */}
         <SystemTile
           href="/community"
-          label="Community"
+          label={
+            community.enabled
+              ? `Community${community.unreadCount > 0 ? ` (${community.unreadCount} unread)` : ""}`
+              : "Community"
+          }
           active={pathname?.startsWith("/community") ?? false}
           icon={<Radio className="h-4 w-4" />}
+          badge={community.unreadCount > 0 ? community.unreadCount : undefined}
+          badgeTestId="community-notification-badge"
         />
         <SystemTile
           href="/plugins"
@@ -238,7 +247,7 @@ export function WorkspaceSwitcher() {
         />
         {projectItems.length > 1 && (
           <span className="mt-auto px-1 text-center text-[8px] leading-tight text-[var(--muted)]/60">
-            {shortcutPrefix()}⇧[ ]<br />or {shortcutPrefix()}⇧1–9
+            {shortcutPrefix()}⇧[ ]
           </span>
         )}
       </aside>
@@ -250,30 +259,6 @@ export function WorkspaceSwitcher() {
             const r = await create(input);
             if (r.ok) setShowForm(null);
             return r;
-          }}
-        />
-      )}
-      {showForm?.kind === "edit" && (
-        <WorkspaceForm
-          initial={showForm.workspace}
-          onCancel={() => setShowForm(null)}
-          onIconUpload={async (id, file) => uploadIcon(id, file)}
-          onSubmit={async (input) => {
-            const ok = await update(showForm.workspace.id, {
-              name: input.name,
-              rootPath: input.rootPath,
-              ...(input.icon ? { icon: input.icon } : {}),
-              ...(input.defaults ? { defaults: input.defaults } : {}),
-            });
-            if (ok) {
-              setShowForm(null);
-              return { ok: true as const, workspace: { ...showForm.workspace, ...input } };
-            }
-            return { ok: false as const, error: "save failed" };
-          }}
-          onDelete={async () => {
-            await remove(showForm.workspace.id);
-            setShowForm(null);
           }}
         />
       )}
@@ -292,6 +277,8 @@ function SystemTile({
   icon,
   active,
   accent,
+  badge,
+  badgeTestId,
 }: {
   href: string;
   label: string;
@@ -299,6 +286,10 @@ function SystemTile({
   active: boolean;
   /** When true, render with the accent color so the tile stands out (e.g. Customize). */
   accent?: boolean;
+  /** Unread-style counter to render on the top-right of the tile. */
+  badge?: number;
+  /** Test id for the badge element. */
+  badgeTestId?: string;
 }) {
   // Idle state is always muted — only when `active && accent` do we paint
   // the tile with the accent color. Previously `accent` showed the colored
@@ -310,7 +301,7 @@ function SystemTile({
       href={href}
       title={label}
       className={cn(
-        "flex h-10 w-10 items-center justify-center rounded-lg text-[var(--muted)] hover:bg-[var(--panel-2)] hover:text-[var(--foreground)]",
+        "relative flex h-10 w-10 items-center justify-center rounded-lg text-[var(--muted)] hover:bg-[var(--panel-2)] hover:text-[var(--foreground)]",
         accentActive
           ? "bg-[var(--accent)]/15 text-[var(--accent)] ring-1 ring-[var(--accent)]/40 hover:text-[var(--accent)]"
           : active &&
@@ -318,6 +309,15 @@ function SystemTile({
       )}
     >
       {icon}
+      {typeof badge === "number" && badge > 0 && (
+        <span
+          aria-label={`${badge} unread`}
+          data-testid={badgeTestId}
+          className="absolute -right-0.5 -top-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-[var(--accent)] px-1 text-[9px] font-medium leading-none text-white shadow ring-1 ring-[var(--background)]"
+        >
+          {badge > 99 ? "99+" : badge}
+        </span>
+      )}
     </Link>
   );
 }

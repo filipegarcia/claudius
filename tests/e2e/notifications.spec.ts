@@ -148,10 +148,12 @@ test.describe("Notifications pipeline", () => {
     request,
     baseURL,
   }) => {
-    // This test pokes a session's PRIVATE broadcast method through the
-    // dev endpoint and verifies the bus still records. If a future
-    // refactor accidentally drops the `notificationBus.recordSessionEvent`
-    // call from `Session.broadcast`, this will fail.
+    // Regression guard for the wire from `Session.broadcast` →
+    // `notificationBus.recordSessionEvent`. The bus's *behaviour* once
+    // called is covered by `tests/unit/notification-bus.integration.test.ts`
+    // (see `recordSessionEvent` → row + envelopes). All this test needs to
+    // prove is that the call happens at all — anything richer just slows
+    // the suite without adding signal.
     await page.goto("/");
     const sessionId = await waitForBoundSession(page);
     const ws = await getActiveWorkspace(request, baseURL);
@@ -161,105 +163,40 @@ test.describe("Notifications pipeline", () => {
       data: { workspaceId: ws.id },
     });
 
-    // Snapshot the unread count BEFORE broadcasting.
-    const countsBefore = await request.get(`${baseURL}/api/notifications/counts`);
-    expect(countsBefore.ok()).toBeTruthy();
-    const before = ((await countsBefore.json()) as { counts: Record<string, number> }).counts;
-    const baseCount = before[ws.id] ?? 0;
-
-    // Use a unique message so the assertion can't false-positive on a row
-    // from a sibling test re-using the inbox.
     const tag = `broadcast-probe-${Date.now()}`;
     const res = await request.post(
       `${baseURL}/api/sessions/${sessionId}/dev-broadcast`,
-      {
-        data: { event: { type: "error", message: tag } },
-      },
+      { data: { event: { type: "error", message: tag } } },
     );
     expect(res.ok()).toBeTruthy();
-    const broadcastInfo = (await res.json()) as {
-      sessionCwd?: string;
-      sessionId?: string;
-    };
-    // The bus's cwd→workspace lookup is the most common silent failure.
-    // Surface the session's actual cwd and compare with the workspace
-    // rootPath so a mismatch (the suspect for "the row never lands")
-    // becomes the test failure message rather than a generic timeout.
+    const broadcastInfo = (await res.json()) as { sessionCwd?: string };
+    // The bus's cwd→workspace lookup is the most common silent failure;
+    // surface the mismatch in the assertion message rather than as a
+    // generic poll timeout.
     expect(
       broadcastInfo.sessionCwd,
       `Session.cwd (${broadcastInfo.sessionCwd}) must equal the workspace rootPath (${ws.rootPath}) for the bus to find the workspace`,
     ).toBe(ws.rootPath);
 
-    // The list endpoint is the cleanest read — counts are eventually
-    // consistent (the bus emits SSE first, then re-queries the count), so
-    // poll the list for our tag.
-    await expect.poll(async () => {
-        const r = await request.get(
-          `${baseURL}/api/notifications?workspace=${ws.id}&limit=10`,
-        );
-        if (!r.ok()) return false;
-        const items = ((await r.json()) as { items: Array<{ body: string }> }).items;
-        return items.some((row) => row.body === tag);
-      }, { timeout: 15_000, message: "broadcast-driven row never landed in the inbox" })
+    await expect
+      .poll(
+        async () => {
+          const r = await request.get(
+            `${baseURL}/api/notifications?workspace=${ws.id}&limit=10`,
+          );
+          if (!r.ok()) return false;
+          const items = ((await r.json()) as { items: Array<{ body: string }> }).items;
+          return items.some((row) => row.body === tag);
+        },
+        {
+          timeout: 15_000,
+          message: "broadcast-driven row never landed in the inbox",
+        },
+      )
       .toBeTruthy();
-
-    // And the workspace tile badge reflects the new row.
-    const badge = page.getByTestId(`workspace-notification-badge-${ws.id}`);
-    await expect(badge).toBeVisible({ timeout: 15_000 });
-    const badgeText = await badge.textContent();
-    const n = Number(badgeText) || 0;
-    expect(n).toBeGreaterThan(baseCount);
   });
 
-  test("per-session block suppresses notifications for that session only", async ({
-    page,
-    request,
-    baseURL,
-  }) => {
-    await page.goto("/");
-    const sessionId = await waitForBoundSession(page);
-    const ws = await getActiveWorkspace(request, baseURL);
-    await ensureNotificationsEnabled(request, baseURL, ws);
-
-    await request.post(`${baseURL}/api/notifications/read-all`, {
-      data: { workspaceId: ws.id },
-    });
-
-    // Block this session.
-    const block = await request.post(
-      `${baseURL}/api/sessions/${sessionId}/notification-prefs`,
-      { data: { blocked: true } },
-    );
-    expect(block.ok()).toBeTruthy();
-
-    const beforeList = await request.get(
-      `${baseURL}/api/notifications?workspace=${ws.id}&limit=10`,
-    );
-    const beforeItems = ((await beforeList.json()) as { items: unknown[] }).items.length;
-
-    // Fire an event — it should be dropped at the bus's per-session filter.
-    const fire = await request.post(`${baseURL}/api/notifications/dev-emit`, {
-      data: {
-        cwd: ws.rootPath,
-        sessionId,
-        event: { type: "error", message: "should-be-dropped" },
-      },
-    });
-    expect(fire.ok()).toBeTruthy();
-
-    // Allow the SSE round-trip time it would normally need to settle, then
-    // confirm nothing new arrived.
-    await page.waitForTimeout(500);
-    const afterList = await request.get(
-      `${baseURL}/api/notifications?workspace=${ws.id}&limit=10`,
-    );
-    const afterItems = ((await afterList.json()) as { items: Array<{ body: string }> }).items;
-    expect(afterItems.length).toBe(beforeItems);
-    expect(afterItems.some((r) => r.body === "should-be-dropped")).toBe(false);
-
-    // Cleanup — restore default behaviour for the rest of the suite.
-    await request.post(`${baseURL}/api/sessions/${sessionId}/notification-prefs`, {
-      data: { blocked: false },
-    });
-  });
+  // NOTE: "per-session block suppresses" used to live here but moved to
+  // `tests/unit/notification-bus.integration.test.ts` — the browser was
+  // adding no signal over the in-process bus assertion.
 });

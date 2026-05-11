@@ -40,6 +40,19 @@ export type ReplayDoneEvent = {
   hasMoreAbove: boolean;
 };
 
+/**
+ * Coarse "is the agent busy?" signal broadcast on every transition of
+ * `Session.getStatus()` (turn-in-flight or an interactive prompt open) and
+ * re-emitted to every new SSE subscriber. Lets late-attaching tabs paint
+ * the StatusLine / tab dot correctly even when no further assistant chunks
+ * arrive (long-running Bash, slow tool, etc.) — the buffer replay alone
+ * doesn't carry this truth.
+ */
+export type TurnStatusEvent = {
+  type: "turn_status";
+  status: "running" | "idle";
+};
+
 export type SessionTitleEvent = {
   type: "session_title";
   title?: string;
@@ -153,6 +166,7 @@ export type ServerEvent =
   | ModeChangedEvent
   | ModelChangedEvent
   | ReplayDoneEvent
+  | TurnStatusEvent
   | SessionTitleEvent
   | AskUserQuestionEvent
   | PlanApprovalRequestEvent

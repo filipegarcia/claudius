@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, Plus, RefreshCw } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight, ChevronDown, Plus, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import type { SessionInfo } from "@/lib/client/types";
 
@@ -125,6 +126,15 @@ export function SessionPicker({
               <Plus className="h-3.5 w-3.5" />
               <span>New session</span>
             </button>
+            <Link
+              href="/sessions"
+              onClick={() => setOpen(false)}
+              className="flex w-full items-center gap-2 border-t border-[var(--border)] px-3 py-2 text-left text-xs text-[var(--muted)] hover:bg-[var(--panel-2)] hover:text-[var(--foreground)]"
+              title="Browse the full session history"
+            >
+              <ArrowRight className="h-3.5 w-3.5" />
+              <span>View all sessions</span>
+            </Link>
           </div>
         </div>
       )}

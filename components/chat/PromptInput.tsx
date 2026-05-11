@@ -131,6 +131,26 @@ export function PromptInput({
   useEffect(() => setMounted(true), []);
   const inputDisabled = mounted && !ready;
 
+  // ── Auto-focus on session switch / become-ready ─────────────────────────
+  // The composer should be hot the moment the user opens a new session or
+  // jumps to another tab — no need to click into the textarea before typing.
+  // We refuse to steal focus when the user is already in another text field
+  // (search palette, title rename, modal, etc.) so a background SSE-driven
+  // session change can't yank the caret mid-edit.
+  useEffect(() => {
+    if (!ready) return;
+    if (!sessionId) return;
+    const ae = document.activeElement as HTMLElement | null;
+    const inOtherEditor =
+      ae &&
+      ae !== document.body &&
+      ae !== taRef.current &&
+      (ae.tagName === "INPUT" || ae.tagName === "TEXTAREA" || ae.isContentEditable);
+    if (inOtherEditor) return;
+    const handle = requestAnimationFrame(() => taRef.current?.focus());
+    return () => cancelAnimationFrame(handle);
+  }, [sessionId, ready]);
+
   // Apply each fresh injection token exactly once.
   const lastInjectionRef = useRef<number>(-1);
   useEffect(() => {

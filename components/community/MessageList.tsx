@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import type { Message as ChatMessage } from "@/lib/shared/community";
 import { Message } from "./Message";
 
@@ -15,9 +15,23 @@ type Props = {
 };
 
 /**
- * Scrollable message column. Auto-scrolls to the bottom on new messages
- * unless the user has manually scrolled up — at which point we hold
- * position so they can read history without being yanked.
+ * Scrollable message column. The view tracks the bottom of the list by
+ * default. The user can scroll up to read history and we hold position;
+ * once they scroll back near the bottom we resume tracking.
+ *
+ * Two non-obvious pieces:
+ *   1. `overflow-anchor: none` on the container disables the browser's
+ *      "preserve visual position when content shifts" anchoring. Without
+ *      that, font reflow / late layout after our pin-to-bottom drags
+ *      `scrollTop` forward, which fires `scroll` events that the
+ *      handler below mis-reads as "user scrolled up" — and we stop
+ *      pinning, leaving the view stranded mid-list.
+ *   2. The "track the bottom" mechanism is a `ResizeObserver` on the
+ *      content wrapper, not a `useLayoutEffect` on `messages`. The SSE
+ *      replay populates messages in one render, but the *real* final
+ *      content height settles a few frames later (fonts, etc.). The
+ *      observer fires on every height change so we re-pin until the
+ *      page is settled.
  */
 export function MessageList({
   messages,
@@ -29,55 +43,87 @@ export function MessageList({
   onBan,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const stickToBottomRef = useRef(true);
+  const contentRef = useRef<HTMLDivElement>(null);
+  // User's scroll intent — "bottom" means "keep me pinned to the latest
+  // message," "reading" means "I scrolled up, don't yank me back." Updated
+  // only on `scroll` events, which fire on user input but NOT on content
+  // height changes — so font reflow doesn't accidentally flip the intent.
+  const intentRef = useRef<"bottom" | "reading">("bottom");
 
-  // Track whether the user has scrolled away from the bottom.
   useEffect(() => {
     const el = containerRef.current;
-    if (!el) return;
+    const content = contentRef.current;
+    if (!el || !content) return;
+
+    // Timestamp of the last programmatic pin. Scroll events that fire
+    // within a short window after a pin are not the user — they're the
+    // browser dispatching the side-effect of our own scrollTop write,
+    // sometimes with a stale scrollHeight (content has grown another
+    // step between the pin and the event). Using the scrollHeight at
+    // that moment to decide intent is the bug we're working around.
+    let lastPinAt = 0;
+
+    const pinIfBottom = () => {
+      if (intentRef.current === "bottom") {
+        lastPinAt = performance.now();
+        el.scrollTop = el.scrollHeight;
+      }
+    };
+
     const onScroll = () => {
+      // Ignore scroll events that are the direct consequence of our pin.
+      // 250ms covers the slowest expected reflow-and-fire delay; user
+      // scrolls within that window after we just pinned to the bottom
+      // would be rare and harmless to miss (intent stays "bottom").
+      if (performance.now() - lastPinAt < 250) return;
       const distance = el.scrollHeight - el.clientHeight - el.scrollTop;
-      stickToBottomRef.current = distance < 80;
+      intentRef.current = distance < 80 ? "bottom" : "reading";
     };
     el.addEventListener("scroll", onScroll);
-    return () => el.removeEventListener("scroll", onScroll);
-  }, []);
 
-  // After every render that grew the list, scroll to bottom if we were
-  // pinned there. useLayoutEffect avoids the flash of unscrolled state.
-  useLayoutEffect(() => {
-    if (!stickToBottomRef.current) return;
-    const el = containerRef.current;
-    if (!el) return;
-    el.scrollTop = el.scrollHeight;
-  }, [messages.length]);
+    // ResizeObserver fires once on observe() with the current size, then
+    // again on every subsequent height change. That covers the initial
+    // empty → populated render, new messages appended, and async reflow
+    // (font load, image decode, etc.).
+    const ro = new ResizeObserver(pinIfBottom);
+    ro.observe(content);
+
+    return () => {
+      el.removeEventListener("scroll", onScroll);
+      ro.disconnect();
+    };
+  }, []);
 
   return (
     <div
       ref={containerRef}
+      data-testid="community-message-list"
       className="scroll-thin flex-1 overflow-y-auto px-4 py-3"
+      style={{ overflowAnchor: "none" }}
     >
-      {messages.length === 0 ? (
-        <div className="flex h-full items-center justify-center text-sm text-[var(--muted)]">
-          No messages yet. Say hi.
-        </div>
-      ) : (
-        <ul className="flex flex-col gap-2">
-          {messages.map((m) => (
-            <li key={m.id}>
-              <Message
-                message={m}
-                isOwn={!!nick && m.nick === nick}
-                isAdmin={isAdmin}
-                isPinned={pinnedId === m.id}
-                onDelete={isAdmin ? () => onDelete(m.id) : undefined}
-                onPin={isAdmin ? () => onPin(m.id) : undefined}
-                onBan={isAdmin ? () => onBan(m.nick) : undefined}
-              />
-            </li>
-          ))}
-        </ul>
-      )}
+      <div ref={contentRef}>
+        {messages.length === 0 ? (
+          <div className="flex h-full items-center justify-center text-sm text-[var(--muted)]">
+            No messages yet. Say hi.
+          </div>
+        ) : (
+          <ul className="flex flex-col gap-2">
+            {messages.map((m) => (
+              <li key={m.id}>
+                <Message
+                  message={m}
+                  isOwn={!!nick && m.nick === nick}
+                  isAdmin={isAdmin}
+                  isPinned={pinnedId === m.id}
+                  onDelete={isAdmin ? () => onDelete(m.id) : undefined}
+                  onPin={isAdmin ? () => onPin(m.id) : undefined}
+                  onBan={isAdmin ? () => onBan(m.nick) : undefined}
+                />
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }

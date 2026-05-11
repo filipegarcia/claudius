@@ -6,6 +6,7 @@ import "./globals.css";
 import { PaneLabelsHost } from "@/components/overlays/PaneLabelsHost";
 import { CustomizationBanner } from "@/components/customize/CustomizationBanner";
 import { NotificationsProvider } from "@/components/notifications/NotificationsProvider";
+import { CommunityNotificationsProvider } from "@/components/community/CommunityNotificationsProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -61,11 +62,13 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             search params without a Suspense ancestor. */}
         <Suspense fallback={null}>
           <NotificationsProvider>
-            <div className="flex h-full flex-col">
-              <CustomizationBanner />
-              <div className="min-h-0 flex-1">{children}</div>
-            </div>
-            <PaneLabelsHost />
+            <CommunityNotificationsProvider>
+              <div className="flex h-full flex-col">
+                <CustomizationBanner />
+                <div className="min-h-0 flex-1">{children}</div>
+              </div>
+              <PaneLabelsHost />
+            </CommunityNotificationsProvider>
           </NotificationsProvider>
         </Suspense>
       </body>

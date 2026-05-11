@@ -29,7 +29,7 @@ import { useSession } from "@/lib/client/use-session";
 import { useLimits } from "@/lib/client/useLimits";
 import { CapBreachBanner } from "@/components/chat/CapBreachBanner";
 import { TranscriptSearch, type SearchHit } from "@/components/chat/TranscriptSearch";
-import { SessionTabs, activeTabStatus, tabLabelFor } from "@/components/chat/SessionTabs";
+import { SessionTabs, activeTabStatus, tabLabelFor, type TabStatus } from "@/components/chat/SessionTabs";
 import { TabClaimBanner } from "@/components/chat/TabClaimBanner";
 import { useTabClaim } from "@/lib/client/useTabClaim";
 import { BashViewer } from "@/components/panels/BashViewer";
@@ -170,6 +170,27 @@ export default function Home() {
     if (sessionParam === activeSessionIdRef.current) return;
     switchSessionAction(sessionParam);
   }, [sessionParam, switchSessionAction]);
+
+  // In-app "jump to session" from the notifications drawer / OS toast.
+  // NotificationsProvider dispatches this CustomEvent instead of doing a
+  // `router.push("/?session=B")` because the App Router's soft navigation
+  // for same-pathname query-only changes doesn't reliably re-render
+  // `useSearchParams` here — the URL would update but the watcher above
+  // wouldn't see it and the session would never switch. Calling
+  // `switchSession` directly bypasses the router entirely; its internal
+  // `replaceState` keeps the URL in sync so a refresh still resumes the
+  // right session.
+  useEffect(() => {
+    function onJump(e: Event) {
+      const detail = (e as CustomEvent<{ sessionId?: string }>).detail;
+      const id = detail?.sessionId;
+      if (!id) return;
+      if (id === activeSessionIdRef.current) return;
+      switchSessionAction(id);
+    }
+    window.addEventListener("claudius:jump-to-session", onJump);
+    return () => window.removeEventListener("claudius:jump-to-session", onJump);
+  }, [switchSessionAction]);
 
   // ?prefill=<text> | ?prefill=1 → drop a draft into the prompt input on
   // mount. Used by Customize → "Auto-fix conflicts" so the user lands in
@@ -407,6 +428,16 @@ export default function Home() {
   // notifications. The provider still honours the per-workspace prefs
   // and the per-session block/snooze, so we get richer behaviour for free.
   const notifications = useNotificationsContext();
+
+  // Clear the active session's unread notifications whenever the bound id
+  // changes — covers boot/resume, tab clicks, notification jumps, and the
+  // /clear-driven new-session path. The action is a no-op when there's
+  // nothing unread for that session, so the cost is just a closure call.
+  const markSessionReadAction = notifications.markSessionRead;
+  useEffect(() => {
+    if (!session.sessionId) return;
+    void markSessionReadAction(session.sessionId);
+  }, [session.sessionId, markSessionReadAction]);
 
   const showToast = useCallback((msg: string) => {
     setToast(msg);
@@ -712,23 +743,46 @@ export default function Home() {
       <SideNav running={session.pending} />
       <main data-pane-name="chat-area" className="flex h-full flex-1 flex-col">
         <SessionTabs
-          tabs={openTabs.map((id) => ({
-            id,
-            label: id === session.sessionId
-              ? tabLabelFor(id, session.sessions, session.sessionTitle)
-              : tabLabelFor(id, session.sessions),
-            status:
-              id === session.sessionId
-                ? activeTabStatus({
-                    ready: session.ready,
-                    pending: session.pending,
-                    hasError: session.errors.length > 0,
-                  })
-                : "background",
-          }))}
+          tabs={openTabs.map((id) => {
+            // Status resolution for the dot on each tab:
+            //   - active tab → derive from local useSession state (freshest;
+            //     pending flips before the next server poll lands).
+            //   - non-active but in `session.sessions` → use the server's
+            //     in-memory status. Refreshed on the active session's
+            //     `result` event and on visibilitychange, so the dots track
+            //     real state without a dedicated SSE per tab.
+            //   - reaped (id missing from the live list) → "background". The
+            //     SDK process is gone; clicking the tab will resume from
+            //     disk via /api/sessions/:id/stream.
+            let status: TabStatus;
+            if (id === session.sessionId) {
+              status = activeTabStatus({
+                ready: session.ready,
+                pending: session.pending,
+                hasError: session.errors.length > 0,
+              });
+            } else {
+              const live = session.sessions.find((s) => s.id === id);
+              status = live?.status ?? "background";
+            }
+            return {
+              id,
+              label:
+                id === session.sessionId
+                  ? tabLabelFor(id, session.sessions, session.sessionTitle)
+                  : tabLabelFor(id, session.sessions),
+              status,
+              unread: notifications.unreadBySession[id],
+            };
+          })}
           activeId={session.sessionId}
           onSelect={(id) => {
             if (id !== session.sessionId) session.switchSession(id);
+            // "Selecting" a tab implies "I'm looking at this session now" —
+            // clear its unread badge AND its contribution to the bell-tile
+            // total. Re-selecting the current tab is harmless: the action
+            // exits early when the per-session count is already 0.
+            void notifications.markSessionRead(id);
           }}
           onClose={closeTab}
           onCloseAll={closeAllTabs}

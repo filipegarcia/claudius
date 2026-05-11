@@ -11,6 +11,7 @@ import type {
   PlanDecision,
   ServerEvent,
 } from "@/lib/shared/events";
+import { costFromTokens } from "@/lib/shared/cost-pricing";
 import type {
   AgentTodo,
   AttachedImage,
@@ -183,6 +184,12 @@ export function useSession(): ChatState & ChatActions {
   const [model, setModelState] = useState<string | null>(null);
   const [sessions, setSessions] = useState<SessionInfo[]>([]);
 
+  // Mirror `model` into the ref so SSE handlers can compute pricing without
+  // re-binding on every model change.
+  useEffect(() => {
+    modelRef.current = model;
+  }, [model]);
+
   const sessionIdRef = useRef<string | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
   const messagesRef = useRef<DisplayMessage[]>([]);
@@ -209,6 +216,30 @@ export function useSession(): ChatState & ChatActions {
   // partials accumulate, and historical replays re-broadcast every
   // assistant message — we want each one counted exactly once.
   const countedUsageRef = useRef<Set<string>>(new Set());
+  // Mirror of `model` for SSE callbacks. The pricing math needs the active
+  // model name but the SSE event handler in `applyEvent` is stable (memoized
+  // against state); a ref keeps it current without re-binding the EventSource.
+  const modelRef = useRef<string | null>(null);
+  // Mid-turn cost estimate accumulator. Per-assistant-message we estimate
+  // cost from token counts using `costFromTokens` so the `$` tile updates
+  // alongside the IN/OUT/CACHE tiles (the SDK's authoritative `total_cost_usd`
+  // only lands on the `result` event at turn-end — until then the tile would
+  // sit at $0.00 even with thousands of tokens flowing). At result time we
+  // reconcile: subtract this turn's estimate and add the auth value.
+  // Reset to 0 on every result event AND on session reset.
+  // NOTE: subagent assistant events are intentionally counted here too — the
+  // existing token accumulator includes them (see comment near `countedUsageRef`
+  // dedupe below) and the SDK's `total_cost_usd` covers subagent cost as well,
+  // so reconciliation nets to zero. Don't "fix" that without re-reading both
+  // paths.
+  const estimatedTurnCostRef = useRef<number>(0);
+  // UUIDs of result events whose cost/turn totals have already been folded
+  // into session state. EventSource reconnects (network blip, dev HMR,
+  // tail-replay window) replay recent events, including the most recent
+  // `result` — without dedupe, cost would get added each time and the `$`
+  // tile would drift upward on every reconnect. Mirrors `countedUsageRef`'s
+  // contract but for the turn-end frame.
+  const seenResultUuidsRef = useRef<Set<string>>(new Set());
   const flushQueueRef = useRef<() => void>(() => {});
 
   // ── sessionStorage persistence ────────────────────────────────────────
@@ -326,6 +357,8 @@ export function useSession(): ChatState & ChatActions {
     setCwd(null);
     setUsage(null);
     countedUsageRef.current = new Set();
+    estimatedTurnCostRef.current = 0;
+    seenResultUuidsRef.current = new Set();
     setTasks({});
     setSubagentMessages({});
     setPendingPlan(null);
@@ -347,15 +380,108 @@ export function useSession(): ChatState & ChatActions {
   }, [wipeQueueStorage]);
 
   const refreshSessions = useCallback(async () => {
+    // Merge two sources so the dropdown shows historical sessions too — not
+    // just whatever survives the 10-minute in-memory reaper:
+    //   - /api/sessions       → live sessions held by sessionManager
+    //                           (freshest title from SSE, accurate `model`)
+    //   - /api/sessions/all   → durable JSONL list with `lastModified` for
+    //                           sorting and `summary`/`firstPrompt` so
+    //                           never-renamed sessions still get a label
+    //
+    // Live wins on overlap. We sort by recency and keep the top 20 — the
+    // dropdown links to /sessions for the long tail.
     try {
-      const res = await fetch("/api/sessions");
-      if (!res.ok) return;
-      const data = (await res.json()) as SessionInfo[];
-      setSessions(Array.isArray(data) ? data : []);
+      const [liveRes, diskRes] = await Promise.allSettled([
+        fetch("/api/sessions"),
+        fetch("/api/sessions/all?limit=25"),
+      ]);
+
+      let live: SessionInfo[] = [];
+      if (liveRes.status === "fulfilled" && liveRes.value.ok) {
+        const data = (await liveRes.value.json()) as unknown;
+        if (Array.isArray(data)) live = data as SessionInfo[];
+      }
+
+      type DiskItem = {
+        sessionId: string;
+        customTitle?: string;
+        summary?: string;
+        firstPrompt?: string;
+        lastModified?: number;
+        cwd?: string;
+      };
+      let disk: DiskItem[] = [];
+      if (diskRes.status === "fulfilled" && diskRes.value.ok) {
+        const data = (await diskRes.value.json()) as { sessions?: unknown };
+        if (Array.isArray(data.sessions)) disk = data.sessions as DiskItem[];
+      }
+
+      const byId = new Map<string, SessionInfo>();
+      // Seed with disk first so live entries can override cwd/model/title.
+      for (const d of disk) {
+        if (!d.sessionId) continue;
+        const title =
+          (d.customTitle && d.customTitle.trim()) ||
+          (d.summary && d.summary.trim()) ||
+          (d.firstPrompt && d.firstPrompt.trim()) ||
+          null;
+        byId.set(d.sessionId, {
+          id: d.sessionId,
+          cwd: d.cwd,
+          title,
+          lastModified: d.lastModified,
+        });
+      }
+      for (const l of live) {
+        if (!l?.id) continue;
+        const prev = byId.get(l.id);
+        byId.set(l.id, {
+          ...prev,
+          ...l,
+          // Live `title` is null until the user renames — fall back to the
+          // disk-derived summary/firstPrompt so the entry isn't "Untitled".
+          title: l.title ?? prev?.title ?? null,
+          // Live-only entries (just spawned, no JSONL flush yet) get
+          // "right now" so they bubble to the top of the recency sort.
+          lastModified: prev?.lastModified ?? Date.now(),
+        });
+      }
+
+      const sorted = [...byId.values()].sort(
+        (a, b) => (b.lastModified ?? 0) - (a.lastModified ?? 0),
+      );
+      const top = sorted.slice(0, 20);
+      // Always keep every live session present so the SessionTabs status
+      // dot has a status field to read for tabs whose JSONL `lastModified`
+      // is old enough that recency sort pushed them past the cutoff. A live
+      // tab paints "running"/"idle"; without this fallback it would silently
+      // revert to "background" and confuse the user.
+      const liveIds = new Set(live.map((l) => l.id));
+      const inTop = new Set(top.map((s) => s.id));
+      const extras = sorted.filter((s) => liveIds.has(s.id) && !inTop.has(s.id));
+      const merged = extras.length === 0 ? top : [...top, ...extras];
+
+      setSessions(merged);
     } catch {
       // ignore
     }
   }, []);
+
+  // Re-pull the sessions list when the tab regains focus. Background tabs
+  // may have started or finished turns while this client was asleep — without
+  // this poke the SessionTabs status dots would freeze at whatever the
+  // server returned on last refresh.
+  //
+  // Using `visibilitychange` (not `focus`) so a window getting moved between
+  // monitors doesn't fire a spurious refresh, and so it actually catches the
+  // common case of switching desktops / coming back from a long sleep.
+  useEffect(() => {
+    function onVis() {
+      if (!document.hidden) void refreshSessions();
+    }
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
+  }, [refreshSessions]);
 
   const flushQueue = useCallback(async () => {
     const id = sessionIdRef.current;
@@ -458,6 +584,15 @@ export function useSession(): ChatState & ChatActions {
         if (Array.isArray(ev.todos)) setLatestTodos(coerceTodos(ev.todos));
         return;
       }
+      if (ev.type === "turn_status") {
+        // Authoritative "is the agent busy?" signal from the server. Fires
+        // on transitions of `turnInFlight` / pending-prompt maps, and is
+        // re-emitted after `replay_done` so a tab that attached mid-turn
+        // (long Bash, slow tool) paints the StatusLine / tab dot correctly
+        // even when no further assistant chunks arrive.
+        setPendingTracked(ev.status === "running");
+        return;
+      }
       if (ev.type === "replay_done") {
         setReplaying(false);
         setHasMoreAbove(ev.hasMoreAbove);
@@ -520,8 +655,25 @@ export function useSession(): ChatState & ChatActions {
         if (beta.usage && !countedUsageRef.current.has(uuid)) {
           countedUsageRef.current.add(uuid);
           const u = beta.usage;
+          // Estimate per-call cost so the `$` tile updates alongside the
+          // token tiles. Reconciled with the SDK's authoritative
+          // `total_cost_usd` at result-event time (see below). Falls back to
+          // Sonnet pricing when the model is unknown, which is good enough
+          // for a mid-turn indicator — the auth value replaces it within a
+          // few seconds anyway.
+          const turnEstimate = costFromTokens(
+            (beta as { model?: string }).model ?? modelRef.current ?? undefined,
+            {
+              input: u.input_tokens ?? 0,
+              output: u.output_tokens ?? 0,
+              cacheRead: u.cache_read_input_tokens ?? 0,
+              cacheWrite5m: u.cache_creation_input_tokens ?? 0,
+              cacheWrite1h: 0,
+            },
+          );
+          estimatedTurnCostRef.current += turnEstimate;
           setUsage((prev) => ({
-            totalCostUsd: prev?.totalCostUsd ?? 0,
+            totalCostUsd: (prev?.totalCostUsd ?? 0) + turnEstimate,
             numTurns: prev?.numTurns ?? 0,
             durationMs: prev?.durationMs ?? 0,
             durationApiMs: prev?.durationApiMs ?? 0,
@@ -640,6 +792,7 @@ export function useSession(): ChatState & ChatActions {
       if (msg.type === "stream_event") {
         const sm = msg as {
           uuid: string;
+          parent_tool_use_id?: string | null;
           event: {
             type: string;
             index?: number;
@@ -648,8 +801,22 @@ export function useSession(): ChatState & ChatActions {
           };
         };
         const evt = sm.event;
-        const anchor = lastAssistantUuidRef.current;
+        // Anchor partials on the stream_event's own uuid — the SDK assigns
+        // the same uuid to both the partial stream_events AND the terminal
+        // `assistant` message they belong to. The previous code anchored on
+        // `lastAssistantUuidRef.current` (the most-recently-seen top-level
+        // assistant), which is wrong because the SDK's bridge batches
+        // stream_events and only flushes them when a *different* message
+        // type lands — so by the time deltas hit this handler,
+        // `lastAssistantUuid` still points at the previous turn's assistant.
+        // The terminal `assistant` event then upserts a brand-new bubble at
+        // the partial's true uuid, and the model's single "ack" rendered as
+        // two consecutive Claude blocks. Keying scratch on sm.uuid means the
+        // partials and the eventual assistant message coalesce into one
+        // DisplayMessage via upsertMessage's uuid-keyed merge.
+        const anchor = sm.uuid;
         if (!anchor) return;
+        const subagentParent = sm.parent_tool_use_id ?? null;
         let scratch = scratchRef.current.get(anchor);
         if (!scratch) {
           scratch = { blocks: new Map() };
@@ -686,50 +853,105 @@ export function useSession(): ChatState & ChatActions {
             slot.text = cb.thinking;
           }
         } else if (evt.type === "message_stop") {
-          setMessages((prev) => prev.map((m) => (m.uuid === anchor ? { ...m, streaming: false } : m)));
+          if (subagentParent) {
+            setSubagentMessages((prev) => ({
+              ...prev,
+              [subagentParent]: (prev[subagentParent] ?? []).map((m) =>
+                m.uuid === anchor ? { ...m, streaming: false } : m,
+              ),
+            }));
+          } else {
+            setMessages((prev) => prev.map((m) => (m.uuid === anchor ? { ...m, streaming: false } : m)));
+          }
           return;
         } else {
           return;
         }
-        setMessages((prev) =>
-          prev.map((m) => {
-            if (m.uuid !== anchor) return m;
-            const merged: DisplayBlock[] = [];
-            const indices = [...scratch!.blocks.keys()].sort((a, b) => a - b);
-            for (const i of indices) {
-              const slot = scratch!.blocks.get(i)!;
-              if (slot.kind === "text") merged.push({ kind: "text", text: slot.text ?? "" });
-              else if (slot.kind === "thinking")
-                merged.push({
-                  kind: "thinking",
-                  text: slot.text ?? "",
-                  ...(slot.redacted ? { redacted: true } : {}),
-                });
-              else if (slot.kind === "tool_use") {
-                let parsed: Record<string, unknown> = {};
-                try {
-                  parsed = slot.partialJson ? JSON.parse(slot.partialJson) : {};
-                } catch {
-                  parsed = { __partial: slot.partialJson ?? "" };
-                }
-                merged.push({
-                  kind: "tool_use",
-                  id: slot.toolUseId ?? "",
-                  name: slot.toolName ?? "",
-                  input: parsed,
-                });
+        const buildMerged = (existingBlocks: DisplayBlock[]): DisplayBlock[] => {
+          const merged: DisplayBlock[] = [];
+          const indices = [...scratch!.blocks.keys()].sort((a, b) => a - b);
+          for (const i of indices) {
+            const slot = scratch!.blocks.get(i)!;
+            if (slot.kind === "text") merged.push({ kind: "text", text: slot.text ?? "" });
+            else if (slot.kind === "thinking")
+              merged.push({
+                kind: "thinking",
+                text: slot.text ?? "",
+                ...(slot.redacted ? { redacted: true } : {}),
+              });
+            else if (slot.kind === "tool_use") {
+              let parsed: Record<string, unknown> = {};
+              try {
+                parsed = slot.partialJson ? JSON.parse(slot.partialJson) : {};
+              } catch {
+                parsed = { __partial: slot.partialJson ?? "" };
               }
+              merged.push({
+                kind: "tool_use",
+                id: slot.toolUseId ?? "",
+                name: slot.toolName ?? "",
+                input: parsed,
+              });
             }
-            const preservedResults = new Map<string, { content: string; isError?: boolean }>();
-            for (const b of m.blocks) {
-              if (b.kind === "tool_use" && b.result) preservedResults.set(b.id, b.result);
+          }
+          // Preserve any tool_result already folded onto a tool_use we own —
+          // the result lands via a separate `user`/`tool_result` event and
+          // would otherwise get wiped on every scratch flush.
+          const preservedResults = new Map<string, { content: string; isError?: boolean }>();
+          for (const b of existingBlocks) {
+            if (b.kind === "tool_use" && b.result) preservedResults.set(b.id, b.result);
+          }
+          for (const b of merged) {
+            if (b.kind === "tool_use" && preservedResults.has(b.id)) b.result = preservedResults.get(b.id);
+          }
+          return merged;
+        };
+        if (subagentParent) {
+          setSubagentMessages((prev) => {
+            const list = prev[subagentParent] ?? [];
+            const idx = list.findIndex((m) => m.uuid === anchor);
+            if (idx === -1) {
+              // Partial for a subagent whose terminal `assistant` hasn't
+              // landed yet — seed a placeholder at the same uuid so the
+              // upsert merges cleanly when it arrives.
+              const placeholder: DisplayMessage = {
+                uuid: anchor,
+                role: "assistant",
+                blocks: buildMerged([]),
+                streaming: true,
+                parentToolUseId: subagentParent,
+              };
+              return { ...prev, [subagentParent]: [...list, placeholder] };
             }
-            for (const b of merged) {
-              if (b.kind === "tool_use" && preservedResults.has(b.id)) b.result = preservedResults.get(b.id);
+            const next = list.slice();
+            next[idx] = { ...next[idx], blocks: buildMerged(next[idx].blocks) };
+            return { ...prev, [subagentParent]: next };
+          });
+        } else {
+          setMessages((prev) => {
+            const idx = prev.findIndex((m) => m.uuid === anchor);
+            if (idx === -1) {
+              // Partial whose terminal `assistant` event hasn't landed yet
+              // (the common path with includePartialMessages: true) — seed
+              // a placeholder at the SDK's uuid so deltas have a home and
+              // the eventual `assistant` upsert merges instead of forking.
+              const placeholder: DisplayMessage = {
+                uuid: anchor,
+                role: "assistant",
+                blocks: buildMerged([]),
+                streaming: true,
+              };
+              // Keep the "latest top-level assistant" pointer in sync so
+              // system pills (status, rate_limit) anchor under the active
+              // bubble rather than the previous turn's.
+              lastAssistantUuidRef.current = anchor;
+              return [...prev, placeholder];
             }
-            return { ...m, blocks: merged };
-          }),
-        );
+            const next = prev.slice();
+            next[idx] = { ...next[idx], blocks: buildMerged(next[idx].blocks) };
+            return next;
+          });
+        }
         return;
       }
 
@@ -850,9 +1072,16 @@ export function useSession(): ChatState & ChatActions {
 
       if (msg.type === "result") {
         setPendingTracked(false);
+        // The active session just transitioned running → idle. Pull a fresh
+        // sessions list so the SessionTabs strip can repaint the non-active
+        // tabs' status dots — they get no live signal of their own and would
+        // otherwise stay stuck at whatever was true when the dropdown was
+        // last opened.
+        void refreshSessions();
         const anchor = lastAssistantUuidRef.current;
         if (anchor) setMessages((prev) => prev.map((m) => (m.uuid === anchor ? { ...m, streaming: false } : m)));
         const r = msg as {
+          uuid?: string;
           subtype?: string;
           duration_ms?: number;
           duration_api_ms?: number;
@@ -868,23 +1097,45 @@ export function useSession(): ChatState & ChatActions {
           fast_mode_state?: "off" | "cooldown" | "on";
         };
         if (r.fast_mode_state) setFastModeState(r.fast_mode_state);
-        if (r.subtype === "success") {
-          // Tokens are already accumulated per-assistant-message above
-          // (so the rail updates mid-turn). The `result` event only owns
-          // the fields it's authoritative for: cost, turn count, durations,
-          // and the per-model usage breakdown.
-          setUsage((prev) => ({
-            totalCostUsd: (prev?.totalCostUsd ?? 0) + (r.total_cost_usd ?? 0),
-            numTurns: (prev?.numTurns ?? 0) + (r.num_turns ?? 0),
-            durationMs: (prev?.durationMs ?? 0) + (r.duration_ms ?? 0),
-            durationApiMs: (prev?.durationApiMs ?? 0) + (r.duration_api_ms ?? 0),
-            inputTokens: prev?.inputTokens ?? 0,
-            outputTokens: prev?.outputTokens ?? 0,
-            cacheReadInputTokens: prev?.cacheReadInputTokens ?? 0,
-            cacheCreationInputTokens: prev?.cacheCreationInputTokens ?? 0,
-            modelUsage: r.modelUsage ?? prev?.modelUsage,
-          }));
+
+        // Idempotency: every SDK result event carries a uuid (see
+        // SDKResultSuccess / SDKResultError). If we've already folded this
+        // one into session state, the SSE stream is just replaying it — bail
+        // out before double-counting cost/turns. Still call flushQueue so
+        // the queued-input side-effects fire normally.
+        if (r.uuid && seenResultUuidsRef.current.has(r.uuid)) {
+          void flushQueue();
+          return;
         }
+        if (r.uuid) seenResultUuidsRef.current.add(r.uuid);
+
+        // Capture the mid-turn estimate to a local BEFORE the setter so the
+        // reducer closes over the value we measured here, not whatever the
+        // ref happens to hold by the time React commits. The ref is reset
+        // synchronously below so the next turn starts at 0 even if the
+        // setter runs later.
+        const estimate = estimatedTurnCostRef.current;
+        estimatedTurnCostRef.current = 0;
+
+        // Cost reconciliation runs on EVERY result event — including
+        // non-success subtypes (`error_max_turns`, `error_during_execution`,
+        // cancellations). Errors still cost tokens, and gating on
+        // `subtype === "success"` was the second half of the "$0.00 forever"
+        // bug. If the SDK supplies an auth value we use it; otherwise we
+        // keep the estimate as the best signal we have.
+        const authCost = typeof r.total_cost_usd === "number" ? r.total_cost_usd : null;
+        setUsage((prev) => ({
+          totalCostUsd:
+            (prev?.totalCostUsd ?? 0) - estimate + (authCost ?? estimate),
+          numTurns: (prev?.numTurns ?? 0) + (r.num_turns ?? 0),
+          durationMs: (prev?.durationMs ?? 0) + (r.duration_ms ?? 0),
+          durationApiMs: (prev?.durationApiMs ?? 0) + (r.duration_api_ms ?? 0),
+          inputTokens: prev?.inputTokens ?? 0,
+          outputTokens: prev?.outputTokens ?? 0,
+          cacheReadInputTokens: prev?.cacheReadInputTokens ?? 0,
+          cacheCreationInputTokens: prev?.cacheCreationInputTokens ?? 0,
+          modelUsage: r.modelUsage ?? prev?.modelUsage,
+        }));
         void flushQueue();
         return;
       }
@@ -1105,7 +1356,7 @@ export function useSession(): ChatState & ChatActions {
         return;
       }
     },
-    [flushQueue, setPendingTracked],
+    [flushQueue, refreshSessions, setPendingTracked],
   );
 
   const bindToSession = useCallback(

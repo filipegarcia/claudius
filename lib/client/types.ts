@@ -92,6 +92,20 @@ export type SessionInfo = {
   model?: string;
   /** Custom title set by the user. Null when none. */
   title?: string | null;
+  /**
+   * Last-modified timestamp (ms since epoch) from the on-disk JSONL. Present
+   * for entries sourced from `/api/sessions/all`; absent for live-only
+   * sessions that haven't been flushed yet. Used to sort the SessionPicker
+   * dropdown by recency.
+   */
+  lastModified?: number;
+  /**
+   * Coarse session state for the tabs strip. Only present for sessions
+   * currently held in memory by the server (returned from `/api/sessions`);
+   * absent for disk-only entries. Disk-only sessions render as `background`
+   * in the tab strip regardless.
+   */
+  status?: "running" | "idle";
 };
 
 export type PendingPlan = {

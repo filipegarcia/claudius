@@ -153,6 +153,30 @@ export async function unreadCount(cwd: string): Promise<number> {
   return row?.n ?? 0;
 }
 
+/**
+ * Unread row counts grouped by `session_id`. Returned as a plain object keyed
+ * by session id — rows without a `session_id` (scheduler-only notifications)
+ * are skipped because the tabs strip can't surface them anyway. Used by the
+ * tabs strip to paint a per-tab unread badge.
+ */
+export async function unreadCountsBySession(
+  cwd: string,
+): Promise<Record<string, number>> {
+  const db = await openDb(cwd, "readonly").catch(() => null);
+  if (!db) return {};
+  const rows = db
+    .prepare<[], { session_id: string; n: number }>(
+      `SELECT session_id, COUNT(*) AS n
+         FROM notifications
+        WHERE read_at IS NULL AND session_id IS NOT NULL
+        GROUP BY session_id`,
+    )
+    .all();
+  const out: Record<string, number> = {};
+  for (const r of rows) out[r.session_id] = r.n;
+  return out;
+}
+
 export async function markRead(cwd: string, ids: string[]): Promise<number> {
   if (ids.length === 0) return 0;
   const db = await openDb(cwd);
@@ -172,6 +196,28 @@ export async function markAllRead(cwd: string): Promise<number> {
   const res = db
     .prepare(`UPDATE notifications SET read_at = ? WHERE read_at IS NULL`)
     .run(now);
+  return res.changes;
+}
+
+/**
+ * Mark every unread row for a single session as read. Used by the chat page
+ * when the user selects (or re-selects) a tab — the implicit contract is
+ * "I'm looking at this session now, the inbox can clear it." Returns the
+ * number of rows that flipped so the bus can decide whether to emit a count
+ * event.
+ */
+export async function markReadBySession(
+  cwd: string,
+  sessionId: string,
+): Promise<number> {
+  if (!sessionId) return 0;
+  const db = await openDb(cwd);
+  const now = Date.now();
+  const res = db
+    .prepare(
+      `UPDATE notifications SET read_at = ? WHERE read_at IS NULL AND session_id = ?`,
+    )
+    .run(now, sessionId);
   return res.changes;
 }
 

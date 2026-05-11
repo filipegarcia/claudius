@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect } from "@playwright/test";
 
 const SESSION_RE = /[?&]session=([0-9a-f-]{36})/i;
 

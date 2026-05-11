@@ -32,8 +32,13 @@ CLAUDIUS_CHAT_ADMIN_TOKEN=dev-token bun run dev   # :8787
 Then in the Claudius repo:
 
 ```bash
-NEXT_PUBLIC_CHAT_SERVER_URL=http://localhost:8787 bun run dev
+NEXT_PUBLIC_CLAUDIUS_CHAT_SERVER_URL=http://localhost:8787 bun run dev
 ```
+
+Set `CLAUDIUS_CHAT_ADMIN_TOKEN` in the same environment if this user
+should see the admin UI in /community — Claudius proxies admin calls
+through `/api/community/admin/*` using that token, so it stays out of
+the client bundle.
 
 Open <http://localhost:3000/community>, pick a nickname, post a message.
 Open a second window in incognito → both tabs see each other's
@@ -94,8 +99,10 @@ The `fly.toml` here pins `auto_stop_machines = "off"` and
 `min_machines_running = 1` because SSE clients hold open connections —
 stopping the VM would kick every browser tab.
 
-After deploy, set `NEXT_PUBLIC_CHAT_SERVER_URL=https://<your-app>.fly.dev`
-in the Claudius build environment and rebuild.
+After deploy, set `NEXT_PUBLIC_CLAUDIUS_CHAT_SERVER_URL=https://<your-app>.fly.dev`
+in the Claudius build environment and rebuild. If the same install
+should host the admin, also set `CLAUDIUS_CHAT_ADMIN_TOKEN` to the
+value you set on the chat-server above.
 
 ## Operating notes
 

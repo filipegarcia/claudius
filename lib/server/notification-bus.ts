@@ -16,7 +16,9 @@ import {
   markAllRead,
   markRead,
   markReadByRequestId,
+  markReadBySession,
   unreadCount,
+  unreadCountsBySession,
 } from "./notifications-db";
 
 /**
@@ -103,8 +105,28 @@ class NotificationBus {
 
   // ── User-input tracking (idle heuristic) ──────────────────────────────
 
-  markUserInput(sessionId: string): void {
-    this.lastUserInputAt.set(sessionId, Date.now());
+  /**
+   * Record that this session received a user input at `at` (defaults to now).
+   * The optional override exists for tests that need to assert the idle
+   * heuristic without sleeping `IDLE_NOTIFY_MIN_MS` real-time — no production
+   * call site passes the second argument.
+   */
+  markUserInput(sessionId: string, at: number = Date.now()): void {
+    this.lastUserInputAt.set(sessionId, at);
+  }
+
+  /**
+   * Test-only: drop every in-memory cache so the next call starts from a
+   * clean slate. Production code must NOT call this — losing subscribers
+   * would silently disable the SSE fanout for every open browser tab.
+   */
+  resetForTests(): void {
+    this.subscribers.clear();
+    this.lastUserInputAt.clear();
+    this.cwdMap = null;
+    this.cwdMapMtime = 0;
+    this.lastCounts.clear();
+    this.countsCache = null;
   }
 
   // ── Public producer surface ───────────────────────────────────────────
@@ -161,6 +183,24 @@ class NotificationBus {
   }
 
   /**
+   * Mark every unread row tied to a single session as read. Fired when the
+   * user selects the matching tab — the action is "I'm looking at this
+   * session now". Emits a workspace count event when at least one row
+   * flipped so the bell-tile total and per-tab badge resync.
+   */
+  async markReadBySession(workspaceId: string, sessionId: string): Promise<number> {
+    if (!sessionId) return 0;
+    const ws = await getWorkspaceById(workspaceId);
+    if (!ws) return 0;
+    const changed = await markReadBySession(ws.rootPath, sessionId);
+    if (changed > 0) {
+      this.invalidateCountsCache();
+      await this.emitCount(workspaceId, ws.rootPath);
+    }
+    return changed;
+  }
+
+  /**
    * Mark every row tied to a SDK request as read. Called from the session
    * resolve paths so answering a question / responding to a permission
    * prompt clears the matching inbox row(s) without the user having to
@@ -179,6 +219,19 @@ class NotificationBus {
     } catch {
       // best-effort
     }
+  }
+
+  /**
+   * Per-session unread counts for a single workspace, used by the tab strip
+   * to paint a "you have N notifications waiting on this session" badge. Not
+   * cached — the table is per-workspace and the query is a single indexed
+   * GROUP BY, so the cost is negligible compared to the fanout work the bus
+   * is already doing on each notification.
+   */
+  async countsBySession(workspaceId: string): Promise<Record<string, number>> {
+    const ws = await getWorkspaceById(workspaceId);
+    if (!ws) return {};
+    return unreadCountsBySession(ws.rootPath).catch(() => ({}));
   }
 
   async countsAllWorkspaces(): Promise<Record<string, number>> {
@@ -209,7 +262,7 @@ class NotificationBus {
       }
 
       // 2. Map event → kind. Drop non-mappable events early.
-      const mapped = this.mapToKind(event, ctx);
+      const mapped = mapEventToKind(event, ctx, this.lastUserInputAt);
       if (!mapped) return;
       const { kind, title, body, payload, requestId } = mapped;
 
@@ -250,85 +303,6 @@ class NotificationBus {
     }
   }
 
-  private mapToKind(
-    event: AnyEvent,
-    ctx: RecordContext,
-  ): {
-    kind: NotificationKind;
-    title: string;
-    body?: string;
-    payload?: Record<string, unknown>;
-    requestId?: string;
-  } | null {
-    switch (event.type) {
-      case "permission_request":
-        return {
-          kind: "permission_request",
-          title: "Claude needs permission",
-          body: event.title ?? event.toolName,
-          payload: {
-            toolName: event.toolName,
-            toolUseId: event.toolUseId,
-          },
-          requestId: event.requestId,
-        };
-      case "ask_user_question": {
-        const first = event.questions?.[0];
-        return {
-          kind: "ask_user_question",
-          title: "Claude is asking a question",
-          body: first?.question ?? undefined,
-          payload: { toolUseId: event.toolUseId, header: first?.header },
-          requestId: event.requestId,
-        };
-      }
-      case "plan_approval_request":
-        return {
-          kind: "plan_approval_request",
-          title: "Claude has a plan to review",
-          body: firstLine(event.plan),
-          payload: { toolUseId: event.toolUseId },
-          requestId: event.requestId,
-        };
-      case "error":
-        return {
-          kind: ctx.runId ? "scheduled_run_finished" : "session_error",
-          title: ctx.runId ? "Scheduled run errored" : "Session error",
-          body: event.message,
-        };
-      case "sdk": {
-        const m = event.message as SDKMessage & { type?: string };
-        if (m?.type !== "result") return null;
-        // Idle heuristic only applies to live sessions, not scheduler runs.
-        if (!ctx.sessionId) return null;
-        const last = this.lastUserInputAt.get(ctx.sessionId) ?? 0;
-        if (last === 0) return null; // never saw a user input; suppress
-        if (Date.now() - last < IDLE_NOTIFY_MIN_MS) return null;
-        return {
-          kind: "session_idle",
-          title: "Claude finished a turn",
-          body: ctx.cwd,
-        };
-      }
-      case "run_finished": {
-        return {
-          kind: "scheduled_run_finished",
-          title:
-            event.status === "success"
-              ? "Scheduled run finished"
-              : `Scheduled run ${event.status}`,
-          body: event.note ?? undefined,
-          payload: {
-            status: event.status,
-            ...(event.costUsd ? { costUsd: event.costUsd } : {}),
-          },
-        };
-      }
-      default:
-        return null;
-    }
-  }
-
   // ── Fanout helpers ────────────────────────────────────────────────────
 
   private emitNotification(row: NotificationRow): void {
@@ -362,13 +336,112 @@ class NotificationBus {
   }
 }
 
-function isKindEnabled(
+/**
+ * Returns true when the bus is allowed to write a row of `kind` for a
+ * workspace with these prefs. Exported for tests; the bus calls it on every
+ * `record()`. Logic:
+ *   • Master switch `enabled === false` blocks everything.
+ *   • Otherwise consult `enabledKinds`; absent ⇒ {@link DEFAULT_ENABLED_KINDS}.
+ *     An explicit empty array (`enabledKinds: []`) blocks every kind — used
+ *     by workspaces that want to fully opt out without flipping `enabled`.
+ */
+export function isKindEnabled(
   kind: NotificationKind,
   prefs: WorkspaceNotificationPrefs | undefined,
 ): boolean {
   if (prefs?.enabled === false) return false;
   const set = prefs?.enabledKinds ?? DEFAULT_ENABLED_KINDS;
   return set.includes(kind);
+}
+
+/**
+ * Pure event-shape → notification-row mapping. Returns null when the event
+ * doesn't produce a notification (subagent skip handled upstream, non-result
+ * SDK messages, idle-window suppression, unknown event types).
+ *
+ * Extracted from the class so unit tests can exercise every branch without
+ * standing up a workspace or touching SQLite. The idle heuristic needs the
+ * per-session last-input map; tests inject a `Map` they own.
+ */
+export function mapEventToKind(
+  event: AnyEvent,
+  ctx: RecordContext,
+  lastUserInputAt: Map<string, number>,
+  now: number = Date.now(),
+): {
+  kind: NotificationKind;
+  title: string;
+  body?: string;
+  payload?: Record<string, unknown>;
+  requestId?: string;
+} | null {
+  switch (event.type) {
+    case "permission_request":
+      return {
+        kind: "permission_request",
+        title: "Claude needs permission",
+        body: event.title ?? event.toolName,
+        payload: {
+          toolName: event.toolName,
+          toolUseId: event.toolUseId,
+        },
+        requestId: event.requestId,
+      };
+    case "ask_user_question": {
+      const first = event.questions?.[0];
+      return {
+        kind: "ask_user_question",
+        title: "Claude is asking a question",
+        body: first?.question ?? undefined,
+        payload: { toolUseId: event.toolUseId, header: first?.header },
+        requestId: event.requestId,
+      };
+    }
+    case "plan_approval_request":
+      return {
+        kind: "plan_approval_request",
+        title: "Claude has a plan to review",
+        body: firstLine(event.plan),
+        payload: { toolUseId: event.toolUseId },
+        requestId: event.requestId,
+      };
+    case "error":
+      return {
+        kind: ctx.runId ? "scheduled_run_finished" : "session_error",
+        title: ctx.runId ? "Scheduled run errored" : "Session error",
+        body: event.message,
+      };
+    case "sdk": {
+      const m = event.message as SDKMessage & { type?: string };
+      if (m?.type !== "result") return null;
+      // Idle heuristic only applies to live sessions, not scheduler runs.
+      if (!ctx.sessionId) return null;
+      const last = lastUserInputAt.get(ctx.sessionId) ?? 0;
+      if (last === 0) return null; // never saw a user input; suppress
+      if (now - last < IDLE_NOTIFY_MIN_MS) return null;
+      return {
+        kind: "session_idle",
+        title: "Claude finished a turn",
+        body: ctx.cwd,
+      };
+    }
+    case "run_finished": {
+      return {
+        kind: "scheduled_run_finished",
+        title:
+          event.status === "success"
+            ? "Scheduled run finished"
+            : `Scheduled run ${event.status}`,
+        body: event.note ?? undefined,
+        payload: {
+          status: event.status,
+          ...(event.costUsd ? { costUsd: event.costUsd } : {}),
+        },
+      };
+    }
+    default:
+      return null;
+  }
 }
 
 async function getWorkspaceById(id: string): Promise<Workspace | null> {
@@ -392,7 +465,11 @@ declare global {
 
 function pickBus(): NotificationBus {
   const cached = globalThis.__claudiusNotificationBus;
-  if (cached && typeof (cached as NotificationBus).recordSessionEvent === "function") {
+  // Probe checks for the LATEST method on the class so an HMR-cached
+  // instance that predates a new bus API gets rebuilt rather than serving
+  // stale shape (`notificationBus.<newMethod> is not a function` 500s).
+  // Bump this when you add a new method.
+  if (cached && typeof (cached as NotificationBus).markReadBySession === "function") {
     return cached;
   }
   const fresh = new NotificationBus();

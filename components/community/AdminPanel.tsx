@@ -14,17 +14,19 @@ type Props = {
 /**
  * Slide-over panel for admin-only operations.
  *
- * Three sections:
- *   1. Token — paste/clear the X-Admin-Token. Stored in localStorage.
- *   2. Announce — post a message AS admin to any room.
- *   3. Bans — list/create/remove bans by nick or IP.
+ * Two sections:
+ *   1. Announce — post a message AS admin to any room.
+ *   2. Bans — list/create/remove bans by nick or IP.
+ *
+ * The admin token used to live in this panel as a paste-it-in-the-browser
+ * field; it now lives server-side as `CLAUDIUS_CHAT_ADMIN_TOKEN` and admin
+ * actions are proxied through `/api/community/admin/*`. The panel itself
+ * is only rendered when `isAdmin` is true (see app/community/page.tsx).
  *
  * We deliberately don't surface delete/pin here — those are inline on
  * each Message row when admin mode is active.
  */
 export function AdminPanel({ community, rooms, onClose }: Props) {
-  const [tokenInput, setTokenInput] = useState(community.adminToken);
-
   // Announce form state.
   const [announceRoom, setAnnounceRoom] = useState(community.currentRoom);
   const [announceBody, setAnnounceBody] = useState("");
@@ -50,13 +52,6 @@ export function AdminPanel({ community, rooms, onClose }: Props) {
   useEffect(() => {
     void refreshBans();
   }, [refreshBans]);
-
-  const saveToken = () => {
-    community.setAdminToken(tokenInput.trim());
-    // Refresh bans with the new token applied; if it was wrong, the
-    // list will come back empty and the user notices.
-    void refreshBans();
-  };
 
   const announce = async () => {
     if (!announceBody.trim()) return;
@@ -107,42 +102,6 @@ export function AdminPanel({ community, rooms, onClose }: Props) {
       </header>
 
       <div className="scroll-thin flex-1 space-y-6 overflow-y-auto px-4 py-4">
-        {/* Token */}
-        <section>
-          <h3 className="mb-2 text-xs font-medium uppercase tracking-wider text-[var(--muted)]">
-            Admin token
-          </h3>
-          <p className="mb-2 text-xs text-[var(--muted)]">
-            Paste the value of <code>CLAUDIUS_CHAT_ADMIN_TOKEN</code> from
-            your chat server. Stored in this browser&apos;s localStorage.
-          </p>
-          <div className="flex gap-2">
-            <input
-              type="password"
-              value={tokenInput}
-              onChange={(e) => setTokenInput(e.target.value)}
-              placeholder="paste token…"
-              className="flex-1 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1 font-mono text-xs outline-none focus:ring-2 focus:ring-[var(--accent)]"
-            />
-            <button
-              type="button"
-              onClick={saveToken}
-              className="rounded-md bg-[var(--accent)] px-3 py-1 text-xs font-medium text-[var(--background)] hover:brightness-110"
-            >
-              Save
-            </button>
-          </div>
-          {community.isAdmin ? (
-            <p className="mt-1 text-[10px] text-[var(--muted)]">
-              Token set. Admin actions are unlocked.
-            </p>
-          ) : (
-            <p className="mt-1 text-[10px] text-[var(--muted)]">
-              No token saved. Admin actions will return 401.
-            </p>
-          )}
-        </section>
-
         {/* Announce */}
         <section>
           <h3 className="mb-2 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-[var(--muted)]">

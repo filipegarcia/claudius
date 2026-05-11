@@ -74,7 +74,12 @@ export function StatusLine({
 
   return (
     <div className="flex h-9 items-center gap-3 border-b border-[var(--border)] bg-[var(--panel)] px-4 text-xs text-[var(--muted)]">
-      <span className="relative inline-flex h-2.5 w-2.5 items-center justify-center" aria-hidden>
+      <span
+        data-testid="status-line-dot"
+        data-status={status}
+        className="relative inline-flex h-2.5 w-2.5 items-center justify-center"
+        aria-hidden
+      >
         {busy && (
           <span
             className={cn("absolute inline-flex h-full w-full animate-ping rounded-full opacity-60", color)}
@@ -95,7 +100,7 @@ export function StatusLine({
         onRefresh={onRefreshSessions}
       />
       <span className="opacity-50">·</span>
-      <span className="capitalize">{status}</span>
+      <span data-testid="status-line-text" className="capitalize">{status}</span>
       {model && (
         <>
           <span className="opacity-50">·</span>

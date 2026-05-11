@@ -2,7 +2,7 @@ import { promises as fs } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { encodeProjectDir } from "./auto-memory";
-import { costFromTokens, type TokenBreakdown } from "./cost-pricing";
+import { costFromTokens, type TokenBreakdown } from "@/lib/shared/cost-pricing";
 
 export type ByDay = {
   date: string; // YYYY-MM-DD (server local tz)

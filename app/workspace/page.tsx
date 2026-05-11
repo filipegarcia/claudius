@@ -1,16 +1,19 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Briefcase, Save } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ArrowLeft, Briefcase, FolderOpen, Image as ImageIcon, Save, Trash2, Type, X } from "lucide-react";
 import type { PermissionMode } from "@anthropic-ai/claude-agent-sdk";
 import { SideNav } from "@/components/nav/SideNav";
 import {
   PERMISSION_MODE_META,
   PERMISSION_MODE_ORDER,
 } from "@/components/chat/ModeSelector";
+import { DirectoryPicker } from "@/components/workspaces/DirectoryPicker";
 import { useWorkspaces } from "@/lib/client/useWorkspaces";
 import { cn } from "@/lib/utils/cn";
+import type { Icon } from "@/lib/server/workspaces-store";
 import {
   compilePattern,
   renderCommitPrefix,
@@ -32,11 +35,36 @@ const NOTIFICATION_KIND_LABELS: Record<NotificationKind, string> = {
   scheduled_run_finished: "Scheduled job finished",
 };
 
+const ICON_PRESET_COLORS = [
+  "#d97757",
+  "#5588dd",
+  "#9d6cdd",
+  "#2e9d8f",
+  "#dd8e44",
+  "#cc5577",
+  "#33aabb",
+  "#7d8a4c",
+];
+
 type ModeChoice = "" | PermissionMode;
+type PendingImage = { file: File; previewUrl: string };
 
 export default function WorkspacePage() {
-  const { items, activeId, update } = useWorkspaces();
+  const { items, activeId, update, uploadIcon, remove } = useWorkspaces();
+  const router = useRouter();
   const active = useMemo(() => items.find((w) => w.id === activeId) ?? null, [items, activeId]);
+
+  // Identity (name, root, icon) — these used to live in a modal triggered
+  // by clicking the active workspace tile. The tile is now a "home" button
+  // (back to chat); identity edits happen inline here.
+  const [name, setName] = useState("");
+  const [rootPath, setRootPath] = useState("");
+  const [showPicker, setShowPicker] = useState(false);
+  const [iconKind, setIconKind] = useState<"letter" | "image">("letter");
+  const [letter, setLetter] = useState("C");
+  const [color, setColor] = useState(ICON_PRESET_COLORS[0]);
+  const [pendingImage, setPendingImage] = useState<PendingImage | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const [model, setModel] = useState("");
   const [mode, setMode] = useState<ModeChoice>("");
@@ -62,6 +90,22 @@ export default function WorkspacePage() {
   const [hydratedFor, setHydratedFor] = useState<string | null>(null);
   if (active && hydratedFor !== active.id) {
     setHydratedFor(active.id);
+    setName(active.name);
+    setRootPath(active.rootPath);
+    setIconKind(active.icon.kind);
+    if (active.icon.kind === "letter") {
+      setLetter(active.icon.letter);
+      setColor(active.icon.color);
+    } else {
+      // Image workspaces: keep the previous color/letter inputs as defaults
+      // so toggling back to "letter" doesn't render an empty preview.
+      setLetter((active.name.match(/\S/)?.[0] ?? "C").toUpperCase());
+      setColor(ICON_PRESET_COLORS[0]);
+    }
+    if (pendingImage) {
+      URL.revokeObjectURL(pendingImage.previewUrl);
+      setPendingImage(null);
+    }
     setModel(active.defaults?.model ?? "");
     setMode(active.defaults?.permissionMode ?? "");
     setPrefixEnabled(active.commitPrefix?.enabled ?? false);
@@ -71,6 +115,20 @@ export default function WorkspacePage() {
     setNotifyEnabled(np?.enabled ?? false);
     setNotifyOnClick(np?.onClick ?? "jump");
     setNotifyKinds(np?.enabledKinds ?? DEFAULT_ENABLED_KINDS);
+  }
+
+  // Revoke object URLs on unmount. The above hydrate path already revokes
+  // when switching workspaces; this is the cleanup for component teardown.
+  useEffect(() => {
+    return () => {
+      if (pendingImage) URL.revokeObjectURL(pendingImage.previewUrl);
+    };
+  }, [pendingImage]);
+
+  function pickImageFile(file: File) {
+    if (pendingImage) URL.revokeObjectURL(pendingImage.previewUrl);
+    setPendingImage({ file, previewUrl: URL.createObjectURL(file) });
+    setIconKind("image");
   }
 
   const previewConfig: CommitPrefixConfig = useMemo(

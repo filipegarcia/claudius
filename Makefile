@@ -1,4 +1,4 @@
-.PHONY: install dev build start lint test test-ui ci site screenshots screenshots-full claudius-revert claudius-revert-all run up down restart status logs
+.PHONY: install dev build start lint unit test test-ui ci site screenshots screenshots-full claudius-revert claudius-revert-all run up down restart status logs
 
 install:
 	bun install --frozen-lockfile
@@ -15,6 +15,11 @@ start:
 lint:
 	bun run lint
 
+# Vitest suite (Node-side unit/integration). Runs under node because
+# better-sqlite3 doesn't load under bun yet — see vitest.config.ts.
+unit:
+	bun run test
+
 test:
 	bunx playwright install chromium
 	bun run test:e2e
@@ -22,7 +27,7 @@ test:
 test-ui:
 	bun run test:e2e:ui
 
-ci: install lint test
+ci: install lint unit test
 
 # ── Production runtime ─────────────────────────────────────────────────
 # `run` runs the production build in the foreground, logs to your terminal,
