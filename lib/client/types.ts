@@ -21,6 +21,13 @@ export type DisplayBlock =
     };
 
 export type DisplayMessage = {
+  /**
+   * Stable bubble identity. For assistant messages this is the Anthropic
+   * `message.id` so all SDK splits of one API response coalesce into one
+   * bubble (the SDK emits a separate `SDKAssistantMessage` per content block,
+   * each carrying its own wrapper uuid but sharing `message.id`). For user
+   * messages — which have no Anthropic id — this is the SDK wrapper uuid.
+   */
   uuid: string;
   role: "user" | "assistant";
   blocks: DisplayBlock[];
@@ -28,6 +35,13 @@ export type DisplayMessage = {
   streaming?: boolean;
   /** Set when the message belongs to a subagent (Task tool_use_id). */
   parentToolUseId?: string | null;
+  /**
+   * SDK wrapper uuids whose content has been folded into this bubble. Used to
+   * dedupe replays of the same split (same wrapper uuid arriving twice over
+   * SSE) and to resolve search hits / jumps that carry a wrapper uuid back to
+   * the merged bubble identity above.
+   */
+  foldedSdkUuids?: Set<string>;
   /**
    * Image attachments referenced by `[Image #N]` tokens in the text blocks.
    * Optimistically captured for user messages so the bubble inlines thumbnails.
@@ -271,8 +285,14 @@ export type ChatActions = {
   resolvePlan(decision: PlanDecision): Promise<void>;
   /** Fetch the page of messages older than the current head and prepend them. */
   loadOlder(): Promise<void>;
-  /** Paginate older pages until the given uuid is loaded; returns whether it landed. */
-  jumpToUuid(uuid: string): Promise<boolean>;
+  /**
+   * Paginate older pages until the given uuid is loaded. The argument may be
+   * either a bubble's primary uuid (the Anthropic `message.id` for assistants,
+   * or wrapper uuid for users) or any SDK wrapper uuid that was folded into a
+   * bubble. Returns the bubble's primary uuid on success (use this for
+   * highlight/scroll), or null if not found.
+   */
+  jumpToUuid(uuid: string): Promise<string | null>;
   /** Rename the current session (persists via SDK and broadcasts to the rail). */
   renameTitle(title: string): Promise<{ ok: true } | { ok: false; error: string }>;
   /** Resolve a pending AskUserQuestion form. */

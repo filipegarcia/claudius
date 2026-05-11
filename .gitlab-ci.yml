@@ -36,22 +36,24 @@ secret_detection:
 
 lint:
   stage: test
-  image: oven/bun:1
-  <<: *bun_cache
-  before_script:
-    # The Bun image is Debian-slim — `make` isn't preinstalled, but the
-    # Makefile is the single source of truth for install/lint/test commands
-    # so we want it available in CI too.
-    - apt-get update -qq && apt-get install -y --no-install-recommends make
+  # Use the same node-based image and install path as the `unit` job below.
+  # We tried `oven/bun:1 + bun install --frozen-lockfile --ignore-scripts`
+  # first — it worked locally but failed in CI with a misleading ESLint
+  # error ("could not find plugin react-hooks") that we couldn't trace to a
+  # root cause. node+npm is uniform with the unit job, doesn't need build
+  # tools (prebuild-install fetches the better-sqlite3 binary), and removes
+  # one source of CI-only surprises.
+  image: node:22-bookworm-slim
+  cache:
+    key:
+      prefix: npm
+      files:
+        - bun.lock
+    paths:
+      - node_modules/
   script:
-    # `make install` runs `bun install --frozen-lockfile`, which fails on
-    # `better-sqlite3`'s postinstall: prebuild-install refuses to run under
-    # bun (oven-sh/bun#4290) and the bun image has no node-gyp. ESLint
-    # never imports the native binding, so skip postinstall scripts here.
-    # The native module is exercised by the `unit` job below, which runs
-    # under node where prebuild-install works.
-    - bun install --frozen-lockfile --ignore-scripts
-    - make lint
+    - npm install --no-package-lock --no-audit --no-fund
+    - npx eslint
 
 # Vitest suite — pure logic, SQLite round-trips, in-process notification bus.
 # Runs under node (better-sqlite3 doesn't load under bun yet, see

@@ -26,11 +26,11 @@ test.describe("Customization description — manual edit (headed UI flow)", () =
     // Bootstrap copies the live source mirror (~324 files on this repo), then
     // the [id] route cold-compiles in `next dev` and the page renders the
     // description section + a 5s poll. On CI's slower runners the
-    // bootstrap-plus-compile can take >60s, so be generous on the timeout —
-    // and capture the customization id from the POST response directly so
-    // we don't depend on the redirect (and its compile) settling within the
-    // navigation-only `waitForURL` window.
-    test.setTimeout(180_000);
+    // bootstrap-plus-compile reliably crosses 2 minutes, so this spec gets
+    // an unusually large budget. The right long-term fix is running e2e
+    // against `next build && next start` in CI — dev-mode compile dominates
+    // — but that's a wider change than this test owns.
+    test.setTimeout(300_000);
 
     let id = "";
 
@@ -54,7 +54,7 @@ test.describe("Customization description — manual edit (headed UI flow)", () =
           (r) =>
             r.url().endsWith("/api/customizations") &&
             r.request().method() === "POST",
-          { timeout: 120_000 },
+          { timeout: 240_000 },
         ),
         page.getByRole("button", { name: /New customization/i }).click(),
       ]);
@@ -65,7 +65,7 @@ test.describe("Customization description — manual edit (headed UI flow)", () =
 
       // 3. Wait for the redirect to land on /customize/[id]. The compile
       // happens here; allow the rest of the test budget to flow through.
-      await page.waitForURL(CUST_ID_RE, { timeout: 120_000 });
+      await page.waitForURL(CUST_ID_RE, { timeout: 180_000 });
       expect(page.url()).toContain(`/customize/${id}`);
 
       // 4. The Feature description section renders empty-state with two

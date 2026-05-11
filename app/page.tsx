@@ -382,10 +382,13 @@ export default function Home() {
   const onPickHit = useCallback(
     async (hit: SearchHit) => {
       setSearchOpen(false);
-      const ok = await session.jumpToUuid(hit.messageUuid);
-      if (!ok) return;
-      setHighlightUuid(hit.messageUuid);
-      setTimeout(() => setHighlightUuid((prev) => (prev === hit.messageUuid ? null : prev)), 1500);
+      // Search hits carry the JSONL wrapper uuid; jumpToUuid resolves it to
+      // the bubble's primary uuid (Anthropic message.id), which is what the
+      // `data-message-uuid` attribute and highlight comparison key on.
+      const resolved = await session.jumpToUuid(hit.messageUuid);
+      if (!resolved) return;
+      setHighlightUuid(resolved);
+      setTimeout(() => setHighlightUuid((prev) => (prev === resolved ? null : prev)), 1500);
     },
     [session],
   );

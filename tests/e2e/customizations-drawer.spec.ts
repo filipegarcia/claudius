@@ -67,15 +67,17 @@ test.describe("CustomizationsDrawer", () => {
     await mountFixtureWorkspaces(page);
   });
 
-  test("count badge appears for inactive customizations", async ({ page }) => {
+  test("drawer trigger is visible when customizations exist", async ({ page }) => {
     await page.goto("/");
     const switcher = page.locator('[data-pane-name="workspace-switcher"]');
     // Drawer trigger: the only button inside the rail with the "Customizations"
     // suffix in its title attribute.
     const drawerBtn = switcher.locator('button[title*="ustomization"]').first();
     await expect(drawerBtn).toBeVisible();
-    // 2 customizations → badge shows "2".
-    await expect(drawerBtn).toContainText("2");
+    // No count badge is rendered on the tile any more (removed per design —
+    // the orange dot was noise on the rail). The trigger remains discoverable
+    // via its title attribute.
+    await expect(drawerBtn).not.toContainText(/^\d+$/);
   });
 
   test("opens popover on click, closes on Escape", async ({ page }) => {

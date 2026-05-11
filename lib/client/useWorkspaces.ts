@@ -54,8 +54,31 @@ export function useWorkspaces() {
       const res = await fetch(`/api/workspaces/${id}/select`, { method: "POST" });
       if (res.ok) {
         setActiveId(id);
-        // Reload to pick up new default cwd everywhere on the page.
-        if (typeof window !== "undefined") window.location.reload();
+        if (typeof window !== "undefined") {
+          // Reload to pick up the new default cwd everywhere on the page.
+          // Two URL patterns leak workspace-A state into workspace B if we
+          // just reload the current href:
+          //   - `/customize` / `/customize/<id>` are tied to a specific
+          //     customization record, not a workspace-relative path —
+          //     staying here leaves the user on a page that has nothing
+          //     to do with the workspace they just switched to.
+          //   - `/?session=X` (set by use-session.bindToSession via
+          //     replaceState) carries a session id from the previous
+          //     workspace. Boot would call createSession({ resume: X })
+          //     under B's cwd and silently re-bind to A's session in the
+          //     wrong workspace context.
+          // In both cases, send the user to `/` with a clean query string.
+          // Boot will resolve the new workspace's last-active tab from its
+          // per-cwd `.claudius.db` (or spawn a fresh session if none).
+          // Other routes (/files, /sessions, /git, …) are workspace-scoped
+          // and reload cleanly under the new cwd.
+          const path = window.location.pathname;
+          if (path === "/" || /^\/customize($|\/)/.test(path)) {
+            window.location.href = "/";
+          } else {
+            window.location.reload();
+          }
+        }
       }
     },
     [],
