@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { SideNav } from "@/components/nav/SideNav";
 import { StatusLine } from "@/components/chat/StatusLine";
+import { LoadingBar } from "@/components/chat/LoadingBar";
 import { MessageList } from "@/components/chat/MessageList";
 import { TodosBanner } from "@/components/chat/TodosBanner";
 import { RecapBanner } from "@/components/chat/RecapBanner";
@@ -44,7 +45,7 @@ function todosFingerprint(todos: { id: string; status: string }[]): string {
   return todos.map((t) => `${t.id}:${t.status}`).join("|");
 }
 import { useContextWatcher } from "@/lib/client/useContextWatcher";
-import { useNotifications } from "@/lib/client/useNotifications";
+import { useNotificationsContext } from "@/components/notifications/NotificationsProvider";
 import { findSlashCommand } from "@/lib/shared/slash-commands";
 
 type OverlayKind = "help" | "skills" | "cost" | "status" | "rename" | "context" | "worktrees" | null;
@@ -134,6 +135,41 @@ export default function Home() {
     window.history.replaceState(null, "", url.toString());
     void createNewSessionAction();
   }, [newParam, createNewSessionAction]);
+
+  // Reactive ?session= watcher. Same problem as ?new=1: when an in-app link
+  // (e.g. the notifications drawer's "jump to session" or the OS-toast
+  // click) does `router.push("/?session=B")` while we're already on `/`,
+  // the page doesn't remount and useSession's boot effect doesn't re-run,
+  // so the URL ends up pointing at session B while we're still wired to
+  // session A. Watch the param reactively and call switchSession when it
+  // drifts away from the active id. Guard against the boot-time race where
+  // sessionId is still null — useSession's boot effect will pick the right
+  // session up via the initial URL read.
+  //
+  // IMPORTANT: `activeSessionId` is read via a ref so it is NOT a dep of the
+  // effect. Otherwise tab clicks (which call `session.switchSession(B)` →
+  // `bindToSession` → `window.history.replaceState`) update the state but
+  // NOT Next.js's searchParams (replaceState is invisible to useSearchParams).
+  // The effect would then re-fire when `activeSessionId` advances to B, see
+  // `sessionParam` still at the stale "A", and immediately switch back to A
+  // — i.e. silently revert the user's tab click. Reacting only to URL
+  // changes preserves the original "URL push from notifications" use case
+  // without fighting the in-app tab switcher.
+  const sessionParam = searchParams?.get("session");
+  const switchSessionAction = session.switchSession;
+  const activeSessionIdRef = useRef<string | null>(null);
+  // Keep the ref in lock-step with the active session id, in an effect so React
+  // doesn't flag a render-time ref mutation. The ref-read inside the watcher
+  // effect below sees the latest value because effects run after this one.
+  useEffect(() => {
+    activeSessionIdRef.current = session.sessionId;
+  }, [session.sessionId]);
+  useEffect(() => {
+    if (!sessionParam) return;
+    if (!activeSessionIdRef.current) return; // boot effect handles the initial value
+    if (sessionParam === activeSessionIdRef.current) return;
+    switchSessionAction(sessionParam);
+  }, [sessionParam, switchSessionAction]);
 
   // ?prefill=<text> | ?prefill=1 → drop a draft into the prompt input on
   // mount. Used by Customize → "Auto-fix conflicts" so the user lands in
@@ -363,24 +399,14 @@ export default function Home() {
     },
     [session],
   );
-  const notifications = useNotifications();
-  const wasPendingRef = useRef(false);
-  const lastPermissionRef = useRef<string | null>(null);
-  useEffect(() => {
-    // Permission request just opened.
-    const cur = session.pendingPermission?.requestId ?? null;
-    if (cur && cur !== lastPermissionRef.current) {
-      notifications.notify("Claude needs permission", session.pendingPermission?.title ?? "");
-    }
-    lastPermissionRef.current = cur;
-  }, [session.pendingPermission, notifications]);
-  useEffect(() => {
-    // Pending edge: true → false means the assistant finished a turn.
-    if (wasPendingRef.current && !session.pending) {
-      notifications.notify("Claude finished a turn", session.cwd ?? "");
-    }
-    wasPendingRef.current = session.pending;
-  }, [session.pending, session.cwd, notifications]);
+  // Notification dispatch (permission_request, finished-a-turn, errors,
+  // scheduled-run-finished, etc.) now flows server-side through the
+  // NotificationBus → SSE → NotificationsProvider, which calls
+  // useNotifications.notify() for us. The ad-hoc effects that used to live
+  // here are intentionally gone — keeping them would double-fire OS
+  // notifications. The provider still honours the per-workspace prefs
+  // and the per-session block/snooze, so we get richer behaviour for free.
+  const notifications = useNotificationsContext();
 
   const showToast = useCallback((msg: string) => {
     setToast(msg);
@@ -751,9 +777,9 @@ export default function Home() {
           totalCostUsd={session.usage?.totalCostUsd}
           outputTokens={session.usage?.outputTokens}
           onOpenCost={() => setOverlay("cost")}
-          notificationsEnabled={notifications.enabled}
-          notificationsState={notifications.state}
-          onToggleNotifications={() => void notifications.setEnabled(!notifications.enabled)}
+          notificationsEnabled={notifications.workspaceEnabled}
+          notificationsState={notifications.permissionState}
+          onToggleNotifications={() => void notifications.toggleWorkspaceEnabled()}
           onCompact={() => handleSend("/compact")}
           onClear={() => {
             if (
@@ -763,6 +789,11 @@ export default function Home() {
               void session.createNewSession();
             }
           }}
+        />
+        <LoadingBar
+          ready={session.ready}
+          pending={session.pending}
+          replaying={session.replaying}
         />
         <PlanModeBanner
           mode={session.permissionMode}
@@ -866,6 +897,7 @@ export default function Home() {
               slashCommands={session.slashCommands}
               skills={session.skills}
               cwd={session.cwd}
+              sessionId={session.sessionId}
               onSend={handleSend}
               onInterrupt={session.interrupt}
               draftInjection={draftInjection}
@@ -885,6 +917,7 @@ export default function Home() {
         cwd={session.cwd}
         usage={session.usage}
         historicalTurnCount={session.messages.filter((m) => m.role === "assistant").length}
+        ready={session.ready}
         pending={session.pending}
         pendingPermission={session.pendingPermission}
         latestTodos={session.latestTodos}
@@ -964,9 +997,13 @@ export default function Home() {
             void session.resolvePlan({ kind: "reject", message: "User dismissed the plan." });
             showToast("Plan dismissed — still in plan mode");
           }}
-          onAccept={() => {
-            void session.resolvePlan({ kind: "accept" });
-            showToast("Plan accepted — switched to acceptEdits");
+          onAccept={(editedPlan) => {
+            void session.resolvePlan({ kind: "accept", editedPlan });
+            showToast(
+              editedPlan
+                ? "Edited plan accepted — switched to acceptEdits"
+                : "Plan accepted — switched to acceptEdits",
+            );
           }}
           onReject={() => {
             void session.resolvePlan({ kind: "reject" });

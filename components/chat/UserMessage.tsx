@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { Undo2 } from "lucide-react";
 import type { AttachedImage, DisplayMessage } from "@/lib/client/types";
+import { ImageLightbox } from "./ImageLightbox";
 
 type Props = {
   message: DisplayMessage;
@@ -42,6 +44,7 @@ const TOKEN_RE = /\[Image #(\d+)\]/g;
  * user typed `[Image #99]` literally) render as plain text.
  */
 function InlineUserText({ text, images }: { text: string; images: AttachedImage[] }) {
+  const [lightbox, setLightbox] = useState<AttachedImage | null>(null);
   const byOrdinal = new Map<number, AttachedImage>();
   for (const img of images) byOrdinal.set(img.ordinal, img);
 
@@ -65,12 +68,19 @@ function InlineUserText({ text, images }: { text: string; images: AttachedImage[
         key={key++}
         className="mx-1 inline-flex flex-col items-center align-middle"
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={`data:${img.mediaType};base64,${img.data}`}
-          alt={`Image #${ord}`}
-          className="h-12 w-12 rounded-md border border-[var(--border)] object-cover"
-        />
+        <button
+          type="button"
+          onClick={() => setLightbox(img)}
+          title={`Click to zoom · Image #${ord}`}
+          className="block overflow-hidden rounded-md border border-[var(--border)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={`data:${img.mediaType};base64,${img.data}`}
+            alt={`Image #${ord}`}
+            className="h-12 w-12 object-cover transition hover:brightness-110"
+          />
+        </button>
         <span className="mt-0.5 font-mono text-[9px] text-[var(--muted)]">#{ord}</span>
       </span>,
     );
@@ -83,8 +93,22 @@ function InlineUserText({ text, images }: { text: string; images: AttachedImage[
       </span>,
     );
   }
-  if (nodes.length === 0) {
-    return <div className="whitespace-pre-wrap text-sm leading-6">{text}</div>;
-  }
-  return <div className="text-sm leading-6">{nodes}</div>;
+  const content =
+    nodes.length === 0 ? (
+      <div className="whitespace-pre-wrap text-sm leading-6">{text}</div>
+    ) : (
+      <div className="text-sm leading-6">{nodes}</div>
+    );
+  return (
+    <>
+      {content}
+      {lightbox && (
+        <ImageLightbox
+          src={`data:${lightbox.mediaType};base64,${lightbox.data}`}
+          label={`Image #${lightbox.ordinal}`}
+          onClose={() => setLightbox(null)}
+        />
+      )}
+    </>
+  );
 }

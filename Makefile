@@ -1,4 +1,4 @@
-.PHONY: install dev build start lint test test-ui ci site screenshots screenshots-full claudius-revert claudius-revert-all
+.PHONY: install dev build start lint test test-ui ci site screenshots screenshots-full claudius-revert claudius-revert-all run up down restart status logs
 
 install:
 	bun install --frozen-lockfile
@@ -23,6 +23,33 @@ test-ui:
 	bun run test:e2e:ui
 
 ci: install lint test
+
+# ── Production runtime ─────────────────────────────────────────────────
+# `run` runs the production build in the foreground, logs to your terminal,
+# Ctrl-C stops it. `up` runs it detached in the background, logs to
+# .claudius/logs/claudius.log. Both bind to 127.0.0.1:3000 by default —
+# override with PORT / HOST env vars (e.g. `HOST=0.0.0.0 make up` to expose
+# on the LAN).
+#
+# Both auto-run `bun run build` first if no `.next` exists.
+
+run:
+	@bin/claudiusd run
+
+up:
+	@bin/claudiusd up
+
+down:
+	@bin/claudiusd down
+
+restart:
+	@bin/claudiusd restart
+
+status:
+	@bin/claudiusd status || true
+
+logs:
+	@bin/claudiusd logs
 
 # ── Marketing site (site/) ─────────────────────────────────────────────
 # `site` serves the static marketing page at http://localhost:4321.

@@ -23,12 +23,21 @@ export function useWorkspaces() {
     try {
       const res = await fetch("/api/workspaces");
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const d = (await res.json()) as { workspaces: Workspace[] };
+      const d = (await res.json()) as { workspaces: Workspace[]; activeId?: string | null };
       setItems(d.workspaces);
+      // Resolution order matches the server's `resolveActiveWorkspace`:
+      // cookie wins → server's hint (workspaces.json activeId) → first
+      // workspace. Falling back to the first item used to disagree with
+      // the server whenever there was no cookie (fresh browser, incognito,
+      // Playwright), so the workspace switcher highlighted one tile while
+      // the chat ran in another workspace's cwd.
       const cookie = readCookie();
+      const cookieMatch =
+        cookie && d.workspaces.some((w) => w.id === cookie) ? cookie : null;
+      const serverHint =
+        d.activeId && d.workspaces.some((w) => w.id === d.activeId) ? d.activeId : null;
       const fallback = d.workspaces[0]?.id ?? null;
-      const active = cookie && d.workspaces.some((w) => w.id === cookie) ? cookie : fallback;
-      setActiveId(active);
+      setActiveId(cookieMatch ?? serverHint ?? fallback);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {

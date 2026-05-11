@@ -4,6 +4,7 @@ import { basename, dirname, join } from "node:path";
 import { randomUUID } from "node:crypto";
 
 import type { CommitPrefixConfig } from "@/lib/shared/commit-prefix";
+import type { WorkspaceNotificationPrefs } from "@/lib/shared/notifications";
 
 export type IconLetter = { kind: "letter"; letter: string; color: string };
 export type IconImage = { kind: "image"; ext: string };
@@ -36,6 +37,12 @@ export type WorkspaceDefaults = {
   claudeMdExcludes?: string[];
   /** Extra directories to expose to the agent. */
   additionalDirectories?: string[];
+  /**
+   * Per-workspace browser-notification preferences. Drives the
+   * NotificationBus's `enabledKinds` filter and the client's OS-notification
+   * click behaviour. Absent ⇒ defaults defined in `lib/shared/notifications.ts`.
+   */
+  notifications?: WorkspaceNotificationPrefs;
 };
 
 /**

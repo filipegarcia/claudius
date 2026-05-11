@@ -92,7 +92,16 @@ export type PlanApprovalRequestEvent = {
 };
 
 export type PlanDecision =
-  | { kind: "accept" }
+  | {
+      kind: "accept";
+      /**
+       * When set, this becomes the plan text fed to the SDK's ExitPlanMode
+       * tool via `PermissionResult.updatedInput.plan`. The tool writes this
+       * to disk and the model's next turn references the edited version
+       * rather than what it originally drafted.
+       */
+      editedPlan?: string;
+    }
   | { kind: "reject"; message?: string };
 
 export type PlanDecisionSubmission = {
@@ -115,6 +124,27 @@ export type AskAnswerSubmission = {
   answers: AskAnswer[];
 };
 
+/**
+ * Server-side derived-state snapshot, replayed to every new SSE subscriber
+ * right after the tail-replay window finishes. Lets clients rehydrate
+ * state that was set by tool_uses earlier than the replay window — todos
+ * being the most painful loss (a long-running TodoWrite can pre-date the
+ * tail by many turns and disappear on tab-switch).
+ *
+ * Single-event-with-many-optional-fields shape is deliberate: keeps the
+ * SSE wire flat and lets later fields land without a new event type.
+ */
+export type SessionSnapshotEvent = {
+  type: "session_snapshot";
+  /**
+   * Raw `todos` payload from the most recent `TodoWrite` tool_use. The
+   * server doesn't normalize — it passes through whatever the model
+   * emitted — because the client already knows how to coerce that shape
+   * (see `latestTodos` in `lib/client/use-session.ts`).
+   */
+  todos?: unknown[];
+};
+
 export type ServerEvent =
   | { type: "sdk"; message: SDKMessage }
   | PermissionRequestEvent
@@ -125,7 +155,8 @@ export type ServerEvent =
   | ReplayDoneEvent
   | SessionTitleEvent
   | AskUserQuestionEvent
-  | PlanApprovalRequestEvent;
+  | PlanApprovalRequestEvent
+  | SessionSnapshotEvent;
 
 export type PermissionDecision =
   | { kind: "allow_once" }

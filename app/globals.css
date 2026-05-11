@@ -132,3 +132,13 @@ body {
 .animate-glyph-fade {
   animation: glyph-fade 350ms ease-out;
 }
+
+/* Indeterminate loading bar — a thin accent-colored thumb slides L→R while the
+ * agent is starting or working. Used by <LoadingBar />. */
+@keyframes indeterminate-slide {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(400%); }
+}
+.animate-indeterminate-slide {
+  animation: indeterminate-slide 1.4s ease-in-out infinite;
+}

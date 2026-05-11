@@ -1,0 +1,232 @@
+#!/usr/bin/env bash
+# claudiusd — local process manager for Claudius.
+#
+# Wraps `bun start` with two modes:
+#   • run         — foreground, logs to your terminal (Ctrl-C stops it)
+#   • up          — detached background, logs to ./.claudius/logs/claudius.log
+#
+# And the usual lifecycle: down, restart, status, logs.
+#
+# No external deps beyond bun + bash. State lives in the repo:
+#   ./.claudius/claudius.pid   — pid of the running `bun start`
+#   ./.claudius/logs/claudius.log
+#
+# Defaults to binding 127.0.0.1:3000 so the agent (which has filesystem +
+# tool access) isn't reachable from your LAN. Override with PORT/HOST env
+# vars: `HOST=0.0.0.0 PORT=8080 make up`.
+
+set -euo pipefail
+
+# Repo root = parent of this script's directory. Lets you call from anywhere.
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+STATE_DIR="$ROOT/.claudius"
+LOG_DIR="$STATE_DIR/logs"
+LOG_FILE="$LOG_DIR/claudius.log"
+PID_FILE="$STATE_DIR/claudius.pid"
+
+HOST="${HOST:-127.0.0.1}"
+PORT="${PORT:-3000}"
+
+# ── ANSI helpers ──────────────────────────────────────────────────────────
+if [ -t 1 ]; then
+  C_DIM="$(printf '\033[2m')"; C_RST="$(printf '\033[0m')"
+  C_OK="$(printf '\033[32m')"; C_ERR="$(printf '\033[31m')"
+  C_ACC="$(printf '\033[38;5;209m')"
+else
+  C_DIM=""; C_RST=""; C_OK=""; C_ERR=""; C_ACC=""
+fi
+
+log()  { printf '%s%s%s\n' "$C_DIM" "$1" "$C_RST"; }
+ok()   { printf '%s✓%s %s\n' "$C_OK" "$C_RST" "$1"; }
+warn() { printf '%s!%s %s\n' "$C_ACC" "$C_RST" "$1"; }
+fail() { printf '%s✗%s %s\n' "$C_ERR" "$C_RST" "$1" >&2; exit 1; }
+
+# ── Helpers ───────────────────────────────────────────────────────────────
+ensure_bun() {
+  command -v bun >/dev/null 2>&1 || fail "bun not on PATH — install from https://bun.sh/"
+}
+
+ensure_build() {
+  # `next start` needs `prerender-manifest.json` even when no routes prerender.
+  # A bare `.next/` directory from an aborted/dev-only run isn't enough — we
+  # check for the manifest specifically and rebuild if it's missing. (`make
+  # restart` after a botched build will then just work, instead of looping on
+  # a half-baked .next/.)
+  if [ -f "$ROOT/.next/prerender-manifest.json" ]; then return; fi
+  if [ -d "$ROOT/.next" ]; then
+    log "Found a partial .next/ (no prerender-manifest) — running a full \`bun run build\`"
+  else
+    log "No production build found — running \`bun run build\` (this can take a minute)"
+  fi
+  ( cd "$ROOT" && bun run build ) || fail "bun run build failed — fix the errors above and re-run"
+  ok "build complete"
+}
+
+mkstate() {
+  mkdir -p "$STATE_DIR" "$LOG_DIR"
+}
+
+# Read the PID file and return 0 if a live process exists, 1 otherwise. Sets
+# the global PID variable on success.
+PID=""
+read_pid() {
+  PID=""
+  [ -f "$PID_FILE" ] || return 1
+  local p
+  p="$(cat "$PID_FILE" 2>/dev/null || true)"
+  [ -n "$p" ] || return 1
+  if kill -0 "$p" 2>/dev/null; then
+    PID="$p"
+    return 0
+  fi
+  # Stale pid file — clean it.
+  rm -f "$PID_FILE"
+  return 1
+}
+
+# Print what's listening on $HOST:$PORT (if anything). Best-effort; on Linux
+# `lsof` may not be installed, in which case we fall through silently.
+port_owner() {
+  if command -v lsof >/dev/null 2>&1; then
+    lsof -nP -iTCP:"$PORT" -sTCP:LISTEN 2>/dev/null | awk 'NR>1 { print $2,$1; exit }'
+  fi
+}
+
+# ── Subcommands ───────────────────────────────────────────────────────────
+
+cmd_run() {
+  ensure_bun
+  ensure_build
+  if read_pid; then
+    fail "claudius already running in the background (pid $PID) — \`make down\` first"
+  fi
+  printf '%s𐌂 claudius%s — foreground on http://%s:%s  (Ctrl-C to stop)\n\n' \
+    "$C_ACC" "$C_RST" "$HOST" "$PORT"
+  exec env -C "$ROOT" PORT="$PORT" HOSTNAME="$HOST" bun start
+}
+
+cmd_up() {
+  ensure_bun
+  ensure_build
+  mkstate
+  if read_pid; then
+    warn "claudius already running (pid $PID) — \`make logs\` to follow, \`make restart\` to bounce"
+    exit 0
+  fi
+  # If something else is bound to the port, surface it instead of just
+  # letting `bun start` die a couple of seconds later.
+  local owner
+  owner="$(port_owner || true)"
+  if [ -n "$owner" ]; then
+    fail "$HOST:$PORT is already in use by $owner — stop it or pick a different PORT"
+  fi
+  # Detached spawn. setsid (Linux) or just nohup (macOS) lets the child
+  # outlive this shell. Append to the log so prior runs aren't clobbered.
+  (
+    cd "$ROOT"
+    if command -v setsid >/dev/null 2>&1; then
+      setsid env PORT="$PORT" HOSTNAME="$HOST" bun start >>"$LOG_FILE" 2>&1 < /dev/null &
+    else
+      nohup env PORT="$PORT" HOSTNAME="$HOST" bun start >>"$LOG_FILE" 2>&1 < /dev/null &
+    fi
+    echo "$!" > "$PID_FILE"
+    disown || true
+  )
+  # Give Next a beat to bind so status reflects reality.
+  sleep 1
+  if read_pid; then
+    ok "claudius started (pid $PID) — http://$HOST:$PORT"
+    printf '  logs: %s\n  tail: make logs\n  stop: make down\n' "$LOG_FILE"
+  else
+    fail "claudius failed to start — check $LOG_FILE"
+  fi
+}
+
+cmd_down() {
+  if ! read_pid; then
+    log "claudius is not running"
+    return 0
+  fi
+  log "stopping claudius (pid $PID)…"
+  kill -TERM "$PID" 2>/dev/null || true
+  # Give the SDK a moment to flush state; escalate if it doesn't budge.
+  local waited=0
+  while kill -0 "$PID" 2>/dev/null && [ "$waited" -lt 10 ]; do
+    sleep 1
+    waited=$((waited + 1))
+  done
+  if kill -0 "$PID" 2>/dev/null; then
+    warn "still alive after SIGTERM — sending SIGKILL"
+    kill -KILL "$PID" 2>/dev/null || true
+  fi
+  rm -f "$PID_FILE"
+  ok "stopped"
+}
+
+cmd_restart() {
+  cmd_down
+  cmd_up
+}
+
+cmd_status() {
+  if read_pid; then
+    ok "claudius running — pid $PID, http://$HOST:$PORT"
+    local owner
+    owner="$(port_owner || true)"
+    if [ -z "$owner" ]; then
+      warn "port $PORT does not appear to be bound yet (still starting?)"
+    fi
+    printf '\n%s── last 10 log lines ──%s\n' "$C_DIM" "$C_RST"
+    [ -f "$LOG_FILE" ] && tail -n 10 "$LOG_FILE" || printf '  (no log file)\n'
+  else
+    printf '%s○%s claudius not running\n' "$C_DIM" "$C_RST"
+    local owner
+    owner="$(port_owner || true)"
+    if [ -n "$owner" ]; then
+      warn "but something else owns :$PORT — $owner"
+    fi
+    return 1
+  fi
+}
+
+cmd_logs() {
+  [ -f "$LOG_FILE" ] || fail "no log file at $LOG_FILE — start claudius with \`make up\` first"
+  exec tail -F "$LOG_FILE"
+}
+
+cmd_help() {
+  cat <<EOF
+claudiusd — run Claudius in production mode.
+
+Usage:
+  bin/claudiusd <command>
+
+Commands:
+  run        foreground, logs to terminal (Ctrl-C stops)
+  up         start detached in the background
+  down       stop the background process
+  restart    down + up
+  status     show pid/port/last log lines
+  logs       tail -F the log file
+  help       this message
+
+Env overrides:
+  PORT       default 3000
+  HOST       default 127.0.0.1 (use 0.0.0.0 for LAN access — see caveat)
+
+State:
+  $STATE_DIR/claudius.pid
+  $LOG_FILE
+EOF
+}
+
+case "${1:-help}" in
+  run)     cmd_run ;;
+  up)      cmd_up ;;
+  down)    cmd_down ;;
+  restart) cmd_restart ;;
+  status)  cmd_status ;;
+  logs)    cmd_logs ;;
+  help|-h|--help) cmd_help ;;
+  *) fail "unknown command: $1 (try \`bin/claudiusd help\`)" ;;
+esac

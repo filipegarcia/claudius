@@ -3,16 +3,19 @@
 import { useEffect, useRef, useState, type DragEvent } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Plus, Plug, Settings, UserCircle } from "lucide-react";
+import { Plus, Plug, Settings, UserCircle, Radio } from "lucide-react";
 import { useWorkspaces } from "@/lib/client/useWorkspaces";
+import { useNotificationsContext } from "@/components/notifications/NotificationsProvider";
 import { WorkspaceIcon } from "@/components/workspaces/WorkspaceIcon";
 import { WorkspaceForm } from "@/components/workspaces/WorkspaceForm";
 import { CustomizationsDrawer } from "@/components/nav/CustomizationsDrawer";
+import { NotificationsDrawer } from "@/components/nav/NotificationsDrawer";
 import { cn } from "@/lib/utils/cn";
 import type { Workspace } from "@/lib/server/workspaces-store";
 
 export function WorkspaceSwitcher() {
   const { items, activeId, select, create, update, uploadIcon, remove, reorder } = useWorkspaces();
+  const { counts } = useNotificationsContext();
   const pathname = usePathname();
   const [showForm, setShowForm] = useState<null | { kind: "new" } | { kind: "edit"; workspace: Workspace }>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
@@ -172,6 +175,15 @@ export function WorkspaceSwitcher() {
                 )}
               >
                 <WorkspaceIcon workspace={w} size={40} />
+                {(counts[w.id] ?? 0) > 0 && (
+                  <span
+                    aria-label={`${counts[w.id]} unread notifications`}
+                    data-testid={`workspace-notification-badge-${w.id}`}
+                    className="absolute -right-0.5 -top-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-[var(--accent)] px-1 text-[9px] font-medium leading-none text-white shadow ring-1 ring-[var(--background)]"
+                  >
+                    {(counts[w.id] ?? 0) > 99 ? "99+" : counts[w.id]}
+                  </span>
+                )}
               </button>
             </div>
           );
@@ -190,9 +202,22 @@ export function WorkspaceSwitcher() {
         >
           <Plus className="h-4 w-4" />
         </button>
+        {/* Notifications drawer — sits above the system-tile divider so it
+            reads as a workspace-scoped surface, not a global setting. */}
+        <NotificationsDrawer activeWorkspaceId={activeId} />
         {/* System / global tiles — independent active highlight from the
             workspace tiles above. */}
         <div className="mt-3 h-px w-8 bg-[var(--border)]" />
+        {/* Community lives in the system-tile cluster because it's a
+            cross-workspace destination, not something tied to one project.
+            See `chat-server/` for the backend; the page renders an empty
+            state when NEXT_PUBLIC_CHAT_SERVER_URL is unset. */}
+        <SystemTile
+          href="/community"
+          label="Community"
+          active={pathname?.startsWith("/community") ?? false}
+          icon={<Radio className="h-4 w-4" />}
+        />
         <SystemTile
           href="/plugins"
           label="Plugins"

@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { query, type Options, type SDKMessage } from "@anthropic-ai/claude-agent-sdk";
 import { nextFireMs } from "@/lib/shared/cron";
 import type { ServerEvent } from "@/lib/shared/events";
+import { notificationBus } from "./notification-bus";
 import {
   appendRun,
   getJob,
@@ -212,6 +213,16 @@ class Scheduler {
     };
     await updateRun(finished);
     await saveJob({ ...job, lastRunAt: startedAt, lastStatus: finalStatus });
+
+    // Surface the run finish to the workspace notification inbox. The bus
+    // filters per workspace prefs; "skipped" runs (the in-flight collision)
+    // never reach this codepath, so they don't notify.
+    void notificationBus.recordSchedulerEvent(job.cwd, runId, job.id, {
+      type: "run_finished",
+      status: finalStatus,
+      ...(costUsd ? { costUsd } : {}),
+      ...(note ? { note } : {}),
+    });
 
     if (reArm) await this.arm(await this.refreshJob(job.id));
     return { runId };

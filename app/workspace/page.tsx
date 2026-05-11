@@ -16,6 +16,21 @@ import {
   renderCommitPrefix,
   type CommitPrefixConfig,
 } from "@/lib/shared/commit-prefix";
+import {
+  DEFAULT_ENABLED_KINDS,
+  type NotificationClickBehavior,
+  type NotificationKind,
+  type WorkspaceNotificationPrefs,
+} from "@/lib/shared/notifications";
+
+const NOTIFICATION_KIND_LABELS: Record<NotificationKind, string> = {
+  permission_request: "Permission requested",
+  ask_user_question: "Question asked",
+  plan_approval_request: "Plan to approve",
+  session_error: "Session error",
+  session_idle: "Long task finished",
+  scheduled_run_finished: "Scheduled job finished",
+};
 
 type ModeChoice = "" | PermissionMode;
 
@@ -36,6 +51,11 @@ export default function WorkspacePage() {
   const [template, setTemplate] = useState("");
   const [sampleBranch, setSampleBranch] = useState("");
 
+  // Notifications config — read from `defaults.notifications`.
+  const [notifyEnabled, setNotifyEnabled] = useState(false);
+  const [notifyOnClick, setNotifyOnClick] = useState<NotificationClickBehavior>("jump");
+  const [notifyKinds, setNotifyKinds] = useState<NotificationKind[]>(DEFAULT_ENABLED_KINDS);
+
   // Hydrate inputs from server state. Uses the React 19 "set state during
   // render" pattern (gated on the active workspace identity) so the lint
   // rule `react-hooks/set-state-in-effect` stays clean.
@@ -47,6 +67,10 @@ export default function WorkspacePage() {
     setPrefixEnabled(active.commitPrefix?.enabled ?? false);
     setBranchPattern(active.commitPrefix?.branchPattern ?? "{type}/{id}-{rest}");
     setTemplate(active.commitPrefix?.template ?? "{type} #{id} - ");
+    const np = active.defaults?.notifications;
+    setNotifyEnabled(np?.enabled ?? false);
+    setNotifyOnClick(np?.onClick ?? "jump");
+    setNotifyKinds(np?.enabledKinds ?? DEFAULT_ENABLED_KINDS);
   }
 
   const previewConfig: CommitPrefixConfig = useMemo(
@@ -72,6 +96,14 @@ export default function WorkspacePage() {
       else delete defaults.model;
       if (mode) defaults.permissionMode = mode;
       else delete defaults.permissionMode;
+      // Notifications: persist only the diff from the implicit defaults so the
+      // JSON stays compact for users who haven't customised anything.
+      const notifyPrefs: WorkspaceNotificationPrefs = {
+        enabled: notifyEnabled,
+        onClick: notifyOnClick,
+        enabledKinds: notifyKinds,
+      };
+      defaults.notifications = notifyPrefs;
       const commitPrefix: CommitPrefixConfig = {
         enabled: prefixEnabled,
         branchPattern: branchPattern.trim(),
@@ -91,11 +123,18 @@ export default function WorkspacePage() {
       (active.commitPrefix?.branchPattern ?? "{type}/{id}-{rest}") !== branchPattern ||
       (active.commitPrefix?.template ?? "{type} #{id} - ") !== template);
 
+  const notifyDirty =
+    !!active &&
+    ((active.defaults?.notifications?.enabled ?? false) !== notifyEnabled ||
+      (active.defaults?.notifications?.onClick ?? "jump") !== notifyOnClick ||
+      !sameKindSet(active.defaults?.notifications?.enabledKinds, notifyKinds));
+
   const dirty =
     !!active &&
     ((model.trim() || "") !== (active.defaults?.model ?? "") ||
       (mode || "") !== (active.defaults?.permissionMode ?? "") ||
-      prefixDirty);
+      prefixDirty ||
+      notifyDirty);
 
   return (
     <div className="flex h-full">
@@ -288,6 +327,93 @@ export default function WorkspacePage() {
                 </div>
               </section>
 
+              {/* Notifications */}
+              <section>
+                <header className="mb-3">
+                  <h2 className="text-base font-semibold">Notifications</h2>
+                  <p className="mt-1 text-[11px] text-[var(--muted)]">
+                    Browser notifications and the in-app inbox surface attention-worthy
+                    events from sessions and scheduled jobs in this workspace. Per-session
+                    block / snooze is in the session header.
+                  </p>
+                </header>
+
+                <div className="rounded-lg border border-[var(--border)] bg-[var(--panel)]/40 p-4">
+                  <label className="flex items-start gap-2">
+                    <input
+                      type="checkbox"
+                      checked={notifyEnabled}
+                      onChange={(e) => setNotifyEnabled(e.target.checked)}
+                      className="mt-0.5"
+                    />
+                    <span>
+                      <span className="text-xs font-medium">
+                        Enable notifications for this workspace
+                      </span>
+                      <span className="block text-[10px] text-[var(--muted)]">
+                        Requires browser permission. The inbox writes rows even when this
+                        is off — turning it off only suppresses OS notifications.
+                      </span>
+                    </span>
+                  </label>
+
+                  <div className="mt-4">
+                    <div className="mb-2 text-[11px] font-medium">When a notification is clicked</div>
+                    <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+                      <ClickRadio
+                        value="jump"
+                        current={notifyOnClick}
+                        onSelect={() => setNotifyOnClick("jump")}
+                        label="Jump to session"
+                        description="Focus the tab and navigate to the originating session or run."
+                      />
+                      <ClickRadio
+                        value="dismiss"
+                        current={notifyOnClick}
+                        onSelect={() => setNotifyOnClick("dismiss")}
+                        label="Just notify"
+                        description="Click only dismisses; you'll navigate manually from the inbox."
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mt-4">
+                    <div className="mb-2 text-[11px] font-medium">Trigger on</div>
+                    <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+                      {DEFAULT_ENABLED_KINDS.map((k) => {
+                        const checked = notifyKinds.includes(k);
+                        return (
+                          <label
+                            key={k}
+                            className={cn(
+                              "flex items-start gap-2 rounded-md border px-3 py-2 transition",
+                              checked
+                                ? "border-[var(--accent)] bg-[var(--accent)]/5"
+                                : "border-[var(--border)] bg-[var(--panel-2)]/40 hover:bg-[var(--panel-2)]",
+                            )}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={(e) => {
+                                setNotifyKinds((prev) => {
+                                  const set = new Set(prev);
+                                  if (e.target.checked) set.add(k);
+                                  else set.delete(k);
+                                  return DEFAULT_ENABLED_KINDS.filter((x) => set.has(x));
+                                });
+                              }}
+                              className="mt-0.5"
+                            />
+                            <span className="text-xs">{NOTIFICATION_KIND_LABELS[k]}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </section>
+
               <div className="sticky bottom-0 -mx-6 flex items-center justify-end gap-2 border-t border-[var(--border)] bg-[var(--background)]/95 px-6 py-3 backdrop-blur">
                 {savedTick > 0 && !dirty && (
                   <span className="text-[11px] text-emerald-400">Saved.</span>
@@ -308,6 +434,53 @@ export default function WorkspacePage() {
         </div>
       </main>
     </div>
+  );
+}
+
+function sameKindSet(
+  a: NotificationKind[] | undefined,
+  b: NotificationKind[],
+): boolean {
+  const aa = a ?? DEFAULT_ENABLED_KINDS;
+  if (aa.length !== b.length) return false;
+  const sa = new Set(aa);
+  for (const k of b) if (!sa.has(k)) return false;
+  return true;
+}
+
+function ClickRadio({
+  value,
+  current,
+  onSelect,
+  label,
+  description,
+}: {
+  value: NotificationClickBehavior;
+  current: NotificationClickBehavior;
+  onSelect: () => void;
+  label: string;
+  description: string;
+}) {
+  const active = current === value;
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={active}
+      onClick={onSelect}
+      className={cn(
+        "rounded-md border px-3 py-2 text-left transition",
+        active
+          ? "border-[var(--accent)] bg-[var(--accent)]/5"
+          : "border-[var(--border)] bg-[var(--panel-2)]/40 hover:bg-[var(--panel-2)]",
+      )}
+    >
+      <div className="flex items-center justify-between gap-2 text-xs font-medium">
+        <span>{label}</span>
+        {active && <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent)]" />}
+      </div>
+      <div className="mt-0.5 text-[10px] text-[var(--muted)]">{description}</div>
+    </button>
   );
 }
 

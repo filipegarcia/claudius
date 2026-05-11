@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";
+import { Suspense } from "react";
 import "./globals.css";
 import { PaneLabelsHost } from "@/components/overlays/PaneLabelsHost";
 import { CustomizationBanner } from "@/components/customize/CustomizationBanner";
+import { NotificationsProvider } from "@/components/notifications/NotificationsProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -51,11 +53,21 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           strategy="beforeInteractive"
           dangerouslySetInnerHTML={{ __html: themeBootstrap }}
         />
-        <div className="flex h-full flex-col">
-          <CustomizationBanner />
-          <div className="min-h-0 flex-1">{children}</div>
-        </div>
-        <PaneLabelsHost />
+        {/* Notifications provider wraps the whole app so the workspace
+            switcher (and per-tile badges) can read the unread counts before
+            the chat surface mounts. Suspense boundary is required because
+            the provider reads useSearchParams() — Next 16 will error a
+            static-rendered child if any descendant unconditionally reads
+            search params without a Suspense ancestor. */}
+        <Suspense fallback={null}>
+          <NotificationsProvider>
+            <div className="flex h-full flex-col">
+              <CustomizationBanner />
+              <div className="min-h-0 flex-1">{children}</div>
+            </div>
+            <PaneLabelsHost />
+          </NotificationsProvider>
+        </Suspense>
       </body>
     </html>
   );

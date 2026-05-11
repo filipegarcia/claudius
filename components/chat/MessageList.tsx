@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { AssistantMessage } from "./AssistantMessage";
 import { UserMessage } from "./UserMessage";
@@ -270,8 +270,8 @@ export function MessageList({
           ))}
           {pending && (
             <div className="flex items-center gap-2 text-xs text-[var(--muted)]">
-              <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--accent)]" />
-              Working…
+              <Loader2 className="h-3.5 w-3.5 animate-spin text-[var(--accent)]" />
+              <span className="font-medium text-[var(--foreground)]/80">Claude is working…</span>
             </div>
           )}
           <div ref={endRef} />

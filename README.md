@@ -33,6 +33,38 @@ If you don't have Bun yet: `curl -fsSL https://bun.sh/install | bash` (or `brew 
 | `bun run test:e2e` | Playwright end-to-end tests |
 | `bun run test:e2e:ui` | Playwright in UI mode |
 
+## Running it day-to-day
+
+For one-off hacking, `bun run dev` is fine. For something you want to keep running between shell sessions, use the Make targets — they wrap `bin/claudiusd`, a small PID-file daemon that handles start/stop/logs without needing PM2 or systemd.
+
+Both modes auto-run `bun run build` the first time, so there's no separate build step to remember.
+
+| Make target | Mode | Behaviour |
+| --- | --- | --- |
+| `make run` | Foreground | Logs stream to your terminal; Ctrl-C stops it. |
+| `make up` | Background | Detached, logs append to `./.claudius/logs/claudius.log`. Survives the parent shell exiting. |
+| `make down` | — | Stop the background process. SIGTERM, with SIGKILL fallback after 10 s. |
+| `make restart` | — | `down` then `up`. |
+| `make status` | — | Pid, port, last 10 log lines. Exit code 1 when not running. |
+| `make logs` | — | `tail -F` the log file. |
+
+Both bind to **`127.0.0.1:3000`** by default — Claudius drives the Claude Agent SDK with filesystem and tool access, so exposing it on your LAN is opt-in. Override via env:
+
+```bash
+PORT=8080 make up                  # different port, still loopback-only
+HOST=0.0.0.0 PORT=8080 make up     # reachable from your LAN (careful)
+```
+
+Runtime state lives in `./.claudius/` (gitignored):
+
+```
+.claudius/
+├── claudius.pid          # PID of the active background process
+└── logs/claudius.log     # appended on every `make up`
+```
+
+If the log file ever gets unwieldy: `make down && rm .claudius/logs/claudius.log && make up`.
+
 ## Layout
 
 - `app/` — App Router pages and `app/api/` routes (sessions, agents, MCP, plugins, schedule, hooks, permissions, memory, settings, workspaces, git, cost, files, …)

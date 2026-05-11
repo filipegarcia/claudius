@@ -100,7 +100,22 @@ export function AskUserQuestionPrompt({ request, onSubmit, onCancel, onMinimize 
   }
 
   function pickOther() {
-    update(active, (cur) => ({ ...cur, showOther: true, selectedLabels: q.multiSelect ? cur.selectedLabels : [] }));
+    update(active, (cur) => {
+      // Re-click on the Other row toggles it off — and we wipe the custom
+      // draft at the same time so an unchecked Other doesn't leak into the
+      // submitted answer (`submit()` only reads `custom` when showOther is
+      // true, but clearing is the safer signal and keeps the textarea
+      // empty on next toggle-on).
+      if (cur.showOther) return { ...cur, showOther: false, custom: "" };
+      return {
+        ...cur,
+        showOther: true,
+        // Single-select: picking Other clears the other selection so it
+        // behaves like switching to a different radio choice. Multi-select:
+        // leave existing picks intact — Other is just an additional answer.
+        selectedLabels: q.multiSelect ? cur.selectedLabels : [],
+      };
+    });
   }
 
   function setCustom(text: string) {
