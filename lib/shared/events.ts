@@ -156,6 +156,20 @@ export type SessionSnapshotEvent = {
    * (see `latestTodos` in `lib/client/use-session.ts`).
    */
   todos?: unknown[];
+  /**
+   * Latest top-level user prompt — the actual one the user typed, not a
+   * tool_result wrapper. Replayed so a client that reconnects to a long
+   * session (tail window dropped the prompt off the top) still gets the
+   * "what was I asking?" anchor pinned at the top of the chat. The
+   * client injects this into the message list if the prompt's `uuid`
+   * isn't already present from the SSE replay.
+   */
+  lastUserPrompt?: {
+    uuid: string;
+    text: string;
+    /** Epoch ms when the prompt was captured. */
+    at?: number;
+  };
 };
 
 export type ServerEvent =

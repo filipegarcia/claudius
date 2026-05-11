@@ -122,6 +122,17 @@ export function computeReplayWindow(
   if (lastUserTurnIdx >= 0 && lastUserTurnIdx < startIdx) {
     startIdx = lastUserTurnIdx;
   }
+  // TEMP diagnostic — confirm this code is actually being hit for the
+  // affected session. Remove once verified.
+  console.log("[replay-window]", {
+    bufferLen: buffer.length,
+    turns: turnIdx.length,
+    tail,
+    skip,
+    naiveStart: turnIdx[skip],
+    lastUserTurnIdx,
+    finalStart: startIdx,
+  });
   return { startIdx, hasMoreAbove: startIdx > 0 };
 }
 
@@ -134,13 +145,28 @@ export function computeReplayWindow(
  * code path (and the client-side `extractToolResult` mirrors this).
  */
 function isRealUserPrompt(content: unknown): boolean {
-  if (typeof content === "string") return content.length > 0;
-  if (!Array.isArray(content)) return false;
-  for (const block of content) {
-    const t = (block as { type?: string } | null)?.type;
-    if (t === "text" || t === "image") return true;
+  return extractUserPromptText(content) !== null;
+}
+
+/**
+ * Pull the plain-text body out of a user SDK message's `content`. Returns
+ * null for synthetic tool_result wrappers and for content that has no
+ * text body (e.g. image-only prompts — those still survive via the SSE
+ * replay path, the snapshot fallback just doesn't carry their pixels).
+ */
+function extractUserPromptText(content: unknown): string | null {
+  if (typeof content === "string") {
+    return content.length > 0 ? content : null;
   }
-  return false;
+  if (!Array.isArray(content)) return null;
+  let text = "";
+  for (const block of content) {
+    const b = block as { type?: string; text?: string } | null;
+    if (b?.type === "text" && typeof b.text === "string") {
+      text += b.text;
+    }
+  }
+  return text.length > 0 ? text : null;
 }
 
 export class Session {
@@ -937,11 +963,19 @@ export class Session {
     // the "load older" sentinel.
     fn({ type: "replay_done", hasMoreAbove });
     // Rehydrate derived state that lives upstream of the tail window. A
-    // session might have set its todos hundreds of turns ago — without
-    // this snapshot the client's banner stays empty on reconnect even
-    // though the tool_use is still in the canonical history on disk.
-    if (this.latestTodosSnapshot) {
-      fn({ type: "session_snapshot", todos: this.latestTodosSnapshot });
+    // session might have set its todos hundreds of turns ago, or — far
+    // more commonly — its last user prompt is buried under a long tool
+    // chain. Either way `replay_done` alone leaves the client without
+    // the "what was I asking?" anchor. Both pieces of state ride on the
+    // same snapshot event so reconnect paints them atomically.
+    if (this.latestTodosSnapshot || this.latestUserPromptSnapshot) {
+      fn({
+        type: "session_snapshot",
+        ...(this.latestTodosSnapshot ? { todos: this.latestTodosSnapshot } : {}),
+        ...(this.latestUserPromptSnapshot
+          ? { lastUserPrompt: this.latestUserPromptSnapshot }
+          : {}),
+      });
     }
     // Re-emit `ready` for tail-truncated sessions. `ready` is broadcast
     // exactly once at start() (sits at buffer index 0), so any session
@@ -1136,15 +1170,36 @@ export class Session {
    */
   private latestTodosSnapshot: unknown[] | null = null;
 
+  /**
+   * Latest top-level user prompt (the real one the user typed, not a
+   * tool_result wrapper). Tracked separately from the buffer so we can
+   * replay it on attach even when a long trailing assistant/tool chain
+   * has pushed the original event outside the requested tail window —
+   * `subscribe()` emits it inside the `session_snapshot` event after
+   * `replay_done`. Same shape of rehydration as the todos snapshot.
+   */
+  private latestUserPromptSnapshot: { uuid: string; text: string; at?: number } | null = null;
+
   private captureSnapshotState(event: ServerEvent): void {
     if (event.type !== "sdk") return;
-    const m = event.message as { type?: string; message?: { content?: unknown } };
-    // Top-level assistant message — subagent TodoWrites don't shape the
-    // main rail (those have parent_tool_use_id set and we don't track
-    // subagent state here).
-    if (m.type !== "assistant") return;
+    const m = event.message as {
+      type?: string;
+      uuid?: string;
+      message?: { content?: unknown };
+    };
     const parent = (event.message as { parent_tool_use_id?: string | null }).parent_tool_use_id;
     if (parent) return;
+    // Real user prompt → cache for the rehydration snapshot. Skip
+    // SDK-synthetic tool_result wrappers (same distinction as
+    // `isRealUserPrompt` used by computeReplayWindow).
+    if (m.type === "user") {
+      const text = extractUserPromptText(m.message?.content);
+      if (text && m.uuid) {
+        this.latestUserPromptSnapshot = { uuid: m.uuid, text, at: Date.now() };
+      }
+      return;
+    }
+    if (m.type !== "assistant") return;
     const content = m.message?.content;
     if (!Array.isArray(content)) return;
     for (const block of content as Array<{ type?: string; name?: string; input?: unknown }>) {
