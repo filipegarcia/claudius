@@ -12,6 +12,13 @@ type Tab = {
   /** Optional human-readable label; falls back to short id. */
   label?: string;
   status: TabStatus;
+  /**
+   * Unread notification count for this session — when > 0 the tab renders
+   * a small numeric badge after the label so the user can spot which
+   * background session has a permission request / ask-user-question waiting
+   * without expanding the notifications drawer.
+   */
+  unread?: number;
 };
 
 type Props = {
@@ -33,6 +40,29 @@ type Props = {
 const TAB_LABEL_MIN = 60;
 const TAB_LABEL_MAX = 600;
 
+/**
+ * Resolve the iTerm-style shortcut number shown on a tab.
+ *
+ *   length ≤ 9 → tab N (1-indexed) gets shortcut N.
+ *   length > 9 → tabs 1..8 keep 1..8, the LAST tab gets 9, everything in
+ *               between is unreachable by number (cycle with ⌘⇧← / →).
+ *
+ * Returns `null` when the tab gets no number. The matching keyboard handler
+ * uses the same rule so visual hint and binding never drift.
+ */
+export function shortcutForTabIndex(idx: number, length: number): number | null {
+  if (idx < 0 || idx >= length) return null;
+  if (length <= 9) return idx + 1;
+  if (idx < 8) return idx + 1;
+  if (idx === length - 1) return 9;
+  return null;
+}
+
+function modPrefix(): string {
+  if (typeof navigator === "undefined") return "Ctrl";
+  return /Mac|iPhone|iPad/.test(navigator.platform) ? "⌘" : "Ctrl";
+}
+
 export function SessionTabs({
   tabs,
   activeId,
@@ -46,6 +76,59 @@ export function SessionTabs({
   const [liveWidth, setLiveWidth] = useState<number | null>(null);
   const dragRef = useRef<{ startX: number; startW: number } | null>(null);
   const effectiveWidth = liveWidth ?? labelMaxWidth ?? 180;
+  const modKey = modPrefix();
+
+  // ── Global keyboard shortcuts ───────────────────────────────────────────
+  // ⌘⇧1..8 → tab at that index. ⌘⇧9 → last tab (iTerm rule, so the tail
+  // is always reachable past 9 sessions). ⌘⇧← / ⌘⇧→ → cycle.
+  //
+  // The effect re-binds when tabs / activeId / onSelect change. That's
+  // cheap (one add/removeEventListener pair) and keeps closure values
+  // fresh without the ref-in-render dance the lint rules dislike.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const metaOrCtrl = e.metaKey || e.ctrlKey;
+      if (!metaOrCtrl || !e.shiftKey || e.altKey) return;
+      if (tabs.length === 0) return;
+
+      // ⌘⇧1..9 — numeric shortcut. ⌘⇧9 is special: when there are >9 tabs
+      // it still selects the LAST one (iTerm-style), so the tail of the
+      // strip stays reachable.
+      if (/^Digit[1-9]$/.test(e.code)) {
+        const n = Number(e.code.slice(5));
+        let target: Tab | undefined;
+        if (n === 9) {
+          // 9 = last (only when at least 9 tabs exist — otherwise the
+          // canonical N-th tab already owns the same visual key).
+          if (tabs.length >= 9) target = tabs[tabs.length - 1];
+        } else if (n - 1 < tabs.length) {
+          target = tabs[n - 1];
+        }
+        if (target) {
+          e.preventDefault();
+          if (target.id !== activeId) onSelect(target.id);
+        }
+        return;
+      }
+
+      // ⌘⇧← / ⌘⇧→ — cycle. Always wraps. Yes, this overrides the macOS
+      // "extend selection to line start/end" inside text fields; the trade
+      // matches iTerm and is what the user asked for.
+      if (e.code === "ArrowRight" || e.code === "ArrowLeft") {
+        e.preventDefault();
+        const dir = e.code === "ArrowRight" ? 1 : -1;
+        const cur = tabs.findIndex((t) => t.id === activeId);
+        // If nothing is active, jump to the first or last tab depending on
+        // direction so the shortcut still has a sensible effect.
+        const baseline = cur === -1 ? (dir > 0 ? -1 : 0) : cur;
+        const next = tabs[(baseline + dir + tabs.length) % tabs.length];
+        if (next && next.id !== activeId) onSelect(next.id);
+        return;
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [tabs, activeId, onSelect]);
 
   function onResizeStart(e: React.PointerEvent<HTMLDivElement>) {
     e.preventDefault();
@@ -170,9 +253,11 @@ export function SessionTabs({
         ref={stripRef}
         className="flex min-w-0 flex-1 items-stretch gap-px overflow-hidden"
       >
-      {tabs.map((t) => {
+      {tabs.map((t, i) => {
         const active = t.id === activeId;
         const hidden = hiddenIds.has(t.id);
+        const shortcut = shortcutForTabIndex(i, tabs.length);
+        const shortcutHint = shortcut != null ? `\nShortcut: ${modKey}⇧${shortcut}` : "";
         return (
           <div
             key={t.id}
@@ -200,9 +285,23 @@ export function SessionTabs({
                 if (e.button === 1) onClose(t.id); // middle-click closes
               }}
               className="flex min-w-0 items-center gap-1.5"
-              title={`${t.label ?? t.id}\n${t.status}`}
+              title={`${t.label ?? t.id}\n${t.status}${shortcutHint}`}
             >
               <StatusDot status={t.status} />
+              {shortcut != null && (
+                // Sits OUTSIDE the truncated label so narrow tabs don't clip
+                // the digit. Mirrors the iTerm hint in the tab itself.
+                <span
+                  data-testid="session-tab-shortcut"
+                  aria-hidden
+                  className={cn(
+                    "shrink-0 font-mono text-[9px] leading-none tabular-nums",
+                    active ? "text-[var(--muted)]" : "text-[var(--muted)]/60",
+                  )}
+                >
+                  {shortcut}
+                </span>
+              )}
               <span
                 data-testid="session-tab-label"
                 style={{ maxWidth: `${effectiveWidth}px` }}
@@ -210,6 +309,19 @@ export function SessionTabs({
               >
                 {t.label ?? t.id.slice(0, 8)}
               </span>
+              {t.unread != null && t.unread > 0 && (
+                <span
+                  data-testid="session-tab-unread"
+                  aria-label={`${t.unread} unread notification${t.unread === 1 ? "" : "s"}`}
+                  title={`${t.unread} unread notification${t.unread === 1 ? "" : "s"}`}
+                  className={cn(
+                    "shrink-0 rounded-full px-1.5 py-px text-[9px] font-semibold leading-none tabular-nums",
+                    "bg-[var(--accent)]/85 text-[var(--background)]",
+                  )}
+                >
+                  {t.unread > 99 ? "99+" : t.unread}
+                </span>
+              )}
             </button>
             <button
               type="button"
@@ -269,8 +381,9 @@ export function SessionTabs({
               </div>
               <ul className="max-h-72 overflow-y-auto scroll-thin">
                 {tabs
-                  .filter((t) => hiddenIds.has(t.id))
-                  .map((t) => (
+                  .map((t, i) => ({ t, shortcut: shortcutForTabIndex(i, tabs.length) }))
+                  .filter(({ t }) => hiddenIds.has(t.id))
+                  .map(({ t, shortcut }) => (
                     <li key={t.id}>
                       <button
                         type="button"
@@ -286,6 +399,22 @@ export function SessionTabs({
                         <span className="min-w-0 flex-1 truncate font-mono">
                           {t.label ?? t.id.slice(0, 8)}
                         </span>
+                        {t.unread != null && t.unread > 0 && (
+                          <span
+                            aria-label={`${t.unread} unread notification${t.unread === 1 ? "" : "s"}`}
+                            className="shrink-0 rounded-full bg-[var(--accent)]/85 px-1.5 py-px text-[9px] font-semibold leading-none tabular-nums text-[var(--background)]"
+                          >
+                            {t.unread > 99 ? "99+" : t.unread}
+                          </span>
+                        )}
+                        {shortcut != null && (
+                          <span
+                            aria-hidden
+                            className="shrink-0 font-mono text-[9px] text-[var(--muted)]/70 tabular-nums"
+                          >
+                            {modKey}⇧{shortcut}
+                          </span>
+                        )}
                         <button
                           type="button"
                           onClick={(e) => {
@@ -338,7 +467,14 @@ function StatusDot({ status }: { status: TabStatus }) {
           : status === "idle"
             ? "bg-emerald-400"
             : "bg-[var(--muted)]/60"; // background
-  return <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", tone)} aria-hidden />;
+  return (
+    <span
+      data-testid="session-tab-status-dot"
+      data-status={status}
+      className={cn("h-1.5 w-1.5 shrink-0 rounded-full", tone)}
+      aria-hidden
+    />
+  );
 }
 
 /** Helper: derive the right TabStatus for the *active* tab from useSession state. */

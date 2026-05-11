@@ -1,0 +1,177 @@
+import { describe, expect, test } from "vitest";
+import { computeReplayWindow } from "@/lib/server/session";
+import type { ServerEvent } from "@/lib/shared/events";
+
+/**
+ * Regression coverage for the SSE replay-window slicing in
+ * `lib/server/session.ts`. The slicing decides which buffered events a
+ * newly-attached client receives on `subscribe()`.
+ *
+ * Bug we're guarding against (2026-05-11): in a Claude Code session
+ * with heavy tool use, a single user prompt is followed by many
+ * assistant turns (one per tool round-trip). The naive "last N top-
+ * level turns" tail then drops the user message off the top, and the
+ * client lands with no visible context for what was asked. The fix
+ * extends the window upward to always include the most recent user
+ * turn — these tests pin that behavior down.
+ *
+ * The slicing is a pure function over the event buffer, so we hand-build
+ * fixtures rather than spin up a real Session.
+ */
+
+function sdkUser(uuid: string): ServerEvent {
+  return {
+    type: "sdk",
+    message: {
+      type: "user",
+      uuid,
+      message: { content: [{ type: "text", text: `prompt ${uuid}` }] },
+    },
+  } as unknown as ServerEvent;
+}
+
+function sdkAssistant(uuid: string, opts?: { subagent?: boolean }): ServerEvent {
+  return {
+    type: "sdk",
+    message: {
+      type: "assistant",
+      uuid,
+      parent_tool_use_id: opts?.subagent ? "tool-x" : null,
+      message: {
+        model: "claude-sonnet-4-6",
+        content: [{ type: "text", text: `reply ${uuid}` }],
+      },
+    },
+  } as unknown as ServerEvent;
+}
+
+function sdkSystem(uuid: string): ServerEvent {
+  return {
+    type: "sdk",
+    message: { type: "system", subtype: "init", uuid },
+  } as unknown as ServerEvent;
+}
+
+describe("computeReplayWindow", () => {
+  test("returns the whole buffer when tail is unset", () => {
+    const buffer = [sdkUser("u1"), sdkAssistant("a1")];
+    expect(computeReplayWindow(buffer, undefined)).toEqual({
+      startIdx: 0,
+      hasMoreAbove: false,
+    });
+  });
+
+  test("returns the whole buffer when tail is 0 or negative", () => {
+    const buffer = [sdkUser("u1"), sdkAssistant("a1")];
+    expect(computeReplayWindow(buffer, 0)).toEqual({ startIdx: 0, hasMoreAbove: false });
+    expect(computeReplayWindow(buffer, -3)).toEqual({ startIdx: 0, hasMoreAbove: false });
+  });
+
+  test("keeps the whole buffer when turn count is within tail budget", () => {
+    // 3 top-level turns, tail=20 → nothing to drop.
+    const buffer = [sdkUser("u1"), sdkAssistant("a1"), sdkUser("u2")];
+    expect(computeReplayWindow(buffer, 20)).toEqual({
+      startIdx: 0,
+      hasMoreAbove: false,
+    });
+  });
+
+  test("slices to the last N turns when buffer exceeds tail budget (the easy case)", () => {
+    // 5 top-level turns, tail=2 → keep the last 2 turns. The slice starts at
+    // the index of the 4th turn (0-indexed: turn at position 3).
+    const buffer: ServerEvent[] = [
+      sdkUser("u1"), // turn 0, idx 0
+      sdkAssistant("a1"), // turn 1, idx 1
+      sdkUser("u2"), // turn 2, idx 2
+      sdkAssistant("a2"), // turn 3, idx 3
+      sdkUser("u3"), // turn 4, idx 4
+    ];
+    const out = computeReplayWindow(buffer, 2);
+    // skip = 5 - 2 = 3 → start at turnIdx[3] = idx 3 (a2).
+    // Last user turn (u3, idx 4) is INSIDE that window, so no extension.
+    expect(out).toEqual({ startIdx: 3, hasMoreAbove: true });
+  });
+
+  test("extends the window upward to include the most recent user turn (the bug)", () => {
+    // Simulates the failure mode: one user prompt followed by a long
+    // assistant/tool chain. tail=3 would normally keep just the last 3
+    // assistant turns and drop the user prompt — we want to extend it back.
+    const buffer: ServerEvent[] = [
+      sdkAssistant("a0"), // turn 0, idx 0 (e.g. session resume prelude)
+      sdkUser("u1"), // turn 1, idx 1  ← MUST be included
+      sdkAssistant("a1"), // turn 2, idx 2
+      sdkAssistant("a2"), // turn 3, idx 3
+      sdkAssistant("a3"), // turn 4, idx 4
+      sdkAssistant("a4"), // turn 5, idx 5
+      sdkAssistant("a5"), // turn 6, idx 6
+    ];
+    const out = computeReplayWindow(buffer, 3);
+    // Naive slice would start at turnIdx[4] = idx 4 — the user message
+    // would be dropped. With the fix, start extends back to idx 1.
+    expect(out).toEqual({ startIdx: 1, hasMoreAbove: true });
+  });
+
+  test("non-sdk and subagent events don't count as top-level turns", () => {
+    // System messages, ready events, and subagent (parent_tool_use_id != null)
+    // messages must not affect the turn count or the user-anchor.
+    const buffer: ServerEvent[] = [
+      sdkSystem("sys"), // idx 0 — not a turn
+      sdkUser("u1"), // idx 1 — turn
+      sdkAssistant("sub1", { subagent: true }), // idx 2 — subagent, not a turn
+      sdkAssistant("a1"), // idx 3 — turn
+      sdkAssistant("a2"), // idx 4 — turn
+      sdkAssistant("a3"), // idx 5 — turn
+    ];
+    const out = computeReplayWindow(buffer, 2);
+    // 4 top-level turns (u1, a1, a2, a3); tail=2 → naive start at turnIdx[2] = idx 4 (a2).
+    // u1 (idx 1) is BEFORE that window — anchor extends back to idx 1.
+    expect(out).toEqual({ startIdx: 1, hasMoreAbove: true });
+  });
+
+  test("does not extend when the most recent user turn is already in window", () => {
+    // The user message is in the trailing chunk; no extension needed.
+    const buffer: ServerEvent[] = [
+      sdkAssistant("a0"),
+      sdkAssistant("a1"),
+      sdkAssistant("a2"),
+      sdkUser("u1"), // most recent user turn, idx 3
+      sdkAssistant("a3"),
+    ];
+    const out = computeReplayWindow(buffer, 2);
+    // 5 turns, tail=2 → start at turnIdx[3] = idx 3 (u1). u1 is the boundary,
+    // no extension required.
+    expect(out).toEqual({ startIdx: 3, hasMoreAbove: true });
+  });
+
+  test("hasMoreAbove flips to false when the user-anchor extension reaches idx 0", () => {
+    // The user message IS the first event in the buffer; extending to
+    // include it means we're emitting from the very start, so there's
+    // nothing older to load.
+    const buffer: ServerEvent[] = [
+      sdkUser("u1"), // idx 0
+      sdkAssistant("a1"),
+      sdkAssistant("a2"),
+      sdkAssistant("a3"),
+      sdkAssistant("a4"),
+    ];
+    const out = computeReplayWindow(buffer, 2);
+    // Naive: turnIdx = [0, 1, 2, 3, 4]; skip=3; naive start at idx 3.
+    // u1 at idx 0 is older — extend back. startIdx=0 → hasMoreAbove=false.
+    expect(out).toEqual({ startIdx: 0, hasMoreAbove: false });
+  });
+
+  test("no user turn anywhere in buffer → behaves like the naive tail", () => {
+    // Edge case: a session that only ever broadcast assistant events
+    // (e.g. resumed prelude before any user input). The extension has
+    // nothing to anchor on; tail behaves the original way.
+    const buffer: ServerEvent[] = [
+      sdkAssistant("a0"),
+      sdkAssistant("a1"),
+      sdkAssistant("a2"),
+      sdkAssistant("a3"),
+    ];
+    const out = computeReplayWindow(buffer, 2);
+    // 4 turns, tail=2 → start at turnIdx[2] = idx 2. No user, no extension.
+    expect(out).toEqual({ startIdx: 2, hasMoreAbove: true });
+  });
+});

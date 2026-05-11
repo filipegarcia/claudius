@@ -80,9 +80,20 @@ type StoreShape = {
   workspaces: Workspace[];
 };
 
-const ROOT = join(homedir(), ".claude", ".claudius");
-const FILE = join(ROOT, "workspaces.json");
-export const ICONS_DIR = join(ROOT, "workspace-icons");
+// Resolved lazily so a test that sets `process.env.HOME` before exercising
+// the store sees its tmpdir reflected in every path. Top-level `const`s
+// would bake the real `homedir()` at module-load time, which fires before
+// any test fixture has a chance to run.
+function rootDir(): string {
+  return join(homedir(), ".claude", ".claudius");
+}
+function workspacesPath(): string {
+  return join(rootDir(), "workspaces.json");
+}
+/** Workspace-icon dir under the (lazily-resolved) claudius root. */
+export function iconsDir(): string {
+  return join(rootDir(), "workspace-icons");
+}
 
 const PALETTE = ["#d97757", "#5588dd", "#9d6cdd", "#2e9d8f", "#dd8e44", "#cc5577", "#33aabb", "#7d8a4c"];
 
@@ -99,7 +110,7 @@ export function defaultLetterIcon(name: string, id: string): IconLetter {
 
 async function readShape(): Promise<StoreShape | null> {
   try {
-    const buf = await fs.readFile(FILE, "utf8");
+    const buf = await fs.readFile(workspacesPath(), "utf8");
     const parsed = JSON.parse(buf) as StoreShape;
     if (parsed.version === 1 && Array.isArray(parsed.workspaces)) return parsed;
     return null;
@@ -111,12 +122,13 @@ async function readShape(): Promise<StoreShape | null> {
 }
 
 async function writeShape(shape: StoreShape): Promise<void> {
-  await fs.mkdir(ROOT, { recursive: true });
+  const file = workspacesPath();
+  await fs.mkdir(rootDir(), { recursive: true });
   // Atomic write: temp file + rename, sidesteps partial-write corruption when
   // two processes race.
-  const tmp = `${FILE}.${process.pid}.${Date.now()}.tmp`;
+  const tmp = `${file}.${process.pid}.${Date.now()}.tmp`;
   await fs.writeFile(tmp, JSON.stringify(shape, null, 2) + "\n", "utf8");
-  await fs.rename(tmp, FILE);
+  await fs.rename(tmp, file);
 }
 
 export async function ensureBootstrap(): Promise<StoreShape> {
@@ -193,9 +205,9 @@ export async function deleteWorkspace(id: string): Promise<boolean> {
   await writeShape(shape);
   // Best-effort: remove icon if any.
   try {
-    const icons = await fs.readdir(ICONS_DIR);
+    const icons = await fs.readdir(iconsDir());
     for (const f of icons) {
-      if (f.startsWith(id + ".")) await fs.unlink(join(ICONS_DIR, f)).catch(() => {});
+      if (f.startsWith(id + ".")) await fs.unlink(join(iconsDir(), f)).catch(() => {});
     }
   } catch {
     // ignore
@@ -244,7 +256,7 @@ export async function getActiveIdHint(): Promise<string | null> {
 
 export async function iconExt(id: string): Promise<string | null> {
   try {
-    const entries = await fs.readdir(ICONS_DIR);
+    const entries = await fs.readdir(iconsDir());
     for (const f of entries) {
       if (f.startsWith(id + ".")) return f.slice(id.length + 1);
     }
@@ -255,24 +267,24 @@ export async function iconExt(id: string): Promise<string | null> {
 }
 
 export async function writeIcon(id: string, ext: string, bytes: Buffer): Promise<void> {
-  await fs.mkdir(ICONS_DIR, { recursive: true });
+  await fs.mkdir(iconsDir(), { recursive: true });
   // Remove any prior icon for this id (different extension).
   try {
-    const entries = await fs.readdir(ICONS_DIR);
+    const entries = await fs.readdir(iconsDir());
     for (const f of entries) {
-      if (f.startsWith(id + ".")) await fs.unlink(join(ICONS_DIR, f)).catch(() => {});
+      if (f.startsWith(id + ".")) await fs.unlink(join(iconsDir(), f)).catch(() => {});
     }
   } catch {
     // ignore
   }
-  await fs.writeFile(join(ICONS_DIR, `${id}.${ext}`), bytes);
+  await fs.writeFile(join(iconsDir(), `${id}.${ext}`), bytes);
 }
 
 export async function readIcon(id: string): Promise<{ buf: Buffer; ext: string } | null> {
   const ext = await iconExt(id);
   if (!ext) return null;
   try {
-    const buf = await fs.readFile(join(ICONS_DIR, `${id}.${ext}`));
+    const buf = await fs.readFile(join(iconsDir(), `${id}.${ext}`));
     return { buf, ext };
   } catch {
     return null;
@@ -280,11 +292,11 @@ export async function readIcon(id: string): Promise<{ buf: Buffer; ext: string }
 }
 
 export function workspacesFile(): string {
-  return FILE;
+  return workspacesPath();
 }
 
 export function workspacesRoot(): string {
-  return ROOT;
+  return rootDir();
 }
 
 void dirname;

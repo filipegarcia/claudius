@@ -7,14 +7,17 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test:e2e": "playwright test",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test --project=chromium",
+    "test:e2e:live": "playwright test --project=chromium-live",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:debug": "playwright test --debug",
     "test:e2e:report": "playwright show-report",
     "site:preview": "bunx serve site -l 4321",
-    "site:screenshots": "playwright test tests/e2e/site-screenshots.spec.ts",
-    "site:screenshots:full": "SCREENSHOTS_INCLUDE_CHAT=1 playwright test tests/e2e/site-screenshots.spec.ts",
+    "site:screenshots": "playwright test --project=screenshots",
+    "site:screenshots:full": "SCREENSHOTS_INCLUDE_CHAT=1 playwright test --project=screenshots",
     "site:screenshots:customizations": "SCREENSHOTS_INCLUDE_CUSTOMIZATIONS=1 playwright test tests/e2e/customization-showcase.spec.ts"
   },
   "dependencies": {
@@ -46,6 +49,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.6"
   }
 }

@@ -55,6 +55,63 @@ type PendingPlan = {
   resolve: (result: PermissionResult) => void;
 };
 
+/**
+ * Decide which slice of an event buffer to replay on attach.
+ *
+ * The naive "keep the last N top-level turns" sliding window has a known
+ * failure mode in Claude Code sessions: a single user prompt can be
+ * followed by 30+ assistant turns (one per tool round-trip), so `tail=20`
+ * ends up showing only the bottom of an assistant chain with no visible
+ * context for what was asked. After picking the naive start by turn count
+ * we extend the window upward (smaller index) to always include the most
+ * recent top-level USER turn. The 1000-event buffer cap upstream bounds
+ * the worst-case replay size; in practice this adds at most a few dozen
+ * events for the long-tool-chain case.
+ *
+ * Exported for unit testing — the slicing is pure and worth pinning down
+ * separately from the Session lifecycle.
+ *
+ * @param buffer  Session events in chronological order.
+ * @param tail    Conversation-turn budget (counts only top-level,
+ *                non-subagent user/assistant SDK messages). `undefined`
+ *                or `<= 0` means "replay everything".
+ * @returns       `{ startIdx, hasMoreAbove }` — caller slices
+ *                `buffer.slice(startIdx)` and forwards `hasMoreAbove` on
+ *                the trailing `replay_done` so the client knows whether
+ *                to show the "load older" affordance.
+ */
+export function computeReplayWindow(
+  buffer: ReadonlyArray<ServerEvent>,
+  tail: number | undefined,
+): { startIdx: number; hasMoreAbove: boolean } {
+  if (typeof tail !== "number" || tail <= 0) {
+    return { startIdx: 0, hasMoreAbove: false };
+  }
+  const turnIdx: number[] = [];
+  let lastUserTurnIdx = -1;
+  for (let i = 0; i < buffer.length; i++) {
+    const ev = buffer[i];
+    if (ev.type !== "sdk") continue;
+    const m = ev.message as { type?: string; parent_tool_use_id?: string | null };
+    if (m.type !== "assistant" && m.type !== "user") continue;
+    if (m.parent_tool_use_id) continue;
+    turnIdx.push(i);
+    if (m.type === "user") lastUserTurnIdx = i;
+  }
+  const skip = Math.max(0, turnIdx.length - tail);
+  if (skip === 0) {
+    return { startIdx: 0, hasMoreAbove: false };
+  }
+  let startIdx = turnIdx[skip];
+  // Anchor on the most recent user turn even when it sits before the
+  // naive tail window — refresh/reattach on long sessions should land
+  // with what was asked still in view, not at the bottom of a tool spew.
+  if (lastUserTurnIdx >= 0 && lastUserTurnIdx < startIdx) {
+    startIdx = lastUserTurnIdx;
+  }
+  return { startIdx, hasMoreAbove: startIdx > 0 };
+}
+
 export class Session {
   readonly id: string;
   readonly cwd: string;
@@ -80,6 +137,16 @@ export class Session {
   private pendingAskQuestions = new Map<string, PendingAskQuestion>();
   private pendingPlans = new Map<string, PendingPlan>();
   private done = false;
+  // True between the user pushing input and the SDK emitting the matching
+  // `result` event. Surfaced via `getStatus()` so the SessionTabs strip can
+  // paint a "running" dot on non-active tabs whose live SSE isn't bound to
+  // this client — without it the inactive tabs are forever "background".
+  private turnInFlight = false;
+  // Last `turn_status` value broadcast over SSE. `broadcastTurnStatusIfChanged`
+  // compares `getStatus()` against this and emits only on transitions so we
+  // don't flood the wire with redundant events (every pending-map mutation
+  // calls into the helper).
+  private lastBroadcastStatus: "running" | "idle" | null = null;
   // Watches `~/.claude/projects/<encoded-cwd>/` for changes to this
   // session's JSONL so external writers (`claude --resume <id>` in the
   // terminal) trigger a live resync instead of waiting for a refresh.
@@ -323,11 +390,13 @@ export class Session {
           plan: planText,
           raw: input as Record<string, unknown>,
         });
+        this.broadcastTurnStatusIfChanged();
         ctx.signal.addEventListener("abort", () => {
           const p = this.pendingPlans.get(requestId);
           if (!p) return;
           this.pendingPlans.delete(requestId);
           p.resolve({ behavior: "deny", message: "Aborted" });
+          this.broadcastTurnStatusIfChanged();
         });
         return;
       }
@@ -355,12 +424,14 @@ export class Session {
             toolUseId: ctx.toolUseID,
             questions,
           });
+          this.broadcastTurnStatusIfChanged();
 
           ctx.signal.addEventListener("abort", () => {
             const p = this.pendingAskQuestions.get(requestId);
             if (!p) return;
             this.pendingAskQuestions.delete(requestId);
             p.resolve({ behavior: "deny", message: "Aborted" });
+            this.broadcastTurnStatusIfChanged();
           });
           return;
         }
@@ -380,12 +451,14 @@ export class Session {
       };
       this.pendingPermissions.set(requestId, { requestId, resolve, meta });
       this.broadcast(meta);
+      this.broadcastTurnStatusIfChanged();
 
       ctx.signal.addEventListener("abort", () => {
         const pending = this.pendingPermissions.get(requestId);
         if (!pending) return;
         this.pendingPermissions.delete(requestId);
         pending.resolve({ behavior: "deny", message: "Aborted" });
+        this.broadcastTurnStatusIfChanged();
       });
     });
   };
@@ -434,6 +507,7 @@ export class Session {
       ];
     }
     pending.resolve(result);
+    this.broadcastTurnStatusIfChanged();
     return true;
   }
 
@@ -466,6 +540,7 @@ export class Session {
     });
     if (answers.length === 0 || !hasAnyContent) {
       pending.resolve({ behavior: "deny", message: "User cancelled the question" });
+      this.broadcastTurnStatusIfChanged();
       return true;
     }
 
@@ -504,6 +579,7 @@ export class Session {
         ...(Object.keys(annotations).length > 0 ? { annotations } : {}),
       },
     });
+    this.broadcastTurnStatusIfChanged();
     return true;
   }
 
@@ -527,6 +603,7 @@ export class Session {
         behavior: "deny",
         message: decision.message ?? "User rejected the plan — keep iterating.",
       });
+      this.broadcastTurnStatusIfChanged();
       return true;
     }
 
@@ -559,6 +636,7 @@ export class Session {
     // message iterator — broadcast manually so the client UI's mode badge
     // (plan → acceptEdits) follows along immediately.
     this.broadcast({ type: "mode_changed", mode: "acceptEdits" });
+    this.broadcastTurnStatusIfChanged();
     return true;
   }
 
@@ -591,6 +669,8 @@ export class Session {
     // bus suppresses idle notifications because it never saw a user-input
     // signal for the session.
     notificationBus.markUserInput(this.id);
+    this.turnInFlight = true;
+    this.broadcastTurnStatusIfChanged();
 
     if (!images || images.length === 0) {
       const message = { role: "user" as const, content: text };
@@ -804,26 +884,9 @@ export class Session {
   }
 
   subscribe(fn: Subscriber, opts?: { tail?: number }): () => void {
-    const tail = opts?.tail;
-    let toReplay: ServerEvent[] = this.buffer;
-    let hasMoreAbove = false;
-    if (typeof tail === "number" && tail > 0) {
-      // Find indexes of top-level (non-subagent) assistant/user messages.
-      const turnIdx: number[] = [];
-      for (let i = 0; i < this.buffer.length; i++) {
-        const ev = this.buffer[i];
-        if (ev.type !== "sdk") continue;
-        const m = ev.message as { type?: string; parent_tool_use_id?: string | null };
-        if (m.type !== "assistant" && m.type !== "user") continue;
-        if (m.parent_tool_use_id) continue;
-        turnIdx.push(i);
-      }
-      const skip = Math.max(0, turnIdx.length - tail);
-      if (skip > 0) {
-        toReplay = this.buffer.slice(turnIdx[skip]);
-        hasMoreAbove = true;
-      }
-    }
+    const { startIdx, hasMoreAbove } = computeReplayWindow(this.buffer, opts?.tail);
+    const toReplay: ServerEvent[] =
+      startIdx === 0 ? this.buffer : this.buffer.slice(startIdx);
     // Drop ephemeral interactive events from the replay. `permission_request`
     // and `ask_user_question` represent live, in-flight UI prompts — once
     // resolved, replaying them on a new subscriber (reload, second tab,
@@ -867,6 +930,12 @@ export class Session {
     // SDK is running with a different mode. Echoing the authoritative
     // current mode here keeps the pill correct on every reconnect.
     fn({ type: "mode_changed", mode: this.permissionMode });
+    // Echo the current turn status. The buffer replay only carries
+    // streaming assistant chunks; on `replay_done` the client unconditionally
+    // clears `pending`, which would leave the StatusLine / tab dot stuck on
+    // "Idle" for a session that's still mid-turn (e.g. inside a long Bash).
+    // This event resyncs `pending` to the server's authoritative state.
+    fn({ type: "turn_status", status: this.getStatus() });
     // Now re-emit any interactive prompts that are STILL pending. The
     // historical replay above is filtered to "resolved" prompts; questions
     // and permission requests that the agent is still waiting on need to
@@ -927,6 +996,40 @@ export class Session {
   /** Current SSE subscriber count. */
   subscriberCount(): number {
     return this.subscribers.size;
+  }
+
+  /**
+   * Coarse session state for the tabs strip and SessionPicker. Inactive
+   * tabs need to know "is the agent currently producing output / awaiting my
+   * input?" — this collapses the underlying signals (`turnInFlight`, the
+   * three pending-decision maps) into a two-state answer so the StatusDot
+   * stays readable.
+   *
+   *   - `"running"`  → a turn is in flight, OR a permission / ask-user /
+   *                    plan-mode prompt is open and waiting for the user.
+   *   - `"idle"`     → in memory, last result has been received, no pending
+   *                    decisions. The session is ready to accept new input.
+   */
+  getStatus(): "running" | "idle" {
+    if (this.turnInFlight) return "running";
+    if (this.pendingPermissions.size > 0) return "running";
+    if (this.pendingAskQuestions.size > 0) return "running";
+    if (this.pendingPlans.size > 0) return "running";
+    return "idle";
+  }
+
+  /**
+   * Broadcast a `turn_status` event when (and only when) `getStatus()` has
+   * flipped since the last broadcast. Call this from every site that mutates
+   * `turnInFlight` or the three pending-decision maps — the dedupe keeps the
+   * wire clean while guaranteeing late-attaching tabs hear about a running
+   * turn even when no further assistant chunks arrive.
+   */
+  private broadcastTurnStatusIfChanged(): void {
+    const next = this.getStatus();
+    if (next === this.lastBroadcastStatus) return;
+    this.lastBroadcastStatus = next;
+    this.broadcast({ type: "turn_status", status: next });
   }
 
   private notifySubscriberCount(): void {
@@ -1031,6 +1134,8 @@ export class Session {
         // sort newest-active first. `result` is the SDK's per-turn done
         // marker — independent of subagent activity.
         if ((message as { type?: string }).type === "result") {
+          this.turnInFlight = false;
+          this.broadcastTurnStatusIfChanged();
           void touchSession(this.cwd, this.id).catch(() => {
             // index update is non-critical; never crash consume() over it
           });
@@ -1041,6 +1146,11 @@ export class Session {
       this.broadcast({ type: "error", message });
     } finally {
       this.done = true;
+      // Defensive: if the SDK iterator returned without ever emitting a
+      // `result` (crash / abort), the turn would otherwise look forever
+      // "running" to the tabs strip.
+      this.turnInFlight = false;
+      this.broadcastTurnStatusIfChanged();
     }
   }
 }

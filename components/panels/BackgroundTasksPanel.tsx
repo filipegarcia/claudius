@@ -14,6 +14,7 @@ import type {
 } from "@/lib/client/types";
 import type { PermissionRequestEvent } from "@/lib/shared/events";
 import { CostOverlay } from "@/components/overlays/CostOverlay";
+import { NotificationsDrawer } from "@/components/nav/NotificationsDrawer";
 import { CollapsibleSection } from "./widgets/CollapsibleSection";
 import { SessionCard } from "./widgets/SessionCard";
 import { ContextBar } from "./widgets/ContextBar";
@@ -141,7 +142,15 @@ export function BackgroundTasksPanel({
         )}
         <span className="ml-auto text-[var(--muted)]">{attention}</span>
       </div>
-      <div className="flex-1 overflow-y-auto scroll-thin px-2 py-2">
+      {/* Notifications inbox sits OUTSIDE the scroll container — the rail's
+          `overflow-y-auto` would otherwise clip the popover horizontally and
+          half of it would render behind the chat area (see screenshot
+          regression). Kept above the scrollable model/session card so the
+          bar stays pinned under the Activity header. */}
+      <div className="px-2 pt-2">
+        <NotificationsDrawer />
+      </div>
+      <div className="flex-1 overflow-y-auto scroll-thin px-2 pb-2">
         {/* Always-on group */}
         <SessionCard
           sessionId={sessionId}

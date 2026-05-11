@@ -13,29 +13,30 @@ import {
 } from "lucide-react";
 import { useNotificationCenter } from "@/lib/client/useNotificationCenter";
 import { useNotificationsContext } from "@/components/notifications/NotificationsProvider";
+import { useWorkspaces } from "@/lib/client/useWorkspaces";
 import { cn } from "@/lib/utils/cn";
 import type { NotificationKind, NotificationRow } from "@/lib/shared/notifications";
 
 /**
- * Bell tile + flyout panel rendered between the workspace tiles and the
- * system tiles in {@link WorkspaceSwitcher}. Shows the active workspace's
- * notification inbox; cross-workspace counts already live on the workspace
- * tiles themselves.
+ * Notification bar + flyout panel rendered at the top of the right-rail
+ * Activity panel, above the session ("model") card. Shows the active
+ * workspace's notification inbox; cross-workspace counts still live on
+ * the workspace tiles in {@link WorkspaceSwitcher}.
  *
- * Conventions copied from {@link CustomizationsDrawer}:
- *   • absolute-positioned popover to the right
+ * Reads `activeId` from {@link useWorkspaces} so callers don't have to
+ * thread the workspace id through panel props.
+ *
+ * Conventions:
+ *   • absolute-positioned popover anchored below the trigger
  *   • click-outside + Escape closes
  *   • badge styling matches the workspace-tile pattern
  */
-export function NotificationsDrawer({
-  activeWorkspaceId,
-}: {
-  activeWorkspaceId: string | null;
-}) {
+export function NotificationsDrawer() {
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const { permissionState, requestPermission } = useNotificationsContext();
+  const { activeId: activeWorkspaceId } = useWorkspaces();
   const center = useNotificationCenter(activeWorkspaceId);
   const unread = center.unread;
   // Only show unread rows in the drawer — clicking a notification (or
@@ -81,25 +82,23 @@ export function NotificationsDrawer({
   const titleAttr = unread > 0 ? `${unread} unread notifications` : "Notifications";
 
   return (
-    <div className="relative">
+    <div className="relative mb-3">
       <button
         ref={triggerRef}
         onClick={() => setOpen((o) => !o)}
         title={titleAttr}
         data-testid="notifications-drawer-trigger"
         className={cn(
-          "relative flex h-10 w-10 items-center justify-center rounded-lg transition",
-          unread > 0
-            ? "text-[var(--foreground)] hover:bg-[var(--panel-2)]"
-            : "text-[var(--muted)] hover:bg-[var(--panel-2)] hover:text-[var(--foreground)]",
+          "flex w-full items-center gap-1.5 rounded-md border border-[var(--border)] bg-[var(--panel-2)]/40 px-2 py-1.5 text-left text-[11px] transition hover:bg-[var(--panel-2)]",
+          unread > 0 ? "text-[var(--foreground)]" : "text-[var(--muted)]",
         )}
       >
-        <Bell className="h-4 w-4" />
+        <Bell className="h-3 w-3 text-[var(--accent)]" />
+        <span className="font-medium">Notifications</span>
         {unread > 0 && (
           <span
-            aria-hidden
             data-testid="notifications-drawer-badge"
-            className="absolute -right-0.5 -top-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-[var(--accent)] px-1 text-[9px] font-medium leading-none text-white shadow ring-1 ring-[var(--background)]"
+            className="ml-auto flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-[var(--accent)] px-1 text-[9px] font-medium leading-none text-white"
           >
             {unread > 99 ? "99+" : unread}
           </span>
@@ -109,7 +108,7 @@ export function NotificationsDrawer({
         <div
           ref={panelRef}
           data-testid="notifications-drawer-panel"
-          className="absolute left-[calc(100%+12px)] top-0 z-50 w-80 rounded-md border border-[var(--border)] bg-[var(--panel)] py-1 shadow-lg"
+          className="absolute right-0 top-full z-50 mt-1 w-80 rounded-md border border-[var(--border)] bg-[var(--panel)] py-1 shadow-lg"
         >
           <div className="flex items-center justify-between gap-2 px-3 py-2">
             <span className="text-[11px] font-medium uppercase tracking-wide text-[var(--muted)]">
@@ -156,10 +155,13 @@ export function NotificationsDrawer({
                   <NotificationRowItem
                     key={row.id}
                     row={row}
-                    onClick={async () => {
-                      await center.markRead(row.id);
+                    onClick={() => {
+                      // Close the drawer and jump FIRST. Marking read goes in
+                      // parallel — awaiting its network round-trip would delay
+                      // (and previously sometimes silently lose) the jump.
                       setOpen(false);
-                      await center.jumpTo(row);
+                      void center.markRead(row.id);
+                      void center.jumpTo(row);
                     }}
                     onMarkRead={() => void center.markRead(row.id)}
                   />
@@ -183,6 +185,12 @@ function NotificationRowItem({
   onMarkRead: () => void;
 }) {
   const unread = row.readAt == null;
+  // NB: row wrapper is a div-role-button rather than a real <button>. The
+  // inline "Mark read" affordance below MUST be a real <button> so it can
+  // own the keyboard/focus contract, and nested <button>s are invalid HTML
+  // — Chrome/Safari deliver clicks inconsistently to the outer button when
+  // there's an interactive descendant, which silently broke the jump-to-
+  // session action.
   return (
     <li
       data-testid={`notification-row-${row.id}`}
@@ -190,9 +198,19 @@ function NotificationRowItem({
       data-unread={unread ? "true" : "false"}
       className={cn("border-b border-[var(--border)] last:border-b-0", unread && "bg-[var(--panel-2)]/40")}
     >
-      <button
-        onClick={onClick}
-        className="flex w-full items-start gap-2 px-3 py-2 text-left hover:bg-[var(--panel-2)]"
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={() => {
+          void onClick();
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            void onClick();
+          }
+        }}
+        className="flex w-full cursor-pointer items-start gap-2 px-3 py-2 text-left hover:bg-[var(--panel-2)] focus:outline-none focus-visible:bg-[var(--panel-2)]"
       >
         <span className="mt-0.5 shrink-0 text-[var(--muted)]">
           <KindIcon kind={row.kind} />
@@ -213,6 +231,7 @@ function NotificationRowItem({
             <span>{formatRelative(row.createdAt)}</span>
             {unread && (
               <button
+                type="button"
                 onClick={(e) => {
                   e.stopPropagation();
                   onMarkRead();
@@ -224,7 +243,7 @@ function NotificationRowItem({
             )}
           </span>
         </span>
-      </button>
+      </div>
     </li>
   );
 }

@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
-import { ShieldCheck, Wifi, WifiOff } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Bell, BellOff, ShieldCheck, Wifi, WifiOff } from "lucide-react";
 import { SideNav } from "@/components/nav/SideNav";
 import { useCommunity } from "@/lib/client/use-community";
+import { useCommunityNotifications } from "@/components/community/CommunityNotificationsProvider";
 import { RoomList } from "@/components/community/RoomList";
 import { MessageList } from "@/components/community/MessageList";
 import { PinnedBanner } from "@/components/community/PinnedBanner";
@@ -13,9 +14,15 @@ import { AdminPanel } from "@/components/community/AdminPanel";
 
 /**
  * /community — embedded chat for everyone running Claudius. Talks to
- * the standalone chat-server defined in NEXT_PUBLIC_CHAT_SERVER_URL.
+ * the standalone chat-server defined in NEXT_PUBLIC_CLAUDIUS_CHAT_SERVER_URL.
  * If that env var is unset, we render a friendly empty state so dev
  * builds don't crash.
+ *
+ * The admin UI (shield icon + slide-over panel + per-message moderation)
+ * only renders when `community.isAdmin` is true. That flag is set by
+ * /api/community/admin/check — server-side it inspects
+ * `CLAUDIUS_CHAT_ADMIN_TOKEN`. Non-admin installs never see admin
+ * controls.
  *
  * Layout:
  *   ┌──────────┬──────────────────────────────────┬───────────┐
@@ -28,7 +35,56 @@ import { AdminPanel } from "@/components/community/AdminPanel";
  */
 export default function CommunityPage() {
   const community = useCommunity();
+  const notifications = useCommunityNotifications();
   const [adminOpen, setAdminOpen] = useState(false);
+
+  const toggleNotifications = useCallback(async () => {
+    const next = !notifications.enabled;
+    const accepted = await notifications.setEnabled(next);
+    // Surface denied / unsupported permission as an inline alert so the
+    // user understands the toggle "flipped on" but won't actually fire OS
+    // toasts. Cheap UX, no extra component.
+    if (
+      accepted &&
+      next &&
+      typeof Notification !== "undefined" &&
+      Notification.permission === "denied"
+    ) {
+      alert(
+        "Notifications are blocked for this site in your browser settings. " +
+          "Unread badges will still appear, but no desktop toasts will be shown until you allow notifications.",
+      );
+    }
+  }, [notifications]);
+
+  // Tell the notifications hook which room we're actively viewing, so
+  // landing on a channel only clears that channel's unread badge. We pair
+  // the room slug with tab visibility — when the tab goes background we
+  // tell the hook "viewing nothing" so badges/toasts resume for the room
+  // the user can't see right now anyway.
+  const { setViewingRoom, setMyNick } = notifications;
+  useEffect(() => {
+    const update = () => {
+      const visible =
+        typeof document === "undefined" ? true : !document.hidden;
+      setViewingRoom(visible ? community.currentRoom : null);
+    };
+    update();
+    if (typeof document !== "undefined") {
+      document.addEventListener("visibilitychange", update);
+      return () => {
+        document.removeEventListener("visibilitychange", update);
+        setViewingRoom(null);
+      };
+    }
+    return () => setViewingRoom(null);
+  }, [community.currentRoom, setViewingRoom]);
+
+  // Keep the notifications hook in sync with the user's nick so it can
+  // ignore their own messages when computing unread counts.
+  useEffect(() => {
+    setMyNick(community.nick);
+  }, [community.nick, setMyNick]);
 
   const pinnedMessage = useMemo(
     () =>
@@ -70,21 +126,24 @@ export default function CommunityPage() {
     [community],
   );
 
-  // ── Empty states ─────────────────────────────────────────────────
+  // ── Empty state ──────────────────────────────────────────────────
 
   if (!community.configured) {
     return (
-      <div className="flex h-full">
+      <div className="flex h-full" data-testid="community-empty-state">
         <SideNav />
         <main className="flex flex-1 items-center justify-center p-8">
           <div className="max-w-md rounded-2xl border border-[var(--border)] bg-[var(--panel)] p-6">
-            <h1 className="text-base font-semibold">Community chat is not configured.</h1>
+            <h1 className="text-base font-semibold">Community chat not configured</h1>
             <p className="mt-2 text-sm text-[var(--muted)]">
-              Set <code className="font-mono">NEXT_PUBLIC_CHAT_SERVER_URL</code>{" "}
-              to the URL of a running <code className="font-mono">chat-server</code>{" "}
-              instance and rebuild Claudius. See{" "}
-              <code className="font-mono">chat-server/README.md</code> for
-              deployment instructions.
+              Community chat runs on a small standalone{" "}
+              <code className="font-mono">chat-server</code> — institutions
+              typically deploy their own and point Claudius at it. Set{" "}
+              <code className="font-mono">NEXT_PUBLIC_CLAUDIUS_CHAT_SERVER_URL</code>{" "}
+              in your <code className="font-mono">.env.local</code> (or your
+              deployment environment) to the server URL, then restart
+              Claudius. See <code className="font-mono">chat-server/README.md</code>{" "}
+              for how to deploy one.
             </p>
           </div>
         </main>
@@ -112,6 +171,7 @@ export default function CommunityPage() {
           rooms={community.rooms}
           currentSlug={community.currentRoom}
           onSelect={community.setCurrentRoom}
+          unreadByRoom={notifications.unreadByRoom}
         />
         {community.roomsError && (
           <p className="px-3 text-[10px] text-[var(--accent)]">
@@ -147,18 +207,43 @@ export default function CommunityPage() {
             )}
             <button
               type="button"
-              onClick={() => setAdminOpen((v) => !v)}
-              title="Admin"
+              onClick={toggleNotifications}
+              title={
+                notifications.enabled
+                  ? "Notifications: on (click to mute)"
+                  : "Notifications: off (click to enable)"
+              }
+              aria-pressed={notifications.enabled}
+              data-testid="community-notifications-toggle"
               className={
                 "rounded p-1 transition " +
-                (adminOpen
+                (notifications.enabled
                   ? "bg-[var(--panel-2)] text-[var(--accent)]"
                   : "text-[var(--muted)] hover:bg-[var(--panel-2)] hover:text-[var(--foreground)]")
               }
-              data-testid="community-admin-toggle"
             >
-              <ShieldCheck className="h-4 w-4" />
+              {notifications.enabled ? (
+                <Bell className="h-4 w-4" />
+              ) : (
+                <BellOff className="h-4 w-4" />
+              )}
             </button>
+            {community.isAdmin && (
+              <button
+                type="button"
+                onClick={() => setAdminOpen((v) => !v)}
+                title="Admin"
+                className={
+                  "rounded p-1 transition " +
+                  (adminOpen
+                    ? "bg-[var(--panel-2)] text-[var(--accent)]"
+                    : "text-[var(--muted)] hover:bg-[var(--panel-2)] hover:text-[var(--foreground)]")
+                }
+                data-testid="community-admin-toggle"
+              >
+                <ShieldCheck className="h-4 w-4" />
+              </button>
+            )}
           </div>
         </header>
 
@@ -187,7 +272,7 @@ export default function CommunityPage() {
         />
       </main>
 
-      {adminOpen && (
+      {adminOpen && community.isAdmin && (
         <AdminPanel
           community={community}
           rooms={community.rooms}

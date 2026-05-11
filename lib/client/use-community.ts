@@ -8,6 +8,7 @@ import type {
   Message,
   Room,
 } from "@/lib/shared/community";
+import { getCommunityServerUrl } from "@/lib/client/community-server-url";
 
 /**
  * Hook for the /community page.
@@ -21,7 +22,11 @@ import type {
  * State surface:
  *   - `rooms` / `currentRoom` — room list + active room slug
  *   - `messages` / `pinnedId` — current room's view
- *   - `nick` / `adminToken` — persisted in localStorage
+ *   - `nick` — persisted in localStorage
+ *   - `isAdmin` — fetched from /api/community/admin/check (server-side
+ *     decides based on CLAUDIUS_CHAT_ADMIN_TOKEN). The token never reaches
+ *     this hook; admin calls go through /api/community/admin/* which the
+ *     server proxies with the header injected.
  *   - `connected` — true once SSE handshake completes
  *
  * Action surface:
@@ -35,28 +40,56 @@ import type {
  *   - unban(id)             — admin
  */
 
-const SERVER_URL = process.env.NEXT_PUBLIC_CHAT_SERVER_URL ?? "";
 const LS_NICK = "claudius.community.nick";
-const LS_TOKEN = "claudius.community.adminToken";
+// Legacy key from when the admin token was pasted into the UI. We clean
+// it up on mount so a stale token doesn't leak the previous trust model.
+const LS_LEGACY_ADMIN_TOKEN = "claudius.community.adminToken";
 
 export type SendResult = { ok: true } | { ok: false; error: string };
 
 export function useCommunity() {
+  // SSR-safe snapshot, refreshed on mount. The legacy version of this
+  // hook had a localStorage override here; that's gone now, but keeping
+  // the useState+useEffect dance is load-bearing — without the extra
+  // re-render on mount, the dependent useEffects (rooms fetch, SSE
+  // open) were not consistently triggered on soft-nav into /community.
+  const [serverUrl, setServerUrl] = useState<string>(() => getCommunityServerUrl());
+  useEffect(() => {
+    setServerUrl(getCommunityServerUrl());
+  }, []);
+  const SERVER_URL = serverUrl;
   const configured = SERVER_URL.length > 0;
 
   // ── Identity (persisted) ──────────────────────────────────────────
   const [nick, setNickState] = useState<string | null>(null);
-  const [adminToken, setAdminTokenState] = useState<string>("");
+  // Admin status comes from the server-side proxy probe, not localStorage.
+  const [isAdmin, setIsAdmin] = useState(false);
 
-  // Read from localStorage on mount. Done in an effect so SSR doesn't
-  // crash trying to read window.
   useEffect(() => {
     try {
       setNickState(localStorage.getItem(LS_NICK));
-      setAdminTokenState(localStorage.getItem(LS_TOKEN) ?? "");
+      // Drop the legacy admin token if it's still in storage — the new
+      // model keeps the token server-side; the browser copy is dead weight
+      // and we don't want it lying around.
+      localStorage.removeItem(LS_LEGACY_ADMIN_TOKEN);
     } catch {
       // private mode etc — fall through with defaults
     }
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetch("/api/community/admin/check")
+      .then((r) => (r.ok ? r.json() : { configured: false }))
+      .then((d: { configured?: boolean }) => {
+        if (!cancelled) setIsAdmin(!!d.configured);
+      })
+      .catch(() => {
+        if (!cancelled) setIsAdmin(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const setNick = useCallback((next: string) => {
@@ -65,16 +98,6 @@ export function useCommunity() {
       localStorage.setItem(LS_NICK, next);
     } catch {}
   }, []);
-
-  const setAdminToken = useCallback((next: string) => {
-    setAdminTokenState(next);
-    try {
-      if (next) localStorage.setItem(LS_TOKEN, next);
-      else localStorage.removeItem(LS_TOKEN);
-    } catch {}
-  }, []);
-
-  const isAdmin = adminToken.length > 0;
 
   // ── Rooms ────────────────────────────────────────────────────────
   const [rooms, setRooms] = useState<Room[]>([]);
@@ -92,7 +115,7 @@ export function useCommunity() {
     } catch (err) {
       setRoomsError(err instanceof Error ? err.message : String(err));
     }
-  }, [configured]);
+  }, [configured, SERVER_URL]);
 
   useEffect(() => {
     refreshRooms();
@@ -163,7 +186,7 @@ export function useCommunity() {
       es.close();
       esRef.current = null;
     };
-  }, [configured, currentRoom, applyEvent]);
+  }, [configured, currentRoom, applyEvent, SERVER_URL]);
 
   // ── Actions ──────────────────────────────────────────────────────
 
@@ -183,28 +206,25 @@ export function useCommunity() {
       const j = (await r.json().catch(() => ({}))) as { error?: string };
       return { ok: false, error: j.error ?? `HTTP ${r.status}` };
     },
-    [configured, currentRoom, nick],
+    [configured, currentRoom, nick, SERVER_URL],
   );
 
   // ── Admin actions ────────────────────────────────────────────────
   //
-  // All routed through one tiny helper. Each returns a SendResult so
-  // the admin panel can surface failures.
+  // Routed through Claudius' /api/community/admin/* proxy. The proxy
+  // injects X-Admin-Token from the server env, so the browser never sees
+  // it. Each returns a SendResult so callers can surface failures.
 
   const adminCall = useCallback(
     async (
-      method: "POST" | "DELETE",
+      method: "GET" | "POST" | "DELETE",
       path: string,
       body?: unknown,
     ): Promise<SendResult & { data?: unknown }> => {
-      if (!configured) return { ok: false, error: "chat server not configured" };
-      if (!adminToken) return { ok: false, error: "set admin token first" };
-      const r = await fetch(`${SERVER_URL}${path}`, {
+      if (!isAdmin) return { ok: false, error: "not admin on this install" };
+      const r = await fetch(`/api/community/admin${path}`, {
         method,
-        headers: {
-          "X-Admin-Token": adminToken,
-          ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
-        },
+        headers: body !== undefined ? { "Content-Type": "application/json" } : {},
         body: body !== undefined ? JSON.stringify(body) : undefined,
       });
       const j = (await r.json().catch(() => ({}))) as Record<string, unknown>;
@@ -212,50 +232,48 @@ export function useCommunity() {
       const err = (j.error as string | undefined) ?? `HTTP ${r.status}`;
       return { ok: false, error: err };
     },
-    [configured, adminToken],
+    [isAdmin],
   );
 
   const sendAsAdmin = useCallback(
     (slug: string, body: string) =>
-      adminCall("POST", "/admin/messages", { roomSlug: slug, body }),
+      adminCall("POST", "/messages", { roomSlug: slug, body }),
     [adminCall],
   );
 
   const deleteMessage = useCallback(
-    (id: string) => adminCall("POST", `/admin/messages/${encodeURIComponent(id)}/delete`),
+    (id: string) =>
+      adminCall("POST", `/messages/${encodeURIComponent(id)}/delete`),
     [adminCall],
   );
 
   const pinMessage = useCallback(
-    (id: string) => adminCall("POST", `/admin/messages/${encodeURIComponent(id)}/pin`),
+    (id: string) => adminCall("POST", `/messages/${encodeURIComponent(id)}/pin`),
     [adminCall],
   );
 
   const unpinRoom = useCallback(
-    (slug: string) => adminCall("POST", `/admin/rooms/${encodeURIComponent(slug)}/unpin`),
+    (slug: string) =>
+      adminCall("POST", `/rooms/${encodeURIComponent(slug)}/unpin`),
     [adminCall],
   );
 
-  // GET /admin/bans — the `adminCall` helper above only does POST/DELETE,
-  // so we issue this one directly.
   const listBans = useCallback(async (): Promise<Ban[]> => {
-    if (!configured || !adminToken) return [];
-    const r = await fetch(`${SERVER_URL}/admin/bans`, {
-      headers: { "X-Admin-Token": adminToken },
-    });
-    if (!r.ok) return [];
-    const j = (await r.json()) as { bans?: Ban[] };
-    return j.bans ?? [];
-  }, [configured, adminToken]);
+    if (!isAdmin) return [];
+    const res = await adminCall("GET", "/bans");
+    if (!res.ok) return [];
+    const data = res.data as { bans?: Ban[] } | undefined;
+    return data?.bans ?? [];
+  }, [isAdmin, adminCall]);
 
   const ban = useCallback(
     (kind: BanKind, value: string, reason?: string) =>
-      adminCall("POST", "/admin/bans", { kind, value, reason }),
+      adminCall("POST", "/bans", { kind, value, reason }),
     [adminCall],
   );
 
   const unban = useCallback(
-    (id: number) => adminCall("DELETE", `/admin/bans/${id}`),
+    (id: number) => adminCall("DELETE", `/bans/${id}`),
     [adminCall],
   );
 
@@ -267,8 +285,6 @@ export function useCommunity() {
       // identity
       nick,
       setNick,
-      adminToken,
-      setAdminToken,
       isAdmin,
       // rooms
       rooms,
@@ -295,8 +311,6 @@ export function useCommunity() {
       configured,
       nick,
       setNick,
-      adminToken,
-      setAdminToken,
       isAdmin,
       rooms,
       roomsError,

@@ -160,6 +160,188 @@ test.describe("site screenshots — static routes", () => {
 });
 
 /**
+ * Community-chat screenshot. The chat-server lives on a separate origin
+ * and isn't reachable from CI, so we stub the REST + SSE routes with a
+ * deterministic fixture (rooms, replay messages) and seed localStorage
+ * so the page renders the configured state with a nick already set.
+ *
+ * Kept in its own describe so the per-route loop above doesn't have to
+ * special-case the much-bigger setup this shot needs.
+ */
+test.describe("site screenshots — community", () => {
+  test("community", async ({ page }) => {
+    // The page reads its chat-server URL from NEXT_PUBLIC_CLAUDIUS_CHAT_SERVER_URL
+    // at build time, so we have to match whatever the dev server was
+    // started with — Playwright route mocks intercept on URL prefix, so
+    // FAKE_URL must equal the env var the page baked in. If unset, the
+    // page renders the empty state and the screenshot test is skipped.
+    const FAKE_URL =
+      process.env.NEXT_PUBLIC_CLAUDIUS_CHAT_SERVER_URL ?? "";
+    test.skip(
+      FAKE_URL.length === 0,
+      "NEXT_PUBLIC_CLAUDIUS_CHAT_SERVER_URL is not set in this build — community screenshot needs it",
+    );
+    // Pre-seed the nickname + notifications toggle so the modal doesn't
+    // pop and the bell paints the active accent state. The server URL no
+    // longer comes from localStorage — it's the env var above.
+    await page.addInitScript(() => {
+      try {
+        localStorage.setItem("claudius.community.nick", "ada-lovelace");
+        localStorage.setItem("claudius.community.notifications.enabled", "1");
+      } catch {
+        // sandbox / private mode — screenshot will still run, just without seed
+      }
+    });
+
+    // Rooms list: a couple of plausible rooms so the left rail isn't a
+    // single-row degenerate case.
+    await page.route(`${FAKE_URL}/rooms`, async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          rooms: [
+            { slug: "general", name: "General", description: "Welcome — say hi", pinnedMessageId: null },
+            { slug: "ideas", name: "Ideas", description: "Half-baked thoughts welcome", pinnedMessageId: null },
+            { slug: "showcase", name: "Showcase", description: "Show what you built", pinnedMessageId: null },
+          ],
+        }),
+      });
+    });
+
+    // SSE stream: serve a single replay frame with a handful of natural
+    // messages, then keep the connection open so the page shows
+    // "connected". Closing would flip the indicator to disconnected,
+    // which looks broken in the screenshot.
+    const messagesFor = (slug: string) => {
+      if (slug !== "general") {
+        return { type: "replay", roomSlug: slug, messages: [], pinnedMessageId: null };
+      }
+      const now = Date.now();
+      const min = 60_000;
+      return {
+        type: "replay",
+        roomSlug: "general",
+        pinnedMessageId: null,
+        messages: [
+          {
+            id: "m1",
+            roomSlug: "general",
+            nick: "claudius",
+            body: "Welcome to the Claudius community! Say hi, share what you're building, ask anything.",
+            isAdmin: true,
+            createdAt: now - 42 * min,
+          },
+          {
+            id: "m2",
+            roomSlug: "general",
+            nick: "tehlulz",
+            body: "Just shipped a Linear MCP server hooked up via /mcp — Claude is creating tickets straight from the chat. Anyone else doing this?",
+            isAdmin: false,
+            createdAt: now - 28 * min,
+          },
+          {
+            id: "m3",
+            roomSlug: "general",
+            nick: "marina-petrova",
+            body: "Yes! I have a tiny `/triage-bug` skill that drops a ticket with reproduction steps + suspected root cause. Game changer for the on-call rotation.",
+            isAdmin: false,
+            createdAt: now - 24 * min,
+          },
+          {
+            id: "m4",
+            roomSlug: "general",
+            nick: "ada-lovelace",
+            body: "Same — paired it with a scheduled agent that runs every morning to summarize overnight Sentry alerts. Saves us the daily standup.",
+            isAdmin: false,
+            createdAt: now - 11 * min,
+          },
+          {
+            id: "m5",
+            roomSlug: "general",
+            nick: "kenji",
+            body: "Anyone got a good prompt for code review? Mine drifts into nitpicks too easily.",
+            isAdmin: false,
+            createdAt: now - 6 * min,
+          },
+          {
+            id: "m6",
+            roomSlug: "general",
+            nick: "marina-petrova",
+            body: "I have a /review-pr skill — focuses on correctness, perf, and API contracts; explicitly de-prioritises style. Happy to share.",
+            isAdmin: false,
+            createdAt: now - 2 * min,
+          },
+        ],
+      };
+    };
+    // The chat-server is unreachable, so we simulate the SSE entirely
+    // client-side: monkey-patch EventSource for matching URLs so it
+    // immediately fires `onopen` (flips the page to "connected", which
+    // the composer's "Disconnected…" placeholder gates on) and then
+    // dispatches a `replay` message frame with our fixture. No network
+    // round-trip, no reconnect loop, no flapping connected state.
+    await page.addInitScript(({ url, replayPayloads }) => {
+      type Replay = { type: "replay"; roomSlug: string; messages: unknown[]; pinnedMessageId: null };
+      const payloads = replayPayloads as Record<string, Replay>;
+      const Real = window.EventSource;
+      class FakeES extends EventTarget implements EventSource {
+        readonly CONNECTING = 0 as const;
+        readonly OPEN = 1 as const;
+        readonly CLOSED = 2 as const;
+        readyState: number = 1;
+        readonly url: string;
+        readonly withCredentials = false;
+        onopen: ((this: EventSource, ev: Event) => unknown) | null = null;
+        onmessage: ((this: EventSource, ev: MessageEvent) => unknown) | null = null;
+        onerror: ((this: EventSource, ev: Event) => unknown) | null = null;
+        constructor(u: string | URL) {
+          super();
+          this.url = String(u);
+          // Defer microtask so handlers attached after construction still fire.
+          queueMicrotask(() => {
+            const openEv = new Event("open");
+            this.onopen?.call(this as unknown as EventSource, openEv);
+            this.dispatchEvent(openEv);
+            const slug = decodeURIComponent(this.url.match(/\/rooms\/([^/]+)\/stream/)?.[1] ?? "");
+            const payload = payloads[slug] ?? { type: "replay", roomSlug: slug, messages: [], pinnedMessageId: null };
+            const msgEv = new MessageEvent("message", { data: JSON.stringify(payload) });
+            this.onmessage?.call(this as unknown as EventSource, msgEv);
+            this.dispatchEvent(msgEv);
+          });
+        }
+        close() { this.readyState = 2; }
+      }
+      // Only intercept chat-server URLs; leave Claudius's own SSE alone.
+      window.EventSource = new Proxy(Real, {
+        construct(target, args) {
+          const u = String(args[0]);
+          if (u.startsWith(url)) return new FakeES(u);
+          return Reflect.construct(target, args);
+        },
+      }) as unknown as typeof EventSource;
+    }, {
+      url: FAKE_URL,
+      replayPayloads: {
+        general: messagesFor("general"),
+        ideas: messagesFor("ideas"),
+        showcase: messagesFor("showcase"),
+      },
+    });
+
+    await gotoStable(page, "/community", { networkIdle: false });
+    // Allow the SSE replay to flow through, room list to render, and the
+    // composer to mount in its disabled "connecting" state if applicable.
+    await expect(page.getByTestId("community-page")).toBeVisible({ timeout: 10_000 });
+    // Wait for at least one message to render so the screenshot isn't
+    // empty.  The MessageList renders the body text inline.
+    await expect(page.getByText("Welcome to the Claudius community!")).toBeVisible({ timeout: 10_000 });
+    await page.waitForTimeout(700);
+    await snap(page, "community");
+  });
+});
+
+/**
  * Hand-crafted, deterministic 60-day cost report for the marketing
  * screenshot. Designed to look like a project that's been ramping up:
  *  - sparse for the first few weeks

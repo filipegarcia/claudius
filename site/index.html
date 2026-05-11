@@ -310,6 +310,11 @@ make restart    # down + up</code></pre>
             <pre class="mt-3 overflow-x-auto rounded-md bg-panel2 px-4 py-3 font-mono text-xs text-fg leading-6 whitespace-pre"><code>PORT=8080 make up                  # different port, still loopback
 HOST=0.0.0.0 PORT=8080 make up     # reachable from your LAN (careful)</code></pre>
           </div>
+
+          <div class="mt-4 rounded-lg border border-line bg-panel/40 p-5 text-sm text-muted leading-relaxed">
+            <span class="font-mono text-xs text-accent">Sandboxed</span>
+            <span class="ml-2">Want the agent's <code class="font-mono text-fg">Bash</code>, edits, dev servers, and MCP calls boxed in? Run Claudius inside a Docker container, devcontainer, or VM — the SDK spawns <code class="font-mono text-fg">claude</code> as a local subprocess, so keep Claudius and Claude in the same box, mount your workspace, and expose just <code class="font-mono text-fg">:3000</code> to your browser.</span>
+          </div>
         </div>
       </div>
     </section>
@@ -588,6 +593,20 @@ HOST=0.0.0.0 PORT=8080 make up     # reachable from your LAN (careful)</code></p
             <figcaption class="px-5 py-4 border-t border-line">
               <div class="font-mono text-xs text-accent">/workspace</div>
               <div class="text-sm text-fg">One Claudius, many projects. Switch — and your sessions, schedules, and settings follow you in.</div>
+            </figcaption>
+          </figure>
+
+          <!-- 11 community -->
+          <figure class="shot group rounded-lg border border-line overflow-hidden cursor-zoom-in hover:border-accent/70 transition-colors" role="button" tabindex="0">
+            <img
+              src="screenshots/community.png"
+              alt="Community chat"
+              loading="lazy"
+              onerror="this.onerror=null;this.src='screenshots/_placeholder.svg'"
+            />
+            <figcaption class="px-5 py-4 border-t border-line">
+              <div class="font-mono text-xs text-accent">/community</div>
+              <div class="text-sm text-fg">A shared room for everyone running Claudius. Ask, share what you built, get notified when there's a reply. Bring your own server — institutions can host their own and point Claudius at it.</div>
             </figcaption>
           </figure>
         </div>

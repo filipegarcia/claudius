@@ -85,7 +85,16 @@ export async function GET(req: Request) {
   }
   const list = sessionManager
     .list()
-    .map((s) => ({ id: s.id, cwd: s.cwd, model: s.model, title: s.title ?? null }))
+    .map((s) => ({
+      id: s.id,
+      cwd: s.cwd,
+      model: s.model,
+      title: s.title ?? null,
+      // Coarse "is the agent doing something right now?" signal so the
+      // SessionTabs strip can paint the dot for non-active tabs whose SSE
+      // isn't bound to this client. See Session.getStatus().
+      status: s.getStatus(),
+    }))
     .filter((s) => (filter ? filter(s.cwd) : true));
   return NextResponse.json(list);
 }

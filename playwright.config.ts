@@ -21,9 +21,36 @@ export default defineConfig({
     viewport: { width: 1280, height: 800 },
   },
 
+  // Three projects:
+  //   • chromium         — default mocked suite. Excludes site-screenshots.
+  //   • chromium-live    — API-key / chat-server specs in tests/e2e-live/.
+  //   • screenshots      — marketing screenshot capture (site-screenshots.spec).
+  //
+  // The default `playwright test` runs all three unless filtered. The npm
+  // scripts (test:e2e, test:e2e:live, site:screenshots) pass --project so
+  // each command runs only what its name says.
+  //
+  // Why not testIgnore at top level? It hides the file from direct path
+  // targeting too — which broke `bun run site:screenshots`. Per-project
+  // testMatch keeps the spec selectable when its project is named.
+  //
+  // Live specs still call test.skip(!env) so running them without
+  // ANTHROPIC_API_KEY / NEXT_PUBLIC_CLAUDIUS_CHAT_SERVER_URL is a no-op
+  // rather than a failure.
   projects: [
     {
       name: "chromium",
+      testIgnore: ["**/site-screenshots.spec.ts"],
+      use: { ...devices["Desktop Chrome"] },
+    },
+    {
+      name: "chromium-live",
+      testDir: "./tests/e2e-live",
+      use: { ...devices["Desktop Chrome"] },
+    },
+    {
+      name: "screenshots",
+      testMatch: /site-screenshots\.spec\.ts$/,
       use: { ...devices["Desktop Chrome"] },
     },
   ],

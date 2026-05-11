@@ -44,8 +44,42 @@ lint:
     # so we want it available in CI too.
     - apt-get update -qq && apt-get install -y --no-install-recommends make
   script:
-    - make install
+    # `make install` runs `bun install --frozen-lockfile`, which fails on
+    # `better-sqlite3`'s postinstall: prebuild-install refuses to run under
+    # bun (oven-sh/bun#4290) and the bun image has no node-gyp. ESLint
+    # never imports the native binding, so skip postinstall scripts here.
+    # The native module is exercised by the `unit` job below, which runs
+    # under node where prebuild-install works.
+    - bun install --frozen-lockfile --ignore-scripts
     - make lint
+
+# Vitest suite — pure logic, SQLite round-trips, in-process notification bus.
+# Runs under node (better-sqlite3 doesn't load under bun yet, see
+# vitest.config.ts). Uses `npm install --no-package-lock` so prebuild-install
+# downloads the prebuilt better-sqlite3 binary instead of compiling.
+#
+# Lockfile note: the repo's only lockfile is bun.lock (local toolchain is bun).
+# `--no-package-lock` means npm resolves transitive deps fresh each run, so
+# this job isn't pinned the way lint/e2e are. Acceptable trade for a unit
+# suite — the cost-of-drift is bounded and the suite is fast enough to catch
+# breakage quickly. If determinism becomes an issue, commit a parallel
+# package-lock.json or switch the job to `npm ci`.
+unit:
+  stage: test
+  image: node:22-bookworm-slim
+  cache:
+    # Separate key from the bun-flavoured cache — npm and bun produce
+    # different on-disk shapes for node_modules, mixing them in one cache
+    # would cause subtle install drift between runs.
+    key:
+      prefix: npm
+      files:
+        - bun.lock
+    paths:
+      - node_modules/
+  script:
+    - npm install --no-package-lock --no-audit --no-fund
+    - npx vitest run
 
 e2e:
   stage: test

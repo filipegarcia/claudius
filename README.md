@@ -20,6 +20,12 @@ bun run dev
 
 Open <http://localhost:3000>.
 
+If 3000 is taken, override the port with `PORT` (Next picks it up for both `dev` and `start`):
+
+```bash
+PORT=8080 bun run dev
+```
+
 If you don't have Bun yet: `curl -fsSL https://bun.sh/install | bash` (or `brew install bun`).
 
 ## Scripts
@@ -53,6 +59,13 @@ Both bind to **`127.0.0.1:3000`** by default — Claudius drives the Claude Agen
 ```bash
 PORT=8080 make up                  # different port, still loopback-only
 HOST=0.0.0.0 PORT=8080 make up     # reachable from your LAN (careful)
+```
+
+To make the override stick across runs (dev and production), drop it in `.env.local` at the repo root — Next reads it automatically:
+
+```
+PORT=8080
+HOST=127.0.0.1
 ```
 
 Runtime state lives in `./.claudius/` (gitignored):

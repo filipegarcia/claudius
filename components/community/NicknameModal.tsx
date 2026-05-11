@@ -47,7 +47,11 @@ export function NicknameModal({ initial = "", onSubmit, onCancel }: Props) {
           autoFocus
           value={value}
           onChange={(e) => {
-            setValue(e.target.value);
+            // Auto-rewrite spaces to hyphens as the user types so they
+            // never see a "spaces aren't allowed" error — `ada lovelace`
+            // becomes `ada-lovelace` in-flight. Mirrors the placeholder
+            // hint and matches how IRC clients quietly normalize nicks.
+            setValue(e.target.value.replace(/\s+/g, "-"));
             if (err) setErr(null);
           }}
           pattern={NICK_RE.source}
