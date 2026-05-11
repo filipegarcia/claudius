@@ -92,11 +92,24 @@ export function computeReplayWindow(
   for (let i = 0; i < buffer.length; i++) {
     const ev = buffer[i];
     if (ev.type !== "sdk") continue;
-    const m = ev.message as { type?: string; parent_tool_use_id?: string | null };
+    const m = ev.message as {
+      type?: string;
+      parent_tool_use_id?: string | null;
+      message?: { content?: unknown };
+    };
     if (m.type !== "assistant" && m.type !== "user") continue;
     if (m.parent_tool_use_id) continue;
     turnIdx.push(i);
-    if (m.type === "user") lastUserTurnIdx = i;
+    // Only count REAL user prompts as user-turn anchors. Tool round-trips
+    // in Claude Code emit a `user`-role SDK message whose content is a
+    // `tool_result` block — those are bookkeeping, not user input, and
+    // there are typically dozens of them between real prompts. If we
+    // anchored on those we'd pin on the most recent tool result (already
+    // inside the default tail) and the actual prompt would still get
+    // dropped off the top — exactly the bug we're fixing here.
+    if (m.type === "user" && isRealUserPrompt(m.message?.content)) {
+      lastUserTurnIdx = i;
+    }
   }
   const skip = Math.max(0, turnIdx.length - tail);
   if (skip === 0) {
@@ -110,6 +123,24 @@ export function computeReplayWindow(
     startIdx = lastUserTurnIdx;
   }
   return { startIdx, hasMoreAbove: startIdx > 0 };
+}
+
+/**
+ * Distinguish a real user prompt from an SDK-synthetic tool_result wrapper.
+ * Real prompts have either a string content or an array containing at
+ * least one text/image block; synthetic wrappers are pure tool_result
+ * arrays. Exported alongside `computeReplayWindow` because the same
+ * distinction shows up in any "find the last actual user message"
+ * code path (and the client-side `extractToolResult` mirrors this).
+ */
+function isRealUserPrompt(content: unknown): boolean {
+  if (typeof content === "string") return content.length > 0;
+  if (!Array.isArray(content)) return false;
+  for (const block of content) {
+    const t = (block as { type?: string } | null)?.type;
+    if (t === "text" || t === "image") return true;
+  }
+  return false;
 }
 
 export class Session {

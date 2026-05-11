@@ -30,6 +30,27 @@ function sdkUser(uuid: string): ServerEvent {
   } as unknown as ServerEvent;
 }
 
+/**
+ * SDK-synthetic user-role message that wraps a tool_result. Claude Code
+ * emits one of these for every tool round-trip; dozens of them sit
+ * between real user prompts and they must NOT be treated as user turns
+ * by the replay-window anchor.
+ */
+function sdkToolResultWrapper(uuid: string, toolUseId = "tool-x"): ServerEvent {
+  return {
+    type: "sdk",
+    message: {
+      type: "user",
+      uuid,
+      message: {
+        content: [
+          { type: "tool_result", tool_use_id: toolUseId, content: "ok" },
+        ],
+      },
+    },
+  } as unknown as ServerEvent;
+}
+
 function sdkAssistant(uuid: string, opts?: { subagent?: boolean }): ServerEvent {
   return {
     type: "sdk",
@@ -158,6 +179,58 @@ describe("computeReplayWindow", () => {
     // Naive: turnIdx = [0, 1, 2, 3, 4]; skip=3; naive start at idx 3.
     // u1 at idx 0 is older — extend back. startIdx=0 → hasMoreAbove=false.
     expect(out).toEqual({ startIdx: 0, hasMoreAbove: false });
+  });
+
+  test("tool_result wrappers don't count as user-turn anchors (real-world bug)", () => {
+    // Reproduction of the acf58f85-… session shape: one real user prompt
+    // followed by many assistant/tool_result_wrapper pairs. Without the
+    // synthetic-vs-real distinction, the anchor would land on the most
+    // recent tool_result wrapper (already in the default tail) and the
+    // actual user prompt would still get dropped off the top.
+    const buffer: ServerEvent[] = [
+      sdkAssistant("a0"), // turn 0, idx 0
+      sdkUser("u1"), // turn 1, idx 1  ← REAL prompt, must end up included
+      sdkAssistant("a1"), // turn 2, idx 2 — tool_use here in real life
+      sdkToolResultWrapper("tr1"), // turn 3, idx 3 — synthetic
+      sdkAssistant("a2"), // turn 4, idx 4
+      sdkToolResultWrapper("tr2"), // turn 5, idx 5 — synthetic
+      sdkAssistant("a3"), // turn 6, idx 6
+      sdkToolResultWrapper("tr3"), // turn 7, idx 7 — synthetic (most recent)
+      sdkAssistant("a4"), // turn 8, idx 8
+    ];
+    const out = computeReplayWindow(buffer, 3);
+    // 9 turns total; tail=3 → naive start at turnIdx[6] = idx 6.
+    // Naive anchor (count tool_result wrappers): lastUserTurnIdx = idx 7
+    //   → 7 < 6 is false, no extension → real prompt at idx 1 stays dropped.
+    // Correct anchor (real prompts only): lastUserTurnIdx = idx 1
+    //   → 1 < 6 → extend back to idx 1.
+    expect(out).toEqual({ startIdx: 1, hasMoreAbove: true });
+  });
+
+  test("string-content user prompts are treated as real (regression: SDK uses both shapes)", () => {
+    // The SDK emits user messages with `content: "string"` for simple
+    // prompts and `content: [{type:"text", ...}]` for prompts with
+    // attachments. Both must anchor.
+    const stringPrompt = {
+      type: "sdk",
+      message: {
+        type: "user",
+        uuid: "u-str",
+        message: { content: "literal string prompt" },
+      },
+    } as unknown as ServerEvent;
+    const buffer: ServerEvent[] = [
+      sdkAssistant("a0"),
+      stringPrompt, // idx 1 — real, string content
+      sdkAssistant("a1"),
+      sdkAssistant("a2"),
+      sdkAssistant("a3"),
+      sdkAssistant("a4"),
+    ];
+    const out = computeReplayWindow(buffer, 2);
+    // 6 turns, tail=2 → naive start at turnIdx[4] = idx 4. String-content
+    // user message at idx 1 must extend the window back to it.
+    expect(out).toEqual({ startIdx: 1, hasMoreAbove: true });
   });
 
   test("no user turn anywhere in buffer → behaves like the naive tail", () => {
