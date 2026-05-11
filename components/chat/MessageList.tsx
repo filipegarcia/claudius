@@ -91,58 +91,69 @@ export function MessageList({
     prevScrollTopRef.current = el.scrollTop;
   }, [messages]);
 
-  // Keep a ref to the latest messages so the activation-anchor effect can
-  // read them without re-firing on every message append.
-  const messagesRef = useRef(messages);
-  useEffect(() => {
-    messagesRef.current = messages;
+  // Uuid of the most recent user message in the transcript — re-derived on
+  // every render so the activation-anchor effect below fires when it
+  // changes for ANY reason (initial replay, snapshot fallback inject, the
+  // user typing a new prompt). A simple boolean "armed" flag wasn't enough:
+  // the session_snapshot fallback prepends a user message AFTER the first
+  // replay_done has already armed and disarmed the effect.
+  const lastUserUuid = useMemo(() => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i]?.role === "user") return messages[i].uuid;
+    }
+    return "";
   }, [messages]);
 
-  // One-shot activation anchor: when the initial replay finishes, scroll the
-  // LAST user message to the top of the chat viewport. This way, returning
-  // to a session (tab switch / refresh) always lands with your last question
-  // as the first thing you see, instead of dumping you at the bottom of the
-  // reply. Falls back to a bottom-anchor jump if the transcript has no user
-  // message yet (e.g. resumed session with only system/assistant prelude).
-  const armedRef = useRef(false);
+  // Activation anchor: scroll the LAST user message to the top of the chat
+  // viewport whenever it changes. This way returning to a session (tab
+  // switch / refresh) always lands with your last question as the first
+  // thing you see, and the same path picks up the snapshot-fallback inject
+  // when the server replays a user prompt that lives upstream of the tail
+  // window. Falls back to a bottom-anchor jump if the transcript has no
+  // user message yet (resumed session with only system/assistant prelude).
+  const lastAnchoredUserUuidRef = useRef<string>("");
   useEffect(() => {
-    if (replaying || armedRef.current) return;
-    armedRef.current = true;
+    if (replaying) return;
     const el = scrollRef.current;
     if (!el) return;
-    let pinned = false;
-    const msgs = messagesRef.current;
-    for (let i = msgs.length - 1; i >= 0; i--) {
-      const m = msgs[i];
-      if (m?.role !== "user") continue;
+    if (lastAnchoredUserUuidRef.current === lastUserUuid) return;
+    lastAnchoredUserUuidRef.current = lastUserUuid;
+    if (lastUserUuid) {
       const userEl = el.querySelector<HTMLElement>(
-        `[data-message-uuid="${CSS.escape(m.uuid)}"]`,
+        `[data-message-uuid="${CSS.escape(lastUserUuid)}"]`,
       );
       if (userEl) {
-        // Use scrollTop math instead of scrollIntoView so the sticky wrapper
-        // (which has its own padding/border) doesn't fight the alignment.
+        // scrollTop math (not scrollIntoView) so the sticky wrapper's own
+        // padding/border doesn't fight the alignment.
         const delta = userEl.getBoundingClientRect().top - el.getBoundingClientRect().top;
         el.scrollTop += delta;
-        pinned = true;
+        // Suppress the auto-scroll-on-new-messages effect from yanking us
+        // back to the bottom — the user just got positioned where we want
+        // them, the unread pill is the right affordance from here.
+        isNearBottomRef.current = false;
+        setIsNearBottom(false);
+        setUnread(0);
+        return;
       }
-      break;
     }
-    if (!pinned) {
-      el.scrollTop = el.scrollHeight;
-    }
-    // Recompute "near bottom" from the new position — short transcripts may
-    // not need any scroll at all, in which case we ARE near the bottom.
+    // No user message in the transcript yet — preserve the prior
+    // bottom-anchor behavior so the empty-prelude case isn't broken.
+    el.scrollTop = el.scrollHeight;
     const distFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
     const near = distFromBottom <= NEAR_BOTTOM_PX;
     isNearBottomRef.current = near;
     setIsNearBottom(near);
     setUnread(0);
-  }, [replaying]);
+  }, [replaying, lastUserUuid]);
 
-  // Reset the arm when sessionId changes (head reset to "").
+  // Reset anchor + prepend-tracking state when the session is swapped out
+  // (messages empties because `resetState()` ran). Without the explicit
+  // clear, the previous session's `lastAnchoredUserUuidRef` would suppress
+  // the anchor on the first user message of the new session if the two
+  // happen to share the same uuid (unlikely, but cheap insurance).
   useEffect(() => {
     if (messages.length === 0) {
-      armedRef.current = false;
+      lastAnchoredUserUuidRef.current = "";
       prevHeadUuidRef.current = "";
       setUnread((n) => (n === 0 ? n : 0));
     }

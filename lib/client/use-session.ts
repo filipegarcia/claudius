@@ -240,6 +240,12 @@ export function useSession(): ChatState & ChatActions {
   // tile would drift upward on every reconnect. Mirrors `countedUsageRef`'s
   // contract but for the turn-end frame.
   const seenResultUuidsRef = useRef<Set<string>>(new Set());
+  // Per-scope (parent_tool_use_id, "" for top-level) → Anthropic message.id
+  // currently being streamed. Captured from the inner `message_start` event
+  // so subsequent content_block_* partials in the same scope can be anchored
+  // on the same identity as the eventual terminal `SDKAssistantMessage`
+  // events (which carry `message.id` directly). Cleared on `message_stop`.
+  const scopeMessageIdRef = useRef<Map<string, string>>(new Map());
   const flushQueueRef = useRef<() => void>(() => {});
 
   // ── sessionStorage persistence ────────────────────────────────────────
@@ -376,6 +382,7 @@ export function useSession(): ChatState & ChatActions {
     setPermissionModeState("default");
     setModelState(null);
     scratchRef.current.clear();
+    scopeMessageIdRef.current = new Map();
     lastAssistantUuidRef.current = "";
   }, [wipeQueueStorage]);
 
@@ -577,11 +584,33 @@ export function useSession(): ChatState & ChatActions {
         return;
       }
       if (ev.type === "session_snapshot") {
-        // Server-side derived-state rehydration. Today this carries the
-        // most recent TodoWrite payload so a long-running todos list
-        // survives tab-switch / reload even when the original tool_use is
-        // outside the tail-replay window.
+        // Server-side derived-state rehydration. Carries derived state
+        // that lives upstream of the tail-replay window:
+        //   - Latest TodoWrite payload (so the rail repopulates).
+        //   - Last real user prompt (so the chat shows "what did I ask?"
+        //     even when the prompt is buried under a long tool chain
+        //     and the tail window dropped it off the top).
         if (Array.isArray(ev.todos)) setLatestTodos(coerceTodos(ev.todos));
+        const prompt = ev.lastUserPrompt;
+        if (prompt && prompt.uuid && prompt.text) {
+          // Inject the user message into the transcript if the SSE replay
+          // didn't already deliver it. Prepend, not append: the snapshot
+          // fires when the prompt is chronologically OLDER than everything
+          // in the replay window (otherwise we'd already have it). Dedupe
+          // by uuid so a later replay-window fix or a history load doesn't
+          // double-render it.
+          setMessages((prev) => {
+            if (prev.some((m) => m.uuid === prompt.uuid)) return prev;
+            return [
+              {
+                uuid: prompt.uuid,
+                role: "user",
+                blocks: [{ kind: "text", text: prompt.text }],
+              },
+              ...prev,
+            ];
+          });
+        }
         return;
       }
       if (ev.type === "turn_status") {
@@ -637,6 +666,7 @@ export function useSession(): ChatState & ChatActions {
 
       if (msg.type === "assistant") {
         const beta = msg.message as {
+          id?: string;
           content?: unknown;
           usage?: {
             input_tokens?: number;
@@ -645,15 +675,27 @@ export function useSession(): ChatState & ChatActions {
             cache_creation_input_tokens?: number;
           };
         };
-        const uuid = msg.uuid;
+        const sdkUuid = msg.uuid;
+        // Anthropic message id, shared across every SDK split of one API
+        // response. The SDK emits one `SDKAssistantMessage` per content block
+        // with its own wrapper uuid but the same `message.id` — coalesce on
+        // that id so [thinking, tool_use] renders as one bubble rather than
+        // two. Fall back to the wrapper uuid when the inner id is missing
+        // (defensive: synthetic events, older replays).
+        const messageId = typeof beta.id === "string" && beta.id ? beta.id : sdkUuid;
+        // For token / cost dedupe, key on `messageId` rather than the wrapper
+        // uuid. Each split carries the full turn `usage` payload — keying on
+        // wrapper uuid double-counts by the number of splits (a thinking +
+        // tool_use response would count usage twice).
+        const usageDedupKey = messageId;
 
         // Accumulate per-API-call token usage so the rail meters update
         // mid-turn (the `result` event only fires when the whole turn ends).
         // Counted before the subagent early-return so sub-agent tokens land
         // in the session total too. Cost is left alone — that needs the
         // pricing math the SDK does in its result event.
-        if (beta.usage && !countedUsageRef.current.has(uuid)) {
-          countedUsageRef.current.add(uuid);
+        if (beta.usage && !countedUsageRef.current.has(usageDedupKey)) {
+          countedUsageRef.current.add(usageDedupKey);
           const u = beta.usage;
           // Estimate per-call cost so the `$` tile updates alongside the
           // token tiles. Reconciled with the SDK's authoritative
@@ -689,23 +731,30 @@ export function useSession(): ChatState & ChatActions {
 
         const parent = (msg as { parent_tool_use_id?: string | null }).parent_tool_use_id ?? null;
         const blocks = blocksFromSDKContent(beta?.content);
+        // If we already have a streaming scratch keyed on this messageId, the
+        // bubble's blocks are being assembled live from content_block_*
+        // deltas — the terminal split's content is already represented there.
+        // Append from terminal only when no scratch exists (replay path or
+        // SDK builds without partials).
+        const hasStreamScratch = (scratchRef.current.get(messageId)?.blocks.size ?? 0) > 0;
         if (parent) {
           // Subagent traffic — keep separate from the main transcript.
           setSubagentMessages((prev) => ({
             ...prev,
-            [parent]: upsertMessage(prev[parent] ?? [], {
-              uuid,
-              role: "assistant",
+            [parent]: upsertAssistantSplit(
+              prev[parent] ?? [],
+              messageId,
+              sdkUuid,
               blocks,
-              streaming: true,
-              parentToolUseId: parent,
-            }),
+              hasStreamScratch,
+              parent,
+            ),
           }));
           // Don't override the main lastAssistantUuid — deltas anchor to top-level.
           return;
         }
-        lastAssistantUuidRef.current = uuid;
-        setMessages((prev) => upsertMessage(prev, { uuid, role: "assistant", blocks, streaming: true }));
+        lastAssistantUuidRef.current = messageId;
+        setMessages((prev) => upsertAssistantSplit(prev, messageId, sdkUuid, blocks, hasStreamScratch));
         setPendingTracked(true);
         // Activity-rail reducers: per-tool side effects.
         for (const b of blocks) {
@@ -798,25 +847,36 @@ export function useSession(): ChatState & ChatActions {
             index?: number;
             content_block?: SDKContentBlock;
             delta?: { type: string; text?: string; thinking?: string; partial_json?: string };
+            message?: { id?: string };
           };
         };
         const evt = sm.event;
-        // Anchor partials on the stream_event's own uuid — the SDK assigns
-        // the same uuid to both the partial stream_events AND the terminal
-        // `assistant` message they belong to. The previous code anchored on
-        // `lastAssistantUuidRef.current` (the most-recently-seen top-level
-        // assistant), which is wrong because the SDK's bridge batches
-        // stream_events and only flushes them when a *different* message
-        // type lands — so by the time deltas hit this handler,
-        // `lastAssistantUuid` still points at the previous turn's assistant.
-        // The terminal `assistant` event then upserts a brand-new bubble at
-        // the partial's true uuid, and the model's single "ack" rendered as
-        // two consecutive Claude blocks. Keying scratch on sm.uuid means the
-        // partials and the eventual assistant message coalesce into one
-        // DisplayMessage via upsertMessage's uuid-keyed merge.
-        const anchor = sm.uuid;
-        if (!anchor) return;
+        // Anchor partials on the inner Anthropic `message.id`, not on the
+        // SDK wrapper uuid — those wrappers are minted PER stream_event and
+        // PER terminal split, so they don't match each other and don't match
+        // across deltas. Capture the message.id from `message_start` and
+        // hold it per-scope until `message_stop`, then key the scratch and
+        // bubble lookup on that id. The eventual `SDKAssistantMessage`
+        // splits carry the same id directly, so the assistant-handler and
+        // this branch land on the same bubble.
         const subagentParent = sm.parent_tool_use_id ?? null;
+        const scopeKey = subagentParent ?? "";
+        if (evt.type === "message_start" && evt.message?.id) {
+          scopeMessageIdRef.current.set(scopeKey, evt.message.id);
+          // Initialize a (possibly empty) scratch so subsequent
+          // content_block_start events have a slot. No bubble yet — we wait
+          // for the first content_block_start so an empty placeholder bubble
+          // doesn't flash.
+          if (!scratchRef.current.has(evt.message.id)) {
+            scratchRef.current.set(evt.message.id, { blocks: new Map() });
+          }
+          return;
+        }
+        // Resolve anchor from the per-scope map. Fall back to sm.uuid for
+        // defensive coverage — message_start may be missing from a buffer
+        // window that started mid-message after a reconnect.
+        const anchor = scopeMessageIdRef.current.get(scopeKey) ?? sm.uuid;
+        if (!anchor) return;
         let scratch = scratchRef.current.get(anchor);
         if (!scratch) {
           scratch = { blocks: new Map() };
@@ -862,6 +922,11 @@ export function useSession(): ChatState & ChatActions {
             }));
           } else {
             setMessages((prev) => prev.map((m) => (m.uuid === anchor ? { ...m, streaming: false } : m)));
+          }
+          // Release the scope so the next message_start in this scope mints
+          // a fresh anchor instead of inheriting the just-closed message's.
+          if (scopeMessageIdRef.current.get(scopeKey) === anchor) {
+            scopeMessageIdRef.current.delete(scopeKey);
           }
           return;
         } else {
@@ -912,8 +977,8 @@ export function useSession(): ChatState & ChatActions {
             const idx = list.findIndex((m) => m.uuid === anchor);
             if (idx === -1) {
               // Partial for a subagent whose terminal `assistant` hasn't
-              // landed yet — seed a placeholder at the same uuid so the
-              // upsert merges cleanly when it arrives.
+              // landed yet — seed a placeholder at the Anthropic message.id
+              // so the eventual terminal splits land on the same bubble.
               const placeholder: DisplayMessage = {
                 uuid: anchor,
                 role: "assistant",
@@ -933,8 +998,8 @@ export function useSession(): ChatState & ChatActions {
             if (idx === -1) {
               // Partial whose terminal `assistant` event hasn't landed yet
               // (the common path with includePartialMessages: true) — seed
-              // a placeholder at the SDK's uuid so deltas have a home and
-              // the eventual `assistant` upsert merges instead of forking.
+              // a placeholder keyed on the Anthropic message.id so the
+              // eventual terminal splits merge into this same bubble.
               const placeholder: DisplayMessage = {
                 uuid: anchor,
                 role: "assistant",
@@ -1686,7 +1751,15 @@ export function useSession(): ChatState & ChatActions {
     if (loadingOlder) return;
     setLoadingOlder(true);
     try {
-      const head = messagesRef.current[0]?.uuid;
+      // The transcript route looks up `before` against the JSONL's raw
+      // wrapper uuids — pass an SDK wrapper uuid (the first split folded
+      // into the head bubble) instead of the bubble's primary identity
+      // (which is the Anthropic `message.id`, not present in JSONL records'
+      // top-level `uuid` field). For user-message heads, the primary uuid
+      // IS the wrapper uuid, so the fallback works without extra cases.
+      const headBubble = messagesRef.current[0];
+      const head =
+        headBubble?.foldedSdkUuids?.values().next().value ?? headBubble?.uuid;
       const url = head
         ? `/api/sessions/${id}/transcript?before=${encodeURIComponent(head)}&limit=50`
         : `/api/sessions/${id}/transcript?limit=50`;
@@ -1711,22 +1784,35 @@ export function useSession(): ChatState & ChatActions {
   }, [hasMoreAbove, loadingOlder]);
 
   /**
-   * Make sure a given message uuid is in `messages` state, paginating older
-   * pages as needed. Returns true if the message ended up loaded, false if
-   * the head of the transcript was reached without a match. Used by
-   * transcript-search results to "jump to" a hit.
+   * Make sure a given uuid is loaded into `messages` state, paginating older
+   * pages as needed. Accepts either a bubble's primary uuid (Anthropic
+   * `message.id` for assistants, wrapper uuid for users) OR any SDK wrapper
+   * uuid that was folded into a bubble — search hits carry the latter.
+   *
+   * Returns the bubble's primary uuid on success (use that for highlight /
+   * scroll-into-view, which key on `data-message-uuid` set from the primary),
+   * or null if the head of the transcript was reached without a match.
    */
   const jumpToUuid = useCallback(
-    async (uuid: string): Promise<boolean> => {
-      if (messagesRef.current.some((m) => m.uuid === uuid)) return true;
+    async (uuid: string): Promise<string | null> => {
+      const resolve = (): string | null => {
+        for (const m of messagesRef.current) {
+          if (m.uuid === uuid) return m.uuid;
+          if (m.foldedSdkUuids?.has(uuid)) return m.uuid;
+        }
+        return null;
+      };
+      const first = resolve();
+      if (first) return first;
       // Cap iterations defensively — transcripts above ~10k messages are
       // pathological enough that we'd rather give up than spin.
       for (let i = 0; i < 200; i++) {
         if (!hasMoreAboveRef.current) break;
         await loadOlder();
-        if (messagesRef.current.some((m) => m.uuid === uuid)) return true;
+        const next = resolve();
+        if (next) return next;
       }
-      return messagesRef.current.some((m) => m.uuid === uuid);
+      return resolve();
     },
     [loadOlder],
   );
@@ -1834,7 +1920,7 @@ type RawSDKMessage = {
   uuid?: string;
   type?: string;
   parent_tool_use_id?: string | null;
-  message?: { role?: string; content?: unknown };
+  message?: { id?: string; role?: string; content?: unknown };
 };
 
 /**
@@ -1842,6 +1928,12 @@ type RawSDKMessage = {
  * folding tool_results onto the matching tool_use blocks of prior assistant
  * messages. Subagent traffic (parent_tool_use_id) is dropped here — the older
  * pagination view shows top-level turns only, mirroring the live tail behavior.
+ *
+ * Multi-content-block model responses arrive as N consecutive JSONL records
+ * (one per content block) sharing a `message.id` but differing in wrapper
+ * uuid. We merge them into a single bubble keyed by `message.id`, matching
+ * the live-stream identity so search hits and pagination heads round-trip
+ * cleanly.
  */
 function synthesizeOlder(raw: Array<Record<string, unknown>>): {
   messages: DisplayMessage[];
@@ -1855,12 +1947,38 @@ function synthesizeOlder(raw: Array<Record<string, unknown>>): {
     const content = r.message?.content;
 
     if (r.type === "assistant") {
-      out.push({
-        uuid,
-        role: "assistant",
-        blocks: blocksFromSDKContent(content),
-        streaming: false,
-      });
+      const msgId = typeof r.message?.id === "string" && r.message.id ? r.message.id : uuid;
+      const newBlocks = blocksFromSDKContent(content);
+      // Merge into the most recent assistant bubble if it shares this
+      // message.id. Intervening tool_results don't push new entries into
+      // `out` (they patch in place), so consecutive same-message-id splits
+      // remain adjacent even when their tool_results sit between them in
+      // the JSONL.
+      const last = out[out.length - 1];
+      if (last && last.role === "assistant" && last.uuid === msgId) {
+        const folded = new Set(last.foldedSdkUuids ?? []);
+        if (!folded.has(uuid)) {
+          folded.add(uuid);
+          const existingToolIds = new Set<string>();
+          for (const b of last.blocks) if (b.kind === "tool_use") existingToolIds.add(b.id);
+          const toAppend = newBlocks.filter(
+            (b) => !(b.kind === "tool_use" && existingToolIds.has(b.id)),
+          );
+          out[out.length - 1] = {
+            ...last,
+            blocks: [...last.blocks, ...toAppend],
+            foldedSdkUuids: folded,
+          };
+        }
+      } else {
+        out.push({
+          uuid: msgId,
+          role: "assistant",
+          blocks: newBlocks,
+          streaming: false,
+          foldedSdkUuids: new Set([uuid]),
+        });
+      }
       continue;
     }
 
@@ -1894,10 +2012,76 @@ function synthesizeOlder(raw: Array<Record<string, unknown>>): {
   return { messages: out };
 }
 
-function upsertMessage(prev: DisplayMessage[], next: DisplayMessage): DisplayMessage[] {
-  const idx = prev.findIndex((m) => m.uuid === next.uuid);
-  if (idx === -1) return [...prev, next];
+/**
+ * Fold one SDK split (a single `SDKAssistantMessage`, carrying one content
+ * block) into the bubble identified by `messageId`. See the comment on
+ * `DisplayMessage.uuid` for why we coalesce by `message.id`.
+ *
+ * `hasStreamScratch` distinguishes the live-streaming path (deltas are
+ * driving block assembly via the `stream_event` branch — terminal content
+ * is already represented and must NOT be re-appended) from the replay /
+ * no-partials path (terminals are the only source of blocks — append).
+ */
+function upsertAssistantSplit(
+  prev: DisplayMessage[],
+  messageId: string,
+  sdkUuid: string,
+  newBlocks: DisplayBlock[],
+  hasStreamScratch: boolean,
+  parentToolUseId?: string | null,
+): DisplayMessage[] {
+  const idx = prev.findIndex((m) => m.uuid === messageId);
+  if (idx === -1) {
+    return [
+      ...prev,
+      {
+        uuid: messageId,
+        role: "assistant",
+        blocks: hasStreamScratch ? [] : newBlocks,
+        streaming: true,
+        foldedSdkUuids: new Set([sdkUuid]),
+        ...(parentToolUseId ? { parentToolUseId } : {}),
+      },
+    ];
+  }
+  const existing = prev[idx];
+  const folded = existing.foldedSdkUuids ?? new Set<string>();
+  if (folded.has(sdkUuid)) {
+    // Replay of a split we've already folded — preserve blocks but make sure
+    // the streaming flag reflects "still in flight" (SDK reconnect replays
+    // the terminal events). The `result` event flips it back to false.
+    if (existing.streaming === true) return prev;
+    const copy = prev.slice();
+    copy[idx] = { ...existing, streaming: true };
+    return copy;
+  }
+  const nextFolded = new Set(folded);
+  nextFolded.add(sdkUuid);
+  if (hasStreamScratch) {
+    // Scratch (from `stream_event` deltas) is the source of truth for blocks
+    // — the terminal split's content is already there. Only the dedup set
+    // and streaming flag need updating.
+    const copy = prev.slice();
+    copy[idx] = { ...existing, foldedSdkUuids: nextFolded, streaming: true };
+    return copy;
+  }
+  // Replay / terminal-only path: append blocks, skipping tool_use ids that
+  // are already present (an earlier split owned them).
+  const existingToolIds = new Set<string>();
+  for (const b of existing.blocks) {
+    if (b.kind === "tool_use") existingToolIds.add(b.id);
+  }
+  const blocksToAppend: DisplayBlock[] = [];
+  for (const b of newBlocks) {
+    if (b.kind === "tool_use" && existingToolIds.has(b.id)) continue;
+    blocksToAppend.push(b);
+  }
   const copy = prev.slice();
-  copy[idx] = { ...copy[idx], ...next };
+  copy[idx] = {
+    ...existing,
+    blocks: [...existing.blocks, ...blocksToAppend],
+    foldedSdkUuids: nextFolded,
+    streaming: true,
+  };
   return copy;
 }
