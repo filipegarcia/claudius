@@ -91,15 +91,51 @@ export function MessageList({
     prevScrollTopRef.current = el.scrollTop;
   }, [messages]);
 
-  // One-shot bottom anchor: jump to bottom when the initial replay finishes.
+  // Keep a ref to the latest messages so the activation-anchor effect can
+  // read them without re-firing on every message append.
+  const messagesRef = useRef(messages);
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
+
+  // One-shot activation anchor: when the initial replay finishes, scroll the
+  // LAST user message to the top of the chat viewport. This way, returning
+  // to a session (tab switch / refresh) always lands with your last question
+  // as the first thing you see, instead of dumping you at the bottom of the
+  // reply. Falls back to a bottom-anchor jump if the transcript has no user
+  // message yet (e.g. resumed session with only system/assistant prelude).
   const armedRef = useRef(false);
   useEffect(() => {
     if (replaying || armedRef.current) return;
     armedRef.current = true;
     const el = scrollRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
-    isNearBottomRef.current = true;
-    setIsNearBottom(true);
+    if (!el) return;
+    let pinned = false;
+    const msgs = messagesRef.current;
+    for (let i = msgs.length - 1; i >= 0; i--) {
+      const m = msgs[i];
+      if (m?.role !== "user") continue;
+      const userEl = el.querySelector<HTMLElement>(
+        `[data-message-uuid="${CSS.escape(m.uuid)}"]`,
+      );
+      if (userEl) {
+        // Use scrollTop math instead of scrollIntoView so the sticky wrapper
+        // (which has its own padding/border) doesn't fight the alignment.
+        const delta = userEl.getBoundingClientRect().top - el.getBoundingClientRect().top;
+        el.scrollTop += delta;
+        pinned = true;
+      }
+      break;
+    }
+    if (!pinned) {
+      el.scrollTop = el.scrollHeight;
+    }
+    // Recompute "near bottom" from the new position — short transcripts may
+    // not need any scroll at all, in which case we ARE near the bottom.
+    const distFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    const near = distFromBottom <= NEAR_BOTTOM_PX;
+    isNearBottomRef.current = near;
+    setIsNearBottom(near);
     setUnread(0);
   }, [replaying]);
 

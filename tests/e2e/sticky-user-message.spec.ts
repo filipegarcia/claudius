@@ -200,4 +200,56 @@ test.describe("sticky last-user-message", () => {
     // py-2 (8px) + border (1px) → allow up to ~16px of slack.
     expect(delta).toBeLessThan(16);
   });
+
+  test("on initial activation, lands with the last user message at the top of the viewport (no manual scroll)", async ({
+    page,
+  }) => {
+    // Same fixture: long reply that overflows the viewport. The difference
+    // from the test above is that we do NOT manually scroll — the one-shot
+    // activation anchor in MessageList should land us with the user message
+    // at the top automatically. This is the "switch tab → see your last
+    // question first" behavior.
+    await mockChatBackend(page, [
+      ...PRELUDE,
+      userEvent(USER_UUID, USER_TEXT),
+      assistantEvent(ASSISTANT_UUID, longReplyText()),
+      { type: "replay_done", hasMoreAbove: false },
+    ]);
+
+    await page.goto("/");
+
+    const userMsg = page.locator(`[data-message-uuid="${USER_UUID}"]`);
+    const assistantMsg = page.locator(`[data-message-uuid="${ASSISTANT_UUID}"]`);
+    await expect(userMsg).toBeVisible({ timeout: 15_000 });
+    await expect(assistantMsg).toBeVisible({ timeout: 15_000 });
+
+    // Resolve the scroll container so we can read its top edge for the
+    // alignment assertion. Same walk-up trick as the other test.
+    const scrollerTop = await page.evaluate((uuid) => {
+      const el = document.querySelector<HTMLElement>(
+        `[data-message-uuid="${uuid}"]`,
+      );
+      let scroller: HTMLElement | null = el?.parentElement ?? null;
+      while (scroller && scroller !== document.body) {
+        const style = window.getComputedStyle(scroller);
+        if (style.overflowY === "auto" || style.overflowY === "scroll") break;
+        scroller = scroller.parentElement;
+      }
+      return scroller ? scroller.getBoundingClientRect().top : null;
+    }, USER_UUID);
+
+    expect(scrollerTop).not.toBeNull();
+
+    // Without the activation anchor, this would land at the BOTTOM of the
+    // conversation — the user message would be at the top via sticky pin
+    // (which works) but ONLY because of sticky. With the activation anchor,
+    // the user message's actual scroll position is at top, sticky is just
+    // sitting at its natural position. Either way the visible result is
+    // "user message at top of viewport".
+    await expect(userMsg).toBeInViewport();
+    const delta = await userMsg.evaluate((el, top) => {
+      return Math.abs(el.getBoundingClientRect().top - top);
+    }, scrollerTop);
+    expect(delta).toBeLessThan(16);
+  });
 });
