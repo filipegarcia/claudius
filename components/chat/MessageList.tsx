@@ -174,6 +174,7 @@ export function MessageList({
   }, [hasMoreAbove, onLoadOlder]);
 
   const grouped = useMemo(() => groupSystemEntries(systemEntries), [systemEntries]);
+  const turns = useMemo(() => groupTurns(messages), [messages]);
 
   const jumpToBottom = useCallback(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -245,30 +246,52 @@ export function MessageList({
           {(grouped.get("") ?? []).map((e) => (
             <SystemPill key={e.uuid} entry={e} />
           ))}
-          {messages.map((m) => (
-            <div
-              key={m.uuid}
-              data-message-uuid={m.uuid}
-              className={cn(
-                "space-y-2 rounded-md transition-colors",
-                highlightUuid === m.uuid && "bg-[var(--accent)]/15 ring-1 ring-[var(--accent)]/40",
-              )}
-            >
-              {m.role === "user" ? (
-                <UserMessage
-                  message={m}
-                  onRewind={onRewind}
-                  rewinding={rewindingUuid === m.uuid}
-                />
-              ) : (
-                <AssistantMessage message={m} tasks={tasks} subagentMessages={subagentMessages} />
-              )}
-              {(grouped.get(m.uuid) ?? []).map((e) => (
-                <SystemPill key={e.uuid} entry={e} />
-              ))}
-            </div>
-          ))}
-          {pending && (
+          {turns.map((turn, ti) => {
+            const isLastTurn = ti === turns.length - 1;
+            return (
+              <section key={turn.items[0]!.uuid} className="space-y-4">
+                {turn.items.map((m) => {
+                  // Pin only the last turn's user message at the top of the
+                  // scroll viewport. `position: sticky` is scoped to this
+                  // <section>, so scrolling above the current turn naturally
+                  // releases the pin — older user messages render inline.
+                  const isPinnedUser = isLastTurn && m.role === "user";
+                  return (
+                    <div
+                      key={m.uuid}
+                      data-message-uuid={m.uuid}
+                      className={cn(
+                        "space-y-2 rounded-md transition-colors",
+                        highlightUuid === m.uuid && "bg-[var(--accent)]/15 ring-1 ring-[var(--accent)]/40",
+                        isPinnedUser &&
+                          "sticky top-0 z-10 -mx-4 border-b border-[var(--border)] bg-[var(--background)]/90 px-4 py-2 shadow-[0_2px_4px_rgba(0,0,0,0.04)] backdrop-blur",
+                      )}
+                    >
+                      {m.role === "user" ? (
+                        <UserMessage
+                          message={m}
+                          onRewind={onRewind}
+                          rewinding={rewindingUuid === m.uuid}
+                        />
+                      ) : (
+                        <AssistantMessage message={m} tasks={tasks} subagentMessages={subagentMessages} />
+                      )}
+                      {(grouped.get(m.uuid) ?? []).map((e) => (
+                        <SystemPill key={e.uuid} entry={e} />
+                      ))}
+                    </div>
+                  );
+                })}
+                {isLastTurn && pending && (
+                  <div className="flex items-center gap-2 text-xs text-[var(--muted)]">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin text-[var(--accent)]" />
+                    <span className="font-medium text-[var(--foreground)]/80">Claude is working…</span>
+                  </div>
+                )}
+              </section>
+            );
+          })}
+          {turns.length === 0 && pending && (
             <div className="flex items-center gap-2 text-xs text-[var(--muted)]">
               <Loader2 className="h-3.5 w-3.5 animate-spin text-[var(--accent)]" />
               <span className="font-medium text-[var(--foreground)]/80">Claude is working…</span>
@@ -299,4 +322,32 @@ function groupSystemEntries(entries: SystemEntry[]): Map<string, SystemEntry[]> 
     map.set(e.afterMessageUuid, arr);
   }
   return map;
+}
+
+type Turn = {
+  /** The user message that opens this turn, or null if the transcript starts
+   *  with non-user messages (rare — e.g. resumed session prelude). */
+  lead: DisplayMessage | null;
+  /** All messages belonging to the turn, in order. */
+  items: DisplayMessage[];
+};
+
+/**
+ * Slice the message list into "turns" — each turn begins at a user message
+ * and includes every following non-user message until the next user message.
+ * This lets us scope `position: sticky` per-turn so only the most recent
+ * user message gets pinned at the top of the scroll viewport.
+ */
+function groupTurns(messages: DisplayMessage[]): Turn[] {
+  const turns: Turn[] = [];
+  let current: Turn | null = null;
+  for (const m of messages) {
+    if (m.role === "user" || !current) {
+      current = { lead: m.role === "user" ? m : null, items: [m] };
+      turns.push(current);
+    } else {
+      current.items.push(m);
+    }
+  }
+  return turns;
 }
