@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { AlertTriangle, Bell, BellOff, Check, Circle, Eraser, Link as LinkIcon, Minimize2 } from "lucide-react";
+import { AlertTriangle, Check, Circle, Eraser, Link as LinkIcon, Minimize2 } from "lucide-react";
 import type { PermissionMode } from "@anthropic-ai/claude-agent-sdk";
 import { ModeSelector } from "./ModeSelector";
 import { SessionPicker } from "./SessionPicker";
+import { SessionNotifyMenu } from "./SessionNotifyMenu";
 import { cn } from "@/lib/utils/cn";
 import type { SessionInfo } from "@/lib/client/types";
 
@@ -69,9 +70,23 @@ export function StatusLine({
   const ctxLevel: "ok" | "warn" | "danger" =
     ctx == null ? "ok" : ctx >= 90 ? "danger" : ctx >= 75 ? "warn" : "ok";
 
+  const busy = status !== "idle";
+
   return (
     <div className="flex h-9 items-center gap-3 border-b border-[var(--border)] bg-[var(--panel)] px-4 text-xs text-[var(--muted)]">
-      <Circle className={`h-2.5 w-2.5 ${color}`} fill="currentColor" stroke="none" />
+      <span className="relative inline-flex h-2.5 w-2.5 items-center justify-center" aria-hidden>
+        {busy && (
+          <span
+            className={cn("absolute inline-flex h-full w-full animate-ping rounded-full opacity-60", color)}
+            style={{ backgroundColor: "currentColor" }}
+          />
+        )}
+        <Circle
+          className={cn("relative h-2.5 w-2.5", color, busy && "animate-pulse")}
+          fill="currentColor"
+          stroke="none"
+        />
+      </span>
       <SessionPicker
         current={sessionId}
         sessions={sessions}
@@ -159,24 +174,13 @@ export function StatusLine({
             <span className="text-[10px]">Clear</span>
           </button>
         )}
-        {notificationsState && notificationsState !== "unsupported" && onToggleNotifications && (
-          <button
-            onClick={onToggleNotifications}
-            title={
-              notificationsState === "denied"
-                ? "Notifications denied — change in browser settings"
-                : notificationsEnabled
-                ? "Notifications on — click to disable"
-                : "Enable notifications"
-            }
-            className="rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-1.5 py-0.5 hover:bg-[var(--panel)]"
-          >
-            {notificationsEnabled && notificationsState === "granted" ? (
-              <Bell className="h-3 w-3 text-emerald-400" />
-            ) : (
-              <BellOff className="h-3 w-3 text-[var(--muted)]" />
-            )}
-          </button>
+        {notificationsState && onToggleNotifications && (
+          <SessionNotifyMenu
+            sessionId={sessionId}
+            permissionState={notificationsState}
+            workspaceEnabled={!!notificationsEnabled}
+            onToggleWorkspace={onToggleNotifications}
+          />
         )}
         <ShareButton sessionId={sessionId} />
         <ModeSelector mode={permissionMode} onChange={onModeChange} />

@@ -5,13 +5,21 @@ import {
   listWorkspaces,
   type Icon,
 } from "@/lib/server/workspaces-store";
+import { resolveActiveWorkspace } from "@/lib/server/active-workspace";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const workspaces = await listWorkspaces();
-  return NextResponse.json({ workspaces });
+  // Include `activeId` so callers without access to the workspace-cookie
+  // (e.g. Playwright's request context, which has its own cookie jar
+  // separate from the page) can identify the active workspace via the
+  // server-side resolver instead of guessing at the list order.
+  const [workspaces, active] = await Promise.all([
+    listWorkspaces(),
+    resolveActiveWorkspace(),
+  ]);
+  return NextResponse.json({ workspaces, activeId: active?.id ?? null });
 }
 
 type CreateBody = {

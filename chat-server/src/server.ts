@@ -1,0 +1,362 @@
+// HTTP entrypoint for the chat server. Run with `bun src/server.ts`.
+//
+// The routes intentionally read like one straight column: a small
+// dispatch table at the top, each handler is one short function. No
+// framework — Bun's `serve()` plus URL pattern matching is enough at
+// this scale and keeps the bundle / startup time tiny.
+//
+// SSE shape mirrors Claudius' /api/notifications/stream/route.ts:
+//   1. open the ReadableStream
+//   2. immediately push a `replay` event (last 100 messages)
+//   3. subscribe to the room bus; every event becomes one `data:` frame
+//   4. 15-second heartbeat comment line keeps proxies happy
+//   5. on req.signal abort → unsubscribe + close
+//
+// CORS: the server is meant to be hit from a Claudius browser tab
+// running on a different origin. Reads + writes are auth'd by app
+// logic (nickname / admin token), no cookies, so `*` is safe for the
+// origin header. Headers we accept are pinned to what the client
+// actually sends (content-type + x-admin-token) so a malicious page
+// can't probe arbitrary headers.
+
+import { randomUUID } from "node:crypto";
+import { isAdminRequest, isReservedNick } from "./admin.ts";
+import { chatBus } from "./bus.ts";
+import {
+  deleteBan,
+  getMessage,
+  getRoom,
+  insertBan,
+  insertMessage,
+  isBanned,
+  lastIpForNick,
+  listBans,
+  listRooms,
+  messagesBefore,
+  recentMessages,
+  setRoomPin,
+  softDeleteMessage,
+} from "./db.ts";
+import { tryConsume } from "./rate-limit.ts";
+import type { BanKind, ChatEvent } from "./types.ts";
+
+const PORT = Number(process.env.PORT ?? 8787);
+
+// ── CORS ───────────────────────────────────────────────────────────
+
+const CORS_HEADERS: Record<string, string> = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, X-Admin-Token",
+  "Access-Control-Max-Age": "86400",
+};
+
+function json(body: unknown, init: ResponseInit = {}): Response {
+  return new Response(JSON.stringify(body), {
+    ...init,
+    headers: {
+      "Content-Type": "application/json",
+      ...CORS_HEADERS,
+      ...(init.headers ?? {}),
+    },
+  });
+}
+
+function error(status: number, message: string): Response {
+  return json({ error: message }, { status });
+}
+
+// ── Validation ─────────────────────────────────────────────────────
+
+const NICK_RE = /^[A-Za-z0-9_-]{1,20}$/;
+const MAX_BODY_LEN = 2000;
+
+function validateNick(nick: unknown): string | null {
+  if (typeof nick !== "string") return null;
+  const trimmed = nick.trim();
+  if (!NICK_RE.test(trimmed)) return null;
+  if (isReservedNick(trimmed)) return null;
+  return trimmed;
+}
+
+function validateBody(body: unknown): string | null {
+  if (typeof body !== "string") return null;
+  const trimmed = body.trim();
+  if (trimmed.length === 0) return null;
+  if (trimmed.length > MAX_BODY_LEN) return null;
+  return trimmed;
+}
+
+// ── Route handlers ─────────────────────────────────────────────────
+
+function handleListRooms(): Response {
+  return json({ rooms: listRooms() });
+}
+
+function handleStream(roomSlug: string, req: Request): Response {
+  if (!getRoom(roomSlug)) return error(404, "no such room");
+  const encoder = new TextEncoder();
+
+  const stream = new ReadableStream<Uint8Array>({
+    start(controller) {
+      const send = (evt: ChatEvent) => {
+        try {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(evt)}\n\n`));
+        } catch {
+          // controller closed — abort handler will clean up.
+        }
+      };
+
+      // 1. Replay the last 100 messages so a new joiner has context.
+      const room = getRoom(roomSlug);
+      send({
+        type: "replay",
+        roomSlug,
+        messages: recentMessages(roomSlug, 100),
+        pinnedMessageId: room?.pinnedMessageId ?? null,
+      });
+
+      // 2. Subscribe for live updates.
+      const unsubscribe = chatBus.subscribe(roomSlug, send);
+
+      // 3. Heartbeat — comment lines are ignored by the EventSource
+      //    spec but keep load balancers from killing the socket.
+      const hb = setInterval(() => {
+        try {
+          controller.enqueue(encoder.encode(": ping\n\n"));
+        } catch {
+          // closed
+        }
+      }, 15_000);
+
+      const cleanup = () => {
+        clearInterval(hb);
+        unsubscribe();
+        try {
+          controller.close();
+        } catch {
+          // already closed
+        }
+      };
+      const signal = req.signal;
+      if (signal) {
+        if (signal.aborted) cleanup();
+        else signal.addEventListener("abort", cleanup, { once: true });
+      }
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache, no-transform",
+      Connection: "keep-alive",
+      "X-Accel-Buffering": "no",
+      ...CORS_HEADERS,
+    },
+  });
+}
+
+async function handleBackfill(roomSlug: string, url: URL): Promise<Response> {
+  if (!getRoom(roomSlug)) return error(404, "no such room");
+  const beforeRaw = url.searchParams.get("before");
+  const before = beforeRaw ? Number(beforeRaw) : Date.now();
+  if (!Number.isFinite(before)) return error(400, "bad before");
+  const limit = Math.min(Number(url.searchParams.get("limit") ?? 100), 500);
+  return json({ messages: messagesBefore(roomSlug, before, limit) });
+}
+
+async function handlePostMessage(
+  roomSlug: string,
+  req: Request,
+  ip: string,
+): Promise<Response> {
+  if (!getRoom(roomSlug)) return error(404, "no such room");
+
+  let payload: unknown;
+  try {
+    payload = await req.json();
+  } catch {
+    return error(400, "invalid JSON");
+  }
+  const { nick: rawNick, body: rawBody } = (payload ?? {}) as Record<string, unknown>;
+
+  const nick = validateNick(rawNick);
+  if (!nick) return error(400, "invalid nick (1-20 chars, [A-Za-z0-9_-], not reserved)");
+  const body = validateBody(rawBody);
+  if (!body) return error(400, `invalid body (1-${MAX_BODY_LEN} chars)`);
+
+  if (isBanned("nick", nick.toLowerCase())) return error(403, "nick banned");
+  if (isBanned("ip", ip)) return error(403, "ip banned");
+
+  if (!tryConsume(ip)) return error(429, "slow down");
+
+  const msg = insertMessage({
+    id: randomUUID(),
+    roomSlug,
+    nick,
+    ip,
+    body,
+    isAdmin: false,
+  });
+  chatBus.broadcast({ type: "message", message: msg });
+  return json({ ok: true, message: msg });
+}
+
+// ── Admin route handlers ───────────────────────────────────────────
+
+async function handleAdminPost(req: Request, ip: string): Promise<Response> {
+  let payload: unknown;
+  try {
+    payload = await req.json();
+  } catch {
+    return error(400, "invalid JSON");
+  }
+  const { roomSlug: rawSlug, body: rawBody } = (payload ?? {}) as Record<string, unknown>;
+  if (typeof rawSlug !== "string" || !getRoom(rawSlug)) {
+    return error(400, "bad roomSlug");
+  }
+  const body = validateBody(rawBody);
+  if (!body) return error(400, `invalid body (1-${MAX_BODY_LEN} chars)`);
+
+  const msg = insertMessage({
+    id: randomUUID(),
+    roomSlug: rawSlug,
+    nick: "admin",
+    ip,
+    body,
+    isAdmin: true,
+  });
+  chatBus.broadcast({ type: "message", message: msg });
+  return json({ ok: true, message: msg });
+}
+
+function handleAdminDelete(messageId: string): Response {
+  const m = getMessage(messageId);
+  if (!m) return error(404, "no such message");
+  if (m.deleted) return json({ ok: true, alreadyDeleted: true });
+  softDeleteMessage(messageId);
+  // If the deleted message was pinned, unpin too.
+  const room = getRoom(m.roomSlug);
+  if (room?.pinnedMessageId === messageId) {
+    setRoomPin(m.roomSlug, null);
+    chatBus.broadcast({ type: "message_unpinned", roomSlug: m.roomSlug });
+  }
+  chatBus.broadcast({ type: "message_deleted", roomSlug: m.roomSlug, id: messageId });
+  return json({ ok: true });
+}
+
+function handleAdminPin(messageId: string): Response {
+  const m = getMessage(messageId);
+  if (!m || m.deleted) return error(404, "no such message");
+  setRoomPin(m.roomSlug, messageId);
+  chatBus.broadcast({ type: "message_pinned", roomSlug: m.roomSlug, id: messageId });
+  return json({ ok: true });
+}
+
+function handleAdminUnpin(roomSlug: string): Response {
+  if (!getRoom(roomSlug)) return error(404, "no such room");
+  setRoomPin(roomSlug, null);
+  chatBus.broadcast({ type: "message_unpinned", roomSlug });
+  return json({ ok: true });
+}
+
+async function handleAdminBan(req: Request): Promise<Response> {
+  let payload: unknown;
+  try {
+    payload = await req.json();
+  } catch {
+    return error(400, "invalid JSON");
+  }
+  const { kind: rawKind, value: rawValue, reason: rawReason } =
+    (payload ?? {}) as Record<string, unknown>;
+  if (rawKind !== "nick" && rawKind !== "ip") return error(400, "kind must be 'nick' or 'ip'");
+  if (typeof rawValue !== "string" || !rawValue.trim()) return error(400, "value required");
+  const kind: BanKind = rawKind;
+  const value = kind === "nick" ? rawValue.trim().toLowerCase() : rawValue.trim();
+  const reason = typeof rawReason === "string" && rawReason.trim() ? rawReason.trim() : null;
+
+  const ban = insertBan(kind, value, reason);
+
+  // Bonus on nick-ban: also ban the IP this nick most recently posted
+  // from. Imperfect (CGNAT/VPN) but it's the standard cheap doubling.
+  if (kind === "nick") {
+    const ip = lastIpForNick(value);
+    if (ip) insertBan("ip", ip, reason ? `${reason} (via nick ${value})` : `via nick ${value}`);
+  }
+
+  return json({ ok: true, ban, bans: listBans() });
+}
+
+function handleAdminUnban(banId: number): Response {
+  if (!Number.isFinite(banId)) return error(400, "bad ban id");
+  const removed = deleteBan(banId);
+  if (!removed) return error(404, "no such ban");
+  return json({ ok: true, bans: listBans() });
+}
+
+function handleAdminListBans(): Response {
+  return json({ bans: listBans() });
+}
+
+// ── Dispatcher ─────────────────────────────────────────────────────
+
+const server = Bun.serve({
+  port: PORT,
+  idleTimeout: 0, // SSE streams must stay open
+  async fetch(req, srv) {
+    if (req.method === "OPTIONS") {
+      return new Response(null, { status: 204, headers: CORS_HEADERS });
+    }
+
+    const url = new URL(req.url);
+    const path = url.pathname;
+    const ip = srv.requestIP(req)?.address ?? "unknown";
+
+    // Quick health probe for fly.io / uptime checks.
+    if (path === "/health") return json({ ok: true });
+
+    // ── Public ─────────────────────────────────────────────────────
+    if (path === "/rooms" && req.method === "GET") return handleListRooms();
+
+    // /rooms/:slug/stream
+    let m = path.match(/^\/rooms\/([^/]+)\/stream$/);
+    if (m && req.method === "GET") return handleStream(m[1]!, req);
+
+    // /rooms/:slug/messages — GET (backfill) or POST (send)
+    m = path.match(/^\/rooms\/([^/]+)\/messages$/);
+    if (m) {
+      if (req.method === "GET") return handleBackfill(m[1]!, url);
+      if (req.method === "POST") return handlePostMessage(m[1]!, req, ip);
+    }
+
+    // ── Admin (everything below requires the token) ────────────────
+    if (path.startsWith("/admin/")) {
+      if (!isAdminRequest(req)) return error(401, "admin token required");
+
+      if (path === "/admin/messages" && req.method === "POST") {
+        return handleAdminPost(req, ip);
+      }
+      if (path === "/admin/bans") {
+        if (req.method === "GET") return handleAdminListBans();
+        if (req.method === "POST") return handleAdminBan(req);
+      }
+
+      m = path.match(/^\/admin\/messages\/([^/]+)\/delete$/);
+      if (m && req.method === "POST") return handleAdminDelete(m[1]!);
+
+      m = path.match(/^\/admin\/messages\/([^/]+)\/pin$/);
+      if (m && req.method === "POST") return handleAdminPin(m[1]!);
+
+      m = path.match(/^\/admin\/rooms\/([^/]+)\/unpin$/);
+      if (m && req.method === "POST") return handleAdminUnpin(m[1]!);
+
+      m = path.match(/^\/admin\/bans\/(\d+)$/);
+      if (m && req.method === "DELETE") return handleAdminUnban(Number(m[1]!));
+    }
+
+    return error(404, "not found");
+  },
+});
+
+console.log(`[chat-server] listening on http://localhost:${server.port}`);

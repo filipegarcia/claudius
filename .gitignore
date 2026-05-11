@@ -24,6 +24,9 @@
 # production
 /build
 
+# claudiusd runtime state (pid file, logs)
+/.claudius/
+
 # misc
 .DS_Store
 *.pem

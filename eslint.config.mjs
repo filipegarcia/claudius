@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // chat-server is a standalone Bun service with its own tsconfig +
+    // (eventually) its own lint setup. Don't drag it into the Next
+    // app's ESLint run.
+    "chat-server/**",
   ]),
   // The React 19 / React Compiler rule set fires on patterns this codebase
   // hasn't been migrated for (see `user_lint_policy.md` memory). Demote to

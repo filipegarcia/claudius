@@ -36,6 +36,9 @@ type Props = {
   usage: SessionUsage | null;
   /** Fallback turn count from the transcript when usage is null (resumed sessions). */
   historicalTurnCount?: number;
+  /** False while the session is still binding — combined with `pending`,
+   *  drives the spinner in the Activity header. */
+  ready?: boolean;
   pending: boolean;
   pendingPermission: PermissionRequestEvent | null;
   latestTodos: AgentTodo[];
@@ -87,6 +90,7 @@ export function BackgroundTasksPanel({
   cwd,
   usage,
   historicalTurnCount,
+  ready = true,
   pending,
   pendingPermission,
   latestTodos,
@@ -114,11 +118,27 @@ export function BackgroundTasksPanel({
   const attention =
     runningCount + subagents.length + (pendingPermission ? 1 : 0) + liveBashes.length;
 
+  // "Busy" covers session boot AND turn-in-flight. Drives the header spinner —
+  // gives the user a always-visible "Claude is doing something" cue without
+  // them having to glance at the tools list.
+  const busy = !ready || pending;
+
   return (
     <div data-pane-name="right-rail" className="flex h-full w-72 flex-col border-l border-[var(--border)] bg-[var(--panel)]">
       <div className="sticky top-0 z-10 flex h-9 items-center gap-2 border-b border-[var(--border)] bg-[var(--panel)] px-3 text-xs">
         <Activity className="h-3.5 w-3.5 text-[var(--accent)]" />
         <span className="font-medium">Activity</span>
+        {busy && (
+          <Loader2
+            className="h-3 w-3 animate-spin text-[var(--accent)]"
+            aria-label={!ready ? "Starting session" : "Claude is working"}
+          />
+        )}
+        {busy && (
+          <span className="text-[10px] font-medium text-[var(--accent)]">
+            {!ready ? "Starting…" : "Working…"}
+          </span>
+        )}
         <span className="ml-auto text-[var(--muted)]">{attention}</span>
       </div>
       <div className="flex-1 overflow-y-auto scroll-thin px-2 py-2">

@@ -44,6 +44,30 @@ type SDKContentBlock =
     }
   | { type: string; [k: string]: unknown };
 
+/**
+ * Coerce a raw `todos` payload (as emitted by the TodoWrite tool or replayed
+ * via `session_snapshot`) into the shape the activity rail renders. Tolerant
+ * of missing fields — the model occasionally omits `id` or `activeForm` and
+ * we want to keep the row instead of dropping it.
+ */
+function coerceTodos(raw: unknown[]): AgentTodo[] {
+  return raw.map((t, i) => {
+    const o = (t as Record<string, unknown>) ?? {};
+    const content =
+      typeof o.content === "string"
+        ? o.content
+        : typeof o.subject === "string"
+          ? (o.subject as string)
+          : "";
+    return {
+      id: typeof o.id === "string" ? o.id : `t${i}`,
+      content,
+      status: typeof o.status === "string" ? (o.status as string) : "pending",
+      activeForm: typeof o.activeForm === "string" ? (o.activeForm as string) : undefined,
+    };
+  });
+}
+
 function blocksFromSDKContent(content: unknown): DisplayBlock[] {
   if (typeof content === "string") return [{ kind: "text", text: content }];
   if (!Array.isArray(content)) return [];
@@ -180,6 +204,11 @@ export function useSession(): ChatState & ChatActions {
   const queueRef = useRef<QueuedMessage[]>([]);
   const pendingPermissionRef = useRef<PermissionRequestEvent | null>(null);
   const pendingPlanRef = useRef<PendingPlan | null>(null);
+  // UUIDs of assistant messages whose `usage` has already been folded into
+  // the running session totals. Streaming can re-emit the same uuid as
+  // partials accumulate, and historical replays re-broadcast every
+  // assistant message — we want each one counted exactly once.
+  const countedUsageRef = useRef<Set<string>>(new Set());
   const flushQueueRef = useRef<() => void>(() => {});
 
   // ── sessionStorage persistence ────────────────────────────────────────
@@ -296,6 +325,7 @@ export function useSession(): ChatState & ChatActions {
     setSkills([]);
     setCwd(null);
     setUsage(null);
+    countedUsageRef.current = new Set();
     setTasks({});
     setSubagentMessages({});
     setPendingPlan(null);
@@ -420,6 +450,14 @@ export function useSession(): ChatState & ChatActions {
         setSessionTitle(ev.title ?? null);
         return;
       }
+      if (ev.type === "session_snapshot") {
+        // Server-side derived-state rehydration. Today this carries the
+        // most recent TodoWrite payload so a long-running todos list
+        // survives tab-switch / reload even when the original tool_use is
+        // outside the tail-replay window.
+        if (Array.isArray(ev.todos)) setLatestTodos(coerceTodos(ev.todos));
+        return;
+      }
       if (ev.type === "replay_done") {
         setReplaying(false);
         setHasMoreAbove(ev.hasMoreAbove);
@@ -463,8 +501,40 @@ export function useSession(): ChatState & ChatActions {
       const msg = ev.message;
 
       if (msg.type === "assistant") {
-        const beta = msg.message as { content?: unknown };
+        const beta = msg.message as {
+          content?: unknown;
+          usage?: {
+            input_tokens?: number;
+            output_tokens?: number;
+            cache_read_input_tokens?: number;
+            cache_creation_input_tokens?: number;
+          };
+        };
         const uuid = msg.uuid;
+
+        // Accumulate per-API-call token usage so the rail meters update
+        // mid-turn (the `result` event only fires when the whole turn ends).
+        // Counted before the subagent early-return so sub-agent tokens land
+        // in the session total too. Cost is left alone — that needs the
+        // pricing math the SDK does in its result event.
+        if (beta.usage && !countedUsageRef.current.has(uuid)) {
+          countedUsageRef.current.add(uuid);
+          const u = beta.usage;
+          setUsage((prev) => ({
+            totalCostUsd: prev?.totalCostUsd ?? 0,
+            numTurns: prev?.numTurns ?? 0,
+            durationMs: prev?.durationMs ?? 0,
+            durationApiMs: prev?.durationApiMs ?? 0,
+            inputTokens: (prev?.inputTokens ?? 0) + (u.input_tokens ?? 0),
+            outputTokens: (prev?.outputTokens ?? 0) + (u.output_tokens ?? 0),
+            cacheReadInputTokens:
+              (prev?.cacheReadInputTokens ?? 0) + (u.cache_read_input_tokens ?? 0),
+            cacheCreationInputTokens:
+              (prev?.cacheCreationInputTokens ?? 0) + (u.cache_creation_input_tokens ?? 0),
+            modelUsage: prev?.modelUsage,
+          }));
+        }
+
         const parent = (msg as { parent_tool_use_id?: string | null }).parent_tool_use_id ?? null;
         const blocks = blocksFromSDKContent(beta?.content);
         if (parent) {
@@ -510,24 +580,7 @@ export function useSession(): ChatState & ChatActions {
           // TodoWrite — capture the latest todos snapshot.
           if (b.name === "TodoWrite") {
             const raw = (b.input as { todos?: unknown }).todos;
-            if (Array.isArray(raw)) {
-              const synth: AgentTodo[] = raw.map((t, i) => {
-                const o = (t as Record<string, unknown>) ?? {};
-                const content =
-                  typeof o.content === "string"
-                    ? o.content
-                    : typeof o.subject === "string"
-                      ? (o.subject as string)
-                      : "";
-                return {
-                  id: typeof o.id === "string" ? o.id : `t${i}`,
-                  content,
-                  status: typeof o.status === "string" ? (o.status as string) : "pending",
-                  activeForm: typeof o.activeForm === "string" ? (o.activeForm as string) : undefined,
-                };
-              });
-              setLatestTodos(synth);
-            }
+            if (Array.isArray(raw)) setLatestTodos(coerceTodos(raw));
             continue;
           }
 
@@ -816,22 +869,21 @@ export function useSession(): ChatState & ChatActions {
         };
         if (r.fast_mode_state) setFastModeState(r.fast_mode_state);
         if (r.subtype === "success") {
-          setUsage((prev) => {
-            const u: SessionUsage = {
-              totalCostUsd: (prev?.totalCostUsd ?? 0) + (r.total_cost_usd ?? 0),
-              numTurns: (prev?.numTurns ?? 0) + (r.num_turns ?? 0),
-              durationMs: (prev?.durationMs ?? 0) + (r.duration_ms ?? 0),
-              durationApiMs: (prev?.durationApiMs ?? 0) + (r.duration_api_ms ?? 0),
-              inputTokens: (prev?.inputTokens ?? 0) + (r.usage?.input_tokens ?? 0),
-              outputTokens: (prev?.outputTokens ?? 0) + (r.usage?.output_tokens ?? 0),
-              cacheReadInputTokens:
-                (prev?.cacheReadInputTokens ?? 0) + (r.usage?.cache_read_input_tokens ?? 0),
-              cacheCreationInputTokens:
-                (prev?.cacheCreationInputTokens ?? 0) + (r.usage?.cache_creation_input_tokens ?? 0),
-              modelUsage: r.modelUsage ?? prev?.modelUsage,
-            };
-            return u;
-          });
+          // Tokens are already accumulated per-assistant-message above
+          // (so the rail updates mid-turn). The `result` event only owns
+          // the fields it's authoritative for: cost, turn count, durations,
+          // and the per-model usage breakdown.
+          setUsage((prev) => ({
+            totalCostUsd: (prev?.totalCostUsd ?? 0) + (r.total_cost_usd ?? 0),
+            numTurns: (prev?.numTurns ?? 0) + (r.num_turns ?? 0),
+            durationMs: (prev?.durationMs ?? 0) + (r.duration_ms ?? 0),
+            durationApiMs: (prev?.durationApiMs ?? 0) + (r.duration_api_ms ?? 0),
+            inputTokens: prev?.inputTokens ?? 0,
+            outputTokens: prev?.outputTokens ?? 0,
+            cacheReadInputTokens: prev?.cacheReadInputTokens ?? 0,
+            cacheCreationInputTokens: prev?.cacheCreationInputTokens ?? 0,
+            modelUsage: r.modelUsage ?? prev?.modelUsage,
+          }));
         }
         void flushQueue();
         return;

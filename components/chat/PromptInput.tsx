@@ -5,6 +5,7 @@ import { ArrowUp, Hourglass, Image as ImageIcon, Mic, MicOff, Paperclip, Square,
 import { cn } from "@/lib/utils/cn";
 import { SlashCommandPicker } from "./SlashCommandPicker";
 import { AtMentionPicker } from "./AtMentionPicker";
+import { ImageLightbox } from "./ImageLightbox";
 import { useVoice } from "@/lib/client/useVoice";
 import type { AttachedImage } from "@/lib/client/types";
 
@@ -14,6 +15,14 @@ type Props = {
   slashCommands: string[];
   skills: string[];
   cwd: string | null;
+  /**
+   * Identifies the current chat. Drives the per-session draft store: when this
+   * changes we fetch the saved draft for the new session (so switching tabs
+   * doesn't carry the textarea over) and persist edits keyed to the same id.
+   * `null` while a fresh session is being created — the composer behaves as
+   * a transient ephemeral input until the id resolves.
+   */
+  sessionId: string | null;
   onSend: (text: string, images?: AttachedImage[]) => void;
   onInterrupt: () => void;
   /**
@@ -50,6 +59,7 @@ export function PromptInput({
   slashCommands,
   skills,
   cwd,
+  sessionId,
   onSend,
   onInterrupt,
   draftInjection,
@@ -61,6 +71,8 @@ export function PromptInput({
   const [mounted, setMounted] = useState(false);
   const [images, setImages] = useState<AttachedImage[]>([]);
   const [dragOver, setDragOver] = useState(false);
+  /** When set, opens the lightbox over the composer for click-to-zoom. */
+  const [lightbox, setLightbox] = useState<AttachedImage | null>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
   /** Per-prompt monotonic counter — increments on each insert, never decrements. */
   const ordinalCounterRef = useRef(0);
@@ -141,9 +153,95 @@ export function PromptInput({
     });
   }, [draftInjection]);
 
+  // ── Per-session draft persistence ──────────────────────────────────────
+  // Each session has its own composer draft — switching tabs should NOT
+  // carry the textarea over. We seed on sessionId-change from the server
+  // and debounce-save on every edit. Submit clears the row.
+  //
+  // Race notes (these will bite if removed):
+  //   1. If the user types into the new session before the GET resolves,
+  //      the seed must NOT clobber their input. `userTypedRef` guards this.
+  //   2. A debounced save in flight when the user switches sessions must
+  //      land on the *previous* sessionId — `pendingSaveRef` carries the
+  //      session id at save start so closure stale-ness can't cross sessions.
+  //   3. `draftInjection` (lifted queued message) wins over the stored
+  //      draft if both fire on the same render — the injection effect
+  //      runs after this one in render order and overwrites.
+  const userTypedRef = useRef(false);
+  const seededForSessionRef = useRef<string | null>(null);
+  // Reset the "typed" flag whenever the session id changes so the next seed
+  // can land. We do this in render (cheap, idempotent) rather than in an
+  // effect to avoid a frame of "stale typed=true" against the new session.
+  if (seededForSessionRef.current !== sessionId) {
+    userTypedRef.current = false;
+  }
+
+  useEffect(() => {
+    if (!sessionId) return;
+    // Capture the id this load is *for* so a late response that arrives
+    // after the user has switched away gets dropped on the floor.
+    const seedingFor = sessionId;
+    let cancelled = false;
+    fetch(`/api/sessions/${seedingFor}/prompt-draft`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: { text?: string; images?: AttachedImage[] } | null) => {
+        if (cancelled) return;
+        if (seedingFor !== sessionId) return;
+        // Mark this session as "seeded" BEFORE the typed-guard returns —
+        // otherwise typing-before-load permanently disables saves: the
+        // save-effect's seededForSessionRef guard never opens, and every
+        // subsequent keystroke aborts. Order matters here.
+        seededForSessionRef.current = seedingFor;
+        if (userTypedRef.current) return; // user beat the fetch — don't clobber
+        const text = data?.text ?? "";
+        const imgs = Array.isArray(data?.images) ? data!.images! : [];
+        setValue(text);
+        setImages(imgs);
+        if (imgs.length > 0) {
+          const maxOrd = imgs.reduce((m, im) => Math.max(m, im.ordinal), 0);
+          ordinalCounterRef.current = Math.max(ordinalCounterRef.current, maxOrd);
+        }
+        requestAnimationFrame(() => autosize());
+      })
+      .catch(() => {
+        // Mark the session as "seeded" even on failure so subsequent edits
+        // start saving — falling back to an empty composer is fine, and
+        // missing the seed shouldn't disable persistence for the session.
+        if (!cancelled) seededForSessionRef.current = seedingFor;
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionId]);
+
+  // Debounced save. Pinned to the sessionId in scope at fire-time so a
+  // mid-flight save can't cross over after the user switches tabs.
+  useEffect(() => {
+    if (!sessionId) return;
+    // Don't echo the just-seeded state back to the server — wait until the
+    // user actually edits something.
+    if (seededForSessionRef.current !== sessionId) return;
+    if (!userTypedRef.current && value === "" && images.length === 0) return;
+    const id = sessionId;
+    const t = setTimeout(() => {
+      fetch(`/api/sessions/${id}/prompt-draft`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: value, images }),
+      }).catch(() => {
+        // Persistence is best-effort — if the network is down the user
+        // still has the in-memory textarea; we'll save again on the next
+        // keystroke.
+      });
+    }, 500);
+    return () => clearTimeout(t);
+  }, [sessionId, value, images]);
+
   const interimRef = useRef<string>("");
   const baseRef = useRef<string>("");
   const voice = useVoice((text, isFinal) => {
+    // Dictation bypasses the textarea's onChange, so flag activity here too.
+    userTypedRef.current = true;
     if (isFinal) {
       const next = (baseRef.current + " " + text).trimStart();
       baseRef.current = next;
@@ -248,6 +346,14 @@ export function PromptInput({
     setAtQuery(null);
     // Each prompt is its own ordinal namespace.
     ordinalCounterRef.current = 0;
+    // Submitting consumes the draft. Reset the "typed" flag so subsequent
+    // session-switches still seed cleanly, and tell the server to clear.
+    userTypedRef.current = false;
+    if (sessionId) {
+      fetch(`/api/sessions/${sessionId}/prompt-draft`, { method: "DELETE" }).catch(() => {
+        // Best-effort — the next debounced save will overwrite anyway.
+      });
+    }
     requestAnimationFrame(() => {
       if (taRef.current) {
         taRef.current.style.height = "auto";
@@ -309,6 +415,9 @@ export function PromptInput({
   }
 
   async function ingestFiles(files: File[]) {
+    // Drag-drop / paste / file-picker all flow through here — count it as
+    // user activity so a late-arriving seed can't clobber attachments.
+    userTypedRef.current = true;
     const droppedPaths: string[] = [];
     type Pending = { data: string; mediaType: string };
     const newImageBlobs: Pending[] = [];
@@ -402,12 +511,19 @@ export function PromptInput({
           <div className="mb-2 flex flex-wrap gap-2 rounded-md border border-[var(--border)] bg-[var(--panel-2)]/40 p-2">
             {images.map((img, i) => (
               <div key={i} className="relative">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={`data:${img.mediaType};base64,${img.data}`}
-                  alt=""
-                  className="h-14 w-14 rounded-md border border-[var(--border)] object-cover"
-                />
+                <button
+                  type="button"
+                  onClick={() => setLightbox(img)}
+                  title={`Click to zoom · [Image #${img.ordinal}]`}
+                  className="block overflow-hidden rounded-md border border-[var(--border)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={`data:${img.mediaType};base64,${img.data}`}
+                    alt=""
+                    className="h-14 w-14 object-cover transition hover:brightness-110"
+                  />
+                </button>
                 <button
                   onClick={() => removeImageById(img.id)}
                   className="absolute -right-1.5 -top-1.5 rounded-full border border-[var(--border)] bg-[var(--panel)] p-0.5 text-[var(--muted)] hover:text-red-400"
@@ -415,7 +531,7 @@ export function PromptInput({
                 >
                   <X className="h-3 w-3" />
                 </button>
-                <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 rounded bg-[var(--panel)] px-1 text-[9px] font-mono text-[var(--muted)]">
+                <span className="pointer-events-none absolute -bottom-1 left-1/2 -translate-x-1/2 rounded bg-[var(--panel)] px-1 text-[9px] font-mono text-[var(--muted)]">
                   #{img.ordinal}
                 </span>
               </div>
@@ -424,6 +540,13 @@ export function PromptInput({
               {images.length} image{images.length === 1 ? "" : "s"} attached
             </span>
           </div>
+        )}
+        {lightbox && (
+          <ImageLightbox
+            src={`data:${lightbox.mediaType};base64,${lightbox.data}`}
+            label={`Image #${lightbox.ordinal}`}
+            onClose={() => setLightbox(null)}
+          />
         )}
 
         {/*
@@ -508,6 +631,9 @@ export function PromptInput({
             }}
             onChange={(e) => {
               const next = e.target.value;
+              // A real keystroke — block the seed-from-server effect from
+              // overwriting the user's input if the GET resolves late.
+              userTypedRef.current = true;
               // Atomic-token cleanup: any token present in the prior value but
               // gone (or partially mangled) in the new value drops its image.
               if (!composingRef.current) {

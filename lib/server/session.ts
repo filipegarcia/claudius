@@ -15,6 +15,7 @@ import {
 } from "@anthropic-ai/claude-agent-sdk";
 import { projectRoot } from "./db";
 import { AsyncQueue } from "./async-queue";
+import { notificationBus } from "./notification-bus";
 import {
   getSessionTitle,
   setSessionTitle,
@@ -393,6 +394,9 @@ export class Session {
     const pending = this.pendingPermissions.get(requestId);
     if (!pending) return false;
     this.pendingPermissions.delete(requestId);
+    // The request is now resolved — clear the matching inbox row so the user
+    // doesn't keep seeing "Claude needs permission" after they've answered.
+    void notificationBus.markReadByRequestId(this.cwd, requestId);
 
     if (decision.kind === "deny") {
       pending.resolve({ behavior: "deny", message: decision.message ?? "User denied" });
@@ -449,6 +453,9 @@ export class Session {
     const pending = this.pendingAskQuestions.get(requestId);
     if (!pending) return false;
     this.pendingAskQuestions.delete(requestId);
+    // Mirror resolvePermission: clear the matching inbox row so an answered
+    // question stops showing as unread.
+    void notificationBus.markReadByRequestId(this.cwd, requestId);
 
     const hasAnyContent = answers.some((a) => {
       if (!a) return false;
@@ -511,6 +518,9 @@ export class Session {
     const pending = this.pendingPlans.get(requestId);
     if (!pending) return false;
     this.pendingPlans.delete(requestId);
+    // Mirror resolvePermission: clear the matching inbox row so a resolved
+    // plan-approval request stops showing as unread.
+    void notificationBus.markReadByRequestId(this.cwd, requestId);
 
     if (decision.kind === "reject") {
       pending.resolve({
@@ -520,8 +530,35 @@ export class Session {
       return true;
     }
 
-    await this.setPermissionMode("acceptEdits");
-    pending.resolve({ behavior: "allow" });
+    // Hand the mode transition to the SDK via `updatedPermissions` instead
+    // of pre-flipping with `query.setPermissionMode()`. The SDK's
+    // ExitPlanMode tool checks its own pre-plan-mode state when it runs,
+    // and a race-y external flip makes the tool emit `is_error: true`
+    // ("ExitPlanMode never reached" / "gate is off"), which surfaced as a
+    // red ⚠ icon on the activity rail even though the user had accepted
+    // the plan. Returning the setMode as part of the allow lets the SDK
+    // perform the transition atomically and the tool returns success.
+    this.permissionMode = "acceptEdits";
+    const result: PermissionResult = {
+      behavior: "allow",
+      updatedPermissions: [
+        { type: "setMode", mode: "acceptEdits", destination: "session" },
+      ],
+    };
+    // If the user hand-edited the plan in the overlay, ship their version
+    // as the tool's effective input. The SDK feeds this to ExitPlanMode
+    // which writes the file + records it in the tool_result, so the next
+    // model turn references the edited plan rather than the original draft.
+    // Preserve any other fields the model passed (e.g. `allowedPrompts`).
+    const editedPlan = decision.editedPlan?.trim();
+    if (editedPlan && editedPlan !== pending.plan.trim()) {
+      result.updatedInput = { ...(pending.raw ?? {}), plan: editedPlan };
+    }
+    pending.resolve(result);
+    // The SDK doesn't echo `setMode` permission updates back through its
+    // message iterator — broadcast manually so the client UI's mode badge
+    // (plan → acceptEdits) follows along immediately.
+    this.broadcast({ type: "mode_changed", mode: "acceptEdits" });
     return true;
   }
 
@@ -548,6 +585,12 @@ export class Session {
     // to it via cast (we trust the client to send a real uuid — worst case
     // is an inert dedup key, not a security issue).
     const uuid = (opts?.uuid ?? randomUUID()) as ReturnType<typeof randomUUID>;
+
+    // Stamp the bus so the next `result` after this turn counts as "idle"
+    // (i.e. crossed the IDLE_NOTIFY_MIN_MS threshold). Without this the
+    // bus suppresses idle notifications because it never saw a user-input
+    // signal for the session.
+    notificationBus.markUserInput(this.id);
 
     if (!images || images.length === 0) {
       const message = { role: "user" as const, content: text };
@@ -799,6 +842,13 @@ export class Session {
     // Tell the client the replay window is over so it can anchor and arm
     // the "load older" sentinel.
     fn({ type: "replay_done", hasMoreAbove });
+    // Rehydrate derived state that lives upstream of the tail window. A
+    // session might have set its todos hundreds of turns ago — without
+    // this snapshot the client's banner stays empty on reconnect even
+    // though the tool_use is still in the canonical history on disk.
+    if (this.latestTodosSnapshot) {
+      fn({ type: "session_snapshot", todos: this.latestTodosSnapshot });
+    }
     // Re-emit `ready` for tail-truncated sessions. `ready` is broadcast
     // exactly once at start() (sits at buffer index 0), so any session
     // with more turns than `tail` slices it off the replay window —
@@ -926,11 +976,48 @@ export class Session {
   private broadcast(event: ServerEvent): void {
     this.buffer.push(event);
     if (this.buffer.length > 1000) this.buffer.splice(0, this.buffer.length - 1000);
+    // Sniff for derived state we want to rehydrate on tab-switch / reload.
+    // The tail-replay window can slice off the original tool_use that set
+    // these, so we cache the latest payload server-side and replay it via
+    // session_snapshot in subscribe().
+    this.captureSnapshotState(event);
     for (const sub of this.subscribers) {
       try {
         sub(event);
       } catch {
         // ignore subscriber errors
+      }
+    }
+    // Feed the workspace notification inbox. The bus filters/dedups internally
+    // (subagent skip, kind whitelist, per-session mute) and swallows errors —
+    // failures here must never disrupt the session flow.
+    void notificationBus.recordSessionEvent(this.cwd, this.id, event);
+  }
+
+  /**
+   * Latest `todos` payload from a TodoWrite tool_use. Stored as raw
+   * `unknown[]` because the client already knows how to coerce that shape;
+   * keeping it untouched here means the snapshot is byte-identical with
+   * what would be re-synthesised from the buffer.
+   */
+  private latestTodosSnapshot: unknown[] | null = null;
+
+  private captureSnapshotState(event: ServerEvent): void {
+    if (event.type !== "sdk") return;
+    const m = event.message as { type?: string; message?: { content?: unknown } };
+    // Top-level assistant message — subagent TodoWrites don't shape the
+    // main rail (those have parent_tool_use_id set and we don't track
+    // subagent state here).
+    if (m.type !== "assistant") return;
+    const parent = (event.message as { parent_tool_use_id?: string | null }).parent_tool_use_id;
+    if (parent) return;
+    const content = m.message?.content;
+    if (!Array.isArray(content)) return;
+    for (const block of content as Array<{ type?: string; name?: string; input?: unknown }>) {
+      if (block?.type !== "tool_use") continue;
+      if (block.name === "TodoWrite") {
+        const raw = (block.input as { todos?: unknown } | null)?.todos;
+        if (Array.isArray(raw)) this.latestTodosSnapshot = raw;
       }
     }
   }
