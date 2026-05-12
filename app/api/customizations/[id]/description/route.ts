@@ -25,20 +25,26 @@ type ResponseShape = {
 async function buildResponse(id: string): Promise<ResponseShape | null> {
   const c = await getCustomization(id);
   if (!c) return null;
+  // `currentHash` is only consumed to compute `stale`, and `stale` can only
+  // be true when (a) the description is generated (not manual), (b) it's
+  // non-empty, and (c) we have a baseline `descriptionDiffHash` to compare
+  // against. Skipping diffHashFor() in every other case avoids an O(N) walk
+  // over the customization src tree — computeSyncStatus() hashes every file
+  // and runs to 4+ minutes on slow CI runners, blocking the dev-server
+  // request loop. Manual descriptions in particular never go stale on their
+  // own, so the user owns the text until they explicitly hit Regenerate.
+  const needsCurrentHash =
+    !c.descriptionIsManual && !!c.description && !!c.descriptionDiffHash;
   let currentHash = "";
-  try {
-    currentHash = await diffHashFor(id);
-  } catch {
-    // diff failed (corrupt customization, missing src dir) — treat as no diff.
+  if (needsCurrentHash) {
+    try {
+      currentHash = await diffHashFor(id);
+    } catch {
+      // diff failed (corrupt customization, missing src dir) — treat as no diff.
+    }
   }
-  // Manual descriptions never go stale on their own; the user owns the text
-  // until they explicitly hit Regenerate.
   const stale =
-    !c.descriptionIsManual &&
-    !!c.description &&
-    !!c.descriptionDiffHash &&
-    currentHash !== "" &&
-    c.descriptionDiffHash !== currentHash;
+    needsCurrentHash && currentHash !== "" && c.descriptionDiffHash !== currentHash;
   return {
     description: c.description ?? null,
     descriptionGeneratedAt: c.descriptionGeneratedAt ?? null,
