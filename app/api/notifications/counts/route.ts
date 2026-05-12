@@ -7,11 +7,18 @@ export const dynamic = "force-dynamic";
 /**
  * GET /api/notifications/counts
  *
- * Cross-workspace unread counts keyed by workspace id. Used at app boot to
- * paint the workspace-tile badges, and on SSE reconnect to repair drift.
- * The bus memoizes the aggregate for 1s so burst polling stays cheap.
+ * Cross-workspace unread state. Returns a `states` map keyed by workspace id;
+ * each entry carries the monotonic `version`, the workspace total, and the
+ * per-session unread map. Used at app boot to paint badges before the SSE
+ * connection lands its first state event, and on visibility/online recovery
+ * to repair drift.
+ *
+ * The version comes from the same per-workspace counter the SSE `state`
+ * event uses, so the client's version gate works seamlessly across the
+ * HTTP and SSE paths — a slower /counts response can never overwrite a
+ * fresher SSE-delivered state.
  */
 export async function GET() {
-  const counts = await notificationBus.countsAllWorkspaces();
-  return NextResponse.json({ counts });
+  const states = await notificationBus.getAllWorkspaceStates();
+  return NextResponse.json({ states });
 }

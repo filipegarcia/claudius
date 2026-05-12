@@ -212,4 +212,81 @@ test.describe("Notifications pipeline", () => {
   // NOTE: "per-session block suppresses" used to live here but moved to
   // `tests/unit/notification-bus.integration.test.ts` — the browser was
   // adding no signal over the in-process bus assertion.
+
+  test("R1: workspace tile, drawer header, and drawer items always agree", async ({
+    page,
+    request,
+    baseURL,
+  }) => {
+    // Pin the consistency contract end-to-end. Three UI surfaces read from
+    // three different selectors but must always equal the workspace's
+    // ground-truth unread count. The rewrite drives all three from one
+    // server-emitted `state` event with a monotonic version, so divergence
+    // is structurally impossible — this test would catch any future
+    // regression that re-introduces multiple sources of truth.
+    await page.goto("/");
+    await waitForBoundSession(page);
+    const ws = await getActiveWorkspace(request, baseURL);
+    await ensureNotificationsEnabled(request, baseURL, ws);
+
+    // Start from a known-empty state.
+    await request.post(`${baseURL}/api/notifications/read-all`, {
+      data: { workspaceId: ws.id },
+    });
+
+    // Emit 3 notifications, each on a different fake session id so the
+    // active-session auto-read gate doesn't suppress them.
+    const fakeIds = [
+      "11111111-1111-4111-8111-111111111111",
+      "22222222-2222-4222-8222-222222222222",
+      "33333333-3333-4333-8333-333333333333",
+    ];
+    for (const sid of fakeIds) {
+      const res = await request.post(`${baseURL}/api/notifications/dev-emit`, {
+        data: {
+          cwd: ws.rootPath,
+          sessionId: sid,
+          event: { type: "error", message: `r1-${sid.slice(0, 8)}` },
+        },
+      });
+      expect(res.ok()).toBeTruthy();
+    }
+
+    // All three surfaces should converge on the same number.
+    const tileBadge = page.getByTestId(`workspace-notification-badge-${ws.id}`);
+    const drawerBadge = page.getByTestId("notifications-drawer-badge");
+    await expect(tileBadge).toHaveText("3", { timeout: 15_000 });
+    await expect(drawerBadge).toHaveText("3");
+
+    await page.getByTestId("notifications-drawer-trigger").click();
+    const panel = page.getByTestId("notifications-drawer-panel");
+    await expect(panel).toBeVisible();
+    // Drawer's visible rows must equal the badge. The redesign uses
+    // `unreadOnly=1` at the SQL level, so older unread can't fall off the
+    // 50-row pagination window when read rows pile up on top of them.
+    const rows = panel.locator("[data-testid^='notification-row-']");
+    await expect(rows).toHaveCount(3);
+
+    // Mark one read via the API and verify all three surfaces re-converge.
+    // Pull the id from the visible drawer (any row works).
+    const firstRowId = await rows
+      .first()
+      .getAttribute("data-testid")
+      .then((s) => s?.replace(/^notification-row-/, "") ?? null);
+    expect(firstRowId).toBeTruthy();
+    await request.post(`${baseURL}/api/notifications/${firstRowId}/read`, {
+      data: { workspaceId: ws.id },
+    });
+    await expect(tileBadge).toHaveText("2", { timeout: 10_000 });
+    await expect(drawerBadge).toHaveText("2");
+    await expect(rows).toHaveCount(2);
+
+    // markAllRead: every surface should drop to zero / disappear.
+    await request.post(`${baseURL}/api/notifications/read-all`, {
+      data: { workspaceId: ws.id },
+    });
+    await expect(tileBadge).not.toBeVisible({ timeout: 10_000 });
+    await expect(drawerBadge).not.toBeVisible();
+    await expect(rows).toHaveCount(0);
+  });
 });

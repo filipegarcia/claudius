@@ -3,6 +3,10 @@ import { info as sessionFileInfo } from "./sessions-store";
 import { listWorkspaces, type Workspace } from "./workspaces-store";
 import type { Session } from "./session";
 
+function debug(): boolean {
+  return !!process.env.CLAUDIUS_DEBUG_SESSIONS;
+}
+
 /**
  * Look up a Session by id; if it's been reaped from the in-memory map (idle
  * window elapsed with zero SSE subscribers — see `session-manager.ts`), try
@@ -19,10 +23,32 @@ import type { Session } from "./session";
  */
 export async function getOrResumeSession(id: string): Promise<Session | null> {
   const existing = sessionManager.get(id);
-  if (existing) return existing;
+  if (existing) {
+    if (debug()) {
+       
+      console.log("[sess-load] getOrResumeSession in-memory hit", { id });
+    }
+    return existing;
+  }
   try {
     const fileInfo = await sessionFileInfo(id);
-    if (!fileInfo?.cwd) return null;
+    if (!fileInfo?.cwd) {
+      if (debug()) {
+         
+        console.warn("[sess-load] getOrResumeSession: no fileInfo/cwd — returning null", {
+          id,
+          fileInfoFound: !!fileInfo,
+        });
+      }
+      return null;
+    }
+    if (debug()) {
+       
+      console.log("[sess-load] getOrResumeSession: resuming from disk", {
+        id,
+        cwd: fileInfo.cwd,
+      });
+    }
     const all = await listWorkspaces().catch(() => [] as Workspace[]);
     const originWs = all.find((w) => w.rootPath === fileInfo.cwd) ?? null;
     const defaults = originWs?.defaults ?? {};
@@ -38,7 +64,14 @@ export async function getOrResumeSession(id: string): Promise<Session | null> {
       await session.setPermissionMode(defaults.permissionMode);
     }
     return session;
-  } catch {
+  } catch (err) {
+    if (debug()) {
+       
+      console.warn("[sess-load] getOrResumeSession FAILED", {
+        id,
+        err: err instanceof Error ? err.message : String(err),
+      });
+    }
     return null;
   }
 }

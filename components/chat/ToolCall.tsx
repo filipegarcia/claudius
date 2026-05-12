@@ -10,27 +10,34 @@ type Props = {
   input: Record<string, unknown>;
   result?: { content: string; isError?: boolean };
   /**
-   * When this tool_use is the one currently waiting on the user (AskUserQuestion
-   * with a matching `pendingAsk.toolUseId`), render a small "Answer" pill next
-   * to the title so the user can bring the question modal back if it was
-   * minimized, dismissed, or hidden by a route change. Gated strictly on a live
-   * pending ask — once the SDK has the answer, the pill is gone.
+   * For AskUserQuestion rows: when true, render the "Answer" pill in its
+   * pulsing "live" variant to flag that the SDK is actively waiting on this
+   * very tool_use. When false (or omitted), a non-pulsing pill still shows
+   * as long as `onReopenAsk` is provided — the user can reopen the question
+   * modal even for historic / errored asks (the permission stream commonly
+   * aborts on reconnects, leaving an `isError` result behind, and the user
+   * still wants to see what was asked).
+   *
+   * AssistantMessage is the gate that decides whether the parent considers
+   * this row an ask at all; ToolCall additionally checks `name` to refuse
+   * showing a phantom pill if a caller bypasses that gate.
    */
-  isPendingAsk?: boolean;
+  liveAsk?: boolean;
   /** Called when the user clicks the "Answer" pill. Should re-show the modal. */
   onReopenAsk?: () => void;
 };
 
-export function ToolCall({ name, input, result, isPendingAsk, onReopenAsk }: Props) {
+export function ToolCall({ name, input, result, liveAsk, onReopenAsk }: Props) {
   const [open, setOpen] = useState(false);
   const { editor } = useEditor();
   const status = !result ? "running" : result.isError ? "error" : "ok";
   const fileTarget = pathFromToolInput(input);
-  // Only surface the "Answer" pill while the question is genuinely pending —
-  // both flags AND no tool_result yet. A resolved AskUserQuestion (answered,
-  // declined, or aborted) is just a normal history row; resurrecting a modal
-  // for it would be a phantom action since the SDK has already moved on.
-  const showAnswerPill = isPendingAsk && !result && !!onReopenAsk;
+  // Show the "Answer" pill on every AskUserQuestion row that has a click
+  // handler wired — live asks pulse, historic ones don't. Resurrecting a
+  // historic ask doesn't try to feed the SDK (which has already moved on);
+  // the click sends the user's answer as a regular follow-up message, so
+  // it's safe to expose even after `result.isError = true`.
+  const showAnswerPill = name === "AskUserQuestion" && !!onReopenAsk;
   return (
     <div className="my-2 rounded-lg border border-[var(--border)] bg-[var(--panel)]/40">
       {/* The header row is a flex container — the toggle button covers the
@@ -54,12 +61,18 @@ export function ToolCall({ name, input, result, isPendingAsk, onReopenAsk }: Pro
           <button
             type="button"
             data-testid="tool-call-answer-pill"
+            data-live-ask={liveAsk ? "true" : "false"}
             onClick={() => onReopenAsk?.()}
-            className="inline-flex animate-pulse items-center gap-1 rounded-md border border-[var(--accent)]/50 bg-[var(--accent)]/15 px-2 py-0.5 text-[10px] font-medium text-[var(--accent)] hover:bg-[var(--accent)]/25"
-            title="Open the question modal"
+            className={cn(
+              "inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-medium",
+              liveAsk
+                ? "animate-pulse border-[var(--accent)]/50 bg-[var(--accent)]/15 text-[var(--accent)] hover:bg-[var(--accent)]/25"
+                : "border-[var(--border)] bg-[var(--panel-2)] text-[var(--muted)] hover:bg-[var(--panel)] hover:text-[var(--foreground)]",
+            )}
+            title={liveAsk ? "Open the question modal" : "Reopen this question — your answer will be sent as a follow-up message"}
           >
             <MessageCircleQuestion className="h-3 w-3" />
-            Answer
+            {liveAsk ? "Answer" : "Reopen"}
           </button>
         )}
         <span className="inline-flex items-center gap-1 text-[var(--muted)]">

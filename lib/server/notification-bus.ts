@@ -7,18 +7,23 @@ import {
   type NotificationRow,
   type NotificationStreamEvent,
   type WorkspaceNotificationPrefs,
+  type WorkspaceUnreadState,
 } from "@/lib/shared/notifications";
 import { listWorkspaces, workspacesFile, type Workspace } from "./workspaces-store";
+import { getCachedDb } from "./db";
 import {
   insertNotification,
   isSessionMuted,
   listNotifications,
   markAllRead,
   markRead,
+  markReadByKind,
   markReadByRequestId,
   markReadBySession,
   unreadCount,
+  unreadCountOn,
   unreadCountsBySession,
+  unreadCountsBySessionOn,
 } from "./notifications-db";
 
 /**
@@ -57,14 +62,24 @@ type RecordContext = {
   sessionId?: string;
   runId?: string;
   jobId?: string;
+  /**
+   * Whether the originating session currently has at least one SSE
+   * subscriber. Used to suppress *background* notifications whose only
+   * value is "Claude finished a turn over there" or "Session over there
+   * errored" — when the user has switched to another session tab they
+   * don't want either kind interrupting them. Actionable kinds
+   * (permission_request, ask_user_question, plan_approval_request) ignore
+   * this flag and notify regardless, because they require the user's
+   * attention to make progress. Defaults to `true` so scheduler events
+   * (which carry no sessionId) are unaffected.
+   */
+  hasSubscribers?: boolean;
 };
 
 type Subscriber = (env: NotificationStreamEvent) => void;
 
 /** Window after the last user input during which a `result` event is NOT a notify trigger. */
 const IDLE_NOTIFY_MIN_MS = 5_000;
-/** Cache TTL for the cross-workspace counts aggregator. */
-const COUNTS_CACHE_TTL_MS = 1_000;
 
 class NotificationBus {
   private subscribers = new Set<Subscriber>();
@@ -73,10 +88,25 @@ class NotificationBus {
   /** cwd → workspaceId cache, invalidated by workspaces.json mtime. */
   private cwdMap: Map<string, string> | null = null;
   private cwdMapMtime = 0;
-  /** Snapshot of last-known per-workspace unread counts, for delta detection. */
-  private lastCounts = new Map<string, number>();
-  /** Memoised aggregated counts (`countsAllWorkspaces`). */
-  private countsCache: { at: number; data: Record<string, number> } | null = null;
+  /**
+   * Last emitted unread state per workspace. New emissions bump `version` so
+   * out-of-order clients can drop stale updates. This is the SINGLE source
+   * of truth for what counts the SSE subscribers have seen — the prior
+   * `lastCounts: Map<string,number>` mixed "what's in the DB" with "what we
+   * told the client" and short-circuited on equality, which lost legitimate
+   * count updates under concurrent mark-reads. `version` decouples them.
+   */
+  private perWorkspace = new Map<string, WorkspaceUnreadState>();
+  /**
+   * Coalesce in-tick state emissions per workspace. When `record()` inserts a
+   * row and a follow-up `markReadByRequestId` fires in the same tick (the
+   * resolve path of permission/ask/plan flows), we want ONE state event
+   * carrying the final values — not "+1 then −1" flicker. Tracks the
+   * pending `setTimeout` handle so `resetForTests` can clear it; otherwise
+   * a leftover timer from one test fires into the next and pollutes its
+   * `envs` capture.
+   */
+  private pendingFlush = new Map<string, ReturnType<typeof setTimeout>>();
 
   // ── cwd → workspaceId mapping ─────────────────────────────────────────
 
@@ -125,8 +155,13 @@ class NotificationBus {
     this.lastUserInputAt.clear();
     this.cwdMap = null;
     this.cwdMapMtime = 0;
-    this.lastCounts.clear();
-    this.countsCache = null;
+    this.perWorkspace.clear();
+    // Clear pending timers so an in-flight setTimeout from one test can't
+    // fire inside the next test and pollute its `envs` capture.
+    for (const handle of this.pendingFlush.values()) {
+      clearTimeout(handle);
+    }
+    this.pendingFlush.clear();
   }
 
   // ── Public producer surface ───────────────────────────────────────────
@@ -135,8 +170,13 @@ class NotificationBus {
     cwd: string,
     sessionId: string,
     event: ServerEvent,
+    opts: { hasSubscribers?: boolean } = {},
   ): Promise<void> {
-    await this.record(event, { cwd, sessionId });
+    await this.record(event, {
+      cwd,
+      sessionId,
+      hasSubscribers: opts.hasSubscribers,
+    });
   }
 
   async recordSchedulerEvent(
@@ -159,7 +199,7 @@ class NotificationBus {
 
   async list(
     workspaceId: string,
-    opts: { limit?: number; before?: number } = {},
+    opts: { limit?: number; before?: number; unreadOnly?: boolean } = {},
   ): Promise<NotificationRow[]> {
     const ws = await getWorkspaceById(workspaceId);
     if (!ws) return [];
@@ -170,7 +210,7 @@ class NotificationBus {
     const ws = await getWorkspaceById(workspaceId);
     if (!ws) return 0;
     const changed = await markRead(ws.rootPath, ids);
-    if (changed > 0) await this.emitCount(workspaceId, ws.rootPath);
+    if (changed > 0) this.scheduleStateEmit(workspaceId, ws.rootPath);
     return changed;
   }
 
@@ -178,25 +218,40 @@ class NotificationBus {
     const ws = await getWorkspaceById(workspaceId);
     if (!ws) return 0;
     const changed = await markAllRead(ws.rootPath);
-    if (changed > 0) await this.emitCount(workspaceId, ws.rootPath);
+    if (changed > 0) this.scheduleStateEmit(workspaceId, ws.rootPath);
     return changed;
   }
 
   /**
    * Mark every unread row tied to a single session as read. Fired when the
    * user selects the matching tab — the action is "I'm looking at this
-   * session now". Emits a workspace count event when at least one row
-   * flipped so the bell-tile total and per-tab badge resync.
+   * session now". Emits a state event when at least one row flipped so
+   * subscribers resync.
    */
   async markReadBySession(workspaceId: string, sessionId: string): Promise<number> {
     if (!sessionId) return 0;
     const ws = await getWorkspaceById(workspaceId);
     if (!ws) return 0;
     const changed = await markReadBySession(ws.rootPath, sessionId);
-    if (changed > 0) {
-      this.invalidateCountsCache();
-      await this.emitCount(workspaceId, ws.rootPath);
-    }
+    if (changed > 0) this.scheduleStateEmit(workspaceId, ws.rootPath);
+    return changed;
+  }
+
+  /**
+   * Mark every unread row of one kind in a workspace as read. Fires when
+   * the user disables a notification kind from the workspace settings —
+   * the backlog of that kind should clear so it doesn't haunt the badge
+   * after the user has said "stop showing me X".
+   */
+  async markReadByKind(
+    workspaceId: string,
+    kind: NotificationKind,
+  ): Promise<number> {
+    if (!kind) return 0;
+    const ws = await getWorkspaceById(workspaceId);
+    if (!ws) return 0;
+    const changed = await markReadByKind(ws.rootPath, kind);
+    if (changed > 0) this.scheduleStateEmit(workspaceId, ws.rootPath);
     return changed;
   }
 
@@ -214,40 +269,39 @@ class NotificationBus {
       if (!ws) return;
       const changedIds = await markReadByRequestId(cwd, requestId);
       if (changedIds.length === 0) return;
-      this.invalidateCountsCache();
-      await this.emitCount(ws.id, cwd);
+      this.scheduleStateEmit(ws.id, cwd);
     } catch {
       // best-effort
     }
   }
 
   /**
-   * Per-session unread counts for a single workspace, used by the tab strip
-   * to paint a "you have N notifications waiting on this session" badge. Not
-   * cached — the table is per-workspace and the query is a single indexed
-   * GROUP BY, so the cost is negligible compared to the fanout work the bus
-   * is already doing on each notification.
+   * Snapshot the unread state for one workspace. Fresh DB read; not cached.
+   * Returns the bus's last-emitted version when the snapshot matches it (so
+   * callers that pair the snapshot with the SSE stream can drop stale
+   * events without a +1 race); otherwise bumps `version` and stores the
+   * fresh state so the next emit starts from a known monotonic point.
+   *
+   * Used by:
+   *   • `/api/notifications/counts` (boot + reconnect repair)
+   *   • the SSE stream's connect-seed loop in `/api/notifications/stream`
    */
-  async countsBySession(workspaceId: string): Promise<Record<string, number>> {
+  async getWorkspaceState(workspaceId: string): Promise<WorkspaceUnreadState | null> {
     const ws = await getWorkspaceById(workspaceId);
-    if (!ws) return {};
-    return unreadCountsBySession(ws.rootPath).catch(() => ({}));
+    if (!ws) return null;
+    return this.computeAndStoreState(workspaceId, ws.rootPath);
   }
 
-  async countsAllWorkspaces(): Promise<Record<string, number>> {
-    const now = Date.now();
-    if (this.countsCache && now - this.countsCache.at < COUNTS_CACHE_TTL_MS) {
-      return this.countsCache.data;
-    }
+  /** Snapshot every workspace. Map keyed by workspaceId. */
+  async getAllWorkspaceStates(): Promise<Record<string, WorkspaceUnreadState>> {
     const all = await listWorkspaces().catch(() => [] as Workspace[]);
-    const out: Record<string, number> = {};
+    const out: Record<string, WorkspaceUnreadState> = {};
     await Promise.all(
       all.map(async (w) => {
-        out[w.id] = await unreadCount(w.rootPath).catch(() => 0);
+        const s = await this.computeAndStoreState(w.id, w.rootPath).catch(() => null);
+        if (s) out[w.id] = s;
       }),
     );
-    this.countsCache = { at: now, data: out };
-    for (const [id, n] of Object.entries(out)) this.lastCounts.set(id, n);
     return out;
   }
 
@@ -265,6 +319,23 @@ class NotificationBus {
       const mapped = mapEventToKind(event, ctx, this.lastUserInputAt);
       if (!mapped) return;
       const { kind, title, body, payload, requestId } = mapped;
+
+      // 2.5 Background-session suppression. Sessions the user has switched
+      // away from (no active SSE subscriber) shouldn't ring with idle
+      // "Claude finished a turn" or "Session error" — the user gets that
+      // feedback in the chat itself when they come back. Actionable kinds
+      // (permission/ask/plan) override this gate because they're requests
+      // the agent is *blocked on*; the user has to come look at them
+      // regardless of which tab they're on. `hasSubscribers === undefined`
+      // means the caller didn't tell us (e.g. dev-emit), so we err toward
+      // notifying — surprise drops are worse than the prior behavior.
+      if (
+        ctx.sessionId &&
+        ctx.hasSubscribers === false &&
+        isBackgroundSuppressible(kind)
+      ) {
+        return;
+      }
 
       // 3. cwd → workspace.
       const ws = await this.lookupWorkspace(ctx.cwd);
@@ -293,10 +364,13 @@ class NotificationBus {
       });
       if (!row) return; // dedup'd by request_id
 
-      // 7. Fanout.
-      this.invalidateCountsCache();
+      // 7. Fanout. The notification event always emits (drives OS toasts and
+      // the inbox `recent` buffer). The state emission is coalesced: if a
+      // sibling `markReadByRequestId` fires in the same tick (the resolve
+      // flow), both writes collapse into one state event with the final
+      // values — no transient +1/-1 flicker on the workspace tile.
       this.emitNotification(row);
-      await this.emitCount(ws.id, ctx.cwd);
+      this.scheduleStateEmit(ws.id, ctx.cwd);
     } catch {
       // The bus must never throw into a producer. Notifications are a
       // best-effort surface — losing one shouldn't crash the session.
@@ -316,23 +390,106 @@ class NotificationBus {
     }
   }
 
-  private async emitCount(workspaceId: string, cwd: string): Promise<void> {
-    const n = await unreadCount(cwd).catch(() => 0);
-    const prev = this.lastCounts.get(workspaceId);
-    if (prev === n) return;
-    this.lastCounts.set(workspaceId, n);
-    const env: NotificationStreamEvent = { type: "count", workspaceId, unread: n };
+  /**
+   * Schedule (and coalesce) a state-event flush for one workspace. Multiple
+   * calls in the same JS task collapse into a single emit at the end of the
+   * task — so a server-side resolve flow that inserts a row and then marks
+   * it read (record() → markReadByRequestId() in the same handler) produces
+   * one event carrying the final values, not two events that briefly
+   * disagree.
+   *
+   * Uses `setTimeout(..., 0)` rather than `queueMicrotask`: the latter
+   * fails to coalesce across `await` boundaries within a single task,
+   * because each await drains the microtask queue. The timer-queue
+   * macrotask waits until ALL currently-pending microtasks (including
+   * cascades of awaits) have settled, so concurrent `Promise.all([record,
+   * record, record])` plus the typical resolve-flow patterns both
+   * coalesce to one emit.
+   *
+   * The flush itself awaits a fresh DB read + fans out to subscribers.
+   * Callers do NOT await it — `record()` / `mark*Read()` return the row
+   * count and shouldn't pay the round-trip latency.
+   */
+  private scheduleStateEmit(workspaceId: string, cwd: string): void {
+    if (this.pendingFlush.has(workspaceId)) return;
+    const handle = setTimeout(() => {
+      // Clear the flag BEFORE the emit so any further writes that come in
+      // while we're computing schedule a fresh flush, rather than being
+      // swallowed.
+      this.pendingFlush.delete(workspaceId);
+      this.emitStateSync(workspaceId, cwd);
+    }, 0);
+    this.pendingFlush.set(workspaceId, handle);
+  }
+
+  /**
+   * Read fresh state from the DB, bump `version`, store it, and fan out a
+   * `state` event. No equality short-circuit — the prior `emitCount` used
+   * `if (prev === n) return;` to suppress no-op emissions, but that lost
+   * legitimate per-session updates (e.g. a row moved from session A to
+   * session B leaves the workspace total unchanged but the per-session
+   * map changed). With version gating client-side, redundant emissions
+   * are cheap; missed emissions are expensive.
+   */
+  /**
+   * Synchronous emit path. Reads the cached DB handle (always populated by
+   * the time `record()` / `mark*Read` calls us, since the insert/mark op
+   * just used it) and emits a state event without any internal awaits.
+   * Synchronous emission is the contract that lets `setTimeout(0)`-based
+   * coalescing actually work: a subsequent `await Promise(setTimeout 0)` in
+   * a test or upstream caller is guaranteed to see the state event in the
+   * subscriber's buffer, because the for-loop fanout completes before the
+   * timer callback returns control.
+   *
+   * Falls back to no-op if the handle isn't cached (extremely unlikely:
+   * means we got here without anyone having ever called openDb for this
+   * cwd, e.g. an isolated `markRead` against a workspace with no inserts
+   * yet — in which case there's nothing to read anyway).
+   */
+  private emitStateSync(workspaceId: string, cwd: string): void {
+    const db = getCachedDb(cwd, "readwrite") ?? getCachedDb(cwd, "readonly");
+    if (!db) return;
+    const totalUnread = unreadCountOn(db);
+    const perSession = unreadCountsBySessionOn(db);
+    const prev = this.perWorkspace.get(workspaceId);
+    const version = (prev?.version ?? 0) + 1;
+    const state: WorkspaceUnreadState = { workspaceId, version, totalUnread, perSession };
+    this.perWorkspace.set(workspaceId, state);
+    const env: NotificationStreamEvent = { type: "state", ...state };
     for (const sub of this.subscribers) {
       try {
         sub(env);
       } catch {
-        // ignore
+        // a single subscriber's failure shouldn't tank the rest
       }
     }
   }
 
-  private invalidateCountsCache(): void {
-    this.countsCache = null;
+  /**
+   * Async snapshot used by the HTTP /counts route and the SSE stream's
+   * connect-seed loop. Opens the DB (which may be the first open if the
+   * workspace has no in-flight session) and returns the state, bumping
+   * `version` so the client's version gate stays consistent across the
+   * HTTP and SSE paths.
+   */
+  private async computeAndStoreState(
+    workspaceId: string,
+    cwd: string,
+  ): Promise<WorkspaceUnreadState> {
+    const [totalUnread, perSession] = await Promise.all([
+      unreadCount(cwd).catch(() => 0),
+      unreadCountsBySession(cwd).catch(() => ({} as Record<string, number>)),
+    ]);
+    const prev = this.perWorkspace.get(workspaceId);
+    const version = (prev?.version ?? 0) + 1;
+    const next: WorkspaceUnreadState = {
+      workspaceId,
+      version,
+      totalUnread,
+      perSession,
+    };
+    this.perWorkspace.set(workspaceId, next);
+    return next;
   }
 }
 
@@ -479,6 +636,22 @@ function isAbortSentinel(message: string | undefined | null): boolean {
   return message.trim() === "Claude Code process aborted by user";
 }
 
+/**
+ * True for notification kinds we suppress when the originating session has
+ * no live SSE subscriber. These are the "FYI, something happened in the
+ * background" categories — when the user has switched to another tab the
+ * feedback is redundant noise.
+ *
+ * Actionable kinds — permission_request, ask_user_question,
+ * plan_approval_request — are excluded: the agent is blocked on them and
+ * the user needs to come look. Scheduler runs aren't session-bound, so
+ * `scheduled_run_finished` is also excluded (the guard upstream checks
+ * `ctx.sessionId` anyway).
+ */
+function isBackgroundSuppressible(kind: NotificationKind): boolean {
+  return kind === "session_idle" || kind === "session_error";
+}
+
 function firstLine(s: string | undefined | null): string | undefined {
   if (!s) return undefined;
   const line = s.split(/\r?\n/)[0]?.trim();
@@ -498,8 +671,11 @@ function pickBus(): NotificationBus {
   // Probe checks for the LATEST method on the class so an HMR-cached
   // instance that predates a new bus API gets rebuilt rather than serving
   // stale shape (`notificationBus.<newMethod> is not a function` 500s).
-  // Bump this when you add a new method.
-  if (cached && typeof (cached as NotificationBus).markReadBySession === "function") {
+  // Bump this when you add a new method. Bumped to `getWorkspaceState`
+  // because the state/version model replaces the old count-event API and
+  // `lastCounts → perWorkspace` field rename leaves any cached instance
+  // unable to honour the new event shape.
+  if (cached && typeof (cached as NotificationBus).getWorkspaceState === "function") {
     return cached;
   }
   const fresh = new NotificationBus();

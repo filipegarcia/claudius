@@ -13,12 +13,18 @@ type Props = {
   /**
    * tool_use id of the live AskUserQuestion the user is being asked, or null
    * when none is in flight. When this matches one of this message's tool_use
-   * blocks, the corresponding ToolCall row exposes a small "Answer" pill that
-   * brings the modal back. Threaded straight from `useSession.pendingAsk`.
+   * blocks, the corresponding ToolCall pill renders in its "live" pulsing
+   * variant — non-matching ask rows still get a (non-pulsing) Reopen pill so
+   * historic/errored asks remain clickable. Threaded straight from
+   * `useSession.pendingAsk`.
    */
   pendingAskToolUseId?: string | null;
-  /** Click handler for the "Answer" pill — should reopen the question modal. */
-  onReopenAsk?: () => void;
+  /**
+   * Click handler for the "Answer" / "Reopen" pill. Receives the row's
+   * tool_use id + raw input so the caller can either re-show the live modal
+   * or resurrect a historic one from the captured `input.questions`.
+   */
+  onReopenAsk?: (args: { toolUseId: string; input: Record<string, unknown> }) => void;
 };
 
 export function AssistantMessage({
@@ -74,16 +80,22 @@ export function AssistantMessage({
                 />
               );
             }
+            // Only AskUserQuestion rows get a click handler — the pill is
+            // gated by `name === "AskUserQuestion"` inside ToolCall too, but
+            // refusing to even hand the closure to non-ask rows keeps the
+            // a11y tree clean (no dead button waiting to be activated).
+            const askClick =
+              b.name === "AskUserQuestion" && onReopenAsk
+                ? () => onReopenAsk({ toolUseId: b.id, input: b.input })
+                : undefined;
             return (
               <ToolCall
                 key={i}
                 name={b.name}
                 input={b.input}
                 result={b.result}
-                isPendingAsk={
-                  b.name === "AskUserQuestion" && pendingAskToolUseId === b.id
-                }
-                onReopenAsk={onReopenAsk}
+                liveAsk={b.name === "AskUserQuestion" && pendingAskToolUseId === b.id}
+                onReopenAsk={askClick}
               />
             );
           }

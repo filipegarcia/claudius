@@ -13,7 +13,10 @@ import { DEFAULT_ENABLED_KINDS } from "@/lib/shared/notifications";
 
 describe("harness", () => {
   test("tsconfig @/ path alias resolves shared types", () => {
-    expect(DEFAULT_ENABLED_KINDS).toContain("session_error");
+    // Pick any kind that ships in the defaults — this assertion exists
+    // only to prove the `@/` import works under the test runner, not to
+    // pin down the exact contents of `DEFAULT_ENABLED_KINDS`.
+    expect(DEFAULT_ENABLED_KINDS).toContain("permission_request");
   });
 
   test("better-sqlite3 opens an in-memory database", () => {

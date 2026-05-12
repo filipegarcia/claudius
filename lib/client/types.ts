@@ -271,7 +271,13 @@ export type ChatActions = {
   interrupt(): Promise<void>;
   setPermissionMode(mode: PermissionMode): Promise<void>;
   setModel(model: string | null): Promise<void>;
-  switchSession(id: string): void;
+  /**
+   * Bind to a different session id. Awaits a wake POST so a reaped session
+   * has its buffer rehydrated before the SSE subscribes; fire-and-forget
+   * callers (every UI tab-click in this codebase) just drop the returned
+   * promise.
+   */
+  switchSession(id: string): Promise<void>;
   createNewSession(): Promise<void>;
   /** Open a fresh session in a specific working directory (e.g. a git worktree). */
   createSessionAt(cwd: string): Promise<void>;

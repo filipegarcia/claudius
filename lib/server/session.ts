@@ -22,14 +22,14 @@ import {
   touchSession,
   upsertSession,
 } from "./sessions-db";
-import type {
-  AskAnswer,
-  AskQuestion,
-  AskQuestionOption,
-  PermissionDecision,
-  PermissionRequestEvent,
-  PlanDecision,
-  ServerEvent,
+import {
+  parseAskQuestions,
+  type AskAnswer,
+  type AskQuestion,
+  type PermissionDecision,
+  type PermissionRequestEvent,
+  type PlanDecision,
+  type ServerEvent,
 } from "@/lib/shared/events";
 
 type Subscriber = (event: ServerEvent) => void;
@@ -135,6 +135,17 @@ export function computeReplayWindow(
  */
 function isRealUserPrompt(content: unknown): boolean {
   return extractUserPromptText(content) !== null;
+}
+
+/**
+ * Gate for the noisy `[sess-load]` logs around session start / subscribe /
+ * resync. Enabled via `CLAUDIUS_DEBUG_SESSIONS=1` so we can ask a user
+ * who's hitting the "old session is empty until I refresh" bug to set
+ * the env var, repro, and send the server stdout. Hot-path-safe — a
+ * single env-var read on the boolean coercion.
+ */
+function sessLoadDebug(): boolean {
+  return !!process.env.CLAUDIUS_DEBUG_SESSIONS;
 }
 
 /**
@@ -296,11 +307,29 @@ export class Session {
           dir: this.cwd,
           includeSystemMessages: true,
         });
+        if (sessLoadDebug()) {
+           
+          console.log("[sess-load] start.resume loaded historical", {
+            id: this.id,
+            resumeFrom: this.resumeFrom,
+            cwd: this.cwd,
+            count: historical.length,
+          });
+        }
         for (const m of historical) {
           this.broadcast({ type: "sdk", message: m as unknown as SDKMessage });
         }
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
+        if (sessLoadDebug()) {
+           
+          console.warn("[sess-load] start.resume loadHistorical FAILED", {
+            id: this.id,
+            resumeFrom: this.resumeFrom,
+            cwd: this.cwd,
+            err: message,
+          });
+        }
         this.broadcast({ type: "error", message: `Failed to load session history: ${message}` });
       }
       // Pull the persisted title. Our index is authoritative because it
@@ -374,6 +403,15 @@ export class Session {
     this.query = query({ prompt: this.inputQueue, options });
     this.broadcast({ type: "ready", sessionId: this.id });
     if (this.title) this.broadcast({ type: "session_title", title: this.title });
+    if (sessLoadDebug()) {
+       
+      console.log("[sess-load] start.complete", {
+        id: this.id,
+        resumeFrom: this.resumeFrom ?? null,
+        bufferLen: this.buffer.length,
+        title: this.title ?? null,
+      });
+    }
     void this.consume();
     // Start watching the on-disk JSONL so external writers (CLI `claude
     // --resume <id>`) trigger a resync that broadcasts new turns to all
@@ -514,7 +552,7 @@ export class Session {
       // updatedInput.answers — that's the shape the SDK feeds the model as
       // the tool's effective output.
       if (toolName === "AskUserQuestion") {
-        const questions = parseQuestions(input);
+        const questions = parseAskQuestions(input);
         if (questions.length > 0) {
           const pending: PendingAskQuestion = {
             requestId,
@@ -967,7 +1005,17 @@ export class Session {
         dir: this.cwd,
         includeSystemMessages: true,
       });
-      if (disk.length === 0) return { added: 0 };
+      if (disk.length === 0) {
+        if (sessLoadDebug()) {
+           
+          console.log("[sess-load] resyncFromDisk empty", {
+            id: this.id,
+            cwd: this.cwd,
+            bufferLen: this.buffer.length,
+          });
+        }
+        return { added: 0 };
+      }
       const seen = new Set<string>();
       for (const ev of this.buffer) {
         if (ev.type !== "sdk") continue;
@@ -980,7 +1028,23 @@ export class Session {
         this.broadcast({ type: "sdk", message: m as unknown as SDKMessage });
         added++;
       }
-    } catch {
+      if (sessLoadDebug()) {
+         
+        console.log("[sess-load] resyncFromDisk done", {
+          id: this.id,
+          diskLen: disk.length,
+          added,
+          bufferLen: this.buffer.length,
+        });
+      }
+    } catch (err) {
+      if (sessLoadDebug()) {
+         
+        console.warn("[sess-load] resyncFromDisk FAILED", {
+          id: this.id,
+          err: err instanceof Error ? err.message : String(err),
+        });
+      }
       // non-fatal — the caller proceeds with whatever's already in the buffer
     } finally {
       this.jsonlResyncBusy = false;
@@ -992,6 +1056,18 @@ export class Session {
     const { startIdx, hasMoreAbove } = computeReplayWindow(this.buffer, opts?.tail);
     const toReplay: ServerEvent[] =
       startIdx === 0 ? this.buffer : this.buffer.slice(startIdx);
+    if (sessLoadDebug()) {
+       
+      console.log("[sess-load] subscribe", {
+        id: this.id,
+        tail: opts?.tail,
+        bufferLen: this.buffer.length,
+        startIdx,
+        replayLen: toReplay.length,
+        hasMoreAbove,
+        priorSubscribers: this.subscribers.size,
+      });
+    }
     // Drop ephemeral interactive events from the replay. `permission_request`
     // and `ask_user_question` represent live, in-flight UI prompts — once
     // resolved, replaying them on a new subscriber (reload, second tab,
@@ -1245,9 +1321,18 @@ export class Session {
       }
     }
     // Feed the workspace notification inbox. The bus filters/dedups internally
-    // (subagent skip, kind whitelist, per-session mute) and swallows errors —
-    // failures here must never disrupt the session flow.
-    void notificationBus.recordSessionEvent(this.cwd, this.id, event);
+    // (subagent skip, kind whitelist, per-session mute, background-session
+    // suppression) and swallows errors — failures here must never disrupt
+    // the session flow.
+    //
+    // `hasSubscribers` tells the bus whether this session currently has any
+    // live SSE client. When it doesn't (the user switched to another tab),
+    // the bus drops session_idle / session_error notifications — they're
+    // noise for a session the user isn't looking at. Actionable kinds still
+    // ring regardless because the agent is blocked on them.
+    void notificationBus.recordSessionEvent(this.cwd, this.id, event, {
+      hasSubscribers: this.subscribers.size > 0,
+    });
   }
 
   /**
@@ -1345,35 +1430,3 @@ export class Session {
   }
 }
 
-/**
- * Best-effort coercion of the SDK's AskUserQuestion tool input into our
- * server-event shape. Defensive against schema drift — if the SDK changes
- * the field names, we drop unknown shapes rather than crash the agent.
- */
-function parseQuestions(input: unknown): AskQuestion[] {
-  if (!input || typeof input !== "object") return [];
-  const raw = (input as Record<string, unknown>).questions;
-  if (!Array.isArray(raw)) return [];
-  const out: AskQuestion[] = [];
-  for (const q of raw) {
-    if (!q || typeof q !== "object") continue;
-    const qo = q as Record<string, unknown>;
-    const question = typeof qo.question === "string" ? qo.question : "";
-    const header = typeof qo.header === "string" ? qo.header : "";
-    const multiSelect = qo.multiSelect === true;
-    const optsRaw = Array.isArray(qo.options) ? qo.options : [];
-    const options: AskQuestionOption[] = [];
-    for (const o of optsRaw) {
-      if (!o || typeof o !== "object") continue;
-      const oo = o as Record<string, unknown>;
-      const label = typeof oo.label === "string" ? oo.label : "";
-      const description = typeof oo.description === "string" ? oo.description : "";
-      const preview = typeof oo.preview === "string" ? oo.preview : undefined;
-      if (label) options.push({ label, description, preview });
-    }
-    if (question && options.length >= 2) {
-      out.push({ question, header, options, multiSelect });
-    }
-  }
-  return out;
-}

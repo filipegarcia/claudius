@@ -10,6 +10,7 @@ import {
   FileQuestion,
   FileX,
   RefreshCw,
+  Trash2,
 } from "lucide-react";
 import type { GitFileChange } from "@/lib/server/git";
 import { cn } from "@/lib/utils/cn";
@@ -34,6 +35,14 @@ type Props = {
   onRefresh?: () => void;
   /** True while a status refresh is in flight — disables the button and spins the icon. */
   refreshing?: boolean;
+  /**
+   * Delete a single file via the existing `discard` op. For untracked files
+   * that means `rm`; for tracked files it restores the HEAD blob (i.e. drops
+   * the change from the list). Callers are expected to confirm beforehand.
+   */
+  onDelete?: (path: string) => void;
+  /** Path currently being deleted — disables that row's trash button. */
+  deletingPath?: string | null;
 };
 
 export type GroupKey = "staged" | "unstaged" | "untracked";
@@ -70,6 +79,8 @@ export function ChangesList({
   onToggleGroup,
   onRefresh,
   refreshing,
+  onDelete,
+  deletingPath,
 }: Props) {
   const groups = useMemo(() => groupFiles(files), [files]);
   const totalCheckable = files.length;
@@ -133,6 +144,8 @@ export function ChangesList({
         onSelect={onSelect}
         checked={checked}
         onToggleCheck={onToggleCheck}
+        onDelete={onDelete}
+        deletingPath={deletingPath}
       />
       <Group
         title="Changed"
@@ -144,6 +157,8 @@ export function ChangesList({
         onSelect={onSelect}
         checked={checked}
         onToggleCheck={onToggleCheck}
+        onDelete={onDelete}
+        deletingPath={deletingPath}
       />
       <Group
         title="Unversioned"
@@ -155,6 +170,8 @@ export function ChangesList({
         onSelect={onSelect}
         checked={checked}
         onToggleCheck={onToggleCheck}
+        onDelete={onDelete}
+        deletingPath={deletingPath}
       />
     </div>
   );
@@ -170,6 +187,8 @@ function Group({
   onSelect,
   checked,
   onToggleCheck,
+  onDelete,
+  deletingPath,
 }: {
   title: string;
   items: GitFileChange[];
@@ -180,6 +199,8 @@ function Group({
   onSelect: (sel: DiffSelection) => void;
   checked: Set<string>;
   onToggleCheck: (path: string, next: boolean) => void;
+  onDelete?: (path: string) => void;
+  deletingPath?: string | null;
 }) {
   if (items.length === 0) return null;
   return (
@@ -201,11 +222,19 @@ function Group({
         <ul>
           {items.map((f) => {
             const isSel = selected?.path === f.path && selected.mode === mode;
+            const isDeleting = deletingPath === f.path;
+            // Untracked rows are a real `rm` from disk — tracked rows are a
+            // restore-to-HEAD. The tooltip distinguishes so the user knows
+            // what they're about to do.
+            const deleteTitle =
+              mode === "untracked"
+                ? "Delete file from disk"
+                : "Discard change (restore to HEAD)";
             return (
               <li key={`${mode}:${f.path}`}>
                 <div
                   className={cn(
-                    "flex items-center gap-1.5 px-3 py-0.5",
+                    "group/row flex items-center gap-1.5 px-3 py-0.5",
                     "hover:bg-[var(--panel-2)]",
                     isSel && "bg-[var(--panel-2)]",
                   )}
@@ -226,6 +255,27 @@ function Group({
                     <StatusIcon code={statusCharForGroup(f, mode)} />
                     <span className="truncate font-mono">{displayPath(f, mode)}</span>
                   </button>
+                  {onDelete && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDelete(f.path);
+                      }}
+                      disabled={isDeleting}
+                      title={deleteTitle}
+                      aria-label={deleteTitle}
+                      data-testid={`changes-delete-${f.path}`}
+                      className={cn(
+                        "flex h-4 w-4 shrink-0 items-center justify-center rounded text-[var(--muted)]",
+                        "opacity-0 hover:bg-red-500/15 hover:text-red-300 group-hover/row:opacity-100 focus-visible:opacity-100",
+                        "disabled:opacity-40",
+                        isSel && "opacity-100",
+                      )}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  )}
                 </div>
               </li>
             );

@@ -3,7 +3,16 @@
 import { useCallback, useEffect, useState } from "react";
 import type { SDKSessionInfo } from "@anthropic-ai/claude-agent-sdk";
 
-export type StoredSession = SDKSessionInfo;
+/**
+ * The shape returned from `/api/sessions/all`: the SDK's session info
+ * with one extra field. `claudiusTitle` is the title our SQLite index
+ * holds — set by Claudius's own rename even when the SDK's JSONL-side
+ * `renameSession` couldn't write the header (common for sessions
+ * renamed before their first turn lands on disk). Display order should
+ * be `claudiusTitle || customTitle || "(untitled)"`; `summary` and
+ * `firstPrompt` are deliberately NOT title candidates.
+ */
+export type StoredSession = SDKSessionInfo & { claudiusTitle?: string };
 
 export function useSessionsHistory() {
   const [sessions, setSessions] = useState<StoredSession[]>([]);

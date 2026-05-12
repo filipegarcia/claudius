@@ -1,10 +1,22 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
 
 /**
- * Covers the "Answer" pill on the AskUserQuestion ToolCall row. Renders the
- * dev preview at /dev/tool-call-preview, which mounts the component matrix
- * (and an AssistantMessage integration block) so we can assert visibility,
- * click behavior, and toolUseId-matching without booting a live agent.
+ * Covers the "Answer" / "Reopen" pill on the AskUserQuestion ToolCall row.
+ * Renders the dev preview at /dev/tool-call-preview, which mounts the
+ * component matrix (and an AssistantMessage integration block) so we can
+ * assert visibility, click behavior, and toolUseId-matching without booting
+ * a live agent.
+ *
+ * Pill visibility rule (after the resurrection refactor):
+ *   - Row must be `name === "AskUserQuestion"`.
+ *   - `onReopenAsk` handler must be wired.
+ *   - Everything else (result present / errored / `liveAsk=false`) still
+ *     gets a pill, because the user can resurrect a historic ask as a
+ *     follow-up message.
+ *
+ * The `data-live-ask` attribute on the pill records the visual variant:
+ *   - "true"  → pulsing "Answer" pill (SDK actively waiting).
+ *   - "false" → static "Reopen" pill (historic / errored ask).
  *
  * Conventions:
  *   - Pill is queried by data-testid="tool-call-answer-pill", SCOPED to its
@@ -25,56 +37,65 @@ async function reopenCount(page: Page): Promise<number> {
   return Number(txt);
 }
 
-test.describe("AskUserQuestion Answer pill", () => {
+test.describe("AskUserQuestion pill", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/dev/tool-call-preview");
     await expect(page.getByTestId("tool-call-preview-root")).toBeVisible();
   });
 
-  test("renders the pill on the happy-path case (pending + no result + handler)", async ({ page }) => {
-    const scope = page.getByTestId("case-body:ask-pending-match");
+  test("renders live (pulsing) Answer pill on the matching row", async ({ page }) => {
+    const scope = page.getByTestId("case-body:ask-live-match");
     await expect(pillIn(scope)).toBeVisible();
     await expect(pillIn(scope)).toHaveText(/Answer/);
+    await expect(pillIn(scope)).toHaveAttribute("data-live-ask", "true");
   });
 
-  test("does NOT render when isPendingAsk is explicitly false", async ({ page }) => {
-    const scope = page.getByTestId("case-body:ask-pending-flag-false");
-    await expect(pillIn(scope)).toHaveCount(0);
+  test("renders historic (static) Reopen pill when liveAsk is false", async ({ page }) => {
+    const scope = page.getByTestId("case-body:ask-historic-no-result");
+    await expect(pillIn(scope)).toBeVisible();
+    await expect(pillIn(scope)).toHaveText(/Reopen/);
+    await expect(pillIn(scope)).toHaveAttribute("data-live-ask", "false");
   });
 
-  test("does NOT render when isPendingAsk prop is missing", async ({ page }) => {
-    const scope = page.getByTestId("case-body:ask-no-pending-prop");
-    await expect(pillIn(scope)).toHaveCount(0);
+  test("defaults to historic variant when liveAsk prop is missing", async ({ page }) => {
+    const scope = page.getByTestId("case-body:ask-no-liveask-prop");
+    await expect(pillIn(scope)).toBeVisible();
+    await expect(pillIn(scope)).toHaveText(/Reopen/);
   });
 
-  test("does NOT render once a successful result is set (already answered)", async ({ page }) => {
+  test("still renders when a successful result is set", async ({ page }) => {
+    // Historic asks remain resurrectable — the click goes through as a
+    // follow-up user message, not a phantom SDK answer.
     const scope = page.getByTestId("case-body:ask-resolved-success");
-    await expect(pillIn(scope)).toHaveCount(0);
+    await expect(pillIn(scope)).toBeVisible();
   });
 
-  test("does NOT render when result.isError is true (declined / aborted)", async ({ page }) => {
+  test("still renders when result.isError is true (declined / aborted)", async ({ page }) => {
+    // This is the case the user actually hit in production — the permission
+    // stream closed, the SDK got a deny tool_result, and the row needs to
+    // remain clickable so the user can recover the question.
     const scope = page.getByTestId("case-body:ask-resolved-error");
-    await expect(pillIn(scope)).toHaveCount(0);
+    await expect(pillIn(scope)).toBeVisible();
+    await expect(pillIn(scope)).toHaveText(/Reopen/);
   });
 
   test("does NOT render when onReopenAsk is undefined", async ({ page }) => {
-    const scope = page.getByTestId("case-body:ask-pending-no-callback");
+    const scope = page.getByTestId("case-body:ask-no-callback");
     await expect(pillIn(scope)).toHaveCount(0);
   });
 
-  test("ToolCall itself does not gate on `name` — non-AskUserQuestion w/ flag still renders the pill", async ({
+  test("ToolCall refuses the pill on a non-AskUserQuestion row even if liveAsk is set", async ({
     page,
   }) => {
-    // This is the "AssistantMessage is the gate" contract — ToolCall trusts
-    // its caller. The integration tests below confirm AssistantMessage holds
-    // up its end of the bargain. Documenting the boundary here keeps a future
-    // refactor honest.
-    const scope = page.getByTestId("case-body:non-ask-with-pending-flag");
-    await expect(pillIn(scope)).toBeVisible();
+    // This is the "ToolCall is its own gate" contract — even if a future
+    // refactor accidentally sets `liveAsk` on a non-ask row, ToolCall checks
+    // `name === "AskUserQuestion"` itself.
+    const scope = page.getByTestId("case-body:non-ask-with-liveask-flag");
+    await expect(pillIn(scope)).toHaveCount(0);
   });
 
   test("clicking the pill calls onReopenAsk and does NOT toggle expand", async ({ page }) => {
-    const scope = page.getByTestId("case-body:ask-pending-match");
+    const scope = page.getByTestId("case-body:ask-live-match");
     const before = await reopenCount(page);
     await pillIn(scope).click();
     const after = await reopenCount(page);
@@ -86,7 +107,7 @@ test.describe("AskUserQuestion Answer pill", () => {
   });
 
   test("clicking the row (outside the pill) toggles expand normally", async ({ page }) => {
-    const scope = page.getByTestId("case-body:ask-pending-match");
+    const scope = page.getByTestId("case-body:ask-live-match");
     // The first <button> inside the row is the toggle (chevron + name);
     // the pill is the second. Click the toggle by name.
     await scope.getByRole("button", { name: /AskUserQuestion/ }).click();
@@ -94,7 +115,7 @@ test.describe("AskUserQuestion Answer pill", () => {
   });
 
   test("pill is keyboard-activatable (Enter) and counts as a reopen", async ({ page }) => {
-    const scope = page.getByTestId("case-body:ask-pending-match");
+    const scope = page.getByTestId("case-body:ask-live-match");
     const before = await reopenCount(page);
     await pillIn(scope).focus();
     await page.keyboard.press("Enter");
@@ -103,7 +124,7 @@ test.describe("AskUserQuestion Answer pill", () => {
   });
 
   test("pill is keyboard-activatable (Space) and counts as a reopen", async ({ page }) => {
-    const scope = page.getByTestId("case-body:ask-pending-match");
+    const scope = page.getByTestId("case-body:ask-live-match");
     const before = await reopenCount(page);
     await pillIn(scope).focus();
     await page.keyboard.press(" ");
@@ -112,10 +133,12 @@ test.describe("AskUserQuestion Answer pill", () => {
   });
 
   test("rapid double-click counts as two reopens (no debouncing)", async ({ page }) => {
-    // The handler is idempotent (`setAskMinimizedFor(null)` is a no-op when
-    // already null) but the click itself is not debounced — documenting the
-    // contract so a "let's debounce that pill" change can't slip in unnoticed.
-    const scope = page.getByTestId("case-body:ask-pending-match");
+    // The handler may be idempotent for live asks (`setAskMinimizedFor(null)`
+    // is a no-op when already null) but the click itself is not debounced —
+    // documenting the contract so a "let's debounce that pill" change can't
+    // slip in unnoticed. Historic asks would re-resurrect the modal on each
+    // click, but the page-level state setter is also idempotent.
+    const scope = page.getByTestId("case-body:ask-live-match");
     const before = await reopenCount(page);
     await pillIn(scope).click();
     await pillIn(scope).click();
@@ -124,56 +147,52 @@ test.describe("AskUserQuestion Answer pill", () => {
   });
 });
 
-test.describe("AssistantMessage integration — toolUseId match gating", () => {
+test.describe("AssistantMessage integration — pill variant per row", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/dev/tool-call-preview");
     await expect(page.getByTestId("tool-call-preview-root")).toBeVisible();
   });
 
-  test("with a matching pendingAskToolUseId, exactly ONE pill appears across the message", async ({
+  test("matching ask block gets the live variant, non-matching one gets the historic variant", async ({
     page,
   }) => {
     const scope = page.getByTestId("case:integration-matching");
-    await expect(pillIn(scope)).toHaveCount(1);
+    // Both ask rows have pills now.
+    await expect(pillIn(scope)).toHaveCount(2);
+    // Exactly one of them is live.
+    const livePill = scope.locator(`[data-testid="${PILL}"][data-live-ask="true"]`);
+    await expect(livePill).toHaveCount(1);
+    await expect(livePill).toHaveText(/Answer/);
+    const historicPill = scope.locator(`[data-testid="${PILL}"][data-live-ask="false"]`);
+    await expect(historicPill).toHaveCount(1);
+    await expect(historicPill).toHaveText(/Reopen/);
   });
 
-  test("the non-matching AskUserQuestion block stays a normal collapsed row", async ({
-    page,
-  }) => {
-    // The matching scope has two ask blocks; only one has a pill. The other
-    // is still a button (the toggle), but no pill descendant.
-    const scope = page.getByTestId("case:integration-matching");
-    const pills = pillIn(scope);
-    await expect(pills).toHaveCount(1);
-    // Two ask tool buttons total — one with pill, one without.
-    const askToggles = scope.getByRole("button", { name: /AskUserQuestion/ });
-    await expect(askToggles).toHaveCount(2);
-  });
-
-  test("non-AskUserQuestion blocks never get the pill, even when the message has a pending ask", async ({
+  test("non-AskUserQuestion blocks never get a pill, even alongside a pending ask", async ({
     page,
   }) => {
     const scope = page.getByTestId("case:integration-matching");
-    // Read row exists; pill must not be inside it. We grab the Read button
-    // and ensure no pill descendant exists adjacent to it.
+    // Three tool rows total — two ask buttons, one Read button. Only the
+    // ask rows get pills.
     const readToggle = scope.getByRole("button", { name: /Read/ });
     await expect(readToggle).toHaveCount(1);
-    // Pill should still be exactly 1 across the whole message — the Read
-    // block contributing zero is the assertion here.
-    await expect(pillIn(scope)).toHaveCount(1);
+    await expect(pillIn(scope)).toHaveCount(2);
   });
 
-  test("with pendingAskToolUseId=null, NO ask block in the message shows a pill", async ({
+  test("with pendingAskToolUseId=null, ALL ask blocks render the historic variant", async ({
     page,
   }) => {
     const scope = page.getByTestId("case:integration-no-match");
-    await expect(pillIn(scope)).toHaveCount(0);
+    await expect(pillIn(scope)).toHaveCount(2);
+    // None of them are live.
+    const livePill = scope.locator(`[data-testid="${PILL}"][data-live-ask="true"]`);
+    await expect(livePill).toHaveCount(0);
   });
 
-  test("clicking the integration pill bumps the reopen counter", async ({ page }) => {
+  test("clicking any integration pill bumps the reopen counter", async ({ page }) => {
     const scope = page.getByTestId("case:integration-matching");
     const before = await reopenCount(page);
-    await pillIn(scope).click();
+    await pillIn(scope).first().click();
     const after = await reopenCount(page);
     expect(after - before).toBe(1);
   });

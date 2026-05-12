@@ -3,11 +3,11 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { MessageSquare, Network, Webhook, BookText, ShieldCheck, FolderTree, Bot, Calendar, BarChart3, Image as ImageIcon, Folder, Briefcase, GitBranch, Sparkles, WandSparkles, Container } from "lucide-react";
+import { MessageSquare, Network, Webhook, BookText, ShieldCheck, FolderTree, Bot, Calendar, BarChart3, Image as ImageIcon, Folder, Briefcase, GitBranch, Sparkles, WandSparkles, Container, CircleDot } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import { useWorkspaces } from "@/lib/client/useWorkspaces";
-import type { Customization } from "@/lib/server/customizations-store";
+import type { Customization, PublishRecord } from "@/lib/server/customizations-store";
 
 type Item = {
   label: string;
@@ -23,6 +23,13 @@ type Item = {
   shortcutCode?: string;
   /** Display string for the tooltip, e.g. `"⌥C"`. */
   shortcutLabel?: string;
+  /**
+   * If set, this tile is gated on a customization being currently published
+   * (at least one publish without `revertedAt`). The string is matched
+   * case-insensitively against `customization.name`. Built-in tiles leave
+   * this undefined and always render.
+   */
+  customizationName?: string;
 };
 
 // Workspace-scoped items only. System-global tiles (Plugins, Settings,
@@ -48,11 +55,29 @@ const items: Item[] = [
   { label: "Hooks", icon: Webhook, href: "/hooks", shortcutCode: "KeyH", shortcutLabel: "⌥H" },
   { label: "Schedule", icon: Calendar, href: "/schedule", shortcutCode: "KeyL", shortcutLabel: "⌥L" },
   { label: "Permissions", icon: ShieldCheck, href: "/permissions", shortcutCode: "KeyP", shortcutLabel: "⌥P" },
-  // Docker — read-only `docker ps` view. The route degrades to a friendly
-  // empty state when docker isn't installed / the daemon is down, so it's
-  // safe to leave in the rail for users who don't run containers.
-  // ⌥D is the only D-mnemonic free in this list.
-  { label: "Docker", icon: Container, href: "/docker", shortcutCode: "KeyD", shortcutLabel: "⌥D" },
+  // Docker — read-only `docker ps` view. Ships as a customization
+  // ("Docker Monitoring") so users who don't want to wire up a daemon
+  // don't see the tile. Hidden until at least one un-reverted publish of
+  // that customization exists. ⌥D is the only D-mnemonic free in this list.
+  {
+    label: "Docker",
+    icon: Container,
+    href: "/docker",
+    shortcutCode: "KeyD",
+    shortcutLabel: "⌥D",
+    customizationName: "Docker Monitoring",
+  },
+  // Tracker — demo "GitHub issues" page rendered from local fixtures.
+  // Gated on the "Tracker" customization being on so the rail doesn't
+  // show a marketing demo on a user's normal install.
+  {
+    label: "Tracker",
+    icon: CircleDot,
+    href: "/tracker",
+    shortcutCode: "KeyT",
+    shortcutLabel: "⌥T",
+    customizationName: "Tracker",
+  },
   // Workspace settings — defaults that apply to new chats in this workspace.
   { label: "Workspace", icon: Briefcase, href: "/workspace", shortcutCode: "KeyW", shortcutLabel: "⌥W" },
 ];
@@ -111,26 +136,65 @@ export function SideNav({ running = false }: { running?: boolean }) {
   // would trip react-hooks/set-state-in-effect) — the state only ever
   // changes from the async fetch callback.
   const [resolution, setResolution] = useState<{ workspaceId: string; customizationId: string } | null>(null);
+  // Set of customization names (lowercased) that have at least one
+  // un-reverted publish. Items tagged with `customizationName` are hidden
+  // until their entry appears here. `null` = not yet fetched (during the
+  // initial render); items with `customizationName` hide in that state too,
+  // so the rail doesn't flash a tile that's about to disappear.
+  const [enabledCustNames, setEnabledCustNames] = useState<Set<string> | null>(null);
   useEffect(() => {
-    if (!isCustomizationWs || !activeWorkspace) return;
     let cancelled = false;
     void (async () => {
       try {
         const res = await fetch("/api/customizations");
         if (!res.ok) return;
-        const d = (await res.json()) as { customizations: Customization[] };
-        const match = d.customizations.find((c) => c.workspaceId === activeWorkspace.id);
-        if (!cancelled && match) {
-          setResolution({ workspaceId: activeWorkspace.id, customizationId: match.id });
+        const d = (await res.json()) as {
+          customizations: Customization[];
+          publishes?: PublishRecord[];
+        };
+        if (cancelled) return;
+        // Detail-page resolution for the Customize tile href — only when
+        // the active workspace is a customization. Same fetch covers both
+        // jobs so the rail makes one network call instead of two.
+        if (isCustomizationWs && activeWorkspace) {
+          const match = d.customizations.find((c) => c.workspaceId === activeWorkspace.id);
+          if (match) {
+            setResolution({ workspaceId: activeWorkspace.id, customizationId: match.id });
+          }
         }
+        // Enabled set: any customization with at least one un-reverted
+        // publish counts as "on". Stored by lowercased name for the
+        // case-insensitive lookup in `items.filter` below.
+        const liveIds = new Set(
+          (d.publishes ?? [])
+            .filter((p) => p.revertedAt == null)
+            .map((p) => p.customizationId),
+        );
+        const names = new Set(
+          d.customizations
+            .filter((c) => liveIds.has(c.id))
+            .map((c) => c.name.toLowerCase()),
+        );
+        setEnabledCustNames(names);
       } catch {
-        /* swallow — fall back to the list page */
+        // Network failed (offline, server restart) — leave items in the
+        // hidden state rather than flashing them all. The rail still
+        // renders, just without the customization-gated tiles.
+        if (!cancelled) setEnabledCustNames(new Set());
       }
     })();
     return () => {
       cancelled = true;
     };
   }, [isCustomizationWs, activeWorkspace]);
+
+  // Apply the customizationName gate. Built-in tiles (no `customizationName`)
+  // always render; gated tiles need their customization to be enabled.
+  const visibleItems = items.filter(
+    (it) =>
+      !it.customizationName ||
+      (enabledCustNames?.has(it.customizationName.toLowerCase()) ?? false),
+  );
   const customizationDetailId =
     isCustomizationWs && resolution?.workspaceId === activeWorkspace?.id ? resolution.customizationId : null;
   const customizeHref = customizationDetailId ? `/customize/${customizationDetailId}` : "/customize";
@@ -156,21 +220,21 @@ export function SideNav({ running = false }: { running?: boolean }) {
       // belong to other handlers (e.g. Cmd+Shift+[ for workspace cycling).
       if (!e.altKey || e.metaKey || e.ctrlKey || e.shiftKey) return;
       if (isTyping(e.target)) return;
-      const hit = items.find((it) => it.shortcutCode === e.code && it.href);
+      const hit = visibleItems.find((it) => it.shortcutCode === e.code && it.href);
       if (!hit?.href) return;
       e.preventDefault();
       router.push(hit.href);
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [router]);
+  }, [router, visibleItems]);
 
   return (
     <>
       <WorkspaceSwitcher />
       <aside data-pane-name="left-nav" className="flex h-full w-14 shrink-0 flex-col items-center gap-1 border-r border-[var(--border)] bg-[var(--panel)] py-3">
         <AnimatedGlyph running={running} />
-        {items.map(({ label, icon: Icon, href, shortcutLabel }) => {
+        {visibleItems.map(({ label, icon: Icon, href, shortcutLabel }) => {
           // Strip query string when computing active state — Chat's href is
           // "/?new=1" but the displayed pathname is just "/".
           const hrefPath = href ? href.split("?")[0] : undefined;
@@ -214,25 +278,33 @@ export function SideNav({ running = false }: { running?: boolean }) {
             workspace-aware (see the lookup hook above). The active rule is
             permissive on purpose: both /customize and /customize/<id> light
             up the tile, matching how Schedule/Permissions handle nested
-            routes. */}
-        <Link
-          href={customizeHref}
-          title={customizeTitle}
-          className={cn(
-            "group relative flex h-9 w-9 items-center justify-center rounded-md text-[var(--muted)]",
-            "hover:bg-[var(--panel-2)] hover:text-[var(--foreground)]",
-            customizeActive &&
-              "bg-[var(--accent)]/15 text-[var(--accent)] ring-1 ring-[var(--accent)]/40 hover:text-[var(--accent)]",
-          )}
-        >
-          {customizeActive && (
-            <span
-              aria-hidden
-              className="pointer-events-none absolute left-[-12px] top-1/2 h-5 w-1 -translate-y-1/2 rounded-r bg-[var(--accent)]"
-            />
-          )}
-          <WandSparkles className="h-4.5 w-4.5" />
-        </Link>
+            routes.
+
+            Only rendered when the active workspace is itself a customization
+            (or the user happens to already be on /customize, so the tile
+            doesn't pop out from under them after a workspace switch). From
+            a normal project workspace the entry point is the
+            WorkspaceSwitcher's wand drawer → "Manage all". */}
+        {(isCustomizationWs || customizeActive) && (
+          <Link
+            href={customizeHref}
+            title={customizeTitle}
+            className={cn(
+              "group relative flex h-9 w-9 items-center justify-center rounded-md text-[var(--muted)]",
+              "hover:bg-[var(--panel-2)] hover:text-[var(--foreground)]",
+              customizeActive &&
+                "bg-[var(--accent)]/15 text-[var(--accent)] ring-1 ring-[var(--accent)]/40 hover:text-[var(--accent)]",
+            )}
+          >
+            {customizeActive && (
+              <span
+                aria-hidden
+                className="pointer-events-none absolute left-[-12px] top-1/2 h-5 w-1 -translate-y-1/2 rounded-r bg-[var(--accent)]"
+              />
+            )}
+            <WandSparkles className="h-4.5 w-4.5" />
+          </Link>
+        )}
       </aside>
     </>
   );

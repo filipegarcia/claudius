@@ -37,8 +37,17 @@ describe("isKindEnabled", () => {
   test("undefined `enabledKinds` falls back to defaults", () => {
     // enabled-but-no-list should NOT silently block everything — that
     // would break workspaces that have toggled enabled without curating
-    // a kind list.
-    expect(isKindEnabled("session_error", { enabled: true })).toBe(true);
+    // a kind list. Pick a kind that's IN the defaults (session_error is
+    // intentionally opt-in, so it doesn't qualify).
+    expect(isKindEnabled("permission_request", { enabled: true })).toBe(true);
+  });
+
+  test("opt-in kinds are NOT in the implicit default set", () => {
+    // `session_error` ships off so users don't get a notification for
+    // every user-abort / reaper kill / "No conversation found" — those
+    // are noise and the chat transcript already shows real errors.
+    expect(isKindEnabled("session_error", { enabled: true })).toBe(false);
+    expect(isKindEnabled("session_error", undefined)).toBe(false);
   });
 
   test("explicit empty array blocks everything", () => {
@@ -50,6 +59,12 @@ describe("isKindEnabled", () => {
     const prefs = { enabledKinds: ["permission_request" as const] };
     expect(isKindEnabled("permission_request", prefs)).toBe(true);
     expect(isKindEnabled("session_error", prefs)).toBe(false);
+  });
+
+  test("opt-in kinds can be explicitly enabled in enabledKinds", () => {
+    // The whole point of moving `session_error` to opt-in is to let users
+    // turn it on when they want it — this pins that path.
+    expect(isKindEnabled("session_error", { enabledKinds: ["session_error"] })).toBe(true);
   });
 });
 

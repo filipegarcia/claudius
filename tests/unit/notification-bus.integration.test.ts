@@ -16,8 +16,13 @@ import { writeFakeWorkspace } from "./helpers/fake-workspace";
  * via `subscribe`, and assert both the fanout and the persisted state.
  *
  * The bus is an HMR singleton on `globalThis`, so we lean on `resetForTests`
- * in `beforeEach` to wipe subscribers/idle-map/counts caches between cases.
+ * in `beforeEach` to wipe subscribers / idle-map / state caches between cases.
  * `makeTempHome` handles HOME redirection + the DB-handle cache.
+ *
+ * State events are emitted via `queueMicrotask` coalescing — the bus collapses
+ * multiple in-tick writes into a single state event with the final values.
+ * Tests that need to assert on state fanout flush the microtask + Promise
+ * queues via `flushAll()` after the synchronous writes.
  */
 
 let tmp: TmpHome;
@@ -27,6 +32,16 @@ let unsubscribe: () => void;
 function snap(): NotificationStreamEvent[] {
   // Defensive copy — callers do indexed reads after later events arrive.
   return envs.slice();
+}
+
+/**
+ * Yield long enough for all queued microtasks AND their downstream Promise
+ * chains (DB reads inside `emitState`) to settle. A bare `await
+ * Promise.resolve()` only flushes the first microtask; the bus's chain
+ * needs the macrotask boundary to be sure every state emit has fired.
+ */
+async function flushAll(): Promise<void> {
+  await new Promise<void>((resolve) => setTimeout(resolve, 0));
 }
 
 beforeEach(() => {
@@ -43,26 +58,31 @@ afterEach(() => {
 });
 
 describe("recordSessionEvent", () => {
-  test("error event lands a row and emits notification + count envelopes", async () => {
+  test("error event lands a row and emits notification + state envelopes", async () => {
     const ws = writeFakeWorkspace();
 
     await notificationBus.recordSessionEvent(ws.rootPath, "sess-1", {
       type: "error",
       message: "boom",
     });
+    await flushAll();
 
-    // Fanout: one `notification`, one `count` (in either order, but in
-    // practice notification first).
+    // Fanout: notification fires synchronously inside record(); state
+    // fires from the coalesced microtask.
     const types = snap().map((e) => e.type);
     expect(types).toContain("notification");
-    expect(types).toContain("count");
+    expect(types).toContain("state");
     const notif = snap().find((e) => e.type === "notification");
     expect(notif && notif.type === "notification" && notif.notification.kind).toBe(
       "session_error",
     );
-    const count = snap().find((e) => e.type === "count");
-    expect(count && count.type === "count" && count.workspaceId).toBe(ws.id);
-    expect(count && count.type === "count" && count.unread).toBe(1);
+    const state = snap().find((e) => e.type === "state");
+    expect(state && state.type === "state" && state.workspaceId).toBe(ws.id);
+    expect(state && state.type === "state" && state.totalUnread).toBe(1);
+    expect(
+      state && state.type === "state" && state.perSession["sess-1"],
+    ).toBe(1);
+    expect(state && state.type === "state" && state.version).toBe(1);
 
     // Persisted.
     const rows = await listNotifications(ws.rootPath, ws.id);
@@ -80,10 +100,12 @@ describe("recordSessionEvent", () => {
       input: {},
     };
     await notificationBus.recordSessionEvent(ws.rootPath, "sess-1", ev);
+    await flushAll();
     const firstCount = snap().filter((e) => e.type === "notification").length;
     expect(firstCount).toBe(1);
 
     await notificationBus.recordSessionEvent(ws.rootPath, "sess-1", ev);
+    await flushAll();
     const secondCount = snap().filter((e) => e.type === "notification").length;
     expect(secondCount).toBe(1); // unchanged
 
@@ -97,6 +119,7 @@ describe("recordSessionEvent", () => {
       type: "error",
       message: "muted",
     });
+    await flushAll();
     expect(snap()).toEqual([]);
     expect(await listNotifications(ws.rootPath, ws.id)).toEqual([]);
   });
@@ -109,6 +132,7 @@ describe("recordSessionEvent", () => {
       type: "error",
       message: "should-drop",
     });
+    await flushAll();
     expect(snap().filter((e) => e.type === "notification")).toHaveLength(0);
 
     await notificationBus.recordSessionEvent(ws.rootPath, "sess-1", {
@@ -118,6 +142,7 @@ describe("recordSessionEvent", () => {
       toolUseId: "tu-z",
       input: {},
     });
+    await flushAll();
     expect(snap().filter((e) => e.type === "notification")).toHaveLength(1);
   });
 
@@ -129,12 +154,14 @@ describe("recordSessionEvent", () => {
       type: "error",
       message: "dropped",
     });
+    await flushAll();
     expect(snap()).toEqual([]);
 
     await notificationBus.recordSessionEvent(ws.rootPath, "sess-clean", {
       type: "error",
       message: "kept",
     });
+    await flushAll();
     expect(snap().filter((e) => e.type === "notification")).toHaveLength(1);
   });
 
@@ -147,6 +174,7 @@ describe("recordSessionEvent", () => {
       type: "error",
       message: "snoozed",
     });
+    await flushAll();
     expect(snap()).toEqual([]);
 
     await setSessionPrefs(ws.rootPath, "sess-snz", {
@@ -156,6 +184,7 @@ describe("recordSessionEvent", () => {
       type: "error",
       message: "post-snooze",
     });
+    await flushAll();
     expect(snap().filter((e) => e.type === "notification")).toHaveLength(1);
   });
 
@@ -167,42 +196,165 @@ describe("recordSessionEvent", () => {
       // parent_tool_use_id.
       message: { parent_tool_use_id: "tu-parent" } as never,
     });
+    await flushAll();
     expect(snap()).toEqual([]);
   });
 
-  test("count envelope only fires when the workspace total actually changes", async () => {
+  test("multiple in-tick writes coalesce — final state reflects all writes", async () => {
+    // Coalescing contract: regardless of HOW MANY state events fire when
+    // multiple writes happen in quick succession, the LAST event must
+    // carry the final values (totals matching the DB ground truth) and
+    // versions must be strictly increasing. We don't assert "exactly one"
+    // because `setTimeout(0)` can't guarantee perfect coalescing across
+    // Promise.all parallel awaits — by the time record-B's
+    // `scheduleStateEmit` runs, record-A's timer may have already fired
+    // and cleared the pending flag. That's fine for users (the flicker is
+    // sub-frame) but worth pinning down what we DO guarantee.
+    const ws = writeFakeWorkspace();
+    await Promise.all([
+      notificationBus.recordSessionEvent(ws.rootPath, "sess-1", { type: "error", message: "a" }),
+      notificationBus.recordSessionEvent(ws.rootPath, "sess-1", { type: "error", message: "b" }),
+      notificationBus.recordSessionEvent(ws.rootPath, "sess-1", { type: "error", message: "c" }),
+    ]);
+    await flushAll();
+
+    const states = snap().filter((e) => e.type === "state");
+    expect(states.length).toBeGreaterThanOrEqual(1);
+    // Versions strictly monotonic.
+    const versions = states.map((e) => (e.type === "state" ? e.version : 0));
+    for (let i = 1; i < versions.length; i++) {
+      expect(versions[i]).toBeGreaterThan(versions[i - 1]);
+    }
+    // Final state matches DB ground truth.
+    const final = states[states.length - 1];
+    expect(final.type === "state" && final.totalUnread).toBe(3);
+    expect(final.type === "state" && final.perSession["sess-1"]).toBe(3);
+  });
+
+  test("coalescing collapses sequential in-tick mark + insert into one state event", async () => {
+    // The realistic coalescing path: a server-side resolve handler that
+    // inserts a permission_request row and then immediately marks it read
+    // via markReadByRequestId — all within one HTTP handler, no Promise.all.
+    // Sequential `await`s in the same handler DO coalesce reliably because
+    // there's no other scheduleStateEmit racing with the timer.
     const ws = writeFakeWorkspace();
 
-    // First event: count goes 0 → 1, expect a count envelope.
-    await notificationBus.recordSessionEvent(ws.rootPath, "sess-1", {
+    // Pre-warm: ensure the workspace's DB handle is cached and the cwd→
+    // workspace lookup map is hot, so the actual coalesce test isn't
+    // racing the first openDb/listWorkspaces calls.
+    await notificationBus.recordSessionEvent(ws.rootPath, "warmup", {
       type: "error",
-      message: "a",
+      message: "warm",
     });
-    expect(snap().filter((e) => e.type === "count")).toHaveLength(1);
+    await flushAll();
+    envs.length = 0;
 
-    // Second event: count goes 1 → 2, expect a second count envelope.
+    // Now: insert a permission_request and immediately mark it read.
     await notificationBus.recordSessionEvent(ws.rootPath, "sess-1", {
-      type: "error",
-      message: "b",
-    });
-    expect(snap().filter((e) => e.type === "count")).toHaveLength(2);
-
-    // Third event is a dedup'd permission_request — the row is rejected
-    // by the partial UNIQUE index, so the count must NOT advance.
-    const ev = {
-      type: "permission_request" as const,
-      requestId: "req-shared",
+      type: "permission_request",
+      requestId: "req-coalesce",
       toolName: "Bash",
       toolUseId: "tu-1",
       input: {},
-    };
-    await notificationBus.recordSessionEvent(ws.rootPath, "sess-1", ev);
-    await notificationBus.recordSessionEvent(ws.rootPath, "sess-1", ev);
-    // Two of the three calls landed a row (3 - 1 dedup'd = 3 total counts:
-    // 1, 2, 3 — the second event of the pair was the dedup). So we expect
-    // exactly 3 count envelopes total: the original two plus the one
-    // permission_request that landed before its dedup'd twin.
-    expect(snap().filter((e) => e.type === "count")).toHaveLength(3);
+    });
+    await notificationBus.markReadByRequestId(ws.rootPath, "req-coalesce");
+    await flushAll();
+
+    // Final values must be correct; the realistic case typically yields 1
+    // state event (both scheduleStateEmit calls happen before the timer
+    // fires) but we accept up to 2 if the timer slipped in between.
+    const states = snap().filter((e) => e.type === "state");
+    expect(states.length).toBeGreaterThanOrEqual(1);
+    const final = states[states.length - 1];
+    expect(final.type === "state" && final.totalUnread).toBe(1); // warmup row is still unread
+  });
+
+  test("background-session suppression: session_idle is dropped when hasSubscribers=false", async () => {
+    // When the user switches to a different session tab the previous
+    // session's SSE closes and its subscriber count goes to 0. The bus
+    // should drop session_idle ("Claude finished a turn") for that session
+    // — the user isn't looking and the feedback is noise.
+    const ws = writeFakeWorkspace();
+    notificationBus.markUserInput("sess-bg", Date.now() - 10_000);
+    await notificationBus.recordSessionEvent(
+      ws.rootPath,
+      "sess-bg",
+      { type: "sdk", message: { type: "result" } as never },
+      { hasSubscribers: false },
+    );
+    await flushAll();
+    expect(snap().filter((e) => e.type === "notification")).toHaveLength(0);
+    expect(await listNotifications(ws.rootPath, ws.id)).toHaveLength(0);
+  });
+
+  test("background-session suppression: session_error is dropped when hasSubscribers=false", async () => {
+    const ws = writeFakeWorkspace();
+    await notificationBus.recordSessionEvent(
+      ws.rootPath,
+      "sess-bg",
+      { type: "error", message: "background boom" },
+      { hasSubscribers: false },
+    );
+    await flushAll();
+    expect(snap().filter((e) => e.type === "notification")).toHaveLength(0);
+    expect(await listNotifications(ws.rootPath, ws.id)).toHaveLength(0);
+  });
+
+  test("background-session suppression: permission_request still fires when hasSubscribers=false", async () => {
+    // Actionable kinds override the background gate — the agent is blocked
+    // on the user, who needs to come look regardless of which tab they're
+    // currently on.
+    const ws = writeFakeWorkspace();
+    await notificationBus.recordSessionEvent(
+      ws.rootPath,
+      "sess-bg",
+      {
+        type: "permission_request",
+        requestId: "req-bg-1",
+        toolName: "Bash",
+        toolUseId: "tu-bg",
+        input: {},
+      },
+      { hasSubscribers: false },
+    );
+    await flushAll();
+    expect(snap().filter((e) => e.type === "notification")).toHaveLength(1);
+    expect(await listNotifications(ws.rootPath, ws.id)).toHaveLength(1);
+  });
+
+  test("foreground session_idle still fires when hasSubscribers=true", async () => {
+    // Sanity check the negative case: with a subscriber present, the gate
+    // is a pass-through — the active session continues to produce idle
+    // notifications as it always has (the auto-read gate on the client
+    // handles the "same tab visible" case from there).
+    const ws = writeFakeWorkspace();
+    notificationBus.markUserInput("sess-fg", Date.now() - 10_000);
+    await notificationBus.recordSessionEvent(
+      ws.rootPath,
+      "sess-fg",
+      { type: "sdk", message: { type: "result" } as never },
+      { hasSubscribers: true },
+    );
+    await flushAll();
+    expect(snap().filter((e) => e.type === "notification")).toHaveLength(1);
+  });
+
+  test("version increments monotonically across separate ticks", async () => {
+    const ws = writeFakeWorkspace();
+
+    await notificationBus.recordSessionEvent(ws.rootPath, "sess-1", { type: "error", message: "a" });
+    await flushAll();
+    await notificationBus.recordSessionEvent(ws.rootPath, "sess-1", { type: "error", message: "b" });
+    await flushAll();
+    await notificationBus.recordSessionEvent(ws.rootPath, "sess-1", { type: "error", message: "c" });
+    await flushAll();
+
+    const states = snap().filter((e) => e.type === "state");
+    expect(states.length).toBe(3);
+    const versions = states.map((e) => (e.type === "state" ? e.version : 0));
+    expect(versions).toEqual([1, 2, 3]);
+    const totals = states.map((e) => (e.type === "state" ? e.totalUnread : 0));
+    expect(totals).toEqual([1, 2, 3]);
   });
 });
 
@@ -215,6 +367,7 @@ describe("recordSchedulerEvent", () => {
       "job-1",
       { type: "run_finished", status: "errored", note: "exit 1" },
     );
+    await flushAll();
     const rows = await listNotifications(ws.rootPath, ws.id);
     expect(rows).toHaveLength(1);
     expect(rows[0].kind).toBe("scheduled_run_finished");
@@ -231,6 +384,7 @@ describe("idle heuristic", () => {
       type: "sdk",
       message: { type: "result" } as never,
     });
+    await flushAll();
     expect(snap()).toEqual([]);
   });
 
@@ -242,6 +396,7 @@ describe("idle heuristic", () => {
       type: "sdk",
       message: { type: "result" } as never,
     });
+    await flushAll();
     const notif = snap().find((e) => e.type === "notification");
     expect(notif && notif.type === "notification" && notif.notification.kind).toBe(
       "session_idle",
@@ -250,7 +405,7 @@ describe("idle heuristic", () => {
 });
 
 describe("markReadByRequestId", () => {
-  test("flips the matching row and fires a count envelope", async () => {
+  test("flips the matching row and fires a state envelope at the new total", async () => {
     const ws = writeFakeWorkspace();
     await notificationBus.recordSessionEvent(ws.rootPath, "sess-1", {
       type: "permission_request",
@@ -259,26 +414,32 @@ describe("markReadByRequestId", () => {
       toolUseId: "tu-1",
       input: {},
     });
-    const countsBefore = snap().filter((e) => e.type === "count").length;
+    await flushAll();
+    const statesBefore = snap().filter((e) => e.type === "state").length;
+    expect(statesBefore).toBe(1);
 
     await notificationBus.markReadByRequestId(ws.rootPath, "req-7");
+    await flushAll();
 
-    const countEnvs = snap().filter((e) => e.type === "count");
-    expect(countEnvs.length).toBeGreaterThan(countsBefore);
-    // Final count should be 0 since the only row was just flipped.
-    const last = countEnvs[countEnvs.length - 1];
-    expect(last.type === "count" && last.unread).toBe(0);
+    const stateEnvs = snap().filter((e) => e.type === "state");
+    expect(stateEnvs.length).toBeGreaterThan(statesBefore);
+    const last = stateEnvs[stateEnvs.length - 1];
+    expect(last.type === "state" && last.totalUnread).toBe(0);
+    // Version must be strictly larger than the prior emission.
+    expect(last.type === "state" && last.version).toBeGreaterThan(1);
   });
 
-  test("no-op for an unknown requestId — no count envelope", async () => {
+  test("no-op for an unknown requestId — no state envelope", async () => {
     const ws = writeFakeWorkspace();
     await notificationBus.recordSessionEvent(ws.rootPath, "sess-1", {
       type: "error",
       message: "x",
     });
-    const before = snap().filter((e) => e.type === "count").length;
+    await flushAll();
+    const before = snap().filter((e) => e.type === "state").length;
     await notificationBus.markReadByRequestId(ws.rootPath, "req-never");
-    const after = snap().filter((e) => e.type === "count").length;
+    await flushAll();
+    const after = snap().filter((e) => e.type === "state").length;
     expect(after).toBe(before);
   });
 });

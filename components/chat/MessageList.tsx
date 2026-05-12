@@ -34,12 +34,17 @@ type Props = {
   onPickExample?: (prompt: string) => void;
   /**
    * Live AskUserQuestion tool_use id — passed straight through to
-   * `AssistantMessage` so the matching ToolCall row can render its "Answer"
-   * pill. Null when no question is pending.
+   * `AssistantMessage` so the matching ToolCall row pulses its pill in
+   * "live" mode. Null when no question is pending; historic ask rows still
+   * get a non-pulsing "Reopen" pill.
    */
   pendingAskToolUseId?: string | null;
-  /** Click handler for the "Answer" pill on a pending AskUserQuestion row. */
-  onReopenAsk?: () => void;
+  /**
+   * Click handler for the "Answer" / "Reopen" pill. Receives the clicked
+   * row's tool_use id + raw input so the parent can either re-show the live
+   * modal or resurrect a historic one.
+   */
+  onReopenAsk?: (args: { toolUseId: string; input: Record<string, unknown> }) => void;
 };
 
 const SPLASH_EXAMPLES = [

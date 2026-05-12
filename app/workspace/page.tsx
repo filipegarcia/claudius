@@ -20,7 +20,9 @@ import {
   type CommitPrefixConfig,
 } from "@/lib/shared/commit-prefix";
 import {
+  ALL_NOTIFICATION_KINDS,
   DEFAULT_ENABLED_KINDS,
+  OPT_IN_KINDS,
   type NotificationClickBehavior,
   type NotificationKind,
   type WorkspaceNotificationPrefs,
@@ -194,10 +196,35 @@ export default function WorkspacePage() {
         commitPrefix,
         ...(iconPatch ? { icon: iconPatch } : {}),
       };
+      // Capture which kinds we just removed BEFORE the patch lands, so the
+      // mark-read fanout below operates on the diff against the prior saved
+      // state (not against whatever was staged half a save ago).
+      const prevKinds = new Set(
+        active.defaults?.notifications?.enabledKinds ?? DEFAULT_ENABLED_KINDS,
+      );
+      const nextKinds = new Set(notifyKinds);
+      const removed: NotificationKind[] = [];
+      for (const k of prevKinds) if (!nextKinds.has(k)) removed.push(k);
+
       const ok = await update(active.id, patch);
       if (!ok) {
         setError("Save failed.");
         return;
+      }
+      // Once the user has said "stop notifying me about X", clear the
+      // backlog of X rows so the badge actually reflects the new policy.
+      // Best-effort: a failed mark-read just means the user has stale rows
+      // they can dismiss manually, not a corrupted state.
+      for (const k of removed) {
+        try {
+          await fetch("/api/notifications/read-by-kind", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ workspaceId: active.id, kind: k }),
+          });
+        } catch {
+          // ignore — best effort
+        }
       }
       if (pendingImage) {
         const uploaded = await uploadIcon(active.id, pendingImage.file);
@@ -673,36 +700,48 @@ export default function WorkspacePage() {
                   <div className="mt-4">
                     <div className="mb-2 text-[11px] font-medium">Trigger on</div>
                     <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
-                      {DEFAULT_ENABLED_KINDS.map((k) => {
-                        const checked = notifyKinds.includes(k);
-                        return (
-                          <label
-                            key={k}
-                            className={cn(
-                              "flex items-start gap-2 rounded-md border px-3 py-2 transition",
-                              checked
-                                ? "border-[var(--accent)] bg-[var(--accent)]/5"
-                                : "border-[var(--border)] bg-[var(--panel-2)]/40 hover:bg-[var(--panel-2)]",
-                            )}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={checked}
-                              onChange={(e) => {
-                                setNotifyKinds((prev) => {
-                                  const set = new Set(prev);
-                                  if (e.target.checked) set.add(k);
-                                  else set.delete(k);
-                                  return DEFAULT_ENABLED_KINDS.filter((x) => set.has(x));
-                                });
-                              }}
-                              className="mt-0.5"
-                            />
-                            <span className="text-xs">{NOTIFICATION_KIND_LABELS[k]}</span>
-                          </label>
-                        );
-                      })}
+                      {DEFAULT_ENABLED_KINDS.map((k) => (
+                        <NotifyKindToggle
+                          key={k}
+                          kind={k}
+                          label={NOTIFICATION_KIND_LABELS[k]}
+                          checked={notifyKinds.includes(k)}
+                          onChange={(next) => setNotifyKinds(updateKindSet(notifyKinds, k, next))}
+                        />
+                      ))}
                     </div>
+
+                    {/*
+                      Opt-in kinds live in their own section so users know
+                      they're outside the "sensible default" set. Currently
+                      just `session_error`: it ships off because the SDK
+                      throws an error on every user abort / reaper kill /
+                      "No conversation found" resume failure, and errors
+                      that genuinely need attention already show in the
+                      chat transcript. The label intentionally calls out
+                      that this is the opt-in tier.
+                    */}
+                    {OPT_IN_KINDS.length > 0 && (
+                      <div className="mt-4 border-t border-[var(--border)] pt-3">
+                        <div className="mb-1 text-[11px] font-medium text-[var(--muted)]">
+                          Optional — off by default
+                        </div>
+                        <div className="mb-2 text-[10px] text-[var(--muted)]/80">
+                          Most users don&apos;t want these. They&apos;re noisy and the underlying state is already visible in the chat.
+                        </div>
+                        <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+                          {OPT_IN_KINDS.map((k) => (
+                            <NotifyKindToggle
+                              key={k}
+                              kind={k}
+                              label={NOTIFICATION_KIND_LABELS[k]}
+                              checked={notifyKinds.includes(k)}
+                              onChange={(next) => setNotifyKinds(updateKindSet(notifyKinds, k, next))}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </section>
@@ -749,6 +788,56 @@ function sameKindSet(
   const sa = new Set(aa);
   for (const k of b) if (!sa.has(k)) return false;
   return true;
+}
+
+/**
+ * Toggle one kind on/off in the staged set while preserving the canonical
+ * order (defaults first, opt-ins last). The order matters because the
+ * dirty-check `sameKindSet` is order-insensitive but the wire payload sent
+ * by Save is ordered — keeping a stable order avoids spurious dirty flags
+ * from re-arranging without actually changing.
+ */
+function updateKindSet(
+  current: NotificationKind[],
+  kind: NotificationKind,
+  next: boolean,
+): NotificationKind[] {
+  const set = new Set(current);
+  if (next) set.add(kind);
+  else set.delete(kind);
+  return ALL_NOTIFICATION_KINDS.filter((x) => set.has(x));
+}
+
+function NotifyKindToggle({
+  kind,
+  label,
+  checked,
+  onChange,
+}: {
+  kind: NotificationKind;
+  label: string;
+  checked: boolean;
+  onChange: (next: boolean) => void;
+}) {
+  return (
+    <label
+      className={cn(
+        "flex items-start gap-2 rounded-md border px-3 py-2 transition",
+        checked
+          ? "border-[var(--accent)] bg-[var(--accent)]/5"
+          : "border-[var(--border)] bg-[var(--panel-2)]/40 hover:bg-[var(--panel-2)]",
+      )}
+      data-kind={kind}
+    >
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        className="mt-0.5"
+      />
+      <span className="text-xs">{label}</span>
+    </label>
+  );
 }
 
 function ClickRadio({

@@ -312,9 +312,27 @@ export async function stagePaths(
   if (!root) return { code: "not-a-repo", message: "not a git repository" };
   try {
     if (op === "stage") {
-      // `git add -A --` handles untracked, modifications, and deletions in
-      // one call.
-      await git(["add", "-A", "--", ...paths], root);
+      // `git add -A --` handles untracked, modifications, and deletions —
+      // except for files that are already *fully* staged with no unstaged
+      // divergence (e.g. `D ` — staged-deleted, gone from disk). For those
+      // git aborts with `pathspec ... did not match any files` because the
+      // file isn't in the worktree AND there's nothing on the unstaged side
+      // for `add` to consume. Drop those paths up front: a click on "Stage"
+      // for an already-fully-staged entry is semantically a no-op.
+      //
+      // We use `worktree !== " "` as the keep predicate: anything with an
+      // unstaged change (or untracked, `?`) still has work to do; anything
+      // with `worktree === " "` is fully staged already and would error.
+      const status = await getStatus(root);
+      if (isGitError(status)) return status;
+      const byPath = new Map(status.files.map((f) => [f.path, f]));
+      const toStage = paths.filter((p) => {
+        const f = byPath.get(p);
+        if (!f) return false; // path unknown to git — nothing to stage
+        return f.worktree !== " ";
+      });
+      if (toStage.length === 0) return { ok: true };
+      await git(["add", "-A", "--", ...toStage], root);
     } else if (op === "unstage") {
       // `git restore --staged --` works on all paths, including newly added.
       await git(["restore", "--staged", "--", ...paths], root);

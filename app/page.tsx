@@ -26,6 +26,7 @@ import { PlanOverlay } from "@/components/overlays/PlanOverlay";
 import { WorktreesOverlay } from "@/components/overlays/WorktreesOverlay";
 import type { AttachedImage } from "@/lib/client/types";
 import { useSession } from "@/lib/client/use-session";
+import { parseAskQuestions, type AskAnswer, type AskQuestion } from "@/lib/shared/events";
 import { useLimits } from "@/lib/client/useLimits";
 import { CapBreachBanner } from "@/components/chat/CapBreachBanner";
 import { TranscriptSearch, type SearchHit } from "@/components/chat/TranscriptSearch";
@@ -44,6 +45,31 @@ function todayKey(): string {
 function todosFingerprint(todos: { id: string; status: string }[]): string {
   return todos.map((t) => `${t.id}:${t.status}`).join("|");
 }
+
+/**
+ * Render a resurrected AskUserQuestion submission as a single follow-up
+ * prompt. The SDK's permission stream for the original tool_use already
+ * closed (typically with `Aborted`), so we can't deliver the answer back
+ * through `submitAskAnswer` — instead we frame it as a user message that
+ * quotes each question + the user's pick. Keeping the question text inline
+ * gives the model the same context it had at the time of the ask.
+ */
+function formatAskAsPrompt(questions: AskQuestion[], answers: AskAnswer[]): string {
+  const lines: string[] = [];
+  for (let i = 0; i < questions.length; i++) {
+    const q = questions[i]!;
+    const a = answers[i] ?? {};
+    const picks: string[] = [];
+    if (a.selected && a.selected.length > 0) picks.push(...a.selected);
+    else if (a.label != null && a.label !== "") picks.push(a.label);
+    if (a.custom && a.custom.trim()) picks.push(`Other: ${a.custom.trim()}`);
+    const answerText = picks.length > 0 ? picks.join(", ") : "(declined)";
+    lines.push(`> ${q.question}`);
+    lines.push(answerText);
+    if (i < questions.length - 1) lines.push("");
+  }
+  return lines.join("\n");
+}
 import { useContextWatcher } from "@/lib/client/useContextWatcher";
 import { useNotificationsContext } from "@/components/notifications/NotificationsProvider";
 import { findSlashCommand } from "@/lib/shared/slash-commands";
@@ -61,6 +87,20 @@ export default function Home() {
   // The modal renders only when there is a pendingAsk AND its requestId
   // is not the one we just minimized.
   const [askMinimizedFor, setAskMinimizedFor] = useState<string | null>(null);
+  // "Resurrected" ask — the user clicked the Reopen pill on a historic /
+  // errored AskUserQuestion row whose permission stream had already closed
+  // server-side. We can't route an answer back through the SDK (it received
+  // a deny tool_result and moved on), so submitting here sends the choices
+  // as a regular follow-up user message via `handleSend`.
+  const [resurrectedAsk, setResurrectedAsk] = useState<
+    | {
+        /** Synthetic requestId — used only by the modal's local state. */
+        requestId: string;
+        toolUseId: string;
+        questions: AskQuestion[];
+      }
+    | null
+  >(null);
   const ctxSummary = useContextWatcher(session.sessionId, session.pending);
   const [draftInjection, setDraftInjection] = useState<
     { token: number; text: string; images?: AttachedImage[] } | undefined
@@ -915,12 +955,31 @@ export default function Home() {
             highlightUuid={highlightUuid}
             onPickExample={handleSend}
             pendingAskToolUseId={session.pendingAsk?.toolUseId ?? null}
-            // Clearing `askMinimizedFor` is enough to force the modal back —
-            // the render condition further down falls through as soon as the
-            // id mismatch goes away. Works whether the modal was minimized,
-            // dismissed via click-outside, or simply not yet shown after a
-            // fresh session bind.
-            onReopenAsk={() => setAskMinimizedFor(null)}
+            // Two paths depending on which row was clicked:
+            //   - Live: tool_use id matches `pendingAsk` — clear the
+            //     "minimized" flag and let the existing modal render
+            //     condition fall through.
+            //   - Historic: any other ask row. The SDK has already received
+            //     a tool_result for this question (often an error from the
+            //     permission stream closing). We can't answer it back to
+            //     the agent, so we resurrect the modal locally and treat
+            //     its submit as a fresh user prompt.
+            onReopenAsk={({ toolUseId, input }) => {
+              if (session.pendingAsk?.toolUseId === toolUseId) {
+                setAskMinimizedFor(null);
+                return;
+              }
+              const questions = parseAskQuestions(input);
+              if (questions.length === 0) {
+                showToast("Couldn't recover the question — input shape unknown");
+                return;
+              }
+              setResurrectedAsk({
+                requestId: `resurrected:${toolUseId}`,
+                toolUseId,
+                questions,
+              });
+            }}
           />
           {session.errors.length > 0 && (
             <div className="mx-auto w-full max-w-3xl px-4 pb-2">
@@ -1116,6 +1175,28 @@ export default function Home() {
             session.submitAskAnswer(session.pendingAsk!.requestId, [])
           }
           onMinimize={() => setAskMinimizedFor(session.pendingAsk!.requestId)}
+        />
+      )}
+
+      {/* Resurrected modal — only renders when there's NO live ask in flight
+          so the two can never stack. Submitting feeds the answers as a fresh
+          user prompt instead of through `submitAskAnswer` (the SDK has no
+          matching pending requestId on the server side anymore). */}
+      {!session.pendingAsk && resurrectedAsk && (
+        <AskUserQuestionPrompt
+          request={{
+            type: "ask_user_question",
+            requestId: resurrectedAsk.requestId,
+            toolUseId: resurrectedAsk.toolUseId,
+            questions: resurrectedAsk.questions,
+          }}
+          onSubmit={(answers) => {
+            const text = formatAskAsPrompt(resurrectedAsk.questions, answers);
+            setResurrectedAsk(null);
+            handleSend(text);
+          }}
+          onCancel={() => setResurrectedAsk(null)}
+          onMinimize={() => setResurrectedAsk(null)}
         />
       )}
 
