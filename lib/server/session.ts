@@ -138,53 +138,44 @@ function isRealUserPrompt(content: unknown): boolean {
 }
 
 /**
- * Resolve the freshest session title from the available sources without
- * ever clobbering a name the user (or the SDK) already committed to.
+ * Resolve the freshest session title from the *trusted* sources only.
  *
  * Precedence:
  *   1. `local`      — our DB row, set explicitly via `setSessionTitle`.
- *                     This is the strongest signal: the user typed it in
- *                     Claudius, and we own this storage.
- *   2. `info.customTitle` — the SDK's persisted title (set via the TUI
- *                     `/rename`, or auto-derived `aiTitle` once the SDK
- *                     has produced one — the SDK folds `aiTitle` into
- *                     `customTitle` on the returned info object).
- *   3. `info.summary`     — ONLY as a first-time fallback when `current`
- *                     is still empty (= a session that's never had a
- *                     real title and would otherwise show its raw UUID
- *                     in the tab strip). The SDK's `summary` field is
- *                     computed `customTitle || lastPrompt || ...`, so
- *                     using it as a fallback once a title is set causes
- *                     the title to MORPH into the last user message
- *                     every time `sendFreshTitle` runs — the bug this
- *                     guard exists to prevent.
+ *                     The user typed it in Claudius and we own this storage.
+ *   2. `info.customTitle` — the SDK's persisted title (TUI `/rename`, or
+ *                     the SDK's auto-derived `aiTitle` — it folds aiTitle
+ *                     into the returned `customTitle` field).
+ *   3. `null`       — caller leaves `this.title` empty and the UI falls
+ *                     back to the id-prefix label (`tabLabelFor`).
+ *
+ * We deliberately do NOT fall back to `info.summary`. The SDK computes
+ * that field as `customTitle || aiTitle || lastPrompt || summaryHint ||
+ * firstPrompt`, so whenever neither customTitle nor aiTitle is set, the
+ * "title" we'd surface is the user's latest (or first) prompt text. The
+ * user reported this multiple times — they don't want a prompt sentence
+ * masquerading as a session name. If the user wants a label they use
+ * /rename, otherwise the id-prefix is the correct affordance.
  *
  * Exported for unit testing.
  *
- * @param local     Title from the per-project SQLite index, or null.
- * @param info      SDK session info (`customTitle`, `summary`), or null.
- * @param current   The in-memory `this.title` at call time, or undefined
- *                  for a fresh session.
- * @returns         The title to surface, or null when there's nothing
- *                  trustworthy to show (caller leaves `this.title` alone).
+ * @param local  Title from the per-project SQLite index, or null.
+ * @param info   SDK session info (`customTitle`), or null. The `summary`
+ *               field is accepted on the input type for forward-compat
+ *               but intentionally not read.
+ * @returns      The title to surface, or null when there's no trusted
+ *               source. Caller treats null as "leave `this.title` alone
+ *               and let the UI render the id prefix".
  */
 export function resolveSessionTitle(opts: {
   local: string | null | undefined;
   info: { customTitle?: string | null; summary?: string | null } | null | undefined;
-  current: string | null | undefined;
 }): string | null {
   const localTrim = opts.local?.trim();
   if (localTrim) return localTrim;
   const customTrim = opts.info?.customTitle?.trim();
   if (customTrim) return customTrim;
-  // No trusted source. Only fall back to the SDK's auto-derived `summary`
-  // if we have nothing in memory yet — otherwise we'd overwrite a real
-  // title (set in a previous boot, but no longer reachable via DB or
-  // customTitle for whatever reason) with the last user prompt.
-  const currentTrim = opts.current?.trim();
-  if (currentTrim) return null;
-  const summaryTrim = opts.info?.summary?.trim();
-  return summaryTrim || null;
+  return null;
 }
 
 /**
@@ -317,12 +308,12 @@ export class Session {
       // SDK's customTitle requires a JSONL on disk). Fall back to the SDK's
       // metadata if we have nothing locally — this picks up titles authored
       // in another client (e.g. the TUI's `/rename`). See
-      // `resolveSessionTitle` for the full precedence + the lastPrompt
-      // guard.
+      // `resolveSessionTitle` for the precedence — we never derive a title
+      // from prompt text.
       try {
         const local = await getSessionTitle(this.cwd, this.resumeFrom);
         const info = local ? null : await getSessionInfo(this.resumeFrom, { dir: this.cwd });
-        const next = resolveSessionTitle({ local, info, current: this.title });
+        const next = resolveSessionTitle({ local, info });
         if (next) this.title = next;
       } catch {
         // non-fatal — header just shows the prefix fallback
@@ -1132,6 +1123,28 @@ export class Session {
   }
 
   /**
+   * True when the agent is blocked on an interactive prompt that only the
+   * user can resolve — an AskUserQuestion form, a permission decision, or
+   * a plan-mode approval. The idle reaper consults this so a session with
+   * a pending prompt is never killed mid-question; reaping would resolve
+   * the SDK's `canUseTool` promise as `{ behavior: "deny", message:
+   * "Aborted" }`, writing an errored tool_result that — once on disk —
+   * permanently hides the modal and the "Answer" pill from the user.
+   *
+   * Distinct from `getStatus()` because `turnInFlight` alone (a long-
+   * running Bash, a slow tool) doesn't need a human in the loop; we
+   * still want the reaper to clean those up so a runaway turn without a
+   * watcher doesn't leak the SDK process forever.
+   */
+  hasPendingUserPrompts(): boolean {
+    return (
+      this.pendingPermissions.size > 0 ||
+      this.pendingAskQuestions.size > 0 ||
+      this.pendingPlans.size > 0
+    );
+  }
+
+  /**
    * Coarse session state for the tabs strip and SessionPicker. Inactive
    * tabs need to know "is the agent currently producing output / awaiting my
    * input?" — this collapses the underlying signals (`turnInFlight`, the
@@ -1184,16 +1197,14 @@ export class Session {
       const info = local
         ? null
         : await getSessionInfo(this.id, { dir: this.cwd }).catch(() => null);
-      // `resolveSessionTitle` enforces the rule "never overwrite an
-      // existing title with the SDK's auto-derived `summary`" — that
-      // field falls back to `lastPrompt`, so without this guard every
-      // subscribe (reload, second tab, late connect) would morph the
-      // session's name into whatever the user said last.
-      const next = resolveSessionTitle({ local, info, current: this.title });
-      if (!next) return;
-      if (next !== this.title) {
-        // Title moved — broadcast so every open tab updates, and mirror
-        // into the sessions index so the picker reflects the new label.
+      // `resolveSessionTitle` returns ONLY trusted titles (DB local or
+      // SDK customTitle). It never derives one from prompt text, so a
+      // reload / late subscribe can no longer morph the title into the
+      // last user message.
+      const next = resolveSessionTitle({ local, info });
+      if (next && next !== this.title) {
+        // Title moved (e.g. TUI rename arrived after start()). Broadcast
+        // to every subscriber and persist into the index.
         this.title = next;
         this.broadcast({ type: "session_title", title: next });
         upsertSession({
@@ -1202,11 +1213,17 @@ export class Session {
           model: this.model,
           title: next,
         }).catch(() => {});
-      } else {
-        // Title unchanged — only the new subscriber needs it (the buffer
-        // slice may have pruned the original broadcast).
-        fn({ type: "session_title", title: next });
+      } else if (this.title) {
+        // No movement, but the new subscriber may have missed the
+        // original `session_title` broadcast (tail-pruned by the replay
+        // window, or buffered before they connected). Echo the current
+        // title just to them — `fn` is the subscriber callback the
+        // caller handed us for this one connection, not the full
+        // broadcast list.
+        fn({ type: "session_title", title: this.title });
       }
+      // else: no trusted title and no in-memory title — leave it alone,
+      // the UI falls back to the id-prefix label.
     } catch {
       // non-fatal — banner stays empty, header still works
     }
