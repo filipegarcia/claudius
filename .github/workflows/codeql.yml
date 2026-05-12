@@ -27,6 +27,10 @@ permissions:
 
 jobs:
   analyze:
+    # Code scanning on private repos requires GitHub Advanced Security
+    # (paid). On public repos it's free. Gate the job so it skips silently
+    # on private — flip the repo to public and the next run lights it up.
+    if: github.event.repository.visibility == 'public'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false

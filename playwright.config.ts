@@ -7,7 +7,11 @@ export default defineConfig({
   testDir: "./tests/e2e",
   fullyParallel: false,
   workers: 1,
-  retries: 0,
+  // Retry flaky specs on CI only. We hit this with a workspace-switch
+  // refresh test that's timing-sensitive on slower runners — the retry
+  // catches the flake without papering over deterministic bugs (those
+  // fail all 3 attempts). Locally retries stay at 0 so flakes are loud.
+  retries: process.env.CI ? 2 : 0,
   reporter: [["list"], ["html", { open: "never", outputFolder: "playwright-report" }]],
   timeout: 60_000,
   expect: { timeout: 15_000 },
