@@ -207,6 +207,45 @@ describe("computeReplayWindow", () => {
     expect(out).toEqual({ startIdx: 1, hasMoreAbove: true });
   });
 
+  test("task-notification wrappers don't count as user-turn anchors", () => {
+    // Similar shape to the tool_result-wrapper bug: the SDK injects a
+    // <task-notification> user-role message every time a background bash
+    // task finishes. It carries plain text content (no tool_result block),
+    // so the naive "text-or-image" check considers it a real prompt — but
+    // the user didn't type it, and anchoring on it cuts off the actual
+    // previous prompt.
+    const taskNotif: ServerEvent = {
+      type: "sdk",
+      message: {
+        type: "user",
+        uuid: "tn1",
+        message: {
+          content: [
+            {
+              type: "text",
+              text: "<task-notification>\n<task-id>b3bllp7t9</task-id>\n<status>killed</status>\n</task-notification>",
+            },
+          ],
+        },
+      },
+    } as unknown as ServerEvent;
+    const buffer: ServerEvent[] = [
+      sdkAssistant("a0"), // turn 0, idx 0
+      sdkUser("u1"), // turn 1, idx 1  ← REAL prompt
+      sdkAssistant("a1"), // turn 2, idx 2
+      sdkAssistant("a2"), // turn 3, idx 3
+      taskNotif, // turn 4, idx 4  ← synthetic, must NOT anchor
+      sdkAssistant("a3"), // turn 5, idx 5
+      sdkAssistant("a4"), // turn 6, idx 6
+    ];
+    const out = computeReplayWindow(buffer, 2);
+    // 7 turns, tail=2 → naive start at turnIdx[5] = idx 5.
+    // If taskNotif were counted as the latest user turn, lastUserTurnIdx=4,
+    // which is BEFORE idx 5 → window would extend to idx 4 (still skipping
+    // the real prompt at idx 1). Correct: anchor on idx 1.
+    expect(out).toEqual({ startIdx: 1, hasMoreAbove: true });
+  });
+
   test("string-content user prompts are treated as real (regression: SDK uses both shapes)", () => {
     // The SDK emits user messages with `content: "string"` for simple
     // prompts and `content: [{type:"text", ...}]` for prompts with

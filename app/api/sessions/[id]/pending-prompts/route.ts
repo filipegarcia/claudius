@@ -24,7 +24,10 @@ export const dynamic = "force-dynamic";
 export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
   const session = sessionManager.get(id);
-  if (!session) return NextResponse.json({ error: "session not found" }, { status: 404 });
+  if (!session) {
+    console.log("[ask-restore] /pending-prompts: session not in memory", { id });
+    return NextResponse.json({ error: "session not found" }, { status: 404 });
+  }
 
   // Field access — TypeScript would block the private modifier, but at
   // runtime these are plain instance properties set in the constructor.
@@ -55,5 +58,10 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
     }
   }
 
+  console.log("[ask-restore] /pending-prompts result", {
+    id,
+    asks: asks.length,
+    permissions: permissions.length,
+  });
   return NextResponse.json({ asks, permissions });
 }

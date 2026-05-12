@@ -76,9 +76,13 @@ test.describe("Notifications pipeline", () => {
     request,
     baseURL,
   }) => {
-    // ── 1. Boot the app, capture the auto-bound session ──────────────────
+    // ── 1. Boot the app, wait for the URL to bind a session ──────────────
+    // We don't reference the bound id in the emit below (see step 3 — the
+    // provider auto-reads notifications targeting the active session), but
+    // we still need to wait until the page is past the boot race before the
+    // NotificationsProvider subscribes to the SSE stream.
     await page.goto("/");
-    const sessionId = await waitForBoundSession(page);
+    await waitForBoundSession(page);
     const ws = await getActiveWorkspace(request, baseURL);
     await ensureNotificationsEnabled(request, baseURL, ws);
 
@@ -96,10 +100,19 @@ test.describe("Notifications pipeline", () => {
     // ── 3. Trigger the bus directly via the dev endpoint ─────────────────
     // `session_error` is the cleanest kind to synthesize: maps from a plain
     // `error` ServerEvent, no SDK quirks, and is enabled by default.
+    //
+    // NB: we deliberately target a DIFFERENT sessionId than the one currently
+    // bound in the page. The provider auto-reads on arrival when the row's
+    // session matches the URL's active session AND the tab is visible — that
+    // mirrors `useNotifications.notify`'s OS-popup gate and would immediately
+    // clear the badge before this test could read it. A neighbour session id
+    // breaks that gate while still exercising the full bus → DB → SSE → UI
+    // chain.
+    const otherSessionId = "11111111-1111-4111-8111-111111111111";
     const emit = await request.post(`${baseURL}/api/notifications/dev-emit`, {
       data: {
         cwd: ws.rootPath,
-        sessionId,
+        sessionId: otherSessionId,
         event: { type: "error", message: "e2e-bus-direct" },
       },
     });

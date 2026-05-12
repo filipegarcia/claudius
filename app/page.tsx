@@ -337,11 +337,17 @@ export default function Home() {
     [session],
   );
 
-  const closeAllTabs = useCallback(() => {
-    if (openTabs.length === 0) return;
-    if (!confirm(`Close all ${openTabs.length} tabs? Sessions remain on disk.`)) return;
+  // Returns the ids that were actually closed so callers can react (e.g.
+  // mark each session's unread notifications read). Empty array means the
+  // user cancelled the confirm or there was nothing to close — either way
+  // no state change happened, so no follow-up side effects should fire.
+  const closeAllTabs = useCallback((): string[] => {
+    if (openTabs.length === 0) return [];
+    if (!confirm(`Close all ${openTabs.length} tabs? Sessions remain on disk.`)) return [];
+    const closed = openTabs.slice();
     setOpenTabs([]);
-  }, [openTabs.length]);
+    return closed;
+  }, [openTabs]);
 
   // Bash live-tail viewer ─────────────────────────────────────────────────
   const [openBash, setOpenBash] = useState<BackgroundBash | null>(null);
@@ -787,8 +793,23 @@ export default function Home() {
             // exits early when the per-session count is already 0.
             void notifications.markSessionRead(id);
           }}
-          onClose={closeTab}
-          onCloseAll={closeAllTabs}
+          onClose={(id) => {
+            // Closing a tab implies "I'm done with this session". Clear the
+            // session's unread notifications so they don't linger as ghosts
+            // on the workspace badge — orphaned counts were the symptom that
+            // surfaced this code path. markSessionRead exits cheaply when the
+            // per-session count is already 0, so the order doesn't matter.
+            void notifications.markSessionRead(id);
+            closeTab(id);
+          }}
+          onCloseAll={() => {
+            // Same contract as onClose, but across every currently-open tab.
+            // closeAllTabs returns the ids it actually closed (empty when the
+            // user cancels its confirm), so we only mark notifications read
+            // for tabs that really went away.
+            const closed = closeAllTabs();
+            for (const id of closed) void notifications.markSessionRead(id);
+          }}
           onNew={() => void session.createNewSession()}
           labelMaxWidth={tabLabelMaxWidth ?? undefined}
           onLabelWidthChange={onTabLabelWidthChange}
@@ -893,6 +914,13 @@ export default function Home() {
             onLoadOlder={session.loadOlder}
             highlightUuid={highlightUuid}
             onPickExample={handleSend}
+            pendingAskToolUseId={session.pendingAsk?.toolUseId ?? null}
+            // Clearing `askMinimizedFor` is enough to force the modal back —
+            // the render condition further down falls through as soon as the
+            // id mismatch goes away. Works whether the modal was minimized,
+            // dismissed via click-outside, or simply not yet shown after a
+            // fresh session bind.
+            onReopenAsk={() => setAskMinimizedFor(null)}
           />
           {session.errors.length > 0 && (
             <div className="mx-auto w-full max-w-3xl px-4 pb-2">

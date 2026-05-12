@@ -32,6 +32,14 @@ type Props = {
    * clicking sends the example string straight to the prompt pipeline.
    */
   onPickExample?: (prompt: string) => void;
+  /**
+   * Live AskUserQuestion tool_use id — passed straight through to
+   * `AssistantMessage` so the matching ToolCall row can render its "Answer"
+   * pill. Null when no question is pending.
+   */
+  pendingAskToolUseId?: string | null;
+  /** Click handler for the "Answer" pill on a pending AskUserQuestion row. */
+  onReopenAsk?: () => void;
 };
 
 const SPLASH_EXAMPLES = [
@@ -57,6 +65,8 @@ export function MessageList({
   onLoadOlder,
   highlightUuid = null,
   onPickExample,
+  pendingAskToolUseId = null,
+  onReopenAsk,
 }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const topSentinelRef = useRef<HTMLDivElement>(null);
@@ -307,7 +317,13 @@ export function MessageList({
                           rewinding={rewindingUuid === m.uuid}
                         />
                       ) : (
-                        <AssistantMessage message={m} tasks={tasks} subagentMessages={subagentMessages} />
+                        <AssistantMessage
+                          message={m}
+                          tasks={tasks}
+                          subagentMessages={subagentMessages}
+                          pendingAskToolUseId={pendingAskToolUseId}
+                          onReopenAsk={onReopenAsk}
+                        />
                       )}
                       {(grouped.get(m.uuid) ?? []).map((e) => (
                         <SystemPill key={e.uuid} entry={e} />

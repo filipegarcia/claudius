@@ -181,6 +181,18 @@ export function CommitBox({
     }
   }
 
+  // Claude's commit-message endpoint doesn't know about per-workspace branch
+  // prefixes (e.g. `feat #4729 - `), so on a fresh `setMessage(generated)`
+  // the prefix that was originally seeded into an empty textarea gets wiped
+  // out. Apply it mechanically here, on the user's side, where the config
+  // lives. Skip if Claude already happened to start the message with the
+  // prefix so we don't double it up.
+  function withPrefix(generated: string): string {
+    if (!prefix) return generated;
+    if (generated.startsWith(prefix)) return generated;
+    return prefix + generated;
+  }
+
   async function generate() {
     if (!canGenerate || !onGenerate) return;
     setError(null);
@@ -188,10 +200,11 @@ export function CommitBox({
     try {
       const r = await onGenerate();
       if (r.ok) {
-        setMessage(r.message);
+        const next = withPrefix(r.message);
+        setMessage(next);
         if (onPersistDraft) {
           try {
-            await onPersistDraft(r.message);
+            await onPersistDraft(next);
           } catch {
             // non-fatal — the user still sees the message in the textarea
           }
@@ -241,11 +254,11 @@ export function CommitBox({
         setError(g.error);
         return;
       }
-      messageToCommit = g.message;
-      setMessage(g.message);
+      messageToCommit = withPrefix(g.message);
+      setMessage(messageToCommit);
       if (onPersistDraft) {
         try {
-          await onPersistDraft(g.message);
+          await onPersistDraft(messageToCommit);
         } catch {
           // non-fatal
         }

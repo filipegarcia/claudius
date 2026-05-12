@@ -9,9 +9,13 @@
  *
  * The pattern is compiled to a regex where each non-final placeholder
  * matches `[^/-]+` (the common branch separators) and the final placeholder
- * matches `.+`. That handles the screenshot case (`feat/4715-natixis-trend`
- * → `feat #4715 - `) and most repo-wide naming schemes without asking the
- * user to write regex.
+ * matches `.+`. The literal-before-last + last placeholder is wrapped in an
+ * optional group when the pattern has ≥2 placeholders, so a branch like
+ * `feat/4729` (no trailing description) still matches `{type}/{id}-{rest}`
+ * with `rest` rendered as empty. Single-placeholder patterns still require
+ * a match (so `{id}` doesn't silently accept anything). Handles the
+ * screenshot case (`feat/4715-add-search-filter` → `feat #4715 - `) and the
+ * common bare-id shape without asking the user to write regex.
  */
 
 export type CommitPrefixConfig = {
@@ -37,11 +41,19 @@ export function compilePattern(
   const names: string[] = [];
   let regex = "";
   let lastIndex = 0;
+  // Index into `regex` where the trailing run begins (literal-before-last
+  // placeholder onwards). Used below to wrap that run in `(?:...)?` so the
+  // last placeholder is optional when there are ≥2 placeholders.
+  let trailingStart = 0;
   PLACEHOLDER_RE.lastIndex = 0;
   let m: RegExpExecArray | null;
   while ((m = PLACEHOLDER_RE.exec(pattern)) !== null) {
     const name = m[1];
     if (names.includes(name)) return null;
+    // Snapshot the index *before* writing the literal that precedes this
+    // placeholder — on the final loop iteration this points at the start of
+    // the optional trailing run.
+    trailingStart = regex.length;
     names.push(name);
     regex += escapeLiteral(pattern.slice(lastIndex, m.index));
     // Filled in below — the last placeholder gets `.+`, the rest `[^/-]+`.
@@ -50,6 +62,13 @@ export function compilePattern(
   }
   if (names.length === 0) return null;
   regex += escapeLiteral(pattern.slice(lastIndex));
+  // Make the trailing run optional only when the pattern has ≥2 placeholders.
+  // Otherwise `{id}` would degenerate into "match anything," which would
+  // silently mask a misconfiguration.
+  if (names.length >= 2) {
+    regex =
+      regex.slice(0, trailingStart) + "(?:" + regex.slice(trailingStart) + ")?";
+  }
   // Replace placeholder markers, picking the right matcher per position.
   regex = regex.replace(/__PH_(\d+)__/g, (_full, idxStr: string) => {
     const i = Number(idxStr);

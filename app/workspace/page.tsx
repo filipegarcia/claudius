@@ -573,7 +573,9 @@ export default function WorkspacePage() {
                     <div className="mt-1 text-[10px] text-[var(--muted)]">
                       Each <code className="font-mono">{`{name}`}</code> matches one segment;
                       everything else (slashes, dashes) is literal. The last placeholder absorbs the
-                      rest of the branch.
+                      rest of the branch and is optional — branches without a trailing description
+                      (e.g. <code className="font-mono">feat/4729</code>) still match and render the
+                      last placeholder as empty.
                     </div>
                     {patternError && (
                       <div className="mt-1 text-[10px] text-red-300">{patternError}</div>
@@ -599,7 +601,7 @@ export default function WorkspacePage() {
                     <input
                       value={sampleBranch}
                       onChange={(e) => setSampleBranch(e.target.value)}
-                      placeholder="feat/4715-natixis-trend"
+                      placeholder="feat/4715-add-search-filter"
                       className="w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 font-mono text-xs focus:outline-none"
                     />
                     <div className="mt-2 text-[10px] text-[var(--muted)]">Resulting prefix:</div>

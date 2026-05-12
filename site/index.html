@@ -851,7 +851,7 @@ HOST=0.0.0.0 PORT=8080 make up     # reachable from your LAN (careful)</code></p
               onerror="this.onerror=null;this.src='screenshots/_placeholder.svg'"
             />
             <figcaption class="px-5 py-4 border-t border-line">
-              <div class="font-mono text-xs text-accent">drawer · closed</div>
+              <div class="font-mono text-xs text-accent">/customize</div>
               <div class="text-sm text-fg">All your customizations collapse into one wand tile in the rail, with a count badge. The rail stays clean even with a dozen on the go.</div>
             </figcaption>
           </figure>
@@ -864,26 +864,42 @@ HOST=0.0.0.0 PORT=8080 make up     # reachable from your LAN (careful)</code></p
               onerror="this.onerror=null;this.src='screenshots/_placeholder.svg'"
             />
             <figcaption class="px-5 py-4 border-t border-line">
-              <div class="font-mono text-xs text-accent">drawer · open</div>
+              <div class="font-mono text-xs text-accent">/customize</div>
               <div class="text-sm text-fg">Click it and the most-recently-opened customizations spill out. Jump between them; chat history and sessions stay scoped to each one.</div>
             </figcaption>
           </figure>
         </div>
 
-        <!-- Showcase: six demos built in an afternoon -->
+        <!-- Showcase: seven demos built in an afternoon -->
         <div class="mt-20 max-w-2xl">
-          <p class="font-mono text-xs uppercase tracking-widest text-accent">Six demos, one afternoon</p>
+          <p class="font-mono text-xs uppercase tracking-widest text-accent">Seven demos, one afternoon</p>
           <h3 class="mt-2 text-2xl md:text-3xl font-semibold tracking-tight">
-            Yes, you can put Clippy in there.
+            Ship a data pipeline. Or ship Clippy.
           </h3>
           <p class="mt-4 text-muted leading-relaxed">
-            We built every one of these by asking the agent to add the feature.
-            Each lives in its own mirror &mdash; toggle on, toggle off,
-            independent of the others.
+            A live DAG dashboard, a Docker monitor, a synthwave repaint, a
+            DOOM-themed Cost page, a Minecraft parkour clip next to the
+            thinking block, the Konami code, a paperclip mascot &mdash; all
+            built by asking the agent. Each lives in its own mirror, toggle
+            on, toggle off, independent of the others.
           </p>
         </div>
 
         <div class="mt-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <!-- Data Pipeline · hero (full-width, animated graph) -->
+          <figure class="shot group rounded-lg border border-line overflow-hidden cursor-zoom-in hover:border-accent/70 transition-colors md:col-span-2 lg:col-span-3" role="button" tabindex="0">
+            <img
+              src="screenshots/customization-pipeline-graph.png"
+              alt="A live data-pipeline DAG: source nodes (App events, Postgres CDC, S3 dropfiles) feed Stream ingest, which lands in Bronze, fans out to dbt and Silver, then to Gold marts and a (failing) Feature store — each node card shows throughput, p95 latency, and a colored sparkline; edges are gradient curves with throughput labels"
+              loading="lazy"
+              onerror="this.onerror=null;this.src='screenshots/_placeholder.svg'"
+            />
+            <figcaption class="px-5 py-4 border-t border-line">
+              <div class="font-mono text-xs text-accent">cust · Build a data pipeline</div>
+              <div class="text-sm text-fg">A new <code class="font-mono text-xs">/pipeline</code> route &mdash; full DAG observability in your browser. Nine stages from Kafka to Feature store, gradient-curve edges with throughput labels, per-node sparklines, p95 latency, and a run-history strip showing the last 24 runs as green/amber/red chips. The failing stage glows red &mdash; you spot it before the on-call gets paged.</div>
+            </figcaption>
+          </figure>
+
           <!-- Clippy -->
           <figure class="shot group rounded-lg border border-line overflow-hidden cursor-zoom-in hover:border-accent/70 transition-colors" role="button" tabindex="0">
             <img
@@ -1004,7 +1020,7 @@ HOST=0.0.0.0 PORT=8080 make up     # reachable from your LAN (careful)</code></p
         <!-- Trademark + non-affiliation notice. -->
         <div
           id="legal"
-          class="border-t border-line/40 pt-6 text-xs text-muted/70 leading-relaxed max-w-3xl scroll-mt-20"
+          class="border-t border-line/40 pt-6 text-xs text-muted/70 leading-relaxed max-w-3xl scroll-mt-20 space-y-2"
         >
           <p>
             <strong class="font-medium text-muted">Claude</strong>® and
@@ -1012,11 +1028,31 @@ HOST=0.0.0.0 PORT=8080 make up     # reachable from your LAN (careful)</code></p
             registered trademarks of Anthropic, PBC. All other product names,
             logos, and brands are property of their respective owners.
           </p>
-          <p class="mt-2">
-            Claudius is an independent, open-source project. It is not
-            affiliated with, sponsored by, or endorsed by Anthropic, PBC.
-            Use of Anthropic's trademarks here is purely descriptive and
-            does not imply any partnership or endorsement.
+          <p>
+            Claudius is an independent, open-source project — built with the
+            <a
+              class="underline decoration-line hover:text-fg"
+              href="https://www.npmjs.com/package/@anthropic-ai/claude-agent-sdk"
+              >Claude Agent SDK</a
+            >
+            (<code class="font-mono text-[0.95em]">@anthropic-ai/claude-agent-sdk</code>,
+            formerly the Claude Code SDK) and compatible with Claude Code.
+          </p>
+          <p>
+            References to <em>Claude</em>, <em>Claude Code</em>, and the
+            <em>Claude Agent SDK</em> on this site are descriptive
+            (<a
+              class="underline decoration-line hover:text-fg"
+              href="https://en.wikipedia.org/wiki/Nominative_use"
+              >nominative fair use</a
+            >) — the same way a project might say "for Node.js" or "works
+            with PostgreSQL." They are not used as our own branding, are
+            displayed no more prominently than necessary, and do not imply
+            partnership or endorsement.
+          </p>
+          <p>
+            Claudius is not affiliated with, sponsored by, or endorsed by
+            Anthropic, PBC.
           </p>
         </div>
       </div>

@@ -68,6 +68,12 @@ export function TranscriptViewer({ messages, onRewind, rewinding }: Props) {
           // Tool results are rendered nested under their tool_use; suppress the user wrapper.
           return null;
         }
+        // SDK-injected <task-notification> wrappers are valid model context
+        // but pure noise in the transcript — see `isSyntheticTaskNotification`
+        // in `lib/client/use-session.ts` for the same filter on the live path.
+        if (isUser && /^\s*<task-notification[\s>]/.test(userText)) {
+          return null;
+        }
         if (isUser) {
           return (
             <div key={m.uuid} className="group flex justify-end">

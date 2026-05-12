@@ -234,6 +234,35 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
   // leave the badges frozen until reload.
   const notifyRef = useRef(notif.notify);
   notifyRef.current = notif.notify;
+
+  // Visibility ref feeds the on-arrival auto-read gate below. The same
+  // gate the OS-popup path already applies in `useNotifications.notify`:
+  // when the user is foregrounded on the session the row targets, the
+  // notification is redundant — the user is already watching it happen —
+  // so we mark it read the instant it lands instead of letting it tick
+  // the per-session badge / workspace tile. Without this, sessions you
+  // sit on accumulate "Claude finished a turn" rows turn after turn (the
+  // user hit 14 in one session).
+  const visibleRef = useRef<boolean>(
+    typeof document !== "undefined" ? !document.hidden : true,
+  );
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    visibleRef.current = !document.hidden;
+    function onVis() {
+      visibleRef.current = !document.hidden;
+    }
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
+  }, []);
+  // NB: we intentionally do NOT cache the active session id in a ref keyed
+  // off `useSearchParams`. In-app tab switches go through
+  // `useSession.bindToSession`, which calls `window.history.replaceState` —
+  // Next.js's `useSearchParams` doesn't react to `replaceState`, so the
+  // hook-derived value stalls on the previously-bound session and the
+  // auto-read gate would fire on the wrong tab. Read `window.location`
+  // fresh inside the SSE handler instead; that's the URL the user actually
+  // sees after a tab click.
   useEffect(() => {
     let es: EventSource | null = null;
     let cancelled = false;
@@ -254,14 +283,49 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
             return;
           }
           if (data.type === "notification") {
+            const row = data.notification;
+            // Auto-read gate: when the user is foregrounded on the exact
+            // session this notification targets, mark it read on arrival so
+            // the per-session badge doesn't tick. Mirrors the OS-popup
+            // suppression in `useNotifications.notify` (same predicate).
+            // Read the active session id from `window.location.search` (not
+            // from `useSearchParams`) because in-app tab switches use
+            // replaceState, which Next's hook doesn't observe.
+            const liveActiveSession =
+              typeof window !== "undefined"
+                ? new URLSearchParams(window.location.search).get("session")
+                : null;
+            const sameSessionVisible =
+              row.readAt == null &&
+              row.sessionId != null &&
+              row.workspaceId === activeId &&
+              row.sessionId === liveActiveSession &&
+              visibleRef.current;
             setRecent((prev) => {
-              if (prev.some((r) => r.id === data.notification.id)) return prev;
-              const next = [data.notification, ...prev];
+              if (prev.some((r) => r.id === row.id)) return prev;
+              const incoming = sameSessionVisible
+                ? { ...row, readAt: Date.now() }
+                : row;
+              const next = [incoming, ...prev];
               return next.length > RECENT_CAP ? next.slice(0, RECENT_CAP) : next;
             });
+            if (sameSessionVisible) {
+              // Skip the optimistic per-session bump AND the OS notify —
+              // both would be no-ops under the same gate. Hit the read
+              // endpoint directly so the bus emits a count event that
+              // reconciles the workspace tile back down before the user
+              // notices the brief +1 from the persistence step.
+              void fetch(`/api/notifications/${row.id}/read`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ workspaceId: row.workspaceId }),
+              }).catch(() => {
+                // The next /counts SSE event reconciles on its own.
+              });
+              return;
+            }
             // Optimistic per-session bump so the tab badge ticks up the
             // instant a notification arrives, before the count event lands.
-            const row = data.notification;
             if (
               row.readAt == null &&
               row.sessionId &&

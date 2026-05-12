@@ -1,6 +1,10 @@
 # Claudius
 
-Claude Code in the browser. A Next.js app that wraps the [Claude Agent SDK](https://www.npmjs.com/package/@anthropic-ai/claude-agent-sdk) and exposes a full session UI — chat, tool calls, permissions, MCP servers, plugins, hooks, agents, scheduling, and memory — alongside views for cost, usage, sessions history, files, and git.
+Claude Code in the browser. Built with the [Claude Agent SDK](https://www.npmjs.com/package/@anthropic-ai/claude-agent-sdk) by Anthropic.
+
+A Next.js app that wraps the SDK and exposes a full session UI — chat, tool calls, permissions, MCP servers, plugins, hooks, agents, scheduling, and memory — alongside views for cost, usage, sessions history, files, and git.
+
+Claudius is an independent, open-source project and is not affiliated with, sponsored by, or endorsed by Anthropic, PBC. See [TRADEMARKS.md](./TRADEMARKS.md) for details.
 
 ## Stack
 
@@ -90,3 +94,19 @@ If the log file ever gets unwieldy: `make down && rm .claudius/logs/claudius.log
 ## Notes for contributors
 
 This repo runs on Next.js 16, which has breaking changes from earlier versions. Check `node_modules/next/dist/docs/` and any deprecation notices before making framework-level changes — see `AGENTS.md`.
+
+## Bring your own key
+
+Claudius does not ship with any Anthropic credentials and the maintainers do not relay traffic through any shared account. You supply credentials yourself — an Anthropic API key, an Anthropic OAuth session (via Claude Code), or a provider such as Amazon Bedrock or Google Vertex AI.
+
+When you use Claudius against Anthropic's API, you are bound by Anthropic's own terms, in particular:
+
+- [Anthropic Commercial Terms of Service](https://www.anthropic.com/legal/commercial-terms)
+- [Anthropic Usage Policy](https://www.anthropic.com/legal/aup)
+- [Anthropic Privacy Policy](https://www.anthropic.com/legal/privacy)
+
+## License & trademarks
+
+The source code in this repository is released under the project's own license (see `LICENSE`). It does not grant any rights to Anthropic's trademarks or other intellectual property.
+
+**Claude**®, **Claude Code**®, and the **Claude Agent SDK** are trademarks of Anthropic, PBC. References to those marks here are descriptive ([nominative fair use](https://en.wikipedia.org/wiki/Nominative_use)) — the same way a project might say "for Node.js" or "works with PostgreSQL." See [TRADEMARKS.md](./TRADEMARKS.md) for the full notice.

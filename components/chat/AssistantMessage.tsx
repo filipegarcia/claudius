@@ -10,9 +10,24 @@ type Props = {
   message: DisplayMessage;
   tasks?: Record<string, TaskInfo>;
   subagentMessages?: Record<string, DisplayMessage[]>;
+  /**
+   * tool_use id of the live AskUserQuestion the user is being asked, or null
+   * when none is in flight. When this matches one of this message's tool_use
+   * blocks, the corresponding ToolCall row exposes a small "Answer" pill that
+   * brings the modal back. Threaded straight from `useSession.pendingAsk`.
+   */
+  pendingAskToolUseId?: string | null;
+  /** Click handler for the "Answer" pill — should reopen the question modal. */
+  onReopenAsk?: () => void;
 };
 
-export function AssistantMessage({ message, tasks = {}, subagentMessages = {} }: Props) {
+export function AssistantMessage({
+  message,
+  tasks = {},
+  subagentMessages = {},
+  pendingAskToolUseId = null,
+  onReopenAsk,
+}: Props) {
   const taskByToolUseId = new Map<string, TaskInfo>();
   for (const t of Object.values(tasks)) {
     if (t.toolUseId) taskByToolUseId.set(t.toolUseId, t);
@@ -59,7 +74,18 @@ export function AssistantMessage({ message, tasks = {}, subagentMessages = {} }:
                 />
               );
             }
-            return <ToolCall key={i} name={b.name} input={b.input} result={b.result} />;
+            return (
+              <ToolCall
+                key={i}
+                name={b.name}
+                input={b.input}
+                result={b.result}
+                isPendingAsk={
+                  b.name === "AskUserQuestion" && pendingAskToolUseId === b.id
+                }
+                onReopenAsk={onReopenAsk}
+              />
+            );
           }
           return null;
         })}
