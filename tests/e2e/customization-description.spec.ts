@@ -84,10 +84,30 @@ test.describe("Customization description — manual edit (headed UI flow)", () =
         "and an 8-bit \"★ CHEAT ACTIVATED ★\" banner.";
       await textarea.fill(description);
 
-      await section.getByRole("button", { name: /^Save$/ }).click();
+      // Click Save and wait for the PATCH to complete. On CI's overloaded
+      // dev server the PATCH can sit in the queue for 15-20s behind cold
+      // compiles — long enough for the post-save `toBeVisible` polls to
+      // exhaust their default 15s timeout while still in editing mode
+      // (where the textarea's text content matches `getByText(description)`,
+      // making line 90 deceptively pass even though save hasn't landed).
+      // Waiting on the response surfaces a 4xx/5xx directly and gates the
+      // assertions on a real, completed save.
+      const [patchRes] = await Promise.all([
+        page.waitForResponse(
+          (r) =>
+            r.url().endsWith(`/api/customizations/${id}/description`) &&
+            r.request().method() === "PATCH",
+          { timeout: 60_000 },
+        ),
+        section.getByRole("button", { name: /^Save$/ }).click(),
+      ]);
+      expect(patchRes.ok()).toBeTruthy();
 
       // 6. Description prose now visible + "Manual" pill + "Edited …" prefix.
-      await expect(section.getByText(description)).toBeVisible({ timeout: 10_000 });
+      //    Anchor on the rendered <p> (not just any descendant text) so the
+      //    assertion can't be satisfied by a still-mounted textarea echoing
+      //    its filled value while the save round-trip is in flight.
+      await expect(section.locator("p", { hasText: description })).toBeVisible({ timeout: 10_000 });
       await expect(section.getByText("Manual", { exact: true })).toBeVisible();
       await expect(section.getByText(/Edited \d+s? ago/)).toBeVisible();
 
