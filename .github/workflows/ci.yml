@@ -29,9 +29,9 @@ jobs:
     runs-on: ubuntu-latest
     container: node:22-bookworm-slim
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Cache node_modules
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: node_modules
           key: npm-${{ runner.os }}-${{ hashFiles('bun.lock') }}
@@ -44,9 +44,9 @@ jobs:
     runs-on: ubuntu-latest
     container: node:22-bookworm-slim
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Cache node_modules
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: node_modules
           key: npm-${{ runner.os }}-${{ hashFiles('bun.lock') }}
@@ -75,7 +75,7 @@ jobs:
         run: |
           apt-get update -qq
           apt-get install -y --no-install-recommends git ca-certificates
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Install bash, zsh, fish, curl
         run: |
           apt-get install -y --no-install-recommends bash zsh fish curl
@@ -100,9 +100,9 @@ jobs:
     env:
       BUN_INSTALL_CACHE_DIR: ${{ github.workspace }}/.bun-cache
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Cache node_modules + bun cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             node_modules
@@ -120,7 +120,7 @@ jobs:
         run: make test
       - name: Upload Playwright artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: playwright-report
           path: |

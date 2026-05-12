@@ -32,7 +32,12 @@ export async function POST(req: Request) {
     );
   }
   await notificationBus.recordSessionEvent(body.cwd, body.sessionId, body.event);
-  // Return the unread count so the test can sanity-check synchronously.
-  const counts = await notificationBus.countsAllWorkspaces();
+  // Return the workspace totals so the e2e can sanity-check synchronously.
+  // We strip down to just `{[workspaceId]: totalUnread}` so the test surface
+  // matches the prior return shape — internal state-shape changes don't
+  // ripple into the fixture.
+  const states = await notificationBus.getAllWorkspaceStates();
+  const counts: Record<string, number> = {};
+  for (const [id, s] of Object.entries(states)) counts[id] = s.totalUnread;
   return NextResponse.json({ ok: true, counts });
 }

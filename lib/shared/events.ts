@@ -91,6 +91,43 @@ export type AskUserQuestionEvent = {
 };
 
 /**
+ * Best-effort coercion of the SDK's AskUserQuestion tool input into our
+ * server-event shape. Defensive against schema drift — if the SDK changes
+ * the field names, we drop unknown shapes rather than throw.
+ *
+ * Lives in `lib/shared` (not the server) because the client needs the same
+ * shape to "resurrect" the modal for a historic AskUserQuestion row whose
+ * permission stream got aborted (cf. `resurrectedAsk` in app/page.tsx).
+ */
+export function parseAskQuestions(input: unknown): AskQuestion[] {
+  if (!input || typeof input !== "object") return [];
+  const raw = (input as Record<string, unknown>).questions;
+  if (!Array.isArray(raw)) return [];
+  const out: AskQuestion[] = [];
+  for (const q of raw) {
+    if (!q || typeof q !== "object") continue;
+    const qo = q as Record<string, unknown>;
+    const question = typeof qo.question === "string" ? qo.question : "";
+    const header = typeof qo.header === "string" ? qo.header : "";
+    const multiSelect = qo.multiSelect === true;
+    const optsRaw = Array.isArray(qo.options) ? qo.options : [];
+    const options: AskQuestionOption[] = [];
+    for (const o of optsRaw) {
+      if (!o || typeof o !== "object") continue;
+      const oo = o as Record<string, unknown>;
+      const label = typeof oo.label === "string" ? oo.label : "";
+      const description = typeof oo.description === "string" ? oo.description : "";
+      const preview = typeof oo.preview === "string" ? oo.preview : undefined;
+      if (label) options.push({ label, description, preview });
+    }
+    if (question && options.length >= 2) {
+      out.push({ question, header, options, multiSelect });
+    }
+  }
+  return out;
+}
+
+/**
  * The agent invoked ExitPlanMode to surface a plan for the user to approve.
  * Routed through canUseTool, so the browser must POST a decision back to the
  * `plan` endpoint to unblock the SDK — accepting it also flips the session

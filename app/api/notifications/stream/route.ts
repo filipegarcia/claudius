@@ -7,17 +7,18 @@ export const dynamic = "force-dynamic";
 /**
  * GET /api/notifications/stream
  *
- * Single per-tab SSE that fans out notification + count events for *every*
+ * Single per-tab SSE that fans out notification + state events for *every*
  * workspace the user can see. The browser opens exactly one EventSource here
- * (see `useNotificationCounts`) and uses it to drive:
+ * (see `NotificationsProvider`) and uses it to drive:
  *   • per-workspace tile badges in the left rail
  *   • favicon + document.title overlay
  *   • the live notification drawer
+ *   • the per-session tab badge strip
  *
- * On connect we emit a synthetic `count` event for every workspace so the
- * client can paint badges immediately without a separate `/counts` fetch
- * race. Heartbeat + abort cleanup follow the pattern from the sessions
- * stream route.
+ * On connect we emit a `state` event per workspace (workspace total +
+ * per-session map + monotonic version) so the client paints all four badges
+ * atomically without racing a separate /counts fetch. Heartbeat + abort
+ * cleanup follow the pattern from the sessions stream route.
  */
 export async function GET(req: Request) {
   const encoder = new TextEncoder();
@@ -32,12 +33,13 @@ export async function GET(req: Request) {
         }
       };
 
-      // Seed the stream with current counts. Cheap (memoized 1s) and avoids
-      // the gap between EventSource open and the first real notification.
+      // Seed the stream with one state event per workspace. Bumps the bus's
+      // `version` counter so any in-flight HTTP /counts response carrying a
+      // smaller version is automatically dropped by the client.
       try {
-        const counts = await notificationBus.countsAllWorkspaces();
-        for (const [workspaceId, unread] of Object.entries(counts)) {
-          send({ type: "count", workspaceId, unread });
+        const states = await notificationBus.getAllWorkspaceStates();
+        for (const state of Object.values(states)) {
+          send({ type: "state", ...state });
         }
       } catch {
         // seeding is best-effort; the client also fetches /counts on mount

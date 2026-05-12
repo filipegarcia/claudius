@@ -134,8 +134,21 @@ export default function SessionsPage() {
                       className="min-w-0 flex-1"
                     >
                       <div className="flex items-baseline gap-2">
+                        {/*
+                          Title precedence:
+                            1. `claudiusTitle` — our SQLite index, set on
+                               every Claudius-side rename. Survives the
+                               "JSONL not yet flushed" window where the
+                               SDK's renameSession silently fails.
+                            2. `customTitle` — SDK JSONL header, set by
+                               TUI `/rename` or the SDK's aiTitle.
+                          We never use `summary` / `firstPrompt` — both
+                          collapse to prompt text when the user hasn't
+                          renamed. The firstPrompt preview lives below
+                          this row for context.
+                        */}
                         <span className="truncate text-sm font-medium">
-                          {s.customTitle || s.summary || s.firstPrompt?.slice(0, 80) || "(untitled)"}
+                          {s.claudiusTitle || s.customTitle || "(untitled)"}
                         </span>
                         <span className="text-[10px] font-mono text-[var(--muted)]">{s.sessionId.slice(0, 8)}</span>
                       </div>
@@ -156,7 +169,7 @@ export default function SessionsPage() {
                           </>
                         )}
                       </div>
-                      {s.firstPrompt && s.firstPrompt !== s.summary && (
+                      {s.firstPrompt && (
                         <div className="mt-1 line-clamp-2 text-xs text-[var(--muted)]">{s.firstPrompt}</div>
                       )}
                     </Link>

@@ -424,15 +424,23 @@ export function useSession(): ChatState & ChatActions {
 
   const refreshSessions = useCallback(async () => {
     // Merge two sources so the dropdown shows historical sessions too — not
-    // just whatever survives the 10-minute in-memory reaper:
+    // just whatever survives the in-memory reaper:
     //   - /api/sessions       → live sessions held by sessionManager
     //                           (freshest title from SSE, accurate `model`)
     //   - /api/sessions/all   → durable JSONL list with `lastModified` for
-    //                           sorting and `summary`/`firstPrompt` so
-    //                           never-renamed sessions still get a label
+    //                           sorting and `customTitle` for renamed sessions
     //
     // Live wins on overlap. We sort by recency and keep the top 20 — the
     // dropdown links to /sessions for the long tail.
+    //
+    // IMPORTANT (2026-05-12): we deliberately do NOT use `summary` or
+    // `firstPrompt` from the disk row as a title fallback. The SDK
+    // computes `summary` as `customTitle || aiTitle || lastPrompt ||
+    // summaryHint || firstPrompt`, so when the user hasn't renamed the
+    // session, both fields collapse to prompt text — and tabs end up
+    // labelled with a sentence the user typed instead of a name. Mirrors
+    // the server-side `resolveSessionTitle` invariant. When no trusted
+    // title exists, leave it null and `tabLabelFor` renders the id prefix.
     try {
       const [liveRes, diskRes] = await Promise.allSettled([
         fetch("/api/sessions"),
@@ -447,6 +455,16 @@ export function useSession(): ChatState & ChatActions {
 
       type DiskItem = {
         sessionId: string;
+        /** Title persisted in our SQLite index (per-project `.claudius.db`).
+         *  Set by `setSessionTitle` on every Claudius-side rename, even
+         *  when the SDK's `renameSession` couldn't write the JSONL header
+         *  yet. This is the authoritative signal that the user named the
+         *  session — see the API route comment for the full rationale. */
+        claudiusTitle?: string;
+        /** Title persisted by the SDK in the JSONL header. Set by the
+         *  TUI's `/rename`, by `renameSession` when it succeeds, and by
+         *  the SDK's auto-derived `aiTitle`. Empty for sessions renamed
+         *  before their first turn flushed to disk. */
         customTitle?: string;
         summary?: string;
         firstPrompt?: string;
@@ -463,10 +481,14 @@ export function useSession(): ChatState & ChatActions {
       // Seed with disk first so live entries can override cwd/model/title.
       for (const d of disk) {
         if (!d.sessionId) continue;
+        // Trusted sources only — see the IMPORTANT note at the top of
+        // this callback. Prefer our DB title (claudiusTitle) over the
+        // SDK's customTitle since the DB write survives the JSONL-not-
+        // yet-flushed window; never use summary/firstPrompt as a title
+        // because those collapse to prompt text.
         const title =
+          (d.claudiusTitle && d.claudiusTitle.trim()) ||
           (d.customTitle && d.customTitle.trim()) ||
-          (d.summary && d.summary.trim()) ||
-          (d.firstPrompt && d.firstPrompt.trim()) ||
           null;
         byId.set(d.sessionId, {
           id: d.sessionId,
@@ -481,8 +503,9 @@ export function useSession(): ChatState & ChatActions {
         byId.set(l.id, {
           ...prev,
           ...l,
-          // Live `title` is null until the user renames — fall back to the
-          // disk-derived summary/firstPrompt so the entry isn't "Untitled".
+          // Live `title` is null until the user renames — fall back to
+          // the trusted disk title (customTitle only, no prompt text).
+          // When everything is null, `tabLabelFor` renders the id prefix.
           title: l.title ?? prev?.title ?? null,
           // Live-only entries (just spawned, no JSONL flush yet) get
           // "right now" so they bubble to the top of the recency sort.
@@ -1514,6 +1537,19 @@ export function useSession(): ChatState & ChatActions {
         } catch {
           // ignore — non-fatal
         }
+        // Next.js's `useSearchParams` doesn't observe `replaceState`, so the
+        // workspace-level NotificationsProvider would stall on the previous
+        // session id after an in-app tab switch (and notify on / auto-read
+        // the wrong tab). Dispatch a custom event so `useActiveSessionId`
+        // can pick up the new binding without waiting for the next router
+        // navigation.
+        try {
+          window.dispatchEvent(
+            new CustomEvent("claudius:session-bound", { detail: { sessionId: id } }),
+          );
+        } catch {
+          // ignore — non-fatal
+        }
       }
       const es = new EventSource(`/api/sessions/${id}/stream?tail=20`);
       eventSourceRef.current = es;
@@ -1546,28 +1582,54 @@ export function useSession(): ChatState & ChatActions {
   );
 
   const switchSession = useCallback(
-    (id: string) => {
+    async (id: string): Promise<void> => {
       if (sessionIdRef.current === id) return;
       resetState();
-      // Wake the session before subscribing. Tab clicks used to skip the
-      // POST and go straight to SSE, but if the session had been reaped
-      // (or never lived in-memory at all — e.g. a notification jump to
-      // an id from another workspace) the stream route's resume-from-disk
-      // path occasionally raced the subscribe and the new tab ended up
-      // bound to an empty buffer. Refresh-after-fact "worked" because
-      // the boot path always POSTs. Mirror that here: POST is idempotent
-      // for live sessions (the manager just returns the existing one),
-      // and reliably wakes reaped sessions before the SSE connects.
-      void fetch("/api/sessions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ resume: id }),
-      }).catch(() => {
-        // Non-fatal — if the wake POST fails, bindToSession still tries
-        // to subscribe and the stream route's getOrResumeSession does
-        // its own resume-from-disk attempt. Worst case the user sees
-        // the same broken-tab symptom this fix is meant to remove.
-      });
+      // AWAIT the wake POST before opening the SSE — this mirrors the
+      // boot path exactly (`createSession` does `await fetch(...)` then
+      // `bindToSession`). Earlier we used `void fetch(...)` for a tighter
+      // perceived latency, but the POST and SSE then raced and the SSE
+      // sometimes subscribed to a Session whose `start()` had only
+      // half-populated the buffer — the symptom the user reported as
+      // "old session is empty until I refresh."
+      //
+      // POST is idempotent on the server: `sessionManager.create` with a
+      // `resume` opt returns the in-memory Session if one exists, and
+      // otherwise loads from the JSONL — in BOTH cases awaiting `start()`
+      // so by the time POST resolves, the buffer is fully populated and
+      // the SSE subscribe immediately replays the whole transcript.
+      //
+      // Cost: one extra round-trip (~30-100ms typical on localhost). The
+      // user sees the same brief "Starting" state they'd see during boot
+      // refresh — strictly an improvement over the broken empty-until-
+      // reload behaviour.
+      try {
+        const res = await fetch("/api/sessions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ resume: id }),
+        });
+        if (process.env.NEXT_PUBLIC_CLAUDIUS_DEBUG_SESSIONS) {
+           
+          console.log("[sess-load] switchSession wake POST", {
+            id,
+            status: res.status,
+            ok: res.ok,
+          });
+        }
+        // Body intentionally not parsed — we already have the id, and the
+        // server's reply just confirms which one it bound (idempotent).
+      } catch (err) {
+        if (process.env.NEXT_PUBLIC_CLAUDIUS_DEBUG_SESSIONS) {
+           
+          console.warn("[sess-load] switchSession wake POST failed", {
+            id,
+            err: err instanceof Error ? err.message : String(err),
+          });
+        }
+        // Non-fatal: the stream route still does its own getOrResumeSession
+        // fallback, so we proceed to bindToSession either way.
+      }
       bindToSession(id);
       void refreshSessions();
     },

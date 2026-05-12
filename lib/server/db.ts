@@ -46,7 +46,10 @@ function applyMigrations(db: DB): void {
   const current = row ? Number(row.value) : 0;
   const migrations = listMigrations();
   const last = migrations.length > 0 ? migrations[migrations.length - 1].id : 0;
-  if (current >= last) return;
+  if (current >= last) {
+    applyPostMigrationCleanups(db);
+    return;
+  }
   const trx = db.transaction(() => {
     for (const m of migrations) {
       if (m.id <= current) continue;
@@ -57,6 +60,68 @@ function applyMigrations(db: DB): void {
     ).run(String(last));
   });
   trx();
+  applyPostMigrationCleanups(db);
+}
+
+/**
+ * One-shot data fixups that don't belong in a numbered migration because
+ * they target rows the app produced under buggy logic, not a schema change.
+ * Each cleanup is guarded by a `schema_meta` flag so it runs exactly once
+ * per workspace DB across the lifetime of the project.
+ *
+ * Keep this list small and append-only — every entry pays the cost of a
+ * SELECT on every `openDb` call. If a fixup grows complex, promote it to
+ * a real numbered migration instead.
+ */
+function applyPostMigrationCleanups(db: DB): void {
+  // Cleanup v1: clear the phantom "Claude Code process aborted by user" rows
+  // that piled up before the bus learned to suppress them. Both the reaper
+  // (`SessionManager.end()` → `abortController.abort()`) and the user-stop
+  // path (`Session.interrupt()`) make the SDK throw with that exact string;
+  // neither is a real error worth surfacing. New rows are filtered at the
+  // bus (`isAbortSentinel` in notification-bus.ts) so this targets only the
+  // backlog. Idempotent via the flag below.
+  const flagged = db
+    .prepare<[string], { value: string } | undefined>(
+      "SELECT value FROM schema_meta WHERE key = ?",
+    )
+    .get("notifications_abort_cleanup_v1");
+  if (flagged?.value === "1") return;
+  // The `notifications` table only exists once migration 005 has run. Skip
+  // gracefully if the table is missing — a fresh DB hits the cleanup before
+  // any rows could exist anyway.
+  const hasTable = db
+    .prepare<[], { name: string } | undefined>(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name='notifications'",
+    )
+    .get();
+  if (hasTable) {
+    db.prepare(
+      `UPDATE notifications SET read_at = ?
+         WHERE read_at IS NULL
+           AND kind = 'session_error'
+           AND body = 'Claude Code process aborted by user'`,
+    ).run(Date.now());
+  }
+  db.prepare(
+    "INSERT INTO schema_meta(key, value) VALUES('notifications_abort_cleanup_v1', '1') ON CONFLICT(key) DO UPDATE SET value='1'",
+  ).run();
+}
+
+/**
+ * Synchronous lookup against the handle cache. Returns null when no handle
+ * is open for the (cwd, mode) pair — caller must fall back to `openDb` (or
+ * accept the null and skip the operation).
+ *
+ * The bus uses this on its hot emit path so it can read counts without a
+ * microtask-yielding `await openDb(...)`. Safe because the insert path
+ * always opens the DB with `readwrite` first, which populates the cache.
+ */
+export function getCachedDb(
+  cwd: string,
+  mode: "readwrite" | "readonly" = "readwrite",
+): DB | null {
+  return handles.get(`${mode}:${cwd}`) ?? null;
 }
 
 export async function openDb(cwd: string, mode: "readwrite" | "readonly" = "readwrite"): Promise<DB> {

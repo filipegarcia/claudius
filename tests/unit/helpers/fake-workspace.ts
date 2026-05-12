@@ -4,7 +4,10 @@ import { randomUUID } from "node:crypto";
 
 import { workspacesFile } from "@/lib/server/workspaces-store";
 import type { Workspace } from "@/lib/server/workspaces-store";
-import type { WorkspaceNotificationPrefs } from "@/lib/shared/notifications";
+import {
+  ALL_NOTIFICATION_KINDS,
+  type WorkspaceNotificationPrefs,
+} from "@/lib/shared/notifications";
 
 /**
  * Writes a synthetic `workspaces.json` under the current HOME (set by
@@ -14,6 +17,12 @@ import type { WorkspaceNotificationPrefs } from "@/lib/shared/notifications";
  * The bus's `lookupWorkspace` filters by `rootPath` exact-match, so every
  * test gets its own `rootPath` to avoid two parallel files colliding on the
  * same fake cwd.
+ *
+ * Notifications default to ALL kinds enabled (including the opt-in
+ * `session_error`) so test cases can exercise every event type without
+ * having to thread an explicit `enabledKinds` through every fixture call.
+ * Tests that want to assert the default-policy behavior pass an explicit
+ * `notifications` prop.
  */
 export function writeFakeWorkspace(input: {
   rootPath?: string;
@@ -21,6 +30,9 @@ export function writeFakeWorkspace(input: {
 } = {}): Workspace {
   const id = "wks_" + randomUUID().replace(/-/g, "").slice(0, 12);
   const rootPath = input.rootPath ?? `/tmp/fake-${id}`;
+  const notifications: WorkspaceNotificationPrefs = input.notifications ?? {
+    enabledKinds: ALL_NOTIFICATION_KINDS,
+  };
   const ws: Workspace = {
     id,
     name: "fixture",
@@ -28,9 +40,7 @@ export function writeFakeWorkspace(input: {
     icon: { kind: "letter", letter: "F", color: "#000000" },
     createdAt: Date.now(),
     updatedAt: Date.now(),
-    ...(input.notifications
-      ? { defaults: { notifications: input.notifications } }
-      : {}),
+    defaults: { notifications },
   };
   const file = workspacesFile();
   mkdirSync(dirname(file), { recursive: true });

@@ -39,12 +39,12 @@ export function NotificationsDrawer() {
   const { activeId: activeWorkspaceId } = useWorkspaces();
   const center = useNotificationCenter(activeWorkspaceId);
   const unread = center.unread;
-  // Only show unread rows in the drawer — clicking a notification (or
-  // resolving the underlying request server-side, e.g. answering an
-  // AskUserQuestion) flips `readAt` and the row should vanish from view.
-  // Read history is still persisted in SQLite for any future "all
-  // notifications" page; we just don't surface it in this inbox view.
-  const visibleItems = center.items.filter((r) => r.readAt == null);
+  // The server filters `unreadOnly=1`, and the provider's recent-buffer merge
+  // in `useNotificationCenter` only includes rows where `readAt == null`. No
+  // client-side filter needed here — the prior `items.filter(readAt==null)`
+  // was the safety net for the old paginated-by-created_at fetch that could
+  // cut off older unread when read rows piled up at the top.
+  const visibleItems = center.items;
 
   useEffect(() => {
     if (!open) return;

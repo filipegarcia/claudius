@@ -138,6 +138,69 @@ describe("unread counts", () => {
   });
 });
 
+describe("unreadOnly pagination", () => {
+  // Regression: the drawer used to fetch `/api/notifications?limit=50` and
+  // filter `readAt == null` client-side. With many read rows interspersed
+  // newest-first, older unread fell off the window — workspace tile said 4,
+  // drawer showed 1. The fix moves the filter to SQL so the drawer's
+  // bounded window always contains the unread rows it cares about.
+  test("listNotifications with unreadOnly returns only unread rows even when ordered by created_at", async () => {
+    // Lay out 60 rows: 55 newest are read, 5 oldest are unread. Without the
+    // unreadOnly flag the default 50-row window would entirely miss them.
+    const ids: string[] = [];
+    const baseTs = Date.now();
+    for (let i = 0; i < 60; i++) {
+      const r = await insertNotification(CWD, WORKSPACE_ID, {
+        kind: "session_error",
+        title: `n-${i}`,
+        sessionId: "sess",
+        createdAt: baseTs - (60 - i), // oldest first → newest last
+      });
+      ids.push(r!.id);
+    }
+    // Mark every row read EXCEPT the first 5 (the oldest). The default
+    // listNotifications by-created_at-DESC will return the 50 newest read
+    // rows and never reach the 5 oldest unread.
+    await markRead(CWD, ids.slice(5));
+
+    const allDefault = await listNotifications(CWD, WORKSPACE_ID, { limit: 50 });
+    expect(allDefault.filter((r) => r.readAt == null)).toHaveLength(0);
+
+    const unread = await listNotifications(CWD, WORKSPACE_ID, {
+      limit: 50,
+      unreadOnly: true,
+    });
+    expect(unread).toHaveLength(5);
+    for (const row of unread) expect(row.readAt).toBeNull();
+  });
+
+  test("unreadOnly combines with before-cursor pagination", async () => {
+    // The drawer's "load older" path uses `before`. Make sure the two
+    // filters compose at the SQL level (both indexed, both AND'd in).
+    const baseTs = Date.now();
+    const a = await insertNotification(CWD, WORKSPACE_ID, {
+      kind: "session_error",
+      title: "old",
+      sessionId: "sess",
+      createdAt: baseTs - 1000,
+    });
+    await insertNotification(CWD, WORKSPACE_ID, {
+      kind: "session_error",
+      title: "new",
+      sessionId: "sess",
+      createdAt: baseTs,
+    });
+    // `before` excludes anything at or after the cursor.
+    const rows = await listNotifications(CWD, WORKSPACE_ID, {
+      limit: 50,
+      unreadOnly: true,
+      before: baseTs,
+    });
+    expect(rows).toHaveLength(1);
+    expect(rows[0].id).toBe(a!.id);
+  });
+});
+
 describe("mark-read paths", () => {
   test("markRead with empty id list is a no-op", async () => {
     const changed = await markRead(CWD, []);

@@ -9,13 +9,14 @@ import {
   useRef,
   useState,
 } from "react";
-import { useSearchParams } from "next/navigation";
 import { useNotifications, type NotifyState } from "@/lib/client/useNotifications";
 import { useFaviconBadge } from "@/lib/client/useFaviconBadge";
 import { useWorkspaces } from "@/lib/client/useWorkspaces";
+import { useActiveSessionId } from "@/lib/client/useActiveSessionId";
 import type {
   NotificationRow,
   NotificationStreamEvent,
+  WorkspaceUnreadState,
 } from "@/lib/shared/notifications";
 
 /**
@@ -27,23 +28,35 @@ import type {
  *   • the OS browser-Notification API (via `useNotifications`),
  *   • the favicon + document.title overlay (via `useFaviconBadge`).
  *
- * Reconnects on EventSource error after a small backoff and refetches the
- * `/counts` endpoint so badges self-heal on transient drops.
+ * Architecture note: the provider keeps ONE canonical state map keyed by
+ * workspace id (`byWorkspace`). Every consumer-facing value — workspace
+ * tile badge, drawer header, per-tab badges, favicon — is derived from
+ * that single map. The map is updated only by server-authored `state`
+ * events with a monotonic `version`; any HTTP/SSE response with a
+ * `version <= last` is dropped. The four UI surfaces therefore can't
+ * drift apart: they read the same number through different selectors.
+ *
+ * `recent` is a separate concern — it's the OS-toast feed and the
+ * append surface for the drawer's live updates. The drawer's authoritative
+ * list comes from `/api/notifications?unreadOnly=1`, refetched on each
+ * state-event delta (see `useNotificationCenter`).
  */
 
 type ContextValue = {
-  /** Per-workspace unread counts; missing entries mean zero. */
+  /** Per-workspace unread totals; derived from `byWorkspace[id].totalUnread`. */
   counts: Record<string, number>;
   /** Sum across all workspaces. Drives favicon + title. */
   totalUnread: number;
   /**
    * Unread counts for the **active workspace** grouped by `sessionId`. Used by
-   * the SessionTabs strip to paint a per-tab badge. Missing entries mean zero;
-   * the object is empty when there is no active workspace.
+   * the SessionTabs strip to paint a per-tab badge. Empty when no active
+   * workspace.
    */
   unreadBySession: Record<string, number>;
   /** Last ~50 live rows that arrived in this tab, newest first. */
   recent: NotificationRow[];
+  /** Bumps whenever any workspace's state changes. Consumers can use this as a refetch trigger. */
+  stateVersion: number;
   /** Mark a single notification as read. Workspace defaults to the row's. */
   markRead: (id: string, workspaceId: string) => Promise<void>;
   /** Mark every unread row in a workspace as read. */
@@ -51,11 +64,9 @@ type ContextValue = {
   /**
    * Mark every unread row for a single session as read. Used by the chat
    * page when the user selects a tab — "I'm looking at this session now".
-   * Scoped to the provider's active workspace (the only one the tab strip
-   * can show), so callers don't pass a workspaceId.
    */
   markSessionRead: (sessionId: string) => Promise<void>;
-  /** Refetch counts from the server. */
+  /** Refetch authoritative state from the server. */
   refreshCounts: () => Promise<void>;
   /** Navigate to a notification's target session/run. */
   jumpTo: (row: NotificationRow) => Promise<void>;
@@ -75,70 +86,52 @@ const Ctx = createContext<ContextValue | null>(null);
 const RECENT_CAP = 50;
 
 export function NotificationsProvider({ children }: { children: React.ReactNode }) {
-  const searchParams = useSearchParams();
-  const activeSessionId = searchParams?.get("session") ?? null;
+  const activeSessionId = useActiveSessionId();
   const { items: workspaces, activeId, refresh: refreshWorkspaces } = useWorkspaces();
   const activeWorkspace = useMemo(
     () => workspaces.find((w) => w.id === activeId) ?? null,
     [workspaces, activeId],
   );
 
-  const [counts, setCounts] = useState<Record<string, number>>({});
-  const [unreadBySession, setUnreadBySession] = useState<Record<string, number>>({});
+  // Single canonical map. Every count consumers see is derived from this.
+  // We update it ONLY when an incoming version is strictly greater than the
+  // current — drops out-of-order HTTP responses behind fresher SSE events.
+  const [byWorkspace, setByWorkspace] = useState<Record<string, WorkspaceUnreadState>>({});
   const [recent, setRecent] = useState<NotificationRow[]>([]);
 
-  // Reconcile `unreadBySession` from the server. The optimistic decrements
-  // below cover the happy path, but server-side bus filtering or out-of-band
-  // mark-read writes can drift the in-memory map — so we re-pull on every
-  // workspace-level `count` event and on visibility recovery.
-  const refreshUnreadBySession = useCallback(async () => {
-    if (!activeId) {
-      setUnreadBySession((prev) => (Object.keys(prev).length === 0 ? prev : {}));
-      return;
-    }
-    try {
-      const res = await fetch(
-        `/api/notifications/counts-by-session?workspace=${encodeURIComponent(activeId)}`,
-      );
-      if (!res.ok) return;
-      const data = (await res.json()) as { counts?: Record<string, number> };
-      setUnreadBySession(data.counts ?? {});
-    } catch {
-      // best-effort
-    }
-  }, [activeId]);
+  /** Replace one workspace's state if and only if the new version is fresher. */
+  const applyState = useCallback((s: WorkspaceUnreadState) => {
+    setByWorkspace((prev) => {
+      const cur = prev[s.workspaceId];
+      if (cur && cur.version >= s.version) return prev;
+      return { ...prev, [s.workspaceId]: s };
+    });
+  }, []);
+
+  /** Replace many workspaces' state, each version-gated independently. */
+  const applyStates = useCallback((incoming: Record<string, WorkspaceUnreadState>) => {
+    setByWorkspace((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      for (const s of Object.values(incoming)) {
+        const cur = next[s.workspaceId];
+        if (cur && cur.version >= s.version) continue;
+        next[s.workspaceId] = s;
+        changed = true;
+      }
+      return changed ? next : prev;
+    });
+  }, []);
 
   const markRead = useCallback(
     async (id: string, workspaceId: string) => {
-      // Optimistic — drop from `recent` and decrement the counts immediately.
-      // The next SSE `count` event reconciles the workspace total, and
-      // `refreshUnreadBySession` reconciles the per-tab badges.
-      let optimisticSessionId: string | null = null;
+      // Optimistic: flip the row in `recent` so the OS-toast feed (and the
+      // drawer's live merge) reflects the read instantly. The workspace
+      // total and per-session map update from the server's `state` event
+      // — authoritative within the same microtask.
       setRecent((prev) =>
-        prev.map((r) => {
-          if (r.id !== id) return r;
-          if (r.readAt == null) optimisticSessionId = r.sessionId;
-          return { ...r, readAt: r.readAt ?? Date.now() };
-        }),
+        prev.map((r) => (r.id === id ? { ...r, readAt: r.readAt ?? Date.now() } : r)),
       );
-      setCounts((prev) => {
-        const cur = prev[workspaceId] ?? 0;
-        if (cur === 0) return prev;
-        return { ...prev, [workspaceId]: cur - 1 };
-      });
-      if (optimisticSessionId) {
-        setUnreadBySession((prev) => {
-          const sid = optimisticSessionId as string;
-          const cur = prev[sid] ?? 0;
-          if (cur <= 1) {
-            if (cur === 0) return prev;
-            const { [sid]: _drop, ...rest } = prev;
-            void _drop; // satisfy no-unused-vars on the destructured key
-            return rest;
-          }
-          return { ...prev, [sid]: cur - 1 };
-        });
-      }
       try {
         await fetch(`/api/notifications/${id}/read`, {
           method: "POST",
@@ -146,42 +139,37 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
           body: JSON.stringify({ workspaceId }),
         });
       } catch {
-        // The SSE `count` event will reconcile on the next server tick.
+        // The SSE state event will reconcile on the next server tick.
       }
     },
     [],
   );
 
-  // Cross-workspace jump → cookie POST + hard reload (need to swap cwd).
-  // Same-workspace jump → dispatch a CustomEvent the chat page listens
-  // for, which calls `session.switchSession` directly. We deliberately
-  // do NOT use Next.js's `router.push` for same-workspace nav because
-  // it's a same-pathname soft navigation when only the query changes
-  // and `useSearchParams` was not reliably re-rendering the page-level
-  // `?session=` watcher — the URL bar showed the new id, the session
-  // never switched. The event path bypasses that entirely.
-  //
-  // Clicking a notification (whether via the drawer or the OS toast
-  // that useNotifications wires up) implies "I've seen this" — mark
-  // the row read here so the OS-click path doesn't bypass the drawer's
-  // own markRead call. Idempotent: a row that's already read just no-ops.
+  /**
+   * Cross-workspace jump → cookie POST + hard reload (need to swap cwd).
+   * Same-workspace jump → dispatch a CustomEvent the chat page listens for,
+   * which calls `session.switchSession` directly. We deliberately don't use
+   * router.push for same-workspace nav because it's a same-pathname soft
+   * navigation when only the query changes and Next's `useSearchParams`
+   * doesn't always re-render the page-level `?session=` watcher reliably.
+   *
+   * Clicking a notification (whether via the drawer or the OS toast) implies
+   * "I've seen this" — mark the row read here so the OS-click path doesn't
+   * bypass the drawer's own markRead call. Idempotent.
+   */
   const jumpTo = useCallback(
     async (row: NotificationRow) => {
-      if (row.readAt == null) {
-        void markRead(row.id, row.workspaceId);
-      }
+      if (row.readAt == null) void markRead(row.id, row.workspaceId);
       const targetPath = pickPath(row);
       if (row.workspaceId !== activeId) {
         try {
           await fetch(`/api/workspaces/${row.workspaceId}/select`, { method: "POST" });
         } catch {
-          // proceed with reload anyway — worst case the user lands on the
-          // wrong workspace and the cookie write retries
+          // proceed with reload anyway
         }
         if (typeof window !== "undefined") window.location.assign(targetPath);
         return;
       }
-      // Scheduler runs live on their own page — no in-app switch handler.
       if (row.kind === "scheduled_run_finished" && row.jobId && row.runId) {
         if (typeof window !== "undefined") window.location.assign(targetPath);
         return;
@@ -205,44 +193,49 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     },
   });
 
-  // Boot: fetch initial counts. The SSE stream also emits seed counts on
-  // connect, but the HTTP fetch races ahead and avoids a brief "everything
-  // is zero" flash if the stream connects slowly.
+  /**
+   * Boot + recovery fetch. Hits `/api/notifications/counts` which returns
+   * `{ states: Record<workspaceId, WorkspaceUnreadState> }`. Each entry is
+   * version-gated against the current map so a slow response can't overwrite
+   * a fresher SSE-delivered state.
+   */
   const refreshCounts = useCallback(async () => {
     try {
       const res = await fetch("/api/notifications/counts");
       if (!res.ok) return;
-      const data = (await res.json()) as { counts?: Record<string, number> };
-      if (data.counts) setCounts(data.counts);
+      const data = (await res.json()) as { states?: Record<string, WorkspaceUnreadState> };
+      if (data.states) applyStates(data.states);
     } catch {
       // best-effort
     }
-  }, []);
+  }, [applyStates]);
 
   useEffect(() => {
     void refreshCounts();
   }, [refreshCounts]);
 
-  // Seed per-session counts on mount AND on every active-workspace switch.
-  // refreshUnreadBySession itself depends on `activeId`, so re-running this
-  // effect when the workspace changes pulls a fresh map for the new DB.
-  useEffect(() => {
-    void refreshUnreadBySession();
-  }, [refreshUnreadBySession]);
-
   // Live stream. Reconnect with backoff on error so a server bounce doesn't
   // leave the badges frozen until reload.
+  //
+  // Refs let the long-lived EventSource handler read the latest values
+  // without re-binding (and re-opening) the SSE connection every time the
+  // user clicks a tab. Updates happen in an effect rather than at render
+  // time so React's strict-mode passes don't double-write and the
+  // `react-hooks/refs` lint rule stays quiet.
   const notifyRef = useRef(notif.notify);
-  notifyRef.current = notif.notify;
+  const activeSessionIdRef = useRef<string | null>(activeSessionId);
+  const activeWorkspaceIdRef = useRef<string | null>(activeId);
+  useEffect(() => {
+    notifyRef.current = notif.notify;
+    activeSessionIdRef.current = activeSessionId;
+    activeWorkspaceIdRef.current = activeId;
+  });
 
-  // Visibility ref feeds the on-arrival auto-read gate below. The same
-  // gate the OS-popup path already applies in `useNotifications.notify`:
-  // when the user is foregrounded on the session the row targets, the
-  // notification is redundant — the user is already watching it happen —
-  // so we mark it read the instant it lands instead of letting it tick
-  // the per-session badge / workspace tile. Without this, sessions you
-  // sit on accumulate "Claude finished a turn" rows turn after turn (the
-  // user hit 14 in one session).
+  // Visibility ref feeds the on-arrival auto-read gate. Same predicate the
+  // OS-popup path uses: when the user is foregrounded on the session the
+  // notification targets, the row is marked read on arrival so the badge
+  // doesn't tick. Without this, sessions you sit on accumulate "finished a
+  // turn" rows turn after turn.
   const visibleRef = useRef<boolean>(
     typeof document !== "undefined" ? !document.hidden : true,
   );
@@ -255,14 +248,7 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     document.addEventListener("visibilitychange", onVis);
     return () => document.removeEventListener("visibilitychange", onVis);
   }, []);
-  // NB: we intentionally do NOT cache the active session id in a ref keyed
-  // off `useSearchParams`. In-app tab switches go through
-  // `useSession.bindToSession`, which calls `window.history.replaceState` —
-  // Next.js's `useSearchParams` doesn't react to `replaceState`, so the
-  // hook-derived value stalls on the previously-bound session and the
-  // auto-read gate would fire on the wrong tab. Read `window.location`
-  // fresh inside the SSE handler instead; that's the URL the user actually
-  // sees after a tab click.
+
   useEffect(() => {
     let es: EventSource | null = null;
     let cancelled = false;
@@ -274,32 +260,26 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
       es.onmessage = (ev) => {
         try {
           const data = JSON.parse(ev.data) as NotificationStreamEvent;
-          if (data.type === "count") {
-            setCounts((prev) => ({ ...prev, [data.workspaceId]: data.unread }));
-            // Workspace-level deltas don't tell us *which* session lost a
-            // count, so re-pull the per-session map. Cheap (single indexed
-            // GROUP BY) and only fires for the active workspace.
-            if (data.workspaceId === activeId) void refreshUnreadBySession();
+          if (data.type === "state") {
+            // Version-gated apply. The `data` envelope has `type: "state"`
+            // plus the WorkspaceUnreadState fields — destructure the type
+            // tag off before handing to applyState.
+            const { type: _type, ...state } = data;
+            void _type;
+            applyState(state);
             return;
           }
           if (data.type === "notification") {
             const row = data.notification;
             // Auto-read gate: when the user is foregrounded on the exact
-            // session this notification targets, mark it read on arrival so
-            // the per-session badge doesn't tick. Mirrors the OS-popup
-            // suppression in `useNotifications.notify` (same predicate).
-            // Read the active session id from `window.location.search` (not
-            // from `useSearchParams`) because in-app tab switches use
-            // replaceState, which Next's hook doesn't observe.
-            const liveActiveSession =
-              typeof window !== "undefined"
-                ? new URLSearchParams(window.location.search).get("session")
-                : null;
+            // session this notification targets, mark it read on arrival
+            // so the per-session badge doesn't tick. Same predicate as the
+            // OS-popup suppression in `useNotifications.notify`.
             const sameSessionVisible =
               row.readAt == null &&
               row.sessionId != null &&
-              row.workspaceId === activeId &&
-              row.sessionId === liveActiveSession &&
+              row.workspaceId === activeWorkspaceIdRef.current &&
+              row.sessionId === activeSessionIdRef.current &&
               visibleRef.current;
             setRecent((prev) => {
               if (prev.some((r) => r.id === row.id)) return prev;
@@ -310,33 +290,20 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
               return next.length > RECENT_CAP ? next.slice(0, RECENT_CAP) : next;
             });
             if (sameSessionVisible) {
-              // Skip the optimistic per-session bump AND the OS notify —
-              // both would be no-ops under the same gate. Hit the read
-              // endpoint directly so the bus emits a count event that
-              // reconciles the workspace tile back down before the user
-              // notices the brief +1 from the persistence step.
+              // Hit the read endpoint directly. The server's microtask-
+              // coalesced state emit will reconcile both the workspace
+              // total and the per-session map atomically — no transient
+              // +1/-1 flicker. Skip the OS notify (same gate suppresses
+              // it inside `useNotifications.notify`).
               void fetch(`/api/notifications/${row.id}/read`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ workspaceId: row.workspaceId }),
               }).catch(() => {
-                // The next /counts SSE event reconciles on its own.
+                // The next state event reconciles on its own.
               });
               return;
             }
-            // Optimistic per-session bump so the tab badge ticks up the
-            // instant a notification arrives, before the count event lands.
-            if (
-              row.readAt == null &&
-              row.sessionId &&
-              row.workspaceId === activeId
-            ) {
-              setUnreadBySession((prev) => ({
-                ...prev,
-                [row.sessionId as string]: (prev[row.sessionId as string] ?? 0) + 1,
-              }));
-            }
-            // Fire OS notification — visibility gate lives inside useNotifications.
             notifyRef.current(data.notification);
           }
         } catch {
@@ -347,12 +314,11 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
         es?.close();
         es = null;
         if (cancelled) return;
-        // Refetch authoritative counts on every reconnect attempt — if the
-        // server bounced we don't want stale badges while we wait for the
-        // first live event. Per-session map gets the same treatment so the
-        // tab badges don't drift after a transient drop.
+        // Refetch on every reconnect attempt — if the server bounced we
+        // don't want stale badges while we wait for the first live event.
+        // The version gate inside `applyStates` makes this safe even if
+        // the SSE comes back faster than the HTTP fetch.
         void refreshCounts();
-        void refreshUnreadBySession();
         setTimeout(open, backoff);
         backoff = Math.min(backoff * 2, 15000);
       };
@@ -366,20 +332,16 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
       cancelled = true;
       es?.close();
     };
-  }, [refreshCounts, refreshUnreadBySession, activeId]);
+  }, [refreshCounts, applyState]);
 
-  // Visibility / online recovery — pull fresh counts when the tab becomes
+  // Visibility / online recovery — pull fresh state when the tab becomes
   // visible after a long sleep, in case the SSE silently dropped.
   useEffect(() => {
     function onVis() {
-      if (!document.hidden) {
-        void refreshCounts();
-        void refreshUnreadBySession();
-      }
+      if (!document.hidden) void refreshCounts();
     }
     function onOnline() {
       void refreshCounts();
-      void refreshUnreadBySession();
     }
     document.addEventListener("visibilitychange", onVis);
     window.addEventListener("online", onOnline);
@@ -387,26 +349,39 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
       document.removeEventListener("visibilitychange", onVis);
       window.removeEventListener("online", onOnline);
     };
-  }, [refreshCounts, refreshUnreadBySession]);
+  }, [refreshCounts]);
 
+  // Derived selectors. These are pure projections of `byWorkspace` and never
+  // diverge from it — that's the whole point of the rewrite.
+  const counts = useMemo(() => {
+    const out: Record<string, number> = {};
+    for (const [id, s] of Object.entries(byWorkspace)) out[id] = s.totalUnread;
+    return out;
+  }, [byWorkspace]);
   const totalUnread = useMemo(
     () => Object.values(counts).reduce((a, b) => a + b, 0),
     [counts],
   );
+  const unreadBySession = useMemo<Record<string, number>>(
+    () => (activeId ? byWorkspace[activeId]?.perSession ?? {} : {}),
+    [activeId, byWorkspace],
+  );
+  const stateVersion = useMemo(
+    () => Object.values(byWorkspace).reduce((acc, s) => acc + s.version, 0),
+    [byWorkspace],
+  );
   useFaviconBadge(totalUnread);
 
-  // Refetch workspaces when a new one shows up in the counts map — guards
+  // Refetch workspaces when a new one shows up in the state map — guards
   // against a workspace being created in another tab while this one is open.
   //
   // Loop guard: if the refetched list still doesn't contain the id (notifications
   // outlive their workspace — the SQLite rows aren't cascade-deleted), without
   // this ref the effect would re-fire on every render and fetch in a tight loop.
-  // We remember the exact set of unknown ids we've already tried and skip the
-  // refetch when nothing new is missing.
   const refetchedForStaleRef = useRef<string>("");
   useEffect(() => {
     const ids = new Set(workspaces.map((w) => w.id));
-    const stale = Object.keys(counts)
+    const stale = Object.keys(byWorkspace)
       .filter((id) => !ids.has(id))
       .sort();
     if (stale.length === 0) return;
@@ -414,10 +389,11 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     if (refetchedForStaleRef.current === key) return;
     refetchedForStaleRef.current = key;
     void refreshWorkspaces();
-  }, [counts, workspaces, refreshWorkspaces]);
+  }, [byWorkspace, workspaces, refreshWorkspaces]);
 
   const markAllRead = useCallback(
     async (workspaceId: string) => {
+      // Optimistic recent-buffer flip. The state event reconciles the rest.
       setRecent((prev) =>
         prev.map((r) =>
           r.workspaceId === workspaceId && r.readAt == null
@@ -425,13 +401,6 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
             : r,
         ),
       );
-      setCounts((prev) => ({ ...prev, [workspaceId]: 0 }));
-      // The per-session map is scoped to the active workspace — only zero
-      // it when the caller is targeting that one. Otherwise leave the map
-      // alone (a different workspace's counts aren't in there to begin with).
-      if (workspaceId === activeId) {
-        setUnreadBySession((prev) => (Object.keys(prev).length === 0 ? prev : {}));
-      }
       try {
         await fetch("/api/notifications/read-all", {
           method: "POST",
@@ -442,25 +411,28 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
         // SSE will reconcile
       }
     },
-    [activeId],
+    [],
   );
 
-  // Refs so `markSessionRead` can read the latest `unreadBySession` /
-  // `recent` without listing them as deps — otherwise the callback's
-  // identity would churn on every notification/count tick and any
-  // consumer effect keyed on it (e.g. the chat page's "auto-clear on
-  // session change") would re-fire constantly, wiping fresh badges.
-  const unreadBySessionRef = useRef(unreadBySession);
-  unreadBySessionRef.current = unreadBySession;
+  // Refs to the latest byWorkspace / recent so `markSessionRead` can read
+  // them without taking them as deps — otherwise the callback identity
+  // would churn on every state event and downstream effects (e.g. the
+  // chat page's "clear-on-session-change" hook) would re-fire constantly.
+  // Updated in an effect so React's strict-mode double-render and the
+  // `react-hooks/refs` lint rule are both satisfied.
+  const byWorkspaceRef = useRef(byWorkspace);
   const recentRef = useRef(recent);
-  recentRef.current = recent;
+  useEffect(() => {
+    byWorkspaceRef.current = byWorkspace;
+    recentRef.current = recent;
+  });
   const markSessionRead = useCallback(
     async (sessionId: string) => {
       const workspaceId = activeId;
       if (!sessionId || !workspaceId) return;
-      // Cheap exit: if the per-session map and `recent` both agree there's
-      // nothing unread for this session, skip the round-trip.
-      const knownUnread = unreadBySessionRef.current[sessionId] ?? 0;
+      // Cheap exit: state map + recent both agree there's nothing unread.
+      const knownUnread =
+        byWorkspaceRef.current[workspaceId]?.perSession[sessionId] ?? 0;
       const recentUnread = recentRef.current.some(
         (r) =>
           r.sessionId === sessionId &&
@@ -469,39 +441,16 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
       );
       if (knownUnread === 0 && !recentUnread) return;
 
-      // Optimistic: flip every matching `recent` row, drop the per-session
-      // entry, decrement the workspace total by however many we just flipped.
-      let flippedCount = 0;
+      // Optimistic recent flip; server's state event corrects byWorkspace.
       setRecent((prev) =>
-        prev.map((r) => {
-          if (
-            r.sessionId === sessionId &&
-            r.workspaceId === workspaceId &&
-            r.readAt == null
-          ) {
-            flippedCount += 1;
-            return { ...r, readAt: Date.now() };
-          }
-          return r;
-        }),
+        prev.map((r) =>
+          r.sessionId === sessionId &&
+          r.workspaceId === workspaceId &&
+          r.readAt == null
+            ? { ...r, readAt: Date.now() }
+            : r,
+        ),
       );
-      // The authoritative count comes from `unreadBySession[sessionId]`
-      // (server-reconciled). Prefer that over `flippedCount` so we don't
-      // under-decrement when the row hasn't landed in `recent` yet.
-      const decrementBy = Math.max(flippedCount, knownUnread);
-      if (decrementBy > 0) {
-        setCounts((prev) => {
-          const cur = prev[workspaceId] ?? 0;
-          if (cur === 0) return prev;
-          return { ...prev, [workspaceId]: Math.max(0, cur - decrementBy) };
-        });
-      }
-      setUnreadBySession((prev) => {
-        if (!(sessionId in prev)) return prev;
-        const { [sessionId]: _drop, ...rest } = prev;
-        void _drop;
-        return rest;
-      });
       try {
         await fetch("/api/notifications/read-by-session", {
           method: "POST",
@@ -509,7 +458,7 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
           body: JSON.stringify({ workspaceId, sessionId }),
         });
       } catch {
-        // SSE will reconcile on the next count event.
+        // SSE will reconcile on the next state event.
       }
     },
     [activeId],
@@ -517,11 +466,6 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
 
   const toggleWorkspaceEnabled = useCallback(async () => {
     await notif.setEnabled(!notif.enabled);
-    // useWorkspaces.refresh fires inside the hook after PATCH succeeds via
-    // the legacy migration path, but the toggle path doesn't — pull a
-    // fresh list so the workspace-page Save dirty-check (and any future
-    // consumer keyed on workspace.defaults.notifications.enabled) sees
-    // the new value immediately.
     await refreshWorkspaces();
   }, [notif, refreshWorkspaces]);
 
@@ -531,6 +475,7 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
       totalUnread,
       unreadBySession,
       recent,
+      stateVersion,
       markRead,
       markAllRead,
       markSessionRead,
@@ -546,6 +491,7 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
       totalUnread,
       unreadBySession,
       recent,
+      stateVersion,
       markRead,
       markAllRead,
       markSessionRead,
@@ -577,6 +523,7 @@ const EMPTY: ContextValue = {
   totalUnread: 0,
   unreadBySession: {},
   recent: [],
+  stateVersion: 0,
   markRead: async () => {},
   markAllRead: async () => {},
   markSessionRead: async () => {},

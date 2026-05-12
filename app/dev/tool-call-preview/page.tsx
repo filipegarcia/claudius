@@ -2,10 +2,16 @@
 
 /**
  * Dev-only preview that mounts `ToolCall` and `AssistantMessage` in every
- * combination of `isPendingAsk` / `name` / `result` / `onReopenAsk` we care
+ * combination of `liveAsk` / `name` / `result` / `onReopenAsk` we care
  * about, so the Playwright spec in `tests/e2e/tool-call-answer-pill.spec.ts`
  * can assert pill visibility, click behavior, and the AssistantMessage
  * toolUseId-matching path in one round-trip — no live Claude session required.
+ *
+ * The pill renders on every AskUserQuestion row that has an `onReopenAsk`
+ * handler — even historic / errored ones. The visual distinction is encoded
+ * via the `liveAsk` flag (pulse + "Answer" label) vs. historic (no pulse,
+ * "Reopen" label). See the README at the top of `ToolCall.tsx` for the
+ * "AssistantMessage gates by name; ToolCall trusts its caller" contract.
  *
  * Each card sits behind a unique `data-testid="case:<name>"` wrapper. The
  * reopen-click counter is exposed via `data-reopen-count` on the page root
@@ -40,53 +46,55 @@ export default function ToolCallPreviewPage() {
 
   const cases: Case[] = [
     {
-      id: "ask-pending-match",
-      title: "AskUserQuestion · pending · no result · onReopenAsk wired",
-      description: "The happy path — pill should appear and clicking it bumps the counter.",
+      id: "ask-live-match",
+      title: "AskUserQuestion · liveAsk · no result · onReopenAsk wired",
+      description: "The pulsing Answer pill — the SDK is actively waiting on this row.",
       expectPill: true,
       render: (onReopen) => (
         <ToolCall
           name="AskUserQuestion"
           input={ASK_INPUT}
-          isPendingAsk
+          liveAsk
           onReopenAsk={onReopen}
         />
       ),
     },
     {
-      id: "ask-pending-flag-false",
-      title: "AskUserQuestion · isPendingAsk=false · no result",
-      description: "Tool block is for an AskUserQuestion but THIS one isn't the live ask — no pill.",
-      expectPill: false,
+      id: "ask-historic-no-result",
+      title: "AskUserQuestion · liveAsk=false · no result",
+      description:
+        "Historic ask: not the live one, but still resurrectable. Non-pulsing 'Reopen' pill.",
+      expectPill: true,
       render: (onReopen) => (
         <ToolCall
           name="AskUserQuestion"
           input={ASK_INPUT}
-          isPendingAsk={false}
+          liveAsk={false}
           onReopenAsk={onReopen}
         />
       ),
     },
     {
-      id: "ask-no-pending-prop",
-      title: "AskUserQuestion · isPendingAsk undefined",
-      description: "Older call site that doesn't pass the prop — pill stays hidden.",
-      expectPill: false,
+      id: "ask-no-liveask-prop",
+      title: "AskUserQuestion · liveAsk undefined",
+      description:
+        "Caller didn't pass liveAsk — pill still shows (historic variant) because the row IS an ask and a handler is wired.",
+      expectPill: true,
       render: (onReopen) => (
         <ToolCall name="AskUserQuestion" input={ASK_INPUT} onReopenAsk={onReopen} />
       ),
     },
     {
       id: "ask-resolved-success",
-      title: "AskUserQuestion · pending flag · result success",
+      title: "AskUserQuestion · liveAsk · result success",
       description:
-        "Even with the pending flag still set, a successful result means the SDK has the answer — no pill.",
-      expectPill: false,
+        "Even with a successful result, the pill remains — the user may still want to revisit what was asked or send a follow-up answer.",
+      expectPill: true,
       render: (onReopen) => (
         <ToolCall
           name="AskUserQuestion"
           input={ASK_INPUT}
-          isPendingAsk
+          liveAsk
           result={{ content: "{\"answers\":[{\"label\":\"A\"}]}", isError: false }}
           onReopenAsk={onReopen}
         />
@@ -94,44 +102,38 @@ export default function ToolCallPreviewPage() {
     },
     {
       id: "ask-resolved-error",
-      title: "AskUserQuestion · pending flag · result error",
+      title: "AskUserQuestion · result error (declined / aborted)",
       description:
-        "The question was declined / aborted. Result is set with isError=true — pill must NOT appear (clicking it would dead-end on the SDK).",
-      expectPill: false,
+        "Permission stream commonly closes before the user answers (the SDK records an error tool_result). Pill must STILL appear so the user can resurrect the modal — submitting goes through as a regular follow-up message.",
+      expectPill: true,
       render: (onReopen) => (
         <ToolCall
           name="AskUserQuestion"
           input={ASK_INPUT}
-          isPendingAsk
           result={{ content: "User declined the question.", isError: true }}
           onReopenAsk={onReopen}
         />
       ),
     },
     {
-      id: "ask-pending-no-callback",
-      title: "AskUserQuestion · pending · no onReopenAsk",
+      id: "ask-no-callback",
+      title: "AskUserQuestion · no onReopenAsk",
       description:
         "Defensive case — without a handler, the pill has nothing to do, so we hide it instead of showing a dead button.",
       expectPill: false,
-      render: () => <ToolCall name="AskUserQuestion" input={ASK_INPUT} isPendingAsk />,
+      render: () => <ToolCall name="AskUserQuestion" input={ASK_INPUT} liveAsk />,
     },
     {
-      id: "non-ask-with-pending-flag",
-      title: "Read tool · isPendingAsk=true (defensive)",
+      id: "non-ask-with-liveask-flag",
+      title: "Read tool · liveAsk=true (defensive)",
       description:
-        "AssistantMessage only sets isPendingAsk for AskUserQuestion rows, but if a caller bypasses that gate the ToolCall itself ALSO refuses to show a phantom pill on a non-ask tool.",
-      expectPill: true,
-      // Note: ToolCall itself doesn't gate on name; AssistantMessage does.
-      // We expect the pill to show here when called directly — the test
-      // confirms the "AssistantMessage gates by name" contract by NOT
-      // setting isPendingAsk on a non-ask block in the integration case
-      // below.
+        "ToolCall ALSO gates on `name === 'AskUserQuestion'` — even if a caller bypasses AssistantMessage's gate and sets liveAsk on a non-ask row, no pill renders.",
+      expectPill: false,
       render: (onReopen) => (
         <ToolCall
           name="Read"
           input={{ file_path: "/tmp/x.txt" }}
-          isPendingAsk
+          liveAsk
           onReopenAsk={onReopen}
         />
       ),
@@ -143,8 +145,8 @@ export default function ToolCallPreviewPage() {
   // Render an assistant turn that contains TWO AskUserQuestion tool_use
   // blocks (different toolUseIds) plus a non-ask tool. The page passes
   // `pendingAskToolUseId = TOOL_USE_ID_PENDING`, and we expect:
-  //   - the matching ask block: pill shown
-  //   - the non-matching ask block: pill hidden
+  //   - the matching ask block: live pill (pulsing)
+  //   - the non-matching ask block: historic pill (still visible, no pulse)
   //   - the non-ask block: pill hidden (gated by name in AssistantMessage)
   const integrationMessage: DisplayMessage = {
     uuid: "integration-turn",
@@ -201,8 +203,9 @@ export default function ToolCallPreviewPage() {
             AssistantMessage · pendingAskToolUseId matches one of two ask blocks
           </h2>
           <p className="mb-2 text-xs text-[var(--muted)]">
-            Only the matching block ({TOOL_USE_ID_PENDING}) gets the pill. The other ask block and
-            the Read block must not.
+            Both ask blocks render a pill — the matching one ({TOOL_USE_ID_PENDING}) in the
+            pulsing &quot;live&quot; variant, the other in the static &quot;Reopen&quot; variant. The
+            Read block stays plain.
           </p>
           <AssistantMessage
             message={integrationMessage}
@@ -214,7 +217,8 @@ export default function ToolCallPreviewPage() {
         <section data-testid="case:integration-no-match">
           <h2 className="text-sm font-medium">AssistantMessage · pendingAskToolUseId null</h2>
           <p className="mb-2 text-xs text-[var(--muted)]">
-            No pending ask — every ask block stays a normal collapsed row.
+            No live ask — both ask blocks still get a pill (historic / Reopen variant). The
+            Read block stays plain.
           </p>
           <AssistantMessage message={integrationMessage} pendingAskToolUseId={null} onReopenAsk={inc} />
         </section>

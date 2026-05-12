@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { openDb } from "./db";
+import { openDb, type DB } from "./db";
 import type {
   NotificationKind,
   NotificationRow,
@@ -115,29 +115,45 @@ export async function insertNotification(
   };
 }
 
-/** Paginated list, newest first. `before` is a `created_at` cursor. */
+/**
+ * Paginated list, newest first.
+ *
+ * `before` is a `created_at` cursor for pulling older pages.
+ *
+ * `unreadOnly` restricts the query at the SQL level so the drawer always sees
+ * every unread row in its window — without this flag, the drawer's 50-row
+ * cap was filling with read rows above the unread ones, leaving older unread
+ * invisible while the workspace badge still counted them (the "tile = 4,
+ * drawer = 1" symptom that motivated the redesign).
+ */
 export async function listNotifications(
   cwd: string,
   workspaceId: string,
-  opts: { limit?: number; before?: number } = {},
+  opts: { limit?: number; before?: number; unreadOnly?: boolean } = {},
 ): Promise<NotificationRow[]> {
   const db = await openDb(cwd, "readonly").catch(() => null);
   if (!db) return [];
   const limit = Math.max(1, Math.min(200, opts.limit ?? 50));
-  const rows = opts.before
-    ? (db
-        .prepare(
-          `SELECT id, session_id, run_id, job_id, kind, title, body, payload, request_id, created_at, read_at
-           FROM notifications WHERE created_at < ?
-           ORDER BY created_at DESC LIMIT ?`,
-        )
-        .all(opts.before, limit) as RawRow[])
-    : (db
-        .prepare(
-          `SELECT id, session_id, run_id, job_id, kind, title, body, payload, request_id, created_at, read_at
-           FROM notifications ORDER BY created_at DESC LIMIT ?`,
-        )
-        .all(limit) as RawRow[]);
+  // Build the WHERE clause dynamically. Both filters are indexed
+  // (`idx_notif_unread` on `(read_at, created_at)`), so adding the
+  // `read_at IS NULL` predicate is a pure win — fewer rows scanned, no
+  // additional client-side filtering pass.
+  const where: string[] = [];
+  const args: unknown[] = [];
+  if (opts.unreadOnly) where.push("read_at IS NULL");
+  if (opts.before) {
+    where.push("created_at < ?");
+    args.push(opts.before);
+  }
+  const whereClause = where.length > 0 ? `WHERE ${where.join(" AND ")}` : "";
+  args.push(limit);
+  const rows = db
+    .prepare(
+      `SELECT id, session_id, run_id, job_id, kind, title, body, payload, request_id, created_at, read_at
+       FROM notifications ${whereClause}
+       ORDER BY created_at DESC LIMIT ?`,
+    )
+    .all(...args) as RawRow[];
   return rows.map((r) => hydrate(r, workspaceId));
 }
 
@@ -145,6 +161,21 @@ export async function listNotifications(
 export async function unreadCount(cwd: string): Promise<number> {
   const db = await openDb(cwd, "readonly").catch(() => null);
   if (!db) return 0;
+  return unreadCountOn(db);
+}
+
+/**
+ * Synchronous variant for the bus's hot path. better-sqlite3 is itself sync;
+ * the async wrapper only exists so callers don't have to think about handle
+ * caching. Once the bus has obtained the DB handle via `openDb` (which the
+ * insert path always does first), it can re-use it through this helper to
+ * compute counts without a microtask-yielding `await`. That matters because
+ * the bus's coalesced state emit runs inside a `setTimeout(0)` callback that
+ * needs to complete the fanout SYNCHRONOUSLY — otherwise downstream
+ * `await new Promise(r => setTimeout(r, 0))` test helpers and real
+ * subscribers race the internal awaits and see stale state.
+ */
+export function unreadCountOn(db: DB): number {
   const row = db
     .prepare<[], { n: number } | undefined>(
       `SELECT COUNT(*) AS n FROM notifications WHERE read_at IS NULL`,
@@ -164,6 +195,11 @@ export async function unreadCountsBySession(
 ): Promise<Record<string, number>> {
   const db = await openDb(cwd, "readonly").catch(() => null);
   if (!db) return {};
+  return unreadCountsBySessionOn(db);
+}
+
+/** Synchronous variant — see {@link unreadCountOn} for the rationale. */
+export function unreadCountsBySessionOn(db: DB): Record<string, number> {
   const rows = db
     .prepare<[], { session_id: string; n: number }>(
       `SELECT session_id, COUNT(*) AS n
@@ -196,6 +232,28 @@ export async function markAllRead(cwd: string): Promise<number> {
   const res = db
     .prepare(`UPDATE notifications SET read_at = ? WHERE read_at IS NULL`)
     .run(now);
+  return res.changes;
+}
+
+/**
+ * Mark every unread row of a single kind as read. Used when the user
+ * disables a kind from the workspace settings — once they've said "stop
+ * notifying me about X", we shouldn't leave a backlog of X rows haunting
+ * the workspace badge. Returns the number of rows that flipped so the bus
+ * can decide whether to emit a state event.
+ */
+export async function markReadByKind(
+  cwd: string,
+  kind: NotificationKind,
+): Promise<number> {
+  if (!kind) return 0;
+  const db = await openDb(cwd);
+  const now = Date.now();
+  const res = db
+    .prepare(
+      `UPDATE notifications SET read_at = ? WHERE read_at IS NULL AND kind = ?`,
+    )
+    .run(now, kind);
   return res.changes;
 }
 

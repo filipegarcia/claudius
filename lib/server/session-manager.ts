@@ -28,7 +28,16 @@ function reapMs(): number {
   return n;
 }
 
-class SessionManager {
+/**
+ * Manages live SDK-backed Sessions. Exported (not just the singleton)
+ * so unit tests can construct an isolated instance with stub sessions
+ * — the singleton's `create()` would spawn a real SDK process, which
+ * isn't viable in a unit context. The contract the reap logic depends
+ * on (subscriber count, pending-prompt predicate, `end()`) is small
+ * enough to satisfy with a hand-rolled stub; see
+ * `tests/unit/session-manager.test.ts`.
+ */
+export class SessionManager {
   private sessions = new Map<string, Session>();
   /** Active reap timers keyed by session id. */
   private reapTimers = new Map<string, NodeJS.Timeout>();

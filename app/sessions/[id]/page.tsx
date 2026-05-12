@@ -43,7 +43,16 @@ export default function SessionDetailPage() {
       const tx = (await txRes.json()) as { messages: SessionMessage[] };
       setInfo(meta);
       setMessages(tx.messages ?? []);
-      setTitleDraft(meta.customTitle ?? meta.summary ?? "");
+      // Pre-fill from a trusted title source only — `claudiusTitle`
+      // wins (set on every Claudius-side rename even when the SDK's
+      // JSONL header write was deferred); `customTitle` is the SDK's
+      // copy. `summary`/`firstPrompt` would put prompt text in the
+      // rename input and tempt the user to "Save" it as the title.
+      setTitleDraft(
+        (meta as { claudiusTitle?: string }).claudiusTitle
+          ?? meta.customTitle
+          ?? "",
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -105,7 +114,18 @@ export default function SessionDetailPage() {
           <span className="opacity-50">·</span>
           {!renaming ? (
             <>
-              <span className="truncate font-medium">{info?.customTitle || info?.summary || "(untitled)"}</span>
+              {/*
+                Title precedence — see `app/sessions/page.tsx`:
+                  1. claudiusTitle (our DB)
+                  2. customTitle  (SDK JSONL)
+                  3. "(untitled)"
+                Never `summary`/`firstPrompt` — they're prompt text.
+              */}
+              <span className="truncate font-medium">
+                {(info as { claudiusTitle?: string } | null)?.claudiusTitle
+                  || info?.customTitle
+                  || "(untitled)"}
+              </span>
               <button
                 onClick={() => setRenaming(true)}
                 title="Rename"
