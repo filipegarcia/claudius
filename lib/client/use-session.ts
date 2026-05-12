@@ -1453,9 +1453,24 @@ export function useSession(): ChatState & ChatActions {
           console.error("bad SSE payload", err, msg.data);
         }
       };
-      es.onerror = () => {};
+      es.onerror = () => {
+        // EventSource fires `error` for both transient drops (it will retry
+        // automatically) and permanent failures. Distinguish by readyState:
+        //   CONNECTING (0) → reconnect in flight, do nothing — when it lands
+        //                    the server replays buffered events and the
+        //                    `replay_done` handler re-asserts pending state.
+        //   CLOSED (2)     → browser has given up (server returned non-2xx,
+        //                    or repeated retries failed). No more events
+        //                    will arrive on this socket, so a `pending`
+        //                    flag set to true earlier is now stuck — clear
+        //                    it so the StatusLine stops claiming "Working"
+        //                    against a dead stream.
+        if (es.readyState === EventSource.CLOSED) {
+          setPendingTracked(false);
+        }
+      };
     },
-    [applyEvent, rehydrateQueue],
+    [applyEvent, rehydrateQueue, setPendingTracked],
   );
 
   const switchSession = useCallback(

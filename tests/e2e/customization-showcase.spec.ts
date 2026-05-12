@@ -3,15 +3,17 @@ import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 
 /**
- * Showcase screenshots for each of the six demo customizations shipped with
- * the marketing site. Each is captured from its own preview server (started
- * via `POST /api/customizations/[id]/preview`) so the live install stays
- * untouched.
+ * Showcase screenshots for each of the demo customizations shipped with the
+ * marketing site. Each is captured from its own preview server (started via
+ * `POST /api/customizations/[id]/preview`) so the live install stays
+ * untouched. The Synthwave customization is a theme-only change with no
+ * runtime behaviour, so it gets its own simpler spec
+ * (customization-synthwave.spec.ts) that drives the live dev server.
  *
- * Cost notice: spawning six `next dev` processes is heavy — they compile on
- * first hit and consume ~500 MB RAM each. The whole spec is gated behind
- * `SCREENSHOTS_INCLUDE_CUSTOMIZATIONS=1` (or `SCREENSHOTS_INCLUDE_PREVIEWS=1`)
- * so regular CI runs skip it.
+ * Cost notice: spawning multiple `next dev` processes is heavy — they
+ * compile on first hit and consume ~500 MB RAM each. The whole spec is
+ * gated behind `SCREENSHOTS_INCLUDE_CUSTOMIZATIONS=1` (or
+ * `SCREENSHOTS_INCLUDE_PREVIEWS=1`) so regular CI runs skip it.
  *
  * Add or remove demos by editing {@link DEMOS} below. Each entry names the
  * customization (matched against `GET /api/customizations`) and the capture
@@ -79,91 +81,6 @@ const DEMOS: Demo[] = [
       await page.waitForTimeout(400);
       await page.screenshot({
         path: resolve(SHOTS_DIR, "customization-doom-hud.png"),
-        fullPage: false,
-      });
-    },
-  },
-  {
-    match: "Cat Spinner",
-    file: "customization-cat-spinner",
-    capture: async (page, port) => {
-      // Suppress the guided-tour overlay so the loading state is what's on
-      // screen, not the help panel.
-      await page.addInitScript(() => {
-        try { localStorage.setItem("claudius.customize.help-seen", "1"); } catch {}
-      });
-      // Force the customizations index call to hang so the /customize page
-      // sits in its loading state. The CatSpinner is mounted there.
-      await page.route("**/api/customizations**", async (route) => {
-        if (route.request().method() !== "GET") return route.fallback();
-        // Long stall — we'll snap mid-flight.
-        await new Promise((r) => setTimeout(r, 20_000));
-        await route.fulfill({
-          status: 200,
-          contentType: "application/json",
-          body: JSON.stringify({ customizations: [], publishes: [] }),
-        });
-      });
-      await page.goto(`http://localhost:${port}/customize`, { waitUntil: "domcontentloaded", timeout: 120_000 });
-      // Wait for the cat to start animating (any of its frames in the DOM).
-      await page.waitForTimeout(2500);
-      await page.screenshot({
-        path: resolve(SHOTS_DIR, "customization-cat-spinner.png"),
-        fullPage: false,
-      });
-    },
-  },
-  {
-    match: "Minecraft",
-    file: "customization-minecraft",
-    capture: async (page, port) => {
-      // The Minecraft customization edits ThinkingBlock. Without a running
-      // session we won't see a real thinking block — for marketing, the
-      // /customize/<id> page is the canonical "this exists" view, and it
-      // links to the diff + preview. Snap that for now.
-      const list = await page.request.get(`http://localhost:${port}/api/customizations`);
-      const body = (await list.json()) as { customizations: CustomizationRow[] };
-      const minecraft = body.customizations.find((c) => /minecraft/i.test(c.name));
-      if (!minecraft) {
-        test.skip(true, "no Minecraft customization to screenshot");
-        return;
-      }
-      await page.goto(`http://localhost:${port}/customize/${minecraft.id}`, {
-        waitUntil: "load",
-        timeout: 120_000,
-      });
-      await page.waitForTimeout(1500);
-      await page.screenshot({
-        path: resolve(SHOTS_DIR, "customization-minecraft.png"),
-        fullPage: false,
-      });
-    },
-  },
-  {
-    match: "Lo-fi",
-    file: "customization-lofi",
-    capture: async (page, port) => {
-      await page.addInitScript(() => {
-        try { localStorage.setItem("claudius.customize.help-seen", "1"); } catch {}
-      });
-      // Stall the customizations list endpoint so the customize page sits
-      // in the lo-fi loading state. LoFiLoader rotates messages every ~1.6s,
-      // so we wait long enough to catch at least one rotation tick.
-      await page.route("**/api/customizations**", async (route) => {
-        if (route.request().method() !== "GET") return route.fallback();
-        await new Promise((r) => setTimeout(r, 20_000));
-        await route.fulfill({
-          status: 200,
-          contentType: "application/json",
-          body: JSON.stringify({ customizations: [], publishes: [] }),
-        });
-      });
-      await page.goto(`http://localhost:${port}/customize`, { waitUntil: "domcontentloaded", timeout: 120_000 });
-      // Wait past the initial deterministic index, so the rotation has
-      // happened at least once and we capture a vibe-y message.
-      await page.waitForTimeout(3500);
-      await page.screenshot({
-        path: resolve(SHOTS_DIR, "customization-lofi.png"),
         fullPage: false,
       });
     },

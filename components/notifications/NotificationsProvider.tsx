@@ -333,14 +333,23 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
 
   // Refetch workspaces when a new one shows up in the counts map — guards
   // against a workspace being created in another tab while this one is open.
+  //
+  // Loop guard: if the refetched list still doesn't contain the id (notifications
+  // outlive their workspace — the SQLite rows aren't cascade-deleted), without
+  // this ref the effect would re-fire on every render and fetch in a tight loop.
+  // We remember the exact set of unknown ids we've already tried and skip the
+  // refetch when nothing new is missing.
+  const refetchedForStaleRef = useRef<string>("");
   useEffect(() => {
     const ids = new Set(workspaces.map((w) => w.id));
-    for (const id of Object.keys(counts)) {
-      if (!ids.has(id)) {
-        void refreshWorkspaces();
-        return;
-      }
-    }
+    const stale = Object.keys(counts)
+      .filter((id) => !ids.has(id))
+      .sort();
+    if (stale.length === 0) return;
+    const key = stale.join(",");
+    if (refetchedForStaleRef.current === key) return;
+    refetchedForStaleRef.current = key;
+    void refreshWorkspaces();
   }, [counts, workspaces, refreshWorkspaces]);
 
   const markAllRead = useCallback(

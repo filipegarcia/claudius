@@ -63,6 +63,19 @@
   --accent: #b45309;
 }
 
+/* Synthwave — neon retrowave palette. Deep violet base with hot-pink accent
+ * and cyan-leaning foreground. Pairs with a sunset-grid backdrop on the body
+ * (defined below) so empty surfaces don't read as flat black. */
+:root[data-theme="synthwave"] {
+  --background: #14092b;
+  --foreground: #f8e6ff;
+  --panel: #1c1138;
+  --panel-2: #261a4a;
+  --border: #4a2d7a;
+  --muted: #a98ad1;
+  --accent: #ff6ad5;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -93,6 +106,20 @@ body {
 
 ::selection {
   background: rgba(217, 119, 87, 0.35);
+}
+
+/* Synthwave-only flourishes: a soft radial sunset and a faint perspective
+ * grid behind every page. Anchored to the body so it bleeds across panels
+ * without colouring them; pointer-events stay on the real UI underneath. */
+:root[data-theme="synthwave"] body {
+  background-image:
+    radial-gradient(ellipse 90% 60% at 50% -10%, rgba(255, 106, 213, 0.22), transparent 60%),
+    radial-gradient(ellipse 80% 50% at 50% 110%, rgba(56, 232, 255, 0.18), transparent 60%),
+    linear-gradient(180deg, rgba(20, 9, 43, 0) 0%, rgba(20, 9, 43, 0.9) 100%);
+  background-attachment: fixed;
+}
+:root[data-theme="synthwave"] ::selection {
+  background: rgba(255, 106, 213, 0.4);
 }
 
 /* Tight scrollbars in chat panes */

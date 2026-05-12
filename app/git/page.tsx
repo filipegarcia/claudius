@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   GitBranch,
@@ -13,11 +14,13 @@ import {
   ArrowDownToLine,
   ArrowUpFromLine,
   CloudDownload,
+  Sparkles,
 } from "lucide-react";
 import { SideNav } from "@/components/nav/SideNav";
 import { ChangesList, type DiffSelection, type GroupKey } from "@/components/git/ChangesList";
 import { DiffViewer } from "@/components/git/DiffViewer";
 import { CommitBox } from "@/components/git/CommitBox";
+import { BranchSwitcher, type BranchInfo } from "@/components/git/BranchSwitcher";
 import { useWorkspaces } from "@/lib/client/useWorkspaces";
 import { useGitStatus } from "@/lib/client/useGitStatus";
 import { renderCommitPrefix } from "@/lib/shared/commit-prefix";
@@ -28,6 +31,7 @@ export default function GitPage() {
   const { items, activeId } = useWorkspaces();
   const active = items.find((w) => w.id === activeId);
   const wsId = active?.id ?? null;
+  const router = useRouter();
 
   const { data, error: statusError, loading: statusLoading, refresh } = useGitStatus(wsId);
 
@@ -213,6 +217,121 @@ export default function GitPage() {
     setCollapsedGroups((prev) => ({ ...prev, [g]: !prev[g] }));
   }, []);
 
+  /**
+   * Push without a confirmation prompt. Used by the "Generate, Commit & Push"
+   * button, which already asked once before kicking off the chain — adding
+   * a second confirm here would be noise. Errors are returned to the caller
+   * rather than rendered into the page-level `opError` bar, because the
+   * combo button reports failures in its own inline error area.
+   */
+  async function runPushSilent(): Promise<{ ok: true } | { ok: false; error: string }> {
+    if (!wsId) return { ok: false, error: "no workspace" };
+    setBusy("push");
+    try {
+      const res = await fetch(`/api/workspaces/${wsId}/git/remote`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ op: "push" }),
+      });
+      if (!res.ok) {
+        const j = (await res.json().catch(() => ({}))) as { error?: string };
+        return { ok: false, error: j.error ?? `HTTP ${res.status}` };
+      }
+      await refresh();
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : String(err) };
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  /**
+   * Pull with merge; if conflicts surface, hand off to a fresh Claude Code
+   * session pre-loaded with the conflict list. Unlike the plain Pull button
+   * (`--ff-only`), this variant tolerates a real merge so Claude has
+   * something to resolve.
+   *
+   * Pre-flight: refuses if the working tree is dirty. `git pull` would
+   * refuse too, but our error here is friendlier than the raw stderr.
+   *
+   * Post-conflict navigation depends on the *active workspace* being set
+   * correctly at navigation time — the new chat session resolves its cwd
+   * from the cookie/active hint. Since this button only renders inside the
+   * Git page (which only renders for an active workspace), that holds.
+   */
+  async function runPullWithClaude() {
+    if (!wsId) return;
+    if ((data?.files.length ?? 0) > 0) {
+      setOpError(
+        "Pull refused: you have local changes. Commit, stash, or rollback first.",
+      );
+      return;
+    }
+    const target = branchLabel ?? "current branch";
+    if (
+      !confirm(
+        `Pull and merge upstream into ${target}? If conflicts arise, Claude Code will open in a new chat to resolve them.`,
+      )
+    )
+      return;
+    setBusy("pull");
+    setOpError(null);
+    try {
+      const res = await fetch(`/api/workspaces/${wsId}/git/pull-merge`, {
+        method: "POST",
+      });
+      if (res.ok) {
+        await refresh();
+        return;
+      }
+      const body = (await res.json().catch(() => ({}))) as {
+        kind?: string;
+        conflicts?: string[];
+        message?: string;
+        output?: string;
+        error?: string;
+      };
+      if (body.kind === "conflicts" && Array.isArray(body.conflicts) && body.conflicts.length > 0) {
+        // We deliberately do NOT abort the merge — the working tree is
+        // mid-merge and Claude will resolve in place. The user finalizes
+        // via the existing Commit flow once Claude has staged the fixes.
+        await refresh();
+        const fileLines = body.conflicts.map((p) => `- ${p}`).join("\n");
+        const prompt = [
+          `I just ran \`git pull\` in this workspace and there are merge conflicts in the following file(s):`,
+          "",
+          fileLines,
+          "",
+          "Please resolve them. For each file:",
+          "  1. Read the file and find the conflict markers (<<<<<<<, =======, >>>>>>>).",
+          "  2. Decide which side to keep — or how to combine — based on the intent of each change.",
+          "  3. Remove the conflict markers and write the resolved content back.",
+          "  4. Run `git add <file>` to mark it as resolved.",
+          "",
+          "Important constraints:",
+          "  - Do NOT run `git merge --abort` or otherwise revert the pull.",
+          "  - Do NOT run `git commit`. I will review the staged resolution and commit it myself in the Git UI.",
+          "  - Stop once every conflicted file has been staged.",
+        ].join("\n");
+        if (
+          confirm(
+            `Open Claude Code to resolve ${body.conflicts.length} conflict${body.conflicts.length === 1 ? "" : "s"}?`,
+          )
+        ) {
+          router.push(`/?new=1&prompt=${encodeURIComponent(prompt)}`);
+        }
+        return;
+      }
+      const message = body.message ?? body.error ?? `HTTP ${res.status}`;
+      setOpError(message);
+    } catch (err) {
+      setOpError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(null);
+    }
+  }
+
   async function runRemote(op: "fetch" | "pull" | "push") {
     if (!wsId) return;
     if (op === "push") {
@@ -326,6 +445,82 @@ export default function GitPage() {
     return null;
   }, [data]);
 
+  // Branch switcher wiring. The list endpoint is cheap (`git for-each-ref`),
+  // so we re-fetch on every popover open rather than maintaining a cache —
+  // keeps the list honest after fetch/checkout/etc.
+  const loadBranches = useCallback(async (): Promise<BranchInfo[]> => {
+    if (!wsId) return [];
+    const res = await fetch(`/api/workspaces/${wsId}/git/branches`);
+    if (!res.ok) {
+      const j = (await res.json().catch(() => ({}))) as { error?: string };
+      throw new Error(j.error ?? `HTTP ${res.status}`);
+    }
+    const j = (await res.json()) as { branches?: BranchInfo[] };
+    return j.branches ?? [];
+  }, [wsId]);
+
+  const onCheckoutBranch = useCallback(
+    async (name: string): Promise<{ ok: true } | { ok: false; error: string }> => {
+      if (!wsId) return { ok: false, error: "no workspace" };
+      // Block checkout while another op is in flight — committing to a half-
+      // staged state across a branch switch is a great way to lose work.
+      if (busy) return { ok: false, error: `busy: ${busy}` };
+      setBusy("checkout");
+      setOpError(null);
+      try {
+        const res = await fetch(`/api/workspaces/${wsId}/git/checkout`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name }),
+        });
+        if (!res.ok) {
+          const j = (await res.json().catch(() => ({}))) as { error?: string };
+          return { ok: false, error: j.error ?? `HTTP ${res.status}` };
+        }
+        // File paths may not survive into the new branch — drop the diff
+        // selection and the staging checkmarks. Then refresh git status so
+        // branch label + changes list both repaint.
+        setChecked(new Set());
+        setSelected(null);
+        await refresh();
+        return { ok: true };
+      } finally {
+        setBusy(null);
+      }
+    },
+    [wsId, busy, refresh],
+  );
+
+  const onCreateBranch = useCallback(
+    async (
+      name: string,
+      startPoint?: string,
+    ): Promise<{ ok: true } | { ok: false; error: string }> => {
+      if (!wsId) return { ok: false, error: "no workspace" };
+      if (busy) return { ok: false, error: `busy: ${busy}` };
+      setBusy("checkout");
+      setOpError(null);
+      try {
+        const res = await fetch(`/api/workspaces/${wsId}/git/checkout`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, create: true, startPoint }),
+        });
+        if (!res.ok) {
+          const j = (await res.json().catch(() => ({}))) as { error?: string };
+          return { ok: false, error: j.error ?? `HTTP ${res.status}` };
+        }
+        setChecked(new Set());
+        setSelected(null);
+        await refresh();
+        return { ok: true };
+      } finally {
+        setBusy(null);
+      }
+    },
+    [wsId, busy, refresh],
+  );
+
   // Cheap pure call — no useMemo needed, React Compiler memoizes downstream.
   const commitPrefix = data?.isRepo
     ? renderCommitPrefix(data.branch ?? null, active?.commitPrefix)
@@ -351,10 +546,17 @@ export default function GitPage() {
           <GitBranch className="h-3.5 w-3.5 text-[var(--muted)]" />
           <span className="font-medium">Git</span>
           {active && <span className="font-mono text-[var(--muted)]">{active.rootPath}</span>}
-          {branchLabel && (
+          {data?.isRepo && (
             <>
               <span className="opacity-50">·</span>
-              <span className="font-mono">{branchLabel}</span>
+              <BranchSwitcher
+                current={branchLabel}
+                detached={!data.branch && Boolean(data.head)}
+                disabled={busy != null}
+                loadBranches={loadBranches}
+                onCheckout={onCheckoutBranch}
+                onCreate={onCreateBranch}
+              />
             </>
           )}
           {aheadBehind && (
@@ -382,6 +584,20 @@ export default function GitPage() {
             >
               <ArrowDownToLine className="h-3 w-3" />
               <span className="text-[11px]">{busy === "pull" ? "Pulling…" : "Pull"}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => void runPullWithClaude()}
+              disabled={!wsId || busy != null || !data?.isRepo}
+              title="git pull (merge). On conflicts, opens Claude Code to resolve."
+              data-testid="pull-with-claude-button"
+              className="flex h-6 items-center gap-1 rounded px-1.5 text-[var(--muted)] hover:bg-[var(--panel-2)] hover:text-[var(--foreground)] disabled:opacity-40"
+            >
+              <Sparkles className="h-3 w-3" />
+              <ArrowDownToLine className="h-3 w-3" />
+              <span className="text-[11px]">
+                {busy === "pull" ? "Pulling…" : "Pull + resolve"}
+              </span>
             </button>
             <button
               type="button"
@@ -476,6 +692,7 @@ export default function GitPage() {
               branchLabel={branchLabel}
               onCommit={onCommit}
               onGenerate={onGenerateMessage}
+              onPush={runPushSilent}
               initialMessage={draftMessage}
               draftKey={wsId ?? ""}
               onPersistDraft={onPersistDraft}

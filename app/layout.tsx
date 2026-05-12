@@ -30,7 +30,7 @@ export const metadata: Metadata = {
 const themeBootstrap = `(() => {
   try {
     var t = localStorage.getItem('claudius.theme');
-    var allowed = { dark:1, light:1, midnight:1, paper:1, tui:1, 'tui-light':1 };
+    var allowed = { dark:1, light:1, midnight:1, paper:1, tui:1, 'tui-light':1, synthwave:1 };
     document.documentElement.dataset.theme = (t && allowed[t]) ? t : 'dark';
   } catch (_) {
     document.documentElement.dataset.theme = 'dark';

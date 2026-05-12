@@ -1,45 +1,14 @@
-import { sessionManager } from "@/lib/server/session-manager";
-import { info as sessionFileInfo } from "@/lib/server/sessions-store";
-import { listWorkspaces, type Workspace } from "@/lib/server/workspaces-store";
+import { getOrResumeSession } from "@/lib/server/session-resume";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
-  let session = sessionManager.get(id);
-  if (!session) {
-    // Session may have been reaped after an idle window. The JSONL on disk
-    // is the durable source of truth — if we can find it, rebuild the
-    // Session via resume so the user's `?session=<id>` URL keeps working
-    // without forcing them to refresh into a brand-new conversation.
-    try {
-      const fileInfo = await sessionFileInfo(id);
-      if (fileInfo?.cwd) {
-        // Apply the originating workspace's defaults the same way the POST
-        // /api/sessions handler does — otherwise auto-rebuilt sessions in
-        // (e.g.) customization workspaces miss their bypass-permissions
-        // default and the mode pill / SDK end up out of sync with the
-        // user's intent.
-        const all = await listWorkspaces().catch(() => [] as Workspace[]);
-        const originWs = all.find((w) => w.rootPath === fileInfo.cwd) ?? null;
-        const defaults = originWs?.defaults ?? {};
-        session = await sessionManager.create({
-          resume: id,
-          cwd: fileInfo.cwd,
-          model: defaults.model,
-          permissionMode: defaults.permissionMode,
-        });
-        // Reconcile: an in-memory hit (idempotent resume) doesn't pick up
-        // a freshly-changed workspace default — same fix as in POST.
-        if (defaults.permissionMode && session.getPermissionMode() !== defaults.permissionMode) {
-          await session.setPermissionMode(defaults.permissionMode);
-        }
-      }
-    } catch {
-      // fall through to 404
-    }
-  }
+  // If the session was reaped after an idle window, getOrResumeSession
+  // rebuilds it from the JSONL on disk so a `?session=<id>` URL keeps
+  // working without forcing the user into a brand-new conversation.
+  const session = await getOrResumeSession(id);
   if (!session) {
     return new Response("session not found", { status: 404 });
   }

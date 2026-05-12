@@ -22,10 +22,19 @@ export function CustomizationsDrawer({
   customizations,
   activeId,
   onSelect,
+  onOpen,
 }: {
   customizations: Workspace[];
   activeId: string | null;
   onSelect: (id: string) => void | Promise<void>;
+  /**
+   * Called when the popover transitions closed → open. The parent uses it
+   * to refetch `/api/workspaces` so newly-bootstrapped customizations
+   * (and removals) show up immediately rather than only after the next
+   * full reload. Fired synchronously with the open-state flip — errors
+   * inside the promise are swallowed so the panel still renders.
+   */
+  onOpen?: () => void | Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -76,7 +85,24 @@ export function CustomizationsDrawer({
       )}
       <button
         ref={triggerRef}
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => {
+          setOpen((o) => {
+            const next = !o;
+            // Fire refresh on the closed → open transition only. Skip when
+            // closing so we don't pay for a network round-trip the user
+            // won't see. The promise is intentionally unawaited — the
+            // popover renders the current list synchronously and React
+            // re-renders it once the parent's state lands.
+            if (next && onOpen) {
+              void Promise.resolve(onOpen()).catch(() => {
+                // Refresh failed (offline, server restart) — keep showing
+                // the stale list rather than blowing up the rail. The
+                // drawer's own data still functions.
+              });
+            }
+            return next;
+          });
+        }}
         title={titleAttr}
         className={cn(
           "relative flex h-10 w-10 items-center justify-center rounded-lg transition",
