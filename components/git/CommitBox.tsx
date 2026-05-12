@@ -329,8 +329,15 @@ export function CommitBox({
         <div className="border-b border-red-500/30 bg-red-500/10 px-3 py-1 text-[11px] text-red-300">{error}</div>
       )}
       <div className="flex items-center gap-2 px-3 py-1.5">
-        <span className="text-[10px] text-[var(--muted)]">
-          ⌘/Ctrl + Enter to commit{onPush ? " · ⇧ for + push" : ""}
+        <span
+          className="truncate text-[10px] text-[var(--muted)]"
+          title={
+            onPush
+              ? "⌘/Ctrl + Enter to commit · add ⇧ to also push"
+              : "⌘/Ctrl + Enter to commit"
+          }
+        >
+          ⌘/Ctrl + ⏎{onPush ? " · ⇧⏎ for + push" : ""}
         </span>
         {onGenerate && (
           <button
@@ -374,16 +381,22 @@ export function CommitBox({
               checkedCount === 0
                 ? "Check files to commit first"
                 : message.trim().length === 0
-                  ? "Generate a commit message, commit, then push"
-                  : "Commit, then push"
+                  ? "Generate a commit message, commit, then push (⌘/Ctrl + ⇧ + Enter)"
+                  : "Commit, then push (⌘/Ctrl + ⇧ + Enter)"
             }
+            // Single-line label + whitespace-nowrap so this never wraps and
+            // ends up looking visually heavier than its neighbours. The
+            // Sparkles icon carries the "generate" semantics (animated while
+            // that leg is running) — spelling it out tripled the button's
+            // width and pushed it onto two lines on the default panel size.
             className={cn(
-              "flex items-center gap-1 rounded-md bg-[var(--accent)] px-2.5 py-1 text-[11px] font-medium text-white",
+              "flex items-center gap-1.5 whitespace-nowrap rounded-md bg-[var(--accent)] px-2.5 py-1 text-[11px] font-medium text-white",
               "hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40",
             )}
           >
-            <Sparkles className={cn("h-3 w-3", comboStep === "generate" && "animate-pulse")} />
-            <GitCommit className="h-3 w-3" />
+            <Sparkles
+              className={cn("h-3 w-3", comboStep === "generate" && "animate-pulse")}
+            />
             <ArrowUpFromLine className="h-3 w-3" />
             <span>
               {comboStep === "generate"
@@ -392,7 +405,7 @@ export function CommitBox({
                   ? "Committing…"
                   : comboStep === "push"
                     ? "Pushing…"
-                    : "Generate, Commit & Push"}
+                    : "Commit & Push"}
             </span>
           </button>
         )}

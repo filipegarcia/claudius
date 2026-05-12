@@ -96,8 +96,11 @@ test.describe("/community soft-nav reconnect", () => {
 
     // Leave via the side-nav "Chat" link — this is the path the user
     // actually takes ("chat messages" in their words). Next.js client
-    // nav, NOT a page.goto / full reload.
-    await page.getByRole("link", { name: /^Chat$/ }).first().click();
+    // nav, NOT a page.goto / full reload. Use the href-based selector
+    // (consistent with the workspace-rail Community tile below) — the
+    // tooltip text now includes a shortcut hint ("Chat  ⌥C") which broke
+    // `getByRole("link", { name: /^Chat$/ })`.
+    await page.locator('[data-pane-name="left-nav"] a[href="/"]').first().click();
     await expect(page).toHaveURL(/\/$|\/\?/);
 
     // Come back via the workspace-rail Community tile. Use the title
