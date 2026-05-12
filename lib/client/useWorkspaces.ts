@@ -24,7 +24,17 @@ export function useWorkspaces() {
       const res = await fetch("/api/workspaces");
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const d = (await res.json()) as { workspaces: Workspace[]; activeId?: string | null };
-      setItems(d.workspaces);
+      // Keep the existing array reference when the payload is byte-identical.
+      // Without this guard every poll/refetch returns a brand-new array, which
+      // re-fires effects in any consumer that has `workspaces` in its deps —
+      // notably NotificationsProvider's "stale id in counts → refresh" effect,
+      // which would then refetch in a tight loop (refresh → new ref → effect
+      // re-runs → refresh → …). With ~10 workspaces JSON.stringify is
+      // microseconds; on a slow client it's still cheaper than the fetch we'd
+      // otherwise trigger again.
+      setItems((prev) =>
+        JSON.stringify(prev) === JSON.stringify(d.workspaces) ? prev : d.workspaces,
+      );
       // Resolution order matches the server's `resolveActiveWorkspace`:
       // cookie wins → server's hint (workspaces.json activeId) → first
       // workspace. Falling back to the first item used to disagree with

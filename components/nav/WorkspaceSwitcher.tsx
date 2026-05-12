@@ -13,7 +13,7 @@ import { CustomizationsDrawer } from "@/components/nav/CustomizationsDrawer";
 import { cn } from "@/lib/utils/cn";
 
 export function WorkspaceSwitcher() {
-  const { items, activeId, select, create, uploadIcon, reorder } = useWorkspaces();
+  const { items, activeId, select, create, uploadIcon, reorder, refresh } = useWorkspaces();
   const { counts } = useNotificationsContext();
   const community = useCommunityNotifications();
   const pathname = usePathname();
@@ -196,6 +196,7 @@ export function WorkspaceSwitcher() {
           customizations={customizationItems}
           activeId={activeId}
           onSelect={select}
+          onOpen={refresh}
         />
         <button
           onClick={() => setShowForm({ kind: "new" })}

@@ -1,0 +1,42 @@
+#!/bin/sh
+# Pre-commit gate: lint + related unit tests for staged JS/TS files.
+# Installed via `git config core.hooksPath .githooks` (run automatically by
+# the `prepare` npm script after `bun install`).
+
+set -eu
+
+# Collect staged files (Added/Copied/Modified/Renamed) matching JS/TS
+# extensions, that still exist on disk (skip deletions / rename-from paths).
+files=$(
+  git diff --cached --name-only --diff-filter=ACMR \
+    | grep -E '\.(js|jsx|ts|tsx|mjs|cjs)$' \
+    | while IFS= read -r f; do
+        [ -f "$f" ] && printf '%s\n' "$f"
+      done
+)
+
+if [ -z "$files" ]; then
+  exit 0
+fi
+
+count=$(printf '%s\n' "$files" | wc -l | tr -d ' ')
+
+# Prefer bun (matches the repo's tooling); fall back to npx.
+if command -v bun >/dev/null 2>&1; then
+  RUN="bun run"
+  RUN_DIRECT="bunx"
+else
+  RUN="npm run"
+  RUN_DIRECT="npx --no-install"
+fi
+
+echo "▶ Linting $count staged file(s)…"
+# Pass files via xargs so filenames with spaces are handled correctly. The `--`
+# separates `bun run lint`'s own flags from the file list it forwards to eslint.
+printf '%s\n' "$files" | xargs $RUN lint --
+
+echo "▶ Running related unit tests…"
+# `vitest related` walks the module graph and runs only test files that
+# (transitively) import any of the staged sources. `--passWithNoTests` keeps
+# the hook quiet when a change has no test coverage at all (e.g. config tweaks).
+printf '%s\n' "$files" | xargs $RUN test:related --

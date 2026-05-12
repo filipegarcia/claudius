@@ -1,7 +1,7 @@
 "use client";
 
 import { useLayoutEffect, useRef, useState } from "react";
-import { GitCommit, Sparkles } from "lucide-react";
+import { ArrowUpFromLine, GitCommit, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 
 type Props = {
@@ -14,6 +14,12 @@ type Props = {
   onCommit: (message: string) => Promise<{ ok: true } | { ok: false; error: string }>;
   /** When provided, shows a "Generate" button that asks Claude for a message. */
   onGenerate?: () => Promise<{ ok: true; message: string } | { ok: false; error: string }>;
+  /**
+   * Push the current branch. When provided, surfaces a combined
+   * "Generate, Commit & Push" button. Implementations should NOT show their
+   * own confirmation — the combo button asks once before the chain starts.
+   */
+  onPush?: () => Promise<{ ok: true } | { ok: false; error: string }>;
   /**
    * Persisted draft (server-backed). When set, prefills the textarea on
    * mount so a generated message survives navigation away and back. The
@@ -49,6 +55,7 @@ export function CommitBox({
   branchLabel,
   onCommit,
   onGenerate,
+  onPush,
   initialMessage,
   draftKey,
   onPersistDraft,
@@ -59,6 +66,9 @@ export function CommitBox({
   const [message, setMessage] = useState(initial);
   const [error, setError] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
+  // `comboStep` tells the user which leg of generate→commit→push is in
+  // flight so the button label reflects real progress on a slow turn.
+  const [comboStep, setComboStep] = useState<null | "generate" | "commit" | "push">(null);
   const taRef = useRef<HTMLTextAreaElement | null>(null);
   // Bumped on every programmatic reset so the post-render layout effect
   // moves the cursor to the end. Tracks the *event*, not the message.
@@ -140,8 +150,17 @@ export function CommitBox({
     }
   }
 
-  const canCommit = !busy && !generating && checkedCount > 0 && message.trim().length > 0;
-  const canGenerate = !!onGenerate && !busy && !generating && checkedCount > 0;
+  const idle = !busy && !generating && comboStep == null;
+  const canCommit = idle && checkedCount > 0 && message.trim().length > 0;
+  const canGenerate = !!onGenerate && idle && checkedCount > 0;
+  // Combo button needs SOME way to obtain a message: either the user typed
+  // one already, or we have `onGenerate` to ask Claude for one. Without
+  // either there's no path forward, so disable it.
+  const canCombo =
+    !!onPush &&
+    idle &&
+    checkedCount > 0 &&
+    (message.trim().length > 0 || !!onGenerate);
 
   async function submit() {
     if (!canCommit) return;
@@ -185,6 +204,82 @@ export function CommitBox({
     }
   }
 
+  /**
+   * The 3-in-1 chain: optionally generate → commit → push. Important details:
+   *
+   *  - We pass the *generated* message directly to `onCommit` rather than
+   *    relying on `setMessage(...)` to land before the commit call, because
+   *    React state updates are async.
+   *  - Generate failure short-circuits — committing on an empty message
+   *    would either fail or, worse, produce a bogus commit.
+   *  - Commit-then-push is not atomic. If push fails after a successful
+   *    commit, we keep the commit and surface a "Committed locally; push
+   *    failed: …" error so the user can retry push without re-doing the
+   *    work or accidentally committing twice.
+   */
+  async function generateCommitAndPush() {
+    if (!canCombo || !onPush) return;
+    const n = checkedCount;
+    const target = branchLabel ?? "current branch";
+    if (typeof window !== "undefined") {
+      const ok = window.confirm(`Commit ${n} file${n === 1 ? "" : "s"} and push to ${target}?`);
+      if (!ok) return;
+    }
+    setError(null);
+
+    // Step 1: generate if the box is empty.
+    let messageToCommit = message;
+    if (messageToCommit.trim().length === 0) {
+      if (!onGenerate) {
+        setError("commit message required");
+        return;
+      }
+      setComboStep("generate");
+      const g = await onGenerate();
+      if (!g.ok) {
+        setComboStep(null);
+        setError(g.error);
+        return;
+      }
+      messageToCommit = g.message;
+      setMessage(g.message);
+      if (onPersistDraft) {
+        try {
+          await onPersistDraft(g.message);
+        } catch {
+          // non-fatal
+        }
+      }
+    }
+
+    // Step 2: commit. On failure we stop and leave the textarea populated so
+    // the user can fix things up and retry.
+    setComboStep("commit");
+    const c = await onCommit(messageToCommit);
+    if (!c.ok) {
+      setComboStep(null);
+      setError(c.error);
+      return;
+    }
+    setMessage("");
+    if (onClearDraft) {
+      try {
+        await onClearDraft();
+      } catch {
+        // non-fatal
+      }
+    }
+
+    // Step 3: push. Keep the commit even on push failure — recovery (pull,
+    // amend, force-push, etc.) is the user's call.
+    setComboStep("push");
+    const p = await onPush();
+    setComboStep(null);
+    if (!p.ok) {
+      setError(`Committed locally; push failed: ${p.error}`);
+    }
+  }
+
   return (
     <div className="flex shrink-0 flex-col border-t border-[var(--border)] bg-[var(--panel)]">
       <div
@@ -220,10 +315,12 @@ export function CommitBox({
         disabled={generating}
         style={boxHeight != null ? { height: `${boxHeight}px` } : undefined}
         onKeyDown={(e) => {
-          // Cmd/Ctrl+Enter — submit shortcut, mirrors IntelliJ.
+          // Cmd/Ctrl+Enter — commit (mirrors IntelliJ).
+          // Cmd/Ctrl+Shift+Enter — generate + commit + push.
           if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
             e.preventDefault();
-            void submit();
+            if (e.shiftKey) void generateCommitAndPush();
+            else void submit();
           }
         }}
         className="resize-none border-y border-[var(--border)] bg-[var(--background)] px-3 py-2 font-mono text-xs leading-5 focus:outline-none scroll-thin disabled:opacity-60"
@@ -232,7 +329,9 @@ export function CommitBox({
         <div className="border-b border-red-500/30 bg-red-500/10 px-3 py-1 text-[11px] text-red-300">{error}</div>
       )}
       <div className="flex items-center gap-2 px-3 py-1.5">
-        <span className="text-[10px] text-[var(--muted)]">⌘/Ctrl + Enter to commit</span>
+        <span className="text-[10px] text-[var(--muted)]">
+          ⌘/Ctrl + Enter to commit{onPush ? " · ⇧ for + push" : ""}
+        </span>
         {onGenerate && (
           <button
             type="button"
@@ -265,6 +364,38 @@ export function CommitBox({
           <GitCommit className="h-3 w-3" />
           {busy ? "Committing…" : "Commit"}
         </button>
+        {onPush && (
+          <button
+            type="button"
+            onClick={() => void generateCommitAndPush()}
+            disabled={!canCombo}
+            data-testid="commit-and-push-button"
+            title={
+              checkedCount === 0
+                ? "Check files to commit first"
+                : message.trim().length === 0
+                  ? "Generate a commit message, commit, then push"
+                  : "Commit, then push"
+            }
+            className={cn(
+              "flex items-center gap-1 rounded-md bg-[var(--accent)] px-2.5 py-1 text-[11px] font-medium text-white",
+              "hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40",
+            )}
+          >
+            <Sparkles className={cn("h-3 w-3", comboStep === "generate" && "animate-pulse")} />
+            <GitCommit className="h-3 w-3" />
+            <ArrowUpFromLine className="h-3 w-3" />
+            <span>
+              {comboStep === "generate"
+                ? "Generating…"
+                : comboStep === "commit"
+                  ? "Committing…"
+                  : comboStep === "push"
+                    ? "Pushing…"
+                    : "Generate, Commit & Push"}
+            </span>
+          </button>
+        )}
       </div>
     </div>
   );

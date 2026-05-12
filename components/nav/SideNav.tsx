@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { MessageSquare, Network, Webhook, BookText, ShieldCheck, FolderTree, Bot, Calendar, BarChart3, Image as ImageIcon, Folder, Briefcase, GitBranch, Sparkles, WandSparkles } from "lucide-react";
+import { MessageSquare, Network, Webhook, BookText, ShieldCheck, FolderTree, Bot, Calendar, BarChart3, Image as ImageIcon, Folder, Briefcase, GitBranch, Sparkles, WandSparkles, Container } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import { useWorkspaces } from "@/lib/client/useWorkspaces";
@@ -48,6 +48,11 @@ const items: Item[] = [
   { label: "Hooks", icon: Webhook, href: "/hooks", shortcutCode: "KeyH", shortcutLabel: "⌥H" },
   { label: "Schedule", icon: Calendar, href: "/schedule", shortcutCode: "KeyL", shortcutLabel: "⌥L" },
   { label: "Permissions", icon: ShieldCheck, href: "/permissions", shortcutCode: "KeyP", shortcutLabel: "⌥P" },
+  // Docker — read-only `docker ps` view. The route degrades to a friendly
+  // empty state when docker isn't installed / the daemon is down, so it's
+  // safe to leave in the rail for users who don't run containers.
+  // ⌥D is the only D-mnemonic free in this list.
+  { label: "Docker", icon: Container, href: "/docker", shortcutCode: "KeyD", shortcutLabel: "⌥D" },
   // Workspace settings — defaults that apply to new chats in this workspace.
   { label: "Workspace", icon: Briefcase, href: "/workspace", shortcutCode: "KeyW", shortcutLabel: "⌥W" },
 ];

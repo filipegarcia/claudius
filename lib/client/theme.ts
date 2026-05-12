@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-export type ThemeId = "dark" | "light" | "midnight" | "paper" | "tui" | "tui-light";
+export type ThemeId = "dark" | "light" | "midnight" | "paper" | "tui" | "tui-light" | "synthwave";
 
 export const THEMES: { id: ThemeId; label: string; preview: { bg: string; accent: string } }[] = [
   { id: "dark", label: "Dark", preview: { bg: "#0b0b0c", accent: "#d97757" } },
@@ -11,6 +11,7 @@ export const THEMES: { id: ThemeId; label: string; preview: { bg: string; accent
   { id: "paper", label: "Paper", preview: { bg: "#f6f1e7", accent: "#7c4a2a" } },
   { id: "tui", label: "TUI", preview: { bg: "#000000", accent: "#f5a524" } },
   { id: "tui-light", label: "TUI Light", preview: { bg: "#fafaf7", accent: "#b45309" } },
+  { id: "synthwave", label: "Synthwave", preview: { bg: "#14092b", accent: "#ff6ad5" } },
 ];
 
 const STORAGE_KEY = "claudius.theme";

@@ -60,14 +60,21 @@ async function snap(page: Page, name: string) {
 }
 
 async function gotoStable(page: Page, path: string, opts?: { networkIdle?: boolean }) {
-  // Pages that mount `useSession` open a long-lived SSE stream that keeps
-  // the network "active" forever, so `networkidle` never fires. For those,
-  // fall back to `load`. Static read-only pages still benefit from
-  // networkidle waiting for the initial data fetches to settle.
-  const waitUntil = opts?.networkIdle === false ? "load" : "networkidle";
+  // The root layout now mounts a notifications SSE stream + a community
+  // notifications stream that keep the network "active" for the lifetime
+  // of the tab — `networkidle` never fires on any route, not just the
+  // chat. Default to `load` and rely on the per-test settle (plus the
+  // 1200ms here) for data fetches to finish.
+  //
+  // Callers can opt back into `networkidle` with `{ networkIdle: true }`
+  // for the rare static page that genuinely settles, but in practice that
+  // path is unused — left in for future routes.
+  const waitUntil = opts?.networkIdle === true ? "networkidle" : "load";
   await page.goto(path, { waitUntil });
-  // Tiny settle for transitions/skeletons.
-  await page.waitForTimeout(400);
+  // Settle for data fetches + transitions/skeletons. The static routes
+  // (sessions/agents/skills/...) all hit /api/* on mount; 1200ms covers
+  // their typical fetch latency on a warm dev server.
+  await page.waitForTimeout(1200);
 }
 
 /**
@@ -466,7 +473,13 @@ function buildCostFixture(): unknown {
 }
 
 test.describe("site screenshots — chat states", () => {
-  test.skip(!INCLUDE_CHAT, "set SCREENSHOTS_INCLUDE_CHAT=1 to capture chat shots (uses real API)");
+  // The chat.png / todos.png / ask-user-question.png shots are now produced
+  // by `tests/e2e/chat-screenshots.spec.ts`, which snaps fixture-driven
+  // dev preview pages (`/dev/chat-empty`, `/dev/chat-todos`, `/dev/chat-ask`).
+  // The new spec runs without ANTHROPIC_API_KEY and is deterministic. These
+  // legacy live-API tests are kept here for reference and gated off — flip
+  // SCREENSHOTS_INCLUDE_CHAT=1 to run them against a real Claude instead.
+  test.skip(!INCLUDE_CHAT, "fixture-driven chat-screenshots.spec.ts owns these shots now; set SCREENSHOTS_INCLUDE_CHAT=1 to drive the live API instead");
 
   test("chat — empty surface", async ({ page }) => {
     await freshChatSession(page);

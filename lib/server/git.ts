@@ -511,6 +511,236 @@ export async function gitRemote(cwd: string, op: RemoteOp): Promise<RemoteResult
   }
 }
 
+export type GitBranch = {
+  /** Short name. For local branches this is "main"; for remote tracking refs
+   * this is "origin/main". */
+  name: string;
+  /** Local vs remote-tracking. Remote-tracking refs become a tracking local
+   * branch on checkout. */
+  kind: "local" | "remote";
+  /** Short SHA of the tip commit. */
+  sha: string;
+  /** Upstream tracking ref for local branches (e.g. "origin/main"), if any. */
+  upstream?: string;
+  /** ISO-8601 commit date of the tip; used for "Recent" sort. */
+  committerDate: string;
+  /** True when this is HEAD's branch. */
+  current: boolean;
+};
+
+/**
+ * List local + remote branches in a single pass via `for-each-ref`, pre-sorted
+ * by committerdate desc. Filters out the `origin/HEAD` symbolic ref because
+ * it's an alias for whatever the default branch is, not a real branch.
+ */
+export async function listBranches(cwd: string): Promise<GitBranch[] | GitError> {
+  const root = await getRepoRoot(cwd);
+  if (!root) return { code: "not-a-repo", message: "not a git repository" };
+  try {
+    // %00 is git's literal-NUL field separator. Keeps us consistent with the
+    // porcelain -z parser above and dodges any whitespace-in-refname surprises.
+    // We pull both refname (long form) and refname:short — the long form's
+    // prefix is the unambiguous local/remote signal, since local branches can
+    // contain slashes ("feat/foo") that would fool a naive check.
+    const fmt = [
+      "%(refname)",
+      "%(refname:short)",
+      "%(objectname:short)",
+      "%(upstream:short)",
+      "%(committerdate:iso8601)",
+      "%(HEAD)",
+    ].join("%00");
+    const { stdout } = await git(
+      ["for-each-ref", `--format=${fmt}`, "--sort=-committerdate", "refs/heads", "refs/remotes"],
+      root,
+    );
+    const out: GitBranch[] = [];
+    for (const line of stdout.split("\n")) {
+      if (!line) continue;
+      const [refname, name, sha, upstream, committerDate, head] = line.split("\0");
+      if (!refname || !name) continue;
+      const kind: "local" | "remote" = refname.startsWith("refs/remotes/") ? "remote" : "local";
+      // `origin/HEAD -> origin/main` style symbolic refs come through as
+      // "refs/remotes/origin/HEAD"; they're aliases, not real branches.
+      if (kind === "remote" && /^[^/]+\/HEAD$/.test(name)) continue;
+      out.push({
+        name,
+        kind,
+        sha: sha ?? "",
+        upstream: upstream || undefined,
+        committerDate: committerDate ?? "",
+        current: head === "*",
+      });
+    }
+    return out;
+  } catch (err) {
+    return {
+      code: "git-failed",
+      message: err instanceof Error ? err.message : String(err),
+    };
+  }
+}
+
+/**
+ * Switch to `name`. Behaviour:
+ *   - local branch exists → `git switch <name>` (plain checkout)
+ *   - remote-only ref ("origin/foo") → `git switch --track <name>` which
+ *     creates a local "foo" tracking the remote
+ *   - `create: true` → `git switch -c <name> [startPoint]` (new branch);
+ *     fails if the branch already exists (no `-C`/force on purpose)
+ *
+ * Git's own dirty-tree refusal is forwarded verbatim — we deliberately don't
+ * stash-and-pop because recovery is messy and surprising.
+ */
+export async function checkoutBranch(
+  cwd: string,
+  opts: { name: string; create?: boolean; startPoint?: string },
+): Promise<{ ok: true; output: string } | GitError> {
+  const root = await getRepoRoot(cwd);
+  if (!root) return { code: "not-a-repo", message: "not a git repository" };
+  const name = opts.name.trim();
+  if (!isValidRefName(name)) {
+    return { code: "git-failed", message: "invalid branch name" };
+  }
+  if (opts.startPoint != null && !isValidRefName(opts.startPoint)) {
+    return { code: "git-failed", message: "invalid start point" };
+  }
+  try {
+    let args: string[];
+    if (opts.create) {
+      args = ["switch", "-c", name];
+      if (opts.startPoint) args.push(opts.startPoint);
+    } else {
+      // Probe whether `name` is already a local branch — if so, just switch.
+      // Otherwise see if it matches a remote-tracking ref and create the
+      // local tracking branch off it. We can't rely on a regex over the name
+      // because local branches can contain slashes too ("feat/foo").
+      if (await refExists(root, `refs/heads/${name}`)) {
+        args = ["switch", name];
+      } else if (await refExists(root, `refs/remotes/${name}`)) {
+        // Local branch name strips the remote prefix: "origin/foo" → "foo".
+        const localName = name.split("/").slice(1).join("/");
+        if (!localName || !isValidRefName(localName)) {
+          return { code: "git-failed", message: "could not derive local branch name" };
+        }
+        // If a local of that bare name happens to exist already (different
+        // tip), refuse rather than silently switching to it.
+        if (await refExists(root, `refs/heads/${localName}`)) {
+          args = ["switch", localName];
+        } else {
+          args = ["switch", "--track", name];
+        }
+      } else {
+        return { code: "git-failed", message: `unknown branch: ${name}` };
+      }
+    }
+    const r = await git(args, root);
+    return { ok: true, output: (r.stdout + r.stderr).trim() };
+  } catch (err) {
+    const message =
+      err instanceof GitFailure
+        ? err.stderr.trim() || err.message
+        : err instanceof Error
+          ? err.message
+          : String(err);
+    return { code: "git-failed", message };
+  }
+}
+
+async function refExists(root: string, ref: string): Promise<boolean> {
+  try {
+    await execFileP("git", ["show-ref", "--verify", "--quiet", ref], {
+      cwd: root,
+      timeout: TIMEOUT_MS,
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Pull and merge the current branch's upstream, surfacing conflicts as data
+ * (not as a stderr blob the caller has to grep). On any merge conflict, the
+ * working tree stays in its half-merged state — the caller is expected to
+ * hand that off to an interactive resolver (e.g. Claude Code) rather than
+ * silently aborting.
+ *
+ * Failure taxonomy:
+ *   - kind: "conflicts" → unmerged paths, working tree mid-merge
+ *   - kind: "error"     → no upstream, dirty tree, network, etc. (untouched)
+ *
+ * `--no-rebase --no-edit` is mandatory: without `--no-edit`, git tries to
+ * launch `$EDITOR` for the merge-commit message and either fails immediately
+ * (no TTY) or hangs forever in this server route.
+ */
+export type PullMergeResult =
+  | { ok: true; output: string }
+  | { ok: false; kind: "conflicts"; conflicts: string[]; output: string }
+  | { ok: false; kind: "error"; message: string };
+
+export async function pullWithMerge(cwd: string): Promise<PullMergeResult> {
+  const root = await getRepoRoot(cwd);
+  if (!root) return { ok: false, kind: "error", message: "not a git repository" };
+  try {
+    const r = await git(["pull", "--no-rebase", "--no-edit"], root);
+    return { ok: true, output: (r.stdout + r.stderr).trim() };
+  } catch (err) {
+    // `git pull` exits non-zero in two distinct cases we care about: a
+    // merge that produced conflicts (working tree mid-merge, paths listed
+    // by `git diff --diff-filter=U`) and operational failures (no upstream,
+    // dirty tree refusal, network errors). The taxonomy split here matters
+    // because the conflict branch is the one we hand off to Claude.
+    const stderr =
+      err instanceof GitFailure
+        ? err.stderr
+        : err instanceof Error
+          ? err.message
+          : String(err);
+    const conflicts = await listConflicts(root);
+    if (conflicts.length > 0) {
+      const output =
+        err instanceof GitFailure ? (err.stderr || "").trim() : stderr;
+      return { ok: false, kind: "conflicts", conflicts, output };
+    }
+    return { ok: false, kind: "error", message: stderr.trim() || "git pull failed" };
+  }
+}
+
+/** Unmerged-path list. Catches all of UU/AA/DD/AU/UA/UD/DU in one query. */
+async function listConflicts(root: string): Promise<string[]> {
+  try {
+    const { stdout } = await git(
+      ["diff", "--name-only", "--diff-filter=U", "-z"],
+      root,
+    );
+    return stdout
+      .split("\0")
+      .map((s) => s.trim())
+      .filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Reject refnames that would confuse `execFile` arg parsing or violate the
+ * git refname grammar. `execFile` itself blocks shell injection, but a name
+ * shaped like `--force` would still flow through as an option.
+ */
+function isValidRefName(name: string): boolean {
+  if (!name) return false;
+  if (name.startsWith("-")) return false; // would be parsed as a flag
+  if (name.length > 255) return false;
+  // git-check-ref-format rules, abbreviated to the bits that matter:
+  //   no whitespace, ASCII control, or any of:  ~ ^ : ? * [ \
+  //   no ".." or "@{" sequences, no trailing "/", no trailing ".lock"
+  if (/[\s~^:?*\[\\]/.test(name)) return false;
+  if (name.includes("..") || name.includes("@{")) return false;
+  if (name.endsWith("/") || name.endsWith(".lock")) return false;
+  return true;
+}
+
 /** True for known GitError shapes. */
 export function isGitError(x: unknown): x is GitError {
   return (
