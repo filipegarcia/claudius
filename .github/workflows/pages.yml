@@ -26,6 +26,11 @@ concurrency:
 
 jobs:
   deploy:
+    # GitHub Pages on private repos needs a paid plan. Skip the workflow
+    # on private so it doesn't redden CI — once the repo is public AND
+    # Pages is enabled (Settings → Pages → Source: GitHub Actions), the
+    # next push deploys site/ automatically.
+    if: github.event.repository.visibility == 'public'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
