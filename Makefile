@@ -1,4 +1,4 @@
-.PHONY: install dev build start lint unit test test-ui ci site screenshots screenshots-full claudius-revert claudius-revert-all run up down restart status logs
+.PHONY: install dev build start lint unit test test-ui test-setup test-setup-local test-setup-docker ci site screenshots screenshots-full claudius-revert claudius-revert-all run up down restart status logs
 
 install:
 	bun install --frozen-lockfile
@@ -26,6 +26,20 @@ test:
 
 test-ui:
 	bun run test:e2e:ui
+
+# ── site/setup.sh tests ────────────────────────────────────────────────
+# `test-setup-local` runs the installer against a throwaway $HOME on the
+# current host (covers macOS quirks). `test-setup-docker` runs it on a
+# clean Ubuntu container with bash/zsh/fish to catch Linux + shell-rc
+# regressions. `test-setup` runs both.
+
+test-setup-local:
+	@site/test/test-local.sh
+
+test-setup-docker:
+	@site/test/test-docker.sh
+
+test-setup: test-setup-local test-setup-docker
 
 ci: install lint unit test
 

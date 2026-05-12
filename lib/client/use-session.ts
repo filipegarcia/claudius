@@ -105,6 +105,37 @@ function extractToolResult(content: unknown): { tool_use_id: string; text: strin
 }
 
 /**
+ * True when a user-message's text content is a synthetic `<task-notification>`
+ * wrapper that the SDK injects to inform the model a background task finished.
+ * Those wrappers are valid input to Claude — they carry the task id, output
+ * path, and status — but they're noise in the chat UI: the user didn't type
+ * them, and the TaskBlock surface already shows the completion state from
+ * the paired system event. Filter them out at ingest so they never become a
+ * user bubble.
+ *
+ * Recognition is text-shaped because the wrappers arrive as plain text
+ * content (no structural marker on the SDK envelope distinguishes them).
+ * The match is forgiving about leading whitespace; otherwise we look for the
+ * opening tag at the start so we don't false-positive on a real user prompt
+ * that happens to quote the string.
+ */
+function isSyntheticTaskNotification(content: unknown): boolean {
+  let text: string;
+  if (typeof content === "string") {
+    text = content;
+  } else if (Array.isArray(content)) {
+    let buf = "";
+    for (const c of content as Array<{ type?: string; text?: string }>) {
+      if (c?.type === "text" && typeof c.text === "string") buf += c.text;
+    }
+    text = buf;
+  } else {
+    return false;
+  }
+  return /^\s*<task-notification[\s>]/.test(text);
+}
+
+/**
  * Pick a single representative argument from a tool's input, keyed off the
  * tool name. Best-effort — falls back to common keys, then gives up. Used by
  * the activity rail's tool history to put a recognizable subtitle under each
@@ -355,6 +386,11 @@ export function useSession(): ChatState & ChatActions {
     queueRef.current = [];
     setPendingPermission(null);
     pendingPermissionRef.current = null;
+    // DEBUG — see [ask-restore] block in applyEvent. Logs every reset so a
+    // bind→subscribe race can show up as "reset cleared the ask we just set".
+    console.log("[ask-restore] resetState clearing pendingAsk", {
+      sessionId: sessionIdRef.current,
+    });
     setPendingAsk(null);
     setErrors([]);
     setSlashCommands([]);
@@ -557,6 +593,17 @@ export function useSession(): ChatState & ChatActions {
         return;
       }
       if (ev.type === "ask_user_question") {
+        // DEBUG (issue: modal doesn't reappear after workspace switch).
+        // Tag with current sessionId + the event's requestId/toolUseId so the
+        // browser console shows whether SSE re-delivered the pending ask on
+        // resume — and whether the bound session matches by the time we apply.
+        // Remove once the workspace-switch restore is fully understood.
+        console.log("[ask-restore] sse ask_user_question", {
+          eventSessionExpected: sessionIdRef.current,
+          requestId: ev.requestId,
+          toolUseId: ev.toolUseId,
+          questionCount: ev.questions.length,
+        });
         setPendingAsk(ev);
         return;
       }
@@ -638,23 +685,43 @@ export function useSession(): ChatState & ChatActions {
         // so this fetch is the belt to the subscribe()'s suspenders.
         const id = sessionIdRef.current;
         if (id) {
+          console.log("[ask-restore] replay_done — fetching /pending-prompts", { id });
           void fetch(`/api/sessions/${id}/pending-prompts`)
             .then(async (res) => {
-              if (!res.ok) return;
+              if (!res.ok) {
+                console.log("[ask-restore] /pending-prompts non-OK", {
+                  id,
+                  status: res.status,
+                });
+                return;
+              }
               const j = (await res.json().catch(() => ({}))) as {
                 asks?: AskUserQuestionEvent[];
                 permissions?: PermissionRequestEvent[];
               };
+              console.log("[ask-restore] /pending-prompts response", {
+                id,
+                asksCount: j.asks?.length ?? 0,
+                permissionsCount: j.permissions?.length ?? 0,
+                stillBoundToSameSession: sessionIdRef.current === id,
+              });
               if (sessionIdRef.current !== id) return; // user switched
               const ask = j.asks?.[0];
-              if (ask) setPendingAsk(ask);
+              if (ask) {
+                console.log("[ask-restore] recovery setPendingAsk", {
+                  requestId: ask.requestId,
+                  toolUseId: ask.toolUseId,
+                });
+                setPendingAsk(ask);
+              }
               const perm = j.permissions?.[0];
               if (perm) {
                 setPendingPermission(perm);
                 pendingPermissionRef.current = perm;
               }
             })
-            .catch(() => {
+            .catch((err) => {
+              console.log("[ask-restore] /pending-prompts fetch threw", { err: String(err) });
               // Best-effort — the subscribe() path is the primary delivery.
             });
         }
@@ -1117,6 +1184,11 @@ export function useSession(): ChatState & ChatActions {
         // Surface user messages from a resumed transcript so the chat shows history.
         if (!isSynthetic && inner) {
           const content = inner.content;
+          // Drop SDK-injected <task-notification> wrappers — they're context
+          // for the model, not user-authored prose, and rendering them as a
+          // user bubble surfaces XML the user didn't write. The matching
+          // system `task_notification` event still updates the TaskBlock UI.
+          if (isSyntheticTaskNotification(content)) return;
           let text = "";
           if (typeof content === "string") text = content;
           else if (Array.isArray(content)) {
@@ -2016,6 +2088,10 @@ function synthesizeOlder(raw: Array<Record<string, unknown>>): {
       }
       continue;
     }
+
+    // Skip SDK-injected <task-notification> wrappers on the replay path too —
+    // see the live `if (msg.type === "user")` branch for the rationale.
+    if (isSyntheticTaskNotification(content)) continue;
 
     // Plain user message — text or array content.
     out.push({

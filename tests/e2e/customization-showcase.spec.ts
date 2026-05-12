@@ -56,6 +56,50 @@ const DEMOS: Demo[] = [
       // Tolerant selector: any SVG that says "Clippy" in its title or has a
       // recognisable testid; fall back to a small settle if none found.
       await page.waitForTimeout(2500);
+      // Start a fresh session tab so the screenshot lands on the clean
+      // "Claudius" welcome screen (prompt-suggestion chips visible) rather
+      // than whichever stale conversation was last open in the preview
+      // DB. The "+" button in <SessionTabs> creates a new untitled session
+      // and selects it.
+      const newTabBtn = page.getByTitle("New session tab");
+      if (await newTabBtn.count()) {
+        await newTabBtn.first().click({ trial: false }).catch(() => {});
+        await page.waitForTimeout(1500);
+      }
+      // Older preview-DB state can carry a stale session ID whose SDK
+      // conversation no longer exists; the Anthropic SDK then surfaces a
+      // "No conversation found with session ID …" error inside the chat
+      // pane. That's a noisy artefact for a marketing shot. Strip any
+      // element whose visible text mentions the error before we snap.
+      await page.evaluate(() => {
+        const needles = [
+          "No conversation found with session ID",
+          "Claude Code returned an error result",
+        ];
+        const isBanner = (el: HTMLElement) => {
+          const c = el.className || "";
+          if (typeof c !== "string") return false;
+          return /red-500|red-400|red-300/.test(c);
+        };
+        document.querySelectorAll<HTMLElement>("body *").forEach((el) => {
+          if (el.children.length > 0) return;
+          const t = (el.textContent ?? "").trim();
+          if (!t) return;
+          if (!needles.some((n) => t.includes(n))) return;
+          // Walk up to the nearest red-styled banner container; if none,
+          // just hide the text node itself.
+          let cur: HTMLElement | null = el;
+          for (let i = 0; i < 6 && cur; i++) {
+            if (isBanner(cur)) {
+              cur.style.display = "none";
+              return;
+            }
+            cur = cur.parentElement;
+          }
+          el.style.display = "none";
+        });
+      });
+      await page.waitForTimeout(150);
       await page.screenshot({
         path: resolve(SHOTS_DIR, "customization-clippy.png"),
         fullPage: false,

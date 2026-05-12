@@ -617,6 +617,114 @@ test.describe("site screenshots — customize feature", () => {
     const switcher = page.locator('[data-pane-name="workspace-switcher"]');
     const drawerBtn = switcher.locator('button[title*="ustomization"]').first();
     await drawerBtn.scrollIntoViewIfNeeded();
+    // Replace the message-area contents with a synthetic mid-interaction
+    // "user asks for a new feature" conversation. The card on the site is
+    // captioned "drawer · closed" — its job is to show the wand tile + the
+    // count badge in the rail. But the chat pane behind it shouldn't be
+    // someone's stale debugging session; a feature-request mock reads
+    // much better.
+    //
+    // Done as a `position: absolute` overlay inside `[data-pane-name=
+    // "chat-area"]` rather than mutating React's subtree, so reconciliation
+    // can't clobber it between injection and screenshot. The top/bottom
+    // offsets leave the SessionTabs strip and the composer visible — the
+    // overlay only covers the scrollable message list in between.
+    await page.evaluate(() => {
+      const pane = document.querySelector<HTMLElement>(
+        '[data-pane-name="chat-area"]',
+      );
+      if (!pane) return;
+      // Dismiss any live modal/tooltip overlays (e.g. a pending
+      // AskUserQuestion from whichever session was last active) — they'd
+      // float on top of our marketing overlay and look like a glitch.
+      // Also hide the pinned-user-message sticky bubble: it sits in its
+      // own stacking context (z-10) inside the scroll container and can
+      // poke through an overlay with a lower z-index.
+      document
+        .querySelectorAll<HTMLElement>(
+          '[data-testid="ask-user-question"], [role="dialog"], [data-radix-popper-content-wrapper], [data-testid="permission-prompt"], [data-message-uuid].sticky',
+        )
+        .forEach((el) => {
+          el.style.display = "none";
+        });
+      const tabs = pane.querySelector<HTMLElement>('[data-testid="session-tab"]');
+      const composer = pane.querySelector<HTMLElement>('[data-pane-name="composer"]');
+      const top = (tabs?.closest("div")?.getBoundingClientRect().bottom ?? 36) -
+        pane.getBoundingClientRect().top;
+      const bottom = composer
+        ? pane.getBoundingClientRect().bottom - composer.getBoundingClientRect().top + 8
+        : 84;
+      const overlay = document.createElement("div");
+      overlay.id = "claudius-screenshot-overlay";
+      overlay.style.cssText =
+        `position:absolute;left:0;right:0;top:${Math.round(top)}px;bottom:${Math.round(bottom)}px;background:var(--background);z-index:30;overflow:hidden;`;
+      overlay.innerHTML = `
+        <div class="flex h-full flex-1 min-h-0 flex-col">
+          <div class="flex-1 overflow-y-hidden scroll-thin">
+            <div class="mx-auto w-full max-w-3xl space-y-4 px-4 py-6">
+              <section class="space-y-4">
+                <div class="space-y-2 rounded-md">
+                  <div class="group flex justify-end">
+                    <div class="max-w-[80%] rounded-2xl border border-[var(--border)] bg-[var(--panel-2)] px-4 py-2">
+                      <div class="whitespace-pre-wrap text-sm leading-6">Hey — let's build a new customization called <strong>"Build a data pipeline"</strong>. Add a <code class="rounded bg-[var(--panel)] px-1 py-0.5 font-mono text-[12px]">/pipeline</code> route that renders our data pipeline as a DAG: sources (Kafka, Postgres CDC, S3) flowing into ingest, then Bronze → dbt → Silver → Gold marts, and a Feature store. Each node should show throughput, p95 latency, and a sparkline. Curved gradient edges with throughput labels on them. Add a "recent runs" strip at the bottom — last 24 runs per stage as green/amber/red chips. Make it look really nice.</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="space-y-2 rounded-md">
+                  <div class="text-sm leading-6 text-[var(--foreground)]/90 whitespace-pre-wrap">I'll mirror the Docker customization layout — top aggregate cards, the DAG, then a run-history strip. Self-contained fixture data so the screenshot stays deterministic. Starting with a survey of the existing customizations to match the visual language.</div>
+                  <div class="my-2 rounded-lg border border-[var(--border)] bg-[var(--panel)]/40">
+                    <div class="flex w-full items-center gap-2 pr-3 text-xs hover:bg-[var(--panel-2)]">
+                      <div class="flex min-w-0 flex-1 items-center gap-2 px-3 py-1.5 text-left">
+                        <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                        <svg class="h-3.5 w-3.5" style="color:var(--accent)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
+                        <span class="font-mono">Glob</span>
+                        <span class="truncate font-mono text-[10px] text-[var(--muted)]">app/docker/page.tsx</span>
+                      </div>
+                      <span class="inline-flex items-center gap-1 text-[var(--muted)]">
+                        <svg class="h-3.5 w-3.5 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.801 10A10 10 0 1 1 17 3.335"></path><path d="m9 11 3 3L22 4"></path></svg>
+                      </span>
+                    </div>
+                  </div>
+                  <div class="my-2 rounded-lg border border-[var(--border)] bg-[var(--panel)]/40">
+                    <div class="flex w-full items-center gap-2 pr-3 text-xs hover:bg-[var(--panel-2)]">
+                      <div class="flex min-w-0 flex-1 items-center gap-2 px-3 py-1.5 text-left">
+                        <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                        <svg class="h-3.5 w-3.5" style="color:var(--accent)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
+                        <span class="font-mono">Read</span>
+                        <span class="truncate font-mono text-[10px] text-[var(--muted)]">app/docker/page.tsx</span>
+                      </div>
+                      <span class="inline-flex items-center gap-1 text-[var(--muted)]">
+                        <svg class="h-3.5 w-3.5 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.801 10A10 10 0 1 1 17 3.335"></path><path d="m9 11 3 3L22 4"></path></svg>
+                      </span>
+                    </div>
+                  </div>
+                  <div class="text-sm leading-6 text-[var(--foreground)]/90 whitespace-pre-wrap">Good — the Docker page has the radial-gauge + sparkline pattern I want to rhyme with. Now scaffolding the route…</div>
+                  <div class="my-2 rounded-lg border border-[var(--border)] bg-[var(--panel)]/40">
+                    <div class="flex w-full items-center gap-2 pr-3 text-xs hover:bg-[var(--panel-2)]">
+                      <div class="flex min-w-0 flex-1 items-center gap-2 px-3 py-1.5 text-left">
+                        <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                        <svg class="h-3.5 w-3.5" style="color:var(--accent)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
+                        <span class="font-mono">Write</span>
+                        <span class="truncate font-mono text-[10px] text-[var(--muted)]">app/pipeline/page.tsx</span>
+                      </div>
+                      <span class="inline-flex items-center gap-1 text-[var(--muted)]">
+                        <span class="inline-block h-2 w-2 animate-pulse rounded-full" style="background:var(--accent)"></span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2 text-xs text-[var(--muted)]">
+                  <svg class="h-3.5 w-3.5 animate-spin" style="color:var(--accent)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg>
+                  <span class="font-medium text-[var(--foreground)]/80">Claude is working…</span>
+                </div>
+              </section>
+            </div>
+          </div>
+        </div>
+      `;
+      pane.style.position = "relative";
+      pane.appendChild(overlay);
+    });
     await page.waitForTimeout(400);
     await snap(page, "customize-drawer-closed");
   });

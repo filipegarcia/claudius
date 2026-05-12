@@ -83,6 +83,31 @@ unit:
     - npm install --no-package-lock --no-audit --no-fund
     - npx vitest run
 
+# site/setup.sh smoke test. Runs the in-container assertion script against
+# the checked-out source — verifies the installer drops a working launcher,
+# wires PATH into the right rc for bash/zsh/fish, is idempotent on re-run,
+# and rejects a non-git $PREFIX. Uses a stub `bun` (provisioned by the test
+# script itself) to avoid network round-trips. We only need bash/zsh/fish
+# plus git/curl/ca-certificates — no Bun/Node toolchain.
+#
+# This job does NOT verify that `bun run dev` actually serves :3000 or that
+# the browser-open step fires — those need a real workstation, not CI.
+setup-script:
+  stage: test
+  image: ubuntu:24.04
+  variables:
+    DEBIAN_FRONTEND: noninteractive
+  before_script:
+    - apt-get update -qq
+    - apt-get install -y --no-install-recommends bash zsh fish git curl ca-certificates
+    # GitLab usually checks out in detached HEAD. setup.sh runs
+    # `git clone --branch X` against this dir, which requires refs/heads/X
+    # to exist. Materialize a synthetic branch ref pointing at HEAD so the
+    # clone has something to ask for.
+    - git -C "$CI_PROJECT_DIR" update-ref refs/heads/__ci-setup-test "$(git -C "$CI_PROJECT_DIR" rev-parse HEAD)"
+  script:
+    - TEST_SRC="$CI_PROJECT_DIR" TEST_BRANCH=__ci-setup-test bash site/test/test-in-docker.sh
+
 e2e:
   stage: test
   image: mcr.microsoft.com/playwright:v1.59.1-jammy

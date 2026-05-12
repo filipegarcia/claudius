@@ -9,6 +9,7 @@
  */
 
 import { Mic, Paperclip, ArrowUp } from "lucide-react";
+import { ClaudiusMark } from "@/components/brand/ClaudiusMark";
 import { PreviewChrome } from "../_chat-chrome/PreviewChrome";
 
 const SUGGESTIONS = [
@@ -45,18 +46,10 @@ export default function ChatEmptyPreview() {
 
         {/* Empty hero */}
         <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
-          {/* Claudius bust placeholder — abstract head SVG matching the existing one */}
-          <svg viewBox="0 0 120 140" className="mb-6 h-32 w-32 text-[var(--foreground)]" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <path d="M60 18 C 40 18, 28 36, 30 60 C 32 84, 44 96, 60 96 C 76 96, 88 84, 90 60 C 92 36, 80 18, 60 18 Z" />
-            <path d="M32 56 C 28 50, 28 40, 36 36" />
-            <path d="M88 56 C 92 50, 92 40, 84 36" />
-            <path d="M40 26 C 44 18, 52 16, 60 16" />
-            <path d="M80 26 C 76 18, 68 16, 60 16" />
-            <circle cx="48" cy="58" r="1.5" fill="currentColor" />
-            <circle cx="72" cy="58" r="1.5" fill="currentColor" />
-            <path d="M52 76 Q 60 82, 68 76" />
-            <path d="M44 96 L 44 110 L 76 110 L 76 96" />
-          </svg>
+          {/* The real splash bust — same component the live empty state uses
+              in components/chat/MessageList.tsx. Themes via CSS color so it
+              honours the active palette. */}
+          <ClaudiusMark color="var(--foreground)" size={120} className="mb-5 opacity-90" />
           <h1 className="text-3xl font-semibold tracking-tight text-[var(--foreground)]">Claudius</h1>
           <p className="mt-2 text-sm text-[var(--muted)]">
             A web interface for Claude Code. Type a prompt to start a session.

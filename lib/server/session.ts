@@ -138,14 +138,79 @@ function isRealUserPrompt(content: unknown): boolean {
 }
 
 /**
+ * Resolve the freshest session title from the available sources without
+ * ever clobbering a name the user (or the SDK) already committed to.
+ *
+ * Precedence:
+ *   1. `local`      — our DB row, set explicitly via `setSessionTitle`.
+ *                     This is the strongest signal: the user typed it in
+ *                     Claudius, and we own this storage.
+ *   2. `info.customTitle` — the SDK's persisted title (set via the TUI
+ *                     `/rename`, or auto-derived `aiTitle` once the SDK
+ *                     has produced one — the SDK folds `aiTitle` into
+ *                     `customTitle` on the returned info object).
+ *   3. `info.summary`     — ONLY as a first-time fallback when `current`
+ *                     is still empty (= a session that's never had a
+ *                     real title and would otherwise show its raw UUID
+ *                     in the tab strip). The SDK's `summary` field is
+ *                     computed `customTitle || lastPrompt || ...`, so
+ *                     using it as a fallback once a title is set causes
+ *                     the title to MORPH into the last user message
+ *                     every time `sendFreshTitle` runs — the bug this
+ *                     guard exists to prevent.
+ *
+ * Exported for unit testing.
+ *
+ * @param local     Title from the per-project SQLite index, or null.
+ * @param info      SDK session info (`customTitle`, `summary`), or null.
+ * @param current   The in-memory `this.title` at call time, or undefined
+ *                  for a fresh session.
+ * @returns         The title to surface, or null when there's nothing
+ *                  trustworthy to show (caller leaves `this.title` alone).
+ */
+export function resolveSessionTitle(opts: {
+  local: string | null | undefined;
+  info: { customTitle?: string | null; summary?: string | null } | null | undefined;
+  current: string | null | undefined;
+}): string | null {
+  const localTrim = opts.local?.trim();
+  if (localTrim) return localTrim;
+  const customTrim = opts.info?.customTitle?.trim();
+  if (customTrim) return customTrim;
+  // No trusted source. Only fall back to the SDK's auto-derived `summary`
+  // if we have nothing in memory yet — otherwise we'd overwrite a real
+  // title (set in a previous boot, but no longer reachable via DB or
+  // customTitle for whatever reason) with the last user prompt.
+  const currentTrim = opts.current?.trim();
+  if (currentTrim) return null;
+  const summaryTrim = opts.info?.summary?.trim();
+  return summaryTrim || null;
+}
+
+/**
+ * Recognise the SDK-injected `<task-notification>` wrapper that arrives as a
+ * user-role message when a background task finishes. It's valid input to the
+ * model but pure noise from the user's perspective — and counting it as a
+ * "real user prompt" makes `computeReplayWindow` anchor on it instead of the
+ * actual previous prompt, exactly the bug `isRealUserPrompt` exists to avoid.
+ * Mirrors the client-side helper of the same name in `lib/client/use-session`.
+ */
+function isSyntheticTaskNotification(text: string): boolean {
+  return /^\s*<task-notification[\s>]/.test(text);
+}
+
+/**
  * Pull the plain-text body out of a user SDK message's `content`. Returns
- * null for synthetic tool_result wrappers and for content that has no
- * text body (e.g. image-only prompts — those still survive via the SSE
- * replay path, the snapshot fallback just doesn't carry their pixels).
+ * null for synthetic tool_result wrappers, for synthetic task-notification
+ * wrappers, and for content that has no text body (e.g. image-only prompts
+ * — those still survive via the SSE replay path, the snapshot fallback just
+ * doesn't carry their pixels).
  */
 function extractUserPromptText(content: unknown): string | null {
   if (typeof content === "string") {
-    return content.length > 0 ? content : null;
+    if (content.length === 0) return null;
+    if (isSyntheticTaskNotification(content)) return null;
+    return content;
   }
   if (!Array.isArray(content)) return null;
   let text = "";
@@ -155,7 +220,9 @@ function extractUserPromptText(content: unknown): string | null {
       text += b.text;
     }
   }
-  return text.length > 0 ? text : null;
+  if (text.length === 0) return null;
+  if (isSyntheticTaskNotification(text)) return null;
+  return text;
 }
 
 export class Session {
@@ -165,9 +232,12 @@ export class Session {
   readonly resumeFrom?: string;
   readonly resumeAt?: string;
   /**
-   * Human-readable display title. Sourced from the SDK's persisted session
-   * metadata (`customTitle` first, falling back to `summary`). Updated when
-   * the user renames the session via the chat header.
+   * Human-readable display title. Resolved by `resolveSessionTitle`:
+   *   1. Our DB row (set via `setSessionTitle` on user rename)
+   *   2. The SDK's `customTitle` (TUI rename / auto-derived `aiTitle`)
+   *   3. As a *first-time-only* fallback when the title is still empty,
+   *      the SDK's `summary` field — never used to overwrite an existing
+   *      title, because `summary` falls back to the last user prompt.
    */
   title?: string;
   private permissionMode: PermissionMode;
@@ -246,16 +316,14 @@ export class Session {
       // works even for sessions that haven't completed a turn yet (the
       // SDK's customTitle requires a JSONL on disk). Fall back to the SDK's
       // metadata if we have nothing locally — this picks up titles authored
-      // in another client (e.g. the TUI's `/rename`).
+      // in another client (e.g. the TUI's `/rename`). See
+      // `resolveSessionTitle` for the full precedence + the lastPrompt
+      // guard.
       try {
         const local = await getSessionTitle(this.cwd, this.resumeFrom);
-        if (local) {
-          this.title = local;
-        } else {
-          const info = await getSessionInfo(this.resumeFrom, { dir: this.cwd });
-          const t = info?.customTitle ?? info?.summary;
-          if (t) this.title = t;
-        }
+        const info = local ? null : await getSessionInfo(this.resumeFrom, { dir: this.cwd });
+        const next = resolveSessionTitle({ local, info, current: this.title });
+        if (next) this.title = next;
       } catch {
         // non-fatal — header just shows the prefix fallback
       }
@@ -996,7 +1064,18 @@ export class Session {
     // be redelivered to the new subscriber, otherwise reloading the page
     // (or switching session tabs and coming back) leaves the user with no
     // way to answer them.
+    console.log("[ask-restore] subscribe re-emit", {
+      sessionId: this.id,
+      pendingAsks: this.pendingAskQuestions.size,
+      pendingPermissions: this.pendingPermissions.size,
+      pendingPlans: this.pendingPlans.size,
+    });
     for (const pending of this.pendingAskQuestions.values()) {
+      console.log("[ask-restore] subscribe emitting ask_user_question", {
+        sessionId: this.id,
+        requestId: pending.requestId,
+        toolUseId: pending.toolUseId,
+      });
       fn({
         type: "ask_user_question",
         requestId: pending.requestId,
@@ -1102,12 +1181,15 @@ export class Session {
       // Local rename store wins — that's the authoritative override for
       // titles set inside Claudius (and survives across SDK weirdness).
       const local = await getSessionTitle(this.cwd, this.id).catch(() => null);
-      const fromLocal = local ?? null;
-      let next = fromLocal;
-      if (!next) {
-        const info = await getSessionInfo(this.id, { dir: this.cwd }).catch(() => null);
-        next = info?.customTitle ?? info?.summary ?? null;
-      }
+      const info = local
+        ? null
+        : await getSessionInfo(this.id, { dir: this.cwd }).catch(() => null);
+      // `resolveSessionTitle` enforces the rule "never overwrite an
+      // existing title with the SDK's auto-derived `summary`" — that
+      // field falls back to `lastPrompt`, so without this guard every
+      // subscribe (reload, second tab, late connect) would morph the
+      // session's name into whatever the user said last.
+      const next = resolveSessionTitle({ local, info, current: this.title });
       if (!next) return;
       if (next !== this.title) {
         // Title moved — broadcast so every open tab updates, and mirror
@@ -1217,8 +1299,24 @@ export class Session {
         }
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      this.broadcast({ type: "error", message });
+      // Distinguish a reaper-initiated abort from any other failure. When
+      // the SessionManager's idle reaper fires `session.end()`, it calls
+      // `abortController.abort()`, which makes the SDK's iterator throw
+      // "Claude Code process aborted by user" — but the user wasn't doing
+      // anything; they were AWAY, that's why the reaper fired. Surfacing
+      // that as a `session_error` notification gives the user a phantom
+      // "something broke" alert when they come back. Skip the broadcast
+      // entirely in that case so the bus never sees an error event.
+      //
+      // The user-initiated stop path goes through `query.interrupt()`
+      // (not abortController), so `signal.aborted` stays false and the
+      // broadcast still fires — picked up by the bus, then auto-read on
+      // arrival by the NotificationsProvider gate (same-session-visible
+      // mirrors `useNotifications.notify`'s OS-popup suppression).
+      if (!this.abortController.signal.aborted) {
+        const message = err instanceof Error ? err.message : String(err);
+        this.broadcast({ type: "error", message });
+      }
     } finally {
       this.done = true;
       // Defensive: if the SDK iterator returned without ever emitting a
