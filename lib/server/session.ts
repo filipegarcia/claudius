@@ -122,17 +122,6 @@ export function computeReplayWindow(
   if (lastUserTurnIdx >= 0 && lastUserTurnIdx < startIdx) {
     startIdx = lastUserTurnIdx;
   }
-  // TEMP diagnostic — confirm this code is actually being hit for the
-  // affected session. Remove once verified.
-  console.log("[replay-window]", {
-    bufferLen: buffer.length,
-    turns: turnIdx.length,
-    tail,
-    skip,
-    naiveStart: turnIdx[skip],
-    lastUserTurnIdx,
-    finalStart: startIdx,
-  });
   return { startIdx, hasMoreAbove: startIdx > 0 };
 }
 
