@@ -26,11 +26,14 @@ test.describe("Customization description — manual edit (headed UI flow)", () =
     // Bootstrap copies the live source mirror (~324 files on this repo), then
     // the [id] route cold-compiles in `next dev` and the page renders the
     // description section + a 5s poll. On CI's slower runners the
-    // bootstrap-plus-compile reliably crosses 2 minutes, so this spec gets
-    // an unusually large budget. The right long-term fix is running e2e
-    // against `next build && next start` in CI — dev-mode compile dominates
-    // — but that's a wider change than this test owns.
-    test.setTimeout(300_000);
+    // bootstrap-plus-compile reliably crosses 2 minutes, *and* the page
+    // auto-fetches a `/diff` whose computeDiff() can chew 60-70s of single-
+    // threaded dev-server time, queueing every other request behind it. So
+    // this spec gets an unusually large budget. The right long-term fix is
+    // running e2e against `next build && next start` in CI — dev-mode
+    // compile + serialized request handling dominate — but that's a wider
+    // change than this test owns.
+    test.setTimeout(600_000);
 
     let id = "";
 
@@ -85,19 +88,18 @@ test.describe("Customization description — manual edit (headed UI flow)", () =
       await textarea.fill(description);
 
       // Click Save and wait for the PATCH to complete. On CI's overloaded
-      // dev server the PATCH can sit in the queue for 15-20s behind cold
-      // compiles — long enough for the post-save `toBeVisible` polls to
-      // exhaust their default 15s timeout while still in editing mode
-      // (where the textarea's text content matches `getByText(description)`,
-      // making line 90 deceptively pass even though save hasn't landed).
-      // Waiting on the response surfaces a 4xx/5xx directly and gates the
-      // assertions on a real, completed save.
+      // dev server the PATCH can sit behind the auto-mounted PublishRevertPanel's
+      // /diff request — observed at 67s of single-threaded compute on a slow
+      // runner — so the round-trip from click to response easily crosses
+      // 60-90s. Waiting on the response surfaces a 4xx/5xx directly and
+      // gates the assertions on a real, completed save. The 240s budget is
+      // intentional headroom over the worst observed runner.
       const [patchRes] = await Promise.all([
         page.waitForResponse(
           (r) =>
             r.url().endsWith(`/api/customizations/${id}/description`) &&
             r.request().method() === "PATCH",
-          { timeout: 60_000 },
+          { timeout: 240_000 },
         ),
         section.getByRole("button", { name: /^Save$/ }).click(),
       ]);
