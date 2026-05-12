@@ -46,6 +46,60 @@ test.describe("Customization description — manual edit (headed UI flow)", () =
         window.localStorage.setItem("claudius.customize.help-seen", "1");
       });
 
+      // Stub the heavy diff / sync / publishes fetches that PublishRevertPanel
+      // and SyncFromBasePanel fire on mount. computeDiff() and
+      // computeSyncStatus() each hash ~324 source files; on slow CI runners
+      // we've observed them at 4+ minutes of single-threaded application
+      // time, and Next dev serializes route handlers — every subsequent
+      // request (including the Save-click PATCH this test waits on) queues
+      // behind them. None of these endpoints are exercised by the manual
+      // description-edit flow, so we short-circuit them with deterministic
+      // empty payloads to keep the dev server's request loop free.
+      await page.route(/\/api\/customizations\/cust_[0-9a-f]+\/diff$/, (route) =>
+        route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            changedFiles: 0,
+            addedFiles: 0,
+            identicalFiles: 0,
+            files: [],
+          }),
+        }),
+      );
+      await page.route(/\/api\/customizations\/cust_[0-9a-f]+\/publishes$/, (route) =>
+        route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ publishes: [] }),
+        }),
+      );
+      await page.route(/\/api\/customizations\/cust_[0-9a-f]+\/sync$/, (route) => {
+        // Only stub the on-mount GET; let any explicit POST (sync apply) fall
+        // through if the test ever decides to exercise it.
+        if (route.request().method() !== "GET") {
+          return route.fallback();
+        }
+        return route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            manifestCreatedAt: Date.now(),
+            totals: {
+              "in-sync": 0,
+              "upstream-only": 0,
+              "user-only": 0,
+              conflict: 0,
+              "new-upstream": 0,
+              "new-user": 0,
+              "deleted-upstream": 0,
+              "deleted-user": 0,
+            },
+            entries: [],
+          }),
+        });
+      });
+
       // 1. Open the customize listing and create a new customization.
       await page.goto("/customize");
 
