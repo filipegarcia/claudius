@@ -46,14 +46,14 @@ git tag vX.Y.Z
 git push origin main --tags
 ```
 
-Wait for GitLab CI to go green. The `pages` job redeploys the marketing site automatically — verify <https://filipegarcia.gitlab.io/claudius/> serves the new version's setup script.
+Wait for GitHub Actions to go green. The `pages` job redeploys the marketing site automatically — verify <https://filipegarcia.github.io/claudius/> serves the new version's setup script.
 
 ## 5. Smoke the install
 
 Fresh shell, fresh dir:
 
 ```bash
-curl -fsSL https://filipegarcia.gitlab.io/claudius/setup.sh | bash -s -- --prefix=/tmp/claudius-smoke
+curl -fsSL https://filipegarcia.github.io/claudius/setup.sh | bash -s -- --prefix=/tmp/claudius-smoke
 cd /tmp/claudius-smoke && bun run dev
 ```
 
@@ -62,5 +62,5 @@ Open <http://localhost:3000>, send one prompt, confirm the response renders. The
 ## What to do if step N fails
 
 - **Step 2 (build/test):** stop. Fix and re-run from step 2. Don't tag a broken commit.
-- **Step 4 (CI):** if the pages job times out, re-trigger from the GitLab UI. If it fails twice with the same error, dig — don't keep retrying.
+- **Step 4 (CI):** if the pages job times out, re-trigger from the GitHub UI. If it fails twice with the same error, dig — don't keep retrying.
 - **Step 5 (smoke):** the released version is broken. Open a hotfix branch, bump patch, repeat from step 1.

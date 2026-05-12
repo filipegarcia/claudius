@@ -4,9 +4,9 @@ import { resolve } from "node:path";
 
 /**
  * Static integrity checks for `site/` — the marketing surface published to
- * GitLab Pages.
+ * GitHub Pages.
  *
- * The `pages` job in `.gitlab-ci.yml` is a no-op script that just bundles
+ * The `pages` job in `.github/workflows/` is a no-op script that just bundles
  * the directory; without this suite a broken anchor, a missing screenshot,
  * or a stale install URL would only be caught by humans clicking around
  * post-deploy. Runs in the `unit` job so failures gate the deploy via the
@@ -45,7 +45,7 @@ function collectInternalAnchors(html: string): string[] {
 /**
  * All local file references (`src="claudius.svg"`, `src="screenshots/x.png"`,
  * `href="./setup.sh"`). Skips external URLs, `#fragment` links, `mailto:`,
- * inline `data:`, and the `https://filipegarcia.gitlab.io/...` install URL
+ * inline `data:`, and the `https://filipegarcia.github.io/...` install URL
  * (covered by a dedicated assertion below).
  */
 function collectLocalAssetRefs(html: string): string[] {

@@ -13,7 +13,7 @@ import { PreviewChrome } from "../_chat-chrome/PreviewChrome";
 const TODOS = [
   { content: "Ship the marketing site", status: "completed" as const },
   { content: "Capturing marketing screenshots", status: "in_progress" as const },
-  { content: "Push to GitLab Pages", status: "pending" as const },
+  { content: "Push to GitHub Pages", status: "pending" as const },
 ];
 
 export default function ChatTodosPreview() {
@@ -104,7 +104,7 @@ export default function ChatTodosPreview() {
               <p>
                 Two left: <strong>capturing marketing screenshots</strong>{" "}
                 (in flight — running Playwright against the dev server),
-                then <strong>push to GitLab Pages</strong>. The page push
+                then <strong>push to GitHub Pages</strong>. The page push
                 is gated on the screenshot run finishing, so once Playwright
                 exits we&rsquo;ll have everything green.
               </p>

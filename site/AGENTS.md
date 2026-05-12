@@ -1,7 +1,7 @@
 # site/
 
 The marketing surface. A single static `index.html` plus assets, published
-to GitLab Pages from the `pages` job on every push to `main`. Plain
+to GitHub Pages from the `pages` job on every push to `main`. Plain
 Tailwind via CDN, vanilla JS for the lightbox + copy button — no build
 step.
 
@@ -21,7 +21,7 @@ site/
 ## What the test suite enforces
 
 Two specs guard the site. Both run before the `pages` deploy via the
-`test → deploy` stage ordering in `.gitlab-ci.yml`.
+`test → deploy` stage ordering in `.github/workflows/`.
 
 1. **`tests/unit/site-static.test.ts`** — vitest, runs in the `unit` job.
    - Every `id` is unique.
@@ -51,10 +51,11 @@ Two specs guard the site. Both run before the `pages` deploy via the
      populates `#lightbox-img`, and closes on `Esc`.
    - Each top-nav link updates the URL hash to its target id.
 
-3. **`site/test/test-in-docker.sh`** — Docker harness for `setup.sh`
-   itself; runs via `make test-setup-docker`. Not part of the GitLab
-   pipeline (Docker is expensive on shared runners), so run it locally
-   before tagging a release that touches the installer.
+3. **`site/test/test-in-docker.sh`** — in-container assertions for
+   `setup.sh`. Runs via `make test-setup-docker` locally and as the
+   `setup-script` job on GitHub Actions (`.github/workflows/ci.yml`),
+   which provisions an `ubuntu:24.04` runner with bash/zsh/fish and
+   executes this same script.
 
 ## Adding things
 
@@ -128,7 +129,7 @@ push to main
    └─ test stage   (lint, unit, e2e, sast, secret-detection)
          └─ deploy stage
               └─ pages   (bundles site/ as-is — no build step)
-                    └─ https://filipegarcia.gitlab.io/claudius/
+                    └─ https://filipegarcia.github.io/claudius/
 ```
 
 If any `test`-stage job fails the `pages` job doesn't run, so the live
