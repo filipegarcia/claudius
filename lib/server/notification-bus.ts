@@ -406,6 +406,23 @@ export function mapEventToKind(
         requestId: event.requestId,
       };
     case "error":
+      // Defense in depth for the abort-path notification storm: even when
+      // `Session.consume()`'s `signal.aborted` guard already filters reaper
+      // aborts at the broadcast, drop anything matching the SDK's abort
+      // sentinel here too. Two reasons:
+      //   1. Pre-HMR Session instances still running the OLD consume() can
+      //      slip past the source-side guard until the dev server restarts.
+      //      The bus is a singleton on `globalThis` but its `mapEventToKind`
+      //      lookup happens at call time, so a code edit here takes effect
+      //      on the next event without needing fresh Sessions.
+      //   2. User-initiated stop (`query.interrupt()`) also makes the SDK
+      //      throw this string but doesn't set `signal.aborted`; the
+      //      auto-read gate in `NotificationsProvider` cleans those up when
+      //      the user is on the tab, but suppressing the persistence step
+      //      avoids the brief workspace-tile flicker entirely.
+      // Scheduler runs that genuinely errored still surface — the suppression
+      // is gated on `ctx.runId == null` so scheduler error rows keep working.
+      if (!ctx.runId && isAbortSentinel(event.message)) return null;
       return {
         kind: ctx.runId ? "scheduled_run_finished" : "session_error",
         title: ctx.runId ? "Scheduled run errored" : "Session error",
@@ -447,6 +464,19 @@ export function mapEventToKind(
 async function getWorkspaceById(id: string): Promise<Workspace | null> {
   const all = await listWorkspaces().catch(() => [] as Workspace[]);
   return all.find((w) => w.id === id) ?? null;
+}
+
+/**
+ * Match the SDK's abort message verbatim — both `Session.end()` →
+ * `abortController.abort()` (reaper-initiated, the user was AWAY) and
+ * `query.interrupt()` (the user pressed stop) cause the SDK to throw with
+ * the literal string `"Claude Code process aborted by user"`. Neither is a
+ * real error worth notifying about, so the bus drops them. Anything else
+ * still flows through the normal `session_error` path.
+ */
+function isAbortSentinel(message: string | undefined | null): boolean {
+  if (!message) return false;
+  return message.trim() === "Claude Code process aborted by user";
 }
 
 function firstLine(s: string | undefined | null): string | undefined {

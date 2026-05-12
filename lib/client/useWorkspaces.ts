@@ -60,14 +60,23 @@ export function useWorkspaces() {
   }, [refresh]);
 
   const select = useCallback(
-    async (id: string) => {
+    async (id: string, route?: string) => {
       const res = await fetch(`/api/workspaces/${id}/select`, { method: "POST" });
       if (res.ok) {
         setActiveId(id);
         if (typeof window !== "undefined") {
-          // Reload to pick up the new default cwd everywhere on the page.
-          // Two URL patterns leak workspace-A state into workspace B if we
-          // just reload the current href:
+          // Caller supplied a target route (the workspace rail looks up
+          // the per-workspace last-visited URL via workspace-route-memory
+          // and passes it here). Navigate straight to it — the full
+          // document load picks up the new workspace's cwd.
+          if (typeof route === "string" && route.startsWith("/")) {
+            window.location.href = route;
+            return;
+          }
+          // Legacy fallback for callers that don't track per-workspace
+          // route memory (e.g. CustomizationsDrawer). Two URL patterns
+          // leak workspace-A state into workspace B if we just reload
+          // the current href:
           //   - `/customize` / `/customize/<id>` are tied to a specific
           //     customization record, not a workspace-relative path —
           //     staying here leaves the user on a page that has nothing

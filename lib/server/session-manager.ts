@@ -5,12 +5,20 @@ import type { CreateSessionRequest } from "@/lib/shared/events";
  * How long a session is allowed to sit with zero SSE subscribers before
  * being reaped. Tuned to cover: page reloads (a few seconds), navigating
  * away to /git or /files and coming back (seconds), tab switching across
- * desktops, and intentional "leave it running in the background" use.
+ * desktops, intentional "leave it running in the background" use, AND
+ * extended idle windows where the user just hasn't gotten back to a tab
+ * for a while.
+ *
+ * Bumped 2026-05-12 from 10min → 60min after the user reported that
+ * clicking a stale tab still showed an empty chat (the resume-from-disk
+ * path works, but mismatched buffer / subscribe timing meant they had
+ * to refresh to see history). A longer reap window doesn't fix the root
+ * cause but materially reduces how often a user hits it.
  *
  * Override at boot via CLAUDIUS_SESSION_IDLE_REAP_MS for tests / users
  * who want a tighter or looser policy.
  */
-const DEFAULT_IDLE_REAP_MS = 10 * 60 * 1000;
+const DEFAULT_IDLE_REAP_MS = 60 * 60 * 1000;
 
 function reapMs(): number {
   const raw = process.env.CLAUDIUS_SESSION_IDLE_REAP_MS;
@@ -105,6 +113,20 @@ class SessionManager {
       // Refuse to reap if a new subscriber raced in between scheduling and
       // firing — defensive belt to the cancel/clear above.
       if (!s || s.subscriberCount() > 0) return;
+      // Don't reap a session that's blocked on a user-facing prompt
+      // (AskUserQuestion form, permission decision, plan approval). End()
+      // would abort the SDK's `canUseTool` promise and write an errored
+      // tool_result to disk — leaving the question unanswerable next time
+      // the user returns. Park the session and re-arm the timer instead,
+      // so we'll check again after another idle window: if the prompt is
+      // eventually answered (or the user reattaches and ack-flips it via
+      // SSE), the next subscriber drop kicks us back into the normal reap
+      // path. `turnInFlight` alone is NOT covered here on purpose — a
+      // runaway Bash without a watcher should still be reapable.
+      if (s.hasPendingUserPrompts()) {
+        this.scheduleReap(id);
+        return;
+      }
       void this.remove(id).catch(() => {});
     }, reapMs());
     // Don't keep the event loop alive solely for this timer.

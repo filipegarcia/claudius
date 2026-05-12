@@ -10,6 +10,10 @@ import { useCommunityNotifications } from "@/components/community/CommunityNotif
 import { WorkspaceIcon } from "@/components/workspaces/WorkspaceIcon";
 import { WorkspaceForm } from "@/components/workspaces/WorkspaceForm";
 import { CustomizationsDrawer } from "@/components/nav/CustomizationsDrawer";
+import {
+  getLastPath,
+  setLastPath,
+} from "@/lib/client/workspace-route-memory";
 import { cn } from "@/lib/utils/cn";
 
 export function WorkspaceSwitcher() {
@@ -32,6 +36,17 @@ export function WorkspaceSwitcher() {
   // strict length check.
   const projectItems = items.filter((w) => w.kind !== "customization");
   const customizationItems = items.filter((w) => w.kind === "customization");
+
+  // Per-workspace "last visited URL" tracker. Clicking a workspace tile
+  // should return the user to wherever they last were *in that workspace*
+  // — not the chat home, and not the path they happen to be on under a
+  // different workspace's cwd. `setLastPath` no-ops on global routes
+  // (/settings, /community, …) so a stop on those pages doesn't clobber
+  // the project page the user actually cares about.
+  useEffect(() => {
+    if (!activeId || !pathname) return;
+    setLastPath(activeId, pathname);
+  }, [activeId, pathname]);
 
   // Refs that the global hotkey handler reads — avoids stale closures.
   // Only project workspaces are reachable via Cmd+Shift+[ / ]; the drawer is
@@ -58,19 +73,25 @@ export function WorkspaceSwitcher() {
       if (!metaOrCtrl || !e.shiftKey || e.altKey) return;
       const ws = itemsRef.current;
       if (ws.length === 0) return;
-      // Cycle: Cmd/Ctrl+Shift+] → next, Cmd/Ctrl+Shift+[ → prev.
+      // Cycle: Cmd/Ctrl+Shift+] → next, Cmd/Ctrl+Shift+[ → prev. Pass the
+      // target workspace's last-known URL so cycling drops the user back
+      // where they were inside the next workspace, not at chat home.
       if (e.key === "]" || e.code === "BracketRight") {
         e.preventDefault();
         const cur = ws.findIndex((w) => w.id === activeIdRef.current);
         const next = ws[(cur + 1 + ws.length) % ws.length];
-        if (next && next.id !== activeIdRef.current) void select(next.id);
+        if (next && next.id !== activeIdRef.current) {
+          void select(next.id, getLastPath(next.id) ?? "/");
+        }
         return;
       }
       if (e.key === "[" || e.code === "BracketLeft") {
         e.preventDefault();
         const cur = ws.findIndex((w) => w.id === activeIdRef.current);
         const prev = ws[(cur - 1 + ws.length) % ws.length];
-        if (prev && prev.id !== activeIdRef.current) void select(prev.id);
+        if (prev && prev.id !== activeIdRef.current) {
+          void select(prev.id, getLastPath(prev.id) ?? "/");
+        }
         return;
       }
     }
@@ -156,17 +177,22 @@ export function WorkspaceSwitcher() {
               )}
               <button
                 onClick={() => {
+                  // Each workspace remembers the last URL the user
+                  // visited inside it (workspace-route-memory). Clicking
+                  // the tile takes them back to that place rather than
+                  // dumping them on chat — which is what they were
+                  // already doing, but lost on the previous click. For
+                  // the active tile this is usually a no-op (already
+                  // there); for an inactive tile it triggers a workspace
+                  // switch + navigation to the new workspace's last URL.
+                  const target = getLastPath(w.id) ?? "/";
                   if (active) {
-                    // Active tile is a "home" button: navigate to chat (`/`)
-                    // when the user is anywhere else (community, git, files,
-                    // …). When already on chat it's a no-op rather than a
-                    // settings drawer — settings live in /workspace now.
-                    if (pathname !== "/") router.push("/");
+                    if (pathname !== target) router.push(target);
                     return;
                   }
-                  void select(w.id);
+                  void select(w.id, target);
                 }}
-                title={`${w.name}${active ? " (active — click to open chat)" : ""}\n${w.rootPath}\nDrag to reorder`}
+                title={`${w.name}${active ? " (active)" : ""}\n${w.rootPath}\nDrag to reorder`}
                 className={cn(
                   "relative block rounded-lg transition",
                   // Second cue: an accent ring + offset glow around the active

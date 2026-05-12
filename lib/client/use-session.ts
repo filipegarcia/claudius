@@ -1549,6 +1549,25 @@ export function useSession(): ChatState & ChatActions {
     (id: string) => {
       if (sessionIdRef.current === id) return;
       resetState();
+      // Wake the session before subscribing. Tab clicks used to skip the
+      // POST and go straight to SSE, but if the session had been reaped
+      // (or never lived in-memory at all — e.g. a notification jump to
+      // an id from another workspace) the stream route's resume-from-disk
+      // path occasionally raced the subscribe and the new tab ended up
+      // bound to an empty buffer. Refresh-after-fact "worked" because
+      // the boot path always POSTs. Mirror that here: POST is idempotent
+      // for live sessions (the manager just returns the existing one),
+      // and reliably wakes reaped sessions before the SSE connects.
+      void fetch("/api/sessions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ resume: id }),
+      }).catch(() => {
+        // Non-fatal — if the wake POST fails, bindToSession still tries
+        // to subscribe and the stream route's getOrResumeSession does
+        // its own resume-from-disk attempt. Worst case the user sees
+        // the same broken-tab symptom this fix is meant to remove.
+      });
       bindToSession(id);
       void refreshSessions();
     },

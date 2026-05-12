@@ -174,6 +174,43 @@ describe("mapEventToKind", () => {
     expect(out?.title).toBe("Scheduled run errored");
   });
 
+  test("session-context abort sentinel is dropped (no notification)", () => {
+    // The SDK throws "Claude Code process aborted by user" for both the
+    // reaper's `abortController.abort()` and the user-initiated
+    // `query.interrupt()` paths. Neither is a real error worth surfacing
+    // as a notification. The bus is the belt to the source-side guard's
+    // suspenders — see the comment in `mapEventToKind`'s error case.
+    const out = mapEventToKind(
+      { type: "error", message: "Claude Code process aborted by user" },
+      SESSION_CTX,
+      emptyIdleMap(),
+    );
+    expect(out).toBeNull();
+  });
+
+  test("scheduler-context abort sentinel still surfaces (real run failure)", () => {
+    // The suppression is intentionally session-only. A scheduled run that
+    // exited with the same string is a genuine failure mode we want to
+    // surface — the scheduler doesn't use the same abort path.
+    const out = mapEventToKind(
+      { type: "error", message: "Claude Code process aborted by user" },
+      SCHED_CTX,
+      emptyIdleMap(),
+    );
+    expect(out?.kind).toBe("scheduled_run_finished");
+  });
+
+  test("non-abort session_error still surfaces", () => {
+    // Make sure the abort filter isn't accidentally over-broad.
+    const out = mapEventToKind(
+      { type: "error", message: "ENOENT: no such file" },
+      SESSION_CTX,
+      emptyIdleMap(),
+    );
+    expect(out?.kind).toBe("session_error");
+    expect(out?.body).toBe("ENOENT: no such file");
+  });
+
   test("sdk: non-result message is dropped", () => {
     const out = mapEventToKind(
       // Cast: SDKMessage has many discriminants, we only care that `type`

@@ -107,6 +107,6 @@ When you use Claudius against Anthropic's API, you are bound by Anthropic's own 
 
 ## License & trademarks
 
-The source code in this repository is released under the project's own license (see `LICENSE`). It does not grant any rights to Anthropic's trademarks or other intellectual property.
+Claudius is released under the [MIT License](./LICENSE) — use it, modify it, fork it, ship it, just keep the copyright notice. The MIT license covers Claudius's own source code only; it does not grant any rights to Anthropic's trademarks or other intellectual property.
 
 **Claude**®, **Claude Code**®, and the **Claude Agent SDK** are trademarks of Anthropic, PBC. References to those marks here are descriptive ([nominative fair use](https://en.wikipedia.org/wiki/Nominative_use)) — the same way a project might say "for Node.js" or "works with PostgreSQL." See [TRADEMARKS.md](./TRADEMARKS.md) for the full notice.
