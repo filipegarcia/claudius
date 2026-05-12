@@ -57,6 +57,11 @@ jobs:
   # supported shells installed, then runs the same in-rig assertion script
   # that `make test-setup-docker` runs locally.
   #
+  # IMPORTANT: ubuntu:24.04 is a minimal image with no git. If actions/checkout
+  # runs without git on PATH it falls back to the GitHub tarball API, which
+  # populates the workspace but writes NO .git directory — and the in-rig
+  # clone later needs a real git checkout. So we install git BEFORE checkout.
+  #
   # GitHub's actions/checkout leaves the workspace in a detached state with
   # only the target SHA fetched. setup.sh's `git clone --branch X` against
   # the workspace needs refs/heads/X to exist, so we materialize one.
@@ -66,11 +71,14 @@ jobs:
     env:
       DEBIAN_FRONTEND: noninteractive
     steps:
-      - uses: actions/checkout@v4
-      - name: Install bash, zsh, fish, git, curl
+      - name: Pre-install git so actions/checkout produces a real .git dir
         run: |
           apt-get update -qq
-          apt-get install -y --no-install-recommends bash zsh fish git curl ca-certificates
+          apt-get install -y --no-install-recommends git ca-certificates
+      - uses: actions/checkout@v4
+      - name: Install bash, zsh, fish, curl
+        run: |
+          apt-get install -y --no-install-recommends bash zsh fish curl
       - name: Materialize a branch ref for the in-rig clone
         run: |
           # actions/checkout writes to $GITHUB_WORKSPACE as a non-root user,
