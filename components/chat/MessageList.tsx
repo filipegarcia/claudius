@@ -104,13 +104,16 @@ export function MessageList({
     return "";
   }, [messages]);
 
-  // Activation anchor: scroll the LAST user message to the top of the chat
-  // viewport whenever it changes. This way returning to a session (tab
-  // switch / refresh) always lands with your last question as the first
-  // thing you see, and the same path picks up the snapshot-fallback inject
-  // when the server replays a user prompt that lives upstream of the tail
-  // window. Falls back to a bottom-anchor jump if the transcript has no
-  // user message yet (resumed session with only system/assistant prelude).
+  // Activation anchor: jump to the bottom of the chat whenever the last
+  // user message changes. The CSS `position: sticky` on the last user
+  // message (see render below) keeps the question pinned at the top of
+  // the viewport for free, so scrolling to the BOTTOM gives the best of
+  // both worlds — your question stays visible above, and the freshest
+  // assistant content (or the streaming tail) lands in view below.
+  //
+  // We re-key on `lastUserUuid` instead of a boolean armedRef so the
+  // snapshot-fallback inject (which prepends a user message AFTER
+  // replay_done has already fired) gets the same anchor pass.
   const lastAnchoredUserUuidRef = useRef<string>("");
   useEffect(() => {
     if (replaying) return;
@@ -118,31 +121,9 @@ export function MessageList({
     if (!el) return;
     if (lastAnchoredUserUuidRef.current === lastUserUuid) return;
     lastAnchoredUserUuidRef.current = lastUserUuid;
-    if (lastUserUuid) {
-      const userEl = el.querySelector<HTMLElement>(
-        `[data-message-uuid="${CSS.escape(lastUserUuid)}"]`,
-      );
-      if (userEl) {
-        // scrollTop math (not scrollIntoView) so the sticky wrapper's own
-        // padding/border doesn't fight the alignment.
-        const delta = userEl.getBoundingClientRect().top - el.getBoundingClientRect().top;
-        el.scrollTop += delta;
-        // Suppress the auto-scroll-on-new-messages effect from yanking us
-        // back to the bottom — the user just got positioned where we want
-        // them, the unread pill is the right affordance from here.
-        isNearBottomRef.current = false;
-        setIsNearBottom(false);
-        setUnread(0);
-        return;
-      }
-    }
-    // No user message in the transcript yet — preserve the prior
-    // bottom-anchor behavior so the empty-prelude case isn't broken.
     el.scrollTop = el.scrollHeight;
-    const distFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
-    const near = distFromBottom <= NEAR_BOTTOM_PX;
-    isNearBottomRef.current = near;
-    setIsNearBottom(near);
+    isNearBottomRef.current = true;
+    setIsNearBottom(true);
     setUnread(0);
   }, [replaying, lastUserUuid]);
 
