@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # claudius — install script
-# https://filipegarcia.gitlab.io/claudius/setup.sh
+# https://filipegarcia.github.io/claudius/setup.sh
 #
 # Supported: macOS and Linux. Windows users: run this inside WSL.
 #
 # Usage:
-#   curl -fsSL https://filipegarcia.gitlab.io/claudius/setup.sh | bash
-#   curl -fsSL https://filipegarcia.gitlab.io/claudius/setup.sh | bash -s -- --prefix=$HOME/code/claudius
+#   curl -fsSL https://filipegarcia.github.io/claudius/setup.sh | bash
+#   curl -fsSL https://filipegarcia.github.io/claudius/setup.sh | bash -s -- --prefix=$HOME/code/claudius
 #
 # Options (pass after `--`):
 #   --prefix=DIR     Install destination (default: $HOME/claudius)
@@ -19,7 +19,7 @@
 #   -h, --help       Print this and exit
 #
 # Environment overrides:
-#   CLAUDIUS_REPO    Git URL to clone     (default: GitLab upstream)
+#   CLAUDIUS_REPO    Git URL to clone     (default: GitHub upstream)
 #   CLAUDIUS_PREFIX  Install destination  (default: $HOME/claudius)
 #   CLAUDIUS_BRANCH  Git branch           (default: main)
 #   CLAUDIUS_BIN_DIR Launcher destination (default: $HOME/.local/bin)
@@ -43,7 +43,7 @@
 set -euo pipefail
 
 # ── Defaults ──────────────────────────────────────────────────────────────
-DEFAULT_REPO="https://gitlab.com/filipegarcia/claudius.git"
+DEFAULT_REPO="https://github.com/filipegarcia/claudius.git"
 REPO="${CLAUDIUS_REPO:-$DEFAULT_REPO}"
 PREFIX="${CLAUDIUS_PREFIX:-$HOME/claudius}"
 BRANCH="${CLAUDIUS_BRANCH:-main}"
@@ -99,9 +99,9 @@ case "$(uname -s 2>/dev/null)" in
     printf '  %sEasiest path on Windows is WSL:%s\n\n' "$C_ACCENT" "$C_RST" >&2
     printf '    wsl --install -d Ubuntu\n' >&2
     printf '    # then, inside your WSL shell:\n' >&2
-    printf '    curl -fsSL https://filipegarcia.gitlab.io/claudius/setup.sh | bash\n\n' >&2
+    printf '    curl -fsSL https://filipegarcia.github.io/claudius/setup.sh | bash\n\n' >&2
     printf '  %sWant native Windows support? +1 on the tracker:%s\n' "$C_DIM" "$C_RST" >&2
-    printf '  %shttps://gitlab.com/filipegarcia/claudius/-/issues%s\n\n' "$C_DIM" "$C_RST" >&2
+    printf '  %shttps://github.com/filipegarcia/claudius/issues%s\n\n' "$C_DIM" "$C_RST" >&2
     exit 1
     ;;
 esac
@@ -184,7 +184,7 @@ URL="http://localhost:\${PORT}"
 
 if [ ! -d "\$CLAUDIUS_HOME" ]; then
   printf 'claudius: install not found at %s\n' "\$CLAUDIUS_HOME" >&2
-  printf '         re-run: curl -fsSL https://filipegarcia.gitlab.io/claudius/setup.sh | bash\n' >&2
+  printf '         re-run: curl -fsSL https://filipegarcia.github.io/claudius/setup.sh | bash\n' >&2
   exit 1
 fi
 

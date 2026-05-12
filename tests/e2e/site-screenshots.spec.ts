@@ -513,7 +513,7 @@ test.describe("site screenshots — chat states", () => {
       "Plan the rollout of the Claudius marketing site. Track these as todos:",
       "  - Ship the marketing site (start this one — in progress)",
       "  - Capture marketing screenshots",
-      "  - Push to GitLab Pages",
+      "  - Push to GitHub Pages",
       "Use TodoWrite once with all three, then stop. No other tools, no extra text.",
     ].join("\n");
     await textarea.fill(bootstrapPrompt);

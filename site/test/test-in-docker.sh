@@ -11,7 +11,7 @@
 
 set -euo pipefail
 
-# Source repo: defaults to /src (our Docker rig bind-mounts here). GitLab CI
+# Source repo: defaults to /src (our Docker rig bind-mounts here). GitHub Actions
 # can set TEST_SRC=$CI_PROJECT_DIR instead, since CI checks out somewhere
 # under /builds. Either path needs site/setup.sh inside it.
 SRC="${TEST_SRC:-/src}"

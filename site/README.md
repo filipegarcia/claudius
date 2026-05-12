@@ -1,9 +1,9 @@
 # claudius — marketing site
 
-Static `index.html` + assets published to GitLab Pages from `.gitlab-ci.yml`'s
+Static `index.html` + assets published to GitHub Pages from `.github/workflows/`'s
 `pages` job (every push to `main`). No build step.
 
-Live: <https://filipegarcia.gitlab.io/claudius/>
+Live: <https://filipegarcia.github.io/claudius/>
 
 ## Adding content
 

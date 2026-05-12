@@ -4,7 +4,7 @@ import { pathToFileURL } from "node:url";
 
 /**
  * Runtime smoke for `site/index.html` — the marketing surface published to
- * GitLab Pages on every push to main. The static integrity (anchor targets,
+ * GitHub Pages on every push to main. The static integrity (anchor targets,
  * referenced screenshots exist, repo URLs match setup.sh) is covered by
  * `tests/unit/site-static.test.ts`; this spec adds the bits only a real
  * browser can verify: lightbox open/close, install-copy button, anchor

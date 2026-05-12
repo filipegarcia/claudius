@@ -25,6 +25,6 @@ WORKDIR /home/test
 
 # test-in-docker.sh provisions its own stub `bun` at runtime, so the image
 # itself doesn't need to pre-stage one. This keeps the in-rig script
-# portable across this Docker rig and the GitLab CI job.
+# portable across this Docker rig and the GitHub Actions job.
 
 ENTRYPOINT ["/bin/bash"]
