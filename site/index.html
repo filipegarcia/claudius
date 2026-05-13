@@ -870,18 +870,19 @@ HOST=0.0.0.0 PORT=8080 make up     # reachable from your LAN (careful)</code></p
           </figure>
         </div>
 
-        <!-- Showcase: seven demos built in an afternoon -->
+        <!-- Showcase: nine demos built in an afternoon -->
         <div class="mt-20 max-w-2xl">
-          <p class="font-mono text-xs uppercase tracking-widest text-accent">Seven demos, one afternoon</p>
+          <p class="font-mono text-xs uppercase tracking-widest text-accent">Nine demos, one afternoon</p>
           <h3 class="mt-2 text-2xl md:text-3xl font-semibold tracking-tight">
-            Ship a data pipeline. Or ship Clippy.
+            Ship a SQL console. Or ship Clippy.
           </h3>
           <p class="mt-4 text-muted leading-relaxed">
-            A live DAG dashboard, a Docker monitor, a synthwave repaint, a
-            DOOM-themed Cost page, a Minecraft parkour clip next to the
-            thinking block, the Konami code, a paperclip mascot &mdash; all
-            built by asking the agent. Each lives in its own mirror, toggle
-            on, toggle off, independent of the others.
+            A DataGrip-style SQL console, a Jupyter notebook runner, a live
+            DAG dashboard, a Docker monitor, a synthwave repaint, a DOOM-themed
+            Cost page, a Minecraft parkour clip next to the thinking block, the
+            Konami code, a paperclip mascot &mdash; all built by asking the
+            agent. Each lives in its own mirror, toggle on, toggle off,
+            independent of the others.
           </p>
         </div>
 
@@ -897,6 +898,34 @@ HOST=0.0.0.0 PORT=8080 make up     # reachable from your LAN (careful)</code></p
             <figcaption class="px-5 py-4 border-t border-line">
               <div class="font-mono text-xs text-accent">cust · Build a data pipeline</div>
               <div class="text-sm text-fg">A new <code class="font-mono text-xs">/pipeline</code> route &mdash; full DAG observability in your browser. Nine stages from Kafka to Feature store, gradient-curve edges with throughput labels, per-node sparklines, p95 latency, and a run-history strip showing the last 24 runs as green/amber/red chips. The failing stage glows red &mdash; you spot it before the on-call gets paged.</div>
+            </figcaption>
+          </figure>
+
+          <!-- Database Console -->
+          <figure class="shot group rounded-lg border border-line overflow-hidden cursor-zoom-in hover:border-accent/70 transition-colors" role="button" tabindex="0">
+            <img
+              src="screenshots/customization-database.png"
+              alt="A DataGrip-style SQL console inside Claudius: tab strip across the top with four open consoles (screening, staging-front, a python file, and the active api@localhost tab), a syntax-highlighted SQL editor on the left with line numbers, comments in muted gray, table names in subtle underline, strings in green, and a red wavy underline on a misspelled identifier; a database tree on the right shows Localhost → api@localhost (active) with api and Server Objects, plus risk-api, screening, PROD, Staging, Demo, Clickhouse and Prod DL connections"
+              loading="lazy"
+              onerror="this.onerror=null;this.src='screenshots/_placeholder.svg'"
+            />
+            <figcaption class="px-5 py-4 border-t border-line">
+              <div class="font-mono text-xs text-accent">cust · Database Console</div>
+              <div class="text-sm text-fg">A new <code class="font-mono text-xs">/database</code> route &mdash; a JetBrains-DataGrip-style SQL console without the JetBrains. Multi-tab editor, real SQL syntax highlighting, error/warning gutter, a tree of every Postgres + Clickhouse connection in the org, and a transaction-mode picker that means it. Stop alt-tabbing.</div>
+            </figcaption>
+          </figure>
+
+          <!-- Notebooks -->
+          <figure class="shot group rounded-lg border border-line overflow-hidden cursor-zoom-in hover:border-accent/70 transition-colors" role="button" tabindex="0">
+            <img
+              src="screenshots/customization-notebooks.png"
+              alt="A Jupyter-style notebook running inside Claudius: file tree on the left listing four .ipynb files and a src/ folder; an open notebook on the right titled 'Signal exploration · Q2 backfill' with a markdown intro, then a code cell loading a pandas DataFrame with a small results table, a second code cell dropping retry rows with a stdout line, a matplotlib-style area+line plot of mean signal score by hour, and a currently-running IsolationForest cell marked '[*]' with a pulsing accent border"
+              loading="lazy"
+              onerror="this.onerror=null;this.src='screenshots/_placeholder.svg'"
+            />
+            <figcaption class="px-5 py-4 border-t border-line">
+              <div class="font-mono text-xs text-accent">cust · Notebooks</div>
+              <div class="text-sm text-fg">A new <code class="font-mono text-xs">/notebooks</code> route &mdash; run <code class="font-mono text-xs">.ipynb</code> files right in Claudius. Code cells with Python syntax highlighting, pandas tables, matplotlib plots, running-cell indicator, kernel status, and an AI-assist pill so the agent can rewrite the cell you're stuck on without leaving the workbench.</div>
             </figcaption>
           </figure>
 

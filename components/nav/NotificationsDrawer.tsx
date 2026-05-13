@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertCircle,
   Bell,
@@ -19,12 +19,13 @@ import type { NotificationKind, NotificationRow } from "@/lib/shared/notificatio
 
 /**
  * Notification bar + flyout panel rendered at the top of the right-rail
- * Activity panel, above the session ("model") card. Shows the active
- * workspace's notification inbox; cross-workspace counts still live on
- * the workspace tiles in {@link WorkspaceSwitcher}.
+ * Activity panel, above the session ("model") card.
  *
- * Reads `activeId` from {@link useWorkspaces} so callers don't have to
- * thread the workspace id through panel props.
+ * Cross-workspace: shows EVERY workspace's unread notifications in one
+ * inbox so the badge count matches the favicon. Each row carries a small
+ * workspace label when it's from a workspace other than the active one,
+ * so the user can tell where a notification came from before clicking
+ * (which jumps to that workspace).
  *
  * Conventions:
  *   • absolute-positioned popover anchored below the trigger
@@ -36,9 +37,18 @@ export function NotificationsDrawer() {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const { permissionState, requestPermission } = useNotificationsContext();
-  const { activeId: activeWorkspaceId } = useWorkspaces();
+  const { items: allWorkspaces, activeId: activeWorkspaceId } = useWorkspaces();
   const center = useNotificationCenter(activeWorkspaceId);
   const unread = center.unread;
+  // Cross-workspace drawer: build a name lookup so each row can tell the
+  // user which workspace it came from. The label only shows when the row's
+  // workspace is NOT the active one — for in-workspace notifications, the
+  // workspace name would be visual noise.
+  const workspaceNames = useMemo(() => {
+    const out: Record<string, string> = {};
+    for (const w of allWorkspaces) out[w.id] = w.name;
+    return out;
+  }, [allWorkspaces]);
   // The server filters `unreadOnly=1`, and the provider's recent-buffer merge
   // in `useNotificationCenter` only includes rows where `readAt == null`. No
   // client-side filter needed here — the prior `items.filter(readAt==null)`
@@ -155,6 +165,11 @@ export function NotificationsDrawer() {
                   <NotificationRowItem
                     key={row.id}
                     row={row}
+                    workspaceLabel={
+                      row.workspaceId !== activeWorkspaceId
+                        ? workspaceNames[row.workspaceId] ?? null
+                        : null
+                    }
                     onClick={() => {
                       // Close the drawer and jump FIRST. Marking read goes in
                       // parallel — awaiting its network round-trip would delay
@@ -179,10 +194,17 @@ function NotificationRowItem({
   row,
   onClick,
   onMarkRead,
+  workspaceLabel,
 }: {
   row: NotificationRow;
   onClick: () => void | Promise<void>;
   onMarkRead: () => void;
+  /**
+   * Friendly name of the row's workspace, shown when the row is from a
+   * workspace other than the active one. Null when same-workspace — the
+   * label would just be visual noise in that case.
+   */
+  workspaceLabel: string | null;
 }) {
   const unread = row.readAt == null;
   // NB: row wrapper is a div-role-button rather than a real <button>. The
@@ -228,6 +250,11 @@ function NotificationRowItem({
             <span className="line-clamp-2 text-[10px] text-[var(--muted)]">{row.body}</span>
           )}
           <span className="flex items-center gap-2 text-[9px] text-[var(--muted)]/70">
+            {workspaceLabel && (
+              <span className="rounded bg-[var(--panel-2)] px-1 py-px font-mono text-[9px] text-[var(--muted)]">
+                {workspaceLabel}
+              </span>
+            )}
             <span>{formatRelative(row.createdAt)}</span>
             {unread && (
               <button

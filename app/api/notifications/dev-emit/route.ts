@@ -18,6 +18,13 @@ type Body = {
   cwd?: string;
   sessionId?: string;
   event?: ServerEvent;
+  /**
+   * Forwarded to the bus as `hasSubscribers`. Lets the e2e test simulate a
+   * backgrounded session (the user has switched to another in-app tab, so
+   * the previous session's SSE has 0 subscribers). When omitted, the bus
+   * sees `undefined` and treats it as "caller didn't tell us" → notify.
+   */
+  hasSubscribers?: boolean;
 };
 
 export async function POST(req: Request) {
@@ -31,7 +38,11 @@ export async function POST(req: Request) {
       { status: 400 },
     );
   }
-  await notificationBus.recordSessionEvent(body.cwd, body.sessionId, body.event);
+  await notificationBus.recordSessionEvent(body.cwd, body.sessionId, body.event, {
+    ...(typeof body.hasSubscribers === "boolean"
+      ? { hasSubscribers: body.hasSubscribers }
+      : {}),
+  });
   // Return the workspace totals so the e2e can sanity-check synchronously.
   // We strip down to just `{[workspaceId]: totalUnread}` so the test surface
   // matches the prior return shape — internal state-shape changes don't

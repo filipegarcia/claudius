@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { MessageSquare, Network, Webhook, BookText, ShieldCheck, FolderTree, Bot, Calendar, BarChart3, Image as ImageIcon, Folder, Briefcase, GitBranch, Sparkles, WandSparkles, Container, CircleDot } from "lucide-react";
+import { MessageSquare, Network, Webhook, BookText, ShieldCheck, FolderTree, Bot, Calendar, BarChart3, Image as ImageIcon, Folder, Briefcase, GitBranch, Sparkles, WandSparkles, Container, CircleDot, Database as DatabaseIcon, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import { useWorkspaces } from "@/lib/client/useWorkspaces";
@@ -77,6 +77,28 @@ const items: Item[] = [
     shortcutCode: "KeyT",
     shortcutLabel: "⌥T",
     customizationName: "Tracker",
+  },
+  // Database — mocked DataGrip-style SQL console. Gated so it only appears
+  // when the "Database Console" customization is published, mirroring the
+  // Docker/Tracker pattern. ⌥E (datab[E]ase) — the letters were already
+  // taken everywhere else.
+  {
+    label: "Database",
+    icon: DatabaseIcon,
+    href: "/database",
+    shortcutCode: "KeyE",
+    shortcutLabel: "⌥E",
+    customizationName: "Database Console",
+  },
+  // Notebooks — mocked Jupyter-style notebook runner. Gated on the
+  // "Notebooks" customization. No real kernel; the cells are fixtures.
+  {
+    label: "Notebooks",
+    icon: BookOpen,
+    href: "/notebooks",
+    shortcutCode: "KeyJ",
+    shortcutLabel: "⌥J",
+    customizationName: "Notebooks",
   },
   // Workspace settings — defaults that apply to new chats in this workspace.
   { label: "Workspace", icon: Briefcase, href: "/workspace", shortcutCode: "KeyW", shortcutLabel: "⌥W" },
