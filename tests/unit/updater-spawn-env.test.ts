@@ -91,7 +91,7 @@ describe("spawnStreamed env overrides", () => {
       // override says "production". The pre-fix updater would have leaked
       // the parent value and Next would have prerender-failed.
       const prev = process.env.NODE_ENV;
-      process.env.NODE_ENV = "development";
+      (process.env as Partial<Record<string, string>>)["NODE_ENV"] = "development";
       try {
         const { code, out } = await spawnPrintingEnv(
           ["NODE_ENV"],
@@ -101,8 +101,8 @@ describe("spawnStreamed env overrides", () => {
         expect(code).toBe(0);
         expect(out).toBe("production");
       } finally {
-        if (prev === undefined) delete process.env.NODE_ENV;
-        else process.env.NODE_ENV = prev;
+        if (prev === undefined) delete (process.env as Partial<Record<string, string>>)["NODE_ENV"];
+        else (process.env as Partial<Record<string, string>>)["NODE_ENV"] = prev;
       }
     },
     15_000,
@@ -141,14 +141,14 @@ describe("spawnStreamed env overrides", () => {
       // so a future "always force production" change is a deliberate
       // decision, not an accident.
       const prev = process.env.NODE_ENV;
-      process.env.NODE_ENV = "development";
+      (process.env as Partial<Record<string, string>>)["NODE_ENV"] = "development";
       try {
         const { code, out } = await spawnPrintingEnv(["NODE_ENV"], {}, tmp);
         expect(code).toBe(0);
         expect(out).toBe("development");
       } finally {
-        if (prev === undefined) delete process.env.NODE_ENV;
-        else process.env.NODE_ENV = prev;
+        if (prev === undefined) delete (process.env as Partial<Record<string, string>>)["NODE_ENV"];
+        else (process.env as Partial<Record<string, string>>)["NODE_ENV"] = prev;
       }
     },
     15_000,
