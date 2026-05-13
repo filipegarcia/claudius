@@ -89,34 +89,28 @@ See `src/types.ts` for the full TypeScript declarations. Mirrored in
 ## Deploying to a Linux VPS
 
 End-to-end runbook for putting this on a Debian/Ubuntu VPS as a
-systemd-managed daemon behind Caddy for TLS. Two paths diverge at
-step 7 depending on whether you have a domain:
-
-- **No domain → `sslip.io` magic DNS** (free, zero setup). HTTPS works,
-  no DDoS protection.
-- **Domain → Cloudflare in front** (small annual cost for the domain).
-  HTTPS works, plus origin hiding and DDoS scrubbing.
-
-End state in both cases:
+systemd-managed daemon behind Caddy for TLS, with Cloudflare proxying
+public traffic to hide the origin and add DDoS scrubbing. End state:
 
 ```
-Browser ──HTTPS──► Caddy on VPS :443 ──HTTP──► chat-server :8787
-                   (with Cloudflare optionally proxying public TLS)
+Browser ──HTTPS──► Cloudflare ──HTTPS──► Caddy on VPS :443 ──HTTP──► chat-server :8787
 ```
 
-And the URL Claudius installs connect to:
-
-| Path        | What goes in `NEXT_PUBLIC_CLAUDIUS_CHAT_SERVER_URL`        |
-|-------------|------------------------------------------------------------|
-| sslip.io    | `https://<vps-ip>.sslip.io`  (e.g. `https://203.0.113.7.sslip.io`) |
-| Cloudflare  | `https://chat.claudius.network` (the Cloudflare DNS record) |
+Claudius installs connect to **`https://chat.claudius.network`** (the
+canonical community URL — override `CF_ZONE` / `CF_HOST` if you're
+deploying for your own domain).
 
 ### Prereqs
 
 - A Debian or Ubuntu VPS with root/sudo and SSH access.
-- A public IPv4 reachable on port 443 (and 80 for the cert challenge).
-- The chat-server tree available on your laptop (this repo's
-  `chat-server/` directory).
+- A public IPv4. Port 80 must be reachable from the internet for
+  Let's Encrypt; port 443 only needs to be reachable from Cloudflare
+  once you're done.
+- A domain in a Cloudflare zone — either registered through
+  [Cloudflare Registrar](https://dash.cloudflare.com/?to=/:account/domains/register)
+  (at cost, ~$10/year) or moved to Cloudflare's nameservers from
+  another registrar.
+- The `chat-server/` tree from this repo available on your laptop.
 
 ### 1. Install Bun on the VPS
 
@@ -192,47 +186,12 @@ systemctl restart claudius-chat-server
 ```
 
 `getClientIp()` in `src/server.ts` then prefers `CF-Connecting-IP`
-(if Cloudflare is in front), falling back to `X-Forwarded-For` (which
-Caddy populates automatically).
+(set by Cloudflare and forwarded by Caddy), falling back to
+`X-Forwarded-For`.
 
-### 7. Pick a TLS hostname path
+### 7. Configure DNS + TLS via Cloudflare
 
-#### A. sslip.io — no domain needed
-
-`sslip.io` is a free magic-DNS service: `<ip>.sslip.io` resolves to
-that IP automatically, no registration. Let's Encrypt issues real
-certs for it.
-
-Edit the Caddyfile to substitute your VPS's IP, then reload:
-
-```bash
-sudo cp /opt/claudius-chat-server/Caddyfile /etc/caddy/Caddyfile
-sudo sed -i "s/203\.0\.113\.7/$(curl -s ifconfig.me)/" /etc/caddy/Caddyfile
-# verify it looks right:
-sudo head -5 /etc/caddy/Caddyfile
-sudo systemctl reload caddy
-```
-
-Your public URL is `https://<vps-ip>.sslip.io`. Skip to step 8.
-
-#### B. Cloudflare — domain required
-
-This path puts Cloudflare's proxy in front of Caddy for DDoS
-protection and origin-IP hiding. Caddy still terminates the origin
-cert; Cloudflare terminates the public cert.
-
-The canonical Claudius community server uses the domain
-**`claudius.network`** with subdomain `chat`, so the URL ends up as
-`https://chat.claudius.network`. The setup script defaults to these
-values — override `CF_ZONE` / `CF_HOST` if you're deploying for a
-different domain.
-
-**B.1. Get a domain** in a Cloudflare zone. Cheapest path: register
-through [Cloudflare Registrar](https://dash.cloudflare.com/?to=/:account/domains/register)
-at cost (~$10/year for `.com`, $10/year for `.network`). Any other
-registrar works if you move DNS to Cloudflare.
-
-**B.2. Create a scoped API token** at
+**7.1. Create a scoped API token** at
 <https://dash.cloudflare.com/profile/api-tokens> → "Create Token" →
 "Custom token". Permissions:
 
@@ -242,11 +201,11 @@ registrar works if you move DNS to Cloudflare.
 Zone Resources → Include → Specific zone → *your domain*. Save the
 token string somewhere safe; you can't see it again.
 
-**B.3. Run the setup script** from your laptop:
+**7.2. Run the setup script** from your laptop:
 
 ```bash
 cd chat-server
-export CF_API_TOKEN=<the-token-from-B.2>
+export CF_API_TOKEN=<the-token-from-7.1>
 export CF_VPS_IP=<vps-ip>
 
 # CF_ZONE defaults to claudius.network and CF_HOST to chat.
@@ -259,78 +218,77 @@ export CF_VPS_IP=<vps-ip>
 
 The script:
 1. Creates `A chat → <vps-ip>` grey-clouded (so Caddy can complete
-   the Let's Encrypt HTTP-01 challenge).
-2. Prompts you to verify — go to step 7.B.4, then come back and
-   press Enter.
+   the Let's Encrypt HTTP-01 challenge directly against the VPS).
+2. Prompts you to verify — go to step 7.3, then come back and press
+   Enter.
 3. Flips the record to proxied (orange-cloud), sets TLS mode to
    **Full (strict)**, enables **Always Use HTTPS**.
 
-**B.4. Configure Caddy with the real hostname.** On the VPS:
+**7.3. Drop the Caddyfile in place** on the VPS:
 
 ```bash
-sudo cp /opt/claudius-chat-server/Caddyfile /etc/caddy/Caddyfile
-sudo sed -i 's/203\.0\.113\.7\.sslip\.io/chat.claudius.network/' /etc/caddy/Caddyfile
+ssh root@<vps-ip>
+cp /opt/claudius-chat-server/Caddyfile /etc/caddy/Caddyfile
+systemctl reload caddy
 
-# Add CF-Connecting-IP forwarding so getClientIp() sees real client IPs.
-# (Caddyfile is whitespace-tolerant inside a block, so an unindented
-#  append works fine.)
-sudo sed -i '/flush_interval -1/a header_up CF-Connecting-IP {http.request.header.CF-Connecting-IP}' \
-  /etc/caddy/Caddyfile
-
-sudo systemctl reload caddy
-
-# Hit it once to trigger the LE cert (while DNS is still grey-clouded):
+# Trigger Caddy's first ACME run (DNS is still grey-clouded, so LE
+# hits the VPS directly on :80):
 curl -s https://chat.claudius.network/health      # {"ok":true}
 ```
 
-Once that returns `{"ok":true}`, hop back to the laptop terminal
-where `cloudflare-setup.sh` is paused and press Enter to flip to
-orange-cloud.
+The shipped Caddyfile already points at `chat.claudius.network` with
+the right SSE-safe proxy settings and `CF-Connecting-IP` forwarding —
+no editing needed (override `CF_HOST`/`CF_ZONE` and `sed` the
+Caddyfile if you're using a different hostname).
 
-Your public URL is `https://chat.claudius.network`.
+Once `/health` returns `{"ok":true}`, hop back to the laptop terminal
+where `cloudflare-setup.sh` is paused and press Enter to flip the DNS
+record to orange-cloud + Full (strict) TLS.
 
-### 8. Open the firewall
+### 8. Lock down the firewall
+
+Port 80 stays open to the world so future Let's Encrypt renewals work
+(LE never publishes a stable IP range). Port 443 gets restricted to
+Cloudflare's published edge IPs, so the origin can only be reached
+*through* Cloudflare:
 
 ```bash
 ufw default deny incoming
 ufw allow OpenSSH
-ufw allow 80/tcp                  # Let's Encrypt HTTP-01 + ACME renewals
-ufw allow 443/tcp                 # public chat-server entry point
-ufw enable
-```
+ufw allow 80/tcp                  # ACME — open to world
 
-**If you went the Cloudflare path** (7.B) and want to ensure traffic
-can *only* reach the origin through Cloudflare, replace the
-`allow 443/tcp` line with per-CF-IP rules:
-
-```bash
-ufw delete allow 443/tcp
+# Cloudflare-only :443. Refresh occasionally (CF adds IPs over time);
+# cron-able or run by hand. Lists:
+#   https://www.cloudflare.com/ips-v4
+#   https://www.cloudflare.com/ips-v6
 for ip in $(curl -s https://www.cloudflare.com/ips-v4); do
   ufw allow from "$ip" to any port 443 proto tcp
 done
 for ip in $(curl -s https://www.cloudflare.com/ips-v6); do
   ufw allow from "$ip" to any port 443 proto tcp
 done
-```
 
-Re-run that loop occasionally (or via cron) since Cloudflare adds
-IPs from time to time.
+ufw enable
+```
 
 ### 9. Verify end-to-end
 
 From your laptop:
 
 ```bash
-URL=https://<your-hostname>       # the sslip.io or Cloudflare URL
+URL=https://chat.claudius.network
 
 curl -s "$URL/health"             # {"ok":true}
 curl -s "$URL/rooms"              # list of rooms
 curl -N "$URL/rooms/general/stream"   # SSE: replay frame then heartbeats
 ```
 
-If the SSE stream hangs and `curl -v` shows a `503` or `526` (Cloudflare
-TLS error), check that Caddy issued its cert (`journalctl -u caddy`)
-and that the Cloudflare TLS mode is **Full (strict)**, not Flexible.
+If the SSE stream hangs and `curl -v` shows a `526` (Cloudflare TLS
+error), Caddy didn't issue its origin cert — check
+`journalctl -u caddy` and that the Cloudflare TLS mode is **Full
+(strict)**, not Flexible. If it shows `522`, the firewall isn't
+letting Cloudflare reach the origin on `:443` — refresh the CF IP
+allow-list.
 
 ### 10. Point Claudius at it
 
@@ -338,13 +296,18 @@ In the Claudius repo's build environment (typically `.env.local` or
 your hosting provider's env config), set:
 
 ```
-NEXT_PUBLIC_CLAUDIUS_CHAT_SERVER_URL=https://<your-hostname>
+NEXT_PUBLIC_CLAUDIUS_CHAT_SERVER_URL=https://chat.claudius.network
 ```
 
-with `<your-hostname>` being either:
-- `<vps-ip>.sslip.io` for the sslip.io path, or
-- `chat.claudius.network` (or your own `chat.<domain>`) for the
-  Cloudflare path.
+If this Claudius install should see the admin controls in `/community`,
+also set `CLAUDIUS_CHAT_ADMIN_TOKEN` to the same value you put in
+`/etc/claudius-chat-server.env` in step 3 — Claudius proxies admin
+calls through `/api/community/admin/*` server-side so the token stays
+out of the client bundle.
+
+Rebuild Claudius (`bun run build`, restart) and visit `/community`.
+Pick a nickname, post a message, open a second window in incognito —
+both should see each other in real time.
 
 If this Claudius install should see the admin controls in `/community`,
 also set `CLAUDIUS_CHAT_ADMIN_TOKEN` to the same value you put in
