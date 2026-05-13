@@ -1,0 +1,66 @@
+#!/bin/sh
+# Pre-push gate: type-check + lint the whole tree before letting commits
+# leave this machine.
+#
+# Why: the updater on the receiving end runs `bun run build`, which does a
+# full TypeScript pass. If a commit slipped through with a type error (easy
+# to do — `next dev` and Turbopack are tolerant of bad types at dev time),
+# the receiving install would fail to apply the update and roll back. This
+# hook catches it at push time, where you actually have the editor open.
+#
+# Installed via `git config core.hooksPath .githooks` (run automatically by
+# the `prepare` npm script after `bun install`).
+#
+# Skips:
+#   - Pushes that only delete remote refs (no commits to check).
+#   - Set CLAUDIUS_SKIP_PREPUSH=1 to bypass once. Don't bake this into your
+#     shell — it defeats the whole point.
+
+set -eu
+
+if [ "${CLAUDIUS_SKIP_PREPUSH:-0}" = "1" ]; then
+  echo "▶ pre-push: CLAUDIUS_SKIP_PREPUSH=1 set, skipping checks."
+  exit 0
+fi
+
+# Read the ref list from stdin (git's pre-push hook protocol). If every
+# entry is a deletion (new_sha is all zeros), there's nothing to type-check.
+all_deletions=1
+have_input=0
+while read -r _local_ref _local_sha _remote_ref remote_sha; do
+  have_input=1
+  case "$remote_sha" in
+    0000000000000000000000000000000000000000) ;;
+    *) all_deletions=0 ;;
+  esac
+done
+
+# Empty stdin can happen with `git push --no-verify` style invocations or
+# certain test scenarios. Be safe and run the checks anyway.
+if [ "$have_input" = "1" ] && [ "$all_deletions" = "1" ]; then
+  echo "▶ pre-push: only deletions in this push, skipping checks."
+  exit 0
+fi
+
+# Prefer bun (matches the repo's tooling); fall back to npm/npx.
+if command -v bun >/dev/null 2>&1; then
+  RUN="bun run"
+  RUN_DIRECT="bunx"
+else
+  RUN="npm run"
+  RUN_DIRECT="npx --no-install"
+fi
+
+# 1. Type-check. This is the actual class of bug we're trying to stop.
+#    `tsc --noEmit` matches what `bun run build` does internally (Next runs
+#    the same compiler), but takes a few seconds instead of running the
+#    full build pipeline. The repo's tsconfig has `noEmit: true` already.
+echo "▶ pre-push: type-checking…"
+$RUN_DIRECT tsc --noEmit
+
+# 2. Lint the whole tree. Pre-commit only covers staged files, so a commit
+#    rebased / amended elsewhere can sneak a lint error onto this branch.
+echo "▶ pre-push: linting…"
+$RUN lint
+
+echo "▶ pre-push: ok."
