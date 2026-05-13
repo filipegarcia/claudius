@@ -1,7 +1,20 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  env: {
+    // Default community chat-server URL. Baked into the client bundle
+    // at build time so a fresh `bun run build` ships a working
+    // /community page out of the box — no extra env setup required for
+    // anyone running Claudius against the canonical community.
+    //
+    // Override by setting NEXT_PUBLIC_CLAUDIUS_CHAT_SERVER_URL in
+    // `.env.local` (dev) or your deployment env (prod). Setting it to
+    // an empty string disables /community (renders the "not configured"
+    // empty state) — useful for forks that don't want a community.
+    NEXT_PUBLIC_CLAUDIUS_CHAT_SERVER_URL:
+      process.env.NEXT_PUBLIC_CLAUDIUS_CHAT_SERVER_URL ??
+      "https://chat.claudius.network",
+  },
 };
 
 export default nextConfig;
