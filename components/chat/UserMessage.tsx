@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Undo2 } from "lucide-react";
 import type { AttachedImage, DisplayMessage } from "@/lib/client/types";
+import { formatMessageTime } from "@/lib/client/format-message-time";
 import { ImageLightbox } from "./ImageLightbox";
 
 type Props = {
@@ -14,21 +15,33 @@ type Props = {
 export function UserMessage({ message, onRewind, rewinding }: Props) {
   const text = message.blocks.map((b) => (b.kind === "text" ? b.text : "")).join("");
   const images = message.images ?? [];
+  const stamp = formatMessageTime(message.createdAt);
   return (
     <div className="group flex justify-end">
       <div className="max-w-[80%] rounded-2xl border border-[var(--border)] bg-[var(--panel-2)] px-4 py-2">
         <InlineUserText text={text} images={images} />
-        {onRewind && (
-          <div className="mt-1 flex justify-end">
-            <button
-              onClick={() => onRewind(message.uuid)}
-              disabled={rewinding}
-              className="flex items-center gap-1 text-[10px] text-[var(--muted)] opacity-0 transition group-hover:opacity-100 hover:text-[var(--foreground)] disabled:opacity-40"
-              title="Fork session at this message"
-            >
-              <Undo2 className="h-3 w-3" />
-              {rewinding ? "Forking…" : "Rewind here"}
-            </button>
+        {(stamp || onRewind) && (
+          <div className="mt-1 flex items-center justify-end gap-3">
+            {stamp && (
+              <span
+                className="font-mono text-[10px] text-[var(--muted)] opacity-0 transition group-hover:opacity-100"
+                title={stamp.full}
+                aria-label={`Sent ${stamp.full}`}
+              >
+                {stamp.short}
+              </span>
+            )}
+            {onRewind && (
+              <button
+                onClick={() => onRewind(message.uuid)}
+                disabled={rewinding}
+                className="flex items-center gap-1 text-[10px] text-[var(--muted)] opacity-0 transition group-hover:opacity-100 hover:text-[var(--foreground)] disabled:opacity-40"
+                title="Fork session at this message"
+              >
+                <Undo2 className="h-3 w-3" />
+                {rewinding ? "Forking…" : "Rewind here"}
+              </button>
+            )}
           </div>
         )}
       </div>

@@ -539,6 +539,7 @@ export function useSession(): ChatState & ChatActions {
     // render so `/compact` doesn't show up as if the user typed it — the
     // server emits a `slash_invoked` system pill instead.
     if (!next.slash) {
+      const sentAt = Date.now();
       setMessages((prev) => [
         ...prev,
         {
@@ -546,6 +547,7 @@ export function useSession(): ChatState & ChatActions {
           role: "user",
           blocks: [{ kind: "text", text: next.text }],
           ...(next.images && next.images.length ? { images: next.images } : {}),
+          createdAt: sentAt,
         },
       ]);
     }
@@ -660,6 +662,7 @@ export function useSession(): ChatState & ChatActions {
                 uuid: prompt.uuid,
                 role: "user",
                 blocks: [{ kind: "text", text: prompt.text }],
+                ...(typeof prompt.at === "number" ? { createdAt: prompt.at } : {}),
               },
               ...prev,
             ];
@@ -822,13 +825,16 @@ export function useSession(): ChatState & ChatActions {
               blocks,
               hasStreamScratch,
               parent,
+              ev.at,
             ),
           }));
           // Don't override the main lastAssistantUuid — deltas anchor to top-level.
           return;
         }
         lastAssistantUuidRef.current = messageId;
-        setMessages((prev) => upsertAssistantSplit(prev, messageId, sdkUuid, blocks, hasStreamScratch));
+        setMessages((prev) =>
+          upsertAssistantSplit(prev, messageId, sdkUuid, blocks, hasStreamScratch, undefined, ev.at),
+        );
         setPendingTracked(true);
         // Activity-rail reducers: per-tool side effects.
         for (const b of blocks) {
@@ -1059,6 +1065,7 @@ export function useSession(): ChatState & ChatActions {
                 blocks: buildMerged([]),
                 streaming: true,
                 parentToolUseId: subagentParent,
+                ...(typeof ev.at === "number" ? { createdAt: ev.at } : {}),
               };
               return { ...prev, [subagentParent]: [...list, placeholder] };
             }
@@ -1079,6 +1086,7 @@ export function useSession(): ChatState & ChatActions {
                 role: "assistant",
                 blocks: buildMerged([]),
                 streaming: true,
+                ...(typeof ev.at === "number" ? { createdAt: ev.at } : {}),
               };
               // Keep the "latest top-level assistant" pointer in sync so
               // system pills (status, rate_limit) anchor under the active
@@ -1182,7 +1190,16 @@ export function useSession(): ChatState & ChatActions {
               if (list.some((m) => m.uuid === uuid)) return prev;
               return {
                 ...prev,
-                [parent]: [...list, { uuid, role: "user", blocks: [{ kind: "text", text }], parentToolUseId: parent }],
+                [parent]: [
+                  ...list,
+                  {
+                    uuid,
+                    role: "user",
+                    blocks: [{ kind: "text", text }],
+                    parentToolUseId: parent,
+                    ...(typeof ev.at === "number" ? { createdAt: ev.at } : {}),
+                  },
+                ],
               };
             });
           }
@@ -1260,7 +1277,15 @@ export function useSession(): ChatState & ChatActions {
             const uuid = (msg as { uuid?: string }).uuid ?? crypto.randomUUID();
             setMessages((prev) => {
               if (prev.some((m) => m.uuid === uuid)) return prev;
-              return [...prev, { uuid, role: "user", blocks: [{ kind: "text", text }] }];
+              return [
+                ...prev,
+                {
+                  uuid,
+                  role: "user",
+                  blocks: [{ kind: "text", text }],
+                  ...(typeof ev.at === "number" ? { createdAt: ev.at } : {}),
+                },
+              ];
             });
           }
         }
@@ -1836,6 +1861,7 @@ export function useSession(): ChatState & ChatActions {
       // `slash_invoked` system pill in their place. Skipping the optimistic
       // add here keeps the chat clean even before the SSE pill arrives.
       if (!isSlash) {
+        const sentAt = Date.now();
         setMessages((prev) => [
           ...prev,
           {
@@ -1843,6 +1869,7 @@ export function useSession(): ChatState & ChatActions {
             role: "user",
             blocks: [{ kind: "text", text }],
             ...(normalized ? { images: normalized } : {}),
+            createdAt: sentAt,
           },
         ]);
       }
@@ -2159,6 +2186,12 @@ type RawSDKMessage = {
   type?: string;
   parent_tool_use_id?: string | null;
   message?: { id?: string; role?: string; content?: unknown };
+  /**
+   * ISO timestamp set by the SDK on user-message records in the JSONL.
+   * Assistant records don't carry one — their `createdAt` stays undefined
+   * on the older-pagination path and the UI hides the chip.
+   */
+  timestamp?: string;
 };
 
 /**
@@ -2244,11 +2277,15 @@ function synthesizeOlder(raw: Array<Record<string, unknown>>): {
     // see the live `if (msg.type === "user")` branch for the rationale.
     if (isSyntheticTaskNotification(content)) continue;
 
-    // Plain user message — text or array content.
+    // Plain user message — text or array content. The SDK stamps user
+    // records in the JSONL with an ISO `timestamp`; parse it so paginated
+    // history shows the original send time rather than nothing.
+    const parsedTs = typeof r.timestamp === "string" ? Date.parse(r.timestamp) : NaN;
     out.push({
       uuid,
       role: "user",
       blocks: blocksFromSDKContent(content),
+      ...(Number.isFinite(parsedTs) ? { createdAt: parsedTs } : {}),
     });
   }
   return { messages: out };
@@ -2259,10 +2296,22 @@ function synthesizeOlder(raw: Array<Record<string, unknown>>): {
  * block) into the bubble identified by `messageId`. See the comment on
  * `DisplayMessage.uuid` for why we coalesce by `message.id`.
  *
- * `hasStreamScratch` distinguishes the live-streaming path (deltas are
- * driving block assembly via the `stream_event` branch — terminal content
- * is already represented and must NOT be re-appended) from the replay /
- * no-partials path (terminals are the only source of blocks — append).
+ * `hasStreamScratch` indicates that `stream_event` partials are driving block
+ * assembly for this `message.id`. We used to early-return in that case on the
+ * theory that the terminal's content was already represented in scratch — but
+ * that assumption breaks when an Anthropic message contains a `server_tool_use`
+ * (e.g. the advisor / web_search server tool). The SDK can resume the message
+ * after the server tool with content blocks that arrive ONLY as terminal
+ * `SDKAssistantMessage` splits — no `content_block_*` partials — so scratch
+ * never sees them. The previous early-return then silently dropped every
+ * post-server-tool block on the live wire; only a page refresh (which paints
+ * from the replay buffer instead) surfaced them.
+ *
+ * Fix: always run a dedupe-and-append pass. Match `tool_use` by id (as the
+ * pre-existing replay path did) and `text` / `thinking` by exact content
+ * equality against existing same-kind blocks. Blocks scratch already
+ * produced (via `buildMerged`) will match and be skipped; blocks scratch
+ * never saw will append.
  */
 function upsertAssistantSplit(
   prev: DisplayMessage[],
@@ -2271,6 +2320,8 @@ function upsertAssistantSplit(
   newBlocks: DisplayBlock[],
   hasStreamScratch: boolean,
   parentToolUseId?: string | null,
+  /** Server-stamped epoch ms for this SDK envelope (cf. `ServerEvent.sdk.at`). */
+  at?: number,
 ): DisplayMessage[] {
   const idx = prev.findIndex((m) => m.uuid === messageId);
   if (idx === -1) {
@@ -2283,6 +2334,7 @@ function upsertAssistantSplit(
         streaming: true,
         foldedSdkUuids: new Set([sdkUuid]),
         ...(parentToolUseId ? { parentToolUseId } : {}),
+        ...(typeof at === "number" ? { createdAt: at } : {}),
       },
     ];
   }
@@ -2299,29 +2351,38 @@ function upsertAssistantSplit(
   }
   const nextFolded = new Set(folded);
   nextFolded.add(sdkUuid);
-  if (hasStreamScratch) {
-    // Scratch (from `stream_event` deltas) is the source of truth for blocks
-    // — the terminal split's content is already there. Only the dedup set
-    // and streaming flag need updating.
-    const copy = prev.slice();
-    copy[idx] = { ...existing, foldedSdkUuids: nextFolded, streaming: true };
-    return copy;
-  }
-  // Replay / terminal-only path: append blocks, skipping tool_use ids that
-  // are already present (an earlier split owned them).
+  // Dedupe-and-append. See the function-level comment above for why this runs
+  // unconditionally (including when scratch is active) — `server_tool_use`
+  // can leave scratch blind to post-advisor blocks that arrive only as
+  // terminal splits.
   const existingToolIds = new Set<string>();
+  const existingTextContents = new Set<string>();
+  const existingThinkingContents = new Set<string>();
   for (const b of existing.blocks) {
     if (b.kind === "tool_use") existingToolIds.add(b.id);
+    else if (b.kind === "text") existingTextContents.add(b.text);
+    else if (b.kind === "thinking") existingThinkingContents.add(b.text);
   }
   const blocksToAppend: DisplayBlock[] = [];
   for (const b of newBlocks) {
-    if (b.kind === "tool_use" && existingToolIds.has(b.id)) continue;
+    if (b.kind === "tool_use") {
+      if (existingToolIds.has(b.id)) continue;
+    } else if (b.kind === "text") {
+      // Skip empties — scratch may have an empty placeholder slot whose
+      // delta hasn't filled yet, and we don't want to duplicate that as
+      // an empty bubble appendix. The next buildMerged will paint the
+      // real text into the scratch-owned slot anyway.
+      if (b.text === "" || existingTextContents.has(b.text)) continue;
+    } else if (b.kind === "thinking") {
+      if (b.text === "" || existingThinkingContents.has(b.text)) continue;
+    }
     blocksToAppend.push(b);
   }
   const copy = prev.slice();
   copy[idx] = {
     ...existing,
-    blocks: [...existing.blocks, ...blocksToAppend],
+    blocks:
+      blocksToAppend.length === 0 ? existing.blocks : [...existing.blocks, ...blocksToAppend],
     foldedSdkUuids: nextFolded,
     streaming: true,
   };

@@ -210,7 +210,20 @@ export type SessionSnapshotEvent = {
 };
 
 export type ServerEvent =
-  | { type: "sdk"; message: SDKMessage }
+  | {
+      type: "sdk";
+      message: SDKMessage;
+      /**
+       * Epoch ms when this SDK message was first observed. Stamped at the
+       * server broadcast funnel so it survives the SSE replay buffer — every
+       * subscriber (live, reload, tab-switch) sees the same value. Defaults to
+       * `Date.now()` for live SDK iterator output and user-input echoes; the
+       * disk-replay path (session resume) parses the SDK's native ISO
+       * `timestamp` field when available so historical messages keep their
+       * original time.
+       */
+      at?: number;
+    }
   | PermissionRequestEvent
   | SessionReadyEvent
   | SessionErrorEvent

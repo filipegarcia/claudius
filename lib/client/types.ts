@@ -47,6 +47,14 @@ export type DisplayMessage = {
    * Optimistically captured for user messages so the bubble inlines thumbnails.
    */
   images?: AttachedImage[];
+  /**
+   * Epoch ms when the message was first observed. Sourced from the server's
+   * `sdk` event envelope (`evt.at`) — for live messages this is the receive
+   * time at the broadcast funnel; for messages replayed from disk it's the
+   * SDK's original `timestamp` parsed from the JSONL record. Absent when the
+   * source provided no time (e.g. older assistant entries from `loadOlder`).
+   */
+  createdAt?: number;
 };
 
 export type TaskStatus = "pending" | "running" | "completed" | "failed" | "killed" | "stopped";

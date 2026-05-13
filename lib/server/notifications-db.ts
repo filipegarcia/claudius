@@ -1,9 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { openDb, type DB } from "./db";
-import type {
-  NotificationKind,
-  NotificationRow,
-  SessionNotificationPrefs,
+import {
+  ACTIONABLE_KINDS,
+  type NotificationKind,
+  type NotificationRow,
+  type SessionNotificationPrefs,
 } from "@/lib/shared/notifications";
 
 /**
@@ -263,6 +264,15 @@ export async function markReadByKind(
  * "I'm looking at this session now, the inbox can clear it." Returns the
  * number of rows that flipped so the bus can decide whether to emit a count
  * event.
+ *
+ * **Actionable kinds are preserved.** `permission_request` /
+ * `ask_user_question` / `plan_approval_request` rows survive this sweep
+ * because the agent is still blocked on the user. Clearing them on a passive
+ * "I switched to this tab" gesture would leave the badge silent for a request
+ * that still needs an explicit Allow/Deny / answer / Accept-Reject. Those rows
+ * are cleared instead by `markReadByRequestId`, fired from the resolve paths
+ * once the user actually answers. The client-side SSE auto-read predicate in
+ * `NotificationsProvider` mirrors this filter; see `ACTIONABLE_KINDS`.
  */
 export async function markReadBySession(
   cwd: string,
@@ -271,11 +281,18 @@ export async function markReadBySession(
   if (!sessionId) return 0;
   const db = await openDb(cwd);
   const now = Date.now();
+  // SQLite has no array-binding for IN(...); build the placeholder list from
+  // the shared constant so the two channels (this SQL + client predicate)
+  // stay in lockstep when a new actionable kind is added.
+  const placeholders = ACTIONABLE_KINDS.map(() => "?").join(", ");
   const res = db
     .prepare(
-      `UPDATE notifications SET read_at = ? WHERE read_at IS NULL AND session_id = ?`,
+      `UPDATE notifications SET read_at = ?
+        WHERE read_at IS NULL
+          AND session_id = ?
+          AND kind NOT IN (${placeholders})`,
     )
-    .run(now, sessionId);
+    .run(now, sessionId, ...ACTIONABLE_KINDS);
   return res.changes;
 }
 
