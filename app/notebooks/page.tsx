@@ -69,7 +69,7 @@ const NOTEBOOK: { filename: string; cells: Cell[] } = {
             Signal exploration · Q2 backfill
           </h1>
           <p className="mt-2 text-sm text-[var(--muted)]">
-            Pulling the last seven days of <code className="rounded bg-[var(--panel-2)] px-1 py-0.5 font-mono text-[12px]">efi_signal</code>{" "}
+            Pulling the last seven days of <code className="rounded bg-[var(--panel-2)] px-1 py-0.5 font-mono text-[12px]">project_signal</code>{" "}
             rows from the read replica, cleaning a handful of outliers, and
             looking for a daily-cadence pattern worth alerting on.
           </p>

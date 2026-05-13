@@ -107,7 +107,7 @@ const CONSOLES: ConsoleTab[] = [
           { text: " * ", tone: "op" },
           { text: "from", tone: "kw" },
           { text: " " },
-          { text: "efi_institution", tone: "tbl", spelling: false },
+          { text: "project_institution", tone: "tbl", spelling: false },
         ],
       },
       {
@@ -135,7 +135,7 @@ const CONSOLES: ConsoleTab[] = [
           { text: " * ", tone: "op" },
           { text: "from", tone: "kw" },
           { text: " " },
-          { text: "efi_institution", tone: "tbl", spelling: true },
+          { text: "project_institution", tone: "tbl", spelling: true },
         ],
       },
       {
@@ -153,7 +153,7 @@ const CONSOLES: ConsoleTab[] = [
         tokens: [
           { text: "from", tone: "kw" },
           { text: " " },
-          { text: "efi_institution_settings", tone: "tbl" },
+          { text: "project_institution_settings", tone: "tbl" },
         ],
       },
       {
@@ -186,7 +186,7 @@ const CONSOLES: ConsoleTab[] = [
         tokens: [
           { text: "from", tone: "kw" },
           { text: " " },
-          { text: "efi_user", tone: "tbl" },
+          { text: "project_user", tone: "tbl" },
         ],
       },
       {
@@ -202,7 +202,7 @@ const CONSOLES: ConsoleTab[] = [
           { text: "(*) " },
           { text: "from", tone: "kw" },
           { text: " " },
-          { text: "efi_signal", tone: "tbl" },
+          { text: "project_signal", tone: "tbl" },
         ],
       },
       {
