@@ -98,6 +98,13 @@ export type QueuedMessage = {
   text: string;
   /** Image attachments referenced by `[Image #ordinal]` markers in `text`. */
   images?: AttachedImage[];
+  /**
+   * When true, this queued entry is an SDK-handled slash command (e.g.
+   * `/compact`). The flush path forwards it with `slash: true` so the server
+   * skips the user-message echo and emits a `slash_invoked` system pill
+   * instead.
+   */
+  slash?: boolean;
 };
 
 export type SessionInfo = {
@@ -260,7 +267,25 @@ export type SendableImage = Partial<Pick<AttachedImage, "id" | "ordinal">> &
   Pick<AttachedImage, "data" | "mediaType">;
 
 export type ChatActions = {
-  send(text: string, images?: SendableImage[]): Promise<void>;
+  send(
+    text: string,
+    images?: SendableImage[],
+    opts?: {
+      /**
+       * When true, `text` is a registered SDK-handled slash command
+       * (e.g. `/compact`). The send path will:
+       *   - skip the optimistic user-message render (so the chat doesn't
+       *     show `/compact` as if the user typed it),
+       *   - post `slash: true` to `/api/sessions/[id]/input` so the server
+       *     skips the user-message broadcast and emits a `slash_invoked`
+       *     system pill instead.
+       * The SDK still receives the text on its input queue and interprets
+       * the slash; its eventual response (compact_boundary, init reload,
+       * etc.) lands as its own SSE event.
+       */
+      asSlashCommand?: boolean;
+    },
+  ): Promise<void>;
   enqueue(text: string, images?: AttachedImage[]): void;
   cancelQueued(id: string): void;
   /** Pull a queued item back into the input; returns its text and removes it. */

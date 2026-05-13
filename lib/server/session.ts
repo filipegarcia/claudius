@@ -786,7 +786,7 @@ export class Session {
   sendInput(
     text: string,
     images?: Array<{ data: string; mediaType: string; ordinal?: number }>,
-    opts?: { uuid?: string },
+    opts?: { uuid?: string; slash?: boolean },
   ): void {
     if (this.done) return;
     type ContentBlock =
@@ -814,6 +814,46 @@ export class Session {
     notificationBus.markUserInput(this.id);
     this.turnInFlight = true;
     this.broadcastTurnStatusIfChanged();
+
+    // Slash-command shortcut: send `/compact`, `/init`, etc. to the SDK
+    // verbatim so the CLI subprocess can interpret them, but DON'T broadcast
+    // the synthetic user-message echo — otherwise the chat shows `/compact`
+    // as if the user had typed it. We drop in a small `slash_invoked` system
+    // event so the chat doesn't go silent while the SDK works. Image
+    // attachments are not supported alongside slash commands (the dispatcher
+    // in app/page.tsx already gates this), so we ignore `images` here.
+    //
+    // We re-use the *same* `uuid` for both the inputQueue user message and
+    // the broadcast `slash_invoked` system event. This matters on reload:
+    // `resyncFromDisk` (and `loadHistorical` on session start) build their
+    // "already seen" set from buffer uuids and skip any JSONL message whose
+    // uuid is already in the buffer. Without this, the disk-side `/compact`
+    // user message would re-broadcast on every refresh and the echo bug
+    // would come back via the resync path.
+    if (opts?.slash) {
+      const message = { role: "user" as const, content: text };
+      const command = text.trim().split(/\s+/, 1)[0] ?? "/";
+      const args = text.trim().slice(command.length).trim();
+      this.broadcast({
+        type: "sdk",
+        message: {
+          type: "system",
+          subtype: "slash_invoked",
+          command,
+          args,
+          session_id: this.id,
+          uuid,
+        } as unknown as SDKMessage,
+      });
+      this.inputQueue.push({
+        type: "user",
+        message,
+        parent_tool_use_id: null,
+        session_id: this.id,
+        uuid,
+      });
+      return;
+    }
 
     if (!images || images.length === 0) {
       const message = { role: "user" as const, content: text };
