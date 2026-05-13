@@ -156,11 +156,21 @@ export function spawnStreamed(
   args: string[],
   cwd: string,
   onLine: (line: string, stream: "out" | "err") => void,
+  // Overrides are spread on top of `process.env` below, so callers should
+  // only need to pass the keys they actually want to change. `ProcessEnv`
+  // itself is non-partial in Next.js's ambient types (NODE_ENV is required),
+  // so we widen with `Partial<>` to allow `{}` and one-key overrides.
+  envOverrides: Partial<NodeJS.ProcessEnv> = {},
 ): Promise<number> {
   return new Promise((resolve, reject) => {
     const child = spawn(cmd, args, {
       cwd,
-      env: { ...process.env, GIT_TERMINAL_PROMPT: "0", GIT_ASKPASS: "/bin/echo" },
+      env: {
+        ...process.env,
+        GIT_TERMINAL_PROMPT: "0",
+        GIT_ASKPASS: "/bin/echo",
+        ...envOverrides,
+      },
       stdio: ["ignore", "pipe", "pipe"],
     });
     let outBuf = "";

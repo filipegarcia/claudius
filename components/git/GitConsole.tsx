@@ -1,10 +1,12 @@
 "use client";
 
-import { useLayoutEffect, useRef } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import {
   ArrowDownToLine,
+  Check,
   ChevronDown,
   ChevronUp,
+  ClipboardCopy,
   Terminal,
   Trash2,
 } from "lucide-react";
@@ -99,6 +101,35 @@ export function GitConsole({
     0,
   );
 
+  // Transient "✓" affordance on the copy button so the user knows the
+  // clipboard write landed. Mirrors the pattern in `CodeBlock.tsx`.
+  const [copiedErrors, setCopiedErrors] = useState(false);
+
+  /**
+   * Build a paste-friendly transcript of every error entry — what you'd want
+   * to drop into a bug report or chat thread. Format mirrors the rendered
+   * row (time, cwd, command, output) so the clipboard text looks like the
+   * console you copied from.
+   */
+  async function copyErrors() {
+    const errors = entries.filter((e) => e.status === "error");
+    if (errors.length === 0) return;
+    const text = errors
+      .map((e) => {
+        const header = `${formatTime(e.timestamp)} ${e.cwd ? `[${e.cwd}] ` : ""}${e.command}`;
+        return e.output ? `${header}\n${e.output.trimEnd()}` : header;
+      })
+      .join("\n\n");
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      // Non-secure context or permission denied — silently no-op.
+      return;
+    }
+    setCopiedErrors(true);
+    window.setTimeout(() => setCopiedErrors(false), 1200);
+  }
+
   if (!open) {
     return (
       <div
@@ -167,6 +198,28 @@ export function GitConsole({
           </span>
         )}
         <div className="ml-auto flex items-center gap-1">
+          <button
+            type="button"
+            onClick={copyErrors}
+            disabled={errorCount === 0}
+            title={
+              errorCount === 0
+                ? "Copy all errors (none yet)"
+                : `Copy all ${errorCount} error${errorCount === 1 ? "" : "s"} to clipboard`
+            }
+            aria-label="Copy all errors to clipboard"
+            data-testid="git-console-copy-errors"
+            className={cn(
+              "flex h-5 w-5 items-center justify-center rounded hover:bg-[var(--panel-2)] hover:text-[var(--foreground)] disabled:opacity-40",
+              copiedErrors && "text-emerald-300",
+            )}
+          >
+            {copiedErrors ? (
+              <Check className="h-3 w-3" />
+            ) : (
+              <ClipboardCopy className="h-3 w-3" />
+            )}
+          </button>
           <button
             type="button"
             onClick={() => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   ArrowRightLeft,
   ChevronDown,
@@ -87,6 +87,29 @@ export function ChangesList({
   const allChecked = totalCheckable > 0 && files.every((f) => checked.has(f.path));
   const someChecked = !allChecked && files.some((f) => checked.has(f.path));
 
+  // Transient "Copied!" affordance: which path was last copied to clipboard,
+  // cleared after a short timeout so the indicator fades out automatically.
+  // Lifted up to the list so only one row can be "just copied" at a time
+  // even when the user rapidly tabs through rows pressing Cmd+C.
+  const [copiedPath, setCopiedPath] = useState<string | null>(null);
+  async function copyPath(path: string) {
+    // Browser-native text selection wins: if the user dragged-selected part of
+    // the path, Cmd+C should copy *that* (a substring), not the whole path.
+    const sel = typeof window !== "undefined" ? window.getSelection?.() : null;
+    if (sel && sel.toString().trim().length > 0) return;
+    try {
+      await navigator.clipboard.writeText(path);
+    } catch {
+      // Non-secure context or permission denied — silently no-op. There's no
+      // graceful fallback we can offer from a keyboard handler.
+      return;
+    }
+    setCopiedPath(path);
+    window.setTimeout(() => {
+      setCopiedPath((current) => (current === path ? null : current));
+    }, 1200);
+  }
+
   const header = (
     <div className="flex items-center gap-2 border-b border-[var(--border)] px-3 py-1.5 text-[11px] uppercase tracking-wide text-[var(--muted)]">
       <input
@@ -146,6 +169,8 @@ export function ChangesList({
         onToggleCheck={onToggleCheck}
         onDelete={onDelete}
         deletingPath={deletingPath}
+        onCopyPath={copyPath}
+        copiedPath={copiedPath}
       />
       <Group
         title="Changed"
@@ -159,6 +184,8 @@ export function ChangesList({
         onToggleCheck={onToggleCheck}
         onDelete={onDelete}
         deletingPath={deletingPath}
+        onCopyPath={copyPath}
+        copiedPath={copiedPath}
       />
       <Group
         title="Unversioned"
@@ -172,6 +199,8 @@ export function ChangesList({
         onToggleCheck={onToggleCheck}
         onDelete={onDelete}
         deletingPath={deletingPath}
+        onCopyPath={copyPath}
+        copiedPath={copiedPath}
       />
     </div>
   );
@@ -189,6 +218,8 @@ function Group({
   onToggleCheck,
   onDelete,
   deletingPath,
+  onCopyPath,
+  copiedPath,
 }: {
   title: string;
   items: GitFileChange[];
@@ -201,6 +232,10 @@ function Group({
   onToggleCheck: (path: string, next: boolean) => void;
   onDelete?: (path: string) => void;
   deletingPath?: string | null;
+  /** Cmd/Ctrl+C handler on a focused row. */
+  onCopyPath: (path: string) => void;
+  /** Path of the row currently flashing "Copied!". */
+  copiedPath: string | null;
 }) {
   if (items.length === 0) return null;
   return (
@@ -250,10 +285,39 @@ function Group({
                   <button
                     type="button"
                     onClick={() => onSelect({ path: f.path, mode })}
+                    onKeyDown={(e) => {
+                      // Cmd/Ctrl+C on the focused row copies the file path —
+                      // mirrors IntelliJ/VS Code's "select a file row, press
+                      // copy". `copyPath` itself bails out if the user has a
+                      // native text selection so we don't trample on it.
+                      if (
+                        (e.metaKey || e.ctrlKey) &&
+                        !e.shiftKey &&
+                        !e.altKey &&
+                        e.key.toLowerCase() === "c"
+                      ) {
+                        onCopyPath(f.path);
+                      }
+                    }}
+                    title={f.path}
                     className="flex min-w-0 flex-1 items-center gap-1.5 text-left"
                   >
                     <StatusIcon code={statusCharForGroup(f, mode)} />
-                    <span className="truncate font-mono">{displayPath(f, mode)}</span>
+                    {/* `select-text` re-enables drag-select inside the
+                        button (Safari defaults to user-select:none on
+                        button content), so the path is also copyable via
+                        the native gesture. */}
+                    <span className="truncate font-mono select-text">
+                      {displayPath(f, mode)}
+                    </span>
+                    {copiedPath === f.path && (
+                      <span
+                        aria-live="polite"
+                        className="ml-1 shrink-0 rounded bg-emerald-500/15 px-1 py-px text-[10px] uppercase tracking-wide text-emerald-300"
+                      >
+                        Copied
+                      </span>
+                    )}
                   </button>
                   {onDelete && (
                     <button

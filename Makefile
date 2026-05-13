@@ -1,4 +1,4 @@
-.PHONY: install dev build start lint unit test test-ui test-setup test-setup-local test-setup-docker ci site screenshots screenshots-full claudius-revert claudius-revert-all run up down restart status logs
+.PHONY: install dev build start lint unit test test-ui test-setup test-setup-local test-setup-docker test-install-public ci site screenshots screenshots-full claudius-revert claudius-revert-all run up down restart status logs
 
 install:
 	bun install --frozen-lockfile
@@ -38,6 +38,15 @@ test-setup-local:
 
 test-setup-docker:
 	@site/test/test-docker.sh
+
+# End-to-end smoke against the *public* setup.sh URL. Pulls setup.sh from
+# gh-pages, clones the public repo at the current branch, runs `bun install`,
+# boots `bun run dev` in a clean Ubuntu container, and curls /api/heartbeat
+# + /api/heartbeatz to confirm the install actually works. The branch under
+# test must already be pushed to GitHub. Override with SETUP_URL=… for a
+# PR preview (e.g. raw.githubusercontent.com).
+test-install-public:
+	@site/test/test-install-public.sh
 
 test-setup: test-setup-local test-setup-docker
 
