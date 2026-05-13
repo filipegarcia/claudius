@@ -29,28 +29,28 @@ const RAIL_FIXTURE: AskUserQuestionEvent = {
           description:
             "Customization tile appears in the rail the moment you Open one, vanishes when you switch back to a project. To resume an older customization you go to /customize → Open. Workspace state (sessions, chat) is untouched.",
           preview:
-            "Project workspaces:\n  [A] EFI\n  [E] eli\n  [C] claudius\n  -----\n  [✨] Cat Spinner   ← ACTIVE\n  [+] new\n  -----\n  [✨] /customize\n  [⚙] settings\n\n(no other customizations\n shown anywhere)",
+            "Project workspaces:\n  [P] project\n  [E] eli\n  [C] claudius\n  -----\n  [✨] Cat Spinner   ← ACTIVE\n  [+] new\n  -----\n  [✨] /customize\n  [⚙] settings\n\n(no other customizations\n shown anywhere)",
         },
         {
           label: "Active + last 2 recent",
           description:
             "Show the currently-active customization plus the 2 most-recently-opened. Older ones drop off automatically. Good for quick-bouncing between 2-3 customizations you're iterating on this week.",
           preview:
-            "Project workspaces:\n  [A] EFI\n  [E] eli\n  [C] claudius\n  -----\n  [✨] Cat Spinner   ← ACTIVE\n  [✨] DOOM HUD       recent\n  [✨] Clippy         recent\n  [+] new\n  -----\n  [✨] /customize\n  [⚙] settings",
+            "Project workspaces:\n  [P] project\n  [E] eli\n  [C] claudius\n  -----\n  [✨] Cat Spinner   ← ACTIVE\n  [✨] DOOM HUD       recent\n  [✨] Clippy         recent\n  [+] new\n  -----\n  [✨] /customize\n  [⚙] settings",
         },
         {
           label: "Pin to rail per customization",
           description:
             "Each customization gets a 'pin to sidebar' toggle in /customize. Unpinned = invisible in rail (except when actively open). You explicitly choose which ones live there. Most flexible, but one more thing to manage.",
           preview:
-            "Project workspaces:\n  [A] EFI\n  [E] eli\n  [C] claudius\n  -----\n  [✨] DOOM HUD     pinned\n  [✨] Cat Spinner  pinned, active\n  [+] new\n  -----\n  [✨] /customize   ← here you toggle\n               the 📌 pin per item\n  [⚙] settings",
+            "Project workspaces:\n  [P] project\n  [E] eli\n  [C] claudius\n  -----\n  [✨] DOOM HUD     pinned\n  [✨] Cat Spinner  pinned, active\n  [+] new\n  -----\n  [✨] /customize   ← here you toggle\n               the 📌 pin per item\n  [⚙] settings",
         },
         {
           label: "Customizations drawer (one tile)",
           description:
             "Single wand tile in the rail represents the 'customizations' pool. Clicking it opens a popover listing all of them with a small green dot on the active one. The same tile also hosts the active-customization highlight when one is open.",
           preview:
-            "Project workspaces:\n  [A] EFI\n  [E] eli\n  [C] claudius\n  -----\n  [✨]• ← click opens popover:\n      │┌─ Customizations ─┐\n      ││ ● Cat Spinner  ACTIVE\n      ││ ○ DOOM HUD\n      ││ ○ Clippy\n      ││ ○ Minecraft...\n      ││ + Manage all\n      │└─────────────────┘\n  [+] new\n  -----\n  [⚙] settings",
+            "Project workspaces:\n  [P] project\n  [E] eli\n  [C] claudius\n  -----\n  [✨]• ← click opens popover:\n      │┌─ Customizations ─┐\n      ││ ● Cat Spinner  ACTIVE\n      ││ ○ DOOM HUD\n      ││ ○ Clippy\n      ││ ○ Minecraft...\n      ││ + Manage all\n      │└─────────────────┘\n  [+] new\n  -----\n  [⚙] settings",
         },
       ],
     },

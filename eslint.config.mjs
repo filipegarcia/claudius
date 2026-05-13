@@ -16,6 +16,15 @@ const eslintConfig = defineConfig([
     // (eventually) its own lint setup. Don't drag it into the Next
     // app's ESLint run.
     "chat-server/**",
+    // Generated test artifacts. ESLint flat config does not auto-respect
+    // .gitignore, so without these the linter walks Playwright's report
+    // bundle and Babel emits a 500KB-deopt note on minified assets.
+    "playwright-report/**",
+    "test-results/**",
+    "blob-report/**",
+    "playwright/.cache/**",
+    // Claudiusd runtime state (pid file, logs, sqlite).
+    ".claudius/**",
   ]),
   // The React 19 / React Compiler rule set fires on patterns this codebase
   // hasn't been migrated for (see `user_lint_policy.md` memory). Demote to
