@@ -1,6 +1,7 @@
 import { promises as fs } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
+import { assertWithin } from "./safe-path";
 
 export type ClaudeMdScope = "user" | "project" | "project-claude" | "local";
 
@@ -22,10 +23,13 @@ export type ResolvedSegment = {
 const MAX_IMPORT_HOPS = 5;
 
 export function pathFor(scope: ClaudeMdScope, projectCwd: string): string {
-  if (scope === "user") return join(homedir(), ".claude", "CLAUDE.md");
-  if (scope === "project") return join(projectCwd, "CLAUDE.md");
-  if (scope === "project-claude") return join(projectCwd, ".claude", "CLAUDE.md");
-  return join(projectCwd, "CLAUDE.local.md");
+  // assertWithin acts as the path-injection barrier on the projectCwd →
+  // fs.* flow. The relative segment is always a constant string, so the
+  // check is effectively a "this is inside the workspace" guard.
+  if (scope === "user") return assertWithin(join(homedir(), ".claude"), "CLAUDE.md");
+  if (scope === "project") return assertWithin(projectCwd, "CLAUDE.md");
+  if (scope === "project-claude") return assertWithin(projectCwd, join(".claude", "CLAUDE.md"));
+  return assertWithin(projectCwd, "CLAUDE.local.md");
 }
 
 export async function readScope(scope: ClaudeMdScope, projectCwd: string): Promise<ScopeFile> {

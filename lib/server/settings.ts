@@ -1,6 +1,7 @@
 import { promises as fs } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
+import { assertWithin } from "./safe-path";
 
 export type SettingsScope = "user" | "project" | "local";
 
@@ -26,9 +27,12 @@ export type ClaudeSettings = {
 };
 
 export function pathFor(scope: SettingsScope, projectCwd: string): string {
-  if (scope === "user") return join(homedir(), ".claude", "settings.json");
-  if (scope === "project") return join(projectCwd, ".claude", "settings.json");
-  return join(projectCwd, ".claude", "settings.local.json");
+  // assertWithin acts as the path-injection barrier on the projectCwd →
+  // fs.* flow. The relative segment is always a constant string, so this
+  // is effectively a "stays inside the workspace's .claude dir" guard.
+  if (scope === "user") return assertWithin(join(homedir(), ".claude"), "settings.json");
+  if (scope === "project") return assertWithin(projectCwd, join(".claude", "settings.json"));
+  return assertWithin(projectCwd, join(".claude", "settings.local.json"));
 }
 
 export async function readSettings(scope: SettingsScope, projectCwd: string): Promise<ClaudeSettings> {

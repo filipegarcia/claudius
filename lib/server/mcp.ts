@@ -2,6 +2,7 @@ import { promises as fs } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { readSettings, writeSettings } from "./settings";
+import { assertWithin } from "./safe-path";
 
 export type McpStdioConfig = {
   type?: "stdio";
@@ -36,13 +37,15 @@ export type ConfiguredServer = {
 };
 
 export function projectMcpJsonPath(cwd: string): string {
-  return join(cwd, ".mcp.json");
+  // assertWithin acts as the path-injection barrier on the cwd → fs.*
+  // flow that follows. The relative segment is a constant.
+  return assertWithin(cwd, ".mcp.json");
 }
 
 export function userMcpJsonPath(): string {
   // Claude Code's CLI also stores per-user MCP servers inside settings.json under `mcpServers`,
   // but the canonical project file is `.mcp.json`. We mirror both.
-  return join(homedir(), ".claude", "mcp.json");
+  return assertWithin(join(homedir(), ".claude"), "mcp.json");
 }
 
 async function readJson<T>(p: string): Promise<T | null> {
@@ -57,8 +60,13 @@ async function readJson<T>(p: string): Promise<T | null> {
 }
 
 async function writeJson(p: string, value: unknown): Promise<void> {
-  await fs.mkdir(dirname(p), { recursive: true });
-  await fs.writeFile(p, JSON.stringify(value, null, 2) + "\n", "utf8");
+  // The directory must contain `p`, which is what assertWithin guarantees
+  // upstream in `projectMcpJsonPath` / `userMcpJsonPath`. Re-asserting here
+  // gives CodeQL the sanitizer directly at the fs.* call site.
+  const dir = dirname(p);
+  const target = assertWithin(dir, p);
+  await fs.mkdir(dir, { recursive: true });
+  await fs.writeFile(target, JSON.stringify(value, null, 2) + "\n", "utf8");
 }
 
 type McpJsonShape = { mcpServers?: Record<string, McpServerConfig> };

@@ -1,6 +1,7 @@
 import { promises as fs } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
+import { assertWithin } from "./safe-path";
 
 export type AgentScope = "user" | "project";
 
@@ -20,7 +21,12 @@ export function agentsDir(scope: AgentScope, projectCwd: string): string {
 
 export function agentPath(scope: AgentScope, projectCwd: string, name: string): string {
   if (!/^[\w.\-]+$/.test(name)) throw new Error("invalid agent name");
-  return join(agentsDir(scope, projectCwd), `${name}.md`);
+  // assertWithin is the path-injection barrier — guarantees the resolved
+  // path stays inside the scoped agents directory even if `name` somehow
+  // got past the regex (defence-in-depth) and gives CodeQL a recognized
+  // sanitizer on the projectCwd → fs.* flow.
+  const dir = agentsDir(scope, projectCwd);
+  return assertWithin(dir, `${name}.md`);
 }
 
 export async function listAgents(scope: AgentScope, projectCwd: string): Promise<AgentFile[]> {

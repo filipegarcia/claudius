@@ -286,7 +286,15 @@ export class Session {
     // id (the resumed conversation's id) — otherwise user messages we push
     // through the input queue carry a `session_id` that the SDK doesn't
     // recognize, and it errors with "No conversation found with session ID".
-    this.id = opts.id ?? opts.resume ?? randomUUID();
+    const requestedId = opts.id ?? opts.resume ?? randomUUID();
+    // Session ids flow into the JSONL filename (`<id>.jsonl`) and into the
+    // per-session DB rows, so reject anything that could escape the
+    // projects dir or contain path separators. Real SDK ids are UUIDs;
+    // accept the broader `[\w-]+` to keep tests/fixtures working.
+    if (!/^[\w-]+$/.test(requestedId)) {
+      throw new Error("invalid session id");
+    }
+    this.id = requestedId;
     this.cwd = opts.cwd ?? process.cwd();
     this.model = opts.model;
     this.permissionMode = opts.permissionMode ?? "default";
@@ -317,7 +325,14 @@ export class Session {
           });
         }
         for (const m of historical) {
-          this.broadcast({ type: "sdk", message: m as unknown as SDKMessage });
+          // SDK user/user-replay records carry an ISO `timestamp`; pass it
+          // through as epoch ms so the UI shows the original send time
+          // instead of "now". Assistant records have no native timestamp —
+          // leave `at` undefined and the UI hides the chip.
+          const ts = (m as { timestamp?: string }).timestamp;
+          const parsed = typeof ts === "string" ? Date.parse(ts) : NaN;
+          const at = Number.isFinite(parsed) ? parsed : undefined;
+          this.broadcast({ type: "sdk", message: m as unknown as SDKMessage, at });
         }
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
@@ -1346,6 +1361,14 @@ export class Session {
   }
 
   private broadcast(event: ServerEvent): void {
+    // Stamp SDK messages with an "observed at" time at this single funnel so
+    // the value travels through the replay buffer — every late subscriber
+    // (reload, tab-switch, second tab) sees the same time as the first one.
+    // Disk-replay callers pre-set `at` from the JSONL `timestamp` field; live
+    // sites leave it unset and we default to "now" here.
+    if (event.type === "sdk" && event.at == null) {
+      event = { ...event, at: Date.now() };
+    }
     this.buffer.push(event);
     if (this.buffer.length > 1000) this.buffer.splice(0, this.buffer.length - 1000);
     // Sniff for derived state we want to rehydrate on tab-switch / reload.
