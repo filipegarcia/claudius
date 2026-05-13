@@ -177,9 +177,23 @@
             See it in action
           </a>
         </div>
-        <p class="mt-8 font-mono text-xs text-muted/80">
-          <span class="text-accent">$</span> curl -fsSL https://filipegarcia.github.io/claudius/setup.sh | bash
-        </p>
+        <div class="mt-8 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 font-mono text-xs text-muted/80">
+          <span class="italic text-muted/60" title="“let there be code” — a wink at fiat lux">fiat codex —</span>
+          <span><span class="text-accent">$</span> <span id="hero-cmd">curl -fsSL https://filipegarcia.github.io/claudius/setup.sh | bash</span></span>
+          <button
+            id="hero-copy"
+            type="button"
+            class="inline-flex items-center justify-center rounded p-1 text-muted hover:bg-panel2 hover:text-fg transition"
+            aria-label="Copy install command"
+            title="Copy"
+          >
+            <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+            <span class="sr-only">Copy</span>
+          </button>
+        </div>
       </div>
     </section>
 
@@ -1172,30 +1186,68 @@ HOST=0.0.0.0 PORT=8080 make up     # reachable from your LAN (careful)</code></p
     <!-- ────────────────────────────── Copy install ─────────────────────── -->
     <script>
       (() => {
-        const btn = document.getElementById("install-copy");
-        const cmd = document.getElementById("install-cmd");
-        if (!btn || !cmd) return;
-        const original = btn.textContent;
-        let resetTimer = 0;
-        btn.addEventListener("click", async () => {
-          const text = cmd.textContent ?? "";
-          try {
-            await navigator.clipboard.writeText(text);
-            btn.textContent = "Copied";
-          } catch {
-            // Fallback: select the text so the user can hit ⌘/Ctrl-C themselves.
-            const sel = window.getSelection();
-            const range = document.createRange();
-            range.selectNodeContents(cmd);
-            sel?.removeAllRanges();
-            sel?.addRange(range);
-            btn.textContent = "Press ⌘/Ctrl-C";
-          }
-          window.clearTimeout(resetTimer);
-          resetTimer = window.setTimeout(() => {
-            btn.textContent = original;
-          }, 1800);
-        });
+        // Text-label copy button next to the framed install one-liner.
+        const wireTextCopy = (btnId, cmdId) => {
+          const btn = document.getElementById(btnId);
+          const cmd = document.getElementById(cmdId);
+          if (!btn || !cmd) return;
+          const original = btn.textContent;
+          let resetTimer = 0;
+          btn.addEventListener("click", async () => {
+            const text = cmd.textContent ?? "";
+            try {
+              await navigator.clipboard.writeText(text);
+              btn.textContent = "Copied";
+            } catch {
+              // Fallback: select the text so the user can hit ⌘/Ctrl-C themselves.
+              const sel = window.getSelection();
+              const range = document.createRange();
+              range.selectNodeContents(cmd);
+              sel?.removeAllRanges();
+              sel?.addRange(range);
+              btn.textContent = "Press ⌘/Ctrl-C";
+            }
+            window.clearTimeout(resetTimer);
+            resetTimer = window.setTimeout(() => {
+              btn.textContent = original;
+            }, 1800);
+          });
+        };
+        wireTextCopy("install-copy", "install-cmd");
+
+        // Icon-only copy button on the hero one-liner. Swaps the clipboard
+        // glyph for a checkmark on success, then restores it.
+        const wireIconCopy = (btnId, cmdId) => {
+          const btn = document.getElementById(btnId);
+          const cmd = document.getElementById(cmdId);
+          if (!btn || !cmd) return;
+          const originalLabel = btn.getAttribute("aria-label") ?? "Copy";
+          const originalHTML = btn.innerHTML;
+          const checkHTML =
+            '<svg class="h-3.5 w-3.5 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"></path></svg><span class="sr-only">Copied</span>';
+          let resetTimer = 0;
+          btn.addEventListener("click", async () => {
+            const text = cmd.textContent ?? "";
+            try {
+              await navigator.clipboard.writeText(text);
+              btn.innerHTML = checkHTML;
+              btn.setAttribute("aria-label", "Copied");
+            } catch {
+              const sel = window.getSelection();
+              const range = document.createRange();
+              range.selectNodeContents(cmd);
+              sel?.removeAllRanges();
+              sel?.addRange(range);
+              btn.setAttribute("aria-label", "Press ⌘/Ctrl-C to copy");
+            }
+            window.clearTimeout(resetTimer);
+            resetTimer = window.setTimeout(() => {
+              btn.innerHTML = originalHTML;
+              btn.setAttribute("aria-label", originalLabel);
+            }, 1800);
+          });
+        };
+        wireIconCopy("hero-copy", "hero-cmd");
       })();
     </script>
   </body>
