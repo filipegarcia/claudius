@@ -931,7 +931,19 @@ export default function Home() {
               session.messages.length === 0 ||
               confirm("Start a new session? The current conversation is preserved on disk.")
             ) {
+              // Clear === reset: spin up a new session AND close the current
+              // tab so the user lands on the fresh one with nothing left over.
+              // Without the filter, the auto-add effect just appends the new
+              // session next to the old one and the user has two tabs open.
+              // We skip closeTab() because it would switchSession to a
+              // neighbor when the active tab is the one being closed — we
+              // already want the new session to take focus.
+              const oldId = session.sessionId;
               void session.createNewSession();
+              if (oldId) {
+                void notifications.markSessionRead(oldId);
+                setOpenTabs((prev) => prev.filter((x) => x !== oldId));
+              }
             }
           }}
         />
