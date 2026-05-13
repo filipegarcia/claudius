@@ -246,28 +246,31 @@ describe("mapEventToKind", () => {
     expect(out).toBeNull();
   });
 
-  test("sdk: result inside idle window (5s) → suppressed", () => {
+  test("sdk: result with markUserInput → session_idle (no time gate)", () => {
+    // The time-based IDLE_NOTIFY_MIN_MS window was removed because it
+    // suppressed quick turns on backgrounded sessions (the
+    // `wait 1 seconds and ack` user-bug). The client's auto-read gate
+    // in NotificationsProvider handles the "user is still on this
+    // session" case by marking the row read on arrival; the server
+    // shouldn't gate on a race-y timer.
     const idle = new Map<string, number>();
-    const now = 1_000_000;
-    idle.set(SESSION_CTX.sessionId, now - 2_000); // 2s ago, under 5s window
+    idle.set(SESSION_CTX.sessionId, Date.now() - 2_000); // 2s ago — would have been suppressed pre-fix
     const out = mapEventToKind(
       { type: "sdk", message: { type: "result" } as never },
       SESSION_CTX,
       idle,
-      now,
     );
-    expect(out).toBeNull();
+    expect(out?.kind).toBe("session_idle");
+    expect(out?.body).toBe(SESSION_CTX.cwd);
   });
 
-  test("sdk: result outside idle window → session_idle", () => {
+  test("sdk: result with markUserInput recorded long ago → session_idle", () => {
     const idle = new Map<string, number>();
-    const now = 1_000_000;
-    idle.set(SESSION_CTX.sessionId, now - 6_000); // 6s ago, past the 5s window
+    idle.set(SESSION_CTX.sessionId, Date.now() - 60_000); // 60s ago
     const out = mapEventToKind(
       { type: "sdk", message: { type: "result" } as never },
       SESSION_CTX,
       idle,
-      now,
     );
     expect(out?.kind).toBe("session_idle");
     expect(out?.body).toBe(SESSION_CTX.cwd);

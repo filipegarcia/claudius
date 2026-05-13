@@ -10,7 +10,7 @@ import {
   type WorkspaceUnreadState,
 } from "@/lib/shared/notifications";
 import { listWorkspaces, workspacesFile, type Workspace } from "./workspaces-store";
-import { getCachedDb } from "./db";
+import { getCachedDb, openDb } from "./db";
 import {
   insertNotification,
   isSessionMuted,
@@ -77,9 +77,6 @@ type RecordContext = {
 };
 
 type Subscriber = (env: NotificationStreamEvent) => void;
-
-/** Window after the last user input during which a `result` event is NOT a notify trigger. */
-const IDLE_NOTIFY_MIN_MS = 5_000;
 
 class NotificationBus {
   private subscribers = new Set<Subscriber>();
@@ -206,6 +203,35 @@ class NotificationBus {
     return listNotifications(ws.rootPath, workspaceId, opts);
   }
 
+  /**
+   * Cross-workspace listing for the notification drawer. The drawer used to
+   * be per-workspace, which meant a notification fired in a workspace the
+   * user wasn't currently in was invisible — favicon/title counted it
+   * because they aggregate, but the drawer showed "You're all caught up"
+   * for the active workspace. Aggregating here closes that gap.
+   *
+   * Fetches `limit` per workspace (cheap with the new `unreadOnly` index)
+   * and merges in created_at DESC order, then truncates to `limit`.
+   */
+  async listAcrossWorkspaces(opts: {
+    limit?: number;
+    unreadOnly?: boolean;
+  } = {}): Promise<NotificationRow[]> {
+    const limit = Math.max(1, Math.min(200, opts.limit ?? 50));
+    const all = await listWorkspaces().catch(() => [] as Workspace[]);
+    const perWs = await Promise.all(
+      all.map((w) =>
+        listNotifications(w.rootPath, w.id, {
+          limit,
+          ...(opts.unreadOnly ? { unreadOnly: true } : {}),
+        }).catch(() => [] as NotificationRow[]),
+      ),
+    );
+    const merged = perWs.flat();
+    merged.sort((a, b) => b.createdAt - a.createdAt);
+    return merged.slice(0, limit);
+  }
+
   async markRead(workspaceId: string, ids: string[]): Promise<number> {
     const ws = await getWorkspaceById(workspaceId);
     if (!ws) return 0;
@@ -315,40 +341,96 @@ class NotificationBus {
         if (m && m.parent_tool_use_id != null) return;
       }
 
-      // 2. Map event → kind. Drop non-mappable events early.
-      const mapped = mapEventToKind(event, ctx, this.lastUserInputAt);
-      if (!mapped) return;
-      const { kind, title, body, payload, requestId } = mapped;
-
-      // 2.5 Background-session suppression. Sessions the user has switched
-      // away from (no active SSE subscriber) shouldn't ring with idle
-      // "Claude finished a turn" or "Session error" — the user gets that
-      // feedback in the chat itself when they come back. Actionable kinds
-      // (permission/ask/plan) override this gate because they're requests
-      // the agent is *blocked on*; the user has to come look at them
-      // regardless of which tab they're on. `hasSubscribers === undefined`
-      // means the caller didn't tell us (e.g. dev-emit), so we err toward
-      // notifying — surprise drops are worse than the prior behavior.
-      if (
-        ctx.sessionId &&
-        ctx.hasSubscribers === false &&
-        isBackgroundSuppressible(kind)
-      ) {
-        return;
-      }
-
-      // 3. cwd → workspace.
+      // 2. cwd → workspace.
       const ws = await this.lookupWorkspace(ctx.cwd);
       if (!ws) return;
 
+      // The `state` SSE event is the only signal that bumps `stateVersion`
+      // in every browser tab, which is what `app/page.tsx` ties to
+      // `refreshSessions()` so inactive tabs can re-read `/api/sessions`
+      // and repaint their status dot. We must emit it for any session
+      // event that changes `Session.getStatus()` — even when downstream
+      // filters (kind mapping, enabledKinds, per-session mute) reject the
+      // event for notification purposes. Without this, a backgrounded
+      // session that finishes its turn would stay "running" on every
+      // other tab forever. Computed once here; called at every exit point
+      // below so the emit happens after any awaits have settled (the
+      // pendingFlush guard collapses sibling emits into one fanout, but
+      // can't help if we fire BEFORE the relevant insert lands).
+      //
+      // Respects the workspace master switch (`notifications.enabled =
+      // false`) — that toggle means "make this workspace completely
+      // silent" and we honour it across both channels (rows + status
+      // sync). The kind-level filter and per-session mute are NOT gates
+      // for status sync: a user who turned off `session_idle` toasts
+      // still wants their tab dot to reflect that the session went idle.
+      const masterEnabled = ws.defaults?.notifications?.enabled !== false;
+      const statusSync =
+        masterEnabled && !!ctx.sessionId && isStatusSyncRelevant(event);
+      if (statusSync && !getCachedDb(ctx.cwd)) {
+        // Cold-cache prime: when the first event for a workspace is a
+        // non-mapping one (e.g. an HMR-rebuilt server seeing a backgrounded
+        // session's first `turn_status` after restart), nothing has called
+        // `insertNotification` yet — `emitStateSync` would find no cached
+        // handle and silently drop the emit. Open the DB once now so the
+        // timer callback's sync read finds it. Scoped to the cold-cache
+        // case (via `!getCachedDb(...)`) so the bus's hot path pays
+        // nothing on every subsequent status-sync event in the session's
+        // lifetime — only the very first event per workspace per server
+        // boot eats the open/migrate cost, which it would have paid on
+        // its first row insert anyway.
+        await openDb(ctx.cwd, "readwrite").catch(() => null);
+      }
+      const emitStatusSync = () => {
+        if (statusSync) this.scheduleStateEmit(ws.id, ctx.cwd);
+      };
+
+      // 3. Map event → kind.
+      const mapped = mapEventToKind(event, ctx, this.lastUserInputAt);
+      if (!mapped) {
+        // No row to persist (turn_status, ready, sdk non-result, sdk
+        // result outside the idle window, …). Status-sync still needs to
+        // fire so inactive tabs refresh.
+        emitStatusSync();
+        return;
+      }
+      const { kind, title, body, payload, requestId } = mapped;
+
+      // 3.5 Background-session OS-toast suppression. Sessions the user has
+      // switched away from (no active SSE subscriber) shouldn't *pop a toast*
+      // for idle "Claude finished a turn" or "Session error" — the user gets
+      // that feedback in the chat itself when they come back, AND the per-tab
+      // badge / workspace tile / drawer still tick (because we persist the
+      // row below). Actionable kinds (permission/ask/plan) override this gate
+      // because they're requests the agent is *blocked on*; the user has to
+      // come look at them regardless of which tab they're on.
+      //
+      // Earlier rounds dropped the row entirely here, which was wrong: it
+      // killed the badge AND the toast, so a session finishing in the
+      // background was completely invisible. We now compute the toast gate
+      // once and skip ONLY the per-row `notification` event emission, not
+      // the persistence or the `state` event. `hasSubscribers === undefined`
+      // means the caller didn't tell us (e.g. dev-emit), so we err toward
+      // notifying.
+      const suppressOsToast =
+        !!ctx.sessionId &&
+        ctx.hasSubscribers === false &&
+        isBackgroundSuppressible(kind);
+
       // 4. Workspace `enabledKinds` filter.
       const prefs = ws.defaults?.notifications;
-      if (!isKindEnabled(kind, prefs)) return;
+      if (!isKindEnabled(kind, prefs)) {
+        emitStatusSync();
+        return;
+      }
 
       // 5. Per-session mute (block / snooze). Skip for scheduler-only rows.
       if (ctx.sessionId) {
         const muted = await isSessionMuted(ctx.cwd, ctx.sessionId).catch(() => false);
-        if (muted) return;
+        if (muted) {
+          emitStatusSync();
+          return;
+        }
       }
 
       // 6. Persist.
@@ -362,14 +444,25 @@ class NotificationBus {
         payload: payload ?? null,
         requestId: requestId ?? null,
       });
-      if (!row) return; // dedup'd by request_id
+      if (!row) {
+        // Dedup'd by request_id. No row, but status may still have moved.
+        emitStatusSync();
+        return;
+      }
 
-      // 7. Fanout. The notification event always emits (drives OS toasts and
-      // the inbox `recent` buffer). The state emission is coalesced: if a
-      // sibling `markReadByRequestId` fires in the same tick (the resolve
-      // flow), both writes collapse into one state event with the final
-      // values — no transient +1/-1 flicker on the workspace tile.
-      this.emitNotification(row);
+      // 7. Fanout. The `notification` event drives OS toasts and the inbox
+      // `recent` buffer — skip it for background-suppressible kinds on
+      // unsubscribed sessions (see `suppressOsToast` above) so a session the
+      // user has switched away from doesn't pop a toast for "finished a
+      // turn" / "errored". The `state` event always fires: that's what
+      // bumps the per-tab badge, the workspace tile, and the drawer's
+      // unread count, so the user can still SEE that something happened on
+      // the backgrounded session when they look at the tab strip. The
+      // state emission is coalesced: if a sibling `markReadByRequestId`
+      // fires in the same tick (the resolve flow), both writes collapse
+      // into one state event with the final values — no transient +1/-1
+      // flicker on the workspace tile.
+      if (!suppressOsToast) this.emitNotification(row);
       this.scheduleStateEmit(ws.id, ctx.cwd);
     } catch {
       // The bus must never throw into a producer. Notifications are a
@@ -524,7 +617,6 @@ export function mapEventToKind(
   event: AnyEvent,
   ctx: RecordContext,
   lastUserInputAt: Map<string, number>,
-  now: number = Date.now(),
 ): {
   kind: NotificationKind;
   title: string;
@@ -592,7 +684,19 @@ export function mapEventToKind(
       if (!ctx.sessionId) return null;
       const last = lastUserInputAt.get(ctx.sessionId) ?? 0;
       if (last === 0) return null; // never saw a user input; suppress
-      if (now - last < IDLE_NOTIFY_MIN_MS) return null;
+      // We used to gate this on `now - last >= IDLE_NOTIFY_MIN_MS` (a 5s
+      // window after the user typed). The intent was "don't ding the
+      // user for the response they're already watching" — but the race
+      // between `hasSubscribers` flipping false (when the user clicks a
+      // new tab) and the server-side `result` event meant that a quick
+      // turn on a backgrounded session (the `wait 1 seconds and ack`
+      // case from the bug report) almost always landed inside the
+      // window, was suppressed, and never surfaced anywhere. The
+      // NotificationsProvider auto-read gate
+      // (`sameSessionVisible → POST /:id/read`) is the right place to
+      // suppress the ding for sessions the user is actively looking at;
+      // it's client-side, runs after the row arrives, and doesn't
+      // depend on a race-y subscriber-count read.
       return {
         kind: "session_idle",
         title: "Claude finished a turn",
@@ -652,6 +756,50 @@ function isBackgroundSuppressible(kind: NotificationKind): boolean {
   return kind === "session_idle" || kind === "session_error";
 }
 
+/**
+ * True for events that move `Session.getStatus()` (running ↔ idle) or
+ * otherwise tell inactive tabs they need to re-pull `/api/sessions`. The bus
+ * fires a `state` SSE event for these regardless of whether the event also
+ * produces a notification row — that's the only signal that drives
+ * `stateVersion → refreshSessions()` on tabs that aren't actively subscribed
+ * to this session's stream.
+ *
+ *   • `turn_status` — definitive running↔idle flip from `broadcastTurnStatusIfChanged`.
+ *   • `ready` — session attached (initial state needs a refresh).
+ *   • `error` — session errored, may end. Inactive tabs need to repaint.
+ *   • `permission_request` / `ask_user_question` / `plan_approval_request`
+ *     — agent is now blocked; getStatus → "running". (These already map to
+ *     a kind and would emit via the post-persist path, but firing here too
+ *     is harmless — the pendingFlush guard collapses the duplicate.)
+ *   • `sdk` `result` — turn finished, `turnInFlight=false`. Mapping to
+ *     `session_idle` requires the IDLE_NOTIFY_MIN_MS window AND a recorded
+ *     `markUserInput`; both fail in plenty of real scenarios (HMR cleared
+ *     the lastUserInputAt map, quick sub-5s turn, a resumed session that
+ *     never saw the user-input call). We still need to refresh inactive
+ *     tabs in those cases — hence the explicit status-sync emit.
+ *
+ * Excludes streaming chunks (sdk non-result messages, session_title,
+ * mode_changed, model_changed, replay_done): these fire many times per turn
+ * and don't change the coarse `getStatus()` answer.
+ */
+function isStatusSyncRelevant(event: AnyEvent): boolean {
+  switch (event.type) {
+    case "turn_status":
+    case "ready":
+    case "error":
+    case "permission_request":
+    case "ask_user_question":
+    case "plan_approval_request":
+      return true;
+    case "sdk": {
+      const m = event.message as { type?: string };
+      return m?.type === "result";
+    }
+    default:
+      return false;
+  }
+}
+
 function firstLine(s: string | undefined | null): string | undefined {
   if (!s) return undefined;
   const line = s.split(/\r?\n/)[0]?.trim();
@@ -666,22 +814,106 @@ declare global {
   var __claudiusNotificationBus: NotificationBus | undefined;
 }
 
+/**
+ * Marker bumped every time the bus's record() / emit logic changes shape.
+ * The HMR probe below compares a static value rather than a method name,
+ * so we don't have to invent a new no-op method on every behavioural fix.
+ * Tied to the suppression rewrite: prior cached instances still DROP
+ * background-suppressible rows; the new instance PERSISTS them and only
+ * suppresses the per-row notification SSE event.
+ */
+const BUS_BUILD_TAG = "bus-build:2026-05-13:preserve-lastUserInputAt-across-hmr";
+
 function pickBus(): NotificationBus {
-  const cached = globalThis.__claudiusNotificationBus;
-  // Probe checks for the LATEST method on the class so an HMR-cached
-  // instance that predates a new bus API gets rebuilt rather than serving
-  // stale shape (`notificationBus.<newMethod> is not a function` 500s).
-  // Bump this when you add a new method. Bumped to `getWorkspaceState`
-  // because the state/version model replaces the old count-event API and
-  // `lastCounts → perWorkspace` field rename leaves any cached instance
-  // unable to honour the new event shape.
-  if (cached && typeof (cached as NotificationBus).getWorkspaceState === "function") {
+  const cached = globalThis.__claudiusNotificationBus as
+    | (NotificationBus & { __buildTag?: string; __subscribers?: Set<Subscriber> })
+    | undefined;
+  // Probe a build tag rather than a method name. Method-name probes worked
+  // when every behaviour change came with a new API, but most fixes are
+  // behavioural (record() now persists + state-emits for backgrounded rows
+  // instead of dropping them) and don't add a new public method. The tag
+  // is the only signal that survives HMR reliably; bump the string above
+  // whenever record() / emitState* / scheduleStateEmit logic changes.
+  if (cached && cached.__buildTag === BUS_BUILD_TAG) {
     return cached;
   }
-  const fresh = new NotificationBus();
+  const fresh = new NotificationBus() as NotificationBus & {
+    __buildTag: string;
+    __subscribers?: Set<Subscriber>;
+  };
+  fresh.__buildTag = BUS_BUILD_TAG;
+  // HMR migration. Three pieces of state cross the rebuild boundary because
+  // the client (or in-flight session) has expectations the fresh instance
+  // would otherwise violate:
+  //
+  //   1. Subscribers — SSE connections held by browser tabs subscribed to
+  //      the OLD bus instance via `notificationBus.subscribe(fn)`. Their
+  //      `controller.enqueue` closure is attached to the OLD subscribers
+  //      Set; the fresh instance's Set is empty, so events fired on
+  //      `fresh` would reach nobody. Copy them over so existing tabs keep
+  //      receiving updates.
+  //
+  //   2. `perWorkspace` (workspace → { version, ... }) — the client's
+  //      version gate (in NotificationsProvider.applyState) drops state
+  //      events whose `version` is ≤ the last one it saw. If the bus
+  //      rebuilds at the bottom of the stack, every workspace's version
+  //      resets to 0 — but the client remembers e.g. version=480 from
+  //      before HMR, so every fresh state event arrives "stale" and gets
+  //      ignored. The badges then look frozen until a hard reload.
+  //      Preserve the prior version map (and bump every entry by 1, so the
+  //      very next emit produces a monotonically NEW version) so the gate
+  //      keeps working across rebuilds.
+  //
+  //   3. `lastUserInputAt` — `mapEventToKind` for SDK results returns null
+  //      when `last === 0`, treating that as "never saw user input → this
+  //      is replay/sync, suppress." After HMR, the fresh instance's map
+  //      is empty, so a result arriving for a session whose user input
+  //      was recorded against the OLD instance gets suppressed (no
+  //      session_idle row, no notification, the user's screenshot bug
+  //      returns). Carry the map forward.
+  if (cached) {
+    const oldSubs = (cached as unknown as { subscribers?: Set<Subscriber> }).subscribers;
+    if (oldSubs && oldSubs.size > 0) {
+      const newSubs = (fresh as unknown as { subscribers: Set<Subscriber> }).subscribers;
+      for (const fn of oldSubs) newSubs.add(fn);
+    }
+    const oldPerWs = (cached as unknown as { perWorkspace?: Map<string, WorkspaceUnreadState> })
+      .perWorkspace;
+    if (oldPerWs && oldPerWs.size > 0) {
+      const newPerWs = (fresh as unknown as { perWorkspace: Map<string, WorkspaceUnreadState> })
+        .perWorkspace;
+      for (const [wsId, state] of oldPerWs) {
+        // Copy verbatim; the NEXT emitStateSync will bump version by 1.
+        newPerWs.set(wsId, state);
+      }
+    }
+    const oldInputAt = (cached as unknown as { lastUserInputAt?: Map<string, number> })
+      .lastUserInputAt;
+    if (oldInputAt && oldInputAt.size > 0) {
+      const newInputAt = (fresh as unknown as { lastUserInputAt: Map<string, number> })
+        .lastUserInputAt;
+      for (const [sid, at] of oldInputAt) newInputAt.set(sid, at);
+    }
+  }
   globalThis.__claudiusNotificationBus = fresh;
   return fresh;
 }
 
-export const notificationBus: NotificationBus = pickBus();
+/**
+ * Exported via a Proxy that re-evaluates the singleton on every method
+ * lookup. Without this, modules that imported `notificationBus` before an
+ * HMR-triggered rebuild keep their original reference and silently call into
+ * the dead instance — its `record()` runs the OLD logic, and clients on the
+ * new bus's subscriber list never hear the resulting state events. The
+ * Proxy keeps the import-time `notificationBus` symbol valid; every actual
+ * call goes through `pickBus()` so a build-tag bump migrates callers
+ * automatically.
+ */
+export const notificationBus: NotificationBus = new Proxy({} as NotificationBus, {
+  get(_target, prop) {
+    const bus = pickBus();
+    const value = Reflect.get(bus, prop, bus);
+    return typeof value === "function" ? value.bind(bus) : value;
+  },
+}) as NotificationBus;
 export type { NotificationBus };
