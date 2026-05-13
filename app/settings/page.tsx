@@ -9,6 +9,7 @@ import { useSettings } from "@/lib/client/useSettings";
 import type { ClaudeSettings, SettingsScope } from "@/lib/server/settings";
 import { useTheme, THEMES, type ThemeId } from "@/lib/client/theme";
 import { EDITORS, useEditor, type EditorId } from "@/lib/client/ide";
+import { UpdaterSettingsSection } from "@/components/updater/UpdaterSettingsSection";
 import { cn } from "@/lib/utils/cn";
 
 const SCOPE_LABELS: Record<SettingsScope, string> = {
@@ -190,6 +191,11 @@ export default function SettingsPage() {
                 ))}
               </div>
             </Section>
+
+            {/* Install-wide updater settings — independent of the User/Project/Local
+                scope tabs above (those edit Claude's settings.json; this hits the
+                separate updater.json store). Always visible regardless of scope. */}
+            <UpdaterSettingsSection />
 
             {showRaw ? (
               <Section title="Raw JSON" subtitle="Direct edit of the settings file.">

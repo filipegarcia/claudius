@@ -488,6 +488,23 @@ export default function Home() {
     void markSessionReadAction(session.sessionId);
   }, [session.sessionId, markSessionReadAction]);
 
+  // Repaint non-active session tab status dots whenever the notification
+  // state ticks. A non-active session has no per-tab SSE feeding `pending`
+  // back into useSession, so its dot would otherwise stay stuck at whatever
+  // /api/sessions returned on last refresh — usually "running" if the user
+  // switched away mid-turn. Every state event the bus emits is a strong
+  // signal that *something* happened on some session in this workspace
+  // (turn finished → session_idle row, error → session_error row, etc.),
+  // which is exactly when we want a fresh status snapshot. The refresh is
+  // a cheap in-memory read on the server (no SDK round-trip). Skip the
+  // initial 0 → 0 boot tick.
+  const stateVersion = notifications.stateVersion;
+  const refreshSessionsAction = session.refreshSessions;
+  useEffect(() => {
+    if (stateVersion === 0) return;
+    void refreshSessionsAction();
+  }, [stateVersion, refreshSessionsAction]);
+
   const showToast = useCallback((msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(null), 2200);

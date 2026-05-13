@@ -23,6 +23,7 @@ export function CustomizationsDrawer({
   activeId,
   onSelect,
   onOpen,
+  unreadCounts,
 }: {
   customizations: Workspace[];
   activeId: string | null;
@@ -35,6 +36,15 @@ export function CustomizationsDrawer({
    * inside the promise are swallowed so the panel still renders.
    */
   onOpen?: () => void | Promise<void>;
+  /**
+   * Per-customization unread counts (keyed by workspaceId). The trigger
+   * tile renders a badge summing across all customizations, and the
+   * popover rows render per-tile badges. Without this prop, customization
+   * workspaces have no notification indicator anywhere — they're hidden
+   * from the main rail and the wand tile was previously badge-less, so
+   * any unread there was effectively invisible.
+   */
+  unreadCounts?: Record<string, number>;
 }) {
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -42,6 +52,13 @@ export function CustomizationsDrawer({
 
   const active = customizations.find((c) => c.id === activeId) ?? null;
   const hasActive = active !== null;
+  // Sum unread across every customization. The wand tile is the ONLY rail
+  // affordance for customization workspaces, so this badge is the sole
+  // place a user notices that a customization is asking for attention.
+  const totalCustomizationUnread = customizations.reduce(
+    (acc, c) => acc + (unreadCounts?.[c.id] ?? 0),
+    0,
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -103,7 +120,11 @@ export function CustomizationsDrawer({
             return next;
           });
         }}
-        title={titleAttr}
+        title={
+          totalCustomizationUnread > 0
+            ? `${titleAttr} — ${totalCustomizationUnread} unread`
+            : titleAttr
+        }
         className={cn(
           "relative flex h-10 w-10 items-center justify-center rounded-lg transition",
           hasActive
@@ -112,6 +133,15 @@ export function CustomizationsDrawer({
         )}
       >
         <WandSparkles className="h-4 w-4" />
+        {totalCustomizationUnread > 0 && (
+          <span
+            aria-label={`${totalCustomizationUnread} unread notification${totalCustomizationUnread === 1 ? "" : "s"}`}
+            data-testid="customizations-drawer-badge"
+            className="absolute -right-0.5 -top-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-[var(--accent)] px-1 text-[9px] font-medium leading-none text-white shadow ring-1 ring-[var(--background)]"
+          >
+            {totalCustomizationUnread > 99 ? "99+" : totalCustomizationUnread}
+          </span>
+        )}
       </button>
       {open && (
         <div
@@ -129,6 +159,7 @@ export function CustomizationsDrawer({
             <ul className="max-h-72 overflow-auto">
               {sorted.map((c) => {
                 const isActive = c.id === activeId;
+                const unread = unreadCounts?.[c.id] ?? 0;
                 return (
                   <li key={c.id}>
                     <button
@@ -149,7 +180,15 @@ export function CustomizationsDrawer({
                         )}
                       />
                       <span className="truncate">{stripPrefix(c.name)}</span>
-                      {isActive && (
+                      {unread > 0 && (
+                        <span
+                          aria-label={`${unread} unread notification${unread === 1 ? "" : "s"}`}
+                          className="ml-auto flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--accent)] px-1 text-[9px] font-medium leading-none text-white"
+                        >
+                          {unread > 99 ? "99+" : unread}
+                        </span>
+                      )}
+                      {isActive && unread === 0 && (
                         <span className="ml-auto text-[10px] font-medium uppercase tracking-wide text-[var(--accent)]">
                           active
                         </span>

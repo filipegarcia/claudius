@@ -223,6 +223,7 @@ export function WorkspaceSwitcher() {
           activeId={activeId}
           onSelect={select}
           onOpen={refresh}
+          unreadCounts={counts}
         />
         <button
           onClick={() => setShowForm({ kind: "new" })}

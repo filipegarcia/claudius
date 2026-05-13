@@ -40,6 +40,33 @@ async function getActiveWorkspace(req: APIRequestContext, baseURL?: string): Pro
   return ws!;
 }
 
+/**
+ * Wipe unread across every workspace. The drawer header badge is cross-
+ * workspace, so leftover unread in workspaces OTHER than `ws` will make the
+ * `toHaveText("1")` assertion fail with received="2". This test is OK to
+ * clear globally — the dev fixture is shared, and any leftover unread is
+ * developer detritus, not user data.
+ */
+async function clearAllWorkspacesUnread(
+  req: APIRequestContext,
+  baseURL: string | undefined,
+): Promise<void> {
+  const res = await req.get(`${baseURL}/api/workspaces`);
+  if (!res.ok()) return;
+  const data = (await res.json()) as { workspaces: Array<{ id: string }> };
+  await Promise.all(
+    data.workspaces.map((w) =>
+      req
+        .post(`${baseURL}/api/notifications/read-all`, {
+          data: { workspaceId: w.id },
+        })
+        .catch(() => {
+          // best-effort — workspaces with no DB yet 404 the read-all call
+        }),
+    ),
+  );
+}
+
 async function waitForBoundSession(page: Page): Promise<string> {
   await page.waitForURL((url) => SESSION_RE.test(String(url)), { timeout: 30_000 });
   const m = page.url().match(SESSION_RE);
@@ -48,26 +75,35 @@ async function waitForBoundSession(page: Page): Promise<string> {
 }
 
 /**
- * Ensure the workspace allows notifications. The fixture sometimes starts
- * with no `notifications` field on `defaults` (defaults apply, all kinds on);
- * if a previous test left it disabled, flip it on. Idempotent.
+ * Ensure the workspace allows notifications AND has `session_error` in its
+ * enabledKinds — every test below emits a synthetic `session_error` row,
+ * but `session_error` is opt-in (off by default) per the user's request
+ * that errors not ring uninvited. Without this the workspace silently drops
+ * the row and the assertions fail with "count 0, expected ≥ 1". Idempotent.
  */
 async function ensureNotificationsEnabled(
   req: APIRequestContext,
   baseURL: string | undefined,
   ws: Workspace,
 ): Promise<void> {
-  if (ws.defaults?.notifications?.enabled === false) {
-    const res = await req.patch(`${baseURL}/api/workspaces/${ws.id}`, {
-      data: {
-        defaults: {
-          ...ws.defaults,
-          notifications: { ...ws.defaults.notifications, enabled: true },
+  const prevKinds = ws.defaults?.notifications?.enabledKinds;
+  const needsKinds = !prevKinds || !prevKinds.includes("session_error");
+  const needsEnable = ws.defaults?.notifications?.enabled === false;
+  if (!needsKinds && !needsEnable) return;
+  const nextKinds = Array.from(new Set([...(prevKinds ?? []), "session_error"]));
+  const res = await req.patch(`${baseURL}/api/workspaces/${ws.id}`, {
+    data: {
+      defaults: {
+        ...(ws.defaults ?? {}),
+        notifications: {
+          ...(ws.defaults?.notifications ?? {}),
+          enabled: true,
+          enabledKinds: nextKinds,
         },
       },
-    });
-    expect(res.ok()).toBeTruthy();
-  }
+    },
+  });
+  expect(res.ok()).toBeTruthy();
 }
 
 test.describe("Notifications pipeline", () => {
@@ -92,10 +128,11 @@ test.describe("Notifications pipeline", () => {
       timeout: 15_000,
     });
 
-    // ── 2. Clear any pre-existing unread so counts start from zero ───────
-    await request.post(`${baseURL}/api/notifications/read-all`, {
-      data: { workspaceId: ws.id },
-    });
+    // ── 2. Clear pre-existing unread on EVERY workspace so the cross-
+    // workspace drawer header starts at zero. A leftover unread in any
+    // other workspace would push the drawer badge above 1 and the assertion
+    // would fail with "expected 1, received 2/3/…".
+    await clearAllWorkspacesUnread(request, baseURL);
 
     // ── 3. Trigger the bus directly via the dev endpoint ─────────────────
     // `session_error` is the cleanest kind to synthesize: maps from a plain
@@ -169,12 +206,28 @@ test.describe("Notifications pipeline", () => {
     // the suite without adding signal.
     await page.goto("/");
     const sessionId = await waitForBoundSession(page);
-    const ws = await getActiveWorkspace(request, baseURL);
-    await ensureNotificationsEnabled(request, baseURL, ws);
-
-    await request.post(`${baseURL}/api/notifications/read-all`, {
-      data: { workspaceId: ws.id },
-    });
+    // Derive the workspace from the actual bound session rather than the
+    // active-workspace cookie. A session resumed from openTabs may live in
+    // a different workspace than the cookie's active id (e.g. when a prior
+    // test selected a different workspace, or when the user has a tab open
+    // across workspaces). Using the wrong workspace would route the bus
+    // lookup to a different DB and the row would never appear.
+    const broadcastRes = await request.post(
+      `${baseURL}/api/sessions/${sessionId}/dev-broadcast`,
+      { data: { event: { type: "error", message: "broadcast-probe-cwd-discovery" } } },
+    );
+    expect(broadcastRes.ok()).toBeTruthy();
+    const probe = (await broadcastRes.json()) as { sessionCwd?: string };
+    expect(probe.sessionCwd, "dev-broadcast didn't echo the session's cwd").toBeTruthy();
+    const allRes = await request.get(`${baseURL}/api/workspaces`);
+    const allData = (await allRes.json()) as { workspaces: Workspace[] };
+    const ws = allData.workspaces.find((w) => w.rootPath === probe.sessionCwd);
+    expect(
+      ws,
+      `no workspace has rootPath=${probe.sessionCwd}; can't find the bus's destination`,
+    ).toBeTruthy();
+    await ensureNotificationsEnabled(request, baseURL, ws!);
+    await clearAllWorkspacesUnread(request, baseURL);
 
     const tag = `broadcast-probe-${Date.now()}`;
     const res = await request.post(
@@ -182,14 +235,6 @@ test.describe("Notifications pipeline", () => {
       { data: { event: { type: "error", message: tag } } },
     );
     expect(res.ok()).toBeTruthy();
-    const broadcastInfo = (await res.json()) as { sessionCwd?: string };
-    // The bus's cwd→workspace lookup is the most common silent failure;
-    // surface the mismatch in the assertion message rather than as a
-    // generic poll timeout.
-    expect(
-      broadcastInfo.sessionCwd,
-      `Session.cwd (${broadcastInfo.sessionCwd}) must equal the workspace rootPath (${ws.rootPath}) for the bus to find the workspace`,
-    ).toBe(ws.rootPath);
 
     await expect
       .poll(
@@ -229,10 +274,11 @@ test.describe("Notifications pipeline", () => {
     const ws = await getActiveWorkspace(request, baseURL);
     await ensureNotificationsEnabled(request, baseURL, ws);
 
-    // Start from a known-empty state.
-    await request.post(`${baseURL}/api/notifications/read-all`, {
-      data: { workspaceId: ws.id },
-    });
+    // Clear EVERY workspace's unread, not just the active one. The drawer is
+    // cross-workspace, so a leftover row in any other workspace would
+    // surface in `rows.toHaveCount(3)` and inflate the count beyond what
+    // this test emitted.
+    await clearAllWorkspacesUnread(request, baseURL);
 
     // Emit 3 notifications, each on a different fake session id so the
     // active-session auto-read gate doesn't suppress them.
