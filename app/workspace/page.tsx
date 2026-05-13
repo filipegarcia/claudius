@@ -51,17 +51,6 @@ const ICON_PRESET_COLORS = [
 type ModeChoice = "" | PermissionMode;
 type PendingImage = { file: File; previewUrl: string };
 
-/**
- * Hardens the `<img src>` assignment against an XSS sink. `URL.createObjectURL`
- * is the only producer of `previewUrl`, which always returns a `blob:` URL —
- * but CodeQL's `js/xss-through-dom` flags the flow regardless, so we narrow
- * the value here at the use site. Returns `""` if the input isn't a blob URL,
- * which produces a broken-but-safe image rather than executing a script.
- */
-function safeBlobSrc(url: string): string {
-  return url.startsWith("blob:") ? url : "";
-}
-
 export default function WorkspacePage() {
   const { items, activeId, update, uploadIcon, remove } = useWorkspaces();
   const router = useRouter();
@@ -435,7 +424,12 @@ export default function WorkspacePage() {
                           <div className="relative">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
-                              src={safeBlobSrc(pendingImage.previewUrl)}
+                              // Inline `startsWith("blob:")` check — CodeQL's
+                              // js/xss-through-dom query only recognizes the
+                              // sanitizer when it's visible at the JSX
+                              // expression itself, not when wrapped in a
+                              // helper.
+                              src={pendingImage.previewUrl.startsWith("blob:") ? pendingImage.previewUrl : ""}
                               alt="preview"
                               className="h-12 w-12 rounded-lg border border-[var(--border)] object-cover"
                             />
