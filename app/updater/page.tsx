@@ -5,6 +5,7 @@ import {
   ArrowDownToLine,
   ArrowLeft,
   Download,
+  LifeBuoy,
   Loader2,
   RefreshCw,
   Sparkles,
@@ -12,6 +13,65 @@ import {
 import { SideNav } from "@/components/nav/SideNav";
 import { useUpdater, type UpdaterMode } from "@/lib/client/use-updater";
 import { cn } from "@/lib/utils/cn";
+
+/**
+ * Phase → user-facing guidance. The `lastError` string we get from the
+ * server is formatted as `${phase}: ${msg}\n${stderrTail}`, so we parse the
+ * leading token to pick the right recovery hint. Keep these short and
+ * imperative — the user wants to know "what do I run" first, "why" second.
+ */
+type ApplyPhase = "detect" | "pull" | "merge" | "install" | "build" | "restart" | "init";
+
+const PHASE_GUIDE: Record<ApplyPhase, { label: string; what: string; fix: string }> = {
+  detect: {
+    label: "Network / fetch",
+    what:
+      "git fetch couldn't reach the remote — usually a network blip, a private repo with stale credentials, or a remote that's been moved.",
+    fix: "Confirm your network is up and `git fetch origin main` works from the install root. Then click Retry.",
+  },
+  pull: {
+    label: "Fast-forward refused",
+    what:
+      "The local branch has diverged from upstream (you have local commits, or the upstream rewrote history). A plain `git pull --ff-only` can't proceed.",
+    fix: "Switch the mode to 'Auto + Claude merge' below and click Retry — Claude will reconcile. Or manually: `git pull --rebase origin main` from the install root.",
+  },
+  merge: {
+    label: "Claude merge failed",
+    what:
+      "Claude was spawned to resolve the merge but couldn't converge (real conflicts in customized files, or the run timed out).",
+    fix: "Open a Claudius workspace at the install root and run `git status` to see what's blocking. Resolve, commit, then click Retry.",
+  },
+  install: {
+    label: "bun install failed",
+    what:
+      "Dependencies couldn't be resolved or downloaded. Common causes: a registry outage, a corrupted lockfile after upstream changes, or a missing native build tool.",
+    fix: "Try the steps below manually — if `bun install` works there, click Retry. (cc-merge mode does NOT auto-spawn Claude for install/build errors today.)",
+  },
+  build: {
+    label: "bun run build failed",
+    what:
+      "Type-check, lint, or Next.js compile errored. Usually a real upstream regression or an incompatibility with a local customization.",
+    fix: "Reproduce with the steps below; the error message above shows the failing file. Fix or revert the offending change, then Retry.",
+  },
+  restart: {
+    label: "Restart failed",
+    what:
+      "The new code is on disk and built successfully, but the supervisor couldn't restart cleanly. Often this means you're running `bun run dev` directly (no daemon), or the pid file is stale.",
+    fix: "Restart Claudius yourself — `claudiusd restart`, or kill the dev process and `bun run dev` again. The update is already applied.",
+  },
+  init: {
+    label: "Setup error",
+    what: "The apply failed before any phase could run — usually a permissions or filesystem issue at the install root.",
+    fix: "Check the log; if the install root isn't writable, fix permissions and click Retry.",
+  },
+};
+
+function parsePhase(lastError: string | undefined): ApplyPhase | null {
+  if (!lastError) return null;
+  const head = lastError.split(":", 1)[0]?.trim() as ApplyPhase | undefined;
+  if (head && head in PHASE_GUIDE) return head;
+  return null;
+}
 
 const MODE_OPTIONS: ReadonlyArray<{
   id: UpdaterMode;
@@ -110,10 +170,19 @@ export default function UpdaterPage() {
                   </Row>
                   {data.state.lastError && (
                     <Row label="Last error">
-                      <span className="text-[11px] text-red-300">{data.state.lastError}</span>
+                      <pre className="whitespace-pre-wrap break-words rounded border border-red-500/30 bg-red-500/5 p-2 font-mono text-[11px] leading-snug text-red-300">
+                        {data.state.lastError}
+                      </pre>
                     </Row>
                   )}
                 </Section>
+
+                {data.state.lastError && (
+                  <RecoverySection
+                    lastError={data.state.lastError}
+                    installRoot={data.install.root}
+                  />
+                )}
 
                 {data.state.pending && data.state.pending.behind > 0 && (
                   <Section
@@ -242,5 +311,94 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
       <div className="w-28 shrink-0 text-[10px] uppercase tracking-wide text-[var(--muted)]">{label}</div>
       <div className="flex-1">{children}</div>
     </div>
+  );
+}
+
+/**
+ * Per-phase recovery guidance. Surfaces only when there's a `lastError`.
+ * The goal is to answer the two questions users actually have when an
+ * update fails:
+ *
+ *   1. What went wrong, in plain terms?
+ *   2. What commands do I run to unblock myself?
+ *
+ * It also explains the (currently surprising) gap that cc-merge mode only
+ * covers git merge conflicts, not install/build regressions — so the
+ * "auto-fix everything" mental model doesn't fit yet.
+ */
+function RecoverySection({
+  lastError,
+  installRoot,
+}: {
+  lastError: string;
+  installRoot: string;
+}) {
+  const phase = parsePhase(lastError);
+  const guide = phase ? PHASE_GUIDE[phase] : null;
+
+  return (
+    <Section title="How to recover" subtitle="What just happened and what to do about it.">
+      <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-3 text-xs">
+        <div className="flex items-start gap-2">
+          <LifeBuoy className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
+          <div className="flex-1 space-y-3">
+            {guide ? (
+              <>
+                <div>
+                  <div className="font-medium">
+                    {guide.label}
+                    {phase && (
+                      <span className="ml-2 rounded bg-amber-500/15 px-1.5 py-0.5 font-mono text-[10px] uppercase text-amber-200">
+                        phase: {phase}
+                      </span>
+                    )}
+                  </div>
+                  <p className="mt-1 text-[var(--muted)]">{guide.what}</p>
+                </div>
+
+                <div>
+                  <div className="text-[10px] uppercase tracking-wide text-[var(--muted)]">
+                    Try this
+                  </div>
+                  <p className="mt-1">{guide.fix}</p>
+                </div>
+              </>
+            ) : (
+              <p className="text-[var(--muted)]">
+                Couldn&apos;t classify the failure from the error message — see the log and recovery
+                steps below.
+              </p>
+            )}
+
+            <div>
+              <div className="text-[10px] uppercase tracking-wide text-[var(--muted)]">
+                Manual recovery commands
+              </div>
+              <pre className="mt-1 overflow-x-auto rounded bg-black/30 p-2 font-mono text-[11px] leading-relaxed text-[var(--foreground)]">
+                {`cd ${installRoot}
+git status                          # see what's in the tree
+tail -50 .claudius/logs/updater.log # full output from the failed apply
+bun install                         # re-run the install phase
+bun run build                       # re-run the build phase
+# if all green, restart Claudius (claudiusd restart, or kill+relaunch dev)`}
+              </pre>
+            </div>
+
+            <div className="rounded border border-[var(--border)]/50 bg-[var(--panel-2)]/40 p-2 text-[var(--muted)]">
+              <span className="font-medium text-[var(--foreground)]">
+                Why didn&apos;t Claude auto-fix this?
+              </span>{" "}
+              The <code className="font-mono">cc-merge</code> mode only spawns Claude for{" "}
+              <em>git merge conflicts</em> (phase <code className="font-mono">merge</code>). For{" "}
+              <code className="font-mono">install</code>, <code className="font-mono">build</code>,
+              and <code className="font-mono">restart</code> failures the updater just rolls back
+              and surfaces the error — there&apos;s no agent in the loop yet. Easiest workaround
+              when stuck: open a Claudius workspace at the install root above and paste the error
+              into the chat.
+            </div>
+          </div>
+        </div>
+      </div>
+    </Section>
   );
 }
