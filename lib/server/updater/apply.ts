@@ -127,7 +127,9 @@ async function runApply(opts: { allowCcMerge?: boolean }): Promise<ApplyOutcome>
     // commit; the served `.next/` build is still the old one and keeps
     // working until the user fixes the underlying issue.
     let rolledBack = false;
+    let attemptedRollback = false;
     if (phase === "install" || phase === "build" || phase === "merge") {
+      attemptedRollback = true;
       try {
         await rollbackTo(root, fromSha);
         rolledBack = true;
@@ -137,11 +139,17 @@ async function runApply(opts: { allowCcMerge?: boolean }): Promise<ApplyOutcome>
         await appendLog(root, `rollback failed: ${rbMsg}\n`);
       }
     }
+    // If we tried to roll back but couldn't, HEAD may now be at upstream
+    // while the cached `pending` still says "N commits behind" — that's a
+    // lie. Clear pending so the banner stops showing a misleading diff;
+    // the next check will repopulate it accurately.
+    const pendingPatch = attemptedRollback && !rolledBack ? { pending: undefined } : {};
     await patchUpdaterState({
       lastError: rolledBack
         ? `${phase}: ${msg} (rolled back to ${fromSha.slice(0, 7)})`
         : `${phase}: ${msg}`,
       status: { kind: "idle" },
+      ...pendingPatch,
     });
     return { kind: "error", message: msg, phase };
   }
@@ -309,17 +317,40 @@ async function runCcMerge(
   return { ok: true };
 }
 
+/**
+ * Cap on how much error output we surface back to the UI. Bun's failure
+ * output is usually a handful of lines (resolver complaint, type error,
+ * tsc diagnostic) — 15 lines is enough to identify the root cause without
+ * blowing up the JSON state file. Full output stays in the updater log.
+ */
+const ERR_TAIL_LINES = 15;
+const ERR_TAIL_MAX_LINE = 400;
+
 async function runStreamed(
   root: string,
   cmd: string,
   args: string[],
   phase: ApplyPhase,
 ): Promise<void> {
+  // Ring buffer of recent stderr lines so we can include them in the error
+  // message. Stdout typically just contains progress noise we don't want in
+  // the UI, but stderr is where bun / tsc / git put the actual diagnostic.
+  const errTail: string[] = [];
   const code = await spawnStreamed(cmd, args, root, (line, stream) => {
     void appendLog(root, `[${phase}/${stream}] ${line}\n`);
+    if (stream === "err" && line.trim().length > 0) {
+      const trimmed =
+        line.length > ERR_TAIL_MAX_LINE ? line.slice(0, ERR_TAIL_MAX_LINE) + "…" : line;
+      errTail.push(trimmed);
+      if (errTail.length > ERR_TAIL_LINES) errTail.shift();
+    }
   });
   if (code !== 0) {
-    throw phaseError(phase, `${cmd} ${args.join(" ")} exited with code ${code}`);
+    const head = `${cmd} ${args.join(" ")} exited with code ${code}`;
+    // Keep the head as the first line so the banner (which truncates) still
+    // shows something useful; the tail gives /updater room to render detail.
+    const detail = errTail.length > 0 ? `\n${errTail.join("\n")}` : "";
+    throw phaseError(phase, `${head}${detail}`);
   }
 }
 

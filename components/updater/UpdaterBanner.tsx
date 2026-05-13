@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowDownToLine, Loader2, RefreshCw, Sparkles } from "lucide-react";
+import { ArrowDownToLine, Loader2, RefreshCw, Sparkles, TriangleAlert } from "lucide-react";
 import { useUpdater } from "@/lib/client/use-updater";
 
 /**
@@ -12,6 +12,13 @@ import { useUpdater } from "@/lib/client/use-updater";
  *
  * Stays out of the way otherwise. Not rendered while the install isn't a
  * git checkout (no upstream to compare against).
+ *
+ * Priority order matters: a failed apply *and* a pending diff usually
+ * coexist (rollback restored HEAD, so pending is still real). We want the
+ * user to see the failure first — otherwise they click "Update now" again
+ * and the second attempt fails the same way without any visible feedback.
+ *
+ *   applying / restarting → error → pending
  */
 export function UpdaterBanner() {
   const u = useUpdater(15_000);
@@ -21,10 +28,10 @@ export function UpdaterBanner() {
   if (settings.mode === "disabled") return null;
 
   const status = state.status.kind;
-  const hasPending = !!state.pending && state.pending.behind > 0;
+  const pending = state.pending && state.pending.behind > 0 ? state.pending : undefined;
   const hasError = !!state.lastError;
 
-  if (status === "idle" && !hasPending && !hasError) return null;
+  if (status === "idle" && !pending && !hasError) return null;
 
   // Mid-apply / restart — informational, no actions.
   if (status === "applying" || status === "restarting") {
@@ -52,10 +59,57 @@ export function UpdaterBanner() {
     );
   }
 
+  // Error — takes priority over pending so the user actually sees what
+  // went wrong. When both coexist (the common rollback case), the action
+  // button retries the apply, not just a fetch.
+  if (hasError) {
+    // lastError is formatted as `${phase}: ${msg}\n${stderrTail}` — show
+    // only the first line in the banner; full text lives on /updater.
+    const firstLine = (state.lastError ?? "").split("\n", 1)[0] ?? "";
+    const cleanFf = pending && !pending.dirty && pending.ahead === 0 && pending.behind > 0;
+    const canRetryApply = !!pending;
+    return (
+      <div
+        data-pane-name="updater-banner"
+        className="flex items-center gap-2 border-b border-red-500/40 bg-red-500/10 px-4 py-1.5 text-xs"
+      >
+        <TriangleAlert className="h-3.5 w-3.5 shrink-0 text-red-400" />
+        <span className="font-medium">
+          {canRetryApply ? "Update failed" : "Updater error"}
+        </span>
+        <span className="hidden truncate text-[var(--muted)] sm:inline" title={state.lastError}>
+          {firstLine}
+          {pending ? (
+            <>
+              {" · "}
+              {pending.behind} {pending.behind === 1 ? "commit" : "commits"} still pending
+            </>
+          ) : null}
+        </span>
+        <button
+          onClick={() =>
+            void (canRetryApply ? u.apply({ allowCcMerge: !cleanFf }) : u.check())
+          }
+          disabled={u.busy}
+          className="ml-auto flex items-center gap-1 rounded border border-red-500/40 bg-red-500/15 px-2 py-0.5 hover:bg-red-500/25 disabled:opacity-50"
+        >
+          {u.busy ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+          {canRetryApply ? "Retry update" : "Retry check"}
+        </button>
+        <Link
+          href="/updater"
+          className="rounded border border-red-500/40 bg-red-500/15 px-2 py-0.5 hover:bg-red-500/25"
+        >
+          Details
+        </Link>
+      </div>
+    );
+  }
+
   // Pending update — show "Update now" button. Variant changes for
   // clean-fast-forward vs dirty/diverged.
-  if (hasPending) {
-    const p = state.pending!;
+  if (pending) {
+    const p = pending;
     const cleanFf = !p.dirty && p.ahead === 0 && p.behind > 0;
     return (
       <div
@@ -86,28 +140,5 @@ export function UpdaterBanner() {
     );
   }
 
-  // Just an error to surface.
-  return (
-    <div
-      data-pane-name="updater-banner"
-      className="flex items-center gap-2 border-b border-red-500/40 bg-red-500/10 px-4 py-1.5 text-xs"
-    >
-      <RefreshCw className="h-3.5 w-3.5 shrink-0 text-red-400" />
-      <span className="font-medium">Updater error</span>
-      <span className="hidden truncate text-[var(--muted)] sm:inline">{state.lastError}</span>
-      <button
-        onClick={() => void u.check()}
-        disabled={u.busy}
-        className="ml-auto rounded border border-red-500/40 bg-red-500/15 px-2 py-0.5 hover:bg-red-500/25 disabled:opacity-50"
-      >
-        Retry
-      </button>
-      <Link
-        href="/updater"
-        className="rounded border border-red-500/40 bg-red-500/15 px-2 py-0.5 hover:bg-red-500/25"
-      >
-        Details
-      </Link>
-    </div>
-  );
+  return null;
 }
