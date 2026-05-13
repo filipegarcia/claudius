@@ -92,26 +92,10 @@ async function runApply(opts: { allowCcMerge?: boolean }): Promise<ApplyOutcome>
     // correct. For cc-merge the merge may have touched package.json /
     // bun.lockb — frozen would fail, so use the unfrozen path so bun can
     // resolve the merged manifest.
-    //
-    // Env handling for the spawned bun processes:
-    //
-    //   - Install: force NODE_ENV=development so bun keeps devDependencies
-    //     (typescript, eslint, etc.) — the build phase needs them. If the
-    //     parent is the daemon with NODE_ENV=production, the default would
-    //     skip devDeps and the build would then fail with "tsc: command not
-    //     found"-style errors.
-    //
-    //   - Build: force NODE_ENV=production. If the parent is `bun run dev`
-    //     (the user's "dev" runtimeMode), NODE_ENV=development leaks into
-    //     the child and Next 16's static-export pass dies with
-    //     "TypeError: Cannot read properties of null (reading 'useContext')"
-    //     during the /_global-error prerender — React's dispatcher gets
-    //     wedged between dev and prod modes. Overriding to production fixes
-    //     it deterministically regardless of how Claudius itself was started.
     const installArgs =
       strategy.kind === "ff-only" ? ["install", "--frozen-lockfile"] : ["install"];
-    await runStreamed(root, "bun", installArgs, "install", { NODE_ENV: "development" });
-    await runStreamed(root, "bun", ["run", "build"], "build", { NODE_ENV: "production" });
+    await runStreamed(root, "bun", installArgs, "install", envForBunPhase("install"));
+    await runStreamed(root, "bun", ["run", "build"], "build", envForBunPhase("build"));
 
     const toSha = await headSha(root);
     await patchUpdaterState({
@@ -341,6 +325,38 @@ async function runCcMerge(
  */
 const ERR_TAIL_LINES = 15;
 const ERR_TAIL_MAX_LINE = 400;
+
+/**
+ * Env overrides for the bun subprocesses the updater spawns during apply.
+ * Exported so the unit suite can pin the rule — if either of these flips,
+ * an install of Claudius will silently fail to update in a way that's
+ * extremely hard to diagnose from the field.
+ *
+ *   - install → NODE_ENV=development
+ *     bun (and npm-compatible installers) skip devDependencies under
+ *     NODE_ENV=production. If the parent is the daemon running production
+ *     (`bun start`), inheriting that env would drop typescript/eslint/etc.
+ *     and the build phase would then fail with cryptic "command not found"
+ *     errors. Forcing "development" keeps all deps installable.
+ *
+ *   - build → NODE_ENV=production
+ *     If the parent is `bun run dev` (the "dev" runtimeMode), NODE_ENV
+ *     leaks in as "development". Next 16's static-export pass then dies
+ *     during the `/_global-error` prerender with:
+ *       TypeError: Cannot read properties of null (reading 'useContext')
+ *     because React's dispatcher ends up wedged between dev and prod
+ *     modes. Forcing "production" is what `next build` expects and is the
+ *     only configuration we actually ship.
+ *
+ * Tested in `tests/unit/updater-spawn-env.test.ts`.
+ */
+export function envForBunPhase(
+  phase: "install" | "build",
+): { NODE_ENV: "development" | "production" } {
+  return phase === "install"
+    ? { NODE_ENV: "development" }
+    : { NODE_ENV: "production" };
+}
 
 async function runStreamed(
   root: string,
