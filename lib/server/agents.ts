@@ -1,6 +1,6 @@
 import { promises as fs } from "node:fs";
 import { homedir } from "node:os";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve, sep } from "node:path";
 import { assertWithin } from "./safe-path";
 
 export type AgentScope = "user" | "project";
@@ -81,7 +81,16 @@ export async function writeAgent(
   name: string,
   raw: string,
 ): Promise<void> {
-  const p = agentPath(scope, projectCwd, name);
+  if (!/^[\w.\-]+$/.test(name)) throw new Error("invalid agent name");
+  // Inline path-injection barrier: resolve both sides and assert the
+  // child path stays inside the scoped agents directory. CodeQL's
+  // js/path-injection query only recognizes the sanitizer when it
+  // appears at the fs.* call site itself, not when wrapped in a helper.
+  const baseDir = resolve(agentsDir(scope, projectCwd));
+  const p = resolve(baseDir, `${name}.md`);
+  if (p !== baseDir && !p.startsWith(baseDir + sep)) {
+    throw new Error("path escapes base directory");
+  }
   await fs.mkdir(dirname(p), { recursive: true });
   await fs.writeFile(p, raw, "utf8");
 }
