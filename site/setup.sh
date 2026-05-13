@@ -188,6 +188,22 @@ if [ ! -d "\$CLAUDIUS_HOME" ]; then
   exit 1
 fi
 
+# Locate bun. Order: PATH, then the standard installer path, then BUN_INSTALL.
+# This lets \`claudius\` work in shells whose rc never picked up bun's PATH line.
+if ! command -v bun >/dev/null 2>&1; then
+  for candidate in "\${BUN_INSTALL:-\$HOME/.bun}/bin" "\$HOME/.bun/bin"; do
+    if [ -x "\$candidate/bun" ]; then
+      export PATH="\$candidate:\$PATH"
+      break
+    fi
+  done
+fi
+if ! command -v bun >/dev/null 2>&1; then
+  printf 'claudius: bun not on PATH and not at ~/.bun/bin/bun\n' >&2
+  printf '         install it: curl -fsSL https://bun.sh/install | bash\n' >&2
+  exit 1
+fi
+
 # Pick a browser opener for the host OS. Silent on headless boxes.
 __claudius_open() {
   if [ "\${CLAUDIUS_NO_OPEN:-0}" = "1" ]; then return 0; fi
