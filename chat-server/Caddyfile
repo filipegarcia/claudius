@@ -1,27 +1,25 @@
-# Caddyfile for fronting the Claudius chat-server with TLS.
+# Caddyfile for the Claudius community chat-server.
 #
-# Drop this in /etc/caddy/Caddyfile on the VPS, edit the hostname, then
-# `systemctl reload caddy`. Caddy auto-issues a Let's Encrypt cert.
+# Sits in front of the chat-server (loopback :8787) and terminates TLS
+# for chat.claudius.network. Cloudflare proxies public traffic in
+# "Full (strict)" mode, so Caddy still needs its own Let's Encrypt cert
+# for the origin leg; ACME runs automatically on first request.
 #
-# No-domain setup: use sslip.io / nip.io magic DNS. The hostname
-#     <ip>.sslip.io      (e.g. 203.0.113.7.sslip.io)
-# resolves to that IP automatically — no registration, no DNS records
-# to manage. Let's Encrypt issues real certs for it. Replace the
-# hostname below with your VPS's IP suffixed by .sslip.io.
-#
-# With-domain setup: replace with your hostname (e.g. chat.example.com).
-# If you also put Cloudflare in front in "Full (strict)" mode, add a
-#   `header_up CF-Connecting-IP {http.request.header.CF-Connecting-IP}`
-# line inside the reverse_proxy block so the upstream sees real client
-# IPs (Caddy already appends to X-Forwarded-For automatically).
+# Drop this at /etc/caddy/Caddyfile on the VPS, then:
+#     systemctl reload caddy
 
-203.0.113.7.sslip.io {
+chat.claudius.network {
 	# Long-lived SSE connections must not be buffered. flush_interval=-1
 	# tells Caddy to write every chunk straight through (no batching).
 	# Bun's serve() sends a 15s heartbeat already (see src/server.ts),
 	# which keeps the connection past any idle timers along the path.
 	reverse_proxy 127.0.0.1:8787 {
 		flush_interval -1
+
+		# Forward Cloudflare's real-client header so the upstream's
+		# getClientIp() can read it instead of Cloudflare edge IPs.
+		# Caddy also appends to X-Forwarded-For automatically.
+		header_up CF-Connecting-IP {http.request.header.CF-Connecting-IP}
 	}
 
 	# A little hygiene: log access to a rotating file.
