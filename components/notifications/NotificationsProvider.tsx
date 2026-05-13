@@ -13,10 +13,11 @@ import { useNotifications, type NotifyState } from "@/lib/client/useNotification
 import { useFaviconBadge } from "@/lib/client/useFaviconBadge";
 import { useWorkspaces } from "@/lib/client/useWorkspaces";
 import { useActiveSessionId } from "@/lib/client/useActiveSessionId";
-import type {
-  NotificationRow,
-  NotificationStreamEvent,
-  WorkspaceUnreadState,
+import {
+  isActionableKind,
+  type NotificationRow,
+  type NotificationStreamEvent,
+  type WorkspaceUnreadState,
 } from "@/lib/shared/notifications";
 
 /**
@@ -275,12 +276,20 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
             // session this notification targets, mark it read on arrival
             // so the per-session badge doesn't tick. Same predicate as the
             // OS-popup suppression in `useNotifications.notify`.
+            //
+            // **Skip actionable kinds.** `permission_request` /
+            // `ask_user_question` / `plan_approval_request` rows must
+            // survive auto-read even when the user is parked on the
+            // session — the agent is blocked on them and the badge is the
+            // only cue left if the user minimises the modal. Those rows
+            // clear when the request is resolved (`markReadByRequestId`).
             const sameSessionVisible =
               row.readAt == null &&
               row.sessionId != null &&
               row.workspaceId === activeWorkspaceIdRef.current &&
               row.sessionId === activeSessionIdRef.current &&
-              visibleRef.current;
+              visibleRef.current &&
+              !isActionableKind(row.kind);
             setRecent((prev) => {
               if (prev.some((r) => r.id === row.id)) return prev;
               const incoming = sameSessionVisible
@@ -430,23 +439,31 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     async (sessionId: string) => {
       const workspaceId = activeId;
       if (!sessionId || !workspaceId) return;
-      // Cheap exit: state map + recent both agree there's nothing unread.
+      // Cheap exit: state map + recent both agree there's nothing unread
+      // that this call would clear. We treat actionable rows as "not
+      // clearable here" — they survive the server SQL filter too, so a
+      // perSession count made up entirely of actionable rows should be a
+      // no-op (skip the optimistic flip AND the fetch).
       const knownUnread =
         byWorkspaceRef.current[workspaceId]?.perSession[sessionId] ?? 0;
-      const recentUnread = recentRef.current.some(
+      const recentClearableUnread = recentRef.current.some(
         (r) =>
           r.sessionId === sessionId &&
           r.workspaceId === workspaceId &&
-          r.readAt == null,
+          r.readAt == null &&
+          !isActionableKind(r.kind),
       );
-      if (knownUnread === 0 && !recentUnread) return;
+      if (knownUnread === 0 && !recentClearableUnread) return;
 
       // Optimistic recent flip; server's state event corrects byWorkspace.
+      // Skip actionable rows so the drawer doesn't briefly show a still-
+      // pending request as read while the SQL is in flight.
       setRecent((prev) =>
         prev.map((r) =>
           r.sessionId === sessionId &&
           r.workspaceId === workspaceId &&
-          r.readAt == null
+          r.readAt == null &&
+          !isActionableKind(r.kind)
             ? { ...r, readAt: Date.now() }
             : r,
         ),
@@ -463,6 +480,32 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     },
     [activeId],
   );
+
+  // Visibility-regain → mark the active session read. Symmetric pair to the
+  // SSE-handler auto-read path: the SSE gate requires `visibleRef.current ===
+  // true` so a notification arriving while the browser tab is backgrounded
+  // (Cmd-Tab away, focus on another tab, DevTools panel docked off-screen)
+  // can't auto-clear. Without this handler, the badge would stay stuck on the
+  // tab the user is already sitting on — they'd see "1" on the in-app tab
+  // that's currently rendered, which reads as a bug. When the document
+  // becomes visible again AND we have an active session bound, treat it the
+  // same as a tab click: "I'm looking at this session now → clear it."
+  //
+  // markSessionRead has its own cheap-exit (knownUnread === 0 && !recentUnread)
+  // so firing on every visibility regain is harmless when there's nothing to
+  // clear. We intentionally DO NOT do the same on `online` reconnect — the
+  // user may have been offline and we want them to see what landed in the
+  // meantime, not silently clear it.
+  useEffect(() => {
+    function onVis() {
+      if (document.hidden) return;
+      const sid = activeSessionIdRef.current;
+      if (!sid) return;
+      void markSessionRead(sid);
+    }
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
+  }, [markSessionRead]);
 
   const toggleWorkspaceEnabled = useCallback(async () => {
     await notif.setEnabled(!notif.enabled);

@@ -5,6 +5,7 @@ import { ThinkingBlock } from "./ThinkingBlock";
 import { ToolCall } from "./ToolCall";
 import { TaskBlock } from "./TaskBlock";
 import type { DisplayMessage, TaskInfo } from "@/lib/client/types";
+import { formatMessageTime } from "@/lib/client/format-message-time";
 
 type Props = {
   message: DisplayMessage;
@@ -39,12 +40,23 @@ export function AssistantMessage({
     if (t.toolUseId) taskByToolUseId.set(t.toolUseId, t);
   }
 
+  const stamp = formatMessageTime(message.createdAt);
+
   return (
     <div className="group">
       <div className="mb-1 flex items-center gap-2 text-[11px] font-medium text-[var(--muted)]">
         <span className={`inline-block h-1.5 w-1.5 rounded-full bg-[var(--accent)] ${message.streaming ? "animate-pulse" : ""}`} />
         Claude
         {message.streaming && <span className="text-[10px] opacity-60">streaming…</span>}
+        {stamp && (
+          <span
+            className="ml-auto font-mono text-[10px] opacity-0 transition group-hover:opacity-100"
+            title={stamp.full}
+            aria-label={`Sent ${stamp.full}`}
+          >
+            {stamp.short}
+          </span>
+        )}
       </div>
       <div className="space-y-1 text-sm leading-7">
         {message.blocks.map((b, i) => {

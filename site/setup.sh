@@ -50,6 +50,7 @@ BRANCH="${CLAUDIUS_BRANCH:-main}"
 BIN_DIR="${CLAUDIUS_BIN_DIR:-$HOME/.local/bin}"
 RUN_INSTALL=1
 START_DEV=1
+BUN_JUST_INSTALLED=0
 
 # ── ANSI helpers (gracefully degrade when stdout isn't a tty) ─────────────
 if [ -t 1 ]; then
@@ -131,7 +132,8 @@ ensure_bun() {
   export PATH="$BUN_INSTALL/bin:$PATH"
   command -v bun >/dev/null 2>&1 \
     || fail "bun installed but not on PATH — open a new shell and re-run"
-  ok "bun $(bun --version) (just installed — restart your shell to pick up PATH)"
+  BUN_JUST_INSTALLED=1
+  ok "bun $(bun --version) (just installed)"
 }
 ensure_bun
 
@@ -257,6 +259,19 @@ printf '\n%sNext:%s just type %sclaudius%s in any shell.\n' \
   "$C_ACCENT" "$C_RST" "$C_ACCENT" "$C_RST"
 printf '       (it'\''ll run %sbun run dev%s and open http://localhost:3000.)\n' \
   "$C_DIM" "$C_RST"
+
+# If we just installed bun, this shell still doesn't know about it — the
+# installer edited an rc file, but a child process can't mutate the parent's
+# PATH, so `bun` won't be callable in this terminal until they reload.
+# The `claudius` launcher handles this itself; this note is only for users
+# who want to invoke `bun` directly.
+if [ "$BUN_JUST_INSTALLED" -eq 1 ]; then
+  printf '\n%sTo use %sbun%s directly in %sthis%s shell:%s\n' \
+    "$C_DIM" "$C_ACCENT" "$C_DIM" "$C_ACCENT" "$C_DIM" "$C_RST"
+  printf '       %sexport PATH="$HOME/.bun/bin:$PATH"%s\n' "$C_ACCENT" "$C_RST"
+  printf '       %s(new terminals will pick it up automatically.)%s\n' \
+    "$C_DIM" "$C_RST"
+fi
 
 if [ "$START_DEV" -eq 1 ]; then
   printf '\n%sStarting claudius...%s\n\n' "$C_DIM" "$C_RST"

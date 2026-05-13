@@ -58,6 +58,37 @@ export const ALL_NOTIFICATION_KINDS: NotificationKind[] = [
   ...OPT_IN_KINDS,
 ];
 
+/**
+ * Kinds where the agent is **blocked on the user** until they explicitly
+ * resolve the request (Allow/Deny, answer the question, Accept/Reject the
+ * plan). These notifications must NOT be auto-cleared by "I'm looking at
+ * this session" gestures — switching to the tab, foregrounding the browser
+ * window, or sitting on the session while the row arrives. The ONLY path
+ * that should mark them read is `markReadByRequestId`, fired server-side
+ * from the resolve handlers (`resolvePermission`, `submitAskAnswer`,
+ * `resolvePlan`) once the user has actually answered.
+ *
+ * Without this exclusion, a user who switches into the session — or whose
+ * browser tab regains visibility — would silently clear the inbox row and
+ * the per-tab badge for a still-pending request, leaving the AskUserQuestion
+ * modal as the only surviving cue. If the user then minimised the modal
+ * they'd have no indicator at all.
+ *
+ * Mirror the filter in both `markReadBySession` (server SQL) and the SSE
+ * auto-read predicate in `NotificationsProvider` so the two channels can't
+ * drift.
+ */
+export const ACTIONABLE_KINDS: NotificationKind[] = [
+  "permission_request",
+  "ask_user_question",
+  "plan_approval_request",
+];
+
+/** True when the kind is one the agent is blocked on; see {@link ACTIONABLE_KINDS}. */
+export function isActionableKind(kind: NotificationKind): boolean {
+  return ACTIONABLE_KINDS.includes(kind);
+}
+
 /** Behaviour when the user clicks an OS notification or a row in the drawer. */
 export type NotificationClickBehavior = "jump" | "dismiss";
 
