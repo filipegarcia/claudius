@@ -92,10 +92,26 @@ async function runApply(opts: { allowCcMerge?: boolean }): Promise<ApplyOutcome>
     // correct. For cc-merge the merge may have touched package.json /
     // bun.lockb — frozen would fail, so use the unfrozen path so bun can
     // resolve the merged manifest.
+    //
+    // Env handling for the spawned bun processes:
+    //
+    //   - Install: force NODE_ENV=development so bun keeps devDependencies
+    //     (typescript, eslint, etc.) — the build phase needs them. If the
+    //     parent is the daemon with NODE_ENV=production, the default would
+    //     skip devDeps and the build would then fail with "tsc: command not
+    //     found"-style errors.
+    //
+    //   - Build: force NODE_ENV=production. If the parent is `bun run dev`
+    //     (the user's "dev" runtimeMode), NODE_ENV=development leaks into
+    //     the child and Next 16's static-export pass dies with
+    //     "TypeError: Cannot read properties of null (reading 'useContext')"
+    //     during the /_global-error prerender — React's dispatcher gets
+    //     wedged between dev and prod modes. Overriding to production fixes
+    //     it deterministically regardless of how Claudius itself was started.
     const installArgs =
       strategy.kind === "ff-only" ? ["install", "--frozen-lockfile"] : ["install"];
-    await runStreamed(root, "bun", installArgs, "install");
-    await runStreamed(root, "bun", ["run", "build"], "build");
+    await runStreamed(root, "bun", installArgs, "install", { NODE_ENV: "development" });
+    await runStreamed(root, "bun", ["run", "build"], "build", { NODE_ENV: "production" });
 
     const toSha = await headSha(root);
     await patchUpdaterState({
@@ -331,20 +347,31 @@ async function runStreamed(
   cmd: string,
   args: string[],
   phase: ApplyPhase,
+  // Forwarded to `spawnStreamed` and spread over `process.env` there; treat
+  // it as a partial override so the default `{}` and one-key overrides like
+  // `{ NODE_ENV: "production" }` both type-check against Next.js's ambient
+  // `ProcessEnv` (which marks NODE_ENV as required).
+  env: Partial<NodeJS.ProcessEnv> = {},
 ): Promise<void> {
   // Ring buffer of recent stderr lines so we can include them in the error
   // message. Stdout typically just contains progress noise we don't want in
   // the UI, but stderr is where bun / tsc / git put the actual diagnostic.
   const errTail: string[] = [];
-  const code = await spawnStreamed(cmd, args, root, (line, stream) => {
-    void appendLog(root, `[${phase}/${stream}] ${line}\n`);
-    if (stream === "err" && line.trim().length > 0) {
-      const trimmed =
-        line.length > ERR_TAIL_MAX_LINE ? line.slice(0, ERR_TAIL_MAX_LINE) + "…" : line;
-      errTail.push(trimmed);
-      if (errTail.length > ERR_TAIL_LINES) errTail.shift();
-    }
-  });
+  const code = await spawnStreamed(
+    cmd,
+    args,
+    root,
+    (line, stream) => {
+      void appendLog(root, `[${phase}/${stream}] ${line}\n`);
+      if (stream === "err" && line.trim().length > 0) {
+        const trimmed =
+          line.length > ERR_TAIL_MAX_LINE ? line.slice(0, ERR_TAIL_MAX_LINE) + "…" : line;
+        errTail.push(trimmed);
+        if (errTail.length > ERR_TAIL_LINES) errTail.shift();
+      }
+    },
+    env,
+  );
   if (code !== 0) {
     const head = `${cmd} ${args.join(" ")} exited with code ${code}`;
     // Keep the head as the first line so the banner (which truncates) still
