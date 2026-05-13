@@ -42,6 +42,32 @@ import type { BanKind, ChatEvent } from "./types.ts";
 
 const PORT = Number(process.env.PORT ?? 8787);
 
+// When the server runs behind a trusted reverse proxy (Caddy/nginx on
+// the same box, optionally fronted by Cloudflare), the socket-level
+// remote address is the proxy, not the user — so the IP-ban + rate
+// limiter would treat everyone as one client. Set TRUST_PROXY_IP_HEADERS=1
+// in that deploy to read the real client IP from CF-Connecting-IP
+// (Cloudflare) or the first hop of X-Forwarded-For. Left off by
+// default because trusting these headers when *not* behind a proxy
+// lets anyone spoof an IP via curl.
+const TRUST_PROXY_IP_HEADERS = process.env.TRUST_PROXY_IP_HEADERS === "1";
+
+function getClientIp(
+  req: Request,
+  srv: { requestIP(req: Request): { address: string } | null },
+): string {
+  if (TRUST_PROXY_IP_HEADERS) {
+    const cf = req.headers.get("cf-connecting-ip");
+    if (cf) return cf.trim();
+    const xff = req.headers.get("x-forwarded-for");
+    if (xff) {
+      const first = xff.split(",")[0]?.trim();
+      if (first) return first;
+    }
+  }
+  return srv.requestIP(req)?.address ?? "unknown";
+}
+
 // ── CORS ───────────────────────────────────────────────────────────
 
 const CORS_HEADERS: Record<string, string> = {
@@ -311,7 +337,7 @@ const server = Bun.serve({
 
     const url = new URL(req.url);
     const path = url.pathname;
-    const ip = srv.requestIP(req)?.address ?? "unknown";
+    const ip = getClientIp(req, srv);
 
     // Quick health probe for fly.io / uptime checks.
     if (path === "/health") return json({ ok: true });
