@@ -55,14 +55,14 @@ type ConsoleTab = {
 type SqlToken = {
   text: string;
   tone?: "kw" | "fn" | "tbl" | "col" | "str" | "num" | "comment" | "op" | "id";
+  /** Render a wavy red underline on this token (spell-check decoration). */
+  spelling?: boolean;
 };
 
 type SqlLine = {
   tokens: SqlToken[];
   /** Whole-line tone wins over per-token (used for comments). */
   tone?: "comment";
-  /** Render a wavy red underline on the first non-comment identifier. */
-  spelling?: boolean;
 };
 
 const CONSOLES: ConsoleTab[] = [
