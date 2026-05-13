@@ -121,6 +121,35 @@ export async function listIndexedSessions(cwd: string): Promise<SessionRow[]> {
 }
 
 /**
+ * Cross-workspace fan-out: list every indexed session row from every
+ * known workspace's `.claudius.db`. Pass a `dir` to scope to a single
+ * workspace; omit it for "everywhere" (used by `/api/sessions/all`).
+ *
+ * Why this exists: the SDK's `listSessions` only returns sessions that
+ * have an on-disk JSONL. A freshly-created session that the user renamed
+ * before its first turn flushed has a DB row (from `setSessionTitle`)
+ * but no JSONL, so the SDK call leaves it invisible. The reaper then
+ * evicts the in-memory copy and the user is left with a tab whose label
+ * has fallen back to the id prefix. Surfacing DB-only rows here lets
+ * `/api/sessions/all` synthesize entries for those sessions so the
+ * client's tab strip can still find them.
+ *
+ * Workspaces with no `.claudius.db` yet (the `openDb` inside
+ * `listIndexedSessions` returns empty) are silently skipped.
+ */
+export async function listAllIndexedSessions(dir?: string): Promise<SessionRow[]> {
+  if (dir) return listIndexedSessions(dir);
+  const workspaces = await listWorkspaces().catch(() => []);
+  const all: SessionRow[] = [];
+  for (const ws of workspaces) {
+    if (!ws.rootPath) continue;
+    const rows = await listIndexedSessions(ws.rootPath).catch(() => [] as SessionRow[]);
+    all.push(...rows);
+  }
+  return all;
+}
+
+/**
  * Batch lookup: for every (cwd, sessionId) pair, return whatever title we
  * have persisted for that session. Used by `/api/sessions/all` to enrich
  * the SDK's cross-workspace listing with the names we've persisted
