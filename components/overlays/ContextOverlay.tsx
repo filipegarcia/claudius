@@ -23,6 +23,14 @@ function fmtTokens(n: number): string {
 }
 
 /**
+ * Feature flag for the experimental token-grid renderer (see comment at
+ * the call site). Hoisted to module scope so TypeScript treats it as a
+ * proper boolean rather than collapsing the gated JSX into a known-dead
+ * branch — the latter strips narrowing on `data` inside the block.
+ */
+const RENDER_GRID: boolean = false;
+
+/**
  * The SDK ships theme tokens (e.g. `"promptBorder"`, `"inactive"`, `"claude"`,
  * `"purple_FOR_SUBAGENTS_ONLY"`) instead of CSS color strings. Setting
  * `background: promptBorder` is invalid CSS and renders as transparent —
@@ -134,8 +142,11 @@ export function ContextOverlay({ sessionId, onClose }: Props) {
               (unfilled cells use a near-transparent backdrop). Keeping
               the renderer here so we can re-enable when the upstream
               data is reliable; gate kept for safety.
+              The `false &&` short-circuit confuses TS's narrowing inside
+              this `{data && (…)}` block, so we route through a typed
+              constant flag instead of a bare literal.
             */}
-            {false && hasRenderableGrid(data.gridRows) && (
+            {RENDER_GRID && hasRenderableGrid(data.gridRows) && (
               <Grid grid={data.gridRows} />
             )}
           </div>

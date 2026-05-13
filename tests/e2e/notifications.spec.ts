@@ -240,7 +240,7 @@ test.describe("Notifications pipeline", () => {
       .poll(
         async () => {
           const r = await request.get(
-            `${baseURL}/api/notifications?workspace=${ws.id}&limit=10`,
+            `${baseURL}/api/notifications?workspace=${ws!.id}&limit=10`,
           );
           if (!r.ok()) return false;
           const items = ((await r.json()) as { items: Array<{ body: string }> }).items;

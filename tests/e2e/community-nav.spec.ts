@@ -42,7 +42,11 @@ test.describe("/community soft-nav reconnect", () => {
     // because the test environment has no chat-server reachable.
     await page.addInitScript(({ url }) => {
       const Real = window.EventSource;
-      class FakeES extends EventTarget implements EventSource {
+      // Not `implements EventSource` — the lib's `addEventListener` overload
+      // signature isn't structurally compatible with EventTarget's, and we
+      // already cast at the call site. Keep the duck-type matching the
+      // surface the page actually touches.
+      class FakeES extends EventTarget {
         readonly CONNECTING = 0 as const;
         readonly OPEN = 1 as const;
         readonly CLOSED = 2 as const;

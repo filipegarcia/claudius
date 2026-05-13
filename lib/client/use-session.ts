@@ -989,7 +989,17 @@ export function useSession(): ChatState & ChatActions {
           // deltas didn't fill it.
           const cb = evt.content_block;
           const slot = scratch.blocks.get(evt.index);
-          if (slot && slot.kind === "thinking" && !slot.text && typeof cb.thinking === "string") {
+          if (
+            slot &&
+            slot.kind === "thinking" &&
+            !slot.text &&
+            cb.type === "thinking" &&
+            typeof cb.thinking === "string"
+          ) {
+            // Narrow on the discriminator AND the field — the catch-all arm
+            // of `SDKContentBlock` carries an `[k: string]: unknown` index
+            // signature that poisons a bare `cb.thinking` access. The typeof
+            // guard collapses it back to `string`.
             slot.text = cb.thinking;
           }
         } else if (evt.type === "message_stop") {
