@@ -9,6 +9,7 @@ import {
 } from "@/lib/server/workspaces-store";
 import type { CommitPrefixConfig } from "@/lib/shared/commit-prefix";
 import { clearActiveCookie, readActiveCookie } from "@/lib/server/active-workspace";
+import { PathInjectionError, assertAbsoluteUserPath } from "@/lib/server/safe-path";
 
 export const runtime = "nodejs";
 
@@ -31,6 +32,17 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   const { id } = await ctx.params;
   const body = (await req.json()) as Patch;
   if (typeof body.rootPath === "string") {
+    // assertAbsoluteUserPath is the recognized barrier for "user chooses any
+    // directory on their machine": rejects relative paths / null bytes, then
+    // hands back a normalized absolute path that flows on into fs.stat.
+    try {
+      body.rootPath = assertAbsoluteUserPath(body.rootPath);
+    } catch (err) {
+      if (err instanceof PathInjectionError) {
+        return NextResponse.json({ error: err.message }, { status: 400 });
+      }
+      throw err;
+    }
     try {
       const stat = await fs.stat(body.rootPath);
       if (!stat.isDirectory()) return NextResponse.json({ error: "rootPath not a directory" }, { status: 400 });

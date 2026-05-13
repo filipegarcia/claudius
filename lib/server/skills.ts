@@ -2,6 +2,7 @@ import { promises as fs } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { parseFrontmatter } from "./agents";
+import { assertWithin } from "./safe-path";
 
 /**
  * Skills surface.
@@ -41,7 +42,11 @@ export function skillsDir(scope: SkillScope, projectCwd: string): string {
 
 export function skillPath(scope: SkillScope, projectCwd: string, name: string): string {
   if (!/^[\w.\-]+$/.test(name)) throw new Error("invalid skill name");
-  return join(skillsDir(scope, projectCwd), name, "SKILL.md");
+  // assertWithin is the path-injection barrier — guarantees the resolved
+  // path stays inside the scoped skills directory even if `name` somehow
+  // got past the regex (defence-in-depth) and gives CodeQL a recognized
+  // sanitizer on the projectCwd → fs.* flow.
+  return assertWithin(skillsDir(scope, projectCwd), join(name, "SKILL.md"));
 }
 
 export async function listSkills(scope: SkillScope, projectCwd: string): Promise<SkillFile[]> {

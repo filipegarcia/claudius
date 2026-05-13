@@ -30,6 +30,16 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
   let matcher: ((haystack: string) => Array<{ index: number; length: number }>) | null = null;
   if (q.length >= 2 && q.startsWith("/") && q.endsWith("/")) {
     const pattern = q.slice(1, -1);
+    // Cap the pattern length as a defence-in-depth measure against ReDoS.
+    // Real user searches are short; anything beyond a couple hundred chars
+    // is almost certainly an attempt to wedge the engine on a pathological
+    // pattern. We also bound match iterations below.
+    if (pattern.length > 200) {
+      return NextResponse.json(
+        { error: "regex pattern too long (max 200 chars)" },
+        { status: 400 },
+      );
+    }
     let re: RegExp;
     try {
       re = new RegExp(pattern, "gi");

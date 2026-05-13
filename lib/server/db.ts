@@ -4,13 +4,19 @@ import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import Database from "better-sqlite3";
 import { encodeProjectDir } from "./auto-memory";
+import { assertWithin } from "./safe-path";
 
 export type DB = Database.Database;
 
 const handles = new Map<string, DB>();
 
 function dbPath(cwd: string): string {
-  return join(homedir(), ".claude", "projects", encodeProjectDir(cwd), ".claudius.db");
+  // assertWithin is the path-injection barrier — pin the DB inside the
+  // per-workspace projects dir. `encodeProjectDir` already strips every
+  // non-alphanumeric character, so this is defence-in-depth that also
+  // gives CodeQL a recognized sanitizer.
+  const base = join(homedir(), ".claude", "projects");
+  return assertWithin(base, join(encodeProjectDir(cwd), ".claudius.db"));
 }
 
 const MIGRATIONS_DIR = join(process.cwd(), "lib", "server", "db-migrations");
@@ -158,5 +164,10 @@ export function closeAll(): void {
 
 /** Project root for `~/.claude/projects/<encoded-cwd>/` (used by callers needing the same dir for sibling files). */
 export function projectRoot(cwd: string): string {
-  return join(homedir(), ".claude", "projects", encodeProjectDir(cwd));
+  // assertWithin acts as the path-injection barrier on the cwd → fs.*
+  // flow. `encodeProjectDir` strips every non-alphanumeric character, so
+  // this is defence-in-depth that also gives CodeQL a recognized
+  // sanitizer.
+  const base = join(homedir(), ".claude", "projects");
+  return assertWithin(base, encodeProjectDir(cwd));
 }

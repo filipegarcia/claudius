@@ -6,6 +6,7 @@ import {
   type Icon,
 } from "@/lib/server/workspaces-store";
 import { resolveActiveWorkspace } from "@/lib/server/active-workspace";
+import { PathInjectionError, assertAbsoluteUserPath } from "@/lib/server/safe-path";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -33,7 +34,19 @@ export async function POST(req: Request) {
   const body = (await req.json()) as CreateBody;
   if (!body?.name?.trim()) return NextResponse.json({ error: "name required" }, { status: 400 });
   if (!body?.rootPath?.trim()) return NextResponse.json({ error: "rootPath required" }, { status: 400 });
-  const root = body.rootPath.trim();
+  // The user picks any directory on their machine as a workspace root —
+  // there's no enclosing base we can validate against. `assertAbsoluteUserPath`
+  // is the recognized barrier: it rejects relative paths and null bytes, then
+  // hands back a normalized absolute path.
+  let root: string;
+  try {
+    root = assertAbsoluteUserPath(body.rootPath.trim());
+  } catch (err) {
+    if (err instanceof PathInjectionError) {
+      return NextResponse.json({ error: err.message }, { status: 400 });
+    }
+    throw err;
+  }
   try {
     const stat = await fs.stat(root);
     if (!stat.isDirectory()) return NextResponse.json({ error: "rootPath is not a directory" }, { status: 400 });

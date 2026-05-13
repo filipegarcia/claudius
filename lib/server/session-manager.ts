@@ -98,7 +98,11 @@ export class SessionManager {
     if (!session) return;
     this.cancelReap(id);
     const unsub = this.subscriberWatchers.get(id);
-    if (unsub) {
+    // The `typeof` guard satisfies CodeQL's js/unvalidated-dynamic-method-call
+    // (the function came from a Map lookup keyed by user input) and is a
+    // belt-and-braces check that the watcher slot wasn't somehow overwritten
+    // with a non-callable.
+    if (typeof unsub === "function") {
       unsub();
       this.subscriberWatchers.delete(id);
     }

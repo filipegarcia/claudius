@@ -139,7 +139,7 @@ function resultEvent(opts: {
       // uuid is what use-session dedupes on so reconnects don't double-apply
       // cost. In the real SDK this is always present (UUID); we default to a
       // deterministic value here for test stability.
-      uuid: opts.uuid ?? `result-${Math.random().toString(36).slice(2)}`,
+      uuid: opts.uuid ?? `result-${crypto.randomUUID()}`,
       subtype: opts.subtype ?? "success",
       total_cost_usd: opts.totalCostUsd,
       num_turns: opts.numTurns ?? 1,

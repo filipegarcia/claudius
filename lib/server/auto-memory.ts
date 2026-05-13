@@ -1,6 +1,7 @@
 import { promises as fs } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { assertWithin } from "./safe-path";
 
 /**
  * Mirrors Claude Code's encoding of project paths into the
@@ -100,7 +101,11 @@ export async function writeMemoryFile(
   }
   const dir = autoMemoryDir(projectCwd);
   await fs.mkdir(dir, { recursive: true });
-  const target = join(dir, input.filename);
+  // assertWithin is the path-injection barrier on the projectCwd → fs.*
+  // flow. `input.filename` already passed `isValidMemoryFilename` above,
+  // so this is defence-in-depth that also gives CodeQL a recognized
+  // sanitizer.
+  const target = assertWithin(dir, input.filename);
   const content =
     `---\n` +
     `name: ${input.name}\n` +
