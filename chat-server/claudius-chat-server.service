@@ -1,0 +1,75 @@
+# systemd unit for the Claudius chat server.
+#
+# Drop in /etc/systemd/system/claudius-chat-server.service on the VPS,
+# then:
+#   systemctl daemon-reload
+#   systemctl enable --now claudius-chat-server
+#
+# Assumes:
+#   - Bun is on PATH at /usr/local/bin/bun (install: `curl -fsSL https://bun.sh/install | bash`
+#     as root, then `cp /root/.bun/bin/bun /usr/local/bin/bun`).
+#   - The chat-server/ tree lives at /opt/claudius-chat-server with
+#     node_modules already installed (`bun install --production`).
+#   - /etc/claudius-chat-server.env holds CLAUDIUS_CHAT_ADMIN_TOKEN
+#     (mode 0600, root:root).
+
+[Unit]
+Description=Claudius community chat server (SSE + SQLite)
+Documentation=https://github.com/filipegarcia/claudius/tree/main/chat-server
+After=network-online.target
+Wants=network-online.target
+
+# Crash-loop protection: if the process restarts more than 10 times in
+# 60 seconds, give up rather than burning the CPU. Reset via
+# `systemctl reset-failed claudius-chat-server` once the cause is fixed.
+StartLimitIntervalSec=60
+StartLimitBurst=10
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/claudius-chat-server
+ExecStart=/usr/local/bin/bun src/server.ts
+
+# Persistent SQLite db. systemd creates /var/lib/claudius-chat-server
+# owned by the dynamic user on first start; bun:sqlite will create
+# chat.db inside it (see src/db.ts → openDb()).
+StateDirectory=claudius-chat-server
+StateDirectoryMode=0750
+Environment=CHAT_DB_PATH=/var/lib/claudius-chat-server/chat.db
+Environment=PORT=8787
+
+# Secrets (admin token) live outside the unit so they don't end up in
+# `systemctl cat` output or world-readable /etc/systemd state.
+EnvironmentFile=/etc/claudius-chat-server.env
+
+# Restart policy
+Restart=always
+RestartSec=2s
+
+# ── Hardening ──────────────────────────────────────────────────────
+# Dynamic user means no /etc/passwd entry to manage; StateDirectory is
+# auto-chowned to the transient uid each boot.
+DynamicUser=yes
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=yes
+LockPersonality=yes
+SystemCallArchitectures=native
+CapabilityBoundingSet=
+AmbientCapabilities=
+# Bun's JS engine JITs — leave RWX pages allowed.
+MemoryDenyWriteExecute=no
+
+# Logs go to the journal; tail with `journalctl -u claudius-chat-server -f`.
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
