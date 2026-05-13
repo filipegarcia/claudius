@@ -18,8 +18,17 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   }
   // Forward the client-minted uuid (if any) so the user message lands in the
   // session's SSE buffer with the same id the optimistic local add used,
-  // and so the SDK writes that same uuid to the on-disk JSONL.
-  session.sendInput(body.text ?? "", body.images, body.uuid ? { uuid: body.uuid } : undefined);
+  // and so the SDK writes that same uuid to the on-disk JSONL. `slash` opts
+  // in to the no-echo dispatch for SDK-handled slash commands (/compact,
+  // /init, etc.).
+  const sendOpts: { uuid?: string; slash?: boolean } = {};
+  if (body.uuid) sendOpts.uuid = body.uuid;
+  if (body.slash) sendOpts.slash = true;
+  session.sendInput(
+    body.text ?? "",
+    body.images,
+    Object.keys(sendOpts).length > 0 ? sendOpts : undefined,
+  );
 
   // Best-effort asset indexing — never fail the send because of this.
   if (hasImages) {

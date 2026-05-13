@@ -12,6 +12,11 @@ import type {
   ServerEvent,
 } from "@/lib/shared/events";
 import { costFromTokens } from "@/lib/shared/cost-pricing";
+import {
+  isSdkSlashUserMessage,
+  isSyntheticTaskNotification,
+  parseSyntheticCliWrapper,
+} from "./sdk-message-filters";
 import type {
   AgentTodo,
   AttachedImage,
@@ -102,37 +107,6 @@ function extractToolResult(content: unknown): { tool_use_id: string; text: strin
     }
   }
   return null;
-}
-
-/**
- * True when a user-message's text content is a synthetic `<task-notification>`
- * wrapper that the SDK injects to inform the model a background task finished.
- * Those wrappers are valid input to Claude — they carry the task id, output
- * path, and status — but they're noise in the chat UI: the user didn't type
- * them, and the TaskBlock surface already shows the completion state from
- * the paired system event. Filter them out at ingest so they never become a
- * user bubble.
- *
- * Recognition is text-shaped because the wrappers arrive as plain text
- * content (no structural marker on the SDK envelope distinguishes them).
- * The match is forgiving about leading whitespace; otherwise we look for the
- * opening tag at the start so we don't false-positive on a real user prompt
- * that happens to quote the string.
- */
-function isSyntheticTaskNotification(content: unknown): boolean {
-  let text: string;
-  if (typeof content === "string") {
-    text = content;
-  } else if (Array.isArray(content)) {
-    let buf = "";
-    for (const c of content as Array<{ type?: string; text?: string }>) {
-      if (c?.type === "text" && typeof c.text === "string") buf += c.text;
-    }
-    text = buf;
-  } else {
-    return false;
-  }
-  return /^\s*<task-notification[\s>]/.test(text);
 }
 
 /**
@@ -561,15 +535,20 @@ export function useSession(): ChatState & ChatActions {
     const next = queueRef.current[0];
     writeQueue(queueRef.current.slice(1));
     const uuid = crypto.randomUUID();
-    setMessages((prev) => [
-      ...prev,
-      {
-        uuid,
-        role: "user",
-        blocks: [{ kind: "text", text: next.text }],
-        ...(next.images && next.images.length ? { images: next.images } : {}),
-      },
-    ]);
+    // Same slash-command rule as `send()`: skip the optimistic user-message
+    // render so `/compact` doesn't show up as if the user typed it — the
+    // server emits a `slash_invoked` system pill instead.
+    if (!next.slash) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          uuid,
+          role: "user",
+          blocks: [{ kind: "text", text: next.text }],
+          ...(next.images && next.images.length ? { images: next.images } : {}),
+        },
+      ]);
+    }
     setPendingTracked(true);
     let res: Response;
     try {
@@ -580,7 +559,12 @@ export function useSession(): ChatState & ChatActions {
         // SDK event with the same id, and applyEvent's per-uuid dedup (line
         // ~721) silently drops the echo for this tab while letting other
         // subscribers see it for the first time.
-        body: JSON.stringify({ text: next.text, images: next.images, uuid }),
+        body: JSON.stringify({
+          text: next.text,
+          images: next.images,
+          uuid,
+          ...(next.slash ? { slash: true } : {}),
+        }),
       });
     } catch (err) {
       // Re-prepend, surface error, leave pending false. User must trigger again.
@@ -1212,6 +1196,59 @@ export function useSession(): ChatState & ChatActions {
           // user bubble surfaces XML the user didn't write. The matching
           // system `task_notification` event still updates the TaskBlock UI.
           if (isSyntheticTaskNotification(content)) return;
+          // Same idea for SDK-handled slash commands replayed from disk: a
+          // prior `/compact` lives on in the JSONL as a user message, and
+          // re-rendering it as user prose would re-introduce the echo bug on
+          // reload. Render a small system pill instead — symmetric with the
+          // live-send path's `slash_invoked` event.
+          const slash = isSdkSlashUserMessage(content);
+          if (slash) {
+            const uuid = (msg as { uuid?: string }).uuid ?? crypto.randomUUID();
+            const anchor = lastAssistantUuidRef.current;
+            setSystemEntries((prev) => {
+              if (prev.some((e) => e.uuid === uuid)) return prev;
+              return [
+                ...prev,
+                {
+                  uuid,
+                  afterMessageUuid: anchor,
+                  kind: "info",
+                  label: `Ran ${slash.command}${slash.args ? ` ${slash.args}` : ""}`,
+                },
+              ];
+            });
+            return;
+          }
+          // CLI plumbing wrappers around a slash command run:
+          //   <command-name>/X</command-name><command-message>…</command-message><command-args>…</command-args>
+          //   <local-command-stdout>…</local-command-stdout>
+          //   <local-command-stderr>…</local-command-stderr>
+          // The subprocess sends these as user-role messages so the model can
+          // see what command ran and what its output was. Render them as
+          // assistant-side system pills so the user doesn't see XML in their
+          // own bubble.
+          const cli = parseSyntheticCliWrapper(content);
+          if (cli) {
+            const uuid = (msg as { uuid?: string }).uuid ?? crypto.randomUUID();
+            const anchor = lastAssistantUuidRef.current;
+            let label: string;
+            if (cli.kind === "command") {
+              label = `Ran ${cli.command}${cli.args ? ` ${cli.args}` : ""}`;
+            } else if (cli.kind === "stdout") {
+              label = cli.text ? `CLI: ${cli.text}` : "CLI ran";
+            } else {
+              // stderr: surface as plain info with a "CLI error:" prefix; we
+              // don't promote to a red ShieldAlert pill (that kind is reserved
+              // for blocked tool calls — a slash that writes a warning to
+              // stderr shouldn't look like a security alert).
+              label = cli.text ? `CLI error: ${cli.text}` : "CLI error";
+            }
+            setSystemEntries((prev) => {
+              if (prev.some((e) => e.uuid === uuid)) return prev;
+              return [...prev, { uuid, afterMessageUuid: anchor, kind: "info", label }];
+            });
+            return;
+          }
           let text = "";
           if (typeof content === "string") text = content;
           else if (Array.isArray(content)) {
@@ -1387,6 +1424,24 @@ export function useSession(): ChatState & ChatActions {
           setSystemEntries((prev) => [
             ...prev,
             { ...baseEntry, kind: "compact_boundary", label: "Compacted earlier conversation" },
+          ]);
+          return;
+        }
+        if (sysAny.subtype === "slash_invoked") {
+          // Server-side breadcrumb for an SDK-handled slash command. We
+          // render it as a small "Running /compact…" pill so the chat
+          // doesn't go silent while the SDK works — the eventual outcome
+          // (compact_boundary, init reload, etc.) lands as its own pill.
+          const s = sysAny as { command?: string; args?: string };
+          const cmd = (s.command ?? "").trim() || "/?";
+          const args = (s.args ?? "").trim();
+          setSystemEntries((prev) => [
+            ...prev,
+            {
+              ...baseEntry,
+              kind: "info",
+              label: `Running ${cmd}${args ? ` ${args}` : ""}…`,
+            },
           ]);
           return;
         }
@@ -1750,11 +1805,13 @@ export function useSession(): ChatState & ChatActions {
     async (
       text: string,
       images?: Array<{ id?: string; ordinal?: number; data: string; mediaType: string }>,
+      opts?: { asSlashCommand?: boolean },
     ) => {
       const id = sessionIdRef.current;
       const trimmedText = text.trim();
       const hasImages = Array.isArray(images) && images.length > 0;
       if (!id || (!trimmedText && !hasImages)) return;
+      const isSlash = !!opts?.asSlashCommand;
       // Normalize to AttachedImage shape for client/queue persistence.
       const normalized = hasImages
         ? images!.map((img, i) => ({
@@ -1769,20 +1826,26 @@ export function useSession(): ChatState & ChatActions {
           id: crypto.randomUUID(),
           text,
           ...(normalized ? { images: normalized } : {}),
+          ...(isSlash ? { slash: true } : {}),
         };
         writeQueue([...queueRef.current, q]);
         return;
       }
       const uuid = crypto.randomUUID();
-      setMessages((prev) => [
-        ...prev,
-        {
-          uuid,
-          role: "user",
-          blocks: [{ kind: "text", text }],
-          ...(normalized ? { images: normalized } : {}),
-        },
-      ]);
+      // Slash commands shouldn't render as user messages — the server emits a
+      // `slash_invoked` system pill in their place. Skipping the optimistic
+      // add here keeps the chat clean even before the SSE pill arrives.
+      if (!isSlash) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            uuid,
+            role: "user",
+            blocks: [{ kind: "text", text }],
+            ...(normalized ? { images: normalized } : {}),
+          },
+        ]);
+      }
       setPromptSuggestions([]);
       setPendingTracked(true);
       setErrors([]);
@@ -1792,8 +1855,15 @@ export function useSession(): ChatState & ChatActions {
         // Pass the optimistic uuid so the server's broadcast echoes it back
         // with the same id; applyEvent dedups by uuid so this tab doesn't
         // double-render, while other subscribers pick it up for the first
-        // time on SSE replay.
-        body: JSON.stringify({ text, images: normalized, uuid }),
+        // time on SSE replay. For slash commands the server doesn't echo a
+        // user message at all — the uuid still rides along as the SDK input
+        // id so the JSONL stays consistent.
+        body: JSON.stringify({
+          text,
+          images: normalized,
+          uuid,
+          ...(isSlash ? { slash: true } : {}),
+        }),
       });
       if (!res.ok) {
         setErrors((e) => [...e, `send failed: ${res.status}`]);

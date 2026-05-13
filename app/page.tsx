@@ -783,6 +783,16 @@ export default function Home() {
           showToast(`/${cmd.name} is terminal/hosted only`);
           return;
         }
+        if (cmd?.handler === "sdk") {
+          // SDK-interpreted slash command (e.g. /compact, /init, /recap).
+          // Route through the no-echo path so the chat shows a "Running
+          // /compact…" pill instead of a user message whose text is the
+          // literal slash command. The SDK still receives the text and
+          // interprets it as a slash; its eventual reply (compact_boundary,
+          // init system message, etc.) lands as its own event.
+          void session.send(text, undefined, { asSlashCommand: true });
+          return;
+        }
       }
       void session.send(text, images);
     },

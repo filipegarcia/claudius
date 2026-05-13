@@ -269,4 +269,13 @@ export type SendInputRequest = {
    *      via crypto.randomUUID()) when the broadcast echoes back over SSE.
    */
   uuid?: string;
+  /**
+   * When true, `text` is a slash command meant for the SDK to interpret
+   * (e.g. `/compact`, `/init`, `/recap`). The server still pushes it to
+   * the SDK inputQueue verbatim, but skips the synthetic user-message
+   * broadcast that would otherwise echo `/compact` into the chat as if
+   * the user had said it. A small `slash_invoked` system event takes its
+   * place so the chat doesn't go silent while the SDK runs the command.
+   */
+  slash?: boolean;
 };
