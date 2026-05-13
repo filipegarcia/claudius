@@ -292,7 +292,8 @@ test.describe("site screenshots — community", () => {
       type Replay = { type: "replay"; roomSlug: string; messages: unknown[]; pinnedMessageId: null };
       const payloads = replayPayloads as Record<string, Replay>;
       const Real = window.EventSource;
-      class FakeES extends EventTarget implements EventSource {
+      // See community-nav.spec.ts for why we don't `implements EventSource`.
+      class FakeES extends EventTarget {
         readonly CONNECTING = 0 as const;
         readonly OPEN = 1 as const;
         readonly CLOSED = 2 as const;

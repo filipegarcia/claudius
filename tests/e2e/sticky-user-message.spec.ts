@@ -239,6 +239,9 @@ test.describe("sticky last-user-message", () => {
     }, USER_UUID);
 
     expect(scrollerTop).not.toBeNull();
+    // Playwright's expect doesn't narrow the TS type — alias to a non-null
+    // local so the evaluate callback receives a plain `number`.
+    const top = scrollerTop as number;
 
     // Without the activation anchor, this would land at the BOTTOM of the
     // conversation — the user message would be at the top via sticky pin
@@ -247,9 +250,9 @@ test.describe("sticky last-user-message", () => {
     // sitting at its natural position. Either way the visible result is
     // "user message at top of viewport".
     await expect(userMsg).toBeInViewport();
-    const delta = await userMsg.evaluate((el, top) => {
-      return Math.abs(el.getBoundingClientRect().top - top);
-    }, scrollerTop);
+    const delta = await userMsg.evaluate((el, t) => {
+      return Math.abs(el.getBoundingClientRect().top - t);
+    }, top);
     expect(delta).toBeLessThan(16);
   });
 });
