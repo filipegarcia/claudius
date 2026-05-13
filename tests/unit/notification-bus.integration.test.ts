@@ -146,7 +146,12 @@ describe("recordSessionEvent", () => {
     expect(snap().filter((e) => e.type === "notification")).toHaveLength(1);
   });
 
-  test("per-session block drops events for that session only", async () => {
+  test("per-session block drops the notification row but still fires status-sync state", async () => {
+    // The mute contract is about NOTIFICATION rows, not status sync. A muted
+    // session still goes running ↔ idle and its tab dot needs to refresh —
+    // the bus emits the `state` event (with totals unchanged because no row
+    // landed) so inactive tabs run `refreshSessions()`. Only the
+    // `notification` envelope is dropped.
     const ws = writeFakeWorkspace();
     await setSessionPrefs(ws.rootPath, "sess-blocked", { blocked: true });
 
@@ -155,7 +160,9 @@ describe("recordSessionEvent", () => {
       message: "dropped",
     });
     await flushAll();
-    expect(snap()).toEqual([]);
+    expect(snap().filter((e) => e.type === "notification")).toHaveLength(0);
+    const blockedState = snap().find((e) => e.type === "state");
+    expect(blockedState && blockedState.type === "state" && blockedState.totalUnread).toBe(0);
 
     await notificationBus.recordSessionEvent(ws.rootPath, "sess-clean", {
       type: "error",
@@ -165,7 +172,7 @@ describe("recordSessionEvent", () => {
     expect(snap().filter((e) => e.type === "notification")).toHaveLength(1);
   });
 
-  test("future snoozeUntil suppresses, past snoozeUntil lets through", async () => {
+  test("future snoozeUntil suppresses the row but still fires status-sync state", async () => {
     const ws = writeFakeWorkspace();
     await setSessionPrefs(ws.rootPath, "sess-snz", {
       snoozeUntil: Date.now() + 60_000,
@@ -175,7 +182,9 @@ describe("recordSessionEvent", () => {
       message: "snoozed",
     });
     await flushAll();
-    expect(snap()).toEqual([]);
+    expect(snap().filter((e) => e.type === "notification")).toHaveLength(0);
+    const snoozedState = snap().find((e) => e.type === "state");
+    expect(snoozedState && snoozedState.type === "state" && snoozedState.totalUnread).toBe(0);
 
     await setSessionPrefs(ws.rootPath, "sess-snz", {
       snoozeUntil: Date.now() - 1_000,
@@ -198,6 +207,50 @@ describe("recordSessionEvent", () => {
     });
     await flushAll();
     expect(snap()).toEqual([]);
+  });
+
+  test("status-sync emit: turn_status fires state even though it doesn't map to a kind", async () => {
+    // turn_status is the canonical "running ↔ idle" broadcast from
+    // `Session.broadcastTurnStatusIfChanged`. `mapEventToKind` returns null
+    // for it (no notification), but inactive tabs depend on the bus's
+    // `state` SSE event to call `refreshSessions()` — without this, a
+    // backgrounded session that finished a turn would never repaint its
+    // dot. The bus must emit `state` regardless of mapping.
+    const ws = writeFakeWorkspace();
+    await notificationBus.recordSessionEvent(ws.rootPath, "sess-1", {
+      type: "turn_status",
+      status: "idle",
+    });
+    await flushAll();
+
+    const notifs = snap().filter((e) => e.type === "notification");
+    const states = snap().filter((e) => e.type === "state");
+    expect(notifs).toHaveLength(0); // no row produced
+    expect(states.length).toBeGreaterThanOrEqual(1);
+    const lastState = states[states.length - 1];
+    expect(lastState.type === "state" && lastState.workspaceId).toBe(ws.id);
+    expect(lastState.type === "state" && lastState.totalUnread).toBe(0);
+  });
+
+  test("status-sync emit: SDK result outside the idle window still fires state", async () => {
+    // The IDLE_NOTIFY_MIN_MS gate suppresses session_idle when the user
+    // input is recent (or never recorded — common after HMR or for a
+    // resumed session). Pre-fix, this caused the bus to drop the event
+    // silently and inactive tabs stayed "running" forever. The fix emits
+    // the status-sync state regardless of the idle gate's outcome.
+    const ws = writeFakeWorkspace();
+    // No prior markUserInput → mapEventToKind returns null for the SDK
+    // result, but the status-sync emit should still fire.
+    await notificationBus.recordSessionEvent(ws.rootPath, "sess-1", {
+      type: "sdk",
+      message: { type: "result", subtype: "success" } as never,
+    });
+    await flushAll();
+
+    const notifs = snap().filter((e) => e.type === "notification");
+    const states = snap().filter((e) => e.type === "state");
+    expect(notifs).toHaveLength(0);
+    expect(states.length).toBeGreaterThanOrEqual(1);
   });
 
   test("multiple in-tick writes coalesce — final state reflects all writes", async () => {
@@ -269,11 +322,16 @@ describe("recordSessionEvent", () => {
     expect(final.type === "state" && final.totalUnread).toBe(1); // warmup row is still unread
   });
 
-  test("background-session suppression: session_idle is dropped when hasSubscribers=false", async () => {
+  test("background-session OS-toast suppression: session_idle persists but no notification SSE event when hasSubscribers=false", async () => {
     // When the user switches to a different session tab the previous
     // session's SSE closes and its subscriber count goes to 0. The bus
-    // should drop session_idle ("Claude finished a turn") for that session
-    // — the user isn't looking and the feedback is noise.
+    // must still PERSIST the row + emit a `state` event (so the per-tab
+    // unread badge, workspace tile, and drawer count all tick — the user
+    // wants to see that something happened on the backgrounded session
+    // when they look at the tab strip). It just skips the per-row
+    // `notification` SSE event, which is what the client uses to drive OS
+    // toasts and the `recent` buffer — those are the noisy surface the
+    // user asked to suppress.
     const ws = writeFakeWorkspace();
     notificationBus.markUserInput("sess-bg", Date.now() - 10_000);
     await notificationBus.recordSessionEvent(
@@ -283,11 +341,19 @@ describe("recordSessionEvent", () => {
       { hasSubscribers: false },
     );
     await flushAll();
+    // OS-toast feed: zero notification events.
     expect(snap().filter((e) => e.type === "notification")).toHaveLength(0);
-    expect(await listNotifications(ws.rootPath, ws.id)).toHaveLength(0);
+    // But the row IS persisted so badges can tick.
+    expect(await listNotifications(ws.rootPath, ws.id)).toHaveLength(1);
+    // And a state event fired so the client knows perSession changed.
+    const states = snap().filter((e) => e.type === "state");
+    expect(states.length).toBeGreaterThanOrEqual(1);
+    const final = states[states.length - 1] as { totalUnread: number; perSession: Record<string, number> };
+    expect(final.totalUnread).toBe(1);
+    expect(final.perSession["sess-bg"]).toBe(1);
   });
 
-  test("background-session suppression: session_error is dropped when hasSubscribers=false", async () => {
+  test("background-session OS-toast suppression: session_error persists but no notification SSE event when hasSubscribers=false", async () => {
     const ws = writeFakeWorkspace();
     await notificationBus.recordSessionEvent(
       ws.rootPath,
@@ -297,7 +363,11 @@ describe("recordSessionEvent", () => {
     );
     await flushAll();
     expect(snap().filter((e) => e.type === "notification")).toHaveLength(0);
-    expect(await listNotifications(ws.rootPath, ws.id)).toHaveLength(0);
+    expect(await listNotifications(ws.rootPath, ws.id)).toHaveLength(1);
+    const states = snap().filter((e) => e.type === "state");
+    expect(states.length).toBeGreaterThanOrEqual(1);
+    const final = states[states.length - 1] as { totalUnread: number };
+    expect(final.totalUnread).toBe(1);
   });
 
   test("background-session suppression: permission_request still fires when hasSubscribers=false", async () => {
@@ -378,14 +448,27 @@ describe("recordSchedulerEvent", () => {
 });
 
 describe("idle heuristic", () => {
-  test("without markUserInput, an SDK result is suppressed", async () => {
+  test("without markUserInput, an SDK result is suppressed (but status-sync still fires)", async () => {
+    // The idle heuristic suppresses the `session_idle` row when no user
+    // input was recorded (e.g. HMR cleared lastUserInputAt, or this is a
+    // resumed session whose first turn lands before the user typed
+    // anything). That's the row contract.
+    //
+    // What it does NOT suppress: the `state` status-sync emit. The bus
+    // still has to tell inactive tabs that the session's getStatus()
+    // moved so they refresh the dot. Without this the user's screenshot
+    // bug returns (background tab stuck "running" forever).
     const ws = writeFakeWorkspace();
     await notificationBus.recordSessionEvent(ws.rootPath, "sess-1", {
       type: "sdk",
       message: { type: "result" } as never,
     });
     await flushAll();
-    expect(snap()).toEqual([]);
+    expect(snap().filter((e) => e.type === "notification")).toHaveLength(0);
+    const states = snap().filter((e) => e.type === "state");
+    expect(states.length).toBeGreaterThanOrEqual(1);
+    const last = states[states.length - 1];
+    expect(last.type === "state" && last.totalUnread).toBe(0);
   });
 
   test("with markUserInput far enough in the past, idle notification fires", async () => {
