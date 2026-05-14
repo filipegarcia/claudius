@@ -69,12 +69,25 @@ export type MessageUnpinnedEvent = {
   roomSlug: string;
 };
 
+/**
+ * Server-wide kill switch state. Emitted to every connected client
+ * across every room when an admin disables or re-enables the
+ * community, and once at stream-open whenever the server is currently
+ * disabled so newcomers immediately render the offline overlay.
+ */
+export type CommunityStateEvent = {
+  type: "community_state";
+  enabled: boolean;
+  reason: string | null;
+};
+
 export type ChatEvent =
   | ReplayEvent
   | NewMessageEvent
   | MessageDeletedEvent
   | MessagePinnedEvent
-  | MessageUnpinnedEvent;
+  | MessageUnpinnedEvent
+  | CommunityStateEvent;
 
 // ── Browser-side validation helpers (must match server) ─────────────
 

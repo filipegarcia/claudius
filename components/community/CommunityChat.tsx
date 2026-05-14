@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Bell, BellOff, ShieldCheck, Wifi, WifiOff } from "lucide-react";
+import { Bell, BellOff, PowerOff, ShieldCheck, Wifi, WifiOff } from "lucide-react";
 import { SideNav } from "@/components/nav/SideNav";
 import { useCommunity } from "@/lib/client/use-community";
 import { useCommunityNotifications } from "@/components/community/CommunityNotificationsProvider";
@@ -120,8 +120,20 @@ export function CommunityChat({ onOptOut }: Props) {
 
   const handleBan = useCallback(
     async (nick: string) => {
-      if (!confirm(`Ban "${nick}" (nick + last-known IP)?`)) return;
-      const r = await community.ban("nick", nick.toLowerCase());
+      if (
+        !confirm(
+          `Ban "${nick}" (nick + last-known IP) and delete all their previous messages?`,
+        )
+      ) {
+        return;
+      }
+      // Inline ban from a message row always purges — the admin is
+      // looking at offending content and the reasonable default is
+      // "make it all go away." The AdminPanel form has a checkbox
+      // for the rare ban-without-purge case.
+      const r = await community.ban("nick", nick.toLowerCase(), {
+        purgeMessages: true,
+      });
       if (!r.ok) alert(`Ban failed: ${r.error}`);
     },
     [community],
@@ -264,6 +276,31 @@ export function CommunityChat({ onOptOut }: Props) {
           </div>
         </header>
 
+        {/* Kill-switch banner. Shown to everyone (admins included)
+            when an admin has flipped the community off. The history
+            stays browsable; only posting is blocked, and the composer
+            below disables itself. Stays connected over SSE so the
+            matching enable event flips it back without a reload. */}
+        {!community.communityState.enabled && (
+          <div
+            className="flex items-start gap-2 border-b border-[var(--accent)]/40 bg-[var(--accent)]/10 px-4 py-2 text-xs text-[var(--accent)]"
+            data-testid="community-offline-banner"
+            role="alert"
+          >
+            <PowerOff className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            <div>
+              <span className="font-medium">Community is currently offline.</span>{" "}
+              <span className="text-[var(--accent)]/80">
+                {community.communityState.reason
+                  ? `Reason: ${community.communityState.reason}.`
+                  : "An admin has temporarily disabled posting."}
+                {community.isAdmin &&
+                  " Re-enable from the admin panel (shield icon, top-right)."}
+              </span>
+            </div>
+          </div>
+        )}
+
         {pinnedMessage && (
           <PinnedBanner
             message={pinnedMessage}
@@ -284,7 +321,7 @@ export function CommunityChat({ onOptOut }: Props) {
 
         <Composer
           nick={community.nick}
-          disabled={!community.connected}
+          disabled={!community.connected || !community.communityState.enabled}
           onSend={community.send}
         />
       </main>
