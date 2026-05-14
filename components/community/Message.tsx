@@ -34,48 +34,69 @@ export function Message({
   onPin,
   onBan,
 }: Props) {
+  // Soft-deleted rows render a minimal greyed placeholder where the
+  // original message used to be — no moderation controls (the row is
+  // already moderated), no nick alignment trickery, just a flat audit
+  // marker. The body is empty on the wire so there's nothing to leak.
+  const isDeleted = message.deletedAt !== null;
+
   return (
     <div
       className={cn(
         "group flex w-full",
-        isOwn ? "justify-end" : "justify-start",
+        isOwn && !isDeleted ? "justify-end" : "justify-start",
       )}
     >
       <div
         className={cn(
           "max-w-[78%] rounded-2xl border border-[var(--border)] px-3 py-2",
-          message.isAdmin
-            ? "border-l-2 border-l-[var(--accent)] bg-[var(--panel-2)]"
-            : isOwn
-              ? "bg-[var(--panel-2)]"
-              : "bg-[var(--panel)]",
+          isDeleted
+            ? "border-dashed bg-transparent"
+            : message.isAdmin
+              ? "border-l-2 border-l-[var(--accent)] bg-[var(--panel-2)]"
+              : isOwn
+                ? "bg-[var(--panel-2)]"
+                : "bg-[var(--panel)]",
         )}
       >
         <div className="mb-0.5 flex items-center gap-1.5 text-[11px] text-[var(--muted)]">
           <span
             className={cn(
               "font-mono font-medium",
-              message.isAdmin ? "text-[var(--accent)]" : "text-[var(--foreground)]",
+              isDeleted
+                ? "text-[var(--muted)] line-through"
+                : message.isAdmin
+                  ? "text-[var(--accent)]"
+                  : "text-[var(--foreground)]",
             )}
           >
             {message.nick}
           </span>
-          {message.isAdmin && (
+          {message.isAdmin && !isDeleted && (
             <span className="rounded bg-[var(--accent)]/10 px-1 py-px font-mono text-[9px] uppercase tracking-wider text-[var(--accent)]">
               admin
             </span>
           )}
-          {isPinned && (
+          {isPinned && !isDeleted && (
             <span className="inline-flex items-center gap-0.5 font-mono text-[9px] uppercase tracking-wider text-[var(--muted)]">
               <Pin className="h-2.5 w-2.5" /> pinned
             </span>
           )}
           <span className="font-mono">{formatTime(message.createdAt)}</span>
         </div>
-        <div className="whitespace-pre-wrap break-words text-sm leading-6">
-          {message.body}
-        </div>
-        {isAdmin && (onDelete || onPin || onBan) && (
+        {isDeleted ? (
+          <div
+            className="text-sm italic text-[var(--muted)]"
+            data-testid="community-message-deleted"
+          >
+            message deleted by admin
+          </div>
+        ) : (
+          <div className="whitespace-pre-wrap break-words text-sm leading-6">
+            {message.body}
+          </div>
+        )}
+        {!isDeleted && isAdmin && (onDelete || onPin || onBan) && (
           <div className="mt-1 flex justify-end gap-1 opacity-0 transition group-hover:opacity-100">
             {onPin && (
               <button

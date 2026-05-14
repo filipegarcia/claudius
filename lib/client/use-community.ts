@@ -47,7 +47,22 @@ const LS_LEGACY_ADMIN_TOKEN = "claudius.community.adminToken";
 
 export type SendResult = { ok: true } | { ok: false; error: string };
 
-export function useCommunity() {
+export type UseCommunityOptions = {
+  /**
+   * Toggle for the per-browser consent gate. When `false`, the hook
+   * never opens an SSE connection, never fetches `/rooms`, and all
+   * message/admin actions short-circuit with an "opted out" error.
+   * The /api/community/admin/check probe still runs because it hits
+   * Claudius's own server, not the chat-server, and the result is
+   * pinned to `false` while disabled (so admin UI stays hidden).
+   * Defaults to `true` for callers that don't care about consent
+   * (e.g. tests or future surfaces that don't render /community).
+   */
+  enabled?: boolean;
+};
+
+export function useCommunity(options: UseCommunityOptions = {}) {
+  const enabled = options.enabled ?? true;
   // SSR-safe snapshot, refreshed on mount. The legacy version of this
   // hook had a localStorage override here; that's gone now, but keeping
   // the useState+useEffect dance is load-bearing — without the extra
@@ -58,7 +73,10 @@ export function useCommunity() {
     setServerUrl(getCommunityServerUrl());
   }, []);
   const SERVER_URL = serverUrl;
-  const configured = SERVER_URL.length > 0;
+  // `configured` collapses two concerns: chat-server URL is known AND
+  // the user has opted in. Treating them as one flag keeps the existing
+  // empty-state branch in the page reusable for both reasons.
+  const configured = enabled && SERVER_URL.length > 0;
 
   // ── Identity (persisted) ──────────────────────────────────────────
   const [nick, setNickState] = useState<string | null>(null);
@@ -143,8 +161,19 @@ export function useCommunity() {
           );
           break;
         case "message_deleted":
-          setMessages((prev) => prev.filter((m) => m.id !== ev.id));
-          // Also clear pin if it pointed at this message.
+          // Keep the row in state, but flip deletedAt so the list
+          // renders an "[deleted by admin]" placeholder where the
+          // original message was. The server has already blanked the
+          // body so we don't try to preserve it locally — anyone
+          // joining later sees the same placeholder via the next
+          // replay (recentMessages now includes deleted rows).
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === ev.id
+                ? { ...m, body: "", deletedAt: m.deletedAt ?? Date.now() }
+                : m,
+            ),
+          );
           setPinnedId((cur) => (cur === ev.id ? null : cur));
           break;
         case "message_pinned":
@@ -277,6 +306,41 @@ export function useCommunity() {
     [adminCall],
   );
 
+  // Channel management — create a new room, hard-clear all messages in
+  // a room, or trim a room to its most recent N messages. The server
+  // emits a fresh `replay` event after clear/compact so connected
+  // clients pick up the new state through the existing reducer; no
+  // local cache invalidation needed beyond what useEffect→SSE already
+  // handles. createRoom also refreshes the local rooms list so the new
+  // room shows up in the sidebar immediately for the admin.
+  const createRoom = useCallback(
+    async (slug: string, name: string, description?: string) => {
+      const res = await adminCall("POST", "/rooms", {
+        slug,
+        name,
+        description: description ?? null,
+      });
+      if (res.ok) await refreshRooms();
+      return res;
+    },
+    [adminCall, refreshRooms],
+  );
+
+  const clearRoom = useCallback(
+    (slug: string) =>
+      adminCall("POST", `/rooms/${encodeURIComponent(slug)}/clear`),
+    [adminCall],
+  );
+
+  const compactRoom = useCallback(
+    (slug: string, keep: number) =>
+      adminCall(
+        "POST",
+        `/rooms/${encodeURIComponent(slug)}/compact?keep=${encodeURIComponent(String(keep))}`,
+      ),
+    [adminCall],
+  );
+
   // ── Public API ───────────────────────────────────────────────────
 
   return useMemo(
@@ -306,6 +370,9 @@ export function useCommunity() {
       listBans,
       ban,
       unban,
+      createRoom,
+      clearRoom,
+      compactRoom,
     }),
     [
       configured,
@@ -327,6 +394,9 @@ export function useCommunity() {
       listBans,
       ban,
       unban,
+      createRoom,
+      clearRoom,
+      compactRoom,
     ],
   );
 }

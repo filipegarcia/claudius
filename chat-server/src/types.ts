@@ -20,6 +20,14 @@ export type Message = {
   body: string;
   isAdmin: boolean;
   createdAt: number; // epoch ms
+  /**
+   * Soft-delete timestamp. `null` for live messages. When set, the
+   * message stays on the wire so clients can render a "deleted by
+   * admin" placeholder in place of the original body — historical
+   * audit trail without leaking the original content (the server
+   * still has it, but doesn't ship it on the wire).
+   */
+  deletedAt: number | null;
 };
 
 export type BanKind = "nick" | "ip";

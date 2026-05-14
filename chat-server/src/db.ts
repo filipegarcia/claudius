@@ -85,6 +85,7 @@ type MessageRow = {
   body: string;
   is_admin: number;
   created_at: number;
+  deleted_at: number | null;
 };
 type BanRow = {
   id: number;
@@ -105,9 +106,13 @@ const toMessage = (m: MessageRow): Message => ({
   id: m.id,
   roomSlug: m.room_slug,
   nick: m.nick,
-  body: m.body,
+  // Blank the body for deleted rows so the original content doesn't
+  // leak to subscribers. The client renders a placeholder when
+  // deletedAt is set; the body field is ignored in that branch.
+  body: m.deleted_at === null ? m.body : "",
   isAdmin: m.is_admin === 1,
   createdAt: m.created_at,
+  deletedAt: m.deleted_at,
 });
 
 const toBan = (b: BanRow): Ban => ({
@@ -175,17 +180,23 @@ export function insertMessage(input: {
     body: input.body,
     isAdmin: input.isAdmin,
     createdAt,
+    deletedAt: null,
   };
 }
 
 const stmtRecentMessages = db.prepare(
-  `SELECT id, room_slug, nick, body, is_admin, created_at
+  `SELECT id, room_slug, nick, body, is_admin, created_at, deleted_at
      FROM messages
-    WHERE room_slug = ? AND deleted_at IS NULL
+    WHERE room_slug = ?
     ORDER BY created_at DESC
     LIMIT ?`,
 );
-/** Returns the most recent N messages for a room, oldest-first. */
+/**
+ * Returns the most recent N messages for a room, oldest-first. Deleted
+ * rows are included so the client can render a placeholder in their
+ * spot — `toMessage` blanks the body for those, so the wire surface
+ * never carries the original content.
+ */
 export function recentMessages(roomSlug: string, limit = 100): Message[] {
   return rows<MessageRow>(stmtRecentMessages, [roomSlug, limit])
     .reverse()
@@ -193,13 +204,13 @@ export function recentMessages(roomSlug: string, limit = 100): Message[] {
 }
 
 const stmtMessagesBefore = db.prepare(
-  `SELECT id, room_slug, nick, body, is_admin, created_at
+  `SELECT id, room_slug, nick, body, is_admin, created_at, deleted_at
      FROM messages
-    WHERE room_slug = ? AND deleted_at IS NULL AND created_at < ?
+    WHERE room_slug = ? AND created_at < ?
     ORDER BY created_at DESC
     LIMIT ?`,
 );
-/** Backfill: messages older than `before`, oldest-first. */
+/** Backfill: messages older than `before`, oldest-first. Includes deleted. */
 export function messagesBefore(
   roomSlug: string,
   before: number,
@@ -215,7 +226,7 @@ const stmtGetMessage = db.prepare(
      FROM messages WHERE id = ?`,
 );
 export function getMessage(id: string): (Message & { deleted: boolean }) | null {
-  const r = row<MessageRow & { deleted_at: number | null }>(stmtGetMessage, [id]);
+  const r = row<MessageRow>(stmtGetMessage, [id]);
   if (!r) return null;
   return { ...toMessage(r), deleted: r.deleted_at !== null };
 }
@@ -293,6 +304,73 @@ const stmtIpForNick = db.prepare(
 );
 export function lastIpForNick(nick: string): string | null {
   return row<{ ip: string }>(stmtIpForNick, [nick])?.ip ?? null;
+}
+
+// ── Room management ───────────────────────────────────────────────
+//
+// Three admin-only operations on the rooms table itself: create a new
+// channel, hard-delete every message in a channel, and trim a channel
+// down to the most recent N messages. All three are SQL one-liners
+// with a tiny bit of validation; broadcast side-effects live in
+// `server.ts` so this module stays storage-only.
+
+const stmtInsertRoom = db.prepare(
+  `INSERT INTO rooms (slug, name, description, created_at)
+   VALUES (?, ?, ?, ?)`,
+);
+/**
+ * Create a new room. Returns the inserted Room, or `null` if a room
+ * with that slug already exists (uniqueness is enforced by the PK,
+ * but we check up-front so the caller gets a clean error code rather
+ * than catching a SQLITE_CONSTRAINT).
+ */
+export function createRoom(input: {
+  slug: string;
+  name: string;
+  description: string | null;
+}): Room | null {
+  if (getRoom(input.slug)) return null;
+  stmtInsertRoom.run(input.slug, input.name, input.description, Date.now());
+  return getRoom(input.slug);
+}
+
+const stmtClearRoom = db.prepare("DELETE FROM messages WHERE room_slug = ?");
+const stmtUnpinRoomSilently = db.prepare(
+  "UPDATE rooms SET pinned_message_id = NULL WHERE slug = ?",
+);
+/**
+ * Wipe every message in a room (hard delete, not soft). The pin is
+ * cleared as a side effect since it'd otherwise dangle. Returns the
+ * number of messages removed.
+ */
+export function clearRoomMessages(roomSlug: string): number {
+  const res = stmtClearRoom.run(roomSlug);
+  stmtUnpinRoomSilently.run(roomSlug);
+  return Number(res.changes);
+}
+
+const stmtCompactRoom = db.prepare(
+  `DELETE FROM messages
+    WHERE room_slug = ?
+      AND id NOT IN (
+        SELECT id FROM messages
+         WHERE room_slug = ?
+         ORDER BY created_at DESC
+         LIMIT ?
+      )`,
+);
+/**
+ * Trim a room down to the most recent `keep` messages (counts both
+ * live and soft-deleted rows). Returns how many rows were deleted.
+ * Pin handling: if the pinned message was among the trimmed rows,
+ * `setRoomPin(slug, null)` should be called by the caller — kept out
+ * of this function so the storage layer stays free of broadcast
+ * side-effect coupling.
+ */
+export function compactRoomMessages(roomSlug: string, keep: number): number {
+  const n = Math.max(0, Math.floor(keep));
+  const res = stmtCompactRoom.run(roomSlug, roomSlug, n);
+  return Number(res.changes);
 }
 
 export { db };

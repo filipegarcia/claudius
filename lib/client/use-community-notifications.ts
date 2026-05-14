@@ -3,6 +3,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ChatEvent, Message, Room } from "@/lib/shared/community";
 import { getCommunityServerUrl } from "@/lib/client/community-server-url";
+import {
+  COMMUNITY_CONSENT_EVENT,
+  LS_COMMUNITY_CONSENT_KEY,
+  readCommunityConsent,
+} from "@/lib/client/use-community-consent";
 
 /**
  * Background subscriber for the community chat. Mirrors the role of
@@ -80,7 +85,33 @@ export function useCommunityNotificationsState(): UseCommunityNotifications {
     setServerUrl(getCommunityServerUrl());
   }, []);
   const SERVER_URL = serverUrl;
-  const configured = SERVER_URL.length > 0;
+
+  // Consent gate. The notifications provider mounts at the layout level
+  // and would otherwise keep open SSE connections to the chat-server
+  // regardless of whether the user has opted in on /community. Reading
+  // the same localStorage key as useCommunityConsent (plus listening for
+  // the cross-hook custom event for same-tab updates) keeps the two
+  // surfaces in lock-step.
+  const [hasConsent, setHasConsent] = useState(false);
+  useEffect(() => {
+    const read = () => setHasConsent(readCommunityConsent() === "yes");
+    read();
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === LS_COMMUNITY_CONSENT_KEY) read();
+    };
+    window.addEventListener("storage", onStorage);
+    window.addEventListener(COMMUNITY_CONSENT_EVENT, read);
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener(COMMUNITY_CONSENT_EVENT, read);
+    };
+  }, []);
+
+  // `configured` collapses three concerns: URL is known, the user has
+  // opted in to the community at all, and they've toggled notifications
+  // on. Treating them as one boolean keeps the gating logic in the SSE
+  // fanout effect simple.
+  const configured = SERVER_URL.length > 0 && hasConsent;
 
   // ── Toggle (persisted) ──────────────────────────────────────────────
   const [enabled, setEnabledState] = useState(false);
