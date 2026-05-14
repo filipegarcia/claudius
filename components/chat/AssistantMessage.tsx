@@ -67,9 +67,15 @@ export function AssistantMessage({
               </div>
             );
           if (b.kind === "thinking") {
-            // Don't pollute completed turns with empty thinking blocks —
-            // the placeholder is only useful while content is in flight.
-            if (!b.text && !b.redacted && !message.streaming) return null;
+            // Always render once the SDK has emitted a thinking
+            // `content_block_start` — the block envelope itself is the
+            // signal that the model entered thinking mode for this turn,
+            // independent of whether deltas ever delivered readable body
+            // text. The previous "hide empty post-stream" branch raced
+            // against `message_stop`: if the user clicked to expand right
+            // as streaming flipped off, the block would unmount mid-click
+            // and look like the click had dismissed it. ThinkingBlock's
+            // own body copy handles the empty-text case gracefully.
             return (
               <ThinkingBlock
                 key={i}

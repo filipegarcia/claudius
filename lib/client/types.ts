@@ -185,6 +185,14 @@ export type ToolHistoryEntry = {
   isError?: boolean;
   /** Set when the tool was invoked by a subagent. */
   parentToolUseId?: string | null;
+  /**
+   * Distinguishes synthetic activity rows from real tool invocations.
+   * `"thinking"` rows come from the SDK's `thinking` content blocks
+   * (no `tool_use_id` — `toolUseId` is a synthetic `thinking:<msgId>:<idx>`
+   * key) and render with a brain icon in BackgroundTasksPanel so the user
+   * can see thinking phases that don't open any tool. Defaults to `"tool"`.
+   */
+  kind?: "tool" | "thinking";
 };
 
 /** A backgrounded bash shell tracked from Bash(run_in_background=true). */
