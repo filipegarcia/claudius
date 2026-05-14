@@ -38,6 +38,17 @@ export type Ban = {
   createdAt: number;
 };
 
+/**
+ * One entry in the admin-curated banned-words list. The server
+ * matches `word` (case-insensitive substring) against channel posts
+ * before insert and rejects with 400 on a hit. DM posts are
+ * deliberately not filtered.
+ */
+export type BannedWord = {
+  word: string;
+  addedAt: number;
+};
+
 // ── SSE wire envelope ──────────────────────────────────────────────
 
 export type ReplayEvent = {

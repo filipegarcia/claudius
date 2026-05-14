@@ -23,8 +23,10 @@ import { randomUUID } from "node:crypto";
 import { isAdminRequest, isReservedNick } from "./admin.ts";
 import { chatBus } from "./bus.ts";
 import {
+  addBannedWord,
   clearRoomMessages,
   compactRoomMessages,
+  containsBannedWord,
   createRoom,
   deleteBan,
   getCommunityState,
@@ -35,10 +37,13 @@ import {
   isBanned,
   isCommunityDisabled,
   lastIpForNick,
+  listBannedWords,
   listBans,
   listRooms,
   messagesBefore,
+  recentLiveMessages,
   recentMessages,
+  removeBannedWord,
   setCommunityDisabled,
   setCommunityEnabled,
   setRoomPin,
@@ -142,12 +147,16 @@ function handleStream(roomSlug: string, req: Request): Response {
         }
       };
 
-      // 1. Replay the last 100 messages so a new joiner has context.
+      // 1. Send an empty replay — newcomers see a clean room and
+      //    pull history on demand via /rooms/:slug/messages?before=
+      //    &limit=50 (see handleBackfill). We still emit the event
+      //    (with messages: []) so the client knows the room's pin
+      //    state and resets its local buffer to "fresh."
       const room = getRoom(roomSlug);
       send({
         type: "replay",
         roomSlug,
-        messages: recentMessages(roomSlug, 100),
+        messages: [],
         pinnedMessageId: room?.pinnedMessageId ?? null,
       });
 
@@ -239,6 +248,14 @@ async function handlePostMessage(
 
   if (isBanned("nick", nick.toLowerCase())) return error(403, "nick banned");
   if (isBanned("ip", ip)) return error(403, "ip banned");
+
+  // Banned-words filter — channel posts only (DMs deliberately
+  // bypass this; see migration 004_banned_words.sql for the rationale).
+  // Reject before insert so the row never hits the bus.
+  const offending = containsBannedWord(body);
+  if (offending !== null) {
+    return error(400, `message contains a banned word ("${offending}")`);
+  }
 
   if (!tryConsume(ip)) return error(429, "slow down");
 
@@ -388,6 +405,36 @@ function handleAdminListBans(): Response {
   return json({ bans: listBans() });
 }
 
+// ── Banned words (admin) ──────────────────────────────────────────
+
+function handleAdminListBannedWords(): Response {
+  return json({ words: listBannedWords() });
+}
+
+async function handleAdminAddBannedWord(req: Request): Promise<Response> {
+  let payload: unknown;
+  try {
+    payload = await req.json();
+  } catch {
+    return error(400, "invalid JSON");
+  }
+  const { word: rawWord } = (payload ?? {}) as Record<string, unknown>;
+  if (typeof rawWord !== "string" || !rawWord.trim()) {
+    return error(400, "word required");
+  }
+  if (rawWord.trim().length > 100) {
+    return error(400, "word too long (max 100 chars)");
+  }
+  const added = addBannedWord(rawWord);
+  return json({ ok: true, added, words: listBannedWords() });
+}
+
+function handleAdminRemoveBannedWord(word: string): Response {
+  const removed = removeBannedWord(decodeURIComponent(word));
+  if (!removed) return error(404, "no such word");
+  return json({ ok: true, words: listBannedWords() });
+}
+
 // ── Community kill switch (admin) ─────────────────────────────────
 
 function handleAdminCommunityState(): Response {
@@ -502,10 +549,13 @@ async function handleAdminCompactRoom(
 
   const removed = compactRoomMessages(roomSlug, keep);
 
-  // If the pin pointed at a now-deleted message, clear it. Easiest
-  // check: re-fetch the room post-trim and see whether the pinned id
-  // still exists in messages.
-  const fresh = recentMessages(roomSlug, keep);
+  // Broadcast the post-trim state. `recentLiveMessages` excludes ALL
+  // deletions (including the moderation ones), so the visible chat
+  // is exactly the kept N — no placeholders for the compacted tail.
+  // The trimmed rows are still in the DB with deletion_reason set
+  // to 'compacted' (see clearRoomMessages / compactRoomMessages in
+  // db.ts) so an admin can review them out-of-band.
+  const fresh = recentLiveMessages(roomSlug, keep);
   let pinnedMessageId = room.pinnedMessageId;
   if (pinnedMessageId && !fresh.some((m) => m.id === pinnedMessageId)) {
     setRoomPin(roomSlug, null);
@@ -568,6 +618,14 @@ const server = Bun.serve({
       }
       if (path === "/admin/community/state" && req.method === "GET") {
         return handleAdminCommunityState();
+      }
+      if (path === "/admin/banned-words") {
+        if (req.method === "GET") return handleAdminListBannedWords();
+        if (req.method === "POST") return handleAdminAddBannedWord(req);
+      }
+      m = path.match(/^\/admin\/banned-words\/(.+)$/);
+      if (m && req.method === "DELETE") {
+        return handleAdminRemoveBannedWord(m[1]!);
       }
       if (path === "/admin/community/disable" && req.method === "POST") {
         return handleAdminCommunityDisable(req);

@@ -317,6 +317,9 @@ export function CommunityChat({ onOptOut }: Props) {
           onDelete={handleDelete}
           onPin={handlePin}
           onBan={handleBan}
+          hasMore={community.hasMore}
+          loadingOlder={community.loadingOlder}
+          onLoadOlder={community.loadOlder}
         />
 
         <Composer

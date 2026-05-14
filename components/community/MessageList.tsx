@@ -12,6 +12,17 @@ type Props = {
   onDelete: (id: string) => void;
   onPin: (id: string) => void;
   onBan: (nick: string) => void;
+  /**
+   * Whether the room is known to have older messages the client
+   * hasn't pulled yet. Drives the "Load older messages" button at
+   * the top of the list. Defaults to `false` so callers that don't
+   * care about pagination get the legacy "no button" behaviour.
+   */
+  hasMore?: boolean;
+  /** True while a load-older fetch is in flight. */
+  loadingOlder?: boolean;
+  /** Pull the next 50 older messages. No-op when !hasMore. */
+  onLoadOlder?: () => void;
 };
 
 /**
@@ -41,6 +52,9 @@ export function MessageList({
   onDelete,
   onPin,
   onBan,
+  hasMore,
+  loadingOlder,
+  onLoadOlder,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -102,6 +116,24 @@ export function MessageList({
       style={{ overflowAnchor: "none" }}
     >
       <div ref={contentRef}>
+        {/* Load-older button. Shown when the room is known to have
+            history the client hasn't pulled yet; clicking it fetches
+            the next 50 older messages via the backfill endpoint and
+            prepends them. Hidden once the backfill returns < 50 rows
+            (i.e. we've hit the start of the room). */}
+        {onLoadOlder && hasMore && (
+          <div className="mb-3 flex justify-center">
+            <button
+              type="button"
+              onClick={onLoadOlder}
+              disabled={loadingOlder}
+              data-testid="community-load-older"
+              className="rounded-md border border-[var(--border)] bg-[var(--panel)] px-3 py-1 text-xs text-[var(--muted)] hover:bg-[var(--panel-2)] hover:text-[var(--foreground)] disabled:opacity-50"
+            >
+              {loadingOlder ? "Loading…" : "Load older messages"}
+            </button>
+          </div>
+        )}
         {messages.length === 0 ? (
           <div className="flex h-full items-center justify-center text-sm text-[var(--muted)]">
             No messages yet. Say hi.
