@@ -373,4 +373,101 @@ export function compactRoomMessages(roomSlug: string, keep: number): number {
   return Number(res.changes);
 }
 
+// ── Bulk soft-delete (ban + purge) ─────────────────────────────────
+//
+// Returns the (id, room_slug) of every row actually toggled from live
+// to deleted, so the caller can broadcast a `message_deleted` event for
+// each. Already-deleted rows are skipped — we never re-emit the event
+// twice for the same id, and the per-message guard `deleted_at IS NULL`
+// keeps the operation idempotent across re-runs of the same ban.
+
+const stmtFindMessagesByNick = db.prepare(
+  `SELECT id, room_slug FROM messages
+    WHERE LOWER(nick) = LOWER(?) AND deleted_at IS NULL`,
+);
+const stmtFindMessagesByIp = db.prepare(
+  `SELECT id, room_slug FROM messages
+    WHERE ip = ? AND deleted_at IS NULL`,
+);
+
+type PurgedRow = { id: string; roomSlug: string };
+
+function purgeRows(rows: Array<{ id: string; room_slug: string }>): PurgedRow[] {
+  const now = Date.now();
+  const out: PurgedRow[] = [];
+  for (const r of rows) {
+    if (stmtSoftDelete.run(now, r.id).changes > 0) {
+      out.push({ id: r.id, roomSlug: r.room_slug });
+    }
+  }
+  return out;
+}
+
+/** Soft-delete every live message posted under `nick` (case-insensitive). */
+export function softDeleteMessagesByNick(nick: string): PurgedRow[] {
+  return purgeRows(
+    rows<{ id: string; room_slug: string }>(stmtFindMessagesByNick, [nick]),
+  );
+}
+
+/** Soft-delete every live message posted from `ip`. */
+export function softDeleteMessagesByIp(ip: string): PurgedRow[] {
+  return purgeRows(
+    rows<{ id: string; room_slug: string }>(stmtFindMessagesByIp, [ip]),
+  );
+}
+
+// ── Community kill switch ─────────────────────────────────────────
+//
+// One global flag stored in `system_state` (see migrations/002_*.sql).
+// Reads happen on every public POST/stream, so they're cached via a
+// prepared statement; writes are admin-only and rare.
+
+const stmtReadSystemState = db.prepare(
+  "SELECT disabled_at, disabled_reason FROM system_state WHERE singleton = 1",
+);
+const stmtSetDisabled = db.prepare(
+  `UPDATE system_state
+      SET disabled_at = ?, disabled_reason = ?
+    WHERE singleton = 1`,
+);
+
+export type CommunityState = {
+  enabled: boolean;
+  reason: string | null;
+  disabledAt: number | null;
+};
+
+export function getCommunityState(): CommunityState {
+  const r = row<{
+    disabled_at: number | null;
+    disabled_reason: string | null;
+  }>(stmtReadSystemState);
+  if (!r) return { enabled: true, reason: null, disabledAt: null };
+  return {
+    enabled: r.disabled_at === null,
+    reason: r.disabled_reason,
+    disabledAt: r.disabled_at,
+  };
+}
+
+export function isCommunityDisabled(): boolean {
+  return !getCommunityState().enabled;
+}
+
+/**
+ * Flip the kill switch. Idempotent — calling disable() on an already
+ * disabled server just updates the reason. The caller is responsible
+ * for broadcasting the resulting `community_state` event over the bus.
+ */
+export function setCommunityDisabled(reason: string | null): CommunityState {
+  stmtSetDisabled.run(Date.now(), reason);
+  return getCommunityState();
+}
+
+export function setCommunityEnabled(): CommunityState {
+  stmtSetDisabled.run(null, null);
+  return getCommunityState();
+}
+
 export { db };

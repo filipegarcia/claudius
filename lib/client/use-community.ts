@@ -143,6 +143,15 @@ export function useCommunity(options: UseCommunityOptions = {}) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [pinnedId, setPinnedId] = useState<string | null>(null);
   const [connected, setConnected] = useState(false);
+  // Kill-switch state. Defaults to enabled — the server only sends a
+  // community_state event when it needs to override that default
+  // (i.e. it's currently disabled, or just flipped state during the
+  // session). Tracking reason separately so we can surface it in the
+  // offline overlay.
+  const [communityState, setCommunityState] = useState<{
+    enabled: boolean;
+    reason: string | null;
+  }>({ enabled: true, reason: null });
   const esRef = useRef<EventSource | null>(null);
 
   // applyEvent — pure-ish, swallows unknown event tags.
@@ -181,6 +190,18 @@ export function useCommunity(options: UseCommunityOptions = {}) {
           break;
         case "message_unpinned":
           setPinnedId(null);
+          break;
+        case "community_state":
+          // System-wide event — emitted on every connected stream,
+          // not just the current room. The `roomSlug` filter above
+          // doesn't apply (the event has no slug), so we skip the
+          // early return for this case by letting the switch get
+          // here. (The `if "roomSlug" in ev` guard at the top of
+          // this function gates only events that carry a slug.)
+          setCommunityState({
+            enabled: ev.enabled,
+            reason: ev.reason,
+          });
           break;
       }
     },
@@ -296,8 +317,21 @@ export function useCommunity(options: UseCommunityOptions = {}) {
   }, [isAdmin, adminCall]);
 
   const ban = useCallback(
-    (kind: BanKind, value: string, reason?: string) =>
-      adminCall("POST", "/bans", { kind, value, reason }),
+    (
+      kind: BanKind,
+      value: string,
+      options?: { reason?: string; purgeMessages?: boolean },
+    ) =>
+      adminCall("POST", "/bans", {
+        kind,
+        value,
+        reason: options?.reason,
+        // When true, the server soft-deletes every existing message
+        // from this user and broadcasts a `message_deleted` for each
+        // — every connected client renders the placeholder in real
+        // time without a refresh.
+        purgeMessages: options?.purgeMessages ?? false,
+      }),
     [adminCall],
   );
 
@@ -341,6 +375,25 @@ export function useCommunity(options: UseCommunityOptions = {}) {
     [adminCall],
   );
 
+  // Kill switch. Disable broadcasts a community_state event to every
+  // connected client (including this one — the reducer flips
+  // `communityState.enabled` to false). Enable does the inverse. Both
+  // are idempotent server-side.
+  const disableCommunity = useCallback(
+    (reason?: string) =>
+      adminCall(
+        "POST",
+        "/community/disable",
+        reason ? { reason } : undefined,
+      ),
+    [adminCall],
+  );
+
+  const enableCommunity = useCallback(
+    () => adminCall("POST", "/community/enable"),
+    [adminCall],
+  );
+
   // ── Public API ───────────────────────────────────────────────────
 
   return useMemo(
@@ -360,6 +413,8 @@ export function useCommunity(options: UseCommunityOptions = {}) {
       messages,
       pinnedId,
       connected,
+      // community-wide kill switch
+      communityState,
       // actions
       send,
       // admin
@@ -373,6 +428,8 @@ export function useCommunity(options: UseCommunityOptions = {}) {
       createRoom,
       clearRoom,
       compactRoom,
+      disableCommunity,
+      enableCommunity,
     }),
     [
       configured,
@@ -386,6 +443,7 @@ export function useCommunity(options: UseCommunityOptions = {}) {
       messages,
       pinnedId,
       connected,
+      communityState,
       send,
       sendAsAdmin,
       deleteMessage,
@@ -397,6 +455,8 @@ export function useCommunity(options: UseCommunityOptions = {}) {
       createRoom,
       clearRoom,
       compactRoom,
+      disableCommunity,
+      enableCommunity,
     ],
   );
 }

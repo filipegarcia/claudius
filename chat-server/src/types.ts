@@ -75,9 +75,23 @@ export type MessageUnpinnedEvent = {
   roomSlug: string;
 };
 
+/**
+ * Server-wide on/off signal. Emitted to every connected subscriber
+ * (across all rooms) when an admin flips the community kill switch,
+ * and once at the start of each new stream so newcomers learn the
+ * current state. When `enabled` is `false`, posting is rejected with
+ * 503 and the client renders an offline overlay.
+ */
+export type CommunityStateEvent = {
+  type: "community_state";
+  enabled: boolean;
+  reason: string | null;
+};
+
 export type ChatEvent =
   | ReplayEvent
   | NewMessageEvent
   | MessageDeletedEvent
   | MessagePinnedEvent
-  | MessageUnpinnedEvent;
+  | MessageUnpinnedEvent
+  | CommunityStateEvent;

@@ -9,6 +9,8 @@ import {
   Hash,
   Eraser,
   Scissors,
+  PowerOff,
+  Power,
 } from "lucide-react";
 import type { Ban, Room } from "@/lib/shared/community";
 import type { UseCommunity } from "@/lib/client/use-community";
@@ -46,8 +48,19 @@ export function AdminPanel({ community, rooms, onClose }: Props) {
   const [banKind, setBanKind] = useState<"nick" | "ip">("nick");
   const [banValue, setBanValue] = useState("");
   const [banReason, setBanReason] = useState("");
+  // Default ON for the inline message-ban case (people usually want
+  // to make the offending content go away), but presented as a
+  // checkbox here so the admin can ban without purging when needed.
+  const [banPurge, setBanPurge] = useState(true);
   const [banBusy, setBanBusy] = useState(false);
   const [banErr, setBanErr] = useState<string | null>(null);
+  const [banLastPurged, setBanLastPurged] = useState<number | null>(null);
+
+  // Kill-switch UI state. The reason text is stashed locally and sent
+  // alongside the disable call so the offline overlay can show why.
+  const [killSwitchReason, setKillSwitchReason] = useState("");
+  const [killSwitchBusy, setKillSwitchBusy] = useState(false);
+  const [killSwitchErr, setKillSwitchErr] = useState<string | null>(null);
 
   // Channel form state. Slug + display name are required; description
   // optional. The slug regex matches the server-side validation in
@@ -96,15 +109,53 @@ export function AdminPanel({ community, rooms, onClose }: Props) {
     if (!v) return;
     setBanBusy(true);
     setBanErr(null);
-    const res = await community.ban(banKind, v, banReason.trim() || undefined);
+    setBanLastPurged(null);
+    const res = await community.ban(banKind, v, {
+      reason: banReason.trim() || undefined,
+      purgeMessages: banPurge,
+    });
     setBanBusy(false);
     if (res.ok) {
+      const data = res.data as { purgedCount?: number } | undefined;
+      setBanLastPurged(data?.purgedCount ?? 0);
       setBanValue("");
       setBanReason("");
       await refreshBans();
     } else {
       setBanErr(res.error);
     }
+  };
+
+  // Kill-switch handlers. Disable confirms because it's high-impact —
+  // every connected client immediately sees the offline overlay.
+  // Enable doesn't confirm (low-impact, easy to undo).
+  const disable = async () => {
+    if (
+      !confirm(
+        "Disable the community for ALL connected users? They'll see an offline overlay until you re-enable.",
+      )
+    ) {
+      return;
+    }
+    setKillSwitchBusy(true);
+    setKillSwitchErr(null);
+    const res = await community.disableCommunity(
+      killSwitchReason.trim() || undefined,
+    );
+    setKillSwitchBusy(false);
+    if (res.ok) {
+      setKillSwitchReason("");
+    } else {
+      setKillSwitchErr(res.error);
+    }
+  };
+
+  const enable = async () => {
+    setKillSwitchBusy(true);
+    setKillSwitchErr(null);
+    const res = await community.enableCommunity();
+    setKillSwitchBusy(false);
+    if (!res.ok) setKillSwitchErr(res.error);
   };
 
   const liftBan = async (id: number) => {
@@ -197,6 +248,69 @@ export function AdminPanel({ community, rooms, onClose }: Props) {
       </header>
 
       <div className="scroll-thin flex-1 space-y-6 overflow-y-auto px-4 py-4">
+        {/* Community state — kill switch. First section because it's
+            the most impactful lever on the page. */}
+        <section data-testid="community-admin-kill-switch">
+          <h3 className="mb-2 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-[var(--muted)]">
+            {community.communityState.enabled ? (
+              <Power className="h-3.5 w-3.5 text-[var(--accent)]" />
+            ) : (
+              <PowerOff className="h-3.5 w-3.5 text-[var(--accent)]" />
+            )}
+            Community state
+          </h3>
+          {community.communityState.enabled ? (
+            <>
+              <p className="mb-2 text-[10px] text-[var(--muted)]">
+                Live. Disabling shows every connected user an offline
+                overlay until you re-enable. They stay connected so
+                the flip-back is instant — no reload needed.
+              </p>
+              <input
+                value={killSwitchReason}
+                onChange={(e) => setKillSwitchReason(e.target.value)}
+                placeholder="reason shown to users (optional)"
+                className="w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1 text-xs outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                maxLength={200}
+              />
+              <button
+                type="button"
+                onClick={disable}
+                disabled={killSwitchBusy || !community.isAdmin}
+                className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-md border border-[var(--accent)] bg-[var(--accent)]/10 py-1 text-xs font-medium text-[var(--accent)] hover:bg-[var(--accent)]/20 disabled:opacity-40"
+              >
+                <PowerOff className="h-3.5 w-3.5" />
+                {killSwitchBusy ? "Disabling…" : "Kill switch — disable community"}
+              </button>
+            </>
+          ) : (
+            <>
+              <p className="mb-2 text-[10px] text-[var(--accent)]">
+                Disabled.{" "}
+                {community.communityState.reason
+                  ? `Reason: "${community.communityState.reason}".`
+                  : "No reason set."}{" "}
+                Users are blocked from posting and see an offline
+                overlay.
+              </p>
+              <button
+                type="button"
+                onClick={enable}
+                disabled={killSwitchBusy || !community.isAdmin}
+                className="flex w-full items-center justify-center gap-1.5 rounded-md bg-[var(--accent)] py-1 text-xs font-medium text-[var(--background)] hover:brightness-110 disabled:opacity-40"
+              >
+                <Power className="h-3.5 w-3.5" />
+                {killSwitchBusy ? "Re-enabling…" : "Re-enable community"}
+              </button>
+            </>
+          )}
+          {killSwitchErr && (
+            <p className="mt-1 text-[10px] text-[var(--accent)]">
+              {killSwitchErr}
+            </p>
+          )}
+        </section>
+
         {/* Announce */}
         <section>
           <h3 className="mb-2 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-[var(--muted)]">
@@ -359,6 +473,16 @@ export function AdminPanel({ community, rooms, onClose }: Props) {
             placeholder="reason (optional)"
             className="mt-1 w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1 text-xs outline-none focus:ring-2 focus:ring-[var(--accent)]"
           />
+          <label className="mt-2 flex cursor-pointer items-center gap-1.5 text-[11px] text-[var(--muted)]">
+            <input
+              type="checkbox"
+              checked={banPurge}
+              onChange={(e) => setBanPurge(e.target.checked)}
+              className="h-3 w-3 accent-[var(--accent)]"
+              data-testid="community-admin-ban-purge"
+            />
+            Also delete this user’s previous messages
+          </label>
           <button
             type="button"
             onClick={createBan}
@@ -369,6 +493,13 @@ export function AdminPanel({ community, rooms, onClose }: Props) {
           </button>
           {banErr && (
             <p className="mt-1 text-[10px] text-[var(--accent)]">{banErr}</p>
+          )}
+          {banLastPurged !== null && !banErr && (
+            <p className="mt-1 text-[10px] text-[var(--muted)]">
+              {banLastPurged === 0
+                ? "Ban added. No prior messages to purge."
+                : `Ban added; purged ${banLastPurged} previous message${banLastPurged === 1 ? "" : "s"}.`}
+            </p>
           )}
 
           <ul className="mt-3 space-y-1">

@@ -61,8 +61,11 @@ messages via SSE.
 | POST   | `/admin/rooms/:slug/clear`              | admin     | Hard-delete every message in the room. Broadcasts an empty `replay` to subscribers |
 | POST   | `/admin/rooms/:slug/compact?keep=N`     | admin     | Trim room to the most recent N messages (default 100, max 10 000). Broadcasts a fresh `replay` |
 | GET    | `/admin/bans`                           | admin     | List bans |
-| POST   | `/admin/bans`                           | admin     | Body `{ kind: 'nick'\|'ip', value, reason? }` |
+| POST   | `/admin/bans`                           | admin     | Body `{ kind: 'nick'\|'ip', value, reason?, purgeMessages? }`. When `purgeMessages: true`, soft-deletes every existing message from that user (matched by nick lowercased, or by IP) and broadcasts a `message_deleted` per row so connected clients render the placeholder live |
 | DELETE | `/admin/bans/:id`                       | admin     | Lift a ban |
+| GET    | `/admin/community/state`                | admin     | Returns `{ state: { enabled, reason, disabledAt } }` |
+| POST   | `/admin/community/disable`              | admin     | Optional body `{ reason }` (≤ 200 chars). Sets the kill switch; broadcasts `community_state{enabled:false}` to every subscriber across every room. POST messages return 503 while disabled |
+| POST   | `/admin/community/enable`               | admin     | Clears the kill switch; broadcasts `community_state{enabled:true}` to every subscriber |
 
 Admin requests carry the token in `X-Admin-Token`.
 
@@ -74,7 +77,8 @@ type ChatEvent =
   | { type: "message"; message }
   | { type: "message_deleted"; roomSlug; id }
   | { type: "message_pinned"; roomSlug; id }
-  | { type: "message_unpinned"; roomSlug };
+  | { type: "message_unpinned"; roomSlug }
+  | { type: "community_state"; enabled: boolean; reason: string | null };
 ```
 
 See `src/types.ts` for the full TypeScript declarations. Mirrored in

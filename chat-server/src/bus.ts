@@ -58,12 +58,32 @@ class ChatBus {
   size(roomSlug: string): number {
     return this.subscribers.get(roomSlug)?.size ?? 0;
   }
+
+  /**
+   * Fan out to every subscriber, regardless of room. Used for
+   * system-wide events (the community_state kill switch) that aren't
+   * scoped to a room. Keeping this separate from `broadcast()` keeps
+   * the per-room routing path fast and free of branching on the
+   * event-tag.
+   */
+  broadcastAll(event: ChatEvent): void {
+    for (const set of this.subscribers.values()) {
+      for (const fn of set) {
+        try {
+          fn(event);
+        } catch (err) {
+          console.warn("[chat-server] subscriber threw", err);
+        }
+      }
+    }
+  }
 }
 
 function resolveSlug(event: ChatEvent): string | null {
-  // NewMessageEvent: slug is nested under message; everything else has
-  // it at the top level.
+  // NewMessageEvent: slug is nested under message; system-wide events
+  // (community_state) carry no slug. Everything else has it at top level.
   if (event.type === "message") return event.message.roomSlug;
+  if (event.type === "community_state") return null;
   return event.roomSlug ?? null;
 }
 

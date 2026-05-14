@@ -27,18 +27,24 @@ import {
   compactRoomMessages,
   createRoom,
   deleteBan,
+  getCommunityState,
   getMessage,
   getRoom,
   insertBan,
   insertMessage,
   isBanned,
+  isCommunityDisabled,
   lastIpForNick,
   listBans,
   listRooms,
   messagesBefore,
   recentMessages,
+  setCommunityDisabled,
+  setCommunityEnabled,
   setRoomPin,
   softDeleteMessage,
+  softDeleteMessagesByIp,
+  softDeleteMessagesByNick,
 } from "./db.ts";
 import { tryConsume } from "./rate-limit.ts";
 import type { BanKind, ChatEvent } from "./types.ts";
@@ -145,7 +151,20 @@ function handleStream(roomSlug: string, req: Request): Response {
         pinnedMessageId: room?.pinnedMessageId ?? null,
       });
 
-      // 2. Subscribe for live updates.
+      // 2. If the community is currently disabled, tell this client
+      //    so it renders the offline overlay immediately. (Clients
+      //    default to enabled, so we only send the event when we
+      //    need to override that default.)
+      const state = getCommunityState();
+      if (!state.enabled) {
+        send({
+          type: "community_state",
+          enabled: false,
+          reason: state.reason,
+        });
+      }
+
+      // 3. Subscribe for live updates.
       const unsubscribe = chatBus.subscribe(roomSlug, send);
 
       // 3. Heartbeat — comment lines are ignored by the EventSource
@@ -201,6 +220,9 @@ async function handlePostMessage(
   ip: string,
 ): Promise<Response> {
   if (!getRoom(roomSlug)) return error(404, "no such room");
+  if (isCommunityDisabled()) {
+    return error(503, "community is currently disabled by an admin");
+  }
 
   let payload: unknown;
   try {
@@ -297,13 +319,18 @@ async function handleAdminBan(req: Request): Promise<Response> {
   } catch {
     return error(400, "invalid JSON");
   }
-  const { kind: rawKind, value: rawValue, reason: rawReason } =
-    (payload ?? {}) as Record<string, unknown>;
+  const {
+    kind: rawKind,
+    value: rawValue,
+    reason: rawReason,
+    purgeMessages: rawPurge,
+  } = (payload ?? {}) as Record<string, unknown>;
   if (rawKind !== "nick" && rawKind !== "ip") return error(400, "kind must be 'nick' or 'ip'");
   if (typeof rawValue !== "string" || !rawValue.trim()) return error(400, "value required");
   const kind: BanKind = rawKind;
   const value = kind === "nick" ? rawValue.trim().toLowerCase() : rawValue.trim();
   const reason = typeof rawReason === "string" && rawReason.trim() ? rawReason.trim() : null;
+  const purge = rawPurge === true;
 
   const ban = insertBan(kind, value, reason);
 
@@ -314,7 +341,40 @@ async function handleAdminBan(req: Request): Promise<Response> {
     if (ip) insertBan("ip", ip, reason ? `${reason} (via nick ${value})` : `via nick ${value}`);
   }
 
-  return json({ ok: true, ban, bans: listBans() });
+  // Optional purge — soft-delete every existing message from this user
+  // and broadcast a message_deleted event per row so every connected
+  // client renders the "[deleted by admin]" placeholder in real time.
+  // We dedupe by id (a nick-ban that escalates to an ip-ban might pick
+  // up the same messages twice if the ip-only path also matches them).
+  let purged: Array<{ id: string; roomSlug: string }> = [];
+  if (purge) {
+    const byNick =
+      kind === "nick" ? softDeleteMessagesByNick(value) : [];
+    const byIp =
+      kind === "ip"
+        ? softDeleteMessagesByIp(value)
+        : kind === "nick"
+          ? (() => {
+              const ip = lastIpForNick(value);
+              return ip ? softDeleteMessagesByIp(ip) : [];
+            })()
+          : [];
+    const seen = new Set<string>();
+    purged = [...byNick, ...byIp].filter((r) => {
+      if (seen.has(r.id)) return false;
+      seen.add(r.id);
+      return true;
+    });
+    for (const r of purged) {
+      chatBus.broadcast({
+        type: "message_deleted",
+        roomSlug: r.roomSlug,
+        id: r.id,
+      });
+    }
+  }
+
+  return json({ ok: true, ban, bans: listBans(), purgedCount: purged.length });
 }
 
 function handleAdminUnban(banId: number): Response {
@@ -326,6 +386,49 @@ function handleAdminUnban(banId: number): Response {
 
 function handleAdminListBans(): Response {
   return json({ bans: listBans() });
+}
+
+// ── Community kill switch (admin) ─────────────────────────────────
+
+function handleAdminCommunityState(): Response {
+  return json({ state: getCommunityState() });
+}
+
+async function handleAdminCommunityDisable(req: Request): Promise<Response> {
+  let payload: unknown = {};
+  try {
+    if (req.headers.get("content-type")?.includes("application/json")) {
+      payload = await req.json();
+    }
+  } catch {
+    return error(400, "invalid JSON");
+  }
+  const { reason: rawReason } = (payload ?? {}) as Record<string, unknown>;
+  const reason =
+    typeof rawReason === "string" && rawReason.trim()
+      ? rawReason.trim().slice(0, 200)
+      : null;
+  const state = setCommunityDisabled(reason);
+  // Fan out to every connected subscriber across every room. Clients
+  // render an offline overlay immediately; they stay connected so the
+  // matching enable event later flips them back without a manual
+  // reconnect.
+  chatBus.broadcastAll({
+    type: "community_state",
+    enabled: false,
+    reason: state.reason,
+  });
+  return json({ ok: true, state });
+}
+
+function handleAdminCommunityEnable(): Response {
+  const state = setCommunityEnabled();
+  chatBus.broadcastAll({
+    type: "community_state",
+    enabled: true,
+    reason: null,
+  });
+  return json({ ok: true, state });
 }
 
 // ── Channel management (admin) ────────────────────────────────────
@@ -462,6 +565,15 @@ const server = Bun.serve({
       }
       if (path === "/admin/rooms" && req.method === "POST") {
         return handleAdminCreateRoom(req);
+      }
+      if (path === "/admin/community/state" && req.method === "GET") {
+        return handleAdminCommunityState();
+      }
+      if (path === "/admin/community/disable" && req.method === "POST") {
+        return handleAdminCommunityDisable(req);
+      }
+      if (path === "/admin/community/enable" && req.method === "POST") {
+        return handleAdminCommunityEnable();
       }
 
       m = path.match(/^\/admin\/messages\/([^/]+)\/delete$/);
