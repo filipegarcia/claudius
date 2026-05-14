@@ -16,10 +16,15 @@ const FAKE_URL =
 
 test.describe("/community soft-nav reconnect", () => {
   test("rooms repopulate and SSE reconnects after leaving and returning", async ({ page }) => {
-    // Pre-seed a nick so the NicknameModal doesn't block.
+    // Pre-seed nick + community consent so neither the NicknameModal nor
+    // the consent gate (added in b7ffd93) block <CommunityChat> from
+    // mounting. Without `consent=yes` the /community route renders the
+    // ConsentPrompt instead and the `community-page` testid never
+    // appears.
     await page.addInitScript(() => {
       try {
         localStorage.setItem("claudius.community.nick", "tester");
+        localStorage.setItem("claudius.community.consent", "yes");
       } catch {}
     });
 
