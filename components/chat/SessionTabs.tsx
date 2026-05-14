@@ -355,6 +355,20 @@ export function SessionTabs({
           </div>
         );
       })}
+      {/*
+        New-session button lives INSIDE the strip so it always sits flush
+        to the right of the last visible tab — not pinned to the far right
+        of the bar. The strip is `flex-1`, so empty space stretches between
+        the "+" and the trailing chevron / close-all controls.
+      */}
+      <button
+        type="button"
+        onClick={onNew}
+        title="New session tab"
+        className="flex w-8 shrink-0 items-center justify-center text-[var(--muted)] hover:bg-[var(--panel-2)]/60 hover:text-[var(--foreground)]"
+      >
+        <Plus className="h-3.5 w-3.5" />
+      </button>
       </div>
       {hiddenIds.size > 0 && (
         <div ref={menuRef} className="relative flex shrink-0 items-stretch border-l border-[var(--border)]">
@@ -434,14 +448,6 @@ export function SessionTabs({
           )}
         </div>
       )}
-      <button
-        type="button"
-        onClick={onNew}
-        title="New session tab"
-        className="flex w-8 shrink-0 items-center justify-center text-[var(--muted)] hover:bg-[var(--panel-2)]/60 hover:text-[var(--foreground)]"
-      >
-        <Plus className="h-3.5 w-3.5" />
-      </button>
       {tabs.length > 0 && (
         <button
           type="button"
