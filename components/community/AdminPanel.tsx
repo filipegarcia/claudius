@@ -11,8 +11,10 @@ import {
   Scissors,
   PowerOff,
   Power,
+  Filter,
+  Plus,
 } from "lucide-react";
-import type { Ban, Room } from "@/lib/shared/community";
+import type { Ban, BannedWord, Room } from "@/lib/shared/community";
 import type { UseCommunity } from "@/lib/client/use-community";
 
 type Props = {
@@ -62,6 +64,12 @@ export function AdminPanel({ community, rooms, onClose }: Props) {
   const [killSwitchBusy, setKillSwitchBusy] = useState(false);
   const [killSwitchErr, setKillSwitchErr] = useState<string | null>(null);
 
+  // Banned-words list state.
+  const [bannedWords, setBannedWords] = useState<BannedWord[] | null>(null);
+  const [bannedWordInput, setBannedWordInput] = useState("");
+  const [bannedWordBusy, setBannedWordBusy] = useState(false);
+  const [bannedWordErr, setBannedWordErr] = useState<string | null>(null);
+
   // Channel form state. Slug + display name are required; description
   // optional. The slug regex matches the server-side validation in
   // chat-server/src/server.ts (SLUG_RE) so the failure mode is "button
@@ -93,6 +101,38 @@ export function AdminPanel({ community, rooms, onClose }: Props) {
   useEffect(() => {
     void refreshBans();
   }, [refreshBans]);
+
+  const refreshBannedWords = useCallback(async () => {
+    if (!community.isAdmin) {
+      setBannedWords(null);
+      return;
+    }
+    setBannedWords(await community.listBannedWords());
+  }, [community]);
+
+  useEffect(() => {
+    void refreshBannedWords();
+  }, [refreshBannedWords]);
+
+  const addWord = async () => {
+    const w = bannedWordInput.trim();
+    if (!w) return;
+    setBannedWordBusy(true);
+    setBannedWordErr(null);
+    const res = await community.addBannedWord(w);
+    setBannedWordBusy(false);
+    if (res.ok) {
+      setBannedWordInput("");
+      await refreshBannedWords();
+    } else {
+      setBannedWordErr(res.error);
+    }
+  };
+
+  const removeWord = async (word: string) => {
+    const res = await community.removeBannedWord(word);
+    if (res.ok) await refreshBannedWords();
+  };
 
   const announce = async () => {
     if (!announceBody.trim()) return;
@@ -524,6 +564,68 @@ export function AdminPanel({ community, rooms, onClose }: Props) {
                   type="button"
                   onClick={() => liftBan(b.id)}
                   title="Lift ban"
+                  className="ml-auto rounded p-0.5 text-[var(--muted)] hover:bg-[var(--panel)] hover:text-[var(--accent)]"
+                >
+                  <Trash2 className="h-3 w-3" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        {/* Banned words (channels only) */}
+        <section data-testid="community-admin-banned-words">
+          <h3 className="mb-2 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-[var(--muted)]">
+            <Filter className="h-3.5 w-3.5" /> Banned words
+          </h3>
+          <p className="mb-2 text-[10px] text-[var(--muted)]">
+            Case-insensitive substring match. Applies to channel posts
+            only — DMs aren’t filtered.
+          </p>
+          <div className="flex gap-1">
+            <input
+              value={bannedWordInput}
+              onChange={(e) => setBannedWordInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !bannedWordBusy) addWord();
+              }}
+              placeholder="word or phrase"
+              maxLength={100}
+              className="flex-1 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1 font-mono text-xs outline-none focus:ring-2 focus:ring-[var(--accent)]"
+            />
+            <button
+              type="button"
+              onClick={addWord}
+              disabled={
+                bannedWordBusy || !bannedWordInput.trim() || !community.isAdmin
+              }
+              title="Add"
+              className="rounded-md bg-[var(--accent)] px-2 py-1 text-[var(--background)] hover:brightness-110 disabled:opacity-40"
+            >
+              <Plus className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          {bannedWordErr && (
+            <p className="mt-1 text-[10px] text-[var(--accent)]">
+              {bannedWordErr}
+            </p>
+          )}
+          <ul className="mt-3 space-y-1">
+            {bannedWords && bannedWords.length === 0 && (
+              <li className="text-[10px] text-[var(--muted)]">
+                No words filtered.
+              </li>
+            )}
+            {bannedWords?.map((w) => (
+              <li
+                key={w.word}
+                className="flex items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1 text-xs"
+              >
+                <span className="truncate font-mono">{w.word}</span>
+                <button
+                  type="button"
+                  onClick={() => removeWord(w.word)}
+                  title="Remove"
                   className="ml-auto rounded p-0.5 text-[var(--muted)] hover:bg-[var(--panel)] hover:text-[var(--accent)]"
                 >
                   <Trash2 className="h-3 w-3" />

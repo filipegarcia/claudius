@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
   Ban,
   BanKind,
+  BannedWord,
   ChatEvent,
   Message,
   Room,
@@ -143,6 +144,14 @@ export function useCommunity(options: UseCommunityOptions = {}) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [pinnedId, setPinnedId] = useState<string | null>(null);
   const [connected, setConnected] = useState(false);
+  // Whether the room has older messages the user hasn't fetched yet.
+  // Starts `true` for every room (no replay on join = the server
+  // hasn't told us anything about history yet, so we assume there's
+  // more until a load-older call returns < 50 rows). Flips to `false`
+  // when the backfill comes back short, indicating we've hit the
+  // beginning of the room.
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingOlder, setLoadingOlder] = useState(false);
   // Kill-switch state. Defaults to enabled — the server only sends a
   // community_state event when it needs to override that default
   // (i.e. it's currently disabled, or just flipped state during the
@@ -213,6 +222,8 @@ export function useCommunity(options: UseCommunityOptions = {}) {
     setMessages([]);
     setPinnedId(null);
     setConnected(false);
+    setHasMore(true);
+    setLoadingOlder(false);
 
     const url = `${SERVER_URL}/rooms/${encodeURIComponent(currentRoom)}/stream`;
     const es = new EventSource(url);
@@ -258,6 +269,51 @@ export function useCommunity(options: UseCommunityOptions = {}) {
     },
     [configured, currentRoom, nick, SERVER_URL],
   );
+
+  /**
+   * Pull the next page of history older than the oldest message
+   * currently in state. Server pages at 50; if fewer come back we
+   * know we've hit the start of the room and flip `hasMore` off.
+   *
+   * Idempotent: re-entrant calls while one is in flight short-circuit
+   * (see `loadingOlder` guard) so a double-click on the Load-older
+   * button doesn't dup-fetch the same window.
+   */
+  const loadOlder = useCallback(async (): Promise<SendResult> => {
+    if (!configured) return { ok: false, error: "chat server not configured" };
+    if (loadingOlder) return { ok: true };
+    if (!hasMore) return { ok: true };
+    setLoadingOlder(true);
+    try {
+      const oldest = messages[0]?.createdAt ?? Date.now();
+      const url = `${SERVER_URL}/rooms/${encodeURIComponent(
+        currentRoom,
+      )}/messages?before=${encodeURIComponent(String(oldest))}&limit=50`;
+      const r = await fetch(url);
+      if (!r.ok) {
+        const j = (await r.json().catch(() => ({}))) as { error?: string };
+        return { ok: false, error: j.error ?? `HTTP ${r.status}` };
+      }
+      const data = (await r.json()) as { messages: Message[] };
+      // Prepend (server returns oldest-first within the page). Dedupe
+      // by id in case the page boundary races with a live `message`
+      // event for the same row.
+      setMessages((prev) => {
+        const seen = new Set(prev.map((m) => m.id));
+        const fresh = data.messages.filter((m) => !seen.has(m.id));
+        return [...fresh, ...prev];
+      });
+      if (data.messages.length < 50) setHasMore(false);
+      return { ok: true };
+    } catch (err) {
+      return {
+        ok: false,
+        error: err instanceof Error ? err.message : String(err),
+      };
+    } finally {
+      setLoadingOlder(false);
+    }
+  }, [configured, currentRoom, hasMore, loadingOlder, messages, SERVER_URL]);
 
   // ── Admin actions ────────────────────────────────────────────────
   //
@@ -394,6 +450,30 @@ export function useCommunity(options: UseCommunityOptions = {}) {
     [adminCall],
   );
 
+  // Banned-words admin surface. Mirrors the bans/listBans pattern:
+  // listBannedWords fetches the current curated list, addBannedWord /
+  // removeBannedWord mutate it. Channel posts containing any listed
+  // substring get rejected with 400 by the server before broadcast;
+  // DMs are deliberately not filtered.
+  const listBannedWords = useCallback(async (): Promise<BannedWord[]> => {
+    if (!isAdmin) return [];
+    const res = await adminCall("GET", "/banned-words");
+    if (!res.ok) return [];
+    const data = res.data as { words?: BannedWord[] } | undefined;
+    return data?.words ?? [];
+  }, [isAdmin, adminCall]);
+
+  const addBannedWord = useCallback(
+    (word: string) => adminCall("POST", "/banned-words", { word }),
+    [adminCall],
+  );
+
+  const removeBannedWord = useCallback(
+    (word: string) =>
+      adminCall("DELETE", `/banned-words/${encodeURIComponent(word)}`),
+    [adminCall],
+  );
+
   // ── Public API ───────────────────────────────────────────────────
 
   return useMemo(
@@ -413,10 +493,13 @@ export function useCommunity(options: UseCommunityOptions = {}) {
       messages,
       pinnedId,
       connected,
+      hasMore,
+      loadingOlder,
       // community-wide kill switch
       communityState,
       // actions
       send,
+      loadOlder,
       // admin
       sendAsAdmin,
       deleteMessage,
@@ -430,6 +513,9 @@ export function useCommunity(options: UseCommunityOptions = {}) {
       compactRoom,
       disableCommunity,
       enableCommunity,
+      listBannedWords,
+      addBannedWord,
+      removeBannedWord,
     }),
     [
       configured,
@@ -443,8 +529,11 @@ export function useCommunity(options: UseCommunityOptions = {}) {
       messages,
       pinnedId,
       connected,
+      hasMore,
+      loadingOlder,
       communityState,
       send,
+      loadOlder,
       sendAsAdmin,
       deleteMessage,
       pinMessage,
@@ -457,6 +546,9 @@ export function useCommunity(options: UseCommunityOptions = {}) {
       compactRoom,
       disableCommunity,
       enableCommunity,
+      listBannedWords,
+      addBannedWord,
+      removeBannedWord,
     ],
   );
 }

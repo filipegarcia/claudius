@@ -50,8 +50,8 @@ messages via SSE.
 |--------|-----------------------------------------|-----------|-------|
 | GET    | `/health`                               | none      | `{ ok: true }` |
 | GET    | `/rooms`                                | none      | List rooms |
-| GET    | `/rooms/:slug/stream`                   | none      | SSE: `replay` then live events |
-| GET    | `/rooms/:slug/messages?before=&limit=`  | none      | Backfill older history |
+| GET    | `/rooms/:slug/stream`                   | none      | SSE: `replay { messages: [] }` (no history on join) then live events |
+| GET    | `/rooms/:slug/messages?before=&limit=`  | none      | Backfill older history (default `limit=100`, max `500`). Client pulls 50 at a time via the “Load older” button as the user scrolls up |
 | POST   | `/rooms/:slug/messages`                 | nickname  | Body `{ nick, body }`; rate-limited 10/30s/IP |
 | POST   | `/admin/messages`                       | admin     | Post as `admin`. Body `{ roomSlug, body }` |
 | POST   | `/admin/messages/:id/delete`            | admin     | Soft-delete. Body blanked on the wire; client renders `[deleted by admin]` placeholder |
@@ -66,6 +66,9 @@ messages via SSE.
 | GET    | `/admin/community/state`                | admin     | Returns `{ state: { enabled, reason, disabledAt } }` |
 | POST   | `/admin/community/disable`              | admin     | Optional body `{ reason }` (≤ 200 chars). Sets the kill switch; broadcasts `community_state{enabled:false}` to every subscriber across every room. POST messages return 503 while disabled |
 | POST   | `/admin/community/enable`               | admin     | Clears the kill switch; broadcasts `community_state{enabled:true}` to every subscriber |
+| GET    | `/admin/banned-words`                   | admin     | List the curated banned-word filter (channels only) |
+| POST   | `/admin/banned-words`                   | admin     | Body `{ word }` (≤ 100 chars). Channel posts containing this substring (case-insensitive) get rejected with 400 |
+| DELETE | `/admin/banned-words/:word`             | admin     | Remove a word (URL-encoded) from the filter |
 
 Admin requests carry the token in `X-Admin-Token`.
 
@@ -366,7 +369,16 @@ value you set on the chat-server above.
   unless something throws. SSE subscriber failures log a single
   `subscriber threw` warning per occurrence.
 - **DB browsing**: `sqlite3 data/chat.db` and have at it. The schema is
-  three tables and no foreign-key surprises.
+  five tables (rooms, messages, bans, system_state, banned_words) and
+  no foreign-key surprises.
+- **Soft-delete reasons**: every soft-deleted message row carries a
+  `deletion_reason`: `admin` (per-message moderation), `banned` (ban-
+  and-purge), `cleared` (bulk channel clear), `compacted` (bulk
+  trim). Admin per-message and `banned` rows reach the wire as
+  `[deleted by admin]` placeholders; `cleared` and `compacted` stay
+  in the table but never reach subscribers — so you can run
+  `SELECT * FROM messages WHERE deletion_reason = 'cleared'` to
+  review what got swept after the fact.
 - **Trimming history**: not automatic. When the `messages` table feels
   big, `DELETE FROM messages WHERE created_at < <cutoff>` — readers
   only ever see `recentMessages(limit=100)`, so trimming is invisible
