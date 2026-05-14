@@ -19,6 +19,10 @@
 
 # next.js
 /.next/
+# Per-run dist-dir for the e2e Playwright server — keeps its lockfile +
+# build cache separate from the user's own `next dev`. See
+# playwright.config.ts.
+/.next-e2e/
 /out/
 
 # production
