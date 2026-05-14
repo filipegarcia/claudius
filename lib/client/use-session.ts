@@ -836,6 +836,31 @@ export function useSession(): ChatState & ChatActions {
           upsertAssistantSplit(prev, messageId, sdkUuid, blocks, hasStreamScratch, undefined, ev.at),
         );
         setPendingTracked(true);
+        // Activity-rail: surface thinking phases that arrived on the
+        // terminal assistant split (i.e. JSONL replay on reload, or a
+        // turn whose stream_event partials never reached this tab).
+        // The live path adds the same key from `content_block_start` —
+        // the dedup-by-id below means we don't double-insert. We mark
+        // these "done" because by the time the terminal split lands the
+        // thinking block is complete; for the live path the entry is
+        // already present and is marked done by `message_stop`.
+        for (let i = 0; i < blocks.length; i++) {
+          const b = blocks[i];
+          if (b.kind !== "thinking") continue;
+          const thinkingId = `thinking:${messageId}:${i}`;
+          setToolHistory((prev) => {
+            if (prev.some((e) => e.toolUseId === thinkingId)) return prev;
+            const entry: ToolHistoryEntry = {
+              toolUseId: thinkingId,
+              toolName: b.redacted ? "Thinking (encrypted)" : "Thinking",
+              startedAt: Date.now(),
+              done: true,
+              endedAt: Date.now(),
+              kind: "thinking",
+            };
+            return [entry, ...prev].slice(0, 100);
+          });
+        }
         // Activity-rail reducers: per-tool side effects.
         for (const b of blocks) {
           if (b.kind !== "tool_use") continue;
@@ -966,11 +991,33 @@ export function useSession(): ChatState & ChatActions {
           const cb = evt.content_block;
           if (cb.type === "text")
             scratch.blocks.set(evt.index, { kind: "text", text: typeof cb.text === "string" ? cb.text : "" });
-          else if (cb.type === "thinking")
-            scratch.blocks.set(evt.index, { kind: "thinking", text: typeof cb.thinking === "string" ? cb.thinking : "" });
-          else if (cb.type === "redacted_thinking")
-            scratch.blocks.set(evt.index, { kind: "thinking", text: "", redacted: true });
-          else if (cb.type === "tool_use") {
+          else if (cb.type === "thinking" || cb.type === "redacted_thinking") {
+            const redacted = cb.type === "redacted_thinking";
+            scratch.blocks.set(evt.index, {
+              kind: "thinking",
+              text: cb.type === "thinking" && typeof cb.thinking === "string" ? cb.thinking : "",
+              ...(redacted ? { redacted: true } : {}),
+            });
+            // Surface the thinking phase in the right-pane Tools list as a
+            // synthetic spinner row. Keyed on `thinking:<msgId>:<idx>` so a
+            // subsequent message_stop / replay can mark this exact entry
+            // done without colliding with real tool_use ids. Skipped for
+            // subagent turns — those don't push into the top-level tool
+            // history today (only the parent Task tool_use is tracked).
+            if (!subagentParent) {
+              const thinkingId = `thinking:${anchor}:${evt.index}`;
+              setToolHistory((prev) => {
+                if (prev.some((e) => e.toolUseId === thinkingId)) return prev;
+                const entry: ToolHistoryEntry = {
+                  toolUseId: thinkingId,
+                  toolName: redacted ? "Thinking (encrypted)" : "Thinking",
+                  startedAt: Date.now(),
+                  kind: "thinking",
+                };
+                return [entry, ...prev].slice(0, 100);
+              });
+            }
+          } else if (cb.type === "tool_use") {
             const tu = cb as Extract<SDKContentBlock, { type: "tool_use" }>;
             scratch.blocks.set(evt.index, { kind: "tool_use", toolUseId: tu.id, toolName: tu.name, partialJson: "" });
           }
@@ -1012,6 +1059,21 @@ export function useSession(): ChatState & ChatActions {
             }));
           } else {
             setMessages((prev) => prev.map((m) => (m.uuid === anchor ? { ...m, streaming: false } : m)));
+            // Close out any synthetic thinking rows owned by this message —
+            // their id namespace is `thinking:<anchor>:<idx>`. Real tool_use
+            // rows resolve via their tool_result; thinking has no result, so
+            // we use message_stop as the falling edge.
+            setToolHistory((prev) => {
+              const prefix = `thinking:${anchor}:`;
+              let changed = false;
+              const next = prev.map((e) => {
+                if (e.kind !== "thinking" || e.done) return e;
+                if (!e.toolUseId.startsWith(prefix)) return e;
+                changed = true;
+                return { ...e, done: true, endedAt: Date.now() };
+              });
+              return changed ? next : prev;
+            });
           }
           // Release the scope so the next message_start in this scope mints
           // a fresh anchor instead of inheriting the just-closed message's.

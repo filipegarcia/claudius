@@ -137,7 +137,10 @@ function SubMessage({ message }: { message: DisplayMessage }) {
               </div>
             );
           if (b.kind === "thinking") {
-            if (!b.text && !b.redacted && !message.streaming) return null;
+            // See AssistantMessage.tsx for the rationale — the empty-body
+            // post-stream hide previously raced `message_stop` and made
+            // the block disappear out from under a click. Always render
+            // once the SDK has emitted a thinking content block.
             return (
               <ThinkingBlock
                 key={i}

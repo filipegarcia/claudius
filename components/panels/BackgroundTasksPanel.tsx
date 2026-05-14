@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Activity, AlertTriangle, Bot, Check, Loader2, Plus, Wrench } from "lucide-react";
+import { Activity, AlertTriangle, Bot, Brain, Check, Loader2, Plus, Wrench } from "lucide-react";
 import type { PermissionMode } from "@anthropic-ai/claude-agent-sdk";
 import type {
   AgentTodo,
@@ -284,16 +284,24 @@ export function BackgroundTasksPanel({
                   : e.done
                     ? "text-emerald-400"
                     : "animate-spin text-sky-400";
-                const arg = e.primaryArg ? compactArg(e.toolName, e.primaryArg) : undefined;
+                // Synthetic thinking rows have no `primaryArg` (no tool
+                // input to summarize) and use the brain glyph rather than
+                // the wrench — they're a phase of the model's turn, not a
+                // tool invocation.
+                const isThinking = e.kind === "thinking";
+                const KindIcon = isThinking ? Brain : Wrench;
+                const arg = !isThinking && e.primaryArg
+                  ? compactArg(e.toolName, e.primaryArg)
+                  : undefined;
                 return (
                   <li
                     key={e.toolUseId}
                     className={cn("rounded-md border px-2 py-1.5", tone)}
-                    title={e.primaryArg}
+                    title={isThinking ? undefined : e.primaryArg}
                   >
                     <div className="flex items-center gap-1.5 text-xs">
                       <StatusIcon className={cn("h-3 w-3 shrink-0", iconClass)} />
-                      <Wrench className="h-3 w-3 shrink-0 text-[var(--muted)] opacity-70" />
+                      <KindIcon className="h-3 w-3 shrink-0 text-[var(--muted)] opacity-70" />
                       <span className="truncate font-mono">{e.toolName}</span>
                       {elapsedSeconds != null && (
                         <span className="ml-auto shrink-0 text-[10px] text-[var(--muted)]">
