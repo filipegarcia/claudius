@@ -95,3 +95,39 @@ export type ChatEvent =
   | MessagePinnedEvent
   | MessageUnpinnedEvent
   | CommunityStateEvent;
+
+// ── Direct messages ────────────────────────────────────────────────
+//
+// DMs travel on their own per-nick SSE stream (`GET /dms/stream?for=<nick>`)
+// and have their own POST endpoint. Same trust model as channels —
+// anyone can claim a nick — but the routing only delivers a message
+// to the sender's and recipient's subscribers (not the whole room).
+
+export type DM = {
+  id: string;
+  fromNick: string;
+  toNick: string;
+  body: string;
+  createdAt: number; // epoch ms
+  /**
+   * Self-delete or admin ban-purge timestamp; `null` for live DMs.
+   * Body is blanked on the wire when set; client renders a "[deleted]"
+   * placeholder same shape as channel messages.
+   */
+  deletedAt: number | null;
+};
+
+/** Live DM arrival. */
+export type DMEvent = {
+  type: "dm";
+  message: DM;
+};
+
+/** DM has been soft-deleted on the server. */
+export type DMDeletedEvent = {
+  type: "dm_deleted";
+  id: string;
+};
+
+/** Tag union for the per-nick DM SSE stream. */
+export type DMStreamEvent = DMEvent | DMDeletedEvent;

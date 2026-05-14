@@ -7,9 +7,10 @@
 // admin panel), so we keep a Map<slug, Set<Subscriber>> rather than a
 // global broadcast list.
 
-import type { ChatEvent } from "./types.ts";
+import type { ChatEvent, DMStreamEvent } from "./types.ts";
 
 type Subscriber = (event: ChatEvent) => void;
+type DMSubscriber = (event: DMStreamEvent) => void;
 
 class ChatBus {
   private subscribers = new Map<string, Set<Subscriber>>();
@@ -89,3 +90,70 @@ function resolveSlug(event: ChatEvent): string | null {
 
 export const chatBus = new ChatBus();
 export type { ChatBus };
+
+/**
+ * Per-nick DM bus. Subscribers register for their own nick (or the
+ * recipient's, when watching incoming DMs); producers broadcast to
+ * BOTH the sender's and recipient's subscriber sets so all of the
+ * sender's open tabs see their own outbound DMs too (mirrors the
+ * room model where your message echoes back over SSE).
+ *
+ * Routing key is the nick lowercased — same dedup convention as the
+ * bans table — so case differences (Alice vs alice) don't split the
+ * fanout.
+ */
+class DMBus {
+  private subscribers = new Map<string, Set<DMSubscriber>>();
+
+  subscribe(nick: string, fn: DMSubscriber): () => void {
+    const key = nick.toLowerCase();
+    let set = this.subscribers.get(key);
+    if (!set) {
+      set = new Set();
+      this.subscribers.set(key, set);
+    }
+    set.add(fn);
+    return () => {
+      const s = this.subscribers.get(key);
+      if (!s) return;
+      s.delete(fn);
+      if (s.size === 0) this.subscribers.delete(key);
+    };
+  }
+
+  /**
+   * Deliver to one nick's subscribers. Used internally by `broadcastDm`
+   * which fans out to both ends of a conversation.
+   */
+  private fanOut(nick: string, event: DMStreamEvent): void {
+    const set = this.subscribers.get(nick.toLowerCase());
+    if (!set) return;
+    for (const fn of set) {
+      try {
+        fn(event);
+      } catch (err) {
+        console.warn("[chat-server] dm subscriber threw", err);
+      }
+    }
+  }
+
+  /**
+   * Deliver one DM event to both parties' subscribers. For an arriving
+   * `dm`, pass {from, to} so the sender's other tabs and the recipient
+   * both see it. For a `dm_deleted`, same — both ends update their
+   * thread view.
+   */
+  broadcastDm(parties: { from: string; to: string }, event: DMStreamEvent): void {
+    this.fanOut(parties.from, event);
+    if (parties.from.toLowerCase() !== parties.to.toLowerCase()) {
+      this.fanOut(parties.to, event);
+    }
+  }
+
+  size(nick: string): number {
+    return this.subscribers.get(nick.toLowerCase())?.size ?? 0;
+  }
+}
+
+export const dmBus = new DMBus();
+export type { DMBus };

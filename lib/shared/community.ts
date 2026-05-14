@@ -100,6 +100,36 @@ export type ChatEvent =
   | MessageUnpinnedEvent
   | CommunityStateEvent;
 
+// ── Direct messages ────────────────────────────────────────────────
+//
+// DMs are 1:1 private messages. Same trust model as channels — anyone
+// can claim a nick, no real auth — but routing only delivers each DM
+// to the sender's and recipient's per-nick SSE streams, not room-wide.
+//
+// Endpoints live on the chat-server (no Claudius proxy involved):
+//   POST   /dms                              — send  { from, to, body }
+//   GET    /dms/stream?for=<nick>            — SSE   live { dm | dm_deleted }
+//   GET    /dms/conversations?for=<nick>     — list of conversation summaries
+//   GET    /dms/conversation?for=&with=&...  — paginated thread (50 per page)
+
+export type DM = {
+  id: string;
+  fromNick: string;
+  toNick: string;
+  body: string;
+  createdAt: number;
+  deletedAt: number | null;
+};
+
+export type DMEvent = { type: "dm"; message: DM };
+export type DMDeletedEvent = { type: "dm_deleted"; id: string };
+export type DMStreamEvent = DMEvent | DMDeletedEvent;
+
+export type ConversationSummary = {
+  peerNick: string;
+  lastMessage: DM;
+};
+
 // ── Browser-side validation helpers (must match server) ─────────────
 
 export const NICK_RE = /^[A-Za-z0-9_-]{1,20}$/;
