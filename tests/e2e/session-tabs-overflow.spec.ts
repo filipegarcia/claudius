@@ -39,7 +39,8 @@ test.describe("Session tabs — overflow into chevron popover", () => {
     const idA = await waitForBoundSession(page);
 
     // Open enough new tabs to exceed the strip's capacity at this width.
-    // The "+" button is always last in the bar.
+    // The "+" button sits flush to the right of the last visible tab inside
+    // the strip — not pinned to the far end of the bar.
     const newTabBtn = page.locator('button[title="New session tab"]');
     const ids = [idA];
     for (let i = 0; i < 6; i++) {
