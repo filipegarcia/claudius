@@ -190,11 +190,14 @@ test.describe("site screenshots — community", () => {
     );
     // Pre-seed the nickname + notifications toggle so the modal doesn't
     // pop and the bell paints the active accent state. The server URL no
-    // longer comes from localStorage — it's the env var above.
+    // longer comes from localStorage — it's the env var above. Consent
+    // (added in b7ffd93) must also be pre-seeded or the route renders
+    // the ConsentPrompt instead of the chat surface.
     await page.addInitScript(() => {
       try {
         localStorage.setItem("claudius.community.nick", "ada-lovelace");
         localStorage.setItem("claudius.community.notifications.enabled", "1");
+        localStorage.setItem("claudius.community.consent", "yes");
       } catch {
         // sandbox / private mode — screenshot will still run, just without seed
       }
