@@ -21,24 +21,27 @@
 
 import { randomUUID } from "node:crypto";
 import { isAdminRequest, isReservedNick } from "./admin.ts";
-import { chatBus } from "./bus.ts";
+import { chatBus, dmBus } from "./bus.ts";
 import {
   addBannedWord,
   clearRoomMessages,
   compactRoomMessages,
   containsBannedWord,
+  conversationBefore,
   createRoom,
   deleteBan,
   getCommunityState,
   getMessage,
   getRoom,
   insertBan,
+  insertDm,
   insertMessage,
   isBanned,
   isCommunityDisabled,
   lastIpForNick,
   listBannedWords,
   listBans,
+  listConversationsFor,
   listRooms,
   messagesBefore,
   recentLiveMessages,
@@ -52,7 +55,7 @@ import {
   softDeleteMessagesByNick,
 } from "./db.ts";
 import { tryConsume } from "./rate-limit.ts";
-import type { BanKind, ChatEvent } from "./types.ts";
+import type { BanKind, ChatEvent, DMStreamEvent } from "./types.ts";
 
 const PORT = Number(process.env.PORT ?? 8787);
 
@@ -571,6 +574,145 @@ async function handleAdminCompactRoom(
   return json({ ok: true, removed, kept: fresh.length });
 }
 
+// ── Direct messages (public; same trust model as channel posts) ───
+//
+// "for" query param is the caller's claimed nick. There's no
+// authentication — anyone who knows or guesses a nick can read its
+// DMs. That's consistent with the rest of the chat (anyone can post
+// as any nick); for a small trusted community it's the right
+// trade-off. See chat-server/README.md for the threat model write-up.
+
+function validateDmTo(to: unknown): string | null {
+  if (typeof to !== "string") return null;
+  const trimmed = to.trim();
+  if (!NICK_RE.test(trimmed)) return null;
+  if (isReservedNick(trimmed)) return null;
+  return trimmed;
+}
+
+async function handlePostDm(req: Request, ip: string): Promise<Response> {
+  if (isCommunityDisabled()) {
+    return error(503, "community is currently disabled by an admin");
+  }
+  let payload: unknown;
+  try {
+    payload = await req.json();
+  } catch {
+    return error(400, "invalid JSON");
+  }
+  const { from: rawFrom, to: rawTo, body: rawBody } =
+    (payload ?? {}) as Record<string, unknown>;
+
+  const from = validateNick(rawFrom);
+  if (!from) return error(400, "invalid from nick");
+  const to = validateDmTo(rawTo);
+  if (!to) return error(400, "invalid to nick");
+  if (from.toLowerCase() === to.toLowerCase()) {
+    return error(400, "can't DM yourself");
+  }
+  const body = validateBody(rawBody);
+  if (!body) return error(400, `invalid body (1-${MAX_BODY_LEN} chars)`);
+
+  // Bans still apply to DMs — a banned user can't reach others
+  // privately either. Banned-words filter does NOT (DMs are private
+  // moderation territory, see migration 004 rationale).
+  if (isBanned("nick", from.toLowerCase())) return error(403, "nick banned");
+  if (isBanned("ip", ip)) return error(403, "ip banned");
+
+  if (!tryConsume(ip)) return error(429, "slow down");
+
+  const msg = insertDm({
+    id: randomUUID(),
+    fromNick: from,
+    fromIp: ip,
+    toNick: to,
+    body,
+  });
+  dmBus.broadcastDm(
+    { from, to },
+    { type: "dm", message: msg },
+  );
+  return json({ ok: true, message: msg });
+}
+
+function handleDmStream(req: Request, url: URL): Response {
+  const forNick = url.searchParams.get("for");
+  if (!forNick || !NICK_RE.test(forNick) || isReservedNick(forNick)) {
+    return error(400, "missing or invalid `for` query param");
+  }
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream<Uint8Array>({
+    start(controller) {
+      const send = (evt: DMStreamEvent) => {
+        try {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(evt)}\n\n`));
+        } catch {
+          // closed
+        }
+      };
+
+      const unsubscribe = dmBus.subscribe(forNick, send);
+
+      // 15s heartbeat — keep proxies / Cloudflare happy.
+      const hb = setInterval(() => {
+        try {
+          controller.enqueue(encoder.encode(": ping\n\n"));
+        } catch {
+          // closed
+        }
+      }, 15_000);
+
+      const cleanup = () => {
+        clearInterval(hb);
+        unsubscribe();
+        try {
+          controller.close();
+        } catch {
+          // already closed
+        }
+      };
+      const signal = req.signal;
+      if (signal) {
+        if (signal.aborted) cleanup();
+        else signal.addEventListener("abort", cleanup, { once: true });
+      }
+    },
+  });
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache, no-transform",
+      Connection: "keep-alive",
+      "X-Accel-Buffering": "no",
+      ...CORS_HEADERS,
+    },
+  });
+}
+
+function handleDmConversations(url: URL): Response {
+  const forNick = url.searchParams.get("for");
+  if (!forNick || !NICK_RE.test(forNick) || isReservedNick(forNick)) {
+    return error(400, "missing or invalid `for` query param");
+  }
+  return json({ conversations: listConversationsFor(forNick) });
+}
+
+function handleDmConversation(url: URL): Response {
+  const forNick = url.searchParams.get("for");
+  const peer = url.searchParams.get("with");
+  if (!forNick || !NICK_RE.test(forNick) || isReservedNick(forNick)) {
+    return error(400, "missing or invalid `for` query param");
+  }
+  if (!peer || !NICK_RE.test(peer) || isReservedNick(peer)) {
+    return error(400, "missing or invalid `with` query param");
+  }
+  const beforeRaw = url.searchParams.get("before");
+  const before = beforeRaw ? Number(beforeRaw) : Date.now();
+  if (!Number.isFinite(before)) return error(400, "bad before");
+  const limit = Math.min(Number(url.searchParams.get("limit") ?? 50), 200);
+  return json({ messages: conversationBefore(forNick, peer, before, limit) });
+}
+
 // ── Dispatcher ─────────────────────────────────────────────────────
 
 const server = Bun.serve({
@@ -600,6 +742,18 @@ const server = Bun.serve({
     if (m) {
       if (req.method === "GET") return handleBackfill(m[1]!, url);
       if (req.method === "POST") return handlePostMessage(m[1]!, req, ip);
+    }
+
+    // ── DMs (public — same trust model as channel posts) ───────────
+    if (path === "/dms" && req.method === "POST") return handlePostDm(req, ip);
+    if (path === "/dms/stream" && req.method === "GET") {
+      return handleDmStream(req, url);
+    }
+    if (path === "/dms/conversations" && req.method === "GET") {
+      return handleDmConversations(url);
+    }
+    if (path === "/dms/conversation" && req.method === "GET") {
+      return handleDmConversation(url);
     }
 
     // ── Admin (everything below requires the token) ────────────────

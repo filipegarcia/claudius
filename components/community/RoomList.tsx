@@ -6,7 +6,12 @@ import { cn } from "@/lib/utils/cn";
 
 type Props = {
   rooms: Room[];
-  currentSlug: string;
+  /**
+   * Currently selected room slug. `null` when the main column is
+   * showing something other than a room (e.g. a DM thread) — no row
+   * shows the selected style in that case.
+   */
+  currentSlug: string | null;
   onSelect: (slug: string) => void;
   /** Per-room unread counts. Missing or 0 means no badge. */
   unreadByRoom?: Record<string, number>;

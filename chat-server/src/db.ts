@@ -18,7 +18,7 @@ import { Database, type SQLQueryBindings, type Statement } from "bun:sqlite";
 import { readFileSync, readdirSync, mkdirSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { Ban, BanKind, Message, Room } from "./types.ts";
+import type { Ban, BanKind, DM, Message, Room } from "./types.ts";
 
 const DB_PATH = process.env.CHAT_DB_PATH ?? "./data/chat.db";
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -621,6 +621,139 @@ export function containsBannedWord(body: string): string | null {
     if (lc.includes(w)) return w;
   }
   return null;
+}
+
+// ── Direct messages ───────────────────────────────────────────────
+//
+// Conversation := the bi-directional sequence of DMs between two
+// nicks (case-insensitive comparison via LOWER()). Routing on the bus
+// is per-nick (see `dmBus`). The wire surface mirrors channel
+// messages — body blanked for soft-deleted rows, deletedAt non-null.
+
+type DMRow = {
+  id: string;
+  from_nick: string;
+  to_nick: string;
+  body: string;
+  created_at: number;
+  deleted_at: number | null;
+};
+
+const toDm = (r: DMRow): DM => ({
+  id: r.id,
+  fromNick: r.from_nick,
+  toNick: r.to_nick,
+  body: r.deleted_at === null ? r.body : "",
+  createdAt: r.created_at,
+  deletedAt: r.deleted_at,
+});
+
+const stmtInsertDm = db.prepare(
+  `INSERT INTO dms (id, from_nick, from_ip, to_nick, body, created_at)
+   VALUES (?, ?, ?, ?, ?, ?)`,
+);
+
+/** Insert one DM and return the wire shape. */
+export function insertDm(input: {
+  id: string;
+  fromNick: string;
+  fromIp: string;
+  toNick: string;
+  body: string;
+}): DM {
+  const createdAt = Date.now();
+  stmtInsertDm.run(
+    input.id,
+    input.fromNick,
+    input.fromIp,
+    input.toNick,
+    input.body,
+    createdAt,
+  );
+  return {
+    id: input.id,
+    fromNick: input.fromNick,
+    toNick: input.toNick,
+    body: input.body,
+    createdAt,
+    deletedAt: null,
+  };
+}
+
+// Page of conversation history between `forNick` and `peer`. Both
+// directions covered by a UNION ALL so we don't care which leg has
+// the index advantage — the optimiser picks per-leg and the merge is
+// cheap at our scale.
+const stmtConversationBefore = db.prepare(
+  `SELECT id, from_nick, to_nick, body, created_at, deleted_at
+     FROM dms
+    WHERE created_at < ?
+      AND (
+        (LOWER(from_nick) = LOWER(?) AND LOWER(to_nick) = LOWER(?))
+        OR
+        (LOWER(from_nick) = LOWER(?) AND LOWER(to_nick) = LOWER(?))
+      )
+    ORDER BY created_at DESC
+    LIMIT ?`,
+);
+
+/**
+ * Paginated conversation history between `forNick` and `peer`, oldest
+ * within page returned first (matching the channel `messagesBefore`
+ * convention). Used by the load-older button in the DM thread.
+ */
+export function conversationBefore(
+  forNick: string,
+  peer: string,
+  before: number,
+  limit = 50,
+): DM[] {
+  return rows<DMRow>(stmtConversationBefore, [
+    before,
+    forNick,
+    peer,
+    peer,
+    forNick,
+    limit,
+  ])
+    .reverse()
+    .map(toDm);
+}
+
+// Conversation summary list: for each peer this user has ever
+// exchanged a DM with, return the most recent message and the peer
+// nick. Implemented as a UNION of the two legs then a GROUP BY peer
+// taking the max created_at. SQLite picks the right indexes for both
+// legs.
+const stmtConversationsFor = db.prepare(
+  `WITH pairs AS (
+     SELECT
+       CASE WHEN LOWER(from_nick) = LOWER(?) THEN to_nick ELSE from_nick END AS peer_nick,
+       id, from_nick, to_nick, body, created_at, deleted_at
+     FROM dms
+     WHERE LOWER(from_nick) = LOWER(?) OR LOWER(to_nick) = LOWER(?)
+   )
+   SELECT id, from_nick, to_nick, body, created_at, deleted_at, peer_nick
+     FROM pairs p
+    WHERE created_at = (
+      SELECT MAX(created_at) FROM pairs q
+       WHERE LOWER(q.peer_nick) = LOWER(p.peer_nick)
+    )
+    ORDER BY created_at DESC`,
+);
+
+export type ConversationSummary = {
+  peerNick: string;
+  lastMessage: DM;
+};
+
+/** Every conversation the given nick is party to, newest-first. */
+export function listConversationsFor(nick: string): ConversationSummary[] {
+  return rows<DMRow & { peer_nick: string }>(stmtConversationsFor, [
+    nick,
+    nick,
+    nick,
+  ]).map((r) => ({ peerNick: r.peer_nick, lastMessage: toDm(r) }));
 }
 
 export { db };

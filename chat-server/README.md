@@ -52,7 +52,11 @@ messages via SSE.
 | GET    | `/rooms`                                | none      | List rooms |
 | GET    | `/rooms/:slug/stream`                   | none      | SSE: `replay { messages: [] }` (no history on join) then live events |
 | GET    | `/rooms/:slug/messages?before=&limit=`  | none      | Backfill older history (default `limit=100`, max `500`). Client pulls 50 at a time via the “Load older” button as the user scrolls up |
-| POST   | `/rooms/:slug/messages`                 | nickname  | Body `{ nick, body }`; rate-limited 10/30s/IP |
+| POST   | `/rooms/:slug/messages`                 | nickname  | Body `{ nick, body }`; rate-limited 10/30s/IP. Server-side banned-words filter (channels only) returns 400 on a hit |
+| POST   | `/dms`                                  | nickname  | Send a direct message. Body `{ from, to, body }`. Same rate-limit + ban checks as channels; banned-words filter does NOT apply |
+| GET    | `/dms/stream?for=<nick>`                | none      | SSE: live `dm` / `dm_deleted` events for this nick. No replay — pull history with `/dms/conversation` |
+| GET    | `/dms/conversations?for=<nick>`         | none      | List `{ peerNick, lastMessage }` entries for every peer this nick has DM'd with |
+| GET    | `/dms/conversation?for=&with=&before=&limit=` | none | Paginated thread (default `limit=50`, max `200`), oldest-within-page first |
 | POST   | `/admin/messages`                       | admin     | Post as `admin`. Body `{ roomSlug, body }` |
 | POST   | `/admin/messages/:id/delete`            | admin     | Soft-delete. Body blanked on the wire; client renders `[deleted by admin]` placeholder |
 | POST   | `/admin/messages/:id/pin`               | admin     | Pin (one per room) |
@@ -82,7 +86,23 @@ type ChatEvent =
   | { type: "message_pinned"; roomSlug; id }
   | { type: "message_unpinned"; roomSlug }
   | { type: "community_state"; enabled: boolean; reason: string | null };
+
+// DM stream events (separate /dms/stream endpoint):
+type DMStreamEvent =
+  | { type: "dm"; message: DM }
+  | { type: "dm_deleted"; id: string };
 ```
+
+### DM trust model
+
+DMs are addressed by nick. There is **no authentication** — anyone
+who knows or guesses a recipient nick can subscribe to its `/dms/stream`
+and read its DMs. The same is true for channel posts (anyone can post
+as any nick), so DMs don't weaken the existing model; they just don't
+add a privacy layer the rest of the system lacks. For a small trusted
+community this is the intended trade-off. If you ever want real DM
+privacy, the upgrade path is a signed cookie / token tied to a nick at
+first-claim — additive to every endpoint's `for=` / `nick` parameter.
 
 See `src/types.ts` for the full TypeScript declarations. Mirrored in
 `lib/shared/community.ts` on the Claudius side — keep them in sync.

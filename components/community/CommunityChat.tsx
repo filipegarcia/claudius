@@ -1,9 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Bell, BellOff, PowerOff, ShieldCheck, Wifi, WifiOff } from "lucide-react";
+import {
+  Bell,
+  BellOff,
+  MessageSquarePlus,
+  PowerOff,
+  ShieldCheck,
+  Wifi,
+  WifiOff,
+} from "lucide-react";
 import { SideNav } from "@/components/nav/SideNav";
 import { useCommunity } from "@/lib/client/use-community";
+import { useDMs } from "@/lib/client/use-dms";
 import { useCommunityNotifications } from "@/components/community/CommunityNotificationsProvider";
 import { RoomList } from "@/components/community/RoomList";
 import { MessageList } from "@/components/community/MessageList";
@@ -11,6 +20,8 @@ import { PinnedBanner } from "@/components/community/PinnedBanner";
 import { Composer } from "@/components/community/Composer";
 import { NicknameModal } from "@/components/community/NicknameModal";
 import { AdminPanel } from "@/components/community/AdminPanel";
+import { DMThread } from "@/components/community/DMThread";
+import { NewDMModal } from "@/components/community/NewDMModal";
 
 type Props = {
   /**
@@ -36,8 +47,10 @@ type Props = {
  */
 export function CommunityChat({ onOptOut }: Props) {
   const community = useCommunity();
+  const dms = useDMs();
   const notifications = useCommunityNotifications();
   const [adminOpen, setAdminOpen] = useState(false);
+  const [newDMOpen, setNewDMOpen] = useState(false);
 
   const toggleNotifications = useCallback(async () => {
     const next = !notifications.enabled;
@@ -172,8 +185,8 @@ export function CommunityChat({ onOptOut }: Props) {
     <div className="flex h-full" data-testid="community-page">
       <SideNav />
 
-      {/* Room list */}
-      <aside className="w-44 shrink-0 border-r border-[var(--border)] bg-[var(--panel)]">
+      {/* Room + DM list */}
+      <aside className="flex w-52 shrink-0 flex-col border-r border-[var(--border)] bg-[var(--panel)]">
         <div className="flex items-center justify-between px-3 pt-3 pb-1">
           <span className="text-xs font-medium uppercase tracking-wider text-[var(--muted)]">
             Rooms
@@ -186,8 +199,13 @@ export function CommunityChat({ onOptOut }: Props) {
         </div>
         <RoomList
           rooms={community.rooms}
-          currentSlug={community.currentRoom}
-          onSelect={community.setCurrentRoom}
+          currentSlug={dms.currentPeer ? null : community.currentRoom}
+          onSelect={(slug) => {
+            // Selecting a channel implicitly closes any open DM
+            // thread — the main column flips back to room view.
+            dms.setCurrentPeer(null);
+            community.setCurrentRoom(slug);
+          }}
           unreadByRoom={notifications.unreadByRoom}
         />
         {community.roomsError && (
@@ -195,9 +213,64 @@ export function CommunityChat({ onOptOut }: Props) {
             {community.roomsError}
           </p>
         )}
+
+        {/* Direct messages */}
+        <div className="mt-4 flex items-center justify-between px-3 pb-1">
+          <span className="text-xs font-medium uppercase tracking-wider text-[var(--muted)]">
+            Direct messages
+          </span>
+          <button
+            type="button"
+            onClick={() => setNewDMOpen(true)}
+            disabled={!dms.configured}
+            title="New direct message"
+            className="rounded p-0.5 text-[var(--muted)] hover:bg-[var(--panel-2)] hover:text-[var(--foreground)] disabled:opacity-40"
+            data-testid="community-dm-new"
+          >
+            <MessageSquarePlus className="h-3.5 w-3.5" />
+          </button>
+        </div>
+        <ul
+          className="px-2 pb-2"
+          data-testid="community-dm-list"
+        >
+          {dms.conversations.length === 0 && (
+            <li className="px-2 py-1 text-[10px] text-[var(--muted)]">
+              No DMs yet. Start one with the “+” above.
+            </li>
+          )}
+          {dms.conversations.map((c) => {
+            const isCurrent =
+              dms.currentPeer?.toLowerCase() === c.peerNick.toLowerCase();
+            const preview = c.lastMessage.deletedAt
+              ? "(deleted)"
+              : c.lastMessage.body;
+            return (
+              <li key={c.peerNick}>
+                <button
+                  type="button"
+                  onClick={() => dms.setCurrentPeer(c.peerNick)}
+                  className={
+                    "block w-full truncate rounded px-2 py-1 text-left text-xs " +
+                    (isCurrent
+                      ? "bg-[var(--panel-2)] text-[var(--foreground)]"
+                      : "text-[var(--muted)] hover:bg-[var(--panel-2)] hover:text-[var(--foreground)]")
+                  }
+                  data-testid={`community-dm-conv-${c.peerNick}`}
+                >
+                  <span className="block truncate font-mono">@{c.peerNick}</span>
+                  <span className="block truncate text-[10px] text-[var(--muted)]">
+                    {preview || " "}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+
         {/* Footer: opt-out link, low-emphasis. Always shown so users can
             disconnect without hunting through Settings. */}
-        <div className="mt-3 border-t border-[var(--border)] px-3 py-2">
+        <div className="mt-auto border-t border-[var(--border)] px-3 py-2">
           <button
             type="button"
             onClick={onOptOut}
@@ -209,7 +282,18 @@ export function CommunityChat({ onOptOut }: Props) {
         </div>
       </aside>
 
-      {/* Main chat column */}
+      {/* Main column: DM thread when a peer is selected, otherwise the
+          channel chat. Mounting the DMThread instead of the channel
+          surface means the channel SSE keeps running in the
+          background (so unread badges accumulate while you're in a
+          DM) but the channel UI isn't taking up the column. */}
+      {dms.currentPeer ? (
+        <DMThread
+          dms={dms}
+          peer={dms.currentPeer}
+          onClose={() => dms.setCurrentPeer(null)}
+        />
+      ) : (
       <main className="flex min-w-0 flex-1 flex-col">
         <header className="flex items-center justify-between border-b border-[var(--border)] px-4 py-2">
           <div className="flex min-w-0 items-center gap-2">
@@ -328,6 +412,18 @@ export function CommunityChat({ onOptOut }: Props) {
           onSend={community.send}
         />
       </main>
+      )}
+
+      {newDMOpen && (
+        <NewDMModal
+          dms={dms}
+          onSent={(peer) => {
+            setNewDMOpen(false);
+            dms.setCurrentPeer(peer);
+          }}
+          onClose={() => setNewDMOpen(false)}
+        />
+      )}
 
       {adminOpen && community.isAdmin && (
         <AdminPanel
