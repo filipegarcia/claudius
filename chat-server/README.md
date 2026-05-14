@@ -54,9 +54,12 @@ messages via SSE.
 | GET    | `/rooms/:slug/messages?before=&limit=`  | none      | Backfill older history |
 | POST   | `/rooms/:slug/messages`                 | nickname  | Body `{ nick, body }`; rate-limited 10/30s/IP |
 | POST   | `/admin/messages`                       | admin     | Post as `admin`. Body `{ roomSlug, body }` |
-| POST   | `/admin/messages/:id/delete`            | admin     | Soft-delete |
+| POST   | `/admin/messages/:id/delete`            | admin     | Soft-delete. Body blanked on the wire; client renders `[deleted by admin]` placeholder |
 | POST   | `/admin/messages/:id/pin`               | admin     | Pin (one per room) |
+| POST   | `/admin/rooms`                          | admin     | Create channel. Body `{ slug, name, description? }`. Slug must match `[a-z0-9][a-z0-9_-]{0,30}` |
 | POST   | `/admin/rooms/:slug/unpin`              | admin     | Clear pin |
+| POST   | `/admin/rooms/:slug/clear`              | admin     | Hard-delete every message in the room. Broadcasts an empty `replay` to subscribers |
+| POST   | `/admin/rooms/:slug/compact?keep=N`     | admin     | Trim room to the most recent N messages (default 100, max 10 000). Broadcasts a fresh `replay` |
 | GET    | `/admin/bans`                           | admin     | List bans |
 | POST   | `/admin/bans`                           | admin     | Body `{ kind: 'nick'\|'ip', value, reason? }` |
 | DELETE | `/admin/bans/:id`                       | admin     | Lift a ban |

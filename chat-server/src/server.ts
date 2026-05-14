@@ -23,6 +23,9 @@ import { randomUUID } from "node:crypto";
 import { isAdminRequest, isReservedNick } from "./admin.ts";
 import { chatBus } from "./bus.ts";
 import {
+  clearRoomMessages,
+  compactRoomMessages,
+  createRoom,
   deleteBan,
   getMessage,
   getRoom,
@@ -325,6 +328,96 @@ function handleAdminListBans(): Response {
   return json({ bans: listBans() });
 }
 
+// ── Channel management (admin) ────────────────────────────────────
+
+const SLUG_RE = /^[a-z0-9][a-z0-9_-]{0,30}$/;
+const ROOM_NAME_MAX = 80;
+const ROOM_DESC_MAX = 200;
+
+async function handleAdminCreateRoom(req: Request): Promise<Response> {
+  let payload: unknown;
+  try {
+    payload = await req.json();
+  } catch {
+    return error(400, "invalid JSON");
+  }
+  const { slug: rawSlug, name: rawName, description: rawDesc } =
+    (payload ?? {}) as Record<string, unknown>;
+
+  if (typeof rawSlug !== "string" || !SLUG_RE.test(rawSlug.trim())) {
+    return error(
+      400,
+      "slug must match [a-z0-9][a-z0-9_-]{0,30} (lowercase, no spaces)",
+    );
+  }
+  if (typeof rawName !== "string" || !rawName.trim()) {
+    return error(400, "name required");
+  }
+  const slug = rawSlug.trim();
+  const name = rawName.trim().slice(0, ROOM_NAME_MAX);
+  const description =
+    typeof rawDesc === "string" && rawDesc.trim()
+      ? rawDesc.trim().slice(0, ROOM_DESC_MAX)
+      : null;
+
+  const room = createRoom({ slug, name, description });
+  if (!room) return error(409, "a room with that slug already exists");
+  // No SSE broadcast here — the per-room streams only fan out to
+  // already-subscribed clients. New rooms become visible to peers on
+  // their next /rooms refresh (and immediately for the admin via
+  // local refreshRooms() in the client hook).
+  return json({ ok: true, room });
+}
+
+async function handleAdminClearRoom(roomSlug: string): Promise<Response> {
+  const room = getRoom(roomSlug);
+  if (!room) return error(404, "no such room");
+  const removed = clearRoomMessages(roomSlug);
+  // Tell every subscriber to drop their local message buffer by
+  // emitting an empty replay. Reusing the existing replay event
+  // shape means no new client-side reducer branch is needed.
+  chatBus.broadcast({
+    type: "replay",
+    roomSlug,
+    messages: [],
+    pinnedMessageId: null,
+  });
+  return json({ ok: true, removed });
+}
+
+async function handleAdminCompactRoom(
+  roomSlug: string,
+  url: URL,
+): Promise<Response> {
+  const room = getRoom(roomSlug);
+  if (!room) return error(404, "no such room");
+  const keepRaw = url.searchParams.get("keep");
+  const keep = keepRaw === null ? 100 : Number(keepRaw);
+  if (!Number.isFinite(keep) || keep < 0 || keep > 10_000) {
+    return error(400, "keep must be a number between 0 and 10000");
+  }
+
+  const removed = compactRoomMessages(roomSlug, keep);
+
+  // If the pin pointed at a now-deleted message, clear it. Easiest
+  // check: re-fetch the room post-trim and see whether the pinned id
+  // still exists in messages.
+  const fresh = recentMessages(roomSlug, keep);
+  let pinnedMessageId = room.pinnedMessageId;
+  if (pinnedMessageId && !fresh.some((m) => m.id === pinnedMessageId)) {
+    setRoomPin(roomSlug, null);
+    pinnedMessageId = null;
+  }
+
+  chatBus.broadcast({
+    type: "replay",
+    roomSlug,
+    messages: fresh,
+    pinnedMessageId,
+  });
+  return json({ ok: true, removed, kept: fresh.length });
+}
+
 // ── Dispatcher ─────────────────────────────────────────────────────
 
 const server = Bun.serve({
@@ -367,6 +460,9 @@ const server = Bun.serve({
         if (req.method === "GET") return handleAdminListBans();
         if (req.method === "POST") return handleAdminBan(req);
       }
+      if (path === "/admin/rooms" && req.method === "POST") {
+        return handleAdminCreateRoom(req);
+      }
 
       m = path.match(/^\/admin\/messages\/([^/]+)\/delete$/);
       if (m && req.method === "POST") return handleAdminDelete(m[1]!);
@@ -376,6 +472,12 @@ const server = Bun.serve({
 
       m = path.match(/^\/admin\/rooms\/([^/]+)\/unpin$/);
       if (m && req.method === "POST") return handleAdminUnpin(m[1]!);
+
+      m = path.match(/^\/admin\/rooms\/([^/]+)\/clear$/);
+      if (m && req.method === "POST") return handleAdminClearRoom(m[1]!);
+
+      m = path.match(/^\/admin\/rooms\/([^/]+)\/compact$/);
+      if (m && req.method === "POST") return handleAdminCompactRoom(m[1]!, url);
 
       m = path.match(/^\/admin\/bans\/(\d+)$/);
       if (m && req.method === "DELETE") return handleAdminUnban(Number(m[1]!));
