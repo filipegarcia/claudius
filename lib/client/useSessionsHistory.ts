@@ -14,40 +14,57 @@ import type { SDKSessionInfo } from "@anthropic-ai/claude-agent-sdk";
  */
 export type StoredSession = SDKSessionInfo & { claudiusTitle?: string };
 
+/**
+ * Load the global sessions history. Pattern matches `useCost`
+ * (refetchTrigger + AbortController + setState-in-callback).
+ */
 export function useSessionsHistory() {
   const [sessions, setSessions] = useState<StoredSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const refresh = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/sessions/all");
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = (await res.json()) as { sessions?: StoredSession[]; error?: string };
-      if (data.error) throw new Error(data.error);
-      setSessions(data.sessions ?? []);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const [refetchTrigger, setRefetchTrigger] = useState(0);
 
   useEffect(() => {
-    void refresh();
-  }, [refresh]);
+    const controller = new AbortController();
 
-  const rename = useCallback(async (sessionId: string, title: string, dir?: string) => {
-    const res = await fetch("/api/sessions/rename", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sessionId, title, dir }),
-    });
-    if (res.ok) await refresh();
-    return res.ok;
-  }, [refresh]);
+    fetch("/api/sessions/all", { signal: controller.signal })
+      .then(async (res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return (await res.json()) as { sessions?: StoredSession[]; error?: string };
+      })
+      .then((data) => {
+        if (data.error) throw new Error(data.error);
+        setSessions(data.sessions ?? []);
+        setError(null);
+      })
+      .catch((err: unknown) => {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        setError(err instanceof Error ? err.message : String(err));
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [refetchTrigger]);
+
+  const refresh = useCallback(() => {
+    setLoading(true);
+    setRefetchTrigger((n) => n + 1);
+  }, []);
+
+  const rename = useCallback(
+    async (sessionId: string, title: string, dir?: string) => {
+      const res = await fetch("/api/sessions/rename", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId, title, dir }),
+      });
+      if (res.ok) refresh();
+      return res.ok;
+    },
+    [refresh],
+  );
 
   const fork = useCallback(
     async (
@@ -70,7 +87,7 @@ export function useSessionsHistory() {
     async (sessionId: string, dir?: string) => {
       const url = `/api/sessions/file/${sessionId}${dir ? `?dir=${encodeURIComponent(dir)}` : ""}`;
       const res = await fetch(url, { method: "DELETE" });
-      if (res.ok) await refresh();
+      if (res.ok) refresh();
       return res.ok;
     },
     [refresh],

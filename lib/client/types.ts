@@ -232,6 +232,13 @@ export type ChatState = {
   agents: string[];
   permissionMode: PermissionMode;
   model: string | null;
+  /**
+   * Currently selected reasoning effort. Optimistic — the SDK doesn't emit
+   * a `effort_changed` event analogous to `model_changed`, so this mirrors
+   * the last value the user picked through the model picker. Defaults to
+   * `"auto"` (adaptive thinking) on fresh sessions.
+   */
+  effort: "low" | "medium" | "high" | "xhigh" | "max" | "auto";
   sessions: SessionInfo[];
   skills: string[];
   cwd: string | null;

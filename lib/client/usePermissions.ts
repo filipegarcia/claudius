@@ -13,43 +13,59 @@ const EMPTY: ScopedRules = {
   local: { allow: [], ask: [], deny: [] },
 };
 
+/**
+ * Load the per-scope permission rules. Pattern matches `useCost`
+ * (refetchTrigger + AbortController + setState-in-callback).
+ */
 export function usePermissions() {
   const [rules, setRules] = useState<ScopedRules>(EMPTY);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const refresh = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/settings/permissions");
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = (await res.json()) as Record<Scope, { allow?: string[]; ask?: string[]; deny?: string[] }>;
-      const normalized: ScopedRules = {
-        user: { allow: data.user?.allow ?? [], ask: data.user?.ask ?? [], deny: data.user?.deny ?? [] },
-        project: {
-          allow: data.project?.allow ?? [],
-          ask: data.project?.ask ?? [],
-          deny: data.project?.deny ?? [],
-        },
-        local: { allow: data.local?.allow ?? [], ask: data.local?.ask ?? [], deny: data.local?.deny ?? [] },
-      };
-      setRules(normalized);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const [refetchTrigger, setRefetchTrigger] = useState(0);
 
   useEffect(() => {
-    void refresh();
-  }, [refresh]);
+    const controller = new AbortController();
+
+    fetch("/api/settings/permissions", { signal: controller.signal })
+      .then(async (res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return (await res.json()) as Record<Scope, { allow?: string[]; ask?: string[]; deny?: string[] }>;
+      })
+      .then((data) => {
+        const normalized: ScopedRules = {
+          user: { allow: data.user?.allow ?? [], ask: data.user?.ask ?? [], deny: data.user?.deny ?? [] },
+          project: {
+            allow: data.project?.allow ?? [],
+            ask: data.project?.ask ?? [],
+            deny: data.project?.deny ?? [],
+          },
+          local: { allow: data.local?.allow ?? [], ask: data.local?.ask ?? [], deny: data.local?.deny ?? [] },
+        };
+        setRules(normalized);
+        setError(null);
+      })
+      .catch((err: unknown) => {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        setError(err instanceof Error ? err.message : String(err));
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [refetchTrigger]);
+
+  const refresh = useCallback(() => {
+    setLoading(true);
+    setRefetchTrigger((n) => n + 1);
+  }, []);
 
   const updateRules = useCallback(
     async (scope: Scope, kind: RuleKind, next: string[]) => {
-      const optimistic = { ...rules, [scope]: { ...rules[scope], [kind]: next } };
-      setRules(optimistic);
+      // Optimistic local update. We patch onto the latest `rules` via the
+      // functional setter so the closure doesn't capture a stale snapshot
+      // when called twice in rapid succession.
+      setRules((prev) => ({ ...prev, [scope]: { ...prev[scope], [kind]: next } }));
       const res = await fetch("/api/settings/permissions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -57,10 +73,10 @@ export function usePermissions() {
       });
       if (!res.ok) {
         setError(`save failed: ${res.status}`);
-        await refresh();
+        refresh();
       }
     },
-    [rules, refresh],
+    [refresh],
   );
 
   return { rules, loading, error, refresh, updateRules };

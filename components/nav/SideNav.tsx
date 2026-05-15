@@ -117,11 +117,17 @@ const C_INDEX = 2; // 𐌂 (U+10302)
 
 function AnimatedGlyph({ running }: { running: boolean }) {
   const [i, setI] = useState(C_INDEX);
+  // Snap back to the static C glyph whenever the agent stops — runs in
+  // render via the "store previous props" pattern so setState stays out
+  // of the interval-setup effect body.
+  // https://react.dev/reference/react/useState#storing-information-from-previous-renders
+  const [wasRunning, setWasRunning] = useState(running);
+  if (wasRunning !== running) {
+    setWasRunning(running);
+    if (!running) setI(C_INDEX);
+  }
   useEffect(() => {
-    if (!running) {
-      setI(C_INDEX);
-      return;
-    }
+    if (!running) return;
     const id = setInterval(() => setI((n) => (n + 1) % OLD_ITALIC.length), 350);
     return () => clearInterval(id);
   }, [running]);

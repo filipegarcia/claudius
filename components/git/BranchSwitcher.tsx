@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Check, ChevronDown, GitBranch, Plus, RefreshCw, Cloud, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 
@@ -64,25 +64,55 @@ export function BranchSwitcher({
   const ref = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
-  const refresh = async () => {
+  // Refresh counter — bumping this triggers the fetch effect below.
+  // Pattern A keeps setState out of the effect body.
+  const [refetchTrigger, setRefetchTrigger] = useState(0);
+
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    loadBranches()
+      .then((b) => {
+        if (!cancelled) {
+          setBranches(b);
+          setLoadError(null);
+        }
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) setLoadError(err instanceof Error ? err.message : String(err));
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, loadBranches, refetchTrigger]);
+
+  const refresh = useCallback(() => {
     setLoading(true);
-    setLoadError(null);
-    try {
-      setBranches(await loadBranches());
-    } catch (err) {
-      setLoadError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setLoading(false);
+    setRefetchTrigger((n) => n + 1);
+  }, []);
+
+  // Reset filter / action-error and flip loading true the moment the
+  // popover opens — "store previous props" pattern so the setState
+  // runs in render, not inside the focus-effect below.
+  // https://react.dev/reference/react/useState#storing-information-from-previous-renders
+  const [wasOpen, setWasOpen] = useState(open);
+  if (wasOpen !== open) {
+    setWasOpen(open);
+    if (open) {
+      setLoading(true);
+      setFilter("");
+      setActionError(null);
+      setRefetchTrigger((n) => n + 1);
     }
-  };
+  }
 
   // Close on outside click + Esc; focus the search box on open so the user
   // can start typing immediately, just like the IntelliJ popover.
   useEffect(() => {
     if (!open) return;
-    void refresh();
-    setFilter("");
-    setActionError(null);
     const t = window.setTimeout(() => searchRef.current?.focus(), 0);
     function onClick(e: MouseEvent) {
       if (!ref.current?.contains(e.target as Node)) setOpen(false);
@@ -97,9 +127,6 @@ export function BranchSwitcher({
       window.removeEventListener("mousedown", onClick);
       window.removeEventListener("keydown", onEsc);
     };
-    // refresh is intentionally not in deps — re-running on every render would
-    // refetch on every keystroke.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   const { locals, remotes, currentBranch } = useMemo(() => {

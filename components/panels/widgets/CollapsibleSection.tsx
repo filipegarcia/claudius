@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 
@@ -22,32 +22,52 @@ type Props = {
 
 export function CollapsibleSection({ storageKey, label, badge, action, defaultCollapsed = false, children }: Props) {
   const fullKey = `claudius.activity.${storageKey}.collapsed`;
-  const [collapsed, setCollapsed] = useState<boolean>(defaultCollapsed);
-
-  // Hydrate from localStorage after mount (avoid SSR mismatch).
-  useEffect(() => {
-    if (typeof window === "undefined") return;
+  // Source-of-truth is localStorage, read through useSyncExternalStore so
+  // the value is always live (cross-tab toggles propagate via the
+  // `storage` event and same-tab toggles propagate via a custom
+  // `claudius.activity.changed` event). Server snapshot returns
+  // `defaultCollapsed` so the initial markup matches the pre-hydration
+  // client paint — no SSR mismatch. This replaces a former
+  // `useEffect(setCollapsed(...))` that tripped
+  // react-hooks/set-state-in-effect.
+  const subscribe = useCallback((cb: () => void) => {
+    if (typeof window === "undefined") return () => {};
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === fullKey) cb();
+    };
+    const onCustom = () => cb();
+    window.addEventListener("storage", onStorage);
+    window.addEventListener("claudius.activity.changed", onCustom);
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("claudius.activity.changed", onCustom);
+    };
+  }, [fullKey]);
+  const getSnapshot = useCallback(() => {
+    if (typeof window === "undefined") return defaultCollapsed;
     try {
       const raw = window.localStorage.getItem(fullKey);
-      if (raw === "1") setCollapsed(true);
-      else if (raw === "0") setCollapsed(false);
+      if (raw === "1") return true;
+      if (raw === "0") return false;
     } catch {
       // ignore
     }
-  }, [fullKey]);
+    return defaultCollapsed;
+  }, [fullKey, defaultCollapsed]);
+  const collapsed = useSyncExternalStore(subscribe, getSnapshot, () => defaultCollapsed);
 
   function toggle() {
-    setCollapsed((c) => {
-      const next = !c;
-      try {
-        if (typeof window !== "undefined") {
-          window.localStorage.setItem(fullKey, next ? "1" : "0");
-        }
-      } catch {
-        // ignore
+    const next = !collapsed;
+    try {
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(fullKey, next ? "1" : "0");
+        // Tell useSyncExternalStore subscribers in this tab to re-read —
+        // the native `storage` event only fires for OTHER tabs.
+        window.dispatchEvent(new Event("claudius.activity.changed"));
       }
-      return next;
-    });
+    } catch {
+      // ignore
+    }
   }
 
   return (

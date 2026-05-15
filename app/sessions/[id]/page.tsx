@@ -28,48 +28,61 @@ export default function SessionDetailPage() {
   const [rewinding, setRewinding] = useState<string | null>(null);
   const [showRaw, setShowRaw] = useState(false);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const qs = dir ? `?dir=${encodeURIComponent(dir)}` : "";
-      const [infoRes, txRes] = await Promise.all([
-        fetch(`/api/sessions/info/${id}${qs}`),
-        fetch(`/api/sessions/transcript/${id}${qs}`),
-      ]);
-      if (!infoRes.ok) throw new Error(`info: ${infoRes.status}`);
-      if (!txRes.ok) throw new Error(`transcript: ${txRes.status}`);
-      const meta = (await infoRes.json()) as SDKSessionInfo;
-      const tx = (await txRes.json()) as { messages: SessionMessage[] };
-      setInfo(meta);
-      setMessages(tx.messages ?? []);
-      // Pre-fill from a trusted title source only — `claudiusTitle`
-      // wins (set on every Claudius-side rename even when the SDK's
-      // JSONL header write was deferred); `customTitle` is the SDK's
-      // copy. `summary`/`firstPrompt` would put prompt text in the
-      // rename input and tempt the user to "Save" it as the title.
-      setTitleDraft(
-        (meta as { claudiusTitle?: string }).claudiusTitle
-          ?? meta.customTitle
-          ?? "",
-      );
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setLoading(false);
-    }
-  }, [id, dir]);
+  const [reloadTrigger, setReloadTrigger] = useState(0);
 
   useEffect(() => {
-    if (id) void load();
-  }, [id, load]);
+    if (!id) return;
+    const controller = new AbortController();
+    const qs = dir ? `?dir=${encodeURIComponent(dir)}` : "";
+
+    Promise.all([
+      fetch(`/api/sessions/info/${id}${qs}`, { signal: controller.signal }),
+      fetch(`/api/sessions/transcript/${id}${qs}`, { signal: controller.signal }),
+    ])
+      .then(async ([infoRes, txRes]) => {
+        if (!infoRes.ok) throw new Error(`info: ${infoRes.status}`);
+        if (!txRes.ok) throw new Error(`transcript: ${txRes.status}`);
+        const meta = (await infoRes.json()) as SDKSessionInfo;
+        const tx = (await txRes.json()) as { messages: SessionMessage[] };
+        return { meta, tx };
+      })
+      .then(({ meta, tx }) => {
+        setInfo(meta);
+        setMessages(tx.messages ?? []);
+        // Pre-fill from a trusted title source only — `claudiusTitle`
+        // wins (set on every Claudius-side rename even when the SDK's
+        // JSONL header write was deferred); `customTitle` is the SDK's
+        // copy. `summary`/`firstPrompt` would put prompt text in the
+        // rename input and tempt the user to "Save" it as the title.
+        setTitleDraft(
+          (meta as { claudiusTitle?: string }).claudiusTitle
+            ?? meta.customTitle
+            ?? "",
+        );
+        setError(null);
+      })
+      .catch((err: unknown) => {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        setError(err instanceof Error ? err.message : String(err));
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [id, dir, reloadTrigger]);
+
+  const load = useCallback(() => {
+    setLoading(true);
+    setReloadTrigger((n) => n + 1);
+  }, []);
 
   const onRename = async () => {
     if (!titleDraft.trim()) return;
     const ok = await rename(id, titleDraft.trim(), dir);
     if (ok) {
       setRenaming(false);
-      void load();
+      load();
     }
   };
 

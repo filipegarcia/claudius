@@ -53,6 +53,12 @@ type SDKContentBlock =
     }
   | { type: string; [k: string]: unknown };
 
+// sessionStorage tops out around 5–10 MB per origin in most browsers.
+// Cap our serialized queue payload at 5 MB to leave room for everything else.
+// Hoisted to module scope so `useCallback` deps can omit it without tripping
+// exhaustive-deps.
+const QUEUE_MAX_BYTES = 5 * 1024 * 1024;
+
 /**
  * Coerce a raw `todos` payload (as emitted by the TodoWrite tool or replayed
  * via `session_snapshot`) into the shape the activity rail renders. Tolerant
@@ -190,6 +196,15 @@ export function useSession(): ChatState & ChatActions {
   const [sessionTitle, setSessionTitle] = useState<string | null>(null);
   const [permissionMode, setPermissionModeState] = useState<PermissionMode>("default");
   const [model, setModelState] = useState<string | null>(null);
+  // Reasoning effort. The SDK doesn't expose the *current* effort on any
+  // event we replay — there's no `effort_changed` analogue to
+  // `model_changed`. We mirror what we know: "auto" until the user picks an
+  // explicit level via the picker, then whatever they picked. A user who
+  // types `/effort high` directly into the composer bypasses this mirror and
+  // the card will lag — acceptable because the picker is the canonical
+  // surface and the value re-syncs on the next picker interaction.
+  const [effort, setEffortState] =
+    useState<"low" | "medium" | "high" | "xhigh" | "max" | "auto">("auto");
   const [sessions, setSessions] = useState<SessionInfo[]>([]);
 
   // Mirror `model` into the ref so SSE handlers can compute pricing without
@@ -255,15 +270,21 @@ export function useSession(): ChatState & ChatActions {
   // events (which carry `message.id` directly). Cleared on `message_stop`.
   const scopeMessageIdRef = useRef<Map<string, string>>(new Map());
   const flushQueueRef = useRef<() => void>(() => {});
+  // Monotonic counter for in-flight session transitions (switch / create).
+  // Each call increments and captures it; after the wake POST resolves the
+  // call rechecks the counter and bails if a newer transition has started.
+  // Without this, two rapid switches (tab-click, then notification-jump,
+  // for example) interleave their resetState/bindToSession pairs and the
+  // chat ends up with messages from both sessions stacked together. The
+  // SSE-close-at-top fix earlier in this file stops the OUT-of-band leak
+  // through the EventSource; this counter stops the IN-band leak through
+  // setMessages on a stale bindToSession callsite.
+  const switchGenRef = useRef(0);
 
   // ── sessionStorage persistence ────────────────────────────────────────
   // Queue lives only for the duration of this tab — explicitly NOT
   // localStorage, because a tab close should drop it.
   const queueKey = (sid: string | null) => (sid ? `claudius.queue.${sid}` : null);
-
-  // sessionStorage tops out around 5–10 MB per origin in most browsers.
-  // Cap our serialized payload at 5 MB to leave room for everything else.
-  const QUEUE_MAX_BYTES = 5 * 1024 * 1024;
 
   /**
    * Persist a specific session's queue into sessionStorage. Keyed by the
@@ -462,6 +483,7 @@ export function useSession(): ChatState & ChatActions {
     setSessionTitle(null);
     setPermissionModeState("default");
     setModelState(null);
+    setEffortState("auto");
     scratchRef.current.clear();
     scopeMessageIdRef.current = new Map();
     lastAssistantUuidRef.current = "";
@@ -1874,23 +1896,31 @@ export function useSession(): ChatState & ChatActions {
   const switchSession = useCallback(
     async (id: string): Promise<void> => {
       if (sessionIdRef.current === id) return;
-      // Cut the outgoing session's SSE BEFORE resetState wipes messages.
-      // Order matters: resetState clears the transcript synchronously, but
-      // the wake POST below awaits for ~30–100ms before bindToSession
-      // closes the old EventSource. If we left the old socket open across
-      // that window, any events the outgoing session emits (turn_status, a
-      // late tool_result, a JSONL-watcher resync rebroadcast) would land in
-      // the now-empty messages state, and the user would see a mix of
-      // "messages from another session" plus the new session's tail replay
-      // on top — exactly the symptom we're fixing. Closing here closes
-      // synchronously per the WHATWG spec, so the browser stops dispatching
-      // events from that socket immediately. The closure-captured `boundId`
-      // guard in bindToSession is the belt; this is the suspenders.
-      //
-      // Null the ref too: bindToSession reads it as the "previous" handle
-      // and we don't want a stale double-close warning in some browsers.
+      // Bump the generation counter FIRST. Any concurrent switchSession
+      // / createSession call that's awaiting its wake POST will see the
+      // bumped value and bail out before its bindToSession runs — that
+      // prevents two transitions from interleaving and bleeding state
+      // from one into the other.
+      const gen = ++switchGenRef.current;
+
+      // Hard-cut the outgoing session.
+      //  - Close the EventSource synchronously per the WHATWG spec, so
+      //    the browser stops dispatching its events immediately.
+      //  - Null sessionIdRef BEFORE the await: every read site (send,
+      //    flushQueue, resolvePermission, …) checks `if (!id) return`,
+      //    so any user activity during the ~30–100 ms wake POST window
+      //    fail-softs instead of POSTing to the OUTGOING session and
+      //    leaving an optimistic bubble that then renders against the
+      //    INCOMING session's freshly-replayed state. (The user kept
+      //    reporting "my messages went somewhere else / disappeared";
+      //    this synchronous in-band leak via setMessages was the path
+      //    that survived the earlier SSE-close fix.)
+      //  - resetState clears the transcript so the user sees an empty
+      //    pane while the new session loads, not a half-stale view.
       eventSourceRef.current?.close();
       eventSourceRef.current = null;
+      sessionIdRef.current = null;
+      setSessionId(null);
       resetState();
       // AWAIT the wake POST before opening the SSE — this mirrors the
       // boot path exactly (`createSession` does `await fetch(...)` then
@@ -1937,6 +1967,11 @@ export function useSession(): ChatState & ChatActions {
         // Non-fatal: the stream route still does its own getOrResumeSession
         // fallback, so we proceed to bindToSession either way.
       }
+      // A newer transition started while we were awaiting? Give up.
+      // The newer call has already bumped the generation, closed any ES,
+      // and will run its own bindToSession when its await resolves.
+      // Continuing here would clobber it.
+      if (switchGenRef.current !== gen) return;
       bindToSession(id);
       void refreshSessions();
     },
@@ -1945,6 +1980,18 @@ export function useSession(): ChatState & ChatActions {
 
   const createSession = useCallback(
     async (opts: CreateSessionRequest = {}): Promise<string | null> => {
+      // Mirror switchSession's discipline. Bump the generation counter so
+      // any in-flight switch bails when it next checks. Cut the outgoing
+      // session (ES + sessionIdRef) at the top so user activity during
+      // the create POST can't leak into the outgoing session. resetState
+      // wipes the transcript so the user sees an empty pane while the
+      // new session is being born.
+      const gen = ++switchGenRef.current;
+      eventSourceRef.current?.close();
+      eventSourceRef.current = null;
+      sessionIdRef.current = null;
+      setSessionId(null);
+      resetState();
       try {
         const res = await fetch("/api/sessions", {
           method: "POST",
@@ -1953,7 +2000,8 @@ export function useSession(): ChatState & ChatActions {
         });
         if (!res.ok) throw new Error(`create session failed: ${res.status}`);
         const { id } = (await res.json()) as { id: string };
-        resetState();
+        // A newer transition superseded this one — don't bind.
+        if (switchGenRef.current !== gen) return null;
         bindToSession(id);
         await refreshSessions();
         return id;
@@ -2332,19 +2380,32 @@ export function useSession(): ChatState & ChatActions {
   }, []);
 
   /**
-   * Effort/reasoning level is owned by the SDK — there's no dedicated
-   * control-plane setter the way `setModel` has one. Mirror the CLI's
-   * behavior by sending `/effort <level>` through the slash-command path.
-   * The server's `slash_invoked` pill replaces the user-message echo, so
-   * the chat stays clean while the SDK applies the change for the next
-   * turn (and any in-flight turn, since `applyFlagSettings` underneath
-   * the slash takes effect mid-stream on supported models).
+   * Effort/reasoning level. Routed through a dedicated `/effort` API route
+   * that calls `Query.applyFlagSettings({ effortLevel: <level> })` on the
+   * server. The first cut sent `/effort <level>` as a slash command, but
+   * the SDK doesn't register that command and answered with
+   * "/effort isn't available in this environment." — leaving the picker
+   * looking like it worked while the model kept its prior effort.
+   *
+   * `"auto"` clears the override and restores adaptive thinking. We
+   * optimistic-mirror the pick locally so the SessionCard pill reflects
+   * the chosen level immediately; the SDK doesn't emit an
+   * `effort_changed` event we can subscribe to, so this mirror is the
+   * source of truth as long as users only change effort through the
+   * picker.
    */
   const setEffort = useCallback(
     async (level: "low" | "medium" | "high" | "xhigh" | "max" | "auto") => {
-      await send(`/effort ${level}`, undefined, { asSlashCommand: true });
+      const id = sessionIdRef.current;
+      if (!id) return;
+      setEffortState(level);
+      await fetch(`/api/sessions/${id}/effort`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ level }),
+      }).catch(() => {});
     },
-    [send],
+    [],
   );
 
   const renameTitle = useCallback(
@@ -2397,6 +2458,7 @@ export function useSession(): ChatState & ChatActions {
     agents,
     permissionMode,
     model,
+    effort,
     sessions,
     skills,
     cwd,

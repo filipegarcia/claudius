@@ -18,32 +18,43 @@ export default function KeybindingsPage() {
   const [showRaw, setShowRaw] = useState(false);
   const [rawDraft, setRawDraft] = useState("");
 
-  const refresh = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/keybindings");
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const d = (await res.json()) as { path: string; exists: boolean; data: KeybindingsFile };
-      setPath(d.path);
-      setExists(d.exists);
-      const arr = Array.isArray(d.data?.bindings) ? d.data.bindings : [];
-      setBindings(arr);
-      const { bindings: _ignored, ...rest } = d.data ?? {};
-      void _ignored;
-      setExtras(rest as Record<string, unknown>);
-      setRawDraft(JSON.stringify(d.data ?? {}, null, 2));
-      setDirty(false);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const [refetchTrigger, setRefetchTrigger] = useState(0);
 
   useEffect(() => {
-    void refresh();
-  }, [refresh]);
+    const controller = new AbortController();
+
+    fetch("/api/keybindings", { signal: controller.signal })
+      .then(async (res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return (await res.json()) as { path: string; exists: boolean; data: KeybindingsFile };
+      })
+      .then((d) => {
+        setPath(d.path);
+        setExists(d.exists);
+        const arr = Array.isArray(d.data?.bindings) ? d.data.bindings : [];
+        setBindings(arr);
+        const { bindings: _ignored, ...rest } = d.data ?? {};
+        void _ignored;
+        setExtras(rest as Record<string, unknown>);
+        setRawDraft(JSON.stringify(d.data ?? {}, null, 2));
+        setDirty(false);
+        setError(null);
+      })
+      .catch((err: unknown) => {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        setError(err instanceof Error ? err.message : String(err));
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [refetchTrigger]);
+
+  const refresh = useCallback(() => {
+    setLoading(true);
+    setRefetchTrigger((n) => n + 1);
+  }, []);
 
   const onSave = async () => {
     setSaving(true);

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { addGroup, listAll, removeGroup, setDisableAllHooks } from "@/lib/server/hooks";
+import { addGroup, listAll, removeGroup } from "@/lib/server/hooks";
 import { HOOK_EVENT_NAMES, type HookEvent, type HookGroup } from "@/lib/shared/hook-events";
 import type { SettingsScope } from "@/lib/server/settings";
 

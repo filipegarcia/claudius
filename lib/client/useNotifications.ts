@@ -37,20 +37,35 @@ type Options = {
 
 export function useNotifications(opts: Options) {
   const { workspace, onJump, activeSessionId } = opts;
-  const [state, setState] = useState<NotifyState>("unsupported");
+  // Lazy init reads the live Notification.permission once on first
+  // render. On the server `Notification` is undefined → "unsupported".
+  // On the client, after hydration, this matches the current browser
+  // permission. The brief SSR-vs-client mismatch on first paint is
+  // acceptable because no Notifications UI is rendered before
+  // hydration completes anyway.
+  const [state, setState] = useState<NotifyState>(() => {
+    if (typeof window === "undefined" || !("Notification" in window)) return "unsupported";
+    return Notification.permission as NotifyState;
+  });
   const visibleRef = useRef(true);
+  // The notification's onclick handler is bound ONCE for the lifetime
+  // of an OS-toast; we want it to read the latest `onJump` /
+  // `activeSessionId` without forcing the whole effect to re-run on
+  // every prop change. Writing the ref's `.current` during render is
+  // the documented escape hatch for "always-fresh values in a handler"
+  // until React 19's `useEffectEvent` ships out of experimental.
   const onJumpRef = useRef(onJump);
+  // eslint-disable-next-line react-hooks/refs
   onJumpRef.current = onJump;
   const activeSessionRef = useRef(activeSessionId ?? null);
+  // eslint-disable-next-line react-hooks/refs
   activeSessionRef.current = activeSessionId ?? null;
 
-  // Permission state + visibility tracking.
+  // Visibility tracking. The permission state is already correct from
+  // the lazy initializer above; the only reason this effect exists is
+  // to keep `visibleRef` in sync with `document.hidden`.
   useEffect(() => {
-    if (typeof window === "undefined" || !("Notification" in window)) {
-      setState("unsupported");
-      return;
-    }
-    setState(Notification.permission as NotifyState);
+    if (typeof window === "undefined") return;
     function onVis() {
       visibleRef.current = !document.hidden;
     }

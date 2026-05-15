@@ -96,24 +96,38 @@ export function CustomizationBanner() {
   const customizationId =
     runtime?.isPreview ? runtime.customizationId : customizationInScope?.id ?? null;
 
-  const fetchPreview = useCallback(async (id: string) => {
-    try {
-      const r = await fetch(`/api/customizations/${id}/preview`);
-      if (r.ok) setPreview((await r.json()) as PreviewState);
-    } catch {
-      // ignore
-    }
+  // Stable callback for the on-demand preview re-fetch (used by
+  // `onOpenPreview` below). setState lives inside the Promise callback,
+  // so it doesn't trip react-hooks/set-state-in-effect when invoked from
+  // an effect.
+  const fetchPreview = useCallback((id: string, signal?: AbortSignal) => {
+    return fetch(`/api/customizations/${id}/preview`, { signal })
+      .then(async (r) => {
+        if (!r.ok) return;
+        setPreview((await r.json()) as PreviewState);
+      })
+      .catch((err: unknown) => {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        // best-effort polling
+      });
   }, []);
 
   // When we know which customization matters and we're on the main server,
   // poll preview state so the "Open preview" button reflects reality.
+  // The initial fetch runs inside the effect via the same `fetchPreview`
+  // callback — setState happens in its Promise chain, not in this effect
+  // body, satisfying react-hooks/set-state-in-effect.
   useEffect(() => {
     if (!customizationId || runtime?.isPreview) return;
-    void fetchPreview(customizationId);
+    const controller = new AbortController();
+    void fetchPreview(customizationId, controller.signal);
     const t = setInterval(() => {
-      void fetchPreview(customizationId);
+      void fetchPreview(customizationId, controller.signal);
     }, 4000);
-    return () => clearInterval(t);
+    return () => {
+      controller.abort();
+      clearInterval(t);
+    };
   }, [customizationId, runtime?.isPreview, fetchPreview]);
 
   const onOpenPreview = useCallback(async () => {

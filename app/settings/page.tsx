@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, RefreshCw, Save, Settings as SettingsIcon, X } from "lucide-react";
 import { SideNav } from "@/components/nav/SideNav";
@@ -37,13 +37,22 @@ export default function SettingsPage() {
 
   const active = settings.scopes.find((s) => s.scope === scope);
 
-  // Re-seed draft whenever the active scope's settings load.
-  useEffect(() => {
+  // Re-seed draft whenever the active scope's settings load. Done during
+  // render via the "store previous props" pattern so the reset isn't a
+  // sync setState inside an effect body.
+  // https://react.dev/reference/react/useState#storing-information-from-previous-renders
+  //
+  // Keyed by `(scope, JSON of active settings)` so a re-fetch that returns
+  // the same payload doesn't gratuitously wipe an in-progress edit.
+  const activeKey = `${scope}:${JSON.stringify(active?.settings ?? {})}`;
+  const [lastActiveKey, setLastActiveKey] = useState(activeKey);
+  if (lastActiveKey !== activeKey) {
+    setLastActiveKey(activeKey);
     setDraft(active?.settings ?? {});
     setRawDraft(JSON.stringify(active?.settings ?? {}, null, 2));
     setRawError(null);
     setDirty(false);
-  }, [active]);
+  }
 
   const onSave = async () => {
     if (!dirty) return;

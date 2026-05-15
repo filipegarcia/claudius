@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 
 export type EditorId = "vscode" | "cursor" | "windsurf" | "zed" | "jetbrains" | "system";
 
@@ -14,6 +14,8 @@ export const EDITORS: { id: EditorId; label: string; hint: string }[] = [
 ];
 
 const STORAGE_KEY = "claudius.editor";
+const DEFAULT: EditorId = "vscode";
+const SAME_TAB_EVENT = "claudius.editor.changed";
 
 export function buildEditorUrl(absPath: string, line: number | undefined, ide: EditorId): string {
   const safe = absPath.replace(/^~\//, ""); // unlikely but tidy
@@ -38,26 +40,41 @@ export function buildEditorUrl(absPath: string, line: number | undefined, ide: E
   }
 }
 
-export function useEditor() {
-  const [editor, setEditorState] = useState<EditorId>("vscode");
+function readSnapshot(): EditorId {
+  if (typeof window === "undefined") return DEFAULT;
+  try {
+    const saved = window.localStorage.getItem(STORAGE_KEY) as EditorId | null;
+    if (saved && EDITORS.some((e) => e.id === saved)) return saved;
+  } catch {
+    // ignore
+  }
+  return DEFAULT;
+}
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    try {
-      const saved = window.localStorage.getItem(STORAGE_KEY) as EditorId | null;
-      if (saved && EDITORS.some((e) => e.id === saved)) setEditorState(saved);
-    } catch {
-      // ignore
-    }
-  }, []);
+function subscribe(cb: () => void) {
+  if (typeof window === "undefined") return () => {};
+  window.addEventListener("storage", cb);
+  window.addEventListener(SAME_TAB_EVENT, cb);
+  return () => {
+    window.removeEventListener("storage", cb);
+    window.removeEventListener(SAME_TAB_EVENT, cb);
+  };
+}
+
+/**
+ * IDE preference sourced from localStorage via `useSyncExternalStore` —
+ * same pattern as `useTheme`. See that hook's docstring for the why.
+ */
+export function useEditor() {
+  const editor = useSyncExternalStore(subscribe, readSnapshot, () => DEFAULT);
 
   const setEditor = useCallback((id: EditorId) => {
-    setEditorState(id);
     try {
       window.localStorage.setItem(STORAGE_KEY, id);
     } catch {
       // ignore
     }
+    window.dispatchEvent(new Event(SAME_TAB_EVENT));
   }, []);
 
   return { editor, setEditor };

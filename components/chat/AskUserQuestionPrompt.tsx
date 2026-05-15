@@ -71,9 +71,14 @@ export function AskUserQuestionPrompt({ request, onSubmit, onCancel, onMinimize 
     : "empty";
 
   // Reset focus into the option list when the active question changes.
-  useEffect(() => {
+  // "Store previous props" pattern — the React 19 way to reset state on
+  // prop/state change without a setState-in-effect cascade.
+  // https://react.dev/reference/react/useState#storing-information-from-previous-renders
+  const [lastActive, setLastActive] = useState(active);
+  if (lastActive !== active) {
+    setLastActive(active);
     setFocusedOption(0);
-  }, [active]);
+  }
 
   // Focus the Other input when revealed.
   useEffect(() => {

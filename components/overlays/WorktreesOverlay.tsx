@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { GitBranch, Lock, RefreshCw, AlertTriangle, Folder, Plus } from "lucide-react";
 import { Overlay } from "./Overlay";
 import { cn } from "@/lib/utils/cn";
@@ -26,27 +26,37 @@ export function WorktreesOverlay({ cwd, onClose, onOpen }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  async function refresh() {
-    if (!cwd) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const params = new URLSearchParams({ cwd });
-      const res = await fetch(`/api/worktrees?${params}`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const d = (await res.json()) as { worktrees: Worktree[] };
-      setWorktrees(d.worktrees);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setLoading(false);
-    }
-  }
+  // Pattern A: trigger-driven fetch with setState only inside Promise
+  // callbacks. `refresh()` bumps the counter to re-run the effect.
+  const [refetchTrigger, setRefetchTrigger] = useState(0);
 
   useEffect(() => {
-    void refresh();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cwd]);
+    if (!cwd) return;
+    const controller = new AbortController();
+    const params = new URLSearchParams({ cwd });
+    fetch(`/api/worktrees?${params}`, { signal: controller.signal })
+      .then(async (res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return (await res.json()) as { worktrees: Worktree[] };
+      })
+      .then((d) => {
+        setWorktrees(d.worktrees);
+        setError(null);
+      })
+      .catch((err: unknown) => {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        setError(err instanceof Error ? err.message : String(err));
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+    return () => controller.abort();
+  }, [cwd, refetchTrigger]);
+
+  const refresh = useCallback(() => {
+    setLoading(true);
+    setRefetchTrigger((n) => n + 1);
+  }, []);
 
   return (
     <Overlay

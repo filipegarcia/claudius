@@ -55,15 +55,31 @@ export function useTabClaim(sessionId: string | null): {
         if (!heldRef.current) becomeHolder();
       }, 250);
     },
-    [post, becomeHolder],
+    // `tabId` is stable for the lifetime of the hook (lazy-initialized useState
+    // with no setter call site), so including it here is a no-op but quiets
+    // exhaustive-deps.
+    [post, becomeHolder, tabId],
   );
+
+  // Clear `readOnly` whenever the session is unbound. The state reset
+  // is done during render via the "store previous props" pattern; the
+  // mutable `heldRef` is cleared in the effect cleanup below, where ref
+  // writes are allowed.
+  // https://react.dev/reference/react/useState#storing-information-from-previous-renders
+  const [lastSessionId, setLastSessionId] = useState(sessionId);
+  if (lastSessionId !== sessionId) {
+    setLastSessionId(sessionId);
+    if (!sessionId) setReadOnly(false);
+  }
 
   // Set up channel + per-session claim sequence.
   useEffect(() => {
     if (typeof window === "undefined" || typeof BroadcastChannel === "undefined") return;
     if (!sessionId) {
+      // Effect ran for the "no session" case — clear the holder flag so
+      // a later bind starts from a clean slate. Doing this in the effect
+      // (not during render) satisfies `react-hooks/refs`.
       heldRef.current = false;
-      setReadOnly(false);
       return;
     }
     const ch = new BroadcastChannel("claudius.sessions");
@@ -117,7 +133,9 @@ export function useTabClaim(sessionId: string | null): {
       channelRef.current = null;
       heldRef.current = false;
     };
-  }, [sessionId, post, demote, tryClaim]);
+    // `tabId` is stable (lazy-initialized useState); included to satisfy
+    // exhaustive-deps without changing behavior.
+  }, [sessionId, post, demote, tryClaim, tabId]);
 
   const takeOver = useCallback(() => {
     if (!sessionId) return;

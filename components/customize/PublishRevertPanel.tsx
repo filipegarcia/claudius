@@ -24,28 +24,40 @@ export function PublishRevertPanel({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const refresh = useCallback(async () => {
-    setError(null);
-    try {
-      const [diffRes, listRes] = await Promise.all([
-        fetch(`/api/customizations/${customizationId}/diff`),
-        fetch(`/api/customizations/${customizationId}/publishes`),
-      ]);
-      if (diffRes.ok) setDiff((await diffRes.json()) as DiffSummary);
-      if (listRes.ok) {
-        const d = (await listRes.json()) as { publishes: PublishRecord[] };
-        setPublishes(d.publishes);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setLoading(false);
-    }
-  }, [customizationId]);
+  const [refetchTrigger, setRefetchTrigger] = useState(0);
 
+  // Pattern A: the fetch + setState chain lives inside this effect's
+  // Promise callbacks, so react-hooks/set-state-in-effect is satisfied.
+  // `refresh()` below just bumps the trigger; consumers don't await it
+  // — they used to, but the next render's effect now does the work.
   useEffect(() => {
-    void refresh();
-  }, [refresh]);
+    const controller = new AbortController();
+    Promise.all([
+      fetch(`/api/customizations/${customizationId}/diff`, { signal: controller.signal }),
+      fetch(`/api/customizations/${customizationId}/publishes`, { signal: controller.signal }),
+    ])
+      .then(async ([diffRes, listRes]) => {
+        if (diffRes.ok) setDiff((await diffRes.json()) as DiffSummary);
+        if (listRes.ok) {
+          const d = (await listRes.json()) as { publishes: PublishRecord[] };
+          setPublishes(d.publishes);
+        }
+        setError(null);
+      })
+      .catch((err: unknown) => {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        setError(err instanceof Error ? err.message : String(err));
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+    return () => controller.abort();
+  }, [customizationId, refetchTrigger]);
+
+  const refresh = useCallback(() => {
+    setLoading(true);
+    setRefetchTrigger((n) => n + 1);
+  }, []);
 
   const onPublish = useCallback(async () => {
     if (!confirm("Publish these changes? Base files will be overwritten — snapshots are kept for revert.")) {

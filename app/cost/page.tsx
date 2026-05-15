@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, BarChart3, ExternalLink, RefreshCw } from "lucide-react";
 import { SideNav } from "@/components/nav/SideNav";

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Bot, FilePlus, RefreshCw, Save, Trash2 } from "lucide-react";
 import { SideNav } from "@/components/nav/SideNav";
@@ -51,32 +51,40 @@ export default function AgentsPage() {
     }
   }, [cwd]);
 
-  useEffect(() => {
-    void refresh();
-  }, [refresh]);
-
   // Reset selection / draft state on workspace switch — a stale selection
   // from a different cwd would either render a missing file or, worse,
-  // pretend an unrelated workspace's agent belongs to this one.
-  useEffect(() => {
+  // pretend an unrelated workspace's agent belongs to this one. Reset
+  // happens during render via the "store previous props" pattern; React
+  // 19 prefers this over the prior `useEffect([cwd])` form.
+  // https://react.dev/reference/react/useState#storing-information-from-previous-renders
+  const [lastCwd, setLastCwd] = useState(cwd);
+  if (lastCwd !== cwd) {
+    setLastCwd(cwd);
     setActive(null);
     setDirty(false);
     setError(null);
-  }, [cwd]);
+  }
 
   // When the active agent changes, populate the draft from the loaded file.
-  useEffect(() => {
+  // Same "store previous props" pattern — the dependency is the (active,
+  // scopes) pair, encoded as a stable signature so an array-identity
+  // change in `scopes` (which happens after every refresh) doesn't
+  // gratuitously wipe `draft`.
+  const draftKey = active ? `${active.scope}:${active.name}` : "";
+  const [lastDraftKey, setLastDraftKey] = useState(draftKey);
+  if (lastDraftKey !== draftKey) {
+    setLastDraftKey(draftKey);
     if (!active) {
       setDraft("");
       setDirty(false);
-      return;
+    } else {
+      const file = scopes
+        .find((s) => s.scope === active.scope)
+        ?.files.find((f) => f.name === active.name);
+      setDraft(file?.raw ?? "");
+      setDirty(false);
     }
-    const file = scopes
-      .find((s) => s.scope === active.scope)
-      ?.files.find((f) => f.name === active.name);
-    setDraft(file?.raw ?? "");
-    setDirty(false);
-  }, [active, scopes]);
+  }
 
   const onSave = async () => {
     if (!active || !cwd) return;

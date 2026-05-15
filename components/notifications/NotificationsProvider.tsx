@@ -67,8 +67,12 @@ type ContextValue = {
    * page when the user selects a tab — "I'm looking at this session now".
    */
   markSessionRead: (sessionId: string) => Promise<void>;
-  /** Refetch authoritative state from the server. */
-  refreshCounts: () => Promise<void>;
+  /**
+   * Trigger a refetch of authoritative state from the server. Fire-and-
+   * forget — completion is observed via the resulting state updates,
+   * not by awaiting this call.
+   */
+  refreshCounts: () => void;
   /** Navigate to a notification's target session/run. */
   jumpTo: (row: NotificationRow) => Promise<void>;
   /** Browser permission state, useful for inline banners. */
@@ -199,21 +203,32 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
    * `{ states: Record<workspaceId, WorkspaceUnreadState> }`. Each entry is
    * version-gated against the current map so a slow response can't overwrite
    * a fresher SSE-delivered state.
+   *
+   * Trigger-based refresh: `refreshCounts()` bumps `recoveryTrigger`, the
+   * effect below runs the fetch with setState only inside Promise
+   * callbacks, satisfying react-hooks/set-state-in-effect.
    */
-  const refreshCounts = useCallback(async () => {
-    try {
-      const res = await fetch("/api/notifications/counts");
-      if (!res.ok) return;
-      const data = (await res.json()) as { states?: Record<string, WorkspaceUnreadState> };
-      if (data.states) applyStates(data.states);
-    } catch {
-      // best-effort
-    }
-  }, [applyStates]);
+  const [recoveryTrigger, setRecoveryTrigger] = useState(0);
 
   useEffect(() => {
-    void refreshCounts();
-  }, [refreshCounts]);
+    const controller = new AbortController();
+    fetch("/api/notifications/counts", { signal: controller.signal })
+      .then(async (res) => {
+        if (!res.ok) return null;
+        return (await res.json()) as { states?: Record<string, WorkspaceUnreadState> };
+      })
+      .then((data) => {
+        if (data?.states) applyStates(data.states);
+      })
+      .catch(() => {
+        // best-effort
+      });
+    return () => controller.abort();
+  }, [applyStates, recoveryTrigger]);
+
+  const refreshCounts = useCallback(() => {
+    setRecoveryTrigger((n) => n + 1);
+  }, []);
 
   // Live stream. Reconnect with backoff on error so a server bounce doesn't
   // leave the badges frozen until reload.
@@ -570,7 +585,7 @@ const EMPTY: ContextValue = {
   markRead: async () => {},
   markAllRead: async () => {},
   markSessionRead: async () => {},
-  refreshCounts: async () => {},
+  refreshCounts: () => {},
   jumpTo: async () => {},
   permissionState: "unsupported",
   requestPermission: async () => "unsupported" as const,

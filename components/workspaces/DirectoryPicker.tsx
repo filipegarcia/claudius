@@ -23,28 +23,44 @@ export function DirectoryPicker({ initialPath, onCancel, onPick }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async (target?: string) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const params = new URLSearchParams();
-      if (target) params.set("path", target);
-      const res = await fetch(`/api/fs/dirs?${params}`);
-      if (!res.ok) {
-        const e = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(e.error ?? `HTTP ${res.status}`);
-      }
-      setData((await res.json()) as Listing);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  // The directory we want to fetch is a tuple of (initialPath, manual
+  // navigation target). We track navigation as state; `initialPath` only
+  // seeds the first fetch via the effect below.
+  const [target, setTarget] = useState<string | undefined>(initialPath);
 
   useEffect(() => {
-    void load(initialPath);
-  }, [load, initialPath]);
+    const controller = new AbortController();
+    const params = new URLSearchParams();
+    if (target) params.set("path", target);
+
+    fetch(`/api/fs/dirs?${params}`, { signal: controller.signal })
+      .then(async (res) => {
+        if (!res.ok) {
+          const e = (await res.json().catch(() => ({}))) as { error?: string };
+          throw new Error(e.error ?? `HTTP ${res.status}`);
+        }
+        return (await res.json()) as Listing;
+      })
+      .then((listing) => {
+        setData(listing);
+        setError(null);
+      })
+      .catch((err: unknown) => {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        setError(err instanceof Error ? err.message : String(err));
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [target]);
+
+  // Keep the surface API the same — callers still hand us a path string.
+  const load = useCallback((next?: string) => {
+    setLoading(true);
+    setTarget(next);
+  }, []);
 
   const crumbs = data ? splitCrumbs(data.path) : [];
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
 type SpeechRecognitionLike = {
   lang?: string;
@@ -21,17 +21,21 @@ declare global {
   }
 }
 
+// Feature-detect once at module load. The Web Speech API capability is
+// fixed for the lifetime of the page, so a module-level constant is more
+// honest than a useState — and it lets us skip the SSR-safety `useEffect`
+// dance entirely. On the server, `window` is undefined and `supported`
+// reads as `false`, which matches what a fresh client tab will see before
+// the first user interaction.
+const VOICE_SUPPORTED =
+  typeof window !== "undefined" &&
+  Boolean(window.SpeechRecognition ?? window.webkitSpeechRecognition);
+
 export function useVoice(onTranscript: (text: string, isFinal: boolean) => void) {
-  const [supported, setSupported] = useState(false);
   const [listening, setListening] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const Ctor = window.SpeechRecognition ?? window.webkitSpeechRecognition;
-    setSupported(Boolean(Ctor));
-  }, []);
+  const supported = VOICE_SUPPORTED;
 
   const start = useCallback(() => {
     if (typeof window === "undefined") return;

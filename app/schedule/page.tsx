@@ -49,44 +49,72 @@ export default function SchedulePage() {
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
 
-  const refresh = useCallback(async () => {
+  const [jobsRefetchTrigger, setJobsRefetchTrigger] = useState(0);
+  const [runsRefetchTrigger, setRunsRefetchTrigger] = useState(0);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    fetch("/api/schedule", { signal: controller.signal })
+      .then(async (res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return (await res.json()) as { jobs: Job[] };
+      })
+      .then((data) => {
+        setJobs(data.jobs);
+        // Only auto-select if nothing's selected yet. We read activeId
+        // via the functional setter so the closure doesn't capture a
+        // stale value on rapid back-to-back refreshes.
+        setActiveId((current) => current ?? data.jobs[0]?.id ?? null);
+        setError(null);
+      })
+      .catch((err: unknown) => {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        setError(err instanceof Error ? err.message : String(err));
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [jobsRefetchTrigger]);
+
+  const refresh = useCallback(() => {
     setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/schedule");
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = (await res.json()) as { jobs: Job[] };
-      setJobs(data.jobs);
-      if (!activeId && data.jobs.length > 0) setActiveId(data.jobs[0].id);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setLoading(false);
-    }
-  }, [activeId]);
+    setJobsRefetchTrigger((n) => n + 1);
+  }, []);
+
+  // Clear runs when the user deselects a job. Render-phase reset so the
+  // fetch effect below contains no sync setState in its body.
+  // https://react.dev/reference/react/useState#storing-information-from-previous-renders
+  const [lastActiveId, setLastActiveId] = useState(activeId);
+  if (lastActiveId !== activeId) {
+    setLastActiveId(activeId);
+    if (!activeId) setRuns([]);
+  }
 
   useEffect(() => {
-    void refresh();
-  }, [refresh]);
+    if (!activeId) return;
+    const controller = new AbortController();
 
-  const refreshRuns = useCallback(async () => {
-    if (!activeId) {
-      setRuns([]);
-      return;
-    }
-    try {
-      const res = await fetch(`/api/schedule/${activeId}/runs?limit=50`);
-      if (!res.ok) return;
-      const d = (await res.json()) as { runs: Run[] };
-      setRuns(d.runs);
-    } catch {
-      // ignore
-    }
-  }, [activeId]);
+    fetch(`/api/schedule/${activeId}/runs?limit=50`, { signal: controller.signal })
+      .then(async (res) => {
+        if (!res.ok) return null;
+        return (await res.json()) as { runs: Run[] };
+      })
+      .then((d) => {
+        if (d) setRuns(d.runs);
+      })
+      .catch(() => {
+        // ignore
+      });
 
-  useEffect(() => {
-    void refreshRuns();
-  }, [refreshRuns]);
+    return () => controller.abort();
+  }, [activeId, runsRefetchTrigger]);
+
+  const refreshRuns = useCallback(() => {
+    setRunsRefetchTrigger((n) => n + 1);
+  }, []);
 
   // Cheap auto-refresh: while any run for the active job is "running",
   // poll every 2 s so the badge flips to its final status without the user
@@ -347,7 +375,7 @@ function JobDetail({
   onPatch: (p: Partial<Job>) => Promise<void>;
   onDelete: () => Promise<void>;
   onRunNow: () => Promise<void>;
-  onRefreshRuns: () => Promise<void>;
+  onRefreshRuns: () => Promise<void> | void;
 }) {
   const [activeRunId, setActiveRunId] = useState<string | null>(null);
   const activeRun = useMemo(() => runs.find((r) => r.id === activeRunId) ?? null, [runs, activeRunId]);
@@ -472,17 +500,26 @@ function RunTranscript({
   const [liveEvents, setLiveEvents] = useState<unknown[]>([]);
   const liveRef = useRef<EventSource | null>(null);
 
+  // Reset the live-event buffer whenever the run identity or status
+  // changes. Done during render via the "store previous props" pattern
+  // so the SSE effect below contains no sync setState in its body.
+  // https://react.dev/reference/react/useState#storing-information-from-previous-renders
+  const runKey = `${run.id}:${run.status}`;
+  const [lastRunKey, setLastRunKey] = useState(runKey);
+  if (lastRunKey !== runKey) {
+    setLastRunKey(runKey);
+    setLiveEvents([]);
+  }
+
   useEffect(() => {
     if (run.status !== "running") {
       // No live attach; cleanup any prior connection.
       liveRef.current?.close();
       liveRef.current = null;
-      setLiveEvents([]);
       return;
     }
     const es = new EventSource(`/api/schedule/${jobId}/runs/${run.id}/stream`);
     liveRef.current = es;
-    setLiveEvents([]);
     es.onmessage = (msg) => {
       try {
         const ev = JSON.parse(msg.data) as { type?: string; sessionId?: string };

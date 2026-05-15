@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type DragEvent } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type DragEvent } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Plus, Plug, Settings, UserCircle, Radio } from "lucide-react";
@@ -54,10 +54,17 @@ export function WorkspaceSwitcher() {
   // moved to session tabs (see SessionTabs.tsx) — having one mnemonic owned
   // by sessions matches the iTerm tab-bar feel the user wanted, and `[`/`]`
   // is a natural pair for "previous/next workspace" alongside it.
+  //
+  // Refs are written in a useLayoutEffect rather than during render so the
+  // react-hooks/refs rule stays happy. The hotkey effect below registers
+  // exactly once (deps = [select]) and reads `.current` on each keypress,
+  // so the ref values it sees are always the latest committed render.
   const itemsRef = useRef(projectItems);
   const activeIdRef = useRef(activeId);
-  itemsRef.current = projectItems;
-  activeIdRef.current = activeId;
+  useLayoutEffect(() => {
+    itemsRef.current = projectItems;
+    activeIdRef.current = activeId;
+  }, [projectItems, activeId]);
 
   useEffect(() => {
     function isTyping(target: EventTarget | null): boolean {

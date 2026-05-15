@@ -11,53 +11,70 @@ function readCookie(): string | null {
   return m ? decodeURIComponent(m[1]) : null;
 }
 
+/**
+ * Load the workspace list with the active selection resolved. Pattern
+ * matches `useCost` (refetchTrigger + AbortController +
+ * setState-in-callback). `create` auto-selects the new workspace; `select`
+ * navigates the browser to a per-workspace route after the server confirms
+ * the switch.
+ */
 export function useWorkspaces() {
   const [items, setItems] = useState<Workspace[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const refresh = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/workspaces");
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const d = (await res.json()) as { workspaces: Workspace[]; activeId?: string | null };
-      // Keep the existing array reference when the payload is byte-identical.
-      // Without this guard every poll/refetch returns a brand-new array, which
-      // re-fires effects in any consumer that has `workspaces` in its deps —
-      // notably NotificationsProvider's "stale id in counts → refresh" effect,
-      // which would then refetch in a tight loop (refresh → new ref → effect
-      // re-runs → refresh → …). With ~10 workspaces JSON.stringify is
-      // microseconds; on a slow client it's still cheaper than the fetch we'd
-      // otherwise trigger again.
-      setItems((prev) =>
-        JSON.stringify(prev) === JSON.stringify(d.workspaces) ? prev : d.workspaces,
-      );
-      // Resolution order matches the server's `resolveActiveWorkspace`:
-      // cookie wins → server's hint (workspaces.json activeId) → first
-      // workspace. Falling back to the first item used to disagree with
-      // the server whenever there was no cookie (fresh browser, incognito,
-      // Playwright), so the workspace switcher highlighted one tile while
-      // the chat ran in another workspace's cwd.
-      const cookie = readCookie();
-      const cookieMatch =
-        cookie && d.workspaces.some((w) => w.id === cookie) ? cookie : null;
-      const serverHint =
-        d.activeId && d.workspaces.some((w) => w.id === d.activeId) ? d.activeId : null;
-      const fallback = d.workspaces[0]?.id ?? null;
-      setActiveId(cookieMatch ?? serverHint ?? fallback);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const [refetchTrigger, setRefetchTrigger] = useState(0);
 
   useEffect(() => {
-    void refresh();
-  }, [refresh]);
+    const controller = new AbortController();
+
+    fetch("/api/workspaces", { signal: controller.signal })
+      .then(async (res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return (await res.json()) as { workspaces: Workspace[]; activeId?: string | null };
+      })
+      .then((d) => {
+        // Keep the existing array reference when the payload is byte-identical.
+        // Without this guard every poll/refetch returns a brand-new array, which
+        // re-fires effects in any consumer that has `workspaces` in its deps —
+        // notably NotificationsProvider's "stale id in counts → refresh" effect,
+        // which would then refetch in a tight loop (refresh → new ref → effect
+        // re-runs → refresh → …). With ~10 workspaces JSON.stringify is
+        // microseconds; on a slow client it's still cheaper than the fetch we'd
+        // otherwise trigger again.
+        setItems((prev) =>
+          JSON.stringify(prev) === JSON.stringify(d.workspaces) ? prev : d.workspaces,
+        );
+        // Resolution order matches the server's `resolveActiveWorkspace`:
+        // cookie wins → server's hint (workspaces.json activeId) → first
+        // workspace. Falling back to the first item used to disagree with
+        // the server whenever there was no cookie (fresh browser, incognito,
+        // Playwright), so the workspace switcher highlighted one tile while
+        // the chat ran in another workspace's cwd.
+        const cookie = readCookie();
+        const cookieMatch =
+          cookie && d.workspaces.some((w) => w.id === cookie) ? cookie : null;
+        const serverHint =
+          d.activeId && d.workspaces.some((w) => w.id === d.activeId) ? d.activeId : null;
+        const fallback = d.workspaces[0]?.id ?? null;
+        setActiveId(cookieMatch ?? serverHint ?? fallback);
+        setError(null);
+      })
+      .catch((err: unknown) => {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        setError(err instanceof Error ? err.message : String(err));
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [refetchTrigger]);
+
+  const refresh = useCallback(() => {
+    setLoading(true);
+    setRefetchTrigger((n) => n + 1);
+  }, []);
 
   const select = useCallback(
     async (id: string, route?: string) => {
@@ -115,8 +132,10 @@ export function useWorkspaces() {
         return { ok: false as const, error: err.error ?? `HTTP ${res.status}` };
       }
       const ws = (await res.json()) as Workspace;
-      await refresh();
-      // Auto-select the new workspace.
+      // Trigger a background re-pull so the new workspace shows up in the
+      // list. The auto-select happens immediately on the optimistic id —
+      // callers that route off `activeId` don't have to wait for the GET.
+      refresh();
       await fetch(`/api/workspaces/${ws.id}/select`, { method: "POST" });
       setActiveId(ws.id);
       return { ok: true as const, workspace: ws };
@@ -131,7 +150,7 @@ export function useWorkspaces() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(patch),
       });
-      if (res.ok) await refresh();
+      if (res.ok) refresh();
       return res.ok;
     },
     [refresh],
@@ -140,7 +159,7 @@ export function useWorkspaces() {
   const remove = useCallback(
     async (id: string) => {
       const res = await fetch(`/api/workspaces/${id}`, { method: "DELETE" });
-      if (res.ok) await refresh();
+      if (res.ok) refresh();
       return res.ok;
     },
     [refresh],
@@ -161,7 +180,7 @@ export function useWorkspaces() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ids }),
       });
-      if (!res.ok) await refresh();
+      if (!res.ok) refresh();
       return res.ok;
     },
     [refresh],

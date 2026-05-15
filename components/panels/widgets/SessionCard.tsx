@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, CircuitBoard, ShieldCheck, Folder } from "lucide-react";
+import { ChevronDown, CircuitBoard, Folder, Gauge, ShieldCheck } from "lucide-react";
 import type { PermissionMode } from "@anthropic-ai/claude-agent-sdk";
 import type { SessionUsage } from "@/lib/client/types";
 import { cn } from "@/lib/utils/cn";
@@ -13,6 +13,12 @@ type EffortLevel = "low" | "medium" | "high" | "xhigh" | "max" | "auto";
 type Props = {
   sessionId: string | null;
   model: string | null;
+  /**
+   * Currently selected reasoning effort. Rendered as a small pill next to
+   * the mode indicator. Defaults to `"auto"` when the session hasn't had
+   * an explicit pick yet (adaptive thinking).
+   */
+  effort: EffortLevel;
   permissionMode: PermissionMode;
   cwd: string | null;
   usage: SessionUsage | null;
@@ -41,6 +47,7 @@ const MODE_LABEL: Record<string, string> = {
 export function SessionCard({
   sessionId,
   model,
+  effort,
   permissionMode,
   cwd,
   usage,
@@ -49,13 +56,29 @@ export function SessionCard({
   onChangeModel,
   onChangeEffort,
 }: Props) {
-  // Use `usage.durationMs` when present (server-known); otherwise track wall
-  // time from when we first saw a non-null sessionId.
+  // Use `usage.durationMs` when present (server-known); otherwise track
+  // wall time from when we first saw a non-null sessionId. The "first
+  // saw" is captured in `boundAt`, reset on unbind, refreshed on rebind.
+  // Reset happens during render via the "store previous props" pattern
+  // so the effect below only handles the impure `Date.now()` read.
+  // https://react.dev/reference/react/useState#storing-information-from-previous-renders
   const [boundAt, setBoundAt] = useState<number | null>(null);
+  const [lastSessionId, setLastSessionId] = useState(sessionId);
+  if (lastSessionId !== sessionId) {
+    setLastSessionId(sessionId);
+    if (!sessionId) setBoundAt(null);
+  }
+  // `Date.now()` is impure so it can't be called during render; capture
+  // it in an effect once a new sessionId is observed. Intentional sync
+  // setState — this effect's only job is to seed `boundAt` once after
+  // the render-phase reset above has cleared it. The setState fires
+  // exactly when `boundAt` flips null → some-timestamp, then stays put.
   useEffect(() => {
-    if (sessionId) setBoundAt((prev) => prev ?? Date.now());
-    else setBoundAt(null);
-  }, [sessionId]);
+    if (sessionId && boundAt === null) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setBoundAt(Date.now());
+    }
+  }, [sessionId, boundAt]);
 
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -101,13 +124,22 @@ export function SessionCard({
               pickerOpen && "rotate-180",
             )}
           />
-          <ModePill mode={permissionMode} />
+          {/* Right-aligned pill cluster — `ml-auto` lives on the wrapper so
+              the effort + mode pills don't fight each other for the
+              rightmost slot. */}
+          <span className="ml-auto inline-flex items-center gap-1">
+            <EffortPill effort={effort} />
+            <ModePill mode={permissionMode} />
+          </span>
         </button>
       ) : (
         <div className="flex w-full items-center gap-1.5 px-2 pb-1.5 pt-2 text-[11px]">
           <CircuitBoard className="h-3 w-3 text-[var(--accent)]" />
           <span className="truncate font-mono">{shortModel(model)}</span>
-          <ModePill mode={permissionMode} />
+          <span className="ml-auto inline-flex items-center gap-1">
+            <EffortPill effort={effort} />
+            <ModePill mode={permissionMode} />
+          </span>
         </div>
       )}
 
@@ -168,10 +200,51 @@ function ModePill({ mode }: { mode: PermissionMode }) {
           : "border-[var(--border)] bg-[var(--panel)] text-[var(--muted)]";
   return (
     <span
-      className={`ml-auto inline-flex items-center gap-1 rounded border px-1.5 py-px text-[9px] ${tone}`}
+      className={`inline-flex items-center gap-1 rounded border px-1.5 py-px text-[9px] ${tone}`}
     >
       <ShieldCheck className="h-2.5 w-2.5" />
       {MODE_LABEL[mode] ?? mode}
+    </span>
+  );
+}
+
+const EFFORT_LABEL: Record<EffortLevel, string> = {
+  auto: "auto",
+  low: "low",
+  medium: "med",
+  high: "high",
+  xhigh: "very high",
+  max: "max",
+};
+
+/**
+ * Compact effort indicator. The color scale matches the chips inside the
+ * ModelPicker so the card's pill and the picker's chips read as the same
+ * spectrum. Always renders — even on models that don't support effort,
+ * "auto" is the honest answer.
+ */
+function EffortPill({ effort }: { effort: EffortLevel }) {
+  const tone =
+    effort === "auto"
+      ? "border-[var(--border)] bg-[var(--panel)] text-[var(--muted)]"
+      : effort === "low"
+        ? "border-sky-500/30 bg-sky-500/10 text-sky-200"
+        : effort === "medium"
+          ? "border-violet-500/30 bg-violet-500/10 text-violet-200"
+          : effort === "high"
+            ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-200"
+            : effort === "xhigh"
+              ? "border-amber-500/30 bg-amber-500/10 text-amber-200"
+              : "border-red-500/30 bg-red-500/10 text-red-200";
+  return (
+    <span
+      data-testid="session-card-effort-pill"
+      data-effort={effort}
+      title={`Reasoning effort: ${EFFORT_LABEL[effort]}`}
+      className={`inline-flex items-center gap-1 rounded border px-1.5 py-px text-[9px] ${tone}`}
+    >
+      <Gauge className="h-2.5 w-2.5" />
+      {EFFORT_LABEL[effort]}
     </span>
   );
 }

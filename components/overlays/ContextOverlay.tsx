@@ -90,27 +90,35 @@ export function ContextOverlay({ sessionId, onClose }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Flip loading true the moment the session id changes — runs in
+  // render so it stays out of the fetch effect's body (Pattern C).
+  // https://react.dev/reference/react/useState#storing-information-from-previous-renders
+  const [lastSessionId, setLastSessionId] = useState(sessionId);
+  if (lastSessionId !== sessionId) {
+    setLastSessionId(sessionId);
+    if (sessionId) setLoading(true);
+  }
+
   useEffect(() => {
     if (!sessionId) return;
-    let cancelled = false;
-    setLoading(true);
-    fetch(`/api/sessions/${sessionId}/context`)
+    const controller = new AbortController();
+    fetch(`/api/sessions/${sessionId}/context`, { signal: controller.signal })
       .then(async (r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return (await r.json()) as ContextResponse;
       })
       .then((d) => {
-        if (!cancelled) setData(d);
+        setData(d);
+        setError(null);
       })
-      .catch((err) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : String(err));
+      .catch((err: unknown) => {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        setError(err instanceof Error ? err.message : String(err));
       })
       .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       });
-    return () => {
-      cancelled = true;
-    };
+    return () => controller.abort();
   }, [sessionId]);
 
   return (

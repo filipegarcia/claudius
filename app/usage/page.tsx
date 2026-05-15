@@ -26,17 +26,6 @@ type AccountInfo = {
   apiProvider?: "firstParty" | "bedrock" | "vertex" | "foundry" | "anthropicAws" | "mantle";
 };
 
-type SessionUsage = {
-  totalCostUsd?: number;
-  numTurns?: number;
-  durationMs?: number;
-  durationApiMs?: number;
-  inputTokens?: number;
-  outputTokens?: number;
-  cacheReadInputTokens?: number;
-  cacheCreationInputTokens?: number;
-};
-
 type ActiveSession = { id: string; cwd?: string; model?: string };
 
 const PROVIDERS: {
@@ -109,18 +98,27 @@ export default function UsagePage() {
   const [session, setSession] = useState<ActiveSession | null>(null);
   const [account, setAccount] = useState<AccountInfo | null>(null);
   const [accountError, setAccountError] = useState<string | null>(null);
-  const [usage, setUsage] = useState<SessionUsage | null>(null);
   const [loading, setLoading] = useState(true);
 
-  async function refresh() {
-    setLoading(true);
-    try {
-      const list = (await (await fetch("/api/sessions")).json()) as ActiveSession[];
-      const first = Array.isArray(list) ? list[0] ?? null : null;
-      setSession(first);
-      if (first) {
+  const [refetchTrigger, setRefetchTrigger] = useState(0);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    (async () => {
+      try {
+        const listRes = await fetch("/api/sessions", { signal: controller.signal });
+        const list = (await listRes.json()) as ActiveSession[];
+        const first = Array.isArray(list) ? list[0] ?? null : null;
+        if (controller.signal.aborted) return;
+        setSession(first);
+        if (!first) return;
         try {
-          const r = await fetch(`/api/account?sessionId=${encodeURIComponent(first.id)}`);
+          const r = await fetch(
+            `/api/account?sessionId=${encodeURIComponent(first.id)}`,
+            { signal: controller.signal },
+          );
+          if (controller.signal.aborted) return;
           if (r.ok) {
             setAccount((await r.json()) as AccountInfo);
             setAccountError(null);
@@ -128,25 +126,28 @@ export default function UsagePage() {
             const e = (await r.json().catch(() => ({}))) as { error?: string };
             setAccountError(e.error ?? `HTTP ${r.status}`);
           }
-        } catch (err) {
+        } catch (err: unknown) {
+          if (err instanceof DOMException && err.name === "AbortError") return;
           setAccountError(err instanceof Error ? err.message : String(err));
         }
-        // Snapshot the most recent /cost from the session manager via cookieless client side.
-        // We can't read it from the server (it lives in the SSE stream), so leave usage best-effort.
+        // Snapshot the most recent /cost from the session manager via
+        // cookieless client side. We can't read it from the server (it
+        // lives in the SSE stream), so leave usage best-effort.
+      } catch (err: unknown) {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        // Best-effort: don't surface the /sessions list failure to UI.
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
       }
-    } finally {
-      setLoading(false);
-    }
-  }
+    })();
 
-  useEffect(() => {
-    void refresh();
-    // The /cost numbers tick from the chat-page hook; this page can't subscribe
-    // to that without re-running the SSE consumer. We surface the static
-    // account info; live cost is on the StatusLine pill.
-    void usage;
-    void setUsage;
-  }, []);
+    return () => controller.abort();
+  }, [refetchTrigger]);
+
+  const refresh = () => {
+    setLoading(true);
+    setRefetchTrigger((n) => n + 1);
+  };
 
   const apiProvider = account?.apiProvider ?? "firstParty";
   const providerMeta = PROVIDERS.find((p) => p.id === apiProvider) ?? PROVIDERS[0];

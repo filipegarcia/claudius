@@ -5,6 +5,8 @@
 // or any persistent storage — they're string-shape recognizers.
 
 import { findSlashCommand } from "@/lib/shared/slash-commands";
+import { isRealUserPrompt } from "@/lib/shared/user-prompt";
+import type { DisplayMessage } from "./types";
 
 /**
  * Detect a user message whose entire content is an SDK-handled slash
@@ -183,4 +185,24 @@ export function isSyntheticTaskNotification(content: unknown): boolean {
   const trimmed = contentAsTrimmedText(content);
   if (!trimmed) return false;
   return /^<task-notification[\s>]/.test(trimmed);
+}
+
+/**
+ * Defense-in-depth predicate for the "what's the last user message?" pin
+ * walk in `MessageList`. Reconstructs the raw text content from the bubble's
+ * blocks and delegates to the shared `isRealUserPrompt` so the client pin
+ * and the server's `latestUserPromptSnapshot` capture agree on what counts
+ * as a real user prompt. Today the intake reducer in `use-session` already
+ * drops synthetic wrappers before they reach `messages`, so this is mostly
+ * belt-and-suspenders — but if a new server-side wrapper kind ships and the
+ * client filter forgets to mirror it, the pin will at least skip the bogus
+ * bubble instead of pinning XML the user never typed.
+ */
+export function isRealUserDisplayMessage(m: DisplayMessage): boolean {
+  if (m.role !== "user") return false;
+  let text = "";
+  for (const b of m.blocks) {
+    if (b.kind === "text") text += b.text;
+  }
+  return isRealUserPrompt(text);
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { CheckCircle2, ChevronDown, ChevronUp, Circle, Loader2, ListChecks } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import type { AgentTodo } from "@/lib/client/types";
@@ -25,18 +25,20 @@ type Props = {
  * scan the rail to know what the agent's working on.
  */
 export function TodosBanner({ todos, hidden, onDismiss }: Props) {
-  const [expanded, setExpanded] = useState(false);
-
-  // Boot from localStorage; default to expanded the first time so the user
-  // discovers the feature.
-  useEffect(() => {
+  // Boot from localStorage via a lazy initializer; default to expanded
+  // the first time so the user discovers the feature. SSR returns the
+  // expanded default so the first paint matches the most common state.
+  // The preference is per-tab — no cross-tab sync needed — so a plain
+  // `useState` is enough; no `useSyncExternalStore` required.
+  const [expanded, setExpanded] = useState<boolean>(() => {
+    if (typeof window === "undefined") return true;
     try {
       const v = window.localStorage.getItem(STORAGE_KEY);
-      setExpanded(v == null ? true : v === "1");
+      return v == null ? true : v === "1";
     } catch {
-      setExpanded(true);
+      return true;
     }
-  }, []);
+  });
 
   if (hidden || todos.length === 0) return null;
 
