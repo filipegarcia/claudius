@@ -1109,6 +1109,8 @@ export default function Home() {
         toolHistory={session.toolHistory}
         onOpenBash={setOpenBash}
         onAddTodos={onAddTodos}
+        onChangeModel={session.setModel}
+        onChangeEffort={session.setEffort}
       />
 
       {liveOpenBash && (

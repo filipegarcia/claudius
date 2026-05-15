@@ -313,6 +313,12 @@ export type ChatActions = {
   setPermissionMode(mode: PermissionMode): Promise<void>;
   setModel(model: string | null): Promise<void>;
   /**
+   * Set the reasoning/effort level. Routed through the SDK's `/effort`
+   * slash command so the change matches the CLI exactly. `auto` re-enables
+   * adaptive thinking; the numeric levels lock to a specific budget.
+   */
+  setEffort(level: "low" | "medium" | "high" | "xhigh" | "max" | "auto"): Promise<void>;
+  /**
    * Bind to a different session id. Awaits a wake POST so a reaped session
    * has its buffer rehydrated before the SSE subscribes; fire-and-forget
    * callers (every UI tab-click in this codebase) just drop the returned

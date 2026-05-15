@@ -54,6 +54,15 @@ type Props = {
    * queues if a turn is in flight). Omitting this hides the `+` button.
    */
   onAddTodos?: (texts: string[]) => Promise<void> | void;
+  /**
+   * Switch the active model (the SDK's `setModel` control). Wired through
+   * to `SessionCard` so the rail can offer a CLI-style `/model` picker.
+   */
+  onChangeModel?: (modelValue: string) => Promise<void> | void;
+  /** Set reasoning effort. Same plumbing rationale as `onChangeModel`. */
+  onChangeEffort?: (
+    level: "low" | "medium" | "high" | "xhigh" | "max" | "auto",
+  ) => Promise<void> | void;
 };
 
 const TASK_TONES: Record<string, string> = {
@@ -100,6 +109,8 @@ export function BackgroundTasksPanel({
   toolHistory,
   onOpenBash,
   onAddTodos,
+  onChangeModel,
+  onChangeEffort,
 }: Props) {
   const [showCost, setShowCost] = useState(false);
   const [addTodosOpen, setAddTodosOpen] = useState(false);
@@ -160,6 +171,8 @@ export function BackgroundTasksPanel({
           usage={usage}
           historicalTurnCount={historicalTurnCount}
           onOpenCost={() => setShowCost(true)}
+          onChangeModel={onChangeModel}
+          onChangeEffort={onChangeEffort}
         />
         <ContextBar sessionId={sessionId} pending={pending} />
         <TokenMeter usage={usage} />

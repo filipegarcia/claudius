@@ -64,16 +64,7 @@ export type SyntheticCliWrapper =
   | { kind: "stdout" | "stderr"; text: string };
 
 export function parseSyntheticCliWrapper(content: unknown): SyntheticCliWrapper | null {
-  let text: string;
-  if (typeof content === "string") text = content;
-  else if (Array.isArray(content)) {
-    let buf = "";
-    for (const c of content as Array<{ type?: string; text?: string }>) {
-      if (c?.type === "text" && typeof c.text === "string") buf += c.text;
-    }
-    text = buf;
-  } else return null;
-  const trimmed = text.trim();
+  const trimmed = contentAsTrimmedText(content);
   if (!trimmed) return null;
   // <command-name>/X</command-name>... — capture the slash and trailing args.
   const cmdMatch = /^<command-name>\s*(\/[^\s<]+)\s*<\/command-name>/i.exec(trimmed);
@@ -86,6 +77,86 @@ export function parseSyntheticCliWrapper(content: unknown): SyntheticCliWrapper 
   const stderrMatch = /^<local-command-stderr>([\s\S]*?)<\/local-command-stderr>/i.exec(trimmed);
   if (stderrMatch) return { kind: "stderr", text: stderrMatch[1].trim() };
   return null;
+}
+
+/**
+ * Fold the various `MessageParam.content` shapes (string | array of blocks)
+ * down to a single trimmed string so the regex-based detectors can run a
+ * consistent shape check. Returns `""` for unsupported shapes; callers
+ * short-circuit on empty.
+ */
+function contentAsTrimmedText(content: unknown): string {
+  if (typeof content === "string") return content.trim();
+  if (!Array.isArray(content)) return "";
+  let buf = "";
+  for (const c of content as Array<{ type?: string; text?: string }>) {
+    if (c?.type === "text" && typeof c.text === "string") buf += c.text;
+  }
+  return buf.trim();
+}
+
+/**
+ * The stable opening of the synthesized user-shaped message the SDK injects
+ * immediately after a successful `/compact`. The SDK marks the envelope with
+ * `isCompactSummary: true` AND `isVisibleInTranscriptOnly: true` on disk, but
+ * the live `query` async iterator strips those envelope-level flags before
+ * forwarding the message to consumers — `isSdkInternalEnvelope` (which reads
+ * the flags) only catches the disk-replay path (`resyncFromDisk`,
+ * `synthesizeOlder`).
+ *
+ * Without this content-shape fallback, the live `/compact` run renders the
+ * entire summary ("This session is being continued from a previous
+ * conversation…\n\nSummary:\n1. Primary Request…") as a user bubble at the
+ * tail of the chat — the exact bug a user reported on 2026-05-14. Matching
+ * on the leading sentence is robust because that text is hard-coded in the
+ * SDK runtime; if Anthropic ever changes it, the disk-replay envelope check
+ * still catches the same record on the next reload.
+ */
+const COMPACT_SUMMARY_PREFIX = "This session is being continued from a previous conversation";
+
+export function isCompactSummaryContent(content: unknown): boolean {
+  const trimmed = contentAsTrimmedText(content);
+  if (!trimmed) return false;
+  return trimmed.startsWith(COMPACT_SUMMARY_PREFIX);
+}
+
+/**
+ * `<local-command-caveat>...` wrappers the SDK emits around slash-command
+ * runs to remind the model that the local CLI handled the command. The SDK
+ * stamps the envelope with `isMeta: true` on disk, but the live iterator
+ * strips that flag in the same way it strips `isCompactSummary` — see the
+ * docstring on `isCompactSummaryContent`. This content-shape check is the
+ * live-path counterpart so the caveat never reaches the chat as a user
+ * bubble even when the envelope flag is absent.
+ */
+export function isLocalCommandCaveatContent(content: unknown): boolean {
+  const trimmed = contentAsTrimmedText(content);
+  if (!trimmed) return false;
+  return /^<local-command-caveat[\s>]/i.test(trimmed);
+}
+
+/**
+ * True when the SDK envelope itself is flagged as transcript-only plumbing —
+ * `isMeta` (e.g. `<local-command-caveat>`), `isCompactSummary` (the synthesized
+ * "Session continued from a previous conversation…" user message the SDK
+ * emits right after a successful /compact), or `isVisibleInTranscriptOnly`
+ * (the SDK's own marker for "model-context-only, do not surface").
+ *
+ * These flags live on the JSONL envelope, not on the inner `message.content`,
+ * so they slip past the content-shape parsers. The SDK's own slash-detection
+ * (`P8` in the runtime) skips these the same way; mirroring it on the
+ * display side keeps the chat clean when paginated history brings them back
+ * — without this filter, a paginated /compact run shows two extra "user"
+ * bubbles (the summary and the caveat) that the user never typed.
+ */
+export function isSdkInternalEnvelope(msg: unknown): boolean {
+  if (!msg || typeof msg !== "object") return false;
+  const m = msg as {
+    isMeta?: boolean;
+    isCompactSummary?: boolean;
+    isVisibleInTranscriptOnly?: boolean;
+  };
+  return m.isMeta === true || m.isCompactSummary === true || m.isVisibleInTranscriptOnly === true;
 }
 
 /**
@@ -104,17 +175,12 @@ export function parseSyntheticCliWrapper(content: unknown): SyntheticCliWrapper 
  * that happens to quote the string.
  */
 export function isSyntheticTaskNotification(content: unknown): boolean {
-  let text: string;
-  if (typeof content === "string") {
-    text = content;
-  } else if (Array.isArray(content)) {
-    let buf = "";
-    for (const c of content as Array<{ type?: string; text?: string }>) {
-      if (c?.type === "text" && typeof c.text === "string") buf += c.text;
-    }
-    text = buf;
-  } else {
-    return false;
-  }
-  return /^\s*<task-notification[\s>]/.test(text);
+  // We use contentAsTrimmedText here rather than allowing leading whitespace
+  // in the regex because the shared helper is also used by the compact-summary
+  // and caveat detectors below — keeping the shape-normalization in one place
+  // means a future content shape (e.g. a new SDK content-block variant) gets
+  // picked up by all three filters at once.
+  const trimmed = contentAsTrimmedText(content);
+  if (!trimmed) return false;
+  return /^<task-notification[\s>]/.test(trimmed);
 }

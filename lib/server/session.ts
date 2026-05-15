@@ -230,7 +230,12 @@ function extractUserPromptText(content: unknown): string | null {
 export class Session {
   readonly id: string;
   readonly cwd: string;
-  readonly model?: string;
+  /**
+   * Active model id. Mutable — `setModel` flips it mid-session and the
+   * picker UI relies on this being the source-of-truth so the next
+   * `start()` (e.g. on resume) uses the latest pick.
+   */
+  model?: string;
   readonly resumeFrom?: string;
   readonly resumeAt?: string;
   /**
@@ -972,7 +977,44 @@ export class Session {
 
   async setModel(model?: string): Promise<void> {
     if (this.query) await this.query.setModel(model).catch(() => {});
+    this.model = model;
+    // Persist so the pick survives reap → resume. Without this the in-memory
+    // mutation is lost when the SessionManager evicts the Session object, and
+    // the next `start()` pulls the (stale) original model from the constructor
+    // path. The `sessions.model` column already exists (migration 002) and
+    // `upsertSession` upserts on conflict — no schema change needed.
+    try {
+      await upsertSession({
+        id: this.id,
+        cwd: this.cwd,
+        model: this.model,
+        title: this.title,
+      });
+    } catch {
+      // Non-fatal: SSE listeners still get the change, and the SDK side
+      // still applied it. DB write failure just means the next resume
+      // falls back to the prior default.
+    }
     this.broadcast({ type: "model_changed", model });
+  }
+
+  /**
+   * Forward the model list the SDK advertises for this session. The SDK
+   * returns per-model metadata (display name, description, supported effort
+   * levels) so the picker can render the same options the CLI's `/model`
+   * surface offers.
+   *
+   * Throws when there's no active query (session not started yet, or
+   * reaped); the API route maps that to a 503 so the client can retry.
+   */
+  async supportedModels(): Promise<{ ok: true; data: unknown } | { ok: false; error: string }> {
+    if (!this.query) return { ok: false, error: "session not active" };
+    try {
+      const data = await this.query.supportedModels();
+      return { ok: true, data };
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : String(err) };
+    }
   }
 
   async getContextUsage(): Promise<{ ok: true; data: unknown } | { ok: false; error: string }> {
