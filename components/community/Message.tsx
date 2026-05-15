@@ -38,7 +38,13 @@ export function Message({
   // original message used to be — no moderation controls (the row is
   // already moderated), no nick alignment trickery, just a flat audit
   // marker. The body is empty on the wire so there's nothing to leak.
-  const isDeleted = message.deletedAt !== null;
+  //
+  // Use `!= null` (not `!== null`) so a missing `deletedAt` field
+  // (e.g. talking to an older chat-server that hasn't been redeployed
+  // with the new wire shape) is treated as "live", not as a deleted
+  // placeholder. Otherwise every message renders as deleted because
+  // `undefined !== null` is true.
+  const isDeleted = message.deletedAt != null;
 
   return (
     <div
