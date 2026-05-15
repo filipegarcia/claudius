@@ -1,5 +1,8 @@
 import { describe, expect, test } from "vitest";
 import {
+  isCompactSummaryContent,
+  isLocalCommandCaveatContent,
+  isSdkInternalEnvelope,
   isSdkSlashUserMessage,
   isSyntheticTaskNotification,
   parseSyntheticCliWrapper,
@@ -154,6 +157,59 @@ describe("parseSyntheticCliWrapper", () => {
   });
 });
 
+describe("isSdkInternalEnvelope", () => {
+  test("recognizes `isMeta: true` (local-command-caveat envelopes)", () => {
+    // Real shape from .claude/projects/*/...jsonl after a /compact run:
+    // a "<local-command-caveat>" user-typed-looking message that the SDK
+    // generates for the model's eyes only.
+    expect(
+      isSdkInternalEnvelope({
+        type: "user",
+        isMeta: true,
+        message: { role: "user", content: "<local-command-caveat>…</local-command-caveat>" },
+      }),
+    ).toBe(true);
+  });
+
+  test("recognizes `isCompactSummary: true` (post-compact synthesized user message)", () => {
+    expect(
+      isSdkInternalEnvelope({
+        type: "user",
+        isCompactSummary: true,
+        isVisibleInTranscriptOnly: true,
+        message: { role: "user", content: "This session is being continued…" },
+      }),
+    ).toBe(true);
+  });
+
+  test("recognizes `isVisibleInTranscriptOnly: true` on its own", () => {
+    expect(isSdkInternalEnvelope({ type: "user", isVisibleInTranscriptOnly: true })).toBe(true);
+  });
+
+  test("returns false for a plain user message", () => {
+    expect(
+      isSdkInternalEnvelope({
+        type: "user",
+        message: { role: "user", content: "hello" },
+      }),
+    ).toBe(false);
+  });
+
+  test("returns false for non-object inputs", () => {
+    expect(isSdkInternalEnvelope(null)).toBe(false);
+    expect(isSdkInternalEnvelope(undefined)).toBe(false);
+    expect(isSdkInternalEnvelope("x")).toBe(false);
+    expect(isSdkInternalEnvelope(42)).toBe(false);
+  });
+
+  test("treats falsy flag values as not-internal (defensive)", () => {
+    expect(isSdkInternalEnvelope({ isMeta: false })).toBe(false);
+    // Truthy-but-not-true (e.g. accidentally stringified) is intentionally
+    // not matched — the SDK writes boolean literals, never strings.
+    expect(isSdkInternalEnvelope({ isMeta: "true" as unknown as boolean })).toBe(false);
+  });
+});
+
 describe("isSyntheticTaskNotification", () => {
   test("recognizes a leading <task-notification> tag", () => {
     expect(isSyntheticTaskNotification("<task-notification id=\"t1\">done</task-notification>")).toBe(true);
@@ -177,5 +233,98 @@ describe("isSyntheticTaskNotification", () => {
     expect(
       isSyntheticTaskNotification([{ type: "text", text: "<task-notification>x</task-notification>" }]),
     ).toBe(true);
+  });
+});
+
+/**
+ * Content-shape fallback for the post-/compact summary message. The SDK
+ * marks the envelope with `isCompactSummary: true` on disk, but the live
+ * `query` iterator strips that flag before forwarding to consumers — so the
+ * envelope check alone misses live broadcasts. We match the stable opening
+ * sentence that the SDK uses for the synthesized summary. If Anthropic ever
+ * changes the wording, the envelope check on the disk-replay paths is still
+ * the safety net.
+ */
+describe("isCompactSummaryContent", () => {
+  test("recognizes the synthesized summary string content", () => {
+    const text =
+      "This session is being continued from a previous conversation that ran out of context. The summary below covers the earlier portion of the conversation.\n\nSummary:\n1. Primary Request and Intent: …";
+    expect(isCompactSummaryContent(text)).toBe(true);
+  });
+
+  test("recognizes the summary when content is an array of text blocks", () => {
+    expect(
+      isCompactSummaryContent([
+        { type: "text", text: "This session is being continued from a previous conversation" },
+        { type: "text", text: " that ran out of context." },
+      ]),
+    ).toBe(true);
+  });
+
+  test("tolerates leading whitespace", () => {
+    expect(
+      isCompactSummaryContent(
+        "   \n  This session is being continued from a previous conversation that ran out of context.",
+      ),
+    ).toBe(true);
+  });
+
+  test("does not match prose that merely quotes the phrase mid-sentence", () => {
+    expect(
+      isCompactSummaryContent("note: this session is being continued from a previous conversation"),
+    ).toBe(false); // case-sensitive on first letter — SDK's wording is fixed
+  });
+
+  test("returns false for unrelated user prose", () => {
+    expect(isCompactSummaryContent("This is a totally normal user message.")).toBe(false);
+  });
+
+  test("returns false for unsupported content shapes", () => {
+    expect(isCompactSummaryContent(null)).toBe(false);
+    expect(isCompactSummaryContent(undefined)).toBe(false);
+    expect(isCompactSummaryContent(42)).toBe(false);
+    expect(isCompactSummaryContent({})).toBe(false);
+  });
+});
+
+/**
+ * `<local-command-caveat>` wrappers ride alongside the compact summary on
+ * /compact (and also any other slash run). The SDK marks them with
+ * `isMeta: true` on disk; the live iterator strips that flag the same way.
+ * Match by leading tag so we never surface them as user bubbles.
+ */
+describe("isLocalCommandCaveatContent", () => {
+  test("recognizes a leading <local-command-caveat> tag", () => {
+    expect(
+      isLocalCommandCaveatContent(
+        "<local-command-caveat>The CLI handled this</local-command-caveat>",
+      ),
+    ).toBe(true);
+  });
+
+  test("tolerates leading whitespace", () => {
+    expect(
+      isLocalCommandCaveatContent("  \n<local-command-caveat>x</local-command-caveat>"),
+    ).toBe(true);
+  });
+
+  test("inspects text-typed entries in a content array", () => {
+    expect(
+      isLocalCommandCaveatContent([
+        { type: "text", text: "<local-command-caveat>x</local-command-caveat>" },
+      ]),
+    ).toBe(true);
+  });
+
+  test("does not match prose that quotes the tag mid-string", () => {
+    expect(
+      isLocalCommandCaveatContent("see <local-command-caveat> for details"),
+    ).toBe(false);
+  });
+
+  test("returns false for unsupported content shapes", () => {
+    expect(isLocalCommandCaveatContent(null)).toBe(false);
+    expect(isLocalCommandCaveatContent(undefined)).toBe(false);
+    expect(isLocalCommandCaveatContent(42)).toBe(false);
   });
 });

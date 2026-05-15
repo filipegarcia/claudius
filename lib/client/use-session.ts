@@ -13,6 +13,9 @@ import type {
 } from "@/lib/shared/events";
 import { costFromTokens } from "@/lib/shared/cost-pricing";
 import {
+  isCompactSummaryContent,
+  isLocalCommandCaveatContent,
+  isSdkInternalEnvelope,
   isSdkSlashUserMessage,
   isSyntheticTaskNotification,
   parseSyntheticCliWrapper,
@@ -262,28 +265,45 @@ export function useSession(): ChatState & ChatActions {
   // Cap our serialized payload at 5 MB to leave room for everything else.
   const QUEUE_MAX_BYTES = 5 * 1024 * 1024;
 
-  const persistQueue = useCallback((sid: string | null) => {
+  /**
+   * Persist a specific session's queue into sessionStorage. Keyed by the
+   * explicit `sid` parameter — NOT `sessionIdRef.current` — because the
+   * drain loop in `flushQueue` may write back to the originating session's
+   * queue (e.g. restoring a failed send) AFTER the user has switched to a
+   * different tab. Using the captured id keeps storage correctly partitioned
+   * per session. React state is only updated when `sid` matches the active
+   * binding; otherwise we touch only persistent storage so the queue is
+   * intact for when the user returns to that session.
+   *
+   * Trims oldest items when the serialized payload would exceed the
+   * QUEUE_MAX_BYTES cap. Surfaces a one-shot "queue too large" error in that
+   * case so the user knows we dropped something.
+   */
+  const persistQueueForSession = useCallback((sid: string, items: QueuedMessage[]) => {
     if (typeof window === "undefined") return;
     const k = queueKey(sid);
     if (!k) return;
     let trimmedDueToSize = false;
-    let serialized = JSON.stringify(queueRef.current);
+    let toWrite = items;
+    let serialized = JSON.stringify(toWrite);
     if (serialized.length > QUEUE_MAX_BYTES) {
-      // Drop oldest items until under the cap. Preserve at least one item if
-      // possible — it'd be worse to silently drop everything.
-      const items = queueRef.current.slice();
-      while (items.length > 1 && JSON.stringify(items).length > QUEUE_MAX_BYTES) {
-        items.shift();
+      const trimmed = items.slice();
+      while (trimmed.length > 1 && JSON.stringify(trimmed).length > QUEUE_MAX_BYTES) {
+        trimmed.shift();
       }
-      // If even the single tail item is over the cap, bail completely — the
-      // user's about to hit a write error anyway and there's nothing to keep.
-      if (items.length === 1 && JSON.stringify(items).length > QUEUE_MAX_BYTES) {
-        items.length = 0;
+      if (trimmed.length === 1 && JSON.stringify(trimmed).length > QUEUE_MAX_BYTES) {
+        trimmed.length = 0;
       }
-      queueRef.current = items;
-      setQueue([...items]);
-      serialized = JSON.stringify(items);
+      toWrite = trimmed;
+      serialized = JSON.stringify(toWrite);
       trimmedDueToSize = true;
+      // Only mirror the trim into React state if this is the currently
+      // bound session. Otherwise the user is on a different tab; we'd be
+      // silently mutating their visible queue.
+      if (sid === sessionIdRef.current) {
+        queueRef.current = toWrite;
+        setQueue([...toWrite]);
+      }
     }
     try {
       window.sessionStorage.setItem(k, serialized);
@@ -298,6 +318,17 @@ export function useSession(): ChatState & ChatActions {
       });
     }
   }, []);
+
+  /**
+   * Back-compat wrapper that persists the *current* session's queue.
+   * Reads `sessionIdRef.current` at call time. Safe for user-driven
+   * actions (enqueue, cancel, edit, reorder) because those are synchronous
+   * with the active binding.
+   */
+  const persistQueue = useCallback((sid: string | null) => {
+    if (!sid) return;
+    persistQueueForSession(sid, queueRef.current);
+  }, [persistQueueForSession]);
 
   const rehydrateQueue = useCallback((sid: string) => {
     if (typeof window === "undefined") return;
@@ -320,17 +351,6 @@ export function useSession(): ChatState & ChatActions {
   }, []);
 
 
-  const wipeQueueStorage = useCallback((sid: string | null) => {
-    if (typeof window === "undefined") return;
-    const k = queueKey(sid);
-    if (!k) return;
-    try {
-      window.sessionStorage.removeItem(k);
-    } catch {
-      // ignore
-    }
-  }, []);
-
   const writeQueue = useCallback(
     (next: QueuedMessage[]) => {
       queueRef.current = next;
@@ -339,6 +359,47 @@ export function useSession(): ChatState & ChatActions {
     },
     [persistQueue],
   );
+
+  /**
+   * Like `writeQueue`, but parameterised on the target session id. Used by
+   * the drain loop in `flushQueue` so reads/writes during a long-running
+   * drain always land in the queue that *started* the drain, even if the
+   * user switches to a different session mid-flight. React state is only
+   * updated when `sid` is the currently bound session, so an in-flight
+   * drain that races with a tab switch never bleeds queue items into the
+   * incoming session's UI.
+   */
+  const writeQueueForSession = useCallback(
+    (sid: string, next: QueuedMessage[]) => {
+      if (sid === sessionIdRef.current) {
+        queueRef.current = next;
+        setQueue([...next]);
+      }
+      persistQueueForSession(sid, next);
+    },
+    [persistQueueForSession],
+  );
+
+  /**
+   * Read a specific session's queue from sessionStorage WITHOUT touching
+   * React state. Used by `flushQueue`'s error-restore path so we can
+   * prepend a failed message back to its originating session's queue even
+   * when the user has navigated away. Returns null when no entry exists or
+   * the JSON is malformed.
+   */
+  const readQueueFromStorage = useCallback((sid: string): QueuedMessage[] | null => {
+    if (typeof window === "undefined") return null;
+    const k = queueKey(sid);
+    if (!k) return null;
+    try {
+      const raw = window.sessionStorage.getItem(k);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw) as QueuedMessage[];
+      return Array.isArray(parsed) ? parsed : null;
+    } catch {
+      return null;
+    }
+  }, []);
 
   const setPendingTracked = useCallback((p: boolean) => {
     const wasPending = pendingRef.current;
@@ -355,7 +416,17 @@ export function useSession(): ChatState & ChatActions {
     setMessages([]);
     setSystemEntries([]);
     setToolProgress({});
-    wipeQueueStorage(sessionIdRef.current);
+    // DON'T wipe sessionStorage[claudius.queue.<sessionIdRef.current>]
+    // here. resetState runs at the top of switchSession / createSession —
+    // i.e. while `sessionIdRef.current` still points at the session the
+    // user is *leaving*. Wiping its queue dropped any unsent messages the
+    // user had staged there (user-visible bug: "I queued three follow-ups,
+    // switched away to check something, came back, and they're gone").
+    // The queue is intentionally scoped per-session-id in storage and
+    // rehydrated by bindToSession's `rehydrateQueue(newId)`; leaving the
+    // outgoing entry alone is exactly the right behavior. React state of
+    // the queue still gets cleared below so the outgoing UI doesn't bleed
+    // into the incoming view.
     setQueue([]);
     queueRef.current = [];
     setPendingPermission(null);
@@ -394,7 +465,7 @@ export function useSession(): ChatState & ChatActions {
     scratchRef.current.clear();
     scopeMessageIdRef.current = new Map();
     lastAssistantUuidRef.current = "";
-  }, [wipeQueueStorage]);
+  }, []);
 
   const refreshSessions = useCallback(async () => {
     // Merge two sources so the dropdown shows historical sessions too — not
@@ -523,17 +594,40 @@ export function useSession(): ChatState & ChatActions {
     return () => document.removeEventListener("visibilitychange", onVis);
   }, [refreshSessions]);
 
+  /**
+   * Single-pass flush: pop the head of the active session's queue, send it
+   * to the SDK, and STOP — waiting for the SDK's `result` event to flip
+   * pending back to false before the next call (which fires from
+   * `setPendingTracked`'s edge logic). This keeps the queue UI behaving
+   * like a staging area: while the agent is busy, follow-ups sit visible
+   * in the queue strip; each turn's completion peels off exactly one
+   * queued message and starts the next turn.
+   *
+   * Bails when:
+   *   - No active session id.
+   *   - The SDK is busy (`pendingRef.current`) — the next pending-edge
+   *     transition will retrigger us.
+   *   - A permission card is open (`pendingPermissionRef.current`) — the
+   *     SDK is parked on `canUseTool`; `resolvePermission` retriggers us.
+   *   - Queue is empty.
+   *
+   * Persistence: captures `id` at entry and routes every storage write
+   * through `writeQueueForSession(id, …)`. So if the user switches session
+   * during the POST and the send then fails, the failed item is restored
+   * into the *originating* session's queue, not the incoming one. (The
+   * pre-fix flushQueue persisted under `sessionIdRef.current`, which moved
+   * during the await.)
+   */
   const flushQueue = useCallback(async () => {
     const id = sessionIdRef.current;
     if (!id) return;
-    // Single-pass: send the head, wait for the SDK to return idle (next call
-    // will fire from setPendingTracked(false) when the result comes back).
-    // This keeps ordering deterministic and avoids races against the model.
     if (pendingRef.current) return;
     if (pendingPermissionRef.current) return;
     if (queueRef.current.length === 0) return;
+
     const next = queueRef.current[0];
-    writeQueue(queueRef.current.slice(1));
+    const rest = queueRef.current.slice(1);
+    writeQueueForSession(id, rest);
     const uuid = crypto.randomUUID();
     // Same slash-command rule as `send()`: skip the optimistic user-message
     // render so `/compact` doesn't show up as if the user typed it — the
@@ -557,10 +651,6 @@ export function useSession(): ChatState & ChatActions {
       res = await fetch(`/api/sessions/${id}/input`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // Pass the optimistic uuid through. The server will broadcast a user
-        // SDK event with the same id, and applyEvent's per-uuid dedup (line
-        // ~721) silently drops the echo for this tab while letting other
-        // subscribers see it for the first time.
         body: JSON.stringify({
           text: next.text,
           images: next.images,
@@ -569,18 +659,26 @@ export function useSession(): ChatState & ChatActions {
         }),
       });
     } catch (err) {
-      // Re-prepend, surface error, leave pending false. User must trigger again.
-      writeQueue([next, ...queueRef.current]);
-      setErrors((e) => [...e, `send failed: ${err instanceof Error ? err.message : String(err)}`]);
-      setPendingTracked(false);
+      // POST failed — restore THIS message into the originating session's
+      // queue (prepended). Read storage fresh in case more items landed
+      // while the POST was in flight. React state only mirrors the restore
+      // when we're still on `id`.
+      const currentForId = readQueueFromStorage(id) ?? rest;
+      writeQueueForSession(id, [next, ...currentForId]);
+      setErrors((e) => [
+        ...e,
+        `send failed: ${err instanceof Error ? err.message : String(err)}`,
+      ]);
+      if (sessionIdRef.current === id) setPendingTracked(false);
       return;
     }
     if (!res.ok) {
-      writeQueue([next, ...queueRef.current]);
+      const currentForId = readQueueFromStorage(id) ?? rest;
+      writeQueueForSession(id, [next, ...currentForId]);
       setErrors((e) => [...e, `send failed: ${res.status}`]);
-      setPendingTracked(false);
+      if (sessionIdRef.current === id) setPendingTracked(false);
     }
-  }, [setPendingTracked, writeQueue]);
+  }, [setPendingTracked, writeQueueForSession, readQueueFromStorage]);
   flushQueueRef.current = () => {
     void flushQueue();
   };
@@ -1279,7 +1377,25 @@ export function useSession(): ChatState & ChatActions {
         }
         // Surface user messages from a resumed transcript so the chat shows history.
         if (!isSynthetic && inner) {
+          // Drop transcript-only plumbing the SDK flags on the envelope —
+          // the post-/compact "Session continued from a previous conversation"
+          // synthesized user message (isCompactSummary + isVisibleInTranscriptOnly)
+          // and the <local-command-caveat> wrapper around slash runs (isMeta).
+          // Both look like user prose by content shape (the parsers below see
+          // them as "real" text) but they were authored by the SDK for the
+          // model's eyes only. The `compact_boundary` system event already
+          // marks the transition, so we don't replace these with pills.
+          if (isSdkInternalEnvelope(msg)) return;
           const content = inner.content;
+          // Content-shape fallback for the live iterator. The SDK's `query`
+          // async iterator forwards SDKUserMessage envelopes WITHOUT the
+          // `isCompactSummary` / `isMeta` flags that exist on the JSONL —
+          // only the disk-replay paths (`resyncFromDisk`, `synthesizeOlder`)
+          // see them. Without these two content-shape checks, the live
+          // /compact run dumps the full summary AND the local-command-caveat
+          // wrapper into the chat as user bubbles. See `isCompactSummaryContent`.
+          if (isCompactSummaryContent(content)) return;
+          if (isLocalCommandCaveatContent(content)) return;
           // Drop SDK-injected <task-notification> wrappers — they're context
           // for the model, not user-authored prose, and rendering them as a
           // user bubble surfaces XML the user didn't write. The matching
@@ -1677,6 +1793,12 @@ export function useSession(): ChatState & ChatActions {
       sessionIdRef.current = id;
       setSessionId(id);
       rehydrateQueue(id);
+      // No flush trigger here. Rehydrated items stay visible in the
+      // QueueIndicator; the normal pending-edge cadence (turn ends →
+      // setPendingTracked false → flushQueue) drains them when the SDK
+      // returns to idle. If the SDK is *already* idle when the user
+      // returns to this session, the items wait for a manual user action
+      // — matching the staging-area UX the user reported preferring.
       // Reflect the bound session id in the URL so a refresh resumes it.
       // Use replaceState (no history entry) and strip the `at` cursor — it's
       // a one-shot resume anchor and shouldn't survive past the first bind.
@@ -1703,9 +1825,24 @@ export function useSession(): ChatState & ChatActions {
           // ignore — non-fatal
         }
       }
+      // Capture the bound id in the closure so SSE callbacks can early-out
+      // when this tab has moved on. Two race shapes this defends against:
+      //   1. `close()` is supposed to stop event delivery synchronously, but
+      //      already-queued onmessage tasks can still fire one more time on
+      //      some browsers — without a guard those bleed events from the
+      //      outgoing session into the freshly-cleared state of the next one
+      //      (user reported "messages from other sessions appear").
+      //   2. Rapid switches (notification jump fires while a tab click is
+      //      still mid-await on the wake POST) can stack two bindToSession
+      //      invocations whose closures both hold live EventSources for a
+      //      few ms; the guard makes sure only the latest closure wins.
+      // `sessionIdRef.current` is the single source of truth for the active
+      // binding — bindToSession sets it synchronously above.
+      const boundId = id;
       const es = new EventSource(`/api/sessions/${id}/stream?tail=20`);
       eventSourceRef.current = es;
       es.onmessage = (msg) => {
+        if (sessionIdRef.current !== boundId) return;
         try {
           const ev = JSON.parse(msg.data) as ServerEvent;
           applyEvent(ev);
@@ -1714,6 +1851,7 @@ export function useSession(): ChatState & ChatActions {
         }
       };
       es.onerror = () => {
+        if (sessionIdRef.current !== boundId) return;
         // EventSource fires `error` for both transient drops (it will retry
         // automatically) and permanent failures. Distinguish by readyState:
         //   CONNECTING (0) → reconnect in flight, do nothing — when it lands
@@ -1736,6 +1874,23 @@ export function useSession(): ChatState & ChatActions {
   const switchSession = useCallback(
     async (id: string): Promise<void> => {
       if (sessionIdRef.current === id) return;
+      // Cut the outgoing session's SSE BEFORE resetState wipes messages.
+      // Order matters: resetState clears the transcript synchronously, but
+      // the wake POST below awaits for ~30–100ms before bindToSession
+      // closes the old EventSource. If we left the old socket open across
+      // that window, any events the outgoing session emits (turn_status, a
+      // late tool_result, a JSONL-watcher resync rebroadcast) would land in
+      // the now-empty messages state, and the user would see a mix of
+      // "messages from another session" plus the new session's tail replay
+      // on top — exactly the symptom we're fixing. Closing here closes
+      // synchronously per the WHATWG spec, so the browser stops dispatching
+      // events from that socket immediately. The closure-captured `boundId`
+      // guard in bindToSession is the belt; this is the suspenders.
+      //
+      // Null the ref too: bindToSession reads it as the "previous" handle
+      // and we don't want a stale double-close warning in some browsers.
+      eventSourceRef.current?.close();
+      eventSourceRef.current = null;
       resetState();
       // AWAIT the wake POST before opening the SSE — this mirrors the
       // boot path exactly (`createSession` does `await fetch(...)` then
@@ -1926,6 +2081,14 @@ export function useSession(): ChatState & ChatActions {
           ...(isSlash ? { slash: true } : {}),
         };
         writeQueue([...queueRef.current, q]);
+        // No flush trigger here — that's intentional. The queue is a
+        // staging area: items stay visible in the QueueIndicator strip
+        // until the current turn finishes, then `setPendingTracked`'s
+        // true→false edge peels off exactly one item and starts the next
+        // turn. This is the original "single-pass" cadence; an earlier
+        // pipeline-drain version that auto-flushed here turned the queue
+        // into "type 3 messages, all 3 land as user bubbles immediately"
+        // which lost the staging UX.
         return;
       }
       const uuid = crypto.randomUUID();
@@ -1982,6 +2145,9 @@ export function useSession(): ChatState & ChatActions {
         ...(images && images.length ? { images } : {}),
       };
       writeQueue([...queueRef.current, q]);
+      // Intentionally no flush trigger — see comment in `send()`. Items
+      // sit in the queue until the next pending-edge transition drains
+      // the head.
     },
     [writeQueue],
   );
@@ -2165,6 +2331,22 @@ export function useSession(): ChatState & ChatActions {
     }).catch(() => {});
   }, []);
 
+  /**
+   * Effort/reasoning level is owned by the SDK — there's no dedicated
+   * control-plane setter the way `setModel` has one. Mirror the CLI's
+   * behavior by sending `/effort <level>` through the slash-command path.
+   * The server's `slash_invoked` pill replaces the user-message echo, so
+   * the chat stays clean while the SDK applies the change for the next
+   * turn (and any in-flight turn, since `applyFlagSettings` underneath
+   * the slash takes effect mid-stream on supported models).
+   */
+  const setEffort = useCallback(
+    async (level: "low" | "medium" | "high" | "xhigh" | "max" | "auto") => {
+      await send(`/effort ${level}`, undefined, { asSlashCommand: true });
+    },
+    [send],
+  );
+
   const renameTitle = useCallback(
     async (title: string): Promise<{ ok: true } | { ok: false; error: string }> => {
       const id = sessionIdRef.current;
@@ -2242,6 +2424,7 @@ export function useSession(): ChatState & ChatActions {
     interrupt,
     setPermissionMode,
     setModel,
+    setEffort,
     switchSession,
     createNewSession,
     createSessionAt,
@@ -2264,6 +2447,20 @@ type RawSDKMessage = {
    * on the older-pagination path and the UI hides the chip.
    */
   timestamp?: string;
+  /**
+   * Envelope flags the SDK writes on transcript-only plumbing messages —
+   * `isMeta` (local-command-caveat wrappers around slash runs), and the
+   * `isCompactSummary` / `isVisibleInTranscriptOnly` pair the SDK stamps on
+   * the synthesized "Session continued from a previous conversation"
+   * user-shaped record it emits right after a successful /compact. These
+   * aren't in the SDK's TypeScript type but are present on the JSONL
+   * envelope; `isSdkInternalEnvelope` reads them and the synthesizeOlder
+   * loop skips matching records so paginated history doesn't show two
+   * bonus user bubbles the user never typed.
+   */
+  isMeta?: boolean;
+  isCompactSummary?: boolean;
+  isVisibleInTranscriptOnly?: boolean;
 };
 
 /**
@@ -2287,6 +2484,12 @@ function synthesizeOlder(raw: Array<Record<string, unknown>>): {
     if (r.parent_tool_use_id) continue;
     const uuid = typeof r.uuid === "string" ? r.uuid : "";
     if (!uuid) continue;
+    // Drop SDK transcript-only plumbing (isMeta caveats, isCompactSummary
+    // continuations). Mirrors the live `applyEvent` branch — without this,
+    // scrolling past a /compact in the paginated history showed the
+    // "Session continued from a previous conversation…" summary AND the
+    // <local-command-caveat> wrapper as user-typed bubbles.
+    if (isSdkInternalEnvelope(r)) continue;
     const content = r.message?.content;
 
     if (r.type === "assistant") {
@@ -2348,6 +2551,29 @@ function synthesizeOlder(raw: Array<Record<string, unknown>>): {
     // Skip SDK-injected <task-notification> wrappers on the replay path too —
     // see the live `if (msg.type === "user")` branch for the rationale.
     if (isSyntheticTaskNotification(content)) continue;
+
+    // Content-shape fallback that mirrors the live `applyEvent` branch.
+    // On the pagination/disk-replay path the envelope check above already
+    // handles these via `isMeta` / `isCompactSummary`, but keeping the same
+    // content-shape filters here means a future SDK change that drops the
+    // flags on disk too (or a malformed JSONL line) still won't surface
+    // these synthesized messages as user bubbles.
+    if (isCompactSummaryContent(content)) continue;
+    if (isLocalCommandCaveatContent(content)) continue;
+
+    // Mirror the live path's slash-command filters: a `/compact` user-shape
+    // message OR the synthetic `<command-name>/compact</command-name>` /
+    // `<local-command-stdout>` plumbing the CLI wraps around a slash run
+    // would otherwise render as user bubbles when the user scrolls past
+    // them in paginated history. The live path lifts each to a small
+    // `Ran /X` system pill — synthesizeOlder doesn't produce SystemEntries
+    // (its only output channel is DisplayMessage[]), so we drop them
+    // silently here. The `compact_boundary` divider already marks the
+    // transition for the user; recreating per-record pills on the
+    // pagination path would also double-count after a subsequent
+    // resyncFromDisk.
+    if (isSdkSlashUserMessage(content)) continue;
+    if (parseSyntheticCliWrapper(content)) continue;
 
     // Plain user message — text or array content. The SDK stamps user
     // records in the JSONL with an ISO `timestamp`; parse it so paginated
