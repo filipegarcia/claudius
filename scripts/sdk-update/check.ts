@@ -302,13 +302,27 @@ async function main(): Promise<void> {
   // Single JSON line on stdout for run.sh to parse. Human-readable
   // notes go to stderr so they end up in cron logs without polluting
   // the structured channel.
+  //
+  // Wire format is intentionally FLAT — run.sh's portable sed-based
+  // parser (used when `jq` isn't installed on the host) can't walk
+  // nested objects. Keep `decision` nested too for any non-shell
+  // consumer that wants the full structured form.
   console.error(`[sdk-update/check] installed=${installed} latest=${latest} → ${decision.kind}`);
   if (decision.kind !== "run") {
     console.error(
       `[sdk-update/check] ${"reason" in decision ? decision.reason : ""}`,
     );
   }
-  process.stdout.write(JSON.stringify({ decision, installed, latest }) + "\n");
+  const flat: Record<string, string> = {
+    kind: decision.kind,
+    installed,
+    latest,
+  };
+  if (decision.kind === "run") {
+    flat.previousVersion = decision.previousVersion;
+    flat.newVersion = decision.newVersion;
+  }
+  process.stdout.write(JSON.stringify({ ...flat, decision }) + "\n");
 }
 
 // Only run main() when executed directly (not when imported).
