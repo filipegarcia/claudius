@@ -119,12 +119,25 @@ or put a `GH_TOKEN` in the env file below. The token needs `repo`
 scope (push, open PRs, read checks) and `read:org` if the repo is
 under an org.
 
-### 4. Drop the env file
+### 4. Authenticate Claude
+
+You only need ONE of these — the Agent SDK accepts any of them:
+
+- **Recommended on a host where you've already got Claude Code:** just
+  run `claude /login` once as the cron user. The SDK reads
+  `~/.claude/.credentials.json` automatically. Nothing else to do.
+- **Or:** put `ANTHROPIC_API_KEY=sk-ant-…` in the env file below.
+- **Or:** put `CLAUDE_CODE_OAUTH_TOKEN=…` in the env file below.
+
+### 5. Drop the env file
 
 ```bash
 mkdir -p .claudius/sdk-updater/logs
 cat > .claudius/sdk-updater/env <<'EOF'
-ANTHROPIC_API_KEY=sk-ant-...
+# Claude auth — uncomment ONE if not using `claude /login`:
+# ANTHROPIC_API_KEY=sk-ant-...
+# CLAUDE_CODE_OAUTH_TOKEN=...
+
 GH_TOKEN=ghp_...                          # optional if gh auth login was used
 CHAT_SERVER_URL=https://chat.your-host.tld
 CHAT_SERVER_ADMIN_TOKEN=...               # matches your chat-server's admin token
@@ -138,7 +151,7 @@ EOF
 chmod 600 .claudius/sdk-updater/env
 ```
 
-### 5. Create the announcement room (one-time)
+### 6. Create the announcement room (one-time)
 
 The orchestrator assumes the room already exists on your chat-server.
 Create it once:
@@ -150,7 +163,7 @@ curl -X POST "$CHAT_SERVER_URL/admin/rooms" \
   -d '{"slug":"sdk-update","name":"SDK updates","description":"Auto-posted by the SDK updater."}'
 ```
 
-### 6. Install the cron line
+### 7. Install the cron line
 
 ```bash
 make sdk-update-install-cron
@@ -160,7 +173,7 @@ This appends one hourly entry to the current user's crontab and is
 idempotent. Inspect it with `crontab -l`. Remove with
 `make sdk-update-uninstall-cron`.
 
-### 7. Smoke-test
+### 8. Smoke-test
 
 ```bash
 make sdk-update-check    # dry-run: prints decision JSON
@@ -195,7 +208,7 @@ All env vars are optional unless flagged otherwise.
 
 | Var | What it does |
 | --- | --- |
-| `ANTHROPIC_API_KEY` | Passed through to the Agent SDK for the upgrade run. |
+| Claude auth — pick one | `ANTHROPIC_API_KEY` env, *or* `CLAUDE_CODE_OAUTH_TOKEN` env, *or* a logged-in `claude /login` on the host (the Agent SDK reads `~/.claude/.credentials.json` automatically). The orchestrator's pre-flight accepts any of these. |
 | `CHAT_SERVER_URL` | Base URL of the chat-server, e.g. `https://chat.your-host.tld`. |
 | `CHAT_SERVER_ADMIN_TOKEN` | Matches the admin token configured on the chat-server. |
 | `GH_TOKEN` *or* an interactive `gh auth login` | Either is sufficient; the orchestrator just shells out to `gh`. |

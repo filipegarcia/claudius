@@ -153,12 +153,17 @@ bun --version    # sanity check
 
 ### 2. Ship the chat-server code to the VPS
 
-From your laptop, in the Claudius repo root:
+Clone the Claudius repo on the box (the chat-server lives in a
+subdirectory) and symlink it to `/opt/claudius-chat-server` — the
+path the systemd unit and Caddyfile both reference. The symlink keeps
+updates a one-liner (`git pull`) and avoids any laptop ↔ VPS file
+copy step:
 
 ```bash
-ssh root@<vps-ip> 'mkdir -p /opt/claudius-chat-server'
-rsync -a --delete chat-server/ root@<vps-ip>:/opt/claudius-chat-server/
-ssh root@<vps-ip> 'cd /opt/claudius-chat-server && bun install --production'
+ssh root@<vps-ip>
+git clone https://github.com/filipegarcia/claudius.git /opt/claudius-source
+ln -s /opt/claudius-source/chat-server /opt/claudius-chat-server
+cd /opt/claudius-chat-server && bun install --production
 ```
 
 ### 3. Set the admin token
@@ -351,18 +356,20 @@ incognito — both should see each other in real time.
 
 ### Updates
 
-To deploy new chat-server code:
+To deploy new chat-server code, pull from git on the VPS and restart:
 
 ```bash
-rsync -a --delete chat-server/ root@<vps-ip>:/opt/claudius-chat-server/
 ssh root@<vps-ip> '
+  git -C /opt/claudius-source pull --ff-only &&
   cd /opt/claudius-chat-server && bun install --production &&
   systemctl restart claudius-chat-server
 '
 ```
 
 The SQLite db in `/var/lib/claudius-chat-server/` survives restarts and
-redeploys.
+redeploys. New migrations under `chat-server/migrations/NNN_*.sql` run
+on the next boot — watch `journalctl -u claudius-chat-server -n 20`
+right after the restart for `[chat-server] applied migration N…` lines.
 
 ## Deploying to Fly.io
 
