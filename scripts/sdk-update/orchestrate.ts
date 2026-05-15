@@ -44,6 +44,7 @@ import {
   readdirSync,
   writeFileSync,
 } from "node:fs";
+import { homedir } from "node:os";
 import { dirname, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -118,8 +119,31 @@ function shStream(cmd: string, args: string[], opts: SpawnOptions = {}): number 
 // ── Pre-flight ────────────────────────────────────────────────────────
 
 function preflight(): void {
-  if (!process.env.ANTHROPIC_API_KEY) {
-    fatal("ANTHROPIC_API_KEY is not set — the Agent SDK can't authenticate.");
+  // Auth resolution mirrors what the bundled `cli.js` does inside
+  // @anthropic-ai/claude-agent-sdk: it accepts any of (a) an explicit
+  // ANTHROPIC_API_KEY, (b) a CLAUDE_CODE_OAUTH_TOKEN, or (c) a
+  // credentials file from `claude /login` at
+  // $CLAUDE_CONFIG_DIR/.credentials.json or ~/.claude/.credentials.json
+  // (plus the macOS keychain, which we don't inspect from here —
+  // headless cron rigs are Linux in practice).
+  //
+  // We only need to confirm SOMETHING is set; the SDK gives a clearer
+  // auth error than we could fabricate if it later can't authenticate.
+  // The intent of the soft check is just to fail fast on a host that's
+  // never been logged in at all, with a pointer to the fix.
+  const configDir = process.env.CLAUDE_CONFIG_DIR ?? resolve(homedir(), ".claude");
+  const credsPath = resolve(configDir, ".credentials.json");
+  const hasAnyAuth =
+    !!process.env.ANTHROPIC_API_KEY ||
+    !!process.env.CLAUDE_CODE_OAUTH_TOKEN ||
+    existsSync(credsPath);
+  if (!hasAnyAuth) {
+    fatal(
+      `no Claude auth found. Either set ANTHROPIC_API_KEY in ` +
+        `.claudius/sdk-updater/env, or run \`claude /login\` once as ` +
+        `the cron user (which writes ${credsPath}). The Agent SDK ` +
+        `picks up either automatically.`,
+    );
   }
   if (!CHAT_SERVER_URL || !CHAT_SERVER_ADMIN_TOKEN) {
     fatal(

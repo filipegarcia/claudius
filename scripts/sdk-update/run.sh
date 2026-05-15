@@ -21,7 +21,10 @@
 #
 #   # env file — chmod 600
 #   cat > .claudius/sdk-updater/env <<'EOF'
-#   ANTHROPIC_API_KEY=sk-ant-...
+#   # Claude auth — uncomment ONE, or skip all three and use
+#   # `claude /login` (the SDK reads ~/.claude/.credentials.json automatically):
+#   # ANTHROPIC_API_KEY=sk-ant-...
+#   # CLAUDE_CODE_OAUTH_TOKEN=...
 #   GH_TOKEN=ghp_...                                # or rely on `gh auth login`
 #   CHAT_SERVER_URL=https://chat.your-host.tld
 #   CHAT_SERVER_ADMIN_TOKEN=...                     # matches the chat-server's token
