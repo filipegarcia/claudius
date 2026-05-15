@@ -19,6 +19,10 @@ import type { NotificationRow } from "@/lib/shared/notifications";
  * The hook still takes `workspaceId` to identify the "current focus"
  * workspace — used by the drawer's `markAllRead` action and to bias the
  * `unread` count returned, but no longer constrains which rows appear.
+ *
+ * Fetch lives inside `useEffect` keyed by `stateVersion` + a refetch
+ * counter, with setState in Promise callbacks — what
+ * `react-hooks/set-state-in-effect` wants.
  */
 export function useNotificationCenter(workspaceId: string | null) {
   const {
@@ -33,34 +37,43 @@ export function useNotificationCenter(workspaceId: string | null) {
   const [items, setItems] = useState<NotificationRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  /**
-   * Cross-workspace unread fetch. Always pulls `workspace=all` because
-   * the drawer is the single global inbox — the favicon's total has to
-   * match the visible-rows count or the user sees inexplicable mismatches.
-   */
-  const refresh = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch(`/api/notifications?workspace=all&limit=50&unreadOnly=1`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = (await res.json()) as { items?: NotificationRow[] };
-      setItems(data.items ?? []);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const [refetchTrigger, setRefetchTrigger] = useState(0);
 
   // Refetch on every state-event tick. That's how mark-reads done from
   // other browser tabs (or the OS-toast click path) surface here without
   // a separate subscription. workspaceId no longer triggers a refetch
   // because the list is cross-workspace.
+  //
+  // Cross-workspace unread fetch: always pulls `workspace=all` because
+  // the drawer is the single global inbox — the favicon's total has to
+  // match the visible-rows count or the user sees inexplicable mismatches.
   useEffect(() => {
-    void refresh();
-  }, [refresh, stateVersion]);
+    const controller = new AbortController();
+
+    fetch(`/api/notifications?workspace=all&limit=50&unreadOnly=1`, { signal: controller.signal })
+      .then(async (res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return (await res.json()) as { items?: NotificationRow[] };
+      })
+      .then((data) => {
+        setItems(data.items ?? []);
+        setError(null);
+      })
+      .catch((err: unknown) => {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        setError(err instanceof Error ? err.message : String(err));
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [stateVersion, refetchTrigger]);
+
+  const refresh = useCallback(() => {
+    setLoading(true);
+    setRefetchTrigger((n) => n + 1);
+  }, []);
 
   // Use the server's `unreadOnly=1` fetch as the single source of truth for
   // what shows in the drawer. The prior implementation merged in `recent`

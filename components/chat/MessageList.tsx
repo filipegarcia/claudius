@@ -7,6 +7,7 @@ import { AssistantMessage } from "./AssistantMessage";
 import { UserMessage } from "./UserMessage";
 import { SystemPill } from "./SystemPill";
 import { ClaudiusMark } from "@/components/brand/ClaudiusMark";
+import { isRealUserDisplayMessage } from "@/lib/client/sdk-message-filters";
 import type { DisplayMessage, SystemEntry, TaskInfo } from "@/lib/client/types";
 
 type Props = {
@@ -112,9 +113,17 @@ export function MessageList({
   // user typing a new prompt). A simple boolean "armed" flag wasn't enough:
   // the session_snapshot fallback prepends a user message AFTER the first
   // replay_done has already armed and disarmed the effect.
+  //
+  // `isRealUserDisplayMessage` matches the server's `extractUserPromptText`
+  // predicate (shared in `lib/shared/user-prompt.ts`) so the pin and the
+  // server's `latestUserPromptSnapshot` agree on what counts as a real
+  // prompt — synthetic `<task-notification>` injections, empty bubbles,
+  // and tool_result wrappers are skipped even if they slip past the
+  // intake reducer.
   const lastUserUuid = useMemo(() => {
     for (let i = messages.length - 1; i >= 0; i--) {
-      if (messages[i]?.role === "user") return messages[i].uuid;
+      const m = messages[i];
+      if (m && isRealUserDisplayMessage(m)) return m.uuid;
     }
     return "";
   }, [messages]);
@@ -147,13 +156,25 @@ export function MessageList({
   // clear, the previous session's `lastAnchoredUserUuidRef` would suppress
   // the anchor on the first user message of the new session if the two
   // happen to share the same uuid (unlikely, but cheap insurance).
-  useEffect(() => {
-    if (messages.length === 0) {
+  // Using the "store previous props" pattern so the `setUnread` reset
+  // runs during render — keeps it out of a useEffect body to satisfy
+  // react-hooks/set-state-in-effect. The ref clears stay in a layout
+  // effect because writing refs during render is itself disallowed.
+  // https://react.dev/reference/react/useState#storing-information-from-previous-renders
+  const [wasEmpty, setWasEmpty] = useState(messages.length === 0);
+  const isEmpty = messages.length === 0;
+  if (wasEmpty !== isEmpty) {
+    setWasEmpty(isEmpty);
+    if (isEmpty) {
+      setUnread(0);
+    }
+  }
+  useLayoutEffect(() => {
+    if (isEmpty) {
       lastAnchoredUserUuidRef.current = "";
       prevHeadUuidRef.current = "";
-      setUnread((n) => (n === 0 ? n : 0));
     }
-  }, [messages.length]);
+  }, [isEmpty]);
 
   // Track scroll position for "near bottom" gating.
   const onScroll = useCallback(() => {

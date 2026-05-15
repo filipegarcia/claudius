@@ -15,40 +15,55 @@ export type LiveStatus = {
   tools?: { name: string; description?: string; annotations?: unknown }[];
 };
 
+/**
+ * Load configured MCP servers and (optionally) their live connection status
+ * for `sessionId`. Pattern matches `useCost` (refetchTrigger +
+ * AbortController + setState-in-callback).
+ */
 export function useMcp(cwd: string | null, sessionId: string | null) {
   const [configured, setConfigured] = useState<ConfiguredServer[]>([]);
   const [status, setStatus] = useState<LiveStatus[]>([]);
   const [statusError, setStatusError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const refresh = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const params = new URLSearchParams();
-      if (cwd) params.set("cwd", cwd);
-      if (sessionId) params.set("sessionId", sessionId);
-      const res = await fetch(`/api/mcp?${params}`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const d = (await res.json()) as {
-        configured: ConfiguredServer[];
-        status: LiveStatus[] | null;
-        statusError: string | null;
-      };
-      setConfigured(d.configured);
-      setStatus(d.status ?? []);
-      setStatusError(d.statusError);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setLoading(false);
-    }
-  }, [cwd, sessionId]);
+  const [refetchTrigger, setRefetchTrigger] = useState(0);
 
   useEffect(() => {
-    void refresh();
-  }, [refresh]);
+    const controller = new AbortController();
+    const params = new URLSearchParams();
+    if (cwd) params.set("cwd", cwd);
+    if (sessionId) params.set("sessionId", sessionId);
+
+    fetch(`/api/mcp?${params}`, { signal: controller.signal })
+      .then(async (res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return (await res.json()) as {
+          configured: ConfiguredServer[];
+          status: LiveStatus[] | null;
+          statusError: string | null;
+        };
+      })
+      .then((d) => {
+        setConfigured(d.configured);
+        setStatus(d.status ?? []);
+        setStatusError(d.statusError);
+        setError(null);
+      })
+      .catch((err: unknown) => {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        setError(err instanceof Error ? err.message : String(err));
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [cwd, sessionId, refetchTrigger]);
+
+  const refresh = useCallback(() => {
+    setLoading(true);
+    setRefetchTrigger((n) => n + 1);
+  }, []);
 
   const upsert = useCallback(
     async (scope: McpScope, name: string, config: McpServerConfig) => {
@@ -57,7 +72,7 @@ export function useMcp(cwd: string | null, sessionId: string | null) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ scope, cwd, name, config }),
       });
-      if (res.ok) await refresh();
+      if (res.ok) refresh();
       return res.ok;
     },
     [cwd, refresh],
@@ -68,7 +83,7 @@ export function useMcp(cwd: string | null, sessionId: string | null) {
       const params = new URLSearchParams({ scope });
       if (cwd) params.set("cwd", cwd);
       const res = await fetch(`/api/mcp/${encodeURIComponent(name)}?${params}`, { method: "DELETE" });
-      if (res.ok) await refresh();
+      if (res.ok) refresh();
       return res.ok;
     },
     [cwd, refresh],
@@ -81,7 +96,7 @@ export function useMcp(cwd: string | null, sessionId: string | null) {
         `/api/mcp/${encodeURIComponent(name)}/reconnect?sessionId=${encodeURIComponent(sessionId)}`,
         { method: "POST" },
       );
-      if (res.ok) setTimeout(() => void refresh(), 800);
+      if (res.ok) setTimeout(refresh, 800);
       return res.ok;
     },
     [refresh, sessionId],
@@ -95,7 +110,7 @@ export function useMcp(cwd: string | null, sessionId: string | null) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ sessionId, enabled }),
       });
-      if (res.ok) setTimeout(() => void refresh(), 500);
+      if (res.ok) setTimeout(refresh, 500);
       return res.ok;
     },
     [refresh, sessionId],

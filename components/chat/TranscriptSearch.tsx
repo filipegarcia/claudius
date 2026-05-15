@@ -29,40 +29,66 @@ export function TranscriptSearch({ sessionId, onClose, onPick }: Props) {
     inputRef.current?.select();
   }, []);
 
-  // Debounced search.
-  useEffect(() => {
-    if (!sessionId || !q.trim()) {
+  // Clear results when the query empties or the session is missing —
+  // "store previous props" pattern so the setState calls run during
+  // render rather than inside a useEffect body, satisfying
+  // react-hooks/set-state-in-effect.
+  // https://react.dev/reference/react/useState#storing-information-from-previous-renders
+  const searchKey = sessionId && q.trim() ? `${sessionId}:${q}` : "";
+  const [lastSearchKey, setLastSearchKey] = useState(searchKey);
+  if (lastSearchKey !== searchKey) {
+    setLastSearchKey(searchKey);
+    if (!searchKey) {
       setHits([]);
       setError(null);
-      return;
     }
-    let cancelled = false;
-    const t = setTimeout(async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const res = await fetch(
-          `/api/sessions/${sessionId}/search?q=${encodeURIComponent(q)}&limit=50`,
-        );
-        const d = (await res.json().catch(() => ({}))) as { hits?: SearchHit[]; error?: string };
-        if (cancelled) return;
-        if (!res.ok) {
-          setError(d.error ?? `HTTP ${res.status}`);
-          setHits([]);
-          return;
-        }
-        setHits(d.hits ?? []);
-      } catch (err) {
-        if (!cancelled) setError(err instanceof Error ? err.message : String(err));
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
+  }
+
+  // Debounced search. setState only happens inside Promise callbacks; the
+  // effect body just schedules the fetch + sets up an AbortController.
+  useEffect(() => {
+    if (!sessionId || !q.trim()) return;
+    const controller = new AbortController();
+    const t = setTimeout(() => {
+      fetch(
+        `/api/sessions/${sessionId}/search?q=${encodeURIComponent(q)}&limit=50`,
+        { signal: controller.signal },
+      )
+        .then(async (res) => {
+          const d = (await res.json().catch(() => ({}))) as {
+            hits?: SearchHit[];
+            error?: string;
+          };
+          if (!res.ok) {
+            setError(d.error ?? `HTTP ${res.status}`);
+            setHits([]);
+            return;
+          }
+          setHits(d.hits ?? []);
+          setError(null);
+        })
+        .catch((err: unknown) => {
+          if (err instanceof DOMException && err.name === "AbortError") return;
+          setError(err instanceof Error ? err.message : String(err));
+        })
+        .finally(() => {
+          if (!controller.signal.aborted) setLoading(false);
+        });
     }, 200);
     return () => {
-      cancelled = true;
+      controller.abort();
       clearTimeout(t);
     };
   }, [q, sessionId]);
+
+  // Flip `loading` true at the same time we kick a fresh search — runs
+  // during render via the "store previous props" pattern so it stays
+  // out of the effect body.
+  const [loadingKey, setLoadingKey] = useState(searchKey);
+  if (loadingKey !== searchKey) {
+    setLoadingKey(searchKey);
+    if (searchKey) setLoading(true);
+  }
 
   return (
     <div className="border-b border-[var(--border)] bg-[var(--panel)]/95 px-3 py-2">

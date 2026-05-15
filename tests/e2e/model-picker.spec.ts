@@ -13,8 +13,11 @@ import { test, expect, type Page, type Route } from "@playwright/test";
  *     one chip per `supportedEffortLevels` value, plus an "Auto" chip if
  *     `supportsAdaptiveThinking` is not explicitly false.
  *   - Clicking a model fires POST `/api/sessions/<id>/model` with the
- *     value. Clicking an effort chip routes through the slash-command
- *     pipeline (`/effort <level>`) and closes the picker.
+ *     value. Clicking an effort chip fires POST `/api/sessions/<id>/effort`
+ *     with `{ level }` and closes the picker. (An earlier version routed
+ *     effort through the input/slash-command pipeline as `/effort <level>`,
+ *     but the SDK doesn't register that command — see the dedicated
+ *     `effort/route.ts` for the rationale.)
  *   - The GET endpoint returning HTTP 503 with an `{error}` body shows a
  *     friendly "Couldn't load models" state instead of a generic crash.
  *     This is the regression we shipped after the HMR-stale `Session`
@@ -50,12 +53,14 @@ type MockScript = {
   events: SdkEvent[];
   modelGet: ModelEndpointBehavior;
   /**
-   * Capture POSTs to `/api/sessions/<id>/model` (model change) and
-   * `/api/sessions/<id>/input` (slash commands for `/effort`). Tests
-   * assert against this after acting on the picker.
+   * Capture POSTs to `/api/sessions/<id>/model` (model change),
+   * `/api/sessions/<id>/effort` (effort change), and
+   * `/api/sessions/<id>/input` (regular chat sends). Tests assert against
+   * this after acting on the picker.
    */
   capture: {
     modelPosts: Array<{ model: string | null }>;
+    effortPosts: Array<{ level: string }>;
     inputPosts: Array<{ text: string; slash?: boolean }>;
   };
 };
@@ -153,8 +158,21 @@ async function mockChatBackend(page: Page, script: MockScript): Promise<void> {
     return route.fallback();
   });
 
-  // Slash commands (`/effort <level>`) ride the same input endpoint as
-  // regular chat sends, just with `slash: true` set.
+  // Effort changes have their own dedicated route — they used to ride the
+  // /input slash pipeline, but the SDK doesn't expose `/effort` as a
+  // command, so the server now calls `applyFlagSettings` directly. See
+  // `app/api/sessions/[id]/effort/route.ts`.
+  await page.route(`**/api/sessions/${FAKE_SESSION_ID}/effort`, async (route: Route) => {
+    if (route.request().method() !== "POST") return route.fallback();
+    const body = route.request().postDataJSON() as { level?: string };
+    script.capture.effortPosts.push({ level: body?.level ?? "" });
+    return route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ ok: true, level: body?.level }),
+    });
+  });
+
   await page.route(`**/api/sessions/${FAKE_SESSION_ID}/input`, async (route: Route) => {
     if (route.request().method() !== "POST") return route.fallback();
     const body = route.request().postDataJSON() as { text: string; slash?: boolean };
@@ -194,7 +212,7 @@ test.describe("model picker", () => {
     const script: MockScript = {
       events: PRELUDE,
       modelGet: { kind: "ok", models: MODELS },
-      capture: { modelPosts: [], inputPosts: [] },
+      capture: { modelPosts: [], effortPosts: [], inputPosts: [] },
     };
     await mockChatBackend(page, script);
 
@@ -236,7 +254,7 @@ test.describe("model picker", () => {
     const script: MockScript = {
       events: PRELUDE,
       modelGet: { kind: "ok", models: MODELS },
-      capture: { modelPosts: [], inputPosts: [] },
+      capture: { modelPosts: [], effortPosts: [], inputPosts: [] },
     };
     await mockChatBackend(page, script);
 
@@ -272,7 +290,7 @@ test.describe("model picker", () => {
     const script: MockScript = {
       events: PRELUDE,
       modelGet: { kind: "ok", models: MODELS },
-      capture: { modelPosts: [], inputPosts: [] },
+      capture: { modelPosts: [], effortPosts: [], inputPosts: [] },
     };
     await mockChatBackend(page, script);
 
@@ -306,13 +324,13 @@ test.describe("model picker", () => {
     await expect(panel.getByTestId("model-picker-effort")).toHaveCount(5);
   });
 
-  test("clicking an effort chip sends `/effort <level>` as a slash command and closes the picker", async ({
+  test("clicking an effort chip POSTs to `/api/sessions/<id>/effort` and closes the picker", async ({
     page,
   }) => {
     const script: MockScript = {
       events: PRELUDE,
       modelGet: { kind: "ok", models: MODELS },
-      capture: { modelPosts: [], inputPosts: [] },
+      capture: { modelPosts: [], effortPosts: [], inputPosts: [] },
     };
     await mockChatBackend(page, script);
 
@@ -323,18 +341,20 @@ test.describe("model picker", () => {
 
     // Switch to Opus so the effort row appears (PRELUDE seeds Sonnet,
     // which doesn't support effort in our MODELS fixture). Then pick
-    // High and verify the slash routing.
+    // High and verify the dedicated effort route is hit.
     await panel.locator('[data-model="claude-opus-4-7"]').click();
     await expect(panel.locator('[data-effort="high"]')).toBeVisible();
     await panel.locator('[data-effort="high"]').click();
 
-    // Slash command POSTed through /input with `slash: true`.
+    // POSTed through the dedicated `/effort` route — NOT the input/slash
+    // pipeline (the SDK doesn't expose `/effort` as a slash command).
     await expect
-      .poll(() => script.capture.inputPosts.length, { timeout: 5_000 })
+      .poll(() => script.capture.effortPosts.length, { timeout: 5_000 })
       .toBeGreaterThan(0);
-    const last = script.capture.inputPosts.at(-1)!;
-    expect(last.text).toBe("/effort high");
-    expect(last.slash).toBe(true);
+    const last = script.capture.effortPosts.at(-1)!;
+    expect(last.level).toBe("high");
+    // The slash pipeline must NOT be touched for effort changes.
+    expect(script.capture.inputPosts).toHaveLength(0);
 
     // Picking an effort closes the picker — confirms the
     // onPickEffort → setPickerOpen(false) wiring.
@@ -351,7 +371,7 @@ test.describe("model picker", () => {
     const script: MockScript = {
       events: PRELUDE,
       modelGet: { kind: "error", status: 503, error: "session not active" },
-      capture: { modelPosts: [], inputPosts: [] },
+      capture: { modelPosts: [], effortPosts: [], inputPosts: [] },
     };
     await mockChatBackend(page, script);
 
@@ -375,7 +395,7 @@ test.describe("model picker", () => {
     const script: MockScript = {
       events: PRELUDE,
       modelGet: { kind: "ok", models: MODELS },
-      capture: { modelPosts: [], inputPosts: [] },
+      capture: { modelPosts: [], effortPosts: [], inputPosts: [] },
     };
     await mockChatBackend(page, script);
 

@@ -113,7 +113,6 @@ export default function Home() {
   // Compute breach state. The override is keyed by `session:<id>:<today>` so
   // it lifts the cap only for the current calendar day, per the spec.
   const sessionCapUsd = limits.state?.limits.sessionUsd ?? 0;
-  const projectCapUsd = limits.state?.limits.projectDailyUsd ?? 0;
   const sessionSpentUsd = session.usage?.totalCostUsd ?? 0;
   const overrideKey = session.sessionId
     ? `session:${session.sessionId}:${todayKey()}`
@@ -348,11 +347,20 @@ export default function Home() {
       // last successfully persisted strip.
     });
   }, [openTabs, tabsHydrated, session.sessionId]);
-  // Auto-add the active session id whenever it appears.
-  useEffect(() => {
-    if (!session.sessionId) return;
-    setOpenTabs((prev) => (prev.includes(session.sessionId!) ? prev : [...prev, session.sessionId!]));
-  }, [session.sessionId]);
+  // Auto-add the active session id to the strip whenever it changes.
+  // Done during render via the "store previous props" pattern so we
+  // don't trip `react-hooks/set-state-in-effect`. The functional setter
+  // is still race-safe — if React batches a same-frame update from
+  // closeTab, the `prev.includes(...)` check stays accurate.
+  // https://react.dev/reference/react/useState#storing-information-from-previous-renders
+  const [lastSessionId, setLastSessionId] = useState(session.sessionId);
+  if (lastSessionId !== session.sessionId) {
+    setLastSessionId(session.sessionId);
+    if (session.sessionId) {
+      const sid = session.sessionId;
+      setOpenTabs((prev) => (prev.includes(sid) ? prev : [...prev, sid]));
+    }
+  }
 
   const closeTab = useCallback(
     (id: string) => {
@@ -1096,6 +1104,7 @@ export default function Home() {
         tasks={session.tasks}
         sessionId={session.sessionId}
         model={session.model}
+        effort={session.effort}
         permissionMode={session.permissionMode}
         cwd={session.cwd}
         usage={session.usage}

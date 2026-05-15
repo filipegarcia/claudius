@@ -66,9 +66,15 @@ export function SlashCommandPicker({ value, sdkSlashCommands, sdkSkills, onSelec
   const ref = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
-  useEffect(() => {
+  // Reset the highlight to the top whenever the visible result set
+  // resizes — "store previous props" pattern keeps the setState out of
+  // a useEffect body.
+  // https://react.dev/reference/react/useState#storing-information-from-previous-renders
+  const [lastVisibleLen, setLastVisibleLen] = useState(visible.length);
+  if (lastVisibleLen !== visible.length) {
+    setLastVisibleLen(visible.length);
     setHi(0);
-  }, [visible.length]);
+  }
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {

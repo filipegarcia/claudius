@@ -52,9 +52,18 @@ export function WorkspaceForm({ initial, onCancel, onSubmit, onIconUpload, onDel
   const [showPicker, setShowPicker] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
+  // When creating a new workspace, the auto-derived letter follows the
+  // first non-whitespace character of `name`. The user is also free to
+  // override `letter` directly (color/letter swatch picker), so we don't
+  // overwrite an explicit choice — only re-derive when `name` changes.
+  // Done via the "store previous props" pattern so the setState isn't
+  // inside an effect body.
+  // https://react.dev/reference/react/useState#storing-information-from-previous-renders
+  const [lastName, setLastName] = useState(name);
+  if (lastName !== name) {
+    setLastName(name);
     if (!initial) setLetter((name.match(/\S/)?.[0] ?? "C").toUpperCase());
-  }, [name, initial]);
+  }
 
   // Revoke object URLs on change/unmount.
   useEffect(() => {

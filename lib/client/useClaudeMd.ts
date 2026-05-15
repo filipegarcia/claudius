@@ -24,36 +24,52 @@ export type ResolvedHierarchy = {
   totalChars: number;
 };
 
+/**
+ * Load the resolved CLAUDE.md hierarchy for `cwd`. Pattern matches `useCost`
+ * (refetchTrigger + AbortController + setState-in-callback).
+ */
 export function useClaudeMd(cwd: string | null) {
   const [scopes, setScopes] = useState<ScopeFile[]>([]);
   const [resolved, setResolved] = useState<ResolvedHierarchy | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const refresh = useCallback(async () => {
-    if (!cwd) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const qs = `?cwd=${encodeURIComponent(cwd)}`;
-      const [aRes, rRes] = await Promise.all([
-        fetch(`/api/claudemd${qs}`),
-        fetch(`/api/claudemd${qs}&resolved=1`),
-      ]);
-      if (!aRes.ok) throw new Error(`HTTP ${aRes.status}`);
-      const a = (await aRes.json()) as { scopes: ScopeFile[] };
-      setScopes(a.scopes);
-      if (rRes.ok) setResolved((await rRes.json()) as ResolvedHierarchy);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setLoading(false);
-    }
-  }, [cwd]);
+  const [refetchTrigger, setRefetchTrigger] = useState(0);
 
   useEffect(() => {
-    void refresh();
-  }, [refresh]);
+    if (!cwd) return;
+    const controller = new AbortController();
+    const qs = `?cwd=${encodeURIComponent(cwd)}`;
+
+    Promise.all([
+      fetch(`/api/claudemd${qs}`, { signal: controller.signal }),
+      fetch(`/api/claudemd${qs}&resolved=1`, { signal: controller.signal }),
+    ])
+      .then(async ([aRes, rRes]) => {
+        if (!aRes.ok) throw new Error(`HTTP ${aRes.status}`);
+        const a = (await aRes.json()) as { scopes: ScopeFile[] };
+        const r = rRes.ok ? ((await rRes.json()) as ResolvedHierarchy) : null;
+        return { a, r };
+      })
+      .then(({ a, r }) => {
+        setScopes(a.scopes);
+        if (r) setResolved(r);
+        setError(null);
+      })
+      .catch((err: unknown) => {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        setError(err instanceof Error ? err.message : String(err));
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [cwd, refetchTrigger]);
+
+  const refresh = useCallback(() => {
+    setLoading(true);
+    setRefetchTrigger((n) => n + 1);
+  }, []);
 
   const save = useCallback(
     async (scope: Scope, content: string) => {
@@ -63,7 +79,7 @@ export function useClaudeMd(cwd: string | null) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ scope, cwd, content }),
       });
-      if (res.ok) await refresh();
+      if (res.ok) refresh();
       return res.ok;
     },
     [cwd, refresh],

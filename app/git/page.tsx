@@ -158,7 +158,16 @@ export default function GitPage() {
    *  - cap output length so one 10KB lint failure doesn't tank the panel.
    *  - auto-open on error so the user notices.
    */
+  // Kept memoized: this is consumed as a `useCallback` dependency by
+  // `onCheckoutBranch` and `onCreateBranch`. Letting the compiler skip
+  // optimization here is preferable to dropping the wrapper, which would
+  // recreate those downstream callbacks (and anything bound through them)
+  // on every render. The compiler reports it can't preserve the memo
+  // because `consoleCwd` "may be mutated later" — but in practice it's
+  // derived from props each render and only changes when the workspace
+  // does. Suppressing keeps the existing semantics intact.
   const pushConsoleEntry = useCallback(
+    // eslint-disable-next-line react-hooks/preserve-manual-memoization
     (input: { command: string; status: "ok" | "error" | "info"; output: string }) => {
       const cleaned = input.output
         // Drop the prefix added by GitFailure ("git commit exited 1: …").
@@ -184,52 +193,61 @@ export default function GitPage() {
       );
       if (input.status === "error") setConsoleOpen(true);
     },
+    // eslint-disable-next-line react-hooks/preserve-manual-memoization
     [consoleCwd],
   );
 
   // Persisted commit-message draft. Loaded from /api/.../commit-draft on
   // mount (or on workspace switch) and threaded into CommitBox so the
   // generated message survives leaving and coming back.
+  //
+  // The "no workspace" reset is done render-phase via the "store previous
+  // props" pattern so we don't fire setState synchronously inside the
+  // effect body (React 19 prefers this — see
+  // https://react.dev/reference/react/useState#storing-information-from-previous-renders).
+  // The effect itself only runs the fetch when there *is* a workspace,
+  // and pushes its result through `.then` / `.catch` callbacks so no
+  // setState happens in the effect body either.
   const [draftMessage, setDraftMessage] = useState<string>("");
+  const [lastDraftWsId, setLastDraftWsId] = useState<string | null>(wsId);
+  if (lastDraftWsId !== wsId) {
+    setLastDraftWsId(wsId);
+    setDraftMessage("");
+  }
   useEffect(() => {
-    if (!wsId) {
-      setDraftMessage("");
-      return;
-    }
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch(`/api/workspaces/${wsId}/git/commit-draft`);
-        if (!res.ok) return;
-        const j = (await res.json().catch(() => ({}))) as { message?: string | null };
-        if (!cancelled) setDraftMessage(j.message ?? "");
-      } catch {
+    if (!wsId) return;
+    const controller = new AbortController();
+    fetch(`/api/workspaces/${wsId}/git/commit-draft`, { signal: controller.signal })
+      .then(async (res) => {
+        if (!res.ok) return null;
+        return (await res.json().catch(() => ({}))) as { message?: string | null };
+      })
+      .then((j) => {
+        if (!j) return;
+        setDraftMessage(j.message ?? "");
+      })
+      .catch((err: unknown) => {
+        if (err instanceof DOMException && err.name === "AbortError") return;
         // non-fatal; box opens empty
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
+      });
+    return () => controller.abort();
   }, [wsId]);
 
-  const onPersistDraft = useCallback(
-    async (message: string) => {
-      if (!wsId) return;
-      try {
-        await fetch(`/api/workspaces/${wsId}/git/commit-draft`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message }),
-        });
-        setDraftMessage(message);
-      } catch {
-        // non-fatal
-      }
-    },
-    [wsId],
-  );
+  const onPersistDraft = async (message: string) => {
+    if (!wsId) return;
+    try {
+      await fetch(`/api/workspaces/${wsId}/git/commit-draft`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message }),
+      });
+      setDraftMessage(message);
+    } catch {
+      // non-fatal
+    }
+  };
 
-  const onClearDraft = useCallback(async () => {
+  const onClearDraft = async () => {
     if (!wsId) return;
     try {
       await fetch(`/api/workspaces/${wsId}/git/commit-draft`, { method: "DELETE" });
@@ -237,36 +255,52 @@ export default function GitPage() {
     } catch {
       // non-fatal
     }
-  }, [wsId]);
+  };
 
   // Keep `checked` in sync with the file list — drop stale entries when files
   // disappear (e.g. after a commit), but preserve user choices across a
-  // routine status refresh.
-  useEffect(() => {
-    if (!data) return;
-    const present = new Set(data.files.map((f) => f.path));
-    setChecked((prev) => {
-      let changed = false;
-      const next = new Set<string>();
-      for (const p of prev) {
-        if (present.has(p)) next.add(p);
-        else changed = true;
-      }
-      return changed ? next : prev;
-    });
-    // If selected file is no longer present, drop the diff view.
-    setSelected((prev) => (prev && present.has(prev.path) ? prev : null));
-  }, [data]);
-
-  // Pull diff text whenever the selection changes.
-  useEffect(() => {
-    if (!wsId || !selected) {
-      setDiff(null);
-      return;
+  // routine status refresh. Done render-phase via the "store previous props"
+  // pattern (keyed on `data` identity) rather than a `useEffect`, so we don't
+  // fire setState synchronously inside an effect body.
+  // https://react.dev/reference/react/useState#storing-information-from-previous-renders
+  const [lastData, setLastData] = useState(data);
+  if (lastData !== data) {
+    setLastData(data);
+    if (data) {
+      const present = new Set(data.files.map((f) => f.path));
+      setChecked((prev) => {
+        let changed = false;
+        const next = new Set<string>();
+        for (const p of prev) {
+          if (present.has(p)) next.add(p);
+          else changed = true;
+        }
+        return changed ? next : prev;
+      });
+      // If selected file is no longer present, drop the diff view.
+      setSelected((prev) => (prev && present.has(prev.path) ? prev : null));
     }
-    const ac = new AbortController();
-    setDiffLoading(true);
+  }
+
+  // Pull diff text whenever the selection changes. The synchronous setup
+  // (reset the previous diff/error, flip loading on) runs render-phase via
+  // the "store previous props" pattern so we don't fire setState
+  // synchronously inside the effect body. The effect itself only kicks off
+  // the async fetch, and all of *its* setStates run inside `.then` /
+  // `.catch` / `.finally` callbacks. The `AbortController` cleanup is what
+  // guarantees race-safety when the user rapidly clicks between files.
+  // https://react.dev/reference/react/useState#storing-information-from-previous-renders
+  const diffKey = wsId && selected ? `${wsId}|${selected.path}|${selected.mode}` : "";
+  const [lastDiffKey, setLastDiffKey] = useState(diffKey);
+  if (lastDiffKey !== diffKey) {
+    setLastDiffKey(diffKey);
+    setDiff(null);
     setDiffError(null);
+    setDiffLoading(Boolean(diffKey));
+  }
+  useEffect(() => {
+    if (!wsId || !selected) return;
+    const ac = new AbortController();
     fetch(
       `/api/workspaces/${wsId}/git/diff?path=${encodeURIComponent(selected.path)}&mode=${selected.mode}`,
       { signal: ac.signal },
@@ -279,11 +313,13 @@ export default function GitPage() {
         return (await res.json()) as DiffPayload;
       })
       .then((p) => setDiff(p))
-      .catch((err) => {
-        if ((err as { name?: string }).name === "AbortError") return;
+      .catch((err: unknown) => {
+        if (err instanceof DOMException && err.name === "AbortError") return;
         setDiffError(err instanceof Error ? err.message : String(err));
       })
-      .finally(() => setDiffLoading(false));
+      .finally(() => {
+        if (!ac.signal.aborted) setDiffLoading(false);
+      });
     return () => ac.abort();
   }, [wsId, selected]);
 
@@ -535,7 +571,15 @@ export default function GitPage() {
    * gate against `busy` so the user can't fire a delete on top of a commit.
    */
   const [deletingPath, setDeletingPath] = useState<string | null>(null);
+  // Kept memoized: this is consumed as a `useEffect` dependency by the
+  // Delete-key shortcut below. Identity matters there — dropping the
+  // wrapper would re-attach the window `keydown` listener on every
+  // render, which is both wasteful and racy (a Delete keystroke landing
+  // between teardown and re-attach would be lost). The compiler can't
+  // preserve the memo because most of the deps "may be mutated later",
+  // but they're all derived state we explicitly want to capture.
   const runDeleteSingle = useCallback(
+    // eslint-disable-next-line react-hooks/preserve-manual-memoization
     async (path: string) => {
       if (!wsId) return;
       if (busy || deletingPath) return;
@@ -576,6 +620,7 @@ export default function GitPage() {
         setDeletingPath(null);
       }
     },
+    // eslint-disable-next-line react-hooks/preserve-manual-memoization
     [wsId, busy, deletingPath, data, refresh, pushConsoleEntry],
   );
 
@@ -657,18 +702,18 @@ export default function GitPage() {
     }
   }
 
-  const branchLabel = useMemo(() => {
+  const branchLabel = (() => {
     if (!data) return null;
     if (!data.isRepo) return null;
     if (data.branch) return data.branch;
     if (data.head) return `${data.head} (detached)`;
     return null;
-  }, [data]);
+  })();
 
   // Branch switcher wiring. The list endpoint is cheap (`git for-each-ref`),
   // so we re-fetch on every popover open rather than maintaining a cache —
   // keeps the list honest after fetch/checkout/etc.
-  const loadBranches = useCallback(async (): Promise<BranchInfo[]> => {
+  const loadBranches = async (): Promise<BranchInfo[]> => {
     if (!wsId) return [];
     const res = await fetch(`/api/workspaces/${wsId}/git/branches`);
     if (!res.ok) {
@@ -677,7 +722,7 @@ export default function GitPage() {
     }
     const j = (await res.json()) as { branches?: BranchInfo[] };
     return j.branches ?? [];
-  }, [wsId]);
+  };
 
   const onCheckoutBranch = useCallback(
     async (name: string): Promise<{ ok: true } | { ok: false; error: string }> => {

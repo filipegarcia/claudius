@@ -1,6 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+// Same pattern as `app/customize/page.tsx`: data fetch lives inside the
+// `useEffect`, keyed by a `refetchTrigger` counter. `refresh()` bumps the
+// counter; `setState` happens in Promise callbacks (not sync in the effect
+// body), which is what `react-hooks/set-state-in-effect` wants.
 import Link from "next/link";
 import { ArrowLeft, AlertTriangle, CheckCircle2, RefreshCw, Stethoscope, XCircle } from "lucide-react";
 import { SideNav } from "@/components/nav/SideNav";
@@ -18,23 +22,35 @@ export default function DoctorPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const refresh = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/doctor");
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      setReport((await res.json()) as Report);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const [refetchTrigger, setRefetchTrigger] = useState(0);
 
   useEffect(() => {
-    void refresh();
-  }, [refresh]);
+    const controller = new AbortController();
+
+    fetch("/api/doctor", { signal: controller.signal })
+      .then(async (res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return (await res.json()) as Report;
+      })
+      .then((d) => {
+        setReport(d);
+        setError(null);
+      })
+      .catch((err: unknown) => {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        setError(err instanceof Error ? err.message : String(err));
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [refetchTrigger]);
+
+  const refresh = useCallback(() => {
+    setLoading(true);
+    setRefetchTrigger((n) => n + 1);
+  }, []);
 
   return (
     <div className="flex h-full">

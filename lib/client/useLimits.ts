@@ -5,29 +5,51 @@ import type { Limits, LimitsAuditEvent, LimitsState } from "@/lib/server/limits-
 
 export type { Limits, LimitsAuditEvent, LimitsState };
 
+/**
+ * Fetch the cost-limits state, with a manual `refresh()` and mutating
+ * helpers (`save`, `setOverride`, `audit`).
+ *
+ * Internals: the fetch lives inside `useEffect`, keyed by `cwd` and a
+ * `refetchTrigger` counter. `refresh()` bumps the counter; mutators update
+ * `state` from their own response and also bump the trigger so any other
+ * surface that depends on this hook stays in sync. setState happens inside
+ * Promise callbacks (not sync in the effect body) — what
+ * `react-hooks/set-state-in-effect` wants.
+ */
 export function useLimits(cwd: string | null) {
   const [state, setState] = useState<LimitsState | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const refresh = useCallback(async () => {
-    if (cwd == null) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch(`/api/limits?cwd=${encodeURIComponent(cwd)}`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      setState((await res.json()) as LimitsState);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setLoading(false);
-    }
-  }, [cwd]);
+  const [refetchTrigger, setRefetchTrigger] = useState(0);
 
   useEffect(() => {
-    void refresh();
-  }, [refresh]);
+    if (cwd == null) return;
+    const controller = new AbortController();
+
+    fetch(`/api/limits?cwd=${encodeURIComponent(cwd)}`, { signal: controller.signal })
+      .then(async (res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return (await res.json()) as LimitsState;
+      })
+      .then((d) => {
+        setState(d);
+        setError(null);
+      })
+      .catch((err: unknown) => {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        setError(err instanceof Error ? err.message : String(err));
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [cwd, refetchTrigger]);
+
+  const refresh = useCallback(() => {
+    setLoading(true);
+    setRefetchTrigger((n) => n + 1);
+  }, []);
 
   const save = useCallback(
     async (limits: Limits): Promise<boolean> => {

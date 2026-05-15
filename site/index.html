@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Claudius — Claude Code in the browser</title>
     <meta
       name="description"
@@ -58,9 +58,12 @@
     <style>
       html {
         scroll-behavior: smooth;
+        /* Background colour lives on <html> so the .site-bg layer can render
+           behind the body content via z-index: -1. */
+        background: #0b0b0c;
       }
       body {
-        background: #0b0b0c;
+        background: transparent;
         color: #e7e7ea;
         font-feature-settings: "ss01", "cv11";
       }
@@ -87,10 +90,153 @@
       .shot img {
         display: block;
       }
+
+      /* ───────── Animated background ─────────
+         A fixed layer behind every section: three soft, blurred orbs in
+         the accent palette drift on long cycles, and a faint grid pans
+         underneath them. Tuned to be present but never compete with the
+         content — opacities are low, durations are long (20-40s), and
+         transform-only animation keeps it on the GPU compositor.
+         Honours prefers-reduced-motion. */
+      .site-bg {
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+        pointer-events: none;
+        overflow: hidden;
+      }
+      .site-bg .orb {
+        position: absolute;
+        width: 55vmax;
+        height: 55vmax;
+        border-radius: 50%;
+        filter: blur(80px);
+        will-change: transform;
+      }
+      .site-bg .orb-1 {
+        top: -25%;
+        left: -15%;
+        opacity: 0.45;
+        background: radial-gradient(
+          circle,
+          rgba(217, 119, 87, 0.55),
+          transparent 60%
+        );
+        animation: orb1-drift 26s ease-in-out infinite alternate;
+      }
+      .site-bg .orb-2 {
+        bottom: -30%;
+        right: -20%;
+        opacity: 0.4;
+        background: radial-gradient(
+          circle,
+          rgba(139, 155, 255, 0.45),
+          transparent 60%
+        );
+        animation: orb2-drift 32s ease-in-out infinite alternate;
+      }
+      .site-bg .orb-3 {
+        top: 30%;
+        left: 35%;
+        width: 40vmax;
+        height: 40vmax;
+        opacity: 0.3;
+        background: radial-gradient(
+          circle,
+          rgba(217, 119, 87, 0.28),
+          transparent 60%
+        );
+        animation: orb3-drift 38s ease-in-out infinite;
+      }
+      .site-bg .bg-grid {
+        position: absolute;
+        inset: -2px;
+        background-image:
+          linear-gradient(rgba(231, 231, 234, 0.035) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(231, 231, 234, 0.035) 1px, transparent 1px);
+        background-size: 56px 56px;
+        -webkit-mask-image: radial-gradient(
+          ellipse at center,
+          rgba(0, 0, 0, 0.7),
+          transparent 75%
+        );
+        mask-image: radial-gradient(
+          ellipse at center,
+          rgba(0, 0, 0, 0.7),
+          transparent 75%
+        );
+        animation: grid-pan 60s linear infinite;
+      }
+      @keyframes orb1-drift {
+        0%   { transform: translate3d(0, 0, 0) scale(1); }
+        100% { transform: translate3d(18vw, 12vh, 0) scale(1.1); }
+      }
+      @keyframes orb2-drift {
+        0%   { transform: translate3d(0, 0, 0) scale(1); }
+        100% { transform: translate3d(-14vw, -10vh, 0) scale(1.15); }
+      }
+      @keyframes orb3-drift {
+        0%   { transform: translate3d(0, 0, 0) scale(0.9); }
+        50%  { transform: translate3d(-12vw, 8vh, 0) scale(1.1); }
+        100% { transform: translate3d(10vw, -6vh, 0) scale(0.95); }
+      }
+      @keyframes grid-pan {
+        0%   { background-position: 0 0; }
+        100% { background-position: 56px 56px; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .site-bg .orb,
+        .site-bg .bg-grid {
+          animation: none !important;
+        }
+      }
+      /* ───────── Phone tuning ─────────
+         iPhones (and most Androids) hit one or both of these media queries.
+         filter: blur() on a 55vmax element costs real frame budget on a
+         phone GPU; we trade some of that down for a smoother scroll. We
+         also drop the third orb and the panning grid — on a narrow viewport
+         they read as visual noise rather than depth. */
+      @media (max-width: 640px) {
+        .site-bg .orb {
+          filter: blur(48px);
+          width: 80vmax;
+          height: 80vmax;
+        }
+        .site-bg .orb-1 { opacity: 0.5; }
+        .site-bg .orb-2 { opacity: 0.42; }
+        .site-bg .orb-3,
+        .site-bg .bg-grid {
+          display: none;
+        }
+        /* Stop long unbreakable strings (curl URLs, branch names) from
+           forcing horizontal page scroll on a 390px viewport. */
+        .wrap-anywhere {
+          overflow-wrap: anywhere;
+          word-break: break-word;
+        }
+      }
+      /* Honour the iPhone's home-indicator / notch safe area on the
+         outer wrapper so the footer doesn't sit under the indicator. */
+      @supports (padding: max(0px)) {
+        .safe-bottom {
+          padding-bottom: max(3rem, env(safe-area-inset-bottom, 0px));
+        }
+      }
     </style>
   </head>
 
   <body class="font-sans antialiased">
+    <!-- ────────────────────────── Animated backdrop ──────────────────────────
+         Fixed, pointer-events disabled, sitting at z-index: -1 behind every
+         section. See the .site-bg rules in the <style> block above for the
+         drift keyframes and reduced-motion fallback. -->
+    <div class="site-bg" aria-hidden="true">
+      <div class="orb orb-1"></div>
+      <div class="orb orb-2"></div>
+      <div class="orb orb-3"></div>
+      <div class="bg-grid"></div>
+    </div>
+
     <!-- ────────────────────────────── Top bar ────────────────────────────── -->
     <header class="sticky top-0 z-30 border-b border-line/60 backdrop-blur bg-bg/70">
       <div class="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
@@ -98,11 +244,11 @@
           <img src="claudius.svg" alt="" class="h-6 w-6" />
           <span class="font-mono text-sm tracking-tight text-fg/90 group-hover:text-fg">claudius</span>
         </a>
-        <nav class="flex items-center gap-6 text-sm text-muted">
+        <nav class="flex items-center gap-4 sm:gap-6 text-sm text-muted">
           <a href="#install" class="hover:text-fg">Install</a>
-          <a href="#features" class="hover:text-fg">Features</a>
-          <a href="#gallery" class="hover:text-fg">Screenshots</a>
-          <a href="#customize" class="hover:text-fg">Customize</a>
+          <a href="#features" class="hidden sm:inline hover:text-fg">Features</a>
+          <a href="#gallery" class="hidden sm:inline hover:text-fg">Screenshots</a>
+          <a href="#customize" class="hidden md:inline hover:text-fg">Customize</a>
           <a
             href="https://github.com/filipegarcia/claudius"
             class="hover:text-fg inline-flex items-center gap-1.5"
@@ -119,8 +265,8 @@
     <!-- ────────────────────────────── Hero ────────────────────────────── -->
     <section id="top" class="relative overflow-hidden grain">
       <div class="absolute inset-0 glow"></div>
-      <div class="relative max-w-6xl mx-auto px-6 pt-20 pb-24 text-center">
-        <div class="relative mx-auto mb-8 h-28 w-28">
+      <div class="relative max-w-6xl mx-auto px-6 pt-14 pb-16 sm:pt-20 sm:pb-24 text-center">
+        <div class="relative mx-auto mb-8 h-24 w-24 sm:h-28 sm:w-28">
           <!-- Warm halo: a blurred radial wash sitting behind the bust so
                the inverted linework doesn't read as a stark white sticker. -->
           <div
@@ -144,7 +290,7 @@
           Veni, vide, refactora.”
         </blockquote>
 
-        <h1 class="text-5xl md:text-6xl font-semibold tracking-tight">
+        <h1 class="text-[2.5rem] leading-[1.05] sm:text-5xl md:text-6xl font-semibold tracking-tight">
           Claude Code<sup class="text-[0.32em] font-normal ml-1 align-super">
             <a
               href="#legal"
@@ -160,10 +306,10 @@
           memory, cost — every Claude Code surface, on the web. Runs on
           your machine. Your sessions stay yours.
         </p>
-        <div class="mt-10 flex items-center justify-center gap-3">
+        <div class="mt-10 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3">
           <a
             href="#install"
-            class="inline-flex items-center gap-2 rounded-md bg-accent px-5 py-2.5 text-sm font-medium text-bg hover:brightness-110 transition"
+            class="inline-flex items-center justify-center gap-2 rounded-md bg-accent px-5 py-3 sm:py-2.5 text-sm font-medium text-bg hover:brightness-110 transition"
           >
             Get started
             <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -172,14 +318,14 @@
           </a>
           <a
             href="#gallery"
-            class="inline-flex items-center gap-2 rounded-md border border-line bg-panel px-5 py-2.5 text-sm font-medium text-fg hover:bg-panel2 transition"
+            class="inline-flex items-center justify-center gap-2 rounded-md border border-line bg-panel px-5 py-3 sm:py-2.5 text-sm font-medium text-fg hover:bg-panel2 transition"
           >
             See it in action
           </a>
         </div>
-        <div class="mt-8 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 font-mono text-xs text-muted/80">
+        <div class="mt-8 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 font-mono text-xs text-muted/80 px-2">
           <span class="italic text-muted/60" title="“let there be code” — a wink at fiat lux">fiat codex —</span>
-          <span><span class="text-accent">$</span> <span id="hero-cmd">curl -fsSL https://filipegarcia.github.io/claudius/setup.sh | bash</span></span>
+          <span class="wrap-anywhere min-w-0"><span class="text-accent">$</span> <span id="hero-cmd">curl -fsSL https://filipegarcia.github.io/claudius/setup.sh | bash</span></span>
           <button
             id="hero-copy"
             type="button"
@@ -199,7 +345,7 @@
 
     <!-- ────────────────────────────── Install ────────────────────────────── -->
     <section id="install" class="border-t border-line/60 scroll-mt-20">
-      <div class="max-w-6xl mx-auto px-6 py-20">
+      <div class="max-w-6xl mx-auto px-6 py-14 sm:py-20">
         <div class="max-w-2xl">
           <p class="font-mono text-xs uppercase tracking-widest text-accent">Install</p>
           <h2 class="mt-2 text-3xl md:text-4xl font-semibold tracking-tight">
@@ -218,11 +364,11 @@
         <!-- One-liner -->
         <div class="mt-10 rounded-lg border border-line bg-panel overflow-hidden">
           <div class="flex items-stretch">
-            <pre class="flex-1 overflow-x-auto px-5 py-4 font-mono text-sm text-fg leading-6 whitespace-pre"><code id="install-cmd">curl -fsSL https://filipegarcia.github.io/claudius/setup.sh | bash</code></pre>
+            <pre class="flex-1 min-w-0 overflow-x-auto px-4 sm:px-5 py-4 font-mono text-[13px] sm:text-sm text-fg leading-6 whitespace-pre"><code id="install-cmd">curl -fsSL https://filipegarcia.github.io/claudius/setup.sh | bash</code></pre>
             <button
               id="install-copy"
               type="button"
-              class="shrink-0 border-l border-line px-4 text-xs font-mono uppercase tracking-wide text-muted hover:bg-panel2 hover:text-fg transition"
+              class="shrink-0 border-l border-line px-3 sm:px-4 text-xs font-mono uppercase tracking-wide text-muted hover:bg-panel2 hover:text-fg transition"
               aria-label="Copy install command"
             >Copy</button>
           </div>
@@ -335,7 +481,7 @@ HOST=0.0.0.0 PORT=8080 make up     # reachable from your LAN (careful)</code></p
 
     <!-- ────────────────────────────── Features ────────────────────────────── -->
     <section id="features" class="border-t border-line/60">
-      <div class="max-w-6xl mx-auto px-6 py-20">
+      <div class="max-w-6xl mx-auto px-6 py-14 sm:py-20">
         <div class="max-w-2xl">
           <p class="font-mono text-xs uppercase tracking-widest text-accent">What's inside</p>
           <h2 class="mt-2 text-3xl md:text-4xl font-semibold tracking-tight">
@@ -428,7 +574,7 @@ HOST=0.0.0.0 PORT=8080 make up     # reachable from your LAN (careful)</code></p
 
     <!-- ────────────────────────────── Gallery ────────────────────────────── -->
     <section id="gallery" class="border-t border-line/60 bg-panel/30">
-      <div class="max-w-6xl mx-auto px-6 py-20">
+      <div class="max-w-6xl mx-auto px-6 py-14 sm:py-20">
         <div class="max-w-2xl">
           <p class="font-mono text-xs uppercase tracking-widest text-accent">Screenshots</p>
           <h2 class="mt-2 text-3xl md:text-4xl font-semibold tracking-tight">
@@ -637,11 +783,11 @@ HOST=0.0.0.0 PORT=8080 make up     # reachable from your LAN (careful)</code></p
         ></div>
       </div>
 
-      <div class="relative max-w-5xl mx-auto px-6 py-28 text-center">
-        <h2 class="font-semibold tracking-tight text-5xl md:text-7xl lg:text-[5.5rem] leading-[1.05]">
+      <div class="relative max-w-5xl mx-auto px-6 py-20 sm:py-28 text-center">
+        <h2 class="font-semibold tracking-tight text-4xl sm:text-5xl md:text-7xl lg:text-[5.5rem] leading-[1.05]">
           One more thing<span class="text-accent">&hellip;</span>
         </h2>
-        <p class="mt-6 text-2xl md:text-3xl font-medium text-fg/90">
+        <p class="mt-6 text-xl sm:text-2xl md:text-3xl font-medium text-fg/90">
           Build your own <span class="text-accent">features</span>, right in the app.
         </p>
         <p class="mx-auto mt-6 max-w-2xl text-base md:text-lg text-muted leading-relaxed">
@@ -661,9 +807,9 @@ HOST=0.0.0.0 PORT=8080 make up     # reachable from your LAN (careful)</code></p
         >
           <div id="meta-content" class="transition-opacity duration-300">
             <div class="mb-1 text-[10px] uppercase tracking-wider text-muted/70">you · in chat</div>
-            <div id="meta-ask" class="text-fg min-h-[3rem]"></div>
+            <div id="meta-ask" class="text-fg min-h-[3rem] wrap-anywhere"></div>
             <div class="mt-4 mb-1 text-[10px] uppercase tracking-wider text-muted/70">claudius · <span id="meta-elapsed">~90s</span> later</div>
-            <div class="text-fg">
+            <div class="text-fg flex flex-wrap items-baseline gap-x-1.5 wrap-anywhere">
               <span class="text-accent">opened preview</span>
               <span id="meta-branch"></span>
               <span class="text-muted">&middot; <span id="meta-files">4</span> files &middot; ready to review</span>
@@ -823,7 +969,7 @@ HOST=0.0.0.0 PORT=8080 make up     # reachable from your LAN (careful)</code></p
 
     <!-- ────────────────────────────── Customize ────────────────────────────── -->
     <section id="customize" class="border-t border-line/60">
-      <div class="max-w-6xl mx-auto px-6 py-20">
+      <div class="max-w-6xl mx-auto px-6 py-14 sm:py-20">
         <div class="max-w-2xl">
           <p class="font-mono text-xs uppercase tracking-widest text-accent">Customize</p>
           <h2 class="mt-2 text-3xl md:text-4xl font-semibold tracking-tight">
@@ -1057,7 +1203,7 @@ HOST=0.0.0.0 PORT=8080 make up     # reachable from your LAN (careful)</code></p
 
     <!-- ────────────────────────────── Footer ────────────────────────────── -->
     <footer class="border-t border-line/60">
-      <div class="max-w-6xl mx-auto px-6 py-12 flex flex-col gap-8">
+      <div class="max-w-6xl mx-auto px-6 py-12 safe-bottom flex flex-col gap-8">
         <p class="text-center text-xs italic text-muted/80">
           made with <span class="not-italic font-mono text-accent">&lt;3</span> from Berlin
         </p>
@@ -1134,7 +1280,7 @@ HOST=0.0.0.0 PORT=8080 make up     # reachable from your LAN (careful)</code></p
           <button
             id="lightbox-close"
             type="button"
-            class="absolute -top-3 -right-3 h-9 w-9 grid place-items-center rounded-full bg-panel border border-line text-fg hover:bg-panel2 transition shadow-lg"
+            class="absolute top-2 right-2 sm:-top-3 sm:-right-3 h-10 w-10 sm:h-9 sm:w-9 grid place-items-center rounded-full bg-panel/90 backdrop-blur sm:bg-panel border border-line text-fg hover:bg-panel2 transition shadow-lg"
             aria-label="Close"
           >
             <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

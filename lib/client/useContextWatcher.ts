@@ -12,15 +12,17 @@ export type ContextSummary = {
  * Lightweight poll of the active session's context usage. Polls every 30s while
  * the session is idle (so we don't tax the SDK while it's working). Returns null
  * before the first read.
+ *
+ * `summary` is namespaced by `sessionId` internally so that a session switch
+ * causes the returned value to read as `null` until the new session's first
+ * payload lands — without that, consumers briefly render the previous
+ * session's percentage under the new session's banner.
  */
 export function useContextWatcher(sessionId: string | null, pending: boolean): ContextSummary | null {
-  const [summary, setSummary] = useState<ContextSummary | null>(null);
+  const [stored, setStored] = useState<{ sid: string; summary: ContextSummary } | null>(null);
 
   useEffect(() => {
-    if (!sessionId) {
-      setSummary(null);
-      return;
-    }
+    if (!sessionId) return;
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | null = null;
 
@@ -29,11 +31,14 @@ export function useContextWatcher(sessionId: string | null, pending: boolean): C
         const res = await fetch(`/api/sessions/${sessionId}/context`);
         if (!res.ok) return;
         const d = (await res.json()) as ContextSummary & Record<string, unknown>;
-        if (!cancelled) {
-          setSummary({
-            totalTokens: d.totalTokens ?? 0,
-            maxTokens: d.maxTokens ?? 0,
-            percentage: d.percentage ?? 0,
+        if (!cancelled && sessionId) {
+          setStored({
+            sid: sessionId,
+            summary: {
+              totalTokens: d.totalTokens ?? 0,
+              maxTokens: d.maxTokens ?? 0,
+              percentage: d.percentage ?? 0,
+            },
           });
         }
       } catch {
@@ -55,5 +60,8 @@ export function useContextWatcher(sessionId: string | null, pending: boolean): C
     };
   }, [sessionId, pending]);
 
-  return summary;
+  // Treat the stored payload as "for this session only" — switching sessions
+  // surfaces null until the next poll lands, instead of flashing the prior
+  // session's percentage under a new banner.
+  return stored && stored.sid === sessionId ? stored.summary : null;
 }

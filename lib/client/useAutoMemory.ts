@@ -4,32 +4,46 @@ import { useCallback, useEffect, useState } from "react";
 
 export type AutoMemoryFile = { name: string; path: string; size: number; modifiedMs: number };
 
+/**
+ * List the auto-memory files for `cwd`, with CRUD helpers. Pattern matches
+ * `useCost` (refetchTrigger + AbortController + setState-in-callback).
+ */
 export function useAutoMemory(cwd: string | null) {
   const [dir, setDir] = useState<string | null>(null);
   const [files, setFiles] = useState<AutoMemoryFile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const refresh = useCallback(async () => {
-    if (!cwd) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch(`/api/memory/auto?cwd=${encodeURIComponent(cwd)}`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = (await res.json()) as { dir: string; files: AutoMemoryFile[] };
-      setDir(data.dir);
-      setFiles(data.files);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setLoading(false);
-    }
-  }, [cwd]);
+  const [refetchTrigger, setRefetchTrigger] = useState(0);
 
   useEffect(() => {
-    void refresh();
-  }, [refresh]);
+    if (!cwd) return;
+    const controller = new AbortController();
+
+    fetch(`/api/memory/auto?cwd=${encodeURIComponent(cwd)}`, { signal: controller.signal })
+      .then(async (res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return (await res.json()) as { dir: string; files: AutoMemoryFile[] };
+      })
+      .then((d) => {
+        setDir(d.dir);
+        setFiles(d.files);
+        setError(null);
+      })
+      .catch((err: unknown) => {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        setError(err instanceof Error ? err.message : String(err));
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [cwd, refetchTrigger]);
+
+  const refresh = useCallback(() => {
+    setLoading(true);
+    setRefetchTrigger((n) => n + 1);
+  }, []);
 
   const readFile = useCallback(
     async (name: string): Promise<string | null> => {
@@ -63,7 +77,7 @@ export function useAutoMemory(cwd: string | null) {
         return { ok: false, status: res.status, error: err.error ?? `HTTP ${res.status}` };
       }
       const data = (await res.json()) as { name: string };
-      await refresh();
+      refresh();
       return { ok: true, name: data.name };
     },
     [cwd, refresh],
@@ -87,7 +101,7 @@ export function useAutoMemory(cwd: string | null) {
         const err = (await res.json().catch(() => ({}))) as { error?: string };
         return { ok: false, status: res.status, error: err.error ?? `HTTP ${res.status}` };
       }
-      await refresh();
+      refresh();
       return { ok: true };
     },
     [cwd, refresh],
@@ -104,7 +118,7 @@ export function useAutoMemory(cwd: string | null) {
         const err = (await res.json().catch(() => ({}))) as { error?: string };
         return { ok: false, status: res.status, error: err.error ?? `HTTP ${res.status}` };
       }
-      await refresh();
+      refresh();
       return { ok: true };
     },
     [cwd, refresh],

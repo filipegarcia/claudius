@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Image as ImageIcon, RefreshCw, Search } from "lucide-react";
 import { SideNav } from "@/components/nav/SideNav";
@@ -21,9 +21,14 @@ export default function AssetsPage() {
 
   // Drop the active selection on workspace switch — a stale asset from a
   // different project would otherwise stay open in the detail pane.
-  useEffect(() => {
+  // Done during render via the "store previous props" pattern so the
+  // reset isn't a sync setState inside an effect body.
+  // https://react.dev/reference/react/useState#storing-information-from-previous-renders
+  const [lastCwd, setLastCwd] = useState(cwd);
+  if (lastCwd !== cwd) {
+    setLastCwd(cwd);
     setActive(null);
-  }, [cwd]);
+  }
 
   const { items, loading, error, refresh, loadMore, hasMore } = useAssets({ cwd, scope, type, q });
 

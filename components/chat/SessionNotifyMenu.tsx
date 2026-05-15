@@ -54,31 +54,68 @@ export function SessionNotifyMenu({
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
+  // Tick "now" whenever the popover is open — used for snooze-relative
+  // checks. `Date.now()` is impure so it can't run during render; the
+  // effect callback ticks it once on open and then every 30s. The
+  // setState inside the interval callback is asynchronous-by-clock, so
+  // it doesn't trip react-hooks/set-state-in-effect.
   useEffect(() => {
     if (!open) return;
+    // The on-open `setNow(Date.now())` is intentional setup work —
+    // capturing the current time the moment the popover opens. We can't
+    // hoist this to a useState lazy initializer or to render because
+    // `Date.now()` is impure (react-hooks/purity), and we don't want to
+    // wait 30s for the first interval tick to learn the time. Keeping it
+    // here is the documented escape hatch for "synchronizing with an
+    // external system" (the wall clock).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setNow(Date.now());
     const t = setInterval(() => setNow(Date.now()), 30_000);
     return () => clearInterval(t);
   }, [open]);
 
-  const fetchPrefs = useCallback(async (id: string) => {
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/sessions/${id}/notification-prefs`);
-      if (!res.ok) return;
-      const data = (await res.json()) as Pref;
-      setPrefs(data);
-    } catch {
-      // best-effort
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  // Trigger a re-fetch of prefs whenever the popover opens or the session
+  // id changes (while open). The fetch itself happens in the effect below;
+  // setState calls only inside Promise callbacks.
+  const [prefsTrigger, setPrefsTrigger] = useState(0);
+  const [lastFetchKey, setLastFetchKey] = useState<string | null>(null);
+  const fetchKey = open && sessionId ? sessionId : null;
+  if (lastFetchKey !== fetchKey) {
+    setLastFetchKey(fetchKey);
+    if (fetchKey) setPrefsTrigger((n) => n + 1);
+  }
 
   useEffect(() => {
     if (!open || !sessionId) return;
-    void fetchPrefs(sessionId);
-  }, [open, sessionId, fetchPrefs]);
+    const controller = new AbortController();
+    fetch(`/api/sessions/${sessionId}/notification-prefs`, { signal: controller.signal })
+      .then(async (res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return (await res.json()) as Pref;
+      })
+      .then((data) => {
+        setPrefs(data);
+        setLoading(false);
+      })
+      .catch((err: unknown) => {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        setLoading(false);
+      });
+    return () => controller.abort();
+  }, [prefsTrigger, sessionId, open]);
+
+  // setLoading(true) on each trigger lives in render, alongside the
+  // trigger bump — keeps it out of the fetch effect's body.
+  const [lastTriggerSeen, setLastTriggerSeen] = useState(prefsTrigger);
+  if (lastTriggerSeen !== prefsTrigger) {
+    setLastTriggerSeen(prefsTrigger);
+    setLoading(true);
+  }
+
+  const fetchPrefs = useCallback((id: string) => {
+    setLastFetchKey(id);
+    setPrefsTrigger((n) => n + 1);
+  }, []);
 
   useEffect(() => {
     if (!open) return;

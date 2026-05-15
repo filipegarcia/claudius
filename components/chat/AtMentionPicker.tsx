@@ -14,34 +14,49 @@ type Props = {
 
 export function AtMentionPicker({ query, cwd, onSelect, onClose }: Props) {
   const [entries, setEntries] = useState<FsEntry[]>([]);
-  const [loading, setLoading] = useState(false);
+  // `loading` starts at true while the initial query lands. Subsequent
+  // queries flip it back to true via the "store previous props" reset
+  // below, so the spinner reflects every keystroke.
+  const [loading, setLoading] = useState(true);
   const [hi, setHi] = useState(0);
   const itemRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
-  useEffect(() => {
-    let cancelled = false;
+  // Reset loading on query/cwd change before the fetch effect runs — keeps
+  // the setState out of the effect body so we don't trip the
+  // react-hooks/set-state-in-effect rule.
+  // https://react.dev/reference/react/useState#storing-information-from-previous-renders
+  const [lastInputs, setLastInputs] = useState({ query, cwd });
+  if (lastInputs.query !== query || lastInputs.cwd !== cwd) {
+    setLastInputs({ query, cwd });
     setLoading(true);
-    const params = new URLSearchParams({ q: query, limit: "50" });
-    if (cwd) params.set("cwd", cwd);
-    fetch(`/api/fs/list?${params}`)
-      .then((r) => r.json())
-      .then((d: { entries?: FsEntry[] }) => {
-        if (!cancelled) setEntries(d.entries ?? []);
-      })
-      .catch(() => {
-        if (!cancelled) setEntries([]);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [query, cwd]);
+  }
 
   useEffect(() => {
+    const controller = new AbortController();
+    const params = new URLSearchParams({ q: query, limit: "50" });
+    if (cwd) params.set("cwd", cwd);
+    fetch(`/api/fs/list?${params}`, { signal: controller.signal })
+      .then((r) => r.json())
+      .then((d: { entries?: FsEntry[] }) => {
+        setEntries(d.entries ?? []);
+      })
+      .catch((err: unknown) => {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        setEntries([]);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+    return () => controller.abort();
+  }, [query, cwd]);
+
+  // Reset highlight to top when the visible result set size changes —
+  // same "store previous props" pattern as above to avoid an effect.
+  const [lastEntriesLen, setLastEntriesLen] = useState(entries.length);
+  if (lastEntriesLen !== entries.length) {
+    setLastEntriesLen(entries.length);
     setHi(0);
-  }, [entries.length]);
+  }
 
   const visible = useMemo(() => entries.slice(0, 30), [entries]);
 

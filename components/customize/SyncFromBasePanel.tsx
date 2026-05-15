@@ -89,25 +89,36 @@ export function SyncFromBasePanel({ customizationId }: { customizationId: string
   const [autoFixError, setAutoFixError] = useState<string | null>(null);
   const [showNoise, setShowNoise] = useState(false);
 
-  const refresh = useCallback(async () => {
-    setError(null);
-    try {
-      const r = await fetch(`/api/customizations/${customizationId}/sync`);
-      if (!r.ok) {
-        const e = (await r.json().catch(() => ({}))) as { error?: string };
-        throw new Error(e.error ?? `HTTP ${r.status}`);
-      }
-      setStatus((await r.json()) as Status);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setLoading(false);
-    }
-  }, [customizationId]);
+  // Pattern A: refresh trigger + AbortController in an effect. setState
+  // calls only fire from Promise callbacks, so the effect body has
+  // nothing that trips react-hooks/set-state-in-effect.
+  const [refetchTrigger, setRefetchTrigger] = useState(0);
 
   useEffect(() => {
-    void refresh();
-  }, [refresh]);
+    const controller = new AbortController();
+    fetch(`/api/customizations/${customizationId}/sync`, { signal: controller.signal })
+      .then(async (r) => {
+        if (!r.ok) {
+          const e = (await r.json().catch(() => ({}))) as { error?: string };
+          throw new Error(e.error ?? `HTTP ${r.status}`);
+        }
+        setStatus((await r.json()) as Status);
+        setError(null);
+      })
+      .catch((err: unknown) => {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        setError(err instanceof Error ? err.message : String(err));
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+    return () => controller.abort();
+  }, [customizationId, refetchTrigger]);
+
+  const refresh = useCallback(() => {
+    setLoading(true);
+    setRefetchTrigger((n) => n + 1);
+  }, []);
 
   /**
    * Compose the auto-fix prompt server-side, switch the active workspace

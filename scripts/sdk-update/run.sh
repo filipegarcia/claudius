@@ -1,0 +1,145 @@
+#!/usr/bin/env bash
+# scripts/sdk-update/run.sh — hourly cron entrypoint for the SDK updater.
+#
+# What this does:
+#   1. Acquire a flock so two firings can't overlap (one upgrade run
+#      may legitimately take hours).
+#   2. Run `check.ts` — exits fast if there's no new SDK version.
+#   3. If there is one, call `orchestrate.ts` which does branch +
+#      Claude run + PR + CI watch + announce.
+#
+# Designed to be safe to run from cron on a headless server. No
+# interactive prompts, no stdin reads. All logs go to STDOUT/STDERR
+# so cron's MAILTO (or your log-shipper) catches them.
+#
+# ─── Install (on a Linux server) ─────────────────────────────────────
+#
+#   # one-time setup
+#   cd /srv && git clone https://github.com/<owner>/claudius.git
+#   cd claudius && bun install
+#   mkdir -p .claudius/sdk-updater/logs
+#
+#   # env file — chmod 600
+#   cat > .claudius/sdk-updater/env <<'EOF'
+#   ANTHROPIC_API_KEY=sk-ant-...
+#   GH_TOKEN=ghp_...                                # or rely on `gh auth login`
+#   CHAT_SERVER_URL=https://chat.your-host.tld
+#   CHAT_SERVER_ADMIN_TOKEN=...                     # matches the chat-server's token
+#   SDK_UPDATE_ROOM_SLUG=sdk-update
+#   # optional tuning:
+#   # SDK_UPDATE_MODEL=sonnet
+#   # SDK_UPDATE_MAX_TURNS=200
+#   # SDK_UPDATE_MAX_WALL_MIN=360
+#   # SDK_UPDATE_MAX_MINOR_JUMP=1
+#   EOF
+#   chmod 600 .claudius/sdk-updater/env
+#
+#   # crontab line — top of every hour
+#   crontab -l > /tmp/cron.cur 2>/dev/null || true
+#   echo "0 * * * * /srv/claudius/scripts/sdk-update/run.sh \
+#     >> /srv/claudius/.claudius/sdk-updater/logs/cron.log 2>&1" >> /tmp/cron.cur
+#   crontab /tmp/cron.cur
+#
+# ─── Required commands on PATH ───────────────────────────────────────
+#   bun, git, gh, flock (util-linux). macOS doesn't ship flock — the
+#   target deploy is Linux per the user's "remote server, not my Mac".
+
+set -euo pipefail
+
+# Repo root = parent of this script's directory (matches claudiusd).
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+STATE_DIR="$ROOT/.claudius/sdk-updater"
+LOG_DIR="$STATE_DIR/logs"
+LOCK_FILE="$STATE_DIR/run.lock"
+ENV_FILE="$STATE_DIR/env"
+
+mkdir -p "$STATE_DIR" "$LOG_DIR"
+
+# Load env file if present. Don't fail when it's missing — operators
+# may inject env via systemd unit / cron entry instead.
+if [ -f "$ENV_FILE" ]; then
+  set -a
+  # shellcheck disable=SC1090
+  . "$ENV_FILE"
+  set +a
+fi
+
+log() {
+  printf '[sdk-update/run %s] %s\n' "$(date -u +%FT%TZ)" "$*"
+}
+
+# ── Concurrency guard ────────────────────────────────────────────────
+# flock -n exits 1 immediately if the lock is held. We use a separate
+# fd (200) so it lives for the duration of this process — when the
+# script exits, the kernel releases the lock for us.
+exec 200>"$LOCK_FILE"
+if ! flock -n 200; then
+  log "another run is already in progress (lock held on $LOCK_FILE) — skipping"
+  exit 0
+fi
+
+cd "$ROOT"
+
+# ── Check ────────────────────────────────────────────────────────────
+log "checking for SDK updates"
+
+# check.ts prints a single JSON line on stdout. Capture it for parsing.
+# Use bun directly — we don't need package.json scripts for this.
+CHECK_JSON="$(bun run scripts/sdk-update/check.ts 2>>"$LOG_DIR/check.stderr.log" || true)"
+
+if [ -z "$CHECK_JSON" ]; then
+  log "check.ts returned no output (see check.stderr.log) — aborting this firing"
+  exit 1
+fi
+
+# Parse fields with jq if present, otherwise crude fallback. We only
+# need a few primitives; we don't want jq to be a hard install dep on
+# every host.
+parse_field() {
+  local field="$1"
+  if command -v jq >/dev/null 2>&1; then
+    printf '%s' "$CHECK_JSON" | jq -r ".$field // empty"
+  else
+    # naive grep — works for our top-level scalar/object fields because
+    # the JSON is one line and the values don't contain matching quotes.
+    printf '%s' "$CHECK_JSON" |
+      sed -n "s/.*\"$field\":\(\"[^\"]*\"\\|[^,}]*\\).*/\1/p" |
+      sed 's/^"//;s/"$//'
+  fi
+}
+
+DECISION_KIND="$(parse_field 'decision.kind')"
+LATEST="$(parse_field 'latest')"
+INSTALLED="$(parse_field 'installed')"
+
+log "decision=$DECISION_KIND installed=$INSTALLED latest=$LATEST"
+
+case "$DECISION_KIND" in
+  noop|skip|in-flight)
+    # `skip` and `in-flight` are already logged to state by check.ts.
+    # Nothing more for this firing to do.
+    exit 0
+    ;;
+  run)
+    : # fall through
+    ;;
+  *)
+    log "unexpected decision kind: $DECISION_KIND — aborting"
+    exit 1
+    ;;
+esac
+
+# ── Orchestrate ──────────────────────────────────────────────────────
+# Pull previous version off the check output so we don't re-parse
+# package.json (which orchestrate.ts will mutate immediately).
+PREV="$(parse_field 'decision.previousVersion')"
+NEW="$(parse_field 'decision.newVersion')"
+if [ -z "$NEW" ]; then
+  log "decision.newVersion missing from check.ts payload — aborting"
+  exit 1
+fi
+
+log "kicking off orchestrate for $PREV -> $NEW"
+exec bun run scripts/sdk-update/orchestrate.ts \
+  --previous="$PREV" \
+  --version="$NEW"

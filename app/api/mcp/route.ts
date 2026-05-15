@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import {
   listConfigured,
-  removeServer,
   upsertServer,
   type McpScope,
   type McpServerConfig,

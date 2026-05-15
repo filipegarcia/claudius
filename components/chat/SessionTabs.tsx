@@ -196,6 +196,15 @@ export function SessionTabs({
   const TRAILER_PX = 120;
   useLayoutEffect(() => {
     if (stripWidth === 0 || tabs.length === 0) {
+      // Bail when there's nothing to measure. The reset to an empty Set
+      // (when hiddenIds was non-empty) is a layout-sync write: it
+      // depends on the just-rendered tab strip dimensions, which is
+      // exactly what useLayoutEffect is for. The functional-update guard
+      // returns `prev` unchanged when already empty, but ESLint's
+      // `set-state-in-effect` rule can't read that guard — hence the
+      // suppression. Hoisting this to "store previous props" would lose
+      // the dependency on the DOM measurement and create flicker.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setHiddenIds((prev) => (prev.size === 0 ? prev : new Set()));
       return;
     }

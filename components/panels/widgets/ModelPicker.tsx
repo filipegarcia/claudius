@@ -113,18 +113,27 @@ export function ModelPicker({
   // active query, so we only call it after the user opens the picker — by
   // then the session is almost always bound. If the call 503s (resume in
   // flight), we surface a friendly empty state instead of a JSON error.
-  useEffect(() => {
+  // Reset loading/error state during render when the session unbinds,
+  // so the effect below contains no sync setState in its body.
+  // https://react.dev/reference/react/useState#storing-information-from-previous-renders
+  const [lastSessionId, setLastSessionId] = useState(sessionId);
+  if (lastSessionId !== sessionId) {
+    setLastSessionId(sessionId);
     if (!sessionId) {
       setLoading(false);
       setError("No active session");
-      return;
+    } else {
+      setLoading(true);
+      setError(null);
     }
-    let aborted = false;
-    setLoading(true);
-    setError(null);
-    fetch(`/api/sessions/${sessionId}/model`)
+  }
+
+  useEffect(() => {
+    if (!sessionId) return;
+    const controller = new AbortController();
+    fetch(`/api/sessions/${sessionId}/model`, { signal: controller.signal })
       .then(async (r) => {
-        if (aborted) return;
+        if (controller.signal.aborted) return;
         if (!r.ok) {
           const body = (await r.json().catch(() => ({}))) as { error?: string };
           setError(body.error ?? `HTTP ${r.status}`);
@@ -135,16 +144,15 @@ export function ModelPicker({
         setModels(Array.isArray(data.models) ? data.models : []);
       })
       .catch((err) => {
-        if (aborted) return;
+        if (controller.signal.aborted) return;
+        if (err instanceof DOMException && err.name === "AbortError") return;
         setError(err instanceof Error ? err.message : String(err));
         setModels([]);
       })
       .finally(() => {
-        if (!aborted) setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       });
-    return () => {
-      aborted = true;
-    };
+    return () => controller.abort();
   }, [sessionId]);
 
   // The effort row is tied to the *currently active* model, not whatever

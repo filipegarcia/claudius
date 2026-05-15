@@ -1,6 +1,14 @@
 "use client";
 
-import { useEffect, useRef, useState, type ClipboardEvent, type DragEvent, type KeyboardEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type ClipboardEvent,
+  type DragEvent,
+  type KeyboardEvent,
+} from "react";
 import { ArrowUp, Hourglass, Image as ImageIcon, Mic, MicOff, Paperclip, Square, X } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { SlashCommandPicker } from "./SlashCommandPicker";
@@ -8,6 +16,12 @@ import { AtMentionPicker } from "./AtMentionPicker";
 import { ImageLightbox } from "./ImageLightbox";
 import { useVoice } from "@/lib/client/useVoice";
 import type { AttachedImage } from "@/lib/client/types";
+import {
+  BULLET_GLYPH,
+  bulletsToMarkdown,
+  computeListContinuation,
+  isListLine,
+} from "@/lib/shared/markdown-list";
 
 type Props = {
   pending: boolean;
@@ -53,6 +67,10 @@ function stripImageToken(text: string, ordinal: number): string {
   return stripped === text ? text.replace(new RegExp(`\\s?\\[Image #${ordinal}\\]`, "g"), "") : stripped;
 }
 
+// Markdown list helpers — see `lib/shared/markdown-list.ts`. Kept in shared
+// so the vitest suite under `tests/unit/` can exercise them in a node-only
+// environment without instantiating React.
+
 export function PromptInput({
   pending,
   ready,
@@ -66,9 +84,27 @@ export function PromptInput({
   sendDisabled = false,
 }: Props) {
   const [value, setValue] = useState("");
+  // Picker visibility + active @-mention token live alongside `value`.
+  // Updated imperatively from event handlers via `refreshPickerState`
+  // below; we used to derive them in a `useEffect([value])` but that
+  // tripped react-hooks/set-state-in-effect, and pure-render derivation
+  // would have to read `taRef.current?.selectionStart` during render
+  // (allowed but flagged by react-hooks/refs). The "update at the same
+  // site that changes value" model is unambiguous and stays in sync with
+  // the DOM caret on every write path.
   const [pickerOpen, setPickerOpen] = useState(false);
   const [atQuery, setAtQuery] = useState<string | null>(null);
-  const [mounted, setMounted] = useState(false);
+  // Hydration marker — `mounted` reads true on the client, false during SSR
+  // (or the very first paint). Sourced from `useSyncExternalStore` rather
+  // than a `useEffect(setMounted(true))` so we don't trip the
+  // react-hooks/set-state-in-effect rule. The subscribe is a no-op because
+  // the value never changes after hydration; `getServerSnapshot` returns
+  // false so the SSR markup matches the pre-hydration client paint.
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
   const [images, setImages] = useState<AttachedImage[]>([]);
   const [dragOver, setDragOver] = useState(false);
   /** When set, opens the lightbox over the composer for click-to-zoom. */
@@ -96,22 +132,27 @@ export function PromptInput({
   // Max-of-max — keep some chat visible above the composer.
   const HARD_CAP_VH = 0.7;
   const STORAGE_KEY = "claudius.prompt.maxHeight";
-  const [userMaxPx, setUserMaxPx] = useState<number | null>(null);
+  // Lazy init from localStorage — one-shot read on first render. The
+  // preference doesn't change cross-tab in this UI (each tab owns its
+  // composer height), so we don't need useSyncExternalStore. SSR returns
+  // null and the post-mount re-pin effect below applies the value once
+  // the textarea ref attaches.
+  const [userMaxPx, setUserMaxPx] = useState<number | null>(() => {
+    if (typeof window === "undefined") return null;
+    try {
+      const raw = window.localStorage.getItem(STORAGE_KEY);
+      if (raw == null) return null;
+      const n = Number(raw);
+      if (Number.isFinite(n) && n >= MIN_MAX_PX) return n;
+    } catch {
+      // ignore — quota / privacy mode
+    }
+    return null;
+  });
   // Mirror to a ref so autosize's plain function can read the latest value
   // without re-binding through deps.
   const userMaxPxRef = useRef<number | null>(null);
   userMaxPxRef.current = userMaxPx;
-  // Load persisted preference on mount.
-  useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem(STORAGE_KEY);
-      if (raw == null) return;
-      const n = Number(raw);
-      if (Number.isFinite(n) && n >= MIN_MAX_PX) setUserMaxPx(n);
-    } catch {
-      // ignore — quota / privacy mode
-    }
-  }, []);
 
   // Re-pin the textarea height whenever the user-set override changes —
   // covers both hydration (mount → localStorage value applied) and the
@@ -128,7 +169,6 @@ export function PromptInput({
     }
   }, [userMaxPx]);
 
-  useEffect(() => setMounted(true), []);
   const inputDisabled = mounted && !ready;
 
   // ── Auto-focus on session switch / become-ready ─────────────────────────
@@ -151,13 +191,19 @@ export function PromptInput({
     return () => cancelAnimationFrame(handle);
   }, [sessionId, ready]);
 
-  // Apply each fresh injection token exactly once.
-  const lastInjectionRef = useRef<number>(-1);
-  useEffect(() => {
-    if (!draftInjection) return;
-    if (draftInjection.token === lastInjectionRef.current) return;
-    lastInjectionRef.current = draftInjection.token;
+  // Apply each fresh injection token exactly once. Uses the React 19
+  // "store previous prop" pattern: when the incoming token differs from
+  // the one we last applied, we update state during render (before the
+  // commit) — keeping these `setValue`/`setImages` calls out of a
+  // useEffect body to satisfy react-hooks/set-state-in-effect. Focus +
+  // autosize are DOM side-effects that need the commit to finish first,
+  // so they stay in an effect keyed by the same token.
+  // https://react.dev/reference/react/useState#storing-information-from-previous-renders
+  const [appliedInjectionToken, setAppliedInjectionToken] = useState<number>(-1);
+  if (draftInjection && draftInjection.token !== appliedInjectionToken) {
+    setAppliedInjectionToken(draftInjection.token);
     setValue(draftInjection.text);
+    refreshPickerState(draftInjection.text, draftInjection.text.length);
     if (draftInjection.images && draftInjection.images.length > 0) {
       setImages(draftInjection.images);
       // Bump the ordinal counter past anything the prior queue used so a new
@@ -167,11 +213,15 @@ export function PromptInput({
     } else {
       setImages([]);
     }
-    requestAnimationFrame(() => {
+  }
+  useEffect(() => {
+    if (appliedInjectionToken < 0) return;
+    const handle = requestAnimationFrame(() => {
       taRef.current?.focus();
       autosize();
     });
-  }, [draftInjection]);
+    return () => cancelAnimationFrame(handle);
+  }, [appliedInjectionToken]);
 
   // ── Per-session draft persistence ──────────────────────────────────────
   // Each session has its own composer draft — switching tabs should NOT
@@ -216,6 +266,10 @@ export function PromptInput({
         const text = data?.text ?? "";
         const imgs = Array.isArray(data?.images) ? data!.images! : [];
         setValue(text);
+        // Restored drafts can legally start with `/` (slash command) or end
+        // with `@token` (in-progress mention) — keep the picker state in
+        // sync so the user sees the same UI they had when they left.
+        refreshPickerState(text, text.length);
         setImages(imgs);
         if (imgs.length > 0) {
           const maxOrd = imgs.reduce((m, im) => Math.max(m, im.ordinal), 0);
@@ -359,7 +413,12 @@ export function PromptInput({
     if (sendDisabled) return;
     const text = value.trim();
     if (!text && images.length === 0) return;
-    onSend(text, images.length ? images : undefined);
+    // The composer renders bullets as `•` so the textarea has something
+    // nicer to look at than `*`, but the wire format / Claude rendering
+    // expect standard markdown — convert back here so what Claude sees is
+    // what the user would have typed in any other markdown editor.
+    const wire = bulletsToMarkdown(text);
+    onSend(wire, images.length ? images : undefined);
     setValue("");
     setImages([]);
     setPickerOpen(false);
@@ -382,23 +441,102 @@ export function PromptInput({
     });
   }
 
-  // Track which kind of picker should be open by inspecting the active token.
-  useEffect(() => {
-    const el = taRef.current;
-    const caret = el?.selectionStart ?? value.length;
-    const before = value.slice(0, caret);
+  // Recompute picker visibility + the active @-mention token from a
+  // (value, caret) pair. Called from every place that sets `value`:
+  // textarea onChange, draft-injection apply, voice-dictation callback,
+  // and the at-mention insert helper. Replaces a former
+  // `useEffect([value])` that tripped react-hooks/set-state-in-effect.
+  function refreshPickerState(nextValue: string, caret: number) {
+    const before = nextValue.slice(0, caret);
     // First-line slash picker: line starts with /
-    const slashMatch = /^\s*\/\S*$/.test(value);
-    setPickerOpen(slashMatch);
+    setPickerOpen(/^\s*\/\S*$/.test(nextValue));
     // @-mention: capture the active token if it starts with @
     const atMatch = /(^|\s)@([^\s@]*)$/.exec(before);
     setAtQuery(atMatch ? atMatch[2] : null);
-  }, [value]);
+  }
+
+  /**
+   * Replace the current textarea selection with `insert` and place the caret
+   * at `caretOffset` characters into the inserted text. Used by Enter-to-
+   * continue-list and Tab indent/outdent so they all share the same
+   * setValue + setSelectionRange dance.
+   */
+  function applyEdit(start: number, end: number, insert: string, caretOffset: number) {
+    const el = taRef.current;
+    if (!el) return;
+    const next = value.slice(0, start) + insert + value.slice(end);
+    setValue(next);
+    userTypedRef.current = true;
+    refreshPickerState(next, start + caretOffset);
+    requestAnimationFrame(() => {
+      el.focus();
+      const pos = start + caretOffset;
+      el.setSelectionRange(pos, pos);
+      autosize();
+    });
+  }
 
   function onKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.key === "Enter" && !e.shiftKey && !pickerOpen && atQuery == null) {
+    // IME composition + open pickers each own their own keyboard semantics —
+    // bail out of markdown shortcuts so we don't fight them. The Enter-submit
+    // fallback still respects `!pickerOpen && atQuery == null` below.
+    if (composingRef.current) return;
+
+    if (e.key === "Enter" && !pickerOpen && atQuery == null) {
+      const caret = e.currentTarget.selectionStart ?? 0;
+      const lineStart = value.lastIndexOf("\n", caret - 1) + 1;
+      const nlIdx = value.indexOf("\n", caret);
+      const lineEnd = nlIdx === -1 ? value.length : nlIdx;
+      const line = value.slice(lineStart, lineEnd);
+
+      const cont = computeListContinuation(line);
+      // List-aware Enter runs for *both* Enter and Shift+Enter: plain Enter
+      // submits, so Shift+Enter is the user's only way to add a newline, and
+      // it must continue the list just like Enter would in any other editor.
+      if (cont) {
+        e.preventDefault();
+        if (cont.kind === "empty") {
+          // Empty list item → exit the list by clearing this line's marker.
+          // Caret lands at the (now-blank) line start so the next Enter
+          // produces a normal newline. Mirrors VS Code / Slack behaviour.
+          applyEdit(lineStart, lineEnd, "", 0);
+        } else {
+          // Non-empty list item → split at caret and seed the new line
+          // with the continuation marker.
+          applyEdit(caret, caret, "\n" + cont.next, 1 + cont.next.length);
+        }
+        return;
+      }
+
+      // Outside a list, fall back to original semantics: Enter submits,
+      // Shift+Enter inserts a plain newline (browser default).
+      if (e.shiftKey) return;
       e.preventDefault();
       submit();
+      return;
+    }
+
+    if (e.key === "Tab" && !pickerOpen && atQuery == null) {
+      const caret = e.currentTarget.selectionStart ?? 0;
+      const lineStart = value.lastIndexOf("\n", caret - 1) + 1;
+      const nlIdx = value.indexOf("\n", caret);
+      const lineEnd = nlIdx === -1 ? value.length : nlIdx;
+      const line = value.slice(lineStart, lineEnd);
+
+      // Only hijack Tab inside list items — outside a list we leave the
+      // browser's default focus-traversal alone so keyboard nav still works.
+      if (!isListLine(line)) return;
+
+      e.preventDefault();
+      if (e.shiftKey) {
+        const m = /^( {1,2})/.exec(line);
+        if (!m) return;
+        const removed = m[1].length;
+        applyEdit(lineStart, lineEnd, line.slice(removed), Math.max(0, caret - lineStart - removed));
+      } else {
+        applyEdit(lineStart, lineStart, "  ", 2 + (caret - lineStart));
+      }
+      return;
     }
   }
 
@@ -671,11 +809,40 @@ export function PromptInput({
                     cleaned = cleaned.replace(new RegExp(`^[^\\[]*Image #${ord}\\]`), "");
                   }
                   setValue(cleaned);
+                  refreshPickerState(cleaned, cleaned.length);
                   autosize();
                   return;
                 }
+
+                // Markdown bullet auto-insert: a freshly-typed space following
+                // a lone `* ` at the start of a (possibly indented) line gets
+                // swapped for the bullet glyph. Guarded by a single-char
+                // insertion check so pastes and programmatic edits don't
+                // surprise the user.
+                const caret = e.target.selectionStart ?? next.length;
+                if (next.length === value.length + 1 && next[caret - 1] === " ") {
+                  const lineStart = next.lastIndexOf("\n", caret - 1) + 1;
+                  const beforeCaret = next.slice(lineStart, caret);
+                  const m = /^(\s*)\* $/.exec(beforeCaret);
+                  if (m) {
+                    const indent = m[1];
+                    const replaced =
+                      next.slice(0, lineStart) + indent + `${BULLET_GLYPH} ` + next.slice(caret);
+                    setValue(replaced);
+                    refreshPickerState(replaced, caret);
+                    // No length change → caret stays at `caret` natively; we
+                    // still re-pin to defend against browsers that reset the
+                    // selection when the controlled value swaps.
+                    requestAnimationFrame(() => {
+                      taRef.current?.setSelectionRange(caret, caret);
+                      autosize();
+                    });
+                    return;
+                  }
+                }
               }
               setValue(next);
+              refreshPickerState(next, e.target.selectionStart ?? next.length);
               autosize();
             }}
             onKeyDown={onKeyDown}

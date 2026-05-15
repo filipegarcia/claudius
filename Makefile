@@ -1,4 +1,11 @@
-.PHONY: install dev build start lint unit test test-ui test-setup test-setup-local test-setup-docker test-install-public ci site screenshots screenshots-full claudius-revert claudius-revert-all run up down restart status logs
+.PHONY: help install dev build start lint unit test test-ui test-setup test-setup-local test-setup-docker test-install-public ci site screenshots screenshots-full claudius-revert claudius-revert-all run up down restart status logs sdk-update-check sdk-update-run sdk-update-status sdk-update-logs sdk-update-install-cron sdk-update-uninstall-cron
+
+# List every target, grouped by the section headers below.
+help:
+	@awk ' \
+		/^# ── / { sub(/^# ── */, ""); sub(/ *──+ *$$/, ""); printf "\n\033[1m%s\033[0m\n", $$0; next } \
+		/^[a-zA-Z][a-zA-Z0-9_-]*:([^=]|$$)/ { sub(/:.*$$/, ""); printf "  %s\n", $$0 } \
+	' $(MAKEFILE_LIST)
 
 install:
 	bun install --frozen-lockfile
@@ -108,3 +115,89 @@ claudius-revert:
 
 claudius-revert-all:
 	bun bin/claudius-revert --all
+
+# ── SDK updater (scripts/sdk-update/) ──────────────────────────────────
+# Hourly cron pipeline that watches npm for new @anthropic-ai/claude-agent-sdk
+# releases, lets Claude do the upgrade, opens a PR, watches CI, and
+# announces to the community channel. See scripts/sdk-update/README.md
+# for the architecture + on-host setup.
+#
+# Targets are designed for a remote Linux server but most are safe to
+# run locally for one-off testing. `sdk-update-install-cron` is the
+# only one that mutates the user's crontab.
+#
+# Env (loaded from .claudius/sdk-updater/env if present, else inherited
+# from the caller): ANTHROPIC_API_KEY, GH_TOKEN, CHAT_SERVER_URL,
+# CHAT_SERVER_ADMIN_TOKEN, plus the SDK_UPDATE_* tunables.
+
+# Dry-run probe: prints whether there's a new SDK version + what the
+# orchestrator would do. Mutates state.json (updates lastCheckedAt /
+# skipped) but does not touch git or open PRs. Safe to run locally.
+sdk-update-check:
+	bun run scripts/sdk-update/check.ts
+
+# One-shot manual fire — same code path as cron. Reads check, then
+# runs orchestrate if there's work. WILL create a branch, push, and
+# open a PR if a new version is out, so don't run this on your laptop
+# unless that's what you want.
+sdk-update-run:
+	@scripts/sdk-update/run.sh
+
+# Status summary — last check time, current state, in-flight upgrade
+# (if any), and skipped versions. Cheap, read-only.
+sdk-update-status:
+	@if [ -f .claudius/sdk-updater/state.json ]; then \
+		echo "── state.json ─────────────────────────────────────"; \
+		cat .claudius/sdk-updater/state.json; \
+	else \
+		echo "(no state file yet — updater has never run on this host)"; \
+	fi
+	@echo
+	@if [ -f .claudius/sdk-updater/run.lock ] && command -v flock >/dev/null 2>&1; then \
+		if ! flock -n -s .claudius/sdk-updater/run.lock -c true 2>/dev/null; then \
+			echo "── lock ──────────────────────────────────────────"; \
+			echo "run.lock is currently HELD — an upgrade is in flight"; \
+		fi; \
+	fi
+
+# Tail the cron log. Pass FOLLOW=1 to stream (-f).
+sdk-update-logs:
+	@touch .claudius/sdk-updater/logs/cron.log
+	@if [ "$(FOLLOW)" = "1" ]; then \
+		tail -f .claudius/sdk-updater/logs/cron.log; \
+	else \
+		tail -n 200 .claudius/sdk-updater/logs/cron.log; \
+	fi
+
+# Install the hourly crontab line for the current user on the current
+# host. Idempotent — refuses to add a duplicate. Use `crontab -e` to
+# tweak the schedule afterwards.
+sdk-update-install-cron:
+	@ROOT="$$(pwd)"; \
+	LINE="0 * * * * $$ROOT/scripts/sdk-update/run.sh >> $$ROOT/.claudius/sdk-updater/logs/cron.log 2>&1"; \
+	mkdir -p "$$ROOT/.claudius/sdk-updater/logs"; \
+	TMP="$$(mktemp)"; \
+	crontab -l 2>/dev/null > "$$TMP" || true; \
+	if grep -qF "scripts/sdk-update/run.sh" "$$TMP"; then \
+		echo "✓ crontab already contains an sdk-update entry — leaving it alone"; \
+	else \
+		echo "$$LINE" >> "$$TMP"; \
+		crontab "$$TMP"; \
+		echo "✓ installed: $$LINE"; \
+	fi; \
+	rm -f "$$TMP"
+
+# Remove the hourly crontab line. Matches by the script path so a
+# manually-edited schedule (`30 * * * *`) is still removed.
+sdk-update-uninstall-cron:
+	@TMP="$$(mktemp)"; \
+	crontab -l 2>/dev/null > "$$TMP" || true; \
+	if grep -qF "scripts/sdk-update/run.sh" "$$TMP"; then \
+		grep -vF "scripts/sdk-update/run.sh" "$$TMP" > "$$TMP.new"; \
+		crontab "$$TMP.new"; \
+		echo "✓ removed sdk-update entry from crontab"; \
+		rm -f "$$TMP.new"; \
+	else \
+		echo "✓ no sdk-update entry in crontab — nothing to do"; \
+	fi; \
+	rm -f "$$TMP"

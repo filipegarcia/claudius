@@ -32,6 +32,8 @@ type Props = {
   tasks?: Record<string, TaskInfo>;
   sessionId: string | null;
   model: string | null;
+  /** Current reasoning effort, surfaced on the SessionCard as a pill. */
+  effort: "low" | "medium" | "high" | "xhigh" | "max" | "auto";
   permissionMode: PermissionMode;
   cwd: string | null;
   usage: SessionUsage | null;
@@ -96,6 +98,7 @@ export function BackgroundTasksPanel({
   tasks = {},
   sessionId,
   model,
+  effort,
   permissionMode,
   cwd,
   usage,
@@ -166,6 +169,7 @@ export function BackgroundTasksPanel({
         <SessionCard
           sessionId={sessionId}
           model={model}
+          effort={effort}
           permissionMode={permissionMode}
           cwd={cwd}
           usage={usage}

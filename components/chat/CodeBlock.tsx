@@ -49,7 +49,6 @@ export function CodeBlock({ code, lang }: Props) {
       {html ? (
         <div
           className="shiki-host overflow-auto text-xs leading-5 scroll-thin"
-          // eslint-disable-next-line react/no-danger
           dangerouslySetInnerHTML={{ __html: html }}
         />
       ) : (

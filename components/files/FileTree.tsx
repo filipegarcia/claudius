@@ -36,10 +36,20 @@ export function FileTree({ workspaceId, onPick }: Props) {
     return d.entries;
   }, [workspaceId]);
 
-  useEffect(() => {
-    let cancelled = false;
+  // Flip loading on whenever `load` identity changes (workspaceId
+  // switches) — "store previous props" pattern so the setState happens
+  // in render rather than inside the fetch effect, satisfying
+  // react-hooks/set-state-in-effect.
+  // https://react.dev/reference/react/useState#storing-information-from-previous-renders
+  const [lastLoad, setLastLoad] = useState(() => load);
+  if (lastLoad !== load) {
+    setLastLoad(() => load);
     setLoading(true);
     setError(null);
+  }
+
+  useEffect(() => {
+    let cancelled = false;
     load("")
       .then((entries) => {
         if (!cancelled) setRoot(entries);

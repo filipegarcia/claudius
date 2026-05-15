@@ -6,6 +6,7 @@ import {
   query,
   renameSession,
   type CanUseTool,
+  type EffortLevel,
   type Options,
   type PermissionMode,
   type PermissionResult,
@@ -31,6 +32,7 @@ import {
   type PlanDecision,
   type ServerEvent,
 } from "@/lib/shared/events";
+import { extractUserPromptText, isRealUserPrompt } from "@/lib/shared/user-prompt";
 
 type Subscriber = (event: ServerEvent) => void;
 
@@ -126,18 +128,6 @@ export function computeReplayWindow(
 }
 
 /**
- * Distinguish a real user prompt from an SDK-synthetic tool_result wrapper.
- * Real prompts have either a string content or an array containing at
- * least one text/image block; synthetic wrappers are pure tool_result
- * arrays. Exported alongside `computeReplayWindow` because the same
- * distinction shows up in any "find the last actual user message"
- * code path (and the client-side `extractToolResult` mirrors this).
- */
-function isRealUserPrompt(content: unknown): boolean {
-  return extractUserPromptText(content) !== null;
-}
-
-/**
  * Gate for the noisy `[sess-load]` logs around session start / subscribe /
  * resync. Enabled via `CLAUDIUS_DEBUG_SESSIONS=1` so we can ask a user
  * who's hitting the "old session is empty until I refresh" bug to set
@@ -187,44 +177,6 @@ export function resolveSessionTitle(opts: {
   const customTrim = opts.info?.customTitle?.trim();
   if (customTrim) return customTrim;
   return null;
-}
-
-/**
- * Recognise the SDK-injected `<task-notification>` wrapper that arrives as a
- * user-role message when a background task finishes. It's valid input to the
- * model but pure noise from the user's perspective — and counting it as a
- * "real user prompt" makes `computeReplayWindow` anchor on it instead of the
- * actual previous prompt, exactly the bug `isRealUserPrompt` exists to avoid.
- * Mirrors the client-side helper of the same name in `lib/client/use-session`.
- */
-function isSyntheticTaskNotification(text: string): boolean {
-  return /^\s*<task-notification[\s>]/.test(text);
-}
-
-/**
- * Pull the plain-text body out of a user SDK message's `content`. Returns
- * null for synthetic tool_result wrappers, for synthetic task-notification
- * wrappers, and for content that has no text body (e.g. image-only prompts
- * — those still survive via the SSE replay path, the snapshot fallback just
- * doesn't carry their pixels).
- */
-function extractUserPromptText(content: unknown): string | null {
-  if (typeof content === "string") {
-    if (content.length === 0) return null;
-    if (isSyntheticTaskNotification(content)) return null;
-    return content;
-  }
-  if (!Array.isArray(content)) return null;
-  let text = "";
-  for (const block of content) {
-    const b = block as { type?: string; text?: string } | null;
-    if (b?.type === "text" && typeof b.text === "string") {
-      text += b.text;
-    }
-  }
-  if (text.length === 0) return null;
-  if (isSyntheticTaskNotification(text)) return null;
-  return text;
 }
 
 export class Session {
@@ -999,6 +951,40 @@ export class Session {
   }
 
   /**
+   * Set the reasoning-effort level for subsequent turns.
+   *
+   * The SDK exposes effort via `applyFlagSettings({ effortLevel })`, not as
+   * a slash command — an earlier cut of the client routed `/effort <level>`
+   * through the input pipeline, but the SDK answers that with
+   * `/effort isn't available in this environment.` because no such command
+   * is registered. The flag-settings layer sits above project/user settings
+   * and below managed-policy settings, so the override survives until we
+   * clear it (or the SDK session ends).
+   *
+   * `null` / `"auto"` clears the override and returns the model to its
+   * default adaptive behavior. Other values pass through verbatim — we let
+   * the SDK validate against the active model's `supportedEffortLevels`
+   * rather than re-implementing that check here. The `Settings.effortLevel`
+   * type currently excludes `"max"` but the SDK's `EffortLevel` includes
+   * it; we cast and forward so the picker's max chip works on models that
+   * support it.
+   *
+   * No DB persistence — effort isn't on the `sessions` schema. After a
+   * reap → resume, the level falls back to default. The client mirrors the
+   * pick optimistically so the SessionCard pill stays honest within a
+   * session's lifetime; that's the trade we accept until the SDK adds an
+   * `effort_changed` event we can subscribe to.
+   */
+  async setEffort(level: EffortLevel | "auto"): Promise<void> {
+    if (!this.query) return;
+    // Cast: `Settings.effortLevel` is `'low' | 'medium' | 'high' | 'xhigh'`
+    // (no max), but the SDK accepts max at runtime on supporting models.
+    // Trust the SDK to reject unsupported levels rather than narrowing here.
+    const value = level === "auto" ? null : (level as "low" | "medium" | "high" | "xhigh");
+    await this.query.applyFlagSettings({ effortLevel: value }).catch(() => {});
+  }
+
+  /**
    * Forward the model list the SDK advertises for this session. The SDK
    * returns per-model metadata (display name, description, supported effort
    * levels) so the picker can render the same options the CLI's `/model`
@@ -1122,7 +1108,18 @@ export class Session {
       for (const m of disk) {
         const uuid = (m as { uuid?: string }).uuid;
         if (!uuid || seen.has(uuid)) continue;
-        this.broadcast({ type: "sdk", message: m as unknown as SDKMessage });
+        // Preserve the original JSONL `timestamp` as `at` so the UI shows
+        // the time the message was actually written, not "now". Without
+        // this, `broadcast()` defaults `at` to Date.now() and a watcher-
+        // driven resync (terminal `claude --resume`, external SDK writer)
+        // makes historically-old messages appear as if they just arrived
+        // — exactly the "old messages coming as new" symptom users hit
+        // when they switched contexts. Mirrors the same pattern in
+        // `start()`'s historical-load loop.
+        const ts = (m as { timestamp?: string }).timestamp;
+        const parsed = typeof ts === "string" ? Date.parse(ts) : NaN;
+        const at = Number.isFinite(parsed) ? parsed : undefined;
+        this.broadcast({ type: "sdk", message: m as unknown as SDKMessage, at });
         added++;
       }
       if (sessLoadDebug()) {
@@ -1470,10 +1467,21 @@ export class Session {
     // Real user prompt → cache for the rehydration snapshot. Skip
     // SDK-synthetic tool_result wrappers (same distinction as
     // `isRealUserPrompt` used by computeReplayWindow).
+    //
+    // Prefer the envelope's `at` over wall-clock now: disk-replay callers
+    // (`Session.start` resume path, `resyncFromDisk`) pre-set `at` from the
+    // JSONL `timestamp`, so the snapshot reflects when the user actually
+    // sent the prompt rather than when we happened to re-broadcast it.
+    // For live broadcasts the funnel in `broadcast()` already stamps `at`
+    // to Date.now(), so the fallback is just belt-and-suspenders.
     if (m.type === "user") {
       const text = extractUserPromptText(m.message?.content);
       if (text && m.uuid) {
-        this.latestUserPromptSnapshot = { uuid: m.uuid, text, at: Date.now() };
+        this.latestUserPromptSnapshot = {
+          uuid: m.uuid,
+          text,
+          at: event.at ?? Date.now(),
+        };
       }
       return;
     }

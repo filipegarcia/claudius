@@ -5,31 +5,46 @@ import type { HookEvent, HookGroup } from "@/lib/shared/hook-events";
 import type { SettingsScope } from "@/lib/server/settings";
 import type { ScopedHooks } from "@/lib/server/hooks";
 
+/**
+ * Fetch the per-scope `claude-code` hooks tree for a workspace, with a
+ * manual `refresh()` and CRUD helpers. See `useCost` for the pattern
+ * (refetchTrigger + AbortController + setState-in-callback).
+ */
 export function useHooks(cwd: string | null) {
   const [scopes, setScopes] = useState<ScopedHooks[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const refresh = useCallback(async () => {
-    if (cwd == null) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const qs = cwd ? `?cwd=${encodeURIComponent(cwd)}` : "";
-      const res = await fetch(`/api/hooks${qs}`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = (await res.json()) as { scopes: ScopedHooks[] };
-      setScopes(data.scopes);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setLoading(false);
-    }
-  }, [cwd]);
+  const [refetchTrigger, setRefetchTrigger] = useState(0);
 
   useEffect(() => {
-    void refresh();
-  }, [refresh]);
+    if (cwd == null) return;
+    const controller = new AbortController();
+
+    const qs = cwd ? `?cwd=${encodeURIComponent(cwd)}` : "";
+    fetch(`/api/hooks${qs}`, { signal: controller.signal })
+      .then(async (res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return (await res.json()) as { scopes: ScopedHooks[] };
+      })
+      .then((d) => {
+        setScopes(d.scopes);
+        setError(null);
+      })
+      .catch((err: unknown) => {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        setError(err instanceof Error ? err.message : String(err));
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [cwd, refetchTrigger]);
+
+  const refresh = useCallback(() => {
+    setLoading(true);
+    setRefetchTrigger((n) => n + 1);
+  }, []);
 
   const add = useCallback(
     async (scope: SettingsScope, event: HookEvent, group: HookGroup) => {
@@ -38,7 +53,7 @@ export function useHooks(cwd: string | null) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ scope, cwd, event, group }),
       });
-      if (res.ok) await refresh();
+      if (res.ok) refresh();
       return res.ok;
     },
     [cwd, refresh],
@@ -51,7 +66,7 @@ export function useHooks(cwd: string | null) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ scope, cwd, event, index }),
       });
-      if (res.ok) await refresh();
+      if (res.ok) refresh();
       return res.ok;
     },
     [cwd, refresh],
@@ -64,7 +79,7 @@ export function useHooks(cwd: string | null) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ scope, cwd, disabled }),
       });
-      if (res.ok) await refresh();
+      if (res.ok) refresh();
       return res.ok;
     },
     [cwd, refresh],

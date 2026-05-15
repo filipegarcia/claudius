@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { AlertTriangle, Save, Shield } from "lucide-react";
 import { useLimits } from "@/lib/client/useLimits";
 
@@ -17,12 +17,19 @@ export function LimitsPanel({ cwd, todaySpendUsd }: Props) {
   const [saving, setSaving] = useState(false);
   const [savedTick, setSavedTick] = useState(0);
 
-  // Hydrate inputs from server state when it lands.
-  useEffect(() => {
-    if (!state) return;
-    setProjectDailyUsd(toInputStr(state.limits.projectDailyUsd));
-    setSessionUsd(toInputStr(state.limits.sessionUsd));
-  }, [state]);
+  // Hydrate inputs from server state when it lands — "store previous
+  // props" pattern keeps the setState calls out of a useEffect body.
+  // Identity of `state` flips each time the underlying limits change,
+  // so we use the object reference itself as the change key.
+  // https://react.dev/reference/react/useState#storing-information-from-previous-renders
+  const [lastState, setLastState] = useState(state);
+  if (lastState !== state) {
+    setLastState(state);
+    if (state) {
+      setProjectDailyUsd(toInputStr(state.limits.projectDailyUsd));
+      setSessionUsd(toInputStr(state.limits.sessionUsd));
+    }
+  }
 
   async function onSave() {
     setSaving(true);

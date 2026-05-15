@@ -1,6 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+// `useEffect` stays in the import list because the file uses it elsewhere
+// (theme/help-overlay wiring). The data-fetch effect below was rewritten
+// to put setState in `.then`/`.catch`/`.finally` callbacks instead of
+// firing them synchronously in the effect body, satisfying
+// `react-hooks/set-state-in-effect`.
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { WandSparkles, Plus, RefreshCw, Loader2, ExternalLink, HelpCircle, Trash2, Power, PowerOff } from "lucide-react";
@@ -27,25 +32,36 @@ export default function CustomizePage() {
     return !window.localStorage.getItem(HELP_SEEN_KEY);
   });
 
-  const refresh = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/customizations");
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const d = (await res.json()) as ListResponse;
-      setItems(d.customizations);
-      setPublishes(d.publishes);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const [refetchTrigger, setRefetchTrigger] = useState(0);
 
   useEffect(() => {
-    void refresh();
-  }, [refresh]);
+    const controller = new AbortController();
+
+    fetch("/api/customizations", { signal: controller.signal })
+      .then(async (res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return (await res.json()) as ListResponse;
+      })
+      .then((d) => {
+        setItems(d.customizations);
+        setPublishes(d.publishes);
+        setError(null);
+      })
+      .catch((err: unknown) => {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        setError(err instanceof Error ? err.message : String(err));
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [refetchTrigger]);
+
+  const refresh = useCallback(() => {
+    setLoading(true);
+    setRefetchTrigger((n) => n + 1);
+  }, []);
 
   const onCreate = useCallback(async () => {
     setCreating(true);
