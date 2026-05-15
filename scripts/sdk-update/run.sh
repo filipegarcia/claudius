@@ -92,25 +92,24 @@ if [ -z "$CHECK_JSON" ]; then
   exit 1
 fi
 
-# Parse fields with jq if present, otherwise crude fallback. We only
-# need a few primitives; we don't want jq to be a hard install dep on
-# every host.
-parse_field() {
-  local field="$1"
-  if command -v jq >/dev/null 2>&1; then
-    printf '%s' "$CHECK_JSON" | jq -r ".$field // empty"
-  else
-    # naive grep — works for our top-level scalar/object fields because
-    # the JSON is one line and the values don't contain matching quotes.
-    printf '%s' "$CHECK_JSON" |
-      sed -n "s/.*\"$field\":\(\"[^\"]*\"\\|[^,}]*\\).*/\1/p" |
-      sed 's/^"//;s/"$//'
-  fi
-}
+# Parse the check.ts envelope with bun (already a hard prereq, so no
+# new dependency). One invocation extracts every field we care about
+# and emits `name=value` lines — robust across macOS BSD tools and
+# Linux GNU tools, and avoids the regex pain of multi-shell support.
+EVAL_LINES="$(printf '%s' "$CHECK_JSON" | bun -e '
+  const j = JSON.parse(require("node:fs").readFileSync(0, "utf8"));
+  for (const k of ["kind", "installed", "latest", "previousVersion", "newVersion"]) {
+    const v = j[k];
+    if (v != null) process.stdout.write(`${k.toUpperCase()}=${v}\n`);
+  }
+')"
+# shellcheck disable=SC2046
+# Each line is a single shell-safe assignment (no spaces, no shell
+# metachars in our value space — version strings + the enum kind).
+# Eval rather than source so we don't need to spawn a subshell.
+eval "$EVAL_LINES"
 
-DECISION_KIND="$(parse_field 'decision.kind')"
-LATEST="$(parse_field 'latest')"
-INSTALLED="$(parse_field 'installed')"
+DECISION_KIND="${KIND:-}"
 
 log "decision=$DECISION_KIND installed=$INSTALLED latest=$LATEST"
 
@@ -130,12 +129,11 @@ case "$DECISION_KIND" in
 esac
 
 # ── Orchestrate ──────────────────────────────────────────────────────
-# Pull previous version off the check output so we don't re-parse
-# package.json (which orchestrate.ts will mutate immediately).
-PREV="$(parse_field 'decision.previousVersion')"
-NEW="$(parse_field 'decision.newVersion')"
+# PREVIOUSVERSION / NEWVERSION came out of the bun-eval block above.
+PREV="${PREVIOUSVERSION:-}"
+NEW="${NEWVERSION:-}"
 if [ -z "$NEW" ]; then
-  log "decision.newVersion missing from check.ts payload — aborting"
+  log "newVersion missing from check.ts payload — aborting"
   exit 1
 fi
 
