@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 
 /**
  * Per-browser opt-in for the community chat.
@@ -71,41 +71,31 @@ function write(value: CommunityConsent): void {
   }
 }
 
+function subscribe(cb: () => void) {
+  if (typeof window === "undefined") return () => {};
+  const onStorage = (e: StorageEvent) => {
+    if (e.key === LS_COMMUNITY_CONSENT_KEY) cb();
+  };
+  window.addEventListener("storage", onStorage);
+  window.addEventListener(COMMUNITY_CONSENT_EVENT, cb);
+  return () => {
+    window.removeEventListener("storage", onStorage);
+    window.removeEventListener(COMMUNITY_CONSENT_EVENT, cb);
+  };
+}
+
+/**
+ * Reads consent via `useSyncExternalStore` — same pattern as `useTheme`.
+ * SSR snapshot is `null` (no decision), which matches the visual gate
+ * (first frame always shows the consent prompt; opting-in then unlocks
+ * the chat surface on the next render after hydration).
+ */
 export function useCommunityConsent() {
-  // SSR-safe initial value, hydrated on mount. Important: render the
-  // first frame in the "no decision yet" state so the chat hook
-  // doesn't open a connection during hydration.
-  const [consent, setConsent] = useState<CommunityConsent>(null);
+  const consent = useSyncExternalStore(subscribe, readCommunityConsent, () => null);
 
-  useEffect(() => {
-    setConsent(readCommunityConsent());
-    // Keep this hook in sync if another tab toggles the consent key.
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === LS_COMMUNITY_CONSENT_KEY) setConsent(readCommunityConsent());
-    };
-    const onLocal = () => setConsent(readCommunityConsent());
-    window.addEventListener("storage", onStorage);
-    window.addEventListener(COMMUNITY_CONSENT_EVENT, onLocal);
-    return () => {
-      window.removeEventListener("storage", onStorage);
-      window.removeEventListener(COMMUNITY_CONSENT_EVENT, onLocal);
-    };
-  }, []);
-
-  const accept = useCallback(() => {
-    setConsent("yes");
-    write("yes");
-  }, []);
-
-  const decline = useCallback(() => {
-    setConsent("no");
-    write("no");
-  }, []);
-
-  const reset = useCallback(() => {
-    setConsent(null);
-    write(null);
-  }, []);
+  const accept = useCallback(() => write("yes"), []);
+  const decline = useCallback(() => write("no"), []);
+  const reset = useCallback(() => write(null), []);
 
   return { consent, accept, decline, reset };
 }

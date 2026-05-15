@@ -302,6 +302,51 @@ async function handleAdminPost(req: Request, ip: string): Promise<Response> {
   return json({ ok: true, message: msg });
 }
 
+// /admin/announce — purpose-built endpoint for automated announcements
+// (currently the SDK-update bot in `scripts/sdk-update/orchestrate.ts`).
+// Same trust + insert path as `/admin/messages`, plus an opt-in pin so
+// the announcement stays sticky on the room until a human un-pins it.
+// Kept separate from `handleAdminPost` so the contract is greppable
+// from the orchestrator side and so we can evolve announcement-specific
+// behaviour (templating, retention) without touching the generic admin
+// post path.
+async function handleAdminAnnounce(req: Request, ip: string): Promise<Response> {
+  let payload: unknown;
+  try {
+    payload = await req.json();
+  } catch {
+    return error(400, "invalid JSON");
+  }
+  const {
+    roomSlug: rawSlug,
+    body: rawBody,
+    pin: rawPin,
+  } = (payload ?? {}) as Record<string, unknown>;
+
+  if (typeof rawSlug !== "string" || !getRoom(rawSlug)) {
+    return error(400, "bad roomSlug");
+  }
+  const body = validateBody(rawBody);
+  if (!body) return error(400, `invalid body (1-${MAX_BODY_LEN} chars)`);
+  const pin = rawPin === true;
+
+  const msg = insertMessage({
+    id: randomUUID(),
+    roomSlug: rawSlug,
+    nick: "admin",
+    ip,
+    body,
+    isAdmin: true,
+  });
+  chatBus.broadcast({ type: "message", message: msg });
+
+  if (pin) {
+    setRoomPin(rawSlug, msg.id);
+    chatBus.broadcast({ type: "message_pinned", roomSlug: rawSlug, id: msg.id });
+  }
+  return json({ ok: true, message: msg, pinned: pin });
+}
+
 function handleAdminDelete(messageId: string): Response {
   const m = getMessage(messageId);
   if (!m) return error(404, "no such message");
@@ -762,6 +807,9 @@ const server = Bun.serve({
 
       if (path === "/admin/messages" && req.method === "POST") {
         return handleAdminPost(req, ip);
+      }
+      if (path === "/admin/announce" && req.method === "POST") {
+        return handleAdminAnnounce(req, ip);
       }
       if (path === "/admin/bans") {
         if (req.method === "GET") return handleAdminListBans();

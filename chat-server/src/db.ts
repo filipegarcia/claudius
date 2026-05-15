@@ -198,7 +198,7 @@ const stmtRecentMessages = db.prepare(
   `SELECT id, room_slug, nick, body, is_admin, created_at, deleted_at
      FROM messages
     WHERE room_slug = ? AND ${WIRE_VISIBLE}
-    ORDER BY created_at DESC
+    ORDER BY created_at DESC, rowid DESC
     LIMIT ?`,
 );
 /**
@@ -218,7 +218,7 @@ const stmtRecentLiveMessages = db.prepare(
   `SELECT id, room_slug, nick, body, is_admin, created_at, deleted_at
      FROM messages
     WHERE room_slug = ? AND deleted_at IS NULL
-    ORDER BY created_at DESC
+    ORDER BY created_at DESC, rowid DESC
     LIMIT ?`,
 );
 /**
@@ -240,7 +240,7 @@ const stmtMessagesBefore = db.prepare(
   `SELECT id, room_slug, nick, body, is_admin, created_at, deleted_at
      FROM messages
     WHERE room_slug = ? AND created_at < ? AND ${WIRE_VISIBLE}
-    ORDER BY created_at DESC
+    ORDER BY created_at DESC, rowid DESC
     LIMIT ?`,
 );
 /**
@@ -693,7 +693,7 @@ const stmtConversationBefore = db.prepare(
         OR
         (LOWER(from_nick) = LOWER(?) AND LOWER(to_nick) = LOWER(?))
       )
-    ORDER BY created_at DESC
+    ORDER BY created_at DESC, rowid DESC
     LIMIT ?`,
 );
 
@@ -725,21 +725,32 @@ export function conversationBefore(
 // nick. Implemented as a UNION of the two legs then a GROUP BY peer
 // taking the max created_at. SQLite picks the right indexes for both
 // legs.
+// Pick exactly one "latest" row per peer using (created_at, rowid) as
+// the composite sort key — using MAX(created_at) alone would match
+// multiple rows when two DMs to the same peer share a timestamp (rare
+// in real traffic, common in tests). rowid is sqlite's monotonic
+// insert counter so the tiebreaker also preserves insertion order
+// (which `id`, a random UUID, would not). The inner subquery returns
+// the single winning rowid; the outer SELECT joins back for the row
+// data.
 const stmtConversationsFor = db.prepare(
   `WITH pairs AS (
      SELECT
        CASE WHEN LOWER(from_nick) = LOWER(?) THEN to_nick ELSE from_nick END AS peer_nick,
+       rowid AS rid,
        id, from_nick, to_nick, body, created_at, deleted_at
      FROM dms
      WHERE LOWER(from_nick) = LOWER(?) OR LOWER(to_nick) = LOWER(?)
    )
    SELECT id, from_nick, to_nick, body, created_at, deleted_at, peer_nick
      FROM pairs p
-    WHERE created_at = (
-      SELECT MAX(created_at) FROM pairs q
+    WHERE p.rid = (
+      SELECT rid FROM pairs q
        WHERE LOWER(q.peer_nick) = LOWER(p.peer_nick)
+       ORDER BY q.created_at DESC, q.rid DESC
+       LIMIT 1
     )
-    ORDER BY created_at DESC`,
+    ORDER BY created_at DESC, rid DESC`,
 );
 
 export type ConversationSummary = {
