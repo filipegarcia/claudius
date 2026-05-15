@@ -90,29 +90,51 @@ export function AdminPanel({ community, rooms, onClose }: Props) {
   );
   const [roomOpErr, setRoomOpErr] = useState<string | null>(null);
 
-  const refreshBans = useCallback(async () => {
+  // Re-fetch counters — the effects below run the actual fetch keyed on
+  // these counters plus the admin flag. setState calls only happen in
+  // Promise callbacks, satisfying react-hooks/set-state-in-effect. The
+  // "clear state when admin flips off" half lives in the `lastIsAdmin`
+  // in-render reset block below, again to keep setState out of effects.
+  const [bansTrigger, setBansTrigger] = useState(0);
+  const [bannedWordsTrigger, setBannedWordsTrigger] = useState(0);
+  const [lastIsAdmin, setLastIsAdmin] = useState(community.isAdmin);
+  if (lastIsAdmin !== community.isAdmin) {
+    setLastIsAdmin(community.isAdmin);
     if (!community.isAdmin) {
       setBans(null);
-      return;
-    }
-    setBans(await community.listBans());
-  }, [community]);
-
-  useEffect(() => {
-    void refreshBans();
-  }, [refreshBans]);
-
-  const refreshBannedWords = useCallback(async () => {
-    if (!community.isAdmin) {
       setBannedWords(null);
-      return;
     }
-    setBannedWords(await community.listBannedWords());
-  }, [community]);
+  }
 
   useEffect(() => {
-    void refreshBannedWords();
-  }, [refreshBannedWords]);
+    if (!community.isAdmin) return;
+    let cancelled = false;
+    void community.listBans().then((b) => {
+      if (!cancelled) setBans(b);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [community, bansTrigger]);
+
+  useEffect(() => {
+    if (!community.isAdmin) return;
+    let cancelled = false;
+    void community.listBannedWords().then((b) => {
+      if (!cancelled) setBannedWords(b);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [community, bannedWordsTrigger]);
+
+  const refreshBans = useCallback(() => {
+    setBansTrigger((n) => n + 1);
+  }, []);
+
+  const refreshBannedWords = useCallback(() => {
+    setBannedWordsTrigger((n) => n + 1);
+  }, []);
 
   const addWord = async () => {
     const w = bannedWordInput.trim();

@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import type {
   Ban,
   BanKind,
@@ -43,8 +50,44 @@ import { getCommunityServerUrl } from "@/lib/client/community-server-url";
 
 const LS_NICK = "claudius.community.nick";
 // Legacy key from when the admin token was pasted into the UI. We clean
-// it up on mount so a stale token doesn't leak the previous trust model.
+// it up on first read so a stale token doesn't leak the previous trust
+// model. Done at module load — runs once per tab regardless of how many
+// `useCommunity` instances mount.
 const LS_LEGACY_ADMIN_TOKEN = "claudius.community.adminToken";
+// Same-tab nick-change broadcast. localStorage's `storage` event only
+// fires for OTHER tabs, so we dispatch this when the user changes their
+// nick in *this* tab to keep `useSyncExternalStore` re-snapshotting.
+const NICK_CHANGED_EVENT = "claudius.community.nick-changed";
+
+if (typeof window !== "undefined") {
+  try {
+    window.localStorage.removeItem(LS_LEGACY_ADMIN_TOKEN);
+  } catch {
+    // private mode etc — fall through
+  }
+}
+
+function readNickSnapshot(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return window.localStorage.getItem(LS_NICK);
+  } catch {
+    return null;
+  }
+}
+
+function subscribeNick(cb: () => void) {
+  if (typeof window === "undefined") return () => {};
+  const onStorage = (e: StorageEvent) => {
+    if (e.key === LS_NICK) cb();
+  };
+  window.addEventListener("storage", onStorage);
+  window.addEventListener(NICK_CHANGED_EVENT, cb);
+  return () => {
+    window.removeEventListener("storage", onStorage);
+    window.removeEventListener(NICK_CHANGED_EVENT, cb);
+  };
+}
 
 export type SendResult = { ok: true } | { ok: false; error: string };
 
@@ -64,81 +107,78 @@ export type UseCommunityOptions = {
 
 export function useCommunity(options: UseCommunityOptions = {}) {
   const enabled = options.enabled ?? true;
-  // SSR-safe snapshot, refreshed on mount. The legacy version of this
-  // hook had a localStorage override here; that's gone now, but keeping
-  // the useState+useEffect dance is load-bearing — without the extra
-  // re-render on mount, the dependent useEffects (rooms fetch, SSE
-  // open) were not consistently triggered on soft-nav into /community.
-  const [serverUrl, setServerUrl] = useState<string>(() => getCommunityServerUrl());
-  useEffect(() => {
-    setServerUrl(getCommunityServerUrl());
-  }, []);
-  const SERVER_URL = serverUrl;
+  // The chat-server URL is baked into the build (see
+  // `getCommunityServerUrl`). The legacy version of this hook went through
+  // a useState+useEffect dance to force a re-render on mount; that turned
+  // out to be load-bearing only for an old localStorage-override path that
+  // no longer exists. The plain function call is fine — SSR returns the
+  // build-time default; client mount returns the same value.
+  const SERVER_URL = getCommunityServerUrl();
   // `configured` collapses two concerns: chat-server URL is known AND
   // the user has opted in. Treating them as one flag keeps the existing
   // empty-state branch in the page reusable for both reasons.
   const configured = enabled && SERVER_URL.length > 0;
 
   // ── Identity (persisted) ──────────────────────────────────────────
-  const [nick, setNickState] = useState<string | null>(null);
+  // Nick is read from localStorage via `useSyncExternalStore` — same
+  // pattern as `useTheme`. SSR snapshot is `null`; client snapshot reads
+  // the saved nick on subscribe (so cross-tab nick changes propagate).
+  const nick = useSyncExternalStore(subscribeNick, readNickSnapshot, () => null);
   // Admin status comes from the server-side proxy probe, not localStorage.
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    try {
-      setNickState(localStorage.getItem(LS_NICK));
-      // Drop the legacy admin token if it's still in storage — the new
-      // model keeps the token server-side; the browser copy is dead weight
-      // and we don't want it lying around.
-      localStorage.removeItem(LS_LEGACY_ADMIN_TOKEN);
-    } catch {
-      // private mode etc — fall through with defaults
-    }
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    void fetch("/api/community/admin/check")
+    const controller = new AbortController();
+    fetch("/api/community/admin/check", { signal: controller.signal })
       .then((r) => (r.ok ? r.json() : { configured: false }))
-      .then((d: { configured?: boolean }) => {
-        if (!cancelled) setIsAdmin(!!d.configured);
-      })
+      .then((d: { configured?: boolean }) => setIsAdmin(!!d.configured))
       .catch(() => {
-        if (!cancelled) setIsAdmin(false);
+        if (!controller.signal.aborted) setIsAdmin(false);
       });
-    return () => {
-      cancelled = true;
-    };
+    return () => controller.abort();
   }, []);
 
   const setNick = useCallback((next: string) => {
-    setNickState(next);
     try {
       localStorage.setItem(LS_NICK, next);
-    } catch {}
+    } catch {
+      // ignore
+    }
+    // `useSyncExternalStore` needs a hint to re-read the snapshot — the
+    // native `storage` event only fires for OTHER tabs.
+    window.dispatchEvent(new Event(NICK_CHANGED_EVENT));
   }, []);
 
   // ── Rooms ────────────────────────────────────────────────────────
   const [rooms, setRooms] = useState<Room[]>([]);
   const [currentRoom, setCurrentRoom] = useState<string>("general");
   const [roomsError, setRoomsError] = useState<string | null>(null);
-
-  const refreshRooms = useCallback(async () => {
-    if (!configured) return;
-    try {
-      const r = await fetch(`${SERVER_URL}/rooms`);
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      const data = (await r.json()) as { rooms: Room[] };
-      setRooms(data.rooms);
-      setRoomsError(null);
-    } catch (err) {
-      setRoomsError(err instanceof Error ? err.message : String(err));
-    }
-  }, [configured, SERVER_URL]);
+  const [roomsRefetchTrigger, setRoomsRefetchTrigger] = useState(0);
 
   useEffect(() => {
-    refreshRooms();
-  }, [refreshRooms]);
+    if (!configured) return;
+    const controller = new AbortController();
+
+    fetch(`${SERVER_URL}/rooms`, { signal: controller.signal })
+      .then(async (r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return (await r.json()) as { rooms: Room[] };
+      })
+      .then((data) => {
+        setRooms(data.rooms);
+        setRoomsError(null);
+      })
+      .catch((err: unknown) => {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        setRoomsError(err instanceof Error ? err.message : String(err));
+      });
+
+    return () => controller.abort();
+  }, [configured, SERVER_URL, roomsRefetchTrigger]);
+
+  const refreshRooms = useCallback(() => {
+    setRoomsRefetchTrigger((n) => n + 1);
+  }, []);
 
   // ── Stream + messages ────────────────────────────────────────────
   const [messages, setMessages] = useState<Message[]>([]);
@@ -162,6 +202,23 @@ export function useCommunity(options: UseCommunityOptions = {}) {
     reason: string | null;
   }>({ enabled: true, reason: null });
   const esRef = useRef<EventSource | null>(null);
+
+  // Reset per-room state when the room changes — what the React 19 docs
+  // call the "store previous props in state" pattern. Doing this during
+  // render (rather than in the SSE effect's body) is what
+  // `react-hooks/set-state-in-effect` wants: the effect now does only
+  // setup/teardown of the EventSource, with the reset already applied
+  // before the effect runs.
+  // https://react.dev/reference/react/useState#storing-information-from-previous-renders
+  const [loadedRoom, setLoadedRoom] = useState(currentRoom);
+  if (loadedRoom !== currentRoom) {
+    setLoadedRoom(currentRoom);
+    setMessages([]);
+    setPinnedId(null);
+    setConnected(false);
+    setHasMore(true);
+    setLoadingOlder(false);
+  }
 
   // applyEvent — pure-ish, swallows unknown event tags.
   const applyEvent = useCallback(
@@ -219,12 +276,9 @@ export function useCommunity(options: UseCommunityOptions = {}) {
 
   useEffect(() => {
     if (!configured || !currentRoom) return;
-    setMessages([]);
-    setPinnedId(null);
-    setConnected(false);
-    setHasMore(true);
-    setLoadingOlder(false);
-
+    // Per-room state was cleared during the previous render (see the
+    // `loadedRoom` block above). This effect's only job is to open the
+    // EventSource and tear it down on switch.
     const url = `${SERVER_URL}/rooms/${encodeURIComponent(currentRoom)}/stream`;
     const es = new EventSource(url);
     esRef.current = es;

@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import type {
   ConversationSummary,
   DM,
@@ -41,84 +48,100 @@ import {
  */
 
 const LS_NICK = "claudius.community.nick";
+const NICK_CHANGED_EVENT = "claudius.community.nick-changed";
 
 export type DMSendResult = { ok: true } | { ok: false; error: string };
 
+// ── External-store snapshots ──────────────────────────────────────────
+
+function readNickSnapshot(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return window.localStorage.getItem(LS_NICK);
+  } catch {
+    return null;
+  }
+}
+
+function subscribeNick(cb: () => void) {
+  if (typeof window === "undefined") return () => {};
+  const onStorage = (e: StorageEvent) => {
+    if (e.key === LS_NICK) cb();
+  };
+  window.addEventListener("storage", onStorage);
+  window.addEventListener(NICK_CHANGED_EVENT, cb);
+  return () => {
+    window.removeEventListener("storage", onStorage);
+    window.removeEventListener(NICK_CHANGED_EVENT, cb);
+  };
+}
+
+function readConsentSnapshot(): boolean {
+  return readCommunityConsent() === "yes";
+}
+
+function subscribeConsent(cb: () => void) {
+  if (typeof window === "undefined") return () => {};
+  const onStorage = (e: StorageEvent) => {
+    if (e.key === LS_COMMUNITY_CONSENT_KEY) cb();
+  };
+  window.addEventListener("storage", onStorage);
+  window.addEventListener(COMMUNITY_CONSENT_EVENT, cb);
+  return () => {
+    window.removeEventListener("storage", onStorage);
+    window.removeEventListener(COMMUNITY_CONSENT_EVENT, cb);
+  };
+}
+
 export function useDMs() {
-  // Same `enabled` plumbing as useCommunity: only open SSE / fetch
-  // when the user has consented to the community in this browser.
-  const [serverUrl, setServerUrl] = useState<string>(() =>
-    getCommunityServerUrl(),
-  );
-  useEffect(() => {
-    setServerUrl(getCommunityServerUrl());
-  }, []);
-
-  const [hasConsent, setHasConsent] = useState(false);
-  useEffect(() => {
-    const read = () => setHasConsent(readCommunityConsent() === "yes");
-    read();
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === LS_COMMUNITY_CONSENT_KEY) read();
-    };
-    window.addEventListener("storage", onStorage);
-    window.addEventListener(COMMUNITY_CONSENT_EVENT, read);
-    return () => {
-      window.removeEventListener("storage", onStorage);
-      window.removeEventListener(COMMUNITY_CONSENT_EVENT, read);
-    };
-  }, []);
-
-  // Nick is mirrored from useCommunity's localStorage key — DMs are
-  // identified by nick, so we need it to subscribe to the right SSE
-  // stream. Refresh on the `storage` event so a nick change in the
-  // chat surface propagates here without a reload.
-  const [nick, setNick] = useState<string | null>(null);
-  useEffect(() => {
-    try {
-      setNick(window.localStorage.getItem(LS_NICK));
-    } catch {
-      // ignore
-    }
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === LS_NICK) {
-        try {
-          setNick(window.localStorage.getItem(LS_NICK));
-        } catch {
-          // ignore
-        }
-      }
-    };
-    window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
-  }, []);
-
-  const SERVER_URL = serverUrl;
+  // Build-time chat-server URL. SSR + client read the same value (no
+  // localStorage override), so a plain function call is fine.
+  const SERVER_URL = getCommunityServerUrl();
+  // Cross-tab consent + nick are read via `useSyncExternalStore` — same
+  // pattern as `useTheme` / `use-community-consent`. SSR snapshots
+  // intentionally return "no consent" / "no nick" so the first frame
+  // doesn't open SSE.
+  const hasConsent = useSyncExternalStore(subscribeConsent, readConsentSnapshot, () => false);
+  const nick = useSyncExternalStore(subscribeNick, readNickSnapshot, () => null);
   const configured = hasConsent && SERVER_URL.length > 0 && !!nick;
 
   // ── Conversations list ───────────────────────────────────────────
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
-  const refreshConversations = useCallback(async () => {
-    if (!configured || !nick) return;
-    try {
-      const r = await fetch(
-        `${SERVER_URL}/dms/conversations?for=${encodeURIComponent(nick)}`,
-      );
-      if (!r.ok) return;
-      const data = (await r.json()) as { conversations: ConversationSummary[] };
-      setConversations(data.conversations);
-    } catch {
-      // best-effort
-    }
-  }, [configured, nick, SERVER_URL]);
+  const [conversationsRefetchTrigger, setConversationsRefetchTrigger] = useState(0);
 
   useEffect(() => {
-    if (!configured) {
-      setConversations([]);
-      return;
-    }
-    void refreshConversations();
-  }, [configured, refreshConversations]);
+    if (!configured || !nick) return;
+    const controller = new AbortController();
+
+    fetch(`${SERVER_URL}/dms/conversations?for=${encodeURIComponent(nick)}`, {
+      signal: controller.signal,
+    })
+      .then(async (r) => {
+        if (!r.ok) return null;
+        return (await r.json()) as { conversations: ConversationSummary[] };
+      })
+      .then((data) => {
+        if (data) setConversations(data.conversations);
+      })
+      .catch(() => {
+        // best-effort
+      });
+
+    return () => controller.abort();
+  }, [configured, nick, SERVER_URL, conversationsRefetchTrigger]);
+
+  const refreshConversations = useCallback(() => {
+    setConversationsRefetchTrigger((n) => n + 1);
+  }, []);
+
+  // Clear conversations when the user opts out / clears their nick.
+  // Stored via "previous props in state" so the reset happens during
+  // render rather than in an effect body.
+  const [prevConfigured, setPrevConfigured] = useState(configured);
+  if (prevConfigured !== configured) {
+    setPrevConfigured(configured);
+    if (!configured) setConversations([]);
+  }
 
   // ── Current conversation ─────────────────────────────────────────
   const [currentPeer, setCurrentPeerState] = useState<string | null>(null);
@@ -202,12 +225,21 @@ export function useDMs() {
   const [connected, setConnected] = useState(false);
   const esRef = useRef<EventSource | null>(null);
 
-  useEffect(() => {
-    if (!configured || !nick) {
-      setConnected(false);
-      return;
-    }
+  // Reset `connected` to false on any config / nick change — done during
+  // render via the "store previous props" pattern so the effect below
+  // contains no sync setState in its body.
+  // https://react.dev/reference/react/useState#storing-information-from-previous-renders
+  const [streamKey, setStreamKey] = useState<string | null>(
+    configured && nick ? `${SERVER_URL}|${nick}` : null,
+  );
+  const nextStreamKey = configured && nick ? `${SERVER_URL}|${nick}` : null;
+  if (streamKey !== nextStreamKey) {
+    setStreamKey(nextStreamKey);
     setConnected(false);
+  }
+
+  useEffect(() => {
+    if (!configured || !nick) return;
     const es = new EventSource(
       `${SERVER_URL}/dms/stream?for=${encodeURIComponent(nick)}`,
     );
@@ -233,7 +265,7 @@ export function useDMs() {
               prev.some((x) => x.id === m.id) ? prev : [...prev, m],
             );
           }
-          void refreshConversations();
+          refreshConversations();
         } else if (ev.type === "dm_deleted") {
           setMessages((prev) =>
             prev.map((x) =>
