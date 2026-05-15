@@ -169,7 +169,10 @@ export function DMThread({ dms, peer, onClose }: Props) {
 }
 
 function DMRow({ message, isOwn }: { message: DM; isOwn: boolean }) {
-  const isDeleted = message.deletedAt !== null;
+  // `!= null` (not `!== null`) so an older chat-server that doesn't
+  // emit the field on the wire is treated as "live" rather than
+  // rendering every DM as a deletion placeholder.
+  const isDeleted = message.deletedAt != null;
   return (
     <div
       className={cn(
