@@ -164,6 +164,23 @@ function preflight(): void {
       "gh CLI is not authenticated. Run `gh auth login` (or set GH_TOKEN).",
     );
   }
+  // Git needs an identity to make commits. On a fresh server image
+  // neither user.email nor user.name is set, and the failure mode
+  // (commit fails AFTER package.json has been edited, leaving the
+  // working tree wedged with a staged bump on a half-built branch) is
+  // brutal to recover from — see the recovery notes in README.md.
+  // Catching it here means the run is a no-op until the operator fixes it.
+  try {
+    sh("git", ["config", "user.email"]);
+    sh("git", ["config", "user.name"]);
+  } catch {
+    fatal(
+      "git user.email / user.name are not configured. Run:\n" +
+        "  git config --global user.email \"bot@example.com\"\n" +
+        "  git config --global user.name \"SDK Update Bot\"\n" +
+        "as the cron user, then re-run.",
+    );
+  }
   // Hard refusal on a dirty tree: we're about to bump deps and let
   // Claude reshape the world. A pre-existing diff would silently
   // ride along into the PR.
@@ -524,7 +541,29 @@ function pushBranch(branch: string): void {
   // else somehow pushed in between, which is the protection we want).
   // `-u` sets upstream tracking the first time and is harmless on
   // subsequent runs.
-  shStream("git", ["push", "-u", "--force-with-lease", "origin", branch]);
+  const pushCode = shStream("git", [
+    "push",
+    "-u",
+    "--force-with-lease",
+    "origin",
+    branch,
+  ]);
+  if (pushCode !== 0) {
+    // Earlier this was a silent fall-through into `gh pr create`,
+    // which then died with a misleading GraphQL error one step later.
+    // Surface the actual cause: a 403 here means the configured `gh`
+    // token is missing `repo` (classic PAT) or `Contents: Write` +
+    // `Pull requests: Write` (fine-grained PAT) on this repo. Fix:
+    // `gh auth login --git-protocol https --web` and re-run, or
+    // regenerate the PAT with the right scopes.
+    throw new Error(
+      `git push exited ${pushCode} — refusing to attempt PR open.\n` +
+        `Most likely cause: gh credentials don't have write access. Try:\n` +
+        `  gh auth setup-git   # configure git to use gh's token\n` +
+        `  gh auth status      # confirm which scopes are granted\n` +
+        `If that still fails, re-do \`gh auth login --git-protocol https --web\`.`,
+    );
+  }
 }
 
 function openPr(args: {

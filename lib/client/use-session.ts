@@ -770,22 +770,49 @@ export function useSession(): ChatState & ChatActions {
         const prompt = ev.lastUserPrompt;
         if (prompt && prompt.uuid && prompt.text) {
           // Inject the user message into the transcript if the SSE replay
-          // didn't already deliver it. Prepend, not append: the snapshot
-          // fires when the prompt is chronologically OLDER than everything
-          // in the replay window (otherwise we'd already have it). Dedupe
-          // by uuid so a later replay-window fix or a history load doesn't
-          // double-render it.
+          // didn't already deliver it. Dedupe by uuid so a later replay-
+          // window fix or a history load doesn't double-render it.
+          //
+          // Insert in CHRONOLOGICAL position by `prompt.at`, not blind-
+          // prepend. The previous prepend assumed the snapshot's prompt
+          // was older than everything currently in the replay window — but
+          // the snapshot is the server's most-recent prompt, and when the
+          // SSE replay window happens to include an OLDER prompt while
+          // missing the snapshot's, prepending puts a chronologically
+          // NEWER bubble at array index 0. The pin walk and turn grouping
+          // then disagree about which prompt is "latest" and the wrong
+          // one ends up sticky-pinned. Inserting by timestamp keeps the
+          // array chronological so downstream consumers (groupTurns,
+          // lastUserUuid, the auto-scroll anchor) stay in agreement.
+          //
+          // Fallback: if `prompt.at` is missing, drop to the legacy
+          // prepend — better than appending blindly, since "no timestamp"
+          // is correlated with the original tail-truncation case where
+          // the prompt really is older than the visible tail.
           setMessages((prev) => {
             if (prev.some((m) => m.uuid === prompt.uuid)) return prev;
-            return [
-              {
-                uuid: prompt.uuid,
-                role: "user",
-                blocks: [{ kind: "text", text: prompt.text }],
-                ...(typeof prompt.at === "number" ? { createdAt: prompt.at } : {}),
-              },
-              ...prev,
-            ];
+            const newBubble: DisplayMessage = {
+              uuid: prompt.uuid,
+              role: "user",
+              blocks: [{ kind: "text", text: prompt.text }],
+              ...(typeof prompt.at === "number" ? { createdAt: prompt.at } : {}),
+            };
+            if (typeof prompt.at !== "number") {
+              return [newBubble, ...prev];
+            }
+            // Find the first existing message that's strictly NEWER than
+            // the snapshot — insert before it. Messages without a
+            // timestamp are skipped (treated as "unknown position"), so
+            // the snapshot doesn't get pushed past them either way.
+            let insertAt = prev.length;
+            for (let i = 0; i < prev.length; i++) {
+              const at = prev[i]?.createdAt;
+              if (typeof at === "number" && at > prompt.at) {
+                insertAt = i;
+                break;
+              }
+            }
+            return [...prev.slice(0, insertAt), newBubble, ...prev.slice(insertAt)];
           });
         }
         return;
@@ -1456,6 +1483,22 @@ export function useSession(): ChatState & ChatActions {
           // own bubble.
           const cli = parseSyntheticCliWrapper(content);
           if (cli) {
+            // Drop control-plane confirmation chatter. The SDK echoes
+            // `<local-command-stdout>Set model to <model>[<effort>]</local-command-stdout>`
+            // whenever `setModel` or `applyFlagSettings({ effortLevel })`
+            // fires — including when the change came from our own picker
+            // (the SessionCard already mirrors the new model + effort, so
+            // the pill is pure redundancy). Worse, on effort changes the
+            // stdout says "Set model" even though only the effort moved,
+            // which reads as a bug to the user. Suppress those specific
+            // stdouts here. Other CLI stdout/stderr still surfaces as a
+            // pill so legit slash-command output stays visible.
+            if (
+              cli.kind === "stdout" &&
+              /^set\s+model\s+to\s+/i.test(cli.text)
+            ) {
+              return;
+            }
             const uuid = (msg as { uuid?: string }).uuid ?? crypto.randomUUID();
             const anchor = lastAssistantUuidRef.current;
             let label: string;

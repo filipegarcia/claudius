@@ -107,12 +107,23 @@ export function MessageList({
     prevScrollTopRef.current = el.scrollTop;
   }, [messages]);
 
-  // Uuid of the most recent user message in the transcript — re-derived on
-  // every render so the activation-anchor effect below fires when it
-  // changes for ANY reason (initial replay, snapshot fallback inject, the
-  // user typing a new prompt). A simple boolean "armed" flag wasn't enough:
-  // the session_snapshot fallback prepends a user message AFTER the first
+  // Uuid of the chronologically-latest user message — re-derived on every
+  // render so the activation-anchor effect below fires when it changes for
+  // ANY reason (initial replay, snapshot fallback inject, the user typing a
+  // new prompt). A simple boolean "armed" flag wasn't enough: the
+  // session_snapshot fallback can insert a user message AFTER the first
   // replay_done has already armed and disarmed the effect.
+  //
+  // Walk by `createdAt` timestamp instead of array position. The previous
+  // "last-from-end" walk landed on whichever user bubble happened to sit
+  // later in `messages`, which broke when the array fell out of
+  // chronological order — e.g. the snapshot fallback prepending the
+  // server's latest prompt to the front while the SSE replay window
+  // separately delivered an OLDER prompt at a later index. Walking by
+  // timestamp makes the pin agree with the server's "latest prompt" view
+  // regardless of how the array got assembled. Fallback to the last
+  // positional candidate covers the legacy `synthesizeOlder` edge cases
+  // where `createdAt` may be absent.
   //
   // `isRealUserDisplayMessage` matches the server's `extractUserPromptText`
   // predicate (shared in `lib/shared/user-prompt.ts`) so the pin and the
@@ -121,11 +132,18 @@ export function MessageList({
   // and tool_result wrappers are skipped even if they slip past the
   // intake reducer.
   const lastUserUuid = useMemo(() => {
-    for (let i = messages.length - 1; i >= 0; i--) {
-      const m = messages[i];
-      if (m && isRealUserDisplayMessage(m)) return m.uuid;
+    let bestUuid = "";
+    let bestAt = -Infinity;
+    let fallbackUuid = "";
+    for (const m of messages) {
+      if (!m || !isRealUserDisplayMessage(m)) continue;
+      fallbackUuid = m.uuid;
+      if (typeof m.createdAt === "number" && m.createdAt > bestAt) {
+        bestAt = m.createdAt;
+        bestUuid = m.uuid;
+      }
     }
-    return "";
+    return bestUuid || fallbackUuid;
   }, [messages]);
 
   // Activation anchor: jump to the bottom of the chat whenever the last
@@ -315,16 +333,25 @@ export function MessageList({
             return (
               <section key={turn.items[0]!.uuid} className="space-y-4">
                 {turn.items.map((m) => {
-                  // Pin only the last turn's user message at the top of the
-                  // scroll viewport. `position: sticky` is scoped to this
-                  // <section>, so scrolling above the current turn naturally
+                  // Pin the chronologically-latest user message at the top
+                  // of the scroll viewport. `position: sticky` is scoped to
+                  // its <section>, so scrolling past that turn naturally
                   // releases the pin — older user messages render inline.
+                  //
+                  // Match by uuid against `lastUserUuid` rather than
+                  // "positional last turn led by a user." The two diverge
+                  // when `messages` is non-chronological — most commonly
+                  // when the session_snapshot fallback prepends the
+                  // server's latest prompt to the front while the SSE
+                  // replay window also contains an older prompt at a later
+                  // index. Picking by uuid keeps the pin on the actual
+                  // latest prompt regardless of array shape.
                   //
                   // Cap the pinned area at ~33vh with internal scroll so a
                   // long prompt can never block the viewport: short messages
                   // still pin cleanly, long ones expose their own scrollbar
                   // and let assistant content below remain reachable.
-                  const isPinnedUser = isLastTurn && m.role === "user";
+                  const isPinnedUser = m.uuid === lastUserUuid;
                   return (
                     <div
                       key={m.uuid}
