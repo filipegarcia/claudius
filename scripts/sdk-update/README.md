@@ -221,6 +221,7 @@ All env vars are optional unless flagged otherwise.
 | `SDK_UPDATE_MAX_TURNS` | `200` | Maximum agentic round-trips before the SDK stops the run. |
 | `SDK_UPDATE_MAX_WALL_MIN` | `360` | Wall-clock budget in minutes. Orchestrator-side guard layered on top of the SDK's own ceiling. |
 | `SDK_UPDATE_MAX_MINOR_JUMP` | `1` | Refuse to upgrade if `latest - installed` is more minors than this. Stops the first cron firing from trying to absorb a year of changes in one PR. |
+| `SDK_UPDATE_STALE_INFLIGHT_HOURS` | `24` | Self-heal threshold. If `state.inFlight` is older than this, the next firing reclaims it instead of returning `in-flight` forever. Stops a SIGKILL/OOM/host-reboot from bricking the cron. |
 | `SDK_UPDATE_ROOM_SLUG` | `sdk-update` | Which chat-server room to post into when CI goes green. |
 
 ---
@@ -239,7 +240,8 @@ until green.
 | --- | --- | --- |
 | PR opens but is `draft` with `needs-human` | Budget exhausted or gate red | Open the PR, read the warning banner + run-notes section, fix the remaining issues by hand or with `claude` locally on that branch, then mark ready. |
 | `check.ts` keeps emitting `skip` for the same version | Jump exceeds `SDK_UPDATE_MAX_MINOR_JUMP` | Pre-bump manually toward latest, or raise the limit. Skipped versions live in `state.skipped` — the entry is removed automatically the moment `decide()` makes a `run` choice. |
-| `run.lock` is held but no orchestrator is running | Previous firing was killed mid-run | `rm .claudius/sdk-updater/run.lock`. Also check `state.inFlight` — if non-null, edit `state.json` to set `inFlight: null` so `check.ts` doesn't treat the dead run as live. |
+| `run.lock` is held but no orchestrator is running | Previous firing was killed mid-run | `rm .claudius/sdk-updater/run.lock`. `state.inFlight` self-heals on its own after `SDK_UPDATE_STALE_INFLIGHT_HOURS` (default 24h); set the var lower or `rm state.json` to short-circuit. |
+| `check.ts` keeps returning `in-flight` after a previous crash | `state.inFlight` was never cleared (SIGKILL / OOM / host reboot) | Wait for the 24h self-heal, OR `rm .claudius/sdk-updater/state.json` for immediate recovery (it's rebuilt with defaults on next run). |
 | Two PRs appear (one from this updater, one from Dependabot) | Both bots have npm-ecosystem updates enabled | Exclude `@anthropic-ai/claude-agent-sdk` from `.github/dependabot.yml`, or accept the duplication and close one. |
 | `gh pr checks --watch` exits but no announcement | CI failed | The orchestrator deliberately skips the announcement when CI is red. Look at the PR's checks tab. |
 | Cron silently does nothing | flock held, env file missing, or `check.ts` exited non-zero | `make sdk-update-status` + `make sdk-update-logs`. |

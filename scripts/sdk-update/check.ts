@@ -203,16 +203,35 @@ export function decide(
   state: UpdaterState,
   installedRange: string,
   latest: string,
-  opts: { maxMinorJump: number },
+  opts: { maxMinorJump: number; staleInFlightMs?: number; now?: number },
 ): CheckDecision {
   const current = cleanRange(installedRange);
 
   if (state.inFlight) {
-    return {
-      kind: "in-flight",
-      version: state.inFlight.version,
-      branch: state.inFlight.branch,
-    };
+    // Self-heal stale inFlight markers. Normal failures (commit fails,
+    // push fails, gate red) hit the orchestrator's `finally` block and
+    // clear inFlight before exit. The only paths that leave it set are
+    // SIGKILL, OOM, host reboot, or a terminal-kill of an interactive
+    // `make sdk-update-run`. Without self-heal, one such crash would
+    // brick the cron forever — every subsequent firing would return
+    // `in-flight` and never make progress.
+    //
+    // The default threshold (24h) is deliberately MUCH longer than the
+    // wall-clock budget (default 6h). Within the budget window we
+    // genuinely want a second cron firing to back off and let the first
+    // finish; beyond 2-4x the budget the original process is dead.
+    const staleAfterMs = opts.staleInFlightMs ?? 24 * 60 * 60 * 1000;
+    const now = opts.now ?? Date.now();
+    const age = now - state.inFlight.startedAt;
+    if (age <= staleAfterMs) {
+      return {
+        kind: "in-flight",
+        version: state.inFlight.version,
+        branch: state.inFlight.branch,
+      };
+    }
+    // Fall through — caller will overwrite state.inFlight when it
+    // starts the new run.
   }
 
   if (!isNewer(latest, current)) {
@@ -279,8 +298,30 @@ async function main(): Promise<void> {
   }
 
   const maxMinorJump = Number(process.env.SDK_UPDATE_MAX_MINOR_JUMP ?? "1");
+  // SDK_UPDATE_STALE_INFLIGHT_HOURS lets an operator override the
+  // self-heal threshold for inFlight markers. Most won't need to; the
+  // 24h default is wide enough for any normal run and short enough
+  // that a hard-crashed orchestrator doesn't permanently brick the cron.
+  const staleHoursRaw = process.env.SDK_UPDATE_STALE_INFLIGHT_HOURS;
+  const staleInFlightMs = staleHoursRaw
+    ? Number(staleHoursRaw) * 60 * 60 * 1000
+    : undefined;
   const state = readState(root);
-  const decision = decide(state, installed, latest, { maxMinorJump });
+  // Surface self-heal events to the cron log so the operator can see
+  // (a) that a crashed run was reclaimed and (b) which version/branch
+  // is being abandoned.
+  if (state.inFlight) {
+    const ageMs = Date.now() - state.inFlight.startedAt;
+    const limitMs = staleInFlightMs ?? 24 * 60 * 60 * 1000;
+    if (ageMs > limitMs) {
+      console.error(
+        `[sdk-update/check] WARN reclaiming stale inFlight marker ` +
+          `(version=${state.inFlight.version} branch=${state.inFlight.branch} ` +
+          `age=${Math.round(ageMs / 60_000)}min > ${Math.round(limitMs / 60_000)}min)`,
+      );
+    }
+  }
+  const decision = decide(state, installed, latest, { maxMinorJump, staleInFlightMs });
 
   // Persist what we observed, regardless of action.
   const nextSkipped =
