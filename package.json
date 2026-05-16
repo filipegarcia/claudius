@@ -24,7 +24,7 @@
     "site:screenshots:customizations": "SCREENSHOTS_INCLUDE_CUSTOMIZATIONS=1 playwright test tests/e2e/customization-showcase.spec.ts"
   },
   "dependencies": {
-    "@anthropic-ai/claude-agent-sdk": "^0.2.132",
+    "@anthropic-ai/claude-agent-sdk": "^0.3.143",
     "better-sqlite3": "^12.9.0",
     "clsx": "^2.1.1",
     "cron-parser": "^5.5.0",
