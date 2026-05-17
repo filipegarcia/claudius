@@ -400,11 +400,35 @@ async function runClaude(prompt: string, transcriptFile?: string): Promise<{
   wallMs: number;
   budgetReason: string | null;
 }> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const sdk: any = await import(SDK_PKG_NAME);
-  const query: (args: unknown) => AsyncIterable<unknown> & {
-    interrupt?: () => Promise<void>;
-  } = sdk.query;
+  // Importable check ahead of any orchestration. If the freshly-
+  // installed SDK fails to load, throw a useful error instead of a
+  // silent empty-iterator (the 0-byte-transcript symptom seen on
+  // sdk-update/0.3.143 was driven by us not having any visibility
+  // into the bundled CLI's auth state at this point).
+  let sdk: { query: (args: unknown) => AsyncIterable<unknown> & { interrupt?: () => Promise<void> } };
+  let sdkVersion = "unknown";
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    sdk = (await import(SDK_PKG_NAME)) as any;
+    try {
+      const pkgPath = resolve(ROOT, "node_modules", SDK_PKG_NAME, "package.json");
+      const pkg = JSON.parse(readFileSync(pkgPath, "utf8")) as { version?: string };
+      sdkVersion = pkg.version ?? "unknown";
+    } catch {
+      // best-effort — only used for the log line below
+    }
+  } catch (err) {
+    throw new Error(
+      `failed to import @anthropic-ai/claude-agent-sdk after bun install: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+  log(`Claude Agent SDK loaded — version=${sdkVersion}`);
+  if (typeof sdk.query !== "function") {
+    throw new Error(
+      `SDK ${sdkVersion} did not export a query() function. The orchestrator's call pattern may need updating for this version.`,
+    );
+  }
+  const query = sdk.query;
 
   const startedAt = Date.now();
   const deadline = startedAt + MAX_WALL_MS;
@@ -438,6 +462,18 @@ async function runClaude(prompt: string, transcriptFile?: string): Promise<{
     }
   };
 
+  // Capture stderr from the bundled `cli.js` subprocess. This is the
+  // only window we have into auth / startup failures that don't
+  // surface as iterator errors. We tee to (a) the cron log via our
+  // `log()` and (b) the per-version transcript file as a synthetic
+  // `{type:"stderr"}` line so post-mortems are self-contained.
+  const stderrAppend = (chunk: string) => {
+    const trimmed = chunk.replace(/\r?\n$/, "");
+    if (!trimmed) return;
+    log(`claude stderr: ${trimmed}`);
+    appendTranscript({ type: "stderr", data: trimmed });
+  };
+
   const q = query({
     prompt,
     options: {
@@ -451,6 +487,12 @@ async function runClaude(prompt: string, transcriptFile?: string): Promise<{
       // its side; we *also* watch wall-clock below in case a single
       // turn drags on (long tool call, network hang).
       maxTurns: MAX_TURNS,
+      // SDK 0.2.x onwards accepts a `stderr` callback that receives
+      // each chunk written by the bundled CLI subprocess. Without
+      // this, a fatal "no auth" / "model not found" / etc. message
+      // from the CLI is invisible — the iterator just closes silently
+      // and you're left with a 0-byte transcript.
+      stderr: stderrAppend,
     },
   });
 
@@ -476,6 +518,19 @@ async function runClaude(prompt: string, transcriptFile?: string): Promise<{
       }
     }
     completed = budgetReason === null;
+    if (turnCount === 0) {
+      // Empty iterator with no thrown error = silent failure mode.
+      // Most common causes: bundled CLI couldn't authenticate, the
+      // installed SDK version's query() shape changed, or the model
+      // refused to start. Surface this as a budget reason so the
+      // orchestrator opens a draft + needs-human rather than treating
+      // it as a clean "no changes needed" run.
+      budgetReason =
+        `Claude produced 0 messages — iterator closed without yielding. ` +
+        `Check the per-version transcript and the cron log for stderr lines from the bundled CLI ` +
+        `(common causes: auth not found, model alias rejected, CLI version mismatch).`;
+      log(`WARN ${budgetReason}`);
+    }
   } catch (err) {
     log(`claude iterator threw: ${err instanceof Error ? err.message : String(err)}`);
     budgetReason = `iterator error: ${err instanceof Error ? err.message : String(err)}`;
@@ -701,7 +756,24 @@ export function validateRunNotesContent(md: string): string | null {
     // skeleton tokens. We don't try to parse meaning; we just refuse
     // to ship a section whose body is < 20 chars or matches obvious
     // boilerplate.
-    if (body.length < 20 || /^(TODO|TBD|\(none\)|N\/A|-\s*$)/i.test(body)) {
+    //
+    // The `_(TODO …)_` pattern is the one the orchestrator writes
+    // into the stub itself, so it must be detected here — otherwise
+    // an unedited stub passes validation (the bug just caught in
+    // sdk-update/0.3.143). Match both `_(TODO`-prefixed and bare
+    // `TODO`-prefixed bodies, and treat a single italicised
+    // placeholder line (any `_(...)_` wrapping) as boilerplate too.
+    // Note: no `XXX` here — case-insensitive matching would collide
+    // with the `"x".repeat(N)` filler used in the unit-test boundary
+    // checks, and FIXME already covers the same intent.
+    const placeholderRe =
+      /^(_+\(?\s*)?(TODO|TBD|FIXME|\(none\)|N\/A|-\s*$)/i;
+    const isItalicisedPlaceholderOnly = /^_+\([^)]*\)_+\s*$/.test(body);
+    if (
+      body.length < 20 ||
+      placeholderRe.test(body) ||
+      isItalicisedPlaceholderOnly
+    ) {
       missing.push(`"${section}" section is empty or placeholder`);
     }
   }

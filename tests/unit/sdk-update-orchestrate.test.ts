@@ -211,6 +211,34 @@ describe("validateRunNotesContent", () => {
     }
   });
 
+  test("flags the stub's `_(TODO …)_` italicised-placeholder format", () => {
+    // Regression: an earlier version of the validator only matched
+    // bodies starting with the literal word `TODO`. The stub the
+    // orchestrator writes uses `_(TODO: long explanatory text)_`
+    // which starts with `_(` and is over the 20-char threshold, so
+    // it sailed through validation and produced a useless PR body.
+    const stubBody = `_(TODO: one paragraph — what changed in the SDK, what we changed in Claudius.)_`;
+    const md = REQUIRED_RUN_NOTE_SECTIONS.map(
+      (heading) => `## ${heading}\n\n${stubBody}\n`,
+    ).join("\n");
+    const out = validateRunNotesContent(md);
+    expect(out).toMatch(/incomplete/);
+    for (const section of REQUIRED_RUN_NOTE_SECTIONS) {
+      expect(out).toContain(`"${section}" section is empty or placeholder`);
+    }
+  });
+
+  test("flags a single italicised line of any content as placeholder", () => {
+    // `_(anything)_` on its own is a Markdown italics-only line and
+    // never represents real prose. Belt-and-braces alongside the
+    // `_(TODO …)_` check.
+    const md = REQUIRED_RUN_NOTE_SECTIONS.map(
+      (heading) => `## ${heading}\n\n_(see issue tracker)_\n`,
+    ).join("\n");
+    const out = validateRunNotesContent(md);
+    expect(out).toMatch(/incomplete/);
+  });
+
   test("accepts a section right at the 20-char minimum + 1", () => {
     // Boundary check — body length is the cheap signal; bumping the
     // threshold should be a conscious decision, so pin it.
