@@ -20,8 +20,8 @@ The orchestrator has already:
    is to replace every placeholder with real content.** Don't create
    a new file — edit the one that's already there.
 
-The full changelog between the two versions is in `{{CHANGELOG_BLOCK}}`
-at the bottom of this prompt.
+The full changelog between the two versions is in the
+"## Changelog block" section at the bottom of this prompt.
 
 ---
 
@@ -113,9 +113,10 @@ Don't rename them. Don't merge them. Don't skip any.
 
 ### Step 1 — Read the changelog and the SDK source
 
-- Read `{{CHANGELOG_BLOCK}}` fully. Note **breaking changes**, **new
-  features**, **deprecations**, and **behaviour-changed** items
-  separately — you'll triage them differently.
+- Read the "## Changelog block" section at the bottom of this prompt
+  fully. Note **breaking changes**, **new features**, **deprecations**,
+  and **behaviour-changed** items separately — you'll triage them
+  differently.
 - Open `node_modules/@anthropic-ai/claude-agent-sdk/sdk.d.ts` and
   skim any exports you don't recognise from the changelog. The
   `.d.ts` is the source of truth for shapes; the changelog is the
@@ -275,8 +276,8 @@ a human. Aim to finish; don't aim for "draft is fine".
 Now start. The branch is checked out, deps are installed, the
 changelog is below.
 
-**Your first action should be to read the changelog at the bottom of
-this prompt. Your second should be to Read
+**Your first action should be to read the "## Changelog block"
+section at the bottom of this prompt. Your second should be to Read
 `.claudius/sdk-updater/run-notes/{{NEW_VERSION}}.md` and Edit it to
 fill in the placeholders. Code changes come third.**
 

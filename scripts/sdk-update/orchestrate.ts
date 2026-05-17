@@ -260,13 +260,23 @@ function bumpSdkDependency(version: string): void {
 /**
  * Try, in order:
  *   1. `node_modules/@anthropic-ai/claude-agent-sdk/CHANGELOG.md` —
- *      sliced between the two version headers.
- *   2. GitHub Releases API for UPSTREAM_GH — bodies between tags.
- * If both fail, return a stub note. We never want changelog failure to
- * block the run; Claude can still read the upstream repo via the
- * compare URL we bake into the prompt.
+ *      sliced between the two version headers. Cheapest, but the
+ *      package doesn't always ship the file in the npm tarball.
+ *   2. Raw CHANGELOG.md from the UPSTREAM_GH repo at the new
+ *      version's tag, via `gh api`. This is the canonical source —
+ *      every release commits an update here — so it's the path that
+ *      actually works for this SDK.
+ *   3. `gh api compare` commit list. Last-resort fallback: low signal
+ *      (often dominated by "chore: Update CHANGELOG.md" meta-commits)
+ *      but better than nothing if both upstream paths fail.
+ *
+ * We never want changelog failure to block the run; Claude can still
+ * read the upstream repo via the compare URL we bake into the PR body.
  */
 function extractChangelog(prevVersion: string, newVersion: string): string {
+  const compareUrl = `https://github.com/${UPSTREAM_GH}/compare/v${prevVersion}...v${newVersion}`;
+
+  // 1. Local node_modules CHANGELOG.md, if present.
   const localPath = resolve(
     ROOT,
     "node_modules",
@@ -280,11 +290,43 @@ function extractChangelog(prevVersion: string, newVersion: string): string {
         prevVersion,
         newVersion,
       );
-      if (sliced) return sliced;
+      if (sliced) {
+        log(`changelog source: local node_modules CHANGELOG.md`);
+        return sliced;
+      }
     } catch (err) {
-      log(`local CHANGELOG.md parse failed: ${String(err)} — falling back to gh`);
+      log(`local CHANGELOG.md parse failed: ${String(err)} — falling back to upstream`);
     }
   }
+
+  // 2. Upstream CHANGELOG.md at the new tag. `Accept: …raw` returns
+  //    the file body instead of the JSON content-API envelope, so we
+  //    can hand it straight to sliceChangelog().
+  try {
+    const raw = sh("gh", [
+      "api",
+      `repos/${UPSTREAM_GH}/contents/CHANGELOG.md?ref=v${newVersion}`,
+      "-H",
+      "Accept: application/vnd.github.raw",
+    ]);
+    if (raw.trim() !== "") {
+      const sliced = sliceChangelog(raw, prevVersion, newVersion);
+      if (sliced) {
+        log(`changelog source: upstream CHANGELOG.md at v${newVersion}`);
+        return sliced;
+      }
+      // The file exists but our slicing heuristic missed the headings
+      // (maybe upstream changed the format). Better to give Claude the
+      // full file with a note than to fall through to the commit-list
+      // fallback whose signal is much worse.
+      log(`changelog source: upstream CHANGELOG.md (slice missed — returning full file)`);
+      return `_(could not slice upstream CHANGELOG.md between v${prevVersion} and v${newVersion} — returning full file. Section headers may have changed format; see ${compareUrl})_\n\n${raw}`;
+    }
+  } catch (err) {
+    log(`upstream CHANGELOG.md fetch failed: ${String(err)} — falling back to compare`);
+  }
+
+  // 3. Commit list — low signal, last resort.
   try {
     const compare = sh("gh", [
       "api",
@@ -293,12 +335,14 @@ function extractChangelog(prevVersion: string, newVersion: string): string {
       ".commits[] | \"- \" + (.commit.message | split(\"\\n\")[0]) + \" (\" + .sha[0:7] + \")\"",
     ]);
     if (compare.trim() !== "") {
-      return `_(commit list — upstream did not publish a release body for every tag)_\n\n${compare}`;
+      log(`changelog source: compare commit list (low signal — upstream CHANGELOG.md unreachable)`);
+      return `_(commit list — could not fetch upstream CHANGELOG.md; this output is dominated by "chore: Update CHANGELOG.md" meta-commits and is low signal. Open ${compareUrl} for the real diff.)_\n\n${compare}`;
     }
   } catch (err) {
     log(`gh compare API fallback failed: ${String(err)}`);
   }
-  return `_(automatic changelog extraction failed — see https://github.com/${UPSTREAM_GH}/compare/v${prevVersion}...v${newVersion})_`;
+
+  return `_(automatic changelog extraction failed — see ${compareUrl})_`;
 }
 
 /**
