@@ -128,6 +128,50 @@ export function computeReplayWindow(
 }
 
 /**
+ * Reorder `sdk` events in a replay slice into chronological order by their
+ * `at` epoch ms. Non-sdk events (ready, session_title, mode_changed, etc.)
+ * stay anchored at their original buffer index so control-plane ordering
+ * isn't perturbed. Stable on tied `at` values — original index breaks ties
+ * so multiple splits of one assistant message keep their emission order.
+ * Events with no `at` are treated as 0 (so they fall to the start), which
+ * is fine because every disk-replay and live broadcast path stamps `at`.
+ *
+ * Returns the same reference when no reordering would happen so subscribers
+ * that read from the buffer don't pay needlessly.
+ *
+ * Exported for unit testing.
+ */
+export function orderSdkEventsChronologically(
+  events: ReadonlyArray<ServerEvent>,
+): ServerEvent[] {
+  if (events.length <= 1) return events.slice();
+  const sdkPositions: number[] = [];
+  for (let i = 0; i < events.length; i++) {
+    if (events[i].type === "sdk") sdkPositions.push(i);
+  }
+  if (sdkPositions.length <= 1) return events.slice();
+  const sdkSorted = sdkPositions.slice().sort((a, b) => {
+    const at_a = (events[a] as { at?: number }).at ?? 0;
+    const at_b = (events[b] as { at?: number }).at ?? 0;
+    if (at_a !== at_b) return at_a - at_b;
+    return a - b;
+  });
+  let changed = false;
+  for (let i = 0; i < sdkPositions.length; i++) {
+    if (sdkSorted[i] !== sdkPositions[i]) {
+      changed = true;
+      break;
+    }
+  }
+  if (!changed) return events.slice();
+  const out = events.slice();
+  for (let i = 0; i < sdkPositions.length; i++) {
+    out[sdkPositions[i]] = events[sdkSorted[i]];
+  }
+  return out;
+}
+
+/**
  * Gate for the noisy `[sess-load]` logs around session start / subscribe /
  * resync. Enabled via `CLAUDIUS_DEBUG_SESSIONS=1` so we can ask a user
  * who's hitting the "old session is empty until I refresh" bug to set
@@ -1170,8 +1214,19 @@ export class Session {
 
   subscribe(fn: Subscriber, opts?: { tail?: number }): () => void {
     const { startIdx, hasMoreAbove } = computeReplayWindow(this.buffer, opts?.tail);
-    const toReplay: ServerEvent[] =
+    const sliced: ReadonlyArray<ServerEvent> =
       startIdx === 0 ? this.buffer : this.buffer.slice(startIdx);
+    // Belt-and-suspenders chronological order for the replay window. The
+    // buffer is APPENDED in broadcast order, and broadcast order is normally
+    // chronological — but a `resyncFromDisk` race that finds disk lines the
+    // live `consume()` loop hasn't pushed yet can append an older message
+    // after a newer one. The client also sorts defensively, but doing it
+    // here means even a session whose buffer drifted out of order
+    // self-corrects on every reconnect. Sort only `sdk` events among
+    // themselves and keep non-sdk events (ready / session_title / mode_changed
+    // pills) anchored to their original buffer position so control-plane
+    // ordering is preserved.
+    const toReplay = orderSdkEventsChronologically(sliced);
     if (sessLoadDebug()) {
        
       console.log("[sess-load] subscribe", {
