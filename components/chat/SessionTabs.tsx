@@ -3,6 +3,12 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ChevronDown, Plus, X, XSquare } from "lucide-react";
 import type { SessionInfo } from "@/lib/client/types";
+import {
+  formatBinding,
+  isTypingTarget,
+  matchBinding,
+  useShortcut,
+} from "@/lib/client/shortcuts";
 import { cn } from "@/lib/utils/cn";
 
 export type TabStatus = "running" | "idle" | "starting" | "error" | "background";
@@ -58,11 +64,6 @@ export function shortcutForTabIndex(idx: number, length: number): number | null 
   return null;
 }
 
-function modPrefix(): string {
-  if (typeof navigator === "undefined") return "Ctrl";
-  return /Mac|iPhone|iPad/.test(navigator.platform) ? "⌘" : "Ctrl";
-}
-
 export function SessionTabs({
   tabs,
   activeId,
@@ -76,30 +77,34 @@ export function SessionTabs({
   const [liveWidth, setLiveWidth] = useState<number | null>(null);
   const dragRef = useRef<{ startX: number; startW: number } | null>(null);
   const effectiveWidth = liveWidth ?? labelMaxWidth ?? 180;
-  const modKey = modPrefix();
+
+  // Shortcuts come from the user-overridable registry now (lib/client/shortcuts.ts).
+  // The defaults still ship as ⌘⇧←/→ and ⌘⇧1..9 so existing muscle memory holds.
+  const bindingNext = useShortcut("tab.next");
+  const bindingPrev = useShortcut("tab.prev");
+  const bindingByNumber = useShortcut("tab.selectByNumber");
 
   // ── Global keyboard shortcuts ───────────────────────────────────────────
-  // ⌘⇧1..8 → tab at that index. ⌘⇧9 → last tab (iTerm rule, so the tail
-  // is always reachable past 9 sessions). ⌘⇧← / ⌘⇧→ → cycle.
+  // Cycle (next/prev) and numeric tab selection. The numeric shortcut is a
+  // modifier-only binding — `bindingByNumber.code` is null, and the handler
+  // intercepts Digit1..9 itself so a single registry entry covers all nine
+  // visual hints. Skipped while the user is typing in an input.
   //
-  // The effect re-binds when tabs / activeId / onSelect change. That's
-  // cheap (one add/removeEventListener pair) and keeps closure values
+  // The effect re-binds when tabs / activeId / onSelect / bindings change.
+  // That's cheap (one add/removeEventListener pair) and keeps closure values
   // fresh without the ref-in-render dance the lint rules dislike.
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      const metaOrCtrl = e.metaKey || e.ctrlKey;
-      if (!metaOrCtrl || !e.shiftKey || e.altKey) return;
       if (tabs.length === 0) return;
+      if (isTypingTarget(e.target)) return;
 
-      // ⌘⇧1..9 — numeric shortcut. ⌘⇧9 is special: when there are >9 tabs
-      // it still selects the LAST one (iTerm-style), so the tail of the
-      // strip stays reachable.
-      if (/^Digit[1-9]$/.test(e.code)) {
+      // Numeric: matcher checks modifier shape; we own the Digit1..9 range.
+      // ⌘⇧9 is special: with >9 tabs it selects the LAST one (iTerm rule),
+      // so the tail of the strip stays reachable past 9 sessions.
+      if (bindingByNumber && /^Digit[1-9]$/.test(e.code) && matchBinding(bindingByNumber, e)) {
         const n = Number(e.code.slice(5));
         let target: Tab | undefined;
         if (n === 9) {
-          // 9 = last (only when at least 9 tabs exist — otherwise the
-          // canonical N-th tab already owns the same visual key).
           if (tabs.length >= 9) target = tabs[tabs.length - 1];
         } else if (n - 1 < tabs.length) {
           target = tabs[n - 1];
@@ -111,24 +116,30 @@ export function SessionTabs({
         return;
       }
 
-      // ⌘⇧← / ⌘⇧→ — cycle. Always wraps. Yes, this overrides the macOS
-      // "extend selection to line start/end" inside text fields; the trade
-      // matches iTerm and is what the user asked for.
-      if (e.code === "ArrowRight" || e.code === "ArrowLeft") {
+      // Cycle: next/prev. Always wraps. Default bindings (⌘⇧←/→) override
+      // macOS "extend selection to line start/end" inside text fields, but
+      // the `isTypingTarget` guard above already excludes input focus.
+      const dir = matchBinding(bindingNext, e) ? 1 : matchBinding(bindingPrev, e) ? -1 : 0;
+      if (dir !== 0) {
         e.preventDefault();
-        const dir = e.code === "ArrowRight" ? 1 : -1;
         const cur = tabs.findIndex((t) => t.id === activeId);
-        // If nothing is active, jump to the first or last tab depending on
-        // direction so the shortcut still has a sensible effect.
+        // If nothing is active, jump to first/last depending on direction
+        // so the shortcut still has a sensible effect.
         const baseline = cur === -1 ? (dir > 0 ? -1 : 0) : cur;
         const next = tabs[(baseline + dir + tabs.length) % tabs.length];
         if (next && next.id !== activeId) onSelect(next.id);
-        return;
       }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [tabs, activeId, onSelect]);
+  }, [tabs, activeId, onSelect, bindingNext, bindingPrev, bindingByNumber]);
+
+  // Tooltip / numeric-hint formatting. Pulls the digit modifier from the
+  // resolved `tab.selectByNumber` binding so renaming the prefix in
+  // Settings (e.g. ⌥⇧ instead of ⌘⇧) updates the visible hint, too.
+  const modHint = bindingByNumber
+    ? formatBinding({ ...bindingByNumber, code: null }).replace(/1[…-]9$/, "")
+    : "";
 
   function onResizeStart(e: React.PointerEvent<HTMLDivElement>) {
     e.preventDefault();
@@ -266,7 +277,12 @@ export function SessionTabs({
         const active = t.id === activeId;
         const hidden = hiddenIds.has(t.id);
         const shortcut = shortcutForTabIndex(i, tabs.length);
-        const shortcutHint = shortcut != null ? `\nShortcut: ${modKey}⇧${shortcut}` : "";
+        // Only surface the chord hint when the numeric shortcut actually has
+        // a binding — when the user disabled it the visual digit still
+        // labels the tab, but advertising a keypress that does nothing
+        // would mislead.
+        const shortcutHint =
+          shortcut != null && bindingByNumber ? `\nShortcut: ${modHint}${shortcut}` : "";
         return (
           <div
             key={t.id}
@@ -430,12 +446,12 @@ export function SessionTabs({
                             {t.unread > 99 ? "99+" : t.unread}
                           </span>
                         )}
-                        {shortcut != null && (
+                        {shortcut != null && bindingByNumber && (
                           <span
                             aria-hidden
                             className="shrink-0 font-mono text-[9px] text-[var(--muted)]/70 tabular-nums"
                           >
-                            {modKey}⇧{shortcut}
+                            {modHint}{shortcut}
                           </span>
                         )}
                         <button

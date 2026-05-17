@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { MessageSquare, Network, Webhook, BookText, ShieldCheck, FolderTree, Bot, Calendar, BarChart3, Image as ImageIcon, Folder, Briefcase, GitBranch, Sparkles, WandSparkles, Container, CircleDot, Database as DatabaseIcon, BookOpen } from "lucide-react";
@@ -8,21 +8,25 @@ import { cn } from "@/lib/utils/cn";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import { useWorkspaces } from "@/lib/client/useWorkspaces";
 import type { Customization, PublishRecord } from "@/lib/server/customizations-store";
+import {
+  formatBinding,
+  isTypingTarget,
+  matchBinding,
+  useShortcutRegistry,
+  type ShortcutBinding,
+} from "@/lib/client/shortcuts";
 
 type Item = {
   label: string;
   icon: typeof MessageSquare;
   href?: string;
   /**
-   * Layout-independent key code (e.g. "KeyC") used to bind Alt+<key>. We
-   * match on `event.code` rather than `event.key` because macOS Option+
-   * letter emits the dead-key combining character — `event.key` would be
-   * `"ç"`, not `"c"`, and the shortcut would silently miss on non-US
-   * layouts too.
+   * Registry action id (e.g. "nav.chat"). The actual key binding — and its
+   * display label — is resolved from `lib/client/shortcuts.ts`, which the
+   * settings page lets users override. Items without an actionId have no
+   * default shortcut (none currently, but kept optional for future tiles).
    */
-  shortcutCode?: string;
-  /** Display string for the tooltip, e.g. `"⌥C"`. */
-  shortcutLabel?: string;
+  actionId?: string;
   /**
    * If set, this tile is gated on a customization being currently published
    * (at least one publish without `revertedAt`). The string is matched
@@ -40,31 +44,30 @@ const items: Item[] = [
   // (persisted in `ui_state.active_tab`) so coming back to the chat view
   // from another page lands you on the conversation you left, instead of
   // spawning a brand-new session on top of the persisted strip.
-  { label: "Chat", icon: MessageSquare, href: "/", shortcutCode: "KeyC", shortcutLabel: "⌥C" },
-  { label: "Sessions", icon: FolderTree, href: "/sessions", shortcutCode: "KeyS", shortcutLabel: "⌥S" },
-  { label: "Files", icon: Folder, href: "/files", shortcutCode: "KeyF", shortcutLabel: "⌥F" },
-  { label: "Git", icon: GitBranch, href: "/git", shortcutCode: "KeyG", shortcutLabel: "⌥G" },
-  { label: "Memory", icon: BookText, href: "/memory", shortcutCode: "KeyM", shortcutLabel: "⌥M" },
+  { label: "Chat", icon: MessageSquare, href: "/", actionId: "nav.chat" },
+  { label: "Sessions", icon: FolderTree, href: "/sessions", actionId: "nav.sessions" },
+  { label: "Files", icon: Folder, href: "/files", actionId: "nav.files" },
+  { label: "Git", icon: GitBranch, href: "/git", actionId: "nav.git" },
+  { label: "Memory", icon: BookText, href: "/memory", actionId: "nav.memory" },
   // Assets uses ⌥I (Images) because ⌥A is taken by Agents — A/I picks the
   // mnemonic with the higher hit rate.
-  { label: "Assets", icon: ImageIcon, href: "/assets", shortcutCode: "KeyI", shortcutLabel: "⌥I" },
-  { label: "Cost", icon: BarChart3, href: "/cost", shortcutCode: "KeyB", shortcutLabel: "⌥B" },
-  { label: "Agents", icon: Bot, href: "/agents", shortcutCode: "KeyA", shortcutLabel: "⌥A" },
-  { label: "Skills", icon: Sparkles, href: "/skills", shortcutCode: "KeyK", shortcutLabel: "⌥K" },
-  { label: "MCP", icon: Network, href: "/mcp", shortcutCode: "KeyN", shortcutLabel: "⌥N" },
-  { label: "Hooks", icon: Webhook, href: "/hooks", shortcutCode: "KeyH", shortcutLabel: "⌥H" },
-  { label: "Schedule", icon: Calendar, href: "/schedule", shortcutCode: "KeyL", shortcutLabel: "⌥L" },
-  { label: "Permissions", icon: ShieldCheck, href: "/permissions", shortcutCode: "KeyP", shortcutLabel: "⌥P" },
+  { label: "Assets", icon: ImageIcon, href: "/assets", actionId: "nav.assets" },
+  { label: "Cost", icon: BarChart3, href: "/cost", actionId: "nav.cost" },
+  { label: "Agents", icon: Bot, href: "/agents", actionId: "nav.agents" },
+  { label: "Skills", icon: Sparkles, href: "/skills", actionId: "nav.skills" },
+  { label: "MCP", icon: Network, href: "/mcp", actionId: "nav.mcp" },
+  { label: "Hooks", icon: Webhook, href: "/hooks", actionId: "nav.hooks" },
+  { label: "Schedule", icon: Calendar, href: "/schedule", actionId: "nav.schedule" },
+  { label: "Permissions", icon: ShieldCheck, href: "/permissions", actionId: "nav.permissions" },
   // Docker — read-only `docker ps` view. Ships as a customization
   // ("Docker Monitoring") so users who don't want to wire up a daemon
   // don't see the tile. Hidden until at least one un-reverted publish of
-  // that customization exists. ⌥D is the only D-mnemonic free in this list.
+  // that customization exists.
   {
     label: "Docker",
     icon: Container,
     href: "/docker",
-    shortcutCode: "KeyD",
-    shortcutLabel: "⌥D",
+    actionId: "nav.docker",
     customizationName: "Docker Monitoring",
   },
   // Tracker — demo "GitHub issues" page rendered from local fixtures.
@@ -74,20 +77,17 @@ const items: Item[] = [
     label: "Tracker",
     icon: CircleDot,
     href: "/tracker",
-    shortcutCode: "KeyT",
-    shortcutLabel: "⌥T",
+    actionId: "nav.tracker",
     customizationName: "Tracker",
   },
   // Database — mocked DataGrip-style SQL console. Gated so it only appears
   // when the "Database Console" customization is published, mirroring the
-  // Docker/Tracker pattern. ⌥E (datab[E]ase) — the letters were already
-  // taken everywhere else.
+  // Docker/Tracker pattern.
   {
     label: "Database",
     icon: DatabaseIcon,
     href: "/database",
-    shortcutCode: "KeyE",
-    shortcutLabel: "⌥E",
+    actionId: "nav.database",
     customizationName: "Database Console",
   },
   // Notebooks — mocked Jupyter-style notebook runner. Gated on the
@@ -96,12 +96,11 @@ const items: Item[] = [
     label: "Notebooks",
     icon: BookOpen,
     href: "/notebooks",
-    shortcutCode: "KeyJ",
-    shortcutLabel: "⌥J",
+    actionId: "nav.notebooks",
     customizationName: "Notebooks",
   },
   // Workspace settings — defaults that apply to new chats in this workspace.
-  { label: "Workspace", icon: Briefcase, href: "/workspace", shortcutCode: "KeyW", shortcutLabel: "⌥W" },
+  { label: "Workspace", icon: Briefcase, href: "/workspace", actionId: "nav.workspace" },
 ];
 
 const OLD_ITALIC = [
@@ -231,38 +230,55 @@ export function SideNav({ running = false }: { running?: boolean }) {
     ? "Customize · publish / revert this customization"
     : "Customize Claudius";
 
-  // Alt+<letter> shortcuts. We use `event.code` so the mapping is layout-
-  // independent and unaffected by macOS Option's dead-key composition (which
-  // would turn `event.key` into ç/µ/… for Alt+C/Alt+M). The `isTyping`
-  // guard mirrors the WorkspaceSwitcher pattern — typing in an input must
-  // never trigger navigation.
+  // Resolve nav bindings from the user-overridable registry. Each item's
+  // `actionId` maps to a binding (default Alt+<letter>) that the user can
+  // remap in Settings → Web app shortcuts. The handler iterates `visibleItems`
+  // and calls `matchBinding` for each; the per-binding work is trivial
+  // (modifier compare + code compare) so an O(items) sweep on every keydown
+  // is fine versus building an index, and it keeps the code obvious.
+  //
+  // We use `event.code` so the mapping is layout-independent and unaffected
+  // by macOS Option's dead-key composition (Alt+C → `event.key === "ç"` on
+  // US layouts). The `isTypingTarget` guard mirrors the WorkspaceSwitcher
+  // pattern — typing in an input must never trigger navigation.
+  // Bindings: a Map<actionId, binding> derived from the registry. The
+  // tooltip path below reads from this too, so a remap in Settings updates
+  // both the keyboard handler AND the hint glyph in one re-render.
+  const { items: registryItems } = useShortcutRegistry();
+  const bindingByActionId = useMemo(() => {
+    const out = new Map<string, ShortcutBinding | null>();
+    for (const it of registryItems) out.set(it.action.id, it.binding);
+    return out;
+  }, [registryItems]);
+
   useEffect(() => {
-    function isTyping(target: EventTarget | null): boolean {
-      const el = target as HTMLElement | null;
-      if (!el) return false;
-      const tag = el.tagName;
-      return tag === "INPUT" || tag === "TEXTAREA" || el.isContentEditable;
-    }
     function onKey(e: KeyboardEvent) {
-      // Pure Alt — no Cmd/Ctrl/Shift modifiers, no metakey combos. Those
-      // belong to other handlers (e.g. Cmd+Shift+[ for workspace cycling).
-      if (!e.altKey || e.metaKey || e.ctrlKey || e.shiftKey) return;
-      if (isTyping(e.target)) return;
-      const hit = visibleItems.find((it) => it.shortcutCode === e.code && it.href);
-      if (!hit?.href) return;
-      e.preventDefault();
-      router.push(hit.href);
+      if (isTypingTarget(e.target)) return;
+      for (const item of visibleItems) {
+        if (!item.actionId || !item.href) continue;
+        const binding = bindingByActionId.get(item.actionId) ?? null;
+        if (!binding) continue;
+        if (!matchBinding(binding, e)) continue;
+        e.preventDefault();
+        router.push(item.href);
+        return;
+      }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [router, visibleItems]);
+  }, [router, visibleItems, bindingByActionId]);
 
   return (
     <>
       <WorkspaceSwitcher />
       <aside data-pane-name="left-nav" className="flex h-full w-14 shrink-0 flex-col items-center gap-1 border-r border-[var(--border)] bg-[var(--panel)] py-3">
         <AnimatedGlyph running={running} />
-        {visibleItems.map(({ label, icon: Icon, href, shortcutLabel }) => {
+        {visibleItems.map(({ label, icon: Icon, href, actionId }) => {
+          // Tooltip hint mirrors the live binding. When the user disables a
+          // shortcut in Settings the hint disappears; when they remap it,
+          // the new chord shows up here without a code edit.
+          const binding = actionId ? bindingByActionId.get(actionId) ?? null : null;
+          const shortcutLabel = binding ? formatBinding(binding) : undefined;
           // Strip query string when computing active state — Chat's href is
           // "/?new=1" but the displayed pathname is just "/".
           const hrefPath = href ? href.split("?")[0] : undefined;
