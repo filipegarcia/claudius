@@ -14,6 +14,12 @@ import {
   getLastPath,
   setLastPath,
 } from "@/lib/client/workspace-route-memory";
+import {
+  formatBinding,
+  isTypingTarget,
+  matchBinding,
+  useShortcut,
+} from "@/lib/client/shortcuts";
 import { cn } from "@/lib/utils/cn";
 
 export function WorkspaceSwitcher() {
@@ -66,49 +72,31 @@ export function WorkspaceSwitcher() {
     activeIdRef.current = activeId;
   }, [projectItems, activeId]);
 
+  // Workspace cycle bindings come from the registry — default ⌘⇧[ / ⌘⇧]
+  // but the user can remap from Settings → Web app shortcuts. Defaults
+  // intentionally don't conflict with the browser's tab-switching shortcuts.
+  const bindingNext = useShortcut("workspace.next");
+  const bindingPrev = useShortcut("workspace.prev");
   useEffect(() => {
-    function isTyping(target: EventTarget | null): boolean {
-      const el = target as HTMLElement | null;
-      if (!el) return false;
-      const tag = el.tagName;
-      return tag === "INPUT" || tag === "TEXTAREA" || el.isContentEditable;
-    }
     function onKey(e: KeyboardEvent) {
-      // Use Cmd+Shift on macOS, Ctrl+Shift elsewhere — these don't conflict
-      // with browser tab-switching shortcuts.
-      const metaOrCtrl = e.metaKey || e.ctrlKey;
-      if (!metaOrCtrl || !e.shiftKey || e.altKey) return;
+      if (isTypingTarget(e.target)) return;
       const ws = itemsRef.current;
       if (ws.length === 0) return;
-      // Cycle: Cmd/Ctrl+Shift+] → next, Cmd/Ctrl+Shift+[ → prev. Pass the
-      // target workspace's last-known URL so cycling drops the user back
-      // where they were inside the next workspace, not at chat home.
-      if (e.key === "]" || e.code === "BracketRight") {
-        e.preventDefault();
-        const cur = ws.findIndex((w) => w.id === activeIdRef.current);
-        const next = ws[(cur + 1 + ws.length) % ws.length];
-        if (next && next.id !== activeIdRef.current) {
-          void select(next.id, getLastPath(next.id) ?? "/");
-        }
-        return;
-      }
-      if (e.key === "[" || e.code === "BracketLeft") {
-        e.preventDefault();
-        const cur = ws.findIndex((w) => w.id === activeIdRef.current);
-        const prev = ws[(cur - 1 + ws.length) % ws.length];
-        if (prev && prev.id !== activeIdRef.current) {
-          void select(prev.id, getLastPath(prev.id) ?? "/");
-        }
-        return;
+      // Cycle: pass the target workspace's last-known URL so cycling drops
+      // the user back where they were inside the next workspace, not at
+      // chat home.
+      const dir = matchBinding(bindingNext, e) ? 1 : matchBinding(bindingPrev, e) ? -1 : 0;
+      if (dir === 0) return;
+      e.preventDefault();
+      const cur = ws.findIndex((w) => w.id === activeIdRef.current);
+      const target = ws[(cur + dir + ws.length) % ws.length];
+      if (target && target.id !== activeIdRef.current) {
+        void select(target.id, getLastPath(target.id) ?? "/");
       }
     }
-    function guarded(e: KeyboardEvent) {
-      if (isTyping(e.target)) return;
-      onKey(e);
-    }
-    window.addEventListener("keydown", guarded);
-    return () => window.removeEventListener("keydown", guarded);
-  }, [select]);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [select, bindingNext, bindingPrev]);
 
   function onDragStart(id: string) {
     return (e: DragEvent<HTMLDivElement>) => {
@@ -280,9 +268,13 @@ export function WorkspaceSwitcher() {
           active={pathname?.startsWith("/usage") ?? false}
           icon={<UserCircle className="h-4 w-4" />}
         />
-        {projectItems.length > 1 && (
+        {projectItems.length > 1 && (bindingPrev || bindingNext) && (
+          // Reflect whatever bindings the user has — if they remapped to
+          // ⌥, ⇧ or anything else, the hint here updates with them.
           <span className="mt-auto px-1 text-center text-[8px] leading-tight text-[var(--muted)]/60">
-            {shortcutPrefix()}⇧[ ]
+            {bindingPrev ? formatBinding(bindingPrev) : ""}
+            {bindingPrev && bindingNext ? " " : ""}
+            {bindingNext ? formatBinding(bindingNext) : ""}
           </span>
         )}
       </aside>
@@ -299,11 +291,6 @@ export function WorkspaceSwitcher() {
       )}
     </>
   );
-}
-
-function shortcutPrefix(): string {
-  if (typeof navigator === "undefined") return "Ctrl";
-  return /Mac|iPhone|iPad/.test(navigator.platform) ? "⌘" : "Ctrl";
 }
 
 function SystemTile({

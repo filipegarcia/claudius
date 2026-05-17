@@ -14,6 +14,11 @@ The orchestrator has already:
 2. Bumped `dependencies."@anthropic-ai/claude-agent-sdk"` in `package.json`
    to `^{{NEW_VERSION}}` and run `bun install` so `node_modules/` is on
    the new version.
+3. **Pre-created a fillable run-notes file at
+   `.claudius/sdk-updater/run-notes/{{NEW_VERSION}}.md`** with six
+   `## ` section headings and `_(TODO …)_` placeholders. **Your job
+   is to replace every placeholder with real content.** Don't create
+   a new file — edit the one that's already there.
 
 The full changelog between the two versions is in `{{CHANGELOG_BLOCK}}`
 at the bottom of this prompt.
@@ -22,23 +27,26 @@ at the bottom of this prompt.
 
 ## Your primary deliverable: the run-notes file
 
-**Read this section twice.** The single most important thing you
-write is the markdown file at:
+**Read this section twice.** The single most important thing you do
+is replace the `_(TODO …)_` placeholders in:
 
     .claudius/sdk-updater/run-notes/{{NEW_VERSION}}.md
 
-The orchestrator parses this file section-by-section to build the PR
-body. If you don't write it — or write it without the expected
-section headings — the PR body comes out empty and the bot looks
-broken. **An empty PR is the worst possible outcome.** It's worse
-than a draft PR with a clear "no code changes needed" analysis,
-because it wastes the reviewer's time and gives them nothing to
-react to.
+The file is ALREADY ON DISK with the right headings — go open it
+right now with the Read tool so you see the shape. Your job is to
+Edit each section's body. **Don't write code before you've at least
+filled in "## SDK changelog highlights" — that section forces you to
+take a position on every changelog item, and you can't write good
+code without that position.**
 
-Even if you conclude that **no code changes are needed**, you must
-still complete this file with a full written analysis explaining:
-what changed in the SDK, why none of it affects our code, and what
-the human should still glance at to double-check your reasoning.
+The orchestrator parses each `## ` section into the PR body. If you
+leave any placeholder in place, the validator fails the gate and the
+PR opens as draft + needs-human. **An empty or skeletal run-notes
+file is the worst possible outcome** — it makes the bot look broken
+and wastes the reviewer's time. Even if you conclude that **no code
+changes are needed**, you must still fill in every section
+explaining what changed in the SDK and why none of it affects our
+code.
 
 ### Required shape
 
@@ -125,9 +133,11 @@ shape is in use. For every deprecation, note whether we touch the
 deprecated path. For every new feature, decide whether Claudius
 should expose it.
 
-### Step 3 — Write the run-notes file (FIRST DRAFT)
+### Step 3 — Edit the run-notes file (FIRST PASS)
 
-Before writing any code, draft the run-notes file with:
+Open `.claudius/sdk-updater/run-notes/{{NEW_VERSION}}.md` with the
+Read tool — it's already on disk with placeholder TODOs. Edit it
+with:
 
 - The full "## SDK changelog highlights" section, marked
   `[shipped]` / `[type-only]` / `[skipped — reason]` for every item.
@@ -265,8 +275,10 @@ a human. Aim to finish; don't aim for "draft is fine".
 Now start. The branch is checked out, deps are installed, the
 changelog is below.
 
-**Your first action should be to read the changelog. Your second
-should be to write the run-notes draft. Code changes come third.**
+**Your first action should be to read the changelog at the bottom of
+this prompt. Your second should be to Read
+`.claudius/sdk-updater/run-notes/{{NEW_VERSION}}.md` and Edit it to
+fill in the placeholders. Code changes come third.**
 
 ---
 

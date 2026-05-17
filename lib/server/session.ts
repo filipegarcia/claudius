@@ -281,14 +281,25 @@ export class Session {
             count: historical.length,
           });
         }
+        // Carry-forward timestamp for assistants. JSONL only stamps user
+        // records, so without this every historical assistant would fall
+        // through to broadcast()'s `Date.now()` default — clustering every
+        // resumed assistant at the time of resume and breaking any
+        // downstream chronological sort. Inherit the most-recent preceding
+        // user timestamp + 1ms-per-step so successive assistants in a turn
+        // stay in their original order.
+        let carriedAt: number | undefined;
         for (const m of historical) {
-          // SDK user/user-replay records carry an ISO `timestamp`; pass it
-          // through as epoch ms so the UI shows the original send time
-          // instead of "now". Assistant records have no native timestamp —
-          // leave `at` undefined and the UI hides the chip.
           const ts = (m as { timestamp?: string }).timestamp;
           const parsed = typeof ts === "string" ? Date.parse(ts) : NaN;
-          const at = Number.isFinite(parsed) ? parsed : undefined;
+          let at: number | undefined;
+          if (Number.isFinite(parsed)) {
+            at = parsed;
+            carriedAt = parsed;
+          } else if (typeof carriedAt === "number") {
+            carriedAt = carriedAt + 1;
+            at = carriedAt;
+          }
           this.broadcast({ type: "sdk", message: m as unknown as SDKMessage, at });
         }
       } catch (err) {
@@ -1105,7 +1116,19 @@ export class Session {
         const m = ev.message as { uuid?: string };
         if (m.uuid) seen.add(m.uuid);
       }
+      // Carry-forward timestamp anchor — walk the full disk list (not just
+      // the new tail) so assistants we're about to broadcast inherit their
+      // turn's user timestamp even when the user record was already in the
+      // buffer and we're only adding the assistants that follow it.
+      let carriedAt: number | undefined;
       for (const m of disk) {
+        const ts = (m as { timestamp?: string }).timestamp;
+        const parsed = typeof ts === "string" ? Date.parse(ts) : NaN;
+        if (Number.isFinite(parsed)) {
+          carriedAt = parsed;
+        } else if (typeof carriedAt === "number") {
+          carriedAt = carriedAt + 1;
+        }
         const uuid = (m as { uuid?: string }).uuid;
         if (!uuid || seen.has(uuid)) continue;
         // Preserve the original JSONL `timestamp` as `at` so the UI shows
@@ -1114,11 +1137,10 @@ export class Session {
         // driven resync (terminal `claude --resume`, external SDK writer)
         // makes historically-old messages appear as if they just arrived
         // — exactly the "old messages coming as new" symptom users hit
-        // when they switched contexts. Mirrors the same pattern in
-        // `start()`'s historical-load loop.
-        const ts = (m as { timestamp?: string }).timestamp;
-        const parsed = typeof ts === "string" ? Date.parse(ts) : NaN;
-        const at = Number.isFinite(parsed) ? parsed : undefined;
+        // when they switched contexts. For assistants (no JSONL stamp),
+        // ride on the carry-forward so they inherit their turn time
+        // instead of falling through to Date.now() in `broadcast()`.
+        const at = Number.isFinite(parsed) ? parsed : carriedAt;
         this.broadcast({ type: "sdk", message: m as unknown as SDKMessage, at });
         added++;
       }

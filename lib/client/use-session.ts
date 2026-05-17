@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { PermissionMode } from "@anthropic-ai/claude-agent-sdk";
 import type {
   CreateSessionRequest,
@@ -165,6 +165,52 @@ type DeltaScratch = {
   >;
 };
 
+/**
+ * Stable chronological sort with carry-forward for missing `createdAt`. The
+ * various `setMessages` call sites all aim to keep the array chronological,
+ * but cross-path races (a session_snapshot fallback firing before its
+ * paginated turn arrives, a tail-window replay landing alongside a `loadOlder`
+ * prepend) have produced non-chronological arrays. Sorting here at the hook
+ * boundary makes downstream code (groupTurns, sticky-pin, scroll anchor)
+ * independent of how setMessages assembled the array.
+ *
+ * Carry-forward rule: when a message has no `createdAt`, inherit the most
+ * recent prior message's effective createdAt — but operate over *original*
+ * array order, since carry-forward over a re-shuffled array would propagate
+ * wrong times. In the steady state every assistant has a server-stamped or
+ * synthesizeOlder-inherited `createdAt`, so the carry-forward is just a
+ * safety net for live transient placeholders.
+ *
+ * Returns the original array reference when no reordering would happen so
+ * React's referential equality checks downstream stay cheap.
+ *
+ * Exported for unit testing.
+ */
+export function sortMessagesByChronology(messages: DisplayMessage[]): DisplayMessage[] {
+  if (messages.length <= 1) return messages;
+  const n = messages.length;
+  const effective = new Array<number>(n);
+  let lastKnown = -Infinity;
+  for (let i = 0; i < n; i++) {
+    const at = messages[i]?.createdAt;
+    if (typeof at === "number" && Number.isFinite(at)) {
+      lastKnown = at;
+      effective[i] = at;
+    } else {
+      effective[i] = lastKnown === -Infinity ? 0 : lastKnown;
+    }
+  }
+  const indices = Array.from({ length: n }, (_, i) => i);
+  indices.sort((a, b) => {
+    if (effective[a] !== effective[b]) return effective[a] - effective[b];
+    return a - b;
+  });
+  for (let i = 0; i < n; i++) {
+    if (indices[i] !== i) return indices.map((j) => messages[j]);
+  }
+  return messages;
+}
+
 export function useSession(): ChatState & ChatActions {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
@@ -220,11 +266,22 @@ export function useSession(): ChatState & ChatActions {
   const lastAssistantUuidRef = useRef<string>("");
   const pendingRef = useRef(false);
 
-  // Mirror messages into a ref so callbacks can read the freshest head without
-  // re-binding on every state change.
+  // Defensive chronological sort. The various `setMessages` call sites (live
+  // SSE append, snapshot inject, optimistic send, `loadOlder` prepend,
+  // `synthesizeOlder` pagination) each maintain order locally but cross-path
+  // races have produced non-chronological arrays in the past — a tail-window
+  // replay landing alongside a paginated older page, or a `session_snapshot`
+  // fallback firing before its turn's user record reached the array. Rather
+  // than chase every site, sort here at the hook boundary; see the helper
+  // for the carry-forward rule.
+  const sortedMessages = useMemo(() => sortMessagesByChronology(messages), [messages]);
+
+  // Mirror SORTED messages into a ref so callbacks (loadOlder cursor, jump
+  // resolvers) read the chronologically-oldest head rather than whatever
+  // index 0 happened to be in the unsorted backing state.
   useEffect(() => {
-    messagesRef.current = messages;
-  }, [messages]);
+    messagesRef.current = sortedMessages;
+  }, [sortedMessages]);
 
   const hasMoreAboveRef = useRef(false);
   useEffect(() => {
@@ -2490,7 +2547,7 @@ export function useSession(): ChatState & ChatActions {
     sessionId,
     ready,
     pending,
-    messages,
+    messages: sortedMessages,
     systemEntries,
     toolProgress,
     queue,
@@ -2584,6 +2641,13 @@ function synthesizeOlder(raw: Array<Record<string, unknown>>): {
   messages: DisplayMessage[];
 } {
   const out: DisplayMessage[] = [];
+  // Carry-forward timestamp: JSONL only stamps user records, so paginated
+  // assistants would otherwise land with `createdAt: undefined` and any
+  // downstream chronological sort would have to bunch them at one end. Track
+  // the most recent known epoch ms (from a user record's parsed timestamp,
+  // bumped by 1ms per intervening assistant so successive splits stay in
+  // emit order) and inherit it onto each assistant bubble we create.
+  let carriedAt: number | undefined;
   for (const r of raw as RawSDKMessage[]) {
     if (!r || (r.type !== "assistant" && r.type !== "user")) continue;
     if (r.parent_tool_use_id) continue;
@@ -2622,12 +2686,15 @@ function synthesizeOlder(raw: Array<Record<string, unknown>>): {
           };
         }
       } else {
+        const at = typeof carriedAt === "number" ? carriedAt : undefined;
+        if (typeof carriedAt === "number") carriedAt = carriedAt + 1;
         out.push({
           uuid: msgId,
           role: "assistant",
           blocks: newBlocks,
           streaming: false,
           foldedSdkUuids: new Set([uuid]),
+          ...(typeof at === "number" ? { createdAt: at } : {}),
         });
       }
       continue;
@@ -2682,8 +2749,10 @@ function synthesizeOlder(raw: Array<Record<string, unknown>>): {
 
     // Plain user message — text or array content. The SDK stamps user
     // records in the JSONL with an ISO `timestamp`; parse it so paginated
-    // history shows the original send time rather than nothing.
+    // history shows the original send time rather than nothing, and seed
+    // the carry-forward so subsequent assistants in this turn inherit it.
     const parsedTs = typeof r.timestamp === "string" ? Date.parse(r.timestamp) : NaN;
+    if (Number.isFinite(parsedTs)) carriedAt = parsedTs;
     out.push({
       uuid,
       role: "user",

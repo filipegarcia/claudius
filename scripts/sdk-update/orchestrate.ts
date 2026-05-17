@@ -350,7 +350,7 @@ function renderPrompt(
  * the iterator drained naturally; `false` means we hit the budget
  * abort. The caller decides what to do with a budget-aborted run.
  */
-async function runClaude(prompt: string): Promise<{
+async function runClaude(prompt: string, transcriptFile?: string): Promise<{
   completed: boolean;
   turnCount: number;
   wallMs: number;
@@ -367,6 +367,32 @@ async function runClaude(prompt: string): Promise<{
   let turnCount = 0;
   let completed = false;
   let budgetReason: string | null = null;
+
+  // Streamed transcript — one JSON object per line so it's trivially
+  // greppable (`jq -c '.type' transcript.jsonl | sort | uniq -c` to
+  // see which message types showed up). Each append flushes synchronously
+  // so even a hard-kill leaves a partial-but-valid file behind.
+  let transcriptFd: number | null = null;
+  if (transcriptFile) {
+    // Truncate any prior transcript for this version so re-runs start
+    // fresh. We don't care about preserving the old one — if the
+    // operator wants forensics on a previous run they should copy the
+    // file aside before retrying.
+    writeFileSync(transcriptFile, "");
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const fs = require("node:fs") as typeof import("node:fs");
+    transcriptFd = fs.openSync(transcriptFile, "a");
+  }
+  const appendTranscript = (msg: unknown) => {
+    if (transcriptFd === null) return;
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const fs = require("node:fs") as typeof import("node:fs");
+      fs.writeSync(transcriptFd, JSON.stringify(msg) + "\n");
+    } catch {
+      // Best-effort — never let transcript IO crash the upgrade.
+    }
+  };
 
   const q = query({
     prompt,
@@ -392,6 +418,7 @@ async function runClaude(prompt: string): Promise<{
     for await (const msg of q) {
       turnCount += 1;
       const m = msg as { type?: string; subtype?: string };
+      appendTranscript(msg);
       log(`claude msg #${turnCount} type=${m.type ?? "?"} subtype=${m.subtype ?? "-"}`);
       if (Date.now() > deadline) {
         budgetReason = `wall-clock budget exhausted (${Math.round(MAX_WALL_MS / 60_000)} min)`;
@@ -408,6 +435,16 @@ async function runClaude(prompt: string): Promise<{
   } catch (err) {
     log(`claude iterator threw: ${err instanceof Error ? err.message : String(err)}`);
     budgetReason = `iterator error: ${err instanceof Error ? err.message : String(err)}`;
+  } finally {
+    if (transcriptFd !== null) {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const fs = require("node:fs") as typeof import("node:fs");
+        fs.closeSync(transcriptFd);
+      } catch {
+        // ignore
+      }
+    }
   }
 
   return {
@@ -481,6 +518,90 @@ function runGate(skip: Set<GateStep>): GateResult[] {
 
 function runNotesPath(version: string): string {
   return resolve(ROOT, ".claudius", "sdk-updater", "run-notes", `${version}.md`);
+}
+
+/**
+ * Where we mirror the rendered prompt for post-mortem inspection.
+ * Sits next to the run-notes so all the per-version artifacts live in
+ * one folder.
+ */
+function promptArchivePath(version: string): string {
+  return resolve(ROOT, ".claudius", "sdk-updater", "run-notes", `${version}.prompt.md`);
+}
+
+/**
+ * Where we stream Claude's SDK message transcript (one JSON object per
+ * line). Lets the operator see what Claude actually did when something
+ * looks off — e.g. did it never call Write? did it time out
+ * mid-implement? did it produce a session full of read-only tool calls
+ * and bail?
+ */
+function transcriptPath(version: string): string {
+  return resolve(
+    ROOT,
+    ".claudius",
+    "sdk-updater",
+    "run-notes",
+    `${version}.transcript.jsonl`,
+  );
+}
+
+/**
+ * Build the empty run-notes template Claude is expected to fill in.
+ * Pre-creating the file (rather than asking Claude to create it from
+ * scratch) shifts the failure mode from "file missing" to "sections
+ * still have placeholder content" — easier for Claude to see + edit,
+ * easier for the orchestrator's validator to give a useful error.
+ *
+ * The body of each section uses `_(TODO …)_` so validateRunNotesContent
+ * flags it as placeholder if Claude doesn't touch it.
+ */
+function runNotesStub(prevVersion: string, newVersion: string): string {
+  return [
+    `# SDK update ${prevVersion} → ${newVersion}`,
+    ``,
+    `<!--`,
+    `  This file is the PRIMARY DELIVERABLE for the SDK-update bot.`,
+    `  The orchestrator parses each \`## \` section into the PR body.`,
+    `  Replace EVERY \`_(TODO …)_\` placeholder with real content before`,
+    `  finalizing — the gate fails the run if any section is still empty`,
+    `  or placeholder.`,
+    `-->`,
+    ``,
+    `## Summary`,
+    ``,
+    `_(TODO: one paragraph — what changed in the SDK, what we changed in`,
+    `Claudius, the headline risk to flag for review.)_`,
+    ``,
+    `## SDK changelog highlights`,
+    ``,
+    `_(TODO: bulleted list of upstream changelog items, each marked`,
+    `[shipped] / [type-only] / [skipped — reason]. Cover every item that`,
+    `touches a public SDK export.)_`,
+    ``,
+    `## Code changes`,
+    ``,
+    `_(TODO: bulleted list of files / subsystems touched, with one-line`,
+    `justifications. If no code changes were needed, write a single bullet`,
+    `\`- No code changes required.\` and expand the reason in 2–3 sentences.)_`,
+    ``,
+    `## New UI surfaces`,
+    ``,
+    `_(TODO: one bullet per new/changed screen with screenshot path under`,
+    `docs/sdk-updates/${newVersion}/. If none, write \`- No new UI surfaces`,
+    `this release.\` with a reason.)_`,
+    ``,
+    `## Tests`,
+    ``,
+    `_(TODO: vitest count, playwright count, anything explicitly not`,
+    `covered with reason.)_`,
+    ``,
+    `## Risks / follow-ups`,
+    ``,
+    `_(TODO: what the next human should look at. \`- None identified.\` is`,
+    `a valid answer if you're sure.)_`,
+    ``,
+  ].join("\n");
 }
 
 /**
@@ -864,8 +985,31 @@ async function main(): Promise<void> {
     // Make sure the run-notes target directory exists so Claude can write into it.
     mkdirSync(dirname(runNotesPath(newVersion)), { recursive: true });
 
+    // Pre-create the run-notes file as a fillable template. This
+    // changes Claude's task from "create this file" to "edit this
+    // file" — a smaller, more concrete instruction that Claude
+    // consistently follows. The file always exists after this point;
+    // the validator's job is just to confirm Claude actually replaced
+    // the `_(TODO …)_` placeholders.
+    if (!existsSync(runNotesPath(newVersion))) {
+      writeFileSync(
+        runNotesPath(newVersion),
+        runNotesStub(prevVersion, newVersion),
+        "utf8",
+      );
+      log(`run-notes stub created at ${relative(ROOT, runNotesPath(newVersion))}`);
+    }
+
     const prompt = renderPrompt(prevVersion, newVersion, changelog);
-    const claudeResult = await runClaude(prompt);
+    // Archive the exact prompt Claude sees, for post-mortem inspection
+    // when a run produces a surprising PR (or fails to write the
+    // run-notes file as told). Mirrors the rendered prompt to disk
+    // BEFORE the long-running query() call so the file is present even
+    // if the run is killed.
+    writeFileSync(promptArchivePath(newVersion), prompt, "utf8");
+    log(`prompt archived to ${relative(ROOT, promptArchivePath(newVersion))} (${prompt.length} bytes)`);
+
+    const claudeResult = await runClaude(prompt, transcriptPath(newVersion));
     log(
       `Claude exited: completed=${claudeResult.completed} turns=${claudeResult.turnCount}` +
         ` wall=${Math.round(claudeResult.wallMs / 1000)}s`,
@@ -911,21 +1055,28 @@ async function main(): Promise<void> {
       log("──────────────────────────────────────────────────────────");
       log(`DRY RUN — stopping before push/PR/CI/announce`);
       log(`Branch ${branch} is checked out locally with all of Claude's commits.`);
-      log(`Run-notes preview:`);
       const notesPath = runNotesPath(newVersion);
+      const archived = promptArchivePath(newVersion);
+      const tx = transcriptPath(newVersion);
+      log(`Per-version artifacts:`);
       if (existsSync(notesPath)) {
-        log(`  ${relative(ROOT, notesPath)} (${readFileSync(notesPath, "utf8").length} bytes)`);
+        log(`  run-notes:  ${relative(ROOT, notesPath)} (${readFileSync(notesPath, "utf8").length} bytes)`);
       } else {
-        log(`  (file missing)`);
+        log(`  run-notes:  (file missing — bug, the stub should have been pre-created)`);
       }
-      log(`Inspect:`);
-      log(`  git log origin/main..HEAD --oneline`);
-      log(`  git diff origin/main..HEAD`);
-      log(`  cat ${relative(ROOT, notesPath)}`);
-      log(`When done, clean up with:`);
-      log(`  git checkout main && git branch -D ${branch}`);
-      log(`Or push manually with:`);
-      log(`  git push -u origin ${branch}`);
+      if (existsSync(archived)) {
+        log(`  prompt:     ${relative(ROOT, archived)} (${readFileSync(archived, "utf8").length} bytes)`);
+      }
+      if (existsSync(tx)) {
+        log(`  transcript: ${relative(ROOT, tx)} (${readFileSync(tx, "utf8").length} bytes, JSONL)`);
+      }
+      log(`Inspect commits:  git log origin/main..HEAD --oneline`);
+      log(`Inspect diff:     git diff origin/main..HEAD`);
+      log(`Inspect notes:    cat ${relative(ROOT, notesPath)}`);
+      log(`Inspect prompt:   cat ${relative(ROOT, archived)}`);
+      log(`Inspect Claude:   jq -c '.type' ${relative(ROOT, tx)} | sort | uniq -c`);
+      log(`Clean up:         git checkout main && git branch -D ${branch}`);
+      log(`Push manually:    git push -u origin ${branch}`);
       log("──────────────────────────────────────────────────────────");
       return;
     }

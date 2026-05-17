@@ -10,6 +10,7 @@ import type { ClaudeSettings, SettingsScope } from "@/lib/server/settings";
 import { useTheme, THEMES, type ThemeId } from "@/lib/client/theme";
 import { EDITORS, useEditor, type EditorId } from "@/lib/client/ide";
 import { UpdaterSettingsSection } from "@/components/updater/UpdaterSettingsSection";
+import { ShortcutsSection } from "@/components/settings/ShortcutsSection";
 import { cn } from "@/lib/utils/cn";
 
 const SCOPE_LABELS: Record<SettingsScope, string> = {
@@ -205,6 +206,11 @@ export default function SettingsPage() {
                 scope tabs above (those edit Claude's settings.json; this hits the
                 separate updater.json store). Always visible regardless of scope. */}
             <UpdaterSettingsSection />
+
+            {/* Browser-only keyboard shortcuts (tab cycling, side-nav nav, workspace
+                cycling). Persisted to localStorage, so it sits outside the scope
+                tabs above. The CLI input keybindings live on /keybindings. */}
+            <ShortcutsSection />
 
             {showRaw ? (
               <Section title="Raw JSON" subtitle="Direct edit of the settings file.">
