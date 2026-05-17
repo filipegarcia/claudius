@@ -123,7 +123,11 @@ const REGISTRY = "https://registry.npmjs.org";
 
 /** Strip a leading caret/tilde/equals so we can compare numerically. */
 export function cleanRange(range: string): string {
-  return range.replace(/^[\^~=v]+/, "").trim();
+  // Trim BEFORE stripping prefix chars: the `^` anchor in the next
+  // regex requires the prefix to be the very first character. Without
+  // this, a stray space turns "^0.3.0" → "^0.3.0" (no-op) instead of
+  // the expected "0.3.0".
+  return range.trim().replace(/^[\^~=v]+/, "").trim();
 }
 
 export function parseSemver(v: string): [number, number, number] | null {

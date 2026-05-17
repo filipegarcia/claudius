@@ -420,13 +420,36 @@ async function runClaude(prompt: string): Promise<{
 
 // ── Gate (lint / unit / build / e2e) ──────────────────────────────────
 
+type GateStep = "lint" | "unit" | "build" | "e2e";
 type GateResult = {
-  step: "lint" | "unit" | "build" | "e2e";
+  step: GateStep;
   ok: boolean;
+  skipped?: boolean;
 };
 
-function runGate(): GateResult[] {
-  const steps: Array<{ step: GateResult["step"]; cmd: string; args: string[] }> = [
+const ALL_GATE_STEPS: readonly GateStep[] = ["lint", "unit", "build", "e2e"];
+
+/**
+ * Parse a comma-separated list of gate step names into a Set, with
+ * permissive handling: unknown names log a warning but don't fatal —
+ * easier to evolve the gate without breaking existing env files.
+ * Exported for unit tests.
+ */
+export function parseSkipGates(raw: string | undefined): Set<GateStep> {
+  if (!raw) return new Set();
+  const out = new Set<GateStep>();
+  for (const name of raw.split(",").map((s) => s.trim()).filter(Boolean)) {
+    if ((ALL_GATE_STEPS as readonly string[]).includes(name)) {
+      out.add(name as GateStep);
+    } else {
+      log(`WARN: --skip-gates contains unknown step "${name}" — ignoring`);
+    }
+  }
+  return out;
+}
+
+function runGate(skip: Set<GateStep>): GateResult[] {
+  const steps: Array<{ step: GateStep; cmd: string; args: string[] }> = [
     { step: "lint", cmd: "bun", args: ["run", "lint"] },
     { step: "unit", cmd: "bun", args: ["run", "test"] },
     { step: "build", cmd: "bun", args: ["run", "build"] },
@@ -434,6 +457,16 @@ function runGate(): GateResult[] {
   ];
   const out: GateResult[] = [];
   for (const s of steps) {
+    if (skip.has(s.step)) {
+      log(`gate: ${s.step} SKIPPED (--skip-gates)`);
+      // A skipped step is counted as "ok" for the all-green check so
+      // that an operator who skips e2e during local iteration can
+      // still get a clean PR. The audit trail (the SKIPPED line in
+      // cron.log + the rendered banner in the PR body) keeps reviewers
+      // honest about what wasn't checked.
+      out.push({ step: s.step, ok: true, skipped: true });
+      continue;
+    }
     log(`gate: ${s.step}`);
     const code = shStream(s.cmd, s.args);
     out.push({ step: s.step, ok: code === 0 });
@@ -450,11 +483,83 @@ function runNotesPath(version: string): string {
   return resolve(ROOT, ".claudius", "sdk-updater", "run-notes", `${version}.md`);
 }
 
-/** Pull a `## Section name` block out of a markdown file, exclusive of the next `## `. */
-function extractSection(md: string, heading: string): string {
+/**
+ * Pull a `## Section name` block out of a markdown file, exclusive of
+ * the next `## `. Exported for unit tests — the regex shape is the
+ * exact thing reviewers will trip on if they rename a heading in the
+ * run-notes template.
+ */
+export function extractSection(md: string, heading: string): string {
   const re = new RegExp(`(^|\\n)## +${heading}[^\\n]*\\n([\\s\\S]*?)(?=\\n## |$)`);
   const m = md.match(re);
   return m ? m[2]!.trim() : `_(run-notes did not include a "${heading}" section)_`;
+}
+
+/**
+ * Sections that MUST be present in run-notes for the PR body to be
+ * meaningful. Names must match the headings in prompt.md exactly.
+ */
+export const REQUIRED_RUN_NOTE_SECTIONS = [
+  "Summary",
+  "SDK changelog highlights",
+  "Code changes",
+  "New UI surfaces",
+  "Tests",
+  "Risks / follow-ups",
+] as const;
+
+/**
+ * Pure content validator — given the markdown body of a run-notes
+ * file, return null when all six required sections are present with
+ * non-trivial content, or a reason string when something's missing.
+ *
+ * "Non-trivial" is intentionally lax — we just want to catch the
+ * empty-PR failure mode where Claude forgot to write the file or
+ * wrote it with only the bare headings. Anything more substantive
+ * than placeholder text passes; we don't try to grade prose quality
+ * here, that's what human review is for.
+ *
+ * Split out from `validateRunNotes` so unit tests can hit it without
+ * a temp file on disk.
+ */
+export function validateRunNotesContent(md: string): string | null {
+  const missing: string[] = [];
+  for (const section of REQUIRED_RUN_NOTE_SECTIONS) {
+    const re = new RegExp(`(^|\\n)## +${section}[^\\n]*\\n([\\s\\S]*?)(?=\\n## |$)`);
+    const m = md.match(re);
+    if (!m) {
+      missing.push(`"${section}" heading not found`);
+      continue;
+    }
+    const body = m[2]!.trim();
+    // Trivial content = empty, single placeholder, or only common
+    // skeleton tokens. We don't try to parse meaning; we just refuse
+    // to ship a section whose body is < 20 chars or matches obvious
+    // boilerplate.
+    if (body.length < 20 || /^(TODO|TBD|\(none\)|N\/A|-\s*$)/i.test(body)) {
+      missing.push(`"${section}" section is empty or placeholder`);
+    }
+  }
+  if (missing.length > 0) {
+    return `run-notes file is incomplete: ${missing.join("; ")}`;
+  }
+  return null;
+}
+
+/**
+ * Validate that the run-notes file Claude was told to produce
+ * actually exists and is meaningful. Returns null on success, or a
+ * human-readable reason string on failure. The caller treats a
+ * non-null result the same as a red gate: PR opens as draft +
+ * needs-human.
+ */
+function validateRunNotes(version: string): string | null {
+  const path = runNotesPath(version);
+  if (!existsSync(path)) {
+    return `run-notes file is missing at ${relative(ROOT, path)} — ` +
+      `Claude was told to write it as the primary deliverable, see prompt.md`;
+  }
+  return validateRunNotesContent(readFileSync(path, "utf8"));
 }
 
 function listScreenshots(version: string): string[] {
@@ -697,6 +802,19 @@ async function main(): Promise<void> {
   const prevVersionArg = args
     .find((a) => a.startsWith("--previous="))
     ?.slice("--previous=".length);
+  // Dry-run: do branch + bump + Claude + gate locally, then STOP
+  // before push/PR/CI-watch/announce. Useful for iterating on the
+  // prompt locally without spamming the remote with branches and
+  // draft PRs. Also reachable via SDK_UPDATE_DRY_RUN=1 in run.sh.
+  const dryRun = args.includes("--dry-run");
+  // Skip selected gate steps. Accepts a comma-separated list of
+  // {lint, unit, build, e2e}. Reachable via SDK_UPDATE_SKIP_GATES=…
+  // in run.sh. Common usage: `--skip-gates=e2e` for fast iteration
+  // (Playwright is the slow one).
+  const skipGatesArg = args
+    .find((a) => a.startsWith("--skip-gates="))
+    ?.slice("--skip-gates=".length);
+  const skipGates = parseSkipGates(skipGatesArg);
 
   preflight();
 
@@ -754,9 +872,9 @@ async function main(): Promise<void> {
     );
     budgetReason = claudeResult.budgetReason;
 
-    const gate = runGate();
+    const gate = runGate(skipGates);
     const allGreen = gate.every((g) => g.ok);
-    log(`gate result: ${gate.map((g) => `${g.step}=${g.ok ? "ok" : "FAIL"}`).join(" ")}`);
+    log(`gate result: ${gate.map((g) => `${g.step}=${g.skipped ? "skip" : g.ok ? "ok" : "FAIL"}`).join(" ")}`);
 
     if (!allGreen && !budgetReason) {
       // Claude returned cleanly but the suite is red — treat as
@@ -765,6 +883,51 @@ async function main(): Promise<void> {
         .filter((g) => !g.ok)
         .map((g) => g.step)
         .join(", ")}`;
+    }
+
+    // Run-notes presence is part of the gate. A missing or skeletal
+    // run-notes file produces an empty PR body and makes the whole
+    // bot look broken — strictly worse than a draft PR with an
+    // explicit "no changes needed" analysis, because reviewers have
+    // nothing to react to. Treat it the same as a red gate.
+    const runNotesIssue = validateRunNotes(newVersion);
+    if (runNotesIssue && !budgetReason) {
+      budgetReason = runNotesIssue;
+      log(`gate: run-notes validation FAILED — ${runNotesIssue}`);
+    } else if (runNotesIssue) {
+      // Already in budget-exit territory; append for visibility.
+      budgetReason = `${budgetReason}; also: ${runNotesIssue}`;
+      log(`gate: run-notes validation FAILED — ${runNotesIssue}`);
+    } else {
+      log(`gate: run-notes validation ok`);
+    }
+
+    // Dry-run short-circuit: everything above this point ran for real
+    // (branch created, deps bumped, Claude did the work, gate ran,
+    // run-notes validated). Below this point we'd push to origin,
+    // open a PR, watch CI, and announce to the chat-server — none of
+    // which we want during local iteration on the prompt.
+    if (dryRun) {
+      log("──────────────────────────────────────────────────────────");
+      log(`DRY RUN — stopping before push/PR/CI/announce`);
+      log(`Branch ${branch} is checked out locally with all of Claude's commits.`);
+      log(`Run-notes preview:`);
+      const notesPath = runNotesPath(newVersion);
+      if (existsSync(notesPath)) {
+        log(`  ${relative(ROOT, notesPath)} (${readFileSync(notesPath, "utf8").length} bytes)`);
+      } else {
+        log(`  (file missing)`);
+      }
+      log(`Inspect:`);
+      log(`  git log origin/main..HEAD --oneline`);
+      log(`  git diff origin/main..HEAD`);
+      log(`  cat ${relative(ROOT, notesPath)}`);
+      log(`When done, clean up with:`);
+      log(`  git checkout main && git branch -D ${branch}`);
+      log(`Or push manually with:`);
+      log(`  git push -u origin ${branch}`);
+      log("──────────────────────────────────────────────────────────");
+      return;
     }
 
     pushBranch(branch);
