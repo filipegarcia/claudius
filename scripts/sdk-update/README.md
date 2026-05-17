@@ -191,8 +191,9 @@ manually, or temporarily set `SDK_UPDATE_MAX_MINOR_JUMP` higher.
 
 | Make target | What it does |
 | --- | --- |
-| `make sdk-update-check` | Dry-run version probe. Prints decision JSON, updates `state.lastCheckedAt`. Read-only as far as git is concerned. |
-| `make sdk-update-run` | One-shot manual firing — same code path as the cron line. **Will** create a branch and open a PR if a new version is out. |
+| `make sdk-update-check` | Version probe only. Prints decision JSON, updates `state.lastCheckedAt`. Doesn't touch git. |
+| `make sdk-update-run` | One-shot manual firing — same code path as the cron line. **Will** create a branch, push, and open a PR if a new version is out. |
+| `make sdk-update-dry-run` | Same as `sdk-update-run` through the gate, then stops **before** push/PR/CI/announce. Branch + Claude's commits stay on disk for inspection. Pass `SKIP=e2e` (or any comma-separated subset of `lint,unit,build,e2e`) to skip slow gate steps — the typical fast-feedback combo is `SKIP=e2e make sdk-update-dry-run`. |
 | `make sdk-update-status` | Prints `state.json` and tells you if `run.lock` is currently held. |
 | `make sdk-update-logs` | Tails the cron log. `make sdk-update-logs FOLLOW=1` for `tail -f`. |
 | `make sdk-update-install-cron` | Adds the hourly entry to the current user's crontab. Idempotent. |

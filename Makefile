@@ -1,4 +1,4 @@
-.PHONY: help install dev build start lint unit test test-ui test-setup test-setup-local test-setup-docker test-install-public ci site screenshots screenshots-full claudius-revert claudius-revert-all run up down restart status logs sdk-update-check sdk-update-run sdk-update-status sdk-update-logs sdk-update-install-cron sdk-update-uninstall-cron
+.PHONY: help install dev build start lint unit test test-ui test-setup test-setup-local test-setup-docker test-install-public ci site screenshots screenshots-full claudius-revert claudius-revert-all run up down restart status logs sdk-update-check sdk-update-run sdk-update-dry-run sdk-update-status sdk-update-logs sdk-update-install-cron sdk-update-uninstall-cron
 
 # List every target, grouped by the section headers below.
 help:
@@ -142,6 +142,17 @@ sdk-update-check:
 # unless that's what you want.
 sdk-update-run:
 	@scripts/sdk-update/run.sh
+
+# Local dry-run. Same as `sdk-update-run` through the gate, then stops
+# before push / PR / CI watch / announce. Branch + Claude's commits
+# stay on disk for inspection.
+#
+# Skip slow gate steps with SKIP (comma-separated of lint,unit,build,e2e).
+# Common combo: SKIP=e2e make sdk-update-dry-run for fast prompt iteration.
+sdk-update-dry-run:
+	@SDK_UPDATE_DRY_RUN=1 \
+		SDK_UPDATE_SKIP_GATES="$(SKIP)" \
+		scripts/sdk-update/run.sh
 
 # Status summary — last check time, current state, in-flight upgrade
 # (if any), and skipped versions. Cheap, read-only.

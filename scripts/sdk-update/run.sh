@@ -141,6 +141,19 @@ if [ -z "$NEW" ]; then
 fi
 
 log "kicking off orchestrate for $PREV -> $NEW"
-exec bun run scripts/sdk-update/orchestrate.ts \
-  --previous="$PREV" \
-  --version="$NEW"
+
+# Build the orchestrate.ts argv from env. Operators set:
+#   SDK_UPDATE_DRY_RUN=1            — local-only run (no push/PR/announce)
+#   SDK_UPDATE_SKIP_GATES=lint,e2e  — skip selected gate steps
+# Both reachable via make targets (`make sdk-update-dry-run`,
+# `SKIP=e2e make sdk-update-dry-run`).
+ORCH_ARGS=(--previous="$PREV" --version="$NEW")
+if [ "${SDK_UPDATE_DRY_RUN:-0}" = "1" ]; then
+  log "DRY-RUN mode (SDK_UPDATE_DRY_RUN=1) — will not push/PR/announce"
+  ORCH_ARGS+=(--dry-run)
+fi
+if [ -n "${SDK_UPDATE_SKIP_GATES:-}" ]; then
+  log "skipping gates: ${SDK_UPDATE_SKIP_GATES}"
+  ORCH_ARGS+=("--skip-gates=${SDK_UPDATE_SKIP_GATES}")
+fi
+exec bun run scripts/sdk-update/orchestrate.ts "${ORCH_ARGS[@]}"
