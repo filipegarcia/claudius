@@ -356,6 +356,7 @@ export function MessageList({
                     <div
                       key={m.uuid}
                       data-message-uuid={m.uuid}
+                      data-message-role={m.role}
                       className={cn(
                         "space-y-2 rounded-md transition-colors",
                         highlightUuid === m.uuid && "bg-[var(--accent)]/15 ring-1 ring-[var(--accent)]/40",
