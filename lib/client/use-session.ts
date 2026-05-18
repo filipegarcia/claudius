@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import type { PermissionMode } from "@anthropic-ai/claude-agent-sdk";
 import type {
   CreateSessionRequest,
@@ -213,6 +214,13 @@ export function sortMessagesByChronology(messages: DisplayMessage[]): DisplayMes
 
 export function useSession(): ChatState & ChatActions {
   const [sessionId, setSessionId] = useState<string | null>(null);
+  // Track the committed pathname so the URL writer below can suppress
+  // its replaceState when the user has navigated away from the chat
+  // page. usePathname re-renders this hook on every Next.js commit, so
+  // the effect that watches [sessionId, pathname] sees the new value
+  // BEFORE we ever consider writing — which is the whole point of
+  // moving the URL write out of bindToSession into an effect.
+  const pathname = usePathname();
   const [ready, setReady] = useState(false);
   const [pending, setPending] = useState(false);
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
@@ -240,6 +248,65 @@ export function useSession(): ChatState & ChatActions {
   const [backgroundBashes, setBackgroundBashes] = useState<Record<string, BackgroundBash>>({});
   const [toolHistory, setToolHistory] = useState<ToolHistoryEntry[]>([]);
   const [sessionTitle, setSessionTitle] = useState<string | null>(null);
+
+  // Reflect the bound session id in the URL so a refresh resumes the
+  // same session. Used to be a raw `window.history.replaceState` call
+  // inside bindToSession itself; moved here because that synchronous
+  // write races with in-flight Next.js Link navigations.
+  //
+  // Why an effect:
+  //   - usePathname() returns the COMMITTED pathname. Next.js commits
+  //     a router.push BEFORE re-rendering the consumer tree, so by the
+  //     time this effect re-runs after a navigation, pathname is the
+  //     destination route — not the original `/`.
+  //   - That means a click on a Link to /customize during boot will
+  //     have flipped pathname to /customize by the time this effect
+  //     considers writing — we skip the write and Next.js's pushState
+  //     wins cleanly.
+  //   - When the user is on / and bindToSession runs (boot or tab
+  //     switch), pathname is "/" and we write `?session=<id>` exactly
+  //     as before. The refresh-resume contract is preserved.
+  //
+  // The empty-string check on the existing `session` param avoids a
+  // pointless replaceState (and the corresponding history-state churn)
+  // when bindToSession is invoked with the id that's already in the URL.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (pathname !== "/") return;
+    if (!sessionId) return;
+    // Defer the write so it lands AFTER any in-flight Next.js navigation
+    // has had a chance to commit. usePathname returns the *committed*
+    // pathname, and Next.js's commit only happens once the RSC payload
+    // arrives — typically 200–400ms after the click on a Link. Without
+    // this delay, the boot's createSession can resolve and fire this
+    // effect during the racy window where the user has clicked
+    // /customize but Next.js hasn't pushState'd yet; we'd write
+    // `/?session=X` over Next.js's pending commit and the user would
+    // end up stuck on `/`. With the delay + the re-check of pathname
+    // at write time, a navigation away from `/` cleanly suppresses the
+    // write. 500ms is comfortably above the RSC-fetch ceiling we see
+    // in dev and well below any waitForURL timeout in the session-
+    // resume e2e specs (which use 30s).
+    const handle = setTimeout(() => {
+      if (window.location.pathname !== "/") return;
+      try {
+        const url = new URL(window.location.href);
+        if (
+          url.searchParams.get("session") === sessionId &&
+          !url.searchParams.has("at")
+        ) {
+          return;
+        }
+        url.searchParams.set("session", sessionId);
+        url.searchParams.delete("at");
+        window.history.replaceState(null, "", url.toString());
+      } catch {
+        // ignore — non-fatal
+      }
+    }, 500);
+    return () => clearTimeout(handle);
+  }, [sessionId, pathname]);
+
   const [permissionMode, setPermissionModeState] = useState<PermissionMode>("default");
   const [model, setModelState] = useState<string | null>(null);
   // Reasoning effort. The SDK doesn't expose the *current* effort on any
@@ -1921,18 +1988,21 @@ export function useSession(): ChatState & ChatActions {
       // returns to idle. If the SDK is *already* idle when the user
       // returns to this session, the items wait for a manual user action
       // — matching the staging-area UX the user reported preferring.
-      // Reflect the bound session id in the URL so a refresh resumes it.
-      // Use replaceState (no history entry) and strip the `at` cursor — it's
-      // a one-shot resume anchor and shouldn't survive past the first bind.
+      // URL reflection of the bound session id used to live here (a raw
+      // window.history.replaceState). It moved out to a useEffect-driven
+      // writer (see the `reflect bound session in URL` effect below)
+      // because doing the replaceState synchronously inside bindToSession
+      // races with any in-flight Next.js Link navigation: the boot's
+      // createSession resolves while the user's Link click is mid-RSC-
+      // fetch, our replaceState commits `/?session=X` before Next.js
+      // pushState commits to the target path, and the new path never
+      // wins. Regression that broke the customizations-drawer "Manage
+      // all navigates to /customize" e2e once the verbose hook slowed
+      // boot enough to widen the race. The effect-based writer reads
+      // the committed pathname (via usePathname) which Next.js mutates
+      // BEFORE re-rendering — so a navigation away from `/` naturally
+      // suppresses the URL write.
       if (typeof window !== "undefined") {
-        try {
-          const url = new URL(window.location.href);
-          url.searchParams.set("session", id);
-          url.searchParams.delete("at");
-          window.history.replaceState(null, "", url.toString());
-        } catch {
-          // ignore — non-fatal
-        }
         // Next.js's `useSearchParams` doesn't observe `replaceState`, so the
         // workspace-level NotificationsProvider would stall on the previous
         // session id after an in-app tab switch (and notify on / auto-read

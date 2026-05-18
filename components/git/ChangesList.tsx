@@ -21,6 +21,23 @@ export type DiffSelection = {
   mode: "staged" | "worktree" | "untracked";
 };
 
+/**
+ * True when a file has both staged AND unstaged changes (porcelain "XY" with
+ * both slots non-blank, non-`?`). These render as a single row in the Staged
+ * group with a partial-stage marker; the diff view exposes a toggle so the
+ * user can flip between the HEAD→index and index→worktree views.
+ *
+ * Excludes the special `AD` case (staged-add + worktree-delete) — those
+ * entries are dropped from the visible list entirely by `groupFiles`.
+ */
+export function isPartialStage(f: GitFileChange): boolean {
+  if (f.untracked) return false;
+  if (f.index === "A" && f.worktree === "D") return false; // hidden by groupFiles
+  const hasIndex = f.index !== " " && f.index !== "?";
+  const hasWorktree = f.worktree !== " " && f.worktree !== "?";
+  return hasIndex && hasWorktree;
+}
+
 type Props = {
   files: GitFileChange[];
   selected: DiffSelection | null;
@@ -53,6 +70,25 @@ type Grouped = {
   untracked: GitFileChange[];
 };
 
+/**
+ * Filter / group git porcelain entries for display.
+ *
+ * Two deliberate departures from raw porcelain output:
+ *
+ *   1. `AD` (staged-add + worktree-delete) entries are dropped entirely.
+ *      They typically come from generated tmp files that were force-added
+ *      then cleaned up off-disk, and double-listing them as "added" in
+ *      Staged plus "deleted" in Changed was the bug that prompted this
+ *      grouping rewrite. Hiding matches IntelliJ behaviour. Caveat: a
+ *      subsequent `git commit` will still include them via the index —
+ *      run `git reset HEAD <path>` (or stage + discard) to clean up.
+ *
+ *   2. Files with both index AND worktree changes (partial stage like
+ *      `AM` / `MM` / `MD`) appear in Staged exactly once, marked partial,
+ *      instead of being double-listed in Staged and Changed. The diff
+ *      pane exposes a mode toggle so the user can still flip between
+ *      HEAD→index and index→worktree.
+ */
 function groupFiles(files: GitFileChange[]): Grouped {
   const out: Grouped = { staged: [], unstaged: [], untracked: [] };
   for (const f of files) {
@@ -60,10 +96,12 @@ function groupFiles(files: GitFileChange[]): Grouped {
       out.untracked.push(f);
       continue;
     }
-    // A file can be in BOTH staged and unstaged at once (partial stage). We
-    // surface it in both groups so the user can pick which diff to view.
-    if (f.index !== " " && f.index !== "?") out.staged.push(f);
-    if (f.worktree !== " " && f.worktree !== "?") out.unstaged.push(f);
+    if (f.index === "A" && f.worktree === "D") continue; // hidden, see (1) above
+    const hasIndex = f.index !== " " && f.index !== "?";
+    const hasWorktree = f.worktree !== " " && f.worktree !== "?";
+    if (hasIndex) out.staged.push(f);
+    else if (hasWorktree) out.unstaged.push(f);
+    // else: " " + " " — fully clean. Porcelain shouldn't emit these.
   }
   return out;
 }
@@ -83,9 +121,20 @@ export function ChangesList({
   deletingPath,
 }: Props) {
   const groups = useMemo(() => groupFiles(files), [files]);
-  const totalCheckable = files.length;
-  const allChecked = totalCheckable > 0 && files.every((f) => checked.has(f.path));
-  const someChecked = !allChecked && files.some((f) => checked.has(f.path));
+  /**
+   * Single source of truth for "what's visible". Anything dropped by
+   * `groupFiles` (today: AD entries) must not appear in the header count or
+   * be reachable via Select-all, otherwise the user can commit files they
+   * can't see in the list.
+   */
+  const visibleFiles = useMemo(
+    () => [...groups.staged, ...groups.unstaged, ...groups.untracked],
+    [groups],
+  );
+  const totalCheckable = visibleFiles.length;
+  const allChecked =
+    totalCheckable > 0 && visibleFiles.every((f) => checked.has(f.path));
+  const someChecked = !allChecked && visibleFiles.some((f) => checked.has(f.path));
 
   // Transient "Copied!" affordance: which path was last copied to clipboard,
   // cleared after a short timeout so the indicator fades out automatically.
@@ -116,7 +165,7 @@ export function ChangesList({
         type="checkbox"
         aria-label="Select all changes"
         className="h-3 w-3 cursor-pointer accent-[var(--accent)]"
-        disabled={files.length === 0}
+        disabled={visibleFiles.length === 0}
         checked={allChecked}
         ref={(el) => {
           if (el) el.indeterminate = someChecked;
@@ -125,7 +174,7 @@ export function ChangesList({
       />
       <span>Changes</span>
       <span className="ml-auto normal-case text-[var(--muted)]">
-        {files.length} file{files.length === 1 ? "" : "s"}
+        {visibleFiles.length} file{visibleFiles.length === 1 ? "" : "s"}
       </span>
       {onRefresh && (
         <button
@@ -143,7 +192,7 @@ export function ChangesList({
     </div>
   );
 
-  if (files.length === 0) {
+  if (visibleFiles.length === 0) {
     return (
       <div className="text-xs">
         {header}
@@ -299,10 +348,24 @@ function Group({
                         onCopyPath(f.path);
                       }
                     }}
-                    title={f.path}
+                    title={rowTitle(f, mode)}
                     className="flex min-w-0 flex-1 items-center gap-1.5 text-left"
                   >
                     <StatusIcon code={statusCharForGroup(f, mode)} />
+                    {/* Partial-stage marker: tiny porcelain code (e.g.
+                        "+M") next to the icon, signalling that this row
+                        also has work on the other side. Clicking still
+                        opens the staged diff by default; the diff header's
+                        mode toggle is how the user reaches the unstaged
+                        view. */}
+                    {isPartialStage(f) && (
+                      <span
+                        className="shrink-0 rounded bg-amber-500/15 px-1 font-mono text-[9px] uppercase tracking-wide text-amber-300"
+                        title={`Also has unstaged ${worktreeChangeLabel(f.worktree)} (${f.index}${f.worktree})`}
+                      >
+                        +{f.worktree}
+                      </span>
+                    )}
                     {/* `select-text` re-enables drag-select inside the
                         button (Safari defaults to user-select:none on
                         button content), so the path is also copyable via
@@ -353,6 +416,37 @@ function Group({
 function statusCharForGroup(f: GitFileChange, mode: DiffSelection["mode"]): string {
   if (mode === "untracked") return "?";
   return mode === "staged" ? f.index : f.worktree;
+}
+
+/**
+ * Tooltip shown when hovering a row. For partial-stage entries we surface
+ * the full porcelain code (e.g. "AM") so the user can see both sides without
+ * relying on the marker badge alone.
+ */
+function rowTitle(f: GitFileChange, mode: DiffSelection["mode"]): string {
+  if (mode === "untracked") return `${f.path} (untracked)`;
+  if (isPartialStage(f)) {
+    return `${f.path} — staged (${f.index}) + unstaged (${f.worktree})`;
+  }
+  return f.path;
+}
+
+/** Human label for a worktree status code. Used in partial-stage tooltips. */
+function worktreeChangeLabel(code: GitFileChange["worktree"]): string {
+  switch (code) {
+    case "M":
+      return "modification";
+    case "D":
+      return "deletion";
+    case "T":
+      return "type change";
+    case "R":
+      return "rename";
+    case "C":
+      return "copy";
+    default:
+      return "change";
+  }
 }
 
 function displayPath(f: GitFileChange, mode: DiffSelection["mode"]): string {
