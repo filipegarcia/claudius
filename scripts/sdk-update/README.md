@@ -253,14 +253,27 @@ until green.
 
 - The env file contains four secrets. `chmod 600` it; do not commit it.
   `.claudius/` is already gitignored.
-- The Anthropic API key is exposed only to the orchestrator process,
-  which runs as the same user as cron. Cron itself runs detached;
-  there's no shell session for an unrelated user to attach to.
-- `permissionMode: 'bypassPermissions'` + `allowDangerouslySkipPermissions: true`
-  means Claude can run any tool inside the repo without prompting. That
-  includes `Bash`, `Edit`, `Write`. The trade is: this is a headless
-  upgrade rig on a server you own; there's no human at a terminal to
-  approve each tool call. The hard-coded guardrails compensate —
+- The Anthropic auth (`~/.claude/.credentials.json` or env-var key) is
+  exposed only to the orchestrator process, which runs as the same
+  user as cron. Cron itself runs detached; there's no shell session
+  for an unrelated user to attach to.
+- The orchestrator uses the SDK's `canUseTool` callback to
+  auto-approve every tool call, instead of
+  `permissionMode: 'bypassPermissions'` + `--dangerously-skip-permissions`.
+  That has two consequences:
+  1. The bundled CLI's hard-coded "no `--dangerously-skip-permissions`
+     as root" check doesn't fire — the orchestrator works under any
+     user, root included.
+  2. There's a single chokepoint (`autoApprove` in `runClaude`)
+     where future policy could go (e.g. "refuse writes outside the
+     repo cwd"). Today it allows everything.
+- **Strongly recommended: run the cron as a dedicated non-root user**
+  (e.g. `useradd -m -s /bin/bash claudius`), even though it now works
+  as root. A misconfigured prompt or compromised SDK release lets the
+  agent run arbitrary `bash` with cron-user privileges; you want that
+  blast radius narrow. The agent already needs no root capabilities
+  — only repo write, network out, and access to `~/.claude/`.
+- Compensating guardrails the orchestrator still has:
   Claude can only push to `sdk-update/<version>` (force-with-lease
   refuses to clobber `main`), the PR opens against `main` for human
   review, and CI runs before any announcement is fired.

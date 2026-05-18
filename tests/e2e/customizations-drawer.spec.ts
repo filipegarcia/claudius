@@ -60,6 +60,24 @@ async function mountFixtureWorkspaces(page: Page): Promise<void> {
       body: JSON.stringify({ workspaces: FIXTURE_WORKSPACES }),
     });
   });
+  // Per-workspace GET. `useVerbose` (added in the chat-verbosity commit)
+  // fetches `/api/workspaces/<id>` to reconcile the persisted level. The
+  // fixture workspace ids only exist in this test, so hitting the real
+  // backend returns a slow 404 (~500ms in dev) — slow enough to widen
+  // the boot/click race the test depends on. Stub with a matching
+  // synthetic record so the hook resolves immediately.
+  await page.route("**/api/workspaces/wks_fixture_*", async (route) => {
+    if (route.request().method() !== "GET") return route.fallback();
+    const url = new URL(route.request().url());
+    const id = url.pathname.split("/").pop()!;
+    const ws = FIXTURE_WORKSPACES.find((w) => w.id === id);
+    if (!ws) return route.fulfill({ status: 404, body: "{}" });
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(ws),
+    });
+  });
 }
 
 test.describe("CustomizationsDrawer", () => {

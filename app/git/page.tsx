@@ -17,7 +17,12 @@ import {
   Sparkles,
 } from "lucide-react";
 import { SideNav } from "@/components/nav/SideNav";
-import { ChangesList, type DiffSelection, type GroupKey } from "@/components/git/ChangesList";
+import {
+  ChangesList,
+  isPartialStage,
+  type DiffSelection,
+  type GroupKey,
+} from "@/components/git/ChangesList";
 import { DiffViewer } from "@/components/git/DiffViewer";
 import { CommitBox } from "@/components/git/CommitBox";
 import { BranchSwitcher, type BranchInfo } from "@/components/git/BranchSwitcher";
@@ -25,6 +30,7 @@ import { GitConsole, type GitConsoleEntry } from "@/components/git/GitConsole";
 import { useWorkspaces } from "@/lib/client/useWorkspaces";
 import { useGitStatus } from "@/lib/client/useGitStatus";
 import { renderCommitPrefix } from "@/lib/shared/commit-prefix";
+import { cn } from "@/lib/utils/cn";
 
 type DiffPayload = { diff: string; binary: boolean };
 
@@ -826,6 +832,21 @@ export default function GitPage() {
   const aheadCount = data?.isRepo ? data.ahead ?? 0 : 0;
   const behindCount = data?.isRepo ? data.behind ?? 0 : 0;
 
+  /**
+   * Does the *selected* file need a diff-mode toggle? True for partial-stage
+   * (`AM` / `MM` / `MD` / …) and for `AD` (the latter is hidden from the
+   * list but reachable if something else routes selection to it — defensive).
+   * Lifted out of the JSX so we don't run `data.files.find` on every render
+   * of the diff pane, and so the JSX stays scannable.
+   */
+  const selectedNeedsModeToggle = useMemo(() => {
+    if (!selected || selected.mode === "untracked" || !data) return false;
+    const f = data.files.find((x) => x.path === selected.path);
+    if (!f) return false;
+    const isAD = f.index === "A" && f.worktree === "D";
+    return isPartialStage(f) || isAD;
+  }, [selected, data]);
+
   return (
     <div className="flex h-full">
       <SideNav running={false} />
@@ -1067,13 +1088,56 @@ export default function GitPage() {
               <>
                 <div className="flex h-9 shrink-0 items-center gap-2 border-b border-[var(--border)] bg-[var(--panel-2)]/40 px-3 text-xs">
                   <span className="truncate font-mono">{selected.path}</span>
-                  <span className="rounded bg-[var(--panel)] px-1.5 py-0.5 text-[10px] text-[var(--muted)]">
-                    {selected.mode === "staged"
-                      ? "Staged · HEAD → index"
-                      : selected.mode === "untracked"
-                      ? "Untracked · /dev/null → working"
-                      : "Unstaged · index → working"}
-                  </span>
+                  {/* Partial-stage toggle. Without it the user couldn't
+                      reach the unstaged side of an `AM` / `MM` file, since
+                      groupFiles now routes each file to exactly one group.
+                      `selectedNeedsModeToggle` decides this once per render
+                      from the selected file's porcelain code. */}
+                  {selectedNeedsModeToggle ? (
+                    <div
+                      role="tablist"
+                      aria-label="Diff view"
+                      data-testid="diff-mode-toggle"
+                      className="flex overflow-hidden rounded border border-[var(--border)] bg-[var(--panel)] text-[10px]"
+                    >
+                      <button
+                        type="button"
+                        role="tab"
+                        aria-selected={selected.mode === "staged"}
+                        onClick={() => setSelected({ path: selected.path, mode: "staged" })}
+                        className={cn(
+                          "px-2 py-0.5",
+                          selected.mode === "staged"
+                            ? "bg-[var(--accent)]/20 text-[var(--foreground)]"
+                            : "text-[var(--muted)] hover:bg-[var(--panel-2)]",
+                        )}
+                      >
+                        Staged · HEAD → index
+                      </button>
+                      <button
+                        type="button"
+                        role="tab"
+                        aria-selected={selected.mode === "worktree"}
+                        onClick={() => setSelected({ path: selected.path, mode: "worktree" })}
+                        className={cn(
+                          "border-l border-[var(--border)] px-2 py-0.5",
+                          selected.mode === "worktree"
+                            ? "bg-[var(--accent)]/20 text-[var(--foreground)]"
+                            : "text-[var(--muted)] hover:bg-[var(--panel-2)]",
+                        )}
+                      >
+                        Unstaged · index → working
+                      </button>
+                    </div>
+                  ) : (
+                    <span className="rounded bg-[var(--panel)] px-1.5 py-0.5 text-[10px] text-[var(--muted)]">
+                      {selected.mode === "staged"
+                        ? "Staged · HEAD → index"
+                        : selected.mode === "untracked"
+                          ? "Untracked · /dev/null → working"
+                          : "Unstaged · index → working"}
+                    </span>
+                  )}
                 </div>
                 <DiffViewer
                   diff={diff?.diff ?? ""}
