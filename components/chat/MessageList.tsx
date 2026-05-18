@@ -9,6 +9,11 @@ import { SystemPill } from "./SystemPill";
 import { ClaudiusMark } from "@/components/brand/ClaudiusMark";
 import { isRealUserDisplayMessage } from "@/lib/client/sdk-message-filters";
 import type { DisplayMessage, SystemEntry, TaskInfo } from "@/lib/client/types";
+import {
+  DEFAULT_VERBOSE,
+  filterMessagesByVerbose,
+  type VerboseLevel,
+} from "@/lib/shared/verbose";
 
 type Props = {
   messages: DisplayMessage[];
@@ -46,6 +51,14 @@ type Props = {
    * modal or resurrect a historic one.
    */
   onReopenAsk?: (args: { toolUseId: string; input: Record<string, unknown> }) => void;
+  /**
+   * Chat verbosity level. Filters messages/blocks before render — see
+   * `lib/shared/verbose.ts`. Empty assistant messages (all blocks filtered)
+   * are dropped so the chat doesn't show an empty bubble. The right-side
+   * activity rail is unaffected — it reads `toolHistory` separately, so
+   * tool calls are still visible there at every verbose level.
+   */
+  verbose?: VerboseLevel;
 };
 
 const SPLASH_EXAMPLES = [
@@ -73,6 +86,7 @@ export function MessageList({
   onPickExample,
   pendingAskToolUseId = null,
   onReopenAsk,
+  verbose = DEFAULT_VERBOSE,
 }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const topSentinelRef = useRef<HTMLDivElement>(null);
@@ -256,7 +270,16 @@ export function MessageList({
   }, [hasMoreAbove, onLoadOlder]);
 
   const grouped = useMemo(() => groupSystemEntries(systemEntries), [systemEntries]);
-  const turns = useMemo(() => groupTurns(messages), [messages]);
+  // Verbose-filtered view of the message list. Anchor/scroll logic above
+  // intentionally operates on the UNFILTERED `messages` array so a user
+  // toggling the level doesn't shift the chronological-latest-user-message
+  // anchor — the user's prompt always lives in the unfiltered timeline.
+  // Filtering happens here purely for the rendered turns.
+  const visibleMessages = useMemo(
+    () => filterMessagesByVerbose(messages, verbose),
+    [messages, verbose],
+  );
+  const turns = useMemo(() => groupTurns(visibleMessages), [visibleMessages]);
 
   const jumpToBottom = useCallback(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -377,6 +400,7 @@ export function MessageList({
                           subagentMessages={subagentMessages}
                           pendingAskToolUseId={pendingAskToolUseId}
                           onReopenAsk={onReopenAsk}
+                          verbose={verbose}
                         />
                       )}
                       {(grouped.get(m.uuid) ?? []).map((e) => (

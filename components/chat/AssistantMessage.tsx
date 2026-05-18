@@ -6,6 +6,11 @@ import { ToolCall } from "./ToolCall";
 import { TaskBlock } from "./TaskBlock";
 import type { DisplayMessage, TaskInfo } from "@/lib/client/types";
 import { formatMessageTime } from "@/lib/client/format-message-time";
+import {
+  DEFAULT_VERBOSE,
+  filterAssistantBlocks,
+  type VerboseLevel,
+} from "@/lib/shared/verbose";
 
 type Props = {
   message: DisplayMessage;
@@ -26,6 +31,13 @@ type Props = {
    * or resurrect a historic one from the captured `input.questions`.
    */
   onReopenAsk?: (args: { toolUseId: string; input: Record<string, unknown> }) => void;
+  /**
+   * Chat verbosity level. Drops blocks the user has asked to hide before
+   * rendering — see `lib/shared/verbose.ts`. `MessageList` already drops
+   * messages whose blocks all filter out, so this component never renders
+   * an empty bubble; it just trims content.
+   */
+  verbose?: VerboseLevel;
 };
 
 export function AssistantMessage({
@@ -34,6 +46,7 @@ export function AssistantMessage({
   subagentMessages = {},
   pendingAskToolUseId = null,
   onReopenAsk,
+  verbose = DEFAULT_VERBOSE,
 }: Props) {
   const taskByToolUseId = new Map<string, TaskInfo>();
   for (const t of Object.values(tasks)) {
@@ -59,7 +72,7 @@ export function AssistantMessage({
         )}
       </div>
       <div className="space-y-1 text-sm leading-7">
-        {message.blocks.map((b, i) => {
+        {filterAssistantBlocks(message.blocks, verbose).map((b, i) => {
           if (b.kind === "text")
             return (
               <div key={i} className="text-[var(--foreground)]">
@@ -75,12 +88,15 @@ export function AssistantMessage({
             // against `message_stop`: if the user clicked to expand right
             // as streaming flipped off, the block would unmount mid-click
             // and look like the click had dismissed it. ThinkingBlock's
-            // own body copy handles the empty-text case gracefully.
+            // own body copy handles the empty-text case gracefully — and
+            // gets the `streaming` flag so it can tell "deltas en route"
+            // from "no trace was emitted for this turn".
             return (
               <ThinkingBlock
                 key={i}
                 text={b.text}
                 variant={b.redacted ? "redacted" : "thinking"}
+                streaming={message.streaming === true}
               />
             );
           }

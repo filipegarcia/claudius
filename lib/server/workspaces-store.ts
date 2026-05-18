@@ -5,6 +5,7 @@ import { randomUUID } from "node:crypto";
 
 import type { CommitPrefixConfig } from "@/lib/shared/commit-prefix";
 import type { WorkspaceNotificationPrefs } from "@/lib/shared/notifications";
+import type { VerboseLevel } from "@/lib/shared/verbose";
 
 export type IconLetter = { kind: "letter"; letter: string; color: string };
 export type IconImage = { kind: "image"; ext: string };
@@ -43,6 +44,16 @@ export type WorkspaceDefaults = {
    * click behaviour. Absent ⇒ defaults defined in `lib/shared/notifications.ts`.
    */
   notifications?: WorkspaceNotificationPrefs;
+  /**
+   * Default chat verbosity for sessions opened in this workspace. Controls
+   * how much of an assistant turn (tool calls, thinking, subagent blocks)
+   * shows up in the middle chat pane — the right-side activity rail is
+   * unaffected (it reads `toolHistory` directly). Absent ⇒ `"normal"`
+   * (see `DEFAULT_VERBOSE` in `lib/shared/verbose.ts`). Users can override
+   * per-session from the chat header; writing back updates this field so
+   * the next session in the workspace inherits the new default.
+   */
+  verbose?: VerboseLevel;
 };
 
 /**

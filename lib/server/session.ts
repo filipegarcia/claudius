@@ -412,6 +412,13 @@ export class Session {
       // shape on short turns and the chat surface renders empty
       // Thinking blocks. Leaving `display` unset means "full text"
       // (the alternatives — 'summarized' / 'omitted' — both hide it).
+      //
+      // The chat verbosity selector (see `lib/shared/verbose.ts`) gates
+      // whether `thinking` blocks render in the middle pane — but the SDK
+      // setting stays at adaptive/full because the blocks still need to
+      // arrive over the wire to be available for the "verbose" level and
+      // the right-rail's Tools/thinking row. Hiding thinking is purely a
+      // client-side filter.
       thinking: { type: "adaptive" },
       // Tell the model to emit HTML (not markdown) in option `preview` fields,
       // so the AskUserQuestion modal can render rich previews (mockups, code
