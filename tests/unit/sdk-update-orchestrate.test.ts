@@ -5,6 +5,7 @@ import {
   extractSection,
   parseSkipGates,
   sliceChangelog,
+  summarizeSdkMessage,
   validateRunNotesContent,
 } from "@/scripts/sdk-update/orchestrate";
 
@@ -297,5 +298,137 @@ describe("parseSkipGates", () => {
     expect(out.size).toBe(2);
     expect(out.has("e2e")).toBe(true);
     expect(out.has("lint")).toBe(true);
+  });
+});
+
+// ── summarizeSdkMessage ───────────────────────────────────────────────
+
+describe("summarizeSdkMessage", () => {
+  test("Read tool call surfaces the file path", () => {
+    const msg = {
+      type: "assistant",
+      message: {
+        content: [{ type: "tool_use", name: "Read", input: { file_path: "/x/y.ts" } }],
+      },
+    };
+    expect(summarizeSdkMessage(msg)).toBe("type=assistant tool=Read path=/x/y.ts");
+  });
+
+  test("Edit and Write tool calls also surface the file path", () => {
+    for (const name of ["Edit", "Write", "NotebookEdit"]) {
+      const msg = {
+        type: "assistant",
+        message: {
+          content: [{ type: "tool_use", name, input: { file_path: "/a.ts" } }],
+        },
+      };
+      expect(summarizeSdkMessage(msg)).toBe(`type=assistant tool=${name} path=/a.ts`);
+    }
+  });
+
+  test("Bash tool call shows the command (clipped)", () => {
+    const msg = {
+      type: "assistant",
+      message: {
+        content: [
+          {
+            type: "tool_use",
+            name: "Bash",
+            input: { command: "bun run lint && bun run test" },
+          },
+        ],
+      },
+    };
+    const out = summarizeSdkMessage(msg);
+    expect(out).toContain("tool=Bash");
+    expect(out).toContain("cmd=");
+    expect(out).toContain("bun run lint");
+  });
+
+  test("Grep/Glob tool calls surface the pattern", () => {
+    for (const name of ["Grep", "Glob"]) {
+      const msg = {
+        type: "assistant",
+        message: {
+          content: [{ type: "tool_use", name, input: { pattern: "foo.*bar" } }],
+        },
+      };
+      expect(summarizeSdkMessage(msg)).toContain(`tool=${name}`);
+      expect(summarizeSdkMessage(msg)).toContain("pattern=");
+    }
+  });
+
+  test("assistant text block shows a clipped text preview", () => {
+    const msg = {
+      type: "assistant",
+      message: {
+        content: [{ type: "text", text: "I'll start by reading the changelog." }],
+      },
+    };
+    expect(summarizeSdkMessage(msg)).toMatch(/type=assistant text=/);
+    expect(summarizeSdkMessage(msg)).toContain("I'll start by reading");
+  });
+
+  test("tool_use beats text when both blocks are present", () => {
+    // Real SDK messages often pair a tool call with a one-liner of
+    // surrounding text. The tool name is the more useful signal.
+    const msg = {
+      type: "assistant",
+      message: {
+        content: [
+          { type: "text", text: "Reading the file now." },
+          { type: "tool_use", name: "Read", input: { file_path: "/x.ts" } },
+        ],
+      },
+    };
+    expect(summarizeSdkMessage(msg)).toBe("type=assistant tool=Read path=/x.ts");
+  });
+
+  test("user tool_result shows size and error flag", () => {
+    const ok = {
+      type: "user",
+      message: {
+        content: [{ type: "tool_result", content: "hello", is_error: false }],
+      },
+    };
+    expect(summarizeSdkMessage(ok)).toMatch(/tool_result 5B$/);
+
+    const errored = {
+      type: "user",
+      message: {
+        content: [{ type: "tool_result", content: "oops", is_error: true }],
+      },
+    };
+    expect(summarizeSdkMessage(errored)).toContain("ERROR");
+  });
+
+  test("result envelope shows cost + duration + turns", () => {
+    const msg = {
+      type: "result",
+      subtype: "success",
+      total_cost_usd: 0.4234,
+      duration_ms: 37_500,
+      num_turns: 42,
+    };
+    const out = summarizeSdkMessage(msg);
+    expect(out).toContain("subtype=success");
+    expect(out).toContain("cost=$0.4234");
+    expect(out).toContain("duration=38s");
+    expect(out).toContain("turns=42");
+  });
+
+  test("falls back to type/subtype for unrecognized shapes", () => {
+    expect(summarizeSdkMessage({ type: "system", subtype: "init" })).toContain(
+      "type=system",
+    );
+    expect(summarizeSdkMessage({ type: "system", subtype: "init" })).toContain(
+      "subtype=init",
+    );
+  });
+
+  test("handles malformed messages without throwing", () => {
+    expect(() => summarizeSdkMessage(null)).not.toThrow();
+    expect(() => summarizeSdkMessage({})).not.toThrow();
+    expect(() => summarizeSdkMessage({ type: "assistant", message: null })).not.toThrow();
   });
 });

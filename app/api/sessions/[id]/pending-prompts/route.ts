@@ -25,7 +25,6 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
   const { id } = await ctx.params;
   const session = sessionManager.get(id);
   if (!session) {
-    console.log("[ask-restore] /pending-prompts: session not in memory", { id });
     return NextResponse.json({ error: "session not found" }, { status: 404 });
   }
 
@@ -58,10 +57,5 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
     }
   }
 
-  console.log("[ask-restore] /pending-prompts result", {
-    id,
-    asks: asks.length,
-    permissions: permissions.length,
-  });
   return NextResponse.json({ asks, permissions });
 }

@@ -221,6 +221,7 @@ All env vars are optional unless flagged otherwise.
 | `SDK_UPDATE_MODEL` | `sonnet` | Claude model alias for the upgrade run. |
 | `SDK_UPDATE_MAX_TURNS` | `200` | Maximum agentic round-trips before the SDK stops the run. |
 | `SDK_UPDATE_MAX_WALL_MIN` | `360` | Wall-clock budget in minutes. Orchestrator-side guard layered on top of the SDK's own ceiling. |
+| `SDK_UPDATE_MAX_IDLE_MIN` | `15` | Idle watchdog: if no SDK message arrives in this many minutes, the orchestrator assumes a tool subprocess hung and aborts to a draft PR. Comfortably exceeds the slowest expected tool (Playwright e2e at ~7 min) so legitimate long-running steps don't trip it. A half-way warning is logged at half this threshold. |
 | `SDK_UPDATE_MAX_MINOR_JUMP` | `1` | Refuse to upgrade if `latest - installed` is more minors than this. Stops the first cron firing from trying to absorb a year of changes in one PR. |
 | `SDK_UPDATE_STALE_INFLIGHT_HOURS` | `24` | Self-heal threshold. If `state.inFlight` is older than this, the next firing reclaims it instead of returning `in-flight` forever. Stops a SIGKILL/OOM/host-reboot from bricking the cron. |
 | `SDK_UPDATE_ROOM_SLUG` | `sdk-update` | Which chat-server room to post into when CI goes green. |
