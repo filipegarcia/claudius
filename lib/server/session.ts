@@ -90,7 +90,8 @@ export function computeReplayWindow(
     return { startIdx: 0, hasMoreAbove: false };
   }
   const turnIdx: number[] = [];
-  let lastUserTurnIdx = -1;
+  let latestUserTurnIdx = -1;
+  let latestUserTurnSortKey: { at: number; idx: number } | null = null;
   for (let i = 0; i < buffer.length; i++) {
     const ev = buffer[i];
     if (ev.type !== "sdk") continue;
@@ -110,7 +111,18 @@ export function computeReplayWindow(
     // inside the default tail) and the actual prompt would still get
     // dropped off the top — exactly the bug we're fixing here.
     if (m.type === "user" && isRealUserPrompt(m.message?.content)) {
-      lastUserTurnIdx = i;
+      const at =
+        typeof ev.at === "number" && Number.isFinite(ev.at)
+          ? ev.at
+          : -Infinity;
+      if (
+        !latestUserTurnSortKey ||
+        at > latestUserTurnSortKey.at ||
+        (at === latestUserTurnSortKey.at && i > latestUserTurnSortKey.idx)
+      ) {
+        latestUserTurnIdx = i;
+        latestUserTurnSortKey = { at, idx: i };
+      }
     }
   }
   const skip = Math.max(0, turnIdx.length - tail);
@@ -121,8 +133,8 @@ export function computeReplayWindow(
   // Anchor on the most recent user turn even when it sits before the
   // naive tail window — refresh/reattach on long sessions should land
   // with what was asked still in view, not at the bottom of a tool spew.
-  if (lastUserTurnIdx >= 0 && lastUserTurnIdx < startIdx) {
-    startIdx = lastUserTurnIdx;
+  if (latestUserTurnIdx >= 0 && latestUserTurnIdx < startIdx) {
+    startIdx = latestUserTurnIdx;
   }
   return { startIdx, hasMoreAbove: startIdx > 0 };
 }
@@ -250,6 +262,7 @@ export class Session {
   private abortController = new AbortController();
 
   private buffer: ServerEvent[] = [];
+  private bufferTrimmed = false;
   private subscribers = new Set<Subscriber>();
   private subscriberCountListeners = new Set<(count: number) => void>();
   private pendingPermissions = new Map<string, PendingPermission>();
@@ -1220,7 +1233,9 @@ export class Session {
   }
 
   subscribe(fn: Subscriber, opts?: { tail?: number }): () => void {
-    const { startIdx, hasMoreAbove } = computeReplayWindow(this.buffer, opts?.tail);
+    const replayWindow = computeReplayWindow(this.buffer, opts?.tail);
+    const startIdx = replayWindow.startIdx;
+    const hasMoreAbove = replayWindow.hasMoreAbove || this.bufferTrimmed;
     const sliced: ReadonlyArray<ServerEvent> =
       startIdx === 0 ? this.buffer : this.buffer.slice(startIdx);
     // Belt-and-suspenders chronological order for the replay window. The
@@ -1309,18 +1324,7 @@ export class Session {
     // be redelivered to the new subscriber, otherwise reloading the page
     // (or switching session tabs and coming back) leaves the user with no
     // way to answer them.
-    console.log("[ask-restore] subscribe re-emit", {
-      sessionId: this.id,
-      pendingAsks: this.pendingAskQuestions.size,
-      pendingPermissions: this.pendingPermissions.size,
-      pendingPlans: this.pendingPlans.size,
-    });
     for (const pending of this.pendingAskQuestions.values()) {
-      console.log("[ask-restore] subscribe emitting ask_user_question", {
-        sessionId: this.id,
-        requestId: pending.requestId,
-        toolUseId: pending.toolUseId,
-      });
       fn({
         type: "ask_user_question",
         requestId: pending.requestId,
@@ -1493,7 +1497,10 @@ export class Session {
       event = { ...event, at: Date.now() };
     }
     this.buffer.push(event);
-    if (this.buffer.length > 1000) this.buffer.splice(0, this.buffer.length - 1000);
+    if (this.buffer.length > 1000) {
+      this.bufferTrimmed = true;
+      this.buffer.splice(0, this.buffer.length - 1000);
+    }
     // Sniff for derived state we want to rehydrate on tab-switch / reload.
     // The tail-replay window can slice off the original tool_use that set
     // these, so we cache the latest payload server-side and replay it via
@@ -1528,6 +1535,7 @@ export class Session {
    * what would be re-synthesised from the buffer.
    */
   private latestTodosSnapshot: unknown[] | null = null;
+  private latestTodosSnapshotAt = -Infinity;
 
   /**
    * Latest top-level user prompt (the real one the user typed, not a
@@ -1561,11 +1569,18 @@ export class Session {
     if (m.type === "user") {
       const text = extractUserPromptText(m.message?.content);
       if (text && m.uuid) {
-        this.latestUserPromptSnapshot = {
-          uuid: m.uuid,
-          text,
-          at: event.at ?? Date.now(),
-        };
+        const at =
+          typeof event.at === "number" && Number.isFinite(event.at)
+            ? event.at
+            : Date.now();
+        const prevAt = this.latestUserPromptSnapshot?.at ?? -Infinity;
+        if (at >= prevAt) {
+          this.latestUserPromptSnapshot = {
+            uuid: m.uuid,
+            text,
+            at,
+          };
+        }
       }
       return;
     }
@@ -1576,7 +1591,16 @@ export class Session {
       if (block?.type !== "tool_use") continue;
       if (block.name === "TodoWrite") {
         const raw = (block.input as { todos?: unknown } | null)?.todos;
-        if (Array.isArray(raw)) this.latestTodosSnapshot = raw;
+        if (Array.isArray(raw)) {
+          const at =
+            typeof event.at === "number" && Number.isFinite(event.at)
+              ? event.at
+              : Date.now();
+          if (at >= this.latestTodosSnapshotAt) {
+            this.latestTodosSnapshot = raw;
+            this.latestTodosSnapshotAt = at;
+          }
+        }
       }
     }
   }
@@ -1626,4 +1650,3 @@ export class Session {
     }
   }
 }
-

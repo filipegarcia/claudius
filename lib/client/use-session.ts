@@ -576,11 +576,6 @@ export function useSession(): ChatState & ChatActions {
     queueRef.current = [];
     setPendingPermission(null);
     pendingPermissionRef.current = null;
-    // DEBUG — see [ask-restore] block in applyEvent. Logs every reset so a
-    // bind→subscribe race can show up as "reset cleared the ask we just set".
-    console.log("[ask-restore] resetState clearing pendingAsk", {
-      sessionId: sessionIdRef.current,
-    });
     setPendingAsk(null);
     setErrors([]);
     setSlashCommands([]);
@@ -846,17 +841,6 @@ export function useSession(): ChatState & ChatActions {
         return;
       }
       if (ev.type === "ask_user_question") {
-        // DEBUG (issue: modal doesn't reappear after workspace switch).
-        // Tag with current sessionId + the event's requestId/toolUseId so the
-        // browser console shows whether SSE re-delivered the pending ask on
-        // resume — and whether the bound session matches by the time we apply.
-        // Remove once the workspace-switch restore is fully understood.
-        console.log("[ask-restore] sse ask_user_question", {
-          eventSessionExpected: sessionIdRef.current,
-          requestId: ev.requestId,
-          toolUseId: ev.toolUseId,
-          questionCount: ev.questions.length,
-        });
         setPendingAsk(ev);
         return;
       }
@@ -966,33 +950,16 @@ export function useSession(): ChatState & ChatActions {
         // so this fetch is the belt to the subscribe()'s suspenders.
         const id = sessionIdRef.current;
         if (id) {
-          console.log("[ask-restore] replay_done — fetching /pending-prompts", { id });
           void fetch(`/api/sessions/${id}/pending-prompts`)
             .then(async (res) => {
-              if (!res.ok) {
-                console.log("[ask-restore] /pending-prompts non-OK", {
-                  id,
-                  status: res.status,
-                });
-                return;
-              }
+              if (!res.ok) return;
               const j = (await res.json().catch(() => ({}))) as {
                 asks?: AskUserQuestionEvent[];
                 permissions?: PermissionRequestEvent[];
               };
-              console.log("[ask-restore] /pending-prompts response", {
-                id,
-                asksCount: j.asks?.length ?? 0,
-                permissionsCount: j.permissions?.length ?? 0,
-                stillBoundToSameSession: sessionIdRef.current === id,
-              });
               if (sessionIdRef.current !== id) return; // user switched
               const ask = j.asks?.[0];
               if (ask) {
-                console.log("[ask-restore] recovery setPendingAsk", {
-                  requestId: ask.requestId,
-                  toolUseId: ask.toolUseId,
-                });
                 setPendingAsk(ask);
               }
               const perm = j.permissions?.[0];
@@ -1001,8 +968,7 @@ export function useSession(): ChatState & ChatActions {
                 pendingPermissionRef.current = perm;
               }
             })
-            .catch((err) => {
-              console.log("[ask-restore] /pending-prompts fetch threw", { err: String(err) });
+            .catch(() => {
               // Best-effort — the subscribe() path is the primary delivery.
             });
         }
@@ -2855,7 +2821,7 @@ function synthesizeOlder(raw: Array<Record<string, unknown>>): {
  * produced (via `buildMerged`) will match and be skipped; blocks scratch
  * never saw will append.
  */
-function upsertAssistantSplit(
+export function upsertAssistantSplit(
   prev: DisplayMessage[],
   messageId: string,
   sdkUuid: string,
@@ -2916,7 +2882,19 @@ function upsertAssistantSplit(
       // real text into the scratch-owned slot anyway.
       if (b.text === "" || existingTextContents.has(b.text)) continue;
     } else if (b.kind === "thinking") {
-      if (b.text === "" || existingThinkingContents.has(b.text)) continue;
+      // Dedupe by exact text match only. The earlier "skip on empty text"
+      // early-out was inherited from the `text` branch, but it had a
+      // different consequence here: it silently dropped thinking blocks
+      // from terminal splits whenever the SDK didn't deliver readable
+      // body text (adaptive thinking that summarised away to nothing, or
+      // a turn where the model entered thinking mode but produced no
+      // visible trace). The result was a chat with no thinking envelopes
+      // even at verbose, while the right rail still showed the synthetic
+      // "Thinking" entries from `content_block_start`. Keep the envelope
+      // — `existingThinkingContents.has("")` still dedupes correctly when
+      // the scratch path already produced an empty placeholder, so we
+      // don't end up with multiple empty pills.
+      if (existingThinkingContents.has(b.text)) continue;
     }
     blocksToAppend.push(b);
   }

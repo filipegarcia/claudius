@@ -19,9 +19,10 @@ import type { ServerEvent } from "@/lib/shared/events";
  * fixtures rather than spin up a real Session.
  */
 
-function sdkUser(uuid: string): ServerEvent {
+function sdkUser(uuid: string, at?: number): ServerEvent {
   return {
     type: "sdk",
+    ...(typeof at === "number" ? { at } : {}),
     message: {
       type: "user",
       uuid,
@@ -51,9 +52,10 @@ function sdkToolResultWrapper(uuid: string, toolUseId = "tool-x"): ServerEvent {
   } as unknown as ServerEvent;
 }
 
-function sdkAssistant(uuid: string, opts?: { subagent?: boolean }): ServerEvent {
+function sdkAssistant(uuid: string, opts?: { subagent?: boolean; at?: number }): ServerEvent {
   return {
     type: "sdk",
+    ...(typeof opts?.at === "number" ? { at: opts.at } : {}),
     message: {
       type: "assistant",
       uuid,
@@ -270,6 +272,26 @@ describe("computeReplayWindow", () => {
     // 6 turns, tail=2 → naive start at turnIdx[4] = idx 4. String-content
     // user message at idx 1 must extend the window back to it.
     expect(out).toEqual({ startIdx: 1, hasMoreAbove: true });
+  });
+
+  test("anchors on the chronologically latest user when the buffer arrival order drifts", () => {
+    // A disk resync can append older JSONL records after newer live events.
+    // The replay anchor must use event.at chronology, not whichever user
+    // happened to be appended last, otherwise refresh can replay an old turn
+    // as the visible/latest prompt and omit the actual current question.
+    const buffer: ServerEvent[] = [
+      sdkUser("u-new", 3_000), // idx 0 — chronological latest user
+      sdkAssistant("a-new-1", { at: 3_001 }),
+      sdkAssistant("a-new-2", { at: 3_002 }),
+      sdkUser("u-old", 1_000), // idx 3 — older, but appended later
+      sdkAssistant("a-old-1", { at: 1_001 }),
+      sdkAssistant("a-old-2", { at: 1_002 }),
+    ];
+    const out = computeReplayWindow(buffer, 2);
+
+    // Naive buffer-order anchoring would extend only to idx 3 (u-old).
+    // Correct chronological anchoring extends to idx 0 (u-new).
+    expect(out).toEqual({ startIdx: 0, hasMoreAbove: false });
   });
 
   test("no user turn anywhere in buffer → behaves like the naive tail", () => {

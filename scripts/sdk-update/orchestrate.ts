@@ -34,6 +34,7 @@
  *   SDK_UPDATE_MODEL           optional — Claude model alias, default "sonnet"
  *   SDK_UPDATE_MAX_TURNS       optional — agentic turn budget, default 200
  *   SDK_UPDATE_MAX_WALL_MIN    optional — wall-clock budget in minutes, default 360
+ *   SDK_UPDATE_MAX_IDLE_MIN    optional — max silence between SDK messages, default 15
  */
 
 import { spawn, spawnSync, type SpawnOptions } from "node:child_process";
@@ -71,6 +72,14 @@ const ROOM_SLUG = process.env.SDK_UPDATE_ROOM_SLUG ?? "sdk-update";
 const MODEL = process.env.SDK_UPDATE_MODEL ?? "sonnet";
 const MAX_TURNS = Number(process.env.SDK_UPDATE_MAX_TURNS ?? "200");
 const MAX_WALL_MS = Number(process.env.SDK_UPDATE_MAX_WALL_MIN ?? "360") * 60_000;
+// Idle watchdog: maximum gap between consecutive SDK messages before we
+// assume the agent (or a tool subprocess it spawned) is hung. The
+// wall-clock budget above is the LAST line of defense; this fires sooner
+// so an operator isn't waiting six hours to find out something stalled.
+// Default 15 min comfortably exceeds the slowest tool we expect to run
+// (Playwright e2e at ~7 min) but catches "Bash hung on stdin" / "network
+// blackholed" / "agent deadlock" within a useful window.
+const MAX_IDLE_MS = Number(process.env.SDK_UPDATE_MAX_IDLE_MIN ?? "15") * 60_000;
 
 // ── Logging ───────────────────────────────────────────────────────────
 
@@ -386,6 +395,117 @@ function renderPrompt(
 // ── Claude run ────────────────────────────────────────────────────────
 
 /**
+ * Build a short, greppable summary of one SDK message for the cron
+ * log. We want enough signal to tell "Claude is reading the SDK
+ * source" from "Claude is editing run-notes" from "Claude is in a
+ * tight retry loop" — without the megabyte of payload that lives in
+ * the full transcript JSONL.
+ *
+ * Shape:
+ *   type=assistant tool=Read path=/foo
+ *   type=assistant tool=Bash cmd="bun run lint"
+ *   type=assistant text="I'll start by reading…"
+ *   type=user      tool_result tool=Read 1240 bytes
+ *   type=user      tool_result tool=Bash exited 0
+ *   type=system    subtype=init
+ *   type=result    subtype=success cost=$0.42 duration=37s
+ *
+ * Best-effort: any field we can't introspect falls back to the bare
+ * type/subtype pair (the previous behavior).
+ */
+export function summarizeSdkMessage(msg: unknown): string {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const m = msg as any;
+  const type: string = m?.type ?? "?";
+  const subtype: string = m?.subtype ?? "-";
+
+  // The SDK wraps the underlying Anthropic message under `.message` for
+  // assistant/user types. Tool blocks live in message.content[*].
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const content: any[] = Array.isArray(m?.message?.content) ? m.message.content : [];
+
+  function clip(s: unknown, n = 80): string {
+    const str = typeof s === "string" ? s : JSON.stringify(s ?? "");
+    const oneLine = str.replace(/\s+/g, " ").trim();
+    return oneLine.length > n ? `${oneLine.slice(0, n)}…` : oneLine;
+  }
+
+  if (type === "assistant") {
+    // Priority order: tool_use > thinking > text. A single assistant
+    // message often pairs a tool call with a one-liner of surrounding
+    // text; the tool name is the more useful signal for cron logs.
+    // Scan the WHOLE content for each kind in turn instead of returning
+    // on the first informative block (which would let an earlier text
+    // block hide a later tool_use).
+    const toolUse = content.find((b) => b?.type === "tool_use");
+    if (toolUse) {
+      const name = toolUse.name ?? "?";
+      const input = toolUse.input ?? {};
+      // Pick the input field that's most diagnostic per tool. These
+      // are the standard tools shipped in the bundled CLI; unknown
+      // tools fall through to a generic input snippet.
+      let detail = "";
+      if (name === "Read" || name === "Edit" || name === "Write" || name === "NotebookEdit") {
+        detail = input.file_path ? ` path=${input.file_path}` : "";
+      } else if (name === "Bash") {
+        detail = input.command ? ` cmd=${JSON.stringify(clip(input.command, 60))}` : "";
+      } else if (name === "Grep" || name === "Glob") {
+        detail = input.pattern ? ` pattern=${JSON.stringify(clip(input.pattern, 40))}` : "";
+      } else if (name === "WebFetch" || name === "WebSearch") {
+        detail = input.url ? ` url=${input.url}` : input.query ? ` query=${JSON.stringify(clip(input.query, 40))}` : "";
+      } else if (Object.keys(input).length > 0) {
+        detail = ` input=${JSON.stringify(clip(input, 60))}`;
+      }
+      return `type=assistant tool=${name}${detail}`;
+    }
+    const thinking = content.find((b) => b?.type === "thinking");
+    if (thinking) {
+      return `type=assistant thinking ${JSON.stringify(clip(thinking.thinking, 60))}`;
+    }
+    const text = content.find((b) => b?.type === "text");
+    if (text) {
+      return `type=assistant text=${JSON.stringify(clip(text.text, 60))}`;
+    }
+    return `type=assistant subtype=${subtype}`;
+  }
+
+  if (type === "user") {
+    // User messages from the agent loop are tool results. Surface the
+    // tool the result is for (by id-matching it back to the previous
+    // assistant tool_use would require state; instead just show the
+    // result size and is-error flag).
+    for (const block of content) {
+      if (block?.type === "tool_result") {
+        const text = typeof block.content === "string"
+          ? block.content
+          : Array.isArray(block.content)
+            ? (block.content.find((c: { type?: string; text?: string }) => c?.type === "text")?.text ?? "")
+            : "";
+        const size = text.length;
+        const flag = block.is_error ? " ERROR" : "";
+        return `type=user      tool_result ${size}B${flag}`;
+      }
+    }
+    return `type=user      subtype=${subtype}`;
+  }
+
+  if (type === "result") {
+    // Final result envelope — has cost + duration in well-known fields.
+    const cost = typeof m.total_cost_usd === "number"
+      ? ` cost=$${m.total_cost_usd.toFixed(4)}`
+      : "";
+    const dur = typeof m.duration_ms === "number"
+      ? ` duration=${Math.round(m.duration_ms / 1000)}s`
+      : "";
+    const turns = typeof m.num_turns === "number" ? ` turns=${m.num_turns}` : "";
+    return `type=result    subtype=${subtype}${cost}${dur}${turns}`;
+  }
+
+  // system, stream_event, etc. — bare type/subtype is enough.
+  return `type=${type.padEnd(9)} subtype=${subtype}`;
+}
+
+/**
  * Hand the prompt to the Agent SDK. We import `query` dynamically so
  * the orchestrator stays importable in environments without the SDK
  * (e.g. running just `check.ts` from a slimmer container).
@@ -517,12 +637,55 @@ async function runClaude(prompt: string, transcriptFile?: string): Promise<{
   // We don't need to inspect bodies here — the model writes its
   // results to the working tree, which we'll gate after the loop.
   // We log a one-liner per message so cron logs stay grep-able.
+  //
+  // The summarizer inspects message.content for the most informative
+  // hint about what Claude is doing (tool name, text preview, etc.)
+  // instead of just printing `type=assistant subtype=-` which gives
+  // an operator no idea whether a 100-message burst is real progress
+  // (reads/edits/greps) or a stuck loop.
+  // Idle watchdog. Tracks the timestamp of the most recent SDK message
+  // and trips when the gap exceeds MAX_IDLE_MS. The runaway case this
+  // catches is a tool subprocess (most often Bash) that hung — the
+  // iterator's `next()` just never resolves and `for await` blocks
+  // forever, well below the wall-clock ceiling. With this guard the
+  // operator gets a clear "stuck on …" log line and the run exits to
+  // a draft/needs-human PR within ~MAX_IDLE_MS instead of waiting out
+  // the full 6h budget. We also emit a half-way warning at MAX_IDLE_MS/2
+  // so the operator has a "this is taking a while" signal before the
+  // hard abort.
+  let lastMsgAt = Date.now();
+  let lastMsgSummary = "(boot)";
+  let warnedSlow = false;
+  let idleTimedOut = false;
+  const idleCheck = setInterval(() => {
+    const idle = Date.now() - lastMsgAt;
+    if (idle > MAX_IDLE_MS && !idleTimedOut) {
+      idleTimedOut = true;
+      const min = Math.round(MAX_IDLE_MS / 60_000);
+      log(`WARN idle ${Math.round(idle / 60_000)}min since last message — aborting (last was: ${lastMsgSummary})`);
+      void Promise.resolve(q.interrupt?.()).catch(() => {
+        // best-effort — if interrupt is missing, we still set
+        // budgetReason below and exit the loop on the next iteration
+        // (or stay stuck, in which case the wall-clock cap eventually fires).
+      });
+      budgetReason = `idle timeout (no SDK message in ${min} min; last was: ${lastMsgSummary})`;
+    } else if (idle > MAX_IDLE_MS / 2 && !warnedSlow) {
+      warnedSlow = true;
+      log(`note: no SDK message in ${Math.round(idle / 60_000)}min (last was: ${lastMsgSummary}); idle timeout at ${Math.round(MAX_IDLE_MS / 60_000)}min`);
+    }
+  }, 30_000);
+
   try {
     for await (const msg of q) {
       turnCount += 1;
+      lastMsgAt = Date.now();
+      warnedSlow = false; // reset half-way warning on each tick of progress
       const m = msg as { type?: string; subtype?: string };
+      const summary = summarizeSdkMessage(m);
+      lastMsgSummary = summary;
       appendTranscript(msg);
-      log(`claude msg #${turnCount} type=${m.type ?? "?"} subtype=${m.subtype ?? "-"}`);
+      log(`claude msg #${turnCount} ${summary}`);
+      if (idleTimedOut) break;
       if (Date.now() > deadline) {
         budgetReason = `wall-clock budget exhausted (${Math.round(MAX_WALL_MS / 60_000)} min)`;
         log(`aborting Claude run: ${budgetReason}`);
@@ -552,6 +715,7 @@ async function runClaude(prompt: string, transcriptFile?: string): Promise<{
     log(`claude iterator threw: ${err instanceof Error ? err.message : String(err)}`);
     budgetReason = `iterator error: ${err instanceof Error ? err.message : String(err)}`;
   } finally {
+    clearInterval(idleCheck);
     if (transcriptFd !== null) {
       try {
         // eslint-disable-next-line @typescript-eslint/no-require-imports

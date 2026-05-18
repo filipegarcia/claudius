@@ -152,7 +152,7 @@ export function MessageList({
     for (const m of messages) {
       if (!m || !isRealUserDisplayMessage(m)) continue;
       fallbackUuid = m.uuid;
-      if (typeof m.createdAt === "number" && m.createdAt > bestAt) {
+      if (typeof m.createdAt === "number" && m.createdAt >= bestAt) {
         bestAt = m.createdAt;
         bestUuid = m.uuid;
       }
