@@ -73,6 +73,8 @@ function formatAskAsPrompt(questions: AskQuestion[], answers: AskAnswer[]): stri
 import { useContextWatcher } from "@/lib/client/useContextWatcher";
 import { useNotificationsContext } from "@/components/notifications/NotificationsProvider";
 import { findSlashCommand } from "@/lib/shared/slash-commands";
+import { useWorkspaces } from "@/lib/client/useWorkspaces";
+import { useVerbose } from "@/lib/client/useVerbose";
 
 type OverlayKind = "help" | "skills" | "cost" | "status" | "rename" | "context" | "worktrees" | null;
 
@@ -102,6 +104,12 @@ export default function Home() {
     | null
   >(null);
   const ctxSummary = useContextWatcher(session.sessionId, session.pending);
+  // Chat verbosity — per-workspace default, persisted via PATCH on the
+  // active workspace. The hook initialises from a localStorage cache so the
+  // chat renders at the right level on first paint, then reconciles with
+  // the server. Selector lives in the StatusLine (chat header).
+  const { activeId: activeWorkspaceId } = useWorkspaces();
+  const verbose = useVerbose(activeWorkspaceId);
   const [draftInjection, setDraftInjection] = useState<
     { token: number; text: string; images?: AttachedImage[] } | undefined
   >(undefined);
@@ -933,6 +941,8 @@ export default function Home() {
           notificationsEnabled={notifications.workspaceEnabled}
           notificationsState={notifications.permissionState}
           onToggleNotifications={() => void notifications.toggleWorkspaceEnabled()}
+          verbose={verbose.verbose}
+          onChangeVerbose={verbose.setVerbose}
           onCompact={() => handleSend("/compact")}
           onClear={() => {
             if (
@@ -1001,6 +1011,7 @@ export default function Home() {
             onLoadOlder={session.loadOlder}
             highlightUuid={highlightUuid}
             onPickExample={handleSend}
+            verbose={verbose.verbose}
             pendingAskToolUseId={session.pendingAsk?.toolUseId ?? null}
             // Two paths depending on which row was clicked:
             //   - Live: tool_use id matches `pendingAsk` — clear the

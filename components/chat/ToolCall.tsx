@@ -39,7 +39,11 @@ export function ToolCall({ name, input, result, liveAsk, onReopenAsk }: Props) {
   // it's safe to expose even after `result.isError = true`.
   const showAnswerPill = name === "AskUserQuestion" && !!onReopenAsk;
   return (
-    <div className="my-2 rounded-lg border border-[var(--border)] bg-[var(--panel)]/40">
+    <div
+      data-testid="tool-call"
+      data-tool-name={name}
+      className="my-2 rounded-lg border border-[var(--border)] bg-[var(--panel)]/40"
+    >
       {/* The header row is a flex container — the toggle button covers the
           left/center, the Answer pill (if present) and status icon sit on the
           right. We deliberately don't nest another button inside the toggle

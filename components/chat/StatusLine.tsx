@@ -1,13 +1,27 @@
 "use client";
 
-import { useState } from "react";
-import { AlertTriangle, Check, Circle, Eraser, Link as LinkIcon, Minimize2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import {
+  AlertTriangle,
+  Check,
+  Circle,
+  Eraser,
+  Eye,
+  Link as LinkIcon,
+  Minimize2,
+} from "lucide-react";
 import type { PermissionMode } from "@anthropic-ai/claude-agent-sdk";
 import { ModeSelector } from "./ModeSelector";
 import { SessionPicker } from "./SessionPicker";
 import { SessionNotifyMenu } from "./SessionNotifyMenu";
 import { cn } from "@/lib/utils/cn";
 import type { SessionInfo } from "@/lib/client/types";
+import {
+  VERBOSE_LEVELS,
+  verboseDescription,
+  verboseLabel,
+  type VerboseLevel,
+} from "@/lib/shared/verbose";
 
 type Props = {
   sessionId: string | null;
@@ -33,6 +47,17 @@ type Props = {
   onCompact?: () => void;
   /** Clear the conversation — starts a fresh session, history is preserved on disk. */
   onClear?: () => void;
+  /**
+   * Chat verbosity — controls what shows up in the middle pane. The
+   * right-side activity rail is unaffected. Wired through to a small
+   * dropdown so the user can switch level without leaving the chat.
+   */
+  verbose?: VerboseLevel;
+  /**
+   * Persist a new verbose level (typically by patching the active workspace
+   * via `useVerbose`). Omitting this hides the selector entirely.
+   */
+  onChangeVerbose?: (next: VerboseLevel) => void | Promise<void>;
 };
 
 export function StatusLine({
@@ -57,6 +82,8 @@ export function StatusLine({
   onToggleNotifications,
   onCompact,
   onClear,
+  verbose,
+  onChangeVerbose,
 }: Props) {
   const status = !ready ? "starting" : pending ? "working" : "idle";
   const color =
@@ -195,9 +222,118 @@ export function StatusLine({
           />
         )}
         <ShareButton sessionId={sessionId} />
+        {verbose && onChangeVerbose && (
+          <VerboseSelector value={verbose} onChange={onChangeVerbose} />
+        )}
         <ModeSelector mode={permissionMode} onChange={onModeChange} />
         <span className="font-mono text-[10px] opacity-60">claudius v0</span>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Verbose level dropdown — sits in the StatusLine chip cluster next to
+ * ModeSelector. Visual pattern matches the SessionPicker / SessionNotifyMenu:
+ * trigger button + outside-click + Esc closes the popover.
+ *
+ * Levels live in `lib/shared/verbose.ts`. The button label uses the
+ * label-only form ("Normal", "Compact", "Verbose") rather than icons-only
+ * so first-time users can tell what the chip controls without hovering.
+ */
+function VerboseSelector({
+  value,
+  onChange,
+}: {
+  value: VerboseLevel;
+  onChange: (next: VerboseLevel) => void | Promise<void>;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement | null>(null);
+
+  // Outside click + Esc dismissal. Reused pattern across StatusLine bits.
+  useEffect(() => {
+    if (!open) return;
+    function onDown(e: MouseEvent) {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    window.addEventListener("mousedown", onDown);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("mousedown", onDown);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        data-testid="verbose-selector"
+        data-verbose-level={value}
+        onClick={() => setOpen((o) => !o)}
+        title={`Verbosity: ${verboseLabel(value)}\n${verboseDescription(value)}`}
+        className={cn(
+          "flex items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-1.5 py-0.5 hover:bg-[var(--panel)]",
+          open && "bg-[var(--panel)]",
+        )}
+      >
+        <Eye className="h-3 w-3" />
+        <span className="text-[10px]">{verboseLabel(value)}</span>
+      </button>
+      {open && (
+        <div
+          data-testid="verbose-selector-menu"
+          className="absolute right-0 top-full z-20 mt-1 w-64 overflow-hidden rounded-md border border-[var(--border)] bg-[var(--panel)] shadow-2xl"
+        >
+          <div className="border-b border-[var(--border)] px-3 py-1.5 text-[10px] uppercase tracking-wide text-[var(--muted)]">
+            Chat verbosity
+          </div>
+          <ul>
+            {VERBOSE_LEVELS.map((lvl) => {
+              const active = lvl === value;
+              return (
+                <li key={lvl}>
+                  <button
+                    type="button"
+                    data-testid={`verbose-option-${lvl}`}
+                    onClick={() => {
+                      setOpen(false);
+                      if (lvl !== value) void onChange(lvl);
+                    }}
+                    className={cn(
+                      "flex w-full items-start gap-2 px-3 py-2 text-left text-[11px] hover:bg-[var(--panel-2)]",
+                      active && "bg-[var(--panel-2)]",
+                    )}
+                  >
+                    <Check
+                      className={cn(
+                        "mt-0.5 h-3 w-3 shrink-0",
+                        active ? "text-[var(--accent)]" : "opacity-0",
+                      )}
+                    />
+                    <div className="min-w-0">
+                      <div className="font-medium text-[var(--foreground)]">
+                        {verboseLabel(lvl)}
+                      </div>
+                      <div className="text-[10px] text-[var(--muted)]">
+                        {verboseDescription(lvl)}
+                      </div>
+                    </div>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+          <div className="border-t border-[var(--border)] px-3 py-1.5 text-[9.5px] text-[var(--muted)]">
+            The right-side activity rail always shows every tool call,
+            regardless of level. Saved per workspace.
+          </div>
+        </div>
+      )}
     </div>
   );
 }

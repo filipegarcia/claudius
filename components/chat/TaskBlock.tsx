@@ -35,7 +35,11 @@ export function TaskBlock({ toolUseId, input, result, task, innerMessages }: Pro
   const tone = STATUS_TONES[status] ?? "text-[var(--muted)]";
 
   return (
-    <div className="my-2 rounded-lg border border-[var(--accent)]/30 bg-[var(--accent)]/5">
+    <div
+      data-testid="task-block"
+      data-task-status={status}
+      className="my-2 rounded-lg border border-[var(--accent)]/30 bg-[var(--accent)]/5"
+    >
       <button
         onClick={() => setOpen((o) => !o)}
         className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-[var(--panel-2)]/40"
