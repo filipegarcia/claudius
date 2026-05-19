@@ -58,17 +58,30 @@ async function resolveStartUrl(): Promise<string> {
 }
 
 function createWindow(startUrl: string): BrowserWindow {
+  // Platform variants for the frameless chrome — Phase 4 of
+  // docs/electron-conversion/PLAN.md. The renderer-side <TitleBar />
+  // component fills in the matching custom chrome (32px tall, drag
+  // region everywhere except the win/linux traffic-light buttons).
+  const isMac = process.platform === "darwin";
+  const isWindows = process.platform === "win32";
+
   const win = new BrowserWindow({
     width: 1280,
     height: 800,
     minWidth: 800,
     minHeight: 600,
-    // Frameless + traffic lights — Phase 4 will fill in the matching
-    // <TitleBar /> on the renderer side. For now `titleBarStyle` is
-    // a no-op on win/linux; on mac the traffic lights still render.
-    titleBarStyle: process.platform === "darwin" ? "hiddenInset" : "default",
-    trafficLightPosition:
-      process.platform === "darwin" ? { x: 18, y: 18 } : undefined,
+    frame: !isMac && !isWindows, // mac + win = frameless; linux keeps native frame as a fallback
+    titleBarStyle: isMac ? "hiddenInset" : isWindows ? "hidden" : "default",
+    // Mac: traffic lights centered in the 32px title bar (matches
+    // TITLE_BAR_HEIGHT in components/chrome/TitleBar.tsx).
+    trafficLightPosition: isMac ? { x: 12, y: 10 } : undefined,
+    // Windows: render the OS-provided minimize/maximize/close overlay
+    // on top of our title bar. Renderer's TrafficLights component
+    // also draws fallback buttons so the chord still works if the
+    // overlay misbehaves.
+    titleBarOverlay: isWindows
+      ? { color: "#0a0a0a", symbolColor: "#cccccc", height: 32 }
+      : undefined,
     backgroundColor: "#0a0a0a",
     show: false,
     webPreferences: {

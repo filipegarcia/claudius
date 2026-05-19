@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import "./globals.css";
 import { PaneLabelsHost } from "@/components/overlays/PaneLabelsHost";
 import { CustomizationBanner } from "@/components/customize/CustomizationBanner";
+import { TitleBar } from "@/components/chrome/TitleBar";
 import { UpdaterBanner } from "@/components/updater/UpdaterBanner";
 import { NotificationsProvider } from "@/components/notifications/NotificationsProvider";
 import { CommunityNotificationsProvider } from "@/components/community/CommunityNotificationsProvider";
@@ -65,6 +66,12 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           <NotificationsProvider>
             <CommunityNotificationsProvider>
               <div className="flex h-full flex-col">
+                {/* Electron-only frameless-window title bar. Returns
+                  * null in the browser build so the existing web
+                  * chrome (the user's OS browser frame) stays the
+                  * default. Phase 4 of
+                  * docs/electron-conversion/PLAN.md. */}
+                <TitleBar />
                 <UpdaterBanner />
                 <CustomizationBanner />
                 <div className="min-h-0 flex-1">{children}</div>
