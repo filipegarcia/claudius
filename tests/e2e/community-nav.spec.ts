@@ -105,12 +105,20 @@ test.describe("/community soft-nav reconnect", () => {
 
     // Leave via the side-nav "Chat" link — this is the path the user
     // actually takes ("chat messages" in their words). Next.js client
-    // nav, NOT a page.goto / full reload. Use the href-based selector
-    // (consistent with the workspace-rail Community tile below) — the
-    // tooltip text now includes a shortcut hint ("Chat  ⌥C") which broke
-    // `getByRole("link", { name: /^Chat$/ })`.
-    await page.locator('[data-pane-name="left-nav"] a[href="/"]').first().click();
-    await expect(page).toHaveURL(/\/$|\/\?/);
+    // nav, NOT a page.goto / full reload.
+    //
+    // Workspace-scoped routes now live under `/<wks_xxx>/...` (see
+    // middleware.ts + app/[workspaceId]/), so the Chat tile's href is
+    // `/<active workspace id>` rather than the bare `/`. We match on
+    // the title attribute instead — the SideNav sets `title="Chat …"`
+    // on every tile and a prefix match survives the optional shortcut
+    // hint (`"Chat  ⌥C\nDrag to reorder"`) without breaking when keys
+    // are remapped.
+    await page
+      .locator('[data-pane-name="left-nav"] a[title^="Chat"]')
+      .first()
+      .click();
+    await expect(page).toHaveURL(/\/wks_[a-f0-9]{12}(?:$|\?)/);
 
     // Come back via the workspace-rail Community tile. Use the title
     // attribute (set by SystemTile via the `label` prop) instead of href
