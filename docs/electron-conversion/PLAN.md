@@ -1,20 +1,69 @@
 # Plan — Convert Claudius into an Electron app (with browser parity)
 
-## Loop completion criteria
+## 🚨 First-time-run gotcha (read this before anything else)
 
-This plan is being executed by a Ralph self-feedback loop. The original
-promise — "every checkbox in PLAN.md is `[x]`" — cannot fire because
-~15 items are physically unreachable from inside the loop:
+Before the **first** `bun run electron:dev`, run:
 
-  - manual launches of `bun run electron:dev` (needs a display server)
-  - signed-binary smoke (needs CSC/APPLE certs)
-  - dock-badge / traffic-light visual verification (needs human eyes)
-  - cross-platform CI matrix (needs paid runners + secrets)
+```
+bun run electron:rebuild-native
+```
 
-**Loop firing condition (revised):** the promise fires after Phase 10
-is complete, with Phases 11 (packaging/signing) and 12 (docs/rollout)
-handed back to the human operator. Items marked `BLOCKED — user-driven`
-or scoped to Phase 11–12 are intentional handoffs, not loop failures.
+`better-sqlite3` ships built for plain Node. Electron's V8 ABI is
+different, so the renderer will segfault loading the SQLite native
+module until `electron-builder install-app-deps` rebuilds it. The
+mode-lock warning (iter 14 follow-up) flags this on `bun run dev` but
+does not auto-fix it. To switch back to the web build later:
+
+```
+bun run electron:rebuild-native-for-node
+```
+
+## Loop completion criteria & handoff summary
+
+This plan was executed by a Ralph self-feedback loop spanning **15
+iterations** between iteration 1 and iteration 15 of the loop wrapper.
+
+**Firing condition used:** `<promise>ELECTRON_CONVERSION_COMPLETE</promise>`
+fires when Phases 0–10 have shipped, advisor-prioritized polish has
+landed (smoke gate, defaultAppDir fix, ABI mode-lock), and this
+handoff section exists. Phases 11 (packaging/signing) and 12
+(docs/rollout) are explicit human handoffs because they require
+paid signing certs and physical OS access. The original strict
+"every checkbox checked" reading was abandoned at iteration 10 after
+advisor review — `BLOCKED — user-driven` items (manual launches,
+visual checks, signed-binary smokes) and Phases 11–12 are physically
+unreachable from inside the loop.
+
+**What landed:**
+- Phase 0: Electron tooling scaffold + ABI mode-lock
+- Phase 1: embedded Next.js server + headless smoke (`bun run electron:smoke`)
+- Phase 2: typed `window.claudius` bridge + React hooks + unit tests
+- Phase 3 ⭐ user's primary goal: shortcut registry extension + native menu + SessionTabs new/close/reopen/jump + closed-tab undo stack + `before-input-event` interception + "app menu" badge on /settings
+- Phase 4: custom title bar (mac hiddenInset, win titleBarOverlay, linux native frame)
+- Phase 5: cross-cut Cmd+K command palette (web + Electron)
+- Phase 6: OS notifications routed through bridge + dock/taskbar badge
+- Phase 7: `electron-updater` auto-update + Electron-aware UpdaterBanner
+- Phase 8: `claudius://` deep links + native "Open Workspace…" dialog + dock-folder-drop
+- Phase 9: per-screen audit + /doctor Electron section
+- Phase 10: Playwright `chromium-electron` project + 4-test smoke
+
+**Test surface added:**
+- 6 vitest cases for the bridge feature-detector (`tests/unit/use-electron.test.ts`)
+- 6 vitest cases for `electron/ipc/*` module imports (catches require-at-top regressions without a display server)
+- 4 Playwright specs for the Electron renderer (`tests/electron/smoke.spec.ts`)
+- 1 Node-driven embedded-server smoke (`bun run electron:smoke`)
+- All 372 pre-existing unit tests still pass.
+
+**Out of loop scope (handoff to operator):**
+- Phase 11: code signing + notarization + GitHub Actions matrix for mac/win/linux artifacts
+- Phase 12: docs refresh + marketing screenshots + beta channel cut
+- Per-screen runtime smokes that need a display server (all marked `BLOCKED — user-driven`)
+- Polish followups (loop-handoff):
+  - Phase 3: defensive toast for reopen-closed-tab when the underlying session was reaped+deleted
+  - Phase 5: command palette session/agent/skill sources (need state plumbing from chat page to layout)
+  - Phase 6: dedicated `/settings` card for "Show OS notifications when window is hidden"
+  - Phase 10: parametrize browser specs to run under both projects; menu/tabs/palette/notification/deep-link specs (one per phase 3–8 affordance)
+  - Dependabot security PR for Electron upstream upgrades (separate branch, not yet merged)
 
 ## Context
 
