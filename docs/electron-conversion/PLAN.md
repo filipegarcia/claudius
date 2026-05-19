@@ -276,19 +276,21 @@ Each phase has four blocks:
 - R5.4 Same component used in web and Electron; no Electron-only code paths.
 
 ### Tasks
-- [ ] `components/overlays/CommandPalette.tsx` — fuzzy search (reuse the existing fuzzy match if any; else a simple `score = matchedRanges.length / target.length`).
-- [ ] Sources:
-  - [ ] Nav items from `SideNav` config
-  - [ ] Open sessions from `useSession()`/`/api/sessions`
-  - [ ] Slash commands from `lib/shared/slash-commands.ts` (already exists)
-  - [ ] Agents from `/api/agents`, skills from `/api/skills`
-  - [ ] Shortcuts from `lib/client/shortcuts.ts` registry
-- [ ] Render in `app/layout.tsx` (portal pattern) so it's available on every route.
+- [x] `components/overlays/CommandPalette.tsx` — fuzzy search (subsequence match with `matched / target.length` score). Reuses the project's existing `Overlay` component for the backdrop + Esc/outside-click close.
+- [x] Sources:
+  - [x] Workspace-scoped nav items (Chat / Sessions / Files / Git / Memory / Assets / Cost / Agents / Skills / MCP / Hooks / Schedule / Permissions / Docker / Tracker / Database / Notebooks / Workspace settings / Keybindings) — hrefs are prefixed with the active `wks_<id>` extracted from `pathname`; falls back to bare paths so middleware can resolve via cookie.
+  - [x] Global nav items (Settings / Plugins / Customize / Community / Usage / Doctor / Release notes / Updater).
+  - [x] Slash commands from `lib/shared/slash-commands.ts` (informational rows — argsHint + description).
+  - [x] Shortcuts from `lib/client/shortcuts.ts` registry (informational rows with the formatted chord).
+  - [ ] **Followup:** Open sessions from `useSession()` / `/api/sessions` (deferred — needs the chat-page session list plumbed up to the layout).
+  - [ ] **Followup:** Agents from `/api/agents`, skills from `/api/skills` (deferred — same plumbing concern).
+- [x] Renders in `app/layout.tsx` (mounted globally; returns `null` until the chord opens it).
 
 ### Tests
-- [ ] Manual: `Cmd+K` opens; typing "git" surfaces `/git` and `git.*` slash commands; `Enter` activates.
-- [ ] Manual: `Esc` closes; outside click closes; selection closes.
-- [ ] Automated: Playwright (both projects) — press Cmd+K, type "skills", assert at least one result row, press Enter, expect navigation to `/skills` page.
+- [x] Lint + typecheck + 366/366 unit tests + browser `bun run build` all clean (verified at Phase 5 boundary).
+- [ ] **BLOCKED — user-driven:** `Cmd+K` opens; typing "git" surfaces `/git` and `git.*` slash commands; `Enter` activates.
+- [ ] **BLOCKED — user-driven:** `Esc` closes; outside click closes; selection closes (close paths inherited from the existing `Overlay` component).
+- [ ] Automated: Playwright (both projects) — press Cmd+K, type "skills", assert at least one result row (deferred to Phase 10).
 
 ---
 
