@@ -164,6 +164,153 @@ export function removedLineNumbers(diff: string): Set<number> {
 }
 
 /**
+ * Build a bidirectional line mapping between the old and new files from a
+ * unified diff. Used by split-mode scroll sync to keep context lines
+ * horizontally aligned across hunks (otherwise a 100-line addition makes
+ * the panels visibly drift past the hunk's end).
+ *
+ * Strategy: walk the diff, collecting `(leftLine, rightLine)` anchors at
+ * every ` ` context line. Outside hunks we treat lines as trivially
+ * synced (same on both sides) — we synthesize end-of-file anchors using
+ * the supplied total line counts so the binary search at the end of the
+ * file has a sensible upper bound.
+ *
+ * For any line not exactly at an anchor we linearly interpolate between
+ * the surrounding anchors. Inside a hunk this isn't perfect (the inserted
+ * + lines have no natural counterpart on the left) but it's monotonic
+ * and continuous — the panels glide rather than jump.
+ */
+export function buildLineMap(
+  diff: string,
+  oldLineCount: number,
+  newLineCount: number,
+): {
+  oldToNew: (line: number) => number;
+  newToOld: (line: number) => number;
+} {
+  // Anchors: sorted [leftLine, rightLine] pairs. Always start at (1,1) and
+  // cap at (oldLineCount, newLineCount) so binary search lookups outside
+  // hunked regions resolve to clean linear interpolation.
+  const anchors: Array<[number, number]> = [[1, 1]];
+  let leftLine = 0;
+  let rightLine = 0;
+  for (const raw of diff.split("\n")) {
+    const hunk = /^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@/.exec(raw);
+    if (hunk) {
+      leftLine = Number(hunk[1]);
+      rightLine = Number(hunk[2]);
+      continue;
+    }
+    if (raw.startsWith(" ")) {
+      anchors.push([leftLine, rightLine]);
+      leftLine++;
+      rightLine++;
+      continue;
+    }
+    if (raw.startsWith("+")) {
+      rightLine++;
+      continue;
+    }
+    if (raw.startsWith("-")) {
+      leftLine++;
+      continue;
+    }
+  }
+  anchors.push([Math.max(1, oldLineCount), Math.max(1, newLineCount)]);
+
+  /**
+   * Look up the line on `to`-side that pairs with `line` on `from`-side.
+   * Binary search the anchors for the largest one whose `from`-side
+   * value is <= `line`, then linearly interpolate to the next anchor.
+   */
+  function map(line: number, fromIdx: 0 | 1, toIdx: 0 | 1): number {
+    // Binary search for the rightmost anchor with anchor[fromIdx] <= line.
+    let lo = 0;
+    let hi = anchors.length - 1;
+    while (lo < hi) {
+      const mid = (lo + hi + 1) >>> 1;
+      if (anchors[mid][fromIdx] <= line) lo = mid;
+      else hi = mid - 1;
+    }
+    const a = anchors[lo];
+    const b = anchors[Math.min(lo + 1, anchors.length - 1)];
+    if (a === b) return a[toIdx];
+    const fromSpan = b[fromIdx] - a[fromIdx];
+    if (fromSpan <= 0) return a[toIdx];
+    const toSpan = b[toIdx] - a[toIdx];
+    const t = (line - a[fromIdx]) / fromSpan;
+    return Math.round(a[toIdx] + t * toSpan);
+  }
+
+  return {
+    oldToNew: (l) => map(Math.max(1, Math.floor(l)), 0, 1),
+    newToOld: (l) => map(Math.max(1, Math.floor(l)), 1, 0),
+  };
+}
+
+/**
+ * For each `+` line in the new file, the array of `-` lines from the
+ * SAME hunk — i.e. "this addition replaced these lines." Powers the
+ * hover tooltip on green stripes in unified mode so the user can see
+ * what used to be at that position without leaving the editor.
+ *
+ * All + lines within a hunk share the same removed[] array (per-hunk
+ * granularity, not per-line). Refining further would require an inline
+ * diff algorithm; for v1 this is enough to answer "what was here?".
+ */
+export function removedByNewLine(diff: string): Map<number, string[]> {
+  const out = new Map<number, string[]>();
+  if (!diff) return out;
+  let rightLine = 0;
+  // Buffer the `-` lines of the current hunk so we can attach them to
+  // every `+` line we encounter inside it.
+  let currentRemoved: string[] = [];
+  for (const raw of diff.split("\n")) {
+    if (
+      raw.startsWith("diff --git ") ||
+      raw.startsWith("index ") ||
+      raw.startsWith("--- ") ||
+      raw.startsWith("+++ ") ||
+      raw.startsWith("new file") ||
+      raw.startsWith("deleted file") ||
+      raw.startsWith("rename ") ||
+      raw.startsWith("similarity ") ||
+      raw.startsWith("Binary files ")
+    ) {
+      continue;
+    }
+    const hunk = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@/.exec(raw);
+    if (hunk) {
+      rightLine = Number(hunk[1]);
+      currentRemoved = [];
+      continue;
+    }
+    if (raw.startsWith("-")) {
+      currentRemoved.push(raw.slice(1));
+      continue;
+    }
+    if (raw.startsWith("+")) {
+      if (currentRemoved.length > 0) {
+        // Share the SAME array reference across + lines — cheap and
+        // semantically correct (they all reflect the same hunk's removals).
+        out.set(rightLine, currentRemoved);
+      }
+      rightLine++;
+      continue;
+    }
+    if (raw.startsWith(" ")) {
+      // Context flushes the buffer — subsequent + lines belong to a
+      // different replacement clump within the same hunk and shouldn't
+      // claim the now-stale removed text.
+      currentRemoved = [];
+      rightLine++;
+      continue;
+    }
+  }
+  return out;
+}
+
+/**
  * Inline worktree-file editor surfaced on the right pane of /git. Two
  * rendering modes:
  *
@@ -193,24 +340,45 @@ export function FileEditor({ wsId, relPath, diff, onSaved, split = false, mode }
   const [oldContent, setOldContent] = useState<string | null>(null);
   const [oldLoading, setOldLoading] = useState(false);
 
-  // Lifted scrollTop — drives both the overlay layers AND the imperative
-  // sync between the two panels in split mode. In single mode there's
-  // only one panel reading it.
-  const [scrollTop, setScrollTop] = useState(0);
+  // Independent scrollTop per panel — in split mode they're kept loosely
+  // synced through `buildLineMap` (line N on the left scrolls the right
+  // to the diff-corresponding line, not the raw same pixel). In unified
+  // mode only `rightScrollTop` is used.
+  const [leftScrollTop, setLeftScrollTop] = useState(0);
+  const [rightScrollTop, setRightScrollTop] = useState(0);
   /**
-   * Viewport metrics for the minimap indicator. `scrollHeight` is the full
-   * scrollable content height; `clientHeight` is the visible area.
-   * Sentinel `scrollHeight: 0` means "not yet measured."
+   * Viewport metrics per panel for the minimap indicators. `scrollHeight`
+   * is the full scrollable content height; `clientHeight` is the visible
+   * area. Sentinel `scrollHeight: 0` means "not yet measured."
    */
-  const [viewport, setViewport] = useState<{ scrollHeight: number; clientHeight: number }>({
+  const [leftViewport, setLeftViewport] = useState<{ scrollHeight: number; clientHeight: number }>({
+    scrollHeight: 0,
+    clientHeight: 0,
+  });
+  const [rightViewport, setRightViewport] = useState<{ scrollHeight: number; clientHeight: number }>({
     scrollHeight: 0,
     clientHeight: 0,
   });
   const rightTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const leftTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+  // Counter-based scroll-sync guard. Each programmatic write to a
+  // textarea's scrollTop fires a deferred native scroll event; the
+  // counter is incremented per write and decremented as those echoed
+  // events land. While the counter is > 0, the handler absorbs the
+  // event instead of pushing back to the other side.
+  //
+  // Why a counter (and not a boolean): rapid scrolling on one side
+  // schedules multiple programmatic writes on the other before any of
+  // their scroll events fire. A boolean flag would be cleared by the
+  // first echo and let the next push-back through, producing visible
+  // drift. The counter stays positive until ALL echoed events have
+  // been consumed.
+  const ignoreNextEvents = useRef({ left: 0, right: 0 });
 
   const dirty = original != null && draft !== original;
   const addedLines = useMemo(() => addedLineNumbers(diff ?? ""), [diff]);
   const removedLines = useMemo(() => removedLineNumbers(diff ?? ""), [diff]);
+  const removedByLine = useMemo(() => removedByNewLine(diff ?? ""), [diff]);
 
   // Counting newlines avoids the +1 trap of split("\n").length for a
   // trailing-newline file. Both end up the same; what matters is that line
@@ -218,16 +386,22 @@ export function FileEditor({ wsId, relPath, diff, onSaved, split = false, mode }
   const draftLineCount = useMemo(() => countLines(draft), [draft]);
   const oldLineCount = useMemo(() => countLines(oldContent ?? ""), [oldContent]);
 
+  // Hunk-aware line mapping for split-mode scroll sync. Rebuilt whenever
+  // the diff or either side's line count changes.
+  const lineMap = useMemo(
+    () => buildLineMap(diff ?? "", oldLineCount, draftLineCount),
+    [diff, oldLineCount, draftLineCount],
+  );
+
   /**
-   * Pull current scroll/size off the editable textarea (right pane). The
-   * minimap reads from this; in split mode the left panel just mirrors
-   * `scrollTop`.
+   * Pull current scroll/size off the editable (right) textarea after a
+   * draft edit. The minimap reads from this for its viewport indicator.
    */
-  const syncMetrics = useCallback(() => {
+  const syncRightMetrics = useCallback(() => {
     const ta = rightTextareaRef.current;
     if (!ta) return;
-    setScrollTop(ta.scrollTop);
-    setViewport({ scrollHeight: ta.scrollHeight, clientHeight: ta.clientHeight });
+    setRightScrollTop(ta.scrollTop);
+    setRightViewport({ scrollHeight: ta.scrollHeight, clientHeight: ta.clientHeight });
   }, []);
 
   /**
@@ -251,7 +425,8 @@ export function FileEditor({ wsId, relPath, diff, onSaved, split = false, mode }
     setDraft("");
     setOldContent(null);
     setOldLoading(split && mode !== "untracked");
-    setScrollTop(0);
+    setLeftScrollTop(0);
+    setRightScrollTop(0);
   }
 
   /**
@@ -347,8 +522,81 @@ export function FileEditor({ wsId, relPath, diff, onSaved, split = false, mode }
    * number. useLayoutEffect so the measurement happens before paint.
    */
   useLayoutEffect(() => {
-    syncMetrics();
-  }, [draftLineCount, loading, syncMetrics]);
+    syncRightMetrics();
+  }, [draftLineCount, loading, syncRightMetrics]);
+
+  /**
+   * Build the per-panel scroll handlers. In SPLIT mode each handler
+   * (a) updates its own panel's state and (b) computes the OTHER
+   * panel's scrollTop from `lineMap` and sets it imperatively via ref,
+   * gated by the `ignoreNextEvents` counter to break the bounce-back
+   * loop without dropping syncs under rapid scrolling.
+   *
+   * In UNIFIED mode only the right side is rendered, so the left
+   * handler never fires and the right one just updates state.
+   *
+   * Note on cross-side state: after a programmatic `ta.scrollTop = x`
+   * we ALSO call `setXScrollTop(x)` for the other side. The CodePanel
+   * has a `useLayoutEffect` that yanks the textarea back to whatever
+   * its `scrollTop` prop says — without the state push the next render
+   * would jerk the other pane back to its stale value.
+   */
+  const onLeftScroll = useCallback(
+    (top: number, metrics?: { scrollHeight: number; clientHeight: number }) => {
+      // Absorb echoed events from our own programmatic writes. Counter
+      // semantics (vs a boolean) survive rapid scrolling, where multiple
+      // programmatic writes can be queued before any of their scroll
+      // events fire.
+      if (ignoreNextEvents.current.left > 0) {
+        ignoreNextEvents.current.left--;
+        setLeftScrollTop(top);
+        if (metrics) setLeftViewport(metrics);
+        return;
+      }
+      setLeftScrollTop(top);
+      if (metrics) setLeftViewport(metrics);
+      // Only drive the right panel in split mode. Bail early if we
+      // don't have its ref yet (first render before the panel mounts).
+      const rightTa = rightTextareaRef.current;
+      if (!split || !rightTa) return;
+      const leftLine = top / LINE_HEIGHT_PX + 1;
+      const rightLine = lineMap.oldToNew(leftLine);
+      const desired = Math.max(0, (rightLine - 1) * LINE_HEIGHT_PX);
+      if (Math.abs(rightTa.scrollTop - desired) > 0.5) {
+        // Bump the counter BEFORE the assignment — the deferred scroll
+        // event the assignment triggers will land on the count we just
+        // incremented.
+        ignoreNextEvents.current.right++;
+        rightTa.scrollTop = desired;
+        setRightScrollTop(desired);
+      }
+    },
+    [split, lineMap],
+  );
+
+  const onRightScroll = useCallback(
+    (top: number, metrics?: { scrollHeight: number; clientHeight: number }) => {
+      if (ignoreNextEvents.current.right > 0) {
+        ignoreNextEvents.current.right--;
+        setRightScrollTop(top);
+        if (metrics) setRightViewport(metrics);
+        return;
+      }
+      setRightScrollTop(top);
+      if (metrics) setRightViewport(metrics);
+      const leftTa = leftTextareaRef.current;
+      if (!split || !leftTa) return;
+      const rightLine = top / LINE_HEIGHT_PX + 1;
+      const leftLine = lineMap.newToOld(rightLine);
+      const desired = Math.max(0, (leftLine - 1) * LINE_HEIGHT_PX);
+      if (Math.abs(leftTa.scrollTop - desired) > 0.5) {
+        ignoreNextEvents.current.left++;
+        leftTa.scrollTop = desired;
+        setLeftScrollTop(desired);
+      }
+    },
+    [split, lineMap],
+  );
 
   const onSave = useCallback(async () => {
     if (!dirty || saving) return;
@@ -488,8 +736,8 @@ export function FileEditor({ wsId, relPath, diff, onSaved, split = false, mode }
       ) : split && mode !== "untracked" ? (
         <div className="flex min-h-0 flex-1">
           {/* Left pane — OLD content, read-only, red stripes on removed
-              lines. While oldContent is loading we show a thin shimmer so
-              the user knows the diff base is on its way. */}
+              lines + a left-side minimap so the user can see deletion
+              density at a glance and click to jump to one. */}
           <div className="flex min-h-0 flex-1 flex-col">
             <div className="flex h-6 shrink-0 items-center gap-2 border-b border-[var(--border)]/60 bg-[var(--panel)]/40 px-3 font-mono text-[10px] text-[var(--muted)]">
               {mode === "staged" ? "HEAD" : "index"} · read-only
@@ -502,9 +750,12 @@ export function FileEditor({ wsId, relPath, diff, onSaved, split = false, mode }
               highlightedLines={removedLines}
               highlightVariant="removed"
               lineCount={oldLineCount}
-              scrollTop={scrollTop}
-              onScroll={setScrollTop}
-              showMinimap={false}
+              scrollTop={leftScrollTop}
+              onScroll={onLeftScroll}
+              showMinimap
+              minimapMarkers={removedLines}
+              minimapViewport={leftViewport}
+              textareaRef={leftTextareaRef}
             />
           </div>
           {/* Visual divider between the two panes. */}
@@ -521,37 +772,34 @@ export function FileEditor({ wsId, relPath, diff, onSaved, split = false, mode }
               highlightedLines={addedLines}
               highlightVariant="added"
               lineCount={draftLineCount}
-              scrollTop={scrollTop}
-              onScroll={(top, metrics) => {
-                setScrollTop(top);
-                if (metrics) setViewport(metrics);
-              }}
+              scrollTop={rightScrollTop}
+              onScroll={onRightScroll}
               showMinimap
               minimapMarkers={addedLines}
-              minimapViewport={viewport}
+              minimapViewport={rightViewport}
               textareaRef={rightTextareaRef}
               onKeyDown={onRightKeyDown}
+              stripeTooltips={dirty ? undefined : removedByLine}
             />
           </div>
         </div>
       ) : (
-        // Unified mode — single editable panel.
+        // Unified mode — single editable panel. The right scroll state is
+        // the only one used; the left handlers stay dormant.
         <CodePanel
           content={draft}
           onContentChange={setDraft}
           highlightedLines={addedLines}
           highlightVariant="added"
           lineCount={draftLineCount}
-          scrollTop={scrollTop}
-          onScroll={(top, metrics) => {
-            setScrollTop(top);
-            if (metrics) setViewport(metrics);
-          }}
+          scrollTop={rightScrollTop}
+          onScroll={onRightScroll}
           showMinimap
           minimapMarkers={addedLines}
-          minimapViewport={viewport}
+          minimapViewport={rightViewport}
           textareaRef={rightTextareaRef}
           onKeyDown={onRightKeyDown}
+          stripeTooltips={dirty ? undefined : removedByLine}
         />
       )}
     </div>
@@ -583,6 +831,15 @@ type CodePanelProps = {
   minimapViewport?: { scrollHeight: number; clientHeight: number };
   textareaRef?: React.RefObject<HTMLTextAreaElement | null>;
   onKeyDown?: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
+  /**
+   * Optional per-line hover content for the stripe layer. Maps a 1-based
+   * line number to the lines that were removed at that position (from the
+   * same diff hunk). Rendered as a native `title` attribute on the stripe,
+   * giving the user a no-machinery hover popover showing "here's what was
+   * here before." Unified-mode use case: see the original lines without
+   * switching to split view.
+   */
+  stripeTooltips?: Map<number, string[]>;
 };
 
 /**
@@ -613,6 +870,7 @@ function CodePanel({
   minimapViewport,
   textareaRef,
   onKeyDown,
+  stripeTooltips,
 }: CodePanelProps) {
   const localRef = useRef<HTMLTextAreaElement | null>(null);
   const taRef = textareaRef ?? localRef;
@@ -667,10 +925,13 @@ function CodePanel({
         </div>
       </div>
 
-      {/* Line-number gutter. */}
+      {/* Line-number gutter. Allows pointer events so the per-line `title`
+          attribute (set when `stripeTooltips` has content for that row)
+          fires the native browser tooltip on hover. Clicks here don't
+          focus the textarea but the gutter is non-text anyway — users
+          click the actual text to position the caret. */}
       <div
-        aria-hidden
-        className="pointer-events-none absolute inset-y-0 left-0 overflow-hidden border-r border-[var(--border)]/60 bg-[var(--panel)]/40 text-[var(--muted)]"
+        className="absolute inset-y-0 left-0 overflow-hidden border-r border-[var(--border)]/60 bg-[var(--panel)]/40 text-[var(--muted)]"
         style={{
           width: GUTTER_WIDTH_PX,
           paddingTop: PADDING_TOP_PX,
@@ -679,19 +940,38 @@ function CodePanel({
         }}
       >
         <div style={{ transform: `translateY(${-scrollTop}px)` }}>
-          {Array.from({ length: lineCount }, (_, i) => (
-            <div
-              key={i}
-              className="text-right"
-              style={{
-                lineHeight: `${LINE_HEIGHT_PX}px`,
-                height: LINE_HEIGHT_PX,
-                paddingRight: GUTTER_TO_TEXT_PX + 4,
-              }}
-            >
-              {i + 1}
-            </div>
-          ))}
+          {Array.from({ length: lineCount }, (_, i) => {
+            const lineNumber = i + 1;
+            const removed = stripeTooltips?.get(lineNumber);
+            // Cap the tooltip preview so a 200-line replacement doesn't
+            // produce an unreadable native popover. With "…and N more"
+            // suffix when truncated.
+            const tooltip = removed && removed.length > 0
+              ? (removed.length > 12
+                  ? `Was here before:\n${removed.slice(0, 12).join("\n")}\n…and ${removed.length - 12} more line${removed.length - 12 === 1 ? "" : "s"}`
+                  : `Was here before:\n${removed.join("\n")}`)
+              : undefined;
+            return (
+              <div
+                key={i}
+                title={tooltip}
+                className={cn(
+                  "text-right",
+                  // Style hint: yellow + cursor-help so the user
+                  // notices the row has hidden context (the removed
+                  // lines). Hover surfaces them via the native title.
+                  tooltip && "cursor-help text-amber-400/80",
+                )}
+                style={{
+                  lineHeight: `${LINE_HEIGHT_PX}px`,
+                  height: LINE_HEIGHT_PX,
+                  paddingRight: GUTTER_TO_TEXT_PX + 4,
+                }}
+              >
+                {tooltip ? `${lineNumber}↤` : lineNumber}
+              </div>
+            );
+          })}
         </div>
       </div>
 

@@ -116,6 +116,20 @@ test.describe("site screenshots — static routes", () => {
     ["workspace", "/workspace"],
   ] as const) {
     test(`${name}`, async ({ page }) => {
+      // Pin the /git layout to split mode for the marketing shot. The
+      // page default is already split, but persisting the preference
+      // explicitly insulates the screenshot from future default flips.
+      if (name === "git") {
+        await page.addInitScript(() => {
+          try {
+            localStorage.setItem("claudius.git.splitMode", "1");
+          } catch {
+            // Sandboxed / private-mode contexts will fall through to the
+            // page's own default — which today is split, so still fine.
+          }
+        });
+      }
+
       // The cost page reads /api/cost. On a fresh project there's no
       // history to aggregate, so the chart looks empty and uninteresting
       // for marketing purposes. Inject a hand-crafted CostReport for the
@@ -144,13 +158,15 @@ test.describe("site screenshots — static routes", () => {
 
       // Git: open a changed file so the right pane shows a real diff.
       // Prefer site/index.html (lots of marketing-site churn) and fall
-      // back to the first changed-file row.
+      // back to the first changed-file row. The split-mode left pane
+      // also has to load via `git show` after the click, so the wait is
+      // a bit longer than the unified-only case used to need.
       if (name === "git") {
         const preferred = page.locator("button", { hasText: "site/index.html" });
         const target =
           (await preferred.count()) > 0 ? preferred.first() : page.locator("ul li button").first();
         await target.click();
-        await page.waitForTimeout(700); // diff fetch
+        await page.waitForTimeout(1100); // worktree diff + HEAD fetch for the left pane
       }
 
       // Files: open a readable file so the right pane shows content.
