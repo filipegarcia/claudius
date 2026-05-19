@@ -27,9 +27,22 @@ const CATEGORY_LABEL: Record<ShortcutCategory, string> = {
   tabs: "Session tabs",
   workspaces: "Workspaces",
   navigation: "Side-nav navigation",
+  // Phase 3 of docs/electron-conversion/PLAN.md — these are owned by
+  // the native OS menu in the packaged Electron build. The web build
+  // still surfaces them so users can remap to a non-reserved chord.
+  window: "Window controls",
+  view: "View",
+  app: "Application",
 };
 
-const CATEGORY_ORDER: ShortcutCategory[] = ["tabs", "workspaces", "navigation"];
+const CATEGORY_ORDER: ShortcutCategory[] = [
+  "tabs",
+  "workspaces",
+  "navigation",
+  "window",
+  "view",
+  "app",
+];
 
 /**
  * Web-app keyboard shortcuts section, rendered inside `/settings`. Pair with
