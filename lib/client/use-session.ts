@@ -345,12 +345,36 @@ export function useSession(): ChatState & ChatActions {
     // effect during the racy window where the user has clicked
     // /customize but Next.js hasn't pushState'd yet; we'd write
     // `/?session=X` over Next.js's pending commit and the user would
-    // end up stuck on `/`. With the delay + the re-check of pathname
-    // at write time, a navigation away from `/` cleanly suppresses the
-    // write. 500ms is comfortably above the RSC-fetch ceiling we see
-    // in dev and well below any waitForURL timeout in the session-
-    // resume e2e specs (which use 30s).
+    // end up stuck on `/`. 500ms is comfortably above the RSC-fetch
+    // ceiling we see in dev and well below any waitForURL timeout in
+    // the session-resume e2e specs (which use 30s).
+    //
+    // The late `window.location.pathname !== "/"` check below was the
+    // original guard, but on CI under load it isn't enough: Next.js's
+    // RSC fetch can outlast 500ms, so the timer fires while pathname
+    // is still "/" — we write `?session=X`, and Next.js then bails its
+    // pending navigation because the URL shifted underneath. (The CI
+    // failure log polls the URL after the click and sees `/?session=X`
+    // indefinitely, never `/customize`.) The Navigation API's `navigate`
+    // event fires the instant a soft nav is initiated — synchronously
+    // on the Link click, before any RSC work — so a listener here
+    // cleanly aborts the write window even when pathname is still
+    // mid-commit. Chromium 102+ supports it (CI runs Chromium);
+    // Firefox/Safari fall back to the late pathname check, which is
+    // the same behavior as before this fix.
+    let navigated = false;
+    type NavTarget = {
+      addEventListener?: (t: string, h: () => void) => void;
+      removeEventListener?: (t: string, h: () => void) => void;
+    };
+    const nav = (window as unknown as { navigation?: NavTarget }).navigation;
+    const onNav = () => {
+      navigated = true;
+    };
+    nav?.addEventListener?.("navigate", onNav);
+
     const handle = setTimeout(() => {
+      if (navigated) return;
       if (window.location.pathname !== "/") return;
       try {
         const url = new URL(window.location.href);
@@ -367,7 +391,10 @@ export function useSession(): ChatState & ChatActions {
         // ignore — non-fatal
       }
     }, 500);
-    return () => clearTimeout(handle);
+    return () => {
+      clearTimeout(handle);
+      nav?.removeEventListener?.("navigate", onNav);
+    };
   }, [sessionId, pathname]);
 
   const [permissionMode, setPermissionModeState] = useState<PermissionMode>("default");
