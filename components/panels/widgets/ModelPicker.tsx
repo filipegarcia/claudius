@@ -32,7 +32,21 @@ const EFFORT_LABEL: Record<EffortLevel, string> = {
 };
 
 type Props = {
+  /**
+   * When set, the picker fetches the model list from
+   * `/api/sessions/<id>/model` (session-scoped, what the SDK is currently
+   * advertising for that session). When null and `source: "global"`, the
+   * picker fetches from `/api/models` instead — used by surfaces without
+   * a live session (e.g. the workspace-create form).
+   */
   sessionId: string | null;
+  /**
+   * Where to fetch the model list from when `sessionId` is null.
+   * Defaults to "session" to preserve existing call sites — if you pass
+   * `sessionId={null}` and don't set this, the picker shows "No active
+   * session" exactly as it always has.
+   */
+  source?: "session" | "global";
   currentModel: string | null;
   /**
    * Anchor element the popover positions itself against. We use fixed
@@ -43,16 +57,32 @@ type Props = {
   anchorRef: React.RefObject<HTMLElement | null>;
   onClose: () => void;
   onPickModel: (modelValue: string) => Promise<void> | void;
-  onPickEffort: (level: EffortLevel | "auto") => Promise<void> | void;
+  /**
+   * Effort selection only applies inside a live session. Optional so the
+   * picker can be reused on session-less surfaces (workspace defaults)
+   * that pick a model but have no notion of effort.
+   */
+  onPickEffort?: (level: EffortLevel | "auto") => Promise<void> | void;
+  /**
+   * When true, prepends an "(Inherit machine default)" entry that maps to
+   * an empty model value (the workspace form treats empty as "use the
+   * machine's default"). Selecting it calls `onPickModel("")`.
+   */
+  showInherit?: boolean;
+  /** Label shown next to the Cpu icon. Defaults to "Model". */
+  headerLabel?: string;
 };
 
 export function ModelPicker({
   sessionId,
+  source = "session",
   currentModel,
   anchorRef,
   onClose,
   onPickModel,
   onPickEffort,
+  showInherit = false,
+  headerLabel = "Model",
 }: Props) {
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -116,10 +146,22 @@ export function ModelPicker({
   // Reset loading/error state during render when the session unbinds,
   // so the effect below contains no sync setState in its body.
   // https://react.dev/reference/react/useState#storing-information-from-previous-renders
-  const [lastSessionId, setLastSessionId] = useState(sessionId);
-  if (lastSessionId !== sessionId) {
-    setLastSessionId(sessionId);
-    if (!sessionId) {
+  //
+  // The "global" source path fetches from a sessionless `/api/models` —
+  // used by the workspace-create form to render the same picker without
+  // a bound session. In that mode the `sessionId` is null but the fetch
+  // still goes out, and we don't show the "No active session" hint.
+  const fetchUrl =
+    source === "global"
+      ? "/api/models"
+      : sessionId
+        ? `/api/sessions/${sessionId}/model`
+        : null;
+
+  const [lastFetchUrl, setLastFetchUrl] = useState(fetchUrl);
+  if (lastFetchUrl !== fetchUrl) {
+    setLastFetchUrl(fetchUrl);
+    if (!fetchUrl) {
       setLoading(false);
       setError("No active session");
     } else {
@@ -129,9 +171,9 @@ export function ModelPicker({
   }
 
   useEffect(() => {
-    if (!sessionId) return;
+    if (!fetchUrl) return;
     const controller = new AbortController();
-    fetch(`/api/sessions/${sessionId}/model`, { signal: controller.signal })
+    fetch(fetchUrl, { signal: controller.signal })
       .then(async (r) => {
         if (controller.signal.aborted) return;
         if (!r.ok) {
@@ -153,7 +195,7 @@ export function ModelPicker({
         if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
-  }, [sessionId]);
+  }, [fetchUrl]);
 
   // The effort row is tied to the *currently active* model, not whatever
   // model the user is hovering. Earlier cuts of this component flipped the
@@ -180,7 +222,7 @@ export function ModelPicker({
       <div className="flex items-center gap-1.5 border-b border-[var(--border)]/60 px-3 py-2">
         <Cpu className="h-3 w-3 text-[var(--accent)]" />
         <span className="text-[11px] font-medium uppercase tracking-wide text-[var(--muted)]">
-          Model
+          {headerLabel}
         </span>
       </div>
 
@@ -204,6 +246,41 @@ export function ModelPicker({
 
       {!loading && !error && models && models.length > 0 && (
         <ul className="py-1" role="listbox" aria-label="Available models">
+          {showInherit && (
+            <li>
+              <button
+                type="button"
+                role="option"
+                aria-selected={!currentModel}
+                data-testid="model-picker-option"
+                data-model=""
+                onClick={() => onPickModel("")}
+                className={cn(
+                  "flex w-full items-start gap-2 px-3 py-2 text-left transition",
+                  !currentModel
+                    ? "bg-[var(--panel-2)]/40 hover:bg-[var(--panel-2)]"
+                    : "hover:bg-[var(--panel-2)]/60",
+                )}
+              >
+                <Check
+                  className={cn(
+                    "mt-0.5 h-3 w-3 shrink-0",
+                    !currentModel ? "text-[var(--accent)]" : "text-transparent",
+                  )}
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="truncate font-medium text-[var(--foreground)]">
+                      Inherit machine default
+                    </span>
+                  </div>
+                  <div className="mt-0.5 truncate text-[10px] text-[var(--muted)]">
+                    Use whatever the host CLI picks. New sessions can still override.
+                  </div>
+                </div>
+              </button>
+            </li>
+          )}
           {models.map((m) => {
             const isCurrent = m.value === currentModel;
             return (
@@ -264,9 +341,21 @@ export function ModelPicker({
         </ul>
       )}
 
-      {activeModel?.supportsEffort &&
-        activeModel.supportedEffortLevels &&
-        activeModel.supportedEffortLevels.length > 0 && (
+      {(() => {
+        // Pulled into an IIFE so TS narrows `onPickEffort` to a defined
+        // local for the callback closures below. The top-level `cond &&`
+        // narrowing doesn't reach into `() => onPickEffort(...)` because
+        // those are separate function scopes.
+        const pickEffort = onPickEffort;
+        if (
+          !pickEffort ||
+          !activeModel?.supportsEffort ||
+          !activeModel.supportedEffortLevels ||
+          activeModel.supportedEffortLevels.length === 0
+        ) {
+          return null;
+        }
+        return (
           <>
             <div className="flex items-center gap-1.5 border-t border-[var(--border)]/60 px-3 py-2">
               <Gauge className="h-3 w-3 text-[var(--accent)]" />
@@ -281,7 +370,7 @@ export function ModelPicker({
               {activeModel.supportsAdaptiveThinking !== false && (
                 <EffortChip
                   label="Auto"
-                  onClick={() => onPickEffort("auto")}
+                  onClick={() => pickEffort("auto")}
                   tone="adaptive"
                 />
               )}
@@ -289,7 +378,7 @@ export function ModelPicker({
                 <EffortChip
                   key={level}
                   label={EFFORT_LABEL[level]}
-                  onClick={() => onPickEffort(level)}
+                  onClick={() => pickEffort(level)}
                   tone={level}
                 />
               ))}
@@ -299,7 +388,8 @@ export function ModelPicker({
               behind it.
             </div>
           </>
-        )}
+        );
+      })()}
     </div>
   );
 }

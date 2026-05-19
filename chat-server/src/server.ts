@@ -772,7 +772,7 @@ const server = Bun.serve({
     const path = url.pathname;
     const ip = getClientIp(req, srv);
 
-    // Quick health probe for fly.io / uptime checks.
+    // Quick health probe for uptime checks.
     if (path === "/health") return json({ ok: true });
 
     // ── Public ─────────────────────────────────────────────────────

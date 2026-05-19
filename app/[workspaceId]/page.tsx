@@ -108,7 +108,13 @@ export default function Home() {
   // active workspace. The hook initialises from a localStorage cache so the
   // chat renders at the right level on first paint, then reconciles with
   // the server. Selector lives in the StatusLine (chat header).
-  const { activeId: activeWorkspaceId } = useWorkspaces();
+  const { activeId: activeWorkspaceId, items: workspaceItems } = useWorkspaces();
+  // The page is mounted under `/[workspaceId]/...`, so the resolved active
+  // workspace from `useWorkspaces` is almost always the one we want to
+  // surface in the chat status bar. We feed the full Workspace object to
+  // StatusLine so it can render an icon + name without re-fetching.
+  const activeWorkspace =
+    workspaceItems.find((w) => w.id === activeWorkspaceId) ?? null;
   const verbose = useVerbose(activeWorkspaceId);
   const [draftInjection, setDraftInjection] = useState<
     { token: number; text: string; images?: AttachedImage[] } | undefined
@@ -931,6 +937,7 @@ export default function Home() {
         ) : (
         <>
         <StatusLine
+          workspace={activeWorkspace}
           sessionId={session.sessionId}
           ready={session.ready}
           pending={session.pending}

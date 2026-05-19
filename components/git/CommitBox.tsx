@@ -1,7 +1,7 @@
 "use client";
 
 import { useLayoutEffect, useRef, useState } from "react";
-import { ArrowUpFromLine, GitCommit, Sparkles } from "lucide-react";
+import { ArrowUpFromLine, GitCommit, Loader2, Sparkles, StopCircle } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 
 type Props = {
@@ -16,8 +16,10 @@ type Props = {
   onGenerate?: () => Promise<{ ok: true; message: string } | { ok: false; error: string }>;
   /**
    * Push the current branch. When provided, surfaces a combined
-   * "Generate, Commit & Push" button. Implementations should NOT show their
-   * own confirmation — the combo button asks once before the chain starts.
+   * "Generate, Commit & Push" button. Clicking that button starts the chain
+   * immediately (no confirmation prompt) and re-clicking while it's in flight
+   * cancels it at the next leg boundary — implementations should NOT show
+   * their own confirmation.
    */
   onPush?: () => Promise<{ ok: true } | { ok: false; error: string }>;
   /**
@@ -69,6 +71,14 @@ export function CommitBox({
   // `comboStep` tells the user which leg of generate→commit→push is in
   // flight so the button label reflects real progress on a slow turn.
   const [comboStep, setComboStep] = useState<null | "generate" | "commit" | "push">(null);
+  // Set when the user clicks the (now-Stop-shaped) combo button mid-chain.
+  // Checked between legs — the in-flight leg is allowed to settle (we don't
+  // pass an AbortSignal to the parent callbacks), but no subsequent leg
+  // runs. `cancelling` mirrors it as React state so the button can flip to
+  // "Cancelling…" the instant the user clicks, instead of waiting for the
+  // in-flight leg to return.
+  const cancelledRef = useRef(false);
+  const [cancelling, setCancelling] = useState(false);
   const taRef = useRef<HTMLTextAreaElement | null>(null);
   // Bumped on every programmatic reset so the post-render layout effect
   // moves the cursor to the end. Tracks the *event*, not the message.
@@ -161,6 +171,18 @@ export function CommitBox({
     idle &&
     checkedCount > 0 &&
     (message.trim().length > 0 || !!onGenerate);
+  // Derived state for the combo button's three modes: idle (kick off the
+  // chain), in flight (act as a Stop button), cancelling (spinner +
+  // disabled while the in-flight leg lands).
+  const comboInFlight = comboStep != null;
+  const comboStepLabel =
+    comboStep === "generate"
+      ? "Generating"
+      : comboStep === "commit"
+        ? "Committing"
+        : comboStep === "push"
+          ? "Pushing"
+          : null;
 
   async function submit() {
     if (!canCommit) return;
@@ -220,6 +242,8 @@ export function CommitBox({
   /**
    * The 3-in-1 chain: optionally generate → commit → push. Important details:
    *
+   *  - No confirmation prompt — the click immediately starts the work and the
+   *    button flips into a "Stop" affordance so the user can abort mid-chain.
    *  - We pass the *generated* message directly to `onCommit` rather than
    *    relying on `setMessage(...)` to land before the commit call, because
    *    React state updates are async.
@@ -229,68 +253,97 @@ export function CommitBox({
    *    commit, we keep the commit and surface a "Committed locally; push
    *    failed: …" error so the user can retry push without re-doing the
    *    work or accidentally committing twice.
+   *  - Cancellation is "soft": we don't pass an AbortSignal to the parent
+   *    callbacks, so the in-flight leg runs to completion server-side. We
+   *    check `cancelledRef` between legs and bail before kicking off the
+   *    next one. Concretely:
+   *      • cancel during generate → message is discarded, nothing committed.
+   *      • cancel during commit   → commit lands (the network call already
+   *        went out); push is skipped.
+   *      • cancel during push     → push runs to completion; we just stop
+   *        reporting on it. (At this point the chain is essentially done.)
+   *    The compromise vs. true cancellation: we'd need to thread an
+   *    AbortSignal through `onCommit` / `onPush` / `onGenerate` and into
+   *    `fetch`, which is a wider refactor. The current behaviour matches the
+   *    user's mental model in the common case ("stop before the next thing
+   *    happens") and the rare "I clicked stop during push and it still
+   *    happened" is honest to what `git push` does at the HTTP layer.
    */
   async function generateCommitAndPush() {
     if (!canCombo || !onPush) return;
-    const n = checkedCount;
-    const target = branchLabel ?? "current branch";
-    if (typeof window !== "undefined") {
-      const ok = window.confirm(`Commit ${n} file${n === 1 ? "" : "s"} and push to ${target}?`);
-      if (!ok) return;
-    }
     setError(null);
+    cancelledRef.current = false;
+    setCancelling(false);
+    try {
+      // Step 1: generate if the box is empty.
+      let messageToCommit = message;
+      if (messageToCommit.trim().length === 0) {
+        if (!onGenerate) {
+          setError("commit message required");
+          return;
+        }
+        setComboStep("generate");
+        const g = await onGenerate();
+        if (cancelledRef.current) return;
+        if (!g.ok) {
+          setError(g.error);
+          return;
+        }
+        messageToCommit = withPrefix(g.message);
+        setMessage(messageToCommit);
+        if (onPersistDraft) {
+          try {
+            await onPersistDraft(messageToCommit);
+          } catch {
+            // non-fatal
+          }
+        }
+        if (cancelledRef.current) return;
+      }
 
-    // Step 1: generate if the box is empty.
-    let messageToCommit = message;
-    if (messageToCommit.trim().length === 0) {
-      if (!onGenerate) {
-        setError("commit message required");
+      // Step 2: commit. On failure we stop and leave the textarea populated
+      // so the user can fix things up and retry.
+      setComboStep("commit");
+      const c = await onCommit(messageToCommit);
+      if (!c.ok) {
+        setError(c.error);
         return;
       }
-      setComboStep("generate");
-      const g = await onGenerate();
-      if (!g.ok) {
-        setComboStep(null);
-        setError(g.error);
-        return;
-      }
-      messageToCommit = withPrefix(g.message);
-      setMessage(messageToCommit);
-      if (onPersistDraft) {
+      setMessage("");
+      if (onClearDraft) {
         try {
-          await onPersistDraft(messageToCommit);
+          await onClearDraft();
         } catch {
           // non-fatal
         }
       }
-    }
+      if (cancelledRef.current) return;
 
-    // Step 2: commit. On failure we stop and leave the textarea populated so
-    // the user can fix things up and retry.
-    setComboStep("commit");
-    const c = await onCommit(messageToCommit);
-    if (!c.ok) {
-      setComboStep(null);
-      setError(c.error);
-      return;
-    }
-    setMessage("");
-    if (onClearDraft) {
-      try {
-        await onClearDraft();
-      } catch {
-        // non-fatal
+      // Step 3: push. Keep the commit even on push failure — recovery (pull,
+      // amend, force-push, etc.) is the user's call.
+      setComboStep("push");
+      const p = await onPush();
+      if (!p.ok) {
+        setError(`Committed locally; push failed: ${p.error}`);
       }
+    } finally {
+      // Whichever leg returned (or threw), the chain is no longer running.
+      // Resetting here in finally guarantees the button bounces back to
+      // "Commit & Push" even if a step threw past our checks.
+      setComboStep(null);
+      setCancelling(false);
     }
+  }
 
-    // Step 3: push. Keep the commit even on push failure — recovery (pull,
-    // amend, force-push, etc.) is the user's call.
-    setComboStep("push");
-    const p = await onPush();
-    setComboStep(null);
-    if (!p.ok) {
-      setError(`Committed locally; push failed: ${p.error}`);
-    }
+  /**
+   * Flip the cancellation flag and reflect "cancelling" in the button
+   * immediately. The in-flight leg will land, the chain will check the
+   * flag at the next boundary, and `generateCommitAndPush`'s `finally`
+   * block will reset `comboStep` and `cancelling`.
+   */
+  function cancelCombo() {
+    cancelledRef.current = true;
+    setCancelling(true);
   }
 
   return (
@@ -384,41 +437,69 @@ export function CommitBox({
           <GitCommit className="h-3 w-3" />
           {busy ? "Committing…" : "Commit"}
         </button>
+        {/* Three visual states for the same button:
+              idle       — accent background, Sparkles + ArrowUp, "Commit & Push"
+              in flight  — red background, StopCircle icon, "<step>… · Stop"
+              cancelling — neutral background, spinner, "Cancelling…" (disabled)
+            The same click target advances the state machine: idle → run,
+            in flight → cancel. Cancelling is non-interactive while we wait
+            for the in-flight leg to land. */}
         {onPush && (
           <button
             type="button"
-            onClick={() => void generateCommitAndPush()}
-            disabled={!canCombo}
+            onClick={() => {
+              if (cancelling) return;
+              if (comboInFlight) cancelCombo();
+              else void generateCommitAndPush();
+            }}
+            // Enabled in two scenarios: idle-with-prereqs-met (kick off the
+            // chain) and mid-flight-not-yet-cancelling (act as Stop).
+            disabled={cancelling || (!comboInFlight && !canCombo)}
             data-testid="commit-and-push-button"
+            data-combo-step={comboStep ?? "idle"}
             title={
-              checkedCount === 0
-                ? "Check files to commit first"
-                : message.trim().length === 0
-                  ? "Generate a commit message, commit, then push (⌘/Ctrl + ⇧ + Enter)"
-                  : "Commit, then push (⌘/Ctrl + ⇧ + Enter)"
+              cancelling
+                ? "Cancelling… waiting for the current step to finish"
+                : comboInFlight
+                  ? `${comboStepLabel} — click to stop after this step`
+                  : checkedCount === 0
+                    ? "Check files to commit first"
+                    : message.trim().length === 0
+                      ? "Generate a commit message, commit, then push (⌘/Ctrl + ⇧ + Enter)"
+                      : "Commit, then push (⌘/Ctrl + ⇧ + Enter)"
             }
             // Single-line label + whitespace-nowrap so this never wraps and
             // ends up looking visually heavier than its neighbours. The
-            // Sparkles icon carries the "generate" semantics (animated while
-            // that leg is running) — spelling it out tripled the button's
-            // width and pushed it onto two lines on the default panel size.
+            // background colour shifts (accent → red-600 → muted) to make
+            // the cancellable-vs-cancelling-vs-idle states unambiguous at
+            // a glance — clicking a red button to STOP something is the
+            // universal affordance.
             className={cn(
-              "flex items-center gap-1.5 whitespace-nowrap rounded-md bg-[var(--accent)] px-2.5 py-1 text-[11px] font-medium text-white",
+              "flex items-center gap-1.5 whitespace-nowrap rounded-md px-2.5 py-1 text-[11px] font-medium text-white",
               "hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40",
+              cancelling
+                ? "bg-[var(--panel-2)] text-[var(--muted)]"
+                : comboInFlight
+                  ? "bg-red-600"
+                  : "bg-[var(--accent)]",
             )}
           >
-            <Sparkles
-              className={cn("h-3 w-3", comboStep === "generate" && "animate-pulse")}
-            />
-            <ArrowUpFromLine className="h-3 w-3" />
+            {cancelling ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : comboInFlight ? (
+              <StopCircle className="h-3 w-3" />
+            ) : (
+              <>
+                <Sparkles className="h-3 w-3" />
+                <ArrowUpFromLine className="h-3 w-3" />
+              </>
+            )}
             <span>
-              {comboStep === "generate"
-                ? "Generating…"
-                : comboStep === "commit"
-                  ? "Committing…"
-                  : comboStep === "push"
-                    ? "Pushing…"
-                    : "Commit & Push"}
+              {cancelling
+                ? "Cancelling…"
+                : comboStepLabel != null
+                  ? `${comboStepLabel}… · Stop`
+                  : "Commit & Push"}
             </span>
           </button>
         )}

@@ -336,7 +336,7 @@ export function MessageList({
         onScroll={onScroll}
         className="flex-1 overflow-y-auto scroll-thin"
       >
-        <div className="mx-auto w-full max-w-3xl space-y-4 px-4 py-6">
+        <div className="mx-auto w-full max-w-3xl space-y-4 px-2 py-6 sm:px-4">
           {/* Top sentinel: when it scrolls into view, the parent loads older. */}
           {hasMoreAbove && (
             <div ref={topSentinelRef} className="flex items-center justify-center py-2 text-[10px] text-[var(--muted)]">
@@ -384,7 +384,12 @@ export function MessageList({
                         "space-y-2 rounded-md transition-colors",
                         highlightUuid === m.uuid && "bg-[var(--accent)]/15 ring-1 ring-[var(--accent)]/40",
                         isPinnedUser &&
-                          "sticky top-0 z-10 -mx-4 max-h-[20vh] overflow-y-auto scroll-thin border-b border-[var(--border)] bg-[var(--background)]/90 px-4 py-2 shadow-[0_2px_4px_rgba(0,0,0,0.04)] backdrop-blur",
+                          // Mirror the scroll-container padding (px-2 on
+                          // narrow viewports, px-4 from sm up). The negative
+                          // margin pulls the pinned bar flush to the
+                          // scrollbar edges so the bottom border spans the
+                          // full chat width regardless of breakpoint.
+                          "sticky top-0 z-10 -mx-2 max-h-[20vh] overflow-y-auto scroll-thin border-b border-[var(--border)] bg-[var(--background)]/90 px-2 py-2 shadow-[0_2px_4px_rgba(0,0,0,0.04)] backdrop-blur sm:-mx-4 sm:px-4",
                       )}
                     >
                       {m.role === "user" ? (

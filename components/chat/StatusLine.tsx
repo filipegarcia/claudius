@@ -14,8 +14,10 @@ import type { PermissionMode } from "@anthropic-ai/claude-agent-sdk";
 import { ModeSelector } from "./ModeSelector";
 import { SessionPicker } from "./SessionPicker";
 import { SessionNotifyMenu } from "./SessionNotifyMenu";
+import { WorkspaceIcon } from "@/components/workspaces/WorkspaceIcon";
 import { cn } from "@/lib/utils/cn";
 import type { SessionInfo } from "@/lib/client/types";
+import type { Workspace } from "@/lib/server/workspaces-store";
 import {
   VERBOSE_LEVELS,
   verboseDescription,
@@ -58,6 +60,13 @@ type Props = {
    * via `useVerbose`). Omitting this hides the selector entirely.
    */
   onChangeVerbose?: (next: VerboseLevel) => void | Promise<void>;
+  /**
+   * Active workspace — surfaced as a leading icon + name in the status bar
+   * so the user can tell which workspace they're inside without going to the
+   * sidebar. Optional because the page may not have resolved a workspace
+   * yet on first paint (useWorkspaces still loading).
+   */
+  workspace?: Workspace | null;
 };
 
 export function StatusLine({
@@ -84,6 +93,7 @@ export function StatusLine({
   onClear,
   verbose,
   onChangeVerbose,
+  workspace,
 }: Props) {
   const status = !ready ? "starting" : pending ? "working" : "idle";
   const color =
@@ -101,6 +111,30 @@ export function StatusLine({
 
   return (
     <div className="flex h-9 items-center gap-3 border-b border-[var(--border)] bg-[var(--panel)] px-4 text-xs text-[var(--muted)]">
+      {workspace && (
+        <>
+          {/* Workspace breadcrumb. The icon + name anchor the rest of the
+              status line (session, model, mode) to a parent context — handy
+              when several workspaces are open in different windows. Title
+              attribute carries the rootPath so the user can confirm which
+              folder this workspace points at without leaving the chat. */}
+          <span
+            data-testid="status-line-workspace"
+            data-workspace-id={workspace.id}
+            title={`Workspace: ${workspace.name}\n${workspace.rootPath}`}
+            // `min-w-0` lets the truncate actually clip — without it the
+            // flex item refuses to shrink below its intrinsic content size
+            // and pushes the right-hand chip cluster off-screen on narrow
+            // viewports. `max-w` keeps long names from monopolising the bar
+            // even when there's room.
+            className="flex min-w-0 max-w-[10rem] items-center gap-1.5 sm:max-w-[14rem]"
+          >
+            <WorkspaceIcon workspace={workspace} size={16} />
+            <span className="truncate text-[var(--foreground)]">{workspace.name}</span>
+          </span>
+          <span className="opacity-50">·</span>
+        </>
+      )}
       <span
         data-testid="status-line-dot"
         data-status={status}
@@ -141,7 +175,10 @@ export function StatusLine({
           <span className="font-mono opacity-80">{model}</span>
         </>
       )}
-      <div className="ml-auto flex items-center gap-2">
+      {/* `shrink-0` on the cluster pairs with `min-w-0` on the workspace
+          breadcrumb above — the breadcrumb is the only thing that should
+          give up width when the bar gets narrow. */}
+      <div className="ml-auto flex shrink-0 items-center gap-2">
         {(typeof totalCostUsd === "number" && totalCostUsd > 0) || (typeof outputTokens === "number" && outputTokens > 0) ? (
           <button
             onClick={onOpenCost}
@@ -200,7 +237,9 @@ export function StatusLine({
             className="flex items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-1.5 py-0.5 hover:bg-[var(--panel)] disabled:opacity-40"
           >
             <Minimize2 className="h-3 w-3" />
-            <span className="text-[10px]">Compact</span>
+            {/* Below md the icon stands on its own — the `title` still
+                carries the full tooltip. */}
+            <span className="hidden text-[10px] md:inline">Compact</span>
           </button>
         )}
         {onClear && (
@@ -210,7 +249,7 @@ export function StatusLine({
             className="flex items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-1.5 py-0.5 hover:bg-[var(--panel)]"
           >
             <Eraser className="h-3 w-3" />
-            <span className="text-[10px]">Clear</span>
+            <span className="hidden text-[10px] md:inline">Clear</span>
           </button>
         )}
         {notificationsState && onToggleNotifications && (
@@ -226,7 +265,10 @@ export function StatusLine({
           <VerboseSelector value={verbose} onChange={onChangeVerbose} />
         )}
         <ModeSelector mode={permissionMode} onChange={onModeChange} />
-        <span className="font-mono text-[10px] opacity-60">claudius v0</span>
+        {/* Version tag is cosmetic — drop it on small screens to give the
+            functional controls room. The Bypass / Verbose / Mode pills
+            already cover what the user needs to act on. */}
+        <span className="hidden font-mono text-[10px] opacity-60 lg:inline">claudius v0</span>
       </div>
     </div>
   );
@@ -357,7 +399,10 @@ function ShareButton({ sessionId }: { sessionId: string | null }) {
       className="flex items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-1.5 py-0.5 hover:bg-[var(--panel)]"
     >
       {copied ? <Check className="h-3 w-3 text-emerald-400" /> : <LinkIcon className="h-3 w-3" />}
-      <span className="text-[10px]">{copied ? "Copied" : "Share"}</span>
+      {/* Label collapses below md so the right cluster fits alongside the
+          Compact / Clear / Verbose / Mode pills on narrow viewports. The
+          title attribute keeps the URL discoverable as a tooltip. */}
+      <span className="hidden text-[10px] md:inline">{copied ? "Copied" : "Share"}</span>
     </button>
   );
 }
