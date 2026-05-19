@@ -32,6 +32,7 @@ import type {
   PendingPlan,
   QueuedMessage,
   RecentEdit,
+  ScheduledLoop,
   SessionInfo,
   SessionUsage,
   SystemEntry,
@@ -206,6 +207,11 @@ function pickPrimaryArg(name: string, input: Record<string, unknown>): string | 
     Task: ["description"],
     TodoWrite: [],
     ExitPlanMode: [],
+    // Surface the cron expression / wake-up delay as the primary arg so the
+    // Tools row in the Activity rail shows what was scheduled, not nothing.
+    CronCreate: ["cron"],
+    CronDelete: ["id"],
+    ScheduleWakeup: ["reason"],
   };
   const keys = perTool[name] ?? ["file_path", "command", "pattern", "url", "query", "description", "path"];
   for (const k of keys) {
@@ -309,6 +315,19 @@ export function useSession(): ChatState & ChatActions {
   const [latestTodos, setLatestTodos] = useState<AgentTodo[]>([]);
   const [recentEdits, setRecentEdits] = useState<RecentEdit[]>([]);
   const [backgroundBashes, setBackgroundBashes] = useState<Record<string, BackgroundBash>>({});
+  /**
+   * Active loops/wake-ups armed via the SDK's harness-provided
+   * `CronCreate` / `ScheduleWakeup` tools. We populate this from the
+   * client-side tool_use + tool_result stream because there's no other
+   * Claudius-visible signal that a loop is running — the tools are not
+   * Claudius code, the harness owns them.
+   *
+   * Keyed by stable id (cron id for crons, tool_use_id for wake-ups).
+   * For crons, the entry is first written as `pending` on tool_use (keyed
+   * by tool_use_id) and re-keyed under the real cron id once the matching
+   * tool_result lands with `{ id, humanSchedule, durable, recurring }`.
+   */
+  const [scheduledLoops, setScheduledLoops] = useState<Record<string, ScheduledLoop>>({});
   const [toolHistory, setToolHistory] = useState<ToolHistoryEntry[]>([]);
   const [sessionTitle, setSessionTitle] = useState<string | null>(null);
 
@@ -688,6 +707,7 @@ export function useSession(): ChatState & ChatActions {
     setLatestTodos([]);
     setRecentEdits([]);
     setBackgroundBashes({});
+    setScheduledLoops({});
     setToolHistory([]);
     setSessionTitle(null);
     setPermissionModeState("default");
@@ -1266,6 +1286,96 @@ export function useSession(): ChatState & ChatActions {
             }
             continue;
           }
+
+          // CronCreate — store a *pending* entry keyed by tool_use_id; the
+          // matching tool_result carries the real cron id and humanSchedule,
+          // and that's where we re-key into the active loops map. We seed the
+          // entry here so the rail can show "Arming…" the instant the tool
+          // fires (before its result lands).
+          if (b.name === "CronCreate") {
+            const inp = b.input as {
+              cron?: unknown;
+              prompt?: unknown;
+              recurring?: unknown;
+            };
+            const cron = typeof inp.cron === "string" ? inp.cron : "";
+            const prompt = typeof inp.prompt === "string" ? inp.prompt : "";
+            if (cron) {
+              setScheduledLoops((prev) => {
+                if (prev[b.id]) return prev;
+                const entry: ScheduledLoop = {
+                  kind: "cron",
+                  id: b.id, // re-keyed to real cron id on tool_result
+                  toolUseId: b.id,
+                  cron,
+                  humanSchedule: null,
+                  delaySeconds: null,
+                  prompt,
+                  recurring: inp.recurring === true,
+                  durable: false,
+                  startedAt: Date.now(),
+                };
+                return { ...prev, [b.id]: entry };
+              });
+            }
+            continue;
+          }
+
+          // CronDelete — mark the matching loop as cancelled. The agent
+          // calls this when the user (or this UI's Cancel button) asks to
+          // stop a loop. We don't actually remove the entry — leaving it
+          // visible with a "cancelled" tone gives the user closure.
+          if (b.name === "CronDelete") {
+            const idRaw = (b.input as { id?: unknown }).id;
+            const id = typeof idRaw === "string" ? idRaw : null;
+            if (id) {
+              setScheduledLoops((prev) => {
+                if (!prev[id]) return prev;
+                return { ...prev, [id]: { ...prev[id], cancelled: true } };
+              });
+            }
+            continue;
+          }
+
+          // ScheduleWakeup — one-shot dynamic wake-up. There's no result-side
+          // id to bind (the tool returns nothing useful), so we key by the
+          // tool_use_id itself. Lives in the rail until either replaced by
+          // the next ScheduleWakeup or the session ends.
+          if (b.name === "ScheduleWakeup") {
+            const inp = b.input as {
+              delaySeconds?: unknown;
+              reason?: unknown;
+              prompt?: unknown;
+            };
+            const delay = typeof inp.delaySeconds === "number" ? inp.delaySeconds : null;
+            const prompt = typeof inp.prompt === "string" ? inp.prompt : "";
+            const reason = typeof inp.reason === "string" ? inp.reason : undefined;
+            setScheduledLoops((prev) => {
+              // Replace any prior pending wake-up — dynamic-mode loops chain
+              // one wake-up per turn, so only the latest is "armed".
+              const next: Record<string, ScheduledLoop> = {};
+              for (const [k, v] of Object.entries(prev)) {
+                if (v.kind === "wakeup" && !v.cancelled) continue;
+                next[k] = v;
+              }
+              const entry: ScheduledLoop = {
+                kind: "wakeup",
+                id: b.id,
+                toolUseId: b.id,
+                cron: null,
+                humanSchedule: null,
+                delaySeconds: delay,
+                prompt,
+                reason,
+                recurring: false,
+                durable: false,
+                startedAt: Date.now(),
+              };
+              next[b.id] = entry;
+              return next;
+            });
+            continue;
+          }
         }
         return;
       }
@@ -1569,6 +1679,40 @@ export function useSession(): ChatState & ChatActions {
             const bashId = m?.[1];
             if (!bashId) return prev;
             return { ...prev, [result.tool_use_id]: { ...entry, bashId } };
+          });
+          // CronCreate result — re-key the pending entry under the real cron
+          // id and fold in `humanSchedule` / durability flags. The text shape
+          // we parse against (recorded from a real session) looks like:
+          //
+          //   "Scheduled recurring job 1545ddb6 (Every minute). Session-only
+          //    (not written to disk, dies when Claude exits). Auto-expires
+          //    after 7 days. Use CronDelete to cancel sooner."
+          //
+          // If parsing fails (text shape changes), we leave the pending
+          // entry in place keyed by tool_use_id — visible but with a
+          // synthetic id. Better than dropping it on the floor.
+          setScheduledLoops((prev) => {
+            const pending = prev[result.tool_use_id];
+            if (!pending || pending.kind !== "cron") return prev;
+            if (result.isError) {
+              const copy = { ...prev };
+              delete copy[result.tool_use_id];
+              return copy;
+            }
+            const idMatch = result.text.match(/job\s+([a-z0-9]+)\s*\(([^)]+)\)/i);
+            const cronId = idMatch?.[1] ?? pending.toolUseId;
+            const humanSchedule = idMatch?.[2] ?? null;
+            const durable = !/session[- ]only/i.test(result.text);
+            const promoted: ScheduledLoop = {
+              ...pending,
+              id: cronId,
+              humanSchedule,
+              durable,
+            };
+            const copy = { ...prev };
+            delete copy[result.tool_use_id];
+            copy[cronId] = promoted;
+            return copy;
           });
           return;
         }
@@ -2702,6 +2846,7 @@ export function useSession(): ChatState & ChatActions {
     latestTodos,
     recentEdits,
     backgroundBashes,
+    scheduledLoops,
     toolHistory,
     sessionTitle,
     send,
