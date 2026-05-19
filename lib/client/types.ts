@@ -205,6 +205,48 @@ export type BackgroundBash = {
   killed?: boolean;
 };
 
+/**
+ * A scheduled loop/wake-up created by the agent SDK's harness-provided
+ * scheduling tools (`CronCreate` and `ScheduleWakeup`). These crons live
+ * inside the Claude session (not in Claudius's own `/schedule` system) and
+ * die when the session exits — there's no server-side persistence we can
+ * query. We reconstruct visibility by listening to tool_use / tool_result
+ * events flowing through the session and surfacing them in the Activity
+ * rail so the user can see what's armed without having to scroll back to
+ * the inline assistant message.
+ */
+export type ScheduledLoop = {
+  /** Tool kind that armed this loop. */
+  kind: "cron" | "wakeup";
+  /**
+   * Stable id used for cancellation:
+   * - For `cron`: the job id returned by CronCreate (e.g. `"1545ddb6"`).
+   * - For `wakeup`: the tool_use_id of the ScheduleWakeup call (no real
+   *   handle exists — wake-ups are fire-and-forget).
+   */
+  id: string;
+  /** tool_use_id of the call that created this entry. Used to track results. */
+  toolUseId: string;
+  /** Cron expression (cron kind) — `null` for wake-ups. */
+  cron: string | null;
+  /** Human-readable schedule from the tool_result (`humanSchedule`) — e.g. "Every minute". */
+  humanSchedule: string | null;
+  /** Delay until next fire, seconds (wakeup kind only). */
+  delaySeconds: number | null;
+  /** Original prompt the agent scheduled. */
+  prompt: string;
+  /** Wake-up reason (wakeup kind only — explanation the agent gave for the cadence). */
+  reason?: string;
+  /** Whether the cron repeats. Wake-ups are always one-shot. */
+  recurring: boolean;
+  /** True when CronCreate marked this durable (survives session exit). */
+  durable: boolean;
+  /** ms since epoch when the schedule was armed. */
+  startedAt: number;
+  /** True once the agent has been asked to cancel via CronDelete. */
+  cancelled?: boolean;
+};
+
 export type SessionUsage = {
   totalCostUsd: number;
   numTurns: number;
@@ -262,6 +304,13 @@ export type ChatState = {
   recentEdits: RecentEdit[];
   /** Active background bash shells, keyed by tool_use_id. */
   backgroundBashes: Record<string, BackgroundBash>;
+  /**
+   * Scheduled loops the agent has armed in this session (CronCreate +
+   * ScheduleWakeup). Keyed by the loop's stable id (cron id for crons,
+   * tool_use_id for one-shot wake-ups). Lives in client state only — these
+   * are session-scoped to the agent runtime and die when the session ends.
+   */
+  scheduledLoops: Record<string, ScheduledLoop>;
   /** Capped log of tool_use events (newest first; max 100). Includes running and finished tools. */
   toolHistory: ToolHistoryEntry[];
   /** Persisted human-readable session title. Null until set by the user. */

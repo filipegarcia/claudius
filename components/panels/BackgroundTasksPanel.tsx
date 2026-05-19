@@ -7,6 +7,7 @@ import type {
   AgentTodo,
   BackgroundBash,
   RecentEdit,
+  ScheduledLoop,
   SessionUsage,
   TaskInfo,
   ToolHistoryEntry,
@@ -23,6 +24,7 @@ import { PermissionPending } from "./widgets/PermissionPending";
 import { TodoList } from "./widgets/TodoList";
 import { AddTodosForm } from "./widgets/AddTodosForm";
 import { BackgroundBashes } from "./widgets/BackgroundBashes";
+import { ScheduledLoops } from "./widgets/ScheduledLoops";
 import { RecentEdits } from "./widgets/RecentEdits";
 import { fmtMs } from "./widgets/format";
 import { cn } from "@/lib/utils/cn";
@@ -47,9 +49,22 @@ type Props = {
   latestTodos: AgentTodo[];
   recentEdits: RecentEdit[];
   backgroundBashes: Record<string, BackgroundBash>;
+  /**
+   * Loops/wake-ups armed via CronCreate / ScheduleWakeup in this session.
+   * Always populated (may be empty) — rendered when at least one active
+   * entry exists. Cancellation happens through `onCancelScheduledLoop`,
+   * which composes a user-side prompt asking the agent to call CronDelete.
+   */
+  scheduledLoops: Record<string, ScheduledLoop>;
   toolHistory: ToolHistoryEntry[];
   /** Open the live-tail viewer for this bash. */
   onOpenBash?: (b: BackgroundBash) => void;
+  /**
+   * Ask the agent to cancel a scheduled loop. The handler should compose a
+   * "Please cancel cron <id>" prompt and pipe it through useSession.send.
+   * Omitting this hides the per-entry Cancel button.
+   */
+  onCancelScheduledLoop?: (loop: ScheduledLoop) => Promise<void> | void;
   /**
    * Ask the agent to append items to its TodoWrite list. The handler
    * should compose a prompt and pipe it through useSession.send (which
@@ -109,8 +124,10 @@ export function BackgroundTasksPanel({
   latestTodos,
   recentEdits,
   backgroundBashes,
+  scheduledLoops,
   toolHistory,
   onOpenBash,
+  onCancelScheduledLoop,
   onAddTodos,
   onChangeModel,
   onChangeEffort,
@@ -128,10 +145,22 @@ export function BackgroundTasksPanel({
     .slice(-3)
     .reverse();
   const liveBashes = Object.values(backgroundBashes).filter((b) => !b.killed);
+  // Show cancelled loops too so the user gets closure feedback — they fade
+  // to the muted tone but stay in the list until the section is
+  // re-rendered without them (next session reset). Only ACTIVE ones count
+  // toward attention though.
+  const allLoops = Object.values(scheduledLoops).sort((a, b) => b.startedAt - a.startedAt);
+  const activeLoopCount = allLoops.filter((l) => !l.cancelled).length;
 
-  // Counter math: things needing attention.
+  // Counter math: things needing attention. Includes scheduled loops so
+  // the rail header reflects "things that will keep running" — the
+  // user's complaint was that schedules had no visible cue at all.
   const attention =
-    runningCount + subagents.length + (pendingPermission ? 1 : 0) + liveBashes.length;
+    runningCount +
+    subagents.length +
+    (pendingPermission ? 1 : 0) +
+    liveBashes.length +
+    activeLoopCount;
 
   // "Busy" covers session boot AND turn-in-flight. Drives the header spinner —
   // gives the user a always-visible "Claude is doing something" cue without
@@ -342,6 +371,24 @@ export function BackgroundTasksPanel({
             </ul>
           )}
         </CollapsibleSection>
+
+        {allLoops.length > 0 && (
+          <CollapsibleSection
+            storageKey="loops"
+            label="Scheduled loops"
+            badge={
+              activeLoopCount > 0
+                ? `(${activeLoopCount}${
+                    allLoops.length > activeLoopCount
+                      ? ` · ${allLoops.length - activeLoopCount} cancelled`
+                      : ""
+                  })`
+                : `(${allLoops.length})`
+            }
+          >
+            <ScheduledLoops items={allLoops} onCancel={onCancelScheduledLoop} />
+          </CollapsibleSection>
+        )}
 
         {liveBashes.length > 0 && (
           <CollapsibleSection storageKey="bashes" label="Background shells" badge={`(${liveBashes.length})`}>
