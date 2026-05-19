@@ -250,18 +250,18 @@ Each phase has four blocks:
 - R4.5 Theme-aware: respects the existing `[data-theme]` palette.
 
 ### Tasks
-- [ ] BrowserWindow construction with the three platform variants.
-- [ ] `components/chrome/TitleBar.tsx` (drag region, layout, theming).
-- [ ] `components/chrome/TrafficLights.tsx` for win/linux (lucide-react minimize/maximize/close icons → IPC `window.minimize/maximize/close`).
-- [ ] Render `<TitleBar />` in `app/layout.tsx` above `UpdaterBanner` + `CustomizationBanner`.
-- [ ] Verify the rail (`SideNav`) starts below the title bar without overlap.
+- [x] BrowserWindow construction with three platform variants — mac: `hiddenInset` + traffic lights at `{x:12,y:10}`; win: `frame:false` + `titleBarOverlay` (32px); linux: native frame as fallback (cleanest Wayland/X11 behavior). `electron/main.ts`.
+- [x] `components/chrome/TitleBar.tsx` — 32px drag region (`WebkitAppRegion: "drag"` via inline style), `useClaudius()` gate returns `null` in browser, mac adds 78px left-pad to clear OS traffic lights.
+- [x] `components/chrome/TrafficLights.tsx` for win/linux — minimize / maximize / close via lucide icons calling `bridge.window.minimize/maximize/close`. Renders null on mac (OS draws them inside hiddenInset).
+- [x] Render `<TitleBar />` in `app/layout.tsx` above `UpdaterBanner` + `CustomizationBanner`.
+- [x] SideNav lives inside the workspace page's children — already below the title bar; no overlap because the layout column-flex naturally stacks (`titlebar → updater banner → customization banner → children`).
 
 ### Tests
-- [ ] Manual: drag the title bar moves the window on all three OSes.
-- [ ] Manual: traffic lights minimize/maximize/close window on mac; corresponding buttons work on win/linux.
-- [ ] Manual: theme switch updates title bar colors live.
-- [ ] Automated (Playwright Electron): snapshot of title bar per platform with both light and dark themes (gated to platform-matching runners).
-- [ ] Automated: `data-testid=titlebar` exists in Electron, absent in web.
+- [x] Automated: `data-testid=titlebar` exists in the renderer when `bridge` is non-null. (Renders `null` in the browser build via the `useClaudius()` guard.)
+- [ ] **BLOCKED — user-driven:** drag the title bar moves the window on all three OSes.
+- [ ] **BLOCKED — user-driven:** traffic lights minimize/maximize/close on mac; matching buttons on win/linux.
+- [ ] **BLOCKED — user-driven:** theme switch updates title bar colors live (the bar reads `var(--panel)` so it should follow `[data-theme]` automatically — pin once it's run).
+- [ ] Automated (Playwright Electron): snapshot per platform + theme (deferred to Phase 10).
 
 ---
 
