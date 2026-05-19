@@ -26,11 +26,25 @@ type Patch = Partial<{
   icon: Icon;
   defaults: WorkspaceDefaults;
   commitPrefix: CommitPrefixConfig;
+  navOrder: string[];
 }>;
 
 export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
   const body = (await req.json()) as Patch;
+  if (body.navOrder !== undefined) {
+    // Shape validation only — we accept stale actionIds (e.g. a tile
+    // hidden by a reverted customization) so the saved slot survives the
+    // gating round-trip. Cap the length to keep the JSON file small even
+    // if a client misbehaves.
+    if (
+      !Array.isArray(body.navOrder) ||
+      body.navOrder.length > 64 ||
+      body.navOrder.some((id) => typeof id !== "string" || id.length === 0 || id.length > 64)
+    ) {
+      return NextResponse.json({ error: "invalid navOrder" }, { status: 400 });
+    }
+  }
   if (typeof body.rootPath === "string") {
     // assertAbsoluteUserPath is the recognized barrier for "user chooses any
     // directory on their machine": rejects relative paths / null bytes, then

@@ -594,7 +594,7 @@ export default function GitPage() {
       const isUntracked = file?.untracked ?? false;
       const msg = isUntracked
         ? `Delete ${path} from disk? This cannot be undone.`
-        : `Discard local changes in ${path}? This cannot be undone.`;
+        : `Revert local changes in ${path}? The file stays — only your edits are dropped (recoverable from git reflog).`;
       if (!confirm(msg)) return;
       setDeletingPath(path);
       setOpError(null);

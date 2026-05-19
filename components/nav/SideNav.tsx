@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type DragEvent } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { MessageSquare, Network, Webhook, BookText, ShieldCheck, FolderTree, Bot, Calendar, BarChart3, Image as ImageIcon, Folder, Briefcase, GitBranch, Sparkles, WandSparkles, Container, CircleDot, Database as DatabaseIcon, BookOpen } from "lucide-react";
@@ -154,7 +154,7 @@ export function SideNav({ running = false }: { running?: boolean }) {
   // drawer → "Manage all" → click row) was three clicks for a destination
   // the user wants in one. Falls back to the list page when no
   // customization is active or while the lookup is in flight.
-  const { items: workspaces, activeId } = useWorkspaces();
+  const { items: workspaces, activeId, update } = useWorkspaces();
   const activeWorkspace = workspaces.find((w) => w.id === activeId) ?? null;
   const isCustomizationWs = activeWorkspace?.kind === "customization";
   // Cached resolution carries the workspace id it was computed for, so on
@@ -217,11 +217,30 @@ export function SideNav({ running = false }: { running?: boolean }) {
 
   // Apply the customizationName gate. Built-in tiles (no `customizationName`)
   // always render; gated tiles need their customization to be enabled.
-  const visibleItems = items.filter(
+  const gatedItems = items.filter(
     (it) =>
       !it.customizationName ||
       (enabledCustNames?.has(it.customizationName.toLowerCase()) ?? false),
   );
+
+  // Apply the workspace's saved `navOrder` to whatever survived the gate.
+  // Optimistic `localOrder` lets a drop reflow the rail before the PATCH
+  // round-trips; falling back to the server value keeps the two in sync
+  // once `useWorkspaces.refresh()` returns.
+  const [localOrder, setLocalOrder] = useState<string[] | null>(null);
+  const persistedOrder = activeWorkspace?.navOrder ?? null;
+  // Whenever the server hands us a new persistedOrder (workspace switch,
+  // refresh after a successful PATCH) drop the optimistic copy so we
+  // re-read canonical state. Stored in render-time state via the previous-
+  // value pattern so the setState stays out of an effect body.
+  // https://react.dev/reference/react/useState#storing-information-from-previous-renders
+  const [lastSeenPersisted, setLastSeenPersisted] = useState(persistedOrder);
+  if (lastSeenPersisted !== persistedOrder) {
+    setLastSeenPersisted(persistedOrder);
+    setLocalOrder(null);
+  }
+  const effectiveOrder = localOrder ?? persistedOrder;
+  const visibleItems = applyNavOrder(gatedItems, effectiveOrder);
   const customizationDetailId =
     isCustomizationWs && resolution?.workspaceId === activeWorkspace?.id ? resolution.customizationId : null;
   const customizeHref = customizationDetailId ? `/customize/${customizationDetailId}` : "/customize";
@@ -268,6 +287,59 @@ export function SideNav({ running = false }: { running?: boolean }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [router, visibleItems, bindingByActionId]);
 
+  // HTML5 drag-to-reorder. Mirrors the WorkspaceSwitcher pattern — same
+  // dimmed / scale / ring visual cues, same optimistic+PATCH flow. The
+  // drag operates on the rendered `visibleItems` (so what the user sees
+  // is what they reorder) but persistence records the underlying
+  // actionIds, including those for gated tiles, so toggling a
+  // customization off and back on returns its tile to the saved slot.
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [overId, setOverId] = useState<string | null>(null);
+  function onDragStart(actionId: string) {
+    return (e: DragEvent<HTMLDivElement>) => {
+      setDraggingId(actionId);
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("text/plain", actionId);
+    };
+  }
+  function onDragOver(actionId: string) {
+    return (e: DragEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+      if (overId !== actionId) setOverId(actionId);
+    };
+  }
+  function onDrop(targetActionId: string) {
+    return (e: DragEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      const sourceId = draggingId ?? e.dataTransfer.getData("text/plain");
+      setDraggingId(null);
+      setOverId(null);
+      if (!sourceId || sourceId === targetActionId || !activeId) return;
+
+      // Build the next order from the currently-visible rail. We then
+      // merge in any saved actionIds that aren't visible right now (so
+      // gated tiles keep their slot) — see `mergeReorderWithHidden`.
+      const visibleIds = visibleItems
+        .map((it) => it.actionId)
+        .filter((x): x is string => !!x);
+      const from = visibleIds.indexOf(sourceId);
+      const to = visibleIds.indexOf(targetActionId);
+      if (from === -1 || to === -1) return;
+      const nextVisible = visibleIds.slice();
+      nextVisible.splice(from, 1);
+      nextVisible.splice(to, 0, sourceId);
+      const nextOrder = mergeReorderWithHidden(nextVisible, persistedOrder, visibleIds);
+
+      setLocalOrder(nextOrder);
+      void update(activeId, { navOrder: nextOrder });
+    };
+  }
+  function onDragEnd() {
+    setDraggingId(null);
+    setOverId(null);
+  }
+
   return (
     <>
       <WorkspaceSwitcher />
@@ -292,8 +364,10 @@ export function SideNav({ running = false }: { running?: boolean }) {
             active &&
               "bg-[var(--accent)]/15 text-[var(--accent)] ring-1 ring-[var(--accent)]/40 hover:text-[var(--accent)]",
           );
-          // Tooltip: include the shortcut hint if there is one.
-          const tooltip = shortcutLabel ? `${label}  ${shortcutLabel}` : label;
+          // Tooltip: include the shortcut hint and a drag affordance so the
+          // user knows the tiles are reorderable.
+          const baseTooltip = shortcutLabel ? `${label}  ${shortcutLabel}` : label;
+          const tooltip = actionId ? `${baseTooltip}\nDrag to reorder` : baseTooltip;
           const body = (
             <>
               {active && (
@@ -305,17 +379,49 @@ export function SideNav({ running = false }: { running?: boolean }) {
               <Icon className="h-4.5 w-4.5" />
             </>
           );
-          if (href) {
+          // Wrap each tile in a draggable container. Items without an
+          // actionId aren't reorderable (none today, but future-proofs the
+          // case where a future tile has no stable id). The Link/button
+          // itself stays non-draggable so the drag handle is the surrounding
+          // div — same idiom as WorkspaceSwitcher.
+          const dimmed = draggingId && draggingId !== actionId;
+          const isOver = overId === actionId && draggingId && draggingId !== actionId;
+          const dragWrapClass = cn(
+            "relative transition",
+            actionId && "cursor-grab",
+            actionId && dimmed && "opacity-40",
+            actionId && draggingId === actionId && "scale-95 cursor-grabbing",
+            actionId && isOver && "ring-2 ring-[var(--accent)] rounded-md",
+          );
+          const inner = href ? (
+            <Link href={href} title={tooltip} className={cls} draggable={false}>
+              {body}
+            </Link>
+          ) : (
+            <button title={tooltip} className={cls} disabled>
+              {body}
+            </button>
+          );
+          if (!actionId) {
             return (
-              <Link key={label} href={href} title={tooltip} className={cls}>
-                {body}
-              </Link>
+              <div key={label} className="relative">
+                {inner}
+              </div>
             );
           }
           return (
-            <button key={label} title={tooltip} className={cls} disabled>
-              {body}
-            </button>
+            <div
+              key={label}
+              draggable
+              onDragStart={onDragStart(actionId)}
+              onDragOver={onDragOver(actionId)}
+              onDrop={onDrop(actionId)}
+              onDragEnd={onDragEnd}
+              className={dragWrapClass}
+              data-testid={`sidenav-tile-${actionId}`}
+            >
+              {inner}
+            </div>
           );
         })}
         {/* Customize tile — kept outside `items.map` because its href is
@@ -352,4 +458,95 @@ export function SideNav({ running = false }: { running?: boolean }) {
       </aside>
     </>
   );
+}
+
+/**
+ * Reorder rule applied when rendering the rail:
+ *   1. Items whose `actionId` appears in `order` render first, in the
+ *      array's order.
+ *   2. Everything else follows in its default position.
+ *   3. Dupes in `order` are ignored after the first hit.
+ *
+ * Stale ids in `order` (e.g. a gated tile whose customization has been
+ * reverted) are simply absent from `items`, so they're naturally skipped
+ * here. Persistence keeps them in the saved array — see
+ * `mergeReorderWithHidden` — so the slot survives the gating round-trip.
+ */
+function applyNavOrder(items: Item[], order: string[] | null | undefined): Item[] {
+  if (!order || order.length === 0) return items;
+  const byId = new Map<string, Item>();
+  for (const it of items) {
+    if (it.actionId) byId.set(it.actionId, it);
+  }
+  const taken = new Set<string>();
+  const ordered: Item[] = [];
+  for (const id of order) {
+    if (taken.has(id)) continue;
+    const it = byId.get(id);
+    if (it) {
+      ordered.push(it);
+      taken.add(id);
+    }
+  }
+  for (const it of items) {
+    if (!it.actionId || !taken.has(it.actionId)) ordered.push(it);
+  }
+  return ordered;
+}
+
+/**
+ * Build the next `navOrder` to persist after a drop on the visible rail.
+ *
+ * We have three inputs:
+ *   - `nextVisible`: the reordered actionIds the user just produced
+ *   - `prevPersisted`: the previously-saved order (may contain hidden
+ *      ids whose tiles are currently gated out)
+ *   - `currentlyVisible`: actionIds the user just saw, used to decide
+ *      which `prevPersisted` entries are "hidden right now" vs absent
+ *
+ * The output keeps any hidden id in the same relative position it had
+ * in `prevPersisted` so re-enabling a gated tile drops it back where the
+ * user left it. Hidden ids that came before the first visible one stay
+ * at the front; hidden ids that came after a visible one stay after the
+ * corresponding new position of that visible id. The simple rule below
+ * (interleave by scanning `prevPersisted` and inserting hidden ids at
+ * the relative anchor in `nextVisible`) handles both edges.
+ */
+function mergeReorderWithHidden(
+  nextVisible: string[],
+  prevPersisted: string[] | null | undefined,
+  currentlyVisible: string[],
+): string[] {
+  if (!prevPersisted || prevPersisted.length === 0) {
+    // No hidden ids to preserve — the visible order IS the saved order.
+    return nextVisible;
+  }
+  const visibleSet = new Set(currentlyVisible);
+  const result: string[] = [];
+  let visibleCursor = 0;
+  // Walk prevPersisted; emit hidden ids in their saved slot, and at each
+  // visible id pull the next entry from `nextVisible` (so we use the
+  // user's new ordering). Any visible ids that weren't in prevPersisted
+  // are appended after the walk.
+  for (const id of prevPersisted) {
+    if (visibleSet.has(id)) {
+      // Visible "anchor" — emit whatever the user has at this position now.
+      if (visibleCursor < nextVisible.length) {
+        result.push(nextVisible[visibleCursor]);
+        visibleCursor++;
+      }
+    } else {
+      result.push(id);
+    }
+  }
+  // Append any visible ids the user reordered into a position past where
+  // prevPersisted ran out (e.g. a brand-new tile we never persisted).
+  while (visibleCursor < nextVisible.length) {
+    result.push(nextVisible[visibleCursor]);
+    visibleCursor++;
+  }
+  // Final dedupe — guards against a `prevPersisted` that already
+  // contained the same id twice (shouldn't happen, but cheap to enforce).
+  const seen = new Set<string>();
+  return result.filter((id) => (seen.has(id) ? false : (seen.add(id), true)));
 }

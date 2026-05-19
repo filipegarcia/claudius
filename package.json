@@ -13,6 +13,7 @@
     "test:watch": "vitest",
     "test:related": "vitest related --run --passWithNoTests",
     "test:e2e": "playwright test --project=chromium",
+    "test:e2e:update-screenshots": "UPDATE_SCREENSHOTS=1 playwright test --project=chromium",
     "test:e2e:live": "playwright test --project=chromium-live",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",

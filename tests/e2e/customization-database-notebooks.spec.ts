@@ -1,6 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
+import { UPDATE_SCREENSHOTS } from "./helpers/marketing-screenshot";
 
 /**
  * Marketing screenshots for the Database (SQL console) and Notebooks
@@ -10,11 +11,11 @@ import { resolve } from "node:path";
  * components themselves, no API mocking needed. We bump the viewport to
  * give the SQL editor room for its DataGrip-style layout and snap each
  * route once. The notebook also takes a tighter "single cell" shot for
- * the marketing card hero.
+ * the marketing card hero. PNG writes are gated on UPDATE_SCREENSHOTS=1.
  */
 
 const SHOTS_DIR = resolve(process.cwd(), "site/screenshots");
-mkdirSync(SHOTS_DIR, { recursive: true });
+if (UPDATE_SCREENSHOTS) mkdirSync(SHOTS_DIR, { recursive: true });
 
 type WorkspaceSummary = { id: string; name: string; rootPath: string };
 
@@ -45,19 +46,23 @@ test.describe("customization · database + notebooks screenshots", () => {
     await expect(page.getByTestId("database-tabs")).toBeVisible();
     // Settle: syntax-highlight rendering + tree expansion.
     await page.waitForTimeout(400);
-    await page.screenshot({
-      path: resolve(SHOTS_DIR, "customization-database.png"),
-      fullPage: false,
-    });
+    if (UPDATE_SCREENSHOTS) {
+      await page.screenshot({
+        path: resolve(SHOTS_DIR, "customization-database.png"),
+        fullPage: false,
+      });
+    }
   });
 
   test("customization-notebooks (Jupyter runner)", async ({ page }) => {
     await page.goto("/notebooks", { waitUntil: "load" });
     await expect(page.getByTestId("notebooks-page")).toBeVisible({ timeout: 10_000 });
     await page.waitForTimeout(400);
-    await page.screenshot({
-      path: resolve(SHOTS_DIR, "customization-notebooks.png"),
-      fullPage: false,
-    });
+    if (UPDATE_SCREENSHOTS) {
+      await page.screenshot({
+        path: resolve(SHOTS_DIR, "customization-notebooks.png"),
+        fullPage: false,
+      });
+    }
   });
 });
