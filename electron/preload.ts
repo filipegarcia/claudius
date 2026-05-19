@@ -41,6 +41,7 @@ const TOPICS = {
   updaterCheck: "updater:check",
   updaterApply: "updater:apply",
   updaterStatus: "updater:status",
+  workspaceOpenFolder: "workspace:open-folder",
 } as const;
 
 /**
@@ -123,6 +124,11 @@ const api = {
           | { kind: "error"; message: string },
       ) => void,
     ) => subscribe(TOPICS.updaterStatus, cb),
+  },
+
+  workspaces: {
+    onOpenFolder: (cb: (path: string) => void) =>
+      subscribe<string>(TOPICS.workspaceOpenFolder, cb),
   },
 };
 

@@ -382,9 +382,10 @@ Each phase has four blocks:
 - [x] `electron/ipc/deep-links.ts` — protocol registration (`app.setAsDefaultProtocolClient("claudius")` in dev + prod variants), URL queue that defers cold-start payloads until the renderer's `did-finish-load` fires, then `webContents.send("deeplink:open", url)`. Handles mac `open-url` and win/linux `second-instance` event sources.
 - [x] `electron/ipc/dialogs.ts` — `dialog:open-workspace` and `dialog:open-file` `ipcMain.handle` topics returning `string | null` (matches the bridge contract).
 - [x] `lib/client/useDeepLinks.ts` + `components/chrome/DeepLinksHandler.tsx` — renderer subscriber. Parses `claudius://workspace/<wks_xxxxxxxxxxxx>?session=<id>` and `claudius://session/<id>`, routes via `next/navigation.router.push`. Mounted in `app/layout.tsx`.
-- [ ] Wire `/files` page's file picker through `window.claudius?.dialog.openFile()` when present. **Deferred to Phase 9 per-screen sweep** (touches the files page, which we'll audit there anyway).
-- [ ] Title-bar drop handler: on `drop`, take the dropped path → POST `/api/workspaces`. **Deferred to Phase 9** (needs careful coordination with the existing workspace creation flow).
+- [x] **"Open Workspace…" menu action wiring** (iter 13): new `useElectronGlobalActions` hook + `<ElectronGlobalActions />` host. Subscribes to `app.openWorkspace` from the OS menu, calls `bridge.dialog.openWorkspace()`, POSTs to `/api/workspaces`, navigates via `router.push(\`/${ws.id}\`)`.
+- [x] **Dock-folder-drop wiring** (iter 13): `app.on("open-file")` in `electron/main.ts` forwards the dropped path through a new `workspace:open-folder` IPC topic; queue flushes on `did-finish-load`. New bridge namespace `bridge.workspaces.onOpenFolder(cb)` (`bridgeVersion` stays at 2; the API is additive).
 - [x] mac `open-file` / `second-instance` argv inspection wired into `electron/main.ts`.
+- [ ] `/files` page native picker — N/A. The `/files` page browses the workspace's own tree (not the user's home directory), so `bridge.dialog.openFile()` doesn't have a use site there. Bridge method still exists for future per-feature pickers.
 
 ### Tests
 - [x] `tests/unit/electron-ipc-imports.test.ts` — vitest sweep that mocks `electron` and `electron-updater` and verifies every `electron/ipc/*` module loads without throwing. Catches require-at-top regressions without needing a display server. Advisor-recommended at iter 10.
