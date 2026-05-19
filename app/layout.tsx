@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";
 import { Suspense } from "react";
 import "./globals.css";
+import { CommandPalette } from "@/components/overlays/CommandPalette";
 import { PaneLabelsHost } from "@/components/overlays/PaneLabelsHost";
 import { CustomizationBanner } from "@/components/customize/CustomizationBanner";
 import { TitleBar } from "@/components/chrome/TitleBar";
@@ -76,6 +77,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
                 <CustomizationBanner />
                 <div className="min-h-0 flex-1">{children}</div>
               </div>
+              {/* Cross-cut Cmd+K palette — Phase 5 of
+                * docs/electron-conversion/PLAN.md. Renders nothing
+                * until the chord opens it; safe to mount globally. */}
+              <CommandPalette />
               <PaneLabelsHost />
             </CommunityNotificationsProvider>
           </NotificationsProvider>
