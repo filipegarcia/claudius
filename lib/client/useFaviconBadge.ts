@@ -2,6 +2,8 @@
 
 import { useEffect, useRef } from "react";
 
+import { readBridgeOnClient } from "./useElectron";
+
 /**
  * Drives the dynamic favicon + document.title for the total unread count.
  *
@@ -33,6 +35,11 @@ export function useFaviconBadge(totalUnread: number, opts?: { titleBase?: string
 
     // Document title — cheap, always update.
     document.title = totalUnread > 0 ? `(${formatCount(totalUnread)}) ${titleBase}` : titleBase;
+
+    // Phase 6 of docs/electron-conversion/PLAN.md — when running inside
+    // Electron, push the unread count to the OS dock/taskbar too. The
+    // bridge call is a no-op in the browser build.
+    readBridgeOnClient()?.badge.set(totalUnread);
 
     // Find Next's metadata-injected static icon. It carries
     // `type="image/svg+xml"` and is the one browsers prefer over our

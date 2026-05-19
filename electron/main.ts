@@ -15,6 +15,9 @@
 import { app, BrowserWindow, shell } from "electron";
 import path from "node:path";
 
+import { registerBadgeHandlers } from "./ipc/badge";
+import { createBus } from "./ipc/bus";
+import { registerNotificationHandlers } from "./ipc/notifications";
 import { installAppMenu } from "./menu";
 import {
   defaultAppDir,
@@ -158,6 +161,12 @@ function createWindow(startUrl: string): BrowserWindow {
 app.whenReady().then(async () => {
   try {
     installAppMenu();
+    // Phase 6 IPC handlers — notifications + dock/taskbar badge.
+    // Register before the window opens so any early renderer message
+    // (e.g. a queued badge update) has somewhere to land.
+    const bus = createBus();
+    registerNotificationHandlers(bus);
+    registerBadgeHandlers();
     const startUrl = await resolveStartUrl();
     mainWindow = createWindow(startUrl);
 
