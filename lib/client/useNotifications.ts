@@ -8,6 +8,8 @@ import type {
 } from "@/lib/shared/notifications";
 import type { Workspace } from "@/lib/server/workspaces-store";
 
+import { readBridgeOnClient } from "./useElectron";
+
 export type NotifyState = "default" | "granted" | "denied" | "unsupported";
 
 /**
@@ -150,18 +152,48 @@ export function useNotifications(opts: Options) {
     [workspace, state, requestPermission],
   );
 
+  // Phase 6 of docs/electron-conversion/PLAN.md — when the Electron
+  // main process fires `notification:click <sessionId>` back to the
+  // renderer, we need to resolve the sessionId to the most recent
+  // NotificationRow so `onJump` has the right payload. The toast may
+  // outlive the in-memory list refresh, so we cache rows keyed by
+  // sessionId here.
+  const lastNotifiedRef = useRef<Map<string, NotificationRow>>(new Map());
+
   /**
    * Fire an OS notification for a persisted row. Honours the visibility
    * gate (skipped when the tab is foregrounded on the same session) and the
    * per-workspace click behaviour (`jump` vs `dismiss`).
+   *
+   * Phase 6 of docs/electron-conversion/PLAN.md — inside Electron we
+   * route through the IPC bridge so main can raise the BrowserWindow
+   * on click (the renderer's `window.focus()` is unreliable when the
+   * window is hidden behind other apps). Outside Electron we keep the
+   * browser-native `new Notification(...)` path.
    */
   const notify = useCallback(
     (row: NotificationRow) => {
       if (!enabled || state !== "granted") return;
-      if (typeof Notification === "undefined") return;
       const sameSession =
         row.sessionId && activeSessionRef.current === row.sessionId;
       if (visibleRef.current && sameSession) return;
+
+      const bridge = readBridgeOnClient();
+      if (bridge) {
+        // Electron path — main owns the lifecycle and the click → focus
+        // flow. The click handler is registered once below in an effect.
+        // We stash the row keyed by sessionId so the click callback can
+        // resolve it back to a `NotificationRow` for `onJump`.
+        if (row.sessionId) lastNotifiedRef.current.set(row.sessionId, row);
+        bridge.notifications.show({
+          title: row.title,
+          body: row.body ?? "",
+          sessionId: row.sessionId ?? undefined,
+        });
+        return;
+      }
+
+      if (typeof Notification === "undefined") return;
       try {
         const n = new Notification(row.title, {
           body: row.body ?? undefined,
@@ -180,6 +212,27 @@ export function useNotifications(opts: Options) {
     },
     [enabled, state, onClick],
   );
+
+  // Phase 6 — subscribe to notification-click events coming back from
+  // the Electron main process. The payload is the `sessionId` we sent
+  // with `show(...)`; we look up the matching row via the click
+  // behaviour and route through `onJump`. The renderer-native fallback
+  // path attaches its own `onclick` per-notification, so this only
+  // fires inside Electron.
+  useEffect(() => {
+    const bridge = readBridgeOnClient();
+    if (!bridge) return undefined;
+    const unsubscribe = bridge.notifications.onClick((sessionId) => {
+      if (onClick !== "jump") return;
+      // Use the most recent row for this session — the OS toast may
+      // outlive the in-memory list refresh.
+      const row = sessionId
+        ? lastNotifiedRef.current.get(sessionId)
+        : undefined;
+      if (row) onJumpRef.current?.(row);
+    });
+    return unsubscribe;
+  }, [onClick]);
 
   return {
     state,

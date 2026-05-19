@@ -306,18 +306,20 @@ Each phase has four blocks:
 - R6.5 Setting in `/settings`: "Show OS notifications when window is hidden" (default on).
 
 ### Tasks
-- [ ] `electron/ipc/notifications.ts` — handle `notify`, build `new Notification(...)`, on click `mainWindow.show() + send("notification:click", sessionId)`.
-- [ ] `electron/ipc/badge.ts` — `app.setBadgeCount` / `setOverlayIcon` per platform.
-- [ ] Modify `lib/client/useFaviconBadge.ts` to also call `window.claudius?.badge.set(n)`.
-- [ ] Modify `lib/client/useNotifications.ts` to also call `window.claudius?.notifications.show(...)`.
-- [ ] New settings card in `app/settings/page.tsx` for OS notification preferences.
+- [x] `electron/ipc/notifications.ts` — handles `notification:show`, builds a main-process `Notification`, raises the BrowserWindow on click (`isMinimized → restore + show + focus`), and dispatches `notification:click <sessionId>` back to the renderer.
+- [x] `electron/ipc/badge.ts` — handles `badge:set`. mac/linux use `app.setBadgeCount(n)`; win paints a small overlay icon via `BrowserWindow.setOverlayIcon` (12×12 red dot encoded inline as a base64 PNG so no extra asset file ships).
+- [x] `electron/ipc/bus.ts` — tiny pub/sub for cross-handler comms when no window is alive.
+- [x] `electron/main.ts` — registers both handlers inside `app.whenReady()` before the window opens.
+- [x] Modified `lib/client/useFaviconBadge.ts` to also call `readBridgeOnClient()?.badge.set(totalUnread)` alongside favicon + title updates.
+- [x] Modified `lib/client/useNotifications.ts` — in Electron mode, route the toast through `bridge.notifications.show(...)` instead of `new Notification(...)`. New `useEffect` subscribes to `bridge.notifications.onClick(sessionId)` and resolves the sessionId back to the latest cached `NotificationRow` for `onJump`. Browser build keeps its existing `new Notification(...)` path.
+- [ ] **Followup:** Dedicated settings card in `/settings` for OS notification preferences ("Show OS notifications when window is hidden"). The existing per-workspace `notifications.enabled` toggle already gates the path; the new card would surface it at app level.
 
 ### Tests
-- [ ] Manual: hide window, send a session a `/ask` prompt, OS notification appears, clicking it focuses the window on that session.
-- [ ] Manual: notifications **do not** fire when window is focused.
-- [ ] Manual: badge increments when a hidden session finishes a turn; clears when read.
-- [ ] Automated (Playwright Electron): stub `Notification` constructor, dispatch a fake `ask-user-question`, expect `Notification` called with the expected `title`/`body`/`sessionId`.
-- [ ] Automated: stub `app.setBadgeCount` via `electronApp.evaluate`, assert it's called with the unread count.
+- [x] Lint + electron:typecheck + root typecheck + 366/366 unit tests + browser `bun run build` all clean (verified at Phase 6 boundary).
+- [ ] **BLOCKED — user-driven:** hide window, send `/ask`, OS notification appears, click → window focuses on that session.
+- [ ] **BLOCKED — user-driven:** notifications don't fire when window is focused on the same session.
+- [ ] **BLOCKED — user-driven:** dock/taskbar badge increments + clears.
+- [ ] Automated (Playwright Electron): notification + badge assertions (deferred to Phase 10).
 
 ---
 
