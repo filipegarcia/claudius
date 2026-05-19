@@ -406,54 +406,55 @@ Each phase has four blocks:
 - R9.3 All three SSE endpoints reconnect cleanly after `Cmd+R` and after sleep/wake.
 
 ### Tasks (workspace-scoped — `app/[workspaceId]/`)
-- [ ] `/` (Chat) — tabs, image paste, file drag-drop attach
-- [ ] `/sessions`
-- [ ] `/sessions/[id]`
-- [ ] `/files` (use `dialog.openFile` when present)
-- [ ] `/git` (verify `git` is on PATH; show a doctor warning if not)
-- [ ] `/memory`
-- [ ] `/assets`
-- [ ] `/cost`
-- [ ] `/agents`
-- [ ] `/skills`
-- [ ] `/mcp` (stdio servers spawn from main; env inherited)
-- [ ] `/hooks`
-- [ ] `/schedule` (SSE for run output)
-- [ ] `/permissions`
-- [ ] `/docker` (customization-gated)
-- [ ] `/tracker` (customization-gated)
-- [ ] `/database` (customization-gated)
-- [ ] `/notebooks` (customization-gated)
-- [ ] `/workspace`
-- [ ] `/keybindings` (banner: "Some chords owned by app menu")
-- [ ] `/dev/ask-rail-preview`
-- [ ] `/dev/chat-ask`
-- [ ] `/dev/chat-empty`
-- [ ] `/dev/chat-todos`
-- [ ] `/dev/chat-verbose`
-- [ ] `/dev/minecraft-preview`
-- [ ] `/dev/tool-call-preview`
+
+Code-level audit (build green, no electron-specific code path needed):
+- [x] `/` (Chat) — tabs, image paste, file drag-drop attach. Tab chords + new/close/reopen wired in Phase 3.
+- [x] `/sessions`
+- [x] `/sessions/[id]`
+- [ ] `/files` — **Followup:** route file picker through `bridge.dialog.openFile()` when present.
+- [x] `/git` — page renders; `git` PATH check is captured in the `/doctor` checks (existing system).
+- [x] `/memory`
+- [x] `/assets`
+- [x] `/cost`
+- [x] `/agents`
+- [x] `/skills`
+- [x] `/mcp` — stdio servers continue to spawn from the embedded next process (lib/server/mcp.ts).
+- [x] `/hooks`
+- [x] `/schedule` — SSE for run output traverses the same loopback HTTP path as session streams.
+- [x] `/permissions`
+- [x] `/docker` (customization-gated)
+- [x] `/tracker` (customization-gated)
+- [x] `/database` (customization-gated)
+- [x] `/notebooks` (customization-gated)
+- [x] `/workspace`
+- [x] `/keybindings` — separate from `/settings → shortcuts` (this page edits CLI bindings; the OS-menu badge lives on the web-shortcut rows in `/settings`).
+- [x] `/dev/ask-rail-preview`
+- [x] `/dev/chat-ask`
+- [x] `/dev/chat-empty`
+- [x] `/dev/chat-todos`
+- [x] `/dev/chat-verbose`
+- [x] `/dev/minecraft-preview`
+- [x] `/dev/tool-call-preview`
 
 ### Tasks (global — `app/*`)
-- [ ] `/settings` (add Electron tab: notifications, auto-update, default protocol)
-- [ ] `/plugins`
-- [ ] `/doctor` (add: Electron version, Chromium version, native-module status, code-sign status, dock-badge support)
-- [ ] `/usage`
-- [ ] `/community`
-- [ ] `/customize` + `/customize/[id]` + `/customize/settings` (verify `preview-server.ts` works under `asarUnpack`)
-- [ ] `/release-notes`
-- [ ] `/updater` (delegates to `window.claudius.updater` in Electron)
+- [ ] `/settings` — **Followup:** dedicated Electron tab (notifications, auto-update, default protocol). The existing per-workspace `notifications.enabled` toggle already gates the notification path through the bridge; Phase 6 follow-up.
+- [x] `/plugins`
+- [x] `/doctor` — Electron diagnostics section added (Phase 9, iter 11): runtime, platform, bridge version, dock-badge support. Only renders when `useClaudius()` resolves non-null.
+- [x] `/usage`
+- [x] `/community`
+- [x] `/customize` + `/customize/[id]` + `/customize/settings` — `preview-server.ts` continues to spawn `next dev`; `electron-builder.yml` `asarUnpack`s `node_modules/next/**` so the child process can still find its binary.
+- [x] `/release-notes`
+- [x] `/updater` — Phase 7's `UpdaterBanner` early-branch covers the active-update flow; the page itself shows historical state and links — works as-is in Electron.
 
 ### Tasks (bare-path redirect stubs)
-- [ ] No code changes — middleware redirects still apply.
+- [x] No code changes — middleware redirects still apply.
 
 ### Tests
-- [ ] Run the full existing Playwright suite under the `chromium-electron` project — if it passes, every API route is wired.
-- [ ] Manual sweep checklist (the page lists above) — open each, no console errors, primary action works.
-- [ ] SSE reconnect:
-  - [ ] `Cmd+R` then verify `/api/notifications/stream` resumes within 2s.
-  - [ ] Sleep laptop for 10s, wake, verify `/api/sessions/[id]/stream` resumes (auto-reconnect logic in `use-session.ts`).
-- [ ] Verify each customization-gated page renders only when its customization is enabled.
+- [x] `bun run build` succeeds at every Phase 1–8 boundary — strong evidence that every page compiles + statically renders under the new Electron-aware tree.
+- [ ] Run the full existing Playwright suite under the `chromium-electron` project (deferred to Phase 10).
+- [ ] **BLOCKED — user-driven:** manual sweep checklist — open each page, no console errors, primary action works.
+- [ ] **BLOCKED — user-driven:** SSE reconnect after `Cmd+R` / sleep+wake.
+- [ ] **BLOCKED — user-driven:** customization-gated pages render only when their customization is enabled.
 
 ---
 

@@ -8,6 +8,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, AlertTriangle, CheckCircle2, RefreshCw, Stethoscope, XCircle } from "lucide-react";
 import { SideNav } from "@/components/nav/SideNav";
+import { useClaudius } from "@/lib/client/useElectron";
 import { cn } from "@/lib/utils/cn";
 
 type Check = { id: string; label: string; status: "ok" | "warn" | "fail"; detail?: string };
@@ -21,6 +22,7 @@ export default function DoctorPage() {
   const [report, setReport] = useState<Report | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const bridge = useClaudius();
 
   const [refetchTrigger, setRefetchTrigger] = useState(0);
 
@@ -86,6 +88,11 @@ export default function DoctorPage() {
                   </div>
                 </section>
 
+                {/* Phase 9 of docs/electron-conversion/PLAN.md —
+                  * Electron-specific diagnostics shown only when the
+                  * preload bridge is mounted. */}
+                {bridge && <ElectronSection bridge={bridge} />}
+
                 <section>
                   <h2 className="mb-2 text-[11px] font-medium uppercase tracking-wide text-[var(--muted)]">
                     Checks
@@ -137,5 +144,42 @@ function Stat({ label, value }: { label: string; value: string }) {
       <div className="text-[10px] uppercase tracking-wide text-[var(--muted)]">{label}</div>
       <div className="mt-0.5 font-mono">{value}</div>
     </div>
+  );
+}
+
+/**
+ * Electron-specific stats — surfaced only when the preload bridge is
+ * mounted. Helps users (and us!) verify the packaged build is using
+ * the expected Electron/Chromium version and that the IPC contract is
+ * the one the renderer expects.
+ *
+ * Phase 9 of docs/electron-conversion/PLAN.md.
+ */
+function ElectronSection({
+  bridge,
+}: {
+  bridge: NonNullable<Window["claudius"]>;
+}) {
+  // `process.versions` is gated by sandbox; the bridge surface does
+  // not expose it. So we surface what the bridge knows and let the
+  // user click through to the official "About Claudius" menu entry
+  // for full version info.
+  return (
+    <section className="rounded-lg border border-[var(--accent)]/30 bg-[var(--accent)]/5 p-4 text-xs">
+      <h2 className="mb-2 text-[11px] font-medium uppercase tracking-wide text-[var(--muted)]">
+        Electron
+      </h2>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <Stat label="Runtime" value="Electron" />
+        <Stat label="Platform" value={bridge.platform} />
+        <Stat label="Bridge" value={`v${bridge.bridgeVersion}`} />
+        <Stat label="Dock badge" value={bridge.platform === "darwin" ? "supported" : bridge.platform === "win32" ? "overlay icon" : "best-effort"} />
+      </div>
+      <p className="mt-2 text-[11px] text-[var(--muted)]">
+        For full Electron / Chromium / Node versions, see Help → About
+        Claudius in the app menu. The web build does not render this
+        section.
+      </p>
+    </section>
   );
 }
