@@ -1,5 +1,39 @@
 # Plan — Convert Claudius into an Electron app (with browser parity)
 
+## 🚨 Known issue: existing Playwright e2e suite hangs on CI
+
+Discovered at iter 17 of the ralph loop. Symptoms:
+
+- `bun run lint`, `bun run test` (vitest), `bun run build`, electron
+  smoke, electron:typecheck — all green locally and on CI.
+- `npx playwright test --project=chromium` (the `ci` workflow's `e2e`
+  job, invoked by `make test`) hangs in the "Run Playwright suite"
+  step for 30+ minutes with no log output. Reproduced across two
+  consecutive runs (rerun via `gh run rerun --failed`).
+- pages, codeql, lint, unit, setup-script CI jobs are all green.
+
+Not caused by the doc-only commit (`ddcd4fc`) that surfaced it — the
+behaviour is the same when re-run with no changes. Most likely root
+cause: one of the Phase 4–8 global-layout additions (TitleBar,
+CommandPalette, DeepLinksHandler, ElectronGlobalActions) is mounting
+something that races with an existing Playwright fixture in a way that
+makes the suite hang rather than fail. The components return `null`
+in the browser build, but their hooks still subscribe to bridge events
++ window keydown.
+
+Bisecting next: revert the global mounts one at a time and see which
+one releases the hang. Likely suspects in priority order:
+  1. CommandPalette (window keydown + setTimeout focus inside an
+     overlay portal)
+  2. DeepLinksHandler + ElectronGlobalActions (no-op in browser, but
+     useElectronSubscription still registers an effect with a
+     subscribe argument that is `undefined`)
+  3. TitleBar (renders `null` — least likely)
+
+The loop's literal completion contract requires "the latest commit is
+on a green CI run", so the promise cannot fire while this is
+unresolved. Loop will continue investigating.
+
 ## 🚨 First-time-run gotcha (read this before anything else)
 
 Before the **first** `bun run electron:dev`, run:
