@@ -4,7 +4,7 @@
   "private": true,
   "license": "MIT",
   "scripts": {
-    "dev": "next dev",
+    "dev": "node scripts/native-abi.mjs check node && next dev",
     "build": "next build",
     "start": "next start",
     "prepare": "git config core.hooksPath .githooks 2>/dev/null || true",
@@ -32,8 +32,8 @@
     "electron:dist:mac": "bun run electron:build && electron-builder -m",
     "electron:dist:win": "bun run electron:build && electron-builder -w",
     "electron:dist:linux": "bun run electron:build && electron-builder -l",
-    "electron:rebuild-native": "electron-builder install-app-deps",
-    "electron:rebuild-native-for-node": "bun install --force better-sqlite3",
+    "electron:rebuild-native": "electron-builder install-app-deps && node scripts/native-abi.mjs write electron",
+    "electron:rebuild-native-for-node": "bun install --force better-sqlite3 && node scripts/native-abi.mjs write node",
     "electron:smoke": "bun run electron:rebuild-native-for-node && next build && bun run electron:compile && node dist-electron/smoke.js"
   },
   "dependencies": {

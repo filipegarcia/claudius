@@ -134,7 +134,7 @@ Each phase has four blocks:
 - [x] Write `electron-builder.yml`: `appId`, target list, `asarUnpack: ["**/*.node", "node_modules/next/**", "node_modules/better-sqlite3/**", "node_modules/@anthropic-ai/claude-agent-sdk/**"]`, mac `category`/`hardenedRuntime`/`entitlements`, win `signtoolOptions`, linux `category`.
 - [x] Add `build/entitlements.mac.plist` with `com.apple.security.cs.allow-jit` and `com.apple.security.cs.allow-unsigned-executable-memory`.
 - [x] ESLint override for `electron/**`.
-- [ ] **Followup (advisor iter 5):** mode-lock file `.dist-electron/native-abi.json` recording the ABI `better-sqlite3` is currently built for. `bun run dev` and `electron:dev` startup-check the file and call the matching rebuild script when it doesn't match. Eliminates the silent segfault we hit during Phase 0.
+- [x] **Followup (advisor iter 5, landed iter 14):** mode-lock file `dist-electron/native-abi.json` via `scripts/native-abi.mjs`. `electron:rebuild-native` and `electron:rebuild-native-for-node` write the lock; `bun run dev` checks it on startup and prints a non-blocking warning if the native module is currently built for Electron. Nudges the dev toward the right rebuild command without surprising them with a hard exit.
 
 ### Tests
 - [x] `bun run lint` passes on `electron/**` and the rest of the tree.
