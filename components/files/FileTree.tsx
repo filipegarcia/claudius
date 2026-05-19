@@ -137,8 +137,9 @@ function Row({
             if (entry.kind === "dir") void toggle(entry);
             else setSelected(entry.relPath);
           }}
+          title={entry.name}
           className={cn(
-            "flex w-full items-center gap-1 rounded-md px-2 py-0.5 text-left",
+            "flex w-full min-w-0 items-center gap-1 rounded-md px-2 py-0.5 text-left",
             "hover:bg-[var(--panel-2)]",
             selected === entry.relPath && "bg-[var(--panel-2)]",
           )}
@@ -151,16 +152,18 @@ function Row({
               <ChevronRight className="h-3 w-3 shrink-0 text-[var(--muted)]" />
             )
           ) : (
-            <span className="w-3" />
+            <span className="w-3 shrink-0" />
           )}
           {entry.kind === "dir" ? (
             <Folder className="h-3 w-3 shrink-0 text-[var(--accent)]" />
           ) : (
             <File className="h-3 w-3 shrink-0 text-[var(--muted)]" />
           )}
-          <span className="truncate font-mono">{entry.name}</span>
+          <span className="min-w-0 flex-1 truncate font-mono">{entry.name}</span>
           {entry.kind === "file" && typeof entry.sizeBytes === "number" && (
-            <span className="ml-auto text-[10px] text-[var(--muted)]">{fmtSize(entry.sizeBytes)}</span>
+            <span className="shrink-0 whitespace-nowrap pl-1 text-[10px] tabular-nums text-[var(--muted)]">
+              {fmtSize(entry.sizeBytes)}
+            </span>
           )}
         </button>
       </li>

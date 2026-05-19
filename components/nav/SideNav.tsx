@@ -3,10 +3,11 @@
 import { useEffect, useMemo, useState, type DragEvent } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { MessageSquare, Network, Webhook, BookText, ShieldCheck, FolderTree, Bot, Calendar, BarChart3, Image as ImageIcon, Folder, Briefcase, GitBranch, Sparkles, WandSparkles, Container, CircleDot, Database as DatabaseIcon, BookOpen } from "lucide-react";
+import { MessageSquare, Menu, Network, Webhook, BookText, ShieldCheck, FolderTree, Bot, Calendar, BarChart3, Image as ImageIcon, Folder, Briefcase, GitBranch, Sparkles, WandSparkles, Container, CircleDot, Database as DatabaseIcon, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import { useWorkspaces } from "@/lib/client/useWorkspaces";
+import { useNotificationsContext } from "@/components/notifications/NotificationsProvider";
 import type { Customization, PublishRecord } from "@/lib/server/customizations-store";
 import {
   formatBinding,
@@ -153,6 +154,23 @@ function AnimatedGlyph({ running }: { running: boolean }) {
 export function SideNav({ running = false }: { running?: boolean }) {
   const pathname = usePathname();
   const router = useRouter();
+  // Mobile workspace-switcher overlay. The rail itself paints below
+  // `lg` only when this is true (see WorkspaceSwitcher's mobile branch);
+  // toggled by the hamburger tile at the top of this aside. We also
+  // auto-dismiss whenever the URL changes so a tap that triggers a route
+  // change (workspace switch, system tile, navigation from anywhere else)
+  // doesn't leave the drawer hanging on the next page.
+  const [switcherOpen, setSwitcherOpen] = useState(false);
+  // Track the pathname seen on the last render. When it advances, drop
+  // the open flag — done via the "store previous render's value" pattern
+  // so the state update doesn't live in an effect (which would still fire
+  // a paint with the stale `switcherOpen=true` value).
+  // https://react.dev/reference/react/useState#storing-information-from-previous-renders
+  const [lastPathnameSeen, setLastPathnameSeen] = useState(pathname);
+  if (lastPathnameSeen !== pathname) {
+    setLastPathnameSeen(pathname);
+    if (switcherOpen) setSwitcherOpen(false);
+  }
 
   // Customize tile lives outside the static `items` map because its href is
   // dynamic. When the active workspace is a customization workspace we
@@ -357,10 +375,54 @@ export function SideNav({ running = false }: { running?: boolean }) {
     setOverId(null);
   }
 
+  // Cross-workspace unread aggregate for the hamburger badge. Reading
+  // `counts` from the notifications context so the badge stays in lock-step
+  // with the per-workspace tile dots that the WorkspaceSwitcher renders.
+  // Excluding the active workspace mirrors the user expectation: a ping on
+  // the workspace you're currently inside is already visible in the chat,
+  // so surfacing it on the hamburger too would just nag.
+  const { counts: workspaceUnreadCounts } = useNotificationsContext();
+  const aggregateOtherWorkspaceUnread = Object.entries(workspaceUnreadCounts).reduce(
+    (acc, [wid, n]) => (wid === activeId ? acc : acc + n),
+    0,
+  );
+
   return (
     <>
-      <WorkspaceSwitcher />
+      <WorkspaceSwitcher
+        mobileOpen={switcherOpen}
+        onCloseMobile={() => setSwitcherOpen(false)}
+      />
       <aside data-pane-name="left-nav" className="flex h-full w-14 shrink-0 flex-col items-center gap-1 border-r border-[var(--border)] bg-[var(--panel)] py-3">
+        {/* Hamburger — only renders below the `lg` breakpoint, where the
+            workspace-switcher rail is hidden. Tap to reveal the workspaces
+            drawer; the badge sums unread counts across every workspace EXCEPT
+            the active one so the user doesn't miss cross-workspace pings while
+            the rail is hidden. On lg+ this tile is `display: none` and the
+            full rail is back. */}
+        <button
+          type="button"
+          aria-label="Show workspaces"
+          aria-expanded={switcherOpen}
+          title="Show workspaces"
+          onClick={() => setSwitcherOpen((v) => !v)}
+          className={cn(
+            "relative mb-1 flex h-9 w-9 items-center justify-center rounded-md text-[var(--muted)] hover:bg-[var(--panel-2)] hover:text-[var(--foreground)] lg:hidden",
+            switcherOpen && "bg-[var(--panel-2)] text-[var(--foreground)]",
+          )}
+          data-testid="sidenav-workspaces-toggle"
+        >
+          <Menu className="h-4.5 w-4.5" />
+          {aggregateOtherWorkspaceUnread > 0 && (
+            <span
+              aria-label={`${aggregateOtherWorkspaceUnread} unread in other workspaces`}
+              data-testid="sidenav-workspaces-toggle-badge"
+              className="absolute -right-0.5 -top-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-[var(--accent)] px-1 text-[9px] font-medium leading-none text-white shadow ring-1 ring-[var(--panel)]"
+            >
+              {aggregateOtherWorkspaceUnread > 99 ? "99+" : aggregateOtherWorkspaceUnread}
+            </span>
+          )}
+        </button>
         <AnimatedGlyph running={running} />
         {visibleItems.map(({ label, icon: Icon, href, actionId }) => {
           // Tooltip hint mirrors the live binding. When the user disables a

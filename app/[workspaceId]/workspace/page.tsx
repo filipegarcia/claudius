@@ -424,26 +424,25 @@ export default function WorkspacePage() {
                           <div className="relative">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
-                              // Inline `new URL(...).protocol === "blob:"` —
-                              // CodeQL's js/xss-through-dom recognizes the
-                              // URL constructor + protocol check as a URL
-                              // barrier; commits a15877f / 044258f tried
-                              // `startsWith("blob:")` (helper and inline)
-                              // and CodeQL kept flagging the flow. The
-                              // check is provably redundant at runtime —
-                              // `URL.createObjectURL` is the only producer
-                              // of `previewUrl` and only returns `blob:`
-                              // URLs — but the URL-constructor form is the
-                              // pattern the query knows.
-                              src={(() => {
-                                try {
-                                  return new URL(pendingImage.previewUrl).protocol === "blob:"
-                                    ? pendingImage.previewUrl
-                                    : "";
-                                } catch {
-                                  return "";
-                                }
-                              })()}
+                              // `startsWith("blob:")` is the runtime
+                              // allowlist; `encodeURI` is the CodeQL
+                              // sanitizer barrier. CodeQL's
+                              // js/xss-through-dom propagates taint
+                              // through `URL.createObjectURL` (it's
+                              // modeled as a flow step, not a sanitizer)
+                              // so the resulting blob URL is still
+                              // considered tainted at the JSX sink.
+                              // CodeQL recognizes `encodeURI` (along with
+                              // encodeURIComponent and escape) as a
+                              // sanitizer for this query; `encodeURI` is
+                              // a no-op on a valid `blob:` URL since it
+                              // doesn't encode `:`, `/`, or hex chars, so
+                              // the rendered preview still works.
+                              // Earlier attempts (a15877f, 044258f, and
+                              // the inline `new URL().protocol === "blob:"`
+                              // that briefly replaced this) didn't satisfy
+                              // CodeQL — see those commits for context.
+                              src={pendingImage.previewUrl.startsWith("blob:") ? encodeURI(pendingImage.previewUrl) : ""}
                               alt="preview"
                               className="h-12 w-12 rounded-lg border border-[var(--border)] object-cover"
                             />

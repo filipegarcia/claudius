@@ -2199,17 +2199,55 @@ export function useSession(): ChatState & ChatActions {
       }
 
       if (msg.type === "rate_limit_event") {
-        const r = msg as { rate_limit_info?: { status?: string; rateLimitType?: string }; uuid: string };
+        // Mirror SDKRateLimitInfo (see node_modules/@anthropic-ai/claude-agent-sdk/sdk.d.ts).
+        // We carry the full payload through so the pill can render a live
+        // countdown + overage status; the legacy `label` is kept as a
+        // text fallback for kinds that don't have a custom renderer.
+        const r = msg as {
+          rate_limit_info?: {
+            status?: "allowed" | "allowed_warning" | "rejected";
+            rateLimitType?: "five_hour" | "seven_day" | "seven_day_opus" | "seven_day_sonnet" | "overage";
+            resetsAt?: number;
+            utilization?: number;
+            overageStatus?: "allowed" | "allowed_warning" | "rejected";
+            overageResetsAt?: number;
+            overageDisabledReason?: string;
+            isUsingOverage?: boolean;
+            surpassedThreshold?: number;
+          };
+          uuid: string;
+        };
+        const info = r.rate_limit_info;
         const anchor = lastAssistantUuidRef.current;
-        setSystemEntries((prev) => [
-          ...prev,
-          {
-            uuid: r.uuid,
-            afterMessageUuid: anchor,
-            kind: "rate_limit",
-            label: `Rate limit: ${r.rate_limit_info?.status ?? "?"} (${r.rate_limit_info?.rateLimitType ?? ""})`,
-          },
-        ]);
+        const incoming: SystemEntry = {
+          uuid: r.uuid,
+          afterMessageUuid: anchor,
+          kind: "rate_limit",
+          label: `Rate limit: ${info?.status ?? "?"} (${info?.rateLimitType ?? ""})`,
+          rateLimit: info,
+        };
+        // De-dupe: a single session can emit many `rate_limit_event`s as
+        // utilization climbs (allowed → allowed_warning → rejected). Stacking
+        // them spams the transcript and obscures the *current* state, which
+        // is what the user actually needs to see. Collapse to one entry per
+        // `rateLimitType`, keeping the latest payload but reusing the
+        // original anchor so it doesn't jump around the thread.
+        const dedupeKey = info?.rateLimitType ?? "__no_type__";
+        setSystemEntries((prev) => {
+          const idx = prev.findIndex(
+            (e) => e.kind === "rate_limit" && (e.rateLimit?.rateLimitType ?? "__no_type__") === dedupeKey,
+          );
+          if (idx === -1) return [...prev, incoming];
+          const next = prev.slice();
+          next[idx] = {
+            ...incoming,
+            // Preserve the original anchor so the pill stays put even
+            // after several updates within the same turn.
+            afterMessageUuid: prev[idx].afterMessageUuid,
+            uuid: prev[idx].uuid,
+          };
+          return next;
+        });
         return;
       }
 

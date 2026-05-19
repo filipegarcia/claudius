@@ -26,7 +26,23 @@ import {
 } from "@/lib/client/shortcuts";
 import { cn } from "@/lib/utils/cn";
 
-export function WorkspaceSwitcher() {
+/**
+ * Props for the small-screen overlay behavior.
+ *
+ * Below the `lg` breakpoint the rail is hidden by default (`hidden lg:flex`)
+ * and the hamburger tile in SideNav toggles `mobileOpen`. When true, the rail
+ * paints as a fixed-position drawer over the left edge with a click-anywhere
+ * backdrop; ESC, backdrop click, and any workspace/system-tile selection all
+ * close it (the parent's `pathname` effect also auto-dismisses on nav).
+ *
+ * Omit both for the desktop default: the rail behaves exactly as before.
+ */
+type Props = {
+  mobileOpen?: boolean;
+  onCloseMobile?: () => void;
+};
+
+export function WorkspaceSwitcher({ mobileOpen = false, onCloseMobile }: Props = {}) {
   const { items, activeId, select, create, update, remove, uploadIcon, reorder, refresh } =
     useWorkspaces();
   const { counts } = useNotificationsContext();
@@ -62,6 +78,20 @@ export function WorkspaceSwitcher() {
     if (!activeId || !pathname) return;
     setLastPath(activeId, pathname);
   }, [activeId, pathname]);
+
+  // Mobile overlay ESC dismissal. Backdrop click and tile-selection paths
+  // call `onCloseMobile` directly; this handles the keyboard case so users
+  // can dismiss without grabbing the mouse. Listener is only attached while
+  // the overlay is actually open, so it doesn't fight other ESC handlers
+  // (overlay modals, context menus) when the rail is in its desktop state.
+  useEffect(() => {
+    if (!mobileOpen || !onCloseMobile) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onCloseMobile?.();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [mobileOpen, onCloseMobile]);
 
   // Refs that the global hotkey handler reads — avoids stale closures.
   // Only project workspaces are reachable via Cmd+Shift+[ / ]; the drawer is
@@ -150,9 +180,43 @@ export function WorkspaceSwitcher() {
     setOverId(null);
   }
 
+  // Visibility model:
+  //   ≥ lg → inline `<aside>` (the historical desktop layout).
+  //   < lg → hidden by default; if `mobileOpen` is true, paint as a
+  //          fixed-position drawer over the SideNav with a backdrop. The
+  //          backdrop captures clicks anywhere outside the rail and calls
+  //          `onCloseMobile`, matching the platform convention for slide-out
+  //          drawers (and mirroring the dismissal contract used by the rest
+  //          of Claudius's overlays).
+  //
+  // Tailwind utility `flex` is gated by `lg:flex` so the inline state only
+  // re-engages above the breakpoint; the mobile-open branch supplies its own
+  // `flex` so the layout still works when the user opens the drawer on a
+  // narrow viewport.
+  const desktopAsideClass =
+    "h-full w-14 shrink-0 flex-col items-center gap-2 border-r border-[var(--border)] bg-[var(--background)] py-3 hidden lg:flex";
+  const mobileAsideClass =
+    "fixed inset-y-0 left-0 z-50 flex h-full w-14 shrink-0 flex-col items-center gap-2 border-r border-[var(--border)] bg-[var(--background)] py-3 shadow-2xl overflow-y-auto scroll-thin lg:hidden";
+  // Workspace switching from inside the overlay should close the drawer in
+  // the same gesture. Wrapped here so we don't sprinkle null-checks at every
+  // click site below.
+  const closeMobileIfOpen = () => {
+    if (mobileOpen) onCloseMobile?.();
+  };
   return (
     <>
-      <aside data-pane-name="workspace-switcher" className="flex h-full w-14 shrink-0 flex-col items-center gap-2 border-r border-[var(--border)] bg-[var(--background)] py-3">
+      {mobileOpen && (
+        <button
+          type="button"
+          aria-label="Close workspace switcher"
+          onClick={() => onCloseMobile?.()}
+          className="fixed inset-0 z-40 bg-black/40 lg:hidden"
+        />
+      )}
+      <aside
+        data-pane-name="workspace-switcher"
+        className={mobileOpen ? mobileAsideClass : desktopAsideClass}
+      >
         {projectItems.map((w) => {
           const active = w.id === activeId;
           const dimmed = draggingId && draggingId !== w.id;
@@ -204,6 +268,11 @@ export function WorkspaceSwitcher() {
                   // (already there); for an inactive tile it triggers
                   // a workspace switch + navigation to the saved URL.
                   const target = getLastPath(w.id) ?? `/${w.id}`;
+                  // Selecting from the mobile overlay should always
+                  // dismiss it (even the "already active" branch where we
+                  // just close the drawer with no navigation — the user
+                  // implicitly answered "no, I didn't want to switch").
+                  closeMobileIfOpen();
                   if (active) {
                     if (pathname !== target) router.push(target);
                     return;
@@ -239,12 +308,26 @@ export function WorkspaceSwitcher() {
         <CustomizationsDrawer
           customizations={customizationItems}
           activeId={activeId}
-          onSelect={select}
+          onSelect={(id) => {
+            // Dismiss the mobile drawer first so the customization workspace
+            // page paints without the rail overlapping the chat area on the
+            // way out.
+            closeMobileIfOpen();
+            void select(id);
+          }}
           onOpen={refresh}
           unreadCounts={counts}
         />
         <button
-          onClick={() => setShowForm({ kind: "new" })}
+          onClick={() => {
+            // The "new workspace" form is modal; closing the drawer first
+            // gets the underlying overlay backdrop out of the way before
+            // the form appears on top, so the form is the only intercept
+            // for clicks. Without this the user clicks the form, closes
+            // the drawer, and the form vanishes with them.
+            closeMobileIfOpen();
+            setShowForm({ kind: "new" });
+          }}
           title="New workspace"
           className="mt-1 flex h-10 w-10 items-center justify-center rounded-lg border border-dashed border-[var(--border)] text-[var(--muted)] hover:bg-[var(--panel-2)] hover:text-[var(--foreground)]"
         >
@@ -272,24 +355,28 @@ export function WorkspaceSwitcher() {
           icon={<Radio className="h-4 w-4" />}
           badge={community.unreadCount > 0 ? community.unreadCount : undefined}
           badgeTestId="community-notification-badge"
+          onClick={closeMobileIfOpen}
         />
         <SystemTile
           href="/plugins"
           label="Plugins"
           active={pathname?.startsWith("/plugins") ?? false}
           icon={<Plug className="h-4 w-4" />}
+          onClick={closeMobileIfOpen}
         />
         <SystemTile
           href="/settings"
           label="Settings"
           active={pathname?.startsWith("/settings") ?? false}
           icon={<Settings className="h-4 w-4" />}
+          onClick={closeMobileIfOpen}
         />
         <SystemTile
           href="/usage"
           label="Account"
           active={pathname?.startsWith("/usage") ?? false}
           icon={<UserCircle className="h-4 w-4" />}
+          onClick={closeMobileIfOpen}
         />
         {projectItems.length > 1 && (bindingPrev || bindingNext) && (
           // Reflect whatever bindings the user has — if they remapped to
@@ -380,6 +467,7 @@ function SystemTile({
   accent,
   badge,
   badgeTestId,
+  onClick,
 }: {
   href: string;
   label: string;
@@ -391,6 +479,13 @@ function SystemTile({
   badge?: number;
   /** Test id for the badge element. */
   badgeTestId?: string;
+  /**
+   * Side-effect to run on click in ADDITION to navigation — used by the
+   * parent to close the mobile workspace-switcher overlay when the user
+   * jumps to a system route. Optional so desktop usage stays a plain
+   * navigation link.
+   */
+  onClick?: () => void;
 }) {
   // Idle state is always muted — only when `active && accent` do we paint
   // the tile with the accent color. Previously `accent` showed the colored
@@ -401,6 +496,7 @@ function SystemTile({
     <Link
       href={href}
       title={label}
+      onClick={onClick}
       className={cn(
         "relative flex h-10 w-10 items-center justify-center rounded-lg text-[var(--muted)] hover:bg-[var(--panel-2)] hover:text-[var(--foreground)]",
         accentActive

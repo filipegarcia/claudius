@@ -187,7 +187,7 @@ export function BackgroundTasksPanel({
   const busy = !ready || pending;
 
   return (
-    <div data-pane-name="right-rail" className="flex h-full w-72 flex-col border-l border-[var(--border)] bg-[var(--panel)]">
+    <div data-pane-name="right-rail" className="flex h-full w-64 flex-col border-l border-[var(--border)] bg-[var(--panel)] lg:w-72">
       <div className="sticky top-0 z-10 flex h-9 items-center gap-2 border-b border-[var(--border)] bg-[var(--panel)] px-3 text-xs">
         <Activity className="h-3.5 w-3.5 text-[var(--accent)]" />
         <span className="font-medium">Activity</span>

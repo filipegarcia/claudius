@@ -371,25 +371,6 @@ redeploys. New migrations under `chat-server/migrations/NNN_*.sql` run
 on the next boot — watch `journalctl -u claudius-chat-server -n 20`
 right after the restart for `[chat-server] applied migration N…` lines.
 
-## Deploying to Fly.io
-
-```bash
-# from chat-server/
-fly launch --no-deploy --copy-config
-fly volumes create chat_data --size 1 --region <yours>
-fly secrets set CLAUDIUS_CHAT_ADMIN_TOKEN="$(openssl rand -hex 32)"
-fly deploy
-```
-
-The `fly.toml` here pins `auto_stop_machines = "off"` and
-`min_machines_running = 1` because SSE clients hold open connections —
-stopping the VM would kick every browser tab.
-
-After deploy, set `NEXT_PUBLIC_CLAUDIUS_CHAT_SERVER_URL=https://<your-app>.fly.dev`
-in the Claudius build environment and rebuild. If the same install
-should host the admin, also set `CLAUDIUS_CHAT_ADMIN_TOKEN` to the
-value you set on the chat-server above.
-
 ## Operating notes
 
 - **Logs**: every applied migration prints once at startup; nothing else

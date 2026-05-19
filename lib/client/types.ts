@@ -92,6 +92,26 @@ export type SystemEntry = {
   label: string;
   detail?: string;
   ts?: string;
+  /**
+   * Structured rate-limit payload. Only present (and used) when
+   * `kind === "rate_limit"` — mirrors the SDK's `SDKRateLimitInfo` so the
+   * pill can render a live countdown and surface overage / billing
+   * status instead of stringifying it into `label`.
+   *
+   * Note on units: `resetsAt` and `overageResetsAt` are **epoch seconds**
+   * (the Claude Code CLI computes `resetsAt - Date.now()/1000`), not ms.
+   */
+  rateLimit?: {
+    status?: "allowed" | "allowed_warning" | "rejected";
+    rateLimitType?: "five_hour" | "seven_day" | "seven_day_opus" | "seven_day_sonnet" | "overage";
+    resetsAt?: number;
+    utilization?: number;
+    overageStatus?: "allowed" | "allowed_warning" | "rejected";
+    overageResetsAt?: number;
+    overageDisabledReason?: string;
+    isUsingOverage?: boolean;
+    surpassedThreshold?: number;
+  };
 };
 
 export type ToolProgressInfo = {

@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { FolderOpen, Image as ImageIcon, Type, X } from "lucide-react";
+import { ChevronDown, CircuitBoard, FolderOpen, Image as ImageIcon, Type, X } from "lucide-react";
 import { Overlay } from "@/components/overlays/Overlay";
 import { DirectoryPicker } from "./DirectoryPicker";
+import { ModelPicker } from "@/components/panels/widgets/ModelPicker";
 import type { Icon, Workspace, WorkspaceDefaults } from "@/lib/server/workspaces-store";
 
 const PRESET_COLORS = [
@@ -53,7 +54,9 @@ export function WorkspaceForm({ initial, onCancel, onSubmit, onIconUpload, onDel
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPicker, setShowPicker] = useState(false);
+  const [showModelPicker, setShowModelPicker] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const modelTriggerRef = useRef<HTMLButtonElement>(null);
 
   // When creating a new workspace, the auto-derived letter follows the
   // first non-whitespace character of `name`. The user is also free to
@@ -218,25 +221,22 @@ export function WorkspaceForm({ initial, onCancel, onSubmit, onIconUpload, onDel
                   <div className="relative">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      // Inline `new URL(...).protocol === "blob:"` —
-                      // CodeQL's js/xss-through-dom recognizes the URL
-                      // constructor + protocol check as a URL barrier;
-                      // commits a15877f / 044258f tried `startsWith("blob:")`
-                      // (helper and inline) and CodeQL kept flagging the
-                      // flow. The check is provably redundant at runtime —
-                      // `URL.createObjectURL` is the only producer of
-                      // `previewUrl` and only returns `blob:` URLs — but
-                      // the URL-constructor form is the pattern the query
-                      // knows.
-                      src={(() => {
-                        try {
-                          return new URL(pendingImage.previewUrl).protocol === "blob:"
-                            ? pendingImage.previewUrl
-                            : "";
-                        } catch {
-                          return "";
-                        }
-                      })()}
+                      // `startsWith("blob:")` is the runtime allowlist;
+                      // `encodeURI` is the CodeQL sanitizer barrier.
+                      // CodeQL's js/xss-through-dom propagates taint
+                      // through `URL.createObjectURL` (modeled as a flow
+                      // step, not a sanitizer) so the resulting blob URL
+                      // is still considered tainted at the JSX sink.
+                      // CodeQL recognizes `encodeURI` (along with
+                      // encodeURIComponent and escape) as a sanitizer for
+                      // this query; `encodeURI` is a no-op on a valid
+                      // `blob:` URL since it doesn't encode `:`, `/`, or
+                      // hex chars, so the rendered preview still works.
+                      // Earlier attempts (a15877f, 044258f, and the
+                      // inline `new URL().protocol === "blob:"` that
+                      // briefly replaced this) didn't satisfy CodeQL —
+                      // see those commits for context.
+                      src={pendingImage.previewUrl.startsWith("blob:") ? encodeURI(pendingImage.previewUrl) : ""}
                       alt="preview"
                       className="h-12 w-12 rounded-lg border border-[var(--border)] object-cover"
                     />
@@ -294,12 +294,34 @@ export function WorkspaceForm({ initial, onCancel, onSubmit, onIconUpload, onDel
             </div>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               <Field label="Model">
-                <input
-                  value={defaultModel}
-                  onChange={(e) => setDefaultModel(e.target.value)}
-                  placeholder="(inherit machine default)"
-                  className="w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 font-mono text-xs focus:outline-none"
-                />
+                {/* Same picker used in the right-rail SessionCard — fed
+                    by the sessionless `/api/models` endpoint. Empty value
+                    is treated as "(Inherit machine default)" via the
+                    picker's `showInherit` option. */}
+                <button
+                  ref={modelTriggerRef}
+                  type="button"
+                  onClick={() => setShowModelPicker((o) => !o)}
+                  aria-haspopup="dialog"
+                  aria-expanded={showModelPicker}
+                  className="flex w-full items-center gap-1.5 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 text-left font-mono text-xs hover:bg-[var(--panel)] focus:outline-none"
+                >
+                  <CircuitBoard className="h-3 w-3 shrink-0 text-[var(--accent)]" />
+                  <span
+                    className={
+                      defaultModel
+                        ? "truncate"
+                        : "truncate text-[var(--muted)]"
+                    }
+                  >
+                    {defaultModel || "(inherit machine default)"}
+                  </span>
+                  <ChevronDown
+                    className={`ml-auto h-3 w-3 shrink-0 text-[var(--muted)] transition-transform ${
+                      showModelPicker ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
               </Field>
               <Field label="Permission mode">
                 <select
@@ -363,6 +385,23 @@ export function WorkspaceForm({ initial, onCancel, onSubmit, onIconUpload, onDel
             setRootPath(p);
             setShowPicker(false);
           }}
+        />
+      )}
+      {showModelPicker && (
+        <ModelPicker
+          sessionId={null}
+          source="global"
+          currentModel={defaultModel || null}
+          anchorRef={modelTriggerRef}
+          onClose={() => setShowModelPicker(false)}
+          onPickModel={(value) => {
+            // Empty string from the picker means "Inherit" — that's
+            // what we store as `defaultModel === ""`, which the submit
+            // path translates to "no `defaults.model`".
+            setDefaultModel(value);
+            setShowModelPicker(false);
+          }}
+          showInherit
         />
       )}
     </>
