@@ -15,6 +15,10 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { SystemEntry } from "@/lib/client/types";
+import {
+  shouldShowRateLimitPill,
+  useRateLimitWarningPct,
+} from "@/lib/client/useRateLimitWarning";
 
 const KIND_META: Record<SystemEntry["kind"], { icon: typeof Info; tone: string }> = {
   init: { icon: Cpu, tone: "text-emerald-400" },
@@ -99,6 +103,7 @@ const OVERAGE_DISABLED_COPY: Record<string, string> = {
 function RateLimitPill({ entry }: { entry: SystemEntry }) {
   const info = entry.rateLimit!;
   const status = info.status ?? "allowed";
+
   // Pick the "live" reset: when the user has burned through the base quota
   // *and* the overage bucket (overageStatus === "rejected"), the only path
   // forward is to wait for the *later* of the two windows. The CLI follows
@@ -108,7 +113,22 @@ function RateLimitPill({ entry }: { entry: SystemEntry }) {
     ? Math.max(info.resetsAt ?? 0, info.overageResetsAt ?? 0) || undefined
     : info.resetsAt;
 
+  // All hooks first, before any conditional return — rules-of-hooks.
+  // The countdown interval is cheap (one setInterval per visible pill),
+  // and the threshold gate below decides whether to *render*; the
+  // dedupe in use-session.ts means at most one pill per `rateLimitType`
+  // exists at any time, so we're not running runaway timers in hidden
+  // pills.
   const countdown = useCountdownSeconds(liveReset);
+  const params = useParams<{ workspaceId?: string }>();
+  const { value: warningThresholdPct } = useRateLimitWarningPct();
+
+  // Gate non-rejected pills on the user's chosen threshold. The pill
+  // still exists in `systemEntries` after this return — we just don't
+  // render it — so *lowering* the threshold mid-session immediately
+  // reveals previously hidden events without needing a replay.
+  if (!shouldShowRateLimitPill(info, warningThresholdPct)) return null;
+
   const tierLabel = info.rateLimitType ? RATE_LIMIT_TYPE_LABEL[info.rateLimitType] ?? "limit" : "limit";
 
   const tone =
@@ -118,11 +138,18 @@ function RateLimitPill({ entry }: { entry: SystemEntry }) {
         ? "border-amber-500/30 bg-amber-500/10 text-amber-200"
         : "border-[var(--border)] bg-[var(--panel)]/40 text-[var(--muted)]";
 
+  // SDK reports `utilization` as a 0–1 fraction; the Claude CLI does
+  // `Math.floor(H.utilization*100)` before rendering. We mirror that
+  // here rather than at the storage layer so the value-on-the-wire and
+  // the value-in-the-pref stay in their natural units.
+  const utilizationPct =
+    typeof info.utilization === "number" ? Math.round(info.utilization * 100) : null;
+
   const headline =
     status === "rejected"
       ? `You've hit your ${tierLabel}`
-      : status === "allowed_warning" && typeof info.utilization === "number"
-        ? `You've used ${Math.round(info.utilization)}% of your ${tierLabel}`
+      : status === "allowed_warning" && utilizationPct !== null
+        ? `You've used ${utilizationPct}% of your ${tierLabel}`
         : `Approaching ${tierLabel}`;
 
   // Pay-as-you-go pivot. When the base quota is rejected but the overage
@@ -149,7 +176,6 @@ function RateLimitPill({ entry }: { entry: SystemEntry }) {
   // Workspace-aware deep link. SystemPill is rendered inside the chat,
   // which always lives at /[workspaceId]/..., so useParams gives us the
   // active workspace id without having to thread it through props.
-  const params = useParams<{ workspaceId?: string }>();
   const costHref = params?.workspaceId ? `/${params.workspaceId}/cost` : "/cost";
 
   return (
