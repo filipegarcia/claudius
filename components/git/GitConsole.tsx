@@ -7,6 +7,8 @@ import {
   ChevronDown,
   ChevronUp,
   ClipboardCopy,
+  CornerDownLeft,
+  Loader2,
   Terminal,
   Trash2,
 } from "lucide-react";
@@ -36,6 +38,19 @@ type Props = {
   height: number;
   onHeightChange: (h: number) => void;
   onClear: () => void;
+  /**
+   * Optional handler for ad-hoc git commands typed into the console prompt
+   * (e.g. `git merge feature-branch`, `git stash`). Returns when the command
+   * has completed and its output has been pushed into `entries`. The page
+   * is responsible for the POST + status refresh; the console only owns
+   * the input UI + history.
+   *
+   * Omit to hide the prompt entirely (useful when no workspace is selected
+   * or the workspace isn't a git repo).
+   */
+  onRunCommand?: (command: string) => Promise<void>;
+  /** Disable the prompt without removing it — e.g. while another op runs. */
+  promptDisabled?: boolean;
 };
 
 const MIN_HEIGHT = 80;
@@ -65,8 +80,22 @@ export function GitConsole({
   height,
   onHeightChange,
   onClear,
+  onRunCommand,
+  promptDisabled = false,
 }: Props) {
   const bodyRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  // Prompt state. `history` is the in-session log of commands the user has
+  // submitted; `historyIndex` tracks where Up/Down has moved within it
+  // (-1 = "currently editing fresh input", 0..n-1 = recalled entry). `draft`
+  // is the value before any history navigation began, so Down all the way
+  // restores whatever the user was typing.
+  const [input, setInput] = useState("");
+  const [history, setHistory] = useState<string[]>([]);
+  const [historyIndex, setHistoryIndex] = useState<number>(-1);
+  const [draft, setDraft] = useState("");
+  const [running, setRunning] = useState(false);
 
   // Auto-scroll on new entries. Only effects when expanded — when collapsed
   // there's no body element to scroll.
@@ -104,6 +133,70 @@ export function GitConsole({
   // Transient "✓" affordance on the copy button so the user knows the
   // clipboard write landed. Mirrors the pattern in `CodeBlock.tsx`.
   const [copiedErrors, setCopiedErrors] = useState(false);
+
+  /**
+   * Submit the typed prompt: run via the page-supplied handler, push the
+   * command into history (dedup against the immediately-previous entry so
+   * Up/Down doesn't see runs of duplicates), and reset the input.
+   *
+   * We deliberately do *not* clear `history` on `onClear` — clearing the
+   * console wipes the rendered output but the user's typed-command history
+   * is a separate, more durable affordance.
+   */
+  async function submitCommand() {
+    if (!onRunCommand) return;
+    const command = input.trim();
+    if (!command || running || promptDisabled) return;
+    setRunning(true);
+    try {
+      await onRunCommand(command);
+      setHistory((prev) => (prev[prev.length - 1] === command ? prev : [...prev, command]));
+      setInput("");
+      setDraft("");
+      setHistoryIndex(-1);
+    } finally {
+      setRunning(false);
+      // Re-focus so the user can keep typing without grabbing the mouse.
+      requestAnimationFrame(() => inputRef.current?.focus());
+    }
+  }
+
+  /**
+   * Up/Down arrow recall. Mirrors bash/zsh: Up walks backwards through the
+   * history (most-recent first), Down walks forward and eventually restores
+   * the draft the user was typing before they pressed Up.
+   */
+  function onPromptKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      void submitCommand();
+      return;
+    }
+    if (e.key === "ArrowUp") {
+      if (history.length === 0) return;
+      e.preventDefault();
+      // First Up from a fresh input snapshots the in-progress text so the
+      // Down arrow can restore it. After that, we're navigating history.
+      if (historyIndex === -1) setDraft(input);
+      const next = historyIndex === -1 ? history.length - 1 : Math.max(0, historyIndex - 1);
+      setHistoryIndex(next);
+      setInput(history[next] ?? "");
+      return;
+    }
+    if (e.key === "ArrowDown") {
+      if (historyIndex === -1) return;
+      e.preventDefault();
+      const next = historyIndex + 1;
+      if (next >= history.length) {
+        setHistoryIndex(-1);
+        setInput(draft);
+      } else {
+        setHistoryIndex(next);
+        setInput(history[next] ?? "");
+      }
+      return;
+    }
+  }
 
   /**
    * Build a paste-friendly transcript of every error entry — what you'd want
@@ -255,7 +348,7 @@ export function GitConsole({
       <div
         ref={bodyRef}
         data-testid="git-console-body"
-        className="flex-1 min-h-0 overflow-auto scroll-thin font-mono text-[11px] leading-snug"
+        className="min-h-0 flex-1 overflow-auto scroll-thin font-mono text-[11px] leading-snug"
       >
         {entries.length === 0 ? (
           <div className="flex h-full items-center justify-center text-[var(--muted)]">
@@ -298,6 +391,68 @@ export function GitConsole({
           </div>
         )}
       </div>
+      {/*
+        Shell prompt. Whatever the user types is handed to `bash -c` in the
+        workspace root, so pipes / redirects / chaining / env expansion all
+        work the way they do in any other terminal. Only renders when the
+        page has wired up `onRunCommand`; without a handler the input
+        would be a no-op tease.
+      */}
+      {onRunCommand && (
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            void submitCommand();
+          }}
+          data-testid="git-console-prompt"
+          className="flex shrink-0 items-center gap-2 border-t border-[var(--border)] bg-[var(--panel-2)]/40 px-3 py-1.5 font-mono text-[11px]"
+        >
+          <span
+            aria-hidden
+            className="select-none text-[var(--muted)]"
+            title="Runs in the workspace root via bash -c. Pipes, redirects, and chaining all work."
+          >
+            $
+          </span>
+          <input
+            ref={inputRef}
+            type="text"
+            value={input}
+            onChange={(e) => {
+              setInput(e.target.value);
+              // Any typed edit drops out of history-recall mode so the
+              // next Up starts from the bottom again.
+              if (historyIndex !== -1) setHistoryIndex(-1);
+            }}
+            onKeyDown={onPromptKeyDown}
+            disabled={running || promptDisabled}
+            placeholder={
+              running
+                ? "running…"
+                : "git status -sb   /   bun run lint   /   ls -la | head"
+            }
+            spellCheck={false}
+            autoCapitalize="off"
+            autoCorrect="off"
+            data-testid="git-console-prompt-input"
+            className="min-w-0 flex-1 bg-transparent text-[var(--foreground)] outline-none placeholder:text-[var(--muted)]/60 disabled:opacity-50"
+          />
+          <button
+            type="submit"
+            disabled={running || promptDisabled || !input.trim()}
+            aria-label="Run command"
+            title="Run (Enter) — ↑/↓ recall history"
+            data-testid="git-console-prompt-submit"
+            className="flex h-5 w-5 items-center justify-center rounded text-[var(--muted)] hover:bg-[var(--panel)] hover:text-[var(--foreground)] disabled:opacity-40"
+          >
+            {running ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <CornerDownLeft className="h-3 w-3" />
+            )}
+          </button>
+        </form>
+      )}
     </div>
   );
 }
