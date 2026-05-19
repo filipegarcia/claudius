@@ -15,6 +15,7 @@
 import { app, BrowserWindow, shell } from "electron";
 import path from "node:path";
 
+import { installAppMenu } from "./menu";
 import {
   defaultAppDir,
   startEmbeddedNextServer,
@@ -101,6 +102,7 @@ function createWindow(startUrl: string): BrowserWindow {
 
 app.whenReady().then(async () => {
   try {
+    installAppMenu();
     const startUrl = await resolveStartUrl();
     mainWindow = createWindow(startUrl);
 

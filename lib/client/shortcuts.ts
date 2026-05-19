@@ -49,7 +49,13 @@ export type ShortcutBinding = {
   code: string | null;
 };
 
-export type ShortcutCategory = "tabs" | "workspaces" | "navigation";
+export type ShortcutCategory =
+  | "tabs"
+  | "workspaces"
+  | "navigation"
+  | "window"
+  | "view"
+  | "app";
 
 export type ShortcutAction = {
   id: string;
@@ -64,6 +70,17 @@ export type ShortcutAction = {
    * numeric selector. Surfaces in the settings UI as "(+ 1–9)" hint.
    */
   modifierOnly?: boolean;
+  /**
+   * When true, the canonical handler for this action is the OS menu in
+   * the packaged Electron build. The renderer's web-side keydown
+   * listener still fires it (so the browser build keeps working), but
+   * the settings UI shows a "Owned by app menu" badge to set
+   * expectations — the chord may be reserved by the browser when the
+   * page is not running inside Electron.
+   *
+   * Phase 3 of docs/electron-conversion/PLAN.md.
+   */
+  electronMenuOwned?: boolean;
 };
 
 // ── Registry ─────────────────────────────────────────────────────────────
@@ -134,6 +151,168 @@ export const SHORTCUT_ACTIONS: ShortcutAction[] = [
   ...navAction("nav.database", "Open Database", "KeyE"),
   ...navAction("nav.notebooks", "Open Notebooks", "KeyJ"),
   ...navAction("nav.workspace", "Open Workspace settings", "KeyW"),
+
+  // ── Tab management (Phase 3 — Electron menu-owned where reserved) ──
+  // The browser eats Cmd+T / Cmd+W / Cmd+Shift+T / Cmd+1..9. We register
+  // them in the registry so:
+  //   1. Electron's app menu can call into the same action ids the
+  //      renderer's keydown listener uses (single source of truth).
+  //   2. The web build still attempts the chord (some browsers / OSes
+  //      let the page intercept depending on profile/extensions); when
+  //      eaten by the browser, the user can remap to a non-reserved
+  //      alternative in /settings.
+  {
+    id: "tab.new",
+    label: "New tab",
+    description:
+      "Open a new chat session in a new tab. In the browser build this chord is reserved — remap to Cmd+Shift+N if needed.",
+    category: "tabs",
+    default: { mod: true, code: "KeyT" },
+    electronMenuOwned: true,
+  },
+  {
+    id: "tab.close",
+    label: "Close tab",
+    description:
+      "Close the active tab. On the last remaining tab, opens a fresh chat instead of closing the window.",
+    category: "tabs",
+    default: { mod: true, code: "KeyW" },
+    electronMenuOwned: true,
+  },
+  {
+    id: "tab.reopen",
+    label: "Reopen closed tab",
+    description: "Restore the most recently closed tab.",
+    category: "tabs",
+    default: { mod: true, shift: true, code: "KeyT" },
+    electronMenuOwned: true,
+  },
+  {
+    id: "tab.last",
+    label: "Last tab",
+    description: "Jump to the rightmost tab.",
+    category: "tabs",
+    default: { mod: true, code: "Digit9" },
+    electronMenuOwned: true,
+  },
+  ...tabGoAction(1),
+  ...tabGoAction(2),
+  ...tabGoAction(3),
+  ...tabGoAction(4),
+  ...tabGoAction(5),
+  ...tabGoAction(6),
+  ...tabGoAction(7),
+  ...tabGoAction(8),
+
+  // ── Cross-cut navigation ───────────────────────────────────────────
+  {
+    id: "nav.commandPalette",
+    label: "Open command palette",
+    description: "Fuzzy-search across nav, sessions, slash commands, and shortcuts.",
+    category: "navigation",
+    default: { mod: true, code: "KeyK" },
+  },
+  {
+    id: "nav.toggleSidebar",
+    label: "Toggle sidebar",
+    description: "Show or hide the left navigation rail.",
+    category: "navigation",
+    default: { mod: true, code: "KeyB" },
+  },
+  {
+    id: "nav.cheatsheet",
+    label: "Show keyboard cheatsheet",
+    description: "Open the keyboard-shortcut help overlay.",
+    category: "navigation",
+    default: { mod: true, code: "Slash" },
+  },
+
+  // ── Window controls (Electron-only; web build no-ops) ──────────────
+  {
+    id: "window.minimize",
+    label: "Minimize window",
+    category: "window",
+    default: { mod: true, code: "KeyM" },
+    electronMenuOwned: true,
+  },
+  {
+    id: "window.zoom",
+    label: "Zoom window",
+    description: "macOS only — toggle the green traffic-light zoom.",
+    category: "window",
+    default: null,
+    electronMenuOwned: true,
+  },
+  {
+    id: "window.toggleFullscreen",
+    label: "Toggle fullscreen",
+    category: "window",
+    // mac convention: Ctrl+Cmd+F. Win/Linux use F11 natively; menu
+    // accelerator handles that platform-side.
+    default: { mod: true, code: "KeyF" },
+    electronMenuOwned: true,
+  },
+
+  // ── View ───────────────────────────────────────────────────────────
+  {
+    id: "view.toggleDevTools",
+    label: "Toggle developer tools",
+    category: "view",
+    default: { mod: true, alt: true, code: "KeyI" },
+    electronMenuOwned: true,
+  },
+  {
+    id: "view.reload",
+    label: "Reload window",
+    category: "view",
+    default: { mod: true, code: "KeyR" },
+    electronMenuOwned: true,
+  },
+  {
+    id: "view.zoomIn",
+    label: "Zoom in",
+    category: "view",
+    default: { mod: true, code: "Equal" },
+    electronMenuOwned: true,
+  },
+  {
+    id: "view.zoomOut",
+    label: "Zoom out",
+    category: "view",
+    default: { mod: true, code: "Minus" },
+    electronMenuOwned: true,
+  },
+  {
+    id: "view.zoomReset",
+    label: "Actual size",
+    category: "view",
+    default: { mod: true, code: "Digit0" },
+    electronMenuOwned: true,
+  },
+
+  // ── App lifecycle (mostly Electron-menu-owned) ─────────────────────
+  {
+    id: "app.preferences",
+    label: "Open Settings",
+    category: "app",
+    default: { mod: true, code: "Comma" },
+    electronMenuOwned: true,
+  },
+  {
+    id: "app.openWorkspace",
+    label: "Open Workspace…",
+    description: "Pick a folder to add as a workspace.",
+    category: "app",
+    default: { mod: true, code: "KeyO" },
+    electronMenuOwned: true,
+  },
+  {
+    id: "app.quit",
+    label: "Quit Claudius",
+    category: "app",
+    default: { mod: true, code: "KeyQ" },
+    electronMenuOwned: true,
+  },
 ];
 
 function navAction(id: string, label: string, code: string): ShortcutAction[] {
@@ -143,6 +322,18 @@ function navAction(id: string, label: string, code: string): ShortcutAction[] {
       label,
       category: "navigation",
       default: { alt: true, code },
+    },
+  ];
+}
+
+function tabGoAction(n: number): ShortcutAction[] {
+  return [
+    {
+      id: `tab.go${n}`,
+      label: `Go to tab ${n}`,
+      category: "tabs",
+      default: { mod: true, code: `Digit${n}` },
+      electronMenuOwned: true,
     },
   ];
 }
