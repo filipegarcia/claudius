@@ -29,6 +29,10 @@ const eslintConfig = defineConfig([
     "playwright/.cache/**",
     // Claudiusd runtime state (pid file, logs, sqlite).
     ".claudius/**",
+    // Electron main-process build output (see electron/tsconfig.json).
+    "dist-electron/**",
+    // Electron-builder packaged artifacts.
+    "release/**",
   ]),
   // The React 19 / React Compiler rule set fires on patterns this codebase
   // hasn't been migrated for (see `user_lint_policy.md` memory). Demote to
@@ -39,6 +43,20 @@ const eslintConfig = defineConfig([
       "react-hooks/set-state-in-effect": "warn",
       "react-hooks/preserve-manual-memoization": "warn",
       "react-hooks/refs": "warn",
+    },
+  },
+  // Electron main-process code is plain Node (CommonJS) — no DOM, no React,
+  // no Next routing rules. Override the inherited Next.js rules here.
+  {
+    files: ["electron/**/*.{ts,tsx,js,mjs}"],
+    rules: {
+      // The Electron main entry intentionally uses node:console / console.log
+      // for boot diagnostics that aren't surfaced to the renderer.
+      "no-console": "off",
+      // Main process imports things like `electron-updater` that aren't on
+      // the Next.js whitelist.
+      "@next/next/no-html-link-for-pages": "off",
+      "@next/next/no-img-element": "off",
     },
   },
 ]);

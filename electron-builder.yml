@@ -1,0 +1,104 @@
+# electron-builder configuration for Claudius desktop app.
+# Phase 0 of docs/electron-conversion/PLAN.md.
+appId: network.claudius.desktop
+productName: Claudius
+copyright: Copyright (c) ${author}
+artifactName: ${productName}-${version}-${os}-${arch}.${ext}
+
+directories:
+  buildResources: build
+  output: release
+
+# Files included in the asar package. The renderer is served from the
+# Next.js standalone output produced by `next build` with
+# `output: "standalone"`.
+files:
+  - dist-electron/**/*
+  - .next/standalone/**/*
+  - .next/static/**/*
+  - public/**/*
+  - package.json
+  - "!**/*.{md,map,d.ts}"
+  - "!**/test-utils/**"
+  - "!**/__tests__/**"
+  - "!**/*.test.{ts,tsx,js,jsx}"
+
+# Native modules and the embedded Next.js binary must live outside the
+# asar archive so they can be spawned/required at runtime.
+asarUnpack:
+  - "**/*.node"
+  - "node_modules/better-sqlite3/**"
+  - "node_modules/next/**"
+  - "node_modules/.bin/next"
+  - "node_modules/@anthropic-ai/claude-agent-sdk/**"
+
+# Anything we ship inside the resources/ folder of the app.
+extraResources:
+  - from: lib/server/db-migrations
+    to: db-migrations
+    filter: ["**/*.sql"]
+
+# Publish to GitHub Releases by default. Override CSC_*, APPLE_ID,
+# APPLE_APP_SPECIFIC_PASSWORD, APPLE_TEAM_ID in CI.
+publish:
+  - provider: github
+    owner: claudius-network
+    repo: claudius
+    releaseType: release
+
+mac:
+  category: public.app-category.developer-tools
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  notarize: true
+  target:
+    - target: dmg
+      arch: [x64, arm64]
+    - target: zip
+      arch: [x64, arm64]
+  icon: build/icons/icon.icns
+
+dmg:
+  sign: false
+  contents:
+    - x: 130
+      y: 220
+    - x: 410
+      y: 220
+      type: link
+      path: /Applications
+
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+    - target: portable
+      arch: [x64]
+  icon: build/icons/icon.ico
+  signtoolOptions:
+    publisherName: Claudius
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  deleteAppDataOnUninstall: false
+
+linux:
+  category: Development
+  synopsis: Claude Code in the browser, now on your desktop
+  target:
+    - target: AppImage
+      arch: [x64]
+    - target: deb
+      arch: [x64]
+    - target: rpm
+      arch: [x64]
+  icon: build/icons
+  desktop:
+    entry:
+      Name: Claudius
+      Comment: Claude Code agent shell
+      Categories: Development;IDE;

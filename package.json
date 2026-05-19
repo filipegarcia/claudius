@@ -22,14 +22,25 @@
     "site:preview": "bunx serve site -l 4321",
     "site:screenshots": "playwright test --project=screenshots",
     "site:screenshots:full": "SCREENSHOTS_INCLUDE_CHAT=1 playwright test --project=screenshots",
-    "site:screenshots:customizations": "SCREENSHOTS_INCLUDE_CUSTOMIZATIONS=1 playwright test tests/e2e/customization-showcase.spec.ts"
+    "site:screenshots:customizations": "SCREENSHOTS_INCLUDE_CUSTOMIZATIONS=1 playwright test tests/e2e/customization-showcase.spec.ts",
+    "electron:dev": "bun run electron:rebuild-native && bun run electron:compile && concurrently -k -n next,electron -c blue,magenta \"bun run dev\" \"wait-on http://127.0.0.1:3000 && cross-env ELECTRON_START_URL=http://127.0.0.1:3000 electron dist-electron/main.js\"",
+    "electron:typecheck": "tsc -p electron/tsconfig.json --noEmit",
+    "electron:compile": "tsc -p electron/tsconfig.json",
+    "electron:build": "bun run electron:rebuild-native && cross-env CLAUDIUS_PACKAGED=1 next build && bun run electron:compile",
+    "electron:dist": "bun run electron:build && electron-builder -mwl",
+    "electron:dist:mac": "bun run electron:build && electron-builder -m",
+    "electron:dist:win": "bun run electron:build && electron-builder -w",
+    "electron:dist:linux": "bun run electron:build && electron-builder -l",
+    "electron:rebuild-native": "electron-builder install-app-deps",
+    "electron:rebuild-native-for-node": "bun install --force better-sqlite3"
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.2.132",
-    "better-sqlite3": "^12.9.0",
+    "better-sqlite3": "^12.10.0",
     "clsx": "^2.1.1",
     "cron-parser": "^5.5.0",
     "cronstrue": "^3.14.0",
+    "electron-updater": "^6.3.9",
     "image-size": "^2.0.2",
     "lucide-react": "^1.14.0",
     "next": "16.2.6",
@@ -50,10 +61,15 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "concurrently": "^9.1.0",
+    "cross-env": "^7.0.3",
+    "electron": "^32.2.6",
+    "electron-builder": "^25.1.8",
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "vitest": "^4.1.6"
+    "vitest": "^4.1.6",
+    "wait-on": "^8.0.1"
   }
 }

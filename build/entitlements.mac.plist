@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- V8 in the renderer + the spawned next dev preview need JIT. -->
+    <key>com.apple.security.cs.allow-jit</key>
+    <true/>
+    <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+    <true/>
+    <!-- The Claude Agent SDK spawns child Node processes (next dev for
+         customization previews, mcp stdio servers). -->
+    <key>com.apple.security.cs.allow-dyld-environment-variables</key>
+    <true/>
+    <!-- App needs outbound network for the Anthropic API, the chat server,
+         and the in-process Next runtime listening on 127.0.0.1. -->
+    <key>com.apple.security.network.client</key>
+    <true/>
+    <key>com.apple.security.network.server</key>
+    <true/>
+    <!-- User can pick workspaces anywhere on disk. -->
+    <key>com.apple.security.files.user-selected.read-write</key>
+    <true/>
+    <!-- Customization preview server reads/writes inside ~/.claude/. -->
+    <key>com.apple.security.files.downloads.read-write</key>
+    <true/>
+</dict>
+</plist>
