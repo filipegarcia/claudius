@@ -58,6 +58,20 @@ if (!gotTheLock) {
 // docs/electron-conversion/PLAN.md.
 registerProtocol();
 
+// Phase 8 follow-up: dock-drop folder support. mac fires this when
+// the user drops a folder on the Claudius dock icon; the path is the
+// absolute fs location and routes via `workspace:open-folder` so the
+// renderer can POST it to `/api/workspaces`.
+const pendingDroppedFolders: string[] = [];
+app.on("open-file", (event, filePath) => {
+  event.preventDefault();
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send("workspace:open-folder", filePath);
+  } else {
+    pendingDroppedFolders.push(filePath);
+  }
+});
+
 async function resolveStartUrl(): Promise<string> {
   // Dev: a `next dev` is already running on :3000. The concurrently
   // pipeline in `bun run electron:dev` set ELECTRON_START_URL before
@@ -202,6 +216,12 @@ app.whenReady().then(async () => {
     // packaged builds and the event is missed.
     mainWindow.webContents.once("did-finish-load", () => {
       notifyRendererReady();
+      // Flush any folder drops that arrived before the window existed.
+      const wc = mainWindow?.webContents;
+      if (wc) {
+        const queue = pendingDroppedFolders.splice(0);
+        for (const p of queue) wc.send("workspace:open-folder", p);
+      }
     });
 
     // macOS: re-create a window when the dock icon is clicked and

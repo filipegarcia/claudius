@@ -7,6 +7,7 @@ import { CommandPalette } from "@/components/overlays/CommandPalette";
 import { PaneLabelsHost } from "@/components/overlays/PaneLabelsHost";
 import { CustomizationBanner } from "@/components/customize/CustomizationBanner";
 import { DeepLinksHandler } from "@/components/chrome/DeepLinksHandler";
+import { ElectronGlobalActions } from "@/components/chrome/ElectronGlobalActions";
 import { TitleBar } from "@/components/chrome/TitleBar";
 import { UpdaterBanner } from "@/components/updater/UpdaterBanner";
 import { NotificationsProvider } from "@/components/notifications/NotificationsProvider";
@@ -86,6 +87,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
                 * router. No-op in the browser build. Phase 8 of
                 * docs/electron-conversion/PLAN.md. */}
               <DeepLinksHandler />
+              {/* Subscribes to OS menu actions (app.openWorkspace) and
+                * dock-folder-drop events. No-op in the browser build.
+                * Phase 8 follow-up. */}
+              <ElectronGlobalActions />
               <PaneLabelsHost />
             </CommunityNotificationsProvider>
           </NotificationsProvider>

@@ -120,6 +120,20 @@ export type ClaudiusBridge = {
     apply(): void;
     onStatus(cb: (status: ClaudiusUpdaterStatus) => void): () => void;
   };
+
+  /**
+   * OS-level "open folder/file as workspace" events — Phase 8.
+   *
+   * Fires when:
+   *  - the user drops a folder on the dock icon (mac `open-file`)
+   *  - the user double-clicks a folder while Claudius is the default
+   *    handler (win/linux `open-file` via shell file association)
+   *
+   * The payload is the absolute path the OS handed us.
+   */
+  workspaces: {
+    onOpenFolder(cb: (path: string) => void): () => void;
+  };
 };
 
 declare global {

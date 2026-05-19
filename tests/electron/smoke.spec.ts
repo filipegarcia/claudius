@@ -58,6 +58,8 @@ test("window.claudius bridge is mounted with the expected shape", async () => {
       hasDialog: typeof (c.dialog as { openWorkspace?: unknown } | undefined)?.openWorkspace === "function",
       hasDeepLinks: typeof (c.deepLinks as { onOpen?: unknown } | undefined)?.onOpen === "function",
       hasUpdater: typeof (c.updater as { check?: unknown } | undefined)?.check === "function",
+      hasWorkspaces:
+        typeof (c.workspaces as { onOpenFolder?: unknown } | undefined)?.onOpenFolder === "function",
     };
   });
 
@@ -72,6 +74,7 @@ test("window.claudius bridge is mounted with the expected shape", async () => {
   expect(probe.hasDialog).toBe(true);
   expect(probe.hasDeepLinks).toBe(true);
   expect(probe.hasUpdater).toBe(true);
+  expect(probe.hasWorkspaces).toBe(true);
 });
 
 test("sandbox guarantees: require and process are not on window", async () => {
