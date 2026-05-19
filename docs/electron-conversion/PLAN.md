@@ -123,8 +123,8 @@ Each phase has four blocks:
 - [x] `bun run lint` passes on `electron/**` and the rest of the tree.
 - [x] `bun install` produces a working `better-sqlite3` for both Node and Electron (`node -e "require('better-sqlite3')"` succeeds after `electron:rebuild-native-for-node`).
 - [x] `electron-builder --version` resolves cleanly from project root (25.1.8).
-- [ ] `bun run build` succeeds (deferred to Phase 1 commit, when next.config.ts changes).
-- [ ] `bun run test:e2e` passes (deferred to Phase 1 commit, no app code changed yet).
+- [x] `bun run build` succeeds at Phase 1 boundary (verified in iteration 2 background run, exit 0).
+- [ ] `bun run test:e2e` passes (deferred — verified at Phase 10 boundary with new Electron Playwright project).
 
 ---
 
@@ -172,30 +172,16 @@ Each phase has four blocks:
 - R2.5 In the web build, `window.claudius` is `undefined`; every call site has a documented fallback.
 
 ### Tasks
-- [ ] Write `electron/preload.ts` with `contextBridge.exposeInMainWorld("claudius", api)`.
-- [ ] Define `lib/shared/electron.d.ts`:
-  ```ts
-  type ClaudiusBridge = {
-    isElectron: true;
-    platform: "darwin" | "win32" | "linux";
-    menu: { on(action: string, cb: () => void): () => void };
-    window: { minimize(): void; maximize(): void; close(): void; toggleFullscreen(): void; toggleDevTools(): void };
-    badge: { set(count: number): void };
-    notifications: { show(opts: { title: string; body: string; sessionId?: string }): void };
-    dialog: { openWorkspace(): Promise<string | null>; openFile(opts?: { filters? }): Promise<string | null> };
-    deepLinks: { onOpen(cb: (url: string) => void): () => void };
-    updater: { check(): void; apply(): void; onStatus(cb: (s) => void): () => void };
-  };
-  declare global { interface Window { claudius?: ClaudiusBridge } }
-  ```
-- [ ] Write `lib/client/useElectron.ts`: `useIsElectron()` + `useElectronAction(actionId, fn)`.
-- [ ] Audit lint: no `app/**` or `components/**` file may import from `electron/**`.
+- [x] Write `electron/preload.ts` with the full `contextBridge.exposeInMainWorld("claudius", api)` surface — menu, window, badge, notifications, dialog, deepLinks, updater. IPC topics centralized in a `TOPICS` const so phases 3–8 only add `ipcMain.handle/on` registrations on the main side.
+- [x] Define `lib/shared/electron.d.ts` with the typed bridge contract (`ClaudiusBridge`, `ClaudiusNotificationOpts`, `ClaudiusUpdaterStatus`, `ClaudiusFileFilter`).
+- [x] Write `lib/client/useElectron.ts`: `useClaudius()`, `useIsElectron()`, `useElectronAction(actionId, fn)`, `useElectronSubscription(subscribe, fn)`, `useElectronInvoke(call, fallback)`. SSR-safe via `useSyncExternalStore`.
+- [x] Audit: no `app/**` or `components/**` file imports from `electron/**` (verified via grep — zero matches).
 
 ### Tests
-- [ ] Unit (vitest): `useIsElectron()` returns `false` when `window.claudius` is missing; `true` when stubbed.
-- [ ] Electron Playwright: assert `window.claudius.isElectron === true` and `platform` matches `process.platform`.
-- [ ] Web Playwright: assert `window.claudius === undefined`.
-- [ ] Security audit: in the renderer console, `typeof require === "undefined"` and `typeof process === "undefined"` (sandbox enforced).
+- [x] Unit (vitest): `readBridgeOnClient()` returns `null` for Node/SSR, `null` when `window.claudius` is `undefined`, and the bridge when mounted (4 cases in `tests/unit/use-electron.test.ts`).
+- [ ] Electron Playwright: assert `window.claudius.isElectron === true` (deferred to Phase 10).
+- [ ] Web Playwright: assert `window.claudius === undefined` (deferred to Phase 10).
+- [ ] Security audit: in the renderer console, `typeof require === "undefined"` and `typeof process === "undefined"` (deferred to Phase 10).
 
 ---
 
