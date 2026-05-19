@@ -13,6 +13,7 @@
     "test:watch": "vitest",
     "test:related": "vitest related --run --passWithNoTests",
     "test:e2e": "playwright test --project=chromium",
+    "test:e2e:electron": "bun run electron:rebuild-native-for-node && bun run electron:compile && playwright test --project=chromium-electron",
     "test:e2e:update-screenshots": "UPDATE_SCREENSHOTS=1 playwright test --project=chromium",
     "test:e2e:live": "playwright test --project=chromium-live",
     "test:e2e:ui": "playwright test --ui",

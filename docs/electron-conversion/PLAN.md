@@ -469,15 +469,20 @@ Code-level audit (build green, no electron-specific code path needed):
 - R10.4 Test helpers exist for: window resolution, opening palette, opening menu, asserting tab state.
 
 ### Tasks
-- [ ] Add the new Playwright project in `playwright.config.ts`.
-- [ ] Helpers: `electron/test-utils/launch.ts`, `electron/test-utils/menu.ts`, `electron/test-utils/tabs.ts`.
-- [ ] Convert key existing specs to run in both projects (parametrize on browser type vs Electron launch).
-- [ ] CI: extend `.github/workflows/e2e.yml` (or equivalent) with a job per OS.
+- [x] Added `chromium-electron` project in `playwright.config.ts` — same `webServer` (`next dev`) as the browser suite; the renderer loads via `ELECTRON_START_URL` so we don't double-spawn.
+- [x] Helper `tests/electron/launch.ts` — `launchElectron({ startUrl? })` returns a typed `ElectronApplication`, `teardownElectron(app)` for `afterEach`. Forwards `CLAUDIUS_E2E_HOME` so the renderer stays in the per-run sandbox.
+- [x] First spec `tests/electron/smoke.spec.ts` — 4 tests: first-window opens + `[data-testid="titlebar"]` visible; full `window.claudius` bridge shape probe; sandbox guarantees (`window.require`/`window.process` undefined); application menu top-level labels include File/Edit/View/Tab/Window/Help.
+- [x] `bun run test:e2e:electron` script — rebuilds native modules for Node, compiles `dist-electron/`, then runs the Playwright project.
+- [ ] **Followup:** menu / tabs / palette / notification / deep-link specs (one per phase 3–8 affordance). Smoke is the foundation; targeted specs land iteratively.
+- [ ] **Followup:** parametrize a handful of existing browser specs (`commit-prefix`, `command-palette-navigation`) to run under both projects.
+- [ ] CI: extend `.github/workflows/e2e.yml` with the new project (deferred to Phase 11 — needs `xvfb` or a display server on the runner).
 
 ### Tests
-- [ ] CI: both projects green on PR.
-- [ ] Smoke: `bun run test:e2e -- --project=chromium-electron` runs locally.
-- [ ] Lint: `bun run lint electron tests/electron` clean.
+- [x] `bunx playwright test --project=chromium-electron --list` discovers all 4 smoke tests.
+- [x] Lint clean on the new test files + playwright config.
+- [x] `bun run electron:typecheck` clean.
+- [x] Browser project regression: `bun run test:e2e --list` still discovers the same browser spec set.
+- [ ] **BLOCKED — runner gap:** actual execution of the Electron Playwright suite needs a display server on the runner (xvfb on Linux, no-op on mac/win). Wires up in Phase 11 CI.
 
 ---
 

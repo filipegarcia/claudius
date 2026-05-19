@@ -91,6 +91,15 @@ export default defineConfig({
       testMatch: /site-screenshots\.spec\.ts$/,
       use: { ...devices["Desktop Chrome"] },
     },
+    // Phase 10 of docs/electron-conversion/PLAN.md — runs against the
+    // compiled `dist-electron/main.js` via Playwright's `_electron`
+    // helper. Shares the same `webServer` (next dev) as the browser
+    // suite — the renderer loads from it via ELECTRON_START_URL.
+    {
+      name: "chromium-electron",
+      testDir: "./tests/electron",
+      testMatch: /.*\.spec\.ts$/,
+    },
   ],
 
   webServer: {
