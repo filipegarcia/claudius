@@ -376,14 +376,26 @@ export default function Home() {
     }
   }
 
+  // Phase 3 of docs/electron-conversion/PLAN.md — closed-tab undo stack so
+  // Cmd+Shift+T can restore the most recently closed tab. We only push when
+  // closeTab actually removes a known id; reopen pops + reinserts at the
+  // same index (clamped to the current length). The stack is in-memory only:
+  // it doesn't survive a workspace switch or full reload, matching the
+  // typical browser "reopen closed tab" UX.
+  const closedTabsRef = useRef<{ id: string; index: number }[]>([]);
+
   const closeTab = useCallback(
     (id: string) => {
       setOpenTabs((prev) => {
+        const idx = prev.indexOf(id);
+        if (idx === -1) return prev;
         const next = prev.filter((x) => x !== id);
+        closedTabsRef.current.push({ id, index: idx });
+        // Cap the stack so a runaway loop can't OOM us.
+        if (closedTabsRef.current.length > 64) closedTabsRef.current.shift();
         // If we just closed the active tab, switch to a neighbor — pick the
         // tab to the left of the closed one, falling back to the first tab.
         if (id === session.sessionId) {
-          const idx = prev.indexOf(id);
           const target = next[Math.max(0, idx - 1)] ?? next[0] ?? null;
           if (target) {
             session.switchSession(target);
@@ -398,6 +410,19 @@ export default function Home() {
     },
     [session],
   );
+
+  const reopenClosedTab = useCallback(() => {
+    const last = closedTabsRef.current.pop();
+    if (!last) return;
+    setOpenTabs((prev) => {
+      if (prev.includes(last.id)) return prev; // already back
+      const clamped = Math.min(Math.max(last.index, 0), prev.length);
+      const next = [...prev.slice(0, clamped), last.id, ...prev.slice(clamped)];
+      return next;
+    });
+    // Focus the restored session immediately so reopen is one-step.
+    session.switchSession(last.id);
+  }, [session]);
 
   // Returns the ids that were actually closed so callers can react (e.g.
   // mark each session's unread notifications read). Empty array means the
@@ -916,6 +941,7 @@ export default function Home() {
             for (const id of closed) void notifications.markSessionRead(id);
           }}
           onNew={() => void session.createNewSession()}
+          onReopen={reopenClosedTab}
           labelMaxWidth={tabLabelMaxWidth ?? undefined}
           onLabelWidthChange={onTabLabelWidthChange}
         />

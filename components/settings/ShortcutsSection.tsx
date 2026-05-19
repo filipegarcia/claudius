@@ -21,6 +21,7 @@ import {
   type ShortcutBinding,
   type ShortcutCategory,
 } from "@/lib/client/shortcuts";
+import { useIsElectron } from "@/lib/client/useElectron";
 import { cn } from "@/lib/utils/cn";
 
 const CATEGORY_LABEL: Record<ShortcutCategory, string> = {
@@ -52,6 +53,7 @@ const CATEGORY_ORDER: ShortcutCategory[] = [
  */
 export function ShortcutsSection() {
   const { items, collisions, setBinding, resetAll, resetOne } = useShortcutRegistry();
+  const isElectron = useIsElectron();
 
   // Group by category for the rendered list. `useMemo` avoids re-grouping on
   // every keystroke during recording — items only changes when bindings do.
@@ -128,6 +130,7 @@ export function ShortcutsSection() {
                     action={action}
                     binding={binding}
                     isCustom={isCustom}
+                    isElectron={isElectron}
                     collidesWith={
                       binding
                         ? (collisions[canonicalKey(binding)] ?? []).filter((id) => id !== action.id)
@@ -152,6 +155,7 @@ function ShortcutRow({
   action,
   binding,
   isCustom,
+  isElectron,
   collidesWith,
   onSet,
   onReset,
@@ -159,6 +163,7 @@ function ShortcutRow({
   action: ShortcutAction;
   binding: ShortcutBinding | null;
   isCustom: boolean;
+  isElectron: boolean;
   collidesWith: string[];
   onSet: (b: ShortcutBinding | null) => void;
   onReset: () => void;
@@ -249,6 +254,14 @@ function ShortcutRow({
           {isCustom && (
             <span className="rounded bg-[var(--accent)]/15 px-1.5 py-px text-[9px] text-[var(--accent)]">
               customised
+            </span>
+          )}
+          {action.electronMenuOwned && isElectron && (
+            <span
+              title="The native app menu owns the canonical handler for this chord. Remapping here still works, but the menu accelerator is what reliably reaches the app when the chord is browser-reserved."
+              className="rounded bg-[var(--panel)] px-1.5 py-px text-[9px] uppercase tracking-wide text-[var(--muted)]"
+            >
+              app menu
             </span>
           )}
         </div>

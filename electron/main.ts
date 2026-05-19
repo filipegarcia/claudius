@@ -96,6 +96,48 @@ function createWindow(startUrl: string): BrowserWindow {
     return { action: "deny" };
   });
 
+  // Phase 3 of docs/electron-conversion/PLAN.md — intercept the browser-
+  // reserved chords (Cmd+T / Cmd+W / Cmd+Shift+T / Cmd+1..9 / Cmd+R /
+  // Cmd+Q) before Chromium sees them. The OS menu already has matching
+  // accelerators that dispatch into the renderer; preventDefault here
+  // stops Chromium's own handlers (e.g. Cmd+R hard-reloading the page,
+  // Cmd+W trying to close the renderer with no menu confirmation) from
+  // firing alongside.
+  win.webContents.on("before-input-event", (event, input) => {
+    if (input.type !== "keyDown") return;
+    if (!(input.meta || input.control)) return;
+    const k = input.key.toLowerCase();
+    // Only swallow keys we explicitly own — leave the rest (copy/paste,
+    // text-field shortcuts, devtools toggles) to Chromium.
+    const owned = new Set([
+      "t",
+      "w",
+      "n",
+      "r",
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "0",
+      "+",
+      "=",
+      "-",
+      "k",
+      "b",
+      "/",
+      ",",
+      "o",
+      "m",
+    ]);
+    if (!owned.has(k)) return;
+    event.preventDefault();
+  });
+
   void win.loadURL(startUrl);
   return win;
 }
