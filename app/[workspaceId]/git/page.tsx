@@ -121,13 +121,19 @@ export default function GitPage() {
   /**
    * Right-pane layout: false = unified editor (IntelliJ "Current version"
    * style — the editor IS the diff view), true = side-by-side (old left,
-   * current right). Persisted to localStorage so the user's preference
-   * sticks across reloads.
+   * current right). Defaults to split view because it matches the IntelliJ
+   * workflow the page is modeled after. Persisted to localStorage so the
+   * user's explicit preference (either direction) sticks across reloads.
    */
   const SPLIT_MODE_KEY = "claudius.git.splitMode";
   const [splitMode, setSplitMode] = useState<boolean>(() => {
-    if (typeof window === "undefined") return false;
-    return window.localStorage.getItem(SPLIT_MODE_KEY) === "1";
+    // SSR fall-through and first-time visitors get the new default (split).
+    // Existing entries are respected so users who explicitly toggled to
+    // unified ("0") aren't surprised by a flip on the next reload.
+    if (typeof window === "undefined") return true;
+    const stored = window.localStorage.getItem(SPLIT_MODE_KEY);
+    if (stored == null) return true;
+    return stored === "1";
   });
   useEffect(() => {
     if (typeof window === "undefined") return;

@@ -424,12 +424,26 @@ export default function WorkspacePage() {
                           <div className="relative">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
-                              // Inline `startsWith("blob:")` check — CodeQL's
-                              // js/xss-through-dom query only recognizes the
-                              // sanitizer when it's visible at the JSX
-                              // expression itself, not when wrapped in a
-                              // helper.
-                              src={pendingImage.previewUrl.startsWith("blob:") ? pendingImage.previewUrl : ""}
+                              // Inline `new URL(...).protocol === "blob:"` —
+                              // CodeQL's js/xss-through-dom recognizes the
+                              // URL constructor + protocol check as a URL
+                              // barrier; commits a15877f / 044258f tried
+                              // `startsWith("blob:")` (helper and inline)
+                              // and CodeQL kept flagging the flow. The
+                              // check is provably redundant at runtime —
+                              // `URL.createObjectURL` is the only producer
+                              // of `previewUrl` and only returns `blob:`
+                              // URLs — but the URL-constructor form is the
+                              // pattern the query knows.
+                              src={(() => {
+                                try {
+                                  return new URL(pendingImage.previewUrl).protocol === "blob:"
+                                    ? pendingImage.previewUrl
+                                    : "";
+                                } catch {
+                                  return "";
+                                }
+                              })()}
                               alt="preview"
                               className="h-12 w-12 rounded-lg border border-[var(--border)] object-cover"
                             />
