@@ -3,9 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";
 import { Suspense } from "react";
 import "./globals.css";
-// Bisect probe (iter 18): CommandPalette temporarily unused, see layout body.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { CommandPalette as _CommandPaletteDisabled } from "@/components/overlays/CommandPalette";
+import { CommandPalette } from "@/components/overlays/CommandPalette";
 import { PaneLabelsHost } from "@/components/overlays/PaneLabelsHost";
 import { CustomizationBanner } from "@/components/customize/CustomizationBanner";
 import { DeepLinksHandler } from "@/components/chrome/DeepLinksHandler";
@@ -82,13 +80,12 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
                 <div className="min-h-0 flex-1">{children}</div>
               </div>
               {/* Cross-cut Cmd+K palette — Phase 5 of
-                * docs/electron-conversion/PLAN.md. Bisect probe at
-                * iter 18 of the ralph loop: temporarily disabled to
-                * confirm whether the global keydown listener inside
-                * CommandPalette is what hangs the existing Playwright
-                * suite on CI. Re-enable once the bisect either
-                * confirms or exonerates this component. */}
-              {/* <CommandPalette /> */}
+                * docs/electron-conversion/PLAN.md. Renders nothing
+                * until the chord opens it; safe to mount globally.
+                * (Iter-18 bisect confirmed this is NOT the cause of
+                * the CI playwright e2e hang — see PLAN.md known-issue
+                * section.) */}
+              <CommandPalette />
               {/* Routes claudius:// deep links into the next/navigation
                 * router. No-op in the browser build. Phase 8 of
                 * docs/electron-conversion/PLAN.md. */}

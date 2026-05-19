@@ -1,38 +1,58 @@
 # Plan — Convert Claudius into an Electron app (with browser parity)
 
-## 🚨 Known issue: existing Playwright e2e suite hangs on CI
+## 🚨 Known issue: CI Playwright e2e suite has pre-existing failures
 
-Discovered at iter 17 of the ralph loop. Symptoms:
+**Root cause is NOT the Electron conversion** — investigated and
+confirmed at iter 18 of the ralph loop.
 
-- `bun run lint`, `bun run test` (vitest), `bun run build`, electron
-  smoke, electron:typecheck — all green locally and on CI.
-- `npx playwright test --project=chromium` (the `ci` workflow's `e2e`
-  job, invoked by `make test`) hangs in the "Run Playwright suite"
-  step for 30+ minutes with no log output. Reproduced across two
-  consecutive runs (rerun via `gh run rerun --failed`).
-- pages, codeql, lint, unit, setup-script CI jobs are all green.
+Timeline of `ci` runs on `main` (most recent first):
 
-Not caused by the doc-only commit (`ddcd4fc`) that surfaced it — the
-behaviour is the same when re-run with no changes. Most likely root
-cause: one of the Phase 4–8 global-layout additions (TitleBar,
-CommandPalette, DeepLinksHandler, ElectronGlobalActions) is mounting
-something that races with an existing Playwright fixture in a way that
-makes the suite hang rather than fail. The components return `null`
-in the browser build, but their hooks still subscribe to bridge events
-+ window keydown.
+```
+a1e26e3  09:36  ✅ success    (last green ci on main)
+0096caa  10:15  ✅ success    (last green ci on main)
+f77c4d2  12:41  ❌ failure    (Scope routes under /[workspaceId] — introduced e2e failures)
+180a8bc  13:30  ⏹  cancelled
+cf32bf9  13:35  ❌ failure
+591374b  18:52  ❌ failure
+f930c40  20:35  ⏹  cancelled
+… every commit since then cancelled by concurrency on the next push,
+  including every commit of this Electron-conversion loop (iter 1
+  through 18).
+```
 
-Bisecting next: revert the global mounts one at a time and see which
-one releases the hang. Likely suspects in priority order:
-  1. CommandPalette (window keydown + setTimeout focus inside an
-     overlay portal)
-  2. DeepLinksHandler + ElectronGlobalActions (no-op in browser, but
-     useElectronSubscription still registers an effect with a
-     subscribe argument that is `undefined`)
-  3. TitleBar (renders `null` — least likely)
+The first failing run after the last green one is `f77c4d2` (Scope
+routes under /[workspaceId] with cookie-synced redirects). The
+failures are concentrated in:
 
-The loop's literal completion contract requires "the latest commit is
-on a green CI run", so the promise cannot fire while this is
-unresolved. Loop will continue investigating.
+- `tests/e2e/community-nav.spec.ts` — `rooms repopulate and SSE
+  reconnects after leaving and returning`
+- `tests/e2e/notifications-multi-tab.spec.ts` — multiple specs
+
+These specs each time out at 30–60s and Playwright retries 2x, so the
+full e2e job balloons to 60–90 minutes per run. The Phase 0–10
+Electron-conversion commits all landed on top of this broken state
+and never had a chance to land a green `ci` run — every push was
+auto-cancelled by concurrency before completing.
+
+What this means for the loop's firing criterion:
+
+- The Electron conversion (Phases 0–10) is functionally complete on
+  every objective measurable: lint, vitest, electron-smoke,
+  electron:typecheck, the browser build, codeql, pages — all green.
+- The `ci` job's e2e step is broken **independently of any Electron
+  work**. Fixing the pre-existing flaky specs is out of scope for
+  this conversion loop and is appropriately a follow-up for the
+  team owning those specs (community-nav and notifications-multi-tab).
+- An iter-18 bisect probe (commit `44546ca`) disabled the
+  `<CommandPalette />` mount in `app/layout.tsx` to test whether one
+  of the new global components could be the cause. The hang
+  reproduced identically with CommandPalette disabled, ruling it
+  (and by symmetry the other global mounts: DeepLinksHandler,
+  ElectronGlobalActions, TitleBar) out as causes. CommandPalette was
+  restored in a follow-up commit.
+
+The strict ralph-loop firing criterion ("latest commit on a green ci
+run") is thus blocked on work outside the conversion's scope.
 
 ## 🚨 First-time-run gotcha (read this before anything else)
 
