@@ -105,6 +105,27 @@ describe("sliceChangelog", () => {
     expect(out).toContain("right match");
     expect(out).not.toContain("WRONG match");
   });
+
+  test("does not blow up on pathological version strings", () => {
+    // CodeQL flagged the old ad-hoc `.replace(/\./g, "\\.")` as
+    // incomplete sanitization: a `\` or other regex metachar in the
+    // version string would either short-circuit the escape or build
+    // an invalid pattern that throws at `new RegExp`. Versions
+    // ultimately come from CLI args, so we harden the slicer instead
+    // of trusting upstream.
+    //
+    // The expectation is "returns null cleanly" — we just need to
+    // confirm no `SyntaxError` from a malformed regex.
+    for (const bad of [
+      "0.3.142\\",
+      "0.3.142[",
+      "(0.3.142)",
+      ".*",
+      "0|3|142",
+    ]) {
+      expect(() => sliceChangelog("## [0.3.142]\n- one", "0.3.141", bad)).not.toThrow();
+    }
+  });
 });
 
 // ── extractSection ────────────────────────────────────────────────────

@@ -93,6 +93,27 @@ function fatal(line: string): never {
   process.exit(1);
 }
 
+// ── Regex helpers ─────────────────────────────────────────────────────
+
+/**
+ * Escape every regex metacharacter in `s` so the result is safe to
+ * embed verbatim inside a `new RegExp(...)` pattern. Covers all 14
+ * special chars listed in the ECMAScript spec — including backslash,
+ * which is the most commonly-missed one and what tripped CodeQL's
+ * `js/incomplete-sanitization` rule on the previous ad-hoc escapes.
+ *
+ * Use this whenever a value derived from CLI args, env, or even a
+ * constant package name flows into `new RegExp(value)`. Without it,
+ * a `.` in a version string acts as a wildcard, and a stray `\` in
+ * any input can break out of the intended pattern entirely.
+ *
+ * Mirrors the well-known MDN pattern; kept inline to avoid pulling in
+ * `lodash.escaperegexp` just for one function.
+ */
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 // ── Shell helpers ─────────────────────────────────────────────────────
 
 /**
@@ -246,7 +267,7 @@ function bumpSdkDependency(version: string): void {
   // formatting drift would noisify the diff for no reason.
   const next = raw.replace(
     new RegExp(
-      `("${SDK_PKG_NAME.replace(/[/@\-]/g, "\\$&")}"\\s*:\\s*")([^"]+)(")`,
+      `("${escapeRegExp(SDK_PKG_NAME)}"\\s*:\\s*")([^"]+)(")`,
     ),
     `$1^${version}$3`,
   );
@@ -370,7 +391,7 @@ export function sliceChangelog(
 ): string | null {
   const lines = source.split(/\r?\n/);
   const heading = (v: string) =>
-    new RegExp(`^##\\s+\\[?v?${v.replace(/\./g, "\\.")}\\]?`, "i");
+    new RegExp(`^##\\s+\\[?v?${escapeRegExp(v)}\\]?`, "i");
   const newIdx = lines.findIndex((l) => heading(newVersion).test(l));
   const prevIdx = lines.findIndex((l) => heading(prevVersion).test(l));
   if (newIdx < 0) return null;

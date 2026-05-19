@@ -39,12 +39,19 @@ type Item = {
 // Workspace-scoped items only. System-global tiles (Plugins, Settings,
 // Account/Usage) live in WorkspaceSwitcher below the divider — see the IA
 // review note in TODO.md.
+//
+// Each item's `href` is an "inner" path — the part of the URL after the
+// workspace id. At render time we prepend `/${activeId}` so the link
+// points at the canonical `/<wks_xxx>/...` route. Inner-path storage
+// keeps the items table portable across workspaces (and survives the
+// route-memory hand-off in `WorkspaceSwitcher.tsx`).
 const items: Item[] = [
-  // The Chat button just routes to "/" — boot resumes the last-active tab
-  // (persisted in `ui_state.active_tab`) so coming back to the chat view
-  // from another page lands you on the conversation you left, instead of
-  // spawning a brand-new session on top of the persisted strip.
-  { label: "Chat", icon: MessageSquare, href: "/", actionId: "nav.chat" },
+  // The Chat button routes to the workspace root (`/<id>`) — boot resumes
+  // the last-active tab (persisted in `ui_state.active_tab`) so coming
+  // back to the chat view from another page lands you on the conversation
+  // you left, instead of spawning a brand-new session on top of the
+  // persisted strip. Inner path "" denotes the workspace root.
+  { label: "Chat", icon: MessageSquare, href: "", actionId: "nav.chat" },
   { label: "Sessions", icon: FolderTree, href: "/sessions", actionId: "nav.sessions" },
   { label: "Files", icon: Folder, href: "/files", actionId: "nav.files" },
   { label: "Git", icon: GitBranch, href: "/git", actionId: "nav.git" },
@@ -273,19 +280,29 @@ export function SideNav({ running = false }: { running?: boolean }) {
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (isTypingTarget(e.target)) return;
+      // Block keyboard nav until the active workspace has resolved —
+      // there's no canonical URL to push to before that, and the same
+      // condition already disables the rendered links above.
+      if (!activeId) return;
       for (const item of visibleItems) {
-        if (!item.actionId || !item.href) continue;
+        // `href === ""` is the chat-root inner path, which is valid —
+        // check for `typeof string` rather than truthiness so we don't
+        // accidentally skip Chat.
+        if (!item.actionId || typeof item.href !== "string") continue;
         const binding = bindingByActionId.get(item.actionId) ?? null;
         if (!binding) continue;
         if (!matchBinding(binding, e)) continue;
         e.preventDefault();
-        router.push(item.href);
+        // Same URL shape as the rendered Link — workspace prefix +
+        // inner path; "" yields the bare workspace root.
+        const fullHref = `/${activeId}${item.href}`;
+        router.push(fullHref);
         return;
       }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [router, visibleItems, bindingByActionId]);
+  }, [router, visibleItems, bindingByActionId, activeId]);
 
   // HTML5 drag-to-reorder. Mirrors the WorkspaceSwitcher pattern — same
   // dimmed / scale / ring visual cues, same optimistic+PATCH flow. The
@@ -351,10 +368,26 @@ export function SideNav({ running = false }: { running?: boolean }) {
           // the new chord shows up here without a code edit.
           const binding = actionId ? bindingByActionId.get(actionId) ?? null : null;
           const shortcutLabel = binding ? formatBinding(binding) : undefined;
-          // Strip query string when computing active state — Chat's href is
-          // "/?new=1" but the displayed pathname is just "/".
-          const hrefPath = href ? href.split("?")[0] : undefined;
-          const active = hrefPath ? pathname === hrefPath : false;
+          // `href` in the items table is an *inner* path (e.g. "/git" or
+          // "" for the workspace root). The actual <Link> target is built
+          // by prefixing the active workspace id; the canonical URL shape
+          // is `/<wks_xxx>/...` (empty inner path lands on the chat root
+          // for that workspace). While `activeId` is still resolving we
+          // render the link as a no-op anchor so the rail can hydrate
+          // before workspaces have loaded — click during that window
+          // does nothing rather than navigating to a broken URL.
+          const fullHref =
+            typeof href === "string" && activeId
+              ? `/${activeId}${href}`
+              : undefined;
+          // Active state: strip the workspace prefix from `pathname` and
+          // compare against the inner href. Doing the comparison on the
+          // inner path means a stale link pointing at the bare URL (which
+          // shouldn't exist after this refactor, but defence in depth)
+          // still highlights the right tile.
+          const hrefPath = typeof href === "string" ? href.split("?")[0] : undefined;
+          const innerPath = stripWorkspacePrefix(pathname);
+          const active = hrefPath !== undefined ? innerPath === hrefPath : false;
           // Active state uses the accent color + a left-edge bar (same
           // visual idiom as the workspace switcher's active tile) so the
           // current view is obvious from across the screen.
@@ -393,8 +426,8 @@ export function SideNav({ running = false }: { running?: boolean }) {
             actionId && draggingId === actionId && "scale-95 cursor-grabbing",
             actionId && isOver && "ring-2 ring-[var(--accent)] rounded-md",
           );
-          const inner = href ? (
-            <Link href={href} title={tooltip} className={cls} draggable={false}>
+          const inner = fullHref ? (
+            <Link href={fullHref} title={tooltip} className={cls} draggable={false}>
               {body}
             </Link>
           ) : (
@@ -458,6 +491,25 @@ export function SideNav({ running = false }: { running?: boolean }) {
       </aside>
     </>
   );
+}
+
+/**
+ * Strip the leading `/<wks_xxxxxxxxxxxx>` segment from a pathname and
+ * return the inner path used by the nav items table. Active-state
+ * detection compares the stripped pathname against each item's `href`
+ * so the comparison stays in inner-path space.
+ *
+ *   "/wks_abc123def456"          → ""
+ *   "/wks_abc123def456/git"      → "/git"
+ *   "/wks_abc123def456/sessions" → "/sessions"
+ *   "/settings"                  → "/settings"   (no prefix, untouched)
+ *   ""  / null                   → "/"
+ */
+function stripWorkspacePrefix(p: string | null): string {
+  if (!p) return "/";
+  const m = p.match(/^\/wks_[a-f0-9]+(\/.*)?$/);
+  if (!m) return p;
+  return m[1] ?? "";
 }
 
 /**

@@ -82,35 +82,42 @@ export function useWorkspaces() {
       if (res.ok) {
         setActiveId(id);
         if (typeof window !== "undefined") {
-          // Caller supplied a target route (the workspace rail looks up
-          // the per-workspace last-visited URL via workspace-route-memory
-          // and passes it here). Navigate straight to it — the full
-          // document load picks up the new workspace's cwd.
+          // Caller supplied a target URL. Two shapes flow in:
+          //   - A fully-prefixed URL for `id` (`/<id>/git`) — comes
+          //     from `workspace-route-memory.getLastPath`, which now
+          //     returns the prefix-included form.
+          //   - A workspace-relative *inner* path (`"/workspace"`,
+          //     `"/"`) — used by callers that haven't been migrated to
+          //     prefixed URLs (WorkspaceContextMenu, the cycle-prev/next
+          //     fallback). We detect this and prepend `/${id}`.
+          // The full-document load is intentional: the new workspace's
+          // cwd is server-side state, so a router.push wouldn't reset
+          // the SDK's child process. Same reason `/customize` and
+          // `/?session=X` get redirected to the workspace root instead
+          // of being preserved across the switch.
           if (typeof route === "string" && route.startsWith("/")) {
-            window.location.href = route;
+            const target = route.startsWith(`/${id}`) ? route : `/${id}${route === "/" ? "" : route}`;
+            window.location.href = target;
             return;
           }
-          // Legacy fallback for callers that don't track per-workspace
-          // route memory (e.g. CustomizationsDrawer). Two URL patterns
-          // leak workspace-A state into workspace B if we just reload
-          // the current href:
-          //   - `/customize` / `/customize/<id>` are tied to a specific
-          //     customization record, not a workspace-relative path —
-          //     staying here leaves the user on a page that has nothing
-          //     to do with the workspace they just switched to.
-          //   - `/?session=X` (set by use-session.bindToSession via
-          //     replaceState) carries a session id from the previous
-          //     workspace. Boot would call createSession({ resume: X })
-          //     under B's cwd and silently re-bind to A's session in the
-          //     wrong workspace context.
-          // In both cases, send the user to `/` with a clean query string.
-          // Boot will resolve the new workspace's last-active tab from its
-          // per-cwd `.claudius.db` (or spawn a fresh session if none).
-          // Other routes (/files, /sessions, /git, …) are workspace-scoped
-          // and reload cleanly under the new cwd.
+          // Legacy fallback when no route is supplied (e.g.
+          // CustomizationsDrawer). The current pathname categorises:
+          //   - `/<oldWorkspaceId>/...` — swap the workspace id and
+          //     keep the inner path. Same-tile-different-cwd is the
+          //     most common case.
+          //   - `/customize/...` — tied to a specific customization,
+          //     not the workspace; reset to the new workspace's root.
+          //   - everything else (global routes like /settings) —
+          //     plain reload; the page is workspace-agnostic.
           const path = window.location.pathname;
+          const m = path.match(/^\/wks_[a-f0-9]+(\/.*)?$/);
+          if (m) {
+            const inner = m[1] ?? "";
+            window.location.href = `/${id}${inner}`;
+            return;
+          }
           if (path === "/" || /^\/customize($|\/)/.test(path)) {
-            window.location.href = "/";
+            window.location.href = `/${id}`;
           } else {
             window.location.reload();
           }

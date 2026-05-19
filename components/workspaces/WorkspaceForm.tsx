@@ -45,7 +45,10 @@ export function WorkspaceForm({ initial, onCancel, onSubmit, onIconUpload, onDel
   const [pendingImage, setPendingImage] = useState<PendingImage | null>(null);
   const [defaultModel, setDefaultModel] = useState(initial?.defaults?.model ?? "");
   const [defaultMode, setDefaultMode] = useState<"" | NonNullable<WorkspaceDefaults["permissionMode"]>>(
-    initial?.defaults?.permissionMode ?? "",
+    // For new workspaces, prefill `bypassPermissions` so agents can run
+    // unattended out of the box (matches how most users actually use this).
+    // When editing, respect whatever was previously saved — including "".
+    initial ? (initial.defaults?.permissionMode ?? "") : "bypassPermissions",
   );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);

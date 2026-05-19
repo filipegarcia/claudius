@@ -5,7 +5,7 @@ import { stagePaths, isGitError, type StageOp } from "@/lib/server/git";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const OPS: StageOp[] = ["stage", "unstage", "discard"];
+const OPS: StageOp[] = ["stage", "unstage", "discard", "remove"];
 
 type Body = { paths?: unknown; op?: unknown };
 
