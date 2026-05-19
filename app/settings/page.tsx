@@ -11,6 +11,7 @@ import { useTheme, THEMES, type ThemeId } from "@/lib/client/theme";
 import { EDITORS, useEditor, type EditorId } from "@/lib/client/ide";
 import { UpdaterSettingsSection } from "@/components/updater/UpdaterSettingsSection";
 import { ShortcutsSection } from "@/components/settings/ShortcutsSection";
+import { RateLimitWarningSection } from "@/components/settings/RateLimitWarningSection";
 import { cn } from "@/lib/utils/cn";
 
 const SCOPE_LABELS: Record<SettingsScope, string> = {
@@ -211,6 +212,11 @@ export default function SettingsPage() {
                 cycling). Persisted to localStorage, so it sits outside the scope
                 tabs above. The CLI input keybindings live on /keybindings. */}
             <ShortcutsSection />
+
+            {/* Browser-local threshold for the chat-side rate-limit pill —
+                also outside the scope tabs because it's a Claudius UI knob,
+                not a Claude Code settings.json value. */}
+            <RateLimitWarningSection />
 
             {showRaw ? (
               <Section title="Raw JSON" subtitle="Direct edit of the settings file.">
