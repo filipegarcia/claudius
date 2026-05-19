@@ -118,6 +118,7 @@ Each phase has four blocks:
 - [x] Write `electron-builder.yml`: `appId`, target list, `asarUnpack: ["**/*.node", "node_modules/next/**", "node_modules/better-sqlite3/**", "node_modules/@anthropic-ai/claude-agent-sdk/**"]`, mac `category`/`hardenedRuntime`/`entitlements`, win `signtoolOptions`, linux `category`.
 - [x] Add `build/entitlements.mac.plist` with `com.apple.security.cs.allow-jit` and `com.apple.security.cs.allow-unsigned-executable-memory`.
 - [x] ESLint override for `electron/**`.
+- [ ] **Followup (advisor iter 5):** mode-lock file `.dist-electron/native-abi.json` recording the ABI `better-sqlite3` is currently built for. `bun run dev` and `electron:dev` startup-check the file and call the matching rebuild script when it doesn't match. Eliminates the silent segfault we hit during Phase 0.
 
 ### Tests
 - [x] `bun run lint` passes on `electron/**` and the rest of the tree.
@@ -149,14 +150,16 @@ Each phase has four blocks:
 - [x] Gate `output: "standalone"` in `next.config.ts` on `CLAUDIUS_PACKAGED`.
 - [x] `electron-builder.yml`'s `files` glob includes `.next/standalone/**`, `.next/static/**`, `public/**` (added in Phase 0).
 - [x] `asarUnpack` for `node_modules/next/**`, `node_modules/.bin/next`, `**/*.node`, `better-sqlite3`, `claude-agent-sdk` (added in Phase 0).
+- [x] **Headless runtime smoke** (`electron/smoke.ts` + `bun run electron:smoke`): boots the embedded next server in plain Node, fetches `/api/heartbeat`, asserts 200, closes. Catches `defaultAppDir()`-class bugs without needing a display server. Stubs `prerender-manifest.json` so it works against Next 16 + Turbopack builds.
 
 ### Tests
-- [ ] Dev launch: `bun run electron:dev` — window opens, navigates to chat, no console errors.
-- [ ] Prod launch: `bun run electron:build && electron dist-electron/main.js` — window opens, port is ephemeral, no `EADDRINUSE` collisions on relaunch.
-- [ ] SSE smoke: open a session, send a prompt, watch the chat stream tokens token-by-token (no buffering). Repeat for `/api/notifications/stream` and `/api/schedule/[id]/runs/[runId]/stream`.
-- [ ] SQLite smoke: create a workspace, restart the app, confirm the workspace persists.
-- [ ] Preview-server smoke: open `/customize/[id]` for any customization, confirm the inline preview iframe renders (the spawned `next dev` works).
-- [ ] Automated: Playwright `chromium-electron` test that loads `/`, expects a redirect to `/<workspaceId>`, and asserts the chat textarea is focusable.
+- [x] `electron:smoke` passes locally — embedded server boots, `/api/heartbeat` returns 200, server closes cleanly (verified in iter 5; 175ms boot, 364ms total).
+- [ ] **BLOCKED — user-driven:** Dev launch (`bun run electron:dev`) — window opens, navigates to chat, no console errors. Requires a display server; the agent can't tick this from inside the loop.
+- [ ] **BLOCKED — user-driven:** Prod launch (`bun run electron:dist:mac` → install → run) — window opens, port is ephemeral, no `EADDRINUSE` collisions on relaunch.
+- [ ] **BLOCKED — user-driven:** SSE smoke — open a session, send a prompt, watch chat stream tokens token-by-token. Repeat for `/api/notifications/stream` and `/api/schedule/[id]/runs/[runId]/stream`.
+- [ ] **BLOCKED — user-driven:** SQLite smoke — create a workspace, restart the app, confirm persistence.
+- [ ] **BLOCKED — user-driven:** Preview-server smoke — open `/customize/[id]`, confirm the iframe renders.
+- [ ] Automated: Playwright `chromium-electron` test (deferred to Phase 10).
 
 ---
 
@@ -213,6 +216,7 @@ Each phase has four blocks:
 - [x] Closed-tab undo stack lives in `app/[workspaceId]/page.tsx` (`closedTabsRef` keeps `{ id, index }` pairs, capped at 64). `reopenClosedTab` reinserts at the original index (clamped) and switches the session into focus. Persistent across closes within one session; cleared on workspace switch or page reload.
 - [x] Added `before-input-event` listener in `electron/main.ts` that `preventDefault()`s the chords we own (t, w, n, r, 1..9, 0, +, =, -, k, b, /, ',', o, m) when `meta` or `control` is held. Leaves copy/paste / devtools / text-field chords alone.
 - [x] Updated `components/settings/ShortcutsSection.tsx` to render an "app menu" badge next to actions with `electronMenuOwned: true` when running inside Electron (`useIsElectron()`).
+- [ ] **Followup (advisor iter 5):** `reopenClosedTab` defensive path — if `session.switchSession(id)` resolves to a session the server can't find on disk (reaped + deleted), surface a toast instead of silently failing. Currently the call is fire-and-forget.
 
 ### Tests
 - [ ] Manual:

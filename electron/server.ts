@@ -95,10 +95,11 @@ export async function startEmbeddedNextServer(
 export function defaultAppDir(): string {
   // When packaged, electron-builder copies `.next/standalone/` to
   // `process.resourcesPath` (because we listed it in the `files` glob).
-  // In dev, fall back to two levels above this file (electron/ →
-  // project root).
+  // In dev, this file compiles to `dist-electron/server.js` (one level
+  // beneath the project root), so a single `..` from `__dirname` gets
+  // us back to the directory containing `.next/`.
   if (process.env.CLAUDIUS_PACKAGED === "1") {
     return process.resourcesPath;
   }
-  return path.resolve(__dirname, "..", "..");
+  return path.resolve(__dirname, "..");
 }

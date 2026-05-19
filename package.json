@@ -32,7 +32,8 @@
     "electron:dist:win": "bun run electron:build && electron-builder -w",
     "electron:dist:linux": "bun run electron:build && electron-builder -l",
     "electron:rebuild-native": "electron-builder install-app-deps",
-    "electron:rebuild-native-for-node": "bun install --force better-sqlite3"
+    "electron:rebuild-native-for-node": "bun install --force better-sqlite3",
+    "electron:smoke": "bun run electron:rebuild-native-for-node && next build && bun run electron:compile && node dist-electron/smoke.js"
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.2.132",
