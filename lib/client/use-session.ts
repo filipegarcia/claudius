@@ -102,6 +102,69 @@ function blocksFromSDKContent(content: unknown): DisplayBlock[] {
   return out;
 }
 
+/**
+ * Walk a user message's SDK content and rebuild the `(text, images)` pair the
+ * UI needs to render thumbnails inline.
+ *
+ * On the wire we ship images as base64 content blocks interleaved between text
+ * blocks (see `Session.sendInput` — the server strips the original `[Image #N]`
+ * tokens from text before splitting). So the only thing that survives a page
+ * refresh / disk replay is the document order of the blocks. We rehydrate by:
+ *
+ *   1. Assigning fresh ordinals (1, 2, 3…) to image blocks in document order,
+ *   2. Inserting `[Image #N]` tokens back into the concatenated text at each
+ *      image's position so `InlineUserText` can inline thumbnails where the
+ *      sender originally placed them.
+ *
+ * Reassigned ordinals can diverge from the sender's original (which were
+ * monotonic-without-reuse per composer state) but the link only needs to be
+ * internally consistent within this one bubble — `InlineUserText` maps token
+ * ordinal → `images[].ordinal`, nothing else.
+ *
+ * Only base64-sourced image blocks are reconstructed. URL-sourced images
+ * (none today) and non-text/non-image blocks are dropped.
+ *
+ * Exported for unit testing.
+ */
+export function extractUserContent(content: unknown): {
+  text: string;
+  images: AttachedImage[];
+} {
+  if (typeof content === "string") return { text: content, images: [] };
+  if (!Array.isArray(content)) return { text: "", images: [] };
+  let text = "";
+  const images: AttachedImage[] = [];
+  let ord = 0;
+  for (const raw of content as Array<Record<string, unknown>>) {
+    if (!raw || typeof raw !== "object") continue;
+    const type = (raw as { type?: unknown }).type;
+    if (type === "text") {
+      const t = (raw as { text?: unknown }).text;
+      if (typeof t === "string") text += t;
+    } else if (type === "image") {
+      const src = (raw as { source?: unknown }).source as
+        | { type?: unknown; media_type?: unknown; data?: unknown }
+        | undefined;
+      if (
+        src &&
+        src.type === "base64" &&
+        typeof src.data === "string" &&
+        typeof src.media_type === "string"
+      ) {
+        ord += 1;
+        text += `[Image #${ord}]`;
+        images.push({
+          id: `replay-${ord}`,
+          ordinal: ord,
+          data: src.data,
+          mediaType: src.media_type,
+        });
+      }
+    }
+  }
+  return { text, images };
+}
+
 function extractToolResult(content: unknown): { tool_use_id: string; text: string; isError?: boolean } | null {
   if (!Array.isArray(content)) return null;
   for (const raw of content as SDKContentBlock[]) {
@@ -1609,23 +1672,25 @@ export function useSession(): ChatState & ChatActions {
             });
             return;
           }
-          let text = "";
-          if (typeof content === "string") text = content;
-          else if (Array.isArray(content)) {
-            for (const c of content as Array<{ type?: string; text?: string }>) {
-              if (c?.type === "text" && c.text) text += c.text;
-            }
-          }
-          if (text) {
+          // Rebuild text + image attachments together (see extractUserContent
+          // for why we reconstruct [Image #N] tokens here). The bail is on
+          // BOTH text and images so an image-only paste still produces a
+          // bubble on replay — the previous text-only gate dropped it.
+          const { text, images } = extractUserContent(content);
+          if (text || images.length) {
             const uuid = (msg as { uuid?: string }).uuid ?? crypto.randomUUID();
             setMessages((prev) => {
+              // Optimistic dedup: a fresh send seeded the bubble with the
+              // composer's actual ordinals + uuids; don't replace it with our
+              // replay-renumbered version when the SDK echo lands.
               if (prev.some((m) => m.uuid === uuid)) return prev;
               return [
                 ...prev,
                 {
                   uuid,
                   role: "user",
-                  blocks: [{ kind: "text", text }],
+                  blocks: text ? [{ kind: "text", text }] : [],
+                  ...(images.length ? { images } : {}),
                   ...(typeof ev.at === "number" ? { createdAt: ev.at } : {}),
                 },
               ];
@@ -2789,10 +2854,15 @@ function synthesizeOlder(raw: Array<Record<string, unknown>>): {
     // the carry-forward so subsequent assistants in this turn inherit it.
     const parsedTs = typeof r.timestamp === "string" ? Date.parse(r.timestamp) : NaN;
     if (Number.isFinite(parsedTs)) carriedAt = parsedTs;
+    // Rehydrate image attachments alongside the text so paginated history
+    // still renders thumbnail chips (and `[Image #N]` tokens) for older
+    // user messages that the SSE replay buffer no longer covers.
+    const { text, images } = extractUserContent(content);
     out.push({
       uuid,
       role: "user",
-      blocks: blocksFromSDKContent(content),
+      blocks: text ? [{ kind: "text", text }] : [],
+      ...(images.length ? { images } : {}),
       ...(Number.isFinite(parsedTs) ? { createdAt: parsedTs } : {}),
     });
   }

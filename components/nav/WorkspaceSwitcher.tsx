@@ -9,6 +9,10 @@ import { useNotificationsContext } from "@/components/notifications/Notification
 import { useCommunityNotifications } from "@/components/community/CommunityNotificationsProvider";
 import { WorkspaceIcon } from "@/components/workspaces/WorkspaceIcon";
 import { WorkspaceForm } from "@/components/workspaces/WorkspaceForm";
+import {
+  WorkspaceContextMenu,
+  letterFallback,
+} from "@/components/workspaces/WorkspaceContextMenu";
 import { CustomizationsDrawer } from "@/components/nav/CustomizationsDrawer";
 import {
   getLastPath,
@@ -23,7 +27,8 @@ import {
 import { cn } from "@/lib/utils/cn";
 
 export function WorkspaceSwitcher() {
-  const { items, activeId, select, create, uploadIcon, reorder, refresh } = useWorkspaces();
+  const { items, activeId, select, create, update, remove, uploadIcon, reorder, refresh } =
+    useWorkspaces();
   const { counts } = useNotificationsContext();
   const community = useCommunityNotifications();
   const pathname = usePathname();
@@ -34,6 +39,10 @@ export function WorkspaceSwitcher() {
   const [showForm, setShowForm] = useState<null | { kind: "new" }>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
+  // Right-click context menu. `null` when closed; otherwise the workspace id
+  // and the viewport click point that the popover anchors to.
+  const [menu, setMenu] = useState<null | { id: string; x: number; y: number }>(null);
+  const menuWorkspace = menu ? items.find((w) => w.id === menu.id) ?? null : null;
 
   // Customization workspaces live in the drawer, not the main rail loop.
   // Splitting them here keeps the rendered list, the drag-reorder, and the
@@ -148,11 +157,22 @@ export function WorkspaceSwitcher() {
           return (
             <div
               key={w.id}
-              draggable
+              // Disable drag while the context menu is open for this tile —
+              // a stray drag would close the popover and could land a drop
+              // mid-edit. The handlers themselves stay wired so other tiles
+              // remain reorderable.
+              draggable={menu?.id !== w.id}
               onDragStart={onDragStart(w.id)}
               onDragOver={onDragOver(w.id)}
               onDrop={onDrop(w.id)}
               onDragEnd={onDragEnd}
+              onContextMenu={(e) => {
+                // Suppress the native menu and the parent's drag — both would
+                // fight the popover otherwise.
+                e.preventDefault();
+                e.stopPropagation();
+                setMenu({ id: w.id, x: e.clientX, y: e.clientY });
+              }}
               className={cn(
                 "relative cursor-grab transition",
                 dimmed && "opacity-40",
@@ -286,6 +306,56 @@ export function WorkspaceSwitcher() {
             const r = await create(input);
             if (r.ok) setShowForm(null);
             return r;
+          }}
+        />
+      )}
+      {menu && menuWorkspace && (
+        <WorkspaceContextMenu
+          workspace={menuWorkspace}
+          x={menu.x}
+          y={menu.y}
+          isActive={menuWorkspace.id === activeId}
+          onClose={() => setMenu(null)}
+          onRename={async (id, name) => {
+            await update(id, { name });
+          }}
+          onChangeColor={async (id, color) => {
+            // PATCH expects a full Icon object — when the current icon is an
+            // image the workspace has no `letter` field, so we derive one
+            // from the name (matches defaultLetterIcon's first-non-space-char
+            // rule).
+            const { letter } = letterFallback(menuWorkspace);
+            await update(id, { icon: { kind: "letter", letter, color } });
+          }}
+          onSwitchToLetter={async (id) => {
+            const { letter } = letterFallback(menuWorkspace);
+            // Reuse the existing icon's color if there is one; otherwise let
+            // the user pick from the swatches afterwards. We pick the first
+            // palette color as a default — same shade ordering as the form.
+            const color =
+              menuWorkspace.icon.kind === "letter" ? menuWorkspace.icon.color : "#d97757";
+            await update(id, { icon: { kind: "letter", letter, color } });
+          }}
+          onOpenSettings={(id) => {
+            // /workspace edits the *active* workspace, so we have to select
+            // first. `select` reloads the page when the active id changes,
+            // which would unmount us before we navigate — pass the target
+            // route so the reload lands on /workspace.
+            if (id === activeId) {
+              router.push("/workspace");
+            } else {
+              void select(id, "/workspace");
+            }
+          }}
+          onDelete={async (id) => {
+            const wasActive = id === activeId;
+            const ok = await remove(id);
+            if (ok && wasActive) {
+              // Server clears the cookie + reassigns activeId; reboot the
+              // app under the new workspace's cwd so sessions don't keep
+              // running against the deleted root.
+              if (typeof window !== "undefined") window.location.href = "/";
+            }
           }}
         />
       )}
