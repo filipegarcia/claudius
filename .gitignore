@@ -25,8 +25,9 @@
 /.next-e2e/
 /out/
 
-# production
-/build
+# electron build outputs
+/dist-electron/
+/release/
 
 # claudiusd runtime state (pid file, logs)
 /.claudius/

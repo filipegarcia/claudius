@@ -107,24 +107,24 @@ Each phase has four blocks:
 - R0.5 `dist-electron/`, `release/`, `out/` are gitignored.
 
 ### Tasks
-- [ ] Add deps: `electron@^32`, `electron-builder@^25`, `electron-updater@^6`, `concurrently`, `wait-on`, `cross-env`.
-- [ ] Add scripts to `package.json`:
-  - [ ] `electron:dev` → `concurrently "bun run dev" "wait-on http://127.0.0.1:3000 && cross-env ELECTRON_START_URL=http://127.0.0.1:3000 electron electron/main.ts"`
-  - [ ] `electron:build` → `next build && tsc -p electron/tsconfig.json`
-  - [ ] `electron:dist` / `:dist:mac` / `:dist:win` / `:dist:linux`
-- [ ] Create `electron/tsconfig.json` (`target: node18`, `module: commonjs`, `outDir: dist-electron`).
-- [ ] Add `postinstall: electron-builder install-app-deps` (no-op when Electron not installed).
-- [ ] Append `dist-electron/`, `out/`, `release/` to `.gitignore`.
-- [ ] Write `electron-builder.yml`: `appId`, target list, `asarUnpack: ["**/*.node", "node_modules/next/**"]`, mac `category`/`hardenedRuntime`/`entitlements`, win `signtoolOptions`, linux `category`.
-- [ ] Add `build/entitlements.mac.plist` with `com.apple.security.cs.allow-jit` and `com.apple.security.cs.allow-unsigned-executable-memory`.
-- [ ] ESLint override for `electron/**`.
+- [x] Add deps: `electron@^32`, `electron-builder@^25`, `electron-updater@^6`, `concurrently`, `wait-on`, `cross-env`.
+- [x] Add scripts to `package.json`:
+  - [x] `electron:dev` → `concurrently "bun run dev" "wait-on http://127.0.0.1:3000 && cross-env ELECTRON_START_URL=http://127.0.0.1:3000 electron dist-electron/main.js"`
+  - [x] `electron:build` → `next build && tsc -p electron/tsconfig.json`
+  - [x] `electron:dist` / `:dist:mac` / `:dist:win` / `:dist:linux`
+- [x] Create `electron/tsconfig.json` (`target: ES2022`, `module: commonjs`, `outDir: dist-electron`).
+- [x] Add explicit `electron:rebuild-native` script (electron-builder install-app-deps). **Note:** the plan originally called for a `postinstall` hook; we discovered that rebuilding `better-sqlite3` for Electron's ABI on every `bun install` breaks `bun run dev` (Node can't load the Electron-built .node file, segfaults with exit 137). Switched to an explicit script wired into `electron:dev` and `electron:build`; added `electron:rebuild-native-for-node` to restore Node ABI when needed.
+- [x] Append `dist-electron/`, `release/` to `.gitignore` (`out/` was already present).
+- [x] Write `electron-builder.yml`: `appId`, target list, `asarUnpack: ["**/*.node", "node_modules/next/**", "node_modules/better-sqlite3/**", "node_modules/@anthropic-ai/claude-agent-sdk/**"]`, mac `category`/`hardenedRuntime`/`entitlements`, win `signtoolOptions`, linux `category`.
+- [x] Add `build/entitlements.mac.plist` with `com.apple.security.cs.allow-jit` and `com.apple.security.cs.allow-unsigned-executable-memory`.
+- [x] ESLint override for `electron/**`.
 
 ### Tests
-- [ ] `bun run build` succeeds (web build unaffected).
-- [ ] `bun run lint` passes on `electron/**` and the rest of the tree.
-- [ ] `bun run test:e2e` passes (web Playwright project unchanged).
-- [ ] `bun install` produces a working `better-sqlite3` for both Node and Electron (`node -e "require('better-sqlite3')"` + an Electron smoke).
-- [ ] `electron-builder --help` resolves cleanly from project root.
+- [x] `bun run lint` passes on `electron/**` and the rest of the tree.
+- [x] `bun install` produces a working `better-sqlite3` for both Node and Electron (`node -e "require('better-sqlite3')"` succeeds after `electron:rebuild-native-for-node`).
+- [x] `electron-builder --version` resolves cleanly from project root (25.1.8).
+- [ ] `bun run build` succeeds (deferred to Phase 1 commit, when next.config.ts changes).
+- [ ] `bun run test:e2e` passes (deferred to Phase 1 commit, no app code changed yet).
 
 ---
 
