@@ -17,6 +17,12 @@ import path from "node:path";
 
 import { registerBadgeHandlers } from "./ipc/badge";
 import { createBus } from "./ipc/bus";
+import {
+  notifyRendererReady,
+  registerDeepLinkHandlers,
+  registerProtocol,
+} from "./ipc/deep-links";
+import { registerDialogHandlers } from "./ipc/dialogs";
 import { registerNotificationHandlers } from "./ipc/notifications";
 import { registerUpdaterHandlers } from "./ipc/updater";
 import { installAppMenu } from "./menu";
@@ -46,6 +52,11 @@ if (!gotTheLock) {
     }
   });
 }
+
+// Register the `claudius://` protocol as early as possible — before
+// `whenReady` so cold-start URLs aren't lost. Phase 8 of
+// docs/electron-conversion/PLAN.md.
+registerProtocol();
 
 async function resolveStartUrl(): Promise<string> {
   // Dev: a `next dev` is already running on :3000. The concurrently
@@ -169,6 +180,10 @@ app.whenReady().then(async () => {
     registerNotificationHandlers(bus);
     registerBadgeHandlers();
     registerUpdaterHandlers();
+    registerDialogHandlers();
+    registerDeepLinkHandlers({
+      resolveWindow: () => mainWindow,
+    });
     // Phase 7 of docs/electron-conversion/PLAN.md — the packaged
     // build's auto-updater is owned by Electron; tell the embedded
     // Next process to skip its own git-pull updater so we don't have
@@ -179,6 +194,14 @@ app.whenReady().then(async () => {
 
     mainWindow.on("closed", () => {
       mainWindow = null;
+    });
+
+    // Flush any queued cold-start deep links once the renderer has
+    // mounted its preload listeners. `did-finish-load` is the earliest
+    // safe moment — `did-frame-finish-load` fires too early in some
+    // packaged builds and the event is missed.
+    mainWindow.webContents.once("did-finish-load", () => {
+      notifyRendererReady();
     });
 
     // macOS: re-create a window when the dock icon is clicked and

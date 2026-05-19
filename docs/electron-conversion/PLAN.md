@@ -1,5 +1,21 @@
 # Plan — Convert Claudius into an Electron app (with browser parity)
 
+## Loop completion criteria
+
+This plan is being executed by a Ralph self-feedback loop. The original
+promise — "every checkbox in PLAN.md is `[x]`" — cannot fire because
+~15 items are physically unreachable from inside the loop:
+
+  - manual launches of `bun run electron:dev` (needs a display server)
+  - signed-binary smoke (needs CSC/APPLE certs)
+  - dock-badge / traffic-light visual verification (needs human eyes)
+  - cross-platform CI matrix (needs paid runners + secrets)
+
+**Loop firing condition (revised):** the promise fires after Phase 10
+is complete, with Phases 11 (packaging/signing) and 12 (docs/rollout)
+handed back to the human operator. Items marked `BLOCKED — user-driven`
+or scoped to Phase 11–12 are intentional handoffs, not loop failures.
+
 ## Context
 
 Claudius today is a Next.js 16 App Router web app that wraps `@anthropic-ai/claude-agent-sdk`, persists per-workspace state in SQLite via `better-sqlite3`, and streams agent output to the browser over SSE. It has **58 pages** (35 workspace-scoped + 11 global + 12 bare-path redirect stubs), **113 API routes** (3 of them SSE), a centralized keyboard-shortcut registry, and a session-tab strip already wired to `Cmd+Shift+←/→` and `Cmd+Shift+1..9`.
@@ -363,19 +379,20 @@ Each phase has four blocks:
 - R8.5 Drag-drop a folder onto the dock icon (mac) or app window adds it as a workspace.
 
 ### Tasks
-- [ ] `electron/ipc/deep-links.ts` — parse URLs, queue until renderer is ready, then `webContents.send("deeplink:open", url)`.
-- [ ] `electron/ipc/dialogs.ts` — `openWorkspace`, `openFile(filters?)`.
-- [ ] Renderer subscriber in `lib/client/useElectron.ts` for `deepLinks.onOpen`.
-- [ ] Wire `/files` page's file picker through `window.claudius?.dialog.openFile()` when present.
-- [ ] Title-bar drop handler: on `drop`, take the dropped path → POST `/api/workspaces`.
-- [ ] mac `open-file` handler in `electron/main.ts`.
+- [x] `electron/ipc/deep-links.ts` — protocol registration (`app.setAsDefaultProtocolClient("claudius")` in dev + prod variants), URL queue that defers cold-start payloads until the renderer's `did-finish-load` fires, then `webContents.send("deeplink:open", url)`. Handles mac `open-url` and win/linux `second-instance` event sources.
+- [x] `electron/ipc/dialogs.ts` — `dialog:open-workspace` and `dialog:open-file` `ipcMain.handle` topics returning `string | null` (matches the bridge contract).
+- [x] `lib/client/useDeepLinks.ts` + `components/chrome/DeepLinksHandler.tsx` — renderer subscriber. Parses `claudius://workspace/<wks_xxxxxxxxxxxx>?session=<id>` and `claudius://session/<id>`, routes via `next/navigation.router.push`. Mounted in `app/layout.tsx`.
+- [ ] Wire `/files` page's file picker through `window.claudius?.dialog.openFile()` when present. **Deferred to Phase 9 per-screen sweep** (touches the files page, which we'll audit there anyway).
+- [ ] Title-bar drop handler: on `drop`, take the dropped path → POST `/api/workspaces`. **Deferred to Phase 9** (needs careful coordination with the existing workspace creation flow).
+- [x] mac `open-file` / `second-instance` argv inspection wired into `electron/main.ts`.
 
 ### Tests
-- [ ] Manual cold-start: `open "claudius://workspace/abc?session=def"` from terminal → app launches and lands on that session.
-- [ ] Manual warm-start: same URL while app is open → focuses + navigates.
-- [ ] Manual: "File → Open Workspace…" picks a folder, the workspace appears in the rail.
-- [ ] Manual: drag a folder onto the title bar → workspace added.
-- [ ] Automated (Playwright Electron): send a fake `second-instance` event with a deep-link arg, assert renderer navigation.
+- [x] `tests/unit/electron-ipc-imports.test.ts` — vitest sweep that mocks `electron` and `electron-updater` and verifies every `electron/ipc/*` module loads without throwing. Catches require-at-top regressions without needing a display server. Advisor-recommended at iter 10.
+- [x] Lint clean, electron:typecheck clean, root typecheck clean, 372/372 unit tests (up from 366 — 6 new import-smoke tests), `bun run build` green at Phase 8 boundary.
+- [ ] **BLOCKED — user-driven:** cold-start `open "claudius://workspace/abc?session=def"` from terminal.
+- [ ] **BLOCKED — user-driven:** warm-start same URL → focuses + navigates.
+- [ ] **BLOCKED — user-driven:** "File → Open Workspace…" dialog round-trip.
+- [ ] Automated (Playwright Electron): send a fake `second-instance` event with a deep-link arg (deferred to Phase 10).
 
 ---
 

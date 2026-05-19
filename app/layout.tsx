@@ -6,6 +6,7 @@ import "./globals.css";
 import { CommandPalette } from "@/components/overlays/CommandPalette";
 import { PaneLabelsHost } from "@/components/overlays/PaneLabelsHost";
 import { CustomizationBanner } from "@/components/customize/CustomizationBanner";
+import { DeepLinksHandler } from "@/components/chrome/DeepLinksHandler";
 import { TitleBar } from "@/components/chrome/TitleBar";
 import { UpdaterBanner } from "@/components/updater/UpdaterBanner";
 import { NotificationsProvider } from "@/components/notifications/NotificationsProvider";
@@ -81,6 +82,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
                 * docs/electron-conversion/PLAN.md. Renders nothing
                 * until the chord opens it; safe to mount globally. */}
               <CommandPalette />
+              {/* Routes claudius:// deep links into the next/navigation
+                * router. No-op in the browser build. Phase 8 of
+                * docs/electron-conversion/PLAN.md. */}
+              <DeepLinksHandler />
               <PaneLabelsHost />
             </CommunityNotificationsProvider>
           </NotificationsProvider>

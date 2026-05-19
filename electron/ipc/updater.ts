@@ -24,8 +24,22 @@
  *     `electron:dev` doesn't crash.
  */
 import { app, BrowserWindow, ipcMain } from "electron";
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const { autoUpdater } = require("electron-updater") as typeof import("electron-updater");
+
+// We lazy-load electron-updater inside `bootstrap()` rather than at
+// module top because importing it eagerly evaluates a `MacUpdater` /
+// `NsisUpdater` constructor that needs a live Electron `app` —
+// importing this module under vitest (where `app` is mocked or
+// unavailable) would throw. Lazy-loading also keeps the dev /
+// unpackaged path cleaner since we never reach the require there.
+type AutoUpdater = typeof import("electron-updater").autoUpdater;
+let cachedUpdater: AutoUpdater | null = null;
+function loadAutoUpdater(): AutoUpdater {
+  if (cachedUpdater) return cachedUpdater;
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const mod = require("electron-updater") as typeof import("electron-updater");
+  cachedUpdater = mod.autoUpdater;
+  return cachedUpdater;
+}
 
 const TOPIC_CHECK = "updater:check";
 const TOPIC_APPLY = "updater:apply";
@@ -63,15 +77,17 @@ export function registerUpdaterHandlers(): void {
       return;
     }
     bootstrap();
-    autoUpdater.checkForUpdates().catch((err) => {
-      broadcast({ kind: "error", message: errorMessage(err) });
-    });
+    loadAutoUpdater()
+      .checkForUpdates()
+      .catch((err) => {
+        broadcast({ kind: "error", message: errorMessage(err) });
+      });
   });
 
   ipcMain.on(TOPIC_APPLY, () => {
     if (!packaged) return;
     try {
-      autoUpdater.quitAndInstall();
+      loadAutoUpdater().quitAndInstall();
     } catch (err) {
       broadcast({ kind: "error", message: errorMessage(err) });
     }
@@ -80,37 +96,47 @@ export function registerUpdaterHandlers(): void {
   // Pre-attach listeners on first window so that an auto-check fired
   // by electron-updater on its own schedule still surfaces to the
   // renderer. We don't call checkForUpdates() automatically here —
-  // the renderer decides when to ask.
-  if (packaged) bootstrap();
+  // the renderer decides when to ask. Wrapped in try/catch because
+  // require("electron-updater") can throw in some packaging edge
+  // cases (missing assets, broken signing) — failing softly preserves
+  // the rest of the app.
+  if (packaged) {
+    try {
+      bootstrap();
+    } catch (err) {
+      broadcast({ kind: "error", message: errorMessage(err) });
+    }
+  }
 }
 
 function bootstrap(): void {
   if (started) return;
   started = true;
+  const u = loadAutoUpdater();
 
-  autoUpdater.autoDownload = true;
-  autoUpdater.autoInstallOnAppQuit = true;
+  u.autoDownload = true;
+  u.autoInstallOnAppQuit = true;
   // Logs go to the OS-specific log path; users can inspect via
   // /api/doctor or by opening the file directly.
-  autoUpdater.logger = {
+  u.logger = {
     info: (...args: unknown[]) => console.log("[updater]", ...args),
     warn: (...args: unknown[]) => console.warn("[updater]", ...args),
     error: (...args: unknown[]) => console.error("[updater]", ...args),
     debug: (...args: unknown[]) => console.debug("[updater]", ...args),
   };
 
-  autoUpdater.on("checking-for-update", () => broadcast({ kind: "checking" }));
-  autoUpdater.on("update-available", (info) =>
+  u.on("checking-for-update", () => broadcast({ kind: "checking" }));
+  u.on("update-available", (info) =>
     broadcast({ kind: "available", version: info.version }),
   );
-  autoUpdater.on("update-not-available", () => broadcast({ kind: "idle" }));
-  autoUpdater.on("download-progress", (p) =>
+  u.on("update-not-available", () => broadcast({ kind: "idle" }));
+  u.on("download-progress", (p) =>
     broadcast({ kind: "downloading", percent: Math.round(p.percent) }),
   );
-  autoUpdater.on("update-downloaded", (info) =>
+  u.on("update-downloaded", (info) =>
     broadcast({ kind: "downloaded", version: info.version }),
   );
-  autoUpdater.on("error", (err) =>
+  u.on("error", (err) =>
     broadcast({ kind: "error", message: errorMessage(err) }),
   );
 }
