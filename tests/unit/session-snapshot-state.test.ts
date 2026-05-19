@@ -2,12 +2,25 @@ import { describe, expect, test } from "vitest";
 import { Session } from "@/lib/server/session";
 import type { ServerEvent } from "@/lib/shared/events";
 
-type SessionInternals = Session & {
+/**
+ * Test-only view onto Session that exposes private members we need to
+ * exercise directly (buffer, snapshot-derivation, etc.).
+ *
+ * IMPORTANT: this is *not* `Session & { ... }`. Intersecting a class with a
+ * literal type when both declare a same-named property — and the class's
+ * version is `private` — collapses the whole intersection to `never`
+ * (TS2339 cascade: "Property X does not exist on type 'never'"). Defining
+ * `SessionInternals` as a standalone shape and casting through `unknown`
+ * sidesteps that. We re-export `subscribe` (the one public method the
+ * tests touch) explicitly so we don't lose its signature.
+ */
+type SessionInternals = {
   buffer: ServerEvent[];
   bufferTrimmed: boolean;
   captureSnapshotState: (event: ServerEvent) => void;
   latestUserPromptSnapshot: { uuid: string; text: string; at?: number } | null;
   latestTodosSnapshot: unknown[] | null;
+  subscribe: Session["subscribe"];
 };
 
 function makeSession(): SessionInternals {

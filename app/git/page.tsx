@@ -35,6 +35,48 @@ import { cn } from "@/lib/utils/cn";
 type DiffPayload = { diff: string; binary: boolean };
 
 /**
+ * Git subcommands that can change the working tree, index, HEAD, or refs —
+ * i.e. things that should trigger a status refresh after they run in the
+ * console. Read-only commands (`log`, `diff`, `status`, `show`, `blame`,
+ * `branch -v`, …) are deliberately omitted: refreshing on those churns the
+ * file list under the user's cursor for no reason.
+ *
+ * Subcommand alone is checked — flag-based reads like `git branch -d <x>`
+ * still trigger a refresh because `branch` is in the set. False positives
+ * (an extra status call) are cheap; false negatives (stale file list after
+ * a real change) are confusing.
+ */
+const MUTATING_GIT_SUBCOMMANDS = new Set([
+  "add",
+  "am",
+  "apply",
+  "branch", // create/delete/rename
+  "checkout",
+  "cherry-pick",
+  "clean",
+  "clone", // unlikely in-workspace but harmless
+  "commit",
+  "fetch",
+  "merge",
+  "mv",
+  "pull",
+  "push", // doesn't touch local state, but the badge counts change
+  "rebase",
+  "reset",
+  "restore",
+  "revert",
+  "rm",
+  "stash",
+  "submodule",
+  "switch",
+  "tag",
+  "worktree",
+]);
+
+/** Mirror of server's DEFAULT_TIMEOUT_MS in `lib/server/shell.ts`, in seconds. */
+const SHELL_TIMEOUT_SEC = 120;
+
+/**
  * Squash a raw git stderr (which may include the multi-line output of a
  * pre-commit hook) down to a single one-liner suitable for an inline error
  * banner. The full text still goes to the console via `pushConsoleEntry`;
@@ -589,13 +631,16 @@ export default function GitPage() {
     async (path: string) => {
       if (!wsId) return;
       if (busy || deletingPath) return;
-      // Find the file so we can phrase the confirm prompt correctly.
+      // Find the file so we can route correctly and decide whether to
+      // confirm. Tracked-file reverts run straight through — the change is
+      // recoverable from git reflog, and prompting on every single-file
+      // revert turns into a click-fatigue tax. Untracked-file deletes are
+      // a real `rm` from disk; that one still confirms.
       const file = data?.files.find((f) => f.path === path);
       const isUntracked = file?.untracked ?? false;
-      const msg = isUntracked
-        ? `Delete ${path} from disk? This cannot be undone.`
-        : `Revert local changes in ${path}? The file stays — only your edits are dropped (recoverable from git reflog).`;
-      if (!confirm(msg)) return;
+      if (isUntracked) {
+        if (!confirm(`Delete ${path} from disk? This cannot be undone.`)) return;
+      }
       setDeletingPath(path);
       setOpError(null);
       try {
@@ -707,6 +752,81 @@ export default function GitPage() {
       setBusy(null);
     }
   }
+
+  /**
+   * Run an arbitrary shell command typed into the console prompt. Handed
+   * straight to bash on the server (`execShellCommand`), so pipes,
+   * redirects, command chaining, env-var expansion, etc. all work.
+   *
+   * Status mapping:
+   *   - exitCode 0      → "ok"
+   *   - signal non-null → "error" + a timeout hint (we SIGTERM at the
+   *                       SHELL_TIMEOUT_SEC mark)
+   *   - other non-zero  → "error"
+   *
+   * Refresh policy: we only re-pull git status when the command's first
+   * token is `git` and its subcommand is in `MUTATING_GIT_SUBCOMMANDS`.
+   * Arbitrary commands could touch tracked files (a Makefile target, a
+   * `bun run codegen`, etc.) but the console can't reliably detect that
+   * — auto-refreshing on every command churns the file list under the
+   * user's cursor. The header's Refresh button is right there if needed.
+   */
+  const runConsoleCommand = useCallback(
+    async (rawCommand: string) => {
+      if (!wsId) return;
+      const trimmed = rawCommand.trim();
+      // Cheap whitespace tokenizer just to detect a `git <subcommand>`
+      // prefix for refresh-eligibility. This intentionally doesn't honour
+      // quoting — a user who writes `"git" merge x` is on their own; the
+      // failure mode is "no auto refresh," not a crash.
+      const [first, second] = trimmed.split(/\s+/);
+      const mutatesGit =
+        first === "git" && second != null && MUTATING_GIT_SUBCOMMANDS.has(second);
+      try {
+        const res = await fetch(`/api/workspaces/${wsId}/shell`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ command: trimmed }),
+        });
+        if (!res.ok) {
+          const j = (await res.json().catch(() => ({}))) as { error?: string };
+          pushConsoleEntry({
+            command: trimmed,
+            status: "error",
+            output: j.error ?? `HTTP ${res.status}`,
+          });
+          return;
+        }
+        const j = (await res.json()) as {
+          stdout?: string;
+          stderr?: string;
+          truncated?: boolean;
+          exitCode?: number;
+          signal?: string | null;
+        };
+        const out = [j.stdout ?? "", j.stderr ?? ""].filter((s) => s).join("\n").trimEnd();
+        const timedOut = j.signal != null;
+        const banner =
+          (timedOut ? `(timed out after ${SHELL_TIMEOUT_SEC}s — killed by ${j.signal})\n` : "") +
+          (j.truncated ? `(output truncated — ran past the 16 MB cap)\n` : "");
+        pushConsoleEntry({
+          command: trimmed,
+          status: j.exitCode === 0 ? "ok" : "error",
+          output:
+            banner + (out || (j.exitCode === 0 ? "(no output)" : `exit ${j.exitCode}`)),
+        });
+      } catch (err) {
+        pushConsoleEntry({
+          command: trimmed,
+          status: "error",
+          output: err instanceof Error ? err.message : String(err),
+        });
+      } finally {
+        if (mutatesGit) await refresh();
+      }
+    },
+    [wsId, refresh, pushConsoleEntry],
+  );
 
   const branchLabel = (() => {
     if (!data) return null;
@@ -1156,6 +1276,15 @@ export default function GitPage() {
           height={consoleHeight}
           onHeightChange={setConsoleHeight}
           onClear={() => setConsoleEntries([])}
+          // Prompt is available whenever there's an active workspace —
+          // shell commands work fine in non-repo directories too (`ls`,
+          // `bun run lint`, `mkdir`, …). Only the git-mutating refresh
+          // heuristic is gated on `data.isRepo` (see runConsoleCommand).
+          onRunCommand={wsId ? runConsoleCommand : undefined}
+          // Soft-disable while another button-driven op (commit, push,
+          // pull, …) is in flight so console-typed commands don't
+          // interleave with them.
+          promptDisabled={busy != null}
         />
       </main>
     </div>
