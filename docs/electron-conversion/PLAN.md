@@ -197,13 +197,15 @@ Each phase has four blocks:
 - R3.5 Mac menu layout differs from win/linux (mac has the app menu at index 0).
 
 ### Tasks
-- [ ] Extend `lib/client/shortcuts.ts` actions:
-  - [ ] `tab.new`, `tab.close`, `tab.reopen`, `tab.next`, `tab.prev`, `tab.go1`..`tab.go9`, `tab.last`
-  - [ ] `nav.commandPalette`, `nav.toggleSidebar`, `nav.cheatsheet`
-  - [ ] `window.minimize`, `window.zoom`, `window.toggleFullscreen`
-  - [ ] `view.toggleDevTools`, `view.reload`, `view.zoomIn`/`Out`/`Reset`
-  - [ ] `app.preferences`, `app.quit`, `app.openWorkspace`
-- [ ] Build `electron/menu.ts` with mac vs win/linux templates. Each `click` either calls a native API or `mainWindow.webContents.send("menu:action", actionId)`.
+- [x] Extend `lib/client/shortcuts.ts` actions:
+  - [x] `tab.new`, `tab.close`, `tab.reopen`, `tab.next`, `tab.prev`, `tab.go1`..`tab.go8`, `tab.last` (+ `tab.next`/`tab.prev`/`tab.selectByNumber` were already there). Added `electronMenuOwned: true` flag on items the OS menu owns.
+  - [x] `nav.commandPalette`, `nav.toggleSidebar`, `nav.cheatsheet`
+  - [x] `window.minimize`, `window.zoom`, `window.toggleFullscreen`
+  - [x] `view.toggleDevTools`, `view.reload`, `view.zoomIn`/`Out`/`Reset`
+  - [x] `app.preferences`, `app.quit`, `app.openWorkspace`
+  - [x] Added new categories: `window`, `view`, `app` (alongside existing `tabs`, `workspaces`, `navigation`).
+- [x] Build `electron/menu.ts` with mac vs win/linux templates. Each `click` either calls a native API (zoom, reload, toggleDevTools, togglefullscreen, minimize, quit) or sends `menu:action <actionId>` to the renderer.
+- [x] Install the menu from `electron/main.ts` inside `app.whenReady()`.
 - [ ] Modify `components/chat/SessionTabs.tsx`:
   - [ ] Replace hard-coded `Cmd+Shift+...` handlers with `useElectronAction(...)`/registry subscriptions.
   - [ ] Implement `openNewTab()`, `closeActiveTab()`, `reopenLastClosed()` (in-memory undo stack + `open-tabs-db`).
