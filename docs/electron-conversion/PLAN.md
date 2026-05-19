@@ -145,7 +145,7 @@ Each phase has four blocks:
 - [x] Implement `electron/server.ts` (next.prepare on an ephemeral 127.0.0.1 port, returns `{ url, close }`).
 - [x] Implement `electron/main.ts` (single-instance lock, ready hook, createWindow, dev start-url honored, embedded server in packaged builds, before-quit teardown).
 - [x] Add minimal `electron/preload.ts` (exposes `window.claudius.isElectron` for feature detection; full bridge follows in Phase 2).
-- [ ] Set `CLAUDIUS_PACKAGED=1` in the packaged build's env (electron-builder `extraMetadata` or runtime flag). _Note: main.ts already checks `app.isPackaged` as the canonical source of truth; the env flag is only needed for next.config.ts at build time, which we already pass via the electron:build script._
+- [x] Set `CLAUDIUS_PACKAGED=1` in the packaged build's env. The `electron:build` script passes it to `next build` via `cross-env` so `next.config.ts` enables standalone output; main.ts uses `app.isPackaged` as the canonical runtime guard.
 - [x] Gate `output: "standalone"` in `next.config.ts` on `CLAUDIUS_PACKAGED`.
 - [x] `electron-builder.yml`'s `files` glob includes `.next/standalone/**`, `.next/static/**`, `public/**` (added in Phase 0).
 - [x] `asarUnpack` for `node_modules/next/**`, `node_modules/.bin/next`, `**/*.node`, `better-sqlite3`, `claude-agent-sdk` (added in Phase 0).
@@ -206,11 +206,13 @@ Each phase has four blocks:
   - [x] Added new categories: `window`, `view`, `app` (alongside existing `tabs`, `workspaces`, `navigation`).
 - [x] Build `electron/menu.ts` with mac vs win/linux templates. Each `click` either calls a native API (zoom, reload, toggleDevTools, togglefullscreen, minimize, quit) or sends `menu:action <actionId>` to the renderer.
 - [x] Install the menu from `electron/main.ts` inside `app.whenReady()`.
-- [ ] Modify `components/chat/SessionTabs.tsx`:
-  - [ ] Replace hard-coded `Cmd+Shift+...` handlers with `useElectronAction(...)`/registry subscriptions.
-  - [ ] Implement `openNewTab()`, `closeActiveTab()`, `reopenLastClosed()` (in-memory undo stack + `open-tabs-db`).
-- [ ] Add `before-input-event` listener in `electron/main.ts` that `preventDefault()`s our owned chords so the renderer never receives them.
-- [ ] Update `components/settings/ShortcutsSection.tsx` to badge menu-owned chords as "Owned by app menu" in Electron.
+- [x] Modify `components/chat/SessionTabs.tsx`:
+  - [x] Wire `tab.new`/`tab.close`/`tab.reopen`/`tab.last`/`tab.go1..8` into the existing keydown listener with the registry's `useShortcut(...)` lookups.
+  - [x] `useElectronAction(...)` subscriptions for every menu-dispatched id so the OS menu and the keyboard share one handler code path.
+  - [x] New `onReopen?: () => void` prop; closeActiveTab uses `activeId` + existing `onClose`.
+- [x] Closed-tab undo stack lives in `app/[workspaceId]/page.tsx` (`closedTabsRef` keeps `{ id, index }` pairs, capped at 64). `reopenClosedTab` reinserts at the original index (clamped) and switches the session into focus. Persistent across closes within one session; cleared on workspace switch or page reload.
+- [x] Added `before-input-event` listener in `electron/main.ts` that `preventDefault()`s the chords we own (t, w, n, r, 1..9, 0, +, =, -, k, b, /, ',', o, m) when `meta` or `control` is held. Leaves copy/paste / devtools / text-field chords alone.
+- [x] Updated `components/settings/ShortcutsSection.tsx` to render an "app menu" badge next to actions with `electronMenuOwned: true` when running inside Electron (`useIsElectron()`).
 
 ### Tests
 - [ ] Manual:

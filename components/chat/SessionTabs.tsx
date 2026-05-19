@@ -9,6 +9,7 @@ import {
   matchBinding,
   useShortcut,
 } from "@/lib/client/shortcuts";
+import { useElectronAction } from "@/lib/client/useElectron";
 import { cn } from "@/lib/utils/cn";
 
 export type TabStatus = "running" | "idle" | "starting" | "error" | "background";
@@ -34,6 +35,12 @@ type Props = {
   onClose: (id: string) => void;
   onCloseAll: () => void;
   onNew: () => void;
+  /**
+   * Optional handler for "reopen most recently closed tab" (Cmd+Shift+T).
+   * When omitted (or it returns false), the chord is a no-op. Phase 3 of
+   * docs/electron-conversion/PLAN.md.
+   */
+  onReopen?: () => void;
   /** Max width applied to every tab label (px). Falls back to 180. */
   labelMaxWidth?: number;
   /**
@@ -71,6 +78,7 @@ export function SessionTabs({
   onClose,
   onCloseAll,
   onNew,
+  onReopen,
   labelMaxWidth,
   onLabelWidthChange,
 }: Props) {
@@ -83,6 +91,12 @@ export function SessionTabs({
   const bindingNext = useShortcut("tab.next");
   const bindingPrev = useShortcut("tab.prev");
   const bindingByNumber = useShortcut("tab.selectByNumber");
+  // Phase 3 of docs/electron-conversion/PLAN.md — chord-only equivalents of
+  // the menu items. Read once so the keydown handler doesn't have to.
+  const bindingNew = useShortcut("tab.new");
+  const bindingClose = useShortcut("tab.close");
+  const bindingReopen = useShortcut("tab.reopen");
+  const bindingLast = useShortcut("tab.last");
 
   // ── Global keyboard shortcuts ───────────────────────────────────────────
   // Cycle (next/prev) and numeric tab selection. The numeric shortcut is a
@@ -93,10 +107,63 @@ export function SessionTabs({
   // The effect re-binds when tabs / activeId / onSelect / bindings change.
   // That's cheap (one add/removeEventListener pair) and keeps closure values
   // fresh without the ref-in-render dance the lint rules dislike.
+  // ── Tab-action helpers ─────────────────────────────────────────────────
+  // These are referenced by both the keydown listener (web parity) and the
+  // useElectronAction subscriptions (OS menu in the packaged build). Keeping
+  // them as stable callbacks lets the menu wiring re-subscribe only when the
+  // identity actually changes.
+  const goToTab = useCallback(
+    (idx: number) => {
+      const t = tabs[idx];
+      if (!t) return;
+      if (t.id !== activeId) onSelect(t.id);
+    },
+    [tabs, activeId, onSelect],
+  );
+
+  const goToLastTab = useCallback(() => {
+    const t = tabs[tabs.length - 1];
+    if (!t) return;
+    if (t.id !== activeId) onSelect(t.id);
+  }, [tabs, activeId, onSelect]);
+
+  const closeActiveTab = useCallback(() => {
+    if (!activeId) return;
+    onClose(activeId);
+  }, [activeId, onClose]);
+
+  const reopenLastClosed = useCallback(() => {
+    onReopen?.();
+  }, [onReopen]);
+
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (tabs.length === 0) return;
       if (isTypingTarget(e.target)) return;
+
+      // tab.new / tab.close / tab.reopen / tab.last fire even when the strip
+      // is empty — Cmd+T must work from an empty workspace.
+      if (matchBinding(bindingNew, e)) {
+        e.preventDefault();
+        onNew();
+        return;
+      }
+      if (tabs.length > 0 && matchBinding(bindingClose, e)) {
+        e.preventDefault();
+        closeActiveTab();
+        return;
+      }
+      if (matchBinding(bindingReopen, e)) {
+        e.preventDefault();
+        reopenLastClosed();
+        return;
+      }
+      if (tabs.length > 0 && matchBinding(bindingLast, e)) {
+        e.preventDefault();
+        goToLastTab();
+        return;
+      }
+
+      if (tabs.length === 0) return;
 
       // Numeric: matcher checks modifier shape; we own the Digit1..9 range.
       // ⌘⇧9 is special: with >9 tabs it selects the LAST one (iTerm rule),
@@ -132,7 +199,58 @@ export function SessionTabs({
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [tabs, activeId, onSelect, bindingNext, bindingPrev, bindingByNumber]);
+  }, [
+    tabs,
+    activeId,
+    onSelect,
+    onNew,
+    bindingNext,
+    bindingPrev,
+    bindingByNumber,
+    bindingNew,
+    bindingClose,
+    bindingReopen,
+    bindingLast,
+    closeActiveTab,
+    reopenLastClosed,
+    goToLastTab,
+  ]);
+
+  // ── Electron menu wiring (Phase 3) ─────────────────────────────────────
+  // The OS menu (electron/menu.ts) dispatches `menu:action <actionId>` for
+  // these same ids. In the browser build these subscriptions are no-ops, so
+  // the chord-only path above still drives them.
+  useElectronAction("tab.new", onNew);
+  useElectronAction("tab.close", closeActiveTab);
+  useElectronAction("tab.reopen", reopenLastClosed);
+  useElectronAction("tab.last", goToLastTab);
+  useElectronAction("tab.go1", useCallback(() => goToTab(0), [goToTab]));
+  useElectronAction("tab.go2", useCallback(() => goToTab(1), [goToTab]));
+  useElectronAction("tab.go3", useCallback(() => goToTab(2), [goToTab]));
+  useElectronAction("tab.go4", useCallback(() => goToTab(3), [goToTab]));
+  useElectronAction("tab.go5", useCallback(() => goToTab(4), [goToTab]));
+  useElectronAction("tab.go6", useCallback(() => goToTab(5), [goToTab]));
+  useElectronAction("tab.go7", useCallback(() => goToTab(6), [goToTab]));
+  useElectronAction("tab.go8", useCallback(() => goToTab(7), [goToTab]));
+  useElectronAction(
+    "tab.next",
+    useCallback(() => {
+      if (tabs.length === 0) return;
+      const cur = tabs.findIndex((t) => t.id === activeId);
+      const next = tabs[(cur + 1 + tabs.length) % tabs.length];
+      if (next && next.id !== activeId) onSelect(next.id);
+    }, [tabs, activeId, onSelect]),
+  );
+  useElectronAction(
+    "tab.prev",
+    useCallback(() => {
+      if (tabs.length === 0) return;
+      const cur = tabs.findIndex((t) => t.id === activeId);
+      const baseline = cur === -1 ? 0 : cur;
+      const prev = tabs[(baseline - 1 + tabs.length) % tabs.length];
+      if (prev && prev.id !== activeId) onSelect(prev.id);
+    }, [tabs, activeId, onSelect]),
+  );
 
   // Tooltip / numeric-hint formatting. Pulls the digit modifier from the
   // resolved `tab.selectByNumber` binding so renaming the prefix in
