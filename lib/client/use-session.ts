@@ -411,18 +411,6 @@ export function useSession(): ChatState & ChatActions {
     nav?.addEventListener?.("navigate", onNav);
 
     const handle = setTimeout(() => {
-      // Diagnostic log so CI failure logs surface whether the click /
-      // navigate signals fired. Strip in a follow-up commit once
-      // confirmed working.
-      try {
-        console.log("[session-writer]", {
-          navigated,
-          pathname: window.location.pathname,
-          href: window.location.href,
-        });
-      } catch {
-        // ignore
-      }
       if (navigated) return;
       if (window.location.pathname !== "/") return;
       try {
