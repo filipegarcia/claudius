@@ -18,6 +18,7 @@ import path from "node:path";
 import { registerBadgeHandlers } from "./ipc/badge";
 import { createBus } from "./ipc/bus";
 import { registerNotificationHandlers } from "./ipc/notifications";
+import { registerUpdaterHandlers } from "./ipc/updater";
 import { installAppMenu } from "./menu";
 import {
   defaultAppDir,
@@ -167,6 +168,12 @@ app.whenReady().then(async () => {
     const bus = createBus();
     registerNotificationHandlers(bus);
     registerBadgeHandlers();
+    registerUpdaterHandlers();
+    // Phase 7 of docs/electron-conversion/PLAN.md — the packaged
+    // build's auto-updater is owned by Electron; tell the embedded
+    // Next process to skip its own git-pull updater so we don't have
+    // two paths trying to rewrite the install at once.
+    if (IS_PACKAGED) process.env.CLAUDIUS_UPDATER_DISABLED = "1";
     const startUrl = await resolveStartUrl();
     mainWindow = createWindow(startUrl);
 

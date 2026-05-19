@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ArrowDownToLine, Loader2, RefreshCw, Sparkles, TriangleAlert } from "lucide-react";
 import { useUpdater } from "@/lib/client/use-updater";
+import { useElectronUpdater } from "@/lib/client/useElectronUpdater";
 
 /**
  * Slim banner shown only when:
@@ -21,6 +22,19 @@ import { useUpdater } from "@/lib/client/use-updater";
  *   applying / restarting → error → pending
  */
 export function UpdaterBanner() {
+  // Phase 7 of docs/electron-conversion/PLAN.md — inside the packaged
+  // Electron build there's no git checkout to pull from. We instead
+  // surface the electron-updater state and short-circuit the legacy
+  // git-pull banner entirely.
+  const electronUpdater = useElectronUpdater();
+  if (electronUpdater) {
+    return <ElectronUpdaterBanner state={electronUpdater} />;
+  }
+
+  return <WebUpdaterBanner />;
+}
+
+function WebUpdaterBanner() {
   const u = useUpdater(15_000);
   if (!u.data) return null;
   const { state, settings, install } = u.data;
@@ -141,4 +155,85 @@ export function UpdaterBanner() {
   }
 
   return null;
+}
+
+/**
+ * Electron-only banner — drives off `electron-updater`'s status events
+ * forwarded via the IPC bridge. The packaged app does not have a git
+ * checkout to compare against; instead the updater downloads a signed
+ * dmg/exe and surfaces "restart to install" once it's ready.
+ */
+function ElectronUpdaterBanner({
+  state,
+}: {
+  state: ReturnType<typeof useElectronUpdater> & object;
+}) {
+  const { status, check, apply } = state;
+
+  if (status.kind === "idle" || status.kind === "checking") return null;
+
+  if (status.kind === "available") {
+    return (
+      <div
+        data-pane-name="updater-banner-electron"
+        className="flex items-center gap-2 border-b border-emerald-500/40 bg-emerald-500/10 px-4 py-1.5 text-xs"
+      >
+        <Sparkles className="h-3.5 w-3.5 shrink-0 text-emerald-400" />
+        <span className="font-medium">Claudius {status.version} is downloading…</span>
+        <span className="ml-auto text-[var(--muted)]">we&apos;ll prompt you to restart when it&apos;s ready</span>
+      </div>
+    );
+  }
+
+  if (status.kind === "downloading") {
+    return (
+      <div
+        data-pane-name="updater-banner-electron"
+        className="flex items-center gap-2 border-b border-[var(--accent)]/40 bg-[var(--accent)]/10 px-4 py-1.5 text-xs"
+      >
+        <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-[var(--accent)]" />
+        <span className="font-medium">Downloading update… {status.percent}%</span>
+      </div>
+    );
+  }
+
+  if (status.kind === "downloaded") {
+    return (
+      <div
+        data-pane-name="updater-banner-electron"
+        className="flex items-center gap-2 border-b border-emerald-500/40 bg-emerald-500/10 px-4 py-1.5 text-xs"
+      >
+        <ArrowDownToLine className="h-3.5 w-3.5 shrink-0 text-emerald-400" />
+        <span className="font-medium">Update ready: Claudius {status.version}</span>
+        <button
+          onClick={apply}
+          className="ml-auto flex items-center gap-1 rounded border border-emerald-500/40 bg-emerald-500/15 px-2 py-0.5 hover:bg-emerald-500/25"
+        >
+          <RefreshCw className="h-3 w-3" />
+          Restart and install
+        </button>
+      </div>
+    );
+  }
+
+  // error
+  return (
+    <div
+      data-pane-name="updater-banner-electron"
+      className="flex items-center gap-2 border-b border-red-500/40 bg-red-500/10 px-4 py-1.5 text-xs"
+    >
+      <TriangleAlert className="h-3.5 w-3.5 shrink-0 text-red-400" />
+      <span className="font-medium">Updater error</span>
+      <span className="hidden truncate text-[var(--muted)] sm:inline" title={status.message}>
+        {status.message}
+      </span>
+      <button
+        onClick={check}
+        className="ml-auto flex items-center gap-1 rounded border border-red-500/40 bg-red-500/15 px-2 py-0.5 hover:bg-red-500/25"
+      >
+        <RefreshCw className="h-3 w-3" />
+        Retry check
+      </button>
+    </div>
+  );
 }

@@ -335,17 +335,19 @@ Each phase has four blocks:
 - R7.5 Mac builds are signed + notarized; Windows builds are signed; Linux .deb is GPG-signed.
 
 ### Tasks
-- [ ] `electron/ipc/updater.ts` wrapper around `electron-updater`.
-- [ ] Configure `publish` in `electron-builder.yml`.
-- [ ] Modify `components/banners/UpdaterBanner.tsx` to subscribe to `window.claudius?.updater.onStatus(...)` when present.
-- [ ] Modify `lib/server/updater/*` to no-op when `process.env.CLAUDIUS_PACKAGED === "1"`.
-- [ ] Signing/notarization scaffolding: env vars `CSC_LINK`, `CSC_KEY_PASSWORD`, `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID`.
+- [x] `electron/ipc/updater.ts` — full wrapper around `electron-updater`. Lazy `require` so unpackaged dev launches don't crash; `checkForUpdates` early-returns in dev; events normalized to the `ClaudiusUpdaterStatus` union from `lib/shared/electron.d.ts` and broadcast to all windows via `webContents.send("updater:status", ...)`.
+- [x] `publish` block already configured in `electron-builder.yml` (GitHub Releases — added in Phase 0).
+- [x] `lib/client/useElectronUpdater.ts` — new client hook that subscribes to `bridge.updater.onStatus(...)`, exposes `check()` / `apply()` invokers, and fires a check on mount.
+- [x] `components/updater/UpdaterBanner.tsx` — early-branches on `useElectronUpdater()`. In Electron, the new `ElectronUpdaterBanner` shows downloading-progress / ready-to-install / error states with a "Restart and install" button; the existing git-pull banner stays in `WebUpdaterBanner` for the browser build.
+- [x] `lib/server/updater/*` no-op when packaged — `electron/main.ts` sets `process.env.CLAUDIUS_UPDATER_DISABLED = "1"` before booting the embedded Next server (reuses the existing scheduler escape hatch at `lib/server/updater/scheduler.ts:33`).
+- [ ] **Followup:** signing/notarization environment scaffolding (`CSC_LINK`, `CSC_KEY_PASSWORD`, `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID`) — the `electron-builder.yml` references these via `notarize: true`, but the CI workflow that injects them lands in Phase 11.
 
 ### Tests
-- [ ] Manual end-to-end: build `v0.0.1-test`, install, then build `v0.0.2-test` to a private GH release; relaunch `v0.0.1-test` and watch update download + install.
-- [ ] Automated (Playwright Electron): stub `electron-updater`, fire `update-available` and `update-downloaded`, assert the banner reflects state transitions.
-- [ ] Build verification: `spctl -a -vv "Claudius.app"` accepts the notarized binary on mac.
-- [ ] Build verification: `signtool verify /pa Claudius.exe` succeeds on Windows.
+- [x] Lint clean, electron:typecheck clean, root typecheck clean, 366/366 unit tests, `bun run build` green at Phase 7 boundary.
+- [ ] **BLOCKED — user-driven:** end-to-end install + auto-update loop (`v0.0.1-test → v0.0.2-test`). Requires signed builds — see Phase 11.
+- [ ] Automated (Playwright Electron): stub `electron-updater`, fire `update-available` + `update-downloaded`, assert banner transitions (deferred to Phase 10).
+- [ ] Build verification: `spctl -a -vv "Claudius.app"` (deferred to Phase 11 when signing is set up).
+- [ ] Build verification: `signtool verify /pa Claudius.exe` (deferred to Phase 11).
 
 ---
 
