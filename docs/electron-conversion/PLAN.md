@@ -142,21 +142,13 @@ Each phase has four blocks:
 - R1.7 `next.config.ts` builds with `output: "standalone"` when `CLAUDIUS_PACKAGED=1`; default web build is unaffected.
 
 ### Tasks
-- [ ] Implement `electron/server.ts`:
-  ```ts
-  import next from "next";
-  import { createServer } from "node:http";
-  const app = next({ dev: false, dir: appDir });
-  await app.prepare();
-  const server = createServer(app.getRequestHandler());
-  await new Promise<void>(r => server.listen(0, "127.0.0.1", r));
-  ```
-  Return `http://127.0.0.1:${port}`.
-- [ ] Implement `electron/main.ts`: `app.whenReady()` → start server → `createWindow(url)` → `loadURL(url)`. Honor `ELECTRON_START_URL` in dev.
-- [ ] Set `CLAUDIUS_PACKAGED=1` in the packaged build's env (electron-builder `extraMetadata` or runtime flag).
-- [ ] Gate `output: "standalone"` in `next.config.ts` on `CLAUDIUS_PACKAGED`.
-- [ ] `electron-builder.yml`'s `files` glob includes `.next/standalone/**`, `.next/static/**`, `public/**`.
-- [ ] `asarUnpack` for `node_modules/next/**`, `node_modules/.bin/next`, `**/*.node`.
+- [x] Implement `electron/server.ts` (next.prepare on an ephemeral 127.0.0.1 port, returns `{ url, close }`).
+- [x] Implement `electron/main.ts` (single-instance lock, ready hook, createWindow, dev start-url honored, embedded server in packaged builds, before-quit teardown).
+- [x] Add minimal `electron/preload.ts` (exposes `window.claudius.isElectron` for feature detection; full bridge follows in Phase 2).
+- [ ] Set `CLAUDIUS_PACKAGED=1` in the packaged build's env (electron-builder `extraMetadata` or runtime flag). _Note: main.ts already checks `app.isPackaged` as the canonical source of truth; the env flag is only needed for next.config.ts at build time, which we already pass via the electron:build script._
+- [x] Gate `output: "standalone"` in `next.config.ts` on `CLAUDIUS_PACKAGED`.
+- [x] `electron-builder.yml`'s `files` glob includes `.next/standalone/**`, `.next/static/**`, `public/**` (added in Phase 0).
+- [x] `asarUnpack` for `node_modules/next/**`, `node_modules/.bin/next`, `**/*.node`, `better-sqlite3`, `claude-agent-sdk` (added in Phase 0).
 
 ### Tests
 - [ ] Dev launch: `bun run electron:dev` — window opens, navigates to chat, no console errors.

@@ -29,6 +29,9 @@
 /dist-electron/
 /release/
 
+# ralph-loop session state (per-session, not portable)
+/.claude/ralph-loop.local.md
+
 # claudiusd runtime state (pid file, logs)
 /.claudius/
 
