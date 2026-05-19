@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
+import { UPDATE_SCREENSHOTS } from "./helpers/marketing-screenshot";
 
 /**
  * Screenshot for the Synthwave customization on the marketing site.
@@ -12,12 +13,13 @@ import { resolve } from "node:path";
  * seed `localStorage.claudius.theme = "synthwave"` via addInitScript so the
  * theme is active on first paint, and snap.
  *
- * Output: site/screenshots/customization-synthwave.png — referenced from
- * site/index.html in the customizations gallery.
+ * Output (only written when UPDATE_SCREENSHOTS=1):
+ *   site/screenshots/customization-synthwave.png — referenced from
+ *   site/index.html in the customizations gallery.
  */
 
 const SHOTS_DIR = resolve(process.cwd(), "site/screenshots");
-mkdirSync(SHOTS_DIR, { recursive: true });
+if (UPDATE_SCREENSHOTS) mkdirSync(SHOTS_DIR, { recursive: true });
 
 type WorkspaceSummary = { id: string; name: string; rootPath: string };
 
@@ -60,9 +62,11 @@ test.describe("customization · synthwave screenshot", () => {
       "synthwave",
     );
 
-    await page.screenshot({
-      path: resolve(SHOTS_DIR, "customization-synthwave.png"),
-      fullPage: false,
-    });
+    if (UPDATE_SCREENSHOTS) {
+      await page.screenshot({
+        path: resolve(SHOTS_DIR, "customization-synthwave.png"),
+        fullPage: false,
+      });
+    }
   });
 });

@@ -1,6 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
+import { UPDATE_SCREENSHOTS } from "./helpers/marketing-screenshot";
 
 /**
  * Screenshot for the Tracker customization on the marketing site.
@@ -13,12 +14,13 @@ import { resolve } from "node:path";
  * project (matching the rest of the marketing screenshots) — the Tracker
  * tile only appears when a workspace-scoped layout is active.
  *
- * Output: site/screenshots/customization-tracker.png — referenced from
- * site/index.html in the customizations gallery.
+ * Output (only written when UPDATE_SCREENSHOTS=1):
+ *   site/screenshots/customization-tracker.png — referenced from
+ *   site/index.html in the customizations gallery.
  */
 
 const SHOTS_DIR = resolve(process.cwd(), "site/screenshots");
-mkdirSync(SHOTS_DIR, { recursive: true });
+if (UPDATE_SCREENSHOTS) mkdirSync(SHOTS_DIR, { recursive: true });
 
 type WorkspaceSummary = { id: string; name: string; rootPath: string };
 
@@ -52,9 +54,11 @@ test.describe("customization · tracker screenshot", () => {
     // mode collision on the multi-issue regex.
     await expect(page.getByText(/#48[0-9]/).first()).toBeVisible();
     await page.waitForTimeout(500);
-    await page.screenshot({
-      path: resolve(SHOTS_DIR, "customization-tracker.png"),
-      fullPage: false,
-    });
+    if (UPDATE_SCREENSHOTS) {
+      await page.screenshot({
+        path: resolve(SHOTS_DIR, "customization-tracker.png"),
+        fullPage: false,
+      });
+    }
   });
 });

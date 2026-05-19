@@ -2,6 +2,7 @@ import { test, expect, type Page } from "@playwright/test";
 import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 import type { Container, DockerResponse } from "@/app/api/docker/containers/route";
+import { UPDATE_SCREENSHOTS } from "./helpers/marketing-screenshot";
 
 /**
  * Screenshots for the Docker Monitoring customization on the marketing
@@ -10,7 +11,7 @@ import type { Container, DockerResponse } from "@/app/api/docker/containers/rout
  * make the screenshot non-deterministic. Instead, we mock
  * `/api/docker/containers` with a fixture and snap.
  *
- * Three shots:
+ * Three shots (only written when UPDATE_SCREENSHOTS=1):
  *   1. customization-docker.png            — the full dashboard
  *   2. customization-docker-cards.png      — close-up on the aggregate
  *      cards (the "fancy graphics")
@@ -19,7 +20,7 @@ import type { Container, DockerResponse } from "@/app/api/docker/containers/rout
  */
 
 const SHOTS_DIR = resolve(process.cwd(), "site/screenshots");
-mkdirSync(SHOTS_DIR, { recursive: true });
+if (UPDATE_SCREENSHOTS) mkdirSync(SHOTS_DIR, { recursive: true });
 
 type WorkspaceSummary = { id: string; name: string; rootPath: string };
 
@@ -158,10 +159,12 @@ test.describe("customization · docker monitoring screenshots", () => {
     await expect(page.getByTestId("docker-containers-table")).toBeVisible();
     // Settle: let the donut gauges finish drawing.
     await page.waitForTimeout(400);
-    await page.screenshot({
-      path: resolve(SHOTS_DIR, "customization-docker.png"),
-      fullPage: false,
-    });
+    if (UPDATE_SCREENSHOTS) {
+      await page.screenshot({
+        path: resolve(SHOTS_DIR, "customization-docker.png"),
+        fullPage: false,
+      });
+    }
   });
 
   test("customization-docker-cards (close-up)", async ({ page }) => {
@@ -178,9 +181,11 @@ test.describe("customization · docker monitoring screenshots", () => {
     await page.waitForTimeout(400);
     // Tight crop on just the four aggregate cards — the "graphics" hero
     // shot for the marketing card.
-    await cards.screenshot({
-      path: resolve(SHOTS_DIR, "customization-docker-cards.png"),
-    });
+    if (UPDATE_SCREENSHOTS) {
+      await cards.screenshot({
+        path: resolve(SHOTS_DIR, "customization-docker-cards.png"),
+      });
+    }
   });
 
   test("customization-docker-unavailable (graceful degradation)", async ({ page }) => {
@@ -200,9 +205,11 @@ test.describe("customization · docker monitoring screenshots", () => {
     await page.goto("/docker", { waitUntil: "load" });
     await expect(page.getByTestId("docker-unavailable")).toBeVisible({ timeout: 10_000 });
     await page.waitForTimeout(200);
-    await page.screenshot({
-      path: resolve(SHOTS_DIR, "customization-docker-unavailable.png"),
-      fullPage: false,
-    });
+    if (UPDATE_SCREENSHOTS) {
+      await page.screenshot({
+        path: resolve(SHOTS_DIR, "customization-docker-unavailable.png"),
+        fullPage: false,
+      });
+    }
   });
 });

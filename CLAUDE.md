@@ -8,7 +8,7 @@ Next.js 16 (App Router) + React 19 app that wraps `@anthropic-ai/claude-agent-sd
 
 - `bun run dev` — dev server on :3000
 - `bun run lint` — ESLint (pass file paths to scope)
-- `bun run test:e2e` — Playwright (`make test` installs the chromium binary first)
+- `bun run test:e2e` — Playwright (`make test` installs the chromium binary first). Marketing screenshots in `site/screenshots/` are **not** overwritten by default — run `bun run test:e2e:update-screenshots` (or set `UPDATE_SCREENSHOTS=1`) when you actually want to refresh them.
 - `bun run build` — production build
 
 ## Layout

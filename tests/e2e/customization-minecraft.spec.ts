@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
+import { UPDATE_SCREENSHOTS } from "./helpers/marketing-screenshot";
 
 /**
  * Screenshot for the Minecraft Thinking customization. The customization
@@ -14,12 +15,13 @@ import { resolve } from "node:path";
  * produces when active in a real session, but without needing a live
  * Claude turn or a YouTube iframe.
  *
- * Output: site/screenshots/customization-minecraft.png — referenced from
- * site/index.html in the customizations gallery.
+ * Output (only written when UPDATE_SCREENSHOTS=1):
+ *   site/screenshots/customization-minecraft.png — referenced from
+ *   site/index.html in the customizations gallery.
  */
 
 const SHOTS_DIR = resolve(process.cwd(), "site/screenshots");
-mkdirSync(SHOTS_DIR, { recursive: true });
+if (UPDATE_SCREENSHOTS) mkdirSync(SHOTS_DIR, { recursive: true });
 
 test.describe("customization · minecraft thinking screenshot", () => {
   test("customization-minecraft", async ({ page }) => {
@@ -67,9 +69,11 @@ test.describe("customization · minecraft thinking screenshot", () => {
     );
     await page.waitForTimeout(200);
 
-    await page.screenshot({
-      path: resolve(SHOTS_DIR, "customization-minecraft.png"),
-      fullPage: false,
-    });
+    if (UPDATE_SCREENSHOTS) {
+      await page.screenshot({
+        path: resolve(SHOTS_DIR, "customization-minecraft.png"),
+        fullPage: false,
+      });
+    }
   });
 });

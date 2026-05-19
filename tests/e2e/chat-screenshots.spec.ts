@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
+import { UPDATE_SCREENSHOTS } from "./helpers/marketing-screenshot";
 
 /**
  * Marketing screenshots for the three chat states (empty, todos banner,
@@ -9,7 +10,8 @@ import { resolve } from "node:path";
  * hand-render the same visuals from static fixtures. No network or API
  * key required, deterministic across runs.
  *
- * Outputs:
+ * Outputs (only written when UPDATE_SCREENSHOTS=1 — see
+ * tests/e2e/helpers/marketing-screenshot.ts):
  *   - site/screenshots/chat.png
  *   - site/screenshots/todos.png
  *   - site/screenshots/ask-user-question.png
@@ -20,7 +22,7 @@ import { resolve } from "node:path";
  */
 
 const SHOTS_DIR = resolve(process.cwd(), "site/screenshots");
-mkdirSync(SHOTS_DIR, { recursive: true });
+if (UPDATE_SCREENSHOTS) mkdirSync(SHOTS_DIR, { recursive: true });
 
 test.describe("chat states (fixture-driven)", () => {
   test("chat", async ({ page }) => {
@@ -30,10 +32,12 @@ test.describe("chat states (fixture-driven)", () => {
       timeout: 10_000,
     });
     await page.waitForTimeout(300);
-    await page.screenshot({
-      path: resolve(SHOTS_DIR, "chat.png"),
-      fullPage: false,
-    });
+    if (UPDATE_SCREENSHOTS) {
+      await page.screenshot({
+        path: resolve(SHOTS_DIR, "chat.png"),
+        fullPage: false,
+      });
+    }
   });
 
   test("todos", async ({ page }) => {
@@ -45,10 +49,12 @@ test.describe("chat states (fixture-driven)", () => {
       timeout: 10_000,
     });
     await page.waitForTimeout(300);
-    await page.screenshot({
-      path: resolve(SHOTS_DIR, "todos.png"),
-      fullPage: false,
-    });
+    if (UPDATE_SCREENSHOTS) {
+      await page.screenshot({
+        path: resolve(SHOTS_DIR, "todos.png"),
+        fullPage: false,
+      });
+    }
   });
 
   test("ask-user-question", async ({ page }) => {
@@ -59,9 +65,11 @@ test.describe("chat states (fixture-driven)", () => {
     // Settle: the modal mounts its tabs/options on first render and we want
     // the first question shown with focus rings stable.
     await page.waitForTimeout(500);
-    await page.screenshot({
-      path: resolve(SHOTS_DIR, "ask-user-question.png"),
-      fullPage: false,
-    });
+    if (UPDATE_SCREENSHOTS) {
+      await page.screenshot({
+        path: resolve(SHOTS_DIR, "ask-user-question.png"),
+        fullPage: false,
+      });
+    }
   });
 });

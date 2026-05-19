@@ -83,6 +83,22 @@ export type Workspace = {
   commitPrefix?: CommitPrefixConfig;
   /** Workspace kind. Absent on older files = "project". */
   kind?: WorkspaceKind;
+  /**
+   * User-customized order of the SideNav rail tiles, keyed by `actionId`
+   * (e.g. "nav.chat", "nav.git"). At render time the merge rule is:
+   *
+   *   1. Any item whose actionId appears in this array renders in the
+   *      array's order at the top of the rail.
+   *   2. Remaining items (new built-ins added in a later release, or
+   *      tiles the user never reordered) follow in their default order.
+   *   3. Stale ids — e.g. a customization-gated tile whose customization
+   *      has since been reverted — are kept in this array but skipped at
+   *      render. They reappear in the saved slot when the customization
+   *      is re-published.
+   *
+   * Absent on older files = "no custom order, use the defaults."
+   */
+  navOrder?: string[];
 };
 
 type StoreShape = {

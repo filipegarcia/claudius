@@ -11,6 +11,7 @@ import {
   FileX,
   RefreshCw,
   Trash2,
+  Undo2,
 } from "lucide-react";
 import type { GitFileChange } from "@/lib/server/git";
 import { cn } from "@/lib/utils/cn";
@@ -308,12 +309,19 @@ function Group({
             const isSel = selected?.path === f.path && selected.mode === mode;
             const isDeleting = deletingPath === f.path;
             // Untracked rows are a real `rm` from disk — tracked rows are a
-            // restore-to-HEAD. The tooltip distinguishes so the user knows
-            // what they're about to do.
-            const deleteTitle =
-              mode === "untracked"
-                ? "Delete file from disk"
-                : "Discard change (restore to HEAD)";
+            // restore-to-HEAD ("revert"). We split the visual: trash icon +
+            // red hover for the destructive untracked case, undo icon +
+            // amber hover for the recoverable tracked-revert case. Reading
+            // "trash" as "delete the file" was the source of confusion
+            // before this split.
+            const isUntrackedRow = mode === "untracked";
+            const rowActionTitle = isUntrackedRow
+              ? "Delete file from disk"
+              : "Revert change (restore to HEAD)";
+            const RowActionIcon = isUntrackedRow ? Trash2 : Undo2;
+            const rowActionTestId = isUntrackedRow
+              ? `changes-delete-${f.path}`
+              : `changes-revert-${f.path}`;
             return (
               <li key={`${mode}:${f.path}`}>
                 <div
@@ -390,17 +398,23 @@ function Group({
                         onDelete(f.path);
                       }}
                       disabled={isDeleting}
-                      title={deleteTitle}
-                      aria-label={deleteTitle}
-                      data-testid={`changes-delete-${f.path}`}
+                      title={rowActionTitle}
+                      aria-label={rowActionTitle}
+                      data-testid={rowActionTestId}
                       className={cn(
                         "flex h-4 w-4 shrink-0 items-center justify-center rounded text-[var(--muted)]",
-                        "opacity-0 hover:bg-red-500/15 hover:text-red-300 group-hover/row:opacity-100 focus-visible:opacity-100",
+                        // Color-code by destructiveness: red for the real
+                        // `rm` (untracked) so the user pauses; amber for
+                        // revert-to-HEAD, which is recoverable from reflog.
+                        isUntrackedRow
+                          ? "hover:bg-red-500/15 hover:text-red-300"
+                          : "hover:bg-amber-500/15 hover:text-amber-300",
+                        "opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100",
                         "disabled:opacity-40",
                         isSel && "opacity-100",
                       )}
                     >
-                      <Trash2 className="h-3 w-3" />
+                      <RowActionIcon className="h-3 w-3" />
                     </button>
                   )}
                 </div>
