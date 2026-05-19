@@ -1,5 +1,12 @@
 import type { NextConfig } from "next";
 
+// When Claudius is packaged inside Electron (electron-builder sets
+// CLAUDIUS_PACKAGED=1 on the `electron:build` script), emit a
+// standalone server tree so the main process can require Next from
+// inside the .asar without dragging the entire node_modules along.
+// Default web builds stay unchanged.
+const packaged = process.env.CLAUDIUS_PACKAGED === "1";
+
 const nextConfig: NextConfig = {
   // Allow the e2e Playwright server to opt into its own dist dir
   // (`.next-e2e/`) so it can run alongside the user's own `next dev`
@@ -8,6 +15,10 @@ const nextConfig: NextConfig = {
   // `--dist-dir` flag for `next dev`, so the only way to override is
   // here. Default stays `.next` for every other invocation.
   distDir: process.env.NEXT_DIST_DIR || ".next",
+  // Standalone output for Electron — Next traces every required file
+  // and copies them under `.next/standalone/`, which electron-builder
+  // then bundles into the .asar.
+  ...(packaged ? { output: "standalone" as const } : {}),
   env: {
     // Default community chat-server URL. Baked into the client bundle
     // at build time so a fresh `bun run build` ships a working
