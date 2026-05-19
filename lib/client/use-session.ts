@@ -374,14 +374,32 @@ export function useSession(): ChatState & ChatActions {
     // is still "/" — we write `?session=X`, and Next.js then bails its
     // pending navigation because the URL shifted underneath. (The CI
     // failure log polls the URL after the click and sees `/?session=X`
-    // indefinitely, never `/customize`.) The Navigation API's `navigate`
-    // event fires the instant a soft nav is initiated — synchronously
-    // on the Link click, before any RSC work — so a listener here
-    // cleanly aborts the write window even when pathname is still
-    // mid-commit. Chromium 102+ supports it (CI runs Chromium);
-    // Firefox/Safari fall back to the late pathname check, which is
-    // the same behavior as before this fix.
+    // indefinitely, never `/customize`.)
+    //
+    // The actual fix is a document-level click listener in *capture*
+    // phase: it fires synchronously the instant the user clicks an
+    // anchor, *before* React's synthetic handler runs router.push and
+    // *before* the RSC fetch begins. Setting `navigated` here gives
+    // us a deterministic signal hundreds of ms before the timer fires.
+    // The Navigation API's `navigate` event is kept as a secondary
+    // signal for programmatic nav (router.push from a button, etc.)
+    // that won't trip the click handler. Both are scoped to the wait
+    // window and torn down in cleanup.
+    //
+    // Hash-only anchors (href="#" or "#section") don't navigate away
+    // from `/`, so we keep the writer enabled for those.
     let navigated = false;
+
+    const onAnchorClick = (e: MouseEvent) => {
+      const t = e.target as HTMLElement | null;
+      const a = t?.closest?.("a[href]") as HTMLAnchorElement | null;
+      if (!a) return;
+      const href = a.getAttribute("href");
+      if (!href || href.startsWith("#")) return;
+      navigated = true;
+    };
+    document.addEventListener("click", onAnchorClick, true);
+
     type NavTarget = {
       addEventListener?: (t: string, h: () => void) => void;
       removeEventListener?: (t: string, h: () => void) => void;
@@ -393,6 +411,18 @@ export function useSession(): ChatState & ChatActions {
     nav?.addEventListener?.("navigate", onNav);
 
     const handle = setTimeout(() => {
+      // Diagnostic log so CI failure logs surface whether the click /
+      // navigate signals fired. Strip in a follow-up commit once
+      // confirmed working.
+      try {
+        console.log("[session-writer]", {
+          navigated,
+          pathname: window.location.pathname,
+          href: window.location.href,
+        });
+      } catch {
+        // ignore
+      }
       if (navigated) return;
       if (window.location.pathname !== "/") return;
       try {
@@ -412,6 +442,7 @@ export function useSession(): ChatState & ChatActions {
     }, 500);
     return () => {
       clearTimeout(handle);
+      document.removeEventListener("click", onAnchorClick, true);
       nav?.removeEventListener?.("navigate", onNav);
     };
   }, [sessionId, pathname]);
