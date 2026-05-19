@@ -1,0 +1,1289 @@
+"use client";
+
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { SideNav } from "@/components/nav/SideNav";
+import { StatusLine } from "@/components/chat/StatusLine";
+import { LoadingBar } from "@/components/chat/LoadingBar";
+import { MessageList } from "@/components/chat/MessageList";
+import { TodosBanner } from "@/components/chat/TodosBanner";
+import { RecapBanner } from "@/components/chat/RecapBanner";
+import { PromptInput } from "@/components/chat/PromptInput";
+import { PermissionPrompt } from "@/components/chat/PermissionPrompt";
+import { AskUserQuestionPrompt } from "@/components/chat/AskUserQuestionPrompt";
+import { QueueIndicator } from "@/components/chat/QueueIndicator";
+import { PromptSuggestions } from "@/components/chat/PromptSuggestions";
+import { BackgroundTasksPanel } from "@/components/panels/BackgroundTasksPanel";
+import { nextPermissionMode } from "@/components/chat/ModeSelector";
+import { HelpOverlay } from "@/components/overlays/HelpOverlay";
+import { SkillsOverlay } from "@/components/overlays/SkillsOverlay";
+import { CostOverlay } from "@/components/overlays/CostOverlay";
+import { StatusOverlay } from "@/components/overlays/StatusOverlay";
+import { RenameOverlay } from "@/components/overlays/RenameOverlay";
+import { ContextOverlay } from "@/components/overlays/ContextOverlay";
+import { PlanModeBanner } from "@/components/chat/PlanModeBanner";
+import { PlanOverlay } from "@/components/overlays/PlanOverlay";
+import { WorktreesOverlay } from "@/components/overlays/WorktreesOverlay";
+import type { AttachedImage } from "@/lib/client/types";
+import { useSession } from "@/lib/client/use-session";
+import { parseAskQuestions, type AskAnswer, type AskQuestion } from "@/lib/shared/events";
+import { useLimits } from "@/lib/client/useLimits";
+import { CapBreachBanner } from "@/components/chat/CapBreachBanner";
+import { TranscriptSearch, type SearchHit } from "@/components/chat/TranscriptSearch";
+import { SessionTabs, activeTabStatus, tabLabelFor, type TabStatus } from "@/components/chat/SessionTabs";
+import { TabClaimBanner } from "@/components/chat/TabClaimBanner";
+import { useTabClaim } from "@/lib/client/useTabClaim";
+import { BashViewer } from "@/components/panels/BashViewer";
+import { ClaudiusMark } from "@/components/brand/ClaudiusMark";
+import type { BackgroundBash } from "@/lib/client/types";
+
+function todayKey(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function todosFingerprint(todos: { id: string; status: string }[]): string {
+  return todos.map((t) => `${t.id}:${t.status}`).join("|");
+}
+
+/**
+ * Render a resurrected AskUserQuestion submission as a single follow-up
+ * prompt. The SDK's permission stream for the original tool_use already
+ * closed (typically with `Aborted`), so we can't deliver the answer back
+ * through `submitAskAnswer` — instead we frame it as a user message that
+ * quotes each question + the user's pick. Keeping the question text inline
+ * gives the model the same context it had at the time of the ask.
+ */
+function formatAskAsPrompt(questions: AskQuestion[], answers: AskAnswer[]): string {
+  const lines: string[] = [];
+  for (let i = 0; i < questions.length; i++) {
+    const q = questions[i]!;
+    const a = answers[i] ?? {};
+    const picks: string[] = [];
+    if (a.selected && a.selected.length > 0) picks.push(...a.selected);
+    else if (a.label != null && a.label !== "") picks.push(a.label);
+    if (a.custom && a.custom.trim()) picks.push(`Other: ${a.custom.trim()}`);
+    const answerText = picks.length > 0 ? picks.join(", ") : "(declined)";
+    lines.push(`> ${q.question}`);
+    lines.push(answerText);
+    if (i < questions.length - 1) lines.push("");
+  }
+  return lines.join("\n");
+}
+import { useContextWatcher } from "@/lib/client/useContextWatcher";
+import { useNotificationsContext } from "@/components/notifications/NotificationsProvider";
+import { findSlashCommand } from "@/lib/shared/slash-commands";
+import { useWorkspaces } from "@/lib/client/useWorkspaces";
+import { useVerbose } from "@/lib/client/useVerbose";
+
+type OverlayKind = "help" | "skills" | "cost" | "status" | "rename" | "context" | "worktrees" | null;
+
+export default function Home() {
+  const session = useSession();
+  const router = useRouter();
+  const [rewindingUuid, setRewindingUuid] = useState<string | null>(null);
+  const [overlay, setOverlay] = useState<OverlayKind>(null);
+  const [toast, setToast] = useState<string | null>(null);
+  // Tracks when the user has hidden the AskUserQuestion modal without
+  // answering — keyed by requestId so a fresh question pops up again.
+  // The modal renders only when there is a pendingAsk AND its requestId
+  // is not the one we just minimized.
+  const [askMinimizedFor, setAskMinimizedFor] = useState<string | null>(null);
+  // "Resurrected" ask — the user clicked the Reopen pill on a historic /
+  // errored AskUserQuestion row whose permission stream had already closed
+  // server-side. We can't route an answer back through the SDK (it received
+  // a deny tool_result and moved on), so submitting here sends the choices
+  // as a regular follow-up user message via `handleSend`.
+  const [resurrectedAsk, setResurrectedAsk] = useState<
+    | {
+        /** Synthetic requestId — used only by the modal's local state. */
+        requestId: string;
+        toolUseId: string;
+        questions: AskQuestion[];
+      }
+    | null
+  >(null);
+  const ctxSummary = useContextWatcher(session.sessionId, session.pending);
+  // Chat verbosity — per-workspace default, persisted via PATCH on the
+  // active workspace. The hook initialises from a localStorage cache so the
+  // chat renders at the right level on first paint, then reconciles with
+  // the server. Selector lives in the StatusLine (chat header).
+  const { activeId: activeWorkspaceId } = useWorkspaces();
+  const verbose = useVerbose(activeWorkspaceId);
+  const [draftInjection, setDraftInjection] = useState<
+    { token: number; text: string; images?: AttachedImage[] } | undefined
+  >(undefined);
+  const draftTokenRef = useRef(0);
+  const tabClaim = useTabClaim(session.sessionId);
+
+  const limits = useLimits(session.cwd);
+
+  // Compute breach state. The override is keyed by `session:<id>:<today>` so
+  // it lifts the cap only for the current calendar day, per the spec.
+  const sessionCapUsd = limits.state?.limits.sessionUsd ?? 0;
+  const sessionSpentUsd = session.usage?.totalCostUsd ?? 0;
+  const overrideKey = session.sessionId
+    ? `session:${session.sessionId}:${todayKey()}`
+    : null;
+  const sessionOverridden = !!(overrideKey && limits.state?.overrides[overrideKey]);
+  const capBreached =
+    sessionCapUsd > 0 && sessionSpentUsd >= sessionCapUsd && !sessionOverridden;
+
+  // One-shot audit log when the cap first trips.
+  const auditedSessionRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!capBreached || !session.sessionId) return;
+    if (auditedSessionRef.current === session.sessionId) return;
+    auditedSessionRef.current = session.sessionId;
+    void limits.audit({
+      ts: new Date().toISOString(),
+      kind: "breach",
+      scope: "session",
+      target: session.sessionId,
+      capUsd: sessionCapUsd,
+      spentUsd: sessionSpentUsd,
+    });
+  }, [capBreached, session.sessionId, sessionCapUsd, sessionSpentUsd, limits]);
+
+  const onOverride = useCallback(async () => {
+    if (!session.sessionId) return;
+    await limits.setOverride(session.sessionId, true);
+    void limits.audit({
+      ts: new Date().toISOString(),
+      kind: "override",
+      scope: "session",
+      target: session.sessionId,
+      capUsd: sessionCapUsd,
+      spentUsd: sessionSpentUsd,
+      overrideDay: todayKey(),
+    });
+  }, [session.sessionId, sessionCapUsd, sessionSpentUsd, limits]);
+
+  // ?new=1 on the URL means "the user clicked Chat — give me a new session."
+  // The boot effect in useSession handles this on initial mount, but a click
+  // from the chat page to itself is a same-route navigation and won't remount,
+  // so we also watch the URL reactively here.
+  const searchParams = useSearchParams();
+  const newParam = searchParams?.get("new");
+  const consumedNewRef = useRef(false);
+  const createNewSessionAction = session.createNewSession;
+  useEffect(() => {
+    if (newParam !== "1") {
+      consumedNewRef.current = false;
+      return;
+    }
+    if (consumedNewRef.current) return;
+    consumedNewRef.current = true;
+    // Strip ?new and the stale ?session= so refresh doesn't loop.
+    const url = new URL(window.location.href);
+    url.searchParams.delete("new");
+    url.searchParams.delete("session");
+    url.searchParams.delete("at");
+    window.history.replaceState(null, "", url.toString());
+    void createNewSessionAction();
+  }, [newParam, createNewSessionAction]);
+
+  // Reactive ?session= watcher. Same problem as ?new=1: when an in-app link
+  // (e.g. the notifications drawer's "jump to session" or the OS-toast
+  // click) does `router.push("/?session=B")` while we're already on `/`,
+  // the page doesn't remount and useSession's boot effect doesn't re-run,
+  // so the URL ends up pointing at session B while we're still wired to
+  // session A. Watch the param reactively and call switchSession when it
+  // drifts away from the active id. Guard against the boot-time race where
+  // sessionId is still null — useSession's boot effect will pick the right
+  // session up via the initial URL read.
+  //
+  // IMPORTANT: `activeSessionId` is read via a ref so it is NOT a dep of the
+  // effect. Otherwise tab clicks (which call `session.switchSession(B)` →
+  // `bindToSession` → `window.history.replaceState`) update the state but
+  // NOT Next.js's searchParams (replaceState is invisible to useSearchParams).
+  // The effect would then re-fire when `activeSessionId` advances to B, see
+  // `sessionParam` still at the stale "A", and immediately switch back to A
+  // — i.e. silently revert the user's tab click. Reacting only to URL
+  // changes preserves the original "URL push from notifications" use case
+  // without fighting the in-app tab switcher.
+  const sessionParam = searchParams?.get("session");
+  const switchSessionAction = session.switchSession;
+  const activeSessionIdRef = useRef<string | null>(null);
+  // Keep the ref in lock-step with the active session id, in an effect so React
+  // doesn't flag a render-time ref mutation. The ref-read inside the watcher
+  // effect below sees the latest value because effects run after this one.
+  useEffect(() => {
+    activeSessionIdRef.current = session.sessionId;
+  }, [session.sessionId]);
+  useEffect(() => {
+    if (!sessionParam) return;
+    if (!activeSessionIdRef.current) return; // boot effect handles the initial value
+    if (sessionParam === activeSessionIdRef.current) return;
+    switchSessionAction(sessionParam);
+  }, [sessionParam, switchSessionAction]);
+
+  // In-app "jump to session" from the notifications drawer / OS toast.
+  // NotificationsProvider dispatches this CustomEvent instead of doing a
+  // `router.push("/?session=B")` because the App Router's soft navigation
+  // for same-pathname query-only changes doesn't reliably re-render
+  // `useSearchParams` here — the URL would update but the watcher above
+  // wouldn't see it and the session would never switch. Calling
+  // `switchSession` directly bypasses the router entirely; its internal
+  // `replaceState` keeps the URL in sync so a refresh still resumes the
+  // right session.
+  useEffect(() => {
+    function onJump(e: Event) {
+      const detail = (e as CustomEvent<{ sessionId?: string }>).detail;
+      const id = detail?.sessionId;
+      if (!id) return;
+      if (id === activeSessionIdRef.current) return;
+      switchSessionAction(id);
+    }
+    window.addEventListener("claudius:jump-to-session", onJump);
+    return () => window.removeEventListener("claudius:jump-to-session", onJump);
+  }, [switchSessionAction]);
+
+  // ?prefill=<text> | ?prefill=1 → drop a draft into the prompt input on
+  // mount. Used by Customize → "Auto-fix conflicts" so the user lands in
+  // chat with the composed prompt ready to send. `=1` means "look in
+  // sessionStorage under claudius.autofix-draft" (avoids ballooning the
+  // URL for long prompts). Anything else is the literal prefill text.
+  const prefillParam = searchParams?.get("prefill");
+  const consumedPrefillRef = useRef(false);
+  useEffect(() => {
+    if (!prefillParam) {
+      consumedPrefillRef.current = false;
+      return;
+    }
+    if (consumedPrefillRef.current) return;
+    consumedPrefillRef.current = true;
+
+    let text: string | null = null;
+    if (prefillParam === "1") {
+      try {
+        text = sessionStorage.getItem("claudius.autofix-draft");
+        sessionStorage.removeItem("claudius.autofix-draft");
+      } catch {
+        text = null;
+      }
+    } else {
+      text = prefillParam;
+    }
+
+    const url = new URL(window.location.href);
+    url.searchParams.delete("prefill");
+    window.history.replaceState(null, "", url.toString());
+
+    if (text && text.trim()) {
+      draftTokenRef.current += 1;
+      setDraftInjection({ token: draftTokenRef.current, text });
+    }
+  }, [prefillParam]);
+
+  // Session tabs (IntelliJ-style) ─────────────────────────────────────────
+  // Open tabs persist in the per-cwd `.claudius.db` (via /api/sessions/open-tabs)
+  // so closing the browser and coming back later restores the same strip —
+  // labels resolve through the existing `sessions` table, which already holds
+  // custom titles. The active tab is whichever sessionId useSession is bound to.
+  const [openTabs, setOpenTabs] = useState<string[]>([]);
+  // Gate persistence until the initial fetch has resolved — otherwise the
+  // first render's empty array would PUT-and-clobber the saved list before
+  // the GET comes back. See the hydration-race note in the migration file.
+  const [tabsHydrated, setTabsHydrated] = useState(false);
+  // Persisted max-width applied to every tab label. Hydrated alongside the
+  // tab list. `null` until the first fetch resolves so SessionTabs uses its
+  // built-in default rather than flashing 0.
+  const [tabLabelMaxWidth, setTabLabelMaxWidth] = useState<number | null>(null);
+  // Hydrate once on mount.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/sessions/open-tabs");
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = (await res.json()) as { tabs?: unknown; labelMaxWidth?: unknown };
+        if (cancelled) return;
+        const saved = Array.isArray(data.tabs)
+          ? (data.tabs.filter((x) => typeof x === "string") as string[])
+          : [];
+        // Merge: server list first, then anything the auto-add effect below
+        // already pushed in (e.g. the boot session id) before the fetch
+        // resolved, so we don't drop the active tab.
+        setOpenTabs((prev) => {
+          const merged = [...saved];
+          for (const id of prev) if (!merged.includes(id)) merged.push(id);
+          return merged;
+        });
+        if (typeof data.labelMaxWidth === "number" && Number.isFinite(data.labelMaxWidth)) {
+          setTabLabelMaxWidth(data.labelMaxWidth);
+        }
+      } catch {
+        // Network/parse failure — fall through with whatever the auto-add
+        // effect put in place. Persistence stays gated until we mark
+        // hydrated so we don't overwrite the server with a stale empty.
+      } finally {
+        if (!cancelled) setTabsHydrated(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const onTabLabelWidthChange = useCallback((width: number) => {
+    setTabLabelMaxWidth(width);
+    void fetch("/api/sessions/open-tabs", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ labelMaxWidth: width }),
+    }).catch(() => {
+      // Best-effort — next reload falls back to default if the save failed.
+    });
+  }, []);
+  // Persist on change. Skip until hydrated so the boot-time empty state
+  // can't clobber the saved list before we've read it.
+  useEffect(() => {
+    if (!tabsHydrated) return;
+    // The active marker is what the next page load resumes. Only treat
+    // session.sessionId as "active" when it's actually in the strip —
+    // otherwise (e.g., closed-last-tab leaves sessionId lingering) we'd
+    // resume a tab the user explicitly closed.
+    const activeId =
+      session.sessionId && openTabs.includes(session.sessionId) ? session.sessionId : null;
+    void fetch("/api/sessions/open-tabs", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tabs: openTabs, activeId }),
+    }).catch(() => {
+      // Best-effort — a failed save just means the next reload sees the
+      // last successfully persisted strip.
+    });
+  }, [openTabs, tabsHydrated, session.sessionId]);
+  // Auto-add the active session id to the strip whenever it changes.
+  // Done during render via the "store previous props" pattern so we
+  // don't trip `react-hooks/set-state-in-effect`. The functional setter
+  // is still race-safe — if React batches a same-frame update from
+  // closeTab, the `prev.includes(...)` check stays accurate.
+  // https://react.dev/reference/react/useState#storing-information-from-previous-renders
+  const [lastSessionId, setLastSessionId] = useState(session.sessionId);
+  if (lastSessionId !== session.sessionId) {
+    setLastSessionId(session.sessionId);
+    if (session.sessionId) {
+      const sid = session.sessionId;
+      setOpenTabs((prev) => (prev.includes(sid) ? prev : [...prev, sid]));
+    }
+  }
+
+  const closeTab = useCallback(
+    (id: string) => {
+      setOpenTabs((prev) => {
+        const next = prev.filter((x) => x !== id);
+        // If we just closed the active tab, switch to a neighbor — pick the
+        // tab to the left of the closed one, falling back to the first tab.
+        if (id === session.sessionId) {
+          const idx = prev.indexOf(id);
+          const target = next[Math.max(0, idx - 1)] ?? next[0] ?? null;
+          if (target) {
+            session.switchSession(target);
+          }
+          // If no tabs remain, leave the strip empty. session.sessionId
+          // lingers at the just-closed id (harmless since nothing renders
+          // against it while openTabs is empty); the next + click or
+          // sidebar pick will create/select a session and re-populate.
+        }
+        return next;
+      });
+    },
+    [session],
+  );
+
+  // Returns the ids that were actually closed so callers can react (e.g.
+  // mark each session's unread notifications read). Empty array means the
+  // user cancelled the confirm or there was nothing to close — either way
+  // no state change happened, so no follow-up side effects should fire.
+  const closeAllTabs = useCallback((): string[] => {
+    if (openTabs.length === 0) return [];
+    if (!confirm(`Close all ${openTabs.length} tabs? Sessions remain on disk.`)) return [];
+    const closed = openTabs.slice();
+    setOpenTabs([]);
+    return closed;
+  }, [openTabs]);
+
+  // Bash live-tail viewer ─────────────────────────────────────────────────
+  const [openBash, setOpenBash] = useState<BackgroundBash | null>(null);
+  // Re-pull the latest entry from state so the viewer reflects new tool_results
+  // (status/killed updates) without remounting.
+  const liveOpenBash = openBash
+    ? session.backgroundBashes[openBash.toolUseId] ?? openBash
+    : null;
+
+  // Todos banner ──────────────────────────────────────────────────────────
+  // Hidden state survives until the agent next *changes* its todo list.
+  // Fingerprint = id+status of every todo, joined; any modification re-shows.
+  const [todosBannerHidden, setTodosBannerHidden] = useState(false);
+  const todosBannerHiddenFingerprintRef = useRef<string>("");
+  useEffect(() => {
+    const fp = todosFingerprint(session.latestTodos);
+    if (todosBannerHidden && fp !== todosBannerHiddenFingerprintRef.current) {
+      setTodosBannerHidden(false);
+    }
+  }, [session.latestTodos, todosBannerHidden]);
+
+  // Transcript search ─────────────────────────────────────────────────────
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [highlightUuid, setHighlightUuid] = useState<string | null>(null);
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && (e.key === "f" || e.key === "F")) {
+        e.preventDefault();
+        setSearchOpen(true);
+      }
+      if (e.key === "Escape" && searchOpen) {
+        setSearchOpen(false);
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [searchOpen]);
+  const onPickHit = useCallback(
+    async (hit: SearchHit) => {
+      setSearchOpen(false);
+      // Search hits carry the JSONL wrapper uuid; jumpToUuid resolves it to
+      // the bubble's primary uuid (Anthropic message.id), which is what the
+      // `data-message-uuid` attribute and highlight comparison key on.
+      const resolved = await session.jumpToUuid(hit.messageUuid);
+      if (!resolved) return;
+      setHighlightUuid(resolved);
+      setTimeout(() => setHighlightUuid((prev) => (prev === resolved ? null : prev)), 1500);
+    },
+    [session],
+  );
+
+  // "+" button in the Activity rail's To-dos section asks the agent to
+  // append new TodoWrite items, preserving existing ones. Goes through
+  // session.send so an in-flight turn just queues the request.
+  const onAddTodos = useCallback(
+    async (texts: string[]) => {
+      const cleaned = texts.map((t) => t.trim()).filter(Boolean);
+      if (cleaned.length === 0) return;
+      const bullets = cleaned.map((t) => `- ${t}`).join("\n");
+      const prompt = [
+        "Use the TodoWrite tool to APPEND these item(s) to your current todo list.",
+        "Preserve every existing item unchanged. New items have status `pending`.",
+        "Do not run any other tool and do not write any text in your reply.",
+        "",
+        "Items to add:",
+        bullets,
+      ].join("\n");
+      await session.send(prompt);
+    },
+    [session],
+  );
+
+  // "X" button on a scheduled-loop chip. The browser can't call CronDelete
+  // directly (the tool only exists inside the agent runtime, not as a
+  // Claudius API), so we send a short prompt asking the agent to do it.
+  // The agent re-runs the loop reducer when it issues the CronDelete tool
+  // call, so the chip flips to "cancelled" naturally — but we don't wait
+  // for that here; the user clicked X expecting immediate feedback.
+  const onCancelScheduledLoop = useCallback(
+    async (loop: { id: string; kind: "cron" | "wakeup" }) => {
+      if (loop.kind !== "cron") return;
+      await session.send(
+        `Please cancel the scheduled loop with id \`${loop.id}\` by calling \`CronDelete\` on it. Reply with one short line confirming it's cancelled — don't run any other tools.`,
+      );
+    },
+    [session],
+  );
+
+  const liftQueued = useCallback(
+    (id: string) => {
+      const item = session.editQueued(id);
+      if (item == null) return;
+      draftTokenRef.current += 1;
+      setDraftInjection({ token: draftTokenRef.current, text: item.text, images: item.images });
+    },
+    [session],
+  );
+  // Notification dispatch (permission_request, finished-a-turn, errors,
+  // scheduled-run-finished, etc.) now flows server-side through the
+  // NotificationBus → SSE → NotificationsProvider, which calls
+  // useNotifications.notify() for us. The ad-hoc effects that used to live
+  // here are intentionally gone — keeping them would double-fire OS
+  // notifications. The provider still honours the per-workspace prefs
+  // and the per-session block/snooze, so we get richer behaviour for free.
+  const notifications = useNotificationsContext();
+
+  // Clear the active session's unread notifications whenever the bound id
+  // changes — covers boot/resume, tab clicks, notification jumps, and the
+  // /clear-driven new-session path. The action is a no-op when there's
+  // nothing unread for that session, so the cost is just a closure call.
+  const markSessionReadAction = notifications.markSessionRead;
+  useEffect(() => {
+    if (!session.sessionId) return;
+    void markSessionReadAction(session.sessionId);
+  }, [session.sessionId, markSessionReadAction]);
+
+  // Repaint non-active session tab status dots whenever the notification
+  // state ticks. A non-active session has no per-tab SSE feeding `pending`
+  // back into useSession, so its dot would otherwise stay stuck at whatever
+  // /api/sessions returned on last refresh — usually "running" if the user
+  // switched away mid-turn. Every state event the bus emits is a strong
+  // signal that *something* happened on some session in this workspace
+  // (turn finished → session_idle row, error → session_error row, etc.),
+  // which is exactly when we want a fresh status snapshot. The refresh is
+  // a cheap in-memory read on the server (no SDK round-trip). Skip the
+  // initial 0 → 0 boot tick.
+  const stateVersion = notifications.stateVersion;
+  const refreshSessionsAction = session.refreshSessions;
+  useEffect(() => {
+    if (stateVersion === 0) return;
+    void refreshSessionsAction();
+  }, [stateVersion, refreshSessionsAction]);
+
+  const showToast = useCallback((msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 2200);
+  }, []);
+
+  const onRewind = useCallback(
+    async (messageUuid: string) => {
+      const id = session.sessionId;
+      if (!id) return;
+      setRewindingUuid(messageUuid);
+      try {
+        const res = await fetch("/api/sessions/fork", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sessionId: id, upToMessageId: messageUuid }),
+        });
+        if (!res.ok) throw new Error(`fork failed: ${res.status}`);
+        const data = (await res.json()) as { sessionId?: string };
+        if (data.sessionId) router.push(`/?session=${data.sessionId}`);
+      } catch (err) {
+        console.error("rewind failed", err);
+      } finally {
+        setRewindingUuid(null);
+      }
+    },
+    [session.sessionId, router],
+  );
+
+  // Shift+Tab cycles permission mode (mirrors Claude Code).
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Tab" && e.shiftKey && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        const target = e.target as HTMLElement | null;
+        if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA")) {
+          const v = (target as HTMLInputElement | HTMLTextAreaElement).value;
+          if (v && v.length > 0) return;
+        }
+        e.preventDefault();
+        void session.setPermissionMode(nextPermissionMode(session.permissionMode));
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [session]);
+
+  // Native slash dispatcher. Returns true if the command was handled.
+  const runNative = useCallback(
+    (id: string, args: string): boolean => {
+      switch (id) {
+        case "clear": {
+          void session.createNewSession();
+          showToast("New session");
+          return true;
+        }
+        case "resume": {
+          if (args) router.push(`/?session=${args.trim()}`);
+          else router.push("/sessions");
+          return true;
+        }
+        case "fork": {
+          const sid = session.sessionId;
+          if (!sid) return true;
+          fetch("/api/sessions/fork", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ sessionId: sid, title: args || undefined }),
+          })
+            .then((r) => r.json())
+            .then((d: { sessionId?: string }) => {
+              if (d.sessionId) router.push(`/?session=${d.sessionId}`);
+            })
+            .catch(() => showToast("Fork failed"));
+          return true;
+        }
+        case "rename": {
+          if (args.trim()) {
+            const sid = session.sessionId;
+            if (!sid) return true;
+            void fetch("/api/sessions/rename", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ sessionId: sid, title: args.trim() }),
+            }).then(() => showToast("Renamed"));
+          } else {
+            setOverlay("rename");
+          }
+          return true;
+        }
+        case "export": {
+          const sid = session.sessionId;
+          if (!sid) return true;
+          const url = `/api/sessions/export/${sid}`;
+          window.open(url, "_blank");
+          return true;
+        }
+        case "exit": {
+          router.push("/sessions");
+          return true;
+        }
+        case "permissions":
+          router.push("/permissions");
+          return true;
+        case "mcp":
+          router.push("/mcp");
+          return true;
+        case "hooks":
+          router.push("/hooks");
+          return true;
+        case "agents":
+          router.push("/agents");
+          return true;
+        case "plugin":
+          router.push("/plugins");
+          return true;
+        case "reload-plugins": {
+          const sid = session.sessionId;
+          if (!sid) {
+            showToast("No active session");
+            return true;
+          }
+          fetch(`/api/plugins/reload?sessionId=${encodeURIComponent(sid)}`, { method: "POST" })
+            .then((r) => showToast(r.ok ? "Plugins reloaded" : `Reload failed: ${r.status}`))
+            .catch(() => showToast("Reload failed"));
+          return true;
+        }
+        case "settings":
+          router.push("/settings");
+          return true;
+        case "keybindings":
+          router.push("/keybindings");
+          return true;
+        case "statusline":
+          router.push("/settings");
+          return true;
+        case "theme": {
+          const valid = ["dark", "light", "midnight", "paper"] as const;
+          const candidate = args.trim().toLowerCase();
+          if ((valid as readonly string[]).includes(candidate) && typeof window !== "undefined") {
+            window.localStorage.setItem("claudius.theme", candidate);
+            document.documentElement.dataset.theme = candidate;
+            showToast(`Theme → ${candidate}`);
+          } else {
+            router.push("/settings");
+          }
+          return true;
+        }
+        case "plan": {
+          void session.setPermissionMode("plan");
+          showToast("Plan mode — Claude will produce a plan before executing");
+          if (args.trim()) void session.send(args.trim());
+          return true;
+        }
+        case "worktrees":
+          setOverlay("worktrees");
+          return true;
+        case "files":
+          router.push("/files");
+          return true;
+        case "add-dir": {
+          const dir = args.trim();
+          if (!dir) {
+            showToast("Usage: /add-dir <absolute path>");
+            return true;
+          }
+          fetch("/api/settings/additional-dirs", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ scope: "project", cwd: session.cwd, add: [dir] }),
+          })
+            .then((r) => {
+              if (r.ok) showToast(`Added ${dir} (project) — restart session to apply`);
+              else showToast(`add-dir failed: ${r.status}`);
+            })
+            .catch(() => showToast("add-dir failed"));
+          return true;
+        }
+        case "tasks":
+          showToast("Background tasks panel is on the right rail");
+          return true;
+        case "skills":
+          setOverlay("skills");
+          return true;
+        case "memory":
+          router.push("/memory");
+          return true;
+        case "context":
+          setOverlay("context");
+          return true;
+        case "cost":
+          setOverlay("cost");
+          return true;
+        case "usage":
+          router.push("/usage");
+          return true;
+        case "login":
+        case "logout":
+        case "setup-bedrock":
+        case "setup-vertex":
+          router.push("/usage");
+          return true;
+        case "status":
+          setOverlay("status");
+          return true;
+        case "help":
+          setOverlay("help");
+          return true;
+        case "release-notes":
+          router.push("/release-notes");
+          return true;
+        case "doctor":
+          router.push("/doctor");
+          return true;
+        case "loop":
+        case "schedule":
+          router.push("/schedule");
+          return true;
+        case "heapdump":
+          fetch("/api/heapdump", { method: "POST" })
+            .then(async (r) => {
+              const d = (await r.json().catch(() => ({}))) as { ok?: boolean; path?: string; error?: string };
+              if (d.ok && d.path) showToast(`Heap report → ${d.path}`);
+              else showToast(`Heapdump failed: ${d.error ?? r.status}`);
+            })
+            .catch(() => showToast("Heapdump failed"));
+          return true;
+        case "model": {
+          if (args.trim()) {
+            void session.setModel(args.trim());
+            showToast(`Model → ${args.trim()}`);
+          } else {
+            showToast("Pass a model id, e.g. /model claude-sonnet-4-6");
+          }
+          return true;
+        }
+        case "copy": {
+          const last = [...session.messages].reverse().find((m) => m.role === "assistant");
+          if (!last) {
+            showToast("Nothing to copy");
+            return true;
+          }
+          const text = last.blocks
+            .filter((b) => b.kind === "text")
+            .map((b) => (b as { text: string }).text)
+            .join("\n");
+          navigator.clipboard
+            .writeText(text)
+            .then(() => showToast("Copied last response"))
+            .catch(() => showToast("Copy failed"));
+          return true;
+        }
+        case "rewind":
+          showToast("Hover any user message and click ↺ Rewind here");
+          return true;
+        default:
+          return false;
+      }
+    },
+    [router, session, showToast],
+  );
+
+  const handleSend = useCallback(
+    (
+      text: string,
+      images?: Array<{ id?: string; ordinal?: number; data: string; mediaType: string }>,
+    ) => {
+      const trimmed = text.trim();
+      // Slash dispatch only when there are no images attached.
+      if (trimmed.startsWith("/") && !images?.length) {
+        const head = trimmed.slice(1).split(/\s+/, 1)[0] ?? "";
+        const args = trimmed.slice(1 + head.length).trim();
+        const cmd = findSlashCommand(head);
+        if (cmd?.handler === "native") {
+          if (runNative(cmd.id, args)) return;
+        }
+        if (cmd?.handler === "external") {
+          showToast(`/${cmd.name} is terminal/hosted only`);
+          return;
+        }
+        if (cmd?.handler === "sdk") {
+          // SDK-interpreted slash command (e.g. /compact, /init, /recap).
+          // Route through the no-echo path so the chat shows a "Running
+          // /compact…" pill instead of a user message whose text is the
+          // literal slash command. The SDK still receives the text and
+          // interprets it as a slash; its eventual reply (compact_boundary,
+          // init system message, etc.) lands as its own event.
+          void session.send(text, undefined, { asSlashCommand: true });
+          return;
+        }
+      }
+      void session.send(text, images);
+    },
+    [runNative, session, showToast],
+  );
+
+  const onRenameSubmit = useCallback(
+    async (title: string) => {
+      const sid = session.sessionId;
+      if (!sid) return;
+      await fetch("/api/sessions/rename", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId: sid, title }),
+      });
+      setOverlay(null);
+      showToast("Renamed");
+    },
+    [session.sessionId, showToast],
+  );
+
+  return (
+    <div className="flex h-full">
+      <SideNav running={session.pending} />
+      <main data-pane-name="chat-area" className="flex h-full flex-1 flex-col">
+        <SessionTabs
+          tabs={openTabs.map((id) => {
+            // Status resolution for the dot on each tab:
+            //   - active tab → derive from local useSession state (freshest;
+            //     pending flips before the next server poll lands).
+            //   - non-active but in `session.sessions` → use the server's
+            //     in-memory status. Refreshed on the active session's
+            //     `result` event and on visibilitychange, so the dots track
+            //     real state without a dedicated SSE per tab.
+            //   - reaped (id missing from the live list) → "background". The
+            //     SDK process is gone; clicking the tab will resume from
+            //     disk via /api/sessions/:id/stream.
+            let status: TabStatus;
+            if (id === session.sessionId) {
+              status = activeTabStatus({
+                ready: session.ready,
+                pending: session.pending,
+                hasError: session.errors.length > 0,
+              });
+            } else {
+              const live = session.sessions.find((s) => s.id === id);
+              status = live?.status ?? "background";
+            }
+            return {
+              id,
+              label:
+                id === session.sessionId
+                  ? tabLabelFor(id, session.sessions, session.sessionTitle)
+                  : tabLabelFor(id, session.sessions),
+              status,
+              unread: notifications.unreadBySession[id],
+            };
+          })}
+          activeId={session.sessionId}
+          onSelect={(id) => {
+            if (id !== session.sessionId) session.switchSession(id);
+            // "Selecting" a tab implies "I'm looking at this session now" —
+            // clear its unread badge AND its contribution to the bell-tile
+            // total. Re-selecting the current tab is harmless: the action
+            // exits early when the per-session count is already 0.
+            void notifications.markSessionRead(id);
+          }}
+          onClose={(id) => {
+            // Closing a tab implies "I'm done with this session". Clear the
+            // session's unread notifications so they don't linger as ghosts
+            // on the workspace badge — orphaned counts were the symptom that
+            // surfaced this code path. markSessionRead exits cheaply when the
+            // per-session count is already 0, so the order doesn't matter.
+            void notifications.markSessionRead(id);
+            closeTab(id);
+          }}
+          onCloseAll={() => {
+            // Same contract as onClose, but across every currently-open tab.
+            // closeAllTabs returns the ids it actually closed (empty when the
+            // user cancels its confirm), so we only mark notifications read
+            // for tabs that really went away.
+            const closed = closeAllTabs();
+            for (const id of closed) void notifications.markSessionRead(id);
+          }}
+          onNew={() => void session.createNewSession()}
+          labelMaxWidth={tabLabelMaxWidth ?? undefined}
+          onLabelWidthChange={onTabLabelWidthChange}
+        />
+        {openTabs.length === 0 ? (
+          <div className="flex flex-1 items-center justify-center text-center">
+            <div className="flex max-w-sm flex-col items-center px-6 py-12">
+              <ClaudiusMark color="var(--foreground)" size={120} className="mb-5 opacity-90" />
+              <h1 className="mb-2 text-3xl font-semibold tracking-tight">Claudius</h1>
+              <p className="mb-6 text-sm text-[var(--muted)]">No session open.</p>
+              <button
+                type="button"
+                onClick={() => void session.createNewSession()}
+                className="rounded-md border border-[var(--border)] bg-[var(--panel)] px-4 py-2 text-sm hover:bg-[var(--panel-2)]"
+              >
+                + New session
+              </button>
+            </div>
+          </div>
+        ) : (
+        <>
+        <StatusLine
+          sessionId={session.sessionId}
+          ready={session.ready}
+          pending={session.pending}
+          permissionMode={session.permissionMode}
+          model={session.model}
+          onModeChange={session.setPermissionMode}
+          sessions={session.sessions}
+          onSwitchSession={(id) => {
+            // Re-add to strip in case the user closed all tabs and is
+            // re-picking the same session that's still bound internally —
+            // switchSession is a no-op when ids match, so the auto-add
+            // effect would never fire.
+            setOpenTabs((prev) => (prev.includes(id) ? prev : [...prev, id]));
+            session.switchSession(id);
+          }}
+          onCreateNewSession={session.createNewSession}
+          onRefreshSessions={session.refreshSessions}
+          contextPercent={ctxSummary?.percentage}
+          onOpenContext={() => setOverlay("context")}
+          fastModeState={session.fastModeState}
+          totalCostUsd={session.usage?.totalCostUsd}
+          outputTokens={session.usage?.outputTokens}
+          onOpenCost={() => setOverlay("cost")}
+          notificationsEnabled={notifications.workspaceEnabled}
+          notificationsState={notifications.permissionState}
+          onToggleNotifications={() => void notifications.toggleWorkspaceEnabled()}
+          verbose={verbose.verbose}
+          onChangeVerbose={verbose.setVerbose}
+          onCompact={() => handleSend("/compact")}
+          onClear={() => {
+            if (
+              session.messages.length === 0 ||
+              confirm("Start a new session? The current conversation is preserved on disk.")
+            ) {
+              // Clear === reset: spin up a new session AND close the current
+              // tab so the user lands on the fresh one with nothing left over.
+              // Without the filter, the auto-add effect just appends the new
+              // session next to the old one and the user has two tabs open.
+              // We skip closeTab() because it would switchSession to a
+              // neighbor when the active tab is the one being closed — we
+              // already want the new session to take focus.
+              const oldId = session.sessionId;
+              void session.createNewSession();
+              if (oldId) {
+                void notifications.markSessionRead(oldId);
+                setOpenTabs((prev) => prev.filter((x) => x !== oldId));
+              }
+            }
+          }}
+        />
+        <LoadingBar
+          ready={session.ready}
+          pending={session.pending}
+          replaying={session.replaying}
+        />
+        <PlanModeBanner
+          mode={session.permissionMode}
+          onExit={() => void session.setPermissionMode("default")}
+        />
+        <TodosBanner
+          todos={session.latestTodos}
+          hidden={todosBannerHidden}
+          onDismiss={() => {
+            // Hide until the agent next updates its todo list — fingerprint
+            // the current list so a real update re-shows the banner.
+            todosBannerHiddenFingerprintRef.current = todosFingerprint(session.latestTodos);
+            setTodosBannerHidden(true);
+          }}
+        />
+        <RecapBanner
+          sessionId={session.sessionId}
+          title={session.sessionTitle}
+          onRename={session.renameTitle}
+        />
+        <div className="flex flex-1 flex-col overflow-hidden">
+          {searchOpen && (
+            <TranscriptSearch
+              sessionId={session.sessionId}
+              onClose={() => setSearchOpen(false)}
+              onPick={onPickHit}
+            />
+          )}
+          <MessageList
+            messages={session.messages}
+            systemEntries={session.systemEntries}
+            pending={session.pending}
+            onRewind={onRewind}
+            rewindingUuid={rewindingUuid}
+            tasks={session.tasks}
+            subagentMessages={session.subagentMessages}
+            replaying={session.replaying}
+            hasMoreAbove={session.hasMoreAbove}
+            loadingOlder={session.loadingOlder}
+            onLoadOlder={session.loadOlder}
+            highlightUuid={highlightUuid}
+            onPickExample={handleSend}
+            verbose={verbose.verbose}
+            pendingAskToolUseId={session.pendingAsk?.toolUseId ?? null}
+            // Two paths depending on which row was clicked:
+            //   - Live: tool_use id matches `pendingAsk` — clear the
+            //     "minimized" flag and let the existing modal render
+            //     condition fall through.
+            //   - Historic: any other ask row. The SDK has already received
+            //     a tool_result for this question (often an error from the
+            //     permission stream closing). We can't answer it back to
+            //     the agent, so we resurrect the modal locally and treat
+            //     its submit as a fresh user prompt.
+            onReopenAsk={({ toolUseId, input }) => {
+              if (session.pendingAsk?.toolUseId === toolUseId) {
+                setAskMinimizedFor(null);
+                return;
+              }
+              const questions = parseAskQuestions(input);
+              if (questions.length === 0) {
+                showToast("Couldn't recover the question — input shape unknown");
+                return;
+              }
+              setResurrectedAsk({
+                requestId: `resurrected:${toolUseId}`,
+                toolUseId,
+                questions,
+              });
+            }}
+          />
+          {session.errors.length > 0 && (
+            <div className="mx-auto w-full max-w-3xl px-4 pb-2">
+              {session.errors.map((e, i) => (
+                <div
+                  key={i}
+                  className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-300"
+                >
+                  {e}
+                </div>
+              ))}
+            </div>
+          )}
+          <PromptSuggestions
+            suggestions={session.promptSuggestions}
+            onPick={(s) => handleSend(s)}
+          />
+          <QueueIndicator
+            queue={session.queue}
+            onCancel={session.cancelQueued}
+            onEdit={liftQueued}
+            onReorder={session.reorderQueued}
+          />
+          {tabClaim.readOnly && (
+            <TabClaimBanner
+              onTakeOver={tabClaim.takeOver}
+              onOpenNew={() => void session.createNewSession()}
+            />
+          )}
+          {capBreached && (
+            <CapBreachBanner
+              capUsd={sessionCapUsd}
+              spentUsd={sessionSpentUsd}
+              onOverride={onOverride}
+            />
+          )}
+          {session.pendingAsk && askMinimizedFor === session.pendingAsk.requestId && (
+            <div className="mx-auto flex w-full max-w-3xl items-center gap-2 px-4 pb-2">
+              <button
+                type="button"
+                onClick={() => setAskMinimizedFor(null)}
+                className="flex w-full items-center gap-2 rounded-md border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-2 text-left text-xs text-[var(--foreground)] hover:bg-[var(--accent)]/15"
+              >
+                <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-[var(--accent)]" />
+                <span className="font-medium">Question pending</span>
+                <span className="truncate text-[var(--muted)]">
+                  {session.pendingAsk.questions[0]?.question ?? "Awaiting your answer"}
+                </span>
+                <span className="ml-auto shrink-0 rounded border border-[var(--border)] bg-[var(--panel-2)] px-1.5 py-0.5 text-[10px] text-[var(--muted)]">
+                  Click to answer
+                </span>
+              </button>
+            </div>
+          )}
+          <div data-pane-name="composer">
+            <PromptInput
+              ready={session.ready}
+              pending={session.pending}
+              slashCommands={session.slashCommands}
+              skills={session.skills}
+              cwd={session.cwd}
+              sessionId={session.sessionId}
+              onSend={handleSend}
+              onInterrupt={session.interrupt}
+              draftInjection={draftInjection}
+              sendDisabled={capBreached || tabClaim.readOnly}
+            />
+          </div>
+        </div>
+        </>
+        )}
+      </main>
+      <BackgroundTasksPanel
+        progress={session.toolProgress}
+        tasks={session.tasks}
+        sessionId={session.sessionId}
+        model={session.model}
+        effort={session.effort}
+        permissionMode={session.permissionMode}
+        cwd={session.cwd}
+        usage={session.usage}
+        historicalTurnCount={session.messages.filter((m) => m.role === "assistant").length}
+        ready={session.ready}
+        pending={session.pending}
+        pendingPermission={session.pendingPermission}
+        latestTodos={session.latestTodos}
+        recentEdits={session.recentEdits}
+        backgroundBashes={session.backgroundBashes}
+        scheduledLoops={session.scheduledLoops}
+        toolHistory={session.toolHistory}
+        onOpenBash={setOpenBash}
+        onCancelScheduledLoop={onCancelScheduledLoop}
+        onAddTodos={onAddTodos}
+        onChangeModel={session.setModel}
+        onChangeEffort={session.setEffort}
+      />
+
+      {liveOpenBash && (
+        <BashViewer
+          bash={liveOpenBash}
+          messages={session.messages}
+          onClose={() => setOpenBash(null)}
+        />
+      )}
+
+      {overlay === "help" && (
+        <HelpOverlay
+          sdkSlashCommands={session.slashCommands}
+          sdkSkills={session.skills}
+          onClose={() => setOverlay(null)}
+        />
+      )}
+      {overlay === "skills" && (
+        <SkillsOverlay
+          agents={session.agents}
+          skills={session.skills}
+          slashCommands={session.slashCommands}
+          onClose={() => setOverlay(null)}
+        />
+      )}
+      {overlay === "cost" && (
+        <CostOverlay usage={session.usage} model={session.model} onClose={() => setOverlay(null)} />
+      )}
+      {overlay === "status" && (
+        <StatusOverlay
+          sessionId={session.sessionId}
+          cwd={session.cwd}
+          model={session.model}
+          permissionMode={session.permissionMode}
+          ready={session.ready}
+          pending={session.pending}
+          toolCount={0}
+          agentCount={session.agents.length}
+          skillCount={session.skills.length}
+          slashCount={session.slashCommands.length}
+          onClose={() => setOverlay(null)}
+        />
+      )}
+      {overlay === "rename" && (
+        <RenameOverlay onSubmit={onRenameSubmit} onClose={() => setOverlay(null)} />
+      )}
+      {overlay === "context" && (
+        <ContextOverlay sessionId={session.sessionId} onClose={() => setOverlay(null)} />
+      )}
+      {overlay === "worktrees" && (
+        <WorktreesOverlay
+          cwd={session.cwd}
+          onClose={() => setOverlay(null)}
+          onOpen={(path) => {
+            setOverlay(null);
+            void session.createSessionAt(path);
+            showToast(`New session in ${path}`);
+          }}
+        />
+      )}
+
+      {session.pendingPlan && (
+        <PlanOverlay
+          plan={session.pendingPlan}
+          onClose={() => {
+            // Closing without an explicit accept/reject is a soft reject —
+            // we still have to resolve the SDK's canUseTool promise or the
+            // agent hangs. Send a generic "user dismissed" deny.
+            void session.resolvePlan({ kind: "reject", message: "User dismissed the plan." });
+            showToast("Plan dismissed — still in plan mode");
+          }}
+          onAccept={(editedPlan) => {
+            void session.resolvePlan({ kind: "accept", editedPlan });
+            showToast(
+              editedPlan
+                ? "Edited plan accepted — switched to acceptEdits"
+                : "Plan accepted — switched to acceptEdits",
+            );
+          }}
+          onReject={() => {
+            void session.resolvePlan({ kind: "reject" });
+            showToast("Plan rejected — keep iterating");
+          }}
+        />
+      )}
+
+      {session.pendingPermission && (
+        <PermissionPrompt
+          request={session.pendingPermission}
+          onResolve={(d) => session.resolvePermission(session.pendingPermission!.requestId, d)}
+        />
+      )}
+
+      {session.pendingAsk && askMinimizedFor !== session.pendingAsk.requestId && (
+        <AskUserQuestionPrompt
+          request={session.pendingAsk}
+          onSubmit={(answers) =>
+            session.submitAskAnswer(session.pendingAsk!.requestId, answers)
+          }
+          onCancel={() =>
+            // Cancel = decline-but-graceful: send empty answers so the SDK
+            // doesn't hang. The model treats this as the user declining.
+            session.submitAskAnswer(session.pendingAsk!.requestId, [])
+          }
+          onMinimize={() => setAskMinimizedFor(session.pendingAsk!.requestId)}
+        />
+      )}
+
+      {/* Resurrected modal — only renders when there's NO live ask in flight
+          so the two can never stack. Submitting feeds the answers as a fresh
+          user prompt instead of through `submitAskAnswer` (the SDK has no
+          matching pending requestId on the server side anymore). */}
+      {!session.pendingAsk && resurrectedAsk && (
+        <AskUserQuestionPrompt
+          request={{
+            type: "ask_user_question",
+            requestId: resurrectedAsk.requestId,
+            toolUseId: resurrectedAsk.toolUseId,
+            questions: resurrectedAsk.questions,
+          }}
+          onSubmit={(answers) => {
+            const text = formatAskAsPrompt(resurrectedAsk.questions, answers);
+            setResurrectedAsk(null);
+            handleSend(text);
+          }}
+          onCancel={() => setResurrectedAsk(null)}
+          onMinimize={() => setResurrectedAsk(null)}
+        />
+      )}
+
+      {toast && (
+        <div className="pointer-events-none fixed bottom-24 left-1/2 z-50 -translate-x-1/2 rounded-md border border-[var(--border)] bg-[var(--panel)] px-3 py-1.5 text-xs shadow-2xl">
+          {toast}
+        </div>
+      )}
+    </div>
+  );
+}

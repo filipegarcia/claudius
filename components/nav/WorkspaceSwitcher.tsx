@@ -100,7 +100,10 @@ export function WorkspaceSwitcher() {
       const cur = ws.findIndex((w) => w.id === activeIdRef.current);
       const target = ws[(cur + dir + ws.length) % ws.length];
       if (target && target.id !== activeIdRef.current) {
-        void select(target.id, getLastPath(target.id) ?? "/");
+        // Cycle: pass the target workspace's saved URL (prefixed) so
+        // we land where the user last was inside it; fall back to that
+        // workspace's chat root when nothing is persisted.
+        void select(target.id, getLastPath(target.id) ?? `/${target.id}`);
       }
     }
     window.addEventListener("keydown", onKey);
@@ -193,14 +196,14 @@ export function WorkspaceSwitcher() {
               <button
                 onClick={() => {
                   // Each workspace remembers the last URL the user
-                  // visited inside it (workspace-route-memory). Clicking
-                  // the tile takes them back to that place rather than
-                  // dumping them on chat — which is what they were
-                  // already doing, but lost on the previous click. For
-                  // the active tile this is usually a no-op (already
-                  // there); for an inactive tile it triggers a workspace
-                  // switch + navigation to the new workspace's last URL.
-                  const target = getLastPath(w.id) ?? "/";
+                  // visited inside it (workspace-route-memory).
+                  // `getLastPath` returns a fully-prefixed URL
+                  // (`/<id>/<inner>`) or null; we fall back to the
+                  // workspace root `/<id>` when nothing is persisted.
+                  // For the active tile this is usually a no-op
+                  // (already there); for an inactive tile it triggers
+                  // a workspace switch + navigation to the saved URL.
+                  const target = getLastPath(w.id) ?? `/${w.id}`;
                   if (active) {
                     if (pathname !== target) router.push(target);
                     return;
@@ -337,12 +340,15 @@ export function WorkspaceSwitcher() {
             await update(id, { icon: { kind: "letter", letter, color } });
           }}
           onOpenSettings={(id) => {
-            // /workspace edits the *active* workspace, so we have to select
-            // first. `select` reloads the page when the active id changes,
-            // which would unmount us before we navigate — pass the target
-            // route so the reload lands on /workspace.
+            // /workspace edits the *active* workspace, so we have to
+            // select first when the target tile isn't the active one.
+            // `select` reloads the page when the active id changes,
+            // which would unmount us before we navigate — pass the
+            // inner route ("/workspace") and let `select` build the
+            // prefixed URL `/<id>/workspace`. For the already-active
+            // case we just navigate client-side.
             if (id === activeId) {
-              router.push("/workspace");
+              router.push(`/${id}/workspace`);
             } else {
               void select(id, "/workspace");
             }
@@ -351,9 +357,12 @@ export function WorkspaceSwitcher() {
             const wasActive = id === activeId;
             const ok = await remove(id);
             if (ok && wasActive) {
-              // Server clears the cookie + reassigns activeId; reboot the
-              // app under the new workspace's cwd so sessions don't keep
-              // running against the deleted root.
+              // Server clears the cookie + reassigns activeId; reboot
+              // the app at "/" so the new active workspace's chat
+              // root is resolved server-side (`app/page.tsx`) and the
+              // user is 307'd to `/<newActiveId>`. Hitting a deleted
+              // workspace's URL directly would 404 once the route
+              // disappears.
               if (typeof window !== "undefined") window.location.href = "/";
             }
           }}

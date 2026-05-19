@@ -31,6 +31,9 @@
 # claudiusd runtime state (pid file, logs)
 /.claudius/
 
+# local sqlite data (chat db + WAL/SHM sidecars)
+/data/
+
 # misc
 .DS_Store
 *.pem

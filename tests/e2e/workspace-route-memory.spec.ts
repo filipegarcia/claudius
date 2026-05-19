@@ -74,10 +74,13 @@ test.describe("Workspace switch — per-workspace route memory", () => {
       );
 
       // Step 2: click B's tile from the rail. `select(id)` will navigate
-      // to B's last URL (unset → `/`), which is a full document load.
+      // to B's last URL (unset → workspace root), which is a full document
+      // load. Workspace-scoped URLs now carry the workspace id as a prefix
+      // (see `middleware.ts` + `app/[workspaceId]/`), so the chat root for
+      // B is `/<B.id>` rather than `/`.
       const tileForB = await findWorkspaceTile(page, wsB.id);
       await tileForB.click();
-      await expect(page).toHaveURL(new RegExp(`${baseURL}/?$`), {
+      await expect(page).toHaveURL(new RegExp(`/${wsB.id}/?$`), {
         timeout: 10_000,
       });
 

@@ -135,6 +135,18 @@ body {
   background: color-mix(in oklab, var(--border) 60%, var(--foreground) 40%);
 }
 
+/* Fully hide both scrollbars — used by the diff-aware file editor on /git,
+   which replaces the native vertical scrollbar with an IntelliJ-style
+   minimap marker column. Horizontal scrolling still works via shift+wheel
+   and arrow keys; we just don't paint the bar itself. */
+.scroll-none::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+.scroll-none {
+  scrollbar-width: none;
+}
+
 /* Shiki host normalization — Shiki emits inline styles, we just want padding + scrolling. */
 .shiki-host pre.shiki,
 .shiki-host pre {

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Overlay } from "./Overlay";
 import type { SessionUsage } from "@/lib/client/types";
 
@@ -46,13 +47,13 @@ export function CostOverlay({ usage, model, onClose }: Props) {
           Model: <span className="font-mono">{model ?? "—"}</span> · numbers accumulate per-turn from SDK result
           messages.
         </span>
-        <a
+        <Link
           href="/cost"
           onClick={onClose}
           className="ml-auto rounded-md border border-[var(--border)] bg-[var(--panel)] px-2 py-0.5 text-[var(--foreground)] hover:bg-[var(--panel-2)]"
         >
           View all cost →
-        </a>
+        </Link>
       </div>
     </Overlay>
   );

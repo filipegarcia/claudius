@@ -1,4 +1,6 @@
 import { execFile } from "node:child_process";
+import { unlink } from "node:fs/promises";
+import { join } from "node:path";
 import { promisify } from "node:util";
 
 const execFileP = promisify(execFile);
@@ -277,6 +279,49 @@ export async function getDiff(
   }
 }
 
+/**
+ * Read a file's content at a specific git revision via `git show <rev>:<path>`.
+ * Used by the side-by-side diff view to populate the "old" pane.
+ *
+ * Conventions for `rev`:
+ *   - `"HEAD"`  → the committed version (left pane when comparing against
+ *                 the staged diff)
+ *   - `""` (empty) → the index version (left pane when comparing against
+ *                    the unstaged diff). `git show :path` resolves to the
+ *                    index blob; we expose this as ref=""  so callers don't
+ *                    have to know the colon syntax.
+ *
+ * Resolves with `{ content: "" }` when the file doesn't exist at that
+ * revision (e.g. it was newly added and HEAD doesn't have it). git exits
+ * non-zero in that case; we catch and translate, because "no blob at HEAD"
+ * is a legitimate side-by-side outcome (the left pane is just empty).
+ */
+export async function gitShow(
+  cwd: string,
+  rev: string,
+  path: string,
+): Promise<{ content: string } | GitError> {
+  const root = await getRepoRoot(cwd);
+  if (!root) return { code: "not-a-repo", message: "not a git repository" };
+  // `git show <rev>:<path>` — rev="" means the index (the colon prefix is
+  // git's own syntax for "look in the index"). We forward as-is.
+  const spec = `${rev}:${path}`;
+  try {
+    const { stdout } = await git(["show", spec], root);
+    return { content: stdout };
+  } catch (err) {
+    // git's "exists on disk but not at <rev>" failure is exit 128 with
+    // "fatal: path '...' exists on disk, but not in '<rev>'" or similar.
+    // For the diff viewer this means "no old version" — return empty
+    // content so the left pane renders as blank rather than blowing up.
+    const msg = err instanceof Error ? err.message : String(err);
+    if (/exists on disk, but not in|does not exist|fatal: path/i.test(msg)) {
+      return { content: "" };
+    }
+    return { code: "git-failed", message: msg };
+  }
+}
+
 async function diffNoIndex(root: string, path: string): Promise<{ diff: string; binary: boolean }> {
   return await new Promise((resolve, reject) => {
     let stdout = "";
@@ -300,7 +345,7 @@ async function diffNoIndex(root: string, path: string): Promise<{ diff: string; 
   });
 }
 
-export type StageOp = "stage" | "unstage" | "discard";
+export type StageOp = "stage" | "unstage" | "discard" | "remove";
 
 export async function stagePaths(
   cwd: string,
@@ -380,6 +425,49 @@ export async function stagePaths(
         await git(["clean", "-fd", "--", ...paths], root);
       } catch (err) {
         errors.push(err instanceof Error ? err.message : String(err));
+      }
+      if (errors.length > 0) {
+        return { code: "git-failed", message: errors.join("; ") };
+      }
+    } else if (op === "remove") {
+      // "Delete file" semantics — distinct from "discard" (revert to HEAD).
+      // For tracked files we run `git rm -f` so the deletion is staged and
+      // ready to commit; for untracked files we just unlink from disk
+      // because git rm refuses untracked paths.
+      //
+      // We bucket by tracked/untracked first so a mixed selection still
+      // makes partial progress when one side errors (e.g. unlink ENOENT on
+      // a race) without aborting the rest.
+      const status = await getStatus(root);
+      if (isGitError(status)) return status;
+      const byPath = new Map(status.files.map((f) => [f.path, f]));
+      const tracked: string[] = [];
+      const untracked: string[] = [];
+      for (const p of paths) {
+        const f = byPath.get(p);
+        if (!f) continue;
+        if (f.untracked) untracked.push(p);
+        else tracked.push(p);
+      }
+      const errors: string[] = [];
+      if (tracked.length > 0) {
+        try {
+          // `git rm -f` handles every tracked state: clean, modified, deleted-
+          // from-worktree, staged-addition (with -f it strips from index too).
+          await git(["rm", "-f", "--", ...tracked], root);
+        } catch (err) {
+          errors.push(err instanceof Error ? err.message : String(err));
+        }
+      }
+      for (const p of untracked) {
+        try {
+          // `force: true` would be nicer but Node 22's `unlink` doesn't take
+          // that option — wrap in try/catch and swallow ENOENT explicitly.
+          await unlink(join(root, p));
+        } catch (err) {
+          if ((err as NodeJS.ErrnoException).code === "ENOENT") continue;
+          errors.push(err instanceof Error ? err.message : String(err));
+        }
       }
       if (errors.length > 0) {
         return { code: "git-failed", message: errors.join("; ") };

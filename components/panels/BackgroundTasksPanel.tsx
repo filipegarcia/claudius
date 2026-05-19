@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Activity, AlertTriangle, Bot, Brain, Check, Loader2, Plus, Wrench } from "lucide-react";
 import type { PermissionMode } from "@anthropic-ai/claude-agent-sdk";
 import type {
@@ -14,6 +14,7 @@ import type {
   ToolProgressInfo,
 } from "@/lib/client/types";
 import type { PermissionRequestEvent } from "@/lib/shared/events";
+import { isStaleWakeup } from "@/lib/shared/session-loops";
 import { CostOverlay } from "@/components/overlays/CostOverlay";
 import { NotificationsDrawer } from "@/components/nav/NotificationsDrawer";
 import { CollapsibleSection } from "./widgets/CollapsibleSection";
@@ -134,6 +135,16 @@ export function BackgroundTasksPanel({
 }: Props) {
   const [showCost, setShowCost] = useState(false);
   const [addTodosOpen, setAddTodosOpen] = useState(false);
+  // 1Hz tick so wake-up staleness (now > fireAt + grace) is recomputed
+  // every second — drives both the chip's disappearance and the
+  // attention counter dropping. Without this, a stale wake-up would
+  // keep counting toward the rail header badge until the panel
+  // re-rendered for another reason.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
 
   const runningCount = toolHistory.filter((e) => !e.done).length;
   const visibleHistory = toolHistory.slice(0, 30);
@@ -149,7 +160,15 @@ export function BackgroundTasksPanel({
   // to the muted tone but stay in the list until the section is
   // re-rendered without them (next session reset). Only ACTIVE ones count
   // toward attention though.
-  const allLoops = Object.values(scheduledLoops).sort((a, b) => b.startedAt - a.startedAt);
+  //
+  // Stale wake-ups (fire moment + grace has passed without the agent
+  // chaining a fresh wake-up) are dropped entirely — there's no useful
+  // closure feedback for "the loop ended" beyond the chip disappearing,
+  // and leaving them visible as "due now" forever was actively confusing
+  // (the user-reported bug: an armed-1h-ago entry stuck at "due now").
+  const allLoops = Object.values(scheduledLoops)
+    .filter((l) => !isStaleWakeup(l, now))
+    .sort((a, b) => b.startedAt - a.startedAt);
   const activeLoopCount = allLoops.filter((l) => !l.cancelled).length;
 
   // Counter math: things needing attention. Includes scheduled loops so

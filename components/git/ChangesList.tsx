@@ -54,12 +54,19 @@ type Props = {
   /** True while a status refresh is in flight — disables the button and spins the icon. */
   refreshing?: boolean;
   /**
-   * Delete a single file via the existing `discard` op. For untracked files
-   * that means `rm`; for tracked files it restores the HEAD blob (i.e. drops
-   * the change from the list). Callers are expected to confirm beforehand.
+   * Revert a single tracked file — drops local changes, restores HEAD. Only
+   * surfaced on tracked rows (Staged / Changed groups); untracked rows have
+   * no HEAD blob to revert to, so the button is hidden for them.
    */
-  onDelete?: (path: string) => void;
-  /** Path currently being deleted — disables that row's trash button. */
+  onRevert?: (path: string) => void;
+  /**
+   * Delete a single file. For tracked files this is `git rm -f` (staged
+   * deletion); for untracked it's a plain `fs.unlink`. Available on every
+   * row. The page handler shows a confirm prompt — the list assumes the
+   * action will be destructive when invoked.
+   */
+  onRemove?: (path: string) => void;
+  /** Path currently being acted on — disables that row's action buttons. */
   deletingPath?: string | null;
 };
 
@@ -118,7 +125,8 @@ export function ChangesList({
   onToggleGroup,
   onRefresh,
   refreshing,
-  onDelete,
+  onRevert,
+  onRemove,
   deletingPath,
 }: Props) {
   const groups = useMemo(() => groupFiles(files), [files]);
@@ -217,7 +225,8 @@ export function ChangesList({
         onSelect={onSelect}
         checked={checked}
         onToggleCheck={onToggleCheck}
-        onDelete={onDelete}
+        onRevert={onRevert}
+        onRemove={onRemove}
         deletingPath={deletingPath}
         onCopyPath={copyPath}
         copiedPath={copiedPath}
@@ -232,7 +241,8 @@ export function ChangesList({
         onSelect={onSelect}
         checked={checked}
         onToggleCheck={onToggleCheck}
-        onDelete={onDelete}
+        onRevert={onRevert}
+        onRemove={onRemove}
         deletingPath={deletingPath}
         onCopyPath={copyPath}
         copiedPath={copiedPath}
@@ -247,7 +257,8 @@ export function ChangesList({
         onSelect={onSelect}
         checked={checked}
         onToggleCheck={onToggleCheck}
-        onDelete={onDelete}
+        onRevert={onRevert}
+        onRemove={onRemove}
         deletingPath={deletingPath}
         onCopyPath={copyPath}
         copiedPath={copiedPath}
@@ -266,7 +277,8 @@ function Group({
   onSelect,
   checked,
   onToggleCheck,
-  onDelete,
+  onRevert,
+  onRemove,
   deletingPath,
   onCopyPath,
   copiedPath,
@@ -280,7 +292,10 @@ function Group({
   onSelect: (sel: DiffSelection) => void;
   checked: Set<string>;
   onToggleCheck: (path: string, next: boolean) => void;
-  onDelete?: (path: string) => void;
+  /** Revert (Undo2). Only shown on tracked rows; untracked have no HEAD blob. */
+  onRevert?: (path: string) => void;
+  /** Delete (Trash2). Shown on every row. */
+  onRemove?: (path: string) => void;
   deletingPath?: string | null;
   /** Cmd/Ctrl+C handler on a focused row. */
   onCopyPath: (path: string) => void;
@@ -314,14 +329,15 @@ function Group({
             // amber hover for the recoverable tracked-revert case. Reading
             // "trash" as "delete the file" was the source of confusion
             // before this split.
+            // Per-row action buttons. Tracked rows get both Revert (undo
+            // local changes back to HEAD, amber) and Delete (git rm,
+            // red). Untracked rows get Delete only — they have no HEAD
+            // blob to revert to. Reading the trash icon as "delete the
+            // file" matches user intuition and is why both icons exist
+            // side-by-side rather than one mode-dependent button.
             const isUntrackedRow = mode === "untracked";
-            const rowActionTitle = isUntrackedRow
-              ? "Delete file from disk"
-              : "Revert change (restore to HEAD)";
-            const RowActionIcon = isUntrackedRow ? Trash2 : Undo2;
-            const rowActionTestId = isUntrackedRow
-              ? `changes-delete-${f.path}`
-              : `changes-revert-${f.path}`;
+            const showRevert = !isUntrackedRow && onRevert != null;
+            const showRemove = onRemove != null;
             return (
               <li key={`${mode}:${f.path}`}>
                 <div
@@ -390,31 +406,59 @@ function Group({
                       </span>
                     )}
                   </button>
-                  {onDelete && (
+                  {showRevert && (
                     <button
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        onDelete(f.path);
+                        onRevert?.(f.path);
                       }}
                       disabled={isDeleting}
-                      title={rowActionTitle}
-                      aria-label={rowActionTitle}
-                      data-testid={rowActionTestId}
+                      title="Revert change (restore to HEAD)"
+                      aria-label="Revert change (restore to HEAD)"
+                      data-testid={`changes-revert-${f.path}`}
                       className={cn(
                         "flex h-4 w-4 shrink-0 items-center justify-center rounded text-[var(--muted)]",
-                        // Color-code by destructiveness: red for the real
-                        // `rm` (untracked) so the user pauses; amber for
-                        // revert-to-HEAD, which is recoverable from reflog.
-                        isUntrackedRow
-                          ? "hover:bg-red-500/15 hover:text-red-300"
-                          : "hover:bg-amber-500/15 hover:text-amber-300",
+                        // Amber — revert is recoverable from reflog, so
+                        // it's "warning" tier, not "destructive."
+                        "hover:bg-amber-500/15 hover:text-amber-300",
                         "opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100",
                         "disabled:opacity-40",
                         isSel && "opacity-100",
                       )}
                     >
-                      <RowActionIcon className="h-3 w-3" />
+                      <Undo2 className="h-3 w-3" />
+                    </button>
+                  )}
+                  {showRemove && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onRemove?.(f.path);
+                      }}
+                      disabled={isDeleting}
+                      title={
+                        isUntrackedRow
+                          ? "Delete file from disk"
+                          : "Delete file (git rm — stages deletion)"
+                      }
+                      aria-label={
+                        isUntrackedRow
+                          ? "Delete file from disk"
+                          : "Delete file (git rm)"
+                      }
+                      data-testid={`changes-delete-${f.path}`}
+                      className={cn(
+                        "flex h-4 w-4 shrink-0 items-center justify-center rounded text-[var(--muted)]",
+                        // Red — the file is going away. Friction by design.
+                        "hover:bg-red-500/15 hover:text-red-300",
+                        "opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100",
+                        "disabled:opacity-40",
+                        isSel && "opacity-100",
+                      )}
+                    >
+                      <Trash2 className="h-3 w-3" />
                     </button>
                   )}
                 </div>

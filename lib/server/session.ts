@@ -33,6 +33,7 @@ import {
   type ServerEvent,
 } from "@/lib/shared/events";
 import { extractUserPromptText, isRealUserPrompt } from "@/lib/shared/user-prompt";
+import type { SessionLoop } from "@/lib/shared/session-loops";
 
 type Subscriber = (event: ServerEvent) => void;
 
@@ -287,6 +288,25 @@ export class Session {
   // Set to true while resyncFromDisk is in flight, so a watch event that
   // arrives during the sync doesn't stack up redundant work.
   private jsonlResyncBusy = false;
+  /**
+   * Loops / wake-ups the agent has armed via the harness-provided
+   * `CronCreate` and `ScheduleWakeup` tools. Mirrored from the SDK message
+   * stream in `consume()` and exposed via `getScheduledLoops()` so the
+   * `/schedule` page can show them across every open session (not just the
+   * one the user is looking at).
+   *
+   * Map keyed by **stable loop id** — the cron id from CronCreate's result
+   * (or, for wake-ups, the tool_use_id of the call). A separate pending
+   * map keyed by tool_use_id lets us promote a CronCreate to the real id
+   * once the result lands.
+   *
+   * Lives only as long as this Session object — when SessionManager
+   * evicts us, the whole instance is GC'd and the loops vanish (which is
+   * correct: the agent runtime dies with the session, so the crons it
+   * armed die with it). No persistence layer.
+   */
+  private scheduledLoops = new Map<string, SessionLoop>();
+  private pendingScheduledLoops = new Map<string, SessionLoop>();
 
   constructor(opts: {
     id?: string;
@@ -357,12 +377,21 @@ export class Session {
             carriedAt = carriedAt + 1;
             at = carriedAt;
           }
-          this.broadcast({ type: "sdk", message: m as unknown as SDKMessage, at });
+          const sdk = m as unknown as SDKMessage;
+          this.broadcast({ type: "sdk", message: sdk, at });
+          // Replay disk-resident tool_use / tool_result blocks through the
+          // loop tracker too — without this, a session resumed from JSONL
+          // would have a populated client rail (which observes the rebroadcast
+          // SSE events) but an empty server-side store, breaking
+          // `/api/schedule/session-loops` for any pre-existing loops.
+          // Pass `at` so the entry's `startedAt` is the original arming
+          // time from the JSONL timestamp, not the moment of replay.
+          this.trackScheduledLoops(sdk, at);
         }
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         if (sessLoadDebug()) {
-           
+
           console.warn("[sess-load] start.resume loadHistorical FAILED", {
             id: this.id,
             resumeFrom: this.resumeFrom,
@@ -1002,6 +1031,191 @@ export class Session {
     return this.permissionMode;
   }
 
+  /**
+   * Snapshot of the session-only loops/wake-ups armed via the SDK's
+   * `CronCreate` / `ScheduleWakeup` tools. Returned as a fresh array so
+   * callers can't mutate the internal Map.
+   *
+   * Used by `GET /api/schedule/session-loops` to surface in-flight loops
+   * on the `/schedule` page across every open session.
+   */
+  getScheduledLoops(): SessionLoop[] {
+    return [...this.scheduledLoops.values()];
+  }
+
+  /**
+   * Observe an SDK message and update `scheduledLoops` if it carries any
+   * `CronCreate` / `CronDelete` / `ScheduleWakeup` tool_use blocks (or
+   * the matching tool_result).
+   *
+   * Why duplicate the client-side reducer here:
+   *   - The client only sees its own session via SSE; the `/schedule` page
+   *     wants a global view across every live session. The server is the
+   *     only place that can aggregate.
+   *   - We need state that survives a closed browser tab — as long as the
+   *     Session object lives (i.e. the agent runtime is still up and the
+   *     cron can actually fire), the loop entry has to stay visible.
+   *
+   * The text-result regex must match `lib/client/use-session.ts`'s reducer
+   * so the cron id / humanSchedule resolve to the same values on both
+   * sides. Update them together.
+   *
+   * `at` is the observed-at timestamp for this message — the JSONL
+   * `timestamp` field on disk-replay, or `Date.now()` for live SDK
+   * events. We use it as `startedAt` so the countdown is anchored to
+   * when the loop was *originally* armed, not when the page happened to
+   * replay it. Without this, every refresh resets the timer to the
+   * original delay (the user-visible "timer goes to 9m every reload"
+   * bug). Defaults to `Date.now()` when callers don't pass one — that
+   * preserves the original behavior for the live consume() path where
+   * "now" is genuinely the arming time.
+   */
+  private trackScheduledLoops(message: SDKMessage, at?: number): void {
+    const observedAt = typeof at === "number" ? at : Date.now();
+    type ToolUseBlock = {
+      type: "tool_use";
+      id: string;
+      name: string;
+      input: Record<string, unknown>;
+    };
+    type ToolResultBlock = {
+      type: "tool_result";
+      tool_use_id: string;
+      content: unknown;
+      is_error?: boolean;
+    };
+
+    const m = message as {
+      type?: string;
+      message?: { content?: unknown };
+    };
+
+    const content = m.message?.content;
+    if (!Array.isArray(content)) return;
+
+    if (m.type === "assistant") {
+      for (const raw of content) {
+        const b = raw as { type?: string };
+        if (b.type !== "tool_use") continue;
+        const tu = raw as ToolUseBlock;
+
+        if (tu.name === "CronCreate") {
+          const inp = tu.input as {
+            cron?: unknown;
+            prompt?: unknown;
+            recurring?: unknown;
+          };
+          const cron = typeof inp.cron === "string" ? inp.cron : "";
+          const prompt = typeof inp.prompt === "string" ? inp.prompt : "";
+          if (!cron) continue;
+          // Dedup: if we've already promoted this tool_use into the
+          // active map (via its later tool_result), don't re-stamp it as
+          // pending — that would orphan the entry. The active-map
+          // dedup below handles the unpromoted-pending case the same
+          // way (idempotent on replay).
+          if (this.pendingScheduledLoops.has(tu.id)) continue;
+          this.pendingScheduledLoops.set(tu.id, {
+            kind: "cron",
+            id: tu.id, // placeholder; re-keyed once tool_result lands
+            toolUseId: tu.id,
+            cron,
+            humanSchedule: null,
+            delaySeconds: null,
+            prompt,
+            recurring: inp.recurring === true,
+            durable: false,
+            startedAt: observedAt,
+            cancelled: false,
+          });
+          continue;
+        }
+
+        if (tu.name === "CronDelete") {
+          const idRaw = (tu.input as { id?: unknown }).id;
+          const id = typeof idRaw === "string" ? idRaw : null;
+          if (!id) continue;
+          const entry = this.scheduledLoops.get(id);
+          if (entry) entry.cancelled = true;
+          continue;
+        }
+
+        if (tu.name === "ScheduleWakeup") {
+          const inp = tu.input as {
+            delaySeconds?: unknown;
+            reason?: unknown;
+            prompt?: unknown;
+          };
+          // Dedup: replaying the same tool_use shouldn't reset its own
+          // startedAt. Without this guard, the "delete prior wake-ups"
+          // step below would drop the entry and we'd re-insert it with
+          // a fresh `observedAt` — fine on the very first replay, but
+          // would lose the entry on subsequent re-broadcasts when no
+          // new wake-up has actually been armed.
+          if (this.scheduledLoops.has(tu.id)) continue;
+          // One-shot: a fresh wake-up supersedes any prior pending wake-up
+          // for this session (matches the client's reducer).
+          for (const [k, v] of this.scheduledLoops) {
+            if (v.kind === "wakeup" && !v.cancelled) this.scheduledLoops.delete(k);
+          }
+          this.scheduledLoops.set(tu.id, {
+            kind: "wakeup",
+            id: tu.id,
+            toolUseId: tu.id,
+            cron: null,
+            humanSchedule: null,
+            delaySeconds: typeof inp.delaySeconds === "number" ? inp.delaySeconds : null,
+            prompt: typeof inp.prompt === "string" ? inp.prompt : "",
+            reason: typeof inp.reason === "string" ? inp.reason : undefined,
+            recurring: false,
+            durable: false,
+            startedAt: observedAt,
+            cancelled: false,
+          });
+          continue;
+        }
+      }
+      return;
+    }
+
+    if (m.type === "user") {
+      for (const raw of content) {
+        const b = raw as { type?: string };
+        if (b.type !== "tool_result") continue;
+        const tr = raw as ToolResultBlock;
+        const pending = this.pendingScheduledLoops.get(tr.tool_use_id);
+        if (!pending) continue;
+        this.pendingScheduledLoops.delete(tr.tool_use_id);
+
+        // Extract the text payload — `content` is either a string or an
+        // array of `{type:"text", text:string}` blocks per the Anthropic
+        // wire format. Mirror what extractToolResult does on the client.
+        let text = "";
+        if (typeof tr.content === "string") {
+          text = tr.content;
+        } else if (Array.isArray(tr.content)) {
+          for (const c of tr.content as Array<{ type?: string; text?: string }>) {
+            if (c?.type === "text" && c.text) text += c.text;
+          }
+        }
+
+        if (tr.is_error) continue; // drop pending: the tool failed
+
+        // Same regex as the client reducer — keep in sync.
+        const idMatch = text.match(/job\s+([a-z0-9]+)\s*\(([^)]+)\)/i);
+        const cronId = idMatch?.[1] ?? pending.toolUseId;
+        const humanSchedule = idMatch?.[2] ?? null;
+        const durable = !/session[- ]only/i.test(text);
+
+        this.scheduledLoops.set(cronId, {
+          ...pending,
+          id: cronId,
+          humanSchedule,
+          durable,
+        });
+      }
+    }
+  }
+
   async setModel(model?: string): Promise<void> {
     if (this.query) await this.query.setModel(model).catch(() => {});
     this.model = model;
@@ -1143,6 +1357,12 @@ export class Session {
     this.abortController.abort();
     this.done = true;
     this.stopJsonlWatcher();
+    // Drop ephemeral loop state. The Session instance itself is about to
+    // be dropped by SessionManager.remove, but if anyone holds a stale
+    // reference (test helper, etc.) we don't want them to read ghost
+    // loops or pending entries that will never resolve.
+    this.scheduledLoops.clear();
+    this.pendingScheduledLoops.clear();
   }
 
   /**
@@ -1205,7 +1425,14 @@ export class Session {
         // ride on the carry-forward so they inherit their turn time
         // instead of falling through to Date.now() in `broadcast()`.
         const at = Number.isFinite(parsed) ? parsed : carriedAt;
-        this.broadcast({ type: "sdk", message: m as unknown as SDKMessage, at });
+        const sdk = m as unknown as SDKMessage;
+        this.broadcast({ type: "sdk", message: sdk, at });
+        // External writers (terminal `claude --resume`, another SDK client)
+        // can arm or cancel loops on disk; replay them through the tracker
+        // here too so the server-side store mirrors the client rail after
+        // a resync. Pass `at` so `startedAt` reflects the JSONL timestamp
+        // (original arming time) and not the resync moment.
+        this.trackScheduledLoops(sdk, at ?? undefined);
         added++;
       }
       if (sessLoadDebug()) {
@@ -1610,6 +1837,12 @@ export class Session {
     try {
       for await (const message of this.query as AsyncIterable<SDKMessage>) {
         this.broadcast({ type: "sdk", message });
+        // Side-effect: keep the per-session ScheduledLoops map in sync with
+        // any cron/wake-up tool_use + tool_result blocks observed on the
+        // wire. Mirror of the client-side reducer in `lib/client/use-session.ts` —
+        // duplicated rather than shared because the client and server
+        // observe different events (SSE vs raw SDK).
+        this.trackScheduledLoops(message);
         // Bump the sessions index on each completed turn so list views can
         // sort newest-active first. `result` is the SDK's per-turn done
         // marker — independent of subagent activity.

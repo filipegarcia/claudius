@@ -1322,6 +1322,14 @@ export function useSession(): ChatState & ChatActions {
             if (cron) {
               setScheduledLoops((prev) => {
                 if (prev[b.id]) return prev;
+                // Also skip if this same tool_use was already promoted
+                // to its real cron id under a *different* map key by an
+                // earlier tool_result. Without this scan, a replayed
+                // CronCreate would re-create the pending entry beside
+                // the promoted one — two chips for one loop.
+                for (const v of Object.values(prev)) {
+                  if (v.toolUseId === b.id) return prev;
+                }
                 const entry: ScheduledLoop = {
                   kind: "cron",
                   id: b.id, // re-keyed to real cron id on tool_result
@@ -1332,7 +1340,14 @@ export function useSession(): ChatState & ChatActions {
                   prompt,
                   recurring: inp.recurring === true,
                   durable: false,
-                  startedAt: Date.now(),
+                  // Anchor to when the loop was originally armed (the
+                  // SSE event's `at` is the JSONL timestamp on replay,
+                  // or the live broadcast time otherwise). Using
+                  // Date.now() here would reset the countdown on every
+                  // page refresh. See `lib/server/session.ts`
+                  // `trackScheduledLoops` for the matching server-side
+                  // logic — keep these in sync.
+                  startedAt: ev.at ?? Date.now(),
                 };
                 return { ...prev, [b.id]: entry };
               });
@@ -1370,6 +1385,14 @@ export function useSession(): ChatState & ChatActions {
             const prompt = typeof inp.prompt === "string" ? inp.prompt : "";
             const reason = typeof inp.reason === "string" ? inp.reason : undefined;
             setScheduledLoops((prev) => {
+              // Dedup: if we've already tracked this exact tool_use,
+              // don't reset its startedAt by re-running the "delete
+              // prior wake-ups" step. Replays of the same SSE event
+              // (page refresh, tab switch) must be idempotent or the
+              // chip's countdown jumps back to the full delay every
+              // time. The first observation already captured the real
+              // arming time via `ev.at`.
+              if (prev[b.id]) return prev;
               // Replace any prior pending wake-up — dynamic-mode loops chain
               // one wake-up per turn, so only the latest is "armed".
               const next: Record<string, ScheduledLoop> = {};
@@ -1388,7 +1411,11 @@ export function useSession(): ChatState & ChatActions {
                 reason,
                 recurring: false,
                 durable: false,
-                startedAt: Date.now(),
+                // Original arming time — JSONL timestamp on replay, live
+                // broadcast time otherwise. Critical for countdown
+                // stability across reloads (see server-side
+                // `trackScheduledLoops` for the matching logic).
+                startedAt: ev.at ?? Date.now(),
               };
               next[b.id] = entry;
               return next;
