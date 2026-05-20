@@ -189,21 +189,45 @@ test.describe("App functionality — buttons, navigation, workspace, settings", 
     // The POST handler requires { name, rootPath } and 400s on anything
     // else (see app/api/workspaces/route.ts). The earlier shape
     // `{ cwd }` was vestigial — workspaces-store renamed the field
-    // before this spec was written. We send the project root because
-    // it's guaranteed to exist on every CI runner.
-    const createRes = await page.request.post(`${baseURL}/api/workspaces`, {
-      data: { name: `smoke-${Date.now()}`, rootPath: process.cwd() },
-    });
-    expect(createRes.ok()).toBe(true);
-    const created = (await createRes.json()) as { id: string };
-    expect(created.id).toMatch(/^wks_[a-f0-9]+$/);
+    // before this spec was written.
+    //
+    // ⚠ rootPath isolation: we use a per-test tempdir, NOT process.cwd().
+    // The notification bus keys its cwd→workspaceId map on `rootPath` and
+    // overwrites on collision (`Map.set`), so two workspaces sharing a
+    // rootPath leaves the bus pointing at whichever one was bootstrapped
+    // last. Downstream tests that PATCH workspace defaults (notifications
+    // enabledKinds, etc.) end up updating one workspace while the bus
+    // routes events to the other — same DB file, different workspace_id,
+    // silently filtered rows, empty badges. CI repro is full-suite; local
+    // single-spec runs miss it because only the bootstrap workspace exists.
+    const fs = await import("node:fs/promises");
+    const os = await import("node:os");
+    const path = await import("node:path");
+    const isolatedRoot = await fs.mkdtemp(
+      path.join(os.tmpdir(), "claudius-e2e-ws-"),
+    );
+    try {
+      const createRes = await page.request.post(`${baseURL}/api/workspaces`, {
+        data: { name: `smoke-${Date.now()}`, rootPath: isolatedRoot },
+      });
+      expect(createRes.ok()).toBe(true);
+      const created = (await createRes.json()) as { id: string };
+      expect(created.id).toMatch(/^wks_[a-f0-9]+$/);
 
-    // Sanity: the new workspace is in the list returned by GET.
-    const listRes = await page.request.get(`${baseURL}/api/workspaces`);
-    expect(listRes.ok()).toBe(true);
-    const list = (await listRes.json()) as { workspaces: { id: string }[] };
-    const ids = list.workspaces.map((w) => w.id);
-    expect(ids).toContain(created.id);
+      // Sanity: the new workspace is in the list returned by GET.
+      const listRes = await page.request.get(`${baseURL}/api/workspaces`);
+      expect(listRes.ok()).toBe(true);
+      const list = (await listRes.json()) as { workspaces: { id: string }[] };
+      const ids = list.workspaces.map((w) => w.id);
+      expect(ids).toContain(created.id);
+
+      // Clean up: delete the workspace so the cwdMap stays small and
+      // downstream specs don't inherit our row in their listWorkspaces
+      // output. Best-effort — a failed delete shouldn't fail the test.
+      await page.request.delete(`${baseURL}/api/workspaces/${created.id}`).catch(() => {});
+    } finally {
+      await fs.rm(isolatedRoot, { recursive: true, force: true }).catch(() => {});
+    }
   });
 
   // -------------------------------------------------------------------------
@@ -261,39 +285,63 @@ test.describe("App functionality — buttons, navigation, workspace, settings", 
     await expect(formNameLabel).toBeVisible({ timeout: 10_000 });
     const formHeading = formNameLabel; // alias kept for the close-assertion below
 
-    // Fill the two required fields. We pick a folder we know exists —
-    // `process.cwd()` is the project root in the dev server's view too,
-    // since the webServer inherits cwd from the Playwright runner.
-    const wsName = `E2E workspace ${Date.now()}`;
-    // Use the labelled-textbox accessor — `getByPlaceholder("Claudius")`
-    // matches both the Name input AND the Root folder input (whose
-    // placeholder "/Users/you/projects/claudius" contains "Claudius"
-    // as a substring), tripping Playwright's strict mode.
-    const nameInput = page.getByRole("textbox", { name: "Name" });
-    const rootInput = page.getByRole("textbox", { name: /root folder/i });
-    await nameInput.fill(wsName);
-    await rootInput.fill(process.cwd());
+    // Fill the two required fields.
+    //
+    // ⚠ rootPath isolation: use a per-test tempdir, NOT `process.cwd()`.
+    // The notification bus keys its cwd→workspaceId map on `rootPath`
+    // and overwrites on collision (`Map.set`). Two workspaces sharing
+    // a rootPath leaves the bus pointing at whichever one was last
+    // bootstrapped — downstream notification specs that PATCH defaults
+    // on workspace A end up routing events to workspace B, the kind
+    // filter drops the row, and the badge never renders. Full CI
+    // reproduction; single-spec local runs miss it.
+    const fs = await import("node:fs/promises");
+    const os = await import("node:os");
+    const path = await import("node:path");
+    const isolatedRoot = await fs.mkdtemp(
+      path.join(os.tmpdir(), "claudius-e2e-uiws-"),
+    );
+    let createdId: string | null = null;
+    try {
+      const wsName = `E2E workspace ${Date.now()}`;
+      // Use the labelled-textbox accessor — `getByPlaceholder("Claudius")`
+      // matches both the Name input AND the Root folder input (whose
+      // placeholder "/Users/you/projects/claudius" contains "Claudius"
+      // as a substring), tripping Playwright's strict mode.
+      const nameInput = page.getByRole("textbox", { name: "Name" });
+      const rootInput = page.getByRole("textbox", { name: /root folder/i });
+      await nameInput.fill(wsName);
+      await rootInput.fill(isolatedRoot);
 
-    // Submit. The button is disabled until both fields are non-empty —
-    // we filled them above so it must be enabled now.
-    const saveBtn = page.getByRole("button", { name: /^save$/i });
-    await expect(saveBtn).toBeEnabled();
-    await saveBtn.click();
+      // Submit. The button is disabled until both fields are non-empty —
+      // we filled them above so it must be enabled now.
+      const saveBtn = page.getByRole("button", { name: /^save$/i });
+      await expect(saveBtn).toBeEnabled();
+      await saveBtn.click();
 
-    // The form closes once create() succeeds. We poll on the heading
-    // disappearing — that's the visual signal everything worked.
-    await expect(formHeading).toBeHidden({ timeout: 10_000 });
+      // The form closes once create() succeeds. We poll on the heading
+      // disappearing — that's the visual signal everything worked.
+      await expect(formHeading).toBeHidden({ timeout: 10_000 });
 
-    // The form's POST captured the values we typed (or at least
-    // something derived from them). The renderer normalises the cwd
-    // via realpath so we only assert the name is present.
-    expect(capturedPostBody, "form should POST a body to /api/workspaces").toBeTruthy();
+      // The form's POST captured the values we typed (or at least
+      // something derived from them). The renderer normalises the cwd
+      // via realpath so we only assert the name is present.
+      expect(capturedPostBody, "form should POST a body to /api/workspaces").toBeTruthy();
 
-    // And the workspace is now in the list returned by GET.
-    const listRes = await page.request.get(`${baseURL}/api/workspaces`);
-    expect(listRes.ok()).toBe(true);
-    const list = (await listRes.json()) as { workspaces: { id: string; name: string }[] };
-    const names = list.workspaces.map((w) => w.name);
-    expect(names).toContain(wsName);
+      // And the workspace is now in the list returned by GET.
+      const listRes = await page.request.get(`${baseURL}/api/workspaces`);
+      expect(listRes.ok()).toBe(true);
+      const list = (await listRes.json()) as { workspaces: { id: string; name: string }[] };
+      const names = list.workspaces.map((w) => w.name);
+      expect(names).toContain(wsName);
+      createdId = list.workspaces.find((w) => w.name === wsName)?.id ?? null;
+
+      // Clean up — same rationale as the sibling `:117` test.
+      if (createdId) {
+        await page.request.delete(`${baseURL}/api/workspaces/${createdId}`).catch(() => {});
+      }
+    } finally {
+      await fs.rm(isolatedRoot, { recursive: true, force: true }).catch(() => {});
+    }
   });
 });
