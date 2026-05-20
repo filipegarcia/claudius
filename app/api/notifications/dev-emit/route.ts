@@ -62,5 +62,10 @@ export async function POST(req: Request) {
   const states = await notificationBus.getAllWorkspaceStates();
   const counts: Record<string, number> = {};
   for (const [id, s] of Object.entries(states)) counts[id] = s.totalUnread;
+  // [dbg-notif] CI-only diagnostic — log the post-record counts so we can
+  // tell server-state (bus + DB) failures from client-state (SSE + React)
+  // failures. If counts is {wks_X: N} matching what the test expects but
+  // the badge still doesn't render, the bug is in the SSE→client path.
+  console.log("[dbg-notif] dev-emit response counts", JSON.stringify(counts));
   return NextResponse.json({ ok: true, counts });
 }

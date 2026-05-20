@@ -553,7 +553,17 @@ class NotificationBus {
    */
   private emitStateSync(workspaceId: string, cwd: string): void {
     const db = getCachedDb(cwd, "readwrite") ?? getCachedDb(cwd, "readonly");
-    if (!db) return;
+    if (!db) {
+      // [dbg-notif] CI-only — `emitStateSync` bailing because no cached DB
+      // for this cwd means the row insert that triggered the schedule went
+      // to a DIFFERENT cwd than the emit's cwd, or the DB cache was wiped
+      // between the insert and the timer callback. Either way, no badge.
+      console.log(
+        "[dbg-notif] emitStateSync NO_DB",
+        JSON.stringify({ workspaceId, cwd }),
+      );
+      return;
+    }
     const totalUnread = unreadCountOn(db);
     const perSession = unreadCountsBySessionOn(db);
     const prev = this.perWorkspace.get(workspaceId);
@@ -561,6 +571,21 @@ class NotificationBus {
     const state: WorkspaceUnreadState = { workspaceId, version, totalUnread, perSession };
     this.perWorkspace.set(workspaceId, state);
     const env: NotificationStreamEvent = { type: "state", ...state };
+    // [dbg-notif] CI-only — log what we're broadcasting and to how many
+    // subscribers. Zero subscribers = no SSE client connected (likely a
+    // client-side connect race). totalUnread=0 when test expects ≥1 = the
+    // DB read didn't see the just-inserted row (likely a tx-visibility
+    // race between the insert and this synchronous read).
+    console.log(
+      "[dbg-notif] emitStateSync emit",
+      JSON.stringify({
+        workspaceId,
+        version,
+        totalUnread,
+        perSession,
+        subscribers: this.subscribers.size,
+      }),
+    );
     for (const sub of this.subscribers) {
       try {
         sub(env);
