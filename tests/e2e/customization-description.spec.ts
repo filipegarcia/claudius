@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "../helpers/test";
 
 /**
  * End-to-end UI test for the manual-edit path on the Feature description

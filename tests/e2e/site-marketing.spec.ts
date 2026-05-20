@@ -1,4 +1,4 @@
-import { test, expect, type ConsoleMessage } from "@playwright/test";
+import { test, expect, type ConsoleMessage } from "../helpers/test";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 

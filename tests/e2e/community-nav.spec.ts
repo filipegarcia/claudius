@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "../helpers/test";
 
 /**
  * Regression test: navigating /community → another route → back to /community

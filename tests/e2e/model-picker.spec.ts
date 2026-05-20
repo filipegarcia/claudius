@@ -1,4 +1,4 @@
-import { test, expect, type Page, type Route } from "@playwright/test";
+import { test, expect, type Page, type Route } from "../helpers/test";
 
 /**
  * E2E coverage for the right-rail Model picker.

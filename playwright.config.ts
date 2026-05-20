@@ -95,10 +95,45 @@ export default defineConfig({
     // compiled `dist-electron/main.js` via Playwright's `_electron`
     // helper. Shares the same `webServer` (next dev) as the browser
     // suite — the renderer loads from it via ELECTRON_START_URL.
+    //
+    // Picks up two trees:
+    //   • tests/electron/  — intrinsically Electron-only specs
+    //     (titlebar, bridge shape, sandbox, application menu).
+    //   • tests/e2e/       — the same parametrised browser specs the
+    //     chromium project runs. Each one resolves the shared
+    //     `page` fixture from `tests/helpers/test.ts`; under the
+    //     `chromium-electron` project name the fixture swaps in
+    //     `_electron.launch().firstWindow()` so the renderer the
+    //     spec drives is the packaged-app window. The dev server
+    //     stays shared via the project-level `webServer` block
+    //     below — no second Next instance.
+    //
+    // testIgnore: a small handful of browser specs can't translate to
+    // the single-window Electron shell — they fork multiple browser
+    // contexts / tabs to simulate "two browser windows open at once,"
+    // which the renderer here intentionally doesn't support:
+    //   • session-resume.spec.ts        — opens two `browser.newContext()`s
+    //   • notifications-multi-tab.spec  — opens two pages in one context
+    //   • site-screenshots.spec.ts      — marketing PNGs only
+    //   • site-marketing.spec.ts        — marketing-only, no in-app flow
     {
       name: "chromium-electron",
-      testDir: "./tests/electron",
-      testMatch: /.*\.spec\.ts$/,
+      testDir: "./tests",
+      testMatch: /(e2e|electron)\/.*\.spec\.ts$/,
+      testIgnore: [
+        "**/session-resume.spec.ts",
+        "**/notifications-multi-tab.spec.ts",
+        "**/site-screenshots.spec.ts",
+        "**/site-marketing.spec.ts",
+      ],
+      // Electron specs pay a per-test cost: `_electron.launch()` spawns a
+      // fresh main + renderer process, blank-window then loads `/` from the
+      // next dev server. On a warm box that's ~700ms; under cold-compile
+      // load (first hit to a route triggers Next 16's per-route compile)
+      // it can spike past the 60s default. Tighten the bound to 120s so
+      // genuine hangs still surface but Electron's startup cost doesn't
+      // get attributed to the test body.
+      timeout: 120_000,
     },
   ],
 

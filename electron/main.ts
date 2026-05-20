@@ -35,6 +35,24 @@ import {
 const DEV_START_URL = process.env.ELECTRON_START_URL;
 const IS_PACKAGED = app.isPackaged || process.env.CLAUDIUS_PACKAGED === "1";
 
+// Brand the user-data-dir so renderer localStorage and IndexedDB land
+// at `~/Library/Application Support/Claudius` instead of the default
+// unbranded `Electron` directory. Without this:
+//   • Multiple Electron-based apps share the same userData dir and can
+//     stomp each other's localStorage (we saw a stale `synthwave`
+//     theme bleed in from another Electron app's run).
+//   • An e2e-test Electron launch and a `bun run electron:dev` launch
+//     accumulate state in the same place, so the dev app inherits
+//     whatever the last test left behind.
+// `app.setName` must run before `app.whenReady()` to take effect on
+// the userData / cache paths. We resolve those explicitly via
+// `app.setPath` so the migration is uniform across macOS / Windows /
+// Linux — `app.getPath("userData")` always returns
+// `<appData>/<appName>` when the name has been set.
+app.setName("Claudius");
+const dataRoot = path.join(app.getPath("appData"), "Claudius");
+app.setPath("userData", dataRoot);
+
 let mainWindow: BrowserWindow | null = null;
 let nextServer: EmbeddedNextServer | null = null;
 

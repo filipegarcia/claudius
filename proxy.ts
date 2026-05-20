@@ -13,7 +13,7 @@ import { NextResponse, type NextRequest } from "next/server";
  *     cookie can never lag behind the URL (e.g. a bookmark to
  *     `/wks_aaa/git` arriving while the cookie still says `wks_bbb`).
  *     Server components can't mutate cookies, so this has to live in
- *     middleware.
+ *     proxy.
  *
  *  2. **Bare-path redirect.** When the path is a bare workspace-scoped
  *     route (e.g. `/git`) and the cookie identifies an active workspace,
@@ -58,7 +58,7 @@ const SCOPED_ROUTES = new Set<string>([
   "workspace",
 ]);
 
-export function middleware(req: NextRequest) {
+export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const first = pathname.split("/")[1] ?? "";
 
@@ -82,9 +82,9 @@ export function middleware(req: NextRequest) {
   // it's routed to `app/page.tsx`, a server component that validates
   // the cookie against the workspace store *and* falls back to the
   // store's `activeId` hint when the cookie points at a deleted
-  // workspace. Letting middleware redirect "/" cookie-blindly would
+  // workspace. Letting the proxy redirect "/" cookie-blindly would
   // produce a loop: an invalid cookie sends the user to `/<bad-id>`,
-  // the workspace layout redirects back to `/`, middleware re-reads
+  // the workspace layout redirects back to `/`, the proxy re-reads
   // the same bad cookie, ... With "/" off the table the loop can't
   // form: invalid `/<bad-id>` paths redirect to `/`, which then
   // resolves via the store hint and 307s onward.
@@ -107,6 +107,6 @@ export function middleware(req: NextRequest) {
 export const config = {
   // Skip the API surface, Next's internals, and static asset fetches —
   // none of them need the URL ↔ cookie logic, and matching everything
-  // would put the middleware on every image/script request.
+  // would put the proxy on every image/script request.
   matcher: ["/((?!api/|_next/|.*\\.).*)"],
 };

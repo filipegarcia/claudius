@@ -70,10 +70,13 @@ export function registerUpdaterHandlers(): void {
 
   ipcMain.on(TOPIC_CHECK, () => {
     if (!packaged) {
-      broadcast({
-        kind: "error",
-        message: "Updater unavailable in dev / unpackaged builds",
-      });
+      // Dev / unpackaged builds have no signed binary to update from.
+      // Previously we broadcast `kind: "error"` here which surfaced as
+      // a red "Updater error" banner across the top of the window
+      // every time the renderer mounted and auto-checked. That's
+      // noise — developers know the dev build can't self-update.
+      // Settle into `idle` so the banner stays hidden.
+      broadcast({ kind: "idle" });
       return;
     }
     bootstrap();

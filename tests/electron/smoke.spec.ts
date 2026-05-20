@@ -13,6 +13,10 @@
  * point at. Keeping one server means CI runs both projects in
  * parallel without spawning a second 1GB next process.
  */
+// Smoke spec: launches Electron directly (does NOT rely on the shared
+// `tests/helpers/test.ts` page fixture — these tests assert main-process
+// affordances like the OS menu, so they need the raw `ElectronApplication`
+// handle, not just a renderer `page`).
 import { expect, test } from "@playwright/test";
 
 import { launchElectron, teardownElectron, type LaunchedElectron } from "./launch";

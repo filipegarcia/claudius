@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "../helpers/test";
 import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { UPDATE_SCREENSHOTS } from "./helpers/marketing-screenshot";

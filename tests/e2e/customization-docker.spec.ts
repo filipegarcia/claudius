@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "../helpers/test";
 import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 import type { Container, DockerResponse } from "@/app/api/docker/containers/route";

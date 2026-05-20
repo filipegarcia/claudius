@@ -1,4 +1,4 @@
-import { test, expect, type Page, type Route } from "@playwright/test";
+import { test, expect, type Page, type Route } from "../helpers/test";
 
 /**
  * Regression test for the "pin last user message at top of chat" behavior in
