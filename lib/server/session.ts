@@ -835,8 +835,21 @@ export class Session {
     // the plan. Returning the setMode as part of the allow lets the SDK
     // perform the transition atomically and the tool returns success.
     this.permissionMode = "acceptEdits";
+    // `updatedInput` is REQUIRED on the allow branch even though sdk.d.ts
+    // marks it optional — the SDK's runtime Zod validator rejects
+    // `undefined` with "Invalid input: expected record, received undefined"
+    // and surfaces it to the model as a tool_result error. The model then
+    // retries ExitPlanMode (re-opening our plan overlay) and the user is
+    // stuck in a loop. We mirror the original tool input here; the edited-
+    // plan branch below replaces it with the user's draft when applicable.
+    // Same defense as `resolvePermission` at line 708.
+    const rawInput =
+      pending.raw && typeof pending.raw === "object" && !Array.isArray(pending.raw)
+        ? pending.raw
+        : {};
     const result: PermissionResult = {
       behavior: "allow",
+      updatedInput: rawInput,
       updatedPermissions: [
         { type: "setMode", mode: "acceptEdits", destination: "session" },
       ],
@@ -848,7 +861,7 @@ export class Session {
     // Preserve any other fields the model passed (e.g. `allowedPrompts`).
     const editedPlan = decision.editedPlan?.trim();
     if (editedPlan && editedPlan !== pending.plan.trim()) {
-      result.updatedInput = { ...(pending.raw ?? {}), plan: editedPlan };
+      result.updatedInput = { ...rawInput, plan: editedPlan };
     }
     pending.resolve(result);
     // The SDK doesn't echo `setMode` permission updates back through its

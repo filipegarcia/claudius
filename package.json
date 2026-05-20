@@ -25,6 +25,7 @@
     "site:screenshots:full": "SCREENSHOTS_INCLUDE_CHAT=1 playwright test --project=screenshots",
     "site:screenshots:customizations": "SCREENSHOTS_INCLUDE_CUSTOMIZATIONS=1 playwright test tests/e2e/customization-showcase.spec.ts",
     "electron:dev": "bun run electron:rebuild-native && bun run electron:compile && concurrently -k -n next,electron -c blue,magenta \"bun run dev\" \"wait-on http://127.0.0.1:3000 && cross-env ELECTRON_START_URL=http://127.0.0.1:3000 electron dist-electron/main.js\"",
+    "electron:open": "node scripts/electron-open.mjs",
     "electron:typecheck": "tsc -p electron/tsconfig.json --noEmit",
     "electron:compile": "tsc -p electron/tsconfig.json",
     "electron:build": "bun run electron:rebuild-native && cross-env CLAUDIUS_PACKAGED=1 next build && bun run electron:compile",

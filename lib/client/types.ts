@@ -404,7 +404,15 @@ export type ChatActions = {
   createNewSession(): Promise<void>;
   /** Open a fresh session in a specific working directory (e.g. a git worktree). */
   createSessionAt(cwd: string): Promise<void>;
-  refreshSessions(): Promise<void>;
+  /**
+   * Re-pull the merged sessions list from `/api/sessions` +
+   * `/api/sessions/all`. Returns the merged list so callers that need to
+   * act on the result inline (e.g. the visibility-change handler
+   * reconciling the active session's `pending` flag against the server's
+   * authoritative status) don't have to race on the next render of the
+   * public `sessions` state. Most callers ignore the return value.
+   */
+  refreshSessions(): Promise<SessionInfo[]>;
   /**
    * Resolve the pending ExitPlanMode prompt. Accept flips the session out of
    * plan mode; reject sends feedback so the model can iterate. Closing the

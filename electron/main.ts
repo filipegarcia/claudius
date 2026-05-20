@@ -50,8 +50,19 @@ const IS_PACKAGED = app.isPackaged || process.env.CLAUDIUS_PACKAGED === "1";
 // Linux — `app.getPath("userData")` always returns
 // `<appData>/<appName>` when the name has been set.
 app.setName("Claudius");
-const dataRoot = path.join(app.getPath("appData"), "Claudius");
-app.setPath("userData", dataRoot);
+// Only force-override userData when the launcher didn't pass an
+// explicit `--user-data-dir` Chromium switch. The Playwright e2e
+// launcher (`tests/electron/launch.ts`) relies on the switch to give
+// each test run its own throwaway profile — without this guard our
+// `app.setPath("userData", …)` would clobber it and every e2e Electron
+// would land back in `~/Library/Application Support/Claudius`,
+// re-triggering the single-instance lock against any user-launched
+// dev build.
+const userDataOverride = process.argv.some((a) => a.startsWith("--user-data-dir="));
+if (!userDataOverride) {
+  const dataRoot = path.join(app.getPath("appData"), "Claudius");
+  app.setPath("userData", dataRoot);
+}
 
 let mainWindow: BrowserWindow | null = null;
 let nextServer: EmbeddedNextServer | null = null;
@@ -143,7 +154,18 @@ function createWindow(startUrl: string): BrowserWindow {
 
   // Don't paint until the document is ready — avoids the white-flash
   // on the dark theme.
-  win.once("ready-to-show", () => win.show());
+  win.once("ready-to-show", () => {
+    win.show();
+    // Optional auto-open DevTools. Off by default — the dev loop
+    // (`bun run electron:dev` / `make electron`) shouldn't shove a
+    // separate window in the user's face. Set `CLAUDIUS_DEVTOOLS=1`
+    // when you actually want it (e.g. diagnosing a renderer crash).
+    // The "Toggle Developer Tools" menu item (Cmd+Opt+I) remains the
+    // canonical way to open the panel on demand.
+    if (!IS_PACKAGED && process.env.CLAUDIUS_DEVTOOLS === "1") {
+      win.webContents.openDevTools({ mode: "detach" });
+    }
+  });
 
   // External links open in the default browser, not inside the app.
   win.webContents.setWindowOpenHandler(({ url }) => {
@@ -258,11 +280,15 @@ app.whenReady().then(async () => {
 });
 
 app.on("window-all-closed", () => {
-  // On macOS apps typically stay in the dock until the user explicitly
-  // quits with Cmd+Q. On win/linux closing the last window quits.
-  if (process.platform !== "darwin") {
-    app.quit();
-  }
+  // Quit the whole app when the last window closes — same behavior
+  // on every platform. Originally we honored the macOS convention
+  // (stay in the dock with no windows; Cmd+Q quits explicitly), but
+  // users running a single-window app like Claudius reasonably expect
+  // the red close button to *actually* close the process. Keeping the
+  // process alive in the background also leaves the embedded Next
+  // server running, which is confusing in dev (port 3000 stays bound
+  // after the window is gone).
+  app.quit();
 });
 
 app.on("before-quit", async () => {

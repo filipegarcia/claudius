@@ -30,7 +30,7 @@ import { parseAskQuestions, type AskAnswer, type AskQuestion } from "@/lib/share
 import { useLimits } from "@/lib/client/useLimits";
 import { CapBreachBanner } from "@/components/chat/CapBreachBanner";
 import { TranscriptSearch, type SearchHit } from "@/components/chat/TranscriptSearch";
-import { SessionTabs, activeTabStatus, tabLabelFor, type TabStatus } from "@/components/chat/SessionTabs";
+import { SessionTabs, activeTabStatus, reorderArray, tabLabelFor, type TabStatus } from "@/components/chat/SessionTabs";
 import { TabClaimBanner } from "@/components/chat/TabClaimBanner";
 import { useTabClaim } from "@/lib/client/useTabClaim";
 import { BashViewer } from "@/components/panels/BashViewer";
@@ -435,6 +435,14 @@ export default function Home() {
     setOpenTabs([]);
     return closed;
   }, [openTabs]);
+
+  // Drag-reorder: SessionTabs hands us splice-compatible indices and the
+  // pure `reorderArray` helper handles the splice + bounds checks. The
+  // persistence effect above will PUT the new order to /api/sessions/open-tabs
+  // automatically — no extra wiring needed.
+  const reorderTab = useCallback((fromIdx: number, toIdx: number) => {
+    setOpenTabs((prev) => reorderArray(prev, fromIdx, toIdx));
+  }, []);
 
   // Bash live-tail viewer ─────────────────────────────────────────────────
   const [openBash, setOpenBash] = useState<BackgroundBash | null>(null);
@@ -942,6 +950,7 @@ export default function Home() {
           }}
           onNew={() => void session.createNewSession()}
           onReopen={reopenClosedTab}
+          onReorder={reorderTab}
           labelMaxWidth={tabLabelMaxWidth ?? undefined}
           onLabelWidthChange={onTabLabelWidthChange}
         />

@@ -40,6 +40,17 @@ const themeBootstrap = `(() => {
   } catch (_) {
     document.documentElement.dataset.theme = 'dark';
   }
+  // Electron detection — used by globals.css to add a 32px top padding to
+  // the body so the workspace rail and chat shell never sit under the
+  // OS-drawn traffic lights / our custom title bar. UA-sniffing the
+  // "Electron" tag is the reliable signal — preload may or may not have
+  // run by the time this script executes, so we can't depend on
+  // window.claudius being present yet.
+  try {
+    if (navigator.userAgent.indexOf('Electron') !== -1) {
+      document.documentElement.dataset.electron = '1';
+    }
+  } catch (_) {}
 })();`;
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

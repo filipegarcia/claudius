@@ -48,6 +48,13 @@ type Props = {
    * Width is already clamped. Persist server-side.
    */
   onLabelWidthChange?: (width: number) => void;
+  /**
+   * Called when the user drag-reorders a tab. `fromIdx` and `toIdx` are
+   * indices into the `tabs` array; `toIdx` follows Array#splice semantics
+   * (insert position AFTER removal of the source). No-ops are filtered out
+   * in the strip so the parent never sees `fromIdx === toIdx`.
+   */
+  onReorder?: (fromIdx: number, toIdx: number) => void;
 };
 
 const TAB_LABEL_MIN = 60;
@@ -63,6 +70,68 @@ const TAB_LABEL_MAX = 600;
  * Returns `null` when the tab gets no number. The matching keyboard handler
  * uses the same rule so visual hint and binding never drift.
  */
+/**
+ * How far (in px) a non-dragged tab should be translated horizontally while
+ * a reorder drag is in flight. The dragged tab stays in its DOM slot
+ * (rendered invisible) so the strip's flex layout is stable; the other tabs
+ * slide ±draggedWidth so the projected drop slot is visible under the
+ * cursor.
+ *
+ * Pure / no DOM access — exported so unit tests can pin the geometry
+ * without mounting the component.
+ */
+export function tabShiftForReorder(
+  idx: number,
+  fromIdx: number,
+  overIdx: number,
+  draggedWidth: number,
+): number {
+  if (idx === fromIdx) return 0;
+  if (fromIdx < idx && overIdx >= idx) return -draggedWidth;
+  if (fromIdx > idx && overIdx <= idx) return draggedWidth;
+  return 0;
+}
+
+/**
+ * Given the bounding rects of every tab (in tab-order; `null` for hidden
+ * tabs we should skip) and the current pointer X, return the splice-insert
+ * index for the dragged tab. The math compensates for the fact that
+ * `Array#splice` operates on the post-remove array — caller passes
+ * (fromIdx, toIdx) straight to splice.
+ */
+export function computeReorderOverIdx(
+  rects: ReadonlyArray<{ left: number; width: number } | null>,
+  fromIdx: number,
+  clientX: number,
+): number {
+  for (let i = 0; i < rects.length; i++) {
+    if (i === fromIdx) continue;
+    const r = rects[i];
+    if (!r) continue;
+    const mid = r.left + r.width / 2;
+    if (clientX < mid) {
+      return fromIdx < i ? i - 1 : i;
+    }
+  }
+  return rects.length - 1;
+}
+
+/**
+ * Apply a single drag-reorder to an array: remove the item at `fromIdx`
+ * then re-insert it at `toIdx`. Bounds-checked. No-ops (same index,
+ * out-of-range indices) return the input by reference so React `useState`
+ * setters bail out and downstream persistence effects don't fire.
+ */
+export function reorderArray<T>(arr: readonly T[], fromIdx: number, toIdx: number): T[] {
+  if (fromIdx < 0 || fromIdx >= arr.length) return arr as T[];
+  if (toIdx < 0 || toIdx >= arr.length) return arr as T[];
+  if (fromIdx === toIdx) return arr as T[];
+  const next = arr.slice();
+  const [moved] = next.splice(fromIdx, 1);
+  next.splice(toIdx, 0, moved);
+  return next;
+}
+
 export function shortcutForTabIndex(idx: number, length: number): number | null {
   if (idx < 0 || idx >= length) return null;
   if (length <= 9) return idx + 1;
@@ -81,6 +150,7 @@ export function SessionTabs({
   onReopen,
   labelMaxWidth,
   onLabelWidthChange,
+  onReorder,
 }: Props) {
   const [liveWidth, setLiveWidth] = useState<number | null>(null);
   const dragRef = useRef<{ startX: number; startW: number } | null>(null);
@@ -284,6 +354,137 @@ export function SessionTabs({
     }
   }
 
+  // ── Drag-to-reorder ────────────────────────────────────────────────────
+  // The user can drag any tab to a new slot. While the drag is active we
+  // render a fixed-position floating clone of the tab under the pointer and
+  // shift the other tabs' transforms so the "gap" follows the projected drop
+  // index. The actual array reorder is delegated to the parent via
+  // `onReorder` and only fires on pointer-up — mid-drag we never mutate the
+  // underlying state, just the visual offsets.
+  //
+  // Implementation notes:
+  //   • Window-level pointermove/up listeners (not React handlers on the
+  //     tab) so the drag survives the pointer leaving the strip — a tab
+  //     element shrinking to 0 width when its slot becomes the "gap" would
+  //     otherwise drop the capture.
+  //   • A 4px movement threshold separates "click to select" from "drag to
+  //     reorder". Below the threshold the onClick selection still fires.
+  //   • `dragSuppressClickRef` blocks the click event the browser dispatches
+  //     after pointerup so we don't accidentally select the dragged tab on
+  //     drop.
+  type DragState = {
+    id: string;
+    fromIdx: number;
+    overIdx: number;
+    width: number;
+    height: number;
+    /** Pointer offset within the tab when the drag started. */
+    offsetX: number;
+    offsetY: number;
+    /** Current pointer position in viewport coordinates. */
+    x: number;
+    y: number;
+  };
+  const [drag, setDrag] = useState<DragState | null>(null);
+  const dragSuppressClickRef = useRef(false);
+  // Refs so the long-lived pointermove/up closures see fresh values without
+  // having to re-bind every render. We write them in an effect (not during
+  // render) so the lint rule against ref-mutation-in-render stays happy;
+  // the staleness window is one render which is fine because pointer
+  // handlers always fire AFTER a render commits.
+  const tabsRef = useRef(tabs);
+  const onReorderRef = useRef(onReorder);
+  useEffect(() => {
+    tabsRef.current = tabs;
+    onReorderRef.current = onReorder;
+  }, [tabs, onReorder]);
+
+  function startTabDrag(e: React.PointerEvent<HTMLDivElement>, idx: number) {
+    if (e.button !== 0) return;
+    // Anything tagged `data-no-drag` (close button, resize handle) bypasses
+    // the drag so its own handler runs unimpaired.
+    if ((e.target as HTMLElement).closest("[data-no-drag]")) return;
+    const tabEl = e.currentTarget;
+    const rect = tabEl.getBoundingClientRect();
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const offsetX = startX - rect.left;
+    const offsetY = startY - rect.top;
+    const tab = tabsRef.current[idx];
+    if (!tab) return;
+    let moved = false;
+    let lastOverIdx = idx;
+
+    const onMove = (ev: PointerEvent) => {
+      const dx = ev.clientX - startX;
+      const dy = ev.clientY - startY;
+      if (!moved) {
+        if (Math.hypot(dx, dy) < 4) return;
+        moved = true;
+        dragSuppressClickRef.current = true;
+      }
+      const overIdx = computeOverIdx(ev.clientX, idx);
+      lastOverIdx = overIdx;
+      setDrag({
+        id: tab.id,
+        fromIdx: idx,
+        overIdx,
+        width: rect.width,
+        height: rect.height,
+        offsetX,
+        offsetY,
+        x: ev.clientX,
+        y: ev.clientY,
+      });
+    };
+
+    const onUp = () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
+      if (moved && lastOverIdx !== idx) {
+        onReorderRef.current?.(idx, lastOverIdx);
+      }
+      setDrag(null);
+      // Released-after-drag fires a synthetic click on the tab's button; let
+      // it land then clear the suppression so future plain clicks select.
+      setTimeout(() => {
+        dragSuppressClickRef.current = false;
+      }, 0);
+    };
+
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
+  }
+
+  // Adapter: collects the live rects for tabs (skipping hidden ones and the
+  // dragged tab) and defers the index math to the pure `computeReorderOverIdx`
+  // helper so the geometry is unit-testable.
+  function computeOverIdx(clientX: number, fromIdx: number): number {
+    const strip = stripRef.current;
+    if (!strip) return fromIdx;
+    const list = tabsRef.current;
+    const rects: Array<{ left: number; width: number } | null> = list.map((t, i) => {
+      if (i === fromIdx) return null;
+      if (hiddenIds.has(t.id)) return null;
+      const el = strip.querySelector<HTMLDivElement>(
+        `[data-tab-id="${CSS.escape(t.id)}"]`,
+      );
+      if (!el) return null;
+      const r = el.getBoundingClientRect();
+      return { left: r.left, width: r.width };
+    });
+    return computeReorderOverIdx(rects, fromIdx, clientX);
+  }
+
+  // Closure over `drag` that picks the right argument bundle for the pure
+  // helper. Keeps the JSX call site tidy.
+  function shiftFor(idx: number): number {
+    if (!drag) return 0;
+    return tabShiftForReorder(idx, drag.fromIdx, drag.overIdx, drag.width);
+  }
+
   // ── Overflow handling ──────────────────────────────────────────────────
   // The tab strip must never overflow horizontally — when too many tabs are
   // open, the ones that don't fit are hidden and surfaced behind a chevron
@@ -394,6 +595,8 @@ export function SessionTabs({
       {tabs.map((t, i) => {
         const active = t.id === activeId;
         const hidden = hiddenIds.has(t.id);
+        const isBeingDragged = drag?.id === t.id;
+        const shift = shiftFor(i);
         const shortcut = shortcutForTabIndex(i, tabs.length);
         // Only surface the chord hint when the numeric shortcut actually has
         // a binding — when the user disabled it the visual digit still
@@ -409,13 +612,25 @@ export function SessionTabs({
             data-tab-id={t.id}
             data-tab-active={active ? "true" : "false"}
             data-tab-hidden={hidden ? "true" : "false"}
+            data-tab-dragging={isBeingDragged ? "true" : "false"}
+            onPointerDown={(e) => startTabDrag(e, i)}
             // `display: none` keeps the element out of layout so trailing
             // tabs don't get partially clipped by overflow:hidden. The
             // measurement cache (widthsRef) preserved its natural width
             // from a prior render where it WAS visible.
-            style={hidden ? { display: "none" } : undefined}
+            // While a drag is active, non-dragged tabs translate sideways to
+            // reveal the projected drop slot; the dragged tab itself stays
+            // in its DOM position but is rendered invisible so the floating
+            // clone is the only visible representation.
+            style={{
+              ...(hidden ? { display: "none" } : null),
+              transform: shift ? `translateX(${shift}px)` : undefined,
+              transition: drag && !isBeingDragged ? "transform 140ms ease" : undefined,
+              opacity: isBeingDragged ? 0 : undefined,
+              cursor: drag ? "grabbing" : "grab",
+            }}
             className={cn(
-              "group relative flex shrink-0 items-center gap-1.5 border-r border-[var(--border)] px-2 text-[11px]",
+              "group relative flex shrink-0 items-center gap-1.5 border-r border-[var(--border)] px-2 text-[11px] select-none",
               active
                 ? "bg-[var(--background)] text-[var(--foreground)]"
                 : "bg-[var(--panel)]/40 text-[var(--muted)] hover:bg-[var(--panel-2)]/60",
@@ -423,7 +638,14 @@ export function SessionTabs({
           >
             <button
               type="button"
-              onClick={() => onSelect(t.id)}
+              onClick={() => {
+                // After a drag, the browser still fires a click on the same
+                // element — suppress that so dropping a tab doesn't also
+                // re-select it (which would steal focus from whatever the
+                // user actually wanted to look at).
+                if (dragSuppressClickRef.current) return;
+                onSelect(t.id);
+              }}
               onAuxClick={(e) => {
                 if (e.button === 1) onClose(t.id); // middle-click closes
               }}
@@ -468,6 +690,7 @@ export function SessionTabs({
             </button>
             <button
               type="button"
+              data-no-drag
               onClick={(e) => {
                 e.stopPropagation();
                 onClose(t.id);
@@ -483,12 +706,14 @@ export function SessionTabs({
             {/*
               Drag handle on the right edge of every tab. Widths are global —
               dragging any tab's handle resizes them all in lockstep, with the
-              chosen value persisted via onLabelWidthChange.
+              chosen value persisted via onLabelWidthChange. Marked
+              `data-no-drag` so it does NOT engage the reorder drag.
             */}
             <div
               role="separator"
               aria-orientation="vertical"
               aria-label="Resize tab labels"
+              data-no-drag
               onPointerDown={onResizeStart}
               onPointerMove={onResizeMove}
               onPointerUp={onResizeEnd}
@@ -601,6 +826,59 @@ export function SessionTabs({
           <XSquare className="h-3.5 w-3.5" />
         </button>
       )}
+      {drag &&
+        (() => {
+          // Floating clone of the dragged tab. Rendered as a sibling of the
+          // tab strip rather than inside it so transforms / overflow on the
+          // strip don't clip the clone as the user drags past the edge.
+          const t = tabs[drag.fromIdx];
+          if (!t) return null;
+          const dragShortcut = shortcutForTabIndex(drag.fromIdx, tabs.length);
+          return (
+            <div
+              data-testid="session-tab-drag-clone"
+              aria-hidden
+              style={{
+                position: "fixed",
+                left: drag.x - drag.offsetX,
+                top: drag.y - drag.offsetY,
+                width: drag.width,
+                height: drag.height,
+                pointerEvents: "none",
+                zIndex: 60,
+              }}
+              className={cn(
+                "flex items-center gap-1.5 rounded-sm border border-[var(--border)] bg-[var(--background)] px-2 text-[11px] text-[var(--foreground)] shadow-xl",
+              )}
+            >
+              <StatusDot status={t.status} />
+              {dragShortcut != null && (
+                <span
+                  aria-hidden
+                  className="shrink-0 font-mono text-[9px] leading-none text-[var(--muted)] tabular-nums"
+                >
+                  {dragShortcut}
+                </span>
+              )}
+              <span
+                style={{ maxWidth: `${effectiveWidth}px` }}
+                className="truncate font-mono"
+              >
+                {t.label ?? t.id.slice(0, 8)}
+              </span>
+              {t.unread != null && t.unread > 0 && (
+                <span
+                  className={cn(
+                    "shrink-0 rounded-full px-1.5 py-px text-[9px] font-semibold leading-none tabular-nums",
+                    "bg-[var(--accent)]/85 text-[var(--background)]",
+                  )}
+                >
+                  {t.unread > 99 ? "99+" : t.unread}
+                </span>
+              )}
+            </div>
+          );
+        })()}
     </div>
   );
 }

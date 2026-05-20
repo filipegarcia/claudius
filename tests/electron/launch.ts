@@ -34,8 +34,26 @@ export async function launchElectron(opts?: {
     ? Number.parseInt(process.env.PLAYWRIGHT_SLOW_MO, 10)
     : undefined;
 
+  // Per-test user-data-dir.
+  //
+  // `electron/main.ts` calls `app.setName("Claudius")` + `app.setPath("userData", …)`
+  // so the dev/packaged build uses `~/Library/Application Support/Claudius`.
+  // That collides with a user-launched `bun run electron:open` (same path
+  // → single-instance lock fires → the test's main process app.quit()s
+  // immediately and Playwright sees "Target page, context or browser has
+  // been closed").
+  //
+  // We pass `--user-data-dir` as a Chromium switch on the Electron CLI so
+  // the test instance lives in its own throwaway dir — same pattern
+  // Chromium itself uses for e2e isolation.
+  const testUserData = path.join(
+    REPO_ROOT,
+    "dist-electron",
+    `playwright-userdata-${Date.now()}`,
+  );
+
   const app = await electron.launch({
-    args: [MAIN_JS],
+    args: [MAIN_JS, `--user-data-dir=${testUserData}`],
     cwd: REPO_ROOT,
     timeout: 60_000,
     ...(Number.isFinite(slowMo) ? { timeout: 120_000 } : {}),

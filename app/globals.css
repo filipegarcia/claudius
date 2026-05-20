@@ -100,6 +100,22 @@ body {
     sans-serif;
 }
 
+/* Electron renderer: reserve 32px at the top of the body for the
+ * frameless-window title bar (mounted via `<TitleBar />` as a
+ * `position: fixed; top: 0` element with `WebkitAppRegion: drag`).
+ *
+ * Without this padding the workspace rail and chat content sit at y=0,
+ * which (a) puts them under the OS-drawn traffic lights on macOS and
+ * (b) leaves no draggable strip for the user to grab when the
+ * `<TitleBar />` component is still waiting for `useClaudius()` to
+ * resolve on first paint. The `[data-electron]` attribute is set by
+ * the inline bootstrap in `app/layout.tsx` so the rule never affects
+ * the browser build.
+ */
+html[data-electron] body {
+  padding-top: 32px;
+}
+
 * {
   border-color: var(--border);
 }
