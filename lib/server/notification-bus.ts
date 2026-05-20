@@ -403,6 +403,10 @@ class NotificationBus {
         // No row to persist (turn_status, ready, sdk non-result, sdk
         // result outside the idle window, …). Status-sync still needs to
         // fire so inactive tabs refresh.
+        console.log(
+          "[dbg-notif] record GATE mapped=null",
+          JSON.stringify({ eventType: event.type, workspaceId: ws.id }),
+        );
         emitStatusSync();
         return;
       }
@@ -432,6 +436,15 @@ class NotificationBus {
       // 4. Workspace `enabledKinds` filter.
       const prefs = ws.defaults?.notifications;
       if (!isKindEnabled(kind, prefs)) {
+        console.log(
+          "[dbg-notif] record GATE kind-disabled",
+          JSON.stringify({
+            kind,
+            workspaceId: ws.id,
+            enabled: prefs?.enabled,
+            enabledKinds: prefs?.enabledKinds ?? "(default)",
+          }),
+        );
         emitStatusSync();
         return;
       }
@@ -440,12 +453,20 @@ class NotificationBus {
       if (ctx.sessionId) {
         const muted = await isSessionMuted(ctx.cwd, ctx.sessionId).catch(() => false);
         if (muted) {
+          console.log(
+            "[dbg-notif] record GATE session-muted",
+            JSON.stringify({ sessionId: ctx.sessionId, workspaceId: ws.id }),
+          );
           emitStatusSync();
           return;
         }
       }
 
       // 6. Persist.
+      console.log(
+        "[dbg-notif] record INSERT pre",
+        JSON.stringify({ cwd: ctx.cwd, workspaceId: ws.id, kind, sessionId: ctx.sessionId }),
+      );
       const row = await insertNotification(ctx.cwd, ws.id, {
         sessionId: ctx.sessionId ?? null,
         runId: ctx.runId ?? null,
@@ -456,6 +477,10 @@ class NotificationBus {
         payload: payload ?? null,
         requestId: requestId ?? null,
       });
+      console.log(
+        "[dbg-notif] record INSERT post",
+        JSON.stringify({ workspaceId: ws.id, rowId: row?.id ?? null, kind }),
+      );
       if (!row) {
         // Dedup'd by request_id. No row, but status may still have moved.
         emitStatusSync();
