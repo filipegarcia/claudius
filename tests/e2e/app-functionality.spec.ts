@@ -44,8 +44,7 @@ test.describe("App functionality — buttons, navigation, workspace, settings", 
   }) => {
     // Mock the POST so we don't hit the real Claude SDK. The test cares
     // that the click reaches the network layer at all, not that the
-    // agent runs. Also stub `open-tabs` and `agents` so the shell
-    // doesn't get blocked on an SDK call we don't care about.
+    // agent runs.
     let sessionCreated = false;
     await page.route("**/api/sessions", async (route: Route) => {
       if (route.request().method() === "POST") {
@@ -57,6 +56,56 @@ test.describe("App functionality — buttons, navigation, workspace, settings", 
         });
       }
       return route.fallback();
+    });
+
+    // Stub EventSource so the SDK's session stream emits `{type:"ready"}`
+    // synchronously. PromptInput keeps the composer `disabled` until
+    // `useSession` sees a `ready` event from the stream — without this
+    // the composer never enables and `composer.click()` times out at
+    // 60s. We can't `page.route("**/api/sessions/*/stream")` and serve
+    // a single SSE frame because `route.fulfill` closes the connection
+    // immediately; EventSource would reconnect and we'd loop. Stubbing
+    // the constructor on the renderer side is the same trick
+    // community-nav.spec.ts uses for the chat-server SSE.
+    await page.addInitScript(() => {
+      class FakeES extends EventTarget {
+        readonly CONNECTING = 0 as const;
+        readonly OPEN = 1 as const;
+        readonly CLOSED = 2 as const;
+        readyState = 1;
+        readonly url: string;
+        readonly withCredentials = false;
+        onopen: ((this: EventSource, ev: Event) => unknown) | null = null;
+        onmessage: ((this: EventSource, ev: MessageEvent) => unknown) | null = null;
+        onerror: ((this: EventSource, ev: Event) => unknown) | null = null;
+        constructor(u: string | URL) {
+          super();
+          this.url = String(u);
+          queueMicrotask(() => {
+            this.onopen?.call(this as unknown as EventSource, new Event("open"));
+            const readyEv = new MessageEvent("message", {
+              data: JSON.stringify({ type: "ready" }),
+            });
+            this.onmessage?.call(this as unknown as EventSource, readyEv);
+          });
+        }
+        close() {
+          this.readyState = 2;
+        }
+      }
+      // Only swap for session stream URLs so other EventSources (e.g.
+      // notifications) keep using the real implementation against the
+      // dev server.
+      const Real = window.EventSource;
+      window.EventSource = new Proxy(Real, {
+        construct(target, args) {
+          const u = String(args[0]);
+          if (/\/api\/sessions\/[^/]+\/stream/.test(u)) {
+            return new FakeES(u) as unknown as EventSource;
+          }
+          return Reflect.construct(target, args);
+        },
+      }) as unknown as typeof EventSource;
     });
 
     await page.goto("/");
@@ -87,6 +136,13 @@ test.describe("App functionality — buttons, navigation, workspace, settings", 
   });
 
   test("workspace switcher opens on click of the rail toggle", async ({ page }) => {
+    // The `sidenav-workspaces-toggle` button is `lg:hidden` — it only
+    // mounts visibly under the `lg` (1024px) breakpoint, since the full
+    // workspace rail replaces it on wider screens. The default Playwright
+    // viewport (1280×800, set in playwright.config.ts) sits above `lg`,
+    // so without resizing first the test waits 30s for a hidden button.
+    // Shrink to a tablet-ish width so the mobile hamburger renders.
+    await page.setViewportSize({ width: 768, height: 800 });
     await page.goto("/");
     const toggle = page.getByTestId("sidenav-workspaces-toggle");
     await expect(toggle).toBeVisible({ timeout: 30_000 });
@@ -108,8 +164,12 @@ test.describe("App functionality — buttons, navigation, workspace, settings", 
     await settingsLink.click();
 
     await expect(page).toHaveURL(/\/settings(?:$|\?|\/)/, { timeout: 15_000 });
-    // The settings page mounts a top-level Settings heading.
-    await expect(page.getByRole("heading", { name: /settings/i }).first()).toBeVisible({
+    // The settings page renders its title inside a styled `<header>`
+    // (not a real `<h1>`), so `getByRole("heading", ...)` finds nothing.
+    // The `<main data-pane-name="settings-main">` element is the
+    // structural marker that the settings page actually mounted; if
+    // navigation succeeded but routing/RSC failed, this won't exist.
+    await expect(page.locator('[data-pane-name="settings-main"]')).toBeVisible({
       timeout: 10_000,
     });
   });
@@ -119,10 +179,20 @@ test.describe("App functionality — buttons, navigation, workspace, settings", 
     baseURL,
   }) => {
     await page.goto("/");
-    await expect(page.getByTestId("sidenav-workspaces-toggle")).toBeVisible({ timeout: 30_000 });
+    // The previous readiness signal was `sidenav-workspaces-toggle`, but
+    // that's `lg:hidden` on the default 1280px viewport — `toBeVisible`
+    // sat for 30s and failed. The left-nav aside renders on every
+    // viewport, so it's the safer "page mounted" check for this test
+    // (which is really about the dev-server API surface, not the chrome).
+    await expect(page.locator('[data-pane-name="left-nav"]')).toBeVisible({ timeout: 30_000 });
 
+    // The POST handler requires { name, rootPath } and 400s on anything
+    // else (see app/api/workspaces/route.ts). The earlier shape
+    // `{ cwd }` was vestigial — workspaces-store renamed the field
+    // before this spec was written. We send the project root because
+    // it's guaranteed to exist on every CI runner.
     const createRes = await page.request.post(`${baseURL}/api/workspaces`, {
-      data: { cwd: process.cwd() },
+      data: { name: `smoke-${Date.now()}`, rootPath: process.cwd() },
     });
     expect(createRes.ok()).toBe(true);
     const created = (await createRes.json()) as { id: string };
@@ -184,15 +254,23 @@ test.describe("App functionality — buttons, navigation, workspace, settings", 
     // The Overlay renders a heading "New workspace" — that's the form
     // mount marker. If the click did nothing the heading never appears
     // and the next assertion times out.
-    const formHeading = page.getByRole("heading", { name: /new workspace/i });
-    await expect(formHeading).toBeVisible({ timeout: 10_000 });
+    // The Overlay's title is rendered as a styled `<div>` not an
+    // `<h1>/<h2>`, so getByRole("heading") misses it. The form's "Name"
+    // label is the most stable structural marker of "the modal mounted".
+    const formNameLabel = page.getByText("Name", { exact: true });
+    await expect(formNameLabel).toBeVisible({ timeout: 10_000 });
+    const formHeading = formNameLabel; // alias kept for the close-assertion below
 
     // Fill the two required fields. We pick a folder we know exists —
     // `process.cwd()` is the project root in the dev server's view too,
     // since the webServer inherits cwd from the Playwright runner.
     const wsName = `E2E workspace ${Date.now()}`;
-    const nameInput = page.getByPlaceholder("Claudius");
-    const rootInput = page.getByPlaceholder("/Users/you/projects/claudius");
+    // Use the labelled-textbox accessor — `getByPlaceholder("Claudius")`
+    // matches both the Name input AND the Root folder input (whose
+    // placeholder "/Users/you/projects/claudius" contains "Claudius"
+    // as a substring), tripping Playwright's strict mode.
+    const nameInput = page.getByRole("textbox", { name: "Name" });
+    const rootInput = page.getByRole("textbox", { name: /root folder/i });
     await nameInput.fill(wsName);
     await rootInput.fill(process.cwd());
 

@@ -1,4 +1,4 @@
-.PHONY: help install dev build start lint unit test test-ui test-setup test-setup-local test-setup-docker test-install-public ci site screenshots screenshots-full claudius-revert claudius-revert-all run up down restart status logs sdk-update-check sdk-update-run sdk-update-dry-run sdk-update-status sdk-update-logs sdk-update-install-cron sdk-update-uninstall-cron
+.PHONY: help install dev build start lint unit test test-ui test-e2e-electron test-setup test-setup-local test-setup-docker test-install-public ci site screenshots screenshots-full claudius-revert claudius-revert-all run up down restart status logs electron electron-dev electron-build electron-dist sdk-update-check sdk-update-run sdk-update-dry-run sdk-update-status sdk-update-logs sdk-update-install-cron sdk-update-uninstall-cron
 
 # List every target, grouped by the section headers below.
 help:
@@ -27,12 +27,51 @@ lint:
 unit:
 	bun run test
 
+# `make test` is what CI runs (.github/workflows/ci.yml → e2e job).
+# --max-failures=15 short-circuits the suite once 15 *test cases* (NOT
+# attempts — retries don't count toward the cap) have failed. On a
+# healthy run nothing trips it; on a systemic regression (one root
+# cause failing many specs) the suite bails after ~12 min of red
+# instead of grinding through 90+ specs × 3 retries × ~30s ≈ 47 min.
+# Local debugging still uses `bun run test:e2e` directly to see every
+# failure.
 test:
 	bunx playwright install chromium
-	bun run test:e2e
+	bun run test:e2e --max-failures=15
 
 test-ui:
 	bun run test:e2e:ui
+
+# Electron e2e suite — rebuilds better-sqlite3 for Node ABI, compiles
+# dist-electron/, then runs the chromium-electron Playwright project.
+test-e2e-electron:
+	bun run test:e2e:electron
+
+# ── Electron app ───────────────────────────────────────────────────────
+# `make electron` is the recommended entry point: it probes
+# `http://127.0.0.1:3000/` and either attaches Electron to a running
+# `next dev` (fast iteration) or spawns a fresh next + electron pair.
+# See scripts/electron-open.mjs for the full decision tree.
+electron:
+	bun run electron:open
+
+# Always-from-scratch path: rebuilds native for Electron's ABI, compiles
+# main, spawns Next, waits, then launches Electron. ~30s slower than
+# `make electron` when a dev server is already up. Use when you're
+# unsure of the current state.
+electron-dev:
+	bun run electron:dev
+
+# Packaged build (no installer). Writes the standalone Next bundle + the
+# compiled main into `.next/` and `dist-electron/`. electron-builder runs
+# next; see `electron-dist` for installer output.
+electron-build:
+	bun run electron:build
+
+# Full mac installer (DMG + ZIP). For Windows/Linux installers, see the
+# `electron:dist:win` / `electron:dist:linux` npm scripts directly.
+electron-dist:
+	bun run electron:dist:mac
 
 # ── site/setup.sh tests ────────────────────────────────────────────────
 # `test-setup-local` runs the installer against a throwaway $HOME on the
