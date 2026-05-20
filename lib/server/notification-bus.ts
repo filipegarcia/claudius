@@ -125,7 +125,19 @@ class NotificationBus {
   private async lookupWorkspace(cwd: string): Promise<Workspace | null> {
     await this.refreshCwdMapIfStale();
     const id = this.cwdMap?.get(cwd);
-    if (!id) return null;
+    if (!id) {
+      // [dbg-notif] CI-only diagnostic — see why notification tests fail on
+      // Linux runners but pass on macOS. Remove once the cwd→workspaceId
+      // mismatch is identified and fixed. Logs full keys so we can spot
+      // realpath/normalization differences between the test caller and
+      // the workspaces store.
+      const keys = Array.from(this.cwdMap?.keys() ?? []);
+      console.log(
+        "[dbg-notif] lookupWorkspace MISS",
+        JSON.stringify({ cwd, mapSize: keys.length, keys }),
+      );
+      return null;
+    }
     const all = await listWorkspaces().catch(() => [] as Workspace[]);
     return all.find((w) => w.id === id) ?? null;
   }

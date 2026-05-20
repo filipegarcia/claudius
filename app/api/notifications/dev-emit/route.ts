@@ -38,6 +38,18 @@ export async function POST(req: Request) {
       { status: 400 },
     );
   }
+  // [dbg-notif] CI-only diagnostic — log incoming cwd/sessionId so we can
+  // correlate against `lookupWorkspace MISS` log lines from the bus when
+  // tests fail. Remove once the cwd→workspaceId mismatch is fixed.
+  console.log(
+    "[dbg-notif] dev-emit incoming",
+    JSON.stringify({
+      cwd: body.cwd,
+      sessionId: body.sessionId,
+      eventType: body.event?.type,
+      hasSubscribers: body.hasSubscribers,
+    }),
+  );
   await notificationBus.recordSessionEvent(body.cwd, body.sessionId, body.event, {
     ...(typeof body.hasSubscribers === "boolean"
       ? { hasSubscribers: body.hasSubscribers }
