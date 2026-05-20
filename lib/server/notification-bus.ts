@@ -125,19 +125,7 @@ class NotificationBus {
   private async lookupWorkspace(cwd: string): Promise<Workspace | null> {
     await this.refreshCwdMapIfStale();
     const id = this.cwdMap?.get(cwd);
-    if (!id) {
-      // [dbg-notif] CI-only diagnostic — see why notification tests fail on
-      // Linux runners but pass on macOS. Remove once the cwd→workspaceId
-      // mismatch is identified and fixed. Logs full keys so we can spot
-      // realpath/normalization differences between the test caller and
-      // the workspaces store.
-      const keys = Array.from(this.cwdMap?.keys() ?? []);
-      console.log(
-        "[dbg-notif] lookupWorkspace MISS",
-        JSON.stringify({ cwd, mapSize: keys.length, keys }),
-      );
-      return null;
-    }
+    if (!id) return null;
     const all = await listWorkspaces().catch(() => [] as Workspace[]);
     return all.find((w) => w.id === id) ?? null;
   }
@@ -403,10 +391,6 @@ class NotificationBus {
         // No row to persist (turn_status, ready, sdk non-result, sdk
         // result outside the idle window, …). Status-sync still needs to
         // fire so inactive tabs refresh.
-        console.log(
-          "[dbg-notif] record GATE mapped=null",
-          JSON.stringify({ eventType: event.type, workspaceId: ws.id }),
-        );
         emitStatusSync();
         return;
       }
@@ -436,15 +420,6 @@ class NotificationBus {
       // 4. Workspace `enabledKinds` filter.
       const prefs = ws.defaults?.notifications;
       if (!isKindEnabled(kind, prefs)) {
-        console.log(
-          "[dbg-notif] record GATE kind-disabled",
-          JSON.stringify({
-            kind,
-            workspaceId: ws.id,
-            enabled: prefs?.enabled,
-            enabledKinds: prefs?.enabledKinds ?? "(default)",
-          }),
-        );
         emitStatusSync();
         return;
       }
@@ -453,20 +428,12 @@ class NotificationBus {
       if (ctx.sessionId) {
         const muted = await isSessionMuted(ctx.cwd, ctx.sessionId).catch(() => false);
         if (muted) {
-          console.log(
-            "[dbg-notif] record GATE session-muted",
-            JSON.stringify({ sessionId: ctx.sessionId, workspaceId: ws.id }),
-          );
           emitStatusSync();
           return;
         }
       }
 
       // 6. Persist.
-      console.log(
-        "[dbg-notif] record INSERT pre",
-        JSON.stringify({ cwd: ctx.cwd, workspaceId: ws.id, kind, sessionId: ctx.sessionId }),
-      );
       const row = await insertNotification(ctx.cwd, ws.id, {
         sessionId: ctx.sessionId ?? null,
         runId: ctx.runId ?? null,
@@ -477,10 +444,6 @@ class NotificationBus {
         payload: payload ?? null,
         requestId: requestId ?? null,
       });
-      console.log(
-        "[dbg-notif] record INSERT post",
-        JSON.stringify({ workspaceId: ws.id, rowId: row?.id ?? null, kind }),
-      );
       if (!row) {
         // Dedup'd by request_id. No row, but status may still have moved.
         emitStatusSync();
@@ -578,17 +541,7 @@ class NotificationBus {
    */
   private emitStateSync(workspaceId: string, cwd: string): void {
     const db = getCachedDb(cwd, "readwrite") ?? getCachedDb(cwd, "readonly");
-    if (!db) {
-      // [dbg-notif] CI-only — `emitStateSync` bailing because no cached DB
-      // for this cwd means the row insert that triggered the schedule went
-      // to a DIFFERENT cwd than the emit's cwd, or the DB cache was wiped
-      // between the insert and the timer callback. Either way, no badge.
-      console.log(
-        "[dbg-notif] emitStateSync NO_DB",
-        JSON.stringify({ workspaceId, cwd }),
-      );
-      return;
-    }
+    if (!db) return;
     const totalUnread = unreadCountOn(db);
     const perSession = unreadCountsBySessionOn(db);
     const prev = this.perWorkspace.get(workspaceId);
@@ -596,21 +549,6 @@ class NotificationBus {
     const state: WorkspaceUnreadState = { workspaceId, version, totalUnread, perSession };
     this.perWorkspace.set(workspaceId, state);
     const env: NotificationStreamEvent = { type: "state", ...state };
-    // [dbg-notif] CI-only — log what we're broadcasting and to how many
-    // subscribers. Zero subscribers = no SSE client connected (likely a
-    // client-side connect race). totalUnread=0 when test expects ≥1 = the
-    // DB read didn't see the just-inserted row (likely a tx-visibility
-    // race between the insert and this synchronous read).
-    console.log(
-      "[dbg-notif] emitStateSync emit",
-      JSON.stringify({
-        workspaceId,
-        version,
-        totalUnread,
-        perSession,
-        subscribers: this.subscribers.size,
-      }),
-    );
     for (const sub of this.subscribers) {
       try {
         sub(env);
