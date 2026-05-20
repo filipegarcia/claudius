@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "../helpers/test";
 
 /**
  * Regression coverage for two tab-switching bugs reported 2026-05-12:

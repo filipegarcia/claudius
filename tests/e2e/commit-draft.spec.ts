@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "../helpers/test";
 
 /**
  * Verify the commit-draft round-trip via the workspace API. We don't drive

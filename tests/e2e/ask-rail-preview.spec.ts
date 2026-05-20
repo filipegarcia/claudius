@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "../helpers/test";
 import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 

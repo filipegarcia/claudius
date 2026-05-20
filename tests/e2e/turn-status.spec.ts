@@ -1,4 +1,4 @@
-import { test, expect, type Page, type Route } from "@playwright/test";
+import { test, expect, type Page, type Route } from "../helpers/test";
 
 /**
  * Regression test for the "session looks Idle even though the agent is mid-turn"

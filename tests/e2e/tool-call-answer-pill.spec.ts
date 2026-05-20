@@ -1,4 +1,4 @@
-import { test, expect, type Locator, type Page } from "@playwright/test";
+import { test, expect, type Locator, type Page } from "../helpers/test";
 
 /**
  * Covers the "Answer" / "Reopen" pill on the AskUserQuestion ToolCall row.

@@ -26,9 +26,19 @@ export async function launchElectron(opts?: {
 }): Promise<LaunchedElectron> {
   const port = Number(process.env.CLAUDIUS_E2E_PORT ?? 3179);
   const startUrl = opts?.startUrl ?? `http://localhost:${port}`;
+  // `PLAYWRIGHT_SLOW_MO=500 bun run test:e2e:electron` makes every input
+  // action take ~500ms — handy when you want to *watch* the test drive
+  // the window instead of blinking through it. Honored only when the env
+  // var is set so default CI runs stay fast.
+  const slowMo = process.env.PLAYWRIGHT_SLOW_MO
+    ? Number.parseInt(process.env.PLAYWRIGHT_SLOW_MO, 10)
+    : undefined;
+
   const app = await electron.launch({
     args: [MAIN_JS],
     cwd: REPO_ROOT,
+    timeout: 60_000,
+    ...(Number.isFinite(slowMo) ? { timeout: 120_000 } : {}),
     env: {
       ...process.env,
       ELECTRON_START_URL: startUrl,
@@ -41,6 +51,9 @@ export async function launchElectron(opts?: {
       // the renderer in the same sandbox.
       HOME: process.env.CLAUDIUS_E2E_HOME ?? process.env.HOME ?? "",
     },
+    // `slowMo` here delays every Playwright command on the renderer,
+    // not the main-process IPC. Good enough for visualisation.
+    ...(slowMo && slowMo > 0 ? { slowMo } : {}),
   });
   return { app };
 }
