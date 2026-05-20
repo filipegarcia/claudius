@@ -12,6 +12,7 @@ import { EDITORS, useEditor, type EditorId } from "@/lib/client/ide";
 import { UpdaterSettingsSection } from "@/components/updater/UpdaterSettingsSection";
 import { ShortcutsSection } from "@/components/settings/ShortcutsSection";
 import { RateLimitWarningSection } from "@/components/settings/RateLimitWarningSection";
+import { BackupSection } from "@/components/settings/BackupSection";
 import { cn } from "@/lib/utils/cn";
 
 const SCOPE_LABELS: Record<SettingsScope, string> = {
@@ -217,6 +218,11 @@ export default function SettingsPage() {
                 also outside the scope tabs because it's a Claudius UI knob,
                 not a Claude Code settings.json value. */}
             <RateLimitWarningSection />
+
+            {/* Backup / restore the full Claudius config as one JSON bundle.
+                Outside the scope tabs because it spans every scope and
+                every workspace, not a single settings.json file. */}
+            <BackupSection />
 
             {showRaw ? (
               <Section title="Raw JSON" subtitle="Direct edit of the settings file.">
