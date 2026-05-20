@@ -354,7 +354,22 @@ export function useSession(): ChatState & ChatActions {
   // when bindToSession is invoked with the id that's already in the URL.
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (pathname !== "/") return;
+    // Chat lives at `/` (bare root, which `app/page.tsx` redirects to the
+    // active workspace) AND at `/<wks_…>` (the workspace-scoped chat root
+    // under `app/[workspaceId]/page.tsx`). Any deeper path (`/<wks>/git`,
+    // `/settings`, …) is a different surface and must not get a session
+    // query string appended — both because the session id is meaningless
+    // there AND because writing it would clobber the route on refresh.
+    //
+    // The previous guard only allowed `/`, so after the workspace-scoped
+    // chat shipped the writer was a no-op on every page load — refreshing
+    // chat lost the bound session id, and the boot path then created a
+    // brand-new session because `?session=` was absent. Regression
+    // reported by the user ("the current chat now doesn't have the
+    // session id in the url, I wanted this").
+    const isChatRoot =
+      pathname === "/" || /^\/wks_[a-f0-9]+\/?$/.test(pathname ?? "");
+    if (!isChatRoot) return;
     if (!sessionId) return;
     // Defer the write so it lands AFTER any in-flight Next.js navigation
     // has had a chance to commit. usePathname returns the *committed*
@@ -412,7 +427,15 @@ export function useSession(): ChatState & ChatActions {
 
     const handle = setTimeout(() => {
       if (navigated) return;
-      if (window.location.pathname !== "/") return;
+      // Re-check committed pathname against the same "is this a chat root?"
+      // predicate the effect-level guard used. The 500ms gap can let a
+      // pending router navigation finish (committed pathname flips to
+      // `/<wks>/git` etc.), in which case appending `?session=` to the new
+      // path would clobber it.
+      const livePath = window.location.pathname;
+      const stillOnChatRoot =
+        livePath === "/" || /^\/wks_[a-f0-9]+\/?$/.test(livePath);
+      if (!stillOnChatRoot) return;
       try {
         const url = new URL(window.location.href);
         if (
@@ -843,8 +866,15 @@ export function useSession(): ChatState & ChatActions {
       const merged = extras.length === 0 ? top : [...top, ...extras];
 
       setSessions(merged);
+      // Return the merged list so visibility-change callers can reconcile
+      // the active session's `pending` flag without racing on the next
+      // render. Sessions state-setter above is the source of truth for
+      // every other consumer; the return value is purely for in-flight
+      // reads in the same callback.
+      return merged;
     } catch {
       // ignore
+      return [] as SessionInfo[];
     }
   }, []);
 
@@ -858,11 +888,40 @@ export function useSession(): ChatState & ChatActions {
   // common case of switching desktops / coming back from a long sleep.
   useEffect(() => {
     function onVis() {
-      if (!document.hidden) void refreshSessions();
+      if (document.hidden) return;
+      void (async () => {
+        const merged = await refreshSessions();
+        // Reconcile the active session's `pending` flag against the
+        // server's authoritative status. Symptom this addresses: the user
+        // reported "sessions appear running while no work is happening,
+        // refresh shows the agent was actually stopped." That's a
+        // one-way drift — client believes running, server says idle —
+        // typically caused by the EventSource silently dropping a
+        // `turn_status: idle` event during a tab-hidden window (laptop
+        // sleep, OS throttling, NAT idle timeout on the SSE socket). The
+        // refresh above already pulls authoritative status; cheap to
+        // also reconcile pending while we're here.
+        //
+        // We deliberately only flip TRUE → FALSE here. The opposite
+        // direction (client idle, server running) would also need to
+        // rehydrate any open ask-user / permission prompts and any
+        // streaming state — refreshSessions doesn't fetch those, so
+        // unilaterally flipping pending to true would leave the
+        // StatusLine pulsing with no matching UI elsewhere. A future
+        // fix for that direction needs a fuller resubscribe; out of
+        // scope here per the reported bug.
+        const id = sessionIdRef.current;
+        if (!id) return;
+        const active = merged.find((s) => s.id === id);
+        if (!active) return;
+        if (pendingRef.current && active.status !== "running") {
+          setPendingTracked(false);
+        }
+      })();
     }
     document.addEventListener("visibilitychange", onVis);
     return () => document.removeEventListener("visibilitychange", onVis);
-  }, [refreshSessions]);
+  }, [refreshSessions, setPendingTracked]);
 
   /**
    * Single-pass flush: pop the head of the active session's queue, send it
