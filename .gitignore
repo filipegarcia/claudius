@@ -29,6 +29,9 @@
 /dist-electron/
 /release/
 
+# electron e2e Ralph loop audit log (per-iteration entries; not pushed)
+tests/electron/LOOP.log
+
 # ralph-loop session state (per-session, not portable)
 /.claude/ralph-loop.local.md
 

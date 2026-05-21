@@ -1,4 +1,4 @@
-.PHONY: help install dev build start lint unit test test-ui test-e2e-electron test-setup test-setup-local test-setup-docker test-install-public ci site screenshots screenshots-full claudius-revert claudius-revert-all run up down restart status logs electron electron-dev electron-build electron-dist sdk-update-check sdk-update-run sdk-update-dry-run sdk-update-status sdk-update-logs sdk-update-install-cron sdk-update-uninstall-cron
+.PHONY: help install dev build start lint unit test test-ui test-e2e-electron test-setup test-setup-local test-setup-docker test-install-public ci site screenshots screenshots-full claudius-revert claudius-revert-all run up down restart status logs electron electron-dev electron-build electron-dist electron-e2e-loop sdk-update-check sdk-update-run sdk-update-dry-run sdk-update-status sdk-update-logs sdk-update-install-cron sdk-update-uninstall-cron
 
 # List every target, grouped by the section headers below.
 help:
@@ -72,6 +72,19 @@ electron-build:
 # `electron:dist:win` / `electron:dist:linux` npm scripts directly.
 electron-dist:
 	bun run electron:dist:mac
+
+# Print the autonomous Electron e2e Ralph-loop prompt so you can paste
+# it into `/ralph-loop:ralph-loop`. The loop reads
+# tests/electron/COVERAGE.md, picks the least-covered category, writes
+# a Playwright spec, runs it headed against Electron, then commits +
+# pushes if it's green. Runs locally only — the chromium-electron
+# project is intentionally NOT in `make ci`. See
+# docs/electron-conversion/E2E_LOOP_PROMPT.md for the protocol.
+electron-e2e-loop:
+	@cat docs/electron-conversion/E2E_LOOP_PROMPT.md
+	@echo ""
+	@echo "▶ copy the prompt block above into Claude Code's"
+	@echo "  /ralph-loop:ralph-loop slash command to start the loop."
 
 # ── site/setup.sh tests ────────────────────────────────────────────────
 # `test-setup-local` runs the installer against a throwaway $HOME on the
