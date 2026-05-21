@@ -69,11 +69,14 @@ Convention:
 
 ## 5. Notifications + badge
 
-> Loop note: rows in this section need a Notification-constructor spy
-> wired into `launched.app.evaluate(...)` before they can run
-> deterministically (Electron's `Notification` can't easily be observed
-> from the renderer). Parked until that test-infra ships.
+> Loop note: spy infra now in place — `electron/ipc/notifications.ts`
+> reads the `Notification` constructor dynamically so specs can
+> substitute a recording stub via
+> `launched.app.evaluate(() => { require("electron").Notification = FakeCtor })`.
+> The reference implementation lives in
+> `notifications-show-via-bridge.spec.ts`.
 
+- [x] OS notification IPC roundtrip: `bridge.notifications.show(...)` reaches main and constructs a Notification with the payload (`notifications-show-via-bridge.spec.ts`)
 - [ ] An `agent.idle` notification fires when window is hidden
 - [ ] Same notification does NOT fire when window is focused
 - [ ] Clicking the OS notification focuses the window and switches session
@@ -133,7 +136,7 @@ Convention:
 
 ## 9. Web parity (same data both runtimes)
 
-- [ ] Workspace created in web shows up in Electron without restart [bug-in-app: rail doesn't auto-refresh, see BUGS.md] (`web-parity-workspace-created-elsewhere-appears.spec.ts` — `test.fail`)
+- [x] Workspace created in web shows up in Electron after focus event (`web-parity-workspace-created-elsewhere-appears.spec.ts`)
 - [ ] Settings saved in web reflect in Electron
 - [ ] Session started in web is resumable in Electron
 - [ ] Notification raised on the server stream appears in Electron rail
@@ -180,7 +183,7 @@ Global (`app/*`):
 
 ## 11. Deep links + dialogs + drag-drop
 
-- [ ] `claudius://workspace/<id>` warm-start focuses + navigates [bug-in-app: useDeepLinks URL parse mismatch, see BUGS.md] (`deep-link-workspace-warm-start.spec.ts` — `test.fail`)
+- [x] `claudius://workspace/<id>` warm-start focuses + navigates (`deep-link-workspace-warm-start.spec.ts`)
 - [ ] `claudius://workspace/<id>?session=<sid>` lands on the session
 - [ ] `claudius://session/<sid>` resolves the workspace
 - [ ] `File → Open Workspace…` round-trips through dialog + POST /api/workspaces
@@ -188,7 +191,7 @@ Global (`app/*`):
 
 ## 12. Keyboard shortcuts owned by the OS menu
 
-- [ ] `Cmd+,` opens `/settings` [bug-in-app: renderer has no app.preferences subscriber, see BUGS.md] (`keybinding-cmd-comma-opens-settings.spec.ts` — `test.fail`)
+- [x] `Cmd+,` opens `/settings` (`keybinding-cmd-comma-opens-settings.spec.ts`)
 - [ ] `Cmd+Q` quits the app
 - [ ] `Cmd+R` reloads the renderer
 - [ ] `Cmd+0` / `Cmd+=` / `Cmd+-` zoom in / reset / out

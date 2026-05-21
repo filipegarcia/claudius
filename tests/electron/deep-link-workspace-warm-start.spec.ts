@@ -40,12 +40,11 @@ test.afterEach(async () => {
   await teardownElectron(launched);
 });
 
-// Wrapped in `test.fail()` because `lib/client/useDeepLinks.ts`'s URL
-// parsing relies on `new URL(...).host` returning "workspace" for
-// `claudius://workspace/<id>`, but Chromium's URL parser returns
-// `host=""` for non-special schemes. The handler logs
-// "unhandled url" and never navigates. See BUGS.md.
-test.fail("deep-link: claudius://workspace/<id> warm-start routes the renderer", async () => {
+// Now passes: `useDeepLinks` parses the raw URL with a regex instead
+// of `new URL(...).host`, so non-special schemes like `claudius:` are
+// handled correctly across Chromium and Node. See git log for the fix
+// commit.
+test("deep-link: claudius://workspace/<id> warm-start routes the renderer", async () => {
   const page = await launched.app.firstWindow();
   await page.waitForLoadState("domcontentloaded");
   await expect(page.locator('aside[data-pane-name="workspace-switcher"]')).toBeVisible({
@@ -89,7 +88,6 @@ test.fail("deep-link: claudius://workspace/<id> warm-start routes the renderer",
   // looking like "the IPC never fired".
   page.on("console", (msg) => {
     if (msg.type() === "warning" || msg.type() === "error") {
-      // eslint-disable-next-line no-console -- spec diagnostic
       console.log(`[renderer ${msg.type()}] ${msg.text()}`);
     }
   });

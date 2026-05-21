@@ -33,12 +33,12 @@ test.afterEach(async () => {
   await teardownElectron(launched);
 });
 
-// Wrapped in `test.fail()` because the renderer does NOT auto-refresh
-// its workspace list when an external POST adds one. See
-// `tests/electron/BUGS.md` → "Electron rail doesn't pick up cross-
-// runtime workspace creation without a reload" for the full bug
-// report.
-test.fail("web-parity: workspace POSTed via API appears in rail without reload", async () => {
+// Now passes: `useWorkspaces` subscribes to a "claudius.workspaces"
+// BroadcastChannel and refetches on `visibilitychange`/`focus`. After
+// the POST we dispatch a window-focus event to simulate the user
+// returning to the Electron renderer from another runtime (or another
+// tab in the same Chromium profile).
+test("web-parity: workspace POSTed via API appears in rail after focus", async () => {
   const page = await launched.app.firstWindow();
   await page.waitForLoadState("domcontentloaded");
 
@@ -51,6 +51,11 @@ test.fail("web-parity: workspace POSTed via API appears in rail without reload",
   const tileButtons = page.locator(
     'aside[data-pane-name="workspace-switcher"] button[title]:not([title="New workspace"]):not([title^="Customizations"])',
   );
+
+  // The rail mounts empty and populates after `/api/workspaces`
+  // resolves. Wait for ≥1 tile before counting, otherwise we'd race
+  // the initial fetch and see 0.
+  await expect(tileButtons.first()).toBeVisible({ timeout: 15_000 });
   const before = await tileButtons.count();
   expect(before, "fixture should have at least one project workspace").toBeGreaterThan(0);
 
@@ -64,6 +69,13 @@ test.fail("web-parity: workspace POSTed via API appears in rail without reload",
   expect(createRes.ok()).toBe(true);
   const created = (await createRes.json()) as { id: string };
   expect(created.id).toMatch(/^wks_[a-f0-9]+$/);
+
+  // Simulate the user switching focus back to the Electron renderer
+  // (e.g. after creating the workspace in their browser). Both events
+  // are wired into `useWorkspaces` — either triggers the refetch.
+  await page.evaluate(() => {
+    window.dispatchEvent(new Event("focus"));
+  });
 
   // The rail must observe the new workspace within a reasonable
   // window. If the Electron renderer needs an explicit refresh, this

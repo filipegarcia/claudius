@@ -45,6 +45,13 @@ test("command-palette: Cmd+K opens the palette", async () => {
   await expect(page.locator('aside[data-pane-name="workspace-switcher"]')).toBeVisible({
     timeout: 30_000,
   });
+  // Give `<CommandPalette />`'s
+  // `useElectronAction("nav.commandPalette", ...)` effect a beat to
+  // subscribe to the menu IPC. The visible-rail signal doesn't
+  // guarantee deferred effects further down the React tree have run;
+  // synthesising the menu click any sooner races the subscription
+  // (sometimes-green in isolation, flakier under full-suite load).
+  await page.waitForTimeout(500);
 
   // Route 1: synthesise the menu item click from main. Find the View
   // submenu entry whose `accelerator` is "CommandOrControl+K" and
