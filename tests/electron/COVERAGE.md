@@ -105,7 +105,7 @@ Convention:
 
 ## 7. App features — workspace switcher + rail
 
-- [ ] Workspace tiles render one per workspace in `workspaces.json`
+- [x] Workspace tiles render one per workspace in `workspaces.json` (`workspace-rail-tile-count-matches-api.spec.ts`)
 - [ ] Active workspace tile has the accent ring
 - [ ] Right-click on tile opens context menu
 - [ ] Context-menu rename persists
