@@ -25,6 +25,47 @@ Each bug is a section like:
 
 <!-- new bug sections go here -->
 
+---
+
+## Resolved
+
+The three sections below were filed by the loop and have been fixed.
+Kept in file for forensic context (so a regression resurrects a known
+issue rather than re-deriving it from scratch).
+
+## ~~`claudius://` deep links log "unhandled url"~~ — FIXED
+
+> Fixed by switching `lib/client/useDeepLinks.ts` from
+> `new URL(rawUrl).host` to a regex on the raw string. Non-special
+> schemes like `claudius:` no longer hit Chromium's empty-host
+> behavior. Spec `deep-link-workspace-warm-start.spec.ts` now passes
+> without `test.fail()`.
+
+## ~~Cmd+, dispatches `app.preferences` but no renderer subscriber~~ — FIXED
+
+> Fixed by adding `useElectronAction("app.preferences", () =>
+> router.push("/settings"))` to
+> `lib/client/useElectronGlobalActions.ts`. Spec
+> `keybinding-cmd-comma-opens-settings.spec.ts` now passes without
+> `test.fail()`.
+
+## ~~Electron rail doesn't pick up cross-runtime workspace creation~~ — FIXED
+
+> Fixed by adding `visibilitychange` + `window.focus` + a
+> `BroadcastChannel("claudius.workspaces")` subscription to
+> `lib/client/useWorkspaces.ts`. The `create`/`update`/`remove`
+> helpers also broadcast on success so other tabs in the same
+> Chromium profile see the change immediately. Cross-runtime
+> (Electron ↔ Chrome) relies on the focus refetch because they live
+> in different storage partitions. Spec
+> `web-parity-workspace-created-elsewhere-appears.spec.ts` now passes
+> without `test.fail()` (it dispatches a focus event after the POST
+> to simulate the user returning to the renderer).
+
+---
+
+## Historical / forensic detail (the original bug reports)
+
 ## `claudius://` deep links log "unhandled url" — useDeepLinks URL.host check broken in Chromium
 
 - **Spec**: `tests/electron/deep-link-workspace-warm-start.spec.ts`

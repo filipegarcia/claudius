@@ -23,9 +23,65 @@
  *     reloads, the OS toast stays); the main-side handler keeps a
  *     weak map so a click after a reload still works.
  */
-import { BrowserWindow, Notification, ipcMain } from "electron";
+import { BrowserWindow, ipcMain } from "electron";
+import type Electron from "electron";
 
 import type { Bus } from "./bus";
+
+/**
+ * Read the `Notification` class dynamically from the `electron` module
+ * at call time (rather than destructuring at import time). Production
+ * behavior is unchanged — every call resolves to the real
+ * `electron.Notification`.
+ */
+function notificationCtor(): typeof Electron.Notification {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const e = require("electron") as typeof Electron;
+  return e.Notification;
+}
+
+/**
+ * Test-only hook. E2e specs set `globalThis.__claudiusNotifSink__` to
+ * a function before triggering the IPC, and the handler below routes
+ * the payload there *instead of* constructing a real OS notification.
+ *
+ * Why this lives in production code: Playwright's
+ * `electronApp.evaluate(cb)` passes the electron module as a snapshot
+ * (not a live reference), so mutating
+ * `electron.Notification = FakeCtor` from a spec doesn't propagate
+ * back to handlers that look the constructor up dynamically. The same
+ * `globalThis` IS the same reference inside spec evaluates and inside
+ * any main-process module — so a globally-mounted hook is a portable
+ * substitute. The hook is null in normal use → zero production cost.
+ *
+ * Spec usage pattern:
+ *   await launched.app.evaluate(() => {
+ *     globalThis.__claudiusNotifPayloads__ = [];
+ *     globalThis.__claudiusNotifSink__ = (p) =>
+ *       globalThis.__claudiusNotifPayloads__.push(p);
+ *   });
+ *   // ...drive bridge.notifications.show(...) from the renderer...
+ *   const captured = await launched.app.evaluate(
+ *     () => globalThis.__claudiusNotifPayloads__,
+ *   );
+ */
+type TestNotificationPayload = {
+  title: string;
+  body: string;
+  silent: boolean;
+  sessionId?: string;
+};
+
+declare global {
+  var __claudiusNotifSink__:
+    | ((payload: TestNotificationPayload) => void)
+    | undefined;
+}
+
+function takeTestSink(): ((p: TestNotificationPayload) => void) | null {
+  const sink = globalThis.__claudiusNotifSink__;
+  return typeof sink === "function" ? sink : null;
+}
 
 const TOPIC_SHOW = "notification:show";
 const TOPIC_CLICK = "notification:click";
@@ -46,6 +102,17 @@ export function registerNotificationHandlers(bus: Bus): void {
     if (!raw || typeof raw !== "object") return;
     const { title, body, sessionId, silent } = raw;
     if (typeof title !== "string" || typeof body !== "string") return;
+
+    // Test-only fast path: if a spec has mounted a sink, hand the
+    // payload to it and skip the OS-side construction entirely. Real
+    // production builds never set this hook.
+    const sink = takeTestSink();
+    if (sink) {
+      sink({ title, body, silent: silent === true, sessionId });
+      return;
+    }
+
+    const Notification = notificationCtor();
     if (!Notification.isSupported()) {
       // Best-effort — log so we know the platform is missing the API.
       console.warn("[electron/notifications] OS notifications not supported");

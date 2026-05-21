@@ -55,8 +55,14 @@ export async function launchElectron(opts?: {
   const app = await electron.launch({
     args: [MAIN_JS, `--user-data-dir=${testUserData}`],
     cwd: REPO_ROOT,
-    timeout: 60_000,
-    ...(Number.isFinite(slowMo) ? { timeout: 120_000 } : {}),
+    // 120s by default — bumped from Playwright's 30s default because
+    // Electron cold-start can spike under heavy test-suite load
+    // (the binary, the helper processes, and the renderer all have
+    // to come up; on a saturated box that easily exceeds 30s). When
+    // SLOW_MO is set we extend further so the visualization-mode
+    // launch has more slack.
+    timeout: 120_000,
+    ...(Number.isFinite(slowMo) ? { timeout: 180_000 } : {}),
     env: {
       ...process.env,
       ELECTRON_START_URL: startUrl,

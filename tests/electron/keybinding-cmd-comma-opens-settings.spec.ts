@@ -32,15 +32,21 @@ test.afterEach(async () => {
   await teardownElectron(launched);
 });
 
-// Wrapped in `test.fail()` because the renderer has no subscriber
-// for the `app.preferences` action — the menu dispatches it but
-// nothing navigates to /settings. See BUGS.md.
-test.fail("keybinding: Cmd+, opens /settings", async () => {
+// Now passes: `useElectronGlobalActions` subscribes to `app.preferences`
+// via `useElectronAction(...)` and calls `router.push("/settings")`. The
+// menu-click dispatch path is the same as before — the missing link was
+// purely the renderer-side handler. See git log for the fix commit.
+test("keybinding: Cmd+, opens /settings", async () => {
   const page = await launched.app.firstWindow();
   await page.waitForLoadState("domcontentloaded");
   await expect(page.locator('aside[data-pane-name="workspace-switcher"]')).toBeVisible({
     timeout: 30_000,
   });
+  // Let `useElectronGlobalActions`'s effect run so its
+  // `useElectronAction("app.preferences", ...)` subscription is wired
+  // up before we synthesize the menu click — otherwise we race the
+  // hook's useEffect and the IPC arrives with no listener.
+  await page.waitForTimeout(500);
 
   const clicked = await launched.app.evaluate(({ Menu }) => {
     const m = Menu.getApplicationMenu();

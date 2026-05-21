@@ -76,6 +76,73 @@ export function useWorkspaces() {
     setRefetchTrigger((n) => n + 1);
   }, []);
 
+  // ── Cross-runtime / cross-tab refresh triggers ─────────────────────────
+  // The workspace list is server-side (`~/.claude/.claudius/workspaces.json`)
+  // and is shared between the browser tab and the Electron renderer, but
+  // each renderer's view of it is just a snapshot from its last GET. When
+  // the user creates a workspace in Electron and then switches focus back
+  // to the browser (or vice versa), the other view stays stale until
+  // something forces a refetch.
+  //
+  // Two cheap signals cover the common cases:
+  //   1. `visibilitychange → visible` and `window focus` — the user
+  //      returned to this renderer, so re-validate.
+  //   2. `BroadcastChannel("claudius.workspaces")` — same-storage cross-
+  //      tab broadcasts. The `create`/`update`/`remove`/`reorder` helpers
+  //      below post to this channel; any other tab in the same Chromium
+  //      profile picks it up immediately.
+  //
+  // Electron and Chrome use DIFFERENT storage partitions even on the
+  // same origin (Electron's user-data-dir vs your Chrome profile), so
+  // the BroadcastChannel doesn't cross runtimes — the focus refetch
+  // covers that case instead. Both layered together = no manual reload
+  // needed for either flow.
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+
+    const onMaybeRefresh = () => {
+      if (typeof document !== "undefined" && document.hidden) return;
+      setRefetchTrigger((n) => n + 1);
+    };
+
+    document.addEventListener("visibilitychange", onMaybeRefresh);
+    window.addEventListener("focus", onMaybeRefresh);
+
+    let bc: BroadcastChannel | null = null;
+    if (typeof BroadcastChannel !== "undefined") {
+      bc = new BroadcastChannel("claudius.workspaces");
+      bc.addEventListener("message", () => {
+        setRefetchTrigger((n) => n + 1);
+      });
+    }
+
+    return () => {
+      document.removeEventListener("visibilitychange", onMaybeRefresh);
+      window.removeEventListener("focus", onMaybeRefresh);
+      bc?.close();
+    };
+  }, []);
+
+  /**
+   * Notify any other open tab in the same Chromium profile that the
+   * workspace list just changed. Cheap fire-and-forget; the listener
+   * above on each subscriber refetches.
+   */
+  const announceMutation = useCallback(() => {
+    if (typeof window === "undefined") return;
+    if (typeof BroadcastChannel === "undefined") return;
+    try {
+      const bc = new BroadcastChannel("claudius.workspaces");
+      bc.postMessage({ at: Date.now() });
+      bc.close();
+    } catch {
+      // BroadcastChannel can throw in some sandboxed contexts (private
+      // mode, very old browsers). Falling through silently is fine —
+      // the focus-refetch path will still pick the change up next time
+      // the user returns to the tab.
+    }
+  }, []);
+
   const select = useCallback(
     async (id: string, route?: string) => {
       const res = await fetch(`/api/workspaces/${id}/select`, { method: "POST" });
@@ -143,11 +210,12 @@ export function useWorkspaces() {
       // list. The auto-select happens immediately on the optimistic id —
       // callers that route off `activeId` don't have to wait for the GET.
       refresh();
+      announceMutation();
       await fetch(`/api/workspaces/${ws.id}/select`, { method: "POST" });
       setActiveId(ws.id);
       return { ok: true as const, workspace: ws };
     },
-    [refresh],
+    [refresh, announceMutation],
   );
 
   const update = useCallback(
@@ -157,19 +225,25 @@ export function useWorkspaces() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(patch),
       });
-      if (res.ok) refresh();
+      if (res.ok) {
+        refresh();
+        announceMutation();
+      }
       return res.ok;
     },
-    [refresh],
+    [refresh, announceMutation],
   );
 
   const remove = useCallback(
     async (id: string) => {
       const res = await fetch(`/api/workspaces/${id}`, { method: "DELETE" });
-      if (res.ok) refresh();
+      if (res.ok) {
+        refresh();
+        announceMutation();
+      }
       return res.ok;
     },
-    [refresh],
+    [refresh, announceMutation],
   );
 
   /**

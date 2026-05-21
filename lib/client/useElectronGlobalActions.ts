@@ -62,6 +62,16 @@ export function useElectronGlobalActions(): void {
   const bridge = useClaudius();
   const router = useRouter();
 
+  // ── Preferences (Cmd+,) menu action ────────────────────────────────────
+  // The OS menu (`electron/menu.ts`) maps `Cmd+,` on mac and `Ctrl+,` on
+  // win/linux to `menu:action app.preferences`. The shortcut registry
+  // declares the action but has no built-in navigation — the renderer has
+  // to subscribe and route. Pushing /settings matches the standard
+  // "Preferences" UX of every other native app.
+  useElectronAction("app.preferences", () => {
+    router.push("/settings");
+  });
+
   // ── File → Open Workspace… menu action ─────────────────────────────────
   const onOpenWorkspaceMenu = useCallback(async () => {
     if (!bridge) return;
