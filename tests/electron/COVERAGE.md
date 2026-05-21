@@ -144,7 +144,7 @@ Convention:
 
 Workspace-scoped (`app/[workspaceId]/`):
 
-- [ ] `/<wks>` (chat root)
+- [x] `/<wks>` (chat root) (`page-render-chat-root.spec.ts`)
 - [ ] `/<wks>/sessions`
 - [ ] `/<wks>/sessions/<id>`
 - [ ] `/<wks>/files`
