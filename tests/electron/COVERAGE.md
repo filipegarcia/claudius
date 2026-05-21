@@ -180,7 +180,7 @@ Global (`app/*`):
 
 ## 11. Deep links + dialogs + drag-drop
 
-- [ ] `claudius://workspace/<id>` warm-start focuses + navigates
+- [ ] `claudius://workspace/<id>` warm-start focuses + navigates [bug-in-app: useDeepLinks URL parse mismatch, see BUGS.md] (`deep-link-workspace-warm-start.spec.ts` — `test.fail`)
 - [ ] `claudius://workspace/<id>?session=<sid>` lands on the session
 - [ ] `claudius://session/<sid>` resolves the workspace
 - [ ] `File → Open Workspace…` round-trips through dialog + POST /api/workspaces

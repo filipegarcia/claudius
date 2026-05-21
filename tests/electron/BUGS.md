@@ -25,6 +25,42 @@ Each bug is a section like:
 
 <!-- new bug sections go here -->
 
+## `claudius://` deep links log "unhandled url" — useDeepLinks URL.host check broken in Chromium
+
+- **Spec**: `tests/electron/deep-link-workspace-warm-start.spec.ts`
+- **Category**: §11 Deep links + dialogs + drag-drop
+- **First seen**: 2026-05-20
+- **Repro**:
+  1. Launch Electron, wait for renderer to mount.
+  2. From main, fire
+     `mainWindow.webContents.send("deeplink:open", "claudius://workspace/wks_xxxxxxxxxxxx")`
+     — same call `electron/ipc/deep-links.ts → enqueue → flush` makes.
+  3. Wait for renderer URL to switch to `/wks_xxx`.
+- **Expected**: `useDeepLinks` parses the URL, identifies it as a
+  workspace deep link, calls `router.push("/wks_xxx")`.
+- **Actual**: Renderer logs
+  `[deep-links] unhandled url: claudius://workspace/wks_4c3798409d51`
+  and never navigates. The IPC roundtrip works (handler runs); the
+  URL-parse logic is wrong.
+- **Root cause**: `lib/client/useDeepLinks.ts` line 36–40 checks
+  `if (host === "workspace" && seg && ...)`. For non-special URL
+  schemes (`claudius:` is not in WHATWG's special-scheme list),
+  Chromium's `URL` parser returns `host=""` and stuffs everything
+  into `pathname` (as `"//workspace/wks_xxx"`).
+- **Fix sketch**:
+  ```ts
+  // Reparse the URL by stripping the protocol and splitting manually,
+  // OR use a regex against rawUrl:
+  const m = rawUrl.match(/^claudius:\/\/(workspace|session)\/([^?]+)(?:\?(.*))?$/);
+  if (!m) return;
+  const [, host, seg, query] = m;
+  const sessionParam = new URLSearchParams(query ?? "").get("session");
+  if (host === "workspace" && WORKSPACE_ID_RE.test(seg)) { ... }
+  ```
+- **Notes**: Once fixed, remove the `test.fail()` wrapper on the
+  spec — it'll start failing (the inverted assertion), signaling
+  the bug is closed.
+
 ## Cmd+, menu item dispatches `app.preferences` but no renderer subscriber navigates to /settings
 
 - **Spec**: `tests/electron/keybinding-cmd-comma-opens-settings.spec.ts`
