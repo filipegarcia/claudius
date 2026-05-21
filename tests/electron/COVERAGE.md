@@ -58,8 +58,8 @@ Convention:
 
 ## 4. Top bar / chrome
 
-- [ ] Title bar renders only in Electron (not in chromium browser project)
-- [ ] Title bar background uses `var(--panel-2)` token
+- [x] Title bar renders only in Electron (not in chromium browser project) (`smoke.spec.ts` — Electron half; the chromium project never asserts a titlebar testid because the component returns null in the browser build)
+- [x] Title bar background uses `var(--panel-2)` token (`top-bar-background-panel-2.spec.ts`)
 - [ ] Title text reads "Claudius"
 - [ ] Title bar persists across route navigation (`/`, `/settings`, `/community`)
 - [ ] Updater banner stays hidden in dev (no "Updater error")
