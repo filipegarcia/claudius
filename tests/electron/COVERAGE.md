@@ -133,7 +133,7 @@ Convention:
 
 ## 9. Web parity (same data both runtimes)
 
-- [ ] Workspace created in web shows up in Electron without restart
+- [ ] Workspace created in web shows up in Electron without restart [bug-in-app: rail doesn't auto-refresh, see BUGS.md] (`web-parity-workspace-created-elsewhere-appears.spec.ts` — `test.fail`)
 - [ ] Settings saved in web reflect in Electron
 - [ ] Session started in web is resumable in Electron
 - [ ] Notification raised on the server stream appears in Electron rail
