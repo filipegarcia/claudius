@@ -69,6 +69,11 @@ Convention:
 
 ## 5. Notifications + badge
 
+> Loop note: rows in this section need a Notification-constructor spy
+> wired into `launched.app.evaluate(...)` before they can run
+> deterministically (Electron's `Notification` can't easily be observed
+> from the renderer). Parked until that test-infra ships.
+
 - [ ] An `agent.idle` notification fires when window is hidden
 - [ ] Same notification does NOT fire when window is focused
 - [ ] Clicking the OS notification focuses the window and switches session
@@ -78,7 +83,7 @@ Convention:
 
 ## 6. App features — chat surface
 
-- [ ] Chat composer accepts keystrokes (`prompt-input`)
+- [x] Chat composer accepts keystrokes (`prompt-input`) (`chat-composer-accepts-keystrokes.spec.ts`)
 - [ ] Send button fires `POST /api/sessions` (with mock)
 - [ ] Slash command picker opens on `/`
 - [ ] At-mention file picker opens on `@`
