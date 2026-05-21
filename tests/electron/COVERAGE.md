@@ -188,7 +188,7 @@ Global (`app/*`):
 
 ## 12. Keyboard shortcuts owned by the OS menu
 
-- [ ] `Cmd+,` opens `/settings`
+- [ ] `Cmd+,` opens `/settings` [bug-in-app: renderer has no app.preferences subscriber, see BUGS.md] (`keybinding-cmd-comma-opens-settings.spec.ts` — `test.fail`)
 - [ ] `Cmd+Q` quits the app
 - [ ] `Cmd+R` reloads the renderer
 - [ ] `Cmd+0` / `Cmd+=` / `Cmd+-` zoom in / reset / out
