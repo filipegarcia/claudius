@@ -122,7 +122,7 @@ Convention:
 
 ## 8. App features — command palette
 
-- [ ] `Cmd+K` opens the palette
+- [x] `Cmd+K` opens the palette (`command-palette-cmd-k-opens.spec.ts`)
 - [ ] Escape closes it
 - [ ] Outside click closes it
 - [ ] Typing filters nav destinations
