@@ -70,8 +70,38 @@ const CHAT_SERVER_ADMIN_TOKEN = process.env.CHAT_SERVER_ADMIN_TOKEN ?? "";
 const ROOM_SLUG = process.env.SDK_UPDATE_ROOM_SLUG ?? "sdk-update";
 
 const MODEL = process.env.SDK_UPDATE_MODEL ?? "sonnet";
-const MAX_TURNS = Number(process.env.SDK_UPDATE_MAX_TURNS ?? "200");
+
+// Low-memory mode bundles three knobs for hosts that can't fit the
+// default footprint (default targets a roomy server; on a ~2 GB box
+// the inner Claude + parent bun + gate subprocess collectively OOM):
+//   1. Cap the inner Claude's V8 heap via NODE_OPTIONS — the SDK
+//      spawns the bundled CLI as a `node` subprocess that inherits
+//      env, so a `--max-old-space-size` cap there bounds the
+//      worst-case growth from accumulated message context.
+//   2. Halve the default turn budget. Less accumulated context per
+//      turn = lower steady-state RSS for the inner Claude.
+//   3. Pass `--smol` to every `bun run` gate. Bun's runtime then
+//      runs the GC more aggressively at the cost of some wall time.
+// All three are still individually overridable by the dedicated env
+// vars below.
+const LOW_MEMORY = process.env.SDK_UPDATE_LOW_MEMORY === "1";
+const DEFAULT_MAX_TURNS = LOW_MEMORY ? "100" : "200";
+const DEFAULT_NODE_HEAP_MB = LOW_MEMORY ? "768" : "";
+const NODE_HEAP_MB = process.env.SDK_UPDATE_NODE_HEAP_MB ?? DEFAULT_NODE_HEAP_MB;
+const BUN_SMOL = LOW_MEMORY || process.env.SDK_UPDATE_BUN_SMOL === "1";
+
+const MAX_TURNS = Number(process.env.SDK_UPDATE_MAX_TURNS ?? DEFAULT_MAX_TURNS);
 const MAX_WALL_MS = Number(process.env.SDK_UPDATE_MAX_WALL_MIN ?? "360") * 60_000;
+
+// Apply the heap cap to *this* process's env at module load so the
+// inner Claude subprocess (spawned later by the Agent SDK's internal
+// `child_process.spawn`, which we don't control directly) inherits
+// it. envWithHeapCap below also augments env on explicit child spawns
+// we DO control (git/gh/gate-step shells) — this line covers the SDK.
+if (NODE_HEAP_MB && !/--max-old-space-size=/.test(process.env.NODE_OPTIONS ?? "")) {
+  process.env.NODE_OPTIONS =
+    `${process.env.NODE_OPTIONS ?? ""} --max-old-space-size=${NODE_HEAP_MB}`.trim();
+}
 // Idle watchdog: maximum gap between consecutive SDK messages before we
 // assume the agent (or a tool subprocess it spawned) is hung. The
 // wall-clock budget above is the LAST line of defense; this fires sooner
@@ -117,15 +147,43 @@ function escapeRegExp(s: string): string {
 // ── Shell helpers ─────────────────────────────────────────────────────
 
 /**
+ * Augment NODE_OPTIONS in the child env with `--max-old-space-size=N`
+ * when low-memory mode is in effect. The bundled CLI shipped by the
+ * Agent SDK is a `node` shebang script, so a V8 heap cap propagated
+ * through the env hits the inner Claude subprocess where the runaway
+ * actually lives. Idempotent — a `--max-old-space-size=...` already
+ * present is left alone to honor an explicit operator override.
+ */
+function envWithHeapCap(extra?: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+  const merged: NodeJS.ProcessEnv = { ...process.env, ...(extra ?? {}) };
+  if (!NODE_HEAP_MB) return merged;
+  const existing = merged.NODE_OPTIONS ?? "";
+  if (/--max-old-space-size=/.test(existing)) return merged;
+  merged.NODE_OPTIONS = `${existing} --max-old-space-size=${NODE_HEAP_MB}`.trim();
+  return merged;
+}
+
+/**
+ * Prepend `--smol` to a bun invocation when low-memory mode is on, so
+ * gate steps (lint/test/build/e2e) GC more aggressively. No-op for
+ * non-bun commands or when the flag is already present.
+ */
+function maybeSmolArgs(cmd: string, args: string[]): string[] {
+  if (!BUN_SMOL || cmd !== "bun" || args[0] === "--smol") return args;
+  return ["--smol", ...args];
+}
+
+/**
  * Run a command synchronously, fail loudly on non-zero exit. Used for
  * git and gh — both are short, cheap, and we want the orchestrator to
  * stop the moment the world stops looking like we expect.
  */
 function sh(cmd: string, args: string[], opts: SpawnOptions = {}): string {
-  const result = spawnSync(cmd, args, {
+  const result = spawnSync(cmd, maybeSmolArgs(cmd, args), {
     cwd: ROOT,
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
+    env: envWithHeapCap(opts.env as NodeJS.ProcessEnv | undefined),
     ...opts,
   });
   if (result.status !== 0) {
@@ -138,9 +196,10 @@ function sh(cmd: string, args: string[], opts: SpawnOptions = {}): string {
 
 /** Same as `sh` but inherits stdio so the user sees streaming output. */
 function shStream(cmd: string, args: string[], opts: SpawnOptions = {}): number {
-  const result = spawnSync(cmd, args, {
+  const result = spawnSync(cmd, maybeSmolArgs(cmd, args), {
     cwd: ROOT,
     stdio: "inherit",
+    env: envWithHeapCap(opts.env as NodeJS.ProcessEnv | undefined),
     ...opts,
   });
   return result.status ?? -1;
@@ -1264,6 +1323,12 @@ async function main(): Promise<void> {
   const newVersion = newVersionArg!;
 
   log(`starting upgrade ${prevVersion} → ${newVersion}`);
+  if (LOW_MEMORY || NODE_HEAP_MB || BUN_SMOL) {
+    log(
+      `low-memory mode: heap-cap=${NODE_HEAP_MB || "off"}MB ` +
+        `bun-smol=${BUN_SMOL ? "on" : "off"} max-turns=${MAX_TURNS}`,
+    );
+  }
   // Pre-read state isn't strictly needed here — patchState reads the
   // current state internally — but we keep the function exported and
   // exercised so a future "respect lastCompletedVersion before mutating"

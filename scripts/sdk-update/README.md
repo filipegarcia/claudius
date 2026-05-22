@@ -225,6 +225,9 @@ All env vars are optional unless flagged otherwise.
 | `SDK_UPDATE_MAX_MINOR_JUMP` | `1` | Refuse to upgrade if `latest - installed` is more minors than this. Stops the first cron firing from trying to absorb a year of changes in one PR. |
 | `SDK_UPDATE_STALE_INFLIGHT_HOURS` | `24` | Self-heal threshold. If `state.inFlight` is older than this, the next firing reclaims it instead of returning `in-flight` forever. Stops a SIGKILL/OOM/host-reboot from bricking the cron. |
 | `SDK_UPDATE_ROOM_SLUG` | `sdk-update` | Which chat-server room to post into when CI goes green. |
+| `SDK_UPDATE_LOW_MEMORY` | `0` | Set to `1` on small hosts (≲ 2 GB) to bundle three RAM-reducing knobs: cap inner-Claude V8 heap at 768 MB via `NODE_OPTIONS`, halve the turn budget (100 vs 200), and pass `--smol` to every `bun run` gate. Tradeoff is extra GC pressure / wall time. |
+| `SDK_UPDATE_NODE_HEAP_MB` | unset (`768` when `SDK_UPDATE_LOW_MEMORY=1`) | Overrides the V8 `--max-old-space-size` cap propagated to child `node` subprocesses (the SDK's bundled CLI most importantly). Set independently to tune just this knob. Empty = no cap. |
+| `SDK_UPDATE_BUN_SMOL` | `0` | Pass `--smol` to every `bun run` gate step. Independent of `SDK_UPDATE_LOW_MEMORY` for cases where you want only this one knob. |
 
 ---
 
