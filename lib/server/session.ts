@@ -1370,12 +1370,74 @@ export class Session {
     this.abortController.abort();
     this.done = true;
     this.stopJsonlWatcher();
+    // Backstop: drain any pending agent-decision maps before the Session
+    // is dropped. The per-tool `ctx.signal` abort listeners (set when each
+    // request was raised) are SUPPOSED to fire from this `abortController.abort()`
+    // and clean up the maps themselves, but the cascade depends on how the
+    // SDK wires `ctx.signal` to `options.abortController` — if any tool-use
+    // signal failed to propagate, the entry would sit forever and any caller
+    // touching the stale Session would see `getStatus() === "running"`. The
+    // map mutations here are no-ops when the abort listeners already ran
+    // (they `.delete` and resolve, the map is empty by the time we get here),
+    // so this is purely defensive. See docs/notifications.md §10.2.A.
+    this.drainPendingDecisions("Aborted");
     // Drop ephemeral loop state. The Session instance itself is about to
     // be dropped by SessionManager.remove, but if anyone holds a stale
     // reference (test helper, etc.) we don't want them to read ghost
     // loops or pending entries that will never resolve.
     this.scheduledLoops.clear();
     this.pendingScheduledLoops.clear();
+  }
+
+  /**
+   * Resolve + clear every entry in the three `pending*` decision maps. Used
+   * as a backstop from `consume()` finally and `end()` — anywhere the
+   * Session is about to stop processing input and we can't leave entries
+   * waiting forever (their pending promises would never settle, AND
+   * `getStatus()` would return `"running"` indefinitely, which silently
+   * breaks both the tab-strip status dot and the `session_idle`
+   * notification, since both are gated on `getStatus()` flipping to
+   * `"idle"`). Existing abort handlers (lines ~613, ~648, ~675) clean
+   * these up via the per-tool `ctx.signal` cascade in the normal case;
+   * this is the safety net for when that cascade misses an entry.
+   *
+   * Caller is responsible for calling `broadcastTurnStatusIfChanged()`
+   * afterwards — keeps the broadcast-on-status-flip invariant in one
+   * place per call site rather than emitting from inside the drain.
+   */
+  private drainPendingDecisions(reason: string): void {
+    if (
+      this.pendingPermissions.size === 0 &&
+      this.pendingAskQuestions.size === 0 &&
+      this.pendingPlans.size === 0
+    ) {
+      return;
+    }
+    const denyResult: PermissionResult = { behavior: "deny", message: reason };
+    for (const [id, p] of this.pendingPermissions) {
+      this.pendingPermissions.delete(id);
+      try {
+        p.resolve(denyResult);
+      } catch {
+        // resolver already settled — fine, we just needed the map slot freed
+      }
+    }
+    for (const [id, p] of this.pendingAskQuestions) {
+      this.pendingAskQuestions.delete(id);
+      try {
+        p.resolve(denyResult);
+      } catch {
+        // ignore
+      }
+    }
+    for (const [id, p] of this.pendingPlans) {
+      this.pendingPlans.delete(id);
+      try {
+        p.resolve(denyResult);
+      } catch {
+        // ignore
+      }
+    }
   }
 
   /**
@@ -1776,6 +1838,8 @@ export class Session {
    */
   private latestTodosSnapshot: unknown[] | null = null;
   private latestTodosSnapshotAt = -Infinity;
+  /** Pending TaskCreate tool_use blocks awaiting their tool_result. */
+  private pendingTaskCreates = new Map<string, { content: string; activeForm?: string }>();
 
   /**
    * Latest top-level user prompt (the real one the user typed, not a
@@ -1822,31 +1886,135 @@ export class Session {
           };
         }
       }
+      // TaskCreate tool_result — promote pending entry to snapshot with real id.
+      const userContent = m.message?.content;
+      if (Array.isArray(userContent)) {
+        for (const raw of userContent as Array<{ type?: string; tool_use_id?: string; content?: unknown; is_error?: boolean }>) {
+          if (raw?.type !== "tool_result") continue;
+          const toolUseId = raw.tool_use_id;
+          if (!toolUseId) continue;
+          const pending = this.pendingTaskCreates.get(toolUseId);
+          if (!pending) continue;
+          this.pendingTaskCreates.delete(toolUseId);
+          if (raw.is_error) {
+            // Remove the temp entry from the snapshot on error.
+            if (this.latestTodosSnapshot) {
+              this.latestTodosSnapshot = this.latestTodosSnapshot.filter(
+                (t) => (t as Record<string, unknown>).id !== toolUseId,
+              );
+            }
+            continue;
+          }
+          // Extract result text (string or [{type:"text",text:...}] array).
+          let resultText = "";
+          if (typeof raw.content === "string") {
+            resultText = raw.content;
+          } else if (Array.isArray(raw.content)) {
+            for (const c of raw.content as Array<{ type?: string; text?: string }>) {
+              if (c?.type === "text" && c.text) resultText += c.text;
+            }
+          }
+          try {
+            const payload = JSON.parse(resultText) as { task?: { id?: string } };
+            const realId = payload?.task?.id;
+            if (realId && this.latestTodosSnapshot) {
+              this.latestTodosSnapshot = this.latestTodosSnapshot.map((t) =>
+                (t as Record<string, unknown>).id === toolUseId
+                  ? { ...(t as Record<string, unknown>), id: realId }
+                  : t,
+              );
+            }
+          } catch {
+            // Parsing failed; leave temp-id entry in place.
+          }
+        }
+      }
       return;
     }
     if (m.type !== "assistant") return;
     const content = m.message?.content;
     if (!Array.isArray(content)) return;
-    for (const block of content as Array<{ type?: string; name?: string; input?: unknown }>) {
+    const at =
+      typeof event.at === "number" && Number.isFinite(event.at)
+        ? event.at
+        : Date.now();
+    for (const block of content as Array<{ type?: string; id?: string; name?: string; input?: unknown }>) {
       if (block?.type !== "tool_use") continue;
+
+      // TodoWrite — full snapshot replacement (legacy; kept for backward compat).
       if (block.name === "TodoWrite") {
         const raw = (block.input as { todos?: unknown } | null)?.todos;
         if (Array.isArray(raw)) {
-          const at =
-            typeof event.at === "number" && Number.isFinite(event.at)
-              ? event.at
-              : Date.now();
           if (at >= this.latestTodosSnapshotAt) {
             this.latestTodosSnapshot = raw;
             this.latestTodosSnapshotAt = at;
           }
         }
+        continue;
+      }
+
+      // TaskCreate — add pending entry to snapshot (keyed by tool_use_id);
+      // real id arrives via the matching tool_result.
+      if (block.name === "TaskCreate" && typeof block.id === "string") {
+        if (this.pendingTaskCreates.has(block.id)) continue; // dedup on replay
+        // Also skip if already promoted (replayed tool_use after tool_result).
+        if (this.latestTodosSnapshot?.some((t) => (t as Record<string, unknown>).id === block.id)) continue;
+        const inp = (block.input as { subject?: unknown; activeForm?: unknown }) ?? {};
+        const content2 = typeof inp.subject === "string" ? inp.subject : "";
+        this.pendingTaskCreates.set(block.id, {
+          content: content2,
+          activeForm: typeof inp.activeForm === "string" ? inp.activeForm : undefined,
+        });
+        if (!this.latestTodosSnapshot) this.latestTodosSnapshot = [];
+        this.latestTodosSnapshot = [
+          ...this.latestTodosSnapshot,
+          {
+            id: block.id,
+            content: content2,
+            status: "pending",
+            activeForm: typeof inp.activeForm === "string" ? inp.activeForm : undefined,
+          },
+        ];
+        if (at >= this.latestTodosSnapshotAt) this.latestTodosSnapshotAt = at;
+        continue;
+      }
+
+      // TaskUpdate — apply status/subject changes in-place by taskId.
+      if (block.name === "TaskUpdate" && this.latestTodosSnapshot) {
+        const inp = (block.input as { taskId?: unknown; subject?: unknown; status?: unknown }) ?? {};
+        const taskId = typeof inp.taskId === "string" ? inp.taskId : null;
+        if (!taskId) continue;
+        const status = typeof inp.status === "string" ? inp.status : null;
+        if (status === "deleted") {
+          this.latestTodosSnapshot = this.latestTodosSnapshot.filter(
+            (t) => (t as Record<string, unknown>).id !== taskId,
+          );
+        } else {
+          this.latestTodosSnapshot = this.latestTodosSnapshot.map((t) => {
+            const entry = t as Record<string, unknown>;
+            if (entry.id !== taskId) return t;
+            const updated = { ...entry };
+            if (status) updated.status = status;
+            if (typeof inp.subject === "string" && inp.subject) updated.content = inp.subject;
+            return updated;
+          });
+        }
+        continue;
       }
     }
   }
 
   private async consume(): Promise<void> {
     if (!this.query) return;
+    // Track whether the SDK ever emitted a `result` message during this
+    // iterator's lifetime, and whether we already broadcast an `error`
+    // from the catch. Both feed the synthetic-idle decision in `finally`:
+    // we only want to invent a `session_idle` notification when the
+    // iterator ended WITHOUT a real terminal event AND without us already
+    // having surfaced an error (which would double-notify). See
+    // docs/notifications.md §10.2.B.
+    let sawResult = false;
+    let sawError = false;
     try {
       for await (const message of this.query as AsyncIterable<SDKMessage>) {
         this.broadcast({ type: "sdk", message });
@@ -1860,6 +2028,7 @@ export class Session {
         // sort newest-active first. `result` is the SDK's per-turn done
         // marker — independent of subagent activity.
         if ((message as { type?: string }).type === "result") {
+          sawResult = true;
           this.turnInFlight = false;
           this.broadcastTurnStatusIfChanged();
           void touchSession(this.cwd, this.id).catch(() => {
@@ -1885,14 +2054,54 @@ export class Session {
       if (!this.abortController.signal.aborted) {
         const message = err instanceof Error ? err.message : String(err);
         this.broadcast({ type: "error", message });
+        sawError = true;
       }
     } finally {
       this.done = true;
       // Defensive: if the SDK iterator returned without ever emitting a
       // `result` (crash / abort), the turn would otherwise look forever
-      // "running" to the tabs strip.
+      // "running" to the tabs strip. Drain pending agent-decision maps
+      // BEFORE flipping `turnInFlight` so `getStatus()`'s pending-map
+      // checks don't keep the session stuck in "running" even after the
+      // iterator has clearly ended. Without this drain, a permission /
+      // ask-user / plan-mode request whose abort listener didn't fire
+      // (the per-tool `ctx.signal` cascade is owned by the SDK and isn't
+      // guaranteed to propagate to every listener on every exit path)
+      // would leave a phantom entry, getStatus() would still return
+      // "running", broadcastTurnStatusIfChanged would dedupe-and-skip,
+      // and the session would be silently stuck — exactly the failure
+      // mode documented in docs/notifications.md §10.2.A.
+      this.drainPendingDecisions("Aborted");
       this.turnInFlight = false;
       this.broadcastTurnStatusIfChanged();
+
+      // Synthetic session_idle for the §10.2.B case: the SDK iterator ended
+      // cleanly without ever emitting a terminal `result` message, the user
+      // didn't stop or reap the session (signal not aborted), and we didn't
+      // already broadcast an error (which would map to session_error). In
+      // that gap, neither path fires a notification — the status flips, but
+      // the user gets nothing. Route a synthetic `sdk` result event through
+      // the bus's public API so it picks up every downstream gate (master
+      // switch, kind enablement, per-session mute, background suppression,
+      // and crucially the `lastUserInputAt` gate — which still suppresses
+      // for resumed / replayed sessions where the user never typed in this
+      // process). The event never reaches subscribers or the replay buffer:
+      // calling the bus directly keeps disk/buffer parity intact.
+      if (
+        !sawResult &&
+        !sawError &&
+        !this.abortController.signal.aborted
+      ) {
+        void notificationBus.recordSessionEvent(
+          this.cwd,
+          this.id,
+          {
+            type: "sdk",
+            message: { type: "result" } as unknown as SDKMessage,
+          },
+          { hasSubscribers: this.subscribers.size > 0 },
+        );
+      }
     }
   }
 }

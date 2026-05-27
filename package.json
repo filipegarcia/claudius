@@ -38,7 +38,7 @@
     "electron:smoke": "bun run electron:rebuild-native-for-node && next build && bun run electron:compile && node dist-electron/smoke.js"
   },
   "dependencies": {
-    "@anthropic-ai/claude-agent-sdk": "^0.2.132",
+    "@anthropic-ai/claude-agent-sdk": "^0.3.152",
     "better-sqlite3": "^12.10.0",
     "clsx": "^2.1.1",
     "cron-parser": "^5.5.0",

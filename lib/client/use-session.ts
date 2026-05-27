@@ -206,6 +206,10 @@ function pickPrimaryArg(name: string, input: Record<string, unknown>): string | 
     WebSearch: ["query"],
     Task: ["description"],
     TodoWrite: [],
+    TaskCreate: ["subject"],
+    TaskUpdate: ["taskId"],
+    TaskGet: ["taskId"],
+    TaskList: [],
     ExitPlanMode: [],
     // Surface the cron expression / wake-up delay as the primary arg so the
     // Tools row in the Activity rail shows what was scheduled, not nothing.
@@ -1308,10 +1312,63 @@ export function useSession(): ChatState & ChatActions {
           // browser receives a `plan_approval_request` event instead, so the
           // tool_use block doesn't need any special handling here.
 
-          // TodoWrite — capture the latest todos snapshot.
+          // TodoWrite — capture the latest todos snapshot (legacy; kept for
+          // backward compat with sessions predating the Task tools).
           if (b.name === "TodoWrite") {
             const raw = (b.input as { todos?: unknown }).todos;
             if (Array.isArray(raw)) setLatestTodos(coerceTodos(raw));
+            continue;
+          }
+
+          // TaskCreate — add a pending todo keyed by tool_use_id; the real
+          // task id arrives in the matching tool_result and will be promoted
+          // there. Dedup by id so replayed streams don't create duplicates.
+          if (b.name === "TaskCreate") {
+            const inp = b.input as {
+              subject?: unknown;
+              description?: unknown;
+              activeForm?: unknown;
+            };
+            const content = typeof inp.subject === "string" ? inp.subject : "";
+            setLatestTodos((prev) => {
+              if (prev.some((t) => t.id === b.id)) return prev;
+              return [
+                ...prev,
+                {
+                  id: b.id, // temp key; re-keyed on tool_result
+                  content,
+                  status: "pending",
+                  activeForm: typeof inp.activeForm === "string" ? inp.activeForm : undefined,
+                },
+              ];
+            });
+            continue;
+          }
+
+          // TaskUpdate — apply status/subject changes in-place by taskId.
+          // Applied eagerly on tool_use (same pattern as CronDelete).
+          if (b.name === "TaskUpdate") {
+            const inp = b.input as {
+              taskId?: unknown;
+              subject?: unknown;
+              status?: unknown;
+            };
+            const taskId = typeof inp.taskId === "string" ? inp.taskId : null;
+            if (taskId) {
+              setLatestTodos((prev) => {
+                const idx = prev.findIndex((t) => t.id === taskId);
+                if (idx === -1) return prev;
+                const status = typeof inp.status === "string" ? inp.status : null;
+                // Deleted tasks are removed from the list entirely.
+                if (status === "deleted") return prev.filter((_, i) => i !== idx);
+                const updated = { ...prev[idx] };
+                if (status) updated.status = status;
+                if (typeof inp.subject === "string" && inp.subject) updated.content = inp.subject;
+                const copy = prev.slice();
+                copy[idx] = updated;
+                return copy;
+              });
+            }
             continue;
           }
 
@@ -1818,6 +1875,25 @@ export function useSession(): ChatState & ChatActions {
             delete copy[result.tool_use_id];
             copy[cronId] = promoted;
             return copy;
+          });
+          // TaskCreate result — re-key the pending entry (stored under tool_use_id)
+          // to the real task id returned in the result payload `{ task: { id } }`.
+          // On error, remove the pending entry so a stale placeholder isn't shown.
+          setLatestTodos((prev) => {
+            const pendingIdx = prev.findIndex((t) => t.id === result.tool_use_id);
+            if (pendingIdx === -1) return prev;
+            if (result.isError) return prev.filter((_, i) => i !== pendingIdx);
+            try {
+              const payload = JSON.parse(result.text) as { task?: { id?: string } };
+              const realId = payload?.task?.id;
+              if (!realId) return prev;
+              const copy = prev.slice();
+              copy[pendingIdx] = { ...copy[pendingIdx], id: realId };
+              return copy;
+            } catch {
+              // Parsing failed; leave the temp-id entry rather than losing it.
+              return prev;
+            }
           });
           return;
         }
