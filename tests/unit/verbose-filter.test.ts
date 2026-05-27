@@ -92,11 +92,14 @@ describe("filterAssistantBlocks", () => {
     expect(out).toHaveLength(5);
   });
 
-  test("normal drops thinking, keeps text + tool_use (including Task)", () => {
+  test("normal drops thinking, keeps text + tool_use (including subagent Task/Agent)", () => {
     const out = filterAssistantBlocks(all, "normal");
     expect(out.map((b) => b.kind)).toEqual(["text", "tool_use", "text", "tool_use"]);
     // Task is a tool_use — verify it's kept by name as well, since the
-    // contract is "tool calls including subagent Task blocks".
+    // contract is "tool calls including subagent blocks". The SDK now emits
+    // these as `Agent` (see lib/shared/subagent-tool.ts); the filter doesn't
+    // care about the wire name, but this assertion documents that the data
+    // survives regardless of which legacy/current name appears.
     const taskKept = out.some((b) => b.kind === "tool_use" && b.name === "Task");
     expect(taskKept).toBe(true);
   });
