@@ -208,6 +208,7 @@ function pickPrimaryArg(name: string, input: Record<string, unknown>): string | 
     TodoWrite: [],
     TaskCreate: ["subject"],
     TaskUpdate: ["taskId"],
+    TaskGet: ["taskId"],
     TaskList: [],
     ExitPlanMode: [],
     // Surface the cron expression / wake-up delay as the primary arg so the
