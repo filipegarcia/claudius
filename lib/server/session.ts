@@ -1776,6 +1776,8 @@ export class Session {
    */
   private latestTodosSnapshot: unknown[] | null = null;
   private latestTodosSnapshotAt = -Infinity;
+  /** Pending TaskCreate tool_use blocks awaiting their tool_result. */
+  private pendingTaskCreates = new Map<string, { content: string; activeForm?: string }>();
 
   /**
    * Latest top-level user prompt (the real one the user typed, not a
@@ -1822,25 +1824,120 @@ export class Session {
           };
         }
       }
+      // TaskCreate tool_result — promote pending entry to snapshot with real id.
+      const userContent = m.message?.content;
+      if (Array.isArray(userContent)) {
+        for (const raw of userContent as Array<{ type?: string; tool_use_id?: string; content?: unknown; is_error?: boolean }>) {
+          if (raw?.type !== "tool_result") continue;
+          const toolUseId = raw.tool_use_id;
+          if (!toolUseId) continue;
+          const pending = this.pendingTaskCreates.get(toolUseId);
+          if (!pending) continue;
+          this.pendingTaskCreates.delete(toolUseId);
+          if (raw.is_error) {
+            // Remove the temp entry from the snapshot on error.
+            if (this.latestTodosSnapshot) {
+              this.latestTodosSnapshot = this.latestTodosSnapshot.filter(
+                (t) => (t as Record<string, unknown>).id !== toolUseId,
+              );
+            }
+            continue;
+          }
+          // Extract result text (string or [{type:"text",text:...}] array).
+          let resultText = "";
+          if (typeof raw.content === "string") {
+            resultText = raw.content;
+          } else if (Array.isArray(raw.content)) {
+            for (const c of raw.content as Array<{ type?: string; text?: string }>) {
+              if (c?.type === "text" && c.text) resultText += c.text;
+            }
+          }
+          try {
+            const payload = JSON.parse(resultText) as { task?: { id?: string } };
+            const realId = payload?.task?.id;
+            if (realId && this.latestTodosSnapshot) {
+              this.latestTodosSnapshot = this.latestTodosSnapshot.map((t) =>
+                (t as Record<string, unknown>).id === toolUseId
+                  ? { ...(t as Record<string, unknown>), id: realId }
+                  : t,
+              );
+            }
+          } catch {
+            // Parsing failed; leave temp-id entry in place.
+          }
+        }
+      }
       return;
     }
     if (m.type !== "assistant") return;
     const content = m.message?.content;
     if (!Array.isArray(content)) return;
-    for (const block of content as Array<{ type?: string; name?: string; input?: unknown }>) {
+    const at =
+      typeof event.at === "number" && Number.isFinite(event.at)
+        ? event.at
+        : Date.now();
+    for (const block of content as Array<{ type?: string; id?: string; name?: string; input?: unknown }>) {
       if (block?.type !== "tool_use") continue;
+
+      // TodoWrite — full snapshot replacement (legacy; kept for backward compat).
       if (block.name === "TodoWrite") {
         const raw = (block.input as { todos?: unknown } | null)?.todos;
         if (Array.isArray(raw)) {
-          const at =
-            typeof event.at === "number" && Number.isFinite(event.at)
-              ? event.at
-              : Date.now();
           if (at >= this.latestTodosSnapshotAt) {
             this.latestTodosSnapshot = raw;
             this.latestTodosSnapshotAt = at;
           }
         }
+        continue;
+      }
+
+      // TaskCreate — add pending entry to snapshot (keyed by tool_use_id);
+      // real id arrives via the matching tool_result.
+      if (block.name === "TaskCreate" && typeof block.id === "string") {
+        if (this.pendingTaskCreates.has(block.id)) continue; // dedup on replay
+        // Also skip if already promoted (replayed tool_use after tool_result).
+        if (this.latestTodosSnapshot?.some((t) => (t as Record<string, unknown>).id === block.id)) continue;
+        const inp = (block.input as { subject?: unknown; activeForm?: unknown }) ?? {};
+        const content2 = typeof inp.subject === "string" ? inp.subject : "";
+        this.pendingTaskCreates.set(block.id, {
+          content: content2,
+          activeForm: typeof inp.activeForm === "string" ? inp.activeForm : undefined,
+        });
+        if (!this.latestTodosSnapshot) this.latestTodosSnapshot = [];
+        this.latestTodosSnapshot = [
+          ...this.latestTodosSnapshot,
+          {
+            id: block.id,
+            content: content2,
+            status: "pending",
+            activeForm: typeof inp.activeForm === "string" ? inp.activeForm : undefined,
+          },
+        ];
+        if (at >= this.latestTodosSnapshotAt) this.latestTodosSnapshotAt = at;
+        continue;
+      }
+
+      // TaskUpdate — apply status/subject changes in-place by taskId.
+      if (block.name === "TaskUpdate" && this.latestTodosSnapshot) {
+        const inp = (block.input as { taskId?: unknown; subject?: unknown; status?: unknown }) ?? {};
+        const taskId = typeof inp.taskId === "string" ? inp.taskId : null;
+        if (!taskId) continue;
+        const status = typeof inp.status === "string" ? inp.status : null;
+        if (status === "deleted") {
+          this.latestTodosSnapshot = this.latestTodosSnapshot.filter(
+            (t) => (t as Record<string, unknown>).id !== taskId,
+          );
+        } else {
+          this.latestTodosSnapshot = this.latestTodosSnapshot.map((t) => {
+            const entry = t as Record<string, unknown>;
+            if (entry.id !== taskId) return t;
+            const updated = { ...entry };
+            if (status) updated.status = status;
+            if (typeof inp.subject === "string" && inp.subject) updated.content = inp.subject;
+            return updated;
+          });
+        }
+        continue;
       }
     }
   }

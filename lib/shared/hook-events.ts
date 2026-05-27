@@ -31,6 +31,7 @@ export const HOOK_EVENT_NAMES = [
   "InstructionsLoaded",
   "CwdChanged",
   "FileChanged",
+  "MessageDisplay",
 ] as const;
 
 export type HookEvent = (typeof HOOK_EVENT_NAMES)[number];
@@ -93,6 +94,9 @@ export const HOOK_EVENTS: HookEventSpec[] = [
   { name: "WorktreeCreate", category: "fs", description: "When a git worktree is created from Claude." },
   { name: "WorktreeRemove", category: "fs", description: "When a git worktree is removed." },
   { name: "FileChanged", category: "fs", description: "When a watched file changes on disk." },
+
+  // Message display
+  { name: "MessageDisplay", category: "other", description: "When a message is about to be rendered to the user (last chance to rewrite).", canBlock: false },
 
   // Other
   { name: "Notification", category: "other", description: "Idle / waiting / permission-requested system notifications." },
