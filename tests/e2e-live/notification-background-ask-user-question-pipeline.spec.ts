@@ -236,7 +236,6 @@ test.describe("Notification pipeline: backgrounded session ask_user_question", (
 
       await expect(page).toHaveTitle(/^\(\d+\)\s/, { timeout: 10_000 });
 
-      // eslint-disable-next-line no-console
       console.log(
         `[ask-pipeline] all surfaces ticked within ${Date.now() - t0}ms`,
       );
