@@ -1,10 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type {
-  NotificationClickBehavior,
-  NotificationRow,
-  WorkspaceNotificationPrefs,
+import {
+  isActionableKind,
+  type NotificationClickBehavior,
+  type NotificationRow,
+  type WorkspaceNotificationPrefs,
 } from "@/lib/shared/notifications";
 import type { Workspace } from "@/lib/server/workspaces-store";
 
@@ -174,9 +175,22 @@ export function useNotifications(opts: Options) {
   const notify = useCallback(
     (row: NotificationRow) => {
       if (!enabled || state !== "granted") return;
+      // Same-session visibility suppression: when the user is foregrounded on
+      // the very session this notification targets, the OS toast is
+      // redundant — they're already looking at it. EXCEPT for actionable
+      // kinds (`permission_request`, `ask_user_question`,
+      // `plan_approval_request`): the agent is blocked on the user, the
+      // modal can be minimised, and the user may have Cmd-Tab'd to another
+      // app between when they triggered the turn and when the question
+      // came back. They need the loud popup regardless of which session
+      // tab is currently selected. This mirrors the actionable-kind
+      // carve-out in `NotificationsProvider`'s `sameSessionVisible`
+      // auto-read gate — keep the two predicates symmetric.
       const sameSession =
         row.sessionId && activeSessionRef.current === row.sessionId;
-      if (visibleRef.current && sameSession) return;
+      if (visibleRef.current && sameSession && !isActionableKind(row.kind)) {
+        return;
+      }
 
       const bridge = readBridgeOnClient();
       if (bridge) {
