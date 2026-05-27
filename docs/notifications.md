@@ -122,6 +122,8 @@ Quick reference for "which surfaces light up for which kinds." `✓` = lights up
 
 **Key invariant:** State (badges) updates **always** fire — only the OS toast can be suppressed. If a badge isn't updating, the bus's state emit is broken, not the toast path.
 
+**Actionable-kind OS toasts** (rows marked `✓` for the OS-toast column on `permission_request` / `ask_user_question` / `plan_approval_request`): unconditional — they fire even when you're foregrounded on the asking session. Same-session suppression only applies to non-actionable kinds. See §4.2.
+
 ---
 
 ## 4. Auto-read & suppression rules
@@ -137,16 +139,19 @@ In [`components/notifications/NotificationsProvider.tsx`](../components/notifica
 
 A `visibilitychange` listener also fires the same auto-read sweep when a tab becomes visible.
 
-### 4.2 Actionable kinds never auto-clear
+### 4.2 Actionable kinds never auto-clear and never suppress their OS toast
 
-`ACTIONABLE_KINDS` = `permission_request`, `ask_user_question`, `plan_approval_request`. These **must not** auto-clear on "I'm looking at this tab" gestures — the agent is blocked, and clearing them silently would leave only the modal as a cue (which the user can minimize).
+`ACTIONABLE_KINDS` = `permission_request`, `ask_user_question`, `plan_approval_request`. These are special on three axes:
 
-This rule is enforced in two places that must stay in sync:
+- **No auto-clear on visibility gestures.** Switching to the tab, foregrounding the window, or sitting on the session while the row arrives must NOT mark them read — the agent is blocked, and clearing them silently would leave only the modal as a cue (which the user can minimize).
+- **No same-session OS-toast suppression.** Even when the user is foregrounded on the session that just asked the question, the OS popup still fires. The user may have Cmd-Tab'd to another app between submitting the turn and the question coming back — `document.hidden` stays `false` while the Claudius tab is foregrounded but another app has focus, so without this carve-out the popup is silently dropped exactly when the user needs it most.
+- **Cleared only by `markReadByRequestId`.** Fired server-side from the resolver paths (`resolvePermission`, `submitAskAnswer`, `resolvePlan`) once the user has actually answered.
+
+These rules are enforced in **three** places that must stay in sync — if you ever add a fourth actionable kind, audit all three:
 
 1. Server SQL in `markReadBySession()` (`WHERE kind NOT IN (...ACTIONABLE_KINDS)`) — [`lib/server/notifications-db.ts`](../lib/server/notifications-db.ts).
-2. Client SSE gate in `NotificationsProvider` (`!isActionableKind(row.kind)`).
-
-The only way to clear an actionable row is via `markReadByRequestId()`, called from the resolver when the user answers.
+2. Client SSE auto-read gate in `NotificationsProvider` (`!isActionableKind(row.kind)`) — [`components/notifications/NotificationsProvider.tsx`](../components/notifications/NotificationsProvider.tsx).
+3. Client OS-toast gate in `useNotifications.notify` (`!isActionableKind(row.kind)`) — [`lib/client/useNotifications.ts`](../lib/client/useNotifications.ts).
 
 ### 4.3 Background-suppressible OS toasts
 
@@ -267,6 +272,7 @@ The bus uses a `BUS_BUILD_TAG` marker on `globalThis` to migrate these across re
 | Auto-read clearing a permission request          | Actionable-kind filter missing in one of the two enforcement sites                             | `ACTIONABLE_KINDS` uses in `notifications-db.ts` AND `NotificationsProvider` |
 | Drawer empty but favicon shows count             | Drawer query filter (50 most recent, unread, scope) mismatched with the count source           | `NotificationsDrawer.tsx`, `/api/notifications` GET                     |
 | Notification fires for active session            | Visibility/auto-read gate not running — check `document.hidden` and URL `sessionId` parsing    | `NotificationsProvider` `sameSessionVisible` block                       |
+| Actionable kind (permission / ask / plan) doesn't pop a toast when you're on the asking session | Same-session OS-toast suppression missing the `!isActionableKind(row.kind)` carve-out — see §4.2, rule #3 | `useNotifications.notify` gate                                           |
 
 ---
 
