@@ -6,6 +6,7 @@ import { ToolCall } from "./ToolCall";
 import { TaskBlock } from "./TaskBlock";
 import type { DisplayMessage, TaskInfo } from "@/lib/client/types";
 import { formatMessageTime } from "@/lib/client/format-message-time";
+import { isSubagentToolName } from "@/lib/shared/subagent-tool";
 import {
   DEFAULT_VERBOSE,
   filterAssistantBlocks,
@@ -101,7 +102,11 @@ export function AssistantMessage({
             );
           }
           if (b.kind === "tool_use") {
-            if (b.name === "Task") {
+            // Subagent invocations route to TaskBlock. The SDK emits this
+            // tool under both "Task" (legacy / system:init) and "Agent"
+            // (current `tool_use.name`, since Claude Code v2.1.63), so the
+            // predicate must match either — see lib/shared/subagent-tool.ts.
+            if (isSubagentToolName(b.name)) {
               const inner = subagentMessages[b.id] ?? [];
               return (
                 <TaskBlock
