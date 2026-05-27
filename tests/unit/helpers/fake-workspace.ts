@@ -1,5 +1,6 @@
 import { mkdirSync, writeFileSync } from "node:fs";
-import { dirname } from "node:path";
+import { tmpdir } from "node:os";
+import { dirname, resolve } from "node:path";
 import { randomUUID } from "node:crypto";
 
 import { workspacesFile } from "@/lib/server/workspaces-store";
@@ -28,6 +29,15 @@ export function writeFakeWorkspace(input: {
   rootPath?: string;
   notifications?: WorkspaceNotificationPrefs;
 } = {}): Workspace {
+  // Refuse to write outside tmpdir so a missing `makeTempHome()` can't clobber the real workspaces.json.
+  const target = resolve(workspacesFile());
+  const tmpRoot = resolve(tmpdir());
+  if (!target.startsWith(tmpRoot + "/")) {
+    throw new Error(
+      `writeFakeWorkspace refuses to write outside tmpdir (target=${target}, tmpdir=${tmpRoot}). ` +
+        `Call makeTempHome() in beforeEach before invoking this helper.`,
+    );
+  }
   const id = "wks_" + randomUUID().replace(/-/g, "").slice(0, 12);
   const rootPath = input.rootPath ?? `/tmp/fake-${id}`;
   const notifications: WorkspaceNotificationPrefs = input.notifications ?? {
