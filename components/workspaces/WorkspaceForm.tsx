@@ -61,6 +61,15 @@ export function WorkspaceForm({ initial, onCancel, onSubmit, onIconUpload, onDel
   const [defaultBudget, setDefaultBudget] = useState(
     initial?.defaults?.maxBudgetUsd != null ? String(initial.defaults.maxBudgetUsd) : "",
   );
+  // Fallback model id — empty = no fallback. Plain text (not the model picker)
+  // since it's an advanced field and accepts any model id alias.
+  const [defaultFallback, setDefaultFallback] = useState(initial?.defaults?.fallbackModel ?? "");
+  // Sandbox toggle — runs shell commands under bubblewrap (Linux). The Session
+  // forwards `failIfUnavailable: false` so this is a no-op on macOS rather
+  // than a fatal config error.
+  const [defaultSandbox, setDefaultSandbox] = useState<boolean>(
+    initial?.defaults?.sandboxEnabled === true,
+  );
   const [agentNames, setAgentNames] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -144,6 +153,10 @@ export function WorkspaceForm({ initial, onCancel, onSubmit, onIconUpload, onDel
       const budget = Number(defaultBudget);
       if (defaultBudget.trim() && Number.isFinite(budget) && budget > 0) defaults.maxBudgetUsd = budget;
       else delete defaults.maxBudgetUsd;
+      if (defaultFallback.trim()) defaults.fallbackModel = defaultFallback.trim();
+      else delete defaults.fallbackModel;
+      if (defaultSandbox) defaults.sandboxEnabled = true;
+      else delete defaults.sandboxEnabled;
       const r = await onSubmit({
         name: name.trim(),
         rootPath: rootPath.trim(),
@@ -397,18 +410,42 @@ export function WorkspaceForm({ initial, onCancel, onSubmit, onIconUpload, onDel
                 ))}
               </select>
             </Field>
-            <Field label="Spend cap (USD)">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <Field label="Spend cap (USD)">
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  min="0"
+                  step="0.5"
+                  value={defaultBudget}
+                  onChange={(e) => setDefaultBudget(e.target.value)}
+                  placeholder="no cap"
+                  className="w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 text-xs focus:outline-none"
+                />
+              </Field>
+              <Field label="Fallback model">
+                <input
+                  type="text"
+                  value={defaultFallback}
+                  onChange={(e) => setDefaultFallback(e.target.value)}
+                  placeholder="none (e.g. claude-haiku-4-5)"
+                  spellCheck={false}
+                  className="w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 font-mono text-xs focus:outline-none"
+                />
+              </Field>
+            </div>
+            <label className="mt-2 flex cursor-pointer items-center gap-2 text-xs">
               <input
-                type="number"
-                inputMode="decimal"
-                min="0"
-                step="0.5"
-                value={defaultBudget}
-                onChange={(e) => setDefaultBudget(e.target.value)}
-                placeholder="no cap"
-                className="w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 text-xs focus:outline-none"
+                type="checkbox"
+                checked={defaultSandbox}
+                onChange={(e) => setDefaultSandbox(e.target.checked)}
+                className="h-3 w-3 rounded border-[var(--border)] bg-[var(--panel-2)]"
               />
-            </Field>
+              <span>Sandbox shell commands</span>
+              <span className="text-[10px] text-[var(--muted)]">
+                Linux only (bubblewrap); no-op on macOS.
+              </span>
+            </label>
             <p className="mt-1 text-[10px] text-[var(--muted)]">
               Apply only to new sessions. An explicit per-session override still wins.
               Setting an agent also applies its own model.

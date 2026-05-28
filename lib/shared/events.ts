@@ -354,6 +354,10 @@ export type CreateSessionRequest = {
    * query stops with an `error_max_budget_usd` result once exceeded.
    */
   maxBudgetUsd?: number;
+  /** Fallback model id for this session — SDK Options.fallbackModel. */
+  fallbackModel?: string;
+  /** Run shell commands in a sandbox — SDK Options.sandbox.enabled. */
+  sandboxEnabled?: boolean;
   permissionMode?: PermissionMode;
   /** If set, resume an existing session by id. */
   resume?: string;

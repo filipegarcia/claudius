@@ -6,11 +6,18 @@ import { cn } from "@/lib/utils/cn";
 import type { AttachedImage, DisplayMessage } from "@/lib/client/types";
 import { formatMessageTime } from "@/lib/client/format-message-time";
 import { ImageLightbox } from "./ImageLightbox";
+import { RewindFilesButton } from "./RewindFilesButton";
 
 type Props = {
   message: DisplayMessage;
   onRewind?: (uuid: string) => void;
   rewinding?: boolean;
+  /**
+   * Active session id. When present, a "Restore files" affordance is shown
+   * that rewinds the working tree to this message via the SDK's file
+   * checkpointing (distinct from `onRewind`, which forks the conversation).
+   */
+  sessionId?: string;
   /**
    * Scroll this message's turn to the top of the viewport so the user can
    * re-read the assistant reply that came after it. Clicking the bubble is
@@ -25,7 +32,7 @@ type Props = {
   suggested?: boolean;
 };
 
-export function UserMessage({ message, onRewind, rewinding, onJumpTo, suggested }: Props) {
+export function UserMessage({ message, onRewind, rewinding, onJumpTo, sessionId, suggested }: Props) {
   const text = message.blocks.map((b) => (b.kind === "text" ? b.text : "")).join("");
   const images = message.images ?? [];
   const stamp = formatMessageTime(message.createdAt);
@@ -55,7 +62,7 @@ export function UserMessage({ message, onRewind, rewinding, onJumpTo, suggested 
           </div>
         )}
         <InlineUserText text={text} images={images} />
-        {(stamp || onRewind) && (
+        {(stamp || onRewind || sessionId) && (
           <div className="mt-1 flex items-center justify-end gap-3">
             {stamp && (
               <span
@@ -66,6 +73,7 @@ export function UserMessage({ message, onRewind, rewinding, onJumpTo, suggested 
                 {stamp.short}
               </span>
             )}
+            {sessionId && <RewindFilesButton sessionId={sessionId} messageUuid={message.uuid} />}
             {onRewind && (
               <button
                 onClick={(e) => {
