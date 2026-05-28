@@ -9,15 +9,24 @@ import {
   type SlashCategory,
   type SlashSuggestion,
 } from "@/lib/shared/slash-commands";
+import { useSdkCommands } from "@/lib/client/useSdkCommands";
 
 type Props = {
   sdkSlashCommands: string[];
   sdkSkills: string[];
+  /** Current session id — used to fetch rich SDK command metadata on open. */
+  sessionId: string | null;
   onClose: () => void;
 };
 
-export function HelpOverlay({ sdkSlashCommands, sdkSkills, onClose }: Props) {
-  const all = useMemo(() => mergeSuggestions(sdkSlashCommands, sdkSkills), [sdkSlashCommands, sdkSkills]);
+export function HelpOverlay({ sdkSlashCommands, sdkSkills, sessionId, onClose }: Props) {
+  // Fetched only while the overlay is mounted (it's conditionally rendered),
+  // so the help dialog shows real SDK/plugin command descriptions.
+  const sdkRichCommands = useSdkCommands(sessionId);
+  const all = useMemo(
+    () => mergeSuggestions(sdkSlashCommands, sdkSkills, sdkRichCommands),
+    [sdkSlashCommands, sdkSkills, sdkRichCommands],
+  );
   const [filter, setFilter] = useState("");
 
   const grouped = useMemo(() => {

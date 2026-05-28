@@ -5,6 +5,7 @@ import { Wrench, Cpu, Zap, ExternalLink } from "lucide-react";
 import {
   CATEGORY_LABELS,
   mergeSuggestions,
+  type SdkSlashCommandInfo,
   type SlashSuggestion,
 } from "@/lib/shared/slash-commands";
 import { cn } from "@/lib/utils/cn";
@@ -13,6 +14,8 @@ type Props = {
   value: string;
   sdkSlashCommands: string[];
   sdkSkills: string[];
+  /** Rich SDK command metadata from supportedCommands(); enriches SDK-only entries. */
+  sdkRichCommands?: SdkSlashCommandInfo[];
   onSelect: (cmd: string) => void;
   onClose: () => void;
 };
@@ -42,8 +45,11 @@ function fuzzyScore(needle: string, hay: string): number {
   return n === needle.length ? score : -1;
 }
 
-export function SlashCommandPicker({ value, sdkSlashCommands, sdkSkills, onSelect, onClose }: Props) {
-  const all = useMemo(() => mergeSuggestions(sdkSlashCommands, sdkSkills), [sdkSlashCommands, sdkSkills]);
+export function SlashCommandPicker({ value, sdkSlashCommands, sdkSkills, sdkRichCommands, onSelect, onClose }: Props) {
+  const all = useMemo(
+    () => mergeSuggestions(sdkSlashCommands, sdkSkills, sdkRichCommands),
+    [sdkSlashCommands, sdkSkills, sdkRichCommands],
+  );
   const filter = value.startsWith("/") ? value.slice(1).trim().toLowerCase() : "";
   const filtered = useMemo(() => {
     if (!filter) return all;

@@ -1205,6 +1205,7 @@ export default function Home() {
         <HelpOverlay
           sdkSlashCommands={session.slashCommands}
           sdkSkills={session.skills}
+          sessionId={session.sessionId}
           onClose={() => setOverlay(null)}
         />
       )}

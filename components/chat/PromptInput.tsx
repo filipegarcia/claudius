@@ -15,6 +15,7 @@ import { SlashCommandPicker } from "./SlashCommandPicker";
 import { AtMentionPicker } from "./AtMentionPicker";
 import { ImageLightbox } from "./ImageLightbox";
 import { useVoice } from "@/lib/client/useVoice";
+import { useSdkCommands } from "@/lib/client/useSdkCommands";
 import type { AttachedImage } from "@/lib/client/types";
 import {
   BULLET_GLYPH,
@@ -84,6 +85,10 @@ export function PromptInput({
   sendDisabled = false,
 }: Props) {
   const [value, setValue] = useState("");
+  // Rich SDK command metadata (descriptions + arg hints) for the slash picker.
+  // Falls back to the curated registry + init names when unavailable, so the
+  // picker works even before/without this fetch.
+  const sdkRichCommands = useSdkCommands(sessionId);
   // Picker visibility + active @-mention token live alongside `value`.
   // Updated imperatively from event handlers via `refreshPickerState`
   // below; we used to derive them in a `useEffect([value])` but that
@@ -923,6 +928,7 @@ export function PromptInput({
             value={value.trimStart()}
             sdkSlashCommands={slashCommands}
             sdkSkills={skills}
+            sdkRichCommands={sdkRichCommands}
             onSelect={(cmd) => {
               setValue(`/${cmd} `);
               setPickerOpen(false);
