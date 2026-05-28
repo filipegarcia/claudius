@@ -1305,6 +1305,27 @@ export class Session {
     }
   }
 
+  /**
+   * Forward the subagent list the SDK has loaded for this session — the same
+   * `AgentInfo[]` the CLI's `claude agents` surface and the `--agent` picker
+   * read. This is the source of truth for "which agents are actually live"
+   * (file-based `.claude/agents/*.md`, plugin-injected, and the built-in
+   * general-purpose / Explore agents), as opposed to the filesystem listing
+   * in `lib/server/agents.ts` which only sees the markdown files on disk.
+   *
+   * Same `{ ok, data | error }` envelope as `supportedModels`; the API route
+   * maps `ok: false` to a 503 so a not-yet-started session can be retried.
+   */
+  async supportedAgents(): Promise<{ ok: true; data: unknown } | { ok: false; error: string }> {
+    if (!this.query) return { ok: false, error: "session not active" };
+    try {
+      const data = await this.query.supportedAgents();
+      return { ok: true, data };
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : String(err) };
+    }
+  }
+
   async getContextUsage(): Promise<{ ok: true; data: unknown } | { ok: false; error: string }> {
     if (!this.query) return { ok: false, error: "no active query" };
     try {
