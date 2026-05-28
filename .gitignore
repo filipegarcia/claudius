@@ -37,6 +37,8 @@ tests/electron/LOOP.log
 # ralph-loop task checklist + plugin-granted local permissions (local scratch)
 /.claude/ralph-state/
 /.claude/settings.json
+# agent git worktrees (created per-session; not portable, never committed)
+/.claude/worktrees/
 
 # claudiusd runtime state (pid file, logs)
 /.claudius/
