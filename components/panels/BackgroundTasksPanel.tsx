@@ -298,6 +298,14 @@ export function BackgroundTasksPanel({
                   {t.description && (
                     <div className="mt-0.5 line-clamp-2 text-[10px] opacity-80">{t.description}</div>
                   )}
+                  {/* AI-generated live progress summary (SDK
+                      agentProgressSummaries). Refreshes ~30s while the
+                      subagent runs; distinct from the static `description`. */}
+                  {t.summary && t.summary !== t.description && (
+                    <div className="mt-0.5 line-clamp-2 text-[10px] italic opacity-70">
+                      {t.summary}
+                    </div>
+                  )}
                   <div className="mt-1 flex flex-wrap gap-2 text-[10px] opacity-70">
                     {t.totalTokens != null && <span>{t.totalTokens.toLocaleString()} tok</span>}
                     {t.toolUses != null && <span>{t.toolUses} tools</span>}

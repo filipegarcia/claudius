@@ -448,6 +448,14 @@ export class Session {
       abortController: this.abortController,
       canUseTool: this.canUseTool,
       includePartialMessages: true,
+      // Ask the SDK to emit periodic AI-generated progress summaries for
+      // running subagents (foreground + background). Every ~30s the SDK
+      // forks the subagent to produce a short present-tense status (e.g.
+      // "Analyzing authentication module"), delivered on `task_progress`
+      // via the `summary` field — which the client threads onto TaskInfo
+      // and the BackgroundTasksPanel renders. The fork reuses the
+      // subagent's model + prompt cache, so cost is typically minimal.
+      agentProgressSummaries: true,
       // Opt into adaptive extended thinking explicitly so the agent
       // emits the full reasoning text in `thinking` blocks. Without
       // this, recent SDK builds default to a `display: 'omitted'`
