@@ -64,6 +64,12 @@ export function WorkspaceForm({ initial, onCancel, onSubmit, onIconUpload, onDel
   // Fallback model id — empty = no fallback. Plain text (not the model picker)
   // since it's an advanced field and accepts any model id alias.
   const [defaultFallback, setDefaultFallback] = useState(initial?.defaults?.fallbackModel ?? "");
+  // Sandbox toggle — runs shell commands under bubblewrap (Linux). The Session
+  // forwards `failIfUnavailable: false` so this is a no-op on macOS rather
+  // than a fatal config error.
+  const [defaultSandbox, setDefaultSandbox] = useState<boolean>(
+    initial?.defaults?.sandboxEnabled === true,
+  );
   const [agentNames, setAgentNames] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -149,6 +155,8 @@ export function WorkspaceForm({ initial, onCancel, onSubmit, onIconUpload, onDel
       else delete defaults.maxBudgetUsd;
       if (defaultFallback.trim()) defaults.fallbackModel = defaultFallback.trim();
       else delete defaults.fallbackModel;
+      if (defaultSandbox) defaults.sandboxEnabled = true;
+      else delete defaults.sandboxEnabled;
       const r = await onSubmit({
         name: name.trim(),
         rootPath: rootPath.trim(),
@@ -426,6 +434,18 @@ export function WorkspaceForm({ initial, onCancel, onSubmit, onIconUpload, onDel
                 />
               </Field>
             </div>
+            <label className="mt-2 flex cursor-pointer items-center gap-2 text-xs">
+              <input
+                type="checkbox"
+                checked={defaultSandbox}
+                onChange={(e) => setDefaultSandbox(e.target.checked)}
+                className="h-3 w-3 rounded border-[var(--border)] bg-[var(--panel-2)]"
+              />
+              <span>Sandbox shell commands</span>
+              <span className="text-[10px] text-[var(--muted)]">
+                Linux only (bubblewrap); no-op on macOS.
+              </span>
+            </label>
             <p className="mt-1 text-[10px] text-[var(--muted)]">
               Apply only to new sessions. An explicit per-session override still wins.
               Setting an agent also applies its own model.

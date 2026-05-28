@@ -50,8 +50,19 @@ describe("mergeSessionDefaults", () => {
       agent: undefined,
       maxBudgetUsd: undefined,
       fallbackModel: undefined,
+      sandboxEnabled: undefined,
       permissionMode: undefined,
     });
+  });
+
+  test("sandboxEnabled follows the same precedence (request wins, default fills)", () => {
+    // request:true wins over default:false
+    expect(mergeSessionDefaults({ sandboxEnabled: true }, { sandboxEnabled: false }).sandboxEnabled).toBe(true);
+    // default fills when omitted
+    expect(mergeSessionDefaults({}, { sandboxEnabled: true }).sandboxEnabled).toBe(true);
+    // explicit request:false overrides default:true — ?? only falls through on
+    // null/undefined, so a deliberate disable survives.
+    expect(mergeSessionDefaults({ sandboxEnabled: false }, { sandboxEnabled: true }).sandboxEnabled).toBe(false);
   });
 
   test("fallbackModel follows the same precedence (request wins, default fills)", () => {

@@ -26,6 +26,14 @@ export type WorkspaceDefaults = {
    */
   fallbackModel?: string;
   /**
+   * Run shell commands in a sandbox (SDK `Options.sandbox`). When true, the
+   * Session passes `{ enabled: true, autoAllowBashIfSandboxed: true,
+   * failIfUnavailable: false }` — the last flag lets it degrade gracefully on
+   * platforms without bubblewrap (macOS) instead of failing the query.
+   * Absent/false ⇒ no sandbox.
+   */
+  sandboxEnabled?: boolean;
+  /**
    * Default main-thread agent for new sessions — the SDK `--agent` flag
    * equivalent (Options.agent). Applies the named agent's system prompt, tool
    * restrictions, AND model to the main conversation, so when set it overrides

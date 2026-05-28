@@ -265,6 +265,12 @@ export class Session {
    * when the primary model is unavailable / errors. Undefined = no fallback.
    */
   readonly fallbackModel?: string;
+  /**
+   * Run shell commands in a sandbox — when true, the Options.sandbox config
+   * forwarded to the SDK enables sandboxing with autoAllowBashIfSandboxed and
+   * failIfUnavailable: false (graceful macOS degradation).
+   */
+  readonly sandboxEnabled?: boolean;
   readonly resumeFrom?: string;
   readonly resumeAt?: string;
   /**
@@ -335,6 +341,7 @@ export class Session {
     agent?: string;
     maxBudgetUsd?: number;
     fallbackModel?: string;
+    sandboxEnabled?: boolean;
     permissionMode?: PermissionMode;
     resume?: string;
     resumeSessionAt?: string;
@@ -357,6 +364,7 @@ export class Session {
     this.agent = opts.agent;
     this.maxBudgetUsd = opts.maxBudgetUsd;
     this.fallbackModel = opts.fallbackModel;
+    this.sandboxEnabled = opts.sandboxEnabled;
     this.permissionMode = opts.permissionMode ?? "default";
     this.resumeFrom = opts.resume;
     this.resumeAt = opts.resumeSessionAt;
@@ -484,6 +492,20 @@ export class Session {
       // Fallback model — the SDK switches to this if the primary model is
       // unavailable or errors (overload, model_not_found). Omitted when unset.
       ...(this.fallbackModel ? { fallbackModel: this.fallbackModel } : {}),
+      // Sandbox shell commands. autoAllowBashIfSandboxed avoids permission
+      // hammering once the sandbox is on; failIfUnavailable:false lets it
+      // degrade gracefully on macOS (no bubblewrap) rather than failing the
+      // whole query. The SDK leaves the actual access policy to the existing
+      // Bash/WebFetch permission rules.
+      ...(this.sandboxEnabled
+        ? {
+            sandbox: {
+              enabled: true,
+              autoAllowBashIfSandboxed: true,
+              failIfUnavailable: false,
+            },
+          }
+        : {}),
       permissionMode: this.permissionMode,
       abortController: this.abortController,
       canUseTool: this.canUseTool,

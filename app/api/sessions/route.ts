@@ -49,7 +49,8 @@ export async function POST(req: Request) {
   // Merge: workspace defaults *under* explicit body fields. Spec rule:
   //   effective = { ...workspace.defaults, ...request }
   const defaults = originWs?.defaults ?? {};
-  const { model, permissionMode, agent, maxBudgetUsd, fallbackModel } = mergeSessionDefaults(body, defaults);
+  const { model, permissionMode, agent, maxBudgetUsd, fallbackModel, sandboxEnabled } =
+    mergeSessionDefaults(body, defaults);
 
   const session = await sessionManager.create({
     cwd,
@@ -57,6 +58,7 @@ export async function POST(req: Request) {
     agent,
     maxBudgetUsd,
     fallbackModel,
+    sandboxEnabled,
     permissionMode,
     resume: body.resume,
     resumeSessionAt: body.resumeSessionAt,
