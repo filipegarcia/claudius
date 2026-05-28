@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Bot, FilePlus, RefreshCw, Save, Trash2 } from "lucide-react";
+import { ArrowLeft, Bot, ChevronDown, ChevronRight, FilePlus, RefreshCw, Save, Trash2 } from "lucide-react";
 import { SideNav } from "@/components/nav/SideNav";
 import { ScopeToggle, type Scope as IaScope } from "@/components/nav/ScopeToggle";
 import { useActiveCwd } from "@/lib/client/useActiveCwd";
@@ -12,6 +12,20 @@ import { cn } from "@/lib/utils/cn";
 const SCOPE_LABELS: Record<AgentScope, string> = {
   user: "User (~/.claude/agents)",
   project: "Project (.claude/agents)",
+};
+
+/**
+ * Minimal mirror of the SDK's `AgentInfo`. Kept local rather than imported
+ * so this client page doesn't pull a type from the server-only SDK surface.
+ * This is the *live* list the SDK reports via `supportedAgents()` — file-based
+ * agents, plugin-injected agents, and the built-in general-purpose / Explore
+ * agents — which is a superset of the `.claude/agents/*.md` files this editor
+ * manages.
+ */
+type LoadedAgent = {
+  name: string;
+  description?: string;
+  model?: string;
 };
 
 const TEMPLATE = `---
@@ -34,6 +48,15 @@ export default function AgentsPage() {
   const [error, setError] = useState<string | null>(null);
   const [iaScope, setIaScope] = useState<IaScope>("workspace");
 
+  // Live SDK-loaded agents for the active session (file + plugin + built-in).
+  // `sessionId` is discovered from the in-memory session list by matching the
+  // workspace cwd — the same approach the /mcp page uses — because this page
+  // is cwd-scoped while the SDK call is session-scoped.
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [loadedAgents, setLoadedAgents] = useState<LoadedAgent[] | null>(null);
+  const [loadedError, setLoadedError] = useState<string | null>(null);
+  const [showLoaded, setShowLoaded] = useState(false);
+
   const refresh = useCallback(async () => {
     if (cwd == null) return;
     setLoading(true);
@@ -51,6 +74,40 @@ export default function AgentsPage() {
     }
   }, [cwd]);
 
+  // Discover the live session for this workspace and fetch the SDK's loaded
+  // agent list. Two-step (sessions → agents) because the page is cwd-scoped
+  // but `supportedAgents()` is session-scoped — same approach as the /mcp
+  // page. A network fetch can't live in the render-phase reset pattern used
+  // above, so this is a deliberate effect. Re-runs on cwd change.
+  useEffect(() => {
+    if (cwd == null) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const sres = await fetch("/api/sessions");
+        const arr = (await sres.json()) as Array<{ id?: string; cwd?: string }>;
+        const match = Array.isArray(arr) ? arr.find((s) => s.cwd === cwd) : undefined;
+        const sid = match?.id ?? null;
+        if (cancelled) return;
+        setSessionId(sid);
+        if (!sid) return; // no live session → banner shows the "start a chat" hint
+        const ares = await fetch(`/api/sessions/${encodeURIComponent(sid)}/agents`);
+        if (!ares.ok) {
+          const body = (await ares.json().catch(() => ({}))) as { error?: string };
+          if (!cancelled) setLoadedError(body.error ?? `HTTP ${ares.status}`);
+          return;
+        }
+        const d = (await ares.json()) as { agents?: LoadedAgent[] };
+        if (!cancelled) setLoadedAgents(Array.isArray(d.agents) ? d.agents : []);
+      } catch (err) {
+        if (!cancelled) setLoadedError(err instanceof Error ? err.message : String(err));
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [cwd]);
+
   // Reset selection / draft state on workspace switch — a stale selection
   // from a different cwd would either render a missing file or, worse,
   // pretend an unrelated workspace's agent belongs to this one. Reset
@@ -63,6 +120,13 @@ export default function AgentsPage() {
     setActive(null);
     setDirty(false);
     setError(null);
+    // Clear the previous workspace's loaded-agents view here (render phase)
+    // rather than synchronously inside the fetch effect — the effect then
+    // only performs the network read, avoiding cascading-render warnings.
+    setLoadedAgents(null);
+    setLoadedError(null);
+    setSessionId(null);
+    setShowLoaded(false);
   }
 
   // When the active agent changes, populate the draft from the loaded file.
@@ -166,6 +230,57 @@ export default function AgentsPage() {
             <RefreshCw className="h-3 w-3" /> Refresh
           </button>
         </header>
+
+        {/* Loaded-agents banner: the SDK's live view (file + plugin + built-in),
+            distinct from the .claude/agents/*.md files edited below. */}
+        <div className="shrink-0 border-b border-[var(--border)] bg-[var(--panel)]/40 px-4 py-1.5 text-[11px]">
+          {sessionId == null ? (
+            <span className="text-[var(--muted)]">
+              Start a chat session in this workspace to see the agents the SDK has loaded.
+            </span>
+          ) : loadedError ? (
+            <span className="text-amber-400">SDK agents unavailable: {loadedError}</span>
+          ) : loadedAgents == null ? (
+            <span className="text-[var(--muted)]">Loading SDK-reported agents…</span>
+          ) : (
+            <>
+              <button
+                onClick={() => setShowLoaded((v) => !v)}
+                className="flex items-center gap-1 text-[var(--muted)] hover:text-[var(--foreground)]"
+                aria-expanded={showLoaded}
+              >
+                {showLoaded ? (
+                  <ChevronDown className="h-3 w-3" />
+                ) : (
+                  <ChevronRight className="h-3 w-3" />
+                )}
+                SDK reports {loadedAgents.length} agent{loadedAgents.length === 1 ? "" : "s"} loaded
+                for this session
+              </button>
+              {showLoaded && (
+                <ul className="mt-1.5 flex flex-col gap-1 pl-4">
+                  {loadedAgents.length === 0 ? (
+                    <li className="italic text-[var(--muted)]">None.</li>
+                  ) : (
+                    loadedAgents.map((a) => (
+                      <li key={a.name} className="flex items-baseline gap-2">
+                        <span className="font-mono text-[var(--foreground)]">{a.name}</span>
+                        {a.model && (
+                          <span className="font-mono text-[10px] text-[var(--muted)]">{a.model}</span>
+                        )}
+                        {a.description && (
+                          <span className="truncate text-[10px] text-[var(--muted)]">
+                            {a.description}
+                          </span>
+                        )}
+                      </li>
+                    ))
+                  )}
+                </ul>
+              )}
+            </>
+          )}
+        </div>
 
         <div className="flex flex-1 overflow-hidden">
           <aside className="flex w-72 shrink-0 flex-col border-r border-[var(--border)] bg-[var(--panel)]/60">
