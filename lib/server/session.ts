@@ -1706,6 +1706,45 @@ export class Session {
   }
 
   /**
+   * Stop a single running task (Bash command or subagent) by its task id —
+   * the SDK emits a `task_notification` with status 'stopped' in response.
+   * Targets just that task, unlike `interrupt()` which aborts the whole turn
+   * (B2.4). Task ids come from the `task_started` / `task_notification`
+   * events the client already tracks in TaskInfo.
+   */
+  async stopTask(taskId: string): Promise<{ ok: true } | { ok: false; error: string }> {
+    if (!this.query) return { ok: false, error: "no active query" };
+    try {
+      await this.query.stopTask(taskId);
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : String(err) };
+    }
+  }
+
+  /**
+   * Push in-flight foreground work to the background — the control-request
+   * equivalent of Ctrl+B in the terminal (B2.4). With `toolUseId` it targets
+   * the single blocking task started by that tool_use block; without it,
+   * backgrounds all foreground tasks. The blocking tool call returns
+   * immediately with a "running in the background" tool_result and the turn
+   * continues; the task keeps running and emits a `task_notification` when it
+   * settles. Returns the SDK's boolean (false only when a given `toolUseId`
+   * matched no foreground task).
+   */
+  async backgroundTasks(
+    toolUseId?: string,
+  ): Promise<{ ok: true; backgrounded: boolean } | { ok: false; error: string }> {
+    if (!this.query) return { ok: false, error: "no active query" };
+    try {
+      const backgrounded = await this.query.backgroundTasks(toolUseId);
+      return { ok: true, backgrounded };
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : String(err) };
+    }
+  }
+
+  /**
    * B2.3: replay every path the model has Read this session through the
    * SDK's `seedReadState(path, mtime)` so the CLI's readFileState cache is
    * repopulated after a `compact_boundary`. Without this, an Edit after
