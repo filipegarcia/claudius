@@ -2289,6 +2289,9 @@ export class Session {
     // ring regardless because the agent is blocked on them.
     void notificationBus.recordSessionEvent(this.cwd, this.id, event, {
       hasSubscribers: this.subscribers.size > 0,
+      // Mirror `tabLabelFor`'s fallback so an untitled session still shows a
+      // recognisable id-prefix instead of the raw cwd in the inbox.
+      sessionTitle: this.title?.trim() || this.id.slice(0, 8),
     });
   }
 
@@ -2802,7 +2805,10 @@ export class Session {
             type: "sdk",
             message: { type: "result" } as unknown as SDKMessage,
           },
-          { hasSubscribers: this.subscribers.size > 0 },
+          {
+            hasSubscribers: this.subscribers.size > 0,
+            sessionTitle: this.title?.trim() || this.id.slice(0, 8),
+          },
         );
       }
     }

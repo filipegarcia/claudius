@@ -63,6 +63,14 @@ type RecordContext = {
   runId?: string;
   jobId?: string;
   /**
+   * Human-readable session label (custom title, or an id-prefix fallback),
+   * passed by `Session.broadcast`. Used as the `session_idle` row's body so
+   * the inbox shows *which* session finished a turn instead of the raw cwd
+   * path — a user with several tabs open in one workspace couldn't tell them
+   * apart otherwise. Absent for scheduler-only rows.
+   */
+  sessionTitle?: string;
+  /**
    * Whether the originating session currently has at least one SSE
    * subscriber. Used to suppress *background* notifications whose only
    * value is "Claude finished a turn over there" or "Session over there
@@ -167,11 +175,12 @@ class NotificationBus {
     cwd: string,
     sessionId: string,
     event: ServerEvent,
-    opts: { hasSubscribers?: boolean } = {},
+    opts: { hasSubscribers?: boolean; sessionTitle?: string } = {},
   ): Promise<void> {
     await this.record(event, {
       cwd,
       sessionId,
+      sessionTitle: opts.sessionTitle,
       hasSubscribers: opts.hasSubscribers,
     });
   }
@@ -700,7 +709,9 @@ export function mapEventToKind(
       return {
         kind: "session_idle",
         title: "Claude finished a turn",
-        body: ctx.cwd,
+        // Prefer the session label so the inbox shows *which* session went
+        // idle; fall back to the cwd for callers that don't supply a title.
+        body: ctx.sessionTitle ?? ctx.cwd,
       };
     }
     case "run_finished": {
@@ -822,7 +833,7 @@ declare global {
  * background-suppressible rows; the new instance PERSISTS them and only
  * suppresses the per-row notification SSE event.
  */
-const BUS_BUILD_TAG = "bus-build:2026-05-13:preserve-lastUserInputAt-across-hmr";
+const BUS_BUILD_TAG = "bus-build:2026-05-28:session_idle-body-uses-session-title";
 
 function pickBus(): NotificationBus {
   const cached = globalThis.__claudiusNotificationBus as
