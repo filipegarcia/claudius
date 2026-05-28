@@ -306,6 +306,10 @@ export function useSession(): ChatState & ChatActions {
   const [errors, setErrors] = useState<string[]>([]);
   const [slashCommands, setSlashCommands] = useState<string[]>([]);
   const [agents, setAgents] = useState<string[]>([]);
+  // The main-thread agent this session runs as (SDK Options.agent), or null
+  // for the default agent. Carried on the `ready` event (the SDK init message
+  // doesn't include it). Drives the StatusLine "running as <agent>" badge.
+  const [mainAgent, setMainAgent] = useState<string | null>(null);
   const [skills, setSkills] = useState<string[]>([]);
   const [cwd, setCwd] = useState<string | null>(null);
   const [usage, setUsage] = useState<SessionUsage | null>(null);
@@ -736,6 +740,7 @@ export function useSession(): ChatState & ChatActions {
     setErrors([]);
     setSlashCommands([]);
     setAgents([]);
+    setMainAgent(null);
     setSkills([]);
     setCwd(null);
     setUsage(null);
@@ -1021,6 +1026,7 @@ export function useSession(): ChatState & ChatActions {
     (ev: ServerEvent) => {
       if (ev.type === "ready") {
         setReady(true);
+        setMainAgent(ev.agent ?? null);
         return;
       }
       if (ev.type === "error") {
@@ -3042,6 +3048,7 @@ export function useSession(): ChatState & ChatActions {
     errors,
     slashCommands,
     agents,
+    mainAgent,
     permissionMode,
     model,
     effort,

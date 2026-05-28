@@ -978,6 +978,7 @@ export default function Home() {
           pending={session.pending}
           permissionMode={session.permissionMode}
           model={session.model}
+          mainAgent={session.mainAgent}
           onModeChange={session.setPermissionMode}
           sessions={session.sessions}
           onSwitchSession={(id) => {

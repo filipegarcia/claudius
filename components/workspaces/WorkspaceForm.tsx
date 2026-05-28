@@ -51,6 +51,12 @@ export function WorkspaceForm({ initial, onCancel, onSubmit, onIconUpload, onDel
     // When editing, respect whatever was previously saved — including "".
     initial ? (initial.defaults?.permissionMode ?? "") : "bypassPermissions",
   );
+  // Default main-thread agent (SDK Options.agent). Sourced from the file-based
+  // agents in this workspace's .claude/agents (+ ~/.claude/agents); "" = the
+  // default agent. Built-in agents (general-purpose, Explore) aren't listed
+  // here because they're plugin-provided, not on disk pre-session.
+  const [defaultAgent, setDefaultAgent] = useState(initial?.defaults?.agent ?? "");
+  const [agentNames, setAgentNames] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPicker, setShowPicker] = useState(false);
@@ -78,6 +84,31 @@ export function WorkspaceForm({ initial, onCancel, onSubmit, onIconUpload, onDel
     };
   }, [pendingImage]);
 
+  // Load the file-based agents available in this workspace so the default-agent
+  // dropdown can list them. Best-effort; the fetch only sets state in its async
+  // callback (no synchronous setState in the effect body).
+  useEffect(() => {
+    const cwd = rootPath.trim();
+    if (!cwd) return;
+    let cancelled = false;
+    fetch(`/api/agents?cwd=${encodeURIComponent(cwd)}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: { scopes?: Array<{ files?: Array<{ name?: string }> }> } | null) => {
+        if (cancelled || !d) return;
+        const names = new Set<string>();
+        for (const s of d.scopes ?? []) {
+          for (const f of s.files ?? []) {
+            if (typeof f.name === "string") names.add(f.name);
+          }
+        }
+        setAgentNames([...names].sort((a, b) => a.localeCompare(b)));
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [rootPath]);
+
   function pickImageFile(file: File) {
     if (pendingImage) URL.revokeObjectURL(pendingImage.previewUrl);
     setPendingImage({ file, previewUrl: URL.createObjectURL(file) });
@@ -103,6 +134,8 @@ export function WorkspaceForm({ initial, onCancel, onSubmit, onIconUpload, onDel
       else delete defaults.model;
       if (defaultMode) defaults.permissionMode = defaultMode;
       else delete defaults.permissionMode;
+      if (defaultAgent.trim()) defaults.agent = defaultAgent.trim();
+      else delete defaults.agent;
       const r = await onSubmit({
         name: name.trim(),
         rootPath: rootPath.trim(),
@@ -337,8 +370,28 @@ export function WorkspaceForm({ initial, onCancel, onSubmit, onIconUpload, onDel
                 </select>
               </Field>
             </div>
+            <Field label="Agent">
+              <select
+                value={defaultAgent}
+                onChange={(e) => setDefaultAgent(e.target.value)}
+                className="w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 text-xs focus:outline-none"
+              >
+                <option value="">(default agent)</option>
+                {/* Keep a saved value selectable even if its file is gone or
+                    it's a non-file agent we didn't enumerate. */}
+                {defaultAgent && !agentNames.includes(defaultAgent) && (
+                  <option value={defaultAgent}>{defaultAgent}</option>
+                )}
+                {agentNames.map((n) => (
+                  <option key={n} value={n}>
+                    {n}
+                  </option>
+                ))}
+              </select>
+            </Field>
             <p className="mt-1 text-[10px] text-[var(--muted)]">
               Apply only to new sessions. An explicit per-session override still wins.
+              Setting an agent also applies its own model.
             </p>
           </div>
           {error && (
