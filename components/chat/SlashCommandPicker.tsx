@@ -85,6 +85,10 @@ export function SlashCommandPicker({ value, sdkSlashCommands, sdkSkills, sdkRich
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (visible.length === 0) return;
+      // Cmd/Ctrl+↑/↓ is the composer's prompt-history recall chord — leave it
+      // for PromptInput even while this picker is open (a recalled slash
+      // command keeps the picker mounted). Plain arrows still move the highlight.
+      if ((e.metaKey || e.ctrlKey) && (e.key === "ArrowUp" || e.key === "ArrowDown")) return;
       if (e.key === "ArrowDown") {
         e.preventDefault();
         setHi((h) => (h + 1) % visible.length);

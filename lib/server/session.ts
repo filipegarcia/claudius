@@ -37,6 +37,10 @@ import {
 } from "@/lib/shared/events";
 import { listSessionTasks, saveSessionTask } from "./session-tasks-db";
 import { extractUserPromptText, isRealUserPrompt } from "@/lib/shared/user-prompt";
+import {
+  planThinkingReplayRecovery,
+  thinkingReplayErrorFrom,
+} from "./thinking-replay-recovery";
 import { extractReadPaths } from "@/lib/shared/read-tool-paths";
 import type { SessionLoop } from "@/lib/shared/session-loops";
 import { readSettings, type ClaudeSettings } from "./settings";
@@ -378,6 +382,14 @@ export class Session {
   private scheduledLoops = new Map<string, SessionLoop>();
   private pendingScheduledLoops = new Map<string, SessionLoop>();
 
+  /**
+   * Set once `consume()` has seen the thinking-block replay 400 for this
+   * query lifetime and scheduled an auto-recovery, so a single poisoned turn
+   * (which the SDK may surface more than once) triggers at most one rebuild.
+   * See `runThinkingReplayRecovery` and `thinking-replay-recovery.ts`.
+   */
+  private thinkingReplayRecoveryScheduled = false;
+
   constructor(opts: {
     id?: string;
     cwd?: string;
@@ -423,10 +435,25 @@ export class Session {
     // each into our buffer so SSE subscribers replay the full transcript.
     if (this.resumeFrom) {
       try {
-        const historical = await getSessionMessages(this.resumeFrom, {
+        const loaded = await getSessionMessages(this.resumeFrom, {
           dir: this.cwd,
           includeSystemMessages: true,
         });
+        // When resuming at a specific message (auto-recovery rewind — see
+        // `thinking-replay-recovery.ts`), the SDK query is truncated to
+        // `resumeAt` via Options.resumeSessionAt, but getSessionMessages has
+        // no by-uuid cutoff, so the raw load still carries the dropped tail
+        // (including the poisoned turn). Slice the replay to match so the chat
+        // buffer reflects what the model actually sees. `resumeAt` is unset for
+        // ordinary resumes, so this is a no-op there. If the uuid isn't found,
+        // fall back to the full load rather than blank the history.
+        let historical = loaded;
+        if (this.resumeAt) {
+          const cut = loaded.findIndex(
+            (m) => (m as { uuid?: string }).uuid === this.resumeAt,
+          );
+          if (cut >= 0) historical = loaded.slice(0, cut + 1);
+        }
         if (sessLoadDebug()) {
            
           console.log("[sess-load] start.resume loaded historical", {
@@ -1774,6 +1801,96 @@ export class Session {
     }
   }
 
+  /**
+   * The subset of create options needed to rebuild this session under the
+   * same id during auto-recovery (see `SessionManager.recoverInPlace`).
+   * `resume` / `resumeSessionAt` are supplied by the caller.
+   */
+  getRebuildOpts(): {
+    cwd: string;
+    model?: string;
+    agent?: string;
+    maxBudgetUsd?: number;
+    fallbackModel?: string;
+    sandboxEnabled?: boolean;
+    permissionMode: PermissionMode;
+  } {
+    return {
+      cwd: this.cwd,
+      model: this.model,
+      agent: this.agent,
+      maxBudgetUsd: this.maxBudgetUsd,
+      fallbackModel: this.fallbackModel,
+      sandboxEnabled: this.sandboxEnabled,
+      permissionMode: this.permissionMode,
+    };
+  }
+
+  /**
+   * One-shot trigger for thinking-block-replay auto-recovery. Called from the
+   * `consume()` loop when it observes the 400. Deferred so the current
+   * iterator unwinds before we tear the Session down and rebuild it.
+   */
+  private scheduleThinkingReplayRecovery(): void {
+    if (this.thinkingReplayRecoveryScheduled) return;
+    this.thinkingReplayRecoveryScheduled = true;
+    this.broadcast({
+      type: "error",
+      message:
+        "Thinking-block replay error (HTTP 400) — auto-recovering: rewinding past the failed turn and retrying.",
+    });
+    setTimeout(() => {
+      void this.runThinkingReplayRecovery();
+    }, 0);
+  }
+
+  /**
+   * Rebuild the session truncated to before the poisoned turn, then re-send
+   * the prompt that started it. Reuses the proven resume path
+   * (`SessionManager.recoverInPlace` → `create({ resume, resumeSessionAt })`)
+   * so the session id — and therefore the open browser tab's URL — is
+   * preserved; the client just reconnects to the rebuilt session. Failures
+   * are surfaced to the user rather than silently looping.
+   */
+  private async runThinkingReplayRecovery(): Promise<void> {
+    try {
+      const messages = await getSessionMessages(this.id, {
+        dir: this.cwd,
+        includeSystemMessages: false,
+      });
+      const plan = planThinkingReplayRecovery(messages);
+      if (!plan) {
+        this.broadcast({
+          type: "error",
+          message:
+            "Could not auto-recover from the thinking-block error (no safe rewind point). Start a new session, or fork before the failing turn.",
+        });
+        return;
+      }
+      // Dynamic import avoids a static session ⇄ session-manager import cycle
+      // (the manager statically imports Session).
+      const { sessionManager } = await import("./session-manager");
+      const res = await sessionManager.recoverInPlace(this.id, {
+        resumeAt: plan.resumeAt,
+        replayPrompt: plan.replayPrompt,
+      });
+      if (!res.ok) {
+        this.broadcast({
+          type: "error",
+          message:
+            res.reason === "max_attempts"
+              ? "Auto-recovery gave up after repeated thinking-block failures on the same turn — please start a new session."
+              : `Auto-recovery could not rebuild the session (${res.reason}).`,
+        });
+      }
+    } catch (err) {
+      this.broadcast({
+        type: "error",
+        message: `Auto-recovery failed: ${err instanceof Error ? err.message : String(err)}`,
+      });
+    }
+  }
+
   async end(): Promise<void> {
     this.inputQueue.close();
     this.abortController.abort();
@@ -2710,6 +2827,15 @@ export class Session {
     try {
       for await (const message of this.query as AsyncIterable<SDKMessage>) {
         this.broadcast({ type: "sdk", message });
+        // Auto-recover from the thinking-block replay 400. The SDK surfaces it
+        // as a synthetic assistant "API Error: …" message (not a thrown
+        // error), then ends the turn — leaving the poisoned turn as the
+        // conversation tail so every future prompt re-fails. Detect it here
+        // and schedule an in-place rewind+retry; the guard inside makes it
+        // fire at most once per query lifetime.
+        if (thinkingReplayErrorFrom(message)) {
+          this.scheduleThinkingReplayRecovery();
+        }
         // Side-effect: keep the per-session ScheduledLoops map in sync with
         // any cron/wake-up tool_use + tool_result blocks observed on the
         // wire. Mirror of the client-side reducer in `lib/client/use-session.ts` —
@@ -2734,6 +2860,17 @@ export class Session {
           sawResult = true;
           this.turnInFlight = false;
           this.broadcastTurnStatusIfChanged();
+          // A successful turn clears the consecutive thinking-replay recovery
+          // budget, so a later, unrelated 400 can still auto-recover even after
+          // earlier recoveries this session. Only `subtype: "success"` resets —
+          // a poisoned turn never produces one — so a tight recover→re-poison
+          // loop (no success between) still trips the cap. Dynamic import keeps
+          // the session ⇄ session-manager cycle out of the static graph.
+          if ((message as { subtype?: string }).subtype === "success") {
+            void import("./session-manager").then(({ sessionManager }) =>
+              sessionManager.noteThinkingRecoverySuccess(this.id),
+            );
+          }
           void touchSession(this.cwd, this.id).catch(() => {
             // index update is non-critical; never crash consume() over it
           });

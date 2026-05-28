@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { AlertTriangle, Loader2, Shrink } from "lucide-react";
 
 type Props = {
@@ -12,6 +13,17 @@ type Props = {
   onCompact: () => void;
 };
 
+// Cells in the animated indeterminate bar, and the width of the moving
+// filled-block window that slides across them.
+const SEGMENTS = 30;
+const WINDOW = 6;
+
+function formatElapsed(totalSec: number): string {
+  const m = Math.floor(totalSec / 60);
+  const s = totalSec % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
 /**
  * Live warning shown above the composer when the active session's context
  * window crosses the user-configured threshold (see `useContextWarning`).
@@ -23,10 +35,12 @@ type Props = {
  * chat page instead of inline in the message list.
  *
  * The Compact button fires the same `/compact` path as the StatusLine
- * control; while compaction runs we show an indeterminate progress bar
- * (the CLI shows the same kind of activity bar) that resolves when the SDK
- * emits the `compact_boundary` — at which point context usage drops back
- * under the threshold and this banner naturally unmounts.
+ * control. While compaction runs we show an **honest** indicator: a running
+ * elapsed timer plus an animated indeterminate bar. The SDK exposes no
+ * compaction-progress fraction (only a `compacting` status and a final
+ * success/fail), so a real percentage is impossible — we don't fake one. The
+ * indicator clears when the SDK emits the `compact_boundary`, at which point
+ * freed context drops below the threshold and this banner unmounts.
  */
 export function ContextWarningBanner({ percentage, compacting, pending, onCompact }: Props) {
   const pct = Math.round(percentage);
@@ -42,19 +56,48 @@ export function ContextWarningBanner({ percentage, compacting, pending, onCompac
   // compaction — in which case the button is already showing its busy state.
   const blocked = pending && !compacting;
 
+  // Elapsed milliseconds since compaction started, advanced by one interval.
+  // The interval closure captures its own `start`, so render only ever reads
+  // the `elapsed` state — no ref reads and no `Date.now()` during render (both
+  // of which the react-hooks lint rules flag). The cleanup resets to 0 so a
+  // second compaction in the same mounted banner opens cleanly at "0:00".
+  const [elapsed, setElapsed] = useState(0);
+  useEffect(() => {
+    if (!compacting) return;
+    const start = Date.now();
+    const id = window.setInterval(() => setElapsed(Date.now() - start), 150);
+    return () => {
+      window.clearInterval(id);
+      setElapsed(0);
+    };
+  }, [compacting]);
+
+  const elapsedSec = Math.floor(elapsed / 1000);
+  const headPos = Math.floor(elapsed / 150) % SEGMENTS;
+  const marquee = Array.from({ length: SEGMENTS }, (_, i) =>
+    (i - headPos + SEGMENTS) % SEGMENTS < WINDOW ? "▰" : "▱",
+  ).join("");
+
   return (
     <div className="mx-auto w-full max-w-3xl px-4 pb-2">
       <div className={`rounded-md border px-3 py-2 text-[11px] leading-5 ${tone}`}>
         <div className="flex items-center gap-2">
           <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
           <span className="min-w-0 flex-1 font-medium">
-            {compacting
-              ? "Compacting conversation…"
-              : `Context window is ${pct}% full`}
-            {!compacting && (
-              <span className="ml-1 font-normal opacity-80">
-                — compact to free up space before auto-compaction kicks in.
-              </span>
+            {compacting ? (
+              <>
+                Compacting conversation…
+                <span className="ml-1.5 font-mono font-normal tabular-nums opacity-80">
+                  {formatElapsed(elapsedSec)}
+                </span>
+              </>
+            ) : (
+              <>
+                {`Context window is ${pct}% full`}
+                <span className="ml-1 font-normal opacity-80">
+                  — compact to free up space before auto-compaction kicks in.
+                </span>
+              </>
             )}
           </span>
           <button
@@ -82,9 +125,11 @@ export function ContextWarningBanner({ percentage, compacting, pending, onCompac
             role="progressbar"
             aria-label="Compacting conversation"
             aria-busy
-            className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-current/15"
+            className="mt-2 font-mono text-[11px] leading-none"
           >
-            <div className="h-full w-1/4 animate-indeterminate-slide rounded-full bg-current/70" />
+            <span className="whitespace-pre tracking-[0.08em]" aria-hidden="true">
+              {marquee}
+            </span>
           </div>
         )}
       </div>

@@ -63,6 +63,9 @@ export function AtMentionPicker({ query, cwd, onSelect, onClose }: Props) {
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (visible.length === 0) return;
+      // Cmd/Ctrl+↑/↓ is the composer's prompt-history recall chord — let it
+      // pass through to PromptInput rather than moving this picker's highlight.
+      if ((e.metaKey || e.ctrlKey) && (e.key === "ArrowUp" || e.key === "ArrowDown")) return;
       if (e.key === "ArrowDown") {
         e.preventDefault();
         setHi((h) => (h + 1) % visible.length);

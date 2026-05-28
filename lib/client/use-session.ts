@@ -20,6 +20,7 @@ import {
   isLocalCommandCaveatContent,
   isSdkInternalEnvelope,
   isSdkSlashUserMessage,
+  isSuppressedSystemEvent,
   isSyntheticTaskNotification,
   parseSyntheticCliWrapper,
 } from "./sdk-message-filters";
@@ -2284,20 +2285,24 @@ export function useSession(): ChatState & ChatActions {
           ) {
             const uuid = (msg as { uuid?: string }).uuid ?? crypto.randomUUID();
             const anchor = lastAssistantUuidRef.current;
-            setSystemEntries((prev) => {
-              if (prev.some((e) => e.uuid === uuid)) return prev;
-              if (prev.some((e) => e.kind === "compact_boundary" && e.afterMessageUuid === anchor))
-                return prev;
-              return [
-                ...prev,
-                {
-                  uuid,
-                  afterMessageUuid: anchor,
-                  kind: "compact_boundary",
-                  label: "Compacted earlier conversation",
-                },
-              ];
-            });
+            // The record content IS the full compaction summary — capture it so
+            // the divider can expand it on demand (the CLI's ctrl+o view).
+            let summaryText = "";
+            if (typeof content === "string") summaryText = content;
+            else if (Array.isArray(content)) {
+              for (const c of content as Array<{ type?: string; text?: string }>) {
+                if (c?.type === "text" && c.text) summaryText += c.text;
+              }
+            }
+            summaryText = summaryText.trim();
+            setSystemEntries((prev) =>
+              mergeCompactBoundary(
+                prev,
+                uuid,
+                anchor,
+                summaryText ? { compactSummary: summaryText } : {},
+              ),
+            );
             return;
           }
           // Drop the remaining transcript-only plumbing the SDK flags on the
@@ -2573,25 +2578,23 @@ export function useSession(): ChatState & ChatActions {
           return;
         }
         if (sysAny.subtype === "compact_boundary") {
-          // Dedupe against a summary-derived divider at the same anchor: a live
-          // compaction emits this system event AND the synthesized continuation
-          // summary (handled in the `user` branch above), and we want one
-          // divider, not two. See that branch for the ordering rationale.
-          setSystemEntries((prev) => {
-            if (prev.some((e) => e.uuid === baseEntry.uuid)) return prev;
-            if (
-              prev.some(
-                (e) =>
-                  e.kind === "compact_boundary" &&
-                  e.afterMessageUuid === baseEntry.afterMessageUuid,
-              )
-            )
-              return prev;
-            return [
-              ...prev,
-              { ...baseEntry, kind: "compact_boundary", label: "Compacted earlier conversation" },
-            ];
-          });
+          // Merge onto a single divider (deduped by anchor): a live compaction
+          // emits this system event AND the synthesized continuation summary
+          // (handled in the `user` branch above). This event carries the token
+          // deltas / duration; the summary record carries the text. Whichever
+          // lands first creates the divider and the other enriches it.
+          const stats = normalizeCompactStats(
+            (sysAny as { compact_metadata?: unknown; compactMetadata?: unknown }).compact_metadata ??
+              (sysAny as { compactMetadata?: unknown }).compactMetadata,
+          );
+          setSystemEntries((prev) =>
+            mergeCompactBoundary(
+              prev,
+              baseEntry.uuid,
+              baseEntry.afterMessageUuid,
+              stats ? { compactStats: stats } : {},
+            ),
+          );
           return;
         }
         if (sysAny.subtype === "slash_invoked") {
@@ -2715,6 +2718,13 @@ export function useSession(): ChatState & ChatActions {
           });
           return;
         }
+        // Drop SDK system plumbing that carries no user-facing value instead
+        // of rendering it as a cryptic `system/<subtype ?? "?">` pill. The
+        // Ralph-loop Stop hook fires a `stop_hook_summary` per iteration whose
+        // subtype is stripped to `undefined` before it reaches us — without
+        // this guard, a long loop floods the chat with `system/?` rows that
+        // aren't even durable across a reload. See isSuppressedSystemEvent.
+        if (isSuppressedSystemEvent(sysAny.subtype)) return;
         setSystemEntries((prev) => [
           ...prev,
           { ...baseEntry, kind: "info", label: `system/${sysAny.subtype ?? "?"}` },
@@ -3564,6 +3574,71 @@ type RawSDKMessage = {
   isCompactSummary?: boolean;
   isVisibleInTranscriptOnly?: boolean;
 };
+
+/**
+ * Merge compaction metadata / summary onto a single `compact_boundary`
+ * divider. The SDK delivers the boundary (token deltas, duration, trigger) and
+ * the synthesized summary text as two separate records sharing an anchor;
+ * whichever lands first creates the entry and the other enriches it. Idempotent
+ * so an SSE replay re-delivering either record never clobbers captured fields.
+ */
+function mergeCompactBoundary(
+  prev: SystemEntry[],
+  uuid: string,
+  anchor: string,
+  patch: { compactStats?: SystemEntry["compactStats"]; compactSummary?: string },
+): SystemEntry[] {
+  const idx = prev.findIndex(
+    (e) => e.kind === "compact_boundary" && (e.uuid === uuid || e.afterMessageUuid === anchor),
+  );
+  if (idx === -1) {
+    return [
+      ...prev,
+      {
+        uuid,
+        afterMessageUuid: anchor,
+        kind: "compact_boundary",
+        label: "Compacted earlier conversation",
+        ...(patch.compactStats ? { compactStats: patch.compactStats } : {}),
+        ...(patch.compactSummary ? { compactSummary: patch.compactSummary } : {}),
+      },
+    ];
+  }
+  const existing = prev[idx];
+  const next = prev.slice();
+  next[idx] = {
+    ...existing,
+    ...(patch.compactStats
+      ? { compactStats: { ...existing.compactStats, ...patch.compactStats } }
+      : {}),
+    ...(patch.compactSummary ? { compactSummary: patch.compactSummary } : {}),
+  };
+  return next;
+}
+
+/** Normalize the SDK's compact metadata (snake_case live, camelCase on disk). */
+function normalizeCompactStats(meta: unknown): SystemEntry["compactStats"] | undefined {
+  if (!meta || typeof meta !== "object") return undefined;
+  const m = meta as Record<string, unknown>;
+  const num = (...keys: string[]): number | undefined => {
+    for (const k of keys) {
+      const v = m[k];
+      if (typeof v === "number" && Number.isFinite(v)) return v;
+    }
+    return undefined;
+  };
+  const trigger = typeof m.trigger === "string" ? m.trigger : undefined;
+  const preTokens = num("pre_tokens", "preTokens");
+  const postTokens = num("post_tokens", "postTokens");
+  const durationMs = num("duration_ms", "durationMs");
+  if (preTokens == null && postTokens == null && durationMs == null && !trigger) return undefined;
+  return {
+    ...(preTokens != null ? { preTokens } : {}),
+    ...(postTokens != null ? { postTokens } : {}),
+    ...(durationMs != null ? { durationMs } : {}),
+    ...(trigger ? { trigger } : {}),
+  };
+}
 
 /**
  * Convert a page of raw SDK messages (JSONL records) into DisplayMessages,

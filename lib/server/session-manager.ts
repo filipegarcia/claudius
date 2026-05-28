@@ -43,6 +43,15 @@ export class SessionManager {
   private reapTimers = new Map<string, NodeJS.Timeout>();
   /** Unsubscribe handles for the per-session subscriber-count listeners. */
   private subscriberWatchers = new Map<string, () => void>();
+  /**
+   * Per-id count of *consecutive* auto-recovery attempts for the thinking-block
+   * replay 400 (see `recoverInPlace`). Reset to zero by
+   * `noteThinkingRecoverySuccess` whenever a turn completes successfully, so the
+   * cap trips only on a tight re-poison loop (recover → instantly re-poison →
+   * recover …) — NOT on cumulative recoveries spread across a long, productive
+   * session, where each successful turn clears the budget.
+   */
+  private thinkingRecoveryAttempts = new Map<string, number>();
 
   async create(opts: CreateSessionRequest = {}): Promise<Session> {
     // Idempotent resume: if the caller is resuming an id we already have
@@ -131,6 +140,56 @@ export class SessionManager {
     }
     await session.end();
     this.sessions.delete(id);
+  }
+
+  /**
+   * Rebuild a session wedged by the thinking-block replay 400 (see
+   * `lib/server/thinking-replay-recovery.ts`). Ends the live session and
+   * recreates it under the SAME id, resumed and truncated to `resumeAt` so the
+   * poisoned turn is dropped, then re-sends `replayPrompt` to re-drive it.
+   * Reusing the proven resume path (`create({ resume, resumeSessionAt })`)
+   * keeps the id stable, so open browser tabs keep their URL and simply
+   * reconnect over SSE. Capped at 3 *consecutive* attempts (reset by
+   * `noteThinkingRecoverySuccess` on any successful turn) so a turn that
+   * re-poisons on replay surfaces instead of looping, while a session that
+   * recovers and keeps working can recover again later. Called by
+   * `Session.runThinkingReplayRecovery`.
+   */
+  async recoverInPlace(
+    id: string,
+    opts: { resumeAt: string; replayPrompt: string },
+  ): Promise<{ ok: true } | { ok: false; reason: "gone" | "max_attempts" }> {
+    const existing = this.sessions.get(id);
+    if (!existing) return { ok: false, reason: "gone" };
+    const attempts = this.thinkingRecoveryAttempts.get(id) ?? 0;
+    if (attempts >= 3) return { ok: false, reason: "max_attempts" };
+    this.thinkingRecoveryAttempts.set(id, attempts + 1);
+
+    // Snapshot the create options BEFORE teardown, then end + recreate under
+    // the same id resumed at the safe boundary.
+    const carry = existing.getRebuildOpts();
+    await this.remove(id);
+    const session = await this.create({
+      ...carry,
+      resume: id,
+      resumeSessionAt: opts.resumeAt,
+    });
+    // Re-drive the dropped turn. sendInput enqueues the prompt; the rebuilt
+    // query consumes it once it finishes replaying the truncated history.
+    session.sendInput(opts.replayPrompt);
+    return { ok: true };
+  }
+
+  /**
+   * Clear the consecutive-recovery budget for a session after it completes a
+   * turn successfully. Called from `Session.consume()` on a `result` with
+   * subtype `"success"`. This is what lets a long-lived session recover from
+   * the thinking-block 400 any number of times across its life, while still
+   * capping a tight recover→re-poison loop (where no successful turn ever
+   * lands to reset the count). No-op if the id has no pending count.
+   */
+  noteThinkingRecoverySuccess(id: string): void {
+    this.thinkingRecoveryAttempts.delete(id);
   }
 
   private handleSubscriberCount(id: string, count: number): void {

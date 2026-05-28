@@ -44,6 +44,31 @@ function isCompactSummaryText(text: string): boolean {
 }
 
 /**
+ * The CLI plumbing wrappers the Claude Code subprocess injects as *user*-role
+ * records around a slash-command run — the model sees them, but the user never
+ * typed them:
+ *
+ *   <command-name>/compact</command-name><command-message>…</command-message>…
+ *   <local-command-stdout>Compacted </local-command-stdout>
+ *   <local-command-stderr>…</local-command-stderr>
+ *   <local-command-caveat>…</local-command-caveat>
+ *
+ * The chat-render filters in `sdk-message-filters.ts` already lift these to
+ * small system pills, but the server's `latestUserPromptSnapshot` (and the
+ * client pin walk) resolve "the last real user prompt" through THIS predicate.
+ * Without this check, a `/compact` whose plumbing is the most-recent user
+ * record gets snapshotted as the last prompt and re-injected as a user bubble
+ * via `session_snapshot` — surfacing raw XML the user never wrote. Recognising
+ * the wrappers here keeps the snapshot and the pin in lockstep with the render
+ * filters.
+ */
+function isCliPlumbingText(text: string): boolean {
+  return /^\s*<(?:command-name|command-message|command-args|local-command-stdout|local-command-stderr|local-command-caveat)[\s>]/i.test(
+    text,
+  );
+}
+
+/**
  * Pull the plain-text body out of a user SDK message's `content`. Returns
  * null for:
  *   - empty string content,
@@ -70,6 +95,7 @@ export function extractUserPromptText(content: unknown): string | null {
     if (content.length === 0) return null;
     if (isTaskNotificationText(content)) return null;
     if (isCompactSummaryText(content)) return null;
+    if (isCliPlumbingText(content)) return null;
     return content;
   }
   if (!Array.isArray(content)) return null;
@@ -83,6 +109,7 @@ export function extractUserPromptText(content: unknown): string | null {
   if (text.length === 0) return null;
   if (isTaskNotificationText(text)) return null;
   if (isCompactSummaryText(text)) return null;
+  if (isCliPlumbingText(text)) return null;
   return text;
 }
 

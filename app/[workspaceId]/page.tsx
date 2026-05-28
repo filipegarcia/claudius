@@ -117,8 +117,10 @@ export default function Home() {
   // of re-showing a stale, still-high percentage until the next idle poll.
   const [ctxRefreshSignal, setCtxRefreshSignal] = useState(0);
   const ctxSummary = useContextWatcher(session.sessionId, session.pending, ctxRefreshSignal);
-  // True while a /compact fired from the banner is running; drives the
-  // banner's progress bar.
+  // True while a /compact fired from the banner (or the StatusLine button) is
+  // running; drives the banner's "Compacting…" indicator (elapsed timer +
+  // animated bar). The SDK exposes no compaction-progress fraction, so we show
+  // honest elapsed time rather than a fabricated percentage.
   const [compacting, setCompacting] = useState(false);
   // Suppresses the banner during the brief window between compaction finishing
   // and the watcher re-polling the now-lower percentage, so it doesn't flash
@@ -891,6 +893,29 @@ export default function Home() {
     [runNative, session, showToast],
   );
 
+  // ── Prompt history (shell-style recall) ─────────────────────────────────
+  // The previously sent user prompts, oldest → newest, for the composer's
+  // Cmd/Ctrl+↑/↓ recall. We flatten each user message's text blocks, strip
+  // the `[Image #N]` attachment tokens (the images themselves aren't recalled,
+  // so leaving the tokens would send dangling references), drop empties, and
+  // collapse consecutive duplicates so repeated re-runs don't pad the history.
+  const promptHistory = useMemo(() => {
+    const out: string[] = [];
+    for (const m of session.messages) {
+      if (m.role !== "user") continue;
+      const text = m.blocks
+        .map((b) => (b.kind === "text" ? b.text : ""))
+        .join("")
+        .replace(/\[Image #\d+\]/g, "")
+        .replace(/ {2,}/g, " ")
+        .trim();
+      if (!text) continue;
+      if (out.length > 0 && out[out.length - 1] === text) continue;
+      out.push(text);
+    }
+    return out;
+  }, [session.messages]);
+
   // ── Context-warning Compact action ──────────────────────────────────────
   // Count of compaction dividers in the transcript. A successful /compact
   // (manual or summary-derived) increments this; we use the edge as the
@@ -912,9 +937,14 @@ export default function Home() {
   // soon as a *different* reading (a fresh poll) replaces it.
   const ctxSettleBaselineRef = useRef<ContextSummary | null>(null);
 
-  const onCompactFromBanner = useCallback(() => {
+  // Kick off a tracked /compact. Shared by both the warning banner's button
+  // and the StatusLine header button — `setCompacting(true)` makes the
+  // ContextWarningBanner render its "Compacting…" indicator for the duration
+  // regardless of whether the warning threshold was crossed, so compacting
+  // from the header surfaces the same feedback as compacting from the banner.
+  const startCompaction = useCallback(() => {
     // Guard: send() queues behind a running turn, so don't kick off a
-    // compaction we can't track. The banner button is also disabled in this
+    // compaction we can't track. Both buttons are also disabled in this
     // state, but guard here too in case it's invoked another way.
     if (compacting || session.pending) return;
     compactStartCountRef.current = compactBoundaryCount;
@@ -925,7 +955,7 @@ export default function Home() {
 
   // Resolve the compacting state. Done when a new compact_boundary lands;
   // fall back to a pending true→false edge (compaction errored / no-op) so the
-  // bar never sticks.
+  // indicator never sticks.
   useEffect(() => {
     if (!compacting) return;
     if (session.pending) compactSawPendingRef.current = true;
@@ -1112,7 +1142,12 @@ export default function Home() {
           onToggleNotifications={() => void notifications.toggleWorkspaceEnabled()}
           verbose={verbose.verbose}
           onChangeVerbose={verbose.setVerbose}
-          onCompact={() => handleSend("/compact")}
+          // Route the header Compact button through the same handler as the
+          // warning banner's button so it surfaces the ContextWarningBanner
+          // (with its progress bar) for the duration of the compaction — even
+          // when context is below the warning threshold and the banner wasn't
+          // already showing.
+          onCompact={startCompaction}
           onClear={() => {
             if (
               session.messages.length === 0 ||
@@ -1255,7 +1290,7 @@ export default function Home() {
               percentage={ctxSummary?.percentage ?? 0}
               compacting={compacting}
               pending={session.pending}
-              onCompact={onCompactFromBanner}
+              onCompact={startCompaction}
             />
           )}
           {session.pendingAsk && askMinimizedFor === session.pendingAsk.requestId && (
@@ -1287,6 +1322,7 @@ export default function Home() {
               onSend={handleSend}
               onInterrupt={session.interrupt}
               draftInjection={draftInjection}
+              promptHistory={promptHistory}
               sendDisabled={capBreached || tabClaim.readOnly}
             />
           </div>
