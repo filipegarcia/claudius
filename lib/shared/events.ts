@@ -358,6 +358,8 @@ export type CreateSessionRequest = {
   fallbackModel?: string;
   /** Run shell commands in a sandbox — SDK Options.sandbox.enabled. */
   sandboxEnabled?: boolean;
+  /** Enable the 1M-token context beta — SDK Options.betas (Sonnet 4/4.5). */
+  enable1mContext?: boolean;
   permissionMode?: PermissionMode;
   /** If set, resume an existing session by id. */
   resume?: string;

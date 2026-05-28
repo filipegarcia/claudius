@@ -34,6 +34,13 @@ export type WorkspaceDefaults = {
    */
   sandboxEnabled?: boolean;
   /**
+   * Enable the 1M-token context window beta (SDK `Options.betas` →
+   * `context-1m-2025-08-07`). Sonnet 4/4.5 only; dramatically raises cost, so
+   * it's off by default and gated behind an explicit opt-in. Absent/false ⇒
+   * standard context window.
+   */
+  enable1mContext?: boolean;
+  /**
    * Default main-thread agent for new sessions — the SDK `--agent` flag
    * equivalent (Options.agent). Applies the named agent's system prompt, tool
    * restrictions, AND model to the main conversation, so when set it overrides

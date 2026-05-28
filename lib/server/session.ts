@@ -297,6 +297,11 @@ export class Session {
    * failIfUnavailable: false (graceful macOS degradation).
    */
   readonly sandboxEnabled?: boolean;
+  /**
+   * Enable the 1M-token context window beta — when true the Options.betas
+   * array carries `context-1m-2025-08-07`. Sonnet 4/4.5 only; off by default.
+   */
+  readonly enable1mContext?: boolean;
   readonly resumeFrom?: string;
   readonly resumeAt?: string;
   /**
@@ -386,6 +391,7 @@ export class Session {
     maxBudgetUsd?: number;
     fallbackModel?: string;
     sandboxEnabled?: boolean;
+    enable1mContext?: boolean;
     permissionMode?: PermissionMode;
     resume?: string;
     resumeSessionAt?: string;
@@ -409,6 +415,7 @@ export class Session {
     this.maxBudgetUsd = opts.maxBudgetUsd;
     this.fallbackModel = opts.fallbackModel;
     this.sandboxEnabled = opts.sandboxEnabled;
+    this.enable1mContext = opts.enable1mContext;
     this.permissionMode = opts.permissionMode ?? "default";
     this.resumeFrom = opts.resume;
     this.resumeAt = opts.resumeSessionAt;
@@ -557,6 +564,11 @@ export class Session {
             },
           }
         : {}),
+      // 1M-token context window beta (Sonnet 4/4.5). Omitted unless explicitly
+      // enabled — it raises cost substantially. The SDK ignores the beta on
+      // models that don't support it, so gating is advisory (the WorkspaceForm
+      // notes the Sonnet requirement).
+      ...(this.enable1mContext ? { betas: ["context-1m-2025-08-07" as const] } : {}),
       permissionMode: this.permissionMode,
       abortController: this.abortController,
       canUseTool: this.canUseTool,

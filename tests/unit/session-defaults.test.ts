@@ -51,8 +51,15 @@ describe("mergeSessionDefaults", () => {
       maxBudgetUsd: undefined,
       fallbackModel: undefined,
       sandboxEnabled: undefined,
+      enable1mContext: undefined,
       permissionMode: undefined,
     });
+  });
+
+  test("enable1mContext follows the same precedence (request wins, default fills)", () => {
+    expect(mergeSessionDefaults({ enable1mContext: true }, { enable1mContext: false }).enable1mContext).toBe(true);
+    expect(mergeSessionDefaults({}, { enable1mContext: true }).enable1mContext).toBe(true);
+    expect(mergeSessionDefaults({ enable1mContext: false }, { enable1mContext: true }).enable1mContext).toBe(false);
   });
 
   test("sandboxEnabled follows the same precedence (request wins, default fills)", () => {

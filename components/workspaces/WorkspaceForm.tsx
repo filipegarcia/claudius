@@ -70,6 +70,10 @@ export function WorkspaceForm({ initial, onCancel, onSubmit, onIconUpload, onDel
   const [defaultSandbox, setDefaultSandbox] = useState<boolean>(
     initial?.defaults?.sandboxEnabled === true,
   );
+  // 1M-token context beta — off by default; raises cost a lot and is Sonnet-only.
+  const [default1m, setDefault1m] = useState<boolean>(
+    initial?.defaults?.enable1mContext === true,
+  );
   const [agentNames, setAgentNames] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -157,6 +161,8 @@ export function WorkspaceForm({ initial, onCancel, onSubmit, onIconUpload, onDel
       else delete defaults.fallbackModel;
       if (defaultSandbox) defaults.sandboxEnabled = true;
       else delete defaults.sandboxEnabled;
+      if (default1m) defaults.enable1mContext = true;
+      else delete defaults.enable1mContext;
       const r = await onSubmit({
         name: name.trim(),
         rootPath: rootPath.trim(),
@@ -444,6 +450,18 @@ export function WorkspaceForm({ initial, onCancel, onSubmit, onIconUpload, onDel
               <span>Sandbox shell commands</span>
               <span className="text-[10px] text-[var(--muted)]">
                 Linux only (bubblewrap); no-op on macOS.
+              </span>
+            </label>
+            <label className="mt-2 flex cursor-pointer items-center gap-2 text-xs">
+              <input
+                type="checkbox"
+                checked={default1m}
+                onChange={(e) => setDefault1m(e.target.checked)}
+                className="h-3 w-3 rounded border-[var(--border)] bg-[var(--panel-2)]"
+              />
+              <span>1M context window</span>
+              <span className="text-[10px] text-[var(--muted)]">
+                Sonnet 4/4.5 only; significantly higher cost.
               </span>
             </label>
             <p className="mt-1 text-[10px] text-[var(--muted)]">

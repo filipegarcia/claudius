@@ -11,6 +11,7 @@ export type SessionDefaults = {
   maxBudgetUsd?: number;
   fallbackModel?: string;
   sandboxEnabled?: boolean;
+  enable1mContext?: boolean;
   permissionMode?: PermissionMode;
 };
 
@@ -38,6 +39,7 @@ export function mergeSessionDefaults(
     maxBudgetUsd: request.maxBudgetUsd ?? defaults.maxBudgetUsd,
     fallbackModel: request.fallbackModel ?? defaults.fallbackModel,
     sandboxEnabled: request.sandboxEnabled ?? defaults.sandboxEnabled,
+    enable1mContext: request.enable1mContext ?? defaults.enable1mContext,
     permissionMode: request.permissionMode ?? defaults.permissionMode,
   };
 }
