@@ -45,6 +45,8 @@ tests/electron/LOOP.log
 
 # local sqlite data (chat db + WAL/SHM sidecars)
 /data/
+# per-project claudius sqlite db at repo root (+ WAL/SHM sidecars)
+/.claudius.db*
 
 # misc
 .DS_Store
