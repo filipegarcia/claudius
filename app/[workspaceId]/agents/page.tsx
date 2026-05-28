@@ -33,6 +33,18 @@ name: my-agent
 description: One-line description of when to use this agent
 tools: [Read, Grep, Glob, Bash]
 model: claude-opus-4-7
+# Optional advanced fields (uncomment as needed):
+# effort: high                 # low | medium | high | xhigh | max
+# maxTurns: 20                 # cap agentic round-trips before stopping
+# background: false            # run as a non-blocking background task when invoked
+# memory: project              # user | project | local — auto-load agent memory
+# permissionMode: default      # default | acceptEdits | bypassPermissions | plan | dontAsk
+# skills: [pdf, docx]          # preload these skills into the agent's context
+# disallowedTools: [Bash]      # explicitly remove tools from the inherited set
+# mcpServers:                  # object form (or a flat list of server names)
+#   my-server:
+#     command: node
+#     args: [./server.js]
 ---
 
 You are a focused subagent. Describe how it should behave here.
@@ -303,7 +315,34 @@ export default function AgentsPage() {
                   ) : (
                     files.map((f) => {
                       const isActive = active?.scope === f.scope && active?.name === f.name;
-                      const fm = f.frontmatter as { description?: string; tools?: string[]; model?: string };
+                      const fm = f.frontmatter as {
+                        description?: string;
+                        tools?: string[];
+                        model?: string;
+                        effort?: string | number;
+                        background?: boolean;
+                        memory?: string;
+                        maxTurns?: number;
+                        permissionMode?: string;
+                        skills?: string[];
+                        mcpServers?: string[] | Record<string, unknown>;
+                      };
+                      // Compact badges for the advanced AgentDefinition fields
+                      // so the list conveys an agent's shape at a glance.
+                      const metaBadges: string[] = [];
+                      if (fm.effort != null) metaBadges.push(`effort ${fm.effort}`);
+                      if (fm.background === true) metaBadges.push("background");
+                      if (fm.memory) metaBadges.push(`mem:${fm.memory}`);
+                      if (typeof fm.maxTurns === "number") metaBadges.push(`≤${fm.maxTurns} turns`);
+                      if (fm.permissionMode) metaBadges.push(fm.permissionMode);
+                      if (Array.isArray(fm.skills) && fm.skills.length > 0)
+                        metaBadges.push(`${fm.skills.length} skill${fm.skills.length === 1 ? "" : "s"}`);
+                      if (fm.mcpServers) {
+                        const n = Array.isArray(fm.mcpServers)
+                          ? fm.mcpServers.length
+                          : Object.keys(fm.mcpServers).length;
+                        if (n > 0) metaBadges.push(`${n} mcp`);
+                      }
                       return (
                         <li key={f.name}>
                           <button
@@ -340,6 +379,18 @@ export default function AgentsPage() {
                                     +{fm.tools.length - 5}
                                   </span>
                                 )}
+                              </div>
+                            )}
+                            {metaBadges.length > 0 && (
+                              <div className="mt-0.5 flex flex-wrap gap-1">
+                                {metaBadges.map((b) => (
+                                  <span
+                                    key={b}
+                                    className="rounded-md border border-[var(--border)] bg-[var(--panel-2)]/60 px-1 py-0.5 text-[9px] text-[var(--muted)]"
+                                  >
+                                    {b}
+                                  </span>
+                                ))}
                               </div>
                             )}
                           </button>
