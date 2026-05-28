@@ -36,7 +36,6 @@ export default function ChatEmptyPreview() {
             <Chip>◇ Clear</Chip>
             <Chip>🔕 Share</Chip>
             <Chip>◐ Default ▾</Chip>
-            <span className="font-mono text-[10px] opacity-70">claudius v0</span>
           </div>
         </div>
         <div className="flex shrink-0 items-center justify-between border-b border-[var(--border)] bg-[var(--background)] px-4 py-1.5 text-[11px] text-[var(--muted)]">
