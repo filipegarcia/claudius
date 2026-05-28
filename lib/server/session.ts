@@ -1342,6 +1342,24 @@ export class Session {
     }
   }
 
+  /**
+   * Forward the slash-command list the SDK advertises for this session as
+   * rich `SlashCommand` objects (name + description + argumentHint + aliases)
+   * — richer than the bare name list in the system:init message. Used to
+   * enrich the slash-command picker's descriptions for SDK/plugin-provided
+   * commands and to refresh after a plugin reload. Same `{ ok, data | error }`
+   * envelope as `supportedAgents` / `supportedModels`.
+   */
+  async supportedCommands(): Promise<{ ok: true; data: unknown } | { ok: false; error: string }> {
+    if (!this.query) return { ok: false, error: "session not active" };
+    try {
+      const data = await this.query.supportedCommands();
+      return { ok: true, data };
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : String(err) };
+    }
+  }
+
   async getContextUsage(): Promise<{ ok: true; data: unknown } | { ok: false; error: string }> {
     if (!this.query) return { ok: false, error: "no active query" };
     try {

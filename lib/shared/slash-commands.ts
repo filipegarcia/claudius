@@ -198,14 +198,36 @@ export type SlashSuggestion = SlashCommand & {
 };
 
 /**
- * Merge our static registry with what the live SDK reports as available
- * `slash_commands` (from the system/init message). SDK-only entries become
- * suggestions tagged accordingly so the picker can surface anything we don't
- * recognize statically (e.g. plugin-bundled commands).
+ * A live slash command as reported by the SDK's `supportedCommands()` control
+ * request — richer than the bare names in the system:init message. Optional
+ * input to {@link mergeSuggestions} so SDK/plugin-provided commands can show
+ * real descriptions and argument hints instead of generic placeholder text.
+ */
+export type SdkSlashCommandInfo = {
+  name: string;
+  description?: string;
+  argumentHint?: string;
+  aliases?: string[];
+};
+
+/**
+ * Merge our curated static registry with what the live SDK reports. Command
+ * names come from the system:init `slash_commands` list; when the richer
+ * `supportedCommands()` payload is available (`richCommands`), SDK-only
+ * entries are upgraded with the SDK's own description + argument hint, and any
+ * rich command the init list omitted is still surfaced. SDK-only entries are
+ * tagged by source so the picker can surface plugin-bundled commands we don't
+ * recognize statically.
+ *
+ * The curated registry stays the source of truth for commands it defines —
+ * notably the `handler` field (native vs. sdk vs. external) that decides
+ * whether the web app intercepts a command or forwards it — so a command
+ * present in both keeps its registry entry.
  */
 export function mergeSuggestions(
   sdkSlashCommands: string[] | undefined,
   sdkSkills: string[] | undefined,
+  richCommands?: SdkSlashCommandInfo[] | undefined,
 ): SlashSuggestion[] {
   const out: SlashSuggestion[] = [];
   const claimed = new Set<string>();
@@ -217,16 +239,31 @@ export function mergeSuggestions(
   }
 
   const skillSet = new Set(sdkSkills ?? []);
+  const richByName = new Map<string, SdkSlashCommandInfo>();
+  for (const rc of richCommands ?? []) {
+    if (rc && typeof rc.name === "string") richByName.set(rc.name, rc);
+  }
 
-  for (const name of sdkSlashCommands ?? []) {
+  // Union of names from the init list and the rich payload, so neither source
+  // alone limits what the picker shows. Dedupe via the `claimed` set as we go.
+  const sdkNames = new Set<string>([...(sdkSlashCommands ?? []), ...richByName.keys()]);
+
+  for (const name of sdkNames) {
     if (claimed.has(name)) continue;
+    claimed.add(name);
+    const rich = richByName.get(name);
+    const isSkill = skillSet.has(name);
     out.push({
       id: `sdk:${name}`,
       name,
-      description: skillSet.has(name) ? "Skill provided by the SDK." : "Provided by the SDK.",
-      category: skillSet.has(name) ? "skill" : "experimental",
+      description:
+        rich?.description?.trim() ||
+        (isSkill ? "Skill provided by the SDK." : "Provided by the SDK."),
+      category: isSkill ? "skill" : "experimental",
       handler: "sdk",
-      source: skillSet.has(name) ? "skill" : "sdk",
+      source: isSkill ? "skill" : "sdk",
+      ...(rich?.argumentHint?.trim() ? { argsHint: rich.argumentHint.trim() } : {}),
+      ...(rich?.aliases && rich.aliases.length > 0 ? { aliases: rich.aliases } : {}),
     });
   }
 
