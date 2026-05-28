@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Undo2 } from "lucide-react";
+import { Sparkles, Undo2 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import type { AttachedImage, DisplayMessage } from "@/lib/client/types";
 import { formatMessageTime } from "@/lib/client/format-message-time";
@@ -24,6 +24,12 @@ type Props = {
    * the affordance; provided by MessageList which owns the scroll container.
    */
   onJumpTo?: () => void;
+  /**
+   * True when this message originated from a clicked "Suggested follow-up"
+   * chip rather than typed input. Renders a small badge so the provenance is
+   * visible (and it's DB-backed, so it survives reloads).
+   */
+  suggested?: boolean;
 };
 
 export function UserMessage({ message, onRewind, rewinding, onJumpTo, sessionId }: Props) {
@@ -47,6 +53,14 @@ export function UserMessage({ message, onRewind, rewinding, onJumpTo, sessionId 
         onClick={onJumpTo ? handleJump : undefined}
         title={onJumpTo ? "Scroll to this message" : undefined}
       >
+        {suggested && (
+          <div
+            className="mb-1 flex items-center justify-end gap-1 text-[10px] uppercase tracking-wide text-[var(--muted)]"
+            title="Sent from a suggested follow-up"
+          >
+            <Sparkles className="h-3 w-3" /> Suggested
+          </div>
+        )}
         <InlineUserText text={text} images={images} />
         {(stamp || onRewind || sessionId) && (
           <div className="mt-1 flex items-center justify-end gap-3">

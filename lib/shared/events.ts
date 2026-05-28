@@ -65,6 +65,42 @@ export type SessionTitleEvent = {
 };
 
 /**
+ * Occasional nudge to ask the user for feedback — Claudius's take on the CLI's
+ * session-quality survey. Broadcast from `session.ts` after a turn completes,
+ * gated by a low probability (the `feedbackSurveyRate` setting) and an
+ * in-process throttle. The browser shows a slim, dismissible banner; on submit
+ * the comment is forwarded to Anthropic via `Session.submitFeedback` AND
+ * persisted locally (see `lib/server/feedback-store.ts`).
+ *
+ * Live-only: skipped in the SSE replay loop so a stale nudge doesn't re-pop on
+ * reload (same treatment as `permission_request` / `ask_user_question`).
+ */
+export type FeedbackSurveyEvent = {
+  type: "feedback_survey";
+  sessionId: string;
+  /** SDK feedback surface tag forwarded on submit. */
+  surface?: string;
+};
+
+/**
+ * The agent's effective working directory changed mid-session — most often
+ * because Claude Code created (or moved into) a git worktree to isolate its
+ * edits. Derived from the SDK's `CwdChanged` hook (observational; fires on
+ * every cwd transition with `old_cwd`/`new_cwd`).
+ *
+ * The client compares `cwd` against the session root: when they differ it
+ * paints a "worktree" badge in the StatusLine so the user knows the edits
+ * aren't landing in their current checkout. When the agent moves back to the
+ * root the same event fires with `cwd === root`, which clears the badge — so
+ * `cwd` is always the *absolute* new path, never a relative delta.
+ */
+export type CwdChangedEvent = {
+  type: "cwd_changed";
+  /** Absolute new working directory (SDK `new_cwd`). */
+  cwd: string;
+};
+
+/**
  * Per-option choice in an AskUserQuestion form.
  * Mirrors the SDK's AskUserQuestionInput option shape; `preview` is HTML
  * because we set toolConfig.askUserQuestion.previewFormat = 'html'.
@@ -232,6 +268,15 @@ export type TaskSnapshotEntry = {
   taskType?: string;
   workflowName?: string;
   status: string;
+  /**
+   * True if the parent launched this Task with `run_in_background: true`.
+   * Backgrounded tasks legitimately outlive a parent turn (their real
+   * completion rides on a later `task_notification`), so the session's
+   * "is busy?" check must exclude them — otherwise one fire-and-forget
+   * Task would pin the session at `running` forever. Populated from
+   * `task_updated.patch.is_backgrounded`.
+   */
+  isBackgrounded?: boolean;
   totalTokens?: number;
   toolUses?: number;
   durationMs?: number;
@@ -282,6 +327,8 @@ export type ServerEvent =
   | ReplayDoneEvent
   | TurnStatusEvent
   | SessionTitleEvent
+  | FeedbackSurveyEvent
+  | CwdChangedEvent
   | AskUserQuestionEvent
   | PlanApprovalRequestEvent
   | SessionSnapshotEvent
@@ -357,4 +404,12 @@ export type SendInputRequest = {
    * place so the chat doesn't go silent while the SDK runs the command.
    */
   slash?: boolean;
+  /**
+   * When true, this message originated from a clicked "Suggested follow-up"
+   * chip (PromptSuggestions) rather than the user typing it. The server records
+   * (session_id, uuid, text) in the `suggested_messages` table so the chat can
+   * badge the bubble as auto-suggested — including after a reload, where the
+   * message is replayed from the SDK JSONL with no in-memory provenance.
+   */
+  fromSuggestion?: boolean;
 };
