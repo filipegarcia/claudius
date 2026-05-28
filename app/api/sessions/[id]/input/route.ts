@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { recordSendUses } from "@/lib/server/asset-ingest";
 import { sessionManager } from "@/lib/server/session-manager";
+import { recordSuggestedMessage } from "@/lib/server/suggested-messages-db";
 import type { SendInputRequest } from "@/lib/shared/events";
 
 export const runtime = "nodejs";
@@ -29,6 +30,18 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     body.images,
     Object.keys(sendOpts).length > 0 ? sendOpts : undefined,
   );
+
+  // Record provenance when the message came from a clicked suggestion chip so
+  // the chat can badge it as auto-suggested (persists across reloads). Keyed by
+  // the client-minted uuid, which the SDK also writes to the JSONL. Best-effort
+  // — a bookkeeping write must never fail the send.
+  if (body.fromSuggestion && body.uuid) {
+    void recordSuggestedMessage(session.cwd, {
+      sessionId: session.id,
+      messageUuid: body.uuid,
+      text: body.text ?? "",
+    }).catch((err) => console.warn("[input] recordSuggestedMessage:", err));
+  }
 
   // Best-effort asset indexing — never fail the send because of this.
   if (hasImages) {

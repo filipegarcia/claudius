@@ -841,6 +841,7 @@ export default function Home() {
     (
       text: string,
       images?: Array<{ id?: string; ordinal?: number; data: string; mediaType: string }>,
+      opts?: { fromSuggestion?: boolean },
     ) => {
       const trimmed = text.trim();
       // Slash dispatch only when there are no images attached.
@@ -866,7 +867,7 @@ export default function Home() {
           return;
         }
       }
-      void session.send(text, images);
+      void session.send(text, images, opts?.fromSuggestion ? { fromSuggestion: true } : undefined);
     },
     [runNative, session, showToast],
   );
@@ -1078,6 +1079,7 @@ export default function Home() {
             onLoadOlder={session.loadOlder}
             highlightUuid={highlightUuid}
             onPickExample={handleSend}
+            suggestedUuids={session.suggestedUuids}
             verbose={verbose.verbose}
             pendingAskToolUseId={session.pendingAsk?.toolUseId ?? null}
             // Two paths depending on which row was clicked:
@@ -1120,7 +1122,7 @@ export default function Home() {
           )}
           <PromptSuggestions
             suggestions={session.promptSuggestions}
-            onPick={(s) => handleSend(s)}
+            onPick={(s) => handleSend(s, undefined, { fromSuggestion: true })}
           />
           <QueueIndicator
             queue={session.queue}

@@ -134,6 +134,12 @@ export type QueuedMessage = {
    * instead.
    */
   slash?: boolean;
+  /**
+   * When true, this queued entry came from a clicked suggestion chip. The flush
+   * path forwards `fromSuggestion: true` so the server records its provenance
+   * and the bubble is badged as auto-suggested (see `suggestedUuids`).
+   */
+  fromSuggestion?: boolean;
 };
 
 export type SessionInfo = {
@@ -326,6 +332,12 @@ export type ChatState = {
   pendingPlan: PendingPlan | null;
   fastModeState: "off" | "cooldown" | "on" | null;
   promptSuggestions: string[];
+  /**
+   * Uuids of user messages that originated from a clicked suggestion chip.
+   * Seeded from the DB on session bind and added to optimistically on send;
+   * the chat overlays an auto-suggested badge on matching bubbles.
+   */
+  suggestedUuids: Set<string>;
   /** True until the SSE replay window finishes (initial render only). */
   replaying: boolean;
   /** True if older history exists above what's currently loaded. */
@@ -397,6 +409,12 @@ export type ChatActions = {
        * etc.) lands as its own SSE event.
        */
       asSlashCommand?: boolean;
+      /**
+       * When true, this message came from a clicked "Suggested follow-up"
+       * chip. The send path badges the bubble as auto-suggested and posts
+       * `fromSuggestion: true` so the server persists its provenance.
+       */
+      fromSuggestion?: boolean;
     },
   ): Promise<void>;
   enqueue(text: string, images?: AttachedImage[]): void;

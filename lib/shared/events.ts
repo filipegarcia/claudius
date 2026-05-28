@@ -400,4 +400,12 @@ export type SendInputRequest = {
    * place so the chat doesn't go silent while the SDK runs the command.
    */
   slash?: boolean;
+  /**
+   * When true, this message originated from a clicked "Suggested follow-up"
+   * chip (PromptSuggestions) rather than the user typing it. The server records
+   * (session_id, uuid, text) in the `suggested_messages` table so the chat can
+   * badge the bubble as auto-suggested — including after a reload, where the
+   * message is replayed from the SDK JSONL with no in-memory provenance.
+   */
+  fromSuggestion?: boolean;
 };
