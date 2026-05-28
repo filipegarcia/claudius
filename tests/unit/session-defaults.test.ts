@@ -52,8 +52,19 @@ describe("mergeSessionDefaults", () => {
       fallbackModel: undefined,
       sandboxEnabled: undefined,
       enable1mContext: undefined,
+      systemPromptAppend: undefined,
       permissionMode: undefined,
     });
+  });
+
+  test("systemPromptAppend follows the same precedence (request wins, default fills)", () => {
+    expect(
+      mergeSessionDefaults({ systemPromptAppend: "use TS" }, { systemPromptAppend: "use JS" })
+        .systemPromptAppend,
+    ).toBe("use TS");
+    expect(mergeSessionDefaults({}, { systemPromptAppend: "house style" }).systemPromptAppend).toBe(
+      "house style",
+    );
   });
 
   test("enable1mContext follows the same precedence (request wins, default fills)", () => {

@@ -41,6 +41,14 @@ export type WorkspaceDefaults = {
    */
   enable1mContext?: boolean;
   /**
+   * Extra instructions appended to Claude Code's default system prompt (SDK
+   * `Options.systemPrompt` preset + `append`). Distinct from CLAUDE.md (which
+   * is project content): this is steering ("always use TypeScript", house
+   * style, etc.) applied to every session in the workspace. Absent/empty ⇒
+   * the unmodified preset.
+   */
+  systemPromptAppend?: string;
+  /**
    * Default main-thread agent for new sessions — the SDK `--agent` flag
    * equivalent (Options.agent). Applies the named agent's system prompt, tool
    * restrictions, AND model to the main conversation, so when set it overrides

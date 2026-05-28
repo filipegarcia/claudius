@@ -12,6 +12,7 @@ export type SessionDefaults = {
   fallbackModel?: string;
   sandboxEnabled?: boolean;
   enable1mContext?: boolean;
+  systemPromptAppend?: string;
   permissionMode?: PermissionMode;
 };
 
@@ -40,6 +41,7 @@ export function mergeSessionDefaults(
     fallbackModel: request.fallbackModel ?? defaults.fallbackModel,
     sandboxEnabled: request.sandboxEnabled ?? defaults.sandboxEnabled,
     enable1mContext: request.enable1mContext ?? defaults.enable1mContext,
+    systemPromptAppend: request.systemPromptAppend ?? defaults.systemPromptAppend,
     permissionMode: request.permissionMode ?? defaults.permissionMode,
   };
 }

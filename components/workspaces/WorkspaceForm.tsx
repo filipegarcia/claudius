@@ -74,6 +74,10 @@ export function WorkspaceForm({ initial, onCancel, onSubmit, onIconUpload, onDel
   const [default1m, setDefault1m] = useState<boolean>(
     initial?.defaults?.enable1mContext === true,
   );
+  // Extra system-prompt steering appended to the Claude Code preset.
+  const [defaultSysAppend, setDefaultSysAppend] = useState(
+    initial?.defaults?.systemPromptAppend ?? "",
+  );
   const [agentNames, setAgentNames] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -163,6 +167,8 @@ export function WorkspaceForm({ initial, onCancel, onSubmit, onIconUpload, onDel
       else delete defaults.sandboxEnabled;
       if (default1m) defaults.enable1mContext = true;
       else delete defaults.enable1mContext;
+      if (defaultSysAppend.trim()) defaults.systemPromptAppend = defaultSysAppend.trim();
+      else delete defaults.systemPromptAppend;
       const r = await onSubmit({
         name: name.trim(),
         rootPath: rootPath.trim(),
@@ -464,6 +470,15 @@ export function WorkspaceForm({ initial, onCancel, onSubmit, onIconUpload, onDel
                 Sonnet 4/4.5 only; significantly higher cost.
               </span>
             </label>
+            <Field label="System prompt append">
+              <textarea
+                value={defaultSysAppend}
+                onChange={(e) => setDefaultSysAppend(e.target.value)}
+                placeholder="Extra steering added to every session (e.g. &quot;Always use TypeScript&quot;). Distinct from CLAUDE.md."
+                rows={3}
+                className="w-full resize-y rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 text-xs focus:outline-none"
+              />
+            </Field>
             <p className="mt-1 text-[10px] text-[var(--muted)]">
               Apply only to new sessions. An explicit per-session override still wins.
               Setting an agent also applies its own model.

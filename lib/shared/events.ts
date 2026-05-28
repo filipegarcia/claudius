@@ -360,6 +360,8 @@ export type CreateSessionRequest = {
   sandboxEnabled?: boolean;
   /** Enable the 1M-token context beta — SDK Options.betas (Sonnet 4/4.5). */
   enable1mContext?: boolean;
+  /** Extra text appended to the default system prompt — SDK Options.systemPrompt.append. */
+  systemPromptAppend?: string;
   permissionMode?: PermissionMode;
   /** If set, resume an existing session by id. */
   resume?: string;

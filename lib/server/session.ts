@@ -302,6 +302,11 @@ export class Session {
    * array carries `context-1m-2025-08-07`. Sonnet 4/4.5 only; off by default.
    */
   readonly enable1mContext?: boolean;
+  /**
+   * Extra instructions appended to the default Claude Code system prompt
+   * (Options.systemPrompt preset + append). Undefined/empty ⇒ unmodified preset.
+   */
+  readonly systemPromptAppend?: string;
   readonly resumeFrom?: string;
   readonly resumeAt?: string;
   /**
@@ -392,6 +397,7 @@ export class Session {
     fallbackModel?: string;
     sandboxEnabled?: boolean;
     enable1mContext?: boolean;
+    systemPromptAppend?: string;
     permissionMode?: PermissionMode;
     resume?: string;
     resumeSessionAt?: string;
@@ -416,6 +422,7 @@ export class Session {
     this.fallbackModel = opts.fallbackModel;
     this.sandboxEnabled = opts.sandboxEnabled;
     this.enable1mContext = opts.enable1mContext;
+    this.systemPromptAppend = opts.systemPromptAppend;
     this.permissionMode = opts.permissionMode ?? "default";
     this.resumeFrom = opts.resume;
     this.resumeAt = opts.resumeSessionAt;
@@ -569,6 +576,19 @@ export class Session {
       // models that don't support it, so gating is advisory (the WorkspaceForm
       // notes the Sonnet requirement).
       ...(this.enable1mContext ? { betas: ["context-1m-2025-08-07" as const] } : {}),
+      // Append workspace-level steering to the default Claude Code system
+      // prompt. Only set when non-empty so the SDK keeps its plain preset
+      // otherwise. Distinct from CLAUDE.md — this is house-style steering, not
+      // project content. Trimmed so a whitespace-only value is treated as unset.
+      ...(this.systemPromptAppend && this.systemPromptAppend.trim()
+        ? {
+            systemPrompt: {
+              type: "preset" as const,
+              preset: "claude_code" as const,
+              append: this.systemPromptAppend,
+            },
+          }
+        : {}),
       permissionMode: this.permissionMode,
       abortController: this.abortController,
       canUseTool: this.canUseTool,
