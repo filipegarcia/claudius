@@ -34,6 +34,9 @@ tests/electron/LOOP.log
 
 # ralph-loop session state (per-session, not portable)
 /.claude/ralph-loop.local.md
+# ralph-loop task checklist + plugin-granted local permissions (local scratch)
+/.claude/ralph-state/
+/.claude/settings.json
 
 # claudiusd runtime state (pid file, logs)
 /.claudius/
