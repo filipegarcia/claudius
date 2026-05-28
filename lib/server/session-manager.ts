@@ -93,6 +93,29 @@ export class SessionManager {
     return [...this.sessions.values()];
   }
 
+  /**
+   * Live sessions whose working directory matches `cwd`. Used to push
+   * filesystem changes (e.g. an edited `.claude/agents/*.md`) into the
+   * running SDK via `reloadPlugins()` so the change takes effect without a
+   * session restart.
+   */
+  sessionsByCwd(cwd: string): Session[] {
+    return [...this.sessions.values()].filter((s) => s.cwd === cwd);
+  }
+
+  /**
+   * Best-effort: ask every live session in `cwd` to reload plugins (which
+   * re-reads commands/agents/skills/MCP from disk) so a just-saved
+   * `.claude/agents/*.md` edit takes effect without a restart. Per-session
+   * failures are swallowed — a reaped or not-yet-started session shouldn't
+   * fail the caller's write. Returns the number of sessions asked to reload.
+   */
+  async reloadForCwd(cwd: string): Promise<number> {
+    const targets = this.sessionsByCwd(cwd);
+    await Promise.all(targets.map((s) => s.reloadPlugins().catch(() => undefined)));
+    return targets.length;
+  }
+
   async remove(id: string): Promise<void> {
     const session = this.sessions.get(id);
     if (!session) return;
