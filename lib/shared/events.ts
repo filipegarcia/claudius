@@ -268,6 +268,15 @@ export type TaskSnapshotEntry = {
   taskType?: string;
   workflowName?: string;
   status: string;
+  /**
+   * True if the parent launched this Task with `run_in_background: true`.
+   * Backgrounded tasks legitimately outlive a parent turn (their real
+   * completion rides on a later `task_notification`), so the session's
+   * "is busy?" check must exclude them — otherwise one fire-and-forget
+   * Task would pin the session at `running` forever. Populated from
+   * `task_updated.patch.is_backgrounded`.
+   */
+  isBackgrounded?: boolean;
   totalTokens?: number;
   toolUses?: number;
   durationMs?: number;
