@@ -25,10 +25,25 @@ The full changelog between the two versions is in the
 
 ---
 
-## Your primary deliverable: the run-notes file
+## The goal
 
-**Read this section twice.** The single most important thing you do
-is replace the `_(TODO …)_` placeholders in:
+Your objective is a **migrated, all-green Claudius**: every gate
+(`lint`, `test`, `build`, `test:e2e`) passing, with every SDK change
+that affects Claudius wired through to working code. The run-notes
+file (next section) documents that work — it is a required
+deliverable, but it is **not** the objective. A polished run-notes
+file describing zero code changes, when the SDK actually required
+changes, is a failed run, not a clean one.
+
+---
+
+## Your written deliverable: the run-notes file
+
+Alongside the code, you must produce a run-notes file that documents
+the migration. Write it **first — before you code** — because the
+analysis it forces is what makes the code correct, not because the
+document is the part that matters most. Replace the `_(TODO …)_`
+placeholders in:
 
     .claudius/sdk-updater/run-notes/{{NEW_VERSION}}.md
 
@@ -39,14 +54,15 @@ filled in "## SDK changelog highlights" — that section forces you to
 take a position on every changelog item, and you can't write good
 code without that position.**
 
-The orchestrator parses each `## ` section into the PR body. If you
-leave any placeholder in place, the validator fails the gate and the
-PR opens as draft + needs-human. **An empty or skeletal run-notes
-file is the worst possible outcome** — it makes the bot look broken
-and wastes the reviewer's time. Even if you conclude that **no code
-changes are needed**, you must still fill in every section
-explaining what changed in the SDK and why none of it affects our
-code.
+The orchestrator parses each `## ` section into the PR body, and the
+gate fails (draft + needs-human) if any placeholder is left in place.
+So the run-notes are mandatory — but completeness of the *document* is
+not the same as success of the *migration*. The genuinely worst
+outcome is shipping no code when the SDK required code changes, with
+run-notes that rationalise it. If you honestly conclude that **no code
+changes are needed**, that is a valid result — but you must still fill
+in every section explaining what changed in the SDK and why none of it
+affects our code, so a reviewer can check your reasoning.
 
 ### Required shape
 
@@ -279,7 +295,9 @@ changelog is below.
 **Your first action should be to read the "## Changelog block"
 section at the bottom of this prompt. Your second should be to Read
 `.claudius/sdk-updater/run-notes/{{NEW_VERSION}}.md` and Edit it to
-fill in the placeholders. Code changes come third.**
+fill in the placeholders — that is the analysis pass. Then implement
+the code changes that analysis calls for: shipping that working code
+is the actual goal.**
 
 ---
 
