@@ -260,6 +260,11 @@ export class Session {
    * construction from the create request / workspace default; undefined = no cap.
    */
   readonly maxBudgetUsd?: number;
+  /**
+   * Fallback model id — SDK Options.fallbackModel. The SDK switches to this
+   * when the primary model is unavailable / errors. Undefined = no fallback.
+   */
+  readonly fallbackModel?: string;
   readonly resumeFrom?: string;
   readonly resumeAt?: string;
   /**
@@ -329,6 +334,7 @@ export class Session {
     model?: string;
     agent?: string;
     maxBudgetUsd?: number;
+    fallbackModel?: string;
     permissionMode?: PermissionMode;
     resume?: string;
     resumeSessionAt?: string;
@@ -350,6 +356,7 @@ export class Session {
     this.model = opts.model;
     this.agent = opts.agent;
     this.maxBudgetUsd = opts.maxBudgetUsd;
+    this.fallbackModel = opts.fallbackModel;
     this.permissionMode = opts.permissionMode ?? "default";
     this.resumeFrom = opts.resume;
     this.resumeAt = opts.resumeSessionAt;
@@ -474,6 +481,9 @@ export class Session {
       ...(typeof this.maxBudgetUsd === "number" && this.maxBudgetUsd > 0
         ? { maxBudgetUsd: this.maxBudgetUsd }
         : {}),
+      // Fallback model — the SDK switches to this if the primary model is
+      // unavailable or errors (overload, model_not_found). Omitted when unset.
+      ...(this.fallbackModel ? { fallbackModel: this.fallbackModel } : {}),
       permissionMode: this.permissionMode,
       abortController: this.abortController,
       canUseTool: this.canUseTool,

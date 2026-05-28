@@ -20,6 +20,12 @@ export type WorkspaceDefaults = {
   /** Default Claude model id, e.g. "claude-opus-4-7". */
   model?: string;
   /**
+   * Fallback model id — SDK `Options.fallbackModel`. The SDK switches to this
+   * when the primary model is unavailable or errors (e.g. overload,
+   * model_not_found). Absent ⇒ no fallback. Per-session requests can override.
+   */
+  fallbackModel?: string;
+  /**
    * Default main-thread agent for new sessions — the SDK `--agent` flag
    * equivalent (Options.agent). Applies the named agent's system prompt, tool
    * restrictions, AND model to the main conversation, so when set it overrides

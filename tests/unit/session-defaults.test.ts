@@ -49,8 +49,19 @@ describe("mergeSessionDefaults", () => {
       model: undefined,
       agent: undefined,
       maxBudgetUsd: undefined,
+      fallbackModel: undefined,
       permissionMode: undefined,
     });
+  });
+
+  test("fallbackModel follows the same precedence (request wins, default fills)", () => {
+    expect(
+      mergeSessionDefaults({ fallbackModel: "claude-haiku-4-5" }, { fallbackModel: "claude-sonnet-4-6" })
+        .fallbackModel,
+    ).toBe("claude-haiku-4-5");
+    expect(mergeSessionDefaults({}, { fallbackModel: "claude-sonnet-4-6" }).fallbackModel).toBe(
+      "claude-sonnet-4-6",
+    );
   });
 
   test("maxBudgetUsd follows the same precedence (request wins, default fills)", () => {
