@@ -100,6 +100,15 @@ const OVERAGE_DISABLED_COPY: Record<string, string> = {
   unknown: "Extra usage unavailable.",
 };
 
+// Upgrade destinations, mirrored from the Claude Code CLI's `/rate-limit-options`
+// menu so the browser surfaces the same next steps when the user hits the wall:
+//   "Upgrade your plan"     → claude.ai/upgrade/max
+//   "Upgrade to Team plan"  → claude.ai/create/team
+// (The CLI's third option, "Stop and wait for limit to reset", is covered here
+// by the live countdown — there's nothing to click, you just wait.)
+const UPGRADE_PLAN_URL = "https://claude.ai/upgrade/max";
+const UPGRADE_TEAM_URL = "https://claude.ai/create/team";
+
 function RateLimitPill({ entry }: { entry: SystemEntry }) {
   const info = entry.rateLimit!;
   const status = info.status ?? "allowed";
@@ -210,6 +219,31 @@ function RateLimitPill({ entry }: { entry: SystemEntry }) {
             </span>
           )}
           {overageBlockedCopy && <span>{overageBlockedCopy}</span>}
+        </div>
+      )}
+
+      {/* Hard-stop next steps. Mirrors the CLI's `/rate-limit-options` menu:
+          wait for the reset (the countdown above) or upgrade to lift the cap.
+          Only shown on rejection — a warning isn't a wall yet. */}
+      {status === "rejected" && (
+        <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-current/10 pt-1.5">
+          <span className="opacity-70">Out of usage? Upgrade to keep going:</span>
+          <a
+            href={UPGRADE_PLAN_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="font-medium underline underline-offset-2 hover:opacity-80"
+          >
+            Upgrade your plan
+          </a>
+          <a
+            href={UPGRADE_TEAM_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="font-medium underline underline-offset-2 hover:opacity-80"
+          >
+            Upgrade to Team plan
+          </a>
         </div>
       )}
     </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { SideNav } from "@/components/nav/SideNav";
 import { StatusLine } from "@/components/chat/StatusLine";
@@ -71,7 +71,12 @@ function formatAskAsPrompt(questions: AskQuestion[], answers: AskAnswer[]): stri
   }
   return lines.join("\n");
 }
-import { useContextWatcher } from "@/lib/client/useContextWatcher";
+import { useContextWatcher, type ContextSummary } from "@/lib/client/useContextWatcher";
+import {
+  shouldShowContextWarning,
+  useContextWarningPct,
+} from "@/lib/client/useContextWarning";
+import { ContextWarningBanner } from "@/components/chat/ContextWarningBanner";
 import { useNotificationsContext } from "@/components/notifications/NotificationsProvider";
 import { findSlashCommand } from "@/lib/shared/slash-commands";
 import { useWorkspaces } from "@/lib/client/useWorkspaces";
@@ -104,7 +109,21 @@ export default function Home() {
       }
     | null
   >(null);
-  const ctxSummary = useContextWatcher(session.sessionId, session.pending);
+  // Context-window warning banner. The threshold is a browser-local pref
+  // (mirrors useRateLimitWarning); when the active session's context usage
+  // crosses it we surface a warning + one-click Compact above the composer.
+  const { value: contextWarningPct } = useContextWarningPct();
+  // Bumped after a manual compaction so the watcher re-polls promptly instead
+  // of re-showing a stale, still-high percentage until the next idle poll.
+  const [ctxRefreshSignal, setCtxRefreshSignal] = useState(0);
+  const ctxSummary = useContextWatcher(session.sessionId, session.pending, ctxRefreshSignal);
+  // True while a /compact fired from the banner is running; drives the
+  // banner's progress bar.
+  const [compacting, setCompacting] = useState(false);
+  // Suppresses the banner during the brief window between compaction finishing
+  // and the watcher re-polling the now-lower percentage, so it doesn't flash
+  // back as "still N% full" right after a successful compact.
+  const [ctxSettling, setCtxSettling] = useState(false);
   // Chat verbosity — per-workspace default, persisted via PATCH on the
   // active workspace. The hook initialises from a localStorage cache so the
   // chat renders at the right level on first paint, then reconciles with
@@ -872,6 +891,77 @@ export default function Home() {
     [runNative, session, showToast],
   );
 
+  // ── Context-warning Compact action ──────────────────────────────────────
+  // Count of compaction dividers in the transcript. A successful /compact
+  // (manual or summary-derived) increments this; we use the edge as the
+  // "compaction finished" signal rather than `pending` alone, since /compact
+  // is fired as a slash command and the boundary is the event we care about.
+  const compactBoundaryCount = session.systemEntries.filter(
+    (e) => e.kind === "compact_boundary",
+  ).length;
+  const compactStartCountRef = useRef(0);
+  const compactSawPendingRef = useRef(false);
+  // Latest context reading, mirrored into a ref so the completion effect can
+  // snapshot it without taking ctxSummary as a dep (which would re-run it on
+  // every poll).
+  const ctxSummaryRef = useRef<ContextSummary | null>(ctxSummary);
+  useEffect(() => {
+    ctxSummaryRef.current = ctxSummary;
+  }, [ctxSummary]);
+  // The context reading at the moment compaction finished — settle ends as
+  // soon as a *different* reading (a fresh poll) replaces it.
+  const ctxSettleBaselineRef = useRef<ContextSummary | null>(null);
+
+  const onCompactFromBanner = useCallback(() => {
+    // Guard: send() queues behind a running turn, so don't kick off a
+    // compaction we can't track. The banner button is also disabled in this
+    // state, but guard here too in case it's invoked another way.
+    if (compacting || session.pending) return;
+    compactStartCountRef.current = compactBoundaryCount;
+    compactSawPendingRef.current = false;
+    setCompacting(true);
+    handleSend("/compact");
+  }, [compacting, session.pending, compactBoundaryCount, handleSend]);
+
+  // Resolve the compacting state. Done when a new compact_boundary lands;
+  // fall back to a pending true→false edge (compaction errored / no-op) so the
+  // bar never sticks.
+  useEffect(() => {
+    if (!compacting) return;
+    if (session.pending) compactSawPendingRef.current = true;
+    const finishedWithBoundary = compactBoundaryCount > compactStartCountRef.current;
+    const finishedWithoutBoundary = compactSawPendingRef.current && !session.pending;
+    if (finishedWithBoundary || finishedWithoutBoundary) {
+      setCompacting(false);
+      // Re-poll context now and hide the banner until that fresh reading lands.
+      ctxSettleBaselineRef.current = ctxSummaryRef.current;
+      setCtxSettling(true);
+      setCtxRefreshSignal((n) => n + 1);
+    }
+  }, [compacting, session.pending, compactBoundaryCount]);
+
+  // Safety net: never leave the progress bar spinning forever.
+  useEffect(() => {
+    if (!compacting) return;
+    const id = window.setTimeout(() => setCompacting(false), 120_000);
+    return () => window.clearTimeout(id);
+  }, [compacting]);
+
+  // End the post-compact settle window as soon as a fresh context reading
+  // lands (ctxSummary is a new object per poll), or after a short safety cap.
+  useEffect(() => {
+    if (!ctxSettling) return;
+    if (ctxSummary !== ctxSettleBaselineRef.current) {
+      setCtxSettling(false);
+      return;
+    }
+    const id = window.setTimeout(() => setCtxSettling(false), 4_000);
+    return () => window.clearTimeout(id);
+  }, [ctxSettling, ctxSummary]);
+
+  const showContextWarning =
+    !ctxSettling && shouldShowContextWarning(ctxSummary?.percentage, contextWarningPct);
+
   const onRenameSubmit = useCallback(
     async (title: string) => {
       const sid = session.sessionId;
@@ -886,6 +976,22 @@ export default function Home() {
     },
     [session.sessionId, showToast],
   );
+
+  // Scope the session-picker dropdown to the active workspace. A session
+  // belongs to this workspace when its cwd equals the workspace rootPath —
+  // the same exact-match rule the server uses for `/api/sessions?workspaceId`.
+  // The active session and any open tabs are always kept (even if their cwd
+  // points elsewhere, e.g. a deeplink-resurrected session from another
+  // workspace) so the picker label always has a matching row to highlight.
+  // While the workspace list is still resolving, fall back to the unfiltered
+  // list rather than flash an empty dropdown.
+  const pickerSessions = useMemo(() => {
+    const root = activeWorkspace?.rootPath;
+    if (!root) return session.sessions;
+    const keep = new Set<string>(openTabs);
+    if (session.sessionId) keep.add(session.sessionId);
+    return session.sessions.filter((s) => s.cwd === root || keep.has(s.id));
+  }, [session.sessions, session.sessionId, activeWorkspace?.rootPath, openTabs]);
 
   return (
     <div className="flex h-full">
@@ -984,7 +1090,7 @@ export default function Home() {
           sessionRoot={session.cwd}
           agentCwd={session.agentCwd}
           onModeChange={session.setPermissionMode}
-          sessions={session.sessions}
+          sessions={pickerSessions}
           onSwitchSession={(id) => {
             // Re-add to strip in case the user closed all tabs and is
             // re-picking the same session that's still bound internally —
@@ -1142,6 +1248,14 @@ export default function Home() {
               capUsd={sessionCapUsd}
               spentUsd={sessionSpentUsd}
               onOverride={onOverride}
+            />
+          )}
+          {(showContextWarning || compacting) && (
+            <ContextWarningBanner
+              percentage={ctxSummary?.percentage ?? 0}
+              compacting={compacting}
+              pending={session.pending}
+              onCompact={onCompactFromBanner}
             />
           )}
           {session.pendingAsk && askMinimizedFor === session.pendingAsk.requestId && (
