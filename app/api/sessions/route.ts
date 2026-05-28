@@ -4,6 +4,7 @@ import { resolveActiveWorkspace } from "@/lib/server/active-workspace";
 import { getWorkspace, listWorkspaces, type Workspace } from "@/lib/server/workspaces-store";
 import { info as sessionFileInfo } from "@/lib/server/sessions-store";
 import type { CreateSessionRequest } from "@/lib/shared/events";
+import { mergeSessionDefaults } from "@/lib/shared/session-defaults";
 
 export const runtime = "nodejs";
 
@@ -48,12 +49,12 @@ export async function POST(req: Request) {
   // Merge: workspace defaults *under* explicit body fields. Spec rule:
   //   effective = { ...workspace.defaults, ...request }
   const defaults = originWs?.defaults ?? {};
-  const model = body.model ?? defaults.model;
-  const permissionMode = body.permissionMode ?? defaults.permissionMode;
+  const { model, permissionMode, agent } = mergeSessionDefaults(body, defaults);
 
   const session = await sessionManager.create({
     cwd,
     model,
+    agent,
     permissionMode,
     resume: body.resume,
     resumeSessionAt: body.resumeSessionAt,

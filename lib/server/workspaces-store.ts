@@ -20,6 +20,14 @@ export type WorkspaceDefaults = {
   /** Default Claude model id, e.g. "claude-opus-4-7". */
   model?: string;
   /**
+   * Default main-thread agent for new sessions — the SDK `--agent` flag
+   * equivalent (Options.agent). Applies the named agent's system prompt, tool
+   * restrictions, AND model to the main conversation, so when set it overrides
+   * the `model` default above. Must name an agent that exists (a file under
+   * .claude/agents or ~/.claude/agents). Empty/absent ⇒ the default agent.
+   */
+  agent?: string;
+  /**
    * Default permission mode for new sessions. Mirrors the SDK's full
    * PermissionMode enum so any value the dropdown surfaces can be persisted.
    */

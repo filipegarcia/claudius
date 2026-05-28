@@ -245,6 +245,13 @@ export class Session {
    * `start()` (e.g. on resume) uses the latest pick.
    */
   model?: string;
+  /**
+   * Main-thread agent name (SDK Options.agent). When set, the SDK applies the
+   * agent's system prompt, tool restrictions, and model to the main
+   * conversation. Set at construction from the session-create request /
+   * workspace default; the agent must exist (file under .claude/agents).
+   */
+  readonly agent?: string;
   readonly resumeFrom?: string;
   readonly resumeAt?: string;
   /**
@@ -312,6 +319,7 @@ export class Session {
     id?: string;
     cwd?: string;
     model?: string;
+    agent?: string;
     permissionMode?: PermissionMode;
     resume?: string;
     resumeSessionAt?: string;
@@ -331,6 +339,7 @@ export class Session {
     this.id = requestedId;
     this.cwd = opts.cwd ?? process.cwd();
     this.model = opts.model;
+    this.agent = opts.agent;
     this.permissionMode = opts.permissionMode ?? "default";
     this.resumeFrom = opts.resume;
     this.resumeAt = opts.resumeSessionAt;
@@ -444,6 +453,11 @@ export class Session {
     const options: Options = {
       cwd: this.cwd,
       model: this.model,
+      // Main-thread agent (SDK `--agent`). When set, the agent's system
+      // prompt, tools, and model apply to the main conversation — note the
+      // agent's own model takes precedence over `model` above. Omitted when
+      // unset so the default agent is used.
+      ...(this.agent ? { agent: this.agent } : {}),
       permissionMode: this.permissionMode,
       abortController: this.abortController,
       canUseTool: this.canUseTool,
