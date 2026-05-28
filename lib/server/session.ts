@@ -309,6 +309,11 @@ export class Session {
    */
   readonly forwardSubagentText?: boolean;
   /**
+   * Additional absolute directories the agent may access beyond cwd
+   * (Options.additionalDirectories). Empty/undefined ⇒ cwd only.
+   */
+  readonly additionalDirectories?: string[];
+  /**
    * Extra instructions appended to the default Claude Code system prompt
    * (Options.systemPrompt preset + append). Undefined/empty ⇒ unmodified preset.
    */
@@ -409,6 +414,7 @@ export class Session {
     sandboxEnabled?: boolean;
     enable1mContext?: boolean;
     forwardSubagentText?: boolean;
+    additionalDirectories?: string[];
     systemPromptAppend?: string;
     planModeInstructions?: string;
     permissionMode?: PermissionMode;
@@ -436,6 +442,7 @@ export class Session {
     this.sandboxEnabled = opts.sandboxEnabled;
     this.enable1mContext = opts.enable1mContext;
     this.forwardSubagentText = opts.forwardSubagentText;
+    this.additionalDirectories = opts.additionalDirectories;
     this.systemPromptAppend = opts.systemPromptAppend;
     this.planModeInstructions = opts.planModeInstructions;
     this.permissionMode = opts.permissionMode ?? "default";
@@ -594,6 +601,11 @@ export class Session {
       // Stream full subagent text/thinking (not just the tool_use heartbeat)
       // so the client can render nested subagent transcripts in TaskBlock.
       ...(this.forwardSubagentText ? { forwardSubagentText: true } : {}),
+      // Extra directories the agent may read/write beyond cwd. Only forwarded
+      // when non-empty so the default (cwd-only) is preserved otherwise.
+      ...(this.additionalDirectories && this.additionalDirectories.length > 0
+        ? { additionalDirectories: this.additionalDirectories }
+        : {}),
       // Append workspace-level steering to the default Claude Code system
       // prompt. Only set when non-empty so the SDK keeps its plain preset
       // otherwise. Distinct from CLAUDE.md — this is house-style steering, not

@@ -53,10 +53,21 @@ describe("mergeSessionDefaults", () => {
       sandboxEnabled: undefined,
       enable1mContext: undefined,
       forwardSubagentText: undefined,
+      additionalDirectories: undefined,
       systemPromptAppend: undefined,
       planModeInstructions: undefined,
       permissionMode: undefined,
     });
+  });
+
+  test("additionalDirectories follows the same precedence (request wins, default fills)", () => {
+    expect(
+      mergeSessionDefaults({ additionalDirectories: ["/a"] }, { additionalDirectories: ["/b"] })
+        .additionalDirectories,
+    ).toEqual(["/a"]);
+    expect(mergeSessionDefaults({}, { additionalDirectories: ["/b"] }).additionalDirectories).toEqual([
+      "/b",
+    ]);
   });
 
   test("forwardSubagentText follows the same precedence (request wins, default fills)", () => {

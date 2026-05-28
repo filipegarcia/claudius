@@ -86,6 +86,10 @@ export function WorkspaceForm({ initial, onCancel, onSubmit, onIconUpload, onDel
   const [defaultPlanInstr, setDefaultPlanInstr] = useState(
     initial?.defaults?.planModeInstructions ?? "",
   );
+  // Additional directories the agent may access (one absolute path per line).
+  const [defaultAddlDirs, setDefaultAddlDirs] = useState(
+    (initial?.defaults?.additionalDirectories ?? []).join("\n"),
+  );
   const [agentNames, setAgentNames] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -181,6 +185,12 @@ export function WorkspaceForm({ initial, onCancel, onSubmit, onIconUpload, onDel
       else delete defaults.systemPromptAppend;
       if (defaultPlanInstr.trim()) defaults.planModeInstructions = defaultPlanInstr.trim();
       else delete defaults.planModeInstructions;
+      const dirs = defaultAddlDirs
+        .split("\n")
+        .map((d) => d.trim())
+        .filter(Boolean);
+      if (dirs.length > 0) defaults.additionalDirectories = dirs;
+      else delete defaults.additionalDirectories;
       const r = await onSubmit({
         name: name.trim(),
         rootPath: rootPath.trim(),
@@ -510,6 +520,16 @@ export function WorkspaceForm({ initial, onCancel, onSubmit, onIconUpload, onDel
                 placeholder="Custom plan-mode workflow steps (used only in plan mode). Empty = default workflow."
                 rows={3}
                 className="w-full resize-y rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 text-xs focus:outline-none"
+              />
+            </Field>
+            <Field label="Additional directories">
+              <textarea
+                value={defaultAddlDirs}
+                onChange={(e) => setDefaultAddlDirs(e.target.value)}
+                placeholder={"One absolute path per line — extra dirs the agent may access beyond the workspace root."}
+                rows={2}
+                spellCheck={false}
+                className="w-full resize-y rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 font-mono text-xs focus:outline-none"
               />
             </Field>
             <p className="mt-1 text-[10px] text-[var(--muted)]">

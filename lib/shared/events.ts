@@ -362,6 +362,8 @@ export type CreateSessionRequest = {
   enable1mContext?: boolean;
   /** Forward full subagent text/thinking — SDK Options.forwardSubagentText. */
   forwardSubagentText?: boolean;
+  /** Extra absolute dirs the agent may access — SDK Options.additionalDirectories. */
+  additionalDirectories?: string[];
   /** Extra text appended to the default system prompt — SDK Options.systemPrompt.append. */
   systemPromptAppend?: string;
   /** Custom plan-mode workflow body — SDK Options.planModeInstructions. */
