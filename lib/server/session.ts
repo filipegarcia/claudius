@@ -456,6 +456,14 @@ export class Session {
       // and the BackgroundTasksPanel renders. The fork reuses the
       // subagent's model + prompt cache, so cost is typically minimal.
       agentProgressSummaries: true,
+      // Ask the SDK to emit a predicted next-user-prompt (`prompt_suggestion`
+      // message) after each turn's result. The client already threads these
+      // into `promptSuggestions` state and renders them as clickable chips
+      // (PromptSuggestions). Suggestions ride the parent's prompt cache so
+      // they're nearly free, and the SDK self-suppresses on the first turn,
+      // after API errors, and in plan mode. Users who want them off can set
+      // CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false (the SDK's built-in gate).
+      promptSuggestions: true,
       // Opt into adaptive extended thinking explicitly so the agent
       // emits the full reasoning text in `thinking` blocks. Without
       // this, recent SDK builds default to a `display: 'omitted'`
