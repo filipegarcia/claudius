@@ -32,7 +32,7 @@ type Props = {
   suggested?: boolean;
 };
 
-export function UserMessage({ message, onRewind, rewinding, onJumpTo, sessionId }: Props) {
+export function UserMessage({ message, onRewind, rewinding, onJumpTo, sessionId, suggested }: Props) {
   const text = message.blocks.map((b) => (b.kind === "text" ? b.text : "")).join("");
   const images = message.images ?? [];
   const stamp = formatMessageTime(message.createdAt);
