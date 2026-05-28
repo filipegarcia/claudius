@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { appendFileSync, watch as watchFs, type FSWatcher } from "node:fs";
+import { watch as watchFs, type FSWatcher } from "node:fs";
 import {
   getSessionInfo,
   getSessionMessages,
@@ -46,20 +46,6 @@ import {
   shouldOfferSurvey,
   SURVEY_MIN_INTERVAL_MS,
 } from "./feedback-survey";
-
-// [DIAGNOSTIC — temporary] Append hook firings to a dedicated file so we can
-// confirm whether the SDK/CLI actually invokes the CwdChanged hook on worktree
-// entry, separate from the noisy Next.js dev log. Remove once verified.
-function dbgHook(event: string, input: unknown): void {
-  try {
-    appendFileSync(
-      "/tmp/claudius-hooks.log",
-      `${new Date().toISOString()} [${event}] ${JSON.stringify(input)}\n`,
-    );
-  } catch {
-    // best-effort diagnostic only
-  }
-}
 
 /**
  * If `filePath` lands inside a `.claude/worktrees/<name>/` tree, return the
@@ -603,8 +589,7 @@ export class Session {
             hooks: [
               async (input) => {
                 const pre = input as PreToolUseHookInput;
-                dbgHook("PreToolUse", { tool: pre.tool_name, cwd: pre.cwd });
-                // Fallback worktree detection (signal #3 above).
+                // Worktree detection (signal #2 above).
                 const ti = (pre.tool_input ?? {}) as {
                   file_path?: string;
                   notebook_path?: string;
@@ -628,7 +613,6 @@ export class Session {
           {
             hooks: [
               async (input) => {
-                dbgHook("CwdChanged", input);
                 const cwd = (input as CwdChangedHookInput).new_cwd;
                 if (typeof cwd === "string" && cwd.length > 0) {
                   this.broadcastCwd(cwd);
