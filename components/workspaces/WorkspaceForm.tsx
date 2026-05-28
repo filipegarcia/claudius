@@ -56,6 +56,11 @@ export function WorkspaceForm({ initial, onCancel, onSubmit, onIconUpload, onDel
   // default agent. Built-in agents (general-purpose, Explore) aren't listed
   // here because they're plugin-provided, not on disk pre-session.
   const [defaultAgent, setDefaultAgent] = useState(initial?.defaults?.agent ?? "");
+  // Spend cap (USD) for new sessions — empty string = no cap. Stored as text so
+  // the input can be cleared; coerced to a positive number on submit.
+  const [defaultBudget, setDefaultBudget] = useState(
+    initial?.defaults?.maxBudgetUsd != null ? String(initial.defaults.maxBudgetUsd) : "",
+  );
   const [agentNames, setAgentNames] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -136,6 +141,9 @@ export function WorkspaceForm({ initial, onCancel, onSubmit, onIconUpload, onDel
       else delete defaults.permissionMode;
       if (defaultAgent.trim()) defaults.agent = defaultAgent.trim();
       else delete defaults.agent;
+      const budget = Number(defaultBudget);
+      if (defaultBudget.trim() && Number.isFinite(budget) && budget > 0) defaults.maxBudgetUsd = budget;
+      else delete defaults.maxBudgetUsd;
       const r = await onSubmit({
         name: name.trim(),
         rootPath: rootPath.trim(),
@@ -388,6 +396,18 @@ export function WorkspaceForm({ initial, onCancel, onSubmit, onIconUpload, onDel
                   </option>
                 ))}
               </select>
+            </Field>
+            <Field label="Spend cap (USD)">
+              <input
+                type="number"
+                inputMode="decimal"
+                min="0"
+                step="0.5"
+                value={defaultBudget}
+                onChange={(e) => setDefaultBudget(e.target.value)}
+                placeholder="no cap"
+                className="w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 text-xs focus:outline-none"
+              />
             </Field>
             <p className="mt-1 text-[10px] text-[var(--muted)]">
               Apply only to new sessions. An explicit per-session override still wins.
