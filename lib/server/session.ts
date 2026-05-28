@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { watch as watchFs, type FSWatcher } from "node:fs";
+import { watch as watchFs, type FSWatcher, promises as fsp } from "node:fs";
 import {
   getSessionInfo,
   getSessionMessages,
@@ -35,6 +35,7 @@ import {
 } from "@/lib/shared/events";
 import { listSessionTasks, saveSessionTask } from "./session-tasks-db";
 import { extractUserPromptText, isRealUserPrompt } from "@/lib/shared/user-prompt";
+import { extractReadPaths } from "@/lib/shared/read-tool-paths";
 import type { SessionLoop } from "@/lib/shared/session-loops";
 
 type Subscriber = (event: ServerEvent) => void;
@@ -311,6 +312,19 @@ export class Session {
   // terminal) trigger a live resync instead of waiting for a refresh.
   private jsonlWatcher: FSWatcher | null = null;
   private jsonlResyncTimer: ReturnType<typeof setTimeout> | null = null;
+  /**
+   * Paths the model has Read this session. After every `compact_boundary`
+   * message we replay them through `query.seedReadState(path, mtime)` so the
+   * CLI's readFileState cache (which compaction strips) is repopulated and a
+   * subsequent Edit doesn't fail "file not read yet" (B2.3).
+   *
+   * Accumulated across the session lifetime; seedReadState is idempotent for
+   * the same path+mtime so reposting earlier reads after later compactions is
+   * safe. We never remove entries — a file the model already touched stays in
+   * the set even if it's later deleted on disk, because the re-seed pass
+   * skips paths whose stat fails.
+   */
+  private recentReadPaths: Set<string> = new Set();
   // Set to true while resyncFromDisk is in flight, so a watch event that
   // arrives during the sync doesn't stack up redundant work.
   private jsonlResyncBusy = false;
@@ -1513,6 +1527,36 @@ export class Session {
     }
   }
 
+  /**
+   * B2.3: replay every path the model has Read this session through the
+   * SDK's `seedReadState(path, mtime)` so the CLI's readFileState cache is
+   * repopulated after a `compact_boundary`. Without this, an Edit after
+   * compaction fails "file not read yet" even though the model believes
+   * (correctly) that it has read the file.
+   *
+   * Best-effort throughout: stat failures (file deleted, permission denied)
+   * skip that single path; an SDK throw on `seedReadState` skips this path
+   * too. Nothing here surfaces an error to the user — the worst case is the
+   * "file not read yet" error this method was added to prevent, which the
+   * user will see and recover from manually. We don't await this from the
+   * consume loop; the iterator must keep draining the SDK stream.
+   *
+   * mtimeMs is floored per the SDK contract ("File mtime (floored ms) at
+   * the time of the observed Read") so the SDK accepts the seed.
+   */
+  private async reseedReadPathsAfterCompact(): Promise<void> {
+    if (!this.query) return;
+    for (const path of this.recentReadPaths) {
+      try {
+        const st = await fsp.stat(path);
+        await this.query.seedReadState(path, Math.floor(st.mtimeMs));
+      } catch {
+        // Single-path failure (stat threw / seedReadState threw / query
+        // closed mid-pass) is non-fatal — move on to the next path.
+      }
+    }
+  }
+
   async end(): Promise<void> {
     this.inputQueue.close();
     this.abortController.abort();
@@ -2315,6 +2359,17 @@ export class Session {
         // duplicated rather than shared because the client and server
         // observe different events (SSE vs raw SDK).
         this.trackScheduledLoops(message);
+        // B2.3: track every file the model has Read this session, and re-seed
+        // the SDK's readFileState cache after each `compact_boundary` so a
+        // subsequent Edit doesn't fail "file not read yet" just because
+        // compaction stripped the prior Read tool_use from the conversation.
+        // Path extraction lives in `lib/shared/read-tool-paths.ts` (unit-tested);
+        // the re-seed is fire-and-forget so it never blocks the iterator.
+        for (const p of extractReadPaths(message)) this.recentReadPaths.add(p);
+        const sysMsg = message as { type?: string; subtype?: string };
+        if (sysMsg.type === "system" && sysMsg.subtype === "compact_boundary") {
+          void this.reseedReadPathsAfterCompact();
+        }
         // Bump the sessions index on each completed turn so list views can
         // sort newest-active first. `result` is the SDK's per-turn done
         // marker — independent of subagent activity.
