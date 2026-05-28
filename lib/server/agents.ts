@@ -1,6 +1,7 @@
 import { promises as fs } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join, resolve, sep } from "node:path";
+import { parse as parseYaml } from "yaml";
 import { assertWithin } from "./safe-path";
 
 export type AgentScope = "user" | "project";
@@ -109,67 +110,31 @@ export async function deleteAgent(scope: AgentScope, projectCwd: string, name: s
 
 // ─── frontmatter parser ────────────────────────────────────────────────
 //
-// Minimal YAML subset supporting:
-//   key: scalar
-//   key: [a, b, c]
-//   key:
-//     - a
-//     - b
-// Everything between the leading `---` delimiters is the frontmatter; the
-// rest is the body.
+// Everything between the leading `---` delimiters is the frontmatter (parsed
+// as YAML); the rest is the body. Backed by the `yaml` package rather than a
+// hand-rolled subset so nested structures round-trip — notably the object
+// form of an agent's `mcpServers` (e.g. `mcpServers:\n  srv:\n    command: x`),
+// which the previous scalar+flat-list parser could not represent. Scalars,
+// flow lists (`[a, b]`), and block lists still parse identically.
 
 const FM_RE = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/;
 
 export function parseFrontmatter(raw: string): { frontmatter: Record<string, unknown>; body: string } {
   const m = FM_RE.exec(raw);
   if (!m) return { frontmatter: {}, body: raw };
-  const fm: Record<string, unknown> = {};
-  const lines = m[1].split(/\r?\n/);
-  let currentKey: string | null = null;
-  let currentList: string[] | null = null;
-  for (const line of lines) {
-    if (!line.trim()) continue;
-    const listMatch = /^\s*-\s+(.+)$/.exec(line);
-    if (listMatch && currentKey && currentList) {
-      currentList.push(unquote(listMatch[1].trim()));
-      continue;
+  let frontmatter: Record<string, unknown> = {};
+  try {
+    // YAML 1.2 core schema (the `yaml` default): booleans/numbers/null parse
+    // to their JS types; ISO date strings stay strings (no YAML-1.1 timestamp
+    // coercion), so a `model:`/`description:` that looks date-ish is safe.
+    const parsed = parseYaml(m[1]);
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      frontmatter = parsed as Record<string, unknown>;
     }
-    const kv = /^([A-Za-z_][\w-]*)\s*:\s*(.*)$/.exec(line);
-    if (!kv) continue;
-    const key = kv[1];
-    const valueRaw = kv[2].trim();
-    if (currentKey && currentList) {
-      fm[currentKey] = currentList;
-      currentList = null;
-    }
-    if (valueRaw === "") {
-      currentKey = key;
-      currentList = [];
-    } else if (valueRaw.startsWith("[") && valueRaw.endsWith("]")) {
-      const inner = valueRaw.slice(1, -1);
-      const items = inner.split(",").map((p) => unquote(p.trim())).filter(Boolean);
-      fm[key] = items;
-      currentKey = null;
-      currentList = null;
-    } else {
-      fm[key] = parseScalar(valueRaw);
-      currentKey = null;
-      currentList = null;
-    }
+  } catch {
+    // Malformed YAML frontmatter falls back to empty — matching the prior
+    // parser's tolerance — rather than throwing. The body is still returned
+    // so the agent/skill prompt remains editable in the UI.
   }
-  if (currentKey && currentList) fm[currentKey] = currentList;
-  return { frontmatter: fm, body: m[2] };
-}
-
-function parseScalar(v: string): unknown {
-  if (/^(true|false)$/i.test(v)) return v.toLowerCase() === "true";
-  if (/^-?\d+(\.\d+)?$/.test(v)) return Number(v);
-  return unquote(v);
-}
-
-function unquote(s: string): string {
-  if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
-    return s.slice(1, -1);
-  }
-  return s;
+  return { frontmatter, body: m[2] };
 }
