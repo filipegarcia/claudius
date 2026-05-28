@@ -215,6 +215,50 @@ export type SessionSnapshotEvent = {
   };
 };
 
+/**
+ * One persisted subagent (Task) row, replayed inside `task_snapshot`. Mirrors
+ * the client's `TaskInfo` plus the captured inner conversation. Carries
+ * everything the live `task_started` / `task_progress` / `task_notification`
+ * system events would have populated — those are transient SSE-only events
+ * absent from the on-disk JSONL, so they vanish once a session is rebuilt
+ * from disk. See `lib/server/db-migrations/007_session_tasks.sql`.
+ */
+export type TaskSnapshotEntry = {
+  taskId: string;
+  /** Parent Task tool_use block id — the client's JOIN key. */
+  toolUseId?: string;
+  subagentType?: string;
+  description?: string;
+  taskType?: string;
+  workflowName?: string;
+  status: string;
+  totalTokens?: number;
+  toolUses?: number;
+  durationMs?: number;
+  summary?: string;
+  error?: string;
+  /**
+   * Raw subagent SDK messages (those tagged with `parent_tool_use_id`),
+   * in arrival order. `at` is the server-stamped epoch ms for ordering.
+   * `message` is the untouched SDK envelope so the client can rebuild
+   * `DisplayMessage`s through the same path the live stream uses.
+   */
+  innerMessages: Array<{ at?: number; message: unknown }>;
+};
+
+/**
+ * Replayed to every new SSE subscriber after `replay_done`, alongside
+ * `session_snapshot`. Rehydrates subagent (Task) metadata and inner
+ * conversations that only ever existed in the live SSE buffer. The client
+ * fills these in idempotently — it skips any task/subagent already restored
+ * from the buffer replay (a still-live session), so this only "wins" for
+ * sessions rebuilt from disk where the transient data was lost.
+ */
+export type TaskSnapshotEvent = {
+  type: "task_snapshot";
+  tasks: TaskSnapshotEntry[];
+};
+
 export type ServerEvent =
   | {
       type: "sdk";
@@ -240,7 +284,8 @@ export type ServerEvent =
   | SessionTitleEvent
   | AskUserQuestionEvent
   | PlanApprovalRequestEvent
-  | SessionSnapshotEvent;
+  | SessionSnapshotEvent
+  | TaskSnapshotEvent;
 
 export type PermissionDecision =
   | { kind: "allow_once" }

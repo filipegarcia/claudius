@@ -1,9 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { ChevronDown, ChevronRight, Wrench, AlertCircle, CheckCircle2, ExternalLink, MessageCircleQuestion } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { buildEditorUrl, pathFromToolInput, useEditor } from "@/lib/client/ide";
+import { useFileLink } from "@/lib/client/file-link-context";
+import { filesHref, toWorkspaceRelative } from "@/lib/client/file-paths";
+import { Markdown } from "./Markdown";
 
 type Props = {
   name: string;
@@ -32,6 +36,19 @@ export function ToolCall({ name, input, result, liveAsk, onReopenAsk }: Props) {
   const { editor } = useEditor();
   const status = !result ? "running" : result.isError ? "error" : "ok";
   const fileTarget = pathFromToolInput(input);
+  // When the tool operates on a file inside the active workspace, link its
+  // path to the in-app Files browser so the user can open it on our own file
+  // structure (not just their external editor). Null when there's no workspace
+  // context yet or the path lives outside the workspace root.
+  const fileLink = useFileLink();
+  const fileRel = fileTarget && fileLink ? toWorkspaceRelative(fileTarget.path, fileLink.cwd) : null;
+  const filesUrl = fileRel && fileLink ? filesHref(fileLink.workspaceId, fileRel) : null;
+  // ExitPlanMode carries the plan markdown in `input.plan`. Render it as
+  // readable prose when expanded (instead of the escaped JSON dump) so the
+  // user can review an already-accepted plan after the approval overlay is
+  // gone. Falls back to the JSON view if the field is missing / not a string.
+  const planText =
+    name === "ExitPlanMode" && typeof input.plan === "string" ? (input.plan as string) : null;
   // Show the "Answer" pill on every AskUserQuestion row that has a click
   // handler wired — live asks pulse, historic ones don't. Resurrecting a
   // historic ask doesn't try to feed the SDK (which has already moved on);
@@ -52,15 +69,33 @@ export function ToolCall({ name, input, result, liveAsk, onReopenAsk }: Props) {
         <button
           type="button"
           onClick={() => setOpen((o) => !o)}
-          className="flex min-w-0 flex-1 items-center gap-2 px-3 py-1.5 text-left"
+          className={cn(
+            "flex items-center gap-2 py-1.5 pl-3 text-left",
+            // When a file path follows, the button hugs its content so the
+            // path link takes the remaining width; otherwise it fills the row
+            // so clicking anywhere on the header toggles.
+            fileTarget ? "min-w-0 shrink-0" : "min-w-0 flex-1",
+          )}
         >
           {open ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
           <Wrench className="h-3.5 w-3.5 text-[var(--accent)]" />
           <span className="font-mono">{name}</span>
-          {fileTarget && (
-            <span className="truncate font-mono text-[10px] text-[var(--muted)]">{fileTarget.path}</span>
-          )}
+          {planText && <span className="text-[10px] text-[var(--muted)]">— Plan</span>}
         </button>
+        {fileTarget &&
+          (filesUrl ? (
+            <Link
+              href={filesUrl}
+              title="Open in Files"
+              className="min-w-0 flex-1 truncate font-mono text-[10px] text-[var(--muted)] hover:text-[var(--accent)] hover:underline"
+            >
+              {fileTarget.path}
+            </Link>
+          ) : (
+            <span className="min-w-0 flex-1 truncate font-mono text-[10px] text-[var(--muted)]">
+              {fileTarget.path}
+            </span>
+          ))}
         {showAnswerPill && (
           <button
             type="button"
@@ -89,23 +124,32 @@ export function ToolCall({ name, input, result, liveAsk, onReopenAsk }: Props) {
       </div>
       {open && (
         <div className="border-t border-[var(--border)]">
-          <div className="px-3 py-2">
-            <div className="mb-1 flex items-center gap-2 text-[10px] uppercase tracking-wide text-[var(--muted)]">
-              <span>input</span>
-              {fileTarget && (
-                <a
-                  href={buildEditorUrl(fileTarget.path, fileTarget.line, editor)}
-                  className="ml-auto inline-flex items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-1.5 py-0.5 text-[10px] font-normal normal-case tracking-normal text-[var(--foreground)] hover:bg-[var(--panel)]"
-                  title={`Open in editor (${editor})`}
-                >
-                  <ExternalLink className="h-3 w-3" /> Open
-                </a>
-              )}
+          {planText ? (
+            <div className="px-3 py-2">
+              <div className="mb-1 text-[10px] uppercase tracking-wide text-[var(--muted)]">plan</div>
+              <div className="max-h-96 overflow-y-auto scroll-thin rounded bg-[var(--panel-2)] px-3 py-2 text-sm leading-7">
+                <Markdown>{planText}</Markdown>
+              </div>
             </div>
-            <pre className="max-h-60 overflow-auto rounded bg-[var(--panel-2)] p-2 font-mono text-xs scroll-thin">
-              {JSON.stringify(input, null, 2)}
-            </pre>
-          </div>
+          ) : (
+            <div className="px-3 py-2">
+              <div className="mb-1 flex items-center gap-2 text-[10px] uppercase tracking-wide text-[var(--muted)]">
+                <span>input</span>
+                {fileTarget && (
+                  <a
+                    href={buildEditorUrl(fileTarget.path, fileTarget.line, editor)}
+                    className="ml-auto inline-flex items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-1.5 py-0.5 text-[10px] font-normal normal-case tracking-normal text-[var(--foreground)] hover:bg-[var(--panel)]"
+                    title={`Open in editor (${editor})`}
+                  >
+                    <ExternalLink className="h-3 w-3" /> Open
+                  </a>
+                )}
+              </div>
+              <pre className="max-h-60 overflow-auto rounded bg-[var(--panel-2)] p-2 font-mono text-xs scroll-thin">
+                {JSON.stringify(input, null, 2)}
+              </pre>
+            </div>
+          )}
           {result && (
             <div className="px-3 pb-2">
               <div className="mb-1 text-[10px] uppercase tracking-wide text-[var(--muted)]">

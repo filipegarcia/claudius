@@ -26,8 +26,22 @@ const STATUS_TONES: Record<string, string> = {
   stopped: "text-amber-300",
 };
 
+/** "1m 23s" / "45s" / "1h 2m" — compact elapsed-time label for the header. */
+function formatDuration(ms: number): string {
+  const totalSec = Math.max(0, Math.round(ms / 1000));
+  if (totalSec < 60) return `${totalSec}s`;
+  const totalMin = Math.floor(totalSec / 60);
+  const sec = totalSec % 60;
+  if (totalMin < 60) return `${totalMin}m ${sec}s`;
+  const hours = Math.floor(totalMin / 60);
+  const min = totalMin % 60;
+  return `${hours}h ${min}m`;
+}
+
 export function TaskBlock({ toolUseId, input, result, task, innerMessages }: Props) {
-  const [open, setOpen] = useState(true);
+  // Collapsed by default — multiple parallel Task blocks otherwise flood the
+  // transcript. Click the header to expand the subagent's inner messages.
+  const [open, setOpen] = useState(false);
   const subagentName = (input as { subagent_type?: string; agent?: string }).subagent_type ?? (input as { agent?: string }).agent ?? "Task";
   const description = task?.description ?? (input as { description?: string }).description ?? "";
   const prompt = (input as { prompt?: string }).prompt ?? "";
@@ -63,6 +77,9 @@ export function TaskBlock({ toolUseId, input, result, task, innerMessages }: Pro
           )}
           {task?.toolUses != null && task.toolUses > 0 && (
             <span className="text-[var(--muted)]">· {task.toolUses} tools</span>
+          )}
+          {task?.durationMs != null && (
+            <span className="text-[var(--muted)]">· {formatDuration(task.durationMs)}</span>
           )}
         </span>
       </button>

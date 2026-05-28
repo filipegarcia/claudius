@@ -573,8 +573,21 @@ function PreviewPane({ html, label }: { html: string; label: string }) {
       {!content ? (
         <div className="text-[11px] italic text-[var(--muted)]">No preview for this option.</div>
       ) : isHtml ? (
+        // Model-authored HTML mockups (cards, tables, code, comment threads)
+        // assume a light "document" background with dark/secondary text — the
+        // browser default. On Claudius's dark theme that makes any
+        // unbackgrounded dark or muted text unreadable (e.g. a comments column
+        // rendering author+date in grey). Give the preview its own fixed light
+        // canvas so foreign HTML stays legible regardless of the active theme
+        // or whatever inline colors the model picked — short of `!important`,
+        // CSS can't override the model's inline `color`, so the only reliable
+        // fix is the background it sits on. The visual break from the
+        // surrounding chrome is intentional: it reads as "a render of
+        // something the model authored," the same convention email/markdown
+        // previews use. (The old `prose prose-invert` classes were dead — no
+        // typography plugin — and would invert wrongly here anyway.)
         <div
-          className="prose prose-invert max-w-none text-sm"
+          className="rounded-md border border-[var(--border)] bg-[#ffffff] p-3 text-sm text-[#1a1a1a] [color-scheme:light]"
           // The model itself emits this HTML — same trust level as anything
           // else in the assistant message stream. Be deliberate about that.
           dangerouslySetInnerHTML={{ __html: content }}

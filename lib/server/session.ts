@@ -31,7 +31,9 @@ import {
   type PermissionRequestEvent,
   type PlanDecision,
   type ServerEvent,
+  type TaskSnapshotEntry,
 } from "@/lib/shared/events";
+import { listSessionTasks, saveSessionTask } from "./session-tasks-db";
 import { extractUserPromptText, isRealUserPrompt } from "@/lib/shared/user-prompt";
 import type { SessionLoop } from "@/lib/shared/session-loops";
 
@@ -1727,6 +1729,10 @@ export class Session {
     //      gets pruned out for any session with more than `tail` turns,
     //      so reconnecting tabs miss it.
     void this.sendFreshTitle(fn);
+    // Rehydrate persisted subagent (Task) metadata + inner conversations.
+    // These ride on transient SSE-only events absent from the JSONL, so a
+    // session rebuilt from disk loses them; this repaints them from SQLite.
+    void this.sendTaskSnapshot(fn);
     return () => {
       this.subscribers.delete(fn);
       this.notifySubscriberCount();
@@ -1877,6 +1883,10 @@ export class Session {
     // these, so we cache the latest payload server-side and replay it via
     // session_snapshot in subscribe().
     this.captureSnapshotState(event);
+    // Sniff transient subagent (Task) state — token/tool/duration counters and
+    // the inner conversation — and persist it on completion so it survives a
+    // disk-rebuild of this session. See captureTaskState() + session-tasks-db.
+    this.captureTaskState(event);
     for (const sub of this.subscribers) {
       try {
         sub(event);
@@ -2070,6 +2080,141 @@ export class Session {
         }
         continue;
       }
+    }
+  }
+
+  /**
+   * In-memory accumulators for subagent (Task) state observed on the wire.
+   * Task metadata is keyed by the SDK `task_id`; the inner conversation is
+   * keyed by the parent Task `tool_use_id` (== the subagent messages'
+   * `parent_tool_use_id`). Both are flushed to SQLite atomically on
+   * `task_notification` (completion) by `persistTask`, then replayed via
+   * `task_snapshot` in `subscribe()`. Purely live state — rebuilt from the
+   * DB on the next session, never read back here.
+   */
+  private taskMetaById = new Map<string, TaskSnapshotEntry>();
+  private subagentMsgsByToolUseId = new Map<string, Array<{ at?: number; message: unknown }>>();
+  /** Cap inner-message retention per task so a marathon subagent can't bloat one row. */
+  private static readonly MAX_INNER_MESSAGES = 500;
+
+  /**
+   * Sniff subagent (Task) state out of the broadcast stream. Mirrors the
+   * client reducer in `lib/client/use-session.ts` (task_started / task_progress
+   * / task_updated / task_notification + `parent_tool_use_id` messages), but
+   * its sole job is to persist that state on completion. Best-effort and
+   * side-effect-free beyond the in-memory maps + the DB write it kicks off.
+   */
+  private captureTaskState(event: ServerEvent): void {
+    if (event.type !== "sdk") return;
+    const msg = event.message as {
+      type?: string;
+      subtype?: string;
+      parent_tool_use_id?: string | null;
+      task_id?: string;
+      tool_use_id?: string;
+      description?: string;
+      task_type?: string;
+      workflow_name?: string;
+      summary?: string;
+      status?: string;
+      patch?: { status?: string; description?: string; error?: string };
+      usage?: { total_tokens?: number; tool_uses?: number; duration_ms?: number };
+    };
+
+    // Subagent inner message — accumulate the raw envelope under its parent
+    // tool_use id so we can replay the conversation faithfully.
+    const parent = msg.parent_tool_use_id ?? null;
+    if (parent) {
+      const list = this.subagentMsgsByToolUseId.get(parent) ?? [];
+      list.push({ at: event.at, message: event.message });
+      if (list.length > Session.MAX_INNER_MESSAGES) {
+        list.splice(0, list.length - Session.MAX_INNER_MESSAGES);
+      }
+      this.subagentMsgsByToolUseId.set(parent, list);
+      return;
+    }
+
+    if (msg.type !== "system" || !msg.task_id) return;
+    const taskId = msg.task_id;
+    switch (msg.subtype) {
+      case "task_started": {
+        this.taskMetaById.set(taskId, {
+          taskId,
+          toolUseId: msg.tool_use_id,
+          description: msg.description,
+          taskType: msg.task_type,
+          workflowName: msg.workflow_name,
+          status: "running",
+          innerMessages: [],
+        });
+        break;
+      }
+      case "task_progress": {
+        const meta = this.taskMetaById.get(taskId);
+        if (!meta) break;
+        if (msg.description) meta.description = msg.description;
+        if (msg.summary) meta.summary = msg.summary;
+        if (msg.usage?.total_tokens != null) meta.totalTokens = msg.usage.total_tokens;
+        if (msg.usage?.tool_uses != null) meta.toolUses = msg.usage.tool_uses;
+        if (msg.usage?.duration_ms != null) meta.durationMs = msg.usage.duration_ms;
+        break;
+      }
+      case "task_updated": {
+        const meta = this.taskMetaById.get(taskId);
+        if (!meta) break;
+        if (msg.patch?.status) meta.status = msg.patch.status;
+        if (msg.patch?.description) meta.description = msg.patch.description;
+        if (msg.patch?.error) meta.error = msg.patch.error;
+        break;
+      }
+      case "task_notification": {
+        const meta = this.taskMetaById.get(taskId) ?? {
+          taskId,
+          status: msg.status ?? "completed",
+          innerMessages: [],
+        };
+        if (msg.status) meta.status = msg.status;
+        if (msg.summary) meta.summary = msg.summary;
+        if (msg.usage?.total_tokens != null) meta.totalTokens = msg.usage.total_tokens;
+        if (msg.usage?.tool_uses != null) meta.toolUses = msg.usage.tool_uses;
+        if (msg.usage?.duration_ms != null) meta.durationMs = msg.usage.duration_ms;
+        this.taskMetaById.set(taskId, meta);
+        this.persistTask(meta);
+        break;
+      }
+      default:
+        break;
+    }
+  }
+
+  /** Snapshot the task (meta + captured inner conversation) into SQLite. */
+  private persistTask(meta: TaskSnapshotEntry): void {
+    const inner = meta.toolUseId
+      ? this.subagentMsgsByToolUseId.get(meta.toolUseId) ?? []
+      : [];
+    const entry: TaskSnapshotEntry = { ...meta, innerMessages: inner };
+    void saveSessionTask(this.cwd, this.id, entry).catch(() => {
+      // best-effort — a failed persist just means this task won't survive a
+      // disk-rebuild; never disrupt the session over it.
+    });
+  }
+
+  /**
+   * Best-effort replay of persisted subagent (Task) state to a freshly
+   * attached subscriber. Mirrors `sendFreshTitle` — fired async from
+   * `subscribe()` so the synchronous buffer replay isn't blocked on a DB
+   * read. The client merges idempotently and prefers anything already
+   * restored from the buffer, so this only repaints sessions rebuilt from
+   * disk (idle-reaped / server-restarted) where the live data was lost.
+   */
+  private async sendTaskSnapshot(fn: Subscriber): Promise<void> {
+    try {
+      const tasks = await listSessionTasks(this.cwd, this.id);
+      if (tasks.length === 0) return;
+      if (!this.subscribers.has(fn)) return; // unsubscribed during the await
+      fn({ type: "task_snapshot", tasks });
+    } catch {
+      // non-fatal — task counters/transcripts simply stay blank on this load
     }
   }
 
