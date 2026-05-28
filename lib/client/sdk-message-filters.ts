@@ -5,7 +5,7 @@
 // or any persistent storage — they're string-shape recognizers.
 
 import { findSlashCommand } from "@/lib/shared/slash-commands";
-import { isRealUserPrompt } from "@/lib/shared/user-prompt";
+import { COMPACT_SUMMARY_PREFIX, isRealUserPrompt } from "@/lib/shared/user-prompt";
 import type { DisplayMessage } from "./types";
 
 /**
@@ -113,9 +113,11 @@ function contentAsTrimmedText(content: unknown): string {
  * on the leading sentence is robust because that text is hard-coded in the
  * SDK runtime; if Anthropic ever changes it, the disk-replay envelope check
  * still catches the same record on the next reload.
+ *
+ * The prefix constant lives in `lib/shared/user-prompt.ts` so this client-side
+ * display filter and the server-side prompt-snapshot filter resolve the same
+ * string and can't drift.
  */
-const COMPACT_SUMMARY_PREFIX = "This session is being continued from a previous conversation";
-
 export function isCompactSummaryContent(content: unknown): boolean {
   const trimmed = contentAsTrimmedText(content);
   if (!trimmed) return false;

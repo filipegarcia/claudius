@@ -8,6 +8,7 @@ import {
   Circle,
   Eraser,
   Eye,
+  GitBranch,
   Link as LinkIcon,
   Minimize2,
 } from "lucide-react";
@@ -17,6 +18,7 @@ import { SessionPicker } from "./SessionPicker";
 import { SessionNotifyMenu } from "./SessionNotifyMenu";
 import { WorkspaceIcon } from "@/components/workspaces/WorkspaceIcon";
 import { cn } from "@/lib/utils/cn";
+import { worktreeBadge } from "@/lib/client/worktree";
 import type { SessionInfo } from "@/lib/client/types";
 import type { Workspace } from "@/lib/server/workspaces-store";
 import {
@@ -34,6 +36,18 @@ type Props = {
   model: string | null;
   /** Main-thread agent name (SDK Options.agent), or null for the default agent. */
   mainAgent?: string | null;
+  /**
+   * Session root (the cwd the session was created with). Compared against
+   * `agentCwd` to decide whether the agent has moved into a git worktree.
+   */
+  sessionRoot?: string | null;
+  /**
+   * The agent's *effective* working directory, tracked live from the SDK's
+   * CwdChanged hook. When it differs from `sessionRoot` the agent is working
+   * in a separate location (typically a git worktree) so its edits won't show
+   * up in the user's current checkout — we surface a "worktree" badge.
+   */
+  agentCwd?: string | null;
   onModeChange: (m: PermissionMode) => void;
   sessions: SessionInfo[];
   onSwitchSession: (id: string) => void;
@@ -79,6 +93,8 @@ export function StatusLine({
   permissionMode,
   model,
   mainAgent,
+  sessionRoot,
+  agentCwd,
   onModeChange,
   sessions,
   onSwitchSession,
@@ -112,6 +128,13 @@ export function StatusLine({
     ctx == null ? "ok" : ctx >= 90 ? "danger" : ctx >= 75 ? "warn" : "ok";
 
   const busy = status !== "idle";
+
+  // The agent has wandered out of the session's root dir — almost always into
+  // a git worktree Claude Code spun up to isolate edits. Surface it so the
+  // user doesn't go looking for changes in their main checkout that aren't
+  // there. `worktreeBadge` returns null (no badge) when the paths are missing
+  // or equal-once-normalized, so the gate and the label can't disagree.
+  const worktreeLabel = worktreeBadge(agentCwd, sessionRoot);
 
   return (
     <div className="flex h-9 items-center gap-3 border-b border-[var(--border)] bg-[var(--panel)] px-4 text-xs text-[var(--muted)]">
@@ -164,6 +187,16 @@ export function StatusLine({
         onCreateNew={onCreateNewSession}
         onRefresh={onRefreshSessions}
       />
+      {worktreeLabel && (
+        <span
+          data-testid="status-line-worktree"
+          title={`Agent is working in a git worktree, not your current checkout:\n${agentCwd}\n\nEdits made here won't appear in your main working tree until the worktree is merged or removed.`}
+          className="flex items-center gap-1 rounded border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 font-mono text-[10px] text-amber-200"
+        >
+          <GitBranch className="h-3 w-3" />
+          <span className="max-w-[12rem] truncate">{worktreeLabel}</span>
+        </span>
+      )}
       <span className="opacity-50">·</span>
       {/*
         Render the capitalized string in JS, not via CSS `capitalize`, so

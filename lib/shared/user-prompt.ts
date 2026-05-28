@@ -28,13 +28,36 @@ function isTaskNotificationText(text: string): boolean {
 }
 
 /**
+ * The stable opening sentence of the SDK's post-compact "Session continued
+ * from a previous conversation…" summary — a `user`-shaped record the SDK
+ * synthesizes after a manual or automatic compaction. It lives here (shared)
+ * rather than only in the client-side display filter so the server snapshot
+ * predicates below and `sdk-message-filters.ts`'s `isCompactSummaryContent`
+ * resolve the same string and can't drift. Matching on the leading sentence
+ * is robust because that text is hard-coded in the SDK runtime.
+ */
+export const COMPACT_SUMMARY_PREFIX =
+  "This session is being continued from a previous conversation";
+
+function isCompactSummaryText(text: string): boolean {
+  return text.trimStart().startsWith(COMPACT_SUMMARY_PREFIX);
+}
+
+/**
  * Pull the plain-text body out of a user SDK message's `content`. Returns
  * null for:
  *   - empty string content,
  *   - arrays with no text blocks (e.g. image-only prompts — those still
  *     survive via the SSE replay path; the snapshot fallback just doesn't
  *     carry their pixels),
- *   - synthetic `<task-notification>` wrappers.
+ *   - synthetic `<task-notification>` wrappers,
+ *   - the SDK's post-compact "Session continued from a previous
+ *     conversation…" summary. That record is shaped like a user message but
+ *     was authored by the SDK runtime, not the user. Excluding it here stops
+ *     the server's `latestUserPromptSnapshot` from caching it (and the
+ *     `session_snapshot` rehydration from re-injecting it as a user bubble),
+ *     and stops the client pin walk from pinning it as "the last prompt".
+ *     The chat surfaces a `compact_boundary` divider in its place instead.
  *
  * Returns null for synthetic tool_result wrappers (which have no `text`
  * blocks) by virtue of the text accumulator staying at length 0.
@@ -46,6 +69,7 @@ export function extractUserPromptText(content: unknown): string | null {
   if (typeof content === "string") {
     if (content.length === 0) return null;
     if (isTaskNotificationText(content)) return null;
+    if (isCompactSummaryText(content)) return null;
     return content;
   }
   if (!Array.isArray(content)) return null;
@@ -58,6 +82,7 @@ export function extractUserPromptText(content: unknown): string | null {
   }
   if (text.length === 0) return null;
   if (isTaskNotificationText(text)) return null;
+  if (isCompactSummaryText(text)) return null;
   return text;
 }
 

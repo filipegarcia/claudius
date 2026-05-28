@@ -8,6 +8,7 @@ import { LoadingBar } from "@/components/chat/LoadingBar";
 import { MessageList } from "@/components/chat/MessageList";
 import { TodosBanner } from "@/components/chat/TodosBanner";
 import { RecapBanner } from "@/components/chat/RecapBanner";
+import { FeedbackBanner } from "@/components/chat/FeedbackBanner";
 import { PromptInput } from "@/components/chat/PromptInput";
 import { PermissionPrompt } from "@/components/chat/PermissionPrompt";
 import { AskUserQuestionPrompt } from "@/components/chat/AskUserQuestionPrompt";
@@ -979,6 +980,8 @@ export default function Home() {
           permissionMode={session.permissionMode}
           model={session.model}
           mainAgent={session.mainAgent}
+          sessionRoot={session.cwd}
+          agentCwd={session.agentCwd}
           onModeChange={session.setPermissionMode}
           sessions={session.sessions}
           onSwitchSession={(id) => {
@@ -1047,6 +1050,11 @@ export default function Home() {
           sessionId={session.sessionId}
           title={session.sessionTitle}
           onRename={session.renameTitle}
+        />
+        <FeedbackBanner
+          survey={session.feedbackSurvey}
+          onSubmit={session.submitFeedback}
+          onDismiss={session.dismissFeedback}
         />
         <div className="flex flex-1 flex-col overflow-hidden">
           {searchOpen && (

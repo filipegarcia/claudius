@@ -1,18 +1,22 @@
 import { randomUUID } from "node:crypto";
-import { watch as watchFs, type FSWatcher } from "node:fs";
+import { appendFileSync, watch as watchFs, type FSWatcher } from "node:fs";
+import { join } from "node:path";
 import {
   getSessionInfo,
   getSessionMessages,
   query,
   renameSession,
   type CanUseTool,
+  type CwdChangedHookInput,
   type EffortLevel,
   type Options,
   type PermissionMode,
   type PermissionResult,
+  type PreToolUseHookInput,
   type Query,
   type SDKMessage,
   type SDKUserMessage,
+  type WorktreeCreateHookInput,
 } from "@anthropic-ai/claude-agent-sdk";
 import { projectRoot } from "./db";
 import { AsyncQueue } from "./async-queue";
@@ -36,6 +40,43 @@ import {
 import { listSessionTasks, saveSessionTask } from "./session-tasks-db";
 import { extractUserPromptText, isRealUserPrompt } from "@/lib/shared/user-prompt";
 import type { SessionLoop } from "@/lib/shared/session-loops";
+import { readSettings, type ClaudeSettings } from "./settings";
+import {
+  coerceSurveyRate,
+  getLastSurveyShownAt,
+  noteSurveyShown,
+  shouldOfferSurvey,
+  SURVEY_MIN_INTERVAL_MS,
+} from "./feedback-survey";
+
+// [DIAGNOSTIC — temporary] Append hook firings to a dedicated file so we can
+// confirm whether the SDK/CLI actually invokes the CwdChanged hook on worktree
+// entry, separate from the noisy Next.js dev log. Remove once verified.
+function dbgHook(event: string, input: unknown): void {
+  try {
+    appendFileSync(
+      "/tmp/claudius-hooks.log",
+      `${new Date().toISOString()} [${event}] ${JSON.stringify(input)}\n`,
+    );
+  } catch {
+    // best-effort diagnostic only
+  }
+}
+
+/**
+ * If `filePath` lands inside a `.claude/worktrees/<name>/` tree, return the
+ * absolute worktree root; otherwise null.
+ *
+ * This backs the PreToolUse fallback for the worktree badge. Harness-level
+ * `EnterWorktree` moves the session into a git worktree WITHOUT firing the
+ * SDK's `CwdChanged` (or, in some builds, `WorktreeCreate`) hook — so the
+ * badge's normal signal never arrives. But any edit it makes carries an
+ * absolute path under `<root>/.claude/worktrees/<name>/`, which we can sniff.
+ */
+export function worktreeRootFromPath(filePath: string): string | null {
+  const m = /^(.*\/\.claude\/worktrees\/[^/]+)(?:\/|$)/.exec(filePath);
+  return m ? m[1] : null;
+}
 
 type Subscriber = (event: ServerEvent) => void;
 
@@ -285,6 +326,11 @@ export class Session {
   private pendingAskQuestions = new Map<string, PendingAskQuestion>();
   private pendingPlans = new Map<string, PendingPlan>();
   private done = false;
+  // True once a real user prompt has been pushed in THIS process. Gates the
+  // feedback-survey nudge so we never survey scheduled-loop / resumed /
+  // automated sessions where the human never typed (mirrors the bus's
+  // `lastUserInputAt` gate for idle notifications).
+  private sawUserInput = false;
   // True between the user pushing input and the SDK emitting the matching
   // `result` event. Surfaced via `getStatus()` so the SessionTabs strip can
   // paint a "running" dot on non-active tabs whose live SSE isn't bound to
@@ -460,6 +506,13 @@ export class Session {
       // non-fatal — index is for listing; the session still works without it
     }
 
+    // Resolve user-scope settings that map onto SDK Options. Best-effort:
+    // a missing/invalid file yields `{}` so we fall back to defaults. Mirrors
+    // the `feedbackSurveyRate` read in `maybeOfferFeedbackSurvey`.
+    const userSettings = await readSettings("user", this.cwd).catch(
+      () => ({}) as ClaudeSettings,
+    );
+
     const options: Options = {
       cwd: this.cwd,
       model: this.model,
@@ -491,9 +544,12 @@ export class Session {
       // into `promptSuggestions` state and renders them as clickable chips
       // (PromptSuggestions). Suggestions ride the parent's prompt cache so
       // they're nearly free, and the SDK self-suppresses on the first turn,
-      // after API errors, and in plan mode. Users who want them off can set
-      // CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false (the SDK's built-in gate).
-      promptSuggestions: true,
+      // after API errors, and in plan mode. On by default; users turn them off
+      // via the SDK's `promptSuggestionEnabled` user setting (Settings → Chat,
+      // or the env gate CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false). The
+      // `promptSuggestions` fallback honors files written before the rename.
+      promptSuggestions:
+        (userSettings.promptSuggestionEnabled ?? userSettings.promptSuggestions) !== false,
       // Track file edits so the user can rewind the working tree to its
       // state at any prior user message via Query.rewindFiles() (see the
       // `rewindFiles` method + POST /api/sessions/[id]/rewind). The SDK
@@ -520,6 +576,100 @@ export class Session {
       // is markdown, which the CLI shows in a monospace box.
       toolConfig: {
         askUserQuestion: { previewFormat: "html" },
+      },
+      // Observe the agent's working-directory transitions and surface a
+      // "worktree" badge when it leaves the session root — otherwise the
+      // user's "current changed files" won't reflect what the agent touched.
+      //
+      // Three independent signals feed `broadcastCwd` (deduped):
+      //   1. `CwdChanged` — the SDK's own cwd move (fires when Claude Code
+      //      spins up a worktree as part of normal operation).
+      //   2. `WorktreeCreate` / `WorktreeRemove` — fired for explicit worktree
+      //      lifecycle (e.g. harness-level `EnterWorktree`), which does NOT
+      //      emit `CwdChanged`. Create points the badge at the worktree;
+      //      remove returns it to the session root to clear the badge.
+      //   3. PreToolUse path heuristic — fallback for builds where neither of
+      //      the above fires: a mutating file tool whose target path lives
+      //      under `<root>/.claude/worktrees/<name>/` means edits aren't
+      //      landing in the user's checkout, so we flag the worktree.
+      //
+      // All hooks return `{ continue: true }` so we never block the agent, and
+      // programmatic hooks merge with any user settings.json hooks rather than
+      // clobbering them.
+      hooks: {
+        PreToolUse: [
+          {
+            hooks: [
+              async (input) => {
+                const pre = input as PreToolUseHookInput;
+                dbgHook("PreToolUse", { tool: pre.tool_name, cwd: pre.cwd });
+                // Fallback worktree detection (signal #3 above).
+                const ti = (pre.tool_input ?? {}) as {
+                  file_path?: string;
+                  notebook_path?: string;
+                };
+                const target = ti.file_path ?? ti.notebook_path;
+                if (
+                  typeof target === "string" &&
+                  ["Edit", "Write", "MultiEdit", "NotebookEdit"].includes(
+                    pre.tool_name ?? "",
+                  )
+                ) {
+                  const wt = worktreeRootFromPath(target);
+                  if (wt) this.broadcastCwd(wt);
+                }
+                return { continue: true };
+              },
+            ],
+          },
+        ],
+        CwdChanged: [
+          {
+            hooks: [
+              async (input) => {
+                dbgHook("CwdChanged", input);
+                const cwd = (input as CwdChangedHookInput).new_cwd;
+                if (typeof cwd === "string" && cwd.length > 0) {
+                  this.broadcastCwd(cwd);
+                }
+                return { continue: true };
+              },
+            ],
+          },
+        ],
+        WorktreeCreate: [
+          {
+            hooks: [
+              async (input) => {
+                dbgHook("WorktreeCreate", input);
+                const name = (input as WorktreeCreateHookInput).name;
+                if (typeof name === "string" && name.length > 0) {
+                  // Worktrees live at `<repoRoot>/.claude/worktrees/<name>`.
+                  // Use the session root as the repo root rather than the
+                  // hook's `cwd`, which may already reflect a transient dir.
+                  this.broadcastCwd(join(this.cwd, ".claude", "worktrees", name));
+                }
+                return { continue: true };
+              },
+            ],
+          },
+        ],
+        WorktreeRemove: [
+          {
+            hooks: [
+              async (input) => {
+                dbgHook("WorktreeRemove", input);
+                // Back in the main checkout — return the effective cwd to the
+                // session root so the badge self-clears. Simplification: with
+                // multiple concurrent worktrees this clears even if the agent
+                // is still in another one; the next tool-path heuristic hit
+                // re-flags it. Acceptable for the common single-worktree case.
+                this.broadcastCwd(this.cwd);
+                return { continue: true };
+              },
+            ],
+          },
+        ],
       },
       // Pin the session id so the SDK names its on-disk JSONL with our id.
       // This makes Claudius web ids match the TUI: `claude --resume <id>`
@@ -953,6 +1103,7 @@ export class Session {
     // bus suppresses idle notifications because it never saw a user-input
     // signal for the session.
     notificationBus.markUserInput(this.id);
+    this.sawUserInput = true;
     this.turnInFlight = true;
     this.broadcastTurnStatusIfChanged();
 
@@ -1339,6 +1490,71 @@ export class Session {
   }
 
   /**
+   * Forward user feedback to Anthropic via the SDK's *undocumented* control
+   * method `query.submitFeedback`. It isn't in the SDK's public typings (no
+   * `.d.ts` entry), but it lives on the same control-protocol object that
+   * backs the typed methods like `setEffort`/`seedReadState` and routes
+   * through the same channel the CLI's session-quality survey uses to reach
+   * Anthropic. We feature-detect and swallow failures: if a future SDK drops
+   * the method, forwarding degrades to a no-op and the caller still persists
+   * the feedback locally. Returns whether the SDK accepted the forward.
+   */
+  async submitFeedback(description: string, surface = "claudius"): Promise<boolean> {
+    const q = this.query as
+      | (Query & {
+          submitFeedback?: (
+            description: string,
+            opts?: { surface?: string },
+          ) => Promise<unknown>;
+        })
+      | null;
+    if (!q || typeof q.submitFeedback !== "function") return false;
+    try {
+      await q.submitFeedback(description, { surface });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * After a successful turn, occasionally nudge the user for feedback —
+   * Claudius's replica of the CLI's session-quality survey. Eligibility +
+   * probability live in `feedback-survey.ts` (pure, tested); the rate comes
+   * from the user-scope `feedbackSurveyRate` setting. Best-effort: any error
+   * is swallowed so the consume() loop is never disrupted by a nudge.
+   */
+  private async maybeOfferFeedbackSurvey(message: SDKMessage): Promise<void> {
+    try {
+      const isError = (message as { is_error?: boolean }).is_error === true;
+      // Cheap synchronous gates first — avoid a settings file read on every
+      // turn while throttled or ineligible.
+      if (isError || !this.sawUserInput) return;
+      const now = Date.now();
+      if (now - getLastSurveyShownAt() < SURVEY_MIN_INTERVAL_MS) return;
+      const settings = await readSettings("user", this.cwd).catch(
+        () => ({}) as ClaudeSettings,
+      );
+      const rate = coerceSurveyRate(settings.feedbackSurveyRate);
+      if (
+        !shouldOfferSurvey({
+          rate,
+          isError,
+          sawUserInput: this.sawUserInput,
+          now,
+          lastShownAt: getLastSurveyShownAt(),
+        })
+      ) {
+        return;
+      }
+      noteSurveyShown(now);
+      this.broadcast({ type: "feedback_survey", sessionId: this.id, surface: "claudius" });
+    } catch {
+      // A feedback nudge is never worth disrupting the turn loop.
+    }
+  }
+
+  /**
    * Forward the model list the SDK advertises for this session. The SDK
    * returns per-model metadata (display name, description, supported effort
    * levels) so the picker can render the same options the CLI's `/model`
@@ -1689,7 +1905,10 @@ export class Session {
       if (
         ev.type === "permission_request" ||
         ev.type === "ask_user_question" ||
-        ev.type === "plan_approval_request"
+        ev.type === "plan_approval_request" ||
+        // A one-shot feedback nudge tied to a turn that already finished —
+        // replaying it on reload would re-pop a stale survey.
+        ev.type === "feedback_survey"
       )
         continue;
       fn(ev);
@@ -1907,6 +2126,27 @@ export class Session {
     } catch {
       // non-fatal — banner stays empty, header still works
     }
+  }
+
+  /**
+   * Last effective working directory broadcast to clients via `cwd_changed`.
+   * Several independent signals can move it — the SDK's `CwdChanged` hook,
+   * `WorktreeCreate`/`WorktreeRemove`, and the PreToolUse path heuristic — so
+   * we dedupe against this single source of truth to avoid spamming the SSE
+   * stream (and the replay buffer) with redundant events.
+   */
+  private lastCwdBroadcast: string | null = null;
+
+  /**
+   * Broadcast a `cwd_changed` only when the effective cwd actually moved.
+   * Centralises the dedupe so every detector can call it freely; the client
+   * paints the "worktree" badge whenever this differs from the session root
+   * and self-clears when it returns to the root.
+   */
+  private broadcastCwd(cwd: string): void {
+    if (!cwd || cwd === this.lastCwdBroadcast) return;
+    this.lastCwdBroadcast = cwd;
+    this.broadcast({ type: "cwd_changed", cwd });
   }
 
   private broadcast(event: ServerEvent): void {
@@ -2293,6 +2533,9 @@ export class Session {
           void touchSession(this.cwd, this.id).catch(() => {
             // index update is non-critical; never crash consume() over it
           });
+          // Occasionally nudge for feedback (CLI-style survey). Fire-and-
+          // forget so the settings read never blocks the turn loop.
+          void this.maybeOfferFeedbackSurvey(message);
         }
       }
     } catch (err) {

@@ -9,6 +9,7 @@ import type {
   PermissionRequestEvent,
   AskUserQuestionEvent,
   AskAnswer,
+  FeedbackSurveyEvent,
   PlanDecision,
   ServerEvent,
 } from "@/lib/shared/events";
@@ -28,6 +29,7 @@ import {
   reconcileTasksOnToolResult,
   seedTaskStatus,
 } from "./task-status";
+import { clearStreaming, sweepToolHistoryDone } from "./idle-reconcile";
 import type {
   AgentTodo,
   AttachedImage,
@@ -371,6 +373,7 @@ export function useSession(): ChatState & ChatActions {
   const [queue, setQueue] = useState<QueuedMessage[]>([]);
   const [pendingPermission, setPendingPermission] = useState<PermissionRequestEvent | null>(null);
   const [pendingAsk, setPendingAsk] = useState<AskUserQuestionEvent | null>(null);
+  const [feedbackSurvey, setFeedbackSurvey] = useState<FeedbackSurveyEvent | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
   const [slashCommands, setSlashCommands] = useState<string[]>([]);
   const [agents, setAgents] = useState<string[]>([]);
@@ -380,6 +383,15 @@ export function useSession(): ChatState & ChatActions {
   const [mainAgent, setMainAgent] = useState<string | null>(null);
   const [skills, setSkills] = useState<string[]>([]);
   const [cwd, setCwd] = useState<string | null>(null);
+  // The agent's *effective* working directory, updated live from the SDK's
+  // CwdChanged hook. Distinct from `cwd` (the session root): Claude Code now
+  // spins up a git worktree for some work, which moves the effective cwd away
+  // from the root so the user's "current changed files" don't reflect the
+  // agent's edits. The StatusLine paints a "worktree" badge whenever this
+  // differs from the root. Stored as the absolute path the SDK reports; when
+  // the agent moves back to the root this becomes === cwd and the badge
+  // self-clears (so there's no separate "exit" reset to forget).
+  const [agentCwd, setAgentCwd] = useState<string | null>(null);
   const [usage, setUsage] = useState<SessionUsage | null>(null);
   const [tasks, setTasks] = useState<Record<string, TaskInfo>>({});
   const [subagentMessages, setSubagentMessages] = useState<Record<string, DisplayMessage[]>>({});
@@ -805,12 +817,14 @@ export function useSession(): ChatState & ChatActions {
     setPendingPermission(null);
     pendingPermissionRef.current = null;
     setPendingAsk(null);
+    setFeedbackSurvey(null);
     setErrors([]);
     setSlashCommands([]);
     setAgents([]);
     setMainAgent(null);
     setSkills([]);
     setCwd(null);
+    setAgentCwd(null);
     setUsage(null);
     countedUsageRef.current = new Set();
     estimatedTurnCostRef.current = 0;
@@ -1025,6 +1039,20 @@ export function useSession(): ChatState & ChatActions {
    * pre-fix flushQueue persisted under `sessionIdRef.current`, which moved
    * during the await.)
    */
+  // Tear down in-flight UI markers when the turn ends. The activity rail and
+  // the "Claude streaming…" indicator are driven by per-block "running" flags
+  // cleared by their own terminal events (tool_result, message_stop). When a
+  // turn ends abnormally — interrupt, aborted stream, or an SDK that skipped
+  // the terminal event for a parallel subagent's tool — those never arrive and
+  // the rail stays stuck "running" even though the session is idle. Sweep them
+  // to idle on the authoritative turn-end signals (`result` / `turn_status:
+  // idle`). Background work tracks its own liveness elsewhere (see idle-reconcile).
+  const reconcileToIdle = useCallback(() => {
+    setMessages((prev) => clearStreaming(prev));
+    setToolHistory((prev) => sweepToolHistoryDone(prev, Date.now()));
+    setToolProgress((prev) => (Object.keys(prev).length === 0 ? prev : {}));
+  }, []);
+
   const flushQueue = useCallback(async () => {
     const id = sessionIdRef.current;
     if (!id) return;
@@ -1109,6 +1137,10 @@ export function useSession(): ChatState & ChatActions {
       }
       if (ev.type === "ask_user_question") {
         setPendingAsk(ev);
+        return;
+      }
+      if (ev.type === "feedback_survey") {
+        setFeedbackSurvey(ev);
         return;
       }
       if (ev.type === "plan_approval_request") {
@@ -1246,6 +1278,20 @@ export function useSession(): ChatState & ChatActions {
         // (long Bash, slow tool) paints the StatusLine / tab dot correctly
         // even when no further assistant chunks arrive.
         setPendingTracked(ev.status === "running");
+        // Idle turn → clear any stuck "running" rail rows / streaming markers
+        // (a tab attaching to an already-idle session gets this via the
+        // server's turn_status re-emit on subscribe).
+        if (ev.status === "idle") reconcileToIdle();
+        return;
+      }
+      if (ev.type === "cwd_changed") {
+        // The agent's effective working directory moved (typically into a git
+        // worktree). Store the absolute path; StatusLine compares it against
+        // the session root to decide whether to show the "worktree" badge. No
+        // explicit exit-reset is needed: when the agent returns to the root,
+        // this event fires with `cwd === root`, the stored value equals the
+        // root, and the badge self-clears.
+        setAgentCwd(ev.cwd);
         return;
       }
       if (ev.type === "replay_done") {
@@ -2073,24 +2119,52 @@ export function useSession(): ChatState & ChatActions {
         }
         // Surface user messages from a resumed transcript so the chat shows history.
         if (!isSynthetic && inner) {
-          // Drop transcript-only plumbing the SDK flags on the envelope —
-          // the post-/compact "Session continued from a previous conversation"
-          // synthesized user message (isCompactSummary + isVisibleInTranscriptOnly)
-          // and the <local-command-caveat> wrapper around slash runs (isMeta).
-          // Both look like user prose by content shape (the parsers below see
-          // them as "real" text) but they were authored by the SDK for the
-          // model's eyes only. The `compact_boundary` system event already
-          // marks the transition, so we don't replace these with pills.
-          if (isSdkInternalEnvelope(msg)) return;
           const content = inner.content;
-          // Content-shape fallback for the live iterator. The SDK's `query`
-          // async iterator forwards SDKUserMessage envelopes WITHOUT the
-          // `isCompactSummary` / `isMeta` flags that exist on the JSONL —
-          // only the disk-replay paths (`resyncFromDisk`, `synthesizeOlder`)
-          // see them. Without these two content-shape checks, the live
-          // /compact run dumps the full summary AND the local-command-caveat
-          // wrapper into the chat as user bubbles. See `isCompactSummaryContent`.
-          if (isCompactSummaryContent(content)) return;
+          // The SDK synthesizes a "This session is being continued from a
+          // previous conversation…" user-shaped record after a manual or
+          // automatic compaction. It's flagged `isCompactSummary` on the JSONL
+          // envelope (the disk-replay / resync paths see it), but the live
+          // `query` iterator strips that flag — so we also match on content
+          // shape. Rather than silently drop it like the other plumbing
+          // filters below, surface a `compact_boundary` divider in its place:
+          // on RESUME the SDK does not re-emit the live `system`/
+          // `compact_boundary` event, so without this the user gets NO
+          // indication the thread was compacted (and the summary itself used
+          // to leak in as a user bubble via the session_snapshot path — see
+          // the prompt filter in lib/shared/user-prompt.ts). Dedupe against an
+          // existing compact_boundary entry sharing this anchor so a LIVE
+          // compaction — which emits the system event AND this summary
+          // back-to-back with no assistant message between them — shows a
+          // single divider regardless of which arrives first.
+          if (
+            (msg as { isCompactSummary?: boolean }).isCompactSummary === true ||
+            isCompactSummaryContent(content)
+          ) {
+            const uuid = (msg as { uuid?: string }).uuid ?? crypto.randomUUID();
+            const anchor = lastAssistantUuidRef.current;
+            setSystemEntries((prev) => {
+              if (prev.some((e) => e.uuid === uuid)) return prev;
+              if (prev.some((e) => e.kind === "compact_boundary" && e.afterMessageUuid === anchor))
+                return prev;
+              return [
+                ...prev,
+                {
+                  uuid,
+                  afterMessageUuid: anchor,
+                  kind: "compact_boundary",
+                  label: "Compacted earlier conversation",
+                },
+              ];
+            });
+            return;
+          }
+          // Drop the remaining transcript-only plumbing the SDK flags on the
+          // envelope — the <local-command-caveat> wrapper around slash runs
+          // (isMeta) and any isVisibleInTranscriptOnly record. These were
+          // authored by the SDK for the model's eyes only and carry no user
+          // prose worth surfacing (the isCompactSummary case is handled above,
+          // so it becomes a divider rather than being dropped here).
+          if (isSdkInternalEnvelope(msg)) return;
           if (isLocalCommandCaveatContent(content)) return;
           // Drop SDK-injected <task-notification> wrappers — they're context
           // for the model, not user-authored prose, and rendering them as a
@@ -2196,6 +2270,10 @@ export function useSession(): ChatState & ChatActions {
 
       if (msg.type === "result") {
         setPendingTracked(false);
+        // Tear down in-flight UI markers first (rail tools / thinking rows /
+        // "Claude streaming…") — the per-block close events may not all have
+        // landed. Runs before the cost/usage processing below.
+        reconcileToIdle();
         // The active session just transitioned running → idle. Pull a fresh
         // sessions list so the SessionTabs strip can repaint the non-active
         // tabs' status dots — they get no live signal of their own and would
@@ -2353,10 +2431,25 @@ export function useSession(): ChatState & ChatActions {
           return;
         }
         if (sysAny.subtype === "compact_boundary") {
-          setSystemEntries((prev) => [
-            ...prev,
-            { ...baseEntry, kind: "compact_boundary", label: "Compacted earlier conversation" },
-          ]);
+          // Dedupe against a summary-derived divider at the same anchor: a live
+          // compaction emits this system event AND the synthesized continuation
+          // summary (handled in the `user` branch above), and we want one
+          // divider, not two. See that branch for the ordering rationale.
+          setSystemEntries((prev) => {
+            if (prev.some((e) => e.uuid === baseEntry.uuid)) return prev;
+            if (
+              prev.some(
+                (e) =>
+                  e.kind === "compact_boundary" &&
+                  e.afterMessageUuid === baseEntry.afterMessageUuid,
+              )
+            )
+              return prev;
+            return [
+              ...prev,
+              { ...baseEntry, kind: "compact_boundary", label: "Compacted earlier conversation" },
+            ];
+          });
           return;
         }
         if (sysAny.subtype === "slash_invoked") {
@@ -2548,7 +2641,7 @@ export function useSession(): ChatState & ChatActions {
         return;
       }
     },
-    [flushQueue, refreshSessions, setPendingTracked],
+    [flushQueue, refreshSessions, setPendingTracked, reconcileToIdle],
   );
 
   const bindToSession = useCallback(
@@ -3005,6 +3098,45 @@ export function useSession(): ChatState & ChatActions {
     [],
   );
 
+  // Forward the feedback nudge to `/api/feedback` (stores locally + forwards to
+  // Anthropic). We DON'T clear `feedbackSurvey` here — the banner stays mounted
+  // to show the result (and the graceful-fail message) and calls
+  // `dismissFeedback` when it's done. The server defaults `surface`, so we only
+  // send the session id + the user's rating/comment.
+  const submitFeedback = useCallback(
+    async (input: { rating?: "up" | "down"; comment: string }) => {
+      const id = sessionIdRef.current;
+      if (!id) return { ok: false, stored: false, forwarded: false };
+      try {
+        const res = await fetch(`/api/feedback`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sessionId: id,
+            rating: input.rating,
+            comment: input.comment,
+          }),
+        });
+        const j = (await res.json().catch(() => ({}))) as {
+          ok?: boolean;
+          stored?: boolean;
+          forwarded?: boolean;
+        };
+        if (!res.ok) {
+          return { ok: false, stored: j.stored ?? false, forwarded: j.forwarded ?? false };
+        }
+        return { ok: j.ok ?? true, stored: j.stored ?? true, forwarded: j.forwarded ?? false };
+      } catch {
+        return { ok: false, stored: false, forwarded: false };
+      }
+    },
+    [],
+  );
+
+  const dismissFeedback = useCallback(() => {
+    setFeedbackSurvey(null);
+  }, []);
+
   const interrupt = useCallback(async () => {
     const id = sessionIdRef.current;
     if (!id) return;
@@ -3198,6 +3330,7 @@ export function useSession(): ChatState & ChatActions {
     queue,
     pendingPermission,
     pendingAsk,
+    feedbackSurvey,
     errors,
     slashCommands,
     agents,
@@ -3208,6 +3341,7 @@ export function useSession(): ChatState & ChatActions {
     sessions,
     skills,
     cwd,
+    agentCwd,
     usage,
     tasks,
     subagentMessages,
@@ -3230,6 +3364,8 @@ export function useSession(): ChatState & ChatActions {
     reorderQueued,
     resolvePermission,
     submitAskAnswer,
+    submitFeedback,
+    dismissFeedback,
     interrupt,
     setPermissionMode,
     setModel,

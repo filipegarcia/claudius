@@ -72,6 +72,28 @@ export type WorkspaceDefaults = {
 };
 
 /**
+ * Defaults stamped onto every workspace at creation time (both the first-run
+ * bootstrap workspace and ones created through the New-workspace form / API).
+ *
+ * Why a data-layer default rather than a resolution-time fallback: "by default
+ * all workspaces" means a property carried by the workspace record, not a
+ * forced runtime override. Merging it *under* any caller-supplied defaults
+ * keeps an explicit choice winning, and — crucially — leaves existing
+ * workspaces untouched (changing the merge fallback in `mergeSessionDefaults`
+ * would silently flip every previously-created workspace to bypass, a
+ * security-relevant surprise we don't want).
+ *
+ * Only `permissionMode` is pinned here: notifications already default to
+ * "enabled, errors muted" via the `DEFAULT_ENABLED_KINDS` fallback in
+ * `lib/shared/notifications.ts` (and `isKindEnabled` in `notification-bus.ts`),
+ * so there's nothing to pin for them — writing an explicit `enabledKinds` would
+ * only freeze new workspaces to today's set if that list ever changes.
+ */
+export const DEFAULT_WORKSPACE_DEFAULTS: WorkspaceDefaults = {
+  permissionMode: "bypassPermissions",
+};
+
+/**
  * Distinguishes regular project workspaces from "customization" workspaces —
  * the latter point at a customization-mirror dir under
  * `~/.claude/.claudius/customizations/<id>/src/`. The UI shows a wand badge
@@ -188,6 +210,7 @@ export async function ensureBootstrap(): Promise<StoreShape> {
     createdAt: Date.now(),
     updatedAt: Date.now(),
     lastOpenedAt: Date.now(),
+    defaults: { ...DEFAULT_WORKSPACE_DEFAULTS },
   };
   const shape: StoreShape = { version: 1, activeId: id, workspaces: [ws] };
   await writeShape(shape);
@@ -213,6 +236,12 @@ export async function createWorkspace(input: {
   const shape = await ensureBootstrap();
   const id = "wks_" + randomUUID().replace(/-/g, "").slice(0, 12);
   const icon = input.icon ?? defaultLetterIcon(input.name, id);
+  // Stamp the workspace-level defaults *under* any caller-supplied ones so an
+  // explicit choice (including the form's "(inherit)" → field omitted) still
+  // wins per-field, while gaps fall back to DEFAULT_WORKSPACE_DEFAULTS. The
+  // resulting object always has at least `permissionMode`, so — unlike before
+  // — `defaults` is always present on new workspaces.
+  const defaults: WorkspaceDefaults = { ...DEFAULT_WORKSPACE_DEFAULTS, ...(input.defaults ?? {}) };
   const ws: Workspace = {
     id,
     name: input.name,
@@ -221,7 +250,7 @@ export async function createWorkspace(input: {
     createdAt: Date.now(),
     updatedAt: Date.now(),
     lastOpenedAt: Date.now(),
-    ...(input.defaults && Object.keys(input.defaults).length ? { defaults: input.defaults } : {}),
+    defaults,
   };
   shape.workspaces.push(ws);
   await writeShape(shape);
