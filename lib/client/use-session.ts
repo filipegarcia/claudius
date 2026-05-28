@@ -13,6 +13,7 @@ import type {
   ServerEvent,
 } from "@/lib/shared/events";
 import { costFromTokens } from "@/lib/shared/cost-pricing";
+import { parseInitSystemMessage } from "@/lib/shared/parse-init";
 import {
   isCompactSummaryContent,
   isLocalCommandCaveatContent,
@@ -2149,19 +2150,13 @@ export function useSession(): ChatState & ChatActions {
           afterMessageUuid: anchor,
         };
         if (sysAny.subtype === "init") {
-          const init = sysAny as {
-            tools?: string[];
-            slash_commands?: string[];
-            agents?: string[];
-            skills?: string[];
-            cwd?: string;
-            model?: string;
-            permissionMode?: PermissionMode;
-            claude_code_version?: string;
-          };
-          if (init.slash_commands) setSlashCommands(init.slash_commands);
-          if (init.agents) setAgents(init.agents);
-          if (init.skills) setSkills(init.skills);
+          // Normalize via the shared parser so the SDK→state mapping (incl.
+          // the subagent `agents` list) is defensively typed and unit-tested
+          // in one place rather than inline here. See lib/shared/parse-init.ts.
+          const init = parseInitSystemMessage(sysAny);
+          if (init.slashCommands.length) setSlashCommands(init.slashCommands);
+          if (init.agents.length) setAgents(init.agents);
+          if (init.skills.length) setSkills(init.skills);
           if (init.cwd) setCwd(init.cwd);
           if (init.model) setModelState(init.model);
           if (init.permissionMode) setPermissionModeState(init.permissionMode);
@@ -2171,7 +2166,7 @@ export function useSession(): ChatState & ChatActions {
               ...baseEntry,
               kind: "init",
               label: `Session ready · ${init.model ?? ""}`,
-              detail: `${init.tools?.length ?? 0} tools · ${init.slash_commands?.length ?? 0} commands · ${init.agents?.length ?? 0} agents`,
+              detail: `${init.tools.length} tools · ${init.slashCommands.length} commands · ${init.agents.length} agents`,
             },
           ]);
           return;
