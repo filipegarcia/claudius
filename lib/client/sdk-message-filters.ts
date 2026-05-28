@@ -226,6 +226,11 @@ const SUPPRESSED_SYSTEM_SUBTYPES = new Set([
   "hook_progress",
   "hook_callback",
   "mcp_status",
+  // SDKThinkingTokensMessage (0.3.153): live token-count pings during the
+  // redacted-thinking streaming phase. Transient progress data — never stored
+  // in the JSONL, and surfaced via the ToolHistoryEntry.estimatedThinkingTokens
+  // field on the Activity-rail thinking spinner rather than as a chat pill.
+  "thinking_tokens",
 ]);
 
 /**

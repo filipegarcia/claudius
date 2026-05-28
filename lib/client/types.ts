@@ -250,6 +250,13 @@ export type ToolHistoryEntry = {
    * can see thinking phases that don't open any tool. Defaults to `"tool"`.
    */
   kind?: "tool" | "thinking";
+  /**
+   * Live thinking-token estimate from `SDKThinkingTokensMessage` events.
+   * Set while the thinking block is in-flight (only during the
+   * redacted-thinking streaming phase); cleared on `message_stop`.
+   * Approximate — not the authoritative billed output_tokens.
+   */
+  estimatedThinkingTokens?: number;
 };
 
 /** A backgrounded bash shell tracked from Bash(run_in_background=true). */

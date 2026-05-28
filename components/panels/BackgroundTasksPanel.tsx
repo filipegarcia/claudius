@@ -399,6 +399,13 @@ export function BackgroundTasksPanel({
                       <StatusIcon className={cn("h-3 w-3 shrink-0", iconClass)} />
                       <KindIcon className="h-3 w-3 shrink-0 text-[var(--muted)] opacity-70" />
                       <span className="truncate font-mono">{e.toolName}</span>
+                      {isThinking && !e.done && e.estimatedThinkingTokens != null && (
+                        <span className="shrink-0 text-[10px] text-sky-400/70" title="Estimated thinking tokens (approximate)">
+                          ~{e.estimatedThinkingTokens >= 1000
+                            ? `${(e.estimatedThinkingTokens / 1000).toFixed(1)}k`
+                            : e.estimatedThinkingTokens} tok
+                        </span>
+                      )}
                       {elapsedSeconds != null && (
                         <span className="ml-auto shrink-0 text-[10px] text-[var(--muted)]">
                           {fmtElapsed(elapsedSeconds)}

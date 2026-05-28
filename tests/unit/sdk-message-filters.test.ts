@@ -360,6 +360,13 @@ describe("isSuppressedSystemEvent", () => {
     expect(isSuppressedSystemEvent("mcp_status")).toBe(true);
   });
 
+  test("drops thinking_tokens (SDKThinkingTokensMessage, 0.3.153): live progress pings handled by Activity rail, not chat", () => {
+    // thinking_tokens messages are transient streaming events surfaced via
+    // ToolHistoryEntry.estimatedThinkingTokens — they must not render as
+    // system/thinking_tokens pills in the chat transcript.
+    expect(isSuppressedSystemEvent("thinking_tokens")).toBe(true);
+  });
+
   test("keeps genuinely-unknown string subtypes (so new events aren't swallowed)", () => {
     expect(isSuppressedSystemEvent("some_future_subtype")).toBe(false);
   });

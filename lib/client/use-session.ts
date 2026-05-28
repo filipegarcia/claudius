@@ -30,7 +30,7 @@ import {
   reconcileTasksOnToolResult,
   seedTaskStatus,
 } from "./task-status";
-import { clearStreaming, sweepToolHistoryDone } from "./idle-reconcile";
+import { applyThinkingTokensEstimate, clearStreaming, sweepToolHistoryDone } from "./idle-reconcile";
 import type {
   AgentTodo,
   AttachedImage,
@@ -1980,7 +1980,9 @@ export function useSession(): ChatState & ChatActions {
                 if (e.kind !== "thinking" || e.done) return e;
                 if (!e.toolUseId.startsWith(prefix)) return e;
                 changed = true;
-                return { ...e, done: true, endedAt: Date.now() };
+                // Clear the live estimate on close — it's approximate and the
+                // authoritative billed tokens come from the result's usage.
+                return { ...e, done: true, endedAt: Date.now(), estimatedThinkingTokens: undefined };
               });
               return changed ? next : prev;
             });
@@ -2716,6 +2718,20 @@ export function useSession(): ChatState & ChatActions {
               },
             };
           });
+          return;
+        }
+        // SDKThinkingTokensMessage (0.3.153): live token-count estimate emitted
+        // during the redacted-thinking phase. Not a persistent chat entry —
+        // attach the estimate to the most-recent open thinking row in the
+        // Activity rail so users see a live token counter in the spinner.
+        // `SDKThinkingTokensMessage` carries no `message_id`, so we target the
+        // latest open thinking entry by heuristic (in practice at most one
+        // thinking block is in flight at a time).
+        if (sysAny.subtype === "thinking_tokens") {
+          const tt = sysAny as unknown as { estimated_tokens: number };
+          if (typeof tt.estimated_tokens === "number") {
+            setToolHistory((prev) => applyThinkingTokensEstimate(prev, tt.estimated_tokens));
+          }
           return;
         }
         // Drop SDK system plumbing that carries no user-facing value instead
