@@ -314,10 +314,6 @@ export function StatusLine({
           <VerboseSelector value={verbose} onChange={onChangeVerbose} />
         )}
         <ModeSelector mode={permissionMode} onChange={onModeChange} />
-        {/* Version tag is cosmetic — drop it on small screens to give the
-            functional controls room. The Bypass / Verbose / Mode pills
-            already cover what the user needs to act on. */}
-        <span className="hidden font-mono text-[10px] opacity-60 lg:inline">claudius v0</span>
       </div>
     </div>
   );

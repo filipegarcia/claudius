@@ -25,6 +25,7 @@ import {
   useShortcut,
 } from "@/lib/client/shortcuts";
 import { cn } from "@/lib/utils/cn";
+import { CLAUDIUS_VERSION_DISPLAY } from "@/lib/shared/version";
 
 /**
  * Props for the small-screen overlay behavior.
@@ -378,15 +379,32 @@ export function WorkspaceSwitcher({ mobileOpen = false, onCloseMobile }: Props =
           icon={<UserCircle className="h-4 w-4" />}
           onClick={closeMobileIfOpen}
         />
-        {projectItems.length > 1 && (bindingPrev || bindingNext) && (
-          // Reflect whatever bindings the user has — if they remapped to
-          // ⌥, ⇧ or anything else, the hint here updates with them.
-          <span className="mt-auto px-1 text-center text-[8px] leading-tight text-[var(--muted)]/60">
-            {bindingPrev ? formatBinding(bindingPrev) : ""}
-            {bindingPrev && bindingNext ? " " : ""}
-            {bindingNext ? formatBinding(bindingNext) : ""}
-          </span>
-        )}
+        {/* Footer cluster pinned to the bottom of the rail. It owns the
+            single `mt-auto` so both the (optional) workspace-cycle hint and
+            the version tag sit flush at the bottom — previously the hint
+            claimed `mt-auto` on its own, and only one flex child can. */}
+        <div className="mt-auto flex flex-col items-center gap-1 pt-2">
+          {projectItems.length > 1 && (bindingPrev || bindingNext) && (
+            // Reflect whatever bindings the user has — if they remapped to
+            // ⌥, ⇧ or anything else, the hint here updates with them.
+            <span className="px-1 text-center text-[8px] leading-tight text-[var(--muted)]/60">
+              {bindingPrev ? formatBinding(bindingPrev) : ""}
+              {bindingPrev && bindingNext ? " " : ""}
+              {bindingNext ? formatBinding(bindingNext) : ""}
+            </span>
+          )}
+          {/* claudius version — tracks the Claude Agent SDK (see
+              lib/shared/version.ts). Stacked over two lines so the 56px rail
+              isn't blown out; reuses the muted micro-type of the cycle hint. */}
+          <div
+            data-testid="claudius-version"
+            title={`Claudius ${CLAUDIUS_VERSION_DISPLAY} · version tracks the Claude Agent SDK`}
+            className="px-1 text-center text-[8px] leading-tight text-[var(--muted)]/60"
+          >
+            <div>claudius</div>
+            <div className="font-mono">{CLAUDIUS_VERSION_DISPLAY}</div>
+          </div>
+        </div>
       </aside>
       {showForm?.kind === "new" && (
         <WorkspaceForm
