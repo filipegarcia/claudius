@@ -208,3 +208,47 @@ export function isRealUserDisplayMessage(m: DisplayMessage): boolean {
   }
   return isRealUserPrompt(text);
 }
+
+/**
+ * SDK `system` subtypes that are pure internal chatter — already represented
+ * by a dedicated, user-facing pill, or carrying no payload worth surfacing:
+ *
+ *   - `stop_hook_summary` — emitted once per Stop-hook fire (a Ralph loop
+ *     fires one every iteration). It's the model's own end-of-turn note, not
+ *     something the user needs as a transcript row.
+ *   - `hook_progress` / `hook_callback` — intermediate hook lifecycle ticks;
+ *     the start/end are already shown by the `hook_started` / `hook_response`
+ *     pills, so the in-between chatter is redundant.
+ *   - `mcp_status` — MCP connection ticker; the /mcp page owns that surface.
+ */
+const SUPPRESSED_SYSTEM_SUBTYPES = new Set([
+  "stop_hook_summary",
+  "hook_progress",
+  "hook_callback",
+  "mcp_status",
+]);
+
+/**
+ * Whether an *unrecognized* SDK `system` event should be dropped instead of
+ * rendered as the catch-all `system/<subtype ?? "?">` info pill in the chat.
+ *
+ * Two cases get dropped:
+ *
+ *   1. **Bare envelopes with no subtype.** The Ralph-loop Stop hook fires a
+ *      `stop_hook_summary` every iteration, but the `subtype` is stripped to
+ *      `undefined` somewhere on the read path before it reaches the client
+ *      (the on-disk JSONL keeps `subtype: "stop_hook_summary"`, yet both the
+ *      live SSE stream and the transcript API deliver it bare). The catch-all
+ *      then rendered each as a cryptic `system/?` row — a flood of them over a
+ *      long loop, and ones that flicker in/out as the loaded transcript window
+ *      changes since they're not durable content.
+ *   2. **Known-internal subtypes** (see `SUPPRESSED_SYSTEM_SUBTYPES`) for the
+ *      case where the subtype *does* survive the read path.
+ *
+ * Genuinely-unknown *string* subtypes still fall through to the pill, so a new
+ * and potentially-meaningful SDK event isn't silently swallowed.
+ */
+export function isSuppressedSystemEvent(subtype: unknown): boolean {
+  if (subtype == null || subtype === "") return true;
+  return typeof subtype === "string" && SUPPRESSED_SYSTEM_SUBTYPES.has(subtype);
+}

@@ -4,6 +4,7 @@ import {
   isLocalCommandCaveatContent,
   isSdkInternalEnvelope,
   isSdkSlashUserMessage,
+  isSuppressedSystemEvent,
   isSyntheticTaskNotification,
   parseSyntheticCliWrapper,
 } from "@/lib/client/sdk-message-filters";
@@ -326,5 +327,68 @@ describe("isLocalCommandCaveatContent", () => {
     expect(isLocalCommandCaveatContent(null)).toBe(false);
     expect(isLocalCommandCaveatContent(undefined)).toBe(false);
     expect(isLocalCommandCaveatContent(42)).toBe(false);
+  });
+});
+
+/**
+ * The chat's catch-all turns any unhandled SDK `system` event into a
+ * `system/<subtype ?? "?">` info pill. That flooded the transcript with
+ * cryptic `system/?` rows during a Ralph loop: each Stop-hook fire emits a
+ * `stop_hook_summary`, but its `subtype` is stripped to `undefined` before it
+ * reaches the client. `isSuppressedSystemEvent` is the guard that drops these
+ * (and other known-internal chatter) while still letting a genuinely-new,
+ * meaningful subtype fall through to a pill.
+ */
+describe("isSuppressedSystemEvent", () => {
+  test("drops bare envelopes with no subtype (the `system/?` flood)", () => {
+    // Exact shape captured off the live SSE stream during a Ralph loop:
+    // `{ type: "system" }` with the subtype already stripped.
+    expect(isSuppressedSystemEvent(undefined)).toBe(true);
+    expect(isSuppressedSystemEvent(null)).toBe(true);
+    expect(isSuppressedSystemEvent("")).toBe(true);
+  });
+
+  test("drops the Stop-hook summary when its subtype survives the read path", () => {
+    expect(isSuppressedSystemEvent("stop_hook_summary")).toBe(true);
+  });
+
+  test("drops intermediate hook lifecycle + mcp chatter", () => {
+    // hook_started / hook_response have their own dedicated pills; the
+    // in-between ticks and the MCP status ticker are redundant noise.
+    expect(isSuppressedSystemEvent("hook_progress")).toBe(true);
+    expect(isSuppressedSystemEvent("hook_callback")).toBe(true);
+    expect(isSuppressedSystemEvent("mcp_status")).toBe(true);
+  });
+
+  test("keeps genuinely-unknown string subtypes (so new events aren't swallowed)", () => {
+    expect(isSuppressedSystemEvent("some_future_subtype")).toBe(false);
+  });
+
+  test("does not suppress the subtypes that already have dedicated handlers", () => {
+    // These never reach the catch-all in use-session (each branch returns
+    // early), but pinning them here documents that the suppression set is
+    // disjoint from the handled set — so we don't accidentally hide a real
+    // pill if the dispatch order ever changes.
+    for (const handled of [
+      "init",
+      "hook_started",
+      "hook_response",
+      "status",
+      "compact_boundary",
+      "slash_invoked",
+      "task_started",
+      "task_updated",
+      "task_progress",
+      "task_notification",
+    ]) {
+      expect(isSuppressedSystemEvent(handled)).toBe(false);
+    }
+  });
+
+  test("ignores non-string subtypes that aren't null/empty (defensive)", () => {
+    // A numeric/boolean subtype is malformed; treat it as a real unknown and
+    // let it surface rather than silently swallowing a misshaped event.
+    expect(isSuppressedSystemEvent(42)).toBe(false);
+    expect(isSuppressedSystemEvent({})).toBe(false);
   });
 });

@@ -12,6 +12,7 @@ import {
   Webhook,
 } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
 import { useParams } from "next/navigation";
 import type { SystemEntry } from "@/lib/client/types";
 import {
@@ -38,21 +39,12 @@ export function SystemPill({ entry }: { entry: SystemEntry }) {
   const Icon = meta.icon;
   // Compact-boundary is a major thread-state transition (the SDK summarized
   // earlier turns into a single context block). Show it as a full-width
-  // horizontal rule with the label centered so the user has a clear visual
-  // break between pre- and post-compact content rather than a small inline
-  // pill that gets lost among hook/status entries.
+  // horizontal rule with the token-reduction stats and an expandable summary —
+  // the same data the CLI shows on a `/compact` (its ctrl+o expands the full
+  // summary). Delegated to its own component so the expand/collapse state
+  // doesn't add hooks to the other (hookless) SystemPill render paths.
   if (entry.kind === "compact_boundary") {
-    return (
-      <div className="my-4 flex w-full items-center gap-3 text-[11px] text-[var(--muted)]">
-        <div className="h-px flex-1 bg-[var(--border)]" />
-        <div className="flex items-center gap-2 whitespace-nowrap">
-          <Icon className={`h-3.5 w-3.5 ${meta.tone}`} />
-          <span className="font-medium">{entry.label}</span>
-          {entry.detail && <span className="opacity-70">— {entry.detail}</span>}
-        </div>
-        <div className="h-px flex-1 bg-[var(--border)]" />
-      </div>
-    );
+    return <CompactBoundaryDivider entry={entry} />;
   }
   // Rate-limit gets a richer renderer: tier label + live mm:ss countdown
   // to the reset, plus overage / billing hints. The Claude Code CLI surfaces
@@ -67,6 +59,58 @@ export function SystemPill({ entry }: { entry: SystemEntry }) {
       <Icon className={`h-3 w-3 ${meta.tone}`} />
       <span>{entry.label}</span>
       {entry.detail && <span className="opacity-70">— {entry.detail}</span>}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Compact-boundary divider — token-reduction stats + expandable summary
+// ---------------------------------------------------------------------------
+
+function formatCompactStats(s: NonNullable<SystemEntry["compactStats"]>): string | null {
+  const parts: string[] = [];
+  if (typeof s.preTokens === "number" && typeof s.postTokens === "number") {
+    parts.push(`${s.preTokens.toLocaleString()}→${s.postTokens.toLocaleString()} tokens`);
+  }
+  // Only show duration when it's at least a second — sub-second compactions
+  // round to "0s" and read as noise.
+  if (typeof s.durationMs === "number" && s.durationMs >= 1000) {
+    parts.push(`${Math.round(s.durationMs / 1000)}s`);
+  }
+  return parts.length ? parts.join(" · ") : null;
+}
+
+function CompactBoundaryDivider({ entry }: { entry: SystemEntry }) {
+  const [expanded, setExpanded] = useState(false);
+  const statText = entry.compactStats ? formatCompactStats(entry.compactStats) : null;
+  const hasSummary = typeof entry.compactSummary === "string" && entry.compactSummary.length > 0;
+  return (
+    <div className="my-4 w-full text-[11px] text-[var(--muted)]">
+      <div className="flex items-center gap-3">
+        <div className="h-px flex-1 bg-[var(--border)]" />
+        <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
+          <GitMerge className="h-3.5 w-3.5 shrink-0 text-violet-400" />
+          <span className="font-medium">{entry.label}</span>
+          {statText && <span className="opacity-70">· {statText}</span>}
+          {entry.detail && <span className="opacity-70">— {entry.detail}</span>}
+          {hasSummary && (
+            <button
+              type="button"
+              onClick={() => setExpanded((v) => !v)}
+              aria-expanded={expanded}
+              className="rounded border border-[var(--border)] bg-[var(--panel-2)] px-1.5 py-0.5 text-[10px] hover:bg-[var(--panel)]"
+            >
+              {expanded ? "▾ hide summary" : "▸ show summary"}
+            </button>
+          )}
+        </div>
+        <div className="h-px flex-1 bg-[var(--border)]" />
+      </div>
+      {expanded && hasSummary && (
+        <div className="mx-auto mt-2 max-h-80 max-w-3xl overflow-auto whitespace-pre-wrap rounded-md border border-[var(--border)] bg-[var(--panel)]/40 p-3 text-[11px] leading-5 text-[var(--foreground)]/80 scroll-thin">
+          {entry.compactSummary}
+        </div>
+      )}
     </div>
   );
 }

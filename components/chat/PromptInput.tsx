@@ -46,6 +46,12 @@ type Props = {
    * value once. May also carry images that were attached to the queued message.
    */
   draftInjection?: { token: number; text: string; images?: AttachedImage[] };
+  /**
+   * Previously sent user prompts for the current session, oldest → newest.
+   * Drives shell-style history recall: Cmd/Ctrl+↑ walks back through these,
+   * Cmd/Ctrl+↓ walks forward and finally restores the in-progress draft.
+   */
+  promptHistory?: string[];
   /** When true, Send is force-disabled (e.g. session spending cap reached). */
   sendDisabled?: boolean;
 };
@@ -82,6 +88,7 @@ export function PromptInput({
   onSend,
   onInterrupt,
   draftInjection,
+  promptHistory,
   sendDisabled = false,
 }: Props) {
   const [value, setValue] = useState("");
@@ -119,6 +126,16 @@ export function PromptInput({
   const ordinalCounterRef = useRef(0);
   /** True while IME composition is active — diff-based deletion is suppressed. */
   const composingRef = useRef(false);
+
+  // ── Shell-style prompt history recall (Cmd/Ctrl + ↑/↓) ───────────────────
+  // `histIdxRef` is the cursor into `promptHistory` (null = editing the live
+  // draft, not browsing). Kept in a ref rather than state because every move
+  // already drives a `setValue`, so the cursor never needs to trigger its own
+  // render — and a ref sidesteps the set-state-in-effect rule when we reset on
+  // session change below. `stashedDraftRef` holds whatever was in the composer
+  // when browsing began so Cmd/Ctrl+↓ past the newest entry restores it.
+  const histIdxRef = useRef<number | null>(null);
+  const stashedDraftRef = useRef("");
 
   // ── User-resizable composer ─────────────────────────────────────────
   // Default cap (px) when the user hasn't dragged the handle. Matches the
@@ -249,6 +266,9 @@ export function PromptInput({
   // effect to avoid a frame of "stale typed=true" against the new session.
   if (seededForSessionRef.current !== sessionId) {
     userTypedRef.current = false;
+    // Switching sessions means a different history — abandon any in-progress
+    // recall so the next Cmd/Ctrl+↑ starts fresh from the new session's tail.
+    histIdxRef.current = null;
   }
 
   useEffect(() => {
@@ -430,6 +450,8 @@ export function PromptInput({
     setAtQuery(null);
     // Each prompt is its own ordinal namespace.
     ordinalCounterRef.current = 0;
+    // Sending ends any history browse; the just-sent prompt becomes the new tail.
+    histIdxRef.current = null;
     // Submitting consumes the draft. Reset the "typed" flag so subsequent
     // session-switches still seed cleanly, and tell the server to clear.
     userTypedRef.current = false;
@@ -481,11 +503,80 @@ export function PromptInput({
     });
   }
 
+  /**
+   * Drop a recalled (or restored) prompt into the composer: replace the value,
+   * resync the slash/@-mention picker, and park the caret at the end so the
+   * user can keep editing or fire it off. We deliberately leave `userTypedRef`
+   * untouched — a non-empty value already passes the draft-save gate, and not
+   * flipping the flag keeps the "hasn't typed yet" seed semantics intact.
+   */
+  function applyRecalledText(text: string) {
+    setValue(text);
+    refreshPickerState(text, text.length);
+    requestAnimationFrame(() => {
+      const el = taRef.current;
+      if (!el) return;
+      el.focus();
+      el.setSelectionRange(text.length, text.length);
+      autosize();
+    });
+  }
+
+  /**
+   * Step through prompt history like a shell. `dir === -1` walks toward older
+   * prompts (Cmd/Ctrl+↑), `dir === 1` walks back toward newer ones and finally
+   * restores the draft that was in the box when browsing started (Cmd/Ctrl+↓).
+   * Returns true when it handled the keystroke so the caller can `preventDefault`
+   * (and let the caret fall through to its default home/end jump otherwise).
+   */
+  function recallHistory(dir: -1 | 1): boolean {
+    const history = promptHistory ?? [];
+    if (history.length === 0) return false;
+    let idx = histIdxRef.current;
+    // History can shrink while browsing (e.g. /clear) — clamp a now-stale
+    // cursor back into range so we never index past the end.
+    if (idx !== null && idx > history.length - 1) idx = history.length - 1;
+    if (dir === -1) {
+      if (idx === null) {
+        // Entering history — stash the live draft so ↓ can bring it back.
+        stashedDraftRef.current = value;
+        idx = history.length - 1;
+      } else if (idx > 0) {
+        idx -= 1;
+      } else {
+        // Already at the oldest entry — swallow so the caret doesn't jump.
+        return true;
+      }
+    } else {
+      if (idx === null) return false; // not browsing — let ↓ move the caret
+      if (idx < history.length - 1) {
+        idx += 1;
+      } else {
+        // Past the newest entry → back to the stashed draft.
+        histIdxRef.current = null;
+        applyRecalledText(stashedDraftRef.current);
+        return true;
+      }
+    }
+    histIdxRef.current = idx;
+    applyRecalledText(history[idx]);
+    return true;
+  }
+
   function onKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
     // IME composition + open pickers each own their own keyboard semantics —
     // bail out of markdown shortcuts so we don't fight them. The Enter-submit
     // fallback still respects `!pickerOpen && atQuery == null` below.
     if (composingRef.current) return;
+
+    // Shell-style history recall. Intentionally NOT gated on the pickers: a
+    // recalled slash command keeps the slash picker open, and we still want ↓
+    // to walk back out of it. The pickers ignore Arrow keys while meta/ctrl is
+    // held (see SlashCommandPicker / AtMentionPicker), so there's no conflict.
+    if ((e.metaKey || e.ctrlKey) && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
+      if (recallHistory(e.key === "ArrowUp" ? -1 : 1)) e.preventDefault();
+      return;
+    }
 
     if (e.key === "Enter" && !pickerOpen && atQuery == null) {
       const caret = e.currentTarget.selectionStart ?? 0;
@@ -797,6 +888,9 @@ export function PromptInput({
               // A real keystroke — block the seed-from-server effect from
               // overwriting the user's input if the GET resolves late.
               userTypedRef.current = true;
+              // Editing the text exits history-browse mode: the next Cmd/Ctrl+↑
+              // should re-stash this edited draft and start again from the tail.
+              histIdxRef.current = null;
               // Atomic-token cleanup: any token present in the prior value but
               // gone (or partially mangled) in the new value drops its image.
               if (!composingRef.current) {

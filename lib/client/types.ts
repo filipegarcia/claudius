@@ -128,6 +128,21 @@ export type SystemEntry = {
     isUsingOverage?: boolean;
     surpassedThreshold?: number;
   };
+  /**
+   * Compaction stats + summary, only present on `kind === "compact_boundary"`.
+   * Sourced from the SDK's `compact_metadata` (token deltas, duration, trigger)
+   * and the synthesized "continued from a previous conversation…" summary
+   * record — the same data the CLI shows on a `/compact` (the summary is what
+   * its `ctrl+o` expands). The two arrive as separate records and are merged
+   * onto one divider entry by anchor.
+   */
+  compactStats?: {
+    preTokens?: number;
+    postTokens?: number;
+    durationMs?: number;
+    trigger?: string;
+  };
+  compactSummary?: string;
 };
 
 export type ToolProgressInfo = {
