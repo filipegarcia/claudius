@@ -1,6 +1,5 @@
 import { randomUUID } from "node:crypto";
 import { appendFileSync, watch as watchFs, type FSWatcher } from "node:fs";
-import { join } from "node:path";
 import {
   getSessionInfo,
   getSessionMessages,
@@ -16,7 +15,6 @@ import {
   type Query,
   type SDKMessage,
   type SDKUserMessage,
-  type WorktreeCreateHookInput,
 } from "@anthropic-ai/claude-agent-sdk";
 import { projectRoot } from "./db";
 import { AsyncQueue } from "./async-queue";
@@ -581,21 +579,24 @@ export class Session {
       // "worktree" badge when it leaves the session root — otherwise the
       // user's "current changed files" won't reflect what the agent touched.
       //
-      // Three independent signals feed `broadcastCwd` (deduped):
+      // Two signals feed `broadcastCwd` (deduped):
       //   1. `CwdChanged` — the SDK's own cwd move (fires when Claude Code
       //      spins up a worktree as part of normal operation).
-      //   2. `WorktreeCreate` / `WorktreeRemove` — fired for explicit worktree
-      //      lifecycle (e.g. harness-level `EnterWorktree`), which does NOT
-      //      emit `CwdChanged`. Create points the badge at the worktree;
-      //      remove returns it to the session root to clear the badge.
-      //   3. PreToolUse path heuristic — fallback for builds where neither of
-      //      the above fires: a mutating file tool whose target path lives
-      //      under `<root>/.claude/worktrees/<name>/` means edits aren't
-      //      landing in the user's checkout, so we flag the worktree.
+      //   2. PreToolUse path heuristic — a mutating file tool whose target
+      //      path lives under `<root>/.claude/worktrees/<name>/` means edits
+      //      aren't landing in the user's checkout, so we flag the worktree.
+      //      This is what catches harness-level `EnterWorktree`, which does
+      //      NOT emit `CwdChanged`.
       //
-      // All hooks return `{ continue: true }` so we never block the agent, and
-      // programmatic hooks merge with any user settings.json hooks rather than
-      // clobbering them.
+      // DO NOT register a `WorktreeCreate`/`WorktreeRemove` hook to drive this.
+      // Those are creation *extension points*, not observers: the SDK delegates
+      // worktree creation to the hook and REQUIRES it to return
+      // `hookSpecificOutput.worktreePath`. A passive `{ continue: true }`
+      // handler makes `EnterWorktree` fail outright ("hook succeeded but
+      // returned no worktree path"). Verified the hard way.
+      //
+      // Hooks return `{ continue: true }` so we never block the agent, and
+      // programmatic hooks merge with any user settings.json hooks.
       hooks: {
         PreToolUse: [
           {
@@ -632,39 +633,6 @@ export class Session {
                 if (typeof cwd === "string" && cwd.length > 0) {
                   this.broadcastCwd(cwd);
                 }
-                return { continue: true };
-              },
-            ],
-          },
-        ],
-        WorktreeCreate: [
-          {
-            hooks: [
-              async (input) => {
-                dbgHook("WorktreeCreate", input);
-                const name = (input as WorktreeCreateHookInput).name;
-                if (typeof name === "string" && name.length > 0) {
-                  // Worktrees live at `<repoRoot>/.claude/worktrees/<name>`.
-                  // Use the session root as the repo root rather than the
-                  // hook's `cwd`, which may already reflect a transient dir.
-                  this.broadcastCwd(join(this.cwd, ".claude", "worktrees", name));
-                }
-                return { continue: true };
-              },
-            ],
-          },
-        ],
-        WorktreeRemove: [
-          {
-            hooks: [
-              async (input) => {
-                dbgHook("WorktreeRemove", input);
-                // Back in the main checkout — return the effective cwd to the
-                // session root so the badge self-clears. Simplification: with
-                // multiple concurrent worktrees this clears even if the agent
-                // is still in another one; the next tool-path heuristic hit
-                // re-flags it. Acceptable for the common single-worktree case.
-                this.broadcastCwd(this.cwd);
                 return { continue: true };
               },
             ],
