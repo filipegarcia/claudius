@@ -292,6 +292,11 @@ export type ChatState = {
   errors: string[];
   slashCommands: string[];
   agents: string[];
+  /**
+   * Main-thread agent name this session runs as (SDK Options.agent), or null
+   * for the default agent. From the `ready` event. Shown in the StatusLine.
+   */
+  mainAgent: string | null;
   permissionMode: PermissionMode;
   model: string | null;
   /**

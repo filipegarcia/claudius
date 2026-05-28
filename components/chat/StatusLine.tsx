@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   AlertTriangle,
+  Bot,
   Check,
   Circle,
   Eraser,
@@ -31,6 +32,8 @@ type Props = {
   pending: boolean;
   permissionMode: PermissionMode;
   model: string | null;
+  /** Main-thread agent name (SDK Options.agent), or null for the default agent. */
+  mainAgent?: string | null;
   onModeChange: (m: PermissionMode) => void;
   sessions: SessionInfo[];
   onSwitchSession: (id: string) => void;
@@ -75,6 +78,7 @@ export function StatusLine({
   pending,
   permissionMode,
   model,
+  mainAgent,
   onModeChange,
   sessions,
   onSwitchSession,
@@ -173,6 +177,18 @@ export function StatusLine({
         <>
           <span className="opacity-50">·</span>
           <span className="font-mono opacity-80">{model}</span>
+        </>
+      )}
+      {mainAgent && (
+        <>
+          <span className="opacity-50">·</span>
+          <span
+            title={`Main-thread agent: ${mainAgent} (its system prompt, tools, and model apply)`}
+            className="flex items-center gap-1 rounded border border-[var(--border)] bg-[var(--panel-2)] px-1 py-0.5 font-mono text-[10px] opacity-80"
+          >
+            <Bot className="h-3 w-3" />
+            {mainAgent}
+          </span>
         </>
       )}
       {/* `shrink-0` on the cluster pairs with `min-w-0` on the workspace

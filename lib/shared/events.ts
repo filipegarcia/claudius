@@ -18,6 +18,12 @@ export type PermissionRequestEvent = {
 export type SessionReadyEvent = {
   type: "ready";
   sessionId: string;
+  /**
+   * Main-thread agent name (SDK Options.agent) this session was started with,
+   * if any. Surfaced here because the SDK's system:init message doesn't carry
+   * the main agent; the StatusLine reads it to show "running as <agent>".
+   */
+  agent?: string;
 };
 
 export type SessionErrorEvent = {
