@@ -38,6 +38,13 @@ export type WorkspaceDefaults = {
     | "plan"
     | "dontAsk"
     | "bypassPermissions";
+  /**
+   * Hard spend cap (USD) for new sessions — the SDK `Options.maxBudgetUsd`.
+   * When a session's cumulative cost exceeds this, the SDK stops the turn and
+   * returns an `error_max_budget_usd` result. Absent ⇒ no cap. Per-session
+   * requests can override.
+   */
+  maxBudgetUsd?: number;
   /** MCP server ids to autoload when sessions in this workspace start. */
   mcpServerIds?: string[];
   /** Auto-memory toggle override. */

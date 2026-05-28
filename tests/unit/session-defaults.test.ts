@@ -48,8 +48,17 @@ describe("mergeSessionDefaults", () => {
     expect(mergeSessionDefaults({}, {})).toEqual({
       model: undefined,
       agent: undefined,
+      maxBudgetUsd: undefined,
       permissionMode: undefined,
     });
+  });
+
+  test("maxBudgetUsd follows the same precedence (request wins, default fills)", () => {
+    expect(mergeSessionDefaults({ maxBudgetUsd: 5 }, { maxBudgetUsd: 20 }).maxBudgetUsd).toBe(5);
+    expect(mergeSessionDefaults({}, { maxBudgetUsd: 20 }).maxBudgetUsd).toBe(20);
+    // An explicit 0 in the request is preserved (?? only falls through on
+    // null/undefined) — lets a caller blank the cap rather than inherit it.
+    expect(mergeSessionDefaults({ maxBudgetUsd: 0 }, { maxBudgetUsd: 20 }).maxBudgetUsd).toBe(0);
   });
 
   test("an explicit empty-string request value is preserved (not treated as absent)", () => {

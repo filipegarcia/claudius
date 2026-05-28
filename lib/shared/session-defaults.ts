@@ -8,6 +8,7 @@ import type { PermissionMode } from "@anthropic-ai/claude-agent-sdk";
 export type SessionDefaults = {
   model?: string;
   agent?: string;
+  maxBudgetUsd?: number;
   permissionMode?: PermissionMode;
 };
 
@@ -32,6 +33,7 @@ export function mergeSessionDefaults(
   return {
     model: request.model ?? defaults.model,
     agent: request.agent ?? defaults.agent,
+    maxBudgetUsd: request.maxBudgetUsd ?? defaults.maxBudgetUsd,
     permissionMode: request.permissionMode ?? defaults.permissionMode,
   };
 }

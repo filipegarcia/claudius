@@ -302,6 +302,11 @@ export type CreateSessionRequest = {
    * agent must be defined (a file under .claude/agents or ~/.claude/agents).
    */
   agent?: string;
+  /**
+   * Hard spend cap (USD) for this session — SDK Options.maxBudgetUsd. The
+   * query stops with an `error_max_budget_usd` result once exceeded.
+   */
+  maxBudgetUsd?: number;
   permissionMode?: PermissionMode;
   /** If set, resume an existing session by id. */
   resume?: string;

@@ -22,6 +22,12 @@ import {
   isSyntheticTaskNotification,
   parseSyntheticCliWrapper,
 } from "./sdk-message-filters";
+import {
+  findToolUseBlock,
+  isBackgroundedToolUse,
+  reconcileTasksOnToolResult,
+  seedTaskStatus,
+} from "./task-status";
 import type {
   AgentTodo,
   AttachedImage,
@@ -1952,30 +1958,21 @@ export function useSession(): ChatState & ChatActions {
           // subagents (and can arrive under a mismatched task_id), which left
           // the TaskBlock and the background-tasks rail stuck on "running"
           // after the agent had already finished. The tool_result on the Task
-          // tool_use is the authoritative "subagent returned" signal, so flip
-          // the matching task to a terminal state. Skip backgrounded tasks —
-          // their first tool_result is just a "started in background" ack;
-          // their real completion still rides on task_notification.
-          const isBackgroundedTask = messagesRef.current.some((m) =>
-            m.blocks.some(
-              (b) =>
-                b.kind === "tool_use" &&
-                b.id === result.tool_use_id &&
-                (b.input as { run_in_background?: unknown }).run_in_background === true,
+          // tool_use is the authoritative "subagent returned" signal. Skip
+          // backgrounded tasks — their first tool_result is just a "started in
+          // background" ack; their real completion rides on task_notification.
+          // (Nested subagent Tasks live in subagentMessages, not the main
+          // transcript, so the input lookup can miss them — `reconcileTasksOnToolResult`
+          // also honours each task's own `isBackgrounded` flag as a fallback.)
+          const taskToolBlock = findToolUseBlock(result.tool_use_id, messagesRef.current);
+          setTasks((prev) =>
+            reconcileTasksOnToolResult(
+              prev,
+              result.tool_use_id,
+              result.isError,
+              isBackgroundedToolUse(taskToolBlock),
             ),
           );
-          setTasks((prev) => {
-            let changed = false;
-            const next = { ...prev };
-            for (const [id, t] of Object.entries(prev)) {
-              if (t.toolUseId !== result.tool_use_id) continue;
-              if (t.status !== "running" && t.status !== "pending") continue;
-              if (t.isBackgrounded || isBackgroundedTask) continue;
-              next[id] = { ...t, status: result.isError ? "failed" : "completed" };
-              changed = true;
-            }
-            return changed ? next : prev;
-          });
           // If this tool_result is the launch acknowledgement for a background
           // bash, extract the SDK-side `bash_id` so the viewer can stitch
           // subsequent BashOutput results.
@@ -2236,6 +2233,17 @@ export function useSession(): ChatState & ChatActions {
         }
         if (r.uuid) seenResultUuidsRef.current.add(r.uuid);
 
+        // Surface the spend-cap stop as a clear banner. When Options.maxBudgetUsd
+        // is exceeded the SDK ends the turn with this result subtype instead of
+        // continuing; without a message the turn would just stop silently.
+        if (r.subtype === "error_max_budget_usd") {
+          const spent = typeof r.total_cost_usd === "number" ? ` ($${r.total_cost_usd.toFixed(2)} spent)` : "";
+          setErrors((e) => [
+            ...e,
+            `Session stopped: max budget reached${spent}. Raise the cap in workspace settings to continue.`,
+          ]);
+        }
+
         // Capture the mid-turn estimate to a local BEFORE the setter so the
         // reducer closes over the value we measured here, not whatever the
         // ref happens to hold by the time React commits. The ref is reset
@@ -2377,6 +2385,13 @@ export function useSession(): ChatState & ChatActions {
             task_type?: string;
             workflow_name?: string;
           };
+          // SSE ordering can deliver the Task's tool_result before this
+          // task_started; seed the terminal status in that case so the pill
+          // doesn't get stuck "running" after the tool_result reconciler has
+          // already run and found no matching task.
+          const startedBlock = t.tool_use_id
+            ? findToolUseBlock(t.tool_use_id, messagesRef.current)
+            : null;
           setTasks((prev) => ({
             ...prev,
             [t.task_id]: {
@@ -2385,7 +2400,7 @@ export function useSession(): ChatState & ChatActions {
               description: t.description ?? "(no description)",
               taskType: t.task_type,
               workflowName: t.workflow_name,
-              status: "running",
+              status: seedTaskStatus(startedBlock),
             },
           }));
           return;

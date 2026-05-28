@@ -254,6 +254,12 @@ export class Session {
    * workspace default; the agent must exist (file under .claude/agents).
    */
   readonly agent?: string;
+  /**
+   * Hard spend cap (USD) for this session — SDK Options.maxBudgetUsd. The SDK
+   * stops the turn with an `error_max_budget_usd` result once exceeded. Set at
+   * construction from the create request / workspace default; undefined = no cap.
+   */
+  readonly maxBudgetUsd?: number;
   readonly resumeFrom?: string;
   readonly resumeAt?: string;
   /**
@@ -322,6 +328,7 @@ export class Session {
     cwd?: string;
     model?: string;
     agent?: string;
+    maxBudgetUsd?: number;
     permissionMode?: PermissionMode;
     resume?: string;
     resumeSessionAt?: string;
@@ -342,6 +349,7 @@ export class Session {
     this.cwd = opts.cwd ?? process.cwd();
     this.model = opts.model;
     this.agent = opts.agent;
+    this.maxBudgetUsd = opts.maxBudgetUsd;
     this.permissionMode = opts.permissionMode ?? "default";
     this.resumeFrom = opts.resume;
     this.resumeAt = opts.resumeSessionAt;
@@ -460,6 +468,12 @@ export class Session {
       // agent's own model takes precedence over `model` above. Omitted when
       // unset so the default agent is used.
       ...(this.agent ? { agent: this.agent } : {}),
+      // Hard spend cap. When set, the SDK stops the turn and returns an
+      // `error_max_budget_usd` result once cumulative cost exceeds it. Only
+      // forwarded when a positive number so 0/undefined means "no cap".
+      ...(typeof this.maxBudgetUsd === "number" && this.maxBudgetUsd > 0
+        ? { maxBudgetUsd: this.maxBudgetUsd }
+        : {}),
       permissionMode: this.permissionMode,
       abortController: this.abortController,
       canUseTool: this.canUseTool,
