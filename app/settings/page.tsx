@@ -12,6 +12,7 @@ import { EDITORS, useEditor, type EditorId } from "@/lib/client/ide";
 import { UpdaterSettingsSection } from "@/components/updater/UpdaterSettingsSection";
 import { ShortcutsSection } from "@/components/settings/ShortcutsSection";
 import { RateLimitWarningSection } from "@/components/settings/RateLimitWarningSection";
+import { ContextWarningSection } from "@/components/settings/ContextWarningSection";
 import { BackupSection } from "@/components/settings/BackupSection";
 import { cn } from "@/lib/utils/cn";
 
@@ -218,6 +219,12 @@ export default function SettingsPage() {
                 also outside the scope tabs because it's a Claudius UI knob,
                 not a Claude Code settings.json value. */}
             <RateLimitWarningSection />
+
+            {/* Browser-local threshold for the chat-side context-window
+                warning banner (the one-click Compact nudge). Also outside the
+                scope tabs — a Claudius UI knob, separate from Claude Code's
+                autoCompactEnabled / autoCompactWindow settings. */}
+            <ContextWarningSection />
 
             {/* Backup / restore the full Claudius config as one JSON bundle.
                 Outside the scope tabs because it spans every scope and

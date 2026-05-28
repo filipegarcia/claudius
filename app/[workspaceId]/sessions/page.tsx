@@ -1,10 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, FolderTree, Search, X } from "lucide-react";
 import { SideNav } from "@/components/nav/SideNav";
 import { useSessionsHistory } from "@/lib/client/useSessionsHistory";
+import { useWorkspaces } from "@/lib/client/useWorkspaces";
 import { cn } from "@/lib/utils/cn";
 
 function fmtRelative(ms: number): string {
@@ -27,19 +29,35 @@ export default function SessionsPage() {
   const [filter, setFilter] = useState("");
   const [branchFilter, setBranchFilter] = useState<string | null>(null);
 
+  // Scope the list to the workspace in the URL. `useSessionsHistory` fetches
+  // every session on disk regardless of workspace; matching `cwd` against the
+  // route's workspace rootPath narrows it to "this workspace only" — the same
+  // exact-match rule the server uses for `/api/sessions?workspaceId` and the
+  // chat header's session picker. The URL param (not `useActiveCwd`'s
+  // cookie-resolved id) is authoritative for the page we're actually on.
+  const params = useParams<{ workspaceId: string }>();
+  const { items: workspaces } = useWorkspaces();
+  const workspace = workspaces.find((w) => w.id === params?.workspaceId) ?? null;
+  const workspaceRoot = workspace?.rootPath ?? null;
+  const scopedSessions = useMemo(
+    () =>
+      workspaceRoot == null ? sessions : sessions.filter((s) => s.cwd === workspaceRoot),
+    [sessions, workspaceRoot],
+  );
+
   const branches = useMemo(() => {
     const counts = new Map<string, number>();
-    for (const s of sessions) {
+    for (const s of scopedSessions) {
       const b = s.gitBranch?.trim();
       if (!b) continue;
       counts.set(b, (counts.get(b) ?? 0) + 1);
     }
     return [...counts.entries()].sort((a, b) => b[1] - a[1]);
-  }, [sessions]);
+  }, [scopedSessions]);
 
   const filtered = useMemo(() => {
     const q = filter.trim().toLowerCase();
-    return sessions.filter((s) => {
+    return scopedSessions.filter((s) => {
       if (branchFilter && s.gitBranch !== branchFilter) return false;
       if (!q) return true;
       return (
@@ -50,7 +68,7 @@ export default function SessionsPage() {
         (s.gitBranch ?? "").toLowerCase().includes(q)
       );
     });
-  }, [filter, branchFilter, sessions]);
+  }, [filter, branchFilter, scopedSessions]);
 
   return (
     <div className="flex h-full">
@@ -63,7 +81,12 @@ export default function SessionsPage() {
           <span className="opacity-50">·</span>
           <FolderTree className="h-3.5 w-3.5 text-[var(--muted)]" />
           <span className="font-medium">Sessions</span>
-          <span className="text-[var(--muted)]">({sessions.length})</span>
+          {workspace && (
+            <span className="truncate text-[var(--muted)]" title={workspace.rootPath}>
+              {workspace.name}
+            </span>
+          )}
+          <span className="text-[var(--muted)]">({scopedSessions.length})</span>
           {loading && <span className="text-[var(--muted)]">loading…</span>}
           {error && <span className="text-red-400">{error}</span>}
           <button

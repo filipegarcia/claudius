@@ -17,8 +17,17 @@ export type ContextSummary = {
  * causes the returned value to read as `null` until the new session's first
  * payload lands — without that, consumers briefly render the previous
  * session's percentage under the new session's banner.
+ *
+ * `refreshSignal` is an optional trigger: change its value to force a fresh
+ * poll without waiting out the idle interval. Used after a manual /compact so
+ * the context-warning banner reflects the freed-up window promptly instead of
+ * re-showing a stale, still-high percentage for up to 30s.
  */
-export function useContextWatcher(sessionId: string | null, pending: boolean): ContextSummary | null {
+export function useContextWatcher(
+  sessionId: string | null,
+  pending: boolean,
+  refreshSignal?: unknown,
+): ContextSummary | null {
   const [stored, setStored] = useState<{ sid: string; summary: ContextSummary } | null>(null);
 
   useEffect(() => {
@@ -52,13 +61,16 @@ export function useContextWatcher(sessionId: string | null, pending: boolean): C
       }
     }
 
-    // Wait a short moment after a session change before the first poll.
+    // Wait a short moment after a session change before the first poll. A
+    // `refreshSignal` bump (e.g. just after /compact) re-runs this effect and
+    // schedules a fresh poll, so the freed-up context shows without waiting out
+    // the full idle interval.
     timer = setTimeout(poll, 1_500);
     return () => {
       cancelled = true;
       if (timer) clearTimeout(timer);
     };
-  }, [sessionId, pending]);
+  }, [sessionId, pending, refreshSignal]);
 
   // Treat the stored payload as "for this session only" — switching sessions
   // surfaces null until the next poll lands, instead of flashing the prior

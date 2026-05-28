@@ -633,6 +633,15 @@ export function useSession(): ChatState & ChatActions {
   // partials accumulate, and historical replays re-broadcast every
   // assistant message — we want each one counted exactly once.
   const countedUsageRef = useRef<Set<string>>(new Set());
+  // Most-recent structured rate-limit payload (from `rate_limit_event`). The
+  // *hard* limit hit doesn't arrive as a `rate_limit_event` — it comes as an
+  // assistant message with `error: "rate_limit"` whose only content is the
+  // prose "You've hit your session limit · resets …" (no structured
+  // resetsAt / tier / overage fields). We stash the last warning event's
+  // payload here so the synthesized rejected pill can still render a live
+  // countdown and the overage hint instead of bare text. See the
+  // assistant-error branch in `applyEvent`.
+  const lastRateLimitInfoRef = useRef<SystemEntry["rateLimit"] | null>(null);
   // Mirror of `model` for SSE callbacks. The pricing math needs the active
   // model name but the SSE event handler in `applyEvent` is stable (memoized
   // against state); a ref keeps it current without re-binding the EventSource.
@@ -857,6 +866,7 @@ export function useSession(): ChatState & ChatActions {
     setAgentCwd(null);
     setUsage(null);
     countedUsageRef.current = new Set();
+    lastRateLimitInfoRef.current = null;
     estimatedTurnCostRef.current = 0;
     seenResultUuidsRef.current = new Set();
     setTasks({});
@@ -1470,6 +1480,50 @@ export function useSession(): ChatState & ChatActions {
           upsertAssistantSplit(prev, messageId, sdkUuid, blocks, hasStreamScratch, undefined, ev.at),
         );
         setPendingTracked(true);
+
+        // Hard rate-limit hit. The SDK reports the *wall* as an assistant
+        // message with `error: "rate_limit"` (text: "You've hit your session
+        // limit · resets …") rather than a `rate_limit_event`, so the rich
+        // `RateLimitPill` never fires on its own and the user is left with bare
+        // prose and no next step. Synthesize a *rejected* rate-limit pill,
+        // anchored to this message, reusing the last warning event's structured
+        // payload for the live countdown + overage hint. The pill renders the
+        // CLI-style "wait for reset / upgrade" affordances. See SystemPill.tsx.
+        const assistantError = (msg as { error?: string }).error;
+        if (assistantError === "rate_limit") {
+          const last = lastRateLimitInfoRef.current;
+          const info: SystemEntry["rateLimit"] = { ...(last ?? {}), status: "rejected" };
+          const SYNTH_PREFIX = "ratelimit-hit:";
+          setSystemEntries((prev) => {
+            // If a real `rate_limit_event` already produced a rejected pill,
+            // it carries fuller structured data — don't stack a synthetic one
+            // on top of it.
+            const hasEventRejected = prev.some(
+              (e) =>
+                e.kind === "rate_limit" &&
+                e.rateLimit?.status === "rejected" &&
+                !e.uuid.startsWith(SYNTH_PREFIX),
+            );
+            if (hasEventRejected) return prev;
+            const incoming: SystemEntry = {
+              uuid: `${SYNTH_PREFIX}${messageId}`,
+              afterMessageUuid: messageId,
+              kind: "rate_limit",
+              label: `Rate limit: rejected (${info?.rateLimitType ?? ""})`,
+              rateLimit: info,
+            };
+            // Collapse repeated hard-limit errors (the SDK emits one per
+            // blocked turn) into a single pill that follows the latest failure
+            // to the bottom of the thread.
+            const idx = prev.findIndex(
+              (e) => e.kind === "rate_limit" && e.uuid.startsWith(SYNTH_PREFIX),
+            );
+            if (idx === -1) return [...prev, incoming];
+            const next = prev.slice();
+            next[idx] = incoming;
+            return next;
+          });
+        }
         // Activity-rail: surface thinking phases that arrived on the
         // terminal assistant split (i.e. JSONL replay on reload, or a
         // turn whose stream_event partials never reached this tab).
@@ -2637,6 +2691,11 @@ export function useSession(): ChatState & ChatActions {
           uuid: string;
         };
         const info = r.rate_limit_info;
+        // Remember the latest structured payload so a subsequent *hard* limit
+        // hit (which arrives as an assistant `error: "rate_limit"` message with
+        // no structured fields) can reuse this window's resetsAt / tier /
+        // overage status for its countdown.
+        if (info) lastRateLimitInfoRef.current = info;
         const anchor = lastAssistantUuidRef.current;
         const incoming: SystemEntry = {
           uuid: r.uuid,
