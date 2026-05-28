@@ -43,6 +43,11 @@ type Props = {
    */
   onPickExample?: (prompt: string) => void;
   /**
+   * Uuids of user messages that originated from a clicked suggestion chip.
+   * Matching user bubbles get an "auto-suggested" badge.
+   */
+  suggestedUuids?: Set<string>;
+  /**
    * Live AskUserQuestion tool_use id — passed straight through to
    * `AssistantMessage` so the matching ToolCall row pulses its pill in
    * "live" mode. Null when no question is pending; historic ask rows still
@@ -89,6 +94,7 @@ export function MessageList({
   onLoadOlder,
   highlightUuid = null,
   onPickExample,
+  suggestedUuids,
   pendingAskToolUseId = null,
   onReopenAsk,
   verbose = DEFAULT_VERBOSE,
@@ -437,6 +443,7 @@ export function MessageList({
                           rewinding={rewindingUuid === m.uuid}
                           sessionId={sessionId}
                           onJumpTo={() => jumpToMessageTop(m.uuid)}
+                          suggested={!!suggestedUuids?.has(m.uuid)}
                         />
                       ) : (
                         <AssistantMessage

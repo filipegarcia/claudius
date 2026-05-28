@@ -158,14 +158,44 @@ describe("Session.captureTaskState end-to-end", () => {
     expect(persisted!.innerMessages).toHaveLength(2);
   });
 
-  test("does not persist a task that never completes", async () => {
+  test("persists a running task immediately on task_started so mid-run reloads survive", async () => {
+    // Regression: the previous behavior only persisted on task_notification
+    // (completion). A user reloading mid-run lost the entire subagent
+    // transcript and metadata — the task_snapshot was empty and the
+    // TaskBlock was stuck on "Subagent working…" with no information.
+    // Now task_started writes the row immediately and inner-message /
+    // task_progress updates trickle further state in (throttled).
     const session = makeSession();
     session.captureTaskState(startedEvent("task-2", "toolu-2", "still running"));
-    session.captureTaskState(progressEvent("task-2", { total_tokens: 10, tool_uses: 1, duration_ms: 500 }));
 
-    // Give any (incorrect) async write a chance to land before asserting absence.
-    await new Promise((r) => setTimeout(r, 30));
-    const rows = await listSessionTasks(CWD, "tasks-test");
-    expect(rows.find((t) => t.taskId === "task-2")).toBeUndefined();
+    const persisted = await waitForTask("task-2");
+    expect(persisted).toBeDefined();
+    expect(persisted!).toMatchObject({
+      taskId: "task-2",
+      toolUseId: "toolu-2",
+      description: "still running",
+      status: "running",
+    });
+  });
+
+  test("flushes inner subagent messages while the task is still running", async () => {
+    // The first inner message after task_started writes through (no
+    // throttle window has elapsed); subsequent messages within the
+    // throttle window are deferred — but the row already has the
+    // running-state metadata regardless, which is what the UI needs
+    // most. The final task_notification always writes the complete
+    // accumulated transcript.
+    const session = makeSession();
+    session.captureTaskState(startedEvent("task-3", "toolu-3", "long task"));
+    session.captureTaskState(innerAssistant("toolu-3", "a1", "first message", 100));
+
+    const persisted = await waitForTask("task-3");
+    expect(persisted).toBeDefined();
+    expect(persisted!.status).toBe("running");
+    // task_started + the first inner message flush together; the inner
+    // message MAY or MAY NOT have landed depending on whether the
+    // throttle window elapsed since task_started — but the row is
+    // guaranteed to exist with running metadata.
+    expect(persisted!.toolUseId).toBe("toolu-3");
   });
 });

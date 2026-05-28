@@ -285,6 +285,43 @@ function bumpSdkDependency(version: string): void {
   }
 }
 
+/**
+ * Sync Claudius's own version to the SDK version we just took. The UI renders
+ * `${version}.${release}` where `release` is the number of commits since the
+ * `version` field last changed — computed from git at build time (see
+ * scripts/claudius-release.mjs + next.config.ts), with no stored counter. So
+ * the commit this function produces becomes the new anchor and the trailing
+ * component automatically resets to .0, no extra field to touch.
+ *
+ * `version` stays 3-part semver so electron-builder / macOS notarization
+ * don't choke on a 4-component bundle version — the 4th component lives only
+ * in the displayed string.
+ *
+ * Surgical regex replace (no JSON round-trip) to match `bumpSdkDependency`'s
+ * formatting-preserving approach. Runs right after the dep bump so the single
+ * follow-up commit carries both edits.
+ */
+function bumpClaudiusVersion(version: string): void {
+  const pkgPath = resolve(ROOT, "package.json");
+  const raw = readFileSync(pkgPath, "utf8");
+
+  // Top-level "version" is the first "version": key in the file (the SDK dep
+  // key is "@anthropic-ai/claude-agent-sdk", a different token), so an
+  // unanchored first-match replace is safe.
+  const next = raw.replace(
+    /("version"\s*:\s*")([^"]+)(")/,
+    `$1${version}$3`,
+  );
+  if (next === raw) {
+    throw new Error(
+      "failed to rewrite top-level version in package.json — pattern miss",
+    );
+  }
+
+  writeFileSync(pkgPath, next, "utf8");
+  log(`set claudius version → ${version} (release counter auto-resets via git)`);
+}
+
 // ── Changelog extraction ──────────────────────────────────────────────
 
 /**
@@ -1287,6 +1324,11 @@ async function main(): Promise<void> {
   try {
     const branch = checkoutFreshBranch(newVersion);
     bumpSdkDependency(newVersion);
+    // Keep Claudius's displayed version in lock-step with the SDK. The
+    // trailing `.N` release counter is git-derived (see
+    // lib/shared/version.ts + scripts/claudius-release.mjs), so this commit
+    // becoming the new anchor automatically resets it to .0.
+    bumpClaudiusVersion(newVersion);
 
     // First commit lands cleanly — gives Claude a known starting point
     // and makes the dep bump easy to revert independently if needed.

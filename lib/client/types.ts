@@ -3,6 +3,7 @@ import type { PermissionMode } from "@anthropic-ai/claude-agent-sdk";
 import type {
   AskAnswer,
   AskUserQuestionEvent,
+  FeedbackSurveyEvent,
   PermissionDecision,
   PermissionRequestEvent,
   PlanDecision,
@@ -133,6 +134,12 @@ export type QueuedMessage = {
    * instead.
    */
   slash?: boolean;
+  /**
+   * When true, this queued entry came from a clicked suggestion chip. The flush
+   * path forwards `fromSuggestion: true` so the server records its provenance
+   * and the bubble is badged as auto-suggested (see `suggestedUuids`).
+   */
+  fromSuggestion?: boolean;
 };
 
 export type SessionInfo = {
@@ -309,6 +316,14 @@ export type ChatState = {
   sessions: SessionInfo[];
   skills: string[];
   cwd: string | null;
+  /**
+   * The agent's *effective* working directory, tracked live from the SDK's
+   * CwdChanged hook. Differs from `cwd` (the session root) when Claude Code
+   * moves into a git worktree to isolate work; the StatusLine paints a
+   * "worktree" badge whenever `agentCwd && agentCwd !== cwd`. Becomes === cwd
+   * again (badge self-clears) when the agent returns to the root.
+   */
+  agentCwd: string | null;
   usage: SessionUsage | null;
   /** All tasks ever started in this session, keyed by task_id. */
   tasks: Record<string, TaskInfo>;
@@ -317,6 +332,12 @@ export type ChatState = {
   pendingPlan: PendingPlan | null;
   fastModeState: "off" | "cooldown" | "on" | null;
   promptSuggestions: string[];
+  /**
+   * Uuids of user messages that originated from a clicked suggestion chip.
+   * Seeded from the DB on session bind and added to optimistically on send;
+   * the chat overlays an auto-suggested badge on matching bubbles.
+   */
+  suggestedUuids: Set<string>;
   /** True until the SSE replay window finishes (initial render only). */
   replaying: boolean;
   /** True if older history exists above what's currently loaded. */
@@ -345,6 +366,13 @@ export type ChatState = {
    * resolving is `submitAskAnswer(requestId, answers)`.
    */
   pendingAsk: AskUserQuestionEvent | null;
+  /**
+   * Active CLI-style feedback nudge, set when the server broadcasts a
+   * `feedback_survey` after a turn. The browser shows a slim dismissible
+   * banner; submitting calls `submitFeedback`, closing calls `dismissFeedback`.
+   * Null when no nudge is pending.
+   */
+  feedbackSurvey: FeedbackSurveyEvent | null;
 };
 
 export type AttachedImage = {
@@ -381,6 +409,12 @@ export type ChatActions = {
        * etc.) lands as its own SSE event.
        */
       asSlashCommand?: boolean;
+      /**
+       * When true, this message came from a clicked "Suggested follow-up"
+       * chip. The send path badges the bubble as auto-suggested and posts
+       * `fromSuggestion: true` so the server persists its provenance.
+       */
+      fromSuggestion?: boolean;
     },
   ): Promise<void>;
   enqueue(text: string, images?: AttachedImage[]): void;
@@ -439,6 +473,18 @@ export type ChatActions = {
   renameTitle(title: string): Promise<{ ok: true } | { ok: false; error: string }>;
   /** Resolve a pending AskUserQuestion form. */
   submitAskAnswer(requestId: string, answers: AskAnswer[]): Promise<void>;
+  /**
+   * Submit the feedback nudge. Forwards to Anthropic AND persists locally via
+   * `POST /api/feedback`; clears the nudge. The result tells the UI whether the
+   * Anthropic forward landed (`forwarded`) so it can suggest an alternate share
+   * channel when only the local copy was kept (`stored`).
+   */
+  submitFeedback(input: {
+    rating?: "up" | "down";
+    comment: string;
+  }): Promise<{ ok: boolean; stored: boolean; forwarded: boolean }>;
+  /** Dismiss the feedback nudge without submitting. */
+  dismissFeedback(): void;
 };
 
 export type ServerEventEnvelope = ServerEvent;

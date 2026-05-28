@@ -39,7 +39,6 @@ export default function ChatTodosPreview() {
             <Chip>⊞ Compact</Chip>
             <Chip>◇ Clear</Chip>
             <Chip>◐ bypass ▾</Chip>
-            <span className="font-mono text-[10px] opacity-70">claudius v0</span>
           </div>
         </div>
 

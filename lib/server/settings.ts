@@ -22,6 +22,11 @@ export type ClaudeSettings = {
   mcpServers?: Record<string, unknown>;
   enabledPlugins?: Record<string, boolean>;
   autoMemoryEnabled?: boolean;
+  // Predicted next-user-prompt chips (PromptSuggestions). The SDK's canonical
+  // settings key: "When false, prompt suggestions are disabled. When absent or
+  // true, prompt suggestions are enabled." Read at session start in
+  // `session.ts` and forwarded to the SDK's `Options.promptSuggestions`.
+  promptSuggestionEnabled?: boolean;
   // Catch-all for keys we don't yet know about — we never strip them.
   [key: string]: unknown;
 };

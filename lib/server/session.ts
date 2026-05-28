@@ -6,10 +6,12 @@ import {
   query,
   renameSession,
   type CanUseTool,
+  type CwdChangedHookInput,
   type EffortLevel,
   type Options,
   type PermissionMode,
   type PermissionResult,
+  type PreToolUseHookInput,
   type Query,
   type SDKMessage,
   type SDKUserMessage,
@@ -37,6 +39,29 @@ import { listSessionTasks, saveSessionTask } from "./session-tasks-db";
 import { extractUserPromptText, isRealUserPrompt } from "@/lib/shared/user-prompt";
 import { extractReadPaths } from "@/lib/shared/read-tool-paths";
 import type { SessionLoop } from "@/lib/shared/session-loops";
+import { readSettings, type ClaudeSettings } from "./settings";
+import {
+  coerceSurveyRate,
+  getLastSurveyShownAt,
+  noteSurveyShown,
+  shouldOfferSurvey,
+  SURVEY_MIN_INTERVAL_MS,
+} from "./feedback-survey";
+
+/**
+ * If `filePath` lands inside a `.claude/worktrees/<name>/` tree, return the
+ * absolute worktree root; otherwise null.
+ *
+ * This backs the PreToolUse fallback for the worktree badge. Harness-level
+ * `EnterWorktree` moves the session into a git worktree WITHOUT firing the
+ * SDK's `CwdChanged` (or, in some builds, `WorktreeCreate`) hook — so the
+ * badge's normal signal never arrives. But any edit it makes carries an
+ * absolute path under `<root>/.claude/worktrees/<name>/`, which we can sniff.
+ */
+export function worktreeRootFromPath(filePath: string): string | null {
+  const m = /^(.*\/\.claude\/worktrees\/[^/]+)(?:\/|$)/.exec(filePath);
+  return m ? m[1] : null;
+}
 
 type Subscriber = (event: ServerEvent) => void;
 
@@ -297,6 +322,11 @@ export class Session {
   private pendingAskQuestions = new Map<string, PendingAskQuestion>();
   private pendingPlans = new Map<string, PendingPlan>();
   private done = false;
+  // True once a real user prompt has been pushed in THIS process. Gates the
+  // feedback-survey nudge so we never survey scheduled-loop / resumed /
+  // automated sessions where the human never typed (mirrors the bus's
+  // `lastUserInputAt` gate for idle notifications).
+  private sawUserInput = false;
   // True between the user pushing input and the SDK emitting the matching
   // `result` event. Surfaced via `getStatus()` so the SessionTabs strip can
   // paint a "running" dot on non-active tabs whose live SSE isn't bound to
@@ -489,6 +519,13 @@ export class Session {
       // non-fatal — index is for listing; the session still works without it
     }
 
+    // Resolve user-scope settings that map onto SDK Options. Best-effort:
+    // a missing/invalid file yields `{}` so we fall back to defaults. Mirrors
+    // the `feedbackSurveyRate` read in `maybeOfferFeedbackSurvey`.
+    const userSettings = await readSettings("user", this.cwd).catch(
+      () => ({}) as ClaudeSettings,
+    );
+
     const options: Options = {
       cwd: this.cwd,
       model: this.model,
@@ -524,6 +561,16 @@ export class Session {
       abortController: this.abortController,
       canUseTool: this.canUseTool,
       includePartialMessages: true,
+      // Forward subagent text and thinking blocks as assistant/user
+      // messages with `parent_tool_use_id` set. Without this, SDK 0.3.152+
+      // only emits subagent `tool_use` / `tool_result` blocks (enough for a
+      // heartbeat counter) — the TaskBlock would then never have any
+      // inner-message content to expand into, leaving the user staring at
+      // the "Subagent working…" placeholder for the full run. With this
+      // flag the SDK forwards the full subagent conversation so the
+      // expanded TaskBlock renders the nested transcript the same way the
+      // top-level chat renders the parent.
+      forwardSubagentText: true,
       // Ask the SDK to emit periodic AI-generated progress summaries for
       // running subagents (foreground + background). Every ~30s the SDK
       // forks the subagent to produce a short present-tense status (e.g.
@@ -537,9 +584,12 @@ export class Session {
       // into `promptSuggestions` state and renders them as clickable chips
       // (PromptSuggestions). Suggestions ride the parent's prompt cache so
       // they're nearly free, and the SDK self-suppresses on the first turn,
-      // after API errors, and in plan mode. Users who want them off can set
-      // CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false (the SDK's built-in gate).
-      promptSuggestions: true,
+      // after API errors, and in plan mode. On by default; users turn them off
+      // via the SDK's `promptSuggestionEnabled` user setting (Settings → Chat,
+      // or the env gate CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false). The
+      // `promptSuggestions` fallback honors files written before the rename.
+      promptSuggestions:
+        (userSettings.promptSuggestionEnabled ?? userSettings.promptSuggestions) !== false,
       // Track file edits so the user can rewind the working tree to its
       // state at any prior user message via Query.rewindFiles() (see the
       // `rewindFiles` method + POST /api/sessions/[id]/rewind). The SDK
@@ -566,6 +616,68 @@ export class Session {
       // is markdown, which the CLI shows in a monospace box.
       toolConfig: {
         askUserQuestion: { previewFormat: "html" },
+      },
+      // Observe the agent's working-directory transitions and surface a
+      // "worktree" badge when it leaves the session root — otherwise the
+      // user's "current changed files" won't reflect what the agent touched.
+      //
+      // Two signals feed `broadcastCwd` (deduped):
+      //   1. `CwdChanged` — the SDK's own cwd move (fires when Claude Code
+      //      spins up a worktree as part of normal operation).
+      //   2. PreToolUse path heuristic — a mutating file tool whose target
+      //      path lives under `<root>/.claude/worktrees/<name>/` means edits
+      //      aren't landing in the user's checkout, so we flag the worktree.
+      //      This is what catches harness-level `EnterWorktree`, which does
+      //      NOT emit `CwdChanged`.
+      //
+      // DO NOT register a `WorktreeCreate`/`WorktreeRemove` hook to drive this.
+      // Those are creation *extension points*, not observers: the SDK delegates
+      // worktree creation to the hook and REQUIRES it to return
+      // `hookSpecificOutput.worktreePath`. A passive `{ continue: true }`
+      // handler makes `EnterWorktree` fail outright ("hook succeeded but
+      // returned no worktree path"). Verified the hard way.
+      //
+      // Hooks return `{ continue: true }` so we never block the agent, and
+      // programmatic hooks merge with any user settings.json hooks.
+      hooks: {
+        PreToolUse: [
+          {
+            hooks: [
+              async (input) => {
+                const pre = input as PreToolUseHookInput;
+                // Worktree detection (signal #2 above).
+                const ti = (pre.tool_input ?? {}) as {
+                  file_path?: string;
+                  notebook_path?: string;
+                };
+                const target = ti.file_path ?? ti.notebook_path;
+                if (
+                  typeof target === "string" &&
+                  ["Edit", "Write", "MultiEdit", "NotebookEdit"].includes(
+                    pre.tool_name ?? "",
+                  )
+                ) {
+                  const wt = worktreeRootFromPath(target);
+                  if (wt) this.broadcastCwd(wt);
+                }
+                return { continue: true };
+              },
+            ],
+          },
+        ],
+        CwdChanged: [
+          {
+            hooks: [
+              async (input) => {
+                const cwd = (input as CwdChangedHookInput).new_cwd;
+                if (typeof cwd === "string" && cwd.length > 0) {
+                  this.broadcastCwd(cwd);
+                }
+                return { continue: true };
+              },
+            ],
+          },
+        ],
       },
       // Pin the session id so the SDK names its on-disk JSONL with our id.
       // This makes Claudius web ids match the TUI: `claude --resume <id>`
@@ -999,6 +1111,7 @@ export class Session {
     // bus suppresses idle notifications because it never saw a user-input
     // signal for the session.
     notificationBus.markUserInput(this.id);
+    this.sawUserInput = true;
     this.turnInFlight = true;
     this.broadcastTurnStatusIfChanged();
 
@@ -1385,6 +1498,71 @@ export class Session {
   }
 
   /**
+   * Forward user feedback to Anthropic via the SDK's *undocumented* control
+   * method `query.submitFeedback`. It isn't in the SDK's public typings (no
+   * `.d.ts` entry), but it lives on the same control-protocol object that
+   * backs the typed methods like `setEffort`/`seedReadState` and routes
+   * through the same channel the CLI's session-quality survey uses to reach
+   * Anthropic. We feature-detect and swallow failures: if a future SDK drops
+   * the method, forwarding degrades to a no-op and the caller still persists
+   * the feedback locally. Returns whether the SDK accepted the forward.
+   */
+  async submitFeedback(description: string, surface = "claudius"): Promise<boolean> {
+    const q = this.query as
+      | (Query & {
+          submitFeedback?: (
+            description: string,
+            opts?: { surface?: string },
+          ) => Promise<unknown>;
+        })
+      | null;
+    if (!q || typeof q.submitFeedback !== "function") return false;
+    try {
+      await q.submitFeedback(description, { surface });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * After a successful turn, occasionally nudge the user for feedback —
+   * Claudius's replica of the CLI's session-quality survey. Eligibility +
+   * probability live in `feedback-survey.ts` (pure, tested); the rate comes
+   * from the user-scope `feedbackSurveyRate` setting. Best-effort: any error
+   * is swallowed so the consume() loop is never disrupted by a nudge.
+   */
+  private async maybeOfferFeedbackSurvey(message: SDKMessage): Promise<void> {
+    try {
+      const isError = (message as { is_error?: boolean }).is_error === true;
+      // Cheap synchronous gates first — avoid a settings file read on every
+      // turn while throttled or ineligible.
+      if (isError || !this.sawUserInput) return;
+      const now = Date.now();
+      if (now - getLastSurveyShownAt() < SURVEY_MIN_INTERVAL_MS) return;
+      const settings = await readSettings("user", this.cwd).catch(
+        () => ({}) as ClaudeSettings,
+      );
+      const rate = coerceSurveyRate(settings.feedbackSurveyRate);
+      if (
+        !shouldOfferSurvey({
+          rate,
+          isError,
+          sawUserInput: this.sawUserInput,
+          now,
+          lastShownAt: getLastSurveyShownAt(),
+        })
+      ) {
+        return;
+      }
+      noteSurveyShown(now);
+      this.broadcast({ type: "feedback_survey", sessionId: this.id, surface: "claudius" });
+    } catch {
+      // A feedback nudge is never worth disrupting the turn loop.
+    }
+  }
+
+  /**
    * Forward the model list the SDK advertises for this session. The SDK
    * returns per-model metadata (display name, description, supported effort
    * levels) so the picker can render the same options the CLI's `/model`
@@ -1765,7 +1943,10 @@ export class Session {
       if (
         ev.type === "permission_request" ||
         ev.type === "ask_user_question" ||
-        ev.type === "plan_approval_request"
+        ev.type === "plan_approval_request" ||
+        // A one-shot feedback nudge tied to a turn that already finished —
+        // replaying it on reload would re-pop a stale survey.
+        ev.type === "feedback_survey"
       )
         continue;
       fn(ev);
@@ -1917,7 +2098,28 @@ export class Session {
     if (this.pendingPermissions.size > 0) return "running";
     if (this.pendingAskQuestions.size > 0) return "running";
     if (this.pendingPlans.size > 0) return "running";
+    if (this.hasActiveSubagents()) return "running";
     return "idle";
+  }
+
+  /**
+   * True if any tracked subagent (Task) is still doing work that the
+   * session should be considered "busy" for. The SDK closes the parent
+   * turn (`result` fires, `turnInFlight` flips to false) independently
+   * of subagent activity — see the comment on the `result` handler in
+   * `consume()` — so without this check a session with a live Explore /
+   * subagent would read "Idle" in the StatusLine the instant the parent
+   * agent's outer response completed, even though there's real work in
+   * flight. Backgrounded Tasks (`run_in_background: true`) are excluded:
+   * they're fire-and-forget by contract, and the parent has already
+   * moved past them.
+   */
+  private hasActiveSubagents(): boolean {
+    for (const meta of this.taskMetaById.values()) {
+      if (meta.isBackgrounded) continue;
+      if (meta.status === "running" || meta.status === "pending") return true;
+    }
+    return false;
   }
 
   /**
@@ -1983,6 +2185,27 @@ export class Session {
     } catch {
       // non-fatal — banner stays empty, header still works
     }
+  }
+
+  /**
+   * Last effective working directory broadcast to clients via `cwd_changed`.
+   * Several independent signals can move it — the SDK's `CwdChanged` hook,
+   * `WorktreeCreate`/`WorktreeRemove`, and the PreToolUse path heuristic — so
+   * we dedupe against this single source of truth to avoid spamming the SSE
+   * stream (and the replay buffer) with redundant events.
+   */
+  private lastCwdBroadcast: string | null = null;
+
+  /**
+   * Broadcast a `cwd_changed` only when the effective cwd actually moved.
+   * Centralises the dedupe so every detector can call it freely; the client
+   * paints the "worktree" badge whenever this differs from the session root
+   * and self-clears when it returns to the root.
+   */
+  private broadcastCwd(cwd: string): void {
+    if (!cwd || cwd === this.lastCwdBroadcast) return;
+    this.lastCwdBroadcast = cwd;
+    this.broadcast({ type: "cwd_changed", cwd });
   }
 
   private broadcast(event: ServerEvent): void {
@@ -2217,6 +2440,14 @@ export class Session {
   private subagentMsgsByToolUseId = new Map<string, Array<{ at?: number; message: unknown }>>();
   /** Cap inner-message retention per task so a marathon subagent can't bloat one row. */
   private static readonly MAX_INNER_MESSAGES = 500;
+  /**
+   * Throttle the live-persist path so a chatty subagent doesn't hammer SQLite.
+   * Keyed by `taskId` → last persist timestamp; we only flush again when this
+   * cadence has elapsed. Terminal events (`task_notification`) bypass the
+   * throttle — they always persist the final state.
+   */
+  private taskPersistThrottleAt = new Map<string, number>();
+  private static readonly TASK_PERSIST_THROTTLE_MS = 2_000;
 
   /**
    * Sniff subagent (Task) state out of the broadcast stream. Mirrors the
@@ -2238,7 +2469,12 @@ export class Session {
       workflow_name?: string;
       summary?: string;
       status?: string;
-      patch?: { status?: string; description?: string; error?: string };
+      patch?: {
+        status?: string;
+        description?: string;
+        error?: string;
+        is_backgrounded?: boolean;
+      };
       usage?: { total_tokens?: number; tool_uses?: number; duration_ms?: number };
     };
 
@@ -2252,6 +2488,12 @@ export class Session {
         list.splice(0, list.length - Session.MAX_INNER_MESSAGES);
       }
       this.subagentMsgsByToolUseId.set(parent, list);
+      // Flush partial inner-message state to SQLite (throttled). This is
+      // what makes mid-run reloads survive a server restart / idle-reap:
+      // the row gets the latest inner conversation snapshot every couple
+      // of seconds while the subagent is alive, instead of only at
+      // task_notification (completion).
+      this.persistTaskForToolUse(parent, { throttle: true });
       return;
     }
 
@@ -2259,7 +2501,7 @@ export class Session {
     const taskId = msg.task_id;
     switch (msg.subtype) {
       case "task_started": {
-        this.taskMetaById.set(taskId, {
+        const meta: TaskSnapshotEntry = {
           taskId,
           toolUseId: msg.tool_use_id,
           description: msg.description,
@@ -2267,7 +2509,23 @@ export class Session {
           workflowName: msg.workflow_name,
           status: "running",
           innerMessages: [],
-        });
+        };
+        this.taskMetaById.set(taskId, meta);
+        // Persist the row immediately so a reload during the very first
+        // few seconds of a subagent run still finds metadata in the DB
+        // (description, tool_use_id, status="running") — without this the
+        // task_snapshot would be empty until the first throttle window
+        // elapsed for inner messages, or until the terminal
+        // task_notification. Unthrottled so the row exists from t=0.
+        this.persistTask(meta);
+        // A fresh running subagent is part of `getStatus()` now — the
+        // outer parent turn can close (`result` fires) while this Task
+        // is still alive, so we have to re-evaluate. See
+        // `hasActiveSubagents()`. Re-entry through `broadcast()` is safe
+        // because `captureTaskState()` ignores non-`sdk` events (the
+        // `turn_status` short-circuits on its `event.type !== "sdk"`
+        // guard at the top of this method).
+        this.broadcastTurnStatusIfChanged();
         break;
       }
       case "task_progress": {
@@ -2278,6 +2536,12 @@ export class Session {
         if (msg.usage?.total_tokens != null) meta.totalTokens = msg.usage.total_tokens;
         if (msg.usage?.tool_uses != null) meta.toolUses = msg.usage.tool_uses;
         if (msg.usage?.duration_ms != null) meta.durationMs = msg.usage.duration_ms;
+        // Periodic AI summary / counter update — flush the updated meta
+        // and the latest inner-message accumulator to SQLite. Throttled
+        // so a chatty subagent doesn't generate a write per progress
+        // tick; the terminal task_notification path is unthrottled and
+        // always writes the final state.
+        this.persistTask(meta, { throttle: true });
         break;
       }
       case "task_updated": {
@@ -2286,6 +2550,15 @@ export class Session {
         if (msg.patch?.status) meta.status = msg.patch.status;
         if (msg.patch?.description) meta.description = msg.patch.description;
         if (msg.patch?.error) meta.error = msg.patch.error;
+        // Backgrounded tasks must be excluded from `hasActiveSubagents()` —
+        // their fire-and-forget contract means a Task can be alive while
+        // the session is genuinely idle (the parent already moved on).
+        // Same re-entry note as `task_started`.
+        if (msg.patch?.is_backgrounded != null) meta.isBackgrounded = msg.patch.is_backgrounded;
+        // Persist immediately on state changes — a backgrounded / failed
+        // task may not get another touch before the user reloads.
+        this.persistTask(meta);
+        this.broadcastTurnStatusIfChanged();
         break;
       }
       case "task_notification": {
@@ -2301,6 +2574,11 @@ export class Session {
         if (msg.usage?.duration_ms != null) meta.durationMs = msg.usage.duration_ms;
         this.taskMetaById.set(taskId, meta);
         this.persistTask(meta);
+        // Terminal subagent event — if this was the last non-backgrounded
+        // task running after the parent already closed, `getStatus()`
+        // flips back to "idle" here. Without this broadcast the status
+        // dot and StatusLine would stay stuck on "running".
+        this.broadcastTurnStatusIfChanged();
         break;
       }
       default:
@@ -2308,8 +2586,28 @@ export class Session {
     }
   }
 
-  /** Snapshot the task (meta + captured inner conversation) into SQLite. */
-  private persistTask(meta: TaskSnapshotEntry): void {
+  /**
+   * Snapshot the task (meta + captured inner conversation) into SQLite.
+   *
+   * `throttle: true` skips the write if `TASK_PERSIST_THROTTLE_MS` hasn't
+   * elapsed since the last persist for this taskId — used on the hot path
+   * (each inner subagent message, each `task_progress`) so we don't
+   * generate one DB write per token. Unthrottled callers (`task_started`,
+   * `task_updated`, `task_notification`) always write — those are state
+   * transitions whose ordering matters more than write volume.
+   */
+  private persistTask(meta: TaskSnapshotEntry, opts?: { throttle?: boolean }): void {
+    if (opts?.throttle) {
+      const last = this.taskPersistThrottleAt.get(meta.taskId) ?? 0;
+      const now = Date.now();
+      if (now - last < Session.TASK_PERSIST_THROTTLE_MS) return;
+      this.taskPersistThrottleAt.set(meta.taskId, now);
+    } else {
+      // Reset the throttle window on unthrottled writes too, so a flurry
+      // of throttled calls right after a state transition doesn't
+      // immediately fire a redundant second write.
+      this.taskPersistThrottleAt.set(meta.taskId, Date.now());
+    }
     const inner = meta.toolUseId
       ? this.subagentMsgsByToolUseId.get(meta.toolUseId) ?? []
       : [];
@@ -2318,6 +2616,23 @@ export class Session {
       // best-effort — a failed persist just means this task won't survive a
       // disk-rebuild; never disrupt the session over it.
     });
+  }
+
+  /**
+   * Sibling to `persistTask` keyed on the parent `tool_use_id` instead of
+   * the SDK task id. Used from the subagent-inner-message hot path, where
+   * we only have the `parent_tool_use_id` from the envelope. Resolves to
+   * the matching `taskMetaById` entry and delegates; no-ops if we haven't
+   * seen `task_started` yet for that tool_use (which would mean the
+   * envelope ordering put inner messages before the task header — rare,
+   * but the next inner message or `task_started` will catch up).
+   */
+  private persistTaskForToolUse(toolUseId: string, opts?: { throttle?: boolean }): void {
+    for (const meta of this.taskMetaById.values()) {
+      if (meta.toolUseId !== toolUseId) continue;
+      this.persistTask(meta, opts);
+      return;
+    }
   }
 
   /**
@@ -2380,6 +2695,9 @@ export class Session {
           void touchSession(this.cwd, this.id).catch(() => {
             // index update is non-critical; never crash consume() over it
           });
+          // Occasionally nudge for feedback (CLI-style survey). Fire-and-
+          // forget so the settings read never blocks the turn loop.
+          void this.maybeOfferFeedbackSurvey(message);
         }
       }
     } catch (err) {
