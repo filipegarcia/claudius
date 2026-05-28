@@ -245,6 +245,12 @@ export type PermissionDecision =
 export type CreateSessionRequest = {
   cwd?: string;
   model?: string;
+  /**
+   * Main-thread agent name (SDK Options.agent / `--agent`). Applies the named
+   * agent's system prompt, tools, and model to the main conversation. The
+   * agent must be defined (a file under .claude/agents or ~/.claude/agents).
+   */
+  agent?: string;
   permissionMode?: PermissionMode;
   /** If set, resume an existing session by id. */
   resume?: string;
