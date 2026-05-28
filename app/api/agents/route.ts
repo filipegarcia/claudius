@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { listAgents, readAgent, writeAgent, type AgentScope } from "@/lib/server/agents";
+import { sessionManager } from "@/lib/server/session-manager";
 
 export const runtime = "nodejs";
 
@@ -31,5 +32,8 @@ export async function PUT(req: Request) {
     return NextResponse.json({ error: "raw content required" }, { status: 400 });
   const cwd = body.cwd || process.cwd();
   await writeAgent(body.scope, cwd, body.name, body.raw);
-  return NextResponse.json({ ok: true });
+  // Push the edit into any live session in this cwd so the agent is usable
+  // without a restart. Best-effort — never fails the save.
+  const reloaded = await sessionManager.reloadForCwd(cwd);
+  return NextResponse.json({ ok: true, reloadedSessions: reloaded });
 }

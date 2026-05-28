@@ -168,3 +168,71 @@ describe("SessionManager idle-reap policy", () => {
     expect(stub.endCalls).toBe(0);
   });
 });
+
+/**
+ * Coverage for the cwd-scoped reload helpers (A-P1.6) that push a saved
+ * `.claude/agents/*.md` edit into live sessions via `reloadPlugins()` so the
+ * change applies without a restart.
+ */
+describe("SessionManager.sessionsByCwd / reloadForCwd", () => {
+  type CwdStub = { id: string; cwd: string; reloadCalls: number; reloadRejects?: boolean };
+
+  function injectCwd(manager: SessionManager, stub: CwdStub): void {
+    const internals = manager as unknown as { sessions: Map<string, Session> };
+    internals.sessions.set(stub.id, {
+      id: stub.id,
+      cwd: stub.cwd,
+      reloadPlugins: vi.fn(async () => {
+        stub.reloadCalls += 1;
+        if (stub.reloadRejects) throw new Error("reload failed");
+        return { ok: true as const, data: {} };
+      }),
+    } as unknown as Session);
+  }
+
+  test("sessionsByCwd returns only sessions matching the cwd", () => {
+    const manager = new SessionManager();
+    injectCwd(manager, { id: "a", cwd: "/work/one", reloadCalls: 0 });
+    injectCwd(manager, { id: "b", cwd: "/work/one", reloadCalls: 0 });
+    injectCwd(manager, { id: "c", cwd: "/work/two", reloadCalls: 0 });
+
+    expect(manager.sessionsByCwd("/work/one").map((s) => s.id).sort()).toEqual(["a", "b"]);
+    expect(manager.sessionsByCwd("/work/two").map((s) => s.id)).toEqual(["c"]);
+    expect(manager.sessionsByCwd("/work/none")).toEqual([]);
+  });
+
+  test("reloadForCwd reloads each matching session and returns the count", async () => {
+    const manager = new SessionManager();
+    const a: CwdStub = { id: "a", cwd: "/work/one", reloadCalls: 0 };
+    const b: CwdStub = { id: "b", cwd: "/work/one", reloadCalls: 0 };
+    const c: CwdStub = { id: "c", cwd: "/work/two", reloadCalls: 0 };
+    injectCwd(manager, a);
+    injectCwd(manager, b);
+    injectCwd(manager, c);
+
+    const n = await manager.reloadForCwd("/work/one");
+    expect(n).toBe(2);
+    expect(a.reloadCalls).toBe(1);
+    expect(b.reloadCalls).toBe(1);
+    expect(c.reloadCalls).toBe(0); // different cwd, untouched
+  });
+
+  test("reloadForCwd swallows per-session reload failures (best-effort)", async () => {
+    const manager = new SessionManager();
+    const a: CwdStub = { id: "a", cwd: "/work/one", reloadCalls: 0, reloadRejects: true };
+    const b: CwdStub = { id: "b", cwd: "/work/one", reloadCalls: 0 };
+    injectCwd(manager, a);
+    injectCwd(manager, b);
+
+    // Must not reject even though session a's reload throws.
+    await expect(manager.reloadForCwd("/work/one")).resolves.toBe(2);
+    expect(a.reloadCalls).toBe(1);
+    expect(b.reloadCalls).toBe(1);
+  });
+
+  test("reloadForCwd with no matching sessions is a no-op returning 0", async () => {
+    const manager = new SessionManager();
+    injectCwd(manager, { id: "a", cwd: "/work/one", reloadCalls: 0 });
+    await expect(manager.reloadForCwd("/work/elsewhere")).resolves.toBe(0);
+  });
+});
