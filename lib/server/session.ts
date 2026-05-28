@@ -2012,7 +2012,28 @@ export class Session {
     if (this.pendingPermissions.size > 0) return "running";
     if (this.pendingAskQuestions.size > 0) return "running";
     if (this.pendingPlans.size > 0) return "running";
+    if (this.hasActiveSubagents()) return "running";
     return "idle";
+  }
+
+  /**
+   * True if any tracked subagent (Task) is still doing work that the
+   * session should be considered "busy" for. The SDK closes the parent
+   * turn (`result` fires, `turnInFlight` flips to false) independently
+   * of subagent activity — see the comment on the `result` handler in
+   * `consume()` — so without this check a session with a live Explore /
+   * subagent would read "Idle" in the StatusLine the instant the parent
+   * agent's outer response completed, even though there's real work in
+   * flight. Backgrounded Tasks (`run_in_background: true`) are excluded:
+   * they're fire-and-forget by contract, and the parent has already
+   * moved past them.
+   */
+  private hasActiveSubagents(): boolean {
+    for (const meta of this.taskMetaById.values()) {
+      if (meta.isBackgrounded) continue;
+      if (meta.status === "running" || meta.status === "pending") return true;
+    }
+    return false;
   }
 
   /**
@@ -2354,7 +2375,12 @@ export class Session {
       workflow_name?: string;
       summary?: string;
       status?: string;
-      patch?: { status?: string; description?: string; error?: string };
+      patch?: {
+        status?: string;
+        description?: string;
+        error?: string;
+        is_backgrounded?: boolean;
+      };
       usage?: { total_tokens?: number; tool_uses?: number; duration_ms?: number };
     };
 
@@ -2384,6 +2410,14 @@ export class Session {
           status: "running",
           innerMessages: [],
         });
+        // A fresh running subagent is part of `getStatus()` now — the
+        // outer parent turn can close (`result` fires) while this Task
+        // is still alive, so we have to re-evaluate. See
+        // `hasActiveSubagents()`. Re-entry through `broadcast()` is safe
+        // because `captureTaskState()` ignores non-`sdk` events (the
+        // `turn_status` short-circuits on its `event.type !== "sdk"`
+        // guard at the top of this method).
+        this.broadcastTurnStatusIfChanged();
         break;
       }
       case "task_progress": {
@@ -2402,6 +2436,12 @@ export class Session {
         if (msg.patch?.status) meta.status = msg.patch.status;
         if (msg.patch?.description) meta.description = msg.patch.description;
         if (msg.patch?.error) meta.error = msg.patch.error;
+        // Backgrounded tasks must be excluded from `hasActiveSubagents()` —
+        // their fire-and-forget contract means a Task can be alive while
+        // the session is genuinely idle (the parent already moved on).
+        // Same re-entry note as `task_started`.
+        if (msg.patch?.is_backgrounded != null) meta.isBackgrounded = msg.patch.is_backgrounded;
+        this.broadcastTurnStatusIfChanged();
         break;
       }
       case "task_notification": {
@@ -2417,6 +2457,11 @@ export class Session {
         if (msg.usage?.duration_ms != null) meta.durationMs = msg.usage.duration_ms;
         this.taskMetaById.set(taskId, meta);
         this.persistTask(meta);
+        // Terminal subagent event — if this was the last non-backgrounded
+        // task running after the parent already closed, `getStatus()`
+        // flips back to "idle" here. Without this broadcast the status
+        // dot and StatusLine would stay stuck on "running".
+        this.broadcastTurnStatusIfChanged();
         break;
       }
       default:
