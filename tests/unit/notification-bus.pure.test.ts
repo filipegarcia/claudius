@@ -16,7 +16,7 @@ import { DEFAULT_ENABLED_KINDS } from "@/lib/shared/notifications";
  * doesn't belong here — put it in `notification-bus.integration.test.ts`.
  */
 
-const SESSION_CTX = { cwd: "/tmp/proj", sessionId: "sess-1" } as const;
+const SESSION_CTX = { cwd: "/tmp/proj", sessionId: "sess-1", sessionTitle: "My session" } as const;
 const SCHED_CTX = { cwd: "/tmp/proj", runId: "run-1", jobId: "job-1" } as const;
 
 function emptyIdleMap(): Map<string, number> {
@@ -261,7 +261,8 @@ describe("mapEventToKind", () => {
       idle,
     );
     expect(out?.kind).toBe("session_idle");
-    expect(out?.body).toBe(SESSION_CTX.cwd);
+    // Body is the session label so the inbox shows *which* session went idle.
+    expect(out?.body).toBe(SESSION_CTX.sessionTitle);
   });
 
   test("sdk: result with markUserInput recorded long ago → session_idle", () => {
@@ -270,6 +271,20 @@ describe("mapEventToKind", () => {
     const out = mapEventToKind(
       { type: "sdk", message: { type: "result" } as never },
       SESSION_CTX,
+      idle,
+    );
+    expect(out?.kind).toBe("session_idle");
+    expect(out?.body).toBe(SESSION_CTX.sessionTitle);
+  });
+
+  test("sdk: result without a sessionTitle → body falls back to cwd", () => {
+    // Defensive: the production call site always passes a label, but the
+    // mapping must not emit an empty body if a caller omits it.
+    const idle = new Map<string, number>();
+    idle.set(SESSION_CTX.sessionId, Date.now() - 2_000);
+    const out = mapEventToKind(
+      { type: "sdk", message: { type: "result" } as never },
+      { cwd: SESSION_CTX.cwd, sessionId: SESSION_CTX.sessionId },
       idle,
     );
     expect(out?.kind).toBe("session_idle");
