@@ -23,6 +23,8 @@ type Props = {
   pending: boolean;
   onRewind?: (uuid: string) => void;
   rewindingUuid?: string | null;
+  /** Active session id — enables the per-message "Restore files" affordance. */
+  sessionId?: string;
   tasks?: Record<string, TaskInfo>;
   subagentMessages?: Record<string, DisplayMessage[]>;
   /** True until the initial SSE replay window finishes. */
@@ -83,6 +85,7 @@ export function MessageList({
   pending,
   onRewind,
   rewindingUuid,
+  sessionId,
   tasks,
   subagentMessages,
   replaying = false,
@@ -438,6 +441,7 @@ export function MessageList({
                           message={m}
                           onRewind={onRewind}
                           rewinding={rewindingUuid === m.uuid}
+                          sessionId={sessionId}
                           onJumpTo={() => jumpToMessageTop(m.uuid)}
                           suggested={!!suggestedUuids?.has(m.uuid)}
                         />

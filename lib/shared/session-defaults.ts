@@ -9,6 +9,8 @@ export type SessionDefaults = {
   model?: string;
   agent?: string;
   maxBudgetUsd?: number;
+  fallbackModel?: string;
+  sandboxEnabled?: boolean;
   permissionMode?: PermissionMode;
 };
 
@@ -34,6 +36,8 @@ export function mergeSessionDefaults(
     model: request.model ?? defaults.model,
     agent: request.agent ?? defaults.agent,
     maxBudgetUsd: request.maxBudgetUsd ?? defaults.maxBudgetUsd,
+    fallbackModel: request.fallbackModel ?? defaults.fallbackModel,
+    sandboxEnabled: request.sandboxEnabled ?? defaults.sandboxEnabled,
     permissionMode: request.permissionMode ?? defaults.permissionMode,
   };
 }
