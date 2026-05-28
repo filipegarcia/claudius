@@ -179,6 +179,25 @@ html[data-electron] body {
   font-family: inherit;
 }
 
+/* Geist Mono ships programming ligatures (contextual alternates) that fuse
+ * character runs like `===`, `=>`, and `!=` into single glyphs. Everywhere we
+ * render the mono face we're showing literal code — inline `code`, fenced
+ * `pre`, Shiki blocks, the Tailwind `font-mono` utility, and the code-editor
+ * textareas — where a fused `===` reads as a rendering glitch rather than three
+ * characters. Turn ligatures off across those contexts. `font-variant-
+ * ligatures: none` disables `calt` per spec; we mirror it via
+ * `font-feature-settings` for older WebKit/Electron that honor only the
+ * low-level property. */
+code,
+pre,
+kbd,
+samp,
+.font-mono,
+.shiki-host {
+  font-variant-ligatures: none;
+  font-feature-settings: "liga" 0, "calt" 0;
+}
+
 @keyframes glyph-fade {
   0% { opacity: 0; transform: translateY(2px) scale(0.92); }
   40% { opacity: 1; transform: translateY(0) scale(1); }

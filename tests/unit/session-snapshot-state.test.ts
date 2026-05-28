@@ -69,6 +69,27 @@ describe("Session derived snapshot state", () => {
     });
   });
 
+  test("ignores the SDK post-compact continuation summary as a user prompt", () => {
+    const session = makeSession();
+    const summary =
+      "This session is being continued from a previous conversation that ran out of context. " +
+      "The summary below covers the earlier portion of the conversation.\n\nSummary:\n1. Primary Request and Intent: …";
+
+    // A real prompt arrives first; the compact summary is the most recent
+    // `user`-shaped record on resume. It must NOT overwrite the snapshot —
+    // otherwise `session_snapshot` re-injects it into the chat as a user
+    // bubble (the reported bug). The chat shows a compact_boundary divider
+    // for the transition instead.
+    session.captureSnapshotState(userEvent("u-real", "do the thing", 1_000));
+    session.captureSnapshotState(userEvent("u-summary", summary, 2_000));
+
+    expect(session.latestUserPromptSnapshot).toEqual({
+      uuid: "u-real",
+      text: "do the thing",
+      at: 1_000,
+    });
+  });
+
   test("keeps the chronologically latest TodoWrite snapshot when older events arrive later", () => {
     const session = makeSession();
     const newerTodos = [{ id: "n", content: "new task", status: "in_progress" }];

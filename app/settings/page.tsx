@@ -303,8 +303,22 @@ export default function SettingsPage() {
                     label="autoMemoryEnabled"
                     checked={Boolean(draft.autoMemoryEnabled)}
                     onChange={(b) => update({ autoMemoryEnabled: b ? true : undefined })}
-                    description="Let Claude self-note across sessions in ~/.claude/projects/<project>/memory."
+                    description="Enable auto-memory for this project. When false, Claude will not read from or write to the auto-memory directory."
                   />
+                  <ToggleRow
+                    label="autoDreamEnabled"
+                    checked={Boolean(draft.autoDreamEnabled)}
+                    onChange={(b) => update({ autoDreamEnabled: b ? true : undefined })}
+                    description="Enable background memory consolidation (auto-dream). When set, overrides the server-side default."
+                  />
+                  <Field label="autoMemoryDirectory">
+                    <input
+                      value={(draft.autoMemoryDirectory as string | undefined) ?? ""}
+                      onChange={(e) => update({ autoMemoryDirectory: e.target.value || undefined })}
+                      placeholder="~/.claude/projects/<sanitized-cwd>/memory/"
+                      className="w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 font-mono text-xs focus:outline-none"
+                    />
+                  </Field>
                   <Field label="claudeMdExcludes (comma-separated globs)">
                     <input
                       value={
@@ -326,6 +340,27 @@ export default function SettingsPage() {
                   </Field>
                 </Section>
 
+                <Section title="Chat">
+                  <ToggleRow
+                    label="promptSuggestionEnabled"
+                    checked={draft.promptSuggestionEnabled !== false}
+                    onChange={(b) => update({ promptSuggestionEnabled: b ? undefined : false })}
+                    description="Show AI-predicted follow-up prompts as clickable chips under the composer after each turn. On by default."
+                  />
+                </Section>
+
+                {Object.entries(CATALOG_SECTIONS).map(([section, metas]) => (
+                  <Section
+                    key={section}
+                    title={section}
+                    subtitle="Claude Code settings from the SDK. Blank / “Default” means the key is absent and Claude Code's built-in default applies."
+                  >
+                    {metas.map((m) => (
+                      <CatalogField key={m.key} meta={m} draft={draft} update={update} />
+                    ))}
+                  </Section>
+                ))}
+
                 <Section title="Environment">
                   <EnvEditor
                     value={(draft.env as Record<string, string> | undefined) ?? {}}
@@ -341,8 +376,11 @@ export default function SettingsPage() {
                   </pre>
                 </Section>
 
-                <Section title="Other" subtitle="Anything not covered above is preserved on save.">
-                  <Other draft={draft} />
+                <Section
+                  title="Other"
+                  subtitle="Every other key in this file, editable. Booleans become toggles, scalars become inputs, and objects/arrays get a JSON editor."
+                >
+                  <OtherEditor key={activeKey} draft={draft} update={update} />
                 </Section>
               </>
             )}
@@ -478,19 +516,540 @@ const KNOWN_KEYS = new Set([
   "hooks",
   "mcpServers",
   "autoMemoryEnabled",
+  "autoDreamEnabled",
+  "autoMemoryDirectory",
+  "promptSuggestionEnabled",
   "claudeMdExcludes",
   "enabledPlugins",
   "env",
   "disableAllHooks",
 ]);
 
-function Other({ draft }: { draft: ClaudeSettings }) {
-  const others = Object.entries(draft).filter(([k]) => !KNOWN_KEYS.has(k));
-  if (others.length === 0)
-    return <div className="text-[11px] italic text-[var(--muted)]">No other keys.</div>;
+// Catalog of Claude Code settings.json keys worth surfacing as labeled
+// fields, transcribed VERBATIM from the SDK's `Settings` interface JSDoc in
+// `node_modules/@anthropic-ai/claude-agent-sdk/sdk.d.ts`. Deliberately
+// curated, not exhaustive: managed/enterprise-only keys (allowManaged*Only,
+// strictKnownMarketplaces, modelOverrides, availableModels, *McpServers
+// allow/deny lists, etc.), keys already covered by their own UI sections,
+// and complex nested objects (worktree, attribution, hooks…) are omitted —
+// the latter fall through to the generic "Other" editor. When the SDK bumps,
+// diff this table against the new sdk.d.ts.
+type CatalogType = "boolean" | "number" | "string" | "string[]" | "enum";
+type SettingMeta = {
+  key: keyof ClaudeSettings & string;
+  type: CatalogType;
+  desc: string;
+  section: string;
+  deprecated?: boolean;
+  options?: string[];
+  placeholder?: string;
+};
+const SDK_SETTINGS_CATALOG: SettingMeta[] = [
+  {
+    key: "advisorModel",
+    type: "string",
+    section: "Model & behavior",
+    placeholder: "opus",
+    desc: "Advisor model for the server-side advisor tool.",
+  },
+  {
+    key: "language",
+    type: "string",
+    section: "Model & behavior",
+    placeholder: "japanese",
+    desc: 'Preferred language for Claude responses and voice dictation (e.g., "japanese", "spanish")',
+  },
+  {
+    key: "fastMode",
+    type: "boolean",
+    section: "Model & behavior",
+    desc: "When true, fast mode is enabled. When absent or false, fast mode is off.",
+  },
+  {
+    key: "alwaysThinkingEnabled",
+    type: "boolean",
+    section: "Thinking & effort",
+    desc: "When false, thinking is disabled. When absent or true, thinking is enabled automatically for supported models.",
+  },
+  {
+    key: "showThinkingSummaries",
+    type: "boolean",
+    section: "Thinking & effort",
+    desc: "Request API-side thinking summaries and show them in the conversation and in the transcript view (ctrl+o). Set explicitly to override the default for your install.",
+  },
+  {
+    key: "effortLevel",
+    type: "enum",
+    section: "Thinking & effort",
+    options: ["low", "medium", "high", "xhigh"],
+    desc: "Persisted effort level for supported models.",
+  },
+  {
+    key: "autoCompactEnabled",
+    type: "boolean",
+    section: "Context & compaction",
+    desc: "Automatically compact conversation when context fills",
+  },
+  {
+    key: "autoCompactWindow",
+    type: "number",
+    section: "Context & compaction",
+    desc: "Auto-compact window size",
+  },
+  {
+    key: "cleanupPeriodDays",
+    type: "number",
+    section: "Storage & sessions",
+    placeholder: "30",
+    desc: "Number of days to retain chat transcripts before automatic cleanup (default: 30). Minimum 1. Use a large value for long retention; use --no-session-persistence to disable transcript writes entirely.",
+  },
+  {
+    key: "feedbackSurveyRate",
+    type: "number",
+    section: "Storage & sessions",
+    placeholder: "0.05",
+    desc: "Probability (0–1) that the session quality survey appears when eligible. 0.05 is a reasonable starting point.",
+  },
+  {
+    key: "respectGitignore",
+    type: "boolean",
+    section: "Files",
+    desc: "Whether file picker should respect .gitignore files (default: true). Note: .ignore files are always respected.",
+  },
+  {
+    key: "includeCoAuthoredBy",
+    type: "boolean",
+    section: "Git",
+    deprecated: true,
+    desc: "Deprecated: Use attribution instead. Whether to include Claude's co-authored by attribution in commits and PRs (defaults to true)",
+  },
+  {
+    key: "includeGitInstructions",
+    type: "boolean",
+    section: "Git",
+    desc: "Include built-in commit and PR workflow instructions in Claude's system prompt (default: true)",
+  },
+  {
+    key: "prUrlTemplate",
+    type: "string",
+    section: "Git",
+    placeholder: "https://reviews.example.com/{owner}/{repo}/pull/{number}",
+    desc: "URL template for PR links in the footer badge and inline messages. Placeholders: {host} {owner} {repo} {number} {url}.",
+  },
+  {
+    key: "enableAllProjectMcpServers",
+    type: "boolean",
+    section: "MCP",
+    desc: "Whether to automatically approve all MCP servers in the project",
+  },
+  {
+    key: "enabledMcpjsonServers",
+    type: "string[]",
+    section: "MCP",
+    placeholder: "server-a, server-b",
+    desc: "List of approved MCP servers from .mcp.json",
+  },
+  {
+    key: "disabledMcpjsonServers",
+    type: "string[]",
+    section: "MCP",
+    placeholder: "server-c",
+    desc: "List of rejected MCP servers from .mcp.json",
+  },
+  {
+    key: "skillListingMaxDescChars",
+    type: "number",
+    section: "Skills",
+    placeholder: "1536",
+    desc: "Per-skill description character cap in the skill listing sent to Claude (default: 1536). Descriptions longer than this are truncated. Raise to opt in to higher per-turn context cost.",
+  },
+  {
+    key: "skillListingBudgetFraction",
+    type: "number",
+    section: "Skills",
+    placeholder: "0.01",
+    desc: "Fraction of the context window (in characters) reserved for the skill listing sent to Claude (default: 0.01 = 1%). When the listing exceeds this, descriptions are shortened to fit. Raise to opt in to higher per-turn context cost.",
+  },
+  {
+    key: "disableSkillShellExecution",
+    type: "boolean",
+    section: "Skills",
+    desc: "Disable inline shell execution in skills and custom slash commands from user, project, or plugin sources. Commands are replaced with a placeholder instead of being run.",
+  },
+  {
+    key: "skipDangerousModePermissionPrompt",
+    type: "boolean",
+    section: "Permissions",
+    desc: "Whether the user has accepted the bypass permissions mode dialog",
+  },
+  {
+    key: "defaultShell",
+    type: "enum",
+    section: "Shell",
+    options: ["bash", "powershell"],
+    desc: "Default shell for input-box ! commands. Defaults to 'bash' on all platforms (no Windows auto-flip).",
+  },
+  {
+    key: "forceLoginMethod",
+    type: "enum",
+    section: "Authentication",
+    options: ["claudeai", "console"],
+    desc: 'Force a specific login method: "claudeai" for Claude Pro/Max, "console" for Console billing',
+  },
+  {
+    key: "apiKeyHelper",
+    type: "string",
+    section: "Authentication",
+    placeholder: "/path/to/key-helper.sh",
+    desc: "Path to a script that outputs authentication values",
+  },
+  {
+    key: "proxyAuthHelper",
+    type: "string",
+    section: "Authentication",
+    desc: "Shell command that outputs a Proxy-Authorization header value (EAP)",
+  },
+  {
+    key: "awsCredentialExport",
+    type: "string",
+    section: "Authentication",
+    placeholder: "/path/to/aws-creds.sh",
+    desc: "Path to a script that exports AWS credentials",
+  },
+  {
+    key: "awsAuthRefresh",
+    type: "string",
+    section: "Authentication",
+    placeholder: "/path/to/aws-refresh.sh",
+    desc: "Path to a script that refreshes AWS authentication",
+  },
+  {
+    key: "gcpAuthRefresh",
+    type: "string",
+    section: "Authentication",
+    placeholder: "gcloud auth application-default login",
+    desc: "Command to refresh GCP authentication (e.g., gcloud auth application-default login)",
+  },
+];
+const CATALOG_KEYS = new Set(SDK_SETTINGS_CATALOG.map((s) => s.key));
+const CATALOG_SECTIONS = SDK_SETTINGS_CATALOG.reduce<Record<string, SettingMeta[]>>((acc, m) => {
+  (acc[m.section] ??= []).push(m);
+  return acc;
+}, {});
+
+type Patch = Partial<ClaudeSettings>;
+
+function OtherEditor({
+  draft,
+  update,
+}: {
+  draft: ClaudeSettings;
+  update: (patch: Patch) => void;
+}) {
+  const others = Object.entries(draft).filter(
+    ([k]) => !KNOWN_KEYS.has(k) && !CATALOG_KEYS.has(k),
+  );
   return (
-    <pre className="overflow-auto rounded-md border border-[var(--border)] bg-[var(--panel-2)] p-3 font-mono text-[11px] scroll-thin">
-      {JSON.stringify(Object.fromEntries(others), null, 2)}
-    </pre>
+    <div className="space-y-2">
+      {others.length === 0 ? (
+        <div className="text-[11px] italic text-[var(--muted)]">No other keys.</div>
+      ) : (
+        others.map(([key, value]) => (
+          <OtherRow key={key} name={key} value={value} update={update} />
+        ))
+      )}
+      <AddKeyRow draft={draft} update={update} />
+    </div>
+  );
+}
+
+function RemoveBtn({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      title="Remove key"
+      className="shrink-0 rounded p-1 text-[var(--muted)] hover:bg-[var(--panel)] hover:text-red-400"
+    >
+      <X className="h-3 w-3" />
+    </button>
+  );
+}
+
+function OtherRow({
+  name,
+  value,
+  update,
+}: {
+  name: string;
+  value: unknown;
+  update: (patch: Patch) => void;
+}) {
+  const remove = () => update({ [name]: undefined } as Patch);
+
+  if (typeof value === "boolean") {
+    return (
+      <div className="flex items-center gap-2">
+        <label className="flex flex-1 cursor-pointer items-center gap-3 rounded-md border border-[var(--border)] bg-[var(--panel-2)]/40 p-2">
+          <input
+            type="checkbox"
+            checked={value}
+            onChange={(e) => update({ [name]: e.target.checked } as Patch)}
+            className="h-3.5 w-3.5"
+          />
+          <span className="flex-1 font-mono text-xs">{name}</span>
+        </label>
+        <RemoveBtn onClick={remove} />
+      </div>
+    );
+  }
+
+  if (typeof value === "number") {
+    return (
+      <Field label={name}>
+        <div className="flex items-center gap-2">
+          <input
+            type="number"
+            value={Number.isFinite(value) ? value : ""}
+            onChange={(e) => {
+              if (e.target.value === "") return;
+              const n = Number(e.target.value);
+              if (!Number.isNaN(n)) update({ [name]: n } as Patch);
+            }}
+            className="w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 font-mono text-xs focus:outline-none"
+          />
+          <RemoveBtn onClick={remove} />
+        </div>
+      </Field>
+    );
+  }
+
+  if (typeof value === "string") {
+    return (
+      <Field label={name}>
+        <div className="flex items-center gap-2">
+          <input
+            value={value}
+            onChange={(e) => update({ [name]: e.target.value } as Patch)}
+            className="w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 font-mono text-xs focus:outline-none"
+          />
+          <RemoveBtn onClick={remove} />
+        </div>
+      </Field>
+    );
+  }
+
+  // Objects, arrays, and null fall back to a JSON editor.
+  return <JsonRow name={name} value={value} update={update} onRemove={remove} />;
+}
+
+function JsonRow({
+  name,
+  value,
+  update,
+  onRemove,
+}: {
+  name: string;
+  value: unknown;
+  update: (patch: Patch) => void;
+  onRemove: () => void;
+}) {
+  // Local text buffer so partial/invalid JSON doesn't fight the controlled
+  // input. Each keystroke that parses cleanly commits to the draft (so a
+  // Save without blurring never drops the edit); an unparseable buffer keeps
+  // the last valid value and surfaces the error. The parent re-mounts this
+  // row on scope switch / refetch (OtherEditor is keyed by activeKey) so the
+  // seed never goes stale.
+  const [text, setText] = useState(() => JSON.stringify(value, null, 2));
+  const [err, setErr] = useState<string | null>(null);
+  const onText = (next: string) => {
+    setText(next);
+    try {
+      update({ [name]: JSON.parse(next) } as Patch);
+      setErr(null);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+    }
+  };
+  return (
+    <Field label={name}>
+      <div className="flex items-start gap-2">
+        <div className="flex-1">
+          <textarea
+            value={text}
+            onChange={(e) => onText(e.target.value)}
+            spellCheck={false}
+            rows={Math.min(10, Math.max(2, text.split("\n").length))}
+            className="block w-full resize-y rounded-md border border-[var(--border)] bg-[var(--panel-2)] p-2 font-mono text-[11px] leading-5 focus:outline-none scroll-thin"
+          />
+          {err && (
+            <div className="mt-1 rounded-md border border-red-500/30 bg-red-500/10 px-2 py-1 text-[11px] text-red-300">
+              {err}
+            </div>
+          )}
+        </div>
+        <RemoveBtn onClick={onRemove} />
+      </div>
+    </Field>
+  );
+}
+
+const NEW_KEY_TYPES = ["string", "boolean", "number", "json"] as const;
+type NewKeyType = (typeof NEW_KEY_TYPES)[number];
+
+function AddKeyRow({ draft, update }: { draft: ClaudeSettings; update: (patch: Patch) => void }) {
+  const [name, setName] = useState("");
+  const [type, setType] = useState<NewKeyType>("string");
+  const trimmed = name.trim();
+  const duplicate = trimmed in draft;
+  const add = () => {
+    if (!trimmed || duplicate) return;
+    const init: unknown =
+      type === "boolean" ? true : type === "number" ? 0 : type === "json" ? {} : "";
+    update({ [trimmed]: init } as Patch);
+    setName("");
+    setType("string");
+  };
+  return (
+    <div className="mt-1 flex flex-wrap items-center gap-2 border-t border-[var(--border)] pt-2">
+      <input
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") add();
+        }}
+        placeholder="newSettingKey"
+        className="flex-1 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1 font-mono text-[11px] focus:outline-none"
+      />
+      <select
+        value={type}
+        onChange={(e) => setType(e.target.value as NewKeyType)}
+        className="rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1 text-[11px] focus:outline-none"
+      >
+        {NEW_KEY_TYPES.map((t) => (
+          <option key={t} value={t}>
+            {t}
+          </option>
+        ))}
+      </select>
+      <button
+        onClick={add}
+        disabled={!trimmed || duplicate}
+        title={duplicate ? "Key already exists" : undefined}
+        className="rounded-md bg-[var(--accent)] px-2 py-1 text-[11px] text-white hover:opacity-90 disabled:opacity-40"
+      >
+        Add key
+      </button>
+    </div>
+  );
+}
+
+function CatalogField({
+  meta,
+  draft,
+  update,
+}: {
+  meta: SettingMeta;
+  draft: ClaudeSettings;
+  update: (patch: Patch) => void;
+}) {
+  const value = (draft as Record<string, unknown>)[meta.key];
+  const set = (v: unknown) => update({ [meta.key]: v } as Patch);
+  const inputCls =
+    "w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 font-mono text-xs focus:outline-none";
+  const selectCls =
+    "w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 text-xs focus:outline-none";
+
+  let control: React.ReactNode;
+  if (meta.type === "boolean") {
+    const cur = value === true ? "true" : value === false ? "false" : "";
+    control = (
+      <select
+        value={cur}
+        onChange={(e) => set(e.target.value === "" ? undefined : e.target.value === "true")}
+        className={selectCls}
+      >
+        <option value="">Default</option>
+        <option value="true">On (true)</option>
+        <option value="false">Off (false)</option>
+      </select>
+    );
+  } else if (meta.type === "enum") {
+    control = (
+      <select
+        value={typeof value === "string" ? value : ""}
+        onChange={(e) => set(e.target.value || undefined)}
+        className={selectCls}
+      >
+        <option value="">Default</option>
+        {meta.options?.map((o) => (
+          <option key={o} value={o}>
+            {o}
+          </option>
+        ))}
+      </select>
+    );
+  } else if (meta.type === "number") {
+    control = (
+      <input
+        type="number"
+        value={typeof value === "number" ? value : ""}
+        placeholder={meta.placeholder ?? "(default)"}
+        onChange={(e) => {
+          if (e.target.value === "") return set(undefined);
+          const n = Number(e.target.value);
+          if (!Number.isNaN(n)) set(n);
+        }}
+        className={inputCls}
+      />
+    );
+  } else if (meta.type === "string[]") {
+    const arr = Array.isArray(value) ? (value as string[]) : [];
+    control = (
+      <input
+        value={arr.join(", ")}
+        placeholder={meta.placeholder ?? "a, b, c"}
+        onChange={(e) => {
+          const list = e.target.value
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean);
+          set(list.length ? list : undefined);
+        }}
+        className={inputCls}
+      />
+    );
+  } else {
+    control = (
+      <input
+        value={typeof value === "string" ? value : ""}
+        placeholder={meta.placeholder ?? "(unset)"}
+        onChange={(e) => set(e.target.value || undefined)}
+        className={inputCls}
+      />
+    );
+  }
+
+  const isSet = value !== undefined;
+  return (
+    <div className="rounded-md border border-[var(--border)] bg-[var(--panel-2)]/40 p-2">
+      <div className="mb-1 flex items-center gap-2">
+        <span className="font-mono text-xs">{meta.key}</span>
+        {meta.deprecated && (
+          <span className="rounded bg-amber-500/15 px-1.5 py-0.5 text-[9px] uppercase tracking-wide text-amber-400">
+            deprecated
+          </span>
+        )}
+        <span
+          className={cn(
+            "ml-auto text-[9px] uppercase tracking-wide",
+            isSet ? "text-[var(--accent)]" : "text-[var(--muted)]",
+          )}
+        >
+          {isSet ? "overridden" : "default"}
+        </span>
+      </div>
+      <p className="mb-2 text-[11px] leading-4 text-[var(--muted)]">{meta.desc}</p>
+      {control}
+    </div>
   );
 }
