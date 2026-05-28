@@ -57,6 +57,7 @@ export async function POST(req: Request) {
     fallbackModel,
     sandboxEnabled,
     enable1mContext,
+    forwardSubagentText,
     systemPromptAppend,
     planModeInstructions,
   } = mergeSessionDefaults(body, defaults);
@@ -69,6 +70,7 @@ export async function POST(req: Request) {
     fallbackModel,
     sandboxEnabled,
     enable1mContext,
+    forwardSubagentText,
     systemPromptAppend,
     planModeInstructions,
     permissionMode,

@@ -52,10 +52,17 @@ describe("mergeSessionDefaults", () => {
       fallbackModel: undefined,
       sandboxEnabled: undefined,
       enable1mContext: undefined,
+      forwardSubagentText: undefined,
       systemPromptAppend: undefined,
       planModeInstructions: undefined,
       permissionMode: undefined,
     });
+  });
+
+  test("forwardSubagentText follows the same precedence (request wins, default fills)", () => {
+    expect(mergeSessionDefaults({ forwardSubagentText: true }, { forwardSubagentText: false }).forwardSubagentText).toBe(true);
+    expect(mergeSessionDefaults({}, { forwardSubagentText: true }).forwardSubagentText).toBe(true);
+    expect(mergeSessionDefaults({ forwardSubagentText: false }, { forwardSubagentText: true }).forwardSubagentText).toBe(false);
   });
 
   test("planModeInstructions follows the same precedence (request wins, default fills)", () => {

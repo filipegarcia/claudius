@@ -303,6 +303,12 @@ export class Session {
    */
   readonly enable1mContext?: boolean;
   /**
+   * Forward full subagent assistant/thinking text (Options.forwardSubagentText).
+   * Off by default (heartbeat-only); when true, subagent transcripts stream
+   * with parent_tool_use_id set so the client can render them nested.
+   */
+  readonly forwardSubagentText?: boolean;
+  /**
    * Extra instructions appended to the default Claude Code system prompt
    * (Options.systemPrompt preset + append). Undefined/empty ⇒ unmodified preset.
    */
@@ -402,6 +408,7 @@ export class Session {
     fallbackModel?: string;
     sandboxEnabled?: boolean;
     enable1mContext?: boolean;
+    forwardSubagentText?: boolean;
     systemPromptAppend?: string;
     planModeInstructions?: string;
     permissionMode?: PermissionMode;
@@ -428,6 +435,7 @@ export class Session {
     this.fallbackModel = opts.fallbackModel;
     this.sandboxEnabled = opts.sandboxEnabled;
     this.enable1mContext = opts.enable1mContext;
+    this.forwardSubagentText = opts.forwardSubagentText;
     this.systemPromptAppend = opts.systemPromptAppend;
     this.planModeInstructions = opts.planModeInstructions;
     this.permissionMode = opts.permissionMode ?? "default";
@@ -583,6 +591,9 @@ export class Session {
       // models that don't support it, so gating is advisory (the WorkspaceForm
       // notes the Sonnet requirement).
       ...(this.enable1mContext ? { betas: ["context-1m-2025-08-07" as const] } : {}),
+      // Stream full subagent text/thinking (not just the tool_use heartbeat)
+      // so the client can render nested subagent transcripts in TaskBlock.
+      ...(this.forwardSubagentText ? { forwardSubagentText: true } : {}),
       // Append workspace-level steering to the default Claude Code system
       // prompt. Only set when non-empty so the SDK keeps its plain preset
       // otherwise. Distinct from CLAUDE.md — this is house-style steering, not
