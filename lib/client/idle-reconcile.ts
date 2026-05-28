@@ -20,6 +20,27 @@ import type { DisplayMessage, ToolHistoryEntry } from "./types";
  * re-renders, an acceptable cosmetic blip vs. a permanently stuck rail.
  */
 
+/**
+ * Apply a live thinking-token estimate from `SDKThinkingTokensMessage` to the
+ * most-recent open thinking row in `entries`.
+ *
+ * The SDK emits these during the redacted-thinking streaming phase; they carry
+ * no `message_id`, so we target the latest open thinking entry by heuristic
+ * (in practice at most one thinking block is in flight at a time).
+ *
+ * Returns the same reference when nothing changed.
+ */
+export function applyThinkingTokensEstimate(
+  entries: ToolHistoryEntry[],
+  estimatedTokens: number,
+): ToolHistoryEntry[] {
+  const idx = entries.findLastIndex((e) => e.kind === "thinking" && !e.done);
+  if (idx === -1) return entries;
+  const next = entries.slice();
+  next[idx] = { ...next[idx], estimatedThinkingTokens: estimatedTokens };
+  return next;
+}
+
 /** Mark every not-yet-`done` tool-history entry done. Returns the same ref when nothing changed. */
 export function sweepToolHistoryDone(
   entries: ToolHistoryEntry[],
