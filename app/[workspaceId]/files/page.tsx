@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
   FilePlus,
@@ -25,6 +26,9 @@ type FileContent = {
 export default function FilesPage() {
   const { items, activeId } = useWorkspaces();
   const active = items.find((w) => w.id === activeId);
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [open, setOpen] = useState<FileContent | null>(null);
   const [draft, setDraft] = useState<string>("");
   const [dirty, setDirty] = useState(false);
@@ -50,12 +54,33 @@ export default function FilesPage() {
         setOpen(d);
         setDraft(d.content);
         setDirty(false);
+        // Reflect the open file in the URL so it can be bookmarked / linked to
+        // from chat. `replace` (not push) keeps the back button sane — each
+        // file pick shouldn't add a history entry. The displayed path stays
+        // the plain relPath; only the address bar carries the query.
+        router.replace(`${pathname}?path=${encodeURIComponent(d.relPath)}`, { scroll: false });
       } catch (err) {
         setError(err instanceof Error ? err.message : String(err));
       }
     },
-    [wsId],
+    [wsId, router, pathname],
   );
+
+  // Deep-link: open the file named in `?path=` once the workspace is known.
+  // One-shot via a ref so the URL updates `onPick` itself triggers (which
+  // change `searchParams`) don't re-run this and fight the user's clicks.
+  const didDeepLink = useRef(false);
+  useEffect(() => {
+    if (didDeepLink.current || !wsId) return;
+    didDeepLink.current = true;
+    const p = searchParams.get("path");
+    if (p) {
+      // The setState inside onPick is the deep-link data load itself, not an
+      // effect chain — it runs once (ref-guarded) on first mount.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      void onPick({ name: p.split("/").pop() ?? p, relPath: p, kind: "file" });
+    }
+  }, [wsId, searchParams, onPick]);
 
   async function onSave() {
     if (!wsId || !open) return;
@@ -120,6 +145,7 @@ export default function FilesPage() {
         throw new Error(j.error ?? `HTTP ${res.status}`);
       }
       setOpen({ ...open, relPath: next });
+      router.replace(`${pathname}?path=${encodeURIComponent(next)}`, { scroll: false });
       setRefreshKey((k) => k + 1);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -204,7 +230,12 @@ export default function FilesPage() {
                 No active workspace.
               </div>
             ) : (
-              <FileTree key={`${active.id}:${refreshKey}`} workspaceId={active.id} onPick={onPick} />
+              <FileTree
+                key={`${active.id}:${refreshKey}`}
+                workspaceId={active.id}
+                onPick={onPick}
+                selectedPath={open?.relPath ?? searchParams.get("path")}
+              />
             )}
           </aside>
           <section className="flex flex-1 flex-col overflow-hidden">

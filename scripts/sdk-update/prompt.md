@@ -4,8 +4,8 @@
 > before handing this prompt to `@anthropic-ai/claude-agent-sdk`'s `query()`.
 > Keep placeholders in sync with `buildPrompt()` in `orchestrate.ts`.
 
-You are upgrading the **Claudius** codebase from
-`@anthropic-ai/claude-agent-sdk@{{PREVIOUS_VERSION}}` to
+You are upgrading the **Claudius** codebase to support the new SDK,
+from `@anthropic-ai/claude-agent-sdk@{{PREVIOUS_VERSION}}` to
 `@anthropic-ai/claude-agent-sdk@{{NEW_VERSION}}`.
 
 The orchestrator has already:

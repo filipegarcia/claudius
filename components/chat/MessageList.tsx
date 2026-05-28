@@ -14,6 +14,8 @@ import {
   filterMessagesByVerbose,
   type VerboseLevel,
 } from "@/lib/shared/verbose";
+import { useWorkspaces } from "@/lib/client/useWorkspaces";
+import { FileLinkProvider, type FileLinkBase } from "@/lib/client/file-link-context";
 
 type Props = {
   messages: DisplayMessage[];
@@ -95,6 +97,18 @@ export function MessageList({
   const isNearBottomRef = useRef(true);
   const [isNearBottom, setIsNearBottom] = useState(true);
   const [unread, setUnread] = useState(0);
+
+  // File-link coordinates for clickable project paths in tool-call headers and
+  // inline-code spans. Resolved once here (a single useWorkspaces fetch) and
+  // shared via context so every ToolCall / code span doesn't re-fetch the
+  // workspace list itself.
+  const { items: workspaceItems, activeId: activeWorkspaceId } = useWorkspaces();
+  const fileLink = useMemo<FileLinkBase | null>(() => {
+    if (!activeWorkspaceId) return null;
+    const ws = workspaceItems.find((w) => w.id === activeWorkspaceId);
+    if (!ws) return null;
+    return { workspaceId: ws.id, cwd: ws.rootPath };
+  }, [workspaceItems, activeWorkspaceId]);
 
   // For scroll-anchor preservation on prepend.
   const prevHeadUuidRef = useRef<string>("");
@@ -286,6 +300,26 @@ export function MessageList({
     setUnread(0);
   }, []);
 
+  // Click-a-prompt-to-rewind-the-view: scroll the clicked user message's turn
+  // to the top of the viewport so everything the assistant said in reply
+  // becomes readable from the start. We anchor on the enclosing <section>
+  // (the whole turn), NOT the message element — the latest user message is
+  // `position: sticky` at top:0, so its own rect already reads as "at the
+  // top" and scrolling to it would no-op. The section's top is the real
+  // anchor, and for non-pinned messages the section's lead IS that user
+  // message, so the same computation works uniformly.
+  const jumpToMessageTop = useCallback((uuid: string) => {
+    const root = scrollRef.current;
+    if (!root) return;
+    const msgEl = root.querySelector<HTMLElement>(
+      `[data-message-uuid="${CSS.escape(uuid)}"]`,
+    );
+    if (!msgEl) return;
+    const target: Element = msgEl.closest("section") ?? msgEl;
+    const delta = target.getBoundingClientRect().top - root.getBoundingClientRect().top;
+    root.scrollTo({ top: root.scrollTop + delta, behavior: "smooth" });
+  }, []);
+
   // Splash branch: empty transcript AND nothing older to fetch. We allow
   // `replaying` here because for a brand-new session replay_done arrives
   // empty (no flash); for a resumed session messages will populate before
@@ -330,6 +364,7 @@ export function MessageList({
   }
 
   return (
+    <FileLinkProvider value={fileLink}>
     <div className="relative flex flex-1 min-h-0 flex-col">
       <div
         ref={scrollRef}
@@ -397,6 +432,7 @@ export function MessageList({
                           message={m}
                           onRewind={onRewind}
                           rewinding={rewindingUuid === m.uuid}
+                          onJumpTo={() => jumpToMessageTop(m.uuid)}
                         />
                       ) : (
                         <AssistantMessage
@@ -443,6 +479,7 @@ export function MessageList({
         </button>
       )}
     </div>
+    </FileLinkProvider>
   );
 }
 

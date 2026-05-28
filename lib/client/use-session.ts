@@ -105,6 +105,68 @@ function blocksFromSDKContent(content: unknown): DisplayBlock[] {
 }
 
 /**
+ * Rebuild a subagent's `DisplayMessage[]` from the raw SDK envelopes captured
+ * server-side and replayed via the `task_snapshot` event. Mirrors the live
+ * subagent branches of `applyEvent`: assistant messages fold through
+ * `upsertAssistantSplit` (so multi-block splits coalesce into one bubble),
+ * user messages become a single text bubble, both keyed off the parent Task
+ * tool_use id. Streaming is forced off — these are completed, replayed
+ * conversations with no further deltas coming.
+ *
+ * Exported for unit testing.
+ */
+export function buildSubagentMessages(
+  raw: Array<{ at?: number; message: unknown }>,
+  parentToolUseId: string,
+): DisplayMessage[] {
+  let out: DisplayMessage[] = [];
+  const seenUserUuids = new Set<string>();
+  for (const { at, message } of raw) {
+    const m = message as {
+      type?: string;
+      uuid?: string;
+      message?: { id?: string; content?: unknown };
+    };
+    if (m.type === "assistant") {
+      const sdkUuid = m.uuid ?? crypto.randomUUID();
+      const messageId =
+        typeof m.message?.id === "string" && m.message.id ? m.message.id : sdkUuid;
+      const blocks = blocksFromSDKContent(m.message?.content);
+      out = upsertAssistantSplit(out, messageId, sdkUuid, blocks, false, parentToolUseId, at);
+    } else if (m.type === "user") {
+      const uuid = m.uuid ?? crypto.randomUUID();
+      if (seenUserUuids.has(uuid)) continue;
+      let text = "";
+      const content = m.message?.content;
+      if (typeof content === "string") text = content;
+      else if (Array.isArray(content)) {
+        for (const c of content as Array<{ type?: string; text?: string }>) {
+          if (c?.type === "text" && c.text) text += c.text;
+        }
+      }
+      if (!text) continue;
+      seenUserUuids.add(uuid);
+      out = [
+        ...out,
+        {
+          uuid,
+          role: "user",
+          blocks: [{ kind: "text", text }],
+          parentToolUseId,
+          ...(typeof at === "number" ? { createdAt: at } : {}),
+        },
+      ];
+    }
+  }
+  // `upsertAssistantSplit` marks fresh bubbles `streaming: true`, expecting a
+  // later `result` event to flip it off. Replayed tasks are already finished,
+  // so settle the flag here to avoid a perpetual streaming indicator.
+  return out.map((msg) =>
+    msg.role === "assistant" && msg.streaming ? { ...msg, streaming: false } : msg,
+  );
+}
+
+/**
  * Walk a user message's SDK content and rebuild the `(text, images)` pair the
  * UI needs to render thumbnails inline.
  *
@@ -1124,6 +1186,53 @@ export function useSession(): ChatState & ChatActions {
         }
         return;
       }
+      if (ev.type === "task_snapshot") {
+        // Rehydrate subagent (Task) metadata + inner conversations persisted
+        // server-side. These ride on transient SSE-only events (task_progress
+        // / task_notification + parent_tool_use_id messages) that never reach
+        // the JSONL, so a session rebuilt from disk loses them. We only fill
+        // gaps: anything already restored from the buffer replay (a still-live
+        // session) is fresher and wins — so this never clobbers live state and
+        // never double-counts usage (the handler deliberately leaves `usage`
+        // alone).
+        setTasks((prev) => {
+          let changed = false;
+          const next = { ...prev };
+          for (const t of ev.tasks) {
+            if (next[t.taskId]) continue;
+            next[t.taskId] = {
+              taskId: t.taskId,
+              toolUseId: t.toolUseId,
+              description: t.description ?? "(no description)",
+              taskType: t.taskType,
+              workflowName: t.workflowName,
+              status: (t.status as TaskInfo["status"]) ?? "completed",
+              totalTokens: t.totalTokens,
+              toolUses: t.toolUses,
+              durationMs: t.durationMs,
+              summary: t.summary,
+              error: t.error,
+            };
+            changed = true;
+          }
+          return changed ? next : prev;
+        });
+        setSubagentMessages((prev) => {
+          let changed = false;
+          const next = { ...prev };
+          for (const t of ev.tasks) {
+            if (!t.toolUseId) continue;
+            if ((next[t.toolUseId]?.length ?? 0) > 0) continue;
+            const built = buildSubagentMessages(t.innerMessages, t.toolUseId);
+            if (built.length > 0) {
+              next[t.toolUseId] = built;
+              changed = true;
+            }
+          }
+          return changed ? next : prev;
+        });
+        return;
+      }
       if (ev.type === "turn_status") {
         // Authoritative "is the agent busy?" signal from the server. Fires
         // on transitions of `turnInFlight` / pending-prompt maps, and is
@@ -1837,6 +1946,35 @@ export function useSession(): ChatState & ChatActions {
             const copy = prev.slice();
             copy[idx] = { ...copy[idx], done: true, isError: result.isError };
             return copy;
+          });
+          // Reconcile subagent (Task) status off its tool_result. The SDK's
+          // terminal `task_notification` isn't reliably delivered for parallel
+          // subagents (and can arrive under a mismatched task_id), which left
+          // the TaskBlock and the background-tasks rail stuck on "running"
+          // after the agent had already finished. The tool_result on the Task
+          // tool_use is the authoritative "subagent returned" signal, so flip
+          // the matching task to a terminal state. Skip backgrounded tasks —
+          // their first tool_result is just a "started in background" ack;
+          // their real completion still rides on task_notification.
+          const isBackgroundedTask = messagesRef.current.some((m) =>
+            m.blocks.some(
+              (b) =>
+                b.kind === "tool_use" &&
+                b.id === result.tool_use_id &&
+                (b.input as { run_in_background?: unknown }).run_in_background === true,
+            ),
+          );
+          setTasks((prev) => {
+            let changed = false;
+            const next = { ...prev };
+            for (const [id, t] of Object.entries(prev)) {
+              if (t.toolUseId !== result.tool_use_id) continue;
+              if (t.status !== "running" && t.status !== "pending") continue;
+              if (t.isBackgrounded || isBackgroundedTask) continue;
+              next[id] = { ...t, status: result.isError ? "failed" : "completed" };
+              changed = true;
+            }
+            return changed ? next : prev;
           });
           // If this tool_result is the launch acknowledgement for a background
           // bash, extract the SDK-side `bash_id` so the viewer can stitch

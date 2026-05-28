@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Undo2 } from "lucide-react";
+import { cn } from "@/lib/utils/cn";
 import type { AttachedImage, DisplayMessage } from "@/lib/client/types";
 import { formatMessageTime } from "@/lib/client/format-message-time";
 import { ImageLightbox } from "./ImageLightbox";
@@ -10,15 +11,35 @@ type Props = {
   message: DisplayMessage;
   onRewind?: (uuid: string) => void;
   rewinding?: boolean;
+  /**
+   * Scroll this message's turn to the top of the viewport so the user can
+   * re-read the assistant reply that came after it. Clicking the bubble is
+   * the affordance; provided by MessageList which owns the scroll container.
+   */
+  onJumpTo?: () => void;
 };
 
-export function UserMessage({ message, onRewind, rewinding }: Props) {
+export function UserMessage({ message, onRewind, rewinding, onJumpTo }: Props) {
   const text = message.blocks.map((b) => (b.kind === "text" ? b.text : "")).join("");
   const images = message.images ?? [];
   const stamp = formatMessageTime(message.createdAt);
+  // Clicking the bubble scrolls back to where the user typed it. Bail when a
+  // text selection is active so "select prompt text → copy" isn't hijacked
+  // into a scroll.
+  const handleJump = () => {
+    if ((window.getSelection()?.toString() ?? "").length > 0) return;
+    onJumpTo?.();
+  };
   return (
     <div className="group flex justify-end">
-      <div className="max-w-[80%] rounded-2xl border border-[var(--border)] bg-[var(--panel-2)] px-4 py-2">
+      <div
+        className={cn(
+          "max-w-[80%] rounded-2xl border border-[var(--border)] bg-[var(--panel-2)] px-4 py-2",
+          onJumpTo && "cursor-pointer transition-colors hover:border-[var(--accent)]/40",
+        )}
+        onClick={onJumpTo ? handleJump : undefined}
+        title={onJumpTo ? "Scroll to this message" : undefined}
+      >
         <InlineUserText text={text} images={images} />
         {(stamp || onRewind) && (
           <div className="mt-1 flex items-center justify-end gap-3">
@@ -33,7 +54,10 @@ export function UserMessage({ message, onRewind, rewinding }: Props) {
             )}
             {onRewind && (
               <button
-                onClick={() => onRewind(message.uuid)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRewind(message.uuid);
+                }}
                 disabled={rewinding}
                 className="flex items-center gap-1 text-[10px] text-[var(--muted)] opacity-0 transition group-hover:opacity-100 hover:text-[var(--foreground)] disabled:opacity-40"
                 title="Fork session at this message"
@@ -83,7 +107,10 @@ function InlineUserText({ text, images }: { text: string; images: AttachedImage[
       >
         <button
           type="button"
-          onClick={() => setLightbox(img)}
+          onClick={(e) => {
+            e.stopPropagation();
+            setLightbox(img);
+          }}
           title={`Click to zoom · Image #${ord}`}
           className="block overflow-hidden rounded-md border border-[var(--border)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
         >

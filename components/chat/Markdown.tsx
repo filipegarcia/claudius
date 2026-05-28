@@ -1,8 +1,46 @@
 "use client";
 
+import type { ReactNode } from "react";
+import Link from "next/link";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { cn } from "@/lib/utils/cn";
+import { useFileLink } from "@/lib/client/file-link-context";
+import { filesHref, looksLikeFilePath, stripLineSuffix, toWorkspaceRelative } from "@/lib/client/file-paths";
 import { CodeBlock } from "./CodeBlock";
+
+const INLINE_CODE_CLASS = "rounded bg-[var(--panel-2)] px-1 py-0.5 font-mono text-[0.85em]";
+
+/**
+ * Inline single-backtick code. When the span looks like a project file path
+ * and we have workspace context, render it as a link to the in-app Files
+ * browser — displayed as the plain path, just clickable. Otherwise it's an
+ * ordinary `<code>` chip (byte-identical to the previous behaviour).
+ */
+function InlineCode({ children, rest }: { children?: ReactNode; rest: Record<string, unknown> }) {
+  const fileLink = useFileLink();
+  const text = String(children ?? "");
+  const rel =
+    fileLink && looksLikeFilePath(text)
+      ? toWorkspaceRelative(stripLineSuffix(text), fileLink.cwd)
+      : null;
+  if (rel && fileLink) {
+    return (
+      <Link
+        href={filesHref(fileLink.workspaceId, rel)}
+        title="Open in Files"
+        className={cn(INLINE_CODE_CLASS, "text-[var(--accent)] underline-offset-2 hover:underline")}
+      >
+        {children}
+      </Link>
+    );
+  }
+  return (
+    <code className={INLINE_CODE_CLASS} {...rest}>
+      {children}
+    </code>
+  );
+}
 
 const components: Components = {
   code(props) {
@@ -10,14 +48,7 @@ const components: Components = {
     const match = /language-([\w+-]+)/.exec(className || "");
     const inline = !(props as { node?: { tagName?: string } }).node || !String(children).includes("\n");
     if (!match && inline) {
-      return (
-        <code
-          className="rounded bg-[var(--panel-2)] px-1 py-0.5 font-mono text-[0.85em]"
-          {...rest}
-        >
-          {children}
-        </code>
-      );
+      return <InlineCode rest={rest}>{children}</InlineCode>;
     }
     const code = String(children).replace(/\n$/, "");
     return <CodeBlock code={code} lang={match?.[1]} />;

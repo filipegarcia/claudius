@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ChevronDown, ChevronRight, File, Folder } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 
@@ -15,14 +15,32 @@ export type Entry = {
 type Props = {
   workspaceId: string;
   onPick?: (e: Entry) => void;
+  /**
+   * Path (relative to workspace root) to highlight, and — on first mount —
+   * auto-expand its ancestor folders so a deep-linked nested file is visible.
+   */
+  selectedPath?: string | null;
 };
 
-export function FileTree({ workspaceId, onPick }: Props) {
+export function FileTree({ workspaceId, onPick, selectedPath }: Props) {
   const [root, setRoot] = useState<Entry[]>([]);
   const [expanded, setExpanded] = useState<Record<string, Entry[]>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selected, setSelected] = useState<string | null>(null);
+  const [selected, setSelected] = useState<string | null>(selectedPath ?? null);
+
+  // Mirror externally-driven selection (deep-link, or the parent opening a
+  // file) into the highlight. "Store previous props" pattern so the update
+  // runs in render, not an effect (avoids react-hooks/set-state-in-effect).
+  const [lastSelectedProp, setLastSelectedProp] = useState(selectedPath ?? null);
+  if ((selectedPath ?? null) !== lastSelectedProp) {
+    setLastSelectedProp(selectedPath ?? null);
+    if (selectedPath) setSelected(selectedPath);
+  }
+
+  // One-shot: expand the ancestor folders of the initially deep-linked file so
+  // it's revealed in the tree. Later navigation expands via user clicks.
+  const didExpandRef = useRef(false);
 
   const load = useCallback(async (path: string): Promise<Entry[]> => {
     const res = await fetch(
@@ -64,6 +82,38 @@ export function FileTree({ workspaceId, onPick }: Props) {
       cancelled = true;
     };
   }, [load]);
+
+  // Auto-expand the ancestor folders of the deep-linked file (once). Walk the
+  // path segment by segment, loading + expanding each directory so the file
+  // becomes visible in the tree. Best-effort: a missing/renamed dir just stops
+  // the walk. Directory keys carry a trailing slash to match `Entry.relPath`.
+  useEffect(() => {
+    if (didExpandRef.current || !selectedPath) return;
+    const segs = selectedPath.split("/").filter(Boolean);
+    if (segs.length <= 1) {
+      didExpandRef.current = true;
+      return;
+    }
+    didExpandRef.current = true;
+    let cancelled = false;
+    void (async () => {
+      let prefix = "";
+      for (let i = 0; i < segs.length - 1; i++) {
+        prefix = prefix ? `${prefix}/${segs[i]}` : segs[i];
+        const dirKey = `${prefix}/`;
+        try {
+          const children = await load(prefix);
+          if (cancelled) return;
+          setExpanded((p) => (p[dirKey] ? p : { ...p, [dirKey]: children }));
+        } catch {
+          return;
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedPath, load]);
 
   const toggle = useCallback(
     async (e: Entry) => {
