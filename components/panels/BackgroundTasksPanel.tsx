@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Activity, AlertTriangle, Bot, Brain, Check, Loader2, Plus, Wrench } from "lucide-react";
+import { Activity, AlertTriangle, Bot, Brain, Check, CircleStop, Loader2, Plus, Wrench } from "lucide-react";
 import type { PermissionMode } from "@anthropic-ai/claude-agent-sdk";
 import type {
   AgentTodo,
@@ -151,6 +151,19 @@ export function BackgroundTasksPanel({
   const subagents = Object.values(tasks)
     .filter((t) => t.status === "running" || t.status === "pending")
     .sort((a, b) => (b.durationMs ?? 0) - (a.durationMs ?? 0));
+
+  // Stop a single running task (B2.4). Self-contained fetch — the panel
+  // already has `sessionId`, so we don't thread a callback through page.tsx.
+  // Best-effort: a failure just leaves the task running (the row keeps its
+  // status), which the SDK's own task_notification will eventually reconcile.
+  const stopTask = (taskId: string) => {
+    if (!sessionId) return;
+    void fetch(`/api/sessions/${encodeURIComponent(sessionId)}/stop-task`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ taskId }),
+    }).catch(() => {});
+  };
   const recent = Object.values(tasks)
     .filter((t) => t.status !== "running" && t.status !== "pending")
     .slice(-3)
@@ -294,6 +307,16 @@ export function BackgroundTasksPanel({
                     <Bot className="h-3 w-3" />
                     <span className="truncate font-mono">{t.workflowName ?? t.taskType ?? "Task"}</span>
                     <span className="ml-auto text-[10px]">{t.status}</span>
+                    {sessionId && (
+                      <button
+                        onClick={() => stopTask(t.taskId)}
+                        title="Stop this task"
+                        aria-label="Stop this task"
+                        className="shrink-0 rounded p-0.5 text-[var(--muted)] hover:bg-[var(--panel)] hover:text-red-400"
+                      >
+                        <CircleStop className="h-3 w-3" />
+                      </button>
+                    )}
                   </div>
                   {t.description && (
                     <div className="mt-0.5 line-clamp-2 text-[10px] opacity-80">{t.description}</div>
