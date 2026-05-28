@@ -58,6 +58,7 @@ export async function POST(req: Request) {
     sandboxEnabled,
     enable1mContext,
     systemPromptAppend,
+    planModeInstructions,
   } = mergeSessionDefaults(body, defaults);
 
   const session = await sessionManager.create({
@@ -69,6 +70,7 @@ export async function POST(req: Request) {
     sandboxEnabled,
     enable1mContext,
     systemPromptAppend,
+    planModeInstructions,
     permissionMode,
     resume: body.resume,
     resumeSessionAt: body.resumeSessionAt,

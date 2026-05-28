@@ -78,6 +78,10 @@ export function WorkspaceForm({ initial, onCancel, onSubmit, onIconUpload, onDel
   const [defaultSysAppend, setDefaultSysAppend] = useState(
     initial?.defaults?.systemPromptAppend ?? "",
   );
+  // Custom plan-mode workflow body (applies in plan permission mode).
+  const [defaultPlanInstr, setDefaultPlanInstr] = useState(
+    initial?.defaults?.planModeInstructions ?? "",
+  );
   const [agentNames, setAgentNames] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -169,6 +173,8 @@ export function WorkspaceForm({ initial, onCancel, onSubmit, onIconUpload, onDel
       else delete defaults.enable1mContext;
       if (defaultSysAppend.trim()) defaults.systemPromptAppend = defaultSysAppend.trim();
       else delete defaults.systemPromptAppend;
+      if (defaultPlanInstr.trim()) defaults.planModeInstructions = defaultPlanInstr.trim();
+      else delete defaults.planModeInstructions;
       const r = await onSubmit({
         name: name.trim(),
         rootPath: rootPath.trim(),
@@ -475,6 +481,15 @@ export function WorkspaceForm({ initial, onCancel, onSubmit, onIconUpload, onDel
                 value={defaultSysAppend}
                 onChange={(e) => setDefaultSysAppend(e.target.value)}
                 placeholder="Extra steering added to every session (e.g. &quot;Always use TypeScript&quot;). Distinct from CLAUDE.md."
+                rows={3}
+                className="w-full resize-y rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 text-xs focus:outline-none"
+              />
+            </Field>
+            <Field label="Plan-mode instructions">
+              <textarea
+                value={defaultPlanInstr}
+                onChange={(e) => setDefaultPlanInstr(e.target.value)}
+                placeholder="Custom plan-mode workflow steps (used only in plan mode). Empty = default workflow."
                 rows={3}
                 className="w-full resize-y rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 text-xs focus:outline-none"
               />

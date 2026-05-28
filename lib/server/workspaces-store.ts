@@ -49,6 +49,14 @@ export type WorkspaceDefaults = {
    */
   systemPromptAppend?: string;
   /**
+   * Custom plan-mode workflow instructions (SDK `Options.planModeInstructions`).
+   * When set and a session is in `plan` permission mode, this replaces the
+   * default code-implementation workflow body in the plan-mode system reminder
+   * (the CLI still wraps it with the read-only preamble + ExitPlanMode footer).
+   * Absent/empty ⇒ the default plan workflow.
+   */
+  planModeInstructions?: string;
+  /**
    * Default main-thread agent for new sessions — the SDK `--agent` flag
    * equivalent (Options.agent). Applies the named agent's system prompt, tool
    * restrictions, AND model to the main conversation, so when set it overrides

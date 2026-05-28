@@ -53,8 +53,17 @@ describe("mergeSessionDefaults", () => {
       sandboxEnabled: undefined,
       enable1mContext: undefined,
       systemPromptAppend: undefined,
+      planModeInstructions: undefined,
       permissionMode: undefined,
     });
+  });
+
+  test("planModeInstructions follows the same precedence (request wins, default fills)", () => {
+    expect(
+      mergeSessionDefaults({ planModeInstructions: "req" }, { planModeInstructions: "def" })
+        .planModeInstructions,
+    ).toBe("req");
+    expect(mergeSessionDefaults({}, { planModeInstructions: "def" }).planModeInstructions).toBe("def");
   });
 
   test("systemPromptAppend follows the same precedence (request wins, default fills)", () => {

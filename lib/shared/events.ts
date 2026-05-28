@@ -362,6 +362,8 @@ export type CreateSessionRequest = {
   enable1mContext?: boolean;
   /** Extra text appended to the default system prompt — SDK Options.systemPrompt.append. */
   systemPromptAppend?: string;
+  /** Custom plan-mode workflow body — SDK Options.planModeInstructions. */
+  planModeInstructions?: string;
   permissionMode?: PermissionMode;
   /** If set, resume an existing session by id. */
   resume?: string;

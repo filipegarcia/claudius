@@ -13,6 +13,7 @@ export type SessionDefaults = {
   sandboxEnabled?: boolean;
   enable1mContext?: boolean;
   systemPromptAppend?: string;
+  planModeInstructions?: string;
   permissionMode?: PermissionMode;
 };
 
@@ -42,6 +43,7 @@ export function mergeSessionDefaults(
     sandboxEnabled: request.sandboxEnabled ?? defaults.sandboxEnabled,
     enable1mContext: request.enable1mContext ?? defaults.enable1mContext,
     systemPromptAppend: request.systemPromptAppend ?? defaults.systemPromptAppend,
+    planModeInstructions: request.planModeInstructions ?? defaults.planModeInstructions,
     permissionMode: request.permissionMode ?? defaults.permissionMode,
   };
 }

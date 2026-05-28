@@ -307,6 +307,11 @@ export class Session {
    * (Options.systemPrompt preset + append). Undefined/empty ⇒ unmodified preset.
    */
   readonly systemPromptAppend?: string;
+  /**
+   * Custom plan-mode workflow body (Options.planModeInstructions). Applies when
+   * the session is in plan mode. Undefined/empty ⇒ the default plan workflow.
+   */
+  readonly planModeInstructions?: string;
   readonly resumeFrom?: string;
   readonly resumeAt?: string;
   /**
@@ -398,6 +403,7 @@ export class Session {
     sandboxEnabled?: boolean;
     enable1mContext?: boolean;
     systemPromptAppend?: string;
+    planModeInstructions?: string;
     permissionMode?: PermissionMode;
     resume?: string;
     resumeSessionAt?: string;
@@ -423,6 +429,7 @@ export class Session {
     this.sandboxEnabled = opts.sandboxEnabled;
     this.enable1mContext = opts.enable1mContext;
     this.systemPromptAppend = opts.systemPromptAppend;
+    this.planModeInstructions = opts.planModeInstructions;
     this.permissionMode = opts.permissionMode ?? "default";
     this.resumeFrom = opts.resume;
     this.resumeAt = opts.resumeSessionAt;
@@ -588,6 +595,12 @@ export class Session {
               append: this.systemPromptAppend,
             },
           }
+        : {}),
+      // Custom plan-mode workflow body. The SDK only consults this in plan
+      // mode; harmless to pass otherwise. Omitted when empty so the default
+      // plan workflow applies. Trimmed to treat whitespace-only as unset.
+      ...(this.planModeInstructions && this.planModeInstructions.trim()
+        ? { planModeInstructions: this.planModeInstructions }
         : {}),
       permissionMode: this.permissionMode,
       abortController: this.abortController,
