@@ -1062,6 +1062,7 @@ export default function Home() {
             pending={session.pending}
             onRewind={onRewind}
             rewindingUuid={rewindingUuid}
+            sessionId={session.sessionId ?? undefined}
             tasks={session.tasks}
             subagentMessages={session.subagentMessages}
             replaying={session.replaying}
