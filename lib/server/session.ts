@@ -303,12 +303,6 @@ export class Session {
    */
   readonly enable1mContext?: boolean;
   /**
-   * Forward full subagent assistant/thinking text (Options.forwardSubagentText).
-   * Off by default (heartbeat-only); when true, subagent transcripts stream
-   * with parent_tool_use_id set so the client can render them nested.
-   */
-  readonly forwardSubagentText?: boolean;
-  /**
    * Additional absolute directories the agent may access beyond cwd
    * (Options.additionalDirectories). Empty/undefined ⇒ cwd only.
    */
@@ -413,7 +407,6 @@ export class Session {
     fallbackModel?: string;
     sandboxEnabled?: boolean;
     enable1mContext?: boolean;
-    forwardSubagentText?: boolean;
     additionalDirectories?: string[];
     systemPromptAppend?: string;
     planModeInstructions?: string;
@@ -441,7 +434,6 @@ export class Session {
     this.fallbackModel = opts.fallbackModel;
     this.sandboxEnabled = opts.sandboxEnabled;
     this.enable1mContext = opts.enable1mContext;
-    this.forwardSubagentText = opts.forwardSubagentText;
     this.additionalDirectories = opts.additionalDirectories;
     this.systemPromptAppend = opts.systemPromptAppend;
     this.planModeInstructions = opts.planModeInstructions;
@@ -598,9 +590,6 @@ export class Session {
       // models that don't support it, so gating is advisory (the WorkspaceForm
       // notes the Sonnet requirement).
       ...(this.enable1mContext ? { betas: ["context-1m-2025-08-07" as const] } : {}),
-      // Stream full subagent text/thinking (not just the tool_use heartbeat)
-      // so the client can render nested subagent transcripts in TaskBlock.
-      ...(this.forwardSubagentText ? { forwardSubagentText: true } : {}),
       // Extra directories the agent may read/write beyond cwd. Only forwarded
       // when non-empty so the default (cwd-only) is preserved otherwise.
       ...(this.additionalDirectories && this.additionalDirectories.length > 0

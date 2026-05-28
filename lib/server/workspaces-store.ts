@@ -41,14 +41,6 @@ export type WorkspaceDefaults = {
    */
   enable1mContext?: boolean;
   /**
-   * Forward subagent assistant/thinking text to the client (SDK
-   * `Options.forwardSubagentText`). By default only subagent tool_use/result
-   * blocks stream (a heartbeat); when true the full subagent conversation is
-   * forwarded so TaskBlock can render a nested transcript. Absent/false ⇒
-   * heartbeat only.
-   */
-  forwardSubagentText?: boolean;
-  /**
    * Extra instructions appended to Claude Code's default system prompt (SDK
    * `Options.systemPrompt` preset + `append`). Distinct from CLAUDE.md (which
    * is project content): this is steering ("always use TypeScript", house

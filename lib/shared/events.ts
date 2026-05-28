@@ -360,8 +360,6 @@ export type CreateSessionRequest = {
   sandboxEnabled?: boolean;
   /** Enable the 1M-token context beta — SDK Options.betas (Sonnet 4/4.5). */
   enable1mContext?: boolean;
-  /** Forward full subagent text/thinking — SDK Options.forwardSubagentText. */
-  forwardSubagentText?: boolean;
   /** Extra absolute dirs the agent may access — SDK Options.additionalDirectories. */
   additionalDirectories?: string[];
   /** Extra text appended to the default system prompt — SDK Options.systemPrompt.append. */

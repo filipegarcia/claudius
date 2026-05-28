@@ -52,7 +52,6 @@ describe("mergeSessionDefaults", () => {
       fallbackModel: undefined,
       sandboxEnabled: undefined,
       enable1mContext: undefined,
-      forwardSubagentText: undefined,
       additionalDirectories: undefined,
       systemPromptAppend: undefined,
       planModeInstructions: undefined,
@@ -68,12 +67,6 @@ describe("mergeSessionDefaults", () => {
     expect(mergeSessionDefaults({}, { additionalDirectories: ["/b"] }).additionalDirectories).toEqual([
       "/b",
     ]);
-  });
-
-  test("forwardSubagentText follows the same precedence (request wins, default fills)", () => {
-    expect(mergeSessionDefaults({ forwardSubagentText: true }, { forwardSubagentText: false }).forwardSubagentText).toBe(true);
-    expect(mergeSessionDefaults({}, { forwardSubagentText: true }).forwardSubagentText).toBe(true);
-    expect(mergeSessionDefaults({ forwardSubagentText: false }, { forwardSubagentText: true }).forwardSubagentText).toBe(false);
   });
 
   test("planModeInstructions follows the same precedence (request wins, default fills)", () => {
