@@ -71,6 +71,68 @@ type SDKContentBlock =
 const QUEUE_MAX_BYTES = 5 * 1024 * 1024;
 
 /**
+ * Detect the "hard rate-limit hit" assistant message.
+ *
+ * The SDK signals a hard limit two different ways depending on path:
+ *   • Live  — an `SDKAssistantMessage` with `error: "rate_limit"`.
+ *   • Replay — `getSessionMessages` (used to rehydrate a resumed session)
+ *     strips both `error` and the preceding `rate_limit_event`s, leaving only
+ *     the assistant *text* the CLI rendered: `You've hit your <label> · resets
+ *     <time>` (template `You've hit your ${H}` in the CLI bundle).
+ *
+ * So we match the prose as a fallback. Guarded to a pure-text message whose
+ * leading clause is the CLI template — a normal turn that merely mentions
+ * limits in passing won't be a standalone "You've hit your … limit" bubble.
+ */
+const RATE_LIMIT_HIT_TEXT_RE = /^you['’]ve hit your [\w .'-]*\blimit\b/i;
+
+// Exported for unit testing — the regex is the brittle bit (false positives on
+// normal prose would wrongly badge a message as a rate-limit wall).
+export function isRateLimitHitText(blocks: DisplayBlock[]): boolean {
+  if (blocks.length === 0) return false;
+  if (!blocks.every((b) => b.kind === "text")) return false;
+  const first = blocks.find((b) => b.kind === "text");
+  return !!first && RATE_LIMIT_HIT_TEXT_RE.test(first.text.trim());
+}
+
+/**
+ * Best-effort map the CLI's prose limit label onto the SDK's `rateLimitType`
+ * so the inline hit panel can show a meaningful tier headline on the replay
+ * path (where the structured payload is gone). Returns undefined when the
+ * label doesn't match a known tier — the panel falls back to a generic
+ * "usage limit".
+ */
+export function rateLimitTypeFromText(
+  text: string,
+): NonNullable<SystemEntry["rateLimit"]>["rateLimitType"] | undefined {
+  const t = text.toLowerCase();
+  if (/\bopus\b/.test(t)) return "seven_day_opus";
+  if (/\bsonnet\b/.test(t)) return "seven_day_sonnet";
+  if (/\b(weekly|week|7[\s-]?day|seven[\s-]?day)\b/.test(t)) return "seven_day";
+  if (/\b(session|5[\s-]?hour|five[\s-]?hour)\b/.test(t)) return "five_hour";
+  return undefined;
+}
+
+/**
+ * Build the `DisplayMessage.rateLimitHit` payload for a hit message. Tier comes
+ * from the preceding warning event when we have it (live), else the prose
+ * label. The countdown `resetsAt` is only known live — the prose carries a
+ * wall-clock but no date, and the reset time is already printed in the message
+ * text, so we don't parse it back out on the replay path.
+ */
+function rateLimitHitFromBlocks(
+  blocks: DisplayBlock[],
+  last: SystemEntry["rateLimit"] | null,
+): NonNullable<DisplayMessage["rateLimitHit"]> {
+  const text = blocks.find((b) => b.kind === "text")?.text ?? "";
+  const rateLimitType = last?.rateLimitType ?? rateLimitTypeFromText(text);
+  const hit: NonNullable<DisplayMessage["rateLimitHit"]> = {};
+  if (rateLimitType) hit.rateLimitType = rateLimitType;
+  if (typeof last?.resetsAt === "number") hit.resetsAt = last.resetsAt;
+  return hit;
+}
+
+/**
  * Coerce a raw `todos` payload (as emitted by the TodoWrite tool or replayed
  * via `session_snapshot`) into the shape the activity rail renders. Tolerant
  * of missing fields — the model occasionally omits `id` or `activeForm` and
@@ -637,10 +699,10 @@ export function useSession(): ChatState & ChatActions {
   // *hard* limit hit doesn't arrive as a `rate_limit_event` — it comes as an
   // assistant message with `error: "rate_limit"` whose only content is the
   // prose "You've hit your session limit · resets …" (no structured
-  // resetsAt / tier / overage fields). We stash the last warning event's
-  // payload here so the synthesized rejected pill can still render a live
-  // countdown and the overage hint instead of bare text. See the
-  // assistant-error branch in `applyEvent`.
+  // resetsAt / tier fields). We stash the last warning event's payload here so
+  // the inline `RateLimitHitPanel` on that message can still show a live
+  // countdown to the reset instead of bare prose. See `rateLimitHitFromBlocks`
+  // and the assistant branch in `applyEvent`.
   const lastRateLimitInfoRef = useRef<SystemEntry["rateLimit"] | null>(null);
   // Mirror of `model` for SSE callbacks. The pricing math needs the active
   // model name but the SSE event handler in `applyEvent` is stable (memoized
@@ -1459,7 +1521,11 @@ export function useSession(): ChatState & ChatActions {
         // SDK builds without partials).
         const hasStreamScratch = (scratchRef.current.get(messageId)?.blocks.size ?? 0) > 0;
         if (parent) {
-          // Subagent traffic — keep separate from the main transcript.
+          // Subagent traffic — keep separate from the main transcript. Note:
+          // the rate-limit-hit detection below this early-return is top-level
+          // only, so a subagent that hits the wall shows bare prose without the
+          // panel. Acceptable for now (the wall is a session-wide condition the
+          // top-level turn surfaces too); revisit if subagents need it.
           setSubagentMessages((prev) => ({
             ...prev,
             [parent]: upsertAssistantSplit(
@@ -1475,55 +1541,40 @@ export function useSession(): ChatState & ChatActions {
           // Don't override the main lastAssistantUuid — deltas anchor to top-level.
           return;
         }
+        // Hard rate-limit hit. The SDK reports the *wall* as an assistant
+        // message ("You've hit your session limit · resets …") rather than a
+        // structured `rate_limit_event`, so the rich `RateLimitPill` never
+        // fires on its own and the user is left with bare prose and no next
+        // step. Tag the bubble so it renders an inline actionable panel (CLI
+        // `/rate-limit-options` parity: countdown + upgrade links). See
+        // `AssistantMessage` / `RateLimitHitPanel`.
+        //
+        // Two detection paths (see `isRateLimitHitText`): the `error` field
+        // live, the prose when replaying — `getSessionMessages` and the
+        // `/transcript` route both strip `error` and the warning events.
+        // Carried on the message (not a system pill) because the bubble is
+        // built by three separate paths — this live one, resume replay, and
+        // `synthesizeOlder` pagination — and only the message reaches them all.
+        const assistantError = (msg as { error?: string }).error;
+        const rateLimitHit =
+          assistantError === "rate_limit" || isRateLimitHitText(blocks)
+            ? rateLimitHitFromBlocks(blocks, lastRateLimitInfoRef.current)
+            : undefined;
         lastAssistantUuidRef.current = messageId;
         setMessages((prev) =>
-          upsertAssistantSplit(prev, messageId, sdkUuid, blocks, hasStreamScratch, undefined, ev.at),
+          upsertAssistantSplit(
+            prev,
+            messageId,
+            sdkUuid,
+            blocks,
+            hasStreamScratch,
+            undefined,
+            ev.at,
+            rateLimitHit,
+          ),
         );
         setPendingTracked(true);
 
-        // Hard rate-limit hit. The SDK reports the *wall* as an assistant
-        // message with `error: "rate_limit"` (text: "You've hit your session
-        // limit · resets …") rather than a `rate_limit_event`, so the rich
-        // `RateLimitPill` never fires on its own and the user is left with bare
-        // prose and no next step. Synthesize a *rejected* rate-limit pill,
-        // anchored to this message, reusing the last warning event's structured
-        // payload for the live countdown + overage hint. The pill renders the
-        // CLI-style "wait for reset / upgrade" affordances. See SystemPill.tsx.
-        const assistantError = (msg as { error?: string }).error;
-        if (assistantError === "rate_limit") {
-          const last = lastRateLimitInfoRef.current;
-          const info: SystemEntry["rateLimit"] = { ...(last ?? {}), status: "rejected" };
-          const SYNTH_PREFIX = "ratelimit-hit:";
-          setSystemEntries((prev) => {
-            // If a real `rate_limit_event` already produced a rejected pill,
-            // it carries fuller structured data — don't stack a synthetic one
-            // on top of it.
-            const hasEventRejected = prev.some(
-              (e) =>
-                e.kind === "rate_limit" &&
-                e.rateLimit?.status === "rejected" &&
-                !e.uuid.startsWith(SYNTH_PREFIX),
-            );
-            if (hasEventRejected) return prev;
-            const incoming: SystemEntry = {
-              uuid: `${SYNTH_PREFIX}${messageId}`,
-              afterMessageUuid: messageId,
-              kind: "rate_limit",
-              label: `Rate limit: rejected (${info?.rateLimitType ?? ""})`,
-              rateLimit: info,
-            };
-            // Collapse repeated hard-limit errors (the SDK emits one per
-            // blocked turn) into a single pill that follows the latest failure
-            // to the bottom of the thread.
-            const idx = prev.findIndex(
-              (e) => e.kind === "rate_limit" && e.uuid.startsWith(SYNTH_PREFIX),
-            );
-            if (idx === -1) return [...prev, incoming];
-            const next = prev.slice();
-            next[idx] = incoming;
-            return next;
-          });
-        }
         // Activity-rail: surface thinking phases that arrived on the
         // terminal assistant split (i.e. JSONL replay on reload, or a
         // turn whose stream_event partials never reached this tab).
@@ -2693,8 +2744,8 @@ export function useSession(): ChatState & ChatActions {
         const info = r.rate_limit_info;
         // Remember the latest structured payload so a subsequent *hard* limit
         // hit (which arrives as an assistant `error: "rate_limit"` message with
-        // no structured fields) can reuse this window's resetsAt / tier /
-        // overage status for its countdown.
+        // no structured fields) can reuse this window's resetsAt / tier for the
+        // inline panel's countdown.
         if (info) lastRateLimitInfoRef.current = info;
         const anchor = lastAssistantUuidRef.current;
         const incoming: SystemEntry = {
@@ -3577,6 +3628,13 @@ function synthesizeOlder(raw: Array<Record<string, unknown>>): {
       } else {
         const at = typeof carriedAt === "number" ? carriedAt : undefined;
         if (typeof carriedAt === "number") carriedAt = carriedAt + 1;
+        // Tag a hard rate-limit hit so the bubble renders the inline panel on
+        // the pagination path too. `error` doesn't survive the `/transcript`
+        // route, so detection is prose-only here; `null` for `last` means no
+        // countdown (the reset time is already in the message text).
+        const rateLimitHit = isRateLimitHitText(newBlocks)
+          ? rateLimitHitFromBlocks(newBlocks, null)
+          : undefined;
         out.push({
           uuid: msgId,
           role: "assistant",
@@ -3584,6 +3642,7 @@ function synthesizeOlder(raw: Array<Record<string, unknown>>): {
           streaming: false,
           foldedSdkUuids: new Set([uuid]),
           ...(typeof at === "number" ? { createdAt: at } : {}),
+          ...(rateLimitHit ? { rateLimitHit } : {}),
         });
       }
       continue;
@@ -3688,6 +3747,12 @@ export function upsertAssistantSplit(
   parentToolUseId?: string | null,
   /** Server-stamped epoch ms for this SDK envelope (cf. `ServerEvent.sdk.at`). */
   at?: number,
+  /**
+   * Set when this split is a hard rate-limit hit, so the bubble renders the
+   * inline `RateLimitHitPanel`. Sticky across splits — once any split marks the
+   * bubble, a later (un-tagged) terminal split won't clear it.
+   */
+  rateLimitHit?: DisplayMessage["rateLimitHit"],
 ): DisplayMessage[] {
   const idx = prev.findIndex((m) => m.uuid === messageId);
   if (idx === -1) {
@@ -3701,6 +3766,7 @@ export function upsertAssistantSplit(
         foldedSdkUuids: new Set([sdkUuid]),
         ...(parentToolUseId ? { parentToolUseId } : {}),
         ...(typeof at === "number" ? { createdAt: at } : {}),
+        ...(rateLimitHit ? { rateLimitHit } : {}),
       },
     ];
   }
@@ -3756,6 +3822,9 @@ export function upsertAssistantSplit(
     }
     blocksToAppend.push(b);
   }
+  // Sticky: keep an earlier split's tag; only adopt this split's if the bubble
+  // isn't marked yet, so a late untagged terminal split can't clear it.
+  const stickyHit = existing.rateLimitHit ?? rateLimitHit;
   const copy = prev.slice();
   copy[idx] = {
     ...existing,
@@ -3763,6 +3832,7 @@ export function upsertAssistantSplit(
       blocksToAppend.length === 0 ? existing.blocks : [...existing.blocks, ...blocksToAppend],
     foldedSdkUuids: nextFolded,
     streaming: true,
+    ...(stickyHit ? { rateLimitHit: stickyHit } : {}),
   };
   return copy;
 }

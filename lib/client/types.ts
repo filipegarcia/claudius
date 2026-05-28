@@ -56,6 +56,21 @@ export type DisplayMessage = {
    * source provided no time (e.g. older assistant entries from `loadOlder`).
    */
   createdAt?: number;
+  /**
+   * Present when this assistant message IS a hard rate-limit hit — the SDK's
+   * "You've hit your <tier> · resets …" wall. Drives the inline
+   * `RateLimitHitPanel` (Claude Code CLI `/rate-limit-options` parity:
+   * countdown + upgrade links). Set by every transcript builder — live stream,
+   * resumed-session replay, paginated scrollback — so the panel renders on all
+   * paths. `resetsAt` is epoch **seconds**; absent on replay/pagination (the
+   * structured `rate_limit_event` payload doesn't survive those paths), where
+   * the reset time already printed in the message text still tells the user
+   * when the window reopens.
+   */
+  rateLimitHit?: {
+    rateLimitType?: "five_hour" | "seven_day" | "seven_day_opus" | "seven_day_sonnet" | "overage";
+    resetsAt?: number;
+  };
 };
 
 export type TaskStatus = "pending" | "running" | "completed" | "failed" | "killed" | "stopped";

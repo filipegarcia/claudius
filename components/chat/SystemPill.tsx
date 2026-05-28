@@ -13,12 +13,13 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
 import type { SystemEntry } from "@/lib/client/types";
 import {
   shouldShowRateLimitPill,
   useRateLimitWarningPct,
 } from "@/lib/client/useRateLimitWarning";
+import { formatResetClock, useCountdownSeconds } from "@/lib/client/use-countdown";
+import { RateLimitUpgradeLinks } from "./RateLimitHitPanel";
 
 const KIND_META: Record<SystemEntry["kind"], { icon: typeof Info; tone: string }> = {
   init: { icon: Cpu, tone: "text-emerald-400" },
@@ -99,15 +100,6 @@ const OVERAGE_DISABLED_COPY: Record<string, string> = {
   fetch_error: "Couldn't read your usage status — try again.",
   unknown: "Extra usage unavailable.",
 };
-
-// Upgrade destinations, mirrored from the Claude Code CLI's `/rate-limit-options`
-// menu so the browser surfaces the same next steps when the user hits the wall:
-//   "Upgrade your plan"     → claude.ai/upgrade/max
-//   "Upgrade to Team plan"  → claude.ai/create/team
-// (The CLI's third option, "Stop and wait for limit to reset", is covered here
-// by the live countdown — there's nothing to click, you just wait.)
-const UPGRADE_PLAN_URL = "https://claude.ai/upgrade/max";
-const UPGRADE_TEAM_URL = "https://claude.ai/create/team";
 
 function RateLimitPill({ entry }: { entry: SystemEntry }) {
   const info = entry.rateLimit!;
@@ -228,87 +220,9 @@ function RateLimitPill({ entry }: { entry: SystemEntry }) {
       {status === "rejected" && (
         <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-current/10 pt-1.5">
           <span className="opacity-70">Out of usage? Upgrade to keep going:</span>
-          <a
-            href={UPGRADE_PLAN_URL}
-            target="_blank"
-            rel="noreferrer"
-            className="font-medium underline underline-offset-2 hover:opacity-80"
-          >
-            Upgrade your plan
-          </a>
-          <a
-            href={UPGRADE_TEAM_URL}
-            target="_blank"
-            rel="noreferrer"
-            className="font-medium underline underline-offset-2 hover:opacity-80"
-          >
-            Upgrade to Team plan
-          </a>
+          <RateLimitUpgradeLinks />
         </div>
       )}
     </div>
   );
-}
-
-/**
- * Live countdown to an epoch-seconds timestamp. Returns `null` once the
- * reset has passed (caller can fall back to a "retry now" affordance) or
- * when `resetsAt` is missing.
- *
- * Implementation note: the SDK's `resetsAt` is in *seconds*, not ms (the
- * CLI computes `(resetsAt - Date.now()/1000)`). We tick once per second
- * via `setInterval` and clean up on unmount or when the target changes.
- *
- * The current wall-clock is held in state (not read with `Date.now()`
- * during render) so the component stays referentially pure between
- * ticks — react-hooks/purity flags otherwise-equivalent code that reads
- * `Date.now()` directly in render.
- */
-function useCountdownSeconds(resetsAtSec: number | undefined): string | null {
-  // The current wall-clock lives in state; the initializer reads
-  // `Date.now()` once at mount so the first paint is correct, and the
-  // setInterval below keeps it advancing. We don't sync inside the
-  // effect body (`react-hooks/set-state-in-effect` flags that pattern
-  // as a cascading re-render); the initializer already covers mount,
-  // and the first tick fires within ≤ 1s — imperceptible.
-  const [nowMs, setNowMs] = useState<number>(() => Date.now());
-  useEffect(() => {
-    if (!resetsAtSec) return;
-    // Re-render once per second. We don't need sub-second precision — the
-    // smallest unit we render is "Xs" — so a 1-Hz tick is plenty.
-    const id = window.setInterval(() => setNowMs(Date.now()), 1000);
-    return () => window.clearInterval(id);
-  }, [resetsAtSec]);
-
-  if (!resetsAtSec) return null;
-  const remaining = Math.floor(resetsAtSec - nowMs / 1000);
-  if (remaining <= 0) return "Available now";
-  return formatRemaining(remaining);
-}
-
-function formatRemaining(totalSec: number): string {
-  const h = Math.floor(totalSec / 3600);
-  const m = Math.floor((totalSec % 3600) / 60);
-  const s = totalSec % 60;
-  if (h > 0) {
-    // For long windows (weekly resets) show "Dd HHh MMm" — otherwise the
-    // hour count balloons past 24 and reads as nonsense.
-    if (h >= 24) {
-      const d = Math.floor(h / 24);
-      const hh = h % 24;
-      return `${d}d ${hh}h ${m.toString().padStart(2, "0")}m`;
-    }
-    return `${h}h ${m.toString().padStart(2, "0")}m ${s.toString().padStart(2, "0")}s`;
-  }
-  return `${m.toString().padStart(2, "0")}m ${s.toString().padStart(2, "0")}s`;
-}
-
-function formatResetClock(resetsAtSec: number): string {
-  const d = new Date(resetsAtSec * 1000);
-  // `numeric` minute looks like "6:3pm" — force 2-digit minute via the
-  // standard `2-digit` option.
-  return d.toLocaleTimeString(undefined, {
-    hour: "numeric",
-    minute: "2-digit",
-  });
 }
