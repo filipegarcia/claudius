@@ -74,6 +74,10 @@ export function WorkspaceForm({ initial, onCancel, onSubmit, onIconUpload, onDel
   const [default1m, setDefault1m] = useState<boolean>(
     initial?.defaults?.enable1mContext === true,
   );
+  // Ephemeral sessions = persistSession:false. Off by default (sessions persist).
+  const [defaultEphemeral, setDefaultEphemeral] = useState<boolean>(
+    initial?.defaults?.persistSession === false,
+  );
   // Extra system-prompt steering appended to the Claude Code preset.
   const [defaultSysAppend, setDefaultSysAppend] = useState(
     initial?.defaults?.systemPromptAppend ?? "",
@@ -175,6 +179,8 @@ export function WorkspaceForm({ initial, onCancel, onSubmit, onIconUpload, onDel
       else delete defaults.sandboxEnabled;
       if (default1m) defaults.enable1mContext = true;
       else delete defaults.enable1mContext;
+      if (defaultEphemeral) defaults.persistSession = false;
+      else delete defaults.persistSession;
       if (defaultSysAppend.trim()) defaults.systemPromptAppend = defaultSysAppend.trim();
       else delete defaults.systemPromptAppend;
       if (defaultPlanInstr.trim()) defaults.planModeInstructions = defaultPlanInstr.trim();
@@ -484,6 +490,18 @@ export function WorkspaceForm({ initial, onCancel, onSubmit, onIconUpload, onDel
               <span>1M context window</span>
               <span className="text-[10px] text-[var(--muted)]">
                 Sonnet 4/4.5 only; significantly higher cost.
+              </span>
+            </label>
+            <label className="mt-2 flex cursor-pointer items-center gap-2 text-xs">
+              <input
+                type="checkbox"
+                checked={defaultEphemeral}
+                onChange={(e) => setDefaultEphemeral(e.target.checked)}
+                className="h-3 w-3 rounded border-[var(--border)] bg-[var(--panel-2)]"
+              />
+              <span>Ephemeral sessions</span>
+              <span className="text-[10px] text-[var(--muted)]">
+                Not saved to disk — can&apos;t be resumed or shown in history.
               </span>
             </label>
             <Field label="System prompt append">

@@ -41,6 +41,13 @@ export type WorkspaceDefaults = {
    */
   enable1mContext?: boolean;
   /**
+   * Persist sessions to disk (SDK `Options.persistSession`). Defaults to true
+   * (sessions saved under ~/.claude/projects and resumable). Set to `false` to
+   * make every session in this workspace ephemeral — not written to disk and
+   * not resumable. Absent/true ⇒ persisted (the SDK default).
+   */
+  persistSession?: boolean;
+  /**
    * Extra instructions appended to Claude Code's default system prompt (SDK
    * `Options.systemPrompt` preset + `append`). Distinct from CLAUDE.md (which
    * is project content): this is steering ("always use TypeScript", house

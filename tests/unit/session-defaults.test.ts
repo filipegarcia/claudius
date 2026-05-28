@@ -52,11 +52,18 @@ describe("mergeSessionDefaults", () => {
       fallbackModel: undefined,
       sandboxEnabled: undefined,
       enable1mContext: undefined,
+      persistSession: undefined,
       additionalDirectories: undefined,
       systemPromptAppend: undefined,
       planModeInstructions: undefined,
       permissionMode: undefined,
     });
+  });
+
+  test("persistSession follows the same precedence; explicit false survives", () => {
+    expect(mergeSessionDefaults({ persistSession: false }, { persistSession: true }).persistSession).toBe(false);
+    expect(mergeSessionDefaults({}, { persistSession: false }).persistSession).toBe(false);
+    expect(mergeSessionDefaults({}, {}).persistSession).toBeUndefined();
   });
 
   test("additionalDirectories follows the same precedence (request wins, default fills)", () => {

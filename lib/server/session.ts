@@ -303,6 +303,12 @@ export class Session {
    */
   readonly enable1mContext?: boolean;
   /**
+   * Persist this session to disk (Options.persistSession). Undefined/true ⇒
+   * persisted (SDK default). Only `false` is forwarded, making the session
+   * ephemeral (not saved, not resumable).
+   */
+  readonly persistSession?: boolean;
+  /**
    * Additional absolute directories the agent may access beyond cwd
    * (Options.additionalDirectories). Empty/undefined ⇒ cwd only.
    */
@@ -407,6 +413,7 @@ export class Session {
     fallbackModel?: string;
     sandboxEnabled?: boolean;
     enable1mContext?: boolean;
+    persistSession?: boolean;
     additionalDirectories?: string[];
     systemPromptAppend?: string;
     planModeInstructions?: string;
@@ -434,6 +441,7 @@ export class Session {
     this.fallbackModel = opts.fallbackModel;
     this.sandboxEnabled = opts.sandboxEnabled;
     this.enable1mContext = opts.enable1mContext;
+    this.persistSession = opts.persistSession;
     this.additionalDirectories = opts.additionalDirectories;
     this.systemPromptAppend = opts.systemPromptAppend;
     this.planModeInstructions = opts.planModeInstructions;
@@ -590,6 +598,9 @@ export class Session {
       // models that don't support it, so gating is advisory (the WorkspaceForm
       // notes the Sonnet requirement).
       ...(this.enable1mContext ? { betas: ["context-1m-2025-08-07" as const] } : {}),
+      // Ephemeral sessions: only forward persistSession when explicitly false
+      // so the SDK's default (persist) is untouched otherwise.
+      ...(this.persistSession === false ? { persistSession: false } : {}),
       // Extra directories the agent may read/write beyond cwd. Only forwarded
       // when non-empty so the default (cwd-only) is preserved otherwise.
       ...(this.additionalDirectories && this.additionalDirectories.length > 0
