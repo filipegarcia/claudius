@@ -4,6 +4,7 @@ import { Markdown } from "./Markdown";
 import { ThinkingBlock } from "./ThinkingBlock";
 import { ToolCall } from "./ToolCall";
 import { TaskBlock } from "./TaskBlock";
+import { RateLimitHitPanel } from "./RateLimitHitPanel";
 import type { DisplayMessage, TaskInfo } from "@/lib/client/types";
 import { formatMessageTime } from "@/lib/client/format-message-time";
 import { isSubagentToolName } from "@/lib/shared/subagent-tool";
@@ -140,6 +141,10 @@ export function AssistantMessage({
           }
           return null;
         })}
+        {/* Hard rate-limit hit: render the actionable panel (countdown +
+            upgrade links) right under the SDK's "You've hit your … limit"
+            text, mirroring the Claude Code CLI's `/rate-limit-options` menu. */}
+        {message.rateLimitHit && <RateLimitHitPanel hit={message.rateLimitHit} />}
       </div>
     </div>
   );
