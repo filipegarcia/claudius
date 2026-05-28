@@ -494,6 +494,12 @@ export class Session {
       // after API errors, and in plan mode. Users who want them off can set
       // CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false (the SDK's built-in gate).
       promptSuggestions: true,
+      // Track file edits so the user can rewind the working tree to its
+      // state at any prior user message via Query.rewindFiles() (see the
+      // `rewindFiles` method + POST /api/sessions/[id]/rewind). The SDK
+      // snapshots files before each modification; cleanup follows the
+      // `cleanupPeriodDays` setting (default 30d).
+      enableFileCheckpointing: true,
       // Opt into adaptive extended thinking explicitly so the agent
       // emits the full reasoning text in `thinking` blocks. Without
       // this, recent SDK builds default to a `display: 'omitted'`
@@ -1444,6 +1450,31 @@ export class Session {
     if (!this.query) return { ok: false, error: "no active query" };
     try {
       const data = await this.query.accountInfo();
+      return { ok: true, data };
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : String(err) };
+    }
+  }
+
+  /**
+   * Rewind tracked files to their state at a given user message. Requires
+   * `enableFileCheckpointing` (set in start()). With `dryRun: true` the SDK
+   * reports what *would* change (filesChanged / insertions / deletions)
+   * without touching the working tree — the client uses that for a preview
+   * before the user confirms a destructive rewind.
+   *
+   * Returns the SDK's RewindFilesResult on success. `canRewind: false` (with
+   * an `error` string) is a normal, non-throwing outcome — e.g. the message
+   * id is unknown or no checkpoint exists — and is surfaced to the caller
+   * inside `data`, not as `{ ok: false }`.
+   */
+  async rewindFiles(
+    userMessageId: string,
+    opts?: { dryRun?: boolean },
+  ): Promise<{ ok: true; data: unknown } | { ok: false; error: string }> {
+    if (!this.query) return { ok: false, error: "no active query" };
+    try {
+      const data = await this.query.rewindFiles(userMessageId, opts);
       return { ok: true, data };
     } catch (err) {
       return { ok: false, error: err instanceof Error ? err.message : String(err) };
