@@ -398,6 +398,7 @@ export function useSession(): ChatState & ChatActions {
   const [pendingPlan, setPendingPlan] = useState<PendingPlan | null>(null);
   const [fastModeState, setFastModeState] = useState<"off" | "cooldown" | "on" | null>(null);
   const [promptSuggestions, setPromptSuggestions] = useState<string[]>([]);
+  const [suggestedUuids, setSuggestedUuids] = useState<Set<string>>(() => new Set());
   const [replaying, setReplaying] = useState(true);
   const [hasMoreAbove, setHasMoreAbove] = useState(false);
   const [loadingOlder, setLoadingOlder] = useState(false);
@@ -438,6 +439,35 @@ export function useSession(): ChatState & ChatActions {
   //     switch), pathname is "/" and we write `?session=<id>` exactly
   //     as before. The refresh-resume contract is preserved.
   //
+  // Seed the auto-suggested badge set from the DB whenever the bound session
+  // changes. The SDK JSONL doesn't carry suggestion provenance, so on reload we
+  // re-fetch which user-message uuids came from a clicked suggestion chip.
+  // `send()`/`flushQueue` add to this set optimistically for the live case, so
+  // we merge (not replace) on resolve to avoid clobbering an in-flight click.
+  useEffect(() => {
+    setSuggestedUuids(new Set());
+    if (!sessionId) return;
+    let cancelled = false;
+    void fetch(`/api/sessions/${sessionId}/suggested-messages`)
+      .then((r) => (r.ok ? r.json() : { uuids: [] }))
+      .then((data: { uuids?: string[] }) => {
+        if (cancelled) return;
+        const incoming = Array.isArray(data.uuids) ? data.uuids : [];
+        if (incoming.length === 0) return;
+        setSuggestedUuids((prev) => {
+          const next = new Set(prev);
+          for (const u of incoming) next.add(u);
+          return next;
+        });
+      })
+      .catch(() => {
+        /* badge is best-effort — ignore fetch errors */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionId]);
+
   // The empty-string check on the existing `session` param avoids a
   // pointless replaceState (and the corresponding history-state churn)
   // when bindToSession is invoked with the id that's already in the URL.
@@ -1064,6 +1094,12 @@ export function useSession(): ChatState & ChatActions {
     const rest = queueRef.current.slice(1);
     writeQueueForSession(id, rest);
     const uuid = crypto.randomUUID();
+    // A queued suggestion keeps its provenance: badge it optimistically and
+    // tell the server to persist it. The flush mints its own uuid (above), so
+    // this is the id that lands in the JSONL for this message.
+    if (next.fromSuggestion) {
+      setSuggestedUuids((prev) => new Set(prev).add(uuid));
+    }
     // Same slash-command rule as `send()`: skip the optimistic user-message
     // render so `/compact` doesn't show up as if the user typed it — the
     // server emits a `slash_invoked` system pill instead.
@@ -1091,6 +1127,7 @@ export function useSession(): ChatState & ChatActions {
           images: next.images,
           uuid,
           ...(next.slash ? { slash: true } : {}),
+          ...(next.fromSuggestion ? { fromSuggestion: true } : {}),
         }),
       });
     } catch (err) {
@@ -2943,13 +2980,14 @@ export function useSession(): ChatState & ChatActions {
     async (
       text: string,
       images?: Array<{ id?: string; ordinal?: number; data: string; mediaType: string }>,
-      opts?: { asSlashCommand?: boolean },
+      opts?: { asSlashCommand?: boolean; fromSuggestion?: boolean },
     ) => {
       const id = sessionIdRef.current;
       const trimmedText = text.trim();
       const hasImages = Array.isArray(images) && images.length > 0;
       if (!id || (!trimmedText && !hasImages)) return;
       const isSlash = !!opts?.asSlashCommand;
+      const fromSuggestion = !!opts?.fromSuggestion;
       // Normalize to AttachedImage shape for client/queue persistence.
       const normalized = hasImages
         ? images!.map((img, i) => ({
@@ -2965,6 +3003,7 @@ export function useSession(): ChatState & ChatActions {
           text,
           ...(normalized ? { images: normalized } : {}),
           ...(isSlash ? { slash: true } : {}),
+          ...(fromSuggestion ? { fromSuggestion: true } : {}),
         };
         writeQueue([...queueRef.current, q]);
         // No flush trigger here — that's intentional. The queue is a
@@ -2994,6 +3033,12 @@ export function useSession(): ChatState & ChatActions {
           },
         ]);
       }
+      // Badge this bubble as auto-suggested right away (the server persists it
+      // below so it survives reload). Keyed by the same uuid that lands in the
+      // JSONL, so the reload-time DB lookup re-marks the same message.
+      if (fromSuggestion) {
+        setSuggestedUuids((prev) => new Set(prev).add(uuid));
+      }
       setPromptSuggestions([]);
       setPendingTracked(true);
       setErrors([]);
@@ -3011,6 +3056,7 @@ export function useSession(): ChatState & ChatActions {
           images: normalized,
           uuid,
           ...(isSlash ? { slash: true } : {}),
+          ...(fromSuggestion ? { fromSuggestion: true } : {}),
         }),
       });
       if (!res.ok) {
@@ -3348,6 +3394,7 @@ export function useSession(): ChatState & ChatActions {
     pendingPlan,
     fastModeState,
     promptSuggestions,
+    suggestedUuids,
     replaying,
     hasMoreAbove,
     loadingOlder,
