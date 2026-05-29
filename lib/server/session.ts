@@ -2149,6 +2149,21 @@ export class Session {
     // "Idle" for a session that's still mid-turn (e.g. inside a long Bash).
     // This event resyncs `pending` to the server's authoritative state.
     fn({ type: "turn_status", status: this.getStatus() });
+    // Re-emit the agent's effective working directory for the same
+    // tail-truncation reason as `mode_changed`/`turn_status` above. The
+    // `cwd_changed` event that moved the agent into a git worktree is
+    // broadcast exactly once (deduped in `broadcastCwd`), so any session that
+    // entered the worktree more than `tail` turns ago — or more than ~1000
+    // events ago, past the buffer cap — slices it off the replay window and
+    // the client never paints the "worktree" badge even though the agent is
+    // still working outside the session root. `lastCwdBroadcast` is the
+    // in-memory source of truth, so echo it here directly (no need to round
+    // trip through `broadcastCwd`). Self-clearing still works: if the agent
+    // has since returned to the root, `lastCwdBroadcast` equals the root and
+    // the client's `worktreeBadge` renders nothing.
+    if (this.lastCwdBroadcast) {
+      fn({ type: "cwd_changed", cwd: this.lastCwdBroadcast });
+    }
     // Now re-emit any interactive prompts that are STILL pending. The
     // historical replay above is filtered to "resolved" prompts; questions
     // and permission requests that the agent is still waiting on need to
@@ -2522,6 +2537,39 @@ export class Session {
         : Date.now();
     for (const block of content as Array<{ type?: string; id?: string; name?: string; input?: unknown }>) {
       if (block?.type !== "tool_use") continue;
+
+      // Worktree detection that survives a disk rebuild. The live PreToolUse
+      // hook (signal #2 in start()) flags the worktree as edits execute, but
+      // that hook does NOT re-fire when a session is rebuilt from its JSONL on
+      // a server restart — so a session still working inside a worktree would
+      // silently lose its badge after a restart. The mutating-file tool_use
+      // blocks ARE in the replayed transcript, and `captureSnapshotState` runs
+      // from `broadcast()` on both the live and disk-replay paths, so re-run
+      // the same `worktreeRootFromPath` heuristic here. Set-only by design,
+      // mirroring the live hook: "agent returned to root" is detected by the
+      // SDK's `CwdChanged` hook, which isn't replayed from disk. The value is
+      // carried to late subscribers by the `lastCwdBroadcast` re-emit in
+      // `subscribe()` (the buffered `cwd_changed` itself gets trimmed).
+      if (
+        block.name === "Edit" ||
+        block.name === "Write" ||
+        block.name === "MultiEdit" ||
+        block.name === "NotebookEdit"
+      ) {
+        const inp =
+          (block.input as { file_path?: unknown; notebook_path?: unknown } | null) ?? {};
+        const target =
+          typeof inp.file_path === "string"
+            ? inp.file_path
+            : typeof inp.notebook_path === "string"
+            ? inp.notebook_path
+            : null;
+        if (target) {
+          const wt = worktreeRootFromPath(target);
+          if (wt) this.broadcastCwd(wt);
+        }
+        continue;
+      }
 
       // TodoWrite — full snapshot replacement (legacy; kept for backward compat).
       if (block.name === "TodoWrite") {

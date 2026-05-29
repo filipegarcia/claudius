@@ -20,6 +20,7 @@ type SessionInternals = {
   captureSnapshotState: (event: ServerEvent) => void;
   latestUserPromptSnapshot: { uuid: string; text: string; at?: number } | null;
   latestTodosSnapshot: unknown[] | null;
+  lastCwdBroadcast: string | null;
   subscribe: Session["subscribe"];
 };
 
@@ -35,6 +36,24 @@ function userEvent(uuid: string, text: string, at: number): ServerEvent {
       type: "user",
       uuid,
       message: { content: [{ type: "text", text }] },
+    },
+  } as unknown as ServerEvent;
+}
+
+function editEvent(uuid: string, filePath: string, at: number): ServerEvent {
+  return {
+    type: "sdk",
+    at,
+    message: {
+      type: "assistant",
+      uuid,
+      parent_tool_use_id: null,
+      message: {
+        id: uuid,
+        content: [
+          { type: "tool_use", id: `tool-${uuid}`, name: "Edit", input: { file_path: filePath } },
+        ],
+      },
     },
   } as unknown as ServerEvent;
 }
@@ -111,5 +130,49 @@ describe("Session derived snapshot state", () => {
     unsubscribe();
 
     expect(events).toContainEqual({ type: "replay_done", hasMoreAbove: true });
+  });
+
+  test("derives the effective worktree cwd from a replayed mutating-file tool_use", () => {
+    const session = makeSession();
+    // A server restart rebuilds the session from its JSONL; the live
+    // PreToolUse hook doesn't re-fire, so this disk-replay path is the only
+    // thing that can re-flag the worktree. The Edit's path lives under
+    // `.claude/worktrees/<name>/`, which `worktreeRootFromPath` recognizes.
+    session.captureSnapshotState(
+      editEvent("a1", "/proj/.claude/worktrees/feature-x/lib/foo.ts", 1_000),
+    );
+
+    expect(session.lastCwdBroadcast).toBe("/proj/.claude/worktrees/feature-x");
+  });
+
+  test("ignores edits that don't live under a worktree", () => {
+    const session = makeSession();
+    session.captureSnapshotState(editEvent("a1", "/proj/lib/foo.ts", 1_000));
+
+    expect(session.lastCwdBroadcast).toBeNull();
+  });
+
+  test("re-emits the worktree cwd on subscribe even after the buffered event was trimmed", () => {
+    const session = makeSession();
+    // Flag the worktree via the disk-replay sniffer (which broadcasts a
+    // `cwd_changed` into the buffer as a side effect).
+    session.captureSnapshotState(
+      editEvent("a1", "/proj/.claude/worktrees/feature-x/lib/foo.ts", 1_000),
+    );
+    // Simulate the long-session reality the badge bug hits: the single
+    // `cwd_changed` broadcast has aged out of the 1000-event buffer cap, so a
+    // late subscriber (reload / second tab) wouldn't see it from the replay.
+    session.buffer = [];
+    session.bufferTrimmed = true;
+
+    const events: ServerEvent[] = [];
+    session.subscribe((event) => events.push(event))();
+
+    // The badge is rescued by the in-memory `lastCwdBroadcast` re-emit, not
+    // the (now-trimmed) buffered event.
+    expect(events).toContainEqual({
+      type: "cwd_changed",
+      cwd: "/proj/.claude/worktrees/feature-x",
+    });
   });
 });

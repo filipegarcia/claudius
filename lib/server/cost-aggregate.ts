@@ -2,7 +2,12 @@ import { promises as fs } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { encodeProjectDir } from "./auto-memory";
-import { costFromTokens, type TokenBreakdown } from "@/lib/shared/cost-pricing";
+import {
+  costFromUsage,
+  getPricingTable,
+  priceForModel,
+  type PricingTable,
+} from "./litellm-pricing";
 
 export type ByDay = {
   date: string; // YYYY-MM-DD (server local tz)
@@ -41,25 +46,42 @@ export type CostReport = {
   note: string;
 };
 
+/**
+ * One assistant turn, distilled to what cost aggregation needs. Pricing is
+ * deliberately *not* baked in here — it's applied at aggregate time from the
+ * live LiteLLM table, so a pricing refresh doesn't require re-parsing JSONL.
+ */
+type Row = {
+  /** Dedup key `message.id:requestId`, or null when either is absent. */
+  k: string | null;
+  m: string; // model
+  d: string; // day key (YYYY-MM-DD)
+  i: number; // input tokens
+  o: number; // output tokens
+  cr: number; // cache read tokens
+  cw: number; // cache creation tokens
+  /** Authoritative per-turn cost from the JSONL, when present (else null). */
+  u: number | null;
+};
+
 type FileSummary = {
   path: string;
   mtimeMs: number;
   size: number;
-  totalUsd: number;
-  numTurns: number;
   firstSeenMs: number;
   lastSeenMs: number;
-  model: string | undefined;
-  byDay: Record<string, { usd: number; inputTokens: number; outputTokens: number }>;
-  byModel: Record<string, ByModel>;
+  rows: Row[];
 };
 
 type CacheShape = {
-  version: 1;
+  // v2: stores per-turn token rows (not precomputed USD) so cross-file dedup
+  // and pricing refreshes work. Bumping this invalidates older v1 caches.
+  version: 2;
   files: Record<string, FileSummary>;
 };
 
 const CACHE_FILE = ".claudius-cost-cache.json";
+const CACHE_VERSION = 2;
 
 function projectDir(cwd: string): string {
   return join(homedir(), ".claude", "projects", encodeProjectDir(cwd));
@@ -73,16 +95,23 @@ function dayKey(ms: number): string {
   return `${y}-${m}-${day}`;
 }
 
+function isSyntheticModel(model: string): boolean {
+  // Claude Code emits `<synthetic>` / `<synthetic>-fast` for locally-generated
+  // assistant turns (e.g. "Prompt is too long"). These never hit the API and
+  // have no cost — ccusage drops them, so do we.
+  return model.startsWith("<synthetic>");
+}
+
 async function readCache(cwd: string): Promise<CacheShape> {
   const path = join(projectDir(cwd), CACHE_FILE);
   try {
     const buf = await fs.readFile(path, "utf8");
     const parsed = JSON.parse(buf) as CacheShape;
-    if (parsed.version === 1 && parsed.files) return parsed;
+    if (parsed.version === CACHE_VERSION && parsed.files) return parsed;
   } catch {
     // ignore
   }
-  return { version: 1, files: {} };
+  return { version: CACHE_VERSION, files: {} };
 }
 
 async function writeCache(cwd: string, cache: CacheShape): Promise<void> {
@@ -96,21 +125,17 @@ async function summarizeFile(path: string, mtimeMs: number, size: number): Promi
     path,
     mtimeMs,
     size,
-    totalUsd: 0,
-    numTurns: 0,
     firstSeenMs: Infinity,
     lastSeenMs: 0,
-    model: undefined,
-    byDay: {},
-    byModel: {},
+    rows: [],
   };
   let buf: string;
   try {
     buf = await fs.readFile(path, "utf8");
   } catch {
+    summary.firstSeenMs = 0;
     return summary;
   }
-  const modelHistogram: Record<string, number> = {};
   for (const line of buf.split("\n")) {
     if (!line || line[0] !== "{") continue;
     let r: Record<string, unknown>;
@@ -121,60 +146,55 @@ async function summarizeFile(path: string, mtimeMs: number, size: number): Promi
     }
     if (r.type !== "assistant") continue;
     const message = r.message as
-      | { model?: string; usage?: Record<string, unknown> }
+      | { id?: string; model?: string; usage?: Record<string, unknown> }
       | undefined;
     if (!message?.usage) continue;
     const ts = typeof r.timestamp === "string" ? Date.parse(r.timestamp) : NaN;
     if (Number.isNaN(ts)) continue;
 
+    const model = message.model ?? "(unknown)";
+    if (isSyntheticModel(model)) continue;
+
     const u = message.usage;
     const cacheCreation = u.cache_creation as Record<string, unknown> | undefined;
-    const tokens: TokenBreakdown = {
-      input: Number(u.input_tokens ?? 0),
-      output: Number(u.output_tokens ?? 0),
-      cacheRead: Number(u.cache_read_input_tokens ?? 0),
-      cacheWrite5m: Number(cacheCreation?.ephemeral_5m_input_tokens ?? 0),
-      cacheWrite1h: Number(cacheCreation?.ephemeral_1h_input_tokens ?? 0),
-    };
-    const model = message.model ?? "(unknown)";
-    const usd = costFromTokens(model, tokens);
-    summary.totalUsd += usd;
-    summary.numTurns += 1;
+    // LiteLLM/ccusage price cache creation with a single rate against the total
+    // creation tokens — so we sum the ephemeral 5m/1h buckets (preferring the
+    // top-level field when present) rather than splitting them.
+    const cacheWrite =
+      Number(u.cache_creation_input_tokens ?? 0) ||
+      Number(cacheCreation?.ephemeral_5m_input_tokens ?? 0) +
+        Number(cacheCreation?.ephemeral_1h_input_tokens ?? 0);
+
+    const msgId = typeof message.id === "string" ? message.id : null;
+    const reqId = typeof r.requestId === "string" ? r.requestId : null;
+    const costUsd = typeof r.costUSD === "number" ? r.costUSD : null;
+
+    summary.rows.push({
+      k: msgId && reqId ? `${msgId}:${reqId}` : null,
+      m: model,
+      d: dayKey(ts),
+      i: Number(u.input_tokens ?? 0),
+      o: Number(u.output_tokens ?? 0),
+      cr: Number(u.cache_read_input_tokens ?? 0),
+      cw: cacheWrite,
+      u: costUsd,
+    });
+
     if (ts < summary.firstSeenMs) summary.firstSeenMs = ts;
     if (ts > summary.lastSeenMs) summary.lastSeenMs = ts;
-    modelHistogram[model] = (modelHistogram[model] ?? 0) + 1;
-
-    const dk = dayKey(ts);
-    const dayEntry = (summary.byDay[dk] ??= { usd: 0, inputTokens: 0, outputTokens: 0 });
-    dayEntry.usd += usd;
-    dayEntry.inputTokens += tokens.input;
-    dayEntry.outputTokens += tokens.output;
-
-    const mb = (summary.byModel[model] ??= {
-      model,
-      usd: 0,
-      inputTokens: 0,
-      outputTokens: 0,
-      cacheReadTokens: 0,
-      cacheWriteTokens: 0,
-    });
-    mb.usd += usd;
-    mb.inputTokens += tokens.input;
-    mb.outputTokens += tokens.output;
-    mb.cacheReadTokens += tokens.cacheRead;
-    mb.cacheWriteTokens += tokens.cacheWrite5m + tokens.cacheWrite1h;
   }
-  let best: string | undefined;
-  let bestN = 0;
-  for (const [m, n] of Object.entries(modelHistogram)) {
-    if (n > bestN) {
-      best = m;
-      bestN = n;
-    }
-  }
-  summary.model = best;
   if (summary.firstSeenMs === Infinity) summary.firstSeenMs = 0;
   return summary;
+}
+
+function rowUsd(row: Row, table: PricingTable): number {
+  if (row.u != null) return row.u; // authoritative cost from the JSONL
+  return costFromUsage(priceForModel(row.m, table), {
+    input: row.i,
+    output: row.o,
+    cacheRead: row.cr,
+    cacheCreation: row.cw,
+  });
 }
 
 export async function aggregate(cwd: string): Promise<CostReport> {
@@ -217,14 +237,74 @@ export async function aggregate(cwd: string): Promise<CostReport> {
 
   if (dirty) await writeCache(cwd, cache).catch(() => {});
 
+  const table = await getPricingTable();
+
+  // Dedup is global across files: when a session is resumed or forked, the new
+  // JSONL replays prior turns verbatim (same message.id + requestId). We count
+  // each unique turn once, attributing it to the first file that contains it.
+  // A deterministic order (oldest-first, then path) makes attribution stable;
+  // grand totals are order-independent regardless.
+  const files = Object.values(cache.files)
+    .filter((f) => f.rows.length > 0)
+    .sort((a, b) => a.firstSeenMs - b.firstSeenMs || a.path.localeCompare(b.path));
+
+  const dedup = new Set<string>();
   const byDayMap = new Map<string, ByDay>();
   const byModelMap = new Map<string, ByModel>();
   const sessions: BySession[] = [];
   let totalUsd = 0;
 
-  for (const file of Object.values(cache.files)) {
-    if (file.numTurns === 0) continue;
-    totalUsd += file.totalUsd;
+  for (const file of files) {
+    let sessionUsd = 0;
+    let sessionTurns = 0;
+    const modelHist: Record<string, number> = {};
+
+    for (const row of file.rows) {
+      if (row.k) {
+        if (dedup.has(row.k)) continue;
+        dedup.add(row.k);
+      }
+      const usd = rowUsd(row, table);
+      totalUsd += usd;
+
+      const day = byDayMap.get(row.d) ?? { date: row.d, usd: 0, inputTokens: 0, outputTokens: 0 };
+      day.usd += usd;
+      day.inputTokens += row.i;
+      day.outputTokens += row.o;
+      byDayMap.set(row.d, day);
+
+      const mb =
+        byModelMap.get(row.m) ??
+        ({
+          model: row.m,
+          usd: 0,
+          inputTokens: 0,
+          outputTokens: 0,
+          cacheReadTokens: 0,
+          cacheWriteTokens: 0,
+        } as ByModel);
+      mb.usd += usd;
+      mb.inputTokens += row.i;
+      mb.outputTokens += row.o;
+      mb.cacheReadTokens += row.cr;
+      mb.cacheWriteTokens += row.cw;
+      byModelMap.set(row.m, mb);
+
+      sessionUsd += usd;
+      sessionTurns += 1;
+      modelHist[row.m] = (modelHist[row.m] ?? 0) + 1;
+    }
+
+    if (sessionTurns === 0) continue; // fully duplicated elsewhere
+
+    let best: string | undefined;
+    let bestN = 0;
+    for (const [m, n] of Object.entries(modelHist)) {
+      if (n > bestN) {
+        best = m;
+        bestN = n;
+      }
+    }
 
     const sessionId = file.path
       .split("/")
@@ -234,37 +314,10 @@ export async function aggregate(cwd: string): Promise<CostReport> {
       sessionId,
       firstSeenMs: file.firstSeenMs,
       lastSeenMs: file.lastSeenMs,
-      numTurns: file.numTurns,
-      totalUsd: file.totalUsd,
-      model: file.model,
+      numTurns: sessionTurns,
+      totalUsd: sessionUsd,
+      model: best,
     });
-
-    for (const [date, agg] of Object.entries(file.byDay)) {
-      const cur = byDayMap.get(date) ?? { date, usd: 0, inputTokens: 0, outputTokens: 0 };
-      cur.usd += agg.usd;
-      cur.inputTokens += agg.inputTokens;
-      cur.outputTokens += agg.outputTokens;
-      byDayMap.set(date, cur);
-    }
-
-    for (const [model, agg] of Object.entries(file.byModel)) {
-      const cur =
-        byModelMap.get(model) ??
-        ({
-          model,
-          usd: 0,
-          inputTokens: 0,
-          outputTokens: 0,
-          cacheReadTokens: 0,
-          cacheWriteTokens: 0,
-        } as ByModel);
-      cur.usd += agg.usd;
-      cur.inputTokens += agg.inputTokens;
-      cur.outputTokens += agg.outputTokens;
-      cur.cacheReadTokens += agg.cacheReadTokens;
-      cur.cacheWriteTokens += agg.cacheWriteTokens;
-      byModelMap.set(model, cur);
-    }
   }
 
   const byDay = [...byDayMap.values()].sort((a, b) => a.date.localeCompare(b.date));
@@ -294,7 +347,7 @@ export async function aggregate(cwd: string): Promise<CostReport> {
     byDay,
     bySession,
     byModel,
-    note: "Cost is computed from on-disk token counts × public Claude API list pricing (estimate). For the authoritative account-wide total, see your Anthropic usage dashboard.",
+    note: "Cost uses ccusage-compatible methodology: on-disk token counts priced with LiteLLM public list prices, deduplicated by message+request id so resumed/forked sessions aren't double-counted.",
   };
 }
 
