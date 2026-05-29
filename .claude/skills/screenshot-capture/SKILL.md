@@ -1,6 +1,6 @@
 ---
 name: screenshot-capture
-description: Capture or refresh the marketing screenshots for site/. Drives the running Claudius instance via Playwright, snaps the canonical 10 routes (chat, todos, ask-user-question, sessions, agents, mcp, cost, git, files, workspace, skills), and writes PNGs to site/screenshots/. Use whenever the UI changes and the marketing gallery looks stale.
+description: Capture or refresh the marketing screenshots for site/. Drives the running Claudius instance via Playwright, snaps the canonical marketing routes (chat, todos, ask-user-question, workflow, sessions, agents, mcp, cost, git, files, workspace, skills), and writes PNGs to site/screenshots/. Use whenever the UI changes and the marketing gallery looks stale.
 allowed-tools:
   - Read
   - Edit
@@ -18,6 +18,13 @@ The marketing site at `site/index.html` references PNGs in `site/screenshots/`. 
 ```bash
 make screenshots         # 7 static routes — fast, no API key needed
 make screenshots-full    # adds chat/todos/AskUserQuestion — uses real API, ~5 min
+```
+
+The `chat`, `todos`, `ask-user-question`, and `workflow` shots are now **fixture-driven** — `tests/e2e/chat-screenshots.spec.ts` snaps dev preview pages under `app/[workspaceId]/dev/` (served at `/dev/<name>`), so they need no API key and are deterministic. They only write to disk when `UPDATE_SCREENSHOTS=1`:
+
+```bash
+UPDATE_SCREENSHOTS=1 bun run test:e2e tests/e2e/chat-screenshots.spec.ts            # all four
+UPDATE_SCREENSHOTS=1 bun run test:e2e tests/e2e/chat-screenshots.spec.ts -g workflow  # just one
 ```
 
 ## What to do when

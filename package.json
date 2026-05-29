@@ -3,9 +3,12 @@
   "version": "0.3.156",
   "private": true,
   "license": "MIT",
+  "author": "Claudius Network",
+  "description": "Claude Code in the browser, now on your desktop",
+  "main": "dist-electron/main.js",
   "scripts": {
     "dev": "node scripts/native-abi.mjs check node && next dev",
-    "build": "next build",
+    "build": "cross-env NODE_ENV=production next build",
     "start": "next start",
     "prepare": "git config core.hooksPath .githooks 2>/dev/null || true",
     "lint": "eslint",
@@ -24,11 +27,11 @@
     "site:screenshots": "playwright test --project=screenshots",
     "site:screenshots:full": "SCREENSHOTS_INCLUDE_CHAT=1 playwright test --project=screenshots",
     "site:screenshots:customizations": "SCREENSHOTS_INCLUDE_CUSTOMIZATIONS=1 playwright test tests/e2e/customization-showcase.spec.ts",
-    "electron:dev": "bun run electron:rebuild-native && bun run electron:compile && concurrently -k -n next,electron -c blue,magenta \"bun run dev\" \"wait-on http://127.0.0.1:3000 && cross-env ELECTRON_START_URL=http://127.0.0.1:3000 electron dist-electron/main.js\"",
+    "electron:dev": "bun run electron:rebuild-native && bun run electron:compile && node scripts/electron-brand-dev.mjs && concurrently -k -n next,electron -c blue,magenta \"bun run dev\" \"wait-on http://127.0.0.1:3000 && cross-env ELECTRON_START_URL=http://127.0.0.1:3000 electron dist-electron/main.js\"",
     "electron:open": "node scripts/electron-open.mjs",
     "electron:typecheck": "tsc -p electron/tsconfig.json --noEmit",
     "electron:compile": "tsc -p electron/tsconfig.json",
-    "electron:build": "bun run electron:rebuild-native && cross-env CLAUDIUS_PACKAGED=1 next build && bun run electron:compile",
+    "electron:build": "bun run electron:rebuild-native && cross-env CLAUDIUS_PACKAGED=1 NODE_ENV=production next build && node scripts/electron-stage-standalone.mjs && bun run electron:compile",
     "electron:icons": "node scripts/make-icons.mjs",
     "electron:app": "bun run electron:build && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder -m --dir",
     "electron:dist": "bun run electron:build && electron-builder -mwl",
@@ -37,7 +40,7 @@
     "electron:dist:linux": "bun run electron:build && electron-builder -l",
     "electron:rebuild-native": "electron-builder install-app-deps && node scripts/native-abi.mjs write electron",
     "electron:rebuild-native-for-node": "bun install --force better-sqlite3 && node scripts/native-abi.mjs write node",
-    "electron:smoke": "bun run electron:rebuild-native-for-node && next build && bun run electron:compile && node dist-electron/smoke.js"
+    "electron:smoke": "bun run electron:rebuild-native-for-node && cross-env NODE_ENV=production next build && bun run electron:compile && node dist-electron/smoke.js"
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.3.156",

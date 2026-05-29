@@ -714,7 +714,7 @@ export default function Home() {
                 showToast(`Goal failed: ${r.error}`);
                 return;
               }
-              void session.send(text);
+              void session.send(text, undefined, { fromGoal: true });
               showToast("Goal set — starting Claude");
             });
           } else {
@@ -935,7 +935,7 @@ export default function Home() {
       const trimmed = text.trim();
       if (!trimmed && !(images && images.length > 0)) return;
       await session.setGoal(trimmed);
-      void session.send(trimmed, images);
+      void session.send(trimmed, images, { fromGoal: true });
     },
     [session],
   );
@@ -1294,6 +1294,7 @@ export default function Home() {
             onRunCommand={handleSend}
             tips={session.tips}
             suggestedUuids={session.suggestedUuids}
+            goalUuids={session.goalUuids}
             verbose={verbose.verbose}
             pendingAskToolUseId={session.pendingAsk?.toolUseId ?? null}
             // Two paths depending on which row was clicked:

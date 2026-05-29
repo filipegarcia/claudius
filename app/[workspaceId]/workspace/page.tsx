@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Briefcase, FolderOpen, Image as ImageIcon, Save, Trash2, Type, X } from "lucide-react";
+import { ArrowLeft, Briefcase, FolderOpen, Image as ImageIcon, Save, Search, Trash2, Type, X } from "lucide-react";
 import type { PermissionMode } from "@anthropic-ai/claude-agent-sdk";
 import { SideNav } from "@/components/nav/SideNav";
 import {
@@ -73,6 +73,8 @@ export default function WorkspacePage() {
   const [saving, setSaving] = useState(false);
   const [savedTick, setSavedTick] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  // Settings search — Chrome/Firefox-style filter over the page's sections.
+  const [query, setQuery] = useState("");
 
   // Commit prefix config — separate from defaults because it isn't a
   // session-creation default.
@@ -294,6 +296,18 @@ export default function WorkspacePage() {
       prefixDirty ||
       notifyDirty);
 
+  // Case-insensitive section filter. Each section declares its title plus the
+  // field labels it contains so a query reveals the right card.
+  const q = query.trim().toLowerCase();
+  const show = (keywords: string) => !q || keywords.toLowerCase().includes(q);
+  const sIdentity = show("identity name root folder absolute path icon letter image color delete workspace");
+  const sDefaults = show("defaults for new chats model permission mode inherit accept edits plan bypass");
+  const sCommit = show("commit message prefix branch pattern template git test");
+  const sNotify = show(
+    "notifications browser inbox click jump dismiss trigger permission requested question plan session error idle scheduled finished",
+  );
+  const noMatches = !!q && !sIdentity && !sDefaults && !sCommit && !sNotify;
+
   return (
     <div className="flex h-full">
       <SideNav running={false} />
@@ -308,6 +322,30 @@ export default function WorkspacePage() {
           {active && (
             <span className="ml-2 truncate font-mono text-[var(--muted)]">{active.name}</span>
           )}
+          {active && (
+            <div className="flex-1 px-3">
+              <div className="relative mx-auto max-w-md">
+                <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--muted)]" />
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search settings"
+                  aria-label="Search settings"
+                  className="w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] py-1 pl-8 pr-7 text-xs focus:outline-none"
+                />
+                {query && (
+                  <button
+                    onClick={() => setQuery("")}
+                    title="Clear search"
+                    aria-label="Clear search"
+                    className="absolute right-1.5 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded text-[var(--muted)] hover:text-[var(--foreground)]"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
         </header>
 
         <div className="flex-1 overflow-y-auto scroll-thin">
@@ -320,6 +358,7 @@ export default function WorkspacePage() {
               {/* Identity (editable) — used to live in a modal popped from
                   the workspace tile; moved here so the rail-click can go
                   straight to chat. */}
+              {sIdentity && (
               <section>
                 <header className="mb-3">
                   <h2 className="text-base font-semibold">Identity</h2>
@@ -512,8 +551,10 @@ export default function WorkspacePage() {
                   </div>
                 </div>
               </section>
+              )}
 
               {/* Defaults */}
+              {sDefaults && (
               <section>
                 <header className="mb-3">
                   <h2 className="text-base font-semibold">Defaults for new chats</h2>
@@ -578,8 +619,10 @@ export default function WorkspacePage() {
                   the workspace JSON but are not yet applied at session-creation time.
                 </p>
               </section>
+              )}
 
               {/* Commit prefix */}
+              {sCommit && (
               <section>
                 <header className="mb-3">
                   <h2 className="text-base font-semibold">Commit message prefix</h2>
@@ -664,8 +707,10 @@ export default function WorkspacePage() {
                   </label>
                 </div>
               </section>
+              )}
 
               {/* Notifications */}
+              {sNotify && (
               <section>
                 <header className="mb-3">
                   <h2 className="text-base font-semibold">Notifications</h2>
@@ -763,6 +808,13 @@ export default function WorkspacePage() {
                   </div>
                 </div>
               </section>
+              )}
+
+              {noMatches && (
+                <div className="py-10 text-center text-sm text-[var(--muted)]">
+                  No settings match “{query}”.
+                </div>
+              )}
 
               <div className="sticky bottom-0 -mx-6 flex items-center justify-end gap-2 border-t border-[var(--border)] bg-[var(--background)]/95 px-6 py-3 backdrop-blur">
                 {savedTick > 0 && !dirty && (

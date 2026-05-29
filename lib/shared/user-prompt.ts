@@ -69,6 +69,25 @@ function isCliPlumbingText(text: string): boolean {
 }
 
 /**
+ * The Claude-only goal reminder the server prepends to the user's prompt when
+ * a session goal is set (`Session.takeGoalReminder` →
+ * `<session-goal>…</session-goal>`). It rides the SDK input — and thus the
+ * on-disk JSONL — so the model keeps the objective in mind, but the user never
+ * typed it. While the originating session is live in memory the chat shows the
+ * clean broadcast echo; once the session is resumed cold from disk the JSONL
+ * copy (wrapper + text) is all that's left, so the wrapper would surface in the
+ * user's own bubble. Strip it on display so only the real prompt shows.
+ *
+ * No-op when the wrapper isn't present (the common case), so it's safe to run
+ * on every user message.
+ */
+const GOAL_REMINDER_RE = /^\s*<session-goal>[\s\S]*?<\/session-goal>\s*/;
+
+export function stripGoalReminder(text: string): string {
+  return text.replace(GOAL_REMINDER_RE, "");
+}
+
+/**
  * Pull the plain-text body out of a user SDK message's `content`. Returns
  * null for:
  *   - empty string content,
@@ -96,7 +115,7 @@ export function extractUserPromptText(content: unknown): string | null {
     if (isTaskNotificationText(content)) return null;
     if (isCompactSummaryText(content)) return null;
     if (isCliPlumbingText(content)) return null;
-    return content;
+    return stripGoalReminder(content);
   }
   if (!Array.isArray(content)) return null;
   let text = "";
@@ -110,7 +129,7 @@ export function extractUserPromptText(content: unknown): string | null {
   if (isTaskNotificationText(text)) return null;
   if (isCompactSummaryText(text)) return null;
   if (isCliPlumbingText(text)) return null;
-  return text;
+  return stripGoalReminder(text);
 }
 
 /**

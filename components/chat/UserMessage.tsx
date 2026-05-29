@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Sparkles, Undo2 } from "lucide-react";
+import { Sparkles, Target, Undo2 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import type { AttachedImage, DisplayMessage } from "@/lib/client/types";
 import { formatMessageTime } from "@/lib/client/format-message-time";
@@ -30,9 +30,23 @@ type Props = {
    * visible (and it's DB-backed, so it survives reloads).
    */
   suggested?: boolean;
+  /**
+   * True when this message was submitted as the session goal (the header goal
+   * input or `/goal <text>`). Renders a "Goal" badge; DB-backed so it survives
+   * reloads.
+   */
+  fromGoal?: boolean;
 };
 
-export function UserMessage({ message, onRewind, rewinding, onJumpTo, sessionId, suggested }: Props) {
+export function UserMessage({
+  message,
+  onRewind,
+  rewinding,
+  onJumpTo,
+  sessionId,
+  suggested,
+  fromGoal,
+}: Props) {
   const text = message.blocks.map((b) => (b.kind === "text" ? b.text : "")).join("");
   const images = message.images ?? [];
   const stamp = formatMessageTime(message.createdAt);
@@ -53,7 +67,16 @@ export function UserMessage({ message, onRewind, rewinding, onJumpTo, sessionId,
         onClick={onJumpTo ? handleJump : undefined}
         title={onJumpTo ? "Scroll to this message" : undefined}
       >
-        {suggested && (
+        {fromGoal && (
+          <div
+            data-testid="user-message-goal-badge"
+            className="mb-1 flex items-center justify-end gap-1 text-[10px] uppercase tracking-wide text-[var(--accent)]"
+            title="Sent as the session goal"
+          >
+            <Target className="h-3 w-3" /> Goal
+          </div>
+        )}
+        {suggested && !fromGoal && (
           <div
             className="mb-1 flex items-center justify-end gap-1 text-[10px] uppercase tracking-wide text-[var(--muted)]"
             title="Sent from a suggested follow-up"

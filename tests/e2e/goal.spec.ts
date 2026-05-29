@@ -124,5 +124,40 @@ test.describe("Session goal", () => {
     // The prominent banner replaces the editor.
     await expect(page.getByTestId("goal-banner")).toBeVisible({ timeout: 15_000 });
     await expect(page.getByTestId("goal-banner-text")).toHaveText(goalText);
+
+    // The goal text is also sent as a user message, badged "Goal" (optimistic
+    // — appears immediately, independent of the agent turn it kicks off).
+    await expect(page.getByTestId("user-message-goal-badge")).toBeVisible({ timeout: 15_000 });
+  });
+
+  test("goal provenance round-trips through the DB", async ({ page }) => {
+    await page.goto("/");
+    const sessionId = await waitForBoundSession(page);
+    await expect(page.getByTestId("prompt-input")).toBeVisible({ timeout: 30_000 });
+
+    // Send a user message flagged `fromGoal` straight through the input API
+    // (from the browser context, where the session is bound). The route
+    // records (session_id, uuid) in `goal_messages`; the agent turn it queues
+    // is irrelevant to this assertion.
+    const uuid = "11111111-2222-4333-8444-555555555555";
+    const status = await page.evaluate(
+      async ({ id, u }) => {
+        const r = await fetch(`/api/sessions/${id}/input`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: "make the tests pass", uuid: u, fromGoal: true }),
+        });
+        return r.status;
+      },
+      { id: sessionId, u: uuid },
+    );
+    expect(status).toBe(200);
+
+    // The provenance is now queryable — survives reload via this endpoint.
+    const uuids = await page.evaluate(async (id) => {
+      const r = await fetch(`/api/sessions/${id}/goal-messages`);
+      return (await r.json()) as { uuids?: string[] };
+    }, sessionId);
+    expect(uuids.uuids ?? []).toContain(uuid);
   });
 });

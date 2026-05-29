@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Bot, ChevronDown, ChevronRight, FilePlus, RefreshCw, Save, Trash2 } from "lucide-react";
+import { ArrowLeft, Bot, ChevronDown, ChevronRight, FilePlus, RefreshCw, Save, Search, Trash2, X } from "lucide-react";
 import { SideNav } from "@/components/nav/SideNav";
 import { ScopeToggle, type Scope as IaScope } from "@/components/nav/ScopeToggle";
 import { useActiveCwd } from "@/lib/client/useActiveCwd";
@@ -59,6 +59,8 @@ export default function AgentsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [iaScope, setIaScope] = useState<IaScope>("workspace");
+  // Search — Chrome/Firefox-style filter over the agent list by name/description/tools/model.
+  const [query, setQuery] = useState("");
 
   // Live SDK-loaded agents for the active session (file + plugin + built-in).
   // `sessionId` is discovered from the in-memory session list by matching the
@@ -85,6 +87,15 @@ export default function AgentsPage() {
       setLoading(false);
     }
   }, [cwd]);
+
+  useEffect(() => {
+    // Fetch on mount and whenever cwd changes (refresh is memoized on it).
+    // Standard React data-fetching pattern; the setState calls inside refresh
+    // are the data load itself, not an effect chain. Without this the page
+    // stays stuck on its initial `loading = true` forever.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void refresh();
+  }, [refresh]);
 
   // Discover the live session for this workspace and fetch the SDK's loaded
   // agent list. Two-step (sessions → agents) because the page is cwd-scoped
@@ -220,6 +231,8 @@ export default function AgentsPage() {
   );
   const totalFiles = useMemo(() => visibleScopes.reduce((n, s) => n + s.files.length, 0), [visibleScopes]);
 
+  const q = query.trim().toLowerCase();
+
   return (
     <div className="flex h-full">
       <SideNav running={false} />
@@ -235,9 +248,31 @@ export default function AgentsPage() {
           <span className="text-[var(--muted)]">({totalFiles})</span>
           {loading && <span className="text-[var(--muted)]">loading…</span>}
           {error && <span className="text-red-400">{error}</span>}
+          <div className="flex-1 px-3">
+            <div className="relative mx-auto max-w-md">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--muted)]" />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search agents"
+                aria-label="Search agents"
+                className="w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] py-1 pl-8 pr-7 text-xs focus:outline-none"
+              />
+              {query && (
+                <button
+                  onClick={() => setQuery("")}
+                  title="Clear search"
+                  aria-label="Clear search"
+                  className="absolute right-1.5 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded text-[var(--muted)] hover:text-[var(--foreground)]"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              )}
+            </div>
+          </div>
           <button
             onClick={refresh}
-            className="ml-auto flex items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-0.5 hover:bg-[var(--panel)]"
+            className="flex items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-0.5 hover:bg-[var(--panel)]"
           >
             <RefreshCw className="h-3 w-3" /> Refresh
           </button>
@@ -296,7 +331,17 @@ export default function AgentsPage() {
 
         <div className="flex flex-1 overflow-hidden">
           <aside className="flex w-72 shrink-0 flex-col border-r border-[var(--border)] bg-[var(--panel)]/60">
-            {visibleScopes.map(({ scope, files }) => (
+            {visibleScopes.map(({ scope, files }) => {
+              const shown = q
+                ? files.filter((f) => {
+                    const fm = f.frontmatter as { description?: string; tools?: string[]; model?: string };
+                    const tools = Array.isArray(fm.tools) ? fm.tools : [];
+                    return `${f.name} ${fm.description ?? ""} ${fm.model ?? ""} ${tools.join(" ")}`
+                      .toLowerCase()
+                      .includes(q);
+                  })
+                : files;
+              return (
               <div key={scope} className="border-b border-[var(--border)]">
                 <div className="flex items-center gap-2 px-3 py-2 text-xs">
                   <span className="font-medium">{SCOPE_LABELS[scope]}</span>
@@ -310,10 +355,12 @@ export default function AgentsPage() {
                   </button>
                 </div>
                 <ul>
-                  {files.length === 0 ? (
-                    <li className="px-3 py-2 text-[11px] italic text-[var(--muted)]">No agents yet.</li>
+                  {shown.length === 0 ? (
+                    <li className="px-3 py-2 text-[11px] italic text-[var(--muted)]">
+                      {q ? "No agents match." : "No agents yet."}
+                    </li>
                   ) : (
-                    files.map((f) => {
+                    shown.map((f) => {
                       const isActive = active?.scope === f.scope && active?.name === f.name;
                       const fm = f.frontmatter as {
                         description?: string;
@@ -400,7 +447,8 @@ export default function AgentsPage() {
                   )}
                 </ul>
               </div>
-            ))}
+              );
+            })}
           </aside>
 
           <div className="flex flex-1 flex-col">

@@ -5,18 +5,28 @@ productName: Claudius
 copyright: Copyright (c) ${author}
 artifactName: ${productName}-${version}-${os}-${arch}.${ext}
 
+# Adhoc-sign certless macOS builds so the bundle's signing identity binds the
+# real bundle id (network.claudius.desktop) instead of the generic "Electron".
+# macOS gates Notification Center delivery on that identity — without this,
+# notifications fire in JS but are silently dropped. The hook no-ops for real
+# Developer ID signed/notarized builds (electron:dist:mac). See build/after-pack.js.
+afterPack: build/after-pack.js
+
 directories:
   buildResources: build
   output: release
 
-# Files included in the asar package. The renderer is served from the
-# Next.js standalone output produced by `next build` with
-# `output: "standalone"`.
+# Files included in the asar package. Only the compiled main-process bundle
+# lives in the asar — the Next.js standalone server tree is shipped verbatim
+# as an extraResource (see below), NOT here. electron-builder strips every
+# nested `node_modules/` from `files:` globs (it manages root deps separately),
+# which would silently drop the standalone's bundled deps — including the
+# Turbopack-hashed external aliases (`better-sqlite3-<hash>`) the server chunks
+# `require()` — and native `.node` files can't be dlopen'd from inside an asar
+# anyway. extraResources copies with no such filtering, onto the real
+# filesystem, so the embedded server resolves and loads them normally.
 files:
   - dist-electron/**/*
-  - .next/standalone/**/*
-  - .next/static/**/*
-  - public/**/*
   - package.json
   - "!**/*.{md,map,d.ts}"
   - "!**/test-utils/**"
@@ -42,6 +52,16 @@ extraResources:
   - from: lib/server/db-migrations
     to: db-migrations
     filter: ["**/*.sql"]
+  # The Next.js standalone server tree, copied verbatim to
+  # `<app>/Contents/Resources/standalone`. The embedded server
+  # (electron/server.ts) runs `next({ dir })` against this path — see
+  # `defaultAppDir()`. Shipped here (not in the asar) so its bundled
+  # node_modules and native `.node` files survive packaging and load at
+  # runtime. `scripts/electron-stage-standalone.mjs` runs before this to copy
+  # `.next/static` + `public/` in and materialize Turbopack's symlinked
+  # external aliases into real dirs.
+  - from: .next/standalone
+    to: standalone
 
 # Publish to GitHub Releases by default. Override CSC_*, APPLE_ID,
 # APPLE_APP_SPECIFIC_PASSWORD, APPLE_TEAM_ID in CI.

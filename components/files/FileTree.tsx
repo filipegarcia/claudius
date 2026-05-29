@@ -20,14 +20,63 @@ type Props = {
    * auto-expand its ancestor folders so a deep-linked nested file is visible.
    */
   selectedPath?: string | null;
+  /**
+   * When non-empty, the tree switches to search mode: a flat list of every
+   * file (at any depth) whose workspace-relative path matches the query,
+   * fetched from the server (`?search=`). Empty string = normal lazy tree.
+   */
+  query?: string;
 };
 
-export function FileTree({ workspaceId, onPick, selectedPath }: Props) {
+export function FileTree({ workspaceId, onPick, selectedPath, query }: Props) {
   const [root, setRoot] = useState<Entry[]>([]);
   const [expanded, setExpanded] = useState<Record<string, Entry[]>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(selectedPath ?? null);
+  const [searchResults, setSearchResults] = useState<Entry[] | null>(null);
+  const [searchTruncated, setSearchTruncated] = useState(false);
+  const q = (query ?? "").trim();
+
+  // Clear stale results when the query empties (so leaving search mode doesn't
+  // flash the old list). While typing one non-empty query into another we keep
+  // the previous results visible until the new ones land — feels snappier than
+  // blanking to "Searching…" on every keystroke. Render-phase "store previous
+  // props" pattern, so no setState-in-effect.
+  const [lastQuery, setLastQuery] = useState(q);
+  if (lastQuery !== q) {
+    setLastQuery(q);
+    if (!q) {
+      setSearchResults(null);
+      setSearchTruncated(false);
+    }
+  }
+
+  // Debounced server-side search. All setState lives in the timeout/promise
+  // callbacks (never the effect body) to stay clear of set-state-in-effect.
+  useEffect(() => {
+    if (!q) return;
+    let cancelled = false;
+    const t = setTimeout(() => {
+      fetch(`/api/workspaces/${workspaceId}/files?search=${encodeURIComponent(q)}`)
+        .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
+        .then((d: { entries?: Entry[]; truncated?: boolean }) => {
+          if (cancelled) return;
+          setSearchResults(Array.isArray(d.entries) ? d.entries : []);
+          setSearchTruncated(Boolean(d.truncated));
+        })
+        .catch(() => {
+          if (!cancelled) {
+            setSearchResults([]);
+            setSearchTruncated(false);
+          }
+        });
+    }, 200);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [q, workspaceId]);
 
   // Mirror externally-driven selection (deep-link, or the parent opening a
   // file) into the highlight. "Store previous props" pattern so the update
@@ -135,6 +184,43 @@ export function FileTree({ workspaceId, onPick, selectedPath }: Props) {
     },
     [expanded, load],
   );
+
+  // Search mode: flat list of matches (full relPath shown so the containing
+  // folder is visible). Takes precedence over the lazy tree / its loading state.
+  if (q) {
+    if (searchResults === null)
+      return <div className="px-3 py-3 text-xs text-[var(--muted)]">Searching…</div>;
+    if (searchResults.length === 0)
+      return <div className="px-3 py-3 text-xs text-[var(--muted)]">No files match.</div>;
+    return (
+      <ul className="text-xs">
+        {searchResults.map((e) => (
+          <li key={e.relPath}>
+            <button
+              onClick={() => {
+                setSelected(e.relPath);
+                if (onPick) onPick(e);
+              }}
+              title={e.relPath}
+              className={cn(
+                "flex w-full min-w-0 items-center gap-1 rounded-md px-2 py-0.5 text-left",
+                "hover:bg-[var(--panel-2)]",
+                selected === e.relPath && "bg-[var(--panel-2)]",
+              )}
+            >
+              <File className="h-3 w-3 shrink-0 text-[var(--muted)]" />
+              <span className="min-w-0 flex-1 truncate font-mono">{e.relPath}</span>
+            </button>
+          </li>
+        ))}
+        {searchTruncated && (
+          <li className="px-3 py-1 text-[10px] italic text-[var(--muted)]">
+            Showing first {searchResults.length} matches…
+          </li>
+        )}
+      </ul>
+    );
+  }
 
   if (loading) return <div className="px-3 py-3 text-xs text-[var(--muted)]">Loading…</div>;
   if (error)

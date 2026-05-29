@@ -6,7 +6,7 @@
     <title>Claudius — Claude Code in the browser</title>
     <meta
       name="description"
-      content="Claude Code in your browser. Chat, tool calls, MCP, plugins, hooks, sub-agents, scheduling, memory, sessions, cost — all running locally on your machine."
+      content="Claudius gives Claude Code a real UI — chat, workflows, agents, MCP, and all the rest, in the browser and desktop. It even reshapes itself: code the feature your workflow is missing directly into your workspace. Runs on your machine."
     />
     <link rel="icon" type="image/svg+xml" href="icon.svg" />
     <link rel="apple-touch-icon" href="apple-icon.png" />
@@ -14,7 +14,7 @@
     <meta property="og:title" content="Claudius — Claude Code in the browser" />
     <meta
       property="og:description"
-      content="Chat, sub-agents, MCP, plugins, hooks, scheduling, memory, cost — local-first, in your browser."
+      content="Chat, workflows, agents, MCP, and all the rest, in the browser and desktop. It even reshapes itself — code the feature your workflow is missing directly into your workspace."
     />
     <meta property="og:image" content="screenshots/chat.png" />
 
@@ -292,12 +292,20 @@
         </blockquote>
 
         <h1 class="text-[2.5rem] leading-[1.05] sm:text-5xl md:text-6xl font-semibold tracking-tight">
-          Roll your own <span class="text-accent">agent harness</span>.
+          Claudius gives
+          <a
+            href="#legal"
+            class="underline decoration-dotted decoration-line/50 underline-offset-[6px] hover:decoration-fg transition"
+            title="Claude® and Claude Code® are trademarks of Anthropic, PBC — read the notice"
+            >Claude Code</a
+          >
+          a <span class="text-accent">real UI</span>.
         </h1>
         <p class="mt-6 text-lg md:text-xl text-muted max-w-2xl mx-auto leading-relaxed">
-          Chat, tool calls, MCP, plugins, hooks, sub-agents, scheduling,
-          memory, cost — every Claude Code surface, on the web. Runs on
-          your machine. Your sessions stay yours.
+          Chat, workflows, agents, MCP, and all the rest, in the browser
+          and desktop. It even reshapes itself: code the feature your
+          workflow is missing directly into your workspace. Runs on your
+          machine. Your sessions stay yours.
         </p>
         <div class="mt-10 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3">
           <a
@@ -609,7 +617,21 @@ HOST=0.0.0.0 PORT=8080 make up     # reachable from your LAN (careful)</code></p
             </figcaption>
           </figure>
 
-          <!-- 3 ask user question -->
+          <!-- 3 goal -->
+          <figure class="shot group rounded-lg border border-line overflow-hidden cursor-zoom-in hover:border-accent/70 transition-colors" role="button" tabindex="0">
+            <img
+              src="screenshots/goal-states.png"
+              alt="Session goal: set, then achieved"
+              loading="lazy"
+              onerror="this.onerror=null;this.src='screenshots/_placeholder.svg'"
+            />
+            <figcaption class="px-5 py-4 border-t border-line">
+              <div class="font-mono text-xs text-accent">/ · goal</div>
+              <div class="text-sm text-fg">Set a goal and Claude starts working on it right away. It stays pinned in the header — tracked across turns until the agent reports it achieved, with a one-line summary of what got done.</div>
+            </figcaption>
+          </figure>
+
+          <!-- 4 ask user question -->
           <figure class="shot group rounded-lg border border-line overflow-hidden cursor-zoom-in hover:border-accent/70 transition-colors" role="button" tabindex="0">
             <img
               src="screenshots/ask-user-question.png"
@@ -623,7 +645,21 @@ HOST=0.0.0.0 PORT=8080 make up     # reachable from your LAN (careful)</code></p
             </figcaption>
           </figure>
 
-          <!-- 4 sessions -->
+          <!-- 4 workflow -->
+          <figure class="shot group rounded-lg border border-line overflow-hidden cursor-zoom-in hover:border-accent/70 transition-colors" role="button" tabindex="0">
+            <img
+              src="screenshots/workflow.png"
+              alt="Dynamic workflow running inline"
+              loading="lazy"
+              onerror="this.onerror=null;this.src='screenshots/_placeholder.svg'"
+            />
+            <figcaption class="px-5 py-4 border-t border-line">
+              <div class="font-mono text-xs text-accent">/ · workflow</div>
+              <div class="text-sm text-fg">For bigger jobs, Claude fans out a workflow — parallel sub-agents across phases. It renders inline: declared phases, live progress, and the script, collapsible right in the transcript.</div>
+            </figcaption>
+          </figure>
+
+          <!-- 5 sessions -->
           <figure class="shot group rounded-lg border border-line overflow-hidden cursor-zoom-in hover:border-accent/70 transition-colors" role="button" tabindex="0">
             <img
               src="screenshots/sessions.png"

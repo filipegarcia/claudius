@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, RefreshCw, Save, Settings as SettingsIcon, X } from "lucide-react";
+import { ArrowLeft, RefreshCw, Save, Search, Settings as SettingsIcon, X } from "lucide-react";
 import { SideNav } from "@/components/nav/SideNav";
 import { useActiveCwd } from "@/lib/client/useActiveCwd";
 import { useSettings } from "@/lib/client/useSettings";
@@ -31,6 +31,10 @@ export default function SettingsPage() {
   const settings = useSettings(cwd);
   const [scope, setScope] = useState<SettingsScope>("user");
   const [showRaw, setShowRaw] = useState(false);
+  // Settings search — Chrome/Firefox-style filter that hides any section whose
+  // name/keywords don't match the query. Ignored in Raw JSON mode (one big
+  // textarea, nothing to filter).
+  const [query, setQuery] = useState("");
   const [draft, setDraft] = useState<ClaudeSettings>({});
   const [rawDraft, setRawDraft] = useState<string>("");
   const [rawError, setRawError] = useState<string | null>(null);
@@ -90,6 +94,61 @@ export default function SettingsPage() {
     setDirty(true);
   };
 
+  // Case-insensitive substring match for the settings search. Each section
+  // declares a bag of keywords (its title plus the field labels / concepts it
+  // contains) so a query like "compact" or "status line" reveals the right
+  // section. Disabled in Raw JSON mode so the textarea is never hidden.
+  const q = showRaw ? "" : query.trim().toLowerCase();
+  const show = (keywords: string) => !q || keywords.toLowerCase().includes(q);
+
+  // Self-contained sections — filtered as whole units (their bodies are custom
+  // widgets, not a flat list of fields).
+  const sEditor = show("open in editor file paths tool blocks url scheme editor vscode click-through");
+  const sTheme = show("web app theme dark light color appearance browser ui");
+  const sUpdater = show("updater auto update version release channel app update install");
+  const sShortcuts = show("keyboard shortcuts keybindings tab cycling navigation side nav workspace");
+  const sRateLimit = show("rate limit warning threshold usage pill chat");
+  const sContext = show("context window warning compact banner threshold nudge chat");
+  const sBackup = show("backup restore export import config bundle json snapshot");
+  // Model & UI / Memory — matched per row against each field's label, so a query
+  // like "output style" or "automemorydirectory" reveals just that row. A match
+  // on the section title forces all of its rows to show.
+  const fModelUi = show("model & ui defaults startup");
+  const rModel = fModelUi || show("model");
+  const rCliTheme = fModelUi || show("theme (cli rendering)");
+  const rOutputStyle = fModelUi || show("output style");
+  const rStatusLine = fModelUi || show("status line script");
+  const sModelUi = rModel || rCliTheme || rOutputStyle || rStatusLine;
+
+  const fMemory = show("memory");
+  const rAutoMemory = fMemory || show("automemoryenabled auto-memory");
+  const rAutoDream = fMemory || show("autodreamenabled auto-dream consolidation");
+  const rAutoMemDir = fMemory || show("automemorydirectory directory");
+  const rClaudeMdExcludes = fMemory || show("claudemdexcludes comma-separated globs");
+  const sMemory = rAutoMemory || rAutoDream || rAutoMemDir || rClaudeMdExcludes;
+
+  // Chat has a single row, so its card guard is already row-level.
+  const sChat = show("chat promptsuggestionenabled prompt suggestion follow-up chips composer");
+  const sEnv = show("environment env variables key value");
+  const sPlugins = show("plugins enabled plugin marketplace");
+  const sOther = show("other keys custom advanced extra json");
+
+  // Catalog sections (data-driven) — filtered down to the matching fields, and
+  // dropped entirely when nothing in them matches. A section-title match forces
+  // all of its fields to show.
+  const catalogEntries = Object.entries(CATALOG_SECTIONS)
+    .map(([section, metas]) => {
+      const forced = show(section);
+      const visible = metas.filter((m) => forced || show(`${m.key} ${m.desc}`));
+      return [section, visible] as const;
+    })
+    .filter(([, visible]) => visible.length > 0);
+
+  const anyMatch =
+    sEditor || sTheme || sUpdater || sShortcuts || sRateLimit || sContext || sBackup ||
+    sModelUi || sMemory || sChat || sEnv || sPlugins || sOther || catalogEntries.length > 0;
+  const noMatches = !!q && !anyMatch;
+
   return (
     <div className="flex h-full">
       <SideNav running={false} />
@@ -103,9 +162,35 @@ export default function SettingsPage() {
           <span className="font-medium">Settings</span>
           {settings.loading && <span className="text-[var(--muted)]">loading…</span>}
           {settings.error && <span className="text-red-400">{settings.error}</span>}
+          {showRaw ? (
+            <div className="flex-1" />
+          ) : (
+            <div className="flex-1 px-3">
+              <div className="relative mx-auto max-w-md">
+                <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--muted)]" />
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search settings"
+                  aria-label="Search settings"
+                  className="w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] py-1 pl-8 pr-7 text-xs focus:outline-none"
+                />
+                {query && (
+                  <button
+                    onClick={() => setQuery("")}
+                    title="Clear search"
+                    aria-label="Clear search"
+                    className="absolute right-1.5 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded text-[var(--muted)] hover:text-[var(--foreground)]"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
           <button
             onClick={settings.refresh}
-            className="ml-auto flex items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-0.5 hover:bg-[var(--panel)]"
+            className="flex items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-0.5 hover:bg-[var(--panel)]"
           >
             <RefreshCw className="h-3 w-3" /> Refresh
           </button>
@@ -150,6 +235,7 @@ export default function SettingsPage() {
 
         <div className="flex-1 overflow-y-auto scroll-thin">
           <div className="mx-auto max-w-4xl space-y-5 px-6 py-6">
+            {sEditor && (
             <Section
               title="Open in editor"
               subtitle="Click-through editor for file paths in tool blocks. URL scheme only — no install required."
@@ -175,7 +261,9 @@ export default function SettingsPage() {
                 {EDITORS.find((e) => e.id === ide.editor)?.hint}
               </div>
             </Section>
+            )}
 
+            {sTheme && (
             <Section title="Web app theme" subtitle="Applies to the Claudius browser UI only.">
               <div className="flex flex-wrap gap-2">
                 {THEMES.map((t) => (
@@ -204,32 +292,33 @@ export default function SettingsPage() {
                 ))}
               </div>
             </Section>
+            )}
 
             {/* Install-wide updater settings — independent of the User/Project/Local
                 scope tabs above (those edit Claude's settings.json; this hits the
                 separate updater.json store). Always visible regardless of scope. */}
-            <UpdaterSettingsSection />
+            {sUpdater && <UpdaterSettingsSection />}
 
             {/* Browser-only keyboard shortcuts (tab cycling, side-nav nav, workspace
                 cycling). Persisted to localStorage, so it sits outside the scope
                 tabs above. The CLI input keybindings live on /keybindings. */}
-            <ShortcutsSection />
+            {sShortcuts && <ShortcutsSection />}
 
             {/* Browser-local threshold for the chat-side rate-limit pill —
                 also outside the scope tabs because it's a Claudius UI knob,
                 not a Claude Code settings.json value. */}
-            <RateLimitWarningSection />
+            {sRateLimit && <RateLimitWarningSection />}
 
             {/* Browser-local threshold for the chat-side context-window
                 warning banner (the one-click Compact nudge). Also outside the
                 scope tabs — a Claudius UI knob, separate from Claude Code's
                 autoCompactEnabled / autoCompactWindow settings. */}
-            <ContextWarningSection />
+            {sContext && <ContextWarningSection />}
 
             {/* Backup / restore the full Claudius config as one JSON bundle.
                 Outside the scope tabs because it spans every scope and
                 every workspace, not a single settings.json file. */}
-            <BackupSection />
+            {sBackup && <BackupSection />}
 
             {showRaw ? (
               <Section title="Raw JSON" subtitle="Direct edit of the settings file.">
@@ -252,7 +341,9 @@ export default function SettingsPage() {
               </Section>
             ) : (
               <>
+                {sModelUi && (
                 <Section title="Model & UI" subtitle="Defaults Claude Code reads on startup.">
+                  {rModel && (
                   <Field label="Model">
                     <input
                       value={(draft.model as string | undefined) ?? ""}
@@ -261,6 +352,8 @@ export default function SettingsPage() {
                       className="w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 font-mono text-xs focus:outline-none"
                     />
                   </Field>
+                  )}
+                  {rCliTheme && (
                   <Field label="Theme (CLI rendering)">
                     <select
                       value={(draft.theme as string | undefined) ?? ""}
@@ -275,6 +368,8 @@ export default function SettingsPage() {
                       ))}
                     </select>
                   </Field>
+                  )}
+                  {rOutputStyle && (
                   <Field label="Output style">
                     <select
                       value={(draft.outputStyle as string | undefined) ?? ""}
@@ -289,6 +384,8 @@ export default function SettingsPage() {
                       ))}
                     </select>
                   </Field>
+                  )}
+                  {rStatusLine && (
                   <Field label="Status line script">
                     <input
                       value={
@@ -303,21 +400,29 @@ export default function SettingsPage() {
                       className="w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 font-mono text-xs focus:outline-none"
                     />
                   </Field>
+                  )}
                 </Section>
+                )}
 
+                {sMemory && (
                 <Section title="Memory">
+                  {rAutoMemory && (
                   <ToggleRow
                     label="autoMemoryEnabled"
                     checked={Boolean(draft.autoMemoryEnabled)}
                     onChange={(b) => update({ autoMemoryEnabled: b ? true : undefined })}
                     description="Enable auto-memory for this project. When false, Claude will not read from or write to the auto-memory directory."
                   />
+                  )}
+                  {rAutoDream && (
                   <ToggleRow
                     label="autoDreamEnabled"
                     checked={Boolean(draft.autoDreamEnabled)}
                     onChange={(b) => update({ autoDreamEnabled: b ? true : undefined })}
                     description="Enable background memory consolidation (auto-dream). When set, overrides the server-side default."
                   />
+                  )}
+                  {rAutoMemDir && (
                   <Field label="autoMemoryDirectory">
                     <input
                       value={(draft.autoMemoryDirectory as string | undefined) ?? ""}
@@ -326,6 +431,8 @@ export default function SettingsPage() {
                       className="w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 font-mono text-xs focus:outline-none"
                     />
                   </Field>
+                  )}
+                  {rClaudeMdExcludes && (
                   <Field label="claudeMdExcludes (comma-separated globs)">
                     <input
                       value={
@@ -345,8 +452,11 @@ export default function SettingsPage() {
                       className="w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 font-mono text-xs focus:outline-none"
                     />
                   </Field>
+                  )}
                 </Section>
+                )}
 
+                {sChat && (
                 <Section title="Chat">
                   <ToggleRow
                     label="promptSuggestionEnabled"
@@ -355,8 +465,9 @@ export default function SettingsPage() {
                     description="Show AI-predicted follow-up prompts as clickable chips under the composer after each turn. On by default."
                   />
                 </Section>
+                )}
 
-                {Object.entries(CATALOG_SECTIONS).map(([section, metas]) => (
+                {catalogEntries.map(([section, metas]) => (
                   <Section
                     key={section}
                     title={section}
@@ -368,6 +479,7 @@ export default function SettingsPage() {
                   </Section>
                 ))}
 
+                {sEnv && (
                 <Section title="Environment">
                   <EnvEditor
                     value={(draft.env as Record<string, string> | undefined) ?? {}}
@@ -376,19 +488,30 @@ export default function SettingsPage() {
                     }
                   />
                 </Section>
+                )}
 
+                {sPlugins && (
                 <Section title="Plugins" subtitle="Read-only here — manage via /plugin (Phase 13).">
                   <pre className="rounded-md border border-[var(--border)] bg-[var(--panel-2)] p-3 font-mono text-[11px] scroll-thin overflow-auto">
                     {JSON.stringify(draft.enabledPlugins ?? {}, null, 2)}
                   </pre>
                 </Section>
+                )}
 
+                {sOther && (
                 <Section
                   title="Other"
                   subtitle="Every other key in this file, editable. Booleans become toggles, scalars become inputs, and objects/arrays get a JSON editor."
                 >
                   <OtherEditor key={activeKey} draft={draft} update={update} />
                 </Section>
+                )}
+
+                {noMatches && (
+                  <div className="py-10 text-center text-xs text-[var(--muted)]">
+                    No settings match “{query}”.
+                  </div>
+                )}
               </>
             )}
           </div>

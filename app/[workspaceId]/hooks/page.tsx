@@ -9,8 +9,10 @@ import {
   Plus,
   PowerOff,
   RefreshCw,
+  Search,
   Trash2,
   Webhook,
+  X,
 } from "lucide-react";
 import { SideNav } from "@/components/nav/SideNav";
 import { ScopeToggle, type Scope as IaScope } from "@/components/nav/ScopeToggle";
@@ -40,6 +42,8 @@ export default function HooksPage() {
   const [scope, setScope] = useState<SettingsScope>("project");
   const [showAdd, setShowAdd] = useState(false);
   const [iaScope, setIaScope] = useState<IaScope>("workspace");
+  // Search — Chrome/Firefox-style filter over the hook events by name/description.
+  const [query, setQuery] = useState("");
 
   // Keep `scope` in the visible set when the IA toggle flips.
   function setIaScopeWithSnap(next: IaScope) {
@@ -70,6 +74,19 @@ export default function HooksPage() {
     return n;
   }, [hooks.scopes]);
 
+  // Filter events by name/description. A category-label match reveals all of
+  // its events; categories with no matching event are dropped.
+  const q = query.trim().toLowerCase();
+  const filteredCategories = CATEGORY_ORDER.map((cat) => {
+    const items = grouped.get(cat) ?? [];
+    const catMatch = !q || CATEGORY_LABELS[cat].toLowerCase().includes(q);
+    const visible = catMatch
+      ? items
+      : items.filter((it) => `${it.spec.name} ${it.spec.description}`.toLowerCase().includes(q));
+    return { cat, items, visible };
+  }).filter((c) => c.visible.length > 0);
+  const noHookMatches = !!q && filteredCategories.length === 0;
+
   return (
     <div className="flex h-full">
       <SideNav running={false} />
@@ -85,9 +102,31 @@ export default function HooksPage() {
           <span className="text-[var(--muted)]">({totalConfigured} configured)</span>
           {hooks.loading && <span className="text-[var(--muted)]">loading…</span>}
           {hooks.error && <span className="text-red-400">{hooks.error}</span>}
+          <div className="flex-1 px-3">
+            <div className="relative mx-auto max-w-md">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--muted)]" />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search hooks"
+                aria-label="Search hooks"
+                className="w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] py-1 pl-8 pr-7 text-xs focus:outline-none"
+              />
+              {query && (
+                <button
+                  onClick={() => setQuery("")}
+                  title="Clear search"
+                  aria-label="Clear search"
+                  className="absolute right-1.5 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded text-[var(--muted)] hover:text-[var(--foreground)]"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              )}
+            </div>
+          </div>
           <button
             onClick={() => hooks.refresh()}
-            className="ml-auto flex items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-0.5 hover:bg-[var(--panel)]"
+            className="flex items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-0.5 hover:bg-[var(--panel)]"
           >
             <RefreshCw className="h-3 w-3" /> Refresh
           </button>
@@ -144,8 +183,7 @@ export default function HooksPage() {
               />
             )}
 
-            {CATEGORY_ORDER.map((cat) => {
-              const items = grouped.get(cat) ?? [];
+            {filteredCategories.map(({ cat, items, visible }) => {
               const hasAny = items.some((it) => it.groups.length > 0);
               return (
                 <section key={cat} className="mb-5">
@@ -153,7 +191,7 @@ export default function HooksPage() {
                     {CATEGORY_LABELS[cat]}
                   </h2>
                   <ul className="space-y-1.5">
-                    {items.map((it) => (
+                    {visible.map((it) => (
                       <EventRow
                         key={it.spec.name}
                         spec={it.spec}
@@ -166,6 +204,12 @@ export default function HooksPage() {
                 </section>
               );
             })}
+
+            {noHookMatches && (
+              <div className="py-10 text-center text-sm text-[var(--muted)]">
+                No hooks match “{query}”.
+              </div>
+            )}
           </div>
         </div>
       </main>

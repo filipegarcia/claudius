@@ -1,8 +1,8 @@
 # Claudius
 
-**Claude Code in the browser.** Built on the [Claude Agent SDK](https://www.npmjs.com/package/@anthropic-ai/claude-agent-sdk).
+**Claudius gives [Claude Code](./TRADEMARKS.md) a real UI.** Built on the [Claude Agent SDK](https://www.npmjs.com/package/@anthropic-ai/claude-agent-sdk).
 
-Every Claude Code surface — chat, tool calls, sub-agents, MCP, plugins, hooks, skills, scheduling, memory, cost — on the web. Runs on your machine. Your sessions stay yours.
+Chat, workflows, agents, MCP, and all the rest, in the browser and desktop. It even reshapes itself: code the feature your workflow is missing directly into your workspace. Runs on your machine. Your sessions stay yours.
 
 > Claudius is an independent, open-source project and is not affiliated with, sponsored by, or endorsed by Anthropic, PBC. See [TRADEMARKS.md](./TRADEMARKS.md).
 

@@ -89,31 +89,35 @@ export default function SessionsPage() {
           <span className="text-[var(--muted)]">({scopedSessions.length})</span>
           {loading && <span className="text-[var(--muted)]">loading…</span>}
           {error && <span className="text-red-400">{error}</span>}
+          <div className="flex-1 px-3">
+            <div className="relative mx-auto max-w-md">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--muted)]" />
+              <input
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+                placeholder="Search by id, prompt, cwd, branch…"
+                aria-label="Search sessions"
+                className="w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] py-1 pl-8 pr-7 text-xs focus:outline-none"
+              />
+              {filter && (
+                <button
+                  onClick={() => setFilter("")}
+                  title="Clear search"
+                  aria-label="Clear search"
+                  className="absolute right-1.5 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded text-[var(--muted)] hover:text-[var(--foreground)]"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              )}
+            </div>
+          </div>
           <button
             onClick={() => refresh()}
-            className="ml-auto rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-0.5 hover:bg-[var(--panel)]"
+            className="rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-0.5 hover:bg-[var(--panel)]"
           >
             Refresh
           </button>
         </header>
-
-        <div className="flex items-center gap-2 border-b border-[var(--border)] bg-[var(--panel)]/40 px-4 py-2">
-          <Search className="h-3.5 w-3.5 text-[var(--muted)]" />
-          <input
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            placeholder="Filter by id, prompt, cwd, branch…"
-            className="flex-1 bg-transparent text-sm focus:outline-none"
-          />
-          {filter && (
-            <button
-              onClick={() => setFilter("")}
-              className="rounded p-0.5 text-[var(--muted)] hover:bg-[var(--panel-2)] hover:text-[var(--foreground)]"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          )}
-        </div>
 
         {branches.length > 1 && (
           <div className="flex items-center gap-2 overflow-x-auto border-b border-[var(--border)] bg-[var(--panel)]/30 px-4 py-1.5 scroll-thin">

@@ -25,6 +25,7 @@ import {
   isSyntheticTaskNotification,
   parseSyntheticCliWrapper,
 } from "./sdk-message-filters";
+import { stripGoalReminder } from "@/lib/shared/user-prompt";
 import {
   findToolUseBlock,
   isBackgroundedToolUse,
@@ -267,7 +268,7 @@ export function extractUserContent(content: unknown): {
   text: string;
   images: AttachedImage[];
 } {
-  if (typeof content === "string") return { text: content, images: [] };
+  if (typeof content === "string") return { text: stripGoalReminder(content), images: [] };
   if (!Array.isArray(content)) return { text: "", images: [] };
   let text = "";
   const images: AttachedImage[] = [];
@@ -299,7 +300,10 @@ export function extractUserContent(content: unknown): {
       }
     }
   }
-  return { text, images };
+  // Strip the Claude-only goal reminder the server prepends (survives in the
+  // JSONL, so a resumed-from-disk session would otherwise show it). No-op when
+  // absent.
+  return { text: stripGoalReminder(text), images };
 }
 
 function extractToolResult(content: unknown): { tool_use_id: string; text: string; isError?: boolean } | null {
@@ -468,6 +472,7 @@ export function useSession(): ChatState & ChatActions {
   const [fastModeState, setFastModeState] = useState<"off" | "cooldown" | "on" | null>(null);
   const [promptSuggestions, setPromptSuggestions] = useState<string[]>([]);
   const [suggestedUuids, setSuggestedUuids] = useState<Set<string>>(() => new Set());
+  const [goalUuids, setGoalUuids] = useState<Set<string>>(() => new Set());
   const [replaying, setReplaying] = useState(true);
   const [hasMoreAbove, setHasMoreAbove] = useState(false);
   const [loadingOlder, setLoadingOlder] = useState(false);
@@ -525,6 +530,35 @@ export function useSession(): ChatState & ChatActions {
         const incoming = Array.isArray(data.uuids) ? data.uuids : [];
         if (incoming.length === 0) return;
         setSuggestedUuids((prev) => {
+          const next = new Set(prev);
+          for (const u of incoming) next.add(u);
+          return next;
+        });
+      })
+      .catch(() => {
+        /* badge is best-effort — ignore fetch errors */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionId]);
+
+  // Seed the "Goal" badge set from the DB on session bind — same rationale as
+  // the suggested-badge effect above: the SDK JSONL doesn't carry goal
+  // provenance, so on reload we re-fetch which user-message uuids were sent as
+  // the session goal. `send()`/`flushQueue` add optimistically for the live
+  // case, so we merge (not replace) on resolve.
+  useEffect(() => {
+    setGoalUuids(new Set());
+    if (!sessionId) return;
+    let cancelled = false;
+    void fetch(`/api/sessions/${sessionId}/goal-messages`)
+      .then((r) => (r.ok ? r.json() : { uuids: [] }))
+      .then((data: { uuids?: string[] }) => {
+        if (cancelled) return;
+        const incoming = Array.isArray(data.uuids) ? data.uuids : [];
+        if (incoming.length === 0) return;
+        setGoalUuids((prev) => {
           const next = new Set(prev);
           for (const u of incoming) next.add(u);
           return next;
@@ -1187,6 +1221,9 @@ export function useSession(): ChatState & ChatActions {
     if (next.fromSuggestion) {
       setSuggestedUuids((prev) => new Set(prev).add(uuid));
     }
+    if (next.fromGoal) {
+      setGoalUuids((prev) => new Set(prev).add(uuid));
+    }
     // Same slash-command rule as `send()`: skip the optimistic user-message
     // render so `/compact` doesn't show up as if the user typed it — the
     // server emits a `slash_invoked` system pill instead.
@@ -1215,6 +1252,7 @@ export function useSession(): ChatState & ChatActions {
           uuid,
           ...(next.slash ? { slash: true } : {}),
           ...(next.fromSuggestion ? { fromSuggestion: true } : {}),
+          ...(next.fromGoal ? { fromGoal: true } : {}),
         }),
       });
     } catch (err) {
@@ -1742,7 +1780,12 @@ export function useSession(): ChatState & ChatActions {
                 const entry: BackgroundBash = {
                   toolUseId: b.id,
                   command: inp.command as string,
-                  startedAt: Date.now(),
+                  // Anchor to when the shell was originally launched. `ev.at` is
+                  // the JSONL timestamp on replay (page refresh / tab switch) and
+                  // the live broadcast time otherwise — using Date.now() here
+                  // would restart the elapsed timer every time the event replays.
+                  // Mirrors the scheduled-loops `startedAt` handling below.
+                  startedAt: ev.at ?? Date.now(),
                 };
                 return { ...prev, [b.id]: entry };
               });
@@ -3151,7 +3194,7 @@ export function useSession(): ChatState & ChatActions {
     async (
       text: string,
       images?: Array<{ id?: string; ordinal?: number; data: string; mediaType: string }>,
-      opts?: { asSlashCommand?: boolean; fromSuggestion?: boolean },
+      opts?: { asSlashCommand?: boolean; fromSuggestion?: boolean; fromGoal?: boolean },
     ) => {
       const id = sessionIdRef.current;
       const trimmedText = text.trim();
@@ -3159,6 +3202,7 @@ export function useSession(): ChatState & ChatActions {
       if (!id || (!trimmedText && !hasImages)) return;
       const isSlash = !!opts?.asSlashCommand;
       const fromSuggestion = !!opts?.fromSuggestion;
+      const fromGoal = !!opts?.fromGoal;
       // Normalize to AttachedImage shape for client/queue persistence.
       const normalized = hasImages
         ? images!.map((img, i) => ({
@@ -3175,6 +3219,7 @@ export function useSession(): ChatState & ChatActions {
           ...(normalized ? { images: normalized } : {}),
           ...(isSlash ? { slash: true } : {}),
           ...(fromSuggestion ? { fromSuggestion: true } : {}),
+          ...(fromGoal ? { fromGoal: true } : {}),
         };
         writeQueue([...queueRef.current, q]);
         // No flush trigger here — that's intentional. The queue is a
@@ -3210,6 +3255,9 @@ export function useSession(): ChatState & ChatActions {
       if (fromSuggestion) {
         setSuggestedUuids((prev) => new Set(prev).add(uuid));
       }
+      if (fromGoal) {
+        setGoalUuids((prev) => new Set(prev).add(uuid));
+      }
       setPromptSuggestions([]);
       setPendingTracked(true);
       setErrors([]);
@@ -3228,6 +3276,7 @@ export function useSession(): ChatState & ChatActions {
           uuid,
           ...(isSlash ? { slash: true } : {}),
           ...(fromSuggestion ? { fromSuggestion: true } : {}),
+          ...(fromGoal ? { fromGoal: true } : {}),
         }),
       });
       if (!res.ok) {
@@ -3654,6 +3703,7 @@ export function useSession(): ChatState & ChatActions {
     fastModeState,
     promptSuggestions,
     suggestedUuids,
+    goalUuids,
     replaying,
     hasMoreAbove,
     loadingOlder,

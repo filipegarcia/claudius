@@ -36,10 +36,15 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts",
     ".next-e2e/types/**/*.ts",
-    ".next-e2e/dev/types/**/*.ts"
+    ".next-e2e/dev/types/**/*.ts",
+    ".next-buildtest/types/**/*.ts",
+    ".next-buildtest/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",
-    "chat-server"
+    "chat-server",
+    "release",
+    ".next-e2e",
+    ".next-buildtest"
   ]
 }

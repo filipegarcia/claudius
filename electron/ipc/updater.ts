@@ -24,6 +24,26 @@
  *     `electron:dev` doesn't crash.
  */
 import { app, BrowserWindow, ipcMain } from "electron";
+import fs from "node:fs";
+import path from "node:path";
+
+/**
+ * `electron-updater` reads its publish/feed config from `app-update.yml`,
+ * which electron-builder only emits for full distributable targets
+ * (dmg/nsis/zip with a `publish` block). Local `--dir` builds (e.g.
+ * `bun run electron:app`) ARE packaged — `app.isPackaged === true` — but ship
+ * no `app-update.yml`, so calling `checkForUpdates()` throws
+ * `ENOENT … app-update.yml` and surfaces as a permanent red "Updater error"
+ * banner. Treat a packaged-but-unconfigured build like dev: there's nothing
+ * to update from, so settle into `idle` instead of erroring.
+ */
+function hasUpdateConfig(): boolean {
+  try {
+    return fs.existsSync(path.join(process.resourcesPath, "app-update.yml"));
+  } catch {
+    return false;
+  }
+}
 
 // We lazy-load electron-updater inside `bootstrap()` rather than at
 // module top because importing it eagerly evaluates a `MacUpdater` /
@@ -64,13 +84,15 @@ function broadcast(status: Status): void {
 }
 
 export function registerUpdaterHandlers(): void {
-  // Defer to autoUpdater only in packaged builds — dev/unpackaged
-  // electron has no signed binary to update from.
-  const packaged = app.isPackaged;
+  // Defer to autoUpdater only in packaged builds that actually carry an
+  // update feed config — dev/unpackaged electron has no signed binary to
+  // update from, and a local `--dir` package has no `app-update.yml`.
+  const packaged = app.isPackaged && hasUpdateConfig();
 
   ipcMain.on(TOPIC_CHECK, () => {
     if (!packaged) {
-      // Dev / unpackaged builds have no signed binary to update from.
+      // Dev / unpackaged builds — and packaged `--dir` builds with no
+      // `app-update.yml` — have no signed binary or feed to update from.
       // Previously we broadcast `kind: "error"` here which surfaced as
       // a red "Updater error" banner across the top of the window
       // every time the renderer mounted and auto-checked. That's
@@ -83,7 +105,15 @@ export function registerUpdaterHandlers(): void {
     loadAutoUpdater()
       .checkForUpdates()
       .catch((err) => {
-        broadcast({ kind: "error", message: errorMessage(err) });
+        const msg = errorMessage(err);
+        // Belt-and-suspenders: any "not actually updatable" packaging state
+        // (missing feed config, etc.) settles to idle rather than painting a
+        // red banner the user can't act on.
+        if (/app-update\.yml|ENOENT/i.test(msg)) {
+          broadcast({ kind: "idle" });
+          return;
+        }
+        broadcast({ kind: "error", message: msg });
       });
   });
 

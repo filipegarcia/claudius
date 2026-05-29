@@ -36,10 +36,10 @@ import {
   isTypingTarget,
   matchBinding,
   SHORTCUT_ACTIONS,
-  useShortcut,
   type ShortcutAction,
   type ShortcutBinding,
 } from "@/lib/client/shortcuts";
+import { useKeydownBinding } from "@/lib/client/useKeydownBinding";
 import { useElectronAction } from "@/lib/client/useElectron";
 import { SLASH_COMMANDS } from "@/lib/shared/slash-commands";
 
@@ -151,7 +151,10 @@ export function CommandPalette() {
     });
   }, []);
 
-  const binding = useShortcut("nav.commandPalette");
+  // Keydown matcher: null in Electron (the native menu owns Cmd+K and toggles
+  // the palette via `useElectronAction` below) so the in-page listener doesn't
+  // double-fire. Real binding in the browser build.
+  const binding = useKeydownBinding("nav.commandPalette");
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (isTypingTarget(e.target) && !open) return;

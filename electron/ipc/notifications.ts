@@ -124,6 +124,24 @@ export function registerNotificationHandlers(bus: Bus): void {
         body,
         silent: silent === true,
       });
+      // Diagnostics for the macOS "no toast in Notification Center" class of
+      // bug. macOS silently drops notifications from an app whose code-signing
+      // identity it doesn't recognise / hasn't authorised — the JS call
+      // succeeds but the OS never displays it. Electron surfaces this only via
+      // the `failed` event (commonly "UNErrorDomain error 1" =
+      // UNErrorCodeNotificationsNotAllowed). Logging both `show` and `failed`
+      // gives a ground-truth signal that doesn't require eyeballing the
+      // Notification Center.
+      notif.on("show", () => {
+        console.log("[electron/notifications] OS notification shown:", title);
+      });
+      notif.on("failed", (_event, error) => {
+        console.error(
+          "[electron/notifications] OS notification FAILED:",
+          error,
+          "— on macOS, 'UNErrorDomain error 1' means the app's signing identity is not authorised for notifications (System Settings → Notifications).",
+        );
+      });
       notif.on("click", () => {
         const win =
           BrowserWindow.fromWebContents(event.sender) ??

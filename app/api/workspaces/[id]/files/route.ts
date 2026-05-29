@@ -74,6 +74,21 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     return NextResponse.json({ error: "path is not a directory" }, { status: 400 });
   }
 
+  // Recursive filename search mode. When `?search=` is present we walk the
+  // subtree under `target` and return files whose workspace-relative path
+  // matches (case-insensitive substring) — so a nested file (or a whole
+  // folder) is findable without expanding the tree by hand.
+  const search = (url.searchParams.get("search") ?? "").trim().toLowerCase();
+  if (search) {
+    const { matches, truncated } = await searchFiles(root, target, search);
+    return NextResponse.json({
+      root,
+      relPath: relative(root, target).split(sep).join("/"),
+      entries: matches,
+      truncated,
+    });
+  }
+
   const entries = await listDir(root, target, depth);
   return NextResponse.json({
     root,
@@ -203,6 +218,63 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     );
   }
   return NextResponse.json({ ok: true });
+}
+
+// Caps for the recursive search: at most this many matches returned, and at
+// most this many entries visited (protects against monorepo-huge trees). Both
+// fold into the same `truncated` flag the UI surfaces.
+const SEARCH_RESULT_LIMIT = 1000;
+const SEARCH_SCAN_LIMIT = 50_000;
+
+/**
+ * Iterative (stack-based) walk of the subtree under `baseDir`, collecting
+ * files whose workspace-relative path contains `q`. Symlink-safe: it uses
+ * dirent types and skips symlinks outright, so it never follows a link out of
+ * the root or into a cycle. Honours the same HIDDEN / dotfile skips as
+ * `listDir` so results stay a subset of what the tree can browse to.
+ */
+async function searchFiles(
+  root: string,
+  baseDir: string,
+  q: string,
+): Promise<{ matches: FileEntry[]; truncated: boolean }> {
+  const matches: FileEntry[] = [];
+  const stack: string[] = [baseDir];
+  let scanned = 0;
+  let truncated = false;
+  while (stack.length > 0 && !truncated) {
+    const dir = stack.pop()!;
+    let names: import("node:fs").Dirent[];
+    try {
+      names = await fs.readdir(dir, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+    for (const ent of names) {
+      if (HIDDEN.has(ent.name) || ent.name.startsWith(".")) continue;
+      if (ent.isSymbolicLink()) continue;
+      const abs = join(dir, ent.name);
+      if (!inside(root, abs)) continue;
+      if (++scanned >= SEARCH_SCAN_LIMIT) {
+        truncated = true;
+        break;
+      }
+      if (ent.isDirectory()) {
+        stack.push(abs);
+      } else if (ent.isFile()) {
+        const rel = relative(root, abs).split(sep).join("/");
+        if (rel.toLowerCase().includes(q)) {
+          matches.push({ name: ent.name, relPath: rel, kind: "file" });
+          if (matches.length >= SEARCH_RESULT_LIMIT) {
+            truncated = true;
+            break;
+          }
+        }
+      }
+    }
+  }
+  matches.sort((a, b) => a.relPath.localeCompare(b.relPath));
+  return { matches, truncated };
 }
 
 async function listDir(root: string, dir: string, depth: number): Promise<FileEntry[]> {

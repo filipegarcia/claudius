@@ -27,11 +27,6 @@ import { registerNotificationHandlers } from "./ipc/notifications";
 import { registerUpdaterHandlers } from "./ipc/updater";
 import { installAppMenu, type MenuAccelerators } from "./menu";
 import {
-  DEFAULT_OWNED_CHORDS,
-  isOwnedChord,
-  ownedChordsFromAccelerators,
-} from "./owned-chords";
-import {
   defaultAppDir,
   startEmbeddedNextServer,
   type EmbeddedNextServer,
@@ -48,6 +43,15 @@ const IS_PACKAGED = app.isPackaged || process.env.CLAUDIUS_PACKAGED === "1";
 // targets an external `next dev` that doesn't inherit this, which is why
 // server-side detection is packaged-only — see lib/shared/runtime.ts.)
 process.env.CLAUDIUS_ELECTRON = "1";
+
+// Bridge `app.isPackaged` into the env flag that server.ts reads. The
+// `CLAUDIUS_PACKAGED=1` set by the build scripts only lives for the
+// duration of the `next build` command — it is NOT baked into the
+// shipped app. At runtime the only reliable signal that we're inside a
+// packaged `.app`/asar is `app.isPackaged`, so propagate it here, before
+// `defaultAppDir()` runs, so the embedded server resolves the standalone
+// build inside the asar instead of the (non-existent) dev project root.
+if (app.isPackaged) process.env.CLAUDIUS_PACKAGED = "1";
 
 // Brand the user-data-dir so renderer localStorage and IndexedDB land
 // at `~/Library/Application Support/Claudius` instead of the default
@@ -86,19 +90,6 @@ if (!userDataOverride) {
 
 let mainWindow: BrowserWindow | null = null;
 let nextServer: EmbeddedNextServer | null = null;
-
-// ── Reserved-chord ownership (Phase 3 of docs/electron-conversion/PLAN.md) ──
-//
-// `before-input-event` (installed per-window in `createWindow`) swallows the
-// chords the app owns so Chromium's built-ins (Cmd+R reload, Cmd+W close, …)
-// don't fire alongside the menu accelerator. The matching logic lives in
-// `./owned-chords` (pure + unit-tested — `before-input-event` itself can't be
-// driven from Playwright, since CDP-injected keys bypass it). The set is
-// rebuilt from the accelerator map the renderer pushes via
-// `menu.setAccelerators(...)`, so a remap in /settings keeps the swallow set
-// in lockstep with the menu. The seed mirrors the shipped defaults so
-// cold-start (before the first renderer sync) behaves.
-let ownedChords: ReadonlySet<string> = DEFAULT_OWNED_CHORDS;
 
 // Last accelerator map the renderer pushed — kept so we can rebuild the menu
 // (e.g. to toggle recording mode) without waiting for another sync.
@@ -154,6 +145,10 @@ async function resolveStartUrl(): Promise<string> {
   // Packaged: spin up the embedded Next server on a random loopback
   // port.
   nextServer = await startEmbeddedNextServer(defaultAppDir());
+  // Log the resolved loopback URL — the port is random (server.ts binds :0),
+  // so this is the only way to know where the embedded server came up (useful
+  // for health probes / debugging a packaged launch).
+  console.log(`[electron/main] embedded server listening at ${nextServer.url}`);
   return nextServer.url;
 }
 
@@ -220,26 +215,20 @@ function createWindow(startUrl: string): BrowserWindow {
     return { action: "deny" };
   });
 
-  // Phase 3 of docs/electron-conversion/PLAN.md — intercept the browser-
-  // reserved chords (Cmd+T / Cmd+W / Cmd+Shift+T / Cmd+1..9 / Cmd+R /
-  // Cmd+Q) before Chromium sees them. The OS menu already has matching
-  // accelerators that dispatch into the renderer; preventDefault here
-  // stops Chromium's own handlers (e.g. Cmd+R hard-reloading the page,
-  // Cmd+W trying to close the renderer with no menu confirmation) from
-  // firing alongside.
-  win.webContents.on("before-input-event", (event, input) => {
-    if (input.type !== "keyDown") return;
-    // While the recorder is listening, let every chord through so it can be
-    // captured (the menu is display-only in this mode too).
-    if (recordingShortcut) return;
-    if (!(input.meta || input.control)) return;
-    // Match the FULL chord (`code`-derived token + shift/alt) so we swallow
-    // ⌘⇧→ (tab.next) without eating ⌘→ (composer line-nav), and stay
-    // layout-independent — leaving copy/paste, text-field shortcuts, and
-    // devtools toggles to Chromium. See `./owned-chords`.
-    if (!isOwnedChord(ownedChords, input)) return;
-    event.preventDefault();
-  });
+  // NOTE — we deliberately do NOT intercept menu-owned chords via
+  // `before-input-event` here. Electron documents that calling
+  // `event.preventDefault()` in that handler suppresses "the page
+  // keydown/keyup events AND the menu shortcuts" — i.e. it KILLS the very
+  // native-menu accelerator (Cmd+T / Cmd+W / …) we rely on to dispatch the
+  // action. An earlier revision swallowed every owned chord here, which is
+  // exactly why all menu shortcuts were dead in the packaged build.
+  //
+  // The native menu accelerator (electron/menu.ts) is now the single owner of
+  // those chords: when it fires it consumes the key, so Chromium's built-in
+  // doesn't fire alongside it — no swallow needed. The renderer's web-parity
+  // keydown listeners stay inert for these chords in Electron via
+  // `useKeydownBinding` (lib/client/useKeydownBinding.ts), so the menu is the
+  // sole handler and there's no double-fire.
 
   void win.loadURL(startUrl);
   return win;
@@ -257,7 +246,6 @@ app.whenReady().then(async () => {
       const map = accelerators as MenuAccelerators;
       lastAccelerators = map;
       installAppMenu(map, { registerAccelerators: !recordingShortcut });
-      ownedChords = ownedChordsFromAccelerators(map);
     });
     // The /settings recorder toggles this: while listening, rebuild the menu
     // display-only so the user can record a chord the menu owns (⌘T, ⌘W, …)

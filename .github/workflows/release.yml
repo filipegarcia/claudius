@@ -1,0 +1,136 @@
+# Release builds for the Claudius desktop app (Electron).
+#
+# Targets, per the product decision:
+#   • macOS  — Intel / x64 ONLY (no Apple Silicon). Built on the Intel
+#              `macos-13` runner so better-sqlite3 et al. compile natively
+#              for x64 — no cross-compile from arm64.
+#   • Linux  — x64 (AppImage + deb + rpm). Built on `ubuntu-latest`.
+# Windows is intentionally not built here.
+#
+# Signing: UNSIGNED / adhoc. There are no Apple Developer credentials wired
+# up, so we force `CSC_IDENTITY_AUTO_DISCOVERY=false` and override the
+# config's `notarize: true` to `false`. The bundles run locally; on other
+# Macs Gatekeeper warns (right-click → Open to bypass). When real
+# Developer-ID + notarization creds exist, drop those overrides and pass the
+# CSC_* / APPLE_* secrets through instead.
+#
+# Triggers:
+#   • workflow_dispatch — build on demand from the Actions tab.
+#   • push of a v* tag  — also attaches the artifacts to the GitHub Release
+#     for that tag (create the release first, or this step will create one).
+#
+# Each job builds NATIVELY on its own runner, so the native-module +
+# Next.js-standalone story Just Works (no Docker, no cross-arch rebuilds).
+name: release
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  macos-x64:
+    name: macOS (Intel x64)
+    runs-on: macos-13 # Intel runner — required for a native x64 build
+    permissions:
+      contents: write # attach artifacts to the Release on tag pushes
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # `electron:build` rebuilds native modules for Electron's ABI (on THIS
+      # x64 runner), production-builds Next.js, and stages the standalone tree.
+      # CSC_* off so the native-dep rebuild path doesn't probe for an identity.
+      - name: Build (Next standalone + Electron main)
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+        run: bun run electron:build
+
+      # Package x64-only, unsigned (adhoc via build/after-pack.js), no notarize.
+      - name: Package dmg + zip (x64, unsigned)
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+        run: bunx electron-builder --mac --x64 -c.mac.notarize=false --publish never
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v5
+        with:
+          name: claudius-macos-x64
+          path: |
+            release/*.dmg
+            release/*.zip
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Attach to GitHub Release (tag pushes only)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release/*.dmg
+            release/*.zip
+
+  linux-x64:
+    name: Linux (x64)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      # rpm packaging needs the `rpm`/`rpmbuild` toolchain; deb + AppImage
+      # tooling are either present on the runner or fetched by electron-builder.
+      - name: Install rpm tooling
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends rpm
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build (Next standalone + Electron main)
+        run: bun run electron:build
+
+      - name: Package AppImage + deb + rpm (x64)
+        run: bunx electron-builder --linux --x64 --publish never
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v5
+        with:
+          name: claudius-linux-x64
+          path: |
+            release/*.AppImage
+            release/*.deb
+            release/*.rpm
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Attach to GitHub Release (tag pushes only)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release/*.AppImage
+            release/*.deb
+            release/*.rpm

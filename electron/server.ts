@@ -93,13 +93,19 @@ export async function startEmbeddedNextServer(
  * directory so it can find both `.next/` and `public/`.
  */
 export function defaultAppDir(): string {
-  // When packaged, electron-builder copies `.next/standalone/` to
-  // `process.resourcesPath` (because we listed it in the `files` glob).
-  // In dev, this file compiles to `dist-electron/server.js` (one level
-  // beneath the project root), so a single `..` from `__dirname` gets
-  // us back to the directory containing `.next/`.
+  // Packaged: electron-builder ships the Next standalone tree verbatim as an
+  // extraResource at `<app>/Contents/Resources/standalone` (see
+  // electron-builder.yml). That dir holds a valid `.next/BUILD_ID` plus the
+  // bundled node_modules + native `.node` files Next's `app.prepare()` needs.
+  // It lives OUTSIDE the asar on the real filesystem because electron-builder
+  // strips nested node_modules from the asar and `.node` can't be loaded from
+  // inside an asar. `CLAUDIUS_PACKAGED` is set from `app.isPackaged` in
+  // electron/main.ts at startup, NOT baked in at build time.
   if (process.env.CLAUDIUS_PACKAGED === "1") {
-    return process.resourcesPath;
+    return path.join(process.resourcesPath, "standalone");
   }
+  // Dev / smoke: this file compiles to `dist-electron/server.js` (one level
+  // beneath the project root), so a single `..` from `__dirname` gets us
+  // back to the directory containing `.next/`.
   return path.resolve(__dirname, "..");
 }

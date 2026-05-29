@@ -1,5 +1,24 @@
 # Plan — Convert Claudius into an Electron app (with browser parity)
 
+## 🚨 Known issue: `next build` crashes on `/_global-error` when `NODE_ENV=development`
+
+`next build` is supposed to run in production mode, but if the
+environment already exports `NODE_ENV=development` (a common dev-shell
+default), Next respects it and builds with the *development* React
+runtime. The dev runtime crashes while statically exporting the internal
+`/_global-error` page:
+`TypeError: Cannot read properties of null (reading 'useContext')`
+(same symptom as vercel/next.js #84994, #85668, #86178). It aborts every
+production build — web *and* the Electron packaging via `electron:build` —
+so `make electron-app` could never finish. (Bundler is irrelevant: it
+reproduces under both Turbopack and `--webpack`; the real lever is
+`NODE_ENV`.)
+
+**Fix:** the `build`, `electron:build`, and `electron:smoke` scripts force
+`cross-env NODE_ENV=production next build`, overriding any leaked
+`NODE_ENV=development`. Turbopack stays the default bundler. On CI / Vercel
+(where `NODE_ENV` is already `production`) this is a harmless no-op.
+
 ## 🚨 Known issue: CI Playwright e2e suite has pre-existing failures
 
 **Root cause is NOT the Electron conversion** — investigated and
