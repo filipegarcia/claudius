@@ -133,17 +133,16 @@ export const CATEGORY_ORDER: HookCategory[] = [
 export type HandlerType = "command" | "http" | "prompt" | "agent" | "mcp_tool";
 
 export type HookHandler =
-  | { type: "command"; command: string; timeout?: number; async?: boolean; asyncRewake?: boolean; once?: boolean }
-  | { type: "http"; url: string; method?: "POST" | "GET"; headers?: Record<string, string>; timeout?: number; async?: boolean; asyncRewake?: boolean; once?: boolean }
-  | { type: "prompt"; prompt: string; once?: boolean }
-  | { type: "agent"; agent: string; once?: boolean }
-  | { type: "mcp_tool"; tool: string; arguments?: Record<string, unknown>; once?: boolean };
+  | { type: "command"; command: string; timeout?: number; async?: boolean; asyncRewake?: boolean; once?: boolean; if?: string }
+  | { type: "http"; url: string; method?: "POST" | "GET"; headers?: Record<string, string>; timeout?: number; async?: boolean; asyncRewake?: boolean; once?: boolean; if?: string }
+  | { type: "prompt"; prompt: string; continueOnBlock?: boolean; once?: boolean; if?: string }
+  | { type: "agent"; agent: string; once?: boolean; if?: string }
+  | { type: "mcp_tool"; tool: string; arguments?: Record<string, unknown>; once?: boolean; if?: string };
 
-/** Settings.json hooks shape: { [Event]: [{ matcher?, hooks: HookHandler[], if? }] } */
+/** Settings.json hooks shape: { [Event]: [{ matcher?, hooks: HookHandler[] }] } */
 export type HookGroup = {
   matcher?: string;
   hooks: HookHandler[];
-  if?: string;
 };
 
 export type HooksMap = Partial<Record<HookEvent, HookGroup[]>>;

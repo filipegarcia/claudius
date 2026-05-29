@@ -1,10 +1,18 @@
 import { promises as fs } from "node:fs";
 import { homedir } from "node:os";
-import { dirname, isAbsolute, join, resolve } from "node:path";
+import { dirname, isAbsolute, join, resolve, sep } from "node:path";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+// Filesystem browsing/creation is confined to this root (default the user's
+// home directory). Override with CLAUDIUS_FS_ROOT for unusual setups. Resolved
+// once so the containment checks below compare against a normalized absolute
+// path. The `resolve(...) + startsWith(FS_ROOT + sep)` containment guard is
+// repeated inline at each fs sink on purpose: CodeQL's path-injection barrier
+// does not propagate reliably when the check is hidden behind a helper.
+const FS_ROOT = resolve(process.env.CLAUDIUS_FS_ROOT?.trim() || homedir());
 
 const HIDDEN = new Set([
   "node_modules",
@@ -20,8 +28,14 @@ const HIDDEN = new Set([
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
-  const requested = url.searchParams.get("path") ?? homedir();
-  const path = isAbsolute(requested) ? resolve(requested) : resolve(homedir(), requested);
+  const requested = url.searchParams.get("path") ?? FS_ROOT;
+  const path = isAbsolute(requested) ? resolve(requested) : resolve(FS_ROOT, requested);
+
+  // Confine browsing to FS_ROOT. `resolve` above collapsed any `..`, so the
+  // path must equal the root or sit beneath it; anything else escaped.
+  if (path !== FS_ROOT && !path.startsWith(FS_ROOT + sep)) {
+    return NextResponse.json({ error: "path outside allowed root" }, { status: 403 });
+  }
 
   let stat: import("node:fs").Stats;
   try {
@@ -53,9 +67,11 @@ export async function GET(req: Request) {
   const parent = dirname(path);
   return NextResponse.json({
     path,
-    parent: parent === path ? null : parent, // null at filesystem root
+    // null at the filesystem root or at FS_ROOT — the UI must not offer an
+    // up-link that would resolve outside the allowed root.
+    parent: parent === path || path === FS_ROOT ? null : parent,
     entries,
-    home: homedir(),
+    home: FS_ROOT,
   });
 }
 
@@ -80,8 +96,13 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "invalid JSON" }, { status: 400 });
   }
 
-  const rawParent = body.parent ?? homedir();
-  const parent = isAbsolute(rawParent) ? resolve(rawParent) : resolve(homedir(), rawParent);
+  const rawParent = body.parent ?? FS_ROOT;
+  const parent = isAbsolute(rawParent) ? resolve(rawParent) : resolve(FS_ROOT, rawParent);
+  // Confine creation to FS_ROOT before the path reaches any fs sink. `resolve`
+  // collapsed any `..`, so `parent` must equal the root or sit beneath it.
+  if (parent !== FS_ROOT && !parent.startsWith(FS_ROOT + sep)) {
+    return NextResponse.json({ error: "parent outside allowed root" }, { status: 403 });
+  }
   const name = (body.name ?? "").trim();
 
   if (!name) {
@@ -104,6 +125,13 @@ export async function POST(req: Request) {
   }
 
   const target = join(parent, name);
+  // Guard the actual sink value (not just `parent`): `name` is already a
+  // validated basename and `parent` is confined, so this is always true at
+  // runtime, but CodeQL wants the containment check on the value that reaches
+  // fs.mkdir rather than relying on the barrier propagating through `join`.
+  if (target !== FS_ROOT && !target.startsWith(FS_ROOT + sep)) {
+    return NextResponse.json({ error: "path outside allowed root" }, { status: 403 });
+  }
   try {
     await fs.mkdir(target);
   } catch (err) {

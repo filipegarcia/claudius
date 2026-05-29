@@ -247,6 +247,7 @@
         <nav class="flex items-center gap-4 sm:gap-6 text-sm text-muted">
           <a href="#install" class="hover:text-fg">Install</a>
           <a href="#features" class="hidden sm:inline hover:text-fg">Features</a>
+          <a href="#desktop" class="hidden md:inline hover:text-fg">Desktop</a>
           <a href="#gallery" class="hidden sm:inline hover:text-fg">Screenshots</a>
           <a href="#customize" class="hidden md:inline hover:text-fg">Customize</a>
           <a href="components.html" class="hidden md:inline hover:text-fg">Components</a>
@@ -568,6 +569,198 @@ HOST=0.0.0.0 PORT=8080 make up     # reachable from your LAN (careful)</code></p
               Sessions, schedules, assets — all persisted on your machine.
               No cloud lock-in, no SaaS account required.
             </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ────────────────────────────── Desktop ────────────────────────────── -->
+    <section id="desktop" class="border-t border-line/60">
+      <div class="max-w-6xl mx-auto px-6 py-14 sm:py-20">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 items-start">
+          <!-- Left: pitch + icon + native niceties -->
+          <div>
+            <p class="font-mono text-xs uppercase tracking-widest text-accent">Desktop</p>
+            <h2 class="mt-2 text-3xl md:text-4xl font-semibold tracking-tight">
+              A native app, not a browser tab.
+            </h2>
+            <p class="mt-4 text-muted leading-relaxed">
+              The same Claudius in a native window for
+              <span class="text-fg">macOS, Windows, and Linux</span> — real
+              menus and the OS features a browser tab can't reach.
+            </p>
+
+            <!-- App icon, with the warm halo treatment from the hero -->
+            <div class="mt-10 flex items-center gap-5">
+              <div class="relative h-20 w-20 sm:h-24 sm:w-24 shrink-0">
+                <div
+                  class="absolute inset-0 -m-6 rounded-full bg-[radial-gradient(circle_at_center,rgba(217,119,87,0.35),rgba(217,119,87,0.08)_45%,transparent_70%)] blur-2xl"
+                  aria-hidden="true"
+                ></div>
+                <img
+                  src="desktop-icon.png"
+                  alt="Claudius desktop app icon"
+                  class="relative h-full w-full drop-shadow-[0_10px_30px_rgba(0,0,0,0.45)]"
+                />
+              </div>
+              <div class="text-sm text-muted leading-relaxed">
+                Its own icon on your dock, taskbar, and Launchpad.
+              </div>
+            </div>
+
+            <!-- Native features grid -->
+            <ul class="mt-10 grid grid-cols-1 sm:grid-cols-2 gap-px bg-line/60 border border-line/60 rounded-lg overflow-hidden text-sm">
+              <li class="bg-panel p-4">
+                <div class="text-fg font-medium">Native notifications</div>
+                <div class="mt-1 text-muted leading-relaxed">Get pinged when a turn finishes or the agent has a question.</div>
+              </li>
+              <li class="bg-panel p-4">
+                <div class="text-fg font-medium">Dock &amp; taskbar badge</div>
+                <div class="mt-1 text-muted leading-relaxed">Unread count right on the app icon.</div>
+              </li>
+              <li class="bg-panel p-4">
+                <div class="text-fg font-medium"><code class="font-mono text-fg">claudius://</code> deep links</div>
+                <div class="mt-1 text-muted leading-relaxed">Open a workspace or session straight from a link.</div>
+              </li>
+              <li class="bg-panel p-4">
+                <div class="text-fg font-medium">Drop a folder to open it</div>
+                <div class="mt-1 text-muted leading-relaxed">Drag a project onto the icon to add it as a workspace.</div>
+              </li>
+              <li class="bg-panel p-4 sm:col-span-2">
+                <div class="text-fg font-medium">Auto-updates</div>
+                <div class="mt-1 text-muted leading-relaxed">New releases install on quit — no <code class="font-mono text-xs">git pull</code>, no rebuild.</div>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Right: keybindings -->
+          <div class="lg:sticky lg:top-20">
+            <p class="font-mono text-xs uppercase tracking-widest text-accent">Keyboard-first</p>
+            <h3 class="mt-2 text-2xl md:text-3xl font-semibold tracking-tight">
+              Hands stay on the keys.
+            </h3>
+            <p class="mt-3 text-muted leading-relaxed">
+              Every surface has a shortcut. Defaults below — all remappable in
+              <code class="font-mono text-fg bg-panel2 px-1.5 py-0.5 rounded text-sm">/settings</code>.
+            </p>
+
+            <div class="mt-6 space-y-4">
+              <!-- Get around -->
+              <div class="rounded-lg border border-line bg-panel p-5">
+                <div class="font-mono text-xs text-accent">Get around</div>
+                <dl class="mt-3 space-y-2.5 text-sm">
+                  <div class="flex items-center justify-between gap-4">
+                    <dt class="text-muted">Command palette</dt>
+                    <dd><kbd class="font-mono text-[11px] px-1.5 py-0.5 rounded border border-line bg-panel2 text-fg">⌘ K</kbd></dd>
+                  </div>
+                  <div class="flex items-center justify-between gap-4">
+                    <dt class="text-muted">Toggle sidebar</dt>
+                    <dd><kbd class="font-mono text-[11px] px-1.5 py-0.5 rounded border border-line bg-panel2 text-fg">⌘ B</kbd></dd>
+                  </div>
+                  <div class="flex items-center justify-between gap-4">
+                    <dt class="text-muted">Keyboard cheatsheet</dt>
+                    <dd><kbd class="font-mono text-[11px] px-1.5 py-0.5 rounded border border-line bg-panel2 text-fg">⌘ /</kbd></dd>
+                  </div>
+                  <div class="flex items-center justify-between gap-4">
+                    <dt class="text-muted">Settings</dt>
+                    <dd><kbd class="font-mono text-[11px] px-1.5 py-0.5 rounded border border-line bg-panel2 text-fg">⌘ ,</kbd></dd>
+                  </div>
+                </dl>
+              </div>
+
+              <!-- Tabs & workspaces -->
+              <div class="rounded-lg border border-line bg-panel p-5">
+                <div class="font-mono text-xs text-accent">Tabs &amp; workspaces</div>
+                <dl class="mt-3 space-y-2.5 text-sm">
+                  <div class="flex items-center justify-between gap-4">
+                    <dt class="text-muted">New tab</dt>
+                    <dd><kbd class="font-mono text-[11px] px-1.5 py-0.5 rounded border border-line bg-panel2 text-fg">⌘ T</kbd></dd>
+                  </div>
+                  <div class="flex items-center justify-between gap-4">
+                    <dt class="text-muted">Next / previous tab</dt>
+                    <dd class="flex items-center gap-1.5">
+                      <kbd class="font-mono text-[11px] px-1.5 py-0.5 rounded border border-line bg-panel2 text-fg">⌘ ⇧ →</kbd>
+                      <kbd class="font-mono text-[11px] px-1.5 py-0.5 rounded border border-line bg-panel2 text-fg">⌘ ⇧ ←</kbd>
+                    </dd>
+                  </div>
+                  <div class="flex items-center justify-between gap-4">
+                    <dt class="text-muted">Jump to tab 1–8</dt>
+                    <dd><kbd class="font-mono text-[11px] px-1.5 py-0.5 rounded border border-line bg-panel2 text-fg">⌘ 1</kbd> … <kbd class="font-mono text-[11px] px-1.5 py-0.5 rounded border border-line bg-panel2 text-fg">⌘ 8</kbd></dd>
+                  </div>
+                  <div class="flex items-center justify-between gap-4">
+                    <dt class="text-muted">Next / previous workspace</dt>
+                    <dd class="flex items-center gap-1.5">
+                      <kbd class="font-mono text-[11px] px-1.5 py-0.5 rounded border border-line bg-panel2 text-fg">⌘ ⇧ ]</kbd>
+                      <kbd class="font-mono text-[11px] px-1.5 py-0.5 rounded border border-line bg-panel2 text-fg">⌘ ⇧ [</kbd>
+                    </dd>
+                  </div>
+                </dl>
+              </div>
+
+              <!-- Jump to a view -->
+              <div class="rounded-lg border border-line bg-panel p-5">
+                <div class="font-mono text-xs text-accent">Jump to a view</div>
+                <dl class="mt-3 grid grid-cols-2 gap-x-6 gap-y-2.5 text-sm">
+                  <div class="flex items-center justify-between gap-3">
+                    <dt class="text-muted">Chat</dt>
+                    <dd><kbd class="font-mono text-[11px] px-1.5 py-0.5 rounded border border-line bg-panel2 text-fg">⌥ C</kbd></dd>
+                  </div>
+                  <div class="flex items-center justify-between gap-3">
+                    <dt class="text-muted">Sessions</dt>
+                    <dd><kbd class="font-mono text-[11px] px-1.5 py-0.5 rounded border border-line bg-panel2 text-fg">⌥ S</kbd></dd>
+                  </div>
+                  <div class="flex items-center justify-between gap-3">
+                    <dt class="text-muted">Files</dt>
+                    <dd><kbd class="font-mono text-[11px] px-1.5 py-0.5 rounded border border-line bg-panel2 text-fg">⌥ F</kbd></dd>
+                  </div>
+                  <div class="flex items-center justify-between gap-3">
+                    <dt class="text-muted">Git</dt>
+                    <dd><kbd class="font-mono text-[11px] px-1.5 py-0.5 rounded border border-line bg-panel2 text-fg">⌥ G</kbd></dd>
+                  </div>
+                  <div class="flex items-center justify-between gap-3">
+                    <dt class="text-muted">Cost</dt>
+                    <dd><kbd class="font-mono text-[11px] px-1.5 py-0.5 rounded border border-line bg-panel2 text-fg">⌥ B</kbd></dd>
+                  </div>
+                  <div class="flex items-center justify-between gap-3">
+                    <dt class="text-muted">Agents</dt>
+                    <dd><kbd class="font-mono text-[11px] px-1.5 py-0.5 rounded border border-line bg-panel2 text-fg">⌥ A</kbd></dd>
+                  </div>
+                </dl>
+              </div>
+            </div>
+
+            <p class="mt-4 text-xs text-muted/80 leading-relaxed">
+              Shown with macOS glyphs — <kbd class="font-mono px-1 py-0.5 rounded border border-line bg-panel2 text-fg">⌘</kbd> is <kbd class="font-mono px-1 py-0.5 rounded border border-line bg-panel2 text-fg">Ctrl</kbd> and <kbd class="font-mono px-1 py-0.5 rounded border border-line bg-panel2 text-fg">⌥</kbd> is <kbd class="font-mono px-1 py-0.5 rounded border border-line bg-panel2 text-fg">Alt</kbd> on Windows and Linux.
+            </p>
+          </div>
+        </div>
+
+        <!-- Build & package -->
+        <div class="mt-14">
+          <div class="max-w-2xl">
+            <p class="font-mono text-xs uppercase tracking-widest text-accent">Build it</p>
+            <h3 class="mt-2 text-2xl md:text-3xl font-semibold tracking-tight">
+              Run it live, or package a real installer.
+            </h3>
+            <p class="mt-3 text-muted leading-relaxed">
+              Run it live against your checkout, or package a native installer
+              for each OS.
+            </p>
+          </div>
+
+          <div class="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="rounded-lg border border-line bg-panel p-6">
+              <div class="font-mono text-xs text-accent">Try it</div>
+              <h4 class="mt-2 text-lg font-medium">Live, against your checkout</h4>
+              <pre class="mt-4 overflow-x-auto rounded-md bg-panel2 px-4 py-3 font-mono text-xs text-fg leading-6 whitespace-pre"><code>bun run electron:dev    # window + next dev</code></pre>
+            </div>
+            <div class="rounded-lg border border-line bg-panel p-6">
+              <div class="font-mono text-xs text-accent">Ship it</div>
+              <h4 class="mt-2 text-lg font-medium">Package for each platform</h4>
+              <pre class="mt-4 overflow-x-auto rounded-md bg-panel2 px-4 py-3 font-mono text-xs text-fg leading-6 whitespace-pre"><code>bun run electron:dist:mac     # .dmg + .zip
+bun run electron:dist:win     # .nsis + portable
+bun run electron:dist:linux   # AppImage + deb + rpm</code></pre>
+            </div>
           </div>
         </div>
       </div>

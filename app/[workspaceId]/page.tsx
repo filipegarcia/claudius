@@ -1428,6 +1428,8 @@ export default function Home() {
         onChangeEffort={session.setEffort}
         ultracode={session.ultracode}
         onChangeUltracode={session.setUltracode}
+        fastMode={session.fastMode}
+        onChangeFast={session.setFast}
       />
 
       {liveOpenBash && (

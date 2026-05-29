@@ -79,9 +79,22 @@ export function SessionCostTable({ sessions }: { sessions: BySession[] }) {
           <tbody>
             {slice.map((s) => (
               <tr key={s.sessionId} className="border-b border-[var(--border)] last:border-b-0 hover:bg-[var(--panel-2)]/40">
-                <td className="px-3 py-1.5 font-mono">
-                  <Link href={`/?session=${s.sessionId}`} className="hover:text-[var(--accent)]">
-                    {s.sessionId.slice(0, 8)}
+                <td className="px-3 py-1.5">
+                  <Link
+                    href={`/?session=${s.sessionId}`}
+                    className="group/sess inline-flex flex-col leading-tight hover:text-[var(--accent)]"
+                    title={s.title ?? s.sessionId}
+                  >
+                    {s.title ? (
+                      <>
+                        <span className="max-w-[220px] truncate">{s.title}</span>
+                        <span className="font-mono text-[10px] text-[var(--muted)]">
+                          {s.sessionId.slice(0, 8)}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="font-mono">{s.sessionId.slice(0, 8)}</span>
+                    )}
                   </Link>
                 </td>
                 <td className="px-3 py-1.5 font-mono text-[var(--muted)]">{s.model ?? "—"}</td>

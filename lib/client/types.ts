@@ -84,6 +84,23 @@ export type TaskInfo = {
   workflowName?: string;
   status: TaskStatus;
   isBackgrounded?: boolean;
+  /**
+   * Client-stamped wall-clock start (epoch ms), set when the task first
+   * appears (provisional launch ack or `task_started`). Drives the 1Hz
+   * ticking "elapsed" timer in the rail — the SDK's `durationMs` is a
+   * periodic snapshot, so a live wall-clock counter is what makes a
+   * long-running, idle-turn task visibly "alive" (parity with the
+   * background-shell box).
+   */
+  startedAt?: number;
+  /**
+   * True for a placeholder row created the instant a background launcher
+   * (e.g. the Workflow tool) returns its "started, here's the runId" ack,
+   * before the SDK's own `task_started` arrives. Keyed by tool_use_id and
+   * replaced by the real `task_started` entry. Closes the dead-zone where a
+   * backgrounded workflow is alive but has no rail signal yet.
+   */
+  provisional?: boolean;
   totalTokens?: number;
   toolUses?: number;
   durationMs?: number;
@@ -377,6 +394,14 @@ export type ChatState = {
    * mirrors the last toggle and resets to `false` on a fresh session.
    */
   ultracode: boolean;
+  /**
+   * User-selected fast-mode intent — the last toggle the user made through the
+   * picker. Optimistic, same as `ultracode`/`effort`: the SDK emits no event
+   * for the toggle, so this mirrors the last pick and resets to `false` on a
+   * fresh session. Distinct from `fastModeState` below, which is the
+   * SDK-reported runtime status (`off`/`cooldown`/`on`).
+   */
+  fastMode: boolean;
   sessions: SessionInfo[];
   skills: string[];
   cwd: string | null;
@@ -528,6 +553,12 @@ export type ChatActions = {
    * server-side. Enabling it also moves the effort mirror to `xhigh`.
    */
   setUltracode(enabled: boolean): Promise<void>;
+  /**
+   * Toggle "fast mode" — accelerated decoding on supported models (Opus 4.8).
+   * Routed through `applyFlagSettings({ fastMode })` server-side. Orthogonal to
+   * effort: unlike `setUltracode` it does NOT move the effort mirror.
+   */
+  setFast(enabled: boolean): Promise<void>;
   /**
    * Bind to a different session id. Awaits a wake POST so a reaped session
    * has its buffer rehydrated before the SSE subscribes; fire-and-forget
