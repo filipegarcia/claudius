@@ -93,7 +93,14 @@ export function RecapBanner({ sessionId, title, onRename, embedded }: Props) {
       data-testid="recap-banner"
       className={cn(!embedded && "border-b border-[var(--border)] bg-[var(--panel-2)]/40")}
     >
-      <div className="group mx-auto flex w-full max-w-3xl items-center gap-2 px-4 py-1.5 text-xs">
+      <div
+        className={cn(
+          "group mx-auto flex w-full max-w-3xl items-center gap-2 px-4 text-xs",
+          // Tight bottom padding when embedded so the title sits directly
+          // above the goal row as one block.
+          embedded ? "pt-2 pb-0.5" : "py-1.5",
+        )}
+      >
         <ScrollText
           className="h-3.5 w-3.5 shrink-0 text-[var(--muted)]"
           aria-hidden

@@ -82,13 +82,14 @@ export function GoalBanner({ goal, onSet, onClear, openEditNonce, embedded }: Pr
     return (
       <div
         data-testid="goal-banner-empty"
-        className={cn(
-          embedded
-            ? "border-t border-[var(--border)]/50"
-            : "border-b border-[var(--border)] bg-[var(--panel-2)]/30",
-        )}
+        className={cn(!embedded && "border-b border-[var(--border)] bg-[var(--panel-2)]/30")}
       >
-        <div className="mx-auto flex w-full max-w-3xl items-center px-4 py-1.5 text-xs">
+        <div
+          className={cn(
+            "mx-auto flex w-full max-w-3xl items-center px-4 text-xs",
+            embedded ? "pt-0.5 pb-2" : "py-1.5",
+          )}
+        >
           <button
             type="button"
             onClick={startEdit}
@@ -149,23 +150,27 @@ export function GoalBanner({ goal, onSet, onClear, openEditNonce, embedded }: Pr
       data-testid="goal-banner"
       data-achieved={achieved ? "1" : "0"}
       className={cn(
-        embedded ? "border-t" : "border-b",
-        achieved
-          ? embedded
-            ? "border-emerald-500/20 bg-emerald-500/10"
-            : "border-emerald-500/30 bg-emerald-500/10"
-          : embedded
-            ? "border-[var(--border)]/50 bg-[var(--accent)]/[0.07]"
-            : "border-[var(--border)] bg-[var(--accent)]/10",
+        // Embedded → transparent and borderless so it reads as the second
+        // line of the shared session-header panel. Standalone keeps its own
+        // framing (accent tint, or emerald when achieved).
+        !embedded &&
+          (achieved
+            ? "border-b border-emerald-500/30 bg-emerald-500/10"
+            : "border-b border-[var(--border)] bg-[var(--accent)]/10"),
       )}
     >
-      <div className="mx-auto flex w-full max-w-3xl items-start gap-2 px-4 py-2 text-xs">
+      <div
+        className={cn(
+          "mx-auto flex w-full max-w-3xl items-start gap-2 px-4 text-xs",
+          embedded ? "pt-0.5 pb-2" : "py-2",
+        )}
+      >
         {achieved ? (
-          <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-300">
-            <Check className="h-3 w-3" strokeWidth={3} />
+          <span className="mt-0.5 flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-300">
+            <Check className="h-2.5 w-2.5" strokeWidth={3} />
           </span>
         ) : (
-          <Target className="mt-0.5 h-4 w-4 shrink-0 text-[var(--accent)]" aria-hidden />
+          <Target className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--accent)]" aria-hidden />
         )}
 
         {editing ? (
@@ -205,32 +210,27 @@ export function GoalBanner({ goal, onSet, onClear, openEditNonce, embedded }: Pr
           </div>
         ) : (
           <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-            <div className="flex items-center gap-2">
+            <div className="flex min-w-0 items-center gap-2">
               <span
+                data-testid="goal-banner-text"
                 className={cn(
-                  "text-[10px] font-semibold uppercase tracking-wide",
-                  achieved ? "text-emerald-300" : "text-[var(--accent)]",
+                  "min-w-0 truncate text-[var(--foreground)]/90",
+                  achieved && "line-through decoration-emerald-400/40",
                 )}
               >
-                {achieved ? "Goal achieved" : "Goal"}
+                {goal?.text}
               </span>
               {achieved && (
-                <Sparkles className="h-3 w-3 text-emerald-300" aria-hidden />
+                <span className="flex shrink-0 items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-emerald-300">
+                  <Sparkles className="h-3 w-3" aria-hidden />
+                  Goal achieved
+                </span>
               )}
             </div>
-            <span
-              data-testid="goal-banner-text"
-              className={cn(
-                "min-w-0 text-[var(--foreground)]/90",
-                achieved && "line-through decoration-emerald-400/40",
-              )}
-            >
-              {goal?.text}
-            </span>
             {achieved && goal?.summary && (
               <span
                 data-testid="goal-banner-summary"
-                className="mt-0.5 text-[11px] italic text-[var(--muted)]"
+                className="text-[11px] italic text-[var(--muted)]"
               >
                 {goal.summary}
               </span>
