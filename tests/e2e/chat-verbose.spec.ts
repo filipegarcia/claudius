@@ -36,8 +36,13 @@ const ANY_TOOL = '[data-testid="tool-call"], [data-testid="task-block"]';
 const THINKING_ROW = '[data-testid="thinking-block"]';
 const ASSISTANT_BUBBLE = '[data-message-role="assistant"]';
 const USER_BUBBLE = '[data-message-role="user"]';
+// The transient "Status: requesting" system pill (no testid — it's the
+// generic SystemPill render). Located by its label text.
+const STATUS_PILL = 'text=Status: requesting';
 
-async function setLevel(page: Page, level: "compact" | "normal" | "verbose") {
+type Level = "ultra-compact" | "compact" | "normal" | "verbose" | "ultra-verbose";
+
+async function setLevel(page: Page, level: Level) {
   await page.getByTestId(`set-verbose-${level}`).click();
   await expect(page.getByTestId("verbose-current")).toHaveText(level);
   await expect(page.getByTestId("verbose-preview-chat")).toHaveAttribute(
@@ -137,7 +142,7 @@ test.describe("Chat verbosity", () => {
   test("user prompts remain visible at every level (filter never drops user messages)", async ({
     page,
   }) => {
-    for (const level of ["compact", "normal", "verbose"] as const) {
+    for (const level of ["ultra-compact", "compact", "normal", "verbose", "ultra-verbose"] as const) {
       await setLevel(page, level);
       await expect(page.locator(USER_BUBBLE)).toHaveCount(2);
       await expect(
@@ -145,5 +150,71 @@ test.describe("Chat verbosity", () => {
       ).toBeVisible();
       await expect(page.locator(`${USER_BUBBLE} >> text=Great, thanks.`)).toBeVisible();
     }
+  });
+
+  test("extra compact keeps the prose-only shape (text only, no tool/thinking rows)", async ({
+    page,
+  }) => {
+    // On this corpus turn 1 collapses to a-1 (the only text-bearing assistant
+    // message); a-2 (Task) and a-3 (thinking) drop out. Same prose-only
+    // surface as compact — the per-turn "last message" collapse is exercised
+    // exhaustively in the unit suite (tests/unit/verbose-filter.test.ts).
+    await setLevel(page, "ultra-compact");
+    await expect(page.locator(USER_BUBBLE)).toHaveCount(2);
+    await expect(page.locator(ASSISTANT_BUBBLE)).toHaveCount(1);
+    await expect(page.locator(ANY_TOOL)).toHaveCount(0);
+    await expect(page.locator(THINKING_ROW)).toHaveCount(0);
+  });
+
+  test("extra verbose shows everything with every card expanded by default", async ({
+    page,
+  }) => {
+    await setLevel(page, "ultra-verbose");
+    // Same content surface as verbose…
+    await expect(page.locator(ASSISTANT_BUBBLE)).toHaveCount(3);
+    await expect(page.locator(ANY_TOOL)).toHaveCount(2);
+    await expect(page.locator(THINKING_ROW)).toHaveCount(2);
+    // …but the cards render OPEN, not collapsed.
+    for (const card of [TOOL_CALL_ROW, TASK_BLOCK, THINKING_ROW]) {
+      const els = page.locator(card);
+      const n = await els.count();
+      for (let i = 0; i < n; i++) {
+        await expect(els.nth(i)).toHaveAttribute("data-open", "1");
+      }
+    }
+  });
+
+  test("switching to extra verbose expands already-rendered cards; back to verbose collapses them", async ({
+    page,
+  }) => {
+    // The render-time defaultOpen sync means flipping the level re-applies the
+    // expand state to existing card instances, not just freshly-mounted ones.
+    await setLevel(page, "verbose");
+    await expect(page.locator(TOOL_CALL_ROW)).toHaveAttribute("data-open", "0");
+
+    await setLevel(page, "ultra-verbose");
+    await expect(page.locator(TOOL_CALL_ROW)).toHaveAttribute("data-open", "1");
+
+    await setLevel(page, "verbose");
+    await expect(page.locator(TOOL_CALL_ROW)).toHaveAttribute("data-open", "0");
+  });
+
+  test("the transient status pill is hidden at compact / extra compact, shown otherwise", async ({
+    page,
+  }) => {
+    // Normal (default) shows it.
+    await expect(page.locator(STATUS_PILL)).toBeVisible();
+
+    await setLevel(page, "compact");
+    await expect(page.locator(STATUS_PILL)).toHaveCount(0);
+
+    await setLevel(page, "ultra-compact");
+    await expect(page.locator(STATUS_PILL)).toHaveCount(0);
+
+    await setLevel(page, "verbose");
+    await expect(page.locator(STATUS_PILL)).toBeVisible();
+
+    await setLevel(page, "ultra-verbose");
+    await expect(page.locator(STATUS_PILL)).toBeVisible();
   });
 });

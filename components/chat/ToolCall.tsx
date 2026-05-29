@@ -29,10 +29,25 @@ type Props = {
   liveAsk?: boolean;
   /** Called when the user clicks the "Answer" pill. Should re-show the modal. */
   onReopenAsk?: () => void;
+  /**
+   * Initial expand state, driven by the chat verbose level — `ultra-verbose`
+   * passes `true` so cards render open. The user can still toggle manually;
+   * if the level flips again the card re-applies this default (see the
+   * render-time sync below).
+   */
+  defaultOpen?: boolean;
 };
 
-export function ToolCall({ name, input, result, liveAsk, onReopenAsk }: Props) {
-  const [open, setOpen] = useState(false);
+export function ToolCall({ name, input, result, liveAsk, onReopenAsk, defaultOpen = false }: Props) {
+  const [open, setOpen] = useState(defaultOpen);
+  // Re-apply the level-driven default when it changes (e.g. the user switches
+  // to/from "extra verbose"), while leaving manual toggles in between intact.
+  // The "store previous prop in render" pattern keeps this out of an effect.
+  const [prevDefaultOpen, setPrevDefaultOpen] = useState(defaultOpen);
+  if (prevDefaultOpen !== defaultOpen) {
+    setPrevDefaultOpen(defaultOpen);
+    setOpen(defaultOpen);
+  }
   const { editor } = useEditor();
   const status = !result ? "running" : result.isError ? "error" : "ok";
   const fileTarget = pathFromToolInput(input);
@@ -59,6 +74,7 @@ export function ToolCall({ name, input, result, liveAsk, onReopenAsk }: Props) {
     <div
       data-testid="tool-call"
       data-tool-name={name}
+      data-open={open ? "1" : "0"}
       className="my-2 rounded-lg border border-[var(--border)] bg-[var(--panel)]/40"
     >
       {/* The header row is a flex container — the toggle button covers the

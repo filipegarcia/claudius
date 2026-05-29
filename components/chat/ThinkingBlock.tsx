@@ -10,6 +10,7 @@ export function ThinkingBlock({
   text,
   variant = "thinking",
   streaming = false,
+  defaultOpen = false,
 }: {
   text: string;
   variant?: Variant;
@@ -24,8 +25,19 @@ export function ThinkingBlock({
    * and outright hiding the envelope erased the signal entirely.
    */
   streaming?: boolean;
+  /**
+   * Initial expand state, driven by the chat verbose level — `ultra-verbose`
+   * passes `true`. Re-applied when it changes so toggling the level expands /
+   * collapses existing blocks, while manual toggles in between are preserved.
+   */
+  defaultOpen?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
+  const [prevDefaultOpen, setPrevDefaultOpen] = useState(defaultOpen);
+  if (prevDefaultOpen !== defaultOpen) {
+    setPrevDefaultOpen(defaultOpen);
+    setOpen(defaultOpen);
+  }
   const isRedacted = variant === "redacted";
   const hasBody = text.trim().length > 0;
 
@@ -34,6 +46,7 @@ export function ThinkingBlock({
       data-testid="thinking-block"
       data-thinking-variant={variant}
       data-thinking-empty={hasBody || isRedacted ? "false" : "true"}
+      data-open={open ? "1" : "0"}
       className="my-2 rounded-lg border border-[var(--border)] bg-[var(--panel)]/50"
     >
       <button
