@@ -54,6 +54,7 @@ import {
 } from "./thinking-replay-recovery";
 import { extractReadPaths } from "@/lib/shared/read-tool-paths";
 import { joinSystemPromptAppends } from "@/lib/shared/system-prompt-append";
+import { loadDbAgentsForOptions } from "@/lib/server/db-agents";
 import { selectTips } from "@/lib/shared/tips";
 import type { SessionLoop } from "@/lib/shared/session-loops";
 import { readSettings, type ClaudeSettings } from "./settings";
@@ -660,6 +661,12 @@ export class Session {
       this.systemPromptAppend,
     ]);
 
+    // DB-backed programmatic subagents for this workspace (A-P3.8). Fed to the
+    // SDK via Options.agents; undefined when none, so the file-based agents
+    // path is untouched. Best-effort — a DB read failure just yields no
+    // programmatic agents rather than blocking session start.
+    const dbAgents = await loadDbAgentsForOptions(this.cwd).catch(() => undefined);
+
     const options: Options = {
       cwd: this.cwd,
       model: this.model,
@@ -682,6 +689,11 @@ export class Session {
             },
           }
         : {}),
+      // DB-backed programmatic subagents (A-P3.8). Merged into the agent set
+      // the model can invoke via the Agent tool; programmatic agents take
+      // precedence over same-named file-based ones. Omitted when there are
+      // none so the file-only path is byte-identical to before.
+      ...(dbAgents ? { agents: dbAgents } : {}),
       // Main-thread agent (SDK `--agent`). When set, the agent's system
       // prompt, tools, and model apply to the main conversation — note the
       // agent's own model takes precedence over `model` above. Omitted when
