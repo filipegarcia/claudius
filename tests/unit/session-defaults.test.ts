@@ -49,6 +49,8 @@ describe("mergeSessionDefaults", () => {
       model: undefined,
       agent: undefined,
       maxBudgetUsd: undefined,
+      taskBudgetTokens: undefined,
+      maxTurns: undefined,
       fallbackModel: undefined,
       sandboxEnabled: undefined,
       enable1mContext: undefined,
@@ -58,6 +60,13 @@ describe("mergeSessionDefaults", () => {
       planModeInstructions: undefined,
       permissionMode: undefined,
     });
+  });
+
+  test("taskBudgetTokens + maxTurns follow the same precedence (request wins, default fills)", () => {
+    expect(mergeSessionDefaults({ taskBudgetTokens: 100 }, { taskBudgetTokens: 200 }).taskBudgetTokens).toBe(100);
+    expect(mergeSessionDefaults({}, { taskBudgetTokens: 200 }).taskBudgetTokens).toBe(200);
+    expect(mergeSessionDefaults({ maxTurns: 5 }, { maxTurns: 9 }).maxTurns).toBe(5);
+    expect(mergeSessionDefaults({}, { maxTurns: 9 }).maxTurns).toBe(9);
   });
 
   test("persistSession follows the same precedence; explicit false survives", () => {
