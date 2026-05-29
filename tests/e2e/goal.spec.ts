@@ -130,6 +130,69 @@ test.describe("Session goal", () => {
     await expect(page.getByTestId("user-message-goal-badge")).toBeVisible({ timeout: 15_000 });
   });
 
+  test("hide: the × dismisses the empty goal prompt and Settings restores it", async ({ page }) => {
+    await page.goto("/");
+    await waitForBoundSession(page);
+    await expect(page.getByTestId("prompt-input")).toBeVisible({ timeout: 30_000 });
+
+    // Fresh session → no goal → the empty "Set a session goal" prompt shows.
+    await page.locator('button[title="New session tab"]').click();
+    await waitForBoundSession(page);
+
+    const empty = page.getByTestId("goal-banner-empty");
+    await expect(empty).toBeVisible({ timeout: 15_000 });
+
+    // Dismiss it — the empty prompt disappears, but the session title row
+    // (RecapBanner) remains: hiding only suppresses the goal prompt.
+    await page.getByTestId("goal-banner-hide").click();
+    await expect(empty).toBeHidden();
+    await expect(page.getByTestId("recap-banner")).toBeVisible();
+
+    // The pref is browser-local and persists across reload.
+    await page.reload();
+    await waitForBoundSession(page);
+    await expect(page.getByTestId("recap-banner")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId("goal-banner-empty")).toBeHidden();
+
+    // Restore from Settings — the toggle reflects the hidden state (unchecked)
+    // and re-checking it brings the prompt back.
+    await page.goto("/settings");
+    const showToggle = page.getByTestId("goal-banner-show-toggle");
+    await expect(showToggle).not.toBeChecked();
+    await showToggle.check();
+
+    // Back in chat, on a fresh (goal-less) session, the prompt is visible
+    // again. A new tab guarantees no goal — server-side session state is shared
+    // across tests, so the restored active tab may already carry a goal.
+    await page.goto("/");
+    await waitForBoundSession(page);
+    await page.locator('button[title="New session tab"]').click();
+    await waitForBoundSession(page);
+    await expect(page.getByTestId("goal-banner-empty")).toBeVisible({ timeout: 15_000 });
+  });
+
+  test("show-goal: the title-row affordance opens the goal editor", async ({ page }) => {
+    await page.goto("/");
+    await waitForBoundSession(page);
+    await expect(page.getByTestId("prompt-input")).toBeVisible({ timeout: 30_000 });
+
+    // Fresh session → empty prompt → dismiss it so the header collapses to
+    // just the title row.
+    await page.locator('button[title="New session tab"]').click();
+    await waitForBoundSession(page);
+
+    const empty = page.getByTestId("goal-banner-empty");
+    await expect(empty).toBeVisible({ timeout: 15_000 });
+    await page.getByTestId("goal-banner-hide").click();
+    await expect(empty).toBeHidden();
+
+    // The title row exposes a restore affordance (revealed on hover). Clicking
+    // it un-hides AND opens the goal editor straight away.
+    await page.getByTestId("recap-banner").hover();
+    await page.getByTestId("recap-show-goal").click();
+    await expect(page.getByTestId("goal-prompt-input")).toBeVisible({ timeout: 15_000 });
+  });
+
   test("goal provenance round-trips through the DB", async ({ page }) => {
     await page.goto("/");
     const sessionId = await waitForBoundSession(page);

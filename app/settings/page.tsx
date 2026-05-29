@@ -13,6 +13,7 @@ import { UpdaterSettingsSection } from "@/components/updater/UpdaterSettingsSect
 import { ShortcutsSection } from "@/components/settings/ShortcutsSection";
 import { RateLimitWarningSection } from "@/components/settings/RateLimitWarningSection";
 import { ContextWarningSection } from "@/components/settings/ContextWarningSection";
+import { GoalBannerSection } from "@/components/settings/GoalBannerSection";
 import { BackupSection } from "@/components/settings/BackupSection";
 import { cn } from "@/lib/utils/cn";
 
@@ -109,6 +110,7 @@ export default function SettingsPage() {
   const sShortcuts = show("keyboard shortcuts keybindings tab cycling navigation side nav workspace");
   const sRateLimit = show("rate limit warning threshold usage pill chat");
   const sContext = show("context window warning compact banner threshold nudge chat");
+  const sGoalBanner = show("session goal prompt banner hide show header objective chat");
   const sBackup = show("backup restore export import config bundle json snapshot");
   // Model & UI / Memory — matched per row against each field's label, so a query
   // like "output style" or "automemorydirectory" reveals just that row. A match
@@ -145,8 +147,9 @@ export default function SettingsPage() {
     .filter(([, visible]) => visible.length > 0);
 
   const anyMatch =
-    sEditor || sTheme || sUpdater || sShortcuts || sRateLimit || sContext || sBackup ||
-    sModelUi || sMemory || sChat || sEnv || sPlugins || sOther || catalogEntries.length > 0;
+    sEditor || sTheme || sUpdater || sShortcuts || sRateLimit || sContext || sGoalBanner ||
+    sBackup || sModelUi || sMemory || sChat || sEnv || sPlugins || sOther ||
+    catalogEntries.length > 0;
   const noMatches = !!q && !anyMatch;
 
   return (
@@ -314,6 +317,11 @@ export default function SettingsPage() {
                 scope tabs — a Claudius UI knob, separate from Claude Code's
                 autoCompactEnabled / autoCompactWindow settings. */}
             {sContext && <ContextWarningSection />}
+
+            {/* Browser-local toggle to hide/restore the empty "Set a session
+                goal" prompt in the chat header. A Claudius UI knob, separate
+                from the goal data itself (which lives per-project). */}
+            {sGoalBanner && <GoalBannerSection />}
 
             {/* Backup / restore the full Claudius config as one JSON bundle.
                 Outside the scope tabs because it spans every scope and
