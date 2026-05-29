@@ -585,10 +585,9 @@ HOST=0.0.0.0 PORT=8080 make up     # reachable from your LAN (careful)</code></p
               A native app, not a browser tab.
             </h2>
             <p class="mt-4 text-muted leading-relaxed">
-              The same Claudius, wrapped in an Electron shell for
-              <span class="text-fg">macOS, Windows, and Linux</span>. It bundles
-              the server and runs in its own window — frameless title bar, real
-              menus, and the OS integrations a tab can't reach.
+              The same Claudius in a native window for
+              <span class="text-fg">macOS, Windows, and Linux</span> — real
+              menus and the OS features a browser tab can't reach.
             </p>
 
             <!-- App icon, with the warm halo treatment from the hero -->
@@ -605,10 +604,7 @@ HOST=0.0.0.0 PORT=8080 make up     # reachable from your LAN (careful)</code></p
                 />
               </div>
               <div class="text-sm text-muted leading-relaxed">
-                <span class="text-fg font-medium">A real app icon.</span>
-                A hand-built Big&nbsp;Sur squircle in terracotta, carrying an
-                archaic Old-Italic <span class="font-mono text-fg">C</span> —
-                the same mark on your dock, taskbar, and Launchpad.
+                Its own icon on your dock, taskbar, and Launchpad.
               </div>
             </div>
 
@@ -616,23 +612,23 @@ HOST=0.0.0.0 PORT=8080 make up     # reachable from your LAN (careful)</code></p
             <ul class="mt-10 grid grid-cols-1 sm:grid-cols-2 gap-px bg-line/60 border border-line/60 rounded-lg overflow-hidden text-sm">
               <li class="bg-panel p-4">
                 <div class="text-fg font-medium">Native notifications</div>
-                <div class="mt-1 text-muted leading-relaxed">A turn finishes or a question lands → an OS notification. Click it, the window comes forward on the right session.</div>
+                <div class="mt-1 text-muted leading-relaxed">Get pinged when a turn finishes or the agent has a question.</div>
               </li>
               <li class="bg-panel p-4">
                 <div class="text-fg font-medium">Dock &amp; taskbar badge</div>
-                <div class="mt-1 text-muted leading-relaxed">Unread count rides the dock icon on macOS, an overlay dot on Windows, the launcher on Linux.</div>
+                <div class="mt-1 text-muted leading-relaxed">Unread count right on the app icon.</div>
               </li>
               <li class="bg-panel p-4">
                 <div class="text-fg font-medium"><code class="font-mono text-fg">claudius://</code> deep links</div>
-                <div class="mt-1 text-muted leading-relaxed">Jump straight to a workspace or session from a link — <code class="font-mono text-xs">claudius://session/&lt;id&gt;</code>.</div>
+                <div class="mt-1 text-muted leading-relaxed">Open a workspace or session straight from a link.</div>
               </li>
               <li class="bg-panel p-4">
-                <div class="text-fg font-medium">Drop a folder on the icon</div>
-                <div class="mt-1 text-muted leading-relaxed">Drag a project onto the dock icon to open it as a workspace. Single-instance — never two windows fighting.</div>
+                <div class="text-fg font-medium">Drop a folder to open it</div>
+                <div class="mt-1 text-muted leading-relaxed">Drag a project onto the icon to add it as a workspace.</div>
               </li>
               <li class="bg-panel p-4 sm:col-span-2">
-                <div class="text-fg font-medium">In-app auto-updates</div>
-                <div class="mt-1 text-muted leading-relaxed">New releases download in the background and install on quit — no <code class="font-mono text-xs">git pull</code>, no rebuild.</div>
+                <div class="text-fg font-medium">Auto-updates</div>
+                <div class="mt-1 text-muted leading-relaxed">New releases install on quit — no <code class="font-mono text-xs">git pull</code>, no rebuild.</div>
               </li>
             </ul>
           </div>
@@ -644,10 +640,8 @@ HOST=0.0.0.0 PORT=8080 make up     # reachable from your LAN (careful)</code></p
               Hands stay on the keys.
             </h3>
             <p class="mt-3 text-muted leading-relaxed">
-              Every surface has a chord, wired into the native menu. Defaults
-              below — all of it remappable in
-              <code class="font-mono text-fg bg-panel2 px-1.5 py-0.5 rounded text-sm">/settings</code>,
-              and your bindings sync straight back to the OS menu.
+              Every surface has a shortcut. Defaults below — all remappable in
+              <code class="font-mono text-fg bg-panel2 px-1.5 py-0.5 rounded text-sm">/settings</code>.
             </p>
 
             <div class="mt-6 space-y-4">
@@ -749,10 +743,8 @@ HOST=0.0.0.0 PORT=8080 make up     # reachable from your LAN (careful)</code></p
               Run it live, or package a real installer.
             </h3>
             <p class="mt-3 text-muted leading-relaxed">
-              <code class="font-mono text-fg bg-panel2 px-1.5 py-0.5 rounded text-sm">electron:dev</code>
-              opens the desktop shell against the dev server. When you want a
-              distributable build (signed and notarized in CI),
-              electron-builder produces the native format for each OS.
+              Run it live against your checkout, or package a native installer
+              for each OS.
             </p>
           </div>
 

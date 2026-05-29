@@ -970,7 +970,7 @@ export function PromptInput({
               (!mounted || ready
                 ? pending
                   ? "Queue a follow-up — Shift+Enter for newline"
-                  : "Message Claudius — / for commands, @ for files, drop or paste images"
+                  : "Message Claudius — / for commands, @ for files/agents, drop or paste images"
                 : "Starting session…")
             }
             className="flex-1 resize-none bg-transparent text-sm leading-6 text-[var(--foreground)] placeholder:text-[var(--muted)]/70 focus:outline-none disabled:cursor-not-allowed"
@@ -1054,6 +1054,7 @@ export function PromptInput({
           <AtMentionPicker
             query={atQuery}
             cwd={cwd}
+            sessionId={sessionId}
             onSelect={(rel) => insertAtMention(rel)}
             onClose={() => setAtQuery(null)}
           />

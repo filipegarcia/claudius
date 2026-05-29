@@ -1,7 +1,9 @@
 # Mention named subagents (@agent-name)
 
 **Source:** Claude Code cheat sheet — Skills & Agents
-**Status:** UI_WORTHY
+**Status:** IMPLEMENTED
+
+**Implemented:** `components/chat/AtMentionPicker.tsx` now offers an agent-completion source (token body `agent-<name>`, sourced from the session-cached `/api/sessions/[id]/agents` list) when the `@`-token starts with `agent-`; `components/chat/PromptInput.tsx` threads `sessionId` to the picker and updates the composer hint to "@ for files/agents".
 
 ## What it is
 Typing `@agent-name` in the composer explicitly directs the request to a named subagent (rather than letting the main agent decide whether to delegate).
