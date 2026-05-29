@@ -34,6 +34,36 @@ export type WorkspaceDefaults = {
    */
   sandboxEnabled?: boolean;
   /**
+   * Enable the 1M-token context window beta (SDK `Options.betas` →
+   * `context-1m-2025-08-07`). Sonnet 4/4.5 only; dramatically raises cost, so
+   * it's off by default and gated behind an explicit opt-in. Absent/false ⇒
+   * standard context window.
+   */
+  enable1mContext?: boolean;
+  /**
+   * Persist sessions to disk (SDK `Options.persistSession`). Defaults to true
+   * (sessions saved under ~/.claude/projects and resumable). Set to `false` to
+   * make every session in this workspace ephemeral — not written to disk and
+   * not resumable. Absent/true ⇒ persisted (the SDK default).
+   */
+  persistSession?: boolean;
+  /**
+   * Extra instructions appended to Claude Code's default system prompt (SDK
+   * `Options.systemPrompt` preset + `append`). Distinct from CLAUDE.md (which
+   * is project content): this is steering ("always use TypeScript", house
+   * style, etc.) applied to every session in the workspace. Absent/empty ⇒
+   * the unmodified preset.
+   */
+  systemPromptAppend?: string;
+  /**
+   * Custom plan-mode workflow instructions (SDK `Options.planModeInstructions`).
+   * When set and a session is in `plan` permission mode, this replaces the
+   * default code-implementation workflow body in the plan-mode system reminder
+   * (the CLI still wraps it with the read-only preamble + ExitPlanMode footer).
+   * Absent/empty ⇒ the default plan workflow.
+   */
+  planModeInstructions?: string;
+  /**
    * Default main-thread agent for new sessions — the SDK `--agent` flag
    * equivalent (Options.agent). Applies the named agent's system prompt, tool
    * restrictions, AND model to the main conversation, so when set it overrides

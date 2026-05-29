@@ -51,8 +51,53 @@ describe("mergeSessionDefaults", () => {
       maxBudgetUsd: undefined,
       fallbackModel: undefined,
       sandboxEnabled: undefined,
+      enable1mContext: undefined,
+      persistSession: undefined,
+      additionalDirectories: undefined,
+      systemPromptAppend: undefined,
+      planModeInstructions: undefined,
       permissionMode: undefined,
     });
+  });
+
+  test("persistSession follows the same precedence; explicit false survives", () => {
+    expect(mergeSessionDefaults({ persistSession: false }, { persistSession: true }).persistSession).toBe(false);
+    expect(mergeSessionDefaults({}, { persistSession: false }).persistSession).toBe(false);
+    expect(mergeSessionDefaults({}, {}).persistSession).toBeUndefined();
+  });
+
+  test("additionalDirectories follows the same precedence (request wins, default fills)", () => {
+    expect(
+      mergeSessionDefaults({ additionalDirectories: ["/a"] }, { additionalDirectories: ["/b"] })
+        .additionalDirectories,
+    ).toEqual(["/a"]);
+    expect(mergeSessionDefaults({}, { additionalDirectories: ["/b"] }).additionalDirectories).toEqual([
+      "/b",
+    ]);
+  });
+
+  test("planModeInstructions follows the same precedence (request wins, default fills)", () => {
+    expect(
+      mergeSessionDefaults({ planModeInstructions: "req" }, { planModeInstructions: "def" })
+        .planModeInstructions,
+    ).toBe("req");
+    expect(mergeSessionDefaults({}, { planModeInstructions: "def" }).planModeInstructions).toBe("def");
+  });
+
+  test("systemPromptAppend follows the same precedence (request wins, default fills)", () => {
+    expect(
+      mergeSessionDefaults({ systemPromptAppend: "use TS" }, { systemPromptAppend: "use JS" })
+        .systemPromptAppend,
+    ).toBe("use TS");
+    expect(mergeSessionDefaults({}, { systemPromptAppend: "house style" }).systemPromptAppend).toBe(
+      "house style",
+    );
+  });
+
+  test("enable1mContext follows the same precedence (request wins, default fills)", () => {
+    expect(mergeSessionDefaults({ enable1mContext: true }, { enable1mContext: false }).enable1mContext).toBe(true);
+    expect(mergeSessionDefaults({}, { enable1mContext: true }).enable1mContext).toBe(true);
+    expect(mergeSessionDefaults({ enable1mContext: false }, { enable1mContext: true }).enable1mContext).toBe(false);
   });
 
   test("sandboxEnabled follows the same precedence (request wins, default fills)", () => {

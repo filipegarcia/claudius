@@ -70,6 +70,26 @@ export function WorkspaceForm({ initial, onCancel, onSubmit, onIconUpload, onDel
   const [defaultSandbox, setDefaultSandbox] = useState<boolean>(
     initial?.defaults?.sandboxEnabled === true,
   );
+  // 1M-token context beta — off by default; raises cost a lot and is Sonnet-only.
+  const [default1m, setDefault1m] = useState<boolean>(
+    initial?.defaults?.enable1mContext === true,
+  );
+  // Ephemeral sessions = persistSession:false. Off by default (sessions persist).
+  const [defaultEphemeral, setDefaultEphemeral] = useState<boolean>(
+    initial?.defaults?.persistSession === false,
+  );
+  // Extra system-prompt steering appended to the Claude Code preset.
+  const [defaultSysAppend, setDefaultSysAppend] = useState(
+    initial?.defaults?.systemPromptAppend ?? "",
+  );
+  // Custom plan-mode workflow body (applies in plan permission mode).
+  const [defaultPlanInstr, setDefaultPlanInstr] = useState(
+    initial?.defaults?.planModeInstructions ?? "",
+  );
+  // Additional directories the agent may access (one absolute path per line).
+  const [defaultAddlDirs, setDefaultAddlDirs] = useState(
+    (initial?.defaults?.additionalDirectories ?? []).join("\n"),
+  );
   const [agentNames, setAgentNames] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -157,6 +177,20 @@ export function WorkspaceForm({ initial, onCancel, onSubmit, onIconUpload, onDel
       else delete defaults.fallbackModel;
       if (defaultSandbox) defaults.sandboxEnabled = true;
       else delete defaults.sandboxEnabled;
+      if (default1m) defaults.enable1mContext = true;
+      else delete defaults.enable1mContext;
+      if (defaultEphemeral) defaults.persistSession = false;
+      else delete defaults.persistSession;
+      if (defaultSysAppend.trim()) defaults.systemPromptAppend = defaultSysAppend.trim();
+      else delete defaults.systemPromptAppend;
+      if (defaultPlanInstr.trim()) defaults.planModeInstructions = defaultPlanInstr.trim();
+      else delete defaults.planModeInstructions;
+      const dirs = defaultAddlDirs
+        .split("\n")
+        .map((d) => d.trim())
+        .filter(Boolean);
+      if (dirs.length > 0) defaults.additionalDirectories = dirs;
+      else delete defaults.additionalDirectories;
       const r = await onSubmit({
         name: name.trim(),
         rootPath: rootPath.trim(),
@@ -446,6 +480,58 @@ export function WorkspaceForm({ initial, onCancel, onSubmit, onIconUpload, onDel
                 Linux only (bubblewrap); no-op on macOS.
               </span>
             </label>
+            <label className="mt-2 flex cursor-pointer items-center gap-2 text-xs">
+              <input
+                type="checkbox"
+                checked={default1m}
+                onChange={(e) => setDefault1m(e.target.checked)}
+                className="h-3 w-3 rounded border-[var(--border)] bg-[var(--panel-2)]"
+              />
+              <span>1M context window</span>
+              <span className="text-[10px] text-[var(--muted)]">
+                Sonnet 4/4.5 only; significantly higher cost.
+              </span>
+            </label>
+            <label className="mt-2 flex cursor-pointer items-center gap-2 text-xs">
+              <input
+                type="checkbox"
+                checked={defaultEphemeral}
+                onChange={(e) => setDefaultEphemeral(e.target.checked)}
+                className="h-3 w-3 rounded border-[var(--border)] bg-[var(--panel-2)]"
+              />
+              <span>Ephemeral sessions</span>
+              <span className="text-[10px] text-[var(--muted)]">
+                Not saved to disk — can&apos;t be resumed or shown in history.
+              </span>
+            </label>
+            <Field label="System prompt append">
+              <textarea
+                value={defaultSysAppend}
+                onChange={(e) => setDefaultSysAppend(e.target.value)}
+                placeholder="Extra steering added to every session (e.g. &quot;Always use TypeScript&quot;). Distinct from CLAUDE.md."
+                rows={3}
+                className="w-full resize-y rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 text-xs focus:outline-none"
+              />
+            </Field>
+            <Field label="Plan-mode instructions">
+              <textarea
+                value={defaultPlanInstr}
+                onChange={(e) => setDefaultPlanInstr(e.target.value)}
+                placeholder="Custom plan-mode workflow steps (used only in plan mode). Empty = default workflow."
+                rows={3}
+                className="w-full resize-y rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 text-xs focus:outline-none"
+              />
+            </Field>
+            <Field label="Additional directories">
+              <textarea
+                value={defaultAddlDirs}
+                onChange={(e) => setDefaultAddlDirs(e.target.value)}
+                placeholder={"One absolute path per line — extra dirs the agent may access beyond the workspace root."}
+                rows={2}
+                spellCheck={false}
+                className="w-full resize-y rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 font-mono text-xs focus:outline-none"
+              />
+            </Field>
             <p className="mt-1 text-[10px] text-[var(--muted)]">
               Apply only to new sessions. An explicit per-session override still wins.
               Setting an agent also applies its own model.

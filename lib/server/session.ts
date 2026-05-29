@@ -301,6 +301,32 @@ export class Session {
    * failIfUnavailable: false (graceful macOS degradation).
    */
   readonly sandboxEnabled?: boolean;
+  /**
+   * Enable the 1M-token context window beta — when true the Options.betas
+   * array carries `context-1m-2025-08-07`. Sonnet 4/4.5 only; off by default.
+   */
+  readonly enable1mContext?: boolean;
+  /**
+   * Persist this session to disk (Options.persistSession). Undefined/true ⇒
+   * persisted (SDK default). Only `false` is forwarded, making the session
+   * ephemeral (not saved, not resumable).
+   */
+  readonly persistSession?: boolean;
+  /**
+   * Additional absolute directories the agent may access beyond cwd
+   * (Options.additionalDirectories). Empty/undefined ⇒ cwd only.
+   */
+  readonly additionalDirectories?: string[];
+  /**
+   * Extra instructions appended to the default Claude Code system prompt
+   * (Options.systemPrompt preset + append). Undefined/empty ⇒ unmodified preset.
+   */
+  readonly systemPromptAppend?: string;
+  /**
+   * Custom plan-mode workflow body (Options.planModeInstructions). Applies when
+   * the session is in plan mode. Undefined/empty ⇒ the default plan workflow.
+   */
+  readonly planModeInstructions?: string;
   readonly resumeFrom?: string;
   readonly resumeAt?: string;
   /**
@@ -398,6 +424,11 @@ export class Session {
     maxBudgetUsd?: number;
     fallbackModel?: string;
     sandboxEnabled?: boolean;
+    enable1mContext?: boolean;
+    persistSession?: boolean;
+    additionalDirectories?: string[];
+    systemPromptAppend?: string;
+    planModeInstructions?: string;
     permissionMode?: PermissionMode;
     resume?: string;
     resumeSessionAt?: string;
@@ -421,6 +452,11 @@ export class Session {
     this.maxBudgetUsd = opts.maxBudgetUsd;
     this.fallbackModel = opts.fallbackModel;
     this.sandboxEnabled = opts.sandboxEnabled;
+    this.enable1mContext = opts.enable1mContext;
+    this.persistSession = opts.persistSession;
+    this.additionalDirectories = opts.additionalDirectories;
+    this.systemPromptAppend = opts.systemPromptAppend;
+    this.planModeInstructions = opts.planModeInstructions;
     this.permissionMode = opts.permissionMode ?? "default";
     this.resumeFrom = opts.resume;
     this.resumeAt = opts.resumeSessionAt;
@@ -583,6 +619,38 @@ export class Session {
               failIfUnavailable: false,
             },
           }
+        : {}),
+      // 1M-token context window beta (Sonnet 4/4.5). Omitted unless explicitly
+      // enabled — it raises cost substantially. The SDK ignores the beta on
+      // models that don't support it, so gating is advisory (the WorkspaceForm
+      // notes the Sonnet requirement).
+      ...(this.enable1mContext ? { betas: ["context-1m-2025-08-07" as const] } : {}),
+      // Ephemeral sessions: only forward persistSession when explicitly false
+      // so the SDK's default (persist) is untouched otherwise.
+      ...(this.persistSession === false ? { persistSession: false } : {}),
+      // Extra directories the agent may read/write beyond cwd. Only forwarded
+      // when non-empty so the default (cwd-only) is preserved otherwise.
+      ...(this.additionalDirectories && this.additionalDirectories.length > 0
+        ? { additionalDirectories: this.additionalDirectories }
+        : {}),
+      // Append workspace-level steering to the default Claude Code system
+      // prompt. Only set when non-empty so the SDK keeps its plain preset
+      // otherwise. Distinct from CLAUDE.md — this is house-style steering, not
+      // project content. Trimmed so a whitespace-only value is treated as unset.
+      ...(this.systemPromptAppend && this.systemPromptAppend.trim()
+        ? {
+            systemPrompt: {
+              type: "preset" as const,
+              preset: "claude_code" as const,
+              append: this.systemPromptAppend,
+            },
+          }
+        : {}),
+      // Custom plan-mode workflow body. The SDK only consults this in plan
+      // mode; harmless to pass otherwise. Omitted when empty so the default
+      // plan workflow applies. Trimmed to treat whitespace-only as unset.
+      ...(this.planModeInstructions && this.planModeInstructions.trim()
+        ? { planModeInstructions: this.planModeInstructions }
         : {}),
       permissionMode: this.permissionMode,
       abortController: this.abortController,
