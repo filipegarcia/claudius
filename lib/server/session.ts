@@ -1525,6 +1525,27 @@ export class Session {
   }
 
   /**
+   * Toggle "ultracode" (Dynamic Workflows) for subsequent turns.
+   *
+   * Ultracode is the SDK flag behind Opus 4.8's Dynamic Workflows: it runs
+   * the session at `xhigh` effort plus standing dynamic-workflow
+   * orchestration (the model plans, then fans out parallel subagents). Set
+   * through the same `applyFlagSettings` control channel as `setEffort` —
+   * there's no slash command for it.
+   *
+   * The SDK requires the Workflows feature to be enabled (plan-gated) and
+   * an `xhigh`-capable model. We don't re-implement those checks: the
+   * picker only offers the toggle on `xhigh`-capable models, and we trust
+   * the SDK to no-op if Workflows aren't enabled for the user. Session-
+   * scoped with no DB persistence (same as effort) — resets to off after a
+   * reap → resume.
+   */
+  async setUltracode(enabled: boolean): Promise<void> {
+    if (!this.query) return;
+    await this.query.applyFlagSettings({ ultracode: enabled }).catch(() => {});
+  }
+
+  /**
    * Forward user feedback to Anthropic via the SDK's *undocumented* control
    * method `query.submitFeedback`. It isn't in the SDK's public typings (no
    * `.d.ts` entry), but it lives on the same control-protocol object that
