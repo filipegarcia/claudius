@@ -119,6 +119,20 @@ function refreshDisabled(): boolean {
   return process.env.CLAUDIUS_DISABLE_PRICE_REFRESH === "1";
 }
 
+/**
+ * Keep only Claude entries — Claudius wraps the Claude Agent SDK, so the
+ * full multi-provider LiteLLM table (~2.3k models) is just noise. This mirrors
+ * the scope of the bundled snapshot so the runtime cache and the bundle report
+ * a consistent model count.
+ */
+function filterToClaude(table: PricingTable): PricingTable {
+  const out: PricingTable = {};
+  for (const [model, pricing] of Object.entries(table)) {
+    if (model.toLowerCase().includes("claude")) out[model] = pricing;
+  }
+  return out;
+}
+
 /** Fetch + normalize the LiteLLM table. Returns null on any failure. */
 async function fetchTableFromNetwork(): Promise<PricingTable | null> {
   const controller = new AbortController();
@@ -126,7 +140,7 @@ async function fetchTableFromNetwork(): Promise<PricingTable | null> {
   try {
     const res = await fetch(LITELLM_URL, { signal: controller.signal });
     if (!res.ok) return null;
-    const table = normalizeTable(await res.json());
+    const table = filterToClaude(normalizeTable(await res.json()));
     return Object.keys(table).length === 0 ? null : table; // ignore garbage
   } catch {
     return null;

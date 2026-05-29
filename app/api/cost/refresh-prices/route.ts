@@ -12,6 +12,6 @@ export async function GET() {
 /** Force an immediate fetch of LiteLLM list prices and update the on-disk cache. */
 export async function POST() {
   const result = await refreshPricing();
-  const status = result.ok ? 200 : result.source === "disabled" ? 409 : 502;
+  const status = result.ok ? 200 : result.source === "disabled" ? 503 : 502;
   return NextResponse.json(result, { status });
 }
