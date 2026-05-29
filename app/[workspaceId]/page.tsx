@@ -1201,12 +1201,28 @@ export default function Home() {
           mode={session.permissionMode}
           onExit={() => void session.setPermissionMode("default")}
         />
-        <GoalBanner
-          goal={session.goal}
-          onSet={session.setGoal}
-          onClear={session.clearGoal}
-          openEditNonce={goalEditNonce}
-        />
+        {/* Session header — title and goal share one panel (two rows, one
+            border) since both are session-level metadata. */}
+        {session.sessionId && (
+          <div
+            data-testid="session-header"
+            className="border-b border-[var(--border)] bg-[var(--panel-2)]/40"
+          >
+            <RecapBanner
+              embedded
+              sessionId={session.sessionId}
+              title={session.sessionTitle}
+              onRename={session.renameTitle}
+            />
+            <GoalBanner
+              embedded
+              goal={session.goal}
+              onSet={session.setGoal}
+              onClear={session.clearGoal}
+              openEditNonce={goalEditNonce}
+            />
+          </div>
+        )}
         <TodosBanner
           todos={session.latestTodos}
           hidden={todosBannerHidden}
@@ -1216,11 +1232,6 @@ export default function Home() {
             todosBannerHiddenFingerprintRef.current = todosFingerprint(session.latestTodos);
             setTodosBannerHidden(true);
           }}
-        />
-        <RecapBanner
-          sessionId={session.sessionId}
-          title={session.sessionTitle}
-          onRename={session.renameTitle}
         />
         <FeedbackBanner
           survey={session.feedbackSurvey}

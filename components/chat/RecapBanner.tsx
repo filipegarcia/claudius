@@ -10,6 +10,12 @@ type Props = {
   title: string | null;
   /** Inline rename action — returns ok/error so the row can flash on failure. */
   onRename?: (newTitle: string) => Promise<{ ok: true } | { ok: false; error: string }>;
+  /**
+   * When true, render as a row inside a shared session-header panel (with the
+   * GoalBanner) rather than a standalone banner — drops its own bottom border
+   * and background so the parent panel owns the framing.
+   */
+  embedded?: boolean;
 };
 
 const PLACEHOLDER = "Untitled session";
@@ -31,7 +37,7 @@ const PLACEHOLDER = "Untitled session";
  * prompt to Claude on demand. That layer is deferred — this strip is the
  * always-on baseline.
  */
-export function RecapBanner({ sessionId, title, onRename }: Props) {
+export function RecapBanner({ sessionId, title, onRename, embedded }: Props) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
   const [saveErr, setSaveErr] = useState<string | null>(null);
@@ -85,7 +91,7 @@ export function RecapBanner({ sessionId, title, onRename }: Props) {
   return (
     <div
       data-testid="recap-banner"
-      className="border-b border-[var(--border)] bg-[var(--panel-2)]/40"
+      className={cn(!embedded && "border-b border-[var(--border)] bg-[var(--panel-2)]/40")}
     >
       <div className="group mx-auto flex w-full max-w-3xl items-center gap-2 px-4 py-1.5 text-xs">
         <ScrollText

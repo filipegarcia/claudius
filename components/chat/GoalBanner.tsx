@@ -20,24 +20,32 @@ type Props = {
    * focuses the input.
    */
   openEditNonce?: number;
+  /**
+   * When true, render as a row inside a shared session-header panel (below the
+   * RecapBanner title) rather than a standalone banner — swaps its bottom
+   * border for a top divider and lets the parent panel own the outer framing.
+   */
+  embedded?: boolean;
 };
 
 const MAX_LEN = 280;
 
 /**
- * Prominent, pinned banner that surfaces the session goal between the
- * StatusLine and the message list (see `/goal`). Three states:
+ * Surfaces the session goal in the chat header (see `/goal`). Three states:
  *
- *   1. No goal + not editing → renders nothing.
+ *   1. No goal + not editing → a subtle "Set a session goal" button.
  *   2. Goal set → the objective, with edit + clear affordances.
  *   3. Achieved → a celebratory emerald strip with the agent's summary.
+ *
+ * Rendered as a row inside the shared session-header panel (below the title)
+ * when `embedded`; otherwise a standalone banner.
  *
  * Achievement is driven by the agent calling the in-process
  * `report_goal_achieved` SDK tool, surfaced via the `goal_changed` SSE event;
  * the banner just reflects `goal.achieved`. Editing/clearing round-trips
  * through `onSet`/`onClear` (which POST to `/api/sessions/[id]/goal`).
  */
-export function GoalBanner({ goal, onSet, onClear, openEditNonce }: Props) {
+export function GoalBanner({ goal, onSet, onClear, openEditNonce, embedded }: Props) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
   const [saveErr, setSaveErr] = useState<string | null>(null);
@@ -74,7 +82,11 @@ export function GoalBanner({ goal, onSet, onClear, openEditNonce }: Props) {
     return (
       <div
         data-testid="goal-banner-empty"
-        className="border-b border-[var(--border)] bg-[var(--panel-2)]/30"
+        className={cn(
+          embedded
+            ? "border-t border-[var(--border)]/50"
+            : "border-b border-[var(--border)] bg-[var(--panel-2)]/30",
+        )}
       >
         <div className="mx-auto flex w-full max-w-3xl items-center px-4 py-1.5 text-xs">
           <button
@@ -137,10 +149,14 @@ export function GoalBanner({ goal, onSet, onClear, openEditNonce }: Props) {
       data-testid="goal-banner"
       data-achieved={achieved ? "1" : "0"}
       className={cn(
-        "border-b",
+        embedded ? "border-t" : "border-b",
         achieved
-          ? "border-emerald-500/30 bg-emerald-500/10"
-          : "border-[var(--border)] bg-[var(--accent)]/10",
+          ? embedded
+            ? "border-emerald-500/20 bg-emerald-500/10"
+            : "border-emerald-500/30 bg-emerald-500/10"
+          : embedded
+            ? "border-[var(--border)]/50 bg-[var(--accent)]/[0.07]"
+            : "border-[var(--border)] bg-[var(--accent)]/10",
       )}
     >
       <div className="mx-auto flex w-full max-w-3xl items-start gap-2 px-4 py-2 text-xs">
