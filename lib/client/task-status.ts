@@ -49,9 +49,20 @@ export function findToolUseBlock(
  * background" tool_result that is NOT its completion — its real result rides
  * on a later `task_notification`. Such tasks must be excluded from
  * result-based completion.
+ *
+ * The `Workflow` tool is *always* backgrounded: it returns a "started, here's
+ * the runId" ack in ~0s and its real completion arrives via `task_notification`
+ * on the `local_workflow` task. It does NOT carry `run_in_background` in its
+ * input, so without this name check the 0s ack would (depending on SSE
+ * ordering) mis-seed/reconcile the still-running workflow task to "completed",
+ * bouncing it out of "Tasks" into "Recent" until a later progress tick rescued
+ * it — the exact "the running box took ages to appear" symptom.
  */
 export function isBackgroundedToolUse(block: ToolUseBlock | null): boolean {
-  return !!block && (block.input as { run_in_background?: unknown }).run_in_background === true;
+  if (!block) return false;
+  if ((block.input as { run_in_background?: unknown }).run_in_background === true) return true;
+  if (block.name === "Workflow") return true;
+  return false;
 }
 
 /**
@@ -89,4 +100,95 @@ export function seedTaskStatus(block: ToolUseBlock | null): TaskStatus {
     return statusFromToolResult(block.result.isError);
   }
   return "running";
+}
+
+/**
+ * Provisional ("placeholder") task lifecycle.
+ *
+ * A backgrounded launcher (the Workflow tool) returns a "started, here's the
+ * runId" ack in ~0s, but the SDK's `task_started` for the underlying task can
+ * lag until the runtime spins up — a dead-zone where the work is alive but the
+ * rail shows nothing. We seed a provisional row off the ack, keyed by
+ * `tool_use_id` (its own `taskId === toolUseId`), and let the real lifecycle
+ * events replace/clear it.
+ *
+ * Cleanup must be authoritative: `task_started` and `task_notification` both
+ * carry `tool_use_id`, and the task-status module's whole reason for existing
+ * is that these events aren't perfectly ordered/delivered. So every event that
+ * can establish or settle the real task drops the matching provisional —
+ * otherwise a notification-without-a-prior-started would strand a phantom
+ * "running" row forever.
+ */
+
+/** True when a real (non-provisional) task already owns `toolUseId`. */
+export function hasRealTaskForToolUse(
+  tasks: Record<string, TaskInfo>,
+  toolUseId: string,
+): boolean {
+  return Object.values(tasks).some((t) => t.toolUseId === toolUseId && !t.provisional);
+}
+
+/**
+ * Insert a provisional placeholder keyed by its `toolUseId`. No-op (same ref)
+ * when a real task already owns that tool_use_id, or a provisional is already
+ * present — idempotent against SSE replay re-firing the launch ack.
+ */
+export function upsertProvisionalTask(
+  tasks: Record<string, TaskInfo>,
+  provisional: TaskInfo & { toolUseId: string },
+): Record<string, TaskInfo> {
+  const key = provisional.toolUseId;
+  if (hasRealTaskForToolUse(tasks, key)) return tasks;
+  if (tasks[key]?.provisional) return tasks;
+  return { ...tasks, [key]: { ...provisional, taskId: key, provisional: true } };
+}
+
+/**
+ * Drop the provisional placeholder for `toolUseId`, if any. Returns the carried
+ * `startedAt` so the replacing real task can keep the ticking timer continuous.
+ * Returns the same map ref when there's nothing to drop.
+ */
+export function dropProvisionalForToolUse(
+  tasks: Record<string, TaskInfo>,
+  toolUseId: string | undefined,
+): { tasks: Record<string, TaskInfo>; carriedStartedAt?: number } {
+  if (!toolUseId) return { tasks };
+  const existing = tasks[toolUseId];
+  if (!existing?.provisional) return { tasks };
+  const next = { ...tasks };
+  delete next[toolUseId];
+  return { tasks: next, carriedStartedAt: existing.startedAt };
+}
+
+/**
+ * The set of task ids the "Stop all" rail button fans `stop-task` out over.
+ *
+ * Drawn from the THREE disjoint stoppable sources the rail already partitions —
+ * agentic tasks (`subagents`), process tasks (monitors etc., `runningProcessTasks`),
+ * and live background shells (`runningBashes`) — and NOT from the broader
+ * `attention` count (which also folds in tool calls / pending permission /
+ * scheduled loops, none of which `stop-task` can cancel). For shells we include
+ * only those whose `taskId` resolves through `taskByToolUseId`, mirroring the
+ * per-item Stop visibility in BackgroundBashes (hidden when no task is known)
+ * so the confirm count stays honest. Scheduled loops are intentionally excluded
+ * — they cancel via the agent-prompt path, not `stop-task`.
+ *
+ * Returns a deduped Set so `.size` is the true number of distinct tasks that
+ * would be stopped (drives button visibility, the aria/confirm count, and the
+ * fan-out itself — all from one source of truth).
+ */
+export function collectStoppableTaskIds(
+  subagents: readonly TaskInfo[],
+  runningProcessTasks: readonly TaskInfo[],
+  runningBashes: readonly { toolUseId: string }[],
+  taskByToolUseId: ReadonlyMap<string, TaskInfo>,
+): Set<string> {
+  const ids = new Set<string>();
+  for (const t of subagents) ids.add(t.taskId);
+  for (const t of runningProcessTasks) ids.add(t.taskId);
+  for (const b of runningBashes) {
+    const id = taskByToolUseId.get(b.toolUseId)?.taskId;
+    if (id) ids.add(id);
+  }
+  return ids;
 }

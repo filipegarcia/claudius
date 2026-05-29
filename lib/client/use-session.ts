@@ -26,11 +26,14 @@ import {
   parseSyntheticCliWrapper,
 } from "./sdk-message-filters";
 import { stripGoalReminder } from "@/lib/shared/user-prompt";
+import { parseWorkflowMeta } from "@/lib/shared/workflow-meta";
 import {
+  dropProvisionalForToolUse,
   findToolUseBlock,
   isBackgroundedToolUse,
   reconcileTasksOnToolResult,
   seedTaskStatus,
+  upsertProvisionalTask,
 } from "./task-status";
 import { applyThinkingTokensEstimate, clearStreaming, sweepToolHistoryDone } from "./idle-reconcile";
 import type {
@@ -1427,6 +1430,16 @@ export function useSession(): ChatState & ChatActions {
           let changed = false;
           const next = { ...prev };
           for (const t of ev.tasks) {
+            // A replayed Workflow launch ack (a normal sdk event in the replay
+            // window) may have re-seeded a provisional keyed by this task's
+            // tool_use_id. The snapshot carries the authoritative real task, so
+            // drop the placeholder to avoid a duplicate row (handles the
+            // ordering where the ack replays before this snapshot; the reverse
+            // order is covered by upsertProvisionalTask's real-task guard).
+            if (t.toolUseId && next[t.toolUseId]?.provisional) {
+              delete next[t.toolUseId];
+              changed = true;
+            }
             if (next[t.taskId]) continue;
             next[t.taskId] = {
               taskId: t.taskId,
@@ -2249,6 +2262,34 @@ export function useSession(): ChatState & ChatActions {
               isBackgroundedToolUse(taskToolBlock),
             ),
           );
+          // The Workflow tool returns a "started in background, here's the
+          // runId" ack in ~0s, but the SDK's `task_started` for the underlying
+          // `local_workflow` task can lag until the runtime spins up its first
+          // agent — a dead-zone where the workflow is alive but the rail shows
+          // nothing. Seed a provisional "running" row off the ack so "Tasks"
+          // lights up immediately; `task_started` later replaces it (same
+          // tool_use_id) with the real task, carrying the start time forward.
+          if (taskToolBlock?.name === "Workflow" && !result.isError) {
+            const meta = parseWorkflowMeta(
+              (taskToolBlock.input as { script?: unknown }).script as string | undefined,
+            );
+            const toolUseId = result.tool_use_id;
+            setTasks((prev) =>
+              upsertProvisionalTask(prev, {
+                taskId: toolUseId,
+                toolUseId,
+                description:
+                  meta.description ??
+                  (meta.name ? `Workflow ${meta.name}` : "Workflow running in background"),
+                taskType: "local_workflow",
+                workflowName: meta.name,
+                status: "running",
+                isBackgrounded: true,
+                startedAt: Date.now(),
+                provisional: true,
+              }),
+            );
+          }
           // If this tool_result is the launch acknowledgement for a background
           // bash, extract the SDK-side `bash_id` so the viewer can stitch
           // subsequent BashOutput results.
@@ -2717,17 +2758,28 @@ export function useSession(): ChatState & ChatActions {
           const startedBlock = t.tool_use_id
             ? findToolUseBlock(t.tool_use_id, messagesRef.current)
             : null;
-          setTasks((prev) => ({
-            ...prev,
-            [t.task_id]: {
-              taskId: t.task_id,
-              toolUseId: t.tool_use_id,
-              description: t.description ?? "(no description)",
-              taskType: t.task_type,
-              workflowName: t.workflow_name,
-              status: seedTaskStatus(startedBlock),
-            },
-          }));
+          setTasks((prev) => {
+            // A provisional row (seeded off a background launch ack) is keyed by
+            // its tool_use_id; the real task arrives under a distinct task_id.
+            // Drop the placeholder and carry its wall-clock start forward so the
+            // ticking elapsed timer doesn't reset to 0 on the handoff.
+            const { tasks: cleared, carriedStartedAt } = dropProvisionalForToolUse(
+              prev,
+              t.tool_use_id,
+            );
+            return {
+              ...cleared,
+              [t.task_id]: {
+                taskId: t.task_id,
+                toolUseId: t.tool_use_id,
+                description: t.description ?? "(no description)",
+                taskType: t.task_type,
+                workflowName: t.workflow_name,
+                status: seedTaskStatus(startedBlock),
+                startedAt: carriedStartedAt ?? Date.now(),
+              },
+            };
+          });
           return;
         }
         if (sysAny.subtype === "task_updated") {
@@ -2780,19 +2832,27 @@ export function useSession(): ChatState & ChatActions {
         if (sysAny.subtype === "task_notification") {
           const t = sysAny as unknown as {
             task_id: string;
+            tool_use_id?: string;
             status: "completed" | "failed" | "stopped";
             summary?: string;
             usage?: { total_tokens?: number; tool_uses?: number; duration_ms?: number };
           };
           setTasks((prev) => {
-            const existing = prev[t.task_id];
+            // Authoritative cleanup: a notification can arrive WITHOUT a prior
+            // task_started (the task-status module exists precisely because
+            // these events aren't reliably ordered/delivered). Drop the
+            // provisional placeholder keyed by tool_use_id so it can't strand a
+            // phantom "running" row forever, then settle the real task.
+            const { tasks: cleared } = dropProvisionalForToolUse(prev, t.tool_use_id);
+            const existing = cleared[t.task_id];
             const base: TaskInfo = existing ?? {
               taskId: t.task_id,
+              toolUseId: t.tool_use_id,
               description: t.summary ?? "(unknown)",
               status: "completed",
             };
             return {
-              ...prev,
+              ...cleared,
               [t.task_id]: {
                 ...base,
                 status: t.status,

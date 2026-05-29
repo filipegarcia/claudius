@@ -10,6 +10,7 @@ import {
 import type { Workspace } from "@/lib/server/workspaces-store";
 
 import { readBridgeOnClient } from "./useElectron";
+import { useAttentionRef } from "./useAttentionRef";
 
 export type NotifyState = "default" | "granted" | "denied" | "unsupported";
 
@@ -97,7 +98,11 @@ export function useNotifications(opts: Options) {
     if (typeof window === "undefined" || !("Notification" in window)) return "unsupported";
     return Notification.permission as NotifyState;
   });
-  const visibleRef = useRef(true);
+  // "Is the user attending to this window" — visible AND (in Electron) the
+  // window is focused. Drives the same-session OS-notify suppression below.
+  // Using window focus (not just `document.hidden`) is what lets an Electron
+  // user who Cmd-Tabbed away — window still on screen — actually get the toast.
+  const visibleRef = useAttentionRef();
   // The notification's onclick handler is bound ONCE for the lifetime
   // of an OS-toast; we want it to read the latest `onJump` /
   // `activeSessionId` without forcing the whole effect to re-run on
@@ -111,17 +116,7 @@ export function useNotifications(opts: Options) {
   // eslint-disable-next-line react-hooks/refs
   activeSessionRef.current = activeSessionId ?? null;
 
-  // Visibility tracking. The permission state is already correct from
-  // the lazy initializer above; the only reason this effect exists is
-  // to keep `visibleRef` in sync with `document.hidden`.
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    function onVis() {
-      visibleRef.current = !document.hidden;
-    }
-    document.addEventListener("visibilitychange", onVis);
-    return () => document.removeEventListener("visibilitychange", onVis);
-  }, []);
+  // (Visibility/focus tracking now lives in `useAttentionRef` above.)
 
   // One-shot legacy migration: if the user had previously opted in via the
   // localStorage flag and the workspace has no notifications.enabled set,
@@ -271,7 +266,9 @@ export function useNotifications(opts: Options) {
         // the surrounding render
       }
     },
-    [enabled, state, onClick],
+    // `visibleRef` is a stable ref from useAttentionRef — listed to satisfy
+    // exhaustive-deps; its identity never changes so notify() stays stable.
+    [enabled, state, onClick, visibleRef],
   );
 
   // Phase 6 — subscribe to notification-click events coming back from
