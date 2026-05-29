@@ -1,5 +1,5 @@
 import type { NextConfig } from "next";
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import { join } from "node:path";
 
 // When Claudius is packaged inside Electron (electron-builder sets
@@ -20,7 +20,7 @@ const packaged = process.env.CLAUDIUS_PACKAGED === "1";
 const claudiusRelease = (() => {
   try {
     return (
-      execSync(`node ${join(process.cwd(), "scripts/claudius-release.mjs")}`, {
+      execFileSync("node", [join(process.cwd(), "scripts/claudius-release.mjs")], {
         stdio: ["ignore", "pipe", "ignore"],
       })
         .toString()

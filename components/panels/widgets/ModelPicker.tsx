@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Check, Cpu, Gauge, Loader2, Workflow } from "lucide-react";
+import { Check, Cpu, Gauge, Loader2, Workflow, Zap } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 
 /**
@@ -72,6 +72,14 @@ type Props = {
   ultracode?: boolean;
   onToggleUltracode?: (enabled: boolean) => Promise<void> | void;
   /**
+   * "Fast mode" — accelerated decoding on supported models (Opus 4.8). Only
+   * meaningful in a live session on a `supportsFastMode` model, so optional:
+   * the row hides itself when this is absent or the active model lacks fast
+   * mode.
+   */
+  fastMode?: boolean;
+  onToggleFast?: (enabled: boolean) => Promise<void> | void;
+  /**
    * When true, prepends an "(Inherit machine default)" entry that maps to
    * an empty model value (the workspace form treats empty as "use the
    * machine's default"). Selecting it calls `onPickModel("")`.
@@ -91,6 +99,8 @@ export function ModelPicker({
   onPickEffort,
   ultracode = false,
   onToggleUltracode,
+  fastMode = false,
+  onToggleFast,
   showInherit = false,
   headerLabel = "Model",
 }: Props) {
@@ -449,6 +459,60 @@ export function ModelPicker({
                   className={cn(
                     "absolute top-0.5 h-3 w-3 rounded-full bg-white transition-all",
                     ultracode ? "left-3.5" : "left-0.5",
+                  )}
+                />
+              </span>
+            </button>
+          </div>
+        );
+      })()}
+      {/* Fast mode (the SDK's `fastMode` flag) — accelerated decoding on
+          supported models (Opus 4.8). Only shown on a live session with a
+          fast-capable model; amber to match the per-model "fast" chip in the
+          list above. */}
+      {(() => {
+        if (!onToggleFast || !activeModel?.supportsFastMode) {
+          return null;
+        }
+        return (
+          <div className="border-t border-[var(--border)]/60 px-3 py-2">
+            <button
+              type="button"
+              data-testid="model-picker-fast"
+              data-enabled={fastMode ? "1" : "0"}
+              aria-pressed={fastMode}
+              onClick={() => onToggleFast(!fastMode)}
+              className={cn(
+                "flex w-full items-center gap-2 rounded border px-2 py-1.5 text-left transition",
+                fastMode
+                  ? "border-amber-500/40 bg-amber-500/10"
+                  : "border-[var(--border)] bg-[var(--panel-2)] hover:bg-[var(--panel)]",
+              )}
+            >
+              <Zap
+                className={cn(
+                  "h-3.5 w-3.5 shrink-0",
+                  fastMode ? "text-amber-300" : "text-[var(--muted)]",
+                )}
+              />
+              <span className="min-w-0 flex-1">
+                <span className="block text-[11px] font-medium text-[var(--foreground)]">
+                  Fast mode
+                </span>
+                <span className="block text-[9px] leading-tight text-[var(--muted)]">
+                  Accelerated responses on supported models.
+                </span>
+              </span>
+              <span
+                className={cn(
+                  "relative h-4 w-7 shrink-0 rounded-full transition-colors",
+                  fastMode ? "bg-amber-500" : "bg-[var(--border)]",
+                )}
+              >
+                <span
+                  className={cn(
+                    "absolute top-0.5 h-3 w-3 rounded-full bg-white transition-all",
+                    fastMode ? "left-3.5" : "left-0.5",
                   )}
                 />
               </span>

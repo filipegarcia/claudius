@@ -1816,6 +1816,26 @@ export class Session {
   }
 
   /**
+   * Toggle "fast mode" for subsequent turns.
+   *
+   * Fast mode is the SDK's accelerated-decoding flag (Opus 4.8 — cheat-sheet
+   * binding `Option+O` / `/fast`). Set through the same `applyFlagSettings`
+   * control channel as `setEffort`/`setUltracode`. Unlike ultracode it is
+   * *orthogonal to effort*: it does NOT force `xhigh` — it just runs the model
+   * at accelerated rates, so the effort mirror is left untouched.
+   *
+   * The SDK requires a fast-capable model; we don't re-implement that check —
+   * the picker only offers the toggle on `supportsFastMode` models, and we
+   * trust the SDK to no-op otherwise. Session-scoped with no DB persistence
+   * (same as effort/ultracode): resets to off after a reap → resume. Gated
+   * client-side on `supportsFastMode`.
+   */
+  async setFast(enabled: boolean): Promise<void> {
+    if (!this.query) return;
+    await this.query.applyFlagSettings({ fastMode: enabled }).catch(() => {});
+  }
+
+  /**
    * Forward user feedback to Anthropic via the SDK's *undocumented* control
    * method `query.submitFeedback`. It isn't in the SDK's public typings (no
    * `.d.ts` entry), but it lives on the same control-protocol object that

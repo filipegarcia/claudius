@@ -9,7 +9,7 @@ step.
 
 ```
 site/
-├── index.html           # the one page — hero, install, features, gallery, customize, meta, footer
+├── index.html           # the one page — hero, install, features, desktop, gallery, customize, meta, footer
 ├── claudius.svg         # logo (referenced in hero + footer + favicon)
 ├── icon.svg             # browser favicon
 ├── apple-icon.png       # iOS home-screen icon

@@ -10,6 +10,8 @@ import {
   useState,
 } from "react";
 import { useNotifications, type NotifyState } from "@/lib/client/useNotifications";
+import { useAttentionRef } from "@/lib/client/useAttentionRef";
+import { readBridgeOnClient } from "@/lib/client/useElectron";
 import { useFaviconBadge } from "@/lib/client/useFaviconBadge";
 import { useWorkspaces } from "@/lib/client/useWorkspaces";
 import { useActiveSessionId } from "@/lib/client/useActiveSessionId";
@@ -252,18 +254,11 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
   // notification targets, the row is marked read on arrival so the badge
   // doesn't tick. Without this, sessions you sit on accumulate "finished a
   // turn" rows turn after turn.
-  const visibleRef = useRef<boolean>(
-    typeof document !== "undefined" ? !document.hidden : true,
-  );
-  useEffect(() => {
-    if (typeof document === "undefined") return;
-    visibleRef.current = !document.hidden;
-    function onVis() {
-      visibleRef.current = !document.hidden;
-    }
-    document.addEventListener("visibilitychange", onVis);
-    return () => document.removeEventListener("visibilitychange", onVis);
-  }, []);
+  // Attending = document visible AND (in Electron) window focused. Keying this
+  // on focus — not just `document.hidden` — is what makes a Cmd-Tab away from
+  // the desktop app count as "not attending," so the toast fires. Symmetric
+  // with the OS-notify suppression in `useNotifications`. See useAttentionRef.
+  const visibleRef = useAttentionRef();
 
   useEffect(() => {
     let es: EventSource | null = null;
@@ -356,7 +351,9 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
       cancelled = true;
       es?.close();
     };
-  }, [refreshCounts, applyState]);
+    // `visibleRef` is a stable ref from useAttentionRef — listed to satisfy
+    // exhaustive-deps without re-opening the SSE connection (identity is fixed).
+  }, [refreshCounts, applyState, visibleRef]);
 
   // Visibility / online recovery — pull fresh state when the tab becomes
   // visible after a long sleep, in case the SSE silently dropped.
@@ -496,30 +493,43 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     [activeId],
   );
 
-  // Visibility-regain → mark the active session read. Symmetric pair to the
-  // SSE-handler auto-read path: the SSE gate requires `visibleRef.current ===
-  // true` so a notification arriving while the browser tab is backgrounded
-  // (Cmd-Tab away, focus on another tab, DevTools panel docked off-screen)
+  // Attention-regain → mark the active session read. Symmetric pair to the
+  // SSE-handler auto-read path: the SSE gate requires the user be "attending"
+  // (visible AND, in Electron, focused) so a notification arriving while the
+  // window is backgrounded — Cmd-Tab away, another tab, DevTools off-screen —
   // can't auto-clear. Without this handler, the badge would stay stuck on the
   // tab the user is already sitting on — they'd see "1" on the in-app tab
-  // that's currently rendered, which reads as a bug. When the document
-  // becomes visible again AND we have an active session bound, treat it the
-  // same as a tab click: "I'm looking at this session now → clear it."
+  // that's currently rendered, which reads as a bug. When attention returns
+  // AND we have an active session bound, treat it the same as a tab click:
+  // "I'm looking at this session now → clear it."
+  //
+  // It must mirror the *attending* predicate, not just `document.hidden`:
+  // inside Electron a Cmd-Tab back to the window fires `focus` (not
+  // `visibilitychange`, since the window never hid), so we listen for both and
+  // gate on focus too — otherwise the badge wouldn't clear on return.
   //
   // markSessionRead has its own cheap-exit (knownUnread === 0 && !recentUnread)
-  // so firing on every visibility regain is harmless when there's nothing to
-  // clear. We intentionally DO NOT do the same on `online` reconnect — the
-  // user may have been offline and we want them to see what landed in the
-  // meantime, not silently clear it.
+  // so firing on every regain is harmless when there's nothing to clear. We
+  // intentionally DO NOT do the same on `online` reconnect — the user may have
+  // been offline and we want them to see what landed in the meantime, not
+  // silently clear it.
   useEffect(() => {
-    function onVis() {
+    function onRegain() {
       if (document.hidden) return;
+      // Electron: a focus event can fire while the window is still blurred in
+      // edge cases (devtools); require real window focus before auto-reading.
+      if (readBridgeOnClient() && !document.hasFocus()) return;
       const sid = activeSessionIdRef.current;
       if (!sid) return;
       void markSessionRead(sid);
     }
-    document.addEventListener("visibilitychange", onVis);
-    return () => document.removeEventListener("visibilitychange", onVis);
+    document.addEventListener("visibilitychange", onRegain);
+    const inElectron = readBridgeOnClient() !== null;
+    if (inElectron) window.addEventListener("focus", onRegain);
+    return () => {
+      document.removeEventListener("visibilitychange", onRegain);
+      if (inElectron) window.removeEventListener("focus", onRegain);
+    };
   }, [markSessionRead]);
 
   const toggleWorkspaceEnabled = useCallback(async () => {

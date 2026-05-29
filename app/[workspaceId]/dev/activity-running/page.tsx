@@ -35,33 +35,67 @@ function buildBashes(now: number): Record<string, BackgroundBash> {
   };
 }
 
-const TASKS: Record<string, TaskInfo> = {
-  // Matching tasks for the live shells — give them a taskId so Stop works.
-  "task-dev": { taskId: "task-dev", toolUseId: "tu-dev", taskType: "local_bash", description: "bun run dev", status: "running" },
-  "task-serve": { taskId: "task-serve", toolUseId: "tu-serve", taskType: "local_bash", description: "serve site", status: "running" },
-  // The stale shell's task already finished → drops the shell from "Running".
-  "task-stale": { taskId: "task-stale", toolUseId: "tu-stale", taskType: "local_bash", description: "pytest watcher", status: "completed" },
-  // A monitor process → belongs in "Running", not "Tasks".
-  "task-monitor": {
-    taskId: "task-monitor",
-    toolUseId: "tu-monitor",
-    taskType: "local_monitor",
-    description: "Watch CI run #4821 until it finishes",
-    status: "running",
-  },
-  // An agentic subagent → must stay in "Tasks" (partition check).
-  "task-agent": {
-    taskId: "task-agent",
-    toolUseId: "tu-agent",
-    taskType: "local_agent",
-    workflowName: "review",
-    description: "Reviewing the auth refactor",
-    status: "running",
-    totalTokens: 184_200,
-    toolUses: 37,
-    durationMs: 96_000,
-  },
-};
+/** Tasks anchored to real client time so the live ticking timers read sensibly. */
+function buildTasks(now: number): Record<string, TaskInfo> {
+  return {
+    // Matching tasks for the live shells — give them a taskId so Stop works.
+    "task-dev": { taskId: "task-dev", toolUseId: "tu-dev", taskType: "local_bash", description: "bun run dev", status: "running" },
+    "task-serve": { taskId: "task-serve", toolUseId: "tu-serve", taskType: "local_bash", description: "serve site", status: "running" },
+    // The stale shell's task already finished → drops the shell from "Running".
+    "task-stale": { taskId: "task-stale", toolUseId: "tu-stale", taskType: "local_bash", description: "pytest watcher", status: "completed" },
+    // A monitor process → belongs in "Running", not "Tasks".
+    "task-monitor": {
+      taskId: "task-monitor",
+      toolUseId: "tu-monitor",
+      taskType: "local_monitor",
+      description: "Watch CI run #4821 until it finishes",
+      status: "running",
+    },
+    // A long-running backgrounded workflow → stays in "Tasks", ticks a LIVE
+    // wall-clock timer off `startedAt` (the headline fix), shows its rolling
+    // summary, and feeds the header "N running" cue.
+    "task-workflow": {
+      taskId: "task-workflow",
+      toolUseId: "tu-workflow",
+      taskType: "local_workflow",
+      workflowName: "cheatsheet-implement",
+      description: "Design: design:fast-mode",
+      summary: "Sequentially implement each UI-worthy cheat-sheet feature: design → implement → verify+commit, one…",
+      status: "running",
+      isBackgrounded: true,
+      startedAt: now - 372_000,
+      totalTokens: 58_461,
+      toolUses: 39,
+    },
+    // A workflow that JUST launched: the provisional placeholder seeded off the
+    // 0s tool ack, before `task_started`/`task_progress` arrive. Proves the
+    // dead-zone is closed — a "running" row with a ticking timer appears
+    // immediately even with no usage stats yet.
+    "tu-release": {
+      taskId: "tu-release",
+      toolUseId: "tu-release",
+      taskType: "local_workflow",
+      workflowName: "release",
+      description: "Workflow release",
+      status: "running",
+      isBackgrounded: true,
+      startedAt: now - 3_000,
+      provisional: true,
+    },
+    // An agentic subagent → must stay in "Tasks" (partition check).
+    "task-agent": {
+      taskId: "task-agent",
+      toolUseId: "tu-agent",
+      taskType: "local_agent",
+      workflowName: "review",
+      description: "Reviewing the auth refactor",
+      status: "running",
+      startedAt: now - 96_000,
+      totalTokens: 184_200,
+      toolUses: 37,
+    },
+  };
+}
 
 export default function ActivityRunningPreview() {
   const [stopped, setStopped] = useState<string[]>([]);
@@ -69,6 +103,7 @@ export default function ActivityRunningPreview() {
   // once, no effect). Elapsed stays consistent because the widget's clock and
   // these start times share the same Date.now() base.
   const [bashes] = useState<Record<string, BackgroundBash>>(() => buildBashes(Date.now()));
+  const [tasks] = useState<Record<string, TaskInfo>>(() => buildTasks(Date.now()));
   return (
     <div
       data-testid="activity-running-preview"
@@ -81,7 +116,7 @@ export default function ActivityRunningPreview() {
       </div>
       <BackgroundTasksPanel
         progress={{}}
-        tasks={TASKS}
+        tasks={tasks}
         sessionId="preview-session"
         model="claude-sonnet-4-6"
         effort="high"
