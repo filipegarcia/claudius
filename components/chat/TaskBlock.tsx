@@ -17,13 +17,15 @@ type Props = {
   innerMessages: DisplayMessage[];
 };
 
-const STATUS_TONES: Record<string, string> = {
-  pending: "text-[var(--muted)]",
-  running: "text-sky-300",
-  completed: "text-emerald-300",
-  failed: "text-red-300",
-  killed: "text-red-300",
-  stopped: "text-amber-300",
+// Tinted chip styles per status — icon + label live in a single pill so the
+// state reads as one unit, distinct from the numeric metrics beside it.
+const STATUS_CHIP: Record<string, string> = {
+  pending: "border-[var(--border)] bg-[var(--panel-2)] text-[var(--muted)]",
+  running: "border-sky-400/30 bg-sky-400/10 text-sky-300",
+  completed: "border-emerald-400/30 bg-emerald-400/10 text-emerald-300",
+  failed: "border-red-400/30 bg-red-400/10 text-red-300",
+  killed: "border-red-400/30 bg-red-400/10 text-red-300",
+  stopped: "border-amber-400/30 bg-amber-400/10 text-amber-300",
 };
 
 /** "1m 23s" / "45s" / "1h 2m" — compact elapsed-time label for the header. */
@@ -46,7 +48,14 @@ export function TaskBlock({ toolUseId, input, result, task, innerMessages }: Pro
   const description = task?.description ?? (input as { description?: string }).description ?? "";
   const prompt = (input as { prompt?: string }).prompt ?? "";
   const status = task?.status ?? (result ? (result.isError ? "failed" : "completed") : "running");
-  const tone = STATUS_TONES[status] ?? "text-[var(--muted)]";
+
+  // The numeric metrics render as a single "·"-joined run with tabular figures
+  // so the digits don't jitter as they tick up during streaming. Each part is
+  // omitted until the data exists.
+  const stats: string[] = [];
+  if (task?.totalTokens != null) stats.push(`${task.totalTokens.toLocaleString()} tok`);
+  if (task?.toolUses != null && task.toolUses > 0) stats.push(`${task.toolUses} tools`);
+  if (task?.durationMs != null) stats.push(formatDuration(task.durationMs));
 
   return (
     <div
@@ -56,30 +65,42 @@ export function TaskBlock({ toolUseId, input, result, task, innerMessages }: Pro
     >
       <button
         onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-[var(--panel-2)]/40"
+        className="flex w-full min-w-0 items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-[var(--panel-2)]/40"
       >
-        {open ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
-        <Bot className="h-3.5 w-3.5 text-[var(--accent)]" />
-        <span className="font-mono">Task</span>
-        <span className="rounded-md border border-[var(--accent)]/30 bg-[var(--accent)]/10 px-1.5 py-0.5 text-[10px] text-[var(--accent)]">
+        {open ? (
+          <ChevronDown className="h-3.5 w-3.5 shrink-0 text-[var(--muted)]" />
+        ) : (
+          <ChevronRight className="h-3.5 w-3.5 shrink-0 text-[var(--muted)]" />
+        )}
+        <Bot className="h-3.5 w-3.5 shrink-0 text-[var(--accent)]" />
+        {/* The agent-type pill is the title — the Bot icon already signals
+            "subagent", so a separate "Task" label would be redundant noise. */}
+        <span className="shrink-0 whitespace-nowrap rounded-md border border-[var(--accent)]/30 bg-[var(--accent)]/10 px-1.5 py-0.5 font-mono text-[10px] text-[var(--accent)]">
           {subagentName}
         </span>
-        {description && <span className="truncate text-[var(--muted)]">— {description}</span>}
-        <span className="ml-auto inline-flex items-center gap-1 text-[10px]">
-          {status === "running" && (
-            <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-sky-400" />
-          )}
-          {(status === "completed") && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />}
-          {(status === "failed" || status === "killed") && <AlertCircle className="h-3.5 w-3.5 text-red-500" />}
-          <span className={tone}>{status}</span>
-          {task?.totalTokens != null && (
-            <span className="text-[var(--muted)]">· {task.totalTokens.toLocaleString()} tok</span>
-          )}
-          {task?.toolUses != null && task.toolUses > 0 && (
-            <span className="text-[var(--muted)]">· {task.toolUses} tools</span>
-          )}
-          {task?.durationMs != null && (
-            <span className="text-[var(--muted)]">· {formatDuration(task.durationMs)}</span>
+        {description && (
+          <span className="min-w-0 flex-1 truncate text-[var(--muted)]">— {description}</span>
+        )}
+        {/* Trailing cluster never wraps: status chip + numeric metrics stay on
+            one line; the description above truncates to yield space instead. */}
+        <span className="ml-auto flex shrink-0 items-center gap-2 whitespace-nowrap">
+          <span
+            className={cn(
+              "inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-medium capitalize",
+              STATUS_CHIP[status] ?? STATUS_CHIP.pending,
+            )}
+          >
+            {status === "running" && (
+              <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-current" />
+            )}
+            {status === "completed" && <CheckCircle2 className="h-3 w-3" />}
+            {(status === "failed" || status === "killed") && <AlertCircle className="h-3 w-3" />}
+            {status}
+          </span>
+          {stats.length > 0 && (
+            <span className="hidden tabular-nums text-[10px] text-[var(--muted)] sm:inline">
+              {stats.join(" · ")}
+            </span>
           )}
         </span>
       </button>
@@ -126,7 +147,9 @@ export function TaskBlock({ toolUseId, input, result, task, innerMessages }: Pro
               </pre>
             </details>
           )}
-          <div className="mt-1 text-[10px] font-mono text-[var(--muted)]/60">tool_use_id={toolUseId}</div>
+          {process.env.NODE_ENV === "development" && (
+            <div className="mt-1 text-[10px] font-mono text-[var(--muted)]/60">tool_use_id={toolUseId}</div>
+          )}
         </div>
       )}
     </div>

@@ -428,26 +428,26 @@ function VerboseSelector({
 function ShareButton({ sessionId }: { sessionId: string | null }) {
   const [copied, setCopied] = useState(false);
   if (!sessionId) return null;
-  const url = typeof window === "undefined" ? "" : `${window.location.origin}/?session=${sessionId}`;
+  const command = `claude --dangerously-skip-permissions --resume ${sessionId}`;
   return (
     <button
       onClick={async () => {
         try {
-          await navigator.clipboard.writeText(url);
+          await navigator.clipboard.writeText(command);
           setCopied(true);
           setTimeout(() => setCopied(false), 1500);
         } catch {
           // ignore
         }
       }}
-      title={url || "Copy session link"}
+      title={`Copy resume command: ${command}`}
       className="flex items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-1.5 py-0.5 hover:bg-[var(--panel)]"
     >
       {copied ? <Check className="h-3 w-3 text-emerald-400" /> : <LinkIcon className="h-3 w-3" />}
       {/* Label collapses below md so the right cluster fits alongside the
           Compact / Clear / Verbose / Mode pills on narrow viewports. The
           title attribute keeps the URL discoverable as a tooltip. */}
-      <span className="hidden text-[10px] md:inline">{copied ? "Copied" : "Share"}</span>
+      <span className="hidden text-[10px] md:inline">{copied ? "Copied" : "Copy resume"}</span>
     </button>
   );
 }
