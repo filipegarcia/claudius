@@ -10,11 +10,10 @@ import { listWorkspaces } from "@/lib/server/workspaces-store";
  * preserving any search params (notably `?session=X`, which the chat
  * bootstrap reads to resume a specific session).
  *
- * Falls back to `/settings` when the install genuinely has zero
- * workspaces — `ensureBootstrap` normally seeds at least one, so this
- * branch is essentially unreachable; landing on /settings is preferred
- * over a redirect loop into another stub (which would also resolve to
- * "no workspace" and bounce back here).
+ * Falls back to `/welcome` when the install has zero workspaces (the
+ * fresh-install state — we no longer auto-seed a "claudius" workspace).
+ * The welcome splash walks the user through creating their first
+ * workspace and saying hello in the community channel.
  */
 export default async function RootPage({
   searchParams,
@@ -30,7 +29,7 @@ export default async function RootPage({
   const all = await listWorkspaces();
   if (all.length > 0) redirect(`/${all[0]!.id}${qs}`);
 
-  redirect("/settings");
+  redirect("/welcome");
 }
 
 function formatSearch(sp: Record<string, string | string[] | undefined>): string {

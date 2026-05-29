@@ -2,6 +2,7 @@ import { test, expect } from "../helpers/test";
 import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { UPDATE_SCREENSHOTS } from "./helpers/marketing-screenshot";
+import { activateClaudiusWorkspace } from "./helpers/workspace";
 
 /**
  * Screenshot for the Synthwave customization on the marketing site.
@@ -21,8 +22,6 @@ import { UPDATE_SCREENSHOTS } from "./helpers/marketing-screenshot";
 const SHOTS_DIR = resolve(process.cwd(), "site/screenshots");
 if (UPDATE_SCREENSHOTS) mkdirSync(SHOTS_DIR, { recursive: true });
 
-type WorkspaceSummary = { id: string; name: string; rootPath: string };
-
 test.describe("customization · synthwave screenshot", () => {
   test("customization-synthwave", async ({ page }) => {
     // Seed the theme + suppress the customize help tour so the screenshot
@@ -37,19 +36,8 @@ test.describe("customization · synthwave screenshot", () => {
     });
 
     // Activate the claudius workspace so the side nav reflects this project,
-    // matching the rest of the marketing screenshots. Skipped silently if a
-    // workspace can't be found — the screenshot still renders, just with
-    // whatever workspace was last selected.
-    const list = await page.request
-      .get("/api/workspaces")
-      .then((r) => r.json() as Promise<{ workspaces: WorkspaceSummary[] }>);
-    const cwd = process.cwd();
-    const ws =
-      list.workspaces.find((w) => w.name === "claudius") ??
-      list.workspaces.find((w) => w.rootPath === cwd);
-    if (ws) {
-      await page.request.post(`/api/workspaces/${ws.id}/select`);
-    }
+    // matching the rest of the marketing screenshots (create-if-missing).
+    await activateClaudiusWorkspace(page);
 
     await page.goto("/customize", { waitUntil: "load" });
     // The synthwave body backdrop renders via background-image which is

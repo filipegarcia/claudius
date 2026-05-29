@@ -1,23 +1,38 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { Check, Pencil, Sparkles, Target, X } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
-import type { GoalState } from "@/lib/client/types";
+import { PromptInput } from "./PromptInput";
+import type { AttachedImage, GoalState } from "@/lib/client/types";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
+
+/**
+ * Composer wiring threaded from the page so the goal input can reuse the chat
+ * composer (`PromptInput`) for image paste/drop and @-file mentions.
+ */
+type GoalComposer = {
+  ready: boolean;
+  pending: boolean;
+  cwd: string | null;
+  onInterrupt: () => void;
+};
 
 type Props = {
   /** Current goal, or null when none is set. */
   goal: GoalState | null;
-  /** Set or replace the goal. */
-  onSet: (text: string) => Promise<ActionResult>;
   /** Clear the goal entirely. */
   onClear: () => Promise<ActionResult>;
   /**
+   * Submit the goal: record it as the tracked objective AND start Claude with
+   * the same text (+ images) as the opening prompt — "start working" like the
+   * CLI rather than sitting passively. Wired to `handleGoalSubmit` in the page.
+   */
+  onSubmitGoal: (text: string, images?: AttachedImage[]) => void | Promise<void>;
+  /**
    * Bumped by the parent (e.g. `/goal` with no args) to open the inline
-   * editor even when no goal is set yet. Any change to a positive value
-   * focuses the input.
+   * editor even when no goal is set yet.
    */
   openEditNonce?: number;
   /**
@@ -26,59 +41,108 @@ type Props = {
    * border for a top divider and lets the parent panel own the outer framing.
    */
   embedded?: boolean;
+  /** Composer wiring for the rich goal input (images + @-mentions). */
+  composer?: GoalComposer;
 };
 
-const MAX_LEN = 280;
-
 /**
- * Surfaces the session goal in the chat header (see `/goal`). Three states:
+ * Surfaces the session goal in the chat header (see `/goal`). States:
  *
  *   1. No goal + not editing → a subtle "Set a session goal" button.
- *   2. Goal set → the objective, with edit + clear affordances.
- *   3. Achieved → a celebratory emerald strip with the agent's summary.
+ *   2. Editing → the reused chat composer (`PromptInput`): images, @-file
+ *      mentions, paste/drop. Submitting both sets the goal AND starts Claude.
+ *   3. Goal set → the objective, with edit + clear affordances.
+ *   4. Achieved → a celebratory emerald strip with the agent's summary.
  *
  * Rendered as a row inside the shared session-header panel (below the title)
  * when `embedded`; otherwise a standalone banner.
  *
  * Achievement is driven by the agent calling the in-process
  * `report_goal_achieved` SDK tool, surfaced via the `goal_changed` SSE event;
- * the banner just reflects `goal.achieved`. Editing/clearing round-trips
- * through `onSet`/`onClear` (which POST to `/api/sessions/[id]/goal`).
+ * the banner just reflects `goal.achieved`.
  */
-export function GoalBanner({ goal, onSet, onClear, openEditNonce, embedded }: Props) {
+export function GoalBanner({
+  goal,
+  onClear,
+  onSubmitGoal,
+  openEditNonce,
+  embedded,
+  composer,
+}: Props) {
   const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState("");
-  const [saveErr, setSaveErr] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
 
   // Parent-driven "open the editor" signal (the `/goal` command with no args).
   // Handled with React's "adjust state when a prop changes" pattern — compare
   // the nonce against the last value we acted on and open during render rather
-  // than in an effect (avoids a cascading-render round trip). We intentionally
-  // react only to the nonce; re-opening when `goal` changes would fight the
-  // user mid-edit.
+  // than in an effect (avoids a cascading-render round trip).
   const [seenNonce, setSeenNonce] = useState(openEditNonce ?? 0);
   if (typeof openEditNonce === "number" && openEditNonce !== seenNonce) {
     setSeenNonce(openEditNonce);
-    if (openEditNonce > 0) {
-      setDraft(goal?.text ?? "");
-      setSaveErr(null);
-      setEditing(true);
-    }
+    if (openEditNonce > 0) setEditing(true);
   }
 
-  useEffect(() => {
-    if (editing && inputRef.current) {
-      inputRef.current.focus();
-      inputRef.current.select();
-    }
-  }, [editing]);
+  const handleSubmit = (text: string, images?: AttachedImage[]) => {
+    void onSubmitGoal(text, images);
+    setEditing(false);
+  };
 
-  // No goal and not editing → a subtle, always-available affordance to set
-  // one (the `/goal` command is the keyboard path; this is the button path).
-  // Once a goal exists this whole component becomes the prominent banner.
-  if (!goal && !editing) {
+  // ── Editing → the rich composer (images + @-mentions, no slash) ───────────
+  // Submitting sends the text as the opening prompt and tracks it as the goal.
+  if (editing) {
+    return (
+      <div
+        data-testid="goal-banner-editor"
+        className={cn(!embedded && "border-b border-[var(--border)] bg-[var(--panel-2)]/30")}
+        onKeyDown={(e) => {
+          // Esc cancels editing. Bubble phase (not capture) so an open
+          // @-mention picker inside the composer gets first crack at Escape
+          // to close itself; it stops propagation when it consumes the key.
+          if (e.key === "Escape" && !e.defaultPrevented) {
+            e.stopPropagation();
+            setEditing(false);
+          }
+        }}
+      >
+        <div className={cn("mx-auto w-full max-w-[var(--chat-col)] px-2", embedded ? "pt-0.5 pb-1" : "py-1.5")}>
+          <div className="mb-1 flex items-center justify-between px-2 text-[10px] uppercase tracking-wide text-[var(--muted)]">
+            <span className="flex items-center gap-1.5">
+              <Target className="h-3 w-3 text-[var(--accent)]" aria-hidden />
+              Session goal — Claude starts working on submit
+            </span>
+            <button
+              type="button"
+              onClick={() => setEditing(false)}
+              data-testid="goal-banner-cancel"
+              title="Cancel (Esc)"
+              className="rounded p-0.5 text-[var(--muted)] transition hover:text-[var(--foreground)]"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </div>
+          <PromptInput
+            ready={composer?.ready ?? true}
+            pending={composer?.pending ?? false}
+            slashCommands={[]}
+            skills={[]}
+            cwd={composer?.cwd ?? null}
+            sessionId={null}
+            onSend={handleSubmit}
+            onInterrupt={composer?.onInterrupt ?? (() => {})}
+            disableSlash
+            placeholder="What should this session accomplish? Press Enter to start Claude."
+            testIdPrefix="goal-prompt"
+            // Constant token: the composer remounts on each edit-open, so this
+            // prefills with the current goal text once per open (and never
+            // clobbers in-progress typing while the editor stays mounted).
+            draftInjection={{ token: 1, text: goal?.text ?? "" }}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // ── No goal → a subtle affordance to set one (button path) ────────────────
+  if (!goal) {
     return (
       <div
         data-testid="goal-banner-empty"
@@ -86,13 +150,13 @@ export function GoalBanner({ goal, onSet, onClear, openEditNonce, embedded }: Pr
       >
         <div
           className={cn(
-            "mx-auto flex w-full max-w-3xl items-center px-4 text-xs",
+            "mx-auto flex w-full max-w-[var(--chat-col)] items-center px-4 text-xs",
             embedded ? "pt-0.5 pb-2" : "py-1.5",
           )}
         >
           <button
             type="button"
-            onClick={startEdit}
+            onClick={() => setEditing(true)}
             data-testid="goal-banner-set"
             title="Set a goal for this session"
             className="group flex items-center gap-1.5 rounded text-[var(--muted)] transition hover:text-[var(--foreground)]"
@@ -105,54 +169,14 @@ export function GoalBanner({ goal, onSet, onClear, openEditNonce, embedded }: Pr
     );
   }
 
-  function startEdit() {
-    setDraft(goal?.text ?? "");
-    setSaveErr(null);
-    setEditing(true);
-  }
-
-  async function commit() {
-    const value = draft.trim();
-    if (!value) {
-      // Empty submit is a no-op cancel — clearing is an explicit action.
-      setEditing(false);
-      setSaveErr(null);
-      return;
-    }
-    if (value === goal?.text) {
-      setEditing(false);
-      setSaveErr(null);
-      return;
-    }
-    setBusy(true);
-    const r = await onSet(value);
-    setBusy(false);
-    if (!r.ok) {
-      setSaveErr(r.error);
-      return;
-    }
-    setEditing(false);
-    setSaveErr(null);
-  }
-
-  async function clear() {
-    setBusy(true);
-    await onClear();
-    setBusy(false);
-    setEditing(false);
-    setSaveErr(null);
-  }
-
-  const achieved = Boolean(goal?.achieved);
+  // ── Goal set / achieved → display with edit + clear ───────────────────────
+  const achieved = Boolean(goal.achieved);
 
   return (
     <div
       data-testid="goal-banner"
       data-achieved={achieved ? "1" : "0"}
       className={cn(
-        // Embedded → transparent and borderless so it reads as the second
-        // line of the shared session-header panel. Standalone keeps its own
-        // framing (accent tint, or emerald when achieved).
         !embedded &&
           (achieved
             ? "border-b border-emerald-500/30 bg-emerald-500/10"
@@ -161,7 +185,7 @@ export function GoalBanner({ goal, onSet, onClear, openEditNonce, embedded }: Pr
     >
       <div
         className={cn(
-          "mx-auto flex w-full max-w-3xl items-start gap-2 px-4 text-xs",
+          "mx-auto flex w-full max-w-[var(--chat-col)] items-start gap-2 px-4 text-xs",
           embedded ? "pt-0.5 pb-2" : "py-2",
         )}
       >
@@ -173,96 +197,56 @@ export function GoalBanner({ goal, onSet, onClear, openEditNonce, embedded }: Pr
           <Target className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--accent)]" aria-hidden />
         )}
 
-        {editing ? (
-          <div className="flex min-w-0 flex-1 flex-col gap-1">
-            <input
-              ref={inputRef}
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  void commit();
-                } else if (e.key === "Escape") {
-                  e.preventDefault();
-                  setEditing(false);
-                  setSaveErr(null);
-                }
-              }}
-              onBlur={() => void commit()}
-              placeholder="What should this session accomplish?"
-              maxLength={MAX_LEN}
-              aria-label="Session goal"
-              data-testid="goal-banner-input"
-              disabled={busy}
+        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <div className="flex min-w-0 items-center gap-2">
+            <span
+              data-testid="goal-banner-text"
               className={cn(
-                "min-w-0 flex-1 rounded-md border bg-[var(--panel)] px-2 py-1 text-xs outline-none",
-                saveErr
-                  ? "border-red-500/60 focus:border-red-500"
-                  : "border-[var(--accent)]/60 focus:border-[var(--accent)]",
+                "min-w-0 truncate text-[var(--foreground)]/90",
+                achieved && "line-through decoration-emerald-400/40",
               )}
-            />
-            {saveErr && (
-              <span className="text-[10px] text-red-300" data-testid="goal-banner-error">
-                {saveErr}
+            >
+              {goal.text}
+            </span>
+            {achieved && (
+              <span className="flex shrink-0 items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-emerald-300">
+                <Sparkles className="h-3 w-3" aria-hidden />
+                Goal achieved
               </span>
             )}
           </div>
-        ) : (
-          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-            <div className="flex min-w-0 items-center gap-2">
-              <span
-                data-testid="goal-banner-text"
-                className={cn(
-                  "min-w-0 truncate text-[var(--foreground)]/90",
-                  achieved && "line-through decoration-emerald-400/40",
-                )}
-              >
-                {goal?.text}
-              </span>
-              {achieved && (
-                <span className="flex shrink-0 items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-emerald-300">
-                  <Sparkles className="h-3 w-3" aria-hidden />
-                  Goal achieved
-                </span>
-              )}
-            </div>
-            {achieved && goal?.summary && (
-              <span
-                data-testid="goal-banner-summary"
-                className="text-[11px] italic text-[var(--muted)]"
-              >
-                {goal.summary}
-              </span>
-            )}
-          </div>
-        )}
+          {achieved && goal.summary && (
+            <span
+              data-testid="goal-banner-summary"
+              className="text-[11px] italic text-[var(--muted)]"
+            >
+              {goal.summary}
+            </span>
+          )}
+        </div>
 
-        {!editing && (
-          <div className="flex shrink-0 items-center gap-0.5">
-            <button
-              type="button"
-              onClick={startEdit}
-              aria-label={achieved ? "Set a new goal" : "Edit goal"}
-              title={achieved ? "Set a new goal" : "Edit goal"}
-              data-testid="goal-banner-edit"
-              className="rounded p-1 text-[var(--muted)] transition hover:bg-[var(--panel)] hover:text-[var(--foreground)]"
-            >
-              <Pencil className="h-3 w-3" />
-            </button>
-            <button
-              type="button"
-              onClick={() => void clear()}
-              disabled={busy}
-              aria-label="Clear goal"
-              title="Clear goal"
-              data-testid="goal-banner-clear"
-              className="rounded p-1 text-[var(--muted)] transition hover:bg-[var(--panel)] hover:text-[var(--foreground)]"
-            >
-              <X className="h-3 w-3" />
-            </button>
-          </div>
-        )}
+        <div className="flex shrink-0 items-center gap-0.5">
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            aria-label={achieved ? "Set a new goal" : "Edit goal"}
+            title={achieved ? "Set a new goal" : "Edit goal"}
+            data-testid="goal-banner-edit"
+            className="rounded p-1 text-[var(--muted)] transition hover:bg-[var(--panel)] hover:text-[var(--foreground)]"
+          >
+            <Pencil className="h-3 w-3" />
+          </button>
+          <button
+            type="button"
+            onClick={() => void onClear()}
+            aria-label="Clear goal"
+            title="Clear goal"
+            data-testid="goal-banner-clear"
+            className="rounded p-1 text-[var(--muted)] transition hover:bg-[var(--panel)] hover:text-[var(--foreground)]"
+          >
+            <X className="h-3 w-3" />
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -14,6 +14,53 @@ import { readBridgeOnClient } from "./useElectron";
 export type NotifyState = "default" | "granted" | "denied" | "unsupported";
 
 /**
+ * Fire a one-off **test** notification through the same delivery path real
+ * ones use — the Electron native bridge inside the desktop app, the browser
+ * `Notification` API on the web. Deliberately bypasses the workspace
+ * `enabled` pref and the foreground-visibility gate: it's a manual "does this
+ * work?" check (and, on macOS, the prompt that gets the app authorized in
+ * System Settings → Notifications).
+ *
+ * Returns `true` if a notification was dispatched, `false` if the platform
+ * blocked it (unsupported, or web permission denied).
+ */
+export async function sendTestNotification(): Promise<boolean> {
+  const title = "Claudius";
+  const body = "Test notification — this is how Claude will ping you.";
+
+  // Desktop: route through main so the click can raise the window, exactly
+  // like a real notification.
+  const bridge = readBridgeOnClient();
+  if (bridge) {
+    bridge.notifications.show({ title, body });
+    return true;
+  }
+
+  // Web: the browser Notification API. Request permission if we don't have
+  // it yet so the test button doubles as the opt-in prompt.
+  if (typeof Notification === "undefined") return false;
+  let perm = Notification.permission;
+  if (perm !== "granted") {
+    try {
+      perm = await Notification.requestPermission();
+    } catch {
+      return false;
+    }
+  }
+  if (perm !== "granted") return false;
+  try {
+    const n = new Notification(title, { body, icon: "/icon.svg" });
+    n.onclick = () => {
+      window.focus();
+      n.close();
+    };
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Legacy global flag. Kept readable for one boot so users coming from the
  * old code path don't lose their opt-in; once the value has been migrated
  * onto the active workspace's defaults we delete it. New writes go to the

@@ -1,8 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Bell, BellOff, Check } from "lucide-react";
+import { Bell, BellOff, Check, Send } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
+import { sendTestNotification } from "@/lib/client/useNotifications";
+import { useIsElectron } from "@/lib/client/useElectron";
 import type { SessionNotificationPrefs } from "@/lib/shared/notifications";
 
 /**
@@ -47,6 +49,20 @@ export function SessionNotifyMenu({
   const [open, setOpen] = useState(false);
   const [prefs, setPrefs] = useState<Pref | null>(null);
   const [loading, setLoading] = useState(false);
+  const isElectron = useIsElectron();
+  // Transient feedback for the "Send test notification" button: "idle" →
+  // "sent" / "blocked", auto-clearing after a beat.
+  const [testState, setTestState] = useState<"idle" | "sent" | "blocked">("idle");
+  const testTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (testTimerRef.current) clearTimeout(testTimerRef.current);
+  }, []);
+  const onSendTest = useCallback(async () => {
+    const ok = await sendTestNotification();
+    setTestState(ok ? "sent" : "blocked");
+    if (testTimerRef.current) clearTimeout(testTimerRef.current);
+    testTimerRef.current = setTimeout(() => setTestState("idle"), 3000);
+  }, []);
   // Time anchor for snooze-relative checks. We can't call `Date.now()` during
   // render (react-hooks/purity) so we keep it in state and tick it while the
   // popover is open. Closed → no tick, no re-render.
@@ -184,9 +200,11 @@ export function SessionNotifyMenu({
   const supported = permissionState !== "unsupported";
 
   const triggerTitle = !supported
-    ? "Notifications not supported in this browser"
+    ? `Notifications not supported ${isElectron ? "on this device" : "in this browser"}`
     : permissionState === "denied"
-      ? "Notifications denied — change in browser settings"
+      ? isElectron
+        ? "Notifications denied — enable Claudius in macOS System Settings → Notifications"
+        : "Notifications denied — change in browser settings"
       : muted
         ? blocked
           ? "Notifications blocked for this session"
@@ -199,6 +217,7 @@ export function SessionNotifyMenu({
     <div className="relative">
       <button
         ref={triggerRef}
+        data-testid="session-notify-trigger"
         onClick={() => setOpen((o) => !o)}
         title={triggerTitle}
         className="rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-1.5 py-0.5 hover:bg-[var(--panel)]"
@@ -229,9 +248,33 @@ export function SessionNotifyMenu({
               {workspaceEnabled ? "On" : "Off"}
             </span>
           </button>
+
+          {/* Fire a sample notification through the real delivery path so the
+              user can confirm OS banners work (and, on macOS, trigger the
+              first-time System Settings authorization). */}
+          <button
+            data-testid="session-notify-test"
+            onClick={() => void onSendTest()}
+            disabled={!supported}
+            className="flex w-full items-center justify-between gap-2 px-3 py-1.5 hover:bg-[var(--panel-2)] disabled:opacity-40"
+          >
+            <span className="flex items-center gap-1.5 text-[var(--foreground)]">
+              <Send className="h-3 w-3" />
+              Send test notification
+            </span>
+            {testState === "sent" && (
+              <span className="text-[10px] text-emerald-400">Sent</span>
+            )}
+            {testState === "blocked" && (
+              <span className="text-[10px] text-rose-400">Blocked</span>
+            )}
+          </button>
+
           {permissionState === "denied" && (
             <div className="mx-3 my-1 rounded border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1 text-[10px] text-[var(--muted)]">
-              Browser permission denied. Change in site settings.
+              {isElectron
+                ? "Denied — enable Claudius in macOS System Settings → Notifications."
+                : "Browser permission denied. Change in site settings."}
             </div>
           )}
 

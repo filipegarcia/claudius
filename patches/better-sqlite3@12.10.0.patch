@@ -1,0 +1,62 @@
+diff --git a/node_modules/better-sqlite3/.bun-tag-1db1ab8394fa8a2c b/.bun-tag-1db1ab8394fa8a2c
+new file mode 100644
+index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
+diff --git a/src/better_sqlite3.cpp b/src/better_sqlite3.cpp
+index 13f054a641f63dda3ebbf71ea5613cf12b054fad..d8170c52b0f152ea04342215b790c98c78d8461d 100644
+--- a/src/better_sqlite3.cpp
++++ b/src/better_sqlite3.cpp
+@@ -57,7 +57,14 @@ NODE_MODULE_INIT(/* exports, context */) {
+ 
+ 	// Initialize addon instance.
+ 	Addon* addon = new Addon(isolate);
++	// V8 14+ (Electron 42, V8 14.8) requires an ExternalPointerTypeTag on
++	// External::New(); V8 12.4 (Node 22) has no such parameter. Feature-detect
++	// via V8_EXTERNAL_POINTER_TAG_COUNT (defined only by the tagged-API V8).
++	#ifdef V8_EXTERNAL_POINTER_TAG_COUNT
++	v8::Local<v8::External> data = v8::External::New(isolate, addon, v8::kExternalPointerTypeTagDefault);
++	#else
+ 	v8::Local<v8::External> data = v8::External::New(isolate, addon);
++	#endif
+ 	node::AddEnvironmentCleanupHook(isolate, Addon::Cleanup, addon);
+ 
+ 	// Create and export native-backed classes and functions.
+diff --git a/src/util/helpers.cpp b/src/util/helpers.cpp
+index f7771520075e2dc871d1d60b801bbbb540c6c23d..aaa52fe67dfd3dbc39976abbbea2e5641ad976ef 100644
+--- a/src/util/helpers.cpp
++++ b/src/util/helpers.cpp
+@@ -89,7 +89,15 @@ void SetPrototypeGetter(
+ 	recv->InstanceTemplate()->SetNativeDataProperty(
+ 		InternalizedFromLatin1(isolate, name),
+ 		func,
++		// V8 14+ (Electron 42) added a nullptr_t setter overload, so the literal
++		// `0` is ambiguous across the three setter overloads; `nullptr` binds the
++		// nullptr_t one. V8 12.4 (Node 22) has no such overload — keep `0` there.
++		// Feature-detect via V8_EXTERNAL_POINTER_TAG_COUNT (tagged-API V8 only).
++#ifdef V8_EXTERNAL_POINTER_TAG_COUNT
++		nullptr,
++#else
+ 		0,
++#endif
+ 		data
+ 	);
+ }
+diff --git a/src/util/macros.cpp b/src/util/macros.cpp
+index e75d53763e575cb1ec5f560d1303100ebb380249..60cf2125a560ae69f257ed14e9e70f9b57e3300c 100644
+--- a/src/util/macros.cpp
++++ b/src/util/macros.cpp
+@@ -27,7 +27,15 @@
+ #define EasyIsolate v8::Isolate* isolate = v8::Isolate::GetCurrent()
+ #define OnlyIsolate info.GetIsolate()
+ #define OnlyContext isolate->GetCurrentContext()
++// V8 14+ (Electron 42, V8 14.8) requires an ExternalPointerTypeTag on
++// External::Value(); V8 12.4 (Node 22) has no such parameter. Feature-detect
++// via V8_EXTERNAL_POINTER_TAG_COUNT (defined only by the tagged-API V8).
++// Verified for the two ABIs this project builds: V8 12.4 and V8 14.8.
++#ifdef V8_EXTERNAL_POINTER_TAG_COUNT
++#define OnlyAddon static_cast<Addon*>(info.Data().As<v8::External>()->Value(v8::kExternalPointerTypeTagDefault))
++#else
+ #define OnlyAddon static_cast<Addon*>(info.Data().As<v8::External>()->Value())
++#endif
+ #define UseIsolate v8::Isolate* isolate = OnlyIsolate
+ #define UseContext v8::Local<v8::Context> ctx = OnlyContext
+ #define UseAddon Addon* addon = OnlyAddon

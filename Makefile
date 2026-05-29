@@ -1,4 +1,4 @@
-.PHONY: help install dev build start lint unit test test-ui test-e2e-electron test-setup test-setup-local test-setup-docker test-install-public ci site screenshots screenshots-full claudius-revert claudius-revert-all run up down restart status logs electron electron-dev electron-build electron-dist electron-e2e-loop sdk-update-check sdk-update-run sdk-update-dry-run sdk-update-status sdk-update-logs sdk-update-install-cron sdk-update-uninstall-cron
+.PHONY: help install dev build start lint unit test test-ui test-e2e-electron test-setup test-setup-local test-setup-docker test-install-public ci site screenshots screenshots-full claudius-revert claudius-revert-all run up down restart status logs electron electron-dev electron-build electron-icons electron-app electron-dist electron-e2e-loop sdk-update-check sdk-update-run sdk-update-fix-pr sdk-update-dry-run sdk-update-status sdk-update-logs sdk-update-install-cron sdk-update-uninstall-cron
 
 # List every target, grouped by the section headers below.
 help:
@@ -67,6 +67,21 @@ electron-dev:
 # next; see `electron-dist` for installer output.
 electron-build:
 	bun run electron:build
+
+# Regenerate the app icon set from scripts/make-icons.mjs: composes the
+# terracotta-squircle SVG, rasterizes a 1024 master via headless chromium,
+# then builds build/icons/icon.icns (mac) + linux PNGs. Re-run after
+# tweaking the design. (Windows icon.ico is intentionally not generated.)
+electron-icons:
+	bun run electron:icons
+
+# Unsigned, unpackaged `Claudius.app` for the host arch — the fastest way
+# to get a launchable bundle without the DMG/notarization machinery. Output
+# lands in `release/mac*/Claudius.app`. CSC_IDENTITY_AUTO_DISCOVERY=false
+# (set in the npm script) keeps electron-builder from stalling on a missing
+# signing identity. For the full distributable, use `electron-dist`.
+electron-app:
+	bun run electron:app
 
 # Full mac installer (DMG + ZIP). For Windows/Linux installers, see the
 # `electron:dist:win` / `electron:dist:linux` npm scripts directly.
@@ -194,6 +209,24 @@ sdk-update-check:
 # unless that's what you want.
 sdk-update-run:
 	@scripts/sdk-update/run.sh
+
+# Fix an existing SDK-update PR by number. Checks out the PR's branch,
+# re-runs Claude with the failing CI checks + review comments as
+# context, re-gates, pushes, and posts progress to the community
+# channel. Marks the PR ready (and drops needs-human) if every gate
+# goes green. WILL push to the PR's branch.
+#
+#   make sdk-update-fix-pr PR=123
+#   make sdk-update-fix-pr PR=123 MSG="address the review note about session.ts"
+#   make sdk-update-fix-pr PR=123 SKIP=e2e        # skip slow gate steps
+sdk-update-fix-pr:
+	@if [ -z "$(PR)" ]; then \
+		echo "usage: make sdk-update-fix-pr PR=<number> [MSG=\"instruction\"] [SKIP=lint,e2e]"; \
+		exit 2; \
+	fi
+	@SDK_UPDATE_FIX_INSTRUCTION="$(MSG)" \
+		SDK_UPDATE_SKIP_GATES="$(SKIP)" \
+		scripts/sdk-update/run.sh fix-pr "$(PR)"
 
 # Local dry-run. Same as `sdk-update-run` through the gate, then stops
 # before push / PR / CI watch / announce. Branch + Claude's commits

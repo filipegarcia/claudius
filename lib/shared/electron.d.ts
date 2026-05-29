@@ -72,6 +72,25 @@ export type ClaudiusBridge = {
    */
   menu: {
     on(action: string, cb: () => void): () => void;
+    /**
+     * Push the renderer's resolved shortcut bindings (as Electron
+     * accelerator strings, keyed by action id) to the main process so
+     * it can rebuild the native menu with the user's customized chords.
+     * Lets a remap in /settings take effect on the OS-menu-owned
+     * accelerators (tab navigation, command palette, …) that the
+     * renderer's `keydown` listener can't reach while a text field is
+     * focused. Added in bridgeVersion 3.
+     */
+    setAccelerators(accelerators: Record<string, string>): void;
+    /**
+     * Toggle "recording" mode for the /settings shortcut recorder. While
+     * enabled, the native menu is rebuilt display-only (its accelerators
+     * stop intercepting) and the reserved-chord swallow is suspended, so a
+     * chord the menu owns (⌘T, ⌘W, …) reaches the recorder instead of
+     * firing the menu item it's bound to. Always pair `true` with a later
+     * `false`. Added in bridgeVersion 3.
+     */
+    setRecording(enabled: boolean): void;
   };
 
   /** Native window controls (phase 4). */

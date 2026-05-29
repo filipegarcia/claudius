@@ -21,7 +21,7 @@ import {
   type ShortcutBinding,
   type ShortcutCategory,
 } from "@/lib/client/shortcuts";
-import { useIsElectron } from "@/lib/client/useElectron";
+import { useClaudius, useIsElectron } from "@/lib/client/useElectron";
 import { cn } from "@/lib/utils/cn";
 
 const CATEGORY_LABEL: Record<ShortcutCategory, string> = {
@@ -76,11 +76,12 @@ export function ShortcutsSection() {
         <div>
           <h2 className="flex items-center gap-2 text-sm font-medium">
             <Keyboard className="h-3.5 w-3.5 text-[var(--muted)]" />
-            Web app shortcuts
+            {isElectron ? "App shortcuts" : "Web app shortcuts"}
           </h2>
           <p className="mt-0.5 text-[11px] text-[var(--muted)]">
-            Keyboard chords for the browser UI — tab switching, workspace
-            cycling, side-nav navigation. Persisted per browser. For Claude
+            Keyboard chords for the {isElectron ? "app" : "browser"} UI — tab
+            switching, workspace cycling, side-nav navigation. Persisted{" "}
+            {isElectron ? "on this machine" : "per browser"}. For Claude
             Code&rsquo;s input keybindings instead, see{" "}
             <Link
               href="/keybindings"
@@ -170,8 +171,26 @@ function ShortcutRow({
 }) {
   const [recording, setRecording] = useState(false);
   const [preview, setPreview] = useState<ShortcutBinding | null>(null);
-  const reserved = reservedConflictFor(binding);
+  // In Electron the native menu owns these chords, so the browser never
+  // reserves them — the "browser reserves this" warning only applies to the
+  // web build.
+  const reserved = isElectron ? null : reservedConflictFor(binding);
   const recordRef = useRef<HTMLButtonElement | null>(null);
+  const bridge = useClaudius();
+
+  // While the recorder is listening in Electron, suspend the native menu's
+  // accelerators so a chord the menu owns (⌘T, ⌘W, …) reaches the recorder
+  // instead of firing the menu item. Re-enables on stop / unmount. No-op in
+  // the browser build or on an older preload (feature-detected).
+  useEffect(() => {
+    if (!bridge || bridge.bridgeVersion < 3 || typeof bridge.menu.setRecording !== "function") {
+      return;
+    }
+    bridge.menu.setRecording(recording);
+    return () => {
+      bridge.menu.setRecording(false);
+    };
+  }, [bridge, recording]);
 
   // While recording, listen globally. We capture in the bubble phase but
   // `preventDefault` + `stopPropagation` everything so the page's own

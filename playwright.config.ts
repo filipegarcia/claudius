@@ -25,8 +25,12 @@ const BASE_URL = `http://localhost:${PORT}`;
  * loads this config file twice (once in the runner, once when reporting),
  * and we want both passes — plus the webServer.env spawn — to see the
  * *same* tempdir. Writing back into `process.env` propagates to the dev
- * server, which then auto-bootstraps its default workspace into the
- * tempdir.
+ * server.
+ *
+ * The server no longer auto-seeds a workspace on first run (a fresh install
+ * lands on `/welcome`), so `tests/e2e/global-setup.ts` writes a single
+ * "claudius" workspace into this tempdir before the suite runs — restoring
+ * the invariant most specs rely on.
  */
 const E2E_HOME =
   process.env.CLAUDIUS_E2E_HOME ??
@@ -48,6 +52,7 @@ export default defineConfig({
   // Best-effort cleanup of the isolated HOME after the run. Not run on
   // SIGKILL / Ctrl-C — `mkdtempSync` lives under `os.tmpdir()` so the OS
   // sweeps it eventually if we miss.
+  globalSetup: "./tests/e2e/global-setup.ts",
   globalTeardown: "./tests/e2e/global-teardown.ts",
 
   use: {

@@ -11,7 +11,7 @@ type Props = {
 export function CapBreachBanner({ capUsd, spentUsd, onOverride }: Props) {
   return (
     <div className="border-y border-red-500/30 bg-red-500/10 px-4 py-2 text-xs text-red-200">
-      <div className="mx-auto flex max-w-3xl items-center gap-2">
+      <div className="mx-auto flex max-w-[var(--chat-col)] items-center gap-2">
         <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
         <span className="min-w-0 flex-1">
           Session spending cap reached:{" "}

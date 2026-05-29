@@ -67,7 +67,11 @@ export function useClaudius(): Window["claudius"] | null {
 
 /**
  * Convenience boolean for callers that only care about the runtime
- * environment, not the bridge methods.
+ * environment, not the bridge methods. This is the React-canonical,
+ * SSR-safe counterpart to `isElectron()` in `lib/shared/runtime.ts` —
+ * prefer this hook inside components (it re-renders when the bridge
+ * resolves and never trips a hydration mismatch); use the plain
+ * `isElectron()` everywhere else.
  */
 export function useIsElectron(): boolean {
   return useClaudius() !== null;

@@ -32,7 +32,7 @@ await expect(items).toHaveCount(3);
 
 ## Workspace setup
 
-Every test runs inside the "claudius" workspace so the chrome (sidebar, tab strip) reflects the active project. The `activateClaudiusWorkspace` helper in `site-screenshots.spec.ts` is the reference; copy it or import it.
+Every test runs inside the "claudius" workspace so the chrome (sidebar, tab strip) reflects the active project. Import the shared `activateClaudiusWorkspace` helper from `tests/e2e/helpers/workspace.ts` and call it in `test.beforeEach` — it's idempotent (creates the workspace if missing, then selects it). The app no longer auto-seeds a workspace, but `tests/e2e/global-setup.ts` seeds one for the suite, so the helper usually just selects the existing one.
 
 ## Real agent vs fixture
 

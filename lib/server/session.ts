@@ -52,6 +52,7 @@ import {
   thinkingReplayErrorFrom,
 } from "./thinking-replay-recovery";
 import { extractReadPaths } from "@/lib/shared/read-tool-paths";
+import { selectTips } from "@/lib/shared/tips";
 import type { SessionLoop } from "@/lib/shared/session-loops";
 import { readSettings, type ClaudeSettings } from "./settings";
 import {
@@ -2439,6 +2440,14 @@ export class Session {
     // "Idle" for a session that's still mid-turn (e.g. inside a long Bash).
     // This event resyncs `pending` to the server's authoritative state.
     fn({ type: "turn_status", status: this.getStatus() });
+    // Server-driven spinner tips. The client rotates through these under the
+    // "Claude is working…" row, but the *catalog* lives server-side so the
+    // backend (and, later, the SDK) is the single source of truth — new-feature
+    // tips can ship without a client deploy. Emitted per-subscriber (like
+    // turn_status / mode_changed above) rather than via the buffer, so every
+    // reload/tab gets the current list and it never needs replay handling.
+    // `selectTips()` is the seam where contextual gating / a backend feed go.
+    fn({ type: "tips", tips: selectTips() });
     // Re-emit the agent's effective working directory for the same
     // tail-truncation reason as `mode_changed`/`turn_status` above. The
     // `cwd_changed` event that moved the agent into a git worktree is

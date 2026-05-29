@@ -10,7 +10,7 @@ type Props = {
 export function PromptSuggestions({ suggestions, onPick }: Props) {
   if (suggestions.length === 0) return null;
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 pb-2">
+    <div className="mx-auto w-full max-w-[var(--chat-col)] px-4 pb-2">
       <div className="mb-1 flex items-center gap-1 text-[10px] uppercase tracking-wide text-[var(--muted)]">
         <Sparkles className="h-3 w-3" /> Suggested follow-ups
       </div>

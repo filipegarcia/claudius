@@ -108,9 +108,12 @@ export function SessionCard({
 
   return (
     <div className="relative mb-3 rounded-md border border-[var(--border)] bg-[var(--panel-2)]/40">
-      {/* Top row — model + mode pill. Clickable when the picker is wired up,
-          otherwise just a static label so the existing read-only flow doesn't
-          regress. */}
+      {/* Header — the model name gets its own line so the status pills can't
+          squeeze it (the old single-row layout truncated the model to
+          "defa…" and wrapped "very high" onto two lines). The pills drop to a
+          quieter second row below. Both the interactive (picker) and
+          read-only branches render the same <CardHead>, so the two can't
+          drift apart when one is edited. */}
       {pickerEnabled ? (
         <button
           ref={modelButtonRef}
@@ -120,37 +123,27 @@ export function SessionCard({
           aria-haspopup="dialog"
           aria-expanded={pickerOpen}
           className={cn(
-            "flex w-full items-center gap-1.5 rounded-t-md px-2 pb-1.5 pt-2 text-left text-[11px] transition",
+            "block w-full rounded-t-md px-2 pb-1.5 pt-2 text-left text-[11px] transition",
             "hover:bg-[var(--panel-2)]/80",
             pickerOpen && "bg-[var(--panel-2)]/80",
           )}
         >
-          <CircuitBoard className="h-3 w-3 text-[var(--accent)]" />
-          <span className="truncate font-mono">{shortModel(model)}</span>
-          <ChevronDown
-            className={cn(
-              "h-3 w-3 text-[var(--muted)] transition-transform",
-              pickerOpen && "rotate-180",
-            )}
+          <CardHead
+            model={model}
+            effort={effort}
+            permissionMode={permissionMode}
+            ultracode={ultracode}
+            pickerOpen={pickerOpen}
           />
-          {/* Right-aligned pill cluster — `ml-auto` lives on the wrapper so
-              the effort + mode pills don't fight each other for the
-              rightmost slot. */}
-          <span className="ml-auto inline-flex items-center gap-1">
-            {ultracode && <UltracodeBadge />}
-            <EffortPill effort={effort} />
-            <ModePill mode={permissionMode} />
-          </span>
         </button>
       ) : (
-        <div className="flex w-full items-center gap-1.5 px-2 pb-1.5 pt-2 text-[11px]">
-          <CircuitBoard className="h-3 w-3 text-[var(--accent)]" />
-          <span className="truncate font-mono">{shortModel(model)}</span>
-          <span className="ml-auto inline-flex items-center gap-1">
-            {ultracode && <UltracodeBadge />}
-            <EffortPill effort={effort} />
-            <ModePill mode={permissionMode} />
-          </span>
+        <div className="px-2 pb-1.5 pt-2 text-[11px]">
+          <CardHead
+            model={model}
+            effort={effort}
+            permissionMode={permissionMode}
+            ultracode={ultracode}
+          />
         </div>
       )}
 
@@ -209,7 +202,55 @@ export function SessionCard({
   );
 }
 
+/**
+ * Shared header for both the interactive (picker) and read-only renders of
+ * the card. Two rows: the model name on its own line (so it never truncates
+ * just to make room for pills), and a quieter status row underneath. Kept as
+ * `<span>` pills inside the parent `<button>` so the whole header stays a
+ * single click target (no nested buttons).
+ */
+function CardHead({
+  model,
+  effort,
+  permissionMode,
+  ultracode,
+  pickerOpen,
+}: {
+  model: string | null;
+  effort: EffortLevel;
+  permissionMode: PermissionMode;
+  ultracode: boolean;
+  /** When provided, renders the picker chevron and reflects its open state. */
+  pickerOpen?: boolean;
+}) {
+  return (
+    <>
+      <div className="flex items-center gap-1.5">
+        <CircuitBoard className="h-3 w-3 shrink-0 text-[var(--accent)]" />
+        <span className="truncate font-mono">{shortModel(model)}</span>
+        {pickerOpen !== undefined && (
+          <ChevronDown
+            className={cn(
+              "ml-auto h-3 w-3 shrink-0 text-[var(--muted)] transition-transform",
+              pickerOpen && "rotate-180",
+            )}
+          />
+        )}
+      </div>
+      <div className="mt-1.5 flex flex-wrap items-center gap-1">
+        <EffortPill effort={effort} />
+        {ultracode && <UltracodeBadge />}
+        <ModePill mode={permissionMode} />
+      </div>
+    </>
+  );
+}
+
 function ModePill({ mode }: { mode: PermissionMode }) {
+  // Only non-default permission postures carry color — `bypass` (red),
+  // `plan` (violet), `acceptEdits` (emerald). The everyday `default` mode
+  // stays muted so it doesn't compete with the genuinely attention-worthy
+  // states. This is the single "loud" slot in the status row.
   const tone =
     mode === "plan"
       ? "border-violet-500/30 bg-violet-500/15 text-violet-200"
@@ -220,7 +261,7 @@ function ModePill({ mode }: { mode: PermissionMode }) {
           : "border-[var(--border)] bg-[var(--panel)] text-[var(--muted)]";
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded border px-1.5 py-px text-[9px] ${tone}`}
+      className={`inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded border px-1.5 py-px text-[9px] ${tone}`}
     >
       <ShieldCheck className="h-2.5 w-2.5" />
       {MODE_LABEL[mode] ?? mode}
@@ -235,7 +276,7 @@ function ModePill({ mode }: { mode: PermissionMode }) {
 function UltracodeBadge() {
   return (
     <span
-      className="inline-flex items-center gap-1 rounded border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-1.5 py-px text-[9px] text-[var(--accent)]"
+      className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-1.5 py-px text-[9px] text-[var(--accent)]"
       title="Dynamic Workflows: xhigh effort + parallel subagents"
     >
       <Workflow className="h-2.5 w-2.5" />
@@ -254,30 +295,21 @@ const EFFORT_LABEL: Record<EffortLevel, string> = {
 };
 
 /**
- * Compact effort indicator. The color scale matches the chips inside the
- * ModelPicker so the card's pill and the picker's chips read as the same
- * spectrum. Always renders — even on models that don't support effort,
- * "auto" is the honest answer.
+ * Compact effort indicator. Effort is informational, not alarming, so it
+ * uses one calm muted treatment rather than the ModelPicker's per-level
+ * color scale — three saturated pills (effort + workflows + mode) all
+ * fighting for attention is what made the card read as crowded. The label
+ * ("very high", "max", …) still carries the level at a glance. Always
+ * renders — even on models that don't support effort, "auto" is the honest
+ * answer.
  */
 function EffortPill({ effort }: { effort: EffortLevel }) {
-  const tone =
-    effort === "auto"
-      ? "border-[var(--border)] bg-[var(--panel)] text-[var(--muted)]"
-      : effort === "low"
-        ? "border-sky-500/30 bg-sky-500/10 text-sky-200"
-        : effort === "medium"
-          ? "border-violet-500/30 bg-violet-500/10 text-violet-200"
-          : effort === "high"
-            ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-200"
-            : effort === "xhigh"
-              ? "border-amber-500/30 bg-amber-500/10 text-amber-200"
-              : "border-red-500/30 bg-red-500/10 text-red-200";
   return (
     <span
       data-testid="session-card-effort-pill"
       data-effort={effort}
       title={`Reasoning effort: ${EFFORT_LABEL[effort]}`}
-      className={`inline-flex items-center gap-1 rounded border px-1.5 py-px text-[9px] ${tone}`}
+      className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded border border-[var(--border)] bg-[var(--panel)] px-1.5 py-px text-[9px] text-[var(--muted)]"
     >
       <Gauge className="h-2.5 w-2.5" />
       {EFFORT_LABEL[effort]}

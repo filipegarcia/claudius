@@ -157,9 +157,9 @@ function InlineUserText({ text, images }: { text: string; images: AttachedImage[
   }
   const content =
     nodes.length === 0 ? (
-      <div className="whitespace-pre-wrap text-sm leading-6">{text}</div>
+      <div className="whitespace-pre-wrap text-[length:var(--chat-text)] leading-6 2xl:leading-7">{text}</div>
     ) : (
-      <div className="text-sm leading-6">{nodes}</div>
+      <div className="text-[length:var(--chat-text)] leading-6 2xl:leading-7">{nodes}</div>
     );
   return (
     <>

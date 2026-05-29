@@ -1,6 +1,6 @@
 import { promises as fs } from "node:fs";
 import { homedir } from "node:os";
-import { basename, dirname, join } from "node:path";
+import { dirname, join } from "node:path";
 import { randomUUID } from "node:crypto";
 
 import type { CommitPrefixConfig } from "@/lib/shared/commit-prefix";
@@ -239,26 +239,21 @@ async function writeShape(shape: StoreShape): Promise<void> {
   await fs.rename(tmp, file);
 }
 
+/**
+ * Read the workspace store, tolerating a not-yet-existing file.
+ *
+ * Historically this auto-seeded a workspace from `process.cwd()` on first
+ * run. That meant a fresh install — where the dev server runs from the
+ * claudius checkout itself — booted straight into a bogus "claudius"
+ * workspace pointed at the source tree. We no longer create anything here:
+ * zero-workspace is a first-class state. The root page (`app/page.tsx`)
+ * sends a workspace-less install to `/welcome`, where the user creates their
+ * own workspace. Returning an empty shape (rather than writing one) also
+ * keeps this a pure read — no disk mutation as a side effect of resolution.
+ */
 export async function ensureBootstrap(): Promise<StoreShape> {
   const existing = await readShape();
-  if (existing && existing.workspaces.length > 0) return existing;
-  // First-run: auto-create from process.cwd() basename.
-  const cwd = process.cwd();
-  const id = "wks_" + randomUUID().replace(/-/g, "").slice(0, 12);
-  const name = basename(cwd) || "Workspace";
-  const ws: Workspace = {
-    id,
-    name,
-    rootPath: cwd,
-    icon: defaultLetterIcon(name, id),
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
-    lastOpenedAt: Date.now(),
-    defaults: { ...DEFAULT_WORKSPACE_DEFAULTS },
-  };
-  const shape: StoreShape = { version: 1, activeId: id, workspaces: [ws] };
-  await writeShape(shape);
-  return shape;
+  return existing ?? { version: 1, workspaces: [] };
 }
 
 export async function listWorkspaces(): Promise<Workspace[]> {

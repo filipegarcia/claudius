@@ -21,10 +21,11 @@ deterministic plumbing: version arithmetic, git, `gh pr create`,
 scripts/sdk-update/
 ├── README.md          # this file
 ├── check.ts           # npm probe + state file + decision logic
-├── orchestrate.ts     # the pipeline (branch → bump → Claude → gate → PR → CI → announce)
-├── prompt.md          # the prompt Claude runs with (placeholders substituted)
+├── orchestrate.ts     # the pipeline (branch → bump → Claude → gate → PR → announce → CI → announce); also `fixPr()`
+├── prompt.md          # the upgrade prompt Claude runs with (placeholders substituted)
+├── fix-prompt.md      # the fix-an-existing-PR prompt (used by `make sdk-update-fix-pr`)
 ├── pr-template.md     # PR body template
-└── run.sh             # cron entrypoint with flock guard
+└── run.sh             # cron entrypoint with flock guard (also `run.sh fix-pr <n>`)
 ```
 
 State lives outside the scripts dir, alongside other Claudius local state:
@@ -77,14 +78,40 @@ Everything under `.claudius/` is already gitignored.
       `pr-template.md` + the run-notes file Claude wrote. If a PR
       already exists for this branch (re-run case), edits the
       existing body in place instead of failing.
-   10. `gh pr checks <url> --watch --fail-fast`.
-   11. If CI is green, POST `{roomSlug, body, pin: true}` to
-       `<CHAT_SERVER_URL>/admin/announce` with the admin token.
+   10. POST `{roomSlug, body, pin: false}` to
+       `<CHAT_SERVER_URL>/admin/announce` **the moment the PR exists** —
+       for both full and draft PRs. The draft message includes the
+       reason it couldn't reach green. This post is best-effort: a
+       chat-server hiccup logs a warning but never aborts the run.
+   11. `gh pr checks <url> --watch --fail-fast` (full PRs only).
+   12. If CI is green, a **second** announce with `pin: true` marks the
+       version shipped.
 
-If anything between step 6 and step 10 leaves the suite red, OR the
-budget runs out, the PR is opened as **draft** with the
-`needs-human` label and a warning banner in the body. No
-announcement is posted in that case.
+If anything between step 6 and step 9 leaves the suite red, OR the
+budget runs out, the PR is opened as **draft** with the `needs-human`
+label and a warning banner in the body. The draft is still announced
+(step 10) so the channel knows a human is needed; only the pinned
+"shipped" message (step 12) is withheld until CI is green.
+
+### Fixing a PR after the fact
+
+When a run lands a draft (or a reviewer asks for changes), re-run
+Claude against the existing PR by number:
+
+```bash
+make sdk-update-fix-pr PR=123
+make sdk-update-fix-pr PR=123 MSG="address the review note about session.ts"
+make sdk-update-fix-pr PR=123 SKIP=e2e        # skip slow gate steps
+```
+
+This checks out the PR's head branch, gathers the failing CI checks +
+review comments as context, runs Claude with `fix-prompt.md`, re-runs
+the gate, pushes, and — if everything goes green — marks the PR ready
+and drops the `needs-human` label. It posts a **"working on PR #N"**
+message when it starts and a **result** message when it finishes, so
+each interaction with the PR is visible on the community channel.
+Neither fix message is pinned. Runs under the same `flock` as the cron
+path, so it won't overlap an in-flight upgrade.
 
 ---
 
@@ -193,6 +220,7 @@ manually, or temporarily set `SDK_UPDATE_MAX_MINOR_JUMP` higher.
 | --- | --- |
 | `make sdk-update-check` | Version probe only. Prints decision JSON, updates `state.lastCheckedAt`. Doesn't touch git. |
 | `make sdk-update-run` | One-shot manual firing — same code path as the cron line. **Will** create a branch, push, and open a PR if a new version is out. |
+| `make sdk-update-fix-pr PR=<n>` | Re-run Claude against an existing PR by number to fix it (gate failures / review feedback). **Will** push to the PR's branch. Optional `MSG="…"` instruction and `SKIP=lint,e2e`. Posts start + result messages to the community channel. |
 | `make sdk-update-dry-run` | Same as `sdk-update-run` through the gate, then stops **before** push/PR/CI/announce. Branch + Claude's commits stay on disk for inspection. Pass `SKIP=e2e` (or any comma-separated subset of `lint,unit,build,e2e`) to skip slow gate steps — the typical fast-feedback combo is `SKIP=e2e make sdk-update-dry-run`. |
 | `make sdk-update-status` | Prints `state.json` and tells you if `run.lock` is currently held. |
 | `make sdk-update-logs` | Tails the cron log. `make sdk-update-logs FOLLOW=1` for `tail -f`. |
@@ -245,7 +273,8 @@ until green.
 | `run.lock` is held but no orchestrator is running | Previous firing was killed mid-run | `rm .claudius/sdk-updater/run.lock`. `state.inFlight` self-heals on its own after `SDK_UPDATE_STALE_INFLIGHT_HOURS` (default 24h); set the var lower or `rm state.json` to short-circuit. |
 | `check.ts` keeps returning `in-flight` after a previous crash | `state.inFlight` was never cleared (SIGKILL / OOM / host reboot) | Wait for the 24h self-heal, OR `rm .claudius/sdk-updater/state.json` for immediate recovery (it's rebuilt with defaults on next run). |
 | Two PRs appear (one from this updater, one from Dependabot) | Both bots have npm-ecosystem updates enabled | Exclude `@anthropic-ai/claude-agent-sdk` from `.github/dependabot.yml`, or accept the duplication and close one. |
-| `gh pr checks --watch` exits but no announcement | CI failed | The orchestrator deliberately skips the announcement when CI is red. Look at the PR's checks tab. |
+| PR was announced but no pinned "shipped" message | CI failed | The PR-open announce (step 10) always fires; the pinned "shipped" message (step 12) is deliberately withheld until CI is green. Look at the PR's checks tab, then `make sdk-update-fix-pr PR=<n>`. |
+| PR opened but nothing posted to the channel at all | chat-server unreachable, or `CHAT_SERVER_URL` / token wrong | Announce is best-effort — check the cron log for a `WARN community announce failed` line. The PR is unaffected; fix the chat-server config and the next run/fix will post. |
 | Cron silently does nothing | flock held, env file missing, or `check.ts` exited non-zero | `make sdk-update-status` + `make sdk-update-logs`. |
 
 ---

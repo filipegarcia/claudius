@@ -13,7 +13,7 @@ type Props = {
 export function QueueIndicator({ queue, onCancel, onEdit, onReorder }: Props) {
   if (queue.length === 0) return null;
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-1 px-4 pb-2">
+    <div className="mx-auto flex w-full max-w-[var(--chat-col)] flex-col gap-1 px-4 pb-2">
       <div className="flex items-center gap-1 text-[10px] uppercase tracking-wide text-[var(--muted)]">
         <Hourglass className="h-3 w-3" />
         Queued · sends after current response

@@ -269,6 +269,68 @@ A paperclip mascot with route-aware speech bubbles. "It looks like you're writin
 
 ---
 
+## Electron
+
+Claudius runs as a plain web app **and** as a native desktop app (Electron). The
+same Next.js renderer powers both; the desktop build adds a native menu, custom
+title bar, OS notifications, deep links, and an auto-updater.
+
+### The `isElectron()` flag — branch behavior once, everywhere
+
+When a feature needs to behave differently on desktop vs. web, branch on the one
+canonical flag:
+
+```ts
+import { isElectron } from "@/lib/shared/runtime";
+
+if (isElectron()) {
+  // desktop-only path (native dialog, menu accelerator, …)
+} else {
+  // web path
+}
+```
+
+`isElectron()` works in **both realms** by reading whichever signal exists:
+
+| Realm | Signal | Set by |
+| --- | --- | --- |
+| Renderer / browser | `window.claudius?.isElectron` | the preload bridge (`electron/preload.ts`) |
+| Server / Node | `process.env.CLAUDIUS_ELECTRON === "1"` | the main process (`electron/main.ts`) |
+
+A plain browser tab and a standalone `next dev` / `next start` both report
+`false` — that's the web build.
+
+Two rules of thumb:
+
+- **Inside React components, use the `useIsElectron()` hook**
+  (`lib/client/useElectron.ts`) instead — it's SSR-safe and re-renders when the
+  bridge resolves, so it won't cause a hydration mismatch. Everywhere else
+  (event handlers, utilities, server code), call `isElectron()`.
+- **Server-side detection is packaged-only.** In `electron:dev` the renderer
+  points at a separate `next dev` process that doesn't inherit
+  `CLAUDIUS_ELECTRON`, so `isElectron()` is `true` in the renderer but `false`
+  on the dev server. In the packaged build the Next server runs *inside* the
+  Electron main process, so both agree.
+
+To call a native affordance directly (with a web fallback), reach for the typed
+bridge instead — `useClaudius()` returns `window.claudius` (or `null` on web);
+the full contract lives in `lib/shared/electron.d.ts`.
+
+### Running the desktop build
+
+| Command | What it does |
+| --- | --- |
+| `bun run electron:dev` | Rebuild the native module for Electron, compile `electron/`, then run `next dev` + Electron |
+| `bun run electron:build` | Production Next build + compile `electron/` |
+| `bun run electron:dist` | Build signed/packaged artifacts (mac/win/linux) via electron-builder |
+
+> **Native-module ABI mode-lock.** `better-sqlite3` is a native module; its
+> compiled binary can't be loaded by both plain Node and Electron at once.
+> `electron:dev` rebuilds it for Electron; run `bun run
+> electron:rebuild-native-for-node` to switch back before `bun run dev` /
+> `bun run test`. `scripts/native-abi.mjs` records the current side and warns
+> on mismatch.
+
 ## Dev commands
 
 | Command | What it does |

@@ -8,8 +8,12 @@
  * Phase 8 follow-up of docs/electron-conversion/PLAN.md.
  */
 import { useElectronGlobalActions } from "@/lib/client/useElectronGlobalActions";
+import { useElectronMenuSync } from "@/lib/client/useElectronMenuSync";
 
 export function ElectronGlobalActions() {
   useElectronGlobalActions();
+  // Keep the native menu's accelerators in sync with the user's
+  // shortcut overrides (Phase 3 follow-up).
+  useElectronMenuSync();
   return null;
 }

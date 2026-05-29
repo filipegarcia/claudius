@@ -3,6 +3,7 @@
 // (permission_request, error, ready).
 
 import type { SDKMessage, PermissionMode } from "@anthropic-ai/claude-agent-sdk";
+import type { Tip } from "./tips";
 
 export type PermissionRequestEvent = {
   type: "permission_request";
@@ -100,6 +101,24 @@ export type FeedbackSurveyEvent = {
   sessionId: string;
   /** SDK feedback surface tag forwarded on submit. */
   surface?: string;
+};
+
+/**
+ * Server-driven spinner tips — the catalog the client rotates through under
+ * the "Claude is working…" row. Routed through SSE (rather than hardcoded on
+ * the client) so the backend is the single source of truth: new-feature tips
+ * can ship, or be gated by what the session actually supports, without a
+ * client deploy. Emitted per-subscriber in `Session.subscribe` (like
+ * `turn_status` / `mode_changed`), so every reload/tab gets the current list.
+ *
+ * Ambient + idempotent: each event simply replaces the client's list, so —
+ * unlike the one-shot `feedback_survey` nudge — re-delivering it is harmless.
+ * It never enters the replay buffer (emitted directly to each subscriber), so
+ * it needs no replay-skip handling.
+ */
+export type TipsEvent = {
+  type: "tips";
+  tips: Tip[];
 };
 
 /**
@@ -349,6 +368,7 @@ export type ServerEvent =
   | SessionTitleEvent
   | GoalChangedEvent
   | FeedbackSurveyEvent
+  | TipsEvent
   | CwdChangedEvent
   | AskUserQuestionEvent
   | PlanApprovalRequestEvent

@@ -1,7 +1,8 @@
-import { test, expect, type Page } from "../helpers/test";
+import { test, expect } from "../helpers/test";
 import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { UPDATE_SCREENSHOTS } from "./helpers/marketing-screenshot";
+import { activateClaudiusWorkspace } from "./helpers/workspace";
 
 /**
  * Screenshot for the Tracker customization on the marketing site.
@@ -21,21 +22,6 @@ import { UPDATE_SCREENSHOTS } from "./helpers/marketing-screenshot";
 
 const SHOTS_DIR = resolve(process.cwd(), "site/screenshots");
 if (UPDATE_SCREENSHOTS) mkdirSync(SHOTS_DIR, { recursive: true });
-
-type WorkspaceSummary = { id: string; name: string; rootPath: string };
-
-async function activateClaudiusWorkspace(page: Page) {
-  const list = await page.request
-    .get("/api/workspaces")
-    .then((r) => r.json() as Promise<{ workspaces: WorkspaceSummary[] }>);
-  const cwd = process.cwd();
-  const ws =
-    list.workspaces.find((w) => w.name === "claudius") ??
-    list.workspaces.find((w) => w.rootPath === cwd);
-  if (ws) {
-    await page.request.post(`/api/workspaces/${ws.id}/select`);
-  }
-}
 
 test.beforeEach(async ({ page }) => {
   await activateClaudiusWorkspace(page);

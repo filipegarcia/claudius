@@ -73,7 +73,7 @@ export function AssistantMessage({
           </span>
         )}
       </div>
-      <div className="space-y-1 text-sm leading-7">
+      <div className="space-y-1 text-[length:var(--chat-text)] leading-7 2xl:leading-8">
         {filterAssistantBlocks(message.blocks, verbose).map((b, i) => {
           if (b.kind === "text")
             return (

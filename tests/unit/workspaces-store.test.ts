@@ -37,10 +37,13 @@ describe("workspace creation defaults", () => {
     expect(DEFAULT_WORKSPACE_DEFAULTS).toEqual({ permissionMode: "bypassPermissions" });
   });
 
-  test("ensureBootstrap stamps bypassPermissions on the first-run workspace", async () => {
+  test("ensureBootstrap no longer auto-seeds a workspace on first run", async () => {
+    // First-run is now a zero-workspace state — the app routes to /welcome
+    // rather than booting into a bogus "claudius" workspace pointed at the
+    // source checkout. So bootstrap returns an empty shape, not a seeded one.
     const shape = await ensureBootstrap();
-    expect(shape.workspaces).toHaveLength(1);
-    expect(shape.workspaces[0].defaults?.permissionMode).toBe("bypassPermissions");
+    expect(shape.workspaces).toHaveLength(0);
+    expect(shape.activeId).toBeUndefined();
   });
 
   test("createWorkspace with no defaults still gets bypassPermissions", async () => {
