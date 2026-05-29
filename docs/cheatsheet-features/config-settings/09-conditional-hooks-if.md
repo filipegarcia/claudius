@@ -1,25 +1,32 @@
 # Conditional hooks (hooks: if)
 
 **Source:** Claude Code cheat sheet — Config & Env — Config Files & Key Settings
-**Status:** UI_WORTHY
+**Status:** IMPLEMENTED
+
+**Implemented:** Per-handler `if?: string` added to all five `HookHandler` variants in
+`lib/shared/hook-events.ts` (the dead group-level `if` was removed — the SDK never read it).
+`AddHookForm` in `app/[workspaceId]/hooks/page.tsx` gained an "If (rule filter)" input that
+spreads `if` into every handler shape, and `EventRow` renders the `if=…` badge per handler.
 
 ## What it is
-An `if` field on a hook (group or handler) that gates whether the hook runs using
+An `if` field on a hook *handler* that gates whether the hook runs using
 permission-rule syntax (e.g. `"Bash(git *)"`). The hook only fires when the tool
-call matches the pattern — avoids spawning hooks for non-matching commands.
+call matches the pattern — avoids spawning hooks for non-matching commands. Per the
+bundled SDK schema (`node_modules/@anthropic-ai/claude-agent-sdk/sdk.d.ts`), `if`
+lives on each handler variant (command/http/prompt/agent/mcp_tool), **not** on the
+hook group — the group object is exactly `{ matcher?, hooks }`.
 
 ## Claudius today
-Partially present. The data model already supports it: `HookGroup` in
-`lib/shared/hook-events.ts` carries `if?: string`, and `lib/server/hooks.ts`
-persists whatever group object it is handed — so an `if` written via the settings
-Raw JSON editor round-trips correctly. But the Hooks page Add form
-(`app/[workspaceId]/hooks/page.tsx`, `AddHookForm`) has **no `if` input**, and
-`EventRow` does not render an existing `if` value. So you cannot create or even
-see a conditional hook from the dedicated Hooks UI.
+Implemented. `lib/shared/hook-events.ts` carries `if?: string` on all five
+`HookHandler` variants, and `lib/server/hooks.ts` / the `/api/hooks` route pass
+handler objects through verbatim, so an `if` round-trips with no server change.
+The Hooks page Add form (`app/[workspaceId]/hooks/page.tsx`, `AddHookForm`) has an
+"If (rule filter)" input that spreads `if` into every handler shape, and `EventRow`
+renders the `if=…` value per handler.
 
 ## Decision
-UI_WORTHY (med). Add an "If (permission-rule filter)" text input to `AddHookForm`
-(included in the persisted `HookGroup` when non-empty), and show the `if` value in
-`EventRow` alongside the matcher. No backend change — `lib/server/hooks.ts` and
-the API already accept the field. Medium priority because conditional hooks are a
-real, commonly used hook feature that the dedicated editor currently hides.
+IMPLEMENTED (med). Added a per-handler "If (rule filter)" text input to
+`AddHookForm` (spread into each handler when non-empty), and show the `if` value in
+`EventRow` per handler. Removed the dead group-level `if?: string` that the SDK
+never reads. No backend change — `lib/server/hooks.ts` and the API already pass the
+field through.
