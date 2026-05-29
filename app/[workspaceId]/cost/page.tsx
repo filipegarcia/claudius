@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, BarChart3, ExternalLink, RefreshCw } from "lucide-react";
+import type { PriceRefreshResult, PricingStatus } from "@/lib/server/litellm-pricing";
 import { SideNav } from "@/components/nav/SideNav";
 import { ScopeToggle, type Scope } from "@/components/nav/ScopeToggle";
 import { CostChart } from "@/components/cost/CostChart";
@@ -28,6 +29,43 @@ export default function CostPage() {
   const [view, setView] = useState<"spend" | "limits">("spend");
 
   const { data, loading, error, refresh } = useCost(cwd);
+
+  const [priceStatus, setPriceStatus] = useState<PricingStatus | null>(null);
+  const [priceBusy, setPriceBusy] = useState(false);
+  const [priceMsg, setPriceMsg] = useState<string | null>(null);
+
+  const loadPriceStatus = useCallback(() => {
+    fetch("/api/cost/refresh-prices")
+      .then((r) => (r.ok ? (r.json() as Promise<PricingStatus>) : null))
+      .then((s) => {
+        if (s) setPriceStatus(s);
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    loadPriceStatus();
+  }, [loadPriceStatus]);
+
+  const refreshPrices = useCallback(() => {
+    setPriceBusy(true);
+    setPriceMsg(null);
+    fetch("/api/cost/refresh-prices", { method: "POST" })
+      .then(async (r) => (await r.json()) as PriceRefreshResult)
+      .then((result) => {
+        if (result.ok) {
+          setPriceMsg(`Updated ${result.models} prices`);
+          loadPriceStatus();
+          refresh(); // reprice the report from the new table
+        } else {
+          setPriceMsg(result.reason ?? "Refresh failed");
+        }
+      })
+      .catch((err: unknown) => {
+        setPriceMsg(err instanceof Error ? err.message : String(err));
+      })
+      .finally(() => setPriceBusy(false));
+  }, [loadPriceStatus, refresh]);
 
   return (
     <div className="flex h-full">
@@ -145,18 +183,45 @@ export default function CostPage() {
               <ModelBreakdown data={data?.byModel ?? []} />
             </section>
 
-            <footer className="border-t border-[var(--border)] pt-3 text-[11px] text-[var(--muted)]">
-              {data?.note ?? "—"} Numbers above are this project, on this machine. For account-wide
-              totals, see{" "}
-              <a
-                href={ACCOUNT_USAGE_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[var(--accent)] hover:underline"
-              >
-                your Anthropic usage dashboard ↗
-              </a>
-              .
+            <footer className="space-y-1.5 border-t border-[var(--border)] pt-3 text-[11px] text-[var(--muted)]">
+              <p>
+                {data?.note ?? "—"} Numbers above are this project, on this machine. For account-wide
+                totals, see{" "}
+                <a
+                  href={ACCOUNT_USAGE_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[var(--accent)] hover:underline"
+                >
+                  your Anthropic usage dashboard ↗
+                </a>
+                .
+              </p>
+              <div className="flex flex-wrap items-center gap-2">
+                <span>
+                  Prices:{" "}
+                  {priceStatus
+                    ? priceStatus.source === "cache"
+                      ? "LiteLLM (auto-updated)"
+                      : "LiteLLM (bundled snapshot)"
+                    : "LiteLLM"}
+                  {priceStatus ? ` · ${priceStatus.models} models` : ""}
+                  {priceStatus?.fetchedAt
+                    ? ` · fetched ${new Date(priceStatus.fetchedAt).toLocaleDateString()}`
+                    : ""}
+                </span>
+                <button
+                  type="button"
+                  onClick={refreshPrices}
+                  disabled={priceBusy}
+                  className="inline-flex items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-0.5 hover:bg-[var(--panel)] disabled:opacity-50"
+                  title="Fetch the latest model list prices from LiteLLM"
+                >
+                  <RefreshCw className={cn("h-3 w-3", priceBusy && "animate-spin")} />
+                  {priceBusy ? "Fetching…" : "Refresh prices"}
+                </button>
+                {priceMsg && <span>{priceMsg}</span>}
+              </div>
             </footer>
           </div>
           )}

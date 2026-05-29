@@ -7,8 +7,10 @@ import { aggregate } from "@/lib/server/cost-aggregate";
 import {
   __resetPricingMemo,
   costFromUsage,
+  getPricingStatus,
   getPricingTable,
   priceForModel,
+  refreshPricing,
   type LiteLlmPricing,
 } from "@/lib/server/litellm-pricing";
 
@@ -60,6 +62,30 @@ describe("litellm pricer", () => {
     // unknown future opus still resolves to *some* opus pricing via family fallback
     expect(priceForModel("claude-opus-99-9", table)).toBeDefined();
     expect(priceForModel("totally-made-up-model", table)).toBeUndefined();
+  });
+});
+
+describe("price refresh", () => {
+  test("refreshPricing reports a clear result when refresh is disabled", async () => {
+    const prev = process.env.CLAUDIUS_DISABLE_PRICE_REFRESH;
+    process.env.CLAUDIUS_DISABLE_PRICE_REFRESH = "1";
+    __resetPricingMemo();
+    try {
+      const r = await refreshPricing();
+      expect(r.ok).toBe(false);
+      expect(r.source).toBe("disabled");
+      expect(r.models).toBeGreaterThan(0); // bundled snapshot is still usable
+      expect(r.reason).toMatch(/disabled/i);
+    } finally {
+      if (prev === undefined) delete process.env.CLAUDIUS_DISABLE_PRICE_REFRESH;
+      else process.env.CLAUDIUS_DISABLE_PRICE_REFRESH = prev;
+    }
+  });
+
+  test("getPricingStatus always reports a usable table", async () => {
+    const s = await getPricingStatus();
+    expect(["cache", "bundle"]).toContain(s.source);
+    expect(s.models).toBeGreaterThan(0);
   });
 });
 

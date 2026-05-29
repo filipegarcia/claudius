@@ -29,6 +29,12 @@ const eslintConfig = defineConfig([
     "playwright/.cache/**",
     // Claudiusd runtime state (pid file, logs, sqlite).
     ".claudius/**",
+    // Per-session agent git worktrees (gitignored). Each is a full repo
+    // copy with its own build output (.next, .next-e2e, etc.). The ignore
+    // patterns above are relative to cwd and don't match these nested
+    // copies, so ESLint would walk in and lint hundreds of minified
+    // bundles. Ignore the whole tree.
+    ".claude/worktrees/**",
     // Electron main-process build output (see electron/tsconfig.json).
     "dist-electron/**",
     // Electron-builder packaged artifacts.

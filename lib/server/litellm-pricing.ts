@@ -92,35 +92,124 @@ const bundled: PricingTable = normalizeTable(bundledRaw);
 let memo: PricingTable | null = null;
 let refreshing = false;
 
+/** Outcome of an explicit price refresh, surfaced to the API/UI. */
+export type PriceRefreshResult = {
+  /** True when fresh prices were fetched and cached. */
+  ok: boolean;
+  /** Number of priced models now available. */
+  models: number;
+  /** The fetch URL, or "disabled" when refresh is opted out. */
+  source: string;
+  /** ISO timestamp of the successful fetch. */
+  fetchedAt?: string;
+  /** Human-readable explanation when `ok` is false. */
+  reason?: string;
+};
+
+/** Where the active pricing came from, for display next to the refresh action. */
+export type PricingStatus = {
+  source: "cache" | "bundle";
+  models: number;
+  /** ISO timestamp the on-disk cache was last written (cache source only). */
+  fetchedAt?: string;
+};
+
 /** Disable the network refresh (offline mode / tests). */
 function refreshDisabled(): boolean {
   return process.env.CLAUDIUS_DISABLE_PRICE_REFRESH === "1";
 }
 
+/** Fetch + normalize the LiteLLM table. Returns null on any failure. */
+async function fetchTableFromNetwork(): Promise<PricingTable | null> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  try {
+    const res = await fetch(LITELLM_URL, { signal: controller.signal });
+    if (!res.ok) return null;
+    const table = normalizeTable(await res.json());
+    return Object.keys(table).length === 0 ? null : table; // ignore garbage
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** Write the fetched table to the on-disk cache and refresh the memo. */
+async function persistTable(table: PricingTable): Promise<void> {
+  await fs.mkdir(dirname(DISK_CACHE), { recursive: true });
+  await fs.writeFile(DISK_CACHE, JSON.stringify(table), "utf8");
+  memo = { ...bundled, ...table };
+}
+
+/** Background, best-effort refresh — never throws, never blocks a request. */
 async function refreshFromNetwork(): Promise<void> {
   if (refreshing || refreshDisabled()) return;
   refreshing = true;
   try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-    let json: unknown;
-    try {
-      const res = await fetch(LITELLM_URL, { signal: controller.signal });
-      if (!res.ok) return;
-      json = await res.json();
-    } finally {
-      clearTimeout(timer);
-    }
-    const table = normalizeTable(json);
-    if (Object.keys(table).length === 0) return; // ignore garbage
-    await fs.mkdir(dirname(DISK_CACHE), { recursive: true });
-    await fs.writeFile(DISK_CACHE, JSON.stringify(table), "utf8");
-    memo = { ...bundled, ...table };
+    const table = await fetchTableFromNetwork();
+    if (table) await persistTable(table);
   } catch {
-    // best-effort: offline, rate-limited, malformed — keep using what we have
+    // offline / rate-limited / malformed — keep using what we have
   } finally {
     refreshing = false;
   }
+}
+
+/**
+ * Force an immediate price fetch (the `/api/cost/refresh-prices` endpoint).
+ * Unlike the background refresh this ignores the TTL and reports a structured
+ * result. Subsequent cost aggregation reprices from the updated table — no
+ * re-parse of JSONL is needed, since the per-turn cache stores tokens, not USD.
+ */
+export async function refreshPricing(): Promise<PriceRefreshResult> {
+  const current = Object.keys(memo ?? bundled).length;
+  if (refreshDisabled()) {
+    return {
+      ok: false,
+      models: current,
+      source: "disabled",
+      reason: "Price refresh is disabled (CLAUDIUS_DISABLE_PRICE_REFRESH=1).",
+    };
+  }
+  refreshing = true;
+  try {
+    const table = await fetchTableFromNetwork();
+    if (!table) {
+      return {
+        ok: false,
+        models: current,
+        source: LITELLM_URL,
+        reason: "Could not fetch pricing from LiteLLM (offline, blocked, or rate-limited).",
+      };
+    }
+    await persistTable(table);
+    return {
+      ok: true,
+      models: Object.keys(table).length,
+      source: LITELLM_URL,
+      fetchedAt: new Date().toISOString(),
+    };
+  } finally {
+    refreshing = false;
+  }
+}
+
+/** Report whether the active prices come from the refreshed cache or the bundle. */
+export async function getPricingStatus(): Promise<PricingStatus> {
+  try {
+    const [buf, stat] = await Promise.all([
+      fs.readFile(DISK_CACHE, "utf8"),
+      fs.stat(DISK_CACHE),
+    ]);
+    const models = Object.keys(normalizeTable(JSON.parse(buf))).length;
+    if (models > 0) {
+      return { source: "cache", models, fetchedAt: new Date(stat.mtimeMs).toISOString() };
+    }
+  } catch {
+    // no/invalid cache — fall back to the bundled snapshot
+  }
+  return { source: "bundle", models: Object.keys(bundled).length };
 }
 
 /**
