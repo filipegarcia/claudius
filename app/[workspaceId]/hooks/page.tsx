@@ -291,6 +291,7 @@ function EventRow({
                     )}
                     {"async" in h && h.async && <span className="ml-2 text-[var(--muted)]">async</span>}
                     {"once" in h && h.once && <span className="ml-2 text-[var(--muted)]">once</span>}
+                    {"continueOnBlock" in h && h.continueOnBlock && <span className="ml-2 text-[var(--muted)]">continueOnBlock</span>}
                     {"if" in h && h.if && <span className="ml-2 text-[var(--muted)]">if={h.if}</span>}
                   </li>
                 ))}
@@ -332,6 +333,7 @@ function AddHookForm({
   const [async, setAsync] = useState(false);
   const [asyncRewake, setAsyncRewake] = useState(false);
   const [once, setOnce] = useState(false);
+  const [continueOnBlock, setContinueOnBlock] = useState(false);
   const [ifRule, setIfRule] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -392,7 +394,7 @@ function AddHookForm({
       };
     } else if (type === "prompt") {
       if (!prompt.trim()) return setError("prompt required");
-      handler = { type: "prompt", prompt, ...(once ? { once: true } : {}), ...(ifRule.trim() ? { if: ifRule.trim() } : {}) };
+      handler = { type: "prompt", prompt, ...(continueOnBlock ? { continueOnBlock: true } : {}), ...(once ? { once: true } : {}), ...(ifRule.trim() ? { if: ifRule.trim() } : {}) };
     } else if (type === "agent") {
       if (!agent.trim()) return setError("agent name required");
       handler = { type: "agent", agent: agent.trim(), ...(once ? { once: true } : {}), ...(ifRule.trim() ? { if: ifRule.trim() } : {}) };
@@ -581,8 +583,11 @@ function AddHookForm({
         </div>
       )}
       {(type === "prompt" || type === "agent" || type === "mcp_tool") && (
-        <div className="mt-3">
+        <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
           <ToggleField label="once" checked={once} onChange={setOnce} />
+          {type === "prompt" && (
+            <ToggleField label="continueOnBlock" checked={continueOnBlock} onChange={setContinueOnBlock} />
+          )}
         </div>
       )}
 

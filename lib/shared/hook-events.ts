@@ -135,7 +135,7 @@ export type HandlerType = "command" | "http" | "prompt" | "agent" | "mcp_tool";
 export type HookHandler =
   | { type: "command"; command: string; timeout?: number; async?: boolean; asyncRewake?: boolean; once?: boolean; if?: string }
   | { type: "http"; url: string; method?: "POST" | "GET"; headers?: Record<string, string>; timeout?: number; async?: boolean; asyncRewake?: boolean; once?: boolean; if?: string }
-  | { type: "prompt"; prompt: string; once?: boolean; if?: string }
+  | { type: "prompt"; prompt: string; continueOnBlock?: boolean; once?: boolean; if?: string }
   | { type: "agent"; agent: string; once?: boolean; if?: string }
   | { type: "mcp_tool"; tool: string; arguments?: Record<string, unknown>; once?: boolean; if?: string };
 
