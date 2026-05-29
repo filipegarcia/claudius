@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, CircuitBoard, Folder, Gauge, ShieldCheck } from "lucide-react";
+import { ChevronDown, CircuitBoard, Folder, Gauge, ShieldCheck, Workflow } from "lucide-react";
 import type { PermissionMode } from "@anthropic-ai/claude-agent-sdk";
 import type { SessionUsage } from "@/lib/client/types";
 import { cn } from "@/lib/utils/cn";
@@ -35,6 +35,13 @@ type Props = {
   onChangeModel?: (modelValue: string) => Promise<void> | void;
   /** Change reasoning/effort level. Required alongside onChangeModel to show the effort chips. */
   onChangeEffort?: (level: EffortLevel) => Promise<void> | void;
+  /**
+   * Whether "ultracode" (Dynamic Workflows) is on. Rendered as a small badge
+   * next to the effort pill when enabled.
+   */
+  ultracode?: boolean;
+  /** Toggle ultracode (Dynamic Workflows). Surfaced in the picker on xhigh-capable models. */
+  onChangeUltracode?: (enabled: boolean) => Promise<void> | void;
 };
 
 const MODE_LABEL: Record<string, string> = {
@@ -55,6 +62,8 @@ export function SessionCard({
   onOpenCost,
   onChangeModel,
   onChangeEffort,
+  ultracode = false,
+  onChangeUltracode,
 }: Props) {
   // Use `usage.durationMs` when present (server-known); otherwise track
   // wall time from when we first saw a non-null sessionId. The "first
@@ -128,6 +137,7 @@ export function SessionCard({
               the effort + mode pills don't fight each other for the
               rightmost slot. */}
           <span className="ml-auto inline-flex items-center gap-1">
+            {ultracode && <UltracodeBadge />}
             <EffortPill effort={effort} />
             <ModePill mode={permissionMode} />
           </span>
@@ -137,6 +147,7 @@ export function SessionCard({
           <CircuitBoard className="h-3 w-3 text-[var(--accent)]" />
           <span className="truncate font-mono">{shortModel(model)}</span>
           <span className="ml-auto inline-flex items-center gap-1">
+            {ultracode && <UltracodeBadge />}
             <EffortPill effort={effort} />
             <ModePill mode={permissionMode} />
           </span>
@@ -183,6 +194,15 @@ export function SessionCard({
             await onChangeEffort?.(level);
             setPickerOpen(false);
           }}
+          ultracode={ultracode}
+          onToggleUltracode={
+            onChangeUltracode
+              ? async (enabled) => {
+                  await onChangeUltracode(enabled);
+                  setPickerOpen(false);
+                }
+              : undefined
+          }
         />
       )}
     </div>
@@ -204,6 +224,22 @@ function ModePill({ mode }: { mode: PermissionMode }) {
     >
       <ShieldCheck className="h-2.5 w-2.5" />
       {MODE_LABEL[mode] ?? mode}
+    </span>
+  );
+}
+
+/**
+ * "Ultracode" (Dynamic Workflows) badge. Only rendered when ultracode is on
+ * — its presence is the signal, so there's no "off" state to show.
+ */
+function UltracodeBadge() {
+  return (
+    <span
+      className="inline-flex items-center gap-1 rounded border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-1.5 py-px text-[9px] text-[var(--accent)]"
+      title="Dynamic Workflows: xhigh effort + parallel subagents"
+    >
+      <Workflow className="h-2.5 w-2.5" />
+      workflows
     </span>
   );
 }

@@ -1393,6 +1393,8 @@ export default function Home() {
         onAddTodos={onAddTodos}
         onChangeModel={session.setModel}
         onChangeEffort={session.setEffort}
+        ultracode={session.ultracode}
+        onChangeUltracode={session.setUltracode}
       />
 
       {liveOpenBash && (

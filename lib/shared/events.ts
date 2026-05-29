@@ -379,6 +379,16 @@ export type CreateSessionRequest = {
   fallbackModel?: string;
   /** Run shell commands in a sandbox — SDK Options.sandbox.enabled. */
   sandboxEnabled?: boolean;
+  /** Enable the 1M-token context beta — SDK Options.betas (Sonnet 4/4.5). */
+  enable1mContext?: boolean;
+  /** Persist this session to disk — SDK Options.persistSession (false = ephemeral). */
+  persistSession?: boolean;
+  /** Extra absolute dirs the agent may access — SDK Options.additionalDirectories. */
+  additionalDirectories?: string[];
+  /** Extra text appended to the default system prompt — SDK Options.systemPrompt.append. */
+  systemPromptAppend?: string;
+  /** Custom plan-mode workflow body — SDK Options.planModeInstructions. */
+  planModeInstructions?: string;
   permissionMode?: PermissionMode;
   /** If set, resume an existing session by id. */
   resume?: string;

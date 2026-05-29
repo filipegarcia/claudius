@@ -363,6 +363,13 @@ export type ChatState = {
    * `"auto"` (adaptive thinking) on fresh sessions.
    */
   effort: "low" | "medium" | "high" | "xhigh" | "max" | "auto";
+  /**
+   * Whether "ultracode" (Dynamic Workflows) is enabled for the session —
+   * Opus 4.8's xhigh-effort + parallel-subagent orchestration mode.
+   * Optimistic, same as `effort`: the SDK emits no event for it, so this
+   * mirrors the last toggle and resets to `false` on a fresh session.
+   */
+  ultracode: boolean;
   sessions: SessionInfo[];
   skills: string[];
   cwd: string | null;
@@ -490,6 +497,12 @@ export type ChatActions = {
    * adaptive thinking; the numeric levels lock to a specific budget.
    */
   setEffort(level: "low" | "medium" | "high" | "xhigh" | "max" | "auto"): Promise<void>;
+  /**
+   * Toggle "ultracode" (Dynamic Workflows) — Opus 4.8's xhigh + parallel-
+   * subagent orchestration. Routed through `applyFlagSettings({ ultracode })`
+   * server-side. Enabling it also moves the effort mirror to `xhigh`.
+   */
+  setUltracode(enabled: boolean): Promise<void>;
   /**
    * Bind to a different session id. Awaits a wake POST so a reaped session
    * has its buffer rehydrated before the SSE subscribes; fire-and-forget
