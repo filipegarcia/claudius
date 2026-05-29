@@ -67,7 +67,30 @@ export function GoalBanner({ goal, onSet, onClear, openEditNonce }: Props) {
     }
   }, [editing]);
 
-  if (!goal && !editing) return null;
+  // No goal and not editing → a subtle, always-available affordance to set
+  // one (the `/goal` command is the keyboard path; this is the button path).
+  // Once a goal exists this whole component becomes the prominent banner.
+  if (!goal && !editing) {
+    return (
+      <div
+        data-testid="goal-banner-empty"
+        className="border-b border-[var(--border)] bg-[var(--panel-2)]/30"
+      >
+        <div className="mx-auto flex w-full max-w-3xl items-center px-4 py-1.5 text-xs">
+          <button
+            type="button"
+            onClick={startEdit}
+            data-testid="goal-banner-set"
+            title="Set a goal for this session"
+            className="group flex items-center gap-1.5 rounded text-[var(--muted)] transition hover:text-[var(--foreground)]"
+          >
+            <Target className="h-3.5 w-3.5 group-hover:text-[var(--accent)]" aria-hidden />
+            <span>Set a session goal</span>
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   function startEdit() {
     setDraft(goal?.text ?? "");

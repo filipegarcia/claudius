@@ -81,4 +81,30 @@ test.describe("Session goal", () => {
     await page.getByTestId("goal-banner-clear").click();
     await expect(banner).toBeHidden({ timeout: 15_000 });
   });
+
+  test("set a goal via the banner button (no slash command)", async ({ page }) => {
+    await page.goto("/");
+    await waitForBoundSession(page);
+    await expect(page.getByTestId("prompt-input")).toBeVisible({ timeout: 30_000 });
+
+    // A fresh session guarantees no existing goal, so the empty-state
+    // "Set a session goal" button is the affordance on screen.
+    await page.locator('button[title="New session tab"]').click();
+    await waitForBoundSession(page);
+
+    const setButton = page.getByTestId("goal-banner-set");
+    await expect(setButton).toBeVisible({ timeout: 15_000 });
+    await setButton.click();
+
+    // The inline editor opens; type a goal and submit with Enter.
+    const goalText = `Button goal ${Date.now().toString(36)}`;
+    const input = page.getByTestId("goal-banner-input");
+    await expect(input).toBeVisible();
+    await input.fill(goalText);
+    await input.press("Enter");
+
+    // The prominent banner replaces the empty state.
+    await expect(page.getByTestId("goal-banner")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId("goal-banner-text")).toHaveText(goalText);
+  });
 });
