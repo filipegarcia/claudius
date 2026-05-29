@@ -14,6 +14,7 @@ import type { DisplayMessage, SystemEntry, TaskInfo } from "@/lib/client/types";
 import {
   DEFAULT_VERBOSE,
   filterMessagesByVerbose,
+  isSystemEntryHiddenAtLevel,
   type VerboseLevel,
 } from "@/lib/shared/verbose";
 import { useWorkspaces } from "@/lib/client/useWorkspaces";
@@ -61,6 +62,11 @@ type Props = {
    * Matching user bubbles get an "auto-suggested" badge.
    */
   suggestedUuids?: Set<string>;
+  /**
+   * Uuids of user messages submitted as the session goal. Matching user
+   * bubbles get a "Goal" badge.
+   */
+  goalUuids?: Set<string>;
   /**
    * Live AskUserQuestion tool_use id — passed straight through to
    * `AssistantMessage` so the matching ToolCall row pulses its pill in
@@ -111,6 +117,7 @@ export function MessageList({
   onRunCommand,
   tips,
   suggestedUuids,
+  goalUuids,
   pendingAskToolUseId = null,
   onReopenAsk,
   verbose = DEFAULT_VERBOSE,
@@ -308,7 +315,18 @@ export function MessageList({
     return () => obs.disconnect();
   }, [hasMoreAbove, onLoadOlder]);
 
-  const grouped = useMemo(() => groupSystemEntries(systemEntries), [systemEntries]);
+  // System pills (init, hooks, status, rate-limit, …) render on their own
+  // anchored path, untouched by the message/block filters above. Drop the
+  // kinds the current level suppresses (today: the transient "Status:
+  // requesting" ticker at compact / ultra-compact) before grouping, so all
+  // three SystemPill render sites below inherit the filter from one place.
+  const grouped = useMemo(
+    () =>
+      groupSystemEntries(
+        systemEntries.filter((e) => !isSystemEntryHiddenAtLevel(e.kind, verbose)),
+      ),
+    [systemEntries, verbose],
+  );
   // Verbose-filtered view of the message list. Anchor/scroll logic above
   // intentionally operates on the UNFILTERED `messages` array so a user
   // toggling the level doesn't shift the chronological-latest-user-message
@@ -460,6 +478,7 @@ export function MessageList({
                           sessionId={sessionId}
                           onJumpTo={() => jumpToMessageTop(m.uuid)}
                           suggested={!!suggestedUuids?.has(m.uuid)}
+                          fromGoal={!!goalUuids?.has(m.uuid)}
                         />
                       ) : (
                         <AssistantMessage

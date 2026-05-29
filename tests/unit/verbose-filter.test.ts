@@ -5,12 +5,14 @@ import {
   filterAssistantBlocks,
   filterMessagesByVerbose,
   isMessageHiddenAtLevel,
+  isSystemEntryHiddenAtLevel,
   isVerboseLevel,
+  shouldExpandAllBlocks,
   verboseDescription,
   verboseLabel,
   type VerboseLevel,
 } from "@/lib/shared/verbose";
-import type { DisplayBlock, DisplayMessage } from "@/lib/client/types";
+import type { DisplayBlock, DisplayMessage, SystemEntry } from "@/lib/client/types";
 
 /**
  * Pin down the chat-verbosity filter behaviour. The chat surface and the
@@ -45,10 +47,12 @@ function msg(
 }
 
 describe("isVerboseLevel", () => {
-  test("accepts the three published levels", () => {
+  test("accepts the five published levels", () => {
+    expect(isVerboseLevel("ultra-compact")).toBe(true);
     expect(isVerboseLevel("compact")).toBe(true);
     expect(isVerboseLevel("normal")).toBe(true);
     expect(isVerboseLevel("verbose")).toBe(true);
+    expect(isVerboseLevel("ultra-verbose")).toBe(true);
   });
 
   test("rejects unknown strings and non-strings", () => {
@@ -293,9 +297,129 @@ describe("filterMessagesByVerbose", () => {
   });
 });
 
+describe("ultra-verbose (extra verbose)", () => {
+  const all: DisplayBlock[] = [
+    block("text", { text: "a" }),
+    block("thinking", { text: "t" }),
+    block("tool_use", { name: "Bash" }),
+  ];
+
+  test("filterAssistantBlocks returns the input unchanged (referential identity)", () => {
+    const out = filterAssistantBlocks(all, "ultra-verbose");
+    expect(out).toBe(all);
+  });
+
+  test("filterMessagesByVerbose returns the input reference unchanged", () => {
+    const corpus = [msg("user", [block("text")]), msg("assistant", all)];
+    expect(filterMessagesByVerbose(corpus, "ultra-verbose")).toBe(corpus);
+  });
+
+  test("never hides an assistant message", () => {
+    expect(isMessageHiddenAtLevel(msg("assistant", []), "ultra-verbose")).toBe(false);
+    expect(
+      isMessageHiddenAtLevel(msg("assistant", [block("tool_use")]), "ultra-verbose"),
+    ).toBe(false);
+  });
+
+  test("shouldExpandAllBlocks is true ONLY for ultra-verbose", () => {
+    expect(shouldExpandAllBlocks("ultra-verbose")).toBe(true);
+    for (const l of VERBOSE_LEVELS) {
+      if (l !== "ultra-verbose") expect(shouldExpandAllBlocks(l)).toBe(false);
+    }
+  });
+});
+
+describe("ultra-compact (extra compact)", () => {
+  test("block filter is text-only, same as compact", () => {
+    const blocks = [
+      block("text", { text: "keep me" }),
+      block("thinking"),
+      block("tool_use"),
+    ];
+    const out = filterAssistantBlocks(blocks, "ultra-compact");
+    expect(out.map((b) => b.kind)).toEqual(["text"]);
+  });
+
+  test("collapses each turn to the prompt + final assistant message", () => {
+    const u1 = msg("user", [block("text", { text: "q1" })]);
+    const a1a = msg("assistant", [block("text", { text: "thinking out loud" })]);
+    const a1b = msg("assistant", [block("text", { text: "the answer" })]);
+    const u2 = msg("user", [block("text", { text: "q2" })]);
+    const a2 = msg("assistant", [block("text", { text: "second answer" })]);
+    const out = filterMessagesByVerbose([u1, a1a, a1b, u2, a2], "ultra-compact");
+    // Turn 1: u1 + only a1b (a1a, the intermediate, is dropped). Turn 2: u2 + a2.
+    expect(out.map((m) => m.uuid)).toEqual([u1.uuid, a1b.uuid, u2.uuid, a2.uuid]);
+  });
+
+  test("an assistant message that fully filters out doesn't count as the turn's last", () => {
+    const u1 = msg("user", [block("text", { text: "q" })]);
+    const aText = msg("assistant", [block("text", { text: "real answer" })]);
+    const aToolOnly = msg("assistant", [block("tool_use")]); // drops to empty at compact
+    const out = filterMessagesByVerbose([u1, aText, aToolOnly], "ultra-compact");
+    // aToolOnly is removed by the block pass, so the surviving "last" is aText.
+    expect(out.map((m) => m.uuid)).toEqual([u1.uuid, aText.uuid]);
+  });
+
+  test("keeps a leading assistant prelude's last message (no opening user)", () => {
+    const a1 = msg("assistant", [block("text", { text: "first" })]);
+    const a2 = msg("assistant", [block("text", { text: "last" })]);
+    const u = msg("user", [block("text", { text: "hi" })]);
+    const out = filterMessagesByVerbose([a1, a2, u], "ultra-compact");
+    expect(out.map((m) => m.uuid)).toEqual([a2.uuid, u.uuid]);
+  });
+
+  test("hides the assistant turn entirely when its only message filters out", () => {
+    const u = msg("user", [block("text", { text: "run ls" })]);
+    const a = msg("assistant", [block("tool_use", { name: "Bash" })]);
+    const out = filterMessagesByVerbose([u, a], "ultra-compact");
+    expect(out.map((m) => m.uuid)).toEqual([u.uuid]);
+  });
+});
+
+describe("isSystemEntryHiddenAtLevel", () => {
+  function sys(kind: SystemEntry["kind"]): SystemEntry {
+    return { uuid: "s1", afterMessageUuid: "", kind, label: `${kind}` };
+  }
+
+  test("status pills are hidden at compact and ultra-compact", () => {
+    expect(isSystemEntryHiddenAtLevel("status", "compact")).toBe(true);
+    expect(isSystemEntryHiddenAtLevel("status", "ultra-compact")).toBe(true);
+  });
+
+  test("status pills survive at normal / verbose / ultra-verbose", () => {
+    expect(isSystemEntryHiddenAtLevel("status", "normal")).toBe(false);
+    expect(isSystemEntryHiddenAtLevel("status", "verbose")).toBe(false);
+    expect(isSystemEntryHiddenAtLevel("status", "ultra-verbose")).toBe(false);
+  });
+
+  test("non-status pills are never hidden at any level", () => {
+    const others: SystemEntry["kind"][] = [
+      "init",
+      "hook_started",
+      "hook_response",
+      "compact_boundary",
+      "rate_limit",
+      "api_retry",
+      "permission_denied",
+      "info",
+    ];
+    for (const kind of others) {
+      for (const l of VERBOSE_LEVELS) {
+        expect(isSystemEntryHiddenAtLevel(sys(kind).kind, l)).toBe(false);
+      }
+    }
+  });
+});
+
 describe("level membership", () => {
-  test("VERBOSE_LEVELS contains exactly the three documented levels in order", () => {
-    expect(VERBOSE_LEVELS).toEqual(["compact", "normal", "verbose"]);
+  test("VERBOSE_LEVELS contains exactly the five documented levels, least→most verbose", () => {
+    expect(VERBOSE_LEVELS).toEqual([
+      "ultra-compact",
+      "compact",
+      "normal",
+      "verbose",
+      "ultra-verbose",
+    ]);
   });
 
   test("exhaustiveness: filterAssistantBlocks handles every published level", () => {

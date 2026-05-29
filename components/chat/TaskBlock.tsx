@@ -15,6 +15,12 @@ type Props = {
   task?: TaskInfo;
   /** Subagent messages routed to this Task. */
   innerMessages: DisplayMessage[];
+  /**
+   * Initial expand state, driven by the chat verbose level — `ultra-verbose`
+   * passes `true` so the subagent transcript is visible inline. Re-applied
+   * when the level flips; manual toggles in between are preserved.
+   */
+  defaultOpen?: boolean;
 };
 
 // Tinted chip styles per status — icon + label live in a single pill so the
@@ -40,10 +46,16 @@ function formatDuration(ms: number): string {
   return `${hours}h ${min}m`;
 }
 
-export function TaskBlock({ toolUseId, input, result, task, innerMessages }: Props) {
+export function TaskBlock({ toolUseId, input, result, task, innerMessages, defaultOpen = false }: Props) {
   // Collapsed by default — multiple parallel Task blocks otherwise flood the
   // transcript. Click the header to expand the subagent's inner messages.
-  const [open, setOpen] = useState(false);
+  // `ultra-verbose` passes defaultOpen so they start expanded.
+  const [open, setOpen] = useState(defaultOpen);
+  const [prevDefaultOpen, setPrevDefaultOpen] = useState(defaultOpen);
+  if (prevDefaultOpen !== defaultOpen) {
+    setPrevDefaultOpen(defaultOpen);
+    setOpen(defaultOpen);
+  }
   const subagentName = (input as { subagent_type?: string; agent?: string }).subagent_type ?? (input as { agent?: string }).agent ?? "Task";
   const description = task?.description ?? (input as { description?: string }).description ?? "";
   const prompt = (input as { prompt?: string }).prompt ?? "";
@@ -61,6 +73,7 @@ export function TaskBlock({ toolUseId, input, result, task, innerMessages }: Pro
     <div
       data-testid="task-block"
       data-task-status={status}
+      data-open={open ? "1" : "0"}
       className="my-2 rounded-lg border border-[var(--accent)]/30 bg-[var(--accent)]/5"
     >
       <button

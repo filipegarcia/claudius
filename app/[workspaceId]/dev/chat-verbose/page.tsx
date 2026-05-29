@@ -26,7 +26,7 @@
 import { useMemo, useState } from "react";
 import { Bot, Brain, Wrench } from "lucide-react";
 import { MessageList } from "@/components/chat/MessageList";
-import type { DisplayBlock, DisplayMessage } from "@/lib/client/types";
+import type { DisplayBlock, DisplayMessage, SystemEntry } from "@/lib/client/types";
 import {
   VERBOSE_LEVELS,
   verboseDescription,
@@ -91,9 +91,19 @@ function makeCorpus(): DisplayMessage[] {
   ];
 }
 
+// A transient "Status: requesting" pill anchored after the first assistant
+// turn. It's plumbing, not conversation — hidden at compact / ultra-compact,
+// visible at normal / verbose / ultra-verbose. Lets the spec exercise the
+// system-entry filter (the live `systemEntries` stream is otherwise absent
+// from this fixture).
+function makeSystemEntries(): SystemEntry[] {
+  return [{ uuid: "s-status", afterMessageUuid: "a-1", kind: "status", label: "Status: requesting" }];
+}
+
 export default function ChatVerbosePreview() {
   const [verbose, setVerbose] = useState<VerboseLevel>("normal");
   const messages = useMemo(() => makeCorpus(), []);
+  const systemEntries = useMemo(() => makeSystemEntries(), []);
 
   // The "rail" data: derived ONCE from the unfiltered corpus, so it never
   // changes as the user flips verbose. This is what the live rail does too:
@@ -167,7 +177,7 @@ export default function ChatVerbosePreview() {
       >
         <MessageList
           messages={messages}
-          systemEntries={[]}
+          systemEntries={systemEntries}
           pending={false}
           verbose={verbose}
         />

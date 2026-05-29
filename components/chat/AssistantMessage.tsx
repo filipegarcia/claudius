@@ -4,6 +4,7 @@ import { Markdown } from "./Markdown";
 import { ThinkingBlock } from "./ThinkingBlock";
 import { ToolCall } from "./ToolCall";
 import { TaskBlock } from "./TaskBlock";
+import { WorkflowBlock } from "./WorkflowBlock";
 import { RateLimitHitPanel } from "./RateLimitHitPanel";
 import type { DisplayMessage, TaskInfo } from "@/lib/client/types";
 import { formatMessageTime } from "@/lib/client/format-message-time";
@@ -11,6 +12,7 @@ import { isSubagentToolName } from "@/lib/shared/subagent-tool";
 import {
   DEFAULT_VERBOSE,
   filterAssistantBlocks,
+  shouldExpandAllBlocks,
   type VerboseLevel,
 } from "@/lib/shared/verbose";
 
@@ -57,6 +59,12 @@ export function AssistantMessage({
 
   const stamp = formatMessageTime(message.createdAt);
 
+  // `ultra-verbose` opts every collapsible card open by default. Threaded
+  // into each card's `defaultOpen`; the cards re-apply this whenever the
+  // level flips (see their render-time sync), so switching to/from extra
+  // verbose expands/collapses existing cards, not just freshly-rendered ones.
+  const expandAll = shouldExpandAllBlocks(verbose);
+
   return (
     <div className="group">
       <div className="mb-1 flex items-center gap-2 text-[11px] font-medium text-[var(--muted)]">
@@ -99,6 +107,7 @@ export function AssistantMessage({
                 text={b.text}
                 variant={b.redacted ? "redacted" : "thinking"}
                 streaming={message.streaming === true}
+                defaultOpen={expandAll}
               />
             );
           }
@@ -117,6 +126,24 @@ export function AssistantMessage({
                   result={b.result}
                   task={taskByToolUseId.get(b.id)}
                   innerMessages={inner}
+                  defaultOpen={expandAll}
+                />
+              );
+            }
+            // The dynamic-workflow orchestrator gets its own rich card: the
+            // raw tool input is an escaped multi-line script that renders as
+            // noise in the generic JSON dump. WorkflowBlock parses the
+            // `meta` (name/description/phases) and joins the live aggregate
+            // `local_workflow` task by tool_use_id for status + progress.
+            if (b.name === "Workflow") {
+              return (
+                <WorkflowBlock
+                  key={i}
+                  toolUseId={b.id}
+                  input={b.input}
+                  result={b.result}
+                  task={taskByToolUseId.get(b.id)}
+                  defaultOpen={expandAll || undefined}
                 />
               );
             }
@@ -136,6 +163,7 @@ export function AssistantMessage({
                 result={b.result}
                 liveAsk={b.name === "AskUserQuestion" && pendingAskToolUseId === b.id}
                 onReopenAsk={askClick}
+                defaultOpen={expandAll}
               />
             );
           }
