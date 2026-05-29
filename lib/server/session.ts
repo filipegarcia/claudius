@@ -53,6 +53,7 @@ import {
   thinkingReplayErrorFrom,
 } from "./thinking-replay-recovery";
 import { extractReadPaths } from "@/lib/shared/read-tool-paths";
+import { joinSystemPromptAppends } from "@/lib/shared/system-prompt-append";
 import { selectTips } from "@/lib/shared/tips";
 import type { SessionLoop } from "@/lib/shared/session-loops";
 import { readSettings, type ClaudeSettings } from "./settings";
@@ -648,6 +649,17 @@ export class Session {
       () => ({}) as ClaudeSettings,
     );
 
+    // Unify everything that appends to the Claude Code system-prompt preset
+    // into ONE `systemPrompt.append`. Two sources can contribute: the session
+    // goal (authoritative objective) and the workspace `systemPromptAppend`
+    // (house-style steering). They must merge — emitting `systemPrompt` twice
+    // in the Options literal would make the later key silently clobber the
+    // earlier (object-literal duplicate-key semantics), dropping one of them.
+    const combinedSystemPromptAppend = joinSystemPromptAppends([
+      this.goal.goal ? this.goalSystemPromptAppend() : "",
+      this.systemPromptAppend,
+    ]);
+
     const options: Options = {
       cwd: this.cwd,
       model: this.model,
@@ -657,17 +669,16 @@ export class Session {
       // SSE subscribers. Registered unconditionally — harmless when no goal is
       // set (the agent is only told to use it when a goal exists).
       mcpServers: { claudius_goal: this.buildGoalMcpServer() },
-      // When a goal is already set at start (resumed session, or a goal set on
-      // a fresh session id in a prior boot), append it to Claude Code's preset
-      // system prompt so the objective is authoritative for the whole session.
-      // Only set when there's a goal so the no-goal path stays byte-identical
-      // to the SDK default (omitting `systemPrompt` entirely).
-      ...(this.goal.goal
+      // Single system-prompt spread combining the session goal + workspace
+      // systemPromptAppend (see `combinedSystemPromptAppend` above). Omitted
+      // entirely when neither is set, so the no-extras path stays byte-identical
+      // to the SDK default.
+      ...(combinedSystemPromptAppend
         ? {
             systemPrompt: {
               type: "preset" as const,
               preset: "claude_code" as const,
-              append: this.goalSystemPromptAppend(),
+              append: combinedSystemPromptAppend,
             },
           }
         : {}),
@@ -722,19 +733,8 @@ export class Session {
       ...(this.additionalDirectories && this.additionalDirectories.length > 0
         ? { additionalDirectories: this.additionalDirectories }
         : {}),
-      // Append workspace-level steering to the default Claude Code system
-      // prompt. Only set when non-empty so the SDK keeps its plain preset
-      // otherwise. Distinct from CLAUDE.md — this is house-style steering, not
-      // project content. Trimmed so a whitespace-only value is treated as unset.
-      ...(this.systemPromptAppend && this.systemPromptAppend.trim()
-        ? {
-            systemPrompt: {
-              type: "preset" as const,
-              preset: "claude_code" as const,
-              append: this.systemPromptAppend,
-            },
-          }
-        : {}),
+      // (workspace systemPromptAppend is merged into the unified `systemPrompt`
+      // spread above, alongside any session goal — see combinedSystemPromptAppend.)
       // Custom plan-mode workflow body. The SDK only consults this in plan
       // mode; harmless to pass otherwise. Omitted when empty so the default
       // plan workflow applies. Trimmed to treat whitespace-only as unset.
