@@ -81,6 +81,10 @@ type Props = {
   onChangeEffort?: (
     level: "low" | "medium" | "high" | "xhigh" | "max" | "auto",
   ) => Promise<void> | void;
+  /** Whether ultracode (Dynamic Workflows) is on — shown as a SessionCard badge. */
+  ultracode?: boolean;
+  /** Toggle ultracode (Dynamic Workflows). Same plumbing rationale as `onChangeEffort`. */
+  onChangeUltracode?: (enabled: boolean) => Promise<void> | void;
 };
 
 const TASK_TONES: Record<string, string> = {
@@ -132,6 +136,8 @@ export function BackgroundTasksPanel({
   onAddTodos,
   onChangeModel,
   onChangeEffort,
+  ultracode = false,
+  onChangeUltracode,
 }: Props) {
   const [showCost, setShowCost] = useState(false);
   const [addTodosOpen, setAddTodosOpen] = useState(false);
@@ -238,6 +244,8 @@ export function BackgroundTasksPanel({
           onOpenCost={() => setShowCost(true)}
           onChangeModel={onChangeModel}
           onChangeEffort={onChangeEffort}
+          ultracode={ultracode}
+          onChangeUltracode={onChangeUltracode}
         />
         <ContextBar sessionId={sessionId} pending={pending} />
         <TokenMeter usage={usage} />

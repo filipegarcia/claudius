@@ -651,6 +651,10 @@ export function useSession(): ChatState & ChatActions {
   // surface and the value re-syncs on the next picker interaction.
   const [effort, setEffortState] =
     useState<"low" | "medium" | "high" | "xhigh" | "max" | "auto">("auto");
+  // "Ultracode" (Dynamic Workflows). Same optimistic-mirror story as
+  // `effort` — no SDK event to replay, so we track the last toggle and
+  // reset to off on a fresh session.
+  const [ultracode, setUltracodeState] = useState<boolean>(false);
   const [sessions, setSessions] = useState<SessionInfo[]>([]);
 
   // Mirror `model` into the ref so SSE handlers can compute pricing without
@@ -950,6 +954,7 @@ export function useSession(): ChatState & ChatActions {
     setPermissionModeState("default");
     setModelState(null);
     setEffortState("auto");
+    setUltracodeState(false);
     scratchRef.current.clear();
     scopeMessageIdRef.current = new Map();
     lastAssistantUuidRef.current = "";
@@ -3467,6 +3472,29 @@ export function useSession(): ChatState & ChatActions {
     [],
   );
 
+  /**
+   * Toggle "ultracode" (Dynamic Workflows). Mirrors `setEffort` — POSTs to a
+   * dedicated route that calls `applyFlagSettings({ ultracode })` server-
+   * side. Enabling ultracode forces `xhigh` effort on the SDK side, so we
+   * move the local effort mirror to `xhigh` too; otherwise the effort pill
+   * would lag behind reality. Disabling leaves effort untouched (it stays
+   * wherever the user last set it — session-scoped on the SDK).
+   */
+  const setUltracode = useCallback(
+    async (enabled: boolean) => {
+      const id = sessionIdRef.current;
+      if (!id) return;
+      setUltracodeState(enabled);
+      if (enabled) setEffortState("xhigh");
+      await fetch(`/api/sessions/${id}/ultracode`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled }),
+      }).catch(() => {});
+    },
+    [],
+  );
+
   const renameTitle = useCallback(
     async (title: string): Promise<{ ok: true } | { ok: false; error: string }> => {
       const id = sessionIdRef.current;
@@ -3520,6 +3548,7 @@ export function useSession(): ChatState & ChatActions {
     permissionMode,
     model,
     effort,
+    ultracode,
     sessions,
     skills,
     cwd,
@@ -3553,6 +3582,7 @@ export function useSession(): ChatState & ChatActions {
     setPermissionMode,
     setModel,
     setEffort,
+    setUltracode,
     switchSession,
     createNewSession,
     createSessionAt,

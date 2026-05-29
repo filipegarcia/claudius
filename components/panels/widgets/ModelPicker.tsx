@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Check, Cpu, Gauge, Loader2 } from "lucide-react";
+import { Check, Cpu, Gauge, Loader2, Workflow } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 
 /**
@@ -64,6 +64,14 @@ type Props = {
    */
   onPickEffort?: (level: EffortLevel | "auto") => Promise<void> | void;
   /**
+   * "Ultracode" (Dynamic Workflows) — Opus 4.8's xhigh-effort + parallel-
+   * subagent mode. Only meaningful in a live session on an xhigh-capable
+   * model, so optional: the row hides itself when this is absent or the
+   * active model lacks `xhigh`.
+   */
+  ultracode?: boolean;
+  onToggleUltracode?: (enabled: boolean) => Promise<void> | void;
+  /**
    * When true, prepends an "(Inherit machine default)" entry that maps to
    * an empty model value (the workspace form treats empty as "use the
    * machine's default"). Selecting it calls `onPickModel("")`.
@@ -81,6 +89,8 @@ export function ModelPicker({
   onClose,
   onPickModel,
   onPickEffort,
+  ultracode = false,
+  onToggleUltracode,
   showInherit = false,
   headerLabel = "Model",
 }: Props) {
@@ -388,6 +398,62 @@ export function ModelPicker({
               behind it.
             </div>
           </>
+        );
+      })()}
+      {/* Dynamic Workflows (the SDK's `ultracode` flag) — Opus 4.8's
+          xhigh-effort + parallel-subagent orchestration. Only shown on a
+          live session with an xhigh-capable model; the SDK additionally
+          requires a Workflows-enabled plan, which we surface in the
+          sublabel rather than trying to detect client-side. */}
+      {(() => {
+        const toggle = onToggleUltracode;
+        if (!toggle || !activeModel?.supportedEffortLevels?.includes("xhigh")) {
+          return null;
+        }
+        return (
+          <div className="border-t border-[var(--border)]/60 px-3 py-2">
+            <button
+              type="button"
+              data-testid="model-picker-ultracode"
+              data-enabled={ultracode ? "1" : "0"}
+              aria-pressed={ultracode}
+              onClick={() => toggle(!ultracode)}
+              className={cn(
+                "flex w-full items-center gap-2 rounded border px-2 py-1.5 text-left transition",
+                ultracode
+                  ? "border-[var(--accent)]/40 bg-[var(--accent)]/10"
+                  : "border-[var(--border)] bg-[var(--panel-2)] hover:bg-[var(--panel)]",
+              )}
+            >
+              <Workflow
+                className={cn(
+                  "h-3.5 w-3.5 shrink-0",
+                  ultracode ? "text-[var(--accent)]" : "text-[var(--muted)]",
+                )}
+              />
+              <span className="min-w-0 flex-1">
+                <span className="block text-[11px] font-medium text-[var(--foreground)]">
+                  Dynamic Workflows
+                </span>
+                <span className="block text-[9px] leading-tight text-[var(--muted)]">
+                  xhigh effort + parallel subagents. Needs a Workflows-enabled plan.
+                </span>
+              </span>
+              <span
+                className={cn(
+                  "relative h-4 w-7 shrink-0 rounded-full transition-colors",
+                  ultracode ? "bg-[var(--accent)]" : "bg-[var(--border)]",
+                )}
+              >
+                <span
+                  className={cn(
+                    "absolute top-0.5 h-3 w-3 rounded-full bg-white transition-all",
+                    ultracode ? "left-3.5" : "left-0.5",
+                  )}
+                />
+              </span>
+            </button>
+          </div>
         );
       })()}
     </div>
