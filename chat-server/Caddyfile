@@ -1,0 +1,33 @@
+# Caddyfile for the Claudius community chat-server.
+#
+# Sits in front of the chat-server (loopback :8787) and terminates TLS
+# for chat.claudius.network. Cloudflare proxies public traffic in
+# "Full (strict)" mode, so Caddy still needs its own Let's Encrypt cert
+# for the origin leg; ACME runs automatically on first request.
+#
+# Drop this at /etc/caddy/Caddyfile on the VPS, then:
+#     systemctl reload caddy
+
+chat.claudius.network {
+	# Long-lived SSE connections must not be buffered. flush_interval=-1
+	# tells Caddy to write every chunk straight through (no batching).
+	# Bun's serve() sends a 15s heartbeat already (see src/server.ts),
+	# which keeps the connection past any idle timers along the path.
+	reverse_proxy 127.0.0.1:8787 {
+		flush_interval -1
+
+		# Forward Cloudflare's real-client header so the upstream's
+		# getClientIp() can read it instead of Cloudflare edge IPs.
+		# Caddy also appends to X-Forwarded-For automatically.
+		header_up CF-Connecting-IP {http.request.header.CF-Connecting-IP}
+	}
+
+	# A little hygiene: log access to a rotating file.
+	log {
+		output file /var/log/caddy/chat-access.log {
+			roll_size 10mb
+			roll_keep 5
+		}
+		format console
+	}
+}

@@ -1,0 +1,1555 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Claudius components — design reference</title>
+    <meta
+      name="description"
+      content="The design system behind Claudius — colors, type, logos, status indicators, workspace chrome, and the running-glyph loader. All the pieces, in one page."
+    />
+    <link rel="icon" type="image/svg+xml" href="icon.svg" />
+    <link rel="apple-touch-icon" href="apple-icon.png" />
+    <meta name="theme-color" content="#d97757" />
+
+    <!-- Geist (matches Next.js's next/font in app/layout.tsx) + Noto Sans Old Italic
+         for the AnimatedGlyph indicator. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&family=Noto+Sans+Old+Italic&display=swap"
+      rel="stylesheet"
+    />
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      // Same palette tokens as site/index.html — keep these in sync.
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              bg: "#0b0b0c",
+              fg: "#e7e7ea",
+              panel: "#131316",
+              panel2: "#1a1a1f",
+              line: "#2a2a31",
+              muted: "#9a9aa3",
+              accent: "#d97757",
+            },
+            fontFamily: {
+              sans: ["Geist", "ui-sans-serif", "system-ui", "-apple-system", "Segoe UI", "Inter", "sans-serif"],
+              mono: ["Geist Mono", "ui-monospace", "SFMono-Regular", "Menlo", "Monaco", "Consolas", "monospace"],
+            },
+          },
+        },
+      };
+    </script>
+
+    <style>
+      html { scroll-behavior: smooth; background: #0b0b0c; }
+      body {
+        background: transparent;
+        color: #e7e7ea;
+        font-feature-settings: "ss01", "cv11";
+      }
+      .scroll-mt-20 { scroll-margin-top: 5rem; }
+
+      .grain::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        opacity: 0.04;
+        background-image:
+          radial-gradient(#fff 1px, transparent 1px),
+          radial-gradient(#fff 1px, transparent 1px);
+        background-size: 3px 3px, 7px 7px;
+        background-position: 0 0, 1px 2px;
+      }
+      .glow {
+        background:
+          radial-gradient(60% 50% at 50% 0%, rgba(217, 119, 87, 0.18), transparent 70%),
+          radial-gradient(40% 40% at 80% 30%, rgba(139, 155, 255, 0.10), transparent 70%);
+      }
+
+      /* ─── AnimatedGlyph — `components/nav/SideNav.tsx` ──────────
+       * A single accent tile that cycles through the Old Italic
+       * alphabet (Unicode U+10300 → U+1031A) every 350 ms while the
+       * agent is running. When it stops, snaps back to 𐌂 — Old Italic
+       * "C", for Claudius. */
+      .glyph-tile {
+        --tile-size: clamp(72px, 12vw, 120px);
+        --tile-radius: calc(var(--tile-size) * 0.18);
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: var(--tile-size);
+        height: var(--tile-size);
+        border-radius: var(--tile-radius);
+        background: var(--accent, #d97757);
+        color: white;
+        font-family: "Noto Sans Old Italic", "Segoe UI Historic", serif;
+        font-size: calc(var(--tile-size) * 0.55);
+        line-height: 1;
+        box-shadow:
+          0 18px 50px -22px rgba(217, 119, 87, 0.55),
+          inset 0 1px 0 rgba(255, 255, 255, 0.16);
+        user-select: none;
+      }
+      .glyph-tile .glyph { display: block; line-height: 1; }
+      .glyph-tile.is-rail { --tile-size: 32px; --tile-radius: 6px; }
+      .glyph-tile.is-mini { --tile-size: clamp(48px, 6vw, 56px); }
+
+      /* Status dot — mirrors components/chat/StatusLine.tsx */
+      @keyframes status-ping {
+        75%, 100% { transform: scale(2.6); opacity: 0; }
+      }
+      .animate-status-ping { animation: status-ping 1.2s cubic-bezier(0, 0, 0.2, 1) infinite; }
+      @keyframes status-pulse { 50% { opacity: 0.6; } }
+      .animate-status-pulse { animation: status-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+
+      /* Indeterminate progress — components/chat/LoadingBar.tsx */
+      @keyframes indeterminate-slide {
+        0%   { transform: translateX(-100%); }
+        100% { transform: translateX(400%); }
+      }
+      .animate-indeterminate-slide { animation: indeterminate-slide 1.4s ease-in-out infinite; }
+
+      /* Glyph fade — app/globals.css */
+      @keyframes glyph-fade {
+        0%   { opacity: 0; transform: translateY(2px) scale(0.92); }
+        40%  { opacity: 1; transform: translateY(0) scale(1); }
+        100% { opacity: 1; transform: translateY(0) scale(1); }
+      }
+      .animate-glyph-fade { animation: glyph-fade 350ms ease-out; }
+
+      /* Reduced motion — pause every recurring animation. */
+      @media (prefers-reduced-motion: reduce) {
+        .animate-status-ping,
+        .animate-status-pulse,
+        .animate-indeterminate-slide,
+        .animate-glyph-fade {
+          animation: none !important;
+        }
+      }
+
+      /* ─── Theme demo surface — drives a single card via CSS vars,
+       * mirroring :root[data-theme="…"] from app/globals.css. */
+      [data-theme-demo] {
+        --background: #0b0b0c; --foreground: #e7e7ea;
+        --panel: #131316; --panel-2: #1a1a1f;
+        --border: #2a2a31; --muted: #9a9aa3; --accent: #d97757;
+      }
+      [data-theme-demo="light"]     { --background:#fafafa; --foreground:#1a1a1f; --panel:#ffffff; --panel-2:#f1efe9; --border:#d8d4cc; --muted:#6b6b71; --accent:#c0531a; }
+      [data-theme-demo="midnight"]  { --background:#070914; --foreground:#d7defa; --panel:#0c0f1d; --panel-2:#131831; --border:#1f2747; --muted:#6f7aa3; --accent:#8b9bff; }
+      [data-theme-demo="paper"]     { --background:#f6f1e7; --foreground:#2a2118; --panel:#fbf7ee; --panel-2:#efe8d7; --border:#d6cdb8; --muted:#7d6e58; --accent:#7c4a2a; }
+      [data-theme-demo="tui"]       { --background:#000000; --foreground:#e6e6e3; --panel:#0a0a0a; --panel-2:#141414; --border:#2d2d2d; --muted:#707070; --accent:#f5a524; }
+      [data-theme-demo="tui-light"] { --background:#fafaf7; --foreground:#0a0a0a; --panel:#ffffff; --panel-2:#f0eee8; --border:#d4d0c4; --muted:#6b6b6b; --accent:#b45309; }
+      [data-theme-demo="synthwave"] { --background:#14092b; --foreground:#f8e6ff; --panel:#1c1138; --panel-2:#261a4a; --border:#4a2d7a; --muted:#a98ad1; --accent:#ff6ad5; }
+      .surface         { background: var(--background); color: var(--foreground); }
+      .surface-panel   { background: var(--panel);      color: var(--foreground); border-color: var(--border); }
+      .surface-panel-2 { background: var(--panel-2);    color: var(--foreground); border-color: var(--border); }
+      .surface-muted   { color: var(--muted); }
+      .surface-accent-bg     { background: var(--accent); color: var(--background); }
+      .surface-accent-text   { color: var(--accent); }
+      .surface-border        { border-color: var(--border); }
+      .dot { width: 0.5rem; height: 0.5rem; border-radius: 9999px; display: inline-block; }
+
+      .ws-icon {
+        display: inline-flex; align-items: center; justify-content: center;
+        color: white; font-weight: 600; line-height: 1;
+      }
+
+      @media (max-width: 640px) {
+        .wrap-anywhere { overflow-wrap: anywhere; word-break: break-word; }
+      }
+
+      /* ─── Icon grid cells ─── */
+      .icon-cell {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.4rem;
+        padding: 0.75rem 0.25rem;
+        border-radius: 0.5rem;
+        border: 1px solid #2a2a31;
+        background: #131316;
+        font-size: 9.5px;
+        font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+        color: #9a9aa3;
+        transition: color 150ms ease, border-color 150ms ease, background 150ms ease;
+        text-align: center;
+        min-height: 5.25rem;
+      }
+      .icon-cell:hover {
+        color: #e7e7ea;
+        border-color: rgba(217, 119, 87, 0.45);
+        background: #1a1a1f;
+      }
+      .icon-cell svg {
+        width: 22px;
+        height: 22px;
+        stroke-width: 2;
+      }
+      .icon-cell.is-hidden { display: none; }
+      /* Hide entire category sections that have no visible icon. */
+      [data-icon-cat].is-hidden { display: none; }
+    </style>
+  </head>
+
+  <body class="font-sans antialiased">
+    <!-- Top bar -->
+    <header class="sticky top-0 z-30 border-b border-line/60 backdrop-blur bg-bg/70">
+      <div class="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
+        <a href="index.html" class="flex items-center gap-2 group">
+          <img src="claudius.svg" alt="" class="h-6 w-6" />
+          <span class="font-mono text-sm tracking-tight text-fg/90 group-hover:text-fg">
+            claudius / <span class="text-accent">components</span>
+          </span>
+        </a>
+        <nav class="flex items-center gap-3 sm:gap-5 text-sm text-muted">
+          <a href="#mark" class="hover:text-fg">Mark</a>
+          <a href="#colors" class="hidden sm:inline hover:text-fg">Colors</a>
+          <a href="#themes" class="hidden sm:inline hover:text-fg">Themes</a>
+          <a href="#type" class="hidden md:inline hover:text-fg">Type</a>
+          <a href="#status" class="hidden md:inline hover:text-fg">Status</a>
+          <a href="#chrome" class="hidden md:inline hover:text-fg">Chrome</a>
+          <a href="#chat" class="hidden lg:inline hover:text-fg">Chat</a>
+          <a href="#activity" class="hidden lg:inline hover:text-fg">Activity</a>
+          <a href="#context" class="hidden lg:inline hover:text-fg">Context</a>
+          <a href="#icons" class="hidden lg:inline hover:text-fg">Icons</a>
+          <a href="index.html" class="hover:text-fg inline-flex items-center gap-1.5">
+            <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 12H5M12 19l-7-7 7-7" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            <span>Marketing</span>
+          </a>
+        </nav>
+      </div>
+    </header>
+
+    <!-- Hero + AnimatedGlyph -->
+    <section id="top" class="relative overflow-hidden grain">
+      <div class="absolute inset-0 glow"></div>
+      <div class="relative max-w-6xl mx-auto px-6 pt-14 pb-12 sm:pt-20 sm:pb-16">
+        <p class="font-mono text-xs uppercase tracking-widest text-accent">Design reference · v0</p>
+        <h1 class="mt-3 text-[2.25rem] leading-[1.05] sm:text-5xl md:text-6xl font-semibold tracking-tight max-w-3xl">
+          One page. Every <span class="text-accent">piece</span> of Claudius.
+        </h1>
+        <p class="mt-5 text-lg text-muted max-w-2xl leading-relaxed">
+          Tokens, type, logos, status indicators, workspace chrome, the loader,
+          the activity rail, and the context overlay. The same source we ship.
+        </p>
+
+        <!-- AnimatedGlyph hero -->
+        <div id="mark" class="mt-12 rounded-2xl border border-line bg-panel/70 backdrop-blur p-6 sm:p-8 scroll-mt-20">
+          <div class="flex flex-wrap items-center justify-between gap-3 mb-8">
+            <div>
+              <p class="font-mono text-[11px] uppercase tracking-widest text-accent/90">The AnimatedGlyph</p>
+              <h2 class="mt-1 text-xl sm:text-2xl font-medium tracking-tight">
+                Cycling through the old Latin alphabet — running and stopped.
+              </h2>
+              <p class="mt-1 text-sm text-muted max-w-xl">
+                The little tile at the top of the workspace rail. Cycles the
+                <em>Old Italic</em> script — the ancestor of the Latin alphabet,
+                Unicode U+10300 → U+1031A — every 350&nbsp;ms while the agent
+                is running. When it stops, snaps back to
+                <span class="font-mono not-italic text-fg/90">𐌂</span> — Old Italic C, for Claudius.
+                Lives in
+                <code class="font-mono text-fg/80 bg-panel2 px-1 rounded">components/nav/SideNav.tsx</code>.
+              </p>
+            </div>
+            <div class="flex items-center gap-1 rounded-lg border border-line bg-panel2/60 p-1 text-xs font-mono" role="tablist" aria-label="Glyph state">
+              <button data-state-btn="idle"    class="px-3 py-1.5 rounded-md text-muted hover:text-fg transition" role="tab">Stopped</button>
+              <button data-state-btn="working" class="px-3 py-1.5 rounded-md text-muted hover:text-fg transition" role="tab" aria-selected="true">Running</button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-[auto,1fr] items-center gap-10 md:gap-14 py-2">
+            <div class="flex items-center justify-center">
+              <div id="hero-glyph" class="glyph-tile" data-state="working" role="status" aria-label="Claudius working glyph" aria-busy="true">
+                <span class="glyph">𐌂</span>
+              </div>
+            </div>
+            <div>
+              <p class="font-mono text-[10px] uppercase tracking-widest text-muted mb-3">Sidenav rail · mock</p>
+              <div class="inline-flex flex-col items-center gap-1.5 rounded-xl border border-line bg-panel2/60 p-2.5">
+                <div id="rail-glyph" class="glyph-tile is-rail" data-state="working" role="status" aria-label="Sidenav animated glyph" aria-busy="true">
+                  <span class="glyph">𐌂</span>
+                </div>
+                <div class="h-px w-8 bg-line/60"></div>
+                <button class="ws-icon" style="width:32px;height:32px;background:#d97757;border-radius:6px;font-size:14px" aria-label="Workspace Claudius">C</button>
+                <button class="ws-icon" style="width:32px;height:32px;background:#3a8ed1;border-radius:6px;font-size:14px" aria-label="Workspace A">A</button>
+                <button class="ws-icon" style="width:32px;height:32px;background:#6c5ce7;border-radius:6px;font-size:14px" aria-label="Workspace B">B</button>
+                <button class="ws-icon" style="width:32px;height:32px;background:#7c4a2a;border-radius:6px" aria-label="Customization">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M15 4V2M15 16v-2M8 9h2M20 9h2M17.8 11.8 19 13M15 9h0M17.8 6.2 19 5M3 21l9-9M12.2 6.2 11 5"/>
+                  </svg>
+                </button>
+              </div>
+              <p class="mt-3 text-[12px] text-muted leading-relaxed max-w-md">
+                The glyph anchors the top of the rail — one app-wide activity
+                indicator, independent of which workspace is selected. The
+                modern letters below are workspace identifiers, not part of
+                the loader.
+              </p>
+            </div>
+          </div>
+
+          <div class="mt-10 rounded-xl border border-line bg-panel2/40 p-5">
+            <div class="font-mono text-[10px] uppercase tracking-widest text-accent mb-3">Old Italic atlas · 27 glyphs</div>
+            <div id="glyph-atlas" class="flex flex-wrap gap-1.5" style="font-family:'Noto Sans Old Italic','Segoe UI Historic',serif"></div>
+            <p class="mt-3 text-[11px] text-muted leading-relaxed">
+              The cycle goes A → Z then loops. While running, the indicator
+              fades in a fresh glyph every 350 ms (the
+              <code class="font-mono text-fg/80 bg-panel/60 px-1 rounded">animate-glyph-fade</code> keyframes from
+              <code class="font-mono text-fg/80 bg-panel/60 px-1 rounded">app/globals.css</code>).
+              Highlighted: <span class="font-mono not-italic text-fg/90">𐌂</span>, the resting glyph.
+            </p>
+          </div>
+
+          <div class="mt-6 flex flex-wrap items-center justify-between gap-3 text-xs text-muted">
+            <div class="flex items-center gap-2">
+              <span class="inline-flex h-2 w-2 rounded-full bg-accent shadow-[0_0_8px_var(--accent,_#d97757)]"></span>
+              <span data-state-readout class="font-mono">running</span>
+              <span class="opacity-50">·</span>
+              <span>Toggle to stop the cycle and lock onto <span class="font-mono">𐌂</span>.</span>
+            </div>
+            <span class="font-mono text-muted/70">ave · veni · vide · refactora</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Logos -->
+    <section id="logos" class="border-t border-line/60 scroll-mt-20">
+      <div class="max-w-6xl mx-auto px-6 py-14 sm:py-20">
+        <header class="mb-8">
+          <p class="font-mono text-xs uppercase tracking-widest text-accent">Marks</p>
+          <h2 class="mt-2 text-3xl md:text-4xl font-semibold tracking-tight">Logos, glyphs, and what they're for.</h2>
+        </header>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <figure class="rounded-xl border border-line bg-panel p-6 flex flex-col items-center justify-center gap-4">
+            <img src="claudius.svg" alt="" class="h-20 w-20 invert opacity-90" />
+            <figcaption class="text-xs text-muted font-mono">fg / invert</figcaption>
+          </figure>
+          <figure class="rounded-xl border border-line bg-panel p-6 flex flex-col items-center justify-center gap-4">
+            <img src="claudius.svg" alt="" class="h-20 w-20 [filter:invert(1)_sepia(0.6)_saturate(8)_hue-rotate(-20deg)]" />
+            <figcaption class="text-xs text-muted font-mono">accent</figcaption>
+          </figure>
+          <figure class="rounded-xl border border-line bg-panel p-6 flex flex-col items-center justify-center gap-4 relative overflow-hidden">
+            <div class="absolute inset-0 -m-8 rounded-full bg-[radial-gradient(circle_at_center,rgba(217,119,87,0.35),rgba(217,119,87,0.10)_40%,transparent_70%)] blur-2xl"></div>
+            <img src="claudius.svg" alt="" class="relative h-20 w-20 [filter:invert(1)_brightness(0.55)_drop-shadow(0_0_18px_rgba(217,119,87,0.45))_drop-shadow(0_0_50px_rgba(217,119,87,0.20))]" />
+            <figcaption class="relative text-xs text-muted font-mono">hero halo</figcaption>
+          </figure>
+          <figure class="rounded-xl border border-line bg-panel p-6 flex flex-col items-center justify-center gap-4">
+            <div class="flex items-end gap-3">
+              <img src="claudius.svg" alt="" class="h-10 w-10 invert opacity-90" />
+              <img src="claudius.svg" alt="" class="h-6 w-6 invert opacity-90" />
+              <img src="claudius.svg" alt="" class="h-4 w-4 invert opacity-90" />
+            </div>
+            <figcaption class="text-xs text-muted font-mono">favicon stack · 40 / 24 / 16</figcaption>
+          </figure>
+        </div>
+        <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+          <div class="rounded-xl border border-line bg-panel2/40 p-5">
+            <div class="font-mono text-[11px] uppercase tracking-widest text-accent">Wordmark</div>
+            <div class="mt-2 font-mono text-fg/90">claudius</div>
+            <p class="mt-2 text-xs text-muted leading-relaxed">Always lowercase. Pair with the bust when both fit.</p>
+          </div>
+          <div class="rounded-xl border border-line bg-panel2/40 p-5">
+            <div class="font-mono text-[11px] uppercase tracking-widest text-accent">Site icon</div>
+            <div class="mt-2 flex items-center gap-3">
+              <img src="icon.svg" alt="" class="h-6 w-6" />
+              <code class="font-mono text-xs text-muted">site/icon.svg</code>
+            </div>
+            <p class="mt-2 text-xs text-muted leading-relaxed">Browser favicon. 24×24 visual box.</p>
+          </div>
+          <div class="rounded-xl border border-line bg-panel2/40 p-5">
+            <div class="font-mono text-[11px] uppercase tracking-widest text-accent">App tray</div>
+            <div class="mt-2 flex items-center gap-3">
+              <img src="apple-icon.png" alt="" class="h-10 w-10 rounded-md" />
+              <code class="font-mono text-xs text-muted">site/apple-icon.png</code>
+            </div>
+            <p class="mt-2 text-xs text-muted leading-relaxed">180×180. iOS + macOS menu-bar + Electron tray.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Colors -->
+    <section id="colors" class="border-t border-line/60 scroll-mt-20">
+      <div class="max-w-6xl mx-auto px-6 py-14 sm:py-20">
+        <header class="mb-8">
+          <p class="font-mono text-xs uppercase tracking-widest text-accent">Color</p>
+          <h2 class="mt-2 text-3xl md:text-4xl font-semibold tracking-tight">
+            One palette for the marketing site. Seven for the app.
+          </h2>
+        </header>
+        <h3 class="font-mono text-[11px] uppercase tracking-widest text-muted mb-3">site/index.html · marketing</h3>
+        <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+          <div class="rounded-lg border border-line overflow-hidden"><div class="h-16" style="background:#0b0b0c"></div><div class="px-3 py-2 text-xs"><div class="font-medium">bg</div><div class="font-mono text-muted">#0b0b0c</div></div></div>
+          <div class="rounded-lg border border-line overflow-hidden"><div class="h-16" style="background:#131316"></div><div class="px-3 py-2 text-xs"><div class="font-medium">panel</div><div class="font-mono text-muted">#131316</div></div></div>
+          <div class="rounded-lg border border-line overflow-hidden"><div class="h-16" style="background:#1a1a1f"></div><div class="px-3 py-2 text-xs"><div class="font-medium">panel2</div><div class="font-mono text-muted">#1a1a1f</div></div></div>
+          <div class="rounded-lg border border-line overflow-hidden"><div class="h-16" style="background:#2a2a31"></div><div class="px-3 py-2 text-xs"><div class="font-medium">line</div><div class="font-mono text-muted">#2a2a31</div></div></div>
+          <div class="rounded-lg border border-line overflow-hidden"><div class="h-16" style="background:#9a9aa3"></div><div class="px-3 py-2 text-xs"><div class="font-medium">muted</div><div class="font-mono text-muted">#9a9aa3</div></div></div>
+          <div class="rounded-lg border border-line overflow-hidden"><div class="h-16" style="background:#e7e7ea"></div><div class="px-3 py-2 text-xs"><div class="font-medium">fg</div><div class="font-mono text-muted">#e7e7ea</div></div></div>
+          <div class="rounded-lg border border-line overflow-hidden"><div class="h-16" style="background:#d97757"></div><div class="px-3 py-2 text-xs"><div class="font-medium">accent</div><div class="font-mono text-muted">#d97757</div></div></div>
+        </div>
+        <p class="mt-6 text-sm text-muted">Accent is Anthropic's warm rust — borrowed because Claudius is a companion to Claude Code.</p>
+      </div>
+    </section>
+
+    <!-- Themes (live switcher) -->
+    <section id="themes" class="border-t border-line/60 scroll-mt-20">
+      <div class="max-w-6xl mx-auto px-6 py-14 sm:py-20">
+        <header class="mb-8">
+          <p class="font-mono text-xs uppercase tracking-widest text-accent">Themes</p>
+          <h2 class="mt-2 text-3xl md:text-4xl font-semibold tracking-tight">Seven palettes, one surface. Swap and see.</h2>
+          <p class="mt-3 text-muted max-w-2xl leading-relaxed">
+            Each theme is a set of seven CSS variables on
+            <code class="font-mono text-fg bg-panel2 px-1.5 py-0.5 rounded text-sm">:root[data-theme="…"]</code>.
+            Components reference them through <code class="font-mono text-fg bg-panel2 px-1.5 py-0.5 rounded text-sm">var(--accent)</code> — never a hex directly.
+          </p>
+        </header>
+        <div class="flex flex-wrap items-center gap-2 mb-6" role="tablist" aria-label="Theme">
+          <button data-theme="dark"      class="theme-btn px-3 py-1.5 rounded-md border border-line bg-panel2 text-sm text-fg" aria-selected="true">Dark</button>
+          <button data-theme="light"     class="theme-btn px-3 py-1.5 rounded-md border border-line bg-panel2 text-sm text-muted hover:text-fg">Light</button>
+          <button data-theme="midnight"  class="theme-btn px-3 py-1.5 rounded-md border border-line bg-panel2 text-sm text-muted hover:text-fg">Midnight</button>
+          <button data-theme="paper"     class="theme-btn px-3 py-1.5 rounded-md border border-line bg-panel2 text-sm text-muted hover:text-fg">Paper</button>
+          <button data-theme="tui"       class="theme-btn px-3 py-1.5 rounded-md border border-line bg-panel2 text-sm text-muted hover:text-fg">TUI</button>
+          <button data-theme="tui-light" class="theme-btn px-3 py-1.5 rounded-md border border-line bg-panel2 text-sm text-muted hover:text-fg">TUI Light</button>
+          <button data-theme="synthwave" class="theme-btn px-3 py-1.5 rounded-md border border-line bg-panel2 text-sm text-muted hover:text-fg">Synthwave</button>
+        </div>
+        <div id="theme-demo" data-theme-demo="dark" class="surface rounded-2xl border border-[var(--border)] overflow-hidden">
+          <div class="flex h-9 items-center gap-3 border-b border-[var(--border)] bg-[var(--panel)] px-4 text-xs surface-muted">
+            <span class="inline-flex h-5 w-5 items-center justify-center rounded-md surface-accent-bg text-[10px] font-semibold">C</span>
+            <span class="text-[var(--foreground)]">claudius</span>
+            <span class="opacity-50">·</span>
+            <span class="relative inline-flex h-2.5 w-2.5 items-center justify-center surface-accent-text">
+              <span class="absolute inline-flex h-full w-full animate-status-ping rounded-full opacity-60" style="background:currentColor"></span>
+              <span class="dot animate-status-pulse" style="background:currentColor"></span>
+            </span>
+            <span>Working</span>
+            <span class="opacity-50">·</span>
+            <span class="font-mono opacity-80">claude-sonnet-4-5</span>
+            <div class="ml-auto flex items-center gap-2">
+              <span class="rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-1.5 py-0.5 font-mono text-[10px]">$0.024</span>
+              <span class="rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-1.5 py-0.5 font-mono text-[10px]">62%</span>
+              <span class="rounded-md surface-accent-bg px-1.5 py-0.5 font-mono text-[10px]">Edit</span>
+            </div>
+          </div>
+          <div class="relative h-[3px] w-full overflow-hidden" style="background: color-mix(in oklab, var(--accent) 12%, transparent)">
+            <div class="absolute inset-y-0 left-0 w-1/4 animate-indeterminate-slide rounded-full" style="background: var(--accent); box-shadow: 0 0 8px var(--accent)"></div>
+          </div>
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 p-5">
+            <div class="lg:col-span-1 rounded-lg border border-[var(--border)] surface-panel p-4">
+              <div class="font-mono text-[10px] uppercase tracking-widest surface-accent-text mb-3" data-theme-label>dark</div>
+              <ul class="grid grid-cols-2 gap-2 text-[11px]">
+                <li class="flex items-center gap-2"><span class="dot border border-[var(--border)]" style="background:var(--background)"></span> background</li>
+                <li class="flex items-center gap-2"><span class="dot border border-[var(--border)]" style="background:var(--foreground)"></span> foreground</li>
+                <li class="flex items-center gap-2"><span class="dot border border-[var(--border)]" style="background:var(--panel)"></span> panel</li>
+                <li class="flex items-center gap-2"><span class="dot border border-[var(--border)]" style="background:var(--panel-2)"></span> panel-2</li>
+                <li class="flex items-center gap-2"><span class="dot border border-[var(--border)]" style="background:var(--border)"></span> border</li>
+                <li class="flex items-center gap-2"><span class="dot" style="background:var(--muted)"></span> muted</li>
+                <li class="col-span-2 flex items-center gap-2"><span class="dot" style="background:var(--accent)"></span> accent</li>
+              </ul>
+            </div>
+            <div class="lg:col-span-2 rounded-lg border border-[var(--border)] surface-panel p-4 space-y-3">
+              <div class="flex justify-end">
+                <div class="max-w-[80%] rounded-2xl rounded-br-sm surface-accent-bg px-3 py-2 text-sm">
+                  Refactor <span class="font-mono">useDeepLinks</span> so it handles the Chromium <code class="font-mono opacity-80">URL.host</code> gap.
+                </div>
+              </div>
+              <div class="flex items-start gap-2">
+                <div class="ws-icon rounded-md" style="width:24px;height:24px;background:var(--accent)">C</div>
+                <div class="rounded-2xl rounded-tl-sm border border-[var(--border)] surface-panel-2 px-3 py-2 text-sm">
+                  <p>Reading the file first — then I'll narrow the branch where the host is undefined.</p>
+                  <p class="mt-2 font-mono text-[11px] surface-muted">↳ Read · lib/client/useDeepLinks.ts (1–80)</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-2 text-[11px] surface-muted">
+                <span class="dot animate-status-pulse" style="background:var(--accent)"></span>
+                <span class="font-mono">working · 26s elapsed</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="mt-4 text-xs text-muted">Token source of truth: <code class="font-mono text-fg bg-panel2 px-1.5 py-0.5 rounded">app/globals.css</code>.</p>
+      </div>
+    </section>
+
+    <!-- Type -->
+    <section id="type" class="border-t border-line/60 scroll-mt-20">
+      <div class="max-w-6xl mx-auto px-6 py-14 sm:py-20">
+        <header class="mb-8">
+          <p class="font-mono text-xs uppercase tracking-widest text-accent">Type</p>
+          <h2 class="mt-2 text-3xl md:text-4xl font-semibold tracking-tight">Geist for prose. Geist Mono for everything that compiles.</h2>
+        </header>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="rounded-xl border border-line bg-panel p-6">
+            <div class="font-mono text-[11px] uppercase tracking-widest text-accent mb-4">Geist Sans</div>
+            <div class="space-y-3">
+              <p class="text-5xl font-semibold tracking-tight">Ave Claudi.</p>
+              <p class="text-3xl font-medium">Codicem morituri te salutant.</p>
+              <p class="text-xl">Quod terminus claudit, fenestra aperit.</p>
+              <p class="text-base text-muted">Veni, vide, refactora — the working sentence.</p>
+              <p class="text-sm text-muted">Body copy. Status bars, tooltips, captions.</p>
+              <p class="text-xs text-muted/70">Tertiary. Don't try to read it from the back row.</p>
+            </div>
+            <div class="mt-5 grid grid-cols-4 gap-2 text-xs">
+              <span class="rounded border border-line bg-panel2 px-2 py-1.5 text-center"><span class="block font-light">300</span><span class="text-muted">light</span></span>
+              <span class="rounded border border-line bg-panel2 px-2 py-1.5 text-center"><span class="block">400</span><span class="text-muted">regular</span></span>
+              <span class="rounded border border-line bg-panel2 px-2 py-1.5 text-center"><span class="block font-medium">500</span><span class="text-muted">medium</span></span>
+              <span class="rounded border border-line bg-panel2 px-2 py-1.5 text-center"><span class="block font-semibold">600</span><span class="text-muted">semibold</span></span>
+            </div>
+          </div>
+          <div class="rounded-xl border border-line bg-panel p-6">
+            <div class="font-mono text-[11px] uppercase tracking-widest text-accent mb-4">Geist Mono</div>
+            <div class="space-y-3 font-mono">
+              <p class="text-2xl"><span class="text-accent">$</span> claudius --start</p>
+              <p class="text-base">workspace.id <span class="text-muted">→</span> "ws_aE9k2"</p>
+              <p class="text-sm">status: <span class="text-accent">working</span></p>
+              <p class="text-xs text-muted">tool_use_id: toolu_01HLZ6Hj4YZzJ66MCSG6B9kq</p>
+              <pre class="text-[12px] leading-6 bg-panel2 rounded-md p-3 overflow-x-auto"><span class="text-muted">// LoadingBar.tsx</span>
+&lt;div role=<span class="text-accent">"progressbar"</span>
+     aria-busy={active}&gt;
+  {active && &lt;Thumb /&gt;}
+&lt;/div&gt;</pre>
+            </div>
+          </div>
+        </div>
+        <blockquote class="mt-10 border-l-2 border-accent/60 pl-5 italic font-mono text-sm text-muted max-w-3xl leading-7">
+          <p><span class="text-fg/80">“Ave Claudi, codicem morituri te salutant.</span></p>
+          <p>Quod terminus claudit, fenestra aperit.</p>
+          <p>Veni, vide, refactora.”</p>
+        </blockquote>
+      </div>
+    </section>
+
+    <!-- Status -->
+    <section id="status" class="border-t border-line/60 scroll-mt-20">
+      <div class="max-w-6xl mx-auto px-6 py-14 sm:py-20">
+        <header class="mb-8">
+          <p class="font-mono text-xs uppercase tracking-widest text-accent">Status</p>
+          <h2 class="mt-2 text-3xl md:text-4xl font-semibold tracking-tight">Three states. Two indicators. One glyph.</h2>
+        </header>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div class="rounded-xl border border-line bg-panel p-5">
+            <div class="flex items-center justify-between text-xs font-mono"><span class="text-muted">StatusLine.tsx</span><span class="text-emerald-400">idle</span></div>
+            <div class="mt-3 flex items-center gap-2 text-xs"><span class="relative inline-flex h-2.5 w-2.5 items-center justify-center text-emerald-400"><span class="dot" style="background:currentColor"></span></span>Idle</div>
+            <div class="mt-4 h-[3px] w-full"></div>
+            <div class="mt-4 flex items-center justify-center py-2">
+              <div class="glyph-tile is-mini" data-state="idle" data-mini-glyph aria-label="Idle glyph"><span class="glyph">𐌂</span></div>
+            </div>
+            <p class="mt-3 text-[11px] text-muted">No turn in flight. Glyph locks on <span class="font-mono">𐌂</span>.</p>
+          </div>
+          <div class="rounded-xl border border-line bg-panel p-5">
+            <div class="flex items-center justify-between text-xs font-mono"><span class="text-muted">StatusLine.tsx</span><span class="text-amber-400">starting</span></div>
+            <div class="mt-3 flex items-center gap-2 text-xs"><span class="relative inline-flex h-2.5 w-2.5 items-center justify-center text-amber-400"><span class="absolute inline-flex h-full w-full animate-status-ping rounded-full opacity-60" style="background:currentColor"></span><span class="dot animate-status-pulse" style="background:currentColor"></span></span>Starting</div>
+            <div class="mt-4 relative h-[3px] w-full overflow-hidden rounded bg-accent/10"><div class="absolute inset-y-0 left-0 w-1/4 animate-indeterminate-slide rounded-full bg-accent shadow-[0_0_8px_#d97757]" style="animation-duration:2.4s"></div></div>
+            <div class="mt-4 flex items-center justify-center py-2">
+              <div class="glyph-tile is-mini" data-state="starting" data-mini-glyph aria-label="Starting glyph"><span class="glyph">𐌂</span></div>
+            </div>
+            <p class="mt-3 text-[11px] text-muted">Spinning up — same cycle at half speed.</p>
+          </div>
+          <div class="rounded-xl border border-line bg-panel p-5">
+            <div class="flex items-center justify-between text-xs font-mono"><span class="text-muted">StatusLine.tsx</span><span class="text-accent">working</span></div>
+            <div class="mt-3 flex items-center gap-2 text-xs"><span class="relative inline-flex h-2.5 w-2.5 items-center justify-center text-accent"><span class="absolute inline-flex h-full w-full animate-status-ping rounded-full opacity-60" style="background:currentColor"></span><span class="dot animate-status-pulse" style="background:currentColor"></span></span>Working</div>
+            <div class="mt-4 relative h-[3px] w-full overflow-hidden rounded bg-accent/10"><div class="absolute inset-y-0 left-0 w-1/4 animate-indeterminate-slide rounded-full bg-accent shadow-[0_0_8px_#d97757]"></div></div>
+            <div class="mt-4 flex items-center justify-center py-2">
+              <div class="glyph-tile is-mini" data-state="working" data-mini-glyph aria-label="Working glyph"><span class="glyph">𐌂</span></div>
+            </div>
+            <p class="mt-3 text-[11px] text-muted">Turn in flight. Glyph cycles 𐌀 → 𐌚, 350&nbsp;ms each.</p>
+          </div>
+        </div>
+
+        <div class="mt-10 rounded-xl border border-line bg-panel p-6">
+          <div class="font-mono text-[11px] uppercase tracking-widest text-accent mb-3">Streaming text · animate-glyph-fade</div>
+          <p id="streaming-line" class="font-mono text-sm leading-7 min-h-[3rem]"></p>
+          <div class="mt-3 flex items-center gap-2">
+            <button id="restream" class="rounded-md border border-line bg-panel2 px-3 py-1.5 text-xs font-mono text-muted hover:text-fg transition">↻ replay</button>
+            <span class="text-[11px] text-muted">Each glyph fades in over 350 ms with a 2 px rise.</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Chrome -->
+    <section id="chrome" class="border-t border-line/60 scroll-mt-20">
+      <div class="max-w-6xl mx-auto px-6 py-14 sm:py-20">
+        <header class="mb-8">
+          <p class="font-mono text-xs uppercase tracking-widest text-accent">Chrome</p>
+          <h2 class="mt-2 text-3xl md:text-4xl font-semibold tracking-tight">Workspace rails, tabs, and the controls that ride along.</h2>
+        </header>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="rounded-xl border border-line bg-panel p-6">
+            <div class="font-mono text-[11px] uppercase tracking-widest text-accent mb-4">WorkspaceIcon</div>
+            <div class="flex flex-wrap items-center gap-4">
+              <div class="ws-icon" style="width:48px;height:48px;background:#d97757;border-radius:10px;font-size:24px">C</div>
+              <div class="ws-icon" style="width:40px;height:40px;background:#3a8ed1;border-radius:9px;font-size:20px">A</div>
+              <div class="ws-icon" style="width:28px;height:28px;background:#6c5ce7;border-radius:6px;font-size:14px">B</div>
+              <div class="ws-icon overflow-hidden" style="width:40px;height:40px;border-radius:9px">
+                <img src="claudius.svg" alt="" class="w-full h-full object-cover invert opacity-90" style="background:#1a1a1f" />
+              </div>
+              <div class="ws-icon" style="width:40px;height:40px;background:#7c4a2a;border-radius:9px">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M15 4V2M15 16v-2M8 9h2M20 9h2M17.8 11.8 19 13M15 9h0M17.8 6.2 19 5M3 21l9-9M12.2 6.2 11 5"/>
+                </svg>
+              </div>
+            </div>
+            <ul class="mt-5 grid grid-cols-2 gap-2 text-[11px] text-muted">
+              <li><code class="font-mono text-fg">kind: letter</code> · custom colour, name initial</li>
+              <li><code class="font-mono text-fg">kind: image</code> · uploaded PNG/SVG</li>
+              <li><code class="font-mono text-fg">kind: customization</code> · wand glyph</li>
+              <li class="text-muted/70">Radius scales as <span class="font-mono">size × 0.22</span>.</li>
+            </ul>
+          </div>
+          <div class="rounded-xl border border-line bg-panel p-0 overflow-hidden">
+            <div class="font-mono text-[11px] uppercase tracking-widest text-accent px-6 pt-6">SessionTabs</div>
+            <div class="mt-3 flex items-stretch border-b border-line">
+              <button class="relative px-4 py-2.5 text-sm bg-panel2/60 text-fg">
+                <span class="absolute inset-x-0 -bottom-px h-[2px] bg-accent"></span>
+                <span class="font-mono text-xs">main</span>
+              </button>
+              <button class="px-4 py-2.5 text-sm text-muted hover:text-fg"><span class="font-mono text-xs">migration · 0042</span></button>
+              <button class="px-4 py-2.5 text-sm text-muted hover:text-fg"><span class="font-mono text-xs">e2e flake</span></button>
+              <button class="px-4 py-2.5 text-sm text-muted hover:text-fg ml-auto"><span class="text-base leading-none">+</span></button>
+            </div>
+            <div class="px-6 py-5 text-sm text-muted">
+              <p>The active tab anchors the active session. Drag-reorder is wired to <code class="font-mono text-fg">moveSessionTab(prev, next)</code>.</p>
+            </div>
+          </div>
+        </div>
+        <div class="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <figure class="rounded-xl border border-line bg-panel overflow-hidden">
+            <img src="screenshots/workspace.png" alt="" class="block w-full" onerror="this.src='screenshots/_placeholder.svg'" />
+            <figcaption class="px-4 py-3 text-xs text-muted font-mono">screenshots/workspace.png</figcaption>
+          </figure>
+          <figure class="rounded-xl border border-line bg-panel overflow-hidden">
+            <img src="screenshots/chat.png" alt="" class="block w-full" onerror="this.src='screenshots/_placeholder.svg'" />
+            <figcaption class="px-4 py-3 text-xs text-muted font-mono">screenshots/chat.png</figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <!-- Controls -->
+    <section id="controls" class="border-t border-line/60 scroll-mt-20">
+      <div class="max-w-6xl mx-auto px-6 py-14 sm:py-20">
+        <header class="mb-8">
+          <p class="font-mono text-xs uppercase tracking-widest text-accent">Controls</p>
+          <h2 class="mt-2 text-3xl md:text-4xl font-semibold tracking-tight">Buttons, chips, and the things that snap to the right of a status bar.</h2>
+        </header>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="rounded-xl border border-line bg-panel p-6 space-y-5">
+            <div class="font-mono text-[11px] uppercase tracking-widest text-accent">Buttons</div>
+            <div class="flex flex-wrap items-center gap-3">
+              <button class="inline-flex items-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-medium text-bg hover:brightness-110 transition">
+                Run turn
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round" /></svg>
+              </button>
+              <button class="inline-flex items-center gap-2 rounded-md border border-line bg-panel2 px-4 py-2 text-sm font-medium text-fg hover:bg-panel transition">Cancel</button>
+              <button class="inline-flex items-center gap-2 rounded-md border border-line bg-transparent px-4 py-2 text-sm font-medium text-muted hover:text-fg transition">Discard draft</button>
+              <button disabled class="inline-flex items-center gap-2 rounded-md bg-accent/40 px-4 py-2 text-sm font-medium text-bg/70 cursor-not-allowed">Run turn</button>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <button class="grid h-8 w-8 place-items-center rounded-md border border-line bg-panel2 text-muted hover:text-fg hover:bg-panel transition" aria-label="Copy">
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
+              </button>
+              <button class="grid h-8 w-8 place-items-center rounded-md border border-line bg-panel2 text-muted hover:text-fg hover:bg-panel transition" aria-label="Edit">
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" /></svg>
+              </button>
+              <button class="grid h-8 w-8 place-items-center rounded-md border border-line bg-panel2 text-muted hover:text-fg hover:bg-panel transition" aria-label="Compact">
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7" /></svg>
+              </button>
+              <button class="grid h-8 w-8 place-items-center rounded-md border border-line bg-panel2 text-muted hover:text-fg hover:bg-panel transition" aria-label="Clear">
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 11V7a2 2 0 0 0-2-2H5L2 9l3 4h12a2 2 0 0 0 2-2zM18 21H7l-4-4M22 21l-7-7M15 21l7-7" /></svg>
+              </button>
+            </div>
+          </div>
+          <div class="rounded-xl border border-line bg-panel p-6 space-y-5">
+            <div class="font-mono text-[11px] uppercase tracking-widest text-accent">Chips & pills</div>
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="rounded-md border border-line bg-panel2 px-1.5 py-0.5 font-mono text-[10px]">$0.024</span>
+              <span class="rounded-md border border-line bg-panel2 px-1.5 py-0.5 font-mono text-[10px]">1.4K tok</span>
+              <span class="rounded-md border border-line bg-panel2 px-1.5 py-0.5 font-mono text-[10px]">62%</span>
+              <span class="rounded-md border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 font-mono text-[10px] text-amber-200">⚠ 89%</span>
+              <span class="rounded-md border border-red-500/40 bg-red-500/10 px-1.5 py-0.5 font-mono text-[10px] text-red-200">! 96%</span>
+              <span class="rounded-md border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 font-mono text-[10px] text-amber-200">⚡ on</span>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="inline-flex items-center gap-1 rounded-md border border-line bg-panel2 px-2 py-1 text-xs font-mono text-muted">
+                <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+                Normal
+              </span>
+              <span class="inline-flex items-center gap-1 rounded-md border border-line bg-panel2 px-2 py-1 text-xs font-mono text-muted">Mode · Edit</span>
+              <span class="inline-flex items-center gap-1 rounded-md bg-accent px-2 py-1 text-xs font-mono text-bg">Mode · Plan</span>
+            </div>
+            <p class="text-[11px] text-muted">Chip widths match the StatusLine cluster — pills never exceed <span class="font-mono">10px</span> font on narrow viewports.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Chat -->
+    <section id="chat" class="border-t border-line/60 scroll-mt-20">
+      <div class="max-w-6xl mx-auto px-6 py-14 sm:py-20">
+        <header class="mb-8">
+          <p class="font-mono text-xs uppercase tracking-widest text-accent">Chat</p>
+          <h2 class="mt-2 text-3xl md:text-4xl font-semibold tracking-tight">The pieces a turn is made of.</h2>
+        </header>
+        <div class="grid grid-cols-1 lg:grid-cols-5 gap-4">
+          <div class="lg:col-span-3 space-y-3">
+            <div class="flex justify-end">
+              <div class="max-w-[80%] rounded-2xl rounded-br-sm bg-accent px-4 py-2.5 text-sm text-bg">
+                Make PR #2 mergeable — bun.lock is stale after the electron bump.
+              </div>
+            </div>
+            <div class="flex items-start gap-2">
+              <div class="ws-icon" style="width:24px;height:24px;background:#d97757;border-radius:6px;font-size:12px">C</div>
+              <div class="max-w-[80%] rounded-2xl rounded-tl-sm border border-line bg-panel2 px-4 py-2.5 text-sm">
+                <p>On it. I'll regenerate the lockfile, commit, push, and wait for the re-run.</p>
+              </div>
+            </div>
+            <div class="ml-8 rounded-lg border border-line bg-panel overflow-hidden">
+              <div class="flex items-center gap-2 border-b border-line px-3 py-2 text-[11px] font-mono">
+                <span class="inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
+                <span class="text-muted">Bash</span>
+                <span class="text-fg/80 truncate">bun install</span>
+                <span class="ml-auto text-muted">1.6s</span>
+              </div>
+              <pre class="px-3 py-2 text-[12px] leading-6 text-muted overflow-x-auto">bun install v1.3.13
+Resolving dependencies
+Resolved, downloaded and extracted [26]
+Saved lockfile
++ electron@42.2.0</pre>
+            </div>
+            <details class="ml-8 rounded-lg border border-line/80 bg-panel/60 group">
+              <summary class="flex items-center gap-2 px-3 py-2 text-[11px] font-mono text-muted cursor-pointer hover:text-fg">
+                <svg class="h-3 w-3 transition-transform group-open:rotate-90" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Thinking · 8s
+              </summary>
+              <div class="border-t border-line/60 px-3 py-2 text-[12px] italic text-muted leading-6">
+                The e2e job aborted on <span class="font-mono not-italic">--frozen-lockfile</span>. So package.json moved but bun.lock didn't.
+              </div>
+            </details>
+            <div class="flex items-start gap-2">
+              <div class="ws-icon" style="width:24px;height:24px;background:#d97757;border-radius:6px;font-size:12px">C</div>
+              <div class="max-w-[80%] rounded-2xl rounded-tl-sm border border-line bg-panel2 px-4 py-2.5 text-sm space-y-2">
+                <p>All 6 checks green. Squash-merged. Merge commit <code class="font-mono text-accent">d63ceab</code>.</p>
+                <p class="text-[11px] text-muted">PR #2 → merged · 11:52 UTC</p>
+              </div>
+            </div>
+          </div>
+          <aside class="lg:col-span-2 rounded-xl border border-line bg-panel p-4">
+            <div class="font-mono text-[10px] uppercase tracking-widest text-accent mb-3">Activity rail · summary</div>
+            <ul class="space-y-2 text-[12px]">
+              <li class="flex items-start gap-2"><span class="mt-1.5 inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400"></span><div class="min-w-0"><div class="font-mono truncate text-fg">Read · package.json</div><div class="text-muted">0.2s · 80 lines</div></div></li>
+              <li class="flex items-start gap-2"><span class="mt-1.5 inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400"></span><div class="min-w-0"><div class="font-mono truncate text-fg">Bash · bun install</div><div class="text-muted">1.6s</div></div></li>
+              <li class="flex items-start gap-2"><span class="mt-1.5 inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400"></span><div class="min-w-0"><div class="font-mono truncate text-fg">Bash · git commit -m …</div><div class="text-muted">0.3s</div></div></li>
+              <li class="flex items-start gap-2"><span class="mt-1.5 inline-flex h-1.5 w-1.5 rounded-full bg-accent animate-pulse"></span><div class="min-w-0"><div class="font-mono truncate text-fg">Bash · gh pr checks --watch</div><div class="text-muted">running · 1m 12s</div></div></li>
+            </ul>
+          </aside>
+        </div>
+
+        <!-- AskUserQuestion + TodosBanner -->
+        <div class="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div class="rounded-xl border border-line bg-panel p-5">
+            <div class="font-mono text-[11px] uppercase tracking-widest text-accent mb-3">AskUserQuestion</div>
+            <p class="text-sm">Which auth method should we use for the new endpoint?</p>
+            <div class="mt-3 grid gap-2">
+              <label class="flex items-start gap-3 rounded-md border border-accent bg-accent/10 p-3 cursor-pointer">
+                <span class="mt-0.5 grid h-4 w-4 place-items-center rounded-full border-2 border-accent bg-accent">
+                  <span class="block h-1.5 w-1.5 rounded-full bg-bg"></span>
+                </span>
+                <span><span class="block text-sm font-medium">Session cookie</span><span class="block text-xs text-muted">Existing flow, no client work.</span></span>
+              </label>
+              <label class="flex items-start gap-3 rounded-md border border-line bg-panel2/40 p-3 cursor-pointer hover:border-fg/40">
+                <span class="mt-0.5 grid h-4 w-4 place-items-center rounded-full border-2 border-muted"></span>
+                <span><span class="block text-sm font-medium">Bearer token</span><span class="block text-xs text-muted">Requires a new client path.</span></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="rounded-xl border border-line bg-panel p-5">
+            <div class="flex items-center gap-2 mb-3">
+              <svg class="h-3.5 w-3.5 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 17 2 2 4-4"/><path d="m3 7 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/></svg>
+              <span class="font-mono text-[11px] uppercase tracking-widest text-fg/80">TodosBanner</span>
+              <span class="font-medium text-xs">3/5</span>
+              <span class="text-[11px] text-muted ml-1">2 remaining</span>
+              <button class="ml-auto rounded p-0.5 text-muted hover:bg-panel2" aria-label="Collapse">
+                <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>
+              </button>
+            </div>
+            <ul class="space-y-1 text-[12px]">
+              <li class="flex items-start gap-1.5 leading-snug">
+                <svg class="mt-0.5 h-3 w-3 shrink-0 text-emerald-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+                <span class="line-through opacity-60">Check PR #2 status</span>
+              </li>
+              <li class="flex items-start gap-1.5 leading-snug">
+                <svg class="mt-0.5 h-3 w-3 shrink-0 text-emerald-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+                <span class="line-through opacity-60">Regenerate bun.lock</span>
+              </li>
+              <li class="flex items-start gap-1.5 leading-snug">
+                <svg class="mt-0.5 h-3 w-3 shrink-0 text-emerald-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+                <span class="line-through opacity-60">Push and wait for CI</span>
+              </li>
+              <li class="flex items-start gap-1.5 leading-snug">
+                <svg class="mt-0.5 h-3 w-3 shrink-0 animate-spin text-sky-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+                <span>Squash-merging with branch delete…</span>
+              </li>
+              <li class="flex items-start gap-1.5 leading-snug">
+                <svg class="mt-0.5 h-3 w-3 shrink-0 text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/></svg>
+                <span class="text-muted">Restore stash on main</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Activity rail (full mock) -->
+    <section id="activity" class="border-t border-line/60 scroll-mt-20">
+      <div class="max-w-6xl mx-auto px-6 py-14 sm:py-20">
+        <header class="mb-8">
+          <p class="font-mono text-xs uppercase tracking-widest text-accent">Activity</p>
+          <h2 class="mt-2 text-3xl md:text-4xl font-semibold tracking-tight">The right-side rail, in full.</h2>
+          <p class="mt-3 text-muted max-w-2xl leading-relaxed">
+            <code class="font-mono text-fg bg-panel2 px-1.5 py-0.5 rounded text-sm">BackgroundTasksPanel.tsx</code> +
+            <code class="font-mono text-fg bg-panel2 px-1.5 py-0.5 rounded text-sm">SessionCard</code> ·
+            <code class="font-mono text-fg bg-panel2 px-1.5 py-0.5 rounded text-sm">ContextBar</code> ·
+            <code class="font-mono text-fg bg-panel2 px-1.5 py-0.5 rounded text-sm">TokenMeter</code> ·
+            <code class="font-mono text-fg bg-panel2 px-1.5 py-0.5 rounded text-sm">NotificationsDrawer</code> ·
+            <code class="font-mono text-fg bg-panel2 px-1.5 py-0.5 rounded text-sm">CollapsibleSection</code>.
+          </p>
+        </header>
+        <div class="grid grid-cols-1 lg:grid-cols-[18rem,1fr] gap-6 items-start">
+          <aside class="rounded-xl border border-line bg-panel overflow-hidden text-[12px]" data-pane-name="right-rail">
+            <div class="sticky top-0 z-10 flex h-9 items-center gap-2 border-b border-line bg-panel px-3 text-xs">
+              <svg class="h-3.5 w-3.5 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.5.5 0 0 1-.96 0L9.24 3.18a.5.5 0 0 0-.96 0l-2.35 8.36A2 2 0 0 1 4 13H2"/></svg>
+              <span class="font-medium">Activity</span>
+              <svg class="h-3 w-3 animate-spin text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-label="Working"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+              <span class="text-[10px] font-medium text-accent">Working…</span>
+              <span class="ml-auto text-muted">1</span>
+            </div>
+            <div class="px-2 pt-2">
+              <button class="flex w-full items-center gap-2 rounded-md border border-accent/40 bg-accent/10 px-3 py-1.5 text-[12px] text-accent hover:bg-accent/15">
+                <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+                <span>Notifications</span>
+              </button>
+            </div>
+            <div class="px-2 pt-2 space-y-2">
+              <div class="rounded-md border border-line bg-panel2/40 p-2.5 space-y-2">
+                <div class="flex flex-wrap items-center gap-1.5">
+                  <button class="inline-flex items-center gap-1 rounded-md bg-accent/15 px-1.5 py-0.5 font-mono text-[11px] text-accent">
+                    <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M9 1v3M15 1v3M9 20v3M15 20v3M1 9h3M1 15h3M20 9h3M20 15h3"/></svg>
+                    opus-4-7[1m]
+                    <svg class="h-2.5 w-2.5 opacity-70" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                  </button>
+                  <span class="inline-flex items-center gap-1 rounded-md border border-line bg-panel2 px-1.5 py-0.5 font-mono text-[10px] text-muted">
+                    <svg class="h-2.5 w-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="14" r="8"/><path d="M12 6V2M9 2h6"/></svg>
+                    auto
+                  </span>
+                  <span class="inline-flex items-center gap-1 rounded-md border border-red-500/40 bg-red-500/10 px-1.5 py-0.5 font-mono text-[10px] text-red-300">
+                    <svg class="h-2.5 w-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>
+                    bypass
+                  </span>
+                </div>
+                <div class="flex items-center gap-1.5 truncate text-muted">
+                  <svg class="h-3 w-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2z"/></svg>
+                  <span class="truncate font-mono">…/Projects/claudius</span>
+                </div>
+                <div class="flex items-center gap-3 font-mono text-[11px] text-muted"><span>22 turns</span><span>4m 49s</span></div>
+              </div>
+
+              <div class="rounded-md border border-line bg-panel2/40 p-2.5">
+                <div class="flex items-baseline justify-between text-[11px]"><span class="text-fg/90">Context</span><span class="font-mono text-muted">24%</span></div>
+                <div class="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-line/40"><div class="h-full rounded-full bg-muted/70" style="width:24%"></div></div>
+              </div>
+
+              <div class="grid grid-cols-4 gap-1.5">
+                <div class="rounded-md border border-line bg-panel2/40 px-1.5 py-1.5 text-center"><div class="text-[9px] font-mono uppercase tracking-wide text-muted">IN</div><div class="mt-0.5 font-mono text-[12px] text-fg">123</div></div>
+                <div class="rounded-md border border-line bg-panel2/40 px-1.5 py-1.5 text-center"><div class="text-[9px] font-mono uppercase tracking-wide text-muted">OUT</div><div class="mt-0.5 font-mono text-[12px] text-fg">68k</div></div>
+                <div class="rounded-md border border-line bg-panel2/40 px-1.5 py-1.5 text-center"><div class="text-[9px] font-mono uppercase tracking-wide text-muted">CACHE</div><div class="mt-0.5 font-mono text-[12px] text-fg">9.39M</div></div>
+                <div class="rounded-md border border-line bg-panel2/40 px-1.5 py-1.5 text-center"><div class="text-[9px] font-mono uppercase tracking-wide text-muted">$</div><div class="mt-0.5 font-mono text-[12px] text-fg">$5.46</div></div>
+              </div>
+
+              <div class="my-1 border-t border-line/40"></div>
+
+              <details open class="group">
+                <summary class="flex items-center gap-1.5 cursor-pointer text-[11px] font-medium text-fg/90 list-none">
+                  <svg class="h-3 w-3 transition-transform group-open:rotate-90 text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                  <span>To-dos</span><span class="text-muted font-normal">(0)</span>
+                  <button class="ml-auto grid h-4 w-4 place-items-center rounded text-muted hover:bg-panel2" aria-label="Add tasks" onclick="event.preventDefault();event.stopPropagation()">
+                    <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+                  </button>
+                </summary>
+                <div class="mt-1 px-1 py-1 text-[10px] text-muted">No tasks yet. Click + to add.</div>
+              </details>
+
+              <details open class="group">
+                <summary class="flex items-center gap-1.5 cursor-pointer text-[11px] font-medium text-fg/90 list-none">
+                  <svg class="h-3 w-3 transition-transform group-open:rotate-90 text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                  <span>Tools</span><span class="text-muted font-normal">(100)</span>
+                </summary>
+                <ul class="mt-1.5 space-y-1">
+                  <li class="rounded-md border border-line bg-panel2/40 px-2 py-1.5">
+                    <div class="flex items-center gap-1.5">
+                      <svg class="h-3 w-3 shrink-0 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg>
+                      <svg class="h-3 w-3 shrink-0 text-muted opacity-70" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+                      <span class="truncate font-mono">Bash</span><span class="ml-auto shrink-0 text-[10px] text-muted">0s</span>
+                    </div>
+                    <div class="mt-0.5 truncate font-mono text-[10px] text-muted">rm -f /tmp/glyph-smoke.mjs /tmp/glyph-he…</div>
+                  </li>
+                  <li class="rounded-md border border-line bg-panel2/40 px-2 py-1.5">
+                    <div class="flex items-center gap-1.5">
+                      <svg class="h-3 w-3 shrink-0 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg>
+                      <svg class="h-3 w-3 shrink-0 text-muted opacity-70" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 0 0 12 18Z"/><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 0 1 12 18Z"/></svg>
+                      <span class="truncate font-mono">Thinking</span><span class="ml-auto shrink-0 text-[10px] text-muted">0s</span>
+                    </div>
+                  </li>
+                  <li class="rounded-md border border-line bg-panel2/40 px-2 py-1.5">
+                    <div class="flex items-center gap-1.5">
+                      <svg class="h-3 w-3 shrink-0 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg>
+                      <svg class="h-3 w-3 shrink-0 text-muted opacity-70" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+                      <span class="truncate font-mono">Read</span><span class="ml-auto shrink-0 text-[10px] text-muted">0s</span>
+                    </div>
+                    <div class="mt-0.5 truncate font-mono text-[10px] text-muted">glyph-hero.png</div>
+                  </li>
+                  <li class="rounded-md border border-line bg-panel2/40 px-2 py-1.5">
+                    <div class="flex items-center gap-1.5">
+                      <svg class="h-3 w-3 shrink-0 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg>
+                      <svg class="h-3 w-3 shrink-0 text-muted opacity-70" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+                      <span class="truncate font-mono">Edit</span><span class="ml-auto shrink-0 text-[10px] text-muted">0s</span>
+                    </div>
+                    <div class="mt-0.5 truncate font-mono text-[10px] text-muted">components.html</div>
+                  </li>
+                  <li class="rounded-md border border-sky-500/30 bg-sky-500/5 px-2 py-1.5">
+                    <div class="flex items-center gap-1.5">
+                      <svg class="h-3 w-3 shrink-0 animate-spin text-sky-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+                      <svg class="h-3 w-3 shrink-0 text-muted opacity-70" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+                      <span class="truncate font-mono">Bash</span><span class="ml-auto shrink-0 text-[10px] text-muted">12s</span>
+                    </div>
+                    <div class="mt-0.5 truncate font-mono text-[10px] text-muted">bun /tmp/glyph-smoke.mjs</div>
+                  </li>
+                </ul>
+              </details>
+
+              <details open class="group">
+                <summary class="flex items-center gap-1.5 cursor-pointer text-[11px] font-medium text-fg/90 list-none">
+                  <svg class="h-3 w-3 transition-transform group-open:rotate-90 text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                  <span>Background shells</span><span class="text-muted font-normal">(1)</span>
+                </summary>
+                <div class="mt-1.5 rounded-md border border-emerald-500/30 bg-emerald-500/5 px-2 py-2">
+                  <div class="flex items-center gap-1.5">
+                    <svg class="h-3 w-3 text-emerald-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+                    <span class="ml-auto text-[10px] text-muted font-mono">1m 14s</span>
+                  </div>
+                  <div class="mt-1 truncate font-mono text-[11px] text-fg">
+                    <span class="text-emerald-300">bunx serve site -l 4321</span>
+                    <span class="text-muted">--no-clipboard</span>
+                  </div>
+                </div>
+              </details>
+
+              <details open class="group">
+                <summary class="flex items-center gap-1.5 cursor-pointer text-[11px] font-medium text-fg/90 list-none">
+                  <svg class="h-3 w-3 transition-transform group-open:rotate-90 text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                  <span>Recent edits</span>
+                </summary>
+                <ul class="mt-1.5 space-y-0.5 text-[11px]">
+                  <li class="flex items-center gap-1.5 rounded px-1 py-0.5 hover:bg-panel2/60"><svg class="h-3 w-3 text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span class="truncate font-mono">components.html</span><span class="ml-auto font-mono text-[9px] uppercase tracking-wide text-emerald-300">EDIT</span></li>
+                  <li class="flex items-center gap-1.5 rounded px-1 py-0.5 hover:bg-panel2/60"><svg class="h-3 w-3 text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span class="truncate font-mono">components.html</span><span class="ml-auto font-mono text-[9px] uppercase tracking-wide text-emerald-300">EDIT</span></li>
+                  <li class="flex items-center gap-1.5 rounded px-1 py-0.5 hover:bg-panel2/60"><svg class="h-3 w-3 text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span class="truncate font-mono">components.html</span><span class="ml-auto font-mono text-[9px] uppercase tracking-wide text-emerald-300">EDIT</span></li>
+                </ul>
+              </details>
+
+              <details open class="group pb-2">
+                <summary class="flex items-center gap-1.5 cursor-pointer text-[11px] font-medium text-fg/90 list-none">
+                  <svg class="h-3 w-3 transition-transform group-open:rotate-90 text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                  <span>Recent</span>
+                </summary>
+                <ul class="mt-1.5 space-y-1">
+                  <li class="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2 py-1.5">
+                    <div class="flex items-center gap-1.5">
+                      <svg class="h-3 w-3 text-emerald-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4M8 16h.01M16 16h.01"/></svg>
+                      <span class="truncate font-mono">Re-run smoke after JS fix</span>
+                      <span class="ml-auto text-[10px] text-emerald-300">completed</span>
+                    </div>
+                  </li>
+                  <li class="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2 py-1.5">
+                    <div class="flex items-center gap-1.5">
+                      <svg class="h-3 w-3 text-emerald-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4M8 16h.01M16 16h.01"/></svg>
+                      <span class="truncate font-mono">Smoke test the cycling glyph</span>
+                      <span class="ml-auto text-[10px] text-emerald-300">completed</span>
+                    </div>
+                  </li>
+                </ul>
+              </details>
+            </div>
+          </aside>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="rounded-xl border border-line bg-panel p-5">
+              <div class="font-mono text-[11px] uppercase tracking-widest text-accent mb-2">Tool block — anatomy</div>
+              <p class="text-[12px] text-muted leading-relaxed">
+                Three icons up front: <span class="font-mono text-fg">status</span> (Check / spinning Loader2 / AlertTriangle),
+                <span class="font-mono text-fg">kind</span> (Wrench / Brain),
+                and the tool name. Elapsed time snaps right; a one-line arg sits underneath.
+                Live rows take a sky tint; errors go red.
+              </p>
+              <div class="mt-3 grid grid-cols-3 gap-2 text-[10px] text-center">
+                <div class="rounded-md border border-line bg-panel2/40 p-2"><div class="font-mono text-emerald-400">Check</div><div class="text-muted">done</div></div>
+                <div class="rounded-md border border-sky-500/30 bg-sky-500/5 p-2"><div class="font-mono text-sky-400">Loader2</div><div class="text-muted">running</div></div>
+                <div class="rounded-md border border-red-500/30 bg-red-500/5 p-2"><div class="font-mono text-red-400">Alert</div><div class="text-muted">error</div></div>
+              </div>
+            </div>
+            <div class="rounded-xl border border-line bg-panel p-5">
+              <div class="font-mono text-[11px] uppercase tracking-widest text-accent mb-2">CollapsibleSection</div>
+              <p class="text-[12px] text-muted leading-relaxed">
+                Chevron + label + count badge on the left, optional inline action
+                on the right (the <span class="font-mono text-fg">+</span> on To-dos).
+                Open state persists per-section in <code class="font-mono text-fg bg-panel2 px-1 rounded">localStorage</code>
+                via <code class="font-mono text-fg bg-panel2 px-1 rounded">storageKey</code>.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Context window -->
+    <section id="context" class="border-t border-line/60 scroll-mt-20">
+      <div class="max-w-6xl mx-auto px-6 py-14 sm:py-20">
+        <header class="mb-8">
+          <p class="font-mono text-xs uppercase tracking-widest text-accent">Context</p>
+          <h2 class="mt-2 text-3xl md:text-4xl font-semibold tracking-tight">How much of the window the conversation has used.</h2>
+          <p class="mt-3 text-muted max-w-2xl leading-relaxed">
+            The <code class="font-mono text-fg bg-panel2 px-1.5 py-0.5 rounded text-sm">ContextOverlay</code> opens from the percentage chip on the StatusLine and breaks the token budget down by category.
+          </p>
+        </header>
+
+        <div class="rounded-2xl border border-line bg-panel overflow-hidden shadow-[0_30px_80px_-20px_rgba(0,0,0,0.5)]">
+          <div class="flex items-start justify-between gap-3 border-b border-line px-5 py-4">
+            <div>
+              <p class="font-mono text-[11px] uppercase tracking-widest text-muted">/context · claude-opus-4-7[1m]</p>
+              <h3 class="mt-1 text-xl font-medium tracking-tight">Context window</h3>
+            </div>
+            <button class="grid h-8 w-8 place-items-center rounded-md text-muted hover:bg-panel2 hover:text-fg" aria-label="Close">
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+          <div class="px-5 py-5 space-y-6">
+            <div>
+              <div class="flex items-baseline justify-between text-[12px] text-muted">
+                <div><span class="font-mono text-base text-fg">239.9K</span><span> / 1.00M tokens · 24%</span></div>
+                <div>raw cap 1.00M</div>
+              </div>
+              <div class="mt-3 rounded-lg border border-line bg-panel2/40 px-4 py-4">
+                <div class="relative h-6 w-full overflow-hidden rounded-md bg-panel2 border border-line">
+                  <div class="absolute inset-y-0 left-0" style="width:21%;background:#a78bfa" title="Messages · 220.8K"></div>
+                  <div class="absolute inset-y-0" style="left:21%;width:3%;background:#6b7280" title="Autocompact buffer · 33K"></div>
+                  <div class="absolute inset-y-0" style="left:24%;width:0.4%;background:#d97757" title="Skills / Agents"></div>
+                  <div class="absolute inset-y-0" style="left:24.4%;right:0;background:repeating-linear-gradient(135deg,#1a1a1f 0,#1a1a1f 8px,#222227 8px,#222227 16px)" title="Free space · 760.1K"></div>
+                </div>
+                <div class="mt-3 flex items-center justify-between text-[12px]">
+                  <span><span class="font-medium text-fg">24%</span> <span class="text-muted">used · 239.9K / 1.00M tokens</span></span>
+                  <span class="text-muted">760.1K free</span>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <div class="font-mono text-[11px] uppercase tracking-widest text-muted mb-3">Categories</div>
+              <ul class="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-[12.5px]">
+                <li class="flex items-center gap-2 rounded-md bg-panel2/40 px-2.5 py-1.5"><span class="h-2 w-2 shrink-0 rounded-sm" style="background:#6b7280"></span><span class="flex-1 truncate">System prompt</span><span class="font-mono text-muted">305</span></li>
+                <li class="flex items-center gap-2 rounded-md bg-panel2/40 px-2.5 py-1.5"><span class="h-2 w-2 shrink-0 rounded-sm" style="background:#6b7280"></span><span class="flex-1 truncate">System tools</span><span class="font-mono text-muted">15.9K</span></li>
+                <li class="flex items-center gap-2 rounded-md bg-panel2/40 px-2.5 py-1.5"><span class="h-2 w-2 shrink-0 rounded-sm" style="background:#6b7280"></span><span class="flex-1 truncate">MCP tools (deferred)</span><span class="font-mono text-muted">1.9K</span></li>
+                <li class="flex items-center gap-2 rounded-md bg-panel2/40 px-2.5 py-1.5"><span class="h-2 w-2 shrink-0 rounded-sm" style="background:#6b7280"></span><span class="flex-1 truncate">System tools (deferred)</span><span class="font-mono text-muted">15.6K</span></li>
+                <li class="flex items-center gap-2 rounded-md bg-panel2/40 px-2.5 py-1.5"><span class="h-2 w-2 shrink-0 rounded-sm" style="background:#60a5fa"></span><span class="flex-1 truncate">Custom agents</span><span class="font-mono text-muted">362</span></li>
+                <li class="flex items-center gap-2 rounded-md bg-panel2/40 px-2.5 py-1.5"><span class="h-2 w-2 shrink-0 rounded-sm" style="background:#d97757"></span><span class="flex-1 truncate">Memory files</span><span class="font-mono text-muted">774</span></li>
+                <li class="flex items-center gap-2 rounded-md bg-panel2/40 px-2.5 py-1.5"><span class="h-2 w-2 shrink-0 rounded-sm" style="background:#fbbf24"></span><span class="flex-1 truncate">Skills</span><span class="font-mono text-muted">1.7K</span></li>
+                <li class="flex items-center gap-2 rounded-md bg-panel2/40 px-2.5 py-1.5"><span class="h-2 w-2 shrink-0 rounded-sm" style="background:#a78bfa"></span><span class="flex-1 truncate">Messages</span><span class="font-mono text-muted">220.8K</span></li>
+                <li class="flex items-center gap-2 rounded-md bg-panel2/40 px-2.5 py-1.5"><span class="h-2 w-2 shrink-0 rounded-sm" style="background:#6b7280"></span><span class="flex-1 truncate">Autocompact buffer</span><span class="font-mono text-muted">33.0K</span></li>
+                <li class="flex items-center gap-2 rounded-md bg-panel2/40 px-2.5 py-1.5"><span class="h-2 w-2 shrink-0 rounded-sm" style="background:#6b7280"></span><span class="flex-1 truncate">Free space</span><span class="font-mono text-muted">727.1K</span></li>
+              </ul>
+            </div>
+
+            <div>
+              <div class="font-mono text-[11px] uppercase tracking-widest text-muted mb-3">Memory files (3)</div>
+              <ul class="space-y-1 text-[12px]">
+                <li class="flex items-baseline justify-between gap-2 rounded-md bg-panel2/40 px-2.5 py-1.5"><span class="truncate font-mono">/Users/filipegarcia/Projects/claudius/CLAUDE.md</span><span class="shrink-0 text-muted">Project · 573</span></li>
+                <li class="flex items-baseline justify-between gap-2 rounded-md bg-panel2/40 px-2.5 py-1.5"><span class="truncate font-mono">/Users/filipegarcia/Projects/claudius/AGENTS.md</span><span class="shrink-0 text-muted">Project · 95</span></li>
+                <li class="flex items-baseline justify-between gap-2 rounded-md bg-panel2/40 px-2.5 py-1.5"><span class="truncate font-mono">/Users/filipegarcia/.claude/projects/-Users-filipegarcia-Projects-claudius/memory/MEMORY.md</span><span class="shrink-0 text-muted">AutoMem · 142</span></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Iconography -->
+    <section id="icons" class="border-t border-line/60 scroll-mt-20">
+      <div class="max-w-6xl mx-auto px-6 py-14 sm:py-20">
+        <header class="mb-8">
+          <p class="font-mono text-xs uppercase tracking-widest text-accent">Icons</p>
+          <h2 class="mt-2 text-3xl md:text-4xl font-semibold tracking-tight">Every lucide icon Claudius ships.</h2>
+          <p class="mt-3 text-muted max-w-2xl leading-relaxed">
+            One family — <a class="underline decoration-line hover:text-fg" href="https://lucide.dev">Lucide</a> — at two render sizes:
+            <span class="font-mono text-fg">h-3 w-3</span> for chip clusters,
+            <span class="font-mono text-fg">h-4 w-4</span> for buttons. Stroke
+            width <span class="font-mono text-fg">2</span> across the board.
+            Grouped by where they actually appear in the app.
+          </p>
+        </header>
+
+        <!-- Filter bar -->
+        <div class="mb-6 flex flex-wrap items-center gap-3">
+          <div class="relative flex-1 min-w-[14rem] max-w-md">
+            <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            <input id="icon-filter" type="text" placeholder="Filter by name…" class="w-full rounded-md border border-line bg-panel2 pl-9 pr-3 py-2 text-sm placeholder:text-muted focus:outline-none focus:border-accent" />
+          </div>
+          <div class="text-xs font-mono text-muted">
+            <span id="icon-count">119</span> icons
+          </div>
+        </div>
+
+        <div id="icon-grid" class="space-y-10">
+
+          <!-- ─── Navigation rail tiles ─── -->
+          <div data-icon-cat>
+            <h3 class="font-mono text-[11px] uppercase tracking-widest text-accent mb-3">Navigation rail · SideNav.tsx</h3>
+            <div class="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-7 lg:grid-cols-10 gap-2 text-muted">
+              <div class="icon-cell" data-icon-name="messagesquare"><i data-lucide="message-square"></i><span>MessageSquare</span></div>
+              <div class="icon-cell" data-icon-name="foldertree"><i data-lucide="folder-tree"></i><span>FolderTree</span></div>
+              <div class="icon-cell" data-icon-name="folder"><i data-lucide="folder"></i><span>Folder</span></div>
+              <div class="icon-cell" data-icon-name="gitbranch"><i data-lucide="git-branch"></i><span>GitBranch</span></div>
+              <div class="icon-cell" data-icon-name="booktext"><i data-lucide="book-text"></i><span>BookText</span></div>
+              <div class="icon-cell" data-icon-name="image"><i data-lucide="image"></i><span>Image</span></div>
+              <div class="icon-cell" data-icon-name="barchart3"><i data-lucide="bar-chart-3"></i><span>BarChart3</span></div>
+              <div class="icon-cell" data-icon-name="bot"><i data-lucide="bot"></i><span>Bot</span></div>
+              <div class="icon-cell" data-icon-name="sparkles"><i data-lucide="sparkles"></i><span>Sparkles</span></div>
+              <div class="icon-cell" data-icon-name="network"><i data-lucide="network"></i><span>Network</span></div>
+              <div class="icon-cell" data-icon-name="webhook"><i data-lucide="webhook"></i><span>Webhook</span></div>
+              <div class="icon-cell" data-icon-name="calendar"><i data-lucide="calendar"></i><span>Calendar</span></div>
+              <div class="icon-cell" data-icon-name="shieldcheck"><i data-lucide="shield-check"></i><span>ShieldCheck</span></div>
+              <div class="icon-cell" data-icon-name="container"><i data-lucide="container"></i><span>Container</span></div>
+              <div class="icon-cell" data-icon-name="circledot"><i data-lucide="circle-dot"></i><span>CircleDot</span></div>
+              <div class="icon-cell" data-icon-name="database"><i data-lucide="database"></i><span>Database</span></div>
+              <div class="icon-cell" data-icon-name="bookopen"><i data-lucide="book-open"></i><span>BookOpen</span></div>
+              <div class="icon-cell" data-icon-name="briefcase"><i data-lucide="briefcase"></i><span>Briefcase</span></div>
+              <div class="icon-cell" data-icon-name="wandsparkles"><i data-lucide="wand-sparkles"></i><span>WandSparkles</span></div>
+              <div class="icon-cell" data-icon-name="menu"><i data-lucide="menu"></i><span>Menu</span></div>
+            </div>
+          </div>
+
+          <!-- ─── Status & feedback ─── -->
+          <div data-icon-cat>
+            <h3 class="font-mono text-[11px] uppercase tracking-widest text-accent mb-3">Status &amp; feedback · StatusLine / Tools / Banners</h3>
+            <div class="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-7 lg:grid-cols-10 gap-2 text-muted">
+              <div class="icon-cell" data-icon-name="check"><i data-lucide="check"></i><span>Check</span></div>
+              <div class="icon-cell" data-icon-name="checkcircle2"><i data-lucide="check-circle-2"></i><span>CheckCircle2</span></div>
+              <div class="icon-cell" data-icon-name="checksquare"><i data-lucide="check-square"></i><span>CheckSquare</span></div>
+              <div class="icon-cell" data-icon-name="circle"><i data-lucide="circle"></i><span>Circle</span></div>
+              <div class="icon-cell" data-icon-name="circledot"><i data-lucide="circle-dot"></i><span>CircleDot</span></div>
+              <div class="icon-cell" data-icon-name="xcircle"><i data-lucide="x-circle"></i><span>XCircle</span></div>
+              <div class="icon-cell" data-icon-name="xsquare"><i data-lucide="x-square"></i><span>XSquare</span></div>
+              <div class="icon-cell" data-icon-name="x"><i data-lucide="x"></i><span>X</span></div>
+              <div class="icon-cell" data-icon-name="alerttriangle"><i data-lucide="alert-triangle"></i><span>AlertTriangle</span></div>
+              <div class="icon-cell" data-icon-name="alertcircle"><i data-lucide="alert-circle"></i><span>AlertCircle</span></div>
+              <div class="icon-cell" data-icon-name="trianglealert"><i data-lucide="triangle-alert"></i><span>TriangleAlert</span></div>
+              <div class="icon-cell" data-icon-name="info"><i data-lucide="info"></i><span>Info</span></div>
+              <div class="icon-cell" data-icon-name="helpcircle"><i data-lucide="help-circle"></i><span>HelpCircle</span></div>
+              <div class="icon-cell" data-icon-name="listchecks"><i data-lucide="list-checks"></i><span>ListChecks</span></div>
+            </div>
+          </div>
+
+          <!-- ─── Loaders & time ─── -->
+          <div data-icon-cat>
+            <h3 class="font-mono text-[11px] uppercase tracking-widest text-accent mb-3">Loaders &amp; time</h3>
+            <div class="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-7 lg:grid-cols-10 gap-2 text-muted">
+              <div class="icon-cell" data-icon-name="loader2"><i data-lucide="loader-2" class="animate-spin"></i><span>Loader2</span></div>
+              <div class="icon-cell" data-icon-name="hourglass"><i data-lucide="hourglass"></i><span>Hourglass</span></div>
+              <div class="icon-cell" data-icon-name="timer"><i data-lucide="timer"></i><span>Timer</span></div>
+              <div class="icon-cell" data-icon-name="calendarclock"><i data-lucide="calendar-clock"></i><span>CalendarClock</span></div>
+              <div class="icon-cell" data-icon-name="play"><i data-lucide="play"></i><span>Play</span></div>
+              <div class="icon-cell" data-icon-name="pause"><i data-lucide="pause"></i><span>Pause</span></div>
+              <div class="icon-cell" data-icon-name="stopcircle"><i data-lucide="stop-circle"></i><span>StopCircle</span></div>
+              <div class="icon-cell" data-icon-name="repeat"><i data-lucide="repeat"></i><span>Repeat</span></div>
+            </div>
+          </div>
+
+          <!-- ─── Actions ─── -->
+          <div data-icon-cat>
+            <h3 class="font-mono text-[11px] uppercase tracking-widest text-accent mb-3">Actions</h3>
+            <div class="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-7 lg:grid-cols-10 gap-2 text-muted">
+              <div class="icon-cell" data-icon-name="edit2"><i data-lucide="edit-2"></i><span>Edit2</span></div>
+              <div class="icon-cell" data-icon-name="pencil"><i data-lucide="pencil"></i><span>Pencil</span></div>
+              <div class="icon-cell" data-icon-name="copy"><i data-lucide="copy"></i><span>Copy</span></div>
+              <div class="icon-cell" data-icon-name="save"><i data-lucide="save"></i><span>Save</span></div>
+              <div class="icon-cell" data-icon-name="trash2"><i data-lucide="trash-2"></i><span>Trash2</span></div>
+              <div class="icon-cell" data-icon-name="plus"><i data-lucide="plus"></i><span>Plus</span></div>
+              <div class="icon-cell" data-icon-name="minus"><i data-lucide="minus"></i><span>Minus</span></div>
+              <div class="icon-cell" data-icon-name="send"><i data-lucide="send"></i><span>Send</span></div>
+              <div class="icon-cell" data-icon-name="search"><i data-lucide="search"></i><span>Search</span></div>
+              <div class="icon-cell" data-icon-name="download"><i data-lucide="download"></i><span>Download</span></div>
+              <div class="icon-cell" data-icon-name="upload"><i data-lucide="upload"></i><span>Upload</span></div>
+              <div class="icon-cell" data-icon-name="refreshcw"><i data-lucide="refresh-cw"></i><span>RefreshCw</span></div>
+              <div class="icon-cell" data-icon-name="rotatecw"><i data-lucide="rotate-cw"></i><span>RotateCw</span></div>
+              <div class="icon-cell" data-icon-name="rotateccw"><i data-lucide="rotate-ccw"></i><span>RotateCcw</span></div>
+              <div class="icon-cell" data-icon-name="undo2"><i data-lucide="undo-2"></i><span>Undo2</span></div>
+              <div class="icon-cell" data-icon-name="power"><i data-lucide="power"></i><span>Power</span></div>
+              <div class="icon-cell" data-icon-name="poweroff"><i data-lucide="power-off"></i><span>PowerOff</span></div>
+              <div class="icon-cell" data-icon-name="pin"><i data-lucide="pin"></i><span>Pin</span></div>
+            </div>
+          </div>
+
+          <!-- ─── Files ─── -->
+          <div data-icon-cat>
+            <h3 class="font-mono text-[11px] uppercase tracking-widest text-accent mb-3">Files</h3>
+            <div class="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-7 lg:grid-cols-10 gap-2 text-muted">
+              <div class="icon-cell" data-icon-name="file"><i data-lucide="file"></i><span>File</span></div>
+              <div class="icon-cell" data-icon-name="filetext"><i data-lucide="file-text"></i><span>FileText</span></div>
+              <div class="icon-cell" data-icon-name="filejson"><i data-lucide="file-json"></i><span>FileJson</span></div>
+              <div class="icon-cell" data-icon-name="fileplus"><i data-lucide="file-plus"></i><span>FilePlus</span></div>
+              <div class="icon-cell" data-icon-name="fileedit"><i data-lucide="file-edit"></i><span>FileEdit</span></div>
+              <div class="icon-cell" data-icon-name="folder"><i data-lucide="folder"></i><span>Folder</span></div>
+              <div class="icon-cell" data-icon-name="folderopen"><i data-lucide="folder-open"></i><span>FolderOpen</span></div>
+              <div class="icon-cell" data-icon-name="folderplus"><i data-lucide="folder-plus"></i><span>FolderPlus</span></div>
+              <div class="icon-cell" data-icon-name="scrolltext"><i data-lucide="scroll-text"></i><span>ScrollText</span></div>
+              <div class="icon-cell" data-icon-name="paperclip"><i data-lucide="paperclip"></i><span>Paperclip</span></div>
+            </div>
+          </div>
+
+          <!-- ─── Chat & agents ─── -->
+          <div data-icon-cat>
+            <h3 class="font-mono text-[11px] uppercase tracking-widest text-accent mb-3">Chat &amp; agents</h3>
+            <div class="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-7 lg:grid-cols-10 gap-2 text-muted">
+              <div class="icon-cell" data-icon-name="bot"><i data-lucide="bot"></i><span>Bot</span></div>
+              <div class="icon-cell" data-icon-name="brain"><i data-lucide="brain"></i><span>Brain</span></div>
+              <div class="icon-cell" data-icon-name="sparkles"><i data-lucide="sparkles"></i><span>Sparkles</span></div>
+              <div class="icon-cell" data-icon-name="wandsparkles"><i data-lucide="wand-sparkles"></i><span>WandSparkles</span></div>
+              <div class="icon-cell" data-icon-name="wand2"><i data-lucide="wand-2"></i><span>Wand2</span></div>
+              <div class="icon-cell" data-icon-name="usercircle"><i data-lucide="user-circle"></i><span>UserCircle</span></div>
+              <div class="icon-cell" data-icon-name="messagesquare"><i data-lucide="message-square"></i><span>MessageSquare</span></div>
+              <div class="icon-cell" data-icon-name="messagessquare"><i data-lucide="messages-square"></i><span>MessagesSquare</span></div>
+              <div class="icon-cell" data-icon-name="messagesquareplus"><i data-lucide="message-square-plus"></i><span>MessageSquarePlus</span></div>
+              <div class="icon-cell" data-icon-name="messagecirclequestion"><i data-lucide="message-circle-question"></i><span>MessageCircleQuestion</span></div>
+            </div>
+          </div>
+
+          <!-- ─── System & dev ─── -->
+          <div data-icon-cat>
+            <h3 class="font-mono text-[11px] uppercase tracking-widest text-accent mb-3">System &amp; dev</h3>
+            <div class="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-7 lg:grid-cols-10 gap-2 text-muted">
+              <div class="icon-cell" data-icon-name="activity"><i data-lucide="activity"></i><span>Activity</span></div>
+              <div class="icon-cell" data-icon-name="wrench"><i data-lucide="wrench"></i><span>Wrench</span></div>
+              <div class="icon-cell" data-icon-name="terminal"><i data-lucide="terminal"></i><span>Terminal</span></div>
+              <div class="icon-cell" data-icon-name="cpu"><i data-lucide="cpu"></i><span>Cpu</span></div>
+              <div class="icon-cell" data-icon-name="circuitboard"><i data-lucide="circuit-board"></i><span>CircuitBoard</span></div>
+              <div class="icon-cell" data-icon-name="cloud"><i data-lucide="cloud"></i><span>Cloud</span></div>
+              <div class="icon-cell" data-icon-name="plug"><i data-lucide="plug"></i><span>Plug</span></div>
+              <div class="icon-cell" data-icon-name="plug2"><i data-lucide="plug-2"></i><span>Plug2</span></div>
+              <div class="icon-cell" data-icon-name="settings"><i data-lucide="settings"></i><span>Settings</span></div>
+              <div class="icon-cell" data-icon-name="settings2"><i data-lucide="settings-2"></i><span>Settings2</span></div>
+              <div class="icon-cell" data-icon-name="lock"><i data-lucide="lock"></i><span>Lock</span></div>
+              <div class="icon-cell" data-icon-name="shield"><i data-lucide="shield"></i><span>Shield</span></div>
+              <div class="icon-cell" data-icon-name="shieldalert"><i data-lucide="shield-alert"></i><span>ShieldAlert</span></div>
+              <div class="icon-cell" data-icon-name="shieldoff"><i data-lucide="shield-off"></i><span>ShieldOff</span></div>
+              <div class="icon-cell" data-icon-name="eye"><i data-lucide="eye"></i><span>Eye</span></div>
+              <div class="icon-cell" data-icon-name="zap"><i data-lucide="zap"></i><span>Zap</span></div>
+              <div class="icon-cell" data-icon-name="gauge"><i data-lucide="gauge"></i><span>Gauge</span></div>
+              <div class="icon-cell" data-icon-name="hash"><i data-lucide="hash"></i><span>Hash</span></div>
+              <div class="icon-cell" data-icon-name="type"><i data-lucide="type"></i><span>Type</span></div>
+              <div class="icon-cell" data-icon-name="keyboard"><i data-lucide="keyboard"></i><span>Keyboard</span></div>
+              <div class="icon-cell" data-icon-name="gitcommit"><i data-lucide="git-commit-horizontal"></i><span>GitCommit</span></div>
+            </div>
+          </div>
+
+          <!-- ─── Media & I/O ─── -->
+          <div data-icon-cat>
+            <h3 class="font-mono text-[11px] uppercase tracking-widest text-accent mb-3">Media &amp; I/O</h3>
+            <div class="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-7 lg:grid-cols-10 gap-2 text-muted">
+              <div class="icon-cell" data-icon-name="bell"><i data-lucide="bell"></i><span>Bell</span></div>
+              <div class="icon-cell" data-icon-name="belloff"><i data-lucide="bell-off"></i><span>BellOff</span></div>
+              <div class="icon-cell" data-icon-name="volume2"><i data-lucide="volume-2"></i><span>Volume2</span></div>
+              <div class="icon-cell" data-icon-name="mic"><i data-lucide="mic"></i><span>Mic</span></div>
+              <div class="icon-cell" data-icon-name="micoff"><i data-lucide="mic-off"></i><span>MicOff</span></div>
+              <div class="icon-cell" data-icon-name="radio"><i data-lucide="radio"></i><span>Radio</span></div>
+            </div>
+          </div>
+
+          <!-- ─── Arrows & layout ─── -->
+          <div data-icon-cat>
+            <h3 class="font-mono text-[11px] uppercase tracking-widest text-accent mb-3">Arrows &amp; layout</h3>
+            <div class="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-7 lg:grid-cols-10 gap-2 text-muted">
+              <div class="icon-cell" data-icon-name="chevrondown"><i data-lucide="chevron-down"></i><span>ChevronDown</span></div>
+              <div class="icon-cell" data-icon-name="chevronup"><i data-lucide="chevron-up"></i><span>ChevronUp</span></div>
+              <div class="icon-cell" data-icon-name="chevronright"><i data-lucide="chevron-right"></i><span>ChevronRight</span></div>
+              <div class="icon-cell" data-icon-name="arrowleft"><i data-lucide="arrow-left"></i><span>ArrowLeft</span></div>
+              <div class="icon-cell" data-icon-name="arrowright"><i data-lucide="arrow-right"></i><span>ArrowRight</span></div>
+              <div class="icon-cell" data-icon-name="arrowup"><i data-lucide="arrow-up"></i><span>ArrowUp</span></div>
+              <div class="icon-cell" data-icon-name="arrowdown"><i data-lucide="arrow-down"></i><span>ArrowDown</span></div>
+              <div class="icon-cell" data-icon-name="arrowupfromline"><i data-lucide="arrow-up-from-line"></i><span>ArrowUpFromLine</span></div>
+              <div class="icon-cell" data-icon-name="arrowdowntoline"><i data-lucide="arrow-down-to-line"></i><span>ArrowDownToLine</span></div>
+              <div class="icon-cell" data-icon-name="home"><i data-lucide="home"></i><span>Home</span></div>
+              <div class="icon-cell" data-icon-name="externallink"><i data-lucide="external-link"></i><span>ExternalLink</span></div>
+              <div class="icon-cell" data-icon-name="layers"><i data-lucide="layers"></i><span>Layers</span></div>
+              <div class="icon-cell" data-icon-name="square"><i data-lucide="square"></i><span>Square</span></div>
+            </div>
+          </div>
+
+          <!-- ─── Misc ─── -->
+          <div data-icon-cat>
+            <h3 class="font-mono text-[11px] uppercase tracking-widest text-accent mb-3">Misc</h3>
+            <div class="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-7 lg:grid-cols-10 gap-2 text-muted">
+              <div class="icon-cell" data-icon-name="rocket"><i data-lucide="rocket"></i><span>Rocket</span></div>
+              <div class="icon-cell" data-icon-name="stethoscope"><i data-lucide="stethoscope"></i><span>Stethoscope</span></div>
+            </div>
+          </div>
+        </div>
+
+        <p class="mt-10 text-xs text-muted">
+          Source: every <code class="font-mono text-fg bg-panel2 px-1.5 py-0.5 rounded">import &#123; … &#125; from "lucide-react"</code>
+          across <code class="font-mono text-fg bg-panel2 px-1.5 py-0.5 rounded">app/</code> and <code class="font-mono text-fg bg-panel2 px-1.5 py-0.5 rounded">components/</code>.
+          Re-run <code class="font-mono text-fg bg-panel2 px-1.5 py-0.5 rounded">grep -rh 'from "lucide-react"' --include="*.tsx" --include="*.ts"</code>
+          to refresh. Rendered via the
+          <a class="underline decoration-line hover:text-fg" href="https://unpkg.com/lucide@latest">lucide@latest</a> UMD bundle.
+        </p>
+      </div>
+    </section>
+
+    <!-- Forms -->
+    <section id="forms" class="border-t border-line/60 scroll-mt-20">
+      <div class="max-w-6xl mx-auto px-6 py-14 sm:py-20">
+        <header class="mb-8">
+          <p class="font-mono text-xs uppercase tracking-widest text-accent">Forms</p>
+          <h2 class="mt-2 text-3xl md:text-4xl font-semibold tracking-tight">Inputs, code, and the things you fill in.</h2>
+        </header>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="rounded-xl border border-line bg-panel p-6 space-y-4">
+            <div class="font-mono text-[11px] uppercase tracking-widest text-accent">Input · default</div>
+            <input type="text" placeholder="Workspace name" class="w-full rounded-md border border-line bg-panel2 px-3 py-2 text-sm placeholder:text-muted focus:outline-none focus:border-accent" />
+            <div class="font-mono text-[11px] uppercase tracking-widest text-accent">Input · with helper</div>
+            <div>
+              <input type="text" value="~/claudius" class="w-full rounded-md border border-line bg-panel2 px-3 py-2 text-sm font-mono focus:outline-none focus:border-accent" />
+              <p class="mt-1 text-[11px] text-muted">Will be cloned into this path. Tilde expands.</p>
+            </div>
+            <div class="font-mono text-[11px] uppercase tracking-widest text-accent">Textarea · prompt</div>
+            <textarea rows="3" placeholder="Type a turn…" class="w-full rounded-md border border-line bg-panel2 px-3 py-2 text-sm placeholder:text-muted focus:outline-none focus:border-accent resize-none"></textarea>
+            <div class="flex items-center gap-2">
+              <button class="rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-bg hover:brightness-110">Send</button>
+              <span class="text-[10px] text-muted font-mono">⌘↵</span>
+            </div>
+          </div>
+
+          <div class="rounded-xl border border-line bg-panel overflow-hidden">
+            <div class="flex items-center gap-2 border-b border-line bg-panel2/60 px-4 py-2 text-[11px] font-mono text-muted">
+              <span>useDeepLinks.ts</span>
+              <span class="ml-auto text-accent">TypeScript</span>
+            </div>
+            <pre class="px-4 py-3 text-[12.5px] leading-6 overflow-x-auto"><span class="text-muted">// Open a workspace from a `claudius://` URL.</span>
+<span class="text-accent">export function</span> <span class="text-fg">useDeepLinks</span>() {
+  <span class="text-accent">const</span> router = useRouter();
+  <span class="text-accent">useEffect</span>(() =&gt; {
+    <span class="text-accent">if</span> (!isElectron()) <span class="text-accent">return</span>;
+    <span class="text-accent">return</span> onDeepLink((url) =&gt; {
+      <span class="text-accent">const</span> { host, pathname } = parse(url);
+      <span class="text-accent">if</span> (host === <span class="text-fg">"workspace"</span>) router.push(pathname);
+    });
+  }, [router]);
+}</pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="border-t border-line/60">
+      <div class="max-w-6xl mx-auto px-6 py-10 safe-bottom flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-sm text-muted">
+        <div class="flex items-center gap-3">
+          <img src="claudius.svg" alt="" class="h-5 w-5 invert opacity-60" />
+          <span class="font-mono">claudius / components</span>
+          <span class="hidden sm:inline">· a design reference for the app and the marketing surface</span>
+        </div>
+        <div class="flex items-center gap-6">
+          <a class="hover:text-fg" href="index.html">← Marketing</a>
+          <a class="hover:text-fg" href="https://github.com/filipegarcia/claudius">Source</a>
+          <span class="font-mono text-xs italic text-muted/70">scriptorium · veni vide refactora</span>
+        </div>
+      </div>
+    </footer>
+
+    <script>
+      (() => {
+        // AnimatedGlyph — mirror of components/nav/SideNav.tsx
+        const OLD_ITALIC = [
+          "\u{10300}","\u{10301}","\u{10302}","\u{10303}","\u{10304}",
+          "\u{10305}","\u{10306}","\u{10307}","\u{10308}","\u{10309}",
+          "\u{1030A}","\u{1030B}","\u{1030C}","\u{1030D}","\u{1030E}",
+          "\u{1030F}","\u{10310}","\u{10311}","\u{10312}","\u{10313}",
+          "\u{10314}","\u{10315}","\u{10316}","\u{10317}","\u{10318}",
+          "\u{10319}","\u{1031A}",
+        ];
+        const C_INDEX = 2;
+        const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+        const tileStates = new WeakMap();
+        function setTileState(tile, state) {
+          if (!tile) return;
+          tile.dataset.state = state;
+          tile.setAttribute("aria-busy", state === "idle" ? "false" : "true");
+          const prev = tileStates.get(tile);
+          if (prev?.intervalId) window.clearInterval(prev.intervalId);
+          if (state === "idle" || reduceMotion) {
+            const span = document.createElement("span");
+            span.className = "glyph";
+            span.textContent = OLD_ITALIC[C_INDEX];
+            tile.replaceChildren(span);
+            tileStates.set(tile, { intervalId: 0, i: C_INDEX });
+            return;
+          }
+          const cadence = state === "starting" ? 700 : 350;
+          let i = prev?.i ?? C_INDEX;
+          const tick = () => {
+            const span = document.createElement("span");
+            span.className = "glyph animate-glyph-fade";
+            span.textContent = OLD_ITALIC[i];
+            tile.replaceChildren(span);
+            i = (i + 1) % OLD_ITALIC.length;
+            const st = tileStates.get(tile);
+            if (st) st.i = i;
+          };
+          tick();
+          const intervalId = window.setInterval(tick, cadence);
+          tileStates.set(tile, { intervalId, i });
+        }
+
+        const heroTile = document.getElementById("hero-glyph");
+        const railTile = document.getElementById("rail-glyph");
+        const miniTiles = document.querySelectorAll("[data-mini-glyph]");
+        const readout = document.querySelector("[data-state-readout]");
+        miniTiles.forEach((t) => setTileState(t, t.dataset.state || "idle"));
+
+        function setHeroState(state) {
+          setTileState(heroTile, state);
+          setTileState(railTile, state);
+          if (readout) readout.textContent = state === "idle" ? "stopped" : state;
+          document.querySelectorAll("[data-state-btn]").forEach((btn) => {
+            const active = btn.dataset.stateBtn === state;
+            btn.setAttribute("aria-selected", active ? "true" : "false");
+            btn.classList.toggle("bg-bg", active);
+            btn.classList.toggle("text-fg", active);
+            btn.classList.toggle("ring-1", active);
+            btn.classList.toggle("ring-accent/40", active);
+          });
+        }
+        document.querySelectorAll("[data-state-btn]").forEach((btn) => {
+          btn.addEventListener("click", () => setHeroState(btn.dataset.stateBtn));
+        });
+        setHeroState("working");
+
+        // Old Italic atlas
+        const atlas = document.getElementById("glyph-atlas");
+        if (atlas) {
+          OLD_ITALIC.forEach((g, i) => {
+            const cell = document.createElement("span");
+            cell.className =
+              "inline-flex items-center justify-center w-9 h-9 rounded-md border border-line text-xl " +
+              (i === C_INDEX
+                ? "bg-accent/15 border-accent/50 text-accent"
+                : "bg-panel/60 text-fg/80");
+            cell.textContent = g;
+            cell.title = `U+${(0x10300 + i).toString(16).toUpperCase()}`;
+            atlas.appendChild(cell);
+          });
+        }
+
+        // Theme switcher
+        const demo = document.getElementById("theme-demo");
+        const themeLabel = document.querySelector("[data-theme-label]");
+        document.querySelectorAll(".theme-btn").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const theme = btn.dataset.theme;
+            demo.dataset.themeDemo = theme;
+            if (themeLabel) themeLabel.textContent = theme;
+            document.querySelectorAll(".theme-btn").forEach((b) => {
+              const on = b === btn;
+              b.classList.toggle("text-fg", on);
+              b.classList.toggle("text-muted", !on);
+              b.classList.toggle("bg-panel", on);
+              b.classList.toggle("bg-panel2", !on);
+              b.setAttribute("aria-selected", on ? "true" : "false");
+            });
+          });
+        });
+
+        // Streaming text
+        const streamHost = document.getElementById("streaming-line");
+        const restream = document.getElementById("restream");
+        const SENTENCE = "Reading lib/client/useDeepLinks.ts — narrowing the URL.host gap.";
+        let streamTimer = 0;
+        function stream() {
+          if (!streamHost) return;
+          window.clearTimeout(streamTimer);
+          streamHost.innerHTML = "";
+          if (reduceMotion) {
+            streamHost.textContent = SENTENCE;
+            return;
+          }
+          let i = 0;
+          const step = () => {
+            if (i >= SENTENCE.length) return;
+            const ch = SENTENCE[i++];
+            const span = document.createElement("span");
+            span.className = "animate-glyph-fade inline-block";
+            span.textContent = ch === " " ? " " : ch;
+            streamHost.appendChild(span);
+            streamTimer = window.setTimeout(step, 28);
+          };
+          step();
+        }
+        if (restream) restream.addEventListener("click", stream);
+        stream();
+      })();
+    </script>
+
+    <!-- Lucide CDN — auto-replaces every <i data-lucide="…"> placeholder. -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <script>
+      (() => {
+        if (window.lucide) window.lucide.createIcons();
+
+        // Live filter for the icons grid. Matches against the lowercased
+        // PascalCase name attached to each cell via data-icon-name.
+        const input = document.getElementById("icon-filter");
+        const cells = document.querySelectorAll(".icon-cell");
+        const cats = document.querySelectorAll("[data-icon-cat]");
+        const count = document.getElementById("icon-count");
+        const total = cells.length;
+        if (count) count.textContent = String(total);
+        if (input) {
+          input.addEventListener("input", () => {
+            const q = input.value.trim().toLowerCase();
+            let visible = 0;
+            cells.forEach((cell) => {
+              const name = cell.dataset.iconName || "";
+              const hit = !q || name.includes(q);
+              cell.classList.toggle("is-hidden", !hit);
+              if (hit) visible++;
+            });
+            // Hide a category when every cell inside is hidden.
+            cats.forEach((cat) => {
+              const anyVisible = cat.querySelector(".icon-cell:not(.is-hidden)") !== null;
+              cat.classList.toggle("is-hidden", !anyVisible);
+            });
+            if (count) count.textContent = `${visible} / ${total}`;
+          });
+        }
+      })();
+    </script>
+  </body>
+</html>

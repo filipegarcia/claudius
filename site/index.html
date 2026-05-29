@@ -1,0 +1,1393 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Claudius — Claude Code in the browser</title>
+    <meta
+      name="description"
+      content="Claude Code in your browser. Chat, tool calls, MCP, plugins, hooks, sub-agents, scheduling, memory, sessions, cost — all running locally on your machine."
+    />
+    <link rel="icon" type="image/svg+xml" href="icon.svg" />
+    <link rel="apple-touch-icon" href="apple-icon.png" />
+    <meta name="theme-color" content="#d97757" />
+    <meta property="og:title" content="Claudius — Claude Code in the browser" />
+    <meta
+      property="og:description"
+      content="Chat, sub-agents, MCP, plugins, hooks, scheduling, memory, cost — local-first, in your browser."
+    />
+    <meta property="og:image" content="screenshots/chat.png" />
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              bg: "#0b0b0c",
+              fg: "#e7e7ea",
+              panel: "#131316",
+              panel2: "#1a1a1f",
+              line: "#2a2a31",
+              muted: "#9a9aa3",
+              accent: "#d97757",
+            },
+            fontFamily: {
+              sans: [
+                "ui-sans-serif",
+                "system-ui",
+                "-apple-system",
+                "Segoe UI",
+                "Inter",
+                "sans-serif",
+              ],
+              mono: [
+                "ui-monospace",
+                "SFMono-Regular",
+                "Menlo",
+                "Monaco",
+                "Consolas",
+                "monospace",
+              ],
+            },
+          },
+        },
+      };
+    </script>
+
+    <style>
+      html {
+        scroll-behavior: smooth;
+        /* Background colour lives on <html> so the .site-bg layer can render
+           behind the body content via z-index: -1. */
+        background: #0b0b0c;
+      }
+      body {
+        background: transparent;
+        color: #e7e7ea;
+        font-feature-settings: "ss01", "cv11";
+      }
+      .grain::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        opacity: 0.04;
+        background-image:
+          radial-gradient(#fff 1px, transparent 1px),
+          radial-gradient(#fff 1px, transparent 1px);
+        background-size: 3px 3px, 7px 7px;
+        background-position: 0 0, 1px 2px;
+      }
+      .glow {
+        background:
+          radial-gradient(60% 50% at 50% 0%, rgba(217, 119, 87, 0.18), transparent 70%),
+          radial-gradient(40% 40% at 80% 30%, rgba(139, 155, 255, 0.10), transparent 70%);
+      }
+      .shot {
+        background: #0b0b0c;
+      }
+      .shot img {
+        display: block;
+      }
+
+      /* ───────── Animated background ─────────
+         A fixed layer behind every section: three soft, blurred orbs in
+         the accent palette drift on long cycles, and a faint grid pans
+         underneath them. Tuned to be present but never compete with the
+         content — opacities are low, durations are long (20-40s), and
+         transform-only animation keeps it on the GPU compositor.
+         Honours prefers-reduced-motion. */
+      .site-bg {
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+        pointer-events: none;
+        overflow: hidden;
+      }
+      .site-bg .orb {
+        position: absolute;
+        width: 55vmax;
+        height: 55vmax;
+        border-radius: 50%;
+        filter: blur(80px);
+        will-change: transform;
+      }
+      .site-bg .orb-1 {
+        top: -25%;
+        left: -15%;
+        opacity: 0.45;
+        background: radial-gradient(
+          circle,
+          rgba(217, 119, 87, 0.55),
+          transparent 60%
+        );
+        animation: orb1-drift 26s ease-in-out infinite alternate;
+      }
+      .site-bg .orb-2 {
+        bottom: -30%;
+        right: -20%;
+        opacity: 0.4;
+        background: radial-gradient(
+          circle,
+          rgba(139, 155, 255, 0.45),
+          transparent 60%
+        );
+        animation: orb2-drift 32s ease-in-out infinite alternate;
+      }
+      .site-bg .orb-3 {
+        top: 30%;
+        left: 35%;
+        width: 40vmax;
+        height: 40vmax;
+        opacity: 0.3;
+        background: radial-gradient(
+          circle,
+          rgba(217, 119, 87, 0.28),
+          transparent 60%
+        );
+        animation: orb3-drift 38s ease-in-out infinite;
+      }
+      .site-bg .bg-grid {
+        position: absolute;
+        inset: -2px;
+        background-image:
+          linear-gradient(rgba(231, 231, 234, 0.035) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(231, 231, 234, 0.035) 1px, transparent 1px);
+        background-size: 56px 56px;
+        -webkit-mask-image: radial-gradient(
+          ellipse at center,
+          rgba(0, 0, 0, 0.7),
+          transparent 75%
+        );
+        mask-image: radial-gradient(
+          ellipse at center,
+          rgba(0, 0, 0, 0.7),
+          transparent 75%
+        );
+        animation: grid-pan 60s linear infinite;
+      }
+      @keyframes orb1-drift {
+        0%   { transform: translate3d(0, 0, 0) scale(1); }
+        100% { transform: translate3d(18vw, 12vh, 0) scale(1.1); }
+      }
+      @keyframes orb2-drift {
+        0%   { transform: translate3d(0, 0, 0) scale(1); }
+        100% { transform: translate3d(-14vw, -10vh, 0) scale(1.15); }
+      }
+      @keyframes orb3-drift {
+        0%   { transform: translate3d(0, 0, 0) scale(0.9); }
+        50%  { transform: translate3d(-12vw, 8vh, 0) scale(1.1); }
+        100% { transform: translate3d(10vw, -6vh, 0) scale(0.95); }
+      }
+      @keyframes grid-pan {
+        0%   { background-position: 0 0; }
+        100% { background-position: 56px 56px; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .site-bg .orb,
+        .site-bg .bg-grid {
+          animation: none !important;
+        }
+      }
+      /* ───────── Phone tuning ─────────
+         iPhones (and most Androids) hit one or both of these media queries.
+         filter: blur() on a 55vmax element costs real frame budget on a
+         phone GPU; we trade some of that down for a smoother scroll. We
+         also drop the third orb and the panning grid — on a narrow viewport
+         they read as visual noise rather than depth. */
+      @media (max-width: 640px) {
+        .site-bg .orb {
+          filter: blur(48px);
+          width: 80vmax;
+          height: 80vmax;
+        }
+        .site-bg .orb-1 { opacity: 0.5; }
+        .site-bg .orb-2 { opacity: 0.42; }
+        .site-bg .orb-3,
+        .site-bg .bg-grid {
+          display: none;
+        }
+        /* Stop long unbreakable strings (curl URLs, branch names) from
+           forcing horizontal page scroll on a 390px viewport. */
+        .wrap-anywhere {
+          overflow-wrap: anywhere;
+          word-break: break-word;
+        }
+      }
+      /* Honour the iPhone's home-indicator / notch safe area on the
+         outer wrapper so the footer doesn't sit under the indicator. */
+      @supports (padding: max(0px)) {
+        .safe-bottom {
+          padding-bottom: max(3rem, env(safe-area-inset-bottom, 0px));
+        }
+      }
+    </style>
+  </head>
+
+  <body class="font-sans antialiased">
+    <!-- ────────────────────────── Animated backdrop ──────────────────────────
+         Fixed, pointer-events disabled, sitting at z-index: -1 behind every
+         section. See the .site-bg rules in the <style> block above for the
+         drift keyframes and reduced-motion fallback. -->
+    <div class="site-bg" aria-hidden="true">
+      <div class="orb orb-1"></div>
+      <div class="orb orb-2"></div>
+      <div class="orb orb-3"></div>
+      <div class="bg-grid"></div>
+    </div>
+
+    <!-- ────────────────────────────── Top bar ────────────────────────────── -->
+    <header class="sticky top-0 z-30 border-b border-line/60 backdrop-blur bg-bg/70">
+      <div class="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
+        <a href="#top" class="flex items-center gap-2 group">
+          <img src="claudius.svg" alt="" class="h-6 w-6" />
+          <span class="font-mono text-sm tracking-tight text-fg/90 group-hover:text-fg">claudius</span>
+        </a>
+        <nav class="flex items-center gap-4 sm:gap-6 text-sm text-muted">
+          <a href="#install" class="hover:text-fg">Install</a>
+          <a href="#features" class="hidden sm:inline hover:text-fg">Features</a>
+          <a href="#gallery" class="hidden sm:inline hover:text-fg">Screenshots</a>
+          <a href="#customize" class="hidden md:inline hover:text-fg">Customize</a>
+          <a href="components.html" class="hidden md:inline hover:text-fg">Components</a>
+          <a
+            href="https://github.com/filipegarcia/claudius"
+            class="hover:text-fg inline-flex items-center gap-1.5"
+          >
+            <span>Repo</span>
+            <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M7 17L17 7M17 7H8M17 7V16" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </a>
+        </nav>
+      </div>
+    </header>
+
+    <!-- ────────────────────────────── Hero ────────────────────────────── -->
+    <section id="top" class="relative overflow-hidden grain">
+      <div class="absolute inset-0 glow"></div>
+      <div class="relative max-w-6xl mx-auto px-6 pt-14 pb-16 sm:pt-20 sm:pb-24 text-center">
+        <div class="relative mx-auto mb-8 h-24 w-24 sm:h-28 sm:w-28">
+          <!-- Warm halo: a blurred radial wash sitting behind the bust so
+               the inverted linework doesn't read as a stark white sticker. -->
+          <div
+            class="absolute inset-0 -m-8 rounded-full bg-[radial-gradient(circle_at_center,rgba(217,119,87,0.35),rgba(217,119,87,0.10)_40%,transparent_70%)] blur-2xl"
+            aria-hidden="true"
+          ></div>
+          <img
+            src="claudius.svg"
+            alt="Claudius logo"
+            class="relative h-full w-full [filter:invert(1)_brightness(0.55)_drop-shadow(0_0_18px_rgba(217,119,87,0.45))_drop-shadow(0_0_50px_rgba(217,119,87,0.20))]"
+          />
+        </div>
+
+        <!-- Pseudo-imperial Latin flourish. Hover for the (loose) translation. -->
+        <blockquote
+          class="mb-10 font-mono text-[13px] leading-7 text-muted italic max-w-xl mx-auto cursor-help"
+          title="Hail Claudius, those about to code salute you. What the terminal closes, the browser opens. Come, see, refactor."
+        >
+          <span class="text-fg/80">“Ave Claudi, codicem morituri te salutant.</span><br />
+          Quod terminus claudit, fenestra aperit.<br />
+          Veni, vide, refactora.”
+        </blockquote>
+
+        <h1 class="text-[2.5rem] leading-[1.05] sm:text-5xl md:text-6xl font-semibold tracking-tight">
+          Roll your own <span class="text-accent">agent harness</span>.
+        </h1>
+        <p class="mt-6 text-lg md:text-xl text-muted max-w-2xl mx-auto leading-relaxed">
+          Chat, tool calls, MCP, plugins, hooks, sub-agents, scheduling,
+          memory, cost — every Claude Code surface, on the web. Runs on
+          your machine. Your sessions stay yours.
+        </p>
+        <div class="mt-10 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3">
+          <a
+            href="#install"
+            class="inline-flex items-center justify-center gap-2 rounded-md bg-accent px-5 py-3 sm:py-2.5 text-sm font-medium text-bg hover:brightness-110 transition"
+          >
+            Get started
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M5 12h14M13 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </a>
+          <a
+            href="#gallery"
+            class="inline-flex items-center justify-center gap-2 rounded-md border border-line bg-panel px-5 py-3 sm:py-2.5 text-sm font-medium text-fg hover:bg-panel2 transition"
+          >
+            See it in action
+          </a>
+        </div>
+        <div class="mt-8 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 font-mono text-xs text-muted/80 px-2">
+          <span class="italic text-muted/60" title="“let there be code” — a wink at fiat lux">fiat codex —</span>
+          <span class="wrap-anywhere min-w-0"><span class="text-accent">$</span> <span id="hero-cmd">curl -fsSL https://filipegarcia.github.io/claudius/setup.sh | bash</span></span>
+          <button
+            id="hero-copy"
+            type="button"
+            class="inline-flex items-center justify-center rounded p-1 text-muted hover:bg-panel2 hover:text-fg transition"
+            aria-label="Copy install command"
+            title="Copy"
+          >
+            <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+            <span class="sr-only">Copy</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ────────────────────────────── Install ────────────────────────────── -->
+    <section id="install" class="border-t border-line/60 scroll-mt-20">
+      <div class="max-w-6xl mx-auto px-6 py-14 sm:py-20">
+        <div class="max-w-2xl">
+          <p class="font-mono text-xs uppercase tracking-widest text-accent">Install</p>
+          <h2 class="mt-2 text-3xl md:text-4xl font-semibold tracking-tight">
+            One curl, then you're chatting.
+          </h2>
+          <p class="mt-4 text-muted leading-relaxed">
+            The script clones the repo into <code class="font-mono text-fg bg-panel2 px-1.5 py-0.5 rounded text-sm">~/claudius</code>,
+            runs <code class="font-mono text-fg bg-panel2 px-1.5 py-0.5 rounded text-sm">bun install</code>,
+            and prints the next steps. Re-running it pulls the latest commit on
+            <code class="font-mono text-fg bg-panel2 px-1.5 py-0.5 rounded text-sm">main</code>
+            and refreshes deps. Requires <code class="font-mono text-fg bg-panel2 px-1.5 py-0.5 rounded text-sm">git</code>;
+            <a href="https://bun.sh" class="text-fg underline-offset-2 hover:underline">Bun</a> auto-installs if missing.
+          </p>
+        </div>
+
+        <!-- One-liner -->
+        <div class="mt-10 rounded-lg border border-line bg-panel overflow-hidden">
+          <div class="flex items-stretch">
+            <pre class="flex-1 min-w-0 overflow-x-auto px-4 sm:px-5 py-4 font-mono text-[13px] sm:text-sm text-fg leading-6 whitespace-pre"><code id="install-cmd">curl -fsSL https://filipegarcia.github.io/claudius/setup.sh | bash</code></pre>
+            <button
+              id="install-copy"
+              type="button"
+              class="shrink-0 border-l border-line px-3 sm:px-4 text-xs font-mono uppercase tracking-wide text-muted hover:bg-panel2 hover:text-fg transition"
+              aria-label="Copy install command"
+            >Copy</button>
+          </div>
+          <div class="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-line/60 bg-panel2/50 px-5 py-2.5 text-xs text-muted">
+            <span class="font-mono text-accent">macOS · Linux</span>
+            <span aria-hidden="true">·</span>
+            <a href="./setup.sh" class="hover:text-fg underline-offset-2 hover:underline">View the script</a>
+            <span aria-hidden="true">·</span>
+            <a href="https://github.com/filipegarcia/claudius" class="hover:text-fg underline-offset-2 hover:underline">Read the source</a>
+          </div>
+        </div>
+
+        <!-- Side-by-side: options + manual -->
+        <div class="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- Options -->
+          <div class="rounded-lg border border-line bg-panel p-6">
+            <div class="font-mono text-xs text-accent">Options</div>
+            <h3 class="mt-2 text-lg font-medium">Customize the install</h3>
+            <p class="mt-2 text-sm text-muted leading-relaxed">
+              Pass flags after <code class="font-mono text-fg bg-panel2 px-1.5 py-0.5 rounded text-xs">--</code>
+              to change the destination, branch, or auto-start the dev server.
+            </p>
+            <pre class="mt-4 overflow-x-auto rounded-md bg-panel2 px-4 py-3 font-mono text-xs text-fg leading-6 whitespace-pre"><code>curl -fsSL https://filipegarcia.github.io/claudius/setup.sh \
+  | bash -s -- \
+      --prefix=$HOME/code/claudius \
+      --branch=main \
+      --start</code></pre>
+            <ul class="mt-4 space-y-1.5 text-xs text-muted leading-relaxed">
+              <li><code class="font-mono text-fg">--prefix=DIR</code> — install destination (default <code class="font-mono">~/claudius</code>)</li>
+              <li><code class="font-mono text-fg">--branch=BRANCH</code> — git branch (default <code class="font-mono">main</code>)</li>
+              <li><code class="font-mono text-fg">--no-install</code> — clone only, skip <code class="font-mono">bun install</code></li>
+              <li><code class="font-mono text-fg">--start</code> — run <code class="font-mono">bun run dev</code> after install</li>
+            </ul>
+          </div>
+
+          <!-- Audit-then-run / manual -->
+          <div class="rounded-lg border border-line bg-panel p-6">
+            <div class="font-mono text-xs text-accent">Prefer to read it first?</div>
+            <h3 class="mt-2 text-lg font-medium">Audit, then run</h3>
+            <p class="mt-2 text-sm text-muted leading-relaxed">
+              Piping <code class="font-mono text-fg bg-panel2 px-1.5 py-0.5 rounded text-xs">curl</code>
+              into <code class="font-mono text-fg bg-panel2 px-1.5 py-0.5 rounded text-xs">bash</code> is fine when you trust the source — but if you'd rather see what runs, save it locally first.
+            </p>
+            <pre class="mt-4 overflow-x-auto rounded-md bg-panel2 px-4 py-3 font-mono text-xs text-fg leading-6 whitespace-pre"><code>curl -fsSL https://filipegarcia.github.io/claudius/setup.sh \
+  -o setup.sh
+less setup.sh
+bash setup.sh --start    # runs bun run dev after</code></pre>
+            <p class="mt-4 text-xs text-muted leading-relaxed">
+              Or skip the script and clone it yourself:
+            </p>
+            <pre class="mt-2 overflow-x-auto rounded-md bg-panel2 px-4 py-3 font-mono text-xs text-fg leading-6 whitespace-pre"><code>git clone https://github.com/filipegarcia/claudius.git
+cd claudius
+bun install
+bun run dev      # http://localhost:3000</code></pre>
+          </div>
+        </div>
+
+        <!-- Keep it running -->
+        <div class="mt-12">
+          <div class="max-w-2xl">
+            <p class="font-mono text-xs uppercase tracking-widest text-accent">Keep it running</p>
+            <h3 class="mt-2 text-2xl md:text-3xl font-semibold tracking-tight">
+              A daemon for the production build.
+            </h3>
+            <p class="mt-3 text-muted leading-relaxed">
+              <code class="font-mono text-fg bg-panel2 px-1.5 py-0.5 rounded text-sm">bun run dev</code> is great while you're hacking. When you want Claudius up between shell sessions, <code class="font-mono text-fg bg-panel2 px-1.5 py-0.5 rounded text-sm">bin/claudiusd</code> wraps the production build with a small PID-file daemon — no PM2, no systemd, no Docker. Both modes auto-build the first time.
+            </p>
+          </div>
+
+          <div class="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Foreground -->
+            <div class="rounded-lg border border-line bg-panel p-6">
+              <div class="font-mono text-xs text-accent">Foreground</div>
+              <h4 class="mt-2 text-lg font-medium">Logs in your terminal</h4>
+              <p class="mt-2 text-sm text-muted leading-relaxed">
+                Best for "I want to see what it's doing." Streams logs to stdout, Ctrl-C stops it.
+              </p>
+              <pre class="mt-4 overflow-x-auto rounded-md bg-panel2 px-4 py-3 font-mono text-xs text-fg leading-6 whitespace-pre"><code>make run    # http://127.0.0.1:3000</code></pre>
+            </div>
+
+            <!-- Detached -->
+            <div class="rounded-lg border border-line bg-panel p-6">
+              <div class="font-mono text-xs text-accent">Detached</div>
+              <h4 class="mt-2 text-lg font-medium">Background, with log file</h4>
+              <p class="mt-2 text-sm text-muted leading-relaxed">
+                Survives the parent shell exiting. Logs append to <code class="font-mono text-fg bg-panel2 px-1.5 py-0.5 rounded text-xs">.claudius/logs/claudius.log</code>.
+              </p>
+              <pre class="mt-4 overflow-x-auto rounded-md bg-panel2 px-4 py-3 font-mono text-xs text-fg leading-6 whitespace-pre"><code>make up         # start
+make logs       # tail -F the log
+make status     # pid + last 10 lines
+make down       # SIGTERM (SIGKILL after 10s)
+make restart    # down + up</code></pre>
+            </div>
+          </div>
+
+          <div class="mt-6 rounded-lg border border-line bg-panel/40 p-5 text-sm text-muted leading-relaxed">
+            <span class="font-mono text-xs text-accent">Defaults</span>
+            <span class="ml-2">Binds to <code class="font-mono text-fg">127.0.0.1:3000</code> — Claudius drives the SDK with filesystem and tool access, so LAN exposure is opt-in. Override with env vars:</span>
+            <pre class="mt-3 overflow-x-auto rounded-md bg-panel2 px-4 py-3 font-mono text-xs text-fg leading-6 whitespace-pre"><code>PORT=8080 make up                  # different port, still loopback
+HOST=0.0.0.0 PORT=8080 make up     # reachable from your LAN (careful)</code></pre>
+          </div>
+
+          <div class="mt-4 rounded-lg border border-line bg-panel/40 p-5 text-sm text-muted leading-relaxed">
+            <span class="font-mono text-xs text-accent">Sandboxed</span>
+            <span class="ml-2">Want the agent's <code class="font-mono text-fg">Bash</code>, edits, dev servers, and MCP calls boxed in? Run Claudius inside a Docker container, devcontainer, or VM — the SDK spawns <code class="font-mono text-fg">claude</code> as a local subprocess, so keep Claudius and Claude in the same box, mount your workspace, and expose just <code class="font-mono text-fg">:3000</code> to your browser.</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ────────────────────────────── Features ────────────────────────────── -->
+    <section id="features" class="border-t border-line/60">
+      <div class="max-w-6xl mx-auto px-6 py-14 sm:py-20">
+        <div class="max-w-2xl">
+          <p class="font-mono text-xs uppercase tracking-widest text-accent">What's inside</p>
+          <h2 class="mt-2 text-3xl md:text-4xl font-semibold tracking-tight">
+            Every Claude Code surface, on the web.
+          </h2>
+          <p class="mt-4 text-muted leading-relaxed">
+            Claudius mirrors the TUI's session model and adds the views that
+            only make sense with a real screen: cost dashboards, file trees,
+            git operations, multi-workspace switching.
+          </p>
+        </div>
+
+        <div class="mt-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-px bg-line/60 border border-line/60 rounded-lg overflow-hidden">
+          <!-- card -->
+          <div class="bg-panel p-6">
+            <div class="font-mono text-xs text-accent">01 · chat</div>
+            <h3 class="mt-2 text-lg font-medium">Full agent chat</h3>
+            <p class="mt-2 text-sm text-muted leading-relaxed">
+              Streaming responses, tool calls, permissions UX, todos banner,
+              AskUserQuestion forms, interrupt — the lot.
+            </p>
+          </div>
+          <div class="bg-panel p-6">
+            <div class="font-mono text-xs text-accent">02 · workspaces</div>
+            <h3 class="mt-2 text-lg font-medium">Multiple workspaces</h3>
+            <p class="mt-2 text-sm text-muted leading-relaxed">
+              Switch project context without losing sessions, schedules, or
+              MCP config. Each workspace has its own SQLite store.
+            </p>
+          </div>
+          <div class="bg-panel p-6">
+            <div class="font-mono text-xs text-accent">03 · sub-agents</div>
+            <h3 class="mt-2 text-lg font-medium">Sub-agents</h3>
+            <p class="mt-2 text-sm text-muted leading-relaxed">
+              Define specialized agents with their own system prompts,
+              models, and tool sets. Launch them from chat.
+            </p>
+          </div>
+          <div class="bg-panel p-6">
+            <div class="font-mono text-xs text-accent">04 · mcp + plugins</div>
+            <h3 class="mt-2 text-lg font-medium">MCP &amp; plugins</h3>
+            <p class="mt-2 text-sm text-muted leading-relaxed">
+              First-class Model Context Protocol support and a plugin system
+              for extending the agent's tool surface.
+            </p>
+          </div>
+          <div class="bg-panel p-6">
+            <div class="font-mono text-xs text-accent">05 · hooks</div>
+            <h3 class="mt-2 text-lg font-medium">Lifecycle hooks</h3>
+            <p class="mt-2 text-sm text-muted leading-relaxed">
+              Run commands at any agent lifecycle event — pre-tool, post-tool,
+              session start, stop. Configurable per workspace.
+            </p>
+          </div>
+          <div class="bg-panel p-6">
+            <div class="font-mono text-xs text-accent">06 · schedule</div>
+            <h3 class="mt-2 text-lg font-medium">Scheduled agents</h3>
+            <p class="mt-2 text-sm text-muted leading-relaxed">
+              Cron-driven agent runs. Wake up at 9am, check the deploy,
+              file a ticket — without you having to be there.
+            </p>
+          </div>
+          <div class="bg-panel p-6">
+            <div class="font-mono text-xs text-accent">07 · cost</div>
+            <h3 class="mt-2 text-lg font-medium">Cost &amp; usage</h3>
+            <p class="mt-2 text-sm text-muted leading-relaxed">
+              Per-session, per-model, per-day spend. See where the tokens go
+              before the bill arrives.
+            </p>
+          </div>
+          <div class="bg-panel p-6">
+            <div class="font-mono text-xs text-accent">08 · git + files</div>
+            <h3 class="mt-2 text-lg font-medium">Git &amp; file tree</h3>
+            <p class="mt-2 text-sm text-muted leading-relaxed">
+              In-app file browser and git operations: stage, diff, commit,
+              with AI-drafted commit messages.
+            </p>
+          </div>
+          <div class="bg-panel p-6">
+            <div class="font-mono text-xs text-accent">09 · local-first</div>
+            <h3 class="mt-2 text-lg font-medium">Local-first storage</h3>
+            <p class="mt-2 text-sm text-muted leading-relaxed">
+              Sessions, schedules, assets — all persisted on your machine.
+              No cloud lock-in, no SaaS account required.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ────────────────────────────── Gallery ────────────────────────────── -->
+    <section id="gallery" class="border-t border-line/60 bg-panel/30">
+      <div class="max-w-6xl mx-auto px-6 py-14 sm:py-20">
+        <div class="max-w-2xl">
+          <p class="font-mono text-xs uppercase tracking-widest text-accent">Screenshots</p>
+          <h2 class="mt-2 text-3xl md:text-4xl font-semibold tracking-tight">
+            See it in action.
+          </h2>
+          <p class="mt-4 text-muted leading-relaxed">
+            Live shots from a running Claudius instance — captured by the
+            Playwright suite. Run <code class="font-mono text-fg bg-panel2 px-1.5 py-0.5 rounded text-sm">make screenshots</code>
+            to refresh.
+          </p>
+        </div>
+
+        <div class="mt-12 grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- 1 chat -->
+          <figure class="shot group rounded-lg border border-line overflow-hidden cursor-zoom-in hover:border-accent/70 transition-colors" role="button" tabindex="0">
+            <img
+              src="screenshots/chat.png"
+              alt="Chat surface"
+              loading="lazy"
+              onerror="this.onerror=null;this.src='screenshots/_placeholder.svg'"
+            />
+            <figcaption class="px-5 py-4 border-t border-line">
+              <div class="font-mono text-xs text-accent">/</div>
+              <div class="text-sm text-fg">Just talk. Claude streams its replies in real time, calls tools as it goes, and asks before doing anything risky.</div>
+            </figcaption>
+          </figure>
+
+          <!-- 2 todos -->
+          <figure class="shot group rounded-lg border border-line overflow-hidden cursor-zoom-in hover:border-accent/70 transition-colors" role="button" tabindex="0">
+            <img
+              src="screenshots/todos.png"
+              alt="Todos banner"
+              loading="lazy"
+              onerror="this.onerror=null;this.src='screenshots/_placeholder.svg'"
+            />
+            <figcaption class="px-5 py-4 border-t border-line">
+              <div class="font-mono text-xs text-accent">/ · todos</div>
+              <div class="text-sm text-fg">Keep an eye on open tasks. When the agent picks up a multi-step plan, the banner shows what's done, what's next, and what's still pending.</div>
+            </figcaption>
+          </figure>
+
+          <!-- 3 ask user question -->
+          <figure class="shot group rounded-lg border border-line overflow-hidden cursor-zoom-in hover:border-accent/70 transition-colors" role="button" tabindex="0">
+            <img
+              src="screenshots/ask-user-question.png"
+              alt="AskUserQuestion form"
+              loading="lazy"
+              onerror="this.onerror=null;this.src='screenshots/_placeholder.svg'"
+            />
+            <figcaption class="px-5 py-4 border-t border-line">
+              <div class="font-mono text-xs text-accent">/ · ask</div>
+              <div class="text-sm text-fg">When Claude needs a decision from you, it asks — with proper options. You pick, and it carries on.</div>
+            </figcaption>
+          </figure>
+
+          <!-- 4 sessions -->
+          <figure class="shot group rounded-lg border border-line overflow-hidden cursor-zoom-in hover:border-accent/70 transition-colors" role="button" tabindex="0">
+            <img
+              src="screenshots/sessions.png"
+              alt="Sessions history"
+              loading="lazy"
+              onerror="this.onerror=null;this.src='screenshots/_placeholder.svg'"
+            />
+            <figcaption class="px-5 py-4 border-t border-line">
+              <div class="font-mono text-xs text-accent">/sessions</div>
+              <div class="text-sm text-fg">Every chat is kept. Pick up something from yesterday, search across last month, or start fresh — your call.</div>
+            </figcaption>
+          </figure>
+
+          <!-- 5 skills -->
+          <figure class="shot group rounded-lg border border-line overflow-hidden cursor-zoom-in hover:border-accent/70 transition-colors" role="button" tabindex="0">
+            <img
+              src="screenshots/skills.png"
+              alt="Skills editor"
+              loading="lazy"
+              onerror="this.onerror=null;this.src='screenshots/_placeholder.svg'"
+            />
+            <figcaption class="px-5 py-4 border-t border-line">
+              <div class="font-mono text-xs text-accent">/skills</div>
+              <div class="text-sm text-fg">Teach Claude tricks for your project. Skills are short, opinionated playbooks Claude can call up when the moment is right — write them once, reuse forever.</div>
+            </figcaption>
+          </figure>
+
+          <!-- 6 agents -->
+          <figure class="shot group rounded-lg border border-line overflow-hidden cursor-zoom-in hover:border-accent/70 transition-colors" role="button" tabindex="0">
+            <img
+              src="screenshots/agents.png"
+              alt="Sub-agents config"
+              loading="lazy"
+              onerror="this.onerror=null;this.src='screenshots/_placeholder.svg'"
+            />
+            <figcaption class="px-5 py-4 border-t border-line">
+              <div class="font-mono text-xs text-accent">/agents</div>
+              <div class="text-sm text-fg">Build little specialists. A reviewer, a planner, a debugger — each with their own brief, and Claude knows when to call them in.</div>
+            </figcaption>
+          </figure>
+
+          <!-- 6 mcp -->
+          <figure class="shot group rounded-lg border border-line overflow-hidden cursor-zoom-in hover:border-accent/70 transition-colors" role="button" tabindex="0">
+            <img
+              src="screenshots/mcp.png"
+              alt="MCP servers"
+              loading="lazy"
+              onerror="this.onerror=null;this.src='screenshots/_placeholder.svg'"
+            />
+            <figcaption class="px-5 py-4 border-t border-line">
+              <div class="font-mono text-xs text-accent">/mcp</div>
+              <div class="text-sm text-fg">Plug in tools. Drop in your favorite MCP servers, see them light up green when they connect, and Claude starts using them.</div>
+            </figcaption>
+          </figure>
+
+          <!-- plugins -->
+          <figure class="shot group rounded-lg border border-line overflow-hidden cursor-zoom-in hover:border-accent/70 transition-colors" role="button" tabindex="0">
+            <img
+              src="screenshots/plugins.png"
+              alt="Plugins page"
+              loading="lazy"
+              onerror="this.onerror=null;this.src='screenshots/_placeholder.svg'"
+            />
+            <figcaption class="px-5 py-4 border-t border-line">
+              <div class="font-mono text-xs text-accent">/plugins</div>
+              <div class="text-sm text-fg">Install community plugins straight from the page. Browse what's loaded, toggle them per scope, and pull new ones from any marketplace you trust.</div>
+            </figcaption>
+          </figure>
+
+          <!-- 7 cost -->
+          <figure class="shot group rounded-lg border border-line overflow-hidden cursor-zoom-in hover:border-accent/70 transition-colors" role="button" tabindex="0">
+            <img
+              src="screenshots/cost.png"
+              alt="Cost dashboard"
+              loading="lazy"
+              onerror="this.onerror=null;this.src='screenshots/_placeholder.svg'"
+            />
+            <figcaption class="px-5 py-4 border-t border-line">
+              <div class="font-mono text-xs text-accent">/cost</div>
+              <div class="text-sm text-fg">Know what you're spending. Per session, per model, per day — long before the bill arrives.</div>
+            </figcaption>
+          </figure>
+
+          <!-- 8 git -->
+          <figure class="shot group rounded-lg border border-line overflow-hidden cursor-zoom-in hover:border-accent/70 transition-colors" role="button" tabindex="0">
+            <img
+              src="screenshots/git.png"
+              alt="Git view"
+              loading="lazy"
+              onerror="this.onerror=null;this.src='screenshots/_placeholder.svg'"
+            />
+            <figcaption class="px-5 py-4 border-t border-line">
+              <div class="font-mono text-xs text-accent">/git</div>
+              <div class="text-sm text-fg">Stage, diff, commit — without leaving the page. Stuck on what to write? Claude will draft the commit message for you.</div>
+            </figcaption>
+          </figure>
+
+          <!-- 9 files -->
+          <figure class="shot group rounded-lg border border-line overflow-hidden cursor-zoom-in hover:border-accent/70 transition-colors" role="button" tabindex="0">
+            <img
+              src="screenshots/files.png"
+              alt="File browser"
+              loading="lazy"
+              onerror="this.onerror=null;this.src='screenshots/_placeholder.svg'"
+            />
+            <figcaption class="px-5 py-4 border-t border-line">
+              <div class="font-mono text-xs text-accent">/files</div>
+              <div class="text-sm text-fg">Browse the project Claude is working in. Same tree it sees, with quick previews — handy when you want to double-check.</div>
+            </figcaption>
+          </figure>
+
+          <!-- 10 workspace -->
+          <figure class="shot group rounded-lg border border-line overflow-hidden cursor-zoom-in hover:border-accent/70 transition-colors" role="button" tabindex="0">
+            <img
+              src="screenshots/workspace.png"
+              alt="Workspace switcher"
+              loading="lazy"
+              onerror="this.onerror=null;this.src='screenshots/_placeholder.svg'"
+            />
+            <figcaption class="px-5 py-4 border-t border-line">
+              <div class="font-mono text-xs text-accent">/workspace</div>
+              <div class="text-sm text-fg">One Claudius, many projects. Switch — and your sessions, schedules, and settings follow you in.</div>
+            </figcaption>
+          </figure>
+
+          <!-- 11 community -->
+          <figure class="shot group rounded-lg border border-line overflow-hidden cursor-zoom-in hover:border-accent/70 transition-colors" role="button" tabindex="0">
+            <img
+              src="screenshots/community.png"
+              alt="Community chat"
+              loading="lazy"
+              onerror="this.onerror=null;this.src='screenshots/_placeholder.svg'"
+            />
+            <figcaption class="px-5 py-4 border-t border-line">
+              <div class="font-mono text-xs text-accent">/community</div>
+              <div class="text-sm text-fg">A shared room for everyone running Claudius. Ask, share what you built, get notified when there's a reply. Bring your own server — institutions can host their own and point Claudius at it.</div>
+            </figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <!-- ────────────────────────────── One more thing ────────────────────────────── -->
+    <section id="meta" class="relative overflow-hidden border-t border-line/60">
+      <!-- Soft radial glow behind the headline so the section feels like a reveal. -->
+      <div class="pointer-events-none absolute inset-0">
+        <div
+          class="absolute -top-32 left-1/2 h-[640px] w-[960px] -translate-x-1/2 rounded-full blur-3xl"
+          style="background: radial-gradient(ellipse at center, rgba(217, 119, 87, 0.18), transparent 60%);"
+        ></div>
+      </div>
+
+      <div class="relative max-w-5xl mx-auto px-6 py-20 sm:py-28 text-center">
+        <h2 class="font-semibold tracking-tight text-4xl sm:text-5xl md:text-7xl lg:text-[5.5rem] leading-[1.05]">
+          One more thing<span class="text-accent">&hellip;</span>
+        </h2>
+        <p class="mt-6 text-xl sm:text-2xl md:text-3xl font-medium text-fg/90">
+          Build your own <span class="text-accent">features</span>, right in the app.
+        </p>
+        <p class="mx-auto mt-6 max-w-2xl text-base md:text-lg text-muted leading-relaxed">
+          The agent you&rsquo;re chatting with has the whole Claudius codebase
+          on the other end. Want a new page, a keyboard shortcut, a widget in
+          the activity rail? Just ask. The code is local, the agent has the
+          tools &mdash; Claudius edits itself.
+        </p>
+
+        <!-- Mock chat: the meta loop, cycling through 40 plausible asks.
+             The outer card stays stable (border, glow, padding); only the
+             inner #meta-content fades on each cycle so the whole box
+             doesn't flicker on every swap. -->
+        <div
+          id="meta-mock"
+          class="mx-auto mt-12 max-w-2xl rounded-lg border border-line bg-panel/60 p-5 text-left font-mono text-sm leading-6 shadow-[0_24px_60px_-24px_rgba(0,0,0,0.6)]"
+        >
+          <div id="meta-content" class="transition-opacity duration-300">
+            <div class="mb-1 text-[10px] uppercase tracking-wider text-muted/70">you · in chat</div>
+            <div id="meta-ask" class="text-fg min-h-[3rem] wrap-anywhere"></div>
+            <div class="mt-4 mb-1 text-[10px] uppercase tracking-wider text-muted/70">claudius · <span id="meta-elapsed">~90s</span> later</div>
+            <div class="text-fg flex flex-wrap items-baseline gap-x-1.5 wrap-anywhere">
+              <span class="text-accent">opened preview</span>
+              <span id="meta-branch"></span>
+              <span class="text-muted">&middot; <span id="meta-files">4</span> files &middot; ready to review</span>
+            </div>
+          </div>
+        </div>
+
+        <p class="mx-auto mt-10 max-w-xl text-sm text-muted/80">
+          Your turn. Start your own
+          <a href="#customize" class="text-fg underline-offset-2 hover:underline">customization</a>
+          &mdash; hit <span class="text-fg">New customization</span>, ask the agent for
+          whatever you want, preview, publish.
+        </p>
+      </div>
+
+      <script>
+        // Forty plausible asks. Each becomes a `feat/<slug>` branch, with a
+        // hand-tuned file count and turn duration so the loop feels like
+        // real chat traffic instead of a stock ticker.
+        const META_FEATURES = [
+          ["play YouTube videos while Claude Code is working", "feat/youtube-while-coding", 5, "~2m"],
+          ["integrate my pipeline directly in the chat window", "feat/pipeline-inline", 7, "~3m"],
+          ["render the game I'm building in the browser window", "feat/inline-game-preview", 6, "~3m"],
+          ["add a /standup page that lists yesterday's commits and today's open todos", "feat/standup-page", 4, "~90s"],
+          ["add a 'snooze for 1 hour' button on the cap-breach banner", "feat/cap-snooze", 2, "~40s"],
+          ["add a cmd-shift-k shortcut for the workspace switcher", "feat/workspace-shortcut", 3, "~55s"],
+          ["add a dark/light toggle to the activity rail header", "feat/rail-theme-toggle", 2, "~35s"],
+          ["show a token-cost preview on the prompt input before I send", "feat/prompt-cost-preview", 5, "~2m"],
+          ["add an export-as-markdown action to the sessions list", "feat/sessions-md-export", 4, "~80s"],
+          ["add a 'duplicate session' action that forks at the latest message", "feat/session-duplicate", 3, "~70s"],
+          ["add a syntax-highlighted code preview to the file browser", "feat/files-syntax-preview", 6, "~3m"],
+          ["add a 'pin to top' toggle on session tabs", "feat/tabs-pin", 3, "~60s"],
+          ["add a /releases page that summarizes my git tags", "feat/releases-page", 5, "~2m"],
+          ["add an MCP-server health pinger that runs every 60 seconds", "feat/mcp-healthcheck", 7, "~3m"],
+          ["add a per-workspace cost cap with a warning at 80%", "feat/workspace-cap", 6, "~3m"],
+          ["add an emoji reaction on assistant messages", "feat/message-reactions", 4, "~90s"],
+          ["add a JSON viewer for tool input/output blocks", "feat/json-viewer", 3, "~75s"],
+          ["add a side-by-side compare view for two sessions", "feat/sessions-compare", 8, "~4m"],
+          ["add a sparkline next to each session showing turn frequency", "feat/session-sparkline", 4, "~2m"],
+          ["add a 'share read-only link' that exports a session as static HTML", "feat/session-share", 6, "~3m"],
+          ["add a clipboard history that captures every Bash stdout", "feat/bash-clipboard", 5, "~2m"],
+          ["add a 'what changed in this directory today' widget", "feat/dir-changes-widget", 4, "~90s"],
+          ["add a /todos page that aggregates open todos across every session", "feat/todos-aggregate", 5, "~2m"],
+          ["add a per-tool latency chart on the cost page", "feat/cost-latency-chart", 5, "~2m"],
+          ["add a 'narrate aloud' toggle that reads responses via TTS", "feat/tts-narration", 3, "~80s"],
+          ["add a 'save as skill' button on any conversation", "feat/save-as-skill", 4, "~2m"],
+          ["add permission-mode hotkeys (alt-1, alt-2, alt-3)", "feat/perm-hotkeys", 2, "~45s"],
+          ["add a cmd-/ shortcut for transcript search", "feat/search-shortcut", 2, "~40s"],
+          ["add a 'tui-phosphor' theme with amber-on-black terminal feel", "feat/theme-phosphor", 3, "~60s"],
+          ["add a hover preview for file paths in tool calls", "feat/path-preview", 3, "~70s"],
+          ["add a 'git blame this line' action in the file viewer", "feat/git-blame", 5, "~2m"],
+          ["add a /focus mode that hides the nav and rail", "feat/focus-mode", 3, "~75s"],
+          ["add a per-agent run history with cost totals", "feat/agent-history", 6, "~3m"],
+          ["add an 'auto-commit after passing tests' workflow", "feat/auto-commit", 5, "~2m"],
+          ["add a 'tools used this turn' inline widget", "feat/turn-tools-inline", 3, "~90s"],
+          ["add a /flake page that surfaces tests with intermittent failures", "feat/flake-page", 6, "~3m"],
+          ["add a draggable divider to resize the activity rail", "feat/rail-resize", 3, "~80s"],
+          ["add a 'remind me in 24h' action on schedule entries", "feat/schedule-remind", 4, "~90s"],
+          ["add a JSONL exporter for session transcripts", "feat/jsonl-export", 3, "~70s"],
+          ["add a /streak page tracking consecutive days I've coded", "feat/streak-page", 4, "~2m"],
+          ["add a rotating greeting in the empty chat state", "feat/empty-state-greeting", 2, "~50s"],
+          ["add a cmd-shift-s overlay that summarizes the current session", "feat/summary-overlay", 4, "~2m"],
+          ["add a per-MCP-server log viewer with level filters", "feat/mcp-logs", 6, "~3m"],
+        ];
+
+        (() => {
+          const card = document.getElementById("meta-mock");
+          // `content` is the inner div that actually fades — the card
+          // itself (border, background, glow) stays put so only the
+          // chat text flickers on each cycle, not the whole box.
+          const content = document.getElementById("meta-content");
+          const askEl = document.getElementById("meta-ask");
+          const branchEl = document.getElementById("meta-branch");
+          const filesEl = document.getElementById("meta-files");
+          const elapsedEl = document.getElementById("meta-elapsed");
+          if (!card || !content || !askEl || !branchEl || !filesEl || !elapsedEl) return;
+
+          let idx = 0;
+          let timer = null;
+          let active = false;
+          // First three asks (YouTube, pipeline, game) play in order so the
+          // hook lands. After we've shown them, the queue empties and the
+          // loop falls through to random selection across all 40.
+          const orderedQueue = [1, 2];
+
+          function paint(i) {
+            const [ask, branch, files, elapsed] = META_FEATURES[i];
+            // Highlight any /slug-style command in the ask in accent color.
+            askEl.innerHTML = ask.replace(
+              /(\/[\w-]+)/g,
+              '<span class="text-accent">$1</span>',
+            );
+            branchEl.textContent = branch;
+            filesEl.textContent = String(files);
+            elapsedEl.textContent = elapsed;
+          }
+
+          function step() {
+            if (!active) return;
+            let n;
+            if (orderedQueue.length > 0) {
+              // Walk the ordered hook list first.
+              n = orderedQueue.shift();
+            } else {
+              // Then pick at random — never repeat what's currently shown.
+              do {
+                n = Math.floor(Math.random() * META_FEATURES.length);
+              } while (n === idx && META_FEATURES.length > 1);
+            }
+            idx = n;
+            // Crossfade only the inner text — the surrounding card stays
+            // visually stable so the layout doesn't pulse on every swap.
+            content.style.opacity = "0";
+            setTimeout(() => {
+              paint(idx);
+              content.style.opacity = "1";
+            }, 280);
+            // Random interval between 1.5s and 5s for the next change.
+            const wait = 1500 + Math.random() * 3500;
+            timer = setTimeout(step, wait);
+          }
+
+          // Initial paint shows the first ask without a fade — that's the
+          // hook line ("play YouTube videos while Claude Code is working").
+          // The cycle only starts when the user scrolls the section into
+          // view, so the hook is what they see on first arrival.
+          paint(0);
+          content.style.opacity = "1";
+
+          if (typeof IntersectionObserver === "function") {
+            const obs = new IntersectionObserver(
+              ([entry]) => {
+                if (entry.isIntersecting && !active) {
+                  active = true;
+                  // Small delay so the user reads the hook line before it
+                  // starts moving.
+                  timer = setTimeout(step, 1800);
+                } else if (!entry.isIntersecting && active) {
+                  active = false;
+                  if (timer) {
+                    clearTimeout(timer);
+                    timer = null;
+                  }
+                }
+              },
+              { threshold: 0.25 },
+            );
+            obs.observe(card);
+          } else {
+            // No IO support → just start cycling.
+            active = true;
+            timer = setTimeout(step, 1800);
+          }
+        })();
+      </script>
+    </section>
+
+    <!-- ────────────────────────────── Customize ────────────────────────────── -->
+    <section id="customize" class="border-t border-line/60">
+      <div class="max-w-6xl mx-auto px-6 py-14 sm:py-20">
+        <div class="max-w-2xl">
+          <p class="font-mono text-xs uppercase tracking-widest text-accent">Customize</p>
+          <h2 class="mt-2 text-3xl md:text-4xl font-semibold tracking-tight">
+            Edit Claudius from inside Claudius.
+          </h2>
+          <p class="mt-4 text-muted leading-relaxed">
+            Hit <code class="font-mono text-fg bg-panel2 px-1.5 py-0.5 rounded text-sm">New customization</code>
+            and Claudius mirrors its own source into a private folder, opens a
+            workspace pointing there, and auto-spawns a preview on a separate
+            port. Chat with the agent like normal &mdash; it edits the mirror,
+            not the running app. When you&rsquo;re happy, hit
+            <span class="text-fg">Publish</span>. If anything breaks, hit
+            <span class="text-fg">Revert</span> &mdash; or run
+            <code class="font-mono text-fg bg-panel2 px-1.5 py-0.5 rounded text-sm">make claudius-revert</code>
+            from a terminal if the UI itself is broken.
+          </p>
+        </div>
+
+        <!-- Top row: management page + the drawer (closed / open) -->
+        <div class="mt-12 grid grid-cols-1 md:grid-cols-2 gap-6">
+          <figure class="shot group rounded-lg border border-line overflow-hidden cursor-zoom-in hover:border-accent/70 transition-colors md:col-span-2" role="button" tabindex="0">
+            <img
+              src="screenshots/customize-list.png"
+              alt="The /customize management page"
+              loading="lazy"
+              onerror="this.onerror=null;this.src='screenshots/_placeholder.svg'"
+            />
+            <figcaption class="px-5 py-4 border-t border-line">
+              <div class="font-mono text-xs text-accent">/customize</div>
+              <div class="text-sm text-fg">One page lists every customization you&rsquo;ve started. Toggle one on, open its workspace, or wipe it &mdash; snapshots make every publish reversible.</div>
+            </figcaption>
+          </figure>
+
+          <figure class="shot group rounded-lg border border-line overflow-hidden cursor-zoom-in hover:border-accent/70 transition-colors" role="button" tabindex="0">
+            <img
+              src="screenshots/customize-drawer-closed.png"
+              alt="Workspace switcher with the customizations drawer (closed)"
+              loading="lazy"
+              onerror="this.onerror=null;this.src='screenshots/_placeholder.svg'"
+            />
+            <figcaption class="px-5 py-4 border-t border-line">
+              <div class="font-mono text-xs text-accent">/customize</div>
+              <div class="text-sm text-fg">All your customizations collapse into one wand tile in the rail, with a count badge. The rail stays clean even with a dozen on the go.</div>
+            </figcaption>
+          </figure>
+
+          <figure class="shot group rounded-lg border border-line overflow-hidden cursor-zoom-in hover:border-accent/70 transition-colors" role="button" tabindex="0">
+            <img
+              src="screenshots/customize-drawer-open.png"
+              alt="Workspace switcher with the customizations drawer (open)"
+              loading="lazy"
+              onerror="this.onerror=null;this.src='screenshots/_placeholder.svg'"
+            />
+            <figcaption class="px-5 py-4 border-t border-line">
+              <div class="font-mono text-xs text-accent">/customize</div>
+              <div class="text-sm text-fg">Click it and the most-recently-opened customizations spill out. Jump between them; chat history and sessions stay scoped to each one.</div>
+            </figcaption>
+          </figure>
+        </div>
+
+        <!-- Showcase: nine demos built in an afternoon -->
+        <div class="mt-20 max-w-2xl">
+          <p class="font-mono text-xs uppercase tracking-widest text-accent">Nine demos, one afternoon</p>
+          <h3 class="mt-2 text-2xl md:text-3xl font-semibold tracking-tight">
+            Ship a SQL console. Or ship Clippy.
+          </h3>
+          <p class="mt-4 text-muted leading-relaxed">
+            A DataGrip-style SQL console, a Jupyter notebook runner, a live
+            DAG dashboard, a Docker monitor, a synthwave repaint, a DOOM-themed
+            Cost page, a Minecraft parkour clip next to the thinking block, the
+            Konami code, a paperclip mascot &mdash; all built by asking the
+            agent. Each lives in its own mirror, toggle on, toggle off,
+            independent of the others.
+          </p>
+        </div>
+
+        <div class="mt-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <!-- Data Pipeline · hero (full-width, animated graph) -->
+          <figure class="shot group rounded-lg border border-line overflow-hidden cursor-zoom-in hover:border-accent/70 transition-colors md:col-span-2 lg:col-span-3" role="button" tabindex="0">
+            <img
+              src="screenshots/customization-pipeline-graph.png"
+              alt="A live data-pipeline DAG: source nodes (App events, Postgres CDC, S3 dropfiles) feed Stream ingest, which lands in Bronze, fans out to dbt and Silver, then to Gold marts and a (failing) Feature store — each node card shows throughput, p95 latency, and a colored sparkline; edges are gradient curves with throughput labels"
+              loading="lazy"
+              onerror="this.onerror=null;this.src='screenshots/_placeholder.svg'"
+            />
+            <figcaption class="px-5 py-4 border-t border-line">
+              <div class="font-mono text-xs text-accent">cust · Build a data pipeline</div>
+              <div class="text-sm text-fg">A new <code class="font-mono text-xs">/pipeline</code> route &mdash; full DAG observability in your browser. Nine stages from Kafka to Feature store, gradient-curve edges with throughput labels, per-node sparklines, p95 latency, and a run-history strip showing the last 24 runs as green/amber/red chips. The failing stage glows red &mdash; you spot it before the on-call gets paged.</div>
+            </figcaption>
+          </figure>
+
+          <!-- Database Console -->
+          <figure class="shot group rounded-lg border border-line overflow-hidden cursor-zoom-in hover:border-accent/70 transition-colors" role="button" tabindex="0">
+            <img
+              src="screenshots/customization-database.png"
+              alt="A DataGrip-style SQL console inside Claudius: tab strip across the top with four open consoles (screening, staging-front, a python file, and the active api@localhost tab), a syntax-highlighted SQL editor on the left with line numbers, comments in muted gray, table names in subtle underline, strings in green, and a red wavy underline on a misspelled identifier; a database tree on the right shows Localhost → api@localhost (active) with api and Server Objects, plus risk-api, screening, PROD, Staging, Demo, Clickhouse and Prod DL connections"
+              loading="lazy"
+              onerror="this.onerror=null;this.src='screenshots/_placeholder.svg'"
+            />
+            <figcaption class="px-5 py-4 border-t border-line">
+              <div class="font-mono text-xs text-accent">cust · Database Console</div>
+              <div class="text-sm text-fg">A new <code class="font-mono text-xs">/database</code> route &mdash; a JetBrains-DataGrip-style SQL console without the JetBrains. Multi-tab editor, real SQL syntax highlighting, error/warning gutter, a tree of every Postgres + Clickhouse connection in the org, and a transaction-mode picker that means it. Stop alt-tabbing.</div>
+            </figcaption>
+          </figure>
+
+          <!-- Notebooks -->
+          <figure class="shot group rounded-lg border border-line overflow-hidden cursor-zoom-in hover:border-accent/70 transition-colors" role="button" tabindex="0">
+            <img
+              src="screenshots/customization-notebooks.png"
+              alt="A Jupyter-style notebook running inside Claudius: file tree on the left listing four .ipynb files and a src/ folder; an open notebook on the right titled 'Signal exploration · Q2 backfill' with a markdown intro, then a code cell loading a pandas DataFrame with a small results table, a second code cell dropping retry rows with a stdout line, a matplotlib-style area+line plot of mean signal score by hour, and a currently-running IsolationForest cell marked '[*]' with a pulsing accent border"
+              loading="lazy"
+              onerror="this.onerror=null;this.src='screenshots/_placeholder.svg'"
+            />
+            <figcaption class="px-5 py-4 border-t border-line">
+              <div class="font-mono text-xs text-accent">cust · Notebooks</div>
+              <div class="text-sm text-fg">A new <code class="font-mono text-xs">/notebooks</code> route &mdash; run <code class="font-mono text-xs">.ipynb</code> files right in Claudius. Code cells with Python syntax highlighting, pandas tables, matplotlib plots, running-cell indicator, kernel status, and an AI-assist pill so the agent can rewrite the cell you're stuck on without leaving the workbench.</div>
+            </figcaption>
+          </figure>
+
+          <!-- Clippy -->
+          <figure class="shot group rounded-lg border border-line overflow-hidden cursor-zoom-in hover:border-accent/70 transition-colors" role="button" tabindex="0">
+            <img
+              src="screenshots/customization-clippy.png"
+              alt="Clippy mascot floating in the bottom-right with a context-aware tooltip"
+              loading="lazy"
+              onerror="this.onerror=null;this.src='screenshots/_placeholder.svg'"
+            />
+            <figcaption class="px-5 py-4 border-t border-line">
+              <div class="font-mono text-xs text-accent">cust · Clippy</div>
+              <div class="text-sm text-fg">A paperclip mascot with route-aware speech bubbles. &ldquo;It looks like you&rsquo;re writing a prompt!&rdquo; Yes. Yes it does.</div>
+            </figcaption>
+          </figure>
+
+          <!-- DOOM HUD -->
+          <figure class="shot group rounded-lg border border-line overflow-hidden cursor-zoom-in hover:border-accent/70 transition-colors" role="button" tabindex="0">
+            <img
+              src="screenshots/customization-doom-hud.png"
+              alt="The Cost page reskinned as a DOOM status bar with AMMO, HEALTH, ARMS and a pixel DOOMguy face"
+              loading="lazy"
+              onerror="this.onerror=null;this.src='screenshots/_placeholder.svg'"
+            />
+            <figcaption class="px-5 py-4 border-t border-line">
+              <div class="font-mono text-xs text-accent">cust · DOOM HUD</div>
+              <div class="text-sm text-fg">The Cost page becomes a 1993 DOOM HUD. Tokens are ammo, budget is health, the pixel face bloodies up as the day&rsquo;s spend climbs.</div>
+            </figcaption>
+          </figure>
+
+          <!-- Synthwave -->
+          <figure class="shot group rounded-lg border border-line overflow-hidden cursor-zoom-in hover:border-accent/70 transition-colors" role="button" tabindex="0">
+            <img
+              src="screenshots/customization-synthwave.png"
+              alt="Claudius repainted in a synthwave palette — hot-pink accents on deep violet, with a sunset gradient behind every panel"
+              loading="lazy"
+              onerror="this.onerror=null;this.src='screenshots/_placeholder.svg'"
+            />
+            <figcaption class="px-5 py-4 border-t border-line">
+              <div class="font-mono text-xs text-accent">cust · Synthwave</div>
+              <div class="text-sm text-fg">A complete repaint &mdash; hot-pink accent, deep-violet panels, sunset gradient behind the whole UI. Two-file customization: <code class="font-mono text-xs">app/globals.css</code> + <code class="font-mono text-xs">lib/client/theme.ts</code>.</div>
+            </figcaption>
+          </figure>
+
+          <!-- Minecraft Thinking -->
+          <figure class="shot group rounded-lg border border-line overflow-hidden cursor-zoom-in hover:border-accent/70 transition-colors" role="button" tabindex="0">
+            <img
+              src="screenshots/customization-minecraft.png"
+              alt="A streaming Claude turn — the Thinking block is open, reasoning text flows down the left, and a Minecraft parkour clip plays on the right with mute / pause controls"
+              loading="lazy"
+              onerror="this.onerror=null;this.src='screenshots/_placeholder.svg'"
+            />
+            <figcaption class="px-5 py-4 border-t border-line">
+              <div class="font-mono text-xs text-accent">cust · Minecraft Thinking</div>
+              <div class="text-sm text-fg">Edits the ThinkingBlock so Claude&rsquo;s reasoning streams in-chat next to a live Minecraft parkour clip &mdash; complete with mute and pause. Subway-Surfers attention assist&trade;, right where the agent is talking.</div>
+            </figcaption>
+          </figure>
+
+          <!-- Docker Monitoring · overview -->
+          <figure class="shot group rounded-lg border border-line overflow-hidden cursor-zoom-in hover:border-accent/70 transition-colors" role="button" tabindex="0">
+            <img
+              src="screenshots/customization-docker.png"
+              alt="The Docker Monitoring page — four aggregate cards (containers, CPU, memory, disk I/O) with donut gauges, plus a per-container table with gradient CPU and memory usage bars"
+              loading="lazy"
+              onerror="this.onerror=null;this.src='screenshots/_placeholder.svg'"
+            />
+            <figcaption class="px-5 py-4 border-t border-line">
+              <div class="font-mono text-xs text-accent">cust · Docker Monitoring</div>
+              <div class="text-sm text-fg">A new <code class="font-mono text-xs">/docker</code> route that polls <code class="font-mono text-xs">docker ps</code> + <code class="font-mono text-xs">docker stats</code> every five seconds. Aggregate cards, per-container CPU/MEM gradient bars, healthy/unhealthy/starting badges.</div>
+            </figcaption>
+          </figure>
+
+          <!-- Konami Party -->
+          <figure class="shot group rounded-lg border border-line overflow-hidden cursor-zoom-in hover:border-accent/70 transition-colors" role="button" tabindex="0">
+            <img
+              src="screenshots/customization-konami.png"
+              alt="An 8-bit CHEAT ACTIVATED banner with confetti, triggered by typing the Konami code"
+              loading="lazy"
+              onerror="this.onerror=null;this.src='screenshots/_placeholder.svg'"
+            />
+            <figcaption class="px-5 py-4 border-t border-line">
+              <div class="font-mono text-xs text-accent">cust · Konami Party</div>
+              <div class="text-sm text-fg">↑ ↑ ↓ ↓ ← → ← → B A &mdash; chunky 8-bit banner, eighty falling-confetti particles, four seconds of nonsense. Worth it.</div>
+            </figcaption>
+          </figure>
+
+          <!-- Tracker -->
+          <figure class="shot group rounded-lg border border-line overflow-hidden cursor-zoom-in hover:border-accent/70 transition-colors" role="button" tabindex="0">
+            <img
+              src="screenshots/customization-tracker.png"
+              alt="The Tracker page — a GitHub-issues style list with state pills (Open/Closed/All), label chips, a search input, and ten fake issues showing author, age, and comment count"
+              loading="lazy"
+              onerror="this.onerror=null;this.src='screenshots/_placeholder.svg'"
+            />
+            <figcaption class="px-5 py-4 border-t border-line">
+              <div class="font-mono text-xs text-accent">cust · Tracker</div>
+              <div class="text-sm text-fg">A new <code class="font-mono text-xs">/tracker</code> route that paints a GitHub-issues dashboard from local fixtures &mdash; state pills, colored label chips, title search, opened-by-author timestamps. No network calls; swap the fixture array for a <code class="font-mono text-xs">fetch</code> to wire it up for real.</div>
+            </figcaption>
+          </figure>
+        </div>
+
+        <div class="mt-12 rounded-lg border border-line bg-panel/60 p-6 text-sm text-muted leading-relaxed">
+          <span class="text-fg font-medium">Snapshot-backed.</span>
+          Every publish takes byte-level snapshots of the files it&rsquo;s about
+          to overwrite, indexed in a plain JSON manifest under
+          <code class="font-mono text-fg bg-panel2 px-1.5 py-0.5 rounded text-xs">~/.claude/.claudius/customizations/</code>.
+          If a bad publish breaks the UI, run
+          <code class="font-mono text-fg bg-panel2 px-1.5 py-0.5 rounded text-xs">make claudius-revert</code>
+          from a terminal &mdash; the CLI has zero runtime dependencies, so
+          it works even when Claudius itself won&rsquo;t boot.
+        </div>
+      </div>
+    </section>
+
+    <!-- ────────────────────────────── Footer ────────────────────────────── -->
+    <footer class="border-t border-line/60">
+      <div class="max-w-6xl mx-auto px-6 py-12 safe-bottom flex flex-col gap-8">
+        <p class="text-center text-xs italic text-muted/80">
+          made with <span class="not-italic font-mono text-accent">&lt;3</span> from Berlin
+        </p>
+        <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 text-sm text-muted">
+          <div class="flex items-center gap-3">
+            <img src="claudius.svg" alt="" class="h-5 w-5 invert opacity-60" />
+            <span class="font-mono">claudius</span>
+            <span>· Claude Code in the browser</span>
+          </div>
+          <div class="flex items-center gap-6">
+            <a class="hover:text-fg" href="https://github.com/filipegarcia/claudius">Source</a>
+            <a class="hover:text-fg" href="https://docs.claude.com/en/docs/claude-code">Claude Code</a>
+            <span class="font-mono text-xs italic text-muted/70">requiescat in pace, terminale</span>
+          </div>
+        </div>
+
+        <!-- Trademark + non-affiliation notice. -->
+        <div
+          id="legal"
+          class="border-t border-line/40 pt-6 text-xs text-muted/70 leading-relaxed max-w-3xl scroll-mt-20 space-y-2"
+        >
+          <p>
+            <strong class="font-medium text-muted">Claude</strong>® and
+            <strong class="font-medium text-muted">Claude Code</strong>® are
+            registered trademarks of Anthropic, PBC. All other product names,
+            logos, and brands are property of their respective owners.
+          </p>
+          <p>
+            Claudius is an independent, open-source project — built with the
+            <a
+              class="underline decoration-line hover:text-fg"
+              href="https://www.npmjs.com/package/@anthropic-ai/claude-agent-sdk"
+              >Claude Agent SDK</a
+            >
+            (<code class="font-mono text-[0.95em]">@anthropic-ai/claude-agent-sdk</code>,
+            formerly the Claude Code SDK) and compatible with Claude Code.
+          </p>
+          <p>
+            References to <em>Claude</em>, <em>Claude Code</em>, and the
+            <em>Claude Agent SDK</em> on this site are descriptive
+            (<a
+              class="underline decoration-line hover:text-fg"
+              href="https://en.wikipedia.org/wiki/Nominative_use"
+              >nominative fair use</a
+            >) — the same way a project might say "for Node.js" or "works
+            with PostgreSQL." They are not used as our own branding, are
+            displayed no more prominently than necessary, and do not imply
+            partnership or endorsement.
+          </p>
+          <p>
+            Claudius is not affiliated with, sponsored by, or endorsed by
+            Anthropic, PBC.
+          </p>
+        </div>
+      </div>
+    </footer>
+
+    <!-- ────────────────────────────── Lightbox ────────────────────────────── -->
+    <dialog
+      id="lightbox"
+      class="bg-transparent p-0 m-auto max-w-none max-h-none w-full h-full backdrop:bg-black/80 backdrop:backdrop-blur-sm"
+    >
+      <div class="absolute inset-0 grid place-items-center p-4 sm:p-8">
+        <figure class="relative max-w-[94vw] max-h-[94vh] flex flex-col items-center gap-3">
+          <img
+            id="lightbox-img"
+            alt=""
+            class="block max-w-full max-h-[84vh] rounded-lg border border-line shadow-[0_30px_80px_-20px_rgba(0,0,0,0.8)]"
+          />
+          <figcaption
+            id="lightbox-caption"
+            class="text-center text-sm text-muted max-w-2xl px-4"
+          ></figcaption>
+          <button
+            id="lightbox-close"
+            type="button"
+            class="absolute top-2 right-2 sm:-top-3 sm:-right-3 h-10 w-10 sm:h-9 sm:w-9 grid place-items-center rounded-full bg-panel/90 backdrop-blur sm:bg-panel border border-line text-fg hover:bg-panel2 transition shadow-lg"
+            aria-label="Close"
+          >
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M6 6l12 12M18 6L6 18" stroke-linecap="round" />
+            </svg>
+          </button>
+        </figure>
+      </div>
+    </dialog>
+
+    <script>
+      (() => {
+        const dialog = document.getElementById("lightbox");
+        const img = document.getElementById("lightbox-img");
+        const cap = document.getElementById("lightbox-caption");
+        const closeBtn = document.getElementById("lightbox-close");
+
+        const open = (figure) => {
+          const sourceImg = figure.querySelector("img");
+          const figCap = figure.querySelector("figcaption");
+          if (!sourceImg) return;
+          img.src = sourceImg.src;
+          img.alt = sourceImg.alt || "";
+          cap.textContent = figCap ? figCap.innerText.replace(/\s+/g, " ").trim() : "";
+          dialog.showModal();
+        };
+
+        document.querySelectorAll("figure.shot").forEach((figure) => {
+          figure.addEventListener("click", () => open(figure));
+          figure.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              open(figure);
+            }
+          });
+        });
+
+        // Click on the dialog backdrop closes — the inner <figure> handles its
+        // own clicks, so an event reaching the dialog itself means the user
+        // clicked outside the image.
+        dialog.addEventListener("click", (e) => {
+          if (e.target === dialog) dialog.close();
+        });
+
+        closeBtn.addEventListener("click", () => dialog.close());
+      })();
+    </script>
+
+    <!-- ────────────────────────────── Copy install ─────────────────────── -->
+    <script>
+      (() => {
+        // Text-label copy button next to the framed install one-liner.
+        const wireTextCopy = (btnId, cmdId) => {
+          const btn = document.getElementById(btnId);
+          const cmd = document.getElementById(cmdId);
+          if (!btn || !cmd) return;
+          const original = btn.textContent;
+          let resetTimer = 0;
+          btn.addEventListener("click", async () => {
+            const text = cmd.textContent ?? "";
+            try {
+              await navigator.clipboard.writeText(text);
+              btn.textContent = "Copied";
+            } catch {
+              // Fallback: select the text so the user can hit ⌘/Ctrl-C themselves.
+              const sel = window.getSelection();
+              const range = document.createRange();
+              range.selectNodeContents(cmd);
+              sel?.removeAllRanges();
+              sel?.addRange(range);
+              btn.textContent = "Press ⌘/Ctrl-C";
+            }
+            window.clearTimeout(resetTimer);
+            resetTimer = window.setTimeout(() => {
+              btn.textContent = original;
+            }, 1800);
+          });
+        };
+        wireTextCopy("install-copy", "install-cmd");
+
+        // Icon-only copy button on the hero one-liner. Swaps the clipboard
+        // glyph for a checkmark on success, then restores it.
+        const wireIconCopy = (btnId, cmdId) => {
+          const btn = document.getElementById(btnId);
+          const cmd = document.getElementById(cmdId);
+          if (!btn || !cmd) return;
+          const originalLabel = btn.getAttribute("aria-label") ?? "Copy";
+          const originalHTML = btn.innerHTML;
+          const checkHTML =
+            '<svg class="h-3.5 w-3.5 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"></path></svg><span class="sr-only">Copied</span>';
+          let resetTimer = 0;
+          btn.addEventListener("click", async () => {
+            const text = cmd.textContent ?? "";
+            try {
+              await navigator.clipboard.writeText(text);
+              btn.innerHTML = checkHTML;
+              btn.setAttribute("aria-label", "Copied");
+            } catch {
+              const sel = window.getSelection();
+              const range = document.createRange();
+              range.selectNodeContents(cmd);
+              sel?.removeAllRanges();
+              sel?.addRange(range);
+              btn.setAttribute("aria-label", "Press ⌘/Ctrl-C to copy");
+            }
+            window.clearTimeout(resetTimer);
+            resetTimer = window.setTimeout(() => {
+              btn.innerHTML = originalHTML;
+              btn.setAttribute("aria-label", originalLabel);
+            }, 1800);
+          });
+        };
+        wireIconCopy("hero-copy", "hero-cmd");
+      })();
+    </script>
+  </body>
+</html>

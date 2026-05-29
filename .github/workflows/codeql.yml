@@ -1,0 +1,48 @@
+# Code scanning via CodeQL — GitHub's equivalent of the GitLab SAST template
+# we used to include. Free for public repos. Runs on push/PR for the same
+# coverage the GitLab pipeline had, plus a weekly scheduled scan to catch
+# advisories that get added to the CodeQL packs over time.
+#
+# Setup: nothing to do — the action enables code scanning on first run and
+# uploads results to the Security tab.
+#
+# Note: GitHub Secret Scanning (the equivalent of GitLab's Secret-Detection
+# template) is enabled by default on public repos with no workflow required.
+name: codeql
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Weekly Mondays at 06:00 UTC — keeps the SARIF results from going stale
+    # on long quiet stretches between commits.
+    - cron: '0 6 * * 1'
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+jobs:
+  analyze:
+    # Code scanning on private repos requires GitHub Advanced Security
+    # (paid). On public repos it's free. Gate the job so it skips silently
+    # on private — flip the repo to public and the next run lights it up.
+    if: github.event.repository.visibility == 'public'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [javascript-typescript]
+    steps:
+      - uses: actions/checkout@v5
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+      - name: Perform analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: /language:${{ matrix.language }}

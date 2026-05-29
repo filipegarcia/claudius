@@ -1,0 +1,129 @@
+# Mirror of the test stage from .gitlab-ci.yml — kept intentionally close in
+# image and command choices so the CI behavior matches what we run locally
+# and what GitLab still runs (for the secondary mirror).
+#
+# Jobs:
+#   - lint:          ESLint over the repo
+#   - unit:          Vitest suite (Node-side; SQLite roundtrips, pure logic)
+#   - setup-script:  bash/zsh/fish-matrix smoke for site/setup.sh
+#   - e2e:           Playwright suite (heaviest; caches Bun + node_modules)
+#
+# Pages deploy is a separate workflow (.github/workflows/pages.yml).
+# Code scanning is wired up in .github/workflows/codeql.yml.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Cancel stale runs when a new commit lands on the same ref.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ESLint. Uses node+npm (not Bun) for parity with the unit job — see the
+  # long-form rationale in .gitlab-ci.yml's `lint` block.
+  lint:
+    runs-on: ubuntu-latest
+    container: node:22-bookworm-slim
+    steps:
+      - uses: actions/checkout@v5
+      - name: Cache node_modules
+        uses: actions/cache@v5
+        with:
+          path: node_modules
+          key: npm-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+      - run: npm install --no-package-lock --no-audit --no-fund
+      - run: npx eslint
+
+  # Vitest. Runs under node — better-sqlite3 doesn't load under bun yet,
+  # see vitest.config.ts.
+  unit:
+    runs-on: ubuntu-latest
+    container: node:22-bookworm-slim
+    steps:
+      - uses: actions/checkout@v5
+      - name: Cache node_modules
+        uses: actions/cache@v5
+        with:
+          path: node_modules
+          key: npm-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+      - run: npm install --no-package-lock --no-audit --no-fund
+      - run: npx vitest run
+
+  # site/setup.sh smoke test. Boots a fresh Ubuntu container with the three
+  # supported shells installed, then runs the same in-rig assertion script
+  # that `make test-setup-docker` runs locally.
+  #
+  # IMPORTANT: ubuntu:24.04 is a minimal image with no git. If actions/checkout
+  # runs without git on PATH it falls back to the GitHub tarball API, which
+  # populates the workspace but writes NO .git directory — and the in-rig
+  # clone later needs a real git checkout. So we install git BEFORE checkout.
+  #
+  # GitHub's actions/checkout leaves the workspace in a detached state with
+  # only the target SHA fetched. setup.sh's `git clone --branch X` against
+  # the workspace needs refs/heads/X to exist, so we materialize one.
+  setup-script:
+    runs-on: ubuntu-latest
+    container: ubuntu:24.04
+    env:
+      DEBIAN_FRONTEND: noninteractive
+    steps:
+      - name: Pre-install git so actions/checkout produces a real .git dir
+        run: |
+          apt-get update -qq
+          apt-get install -y --no-install-recommends git ca-certificates
+      - uses: actions/checkout@v5
+      - name: Install bash, zsh, fish, curl
+        run: |
+          apt-get install -y --no-install-recommends bash zsh fish curl
+      - name: Materialize a branch ref for the in-rig clone
+        run: |
+          # actions/checkout writes to $GITHUB_WORKSPACE as a non-root user,
+          # but the container job runs as root — mark the dir safe so git
+          # will operate on it.
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git -C "$GITHUB_WORKSPACE" update-ref refs/heads/__ci-setup-test "$(git -C "$GITHUB_WORKSPACE" rev-parse HEAD)"
+      - name: Run setup-script assertions
+        run: |
+          TEST_SRC="$GITHUB_WORKSPACE" TEST_BRANCH=__ci-setup-test \
+            bash site/test/test-in-docker.sh
+
+  # Playwright. Uses the official Playwright image (browsers + system libs
+  # pre-installed) and layers Bun + make on top so `make install` / `make test`
+  # use the same toolchain as locally.
+  e2e:
+    runs-on: ubuntu-latest
+    container: mcr.microsoft.com/playwright:v1.59.1-jammy
+    env:
+      BUN_INSTALL_CACHE_DIR: ${{ github.workspace }}/.bun-cache
+    steps:
+      - uses: actions/checkout@v5
+      - name: Cache node_modules + bun cache
+        uses: actions/cache@v5
+        with:
+          path: |
+            node_modules
+            .bun-cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+      - name: Install bun + make
+        run: |
+          apt-get update -qq
+          apt-get install -y --no-install-recommends make curl unzip
+          curl -fsSL https://bun.sh/install | bash
+          echo "$HOME/.bun/bin" >> "$GITHUB_PATH"
+      - name: Install deps
+        run: make install
+      - name: Run Playwright suite
+        run: make test
+      - name: Upload Playwright artifacts
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7

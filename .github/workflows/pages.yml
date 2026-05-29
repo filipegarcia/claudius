@@ -1,0 +1,47 @@
+# Marketing site is published from site/ to GitHub Pages on every push to
+# main. Replacement for the `pages` job in .gitlab-ci.yml.
+#
+# Setup: enable Pages once in repo Settings → Pages → Source: "GitHub Actions"
+# (no source branch — the workflow uploads the artifact directly). After the
+# first successful deploy the URL is filipegarcia.github.io/claudius/.
+#
+# Screenshots in site/screenshots/ are committed (generated locally via
+# `make screenshots`); this workflow just bundles the directory.
+name: pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Only one Pages deploy at a time; don't cancel in-flight deploys.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    # GitHub Pages on private repos needs a paid plan. Skip the workflow
+    # on private so it doesn't redden CI — once the repo is public AND
+    # Pages is enabled (Settings → Pages → Source: GitHub Actions), the
+    # next push deploys site/ automatically.
+    if: github.event.repository.visibility == 'public'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/configure-pages@v5
+      - name: Upload site/ as Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

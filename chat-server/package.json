@@ -1,0 +1,18 @@
+{
+  "name": "claudius-chat-server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Tiny SSE chat server that backs the /community page in Claudius. Deploy once; every Claudius install connects.",
+  "scripts": {
+    "dev": "bun --watch src/server.ts",
+    "start": "bun src/server.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test --preload ./tests/_setup.ts"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5"
+  }
+}
