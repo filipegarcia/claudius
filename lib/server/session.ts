@@ -1,13 +1,16 @@
 import { randomUUID } from "node:crypto";
 import { watch as watchFs, type FSWatcher, promises as fsp } from "node:fs";
 import {
+  createSdkMcpServer,
   getSessionInfo,
   getSessionMessages,
   query,
   renameSession,
+  tool,
   type CanUseTool,
   type CwdChangedHookInput,
   type EffortLevel,
+  type McpSdkServerConfigWithInstance,
   type Options,
   type PermissionMode,
   type PermissionResult,
@@ -16,19 +19,26 @@ import {
   type SDKMessage,
   type SDKUserMessage,
 } from "@anthropic-ai/claude-agent-sdk";
+import { z } from "zod";
 import { projectRoot } from "./db";
 import { AsyncQueue } from "./async-queue";
 import { notificationBus } from "./notification-bus";
 import {
+  clearSessionGoal,
+  getSessionGoal,
   getSessionTitle,
+  setGoalAchieved,
+  setSessionGoal,
   setSessionTitle,
   touchSession,
   upsertSession,
+  type SessionGoal,
 } from "./sessions-db";
 import {
   parseAskQuestions,
   type AskAnswer,
   type AskQuestion,
+  type GoalChangedEvent,
   type PermissionDecision,
   type PermissionRequestEvent,
   type PlanDecision,
@@ -390,6 +400,28 @@ export class Session {
    */
   private thinkingReplayRecoveryScheduled = false;
 
+  /**
+   * Per-session goal (see `/goal`, GoalBanner). Loaded from the per-project
+   * DB on `start()` so it survives reload + resume. `null` goal means none is
+   * set. Achievement is sticky until the user clears or replaces the goal.
+   */
+  private goal: SessionGoal = {
+    goal: null,
+    achieved: false,
+    summary: null,
+    setAt: null,
+    achievedAt: null,
+  };
+  /**
+   * Whether the agent has been told about the *current* goal. The SDK query
+   * is created once with a fixed system prompt (line ~`start()`), so a goal
+   * set mid-session can't ride the system-prompt append — instead the next
+   * real user turn carries a one-shot `<session-goal>` reminder. A goal that
+   * existed at `start()` (resumed session) rides the system prompt, so it's
+   * marked announced and skips the turn injection.
+   */
+  private goalAnnounced = false;
+
   constructor(opts: {
     id?: string;
     cwd?: string;
@@ -546,6 +578,16 @@ export class Session {
       // non-fatal — index is for listing; the session still works without it
     }
 
+    // Pull the persisted goal so it survives reload + resume. A goal present
+    // at start rides the system-prompt append built below, so mark it
+    // announced — the one-shot turn reminder is only for goals set mid-session.
+    try {
+      this.goal = await getSessionGoal(this.cwd, this.id);
+      this.goalAnnounced = this.goal.goal !== null;
+    } catch {
+      // non-fatal — session works without a goal
+    }
+
     // Resolve user-scope settings that map onto SDK Options. Best-effort:
     // a missing/invalid file yields `{}` so we fall back to defaults. Mirrors
     // the `feedbackSurveyRate` read in `maybeOfferFeedbackSurvey`.
@@ -556,6 +598,26 @@ export class Session {
     const options: Options = {
       cwd: this.cwd,
       model: this.model,
+      // In-process MCP server exposing a single tool the agent calls to
+      // report that the session goal is done (see `/goal`, GoalBanner). The
+      // tool runs in this process, so its handler can broadcast straight to
+      // SSE subscribers. Registered unconditionally — harmless when no goal is
+      // set (the agent is only told to use it when a goal exists).
+      mcpServers: { claudius_goal: this.buildGoalMcpServer() },
+      // When a goal is already set at start (resumed session, or a goal set on
+      // a fresh session id in a prior boot), append it to Claude Code's preset
+      // system prompt so the objective is authoritative for the whole session.
+      // Only set when there's a goal so the no-goal path stays byte-identical
+      // to the SDK default (omitting `systemPrompt` entirely).
+      ...(this.goal.goal
+        ? {
+            systemPrompt: {
+              type: "preset" as const,
+              preset: "claude_code" as const,
+              append: this.goalSystemPromptAppend(),
+            },
+          }
+        : {}),
       // Main-thread agent (SDK `--agent`). When set, the agent's system
       // prompt, tools, and model apply to the main conversation — note the
       // agent's own model takes precedence over `model` above. Omitted when
@@ -716,6 +778,7 @@ export class Session {
     this.query = query({ prompt: this.inputQueue, options });
     this.broadcast({ type: "ready", sessionId: this.id, ...(this.agent ? { agent: this.agent } : {}) });
     if (this.title) this.broadcast({ type: "session_title", title: this.title });
+    if (this.goal.goal) this.broadcastGoal();
     if (sessLoadDebug()) {
        
       console.log("[sess-load] start.complete", {
@@ -820,6 +883,17 @@ export class Session {
   private canUseTool: CanUseTool = (toolName, input, ctx) => {
     return new Promise<PermissionResult>((resolve) => {
       const requestId = randomUUID();
+
+      // ── Internal goal tool — auto-allow, never prompt ─────────────────
+      // `mcp__claudius_goal__report_goal_achieved` is our own in-process
+      // plumbing, not a user-facing action. Surfacing an Allow/Deny card for
+      // it would gate the celebratory "goal achieved" banner behind a click
+      // (and confuse the user with a tool they never installed). Resolve
+      // straight to allow with the input untouched.
+      if (toolName.startsWith("mcp__claudius_goal__")) {
+        resolve({ behavior: "allow", updatedInput: input as Record<string, unknown> });
+        return;
+      }
 
       // ── ExitPlanMode is the model's "ready to execute" signal ─────────
       // Don't show the generic Allow/Deny card — surface the plan in our own
@@ -1194,9 +1268,16 @@ export class Session {
           uuid,
         } as unknown as SDKMessage,
       });
+      // One-shot goal reminder rides the *queued* content only — never the
+      // broadcast echo above — so the chat shows the user's plain text while
+      // the agent receives the objective. Same uuid on both means a reload's
+      // resync skips the disk copy (already in the buffer), so the prefix
+      // never leaks into the visible transcript.
+      const reminder = this.takeGoalReminder();
+      const queued = reminder ? { role: "user" as const, content: reminder + text } : message;
       this.inputQueue.push({
         type: "user",
-        message,
+        message: queued,
         parent_tool_use_id: null,
         session_id: this.id,
         uuid,
@@ -1256,13 +1337,133 @@ export class Session {
         uuid,
       } as unknown as SDKMessage,
     });
+    // One-shot goal reminder — prepend a text block to the *queued* content
+    // only (see the text-only branch above for the reload-safety rationale).
+    const reminder = this.takeGoalReminder();
+    const queuedContent = reminder
+      ? [{ type: "text" as const, text: reminder }, ...content]
+      : content;
     this.inputQueue.push({
       type: "user",
-      message,
+      message: { role: "user" as const, content: queuedContent as unknown as string },
       parent_tool_use_id: null,
       session_id: this.id,
       uuid,
     });
+  }
+
+  /** Build the in-process MCP server that exposes the goal-reporting tool. */
+  private buildGoalMcpServer(): McpSdkServerConfigWithInstance {
+    return createSdkMcpServer({
+      name: "claudius_goal",
+      version: "1.0.0",
+      tools: [
+        tool(
+          "report_goal_achieved",
+          "Report that the user's stated session goal has been fully accomplished. " +
+            "Only call this when the goal is genuinely complete — never for partial " +
+            "progress or intermediate steps. Calling it marks the goal as done in the UI.",
+          { summary: z.string().describe("One sentence summarizing what was accomplished.") },
+          async ({ summary }) => {
+            await this.markGoalAchieved(typeof summary === "string" ? summary : "");
+            return {
+              content: [
+                { type: "text" as const, text: "Recorded: the session goal is marked achieved." },
+              ],
+            };
+          },
+        ),
+      ],
+    });
+  }
+
+  /** System-prompt append describing the goal that exists at session start. */
+  private goalSystemPromptAppend(): string {
+    if (!this.goal.goal) return "";
+    return [
+      "## Session goal",
+      "",
+      "The user has set an explicit goal for this session:",
+      "",
+      `> ${this.goal.goal}`,
+      "",
+      "Keep this objective in mind across turns. When — and only when — you are " +
+        "confident it has been fully accomplished, call the " +
+        "`mcp__claudius_goal__report_goal_achieved` tool with a one-sentence summary. " +
+        "Do not call it for partial progress, and don't bring the goal up unprompted.",
+    ].join("\n");
+  }
+
+  /**
+   * The one-shot reminder text for a goal set mid-session, consumed exactly
+   * once: returns the reminder (and flips `goalAnnounced`) the first time it's
+   * called after a goal is set, then "" thereafter until the goal changes.
+   */
+  private takeGoalReminder(): string {
+    if (!this.goal.goal || this.goalAnnounced) return "";
+    this.goalAnnounced = true;
+    return (
+      "<session-goal>\n" +
+      `The user has set this goal for the session: ${this.goal.goal}\n\n` +
+      "Work toward it. When you are confident it is fully accomplished, call the " +
+      "mcp__claudius_goal__report_goal_achieved tool with a one-sentence summary. " +
+      "Do not call it for partial progress.\n" +
+      "</session-goal>\n\n"
+    );
+  }
+
+  /** Snapshot the current goal state as a broadcastable event. */
+  private goalEvent(): GoalChangedEvent {
+    return {
+      type: "goal_changed",
+      goal: this.goal.goal,
+      achieved: this.goal.achieved,
+      summary: this.goal.summary,
+      setAt: this.goal.setAt,
+      achievedAt: this.goal.achievedAt,
+    };
+  }
+
+  private broadcastGoal(): void {
+    this.broadcast(this.goalEvent());
+  }
+
+  /** Current goal state (for API reads). */
+  getGoal(): SessionGoal {
+    return this.goal;
+  }
+
+  /**
+   * Set or replace the session goal. Replacing resets achievement. The agent
+   * learns the new goal via a one-shot reminder on the next user turn (the
+   * query's system prompt is fixed at creation), so `goalAnnounced` is reset.
+   */
+  async setGoal(text: string): Promise<SessionGoal> {
+    const trimmed = text.trim();
+    if (!trimmed) return this.clearGoal();
+    this.goal = await setSessionGoal(this.cwd, this.id, trimmed);
+    this.goalAnnounced = false;
+    this.broadcastGoal();
+    return this.goal;
+  }
+
+  /** Clear the session goal (and any achievement). */
+  async clearGoal(): Promise<SessionGoal> {
+    this.goal = await clearSessionGoal(this.cwd, this.id);
+    this.goalAnnounced = true; // nothing left to announce
+    this.broadcastGoal();
+    return this.goal;
+  }
+
+  /**
+   * Mark the current goal achieved — invoked by the in-process
+   * `report_goal_achieved` tool. No-op when there's no goal or it's already
+   * achieved (the model occasionally double-calls).
+   */
+  async markGoalAchieved(summary: string): Promise<void> {
+    if (!this.goal.goal || this.goal.achieved) return;
+    this.goal = await setGoalAchieved(this.cwd, this.id, summary);
+    this.broadcastGoal();
   }
 
   async interrupt(): Promise<void> {
@@ -2163,6 +2364,16 @@ export class Session {
     // the client's `worktreeBadge` renders nothing.
     if (this.lastCwdBroadcast) {
       fn({ type: "cwd_changed", cwd: this.lastCwdBroadcast });
+    }
+    // Re-emit the current goal state for the same tail-truncation reason as
+    // `mode_changed`/`cwd_changed` above: the `goal_changed` event broadcast
+    // when the goal was set/achieved sits at whatever buffer position it
+    // landed on, so a `tail`-truncated replay slices it off and a reconnecting
+    // tab paints no GoalBanner even though a goal is active. `this.goal` is the
+    // in-memory source of truth; echo it directly. Skip when no goal is set so
+    // a fresh subscriber on a goalless session gets nothing to render.
+    if (this.goal.goal) {
+      fn(this.goalEvent());
     }
     // Now re-emit any interactive prompts that are STILL pending. The
     // historical replay above is filtered to "resolved" prompts; questions

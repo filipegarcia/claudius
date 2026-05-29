@@ -59,6 +59,26 @@ export type TurnStatusEvent = {
   status: "running" | "idle";
 };
 
+/**
+ * Per-session goal state. Broadcast whenever the goal is set, cleared, or
+ * marked achieved (the latter from the in-process `report_goal_achieved` SDK
+ * tool the agent calls). Carries the full state so the client can render the
+ * GoalBanner from a single event — `goal === null` means "no goal, hide the
+ * banner"; `achieved` is sticky until the goal is cleared or replaced.
+ *
+ * Re-emitted to every new SSE subscriber in `Session.subscribe()` (like
+ * `mode_changed` / `cwd_changed`) so a reconnecting tab repaints the banner
+ * even when the replay buffer has scrolled past the original transition.
+ */
+export type GoalChangedEvent = {
+  type: "goal_changed";
+  goal: string | null;
+  achieved: boolean;
+  summary?: string | null;
+  setAt?: number | null;
+  achievedAt?: number | null;
+};
+
 export type SessionTitleEvent = {
   type: "session_title";
   title?: string;
@@ -327,6 +347,7 @@ export type ServerEvent =
   | ReplayDoneEvent
   | TurnStatusEvent
   | SessionTitleEvent
+  | GoalChangedEvent
   | FeedbackSurveyEvent
   | CwdChangedEvent
   | AskUserQuestionEvent

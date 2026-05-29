@@ -324,6 +324,19 @@ export type SessionUsage = {
   modelUsage?: Record<string, unknown>;
 };
 
+/**
+ * Per-session goal state surfaced in the GoalBanner. Mirrors the server's
+ * `goal_changed` event. Null in {@link ChatState.goal} means no goal is set
+ * (banner hidden); `achieved` is sticky until the goal is cleared or replaced.
+ */
+export type GoalState = {
+  text: string;
+  achieved: boolean;
+  summary: string | null;
+  setAt: number | null;
+  achievedAt: number | null;
+};
+
 export type ChatState = {
   sessionId: string | null;
   ready: boolean;
@@ -398,6 +411,13 @@ export type ChatState = {
   toolHistory: ToolHistoryEntry[];
   /** Persisted human-readable session title. Null until set by the user. */
   sessionTitle: string | null;
+  /**
+   * Active session goal (see `/goal`, GoalBanner), or null when none is set.
+   * Driven by the server's `goal_changed` event — set on `/goal`, replaced on
+   * a new goal, and flipped to `achieved` when the agent calls the in-process
+   * `report_goal_achieved` tool.
+   */
+  goal: GoalState | null;
   /**
    * In-flight AskUserQuestion form from the agent. The browser shows a modal;
    * resolving is `submitAskAnswer(requestId, answers)`.
@@ -508,6 +528,14 @@ export type ChatActions = {
   jumpToUuid(uuid: string): Promise<string | null>;
   /** Rename the current session (persists via SDK and broadcasts to the rail). */
   renameTitle(title: string): Promise<{ ok: true } | { ok: false; error: string }>;
+  /**
+   * Set or replace the session goal. Persists server-side and broadcasts a
+   * `goal_changed` event to every open tab. Replacing a goal resets any prior
+   * achievement. Returns ok/error so the banner can flash on failure.
+   */
+  setGoal(text: string): Promise<{ ok: true } | { ok: false; error: string }>;
+  /** Clear the session goal (and any achievement). */
+  clearGoal(): Promise<{ ok: true } | { ok: false; error: string }>;
   /** Resolve a pending AskUserQuestion form. */
   submitAskAnswer(requestId: string, answers: AskAnswer[]): Promise<void>;
   /**

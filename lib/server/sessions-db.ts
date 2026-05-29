@@ -27,6 +27,27 @@ type SessionRow = {
   last_seen_at: number;
 };
 
+/**
+ * Resolved per-session goal state. `goal === null` means no goal is set;
+ * `achieved` is only meaningful when a goal exists and is sticky until the
+ * goal is cleared or replaced.
+ */
+export type SessionGoal = {
+  goal: string | null;
+  achieved: boolean;
+  summary: string | null;
+  setAt: number | null;
+  achievedAt: number | null;
+};
+
+const EMPTY_GOAL: SessionGoal = {
+  goal: null,
+  achieved: false,
+  summary: null,
+  setAt: null,
+  achievedAt: null,
+};
+
 /** Write-or-update — call from Session.start() so every active session is indexed. */
 export async function upsertSession(opts: {
   id: string;
@@ -105,6 +126,113 @@ export async function setSessionTitle(cwd: string, id: string, title: string): P
        title      = excluded.title,
        updated_at = excluded.updated_at`,
   ).run(id, cwd, trimmed, now, now, now);
+}
+
+// ── Session goal ─────────────────────────────────────────────────────────
+// A goal is a single user-stated objective, persisted so it survives reloads
+// and session resume. Writes use the same INSERT … ON CONFLICT idiom as
+// `setSessionTitle` so a goal set before the session's first turn (no JSONL
+// yet) still lands a row.
+
+type GoalRow = {
+  goal: string | null;
+  goal_achieved: number | null;
+  goal_summary: string | null;
+  goal_set_at: number | null;
+  goal_achieved_at: number | null;
+};
+
+function rowToGoal(row: GoalRow | undefined): SessionGoal {
+  if (!row || !row.goal) return { ...EMPTY_GOAL };
+  return {
+    goal: row.goal,
+    achieved: row.goal_achieved === 1,
+    summary: row.goal_summary ?? null,
+    setAt: row.goal_set_at ?? null,
+    achievedAt: row.goal_achieved_at ?? null,
+  };
+}
+
+/** Read the current goal state for a session. Returns the empty goal when unset. */
+export async function getSessionGoal(cwd: string, id: string): Promise<SessionGoal> {
+  const db = await openDb(cwd, "readonly").catch(() => null);
+  if (!db) return { ...EMPTY_GOAL };
+  const row = db
+    .prepare<[string], GoalRow | undefined>(
+      `SELECT goal, goal_achieved, goal_summary, goal_set_at, goal_achieved_at
+         FROM sessions WHERE id = ?`,
+    )
+    .get(id);
+  return rowToGoal(row);
+}
+
+/**
+ * Set (or replace) the session goal. Replacing a goal resets achievement —
+ * the new objective hasn't been met yet — so `goal_achieved`, `goal_summary`,
+ * and `goal_achieved_at` are cleared. Returns the resolved goal state.
+ */
+export async function setSessionGoal(
+  cwd: string,
+  id: string,
+  goal: string,
+): Promise<SessionGoal> {
+  const trimmed = goal.trim();
+  if (!trimmed) return clearSessionGoal(cwd, id);
+  const db = await openDb(cwd);
+  const now = Date.now();
+  db.prepare(
+    `INSERT INTO sessions(id, cwd, goal, goal_achieved, goal_summary, goal_set_at, goal_achieved_at, created_at, updated_at, last_seen_at)
+     VALUES (?, ?, ?, 0, NULL, ?, NULL, ?, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET
+       goal             = excluded.goal,
+       goal_achieved    = 0,
+       goal_summary     = NULL,
+       goal_set_at      = excluded.goal_set_at,
+       goal_achieved_at = NULL,
+       updated_at       = excluded.updated_at`,
+  ).run(id, cwd, trimmed, now, now, now, now);
+  return { goal: trimmed, achieved: false, summary: null, setAt: now, achievedAt: null };
+}
+
+/** Clear the session goal entirely (also clears any achievement). */
+export async function clearSessionGoal(cwd: string, id: string): Promise<SessionGoal> {
+  const db = await openDb(cwd);
+  db.prepare(
+    `UPDATE sessions
+        SET goal = NULL, goal_achieved = 0, goal_summary = NULL,
+            goal_set_at = NULL, goal_achieved_at = NULL, updated_at = ?
+      WHERE id = ?`,
+  ).run(Date.now(), id);
+  return { ...EMPTY_GOAL };
+}
+
+/**
+ * Mark the current goal achieved with a short summary. No-op (returns the
+ * current state) when there's no goal to achieve. Returns the resolved state.
+ */
+export async function setGoalAchieved(
+  cwd: string,
+  id: string,
+  summary: string,
+): Promise<SessionGoal> {
+  const db = await openDb(cwd);
+  const now = Date.now();
+  const cleanSummary = summary.trim() || null;
+  db.prepare(
+    `UPDATE sessions
+        SET goal_achieved = 1, goal_summary = ?, goal_achieved_at = ?, updated_at = ?
+      WHERE id = ? AND goal IS NOT NULL`,
+  ).run(cleanSummary, now, now, id);
+  // Read back through the same (write) connection so the returned state
+  // reflects the row we just touched — including the no-op case where the
+  // goal was cleared concurrently and the UPDATE matched nothing.
+  const row = db
+    .prepare<[string], GoalRow | undefined>(
+      `SELECT goal, goal_achieved, goal_summary, goal_set_at, goal_achieved_at
+         FROM sessions WHERE id = ?`,
+    )
+    .get(id);
+  return rowToGoal(row);
 }
 
 /** List every indexed session for this cwd, newest activity first. */

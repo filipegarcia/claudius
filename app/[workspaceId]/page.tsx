@@ -7,6 +7,7 @@ import { StatusLine } from "@/components/chat/StatusLine";
 import { LoadingBar } from "@/components/chat/LoadingBar";
 import { MessageList } from "@/components/chat/MessageList";
 import { TodosBanner } from "@/components/chat/TodosBanner";
+import { GoalBanner } from "@/components/chat/GoalBanner";
 import { RecapBanner } from "@/components/chat/RecapBanner";
 import { FeedbackBanner } from "@/components/chat/FeedbackBanner";
 import { PromptInput } from "@/components/chat/PromptInput";
@@ -486,6 +487,11 @@ export default function Home() {
     }
   }, [session.latestTodos, todosBannerHidden]);
 
+  // Bumped by `/goal` with no args to open the GoalBanner's inline editor
+  // (even before a goal exists). GoalBanner watches the value, not equality,
+  // so each bump re-opens the editor.
+  const [goalEditNonce, setGoalEditNonce] = useState(0);
+
   // Transcript search ─────────────────────────────────────────────────────
   const [searchOpen, setSearchOpen] = useState(false);
   const [highlightUuid, setHighlightUuid] = useState<string | null>(null);
@@ -691,6 +697,23 @@ export default function Home() {
           if (!sid) return true;
           const url = `/api/sessions/export/${sid}`;
           window.open(url, "_blank");
+          return true;
+        }
+        case "goal": {
+          if (!session.sessionId) {
+            showToast("No active session");
+            return true;
+          }
+          const text = args.trim();
+          if (text) {
+            void session.setGoal(text).then((r) => {
+              showToast(r.ok ? "Goal set" : `Goal failed: ${r.error}`);
+            });
+          } else {
+            // No args — open the banner's inline editor (prefilled with the
+            // current goal, if any).
+            setGoalEditNonce((n) => n + 1);
+          }
           return true;
         }
         case "exit": {
@@ -1177,6 +1200,12 @@ export default function Home() {
         <PlanModeBanner
           mode={session.permissionMode}
           onExit={() => void session.setPermissionMode("default")}
+        />
+        <GoalBanner
+          goal={session.goal}
+          onSet={session.setGoal}
+          onClear={session.clearGoal}
+          openEditNonce={goalEditNonce}
         />
         <TodosBanner
           todos={session.latestTodos}

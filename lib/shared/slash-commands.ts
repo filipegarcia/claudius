@@ -80,6 +80,7 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   { id: "rename", name: "rename", description: "Rename the current session.", category: "session", handler: "native", argsHint: "[title]" },
   { id: "export", name: "export", description: "Download the current session as plain text.", category: "session", handler: "native", argsHint: "[filename]" },
   { id: "rewind", name: "rewind", aliases: ["checkpoint", "undo"], description: "Rewind to a previous user message (use the ↺ buttons).", category: "session", handler: "native" },
+  { id: "goal", name: "goal", aliases: ["objective"], description: "Set a goal for this session — shown prominently and tracked until achieved.", category: "session", handler: "native", argsHint: "[goal text]" },
   { id: "exit", name: "exit", aliases: ["quit"], description: "End the current session.", category: "session", handler: "native" },
 
   // ── Permissions ──────────────────────────────────────────────────────

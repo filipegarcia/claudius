@@ -39,6 +39,7 @@ import type {
   ChatState,
   DisplayBlock,
   DisplayMessage,
+  GoalState,
   PendingPlan,
   QueuedMessage,
   RecentEdit,
@@ -483,6 +484,7 @@ export function useSession(): ChatState & ChatActions {
   const [scheduledLoops, setScheduledLoops] = useState<Record<string, ScheduledLoop>>({});
   const [toolHistory, setToolHistory] = useState<ToolHistoryEntry[]>([]);
   const [sessionTitle, setSessionTitle] = useState<string | null>(null);
+  const [goal, setGoalState] = useState<GoalState | null>(null);
 
   // Reflect the bound session id in the URL so a refresh resumes the
   // same session. Used to be a raw `window.history.replaceState` call
@@ -947,6 +949,7 @@ export function useSession(): ChatState & ChatActions {
     setScheduledLoops({});
     setToolHistory([]);
     setSessionTitle(null);
+    setGoalState(null);
     setPermissionModeState("default");
     setModelState(null);
     setEffortState("auto");
@@ -1274,6 +1277,23 @@ export function useSession(): ChatState & ChatActions {
       }
       if (ev.type === "session_title") {
         setSessionTitle(ev.title ?? null);
+        return;
+      }
+      if (ev.type === "goal_changed") {
+        // Full goal-state snapshot — set, replaced, cleared, or achieved.
+        // `goal === null` clears the banner; otherwise mirror the server's
+        // achievement + summary so the banner can switch to its done state.
+        setGoalState(
+          ev.goal
+            ? {
+                text: ev.goal,
+                achieved: Boolean(ev.achieved),
+                summary: ev.summary ?? null,
+                setAt: ev.setAt ?? null,
+                achievedAt: ev.achievedAt ?? null,
+              }
+            : null,
+        );
         return;
       }
       if (ev.type === "session_snapshot") {
@@ -3502,6 +3522,69 @@ export function useSession(): ChatState & ChatActions {
     [sessionTitle, refreshSessions],
   );
 
+  const clearGoal = useCallback(
+    async (): Promise<{ ok: true } | { ok: false; error: string }> => {
+      const id = sessionIdRef.current;
+      if (!id) return { ok: false, error: "no active session" };
+      const prev = goal;
+      // Optimistic — the SSE `goal_changed` event confirms; revert on failure.
+      setGoalState(null);
+      try {
+        const res = await fetch(`/api/sessions/${id}/goal`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ goal: null }),
+        });
+        if (!res.ok) {
+          setGoalState(prev);
+          const body = (await res.json().catch(() => ({}))) as { error?: string };
+          return { ok: false, error: body.error ?? `HTTP ${res.status}` };
+        }
+        return { ok: true };
+      } catch (err) {
+        setGoalState(prev);
+        return { ok: false, error: err instanceof Error ? err.message : String(err) };
+      }
+    },
+    [goal],
+  );
+
+  const setGoal = useCallback(
+    async (text: string): Promise<{ ok: true } | { ok: false; error: string }> => {
+      const id = sessionIdRef.current;
+      if (!id) return { ok: false, error: "no active session" };
+      const trimmed = text.trim();
+      if (!trimmed) return clearGoal();
+      const prev = goal;
+      // Optimistic — replacing a goal resets achievement. The SSE
+      // `goal_changed` event confirms; revert on failure.
+      setGoalState({
+        text: trimmed,
+        achieved: false,
+        summary: null,
+        setAt: Date.now(),
+        achievedAt: null,
+      });
+      try {
+        const res = await fetch(`/api/sessions/${id}/goal`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ goal: trimmed }),
+        });
+        if (!res.ok) {
+          setGoalState(prev);
+          const body = (await res.json().catch(() => ({}))) as { error?: string };
+          return { ok: false, error: body.error ?? `HTTP ${res.status}` };
+        }
+        return { ok: true };
+      } catch (err) {
+        setGoalState(prev);
+        return { ok: false, error: err instanceof Error ? err.message : String(err) };
+      }
+    },
+    [goal, clearGoal],
+  );
+
   return {
     sessionId,
     ready,
@@ -3540,6 +3623,7 @@ export function useSession(): ChatState & ChatActions {
     scheduledLoops,
     toolHistory,
     sessionTitle,
+    goal,
     send,
     enqueue,
     cancelQueued,
@@ -3561,6 +3645,8 @@ export function useSession(): ChatState & ChatActions {
     loadOlder,
     jumpToUuid,
     renameTitle,
+    setGoal,
+    clearGoal,
   };
 }
 
