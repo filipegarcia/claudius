@@ -42,7 +42,7 @@ import { useClaudius } from "@/lib/client/useElectron";
  *
  * Keep in lockstep with the `send(...)` call sites in `electron/menu.ts`.
  */
-const MENU_ACCELERATOR_ACTION_IDS: readonly string[] = [
+export const MENU_ACCELERATOR_ACTION_IDS: readonly string[] = [
   "app.preferences",
   "app.openWorkspace",
   "tab.new",

@@ -463,4 +463,12 @@ export type SendInputRequest = {
    * message is replayed from the SDK JSONL with no in-memory provenance.
    */
   fromSuggestion?: boolean;
+  /**
+   * When true, this message was submitted as the session goal (the header goal
+   * input or `/goal <text>`): it's sent as a normal prompt AND tracked as the
+   * goal. The server records (session_id, uuid, text) in the `goal_messages`
+   * table so the chat can badge the bubble as a goal — surviving reloads, where
+   * the message is replayed from the SDK JSONL with no in-memory provenance.
+   */
+  fromGoal?: boolean;
 };

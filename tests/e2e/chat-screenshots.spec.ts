@@ -15,6 +15,7 @@ import { UPDATE_SCREENSHOTS } from "./helpers/marketing-screenshot";
  *   - site/screenshots/chat.png
  *   - site/screenshots/todos.png
  *   - site/screenshots/ask-user-question.png
+ *   - site/screenshots/workflow.png  (full WorkflowBlock state gallery)
  *
  * The previews live under `app/dev/chat-*` and import a shared chrome
  * component (PreviewChrome). Updating the in-app chat UI doesn't auto-
@@ -68,6 +69,25 @@ test.describe("chat states (fixture-driven)", () => {
     if (UPDATE_SCREENSHOTS) {
       await page.screenshot({
         path: resolve(SHOTS_DIR, "ask-user-question.png"),
+        fullPage: false,
+      });
+    }
+  });
+
+  test("workflow", async ({ page }) => {
+    // A dynamic workflow running inline in a realistic chat (the chat shell +
+    // the real WorkflowBlock). Viewport snap, matching the sibling chat shots.
+    // The full all-states reference lives at /dev/workflow-states (no committed
+    // PNG — open it in a browser to see every state).
+    await page.goto("/dev/chat-workflow", { waitUntil: "load" });
+    await expect(page.getByTestId("chat-workflow-preview")).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText(/skeptics refuting/).first()).toBeVisible({
+      timeout: 10_000,
+    });
+    await page.waitForTimeout(300);
+    if (UPDATE_SCREENSHOTS) {
+      await page.screenshot({
+        path: resolve(SHOTS_DIR, "workflow.png"),
         fullPage: false,
       });
     }

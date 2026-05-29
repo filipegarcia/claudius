@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { recordSendUses } from "@/lib/server/asset-ingest";
 import { sessionManager } from "@/lib/server/session-manager";
 import { recordSuggestedMessage } from "@/lib/server/suggested-messages-db";
+import { recordGoalMessage } from "@/lib/server/goal-messages-db";
 import type { SendInputRequest } from "@/lib/shared/events";
 
 export const runtime = "nodejs";
@@ -41,6 +42,16 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
       messageUuid: body.uuid,
       text: body.text ?? "",
     }).catch((err) => console.warn("[input] recordSuggestedMessage:", err));
+  }
+
+  // Same provenance recording for a message submitted as the session goal, so
+  // the chat can badge the bubble as a goal across reloads. Best-effort.
+  if (body.fromGoal && body.uuid) {
+    void recordGoalMessage(session.cwd, {
+      sessionId: session.id,
+      messageUuid: body.uuid,
+      text: body.text ?? "",
+    }).catch((err) => console.warn("[input] recordGoalMessage:", err));
   }
 
   // Best-effort asset indexing — never fail the send because of this.

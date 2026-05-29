@@ -47,9 +47,33 @@ const nextConfig: NextConfig = {
     position: "bottom-right",
   },
   // Standalone output for Electron — Next traces every required file
-  // and copies them under `.next/standalone/`, which electron-builder
-  // then bundles into the .asar.
+  // and copies them under `.next/standalone/`, which the Electron build
+  // ships verbatim as an extraResource.
   ...(packaged ? { output: "standalone" as const } : {}),
+  // Dynamic `fs`/`path` operations in some route handlers make Next's
+  // file tracer conservatively pull the ENTIRE project root into the
+  // standalone output (it warns: "the whole project was traced
+  // unintentionally"). Left unchecked that copies `chat-server/` (which
+  // imports `bun:sqlite` and breaks the production type-check), the
+  // `release/` output dir (recursive nesting → multi-GB bundles), test
+  // fixtures, docs, and worktrees into the shipped app. None of these are
+  // runtime dependencies, so prune them from the trace for every route.
+  // Keys are route globs (picomatch); values are globs resolved from the
+  // project root. See next.config docs `outputFileTracingExcludes`.
+  outputFileTracingExcludes: {
+    "**": [
+      "./release/**/*",
+      "./chat-server/**/*",
+      "./.claude/**/*",
+      "./tests/**/*",
+      "./site/**/*",
+      "./docs/**/*",
+      "./playwright-report/**/*",
+      "./test-results/**/*",
+      "./.next-e2e/**/*",
+      "./.next-buildtest/**/*",
+    ],
+  },
   env: {
     // Default community chat-server URL. Baked into the client bundle
     // at build time so a fresh `bun run build` ships a working

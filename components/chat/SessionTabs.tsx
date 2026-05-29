@@ -9,7 +9,8 @@ import {
   matchBinding,
   useShortcut,
 } from "@/lib/client/shortcuts";
-import { useElectronAction } from "@/lib/client/useElectron";
+import { useKeydownBinding } from "@/lib/client/useKeydownBinding";
+import { useElectronAction, useIsElectron } from "@/lib/client/useElectron";
 import { cn } from "@/lib/utils/cn";
 
 export type TabStatus = "running" | "idle" | "starting" | "error" | "background";
@@ -158,15 +159,35 @@ export function SessionTabs({
 
   // Shortcuts come from the user-overridable registry now (lib/client/shortcuts.ts).
   // The defaults still ship as ⌘⇧←/→ and ⌘⇧1..9 so existing muscle memory holds.
-  const bindingNext = useShortcut("tab.next");
-  const bindingPrev = useShortcut("tab.prev");
+  //
+  // KEYDOWN matching uses `useKeydownBinding`: in the Electron build these
+  // chords are owned by the native menu (electron/menu.ts), which fires the
+  // action even while the composer holds focus. `useKeydownBinding` returns
+  // null for those ids in Electron so this in-page listener stays inert and
+  // the menu doesn't double-fire. In the browser build it returns the real
+  // binding (web parity).
+  const bindingNext = useKeydownBinding("tab.next");
+  const bindingPrev = useKeydownBinding("tab.prev");
+  const bindingByNumberMatch = useKeydownBinding("tab.selectByNumber");
+  // DISPLAY of the numeric hint always uses the real resolved binding — the
+  // ⌘1–9 chord works in Electron (via the menu), so the hint must still show.
   const bindingByNumber = useShortcut("tab.selectByNumber");
   // Phase 3 of docs/electron-conversion/PLAN.md — chord-only equivalents of
   // the menu items. Read once so the keydown handler doesn't have to.
-  const bindingNew = useShortcut("tab.new");
-  const bindingClose = useShortcut("tab.close");
-  const bindingReopen = useShortcut("tab.reopen");
-  const bindingLast = useShortcut("tab.last");
+  const bindingNew = useKeydownBinding("tab.new");
+  const bindingClose = useKeydownBinding("tab.close");
+  const bindingReopen = useKeydownBinding("tab.reopen");
+  const bindingLast = useKeydownBinding("tab.last");
+  // Cmd+Shift+Arrow tab cycling needs a special in-composer path in Electron.
+  // Those chords are owned by the native menu, which fires them fine when no
+  // text field is focused — but a focused composer (textarea) claims
+  // ⌘⇧←/→ for "extend selection to line start/end" BEFORE the menu can fire,
+  // so cycling is dead while typing. We catch that gap below using the REAL
+  // (ungated) binding and cancel the text selection. Electron-only so the
+  // browser build keeps native text-selection behaviour.
+  const isElectron = useIsElectron();
+  const bindingNextReal = useShortcut("tab.next");
+  const bindingPrevReal = useShortcut("tab.prev");
 
   // ── Global keyboard shortcuts ───────────────────────────────────────────
   // Cycle (next/prev) and numeric tab selection. The numeric shortcut is a
@@ -208,7 +229,30 @@ export function SessionTabs({
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (isTypingTarget(e.target)) return;
+      const typing = isTypingTarget(e.target);
+
+      // Electron + composer focused: the native menu can't deliver ⌘⇧←/→ here
+      // (the text field eats them first), so cycle tabs from the renderer and
+      // cancel the would-be text selection. When NOT typing the menu drives
+      // next/prev (and `bindingNext`/`bindingPrev` are null in Electron, so the
+      // not-typing branch below doesn't double-fire with it). Disjoint focus
+      // states ⇒ exactly one cycle either way.
+      if (isElectron && typing) {
+        const dir = matchBinding(bindingNextReal, e)
+          ? 1
+          : matchBinding(bindingPrevReal, e)
+            ? -1
+            : 0;
+        if (dir !== 0 && tabs.length > 0) {
+          e.preventDefault();
+          const cur = tabs.findIndex((t) => t.id === activeId);
+          const baseline = cur === -1 ? (dir > 0 ? -1 : 0) : cur;
+          const target = tabs[(baseline + dir + tabs.length) % tabs.length];
+          if (target && target.id !== activeId) onSelect(target.id);
+        }
+      }
+
+      if (typing) return;
 
       // tab.new / tab.close / tab.reopen / tab.last fire even when the strip
       // is empty — Cmd+T must work from an empty workspace.
@@ -238,7 +282,7 @@ export function SessionTabs({
       // Numeric: matcher checks modifier shape; we own the Digit1..9 range.
       // ⌘⇧9 is special: with >9 tabs it selects the LAST one (iTerm rule),
       // so the tail of the strip stays reachable past 9 sessions.
-      if (bindingByNumber && /^Digit[1-9]$/.test(e.code) && matchBinding(bindingByNumber, e)) {
+      if (bindingByNumberMatch && /^Digit[1-9]$/.test(e.code) && matchBinding(bindingByNumberMatch, e)) {
         const n = Number(e.code.slice(5));
         let target: Tab | undefined;
         if (n === 9) {
@@ -274,9 +318,12 @@ export function SessionTabs({
     activeId,
     onSelect,
     onNew,
+    isElectron,
+    bindingNextReal,
+    bindingPrevReal,
     bindingNext,
     bindingPrev,
-    bindingByNumber,
+    bindingByNumberMatch,
     bindingNew,
     bindingClose,
     bindingReopen,

@@ -171,6 +171,12 @@ export type QueuedMessage = {
    * and the bubble is badged as auto-suggested (see `suggestedUuids`).
    */
   fromSuggestion?: boolean;
+  /**
+   * When true, this queued entry was submitted as the session goal. The flush
+   * path forwards `fromGoal: true` so the server records its provenance and the
+   * bubble is badged as a goal (see `goalUuids`).
+   */
+  fromGoal?: boolean;
 };
 
 export type SessionInfo = {
@@ -396,6 +402,12 @@ export type ChatState = {
    * the chat overlays an auto-suggested badge on matching bubbles.
    */
   suggestedUuids: Set<string>;
+  /**
+   * Uuids of user messages submitted as the session goal. Seeded from the DB
+   * on session bind and added to optimistically on send; the chat overlays a
+   * "Goal" badge on matching bubbles.
+   */
+  goalUuids: Set<string>;
   /** True until the SSE replay window finishes (initial render only). */
   replaying: boolean;
   /** True if older history exists above what's currently loaded. */
@@ -486,6 +498,12 @@ export type ChatActions = {
        * `fromSuggestion: true` so the server persists its provenance.
        */
       fromSuggestion?: boolean;
+      /**
+       * When true, this message was submitted as the session goal. The send
+       * path badges the bubble as a goal and posts `fromGoal: true` so the
+       * server persists its provenance.
+       */
+      fromGoal?: boolean;
     },
   ): Promise<void>;
   enqueue(text: string, images?: AttachedImage[]): void;

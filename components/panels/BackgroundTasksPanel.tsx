@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Activity, AlertTriangle, Bot, Brain, Check, CircleStop, Loader2, Plus, Wrench } from "lucide-react";
+import { Activity, AlertTriangle, Bot, Brain, Check, CircleStop, Loader2, Plus, Terminal, Wrench } from "lucide-react";
 import type { PermissionMode } from "@anthropic-ai/claude-agent-sdk";
 import type {
   AgentTodo,
@@ -87,6 +87,18 @@ type Props = {
   onChangeUltracode?: (enabled: boolean) => Promise<void> | void;
 };
 
+/**
+ * Task types that represent *processes* rather than agentic work. These are
+ * surfaced in the "Running" section (alongside background shells) and kept
+ * OUT of "Tasks" so a backgrounded shell never double-shows. Mirrors the
+ * SDK's BackgroundTaskSummary kinds: shell → local_bash, monitor →
+ * local_monitor. Agentic kinds (local_agent / local_workflow) stay in "Tasks".
+ */
+const PROCESS_TASK_TYPES = new Set(["local_bash", "local_monitor"]);
+
+/** Terminal statuses — used to drop a shell whose process has ended. */
+const TERMINAL_STATUSES = new Set(["completed", "failed", "stopped", "killed"]);
+
 const TASK_TONES: Record<string, string> = {
   pending: "border-[var(--border)] bg-[var(--panel-2)] text-[var(--muted)]",
   running: "border-sky-500/30 bg-sky-500/10 text-sky-200",
@@ -95,6 +107,19 @@ const TASK_TONES: Record<string, string> = {
   killed: "border-red-500/30 bg-red-500/10 text-red-200",
   stopped: "border-amber-500/30 bg-amber-500/10 text-amber-200",
 };
+
+/**
+ * Row icon that reflects the task's *kind*, not a generic agent glyph: a
+ * background shell gets a terminal, a monitor gets the activity pulse, and
+ * agentic work (subagents / workflows) keeps the bot. Used anywhere a task
+ * row renders (Tasks, Running, Recent) so a `local_bash` never looks like an
+ * agent.
+ */
+function taskIcon(taskType?: string) {
+  if (taskType === "local_bash") return Terminal;
+  if (taskType === "local_monitor") return Activity;
+  return Bot;
+}
 
 function fmtElapsed(s: number): string {
   if (s < 60) return `${s.toFixed(0)}s`;
@@ -154,8 +179,25 @@ export function BackgroundTasksPanel({
 
   const runningCount = toolHistory.filter((e) => !e.done).length;
   const visibleHistory = toolHistory.slice(0, 30);
+
+  // Join key: a background shell shares its launching Bash `tool_use_id` with
+  // the `tool_use_id` of its `local_bash` task. This map lets the Running
+  // section resolve a shell's `taskId` (to stop it) and notice when its task
+  // has gone terminal (to drop a stale "live" row).
+  const taskByToolUseId = new Map<string, TaskInfo>();
+  for (const t of Object.values(tasks)) {
+    if (t.toolUseId) taskByToolUseId.set(t.toolUseId, t);
+  }
+
+  // "Tasks" = agentic work only (subagents + workflows). Process-like tasks
+  // (shells / monitors) are partitioned out into "Running" below so nothing
+  // double-shows.
   const subagents = Object.values(tasks)
-    .filter((t) => t.status === "running" || t.status === "pending")
+    .filter(
+      (t) =>
+        (t.status === "running" || t.status === "pending") &&
+        !PROCESS_TASK_TYPES.has(t.taskType ?? ""),
+    )
     .sort((a, b) => (b.durationMs ?? 0) - (a.durationMs ?? 0));
 
   // Stop a single running task (B2.4). Self-contained fetch — the panel
@@ -174,7 +216,27 @@ export function BackgroundTasksPanel({
     .filter((t) => t.status !== "running" && t.status !== "pending")
     .slice(-3)
     .reverse();
-  const liveBashes = Object.values(backgroundBashes).filter((b) => !b.killed);
+  // Live background shells. Beyond the explicit `killed` flag (set when the
+  // agent calls KillBash), we also drop a shell whose matching `local_bash`
+  // task has gone terminal — that catches a process that ended on its own so
+  // the list doesn't show stale "live" rows. (A shell killed fully
+  // out-of-band with no task event can still linger briefly — a known gap.)
+  const runningBashes = Object.values(backgroundBashes).filter((b) => {
+    if (b.killed) return false;
+    const t = taskByToolUseId.get(b.toolUseId);
+    return !(t && TERMINAL_STATUSES.has(t.status));
+  });
+  // Non-shell process work (monitors) + any process task we have no captured
+  // shell entry for. De-duped against shells by tool_use_id so a tracked shell
+  // never appears twice.
+  const bashToolUseIds = new Set(Object.values(backgroundBashes).map((b) => b.toolUseId));
+  const runningProcessTasks = Object.values(tasks).filter(
+    (t) =>
+      (t.status === "running" || t.status === "pending") &&
+      PROCESS_TASK_TYPES.has(t.taskType ?? "") &&
+      !(t.toolUseId && bashToolUseIds.has(t.toolUseId)),
+  );
+  const runningProcs = runningBashes.length + runningProcessTasks.length;
   // Show cancelled loops too so the user gets closure feedback — they fade
   // to the muted tone but stay in the list until the section is
   // re-rendered without them (next session reset). Only ACTIVE ones count
@@ -197,8 +259,23 @@ export function BackgroundTasksPanel({
     runningCount +
     subagents.length +
     (pendingPermission ? 1 : 0) +
-    liveBashes.length +
+    runningProcs +
     activeLoopCount;
+
+  // Reveal + scroll to the Running section (used by the header "Working" cue).
+  // Force the collapsible open by writing its persisted flag, then scroll —
+  // matches CollapsibleSection's own storage protocol.
+  const revealRunning = () => {
+    try {
+      window.localStorage.setItem("claudius.activity.running.collapsed", "0");
+      window.dispatchEvent(new Event("claudius.activity.changed"));
+    } catch {
+      // ignore
+    }
+    document
+      .getElementById("activity-running")
+      ?.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
 
   // "Busy" covers session boot AND turn-in-flight. Drives the header spinner —
   // gives the user a always-visible "Claude is doing something" cue without
@@ -221,7 +298,21 @@ export function BackgroundTasksPanel({
             {!ready ? "Starting…" : "Working…"}
           </span>
         )}
-        <span className="ml-auto text-[var(--muted)]">{attention}</span>
+        {runningProcs > 0 && (
+          <button
+            type="button"
+            onClick={revealRunning}
+            title="Jump to running processes"
+            aria-label={`${runningProcs} background process${runningProcs === 1 ? "" : "es"} running — show them`}
+            className="ml-auto flex items-center gap-1 rounded px-1 text-[10px] font-medium text-[var(--accent)] hover:bg-[var(--panel-2)]"
+          >
+            <Terminal className="h-3 w-3" />
+            {runningProcs} running
+          </button>
+        )}
+        <span className={cn("text-[var(--muted)]", runningProcs > 0 ? "ml-1" : "ml-auto")}>
+          {attention}
+        </span>
       </div>
       {/* Notifications inbox sits OUTSIDE the scroll container — the rail's
           `overflow-y-auto` would otherwise clip the popover horizontally and
@@ -303,7 +394,9 @@ export function BackgroundTasksPanel({
         {subagents.length > 0 && (
           <CollapsibleSection storageKey="tasks" label="Tasks" badge={`(${subagents.length})`}>
             <ul className="space-y-1">
-              {subagents.map((t) => (
+              {subagents.map((t) => {
+                const Icon = taskIcon(t.taskType);
+                return (
                 <li
                   key={t.taskId}
                   className={cn(
@@ -312,7 +405,7 @@ export function BackgroundTasksPanel({
                   )}
                 >
                   <div className="flex items-center gap-1.5 text-xs">
-                    <Bot className="h-3 w-3" />
+                    <Icon className="h-3 w-3" />
                     <span className="truncate font-mono">{t.workflowName ?? t.taskType ?? "Task"}</span>
                     <span className="ml-auto text-[10px]">{t.status}</span>
                     {sessionId && (
@@ -344,7 +437,8 @@ export function BackgroundTasksPanel({
                     {t.lastToolName && <span>· {t.lastToolName}</span>}
                   </div>
                 </li>
-              ))}
+                );
+              })}
             </ul>
           </CollapsibleSection>
         )}
@@ -455,9 +549,52 @@ export function BackgroundTasksPanel({
           </CollapsibleSection>
         )}
 
-        {liveBashes.length > 0 && (
-          <CollapsibleSection storageKey="bashes" label="Background shells" badge={`(${liveBashes.length})`}>
-            <BackgroundBashes items={liveBashes} onPick={onOpenBash} />
+        {runningProcs > 0 && (
+          <CollapsibleSection storageKey="running" label="Running" badge={`(${runningProcs})`}>
+            <div id="activity-running" className="space-y-1">
+              <BackgroundBashes
+                items={runningBashes}
+                onPick={onOpenBash}
+                getStopTaskId={(b) => taskByToolUseId.get(b.toolUseId)?.taskId}
+                onStop={(taskId) => stopTask(taskId)}
+              />
+              {runningProcessTasks.length > 0 && (
+                <ul className="space-y-1">
+                  {runningProcessTasks.map((t) => (
+                    <li
+                      key={t.taskId}
+                      className={cn(
+                        "rounded-md border px-2 py-1.5",
+                        TASK_TONES[t.status] ?? TASK_TONES.running,
+                      )}
+                    >
+                      <div className="flex items-center gap-1.5 text-xs">
+                        <Activity className="h-3 w-3 shrink-0" />
+                        <span className="truncate font-mono">
+                          {t.workflowName ?? t.taskType ?? "Process"}
+                        </span>
+                        <span className="ml-auto text-[10px]">{t.status}</span>
+                        {sessionId && (
+                          <button
+                            onClick={() => stopTask(t.taskId)}
+                            title="Stop this process"
+                            aria-label="Stop this process"
+                            className="shrink-0 rounded p-0.5 text-[var(--muted)] hover:bg-[var(--panel)] hover:text-red-400"
+                          >
+                            <CircleStop className="h-3 w-3" />
+                          </button>
+                        )}
+                      </div>
+                      {t.description && (
+                        <div className="mt-0.5 line-clamp-2 text-[10px] opacity-80">
+                          {t.description}
+                        </div>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </CollapsibleSection>
         )}
 
@@ -475,18 +612,21 @@ export function BackgroundTasksPanel({
         {recent.length > 0 && (
           <CollapsibleSection storageKey="recent" label="Recent">
             <ul className="space-y-1">
-              {recent.map((t) => (
+              {recent.map((t) => {
+                const Icon = taskIcon(t.taskType);
+                return (
                 <li
                   key={t.taskId}
                   className={cn("rounded-md border px-2 py-1 text-[10px]", TASK_TONES[t.status])}
                 >
                   <div className="flex items-center gap-1.5">
-                    <Bot className="h-3 w-3" />
+                    <Icon className="h-3 w-3" />
                     <span className="truncate font-mono">{t.description}</span>
                     <span className="ml-auto">{t.status}</span>
                   </div>
                 </li>
-              ))}
+                );
+              })}
             </ul>
           </CollapsibleSection>
         )}

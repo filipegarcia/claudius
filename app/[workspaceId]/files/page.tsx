@@ -10,7 +10,9 @@ import {
   FolderTree as FolderTreeIcon,
   Pencil,
   Save,
+  Search,
   Trash2,
+  X,
 } from "lucide-react";
 import { SideNav } from "@/components/nav/SideNav";
 import { FileTree, type Entry } from "@/components/files/FileTree";
@@ -35,6 +37,9 @@ export default function FilesPage() {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  // Recursive filename search — when non-empty, FileTree switches to a flat
+  // list of matching files at any depth (server-side `?search=`).
+  const [query, setQuery] = useState("");
 
   const wsId = active?.id ?? null;
 
@@ -196,8 +201,33 @@ export default function FilesPage() {
           <span className="opacity-50">·</span>
           <FolderTreeIcon className="h-3.5 w-3.5 text-[var(--muted)]" />
           <span className="font-medium">Files</span>
-          {active && <span className="font-mono text-[var(--muted)]">{active.rootPath}</span>}
-          <div className="ml-auto flex items-center gap-1">
+          {active && (
+            <span className="max-w-[240px] truncate font-mono text-[var(--muted)]">{active.rootPath}</span>
+          )}
+          <div className="flex-1 px-3">
+            <div className="relative mx-auto max-w-md">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--muted)]" />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                disabled={!wsId}
+                placeholder="Search files (incl. nested folders)"
+                aria-label="Search files"
+                className="w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] py-1 pl-8 pr-7 text-xs focus:outline-none disabled:opacity-40"
+              />
+              {query && (
+                <button
+                  onClick={() => setQuery("")}
+                  title="Clear search"
+                  aria-label="Clear search"
+                  className="absolute right-1.5 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded text-[var(--muted)] hover:text-[var(--foreground)]"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-1">
             <button
               type="button"
               onClick={() => onCreate("file")}
@@ -235,6 +265,7 @@ export default function FilesPage() {
                 workspaceId={active.id}
                 onPick={onPick}
                 selectedPath={open?.relPath ?? searchParams.get("path")}
+                query={query}
               />
             )}
           </aside>
