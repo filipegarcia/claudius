@@ -12,7 +12,7 @@
  * Phases 2–8 will extend this with the IPC bridge, native menu, custom
  * title bar, OS notifications, auto-updater, and deep-link handling.
  */
-import { app, BrowserWindow, shell } from "electron";
+import { app, BrowserWindow, ipcMain, shell } from "electron";
 import path from "node:path";
 
 import { registerBadgeHandlers } from "./ipc/badge";
@@ -25,7 +25,12 @@ import {
 import { registerDialogHandlers } from "./ipc/dialogs";
 import { registerNotificationHandlers } from "./ipc/notifications";
 import { registerUpdaterHandlers } from "./ipc/updater";
-import { installAppMenu } from "./menu";
+import { installAppMenu, type MenuAccelerators } from "./menu";
+import {
+  DEFAULT_OWNED_CHORDS,
+  isOwnedChord,
+  ownedChordsFromAccelerators,
+} from "./owned-chords";
 import {
   defaultAppDir,
   startEmbeddedNextServer,
@@ -34,6 +39,15 @@ import {
 
 const DEV_START_URL = process.env.ELECTRON_START_URL;
 const IS_PACKAGED = app.isPackaged || process.env.CLAUDIUS_PACKAGED === "1";
+
+// Mark the runtime as Electron for server-side code. The embedded Next
+// server (electron/server.ts) runs in THIS process (require("next")), so it
+// inherits process.env — `isElectron()` in lib/shared/runtime.ts reads this
+// flag to branch route handlers / lib/server. Set unconditionally and early
+// so it's in place before the server boots. (In `electron:dev` the renderer
+// targets an external `next dev` that doesn't inherit this, which is why
+// server-side detection is packaged-only — see lib/shared/runtime.ts.)
+process.env.CLAUDIUS_ELECTRON = "1";
 
 // Brand the user-data-dir so renderer localStorage and IndexedDB land
 // at `~/Library/Application Support/Claudius` instead of the default
@@ -50,6 +64,12 @@ const IS_PACKAGED = app.isPackaged || process.env.CLAUDIUS_PACKAGED === "1";
 // Linux — `app.getPath("userData")` always returns
 // `<appData>/<appName>` when the name has been set.
 app.setName("Claudius");
+// Brand notifications + taskbar grouping. On Windows the App User Model ID
+// is required for OS notifications to show the app name/icon (rather than
+// "electron.app.Electron"); on macOS notifications are attributed to the
+// bundle, so a packaged build shows "Claudius" while `electron:dev` shows
+// "Electron" — that's expected in dev and resolves once packaged.
+app.setAppUserModelId("network.claudius.desktop");
 // Only force-override userData when the launcher didn't pass an
 // explicit `--user-data-dir` Chromium switch. The Playwright e2e
 // launcher (`tests/electron/launch.ts`) relies on the switch to give
@@ -66,6 +86,28 @@ if (!userDataOverride) {
 
 let mainWindow: BrowserWindow | null = null;
 let nextServer: EmbeddedNextServer | null = null;
+
+// ── Reserved-chord ownership (Phase 3 of docs/electron-conversion/PLAN.md) ──
+//
+// `before-input-event` (installed per-window in `createWindow`) swallows the
+// chords the app owns so Chromium's built-ins (Cmd+R reload, Cmd+W close, …)
+// don't fire alongside the menu accelerator. The matching logic lives in
+// `./owned-chords` (pure + unit-tested — `before-input-event` itself can't be
+// driven from Playwright, since CDP-injected keys bypass it). The set is
+// rebuilt from the accelerator map the renderer pushes via
+// `menu.setAccelerators(...)`, so a remap in /settings keeps the swallow set
+// in lockstep with the menu. The seed mirrors the shipped defaults so
+// cold-start (before the first renderer sync) behaves.
+let ownedChords: ReadonlySet<string> = DEFAULT_OWNED_CHORDS;
+
+// Last accelerator map the renderer pushed — kept so we can rebuild the menu
+// (e.g. to toggle recording mode) without waiting for another sync.
+let lastAccelerators: MenuAccelerators | undefined;
+// True while the /settings shortcut recorder is listening: the menu is rebuilt
+// display-only (accelerators don't intercept) and `before-input-event` stops
+// swallowing, so the chord the user presses reaches the recorder instead of
+// firing the menu item it's currently bound to.
+let recordingShortcut = false;
 
 // Single-instance lock. A second invocation focuses the existing
 // window instead of starting a second copy of the embedded Next
@@ -187,36 +229,15 @@ function createWindow(startUrl: string): BrowserWindow {
   // firing alongside.
   win.webContents.on("before-input-event", (event, input) => {
     if (input.type !== "keyDown") return;
+    // While the recorder is listening, let every chord through so it can be
+    // captured (the menu is display-only in this mode too).
+    if (recordingShortcut) return;
     if (!(input.meta || input.control)) return;
-    const k = input.key.toLowerCase();
-    // Only swallow keys we explicitly own — leave the rest (copy/paste,
-    // text-field shortcuts, devtools toggles) to Chromium.
-    const owned = new Set([
-      "t",
-      "w",
-      "n",
-      "r",
-      "1",
-      "2",
-      "3",
-      "4",
-      "5",
-      "6",
-      "7",
-      "8",
-      "9",
-      "0",
-      "+",
-      "=",
-      "-",
-      "k",
-      "b",
-      "/",
-      ",",
-      "o",
-      "m",
-    ]);
-    if (!owned.has(k)) return;
+    // Match the FULL chord (`code`-derived token + shift/alt) so we swallow
+    // ⌘⇧→ (tab.next) without eating ⌘→ (composer line-nav), and stay
+    // layout-independent — leaving copy/paste, text-field shortcuts, and
+    // devtools toggles to Chromium. See `./owned-chords`.
+    if (!isOwnedChord(ownedChords, input)) return;
     event.preventDefault();
   });
 
@@ -227,6 +248,25 @@ function createWindow(startUrl: string): BrowserWindow {
 app.whenReady().then(async () => {
   try {
     installAppMenu();
+    // Phase 3 follow-up — the renderer pushes its resolved shortcut
+    // bindings (as Electron accelerators) so the native menu reflects the
+    // user's remaps from /settings. Rebuild the menu and re-derive the
+    // before-input-event owned set whenever a fresh map arrives.
+    ipcMain.on("menu:set-accelerators", (_evt, accelerators: unknown) => {
+      if (!accelerators || typeof accelerators !== "object") return;
+      const map = accelerators as MenuAccelerators;
+      lastAccelerators = map;
+      installAppMenu(map, { registerAccelerators: !recordingShortcut });
+      ownedChords = ownedChordsFromAccelerators(map);
+    });
+    // The /settings recorder toggles this: while listening, rebuild the menu
+    // display-only so the user can record a chord the menu owns (⌘T, ⌘W, …)
+    // instead of the accelerator swallowing it. `before-input-event` also
+    // checks `recordingShortcut` and stops swallowing.
+    ipcMain.on("menu:set-recording", (_evt, enabled: unknown) => {
+      recordingShortcut = Boolean(enabled);
+      installAppMenu(lastAccelerators, { registerAccelerators: !recordingShortcut });
+    });
     // Phase 6 IPC handlers — notifications + dock/taskbar badge.
     // Register before the window opens so any early renderer message
     // (e.g. a queued badge update) has somewhere to land.

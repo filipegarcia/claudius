@@ -77,6 +77,7 @@ Convention:
 > `notifications-show-via-bridge.spec.ts`.
 
 - [x] OS notification IPC roundtrip: `bridge.notifications.show(...)` reaches main and constructs a Notification with the payload (`notifications-show-via-bridge.spec.ts`)
+- [x] "Send test notification" button (bell menu) delivers end-to-end: UI click → bridge → main receives the `Claudius` payload (`notification-test-button.spec.ts`)
 - [ ] An `agent.idle` notification fires when window is hidden
 - [ ] Same notification does NOT fire when window is focused
 - [ ] Clicking the OS notification focuses the window and switches session
@@ -97,10 +98,16 @@ Convention:
 - [ ] Composer resize handle drags vertically
 - [ ] Session-tab `+` opens a new session
 - [ ] Session-tab close `×` removes the tab
-- [ ] `Cmd+T` opens a new session tab (Electron-only)
-- [ ] `Cmd+W` closes the active session tab (Electron-only)
-- [ ] `Cmd+Shift+T` reopens the most-recently-closed tab
+- [x] New Tab menu item (owns `Cmd+T`) adds exactly one tab (`keybinding-tab-navigation.spec.ts`)
+- [x] Close Tab menu item (owns `Cmd+W`) removes exactly one tab (`keybinding-tab-navigation.spec.ts`)
+- [x] Reopen Closed Tab menu item (owns `Cmd+Shift+T`) restores the tab (`keybinding-tab-navigation.spec.ts`)
+- [x] Next/Previous Tab menu items cycle the active tab (`keybinding-tab-navigation.spec.ts`)
 - [ ] `Cmd+1..9` jumps to tab N
+  > Note: the OS delivers `Cmd+T/W/…` to the menu accelerator, which is why
+  > the tests above drive the menu item rather than an injected chord —
+  > Playwright's `_electron` keyboard injection does not trigger native
+  > menu accelerators, and the renderer's web-parity keydown listener bails
+  > on `isTypingTarget` while the composer holds focus.
 - [ ] Compact mode hides tool calls
 - [ ] Verbose mode shows everything
 - [ ] Session rename via banner persists
@@ -192,6 +199,12 @@ Global (`app/*`):
 ## 12. Keyboard shortcuts owned by the OS menu
 
 - [x] `Cmd+,` opens `/settings` (`keybinding-cmd-comma-opens-settings.spec.ts`)
+- [x] Native menu accelerators follow the shortcut registry; "Next Tab" defaults to ⌘⇧→ not the stale ⌘⇧] (`menu-accelerator-sync.spec.ts`)
+- [x] Remapping a shortcut in the renderer store updates the native menu accelerator (`menu-accelerator-sync.spec.ts`)
+- [x] `before-input-event` swallows owned chords (⌘⇧→) but not text-edit chords (⌘→ line-nav) — verified in `tests/unit/electron-owned-chords.test.ts`
+  > Not an e2e row: Playwright's CDP key injection bypasses `before-input-event`
+  > entirely (only real OS input traverses it), so the swallow logic lives in
+  > the pure, unit-tested `electron/owned-chords.ts`.
 - [ ] `Cmd+Q` quits the app
 - [ ] `Cmd+R` reloads the renderer
 - [ ] `Cmd+0` / `Cmd+=` / `Cmd+-` zoom in / reset / out

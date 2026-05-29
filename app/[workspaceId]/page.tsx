@@ -706,8 +706,16 @@ export default function Home() {
           }
           const text = args.trim();
           if (text) {
+            // `/goal <text>` sets the objective AND starts Claude on it (same
+            // as submitting the header goal input) — a goal should "start
+            // working" like the CLI, not sit passively.
             void session.setGoal(text).then((r) => {
-              showToast(r.ok ? "Goal set" : `Goal failed: ${r.error}`);
+              if (!r.ok) {
+                showToast(`Goal failed: ${r.error}`);
+                return;
+              }
+              void session.send(text);
+              showToast("Goal set — starting Claude");
             });
           } else {
             // No args — open the banner's inline editor (prefilled with the
@@ -914,6 +922,22 @@ export default function Home() {
       void session.send(text, images, opts?.fromSuggestion ? { fromSuggestion: true } : undefined);
     },
     [runNative, session, showToast],
+  );
+
+  // Goal submit — set the tracked objective AND kick off Claude with the same
+  // text as the opening prompt (so a goal "starts working" like the CLI rather
+  // than sitting passively). `setGoal` is awaited first so the server arms the
+  // goal (and its one-shot reminder, which carries the report_goal_achieved
+  // instruction) before the input turn is queued. The goal text is sent
+  // verbatim — no slash dispatch — since the goal input disables commands.
+  const handleGoalSubmit = useCallback(
+    async (text: string, images?: AttachedImage[]) => {
+      const trimmed = text.trim();
+      if (!trimmed && !(images && images.length > 0)) return;
+      await session.setGoal(trimmed);
+      void session.send(trimmed, images);
+    },
+    [session],
   );
 
   // ── Prompt history (shell-style recall) ─────────────────────────────────
@@ -1217,9 +1241,15 @@ export default function Home() {
             <GoalBanner
               embedded
               goal={session.goal}
-              onSet={session.setGoal}
               onClear={session.clearGoal}
+              onSubmitGoal={handleGoalSubmit}
               openEditNonce={goalEditNonce}
+              composer={{
+                ready: session.ready,
+                pending: session.pending,
+                cwd: session.cwd,
+                onInterrupt: session.interrupt,
+              }}
             />
           </div>
         )}
@@ -1261,6 +1291,8 @@ export default function Home() {
             onLoadOlder={session.loadOlder}
             highlightUuid={highlightUuid}
             onPickExample={handleSend}
+            onRunCommand={handleSend}
+            tips={session.tips}
             suggestedUuids={session.suggestedUuids}
             verbose={verbose.verbose}
             pendingAskToolUseId={session.pendingAsk?.toolUseId ?? null}
@@ -1291,7 +1323,7 @@ export default function Home() {
             }}
           />
           {session.errors.length > 0 && (
-            <div className="mx-auto w-full max-w-3xl px-4 pb-2">
+            <div className="mx-auto w-full max-w-[var(--chat-col)] px-4 pb-2">
               {session.errors.map((e, i) => (
                 <div
                   key={i}
@@ -1334,7 +1366,7 @@ export default function Home() {
             />
           )}
           {session.pendingAsk && askMinimizedFor === session.pendingAsk.requestId && (
-            <div className="mx-auto flex w-full max-w-3xl items-center gap-2 px-4 pb-2">
+            <div className="mx-auto flex w-full max-w-[var(--chat-col)] items-center gap-2 px-4 pb-2">
               <button
                 type="button"
                 onClick={() => setAskMinimizedFor(null)}

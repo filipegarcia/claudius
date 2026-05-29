@@ -25,6 +25,14 @@ import {
 const MENU_ACTION_TOPIC = "menu:action";
 
 /**
+ * Resolved accelerator strings keyed by shortcut-registry action id,
+ * pushed from the renderer via `menu.setAccelerators(...)`. Lets a
+ * remap in /settings rewrite the OS-menu accelerator for the
+ * registry-dispatched items below.
+ */
+export type MenuAccelerators = Record<string, string>;
+
+/**
  * Dispatch a menu action into the renderer's shortcut registry. The
  * preload's `menu.on(...)` listeners filter by `actionId`.
  */
@@ -39,10 +47,50 @@ function isMac(): boolean {
 }
 
 /**
- * Build the application menu and install it as the default. Call
- * exactly once from main, after `app.whenReady()`.
+ * Resolve the accelerator for a registry-dispatched menu item: the
+ * renderer-synced value when present, otherwise the shipped default.
+ * The fallbacks below match `lib/client/shortcuts.ts` defaults so the
+ * menu reads correctly during the brief window before the renderer's
+ * first `setAccelerators(...)` lands (and in the unlikely event the
+ * renderer never syncs).
  */
-export function installAppMenu(): void {
+function accelFor(
+  accelerators: MenuAccelerators | undefined,
+  id: string,
+  fallback: string,
+): string {
+  return accelerators?.[id] ?? fallback;
+}
+
+/**
+ * Recursively flip every menu item to `registerAccelerator: false` so its
+ * accelerator still SHOWS in the menu but no longer intercepts the keypress
+ * — the key falls through to the renderer. Used while the /settings shortcut
+ * recorder is listening, so the user can record a chord the menu owns (⌘T,
+ * ⌘W, …) instead of the menu swallowing it.
+ */
+function unregisterAccelerators(
+  items: MenuItemConstructorOptions[],
+): MenuItemConstructorOptions[] {
+  return items.map((item) => {
+    const next: MenuItemConstructorOptions = { ...item, registerAccelerator: false };
+    if (Array.isArray(item.submenu)) next.submenu = unregisterAccelerators(item.submenu);
+    return next;
+  });
+}
+
+/**
+ * Build the application menu and install it as the default. Call from
+ * main after `app.whenReady()`, and again whenever the renderer pushes
+ * a fresh accelerator map so the menu reflects the user's remaps.
+ *
+ * `opts.registerAccelerators === false` builds a display-only menu whose
+ * accelerators don't intercept keystrokes — see `unregisterAccelerators`.
+ */
+export function installAppMenu(
+  accelerators?: MenuAccelerators,
+  opts?: { registerAccelerators?: boolean },
+): void {
   const template: MenuItemConstructorOptions[] = [
     ...(isMac()
       ? ([
@@ -53,7 +101,7 @@ export function installAppMenu(): void {
               { type: "separator" },
               {
                 label: "Settings…",
-                accelerator: "Cmd+,",
+                accelerator: accelFor(accelerators, "app.preferences", "Cmd+,"),
                 click: () => send("app.preferences"),
               },
               { type: "separator" },
@@ -74,23 +122,23 @@ export function installAppMenu(): void {
       submenu: [
         {
           label: "New Tab",
-          accelerator: "CommandOrControl+T",
+          accelerator: accelFor(accelerators, "tab.new", "CommandOrControl+T"),
           click: () => send("tab.new"),
         },
         {
           label: "Open Workspace…",
-          accelerator: "CommandOrControl+O",
+          accelerator: accelFor(accelerators, "app.openWorkspace", "CommandOrControl+O"),
           click: () => send("app.openWorkspace"),
         },
         {
           label: "Reopen Closed Tab",
-          accelerator: "CommandOrControl+Shift+T",
+          accelerator: accelFor(accelerators, "tab.reopen", "CommandOrControl+Shift+T"),
           click: () => send("tab.reopen"),
         },
         { type: "separator" },
         {
           label: "Close Tab",
-          accelerator: "CommandOrControl+W",
+          accelerator: accelFor(accelerators, "tab.close", "CommandOrControl+W"),
           click: () => send("tab.close"),
         },
         ...(isMac()
@@ -99,7 +147,7 @@ export function installAppMenu(): void {
               { type: "separator" },
               {
                 label: "Settings",
-                accelerator: "Ctrl+,",
+                accelerator: accelFor(accelerators, "app.preferences", "Ctrl+,"),
                 click: () => send("app.preferences"),
               },
               { type: "separator" },
@@ -159,17 +207,17 @@ export function installAppMenu(): void {
         { type: "separator" },
         {
           label: "Command Palette…",
-          accelerator: "CommandOrControl+K",
+          accelerator: accelFor(accelerators, "nav.commandPalette", "CommandOrControl+K"),
           click: () => send("nav.commandPalette"),
         },
         {
           label: "Toggle Sidebar",
-          accelerator: "CommandOrControl+B",
+          accelerator: accelFor(accelerators, "nav.toggleSidebar", "CommandOrControl+B"),
           click: () => send("nav.toggleSidebar"),
         },
         {
           label: "Keyboard Shortcuts",
-          accelerator: "CommandOrControl+/",
+          accelerator: accelFor(accelerators, "nav.cheatsheet", "CommandOrControl+/"),
           click: () => send("nav.cheatsheet"),
         },
       ],
@@ -179,20 +227,23 @@ export function installAppMenu(): void {
       label: "&Tab",
       submenu: [
         {
+          // Fallback matches the registry default (⌘⇧→), not the old
+          // ⌘⇧] — the two had drifted, so Settings/cheatsheet advertised
+          // a chord the menu didn't honor.
           label: "Next Tab",
-          accelerator: "CommandOrControl+Shift+]",
+          accelerator: accelFor(accelerators, "tab.next", "CommandOrControl+Shift+Right"),
           click: () => send("tab.next"),
         },
         {
           label: "Previous Tab",
-          accelerator: "CommandOrControl+Shift+[",
+          accelerator: accelFor(accelerators, "tab.prev", "CommandOrControl+Shift+Left"),
           click: () => send("tab.prev"),
         },
         { type: "separator" },
-        ...buildTabGoItems(),
+        ...buildTabGoItems(accelerators),
         {
           label: "Last Tab",
-          accelerator: "CommandOrControl+9",
+          accelerator: accelFor(accelerators, "tab.last", "CommandOrControl+9"),
           click: () => send("tab.last"),
         },
       ],
@@ -249,16 +300,18 @@ export function installAppMenu(): void {
     },
   ];
 
-  const menu = Menu.buildFromTemplate(template);
+  const finalTemplate =
+    opts?.registerAccelerators === false ? unregisterAccelerators(template) : template;
+  const menu = Menu.buildFromTemplate(finalTemplate);
   Menu.setApplicationMenu(menu);
 }
 
-function buildTabGoItems(): MenuItemConstructorOptions[] {
+function buildTabGoItems(accelerators?: MenuAccelerators): MenuItemConstructorOptions[] {
   const out: MenuItemConstructorOptions[] = [];
   for (let i = 1; i <= 8; i++) {
     out.push({
       label: `Go to Tab ${i}`,
-      accelerator: `CommandOrControl+${i}`,
+      accelerator: accelFor(accelerators, `tab.go${i}`, `CommandOrControl+${i}`),
       click: () => send(`tab.go${i}`),
     });
   }

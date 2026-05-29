@@ -64,7 +64,7 @@ export function TodosBanner({ todos, hidden, onDismiss }: Props) {
       data-testid="todos-banner"
       className="border-b border-[var(--border)] bg-[var(--panel-2)]/40"
     >
-      <div className="mx-auto flex w-full max-w-3xl items-center gap-2 px-4 py-1.5 text-xs">
+      <div className="mx-auto flex w-full max-w-[var(--chat-col)] items-center gap-2 px-4 py-1.5 text-xs">
         <ListChecks className="h-3.5 w-3.5 shrink-0 text-[var(--accent)]" />
         <button
           onClick={toggle}
@@ -106,7 +106,7 @@ export function TodosBanner({ todos, hidden, onDismiss }: Props) {
         )}
       </div>
       {expanded && (
-        <div className="mx-auto w-full max-w-3xl px-4 pb-2" data-testid="todos-banner-list">
+        <div className="mx-auto w-full max-w-[var(--chat-col)] px-4 pb-2" data-testid="todos-banner-list">
           <ul className="space-y-0.5">
             {todos.map((t) => {
               const Icon =

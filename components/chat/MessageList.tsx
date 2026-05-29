@@ -6,6 +6,8 @@ import { cn } from "@/lib/utils/cn";
 import { AssistantMessage } from "./AssistantMessage";
 import { UserMessage } from "./UserMessage";
 import { SystemPill } from "./SystemPill";
+import { SpinnerTip } from "./SpinnerTip";
+import type { Tip } from "@/lib/shared/tips";
 import { ClaudiusMark } from "@/components/brand/ClaudiusMark";
 import { isRealUserDisplayMessage } from "@/lib/client/sdk-message-filters";
 import type { DisplayMessage, SystemEntry, TaskInfo } from "@/lib/client/types";
@@ -42,6 +44,18 @@ type Props = {
    * clicking sends the example string straight to the prompt pipeline.
    */
   onPickExample?: (prompt: string) => void;
+  /**
+   * Run a slash command (with leading slash) from a spinner tip's clickable
+   * affordance — wired to the chat page's `handleSend`. Omit to render tip
+   * commands as plain text.
+   */
+  onRunCommand?: (command: string) => void;
+  /**
+   * Server-driven spinner tips (the `tips` SSE event). Passed straight to the
+   * working-row {@link SpinnerTip}; when empty it falls back to its built-in
+   * defaults.
+   */
+  tips?: Tip[];
   /**
    * Uuids of user messages that originated from a clicked suggestion chip.
    * Matching user bubbles get an "auto-suggested" badge.
@@ -94,6 +108,8 @@ export function MessageList({
   onLoadOlder,
   highlightUuid = null,
   onPickExample,
+  onRunCommand,
+  tips,
   suggestedUuids,
   pendingAskToolUseId = null,
   onReopenAsk,
@@ -380,7 +396,7 @@ export function MessageList({
         onScroll={onScroll}
         className="flex-1 overflow-y-auto scroll-thin"
       >
-        <div className="mx-auto w-full max-w-3xl space-y-4 px-2 py-6 sm:px-4">
+        <div className="mx-auto w-full max-w-[var(--chat-col)] space-y-4 px-2 py-6 sm:px-4">
           {/* Top sentinel: when it scrolls into view, the parent loads older. */}
           {hasMoreAbove && (
             <div ref={topSentinelRef} className="flex items-center justify-center py-2 text-[10px] text-[var(--muted)]">
@@ -462,19 +478,13 @@ export function MessageList({
                   );
                 })}
                 {isLastTurn && pending && (
-                  <div className="flex items-center gap-2 text-xs text-[var(--muted)]">
-                    <Loader2 className="h-3.5 w-3.5 animate-spin text-[var(--accent)]" />
-                    <span className="font-medium text-[var(--foreground)]/80">Claude is working…</span>
-                  </div>
+                  <WorkingRow onRunCommand={onRunCommand} tips={tips} />
                 )}
               </section>
             );
           })}
           {turns.length === 0 && pending && (
-            <div className="flex items-center gap-2 text-xs text-[var(--muted)]">
-              <Loader2 className="h-3.5 w-3.5 animate-spin text-[var(--accent)]" />
-              <span className="font-medium text-[var(--foreground)]/80">Claude is working…</span>
-            </div>
+            <WorkingRow onRunCommand={onRunCommand} tips={tips} />
           )}
           <div ref={endRef} />
         </div>
@@ -491,6 +501,31 @@ export function MessageList({
       )}
     </div>
     </FileLinkProvider>
+  );
+}
+
+/**
+ * The "Claude is working…" indicator shown at the tail of the active turn —
+ * the browser analog of the CLI spinner. Carries a rotating {@link SpinnerTip}
+ * underneath so idle wait time surfaces a Claudius feature the user may not
+ * have found. Single definition, rendered from both the last-turn and the
+ * no-turns-yet branches.
+ */
+function WorkingRow({
+  onRunCommand,
+  tips,
+}: {
+  onRunCommand?: (command: string) => void;
+  tips?: Tip[];
+}) {
+  return (
+    <div className="flex flex-col gap-1 text-xs text-[var(--muted)]">
+      <div className="flex items-center gap-2">
+        <Loader2 className="h-3.5 w-3.5 animate-spin text-[var(--accent)]" />
+        <span className="font-medium text-[var(--foreground)]/80">Claude is working…</span>
+      </div>
+      <SpinnerTip onRunCommand={onRunCommand} tips={tips} />
+    </div>
   );
 }
 

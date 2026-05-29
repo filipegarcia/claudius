@@ -83,6 +83,26 @@ fi
 
 cd "$ROOT"
 
+# ── Mode dispatch ────────────────────────────────────────────────────
+# `run.sh fix-pr <number>` skips the npm version probe entirely: it
+# checks out an existing PR's branch and re-runs Claude to fix it.
+# Everything above this point (env loading, flock) is shared with the
+# cron upgrade path below. Invoked by `make sdk-update-fix-pr PR=<n>`.
+if [ "${1:-}" = "fix-pr" ]; then
+  FIX_PR_NUM="${2:-}"
+  if [ -z "$FIX_PR_NUM" ]; then
+    log "fix-pr requires a PR number: run.sh fix-pr <number>"
+    exit 2
+  fi
+  log "fix-pr mode for PR #$FIX_PR_NUM"
+  ORCH_ARGS=(--fix-pr="$FIX_PR_NUM")
+  if [ -n "${SDK_UPDATE_SKIP_GATES:-}" ]; then
+    log "skipping gates: ${SDK_UPDATE_SKIP_GATES}"
+    ORCH_ARGS+=("--skip-gates=${SDK_UPDATE_SKIP_GATES}")
+  fi
+  exec bun run scripts/sdk-update/orchestrate.ts "${ORCH_ARGS[@]}"
+fi
+
 # ── Check ────────────────────────────────────────────────────────────
 log "checking for SDK updates"
 

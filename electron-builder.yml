@@ -22,6 +22,11 @@ files:
   - "!**/test-utils/**"
   - "!**/__tests__/**"
   - "!**/*.test.{ts,tsx,js,jsx}"
+  # Electron e2e runs leave throwaway Chromium profiles under
+  # dist-electron/playwright-userdata-<ts>/ (see tests/electron/launch.ts).
+  # They contain unix sockets (SingletonSocket) that electron-builder cannot
+  # copy into the asar — "Unknown system error -102". Never package them.
+  - "!dist-electron/playwright-userdata-*"
 
 # Native modules and the embedded Next.js binary must live outside the
 # asar archive so they can be spawned/required at runtime.

@@ -1,6 +1,7 @@
 import { test, expect, type Page } from "../helpers/test";
 import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
+import { activateClaudiusWorkspace } from "./helpers/workspace";
 
 /**
  * Captures screenshots used by the marketing site (site/index.html). The
@@ -23,34 +24,6 @@ mkdirSync(SHOTS_DIR, { recursive: true });
 const SESSION_RE = /[?&]session=([0-9a-f-]{36})/i;
 const INCLUDE_CHAT = process.env.SCREENSHOTS_INCLUDE_CHAT === "1";
 
-type WorkspaceSummary = {
-  id: string;
-  name: string;
-  rootPath: string;
-};
-
-/**
- * Switch the active workspace to "claudius" — matched by name, then by
- * rootPath so the spec works on any machine that has the project cloned.
- * The /select endpoint sets a cookie that page.request shares with the
- * browser context, so subsequent navigations land in the right workspace.
- */
-async function activateClaudiusWorkspace(page: Page) {
-  const list = await page.request
-    .get("/api/workspaces")
-    .then((r) => r.json() as Promise<{ workspaces: WorkspaceSummary[] }>);
-  const cwd = process.cwd();
-  const ws =
-    list.workspaces.find((w) => w.name === "claudius") ??
-    list.workspaces.find((w) => w.rootPath === cwd);
-  if (!ws) {
-    throw new Error(
-      `No "claudius" workspace found. Create one via /workspace or POST /api/workspaces with rootPath=${cwd}.`,
-    );
-  }
-  const res = await page.request.post(`/api/workspaces/${ws.id}/select`);
-  expect(res.ok(), "selecting the claudius workspace should succeed").toBeTruthy();
-}
 
 async function snap(page: Page, name: string) {
   await page.screenshot({

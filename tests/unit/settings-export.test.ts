@@ -41,9 +41,9 @@ describe("buildExportBundle", () => {
     // when nothing's on disk) — userSettings/customize/keybindings can be
     // omitted entirely.
     expect(bundle.system.updaterSettings).toBeDefined();
-    // ensureBootstrap in workspaces-store will create one workspace from
-    // process.cwd() on first call. We don't depend on the count here, but
-    // it should be ≥ 1.
+    // On a fresh machine there are no workspaces (bootstrap no longer
+    // auto-seeds one), so this is an empty array — but it must still be a
+    // well-shaped array regardless of count.
     expect(Array.isArray(bundle.workspaces)).toBe(true);
   });
 

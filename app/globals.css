@@ -88,6 +88,34 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* Chat reading column — width and base text size scale up together on large
+ * displays so the conversation doesn't sit as a narrow strip of tiny text in
+ * the middle of a big screen. Width and font rise in lockstep so the
+ * characters-per-line stays in a readable range as the type grows.
+ *
+ * These are plain CSS variables (NOT a root font-size bump) consumed by the
+ * chat column via `max-w-[var(--chat-col)]` / `text-[length:var(--chat-text)]`.
+ * Scoping it this way keeps the effect on the chat surface and never reflows
+ * the workspace rail or the activity side panel. The 1536px floor sits above
+ * the e2e + marketing screenshot viewport (1280px), so existing screenshots
+ * are unaffected. */
+:root {
+  --chat-col: 48rem; /* max-w-3xl — phones, tablets, normal laptops */
+  --chat-text: 0.875rem; /* text-sm */
+}
+@media (min-width: 1536px) {
+  :root {
+    --chat-col: 56rem; /* ~max-w-4xl — large desktops */
+    --chat-text: 1rem; /* text-base */
+  }
+}
+@media (min-width: 2000px) {
+  :root {
+    --chat-col: 64rem; /* max-w-5xl — ultrawide / big external displays */
+    --chat-text: 1.0625rem; /* 17px */
+  }
+}
+
 html,
 body {
   height: 100%;

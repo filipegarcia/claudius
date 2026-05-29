@@ -13,6 +13,7 @@ import type {
   PlanDecision,
   ServerEvent,
 } from "@/lib/shared/events";
+import type { Tip } from "@/lib/shared/tips";
 import { costFromTokens } from "@/lib/shared/cost-pricing";
 import { parseInitSystemMessage } from "@/lib/shared/parse-init";
 import {
@@ -438,6 +439,10 @@ export function useSession(): ChatState & ChatActions {
   const [pendingPermission, setPendingPermission] = useState<PermissionRequestEvent | null>(null);
   const [pendingAsk, setPendingAsk] = useState<AskUserQuestionEvent | null>(null);
   const [feedbackSurvey, setFeedbackSurvey] = useState<FeedbackSurveyEvent | null>(null);
+  // Server-driven spinner tips (see `tips` SSE event). Empty until the server
+  // emits the catalog on subscribe; the renderer falls back to its built-in
+  // defaults in the meantime.
+  const [tips, setTips] = useState<Tip[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
   const [slashCommands, setSlashCommands] = useState<string[]>([]);
   const [agents, setAgents] = useState<string[]>([]);
@@ -926,6 +931,7 @@ export function useSession(): ChatState & ChatActions {
     pendingPermissionRef.current = null;
     setPendingAsk(null);
     setFeedbackSurvey(null);
+    setTips([]);
     setErrors([]);
     setSlashCommands([]);
     setAgents([]);
@@ -1259,6 +1265,10 @@ export function useSession(): ChatState & ChatActions {
       }
       if (ev.type === "feedback_survey") {
         setFeedbackSurvey(ev);
+        return;
+      }
+      if (ev.type === "tips") {
+        setTips(ev.tips);
         return;
       }
       if (ev.type === "plan_approval_request") {
@@ -3624,6 +3634,7 @@ export function useSession(): ChatState & ChatActions {
     pendingPermission,
     pendingAsk,
     feedbackSurvey,
+    tips,
     errors,
     slashCommands,
     agents,

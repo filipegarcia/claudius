@@ -92,7 +92,7 @@ export function TranscriptSearch({ sessionId, onClose, onPick }: Props) {
 
   return (
     <div className="border-b border-[var(--border)] bg-[var(--panel)]/95 px-3 py-2">
-      <div className="mx-auto flex max-w-3xl items-center gap-2">
+      <div className="mx-auto flex max-w-[var(--chat-col)] items-center gap-2">
         <Search className="h-3.5 w-3.5 text-[var(--muted)]" />
         <input
           ref={inputRef}
@@ -119,12 +119,12 @@ export function TranscriptSearch({ sessionId, onClose, onPick }: Props) {
         </button>
       </div>
       {error && (
-        <div className="mx-auto mt-1 max-w-3xl rounded-md border border-red-500/30 bg-red-500/10 px-2 py-0.5 text-[11px] text-red-300">
+        <div className="mx-auto mt-1 max-w-[var(--chat-col)] rounded-md border border-red-500/30 bg-red-500/10 px-2 py-0.5 text-[11px] text-red-300">
           {error}
         </div>
       )}
       {hits.length > 0 && (
-        <ul className="mx-auto mt-2 max-h-60 max-w-3xl overflow-y-auto rounded-md border border-[var(--border)] bg-[var(--panel)] scroll-thin">
+        <ul className="mx-auto mt-2 max-h-60 max-w-[var(--chat-col)] overflow-y-auto rounded-md border border-[var(--border)] bg-[var(--panel)] scroll-thin">
           {hits.map((h) => (
             <li key={h.messageUuid + ":" + h.score}>
               <button

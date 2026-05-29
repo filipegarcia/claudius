@@ -107,7 +107,7 @@ function CompactBoundaryDivider({ entry }: { entry: SystemEntry }) {
         <div className="h-px flex-1 bg-[var(--border)]" />
       </div>
       {expanded && hasSummary && (
-        <div className="mx-auto mt-2 max-h-80 max-w-3xl overflow-auto whitespace-pre-wrap rounded-md border border-[var(--border)] bg-[var(--panel)]/40 p-3 text-[11px] leading-5 text-[var(--foreground)]/80 scroll-thin">
+        <div className="mx-auto mt-2 max-h-80 max-w-[var(--chat-col)] overflow-auto whitespace-pre-wrap rounded-md border border-[var(--border)] bg-[var(--panel)]/40 p-3 text-[11px] leading-5 text-[var(--foreground)]/80 scroll-thin">
           {entry.compactSummary}
         </div>
       )}

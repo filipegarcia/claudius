@@ -2,6 +2,11 @@ import { describe, expect, test, vi, beforeEach, afterEach } from "vitest";
 
 import {
   REQUIRED_RUN_NOTE_SECTIONS,
+  buildFixResultAnnouncement,
+  buildFixStartAnnouncement,
+  buildOpenedAnnouncement,
+  buildShippedAnnouncement,
+  compareUrl,
   extractSection,
   parseSkipGates,
   sliceChangelog,
@@ -451,5 +456,121 @@ describe("summarizeSdkMessage", () => {
     expect(() => summarizeSdkMessage(null)).not.toThrow();
     expect(() => summarizeSdkMessage({})).not.toThrow();
     expect(() => summarizeSdkMessage({ type: "assistant", message: null })).not.toThrow();
+  });
+});
+
+// ── Community-channel announcement builders ───────────────────────────
+
+describe("compareUrl", () => {
+  test("points at the upstream compare view between two tags", () => {
+    expect(compareUrl("0.3.141", "0.3.142")).toBe(
+      "https://github.com/anthropics/claude-agent-sdk-typescript/compare/v0.3.141...v0.3.142",
+    );
+  });
+});
+
+describe("buildOpenedAnnouncement", () => {
+  const base = { prUrl: "https://github.com/o/r/pull/7", prevVersion: "0.3.141", newVersion: "0.3.142" };
+
+  test("full PR (not draft) says 'opened, watching CI' and has no reason line", () => {
+    const out = buildOpenedAnnouncement({ ...base, created: true, draft: false, reason: null });
+    expect(out).toContain("PR opened, watching CI");
+    expect(out).not.toMatch(/Reason:/);
+    expect(out).toContain(base.prUrl);
+    expect(out).toContain(compareUrl(base.prevVersion, base.newVersion));
+  });
+
+  test("re-run on an existing PR says 'updated' instead of 'opened'", () => {
+    const out = buildOpenedAnnouncement({ ...base, created: false, draft: false, reason: null });
+    expect(out).toContain("PR updated, watching CI");
+    expect(out).not.toContain("PR opened");
+  });
+
+  test("draft PR flags 'needs a human' and includes the reason", () => {
+    const out = buildOpenedAnnouncement({
+      ...base,
+      created: true,
+      draft: true,
+      reason: "gate failed: lint, e2e",
+    });
+    expect(out).toContain("draft PR opened, needs a human");
+    expect(out).toContain("Reason: gate failed: lint, e2e");
+  });
+
+  test("clips an absurdly long draft reason to keep the body under the chat limit", () => {
+    const out = buildOpenedAnnouncement({
+      ...base,
+      created: true,
+      draft: true,
+      reason: "x".repeat(5000),
+    });
+    expect(out.length).toBeLessThan(2000);
+    expect(out).toContain("…");
+  });
+});
+
+describe("buildShippedAnnouncement", () => {
+  test("announces the ship with the PR + changelog links", () => {
+    const out = buildShippedAnnouncement({
+      prUrl: "https://github.com/o/r/pull/7",
+      prevVersion: "0.3.141",
+      newVersion: "0.3.142",
+    });
+    expect(out).toContain("has shipped to Claudius");
+    expect(out).toContain("https://github.com/o/r/pull/7");
+    expect(out).toContain(compareUrl("0.3.141", "0.3.142"));
+  });
+});
+
+describe("buildFixStartAnnouncement", () => {
+  const base = { prNumber: "42", title: "bump claude-agent-sdk", url: "https://github.com/o/r/pull/42" };
+
+  test("names the PR number + title and the PR url", () => {
+    const out = buildFixStartAnnouncement({ ...base, instruction: "" });
+    expect(out).toContain("Working on PR #42");
+    expect(out).toContain("bump claude-agent-sdk");
+    expect(out).toContain(base.url);
+    expect(out).not.toMatch(/Instruction:/);
+  });
+
+  test("includes the instruction when one was supplied", () => {
+    const out = buildFixStartAnnouncement({ ...base, instruction: "fix the failing e2e" });
+    expect(out).toContain("Instruction: fix the failing e2e");
+  });
+});
+
+describe("buildFixResultAnnouncement", () => {
+  const base = { prNumber: "42", title: "bump", url: "https://github.com/o/r/pull/42" };
+
+  test("green result reports success and the ready transition", () => {
+    const out = buildFixResultAnnouncement({
+      ...base,
+      allGreen: true,
+      failedSteps: [],
+      markedReady: true,
+    });
+    expect(out).toContain("all gates pass");
+    expect(out).toContain("marked ready for review");
+  });
+
+  test("green-but-already-ready omits the ready note", () => {
+    const out = buildFixResultAnnouncement({
+      ...base,
+      allGreen: true,
+      failedSteps: [],
+      markedReady: false,
+    });
+    expect(out).toContain("all gates pass");
+    expect(out).not.toContain("marked ready");
+  });
+
+  test("red result lists the failing gate steps", () => {
+    const out = buildFixResultAnnouncement({
+      ...base,
+      allGreen: false,
+      failedSteps: ["lint", "e2e"],
+      markedReady: false,
+    });
+    expect(out).toContain("still red: lint, e2e");
   });
 });

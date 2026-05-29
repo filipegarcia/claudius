@@ -97,6 +97,12 @@ export const SHORTCUT_ACTIONS: ShortcutAction[] = [
     description: "Cycle to the next session tab. Wraps at the end.",
     category: "tabs",
     default: { mod: true, shift: true, code: "ArrowRight" },
+    // The OS menu's "Next Tab" item owns this chord in the packaged
+    // build, so it fires even while the chat composer holds focus (the
+    // renderer's keydown listener bails on `isTypingTarget`). The menu
+    // accelerator is synced from this binding — see toElectronAccelerator
+    // + lib/client/useElectronMenuSync.ts.
+    electronMenuOwned: true,
   },
   {
     id: "tab.prev",
@@ -104,6 +110,7 @@ export const SHORTCUT_ACTIONS: ShortcutAction[] = [
     description: "Cycle to the previous session tab. Wraps at the start.",
     category: "tabs",
     default: { mod: true, shift: true, code: "ArrowLeft" },
+    electronMenuOwned: true,
   },
   {
     id: "tab.selectByNumber",
@@ -620,6 +627,90 @@ function formatCode(code: string, mac: boolean): string {
   if (code === "Tab") return "Tab";
   if (code === "Backspace") return mac ? "⌫" : "Backspace";
   return code;
+}
+
+/**
+ * Map a `KeyboardEvent.code` to the key token Electron's accelerator
+ * parser expects (https://www.electronjs.org/docs/latest/api/accelerator).
+ * Returns `null` for codes Electron can't express as an accelerator key.
+ *
+ * Kept deliberately close to `formatCode` above, but the output is the
+ * machine token ("Right", "Plus") rather than the display glyph ("→").
+ */
+export function codeToAcceleratorToken(code: string): string | null {
+  if (code.startsWith("Key")) return code.slice(3); // KeyA → "A"
+  if (code.startsWith("Digit")) return code.slice(5); // Digit1 → "1"
+  switch (code) {
+    case "ArrowLeft":
+      return "Left";
+    case "ArrowRight":
+      return "Right";
+    case "ArrowUp":
+      return "Up";
+    case "ArrowDown":
+      return "Down";
+    case "BracketLeft":
+      return "[";
+    case "BracketRight":
+      return "]";
+    case "Comma":
+      return ",";
+    case "Period":
+      return ".";
+    case "Slash":
+      return "/";
+    case "Backslash":
+      return "\\";
+    case "Semicolon":
+      return ";";
+    case "Quote":
+      return "'";
+    case "Backquote":
+      return "`";
+    case "Minus":
+      return "-";
+    // Electron renders "=" as "Plus" only with the Shift glyph; the bare
+    // key is "=" and that's what the zoom-in default (Cmd+=) expects.
+    case "Equal":
+      return "=";
+    case "Space":
+      return "Space";
+    case "Enter":
+      return "Return";
+    case "Escape":
+      return "Esc";
+    case "Tab":
+      return "Tab";
+    case "Backspace":
+      return "Backspace";
+    case "Delete":
+      return "Delete";
+    default:
+      return null;
+  }
+}
+
+/**
+ * Convert a resolved binding into an Electron accelerator string (e.g.
+ * `{ mod, shift, code: "ArrowRight" }` → `"CommandOrControl+Shift+Right"`).
+ *
+ * Returns `null` when the binding can't be expressed as a single
+ * accelerator — a disabled binding (`null`), a modifier-only binding
+ * (`code: null`, e.g. the 1–9 tab selector), or a key Electron can't
+ * name. The native menu falls back to its hardcoded default in those
+ * cases. `mod` maps to `CommandOrControl` so the one string resolves to
+ * Cmd on macOS and Ctrl elsewhere, matching the registry's convention.
+ */
+export function toElectronAccelerator(binding: ShortcutBinding | null): string | null {
+  if (!binding || binding.code == null) return null;
+  const token = codeToAcceleratorToken(binding.code);
+  if (token == null) return null;
+  const parts: string[] = [];
+  if (binding.mod) parts.push("CommandOrControl");
+  if (binding.alt) parts.push("Alt");
+  if (binding.shift) parts.push("Shift");
+  parts.push(token);
+  return parts.join("+");
 }
 
 /**

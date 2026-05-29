@@ -54,6 +54,20 @@ type Props = {
   promptHistory?: string[];
   /** When true, Send is force-disabled (e.g. session spending cap reached). */
   sendDisabled?: boolean;
+  /**
+   * Suppress the slash-command picker entirely. Used when the composer is
+   * reused outside the chat (e.g. the goal input), where `/` should be plain
+   * text rather than a command trigger.
+   */
+  disableSlash?: boolean;
+  /** Override the textarea placeholder (defaults to the chat-composer copy). */
+  placeholder?: string;
+  /**
+   * Prefix for the component's `data-testid`s (default "prompt", yielding
+   * "prompt-input", "prompt-send", …). Override when more than one composer is
+   * mounted at once (e.g. the goal input) so each instance is addressable.
+   */
+  testIdPrefix?: string;
 };
 
 const MAX_IMAGE_BYTES = 20 * 1024 * 1024; // 20MB
@@ -90,6 +104,9 @@ export function PromptInput({
   draftInjection,
   promptHistory,
   sendDisabled = false,
+  disableSlash = false,
+  placeholder,
+  testIdPrefix = "prompt",
 }: Props) {
   const [value, setValue] = useState("");
   // Rich SDK command metadata (descriptions + arg hints) for the slash picker.
@@ -475,8 +492,8 @@ export function PromptInput({
   // `useEffect([value])` that tripped react-hooks/set-state-in-effect.
   function refreshPickerState(nextValue: string, caret: number) {
     const before = nextValue.slice(0, caret);
-    // First-line slash picker: line starts with /
-    setPickerOpen(/^\s*\/\S*$/.test(nextValue));
+    // First-line slash picker: line starts with / (skipped when disabled).
+    setPickerOpen(!disableSlash && /^\s*\/\S*$/.test(nextValue));
     // @-mention: capture the active token if it starts with @
     const atMatch = /(^|\s)@([^\s@]*)$/.exec(before);
     setAtQuery(atMatch ? atMatch[2] : null);
@@ -760,7 +777,7 @@ export function PromptInput({
 
   return (
     <div className="border-t border-[var(--border)] bg-[var(--panel)] px-4 py-3">
-      <div className="relative mx-auto max-w-3xl">
+      <div className="relative mx-auto max-w-[var(--chat-col)]">
         {images.length > 0 && (
           <div className="mb-2 flex flex-wrap gap-2 rounded-md border border-[var(--border)] bg-[var(--panel-2)]/40 p-2">
             {images.map((img, i) => (
@@ -838,7 +855,7 @@ export function PromptInput({
               requestAnimationFrame(() => autosize());
             }
           }}
-          data-testid="prompt-resize-handle"
+          data-testid={`${testIdPrefix}-resize-handle`}
           title="Drag to resize · double-click to reset"
           className="group mx-auto h-2 w-full cursor-ns-resize select-none"
         >
@@ -875,7 +892,7 @@ export function PromptInput({
           </button>
           <textarea
             ref={taRef}
-            data-testid="prompt-input"
+            data-testid={`${testIdPrefix}-input`}
             value={value}
             onCompositionStart={() => {
               composingRef.current = true;
@@ -949,11 +966,12 @@ export function PromptInput({
             rows={1}
             disabled={inputDisabled}
             placeholder={
-              !mounted || ready
+              placeholder ??
+              (!mounted || ready
                 ? pending
                   ? "Queue a follow-up — Shift+Enter for newline"
                   : "Message Claudius — / for commands, @ for files, drop or paste images"
-                : "Starting session…"
+                : "Starting session…")
             }
             className="flex-1 resize-none bg-transparent text-sm leading-6 text-[var(--foreground)] placeholder:text-[var(--muted)]/70 focus:outline-none disabled:cursor-not-allowed"
           />
@@ -990,7 +1008,7 @@ export function PromptInput({
           )}
           {pending ? (
             <button
-              data-testid="prompt-interrupt"
+              data-testid={`${testIdPrefix}-interrupt`}
               onClick={onInterrupt}
               className={cn(
                 "flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-500/90 text-white",
@@ -1002,7 +1020,7 @@ export function PromptInput({
             </button>
           ) : (
             <button
-              data-testid="prompt-send"
+              data-testid={`${testIdPrefix}-send`}
               onClick={submit}
               disabled={!ready || sendDisabled || (!value.trim() && images.length === 0)}
               className={cn(
@@ -1017,7 +1035,7 @@ export function PromptInput({
           )}
         </div>
 
-        {pickerOpen && atQuery == null && (
+        {!disableSlash && pickerOpen && atQuery == null && (
           <SlashCommandPicker
             value={value.trimStart()}
             sdkSlashCommands={slashCommands}

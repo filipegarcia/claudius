@@ -20,10 +20,19 @@
  *                    If red AND budget exhausted, draft PR with
  *                    `needs-human` label.
  *   7. Push + PR   — `gh pr create` with the templated body.
- *   8. CI watch    — `gh pr checks --watch`.
- *   9. Announce    — POST to chat-server /admin/announce (only on
- *                    fully-green ship).
- *  10. State       — update lastCompletedVersion / clear inFlight.
+ *   8. Announce    — POST to chat-server /admin/announce the moment the
+ *                    PR exists, for BOTH full and draft PRs (the draft
+ *                    message carries the reason). Not pinned.
+ *   9. CI watch    — `gh pr checks --watch`.
+ *  10. Announce    — second POST on fully-green ship (pinned).
+ *  11. State       — update lastCompletedVersion / clear inFlight.
+ *
+ * Fix mode (`--fix-pr=<n>`, via `make sdk-update-fix-pr PR=<n>`):
+ *   a wholly separate entry point that skips the version probe. It
+ *   checks out an existing PR's branch, re-runs Claude with the failing
+ *   checks + review comments as context, re-gates, pushes, marks the PR
+ *   ready / drops `needs-human` if green, and posts start + result
+ *   messages to the community channel. See `fixPr()`.
  *
  * Auth (env):
  *   ANTHROPIC_API_KEY          required — passed through to the Agent SDK
@@ -112,6 +121,17 @@ function fatal(line: string): never {
  */
 function escapeRegExp(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * Collapse whitespace to single spaces and clip to `n` chars (with an
+ * ellipsis). Used to keep community-channel announcements and prompt
+ * context blocks within the chat-server's 2000-char body limit and
+ * readable on one line.
+ */
+function oneLine(s: string, n: number): string {
+  const t = s.replace(/\s+/g, " ").trim();
+  return t.length > n ? `${t.slice(0, n)}…` : t;
 }
 
 // ── Shell helpers ─────────────────────────────────────────────────────
@@ -1153,7 +1173,7 @@ function openPr(args: {
   prevVersion: string;
   body: string;
   draft: boolean;
-}): string {
+}): { url: string; created: boolean } {
   const title = `chore(deps): bump claude-agent-sdk ${args.prevVersion} → ${args.newVersion}`;
 
   // Idempotency: if a PR already exists for this branch (previous
@@ -1169,8 +1189,10 @@ function openPr(args: {
     : [];
 
   let url: string;
+  let created: boolean;
   if (existing.length > 0) {
     url = existing[0]!.url;
+    created = false;
     log(`PR already exists for ${args.branch} — updating body in place: ${url}`);
     const edit = spawnSync(
       "gh",
@@ -1212,6 +1234,7 @@ function openPr(args: {
     if (!url.startsWith("https://")) {
       throw new Error(`gh pr create returned unexpected output: ${child.stdout ?? ""}`);
     }
+    created = true;
   }
 
   if (args.draft) {
@@ -1223,7 +1246,7 @@ function openPr(args: {
       console.warn(`could not add needs-human label: ${String(err)}`);
     }
   }
-  return url;
+  return { url, created };
 }
 
 // ── CI watch ──────────────────────────────────────────────────────────
@@ -1236,18 +1259,92 @@ function watchCi(prUrl: string): { passed: boolean } {
 
 // ── Announce ──────────────────────────────────────────────────────────
 
-async function announce(args: {
+/** Upstream compare URL between two SDK versions. */
+export function compareUrl(prevVersion: string, newVersion: string): string {
+  return `https://github.com/${UPSTREAM_GH}/compare/v${prevVersion}...v${newVersion}`;
+}
+
+/**
+ * Message posted the moment a PR exists (open or, on a re-run, updated).
+ * Fires for BOTH full and draft PRs: a draft means the automated run
+ * didn't reach all-green, and the channel should still hear about it —
+ * with the reason — so a human can pick it up. Never pinned; the pin is
+ * reserved for the all-green "shipped" milestone below.
+ */
+export function buildOpenedAnnouncement(args: {
   prUrl: string;
-  newVersion: string;
   prevVersion: string;
-}): Promise<void> {
-  const body = [
+  newVersion: string;
+  created: boolean;
+  draft: boolean;
+  reason: string | null;
+}): string {
+  const verb = args.created ? "opened" : "updated";
+  const head = args.draft
+    ? `**claude-agent-sdk ${args.prevVersion} → ${args.newVersion}** — draft PR ${verb}, needs a human.`
+    : `**claude-agent-sdk ${args.prevVersion} → ${args.newVersion}** — PR ${verb}, watching CI.`;
+  const lines = [head, ""];
+  if (args.draft && args.reason) {
+    lines.push(`Reason: ${oneLine(args.reason, 600)}`, "");
+  }
+  lines.push(
+    `PR: ${args.prUrl}`,
+    `Upstream changelog: ${compareUrl(args.prevVersion, args.newVersion)}`,
+  );
+  return lines.join("\n");
+}
+
+/** Message posted once CI is green — the shipped milestone (pinned). */
+export function buildShippedAnnouncement(args: {
+  prUrl: string;
+  prevVersion: string;
+  newVersion: string;
+}): string {
+  return [
     `**claude-agent-sdk ${args.prevVersion} → ${args.newVersion}** has shipped to Claudius.`,
     "",
     `PR: ${args.prUrl}`,
-    `Upstream changelog: https://github.com/${UPSTREAM_GH}/compare/v${args.prevVersion}...v${args.newVersion}`,
+    `Upstream changelog: ${compareUrl(args.prevVersion, args.newVersion)}`,
   ].join("\n");
+}
 
+/** Message posted when a `fix-pr` run starts working on an existing PR. */
+export function buildFixStartAnnouncement(args: {
+  prNumber: string;
+  title: string;
+  url: string;
+  instruction: string;
+}): string {
+  const lines = [`🔧 Working on PR #${args.prNumber} — ${oneLine(args.title, 200)}.`, ""];
+  if (args.instruction.trim()) {
+    lines.push(`Instruction: ${oneLine(args.instruction, 400)}`, "");
+  }
+  lines.push(`PR: ${args.url}`);
+  return lines.join("\n");
+}
+
+/** Message posted when a `fix-pr` run finishes. */
+export function buildFixResultAnnouncement(args: {
+  prNumber: string;
+  title: string;
+  url: string;
+  allGreen: boolean;
+  failedSteps: string[];
+  markedReady: boolean;
+}): string {
+  const head = args.allGreen
+    ? `✅ PR #${args.prNumber} updated — all gates pass${args.markedReady ? " (marked ready for review)" : ""}.`
+    : `⚠ PR #${args.prNumber} updated but still red: ${args.failedSteps.join(", ")}. Needs another look.`;
+  return [head, "", `PR: ${args.url}`].join("\n");
+}
+
+/**
+ * POST a message to the chat-server community room. Throwing primitive —
+ * callers that don't want a transient chat-server hiccup to abort the
+ * run wrap this in `announceSafe`.
+ */
+async function postAnnouncement(body: string, opts: { pin?: boolean } = {}): Promise<void> {
+  const pin = opts.pin === true;
   const res = await fetch(`${CHAT_SERVER_URL.replace(/\/$/, "")}/admin/announce`, {
     method: "POST",
     headers: {
@@ -1257,7 +1354,7 @@ async function announce(args: {
     body: JSON.stringify({
       roomSlug: ROOM_SLUG,
       body,
-      pin: true,
+      pin,
     }),
   });
   if (!res.ok) {
@@ -1265,7 +1362,255 @@ async function announce(args: {
       `chat-server announce failed: HTTP ${res.status} ${await res.text()}`,
     );
   }
-  log(`announced to ${ROOM_SLUG}`);
+  log(`announced to ${ROOM_SLUG}${pin ? " (pinned)" : ""}`);
+}
+
+/**
+ * Best-effort community post. By the time we announce, the PR already
+ * exists (and may already be green) — a chat-server outage must not
+ * abort the orchestration or leave state inconsistent. We log and move
+ * on. The announcement is a notification, not a gate.
+ */
+async function announceSafe(body: string, opts: { pin?: boolean } = {}): Promise<void> {
+  try {
+    await postAnnouncement(body, opts);
+  } catch (err) {
+    log(
+      `WARN community announce failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+}
+
+// ── Fix an existing PR ─────────────────────────────────────────────────
+
+type PrMeta = {
+  number: number;
+  headRefName: string;
+  url: string;
+  title: string;
+  isDraft: boolean;
+  /** gh reports OPEN / CLOSED / MERGED. */
+  state: string;
+};
+
+function readPrMeta(prNumber: string): PrMeta {
+  const raw = sh("gh", [
+    "pr",
+    "view",
+    prNumber,
+    "--json",
+    "number,headRefName,url,title,isDraft,state",
+  ]);
+  return JSON.parse(raw) as PrMeta;
+}
+
+/**
+ * The current CI check table for the PR, as plain text. We use
+ * `spawnSync` directly (not `sh`) because `gh pr checks` exits non-zero
+ * whenever checks are failing or pending — exactly the case we care
+ * about — and we still want the table either way.
+ */
+function collectChecks(prNumber: string): string {
+  const res = spawnSync("gh", ["pr", "checks", prNumber], {
+    cwd: ROOT,
+    encoding: "utf8",
+  });
+  const out = `${res.stdout ?? ""}${res.stderr ?? ""}`.trim();
+  return out || "_(gh reported no CI checks for this PR)_";
+}
+
+/**
+ * Review verdicts + general comments on the PR, flattened to bullet
+ * lines. Parsed in TS (rather than a jq one-liner) so the formatting is
+ * obvious and a malformed field degrades to a note instead of breaking
+ * the run.
+ */
+function collectReviews(prNumber: string): string {
+  let parsed: {
+    reviews?: Array<{ author?: { login?: string }; state?: string; body?: string }>;
+    comments?: Array<{ author?: { login?: string }; body?: string }>;
+  };
+  try {
+    parsed = JSON.parse(sh("gh", ["pr", "view", prNumber, "--json", "reviews,comments"]));
+  } catch (err) {
+    return `_(could not fetch review comments: ${err instanceof Error ? err.message : String(err)})_`;
+  }
+  const lines: string[] = [];
+  for (const r of parsed.reviews ?? []) {
+    const body = (r.body ?? "").trim();
+    // Skip bare "COMMENTED" reviews with no text — they're noise.
+    if (!body && (!r.state || r.state === "COMMENTED")) continue;
+    lines.push(
+      `- review by ${r.author?.login ?? "?"} (${r.state ?? "?"}): ${oneLine(body, 600) || "(no text)"}`,
+    );
+  }
+  for (const c of parsed.comments ?? []) {
+    const body = (c.body ?? "").trim();
+    if (!body) continue;
+    lines.push(`- comment by ${c.author?.login ?? "?"}: ${oneLine(body, 600)}`);
+  }
+  return lines.length ? lines.join("\n") : "_(no review or general comments on the PR)_";
+}
+
+function fixTranscriptPath(prNumber: string): string {
+  return resolve(
+    ROOT,
+    ".claudius",
+    "sdk-updater",
+    "run-notes",
+    `fix-pr-${prNumber}.transcript.jsonl`,
+  );
+}
+
+function fixPromptArchivePath(prNumber: string): string {
+  return resolve(
+    ROOT,
+    ".claudius",
+    "sdk-updater",
+    "run-notes",
+    `fix-pr-${prNumber}.prompt.md`,
+  );
+}
+
+function renderFixPrompt(args: {
+  prNumber: string;
+  meta: PrMeta;
+  instruction: string;
+  checks: string;
+  reviews: string;
+}): string {
+  const tpl = readFileSync(resolve(SCRIPT_DIR, "fix-prompt.md"), "utf8");
+  const instructionBlock = args.instruction.trim()
+    ? args.instruction.trim()
+    : "_(No extra instruction supplied — infer the fix from the failing checks and review comments below.)_";
+  return tpl
+    .replace(/\{\{PR_NUMBER\}\}/g, args.prNumber)
+    .replace(/\{\{PR_TITLE\}\}/g, args.meta.title)
+    .replace(/\{\{PR_URL\}\}/g, args.meta.url)
+    .replace(/\{\{BRANCH\}\}/g, args.meta.headRefName)
+    .replace(/\{\{INSTRUCTION_BLOCK\}\}/g, instructionBlock)
+    .replace(/\{\{CI_CHECKS\}\}/g, args.checks)
+    .replace(/\{\{REVIEW_COMMENTS\}\}/g, args.reviews);
+}
+
+/**
+ * Fix an existing PR by number. The companion to the version-upgrade
+ * pipeline: where that one creates a PR, this one iterates on one that
+ * already exists (typically a draft the upgrade left behind with
+ * `needs-human`, or one a reviewer asked for changes on).
+ *
+ * Flow: read PR meta → announce start → `gh pr checkout` the branch →
+ * gather failing checks + review comments → run Claude with a fix
+ * prompt → gate → push → mark ready / drop `needs-human` if green →
+ * announce result. Every community post is best-effort so a chat
+ * outage can't strand the branch.
+ */
+async function fixPr(
+  prRef: string,
+  instruction: string,
+  skipGates: Set<GateStep>,
+): Promise<void> {
+  preflight();
+
+  const prNumber = prRef.replace(/^#/, "").trim();
+  if (!/^\d+$/.test(prNumber)) {
+    fatal(`--fix-pr expects a numeric PR id (got "${prRef}")`);
+  }
+
+  let meta: PrMeta;
+  try {
+    meta = readPrMeta(prNumber);
+  } catch (err) {
+    fatal(
+      `could not read PR #${prNumber} via gh: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+  if (meta.state !== "OPEN") {
+    fatal(`PR #${prNumber} is ${meta.state}, not OPEN — refusing to touch a closed/merged PR.`);
+  }
+  const branch = meta.headRefName;
+  log(`fix-pr #${prNumber} "${meta.title}" on branch ${branch} (draft=${meta.isDraft})`);
+
+  // Announce that we've started — this is the PR "interaction" the user
+  // asked to be visible on the community channel.
+  await announceSafe(
+    buildFixStartAnnouncement({
+      prNumber,
+      title: meta.title,
+      url: meta.url,
+      instruction,
+    }),
+    { pin: false },
+  );
+
+  // Check out the PR's head branch. `gh pr checkout` fetches + sets up
+  // tracking; `--force` resets a stale local branch to the PR head.
+  sh("git", ["fetch", "origin", branch, "--prune"]);
+  const coCode = shStream("gh", ["pr", "checkout", prNumber, "--force"]);
+  if (coCode !== 0) {
+    throw new Error(`gh pr checkout ${prNumber} failed (exit ${coCode})`);
+  }
+
+  const checks = collectChecks(prNumber);
+  const reviews = collectReviews(prNumber);
+
+  const prompt = renderFixPrompt({ prNumber, meta, instruction, checks, reviews });
+  const txPath = fixTranscriptPath(prNumber);
+  mkdirSync(dirname(txPath), { recursive: true });
+  writeFileSync(fixPromptArchivePath(prNumber), prompt, "utf8");
+  log(`fix prompt archived (${prompt.length} bytes)`);
+
+  const claudeResult = await runClaude(prompt, txPath);
+  log(
+    `Claude (fix) exited: completed=${claudeResult.completed} turns=${claudeResult.turnCount}` +
+      ` wall=${Math.round(claudeResult.wallMs / 1000)}s`,
+  );
+
+  const gate = runGate(skipGates);
+  const allGreen = gate.every((g) => g.ok);
+  const failedSteps = gate.filter((g) => !g.ok).map((g) => g.step);
+  log(
+    `gate result: ${gate
+      .map((g) => `${g.step}=${g.skipped ? "skip" : g.ok ? "ok" : "FAIL"}`)
+      .join(" ")}`,
+  );
+
+  // Push whatever Claude committed back to the PR's branch. pushBranch
+  // makes an empty marker commit only when HEAD == origin/main, which a
+  // PR branch never is, so a no-op fix run pushes nothing.
+  pushBranch(branch);
+
+  let markedReady = false;
+  if (allGreen) {
+    if (meta.isDraft) {
+      try {
+        sh("gh", ["pr", "ready", prNumber]);
+        markedReady = true;
+        log(`marked PR #${prNumber} ready for review`);
+      } catch (err) {
+        log(`WARN could not mark PR #${prNumber} ready: ${String(err)}`);
+      }
+    }
+    try {
+      sh("gh", ["pr", "edit", prNumber, "--remove-label", "needs-human"]);
+    } catch {
+      // Label may not be present — fine.
+    }
+  }
+
+  await announceSafe(
+    buildFixResultAnnouncement({
+      prNumber,
+      title: meta.title,
+      url: meta.url,
+      allGreen,
+      failedSteps,
+      markedReady,
+    }),
+    { pin: false },
+  );
+
+  log(`fix-pr #${prNumber} done: green=${allGreen}`);
 }
 
 // ── Main ──────────────────────────────────────────────────────────────
@@ -1291,6 +1636,21 @@ async function main(): Promise<void> {
     .find((a) => a.startsWith("--skip-gates="))
     ?.slice("--skip-gates=".length);
   const skipGates = parseSkipGates(skipGatesArg);
+
+  // Fix mode: instead of probing npm for a new version, check out an
+  // existing PR by number and re-run Claude to fix it (gate failures,
+  // review feedback, needs-human). Reachable via `run.sh fix-pr <n>` /
+  // `make sdk-update-fix-pr PR=<n>`. This is a wholly separate path
+  // from the version upgrade below — it owns its own preflight.
+  const fixPrArg = args.find((a) => a.startsWith("--fix-pr="))?.slice("--fix-pr=".length);
+  if (fixPrArg) {
+    const instruction =
+      args.find((a) => a.startsWith("--instruction="))?.slice("--instruction=".length) ??
+      process.env.SDK_UPDATE_FIX_INSTRUCTION ??
+      "";
+    await fixPr(fixPrArg, instruction, skipGates);
+    return;
+  }
 
   preflight();
 
@@ -1458,22 +1818,44 @@ async function main(): Promise<void> {
       budgetWarning,
     });
 
-    prUrl = openPr({
+    const pr = openPr({
       branch,
       newVersion,
       prevVersion,
       body,
       draft: !!budgetReason,
     });
-    log(`PR opened: ${prUrl}`);
+    prUrl = pr.url;
+    log(`PR ${pr.created ? "opened" : "updated"}: ${prUrl}`);
+
+    // Tell the community channel the moment the PR exists — including
+    // drafts (with the reason). Best-effort: the PR is already open, so
+    // a chat hiccup must not abort the run. The pin is reserved for the
+    // all-green ship below.
+    await announceSafe(
+      buildOpenedAnnouncement({
+        prUrl,
+        prevVersion,
+        newVersion,
+        created: pr.created,
+        draft: !!budgetReason,
+        reason: budgetReason,
+      }),
+      { pin: false },
+    );
 
     if (!budgetReason) {
       const ci = watchCi(prUrl);
       if (!ci.passed) {
-        log(`CI failed on ${prUrl} — skipping announce, leaving for human triage`);
+        log(`CI failed on ${prUrl} — skipping shipped announce, leaving for human triage`);
       } else {
-        await announce({ prUrl, newVersion, prevVersion });
+        // CI is green: this version IS shipped regardless of whether the
+        // notification lands, so flip state first, then announce.
         shipped = true;
+        await announceSafe(
+          buildShippedAnnouncement({ prUrl, newVersion, prevVersion }),
+          { pin: true },
+        );
       }
     }
   } catch (err) {

@@ -9,6 +9,7 @@ import type {
   PlanDecision,
   ServerEvent,
 } from "@/lib/shared/events";
+import type { Tip } from "@/lib/shared/tips";
 
 export type DisplayBlock =
   | { kind: "text"; text: string }
@@ -437,6 +438,12 @@ export type ChatState = {
    * Null when no nudge is pending.
    */
   feedbackSurvey: FeedbackSurveyEvent | null;
+  /**
+   * Server-driven spinner tips (the `tips` SSE event). The catalog the chat
+   * rotates through under the working spinner; empty until the server emits it,
+   * at which point the renderer prefers it over its built-in defaults.
+   */
+  tips: Tip[];
 };
 
 export type AttachedImage = {

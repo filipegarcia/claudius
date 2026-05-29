@@ -10,17 +10,22 @@ async function waitForBoundSession(page: Page): Promise<string> {
 }
 
 /**
- * End-to-end coverage for the `/goal` feature: setting a goal via the composer
- * surfaces the GoalBanner, an agent-reported achievement (simulated via the
- * dev-broadcast endpoint, so we never hit the live SDK) flips the banner into
- * its celebratory state, the goal survives a reload (DB persistence +
- * subscribe re-emit), and clearing hides the banner.
+ * End-to-end coverage for the `/goal` feature.
  *
- * The achievement broadcast mirrors what `Session.markGoalAchieved` emits when
- * the in-process `report_goal_achieved` SDK tool fires.
+ * The goal STATE machine (set → achieved → persist → clear) is exercised
+ * SDK-free: the goal is set via the `/api/sessions/:id/goal` endpoint and the
+ * achievement is simulated via the dev-broadcast endpoint, so neither test
+ * spins up a live agent turn. The achievement broadcast mirrors what
+ * `Session.markGoalAchieved` emits when the in-process `report_goal_achieved`
+ * SDK tool fires.
+ *
+ * The goal INPUT (the header composer) is a separate test: submitting it both
+ * sets the goal and starts Claude (it reuses the chat composer, `PromptInput`,
+ * for images + @-mentions). We assert the banner reflects the new goal; the
+ * agent turn it kicks off is not awaited.
  */
 test.describe("Session goal", () => {
-  test("set via /goal, show achievement, persist across reload, and clear", async ({
+  test("goal state: set, show achievement, persist across reload, and clear", async ({
     page,
     request,
     baseURL,
@@ -30,13 +35,23 @@ test.describe("Session goal", () => {
     // ── 1. Bind a real session ───────────────────────────────────────────
     await page.goto("/");
     const sessionId = await waitForBoundSession(page);
+    await expect(page.getByTestId("prompt-input")).toBeVisible({ timeout: 30_000 });
 
-    // ── 2. Set the goal through the composer (`/goal <text>`) ─────────────
-    const composer = page.getByTestId("prompt-input");
-    await expect(composer).toBeVisible({ timeout: 30_000 });
-    await composer.click();
-    await composer.fill(`/goal ${goalText}`);
-    await page.getByTestId("prompt-send").click();
+    // ── 2. Set the goal via the API (passive — no agent turn) ─────────────
+    // POST from the browser context (where the session is bound + cookies
+    // present), mirroring how the app's `setGoal` reaches the endpoint.
+    const setResult = await page.evaluate(
+      async ({ id, goal }) => {
+        const r = await fetch(`/api/sessions/${id}/goal`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ goal }),
+        });
+        return { status: r.status, body: await r.text() };
+      },
+      { id: sessionId, goal: goalText },
+    );
+    expect(setResult, `goal POST: ${JSON.stringify(setResult)}`).toMatchObject({ status: 200 });
 
     // The banner appears once the server broadcasts `goal_changed`.
     const banner = page.getByTestId("goal-banner");
@@ -82,7 +97,7 @@ test.describe("Session goal", () => {
     await expect(banner).toBeHidden({ timeout: 15_000 });
   });
 
-  test("set a goal via the banner button (no slash command)", async ({ page }) => {
+  test("goal input: the header composer sets the goal and starts a turn", async ({ page }) => {
     await page.goto("/");
     await waitForBoundSession(page);
     await expect(page.getByTestId("prompt-input")).toBeVisible({ timeout: 30_000 });
@@ -96,14 +111,17 @@ test.describe("Session goal", () => {
     await expect(setButton).toBeVisible({ timeout: 15_000 });
     await setButton.click();
 
-    // The inline editor opens; type a goal and submit with Enter.
-    const goalText = `Button goal ${Date.now().toString(36)}`;
-    const input = page.getByTestId("goal-banner-input");
+    // The header composer (a reused PromptInput, distinct testid prefix)
+    // opens; type a goal and submit with Enter. Submitting both records the
+    // goal and kicks off Claude — we assert the banner reflects the goal;
+    // the agent turn it starts is not awaited.
+    const goalText = `Composer goal ${Date.now().toString(36)}`;
+    const input = page.getByTestId("goal-prompt-input");
     await expect(input).toBeVisible();
     await input.fill(goalText);
     await input.press("Enter");
 
-    // The prominent banner replaces the empty state.
+    // The prominent banner replaces the editor.
     await expect(page.getByTestId("goal-banner")).toBeVisible({ timeout: 15_000 });
     await expect(page.getByTestId("goal-banner-text")).toHaveText(goalText);
   });

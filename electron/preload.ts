@@ -27,6 +27,8 @@ import { contextBridge, ipcRenderer } from "electron";
 // `on`.
 const TOPICS = {
   menuAction: "menu:action",
+  menuSetAccelerators: "menu:set-accelerators",
+  menuSetRecording: "menu:set-recording",
   windowMinimize: "window:minimize",
   windowMaximize: "window:maximize",
   windowClose: "window:close",
@@ -61,7 +63,7 @@ function subscribe<T>(
 const api = {
   isElectron: true as const,
   platform: process.platform,
-  bridgeVersion: 2 as const,
+  bridgeVersion: 3 as const,
 
   menu: {
     on(action: string, cb: () => void): () => void {
@@ -70,6 +72,12 @@ const api = {
       };
       ipcRenderer.on(TOPICS.menuAction, handler);
       return () => ipcRenderer.off(TOPICS.menuAction, handler);
+    },
+    setAccelerators(accelerators: Record<string, string>): void {
+      ipcRenderer.send(TOPICS.menuSetAccelerators, accelerators);
+    },
+    setRecording(enabled: boolean): void {
+      ipcRenderer.send(TOPICS.menuSetRecording, enabled);
     },
   },
 
