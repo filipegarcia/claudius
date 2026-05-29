@@ -14,6 +14,7 @@ import type {
   ToolProgressInfo,
 } from "@/lib/client/types";
 import type { PermissionRequestEvent } from "@/lib/shared/events";
+import { collectStoppableTaskIds } from "@/lib/client/task-status";
 import { isStaleWakeup } from "@/lib/shared/session-loops";
 import { CostOverlay } from "@/components/overlays/CostOverlay";
 import { NotificationsDrawer } from "@/components/nav/NotificationsDrawer";
@@ -27,7 +28,6 @@ import { AddTodosForm } from "./widgets/AddTodosForm";
 import { BackgroundBashes } from "./widgets/BackgroundBashes";
 import { ScheduledLoops } from "./widgets/ScheduledLoops";
 import { RecentEdits } from "./widgets/RecentEdits";
-import { fmtMs } from "./widgets/format";
 import { cn } from "@/lib/utils/cn";
 
 type Props = {
@@ -130,6 +130,21 @@ function fmtElapsed(s: number): string {
   const m = Math.floor(s / 60);
   const r = Math.floor(s % 60);
   return `${m}m ${r}s`;
+}
+
+/**
+ * Live wall-clock elapsed for a task row. While the task is running and we have
+ * a client-stamped `startedAt`, this ticks every second (driven by the panel's
+ * 1Hz `now`) — the visible "this is alive" signal a long-running, idle-turn
+ * workflow otherwise lacks. Terminal/replayed tasks (no `startedAt`) fall back
+ * to the SDK's `durationMs` snapshot. Returns null when neither is available.
+ */
+function taskElapsedSeconds(t: TaskInfo, now: number): number | null {
+  if (t.startedAt && (t.status === "running" || t.status === "pending")) {
+    return Math.max(0, (now - t.startedAt) / 1000);
+  }
+  if (t.durationMs != null) return t.durationMs / 1000;
+  return null;
 }
 
 /** Trim the primary-arg subtitle to something that fits the activity rail. */
@@ -243,6 +258,34 @@ export function BackgroundTasksPanel({
       !(t.toolUseId && bashToolUseIds.has(t.toolUseId)),
   );
   const runningProcs = runningBashes.length + runningProcessTasks.length;
+
+  // The set of task ids the Stop-all button fans stop-task out over — agentic
+  // tasks + process tasks + resolvable background shells, deduped. See
+  // collectStoppableTaskIds for why this is narrower than `attention` and why
+  // shells without a resolved task are excluded (keeps the confirm count honest).
+  const stoppableTaskIds = collectStoppableTaskIds(
+    subagents,
+    runningProcessTasks,
+    runningBashes,
+    taskByToolUseId,
+  );
+
+  // Stop everything stoppable at once (fan-out over `stoppableTaskIds`).
+  // Confirm first, matching the closeAllTabs idiom (native confirm). Wording
+  // says "tasks" not "everything" so it isn't misleading about scheduled
+  // loops, which this can't cancel. Fire-and-forget like the per-item
+  // stopTask — each fetch already swallows errors and the SDK's
+  // task_notification reconciles row status.
+  const stopAll = () => {
+    if (!sessionId || stoppableTaskIds.size === 0) return;
+    if (
+      !confirm(
+        `Stop all ${stoppableTaskIds.size} running task${stoppableTaskIds.size === 1 ? "" : "s"}?`,
+      )
+    )
+      return;
+    stoppableTaskIds.forEach((id) => stopTask(id));
+  };
   // Show cancelled loops too so the user gets closure feedback — they fade
   // to the muted tone but stay in the list until the section is
   // re-rendered without them (next session reset). Only ACTIVE ones count
@@ -268,25 +311,34 @@ export function BackgroundTasksPanel({
     runningProcs +
     activeLoopCount;
 
-  // Reveal + scroll to the Running section (used by the header "Working" cue).
-  // Force the collapsible open by writing its persisted flag, then scroll —
-  // matches CollapsibleSection's own storage protocol.
-  const revealRunning = () => {
+  // All background work surfaced as "running" in the header: shells + monitors
+  // (PROCESS_TASK_TYPES) PLUS agentic tasks (subagents / workflows). The latter
+  // were previously invisible at the header level — a backgrounded workflow
+  // runs while the turn reads idle, so neither the spinner nor the "N running"
+  // cue fired and the user had no signal it was alive ("I don't know what's
+  // going on"). Counting subagents here is the always-visible fix.
+  const runningBg = runningProcs + subagents.length;
+
+  // Reveal + scroll to a rail section (used by the header "running" cue). Force
+  // the collapsible open by writing its persisted flag, then scroll — matches
+  // CollapsibleSection's own storage protocol. Agentic work lives in "Tasks",
+  // process work in "Running", so jump to whichever the cue represents.
+  const reveal = (storageKey: string, anchorId: string) => {
     try {
-      window.localStorage.setItem("claudius.activity.running.collapsed", "0");
+      window.localStorage.setItem(`claudius.activity.${storageKey}.collapsed`, "0");
       window.dispatchEvent(new Event("claudius.activity.changed"));
     } catch {
       // ignore
     }
-    document
-      .getElementById("activity-running")
-      ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    document.getElementById(anchorId)?.scrollIntoView({ behavior: "smooth", block: "center" });
   };
+  const revealBackground = () =>
+    subagents.length > 0 ? reveal("tasks", "activity-tasks") : reveal("running", "activity-running");
 
-  // "Busy" covers session boot AND turn-in-flight. Drives the header spinner —
-  // gives the user a always-visible "Claude is doing something" cue without
-  // them having to glance at the tools list.
-  const busy = !ready || pending;
+  // "Busy" covers session boot, turn-in-flight, AND backgrounded work that
+  // outlives the turn (workflows/agents/shells) — so the spinner keeps saying
+  // "something is happening" even after the turn that launched it ends.
+  const busy = !ready || pending || runningBg > 0;
 
   return (
     <div data-pane-name="right-rail" className="flex h-full w-64 flex-col border-l border-[var(--border)] bg-[var(--panel)] lg:w-72">
@@ -304,19 +356,31 @@ export function BackgroundTasksPanel({
             {!ready ? "Starting…" : "Working…"}
           </span>
         )}
-        {runningProcs > 0 && (
+        {runningBg > 0 && (
           <button
             type="button"
-            onClick={revealRunning}
-            title="Jump to running processes"
-            aria-label={`${runningProcs} background process${runningProcs === 1 ? "" : "es"} running — show them`}
+            onClick={revealBackground}
+            title={subagents.length > 0 ? "Jump to running tasks" : "Jump to running processes"}
+            aria-label={`${runningBg} background ${runningBg === 1 ? "task" : "tasks"} running — show them`}
             className="ml-auto flex items-center gap-1 rounded px-1 text-[10px] font-medium text-[var(--accent)] hover:bg-[var(--panel-2)]"
           >
-            <Terminal className="h-3 w-3" />
-            {runningProcs} running
+            {subagents.length > 0 ? <Bot className="h-3 w-3" /> : <Terminal className="h-3 w-3" />}
+            {runningBg} running
           </button>
         )}
-        <span className={cn("text-[var(--muted)]", runningProcs > 0 ? "ml-1" : "ml-auto")}>
+        {sessionId && stoppableTaskIds.size > 0 && (
+          <button
+            type="button"
+            onClick={stopAll}
+            title="Stop all running tasks"
+            aria-label={`Stop all ${stoppableTaskIds.size} running task(s)`}
+            data-testid="stop-all-tasks"
+            className="shrink-0 rounded p-0.5 text-[var(--muted)] hover:bg-[var(--panel-2)] hover:text-red-400"
+          >
+            <CircleStop className="h-3 w-3" />
+          </button>
+        )}
+        <span className={cn("text-[var(--muted)]", runningBg > 0 ? "ml-1" : "ml-auto")}>
           {attention}
         </span>
       </div>
@@ -401,9 +465,10 @@ export function BackgroundTasksPanel({
 
         {subagents.length > 0 && (
           <CollapsibleSection storageKey="tasks" label="Tasks" badge={`(${subagents.length})`}>
-            <ul className="space-y-1">
+            <ul id="activity-tasks" className="space-y-1">
               {subagents.map((t) => {
                 const Icon = taskIcon(t.taskType);
+                const elapsed = taskElapsedSeconds(t, now);
                 return (
                 <li
                   key={t.taskId}
@@ -441,7 +506,10 @@ export function BackgroundTasksPanel({
                   <div className="mt-1 flex flex-wrap gap-2 text-[10px] opacity-70">
                     {t.totalTokens != null && <span>{t.totalTokens.toLocaleString()} tok</span>}
                     {t.toolUses != null && <span>{t.toolUses} tools</span>}
-                    {t.durationMs != null && <span>{fmtMs(t.durationMs)}</span>}
+                    {/* Live ticking wall-clock while running (parity with the
+                        background-shell box); the SDK `durationMs` snapshot is
+                        the fallback for replayed/terminal rows. */}
+                    {elapsed != null && <span className="tabular-nums">{fmtElapsed(elapsed)}</span>}
                     {t.lastToolName && <span>· {t.lastToolName}</span>}
                   </div>
                 </li>

@@ -84,6 +84,23 @@ export type TaskInfo = {
   workflowName?: string;
   status: TaskStatus;
   isBackgrounded?: boolean;
+  /**
+   * Client-stamped wall-clock start (epoch ms), set when the task first
+   * appears (provisional launch ack or `task_started`). Drives the 1Hz
+   * ticking "elapsed" timer in the rail — the SDK's `durationMs` is a
+   * periodic snapshot, so a live wall-clock counter is what makes a
+   * long-running, idle-turn task visibly "alive" (parity with the
+   * background-shell box).
+   */
+  startedAt?: number;
+  /**
+   * True for a placeholder row created the instant a background launcher
+   * (e.g. the Workflow tool) returns its "started, here's the runId" ack,
+   * before the SDK's own `task_started` arrives. Keyed by tool_use_id and
+   * replaced by the real `task_started` entry. Closes the dead-zone where a
+   * backgrounded workflow is alive but has no rail signal yet.
+   */
+  provisional?: boolean;
   totalTokens?: number;
   toolUses?: number;
   durationMs?: number;

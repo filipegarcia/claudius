@@ -1,7 +1,13 @@
 # Kill all background agents (Ctrl+X Ctrl+K)
 
 **Source:** Claude Code cheat sheet — Keyboard Shortcuts (General / Mode / Input / Prefixes)
-**Status:** UI_WORTHY
+**Status:** IMPLEMENTED
+
+> **Implemented:** "Stop all" icon button in the Activity rail header
+> (`components/panels/BackgroundTasksPanel.tsx`) — a `confirm()`-gated fan-out
+> over the existing `POST /api/sessions/[id]/stop-task` for every stoppable
+> subagent, monitor, and resolvable background shell (scheduled loops excluded;
+> they cancel via the agent-prompt path). No new backend.
 
 ## What it is
 A chorded shortcut that kills *all* running background agents/tasks at once, with a
