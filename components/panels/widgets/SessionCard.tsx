@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, CircuitBoard, Folder, Gauge, ShieldCheck, Workflow } from "lucide-react";
+import { ChevronDown, CircuitBoard, Folder, Gauge, ShieldCheck, Workflow, Zap } from "lucide-react";
 import type { PermissionMode } from "@anthropic-ai/claude-agent-sdk";
 import type { SessionUsage } from "@/lib/client/types";
 import { cn } from "@/lib/utils/cn";
@@ -42,6 +42,13 @@ type Props = {
   ultracode?: boolean;
   /** Toggle ultracode (Dynamic Workflows). Surfaced in the picker on xhigh-capable models. */
   onChangeUltracode?: (enabled: boolean) => Promise<void> | void;
+  /**
+   * Whether "fast mode" is on. Rendered as a small amber badge next to the
+   * ultracode badge when enabled.
+   */
+  fastMode?: boolean;
+  /** Toggle fast mode. Surfaced in the picker on fast-capable models. */
+  onChangeFast?: (enabled: boolean) => Promise<void> | void;
 };
 
 const MODE_LABEL: Record<string, string> = {
@@ -64,6 +71,8 @@ export function SessionCard({
   onChangeEffort,
   ultracode = false,
   onChangeUltracode,
+  fastMode = false,
+  onChangeFast,
 }: Props) {
   // Use `usage.durationMs` when present (server-known); otherwise track
   // wall time from when we first saw a non-null sessionId. The "first
@@ -133,6 +142,7 @@ export function SessionCard({
             effort={effort}
             permissionMode={permissionMode}
             ultracode={ultracode}
+            fastMode={fastMode}
             pickerOpen={pickerOpen}
           />
         </button>
@@ -143,6 +153,7 @@ export function SessionCard({
             effort={effort}
             permissionMode={permissionMode}
             ultracode={ultracode}
+            fastMode={fastMode}
           />
         </div>
       )}
@@ -196,6 +207,15 @@ export function SessionCard({
                 }
               : undefined
           }
+          fastMode={fastMode}
+          onToggleFast={
+            onChangeFast
+              ? async (enabled) => {
+                  await onChangeFast(enabled);
+                  setPickerOpen(false);
+                }
+              : undefined
+          }
         />
       )}
     </div>
@@ -214,12 +234,14 @@ function CardHead({
   effort,
   permissionMode,
   ultracode,
+  fastMode,
   pickerOpen,
 }: {
   model: string | null;
   effort: EffortLevel;
   permissionMode: PermissionMode;
   ultracode: boolean;
+  fastMode: boolean;
   /** When provided, renders the picker chevron and reflects its open state. */
   pickerOpen?: boolean;
 }) {
@@ -240,6 +262,7 @@ function CardHead({
       <div className="mt-1.5 flex flex-wrap items-center gap-1">
         <EffortPill effort={effort} />
         {ultracode && <UltracodeBadge />}
+        {fastMode && <FastBadge />}
         <ModePill mode={permissionMode} />
       </div>
     </>
@@ -281,6 +304,23 @@ function UltracodeBadge() {
     >
       <Workflow className="h-2.5 w-2.5" />
       workflows
+    </span>
+  );
+}
+
+/**
+ * "Fast mode" badge. Only rendered when fast mode is on — its presence is the
+ * signal, so there's no "off" state to show. Amber to match the picker's fast
+ * chip.
+ */
+function FastBadge() {
+  return (
+    <span
+      className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded border border-amber-500/30 bg-amber-500/10 px-1.5 py-px text-[9px] text-amber-200"
+      title="Fast mode: accelerated responses"
+    >
+      <Zap className="h-2.5 w-2.5" />
+      fast
     </span>
   );
 }

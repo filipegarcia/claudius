@@ -85,6 +85,10 @@ type Props = {
   ultracode?: boolean;
   /** Toggle ultracode (Dynamic Workflows). Same plumbing rationale as `onChangeEffort`. */
   onChangeUltracode?: (enabled: boolean) => Promise<void> | void;
+  /** Whether fast mode is on — shown as a SessionCard badge. */
+  fastMode?: boolean;
+  /** Toggle fast mode. Same plumbing rationale as `onChangeUltracode`. */
+  onChangeFast?: (enabled: boolean) => Promise<void> | void;
 };
 
 /**
@@ -163,6 +167,8 @@ export function BackgroundTasksPanel({
   onChangeEffort,
   ultracode = false,
   onChangeUltracode,
+  fastMode = false,
+  onChangeFast,
 }: Props) {
   const [showCost, setShowCost] = useState(false);
   const [addTodosOpen, setAddTodosOpen] = useState(false);
@@ -337,6 +343,8 @@ export function BackgroundTasksPanel({
           onChangeEffort={onChangeEffort}
           ultracode={ultracode}
           onChangeUltracode={onChangeUltracode}
+          fastMode={fastMode}
+          onChangeFast={onChangeFast}
         />
         <ContextBar sessionId={sessionId} pending={pending} />
         <TokenMeter usage={usage} />
