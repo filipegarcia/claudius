@@ -9,6 +9,8 @@ export type SessionDefaults = {
   model?: string;
   agent?: string;
   maxBudgetUsd?: number;
+  taskBudgetTokens?: number;
+  maxTurns?: number;
   fallbackModel?: string;
   sandboxEnabled?: boolean;
   enable1mContext?: boolean;
@@ -41,6 +43,8 @@ export function mergeSessionDefaults(
     model: request.model ?? defaults.model,
     agent: request.agent ?? defaults.agent,
     maxBudgetUsd: request.maxBudgetUsd ?? defaults.maxBudgetUsd,
+    taskBudgetTokens: request.taskBudgetTokens ?? defaults.taskBudgetTokens,
+    maxTurns: request.maxTurns ?? defaults.maxTurns,
     fallbackModel: request.fallbackModel ?? defaults.fallbackModel,
     sandboxEnabled: request.sandboxEnabled ?? defaults.sandboxEnabled,
     enable1mContext: request.enable1mContext ?? defaults.enable1mContext,

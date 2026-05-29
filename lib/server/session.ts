@@ -302,6 +302,17 @@ export class Session {
    */
   readonly maxBudgetUsd?: number;
   /**
+   * Soft token budget the model paces against (Options.taskBudget.total).
+   * Advisory — the model is told its remaining budget but isn't force-stopped.
+   * Undefined/0 ⇒ no hint.
+   */
+  readonly taskBudgetTokens?: number;
+  /**
+   * Hard cap on agentic turns (Options.maxTurns). The query stops at the cap.
+   * Undefined/0 ⇒ no turn cap.
+   */
+  readonly maxTurns?: number;
+  /**
    * Fallback model id — SDK Options.fallbackModel. The SDK switches to this
    * when the primary model is unavailable / errors. Undefined = no fallback.
    */
@@ -455,6 +466,8 @@ export class Session {
     model?: string;
     agent?: string;
     maxBudgetUsd?: number;
+    taskBudgetTokens?: number;
+    maxTurns?: number;
     fallbackModel?: string;
     sandboxEnabled?: boolean;
     enable1mContext?: boolean;
@@ -483,6 +496,8 @@ export class Session {
     this.model = opts.model;
     this.agent = opts.agent;
     this.maxBudgetUsd = opts.maxBudgetUsd;
+    this.taskBudgetTokens = opts.taskBudgetTokens;
+    this.maxTurns = opts.maxTurns;
     this.fallbackModel = opts.fallbackModel;
     this.sandboxEnabled = opts.sandboxEnabled;
     this.enable1mContext = opts.enable1mContext;
@@ -665,6 +680,16 @@ export class Session {
       // forwarded when a positive number so 0/undefined means "no cap".
       ...(typeof this.maxBudgetUsd === "number" && this.maxBudgetUsd > 0
         ? { maxBudgetUsd: this.maxBudgetUsd }
+        : {}),
+      // Soft token budget the model paces against (advisory; doesn't force-stop
+      // the turn the way maxBudgetUsd does). Only forwarded when positive.
+      ...(typeof this.taskBudgetTokens === "number" && this.taskBudgetTokens > 0
+        ? { taskBudget: { total: this.taskBudgetTokens } }
+        : {}),
+      // Hard cap on agentic turns — the query stops at the limit. Only
+      // forwarded when positive so 0/undefined means "no turn cap".
+      ...(typeof this.maxTurns === "number" && this.maxTurns > 0
+        ? { maxTurns: this.maxTurns }
         : {}),
       // Fallback model — the SDK switches to this if the primary model is
       // unavailable or errors (overload, model_not_found). Omitted when unset.
@@ -2102,17 +2127,34 @@ export class Session {
     model?: string;
     agent?: string;
     maxBudgetUsd?: number;
+    taskBudgetTokens?: number;
+    maxTurns?: number;
     fallbackModel?: string;
     sandboxEnabled?: boolean;
+    enable1mContext?: boolean;
+    persistSession?: boolean;
+    additionalDirectories?: string[];
+    systemPromptAppend?: string;
+    planModeInstructions?: string;
     permissionMode: PermissionMode;
   } {
+    // Must carry EVERY session-create option so an auto-recovered session
+    // (recoverInPlace) is rebuilt identically — omitting a field silently
+    // drops that setting on recovery. Keep this in sync with the constructor.
     return {
       cwd: this.cwd,
       model: this.model,
       agent: this.agent,
       maxBudgetUsd: this.maxBudgetUsd,
+      taskBudgetTokens: this.taskBudgetTokens,
+      maxTurns: this.maxTurns,
       fallbackModel: this.fallbackModel,
       sandboxEnabled: this.sandboxEnabled,
+      enable1mContext: this.enable1mContext,
+      persistSession: this.persistSession,
+      additionalDirectories: this.additionalDirectories,
+      systemPromptAppend: this.systemPromptAppend,
+      planModeInstructions: this.planModeInstructions,
       permissionMode: this.permissionMode,
     };
   }

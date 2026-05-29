@@ -395,6 +395,10 @@ export type CreateSessionRequest = {
    * query stops with an `error_max_budget_usd` result once exceeded.
    */
   maxBudgetUsd?: number;
+  /** Soft token budget the model paces against — SDK Options.taskBudget.total. */
+  taskBudgetTokens?: number;
+  /** Hard cap on agentic turns — SDK Options.maxTurns. */
+  maxTurns?: number;
   /** Fallback model id for this session — SDK Options.fallbackModel. */
   fallbackModel?: string;
   /** Run shell commands in a sandbox — SDK Options.sandbox.enabled. */
