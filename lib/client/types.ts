@@ -377,6 +377,14 @@ export type ChatState = {
    * mirrors the last toggle and resets to `false` on a fresh session.
    */
   ultracode: boolean;
+  /**
+   * User-selected fast-mode intent — the last toggle the user made through the
+   * picker. Optimistic, same as `ultracode`/`effort`: the SDK emits no event
+   * for the toggle, so this mirrors the last pick and resets to `false` on a
+   * fresh session. Distinct from `fastModeState` below, which is the
+   * SDK-reported runtime status (`off`/`cooldown`/`on`).
+   */
+  fastMode: boolean;
   sessions: SessionInfo[];
   skills: string[];
   cwd: string | null;
@@ -528,6 +536,12 @@ export type ChatActions = {
    * server-side. Enabling it also moves the effort mirror to `xhigh`.
    */
   setUltracode(enabled: boolean): Promise<void>;
+  /**
+   * Toggle "fast mode" — accelerated decoding on supported models (Opus 4.8).
+   * Routed through `applyFlagSettings({ fastMode })` server-side. Orthogonal to
+   * effort: unlike `setUltracode` it does NOT move the effort mirror.
+   */
+  setFast(enabled: boolean): Promise<void>;
   /**
    * Bind to a different session id. Awaits a wake POST so a reaped session
    * has its buffer rehydrated before the SSE subscribes; fire-and-forget

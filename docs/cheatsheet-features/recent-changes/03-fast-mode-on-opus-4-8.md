@@ -1,7 +1,9 @@
 # Fast mode on Opus 4.8
 
 **Source:** Claude Code cheat sheet — Recent Changes
-**Status:** UI_WORTHY
+**Status:** IMPLEMENTED
+
+**Implemented:** "Fast mode" toggle mirrors the ultracode pattern — `app/api/sessions/[id]/fast/route.ts` POSTs `{ enabled }` to `session.setFast()` → `query.applyFlagSettings({ fastMode })` (`lib/server/session.ts`). Plumbed through `useSession` (`lib/client/use-session.ts` / `lib/client/types.ts`: `fastMode` + `setFast`), `BackgroundTasksPanel.tsx` → `SessionCard.tsx` (amber "fast" badge), and surfaced as an amber Zap toggle in `ModelPicker.tsx`, gated on `activeModel.supportsFastMode`. Wired in `app/[workspaceId]/page.tsx`.
 
 ## What it is
 Toggle "fast mode" on Opus 4.8 — runs the model at accelerated rates

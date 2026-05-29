@@ -696,6 +696,12 @@ export function useSession(): ChatState & ChatActions {
   // `effort` — no SDK event to replay, so we track the last toggle and
   // reset to off on a fresh session.
   const [ultracode, setUltracodeState] = useState<boolean>(false);
+  // "Fast mode" user-toggle intent. Same optimistic-mirror story as
+  // `ultracode` (no SDK event to replay, resets to off on a fresh session).
+  // Distinct from `fastModeState` above (line ~472), which is the SDK-reported
+  // runtime status (off/cooldown/on); this is just the last toggle the user
+  // made through the picker.
+  const [fastMode, setFastEnabled] = useState<boolean>(false);
   const [sessions, setSessions] = useState<SessionInfo[]>([]);
 
   // Mirror `model` into the ref so SSE handlers can compute pricing without
@@ -998,6 +1004,7 @@ export function useSession(): ChatState & ChatActions {
     setModelState(null);
     setEffortState("auto");
     setUltracodeState(false);
+    setFastEnabled(false);
     scratchRef.current.clear();
     scopeMessageIdRef.current = new Map();
     lastAssistantUuidRef.current = "";
@@ -3574,6 +3581,23 @@ export function useSession(): ChatState & ChatActions {
     [],
   );
 
+  /**
+   * Toggle "fast mode". Mirrors `setUltracode` — POSTs to a dedicated route
+   * that calls `applyFlagSettings({ fastMode })` server-side. Unlike ultracode
+   * there's NO effort side effect: fast mode is orthogonal to effort, so the
+   * effort mirror is left wherever the user last set it.
+   */
+  const setFast = useCallback(async (enabled: boolean) => {
+    const id = sessionIdRef.current;
+    if (!id) return;
+    setFastEnabled(enabled);
+    await fetch(`/api/sessions/${id}/fast`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ enabled }),
+    }).catch(() => {});
+  }, []);
+
   const renameTitle = useCallback(
     async (title: string): Promise<{ ok: true } | { ok: false; error: string }> => {
       const id = sessionIdRef.current;
@@ -3692,6 +3716,7 @@ export function useSession(): ChatState & ChatActions {
     model,
     effort,
     ultracode,
+    fastMode,
     sessions,
     skills,
     cwd,
@@ -3728,6 +3753,7 @@ export function useSession(): ChatState & ChatActions {
     setModel,
     setEffort,
     setUltracode,
+    setFast,
     switchSession,
     createNewSession,
     createSessionAt,
