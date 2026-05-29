@@ -8,6 +8,7 @@ import {
   priceForModel,
   type PricingTable,
 } from "./litellm-pricing";
+import { getSessionTitlesByCwd } from "./sessions-db";
 
 export type ByDay = {
   date: string; // YYYY-MM-DD (server local tz)
@@ -23,6 +24,8 @@ export type BySession = {
   numTurns: number;
   totalUsd: number;
   model?: string;
+  /** User-assigned Claudius title (from `.claudius.db`), when the session has one. */
+  title?: string;
 };
 
 export type ByModel = {
@@ -323,6 +326,22 @@ export async function aggregate(cwd: string): Promise<CostReport> {
   const byDay = [...byDayMap.values()].sort((a, b) => a.date.localeCompare(b.date));
   const byModel = [...byModelMap.values()].sort((a, b) => b.usd - a.usd);
   const bySession = sessions.sort((a, b) => b.lastSeenMs - a.lastSeenMs);
+
+  // Attach user-assigned titles from the project's `.claudius.db`. The report
+  // is scoped to `cwd`, so that's the title-store key; the `*:id` fallback
+  // covers sessions whose JSONL header dropped the cwd. A title miss just
+  // leaves `title` undefined and the table falls back to the short id.
+  try {
+    const titles = await getSessionTitlesByCwd(
+      bySession.map((s) => ({ cwd, id: s.sessionId })),
+    );
+    for (const s of bySession) {
+      const title = titles.get(`${cwd}:${s.sessionId}`) ?? titles.get(`*:${s.sessionId}`);
+      if (title) s.title = title;
+    }
+  } catch {
+    // Title lookup is best-effort — never fail the cost report over it.
+  }
 
   const today = dayKey(Date.now());
   const weekDays = new Set<string>();

@@ -83,7 +83,7 @@ describe("site/index.html structural integrity", () => {
   it("renders every section the top-nav advertises", () => {
     // Pinned list — if you rename or drop one, the nav has to follow and
     // this test is the place to catch the mismatch.
-    const REQUIRED = ["top", "install", "features", "gallery", "customize", "meta", "legal"];
+    const REQUIRED = ["top", "install", "features", "desktop", "gallery", "customize", "meta", "legal"];
     const missing = REQUIRED.filter((id) => !ids.includes(id));
     expect(missing, `missing required section ids: ${missing.join(", ")}`).toEqual([]);
   });

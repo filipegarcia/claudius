@@ -48,7 +48,7 @@ test.describe("site/index.html — marketing page runtime smoke", () => {
     // visibility (not just presence) ensures the page actually paints — a
     // CSS regression that hides #install would otherwise sail through a
     // pure static lint.
-    for (const id of ["top", "install", "features", "gallery", "customize", "meta"]) {
+    for (const id of ["top", "install", "features", "desktop", "gallery", "customize", "meta"]) {
       await expect(
         page.locator(`#${id}`),
         `section #${id} should be visible`,
@@ -115,6 +115,7 @@ test.describe("site/index.html — marketing page runtime smoke", () => {
     const navTargets: Array<[string, string]> = [
       ["Install", "install"],
       ["Features", "features"],
+      ["Desktop", "desktop"],
       ["Screenshots", "gallery"],
       ["Customize", "customize"],
     ];
