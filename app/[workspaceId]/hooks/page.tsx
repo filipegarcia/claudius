@@ -291,6 +291,7 @@ function EventRow({
                     )}
                     {"async" in h && h.async && <span className="ml-2 text-[var(--muted)]">async</span>}
                     {"once" in h && h.once && <span className="ml-2 text-[var(--muted)]">once</span>}
+                    {"if" in h && h.if && <span className="ml-2 text-[var(--muted)]">if={h.if}</span>}
                   </li>
                 ))}
               </ul>
@@ -331,6 +332,7 @@ function AddHookForm({
   const [async, setAsync] = useState(false);
   const [asyncRewake, setAsyncRewake] = useState(false);
   const [once, setOnce] = useState(false);
+  const [ifRule, setIfRule] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -371,6 +373,7 @@ function AddHookForm({
         ...(async ? { async: true } : {}),
         ...(asyncRewake ? { asyncRewake: true } : {}),
         ...(once ? { once: true } : {}),
+        ...(ifRule.trim() ? { if: ifRule.trim() } : {}),
       };
     } else if (type === "http") {
       if (!url.trim()) return setError("url required");
@@ -385,13 +388,14 @@ function AddHookForm({
         ...(async ? { async: true } : {}),
         ...(asyncRewake ? { asyncRewake: true } : {}),
         ...(once ? { once: true } : {}),
+        ...(ifRule.trim() ? { if: ifRule.trim() } : {}),
       };
     } else if (type === "prompt") {
       if (!prompt.trim()) return setError("prompt required");
-      handler = { type: "prompt", prompt, ...(once ? { once: true } : {}) };
+      handler = { type: "prompt", prompt, ...(once ? { once: true } : {}), ...(ifRule.trim() ? { if: ifRule.trim() } : {}) };
     } else if (type === "agent") {
       if (!agent.trim()) return setError("agent name required");
-      handler = { type: "agent", agent: agent.trim(), ...(once ? { once: true } : {}) };
+      handler = { type: "agent", agent: agent.trim(), ...(once ? { once: true } : {}), ...(ifRule.trim() ? { if: ifRule.trim() } : {}) };
     } else {
       if (!tool.trim()) return setError("tool required");
       const args = parseArgs(argsText);
@@ -401,6 +405,7 @@ function AddHookForm({
         tool: tool.trim(),
         ...(Object.keys(args.value).length ? { arguments: args.value } : {}),
         ...(once ? { once: true } : {}),
+        ...(ifRule.trim() ? { if: ifRule.trim() } : {}),
       };
     }
 
@@ -580,6 +585,17 @@ function AddHookForm({
           <ToggleField label="once" checked={once} onChange={setOnce} />
         </div>
       )}
+
+      <div className="mt-3">
+        <Field label="If (rule filter — runs only when tool call matches, e.g. Bash(git *))">
+          <input
+            value={ifRule}
+            onChange={(e) => setIfRule(e.target.value)}
+            placeholder="(always)"
+            className="w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 font-mono text-xs focus:outline-none"
+          />
+        </Field>
+      </div>
 
       {error && (
         <div className="mt-2 rounded-md border border-red-500/30 bg-red-500/10 px-2 py-1 text-[11px] text-red-300">
