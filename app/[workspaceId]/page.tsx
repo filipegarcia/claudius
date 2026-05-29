@@ -8,6 +8,7 @@ import { LoadingBar } from "@/components/chat/LoadingBar";
 import { MessageList } from "@/components/chat/MessageList";
 import { TodosBanner } from "@/components/chat/TodosBanner";
 import { GoalBanner } from "@/components/chat/GoalBanner";
+import { useGoalBannerHidden } from "@/lib/client/useGoalBannerHidden";
 import { RecapBanner } from "@/components/chat/RecapBanner";
 import { FeedbackBanner } from "@/components/chat/FeedbackBanner";
 import { PromptInput } from "@/components/chat/PromptInput";
@@ -491,6 +492,11 @@ export default function Home() {
   // (even before a goal exists). GoalBanner watches the value, not equality,
   // so each bump re-opens the editor.
   const [goalEditNonce, setGoalEditNonce] = useState(0);
+
+  // Per-browser pref: whether the empty "Set a session goal" prompt is hidden.
+  // Only suppresses the empty state (an active goal still shows); restored from
+  // the collapsed title row's hover affordance or from Settings.
+  const { hidden: goalBannerHidden, setHidden: setGoalBannerHidden } = useGoalBannerHidden();
 
   // Transcript search ─────────────────────────────────────────────────────
   const [searchOpen, setSearchOpen] = useState(false);
@@ -1234,6 +1240,19 @@ export default function Home() {
           >
             <RecapBanner
               embedded
+              goalRowBelow={Boolean(session.goal) || !goalBannerHidden}
+              onShowGoal={
+                !session.goal && goalBannerHidden
+                  ? () => {
+                      // Un-hide AND open the inline editor straight away (same
+                      // nonce bump as `/goal`), so the click lands the user in
+                      // the composer rather than back on the empty prompt. If
+                      // they Esc out, the now-unhidden prompt remains.
+                      setGoalBannerHidden(false);
+                      setGoalEditNonce((n) => n + 1);
+                    }
+                  : undefined
+              }
               sessionId={session.sessionId}
               title={session.sessionTitle}
               onRename={session.renameTitle}
@@ -1244,6 +1263,8 @@ export default function Home() {
               onClear={session.clearGoal}
               onSubmitGoal={handleGoalSubmit}
               openEditNonce={goalEditNonce}
+              hidden={goalBannerHidden}
+              onHide={() => setGoalBannerHidden(true)}
               composer={{
                 ready: session.ready,
                 pending: session.pending,

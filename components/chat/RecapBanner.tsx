@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Pencil, ScrollText } from "lucide-react";
+import { Pencil, ScrollText, Target } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 
 type Props = {
@@ -16,6 +16,21 @@ type Props = {
    * and background so the parent panel owns the framing.
    */
   embedded?: boolean;
+  /**
+   * Only meaningful when `embedded`: whether a goal row renders directly below
+   * this title. When true (the default) the title uses tight bottom padding so
+   * it sits flush above the goal row; when false (the goal prompt is hidden and
+   * no goal is set) it restores normal bottom padding so the panel isn't
+   * cramped.
+   */
+  goalRowBelow?: boolean;
+  /**
+   * Restore a dismissed goal prompt. When set, the title row exposes a
+   * hover-revealed target button (the goal row collapses to just this title
+   * when hidden, so this is the in-context way back — alongside Settings).
+   * The parent only passes this when the goal is actually hidden.
+   */
+  onShowGoal?: () => void;
 };
 
 const PLACEHOLDER = "Untitled session";
@@ -37,7 +52,14 @@ const PLACEHOLDER = "Untitled session";
  * prompt to Claude on demand. That layer is deferred — this strip is the
  * always-on baseline.
  */
-export function RecapBanner({ sessionId, title, onRename, embedded }: Props) {
+export function RecapBanner({
+  sessionId,
+  title,
+  onRename,
+  embedded,
+  goalRowBelow = true,
+  onShowGoal,
+}: Props) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
   const [saveErr, setSaveErr] = useState<string | null>(null);
@@ -97,8 +119,9 @@ export function RecapBanner({ sessionId, title, onRename, embedded }: Props) {
         className={cn(
           "group mx-auto flex w-full max-w-[var(--chat-col)] items-center gap-2 px-4 text-xs",
           // Tight bottom padding when embedded so the title sits directly
-          // above the goal row as one block.
-          embedded ? "pt-2 pb-0.5" : "py-1.5",
+          // above the goal row as one block — but restore normal padding when
+          // the goal row is hidden so the panel doesn't look cramped.
+          embedded ? (goalRowBelow ? "pt-2 pb-0.5" : "py-2") : "py-1.5",
         )}
       >
         <ScrollText
@@ -178,6 +201,18 @@ export function RecapBanner({ sessionId, title, onRename, embedded }: Props) {
                 data-testid="recap-rename-button"
               >
                 <Pencil className="h-3 w-3" />
+              </button>
+            )}
+            {onShowGoal && (
+              <button
+                type="button"
+                onClick={onShowGoal}
+                aria-label="Set a session goal"
+                title="Set a session goal"
+                data-testid="recap-show-goal"
+                className="rounded p-0.5 text-[var(--muted)] opacity-0 transition hover:bg-[var(--panel)] hover:text-[var(--accent)] focus:opacity-100 group-hover:opacity-100"
+              >
+                <Target className="h-3 w-3" />
               </button>
             )}
           </>

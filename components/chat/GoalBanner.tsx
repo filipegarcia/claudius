@@ -43,6 +43,15 @@ type Props = {
   embedded?: boolean;
   /** Composer wiring for the rich goal input (images + @-mentions). */
   composer?: GoalComposer;
+  /**
+   * When true, suppress the empty "Set a session goal" prompt (the user
+   * dismissed it). Only hides the empty state — an active/achieved goal is
+   * still shown, and `/goal` still opens the editor (so the feature stays
+   * reachable). Restored via the title-row affordance or Settings.
+   */
+  hidden?: boolean;
+  /** Dismiss the empty-state prompt (the × button). Persists `hidden`. */
+  onHide?: () => void;
 };
 
 /**
@@ -68,6 +77,8 @@ export function GoalBanner({
   openEditNonce,
   embedded,
   composer,
+  hidden,
+  onHide,
 }: Props) {
   const [editing, setEditing] = useState(false);
 
@@ -142,7 +153,11 @@ export function GoalBanner({
   }
 
   // ── No goal → a subtle affordance to set one (button path) ────────────────
+  // When the user has dismissed the prompt, render nothing — the feature is
+  // still reachable via `/goal` (which opens the editor through
+  // `openEditNonce`, handled above), the title-row affordance, and Settings.
   if (!goal) {
+    if (hidden) return null;
     return (
       <div
         data-testid="goal-banner-empty"
@@ -164,6 +179,18 @@ export function GoalBanner({
             <Target className="h-3.5 w-3.5 group-hover:text-[var(--accent)]" aria-hidden />
             <span>Set a session goal</span>
           </button>
+          {onHide && (
+            <button
+              type="button"
+              onClick={onHide}
+              data-testid="goal-banner-hide"
+              aria-label="Hide the session goal prompt"
+              title="Hide this — restore by hovering the title or from Settings"
+              className="ml-auto rounded p-1 text-[var(--muted)] opacity-60 transition hover:bg-[var(--panel)] hover:text-[var(--foreground)] hover:opacity-100"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          )}
         </div>
       </div>
     );
