@@ -13,6 +13,9 @@ import {
   refreshPricing,
   type LiteLlmPricing,
 } from "@/lib/server/litellm-pricing";
+import { openDb } from "@/lib/server/db";
+import { setSessionTitle } from "@/lib/server/sessions-db";
+import { makeTempHome, type TmpHome } from "./helpers/tmp-home";
 
 /**
  * Cost aggregation must match ccusage's methodology: price on-disk token counts
@@ -184,5 +187,77 @@ describe("aggregate dedup", () => {
     const r = await aggregate(cwd);
     expect(r.totalUsd).toBeCloseTo(0.123, 10); // synthetic dropped, costUSD trusted
     expect(r.bySession[0].numTurns).toBe(1);
+  });
+});
+
+describe("aggregate session titles", () => {
+  // Real temp $HOME so the per-project `.claudius.db` (where titles live) and
+  // the `~/.claude/projects/<enc>` JSONL tree land in the same throwaway root
+  // the title lookup + the cost reader both resolve via `homedir()`.
+  let tmp: TmpHome;
+  let cwd: string;
+  let projDir: string;
+
+  beforeEach(async () => {
+    process.env.CLAUDIUS_DISABLE_PRICE_REFRESH = "1";
+    __resetPricingMemo();
+    tmp = makeTempHome();
+    cwd = join(tmpdir(), `claudius-cost-titles-${Math.random().toString(36).slice(2)}`);
+    projDir = join(homedir(), ".claude", "projects", encodeProjectDir(cwd));
+    await fs.mkdir(projDir, { recursive: true });
+    // Create the project's `.claudius.db` + run migrations so `setSessionTitle`
+    // has a `sessions` table to write into.
+    await openDb(cwd);
+  });
+
+  afterEach(() => {
+    tmp.restore();
+  });
+
+  function turn(msgId: string, reqId: string): string {
+    return JSON.stringify({
+      type: "assistant",
+      requestId: reqId,
+      timestamp: "2026-05-20T10:00:00.000Z",
+      message: {
+        id: msgId,
+        model: "claude-opus-4-7",
+        usage: {
+          input_tokens: 100,
+          output_tokens: 100,
+          cache_read_input_tokens: 0,
+          cache_creation_input_tokens: 0,
+        },
+      },
+    });
+  }
+
+  test("attaches the user-assigned title from .claudius.db to its session", async () => {
+    const titledId = "dddddddd-0000-0000-0000-000000000001";
+    const untitledId = "eeeeeeee-0000-0000-0000-000000000002";
+    await fs.writeFile(join(projDir, `${titledId}.jsonl`), turn("msg_d1", "req_d1") + "\n");
+    await fs.writeFile(join(projDir, `${untitledId}.jsonl`), turn("msg_e1", "req_e1") + "\n");
+    await setSessionTitle(cwd, titledId, "Refactor cost page");
+
+    const r = await aggregate(cwd);
+
+    const titled = r.bySession.find((s) => s.sessionId === titledId)!;
+    const untitled = r.bySession.find((s) => s.sessionId === untitledId)!;
+    expect(titled.title).toBe("Refactor cost page");
+    // A session with no DB row stays undefined so the table falls back to the id.
+    expect(untitled.title).toBeUndefined();
+  });
+
+  test("a title lookup failure never breaks the report (best-effort enrichment)", async () => {
+    // No title written and no DB row for this id — the report still builds and
+    // simply omits the title rather than throwing.
+    const id = "ffffffff-0000-0000-0000-000000000003";
+    await fs.writeFile(join(projDir, `${id}.jsonl`), turn("msg_f1", "req_f1") + "\n");
+
+    const r = await aggregate(cwd);
+
+    expect(r.bySession).toHaveLength(1);
+    expect(r.bySession[0].sessionId).toBe(id);
+    expect(r.bySession[0].title).toBeUndefined();
   });
 });
