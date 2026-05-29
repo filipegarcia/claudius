@@ -11,6 +11,7 @@ import {
   type CwdChangedHookInput,
   type EffortLevel,
   type McpSdkServerConfigWithInstance,
+  type McpServerConfig,
   type Options,
   type PermissionMode,
   type PermissionResult,
@@ -1998,6 +1999,26 @@ export class Session {
     try {
       await this.query.toggleMcpServer(name, enabled);
       return { ok: true };
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : String(err) };
+    }
+  }
+
+  /**
+   * Dynamically replace this session's set of SDK-added MCP servers (B4.8).
+   * Wraps Query.setMcpServers — connects new servers, disconnects removed
+   * ones, and returns which were added/removed plus any connection errors.
+   * Only affects servers added via this method; file-configured servers are
+   * untouched. Pass an empty object to remove all dynamic servers. Lets a user
+   * try a server config in one session without writing it to settings.
+   */
+  async setMcpServers(
+    servers: Record<string, McpServerConfig>,
+  ): Promise<{ ok: true; data: unknown } | { ok: false; error: string }> {
+    if (!this.query) return { ok: false, error: "no active query" };
+    try {
+      const data = await this.query.setMcpServers(servers);
+      return { ok: true, data };
     } catch (err) {
       return { ok: false, error: err instanceof Error ? err.message : String(err) };
     }
