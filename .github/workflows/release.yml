@@ -35,10 +35,16 @@ concurrency:
 
 jobs:
   macos-x64:
-    name: macOS (Intel x64)
-    runs-on: macos-13 # Intel runner — required for a native x64 build
+    name: macOS (Intel x64, cross-compiled)
+    # Intel `macos-13` hosted runners no longer schedule (Intel macOS runner
+    # retirement), so we CROSS-build x64 on a current Apple Silicon runner.
+    runs-on: macos-14
     permissions:
       contents: write # attach artifacts to the Release on tag pushes
+    env:
+      # Unsigned/adhoc everywhere in this job (no Developer ID). Job-level so
+      # the native-rebuild, build, and package steps all skip identity probing.
+      CSC_IDENTITY_AUTO_DISCOVERY: "false"
     steps:
       - uses: actions/checkout@v5
 
@@ -53,18 +59,36 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      # `electron:build` rebuilds native modules for Electron's ABI (on THIS
-      # x64 runner), production-builds Next.js, and stages the standalone tree.
-      # CSC_* off so the native-dep rebuild path doesn't probe for an identity.
-      - name: Build (Next standalone + Electron main)
+      # CROSS-COMPILE CRUX. The bundled Next.js standalone server ships whatever
+      # native better-sqlite3 binary sits in node_modules at `next build` time.
+      # On this arm64 host that would be arm64 → the packaged x64 app would
+      # crash at runtime loading the wrong-arch .node. So we rebuild the native
+      # deps for the **x64 Electron ABI** FIRST, then build. We run the
+      # electron:build sub-steps by hand because electron:rebuild-native hard-
+      # codes the host arch; `install-app-deps --arch x64` overrides it.
+      # (`next build` doesn't dlopen better-sqlite3, so building under arm64
+      # node with an x64 binary on disk is fine — same as the Linux job, which
+      # builds an Electron-ABI binary under plain node and succeeds.)
+      - name: Rebuild native modules for x64 (Electron ABI)
+        run: |
+          bunx electron-builder install-app-deps --arch x64
+          node scripts/native-abi.mjs write electron
+
+      - name: Build Next standalone
         env:
-          CSC_IDENTITY_AUTO_DISCOVERY: "false"
-        run: bun run electron:build
+          CLAUDIUS_PACKAGED: "1"
+          NODE_ENV: production
+        run: bunx next build
+
+      - name: Stage standalone + compile Electron main
+        run: |
+          node scripts/electron-stage-standalone.mjs
+          bun run electron:compile
 
       # Package x64-only, unsigned (adhoc via build/after-pack.js), no notarize.
+      # `--x64` keeps electron-builder's own pack-time rebuild on x64 too, so it
+      # doesn't revert the asarUnpack copy back to the host arch.
       - name: Package dmg + zip (x64, unsigned)
-        env:
-          CSC_IDENTITY_AUTO_DISCOVERY: "false"
         run: bunx electron-builder --mac --x64 -c.mac.notarize=false --publish never
 
       - name: Upload build artifacts
