@@ -268,10 +268,13 @@ label.
 7. The working tree is clean — every file you touched is committed
    on `sdk-update/{{NEW_VERSION}}` with informative messages.
 
-If you can't get to all-green, write what's blocking you under
-"## Risks / follow-ups" in the run-notes file, commit what you
-have, and **stop**. The orchestrator will open a draft PR and ping
-a human. Aim to finish; don't aim for "draft is fine".
+If you can't get to all-green — a **genuine** gate failure you've
+honestly tried to fix, not mere uncertainty about a design choice —
+write what's blocking you under "## Risks / follow-ups" in the
+run-notes file, commit what you have, and **stop**. The orchestrator
+will open a draft PR and ping a human. Aim to finish; don't aim for
+"draft is fine", and never stop merely because something was
+ambiguous — resolve that yourself (see "Work autonomously" below).
 
 ---
 
@@ -284,10 +287,37 @@ a human. Aim to finish; don't aim for "draft is fine".
 - **Never** `--no-verify` on commits or `--force` on pushes.
 - **Never** rewrite history on `main` or on any branch other than
   `sdk-update/{{NEW_VERSION}}`.
-- If you get stuck (failing test you can't fix, ambiguous changelog
-  item), write the situation into the run-notes file under
-  "## Risks / follow-ups", commit what you have, and **stop** —
-  the orchestrator will open a draft PR and ping a human.
+
+### Work autonomously — there is no human to ask
+
+This is a fully autonomous, headless run. **There is no human on the
+other end and no interactive prompt** — you cannot ask a question,
+request confirmation, or wait for a decision. Anything that reads like
+"should I…?" or "I'll pause here until someone confirms…" is a dead
+end: nobody will answer, and the run just burns turns until it times
+out. Decide, act, and document.
+
+- **Ambiguity is yours to resolve, not to escalate.** When a changelog
+  item's intent is unclear, or a design choice has no obviously-correct
+  answer, do **not** stop. Choose the most conservative option that
+  fits the codebase's existing conventions and the changelog's intent,
+  implement it, and record the assumption + the alternative you
+  rejected under "## Risks / follow-ups" in the run-notes. That section
+  becomes the PR body, so the reviewer can confirm or correct your call
+  **on the PR** — that is the channel for anything that genuinely needs
+  a human, *after* you've shipped your best-effort answer, never instead
+  of it. A documented best-effort decision always beats a halted run.
+- **Stopping is only for a genuine block, after real effort** — a test
+  you have honestly tried and cannot make pass, a gate that won't go
+  green for reasons outside your control. Then write what's blocking
+  you into "## Risks / follow-ups", commit what you have, and stop; the
+  orchestrator opens a draft PR and pings a human. "Stuck after trying"
+  is a valid stop. "Unsure, so I'll ask" is not — resolve it yourself
+  and document it.
+- This autonomy does **not** relax the constraints above. Never disable
+  a test or lint rule, never `--no-verify`, never hack a gate to green
+  just to avoid stopping. The escape hatch for uncertainty is a
+  documented decision, not a weakened gate.
 
 Now start. The branch is checked out, deps are installed, the
 changelog is below.
