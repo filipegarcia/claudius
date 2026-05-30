@@ -1,7 +1,13 @@
 # Status line refreshInterval
 
 **Source:** Claude Code cheat sheet — Config & Env — Config Files & Key Settings
-**Status:** UI_WORTHY
+**Status:** IMPLEMENTED
+
+Implemented: pure merge helpers in `lib/shared/status-line.ts` (unit-tested in
+`tests/unit/status-line.test.ts`); the "Model & UI" card's status-line section in
+`app/settings/page.tsx` now merges the command (no longer clobbers
+`refreshInterval`/`padding`/`hideVimModeIndicator`) and adds a "Refresh interval
+(s)" number input.
 
 ## What it is
 A `refreshInterval` field on the `statusLine` settings object that re-runs the

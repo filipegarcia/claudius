@@ -27,6 +27,7 @@ import {
 } from "@/lib/shared/advisor";
 import { useMediaPreferences } from "@/lib/client/useMediaPreferences";
 import { cn } from "@/lib/utils/cn";
+import { setStatusLineCommand, setStatusLineRefreshInterval, type StatusLineConfig } from "@/lib/shared/status-line";
 
 const SCOPE_LABELS: Record<SettingsScope, string> = {
   user: "User",
@@ -145,7 +146,7 @@ export default function SettingsPage() {
   const rModel = fModelUi || show("model");
   const rCliTheme = fModelUi || show("theme (cli rendering)");
   const rOutputStyle = fModelUi || show("output style");
-  const rStatusLine = fModelUi || show("status line script");
+  const rStatusLine = fModelUi || show("status line script refresh interval padding");
   const sModelUi = rModel || rCliTheme || rOutputStyle || rStatusLine;
 
   const fMemory = show("memory");
@@ -495,20 +496,41 @@ export default function SettingsPage() {
                   </Field>
                   )}
                   {rStatusLine && (
+                  <>
                   <Field label="Status line script">
                     <input
-                      value={
-                        (draft.statusLine as { type?: string; command?: string } | undefined)?.command ?? ""
-                      }
+                      value={(draft.statusLine as StatusLineConfig | undefined)?.command ?? ""}
                       onChange={(e) => {
-                        const cmd = e.target.value.trim();
-                        if (!cmd) update({ statusLine: undefined });
-                        else update({ statusLine: { type: "command", command: cmd } });
+                        const sl = draft.statusLine as StatusLineConfig | undefined;
+                        update({ statusLine: setStatusLineCommand(sl, e.target.value) });
                       }}
                       placeholder="/path/to/statusline.sh"
                       className="w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 font-mono text-xs focus:outline-none"
                     />
                   </Field>
+                  <Field label="Refresh interval (s)">
+                    <input
+                      type="number"
+                      min={0}
+                      disabled={!(draft.statusLine as StatusLineConfig | undefined)?.command}
+                      value={(draft.statusLine as StatusLineConfig | undefined)?.refreshInterval ?? ""}
+                      onChange={(e) => {
+                        const sl = draft.statusLine as StatusLineConfig | undefined;
+                        const raw = e.target.value.trim();
+                        if (!raw) {
+                          update({ statusLine: setStatusLineRefreshInterval(sl, undefined) });
+                          return;
+                        }
+                        const n = Number(raw);
+                        if (Number.isFinite(n) && n >= 0) {
+                          update({ statusLine: setStatusLineRefreshInterval(sl, n) });
+                        }
+                      }}
+                      placeholder="(event-driven only)"
+                      className="w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 font-mono text-xs focus:outline-none disabled:opacity-50"
+                    />
+                  </Field>
+                  </>
                   )}
                 </Section>
                 )}
