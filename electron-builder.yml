@@ -114,6 +114,11 @@ nsis:
 linux:
   category: Development
   synopsis: Claude Code in the browser, now on your desktop
+  # Required by the deb/rpm (fpm) targets — package.json `author` is a bare
+  # name with no email, which fpm rejects ("specify author 'email'"). Set the
+  # Debian/RPM maintainer explicitly here instead of stuffing an address into
+  # `author` (which also feeds the ${author} copyright string).
+  maintainer: Claudius Network <noreply@claudius.network>
   target:
     - target: AppImage
       arch: [x64]
