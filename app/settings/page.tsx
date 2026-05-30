@@ -28,6 +28,7 @@ import {
 import { useMediaPreferences } from "@/lib/client/useMediaPreferences";
 import { cn } from "@/lib/utils/cn";
 import { setStatusLineCommand, setStatusLineRefreshInterval, type StatusLineConfig } from "@/lib/shared/status-line";
+import { nextWorktree, parseDirList } from "@/lib/shared/worktree-settings";
 
 const SCOPE_LABELS: Record<SettingsScope, string> = {
   user: "User",
@@ -139,6 +140,7 @@ export default function SettingsPage() {
   const sContext = show("context window warning compact banner threshold nudge chat");
   const sGoalBanner = show("session goal prompt banner hide show header objective chat");
   const sBackup = show("backup restore export import config bundle json snapshot");
+  const sWorktree = show("worktree sparse paths sparsepaths sparse-checkout cone monorepo symlink directories symlinkdirectories node_modules disk bloat");
   // Model & UI / Memory — matched per row against each field's label, so a query
   // like "output style" or "automemorydirectory" reveals just that row. A match
   // on the section title forces all of its rows to show.
@@ -175,7 +177,7 @@ export default function SettingsPage() {
 
   const anyMatch =
     sEditor || sTheme || sPreviews || sChatSize || sLinkTarget || sUpdater || sShortcuts || sRateLimit || sContext || sGoalBanner ||
-    sBackup || sModelUi || sMemory || sChat || sEnv || sPlugins || sOther ||
+    sBackup || sWorktree || sModelUi || sMemory || sChat || sEnv || sPlugins || sOther ||
     catalogEntries.length > 0;
   const noMatches = !!q && !anyMatch;
 
@@ -587,6 +589,42 @@ export default function SettingsPage() {
                 </Section>
                 )}
 
+                {sWorktree && (
+                <Section
+                  title="Worktree"
+                  subtitle="Git worktree creation options (the --worktree flag / EnterWorktree)."
+                >
+                  <Field label="sparsePaths (comma-separated dirs)">
+                    <input
+                      value={(draft.worktree?.sparsePaths ?? []).join(", ")}
+                      onChange={(e) => {
+                        const arr = parseDirList(e.target.value);
+                        update({ worktree: nextWorktree(draft.worktree, { sparsePaths: arr.length ? arr : undefined }) });
+                      }}
+                      placeholder="apps/web, packages/ui"
+                      className="w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 font-mono text-xs focus:outline-none"
+                    />
+                    <p className="mt-1 text-[11px] text-[var(--muted)]">
+                      Directories to include when creating worktrees, via git sparse-checkout (cone mode). Dramatically faster in large monorepos.
+                    </p>
+                  </Field>
+                  <Field label="symlinkDirectories (comma-separated dirs)">
+                    <input
+                      value={(draft.worktree?.symlinkDirectories ?? []).join(", ")}
+                      onChange={(e) => {
+                        const arr = parseDirList(e.target.value);
+                        update({ worktree: nextWorktree(draft.worktree, { symlinkDirectories: arr.length ? arr : undefined }) });
+                      }}
+                      placeholder="node_modules, .cache, .bin"
+                      className="w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 font-mono text-xs focus:outline-none"
+                    />
+                    <p className="mt-1 text-[11px] text-[var(--muted)]">
+                      Directories symlinked from the main repository to each worktree to avoid disk bloat.
+                    </p>
+                  </Field>
+                </Section>
+                )}
+
                 {sChat && (
                 <Section title="Chat">
                   <ToggleRow
@@ -800,6 +838,7 @@ const KNOWN_KEYS = new Set([
   "enabledPlugins",
   "env",
   "disableAllHooks",
+  "worktree",
 ]);
 
 // Catalog of Claude Code settings.json keys worth surfacing as labeled

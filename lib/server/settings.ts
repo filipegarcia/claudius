@@ -1,6 +1,8 @@
 import { promises as fs } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
+import type { WorktreeSettings } from "@/lib/shared/worktree-settings";
+
 import { assertWithin } from "./safe-path";
 
 export type SettingsScope = "user" | "project" | "local";
@@ -85,6 +87,9 @@ export type ClaudeSettings = {
   //     Undefined means "ask them on next connect."
   communityConsent?: "yes" | "no";
   communityNick?: string;
+  // Git worktree creation options (the --worktree flag / EnterWorktree).
+  // Mirrors the SDK's `Settings.worktree` shape.
+  worktree?: WorktreeSettings;
   // Catch-all for keys we don't yet know about — we never strip them.
   [key: string]: unknown;
 };

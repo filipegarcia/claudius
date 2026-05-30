@@ -1,7 +1,9 @@
 # Sparse checkout (sparsePaths)
 
 **Source:** Claude Code cheat sheet — Workflows & Tips
-**Status:** UI_WORTHY
+**Status:** IMPLEMENTED
+
+**Implemented:** `app/settings/page.tsx` now renders a "Worktree" settings section with comma-separated `sparsePaths` and `symlinkDirectories` editors (wired through `lib/server/settings.ts`'s typed `worktree` field), persisted via the existing settings read/write routes.
 
 ## What it is
 When creating worktrees, `sparsePaths` limits the checkout (via git sparse-checkout cone mode) to only the listed directories — dramatically faster in large monorepos because only those paths are written to disk.
