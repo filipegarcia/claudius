@@ -231,13 +231,23 @@ function preflight(): void {
         "as the cron user, then re-run.",
     );
   }
-  // Hard refusal on a dirty tree: we're about to bump deps and let
-  // Claude reshape the world. A pre-existing diff would silently
-  // ride along into the PR.
+  // Dirty tree: we're about to bump deps and let Claude reshape the
+  // world on a fresh branch cut from origin/main, so a pre-existing
+  // diff would silently ride along into the PR. Rather than hard-refuse
+  // (which bricked interactive `make sdk-update-run` on the smallest
+  // stray edit — typically a leftover SDK bump from a prior run), stash
+  // the changes aside and continue. The stash is branch-independent and
+  // recoverable any time via `git stash list` / `git stash pop`.
   const status = sh("git", ["status", "--porcelain"]);
   if (status.trim() !== "") {
-    fatal(
-      `working tree is not clean — orchestrator refuses to start.\nstatus:\n${status}`,
+    const label = `sdk-update-autostash ${new Date().toISOString()}`;
+    log(`working tree is dirty — stashing before we start:\n${status}`);
+    // --include-untracked so brand-new files (e.g. a half-written
+    // migration) don't block the stash; they come back together on pop.
+    sh("git", ["stash", "push", "--include-untracked", "-m", label]);
+    log(
+      `stashed as "${label}" — recover later with \`git stash list\` then ` +
+        `\`git stash pop\`, or \`git stash drop\` to discard.`,
     );
   }
 }

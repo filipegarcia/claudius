@@ -104,6 +104,16 @@ if [ "${1:-}" = "fix-pr" ]; then
 fi
 
 # ── Check ────────────────────────────────────────────────────────────
+# We hold the exclusive flock from here on (see the concurrency guard
+# above). A live orchestrate would still be holding that lock — so the
+# fact that we acquired it proves none is running. That means any
+# `inFlight` marker check.ts finds in state.json is necessarily STALE,
+# left behind by a run that was killed before its `finally` could clear
+# it (Ctrl-C on an interactive `make sdk-update-run`, OOM, reboot).
+# Tell check.ts to reclaim it immediately instead of bricking every
+# firing for the 24h self-heal window.
+export SDK_UPDATE_LOCK_HELD=1
+
 log "checking for SDK updates"
 
 # check.ts prints a single JSON line on stdout. Capture it for parsing.
