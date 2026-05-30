@@ -127,6 +127,52 @@ Don't rename them. Don't merge them. Don't skip any.
 
 ## How to work
 
+### Step 0 — Orchestrate this migration with a dynamic workflow
+
+You have the **Workflow** tool (dynamic `agent()` / `parallel()` /
+`pipeline()` orchestration), and this run is fully headless and
+autonomous. **Use it.** A release this size has many independent
+sub-tasks; fanning them across sub-agents is faster and more thorough
+than one linear pass, and it lets you verify your own work
+adversarially before you trust it. The numbered steps below are the
+*phases* — drive them with workflows, don't plod through them solo.
+
+Default decomposition (adapt per release):
+
+1. **Audit — parallel, read-only.** One `agent()` per subsystem
+   (`lib/server/session.ts`, `lib/client/`, `lib/shared/`, the
+   `lib/server/` helpers), each auditing our usage against the changelog
+   and `sdk.d.ts` and returning structured findings (exports we touch,
+   breaking changes that hit us, new features worth exposing). These
+   agents only read, so they never collide — `parallel()` them and merge
+   the findings yourself into the run-notes plan (Step 3).
+2. **Implement.** Ship the `[shipped]` items. **File edits are the one
+   place workflows bite:** parallel agents editing the same working tree
+   clobber each other. So either make the edits yourself, sequentially,
+   or — only when two items touch genuinely disjoint files — fan them
+   out with `isolation: 'worktree'` and reconcile the results back into
+   the main tree before gating. When in doubt, serialize the edits.
+3. **Adversarially verify — parallel, read-only.** After implementing,
+   spawn a skeptic per change / per changelog item, each prompted to
+   *refute* that the item is correctly handled (wrong shape, missed call
+   site, behaviour drift). Anything a majority flags, go fix. This is
+   the step that catches a plausible-but-wrong migration.
+4. **Gate-fix loop.** Run the gates (Step 8). For each failure, spawn a
+   focused agent to diagnose and propose the fix, apply it, re-gate, and
+   repeat until green or genuinely blocked. Do **not** stop at the first
+   red gate — closing this loop autonomously is the whole point.
+
+Guardrails, because the run is unsupervised and budget-capped (turn,
+wall-clock, and idle ceilings):
+
+- **Cap fan-out** — a handful of agents per phase, not dozens. They
+  share the same budget that has to land the whole migration.
+- **Read-heavy phases are free wins; write-heavy phases are where you
+  serialize.** Never run two file-mutating agents against the same tree
+  without worktree isolation.
+- **Let every workflow complete before moving on** — a workflow you
+  launch and ignore can leave the run wedged.
+
 ### Step 1 — Read the changelog and the SDK source
 
 - Read the "## Changelog block" section at the bottom of this prompt
@@ -268,10 +314,13 @@ label.
 7. The working tree is clean — every file you touched is committed
    on `sdk-update/{{NEW_VERSION}}` with informative messages.
 
-If you can't get to all-green, write what's blocking you under
-"## Risks / follow-ups" in the run-notes file, commit what you
-have, and **stop**. The orchestrator will open a draft PR and ping
-a human. Aim to finish; don't aim for "draft is fine".
+If you can't get to all-green — a **genuine** gate failure you've
+honestly tried to fix, not mere uncertainty about a design choice —
+write what's blocking you under "## Risks / follow-ups" in the
+run-notes file, commit what you have, and **stop**. The orchestrator
+will open a draft PR and ping a human. Aim to finish; don't aim for
+"draft is fine", and never stop merely because something was
+ambiguous — resolve that yourself (see "Work autonomously" below).
 
 ---
 
@@ -284,10 +333,37 @@ a human. Aim to finish; don't aim for "draft is fine".
 - **Never** `--no-verify` on commits or `--force` on pushes.
 - **Never** rewrite history on `main` or on any branch other than
   `sdk-update/{{NEW_VERSION}}`.
-- If you get stuck (failing test you can't fix, ambiguous changelog
-  item), write the situation into the run-notes file under
-  "## Risks / follow-ups", commit what you have, and **stop** —
-  the orchestrator will open a draft PR and ping a human.
+
+### Work autonomously — there is no human to ask
+
+This is a fully autonomous, headless run. **There is no human on the
+other end and no interactive prompt** — you cannot ask a question,
+request confirmation, or wait for a decision. Anything that reads like
+"should I…?" or "I'll pause here until someone confirms…" is a dead
+end: nobody will answer, and the run just burns turns until it times
+out. Decide, act, and document.
+
+- **Ambiguity is yours to resolve, not to escalate.** When a changelog
+  item's intent is unclear, or a design choice has no obviously-correct
+  answer, do **not** stop. Choose the most conservative option that
+  fits the codebase's existing conventions and the changelog's intent,
+  implement it, and record the assumption + the alternative you
+  rejected under "## Risks / follow-ups" in the run-notes. That section
+  becomes the PR body, so the reviewer can confirm or correct your call
+  **on the PR** — that is the channel for anything that genuinely needs
+  a human, *after* you've shipped your best-effort answer, never instead
+  of it. A documented best-effort decision always beats a halted run.
+- **Stopping is only for a genuine block, after real effort** — a test
+  you have honestly tried and cannot make pass, a gate that won't go
+  green for reasons outside your control. Then write what's blocking
+  you into "## Risks / follow-ups", commit what you have, and stop; the
+  orchestrator opens a draft PR and pings a human. "Stuck after trying"
+  is a valid stop. "Unsure, so I'll ask" is not — resolve it yourself
+  and document it.
+- This autonomy does **not** relax the constraints above. Never disable
+  a test or lint rule, never `--no-verify`, never hack a gate to green
+  just to avoid stopping. The escape hatch for uncertainty is a
+  documented decision, not a weakened gate.
 
 Now start. The branch is checked out, deps are installed, the
 changelog is below.
