@@ -712,6 +712,27 @@ async function runClaude(prompt: string, transcriptFile?: string): Promise<{
       // its side; we *also* watch wall-clock below in case a single
       // turn drags on (long tool call, network hang).
       maxTurns: MAX_TURNS,
+      // Enable the dynamic Workflow tool so the agent can fan the
+      // migration out across sub-agents (audit → implement → adversarial
+      // verify → gate-fix loop), driven by the "Step 0" section of
+      // prompt.md. `enableWorkflows` exposes the tool, which is off by
+      // plan default when no settings are loaded. We do NOT need to
+      // suppress the auto-mode workflow-usage warning: under
+      // permissionMode "default" + the autoApprove canUseTool above it
+      // never gates execution — verified headless via
+      // scripts/sdk-update/verify-workflow.ts, where the tool fires, a
+      // background workflow's result round-trips back into this
+      // for-await loop, and task_progress messages keep the idle
+      // watchdog fed (max gap ~2s « 15min).
+      //
+      // We deliberately do NOT set `ultracode`: it forces a workflow for
+      // *every* step "with token cost not a constraint", which fights
+      // MAX_TURNS / wall-clock on a run nobody babysits. enableWorkflows
+      // + the prompt gives the same decompose/verify behaviour with the
+      // budget caps intact.
+      settings: {
+        enableWorkflows: true,
+      },
       // SDK 0.2.x onwards accepts a `stderr` callback that receives
       // each chunk written by the bundled CLI subprocess. Without
       // this, a fatal "no auth" / "model not found" / etc. message
