@@ -78,6 +78,15 @@ const CHAT_SERVER_URL = process.env.CHAT_SERVER_URL ?? "";
 const CHAT_SERVER_ADMIN_TOKEN = process.env.CHAT_SERVER_ADMIN_TOKEN ?? "";
 const ROOM_SLUG = process.env.SDK_UPDATE_ROOM_SLUG ?? "sdk-update";
 
+// Never let a git subprocess block on an interactive credential prompt.
+// Without this, a missing/expired credential makes `git push` print
+// "Username for 'https://github.com':" to the controlling tty and hang
+// FOREVER (the run never reaches pushBranch's helpful error) — observed
+// on a headless macOS run where gh was authed but git's credential
+// helper had no token. With the prompt disabled git fails fast and the
+// non-zero exit surfaces our actionable message instead.
+process.env.GIT_TERMINAL_PROMPT = "0";
+
 const MODEL = process.env.SDK_UPDATE_MODEL ?? "sonnet";
 const MAX_TURNS = Number(process.env.SDK_UPDATE_MAX_TURNS ?? "200");
 const MAX_WALL_MS = Number(process.env.SDK_UPDATE_MAX_WALL_MIN ?? "360") * 60_000;
@@ -1173,7 +1182,19 @@ function pushBranch(branch: string): void {
   // else somehow pushed in between, which is the protection we want).
   // `-u` sets upstream tracking the first time and is harmless on
   // subsequent runs.
+  // Push using gh's token as the credential helper rather than whatever
+  // git's global `credential.helper` happens to be. Preflight already
+  // verified `gh auth status`, so this makes the long-standing "if gh
+  // works, push works" assumption actually true — no dependency on
+  // `gh auth setup-git` having been run, or on an osxkeychain entry that
+  // may not exist on a headless box. The empty `credential.helper=`
+  // first clears any inherited helper (e.g. osxkeychain) so it can't
+  // shadow gh with a stale/missing entry; the second installs gh.
   const pushCode = shStream("git", [
+    "-c",
+    "credential.helper=",
+    "-c",
+    "credential.helper=!gh auth git-credential",
     "push",
     "-u",
     "--force-with-lease",
