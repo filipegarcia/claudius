@@ -302,14 +302,26 @@ async function main(): Promise<void> {
   }
 
   const maxMinorJump = Number(process.env.SDK_UPDATE_MAX_MINOR_JUMP ?? "1");
+  // SDK_UPDATE_LOCK_HELD=1 is set by run.sh, which only reaches this
+  // check after acquiring the exclusive flock. Holding that lock proves
+  // no orchestrate is alive (a live one would still hold it), so any
+  // inFlight marker is stale by construction — reclaim it now
+  // (staleInFlightMs=0 makes decide() fall through immediately) rather
+  // than wait out the self-heal timer. This deliberately wins over an
+  // operator-set SDK_UPDATE_STALE_INFLIGHT_HOURS.
+  //
   // SDK_UPDATE_STALE_INFLIGHT_HOURS lets an operator override the
-  // self-heal threshold for inFlight markers. Most won't need to; the
-  // 24h default is wide enough for any normal run and short enough
-  // that a hard-crashed orchestrator doesn't permanently brick the cron.
+  // self-heal threshold for inFlight markers when the lock is NOT held
+  // (e.g. calling check.ts directly). Most won't need to; the 24h
+  // default is wide enough for any normal run and short enough that a
+  // hard-crashed orchestrator doesn't permanently brick the cron.
+  const lockHeld = process.env.SDK_UPDATE_LOCK_HELD === "1";
   const staleHoursRaw = process.env.SDK_UPDATE_STALE_INFLIGHT_HOURS;
-  const staleInFlightMs = staleHoursRaw
-    ? Number(staleHoursRaw) * 60 * 60 * 1000
-    : undefined;
+  const staleInFlightMs = lockHeld
+    ? 0
+    : staleHoursRaw
+      ? Number(staleHoursRaw) * 60 * 60 * 1000
+      : undefined;
   const state = readState(root);
   // Surface self-heal events to the cron log so the operator can see
   // (a) that a crashed run was reclaimed and (b) which version/branch
@@ -318,10 +330,12 @@ async function main(): Promise<void> {
     const ageMs = Date.now() - state.inFlight.startedAt;
     const limitMs = staleInFlightMs ?? 24 * 60 * 60 * 1000;
     if (ageMs > limitMs) {
+      const why = lockHeld
+        ? "lock held, so the prior run is dead"
+        : `age ${Math.round(ageMs / 60_000)}min > ${Math.round(limitMs / 60_000)}min`;
       console.error(
         `[sdk-update/check] WARN reclaiming stale inFlight marker ` +
-          `(version=${state.inFlight.version} branch=${state.inFlight.branch} ` +
-          `age=${Math.round(ageMs / 60_000)}min > ${Math.round(limitMs / 60_000)}min)`,
+          `(version=${state.inFlight.version} branch=${state.inFlight.branch}; ${why})`,
       );
     }
   }
