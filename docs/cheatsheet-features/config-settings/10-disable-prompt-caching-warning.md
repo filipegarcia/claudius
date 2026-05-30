@@ -1,7 +1,8 @@
 # DISABLE_PROMPT_CACHING warning
 
 **Source:** Claude Code cheat sheet — Config & Env — Config Files & Key Settings
-**Status:** UI_WORTHY
+**Status:** IMPLEMENTED
+**Implemented:** `app/api/doctor/route.ts` pushes a `warn` "Prompt caching" check (id `prompt-caching`) when `process.env.DISABLE_PROMPT_CACHING` is set; renders automatically in `app/doctor/page.tsx`.
 
 ## What it is
 A startup warning Claude Code prints when `DISABLE_PROMPT_CACHING` is set,

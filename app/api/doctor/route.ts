@@ -137,6 +137,16 @@ export async function GET() {
     detail: git ?? "git not on PATH — worktrees won't work",
   });
 
+  // Prompt caching disabled
+  if (process.env.DISABLE_PROMPT_CACHING) {
+    checks.push({
+      id: "prompt-caching",
+      label: "Prompt caching",
+      status: "warn",
+      detail: "DISABLE_PROMPT_CACHING is set — caching off increases token cost and latency",
+    });
+  }
+
   return NextResponse.json({
     runtime: { node, platform: process.platform, arch: process.arch },
     sdk: { version: sdkVer },
