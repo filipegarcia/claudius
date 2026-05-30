@@ -78,11 +78,18 @@ mac:
   entitlements: build/entitlements.mac.plist
   entitlementsInherit: build/entitlements.mac.plist
   notarize: true
+  # x64 (Intel) ONLY. The release pipeline cross-builds x64 on an Apple
+  # Silicon runner and rebuilds better-sqlite3 for x64 before `next build`, so
+  # the bundled standalone server is x64. An arm64 target here would reuse that
+  # x64 standalone (electron-builder doesn't rebuild inside extraResources) and
+  # ship a crash-on-launch arm64 app. A proper arm64 build needs its own native
+  # rebuild + standalone — add it back as a separate native arm64 job if wanted.
+  # (CLI `--x64` does NOT override these explicit per-target arch arrays.)
   target:
     - target: dmg
-      arch: [x64, arm64]
+      arch: [x64]
     - target: zip
-      arch: [x64, arm64]
+      arch: [x64]
   icon: build/icons/icon.icns
 
 dmg:
