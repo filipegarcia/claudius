@@ -1,7 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import { ArrowDownToLine, Loader2, RefreshCw, Sparkles, TriangleAlert } from "lucide-react";
+import { ArrowDownToLine, Loader2, RefreshCw, Sparkles, TriangleAlert, X } from "lucide-react";
 import { useUpdater } from "@/lib/client/use-updater";
 import { useElectronUpdater } from "@/lib/client/useElectronUpdater";
 
@@ -36,6 +37,11 @@ export function UpdaterBanner() {
 
 function WebUpdaterBanner() {
   const u = useUpdater(15_000);
+  // Remember which error the user dismissed so a transient/offline error
+  // (e.g. "fetch failed: ssh: connect to host github.com port 22") can be
+  // closed instead of nagging on every 15s poll. Keyed by the error text:
+  // a *different* error re-shows the banner; the same one stays hidden.
+  const [dismissedError, setDismissedError] = useState<string | null>(null);
   if (!u.data) return null;
   const { state, settings, install } = u.data;
   if (!install.isGitCheckout) return null;
@@ -43,7 +49,7 @@ function WebUpdaterBanner() {
 
   const status = state.status.kind;
   const pending = state.pending && state.pending.behind > 0 ? state.pending : undefined;
-  const hasError = !!state.lastError;
+  const hasError = !!state.lastError && state.lastError !== dismissedError;
 
   if (status === "idle" && !pending && !hasError) return null;
 
@@ -116,6 +122,14 @@ function WebUpdaterBanner() {
         >
           Details
         </Link>
+        <button
+          onClick={() => setDismissedError(state.lastError ?? null)}
+          aria-label="Dismiss updater error"
+          title="Dismiss until the error changes"
+          className="rounded p-0.5 text-[var(--muted)] hover:bg-red-500/20 hover:text-[var(--foreground)]"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
       </div>
     );
   }
@@ -169,6 +183,7 @@ function ElectronUpdaterBanner({
   state: ReturnType<typeof useElectronUpdater> & object;
 }) {
   const { status, check, apply } = state;
+  const [dismissedError, setDismissedError] = useState<string | null>(null);
 
   if (status.kind === "idle" || status.kind === "checking") return null;
 
@@ -217,6 +232,7 @@ function ElectronUpdaterBanner({
   }
 
   // error
+  if (dismissedError === status.message) return null;
   return (
     <div
       data-pane-name="updater-banner-electron"
@@ -233,6 +249,14 @@ function ElectronUpdaterBanner({
       >
         <RefreshCw className="h-3 w-3" />
         Retry check
+      </button>
+      <button
+        onClick={() => setDismissedError(status.message)}
+        aria-label="Dismiss updater error"
+        title="Dismiss until the error changes"
+        className="rounded p-0.5 text-[var(--muted)] hover:bg-red-500/20 hover:text-[var(--foreground)]"
+      >
+        <X className="h-3.5 w-3.5" />
       </button>
     </div>
   );
