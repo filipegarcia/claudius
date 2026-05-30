@@ -61,6 +61,14 @@ export function WorkspaceForm({ initial, onCancel, onSubmit, onIconUpload, onDel
   const [defaultBudget, setDefaultBudget] = useState(
     initial?.defaults?.maxBudgetUsd != null ? String(initial.defaults.maxBudgetUsd) : "",
   );
+  // Soft token budget (model paces against it) — empty = no hint.
+  const [defaultTaskBudget, setDefaultTaskBudget] = useState(
+    initial?.defaults?.taskBudgetTokens != null ? String(initial.defaults.taskBudgetTokens) : "",
+  );
+  // Hard turn cap — empty = no cap.
+  const [defaultMaxTurns, setDefaultMaxTurns] = useState(
+    initial?.defaults?.maxTurns != null ? String(initial.defaults.maxTurns) : "",
+  );
   // Fallback model id — empty = no fallback. Plain text (not the model picker)
   // since it's an advanced field and accepts any model id alias.
   const [defaultFallback, setDefaultFallback] = useState(initial?.defaults?.fallbackModel ?? "");
@@ -173,6 +181,14 @@ export function WorkspaceForm({ initial, onCancel, onSubmit, onIconUpload, onDel
       const budget = Number(defaultBudget);
       if (defaultBudget.trim() && Number.isFinite(budget) && budget > 0) defaults.maxBudgetUsd = budget;
       else delete defaults.maxBudgetUsd;
+      const taskBudget = Number(defaultTaskBudget);
+      if (defaultTaskBudget.trim() && Number.isFinite(taskBudget) && taskBudget > 0)
+        defaults.taskBudgetTokens = Math.floor(taskBudget);
+      else delete defaults.taskBudgetTokens;
+      const turns = Number(defaultMaxTurns);
+      if (defaultMaxTurns.trim() && Number.isFinite(turns) && turns > 0)
+        defaults.maxTurns = Math.floor(turns);
+      else delete defaults.maxTurns;
       if (defaultFallback.trim()) defaults.fallbackModel = defaultFallback.trim();
       else delete defaults.fallbackModel;
       if (defaultSandbox) defaults.sandboxEnabled = true;
@@ -465,6 +481,30 @@ export function WorkspaceForm({ initial, onCancel, onSubmit, onIconUpload, onDel
                   placeholder="none (e.g. claude-haiku-4-5)"
                   spellCheck={false}
                   className="w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 font-mono text-xs focus:outline-none"
+                />
+              </Field>
+              <Field label="Token budget (soft)">
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min="0"
+                  step="10000"
+                  value={defaultTaskBudget}
+                  onChange={(e) => setDefaultTaskBudget(e.target.value)}
+                  placeholder="no hint"
+                  className="w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 text-xs focus:outline-none"
+                />
+              </Field>
+              <Field label="Max turns">
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min="0"
+                  step="1"
+                  value={defaultMaxTurns}
+                  onChange={(e) => setDefaultMaxTurns(e.target.value)}
+                  placeholder="no cap"
+                  className="w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 text-xs focus:outline-none"
                 />
               </Field>
             </div>

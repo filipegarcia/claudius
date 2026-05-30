@@ -11,6 +11,7 @@ import {
   type CwdChangedHookInput,
   type EffortLevel,
   type McpSdkServerConfigWithInstance,
+  type McpServerConfig,
   type Options,
   type PermissionMode,
   type PermissionResult,
@@ -52,6 +53,8 @@ import {
   thinkingReplayErrorFrom,
 } from "./thinking-replay-recovery";
 import { extractReadPaths } from "@/lib/shared/read-tool-paths";
+import { joinSystemPromptAppends } from "@/lib/shared/system-prompt-append";
+import { loadDbAgentsForOptions } from "@/lib/server/db-agents";
 import { selectTips } from "@/lib/shared/tips";
 import type { SessionLoop } from "@/lib/shared/session-loops";
 import { readSettings, type ClaudeSettings } from "./settings";
@@ -302,6 +305,17 @@ export class Session {
    */
   readonly maxBudgetUsd?: number;
   /**
+   * Soft token budget the model paces against (Options.taskBudget.total).
+   * Advisory — the model is told its remaining budget but isn't force-stopped.
+   * Undefined/0 ⇒ no hint.
+   */
+  readonly taskBudgetTokens?: number;
+  /**
+   * Hard cap on agentic turns (Options.maxTurns). The query stops at the cap.
+   * Undefined/0 ⇒ no turn cap.
+   */
+  readonly maxTurns?: number;
+  /**
    * Fallback model id — SDK Options.fallbackModel. The SDK switches to this
    * when the primary model is unavailable / errors. Undefined = no fallback.
    */
@@ -455,6 +469,8 @@ export class Session {
     model?: string;
     agent?: string;
     maxBudgetUsd?: number;
+    taskBudgetTokens?: number;
+    maxTurns?: number;
     fallbackModel?: string;
     sandboxEnabled?: boolean;
     enable1mContext?: boolean;
@@ -483,6 +499,8 @@ export class Session {
     this.model = opts.model;
     this.agent = opts.agent;
     this.maxBudgetUsd = opts.maxBudgetUsd;
+    this.taskBudgetTokens = opts.taskBudgetTokens;
+    this.maxTurns = opts.maxTurns;
     this.fallbackModel = opts.fallbackModel;
     this.sandboxEnabled = opts.sandboxEnabled;
     this.enable1mContext = opts.enable1mContext;
@@ -632,6 +650,23 @@ export class Session {
       () => ({}) as ClaudeSettings,
     );
 
+    // Unify everything that appends to the Claude Code system-prompt preset
+    // into ONE `systemPrompt.append`. Two sources can contribute: the session
+    // goal (authoritative objective) and the workspace `systemPromptAppend`
+    // (house-style steering). They must merge — emitting `systemPrompt` twice
+    // in the Options literal would make the later key silently clobber the
+    // earlier (object-literal duplicate-key semantics), dropping one of them.
+    const combinedSystemPromptAppend = joinSystemPromptAppends([
+      this.goal.goal ? this.goalSystemPromptAppend() : "",
+      this.systemPromptAppend,
+    ]);
+
+    // DB-backed programmatic subagents for this workspace (A-P3.8). Fed to the
+    // SDK via Options.agents; undefined when none, so the file-based agents
+    // path is untouched. Best-effort — a DB read failure just yields no
+    // programmatic agents rather than blocking session start.
+    const dbAgents = await loadDbAgentsForOptions(this.cwd).catch(() => undefined);
+
     const options: Options = {
       cwd: this.cwd,
       model: this.model,
@@ -641,20 +676,24 @@ export class Session {
       // SSE subscribers. Registered unconditionally — harmless when no goal is
       // set (the agent is only told to use it when a goal exists).
       mcpServers: { claudius_goal: this.buildGoalMcpServer() },
-      // When a goal is already set at start (resumed session, or a goal set on
-      // a fresh session id in a prior boot), append it to Claude Code's preset
-      // system prompt so the objective is authoritative for the whole session.
-      // Only set when there's a goal so the no-goal path stays byte-identical
-      // to the SDK default (omitting `systemPrompt` entirely).
-      ...(this.goal.goal
+      // Single system-prompt spread combining the session goal + workspace
+      // systemPromptAppend (see `combinedSystemPromptAppend` above). Omitted
+      // entirely when neither is set, so the no-extras path stays byte-identical
+      // to the SDK default.
+      ...(combinedSystemPromptAppend
         ? {
             systemPrompt: {
               type: "preset" as const,
               preset: "claude_code" as const,
-              append: this.goalSystemPromptAppend(),
+              append: combinedSystemPromptAppend,
             },
           }
         : {}),
+      // DB-backed programmatic subagents (A-P3.8). Merged into the agent set
+      // the model can invoke via the Agent tool; programmatic agents take
+      // precedence over same-named file-based ones. Omitted when there are
+      // none so the file-only path is byte-identical to before.
+      ...(dbAgents ? { agents: dbAgents } : {}),
       // Main-thread agent (SDK `--agent`). When set, the agent's system
       // prompt, tools, and model apply to the main conversation — note the
       // agent's own model takes precedence over `model` above. Omitted when
@@ -665,6 +704,16 @@ export class Session {
       // forwarded when a positive number so 0/undefined means "no cap".
       ...(typeof this.maxBudgetUsd === "number" && this.maxBudgetUsd > 0
         ? { maxBudgetUsd: this.maxBudgetUsd }
+        : {}),
+      // Soft token budget the model paces against (advisory; doesn't force-stop
+      // the turn the way maxBudgetUsd does). Only forwarded when positive.
+      ...(typeof this.taskBudgetTokens === "number" && this.taskBudgetTokens > 0
+        ? { taskBudget: { total: this.taskBudgetTokens } }
+        : {}),
+      // Hard cap on agentic turns — the query stops at the limit. Only
+      // forwarded when positive so 0/undefined means "no turn cap".
+      ...(typeof this.maxTurns === "number" && this.maxTurns > 0
+        ? { maxTurns: this.maxTurns }
         : {}),
       // Fallback model — the SDK switches to this if the primary model is
       // unavailable or errors (overload, model_not_found). Omitted when unset.
@@ -696,19 +745,8 @@ export class Session {
       ...(this.additionalDirectories && this.additionalDirectories.length > 0
         ? { additionalDirectories: this.additionalDirectories }
         : {}),
-      // Append workspace-level steering to the default Claude Code system
-      // prompt. Only set when non-empty so the SDK keeps its plain preset
-      // otherwise. Distinct from CLAUDE.md — this is house-style steering, not
-      // project content. Trimmed so a whitespace-only value is treated as unset.
-      ...(this.systemPromptAppend && this.systemPromptAppend.trim()
-        ? {
-            systemPrompt: {
-              type: "preset" as const,
-              preset: "claude_code" as const,
-              append: this.systemPromptAppend,
-            },
-          }
-        : {}),
+      // (workspace systemPromptAppend is merged into the unified `systemPrompt`
+      // spread above, alongside any session goal — see combinedSystemPromptAppend.)
       // Custom plan-mode workflow body. The SDK only consults this in plan
       // mode; harmless to pass otherwise. Omitted when empty so the default
       // plan workflow applies. Trimmed to treat whitespace-only as unset.
@@ -1998,6 +2036,26 @@ export class Session {
     }
   }
 
+  /**
+   * Dynamically replace this session's set of SDK-added MCP servers (B4.8).
+   * Wraps Query.setMcpServers — connects new servers, disconnects removed
+   * ones, and returns which were added/removed plus any connection errors.
+   * Only affects servers added via this method; file-configured servers are
+   * untouched. Pass an empty object to remove all dynamic servers. Lets a user
+   * try a server config in one session without writing it to settings.
+   */
+  async setMcpServers(
+    servers: Record<string, McpServerConfig>,
+  ): Promise<{ ok: true; data: unknown } | { ok: false; error: string }> {
+    if (!this.query) return { ok: false, error: "no active query" };
+    try {
+      const data = await this.query.setMcpServers(servers);
+      return { ok: true, data };
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : String(err) };
+    }
+  }
+
   async reloadPlugins(): Promise<{ ok: true; data: unknown } | { ok: false; error: string }> {
     if (!this.query) return { ok: false, error: "no active query" };
     try {
@@ -2122,17 +2180,34 @@ export class Session {
     model?: string;
     agent?: string;
     maxBudgetUsd?: number;
+    taskBudgetTokens?: number;
+    maxTurns?: number;
     fallbackModel?: string;
     sandboxEnabled?: boolean;
+    enable1mContext?: boolean;
+    persistSession?: boolean;
+    additionalDirectories?: string[];
+    systemPromptAppend?: string;
+    planModeInstructions?: string;
     permissionMode: PermissionMode;
   } {
+    // Must carry EVERY session-create option so an auto-recovered session
+    // (recoverInPlace) is rebuilt identically — omitting a field silently
+    // drops that setting on recovery. Keep this in sync with the constructor.
     return {
       cwd: this.cwd,
       model: this.model,
       agent: this.agent,
       maxBudgetUsd: this.maxBudgetUsd,
+      taskBudgetTokens: this.taskBudgetTokens,
+      maxTurns: this.maxTurns,
       fallbackModel: this.fallbackModel,
       sandboxEnabled: this.sandboxEnabled,
+      enable1mContext: this.enable1mContext,
+      persistSession: this.persistSession,
+      additionalDirectories: this.additionalDirectories,
+      systemPromptAppend: this.systemPromptAppend,
+      planModeInstructions: this.planModeInstructions,
       permissionMode: this.permissionMode,
     };
   }

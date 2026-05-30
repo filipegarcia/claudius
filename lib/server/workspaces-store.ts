@@ -89,6 +89,19 @@ export type WorkspaceDefaults = {
    * requests can override.
    */
   maxBudgetUsd?: number;
+  /**
+   * Soft token budget the model is made aware of (SDK `Options.taskBudget`).
+   * Unlike the hard `maxBudgetUsd` cap, this tells the model its remaining
+   * budget so it paces tool use and wraps up before the limit — it doesn't
+   * forcibly stop the turn. Tokens, not dollars. Absent/0 ⇒ no budget hint.
+   */
+  taskBudgetTokens?: number;
+  /**
+   * Hard cap on agentic turns per query (SDK `Options.maxTurns`). The query
+   * stops once it's reached — a runaway guard alongside maxBudgetUsd. Absent/0
+   * ⇒ no turn cap.
+   */
+  maxTurns?: number;
   /** MCP server ids to autoload when sessions in this workspace start. */
   mcpServerIds?: string[];
   /** Auto-memory toggle override. */
