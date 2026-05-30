@@ -1,7 +1,9 @@
 # Agent in own worktree (isolation: worktree)
 
 **Source:** Claude Code cheat sheet — Workflows & Tips
-**Status:** UI_WORTHY
+**Status:** IMPLEMENTED
+
+Implemented: `lib/client/agent-frontmatter.ts` (pure `hasIsolationWorktree`/`setIsolationWorktree` helpers) wired into `app/[workspaceId]/agents/page.tsx` — an "Isolated worktree" checkbox in the editor header round-trips the `isolation: worktree` frontmatter key (persisted verbatim via `PUT /api/agents`), plus a list-row "worktree" badge and a TEMPLATE comment. No backend change needed; the SDK honors `isolation` (`node_modules/@anthropic-ai/claude-agent-sdk/sdk-tools.d.ts`).
 
 ## What it is
 A subagent can declare `isolation: worktree` in its frontmatter so that, when invoked, it runs in a temporary git worktree — an isolated copy of the repo — instead of editing the main checkout directly.

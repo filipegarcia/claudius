@@ -6,6 +6,7 @@ import { ArrowLeft, Bot, ChevronDown, ChevronRight, FilePlus, RefreshCw, Save, S
 import { SideNav } from "@/components/nav/SideNav";
 import { ScopeToggle, type Scope as IaScope } from "@/components/nav/ScopeToggle";
 import { useActiveCwd } from "@/lib/client/useActiveCwd";
+import { hasIsolationWorktree, setIsolationWorktree } from "@/lib/client/agent-frontmatter";
 import type { AgentFile, AgentScope } from "@/lib/server/agents";
 import { cn } from "@/lib/utils/cn";
 
@@ -38,6 +39,7 @@ model: claude-opus-4-7
 # maxTurns: 20                 # cap agentic round-trips before stopping
 # background: false            # run as a non-blocking background task when invoked
 # memory: project              # user | project | local — auto-load agent memory
+# isolation: worktree         # run the agent in a temporary git worktree (isolated copy of the repo)
 # permissionMode: default      # default | acceptEdits | bypassPermissions | plan | dontAsk
 # skills: [pdf, docx]          # preload these skills into the agent's context
 # disallowedTools: [Bash]      # explicitly remove tools from the inherited set
@@ -373,6 +375,7 @@ export default function AgentsPage() {
                         permissionMode?: string;
                         skills?: string[];
                         mcpServers?: string[] | Record<string, unknown>;
+                        isolation?: string;
                       };
                       // Compact badges for the advanced AgentDefinition fields
                       // so the list conveys an agent's shape at a glance.
@@ -380,6 +383,7 @@ export default function AgentsPage() {
                       if (fm.effort != null) metaBadges.push(`effort ${fm.effort}`);
                       if (fm.background === true) metaBadges.push("background");
                       if (fm.memory) metaBadges.push(`mem:${fm.memory}`);
+                      if (fm.isolation === "worktree") metaBadges.push("worktree");
                       if (typeof fm.maxTurns === "number") metaBadges.push(`≤${fm.maxTurns} turns`);
                       if (fm.permissionMode) metaBadges.push(fm.permissionMode);
                       if (Array.isArray(fm.skills) && fm.skills.length > 0)
@@ -457,10 +461,25 @@ export default function AgentsPage() {
                 <div className="flex items-center gap-2 border-b border-[var(--border)] bg-[var(--panel)]/40 px-3 py-2">
                   <span className="text-xs font-medium">{active.name}</span>
                   <span className="text-[10px] text-[var(--muted)]">{SCOPE_LABELS[active.scope]}</span>
+                  <label
+                    title="Run this agent in a temporary git worktree (isolation: worktree)"
+                    className="ml-auto flex cursor-pointer items-center gap-1.5 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-0.5 text-[11px] text-[var(--muted)] hover:text-[var(--foreground)]"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={hasIsolationWorktree(draft)}
+                      onChange={(e) => {
+                        setDraft(setIsolationWorktree(draft, e.target.checked));
+                        setDirty(true);
+                      }}
+                      className="h-3 w-3 accent-[var(--accent)]"
+                    />
+                    Isolated worktree
+                  </label>
                   <button
                     onClick={() => onDelete(active.scope, active.name)}
                     title="Delete agent"
-                    className="ml-auto flex items-center gap-1 rounded-md border border-red-500/30 bg-red-500/10 px-2 py-0.5 text-[11px] text-red-300 hover:bg-red-500/20"
+                    className="flex items-center gap-1 rounded-md border border-red-500/30 bg-red-500/10 px-2 py-0.5 text-[11px] text-red-300 hover:bg-red-500/20"
                   >
                     <Trash2 className="h-3 w-3" /> Delete
                   </button>
