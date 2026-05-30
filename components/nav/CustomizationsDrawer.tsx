@@ -103,22 +103,25 @@ export function CustomizationsDrawer({
       <button
         ref={triggerRef}
         onClick={() => {
-          setOpen((o) => {
-            const next = !o;
-            // Fire refresh on the closed → open transition only. Skip when
-            // closing so we don't pay for a network round-trip the user
-            // won't see. The promise is intentionally unawaited — the
-            // popover renders the current list synchronously and React
-            // re-renders it once the parent's state lands.
-            if (next && onOpen) {
-              void Promise.resolve(onOpen()).catch(() => {
-                // Refresh failed (offline, server restart) — keep showing
-                // the stale list rather than blowing up the rail. The
-                // drawer's own data still functions.
-              });
-            }
-            return next;
-          });
+          // Read the current state outside the updater so we can safely call
+          // onOpen() without triggering the React "setState-in-render" warning
+          // (calling a side-effectful callback inside a setState updater is a
+          // React anti-pattern that causes intermittent flakiness in concurrent
+          // mode). The click handler is synchronous, so `open` is fresh here.
+          const next = !open;
+          setOpen(next);
+          // Fire refresh on the closed → open transition only. Skip when
+          // closing so we don't pay for a network round-trip the user
+          // won't see. The promise is intentionally unawaited — the
+          // popover renders the current list synchronously and React
+          // re-renders it once the parent's state lands.
+          if (next && onOpen) {
+            void Promise.resolve(onOpen()).catch(() => {
+              // Refresh failed (offline, server restart) — keep showing
+              // the stale list rather than blowing up the rail. The
+              // drawer's own data still functions.
+            });
+          }
         }}
         title={
           totalCustomizationUnread > 0

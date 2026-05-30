@@ -256,6 +256,71 @@ export type AskAnswerSubmission = {
 };
 
 /**
+ * Build the `updatedInput` object that is returned to the SDK when resolving
+ * an AskUserQuestion permission request. Extracted as a pure function so it
+ * can be unit-tested without instantiating a Session.
+ *
+ * Shape matches `AskUserQuestionOutput` from sdk-tools.d.ts:
+ *   { questions, answers, response?, annotations? }
+ *
+ * `response` (new in SDK 0.3.158) is populated only for single-question
+ * forms where the user chose the "Other" path (label === null + custom text).
+ * Multi-question forms leave it unset — the field is a single string and the
+ * question mapping would be ambiguous.
+ */
+export function buildAskUpdatedInput(
+  questions: AskQuestion[],
+  answers: AskAnswer[],
+): {
+  questions: AskQuestion[];
+  answers: Record<string, string>;
+  response?: string;
+  annotations?: Record<string, { preview?: string; notes?: string }>;
+} {
+  const answersMap: Record<string, string> = {};
+  const annotations: Record<string, { preview?: string; notes?: string }> = {};
+
+  for (let i = 0; i < questions.length; i++) {
+    const q = questions[i];
+    const a = answers[i] ?? {};
+    let value = "";
+    if (q.multiSelect) {
+      const labels = Array.isArray(a.selected) ? a.selected : [];
+      const all = a.custom && a.custom.trim() ? [...labels, a.custom.trim()] : labels;
+      value = all.join(", ");
+    } else if (a.custom && a.custom.trim()) {
+      value = a.custom.trim();
+    } else if (typeof a.label === "string" && a.label) {
+      value = a.label;
+    }
+    answersMap[q.question] = value;
+    const chosen = q.options.find((o) => o.label === a.label);
+    if (chosen?.preview) {
+      annotations[q.question] = { preview: chosen.preview };
+    }
+  }
+
+  // SDK 0.3.158: populate `response` for single-question / "Other" path.
+  let response: string | undefined;
+  if (questions.length === 1) {
+    const a0 = answers[0] ?? {};
+    // label === null means no structured option was chosen (the "Other"
+    // path set by AskUserQuestionPrompt). custom being non-empty confirms
+    // the user actually typed something.
+    if (a0.label === null && a0.custom && a0.custom.trim()) {
+      response = a0.custom.trim();
+    }
+  }
+
+  return {
+    questions,
+    answers: answersMap,
+    ...(response !== undefined ? { response } : {}),
+    ...(Object.keys(annotations).length > 0 ? { annotations } : {}),
+  };
+}
+
+/**
  * Server-side derived-state snapshot, replayed to every new SSE subscriber
  * right after the tail-replay window finishes. Lets clients rehydrate
  * state that was set by tool_uses earlier than the replay window — todos

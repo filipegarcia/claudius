@@ -127,6 +127,52 @@ Don't rename them. Don't merge them. Don't skip any.
 
 ## How to work
 
+### Step 0 — Orchestrate this migration with a dynamic workflow
+
+You have the **Workflow** tool (dynamic `agent()` / `parallel()` /
+`pipeline()` orchestration), and this run is fully headless and
+autonomous. **Use it.** A release this size has many independent
+sub-tasks; fanning them across sub-agents is faster and more thorough
+than one linear pass, and it lets you verify your own work
+adversarially before you trust it. The numbered steps below are the
+*phases* — drive them with workflows, don't plod through them solo.
+
+Default decomposition (adapt per release):
+
+1. **Audit — parallel, read-only.** One `agent()` per subsystem
+   (`lib/server/session.ts`, `lib/client/`, `lib/shared/`, the
+   `lib/server/` helpers), each auditing our usage against the changelog
+   and `sdk.d.ts` and returning structured findings (exports we touch,
+   breaking changes that hit us, new features worth exposing). These
+   agents only read, so they never collide — `parallel()` them and merge
+   the findings yourself into the run-notes plan (Step 3).
+2. **Implement.** Ship the `[shipped]` items. **File edits are the one
+   place workflows bite:** parallel agents editing the same working tree
+   clobber each other. So either make the edits yourself, sequentially,
+   or — only when two items touch genuinely disjoint files — fan them
+   out with `isolation: 'worktree'` and reconcile the results back into
+   the main tree before gating. When in doubt, serialize the edits.
+3. **Adversarially verify — parallel, read-only.** After implementing,
+   spawn a skeptic per change / per changelog item, each prompted to
+   *refute* that the item is correctly handled (wrong shape, missed call
+   site, behaviour drift). Anything a majority flags, go fix. This is
+   the step that catches a plausible-but-wrong migration.
+4. **Gate-fix loop.** Run the gates (Step 8). For each failure, spawn a
+   focused agent to diagnose and propose the fix, apply it, re-gate, and
+   repeat until green or genuinely blocked. Do **not** stop at the first
+   red gate — closing this loop autonomously is the whole point.
+
+Guardrails, because the run is unsupervised and budget-capped (turn,
+wall-clock, and idle ceilings):
+
+- **Cap fan-out** — a handful of agents per phase, not dozens. They
+  share the same budget that has to land the whole migration.
+- **Read-heavy phases are free wins; write-heavy phases are where you
+  serialize.** Never run two file-mutating agents against the same tree
+  without worktree isolation.
+- **Let every workflow complete before moving on** — a workflow you
+  launch and ignore can leave the run wedged.
+
 ### Step 1 — Read the changelog and the SDK source
 
 - Read the "## Changelog block" section at the bottom of this prompt
