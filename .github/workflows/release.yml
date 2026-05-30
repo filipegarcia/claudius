@@ -56,6 +56,14 @@ jobs:
         with:
           bun-version: latest
 
+      # node-gyp compiles better-sqlite3 from source for x64 (no prebuilt for
+      # the x64 Electron ABI), and node-gyp needs Python's `distutils`, which
+      # was REMOVED in Python 3.12 (the macos-14 default). Pin 3.11, whose
+      # stdlib still ships distutils, so the gyp build succeeds.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
