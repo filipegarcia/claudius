@@ -1,7 +1,9 @@
 # User rules (~/.claude/rules/*.md)
 
 **Source:** Claude Code cheat sheet — Memory & Files
-**Status:** UI_WORTHY
+**Status:** IMPLEMENTED (file editor only — not runtime injection)
+
+**Implemented:** shares the feature-05 backend — `lib/server/rules.ts` + `app/api/memory/rules/route.ts` resolve `scope=user` to `~/.claude/rules`, with `lib/client/useRules.ts` and the `RulesSection` panel on `app/[workspaceId]/memory/page.tsx` (the account/workspace `ScopeToggle` maps account → user rules). Tests in `tests/unit/rules.test.ts`. The editor lists/creates/edits/deletes `~/.claude/rules/*.md`, but Claudius does **not** auto-inject them into the session at runtime — the Claude Code CLI is what consumes `~/.claude/rules/*.md`. (The bundled SDK's "rules" are permission allow/deny/ask only.)
 
 ## What it is
 User-scoped rule files at `~/.claude/rules/*.md`, applied across all projects. Same shape as project rules (feature 05) but global to the user rather than checked into a repo.

@@ -1,7 +1,9 @@
 # Project rules (.claude/rules/*.md)
 
 **Source:** Claude Code cheat sheet — Memory & Files
-**Status:** UI_WORTHY
+**Status:** IMPLEMENTED (file editor only — not runtime injection)
+
+**Implemented:** `lib/server/rules.ts` (plain-text list/read/write/delete with `assertWithin` path-safety), `app/api/memory/rules/route.ts` (GET/POST/PATCH/DELETE, `scope=project&cwd=<abs>`), `lib/client/useRules.ts`, and a `RulesSection` panel on `app/[workspaceId]/memory/page.tsx`. Tests in `tests/unit/rules.test.ts`. The editor lists/creates/edits/deletes the files under `<cwd>/.claude/rules/*.md`, but Claudius does **not** auto-inject them into the session at runtime — the Claude Code CLI is what consumes `<cwd>/.claude/rules/*.md`. (The bundled SDK's "rules" are permission allow/deny/ask only.)
 
 ## What it is
 Project-scoped rule files stored as individual markdown documents under `./.claude/rules/*.md`. Each file is a focused instruction set (optionally path-scoped via frontmatter — see feature 07) that augments the project's standing instructions.
