@@ -787,6 +787,13 @@ export class Session {
       // `promptSuggestions` fallback honors files written before the rename.
       promptSuggestions:
         (userSettings.promptSuggestionEnabled ?? userSettings.promptSuggestions) !== false,
+      // Honor the "Include Co-Authored-By" Git setting (Settings → Git).
+      // It's a Settings-level flag, not a direct Option, so we forward it
+      // through the inline `settings` object — the SDK doesn't auto-load
+      // settings.json into this session. Absent → SDK default (trailer on).
+      ...(typeof userSettings.includeCoAuthoredBy === "boolean"
+        ? { settings: { includeCoAuthoredBy: userSettings.includeCoAuthoredBy } }
+        : {}),
       // Track file edits so the user can rewind the working tree to its
       // state at any prior user message via Query.rewindFiles() (see the
       // `rewindFiles` method + POST /api/sessions/[id]/rewind). The SDK

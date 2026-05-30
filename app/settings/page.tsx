@@ -758,8 +758,7 @@ const SDK_SETTINGS_CATALOG: SettingMeta[] = [
     key: "includeCoAuthoredBy",
     type: "boolean",
     section: "Git",
-    deprecated: true,
-    desc: "Deprecated: Use attribution instead. Whether to include Claude's co-authored by attribution in commits and PRs (defaults to true)",
+    desc: "Include Claude's `Co-Authored-By: Claude <noreply@anthropic.com>` trailer in commits and PRs (default: true). Turn off to omit it.",
   },
   {
     key: "includeGitInstructions",
