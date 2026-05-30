@@ -36,6 +36,7 @@ import {
   type SessionGoal,
 } from "./sessions-db";
 import {
+  buildAskUpdatedInput,
   parseAskQuestions,
   type AskAnswer,
   type AskQuestion,
@@ -1150,12 +1151,17 @@ export class Session {
 
   /**
    * Resolve a pending AskUserQuestion form. The SDK's `AskUserQuestionOutput`
-   * (sdk-tools.d.ts) is shaped as `{ questions, answers, annotations? }`
+   * (sdk-tools.d.ts) is shaped as `{ questions, answers, annotations?, response? }`
    * where `answers` is a MAP keyed by question text → string (multi-select
    * values are comma-separated). The original `questions` array must be
    * preserved on `updatedInput`, otherwise the SDK's post-processing
    * (it `.map`s over `input.questions` to format the result) crashes with
    * "undefined is not an object (evaluating 'H.map')".
+   *
+   * `response` (new in SDK 0.3.158) carries freeform text for the single-
+   * question "Other" path — the user typed instead of selecting a structured
+   * option. Multi-question forms leave it unset (the field is a single string
+   * and it's ambiguous which question it would represent).
    *
    * If the user submits no answers (the cancel path), we deny instead of
    * allow — that's a cleaner signal to the model than empty strings.
@@ -1181,40 +1187,9 @@ export class Session {
       return true;
     }
 
-    // Build the answers map keyed by question text. For multi-select, the
-    // SDK expects values comma-separated. "Other" free text gets joined too
-    // when it accompanies a multi-select; otherwise it replaces the label.
-    const answersMap: Record<string, string> = {};
-    const annotations: Record<string, { preview?: string; notes?: string }> = {};
-    for (let i = 0; i < pending.questions.length; i++) {
-      const q = pending.questions[i];
-      const a = answers[i] ?? {};
-      let value = "";
-      if (q.multiSelect) {
-        const labels = Array.isArray(a.selected) ? a.selected : [];
-        const all = a.custom && a.custom.trim() ? [...labels, a.custom.trim()] : labels;
-        value = all.join(", ");
-      } else if (a.custom && a.custom.trim()) {
-        value = a.custom.trim();
-      } else if (typeof a.label === "string" && a.label) {
-        value = a.label;
-      }
-      answersMap[q.question] = value;
-      // If we know the preview for the chosen option, attach it as the
-      // annotation — gives the model the same context the user saw.
-      const chosen = q.options.find((o) => o.label === a.label);
-      if (chosen?.preview) {
-        annotations[q.question] = { preview: chosen.preview };
-      }
-    }
-
     pending.resolve({
       behavior: "allow",
-      updatedInput: {
-        questions: pending.questions,
-        answers: answersMap,
-        ...(Object.keys(annotations).length > 0 ? { annotations } : {}),
-      },
+      updatedInput: buildAskUpdatedInput(pending.questions, answers),
     });
     this.broadcastTurnStatusIfChanged();
     return true;

@@ -78,6 +78,15 @@ const CHAT_SERVER_URL = process.env.CHAT_SERVER_URL ?? "";
 const CHAT_SERVER_ADMIN_TOKEN = process.env.CHAT_SERVER_ADMIN_TOKEN ?? "";
 const ROOM_SLUG = process.env.SDK_UPDATE_ROOM_SLUG ?? "sdk-update";
 
+// Never let a git subprocess block on an interactive credential prompt.
+// Without this, a missing/expired credential makes `git push` print
+// "Username for 'https://github.com':" to the controlling tty and hang
+// FOREVER (the run never reaches pushBranch's helpful error) — observed
+// on a headless macOS run where gh was authed but git's credential
+// helper had no token. With the prompt disabled git fails fast and the
+// non-zero exit surfaces our actionable message instead.
+process.env.GIT_TERMINAL_PROMPT = "0";
+
 const MODEL = process.env.SDK_UPDATE_MODEL ?? "sonnet";
 const MAX_TURNS = Number(process.env.SDK_UPDATE_MAX_TURNS ?? "200");
 const MAX_WALL_MS = Number(process.env.SDK_UPDATE_MAX_WALL_MIN ?? "360") * 60_000;
@@ -89,6 +98,12 @@ const MAX_WALL_MS = Number(process.env.SDK_UPDATE_MAX_WALL_MIN ?? "360") * 60_00
 // (Playwright e2e at ~7 min) but catches "Bash hung on stdin" / "network
 // blackholed" / "agent deadlock" within a useful window.
 const MAX_IDLE_MS = Number(process.env.SDK_UPDATE_MAX_IDLE_MIN ?? "15") * 60_000;
+// How many times the upgrade pipeline re-runs Claude to fix a red CI
+// before giving up, filing a process issue, and leaving the draft for a
+// human. Each attempt is a full Claude run against the same
+// MAX_TURNS/wall budget, so keep it small. Default 3; 0 disables the
+// loop (one CI check, then ship-or-report).
+const MAX_CI_FIX_ATTEMPTS = Number(process.env.SDK_UPDATE_MAX_CI_FIX ?? "3");
 
 // ── Logging ───────────────────────────────────────────────────────────
 
@@ -712,6 +727,27 @@ async function runClaude(prompt: string, transcriptFile?: string): Promise<{
       // its side; we *also* watch wall-clock below in case a single
       // turn drags on (long tool call, network hang).
       maxTurns: MAX_TURNS,
+      // Enable the dynamic Workflow tool so the agent can fan the
+      // migration out across sub-agents (audit → implement → adversarial
+      // verify → gate-fix loop), driven by the "Step 0" section of
+      // prompt.md. `enableWorkflows` exposes the tool, which is off by
+      // plan default when no settings are loaded. We do NOT need to
+      // suppress the auto-mode workflow-usage warning: under
+      // permissionMode "default" + the autoApprove canUseTool above it
+      // never gates execution — verified headless via
+      // scripts/sdk-update/verify-workflow.ts, where the tool fires, a
+      // background workflow's result round-trips back into this
+      // for-await loop, and task_progress messages keep the idle
+      // watchdog fed (max gap ~2s « 15min).
+      //
+      // We deliberately do NOT set `ultracode`: it forces a workflow for
+      // *every* step "with token cost not a constraint", which fights
+      // MAX_TURNS / wall-clock on a run nobody babysits. enableWorkflows
+      // + the prompt gives the same decompose/verify behaviour with the
+      // budget caps intact.
+      settings: {
+        enableWorkflows: true,
+      },
       // SDK 0.2.x onwards accepts a `stderr` callback that receives
       // each chunk written by the bundled CLI subprocess. Without
       // this, a fatal "no auth" / "model not found" / etc. message
@@ -1152,7 +1188,19 @@ function pushBranch(branch: string): void {
   // else somehow pushed in between, which is the protection we want).
   // `-u` sets upstream tracking the first time and is harmless on
   // subsequent runs.
+  // Push using gh's token as the credential helper rather than whatever
+  // git's global `credential.helper` happens to be. Preflight already
+  // verified `gh auth status`, so this makes the long-standing "if gh
+  // works, push works" assumption actually true — no dependency on
+  // `gh auth setup-git` having been run, or on an osxkeychain entry that
+  // may not exist on a headless box. The empty `credential.helper=`
+  // first clears any inherited helper (e.g. osxkeychain) so it can't
+  // shadow gh with a stale/missing entry; the second installs gh.
   const pushCode = shStream("git", [
+    "-c",
+    "credential.helper=",
+    "-c",
+    "credential.helper=!gh auth git-credential",
     "push",
     "-u",
     "--force-with-lease",
@@ -1504,6 +1552,90 @@ function renderFixPrompt(args: {
 }
 
 /**
+ * One fix pass over an open PR: gather its failing checks + review
+ * comments, re-run Claude with the fix prompt, and re-gate locally.
+ * Does NOT push, mark ready, or announce — the caller decides what to
+ * do with the result. Shared by the standalone `fix-pr` entry and the
+ * inline CI-fix loop in the upgrade pipeline so both iterate identically.
+ */
+async function runFixPass(
+  prNumber: string,
+  meta: PrMeta,
+  instruction: string,
+  skipGates: Set<GateStep>,
+): Promise<{ allGreen: boolean; failedSteps: GateStep[] }> {
+  const checks = collectChecks(prNumber);
+  const reviews = collectReviews(prNumber);
+
+  const prompt = renderFixPrompt({ prNumber, meta, instruction, checks, reviews });
+  const txPath = fixTranscriptPath(prNumber);
+  mkdirSync(dirname(txPath), { recursive: true });
+  writeFileSync(fixPromptArchivePath(prNumber), prompt, "utf8");
+  log(`fix prompt archived (${prompt.length} bytes)`);
+
+  const claudeResult = await runClaude(prompt, txPath);
+  log(
+    `Claude (fix) exited: completed=${claudeResult.completed} turns=${claudeResult.turnCount}` +
+      ` wall=${Math.round(claudeResult.wallMs / 1000)}s`,
+  );
+
+  const gate = runGate(skipGates);
+  const allGreen = gate.every((g) => g.ok);
+  const failedSteps = gate.filter((g) => !g.ok).map((g) => g.step);
+  log(
+    `gate result: ${gate
+      .map((g) => `${g.step}=${g.skipped ? "skip" : g.ok ? "ok" : "FAIL"}`)
+      .join(" ")}`,
+  );
+  return { allGreen, failedSteps };
+}
+
+/**
+ * Surface an orchestrator-level failure out-of-band: file a GitHub
+ * issue AND post to the community channel, so a human hears about a
+ * problem the bot couldn't resolve on its own. Both halves are
+ * best-effort — a failure to file the issue (or a chat outage) must
+ * never mask the original problem or abort the run.
+ */
+async function reportProcessIssueSafe(args: {
+  title: string;
+  reason: string;
+  prevVersion: string;
+  newVersion: string;
+  branch: string | null;
+  prUrl: string | null;
+}): Promise<void> {
+  const body = [
+    `Automated SDK update \`${args.prevVersion} → ${args.newVersion}\` hit a problem the orchestrator could not resolve on its own.`,
+    "",
+    `**What happened:** ${args.reason}`,
+    "",
+    ...(args.branch ? [`**Branch:** \`${args.branch}\``] : []),
+    ...(args.prUrl ? [`**PR:** ${args.prUrl}`] : []),
+    "",
+    "Filed automatically by `scripts/sdk-update/orchestrate.ts`; see the run logs for the full transcript.",
+  ].join("\n");
+
+  let issueUrl: string | null = null;
+  try {
+    issueUrl = sh("gh", ["issue", "create", "--title", args.title, "--body", body]).trim();
+    log(`filed process issue: ${issueUrl}`);
+  } catch (err) {
+    log(`WARN could not file GitHub issue: ${String(err)}`);
+  }
+
+  const channelMsg = [
+    `🛠️ **SDK update ${args.prevVersion} → ${args.newVersion} hit a problem.**`,
+    oneLine(args.reason, 400),
+    issueUrl ? `Issue: ${issueUrl}` : "(issue could not be filed — check run logs)",
+    args.prUrl ? `PR: ${args.prUrl}` : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
+  await announceSafe(channelMsg, { pin: false });
+}
+
+/**
  * Fix an existing PR by number. The companion to the version-upgrade
  * pipeline: where that one creates a PR, this one iterates on one that
  * already exists (typically a draft the upgrade left behind with
@@ -1561,29 +1693,7 @@ async function fixPr(
     throw new Error(`gh pr checkout ${prNumber} failed (exit ${coCode})`);
   }
 
-  const checks = collectChecks(prNumber);
-  const reviews = collectReviews(prNumber);
-
-  const prompt = renderFixPrompt({ prNumber, meta, instruction, checks, reviews });
-  const txPath = fixTranscriptPath(prNumber);
-  mkdirSync(dirname(txPath), { recursive: true });
-  writeFileSync(fixPromptArchivePath(prNumber), prompt, "utf8");
-  log(`fix prompt archived (${prompt.length} bytes)`);
-
-  const claudeResult = await runClaude(prompt, txPath);
-  log(
-    `Claude (fix) exited: completed=${claudeResult.completed} turns=${claudeResult.turnCount}` +
-      ` wall=${Math.round(claudeResult.wallMs / 1000)}s`,
-  );
-
-  const gate = runGate(skipGates);
-  const allGreen = gate.every((g) => g.ok);
-  const failedSteps = gate.filter((g) => !g.ok).map((g) => g.step);
-  log(
-    `gate result: ${gate
-      .map((g) => `${g.step}=${g.skipped ? "skip" : g.ok ? "ok" : "FAIL"}`)
-      .join(" ")}`,
-  );
+  const { allGreen, failedSteps } = await runFixPass(prNumber, meta, instruction, skipGates);
 
   // Push whatever Claude committed back to the PR's branch. pushBranch
   // makes an empty marker commit only when HEAD == origin/main, which a
@@ -1811,65 +1921,137 @@ async function main(): Promise<void> {
       return;
     }
 
+    // ── Requested release workflow ───────────────────────────────────
+    // local-green → push → draft PR (triggers CI) → CI-fix loop → mark
+    // ready when green. Any unrecoverable snag files a GitHub issue and
+    // pings the community channel.
+
+    // 1. Push ONLY when the local gate is green. A red local tree never
+    //    reaches origin; we file a process issue + ping the channel and
+    //    stop. (`allGreen`/`runNotesIssue` were computed above; reuse
+    //    `budgetReason` as the human-readable cause.)
+    const localGreen = allGreen && !runNotesIssue;
+    if (!localGreen) {
+      const reason = budgetReason ?? "local gate not green";
+      log(`local gate NOT green (${reason}) — not pushing; filing process issue`);
+      await reportProcessIssueSafe({
+        title: `SDK update ${prevVersion} → ${newVersion} failed local gates`,
+        reason,
+        prevVersion,
+        newVersion,
+        branch,
+        prUrl: null,
+      });
+      return;
+    }
+
+    // 2. Local green → push the branch.
     pushBranch(branch);
 
-    const budgetWarning = budgetReason
-      ? [
-          "> ⚠ **Opened as draft — automated run did not reach all-green.**  ",
-          `> Reason: ${budgetReason}  `,
-          `> Tagged with \`needs-human\` for follow-up.`,
-        ].join("\n")
-      : "";
+    // 3. Open a DRAFT PR. ci.yml runs CI on `pull_request` (and pushes to
+    //    main) — NOT on a push to this feature branch — so the PR is what
+    //    triggers CI. We open it as a draft ("not for review yet") and
+    //    only promote it to ready once CI is green (step 5): that is the
+    //    user-facing "create the PR" moment.
     const body = renderPrBody({
       branch,
       prevVersion,
       newVersion,
       changelog,
-      budgetWarning,
+      budgetWarning: "",
     });
-
-    const pr = openPr({
-      branch,
-      newVersion,
-      prevVersion,
-      body,
-      draft: !!budgetReason,
-    });
+    const pr = openPr({ branch, newVersion, prevVersion, body, draft: true });
     prUrl = pr.url;
-    log(`PR ${pr.created ? "opened" : "updated"}: ${prUrl}`);
-
-    // Tell the community channel the moment the PR exists — including
-    // drafts (with the reason). Best-effort: the PR is already open, so
-    // a chat hiccup must not abort the run. The pin is reserved for the
-    // all-green ship below.
+    const prNumber = prUrl.split("/").pop() ?? prUrl;
+    log(`draft PR ${pr.created ? "opened" : "updated"}: ${prUrl} (watching CI before marking ready)`);
     await announceSafe(
       buildOpenedAnnouncement({
         prUrl,
         prevVersion,
         newVersion,
         created: pr.created,
-        draft: !!budgetReason,
-        reason: budgetReason,
+        draft: true,
+        reason: "watching CI before marking ready for review",
       }),
       { pin: false },
     );
 
-    if (!budgetReason) {
-      const ci = watchCi(prUrl);
-      if (!ci.passed) {
-        log(`CI failed on ${prUrl} — skipping shipped announce, leaving for human triage`);
-      } else {
-        // CI is green: this version IS shipped regardless of whether the
-        // notification lands, so flip state first, then announce.
-        shipped = true;
-        await announceSafe(
-          buildShippedAnnouncement({ prUrl, newVersion, prevVersion }),
-          { pin: true },
+    // 4. Watch CI. While it's red, re-run Claude with the failing checks
+    //    as context, re-gate locally, re-push (only when local-green), and
+    //    re-watch — up to MAX_CI_FIX_ATTEMPTS times.
+    let ciPassed = watchCi(prUrl).passed;
+    let ciAttempt = 0;
+    while (!ciPassed && ciAttempt < MAX_CI_FIX_ATTEMPTS) {
+      ciAttempt++;
+      log(`CI red on ${prUrl} — fix attempt ${ciAttempt}/${MAX_CI_FIX_ATTEMPTS}`);
+      const meta = readPrMeta(prNumber);
+      const { allGreen: fixGreen, failedSteps } = await runFixPass(
+        prNumber,
+        meta,
+        "",
+        skipGates,
+      );
+      if (!fixGreen) {
+        log(
+          `fix attempt ${ciAttempt} did not reach local green (failed: ${failedSteps.join(", ")}) — not pushing; stopping CI loop`,
         );
+        break;
       }
+      pushBranch(branch); // re-push the fix → triggers a fresh CI run
+      ciPassed = watchCi(prUrl).passed;
+    }
+
+    // 5. Outcome.
+    if (ciPassed) {
+      // CI green → promote the draft to a reviewable PR + drop needs-human.
+      try {
+        sh("gh", ["pr", "ready", prNumber]);
+        log(`CI green — marked PR #${prNumber} ready for review`);
+      } catch (err) {
+        log(`WARN could not mark PR ready: ${String(err)}`);
+      }
+      try {
+        sh("gh", ["pr", "edit", prNumber, "--remove-label", "needs-human"]);
+      } catch {
+        // Label may not be present — fine.
+      }
+      shipped = true;
+      await announceSafe(
+        buildShippedAnnouncement({ prUrl, newVersion, prevVersion }),
+        { pin: true },
+      );
+    } else {
+      // Fix loop exhausted (or a fix run couldn't reach local green).
+      // Leave the PR as a draft + needs-human and file a process issue.
+      const reason = `CI still red after ${ciAttempt} fix attempt(s) — see ${prUrl}`;
+      log(reason);
+      try {
+        sh("gh", ["pr", "edit", prNumber, "--add-label", "needs-human"]);
+      } catch {
+        // Best-effort label.
+      }
+      await reportProcessIssueSafe({
+        title: `SDK update ${prevVersion} → ${newVersion}: CI still red after ${ciAttempt} attempt(s)`,
+        reason,
+        prevVersion,
+        newVersion,
+        branch,
+        prUrl,
+      });
     }
   } catch (err) {
     log(`orchestrator threw: ${err instanceof Error ? err.stack : String(err)}`);
+    // Surface unrecoverable failures out-of-band so a human hears about
+    // them. Best-effort — never let issue/announce failures mask the
+    // original error or swallow the rethrow.
+    await reportProcessIssueSafe({
+      title: `SDK update ${prevVersion} → ${newVersion} crashed`,
+      reason: err instanceof Error ? err.message : String(err),
+      prevVersion,
+      newVersion,
+      branch: null,
+      prUrl,
+    }).catch(() => {});
     throw err;
   } finally {
     patchState(
