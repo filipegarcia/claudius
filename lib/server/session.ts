@@ -24,6 +24,7 @@ import { z } from "zod";
 import { projectRoot } from "./db";
 import { AsyncQueue } from "./async-queue";
 import { notificationBus } from "./notification-bus";
+import { takePendingReminders } from "./system-reminders";
 import {
   clearSessionGoal,
   getSessionGoal,
@@ -1361,9 +1362,13 @@ export class Session {
       // broadcast echo above — so the chat shows the user's plain text while
       // the agent receives the objective. Same uuid on both means a reload's
       // resync skips the disk copy (already in the buffer), so the prefix
-      // never leaks into the visible transcript.
+      // never leaks into the visible transcript. The same reasoning applies
+      // to any `<system-reminder>` blocks queued via `system-reminders.ts`
+      // by upcoming parity features — they ride the queued content only.
       const reminder = this.takeGoalReminder();
-      const queued = reminder ? { role: "user" as const, content: reminder + text } : message;
+      const pending = takePendingReminders(this) ?? "";
+      const prefix = reminder + pending;
+      const queued = prefix ? { role: "user" as const, content: prefix + text } : message;
       this.inputQueue.push({
         type: "user",
         message: queued,
@@ -1428,9 +1433,13 @@ export class Session {
     });
     // One-shot goal reminder — prepend a text block to the *queued* content
     // only (see the text-only branch above for the reload-safety rationale).
+    // System-reminder queue rides the same channel and is appended after the
+    // goal reminder so the goal stays the first thing the agent sees.
     const reminder = this.takeGoalReminder();
-    const queuedContent = reminder
-      ? [{ type: "text" as const, text: reminder }, ...content]
+    const pending = takePendingReminders(this) ?? "";
+    const prefix = reminder + pending;
+    const queuedContent = prefix
+      ? [{ type: "text" as const, text: prefix }, ...content]
       : content;
     this.inputQueue.push({
       type: "user",
