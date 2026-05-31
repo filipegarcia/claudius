@@ -1,6 +1,12 @@
 import { describe, expect, test } from "vitest";
 
-import { DEFAULT_TIPS, nextTipIndex, selectTips } from "@/lib/shared/tips";
+import {
+  DEFAULT_TIPS,
+  DISMISSED_TIP_SHOW_PROBABILITY,
+  nextTipIndex,
+  nextTipIndexWithDismissals,
+  selectTips,
+} from "@/lib/shared/tips";
 import { findSlashCommand } from "@/lib/shared/slash-commands";
 
 describe("nextTipIndex", () => {
@@ -46,6 +52,51 @@ describe("DEFAULT_TIPS", () => {
       expect(cmd, `tip "${tip.id}" → /${tip.command}`).toBeTruthy();
       expect(destructive.has(tip.command), `tip "${tip.id}" is destructive`).toBe(false);
     }
+  });
+});
+
+describe("nextTipIndexWithDismissals", () => {
+  const tips = [
+    { id: "a" },
+    { id: "b" },
+    { id: "c" },
+    { id: "d" },
+  ];
+
+  test("behaves like nextTipIndex when nothing is dismissed", () => {
+    const rng = () => 0; // would let any dismissed tip through
+    expect(nextTipIndexWithDismissals(0, tips, new Set(), rng)).toBe(1);
+    expect(nextTipIndexWithDismissals(3, tips, new Set(), rng)).toBe(0);
+  });
+
+  test("skips a dismissed tip when rng says skip", () => {
+    // Show probability is 0.2, so a roll of 0.5 means "skip past this one".
+    const rng = () => 0.5;
+    // Starting at index 0 → next would be 1; "b" is dismissed, so skip to 2.
+    expect(nextTipIndexWithDismissals(0, tips, new Set(["b"]), rng)).toBe(2);
+    // Two dismissed in a row: rotation lands on b, skips, lands on c, skips,
+    // lands on d (not dismissed) → returns 3.
+    expect(nextTipIndexWithDismissals(0, tips, new Set(["b", "c"]), rng)).toBe(3);
+  });
+
+  test("lets a dismissed tip through with probability ~0.2", () => {
+    // A roll below the show threshold means "show this dismissed tip anyway".
+    const rng = () => DISMISSED_TIP_SHOW_PROBABILITY / 2; // 0.1
+    expect(nextTipIndexWithDismissals(0, tips, new Set(["b"]), rng)).toBe(1);
+  });
+
+  test("when every tip is dismissed, falls back to the next index instead of looping forever", () => {
+    const rng = () => 0.5; // would always skip
+    const all = new Set(tips.map((t) => t.id));
+    const result = nextTipIndexWithDismissals(0, tips, all, rng);
+    // After lapping without finding a non-dismissed tip, returns wherever the
+    // walk ended — still a valid index, just to keep the rotation moving.
+    expect(result).toBeGreaterThanOrEqual(0);
+    expect(result).toBeLessThan(tips.length);
+  });
+
+  test("survives empty list", () => {
+    expect(nextTipIndexWithDismissals(0, [], new Set(["b"]))).toBe(0);
   });
 });
 

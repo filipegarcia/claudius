@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Lightbulb } from "lucide-react";
-import { DEFAULT_TIPS, nextTipIndex, type Tip } from "@/lib/shared/tips";
+import { Lightbulb, X } from "lucide-react";
+import { DEFAULT_TIPS, nextTipIndexWithDismissals, type Tip } from "@/lib/shared/tips";
+import { useTipDismissals } from "@/lib/client/useTipDismissals";
 
 type Props = {
   /**
@@ -27,6 +28,12 @@ type Props = {
  * Claudius features the user may not have found yet; each tip can carry a
  * clickable slash command.
  *
+ * Each tip also carries a × dismiss control: pressing it records the tip id
+ * in {@link useTipDismissals} so the same tip shows ~20% as often from then
+ * on (see `DISMISSED_TIP_SHOW_PROBABILITY`). It still occasionally surfaces —
+ * "show less" is intentionally not "show never", since today's nuisance is
+ * tomorrow's feature reminder.
+ *
  * Kept to one fixed-height line on purpose: MessageList's near-bottom
  * autoscroll watches scroll height, and a tip that wrapped or grew/shrank
  * would fight it.
@@ -35,6 +42,7 @@ export function SpinnerTip({ onRunCommand, tips, intervalMs = 9000 }: Props) {
   // Prefer the server-driven catalog; fall back to the built-in defaults while
   // it's empty (initial state before the `tips` event lands).
   const list = tips && tips.length > 0 ? tips : DEFAULT_TIPS;
+  const { dismissed, dismiss } = useTipDismissals();
 
   // Pick a random starting tip once (lazy initializer — never re-rolls on
   // re-render). Rotation from there is deterministic via `nextTipIndex`.
@@ -45,13 +53,25 @@ export function SpinnerTip({ onRunCommand, tips, intervalMs = 9000 }: Props) {
   useEffect(() => {
     if (list.length <= 1) return;
     const t = setInterval(() => {
-      setIndex((i) => nextTipIndex(i, list.length));
+      setIndex((i) => nextTipIndexWithDismissals(i, list, dismissed));
     }, intervalMs);
     return () => clearInterval(t);
-  }, [list.length, intervalMs]);
+  }, [list, dismissed, intervalMs]);
 
   if (list.length === 0) return null;
   const tip = list[index % list.length];
+
+  const handleDismiss = () => {
+    // Compute the next index against the about-to-be-updated dismissed set so
+    // the spinner advances immediately instead of staying on the just-dismissed
+    // tip for up to one full interval. Use index-1 as the rotation "current" so
+    // the helper's +1 lands on the current tip first — usually skipped now that
+    // it's dismissed.
+    const nextDismissed = new Set(dismissed);
+    nextDismissed.add(tip.id);
+    setIndex((i) => nextTipIndexWithDismissals(i, list, nextDismissed));
+    dismiss(tip.id);
+  };
 
   return (
     <div
@@ -74,6 +94,16 @@ export function SpinnerTip({ onRunCommand, tips, intervalMs = 9000 }: Props) {
           /{tip.command}
         </button>
       )}
+      <button
+        type="button"
+        data-testid="spinner-tip-dismiss"
+        onClick={handleDismiss}
+        aria-label="Show this tip less often"
+        title="Show this tip less often"
+        className="shrink-0 rounded p-0.5 opacity-50 transition hover:bg-[var(--panel)] hover:text-[var(--foreground)] hover:opacity-100"
+      >
+        <X className="h-3 w-3" />
+      </button>
     </div>
   );
 }

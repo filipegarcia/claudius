@@ -87,10 +87,10 @@ export function RecapBanner({
     setEditing(true);
   }
 
-  async function commitEdit() {
+  async function commitEdit(): Promise<boolean> {
     if (!onRename) {
       setEditing(false);
-      return;
+      return true;
     }
     const value = draft.trim();
     // No-op when the value is unchanged or empty (treat null/empty as
@@ -98,16 +98,32 @@ export function RecapBanner({
     if (!value || value === (title ?? "")) {
       setEditing(false);
       setSaveErr(null);
-      return;
+      return true;
     }
     const r = await onRename(value);
     if (!r.ok) {
       setSaveErr(r.error);
       // Keep editing so the user can retry / fix.
-      return;
+      return false;
     }
     setEditing(false);
     setSaveErr(null);
+    return true;
+  }
+
+  /**
+   * Hand focus to the chat composer after committing the title via Enter, so
+   * the user can start typing their message immediately. Deferred to the next
+   * frame so React unmounts our input before the focus call (otherwise the
+   * input's own blur handler races with the commit flush).
+   */
+  function focusChatComposer() {
+    requestAnimationFrame(() => {
+      const el = document.querySelector<HTMLTextAreaElement>(
+        '[data-testid="prompt-input"]',
+      );
+      el?.focus();
+    });
   }
 
   return (
@@ -137,7 +153,13 @@ export function RecapBanner({
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   e.preventDefault();
-                  void commitEdit();
+                  void commitEdit().then((ok) => {
+                    // Enter is the "I'm done, move on" key — hand focus to the
+                    // chat composer so the user can start typing their message
+                    // straight away. Only when the commit actually closes the
+                    // editor (a save error keeps us in edit mode).
+                    if (ok) focusChatComposer();
+                  });
                 } else if (e.key === "Escape") {
                   e.preventDefault();
                   setEditing(false);

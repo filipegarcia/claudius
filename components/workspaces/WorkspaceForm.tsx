@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, CircuitBoard, FolderOpen, Image as ImageIcon, Type, X } from "lucide-react";
+import { ChevronDown, ChevronRight, CircuitBoard, FolderOpen, Image as ImageIcon, Type, X } from "lucide-react";
 import { Overlay } from "@/components/overlays/Overlay";
 import { DirectoryPicker } from "./DirectoryPicker";
 import { ModelPicker } from "@/components/panels/widgets/ModelPicker";
@@ -99,6 +99,24 @@ export function WorkspaceForm({ initial, onCancel, onSubmit, onIconUpload, onDel
     (initial?.defaults?.additionalDirectories ?? []).join("\n"),
   );
   const [agentNames, setAgentNames] = useState<string[]>([]);
+  // The block below the basic Model / Permission mode / Agent fields is
+  // collapsed by default so the form doesn't look intimidating on first use.
+  // When editing a workspace that already has any advanced default set, we
+  // auto-expand so the user sees what's currently in effect.
+  const initialDefaults = initial?.defaults;
+  const hasAdvancedSaved = !!(
+    initialDefaults?.maxBudgetUsd ||
+    initialDefaults?.fallbackModel ||
+    initialDefaults?.taskBudgetTokens ||
+    initialDefaults?.maxTurns ||
+    initialDefaults?.sandboxEnabled ||
+    initialDefaults?.enable1mContext ||
+    initialDefaults?.persistSession === false ||
+    initialDefaults?.systemPromptAppend ||
+    initialDefaults?.planModeInstructions ||
+    (initialDefaults?.additionalDirectories?.length ?? 0) > 0
+  );
+  const [showAdvanced, setShowAdvanced] = useState(hasAdvancedSaved);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPicker, setShowPicker] = useState(false);
@@ -460,119 +478,136 @@ export function WorkspaceForm({ initial, onCancel, onSubmit, onIconUpload, onDel
                 ))}
               </select>
             </Field>
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              <Field label="Spend cap (USD)">
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  min="0"
-                  step="0.5"
-                  value={defaultBudget}
-                  onChange={(e) => setDefaultBudget(e.target.value)}
-                  placeholder="no cap"
-                  className="w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 text-xs focus:outline-none"
-                />
-              </Field>
-              <Field label="Fallback model">
-                <input
-                  type="text"
-                  value={defaultFallback}
-                  onChange={(e) => setDefaultFallback(e.target.value)}
-                  placeholder="none (e.g. claude-haiku-4-5)"
-                  spellCheck={false}
-                  className="w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 font-mono text-xs focus:outline-none"
-                />
-              </Field>
-              <Field label="Token budget (soft)">
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  min="0"
-                  step="10000"
-                  value={defaultTaskBudget}
-                  onChange={(e) => setDefaultTaskBudget(e.target.value)}
-                  placeholder="no hint"
-                  className="w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 text-xs focus:outline-none"
-                />
-              </Field>
-              <Field label="Max turns">
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  min="0"
-                  step="1"
-                  value={defaultMaxTurns}
-                  onChange={(e) => setDefaultMaxTurns(e.target.value)}
-                  placeholder="no cap"
-                  className="w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 text-xs focus:outline-none"
-                />
-              </Field>
-            </div>
-            <label className="mt-2 flex cursor-pointer items-center gap-2 text-xs">
-              <input
-                type="checkbox"
-                checked={defaultSandbox}
-                onChange={(e) => setDefaultSandbox(e.target.checked)}
-                className="h-3 w-3 rounded border-[var(--border)] bg-[var(--panel-2)]"
-              />
-              <span>Sandbox shell commands</span>
-              <span className="text-[10px] text-[var(--muted)]">
-                Linux only (bubblewrap); no-op on macOS.
-              </span>
-            </label>
-            <label className="mt-2 flex cursor-pointer items-center gap-2 text-xs">
-              <input
-                type="checkbox"
-                checked={default1m}
-                onChange={(e) => setDefault1m(e.target.checked)}
-                className="h-3 w-3 rounded border-[var(--border)] bg-[var(--panel-2)]"
-              />
-              <span>1M context window</span>
-              <span className="text-[10px] text-[var(--muted)]">
-                Sonnet 4/4.5 only; significantly higher cost.
-              </span>
-            </label>
-            <label className="mt-2 flex cursor-pointer items-center gap-2 text-xs">
-              <input
-                type="checkbox"
-                checked={defaultEphemeral}
-                onChange={(e) => setDefaultEphemeral(e.target.checked)}
-                className="h-3 w-3 rounded border-[var(--border)] bg-[var(--panel-2)]"
-              />
-              <span>Ephemeral sessions</span>
-              <span className="text-[10px] text-[var(--muted)]">
-                Not saved to disk — can&apos;t be resumed or shown in history.
-              </span>
-            </label>
-            <Field label="System prompt append">
-              <textarea
-                value={defaultSysAppend}
-                onChange={(e) => setDefaultSysAppend(e.target.value)}
-                placeholder="Extra steering added to every session (e.g. &quot;Always use TypeScript&quot;). Distinct from CLAUDE.md."
-                rows={3}
-                className="w-full resize-y rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 text-xs focus:outline-none"
-              />
-            </Field>
-            <Field label="Plan-mode instructions">
-              <textarea
-                value={defaultPlanInstr}
-                onChange={(e) => setDefaultPlanInstr(e.target.value)}
-                placeholder="Custom plan-mode workflow steps (used only in plan mode). Empty = default workflow."
-                rows={3}
-                className="w-full resize-y rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 text-xs focus:outline-none"
-              />
-            </Field>
-            <Field label="Additional directories">
-              <textarea
-                value={defaultAddlDirs}
-                onChange={(e) => setDefaultAddlDirs(e.target.value)}
-                placeholder={"One absolute path per line — extra dirs the agent may access beyond the workspace root."}
-                rows={2}
-                spellCheck={false}
-                className="w-full resize-y rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 font-mono text-xs focus:outline-none"
-              />
-            </Field>
-            <p className="mt-1 text-[10px] text-[var(--muted)]">
+            <button
+              type="button"
+              onClick={() => setShowAdvanced((o) => !o)}
+              aria-expanded={showAdvanced}
+              className="mt-2 flex items-center gap-1 text-[10px] uppercase tracking-wide text-[var(--muted)] hover:text-[var(--foreground)]"
+            >
+              {showAdvanced ? (
+                <ChevronDown className="h-3 w-3" />
+              ) : (
+                <ChevronRight className="h-3 w-3" />
+              )}
+              <span>Advanced</span>
+            </button>
+            {showAdvanced && (
+              <div className="mt-1">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <Field label="Spend cap (USD)">
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      min="0"
+                      step="0.5"
+                      value={defaultBudget}
+                      onChange={(e) => setDefaultBudget(e.target.value)}
+                      placeholder="no cap"
+                      className="w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 text-xs focus:outline-none"
+                    />
+                  </Field>
+                  <Field label="Fallback model">
+                    <input
+                      type="text"
+                      value={defaultFallback}
+                      onChange={(e) => setDefaultFallback(e.target.value)}
+                      placeholder="none (e.g. claude-haiku-4-5)"
+                      spellCheck={false}
+                      className="w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 font-mono text-xs focus:outline-none"
+                    />
+                  </Field>
+                  <Field label="Token budget (soft)">
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      min="0"
+                      step="10000"
+                      value={defaultTaskBudget}
+                      onChange={(e) => setDefaultTaskBudget(e.target.value)}
+                      placeholder="no hint"
+                      className="w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 text-xs focus:outline-none"
+                    />
+                  </Field>
+                  <Field label="Max turns">
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      min="0"
+                      step="1"
+                      value={defaultMaxTurns}
+                      onChange={(e) => setDefaultMaxTurns(e.target.value)}
+                      placeholder="no cap"
+                      className="w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 text-xs focus:outline-none"
+                    />
+                  </Field>
+                </div>
+                <label className="mt-2 flex cursor-pointer items-center gap-2 text-xs">
+                  <input
+                    type="checkbox"
+                    checked={defaultSandbox}
+                    onChange={(e) => setDefaultSandbox(e.target.checked)}
+                    className="h-3 w-3 rounded border-[var(--border)] bg-[var(--panel-2)]"
+                  />
+                  <span>Sandbox shell commands</span>
+                  <span className="text-[10px] text-[var(--muted)]">
+                    Linux only (bubblewrap); no-op on macOS.
+                  </span>
+                </label>
+                <label className="mt-2 flex cursor-pointer items-center gap-2 text-xs">
+                  <input
+                    type="checkbox"
+                    checked={default1m}
+                    onChange={(e) => setDefault1m(e.target.checked)}
+                    className="h-3 w-3 rounded border-[var(--border)] bg-[var(--panel-2)]"
+                  />
+                  <span>1M context window</span>
+                  <span className="text-[10px] text-[var(--muted)]">
+                    Sonnet 4/4.5 only; significantly higher cost.
+                  </span>
+                </label>
+                <label className="mt-2 flex cursor-pointer items-center gap-2 text-xs">
+                  <input
+                    type="checkbox"
+                    checked={defaultEphemeral}
+                    onChange={(e) => setDefaultEphemeral(e.target.checked)}
+                    className="h-3 w-3 rounded border-[var(--border)] bg-[var(--panel-2)]"
+                  />
+                  <span>Ephemeral sessions</span>
+                  <span className="text-[10px] text-[var(--muted)]">
+                    Not saved to disk — can&apos;t be resumed or shown in history.
+                  </span>
+                </label>
+                <Field label="System prompt append">
+                  <textarea
+                    value={defaultSysAppend}
+                    onChange={(e) => setDefaultSysAppend(e.target.value)}
+                    placeholder="Extra steering added to every session (e.g. &quot;Always use TypeScript&quot;). Distinct from CLAUDE.md."
+                    rows={3}
+                    className="w-full resize-y rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 text-xs focus:outline-none"
+                  />
+                </Field>
+                <Field label="Plan-mode instructions">
+                  <textarea
+                    value={defaultPlanInstr}
+                    onChange={(e) => setDefaultPlanInstr(e.target.value)}
+                    placeholder="Custom plan-mode workflow steps (used only in plan mode). Empty = default workflow."
+                    rows={3}
+                    className="w-full resize-y rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 text-xs focus:outline-none"
+                  />
+                </Field>
+                <Field label="Additional directories">
+                  <textarea
+                    value={defaultAddlDirs}
+                    onChange={(e) => setDefaultAddlDirs(e.target.value)}
+                    placeholder={"One absolute path per line — extra dirs the agent may access beyond the workspace root."}
+                    rows={2}
+                    spellCheck={false}
+                    className="w-full resize-y rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 font-mono text-xs focus:outline-none"
+                  />
+                </Field>
+              </div>
+            )}
+            <p className="mt-2 text-[10px] text-[var(--muted)]">
               Apply only to new sessions. An explicit per-session override still wins.
               Setting an agent also applies its own model.
             </p>
