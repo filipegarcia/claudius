@@ -931,7 +931,7 @@ function CodePanel({
           focus the textarea but the gutter is non-text anyway — users
           click the actual text to position the caret. */}
       <div
-        className="absolute inset-y-0 left-0 overflow-hidden border-r border-[var(--border)]/60 bg-[var(--panel)]/40 text-[var(--muted)]"
+        className="absolute inset-y-0 left-0 overflow-hidden border-r border-[var(--border)]/60 bg-[var(--panel)]/40 font-mono text-[var(--muted)]"
         style={{
           width: GUTTER_WIDTH_PX,
           paddingTop: PADDING_TOP_PX,

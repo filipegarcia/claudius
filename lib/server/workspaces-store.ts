@@ -242,9 +242,73 @@ async function readShape(): Promise<StoreShape | null> {
   }
 }
 
+/**
+ * Refuse to write when `process.env.HOME` was redirected but the runtime
+ * didn't honor it — `homedir()` falls back to the real user home. That is
+ * exactly the signature of a test sandbox failing under Bun (which ignores
+ * `$HOME`), and it's what wiped the developer's workspaces.json on 2026-05-30.
+ *
+ * Pairs with the loud assertion in `tests/unit/helpers/tmp-home.ts`: that one
+ * catches the sandbox attempt at setup time; this one is the production-code
+ * backstop for anything that reaches the writer through another path.
+ *
+ * Skipped when `$HOME` is unset (legitimate in headless/CI contexts where
+ * `getpwuid` is the only home signal) and when the two agree (normal use).
+ */
+function assertHomeIntegrity(): void {
+  const envHome = process.env.HOME;
+  if (!envHome) return;
+  const resolved = homedir();
+  if (envHome === resolved) return;
+  throw new Error(
+    `workspaces-store: refusing to write — process.env.HOME (${envHome}) ` +
+      `does not match os.homedir() (${resolved}). This usually means a ` +
+      `test tried to redirect HOME via env vars under a runtime (Bun) that ` +
+      `ignores it, and the write would land in the real user home. See ` +
+      `tests/unit/helpers/tmp-home.ts.`,
+  );
+}
+
+/**
+ * Snapshot the existing workspaces.json next to itself before each write so a
+ * future regression (or human error) leaves the previous state one rename
+ * away. Bounded rotation keeps the directory tidy.
+ *
+ * Best-effort: a failure here must not block the write itself.
+ */
+const BACKUP_KEEP = 10;
+async function snapshotAndRotate(file: string): Promise<void> {
+  try {
+    await fs.access(file);
+  } catch {
+    return;
+  }
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const snap = `${file}.bak.${stamp}`;
+  try {
+    await fs.copyFile(file, snap);
+  } catch {
+    return;
+  }
+  try {
+    const dir = dirname(file);
+    const entries = await fs.readdir(dir);
+    const base = file.slice(dir.length + 1);
+    const baks = entries.filter((e) => e.startsWith(`${base}.bak.`)).sort();
+    const drop = baks.slice(0, Math.max(0, baks.length - BACKUP_KEEP));
+    for (const d of drop) {
+      await fs.unlink(join(dir, d)).catch(() => {});
+    }
+  } catch {
+    // rotation is best-effort
+  }
+}
+
 async function writeShape(shape: StoreShape): Promise<void> {
+  assertHomeIntegrity();
   const file = workspacesPath();
   await fs.mkdir(rootDir(), { recursive: true });
+  await snapshotAndRotate(file);
   // Atomic write: temp file + rename, sidesteps partial-write corruption when
   // two processes race.
   const tmp = `${file}.${process.pid}.${Date.now()}.tmp`;

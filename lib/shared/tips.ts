@@ -123,3 +123,45 @@ export function nextTipIndex(current: number, count: number): number {
   const safe = Number.isFinite(current) ? Math.floor(current) : 0;
   return ((safe % count) + count + 1) % count;
 }
+
+/**
+ * Dismissed-tip weighting: when the renderer lands on a tip the user has
+ * pressed × on, show it with this probability instead of skipping to the next
+ * non-dismissed tip. 0.2 → dismissed tips appear ~20% as often (1 in 5),
+ * matching the "show less, but not never" semantic of the dismiss control.
+ *
+ * Exported so the test can pin it without re-deriving the constant.
+ */
+export const DISMISSED_TIP_SHOW_PROBABILITY = 0.2;
+
+/**
+ * Rotation variant that respects {@link useTipDismissals}: dismissed tips stay
+ * in the list but are mostly skipped — clicking × on a tip should make it
+ * appear less, not vanish. When every tip is dismissed (or `dismissed` is
+ * empty), behaves like {@link nextTipIndex}.
+ *
+ * `rng` is injectable so the unit test can drive the random branch
+ * deterministically; production defaults to `Math.random`.
+ */
+export function nextTipIndexWithDismissals(
+  current: number,
+  tips: ReadonlyArray<Pick<Tip, "id">>,
+  dismissed: ReadonlySet<string>,
+  rng: () => number = Math.random,
+): number {
+  const count = tips.length;
+  if (count <= 0) return 0;
+  let next = nextTipIndex(current, count);
+  if (dismissed.size === 0) return next;
+  // Walk forward at most one full lap. If we land on a dismissed tip, give
+  // it the show-less probability; otherwise skip ahead. If we lap without
+  // finding a non-dismissed tip, every tip is dismissed — return wherever
+  // we ended up so the spinner doesn't sit stuck on the same id.
+  for (let n = 0; n < count; n++) {
+    const tip = tips[next];
+    if (!dismissed.has(tip.id)) return next;
+    if (rng() < DISMISSED_TIP_SHOW_PROBABILITY) return next;
+    next = (next + 1) % count;
+  }
+  return next;
+}

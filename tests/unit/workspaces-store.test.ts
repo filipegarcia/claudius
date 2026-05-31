@@ -1,3 +1,5 @@
+import { promises as fs } from "node:fs";
+import { dirname, basename } from "node:path";
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
 
 import {
@@ -5,6 +7,7 @@ import {
   createWorkspace,
   ensureBootstrap,
   getWorkspace,
+  workspacesFile,
 } from "@/lib/server/workspaces-store";
 import { makeTempHome, type TmpHome } from "./helpers/tmp-home";
 
@@ -82,5 +85,43 @@ describe("workspace creation defaults", () => {
     // kind list here would freeze new workspaces to today's set.
     const ws = await createWorkspace({ name: "Quiet", rootPath: "/tmp/proj-d" });
     expect(ws.defaults?.notifications).toBeUndefined();
+  });
+});
+
+/**
+ * Auto-backup contract: every write of workspaces.json snapshots the prior
+ * contents next to it. Pinned so a future refactor can't silently drop the
+ * safety net — the original loss that motivated it (2026-05-30 `bun test`
+ * clobber) had no on-disk recovery path.
+ */
+describe("workspaces.json auto-backup", () => {
+  let home: TmpHome;
+
+  beforeEach(() => {
+    home = makeTempHome();
+  });
+  afterEach(() => {
+    home.restore();
+  });
+
+  test("a write snapshots the prior file contents into a .bak.<stamp>", async () => {
+    // First write: nothing to snapshot.
+    await createWorkspace({ name: "First", rootPath: "/tmp/proj-first" });
+    const file = workspacesFile();
+    const after1 = await fs.readFile(file, "utf8");
+
+    // Second write: the prior contents must now appear in a sibling .bak file.
+    await createWorkspace({ name: "Second", rootPath: "/tmp/proj-second" });
+    const dir = dirname(file);
+    const base = basename(file);
+    const entries = await fs.readdir(dir);
+    const baks = entries.filter((e) => e.startsWith(`${base}.bak.`));
+    expect(baks.length).toBeGreaterThanOrEqual(1);
+
+    // The newest backup matches what the file looked like before the 2nd write.
+    const newest = baks.sort().at(-1);
+    expect(newest).toBeDefined();
+    const backed = await fs.readFile(`${dir}/${newest}`, "utf8");
+    expect(backed).toBe(after1);
   });
 });
