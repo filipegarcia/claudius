@@ -1,0 +1,13 @@
+#  'Approaching usage limit' soft warning with /model and /effort levers
+
+**Source:** Claude Code TUI — error & recovery
+**Status:** PARTIAL
+
+## What it is
+Before a five-hour or seven-day quota actually rejects, the TUI emits a soft heads-up — `Approaching <limit>` / `You're close to your <limit>` / `You've used <n>% of your <limit> · resets <time>` — and pairs it with concrete remediation levers the user can pull right now: `try /model sonnet` to burn down Opus, `try /effort medium` to step `high`/`xhigh` back, `/usage-credits to request more`, and `/upgrade to keep using Claude Code`. The status-line JSON also exposes the live `effort` block (`"level": "low" | "medium" | "high" | "xhigh" | "max"`, only present when the current model supports reasoning effort) so external status-line scripts can render the same "runway" hint.
+
+## Claudius today
+The warning headline is covered — `components/chat/SystemPill.tsx`'s `RateLimitPill` renders `Approaching <tierLabel>` / `You've used <n>% of your <tierLabel>` with `· resets <clock>` and a live countdown for the `allowed_warning` `rate_limit` event, gated by `lib/client/useRateLimitWarning.ts` and `components/settings/RateLimitWarningSection.tsx` (whose own copy even quotes "Approaching 5-hour limit"). The `/rate-limit-options`-style upgrade links live in `components/chat/RateLimitHitPanel.tsx` (`UPGRADE_PLAN_URL` / `UPGRADE_TEAM_URL`) but only fire on the hard-stop `status === "rejected"` branch — the soft-warning pill never suggests `/model sonnet` or `/effort medium`. The model and effort levers themselves do exist (`components/panels/widgets/ModelPicker.tsx`, `app/api/sessions/[id]/model/route.ts`, `app/api/sessions/[id]/effort/route.ts`), and `effort.level` is plumbed through `lib/server/session.ts` / `lib/client/use-session.ts`, but no piece of UI ties an approaching-limit warning to a one-click "switch to Sonnet" or "step effort down" affordance, and no `/usage-credits` command exists in `lib/shared/slash-commands.ts`.
+
+## Decision
+PARTIAL. The "Approaching <limit> · resets <time>" warning, the utilization % readout, the countdown, and the upgrade links are all in place; the concrete remediation levers (`try /model sonnet` when the active model is Opus, `try /effort medium` when the current `effort.level` is `high` / `xhigh`, plus a `/usage-credits` hint) are not. Worth folding into the `allowed_warning` branch of `RateLimitPill` in `components/chat/SystemPill.tsx` — when `info.utilization` crosses the threshold, peek at the session's current model / effort and append model-aware and effort-aware suggestion chips that deep-link into the existing `ModelPicker`.
