@@ -235,6 +235,63 @@ export async function setGoalAchieved(
   return rowToGoal(row);
 }
 
+// ── Session state JSON ──────────────────────────────────────────────────
+// Opaque per-session JSON bag (migration 013). Features that need to track
+// mutable per-session flags (last-seen-date, turn counters, …) merge in
+// their own keys here so they don't each schema-migrate a column.
+
+/**
+ * Read the session's JSON state bag. Returns an empty object when the
+ * row doesn't exist or the column is malformed — callers should treat
+ * "key missing" the same as "no value", so the wrapper never throws.
+ */
+export async function getSessionState(
+  cwd: string,
+  id: string,
+): Promise<Record<string, unknown>> {
+  const db = await openDb(cwd, "readonly").catch(() => null);
+  if (!db) return {};
+  const row = db
+    .prepare<[string], { state: string | null } | undefined>(
+      "SELECT state FROM sessions WHERE id = ?",
+    )
+    .get(id);
+  if (!row?.state) return {};
+  try {
+    const parsed = JSON.parse(row.state) as unknown;
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      return parsed as Record<string, unknown>;
+    }
+    return {};
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * Shallow-merge `patch` into the session's JSON state bag. Uses the same
+ * INSERT … ON CONFLICT idiom as `setSessionTitle` so a feature that
+ * writes state before the session's first turn (no SDK JSONL yet) still
+ * lands a row.
+ */
+export async function mergeSessionState(
+  cwd: string,
+  id: string,
+  patch: Record<string, unknown>,
+): Promise<void> {
+  const db = await openDb(cwd);
+  const now = Date.now();
+  const current = await getSessionState(cwd, id);
+  const next = JSON.stringify({ ...current, ...patch });
+  db.prepare(
+    `INSERT INTO sessions(id, cwd, state, created_at, updated_at, last_seen_at)
+     VALUES (?, ?, ?, ?, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET
+       state      = excluded.state,
+       updated_at = excluded.updated_at`,
+  ).run(id, cwd, next, now, now, now);
+}
+
 /** List every indexed session for this cwd, newest activity first. */
 export async function listIndexedSessions(cwd: string): Promise<SessionRow[]> {
   const db = await openDb(cwd, "readonly").catch(() => null);
