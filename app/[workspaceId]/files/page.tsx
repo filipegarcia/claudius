@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { SideNav } from "@/components/nav/SideNav";
 import { FileTree, type Entry } from "@/components/files/FileTree";
+import { HighlightedEditor } from "@/components/files/HighlightedEditor";
 import { useWorkspaces } from "@/lib/client/useWorkspaces";
 
 type FileContent = {
@@ -306,15 +307,29 @@ export default function FilesPage() {
                     <Save className="h-3 w-3" /> {busy === "save" ? "Saving…" : "Save"}
                   </button>
                 </div>
-                <textarea
-                  value={draft}
-                  onChange={(e) => {
-                    setDraft(e.target.value);
-                    setDirty(e.target.value !== open.content);
-                  }}
-                  spellCheck={false}
-                  className="flex-1 resize-none bg-[var(--background)] p-4 font-mono text-xs leading-5 focus:outline-none scroll-thin"
-                />
+                <div className="flex-1 overflow-hidden">
+                  <HighlightedEditor
+                    path={open.relPath}
+                    value={draft}
+                    onChange={(next) => {
+                      setDraft(next);
+                      setDirty(next !== open.content);
+                    }}
+                    onKeyDown={(e) => {
+                      // ⌘S / Ctrl+S to save — matches the FileEditor on /git
+                      // so the muscle memory carries over between the two views.
+                      if (
+                        (e.metaKey || e.ctrlKey) &&
+                        !e.shiftKey &&
+                        !e.altKey &&
+                        e.key.toLowerCase() === "s"
+                      ) {
+                        e.preventDefault();
+                        void onSave();
+                      }
+                    }}
+                  />
+                </div>
               </>
             )}
           </section>
