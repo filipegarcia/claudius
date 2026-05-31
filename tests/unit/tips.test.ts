@@ -129,6 +129,42 @@ describe("selectClientTips", () => {
     expect(selectClientTips(DEFAULT_TIPS, 1).find((t) => t.id === tip!.id)).toBeUndefined();
     expect(selectClientTips(DEFAULT_TIPS, 2).find((t) => t.id === tip!.id)).toBeTruthy();
   });
+
+  test("drops the plan-mode nudge tip by default", () => {
+    const planTip = { id: "plan", text: "make it sticky", requiresPlanModeNudge: true };
+    expect(selectClientTips([planTip], 1).map((t) => t.id)).not.toContain("plan");
+    expect(
+      selectClientTips([planTip], 1, { planModeNudgeEligible: false }).map((t) => t.id),
+    ).not.toContain("plan");
+  });
+
+  test("surfaces the plan-mode nudge tip only when eligible", () => {
+    const planTip = { id: "plan", text: "make it sticky", requiresPlanModeNudge: true };
+    expect(
+      selectClientTips([planTip], 1, { planModeNudgeEligible: true }).map((t) => t.id),
+    ).toContain("plan");
+  });
+
+  test("the bundled default-permission-mode-config tip is gated on planModeNudgeEligible", () => {
+    const tip = DEFAULT_TIPS.find((t) => t.id === "default-permission-mode-config");
+    expect(tip).toBeTruthy();
+    expect(tip?.requiresPlanModeNudge).toBe(true);
+    // Hidden by default and when explicitly ineligible.
+    expect(
+      selectClientTips(DEFAULT_TIPS, 1).find((t) => t.id === tip!.id),
+    ).toBeUndefined();
+    expect(
+      selectClientTips(DEFAULT_TIPS, 1, { planModeNudgeEligible: false }).find(
+        (t) => t.id === tip!.id,
+      ),
+    ).toBeUndefined();
+    // Surfaces once the caller flags the user as eligible.
+    expect(
+      selectClientTips(DEFAULT_TIPS, 1, { planModeNudgeEligible: true }).find(
+        (t) => t.id === tip!.id,
+      ),
+    ).toBeTruthy();
+  });
 });
 
 describe("selectTips", () => {
