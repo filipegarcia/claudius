@@ -1449,6 +1449,7 @@ export default function Home() {
               draftInjection={draftInjection}
               promptHistory={promptHistory}
               sendDisabled={capBreached || tabClaim.readOnly}
+              queuedCount={session.queue.length}
             />
           </div>
         </div>
