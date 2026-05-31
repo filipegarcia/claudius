@@ -9,7 +9,7 @@ import {
   type DragEvent,
   type KeyboardEvent,
 } from "react";
-import { ArrowUp, Hourglass, Image as ImageIcon, Mic, MicOff, Paperclip, Square, X } from "lucide-react";
+import { ArrowUp, Hourglass, Image as ImageIcon, Mic, MicOff, Paperclip, Sparkles, Square, X } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { SlashCommandPicker } from "./SlashCommandPicker";
 import { AtMentionPicker } from "./AtMentionPicker";
@@ -92,6 +92,27 @@ function stripImageToken(text: string, ordinal: number): string {
 // so the vitest suite under `tests/unit/` can exercise them in a node-only
 // environment without instantiating React.
 
+/**
+ * Composer keyword hints — Claudius's take on Claude Code's "Dynamic workflow
+ * requested for this turn · meta+w to ignore". When the draft contains a
+ * trigger word, we surface a dismissible hint in the composer footer pointing
+ * at the related feature. Dismissal is by click (a browser can't intercept
+ * ⌘W — it closes the tab) and resets once the draft is cleared/sent. Add a
+ * row here to teach the composer a new keyword.
+ */
+const KEYWORD_HINTS: { id: string; pattern: RegExp; label: string }[] = [
+  {
+    id: "workflow",
+    pattern: /\bworkflows?\b/i,
+    label: "Dynamic workflow requested for this turn",
+  },
+  {
+    id: "goal",
+    pattern: /\bgoals?\b/i,
+    label: "Goal mentioned — set it as the session objective with /goal",
+  },
+];
+
 export function PromptInput({
   pending,
   ready,
@@ -109,6 +130,9 @@ export function PromptInput({
   testIdPrefix = "prompt",
 }: Props) {
   const [value, setValue] = useState("");
+  // Keyword hints (see KEYWORD_HINTS) the user has dismissed for the current
+  // draft. Reset on send (below) so the next draft starts fresh.
+  const [dismissedHints, setDismissedHints] = useState<Set<string>>(() => new Set());
   // Rich SDK command metadata (descriptions + arg hints) for the slash picker.
   // Falls back to the curated registry + init names when unavailable, so the
   // picker works even before/without this fetch.
@@ -462,6 +486,7 @@ export function PromptInput({
     const wire = bulletsToMarkdown(text);
     onSend(wire, images.length ? images : undefined);
     setValue("");
+    setDismissedHints(new Set());
     setImages([]);
     setPickerOpen(false);
     setAtQuery(null);
@@ -773,6 +798,12 @@ export function PromptInput({
     });
   }
 
+  // First trigger word present in the draft that the user hasn't dismissed
+  // this draft — drives the dismissible footer hint.
+  const detectedHint = KEYWORD_HINTS.find((h) => h.pattern.test(value)) ?? null;
+  const activeHint =
+    detectedHint && !dismissedHints.has(detectedHint.id) ? detectedHint : null;
+
   const queueHint = pending ? "Send queues until current response finishes" : "";
 
   return (
@@ -1061,7 +1092,20 @@ export function PromptInput({
         )}
 
         <div className="mt-1.5 flex items-center justify-between px-1 text-[11px] text-[var(--muted)]/70">
-          <span>{queueHint}</span>
+          {activeHint ? (
+            <button
+              type="button"
+              onClick={() => setDismissedHints((d) => new Set(d).add(activeHint.id))}
+              title="Dismiss this hint"
+              className="flex items-center gap-1 rounded text-[var(--accent)] hover:text-[var(--foreground)]"
+            >
+              <Sparkles className="h-3 w-3 shrink-0" />
+              <span>{activeHint.label}</span>
+              <span className="text-[var(--muted)]/70">· ignore</span>
+            </button>
+          ) : (
+            <span>{queueHint}</span>
+          )}
           <span className="flex items-center gap-2">
             {images.length > 0 && (
               <span className="flex items-center gap-1">
