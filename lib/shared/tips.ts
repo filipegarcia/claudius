@@ -28,6 +28,17 @@ export type Tip = {
    * tip shape stays JSON-serializable across the `tips` SSE event.
    */
   minSessions?: number;
+  /**
+   * Plan-mode follow-up gate. When true, {@link selectClientTips} surfaces the
+   * tip only if its `planModeNudgeEligible` flag is also true — i.e. the user
+   * has actually used Plan Mode in this session AND has not persisted a default
+   * permission mode on the active workspace. Mirrors the Claude Code TUI's
+   * `id:"default-permission-mode-config"` conditional spinner tip
+   * (`q && !K` where `q = Boolean(H.lastPlanModeUse)` and `K =
+   * Boolean(_?.permissions?.defaultMode)`). Serialized as a plain boolean so
+   * tips stay portable across the `tips` SSE event.
+   */
+  requiresPlanModeNudge?: boolean;
 };
 
 // Each command below maps to a native, non-destructive handler in the chat
@@ -110,6 +121,21 @@ export const DEFAULT_TIPS: Tip[] = [
     text: "Running multiple Claude sessions? Use /color and /rename to tell them apart at a glance.",
     minSessions: 2,
   },
+  {
+    // Conditional follow-up to Plan Mode (see `selectClientTips`'s
+    // `planModeNudgeEligible` gate). Only surfaces once the user has actually
+    // used Plan Mode in this session AND has not persisted a default
+    // permission mode on the active workspace — mirrors the Claude Code TUI's
+    // `id:"default-permission-mode-config"` tip with its `q && !K` predicate.
+    // Command-less because the surface is the Workspace settings page (no
+    // `/workspace` slash command); the text names the field so the user can
+    // navigate there themselves. Cooldown is intentionally not modelled —
+    // the existing dismiss-weighting ("show less, not never") is Claudius's
+    // analog of `cooldownSessions`.
+    id: "default-permission-mode-config",
+    text: "Liked Plan Mode? Make it sticky in Workspace settings → Permission mode (it'll apply to every new session here).",
+    requiresPlanModeNudge: true,
+  },
 ];
 
 /**
@@ -136,11 +162,24 @@ export function selectTips(opts?: { availableCommands?: readonly string[] }): Ti
  * `minSessions` exceeds the caller's `activeSessionCount` — the just-in-time
  * "you've crossed a threshold, here's the trick" affordance from the Claude
  * Code TUI's conditional spinner tips. Tips with no `minSessions` always
- * pass. Pure so it stays unit-testable and so the renderer doesn't have to
- * re-derive the filter on every interval tick.
+ * pass. Also drops any tip whose `requiresPlanModeNudge` is true when the
+ * caller's `planModeNudgeEligible` is not true (default false) — the
+ * post-Plan-Mode follow-up nudge ("make it sticky") only surfaces after the
+ * user has actually exercised Plan Mode and hasn't yet persisted a default
+ * permission mode. Pure so it stays unit-testable and so the renderer doesn't
+ * have to re-derive the filter on every interval tick.
  */
-export function selectClientTips(tips: readonly Tip[], activeSessionCount: number): Tip[] {
-  return tips.filter((t) => (t.minSessions ?? 0) <= activeSessionCount);
+export function selectClientTips(
+  tips: readonly Tip[],
+  activeSessionCount: number,
+  opts?: { planModeNudgeEligible?: boolean },
+): Tip[] {
+  const planModeNudgeEligible = opts?.planModeNudgeEligible === true;
+  return tips.filter((t) => {
+    if ((t.minSessions ?? 0) > activeSessionCount) return false;
+    if (t.requiresPlanModeNudge && !planModeNudgeEligible) return false;
+    return true;
+  });
 }
 
 /**

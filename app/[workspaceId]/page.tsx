@@ -140,6 +140,22 @@ export default function Home() {
   // StatusLine so it can render an icon + name without re-fetching.
   const activeWorkspace =
     workspaceItems.find((w) => w.id === activeWorkspaceId) ?? null;
+  // Within-session latch for the "make Plan Mode sticky" spinner-tip nudge —
+  // the client-side analog of the Claude Code TUI's `H.lastPlanModeUse`. Once
+  // we observe `permissionMode === "plan"`, the flag stays true for the rest
+  // of this session so the nudge keeps surfacing even after the user has
+  // already left Plan Mode (which is the moment the nudge is most useful).
+  // Resets when the session id changes. Uses the "adjusting state during
+  // rendering" pattern from the React docs rather than a setState-in-effect
+  // so the latch flips synchronously with the observed mode change.
+  const [planModeUsed, setPlanModeUsed] = useState(false);
+  const [planModeLatchSessionId, setPlanModeLatchSessionId] = useState(session.sessionId);
+  if (planModeLatchSessionId !== session.sessionId) {
+    setPlanModeLatchSessionId(session.sessionId);
+    setPlanModeUsed(session.permissionMode === "plan");
+  } else if (session.permissionMode === "plan" && !planModeUsed) {
+    setPlanModeUsed(true);
+  }
   const verbose = useVerbose(activeWorkspaceId);
   const [draftInjection, setDraftInjection] = useState<
     { token: number; text: string; images?: AttachedImage[] } | undefined
@@ -1315,13 +1331,19 @@ export default function Home() {
             onPickExample={handleSend}
             onRunCommand={handleSend}
             // Filter conditional tips (e.g. multi-Claude color/rename nudge,
-            // gated on 2+ open tabs) before they hit the rotation. Falling
-            // back to DEFAULT_TIPS *before* filtering closes the pre-SSE
-            // window where SpinnerTip would otherwise use its own unfiltered
-            // fallback and surface the threshold tip with one session open.
+            // gated on 2+ open tabs; the post-Plan-Mode "make it sticky"
+            // nudge, gated on `planModeUsed && !defaults.permissionMode`)
+            // before they hit the rotation. Falling back to DEFAULT_TIPS
+            // *before* filtering closes the pre-SSE window where SpinnerTip
+            // would otherwise use its own unfiltered fallback and surface
+            // the threshold tip with one session open.
             tips={selectClientTips(
               session.tips.length > 0 ? session.tips : DEFAULT_TIPS,
               openTabs.length,
+              {
+                planModeNudgeEligible:
+                  planModeUsed && !activeWorkspace?.defaults?.permissionMode,
+              },
             )}
             suggestedUuids={session.suggestedUuids}
             goalUuids={session.goalUuids}
