@@ -81,6 +81,7 @@ import {
 import { ContextWarningBanner } from "@/components/chat/ContextWarningBanner";
 import { useNotificationsContext } from "@/components/notifications/NotificationsProvider";
 import { findSlashCommand } from "@/lib/shared/slash-commands";
+import { DEFAULT_TIPS, selectClientTips } from "@/lib/shared/tips";
 import { useWorkspaces } from "@/lib/client/useWorkspaces";
 import { useVerbose } from "@/lib/client/useVerbose";
 
@@ -1313,7 +1314,15 @@ export default function Home() {
             highlightUuid={highlightUuid}
             onPickExample={handleSend}
             onRunCommand={handleSend}
-            tips={session.tips}
+            // Filter conditional tips (e.g. multi-Claude color/rename nudge,
+            // gated on 2+ open tabs) before they hit the rotation. Falling
+            // back to DEFAULT_TIPS *before* filtering closes the pre-SSE
+            // window where SpinnerTip would otherwise use its own unfiltered
+            // fallback and surface the threshold tip with one session open.
+            tips={selectClientTips(
+              session.tips.length > 0 ? session.tips : DEFAULT_TIPS,
+              openTabs.length,
+            )}
             suggestedUuids={session.suggestedUuids}
             goalUuids={session.goalUuids}
             verbose={verbose.verbose}

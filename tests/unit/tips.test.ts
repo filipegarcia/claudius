@@ -5,6 +5,7 @@ import {
   DISMISSED_TIP_SHOW_PROBABILITY,
   nextTipIndex,
   nextTipIndexWithDismissals,
+  selectClientTips,
   selectTips,
 } from "@/lib/shared/tips";
 import { findSlashCommand } from "@/lib/shared/slash-commands";
@@ -97,6 +98,36 @@ describe("nextTipIndexWithDismissals", () => {
 
   test("survives empty list", () => {
     expect(nextTipIndexWithDismissals(0, [], new Set(["b"]))).toBe(0);
+  });
+});
+
+describe("selectClientTips", () => {
+  const tips = [
+    { id: "always", text: "always shown" },
+    { id: "two-plus", text: "needs two sessions", minSessions: 2 },
+    { id: "five-plus", text: "needs five sessions", minSessions: 5 },
+  ];
+
+  test("keeps unconditional tips at every session count", () => {
+    for (const n of [0, 1, 2, 99]) {
+      expect(selectClientTips(tips, n).some((t) => t.id === "always")).toBe(true);
+    }
+  });
+
+  test("drops the multi-session tip below the threshold and surfaces it above", () => {
+    const oneSession = selectClientTips(tips, 1);
+    expect(oneSession.map((t) => t.id)).not.toContain("two-plus");
+    const twoSessions = selectClientTips(tips, 2);
+    expect(twoSessions.map((t) => t.id)).toContain("two-plus");
+    expect(twoSessions.map((t) => t.id)).not.toContain("five-plus");
+  });
+
+  test("the bundled multi-claude tip is gated at 2+ sessions", () => {
+    const tip = DEFAULT_TIPS.find((t) => t.id === "multi-claude-color-rename");
+    expect(tip).toBeTruthy();
+    expect(tip?.minSessions).toBe(2);
+    expect(selectClientTips(DEFAULT_TIPS, 1).find((t) => t.id === tip!.id)).toBeUndefined();
+    expect(selectClientTips(DEFAULT_TIPS, 2).find((t) => t.id === tip!.id)).toBeTruthy();
   });
 });
 

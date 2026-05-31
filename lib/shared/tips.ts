@@ -20,6 +20,14 @@ export type Tip = {
    * mid-turn.
    */
   command?: string;
+  /**
+   * Minimum number of concurrently-open sessions (browser tabs in the active
+   * workspace) required to surface this tip. Used by {@link selectClientTips}
+   * for just-in-time nudges that only make sense once the user has crossed a
+   * usage threshold — kept as a plain number rather than a predicate so the
+   * tip shape stays JSON-serializable across the `tips` SSE event.
+   */
+  minSessions?: number;
 };
 
 // Each command below maps to a native, non-destructive handler in the chat
@@ -91,6 +99,17 @@ export const DEFAULT_TIPS: Tip[] = [
     text: "Lost? Open the full list of slash commands and keyboard shortcuts.",
     command: "help",
   },
+  {
+    // Conditional: only surfaces once the user has 2+ tabs open in this
+    // workspace (see `selectClientTips`). Mirrors the Claude Code TUI's
+    // `wo_() >= 2` gate. Command-less because both /color (sdk-handled) and
+    // /rename (destructive — filtered by tips.test.ts) are unsafe to expose
+    // as a clickable affordance — the text names them so the user can run
+    // them themselves.
+    id: "multi-claude-color-rename",
+    text: "Running multiple Claude sessions? Use /color and /rename to tell them apart at a glance.",
+    minSessions: 2,
+  },
 ];
 
 /**
@@ -110,6 +129,18 @@ export function selectTips(opts?: { availableCommands?: readonly string[] }): Ti
   if (!avail) return DEFAULT_TIPS;
   const set = new Set(avail);
   return DEFAULT_TIPS.filter((t) => !t.command || set.has(t.command));
+}
+
+/**
+ * Client-side gate for context-sensitive tips. Drops any tip whose
+ * `minSessions` exceeds the caller's `activeSessionCount` — the just-in-time
+ * "you've crossed a threshold, here's the trick" affordance from the Claude
+ * Code TUI's conditional spinner tips. Tips with no `minSessions` always
+ * pass. Pure so it stays unit-testable and so the renderer doesn't have to
+ * re-derive the filter on every interval tick.
+ */
+export function selectClientTips(tips: readonly Tip[], activeSessionCount: number): Tip[] {
+  return tips.filter((t) => (t.minSessions ?? 0) <= activeSessionCount);
 }
 
 /**
