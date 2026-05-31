@@ -68,6 +68,13 @@ type Props = {
    * mounted at once (e.g. the goal input) so each instance is addressable.
    */
   testIdPrefix?: string;
+  /**
+   * Number of messages currently queued for the next turn (drives a footer
+   * nudge while `pending` so the user is reminded the visible queue panel is
+   * editable — Claudius's parity to the TUI's "Press up to edit queued
+   * messages" hint, pointed at the queue panel instead of a keybinding).
+   */
+  queuedCount?: number;
 };
 
 const MAX_IMAGE_BYTES = 20 * 1024 * 1024; // 20MB
@@ -128,6 +135,7 @@ export function PromptInput({
   disableSlash = false,
   placeholder,
   testIdPrefix = "prompt",
+  queuedCount = 0,
 }: Props) {
   const [value, setValue] = useState("");
   // Keyword hints (see KEYWORD_HINTS) the user has dismissed for the current
@@ -804,7 +812,16 @@ export function PromptInput({
   const activeHint =
     detectedHint && !dismissedHints.has(detectedHint.id) ? detectedHint : null;
 
-  const queueHint = pending ? "Send queues until current response finishes" : "";
+  // While the turn is running, point users at how their next message is
+  // handled. Once at least one message is actually queued, switch the copy to
+  // remind them the visible QueueIndicator above is editable — parity with the
+  // TUI's "Press up to edit queued messages" nudge, retargeted at our richer
+  // panel (Claudius doesn't bind plain ArrowUp to queue-edit).
+  const queueHint = pending
+    ? queuedCount > 0
+      ? `${queuedCount} queued · edit above`
+      : "Send queues until current response finishes"
+    : "";
 
   return (
     <div className="border-t border-[var(--border)] bg-[var(--panel)] px-4 py-3">
