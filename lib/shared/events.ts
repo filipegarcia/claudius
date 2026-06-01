@@ -533,6 +533,17 @@ export type CreateSessionRequest = {
   resume?: string;
   /** When resuming, only replay messages up to and including this message uuid. */
   resumeSessionAt?: string;
+  /**
+   * Seed the composer textarea with this text. Written to the per-session
+   * prompt-draft row as part of session creation so the renderer's draft
+   * GET reads it back authoritatively — no race against any in-memory
+   * injection. Does NOT auto-send.
+   *
+   * Used by the Electron right-click "Start New Chat With Selection"
+   * entry (electron/ipc/context-menu.ts). Trimmed to a defensive ceiling
+   * by the server.
+   */
+  initialDraftText?: string;
 };
 
 export type AttachedImage = {

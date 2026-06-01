@@ -44,6 +44,7 @@ const TOPICS = {
   updaterApply: "updater:apply",
   updaterStatus: "updater:status",
   workspaceOpenFolder: "workspace:open-folder",
+  chatNewWithText: "chat:new-with-text",
 } as const;
 
 /**
@@ -63,7 +64,7 @@ function subscribe<T>(
 const api = {
   isElectron: true as const,
   platform: process.platform,
-  bridgeVersion: 3 as const,
+  bridgeVersion: 4 as const,
 
   menu: {
     on(action: string, cb: () => void): () => void {
@@ -137,6 +138,17 @@ const api = {
   workspaces: {
     onOpenFolder: (cb: (path: string) => void) =>
       subscribe<string>(TOPICS.workspaceOpenFolder, cb),
+  },
+
+  chat: {
+    /**
+     * Fires when the user picks "Start New Chat With Selection" from the
+     * Electron context menu. Payload is the raw selection text the user
+     * right-clicked on. Renderer reacts by creating a fresh session and
+     * prefilling the composer (NOT auto-sending). Added in bridgeVersion 4.
+     */
+    onNewWithText: (cb: (text: string) => void) =>
+      subscribe<string>(TOPICS.chatNewWithText, cb),
   },
 };
 

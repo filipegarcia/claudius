@@ -3320,6 +3320,27 @@ export function useSession(): ChatState & ChatActions {
     [createSession],
   );
 
+  /**
+   * Open a fresh session and seed its composer with `draftText` without
+   * auto-sending. The text is plumbed through the create POST body
+   * (`initialDraftText`) so the server writes the prompt-draft row
+   * BEFORE the response returns — the renderer's per-session draft GET
+   * then reads our text back authoritatively, with no race against
+   * `bindToSession`'s render or any in-memory injection.
+   *
+   * Caller (currently the Electron context-menu handler) doesn't care
+   * about the new session id — `bindToSession` inside `createSession`
+   * already wires the URL + SSE, so once this resolves the active tab
+   * IS the new session.
+   */
+  const createNewSessionWithDraft = useCallback(
+    async (draftText: string) => {
+      const text = typeof draftText === "string" ? draftText : "";
+      await createSession(text ? { initialDraftText: text } : {});
+    },
+    [createSession],
+  );
+
   // Boot on mount; honor URL ?session=, ?at=, and ?prompt= (seed initial input).
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -4004,6 +4025,7 @@ export function useSession(): ChatState & ChatActions {
     switchSession,
     createNewSession,
     createSessionAt,
+    createNewSessionWithDraft,
     refreshSessions,
     resolvePlan,
     loadOlder,

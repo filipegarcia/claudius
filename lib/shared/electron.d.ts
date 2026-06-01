@@ -59,6 +59,12 @@ export type ClaudiusBridge = {
    * Coarse version identifier. Bumped whenever a new method is added
    * so the renderer can branch on capability tiers across older
    * packaged builds.
+   *
+   * Versions:
+   *  - 1: initial menu + window bridge (Phase 2)
+   *  - 2: notifications + badge + dialog + deepLinks + updater (Phases 6–8)
+   *  - 3: menu.setAccelerators + menu.setRecording
+   *  - 4: chat.onNewWithText (right-click "Start new chat with selection")
    */
   readonly bridgeVersion: number;
 
@@ -152,6 +158,17 @@ export type ClaudiusBridge = {
    */
   workspaces: {
     onOpenFolder(cb: (path: string) => void): () => void;
+  };
+
+  /**
+   * Chat-pane affordances driven by the main process — currently just the
+   * right-click "Start New Chat With Selection" entry in
+   * `electron/ipc/context-menu.ts`. The payload is the raw selection text;
+   * the renderer creates a fresh session and prefills the composer (no
+   * auto-send). Added in bridgeVersion 4.
+   */
+  chat: {
+    onNewWithText(cb: (text: string) => void): () => void;
   };
 };
 

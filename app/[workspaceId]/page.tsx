@@ -37,6 +37,7 @@ import { PlanOverlay } from "@/components/overlays/PlanOverlay";
 import { WorktreesOverlay } from "@/components/overlays/WorktreesOverlay";
 import type { AttachedImage } from "@/lib/client/types";
 import { useSession } from "@/lib/client/use-session";
+import { useClaudius, useElectronSubscription } from "@/lib/client/useElectron";
 import { parseAskQuestions, type AskAnswer, type AskQuestion } from "@/lib/shared/events";
 import { useLimits } from "@/lib/client/useLimits";
 import { CapBreachBanner } from "@/components/chat/CapBreachBanner";
@@ -218,6 +219,27 @@ export default function Home() {
       overrideDay: todayKey(),
     });
   }, [session.sessionId, sessionCapUsd, sessionSpentUsd, limits]);
+
+  // Electron right-click → "Start New Chat With Selection": main pushes
+  // the selection text over `chat:new-with-text`; we react by spawning a
+  // new session and seeding its composer with the text (NOT auto-sending).
+  // The page-level subscription is fine for the common case (user
+  // right-clicks on a message in the chat pane). For right-clicks on
+  // non-chat pages the IPC arrives but no handler is registered — V1
+  // scope; can lift the listener to the global handler later if needed.
+  // See `electron/ipc/context-menu.ts`.
+  const claudiusBridge = useClaudius();
+  const createNewSessionWithDraftAction = session.createNewSessionWithDraft;
+  useElectronSubscription<string>(
+    claudiusBridge?.chat.onNewWithText,
+    useCallback(
+      (text: string) => {
+        if (typeof text !== "string" || text.length === 0) return;
+        void createNewSessionWithDraftAction(text);
+      },
+      [createNewSessionWithDraftAction],
+    ),
+  );
 
   // ?new=1 on the URL means "the user clicked Chat — give me a new session."
   // The boot effect in useSession handles this on initial mount, but a click

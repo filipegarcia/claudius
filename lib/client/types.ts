@@ -637,6 +637,17 @@ export type ChatActions = {
   /** Open a fresh session in a specific working directory (e.g. a git worktree). */
   createSessionAt(cwd: string): Promise<void>;
   /**
+   * Open a fresh session and prefill its composer with `draftText` — does
+   * NOT auto-send. Used by the Electron right-click "Start New Chat With
+   * Selection" entry (electron/ipc/context-menu.ts) and any future
+   * caller that wants to seed the textarea without committing to send.
+   *
+   * The draft is written to `/api/sessions/${id}/prompt-draft` before the
+   * promise resolves, so the composer's per-session draft load picks it
+   * up authoritatively — no flicker, no race against the user typing.
+   */
+  createNewSessionWithDraft(draftText: string): Promise<void>;
+  /**
    * Re-pull the merged sessions list from `/api/sessions` +
    * `/api/sessions/all`. Returns the merged list so callers that need to
    * act on the result inline (e.g. the visibility-change handler

@@ -17,6 +17,7 @@ import path from "node:path";
 
 import { registerBadgeHandlers } from "./ipc/badge";
 import { createBus } from "./ipc/bus";
+import { registerContextMenu } from "./ipc/context-menu";
 import {
   notifyRendererReady,
   registerDeepLinkHandlers,
@@ -214,6 +215,12 @@ function createWindow(startUrl: string): BrowserWindow {
     });
     return { action: "deny" };
   });
+
+  // Right-click context menu. Without this Chromium suppresses its built-in
+  // context menu and Copy/Paste-via-mouse is dead in the packaged build —
+  // Cmd+C still works through the Edit menu, but right-click → Copy is the
+  // natural reflex. See `electron/ipc/context-menu.ts` for the template.
+  registerContextMenu(win);
 
   // NOTE — we deliberately do NOT intercept menu-owned chords via
   // `before-input-event` here. Electron documents that calling

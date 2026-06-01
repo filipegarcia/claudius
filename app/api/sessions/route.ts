@@ -3,8 +3,16 @@ import { sessionManager } from "@/lib/server/session-manager";
 import { resolveActiveWorkspace } from "@/lib/server/active-workspace";
 import { getWorkspace, listWorkspaces, type Workspace } from "@/lib/server/workspaces-store";
 import { info as sessionFileInfo } from "@/lib/server/sessions-store";
+import { setPromptDraft } from "@/lib/server/prompt-drafts-db";
 import type { CreateSessionRequest } from "@/lib/shared/events";
 import { mergeSessionDefaults } from "@/lib/shared/session-defaults";
+
+/**
+ * Defensive ceiling on the seed-draft size — matches the prompt-draft PUT
+ * route. Right-click selections in Electron can be unbounded (whole page),
+ * so we trim rather than reject.
+ */
+const MAX_INITIAL_DRAFT_TEXT = 200_000;
 
 export const runtime = "nodejs";
 
@@ -91,6 +99,26 @@ export async function POST(req: Request) {
   // when the underlying SDK process was originally spawned.
   if (permissionMode && session.getPermissionMode() !== permissionMode) {
     await session.setPermissionMode(permissionMode);
+  }
+
+  // Seed the composer draft, if requested. Written here (BEFORE the
+  // response is returned) so the renderer's per-session draft GET reads
+  // our text back — there's no in-memory race because by the time the
+  // renderer learns about this session, the row already exists. Used by
+  // the Electron right-click "Start New Chat With Selection" path.
+  if (typeof body.initialDraftText === "string" && body.initialDraftText.length > 0) {
+    const trimmed =
+      body.initialDraftText.length > MAX_INITIAL_DRAFT_TEXT
+        ? body.initialDraftText.slice(0, MAX_INITIAL_DRAFT_TEXT)
+        : body.initialDraftText;
+    try {
+      await setPromptDraft(session.cwd, session.id, trimmed, []);
+    } catch (err) {
+      // Best-effort — log so a misconfigured DB is debuggable, but don't
+      // fail the session-create. Composer will come up empty if this
+      // fails, same fail-safe as a normal draft-write error.
+      console.error("[api/sessions] initialDraftText write failed:", err);
+    }
   }
 
   return NextResponse.json({

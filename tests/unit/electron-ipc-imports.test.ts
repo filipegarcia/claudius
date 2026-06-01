@@ -102,6 +102,14 @@ describe("electron/ipc imports", () => {
     expect(typeof mod.registerDialogHandlers).toBe("function");
   });
 
+  test("context-menu handler module loads and exports its pieces", async () => {
+    const mod = await import("@/electron/ipc/context-menu");
+    expect(typeof mod.registerContextMenu).toBe("function");
+    expect(typeof mod.buildContextMenuTemplate).toBe("function");
+    expect(typeof mod.sendNewChatWithText).toBe("function");
+    expect(mod.TOPIC_NEW_WITH_TEXT).toBe("chat:new-with-text");
+  });
+
   test("deep-links handler module loads", async () => {
     const mod = await import("@/electron/ipc/deep-links");
     expect(typeof mod.registerProtocol).toBe("function");
