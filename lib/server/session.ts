@@ -24,7 +24,7 @@ import { z } from "zod";
 import { projectRoot } from "./db";
 import { AsyncQueue } from "./async-queue";
 import { notificationBus } from "./notification-bus";
-import { takePendingReminders } from "./system-reminders";
+import { queueReminder, takePendingReminders } from "./system-reminders";
 import {
   isOpusModelId,
   isOverloadErrorText,
@@ -87,6 +87,34 @@ import {
 export function worktreeRootFromPath(filePath: string): string | null {
   const m = /^(.*\/\.claude\/worktrees\/[^/]+)(?:\/|$)/.exec(filePath);
   return m ? m[1] : null;
+}
+
+/**
+ * The Claude Code TUI scans each outgoing prose prompt for the bare word
+ * `ultrathink` (case-insensitive, on word boundaries) and, when present,
+ * injects a transient `<system-reminder>` that lifts the reasoning budget for
+ * just that turn — distinct from `/effort max`, which is a sticky config
+ * change. Grounded in the `\bultrathink\b` regex and `ultrathink-active`
+ * identifier embedded in the CLI binary.
+ *
+ * Returns the reminder body (without the wrapper tag) for prompts that match,
+ * or `null` otherwise. Caller queues it through `queueReminder` so the same
+ * drain that prepends `takeGoalReminder` picks it up — which means the nudge
+ * rides the SAME turn the user typed the word on (not the next one), because
+ * `queueReminder` and `takePendingReminders` execute back-to-back in
+ * `sendInput`. The "next user turn" wording in `system-reminders.ts` is the
+ * general channel contract; this caller uses synchronous in-call ordering to
+ * land on the current turn instead.
+ *
+ * Exported for unit testing — the regex boundary behavior (`ultrathinking`
+ * must NOT match, `Ultrathink.` must) is the contract worth pinning.
+ */
+export function ultrathinkReminderBody(text: string): string | null {
+  if (!/\bultrathink\b/i.test(text)) return null;
+  return (
+    'The user included the keyword "ultrathink", requesting deeper reasoning ' +
+    "on this turn. Reason as thoroughly as the task warrants."
+  );
 }
 
 type Subscriber = (event: ServerEvent) => void;
@@ -1437,6 +1465,19 @@ export class Session {
       });
       return;
     }
+
+    // Prose-keyword scan for `ultrathink` (Claude Code TUI parity, feature 27).
+    // Done HERE — after the slash-command early-return, before the image
+    // branch — so:
+    //   1. slash commands like `/compact` never queue a reminder that would
+    //      then leak onto the next real prompt;
+    //   2. one queue call covers both the text-only and image-bearing
+    //      branches below.
+    // The block is appended by the existing `takePendingReminders` drain in
+    // both branches, so it rides THIS turn (same call ordering as the goal
+    // reminder).
+    const ultrathinkBody = ultrathinkReminderBody(text);
+    if (ultrathinkBody) queueReminder(this, "ultrathink-prose", ultrathinkBody);
 
     if (!images || images.length === 0) {
       const message = { role: "user" as const, content: text };
