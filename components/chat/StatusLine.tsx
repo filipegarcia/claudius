@@ -246,15 +246,27 @@ export function StatusLine({
         ) : null}
         {fastModeState && fastModeState !== "off" && (
           <span
+            data-testid="status-line-fast"
+            data-fast-state={fastModeState}
             className={cn(
-              "rounded-md border px-1.5 py-0.5 font-mono text-[10px]",
+              "flex items-center gap-1 rounded-md border px-1.5 py-0.5 font-mono text-[10px]",
               fastModeState === "on"
                 ? "border-amber-500/40 bg-amber-500/10 text-amber-200"
                 : "border-[var(--border)] bg-[var(--panel-2)] text-[var(--muted)]",
             )}
-            title={fastModeState === "on" ? "Fast mode active" : "Fast mode cooling down"}
+            // Mirror the TUI's `Draws from usage credits` confirmation so the
+            // higher-rate billing is visible at a glance whenever fast mode
+            // is active — same copy as the ModelPicker toggle sublabel.
+            title={
+              fastModeState === "on"
+                ? "Fast mode active — draws from usage credits"
+                : "Fast mode cooling down"
+            }
           >
-            ⚡ {fastModeState}
+            <span>⚡ {fastModeState}</span>
+            {fastModeState === "on" && (
+              <span className="hidden text-[9px] opacity-80 md:inline">· credits</span>
+            )}
           </span>
         )}
         {ctx != null && (

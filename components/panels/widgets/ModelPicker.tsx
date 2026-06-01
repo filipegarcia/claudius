@@ -350,6 +350,15 @@ export function ModelPicker({
                         {m.description}
                       </div>
                     )}
+                    {/* Mirror the TUI's `Draws from usage credits` suffix on
+                        per-model rows whose accelerated decoding is billed
+                        from the usage-credit bucket rather than the standard
+                        pool. Subdued amber to match the `fast` chip above. */}
+                    {m.supportsFastMode && (
+                      <div className="mt-0.5 truncate text-[9px] text-amber-200/80">
+                        Draws from usage credits
+                      </div>
+                    )}
                     <div className="mt-0.5 truncate font-mono text-[9px] text-[var(--muted)]/80">
                       {m.value}
                     </div>
@@ -501,6 +510,12 @@ export function ModelPicker({
                 </span>
                 <span className="block text-[9px] leading-tight text-[var(--muted)]">
                   Accelerated responses on supported models.
+                </span>
+                {/* Mirror the TUI's `Draws from usage credits` confirmation
+                    line under the Fast-mode toggle. Subdued amber so it reads
+                    as a cost cue rather than a warning. */}
+                <span className="mt-0.5 block text-[9px] leading-tight text-amber-200/80">
+                  Draws from usage credits.
                 </span>
               </span>
               <span
