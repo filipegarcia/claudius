@@ -1289,7 +1289,22 @@ export default function Home() {
           labelMaxWidth={tabLabelMaxWidth ?? undefined}
           onLabelWidthChange={onTabLabelWidthChange}
         />
-        {openTabs.length === 0 ? (
+        {/*
+          Show the "No session open" placeholder only when truly no session
+          is bound — not just when `openTabs` is empty. The auto-add-tab
+          logic above waits for `session.cwd` to equal the workspace's
+          `rootPath` (foreign-session-leak guard); during the brief render
+          between `bindToSession` setting `sessionId` and the SSE init
+          landing `cwd`, `openTabs` can be empty while `sessionId` is
+          already set. With the old plain `openTabs.length === 0` gate
+          the chat UI flickered to "No session open" in that window, and
+          in tests where the SSE init never arrives (faked EventSource +
+          a `/api/sessions` route mock that doesn't echo `cwd`) the
+          placeholder was *permanent* — that's why
+          `app-functionality.spec.ts:42` and friends were waiting 30s for
+          `prompt-input` to mount.
+        */}
+        {openTabs.length === 0 && !session.sessionId ? (
           <div className="flex flex-1 items-center justify-center text-center">
             <div className="flex max-w-sm flex-col items-center px-6 py-12">
               <ClaudiusMark color="var(--foreground)" size={120} className="mb-5 opacity-90" />
