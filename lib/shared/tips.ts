@@ -172,15 +172,48 @@ export const DEFAULT_TIPS: Tip[] = [
  * isn't available on this surface. A future backend feed (e.g. "new feature"
  * announcements) appends here without touching the renderer.
  *
+ * Honors the user-settings.json knobs that mirror the Claude Code CLI:
+ *   - `spinnerTipsEnabled: false`  → return [] (disable the rotation entirely)
+ *   - `spinnerTipsOverride.tips`   → append `custom-tip-${K}` entries
+ *   - `spinnerTipsOverride.excludeDefault: true` → REPLACE the catalog with the
+ *     custom entries instead of appending. When `tips` is empty/missing while
+ *     `excludeDefault` is true, the result is [] (the user has explicitly
+ *     opted out of every built-in tip without supplying replacements).
+ *
  * Pure and server-agnostic so it stays unit-testable. Command-less tips always
  * pass; command tips pass only when their command is available (when no
- * availability list is supplied, nothing is gated).
+ * availability list is supplied, nothing is gated). Returns `DEFAULT_TIPS` by
+ * reference on the no-op path so subscribers that compare identity don't
+ * needlessly invalidate.
  */
-export function selectTips(opts?: { availableCommands?: readonly string[] }): Tip[] {
+export function selectTips(opts?: {
+  availableCommands?: readonly string[];
+  spinnerTipsEnabled?: boolean;
+  spinnerTipsOverride?: { excludeDefault?: boolean; tips?: readonly string[] };
+}): Tip[] {
+  if (opts?.spinnerTipsEnabled === false) return [];
+  const override = opts?.spinnerTipsOverride;
+  // Normalize override into a stable list of custom Tip objects. Trims
+  // entries and drops empties so a stray `""` in the user's settings doesn't
+  // surface as a blank line under the spinner.
+  const customTips: Tip[] =
+    override?.tips
+      ?.map((t, i) => ({ id: `custom-tip-${i}`, text: typeof t === "string" ? t.trim() : "" }))
+      .filter((t) => t.text.length > 0) ?? [];
   const avail = opts?.availableCommands;
-  if (!avail) return DEFAULT_TIPS;
-  const set = new Set(avail);
-  return DEFAULT_TIPS.filter((t) => !t.command || set.has(t.command));
+  // Fast path — no availability gate, no override knobs touched. Preserves
+  // the historical contract that `selectTips()` / `selectTips({})` return
+  // the module-level DEFAULT_TIPS reference (tips.test.ts asserts identity).
+  if (!avail && !override) return DEFAULT_TIPS;
+  const set = avail ? new Set(avail) : null;
+  const gated = set
+    ? DEFAULT_TIPS.filter((t) => !t.command || set.has(t.command))
+    : DEFAULT_TIPS;
+  if (!override) return gated === DEFAULT_TIPS ? DEFAULT_TIPS : gated;
+  // `excludeDefault: true` means "swap the rotation, don't append" — even when
+  // the user supplies no tips at all (a deliberate opt-out of the built-ins).
+  if (override.excludeDefault === true) return customTips;
+  return [...gated, ...customTips];
 }
 
 /**
