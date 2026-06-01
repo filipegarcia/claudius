@@ -39,6 +39,16 @@ export type Tip = {
    * tips stay portable across the `tips` SSE event.
    */
   requiresPlanModeNudge?: boolean;
+  /**
+   * New-user gate. When true, {@link selectClientTips} surfaces the tip only
+   * if its `newUser` flag is also true — i.e. this browser has opened
+   * Claudius fewer than N times (caller decides the threshold via
+   * `useStartupCount`, today `< 10` to match the Claude Code TUI's
+   * `numStartups < 10` first-run gate on the `id:"powerup-onboarding"` tip).
+   * Serialized as a plain boolean so tips stay portable across the `tips`
+   * SSE event.
+   */
+  requiresNewUser?: boolean;
 };
 
 // Each command below maps to a native, non-destructive handler in the chat
@@ -136,6 +146,22 @@ export const DEFAULT_TIPS: Tip[] = [
     text: "Liked Plan Mode? Make it sticky in Workspace settings → Permission mode (it'll apply to every new session here).",
     requiresPlanModeNudge: true,
   },
+  {
+    // First-run-only nudge mirroring the Claude Code TUI's
+    // `id:"powerup-onboarding"` tip with its `numStartups < 10` gate (see
+    // `selectClientTips`'s `newUser` option). Command-less because /powerup
+    // is `external` in our registry — clicking would just toast "terminal/
+    // hosted only," self-defeating for a tip pitching the command. The text
+    // names /powerup so the user can run it themselves. The TUI's
+    // `cooldownSessions:1` and `powerupsUnlocked` gates are intentionally not
+    // mirrored: Claudius's dismiss-weighting
+    // (DISMISSED_TIP_SHOW_PROBABILITY) covers the same "stop showing this"
+    // intent, and /powerup being external means we can't observe engagement
+    // anyway.
+    id: "powerup-onboarding",
+    text: "New to Claudius? Run /powerup for a quick interactive tutorial.",
+    requiresNewUser: true,
+  },
 ];
 
 /**
@@ -166,18 +192,24 @@ export function selectTips(opts?: { availableCommands?: readonly string[] }): Ti
  * caller's `planModeNudgeEligible` is not true (default false) — the
  * post-Plan-Mode follow-up nudge ("make it sticky") only surfaces after the
  * user has actually exercised Plan Mode and hasn't yet persisted a default
- * permission mode. Pure so it stays unit-testable and so the renderer doesn't
- * have to re-derive the filter on every interval tick.
+ * permission mode. Also drops any tip whose `requiresNewUser` is true when
+ * the caller's `newUser` is not true (default false) — the `/powerup`
+ * onboarding nudge surfaces only on the first ~N launches in this browser
+ * (mirrors the Claude Code TUI's `numStartups < 10` first-run gate). Pure so
+ * it stays unit-testable and so the renderer doesn't have to re-derive the
+ * filter on every interval tick.
  */
 export function selectClientTips(
   tips: readonly Tip[],
   activeSessionCount: number,
-  opts?: { planModeNudgeEligible?: boolean },
+  opts?: { planModeNudgeEligible?: boolean; newUser?: boolean },
 ): Tip[] {
   const planModeNudgeEligible = opts?.planModeNudgeEligible === true;
+  const newUser = opts?.newUser === true;
   return tips.filter((t) => {
     if ((t.minSessions ?? 0) > activeSessionCount) return false;
     if (t.requiresPlanModeNudge && !planModeNudgeEligible) return false;
+    if (t.requiresNewUser && !newUser) return false;
     return true;
   });
 }

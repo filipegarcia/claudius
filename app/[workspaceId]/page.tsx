@@ -84,6 +84,7 @@ import { findSlashCommand } from "@/lib/shared/slash-commands";
 import { DEFAULT_TIPS, selectClientTips } from "@/lib/shared/tips";
 import { useWorkspaces } from "@/lib/client/useWorkspaces";
 import { useVerbose } from "@/lib/client/useVerbose";
+import { useStartupCount } from "@/lib/client/useStartupCount";
 
 type OverlayKind = "help" | "skills" | "cost" | "status" | "rename" | "context" | "worktrees" | null;
 
@@ -157,6 +158,10 @@ export default function Home() {
     setPlanModeUsed(true);
   }
   const verbose = useVerbose(activeWorkspaceId);
+  // Per-browser launch counter for first-run tip gating. `< 10` mirrors the
+  // Claude Code TUI's `numStartups < 10` first-run gate on the `/powerup`
+  // onboarding nudge — bumped once per chat-page load (see useStartupCount).
+  const startupCount = useStartupCount();
   const [draftInjection, setDraftInjection] = useState<
     { token: number; text: string; images?: AttachedImage[] } | undefined
   >(undefined);
@@ -1332,7 +1337,8 @@ export default function Home() {
             onRunCommand={handleSend}
             // Filter conditional tips (e.g. multi-Claude color/rename nudge,
             // gated on 2+ open tabs; the post-Plan-Mode "make it sticky"
-            // nudge, gated on `planModeUsed && !defaults.permissionMode`)
+            // nudge, gated on `planModeUsed && !defaults.permissionMode`;
+            // the /powerup onboarding nudge, gated on `startupCount < 10`)
             // before they hit the rotation. Falling back to DEFAULT_TIPS
             // *before* filtering closes the pre-SSE window where SpinnerTip
             // would otherwise use its own unfiltered fallback and surface
@@ -1343,6 +1349,7 @@ export default function Home() {
               {
                 planModeNudgeEligible:
                   planModeUsed && !activeWorkspace?.defaults?.permissionMode,
+                newUser: startupCount < 10,
               },
             )}
             suggestedUuids={session.suggestedUuids}

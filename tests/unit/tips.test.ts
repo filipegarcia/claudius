@@ -165,6 +165,38 @@ describe("selectClientTips", () => {
       ),
     ).toBeTruthy();
   });
+
+  test("drops the new-user tip by default", () => {
+    const onboardingTip = { id: "powerup", text: "run /powerup", requiresNewUser: true };
+    expect(selectClientTips([onboardingTip], 1).map((t) => t.id)).not.toContain("powerup");
+    expect(
+      selectClientTips([onboardingTip], 1, { newUser: false }).map((t) => t.id),
+    ).not.toContain("powerup");
+  });
+
+  test("surfaces the new-user tip only when newUser is true", () => {
+    const onboardingTip = { id: "powerup", text: "run /powerup", requiresNewUser: true };
+    expect(
+      selectClientTips([onboardingTip], 1, { newUser: true }).map((t) => t.id),
+    ).toContain("powerup");
+  });
+
+  test("the bundled powerup-onboarding tip is gated on newUser", () => {
+    const tip = DEFAULT_TIPS.find((t) => t.id === "powerup-onboarding");
+    expect(tip).toBeTruthy();
+    expect(tip?.requiresNewUser).toBe(true);
+    // Hidden by default and when explicitly ineligible.
+    expect(
+      selectClientTips(DEFAULT_TIPS, 1).find((t) => t.id === tip!.id),
+    ).toBeUndefined();
+    expect(
+      selectClientTips(DEFAULT_TIPS, 1, { newUser: false }).find((t) => t.id === tip!.id),
+    ).toBeUndefined();
+    // Surfaces once the caller flags the user as new.
+    expect(
+      selectClientTips(DEFAULT_TIPS, 1, { newUser: true }).find((t) => t.id === tip!.id),
+    ).toBeTruthy();
+  });
 });
 
 describe("selectTips", () => {
