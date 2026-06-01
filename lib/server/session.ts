@@ -117,6 +117,55 @@ export function ultrathinkReminderBody(text: string): string | null {
   );
 }
 
+/**
+ * Local-calendar key (YYYY-MM-DD) built from `Date.getFullYear/Month/Date` —
+ * NOT `toISOString().slice(0,10)`, which rolls at UTC midnight and would
+ * fire the date-change reminder a fixed number of hours off the user's
+ * actual wall clock. Used as the equality comparison for the date-change
+ * detector below; exported so the unit test can pin a deterministic key
+ * for any synthetic `Date`.
+ */
+export function localDateKey(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+/**
+ * Claude Code TUI parity (28-date-change-silent-reminder): when the local
+ * calendar date rolls over mid-session, the harness silently injects an
+ * ambient `<system-reminder>` updating the model's notion of "today" — and
+ * tells it NOT to surface the rollover, on the assumption the user already
+ * knows. The literal-string contract (matched here verbatim) is:
+ *
+ *   The date has changed. Today's date is now <date>. DO NOT mention this
+ *   to the user explicitly because they are already aware.
+ *
+ * Returns the reminder body (without the wrapper tag) when `prevKey` differs
+ * from the local-date key of `now`, or `null` when same-day (no rollover).
+ *
+ * Why prose `<date>` instead of just the key: a human-readable date matches
+ * the CLI rendering and is what the model treats as "today" downstream.
+ *
+ * Pure helper — no Session lifecycle involved — exported so the unit test
+ * can exercise same-day, next-day, and year-boundary cases without
+ * constructing a Session.
+ */
+export function dateChangeReminderBody(prevKey: string, now: Date): string | null {
+  const todayKey = localDateKey(now);
+  if (todayKey === prevKey) return null;
+  // Match the CLI's date rendering shape — full weekday + month + day + year
+  // in the user's local time zone. `toDateString()` gives the same fields
+  // the SDK's system prompt builder uses, keeping the model's two date
+  // sources (start-of-session prompt + this nudge) phrased consistently.
+  const today = now.toDateString();
+  return (
+    `The date has changed. Today's date is now ${today}. ` +
+    "DO NOT mention this to the user explicitly because they are already aware."
+  );
+}
+
 type Subscriber = (event: ServerEvent) => void;
 
 /**
@@ -542,6 +591,24 @@ export class Session {
    * marked announced and skips the turn injection.
    */
   private goalAnnounced = false;
+
+  /**
+   * Local-calendar date the agent last saw, in `YYYY-MM-DD` LOCAL form
+   * (see `localDateKey`). Initialized lazily on the first real user turn
+   * — so the very first prompt of a session never fires the rollover
+   * reminder (the SDK system prompt already carries today's date) — and
+   * compared on every subsequent turn. When it differs from today's local
+   * key, `sendInput` queues a `date-change` reminder mirroring the CLI's
+   * ambient nudge and updates the field to today's key.
+   *
+   * Intentionally NOT persisted via `mergeSessionState`: every `start()`
+   * (including resume) rebuilds the system prompt with today's date, so a
+   * persisted yesterday key would fire a spurious rollover on every
+   * next-day resume. In-memory only means the worst case is a missed
+   * fire when a session is restarted across midnight — which is harmless
+   * because the fresh system prompt already covered the change.
+   */
+  private lastSeenLocalDate: string | null = null;
 
   /**
    * User-scope `settings.json` config for the spinner-tip rotation (CLI parity:
@@ -1464,6 +1531,24 @@ export class Session {
         uuid,
       });
       return;
+    }
+
+    // Date-change ambient reminder (Claude Code TUI parity, feature 28).
+    // First real user turn baselines `lastSeenLocalDate` and does NOT fire
+    // — the SDK system prompt already announced today's date at start().
+    // Every subsequent turn compares today's local-calendar key against
+    // the baseline and, when they differ (session lived through midnight),
+    // queues an ambient `<system-reminder>` whose literal body matches the
+    // CLI's "DO NOT mention this to the user" wording so the rollover stays
+    // model-only. Same channel/ordering as the ultrathink scan below — the
+    // drain in both branches rides this turn.
+    const todayKey = localDateKey(new Date());
+    if (this.lastSeenLocalDate === null) {
+      this.lastSeenLocalDate = todayKey;
+    } else if (this.lastSeenLocalDate !== todayKey) {
+      const body = dateChangeReminderBody(this.lastSeenLocalDate, new Date());
+      if (body) queueReminder(this, "date-change", body);
+      this.lastSeenLocalDate = todayKey;
     }
 
     // Prose-keyword scan for `ultrathink` (Claude Code TUI parity, feature 27).
