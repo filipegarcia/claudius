@@ -137,6 +137,7 @@ export type SystemEntry = {
     | "rate_limit"
     | "api_retry"
     | "permission_denied"
+    | "model_fallback"
     | "info";
   label: string;
   detail?: string;

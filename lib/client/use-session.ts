@@ -2915,6 +2915,36 @@ export function useSession(): ChatState & ChatActions {
           }
           return;
         }
+        // Automatic model-fallback announcement (Options.fallbackModel kicked in).
+        // The SDK emits one of these when the primary model is overloaded or
+        // returns model_not_found — the spawned `claude` binary builds the same
+        // "Switched to <new> because <old> is not available [due to high demand
+        // for <old>]" string the CLI prints. Reuse `content` verbatim so the
+        // wording tracks the SDK (it varies by `trigger`: `overloaded` adds the
+        // high-demand suffix, `model_not_found` doesn't).
+        if (sysAny.subtype === "model_fallback") {
+          const f = sysAny as unknown as {
+            trigger?: "overloaded" | "model_not_found";
+            original_model?: string;
+            fallback_model?: string;
+            content?: string;
+          };
+          const label =
+            (typeof f.content === "string" && f.content.trim()) ||
+            (f.fallback_model && f.original_model
+              ? `Switched to ${f.fallback_model} because ${f.original_model} is not available`
+              : "Switched models");
+          setSystemEntries((prev) => [
+            ...prev,
+            {
+              ...baseEntry,
+              kind: "model_fallback",
+              label,
+              detail: f.trigger,
+            },
+          ]);
+          return;
+        }
         // Drop SDK system plumbing that carries no user-facing value instead
         // of rendering it as a cryptic `system/<subtype ?? "?">` pill. The
         // Ralph-loop Stop hook fires a `stop_hook_summary` per iteration whose
