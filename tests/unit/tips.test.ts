@@ -220,4 +220,68 @@ describe("selectTips", () => {
     const none = selectTips({ availableCommands: [] });
     expect(none.every((t) => !t.command)).toBe(true);
   });
+
+  test("spinnerTipsEnabled:false disables the rotation entirely", () => {
+    expect(selectTips({ spinnerTipsEnabled: false })).toEqual([]);
+    // Still empty even with an override supplied — disabled wins.
+    expect(
+      selectTips({
+        spinnerTipsEnabled: false,
+        spinnerTipsOverride: { tips: ["custom"] },
+      }),
+    ).toEqual([]);
+  });
+
+  test("spinnerTipsOverride appends custom tips by default", () => {
+    const result = selectTips({
+      spinnerTipsOverride: { tips: ["First custom", "Second custom"] },
+    });
+    expect(result).not.toBe(DEFAULT_TIPS);
+    // Defaults are preserved at the head, custom tips appended at the tail.
+    expect(result.slice(0, DEFAULT_TIPS.length)).toEqual(DEFAULT_TIPS);
+    expect(result[DEFAULT_TIPS.length]).toEqual({
+      id: "custom-tip-0",
+      text: "First custom",
+    });
+    expect(result[DEFAULT_TIPS.length + 1]).toEqual({
+      id: "custom-tip-1",
+      text: "Second custom",
+    });
+  });
+
+  test("spinnerTipsOverride with excludeDefault:true replaces the catalog", () => {
+    const result = selectTips({
+      spinnerTipsOverride: { excludeDefault: true, tips: ["Only this"] },
+    });
+    expect(result).toEqual([{ id: "custom-tip-0", text: "Only this" }]);
+  });
+
+  test("spinnerTipsOverride with excludeDefault:true and no tips opts out of every built-in", () => {
+    // Mirrors the CLI shape: the user has deliberately silenced the default
+    // rotation without supplying replacements.
+    expect(
+      selectTips({ spinnerTipsOverride: { excludeDefault: true } }),
+    ).toEqual([]);
+    expect(
+      selectTips({ spinnerTipsOverride: { excludeDefault: true, tips: [] } }),
+    ).toEqual([]);
+  });
+
+  test("spinnerTipsOverride trims and drops empty entries", () => {
+    const result = selectTips({
+      spinnerTipsOverride: { excludeDefault: true, tips: ["  padded  ", "", "   "] },
+    });
+    expect(result).toEqual([{ id: "custom-tip-0", text: "padded" }]);
+  });
+
+  test("availableCommands gating composes with override append", () => {
+    const result = selectTips({
+      availableCommands: ["agents"],
+      spinnerTipsOverride: { tips: ["Custom"] },
+    });
+    // No /mcp tip (gated), /agents tip present, custom tip at the tail.
+    expect(result.some((t) => t.command === "mcp")).toBe(false);
+    expect(result.some((t) => t.command === "agents")).toBe(true);
+    expect(result[result.length - 1]).toEqual({ id: "custom-tip-0", text: "Custom" });
+  });
 });

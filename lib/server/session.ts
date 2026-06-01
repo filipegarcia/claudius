@@ -465,6 +465,20 @@ export class Session {
    */
   private goalAnnounced = false;
 
+  /**
+   * User-scope `settings.json` config for the spinner-tip rotation (CLI parity:
+   * `spinnerTipsEnabled` / `spinnerTipsOverride`). Cached at `start()` because
+   * the per-subscriber `subscribe()` path emits the `tips` SSE event on every
+   * reconnect — re-reading settings there would mean a disk read per attach.
+   * Settings changes take effect on the next session start, matching how the
+   * other settings-backed Options (promptSuggestionEnabled, includeCoAuthoredBy)
+   * already behave.
+   */
+  private spinnerTipsConfig: {
+    enabled?: boolean;
+    override?: { excludeDefault?: boolean; tips?: readonly string[] };
+  } = {};
+
   constructor(opts: {
     id?: string;
     cwd?: string;
@@ -651,6 +665,29 @@ export class Session {
     const userSettings = await readSettings("user", this.cwd).catch(
       () => ({}) as ClaudeSettings,
     );
+    // Cache the spinner-tips knobs so the per-subscriber `subscribe()` path
+    // can compose them into `selectTips()` without a disk read on every
+    // attach. See the `spinnerTipsConfig` field for the rationale.
+    this.spinnerTipsConfig = {
+      enabled:
+        typeof userSettings.spinnerTipsEnabled === "boolean"
+          ? userSettings.spinnerTipsEnabled
+          : undefined,
+      override:
+        userSettings.spinnerTipsOverride &&
+        typeof userSettings.spinnerTipsOverride === "object" &&
+        !Array.isArray(userSettings.spinnerTipsOverride)
+          ? {
+              excludeDefault:
+                userSettings.spinnerTipsOverride.excludeDefault === true,
+              tips: Array.isArray(userSettings.spinnerTipsOverride.tips)
+                ? userSettings.spinnerTipsOverride.tips.filter(
+                    (t): t is string => typeof t === "string",
+                  )
+                : undefined,
+            }
+          : undefined,
+    };
 
     // Unify everything that appends to the Claude Code system-prompt preset
     // into ONE `systemPrompt.append`. Two sources can contribute: the session
@@ -2533,7 +2570,16 @@ export class Session {
     // turn_status / mode_changed above) rather than via the buffer, so every
     // reload/tab gets the current list and it never needs replay handling.
     // `selectTips()` is the seam where contextual gating / a backend feed go.
-    fn({ type: "tips", tips: selectTips() });
+    // The `spinnerTipsConfig` cache feeds the CLI-parity user-settings knobs
+    // (`spinnerTipsEnabled` / `spinnerTipsOverride`) without a per-attach
+    // disk read.
+    fn({
+      type: "tips",
+      tips: selectTips({
+        spinnerTipsEnabled: this.spinnerTipsConfig.enabled,
+        spinnerTipsOverride: this.spinnerTipsConfig.override,
+      }),
+    });
     // Re-emit the agent's effective working directory for the same
     // tail-truncation reason as `mode_changed`/`turn_status` above. The
     // `cwd_changed` event that moved the agent into a git worktree is

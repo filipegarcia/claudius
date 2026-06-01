@@ -27,6 +27,20 @@ export type ClaudeSettings = {
   // true, prompt suggestions are enabled." Read at session start in
   // `session.ts` and forwarded to the SDK's `Options.promptSuggestions`.
   promptSuggestionEnabled?: boolean;
+  // Rotating spinner tips ("Tip: …" under the working spinner). Mirrors the
+  // Claude Code CLI keys: `false` disables the rotation entirely, omitted/true
+  // leaves it on. Read at session start and forwarded to `selectTips()` via the
+  // cached `spinnerTipsConfig` on Session.
+  spinnerTipsEnabled?: boolean;
+  // Per-user override for the spinner-tip rotation. Mirrors the CLI shape:
+  // `{ excludeDefault?: boolean, tips?: string[] }`. When `tips` is a non-empty
+  // string list, each entry is mapped to a `custom-tip-${index}` Tip object
+  // with no command. When `excludeDefault` is true, the override REPLACES the
+  // built-in catalog; otherwise the override entries are appended to it.
+  // Unlike built-in tips, custom tips intentionally have no `requires*` gates
+  // and (matching the CLI's `cooldownSessions:0` for overrides) ride the same
+  // dismiss-weighting as everything else — see DISMISSED_TIP_SHOW_PROBABILITY.
+  spinnerTipsOverride?: { excludeDefault?: boolean; tips?: string[] };
   // Catch-all for keys we don't yet know about — we never strip them.
   [key: string]: unknown;
 };
