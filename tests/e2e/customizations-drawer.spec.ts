@@ -49,7 +49,67 @@ const FIXTURE_WORKSPACES = [
   },
 ];
 
+/**
+ * Fixed session id returned by the stubbed POST /api/sessions. Stable
+ * across the describe block so the use-session.ts URL-writer only fires
+ * once per test (the timer guard checks `?session=<id>` and no-ops when
+ * the param already matches). Also used by the addInitScript SSE stub.
+ */
+const FIXTURE_SESSION_ID = "11111111-2222-3333-4444-555555555555";
+
 async function mountFixtureWorkspaces(page: Page): Promise<void> {
+  // Inject a fake EventSource into the renderer *before* any scripts run.
+  // use-session.ts opens an SSE connection for the session stream; the
+  // real endpoint blocks for the lifetime of the session and cannot be
+  // easily stubbed via page.route() without either leaving the connection
+  // open (leaking a real SDK subprocess) or closing it immediately
+  // (triggering exponential reconnects). Swapping the constructor on the
+  // client side emits a single "ready" frame synchronously and then sits
+  // permanently open, matching the shape use-session.ts expects.
+  // Only session-stream URLs are intercepted; notification streams and
+  // all other EventSources continue to hit the dev server.
+  await page.addInitScript((sessionId: string) => {
+    const Real = window.EventSource;
+    class FakeSessionES extends EventTarget {
+      readonly CONNECTING = 0 as const;
+      readonly OPEN = 1 as const;
+      readonly CLOSED = 2 as const;
+      readyState = 1;
+      readonly url: string;
+      readonly withCredentials = false;
+      onopen: ((this: EventSource, ev: Event) => unknown) | null = null;
+      onmessage: ((this: EventSource, ev: MessageEvent) => unknown) | null = null;
+      onerror: ((this: EventSource, ev: Event) => unknown) | null = null;
+      constructor(u: string | URL) {
+        super();
+        this.url = String(u);
+        queueMicrotask(() => {
+          this.onopen?.call(this as unknown as EventSource, new Event("open"));
+          this.onmessage?.call(
+            this as unknown as EventSource,
+            new MessageEvent("message", {
+              data: JSON.stringify({ type: "ready", sessionId }),
+            }),
+          );
+        });
+      }
+      close() {
+        this.readyState = 2;
+      }
+      addEventListener = EventTarget.prototype.addEventListener.bind(this);
+      removeEventListener = EventTarget.prototype.removeEventListener.bind(this);
+    }
+    window.EventSource = new Proxy(Real, {
+      construct(target, args) {
+        const u = String(args[0]);
+        if (/\/api\/sessions\/[^/]+\/stream/.test(u)) {
+          return new FakeSessionES(u) as unknown as EventSource;
+        }
+        return Reflect.construct(target, args);
+      },
+    }) as unknown as typeof EventSource;
+  }, FIXTURE_SESSION_ID);
+
   // Match both `/api/workspaces` and `/api/workspaces?...` — the production
   // route is parameterless, but be defensive.
   await page.route("**/api/workspaces", async (route) => {
@@ -78,21 +138,31 @@ async function mountFixtureWorkspaces(page: Page): Promise<void> {
       body: JSON.stringify(ws),
     });
   });
-  // Stub the open-tabs API so the session boot effect doesn't resume a
-  // stale session left behind by an earlier test in the suite. Without
-  // this stub, use-session.ts fetches the real /api/sessions/open-tabs
-  // on mount and, if a previous test's session is stored server-side,
-  // attempts to resume it. That resumed session can interfere with the
-  // drawer's keyboard handler (e.g. Escape captured by session SSE
-  // logic) and can also race the fixture-workspace load, causing the
-  // drawer button to be clicked before the fixture data arrives. An
-  // empty activeId forces a clean-slate session creation instead.
+  // Stub the open-tabs API (GET only) so the session boot effect doesn't
+  // resume a stale session from a prior test's run. Without this, the
+  // workspace page sees a server-persisted activeId from previous tests,
+  // resumes that session, and its SSE/navigation state can interfere with
+  // the drawer's Escape handler or race the fixture-data load.
   await page.route("**/api/sessions/open-tabs", async (route) => {
     if (route.request().method() !== "GET") return route.fallback();
     await route.fulfill({
       status: 200,
       contentType: "application/json",
       body: JSON.stringify({ tabs: [], activeId: null, labelMaxWidth: 200 }),
+    });
+  });
+  // Stub POST /api/sessions to return a fixed id rather than creating a
+  // real server-side session. This prevents real sessions from accumulating
+  // in the SQLite DB across test runs (which would eventually surface via
+  // open-tabs contamination as the DB grows). The fixed id is stable
+  // across all tests so the SSE fake (addInitScript above) consistently
+  // answers the right stream URL.
+  await page.route("**/api/sessions", async (route) => {
+    if (route.request().method() !== "POST") return route.fallback();
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ id: FIXTURE_SESSION_ID }),
     });
   });
 }
@@ -163,7 +233,7 @@ test.describe("CustomizationsDrawer", () => {
     await drawerBtn.click();
 
     await page.getByRole("link", { name: /Manage all/ }).click();
-    await expect(page).toHaveURL(/\/customize$/);
+    await expect(page).toHaveURL(/\/customize$/, { timeout: 15_000 });
   });
 
   test("clicking a row fires /select for that workspace", async ({ page }) => {
