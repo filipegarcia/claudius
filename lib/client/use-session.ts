@@ -517,6 +517,15 @@ export function useSession(): ChatState & ChatActions {
   const [fastModeNotice, setFastModeNotice] = useState<
     { uuid: string; kind: "cooldown" | "recovered" } | null
   >(null);
+  // Transient toast for a rejected `/model` switch — the local analogue of the
+  // TUI's "Remote session couldn't switch to <model>" notice. Fires when the
+  // POST /api/sessions/<id>/model round-trip returns a non-ok result (SDK
+  // rejection); the picker's optimistic state has already flipped, so the
+  // toast carries the *attempted* model and the `setModel` callback also
+  // reverts to the authoritative value the server returns.
+  const [modelSwitchNotice, setModelSwitchNotice] = useState<
+    { uuid: string; attempted: string | null; error: string } | null
+  >(null);
   // Prior fast_mode_state observed on a result event. Used to detect edges
   // without depending on the (stale-in-closure) `fastModeState` state value.
   const prevFastModeStateRef = useRef<"off" | "cooldown" | "on" | null>(null);
@@ -3598,6 +3607,10 @@ export function useSession(): ChatState & ChatActions {
     setFastModeNotice(null);
   }, []);
 
+  const dismissModelSwitchNotice = useCallback(() => {
+    setModelSwitchNotice(null);
+  }, []);
+
   const interrupt = useCallback(async () => {
     const id = sessionIdRef.current;
     if (!id) return;
@@ -3710,11 +3723,34 @@ export function useSession(): ChatState & ChatActions {
     const id = sessionIdRef.current;
     if (!id) return;
     setModelState(m);
-    await fetch(`/api/sessions/${id}/model`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ model: m }),
-    }).catch(() => {});
+    try {
+      const r = await fetch(`/api/sessions/${id}/model`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ model: m }),
+      });
+      if (!r.ok) {
+        // SDK rejected the switch (route returns 409 + the authoritative
+        // current model). Revert to what the server reports — using the
+        // response avoids reading a stale closure of `model` here — and
+        // raise the transient toast so the user sees why the picker
+        // didn't take.
+        const body = (await r.json().catch(() => ({}))) as {
+          error?: string;
+          model?: string | null;
+        };
+        setModelState(typeof body.model === "string" ? body.model : null);
+        setModelSwitchNotice({
+          uuid: crypto.randomUUID(),
+          attempted: m,
+          error: body.error ?? `HTTP ${r.status}`,
+        });
+      }
+    } catch {
+      // Network blip — leave the optimistic state and let the next event /
+      // refresh reconcile. We deliberately don't toast here: a transient
+      // network error isn't a model rejection.
+    }
   }, []);
 
   /**
@@ -3916,6 +3952,7 @@ export function useSession(): ChatState & ChatActions {
     pendingPlan,
     fastModeState,
     fastModeNotice,
+    modelSwitchNotice,
     promptSuggestions,
     suggestedUuids,
     goalUuids,
@@ -3940,6 +3977,7 @@ export function useSession(): ChatState & ChatActions {
     dismissFeedback,
     dismissOpusOverloadNudge,
     dismissFastModeNotice,
+    dismissModelSwitchNotice,
     interrupt,
     setPermissionMode,
     setModel,

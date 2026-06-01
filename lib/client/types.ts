@@ -455,6 +455,19 @@ export type ChatState = {
    * a fast-mode reason nor a fast-mode reset timestamp.
    */
   fastModeNotice: { uuid: string; kind: "cooldown" | "recovered" } | null;
+  /**
+   * Transient toast for a rejected `/model` switch. Mirrors the Claude Code
+   * TUI's "Remote session couldn't switch to <model>" notice (PARTIAL — no
+   * remote/teleport concept exists in Claudius; this is the local analogue
+   * surfacing an SDK `setModel` rejection that `lib/server/session.ts`
+   * previously swallowed). `attempted` carries the model the user picked,
+   * not the one currently active.
+   */
+  modelSwitchNotice: {
+    uuid: string;
+    attempted: string | null;
+    error: string;
+  } | null;
   promptSuggestions: string[];
   /**
    * Uuids of user messages that originated from a clicked suggestion chip.
@@ -667,6 +680,8 @@ export type ChatActions = {
   dismissOpusOverloadNudge(): void;
   /** Dismiss the transient fast-mode transition toast. Client-side only. */
   dismissFastModeNotice(): void;
+  /** Dismiss the transient model-switch-rejected toast. Client-side only. */
+  dismissModelSwitchNotice(): void;
 };
 
 export type ServerEventEnvelope = ServerEvent;

@@ -17,6 +17,7 @@ import {
   OPUS_OVERLOAD_NUDGE_SONNET_TARGET,
 } from "@/components/chat/OpusOverloadNudgePanel";
 import { FastModeNoticePanel } from "@/components/chat/FastModeNoticePanel";
+import { ModelSwitchNoticePanel } from "@/components/chat/ModelSwitchNoticePanel";
 import { PromptInput } from "@/components/chat/PromptInput";
 import { PermissionPrompt } from "@/components/chat/PermissionPrompt";
 import { AskUserQuestionPrompt } from "@/components/chat/AskUserQuestionPrompt";
@@ -1335,6 +1336,10 @@ export default function Home() {
         <FastModeNoticePanel
           notice={session.fastModeNotice}
           onDismiss={session.dismissFastModeNotice}
+        />
+        <ModelSwitchNoticePanel
+          notice={session.modelSwitchNotice}
+          onDismiss={session.dismissModelSwitchNotice}
         />
         <div className="flex flex-1 flex-col overflow-hidden">
           {searchOpen && (
