@@ -296,6 +296,38 @@ export function autoModeExitReminderBody(): string {
 }
 
 /**
+ * Claude Code TUI parity (37-midturn-message-inject-reminders): when the user
+ * sends a follow-up message while a turn is still in flight, the CLI wraps
+ * the inject with a forceful "MUST address" directive plus an explicit
+ * "this is an automated reminder, not user acknowledgement" marker. The
+ * goal is to keep the model from treating the late message as a fresh
+ * acknowledgement of completed work — it's a new task the user wants
+ * addressed once the current one wraps.
+ *
+ * Deviation from the CLI prose: the CLI says "address the user's message
+ * **above**" because its inject lands after the user's text. Claudius
+ * prepends the `<system-reminder>` (see `takePendingReminders` drain in
+ * `sendInput`), so the user's text falls BELOW the wrapper — we phrase
+ * accordingly. We also omit the peer/coordinator-only "NOT a message
+ * from the user" framing: the message genuinely IS from the user; only
+ * the directive to address it is automated. Mislabeling would be a
+ * correctness error, not a wording quibble. The peer/coordinator variants
+ * have no analogue in Claudius today (no multi-session coordination
+ * wiring) so they are intentionally not modelled here.
+ *
+ * Stateless (no args, frozen constant) so unlike `planModeReentryReminderBody`
+ * we can return a literal — same shape as `autoModeExitReminderBody`.
+ */
+export function midturnInjectReminderBody(): string {
+  return (
+    "The user sent the message that follows while you were still working on " +
+    "the previous turn. After completing your current task, you MUST " +
+    "address that message. Do not ignore it. This is an automated " +
+    "reminder — the user has NOT acknowledged that the prior task is done."
+  );
+}
+
+/**
  * Structured delta of MCP server transitions feeding `mcpDeltaReminderBody`.
  *
  * Each list is a set of server names — `added` for newly available servers
@@ -1869,6 +1901,13 @@ export class Session {
     // is an inert dedup key, not a security issue).
     const uuid = (opts?.uuid ?? randomUUID()) as ReturnType<typeof randomUUID>;
 
+    // Mid-turn capture (Claude Code TUI parity, feature 37). True when a
+    // previous turn was still running when this `sendInput` was called —
+    // i.e. the user (or any future coordinator/peer hook) typed during an
+    // in-flight turn. Must be read BEFORE `turnInFlight` is set to true
+    // below, otherwise every send looks mid-turn against itself.
+    const wasMidTurn = this.turnInFlight;
+
     // Stamp the bus so the next `result` after this turn counts as "idle"
     // (i.e. crossed the IDLE_NOTIFY_MIN_MS threshold). Without this the
     // bus suppresses idle notifications because it never saw a user-input
@@ -1948,6 +1987,16 @@ export class Session {
     // reminder).
     const ultrathinkBody = ultrathinkReminderBody(text);
     if (ultrathinkBody) queueReminder(this, "ultrathink-prose", ultrathinkBody);
+
+    // Mid-turn user inject nudge (Claude Code TUI parity, feature 37). When
+    // the user submits a follow-up while a previous turn is still running,
+    // wrap the queued content in a forceful "MUST address" reminder so the
+    // model doesn't read the late message as a fresh acknowledgement. Same
+    // drain channel as the scans above — rides THIS message (the mid-turn
+    // one), matching the back-to-back queue/drain ordering. Placed after
+    // the slash-command early-return so a mid-turn `/compact` doesn't burn
+    // a reminder onto a synthetic slash invocation.
+    if (wasMidTurn) queueReminder(this, "midturn-inject", midturnInjectReminderBody());
 
     // Linter-modified-file scan (Claude Code TUI parity, feature 29). Walks
     // the post-Edit/Write hash snapshots captured by the PostToolUse hook
