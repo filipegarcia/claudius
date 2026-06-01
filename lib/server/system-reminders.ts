@@ -29,7 +29,8 @@ export type ReminderKind =
   | "verify-plan"
   | "ultrathink-prose"
   | "ultraplan-prose"
-  | "midturn-inject";
+  | "midturn-inject"
+  | "linter-modified-file";
 
 /**
  * Minimal structural host. Anything with a stable `id` will do — keeping

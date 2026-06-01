@@ -1,5 +1,5 @@
-import { randomUUID } from "node:crypto";
-import { watch as watchFs, type FSWatcher, promises as fsp } from "node:fs";
+import { createHash, randomUUID } from "node:crypto";
+import { watch as watchFs, readFileSync, type FSWatcher, promises as fsp } from "node:fs";
 import {
   createSdkMcpServer,
   getSessionInfo,
@@ -15,6 +15,7 @@ import {
   type Options,
   type PermissionMode,
   type PermissionResult,
+  type PostToolUseHookInput,
   type PreToolUseHookInput,
   type Query,
   type SDKMessage,
@@ -164,6 +165,39 @@ export function dateChangeReminderBody(prevKey: string, now: Date): string | nul
     `The date has changed. Today's date is now ${today}. ` +
     "DO NOT mention this to the user explicitly because they are already aware."
   );
+}
+
+/**
+ * Claude Code TUI parity (29-linter-modified-file-reminder): when a formatter
+ * or linter rewrites a file Claude just wrote, the next turn carries an
+ * ambient `<system-reminder>` telling Claude the post-write change was
+ * intentional and not to revert it. The literal CLI prose (matched here
+ * verbatim apart from the file-name interpolation) is:
+ *
+ *   <path> was modified, either by the user or by a linter. This change
+ *   was intentional, so make sure to take it into account as you proceed
+ *   (ie. don't revert it unless the user asks you to). Don't tell the
+ *   user this, since they are already aware.
+ *
+ * One reminder per modified path, joined into a single block — the agent
+ * sees the full list in one go without N separate wrappers (each of which
+ * would be re-introduced + re-suppressed by `cleanReminders`). When no
+ * paths changed, returns null and the caller skips queueing.
+ *
+ * Pure helper — no Session lifecycle — so the unit test can pin the
+ * literal text without constructing a Session.
+ */
+export function linterModifiedReminderBody(paths: readonly string[]): string | null {
+  if (paths.length === 0) return null;
+  return paths
+    .map(
+      (p) =>
+        `${p} was modified, either by the user or by a linter. ` +
+        "This change was intentional, so make sure to take it into account " +
+        "as you proceed (ie. don't revert it unless the user asks you to). " +
+        "Don't tell the user this, since they are already aware.",
+    )
+    .join("\n\n");
 }
 
 type Subscriber = (event: ServerEvent) => void;
@@ -611,6 +645,26 @@ export class Session {
   private lastSeenLocalDate: string | null = null;
 
   /**
+   * Post-Edit/Write file-content hashes, keyed by absolute path. Populated by
+   * the programmatic `PostToolUse` hook (last write wins per path) and
+   * consumed at the next user turn's `takePendingReminders` drain site:
+   * any path whose current on-disk SHA-256 differs from the stored hash
+   * has been rewritten between turns — almost always a formatter or linter
+   * that ran in a user's `PostToolUse` command-hook, or a manual user edit.
+   * Either way the CLI parity behavior is the same: queue a
+   * `linter-modified-file` reminder telling the model the post-write
+   * change was intentional.
+   *
+   * In-memory (not persisted via `mergeSessionState`): the lifetime is
+   * "between this Edit and the next user turn", and persisting hashes
+   * across a server restart would either fire stale reminders against
+   * files the user has since touched on their own or DB-write on every
+   * Edit. WeakMap-style scope to `this` matches the system-reminders
+   * queue and the `latestTodosSnapshot` field.
+   */
+  private postWriteSnapshots = new Map<string, string>();
+
+  /**
    * User-scope `settings.json` config for the spinner-tip rotation (CLI parity:
    * `spinnerTipsEnabled` / `spinnerTipsOverride`). Cached at `start()` because
    * the per-subscriber `subscribe()` path emits the `tips` SSE event on every
@@ -1046,6 +1100,54 @@ export class Session {
                 ) {
                   const wt = worktreeRootFromPath(target);
                   if (wt) this.broadcastCwd(wt);
+                }
+                return { continue: true };
+              },
+            ],
+          },
+        ],
+        // Snapshot the on-disk content right after Claude finishes an
+        // Edit/Write/MultiEdit/NotebookEdit so the next-turn drain in
+        // `sendInput` can detect post-write rewrites by a formatter, linter,
+        // or a manual user edit (CLI parity, feature 29-linter-modified-file).
+        // We hash whatever is on disk now — for Edit/MultiEdit the SDK's
+        // `tool_input` only carries `old_string→new_string` pairs, so a
+        // disk read is the only way to capture "what Claude actually left".
+        // Best-effort IO: missing/unreadable/binary files are silently
+        // skipped (no entry stored ⇒ no reminder fires next turn).
+        PostToolUse: [
+          {
+            hooks: [
+              async (input) => {
+                const post = input as PostToolUseHookInput;
+                if (
+                  !["Edit", "Write", "MultiEdit", "NotebookEdit"].includes(
+                    post.tool_name ?? "",
+                  )
+                ) {
+                  return { continue: true };
+                }
+                const ti = (post.tool_input ?? {}) as {
+                  file_path?: string;
+                  notebook_path?: string;
+                };
+                const target =
+                  typeof ti.file_path === "string"
+                    ? ti.file_path
+                    : typeof ti.notebook_path === "string"
+                    ? ti.notebook_path
+                    : null;
+                if (!target) return { continue: true };
+                try {
+                  const buf = await fsp.readFile(target);
+                  const hex = createHash("sha256").update(buf).digest("hex");
+                  // Last write wins per path: a subsequent edit in the same
+                  // turn replaces the prior hash so the diff at next-turn
+                  // drain reflects "post-last-write vs now".
+                  this.postWriteSnapshots.set(target, hex);
+                } catch {
+                  // File gone, unreadable, or binary-special — leaving the
+                  // map untouched means no false reminder fires next turn.
                 }
                 return { continue: true };
               },
@@ -1564,6 +1666,13 @@ export class Session {
     const ultrathinkBody = ultrathinkReminderBody(text);
     if (ultrathinkBody) queueReminder(this, "ultrathink-prose", ultrathinkBody);
 
+    // Linter-modified-file scan (Claude Code TUI parity, feature 29). Walks
+    // the post-Edit/Write hash snapshots captured by the PostToolUse hook
+    // and queues a reminder for any path the user's PostToolUse formatter
+    // (or the user themselves) rewrote between turns. Same drain channel
+    // as the nudges above — rides this turn.
+    this.flushLinterModifiedReminder();
+
     if (!images || images.length === 0) {
       const message = { role: "user" as const, content: text };
       this.broadcast({
@@ -1726,6 +1835,42 @@ export class Session {
       "Do not call it for partial progress.\n" +
       "</session-goal>\n\n"
     );
+  }
+
+  /**
+   * Claude Code TUI parity (29-linter-modified-file-reminder). Drains the
+   * post-Edit/Write hash snapshot map, re-hashes each path on disk, and
+   * queues a single `linter-modified-file` reminder naming every path
+   * whose hash differs from the value captured at PostToolUse. Always
+   * clears the map afterwards so the next turn starts clean.
+   *
+   * Called once per real user turn, just before the existing
+   * `takePendingReminders` drain at the inputQueue prepend site, so the
+   * reminder rides the same drain and lands in the same wrapper sequence
+   * as the date-change / ultrathink / goal nudges.
+   *
+   * Synchronous on purpose — keeps `sendInput`'s signature unchanged.
+   * The map is bounded by the number of files Claude edited in the
+   * previous turn (typically 1-3) and `readFileSync` is satisfied from
+   * the OS page cache for files Claude just wrote to.
+   */
+  private flushLinterModifiedReminder(): void {
+    if (this.postWriteSnapshots.size === 0) return;
+    const changed: string[] = [];
+    for (const [path, prevHash] of this.postWriteSnapshots) {
+      try {
+        const buf = readFileSync(path);
+        const nowHash = createHash("sha256").update(buf).digest("hex");
+        if (nowHash !== prevHash) changed.push(path);
+      } catch {
+        // File deleted, unreadable, or moved between turns — skip silently.
+        // A subsequent re-write will re-snapshot it; we'd rather miss one
+        // edge-case reminder than fire a wrong "don't revert" nudge.
+      }
+    }
+    this.postWriteSnapshots.clear();
+    const body = linterModifiedReminderBody(changed);
+    if (body) queueReminder(this, "linter-modified-file", body);
   }
 
   /** Snapshot the current goal state as a broadcastable event. */
