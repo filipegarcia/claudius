@@ -10,6 +10,7 @@ import type {
   AskUserQuestionEvent,
   AskAnswer,
   FeedbackSurveyEvent,
+  OpusOverloadNudgeEvent,
   PlanDecision,
   ServerEvent,
 } from "@/lib/shared/events";
@@ -446,6 +447,11 @@ export function useSession(): ChatState & ChatActions {
   const [pendingPermission, setPendingPermission] = useState<PermissionRequestEvent | null>(null);
   const [pendingAsk, setPendingAsk] = useState<AskUserQuestionEvent | null>(null);
   const [feedbackSurvey, setFeedbackSurvey] = useState<FeedbackSurveyEvent | null>(null);
+  // One-shot "Opus is overloaded — switch to Sonnet" banner, broadcast by the
+  // server after a streak of 529s on Opus. Live-only: skipped in the SSE
+  // replay buffer, so a stale nudge never re-pops on reload.
+  const [opusOverloadNudge, setOpusOverloadNudge] =
+    useState<OpusOverloadNudgeEvent | null>(null);
   // Server-driven spinner tips (see `tips` SSE event). Empty until the server
   // emits the catalog on subscribe; the renderer falls back to its built-in
   // defaults in the meantime.
@@ -974,6 +980,7 @@ export function useSession(): ChatState & ChatActions {
     pendingPermissionRef.current = null;
     setPendingAsk(null);
     setFeedbackSurvey(null);
+    setOpusOverloadNudge(null);
     setTips([]);
     setErrors([]);
     setSlashCommands([]);
@@ -1313,6 +1320,10 @@ export function useSession(): ChatState & ChatActions {
       }
       if (ev.type === "feedback_survey") {
         setFeedbackSurvey(ev);
+        return;
+      }
+      if (ev.type === "opus_overload_nudge") {
+        setOpusOverloadNudge(ev);
         return;
       }
       if (ev.type === "tips") {
@@ -3470,6 +3481,10 @@ export function useSession(): ChatState & ChatActions {
     setFeedbackSurvey(null);
   }, []);
 
+  const dismissOpusOverloadNudge = useCallback(() => {
+    setOpusOverloadNudge(null);
+  }, []);
+
   const interrupt = useCallback(async () => {
     const id = sessionIdRef.current;
     if (!id) return;
@@ -3767,6 +3782,7 @@ export function useSession(): ChatState & ChatActions {
     pendingPermission,
     pendingAsk,
     feedbackSurvey,
+    opusOverloadNudge,
     tips,
     errors,
     slashCommands,
@@ -3808,6 +3824,7 @@ export function useSession(): ChatState & ChatActions {
     submitAskAnswer,
     submitFeedback,
     dismissFeedback,
+    dismissOpusOverloadNudge,
     interrupt,
     setPermissionMode,
     setModel,

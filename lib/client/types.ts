@@ -4,6 +4,7 @@ import type {
   AskAnswer,
   AskUserQuestionEvent,
   FeedbackSurveyEvent,
+  OpusOverloadNudgeEvent,
   PermissionDecision,
   PermissionRequestEvent,
   PlanDecision,
@@ -476,6 +477,15 @@ export type ChatState = {
    */
   feedbackSurvey: FeedbackSurveyEvent | null;
   /**
+   * Active "Opus is experiencing high load — switch to Sonnet" nudge, set
+   * when the server broadcasts an `opus_overload_nudge` after a streak of
+   * 529 Overloaded errors on Opus. Distinct from the SDK's automatic
+   * `fallbackModel` path (which swaps silently). The browser shows a slim
+   * dismissible banner; click-through opens the model picker on Sonnet.
+   * Null when no nudge is pending.
+   */
+  opusOverloadNudge: OpusOverloadNudgeEvent | null;
+  /**
    * Server-driven spinner tips (the `tips` SSE event). The catalog the chat
    * rotates through under the working spinner; empty until the server emits it,
    * at which point the renderer prefers it over its built-in defaults.
@@ -619,6 +629,8 @@ export type ChatActions = {
   }): Promise<{ ok: boolean; stored: boolean; forwarded: boolean }>;
   /** Dismiss the feedback nudge without submitting. */
   dismissFeedback(): void;
+  /** Dismiss the Opus overload nudge banner. Client-side only. */
+  dismissOpusOverloadNudge(): void;
 };
 
 export type ServerEventEnvelope = ServerEvent;

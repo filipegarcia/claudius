@@ -26,6 +26,11 @@ import { AsyncQueue } from "./async-queue";
 import { notificationBus } from "./notification-bus";
 import { takePendingReminders } from "./system-reminders";
 import {
+  isOpusModelId,
+  isOverloadErrorText,
+  isOverloadSignal,
+} from "./opus-overload-detector";
+import {
   clearSessionGoal,
   getSessionGoal,
   getSessionTitle,
@@ -84,6 +89,17 @@ export function worktreeRootFromPath(filePath: string): string | null {
 }
 
 type Subscriber = (event: ServerEvent) => void;
+
+/**
+ * Consecutive 529 "Overloaded" signals from Opus that trip the manual
+ * `opus_overload_nudge` banner. Two in a row is enough — one-off retries are
+ * normal during transient Anthropic capacity events, but two back-to-back
+ * indicates the SDK's fallback retries aren't clearing the queue and the
+ * user is going to keep waiting unless they switch models themselves. The
+ * counter resets on any successful turn, so a single isolated overload
+ * never burns a session against the cap.
+ */
+const OPUS_OVERLOAD_NUDGE_THRESHOLD = 2;
 
 type PendingPermission = {
   requestId: string;
@@ -442,6 +458,29 @@ export class Session {
    * See `runThinkingReplayRecovery` and `thinking-replay-recovery.ts`.
    */
   private thinkingReplayRecoveryScheduled = false;
+
+  /**
+   * Count of consecutive 529 "Overloaded" signals observed from Opus during
+   * `consume()` (synthetic assistant API-error messages, error_during_execution
+   * result rows, or thrown errors in the catch block). Reset to 0 on any
+   * `result` of `subtype: "success"`. When the counter trips the threshold
+   * below we fire a one-shot `opus_overload_nudge` SSE event prompting the
+   * user to switch to Sonnet via the model picker — distinct from the SDK's
+   * automatic `fallbackModel` path which swaps silently. See
+   * `opus-overload-detector.ts` for the signal definition.
+   */
+  private opusOverloadStreak = 0;
+  /** True once the threshold has fired this session — fire-once per session. */
+  private opusOverloadNudgeFired = false;
+  /**
+   * Per-turn dedupe for the overload counter. A single failed overload turn
+   * can emit BOTH a synthetic assistant "API Error: 529" message AND an
+   * `error_during_execution` result row — counting both would trip the
+   * threshold on the first hard overload instead of after repeated ones.
+   * Flipped true on the first matching signal of a turn; cleared on the
+   * next `result` message (which marks the turn boundary regardless of subtype).
+   */
+  private opusOverloadCountedThisTurn = false;
 
   /**
    * Per-session goal (see `/goal`, GoalBanner). Loaded from the per-project
@@ -2259,6 +2298,39 @@ export class Session {
   }
 
   /**
+   * Feed one observation into the consecutive-overload counter and emit the
+   * one-shot manual-switch nudge once the streak crosses
+   * `OPUS_OVERLOAD_NUDGE_THRESHOLD`. Gated on:
+   *
+   *   - The active model is Opus (`isOpusModelId`) — the nudge text only
+   *     makes sense for Opus users; firing on Sonnet would be confusing.
+   *   - The nudge hasn't already fired this session — fire-once, since the
+   *     banner stays dismissible client-side and a streak that keeps growing
+   *     after the user has decided is just noise.
+   *
+   * The streak is reset to 0 by the `result: success` branch in `consume()`.
+   * A non-overload observation here doesn't reset (the caller passes false
+   * for "no signal seen this iteration" — many message types aren't an
+   * overload, but they aren't a *success* either; only a clean turn clears).
+   */
+  private noteOverloadObservation(isOverload: boolean): void {
+    if (!isOverload) return;
+    // Count at most once per turn — see `opusOverloadCountedThisTurn` for why.
+    if (this.opusOverloadCountedThisTurn) return;
+    this.opusOverloadCountedThisTurn = true;
+    this.opusOverloadStreak += 1;
+    if (this.opusOverloadNudgeFired) return;
+    if (!isOpusModelId(this.model)) return;
+    if (this.opusOverloadStreak < OPUS_OVERLOAD_NUDGE_THRESHOLD) return;
+    this.opusOverloadNudgeFired = true;
+    this.broadcast({
+      type: "opus_overload_nudge",
+      model: this.model ?? "",
+      count: this.opusOverloadStreak,
+    });
+  }
+
+  /**
    * Rebuild the session truncated to before the poisoned turn, then re-send
    * the prompt that started it. Reuses the proven resume path
    * (`SessionManager.recoverInPlace` → `create({ resume, resumeSessionAt })`)
@@ -2516,7 +2588,11 @@ export class Session {
         ev.type === "plan_approval_request" ||
         // A one-shot feedback nudge tied to a turn that already finished —
         // replaying it on reload would re-pop a stale survey.
-        ev.type === "feedback_survey"
+        ev.type === "feedback_survey" ||
+        // One-shot Opus overload nudge — once the user has seen it (or the
+        // overload event has passed) replaying on reload would re-pop a
+        // stale banner. Live subscribers see the original broadcast.
+        ev.type === "opus_overload_nudge"
       )
         continue;
       fn(ev);
@@ -3325,6 +3401,11 @@ export class Session {
         if (thinkingReplayErrorFrom(message)) {
           this.scheduleThinkingReplayRecovery();
         }
+        // Count consecutive Opus overloads. After a small streak we surface a
+        // one-shot banner asking the user to manually `/model` to Sonnet —
+        // complementing the SDK's automatic fallback (Options.fallbackModel),
+        // which swaps silently and only on configured sessions.
+        this.noteOverloadObservation(isOverloadSignal(message));
         // Side-effect: keep the per-session ScheduledLoops map in sync with
         // any cron/wake-up tool_use + tool_result blocks observed on the
         // wire. Mirror of the client-side reducer in `lib/client/use-session.ts` —
@@ -3359,7 +3440,15 @@ export class Session {
             void import("./session-manager").then(({ sessionManager }) =>
               sessionManager.noteThinkingRecoverySuccess(this.id),
             );
+            // A clean turn clears the consecutive-overload streak so a later,
+            // unrelated 529 doesn't ride a stale count into the nudge. The
+            // nudge itself is fire-once per session lifetime regardless.
+            this.opusOverloadStreak = 0;
           }
+          // Turn boundary — release the per-turn overload dedupe so the next
+          // turn's first 529 signal can bump the streak again. Cleared on
+          // every result (success or error) since both end the turn.
+          this.opusOverloadCountedThisTurn = false;
           void touchSession(this.cwd, this.id).catch(() => {
             // index update is non-critical; never crash consume() over it
           });
@@ -3387,6 +3476,10 @@ export class Session {
         const message = err instanceof Error ? err.message : String(err);
         this.broadcast({ type: "error", message });
         sawError = true;
+        // A thrown 529 lands here when the SDK iterator gives up (not as a
+        // synthetic API-error assistant message). Feed it through the same
+        // overload counter so a catch-block path still trips the nudge.
+        this.noteOverloadObservation(isOverloadErrorText(message));
       }
     } finally {
       this.done = true;
