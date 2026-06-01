@@ -1,7 +1,7 @@
 # Auto-mode exit reminder
 
 **Source:** Claude Code TUI — permission flow (mode-transition system reminder)
-**Status:** MISSING
+**Status:** ALREADY_EXISTS
 
 ## What it is
 When the user Shift+Tabs out of auto-accept (auto) mode, the CLI injects a system reminder into the conversation so Claude shifts back to a more interactive posture:
@@ -12,7 +12,7 @@ When the user Shift+Tabs out of auto-accept (auto) mode, the CLI injects a syste
 The handler lives next to a sibling `plan_mode_exit` reminder, so both mode-exit transitions get a matching nudge.
 
 ## Claudius today
-Not surfaced in Claudius. `components/chat/ModeSelector.tsx` exposes the full permission cycle (including `auto`, with the "Shift+Tab cycles" hint) and calls back into `lib/server/session.ts` `setPermissionMode()` (lines 1562-1569), which flips `this.permissionMode`, forwards to `query.setPermissionMode(mode)`, and broadcasts a `mode_changed` SSE event — but it never inspects the *previous* mode and never injects a system/user reminder when leaving auto. Grepping for `Exited Auto`, `auto_mode_exit`, `prevMode`, or any "clarifying questions" string in `lib/` returns zero hits. The natural home would be `setPermissionMode` in `lib/server/session.ts`, comparing old vs new mode and appending a reminder block to the next user turn (or via the SDK's system-reminder channel) when transitioning `auto -> *`.
+Wired end-to-end. `lib/server/session.ts` exports `autoModeExitReminderBody()` (lines 289-296), which returns the CLI's verbatim `## Exited Auto Mode` prose — including the "ask clarifying questions when the approach is ambiguous rather than making assumptions" clause. `setPermissionMode()` (lines 2340-2379) captures `wasAuto = this.permissionMode === "auto"` *before* the mode write, and on an `auto -> non-auto` transition (`wasAuto && mode !== "auto"`) calls `queueReminder(this, "auto-mode-exit", autoModeExitReminderBody())` so the next user turn carries the reminder. The composer-side trigger is `components/chat/ModeSelector.tsx` (the Shift+Tab cycle, including `auto`), and the verbatim prose is pinned by `tests/unit/auto-mode-exit-reminder.test.ts`.
 
 ## Decision
-MISSING. Claudius wires the permission-mode cycle end-to-end but does not replicate the CLI's mode-exit reminders. Worth adding as a small diff in `lib/server/session.ts` `setPermissionMode()` that, on `auto -> non-auto` (and symmetrically `plan -> non-plan`), queues a `## Exited Auto Mode` reminder so the agent loosens its assumption-making after the user pulls back from auto-accept.
+ALREADY_EXISTS. The CLI's auto-mode exit reminder is mirrored 1:1 in `lib/server/session.ts`: same verbatim string, same transition gate (only fires on `auto -> non-auto`, redundant `setPermissionMode("auto")` while already in auto won't re-fire), and a unit test guards the load-bearing phrasing. Nothing further to build.

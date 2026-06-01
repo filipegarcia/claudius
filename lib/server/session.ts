@@ -76,6 +76,13 @@ import {
   shouldOfferSurvey,
   SURVEY_MIN_INTERVAL_MS,
 } from "./feedback-survey";
+import {
+  buildEnvForProfile,
+  getActiveProfile,
+  readAccountsRaw,
+  rotateToNextProfile,
+  type AccountProfile,
+} from "./accounts-store";
 
 /**
  * If `filePath` lands inside a `.claude/worktrees/<name>/` tree, return the
@@ -90,6 +97,41 @@ import {
 export function worktreeRootFromPath(filePath: string): string | null {
   const m = /^(.*\/\.claude\/worktrees\/[^/]+)(?:\/|$)/.exec(filePath);
   return m ? m[1] : null;
+}
+
+/**
+ * Server-side mirror of `RATE_LIMIT_HIT_TEXT_RE` from
+ * `lib/client/use-session.ts`. The CLI emits the rate-limit wall as a
+ * plain assistant text message — same regex shape on both sides keeps
+ * server-side auto-rotate (account switcher) firing on exactly the
+ * messages the client renders as a rate-limit hit. Duplicated rather
+ * than shared to avoid pulling client-only types into the server tree.
+ */
+const RATE_LIMIT_HIT_TEXT_RE = /^you['’]ve hit your [\w .'-]*\blimit\b/i;
+
+function isRateLimitHitSdkMessage(message: unknown): boolean {
+  if (!message || typeof message !== "object") return false;
+  const m = message as {
+    type?: string;
+    message?: { content?: unknown };
+    parent_tool_use_id?: unknown;
+  };
+  if (m.type !== "assistant") return false;
+  // Subagent text shouldn't trigger account rotation — that's an
+  // inner conversation, not the main thread the user is watching.
+  if (m.parent_tool_use_id) return false;
+  const content = m.message?.content;
+  if (!Array.isArray(content) || content.length === 0) return false;
+  // Match the client rule: every block must be a text block AND the
+  // first one must match the rate-limit phrasing. A mixed
+  // text+tool_use block is a real working turn, not a wall.
+  for (const block of content) {
+    if (!block || typeof block !== "object") return false;
+    if ((block as { type?: string }).type !== "text") return false;
+  }
+  const first = content[0] as { text?: unknown };
+  if (typeof first.text !== "string") return false;
+  return RATE_LIMIT_HIT_TEXT_RE.test(first.text.trim());
 }
 
 /**
@@ -731,6 +773,25 @@ export class Session {
   readonly id: string;
   readonly cwd: string;
   /**
+   * Account profile this session was spawned under (account-switcher,
+   * see `lib/server/accounts-store.ts`). Resolved in `start()` from the
+   * "active" profile at the moment of spawn, then frozen — switching
+   * the global active profile mid-session must NOT change the auth a
+   * running query is using (the SDK reads env once, at `query()`
+   * construction). Null = no profile configured; the SDK inherits the
+   * ambient environment (pre-account-switcher behavior).
+   */
+  accountProfileId: string | null = null;
+  /**
+   * Per-session fire-once flag for account-switcher auto-rotation.
+   * When the SDK emits the rate-limit-hit assistant message we want
+   * to rotate the active profile ONCE — re-firing every time the
+   * client re-asks (which produces the same assistant message via
+   * replay) would clobber the rotation back through every configured
+   * account. Reset only on session end / start, never mid-life.
+   */
+  private accountAutoRotated = false;
+  /**
    * Active model id. Mutable — `setModel` flips it mid-session and the
    * picker UI relies on this being the source-of-truth so the next
    * `start()` (e.g. on resume) uses the latest pick.
@@ -1261,9 +1322,36 @@ export class Session {
     // programmatic agents rather than blocking session start.
     const dbAgents = await loadDbAgentsForOptions(this.cwd).catch(() => undefined);
 
+    // Account-switcher (see `accounts-store.ts`). When the user has
+    // configured one or more accounts and picked an active one, build a
+    // scrubbed env that injects exactly that profile's credential — and
+    // freeze the profile id on `this` so the live session keeps the auth
+    // it spawned under, even if the user flips the global "active"
+    // pointer mid-conversation. When no profile is configured the SDK
+    // inherits process.env (pre-account-switcher behavior preserved
+    // byte-for-byte).
+    let activeProfile: AccountProfile | null = null;
+    try {
+      activeProfile = await getActiveProfile();
+    } catch {
+      // Disk read failed (corrupt JSON, perms). Fall through to ambient
+      // env — refusing to start a session over an accounts.json glitch
+      // would block the user from the obvious recovery (open /usage
+      // and re-add).
+      activeProfile = null;
+    }
+    this.accountProfileId = activeProfile?.id ?? null;
+    const envOverride = activeProfile ? buildEnvForProfile(activeProfile) : null;
+
     const options: Options = {
       cwd: this.cwd,
       model: this.model,
+      // Account-switcher env injection. When a profile is active, the SDK
+      // sees a scrubbed env (no stray auth vars) plus the single one this
+      // profile dictates. When no profile is configured we omit `env`
+      // entirely so the SDK falls back to inheriting process.env (the SDK
+      // contract: `Options.env` REPLACES the subprocess env if set).
+      ...(envOverride ? { env: envOverride } : {}),
       // In-process MCP server exposing a single tool the agent calls to
       // report that the session goal is done (see `/goal`, GoalBanner). The
       // tool runs in this process, so its handler can broadcast straight to
@@ -3172,6 +3260,45 @@ export class Session {
   }
 
   /**
+   * Account-switcher: on the first rate-limit-hit message of this
+   * session, rotate the global active profile to the next configured
+   * one (round-robin) when the user enabled auto-rotate. Fire-once per
+   * session — replayed-from-disk messages would otherwise rotate
+   * through every account every time the user reloads the tab.
+   *
+   * Detection mirrors `RATE_LIMIT_HIT_TEXT_RE` in
+   * `lib/client/use-session.ts` so the server fires on exactly the
+   * same messages the client renders as a rate-limit wall. We don't
+   * try to swap the auth on the LIVE session — env is read at
+   * `query()` construction, and a rate-limited session can't
+   * usefully continue anyway. The rotation just teaches the NEXT
+   * session to spawn under a different credential.
+   */
+  private async noteAccountAutoRotateObservation(message: unknown): Promise<void> {
+    if (this.accountAutoRotated) return;
+    if (!isRateLimitHitSdkMessage(message)) return;
+    // Best-effort: a corrupt accounts.json shouldn't crash the
+    // consume loop. Failing here just means no rotation this session.
+    try {
+      const cur = await readAccountsRaw();
+      if (!cur.autoRotateOnRateLimit) return;
+      if (cur.profiles.length < 2) return;
+      const rotated = await rotateToNextProfile();
+      if (!rotated) return;
+      this.accountAutoRotated = true;
+      this.broadcast({
+        type: "account_auto_rotated",
+        fromLabel: rotated.from.label,
+        toLabel: rotated.to.label,
+      });
+    } catch {
+      // Silently swallow — auto-rotate is a convenience layer, not a
+      // correctness requirement; surfacing a generic "rotate failed"
+      // would only confuse the user on top of the rate-limit wall.
+    }
+  }
+
+  /**
    * Rebuild the session truncated to before the poisoned turn, then re-send
    * the prompt that started it. Reuses the proven resume path
    * (`SessionManager.recoverInPlace` → `create({ resume, resumeSessionAt })`)
@@ -4268,6 +4395,11 @@ export class Session {
         // rate-limit `overageDisabledReason` copy in SystemPill, so the
         // 1M-only gate keeps the two paths from doubling up.
         this.noteLongContextCreditsObservation(isBillingErrorSignal(message));
+        // Account-switcher auto-rotate. Fire-and-forget — the rotation
+        // is a global-state side-effect, not blocking on the consumer
+        // iterator. See `noteAccountAutoRotateObservation` for the
+        // detection rules + once-per-session guard.
+        void this.noteAccountAutoRotateObservation(message);
         // Side-effect: keep the per-session ScheduledLoops map in sync with
         // any cron/wake-up tool_use + tool_result blocks observed on the
         // wire. Mirror of the client-side reducer in `lib/client/use-session.ts` —

@@ -213,7 +213,7 @@ export default function UpdaterPage() {
                           )}
                         </div>
                       </div>
-                      <div className="mt-3 flex gap-2">
+                      <div className="mt-3 flex items-center gap-2">
                         <button
                           onClick={() => void u.apply()}
                           disabled={u.busy}
@@ -230,6 +230,21 @@ export default function UpdaterPage() {
                         >
                           <Sparkles className="h-3 w-3" />
                           Apply with Claude merge
+                        </button>
+                        {/* Discoverable counterpart to the top-bar "Check now". The
+                            common case this rescues: the user did `git pull` in a
+                            terminal, the status reconcile already cleared the banner
+                            on the next poll — but if they're staring at this card
+                            wondering why it's still here, the action they want is
+                            right next to Apply, not buried in the header. */}
+                        <button
+                          onClick={() => void u.check()}
+                          disabled={u.busy}
+                          className="ml-auto flex items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-3 py-1 text-xs text-[var(--muted)] hover:bg-[var(--panel)] hover:text-[var(--foreground)] disabled:opacity-50"
+                          title="Re-fetch from the remote and recompute ahead/behind — use this if you already pulled outside Claudius"
+                        >
+                          {u.busy ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+                          Refresh
                         </button>
                       </div>
                     </div>

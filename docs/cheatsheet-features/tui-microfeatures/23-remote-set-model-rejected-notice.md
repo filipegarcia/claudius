@@ -1,13 +1,13 @@
 # Remote-session model switch rejection notice
 
 **Source:** Claude Code TUI — error & recovery
-**Status:** MISSING
+**Status:** PARTIAL
 
 ## What it is
 When `/model` is invoked inside a remote/teleport session and the host rejects the switch, the TUI surfaces a clear `Remote session couldn't switch to <model>` notice instead of silently failing. Grounded in the binary strings `[remote] set_model rejected:`, `model_switch`, `remote_rejected`, and `Remote session couldn't switch to ` appearing contiguously in the CLI.
 
 ## Claudius today
-Not surfaced in Claudius. The model picker (`components/panels/widgets/ModelPicker.tsx` backed by `app/api/sessions/[id]/model/route.ts` → `Session.setModel` in `lib/server/session.ts`) calls `query.setModel(model).catch(() => {})` and swallows failures; there is no remote-session concept in Claudius, since the browser is the only "remote" surface and it talks straight to the local SDK. A natural home for an equivalent banner would be `components/panels/widgets/ModelPicker.tsx`, toasting when `setModel` resolves but the SDK's subsequent state shows the model unchanged.
+Claudius surfaces the generic (non-remote) form of this notice through `components/chat/ModelSwitchNoticePanel.tsx`, rendered from `app/[workspaceId]/page.tsx` with the `session.modelSwitchNotice` state owned by `lib/client/use-session.ts`. The `setModel` callback there POSTs to `app/api/sessions/[id]/model/route.ts` (which calls `Session.setModel` in `lib/server/session.ts`); on a 409 the client reverts the optimistic pill to the server-authoritative model and pushes a `{ attempted, error }` notice that the panel renders as `Couldn't switch to <model>` with the SDK error underneath. The panel's own comment calls out the gap: Claudius has no remote/teleport concept, so the copy is the generic "Couldn't switch to ..." rather than the TUI's remote-specific "Remote session couldn't switch to ...".
 
 ## Decision
-MISSING. The TUI-specific remote/teleport rejection path has no analogue in Claudius — every session is local to the host running the app. Worth adding a lightweight "model switch didn't take" toast in `ModelPicker.tsx` only if users start reporting silent failures; otherwise no action needed.
+PARTIAL. The rejection path itself is covered — picker reverts, banner surfaces the attempted model and SDK error — but the remote-session framing from the TUI string doesn't apply because every Claudius session runs against the local SDK. No follow-up needed unless a remote/teleport surface is ever added to Claudius, at which point the headline in `ModelSwitchNoticePanel.tsx` could branch on a remote flag.

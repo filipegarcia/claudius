@@ -1,13 +1,13 @@
 # Opus high-load /model Sonnet nudge
 
 **Source:** Claude Code TUI — error & recovery
-**Status:** MISSING
+**Status:** ALREADY_EXISTS
 
 ## What it is
 After repeated 529 Overloaded errors come back from Opus, the TUI surfaces a one-line nudge: `Opus is experiencing high load, please use /model to switch to Sonnet`. This is distinct from the automatic fallback notice — it's a manual nudge that asks the user to switch models themselves via `/model`.
 
 ## Claudius today
-Not surfaced in Claudius. The SDK-driven automatic fallback path is wired through `lib/server/session.ts` (`fallbackModel` is passed when set), and `components/panels/widgets/ModelPicker.tsx` already lets the user pick Sonnet — but there is no detector for repeated 529 overload errors and no banner that prompts a manual switch. It would naturally live as a transient banner in `components/chat/` (alongside `RateLimitHitPanel.tsx`), triggered by a counter in `lib/server/session.ts` that watches for repeated overload errors and emits an SSE event consumed by `lib/client/use-session.ts`.
+Wired end-to-end. `lib/server/opus-overload-detector.ts` classifies SDK messages (synthetic assistant `API Error: 529 … Overloaded` bodies and `result` messages with `subtype: "error_during_execution"`) and gates on `isOpusModelId`. `lib/server/session.ts` counts consecutive overload observations and emits an `OpusOverloadNudgeEvent` (declared in `lib/shared/events.ts`, consumed in `lib/client/use-session.ts`). `components/chat/OpusOverloadNudgePanel.tsx` renders the one-line banner with a "Switch to Sonnet" button targeting `OPUS_OVERLOAD_NUDGE_SONNET_TARGET` (`claude-sonnet-4-6`) and a dismiss control. Unit coverage in `tests/unit/opus-overload-detector.test.ts`.
 
 ## Decision
-MISSING. Worth adding as a one-line banner in `components/chat/` (mirroring `RateLimitHitPanel.tsx`) that fires after N consecutive 529s from Opus, with a click-through that opens the existing `ModelPicker` on Sonnet — useful enough during Opus overload events that a manual nudge complements the SDK's automatic fallback.
+ALREADY_EXISTS. The detector + SSE event + banner mirror the TUI nudge faithfully, with a click-through that calls `setModel` on Sonnet rather than asking the user to type `/model` by hand. The event is live-only (skipped in the SSE replay buffer) and fire-once per session so it doesn't re-pop on reload.

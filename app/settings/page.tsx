@@ -18,6 +18,7 @@ import { RateLimitWarningSection } from "@/components/settings/RateLimitWarningS
 import { ContextWarningSection } from "@/components/settings/ContextWarningSection";
 import { GoalBannerSection } from "@/components/settings/GoalBannerSection";
 import { BackupSection } from "@/components/settings/BackupSection";
+import { ChatSizeSection } from "@/components/settings/ChatSizeSection";
 import { cn } from "@/lib/utils/cn";
 
 const SCOPE_LABELS: Record<SettingsScope, string> = {
@@ -111,9 +112,17 @@ export default function SettingsPage() {
   // widgets, not a flat list of fields).
   const sEditor = show("open in editor file paths tool blocks url scheme editor vscode click-through");
   const sTheme = show("web app theme dark light color appearance browser ui");
-  const sLinkTarget = show(
-    "link target external browser in-app viewer click open hyperlink electron",
+  const sChatSize = show(
+    "chat size column width font body text reading column display zoom typography big screen large display retina",
   );
+  // Link target is meaningful only inside the desktop app — in the browser
+  // the OS / current tab decides where links open. Roll the platform gate
+  // into the visibility flag so it also clears out of the search-match
+  // accounting below (otherwise a "no matches" page could appear blank
+  // because the only hit was hidden by the platform check).
+  const sLinkTarget =
+    isElectron &&
+    show("link target external browser in-app viewer click open hyperlink electron");
   const sUpdater = show("updater auto update version release channel app update install");
   const sShortcuts = show("keyboard shortcuts keybindings tab cycling navigation side nav workspace");
   const sRateLimit = show("rate limit warning threshold usage pill chat");
@@ -155,7 +164,7 @@ export default function SettingsPage() {
     .filter(([, visible]) => visible.length > 0);
 
   const anyMatch =
-    sEditor || sTheme || sLinkTarget || sUpdater || sShortcuts || sRateLimit || sContext || sGoalBanner ||
+    sEditor || sTheme || sChatSize || sLinkTarget || sUpdater || sShortcuts || sRateLimit || sContext || sGoalBanner ||
     sBackup || sModelUi || sMemory || sChat || sEnv || sPlugins || sOther ||
     catalogEntries.length > 0;
   const noMatches = !!q && !anyMatch;
@@ -244,8 +253,14 @@ export default function SettingsPage() {
           </span>
         </div>
 
-        <div className="flex-1 overflow-y-auto scroll-thin">
-          <div className="mx-auto max-w-4xl space-y-5 px-6 py-6">
+        <div className="flex-1 overflow-y-auto scroll-thin pb-6">
+          {/* Split layout: the centered `max-w-4xl` cap is great for cards but
+              clips the chat-size preview behind it. The wrapper opens here for
+              Editor + Theme, closes before ChatSizeSection (which spans the
+              full scroll-container width), and reopens after for Link target
+              onward. Each segment uses `mt-5` to mirror the original
+              `space-y-5` rhythm between section cards. */}
+          <div className="mx-auto max-w-4xl space-y-5 px-6 pt-6">
             {sEditor && (
             <Section
               title="Open in editor"
@@ -305,14 +320,30 @@ export default function SettingsPage() {
             </Section>
             )}
 
+          </div>
+
+          {/* Chat reading column + body text size. Rendered OUTSIDE the
+              centered `max-w-4xl` wrapper so the live preview can span the
+              full scroll-container width — wide-column choices (>56 rem)
+              would otherwise clip behind the cap. ChatSizeSection re-applies
+              its own `max-w-4xl` around the controls card so it stays
+              visually matched to the other cards. Lives in localStorage
+              (instant-apply, no Save). */}
+          {sChatSize && (
+            <div className="mt-5">
+              <ChatSizeSection />
+            </div>
+          )}
+
+          <div className="mx-auto max-w-4xl space-y-5 px-6 mt-5">
+            {/* Link target is Electron-only — in the browser, OS / browser
+                tab behavior handles where links open, so the setting has no
+                effect and just clutters the page. Gated on `isElectron` so
+                the section disappears entirely in the web build. */}
             {sLinkTarget && (
             <Section
               title="Link target"
-              subtitle={
-                isElectron
-                  ? "Where clicked links open. Right-click still lets you override per-link."
-                  : "Where clicked links open in the Electron app. Has no effect in the browser build — this just remembers your preference for next time you launch the desktop app."
-              }
+              subtitle="Where clicked links open. Right-click still lets you override per-link."
             >
               <div className="flex flex-col gap-2">
                 {LINK_TARGETS.map((opt) => (

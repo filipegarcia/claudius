@@ -86,6 +86,33 @@ export async function revParse(cwd: string, ref: string): Promise<string> {
   return stdout.trim();
 }
 
+/**
+ * True iff `ancestor` is reachable from `descendant` (i.e. `descendant`
+ * contains the commit `ancestor`). Used by the /api/updater/status reconcile
+ * path to detect when the user has externally pulled in the commit we last
+ * recorded as "pending" — in which case the cached pending state is stale
+ * and the banner should drop.
+ *
+ * `git merge-base --is-ancestor` exits 0 for "yes" and 1 for "no" — both are
+ * normal answers. We catch the exit-1 case and return `false`. Any other
+ * failure (unknown ref, gc'd commit, missing git binary, …) is treated as
+ * "can't tell" and returns `false` so the caller keeps the pending banner
+ * up rather than silently hiding a still-real update.
+ */
+export async function isAncestor(
+  cwd: string,
+  ancestor: string,
+  descendant: string,
+): Promise<boolean> {
+  try {
+    await git(["merge-base", "--is-ancestor", ancestor, descendant], cwd);
+    return true;
+  } catch (err) {
+    if (err instanceof UpdaterGitError && err.exitCode === 1) return false;
+    return false;
+  }
+}
+
 export async function isDirty(cwd: string): Promise<boolean> {
   const { stdout } = await git(["status", "--porcelain"], cwd);
   return stdout.trim().length > 0;

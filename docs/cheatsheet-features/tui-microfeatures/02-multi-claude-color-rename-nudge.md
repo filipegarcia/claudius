@@ -1,36 +1,33 @@
 # Multi-Claude color/rename nudge
 
 **Source:** Claude Code TUI — tip rotation (conditional)
-**Status:** PARTIAL
+**Status:** ALREADY_EXISTS
 
 ## What it is
-A conditional spinner tip that fires only once the user has 2+ Claude Code
-sessions running concurrently, suggesting `/color` and `/rename` so they can
-tell sessions apart at a glance. The grounded evidence shows the tip object
-gated by `isRelevant: async () => await wo_() >= 2` with a 10-session
-cooldown:
+A spinner tip that fires only once the user has 2+ Claude Code sessions
+running concurrently, suggesting `/color` and `/rename` so they can tell
+sessions apart at a glance. The grounded evidence shows the tip object gated
+by `isRelevant: async () => await wo_() >= 2` with a 10-session cooldown:
 > Running multiple Claude sessions? Use /color and /rename to tell them apart at a glance.
 
 ## Claudius today
-The two underlying commands both exist: `/rename` is a native, session-scoped
-command registered in `lib/shared/slash-commands.ts` (handled by the chat
-page's native dispatcher and surfaced via `components/overlays/RenameOverlay.tsx`),
-and `/color` is registered as an SDK-handled command in the same file. Multiple
-concurrent sessions are already a first-class concept in the browser:
-`components/chat/SessionTabs.tsx` renders a per-session tab strip with custom
-labels, status dots, and unread badges, and `components/chat/SessionPicker.tsx`
-offers a switcher. The conditional spinner-tip nudge itself, however, does not
-exist — `components/chat/SpinnerTip.tsx` rotates the static `DEFAULT_TIPS` from
-`lib/shared/tips.ts` with no `isRelevant`/cooldown gating, and none of the
-default tips mention `/color` or `/rename` (the latter is filtered out by
-`tests/unit/tips.test.ts` as a destructive command unsafe to click mid-turn).
+The exact tip is registered in `lib/shared/tips.ts` as the
+`multi-claude-color-rename` entry (text: "Running multiple Claude sessions?
+Use /color and /rename to tell them apart at a glance.", `minSessions: 2`).
+The threshold gate is enforced by `selectClientTips` in the same file
+(`(t.minSessions ?? 0) > activeSessionCount` → filtered out), with the caller
+in `app/[workspaceId]/page.tsx` passing `openTabs.length` as
+`activeSessionCount` — the direct mirror of the TUI's `wo_() >= 2`. The tip
+is intentionally command-less because `/color` is SDK-handled and `/rename`
+is destructive (filtered by `tests/unit/tips.test.ts`); the text names them
+so the user runs them themselves. The TUI's `cooldownSessions:10` is covered
+by Claudius's dismiss-weighting (`DISMISSED_TIP_SHOW_PROBABILITY`) rather
+than a session counter. The destinations themselves are also in place:
+`/rename` is a native command surfaced via
+`components/overlays/RenameOverlay.tsx`, `/color` is SDK-handled, and
+`components/chat/SessionTabs.tsx` already renders per-session labels and
+status dots so the suggested commands have somewhere visible to land.
 
 ## Decision
-PARTIAL. The destinations (`/color`, `/rename`) and the multi-session UX
-(SessionTabs labels, status, badges) are already in place, so the user can
-already tell sessions apart — but the just-in-time spinner nudge that fires
-once 2+ sessions are concurrent is not implemented. Worth adding as a
-conditional tip variant in `lib/shared/tips.ts` (extend `Tip` with an
-`isRelevant` predicate and a cooldown counter, fed by the active-session count
-already tracked client-side) if we want the same "you've crossed a threshold,
-here's the trick" affordance in `SpinnerTip`.
+ALREADY_EXISTS. The conditional tip, the 2+ session gate, and the
+`/color` + `/rename` destinations are all wired up. No new UI needed.

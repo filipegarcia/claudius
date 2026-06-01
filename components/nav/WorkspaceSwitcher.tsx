@@ -61,6 +61,44 @@ export function WorkspaceSwitcher({ mobileOpen = false, onCloseMobile }: Props =
   const [menu, setMenu] = useState<null | { id: string; x: number; y: number }>(null);
   const menuWorkspace = menu ? items.find((w) => w.id === menu.id) ?? null : null;
 
+  // Active account-switcher profile label (account-switcher, see
+  // accounts-store.ts). Drives the corner badge on the Account system
+  // tile so the user can confirm at a glance which credential new
+  // sessions will spawn under. Refetched every time the user leaves
+  // /usage (the page where the switch happens) so the rail picks the
+  // change up without a hard reload. The async fetch lives inside the
+  // effect's IIFE so setState only fires from inside the callback —
+  // codebase convention for "fetch on mount + on user navigation".
+  const [activeAccountLabel, setActiveAccountLabel] = useState<string | null>(null);
+  const leftUsagePath = pathname && !pathname.startsWith("/usage");
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const r = await fetch("/api/accounts");
+        if (cancelled || !r.ok) return;
+        const data = (await r.json()) as {
+          profiles: { id: string; label: string }[];
+          activeProfileId: string | null;
+        };
+        if (cancelled) return;
+        const active = data.profiles.find((p) => p.id === data.activeProfileId) ?? null;
+        setActiveAccountLabel(active?.label ?? null);
+      } catch {
+        // Best-effort — a fetch failure just leaves the tile in its bare
+        // state, same as "no accounts configured".
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // `leftUsagePath` re-fires whenever pathname transitions on/off
+    // /usage, which is the only place an account switch happens.
+  }, [leftUsagePath]);
+  const activeAccountChar = activeAccountLabel
+    ? activeAccountLabel.trim().charAt(0).toUpperCase() || null
+    : null;
+
   // Customization workspaces live in the drawer, not the main rail loop.
   // Splitting them here keeps the rendered list, the drag-reorder, and the
   // keyboard shortcut handler all consistent — see `reorder` below where the
@@ -374,9 +412,21 @@ export function WorkspaceSwitcher({ mobileOpen = false, onCloseMobile }: Props =
         />
         <SystemTile
           href="/usage"
-          label="Account"
+          label={
+            activeAccountLabel
+              ? `Account — ${activeAccountLabel}`
+              : "Account"
+          }
           active={pathname?.startsWith("/usage") ?? false}
           icon={<UserCircle className="h-4 w-4" />}
+          // When the user has configured an account-switcher profile,
+          // paint a small initial-chip on the tile so they can confirm
+          // at a glance which credential new sessions will spawn under
+          // (the canonical "hit limit on A → flipped to B" check). When
+          // no profile is configured we render the bare icon — Claudius
+          // is then using the ambient credential (keychain / env) and
+          // there's no second option to confuse it with.
+          cornerChar={activeAccountChar}
           onClick={closeMobileIfOpen}
         />
         {/* Footer cluster pinned to the bottom of the rail. It owns the
@@ -485,6 +535,7 @@ function SystemTile({
   accent,
   badge,
   badgeTestId,
+  cornerChar,
   onClick,
 }: {
   href: string;
@@ -497,6 +548,13 @@ function SystemTile({
   badge?: number;
   /** Test id for the badge element. */
   badgeTestId?: string;
+  /**
+   * Single-character identity chip rendered at the top-right of the tile
+   * — currently used by the Account tile to indicate which configured
+   * account-switcher profile new sessions will spawn under. Mutually
+   * exclusive with `badge` (Account doesn't have an unread count anyway).
+   */
+  cornerChar?: string | null;
   /**
    * Side-effect to run on click in ADDITION to navigation — used by the
    * parent to close the mobile workspace-switcher overlay when the user
@@ -531,6 +589,15 @@ function SystemTile({
           className="absolute -right-0.5 -top-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-[var(--accent)] px-1 text-[9px] font-medium leading-none text-white shadow ring-1 ring-[var(--background)]"
         >
           {badge > 99 ? "99+" : badge}
+        </span>
+      )}
+      {cornerChar && (!badge || badge === 0) && (
+        <span
+          aria-hidden
+          data-testid="systemtile-corner-char"
+          className="absolute -right-0.5 -top-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[var(--accent)] text-[8.5px] font-semibold leading-none text-white shadow ring-1 ring-[var(--background)]"
+        >
+          {cornerChar}
         </span>
       )}
     </Link>

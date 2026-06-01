@@ -14,22 +14,25 @@ context) entries in the model picker itself.
 > session only / Fast mode ON / Draws from usage credits / Fast mode OFF
 
 ## Claudius today
-The model picker (`components/panels/widgets/ModelPicker.tsx`) renders a fast
-chip on `supportsFastMode` rows and a dedicated Fast-mode toggle (lines 342–346,
-473–522), and `components/panels/widgets/SessionCard.tsx` shows a `FastBadge`
-when fast mode is on (line 265). The workspace defaults form
-(`components/workspaces/WorkspaceForm.tsx` lines 556–567) surfaces 1M context
-with a `Sonnet 4/4.5 only; significantly higher cost.` hint — the closest
-equivalent today. What's missing is the explicit `Draws from usage credits`
-copy on the fast-mode toggle, on the per-model rows in `ModelPicker`, and on
-the confirmation surface (`SessionCard` / `StatusLine`) when the user flips
-fast mode on or selects a 1M-context model.
+The fast-mode half is wired up. `components/panels/widgets/ModelPicker.tsx`
+renders a subdued amber `Draws from usage credits` sublabel under every
+`supportsFastMode` row (lines 357–361) and a matching `Draws from usage
+credits.` line under the Fast-mode toggle (lines 514–519).
+`components/chat/StatusLine.tsx` mirrors the same confirmation as the
+`status-line-fast` chip's tooltip (`Fast mode active — draws from usage
+credits`, line 285) plus an inline `· credits` cue when fast mode is on (line
+291). The 1M-context half is split across surfaces:
+`components/workspaces/WorkspaceForm.tsx` (lines 556–567) carries a `Sonnet
+4/4.5 only; significantly higher cost.` hint on the 1M toggle, and
+`components/chat/LongContextCreditsPanel.tsx` is the post-hoc nudge after a
+billing-error trip — but neither places the literal `Draws from usage credits`
+copy under the 1M-context model rows in `ModelPicker.tsx` the way the TUI
+does.
 
 ## Decision
-PARTIAL. Claudius already badges fast / 1M-context capable models and warns
-about cost on the workspace 1M toggle, but the precise `Draws from usage
-credits` line never reaches the model-switch confirmation or the per-model
-rows. Worth adding a small subdued sublabel under the Fast-mode toggle and
-1M-context model entries in `components/panels/widgets/ModelPicker.tsx`, and a
-matching one-shot toast/sublabel near `components/chat/StatusLine.tsx` when
-fast mode flips on, so the credit-burn signal is as loud as in the TUI.
+PARTIAL. The fast-mode half now matches the TUI copy exactly on both the
+picker and the status line. The remaining gap is the per-row sublabel on
+1M-context Sonnet/Opus entries in `components/panels/widgets/ModelPicker.tsx`
+— worth adding the same `Draws from usage credits` line under those rows so
+the credit-burn signal is symmetric across the two billing modes the TUI
+flags.

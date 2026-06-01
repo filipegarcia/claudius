@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { SideNav } from "@/components/nav/SideNav";
 import { StatusLine } from "@/components/chat/StatusLine";
 import { LoadingBar } from "@/components/chat/LoadingBar";
@@ -143,11 +143,19 @@ export default function Home() {
   // active workspace. The hook initialises from a localStorage cache so the
   // chat renders at the right level on first paint, then reconciles with
   // the server. Selector lives in the StatusLine (chat header).
-  const { activeId: activeWorkspaceId, items: workspaceItems } = useWorkspaces();
-  // The page is mounted under `/[workspaceId]/...`, so the resolved active
-  // workspace from `useWorkspaces` is almost always the one we want to
-  // surface in the chat status bar. We feed the full Workspace object to
-  // StatusLine so it can render an icon + name without re-fetching.
+  const { items: workspaceItems } = useWorkspaces();
+  // The page is mounted under `/[workspaceId]/...`, so the URL is the
+  // authoritative source for "which workspace is active on THIS page" —
+  // synchronous, never stale. We deliberately don't use `useWorkspaces`'s
+  // cookie-derived `activeId` here: it can lag the URL (e.g. right after
+  // `create()` sets activeId optimistically while the cookie still points at
+  // the previous workspace, or during the brief gap before the proxy syncs
+  // the cookie on a fresh deeplink). The lag used to leak foreign sessions
+  // into the picker — see the strict `pickerSessions` filter below for the
+  // counterpart invariant. Mirrors the URL-over-cookie rule the sessions
+  // list page already uses (`app/[workspaceId]/sessions/page.tsx`).
+  const routeParams = useParams<{ workspaceId: string }>();
+  const activeWorkspaceId = routeParams?.workspaceId ?? null;
   const activeWorkspace =
     workspaceItems.find((w) => w.id === activeWorkspaceId) ?? null;
   // Within-session latch for the "make Plan Mode sticky" spinner-tip nudge —
@@ -172,7 +180,12 @@ export default function Home() {
   // onboarding nudge — bumped once per chat-page load (see useStartupCount).
   const startupCount = useStartupCount();
   const [draftInjection, setDraftInjection] = useState<
-    { token: number; text: string; images?: AttachedImage[] } | undefined
+    {
+      token: number;
+      text: string;
+      images?: AttachedImage[];
+      mode?: "replace" | "append";
+    } | undefined
   >(undefined);
   const draftTokenRef = useRef(0);
   const tabClaim = useTabClaim(session.sessionId);
@@ -455,18 +468,34 @@ export default function Home() {
       // last successfully persisted strip.
     });
   }, [openTabs, tabsHydrated, session.sessionId]);
-  // Auto-add the active session id to the strip whenever it changes.
-  // Done during render via the "store previous props" pattern so we
-  // don't trip `react-hooks/set-state-in-effect`. The functional setter
-  // is still race-safe — if React batches a same-frame update from
-  // closeTab, the `prev.includes(...)` check stays accurate.
-  // https://react.dev/reference/react/useState#storing-information-from-previous-renders
-  const [lastSessionId, setLastSessionId] = useState(session.sessionId);
-  if (lastSessionId !== session.sessionId) {
-    setLastSessionId(session.sessionId);
-    if (session.sessionId) {
-      const sid = session.sessionId;
-      setOpenTabs((prev) => (prev.includes(sid) ? prev : [...prev, sid]));
+  // Auto-add the active session id to the strip — but ONLY when the
+  // session belongs to this workspace (its cwd matches the URL workspace's
+  // rootPath). Without this guard, opening a foreign session here (e.g. via
+  // a stale `?session=<id>` deeplink whose original cwd is in another
+  // workspace) used to push that id into this workspace's persistent
+  // openTabs row, which then resurfaced it in the picker forever. The
+  // counterpart strict filter in `pickerSessions` only hides it from the
+  // dropdown; preventing the persist is what actually fixes the leak.
+  //
+  // Render-time "store previous props" pattern (same shape as the latched
+  // permission-mode flag above) — not a useEffect — because `react-hooks/
+  // set-state-in-effect` rejects setState inside effects. We key the
+  // dedupe on (sid, cwd) rather than sid alone: `session.sessionId` flips
+  // synchronously the moment a session binds, but `session.cwd` only
+  // settles when the SSE init event lands a tick later, so the first
+  // render after a switch has `(sid, null)` — wrong-cwd → don't add;
+  // the next render arrives with `(sid, cwd)` and adds iff cwd === root.
+  const [lastAddedKey, setLastAddedKey] = useState<string | null>(null);
+  {
+    const sid = session.sessionId;
+    const root = activeWorkspace?.rootPath;
+    const cwd = session.cwd;
+    if (sid && cwd && root && cwd === root) {
+      const key = `${sid}::${cwd}`;
+      if (lastAddedKey !== key) {
+        setLastAddedKey(key);
+        setOpenTabs((prev) => (prev.includes(sid) ? prev : [...prev, sid]));
+      }
     }
   }
 
@@ -1133,18 +1162,25 @@ export default function Home() {
   // Scope the session-picker dropdown to the active workspace. A session
   // belongs to this workspace when its cwd equals the workspace rootPath —
   // the same exact-match rule the server uses for `/api/sessions?workspaceId`.
-  // The active session and any open tabs are always kept (even if their cwd
-  // points elsewhere, e.g. a deeplink-resurrected session from another
-  // workspace) so the picker label always has a matching row to highlight.
-  // While the workspace list is still resolving, fall back to the unfiltered
-  // list rather than flash an empty dropdown.
+  // The currently-bound `session.sessionId` is always kept so the picker
+  // label has a matching row to highlight even when that session belongs to
+  // another workspace (e.g. a stale `?session=` URL); the auto-add effect
+  // below makes sure that escape-hatch session does NOT get persisted into
+  // this workspace's openTabs strip — which used to be the leak that put
+  // foreign sessions in the dropdown permanently.
+  //
+  // While the workspace list / URL param is still resolving (`root` null),
+  // return [] rather than the unfiltered `session.sessions`. A briefly
+  // empty dropdown is the correct UX; the previous fallback was responsible
+  // for "new workspace opens with many sessions" because `session.sessions`
+  // is server-fetched cross-workspace and only client-side filtering keeps
+  // it scoped.
   const pickerSessions = useMemo(() => {
     const root = activeWorkspace?.rootPath;
-    if (!root) return session.sessions;
-    const keep = new Set<string>(openTabs);
-    if (session.sessionId) keep.add(session.sessionId);
-    return session.sessions.filter((s) => s.cwd === root || keep.has(s.id));
-  }, [session.sessions, session.sessionId, activeWorkspace?.rootPath, openTabs]);
+    if (!root) return [];
+    const activeId = session.sessionId;
+    return session.sessions.filter((s) => s.cwd === root || s.id === activeId);
+  }, [session.sessions, session.sessionId, activeWorkspace?.rootPath]);
 
   return (
     <div className="flex h-full">

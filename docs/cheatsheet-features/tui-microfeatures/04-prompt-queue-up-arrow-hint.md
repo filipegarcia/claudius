@@ -1,13 +1,13 @@
 # Prompt-queue 'Press up to edit' hint
 
 **Source:** Claude Code TUI — input keyword nudge
-**Status:** PARTIAL
+**Status:** ALREADY_EXISTS
 
 ## What it is
-Tip teaching users that messages typed while Claude is working get queued, and that pressing Up arrow opens the queued messages for editing instead of starting prompt-history navigation. The TUI rotates the composer placeholder to `Press up to edit queued messages`, throttled by `queuedCommandUpHintCount` (`queuedCommandUpHintCount||0)<zkO)return"Press up to edit queued messages`).
+While Claude is working, messages typed into the composer are queued for the next turn. The TUI rotates its placeholder to `Press up to edit queued messages` (throttled by `queuedCommandUpHintCount`) to teach users that ArrowUp opens the queued messages for editing rather than starting prompt-history navigation. The grounded binary string is `queuedCommandUpHintCount||0)<zkO)return"Press up to edit queued messages`.
 
 ## Claudius today
-Queueing itself is fully wired: `components/chat/PromptInput.tsx` flips the placeholder to `"Queue a follow-up — Shift+Enter for newline"` and shows a `Queue` button while a turn is `pending`, and `components/chat/QueueIndicator.tsx` renders each queued message with click-to-edit, reorder, and remove controls (the "edit" affordance moves the queued text back into the composer). Up arrow is not bound to queue-edit, though — `PromptInput.tsx` reserves `Cmd/Ctrl+ArrowUp/ArrowDown` for shell-style prompt-history recall (`recallHistory`, lines ~568–610). There is no rotating placeholder that points users at the Up-arrow path specifically.
+Claudius surfaces the queue with a dedicated panel rather than a keybinding hint. `components/chat/QueueIndicator.tsx` renders each queued message above the composer with explicit Edit, Reorder, and Remove controls (clicking a row "moves the queued text back into the prompt"). `components/chat/PromptInput.tsx` shows a footer `queueHint` while a turn is `pending`: `"Send queues until current response finishes"` when empty, and `"<n> queued · edit above"` once at least one message is queued — the comment at that site explicitly calls this out as parity with the TUI's "Press up to edit queued messages" nudge, retargeted at the visible panel ("Claudius doesn't bind plain ArrowUp to queue-edit").
 
 ## Decision
-PARTIAL. Claudius already exposes a richer queue UI than the TUI hint advertises (visible `QueueIndicator` with explicit edit/reorder/remove buttons), so the "Press up to edit queued messages" placeholder is less necessary in the browser. If we want parity with the TUI nudge, the natural home is a throttled placeholder swap inside `components/chat/PromptInput.tsx` when `pending` and the queue is non-empty — and, if we choose to bind plain `ArrowUp` (no modifier) to focus the most-recent queued message, the hint becomes self-explanatory. Worth picking up only if user testing shows the queue panel is being missed.
+ALREADY_EXISTS. The TUI's ArrowUp keybinding hint maps to Claudius's `QueueIndicator` panel plus the `queueHint` footer copy in `PromptInput.tsx`, which together cover the same teaching moment (your message is queued; here is how to edit it) without overloading the Up arrow. No new UI is needed; if anyone wanted closer literal parity later, the cheapest follow-up would be binding plain ArrowUp on an empty composer to focus the top queued row.

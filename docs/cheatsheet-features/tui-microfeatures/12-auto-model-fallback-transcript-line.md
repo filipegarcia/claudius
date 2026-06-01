@@ -1,7 +1,7 @@
 # Automatic model-fallback system message
 
 **Source:** Claude Code TUI — model state
-**Status:** PARTIAL
+**Status:** ALREADY_EXISTS
 
 ## What it is
 When the requested model isn't available because of demand, Claude Code
@@ -13,26 +13,23 @@ distinct from the manual `/model` switcher confirmation — this line fires
 automatically, without user input, the moment the SDK swaps in `fallbackModel`.
 
 ## Claudius today
-The fallback *mechanism* is fully plumbed but the transcript announcement is
-not. `lib/server/workspaces-store.ts` (lines 23-27) and `lib/server/session.ts`
-(lines 320-323, 718-721) wire `fallbackModel` straight into the SDK's
-`Options.fallbackModel`, "[which] switches to this when the primary model is
-unavailable or errors (e.g. overload, model_not_found)"; the field is exposed in
-the workspace form (`components/workspaces/WorkspaceForm.tsx` lines 72-74,
-509-…) and accepted per-request by `app/api/sessions/route.ts`. What is missing
-is the transcript marker: `components/chat/SystemPill.tsx` has kinds for
-`init`, `status`, `rate_limit`, `api_retry`, `compact_boundary`, etc., but no
-`model_fallback` kind, and `lib/client/sdk-message-filters.ts` does not lift
-the fallback event into a typed `SystemEntry`. If the SDK emits the swap as a
-synthetic assistant/system message, it renders as untyped prose; if it emits a
-custom event, Claudius drops it.
+Both the fallback mechanism and the transcript announcement are wired.
+`lib/server/workspaces-store.ts` and `lib/server/session.ts` pipe
+`fallbackModel` straight into the SDK's `Options.fallbackModel`, the workspace
+form (`components/workspaces/WorkspaceForm.tsx`) exposes the field, and
+`app/api/sessions/route.ts` accepts it per-request. On the read side,
+`lib/client/types.ts` declares a `model_fallback` `SystemEntry` kind,
+`lib/client/use-session.ts` (the `sysAny.subtype === "model_fallback"` branch)
+lifts the SDK event into a `SystemEntry` — reusing the SDK's `content` when
+present and otherwise rebuilding the
+`Switched to <fallback_model> because <original_model> is not available` label
+from the structured payload, with `trigger` (`overloaded` /
+`model_not_found`) stashed in `detail`. `components/chat/SystemPill.tsx` renders
+the kind with an amber `Cpu` icon, mirroring the `init` pill's icon but
+recoloured so it scans as a state-change rather than a session-start.
 
 ## Decision
-PARTIAL. The SDK does the swap correctly (the option flows through), but the
-moment-of-swap is invisible in the Claudius transcript — the user only finds
-out by spotting that the model badge changed on the SessionCard. Worth adding
-a `model_fallback` `SystemEntry` kind (icon: `Cpu` / tone amber, mirroring
-the existing `init` and `rate_limit` pills) and lifting the SDK's
-`model_fallback_triggered`-shaped event in `lib/client/sdk-message-filters.ts`,
-so the "Switched to X because Y is not available due to high demand for Y" line
-appears in-thread the way it does in the CLI.
+ALREADY_EXISTS. The moment-of-swap is now in-thread: the SDK's
+`model_fallback` system message becomes a `SystemPill` with the exact
+"Switched to X because Y is not available …" wording the CLI prints, paired
+with the `overloaded` / `model_not_found` trigger. No further UI to build.

@@ -1,13 +1,30 @@
 # 'Opus 4.8 is here!' top-of-feed setup tip
 
 **Source:** Claude Code TUI — tip rotation
-**Status:** MISSING
+**Status:** ALREADY_EXISTS
 
 ## What it is
-A first-run setup tip pinned to the very top of the feed (binary id `tengu-top-of-feed-tip`) announcing the new default model with a configuration hint: `Opus 4.8 is here!` / `Now defaults to high effort` / `/effort xhigh for your hardest tasks`. Distinct from the simpler `Opus 4.8 is now available! /model to switch` notification — this one is a persistent top-of-feed setup nudge, not a transient model-availability ping.
+A first-run announcement pinned at the very top of the feed (the TUI's
+`tengu-top-of-feed-tip` slot) that reads `Opus 4.8 is here!`, notes it
+`Now defaults to high effort`, and points at `/effort xhigh for your hardest tasks`.
+Distinct from the simpler `Opus 4.8 is now available! /model to switch` line —
+this is a persistent setup nudge, not a transient model-availability ping.
 
 ## Claudius today
-Not surfaced in Claudius. The closest equivalents are the rotating spinner tips in `lib/shared/tips.ts` (rendered under the working spinner, not pinned to the top of the feed) and the feed banners under `components/chat/` (`RecapBanner.tsx`, `GoalBanner.tsx`, `ContextWarningBanner.tsx`, `PlanModeBanner.tsx`, etc.) — none of which announce new models or surface an effort-level setup hint. Model and effort selection itself already exists in `components/panels/widgets/ModelPicker.tsx` (backed by `app/api/sessions/[id]/effort/route.ts`), but there is no announcement layer that points users at `xhigh` on first run. A natural home would be a new top-of-feed banner in `components/chat/` (alongside `RecapBanner.tsx`) gated by a one-shot "seen Opus 4.8 tip" flag.
+`components/chat/OpusLaunchTipBanner.tsx` renders the launch tip pinned above
+the message list with the same three beats ("Opus 4.8 is here!" + "Now
+defaults to high effort" + a styled `/effort xhigh` hint). It is mounted
+from `app/[workspaceId]/page.tsx` and dismissed once-per-browser via
+localStorage (`claudius.opusLaunchTipDismissed`, with a same-tab change
+event so the dismissal propagates without a reload), mirroring the TUI's
+one-shot semantics. `/effort xhigh` renders as a non-clickable `<code>`
+span because `/effort` is `handler: "sdk"` in `lib/shared/slash-commands.ts`
+— clicking would dispatch the command into the model instead of just
+pointing at the lever. The rotating under-spinner tips in
+`lib/shared/tips.ts` are a separate surface, as is the transient
+`OpusOverloadNudgePanel`.
 
 ## Decision
-MISSING. Worth adding as a one-shot top-of-feed banner in `components/chat/` that announces the current default model and links to `ModelPicker.tsx` pre-focused on effort — but only if Claudius wants to mirror Claude Code's model-launch nudges. The underlying machinery (effort levels, `ModelPicker`, dismissible banner pattern) is already in place; this is purely a new announcement surface.
+ALREADY_EXISTS. `OpusLaunchTipBanner` is the dedicated browser equivalent
+of `tengu-top-of-feed-tip`, wired into the workspace page and gated by a
+per-browser dismissal flag. No new UI needed.

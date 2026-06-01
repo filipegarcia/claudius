@@ -103,16 +103,18 @@
   --chat-col: 48rem; /* max-w-3xl — phones, tablets, normal laptops */
   --chat-text: 0.875rem; /* text-sm */
 }
+/* Above the 1536 CSS-px tier, scale fluidly with viewport width via `clamp()`
+ * instead of stepping at fixed breakpoints. The lower clamp pins the floor at
+ * the values we used to land on at 1536px (60rem / 17px); the upper clamp
+ * caps at a width that still keeps characters-per-line in the readable 70–90
+ * range so the column never devours an ultrawide. This way a 1920px Retina
+ * viewport (default macOS scaling on a 3840×2160 panel) gets meaningfully
+ * more column and bigger text than the previous static 1536-tier values —
+ * and even higher "More Space" scalings keep growing through 5K+. */
 @media (min-width: 1536px) {
   :root {
-    --chat-col: 56rem; /* ~max-w-4xl — large desktops */
-    --chat-text: 1rem; /* text-base */
-  }
-}
-@media (min-width: 2000px) {
-  :root {
-    --chat-col: 64rem; /* max-w-5xl — ultrawide / big external displays */
-    --chat-text: 1.0625rem; /* 17px */
+    --chat-col: clamp(60rem, 32rem + 30vw, 96rem);
+    --chat-text: clamp(1.0625rem, 0.6rem + 0.5vw, 1.75rem);
   }
 }
 

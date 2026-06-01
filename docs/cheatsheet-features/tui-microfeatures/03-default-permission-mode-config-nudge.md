@@ -1,13 +1,13 @@
 # Default-permission-mode config nudge
 
 **Source:** Claude Code TUI — tip rotation
-**Status:** MISSING
+**Status:** ALREADY_EXISTS
 
 ## What it is
 A conditional spinner tip that only fires once the user has actually used Plan Mode but has never persisted a default permission mode in settings. The binary string shows the tip object: `id:"default-permission-mode-config"`, content `"Use /config to change your default permission mode (including Plan Mode)"`, with `isRelevant` returning `q && !K` where `q = Boolean(H.lastPlanModeUse)` and `K = Boolean(_?.permissions?.defaultMode)`, gated by `cooldownSessions:10`.
 
 ## Claudius today
-The two underlying pieces exist but are not wired into a conditional nudge. Workspace-level default permission mode is configurable in `components/workspaces/WorkspaceForm.tsx` (the `Permission mode` select writing `defaults.permissionMode`) and persisted via `lib/server/workspaces-store.ts`; the SDK-side `permissions.defaultMode` shape lives in `lib/server/settings.ts`. Plan Mode itself is surfaced by `components/chat/PlanModeBanner.tsx` and `components/overlays/PlanOverlay.tsx`. The rotating tips catalog in `lib/shared/tips.ts` (`DEFAULT_TIPS` / `selectTips`) is unconditional — every tip is either always-eligible or gated only on slash-command availability; there is no `isRelevant`-style predicate that reads session state like `lastPlanModeUse` or settings like `permissions.defaultMode`, and no per-tip `cooldownSessions`.
+Mirrored directly in the rotating tips catalog. `lib/shared/tips.ts` defines the `id: "default-permission-mode-config"` entry ("Liked Plan Mode? Make it sticky in Workspace settings -> Permission mode...") with a `requiresPlanModeNudge: true` gate, and `selectClientTips` drops it unless the caller passes `planModeNudgeEligible: true`. `app/[workspaceId]/page.tsx` computes that flag as `planModeUsed && !activeWorkspace?.defaults?.permissionMode` — the Claudius analog of the TUI's `q && !K` — using a within-session latch that flips to true the first time it observes `permissionMode === "plan"`. The destination the tip points at is the `Permission mode` select in `components/workspaces/WorkspaceForm.tsx`, which writes `defaults.permissionMode` through `lib/server/workspaces-store.ts`. The TUI's `cooldownSessions: 10` is intentionally not mirrored — Claudius's dismiss-weighting (`DISMISSED_TIP_SHOW_PROBABILITY` in `lib/shared/tips.ts`) is the "show less, not never" analog.
 
 ## Decision
-MISSING. The tip's two preconditions are observable in Claudius (Plan Mode is a real mode the user can enter, and workspace defaults already carry `permissionMode`), but the nudge itself — "you used Plan Mode, want to make it sticky?" — is not surfaced. Worth adding as a conditional entry in `lib/shared/tips.ts` with an `isRelevant` predicate plus a cooldown, pointing users at the `Permission mode` field in `WorkspaceForm.tsx` (Claudius's equivalent of `/config`).
+ALREADY_EXISTS. The post-Plan-Mode "make it sticky" nudge ships as a first-class tip in `lib/shared/tips.ts`, gated by the same two preconditions the TUI uses, and pointing at the Workspace settings field that backs Claudius's equivalent of `permissions.defaultMode`. No new UI needed.

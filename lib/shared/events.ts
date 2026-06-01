@@ -456,6 +456,22 @@ export type TaskSnapshotEvent = {
   tasks: TaskSnapshotEntry[];
 };
 
+/**
+ * Emitted once when the account-switcher's "auto-rotate on rate limit"
+ * fires for this session — i.e. the active account hit its limit and
+ * the global active-profile pointer was rotated to the next configured
+ * account. Surfaces as an inline banner in chat so the user knows why
+ * subsequent sessions start under a different credential. Does NOT
+ * affect the current (rate-limited) session — the SDK reads env at
+ * query() construction, so the rotation only takes effect on the next
+ * new session.
+ */
+export type AccountAutoRotatedEvent = {
+  type: "account_auto_rotated";
+  fromLabel: string;
+  toLabel: string;
+};
+
 export type ServerEvent =
   | {
       type: "sdk";
@@ -488,7 +504,8 @@ export type ServerEvent =
   | AskUserQuestionEvent
   | PlanApprovalRequestEvent
   | SessionSnapshotEvent
-  | TaskSnapshotEvent;
+  | TaskSnapshotEvent
+  | AccountAutoRotatedEvent;
 
 export type PermissionDecision =
   | { kind: "allow_once" }
