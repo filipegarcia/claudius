@@ -6,6 +6,7 @@ import { ToolCall } from "./ToolCall";
 import { TaskBlock } from "./TaskBlock";
 import { WorkflowBlock } from "./WorkflowBlock";
 import { RateLimitHitPanel } from "./RateLimitHitPanel";
+import { OpusHighDemandPanel } from "./OpusHighDemandPanel";
 import type { DisplayMessage, TaskInfo } from "@/lib/client/types";
 import { formatMessageTime } from "@/lib/client/format-message-time";
 import { isSubagentToolName } from "@/lib/shared/subagent-tool";
@@ -173,6 +174,10 @@ export function AssistantMessage({
             upgrade links) right under the SDK's "You've hit your … limit"
             text, mirroring the Claude Code CLI's `/rate-limit-options` menu. */}
         {message.rateLimitHit && <RateLimitHitPanel hit={message.rateLimitHit} />}
+        {/* Opus-4 high-demand banner: render under the backend's
+            "We are experiencing high demand for Opus 4." prose so the user
+            sees the /model CTA inline (Claude Code TUI parity). */}
+        {message.opusHighDemand && <OpusHighDemandPanel />}
       </div>
     </div>
   );
