@@ -389,6 +389,58 @@ export function mcpDeltaReminderBody(delta: McpDelta): string | null {
   return lines.join("\n");
 }
 
+/**
+ * Per-file memory-directory write that drove the reminder. `op` mirrors the
+ * three CRUD verbs the auto-memory route exposes; `path` is the absolute
+ * on-disk path of the affected file (matched against the session's
+ * `recentReadPaths` to compute `inContextPaths`).
+ */
+export type MemoryUpdate = { op: "created" | "updated" | "deleted"; path: string };
+
+/**
+ * Claude Code TUI parity (36-memory-update-staleness-reminder): when the
+ * auto-memory directory is mutated mid-session, the CLI injects a
+ * `memory_update` reminder so the agent knows its in-context copy of any
+ * affected file is now stale and should be re-Read. The CLI's handler
+ * surfaces three things — the source of the change, the list of paths
+ * touched, and a conditional "your loaded copy of X is stale" clause that
+ * only fires when at least one of the changed paths intersects what the
+ * model has already Read this session.
+ *
+ * Claudius has a single write path (the `/api/memory/auto` route, driven by
+ * the browser UI), so `source` is always "The user" rather than the CLI's
+ * background-writer enum — fabricating extra source labels would diverge
+ * from what actually happens. `inContextPaths` is best-effort: if the
+ * intersection misses because of path normalization (symlinked homedir,
+ * etc.) we still fire the reminder with the changed-files list, mirroring
+ * the CLI's `if(H.inContextPaths.length>0)` gate on the staleness clause.
+ *
+ * Returns the body (without the `<system-reminder>` wrapper) when at least
+ * one update is supplied, or `null` for an empty-updates call so callers
+ * don't queue a no-op reminder.
+ */
+export function memoryUpdateReminderBody(
+  updates: readonly MemoryUpdate[],
+  inContextPaths: readonly string[],
+): string | null {
+  const valid = updates.filter((u) => u.path.length > 0);
+  if (valid.length === 0) return null;
+  const summary = valid
+    .map((u) => `${u.op} ${u.path.split("/").pop() ?? u.path}`)
+    .join(", ");
+  const lines: string[] = [];
+  lines.push(`The user updated your memory directory: ${summary}.`);
+  lines.push(`Files changed: ${valid.map((u) => u.path).join(", ")}.`);
+  const stale = inContextPaths.filter((p) => p.length > 0);
+  if (stale.length > 0) {
+    lines.push(
+      `Your loaded copy of ${stale.join(", ")} is now stale relative to ` +
+        "disk — Read it again if you need current contents.",
+    );
+  }
+  return lines.join("\n");
+}
+
 type Subscriber = (event: ServerEvent) => void;
 
 /**
@@ -2761,6 +2813,28 @@ export class Session {
     } catch (err) {
       return { ok: false, error: err instanceof Error ? err.message : String(err) };
     }
+  }
+
+  /**
+   * Memory-update reminder (Claude Code TUI parity, feature 36). The
+   * `/api/memory/auto` route calls this on every CRUD against the
+   * auto-memory directory so the next user turn carries a
+   * `<system-reminder>` naming the files that changed — plus a
+   * staleness clause for any file the model has already Read this
+   * session. Computing `inContextPaths` here (rather than at the route)
+   * keeps `recentReadPaths` private and lets each live session decide
+   * independently which of its reads are stale. No-op when `updates`
+   * is empty.
+   */
+  notifyMemoryUpdate(updates: readonly MemoryUpdate[]): void {
+    if (updates.length === 0) return;
+    const changed = new Set(updates.map((u) => u.path));
+    const inContext: string[] = [];
+    for (const p of this.recentReadPaths) {
+      if (changed.has(p)) inContext.push(p);
+    }
+    const body = memoryUpdateReminderBody(updates, inContext);
+    if (body) queueReminder(this, "memory-update", body);
   }
 
   async accountInfo(): Promise<{ ok: true; data: unknown } | { ok: false; error: string }> {
