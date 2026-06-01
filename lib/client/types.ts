@@ -4,6 +4,7 @@ import type {
   AskAnswer,
   AskUserQuestionEvent,
   FeedbackSurveyEvent,
+  LongContextCreditsNudgeEvent,
   OpusOverloadNudgeEvent,
   PermissionDecision,
   PermissionRequestEvent,
@@ -533,6 +534,15 @@ export type ChatState = {
    */
   opusOverloadNudge: OpusOverloadNudgeEvent | null;
   /**
+   * Active "Extra usage is required for long context" nudge, set when the
+   * server broadcasts a `long_context_credits_required` event after the SDK
+   * tags an assistant message with `billing_error` on a 1M-context session.
+   * Mirrors the Claude Code TUI's dual-remediation hint: a link to the usage
+   * settings page and a one-click switch to the model picker. Null when no
+   * nudge is pending.
+   */
+  longContextCreditsNudge: LongContextCreditsNudgeEvent | null;
+  /**
    * Server-driven spinner tips (the `tips` SSE event). The catalog the chat
    * rotates through under the working spinner; empty until the server emits it,
    * at which point the renderer prefers it over its built-in defaults.
@@ -678,6 +688,8 @@ export type ChatActions = {
   dismissFeedback(): void;
   /** Dismiss the Opus overload nudge banner. Client-side only. */
   dismissOpusOverloadNudge(): void;
+  /** Dismiss the long-context credits-required nudge banner. Client-side only. */
+  dismissLongContextCreditsNudge(): void;
   /** Dismiss the transient fast-mode transition toast. Client-side only. */
   dismissFastModeNotice(): void;
   /** Dismiss the transient model-switch-rejected toast. Client-side only. */

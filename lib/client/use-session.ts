@@ -10,6 +10,7 @@ import type {
   AskUserQuestionEvent,
   AskAnswer,
   FeedbackSurveyEvent,
+  LongContextCreditsNudgeEvent,
   OpusOverloadNudgeEvent,
   PlanDecision,
   ServerEvent,
@@ -482,6 +483,12 @@ export function useSession(): ChatState & ChatActions {
   // replay buffer, so a stale nudge never re-pops on reload.
   const [opusOverloadNudge, setOpusOverloadNudge] =
     useState<OpusOverloadNudgeEvent | null>(null);
+  // One-shot "Extra usage is required for long context" banner, broadcast by
+  // the server when a 1M-context session hits the SDK's `billing_error`.
+  // Live-only: skipped in the SSE replay buffer so a stale event never
+  // re-pops on reload.
+  const [longContextCreditsNudge, setLongContextCreditsNudge] =
+    useState<LongContextCreditsNudgeEvent | null>(null);
   // Server-driven spinner tips (see `tips` SSE event). Empty until the server
   // emits the catalog on subscribe; the renderer falls back to its built-in
   // defaults in the meantime.
@@ -1387,6 +1394,10 @@ export function useSession(): ChatState & ChatActions {
       }
       if (ev.type === "opus_overload_nudge") {
         setOpusOverloadNudge(ev);
+        return;
+      }
+      if (ev.type === "long_context_credits_required") {
+        setLongContextCreditsNudge(ev);
         return;
       }
       if (ev.type === "tips") {
@@ -3603,6 +3614,10 @@ export function useSession(): ChatState & ChatActions {
     setOpusOverloadNudge(null);
   }, []);
 
+  const dismissLongContextCreditsNudge = useCallback(() => {
+    setLongContextCreditsNudge(null);
+  }, []);
+
   const dismissFastModeNotice = useCallback(() => {
     setFastModeNotice(null);
   }, []);
@@ -3932,6 +3947,7 @@ export function useSession(): ChatState & ChatActions {
     pendingAsk,
     feedbackSurvey,
     opusOverloadNudge,
+    longContextCreditsNudge,
     tips,
     errors,
     slashCommands,
@@ -3976,6 +3992,7 @@ export function useSession(): ChatState & ChatActions {
     submitFeedback,
     dismissFeedback,
     dismissOpusOverloadNudge,
+    dismissLongContextCreditsNudge,
     dismissFastModeNotice,
     dismissModelSwitchNotice,
     interrupt,

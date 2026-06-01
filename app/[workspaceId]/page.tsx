@@ -16,6 +16,7 @@ import {
   OpusOverloadNudgePanel,
   OPUS_OVERLOAD_NUDGE_SONNET_TARGET,
 } from "@/components/chat/OpusOverloadNudgePanel";
+import { LongContextCreditsPanel } from "@/components/chat/LongContextCreditsPanel";
 import { FastModeNoticePanel } from "@/components/chat/FastModeNoticePanel";
 import { ModelSwitchNoticePanel } from "@/components/chat/ModelSwitchNoticePanel";
 import { PromptInput } from "@/components/chat/PromptInput";
@@ -1332,6 +1333,23 @@ export default function Home() {
             await session.setModel(OPUS_OVERLOAD_NUDGE_SONNET_TARGET);
           }}
           onDismiss={session.dismissOpusOverloadNudge}
+        />
+        <LongContextCreditsPanel
+          nudge={session.longContextCreditsNudge}
+          onOpenModelPicker={() => {
+            // Prefill the composer with `/model ` so the existing slash-command
+            // autocomplete renders the model picker — same affordance as
+            // typing `/model` in the CLI, no hardcoded fallback target since
+            // "standard-context" covers any non-1M Sonnet/Opus the user prefers.
+            // Dismiss optimistically; the prefill lands on the next tick.
+            session.dismissLongContextCreditsNudge();
+            draftTokenRef.current += 1;
+            setDraftInjection({
+              token: draftTokenRef.current,
+              text: "/model ",
+            });
+          }}
+          onDismiss={session.dismissLongContextCreditsNudge}
         />
         <FastModeNoticePanel
           notice={session.fastModeNotice}
