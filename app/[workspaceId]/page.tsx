@@ -11,6 +11,10 @@ import { GoalBanner } from "@/components/chat/GoalBanner";
 import { useGoalBannerHidden } from "@/lib/client/useGoalBannerHidden";
 import { RecapBanner } from "@/components/chat/RecapBanner";
 import { FeedbackBanner } from "@/components/chat/FeedbackBanner";
+import {
+  OpusOverloadNudgePanel,
+  OPUS_OVERLOAD_NUDGE_SONNET_TARGET,
+} from "@/components/chat/OpusOverloadNudgePanel";
 import { PromptInput } from "@/components/chat/PromptInput";
 import { PermissionPrompt } from "@/components/chat/PermissionPrompt";
 import { AskUserQuestionPrompt } from "@/components/chat/AskUserQuestionPrompt";
@@ -1310,6 +1314,17 @@ export default function Home() {
           survey={session.feedbackSurvey}
           onSubmit={session.submitFeedback}
           onDismiss={session.dismissFeedback}
+        />
+        <OpusOverloadNudgePanel
+          nudge={session.opusOverloadNudge}
+          onSwitchToSonnet={async () => {
+            // One-click switch to the canonical Sonnet id used elsewhere in the
+            // codebase. Dismiss BEFORE the await so the banner clears optimistically
+            // even if the model API round-trip is slow.
+            session.dismissOpusOverloadNudge();
+            await session.setModel(OPUS_OVERLOAD_NUDGE_SONNET_TARGET);
+          }}
+          onDismiss={session.dismissOpusOverloadNudge}
         />
         <div className="flex flex-1 flex-col overflow-hidden">
           {searchOpen && (

@@ -104,6 +104,27 @@ export type FeedbackSurveyEvent = {
 };
 
 /**
+ * One-shot nudge to ask the user to manually switch from Opus to Sonnet after
+ * repeated 529 "Overloaded" errors. Mirrors the Claude Code TUI line "Opus is
+ * experiencing high load, please use /model to switch to Sonnet" — distinct
+ * from the SDK's automatic `fallbackModel` path, which swaps silently. The
+ * server (`lib/server/session.ts` + `opus-overload-detector.ts`) counts
+ * consecutive overload signals and fires this event when the threshold trips;
+ * a successful turn resets the counter.
+ *
+ * Live-only: skipped in the SSE replay loop alongside `feedback_survey` /
+ * `permission_request` so a stale nudge doesn't re-pop on reload after the
+ * overload event has passed.
+ */
+export type OpusOverloadNudgeEvent = {
+  type: "opus_overload_nudge";
+  /** The Opus model id active when the nudge fired (informational). */
+  model: string;
+  /** Consecutive overload count that triggered the nudge (informational). */
+  count: number;
+};
+
+/**
  * Server-driven spinner tips — the catalog the client rotates through under
  * the "Claude is working…" row. Routed through SSE (rather than hardcoded on
  * the client) so the backend is the single source of truth: new-feature tips
@@ -433,6 +454,7 @@ export type ServerEvent =
   | SessionTitleEvent
   | GoalChangedEvent
   | FeedbackSurveyEvent
+  | OpusOverloadNudgeEvent
   | TipsEvent
   | CwdChangedEvent
   | AskUserQuestionEvent
