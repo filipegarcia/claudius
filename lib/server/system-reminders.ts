@@ -30,7 +30,8 @@ export type ReminderKind =
   | "ultrathink-prose"
   | "ultraplan-prose"
   | "midturn-inject"
-  | "linter-modified-file";
+  | "linter-modified-file"
+  | "mcp-delta";
 
 /**
  * Minimal structural host. Anything with a stable `id` will do — keeping

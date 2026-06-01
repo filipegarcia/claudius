@@ -295,6 +295,100 @@ export function autoModeExitReminderBody(): string {
   );
 }
 
+/**
+ * Structured delta of MCP server transitions feeding `mcpDeltaReminderBody`.
+ *
+ * Each list is a set of server names — `added` for newly available servers
+ * (just connected, just enabled, or just reconnect-requested), `removed` for
+ * servers that fully disappear from the session (e.g. dropped via
+ * `setMcpServers`), `disabled` for servers the user toggled off (kept in
+ * config but no longer offering tools), `reconnecting` for servers whose
+ * connection was just kicked but may still be `pending` (status race — see
+ * `Session.reconnectMcp`). Callers populate only the fields that apply to
+ * the user-initiated mutation that drove the transition; everything else
+ * stays undefined and the body skips that clause.
+ */
+export type McpDelta = {
+  added?: readonly string[];
+  removed?: readonly string[];
+  disabled?: readonly string[];
+  reconnecting?: readonly string[];
+};
+
+/**
+ * Claude Code TUI parity (35-mcp-agent-deferred-delta-reminders): when MCP
+ * servers come online, drop off, get toggled, or are kicked for reconnect
+ * mid-session, the CLI prepends an ambient `<system-reminder>` to the next
+ * turn so the agent self-heals — its mental model of which tools are
+ * available updates without the user having to spell it out. The CLI's
+ * canonical guidance, reproduced here in spirit (Claudius has no deferred-
+ * tool / ToolSearch indirection so we name the servers directly rather
+ * than copying `select:<name>`):
+ *
+ *   The following MCP servers are now available: ...
+ *   The following MCP servers are no longer available: ...
+ *   Wait for connecting servers and search their tools once available.
+ *   Do not report a capability as unavailable without first searching.
+ *
+ * Returns the reminder body (without the wrapper tag) when at least one
+ * delta clause has content, or `null` when the delta is entirely empty
+ * (no-op mutation — caller must not queue).
+ *
+ * Pure helper — no Session lifecycle — so the unit test can pin the
+ * literal prose contract without constructing a Session.
+ *
+ * Scope note: this covers user-initiated MCP changes routed through
+ * `Session.reconnectMcp` / `toggleMcp` / `setMcpServers`. Spontaneous
+ * disconnects (e.g. server crash) and agent-type availability shifts
+ * have no event signal in the SDK we wrap today, so they are not
+ * detected — calling them out explicitly so the gap is intentional and
+ * not a regression to chase.
+ */
+export function mcpDeltaReminderBody(delta: McpDelta): string | null {
+  const added = (delta.added ?? []).filter((s) => s.length > 0);
+  const removed = (delta.removed ?? []).filter((s) => s.length > 0);
+  const disabled = (delta.disabled ?? []).filter((s) => s.length > 0);
+  const reconnecting = (delta.reconnecting ?? []).filter((s) => s.length > 0);
+  if (
+    added.length === 0 &&
+    removed.length === 0 &&
+    disabled.length === 0 &&
+    reconnecting.length === 0
+  ) {
+    return null;
+  }
+  const lines: string[] = [];
+  if (added.length > 0) {
+    lines.push(`The following MCP servers are now available: ${added.join(", ")}.`);
+  }
+  if (reconnecting.length > 0) {
+    lines.push(
+      "The following MCP servers were just reconnected and may still be " +
+        `connecting: ${reconnecting.join(", ")}.`,
+    );
+  }
+  if (disabled.length > 0) {
+    lines.push(
+      "The following MCP servers are no longer available (disabled by the " +
+        `user): ${disabled.join(", ")}.`,
+    );
+  }
+  if (removed.length > 0) {
+    lines.push(
+      "The following MCP servers are no longer available (removed from " +
+        `this session): ${removed.join(", ")}.`,
+    );
+  }
+  // CLI's wait-and-search guidance — load-bearing because it turns the
+  // pending-status race in `reconnectMcp` into correct behavior: the
+  // agent waits rather than declaring tools unavailable on a stale view.
+  lines.push(
+    "Wait for connecting servers and search their tools once available. " +
+      "Do not report a capability as unavailable without first searching.",
+  );
+  return lines.join("\n");
+}
+
 type Subscriber = (event: ServerEvent) => void;
 
 /**
@@ -2578,6 +2672,14 @@ export class Session {
     if (!this.query) return { ok: false, error: "no active query" };
     try {
       await this.query.reconnectMcpServer(name);
+      // MCP delta reminder (Claude Code TUI parity, feature 35). A reconnect
+      // request is a "tools may be coming back" transition — but the SDK's
+      // status may still report `pending` immediately after this await, so
+      // we don't re-query and assert "connected"; we surface the reconnect
+      // intent and lean on the CLI's wait-and-search guidance baked into
+      // `mcpDeltaReminderBody`. Next user turn drains it.
+      const body = mcpDeltaReminderBody({ reconnecting: [name] });
+      if (body) queueReminder(this, "mcp-delta", body);
       return { ok: true };
     } catch (err) {
       return { ok: false, error: err instanceof Error ? err.message : String(err) };
@@ -2588,6 +2690,14 @@ export class Session {
     if (!this.query) return { ok: false, error: "no active query" };
     try {
       await this.query.toggleMcpServer(name, enabled);
+      // MCP delta reminder (Claude Code TUI parity, feature 35). Intent is
+      // deterministic from `enabled` — disabled removes tools, enabled brings
+      // them back (subject to a reconnect race we cover via the "wait and
+      // search" clause in `mcpDeltaReminderBody`). No re-query needed.
+      const body = mcpDeltaReminderBody(
+        enabled ? { added: [name] } : { disabled: [name] },
+      );
+      if (body) queueReminder(this, "mcp-delta", body);
       return { ok: true };
     } catch (err) {
       return { ok: false, error: err instanceof Error ? err.message : String(err) };
@@ -2608,6 +2718,35 @@ export class Session {
     if (!this.query) return { ok: false, error: "no active query" };
     try {
       const data = await this.query.setMcpServers(servers);
+      // MCP delta reminder (Claude Code TUI parity, feature 35). The SDK
+      // hands back the canonical add/remove lists in McpSetServersResult,
+      // so we use those directly rather than re-querying status (which
+      // would race the same way reconnect does). Empty add+remove (a no-op
+      // call) returns null from `mcpDeltaReminderBody` and we skip queueing.
+      const result = data as
+        | { added?: unknown; removed?: unknown; errors?: unknown }
+        | null
+        | undefined;
+      // McpSetServersResult.errors lists servers that failed to connect; the
+      // SDK still surfaces those in `added` (the server was added to the
+      // dynamic set even though the handshake failed). Filter them out so
+      // we don't tell the model "now available" for a server that never
+      // connected — the wait-and-search clause would self-correct, but
+      // claiming availability up front is misleading.
+      const errored =
+        result?.errors && typeof result.errors === "object"
+          ? new Set(Object.keys(result.errors as Record<string, unknown>))
+          : new Set<string>();
+      const added = Array.isArray(result?.added)
+        ? (result?.added as unknown[]).filter(
+            (s): s is string => typeof s === "string" && !errored.has(s),
+          )
+        : [];
+      const removed = Array.isArray(result?.removed)
+        ? (result?.removed as unknown[]).filter((s): s is string => typeof s === "string")
+        : [];
+      const body = mcpDeltaReminderBody({ added, removed });
+      if (body) queueReminder(this, "mcp-delta", body);
       return { ok: true, data };
     } catch (err) {
       return { ok: false, error: err instanceof Error ? err.message : String(err) };
