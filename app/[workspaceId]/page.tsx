@@ -1396,6 +1396,18 @@ export default function Home() {
                 questions,
               });
             }}
+            // Approaching-limit remediation levers. The `allowed_warning`
+            // branch of the inline RateLimitPill renders model-aware and
+            // effort-aware chips that reuse the same setModel/setEffort
+            // plumbing as the picker — gated on Opus / high-effort sessions
+            // so the chip never offers a no-op.
+            systemPillLevers={{
+              model: session.model,
+              effort: session.effort,
+              onSwitchToSonnet: () =>
+                session.setModel(OPUS_OVERLOAD_NUDGE_SONNET_TARGET),
+              onStepEffortDown: () => session.setEffort("medium"),
+            }}
           />
           {session.errors.length > 0 && (
             <div className="mx-auto w-full max-w-[var(--chat-col)] px-4 pb-2">
