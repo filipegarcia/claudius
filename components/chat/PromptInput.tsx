@@ -118,6 +118,14 @@ const KEYWORD_HINTS: { id: string; pattern: RegExp; label: string }[] = [
     pattern: /\bgoals?\b/i,
     label: "Goal mentioned — set it as the session objective with /goal",
   },
+  {
+    id: "ultraplan",
+    // Matches the bare word anywhere in the draft but NOT the leading-slash
+    // form `/ultraplan …` (the slash picker / handler already owns that path).
+    // Negative lookbehind keeps `ultraplanning` etc. out as well.
+    pattern: /(?<![/\w])ultraplan\b/i,
+    label: "ultraplan-active — run with /ultraplan to launch a browser planning session",
+  },
 ];
 
 export function PromptInput({
