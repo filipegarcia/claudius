@@ -5,6 +5,21 @@ import { createHighlighter, type Highlighter } from "shiki";
 let highlighterPromise: Promise<Highlighter> | null = null;
 
 /**
+ * Escape the five characters that would otherwise break out of an HTML text
+ * node when we hand-build the fallback `<pre><code>…</code></pre>` block
+ * for un-highlightable input. shiki itself escapes its own output, so this
+ * is only used on the failure path inside `highlight()` and `highlightSync()`.
+ */
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+/**
  * Grammars we pre-register on the singleton highlighter. shiki lazy-loads
  * each grammar on first use, so listing them here is cheap — none of them
  * are bundled until the user opens a file that triggers it.

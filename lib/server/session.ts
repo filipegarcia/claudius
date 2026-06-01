@@ -2360,7 +2360,9 @@ export class Session {
     const wasAuto = this.permissionMode === "auto";
     this.permissionMode = mode;
     if (!wasPlan && mode === "plan") {
-      const state = await getSessionState(this.cwd, this.id).catch(() => ({}));
+      const state: Record<string, unknown> = await getSessionState(this.cwd, this.id).catch(
+        () => ({}),
+      );
       const priorPlan = typeof state.priorPlan === "string" ? state.priorPlan.trim() : "";
       if (priorPlan) {
         queueReminder(this, "plan-mode-reentry", planModeReentryReminderBody(priorPlan));
