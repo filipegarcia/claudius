@@ -446,6 +446,15 @@ export type ChatState = {
   subagentMessages: Record<string, DisplayMessage[]>;
   pendingPlan: PendingPlan | null;
   fastModeState: "off" | "cooldown" | "on" | null;
+  /**
+   * Transient transition toast for fast-mode edges (entered cooldown /
+   * recovered to on). Mirrors the Claude Code TUI's "Fast mode … is
+   * temporarily unavailable" + "Fast limit reset" toasts. Reason
+   * differentiation ("overloaded" vs "limit reached") and the live "resets
+   * in <time>" countdown are intentionally omitted — the SDK exposes neither
+   * a fast-mode reason nor a fast-mode reset timestamp.
+   */
+  fastModeNotice: { uuid: string; kind: "cooldown" | "recovered" } | null;
   promptSuggestions: string[];
   /**
    * Uuids of user messages that originated from a clicked suggestion chip.
@@ -656,6 +665,8 @@ export type ChatActions = {
   dismissFeedback(): void;
   /** Dismiss the Opus overload nudge banner. Client-side only. */
   dismissOpusOverloadNudge(): void;
+  /** Dismiss the transient fast-mode transition toast. Client-side only. */
+  dismissFastModeNotice(): void;
 };
 
 export type ServerEventEnvelope = ServerEvent;

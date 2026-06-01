@@ -509,6 +509,21 @@ export function useSession(): ChatState & ChatActions {
   const [subagentMessages, setSubagentMessages] = useState<Record<string, DisplayMessage[]>>({});
   const [pendingPlan, setPendingPlan] = useState<PendingPlan | null>(null);
   const [fastModeState, setFastModeState] = useState<"off" | "cooldown" | "on" | null>(null);
+  // Transient transition toast (entered cooldown / recovered to on). The
+  // persistent `⚡ cooldown` chip on the StatusLine already carries the
+  // ongoing state — this only marks the edge moment and auto-fades. See
+  // FastModeNoticePanel for the scope note on why reason+countdown are
+  // omitted (no SDK signal for either).
+  const [fastModeNotice, setFastModeNotice] = useState<
+    { uuid: string; kind: "cooldown" | "recovered" } | null
+  >(null);
+  // Prior fast_mode_state observed on a result event. Used to detect edges
+  // without depending on the (stale-in-closure) `fastModeState` state value.
+  const prevFastModeStateRef = useRef<"off" | "cooldown" | "on" | null>(null);
+  // Mirror of `replaying` for SSE callbacks — `applyEvent` is memoized and
+  // doesn't capture `replaying`, but the fast-mode transition detector wants
+  // to suppress notices while the replay buffer is folding history.
+  const replayingRef = useRef<boolean>(true);
   const [promptSuggestions, setPromptSuggestions] = useState<string[]>([]);
   const [suggestedUuids, setSuggestedUuids] = useState<Set<string>>(() => new Set());
   const [goalUuids, setGoalUuids] = useState<Set<string>>(() => new Set());
@@ -1034,8 +1049,11 @@ export function useSession(): ChatState & ChatActions {
     setPendingPlan(null);
     pendingPlanRef.current = null;
     setFastModeState(null);
+    setFastModeNotice(null);
+    prevFastModeStateRef.current = null;
     setPromptSuggestions([]);
     setReplaying(true);
+    replayingRef.current = true;
     setHasMoreAbove(false);
     setLoadingOlder(false);
     setLatestTodos([]);
@@ -1546,6 +1564,7 @@ export function useSession(): ChatState & ChatActions {
       }
       if (ev.type === "replay_done") {
         setReplaying(false);
+        replayingRef.current = false;
         setHasMoreAbove(ev.hasMoreAbove);
         // The assistant-message handler marks every replayed message as
         // `streaming: true` and flips pending — that's correct for live
@@ -2626,7 +2645,25 @@ export function useSession(): ChatState & ChatActions {
           modelUsage?: Record<string, unknown>;
           fast_mode_state?: "off" | "cooldown" | "on";
         };
-        if (r.fast_mode_state) setFastModeState(r.fast_mode_state);
+        if (r.fast_mode_state) {
+          setFastModeState(r.fast_mode_state);
+          // Edge-detect fast-mode transitions for the transient toast. The
+          // first observation just seeds the ref (no toast), so a session
+          // that lands in cooldown via the replay buffer doesn't flash a
+          // stale notice. Also gated on `!replayingRef` so a turn that
+          // entered+exited cooldown during the replay window doesn't pop
+          // mid-rehydrate. See FastModeNoticePanel for the scope note.
+          const prev = prevFastModeStateRef.current;
+          const next = r.fast_mode_state;
+          if (prev !== null && prev !== next && !replayingRef.current) {
+            if (next === "cooldown" && prev !== "cooldown") {
+              setFastModeNotice({ uuid: crypto.randomUUID(), kind: "cooldown" });
+            } else if (next === "on" && prev === "cooldown") {
+              setFastModeNotice({ uuid: crypto.randomUUID(), kind: "recovered" });
+            }
+          }
+          prevFastModeStateRef.current = next;
+        }
 
         // Idempotency: every SDK result event carries a uuid (see
         // SDKResultSuccess / SDKResultError). If we've already folded this
@@ -3557,6 +3594,10 @@ export function useSession(): ChatState & ChatActions {
     setOpusOverloadNudge(null);
   }, []);
 
+  const dismissFastModeNotice = useCallback(() => {
+    setFastModeNotice(null);
+  }, []);
+
   const interrupt = useCallback(async () => {
     const id = sessionIdRef.current;
     if (!id) return;
@@ -3874,6 +3915,7 @@ export function useSession(): ChatState & ChatActions {
     subagentMessages,
     pendingPlan,
     fastModeState,
+    fastModeNotice,
     promptSuggestions,
     suggestedUuids,
     goalUuids,
@@ -3897,6 +3939,7 @@ export function useSession(): ChatState & ChatActions {
     submitFeedback,
     dismissFeedback,
     dismissOpusOverloadNudge,
+    dismissFastModeNotice,
     interrupt,
     setPermissionMode,
     setModel,
