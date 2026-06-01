@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils/cn";
 import { worktreeBadge } from "@/lib/client/worktree";
 import type { SessionInfo } from "@/lib/client/types";
 import type { Workspace } from "@/lib/server/workspaces-store";
+import { modelDeprecationDate } from "@/lib/shared/model-deprecations";
 import {
   VERBOSE_LEVELS,
   verboseDescription,
@@ -209,7 +210,29 @@ export function StatusLine({
       {model && (
         <>
           <span className="opacity-50">·</span>
-          <span className="font-mono opacity-80">{model}</span>
+          {/* Deprecation chip: when the active model is on the SDK's EOL
+              list (mirrored in `lib/shared/model-deprecations.ts`) we
+              promote the model label to an amber warning pill with an
+              AlertTriangle, matching the worktree/context chip pattern.
+              Title carries the EOL date so the user can plan a migration
+              before requests start fallback-swapping. */}
+          {(() => {
+            const eol = modelDeprecationDate(model);
+            if (eol) {
+              return (
+                <span
+                  data-testid="status-line-model-deprecated"
+                  data-model={model}
+                  title={`Model ${model} reaches end-of-life on ${eol}. Switch to a current model to avoid an automatic fallback.`}
+                  className="flex items-center gap-1 rounded border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 font-mono text-[10px] text-amber-200"
+                >
+                  <AlertTriangle className="h-3 w-3" />
+                  <span className="max-w-[14rem] truncate">{model}</span>
+                </span>
+              );
+            }
+            return <span className="font-mono opacity-80">{model}</span>;
+          })()}
         </>
       )}
       {mainAgent && (
