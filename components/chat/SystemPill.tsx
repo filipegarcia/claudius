@@ -31,6 +31,12 @@ const KIND_META: Record<SystemEntry["kind"], { icon: typeof Info; tone: string }
   rate_limit: { icon: AlertTriangle, tone: "text-amber-400" },
   api_retry: { icon: AlertTriangle, tone: "text-amber-400" },
   permission_denied: { icon: ShieldAlert, tone: "text-red-400" },
+  // Automatic model-fallback announcement — the SDK's
+  // `Switched to <new> because <old> is not available [due to high demand
+  // for <old>]` line. Amber `Cpu` mirrors the CLI's own pip and pairs with
+  // the `init` pill (same icon, different tone) so a reader scans both as
+  // "model state" rows.
+  model_fallback: { icon: Cpu, tone: "text-amber-400" },
   info: { icon: Info, tone: "text-[var(--muted)]" },
 };
 
