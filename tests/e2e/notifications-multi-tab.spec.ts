@@ -202,7 +202,7 @@ test.describe("Notifications: multi-tab + workspace switching", () => {
     baseURL,
   }) => {
     await page.goto("/");
-    await waitForBoundSession(page);
+    const realSessionId = await waitForBoundSession(page);
     const { workspaces, activeId } = await listWorkspaces(request, baseURL);
     const active = workspaces.find((w) => w.id === activeId) ?? workspaces[0]!;
     const prevKinds = await ensureKindsEnabled(request, baseURL, active, [
@@ -225,6 +225,23 @@ test.describe("Notifications: multi-tab + workspace switching", () => {
       activeId?: string | null;
       labelMaxWidth?: number;
     };
+
+    // Stub GET /api/sessions/open-tabs so the server's sanitization filter
+    // (which removes session IDs not present in listIndexedSessions) doesn't
+    // silently drop SYNTHETIC_TAB_A/B. We include the real session so the
+    // boot's activeId → resume path still finds a real session to bind to.
+    await page.route("**/api/sessions/open-tabs", async (route) => {
+      if (route.request().method() !== "GET") return route.fallback();
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          tabs: [realSessionId, SYNTHETIC_TAB_A, SYNTHETIC_TAB_B],
+          activeId: realSessionId,
+          labelMaxWidth: 180,
+        }),
+      });
+    });
 
     // Seed the tab strip with two synthetic IDs that are NOT the bound
     // session (the bound id auto-reads). These IDs aren't in sessionManager,
@@ -322,6 +339,7 @@ test.describe("Notifications: multi-tab + workspace switching", () => {
 
     // ── Cleanup: restore enabledKinds + the original openTabs list so
     // downstream tests don't boot bound to a synthetic UUID.
+    await page.unroute("**/api/sessions/open-tabs");
     await restoreKinds(request, baseURL, active, prevKinds);
     await request.put(`${baseURL}/api/sessions/open-tabs`, {
       data: {
@@ -581,7 +599,7 @@ test.describe("Notifications: multi-tab + workspace switching", () => {
     baseURL,
   }) => {
     await page.goto("/");
-    await waitForBoundSession(page);
+    const realSessionId = await waitForBoundSession(page);
     const { workspaces, activeId } = await listWorkspaces(request, baseURL);
     const active = workspaces.find((w) => w.id === activeId) ?? workspaces[0]!;
     const prevKinds = await ensureKindsEnabled(request, baseURL, active, [
@@ -612,6 +630,23 @@ test.describe("Notifications: multi-tab + workspace switching", () => {
             status: bgStatus,
           },
         ]),
+      });
+    });
+
+    // Stub GET /api/sessions/open-tabs so the server's sanitization filter
+    // (which removes session IDs not present in listIndexedSessions) doesn't
+    // silently drop SYNTHETIC_TAB_C. We include the real session so the boot's
+    // activeId → resume path still finds a real session to bind to.
+    await page.route("**/api/sessions/open-tabs", async (route) => {
+      if (route.request().method() !== "GET") return route.fallback();
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          tabs: [realSessionId, SYNTHETIC_TAB_C],
+          activeId: realSessionId,
+          labelMaxWidth: 180,
+        }),
       });
     });
 
@@ -663,6 +698,7 @@ test.describe("Notifications: multi-tab + workspace switching", () => {
 
     // Cleanup.
     await page.unroute("**/api/sessions");
+    await page.unroute("**/api/sessions/open-tabs");
     await request.post(`${baseURL}/api/notifications/read-all`, {
       data: { workspaceId: active.id },
     });
@@ -700,7 +736,7 @@ test.describe("Notifications: multi-tab + workspace switching", () => {
     baseURL,
   }) => {
     await page.goto("/");
-    await waitForBoundSession(page);
+    const realSessionId = await waitForBoundSession(page);
     const { workspaces, activeId } = await listWorkspaces(request, baseURL);
     const active = workspaces.find((w) => w.id === activeId) ?? workspaces[0]!;
     const prevKinds = await ensureKindsEnabled(request, baseURL, active, [
@@ -727,6 +763,23 @@ test.describe("Notifications: multi-tab + workspace switching", () => {
             status: bgStatus,
           },
         ]),
+      });
+    });
+
+    // Stub GET /api/sessions/open-tabs so the server's sanitization filter
+    // (which removes session IDs not present in listIndexedSessions) doesn't
+    // silently drop SYNTHETIC_TAB_C. We include the real session so the boot's
+    // activeId → resume path still finds a real session to bind to.
+    await page.route("**/api/sessions/open-tabs", async (route) => {
+      if (route.request().method() !== "GET") return route.fallback();
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          tabs: [realSessionId, SYNTHETIC_TAB_C],
+          activeId: realSessionId,
+          labelMaxWidth: 180,
+        }),
       });
     });
 
@@ -768,6 +821,7 @@ test.describe("Notifications: multi-tab + workspace switching", () => {
 
     // Cleanup.
     await page.unroute("**/api/sessions");
+    await page.unroute("**/api/sessions/open-tabs");
     await restoreKinds(request, baseURL, active, prevKinds);
     await request.put(`${baseURL}/api/sessions/open-tabs`, {
       data: {
