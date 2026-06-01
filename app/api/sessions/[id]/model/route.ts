@@ -9,8 +9,17 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   const session = sessionManager.get(id);
   if (!session) return NextResponse.json({ error: "session not found" }, { status: 404 });
   const body = (await req.json()) as { model?: string | null };
-  await session.setModel(body?.model ?? undefined);
-  return NextResponse.json({ ok: true, model: body?.model });
+  const result = await session.setModel(body?.model ?? undefined);
+  if (!result.ok) {
+    // Surface the SDK rejection so the client can revert its optimistic
+    // pick and toast. 409 because the model state is unchanged — the
+    // request itself was well-formed.
+    return NextResponse.json(
+      { ok: false, error: result.error, model: result.model ?? null },
+      { status: 409 },
+    );
+  }
+  return NextResponse.json({ ok: true, model: result.model ?? null });
 }
 
 /**

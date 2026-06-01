@@ -1847,8 +1847,30 @@ export class Session {
     }
   }
 
-  async setModel(model?: string): Promise<void> {
-    if (this.query) await this.query.setModel(model).catch(() => {});
+  async setModel(
+    model?: string,
+  ): Promise<{ ok: true; model?: string } | { ok: false; error: string; model?: string }> {
+    // Forward the pick to the active SDK query and surface its rejection
+    // instead of swallowing. Previously a `.catch(() => {})` discarded
+    // failures, so the picker would close and the optimistic UI would claim
+    // the new model while the SDK kept running the old one. We now short-
+    // circuit on rejection so the in-memory `this.model`, the persisted DB
+    // row, and the `model_changed` broadcast all stay consistent — and the
+    // route returns the failure so the client can revert and toast.
+    //
+    // No remote/teleport concept exists in Claudius; this is the local
+    // analogue of the TUI's host-rejected model switch.
+    if (this.query) {
+      try {
+        await this.query.setModel(model);
+      } catch (err) {
+        return {
+          ok: false,
+          error: err instanceof Error ? err.message : String(err),
+          model: this.model,
+        };
+      }
+    }
     this.model = model;
     // Persist so the pick survives reap → resume. Without this the in-memory
     // mutation is lost when the SessionManager evicts the Session object, and
@@ -1868,6 +1890,7 @@ export class Session {
       // falls back to the prior default.
     }
     this.broadcast({ type: "model_changed", model });
+    return { ok: true, model };
   }
 
   /**
