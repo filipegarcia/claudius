@@ -241,6 +241,24 @@ export default function Home() {
     ),
   );
 
+  // Electron right-click → "Append Selection to Current Chat": append the
+  // selection onto the existing composer via the draftInjection contract.
+  // No session creation — stays on the active tab. PromptInput honours
+  // `mode: "append"` to join onto whatever the user already typed instead
+  // of clobbering it.
+  useElectronSubscription<string>(
+    claudiusBridge?.chat.onAppendToComposer,
+    useCallback((text: string) => {
+      if (typeof text !== "string" || text.length === 0) return;
+      draftTokenRef.current += 1;
+      setDraftInjection({
+        token: draftTokenRef.current,
+        text,
+        mode: "append",
+      });
+    }, []),
+  );
+
   // ?new=1 on the URL means "the user clicked Chat — give me a new session."
   // The boot effect in useSession handles this on initial mount, but a click
   // from the chat page to itself is a same-route navigation and won't remount,

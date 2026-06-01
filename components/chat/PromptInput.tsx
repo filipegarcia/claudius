@@ -16,6 +16,7 @@ import { AtMentionPicker } from "./AtMentionPicker";
 import { ImageLightbox } from "./ImageLightbox";
 import { useVoice } from "@/lib/client/useVoice";
 import { useSdkCommands } from "@/lib/client/useSdkCommands";
+import { readBridgeOnClient } from "@/lib/client/useElectron";
 import type { AttachedImage } from "@/lib/client/types";
 import {
   BULLET_GLYPH,
@@ -44,8 +45,19 @@ type Props = {
    * Set by the parent to inject text into the input (e.g. when the user lifts
    * a queued message back into the prompt). Bumping this token applies the
    * value once. May also carry images that were attached to the queued message.
+   *
+   * `mode` defaults to `"replace"` — the historical behaviour. `"append"`
+   * concatenates the injected text onto whatever the user currently has in
+   * the textarea (joined with a space when non-empty), used by the Electron
+   * right-click "Append Selection to Current Chat" path so a series of
+   * right-clicks can stitch quotes into one prompt.
    */
-  draftInjection?: { token: number; text: string; images?: AttachedImage[] };
+  draftInjection?: {
+    token: number;
+    text: string;
+    images?: AttachedImage[];
+    mode?: "replace" | "append";
+  };
   /**
    * Previously sent user prompts for the current session, oldest → newest.
    * Drives shell-style history recall: Cmd/Ctrl+↑ walks back through these,
@@ -276,6 +288,47 @@ export function PromptInput({
     return () => cancelAnimationFrame(handle);
   }, [sessionId, ready]);
 
+  // ── Electron: re-focus the composer when the window regains focus ───────
+  // After the user Cmd-Tabs back into Claudius we want the caret already
+  // sitting in the chat input so they can start typing — no extra click.
+  // The web build doesn't do this (a browser tab regaining focus shouldn't
+  // yank focus into a textarea unprompted), so the listener is gated on the
+  // Electron preload bridge.
+  //
+  // Race note: Chromium restores focus to the previously-focused element
+  // around the same time `window.focus` fires, and the ordering between
+  // those two isn't guaranteed. We defer the "are we in another editor"
+  // check into the rAF so it reads the *settled* activeElement — otherwise
+  // a transient body-focused snapshot at handler time would let us steal
+  // focus from e.g. an open search palette or the goal composer.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!readBridgeOnClient()) return;
+    let handle: number | null = null;
+    const onWindowFocus = () => {
+      if (handle != null) cancelAnimationFrame(handle);
+      handle = requestAnimationFrame(() => {
+        handle = null;
+        if (!taRef.current) return;
+        const ae = document.activeElement as HTMLElement | null;
+        const inOtherEditor =
+          ae &&
+          ae !== document.body &&
+          ae !== taRef.current &&
+          (ae.tagName === "INPUT" ||
+            ae.tagName === "TEXTAREA" ||
+            ae.isContentEditable);
+        if (inOtherEditor) return;
+        taRef.current.focus();
+      });
+    };
+    window.addEventListener("focus", onWindowFocus);
+    return () => {
+      window.removeEventListener("focus", onWindowFocus);
+      if (handle != null) cancelAnimationFrame(handle);
+    };
+  }, []);
+
   // Apply each fresh injection token exactly once. Uses the React 19
   // "store previous prop" pattern: when the incoming token differs from
   // the one we last applied, we update state during render (before the
@@ -287,16 +340,40 @@ export function PromptInput({
   const [appliedInjectionToken, setAppliedInjectionToken] = useState<number>(-1);
   if (draftInjection && draftInjection.token !== appliedInjectionToken) {
     setAppliedInjectionToken(draftInjection.token);
-    setValue(draftInjection.text);
-    refreshPickerState(draftInjection.text, draftInjection.text.length);
-    if (draftInjection.images && draftInjection.images.length > 0) {
-      setImages(draftInjection.images);
-      // Bump the ordinal counter past anything the prior queue used so a new
-      // attach starts a fresh `#N` rather than colliding with a restored one.
-      const maxOrd = draftInjection.images.reduce((m, im) => Math.max(m, im.ordinal), 0);
-      ordinalCounterRef.current = Math.max(ordinalCounterRef.current, maxOrd);
+    // Append mode joins onto the existing textarea (with a separator newline
+    // when both sides are non-empty) instead of replacing. Used by the
+    // Electron right-click "Append Selection to Current Chat" path so a
+    // chain of right-clicks accumulates context into one prompt. The
+    // existing image-attachment fields stay replace-only — appending images
+    // would require ordinal reconciliation we don't need yet.
+    if (draftInjection.mode === "append") {
+      const next =
+        value.length > 0
+          ? `${value}${value.endsWith("\n") ? "" : "\n"}${draftInjection.text}`
+          : draftInjection.text;
+      setValue(next);
+      refreshPickerState(next, next.length);
+      // Append doesn't touch images/ordinals — the existing attachments
+      // belong to the user's in-progress prompt and stay as-is. The
+      // per-session draft GET that fires on sessionId change can't
+      // clobber this because append is only triggered while the user is
+      // ON the same session — sessionId hasn't changed, so that effect
+      // doesn't refire.
     } else {
-      setImages([]);
+      setValue(draftInjection.text);
+      refreshPickerState(draftInjection.text, draftInjection.text.length);
+      if (draftInjection.images && draftInjection.images.length > 0) {
+        setImages(draftInjection.images);
+        // Bump the ordinal counter past anything the prior queue used so a new
+        // attach starts a fresh `#N` rather than colliding with a restored one.
+        const maxOrd = draftInjection.images.reduce(
+          (m, im) => Math.max(m, im.ordinal),
+          0,
+        );
+        ordinalCounterRef.current = Math.max(ordinalCounterRef.current, maxOrd);
+      } else {
+        setImages([]);
+      }
     }
   }
   useEffect(() => {

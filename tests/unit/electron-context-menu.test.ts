@@ -22,6 +22,9 @@ vi.mock("electron", () => ({
 
 import {
   buildContextMenuTemplate,
+  QUICK_ACTION_TEMPLATES,
+  toMarkdownQuote,
+  WEB_SEARCH_ENGINES,
   type ContextMenuCallbacks,
   type ContextMenuParamsLike,
 } from "@/electron/ipc/context-menu";
@@ -61,10 +64,16 @@ function makeCallbacks(): ContextMenuCallbacks {
     openExternal: vi.fn(),
     copyText: vi.fn(),
     startNewChatWithText: vi.fn(),
+    appendToCurrentComposer: vi.fn(),
     replaceMisspelling: vi.fn(),
     inspectElement: vi.fn(),
     reload: vi.fn(),
   };
+}
+
+/** Find a top-level menu item by exact label. */
+function findItem(template: ReturnType<typeof buildContextMenuTemplate>, label: string) {
+  return template.find((it) => it.label === label);
 }
 
 describe("buildContextMenuTemplate", () => {
@@ -183,6 +192,101 @@ describe("buildContextMenuTemplate", () => {
     );
     expect(template.find((it) => it.label === "Reload")).toBeDefined();
     expect(template.find((it) => it.label === "Inspect Element")).toBeDefined();
+  });
+
+  test("selection adds Append, Copy-as-quoted, Quick Actions, Search Web entries", () => {
+    const template = buildContextMenuTemplate(
+      makeParams({ selectionText: "the code is wrong here" }),
+      makeCallbacks(),
+    );
+    expect(findItem(template, "Append Selection to Current Chat")).toBeDefined();
+    expect(findItem(template, "Copy as Quoted Markdown")).toBeDefined();
+    expect(findItem(template, "Quick Actions")).toBeDefined();
+    expect(findItem(template, "Search Web For Selection")).toBeDefined();
+  });
+
+  test("Append entry forwards selection to appendToCurrentComposer", () => {
+    const cb = makeCallbacks();
+    const template = buildContextMenuTemplate(
+      makeParams({ selectionText: "snippet for context" }),
+      cb,
+    );
+    const append = findItem(template, "Append Selection to Current Chat");
+    (append?.click as () => void)();
+    expect(cb.appendToCurrentComposer).toHaveBeenCalledWith("snippet for context");
+  });
+
+  test("Copy-as-quoted writes Markdown blockquote prefix to clipboard", () => {
+    const cb = makeCallbacks();
+    const template = buildContextMenuTemplate(
+      makeParams({ selectionText: "line one\nline two\n\nparagraph" }),
+      cb,
+    );
+    const copy = findItem(template, "Copy as Quoted Markdown");
+    (copy?.click as () => void)();
+    expect(cb.copyText).toHaveBeenCalledWith(
+      "> line one\n> line two\n>\n> paragraph",
+    );
+  });
+
+  test("Quick Actions submenu wraps selection in the templated prompt", () => {
+    const cb = makeCallbacks();
+    const template = buildContextMenuTemplate(
+      makeParams({ selectionText: "while (true) { break; }" }),
+      cb,
+    );
+    const quick = findItem(template, "Quick Actions");
+    expect(Array.isArray(quick?.submenu)).toBe(true);
+    const explainItem = (quick?.submenu as Array<{ label?: string; click?: () => void }>).find(
+      (it) => it.label === "Explain This",
+    );
+    (explainItem?.click as () => void)();
+    expect(cb.startNewChatWithText).toHaveBeenCalledWith(
+      QUICK_ACTION_TEMPLATES.explain + "while (true) { break; }",
+    );
+
+    const summarizeItem = (quick?.submenu as Array<{ label?: string; click?: () => void }>).find(
+      (it) => it.label === "Summarize This",
+    );
+    (summarizeItem?.click as () => void)();
+    expect(cb.startNewChatWithText).toHaveBeenCalledWith(
+      QUICK_ACTION_TEMPLATES.summarize + "while (true) { break; }",
+    );
+  });
+
+  test("Search Web submenu opens engine URL via openExternal", () => {
+    const cb = makeCallbacks();
+    const template = buildContextMenuTemplate(
+      makeParams({ selectionText: "TypeError: undefined is not a function" }),
+      cb,
+    );
+    const search = findItem(template, "Search Web For Selection");
+    const ddg = (search?.submenu as Array<{ label?: string; click?: () => void }>).find(
+      (it) => it.label === "DuckDuckGo",
+    );
+    (ddg?.click as () => void)();
+    expect(cb.openExternal).toHaveBeenCalledWith(
+      WEB_SEARCH_ENGINES.duckduckgo("TypeError: undefined is not a function"),
+    );
+    // URL is properly encoded.
+    expect((cb.openExternal as ReturnType<typeof vi.fn>).mock.calls[0][0]).toContain(
+      "TypeError%3A%20undefined%20is%20not%20a%20function",
+    );
+  });
+
+  test("toMarkdownQuote prefixes every line, empty lines become bare '>'", () => {
+    expect(toMarkdownQuote("a\nb")).toBe("> a\n> b");
+    expect(toMarkdownQuote("a\n\nb")).toBe("> a\n>\n> b");
+    expect(toMarkdownQuote("solo")).toBe("> solo");
+    expect(toMarkdownQuote("")).toBe(">");
+  });
+
+  test("non-selection right-click does NOT surface selection-only entries", () => {
+    const template = buildContextMenuTemplate(makeParams(), makeCallbacks());
+    expect(findItem(template, "Append Selection to Current Chat")).toBeUndefined();
+    expect(findItem(template, "Quick Actions")).toBeUndefined();
+    expect(findItem(template, "Search Web For Selection")).toBeUndefined();
+    expect(findItem(template, "Copy as Quoted Markdown")).toBeUndefined();
   });
 
   test("template always ends with Inspect Element", () => {

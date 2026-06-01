@@ -45,6 +45,7 @@ const TOPICS = {
   updaterStatus: "updater:status",
   workspaceOpenFolder: "workspace:open-folder",
   chatNewWithText: "chat:new-with-text",
+  chatAppendToComposer: "chat:append-to-composer",
 } as const;
 
 /**
@@ -149,6 +150,13 @@ const api = {
      */
     onNewWithText: (cb: (text: string) => void) =>
       subscribe<string>(TOPICS.chatNewWithText, cb),
+    /**
+     * Fires when the user picks "Append Selection to Current Chat" from
+     * the Electron context menu. Payload is the raw selection text.
+     * Renderer appends it to the active composer's draft (NOT auto-sending).
+     */
+    onAppendToComposer: (cb: (text: string) => void) =>
+      subscribe<string>(TOPICS.chatAppendToComposer, cb),
   },
 };
 

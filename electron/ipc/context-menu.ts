@@ -29,6 +29,43 @@ import {
 
 /** TOPIC strings exported so preload + main stay in lockstep. */
 export const TOPIC_NEW_WITH_TEXT = "chat:new-with-text";
+export const TOPIC_APPEND_TO_COMPOSER = "chat:append-to-composer";
+
+/**
+ * Quick-action prompt templates used by the "Explain / Summarize" menu
+ * entries. Kept as plain strings so unit tests can pin the exact wording —
+ * if a future tweak changes a template, the corresponding test fails and
+ * the change is intentional rather than accidental.
+ */
+export const QUICK_ACTION_TEMPLATES = {
+  explain: "Explain this in plain language:\n\n",
+  summarize: "Summarize this concisely (bullet points if useful):\n\n",
+} as const;
+
+export type QuickActionId = keyof typeof QUICK_ACTION_TEMPLATES;
+
+/**
+ * Search engines offered by the "Search on the web" submenu. URL builders
+ * are pure so the same module is testable without electron's `shell`.
+ */
+export const WEB_SEARCH_ENGINES = {
+  google: (q: string) => `https://www.google.com/search?q=${encodeURIComponent(q)}`,
+  duckduckgo: (q: string) => `https://duckduckgo.com/?q=${encodeURIComponent(q)}`,
+} as const;
+
+export type WebSearchEngine = keyof typeof WEB_SEARCH_ENGINES;
+
+/**
+ * Wrap each line of `text` in `> ` for Markdown blockquote semantics.
+ * Empty lines become bare `>` so the block stays continuous when pasted.
+ * Pure — exported for unit coverage.
+ */
+export function toMarkdownQuote(text: string): string {
+  return text
+    .split(/\r?\n/)
+    .map((line) => (line.length === 0 ? ">" : `> ${line}`))
+    .join("\n");
+}
 
 /**
  * Callbacks the pure builder needs. Kept as a struct (rather than reading
@@ -45,6 +82,12 @@ export type ContextMenuCallbacks = {
    * `chat:new-with-text` push channel.
    */
   startNewChatWithText: (text: string) => void;
+  /**
+   * Append `text` to the CURRENT chat session's composer (no new tab).
+   * Sent over the `chat:append-to-composer` push channel so the renderer
+   * can fan it into the open composer's draft state.
+   */
+  appendToCurrentComposer: (text: string) => void;
   /** Tell the focused webContents to replace its misspelt word. */
   replaceMisspelling: (replacement: string) => void;
   /** Open / focus the dev tools at the click coordinates. */
@@ -133,10 +176,48 @@ export function buildContextMenuTemplate(
 
   // ── Claudius-specific power moves on selected text ──────────────────────
   if (hasSelection) {
+    const sel = params.selectionText;
+    const preview = truncatePreview(sel);
     items.push({ type: "separator" });
     items.push({
-      label: `Start New Chat With "${truncatePreview(params.selectionText)}"`,
-      click: () => cb.startNewChatWithText(params.selectionText),
+      label: `Start New Chat With "${preview}"`,
+      click: () => cb.startNewChatWithText(sel),
+    });
+    items.push({
+      label: "Append Selection to Current Chat",
+      click: () => cb.appendToCurrentComposer(sel),
+    });
+    items.push({
+      label: "Copy as Quoted Markdown",
+      click: () => cb.copyText(toMarkdownQuote(sel)),
+    });
+    items.push({
+      label: "Quick Actions",
+      submenu: [
+        {
+          label: "Explain This",
+          click: () =>
+            cb.startNewChatWithText(QUICK_ACTION_TEMPLATES.explain + sel),
+        },
+        {
+          label: "Summarize This",
+          click: () =>
+            cb.startNewChatWithText(QUICK_ACTION_TEMPLATES.summarize + sel),
+        },
+      ],
+    });
+    items.push({
+      label: "Search Web For Selection",
+      submenu: [
+        {
+          label: "Google",
+          click: () => cb.openExternal(WEB_SEARCH_ENGINES.google(sel)),
+        },
+        {
+          label: "DuckDuckGo",
+          click: () => cb.openExternal(WEB_SEARCH_ENGINES.duckduckgo(sel)),
+        },
+      ],
     });
   }
 
@@ -198,6 +279,9 @@ export function registerContextMenu(window: BrowserWindow): void {
       startNewChatWithText: (text) => {
         sendNewChatWithText(wc, text);
       },
+      appendToCurrentComposer: (text) => {
+        sendAppendToComposer(wc, text);
+      },
       replaceMisspelling: (replacement) => {
         try {
           wc.replaceMisspelling(replacement);
@@ -237,5 +321,19 @@ export function sendNewChatWithText(wc: WebContents, text: string): void {
     wc.send(TOPIC_NEW_WITH_TEXT, text);
   } catch (err) {
     console.error("[electron/context-menu] send failed:", err);
+  }
+}
+
+/**
+ * Push selection text to the renderer for it to append to the CURRENT
+ * chat composer (no new session). Renderer fans this into the
+ * PromptInput's existing draft-injection plumbing.
+ */
+export function sendAppendToComposer(wc: WebContents, text: string): void {
+  if (!text) return;
+  try {
+    wc.send(TOPIC_APPEND_TO_COMPOSER, text);
+  } catch (err) {
+    console.error("[electron/context-menu] append send failed:", err);
   }
 }

@@ -161,14 +161,21 @@ export type ClaudiusBridge = {
   };
 
   /**
-   * Chat-pane affordances driven by the main process — currently just the
-   * right-click "Start New Chat With Selection" entry in
-   * `electron/ipc/context-menu.ts`. The payload is the raw selection text;
-   * the renderer creates a fresh session and prefills the composer (no
-   * auto-send). Added in bridgeVersion 4.
+   * Chat-pane affordances driven by the main process — currently the
+   * right-click selection actions wired up in
+   * `electron/ipc/context-menu.ts`. Renderer code prefills composers; no
+   * push channel here auto-sends a message.
+   *
+   *  - `onNewWithText(text)` — "Start New Chat With Selection" / Quick
+   *    Actions (Explain, Summarize). Creates a fresh session and prefills
+   *    its composer. Added in bridgeVersion 4.
+   *  - `onAppendToComposer(text)` — "Append Selection to Current Chat".
+   *    Appends to the active session's composer instead of branching off.
+   *    Added in bridgeVersion 4.
    */
   chat: {
     onNewWithText(cb: (text: string) => void): () => void;
+    onAppendToComposer(cb: (text: string) => void): () => void;
   };
 };
 
