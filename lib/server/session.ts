@@ -35,7 +35,9 @@ import { isBillingErrorSignal } from "./long-context-credits-detector";
 import {
   clearSessionGoal,
   getSessionGoal,
+  getSessionState,
   getSessionTitle,
+  mergeSessionState,
   setGoalAchieved,
   setSessionGoal,
   setSessionTitle,
@@ -237,6 +239,38 @@ export function staleTodoReminderBody(todos: readonly unknown[]): string {
   // rendering that would diverge from what TodoWrite's own input schema
   // expects on a follow-up call.
   return `${base}\n\nCurrent todos:\n${JSON.stringify(todos, null, 2)}`;
+}
+
+/**
+ * Claude Code TUI parity (33-plan-mode-reentry-reminder): when the user
+ * flips back into plan mode after a prior planning round in this session,
+ * inject a `## Re-entering Plan Mode` reminder pointing at the previously
+ * resolved plan so the model treats this as a fresh planning session rather
+ * than assuming the old plan still applies. The CLI's verbatim header is:
+ *
+ *   ## Re-entering Plan Mode
+ *   You are returning to plan mode after having previously exited it. A plan
+ *   file exists at ${H.planFilePath} from your previous planning session.
+ *
+ * Claudius has no on-disk plan file — `ExitPlanMode` is reviewed in
+ * `PlanOverlay` and the resolved text is otherwise discarded. We close the
+ * gap by persisting the resolved plan text in the per-session JSON state
+ * bag (`mergeSessionState`, key `priorPlan`) at `resolvePlan` time and
+ * inlining it in the body here. The opening sentence matches the CLI; the
+ * second sentence drops the `planFilePath` reference and points at the
+ * inlined plan instead.
+ *
+ * Pure helper — no Session lifecycle — so the unit test can pin the prose
+ * without constructing a Session.
+ */
+export function planModeReentryReminderBody(priorPlan: string): string {
+  const head =
+    "## Re-entering Plan Mode\n" +
+    "You are returning to plan mode after having previously exited it. " +
+    "A plan from your previous planning session is reproduced below — " +
+    "treat this as a fresh planning round rather than assuming the prior " +
+    "plan still applies.";
+  return `${head}\n\nPrevious plan:\n${priorPlan}`;
 }
 
 type Subscriber = (event: ServerEvent) => void;
@@ -1579,6 +1613,11 @@ export class Session {
         behavior: "deny",
         message: decision.message ?? "User rejected the plan — keep iterating.",
       });
+      // Feature 33 parity: persist the model's plan draft even on reject so
+      // a later plan-mode re-entry can reference what was deliberated last
+      // round. The CLI's on-disk plan file behaves the same way — it lingers
+      // regardless of whether the user accepted the plan that produced it.
+      void mergeSessionState(this.cwd, this.id, { priorPlan: pending.plan });
       this.broadcastTurnStatusIfChanged();
       return true;
     }
@@ -1620,6 +1659,15 @@ export class Session {
     if (editedPlan && editedPlan !== pending.plan.trim()) {
       result.updatedInput = { ...rawInput, plan: editedPlan };
     }
+    // Feature 33 parity: persist whichever plan the model actually saw as
+    // the round's outcome — the user's edit if they hand-tweaked it in the
+    // overlay, otherwise the model's draft. A later re-entry into plan mode
+    // (handled in `setPermissionMode`) reads this back and queues a
+    // `plan-mode-reentry` reminder so the agent treats the new round as a
+    // fresh planning session rather than assuming the prior plan still holds.
+    void mergeSessionState(this.cwd, this.id, {
+      priorPlan: editedPlan && editedPlan.length > 0 ? editedPlan : pending.plan,
+    });
     pending.resolve(result);
     // The SDK doesn't echo `setMode` permission updates back through its
     // message iterator — broadcast manually so the client UI's mode badge
@@ -2013,7 +2061,27 @@ export class Session {
   }
 
   async setPermissionMode(mode: PermissionMode): Promise<void> {
+    // Plan-mode re-entry reminder (Claude Code TUI parity, feature 33). When
+    // the user flips back into plan mode after a prior planning round in
+    // this session, queue a `plan-mode-reentry` reminder citing the
+    // previously resolved plan — the CLI does the same against an on-disk
+    // plan file, which Claudius doesn't have, so we lean on the JSON state
+    // bag (`priorPlan`) populated in `resolvePlan`. Persist-backed (vs the
+    // in-memory counters used by stale-todowrite / date-change) because
+    // "previous planning session" should survive resume, matching the
+    // CLI's on-disk semantics. Gate on the *transition*: a redundant
+    // `setPermissionMode("plan")` while already in plan mode (or the
+    // direct field write in `resolvePlan` flipping to `acceptEdits`) must
+    // not re-fire the reminder.
+    const wasPlan = this.permissionMode === "plan";
     this.permissionMode = mode;
+    if (!wasPlan && mode === "plan") {
+      const state = await getSessionState(this.cwd, this.id).catch(() => ({}));
+      const priorPlan = typeof state.priorPlan === "string" ? state.priorPlan.trim() : "";
+      if (priorPlan) {
+        queueReminder(this, "plan-mode-reentry", planModeReentryReminderBody(priorPlan));
+      }
+    }
     if (this.query) await this.query.setPermissionMode(mode).catch(() => {});
     this.broadcast({
       type: "mode_changed",
