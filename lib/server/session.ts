@@ -200,6 +200,45 @@ export function linterModifiedReminderBody(paths: readonly string[]): string | n
     .join("\n\n");
 }
 
+/**
+ * Claude Code TUI parity (31-stale-todowrite-gentle-nudge): when several user
+ * turns pass without Claude invoking TodoWrite, the harness drops an ambient
+ * `<system-reminder>` suggesting the model either start tracking or prune a
+ * stale list — and dumps the current todos inline so the model can see what's
+ * there to clean up. Phrased as low-pressure, opt-out advice (the CLI's exact
+ * wording, reproduced verbatim below).
+ *
+ *   The TodoWrite tool hasn't been used recently. If you're working on tasks
+ *   that would benefit from tracking progress, consider using the TodoWrite
+ *   tool to track progress. Also consider cleaning up the todo list if has
+ *   become stale and no longer matches what you are working on. Only use it
+ *   if it's relevant to the current work. This is just a gentle reminder -
+ *   ignore if not applicable.
+ *
+ * When the latest snapshot has any todos, append a JSON dump so the model
+ * can reason about pruning specific items. When it doesn't, the body still
+ * fires unchanged — the prose's "if you're working on tasks…" clause covers
+ * the no-todos case on its own.
+ *
+ * Pure helper — no Session lifecycle — so the unit test can pin the literal
+ * prose contract without constructing a Session.
+ */
+export function staleTodoReminderBody(todos: readonly unknown[]): string {
+  const base =
+    "The TodoWrite tool hasn't been used recently. If you're working on " +
+    "tasks that would benefit from tracking progress, consider using the " +
+    "TodoWrite tool to track progress. Also consider cleaning up the todo " +
+    "list if has become stale and no longer matches what you are working " +
+    "on. Only use it if it's relevant to the current work. This is just a " +
+    "gentle reminder - ignore if not applicable.";
+  if (todos.length === 0) return base;
+  // Dump the current list so the model can prune specific entries. JSON
+  // keeps the shape stable for the agent and avoids guessing at a prose
+  // rendering that would diverge from what TodoWrite's own input schema
+  // expects on a follow-up call.
+  return `${base}\n\nCurrent todos:\n${JSON.stringify(todos, null, 2)}`;
+}
+
 type Subscriber = (event: ServerEvent) => void;
 
 /**
@@ -212,6 +251,16 @@ type Subscriber = (event: ServerEvent) => void;
  * never burns a session against the cap.
  */
 const OPUS_OVERLOAD_NUDGE_THRESHOLD = 2;
+
+/**
+ * Real user turns without a TodoWrite tool_use before `sendInput` queues a
+ * `stale-todowrite` reminder. The CLI's exact threshold isn't documented, so
+ * this number is a defensible approximation — high enough that a short
+ * conversation never trips the nudge, low enough that a multi-turn refactor
+ * gets a periodic poke. After firing, the counter rearms at 0 (the spec calls
+ * this an "every N todo-silent turns" rhythm, not a once-per-session shot).
+ */
+const STALE_TODO_TURN_THRESHOLD = 15;
 
 type PendingPermission = {
   requestId: string;
@@ -663,6 +712,24 @@ export class Session {
    * queue and the `latestTodosSnapshot` field.
    */
   private postWriteSnapshots = new Map<string, string>();
+
+  /**
+   * Real-user-turn counter since the model last invoked TodoWrite. Incremented
+   * in `sendInput` (after the slash-command early-return so e.g. `/compact`
+   * doesn't burn a turn) and reset to 0 in `captureSnapshotState` whenever a
+   * TodoWrite tool_use lands. When it crosses `STALE_TODO_TURN_THRESHOLD`,
+   * `sendInput` queues a `stale-todowrite` reminder and resets the counter
+   * back to 0 so a long todo-silent stretch produces a periodic nudge rather
+   * than every-turn spam.
+   *
+   * Intentionally NOT persisted via `mergeSessionState`: the lifecycle is
+   * "current run only" (same reasoning as `lastSeenLocalDate` above —
+   * persisting risks spurious fires on resume, and would cost a DB write
+   * per turn). The TaskCreate / TaskUpdate flow is a *separate* parity
+   * feature ("stale-task-tools", already in the `ReminderKind` union), so
+   * those tools deliberately do NOT reset this counter.
+   */
+  private turnsSinceTodoWrite = 0;
 
   /**
    * User-scope `settings.json` config for the spinner-tip rotation (CLI parity:
@@ -1672,6 +1739,20 @@ export class Session {
     // (or the user themselves) rewrote between turns. Same drain channel
     // as the nudges above — rides this turn.
     this.flushLinterModifiedReminder();
+
+    // Stale-TodoWrite nudge (Claude Code TUI parity, feature 31). The
+    // counter is bumped here (after the slash-command early-return so a
+    // `/compact` or `/init` doesn't burn a real turn) and reset to 0 in
+    // `captureSnapshotState` when the model invokes TodoWrite. Crossing
+    // the threshold queues a `stale-todowrite` reminder for THIS turn and
+    // rearms at 0 — so long todo-silent stretches yield a periodic poke
+    // rather than every-turn spam after the first fire.
+    this.turnsSinceTodoWrite += 1;
+    if (this.turnsSinceTodoWrite >= STALE_TODO_TURN_THRESHOLD) {
+      const body = staleTodoReminderBody(this.latestTodosSnapshot ?? []);
+      queueReminder(this, "stale-todowrite", body);
+      this.turnsSinceTodoWrite = 0;
+    }
 
     if (!images || images.length === 0) {
       const message = { role: "user" as const, content: text };
@@ -3442,6 +3523,11 @@ export class Session {
             this.latestTodosSnapshotAt = at;
           }
         }
+        // Feature 31 parity: rearm the stale-TodoWrite counter on any
+        // TodoWrite tool_use, including disk-replayed ones — a replayed
+        // historical write resetting 0 → 0 is harmless, and it keeps the
+        // counter aligned with what the agent has actually done.
+        this.turnsSinceTodoWrite = 0;
         continue;
       }
 
