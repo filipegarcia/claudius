@@ -9,7 +9,6 @@ import {
   setTabLabelMaxWidth,
   TAB_LABEL_DEFAULT,
 } from "@/lib/server/open-tabs-db";
-import { listIndexedSessions } from "@/lib/server/sessions-db";
 
 export const runtime = "nodejs";
 
@@ -39,32 +38,23 @@ async function activeCwd(): Promise<string> {
 
 export async function GET() {
   const cwd = await activeCwd();
-  const [tabs, activeId, labelWidth, indexed] = await Promise.all([
+  const [tabs, activeId, labelWidth] = await Promise.all([
     getOpenTabs(cwd),
     getActiveTab(cwd),
     getTabLabelMaxWidth(cwd),
-    listIndexedSessions(cwd),
   ]);
-  // Sanitize the tab strip to ids actually owned by THIS workspace.
-  //
-  // The strip was previously stored verbatim as the client sent it, so a
-  // foreign session id (e.g. resumed via a `?session=` deeplink whose cwd
-  // is in another workspace, then auto-added by the chat page's effect)
-  // got persisted here permanently — and then resurfaced in the picker on
-  // every reload. Cross-check against `listIndexedSessions(cwd)`: every
-  // session that has ever been started writes a `sessions` row keyed by
-  // its OWN cwd (via `upsertSession` in `Session.start()`), so a row in
-  // this cwd's DB is the authoritative "belongs to this workspace" signal.
-  //
-  // A brand-new workspace with no `.claudius.db` yet returns an empty
-  // `indexed` list, so any pre-existing tabs (impossible at that point,
-  // but defensive) are dropped — correct.
-  const allowed = new Set(indexed.map((r) => r.id));
-  const cleanTabs = tabs.filter((id) => allowed.has(id));
-  const cleanActive = activeId && allowed.has(activeId) ? activeId : null;
+  // Pass the persisted strip through verbatim. Foreign-session-leak
+  // protection used to live here as an `id ∈ listIndexedSessions(cwd)`
+  // strict filter, but that turned out to drop legitimate ids the client
+  // hadn't indexed yet (brand-new sessions whose `init` row was still
+  // in-flight; synthetic ids the e2e suite seeds for backgrounded-tab
+  // tests). The protection now lives client-side in the chat page's
+  // persist effect, which filters tabs whose live `session.cwd` doesn't
+  // match the workspace `rootPath` *before* PUT — same end state for
+  // real users, but synthetic/test ids are no longer collateral damage.
   return NextResponse.json({
-    tabs: cleanTabs,
-    activeId: cleanActive,
+    tabs,
+    activeId,
     labelMaxWidth: labelWidth ?? TAB_LABEL_DEFAULT,
   });
 }

@@ -475,52 +475,70 @@ export default function Home() {
   }, []);
   // Persist on change. Skip until hydrated so the boot-time empty state
   // can't clobber the saved list before we've read it.
+  //
+  // Foreign-session-leak protection lives HERE (not in the auto-add
+  // below) — we filter tabs to ones whose live `session.cwd` matches
+  // this workspace's `rootPath` before PUT, so a `?session=<foreignId>`
+  // deeplink can't write its id into the persistent strip. Tabs we have
+  // no `session.sessions` row for yet (brand-new sessions whose `init`
+  // hasn't arrived; faked sessions in e2e) are kept — dropping them
+  // would clobber the active-tab marker on first render. The old
+  // approach (cwd-strict auto-add) blocked the *visible* tab during
+  // boot whenever cwd hadn't landed yet, which left tests hanging on
+  // an empty strip; filtering at persist time fixes that without
+  // re-introducing the leak.
   useEffect(() => {
     if (!tabsHydrated) return;
+    const root = activeWorkspace?.rootPath;
+    const persistTabs = root
+      ? openTabs.filter((id) => {
+          const sess = session.sessions.find((s) => s.id === id);
+          // Keep unknown sessions (no row yet) so the brand-new active
+          // tab isn't dropped before its `init` event lands.
+          return !sess || sess.cwd === root;
+        })
+      : openTabs;
     // The active marker is what the next page load resumes. Only treat
-    // session.sessionId as "active" when it's actually in the strip —
-    // otherwise (e.g., closed-last-tab leaves sessionId lingering) we'd
-    // resume a tab the user explicitly closed.
+    // session.sessionId as "active" when it's actually in the persisted
+    // strip — otherwise (e.g., closed-last-tab leaves sessionId
+    // lingering, or the foreign-filter just removed it) we'd resume a
+    // tab the user explicitly closed / shouldn't be opening here.
     const activeId =
-      session.sessionId && openTabs.includes(session.sessionId) ? session.sessionId : null;
+      session.sessionId && persistTabs.includes(session.sessionId)
+        ? session.sessionId
+        : null;
     void fetch("/api/sessions/open-tabs", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ tabs: openTabs, activeId }),
+      body: JSON.stringify({ tabs: persistTabs, activeId }),
     }).catch(() => {
       // Best-effort — a failed save just means the next reload sees the
       // last successfully persisted strip.
     });
-  }, [openTabs, tabsHydrated, session.sessionId]);
-  // Auto-add the active session id to the strip — but ONLY when the
-  // session belongs to this workspace (its cwd matches the URL workspace's
-  // rootPath). Without this guard, opening a foreign session here (e.g. via
-  // a stale `?session=<id>` deeplink whose original cwd is in another
-  // workspace) used to push that id into this workspace's persistent
-  // openTabs row, which then resurfaced it in the picker forever. The
-  // counterpart strict filter in `pickerSessions` only hides it from the
-  // dropdown; preventing the persist is what actually fixes the leak.
+  }, [
+    openTabs,
+    tabsHydrated,
+    session.sessionId,
+    session.sessions,
+    activeWorkspace?.rootPath,
+  ]);
+  // Auto-add the active session id to the strip the moment it changes.
+  // No cwd check here on purpose — the foreign-leak protection moved
+  // up to the persist effect above. Doing the check at add-time used
+  // to leave the strip empty during the brief window between
+  // `bindToSession` setting `sessionId` and the SDK `init` event
+  // landing `cwd`, which (a) flickered to "No session open" in
+  // production and (b) hung tests whose faked EventSource never emits
+  // an `init` with a cwd at all.
   //
-  // Render-time "store previous props" pattern (same shape as the latched
-  // permission-mode flag above) — not a useEffect — because `react-hooks/
-  // set-state-in-effect` rejects setState inside effects. We key the
-  // dedupe on (sid, cwd) rather than sid alone: `session.sessionId` flips
-  // synchronously the moment a session binds, but `session.cwd` only
-  // settles when the SSE init event lands a tick later, so the first
-  // render after a switch has `(sid, null)` — wrong-cwd → don't add;
-  // the next render arrives with `(sid, cwd)` and adds iff cwd === root.
+  // Render-time "store previous props" pattern (same shape as the
+  // latched permission-mode flag above) — not a useEffect — because
+  // `react-hooks/set-state-in-effect` rejects setState inside effects.
   const [lastAddedKey, setLastAddedKey] = useState<string | null>(null);
-  {
+  if (session.sessionId && lastAddedKey !== session.sessionId) {
+    setLastAddedKey(session.sessionId);
     const sid = session.sessionId;
-    const root = activeWorkspace?.rootPath;
-    const cwd = session.cwd;
-    if (sid && cwd && root && cwd === root) {
-      const key = `${sid}::${cwd}`;
-      if (lastAddedKey !== key) {
-        setLastAddedKey(key);
-        setOpenTabs((prev) => (prev.includes(sid) ? prev : [...prev, sid]));
-      }
-    }
+    setOpenTabs((prev) => (prev.includes(sid) ? prev : [...prev, sid]));
   }
 
   // Phase 3 of docs/electron-conversion/PLAN.md — closed-tab undo stack so
@@ -1289,22 +1307,7 @@ export default function Home() {
           labelMaxWidth={tabLabelMaxWidth ?? undefined}
           onLabelWidthChange={onTabLabelWidthChange}
         />
-        {/*
-          Show the "No session open" placeholder only when truly no session
-          is bound — not just when `openTabs` is empty. The auto-add-tab
-          logic above waits for `session.cwd` to equal the workspace's
-          `rootPath` (foreign-session-leak guard); during the brief render
-          between `bindToSession` setting `sessionId` and the SSE init
-          landing `cwd`, `openTabs` can be empty while `sessionId` is
-          already set. With the old plain `openTabs.length === 0` gate
-          the chat UI flickered to "No session open" in that window, and
-          in tests where the SSE init never arrives (faked EventSource +
-          a `/api/sessions` route mock that doesn't echo `cwd`) the
-          placeholder was *permanent* — that's why
-          `app-functionality.spec.ts:42` and friends were waiting 30s for
-          `prompt-input` to mount.
-        */}
-        {openTabs.length === 0 && !session.sessionId ? (
+        {openTabs.length === 0 ? (
           <div className="flex flex-1 items-center justify-center text-center">
             <div className="flex max-w-sm flex-col items-center px-6 py-12">
               <ClaudiusMark color="var(--foreground)" size={120} className="mb-5 opacity-90" />
