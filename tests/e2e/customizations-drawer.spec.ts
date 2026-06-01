@@ -131,6 +131,16 @@ test.describe("CustomizationsDrawer", () => {
 
   test("'Manage all' navigates to /customize and closes the popover", async ({ page }) => {
     await page.goto("/");
+    // Wait for boot's createSession → bindToSession to settle (URL gains
+    // `?session=...`) before clicking the Link. Without this, the boot
+    // writer's deferred `replaceState("?session=X")` races with the Link's
+    // pushState("/customize"): the click lands fast, the 500ms write
+    // timer fires after, and either clobbers the new path's query or
+    // re-asserts the chat URL — the test then sees `/wks_xxx?session=Y`
+    // instead of `/customize`. Mirrors the pattern in goal.spec.ts.
+    await page.waitForURL((url) => /[?&]session=[0-9a-f-]{36}/i.test(String(url)), {
+      timeout: 30_000,
+    });
     const switcher = page.locator('[data-pane-name="workspace-switcher"]');
     const drawerBtn = switcher.locator('button[title*="ustomization"]').first();
     await drawerBtn.click();

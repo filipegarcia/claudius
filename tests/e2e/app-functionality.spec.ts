@@ -156,6 +156,15 @@ test.describe("App functionality — buttons, navigation, workspace, settings", 
 
   test("settings link navigates to /settings and renders the page", async ({ page }) => {
     await page.goto("/");
+    // Wait for boot's createSession → bindToSession to settle (URL gains
+    // `?session=...`) before clicking the Link. Without this, the boot
+    // writer's deferred `replaceState("?session=X")` races with the Link's
+    // pushState("/settings"): the click lands fast, the 500ms write timer
+    // fires after, and the test sees `/wks_xxx?session=Y` instead of
+    // `/settings`. Mirrors the pattern in goal.spec.ts.
+    await page.waitForURL((url) => /[?&]session=[0-9a-f-]{36}/i.test(String(url)), {
+      timeout: 30_000,
+    });
     // The workspace rail puts the settings cog at the bottom as a
     // plain `<a href="/settings">`. No dedicated testid — the href is
     // the stable selector.
