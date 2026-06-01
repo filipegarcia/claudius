@@ -70,6 +70,16 @@ export function RateLimitHitPanel({ hit }: { hit: RateLimitHit }) {
     : "usage limit";
   const resetClock = hit.resetsAt ? formatResetClock(hit.resetsAt) : null;
 
+  // Per-model weekly-limit takeover toast — the Claude Code TUI prints a
+  // "Now using <fallback>. Your <limit> resets <time>" ambient line so the
+  // user knows why the active model just silently changed. Gated on the two
+  // per-model rejection tiers since the SDK's automatic fallback only engages
+  // for those (`seven_day` / `five_hour` / `overage` are account-wide and the
+  // model doesn't swap).
+  const showFallbackTakeover =
+    !!hit.fallbackModel &&
+    (hit.rateLimitType === "seven_day_opus" || hit.rateLimitType === "seven_day_sonnet");
+
   return (
     <div className="my-1 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-[11px] leading-5 text-red-200">
       <div className="flex items-center gap-2">
@@ -83,6 +93,12 @@ export function RateLimitHitPanel({ hit }: { hit: RateLimitHit }) {
           <Timer className="h-3 w-3" />
           <span className="font-mono">{countdown}</span>
           <span className="opacity-70">until reset</span>
+        </div>
+      )}
+
+      {showFallbackTakeover && (
+        <div className="mt-1 opacity-90">
+          Now using <span className="font-mono">{hit.fallbackModel}</span>.
         </div>
       )}
 

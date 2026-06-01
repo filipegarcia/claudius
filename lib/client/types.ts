@@ -72,6 +72,16 @@ export type DisplayMessage = {
   rateLimitHit?: {
     rateLimitType?: "five_hour" | "seven_day" | "seven_day_opus" | "seven_day_sonnet" | "overage";
     resetsAt?: number;
+    /**
+     * Configured `fallbackModel` for the session (SDK Options.fallbackModel),
+     * forwarded from `SessionReadyEvent`. Drives the "Now using <fallback>"
+     * takeover line on the panel when the rejection is per-model
+     * (`seven_day_opus` / `seven_day_sonnet`) — the SDK silently swaps to
+     * this model for the next turn and the line tells the user why. Absent
+     * on the replay/pagination paths (we don't have the session config there)
+     * — same graceful-degradation pattern as `resetsAt` above.
+     */
+    fallbackModel?: string;
   };
   /**
    * Present when this assistant message IS the Anthropic backend's

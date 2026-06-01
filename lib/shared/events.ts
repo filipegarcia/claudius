@@ -25,6 +25,16 @@ export type SessionReadyEvent = {
    * the main agent; the StatusLine reads it to show "running as <agent>".
    */
   agent?: string;
+  /**
+   * Configured fallback model id (SDK Options.fallbackModel) this session was
+   * started with, if any. Surfaced here because the SDK doesn't echo it in
+   * any other event and the client needs it for the per-model weekly-limit
+   * takeover toast — when `seven_day_opus` / `seven_day_sonnet` rejects, the
+   * `RateLimitHitPanel` appends "Now using <fallback>" so the user knows why
+   * the next turn comes back on a different model. Mirrors the `agent` field
+   * above (same rationale: SDK init doesn't carry it).
+   */
+  fallbackModel?: string;
 };
 
 export type SessionErrorEvent = {

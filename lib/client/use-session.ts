@@ -150,12 +150,23 @@ export function isOpusHighDemandText(blocks: DisplayBlock[]): boolean {
 function rateLimitHitFromBlocks(
   blocks: DisplayBlock[],
   last: SystemEntry["rateLimit"] | null,
+  fallbackModel: string | null,
 ): NonNullable<DisplayMessage["rateLimitHit"]> {
   const text = blocks.find((b) => b.kind === "text")?.text ?? "";
   const rateLimitType = last?.rateLimitType ?? rateLimitTypeFromText(text);
   const hit: NonNullable<DisplayMessage["rateLimitHit"]> = {};
   if (rateLimitType) hit.rateLimitType = rateLimitType;
   if (typeof last?.resetsAt === "number") hit.resetsAt = last.resetsAt;
+  // Only attach the fallback when the rejection is per-model — the SDK's
+  // automatic fallback only engages for `seven_day_opus` / `seven_day_sonnet`.
+  // Account-wide tiers (`seven_day`, `five_hour`, `overage`) don't swap models,
+  // so emitting "Now using <fallback>" there would be a lie.
+  if (
+    fallbackModel &&
+    (rateLimitType === "seven_day_opus" || rateLimitType === "seven_day_sonnet")
+  ) {
+    hit.fallbackModel = fallbackModel;
+  }
   return hit;
 }
 
@@ -784,6 +795,11 @@ export function useSession(): ChatState & ChatActions {
   // countdown to the reset instead of bare prose. See `rateLimitHitFromBlocks`
   // and the assistant branch in `applyEvent`.
   const lastRateLimitInfoRef = useRef<SystemEntry["rateLimit"] | null>(null);
+  // Session-configured fallback model id (SDK Options.fallbackModel), forwarded
+  // from `SessionReadyEvent`. Stashed here so a later per-model weekly-limit
+  // rejection can fold it into the `rateLimitHit` panel as the "Now using
+  // <fallback>" takeover line — see `rateLimitHitFromBlocks`.
+  const fallbackModelRef = useRef<string | null>(null);
   // Mirror of `model` for SSE callbacks. The pricing math needs the active
   // model name but the SSE event handler in `applyEvent` is stable (memoized
   // against state); a ref keeps it current without re-binding the EventSource.
@@ -1321,6 +1337,7 @@ export function useSession(): ChatState & ChatActions {
       if (ev.type === "ready") {
         setReady(true);
         setMainAgent(ev.agent ?? null);
+        fallbackModelRef.current = ev.fallbackModel ?? null;
         return;
       }
       if (ev.type === "error") {
@@ -1682,7 +1699,7 @@ export function useSession(): ChatState & ChatActions {
         const assistantError = (msg as { error?: string }).error;
         const rateLimitHit =
           assistantError === "rate_limit" || isRateLimitHitText(blocks)
-            ? rateLimitHitFromBlocks(blocks, lastRateLimitInfoRef.current)
+            ? rateLimitHitFromBlocks(blocks, lastRateLimitInfoRef.current, fallbackModelRef.current)
             : undefined;
         // Opus-4 high-demand banner: backend emits the CTA as assistant prose
         // (no `error` field, no structured event), so it's prose-only on both
@@ -4058,8 +4075,12 @@ function synthesizeOlder(raw: Array<Record<string, unknown>>): {
         // the pagination path too. `error` doesn't survive the `/transcript`
         // route, so detection is prose-only here; `null` for `last` means no
         // countdown (the reset time is already in the message text).
+        // Pagination path: no `last` warning payload or session config in
+        // scope, so `resetsAt` / `fallbackModel` aren't available here — the
+        // panel falls back to the reset time already printed in the message
+        // text and omits the "Now using <fallback>" takeover line.
         const rateLimitHit = isRateLimitHitText(newBlocks)
-          ? rateLimitHitFromBlocks(newBlocks, null)
+          ? rateLimitHitFromBlocks(newBlocks, null, null)
           : undefined;
         // Opus-4 high-demand banner — same prose-only signal on the
         // pagination path. See the live applyEvent branch for the parity

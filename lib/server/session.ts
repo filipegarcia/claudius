@@ -968,7 +968,12 @@ export class Session {
       ...(this.resumeAt ? { resumeSessionAt: this.resumeAt } : {}),
     };
     this.query = query({ prompt: this.inputQueue, options });
-    this.broadcast({ type: "ready", sessionId: this.id, ...(this.agent ? { agent: this.agent } : {}) });
+    this.broadcast({
+      type: "ready",
+      sessionId: this.id,
+      ...(this.agent ? { agent: this.agent } : {}),
+      ...(this.fallbackModel ? { fallbackModel: this.fallbackModel } : {}),
+    });
     if (this.title) this.broadcast({ type: "session_title", title: this.title });
     if (this.goal.goal) this.broadcastGoal();
     if (sessLoadDebug()) {
@@ -2622,7 +2627,12 @@ export class Session {
     // though the SDK Query is healthy. Same shape of bug the
     // `sendFreshTitle` path below works around for session_title.
     if (this.query) {
-      fn({ type: "ready", sessionId: this.id, ...(this.agent ? { agent: this.agent } : {}) });
+      fn({
+        type: "ready",
+        sessionId: this.id,
+        ...(this.agent ? { agent: this.agent } : {}),
+        ...(this.fallbackModel ? { fallbackModel: this.fallbackModel } : {}),
+      });
     }
     // Re-emit the current permission mode for the same reason. A
     // `mode_changed` event broadcast mid-conversation (e.g. by the
