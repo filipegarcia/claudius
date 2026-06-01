@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { join } from "node:path";
 import {
   autoMemoryDir,
   deleteMemoryFile,
@@ -8,8 +9,28 @@ import {
   writeMemoryFile,
   type MemoryType,
 } from "@/lib/server/auto-memory";
+import { sessionManager } from "@/lib/server/session-manager";
+import type { MemoryUpdate } from "@/lib/server/session";
 
 export const runtime = "nodejs";
+
+/**
+ * Fan an auto-memory CRUD out to every live session in `cwd` as a
+ * next-turn memory-update reminder (Claude Code TUI parity, feature 36).
+ * Best-effort: a session with no live `recentReadPaths` overlap still
+ * gets the changed-files list; we never throw from here so a session
+ * lifecycle hiccup can't fail a memory write the user already committed
+ * to on disk.
+ */
+function notifyMemoryUpdate(cwd: string, update: MemoryUpdate): void {
+  try {
+    for (const s of sessionManager.sessionsByCwd(cwd)) {
+      s.notifyMemoryUpdate([update]);
+    }
+  } catch {
+    // Reminder fan-out is non-fatal — the write already succeeded.
+  }
+}
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
@@ -60,6 +81,7 @@ export async function POST(req: Request) {
   if (!result.ok) {
     return NextResponse.json({ error: result.error }, { status: result.status });
   }
+  notifyMemoryUpdate(cwd, { op: "created", path: result.path });
   return NextResponse.json({ name: result.name, path: result.path }, { status: 201 });
 }
 
@@ -97,6 +119,7 @@ export async function PATCH(req: Request) {
   if (!r.ok) {
     return NextResponse.json({ error: r.error }, { status: r.status });
   }
+  notifyMemoryUpdate(cwd, { op: "updated", path: r.path });
   return NextResponse.json({ path: r.path, parsed: r.parsed });
 }
 
@@ -111,5 +134,6 @@ export async function DELETE(req: Request) {
   if (!r.ok) {
     return NextResponse.json({ error: r.error }, { status: r.status });
   }
+  notifyMemoryUpdate(cwd, { op: "deleted", path: join(autoMemoryDir(cwd), filename) });
   return NextResponse.json({ ok: true });
 }
