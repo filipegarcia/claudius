@@ -548,6 +548,24 @@ export type ChatState = {
    * at which point the renderer prefers it over its built-in defaults.
    */
   tips: Tip[];
+  /**
+   * Active "where were we?" recap banner state. Set when the server
+   * broadcasts a `session_recap` event after a long blur or a manual /recap
+   * invocation; cleared the moment the user sends the next prompt or
+   * explicitly dismisses the banner. `status` tracks the request lifecycle so
+   * the banner can show a spinner before the text lands and surface a one-
+   * liner reason on the sad path.
+   */
+  sessionRecap: {
+    status: "idle" | "loading" | "ready" | "error";
+    text: string | null;
+    /** Server-stamped epoch ms (only populated when status === "ready"). */
+    at: number | null;
+    /** How the recap fired — informational, not styled differently today. */
+    origin: "away" | "manual" | null;
+    /** Reason from a `session_recap_error` event (only on status === "error"). */
+    errorReason: string | null;
+  };
 };
 
 export type AttachedImage = {
@@ -705,6 +723,17 @@ export type ChatActions = {
   dismissFastModeNotice(): void;
   /** Dismiss the transient model-switch-rejected toast. Client-side only. */
   dismissModelSwitchNotice(): void;
+  /**
+   * Request a "where were we?" recap for the current session. The actual
+   * recap text arrives asynchronously via a `session_recap` SSE event;
+   * errors land as `session_recap_error`. `origin` lets the auto-trigger and
+   * a manual button distinguish themselves on the wire — defaults to
+   * `"manual"` so a hand-built caller doesn't accidentally pose as the
+   * automatic path.
+   */
+  requestRecap(origin?: "away" | "manual"): Promise<void>;
+  /** Dismiss the recap banner without erasing the underlying text. Client-side only. */
+  dismissRecap(): void;
 };
 
 export type ServerEventEnvelope = ServerEvent;

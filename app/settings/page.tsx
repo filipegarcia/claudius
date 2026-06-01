@@ -541,6 +541,12 @@ export default function SettingsPage() {
                     onChange={(b) => update({ promptSuggestionEnabled: b ? undefined : false })}
                     description="Show AI-predicted follow-up prompts as clickable chips under the composer after each turn. On by default."
                   />
+                  <ToggleRow
+                    label="sessionRecapEnabled"
+                    checked={draft.sessionRecapEnabled !== false}
+                    onChange={(b) => update({ sessionRecapEnabled: b ? undefined : false })}
+                    description='Show a "where were we?" one-line recap above the composer when you return after stepping away (≥5 min). On by default. Triggered automatically on tab refocus.'
+                  />
                 </Section>
                 )}
 
@@ -726,6 +732,7 @@ const KNOWN_KEYS = new Set([
   "autoDreamEnabled",
   "autoMemoryDirectory",
   "promptSuggestionEnabled",
+  "sessionRecapEnabled",
   "claudeMdExcludes",
   "enabledPlugins",
   "env",

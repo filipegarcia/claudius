@@ -70,6 +70,11 @@ import { selectTips } from "@/lib/shared/tips";
 import type { SessionLoop } from "@/lib/shared/session-loops";
 import { readSettings, type ClaudeSettings } from "./settings";
 import {
+  extractTranscriptTail,
+  generateRecap,
+  RECAP_DEDUPE_WINDOW_MS,
+} from "./session-recap";
+import {
   coerceSurveyRate,
   getLastSurveyShownAt,
   noteSurveyShown,
@@ -898,6 +903,33 @@ export class Session {
   // don't flood the wire with redundant events (every pending-map mutation
   // calls into the helper).
   private lastBroadcastStatus: "running" | "idle" | null = null;
+  /**
+   * Frozen account-switcher env injected at session start (mirrors the
+   * `env: envOverride` spread on the main `query()` Options). Cached so any
+   * off-band query — today just `generateRecap` — runs under the SAME
+   * credentials the conversation started with. Without this the recap would
+   * inherit `process.env`, which authenticates with whatever the global
+   * active-profile pointer happens to be when the recap fires (could be a
+   * different account than the one the session is using).
+   */
+  private envOverride: { [envVar: string]: string | undefined } | null = null;
+
+  /**
+   * Epoch ms of the last completed (or in-flight) recap firing. Backs the
+   * multi-tab dedupe guard in `requestRecap`: when N tabs each regain focus
+   * after a long blur they all POST to `/recap` within milliseconds, and
+   * without this gate every one would spawn its own off-band query. The gate
+   * is intentionally one-sided — we record the start, not the end, so a
+   * slow generation still suppresses follow-up requests.
+   */
+  private lastRecapAt: number | null = null;
+  /**
+   * AbortController for an in-flight recap. Lets a fresh turn (`sendInput`)
+   * cancel a stale recap mid-flight — a banner against a now-moving
+   * conversation would be misleading.
+   */
+  private recapAbort: AbortController | null = null;
+
   // Watches `~/.claude/projects/<encoded-cwd>/` for changes to this
   // session's JSONL so external writers (`claude --resume <id>` in the
   // terminal) trigger a live resync instead of waiting for a refresh.
@@ -1342,6 +1374,8 @@ export class Session {
     }
     this.accountProfileId = activeProfile?.id ?? null;
     const envOverride = activeProfile ? buildEnvForProfile(activeProfile) : null;
+    // Freeze for off-band queries (recap) — see `envOverride` field doc.
+    this.envOverride = envOverride;
 
     const options: Options = {
       cwd: this.cwd,
@@ -2064,6 +2098,14 @@ export class Session {
     this.sawUserInput = true;
     this.turnInFlight = true;
     this.broadcastTurnStatusIfChanged();
+
+    // Cancel any in-flight recap — a "where were we?" banner against a
+    // conversation that's about to advance would mislead. The aborted-result
+    // branch in `requestRecap` swallows silently so no error event lands.
+    if (this.recapAbort) {
+      this.recapAbort.abort();
+      this.recapAbort = null;
+    }
 
     // Slash-command shortcut: send `/compact`, `/init`, etc. to the SDK
     // verbatim so the CLI subprocess can interpret them, but DON'T broadcast
@@ -2801,6 +2843,108 @@ export class Session {
       return true;
     } catch {
       return false;
+    }
+  }
+
+  /**
+   * Generate and broadcast a session recap — the one-line "where were we?"
+   * summary triggered when the user returns to a tab after stepping away (or
+   * clicks a manual recap action). Mirrors the Claude Code TUI's
+   * away-summary feature.
+   *
+   * Always resolves; failures broadcast a `session_recap_error` with a reason
+   * rather than throwing, so the API route is fire-and-forget. The recap
+   * lands as a `session_recap` event for every SSE subscriber.
+   *
+   * Skip paths mirror the TUI's `[awaySummary] skipped: …` debug log:
+   *   - `disabled`     — settings.json's `sessionRecapEnabled === false`
+   *   - `running`      — a turn / permission / subagent is in flight
+   *   - `no_history`   — buffer has no text turns yet (fresh session)
+   *   - `rate_limited` — another tab fired within `RECAP_DEDUPE_WINDOW_MS`
+   *   - `failed`       — the off-band query errored or returned empty text
+   *
+   * The `draft` skip (composer has unsent text) is handled CLIENT-side: the
+   * server has no good way to know which tab is the "active" composer and we
+   * don't want to gate manual `/recap` invocations on draft state.
+   */
+  async requestRecap(origin: "away" | "manual" = "away"): Promise<void> {
+    // Cheap gates first — avoid a settings read on a no-op.
+    if (this.getStatus() === "running") {
+      this.broadcast({ type: "session_recap_error", reason: "running" });
+      return;
+    }
+    const now = Date.now();
+    if (
+      this.lastRecapAt !== null &&
+      now - this.lastRecapAt < RECAP_DEDUPE_WINDOW_MS
+    ) {
+      this.broadcast({ type: "session_recap_error", reason: "rate_limited" });
+      return;
+    }
+    // Settings gate. `sessionRecapEnabled === false` disables; absent/true
+    // keeps it on. Best-effort: a missing/corrupt file falls through to
+    // "enabled" rather than blocking a manual user request.
+    const settings = await readSettings("user", this.cwd).catch(
+      () => ({}) as ClaudeSettings,
+    );
+    if (settings.sessionRecapEnabled === false) {
+      this.broadcast({ type: "session_recap_error", reason: "disabled" });
+      return;
+    }
+    // Build the transcript tail from our in-memory buffer rather than
+    // resuming the SDK session (which would re-feed the full conversation as
+    // input and cost real tokens). See `session-recap.ts` for the rationale.
+    const { text: tail, turnCount } = extractTranscriptTail(this.buffer);
+    if (turnCount === 0 || !tail.trim()) {
+      this.broadcast({ type: "session_recap_error", reason: "no_history" });
+      return;
+    }
+    // Claim the dedupe slot BEFORE awaiting — so concurrent POSTs from other
+    // tabs that race past the early gate see a populated `lastRecapAt` and
+    // bail out with `rate_limited` rather than each spawning their own
+    // query. The dedupe is a START-time guard, not an END-time guard.
+    this.lastRecapAt = now;
+    // New AbortController per request. A subsequent sendInput cancels this
+    // one — a recap against a moving conversation would lie.
+    if (this.recapAbort) this.recapAbort.abort();
+    this.recapAbort = new AbortController();
+    const signal = this.recapAbort.signal;
+    const result = await generateRecap({
+      cwd: this.cwd,
+      transcriptTail: tail,
+      // Inherit the session's model so the recap voice matches the
+      // surrounding chat. If the session has no explicit model, omit it and
+      // let the SDK pick the default — cheaper than hardcoding a fallback id
+      // here that could drift out of sync with the SDK's model catalog.
+      ...(this.model ? { model: this.model } : {}),
+      // Forward the frozen account-switcher env so the recap runs under the
+      // same credential as the parent session — never the global ambient
+      // pointer (which may have rotated mid-conversation).
+      ...(this.envOverride ? { env: this.envOverride } : {}),
+      signal,
+    });
+    // If the abort fired between the await and the dispatch, swallow — a
+    // newer turn or recap is already in flight and broadcasting now would
+    // race the new state.
+    if (signal.aborted) return;
+    if (result.ok) {
+      this.broadcast({
+        type: "session_recap",
+        text: result.text,
+        at: Date.now(),
+        origin,
+      });
+    } else if (result.reason === "aborted") {
+      // Cancelled by a newer turn — silent (no event). The next user-visible
+      // moment is the assistant turn itself.
+    } else {
+      this.broadcast({
+        type: "session_recap_error",
+        reason: "failed",
+        ...(result.reason === "empty_response"
+          ? { message: "empty response" }
+          : { message: result.message }),
+      });
     }
   }
 
@@ -3564,7 +3708,13 @@ export class Session {
         // One-shot long-context credits-required nudge — same shape: once
         // the billing-error has passed (or the user has acted on the dual
         // remediation) replaying on reload would re-pop a stale banner.
-        ev.type === "long_context_credits_required"
+        ev.type === "long_context_credits_required" ||
+        // Session recap is by definition "where were we" — replaying a stale
+        // one on tab switch or reload would contradict the live state. Live
+        // subscribers see the one true broadcast; reloaders just wait until
+        // the next blur/return cycle fires fresh.
+        ev.type === "session_recap" ||
+        ev.type === "session_recap_error"
       )
         continue;
       fn(ev);

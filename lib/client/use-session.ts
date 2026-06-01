@@ -493,6 +493,17 @@ export function useSession(): ChatState & ChatActions {
   // emits the catalog on subscribe; the renderer falls back to its built-in
   // defaults in the meantime.
   const [tips, setTips] = useState<Tip[]>([]);
+  // "Where were we?" recap banner state. Driven by `session_recap` /
+  // `session_recap_error` SSE events; cleared on the next user send.
+  // Live-only on the wire: the server skips replay so a stale recap never
+  // re-pops on reload — fresh away/return cycles refire if appropriate.
+  const [sessionRecap, setSessionRecap] = useState<ChatState["sessionRecap"]>({
+    status: "idle",
+    text: null,
+    at: null,
+    origin: null,
+    errorReason: null,
+  });
   const [errors, setErrors] = useState<string[]>([]);
   const [slashCommands, setSlashCommands] = useState<string[]>([]);
   const [agents, setAgents] = useState<string[]>([]);
@@ -1048,6 +1059,15 @@ export function useSession(): ChatState & ChatActions {
     setFeedbackSurvey(null);
     setOpusOverloadNudge(null);
     setTips([]);
+    // Reset recap state to idle on session switch — a recap belongs to the
+    // session it was generated against, not the next one.
+    setSessionRecap({
+      status: "idle",
+      text: null,
+      at: null,
+      origin: null,
+      errorReason: null,
+    });
     setErrors([]);
     setSlashCommands([]);
     setAgents([]);
@@ -1402,6 +1422,48 @@ export function useSession(): ChatState & ChatActions {
       }
       if (ev.type === "tips") {
         setTips(ev.tips);
+        return;
+      }
+      if (ev.type === "session_recap") {
+        setSessionRecap({
+          status: "ready",
+          text: ev.text,
+          at: ev.at,
+          origin: ev.origin,
+          errorReason: null,
+        });
+        return;
+      }
+      if (ev.type === "session_recap_error") {
+        // Only transition out of `loading` — never clobber a successful
+        // `ready` from the very same session. Two-tab race example: tab B
+        // fast-fails `rate_limited` (instant) while tab A's recap completes
+        // and broadcasts a `session_recap` (~seconds). Both events fan out
+        // to both tabs; if the error were applied unconditionally it'd
+        // overwrite the freshly-rendered recap in whichever tab the events
+        // happened to arrive in that order. Failed events are only useful
+        // for the tab that issued the request.
+        setSessionRecap((cur) => {
+          if (cur.status !== "loading") return cur;
+          if (ev.reason === "failed") {
+            return {
+              status: "error",
+              text: null,
+              at: null,
+              origin: cur.origin,
+              errorReason: ev.message ?? "failed",
+            };
+          }
+          // For silent expected skips (disabled / no_history / rate_limited)
+          // we drop back to idle — no banner, no error noise.
+          return {
+            status: "idle",
+            text: null,
+            at: null,
+            origin: null,
+            errorReason: null,
+          };
+        });
         return;
       }
       if (ev.type === "plan_approval_request") {
@@ -3442,6 +3504,17 @@ export function useSession(): ChatState & ChatActions {
       const isSlash = !!opts?.asSlashCommand;
       const fromSuggestion = !!opts?.fromSuggestion;
       const fromGoal = !!opts?.fromGoal;
+      // Clear any standing recap banner — once the user is talking again
+      // the "where were we?" hint is by definition stale. The server-side
+      // session also aborts any in-flight recap on sendInput, so this is
+      // just the visible mirror of that contract.
+      setSessionRecap({
+        status: "idle",
+        text: null,
+        at: null,
+        origin: null,
+        errorReason: null,
+      });
       // Normalize to AttachedImage shape for client/queue persistence.
       const normalized = hasImages
         ? images!.map((img, i) => ({
@@ -3656,6 +3729,55 @@ export function useSession(): ChatState & ChatActions {
 
   const dismissModelSwitchNotice = useCallback(() => {
     setModelSwitchNotice(null);
+  }, []);
+
+  const requestRecap = useCallback(async (origin: "away" | "manual" = "manual") => {
+    const id = sessionIdRef.current;
+    if (!id) return;
+    // Flip to "loading" optimistically so the UI can paint a spinner before
+    // the SSE event lands. The server's `session_recap` /
+    // `session_recap_error` transitions us back out of this state. If the
+    // POST itself fails (network / 404), roll back to idle — the banner
+    // shouldn't be stuck on a spinner.
+    setSessionRecap((cur) => ({
+      ...cur,
+      status: "loading",
+      origin,
+    }));
+    try {
+      const res = await fetch(`/api/sessions/${id}/recap`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ origin }),
+      });
+      if (!res.ok) {
+        setSessionRecap({
+          status: "idle",
+          text: null,
+          at: null,
+          origin: null,
+          errorReason: null,
+        });
+      }
+    } catch {
+      setSessionRecap({
+        status: "idle",
+        text: null,
+        at: null,
+        origin: null,
+        errorReason: null,
+      });
+    }
+  }, []);
+
+  const dismissRecap = useCallback(() => {
+    setSessionRecap({
+      status: "idle",
+      text: null,
+      at: null,
+      origin: null,
+      errorReason: null,
+    });
   }, []);
 
   const interrupt = useCallback(async () => {
@@ -3981,6 +4103,7 @@ export function useSession(): ChatState & ChatActions {
     opusOverloadNudge,
     longContextCreditsNudge,
     tips,
+    sessionRecap,
     errors,
     slashCommands,
     agents,
@@ -4027,6 +4150,8 @@ export function useSession(): ChatState & ChatActions {
     dismissLongContextCreditsNudge,
     dismissFastModeNotice,
     dismissModelSwitchNotice,
+    requestRecap,
+    dismissRecap,
     interrupt,
     setPermissionMode,
     setModel,

@@ -60,38 +60,63 @@ Everything under `.claudius/` is already gitignored.
       clean. Refuses to start otherwise.
    2. `git fetch origin` and create `sdk-update/<version>` fresh off
       `origin/main` (stale local branch with the same name is deleted).
-   3. Rewrite the SDK line in `package.json`, run `bun install`,
+   3. **Announce** "🆕 New claude-agent-sdk release: PREV → NEW.
+      Starting upgrade on branch …" to `<CHAT_SERVER_URL>/admin/announce`
+      so the channel hears about the run within seconds — not minutes
+      later when the PR opens. Suppressed under `--dry-run`.
+   4. Rewrite the SDK line in `package.json`, run `bun install`,
       commit `chore(deps): bump claude-agent-sdk to <version>`.
-   4. Extract the changelog (local CHANGELOG.md → `gh api compare` →
+   5. Extract the changelog (local CHANGELOG.md → `gh api compare` →
       stub URL fallback).
-   5. Render `prompt.md` with `{{PREVIOUS_VERSION}}`,
+   6. **Announce** the upstream changelog body (clipped to fit the
+      chat-server's 2000-char cap; full text always one URL away).
+   7. Render `prompt.md` with `{{PREVIOUS_VERSION}}`,
       `{{NEW_VERSION}}`, `{{CHANGELOG_BLOCK}}`.
-   6. Call `query()` from `@anthropic-ai/claude-agent-sdk` with
+   8. Call `query()` from `@anthropic-ai/claude-agent-sdk` with
       `permissionMode: 'bypassPermissions'`,
       `allowDangerouslySkipPermissions: true`,
       `maxTurns` and a wall-clock guard. Streams agent messages and
       logs one line per turn. Aborts on budget exhaustion.
-   7. Gate: `bun run lint`, `bun run test`, `bun run build`,
-      `bun run test:e2e`.
-   8. `git push -u --force-with-lease origin sdk-update/<version>`.
-   9. `gh pr create --base main` with a body rendered from
-      `pr-template.md` + the run-notes file Claude wrote. If a PR
-      already exists for this branch (re-run case), edits the
-      existing body in place instead of failing.
-   10. POST `{roomSlug, body, pin: false}` to
+   9. **Announce** the Summary section Claude wrote into the run-notes
+      file ("here's what I did"). Degrades to a one-liner if the
+      section is still the stub placeholder (the validator/gate path
+      will surface the empty-run-notes case below). Prefixed with
+      "⚠️ Claude was stopped before completing" when a turn-budget
+      (`SDK_UPDATE_MAX_TURNS`, default 200), wall-clock
+      (`SDK_UPDATE_MAX_WALL_MIN`, default 360), or idle
+      (`SDK_UPDATE_MAX_IDLE_MIN`, default 15) limit tripped.
+   10. **Announce** "🧪 running local gates" right before the gate
+       starts, so the channel sees the handoff from agent work to
+       automated checks.
+   11. Gate: `bun run lint`, `bun run test`, `bun run build`,
+       `bun run test:e2e`.
+   12. **Announce** the gate verdict — "✅ green: lint, unit, build,
+       e2e. Opening draft PR next" on the happy path, or
+       "❌ Local gates failed: <steps>. <cause>. Not pushing." on a
+       red run. Always fires so a test failure reaches the channel
+       immediately, not minutes later via the process-issue post.
+   13. `git push -u --force-with-lease origin sdk-update/<version>`.
+   14. `gh pr create --base main` with a body rendered from
+       `pr-template.md` + the run-notes file Claude wrote. If a PR
+       already exists for this branch (re-run case), edits the
+       existing body in place instead of failing.
+   15. POST `{roomSlug, body, pin: false}` to
        `<CHAT_SERVER_URL>/admin/announce` **the moment the PR exists** —
        for both full and draft PRs. The draft message includes the
        reason it couldn't reach green. This post is best-effort: a
        chat-server hiccup logs a warning but never aborts the run.
-   11. `gh pr checks <url> --watch --fail-fast` (full PRs only).
-   12. If CI is green, a **second** announce with `pin: true` marks the
+   16. `gh pr checks <url> --watch --fail-fast` (full PRs only).
+   17. If CI is green, a **second** announce with `pin: true` marks the
        version shipped.
 
-If anything between step 6 and step 9 leaves the suite red, OR the
+The five progress posts (3, 6, 9, 10, 12) are suppressed under
+`--dry-run` so local prompt iteration doesn't spam the channel.
+
+If anything between step 8 and step 14 leaves the suite red, OR the
 budget runs out, the PR is opened as **draft** with the `needs-human`
 label and a warning banner in the body. The draft is still announced
-(step 10) so the channel knows a human is needed; only the pinned
-"shipped" message (step 12) is withheld until CI is green.
+(step 15) so the channel knows a human is needed; only the pinned
+"shipped" message (step 17) is withheld until CI is green.
 
 ### Fixing a PR after the fact
 
@@ -273,7 +298,7 @@ until green.
 | `run.lock` is held but no orchestrator is running | Previous firing was killed mid-run | `rm .claudius/sdk-updater/run.lock`. `state.inFlight` self-heals on its own after `SDK_UPDATE_STALE_INFLIGHT_HOURS` (default 24h); set the var lower or `rm state.json` to short-circuit. |
 | `check.ts` keeps returning `in-flight` after a previous crash | `state.inFlight` was never cleared (SIGKILL / OOM / host reboot) | Wait for the 24h self-heal, OR `rm .claudius/sdk-updater/state.json` for immediate recovery (it's rebuilt with defaults on next run). |
 | Two PRs appear (one from this updater, one from Dependabot) | Both bots have npm-ecosystem updates enabled | Exclude `@anthropic-ai/claude-agent-sdk` from `.github/dependabot.yml`, or accept the duplication and close one. |
-| PR was announced but no pinned "shipped" message | CI failed | The PR-open announce (step 10) always fires; the pinned "shipped" message (step 12) is deliberately withheld until CI is green. Look at the PR's checks tab, then `make sdk-update-fix-pr PR=<n>`. |
+| PR was announced but no pinned "shipped" message | CI failed | The PR-open announce (step 15) always fires; the pinned "shipped" message (step 17) is deliberately withheld until CI is green. Look at the PR's checks tab, then `make sdk-update-fix-pr PR=<n>`. |
 | PR opened but nothing posted to the channel at all | chat-server unreachable, or `CHAT_SERVER_URL` / token wrong | Announce is best-effort — check the cron log for a `WARN community announce failed` line. The PR is unaffected; fix the chat-server config and the next run/fix will post. |
 | Cron silently does nothing | flock held, env file missing, or `check.ts` exited non-zero | `make sdk-update-status` + `make sdk-update-logs`. |
 

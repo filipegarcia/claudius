@@ -2,10 +2,15 @@ import { describe, expect, test, vi, beforeEach, afterEach } from "vitest";
 
 import {
   REQUIRED_RUN_NOTE_SECTIONS,
+  buildChangelogAnnouncement,
   buildFixResultAnnouncement,
   buildFixStartAnnouncement,
+  buildGateResultAnnouncement,
+  buildImplementationAnnouncement,
   buildOpenedAnnouncement,
   buildShippedAnnouncement,
+  buildStartAnnouncement,
+  buildTestingAnnouncement,
   compareUrl,
   extractSection,
   parseSkipGates,
@@ -536,6 +541,286 @@ describe("buildFixStartAnnouncement", () => {
   test("includes the instruction when one was supplied", () => {
     const out = buildFixStartAnnouncement({ ...base, instruction: "fix the failing e2e" });
     expect(out).toContain("Instruction: fix the failing e2e");
+  });
+});
+
+// ── Progress announcements (start / changelog / summary / testing) ───
+
+describe("buildStartAnnouncement", () => {
+  const base = { prevVersion: "0.3.141", newVersion: "0.3.142", branch: "sdk-update/0.3.142" };
+
+  test("names both versions and the branch the upgrade runs on", () => {
+    const out = buildStartAnnouncement(base);
+    expect(out).toContain("0.3.141 → 0.3.142");
+    expect(out).toContain("sdk-update/0.3.142");
+  });
+
+  test("links the upstream compare view so a reader can see the diff", () => {
+    const out = buildStartAnnouncement(base);
+    expect(out).toContain(compareUrl(base.prevVersion, base.newVersion));
+  });
+
+  test("does not embed the changelog body — that's a separate post", () => {
+    // We deliberately split start vs. changelog into two messages so
+    // the header line stays scannable. A future change that inlines
+    // the body would defeat that and make the announce noisy.
+    const out = buildStartAnnouncement(base);
+    // Header is short — well under the chat-server's 2000-char limit.
+    expect(out.length).toBeLessThan(500);
+  });
+});
+
+describe("buildChangelogAnnouncement", () => {
+  const base = { prevVersion: "0.3.141", newVersion: "0.3.142" };
+
+  test("includes a short changelog verbatim", () => {
+    const out = buildChangelogAnnouncement({
+      ...base,
+      changelog: "- new permission mode 'auto'\n- deprecated maxThinkingTokens",
+    });
+    expect(out).toContain("new permission mode");
+    expect(out).toContain("deprecated maxThinkingTokens");
+    expect(out).not.toContain("truncated");
+  });
+
+  test("clips an oversized changelog with a 'truncated' marker", () => {
+    // The chat-server caps each message at 2000 chars. We leave ~300
+    // chars of headroom for the header + URL, so any post must end up
+    // strictly under that limit even with a multi-kilobyte changelog.
+    const huge = "x".repeat(10_000);
+    const out = buildChangelogAnnouncement({ ...base, changelog: huge });
+    expect(out.length).toBeLessThan(2000);
+    expect(out).toContain("truncated");
+    expect(out).toContain(compareUrl(base.prevVersion, base.newVersion));
+  });
+
+  test("passes through the extractChangelog failure placeholder", () => {
+    // If extractChangelog fully fails it returns a parenthetical
+    // explanation. The channel should still hear that we couldn't
+    // fetch the changelog, not get a blank message body.
+    const failure = "_(automatic changelog extraction failed — see compare URL)_";
+    const out = buildChangelogAnnouncement({ ...base, changelog: failure });
+    expect(out).toContain("automatic changelog extraction failed");
+  });
+});
+
+describe("buildImplementationAnnouncement", () => {
+  const base = { prevVersion: "0.3.141", newVersion: "0.3.142" };
+
+  test("includes a real Summary verbatim", () => {
+    const out = buildImplementationAnnouncement({
+      ...base,
+      summary: "Bumped SDK; absorbed the new permission mode in session.ts.",
+    });
+    expect(out).toContain("finished its migration pass");
+    expect(out).toContain("Bumped SDK; absorbed the new permission mode");
+  });
+
+  test("falls back to a one-liner when the Summary is still the stub", () => {
+    // The orchestrator pre-writes the run-notes file with
+    // `_(TODO …)_` placeholders. If Claude died before filling them
+    // in, extractSection returns the placeholder — which is the cue
+    // for the builder to degrade rather than post a meaningless
+    // "Summary: _(TODO: one paragraph …)_" line to the channel.
+    const stub = "_(TODO: one paragraph — what changed in the SDK.)_";
+    const out = buildImplementationAnnouncement({ ...base, summary: stub });
+    expect(out).toContain("no Summary section in run-notes");
+    expect(out).not.toContain("TODO");
+    expect(out).not.toContain("Summary:");
+  });
+
+  test("falls back when the run-notes file was missing entirely", () => {
+    // extractSection returns the "did not include a … section"
+    // sentinel when the heading is missing. Same fallback applies.
+    const missing = `_(run-notes did not include a "Summary" section)_`;
+    const out = buildImplementationAnnouncement({ ...base, summary: missing });
+    expect(out).toContain("no Summary section in run-notes");
+  });
+
+  test("falls back when the summary is empty whitespace", () => {
+    const out = buildImplementationAnnouncement({ ...base, summary: "   \n  " });
+    expect(out).toContain("no Summary section in run-notes");
+  });
+
+  test("clips a very long summary to keep the post under the chat limit", () => {
+    const long = "real summary " + "y".repeat(5000);
+    const out = buildImplementationAnnouncement({ ...base, summary: long });
+    expect(out.length).toBeLessThan(2000);
+    expect(out).toContain("…");
+  });
+
+  test("prefixes a budget-exhausted warning when Claude was stopped early", () => {
+    // runClaude sets budgetReason whenever it had to interrupt the
+    // iterator (wall-clock, idle, turn cap, or thrown error). The
+    // implementation announce must surface this so the channel knows
+    // the summary may reflect partial work — otherwise an operator
+    // sees "Claude finished" and trusts a half-done migration.
+    const out = buildImplementationAnnouncement({
+      ...base,
+      summary: "Migrated session.ts.",
+      budgetReason: "wall-clock budget exhausted (360 min)",
+    });
+    expect(out).toContain("Claude was stopped before completing");
+    expect(out).toContain("wall-clock budget exhausted");
+    expect(out).toContain("Partial migration pass");
+    expect(out).toContain("Migrated session.ts.");
+    // The "finished its migration pass" wording is reserved for the
+    // happy path — it'd misrepresent a budget-killed run.
+    expect(out).not.toContain("finished its migration pass");
+  });
+
+  test("budget warning also fires when the Summary is still the stub", () => {
+    // Common failure mode: idle watchdog trips before Claude got to
+    // editing run-notes. We still want the channel to hear WHY the
+    // pass ended, not just "no Summary section".
+    const out = buildImplementationAnnouncement({
+      ...base,
+      summary: "_(TODO: one paragraph)_",
+      budgetReason: "idle timeout (no SDK message in 15 min)",
+    });
+    expect(out).toContain("Claude was stopped before completing");
+    expect(out).toContain("idle timeout");
+    expect(out).toContain("no Summary section in run-notes");
+  });
+
+  test("clips an absurdly long budgetReason", () => {
+    const out = buildImplementationAnnouncement({
+      ...base,
+      summary: "real summary",
+      budgetReason: "x".repeat(5000),
+    });
+    expect(out.length).toBeLessThan(2000);
+  });
+});
+
+describe("buildGateResultAnnouncement", () => {
+  const base = { prevVersion: "0.3.141", newVersion: "0.3.142" };
+  const greenResults = [
+    { step: "lint", ok: true },
+    { step: "unit", ok: true },
+    { step: "build", ok: true },
+    { step: "e2e", ok: true },
+  ];
+
+  test("green run reports success and names every gate step that ran", () => {
+    const out = buildGateResultAnnouncement({
+      ...base,
+      results: greenResults,
+      runNotesIssue: null,
+      budgetReason: null,
+    });
+    expect(out).toContain("Local gates green");
+    expect(out).toContain("0.3.141 → 0.3.142");
+    for (const step of ["lint", "unit", "build", "e2e"]) {
+      expect(out).toContain(step);
+    }
+    expect(out).toContain("Opening draft PR");
+  });
+
+  test("green-with-skipped run notes the skipped steps separately", () => {
+    const out = buildGateResultAnnouncement({
+      ...base,
+      results: [
+        { step: "lint", ok: true },
+        { step: "unit", ok: true },
+        { step: "build", ok: true },
+        { step: "e2e", ok: true, skipped: true },
+      ],
+      runNotesIssue: null,
+      budgetReason: null,
+    });
+    expect(out).toContain("Local gates green");
+    expect(out).toContain("skipped: e2e");
+  });
+
+  test("failed gate names the failing steps so reviewers know what broke", () => {
+    const out = buildGateResultAnnouncement({
+      ...base,
+      results: [
+        { step: "lint", ok: true },
+        { step: "unit", ok: false },
+        { step: "build", ok: true },
+        { step: "e2e", ok: false },
+      ],
+      runNotesIssue: null,
+      budgetReason: null,
+    });
+    expect(out).toContain("Local gates failed");
+    expect(out).toContain("Failed: unit, e2e");
+    expect(out).toContain("Passed: lint, build");
+    expect(out).toContain("Not pushing");
+  });
+
+  test("failed gate includes the run-notes problem when present", () => {
+    const out = buildGateResultAnnouncement({
+      ...base,
+      results: [
+        { step: "lint", ok: false },
+        { step: "unit", ok: true },
+        { step: "build", ok: true },
+        { step: "e2e", ok: true },
+      ],
+      runNotesIssue: `run-notes file is incomplete: "Summary" section is empty or placeholder`,
+      budgetReason: null,
+    });
+    expect(out).toContain("Failed: lint");
+    expect(out).toContain("Run-notes problem:");
+    expect(out).toContain("Summary");
+  });
+
+  test("includes the budget cause when it adds info beyond the failed list", () => {
+    const out = buildGateResultAnnouncement({
+      ...base,
+      results: [
+        { step: "lint", ok: true },
+        { step: "unit", ok: false },
+        { step: "build", ok: true },
+        { step: "e2e", ok: true },
+      ],
+      runNotesIssue: null,
+      budgetReason: "wall-clock budget exhausted (360 min)",
+    });
+    expect(out).toContain("Cause: wall-clock budget exhausted");
+  });
+
+  test("does NOT echo the auto-generated 'Claude reported done but gate failed' reason", () => {
+    // main() auto-fills budgetReason with the failed-step list whenever
+    // Claude finished cleanly but the gate was red. Echoing that back
+    // in the announce body would just duplicate the "Failed:" line.
+    const out = buildGateResultAnnouncement({
+      ...base,
+      results: [
+        { step: "lint", ok: false },
+        { step: "unit", ok: true },
+        { step: "build", ok: true },
+        { step: "e2e", ok: true },
+      ],
+      runNotesIssue: null,
+      budgetReason: "Claude reported done but gate failed: lint",
+    });
+    expect(out).toContain("Failed: lint");
+    expect(out).not.toContain("Cause:");
+  });
+
+  test("clips an absurdly long budgetReason / runNotesIssue", () => {
+    const out = buildGateResultAnnouncement({
+      ...base,
+      results: [{ step: "lint", ok: false }],
+      runNotesIssue: "x".repeat(5000),
+      budgetReason: "y".repeat(5000),
+    });
+    expect(out.length).toBeLessThan(2000);
+  });
+});
+
+describe("buildTestingAnnouncement", () => {
+  test("names the version range and the gate steps about to run", () => {
+    const out = buildTestingAnnouncement({ prevVersion: "0.3.141", newVersion: "0.3.142" });
+    expect(out).toContain("0.3.141 → 0.3.142");
+    expect(out).toContain("lint");
+    expect(out).toContain("unit");
+    expect(out).toContain("build");
+    expect(out).toContain("e2e");
   });
 });
 

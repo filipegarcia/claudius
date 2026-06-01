@@ -100,7 +100,7 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   { id: "memory", name: "memory", description: "Edit CLAUDE.md, browse memory, toggle auto-memory.", category: "memory", handler: "native" },
   { id: "context", name: "context", description: "Visualize context window usage.", category: "memory", handler: "native" },
   { id: "init", name: "init", description: "Initialize a CLAUDE.md for this project.", category: "memory", handler: "sdk" },
-  { id: "recap", name: "recap", description: "Generate a one-line session summary.", category: "memory", handler: "sdk" },
+  { id: "recap", name: "recap", description: "Generate a one-line session summary.", category: "memory", handler: "native" },
   { id: "btw", name: "btw", description: "Side question — ephemeral, no tools, no history.", category: "memory", handler: "sdk", argsHint: "<question>" },
 
   // ── Model ────────────────────────────────────────────────────────────

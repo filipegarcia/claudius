@@ -12,6 +12,8 @@ import { useGoalBannerHidden } from "@/lib/client/useGoalBannerHidden";
 import { RecapBanner } from "@/components/chat/RecapBanner";
 import { OpusLaunchTipBanner } from "@/components/chat/OpusLaunchTipBanner";
 import { FeedbackBanner } from "@/components/chat/FeedbackBanner";
+import { SessionRecapBanner } from "@/components/chat/SessionRecapBanner";
+import { useAwayRecap } from "@/lib/client/useAwayRecap";
 import {
   OpusOverloadNudgePanel,
   OPUS_OVERLOAD_NUDGE_SONNET_TARGET,
@@ -130,6 +132,28 @@ export default function Home() {
   // of re-showing a stale, still-high percentage until the next idle poll.
   const [ctxRefreshSignal, setCtxRefreshSignal] = useState(0);
   const ctxSummary = useContextWatcher(session.sessionId, session.pending, ctxRefreshSignal);
+
+  // "Where were we?" auto-recap — fires when the user returns to this tab
+  // after a long blur (≥5 min). The settings gate and multi-tab dedupe live
+  // on the server; this hook only signals the *intent*. Disabled when no
+  // session is bound (a recap against nothing would just no-op anyway, but
+  // skipping the listener is cheaper) and when there's typed-but-unsent
+  // text in the composer (we never interrupt the user mid-sentence).
+  useAwayRecap({
+    enabled: !!session.sessionId,
+    requestRecap: session.requestRecap,
+    getHasDraft: () => {
+      // Read the composer textarea live — the PromptInput uses a stable
+      // testid that the focus helper in RecapBanner already relies on, so
+      // we can lean on it here too. A null/whitespace-only value counts as
+      // "no draft" so a freshly-cleared composer doesn't suppress the recap.
+      if (typeof document === "undefined") return false;
+      const el = document.querySelector<HTMLTextAreaElement>(
+        '[data-testid="prompt-input"]',
+      );
+      return !!el?.value?.trim();
+    },
+  });
   // True while a /compact fired from the banner (or the StatusLine button) is
   // running; drives the banner's "Compacting…" indicator (elapsed timer +
   // animated bar). The SDK exposes no compaction-progress fraction, so we show
@@ -833,6 +857,20 @@ export default function Home() {
           router.push("/sessions");
           return true;
         }
+        case "recap": {
+          // Manual recap trigger — the same path the away-blur watcher uses,
+          // just with `"manual"` origin. The SDK's own `/recap` is a no-op
+          // (it's a TUI-only feature), so without this dispatch typing
+          // `/recap` would do nothing visible. Args are ignored on purpose:
+          // the recap shape is a single one-liner; any args text would just
+          // confuse the model.
+          if (!session.sessionId) {
+            showToast("No active session");
+            return true;
+          }
+          void session.requestRecap("manual");
+          return true;
+        }
         case "permissions":
           router.push("/permissions");
           return true;
@@ -1014,7 +1052,7 @@ export default function Home() {
           return;
         }
         if (cmd?.handler === "sdk") {
-          // SDK-interpreted slash command (e.g. /compact, /init, /recap).
+          // SDK-interpreted slash command (e.g. /compact, /init).
           // Route through the no-echo path so the chat shows a "Running
           // /compact…" pill instead of a user message whose text is the
           // literal slash command. The SDK still receives the text and
@@ -1579,6 +1617,10 @@ export default function Home() {
               </button>
             </div>
           )}
+          <SessionRecapBanner
+            recap={session.sessionRecap}
+            onDismiss={session.dismissRecap}
+          />
           <div data-pane-name="composer">
             <PromptInput
               ready={session.ready}

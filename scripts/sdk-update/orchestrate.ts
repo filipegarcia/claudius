@@ -12,20 +12,41 @@
  * Pipeline (top-to-bottom in `main()`):
  *   1. Pre-flight  — sanity-check env, working tree, remote.
  *   2. Branch      — fetch origin, create `sdk-update/<version>` off main.
- *   3. Bump        — edit package.json, `bun install`.
- *   4. Changelog   — extract upstream notes between PREV..NEW.
- *   5. Run Claude  — `query({ prompt, options })` with bypassPermissions,
+ *   3. Announce    — "🆕 starting upgrade on branch X" — fires within
+ *                    seconds of cron so the channel hears immediately,
+ *                    not minutes later when the PR opens.
+ *   4. Bump        — edit package.json, `bun install`.
+ *   5. Changelog   — extract upstream notes between PREV..NEW.
+ *   6. Announce    — POST the changelog body so the channel sees what
+ *                    Claude is about to react to. Clipped to fit the
+ *                    chat-server's 2000-char message cap.
+ *   7. Run Claude  — `query({ prompt, options })` with bypassPermissions,
  *                    streamed under a wall-clock + turn budget.
- *   6. Gate        — run lint/test/build/e2e. If green, full PR.
+ *   8. Announce    — "✅ Claude finished — here's the summary" lifted
+ *                    from the Summary section of the run-notes file.
+ *                    Degrades to a one-liner if the section is still
+ *                    the stub placeholder. Prefixed with "⚠️ Claude
+ *                    was stopped before completing" when a turn / wall
+ *                    / idle budget tripped, so the channel knows the
+ *                    summary may reflect partial work.
+ *   9. Announce    — "🧪 running local gates" right before the gate.
+ *  10. Gate        — run lint/test/build/e2e. If green, full PR.
  *                    If red AND budget exhausted, draft PR with
  *                    `needs-human` label.
- *   7. Push + PR   — `gh pr create` with the templated body.
- *   8. Announce    — POST to chat-server /admin/announce the moment the
+ *  11. Announce    — "✅ gates green" / "❌ gates failed: <steps>" the
+ *                    moment the gate finishes, so a red test outcome
+ *                    reaches the channel immediately instead of
+ *                    minutes later via the process-issue post.
+ *  12. Push + PR   — `gh pr create` with the templated body.
+ *  13. Announce    — POST to chat-server /admin/announce the moment the
  *                    PR exists, for BOTH full and draft PRs (the draft
  *                    message carries the reason). Not pinned.
- *   9. CI watch    — `gh pr checks --watch`.
- *  10. Announce    — second POST on fully-green ship (pinned).
- *  11. State       — update lastCompletedVersion / clear inFlight.
+ *  14. CI watch    — `gh pr checks --watch`.
+ *  15. Announce    — second POST on fully-green ship (pinned).
+ *  16. State       — update lastCompletedVersion / clear inFlight.
+ *
+ *   The five progress announces (3, 6, 8, 9, 11) are suppressed under
+ *   `--dry-run` so local prompt iteration doesn't spam the channel.
  *
  * Fix mode (`--fix-pr=<n>`, via `make sdk-update-fix-pr PR=<n>`):
  *   a wholly separate entry point that skips the version probe. It
@@ -1366,6 +1387,202 @@ export function buildShippedAnnouncement(args: {
   ].join("\n");
 }
 
+// ── Progress announcements (fire BEFORE the PR exists) ────────────────
+// These four exist so the community channel hears about the upgrade
+// while it is in flight, not just after a PR has been opened. Each is
+// short, unpinned, and best-effort — the long-form record is still the
+// PR body + run-notes file the later steps produce.
+
+/**
+ * First post for a new run: announces that the orchestrator has
+ * accepted a new upstream version and started work on it. Fires
+ * immediately after the upgrade branch exists, so the channel hears
+ * about the run within seconds of cron firing — not minutes later when
+ * the draft PR is opened.
+ *
+ * Deliberately omits the changelog body: that ships in its own message
+ * (buildChangelogAnnouncement) so this header line stays scannable.
+ */
+export function buildStartAnnouncement(args: {
+  prevVersion: string;
+  newVersion: string;
+  branch: string;
+}): string {
+  return [
+    `🆕 **New claude-agent-sdk release: ${args.prevVersion} → ${args.newVersion}.**`,
+    "",
+    `Starting upgrade on branch \`${args.branch}\` — fetching changelog, then handing the migration to Claude.`,
+    `Upstream compare: ${compareUrl(args.prevVersion, args.newVersion)}`,
+  ].join("\n");
+}
+
+/**
+ * Second post: the upstream changelog body, lifted from
+ * `extractChangelog()`. The chat-server caps messages at 2000 chars and
+ * we want headroom for the header + URL line, so the body itself is
+ * clipped to ~1700 chars with a "truncated" marker pointing back at the
+ * upstream compare view for the full diff. The placeholder string
+ * `extractChangelog` returns on full failure ("_(automatic …)_") flows
+ * through untouched — the channel should hear that we couldn't fetch
+ * the changelog, not get a silent message.
+ */
+export function buildChangelogAnnouncement(args: {
+  prevVersion: string;
+  newVersion: string;
+  changelog: string;
+}): string {
+  // Header + footer + markdown overhead ~= 250 chars. Leave the rest
+  // for changelog body to stay under the 2000-char chat-server limit.
+  const MAX_CHANGELOG = 1700;
+  const trimmed = args.changelog.trim();
+  const body =
+    trimmed.length > MAX_CHANGELOG
+      ? `${trimmed.slice(0, MAX_CHANGELOG)}\n\n_(changelog truncated — full text at the compare URL below)_`
+      : trimmed;
+  return [
+    `📋 **Upstream changelog — ${args.prevVersion} → ${args.newVersion}:**`,
+    "",
+    body,
+    "",
+    `Compare: ${compareUrl(args.prevVersion, args.newVersion)}`,
+  ].join("\n");
+}
+
+/**
+ * Third post: the Summary section Claude wrote into the run-notes
+ * file, lifted via `extractSection(..., "Summary")`. Fires once
+ * `runClaude` returns and BEFORE the local gate starts, so the channel
+ * gets a "here's what was changed" preview before tests run.
+ *
+ * If Claude didn't fill in the section (still the `_(TODO …)_` stub,
+ * or the file is missing because the iterator died early) we post a
+ * degraded one-liner instead — the channel still hears that Claude
+ * finished, and the validation/gate machinery below catches the empty
+ * run-notes separately (it surfaces as a draft + needs-human PR).
+ */
+export function buildImplementationAnnouncement(args: {
+  prevVersion: string;
+  newVersion: string;
+  summary: string;
+  /**
+   * When set, runClaude was stopped before it returned cleanly (turn /
+   * wall / idle budget tripped, or the iterator threw). The channel
+   * deserves to hear that the summary may reflect partial work — they
+   * shouldn't have to dig through cron logs to find out the agent was
+   * killed mid-migration.
+   */
+  budgetReason?: string | null;
+}): string {
+  const trimmed = args.summary.trim();
+  // Detect the stub placeholder Claude was supposed to replace, the
+  // "section missing" sentinel extractSection returns, and obviously-
+  // empty bodies. Anything else is treated as a real summary.
+  const looksPlaceholder =
+    !trimmed ||
+    /^_+\(/.test(trimmed) ||
+    /^TODO/i.test(trimmed) ||
+    /^_\(run-notes did not include/.test(trimmed);
+  const budgetLine = args.budgetReason
+    ? `⚠️ Claude was stopped before completing: ${oneLine(args.budgetReason, 400)}`
+    : null;
+  if (looksPlaceholder) {
+    const head = budgetLine
+      ? `${budgetLine}\n\n🛠️ Migration pass for **${args.prevVersion} → ${args.newVersion}** ended with no Summary section in run-notes.`
+      : `🛠️ Claude finished its migration pass for **${args.prevVersion} → ${args.newVersion}** — no Summary section in run-notes (gate may flag it).`;
+    return `${head} Tests running next.`;
+  }
+  // Clip very long summaries to keep the post under the 2000-char chat
+  // limit. Reviewers get the full text in the PR body; the channel post
+  // is a notification, not a deliverable.
+  const MAX = 1500;
+  const body = trimmed.length > MAX ? `${trimmed.slice(0, MAX)}…` : trimmed;
+  const lines: string[] = [];
+  if (budgetLine) {
+    lines.push(budgetLine, "");
+  }
+  lines.push(
+    `🛠️ **${budgetLine ? "Partial m" : "Claude finished its m"}igration pass — ${args.prevVersion} → ${args.newVersion}.**`,
+    "",
+    `Summary:`,
+    body,
+  );
+  return lines.join("\n");
+}
+
+/**
+ * Fourth post: fires right before the local gate runs (lint / unit /
+ * build / e2e). Bookends the "Claude finished" announcement above so
+ * the channel sees the handoff from agent work → automated checks.
+ * The gate-result outcome reaches the channel later via the draft-PR
+ * announce (with the failing-step reason) or the shipped pin.
+ */
+export function buildTestingAnnouncement(args: {
+  prevVersion: string;
+  newVersion: string;
+}): string {
+  return `🧪 Running local gates for **${args.prevVersion} → ${args.newVersion}** (lint, unit, build, e2e). Will open a PR once they pass.`;
+}
+
+/**
+ * Fifth progress post: the gate verdict. Fires AFTER `runGate` +
+ * `validateRunNotes` so it includes the full picture (failed steps +
+ * any run-notes problem + any earlier budget reason). Always posts —
+ * a clean green run gets a positive ack instead of silence between
+ * "🧪 running tests" and the draft-PR announce minutes later.
+ *
+ * Failure shape names the exact gate steps that failed so a reviewer
+ * can decide what to look at without opening the cron log. The
+ * `budgetReason` field is only echoed when it carries new info beyond
+ * the failed-step list (the orchestrator auto-fills it with the same
+ * step list when Claude reported clean-but-red; we don't want to echo
+ * that back).
+ */
+export function buildGateResultAnnouncement(args: {
+  prevVersion: string;
+  newVersion: string;
+  results: Array<{ step: string; ok: boolean; skipped?: boolean }>;
+  runNotesIssue: string | null;
+  budgetReason: string | null;
+}): string {
+  const failed = args.results.filter((r) => !r.ok && !r.skipped).map((r) => r.step);
+  const passed = args.results.filter((r) => r.ok && !r.skipped).map((r) => r.step);
+  const skipped = args.results.filter((r) => r.skipped === true).map((r) => r.step);
+
+  const skipNote = skipped.length ? ` _(skipped: ${skipped.join(", ")})_` : "";
+
+  // All-green path: the PR is about to open. Single short line so the
+  // channel doesn't get a wall of ✅ between the test-start and PR-open
+  // announces.
+  if (failed.length === 0 && !args.runNotesIssue) {
+    const passedList = passed.length ? passed.join(", ") : "(everything skipped)";
+    return `✅ Local gates green for **${args.prevVersion} → ${args.newVersion}** — ${passedList}${skipNote}. Opening draft PR and watching CI next.`;
+  }
+
+  const lines: string[] = [
+    `❌ **Local gates failed for ${args.prevVersion} → ${args.newVersion}.**`,
+    "",
+  ];
+  if (failed.length) lines.push(`Failed: ${failed.join(", ")}`);
+  if (passed.length) lines.push(`Passed: ${passed.join(", ")}`);
+  if (skipped.length) lines.push(`Skipped: ${skipped.join(", ")}`);
+  if (args.runNotesIssue) {
+    lines.push("", `Run-notes problem: ${oneLine(args.runNotesIssue, 400)}`);
+  }
+  // The orchestrator auto-sets budgetReason to "Claude reported done
+  // but gate failed: …" when Claude returned cleanly but the suite is
+  // red. Echoing that back here would just duplicate the failed-list
+  // we already printed; skip it. Any other reason (wall-clock, idle,
+  // iterator error) is genuinely new info worth surfacing.
+  if (
+    args.budgetReason &&
+    !args.budgetReason.startsWith("Claude reported done but gate failed")
+  ) {
+    lines.push("", `Cause: ${oneLine(args.budgetReason, 400)}`);
+  }
+  lines.push("", "Not pushing the branch — a process issue will follow with the next steps.");
+  return lines.join("\n");
+}
+
 /** Message posted when a `fix-pr` run starts working on an existing PR. */
 export function buildFixStartAnnouncement(args: {
   prNumber: string;
@@ -1801,8 +2018,29 @@ async function main(): Promise<void> {
   let shipped = false;
   let budgetReason: string | null = null;
 
+  // Progress announcements (start / changelog / summary / testing) are
+  // suppressed when dry-run is on — dry-run is for local prompt iteration
+  // and the channel shouldn't see those test firings. The post-PR
+  // announces (draft / shipped / process issue) already live behind the
+  // dry-run short-circuit further down, so they need no extra guard.
+  const announceProgress = async (
+    body: string,
+    opts: { pin?: boolean } = {},
+  ): Promise<void> => {
+    if (dryRun) return;
+    await announceSafe(body, opts);
+  };
+
   try {
     const branch = checkoutFreshBranch(newVersion);
+
+    // 1st progress post: "found new version, starting upgrade". Goes out
+    // as soon as the branch exists so the channel hears about the run
+    // within seconds of cron firing — minutes before the draft PR.
+    await announceProgress(
+      buildStartAnnouncement({ prevVersion, newVersion, branch }),
+    );
+
     bumpSdkDependency(newVersion);
     // Keep Claudius's displayed version in lock-step with the SDK. The
     // trailing `.N` release counter is git-derived (see
@@ -1821,6 +2059,14 @@ async function main(): Promise<void> {
 
     const changelog = extractChangelog(prevVersion, newVersion);
     log(`changelog: ${changelog.length} bytes`);
+
+    // 2nd progress post: the upstream changelog body. Goes out before
+    // Claude starts, so the channel has the same context Claude does
+    // when reasoning about what's about to land. Body is clipped to fit
+    // the chat-server's 2000-char cap; full text is always one URL away.
+    await announceProgress(
+      buildChangelogAnnouncement({ prevVersion, newVersion, changelog }),
+    );
 
     // Make sure the run-notes target directory exists so Claude can write into it.
     mkdirSync(dirname(runNotesPath(newVersion)), { recursive: true });
@@ -1856,6 +2102,39 @@ async function main(): Promise<void> {
     );
     budgetReason = claudeResult.budgetReason;
 
+    // 3rd progress post: the Summary section Claude wrote into the
+    // run-notes file. The prompt instructs Claude to write run-notes
+    // FIRST (before coding), so by the time we get here the file
+    // should have a real summary even if the implementation half had
+    // to be cut short by the budget watchdog. If the Summary is still
+    // the stub placeholder (or the file is missing), the builder
+    // degrades to a one-liner — the validation/gate logic below
+    // surfaces the empty-run-notes case via the draft-PR path anyway.
+    let runNotesSummary = "";
+    const notesFile = runNotesPath(newVersion);
+    if (existsSync(notesFile)) {
+      runNotesSummary = extractSection(readFileSync(notesFile, "utf8"), "Summary");
+    }
+    await announceProgress(
+      buildImplementationAnnouncement({
+        prevVersion,
+        newVersion,
+        summary: runNotesSummary,
+        // Surface "Claude was killed early" right here, not three
+        // announces later — the channel needs to know the summary may
+        // reflect partial work before the gate result lands.
+        budgetReason,
+      }),
+    );
+
+    // 4th progress post: "running local gates". Bookends the previous
+    // announce so the channel sees the handoff from agent work →
+    // automated checks. The gate-result outcome reaches the channel
+    // later via the draft-PR or shipped announce below.
+    await announceProgress(
+      buildTestingAnnouncement({ prevVersion, newVersion }),
+    );
+
     const gate = runGate(skipGates);
     const allGreen = gate.every((g) => g.ok);
     log(`gate result: ${gate.map((g) => `${g.step}=${g.skipped ? "skip" : g.ok ? "ok" : "FAIL"}`).join(" ")}`);
@@ -1885,6 +2164,22 @@ async function main(): Promise<void> {
     } else {
       log(`gate: run-notes validation ok`);
     }
+
+    // 5th progress post: the gate verdict. Fires whether green or red
+    // so the channel always hears the test outcome immediately, not
+    // minutes later via the draft-PR announce (green) or the
+    // process-issue announce (red). On a red run this is also the
+    // first place reviewers see WHICH gate steps failed — the existing
+    // process-issue message is intentionally generic.
+    await announceProgress(
+      buildGateResultAnnouncement({
+        prevVersion,
+        newVersion,
+        results: gate,
+        runNotesIssue,
+        budgetReason,
+      }),
+    );
 
     // Dry-run short-circuit: everything above this point ran for real
     // (branch created, deps bumped, Claude did the work, gate ran,

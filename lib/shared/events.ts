@@ -457,6 +457,58 @@ export type TaskSnapshotEvent = {
 };
 
 /**
+ * One-line "where were we?" summary, fired when the user returns to a session
+ * after stepping away. Generated server-side via an ephemeral, no-tools query
+ * over the last few transcript turns (see `lib/server/session-recap.ts`). The
+ * client renders this as a slim banner above the composer with a
+ * "(disable recaps in /config)" hint — mirrors the Claude Code TUI's away-summary
+ * feature, which Claudius cannot inherit from the SDK directly (the SDK only
+ * ships the on/off flag; recap rendering is TUI-side).
+ *
+ * Live-only on the wire: skipped in the SSE replay loop so a stale recap
+ * doesn't re-pop on tab switch. The client also clears the banner the moment
+ * the next user prompt fires, so a recap never sits stale against an active
+ * conversation.
+ *
+ * Server-side multi-tab guard: `Session.requestRecap()` rate-limits firings
+ * per-session so two tabs returning to focus simultaneously don't double-fire.
+ */
+export type SessionRecapEvent = {
+  type: "session_recap";
+  /** Model-generated recap text (≤ ~40 words, plain prose). */
+  text: string;
+  /** Server-stamped epoch ms when the recap was produced. */
+  at: number;
+  /**
+   * How this recap fired. `away` = automatic on return-from-blur;
+   * `manual` = explicit user request (e.g. `/recap` button). Clients can use
+   * this for analytics or to tweak banner phrasing, but the default render is
+   * identical for both.
+   */
+  origin: "away" | "manual";
+};
+
+/**
+ * Recap generation was attempted but skipped or failed. Lets the client clear
+ * any "loading" indicator and (for manual triggers) surface a one-line reason.
+ * `disabled` / `running` / `draft` / `no_history` are intentional skips — these
+ * mirror the TUI's `[awaySummary] skipped: …` debug paths. `rate_limited`
+ * fires when another tab beat this one to it within the dedupe window.
+ */
+export type SessionRecapErrorEvent = {
+  type: "session_recap_error";
+  reason:
+    | "disabled"
+    | "running"
+    | "draft"
+    | "no_history"
+    | "rate_limited"
+    | "failed";
+  /** Optional human-readable detail (only `failed` populates this today). */
+  message?: string;
+};
+
+/**
  * Emitted once when the account-switcher's "auto-rotate on rate limit"
  * fires for this session — i.e. the active account hit its limit and
  * the global active-profile pointer was rotated to the next configured
@@ -505,7 +557,9 @@ export type ServerEvent =
   | PlanApprovalRequestEvent
   | SessionSnapshotEvent
   | TaskSnapshotEvent
-  | AccountAutoRotatedEvent;
+  | AccountAutoRotatedEvent
+  | SessionRecapEvent
+  | SessionRecapErrorEvent;
 
 export type PermissionDecision =
   | { kind: "allow_once" }

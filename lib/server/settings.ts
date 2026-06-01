@@ -27,6 +27,13 @@ export type ClaudeSettings = {
   // true, prompt suggestions are enabled." Read at session start in
   // `session.ts` and forwarded to the SDK's `Options.promptSuggestions`.
   promptSuggestionEnabled?: boolean;
+  // Session recap — the "where were we?" one-liner the client shows when the
+  // user returns to a tab after being blurred for ≥5 min. Mirrors the
+  // (internal) Claude Code TUI key `awaySummaryEnabled`: `false` disables the
+  // banner entirely; omitted/true keeps it on. The generation is server-side
+  // (lib/server/session-recap.ts) — there's no SDK option to forward because
+  // the SDK's recap is TUI-rendered; Claudius reads this directly.
+  sessionRecapEnabled?: boolean;
   // Rotating spinner tips ("Tip: …" under the working spinner). Mirrors the
   // Claude Code CLI keys: `false` disables the rotation entirely, omitted/true
   // leaves it on. Read at session start and forwarded to `selectTips()` via the
