@@ -273,6 +273,28 @@ export function planModeReentryReminderBody(priorPlan: string): string {
   return `${head}\n\nPrevious plan:\n${priorPlan}`;
 }
 
+/**
+ * Claude Code TUI parity (34-auto-mode-exit-reminder): when the user
+ * Shift+Tabs out of auto-accept mode, the CLI injects a `## Exited Auto
+ * Mode` reminder so the model loosens its assumption-making and starts
+ * asking clarifying questions again. Prose is verbatim from the CLI's
+ * handler — re-wording it would diverge from the parity surface.
+ *
+ * Stateless (no args, no per-session lookup), so unlike
+ * `planModeReentryReminderBody` we can return a frozen constant — but we
+ * keep the function shape for symmetry with the rest of the reminder
+ * helpers and so the unit test can pin the literal prose without
+ * importing a string export.
+ */
+export function autoModeExitReminderBody(): string {
+  return (
+    "## Exited Auto Mode\n" +
+    "You have exited auto mode. The user may now want to interact more " +
+    "directly. You should ask clarifying questions when the approach is " +
+    "ambiguous rather than making assumptions."
+  );
+}
+
 type Subscriber = (event: ServerEvent) => void;
 
 /**
@@ -2074,6 +2096,13 @@ export class Session {
     // direct field write in `resolvePlan` flipping to `acceptEdits`) must
     // not re-fire the reminder.
     const wasPlan = this.permissionMode === "plan";
+    // Auto-mode exit reminder (Claude Code TUI parity, feature 34). When
+    // the user Shift+Tabs out of `auto`, the CLI injects a `## Exited Auto
+    // Mode` reminder so the agent shifts back to an interactive posture.
+    // Capture `wasAuto` BEFORE the mode write — same shape as `wasPlan`
+    // above — and gate on the *transition* so a redundant
+    // `setPermissionMode("auto")` while already in auto can't re-fire.
+    const wasAuto = this.permissionMode === "auto";
     this.permissionMode = mode;
     if (!wasPlan && mode === "plan") {
       const state = await getSessionState(this.cwd, this.id).catch(() => ({}));
@@ -2081,6 +2110,9 @@ export class Session {
       if (priorPlan) {
         queueReminder(this, "plan-mode-reentry", planModeReentryReminderBody(priorPlan));
       }
+    }
+    if (wasAuto && mode !== "auto") {
+      queueReminder(this, "auto-mode-exit", autoModeExitReminderBody());
     }
     if (this.query) await this.query.setPermissionMode(mode).catch(() => {});
     this.broadcast({
