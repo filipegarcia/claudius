@@ -8,7 +8,9 @@ import { PaneLabelsHost } from "@/components/overlays/PaneLabelsHost";
 import { CustomizationBanner } from "@/components/customize/CustomizationBanner";
 import { DeepLinksHandler } from "@/components/chrome/DeepLinksHandler";
 import { ElectronGlobalActions } from "@/components/chrome/ElectronGlobalActions";
+import { QuitWarningToast } from "@/components/chrome/QuitWarningToast";
 import { TitleBar } from "@/components/chrome/TitleBar";
+import { WebDesktopBanner } from "@/components/chrome/WebDesktopBanner";
 import { UpdaterBanner } from "@/components/updater/UpdaterBanner";
 import { NotificationsProvider } from "@/components/notifications/NotificationsProvider";
 import { CommunityNotificationsProvider } from "@/components/community/CommunityNotificationsProvider";
@@ -32,6 +34,13 @@ export const metadata: Metadata = {
 // it to the documentElement *before* React hydrates. Avoids a flash of the
 // default theme on reload. The allowlist here MUST stay in sync with the
 // `ThemeId` union in `lib/client/theme.ts`.
+//
+// The same script also restores the chat-size overrides written by
+// `useChatSize` (lib/client/chat-size.ts). Both values are clamped to the
+// slider bounds in-line so a corrupt entry can't poison the CSS vars; the
+// clamp bounds MUST stay in sync with `CHAT_SIZE_BOUNDS` in that file.
+// Unset values intentionally do NOT set a CSS variable — the stylesheet's
+// fluid `clamp()` rule in `globals.css` wins, which is the "auto" state.
 const themeBootstrap = `(() => {
   try {
     var t = localStorage.getItem('claudius.theme');
@@ -40,6 +49,18 @@ const themeBootstrap = `(() => {
   } catch (_) {
     document.documentElement.dataset.theme = 'dark';
   }
+  // Chat-size overrides (sliders in /settings → Chat size).
+  try {
+    var clamp = function(n, lo, hi) { return Math.max(lo, Math.min(hi, n)); };
+    var c = parseFloat(localStorage.getItem('claudius.chatColRem'));
+    if (isFinite(c)) {
+      document.documentElement.style.setProperty('--chat-col', clamp(c, 36, 400) + 'rem');
+    }
+    var f = parseFloat(localStorage.getItem('claudius.chatTextPx'));
+    if (isFinite(f)) {
+      document.documentElement.style.setProperty('--chat-text', clamp(f, 13, 48) + 'px');
+    }
+  } catch (_) {}
   // Electron detection — used by globals.css to add a 32px top padding to
   // the body so the workspace rail and chat shell never sit under the
   // OS-drawn traffic lights / our custom title bar. UA-sniffing the
@@ -87,9 +108,19 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
                   * docs/electron-conversion/PLAN.md. */}
                 <TitleBar />
                 <UpdaterBanner />
+                {/* Web-only: advertises the Electron desktop app as
+                  * a long-running alternative to the browser tab.
+                  * Dismissible; no-op in the Electron build. */}
+                <WebDesktopBanner />
                 <CustomizationBanner />
                 <div className="min-h-0 flex-1">{children}</div>
               </div>
+              {/* Electron-only: HUD that appears when the user presses
+                * ⌘Q once, telling them to press again to confirm. The
+                * matching menu-item intercept lives in
+                * `electron/menu.ts` (`handleQuitChord`). No-op in the
+                * browser build. */}
+              <QuitWarningToast />
               {/* Cross-cut Cmd+K palette — Phase 5 of
                 * docs/electron-conversion/PLAN.md. Renders nothing
                 * until the chord opens it; safe to mount globally.

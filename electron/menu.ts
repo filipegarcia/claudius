@@ -25,6 +25,63 @@ import {
 const MENU_ACTION_TOPIC = "menu:action";
 
 /**
+ * "Press ⌘Q again to quit" double-press window, in ms.
+ *
+ * Keep in lockstep with `QUIT_WARNING_MS` in
+ * `components/chrome/QuitWarningToast.tsx` — the renderer auto-hides
+ * the HUD after this same horizon, so the visual state and the main
+ * process's arming state stay in sync.
+ *
+ * We intercept Cmd+Q (and Ctrl+Q on win/linux) at the menu-item level
+ * rather than via `before-quit`. That choice is deliberate: the
+ * `window-all-closed` handler in `electron/main.ts` calls `app.quit()`
+ * to terminate the embedded Next server, and a `before-quit` veto
+ * would strand the process with no window left to render the warning.
+ * Scoping the intercept to the explicit Quit chord leaves red-button
+ * close, `app.quit()` from `window-all-closed`, and OS shutdown paths
+ * working as they did before.
+ */
+const QUIT_WARNING_MS = 2500;
+
+/**
+ * Timestamp (`Date.now()` epoch ms) of the last unconfirmed Cmd+Q press.
+ * `null` when the chord is not armed. A second press within
+ * `QUIT_WARNING_MS` of this value performs the actual quit; anything
+ * later re-arms with a fresh warning.
+ */
+let quitArmedAt: number | null = null;
+
+/**
+ * Cmd+Q / Ctrl+Q click handler. First press arms a short window and
+ * tells the renderer to show the "Press again to quit" toast; second
+ * press inside that window calls `app.quit()` and tears the app down.
+ *
+ * Uses the shared `send(...)` helper so the renderer receives the HUD
+ * ping on the same `menu:action` channel it already subscribes to via
+ * `useElectronAction("app.quitWarning", ...)` — no preload changes.
+ */
+function handleQuitChord(): void {
+  const now = Date.now();
+  if (quitArmedAt !== null && now - quitArmedAt <= QUIT_WARNING_MS) {
+    // Confirmed — fall through to a real quit. Clear the flag so an
+    // aborted shutdown (somebody else preventDefaults the upcoming
+    // `before-quit`) doesn't leave the chord pre-armed.
+    quitArmedAt = null;
+    app.quit();
+    return;
+  }
+  quitArmedAt = now;
+  send("app.quitWarning");
+  // Re-disarm after the warning window so a much-later press starts
+  // fresh instead of accidentally confirming.
+  setTimeout(() => {
+    if (quitArmedAt !== null && Date.now() - quitArmedAt >= QUIT_WARNING_MS) {
+      quitArmedAt = null;
+    }
+  }, QUIT_WARNING_MS + 100);
+}
+
+/**
  * Resolved accelerator strings keyed by shortcut-registry action id,
  * pushed from the renderer via `menu.setAccelerators(...)`. Lets a
  * remap in /settings rewrite the OS-menu accelerator for the
@@ -111,7 +168,17 @@ export function installAppMenu(
               { role: "hideOthers" },
               { role: "unhide" },
               { type: "separator" },
-              { role: "quit", accelerator: "Cmd+Q" },
+              // Custom intercept — see `handleQuitChord`. First press
+              // shows a "press again to quit" HUD via the renderer; a
+              // second press inside the QUIT_WARNING_MS window
+              // performs the actual `app.quit()`. We deliberately do
+              // NOT use `role: "quit"` here, because that bypasses our
+              // click handler entirely.
+              {
+                label: "Quit Claudius",
+                accelerator: "Cmd+Q",
+                click: handleQuitChord,
+              },
             ],
           },
         ] satisfies MenuItemConstructorOptions[])
@@ -151,7 +218,14 @@ export function installAppMenu(
                 click: () => send("app.preferences"),
               },
               { type: "separator" },
-              { role: "quit", accelerator: "Ctrl+Q" },
+              // Mirror the macOS intercept on win/linux so Ctrl+Q
+              // surfaces the same "press again to quit" HUD instead
+              // of an immediate teardown.
+              {
+                label: "Quit Claudius",
+                accelerator: "Ctrl+Q",
+                click: handleQuitChord,
+              },
             ] satisfies MenuItemConstructorOptions[])),
       ],
     },
