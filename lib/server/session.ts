@@ -296,6 +296,38 @@ export function autoModeExitReminderBody(): string {
 }
 
 /**
+ * Claude Code TUI parity (39-verify-plan-reminder): after the agent finishes
+ * executing an accepted plan, fire a one-shot reminder that nudges it to
+ * verify the plan items inline — in the same context that holds the plan's
+ * state, tool history, and edited files — rather than handing verification
+ * off to a sub-agent that would lose that grounding.
+ *
+ * Adaptation note: the CLI's binary string reads
+ *   `You have completed implementing the plan. Please call the "" tool
+ *    directly (NOT the \n tool or an agent) to verify…`
+ * where `""` and `\n` are decompiler artifacts marking interpolation slots
+ * for a verification-tool name and the literal word `Task`. Claudius has
+ * no first-class "verify" tool, so we drop the slot and keep the two
+ * load-bearing instructions verbatim ("You have completed implementing
+ * the plan." / "verify that all plan items were completed correctly"),
+ * plus the inline-not-delegated directive mapped to Claudius's real
+ * surface ("NOT via the Task tool or a subagent"). Same shape as the
+ * feature-33 adaptation that dropped the CLI's on-disk `planFilePath`.
+ *
+ * Stateless helper (no Session lifecycle) so the unit test can pin the
+ * literal prose without constructing a Session.
+ */
+export function verifyPlanReminderBody(): string {
+  return (
+    "You have completed implementing the plan. Verify that all plan " +
+    "items were completed correctly by checking the work directly in " +
+    "this session, NOT via the Task tool or a subagent — the parent " +
+    "context already holds the plan's state, tool history, and edited " +
+    "files that a fresh sub-agent would lose."
+  );
+}
+
+/**
  * Claude Code TUI parity (37-midturn-message-inject-reminders): when the user
  * sends a follow-up message while a turn is still in flight, the CLI wraps
  * the inject with a forceful "MUST address" directive plus an explicit
@@ -964,6 +996,29 @@ export class Session {
    * those tools deliberately do NOT reset this counter.
    */
   private turnsSinceTodoWrite = 0;
+
+  /**
+   * One-shot flag for the post-plan-execution verify reminder (Claude Code TUI
+   * parity, feature 39). Set true in `resolvePlan`'s accept branch and cleared
+   * when the next `result` event lands in `consume()`, where we queue the
+   * `verify-plan` reminder to ride the *following* user turn. Gating on the
+   * turn boundary (not at accept time) means a mid-execution mid-turn inject
+   * can't carry the reminder prematurely — the soonest it can fire is the
+   * turn after execution actually completed.
+   *
+   * In-memory only (not persisted via `mergeSessionState`): "you just executed
+   * the plan you accepted in this run" is a current-run concept, distinct from
+   * the persistent `priorPlan` we keep for plan-mode re-entry. Worst case on a
+   * server restart between accept and result is a missed nudge — strictly
+   * better than a spurious one against a freshly resumed session.
+   *
+   * Accepted limitation: if plan execution genuinely spans multiple
+   * assistant/user turns (rare — usually the agent runs the whole plan inline
+   * and the user just watches), this fires after the *first* turn boundary
+   * rather than at true plan-end. There is no decidable "plan fully done"
+   * signal on the SDK side, so first-boundary is the honest approximation.
+   */
+  private planAwaitingVerify = false;
 
   /**
    * User-scope `settings.json` config for the spinner-tip rotation (CLI parity:
@@ -1868,6 +1923,11 @@ export class Session {
     void mergeSessionState(this.cwd, this.id, {
       priorPlan: editedPlan && editedPlan.length > 0 ? editedPlan : pending.plan,
     });
+    // Feature 39 parity: arm the post-execution verify nudge. The flag is
+    // drained at the next `result` boundary in `consume()` (NOT here, NOT
+    // at the reject branch) so the reminder rides the turn that follows
+    // plan execution rather than landing while the agent is still working.
+    this.planAwaitingVerify = true;
     pending.resolve(result);
     // The SDK doesn't echo `setMode` permission updates back through its
     // message iterator — broadcast manually so the client UI's mode badge
@@ -4230,6 +4290,16 @@ export class Session {
           sawResult = true;
           this.turnInFlight = false;
           this.broadcastTurnStatusIfChanged();
+          // Feature 39 parity: if a plan was accepted earlier this run, this
+          // is the first turn boundary AFTER its execution finished. Queue
+          // the verify-plan nudge so it rides the next real user turn's
+          // `takePendingReminders` drain; clearing the flag here keeps it
+          // fire-once per accepted plan (a follow-up plan re-arms it via
+          // the same `resolvePlan` accept branch).
+          if (this.planAwaitingVerify) {
+            this.planAwaitingVerify = false;
+            queueReminder(this, "verify-plan", verifyPlanReminderBody());
+          }
           // A successful turn clears the consecutive thinking-replay recovery
           // budget, so a later, unrelated 400 can still auto-recover even after
           // earlier recoveries this session. Only `subtype: "success"` resets —
