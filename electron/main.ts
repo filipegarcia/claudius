@@ -187,6 +187,15 @@ function createWindow(startUrl: string): BrowserWindow {
       sandbox: true,
       // Don't preload heavy modules in the renderer; everything goes
       // through HTTP to the embedded server, not direct Node APIs.
+      //
+      // Spell-check stays explicit so the right-click "did you mean…"
+      // suggestions in `electron/ipc/context-menu.ts` always have
+      // `params.misspelledWord` / `params.dictionarySuggestions` to read.
+      // Electron defaults `spellcheck` to true today; pinning it here
+      // protects against a future default flip and documents intent.
+      // Languages default to the system locale — see the
+      // `setSpellCheckerLanguages` belt-and-braces call further down.
+      spellcheck: true,
     },
   });
 
@@ -221,6 +230,30 @@ function createWindow(startUrl: string): BrowserWindow {
   // Cmd+C still works through the Edit menu, but right-click → Copy is the
   // natural reflex. See `electron/ipc/context-menu.ts` for the template.
   registerContextMenu(win);
+
+  // Belt-and-braces for the spell-checker. macOS uses NSSpellChecker
+  // automatically and ignores this list; Windows/Linux load Hunspell
+  // dictionaries and need a language list. Chromium auto-detects the
+  // system locale by default — we only force-seed when no languages have
+  // been picked up (defensive: avoids a future Electron default change
+  // breaking the "did you mean…" entries in the right-click menu).
+  try {
+    const ses = win.webContents.session;
+    if (ses.availableSpellCheckerLanguages.length > 0) {
+      const current = ses.getSpellCheckerLanguages();
+      if (current.length === 0) {
+        // Default to en-US as a reasonable floor — the user's real locale
+        // will be picked up by Chromium on Windows/Linux when present;
+        // this branch only fires if auto-detect handed back nothing.
+        ses.setSpellCheckerLanguages(["en-US"]);
+      }
+    }
+  } catch (err) {
+    // Best-effort. The context menu still shows "No spelling suggestions"
+    // when params.dictionarySuggestions is empty, so a configuration
+    // failure here is recoverable.
+    console.error("[electron/main] spell-checker init failed:", err);
+  }
 
   // NOTE — we deliberately do NOT intercept menu-owned chords via
   // `before-input-event` here. Electron documents that calling

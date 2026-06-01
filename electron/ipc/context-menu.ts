@@ -90,6 +90,14 @@ export type ContextMenuCallbacks = {
   appendToCurrentComposer: (text: string) => void;
   /** Tell the focused webContents to replace its misspelt word. */
   replaceMisspelling: (replacement: string) => void;
+  /**
+   * Persist `word` to the renderer's per-session spell-checker dictionary
+   * so it stops getting flagged. Used by the "Add to Dictionary" entry
+   * shown alongside the suggestions. Best-effort — on macOS this writes
+   * through to NSSpellChecker; on Windows/Linux it persists into the
+   * Hunspell custom dictionary file for the current session.
+   */
+  addToDictionary: (word: string) => void;
   /** Open / focus the dev tools at the click coordinates. */
   inspectElement: (x: number, y: number) => void;
   /** Reload the renderer (only shown when no selection / not editable). */
@@ -131,16 +139,26 @@ export function buildContextMenuTemplate(
   const misspelled = params.misspelledWord?.length ? params.misspelledWord : "";
 
   // ── Spelling suggestions (editable + misspelt word) ─────────────────────
-  if (isEditable && misspelled && suggestions.length > 0) {
-    for (const word of suggestions.slice(0, 5)) {
-      items.push({
-        label: word,
-        click: () => cb.replaceMisspelling(word),
-      });
+  // Chromium populates `misspelledWord` + `dictionarySuggestions` when the
+  // OS-level spell-checker flags the word under the cursor; we surface the
+  // suggestions at the very top of the menu so they're closest to the
+  // cursor (this is the macOS / system convention). An "Add to Dictionary"
+  // entry follows so proper nouns / project terms can be whitelisted.
+  if (isEditable && misspelled) {
+    if (suggestions.length > 0) {
+      for (const word of suggestions.slice(0, 5)) {
+        items.push({
+          label: word,
+          click: () => cb.replaceMisspelling(word),
+        });
+      }
+    } else {
+      items.push({ label: "No spelling suggestions", enabled: false });
     }
-    items.push({ type: "separator" });
-  } else if (isEditable && misspelled) {
-    items.push({ label: "No spelling suggestions", enabled: false });
+    items.push({
+      label: "Add to Dictionary",
+      click: () => cb.addToDictionary(misspelled),
+    });
     items.push({ type: "separator" });
   }
 
@@ -287,6 +305,16 @@ export function registerContextMenu(window: BrowserWindow): void {
           wc.replaceMisspelling(replacement);
         } catch (err) {
           console.error("[electron/context-menu] replaceMisspelling failed:", err);
+        }
+      },
+      addToDictionary: (word) => {
+        try {
+          // Per-session dictionary write — survives until the session is
+          // cleared. macOS routes this through NSSpellChecker; Win/Linux
+          // append to the Hunspell custom dictionary on disk.
+          void wc.session.addWordToSpellCheckerDictionary(word);
+        } catch (err) {
+          console.error("[electron/context-menu] addToDictionary failed:", err);
         }
       },
       inspectElement: (x, y) => {

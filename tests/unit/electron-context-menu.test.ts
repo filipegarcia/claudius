@@ -66,6 +66,7 @@ function makeCallbacks(): ContextMenuCallbacks {
     startNewChatWithText: vi.fn(),
     appendToCurrentComposer: vi.fn(),
     replaceMisspelling: vi.fn(),
+    addToDictionary: vi.fn(),
     inspectElement: vi.fn(),
     reload: vi.fn(),
   };
@@ -172,7 +173,23 @@ describe("buildContextMenuTemplate", () => {
     expect(cb.replaceMisspelling).toHaveBeenCalledWith("the");
   });
 
-  test("misspelt word with no suggestions → 'No spelling suggestions' (disabled)", () => {
+  test("misspelt word → 'Add to Dictionary' entry forwards the misspelt word", () => {
+    const cb = makeCallbacks();
+    const template = buildContextMenuTemplate(
+      makeParams({
+        isEditable: true,
+        misspelledWord: "Claudius",
+        dictionarySuggestions: ["Cladius"],
+      }),
+      cb,
+    );
+    const addToDict = template.find((it) => it.label === "Add to Dictionary");
+    expect(addToDict).toBeDefined();
+    (addToDict?.click as () => void)();
+    expect(cb.addToDictionary).toHaveBeenCalledWith("Claudius");
+  });
+
+  test("misspelt word with no suggestions → 'No spelling suggestions' (disabled) + Add to Dictionary still available", () => {
     const template = buildContextMenuTemplate(
       makeParams({ isEditable: true, misspelledWord: "asdjkl", dictionarySuggestions: [] }),
       makeCallbacks(),
@@ -180,6 +197,18 @@ describe("buildContextMenuTemplate", () => {
     const noneItem = template.find((it) => it.label === "No spelling suggestions");
     expect(noneItem).toBeDefined();
     expect(noneItem?.enabled).toBe(false);
+    // Still useful to whitelist invented identifiers / proper nouns even
+    // when Hunspell has nothing close to suggest.
+    expect(template.find((it) => it.label === "Add to Dictionary")).toBeDefined();
+  });
+
+  test("non-misspelt editable → no spelling section at all", () => {
+    const template = buildContextMenuTemplate(
+      makeParams({ isEditable: true }),
+      makeCallbacks(),
+    );
+    expect(template.find((it) => it.label === "Add to Dictionary")).toBeUndefined();
+    expect(template.find((it) => it.label === "No spelling suggestions")).toBeUndefined();
   });
 
   test("image mediaType (no selection, no link) → falls back to Reload + Inspect (no Copy Image yet)", () => {
