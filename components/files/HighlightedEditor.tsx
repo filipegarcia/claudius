@@ -79,7 +79,14 @@ export function HighlightedEditor({ path, value, onChange, readOnly, onKeyDown }
         tabSize={2}
         insertSpaces
         readOnly={readOnly}
-        onKeyDown={onKeyDown}
+        // react-simple-code-editor types onKeyDown as
+        // KeyboardEventHandler<HTMLDivElement> & KeyboardEventHandler<HTMLTextAreaElement>,
+        // but actually forwards events from the underlying <textarea>. Cast to satisfy
+        // the intersection without lying about the runtime target.
+        onKeyDown={
+          onKeyDown as unknown as React.KeyboardEventHandler<HTMLDivElement> &
+            React.KeyboardEventHandler<HTMLTextAreaElement>
+        }
         textareaId="files-editor-textarea"
         textareaClassName="files-editor-textarea"
         preClassName="files-editor-pre"
