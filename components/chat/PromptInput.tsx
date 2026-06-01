@@ -106,12 +106,18 @@ function stripImageToken(text: string, ordinal: number): string {
  * at the related feature. Dismissal is by click (a browser can't intercept
  * ⌘W — it closes the tab) and resets once the draft is cleared/sent. Add a
  * row here to teach the composer a new keyword.
+ *
+ * `ignoredLabel` opts a hint into the TUI's two-state pill: after `· ignore`
+ * the row stays put with this label and a `· undo` affordance, matching
+ * Claude Code's `workflow-keyword-ignored` → "Workflow keyword ignored for
+ * this prompt" restore flow. Hints without it just vanish on dismiss.
  */
-const KEYWORD_HINTS: { id: string; pattern: RegExp; label: string }[] = [
+const KEYWORD_HINTS: { id: string; pattern: RegExp; label: string; ignoredLabel?: string }[] = [
   {
     id: "workflow",
     pattern: /\bworkflows?\b/i,
     label: "Dynamic workflow requested for this turn",
+    ignoredLabel: "Workflow keyword ignored for this prompt",
   },
   {
     id: "goal",
@@ -814,11 +820,19 @@ export function PromptInput({
     });
   }
 
-  // First trigger word present in the draft that the user hasn't dismissed
-  // this draft — drives the dismissible footer hint.
+  // First trigger word present in the draft — drives the dismissible footer
+  // hint. We surface it in two states: `active` (still nudging) and `ignored`
+  // (user clicked away, but the row stays put with an undo affordance for
+  // hints that opt into the restore flow via `ignoredLabel`). `dismissedHints`
+  // resets on send (below), so the "for this prompt" scope is automatic.
   const detectedHint = KEYWORD_HINTS.find((h) => h.pattern.test(value)) ?? null;
-  const activeHint =
-    detectedHint && !dismissedHints.has(detectedHint.id) ? detectedHint : null;
+  const hintState: "active" | "ignored" | null = detectedHint
+    ? dismissedHints.has(detectedHint.id)
+      ? detectedHint.ignoredLabel
+        ? "ignored"
+        : null
+      : "active"
+    : null;
 
   // While the turn is running, point users at how their next message is
   // handled. Once at least one message is actually queued, switch the copy to
@@ -1117,16 +1131,35 @@ export function PromptInput({
         )}
 
         <div className="mt-1.5 flex items-center justify-between px-1 text-[11px] text-[var(--muted)]/70">
-          {activeHint ? (
+          {hintState === "active" && detectedHint ? (
             <button
               type="button"
-              onClick={() => setDismissedHints((d) => new Set(d).add(activeHint.id))}
+              data-testid={`${testIdPrefix}-keyword-hint-active`}
+              onClick={() => setDismissedHints((d) => new Set(d).add(detectedHint.id))}
               title="Dismiss this hint"
               className="flex items-center gap-1 rounded text-[var(--accent)] hover:text-[var(--foreground)]"
             >
               <Sparkles className="h-3 w-3 shrink-0" />
-              <span>{activeHint.label}</span>
+              <span>{detectedHint.label}</span>
               <span className="text-[var(--muted)]/70">· ignore</span>
+            </button>
+          ) : hintState === "ignored" && detectedHint?.ignoredLabel ? (
+            <button
+              type="button"
+              data-testid={`${testIdPrefix}-keyword-hint-ignored`}
+              onClick={() =>
+                setDismissedHints((d) => {
+                  const next = new Set(d);
+                  next.delete(detectedHint.id);
+                  return next;
+                })
+              }
+              title="Restore this hint"
+              className="flex items-center gap-1 rounded text-[var(--muted)] hover:text-[var(--foreground)]"
+            >
+              <Sparkles className="h-3 w-3 shrink-0 opacity-50" />
+              <span>{detectedHint.ignoredLabel}</span>
+              <span className="text-[var(--muted)]/70">· undo</span>
             </button>
           ) : (
             <span>{queueHint}</span>
