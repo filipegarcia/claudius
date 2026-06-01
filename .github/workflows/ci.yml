@@ -40,10 +40,22 @@ jobs:
 
   # Vitest. Runs under node — better-sqlite3 doesn't load under bun yet,
   # see vitest.config.ts.
+  #
+  # IMPORTANT: node:22-bookworm-slim does NOT ship git. tests/unit/updater-is-
+  # ancestor.test.ts spawns `git` directly via execFileSync to set up real temp
+  # repos (the only honest way to pin `git merge-base --is-ancestor`'s exit-1-
+  # is-also-a-valid-answer semantics). Without git on PATH that test fails with
+  # `spawnSync git ENOENT` and the whole unit job goes red. Install git BEFORE
+  # checkout — actions/checkout otherwise falls back to the tarball API which
+  # populates files but leaves no usable git binary in the container.
   unit:
     runs-on: ubuntu-latest
     container: node:22-bookworm-slim
     steps:
+      - name: Pre-install git so unit tests can spawn it
+        run: |
+          apt-get update -qq
+          apt-get install -y --no-install-recommends git ca-certificates
       - uses: actions/checkout@v5
       - name: Cache node_modules
         uses: actions/cache@v5

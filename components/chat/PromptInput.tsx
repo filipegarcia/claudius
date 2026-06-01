@@ -451,6 +451,14 @@ export function PromptInput({
     return () => {
       cancelled = true;
     };
+    // Deliberately keyed only to sessionId: this is a one-shot seed fetch
+    // per session. `refreshPickerState` is recreated on every render — adding
+    // it to deps would re-fire the seed (and clobber any in-flight typing)
+    // on every keystroke, which is exactly the bug the seededForSessionRef
+    // guard exists to prevent. The function reads only setState setters
+    // (stable) and `disableSlash` (a prop that doesn't change mid-session in
+    // practice), so the stale-closure risk is nil.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId]);
 
   // Debounced save. Pinned to the sessionId in scope at fire-time so a
