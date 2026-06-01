@@ -122,6 +122,25 @@ export function rateLimitTypeFromText(
 }
 
 /**
+ * Detect the Opus-4 high-demand banner the Anthropic backend emits as
+ * assistant prose. The CLI strings are
+ *   "We are experiencing high demand for Opus 4."
+ *   "To continue immediately, use /model to switch to ... and continue coding."
+ * — distinct from the generic 529 overload nudge (see feature 10's server-side
+ * detector) and from `RATE_LIMIT_HIT_TEXT_RE`. Anchored on the literal
+ * "high demand for Opus 4" substring so passing mentions of the same words in
+ * normal prose don't trip it. Exported for unit testing.
+ */
+const OPUS_HIGH_DEMAND_RE = /\bhigh demand for opus 4\b/i;
+
+export function isOpusHighDemandText(blocks: DisplayBlock[]): boolean {
+  if (blocks.length === 0) return false;
+  if (!blocks.every((b) => b.kind === "text")) return false;
+  const first = blocks.find((b) => b.kind === "text");
+  return !!first && OPUS_HIGH_DEMAND_RE.test(first.text);
+}
+
+/**
  * Build the `DisplayMessage.rateLimitHit` payload for a hit message. Tier comes
  * from the preceding warning event when we have it (live), else the prose
  * label. The countdown `resetsAt` is only known live — the prose carries a
@@ -1665,6 +1684,11 @@ export function useSession(): ChatState & ChatActions {
           assistantError === "rate_limit" || isRateLimitHitText(blocks)
             ? rateLimitHitFromBlocks(blocks, lastRateLimitInfoRef.current)
             : undefined;
+        // Opus-4 high-demand banner: backend emits the CTA as assistant prose
+        // (no `error` field, no structured event), so it's prose-only on both
+        // live and replay paths. Tagging the bubble lets `AssistantMessage`
+        // render the inline `OpusHighDemandPanel` with the /model hint.
+        const opusHighDemand = isOpusHighDemandText(blocks) ? true : undefined;
         lastAssistantUuidRef.current = messageId;
         setMessages((prev) =>
           upsertAssistantSplit(
@@ -1676,6 +1700,7 @@ export function useSession(): ChatState & ChatActions {
             undefined,
             ev.at,
             rateLimitHit,
+            opusHighDemand,
           ),
         );
         setPendingTracked(true);
@@ -4006,6 +4031,10 @@ function synthesizeOlder(raw: Array<Record<string, unknown>>): {
         const rateLimitHit = isRateLimitHitText(newBlocks)
           ? rateLimitHitFromBlocks(newBlocks, null)
           : undefined;
+        // Opus-4 high-demand banner — same prose-only signal on the
+        // pagination path. See the live applyEvent branch for the parity
+        // rationale.
+        const opusHighDemand = isOpusHighDemandText(newBlocks) ? true : undefined;
         out.push({
           uuid: msgId,
           role: "assistant",
@@ -4014,6 +4043,7 @@ function synthesizeOlder(raw: Array<Record<string, unknown>>): {
           foldedSdkUuids: new Set([uuid]),
           ...(typeof at === "number" ? { createdAt: at } : {}),
           ...(rateLimitHit ? { rateLimitHit } : {}),
+          ...(opusHighDemand ? { opusHighDemand } : {}),
         });
       }
       continue;
@@ -4124,6 +4154,11 @@ export function upsertAssistantSplit(
    * bubble, a later (un-tagged) terminal split won't clear it.
    */
   rateLimitHit?: DisplayMessage["rateLimitHit"],
+  /**
+   * Set when this split is the Opus-4 high-demand banner, so the bubble
+   * renders the inline `OpusHighDemandPanel`. Sticky like `rateLimitHit`.
+   */
+  opusHighDemand?: boolean,
 ): DisplayMessage[] {
   const idx = prev.findIndex((m) => m.uuid === messageId);
   if (idx === -1) {
@@ -4138,6 +4173,7 @@ export function upsertAssistantSplit(
         ...(parentToolUseId ? { parentToolUseId } : {}),
         ...(typeof at === "number" ? { createdAt: at } : {}),
         ...(rateLimitHit ? { rateLimitHit } : {}),
+        ...(opusHighDemand ? { opusHighDemand } : {}),
       },
     ];
   }
@@ -4196,6 +4232,7 @@ export function upsertAssistantSplit(
   // Sticky: keep an earlier split's tag; only adopt this split's if the bubble
   // isn't marked yet, so a late untagged terminal split can't clear it.
   const stickyHit = existing.rateLimitHit ?? rateLimitHit;
+  const stickyOpus = existing.opusHighDemand || opusHighDemand;
   const copy = prev.slice();
   copy[idx] = {
     ...existing,
@@ -4204,6 +4241,7 @@ export function upsertAssistantSplit(
     foldedSdkUuids: nextFolded,
     streaming: true,
     ...(stickyHit ? { rateLimitHit: stickyHit } : {}),
+    ...(stickyOpus ? { opusHighDemand: true } : {}),
   };
   return copy;
 }

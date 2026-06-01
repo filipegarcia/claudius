@@ -73,6 +73,20 @@ export type DisplayMessage = {
     rateLimitType?: "five_hour" | "seven_day" | "seven_day_opus" | "seven_day_sonnet" | "overage";
     resetsAt?: number;
   };
+  /**
+   * Present when this assistant message IS the Anthropic backend's
+   * Opus-4 high-demand banner — the literal CLI strings "We are experiencing
+   * high demand for Opus 4." / "...use /model to switch to ... and continue
+   * coding." Drives the inline `OpusHighDemandPanel` (Claude Code TUI parity).
+   * Distinct from the generic 529 overload streak (see
+   * `OpusOverloadNudgePanel` in feature 10): this one fires off the
+   * backend-emitted prose, no streak counter, no SSE.
+   *
+   * Prose-only signal — set by every transcript builder (live stream,
+   * resumed-session replay, paginated scrollback) so the panel renders on
+   * all paths.
+   */
+  opusHighDemand?: boolean;
 };
 
 export type TaskStatus = "pending" | "running" | "completed" | "failed" | "killed" | "stopped";
