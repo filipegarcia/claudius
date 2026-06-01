@@ -21,6 +21,23 @@ import {
 } from "@/lib/client/useRateLimitWarning";
 import { formatResetClock, useCountdownSeconds } from "@/lib/client/use-countdown";
 import { RateLimitUpgradeLinks } from "./RateLimitHitPanel";
+import { OPUS_OVERLOAD_NUDGE_SONNET_TARGET } from "./OpusOverloadNudgePanel";
+
+/**
+ * Remediation-lever context for the soft `allowed_warning` branch of
+ * {@link RateLimitPill}. The CLI pairs the "Approaching <limit>" headline with
+ * "try /model sonnet" / "try /effort medium" hints — we mirror that as
+ * one-click chips when the active session is on Opus (model burn-down) or on
+ * a high reasoning-effort level (output-token burn-down). All optional: a
+ * SystemPill rendered without these props (splash screen, dev pages) still
+ * works, the chips just don't appear.
+ */
+export type SystemPillLevers = {
+  model?: string | null;
+  effort?: "low" | "medium" | "high" | "xhigh" | "max" | "auto";
+  onSwitchToSonnet?: () => void | Promise<void>;
+  onStepEffortDown?: () => void | Promise<void>;
+};
 
 const KIND_META: Record<SystemEntry["kind"], { icon: typeof Info; tone: string }> = {
   init: { icon: Cpu, tone: "text-emerald-400" },
@@ -40,7 +57,13 @@ const KIND_META: Record<SystemEntry["kind"], { icon: typeof Info; tone: string }
   info: { icon: Info, tone: "text-[var(--muted)]" },
 };
 
-export function SystemPill({ entry }: { entry: SystemEntry }) {
+export function SystemPill({
+  entry,
+  levers,
+}: {
+  entry: SystemEntry;
+  levers?: SystemPillLevers;
+}) {
   const meta = KIND_META[entry.kind];
   const Icon = meta.icon;
   // Compact-boundary is a major thread-state transition (the SDK summarized
@@ -58,7 +81,7 @@ export function SystemPill({ entry }: { entry: SystemEntry }) {
   // reuse the structured SDK payload rather than parsing it from prose so
   // the value is always current.
   if (entry.kind === "rate_limit" && entry.rateLimit) {
-    return <RateLimitPill entry={entry} />;
+    return <RateLimitPill entry={entry} levers={levers} />;
   }
   return (
     <div className="my-1 flex items-center gap-2 text-[11px] text-[var(--muted)]">
@@ -151,7 +174,20 @@ const OVERAGE_DISABLED_COPY: Record<string, string> = {
   unknown: "Extra usage unavailable.",
 };
 
-function RateLimitPill({ entry }: { entry: SystemEntry }) {
+// Effort levels considered "high" for the step-down chip. The CLI's soft
+// warning specifically calls out `/effort medium` as the burn-down lever when
+// the user is on `high` or `xhigh` — we extend that to `max` (strictly higher
+// than what the spec enumerates) so the chip surfaces wherever stepping down
+// to `medium` would meaningfully reduce per-turn output-token spend.
+const HIGH_EFFORT_LEVELS = new Set<string>(["high", "xhigh", "max"]);
+
+function RateLimitPill({
+  entry,
+  levers,
+}: {
+  entry: SystemEntry;
+  levers?: SystemPillLevers;
+}) {
   const info = entry.rateLimit!;
   const status = info.status ?? "allowed";
 
@@ -229,6 +265,22 @@ function RateLimitPill({ entry }: { entry: SystemEntry }) {
   // active workspace id without having to thread it through props.
   const costHref = params?.workspaceId ? `/${params.workspaceId}/cost` : "/cost";
 
+  // Soft-warning remediation chips. The CLI pairs "Approaching <limit>" with
+  // one-line hints — "try /model sonnet" when the active model is Opus
+  // (burns Opus minutes), "try /effort medium" when reasoning effort is
+  // high/xhigh/max (burns per-turn output tokens). The rejected branch owns
+  // the upgrade links below, so chips are gated to non-rejected warnings.
+  const showSonnetChip =
+    status === "allowed_warning" &&
+    !!levers?.onSwitchToSonnet &&
+    !!levers.model &&
+    levers.model.toLowerCase().includes("opus");
+  const showEffortChip =
+    status === "allowed_warning" &&
+    !!levers?.onStepEffortDown &&
+    !!levers.effort &&
+    HIGH_EFFORT_LEVELS.has(levers.effort);
+
   return (
     <div className={`my-2 rounded-md border px-3 py-2 text-[11px] leading-5 ${tone}`}>
       <div className="flex items-center gap-2">
@@ -261,6 +313,38 @@ function RateLimitPill({ entry }: { entry: SystemEntry }) {
             </span>
           )}
           {overageBlockedCopy && <span>{overageBlockedCopy}</span>}
+        </div>
+      )}
+
+      {/* Soft-warning remediation chips. Surfaced only on `allowed_warning`,
+          and only when the active session is on a model/effort the lever can
+          actually burn down — Sonnet pivot for Opus sessions, effort step-down
+          for high/xhigh/max. Mirrors the CLI's "try /model sonnet" /
+          "try /effort medium" hints with one-click affordances that reuse the
+          existing setModel/setEffort plumbing. */}
+      {(showSonnetChip || showEffortChip) && (
+        <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-current/10 pt-1.5">
+          <span className="opacity-70">Burn down faster:</span>
+          {showSonnetChip && (
+            <button
+              type="button"
+              onClick={() => void levers!.onSwitchToSonnet!()}
+              className="rounded border border-current/30 bg-current/10 px-1.5 py-0.5 font-medium hover:bg-current/20"
+              title={`Switch this session to ${OPUS_OVERLOAD_NUDGE_SONNET_TARGET}`}
+            >
+              try /model sonnet
+            </button>
+          )}
+          {showEffortChip && (
+            <button
+              type="button"
+              onClick={() => void levers!.onStepEffortDown!()}
+              className="rounded border border-current/30 bg-current/10 px-1.5 py-0.5 font-medium hover:bg-current/20"
+              title="Step reasoning effort down to medium"
+            >
+              try /effort medium
+            </button>
+          )}
         </div>
       )}
 

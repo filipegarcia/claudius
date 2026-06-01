@@ -5,7 +5,7 @@ import { ChevronDown, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { AssistantMessage } from "./AssistantMessage";
 import { UserMessage } from "./UserMessage";
-import { SystemPill } from "./SystemPill";
+import { SystemPill, type SystemPillLevers } from "./SystemPill";
 import { SpinnerTip } from "./SpinnerTip";
 import type { Tip } from "@/lib/shared/tips";
 import { ClaudiusMark } from "@/components/brand/ClaudiusMark";
@@ -88,6 +88,13 @@ type Props = {
    * tool calls are still visible there at every verbose level.
    */
   verbose?: VerboseLevel;
+  /**
+   * Remediation-lever context forwarded to every {@link SystemPill}. Used by
+   * the `allowed_warning` branch of the rate-limit pill to render one-click
+   * "try /model sonnet" / "try /effort medium" chips when the active session
+   * is on a model/effort the lever can actually burn down.
+   */
+  systemPillLevers?: SystemPillLevers;
 };
 
 const SPLASH_EXAMPLES = [
@@ -121,6 +128,7 @@ export function MessageList({
   pendingAskToolUseId = null,
   onReopenAsk,
   verbose = DEFAULT_VERBOSE,
+  systemPillLevers,
 }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const topSentinelRef = useRef<HTMLDivElement>(null);
@@ -398,7 +406,7 @@ export function MessageList({
         {top.length > 0 && (
           <div className="mt-6 w-full max-w-md text-left">
             {top.map((e) => (
-              <SystemPill key={e.uuid} entry={e} />
+              <SystemPill key={e.uuid} entry={e} levers={systemPillLevers} />
             ))}
           </div>
         )}
@@ -427,7 +435,7 @@ export function MessageList({
             </div>
           )}
           {(grouped.get("") ?? []).map((e) => (
-            <SystemPill key={e.uuid} entry={e} />
+            <SystemPill key={e.uuid} entry={e} levers={systemPillLevers} />
           ))}
           {turns.map((turn, ti) => {
             const isLastTurn = ti === turns.length - 1;
@@ -491,7 +499,7 @@ export function MessageList({
                         />
                       )}
                       {(grouped.get(m.uuid) ?? []).map((e) => (
-                        <SystemPill key={e.uuid} entry={e} />
+                        <SystemPill key={e.uuid} entry={e} levers={systemPillLevers} />
                       ))}
                     </div>
                   );
