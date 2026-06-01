@@ -78,6 +78,23 @@ async function mountFixtureWorkspaces(page: Page): Promise<void> {
       body: JSON.stringify(ws),
     });
   });
+  // Stub the open-tabs API so the session boot effect doesn't resume a
+  // stale session left behind by an earlier test in the suite. Without
+  // this stub, use-session.ts fetches the real /api/sessions/open-tabs
+  // on mount and, if a previous test's session is stored server-side,
+  // attempts to resume it. That resumed session can interfere with the
+  // drawer's keyboard handler (e.g. Escape captured by session SSE
+  // logic) and can also race the fixture-workspace load, causing the
+  // drawer button to be clicked before the fixture data arrives. An
+  // empty activeId forces a clean-slate session creation instead.
+  await page.route("**/api/sessions/open-tabs", async (route) => {
+    if (route.request().method() !== "GET") return route.fallback();
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ tabs: [], activeId: null, labelMaxWidth: 200 }),
+    });
+  });
 }
 
 test.describe("CustomizationsDrawer", () => {
