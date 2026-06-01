@@ -30,6 +30,7 @@ import {
   isOverloadErrorText,
   isOverloadSignal,
 } from "./opus-overload-detector";
+import { isBillingErrorSignal } from "./long-context-credits-detector";
 import {
   clearSessionGoal,
   getSessionGoal,
@@ -481,6 +482,16 @@ export class Session {
    * next `result` message (which marks the turn boundary regardless of subtype).
    */
   private opusOverloadCountedThisTurn = false;
+
+  /**
+   * Fire-once gate for the long-context credits-required nudge (Claude Code
+   * TUI parity). Trips when this session is running with the 1M-context beta
+   * enabled and the SDK emits an assistant message tagged `billing_error` —
+   * the dual-remediation banner ("/usage-credits" + "/model") then renders
+   * client-side. Resets on session lifetime only: re-emission inside one
+   * session would just re-pop a dismissed banner.
+   */
+  private longContextCreditsNudgeFired = false;
 
   /**
    * Per-session goal (see `/goal`, GoalBanner). Loaded from the per-project
@@ -2359,6 +2370,32 @@ export class Session {
   }
 
   /**
+   * Fire the one-shot long-context credits-required nudge when an SDK
+   * `billing_error` is observed on a session that has the 1M-context beta
+   * enabled. Mirrors the Claude Code TUI line "Extra usage is required for
+   * long context · run /usage-credits to turn them on, or /model to switch
+   * to standard context" — the dual-remediation banner is rendered
+   * client-side. Gated on:
+   *
+   *   - `enable1mContext` true on this session — out-of-credits on standard
+   *     context is already covered by the rate-limit `overageDisabledReason`
+   *     copy in SystemPill, so this stays the 1M-specific surface.
+   *   - The nudge hasn't already fired this session — fire-once, since the
+   *     banner is dismissible client-side and a repeat error in the same
+   *     session just re-pops a dismissed nudge.
+   */
+  private noteLongContextCreditsObservation(isBillingError: boolean): void {
+    if (!isBillingError) return;
+    if (this.longContextCreditsNudgeFired) return;
+    if (!this.enable1mContext) return;
+    this.longContextCreditsNudgeFired = true;
+    this.broadcast({
+      type: "long_context_credits_required",
+      model: this.model ?? "",
+    });
+  }
+
+  /**
    * Rebuild the session truncated to before the poisoned turn, then re-send
    * the prompt that started it. Reuses the proven resume path
    * (`SessionManager.recoverInPlace` → `create({ resume, resumeSessionAt })`)
@@ -2620,7 +2657,11 @@ export class Session {
         // One-shot Opus overload nudge — once the user has seen it (or the
         // overload event has passed) replaying on reload would re-pop a
         // stale banner. Live subscribers see the original broadcast.
-        ev.type === "opus_overload_nudge"
+        ev.type === "opus_overload_nudge" ||
+        // One-shot long-context credits-required nudge — same shape: once
+        // the billing-error has passed (or the user has acted on the dual
+        // remediation) replaying on reload would re-pop a stale banner.
+        ev.type === "long_context_credits_required"
       )
         continue;
       fn(ev);
@@ -3439,6 +3480,13 @@ export class Session {
         // complementing the SDK's automatic fallback (Options.fallbackModel),
         // which swaps silently and only on configured sessions.
         this.noteOverloadObservation(isOverloadSignal(message));
+        // Long-context credits-required nudge (Claude Code TUI parity). Only
+        // fires when this session has the 1M-context beta enabled AND the SDK
+        // tagged the assistant message `billing_error`. Out-of-credits on a
+        // standard-context session is already covered by the existing
+        // rate-limit `overageDisabledReason` copy in SystemPill, so the
+        // 1M-only gate keeps the two paths from doubling up.
+        this.noteLongContextCreditsObservation(isBillingErrorSignal(message));
         // Side-effect: keep the per-session ScheduledLoops map in sync with
         // any cron/wake-up tool_use + tool_result blocks observed on the
         // wire. Mirror of the client-side reducer in `lib/client/use-session.ts` —

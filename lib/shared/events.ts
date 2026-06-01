@@ -135,6 +135,23 @@ export type OpusOverloadNudgeEvent = {
 };
 
 /**
+ * One-shot nudge fired when a session with the 1M-context beta enabled hits
+ * the SDK's `billing_error` on an assistant message — the Claude Code TUI
+ * surfaces this as "Extra usage is required for long context · run
+ * /usage-credits to turn them on, or /model to switch to standard context".
+ * We mirror the dual-remediation: open the model picker (mirrors `/model`)
+ * and link to claude.ai/settings/usage (mirrors `/usage-credits`). Live-only
+ * on the wire (skipped in the SSE replay loop) so a stale event never
+ * re-pops on reload; the server's fire-once guard prevents re-emission
+ * inside one session lifetime.
+ */
+export type LongContextCreditsNudgeEvent = {
+  type: "long_context_credits_required";
+  /** The model id active when the nudge fired (informational). */
+  model: string;
+};
+
+/**
  * Server-driven spinner tips — the catalog the client rotates through under
  * the "Claude is working…" row. Routed through SSE (rather than hardcoded on
  * the client) so the backend is the single source of truth: new-feature tips
@@ -465,6 +482,7 @@ export type ServerEvent =
   | GoalChangedEvent
   | FeedbackSurveyEvent
   | OpusOverloadNudgeEvent
+  | LongContextCreditsNudgeEvent
   | TipsEvent
   | CwdChangedEvent
   | AskUserQuestionEvent
