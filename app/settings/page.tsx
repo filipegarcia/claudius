@@ -8,6 +8,9 @@ import { useActiveCwd } from "@/lib/client/useActiveCwd";
 import { useSettings } from "@/lib/client/useSettings";
 import type { ClaudeSettings, SettingsScope } from "@/lib/server/settings";
 import { useTheme, THEMES, type ThemeId } from "@/lib/client/theme";
+import { useLinkTarget } from "@/lib/client/link-target";
+import { LINK_TARGETS } from "@/lib/shared/link-target";
+import { useIsElectron } from "@/lib/client/useElectron";
 import { EDITORS, useEditor, type EditorId } from "@/lib/client/ide";
 import { UpdaterSettingsSection } from "@/components/updater/UpdaterSettingsSection";
 import { ShortcutsSection } from "@/components/settings/ShortcutsSection";
@@ -42,6 +45,8 @@ export default function SettingsPage() {
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const theme = useTheme();
+  const linkTarget = useLinkTarget();
+  const isElectron = useIsElectron();
   const ide = useEditor();
 
   const active = settings.scopes.find((s) => s.scope === scope);
@@ -106,6 +111,9 @@ export default function SettingsPage() {
   // widgets, not a flat list of fields).
   const sEditor = show("open in editor file paths tool blocks url scheme editor vscode click-through");
   const sTheme = show("web app theme dark light color appearance browser ui");
+  const sLinkTarget = show(
+    "link target external browser in-app viewer click open hyperlink electron",
+  );
   const sUpdater = show("updater auto update version release channel app update install");
   const sShortcuts = show("keyboard shortcuts keybindings tab cycling navigation side nav workspace");
   const sRateLimit = show("rate limit warning threshold usage pill chat");
@@ -147,7 +155,7 @@ export default function SettingsPage() {
     .filter(([, visible]) => visible.length > 0);
 
   const anyMatch =
-    sEditor || sTheme || sUpdater || sShortcuts || sRateLimit || sContext || sGoalBanner ||
+    sEditor || sTheme || sLinkTarget || sUpdater || sShortcuts || sRateLimit || sContext || sGoalBanner ||
     sBackup || sModelUi || sMemory || sChat || sEnv || sPlugins || sOther ||
     catalogEntries.length > 0;
   const noMatches = !!q && !anyMatch;
@@ -291,6 +299,36 @@ export default function SettingsPage() {
                       />
                     </span>
                     {t.label}
+                  </button>
+                ))}
+              </div>
+            </Section>
+            )}
+
+            {sLinkTarget && (
+            <Section
+              title="Link target"
+              subtitle={
+                isElectron
+                  ? "Where clicked links open. Right-click still lets you override per-link."
+                  : "Where clicked links open in the Electron app. Has no effect in the browser build — this just remembers your preference for next time you launch the desktop app."
+              }
+            >
+              <div className="flex flex-col gap-2">
+                {LINK_TARGETS.map((opt) => (
+                  <button
+                    key={opt.id}
+                    onClick={() => linkTarget.setTarget(opt.id)}
+                    className={cn(
+                      "flex flex-col items-start gap-1 rounded-md border px-3 py-2 text-left",
+                      linkTarget.target === opt.id
+                        ? "border-[var(--accent)] bg-[var(--panel-2)]"
+                        : "border-[var(--border)] bg-[var(--panel)] hover:bg-[var(--panel-2)]",
+                    )}
+                    data-testid={`link-target-${opt.id}`}
+                  >
+                    <span className="text-xs font-medium">{opt.label}</span>
+                    <span className="text-[10px] text-[var(--muted)]">{opt.description}</span>
                   </button>
                 ))}
               </div>

@@ -24,6 +24,12 @@ import {
   registerProtocol,
 } from "./ipc/deep-links";
 import { registerDialogHandlers } from "./ipc/dialogs";
+import { openInAppBrowser } from "./ipc/in-app-browser";
+import {
+  getLinkTarget,
+  registerLinkTargetHandlers,
+  resolveLinkAction,
+} from "./ipc/link-target";
 import { registerNotificationHandlers } from "./ipc/notifications";
 import { registerUpdaterHandlers } from "./ipc/updater";
 import { installAppMenu, type MenuAccelerators } from "./menu";
@@ -214,15 +220,31 @@ function createWindow(startUrl: string): BrowserWindow {
     }
   });
 
-  // External links open in the default browser, not inside the app.
+  // Outbound-link routing. Three branches:
+  //   - localhost/127.0.0.1 → child window with Claudius preload attached
+  //     (trusted app content; this is how the embedded Next server gets to
+  //     keep using the IPC bridge). The preference is ignored here — the
+  //     loopback URL is part of the app, not an external destination.
+  //   - external + pref="in-app" → sandboxed BrowserWindow in
+  //     `electron/ipc/in-app-browser.ts`. NO preload, dedicated session
+  //     partition; verified by `window.claudius` being undefined inside.
+  //   - external + pref="external" (default) → `shell.openExternal`.
+  // See `electron/ipc/link-target.ts` for the pure decision function and
+  // its unit tests.
   win.webContents.setWindowOpenHandler(({ url }) => {
-    if (url.startsWith("http://127.0.0.1") || url.startsWith("http://localhost")) {
-      return { action: "allow" };
+    const action = resolveLinkAction(url, getLinkTarget());
+    switch (action) {
+      case "internal-allow":
+        return { action: "allow" };
+      case "in-app":
+        openInAppBrowser(url);
+        return { action: "deny" };
+      case "external":
+        shell.openExternal(url).catch(() => {
+          // Best-effort; nothing actionable if it fails.
+        });
+        return { action: "deny" };
     }
-    shell.openExternal(url).catch(() => {
-      // Best-effort; nothing actionable if it fails.
-    });
-    return { action: "deny" };
   });
 
   // Right-click context menu. Without this Chromium suppresses its built-in
@@ -303,6 +325,7 @@ app.whenReady().then(async () => {
     registerBadgeHandlers();
     registerUpdaterHandlers();
     registerDialogHandlers();
+    registerLinkTargetHandlers();
     registerDeepLinkHandlers({
       resolveWindow: () => mainWindow,
     });

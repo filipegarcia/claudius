@@ -64,7 +64,9 @@ export type ClaudiusBridge = {
    *  - 1: initial menu + window bridge (Phase 2)
    *  - 2: notifications + badge + dialog + deepLinks + updater (Phases 6–8)
    *  - 3: menu.setAccelerators + menu.setRecording
-   *  - 4: chat.onNewWithText (right-click "Start new chat with selection")
+   *  - 4: chat.onNewWithText + chat.onAppendToComposer (right-click extras)
+   *  - 5: linkTarget.set (route external links to default browser or
+   *       sandboxed in-app viewer)
    */
   readonly bridgeVersion: number;
 
@@ -176,6 +178,16 @@ export type ClaudiusBridge = {
   chat: {
     onNewWithText(cb: (text: string) => void): () => void;
     onAppendToComposer(cb: (text: string) => void): () => void;
+  };
+
+  /**
+   * Outbound-link routing preference. Pushed by the renderer whenever the
+   * user changes `Settings → Link target`; the main process caches it and
+   * consults the cache inside `setWindowOpenHandler`. Added in
+   * bridgeVersion 5.
+   */
+  linkTarget: {
+    set(target: "external" | "in-app"): void;
   };
 };
 

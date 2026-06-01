@@ -46,6 +46,7 @@ const TOPICS = {
   workspaceOpenFolder: "workspace:open-folder",
   chatNewWithText: "chat:new-with-text",
   chatAppendToComposer: "chat:append-to-composer",
+  linkTargetSet: "link-target:set",
 } as const;
 
 /**
@@ -65,7 +66,7 @@ function subscribe<T>(
 const api = {
   isElectron: true as const,
   platform: process.platform,
-  bridgeVersion: 4 as const,
+  bridgeVersion: 5 as const,
 
   menu: {
     on(action: string, cb: () => void): () => void {
@@ -157,6 +158,18 @@ const api = {
      */
     onAppendToComposer: (cb: (text: string) => void) =>
       subscribe<string>(TOPICS.chatAppendToComposer, cb),
+  },
+
+  linkTarget: {
+    /**
+     * Push the user's outbound-link preference ("external" — default
+     * browser; "in-app" — sandboxed BrowserWindow inside Claudius) to
+     * the main process. Main caches it and consults the cache from
+     * `setWindowOpenHandler` on every click — no async round-trip per
+     * link. Added in bridgeVersion 5.
+     */
+    set: (target: "external" | "in-app") =>
+      ipcRenderer.send(TOPICS.linkTargetSet, target),
   },
 };
 

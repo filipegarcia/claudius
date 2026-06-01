@@ -16,8 +16,9 @@
  * the subscriptions from `app/layout.tsx`.
  */
 import { useRouter } from "next/navigation";
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 
+import { useLinkTarget } from "./link-target";
 import {
   useClaudius,
   useElectronAction,
@@ -106,4 +107,15 @@ export function useElectronGlobalActions(): void {
       [router],
     ),
   );
+
+  // ── Link-target preference sync ─────────────────────────────────────────
+  // Push the renderer's "external" vs "in-app" preference into main so
+  // `setWindowOpenHandler` can branch synchronously on every click without
+  // a round-trip. Fires once on mount (so a fresh launch settles main
+  // away from its conservative default) and on every change thereafter.
+  // The push is a no-op when the preload bridge isn't mounted (web build).
+  const { target: linkTarget } = useLinkTarget();
+  useEffect(() => {
+    bridge?.linkTarget.set(linkTarget);
+  }, [bridge, linkTarget]);
 }

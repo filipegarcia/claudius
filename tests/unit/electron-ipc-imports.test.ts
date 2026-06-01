@@ -64,6 +64,23 @@ vi.mock("electron", () => ({
   },
   contextBridge: { exposeInMainWorld: vi.fn() },
   ipcRenderer: { on: vi.fn(), off: vi.fn(), send: vi.fn(), invoke: vi.fn() },
+  // `session.fromPartition` is touched at module-load time by
+  // `electron/ipc/in-app-browser.ts` — well, lazily on first call, but the
+  // import-smoke test invokes nothing, so a no-op stub is enough.
+  session: {
+    fromPartition: vi.fn(() => ({
+      setSpellCheckerLanguages: vi.fn(),
+      getSpellCheckerLanguages: () => [],
+      availableSpellCheckerLanguages: [],
+      clearStorageData: vi.fn(),
+    })),
+    defaultSession: {
+      setSpellCheckerLanguages: vi.fn(),
+      getSpellCheckerLanguages: () => [],
+      availableSpellCheckerLanguages: [],
+    },
+  },
+  clipboard: { writeText: vi.fn() },
 }));
 
 vi.mock("electron-updater", () => ({
@@ -108,6 +125,19 @@ describe("electron/ipc imports", () => {
     expect(typeof mod.buildContextMenuTemplate).toBe("function");
     expect(typeof mod.sendNewChatWithText).toBe("function");
     expect(mod.TOPIC_NEW_WITH_TEXT).toBe("chat:new-with-text");
+  });
+
+  test("link-target handler module loads and exports its pieces", async () => {
+    const mod = await import("@/electron/ipc/link-target");
+    expect(typeof mod.registerLinkTargetHandlers).toBe("function");
+    expect(typeof mod.resolveLinkAction).toBe("function");
+    expect(typeof mod.getLinkTarget).toBe("function");
+    expect(mod.TOPIC_SET).toBe("link-target:set");
+  });
+
+  test("in-app browser module loads", async () => {
+    const mod = await import("@/electron/ipc/in-app-browser");
+    expect(typeof mod.openInAppBrowser).toBe("function");
   });
 
   test("deep-links handler module loads", async () => {
