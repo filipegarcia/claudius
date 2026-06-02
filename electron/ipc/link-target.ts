@@ -93,7 +93,17 @@ export function getLinkTarget(): LinkTarget {
 export function registerLinkTargetHandlers(): void {
   ipcMain.on(TOPIC_SET, (_event, raw: unknown) => {
     if (raw === "external" || raw === "in-app") {
+      const prev = currentTarget;
       currentTarget = raw;
+      if (prev !== raw) {
+        // Low-frequency event (only fires when the user changes the
+        // /settings → Link target picker, or on first renderer mount).
+        // Logged unconditionally so anyone debugging a stuck preference
+        // can confirm the IPC actually landed.
+        console.log(`[electron/link-target] preference updated: ${prev} → ${raw}`);
+      }
+    } else {
+      console.warn(`[electron/link-target] ignoring invalid payload:`, raw);
     }
   });
 }

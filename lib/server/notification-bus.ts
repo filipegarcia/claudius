@@ -17,6 +17,7 @@ import {
   listNotifications,
   markAllRead,
   markRead,
+  markReadActionableBySession,
   markReadByKind,
   markReadByRequestId,
   markReadBySession,
@@ -270,6 +271,38 @@ class NotificationBus {
     const changed = await markReadBySession(ws.rootPath, sessionId);
     if (changed > 0) this.scheduleStateEmit(workspaceId, ws.rootPath);
     return changed;
+  }
+
+  /**
+   * Mark every unread *actionable* row (permission/ask/plan) tied to a
+   * session as read. Called from Session lifecycle paths where we KNOW the
+   * pending request is gone and the user can no longer answer it — chiefly
+   * `Session.start()` for fresh instances after a server restart (the
+   * in-memory `pendingAskQuestions` / `pendingPermissions` / `pendingPlans`
+   * maps start empty, so any unread actionable row in the DB is an
+   * orphan), and {@link drainPendingDecisions} for entries dropped
+   * mid-session. Best-effort: any failure is swallowed because the
+   * notification cleanup must never break session startup or the abort
+   * cascade. Returns void to make that no-await-needed contract explicit.
+   *
+   * Resolved by cwd (no workspace id lookup) because Session callers have
+   * the cwd in hand and avoiding the listWorkspaces() round-trip keeps
+   * this safe to call from the synchronous start() entry path.
+   */
+  async sweepOrphanedActionableForSession(
+    cwd: string,
+    sessionId: string,
+  ): Promise<void> {
+    if (!sessionId) return;
+    try {
+      const changed = await markReadActionableBySession(cwd, sessionId);
+      if (changed === 0) return;
+      const ws = await this.lookupWorkspace(cwd);
+      if (!ws) return;
+      this.scheduleStateEmit(ws.id, cwd);
+    } catch {
+      // best-effort
+    }
   }
 
   /**

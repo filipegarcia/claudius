@@ -123,6 +123,12 @@ export function useCommunity(options: UseCommunityOptions = {}) {
   // Nick is read from localStorage via `useSyncExternalStore` — same
   // pattern as `useTheme`. SSR snapshot is `null`; client snapshot reads
   // the saved nick on subscribe (so cross-tab nick changes propagate).
+  //
+  // The canonical store is `~/.claude/settings.json` (`communityNick`).
+  // localStorage is a fast-path cache — synchronous first paint, then a
+  // GET reconciles. Writes hit both stores so a fresh install on the
+  // same `~/.claude/` skips the nickname picker, but the in-tab UI
+  // doesn't have to await the round trip.
   const nick = useSyncExternalStore(subscribeNick, readNickSnapshot, () => null);
   // Admin status comes from the server-side proxy probe, not localStorage.
   const [isAdmin, setIsAdmin] = useState(false);
@@ -138,6 +144,57 @@ export function useCommunity(options: UseCommunityOptions = {}) {
     return () => controller.abort();
   }, []);
 
+  // Hydrate the nickname from user-scope settings on mount. Mirrors
+  // the reconciliation in `useCommunityConsent`: server wins ONLY for
+  // a fresh device (local cache empty); a same-session pick made while
+  // a stale GET is in flight is never clobbered. See the matching
+  // comment in `use-community-consent.ts` for the race we're avoiding.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const r = await fetch("/api/community/prefs");
+        if (!r.ok || cancelled) return;
+        const data = (await r.json()) as { nick: string | null };
+        const serverNick =
+          typeof data.nick === "string" && data.nick.length > 0
+            ? data.nick
+            : null;
+        // Re-read AFTER the await so we see any choice the user made
+        // while the GET was in flight.
+        const localNick = readNickSnapshot();
+        if (cancelled) return;
+        if (!localNick && serverNick) {
+          // Fresh device — adopt the saved nick. This is what skips
+          // the picker on a reinstall.
+          try {
+            localStorage.setItem(LS_NICK, serverNick);
+          } catch {
+            // ignore — fast path is best-effort
+          }
+          window.dispatchEvent(new Event(NICK_CHANGED_EVENT));
+        } else if (localNick && !serverNick) {
+          // Upgrade path: a nickname picked before this build wasn't
+          // persisted to ~/.claude/settings.json. Sync it up.
+          try {
+            await fetch("/api/community/prefs", {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ nick: localNick }),
+            });
+          } catch {
+            // Best-effort
+          }
+        }
+      } catch {
+        // Network errors non-fatal — local cache stands.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const setNick = useCallback((next: string) => {
     try {
       localStorage.setItem(LS_NICK, next);
@@ -147,6 +204,18 @@ export function useCommunity(options: UseCommunityOptions = {}) {
     // `useSyncExternalStore` needs a hint to re-read the snapshot — the
     // native `storage` event only fires for OTHER tabs.
     window.dispatchEvent(new Event(NICK_CHANGED_EVENT));
+    // Mirror to user-scope settings so a future install picks it up.
+    // Empty string is the "change nickname" reset path (the header
+    // button calls `setNick("")` to trigger the picker again); send
+    // null to clear the persisted value too.
+    const payload = next.length > 0 ? { nick: next } : { nick: null };
+    void fetch("/api/community/prefs", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }).catch(() => {
+      // Best-effort — local cache holds the in-tab state.
+    });
   }, []);
 
   // ── Rooms ────────────────────────────────────────────────────────

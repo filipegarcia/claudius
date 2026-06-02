@@ -8,6 +8,7 @@ import {
   listNotifications,
   markAllRead,
   markRead,
+  markReadActionableBySession,
   markReadByRequestId,
   markReadBySession,
   setSessionPrefs,
@@ -229,6 +230,77 @@ describe("mark-read paths", () => {
     expect(changed).toBe(1);
     const counts = await unreadCountsBySession(CWD);
     expect(counts).toEqual({ "sess-B": 1 });
+  });
+
+  test("markReadBySession preserves actionable rows (the inverse of markReadActionableBySession)", async () => {
+    // Pinned: markReadBySession is the "I selected the tab" sweep, and it
+    // must NOT clear permission/ask/plan rows — the agent is still blocked
+    // on them. The complementary markReadActionableBySession clears those.
+    await insertNotification(CWD, WORKSPACE_ID, {
+      kind: "session_idle",
+      title: "idle",
+      sessionId: "sess-mixed",
+    });
+    await insertNotification(CWD, WORKSPACE_ID, {
+      kind: "permission_request",
+      title: "perm",
+      sessionId: "sess-mixed",
+      requestId: "req-perm",
+    });
+    await insertNotification(CWD, WORKSPACE_ID, {
+      kind: "ask_user_question",
+      title: "ask",
+      sessionId: "sess-mixed",
+      requestId: "req-ask",
+    });
+    await insertNotification(CWD, WORKSPACE_ID, {
+      kind: "plan_approval_request",
+      title: "plan",
+      sessionId: "sess-mixed",
+      requestId: "req-plan",
+    });
+    // First sweep: only the non-actionable session_idle flips.
+    expect(await markReadBySession(CWD, "sess-mixed")).toBe(1);
+    expect((await unreadCountsBySession(CWD))["sess-mixed"]).toBe(3);
+    // Then the actionable sweep clears the remaining 3.
+    expect(await markReadActionableBySession(CWD, "sess-mixed")).toBe(3);
+    expect(await unreadCount(CWD)).toBe(0);
+  });
+
+  test("markReadActionableBySession scopes by session and is a no-op on the second call", async () => {
+    // Cross-session isolation: a sweep on sess-A must not touch sess-B's
+    // pending request. Mirrors the markReadBySession isolation test above.
+    await insertNotification(CWD, WORKSPACE_ID, {
+      kind: "permission_request",
+      title: "p-A",
+      sessionId: "sess-A",
+      requestId: "req-A",
+    });
+    await insertNotification(CWD, WORKSPACE_ID, {
+      kind: "ask_user_question",
+      title: "ask-B",
+      sessionId: "sess-B",
+      requestId: "req-B",
+    });
+    expect(await markReadActionableBySession(CWD, "sess-A")).toBe(1);
+    // Idempotent: nothing left to clear on sess-A.
+    expect(await markReadActionableBySession(CWD, "sess-A")).toBe(0);
+    // sess-B's row survives — only sess-A was swept.
+    expect((await unreadCountsBySession(CWD))).toEqual({ "sess-B": 1 });
+  });
+
+  test("markReadActionableBySession is a no-op for an empty sessionId", async () => {
+    // Defensive: callers (Session.start, drainPendingDecisions) sometimes
+    // pass through whatever this.id holds, and we don't want a degenerate
+    // empty string to be construed as "match every row with NULL session_id".
+    await insertNotification(CWD, WORKSPACE_ID, {
+      kind: "permission_request",
+      title: "p",
+      sessionId: "sess-keep",
+      requestId: "req-keep",
+    });
+    expect(await markReadActionableBySession(CWD, "")).toBe(0);
+    expect(await unreadCount(CWD)).toBe(1);
   });
 
   test("markReadByRequestId returns the flipped ids so the bus can fan out", async () => {

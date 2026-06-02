@@ -15,6 +15,48 @@ import { useAttentionRef } from "./useAttentionRef";
 export type NotifyState = "default" | "granted" | "denied" | "unsupported";
 
 /**
+ * Pure helper: decide whether an OS-toast attempt should proceed for one
+ * notification row. Split out of {@link useNotifications}.notify so the
+ * gating contract is unit-testable without standing up React + IPC mocks.
+ *
+ * The platform split is load-bearing:
+ *  - **Electron** (`hasBridge=true`) — skip the browser-`Notification.permission`
+ *    check. macOS gates delivery on the app's *signing identity*, not on the
+ *    renderer's permission flag, so a packaged build whose renderer reports
+ *    `permission === "default"` will still deliver fine when we hand the
+ *    payload to the main-process bridge. Gating on `state !== "granted"`
+ *    here is what produced the "badge ticks but Notification Center stays
+ *    empty" bug — the IPC was never reached because the renderer's flag was
+ *    treated as authoritative.
+ *  - **Web** (`hasBridge=false`) — the browser's `Notification.permission` IS
+ *    authoritative; `new Notification(...)` will throw / no-op when it isn't
+ *    `"granted"`, so we bail before constructing one.
+ *
+ * Returns true when the caller should dispatch the OS toast; false when it
+ * should silently skip.
+ */
+export function shouldDeliverOsNotification(opts: {
+  enabled: boolean;
+  state: NotifyState;
+  hasBridge: boolean;
+  attending: boolean;
+  isSameSession: boolean;
+  isActionableKind: boolean;
+}): boolean {
+  if (!opts.enabled) return false;
+  // Web-only: the renderer's permission flag IS the OS authorisation. Electron
+  // delegates that decision to macOS via the bridge's signing identity.
+  if (!opts.hasBridge && opts.state !== "granted") return false;
+  // Same-session foreground suppression — except for actionable kinds, which
+  // must surface even when the user is parked on the asking session because
+  // they may have Cmd-Tab'd to another app and the modal can be minimised.
+  if (opts.attending && opts.isSameSession && !opts.isActionableKind) {
+    return false;
+  }
+  return true;
+}
+
+/**
  * Fire a one-off **test** notification through the same delivery path real
  * ones use — the Electron native bridge inside the desktop app, the browser
  * `Notification` API on the web. Deliberately bypasses the workspace
@@ -158,7 +200,18 @@ export function useNotifications(opts: Options) {
   }, [workspace]);
 
   const prefs = workspace?.defaults?.notifications;
-  const enabled = !!prefs?.enabled;
+  // Default-on semantics: a workspace whose `notifications.enabled` has
+  // never been set should still get toasts. The previous `!!prefs?.enabled`
+  // treated `undefined` as off and silently dropped every notification on
+  // fresh / migrated workspaces — the user saw "Workspace notifications:
+  // Off" in the popover with no visible action that had ever turned it off,
+  // and couldn't figure out why nothing rang. Only an EXPLICIT `enabled:
+  // false` (the user toggled it off) disables now. This matches the
+  // server-side {@link isKindEnabled} semantics in `notification-bus.ts`,
+  // which also treat absent prefs as "allowed" — keeping the two ends
+  // symmetric is what closes the "toast suppressed but row persisted"
+  // class of gap.
+  const enabled = prefs?.enabled !== false;
   const onClick: NotificationClickBehavior = prefs?.onClick ?? "jump";
 
   const requestPermission = useCallback(async () => {
@@ -216,25 +269,19 @@ export function useNotifications(opts: Options) {
    */
   const notify = useCallback(
     (row: NotificationRow) => {
-      if (!enabled || state !== "granted") return;
-      // Same-session visibility suppression: when the user is foregrounded on
-      // the very session this notification targets, the OS toast is
-      // redundant — they're already looking at it. EXCEPT for actionable
-      // kinds (`permission_request`, `ask_user_question`,
-      // `plan_approval_request`): the agent is blocked on the user, the
-      // modal can be minimised, and the user may have Cmd-Tab'd to another
-      // app between when they triggered the turn and when the question
-      // came back. They need the loud popup regardless of which session
-      // tab is currently selected. This mirrors the actionable-kind
-      // carve-out in `NotificationsProvider`'s `sameSessionVisible`
-      // auto-read gate — keep the two predicates symmetric.
-      const sameSession =
-        row.sessionId && activeSessionRef.current === row.sessionId;
-      if (visibleRef.current && sameSession && !isActionableKind(row.kind)) {
-        return;
-      }
-
       const bridge = readBridgeOnClient();
+      const sameSession =
+        !!row.sessionId && activeSessionRef.current === row.sessionId;
+      const deliver = shouldDeliverOsNotification({
+        enabled,
+        state,
+        hasBridge: !!bridge,
+        attending: visibleRef.current,
+        isSameSession: sameSession,
+        isActionableKind: isActionableKind(row.kind),
+      });
+      if (!deliver) return;
+
       if (bridge) {
         // Electron path — main owns the lifecycle and the click → focus
         // flow. The click handler is registered once below in an effect.

@@ -316,7 +316,13 @@ function createWindow(startUrl: string): BrowserWindow {
   // See `electron/ipc/link-target.ts` for the pure decision function and
   // its unit tests.
   win.webContents.setWindowOpenHandler(({ url }) => {
-    const action = resolveLinkAction(url, getLinkTarget());
+    const pref = getLinkTarget();
+    const action = resolveLinkAction(url, pref);
+    // One log per outbound click — low frequency, high value for diagnosing
+    // "I switched to Default browser but links still open in-app" reports.
+    // Shows the cached preference, the URL, and the action we took, so any
+    // mismatch between /settings UI state and main-process state is obvious.
+    console.log(`[electron/link-target] click pref=${pref} action=${action} url=${url}`);
     switch (action) {
       case "internal-allow":
         return { action: "allow" };

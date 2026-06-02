@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Activity, AlertTriangle, Bot, Brain, Check, CircleStop, Loader2, Plus, Terminal, Wrench } from "lucide-react";
+import { Activity, AlertTriangle, Bot, Brain, Check, CircleStop, Eraser, Loader2, Plus, Terminal, Wrench } from "lucide-react";
 import type { PermissionMode } from "@anthropic-ai/claude-agent-sdk";
 import type {
   AgentTodo,
@@ -72,6 +72,25 @@ type Props = {
    * queues if a turn is in flight). Omitting this hides the `+` button.
    */
   onAddTodos?: (texts: string[]) => Promise<void> | void;
+  /**
+   * Durably clear the agent's TodoWrite snapshot — the rail counterpart
+   * to the chat-level banner's Clear button. Hits the server endpoint so
+   * the cleared state survives reload and server restart. Omitting hides
+   * the eraser affordance.
+   */
+  onClearTodos?: () => Promise<void> | void;
+  /**
+   * Per-item mutation hook for the rail's `TodoList`. Wired through to
+   * `useSession.updateTodoItem`. When provided, each rail row's status
+   * icon becomes clickable (toggle complete ↔ pending) and a × on hover
+   * deletes the item. The change is durable — persisted as a
+   * `manualTodoOverrides` entry server-side so it survives reload. Omit
+   * to render the rail list read-only.
+   */
+  onUpdateTodoItem?: (
+    itemId: string,
+    action: "complete" | "reopen" | "in_progress" | "delete",
+  ) => void;
   /**
    * Switch the active model (the SDK's `setModel` control). Wired through
    * to `SessionCard` so the rail can offer a CLI-style `/model` picker.
@@ -178,6 +197,8 @@ export function BackgroundTasksPanel({
   onOpenBash,
   onCancelScheduledLoop,
   onAddTodos,
+  onClearTodos,
+  onUpdateTodoItem,
   onChangeModel,
   onChangeEffort,
   ultracode = false,
@@ -341,7 +362,7 @@ export function BackgroundTasksPanel({
   const busy = !ready || pending || runningBg > 0;
 
   return (
-    <div data-pane-name="right-rail" className="flex h-full w-64 flex-col border-l border-[var(--border)] bg-[var(--panel)] lg:w-72">
+    <div data-pane-name="right-rail" className="flex h-full w-64 shrink-0 flex-col border-l border-[var(--border)] bg-[var(--panel)] lg:w-72">
       <div className="sticky top-0 z-10 flex h-9 items-center gap-2 border-b border-[var(--border)] bg-[var(--panel)] px-3 text-xs">
         <Activity className="h-3.5 w-3.5 text-[var(--accent)]" />
         <span className="font-medium">Activity</span>
@@ -424,23 +445,45 @@ export function BackgroundTasksPanel({
             label="To-dos"
             badge={`(${latestTodos.length})`}
             action={
-              onAddTodos ? (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setAddTodosOpen((v) => !v);
-                  }}
-                  data-testid="todos-add-button"
-                  aria-label="Add tasks"
-                  title="Add tasks (asks the agent to update its todo list)"
-                  className={cn(
-                    "flex h-4 w-4 items-center justify-center rounded text-[var(--muted)] hover:bg-[var(--panel-2)] hover:text-[var(--foreground)]",
-                    addTodosOpen && "bg-[var(--panel-2)] text-[var(--foreground)]",
+              onAddTodos || onClearTodos ? (
+                <div className="flex items-center gap-0.5">
+                  {/* Clear only shows when there's something to clear — an
+                      empty list with just the "+ Add" affordance doesn't
+                      need an eraser. Stays narrow + iconic to fit alongside +. */}
+                  {onClearTodos && latestTodos.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void onClearTodos();
+                      }}
+                      data-testid="todos-clear-button"
+                      aria-label="Clear todos"
+                      title="Clear this list — the agent will start fresh next time it tracks todos"
+                      className="flex h-4 w-4 items-center justify-center rounded text-[var(--muted)] hover:bg-[var(--panel-2)] hover:text-[var(--foreground)]"
+                    >
+                      <Eraser className="h-3 w-3" />
+                    </button>
                   )}
-                >
-                  <Plus className="h-3 w-3" />
-                </button>
+                  {onAddTodos && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setAddTodosOpen((v) => !v);
+                      }}
+                      data-testid="todos-add-button"
+                      aria-label="Add tasks"
+                      title="Add tasks (asks the agent to update its todo list)"
+                      className={cn(
+                        "flex h-4 w-4 items-center justify-center rounded text-[var(--muted)] hover:bg-[var(--panel-2)] hover:text-[var(--foreground)]",
+                        addTodosOpen && "bg-[var(--panel-2)] text-[var(--foreground)]",
+                      )}
+                    >
+                      <Plus className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
               ) : null
             }
           >
@@ -454,7 +497,7 @@ export function BackgroundTasksPanel({
               />
             )}
             {latestTodos.length > 0 ? (
-              <TodoList todos={latestTodos} />
+              <TodoList todos={latestTodos} onUpdateItem={onUpdateTodoItem} />
             ) : !addTodosOpen ? (
               <div className="px-1 py-1 text-[10px] text-[var(--muted)]">
                 No tasks yet. Click + to add.

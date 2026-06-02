@@ -30,7 +30,13 @@ export function RateLimitWarningSection() {
     `Custom: warn at ${value}% utilization or above. Rejection always shown.`;
 
   return (
-    <section className="rounded-lg border border-[var(--border)] bg-[var(--panel)]/40 p-4">
+    // Anchor target for deep links from the in-chat rate-limit pill — the
+    // "change the threshold" affordance navigates to /settings#rate-limit-warning
+    // so the browser scrolls this section into view on load.
+    <section
+      id="rate-limit-warning"
+      className="rounded-lg border border-[var(--border)] bg-[var(--panel)]/40 p-4"
+    >
       <div className="flex items-start gap-2">
         <AlertTriangle className="mt-px h-3.5 w-3.5 text-amber-400" />
         <div>

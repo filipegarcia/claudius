@@ -116,7 +116,12 @@ export default function WorkspacePage() {
     setBranchPattern(active.commitPrefix?.branchPattern ?? "{type}/{id}-{rest}");
     setTemplate(active.commitPrefix?.template ?? "{type} #{id} - ");
     const np = active.defaults?.notifications;
-    setNotifyEnabled(np?.enabled ?? false);
+    // Default-on: a workspace with no `notifications.enabled` flag set is
+    // treated as enabled (matches the runtime semantics in
+    // `useNotifications` and the server-side `isKindEnabled`). Only an
+    // EXPLICIT `enabled: false` (the user previously toggled it off)
+    // disables the workspace switch in the form.
+    setNotifyEnabled(np?.enabled !== false);
     setNotifyOnClick(np?.onClick ?? "jump");
     setNotifyKinds(np?.enabledKinds ?? DEFAULT_ENABLED_KINDS);
   }
@@ -272,7 +277,12 @@ export default function WorkspacePage() {
 
   const notifyDirty =
     !!active &&
-    ((active.defaults?.notifications?.enabled ?? false) !== notifyEnabled ||
+    // Mirror the default-on semantics in the hydrate path above and in
+    // `useNotifications`: absent prefs ⇒ enabled. Without the matching
+    // `!== false` here the form would consider an unsaved fresh workspace
+    // "dirty" on mount (form initialises to `true`, the stored absent
+    // value compares as `false`), enabling Save with no real change.
+    ((active.defaults?.notifications?.enabled !== false) !== notifyEnabled ||
       (active.defaults?.notifications?.onClick ?? "jump") !== notifyOnClick ||
       !sameKindSet(active.defaults?.notifications?.enabledKinds, notifyKinds));
 

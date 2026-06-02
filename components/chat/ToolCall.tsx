@@ -103,6 +103,10 @@ export function ToolCall({ name, input, result, liveAsk, onReopenAsk, defaultOpe
             <Link
               href={filesUrl}
               title="Open in Files"
+              // `draggable={false}` so click-and-drag on the path text starts a
+              // text selection instead of the browser's built-in drag-the-link
+              // behavior. Clicking still navigates to the Files browser.
+              draggable={false}
               className="min-w-0 flex-1 truncate font-mono text-[10px] text-[var(--muted)] hover:text-[var(--accent)] hover:underline"
             >
               {fileTarget.path}

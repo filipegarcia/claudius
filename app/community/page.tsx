@@ -60,7 +60,8 @@ function ConsentPrompt({
           <p className="mt-2 text-sm text-[var(--muted)]">
             Nothing is sent until you actually post a message, and you
             can disconnect any time from the sidebar. Your choice is
-            remembered on this device only.
+            remembered in your Claude user settings, so a fresh install
+            or a switch between desktop and browser won’t ask again.
           </p>
           <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-end">
             <button

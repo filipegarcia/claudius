@@ -4057,6 +4057,51 @@ export function useSession(): ChatState & ChatActions {
     }
   }, []);
 
+  // Targeted per-item edit on the agent's TodoWrite snapshot — invoked
+  // when the user clicks a status icon (toggle done) or × (delete) on a
+  // banner / rail to-do entry. Routes to
+  // `POST /api/sessions/:id/todos/:itemId`, which mutates the server's
+  // in-memory snapshot, persists a `manualTodoOverrides[itemId]` entry
+  // for restart durability, and broadcasts `session_snapshot { todos }`.
+  // We let the SSE round-trip drive the state update (no optimistic mutation
+  // here) so this tab and siblings stay in lock-step. Errors surface to
+  // the console with the server-side reason — the most useful failure
+  // modes (422 stale list, 503 dev-HMR stale instance) are diagnosable
+  // from the console message.
+  const updateTodoItem = useCallback(
+    async (
+      itemId: string,
+      action: "complete" | "reopen" | "in_progress" | "delete",
+    ): Promise<{ ok: true } | { ok: false; error: string }> => {
+      const id = sessionIdRef.current;
+      if (!id) return { ok: false, error: "no active session" };
+      try {
+        const res = await fetch(
+          `/api/sessions/${id}/todos/${encodeURIComponent(itemId)}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action }),
+          },
+        );
+        if (!res.ok) {
+          const body = (await res.json().catch(() => ({}))) as { error?: string };
+          const msg = body.error ?? `HTTP ${res.status}`;
+
+          console.warn(`[updateTodoItem] server returned ${res.status}: ${msg}`);
+          return { ok: false, error: msg };
+        }
+        return { ok: true };
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+
+        console.warn("[updateTodoItem] network error", msg);
+        return { ok: false, error: msg };
+      }
+    },
+    [],
+  );
+
   const clearGoal = useCallback(
     async (): Promise<{ ok: true } | { ok: false; error: string }> => {
       const id = sessionIdRef.current;
@@ -4201,6 +4246,7 @@ export function useSession(): ChatState & ChatActions {
     setGoal,
     clearGoal,
     clearTodos,
+    updateTodoItem,
   };
 }
 

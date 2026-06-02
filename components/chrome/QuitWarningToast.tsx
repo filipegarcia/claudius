@@ -55,14 +55,17 @@ export function QuitWarningToast() {
       data-pane-name="quit-warning-toast"
       role="status"
       aria-live="polite"
-      // Fixed in the upper-center so it sits above any pane chrome. The
-      // pointer-events:none keeps the toast from intercepting clicks
-      // while it's visible.
+      // Pinned to the viewport (not the active pane) so it sits above any
+      // chrome regardless of layout. Horizontally centered with the
+      // left-1/2 / -translate-x-1/2 idiom; vertically nudged below the
+      // titlebar so the toast lands closer to the screen's optical center
+      // instead of hiding in the upper-left chrome strip. `pointer-events:
+      // none` keeps it from intercepting clicks while it's visible.
       style={{ pointerEvents: "none" }}
-      className="fixed left-1/2 top-12 z-[200] -translate-x-1/2"
+      className="fixed left-1/2 top-24 z-[200] -translate-x-1/2"
     >
-      <div className="flex items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--panel)]/95 px-3 py-1.5 text-xs shadow-2xl backdrop-blur">
-        <span aria-hidden className="font-mono text-[var(--accent)]">⌘Q</span>
+      <div className="flex items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--panel)]/95 px-5 py-3 text-base shadow-2xl backdrop-blur">
+        <span aria-hidden className="font-mono text-lg text-[var(--accent)]">⌘Q</span>
         <span className="font-medium">Press again to quit Claudius</span>
       </div>
     </div>

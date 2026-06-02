@@ -526,3 +526,77 @@ describe("markReadByRequestId", () => {
     expect(after).toBe(before);
   });
 });
+
+describe("sweepOrphanedActionableForSession", () => {
+  test("clears orphaned actionable rows and emits a state envelope at the new total", async () => {
+    // Repro for the bug where an `ask_user_question` row persists as
+    // unread after the in-memory `pendingAskQuestions` entry is dropped
+    // (server restart, HMR, session reaper). On the next Session.start()
+    // the sweep must clear the row so the per-tab badge doesn't stick.
+    const ws = writeFakeWorkspace();
+    await notificationBus.recordSessionEvent(ws.rootPath, "sess-orphan", {
+      type: "ask_user_question",
+      requestId: "req-orphan",
+      toolUseId: "tu-orphan",
+      questions: [
+        { question: "Which tab is stuck?", header: "", options: [], multiSelect: false },
+      ],
+    });
+    await flushAll();
+    const statesBefore = snap().filter((e) => e.type === "state").length;
+
+    await notificationBus.sweepOrphanedActionableForSession(ws.rootPath, "sess-orphan");
+    await flushAll();
+
+    const stateEnvs = snap().filter((e) => e.type === "state");
+    expect(stateEnvs.length).toBeGreaterThan(statesBefore);
+    const last = stateEnvs[stateEnvs.length - 1];
+    expect(last.type === "state" && last.totalUnread).toBe(0);
+    expect(last.type === "state" && last.perSession["sess-orphan"]).toBeUndefined();
+  });
+
+  test("does not touch non-actionable rows on the same session", async () => {
+    // session_idle rows are cleared by markReadBySession (the "I selected
+    // the tab" sweep), NOT by the orphan-actionable sweep. If this
+    // assertion ever flips, the two paths have drifted.
+    const ws = writeFakeWorkspace();
+    await notificationBus.recordSessionEvent(ws.rootPath, "sess-mixed", {
+      type: "ask_user_question",
+      requestId: "req-A",
+      toolUseId: "tu-A",
+      questions: [{ question: "?", header: "", options: [], multiSelect: false }],
+    });
+    // Stamp a user input so the SDK-result mapping admits the session_idle row.
+    notificationBus.markUserInput("sess-mixed", 1);
+    await notificationBus.recordSessionEvent(ws.rootPath, "sess-mixed", {
+      type: "sdk",
+      message: { type: "result" } as never,
+    });
+    await flushAll();
+
+    await notificationBus.sweepOrphanedActionableForSession(ws.rootPath, "sess-mixed");
+    await flushAll();
+
+    const rows = await listNotifications(ws.rootPath, ws.id, { unreadOnly: true });
+    expect(rows.map((r) => r.kind)).toEqual(["session_idle"]);
+  });
+
+  test("no-op when nothing to clear — does not emit a state envelope", async () => {
+    const ws = writeFakeWorkspace();
+    await notificationBus.recordSessionEvent(ws.rootPath, "sess-other", {
+      type: "ask_user_question",
+      requestId: "req-other",
+      toolUseId: "tu-other",
+      questions: [{ question: "?", header: "", options: [], multiSelect: false }],
+    });
+    await flushAll();
+    const before = snap().filter((e) => e.type === "state").length;
+    // Different session id → nothing to flip, no extra state emit (the
+    // emit is gated on a row actually changing so backgrounded sessions
+    // don't pay a fanout cost on every Session.start sweep).
+    await notificationBus.sweepOrphanedActionableForSession(ws.rootPath, "sess-empty");
+    await flushAll();
+    const after = snap().filter((e) => e.type === "state").length;
+    expect(after).toBe(before);
+  });
+});

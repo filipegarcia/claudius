@@ -9,6 +9,7 @@ import {
   type DragEvent,
   type KeyboardEvent,
 } from "react";
+import { createPortal } from "react-dom";
 import { ArrowUp, Hourglass, Image as ImageIcon, Mic, MicOff, Paperclip, Sparkles, Square, X } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { SlashCommandPicker } from "./SlashCommandPicker";
@@ -17,6 +18,7 @@ import { ImageLightbox } from "./ImageLightbox";
 import { useVoice } from "@/lib/client/useVoice";
 import { useSdkCommands } from "@/lib/client/useSdkCommands";
 import { readBridgeOnClient } from "@/lib/client/useElectron";
+import { resolveDroppedPath } from "@/lib/client/file-paths";
 import type { AttachedImage } from "@/lib/client/types";
 import {
   BULLET_GLYPH,
@@ -87,6 +89,15 @@ type Props = {
    * messages" hint, pointed at the queue panel instead of a keybinding).
    */
   queuedCount?: number;
+  /**
+   * When true, drag-and-drop is captured across the entire ancestor
+   * `[data-pane-name="chat-area"]` container (not just the composer's input
+   * row), and a portal'd overlay highlights the whole chat as a drop target
+   * while a file drag is in progress. Opt-in because PromptInput is also
+   * reused inside the goal banner — only the main chat composer wants the
+   * wider drop zone; otherwise both instances would race for the same drop.
+   */
+  wideDropTarget?: boolean;
 };
 
 const MAX_IMAGE_BYTES = 20 * 1024 * 1024; // 20MB
@@ -162,6 +173,7 @@ export function PromptInput({
   placeholder,
   testIdPrefix = "prompt",
   queuedCount = 0,
+  wideDropTarget = false,
 }: Props) {
   const [value, setValue] = useState("");
   // Keyword hints (see KEYWORD_HINTS) the user has dismissed for the current
@@ -821,6 +833,12 @@ export function PromptInput({
     // Drag-drop / paste / file-picker all flow through here — count it as
     // user activity so a late-arriving seed can't clobber attachments.
     userTypedRef.current = true;
+    // In Electron, `webUtils.getPathForFile` recovers the absolute OS path
+    // for each dropped File so non-image drops can resolve to a project-
+    // relative path (when inside `cwd`) or an absolute path (when outside).
+    // In a regular browser tab the bridge is `null` and we fall back to the
+    // basename, which is the most we can recover from the HTML5 File API.
+    const bridge = readBridgeOnClient();
     const droppedPaths: string[] = [];
     type Pending = { data: string; mediaType: string };
     const newImageBlobs: Pending[] = [];
@@ -829,7 +847,8 @@ export function PromptInput({
         const b = await readFileAsBase64(f);
         if (b) newImageBlobs.push(b);
       } else {
-        droppedPaths.push(f.name);
+        const absPath = bridge?.files?.getPath(f) ?? null;
+        droppedPaths.push(resolveDroppedPath(absPath, f.name, cwd));
       }
     }
 
@@ -877,6 +896,88 @@ export function PromptInput({
     const files = Array.from(e.dataTransfer?.files ?? []);
     if (files.length) void ingestFiles(files);
   }
+
+  // Stable reference to the latest `ingestFiles` so the chat-area-wide
+  // listener below doesn't need to re-attach on every render. The listener
+  // attaches once (per chat-area mount) and dispatches through this ref.
+  const ingestFilesRef = useRef(ingestFiles);
+  ingestFilesRef.current = ingestFiles;
+
+  // Capture the ancestor chat-area on first paint via a ref (not state) so
+  // the attach effect is one-shot and we don't trip `react-hooks/set-state-
+  // in-effect`. The portal target is read in render once `dragOver` flips.
+  const chatAreaRef = useRef<HTMLElement | null>(null);
+
+  // Whole-chat drop zone. Listens on the closest `[data-pane-name="chat-area"]`
+  // ancestor when `wideDropTarget` is on, so dropping a file anywhere on the
+  // chat screen (message list, banners, tabs, gutters) routes to the same
+  // ingest pipeline as dropping on the composer. Gated by an explicit prop
+  // because PromptInput is also reused inside the goal banner; without the
+  // gate, both instances would attach to the same chat-area node and a single
+  // drop would populate both inputs.
+  useEffect(() => {
+    if (!wideDropTarget) return;
+    // Walk up from a known textarea ref to find the chat-area; fall back to
+    // a document query (e.g. before the textarea ref is populated).
+    const root =
+      taRef.current?.closest<HTMLElement>('[data-pane-name="chat-area"]') ??
+      document.querySelector<HTMLElement>('[data-pane-name="chat-area"]');
+    if (!root) return;
+    chatAreaRef.current = root;
+
+    // `dragenter` fires on every child boundary cross, so a naive
+    // setDragOver(false) on `dragleave` would flicker the overlay as the
+    // pointer moves between children. Counting enter/leave pairs is the
+    // standard fix.
+    let depth = 0;
+    // Gate listeners to drags that actually carry files — the chat is full of
+    // selectable text, and a plain text-selection drag would otherwise flash
+    // the overlay every time the user highlights a message.
+    function isFilesDrag(e: globalThis.DragEvent): boolean {
+      const types = e.dataTransfer?.types;
+      if (!types) return false;
+      for (let i = 0; i < types.length; i++) {
+        if (types[i] === "Files") return true;
+      }
+      return false;
+    }
+    function onEnter(e: globalThis.DragEvent) {
+      if (!isFilesDrag(e)) return;
+      e.preventDefault();
+      depth += 1;
+      if (depth === 1) setDragOver(true);
+    }
+    function onOver(e: globalThis.DragEvent) {
+      if (!isFilesDrag(e)) return;
+      // Required for `drop` to fire AND to prevent Electron from navigating
+      // the renderer to `file://<dropped>` when the drop lands outside any
+      // inner handler.
+      e.preventDefault();
+    }
+    function onLeave(e: globalThis.DragEvent) {
+      if (!isFilesDrag(e)) return;
+      depth = Math.max(0, depth - 1);
+      if (depth === 0) setDragOver(false);
+    }
+    function onDropEvt(e: globalThis.DragEvent) {
+      if (!isFilesDrag(e)) return;
+      e.preventDefault();
+      depth = 0;
+      setDragOver(false);
+      const files = Array.from(e.dataTransfer?.files ?? []);
+      if (files.length) void ingestFilesRef.current(files);
+    }
+    root.addEventListener("dragenter", onEnter);
+    root.addEventListener("dragover", onOver);
+    root.addEventListener("dragleave", onLeave);
+    root.addEventListener("drop", onDropEvt);
+    return () => {
+      root.removeEventListener("dragenter", onEnter);
+      root.removeEventListener("dragover", onOver);
+      root.removeEventListener("dragleave", onLeave);
+      root.removeEventListener("drop", onDropEvt);
+    };
+  }, [wideDropTarget]);
 
   async function onPaste(e: ClipboardEvent<HTMLTextAreaElement>) {
     const items = e.clipboardData?.items;
@@ -932,6 +1033,26 @@ export function PromptInput({
 
   return (
     <div className="border-t border-[var(--border)] bg-[var(--panel)] px-4 py-3">
+      {/* Whole-chat drop overlay. Portal'd into the chat-area container so it
+          sits above tabs, banners, the message list, and the composer in one
+          shot. Pointer-events: none — the underlying chat-area listener is
+          what actually receives the drop. Requires the chat-area element to
+          be `position: relative` (set in app/[workspaceId]/page.tsx). */}
+      {wideDropTarget && dragOver && chatAreaRef.current
+        ? createPortal(
+            <div
+              data-testid="prompt-wide-drop-overlay"
+              className="pointer-events-none absolute inset-0 z-50 flex items-center justify-center bg-[var(--accent)]/8"
+            >
+              <div className="m-4 flex h-full w-full items-center justify-center rounded-2xl border-2 border-dashed border-[var(--accent)]">
+                <div className="rounded-lg bg-[var(--panel)]/95 px-4 py-2 text-sm font-medium text-[var(--accent)] shadow-lg backdrop-blur-sm">
+                  Drop files to attach
+                </div>
+              </div>
+            </div>,
+            chatAreaRef.current,
+          )
+        : null}
       <div className="relative mx-auto max-w-[var(--chat-col)]">
         {images.length > 0 && (
           <div className="mb-2 flex flex-wrap gap-2 rounded-md border border-[var(--border)] bg-[var(--panel-2)]/40 p-2">
@@ -1017,24 +1138,35 @@ export function PromptInput({
           <div className="mx-auto h-[2px] w-12 rounded-full bg-[var(--border)] transition group-hover:bg-[var(--accent)]/60 group-focus-visible:bg-[var(--accent)]/60" />
         </div>
         <div
-          onDragOver={(e) => {
+          // When the chat-area-wide drop zone is active, inner drag handlers
+          // would double-fire (drop event bubbles up to the chat-area listener
+          // too) and populate the same attachments twice. Skip them in that
+          // mode and rely entirely on the wide listener + portal overlay.
+          onDragOver={wideDropTarget ? undefined : (e) => {
             e.preventDefault();
             setDragOver(true);
           }}
-          onDragLeave={() => setDragOver(false)}
-          onDrop={onDrop}
+          onDragLeave={wideDropTarget ? undefined : () => setDragOver(false)}
+          onDrop={wideDropTarget ? undefined : onDrop}
           className={cn(
             "flex items-end gap-2 rounded-2xl border bg-[var(--panel-2)] px-3 py-2 transition",
-            dragOver ? "border-[var(--accent)] bg-[var(--accent)]/5" : "border-[var(--border)] focus-within:border-[var(--accent)]/60",
+            !wideDropTarget && dragOver
+              ? "border-[var(--accent)] bg-[var(--accent)]/5"
+              : "border-[var(--border)] focus-within:border-[var(--accent)]/60",
           )}
         >
           <button
             type="button"
-            title="Attach (image)"
+            title="Attach file — images embed inline, other files are inserted as @path mentions"
             onClick={() => {
               const inp = document.createElement("input");
               inp.type = "file";
-              inp.accept = "image/*";
+              // No `accept` filter — the picker mirrors the drag-drop contract:
+              // images travel inline as base64, any other file is inserted as
+              // an `@path` mention (cropped to cwd-relative when inside the
+              // workspace; absolute otherwise). Locking the picker to
+              // `image/*` greyed out everything else, even though the drop
+              // path supports them.
               inp.multiple = true;
               inp.onchange = () => {
                 if (inp.files) void ingestFiles(Array.from(inp.files));

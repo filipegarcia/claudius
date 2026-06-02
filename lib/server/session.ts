@@ -293,6 +293,48 @@ export function staleTodoReminderBody(todos: readonly unknown[]): string {
 }
 
 /**
+ * Per-turn to-do awareness reminder — Claudius-specific (not a CLI parity
+ * feature, but inspired by Claude Code's own behavior of keeping the
+ * model's to-do list resident in context). Fires on the user's NEXT turn
+ * whenever the session has an open snapshot at turn end. Replaces the
+ * prior `todos-reconcile` cadence-based design: a 3-turn silent threshold
+ * paired with "ignore if not applicable" softening empirically left the
+ * "0/N — model never marks anything done" symptom intact, because the
+ * model treated the reminder as discretionary. The new shape:
+ *
+ *   - Fires every user turn (no `silentTurnsSinceReconcileFire` cadence).
+ *     Repeated mild pressure keeps the list resident in context the way
+ *     Claude Code's CLI does it, so the model is reasoning over the live
+ *     state instead of a snapshot it captured 4 turns ago.
+ *   - Drops the "this is just a gentle reminder - ignore if not applicable"
+ *     softener. Compliance with the to-do-tracking discipline is the goal;
+ *     handing the model a permission slip to ignore was load-bearing in
+ *     the prior failure mode.
+ *   - Stays specifically about the to-do list (no overlap with the rail's
+ *     manual per-item controls — those route through `updateTodoItem` and
+ *     don't talk to the model). The model still owns "this work is done"
+ *     vs "this work is paused"; the user controls the UI directly.
+ *
+ * Pure helper — no Session lifecycle — so the unit test pins the literal
+ * prose contract without constructing a Session. The body is also reused
+ * by `Session.maybeAutoSyncTodosOnTurnEnd`, which queues it via
+ * `queueReminder(host, "todos-current", body)`.
+ */
+export function todosCurrentReminderBody(todos: readonly unknown[]): string {
+  const base =
+    "The current to-do list for this session is shown below. As you work, " +
+    "keep it aligned with reality: mark items completed when finished " +
+    '(TodoWrite with status "completed", or TaskUpdate with ' +
+    'status="completed"), and prune items that are no longer relevant ' +
+    '(TaskUpdate with status="deleted", or omit them from the next ' +
+    "TodoWrite call). Add new items as they emerge via TaskCreate or by " +
+    "extending the next TodoWrite call. The list is visible to the user " +
+    "in real time — keeping it accurate is part of the turn's work.";
+  if (todos.length === 0) return base;
+  return `${base}\n\nCurrent todos:\n${JSON.stringify(todos, null, 2)}`;
+}
+
+/**
  * Claude Code TUI parity (33-plan-mode-reentry-reminder): when the user
  * flips back into plan mode after a prior planning round in this session,
  * inject a `## Re-entering Plan Mode` reminder pointing at the previously
@@ -578,6 +620,21 @@ const OPUS_OVERLOAD_NUDGE_THRESHOLD = 2;
  * this an "every N todo-silent turns" rhythm, not a once-per-session shot).
  */
 const STALE_TODO_TURN_THRESHOLD = 15;
+
+/**
+ * Wall-clock age at which a TodoWrite snapshot is considered abandoned and
+ * dropped automatically — evaluated at session start (after disk replay).
+ * The "stale-todowrite" reminder above is the *soft* nudge that hopes the
+ * model prunes itself; this is the *hard* fallback for the case the user
+ * flagged: session goes idle, model never closes items, the stale list
+ * haunts the UI forever. 24h keeps a long lunch break safe but still catches
+ * truly abandoned sessions before the next day starts.
+ *
+ * The auto-clear also persists a `todosClearedAt` marker — see
+ * `Session.clearTodos` — so a server restart that rebuilds from disk JSONL
+ * doesn't resurrect the dropped list.
+ */
+const TODOS_AUTO_CLEAR_MS = 24 * 60 * 60 * 1000;
 
 type PendingPermission = {
   requestId: string;
@@ -1095,6 +1152,80 @@ export class Session {
   private turnsSinceTodoWrite = 0;
 
   /**
+   * Did the model call TodoWrite / TaskCreate / TaskUpdate during the
+   * currently-running turn? Reset to false at every real `sendInput`
+   * (after the slash-command early-return, same site as the
+   * `turnsSinceTodoWrite` bump); flipped to true in `captureSnapshotState`
+   * whenever any of those three tool_use blocks land. Read in the
+   * `consume()` `result` handler to decide whether to queue the
+   * `todos-current` next-turn reminder when the turn ends with pending
+   * items the model didn't acknowledge.
+   *
+   * Distinct from `turnsSinceTodoWrite`: that one tracks `TodoWrite`
+   * specifically (the legacy snapshot-replacement tool, paired with
+   * `stale-todowrite`), and the in-process `TaskCreate`/`TaskUpdate` flow
+   * is its own parity feature (`stale-task-tools`). For the turn-end
+   * reconcile nudge we want a wider "did the agent touch the list at
+   * all this turn" signal — pruning via TaskUpdate is exactly the
+   * affordance the nudge is trying to surface, so a turn that fired
+   * `TaskUpdate(status="deleted")` shouldn't also trip the reminder.
+   *
+   * In-memory only (not persisted via `mergeSessionState`): the lifetime
+   * is "current turn", same reasoning as the surrounding flags.
+   */
+  private todosTouchedThisTurn = false;
+
+  /**
+   * User-authored per-item overrides that beat what the agent's transcript
+   * said about that item. Keyed by todo id, value is the new authoritative
+   * status the user clicked into being via the banner / rail UI:
+   *
+   *   - `"completed"` → user marked the item done (the model never got
+   *     around to it).
+   *   - `"pending"` → user reopened a previously-completed item.
+   *   - `"in_progress"` → user marked an item active (rare; offered for
+   *     symmetry with the model's own status set).
+   *   - `"deleted"` → user removed the item from the list entirely.
+   *     Deleted items don't appear in `latestTodosSnapshot` after the
+   *     override is applied — they're filtered, not just hidden.
+   *
+   * Persisted via `mergeSessionState({manualTodoOverrides})` so a server
+   * restart that rebuilds the snapshot from JSONL still honors the user's
+   * intent — without persistence, the user's clicks would silently
+   * un-stick on every dev-mode HMR rebuild. Applied to `latestTodosSnapshot`
+   * at the end of `start()` after disk replay finishes building the
+   * pre-override list (so the model's transcript paints first, the user's
+   * overrides paint on top).
+   *
+   * Clear-on-touch: whenever the model touches an id via TodoWrite /
+   * TaskCreate / TaskUpdate (live or replayed), the matching override is
+   * dropped. The model is asserting a fresh fact about that id, so the
+   * user's prior override is stale — let the model win for the next
+   * iteration. This keeps the override semantics intuitive ("user nudges
+   * the model, model takes over once it engages") and avoids stale
+   * overrides quietly diverging from what the model believes long after
+   * the conflict was resolved.
+   */
+  private manualTodoOverrides: Record<string, "completed" | "pending" | "in_progress" | "deleted"> = {};
+
+  /**
+   * Set to `true` while `start()` is broadcasting disk-replayed historical
+   * events through `captureSnapshotState`, and back to `false` once the
+   * replay window is closed. Guards `clearManualTodoOverrideFor` against
+   * the load-bearing failure mode where replayed historical TodoWrite /
+   * TaskCreate / TaskUpdate events would wipe the just-loaded
+   * `manualTodoOverrides` map *before* `applyManualTodoOverrides` had a
+   * chance to use it. By invariant, anything in the persisted override
+   * map represents user clicks that the live model never engaged with
+   * (live `clearManualTodoOverrideFor` already wiped overrides for ids
+   * the model touched), so a replay-time clear has no honest signal to
+   * act on and only removes information.
+   *
+   * Not persisted: scope is "this start() invocation" only.
+   */
+  private isReplayingTranscript = false;
+
+  /**
    * One-shot flag for the post-plan-execution verify reminder (Claude Code TUI
    * parity, feature 39). Set true in `resolvePlan`'s accept branch and cleared
    * when the next `result` event lands in `consume()`, where we queue the
@@ -1184,10 +1315,80 @@ export class Session {
   async start(): Promise<void> {
     if (this.query) return;
 
+    // Sweep orphaned actionable notification rows for this session. The
+    // in-memory `pendingAskQuestions` / `pendingPermissions` / `pendingPlans`
+    // maps start empty on a fresh Session instance — by definition, any
+    // unread `permission_request` / `ask_user_question` / `plan_approval_request`
+    // row in the DB tied to this sessionId is an orphan from a prior
+    // lifecycle (typical: dev-mode HMR rebuild between question creation
+    // and the user's answer; also: hard server crash, or any path that
+    // dropped the pending entry without firing markReadByRequestId).
+    // Without this sweep the badge ticks up on the tab strip and never
+    // clears, because actionable rows are excluded from the normal
+    // "I selected the tab" auto-read sweep (markReadBySession) by design.
+    // Fire-and-forget: failure to sweep is strictly cosmetic, must not
+    // block the SDK query from spinning up.
+    void notificationBus.sweepOrphanedActionableForSession(this.cwd, this.id);
+
+    // Seed the TodoWrite cutoff from the durable clear marker (if any)
+    // BEFORE the resume block below replays disk events. Without this seed
+    // every replayed `TodoWrite` / `TaskCreate` tool_use lands through
+    // `captureSnapshotState` and re-populates `latestTodosSnapshot` — the
+    // user's manual or auto-fired Clear would silently resurrect on every
+    // server start. With the seed, `at < latestTodosSnapshotAt` guards in
+    // both branches bounce pre-clear entries while admitting anything the
+    // model writes afterwards. Missing/malformed state stays at the
+    // `-Infinity` sentinel, which is `< any-finite-at`, so a fresh session
+    // admits every replay.
+    try {
+      const state = await getSessionState(this.cwd, this.id);
+      const clearedAt =
+        typeof state.todosClearedAt === "number" && Number.isFinite(state.todosClearedAt)
+          ? state.todosClearedAt
+          : null;
+      if (clearedAt != null) this.latestTodosSnapshotAt = clearedAt;
+      // Load persisted per-item overrides — applied to the snapshot AFTER
+      // disk replay finishes (see the `applyManualTodoOverrides` call
+      // below). Replay runs `captureSnapshotState` for every TodoWrite /
+      // TaskCreate / TaskUpdate event, and each of those branches clears
+      // the override for any id the model touched in the transcript. So
+      // by the time we apply, the override map only contains entries the
+      // model never engaged with — exactly the "user said done, model
+      // never acknowledged" case the per-item UI exists for.
+      const rawOverrides = state.manualTodoOverrides;
+      if (rawOverrides && typeof rawOverrides === "object" && !Array.isArray(rawOverrides)) {
+        const next: Record<string, "completed" | "pending" | "in_progress" | "deleted"> = {};
+        for (const [id, status] of Object.entries(rawOverrides as Record<string, unknown>)) {
+          if (typeof id !== "string" || !id) continue;
+          if (
+            status === "completed" ||
+            status === "pending" ||
+            status === "in_progress" ||
+            status === "deleted"
+          ) {
+            next[id] = status;
+          }
+        }
+        this.manualTodoOverrides = next;
+      }
+    } catch {
+      // best-effort: a missed read just falls back to the default sentinel
+    }
+
     // The SDK's `resume` option loads the conversation into the model's
     // context but does NOT re-emit historical events to our consumer
     // iterable. Read them from disk via `getSessionMessages` and broadcast
     // each into our buffer so SSE subscribers replay the full transcript.
+    //
+    // The `isReplayingTranscript` flag below tells `captureSnapshotState`
+    // it's processing HISTORICAL events, not live ones. The only path
+    // that respects it today is `clearManualTodoOverrideFor`: replayed
+    // events predate the user's persisted override (otherwise the
+    // override would have been cleared LIVE before persisting), so a
+    // replay-time clear would defeat the override durability we built.
+    // Live events after `start()` returns clear normally — that's the
+    // "model engaged with this id post-click, take over" semantic.
+    this.isReplayingTranscript = true;
     if (this.resumeFrom) {
       try {
         const loaded = await getSessionMessages(this.resumeFrom, {
@@ -1285,6 +1486,62 @@ export class Session {
       } catch {
         // ignore
       }
+    }
+    // Replay window is closed — from this point on, every
+    // `captureSnapshotState` call is processing a LIVE event, and
+    // `clearManualTodoOverrideFor` is allowed to drop overrides for ids
+    // the model touches going forward.
+    this.isReplayingTranscript = false;
+
+    // Stale-snapshot auto-clear. After the resume loop rebuilt
+    // `latestTodosSnapshot` from any TodoWrite/TaskCreate tool_uses in the
+    // JSONL, drop the list if its newest entry is older than
+    // `TODOS_AUTO_CLEAR_MS`. Catches the abandoned-session case (model
+    // finished a turn without closing items, user wandered off for a day)
+    // without poking the model. Recently-touched lists are left alone —
+    // the user might still be mid-plan. `clearTodos` writes the
+    // `todosClearedAt` marker, broadcasts the empty snapshot for any tab
+    // already attached, and bumps the cutoff so the synthetic post-replay
+    // snapshot in `subscribe()` paints `[]` for late subscribers too.
+    if (
+      this.latestTodosSnapshot &&
+      this.latestTodosSnapshot.length > 0 &&
+      Number.isFinite(this.latestTodosSnapshotAt) &&
+      Date.now() - this.latestTodosSnapshotAt > TODOS_AUTO_CLEAR_MS
+    ) {
+      await this.clearTodos("stale").catch(() => {});
+    }
+
+    // Apply manual per-item overrides on top of the replayed snapshot.
+    // Runs AFTER the staleness auto-clear (no point overriding items
+    // about to be wholesale dropped) and AFTER captureSnapshotState has
+    // already cleared overrides for ids the model touched in the
+    // transcript. Whatever survives is the "user said done, model never
+    // engaged" set — apply it directly to the snapshot. No broadcast
+    // here: this runs before `subscribe()` accepts its first subscriber,
+    // so the post-replay `session_snapshot` synthesized in `subscribe()`
+    // already paints the override-applied list.
+    this.applyManualTodoOverrides();
+
+    // All-completed auto-clear on resume. The live turn-end version of
+    // this check fires from `maybeAutoSyncTodosOnTurnEnd`, but a session
+    // that finished its work and then went idle (no further turn) would
+    // resurface the "6/6 All done" list to the user on every restart
+    // until they reached for the Clear button. Mirror the live check
+    // here so a JSONL-rebuild that lands in the all-completed state
+    // drops the list automatically — same honest signal (only the model
+    // produces the `"completed"` status), same `clearTodos("completed")`
+    // call path. Guarded on length>0 because `[].every(...)` is true on
+    // the empty array and we don't want to bump the cutoff for a list
+    // that wasn't there.
+    if (
+      this.latestTodosSnapshot &&
+      this.latestTodosSnapshot.length > 0 &&
+      this.latestTodosSnapshot.every(
+        (t) => (t as { status?: unknown }).status === "completed",
+      )
+    ) {
+      await this.clearTodos("completed").catch(() => {});
     }
 
     // Upsert into the per-project sessions index so the row exists from
@@ -1827,6 +2084,10 @@ export class Session {
           const p = this.pendingPlans.get(requestId);
           if (!p) return;
           this.pendingPlans.delete(requestId);
+          // Clear the matching inbox row so the per-tab badge for an
+          // aborted plan-approval doesn't linger as an orphan. Mirror of
+          // resolvePlan() — see drainPendingDecisions for the full rationale.
+          void notificationBus.markReadByRequestId(this.cwd, requestId);
           p.resolve({ behavior: "deny", message: "Aborted" });
           this.broadcastTurnStatusIfChanged();
         });
@@ -1862,6 +2123,10 @@ export class Session {
             const p = this.pendingAskQuestions.get(requestId);
             if (!p) return;
             this.pendingAskQuestions.delete(requestId);
+            // Clear the matching inbox row so an aborted question doesn't
+            // sit unread on the badge. Mirror of submitAskAnswer; see
+            // drainPendingDecisions for the full rationale.
+            void notificationBus.markReadByRequestId(this.cwd, requestId);
             p.resolve({ behavior: "deny", message: "Aborted" });
             this.broadcastTurnStatusIfChanged();
           });
@@ -1889,6 +2154,10 @@ export class Session {
         const pending = this.pendingPermissions.get(requestId);
         if (!pending) return;
         this.pendingPermissions.delete(requestId);
+        // Clear the matching inbox row so an aborted permission request
+        // doesn't sit unread on the badge. Mirror of resolvePermission; see
+        // drainPendingDecisions for the full rationale.
+        void notificationBus.markReadByRequestId(this.cwd, requestId);
         pending.resolve({ behavior: "deny", message: "Aborted" });
         this.broadcastTurnStatusIfChanged();
       });
@@ -2228,6 +2497,14 @@ export class Session {
       this.turnsSinceTodoWrite = 0;
     }
 
+    // Rearm the per-turn "did the agent touch the to-do list" detector for
+    // the upcoming assistant turn. Set BEFORE the inputQueue push so a
+    // racing `captureSnapshotState` (it runs synchronously off `broadcast`)
+    // observed before this line can't be silently overwritten — in practice
+    // `sendInput` runs before the SDK has consumed the queued message, so
+    // the assistant tool_uses can only land after this reset.
+    this.todosTouchedThisTurn = false;
+
     if (!images || images.length === 0) {
       const message = { role: "user" as const, content: text };
       this.broadcast({
@@ -2469,6 +2746,282 @@ export class Session {
     this.goalAnnounced = true; // nothing left to announce
     this.broadcastGoal();
     return this.goal;
+  }
+
+  /**
+   * Drop the agent's TodoWrite snapshot — the user-facing "this list is
+   * dead, stop showing it" lever. Wired from the chat-level `TodosBanner`
+   * Clear button and the rail's To-dos eraser; also re-invoked internally
+   * from `start()` for the staleness auto-clear.
+   *
+   * Always advances the cutoff, always persists the marker, always
+   * broadcasts the empty snapshot — even when the server-side
+   * `latestTodosSnapshot` is already null. That asymmetry-tolerant rule is
+   * load-bearing: the client's `latestTodos` and the server's snapshot are
+   * two independent accumulators. The client rebuilds its list from
+   * replayed `TodoWrite` / `TaskCreate` tool_use events on every reconnect,
+   * while the server snapshot can already be null from a prior auto-clear
+   * (whose cutoff bounced those replays). Skipping the broadcast in that
+   * state would no-op the click for every user whose UI is showing a
+   * rebuilt list — the exact "Clear button does nothing" symptom we
+   * saw. Idempotent for honestly-empty cases, load-bearing for the
+   * asymmetric one.
+   *
+   * Durability rides on `mergeSessionState({ todosClearedAt })`: a later
+   * server restart that rebuilds from disk JSONL replays every `TodoWrite`
+   * / `TaskCreate` through `captureSnapshotState`, and the seeded
+   * `latestTodosSnapshotAt` cutoff bounces every pre-clear entry. The
+   * `subscribe()` synthetic snapshot then paints `[]` for late
+   * subscribers, overriding any list the client may have rebuilt from the
+   * SSE-replayed tool_use events that the cutoff bounced server-side but
+   * couldn't pull off the wire.
+   */
+  async clearTodos(reason: "manual" | "stale" | "completed" = "manual"): Promise<void> {
+    const prevCount = this.latestTodosSnapshot?.length ?? 0;
+    const at = Date.now();
+    // Set in-memory state first so a racing `TodoWrite` tool_use (already
+    // observed but not yet captured by `broadcast()`) lands AFTER the
+    // cutoff and survives the clear.
+    this.latestTodosSnapshot = null;
+    this.latestTodosSnapshotAt = at;
+    this.pendingTaskCreates.clear();
+    // Rearm the stale-TodoWrite turn counter — we don't want the next
+    // turn to immediately fire the gentle nudge (the list is gone; there's
+    // nothing left to "prune").
+    this.turnsSinceTodoWrite = 0;
+    try {
+      await mergeSessionState(this.cwd, this.id, { todosClearedAt: at });
+    } catch {
+      // best-effort: a missed marker would let a future server restart
+      // re-replay the JSONL TodoWrites; the live broadcast below still
+      // gives every connected tab an empty state immediately.
+    }
+    this.broadcast({ type: "session_snapshot", todos: [] });
+    if (sessLoadDebug()) {
+
+      console.log("[sess-load] clearTodos", { id: this.id, reason, prevCount });
+    }
+  }
+
+  /**
+   * Apply persisted `manualTodoOverrides` to `latestTodosSnapshot` in
+   * place. Pure transform — no broadcast, no persist (the overrides are
+   * already in `this.manualTodoOverrides` and on disk via the prior
+   * `updateTodoItem` calls that wrote them). Called from `start()` AFTER
+   * disk replay finishes and the staleness auto-clear has had its say.
+   *
+   * Semantics:
+   *   - `"deleted"` → drop the item from the snapshot entirely.
+   *   - `"completed"` / `"pending"` / `"in_progress"` → replace the
+   *     status field, leave the rest of the entry alone.
+   *   - Override for an id that doesn't appear in the snapshot → no-op
+   *     (the model already pruned it; the override is moot but harmless
+   *     to keep around in case the model re-emits the same id later).
+   *
+   * Idempotent on an empty / null snapshot: nothing to apply to, returns
+   * without touching state. Returns the number of overrides actually
+   * applied so callers/tests can assert observable effect without
+   * re-reading the snapshot.
+   */
+  private applyManualTodoOverrides(): number {
+    if (!this.latestTodosSnapshot || this.latestTodosSnapshot.length === 0) return 0;
+    if (Object.keys(this.manualTodoOverrides).length === 0) return 0;
+    let applied = 0;
+    let next = this.latestTodosSnapshot;
+    for (const [id, action] of Object.entries(this.manualTodoOverrides)) {
+      if (action === "deleted") {
+        const before = next.length;
+        next = next.filter((t) => (t as Record<string, unknown>).id !== id);
+        if (next.length !== before) applied += 1;
+        continue;
+      }
+      let didApply = false;
+      next = next.map((t) => {
+        const entry = t as Record<string, unknown>;
+        if (entry.id !== id) return t;
+        didApply = true;
+        return { ...entry, status: action };
+      });
+      if (didApply) applied += 1;
+    }
+    this.latestTodosSnapshot = next;
+    return applied;
+  }
+
+  /**
+   * User-driven per-item mutation — the "I'll mark this myself, I don't
+   * need the model to acknowledge it" lever. Invoked from the chat-level
+   * `TodosBanner` (clickable icon / × button) and the rail's To-dos
+   * widget. Distinct from `clearTodos` (full wipe) and from anything the
+   * model itself emits (TodoWrite / TaskUpdate).
+   *
+   * Mutation semantics:
+   *   - `"complete"` → flip `status` to `"completed"` on the matching item.
+   *   - `"reopen"` → flip `status` to `"pending"` (un-complete or re-open
+   *     a model-completed item the user disagrees with).
+   *   - `"in_progress"` → flip `status` to `"in_progress"` (rare; offered
+   *     for symmetry with the model's own status set).
+   *   - `"delete"` → filter the matching item out of the snapshot.
+   *
+   * Override persistence rides on `mergeSessionState({manualTodoOverrides})`:
+   * a server restart that rebuilds from disk JSONL replays the model's
+   * pre-override transcript through `captureSnapshotState`, and the
+   * persisted overrides are then re-applied on top via
+   * `applyManualTodoOverrides` from `start()`. Clear-on-touch is wired in
+   * `captureSnapshotState`'s TodoWrite / TaskCreate / TaskUpdate branches:
+   * once the model engages with the id, the override is dropped so the
+   * model's fresh assertion wins.
+   *
+   * Cutoff: bumps `latestTodosSnapshotAt = at` so a concurrent late
+   * `TodoWrite` / `TaskCreate` tool_use observed but not yet processed by
+   * `broadcast()` lands AFTER the cutoff — protects the user's click from
+   * being overwritten by a stale snapshot replacement in the same turn.
+   * Same shape as `clearTodos`.
+   *
+   * Returns `{ok: false, error}` for diagnosable failure modes:
+   *   - No snapshot (after a wholesale Clear): nothing to mutate.
+   *   - Item id not present in snapshot: stale UI, no-op.
+   *
+   * On success, mutates in-memory state, persists the override, and
+   * broadcasts the updated snapshot so every connected tab repaints.
+   */
+  async updateTodoItem(
+    itemId: string,
+    action: "complete" | "reopen" | "in_progress" | "delete",
+  ): Promise<{ ok: true } | { ok: false; error: string }> {
+    if (!itemId || typeof itemId !== "string") {
+      return { ok: false, error: "invalid item id" };
+    }
+    if (!this.latestTodosSnapshot || this.latestTodosSnapshot.length === 0) {
+      return { ok: false, error: "no active todo list" };
+    }
+    const exists = this.latestTodosSnapshot.some(
+      (t) => (t as Record<string, unknown>).id === itemId,
+    );
+    if (!exists) {
+      return { ok: false, error: "item not found" };
+    }
+    const at = Date.now();
+    const overrideStatus: "completed" | "pending" | "in_progress" | "deleted" =
+      action === "complete"
+        ? "completed"
+        : action === "reopen"
+        ? "pending"
+        : action === "in_progress"
+        ? "in_progress"
+        : "deleted";
+    // Mutate in-memory snapshot synchronously so a racing `captureSnapshotState`
+    // sees the new state on its next read. Set the cutoff to `at` so any
+    // pre-update TodoWrite/TaskCreate replays that arrive after this point
+    // can't undo the change. We DON'T null the snapshot the way
+    // `clearTodos` does — this is a targeted item edit, not a wipe.
+    if (overrideStatus === "deleted") {
+      this.latestTodosSnapshot = this.latestTodosSnapshot.filter(
+        (t) => (t as Record<string, unknown>).id !== itemId,
+      );
+    } else {
+      this.latestTodosSnapshot = this.latestTodosSnapshot.map((t) => {
+        const entry = t as Record<string, unknown>;
+        if (entry.id !== itemId) return t;
+        return { ...entry, status: overrideStatus };
+      });
+    }
+    this.latestTodosSnapshotAt = at;
+    this.manualTodoOverrides = { ...this.manualTodoOverrides, [itemId]: overrideStatus };
+    try {
+      await mergeSessionState(this.cwd, this.id, {
+        manualTodoOverrides: this.manualTodoOverrides,
+      });
+    } catch {
+      // best-effort: a missed persist would let a future server restart
+      // re-show the un-overridden state; the live broadcast below still
+      // updates every connected tab immediately.
+    }
+    this.broadcast({
+      type: "session_snapshot",
+      todos: this.latestTodosSnapshot ?? [],
+    });
+    return { ok: true };
+  }
+
+  /**
+   * Drop a single manual override from the LIVE in-memory set, and persist
+   * the change. Called from `captureSnapshotState` whenever the model
+   * touches an id that has an active override — the model is asserting a
+   * fresh fact about that id, so the user's stale override should not
+   * survive into the next replay.
+   *
+   * Skipped entirely while `isReplayingTranscript` is true. By invariant,
+   * anything in the persisted override map represents user clicks that
+   * the live model NEVER ENGAGED WITH (live `clearManualTodoOverrideFor`
+   * already wiped the override on the first model touch, and the wipe
+   * was persisted). Replayed historical events therefore predate every
+   * surviving override, and a replay-time clear would defeat exactly the
+   * cross-restart durability the override map exists to provide.
+   *
+   * Fire-and-forget on the persist side: a missed write just means the
+   * override re-appears on next restart and we'll clear it again on the
+   * next live model touch. No correctness gap, just an extra cycle.
+   */
+  private clearManualTodoOverrideFor(itemId: string): void {
+    if (this.isReplayingTranscript) return;
+    if (!(itemId in this.manualTodoOverrides)) return;
+    const next = { ...this.manualTodoOverrides };
+    delete next[itemId];
+    this.manualTodoOverrides = next;
+    void mergeSessionState(this.cwd, this.id, {
+      manualTodoOverrides: this.manualTodoOverrides,
+    }).catch(() => {});
+  }
+
+  /**
+   * Turn-end to-do sync — invoked from the `consume()` `result` handler
+   * on `subtype: "success"`. Two honest paths (see the call site for the
+   * destructiveness rationale):
+   *
+   *   - ALL-COMPLETED: every snapshot item has `status === "completed"`.
+   *     The model itself produced the "completed" status; the list has
+   *     no live work left to surface. Clear via `clearTodos("completed")`
+   *     so the banner and rail repaint empty without the user reaching
+   *     for the Clear button. Note: `[].every(...)` is true on the empty
+   *     array, so the explicit length>0 gate matters.
+   *
+   *   - PER-TURN AWARENESS: any open snapshot (at least one item with a
+   *     non-completed status) → queue a one-shot `todos-current` reminder
+   *     for the user's NEXT turn that dumps the live list as context.
+   *     Fires every turn (no cadence), drops the prior "ignore if not
+   *     applicable" softener, and the `todosTouchedThisTurn` flag is
+   *     deliberately NOT consulted — keeping the list resident every turn
+   *     matches Claude Code's CLI behavior and avoids the "model touched
+   *     once 4 turns ago, list now stale" failure mode the old cadence
+   *     left open. A turn that DID touch the list still gets the next-turn
+   *     reminder; the body shows the new state and is no-op for the model.
+   *
+   * Best-effort: a `clearTodos` reject is swallowed so a transient DB
+   * write failure doesn't crash the iterator's result handler.
+   */
+  private async maybeAutoSyncTodosOnTurnEnd(): Promise<void> {
+    const snapshot = this.latestTodosSnapshot;
+    // Rearm at the END of every turn so a disk-replay path that left the
+    // flag set to `true` (from historical TodoWrites) can't bleed into the
+    // FIRST live turn's decisions downstream. The `sendInput` reset stays
+    // as belt-and-suspenders for the sane path.
+    this.todosTouchedThisTurn = false;
+    // No snapshot or empty list → nothing to keep the model aware of.
+    if (!snapshot || snapshot.length === 0) return;
+    const allCompleted = snapshot.every(
+      (t) => (t as { status?: unknown }).status === "completed",
+    );
+    if (allCompleted) {
+      await this.clearTodos("completed").catch(() => {});
+      return;
+    }
+    // Open items remain — queue the awareness reminder for next turn. We
+    // pass the full snapshot (including any completed items) so the model
+    // sees the actual state — strikethroughs and all — not a filtered view
+    // that would let it forget items it already finished.
+    const body = todosCurrentReminderBody(snapshot);
+    queueReminder(this, "todos-current", body);
   }
 
   /**
@@ -3557,8 +4110,15 @@ export class Session {
       return;
     }
     const denyResult: PermissionResult = { behavior: "deny", message: reason };
+    // Also clear the matching inbox rows for every drained entry. Without
+    // this, draining (session end / reaper / abort cascade safety-net) leaves
+    // the actionable notification rows unread forever — the user sees a
+    // stale per-tab badge for a request the agent can no longer answer.
+    // Mirror the resolve* paths (submitAskAnswer, resolvePermission,
+    // resolvePlan), which all fire markReadByRequestId on the normal path.
     for (const [id, p] of this.pendingPermissions) {
       this.pendingPermissions.delete(id);
+      void notificationBus.markReadByRequestId(this.cwd, id);
       try {
         p.resolve(denyResult);
       } catch {
@@ -3567,6 +4127,7 @@ export class Session {
     }
     for (const [id, p] of this.pendingAskQuestions) {
       this.pendingAskQuestions.delete(id);
+      void notificationBus.markReadByRequestId(this.cwd, id);
       try {
         p.resolve(denyResult);
       } catch {
@@ -3575,6 +4136,7 @@ export class Session {
     }
     for (const [id, p] of this.pendingPlans) {
       this.pendingPlans.delete(id);
+      void notificationBus.markReadByRequestId(this.cwd, id);
       try {
         p.resolve(denyResult);
       } catch {
@@ -3747,10 +4309,23 @@ export class Session {
     // chain. Either way `replay_done` alone leaves the client without
     // the "what was I asking?" anchor. Both pieces of state ride on the
     // same snapshot event so reconnect paints them atomically.
-    if (this.latestTodosSnapshot || this.latestUserPromptSnapshot) {
+    //
+    // The `todos` field is the AUTHORITATIVE post-replay state — emit it
+    // whenever any todos activity has been observed in this session
+    // (`latestTodosSnapshotAt` is finite), not only when the snapshot is
+    // truthy. After a clear the snapshot is null, but the client has been
+    // rebuilding its own `latestTodos` from each replayed `TodoWrite` /
+    // `TaskCreate` tool_use that arrived in the SSE stream — the cutoff
+    // guards bounce those server-side but can't pull them off the wire.
+    // Painting an explicit `[]` here overrides the client's rebuilt list,
+    // closing the cross-restart durability gap the cutoff alone leaves
+    // open. For a session that's never seen a TodoWrite, this stays a
+    // no-op (the field isn't emitted at all).
+    const hasTodosActivity = Number.isFinite(this.latestTodosSnapshotAt);
+    if (hasTodosActivity || this.latestUserPromptSnapshot) {
       fn({
         type: "session_snapshot",
-        ...(this.latestTodosSnapshot ? { todos: this.latestTodosSnapshot } : {}),
+        ...(hasTodosActivity ? { todos: this.latestTodosSnapshot ?? [] } : {}),
         ...(this.latestUserPromptSnapshot
           ? { lastUserPrompt: this.latestUserPromptSnapshot }
           : {}),
@@ -4174,18 +4749,59 @@ export class Session {
               if (c?.type === "text" && c.text) resultText += c.text;
             }
           }
-          try {
-            const payload = JSON.parse(resultText) as { task?: { id?: string } };
-            const realId = payload?.task?.id;
-            if (realId && this.latestTodosSnapshot) {
-              this.latestTodosSnapshot = this.latestTodosSnapshot.map((t) =>
-                (t as Record<string, unknown>).id === toolUseId
-                  ? { ...(t as Record<string, unknown>), id: realId }
-                  : t,
-              );
+          // The in-process TaskCreate tool returns a PLAIN STRING — the
+          // shape is `"Task #N created successfully: <subject>"` — NOT
+          // JSON. The prior implementation only handled `JSON.parse` →
+          // `{task: {id: "N"}}` and silently fell through to the catch,
+          // leaving the temp `tool_use_id` (e.g. `toolu_01H4...`) in the
+          // snapshot. Every subsequent `TaskUpdate {taskId: "N"}` then
+          // mismatched (snapshot had a temp id, model used the real
+          // numeric id) and got dropped — producing the user-visible
+          // "6 items, none ever marked completed" bug.
+          //
+          // We try the plain-string regex FIRST because that's the live
+          // shape; the JSON fallback handles any future SDK / tool
+          // variant that decides to return structured output instead.
+          let realId: string | null = null;
+          const match = /Task #(\S+)\s+created/i.exec(resultText);
+          if (match && match[1]) {
+            realId = match[1];
+          } else {
+            try {
+              const payload = JSON.parse(resultText) as { task?: { id?: string } };
+              if (typeof payload?.task?.id === "string" && payload.task.id) {
+                realId = payload.task.id;
+              }
+            } catch {
+              // Neither regex nor JSON matched — leave temp-id entry in
+              // place. The user-facing failure is the same as before
+              // (TaskUpdate won't find the item), but at least the
+              // snapshot still shows the item exists.
             }
-          } catch {
-            // Parsing failed; leave temp-id entry in place.
+          }
+          if (realId && this.latestTodosSnapshot) {
+            const promotedId = realId;
+            this.latestTodosSnapshot = this.latestTodosSnapshot.map((t) =>
+              (t as Record<string, unknown>).id === toolUseId
+                ? { ...(t as Record<string, unknown>), id: promotedId }
+                : t,
+            );
+            // If the user had an override keyed by the temp tool_use_id
+            // (rare — they'd have had to click before the tool_result
+            // landed), migrate it to the real id so the override survives
+            // the promotion.
+            if (toolUseId in this.manualTodoOverrides) {
+              const status = this.manualTodoOverrides[toolUseId];
+              const next = { ...this.manualTodoOverrides };
+              delete next[toolUseId];
+              next[promotedId] = status;
+              this.manualTodoOverrides = next;
+              if (!this.isReplayingTranscript) {
+                void mergeSessionState(this.cwd, this.id, {
+                  manualTodoOverrides: this.manualTodoOverrides,
+                }).catch(() => {});
+              }
+            }
           }
         }
       }
@@ -4241,6 +4857,16 @@ export class Session {
           if (at >= this.latestTodosSnapshotAt) {
             this.latestTodosSnapshot = raw;
             this.latestTodosSnapshotAt = at;
+            // Clear manual overrides for any id the model just touched —
+            // the model is asserting fresh state for these items, so the
+            // user's prior overrides are stale. Ids absent from `raw` are
+            // implicitly deleted by the model and survive as overrides
+            // harmlessly (the snapshot doesn't contain them, so the
+            // override is moot until the model re-emits the same id).
+            for (const entry of raw as Array<Record<string, unknown>>) {
+              const id = typeof entry?.id === "string" ? entry.id : null;
+              if (id) this.clearManualTodoOverrideFor(id);
+            }
           }
         }
         // Feature 31 parity: rearm the stale-TodoWrite counter on any
@@ -4248,12 +4874,27 @@ export class Session {
         // historical write resetting 0 → 0 is harmless, and it keeps the
         // counter aligned with what the agent has actually done.
         this.turnsSinceTodoWrite = 0;
+        // Turn-end awareness nudge: bookkeeping for any future cadence-
+        // dependent reminder that wants to know whether the agent
+        // touched the list this turn. (The current `todos-current`
+        // reminder fires every turn regardless, so this flag is no longer
+        // load-bearing for it — kept for symmetry and as a hook for
+        // future per-turn decisions.)
+        this.todosTouchedThisTurn = true;
         continue;
       }
 
       // TaskCreate — add pending entry to snapshot (keyed by tool_use_id);
       // real id arrives via the matching tool_result.
       if (block.name === "TaskCreate" && typeof block.id === "string") {
+        // Same cutoff the TodoWrite branch uses (~line 4226 below) — bounce
+        // any pre-clear replay so a manual / staleness clear survives a
+        // server restart for `TaskCreate`-built lists too (the preferred
+        // task-tool path; `TodoWrite` is the legacy fallback). Without this
+        // a fresh process would silently resurrect cleared items: the dedup
+        // guards alone don't catch a pre-clear entry that hasn't been
+        // observed yet.
+        if (at < this.latestTodosSnapshotAt) continue;
         if (this.pendingTaskCreates.has(block.id)) continue; // dedup on replay
         // Also skip if already promoted (replayed tool_use after tool_result).
         if (this.latestTodosSnapshot?.some((t) => (t as Record<string, unknown>).id === block.id)) continue;
@@ -4274,6 +4915,13 @@ export class Session {
           },
         ];
         if (at >= this.latestTodosSnapshotAt) this.latestTodosSnapshotAt = at;
+        // Mark the turn as having touched the to-do list — see TodoWrite
+        // branch above for the rationale.
+        this.todosTouchedThisTurn = true;
+        // Model created this item, so any pre-existing override keyed by
+        // the same id is now stale (rare — the temp tool_use_id is fresh
+        // per turn, but a user-typed id collision is possible).
+        this.clearManualTodoOverrideFor(block.id);
         continue;
       }
 
@@ -4297,6 +4945,12 @@ export class Session {
             return updated;
           });
         }
+        // Mark the turn as having touched the to-do list — see TodoWrite
+        // branch above for the rationale.
+        this.todosTouchedThisTurn = true;
+        // The model engaged with this specific id; drop any active user
+        // override so the model's fresh assertion wins on the next replay.
+        this.clearManualTodoOverrideFor(taskId);
         continue;
       }
     }
@@ -4617,6 +5271,30 @@ export class Session {
             // unrelated 529 doesn't ride a stale count into the nudge. The
             // nudge itself is fire-once per session lifetime regardless.
             this.opusOverloadStreak = 0;
+            // Turn-end to-do synchronization (Claudius-specific, not CLI
+            // parity). Two tiers, both gated on `subtype: "success"` so an
+            // errored / aborted turn — where we have no reason to believe
+            // the model finished anything cleanly — never trips either:
+            //
+            //   1. ALL-COMPLETED auto-clear: if the snapshot has items and
+            //      every one is `status === "completed"`, drop the list
+            //      via `clearTodos("completed")`. Honest — only the model
+            //      can produce a "completed" status, so we're not
+            //      fabricating completion, just expiring a list the agent
+            //      itself declared done.
+            //
+            //   2. PER-TURN AWARENESS: if the snapshot has open items,
+            //      queue a one-shot `todos-current` reminder for the next
+            //      user turn dumping the live list as context. Fires every
+            //      turn (no cadence) so the model is reasoning over the
+            //      live state instead of a snapshot it captured several
+            //      turns ago. We deliberately don't auto-delete stale
+            //      items: only the model can decide whether an unfinished
+            //      todo is abandoned or paused, and a silent drop on every
+            //      turn would shred long-running plans the user still
+            //      expects to see (the user has manual per-item controls
+            //      for that case — see `updateTodoItem`).
+            void this.maybeAutoSyncTodosOnTurnEnd();
           }
           // Turn boundary — release the per-turn overload dedupe so the next
           // turn's first 529 signal can bump the streak again. Cleared on

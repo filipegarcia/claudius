@@ -145,7 +145,8 @@ A `visibilitychange` listener also fires the same auto-read sweep when a tab bec
 
 - **No auto-clear on visibility gestures.** Switching to the tab, foregrounding the window, or sitting on the session while the row arrives must NOT mark them read — the agent is blocked, and clearing them silently would leave only the modal as a cue (which the user can minimize).
 - **No same-session OS-toast suppression.** Even when the user is foregrounded on the session that just asked the question, the OS popup still fires. The user may have Cmd-Tab'd to another app between submitting the turn and the question coming back — `document.hidden` stays `false` while the Claudius tab is foregrounded but another app has focus, so without this carve-out the popup is silently dropped exactly when the user needs it most.
-- **Cleared only by `markReadByRequestId`.** Fired server-side from the resolver paths (`resolvePermission`, `submitAskAnswer`, `resolvePlan`) once the user has actually answered.
+- **Cleared only by `markReadByRequestId`.** Fired server-side from the resolver paths (`resolvePermission`, `submitAskAnswer`, `resolvePlan`) once the user has actually answered. The defensive cleanup paths — per-tool `ctx.signal` abort listeners and `drainPendingDecisions` (session reap / `end()`) — also fire `markReadByRequestId` for every entry they drop, so a session that gets reaped or aborted mid-question doesn't leave an unresolvable badge behind.
+- **Orphan sweep at `Session.start()`.** A fresh `Session` instance has empty `pendingAskQuestions` / `pendingPermissions` / `pendingPlans` maps by construction, so any unread actionable row in the DB tied to its session id is by definition orphaned from a prior lifecycle (dev-mode HMR rebuild, hard server crash, anywhere the abort cascade didn't run). `notificationBus.sweepOrphanedActionableForSession(cwd, sessionId)` runs once at `start()` and marks those rows read so the per-tab badge clears on the next page load. Without this sweep the badge would persist forever — the normal "I selected the tab" auto-read (`markReadBySession`) excludes actionable kinds on purpose.
 
 These rules are enforced in **three** places that must stay in sync — if you ever add a fourth actionable kind, audit all three:
 
@@ -173,11 +174,13 @@ Stored in `WorkspaceDefaults.notifications` ([`lib/shared/notifications.ts`](../
 
 ```ts
 type WorkspaceNotificationPrefs = {
-  enabled?: boolean;                  // master switch
+  enabled?: boolean;                  // master switch — undefined = enabled (see below)
   onClick?: "jump" | "dismiss";       // default: "jump"
   enabledKinds?: NotificationKind[];  // default: DEFAULT_ENABLED_KINDS
 };
 ```
+
+**Default-on semantics for `enabled`.** Absent (`undefined`) is treated as enabled across every read site: the runtime gate (`useNotifications.ts`), the workspace settings form (`/workspace`), and the server-side `isKindEnabled` filter. Only an EXPLICIT `enabled: false` (the user toggled it off) disables the workspace. This avoids the silent "Workspace notifications: Off" surprise on fresh/migrated workspaces — when the user has never seen a toggle they shouldn't have to find one to make notifications work. The three sites MUST stay in sync; if you add a new reader, use the `prefs?.enabled !== false` form (NOT `!!prefs?.enabled`, which flips absent to `false`).
 
 UI: [`app/[workspaceId]/workspace/page.tsx`](../app/[workspaceId]/workspace/page.tsx) — master toggle, click behavior, default-on kinds checkboxes, opt-in kinds. When the user unchecks a kind, the page POSTs `/api/notifications/read-by-kind` to clear that kind's backlog.
 
@@ -261,8 +264,13 @@ The bus uses a `BUS_BUILD_TAG` marker on `globalThis` to migrate these across re
 
 ## 9. Diagnosing common issues
 
+**First check: the workspace's notifications switch.** Pretty much every "no toast fires anywhere" report eventually traces back to `WorkspaceDefaults.notifications.enabled === false`, or — historically — `undefined` being treated as "off" in the renderer hook while the server still persisted rows. Open the bell-icon popover in the session status line, or `/workspace`, and confirm **"Workspace notifications: On"**. The test-notification button under that popover deliberately bypasses every gate and is the fastest way to prove the OS path is healthy: if the test pings but real notifications don't, the workspace switch (or a per-session block / snooze) is the culprit, not the bus.
+
+As of the default-on change, fresh / unmigrated workspaces report `On` automatically — only an explicit user toggle to `false` disables. Mirrored across three sites: the runtime gate (`useNotifications`), the workspace settings page (`/workspace`), and the server-side `isKindEnabled`. If you change one, change the other two.
+
 | Symptom                                          | Likely cause                                                                                   | Where to look                                                            |
 |--------------------------------------------------|------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------|
+| **No toasts fire but the test-notification works** | Workspace switch is off (or absent and the resolver isn't using the default-on `!== false` form). The test-notification deliberately bypasses `enabled` so it works regardless — that asymmetry is exactly what makes this diagnostic. | `enabled = prefs?.enabled !== false` in `useNotifications.ts`; mirror in `/workspace` page; `isKindEnabled` in `notification-bus.ts` |
 | **Session finished but no `session_idle` notification, status stuck on "running"** | Same root cause — see §10. SDK never emitted `result`, or a `pending*` map didn't clean up, or `markUserInput` was never called for this session. | §10 below                                                |
 | Badge stuck after resolving permission           | `markReadByRequestId` not called from resolver; or `requestId` mismatch                        | resolve handler in [`lib/server/session.ts`](../lib/server/session.ts), `markReadByRequestId` |
 | OS toast doesn't fire when tab is hidden         | Browser permission not granted; or kind is background-suppressible and session has no subscribers | `useNotifications.ts`, `isBackgroundSuppressible` in bus                 |
@@ -273,6 +281,7 @@ The bus uses a `BUS_BUILD_TAG` marker on `globalThis` to migrate these across re
 | Drawer empty but favicon shows count             | Drawer query filter (50 most recent, unread, scope) mismatched with the count source           | `NotificationsDrawer.tsx`, `/api/notifications` GET                     |
 | Notification fires for active session            | Visibility/auto-read gate not running — check `document.hidden` and URL `sessionId` parsing    | `NotificationsProvider` `sameSessionVisible` block                       |
 | Actionable kind (permission / ask / plan) doesn't pop a toast when you're on the asking session | Same-session OS-toast suppression missing the `!isActionableKind(row.kind)` carve-out — see §4.2, rule #3 | `useNotifications.notify` gate                                           |
+| Per-tab badge stuck on an actionable row long after the modal is gone | Pending entry dropped without firing `markReadByRequestId` (server restart, HMR, reap, abort cascade). The `Session.start()` sweep is the catch-all; the per-tool abort handlers and `drainPendingDecisions` cover in-session drops. | `sweepOrphanedActionableForSession` in `notification-bus.ts`; `drainPendingDecisions` and the three `ctx.signal.addEventListener("abort", ...)` blocks in `session.ts` |
 
 ---
 

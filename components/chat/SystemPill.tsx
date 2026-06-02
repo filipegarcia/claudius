@@ -280,6 +280,11 @@ function RateLimitPill({
     !!levers?.onStepEffortDown &&
     !!levers.effort &&
     HIGH_EFFORT_LEVELS.has(levers.effort);
+  // "Change the threshold" link — paired with the burn-down chips so a user
+  // who'd rather hush the warning than switch model/effort can jump straight
+  // to the preset that controls when this pill fires. Always offered on a
+  // soft warning (the rejected branch is a hard stop the user must see).
+  const showThresholdChip = status === "allowed_warning";
 
   return (
     <div className={`my-2 rounded-md border px-3 py-2 text-[11px] leading-5 ${tone}`}>
@@ -316,15 +321,18 @@ function RateLimitPill({
         </div>
       )}
 
-      {/* Soft-warning remediation chips. Surfaced only on `allowed_warning`,
-          and only when the active session is on a model/effort the lever can
-          actually burn down — Sonnet pivot for Opus sessions, effort step-down
-          for high/xhigh/max. Mirrors the CLI's "try /model sonnet" /
-          "try /effort medium" hints with one-click affordances that reuse the
-          existing setModel/setEffort plumbing. */}
-      {(showSonnetChip || showEffortChip) && (
+      {/* Soft-warning remediation chips. Surfaced on `allowed_warning`. The
+          model/effort chips appear only when the active session is on a
+          model/effort the lever can actually burn down — Sonnet pivot for
+          Opus sessions, effort step-down for high/xhigh/max — mirroring the
+          CLI's "try /model sonnet" / "try /effort medium" hints with
+          one-click affordances that reuse the existing setModel/setEffort
+          plumbing. The "change the threshold" link is always offered so a
+          user who'd rather hush the warning than burn down can jump straight
+          to the preset that controls when this pill fires. */}
+      {(showSonnetChip || showEffortChip || showThresholdChip) && (
         <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-current/10 pt-1.5">
-          <span className="opacity-70">Burn down faster:</span>
+          <span className="opacity-70">Slow your burn:</span>
           {showSonnetChip && (
             <button
               type="button"
@@ -344,6 +352,15 @@ function RateLimitPill({
             >
               try /effort medium
             </button>
+          )}
+          {showThresholdChip && (
+            <Link
+              href="/settings#rate-limit-warning"
+              className="rounded border border-current/30 bg-current/10 px-1.5 py-0.5 font-medium hover:bg-current/20"
+              title="Change the utilization % at which this warning fires"
+            >
+              change the threshold
+            </Link>
           )}
         </div>
       )}

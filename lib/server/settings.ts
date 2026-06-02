@@ -48,6 +48,18 @@ export type ClaudeSettings = {
   // and (matching the CLI's `cooldownSessions:0` for overrides) ride the same
   // dismiss-weighting as everything else — see DISMISSED_TIP_SHOW_PROBABILITY.
   spinnerTipsOverride?: { excludeDefault?: boolean; tips?: string[] };
+  // Community chat preferences. Persisted at the user scope so the
+  // first-visit consent prompt and the nickname picker don't reappear
+  // after a Claudius upgrade, an Electron reinstall, or a switch
+  // between the desktop app and the browser — they all share the same
+  // `~/.claude/settings.json`.
+  //   • `communityConsent` — "yes" the user has opted in to opening
+  //     an SSE connection to the chat-server; "no" they've opted out.
+  //     Undefined means "no decision yet" (show the prompt).
+  //   • `communityNick` — the nickname they picked on first connect.
+  //     Undefined means "ask them on next connect."
+  communityConsent?: "yes" | "no";
+  communityNick?: string;
   // Catch-all for keys we don't yet know about — we never strip them.
   [key: string]: unknown;
 };

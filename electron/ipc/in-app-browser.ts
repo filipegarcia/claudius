@@ -34,7 +34,7 @@ import {
   type Session,
 } from "electron";
 
-import { isHttpUrl } from "./link-target";
+import { getLinkTarget, isHttpUrl } from "./link-target";
 
 /** Lazily-created so we don't pay the cost when the user keeps "external". */
 let viewerSession: Session | null = null;
@@ -92,17 +92,22 @@ export function openInAppBrowser(url: string): BrowserWindow | null {
     if (!win.getTitle() || win.getTitle() === url) win.setTitle(navigatedUrl);
   });
 
-  // Recursive policy: links inside the viewer also open in viewer windows.
-  // We DON'T re-read the user's "in-app vs external" preference here —
-  // once they're inside the viewer they've opted into in-app browsing,
-  // and bouncing some link back to Safari mid-flow is confusing. They can
-  // copy the URL out via the address-bar-equivalent or right-click if
-  // they want to escape.
+  // Recursive policy: respect the user's CURRENT preference per click.
+  // If they've switched back to "Default browser" since opening this
+  // viewer, links inside the viewer should also escape to the OS browser
+  // — the alternative (keep sticky-in-app forever once a viewer is open)
+  // surprises users who don't realise an old viewer window is hijacking
+  // their clicks. Non-http schemes always go to the OS handler.
   win.webContents.setWindowOpenHandler(({ url: childUrl }) => {
-    if (isHttpUrl(childUrl)) {
+    if (!isHttpUrl(childUrl)) {
+      void shell.openExternal(childUrl).catch(() => {
+        // best-effort
+      });
+      return { action: "deny" };
+    }
+    if (getLinkTarget() === "in-app") {
       openInAppBrowser(childUrl);
     } else {
-      // Non-http schemes (mailto:, claudius://, …) always go to the OS.
       void shell.openExternal(childUrl).catch(() => {
         // best-effort
       });

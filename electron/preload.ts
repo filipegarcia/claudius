@@ -18,7 +18,7 @@
  *  - No `BrowserWindow` / `Menu` / `Notification` constructors here;
  *    those live in main.
  */
-import { contextBridge, ipcRenderer } from "electron";
+import { contextBridge, ipcRenderer, webUtils } from "electron";
 
 // Topic names — keep these in sync with `electron/main.ts` once each
 // phase adds the matching handler. The convention is
@@ -66,7 +66,7 @@ function subscribe<T>(
 const api = {
   isElectron: true as const,
   platform: process.platform,
-  bridgeVersion: 5 as const,
+  bridgeVersion: 6 as const,
 
   menu: {
     on(action: string, cb: () => void): () => void {
@@ -170,6 +170,31 @@ const api = {
      */
     set: (target: "external" | "in-app") =>
       ipcRenderer.send(TOPICS.linkTargetSet, target),
+  },
+
+  files: {
+    /**
+     * Resolve a dropped (or picked) `File` to its absolute filesystem
+     * path. The HTML5 File API only exposes the basename via `file.name`;
+     * `webUtils.getPathForFile` is Electron's modern (≥32) replacement
+     * for the deprecated `file.path` getter and is the supported way to
+     * recover the full OS path inside a sandboxed renderer.
+     *
+     * Returns `null` when Electron can't recover a path — e.g. a `File`
+     * synthesised from a `Blob` rather than backed by a real file on
+     * disk. Callers should treat that as "no path available" and fall
+     * back to `file.name`.
+     *
+     * Added in bridgeVersion 6.
+     */
+    getPath(file: File): string | null {
+      try {
+        const p = webUtils.getPathForFile(file);
+        return p ? p : null;
+      } catch {
+        return null;
+      }
+    },
   },
 };
 

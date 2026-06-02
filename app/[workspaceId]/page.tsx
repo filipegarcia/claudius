@@ -56,10 +56,6 @@ function todayKey(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-function todosFingerprint(todos: { id: string; status: string }[]): string {
-  return todos.map((t) => `${t.id}:${t.status}`).join("|");
-}
-
 /**
  * Render a resurrected AskUserQuestion submission as a single follow-up
  * prompt. The SDK's permission stream for the original tool_use already
@@ -618,16 +614,12 @@ export default function Home() {
     : null;
 
   // Todos banner ──────────────────────────────────────────────────────────
-  // Hidden state survives until the agent next *changes* its todo list.
-  // Fingerprint = id+status of every todo, joined; any modification re-shows.
-  const [todosBannerHidden, setTodosBannerHidden] = useState(false);
-  const todosBannerHiddenFingerprintRef = useRef<string>("");
-  useEffect(() => {
-    const fp = todosFingerprint(session.latestTodos);
-    if (todosBannerHidden && fp !== todosBannerHiddenFingerprintRef.current) {
-      setTodosBannerHidden(false);
-    }
-  }, [session.latestTodos, todosBannerHidden]);
+  // The Clear button on the banner is wired to `session.clearTodos`, which
+  // hits the durable server-side endpoint — so the cleared state survives
+  // a reload and a server restart, not just a client-side banner hide. The
+  // old local-only `todosBannerHidden` toggle (and its fingerprint-based
+  // re-show) is gone now; the server's `latestTodosSnapshot` is the single
+  // source of truth for whether the banner is visible.
 
   // Bumped by `/goal` with no args to open the GoalBanner's inline editor
   // (even before a goal exists). GoalBanner watches the value, not equality,
@@ -1241,7 +1233,7 @@ export default function Home() {
   return (
     <div className="flex h-full">
       <SideNav running={session.pending} />
-      <main data-pane-name="chat-area" className="flex h-full flex-1 flex-col">
+      <main data-pane-name="chat-area" className="relative flex h-full min-w-0 flex-1 flex-col">
         <SessionTabs
           tabs={openTabs.map((id) => {
             // Status resolution for the dot on each tab:
@@ -1442,12 +1434,21 @@ export default function Home() {
         )}
         <TodosBanner
           todos={session.latestTodos}
-          hidden={todosBannerHidden}
           onDismiss={() => {
-            // Hide until the agent next updates its todo list — fingerprint
-            // the current list so a real update re-shows the banner.
-            todosBannerHiddenFingerprintRef.current = todosFingerprint(session.latestTodos);
-            setTodosBannerHidden(true);
+            // Durable clear: the server nulls its snapshot, persists the
+            // marker so a JSONL-rebuild can't resurrect the list, and
+            // broadcasts an empty `session_snapshot` that the client
+            // reducer folds into `latestTodos = []`. No client-only hide
+            // state — the server is authoritative for visibility now.
+            void session.clearTodos();
+          }}
+          onUpdateItem={(itemId, action) => {
+            // Targeted per-item edit: status flip or delete. Server
+            // mutates the snapshot, persists a `manualTodoOverrides`
+            // entry for restart durability, and broadcasts the new
+            // snapshot. The SSE round-trip drives the UI update — no
+            // optimistic state here.
+            void session.updateTodoItem(itemId, action);
           }}
         />
         <FeedbackBanner
@@ -1653,6 +1654,11 @@ export default function Home() {
               promptHistory={promptHistory}
               sendDisabled={capBreached || tabClaim.readOnly}
               queuedCount={session.queue.length}
+              // Capture file drops across the whole chat-area pane (message
+              // list, banners, tabs, gutters) — not just the composer row.
+              // GoalBanner's PromptInput intentionally leaves this off so the
+              // two instances don't race for the same drop.
+              wideDropTarget
             />
           </div>
         </div>
@@ -1680,6 +1686,13 @@ export default function Home() {
         onOpenBash={setOpenBash}
         onCancelScheduledLoop={onCancelScheduledLoop}
         onAddTodos={onAddTodos}
+        onClearTodos={session.clearTodos}
+        onUpdateTodoItem={(itemId, action) => {
+          // Per-item edit from the rail's To-dos widget — mirror of the
+          // banner wiring above. Routes to `session.updateTodoItem` which
+          // persists a manual override and broadcasts the new snapshot.
+          void session.updateTodoItem(itemId, action);
+        }}
         onChangeModel={session.setModel}
         onChangeEffort={session.setEffort}
         ultracode={session.ultracode}

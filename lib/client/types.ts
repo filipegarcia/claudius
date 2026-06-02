@@ -709,6 +709,23 @@ export type ChatActions = {
    * chat-level TodosBanner's "Clear" affordance.
    */
   clearTodos(): Promise<void>;
+  /**
+   * Mutate a single to-do item — status flip or delete — without going
+   * through the model. POSTs to `/api/sessions/:id/todos/:itemId`; the
+   * server mutates `latestTodosSnapshot` in place, persists a
+   * `manualTodoOverrides[itemId]` entry for restart durability, and
+   * broadcasts `session_snapshot { todos }` which `applyEvent` folds into
+   * `latestTodos`. Wired to the clickable status icon (toggle done ↔
+   * pending) and × delete button on TodosBanner / TodoList rows.
+   *
+   * Resolves with `{ok: false, error}` for diagnosable failures (stale
+   * list, item id not in current snapshot, network) rather than throwing
+   * so the UI can surface the reason; success is `{ok: true}`.
+   */
+  updateTodoItem(
+    itemId: string,
+    action: "complete" | "reopen" | "in_progress" | "delete",
+  ): Promise<{ ok: true } | { ok: false; error: string }>;
   /** Resolve a pending AskUserQuestion form. */
   submitAskAnswer(requestId: string, answers: AskAnswer[]): Promise<void>;
   /**

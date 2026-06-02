@@ -79,3 +79,42 @@ export function looksLikeFilePath(s: string): boolean {
 export function filesHref(workspaceId: string, relPath: string): string {
   return `/${workspaceId}/files?path=${encodeURIComponent(relPath)}`;
 }
+
+/**
+ * Pick the best path string to insert into a chat composer for a dropped file.
+ *
+ * Inputs come from two channels:
+ *  - `absPath`: the OS absolute path, recovered via Electron's
+ *    `webUtils.getPathForFile`. `null` when running in a regular browser, or
+ *    when Electron can't recover a path (e.g. a `File` backed by a blob).
+ *  - `basename`: `File.name` — always available, but loses the directory.
+ *  - `cwd`: the active session's working directory (workspace root).
+ *
+ * Resolution:
+ *  1. No `absPath` (web build, or unavailable) → fall back to `basename` so we
+ *     at least insert something familiar to the user.
+ *  2. `absPath` inside `cwd` → crop the `cwd + "/"` prefix and return the
+ *     project-relative path. This is the common case: drops from inside the
+ *     workspace get the same shape as a manual `@`-mention pick.
+ *  3. `absPath` outside `cwd` (or `cwd` unknown) → return the absolute path
+ *     verbatim. Cross-project drops keep the full path so the user (or a
+ *     subsequent `/add-dir`) can give Claude permission to read it.
+ *
+ * Trailing-slash safe: `cwd` is stripped of trailing slashes before the
+ * prefix check, so `/foo` doesn't spuriously match `/foo-bar/x`.
+ */
+export function resolveDroppedPath(
+  absPath: string | null,
+  basename: string,
+  cwd: string | null,
+): string {
+  if (!absPath) return basename;
+  if (!cwd) return absPath;
+  const root = stripTrailingSlash(cwd);
+  if (!root) return absPath;
+  if (absPath === root) return absPath; // the root dir itself — defensive
+  if (absPath.startsWith(root + "/")) {
+    return absPath.slice(root.length + 1);
+  }
+  return absPath;
+}

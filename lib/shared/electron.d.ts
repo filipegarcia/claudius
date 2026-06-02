@@ -67,6 +67,9 @@ export type ClaudiusBridge = {
    *  - 4: chat.onNewWithText + chat.onAppendToComposer (right-click extras)
    *  - 5: linkTarget.set (route external links to default browser or
    *       sandboxed in-app viewer)
+   *  - 6: files.getPath (recover absolute OS path for a dropped File via
+   *       webUtils.getPathForFile, so non-image chat drops can resolve to
+   *       cwd-relative or absolute paths instead of basename-only)
    */
   readonly bridgeVersion: number;
 
@@ -188,6 +191,24 @@ export type ClaudiusBridge = {
    */
   linkTarget: {
     set(target: "external" | "in-app"): void;
+  };
+
+  /**
+   * File-system helpers that need privileged Electron APIs the renderer
+   * can't reach directly under contextIsolation. Added in bridgeVersion 6.
+   */
+  files: {
+    /**
+     * Recover the absolute filesystem path for a `File` produced by a
+     * drag-and-drop, paste, or `<input type="file">` picker. Backed by
+     * `webUtils.getPathForFile` (Electron's modern replacement for the
+     * deprecated `file.path` getter on `File`).
+     *
+     * Returns `null` when no OS path is available — e.g. a `File`
+     * synthesised from a `Blob`. Callers should fall back to `file.name`
+     * (basename) in that case.
+     */
+    getPath(file: File): string | null;
   };
 };
 

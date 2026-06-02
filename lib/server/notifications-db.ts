@@ -297,6 +297,42 @@ export async function markReadBySession(
 }
 
 /**
+ * Mark every unread *actionable* row (permission/ask/plan) tied to a session
+ * as read. The mirror of {@link markReadBySession}: that one preserves
+ * actionable rows because the agent is still blocked on the user; this one
+ * sweeps them up when we KNOW the request can no longer be answered —
+ * typically because the in-memory pending entry has been dropped (server
+ * restart, session reaper, SDK abort) and there is no live modal left for
+ * the user to act on.
+ *
+ * Called at `Session.start()` for fresh instances (the pending* maps are
+ * empty by construction, so any actionable row in the DB is by definition
+ * orphaned), and as a defensive sweep from {@link drainPendingDecisions}
+ * for entries that go away mid-session without going through the normal
+ * resolve path.
+ *
+ * Returns the row count for state-emit gating.
+ */
+export async function markReadActionableBySession(
+  cwd: string,
+  sessionId: string,
+): Promise<number> {
+  if (!sessionId) return 0;
+  const db = await openDb(cwd);
+  const now = Date.now();
+  const placeholders = ACTIONABLE_KINDS.map(() => "?").join(", ");
+  const res = db
+    .prepare(
+      `UPDATE notifications SET read_at = ?
+        WHERE read_at IS NULL
+          AND session_id = ?
+          AND kind IN (${placeholders})`,
+    )
+    .run(now, sessionId, ...ACTIONABLE_KINDS);
+  return res.changes;
+}
+
+/**
  * Mark every unread row that shares `requestId` as read. Used by the session
  * resolve paths (submitAskAnswer, resolvePermission, resolvePlan) so a
  * question that the user has already answered stops haunting the inbox.

@@ -28,6 +28,7 @@ export type ReminderKind =
   | "date-change"
   | "stale-todowrite"
   | "stale-task-tools"
+  | "todos-current"
   | "plan-mode-reentry"
   | "auto-mode-exit"
   | "memory-update"
