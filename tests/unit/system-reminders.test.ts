@@ -2,8 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildNextTurnReminder,
+  midTurnReminderCount,
   pendingReminderCount,
+  queueMidTurnReminder,
   queueReminder,
+  takeMidTurnReminders,
   takePendingReminders,
   wrapReminder,
 } from "@/lib/server/system-reminders";
@@ -88,5 +91,59 @@ describe("queue / drain", () => {
     expect(pendingReminderCount(b)).toBe(0);
     expect(takePendingReminders(b)).toBeNull();
     expect(takePendingReminders(a)).toContain("for A");
+  });
+});
+
+describe("mid-turn channel", () => {
+  it("queues and drains a single reminder", () => {
+    const host = { id: "mt1" };
+    expect(midTurnReminderCount(host)).toBe(0);
+    queueMidTurnReminder(host, "truncated-read", "the previous Read was truncated");
+    expect(midTurnReminderCount(host)).toBe(1);
+    const drained = takeMidTurnReminders(host);
+    expect(drained).not.toBeNull();
+    expect(drained).toContain("the previous Read was truncated");
+    expect(midTurnReminderCount(host)).toBe(0);
+  });
+
+  it("concatenates multiple reminders in queue order with clean separators", () => {
+    const host = { id: "mt2" };
+    queueMidTurnReminder(host, "linter-modified-file-midturn", "alpha");
+    queueMidTurnReminder(host, "mcp-delta-midturn", "beta");
+    const drained = takeMidTurnReminders(host) as string;
+    expect(drained.indexOf("alpha")).toBeLessThan(drained.indexOf("beta"));
+    const matches = drained.match(CLEAN_REMINDERS) ?? [];
+    expect(matches.length).toBe(2);
+    expect(drained.replace(CLEAN_REMINDERS, "").trim()).toBe("");
+  });
+
+  it("drain is one-shot — second call returns null", () => {
+    const host = { id: "mt3" };
+    queueMidTurnReminder(host, "truncated-read", "x");
+    expect(takeMidTurnReminders(host)).not.toBeNull();
+    expect(takeMidTurnReminders(host)).toBeNull();
+  });
+
+  it("mid-turn and next-turn channels are independent", () => {
+    const host = { id: "mt4" };
+    queueReminder(host, "memory-update", "next-turn body");
+    queueMidTurnReminder(host, "truncated-read", "mid-turn body");
+    // Drain mid-turn first — next-turn must still be intact.
+    const mid = takeMidTurnReminders(host);
+    expect(mid).toContain("mid-turn body");
+    expect(mid).not.toContain("next-turn body");
+    expect(pendingReminderCount(host)).toBe(1);
+    const next = takePendingReminders(host);
+    expect(next).toContain("next-turn body");
+    expect(next).not.toContain("mid-turn body");
+  });
+
+  it("queues are isolated per host instance (mid-turn)", () => {
+    const a = { id: "mt-shared" };
+    const b = { id: "mt-shared" };
+    queueMidTurnReminder(a, "truncated-read", "for A");
+    expect(midTurnReminderCount(b)).toBe(0);
+    expect(takeMidTurnReminders(b)).toBeNull();
+    expect(takeMidTurnReminders(a)).toContain("for A");
   });
 });

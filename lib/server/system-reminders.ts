@@ -1,15 +1,20 @@
 /**
- * Shared next-turn `<system-reminder>` injection channel.
+ * Shared `<system-reminder>` injection channel — two channels by timing:
  *
- * Several upcoming parity features (date-change nudge, stale-TodoWrite,
- * plan-mode re-entry, etc.) all need to drop a one-shot reminder onto the
- * agent's next user turn. Rather than each one reinventing the prepend,
- * they queue here and `Session` drains the queue alongside its existing
- * `takeGoalReminder()` call at the inputQueue site.
+ *   1. Next-turn (`queueReminder` / `takePendingReminders`): drops a one-shot
+ *      reminder onto the agent's NEXT user turn. `Session` drains alongside
+ *      its existing `takeGoalReminder()` call at the inputQueue site. Use
+ *      for cross-turn nudges (date rollover, stale TodoWrite, plan re-entry,
+ *      auto-mode exit, memory staleness).
  *
- * Mid-loop injection is NOT supported — the SDK hooks we use today don't
- * expose `additionalContext` on their return. Reminders fire on the next
- * real user message and only then.
+ *   2. Mid-turn (`queueMidTurnReminder` / `takeMidTurnReminders`): fires
+ *      BEFORE the next tool call within the same turn, via the SDK's
+ *      PreToolUse hook returning `additionalContext` on its
+ *      `PreToolUseHookSpecificOutput`. The SDK has supported this on 11
+ *      hook return types since 0.3.x (verified at 0.3.160). Use for
+ *      reactions to tool results that should reach the agent before its
+ *      next action (truncated Read, linter rewrote our Edit, MCP delta
+ *      mid-turn).
  *
  * Canonical wrapper format matches the `cleanReminders` regex in
  * `lib/server/customization-description.ts` — the opening tag must be
@@ -31,7 +36,12 @@ export type ReminderKind =
   | "ultraplan-prose"
   | "midturn-inject"
   | "linter-modified-file"
-  | "mcp-delta";
+  | "mcp-delta"
+  // Mid-turn kinds — fire via the PreToolUse hook's `additionalContext`
+  // return before the agent's next tool call within the same turn.
+  | "truncated-read"
+  | "linter-modified-file-midturn"
+  | "mcp-delta-midturn";
 
 /**
  * Minimal structural host. Anything with a stable `id` will do — keeping
@@ -47,6 +57,16 @@ type Entry = { kind: ReminderKind; xml: string };
 // session. Keyed by the host object (not its id) so two transient hosts
 // sharing an id can't cross-contaminate.
 const queues = new WeakMap<ReminderHost, Entry[]>();
+
+/**
+ * Separate queue for mid-turn reminders. Drained by the PreToolUse hook
+ * in `Session.start()` (which returns the concatenation as the hook's
+ * `additionalContext` field) so the agent sees them before its next tool
+ * call. Kept separate from the next-turn queue because the lifetimes
+ * differ — a mid-turn reminder is per-tool-call ephemeral, a next-turn
+ * one survives until the user submits again.
+ */
+const midTurnQueues = new WeakMap<ReminderHost, Entry[]>();
 
 /**
  * Wrap raw text in the canonical `<system-reminder>` block. Trailing `\n\n`
@@ -96,4 +116,43 @@ export function takePendingReminders(host: ReminderHost): string | null {
 /** Test-only: peek queue length without draining. Useful for unit assertions. */
 export function pendingReminderCount(host: ReminderHost): number {
   return queues.get(host)?.length ?? 0;
+}
+
+/**
+ * Queue a reminder onto the host's mid-turn channel. The reminder fires
+ * via the PreToolUse hook's `additionalContext` return before the agent's
+ * next tool call. Drained by `takeMidTurnReminders`. Once drained the
+ * queue is empty — a reminder fires exactly once.
+ */
+export function queueMidTurnReminder(
+  host: ReminderHost,
+  kind: ReminderKind,
+  body: string,
+): void {
+  const xml = buildNextTurnReminder(kind, body);
+  const existing = midTurnQueues.get(host);
+  if (existing) {
+    existing.push({ kind, xml });
+    return;
+  }
+  midTurnQueues.set(host, [{ kind, xml }]);
+}
+
+/**
+ * Drain every queued mid-turn reminder for the host. Returns the
+ * concatenated XML or `null` when nothing is pending. The PreToolUse
+ * hook in `Session.start()` calls this and threads the result through
+ * `hookSpecificOutput.additionalContext` so the agent receives the
+ * reminder text before deciding on its next tool.
+ */
+export function takeMidTurnReminders(host: ReminderHost): string | null {
+  const entries = midTurnQueues.get(host);
+  if (!entries || entries.length === 0) return null;
+  midTurnQueues.delete(host);
+  return entries.map((e) => e.xml).join("");
+}
+
+/** Test-only: peek mid-turn queue length without draining. */
+export function midTurnReminderCount(host: ReminderHost): number {
+  return midTurnQueues.get(host)?.length ?? 0;
 }

@@ -25,7 +25,11 @@ import { z } from "zod";
 import { projectRoot } from "./db";
 import { AsyncQueue } from "./async-queue";
 import { notificationBus } from "./notification-bus";
-import { queueReminder, takePendingReminders } from "./system-reminders";
+import {
+  queueReminder,
+  takeMidTurnReminders,
+  takePendingReminders,
+} from "./system-reminders";
 import {
   isOpusModelId,
   isOverloadErrorText,
@@ -1578,6 +1582,21 @@ export class Session {
                 ) {
                   const wt = worktreeRootFromPath(target);
                   if (wt) this.broadcastCwd(wt);
+                }
+                // Mid-turn reminder drain (parity features 29, 35, 40). Any
+                // queueMidTurnReminder() since the previous tool call gets
+                // threaded into the agent's context here, before it sees
+                // the next tool result. Wrapped in hookSpecificOutput per
+                // the SDK's PreToolUseHookSpecificOutput shape.
+                const additionalContext = takeMidTurnReminders(this);
+                if (additionalContext) {
+                  return {
+                    continue: true,
+                    hookSpecificOutput: {
+                      hookEventName: "PreToolUse",
+                      additionalContext,
+                    },
+                  };
                 }
                 return { continue: true };
               },
