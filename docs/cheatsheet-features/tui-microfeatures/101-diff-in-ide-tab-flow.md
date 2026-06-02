@@ -1,0 +1,13 @@
+# Diff-in-IDE for File Edits (Open/Save/Reject Tab Flow)
+
+**Source:** Claude Code TUI — hooks-ux
+**Status:** UNVERIFIED
+
+## What it is
+When the TUI is paired with a supported IDE and `diffTool=auto`, file edits do not show inline in the terminal — they open as a diff tab inside the editor titled `✻ [Claude Code] basename.ext (sha) ⧉`, and the editor itself becomes the accept/reject surface. Edits the user makes inside that tab are folded back as the accepted content; saving the tab counts as accept-with-new-content; closing the tab without saving is treated as reject. The tabs are also force-closed when the turn aborts or the session exits. The leak binary surfaces this through `hooks/useDiffInIDE.ts` (binary_grep_count: 2, leak_quote: "useDiffInIDE.ts"), strongly implying a dedicated hook owns the open / merge-on-save / close lifecycle.
+
+## Claudius today
+Not surfaced in Claudius. The closest analog is the in-browser editor at `components/git/FileEditor.tsx` (rendered from `app/[workspaceId]/git/page.tsx` and `app/[workspaceId]/files/page.tsx`), which already shows a unified or split diff with added/removed stripes derived from the worktree diff, and treats Save as accept and Reset as revert — but this is Claudius's *own* editor, not a tab the agent opens in your external IDE. The outbound bridge `lib/client/ide.ts` only builds `vscode://`, `cursor://`, `windsurf://`, `zed://`, `jetbrains://` deep-links so the user can jump *out* to their editor at a specific path:line; there is no inbound channel where the agent asks the IDE to host a diff tab and waits for accept/reject. `/ide` is declared `handler: "external"` in `lib/shared/slash-commands.ts` and short-circuited to a "/ide is terminal/hosted only." toast in `app/[workspaceId]/page.tsx`. The natural Claudius home would be the existing permission-prompt path for `Edit` / `Write` tool calls — the prompt could optionally route the diff to a connected IDE via an in-app browser extension or LSP-style companion rather than (or alongside) the inline `ToolCall.tsx` diff card.
+
+## Decision
+UNVERIFIED. The `hooks/useDiffInIDE.ts` leak file name is suggestive but binary-only — without source we cannot pin down the exact tab-title template, the sha component, or the close-on-abort semantics. Worth revisiting only if Claudius ships an actual IDE companion: today the in-browser `components/git/FileEditor.tsx` plus the outbound deep-links in `lib/client/ide.ts` already cover the diff/accept/reject loop without needing a remote tab handshake, and the chat-side diff card is gated by Claudius's own permission prompt rather than an editor round-trip.

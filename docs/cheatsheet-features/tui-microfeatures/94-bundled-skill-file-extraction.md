@@ -1,0 +1,13 @@
+# Bundled-Skill On-Disk File Extraction with Safe Open Flags
+
+**Source:** Claude Code TUI — skills
+**Status:** MISSING
+
+## What it is
+A bundled skill can declare a `files: { [relPath]: content }` map of reference assets (scripts, prompts, data). On first invocation the CLI materializes them under a per-process nonce directory returned by `getBundledSkillsRoot()`, `mkdir`-ed `0o700` and each file written with `O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW` at mode `0o600`. The skill's prompt is then prefixed with `` `Base directory for this skill: ${baseDir}\n\n` `` (`skills/bundledSkills.ts`) so the model can reference the on-disk assets by absolute path. Extraction is memoized per-process and each `relPath` is traversal-validated (rejecting `..` / absolute paths / symlink targets) before the safe-open flags are applied.
+
+## Claudius today
+Not surfaced in Claudius. `lib/server/skills.ts` (header comment lines 7-23) explicitly limits the surface to `SKILL.md`: "Skills with ancillary files (scripts, data) can still be authored via the editor, but creating those side files is a CLI/editor task — this module intentionally only owns SKILL.md." There is no `files` map on `SkillFile` (type at line 27), no per-process extraction root, no nonce directory, and no `Base directory for this skill:` prompt prefix anywhere in the repo (a grep for the literal returns zero hits). The bundled-skill scope itself is also absent — see `95-bundled-skills-shipped-in-binary.md` — so even if extraction were wired up there would be nothing on the Claudius side to extract from. The natural location for the materializer would be a `lib/server/bundled-skills.ts` sibling that owns a `bundledSkillsRoot()` under `os.tmpdir()` and is called from `lib/server/session.ts` at session-start, gated behind the same `bundled` scope that `skills.ts` would need to grow first.
+
+## Decision
+MISSING. The leak in `skills/bundledSkills.ts` describes a defence-in-depth disk-extraction pipeline (nonce dir + `0o700` parent + `O_EXCL | O_NOFOLLOW` files at `0o600` + memoized per process + traversal-validated `relPath`s + prompt-prefixed base directory) that Claudius has no equivalent of, because Claudius does not host bundled skills at all (`lib/server/skills.ts` is disk-only by design). A faithful port is blocked on first landing the `bundled` skill scope (#95); after that, ancillary `files:` extraction belongs in a new `lib/server/bundled-skills.ts` that mirrors the safe-open contract — `assertWithin()` already exists in `lib/server/safe-path.ts` for the traversal check, and `lib/server/auto-memory.ts:87,117` already demonstrates the `O_EXCL` pattern this repo uses, so the building blocks are present even though the feature itself is not.

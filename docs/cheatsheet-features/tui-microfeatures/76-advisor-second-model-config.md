@@ -1,0 +1,13 @@
+# /advisor — configure a separate advisor model
+
+**Source:** Claude Code TUI — commands
+**Status:** PARTIAL
+
+## What it is
+The TUI ships a `/advisor` slash command that picks a second model (e.g. `opus`) to run in an advisor role alongside the main loop model. `commands/advisor.ts` branches on the argument: `unset` / `off` clears it (`const prev = context.getAppState().advisorModel … context.setAppState(s => { if (s.advisorModel === undefined) return s; return { ...s, advisorModel: undefined } }) … updateSettingsForSource('userSettings', { advisorModel: undefined })`), a non-empty arg writes it, and bare `/advisor` prints the current state plus whether the base model supports advisors. The `advisorModel` field is therefore both an app-state cursor and a persisted user setting.
+
+## Claudius today
+Partly surfaced. `advisorModel` is declared in the SDK-settings catalog at `app/settings/page.tsx` line 763 as a free-form string row (`section: "Model & behavior"`, `placeholder: "opus"`, `desc: "Advisor model for the server-side advisor tool."`), so a user can type a model name into Settings and it round-trips through `lib/server/settings.ts` (the `ClaudeSettings` catch-all at line 52 preserves unknown keys) into `~/.claude/settings.json`. What is **not** in Claudius: a `/advisor` slash command (not registered in `lib/shared/slash-commands.ts`), a "current state + base-model-supports-advisors" inspect mode, an `unset` / `off` keyword form, any read of `advisorModel` from `lib/server/session.ts` to forward to the SDK, or any indication in the chat surface that the advisor is on. The only place the codebase even mentions the advisor concept beyond the settings row is the comment block in `lib/client/use-session.ts` around line 4436 / 4502 explaining that `server_tool_use` events from "the advisor / web_search server tool" can leave scratch blind to post-advisor blocks — i.e. Claudius knows the SDK can *emit* advisor blocks but offers no UI to configure the model that produces them.
+
+## Decision
+PARTIAL. The persistence half lands for free via the `ClaudeSettings` catch-all and the generic settings UI row at `app/settings/page.tsx:763`, but the inspect / set / unset slash command from `commands/advisor.ts` has no Claudius counterpart. To match the TUI surface, add an `advisor` entry to `lib/shared/slash-commands.ts` (category `model`, handler `native`, `argsHint: "[model | off]"`), wire a small action in the chat command runner that reads/writes `advisorModel` via the existing settings endpoints, and gate the prompt on a "base model supports advisors" check — today nothing in `lib/server/session.ts` consults `advisorModel`, so the field is inert apart from being saved.

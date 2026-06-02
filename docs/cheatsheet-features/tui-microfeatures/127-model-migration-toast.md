@@ -1,0 +1,13 @@
+# One-shot model-migration toast
+
+**Source:** Claude Code TUI — migrations
+**Status:** MISSING
+
+## What it is
+When the TUI silently rewrites a user's pinned model alias (legacy Opus 4.0/4.1 → `opus`, Sonnet 4.5 → `sonnet`, Pro default reset to Opus 4.5), it stamps a `*MigrationTimestamp` into the global config so the next REPL launch can show a one-time toast explaining the change. The migration helper guards on `numStartups > 1` so brand-new users never see it: `// Skip notification for brand-new users — they never experienced the old default\n  const config = getGlobalConfig()\n  if (config.numStartups > 1) {\n    saveGlobalConfig(current => ({\n      ...current,\n      sonnet45To46MigrationTimestamp: Date.now(),\n    }))\n  }` (`migrations/migrateSonnet45ToSonnet46.ts`).
+
+## Claudius today
+Not surfaced in Claudius. There is no model-alias migration path at all — `app/api/sessions/[id]/model/route.ts` and `components/panels/widgets/ModelPicker.tsx` pass whatever the SDK's `supportedModels()` reports through verbatim, and `lib/server/workspaces-store.ts` stores the workspace-default model id without any legacy-rewrite logic. The two adjacent surfaces are `components/chat/ModelSwitchNoticePanel.tsx` (toast for a *rejected* `/model` switch, not a silent alias rewrite) and the StatusLine deprecation chip backed by `lib/shared/model-deprecations.ts` (warns about EOL ids but does not rewrite them). The startup-count primitive the TUI gates on already exists as `lib/client/useStartupCount.ts` (per-browser `claudius.startupCount`, used today only for the `/powerup` first-run tip), and `lib/server/claude-global-config.ts` already reads `~/.claude.json` for the account block, so the `*MigrationTimestamp` keys would have a natural home if Claudius ever needed to write them back. A natural place to surface the toast would be alongside `ModelSwitchNoticePanel` driven off a server-set "the model you pinned was rewritten to X" event in `lib/shared/events.ts`.
+
+## Decision
+MISSING. The Claude Code TUI persists a per-migration `*MigrationTimestamp` in `~/.claude.json` and shows a one-shot toast on the next REPL launch (gated on `numStartups > 1` so first-run users are spared), per `migrations/migrateSonnet45ToSonnet46.ts`. Claudius has nothing equivalent: no alias-rewrite step, no migration-timestamp record, and the existing `ModelSwitchNoticePanel` only handles SDK rejections of user-initiated picks. Worth adding only if Claudius starts persisting workspace-default model ids that could later be retired by an upstream SDK rename — at that point a rewrite-on-load helper in `lib/server/workspaces-store.ts` plus a one-shot banner gated on `useStartupCount() > 1` would mirror the TUI's contract.

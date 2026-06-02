@@ -1,0 +1,13 @@
+# Double-Press Exit Confirmation (Ctrl-C / Ctrl-D)
+
+**Source:** Claude Code TUI — hooks-ux
+**Status:** PARTIAL
+
+## What it is
+A generic time-based double-press detector keyed off an ~800ms window — the binary ships it as `export const DOUBLE_PRESS_TIMEOUT_MS = 800` in `hooks/useDoublePress.ts`. The TUI consumes the primitive to require two presses of Ctrl-C or Ctrl-D to actually exit: the first press flips the status line to "Press X again to exit", and a second press inside the window performs the teardown. Because the detector is a standalone hook it gets reused across the app wherever a destructive chord wants the same "tap twice to confirm" arming.
+
+## Claudius today
+The same UX ships, but only for the Electron Quit chord and as a one-off — not as a generic primitive. `electron/menu.ts` lines 44-82 define `QUIT_WARNING_MS = 2500` and a `handleQuitChord()` that arms `quitArmedAt` on the first Cmd+Q / Ctrl+Q press, sends `app.quitWarning` to the renderer, and only calls `app.quit()` on a second press inside the window. `components/chrome/QuitWarningToast.tsx` listens for that action via `useElectronAction("app.quitWarning", ...)` and renders the "Press ⌘Q again to quit Claudius" HUD with a matching `QUIT_WARNING_MS = 2500`, auto-dismissing when the window expires. What's missing relative to the TUI: (a) the detector isn't factored out as a reusable `useDoublePress` hook — every consumer would have to re-implement the timestamp dance the way `handleQuitChord` does; (b) Ctrl-C and Ctrl-D don't have parallel arming paths (Ctrl-C cancel is a one-shot interrupt button in `components/chat/PromptInput.tsx` per `docs/cheatsheet-features/keyboard-shortcuts/01-cancel-input-generation.md`, and Ctrl-D EOF is treated as NOT_APPLICABLE in `02-exit-session.md` because there's no terminal to exit); (c) the 2500ms window is ~3× the TUI's 800ms, tuned for an OS-menu chord rather than a fast-typed terminal control.
+
+## Decision
+PARTIAL. The double-press-to-confirm pattern is already live for Cmd/Ctrl+Q via `electron/menu.ts` + `components/chrome/QuitWarningToast.tsx`, so the UX shape is proven. To match the leak in `hooks/useDoublePress.ts`, the arming/disarming logic in `handleQuitChord` could be extracted into a `lib/client/useDoublePress.ts` (or `lib/shared`) primitive that takes a window-ms argument and a confirm callback, with `DOUBLE_PRESS_TIMEOUT_MS = 800` as the default — then reused for any tab-close-with-dirty-draft or destructive composer chord that wants "press again to confirm" semantics. The Ctrl-C / Ctrl-D extensions specifically don't translate (no terminal), so the headline reuse is internal: the next destructive shortcut that wants confirmation should consume the extracted hook instead of cloning `quitArmedAt`.

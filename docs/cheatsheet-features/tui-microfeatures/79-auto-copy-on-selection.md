@@ -1,0 +1,13 @@
+# Auto-Copy on Mouse Selection (iTerm-Style)
+
+**Source:** Claude Code TUI — hooks-ux
+**Status:** MISSING
+
+## What it is
+Mirrors iTerm2's "Copy to pasteboard on selection": after a drag-select or multi-click, the highlighted text is written to the system clipboard automatically while the highlight is left intact so the user can see what was copied. The leaked hook `hooks/useCopyOnSelect.ts` carries the comment `Mirrors iTerm2's "Copy to pasteboard on selection" — the highlight is left intact so the user can see what was copied.`, and the behavior is gated by a `copyOnSelect` setting that defaults to true on macOS.
+
+## Claudius today
+Not surfaced in Claudius. The renderer has the building blocks but none of them auto-copy on selection: `components/chat/UserMessage.tsx` line 57 reads `window.getSelection()?.toString()` only to suppress its click-to-jump when a selection is active, `components/git/ChangesList.tsx` line 156 inspects `window.getSelection()` to decide whether to fall through to a path-copy gesture, and `navigator.clipboard.writeText` is wired into explicit affordances (`components/chat/CodeBlock.tsx` line 28, `components/panels/BashViewer.tsx` line 76, `components/chat/StatusLine.tsx` line 471, `components/git/GitConsole.tsx` line 217). The Electron context menu (`electron/ipc/context-menu.ts`) surfaces a manual `Copy` / `Copy as quote` on right-click — the file comment at line 5 explicitly notes that without it "user has no way to copy selected text with the mouse (Cmd+C still works…)" — but there is no `mouseup` / `selectionchange` listener that auto-writes the selection to the clipboard. A natural home would be a thin `lib/client/use-copy-on-select.ts` hook mounted at the chat transcript root, gated by a `copyOnSelect` boolean in the workspace settings (`lib/server/settings.ts`) with a macOS-default-true heuristic.
+
+## Decision
+MISSING. Nothing in Claudius auto-copies a mouse selection to the clipboard — the codebase only reads selections defensively to avoid hijacking clicks, and copy-to-clipboard is exclusively user-initiated via dedicated buttons or the Electron right-click menu. To match the leaked `hooks/useCopyOnSelect.ts`, add a hook that debounces `selectionchange` (or fires on `mouseup` once the selection settles), calls `navigator.clipboard.writeText` with the trimmed selection, and leaves the DOM selection alone so the highlight stays visible. Gate it behind a new `copyOnSelect` workspace setting (default true on `navigator.platform.includes("Mac")`, false elsewhere), and prefer the Electron `clipboard.writeText` path under the desktop wrapper so it works without the permission-prompt that web `navigator.clipboard` triggers.

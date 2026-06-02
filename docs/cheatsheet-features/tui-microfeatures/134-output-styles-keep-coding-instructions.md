@@ -1,0 +1,13 @@
+# keep-coding-instructions frontmatter on output styles
+
+**Source:** Claude Code TUI — plugins-output-styles
+**Status:** MISSING
+
+## What it is
+Output-style markdown files (loaded from `~/.claude/output-styles/` and equivalents) carry a `keep-coding-instructions: true|false` frontmatter key that decides whether Claude Code's default coding instructions are still appended on top of the user-authored prompt. The leak in `outputStyles/loadOutputStylesDir.ts` parses both shapes: `// Parse keep-coding-instructions flag (supports both boolean and string values) const keepCodingInstructionsRaw = frontmatter['keep-coding-instructions']` — `true` keeps the defaults (additive persona), `false` strips them (clean-slate persona), `undefined` falls back to the built-in default. `binary_grep_count: 8` confirms the key is live in shipped strings.
+
+## Claudius today
+Not surfaced in Claudius. `lib/server/settings.ts` line 19 exposes `outputStyle?: string` and `app/settings/page.tsx` line 452 renders a `<select>` over the hard-coded list `OUTPUT_STYLES = ["default", "explanatory", "concise", "developer"]` (line 31) — i.e. only the four built-in names round-trip through `~/.claude/settings.json`. There is no markdown loader for `~/.claude/output-styles/*.md`, no frontmatter parser for that surface, and no plumbing from a chosen output style into the SDK system prompt (`session.ts` has no `outputStyle` reference; the only system-prompt extras flow through `lib/shared/system-prompt-append.ts` for the per-session goal and the workspace `systemPromptAppend`). The natural home would be a sibling of `lib/server/skills.ts` / `lib/server/agents.ts` — both already read a directory of markdown + frontmatter — that produces a `{ prompt, keepCodingInstructions }` record, with `keepCodingInstructions === false` routed to `Options.systemPrompt` (full replace) and the additive case folded into `joinSystemPromptAppends` (`lib/shared/system-prompt-append.ts`).
+
+## Decision
+MISSING. Output style today is only a settings-key value, not an author surface — the directory loader described by `outputStyles/loadOutputStylesDir.ts` and its `keep-coding-instructions` frontmatter key have no counterpart in Claudius. Closing the gap means (a) a `lib/server/output-styles.ts` walker mirroring `lib/server/skills.ts` / `lib/server/agents.ts`, (b) replacing the static `OUTPUT_STYLES` list in `app/settings/page.tsx` with the discovered styles, and (c) teaching `lib/server/session.ts` to honour the parsed `keepCodingInstructions` flag — feeding the additive case through `joinSystemPromptAppends` in `lib/shared/system-prompt-append.ts` and the `false` case via a `systemPrompt` replacement so the clean-slate persona actually displaces the SDK preset.

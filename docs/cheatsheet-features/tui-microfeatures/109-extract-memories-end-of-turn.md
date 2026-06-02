@@ -1,0 +1,13 @@
+# extractMemories End-of-Turn Forked Agent
+
+**Source:** Claude Code TUI — memory-system
+**Status:** MISSING
+
+## What it is
+A leak comment in `services/extractMemories/extractMemories.ts` spells out the contract: "It runs once at the end of each complete query loop (when the model produces a final response with no tool calls) via handleStopHooks in stopHooks.ts. Uses the forked agent pattern (runForkedAgent) — a perfect fork of the main conversation that shares the parent's prompt cache." The fork scans the existing memory manifest, writes any durable memory the main agent missed, and emits the telemetry line `[extractMemories] memories saved` (the literal appears twice in the binary).
+
+## Claudius today
+Not surfaced in Claudius. The memory CRUD plumbing exists end-to-end — `lib/server/auto-memory.ts` writes files into `~/.claude/projects/<encoded>/memory/` with frontmatter and an idempotent `MEMORY.md` index (`appendMemoryIndex` at line 300), `app/api/memory/auto/route.ts` exposes list/read/create/patch/delete, and `lib/client/useAutoMemory.ts` drives the `/memory` panel — but no code path *writes* memory autonomously at end-of-turn. The SDK hook map in `lib/server/session.ts` (line 1561) only registers `PreToolUse`, `PostToolUse`, and `CwdChanged`; there is no `Stop` hook, and nothing in the repo greps for `extractMemories`, `runForkedAgent`, or any forked-agent pattern. The closest existing concept is `memory-update` (a system-reminder kind in `lib/server/system-reminders.ts` line 28 that fires after a user edits a memory file, queued from `lib/server/session.ts` line 3180) — that's the *stale-context* notice in the other direction, not autonomous extraction. The natural home for an extractMemories analogue would be a new `Stop`-hook entry in `session.ts`'s `hooks:` block that runs a side `query()` against the same model + transcript tail and, on success, calls `writeMemoryFile` from `auto-memory.ts`.
+
+## Decision
+MISSING. Per `services/extractMemories/extractMemories.ts`, Claude Code runs a stop-hook-triggered forked agent that opportunistically distils durable memories from each completed turn — Claudius has all the storage primitives (`writeMemoryFile`, the `MEMORY.md` index, the panel UI) but no autonomous writer. A follow-up could register a `Stop` hook on `this.options.hooks` in `lib/server/session.ts` that spawns a short `query()` with the existing `extractTranscriptTail` output plus the current `MEMORY.md` manifest, then POSTs the result through the same path `useAutoMemory.createMemory` uses; the SDK's prompt-cache fork pattern is not available client-side, so the analogue runs as an ordinary cheap-model query rather than a cache-sharing branch.
