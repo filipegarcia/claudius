@@ -126,10 +126,19 @@ Features intentionally not pursued because they belong to a TUI-only or claude.a
 
 ## Parity revisit backlog
 
-Features shipped under wrong assumptions, now overturned by new evidence:
+### Open
 
-- 29-linter-modified-file-reminder.md (PARTIAL) and 35-mcp-agent-deferred-delta-reminders.md (PARTIAL) — the new hook `additionalContext` evidence (≥34 binary hits) overturns the "no mid-loop channel" rationale; can be upgraded.
-- 40-truncated-file-followup-reminder.md (SKIPPED) — feasibility re-opened for the same reason.
-- 32-stale-task-tools-teammate-nudge.md (SKIPPED) — team-mode evidence is in claude-code-leak-main/src/state/teammateViewHelpers.ts and tasks/InProcessTeammateTask/; reconsider with that file as primary source.
-- 09-team-artifacts-priority-tip.md (SKIPPED) — same team-mode unlock.
-- Compaction-survival: features 28/31-37/39 silently die after a /compact; wrap their reminder bodies with the criticalSystemReminder_EXPERIMENTAL pattern (5 binary hits) to survive.
+- **`32-stale-task-tools-teammate-nudge.md` (SKIPPED)** and **`09-team-artifacts-priority-tip.md` (SKIPPED)** — team-mode evidence exists in `claude-code-leak-main/src/state/teammateViewHelpers.ts` and `tasks/InProcessTeammateTask/`. Re-implementation requires Claudius to first grow a team-mode surface (the `in_process_teammate` task type, per-teammate `AsyncLocalStorage` isolation, `agentName@teamName` identity). Tracked as a feature-area gap, not a one-commit revisit.
+
+### Investigated and closed (no action)
+
+- **`29-linter-modified-file-reminder.md`** and **`35-mcp-agent-deferred-delta-reminders.md`** — both `ALREADY_EXISTS` on the next-turn drain, which matches the CLI binary spec strings ("the next turn carries an ambient system-reminder…"). The mid-turn channel built on this branch (`queueMidTurnReminder` → PreToolUse `additionalContext`) is **available but unnecessary** — moving to mid-turn would be beyond-parity polish, not parity. For feature 35 specifically, mid-turn would never naturally fire (MCP changes are user-driven between turns, not within them).
+- **`40-truncated-file-followup-reminder.md` (SKIPPED)** — the SDK produces this reminder internally for its own Read tool path; Claudius does not intercept Read output, so there is no shim point. The mid-turn channel does not change this.
+
+### Channel infrastructure
+
+The mid-turn `<system-reminder>` injection channel landed as future-proofing groundwork on `parity/backlog-revisit` — `lib/server/system-reminders.ts` exports `queueMidTurnReminder` / `takeMidTurnReminders`, drained inside the existing PreToolUse hook in `Session.start()` via `hookSpecificOutput.additionalContext` (SDK 0.3.160). New features that genuinely need to react to a tool result before the agent's next action — e.g. **#83** background-shell stall watchdog, **#97** clipboard-image hint mid-turn, **#128** monitor-vs-bash summaries with `priority: "next"` — can ride on it directly.
+
+### Compaction survival
+
+`criticalSystemReminder_EXPERIMENTAL` is an **agent-definition** field (`sdk.d.ts:63` — set on `AgentDefinition`, not a per-reminder property), so the original "wrap their reminder bodies with this pattern" plan was misread. The 28/31-37/39 reminder cluster will silently disappear after a `/compact`. Two viable routes if we need compaction-surviving variants: (a) a dedicated Claudius agent with `criticalSystemReminder_EXPERIMENTAL` set on its frontmatter, or (b) re-injection on the SDK's `PostCompact` hook event (not currently consumed at the Claudius hook site).
