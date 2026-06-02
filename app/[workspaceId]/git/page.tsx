@@ -1009,6 +1009,460 @@ export default function GitPage() {
     [wsId, busy, refresh, pushConsoleEntry],
   );
 
+  /**
+   * Conflict prompt builder. The merge vs. rebase distinction matters: the
+   * verbs the user needs to run after Claude finishes are different.
+   *   - merge:  `git add <file>` then commit (we tell Claude to leave that
+   *             to the user) — same shape as `runPullWithClaude`.
+   *   - rebase: `git add <file>` then `git rebase --continue` (per-commit,
+   *             not single-commit) and the bail-out is `git rebase --abort`.
+   * Copy-pasting the merge prompt onto rebase would tell Claude to commit,
+   * which is wrong: rebase has no merge-commit step.
+   */
+  function buildConflictPrompt(
+    kind: "merge" | "rebase",
+    label: string,
+    conflicts: string[],
+  ): string {
+    const fileLines = conflicts.map((p) => `- ${p}`).join("\n");
+    const intro =
+      kind === "merge"
+        ? `I just ran \`git merge ${label}\` in this workspace and there are merge conflicts in the following file(s):`
+        : `I just ran a rebase (${label}) in this workspace and there are conflicts in the following file(s):`;
+    const finalise =
+      kind === "merge"
+        ? [
+            "Important constraints:",
+            "  - Do NOT run `git merge --abort` or otherwise revert the merge.",
+            "  - Do NOT run `git commit`. I will review the staged resolution and commit it myself in the Git UI.",
+            "  - Stop once every conflicted file has been staged.",
+          ].join("\n")
+        : [
+            "Important constraints:",
+            "  - Do NOT run `git rebase --abort` or otherwise revert the rebase.",
+            "  - After staging the fixes for the current step, run `git rebase --continue`.",
+            "  - Subsequent commits in the rebase may surface more conflicts — repeat the process for each.",
+            "  - Stop once `git status` reports the rebase is finished (no in-progress rebase).",
+          ].join("\n");
+    return [
+      intro,
+      "",
+      fileLines,
+      "",
+      "Please resolve them. For each file:",
+      "  1. Read the file and find the conflict markers (<<<<<<<, =======, >>>>>>>).",
+      "  2. Decide which side to keep — or how to combine — based on the intent of each change.",
+      "  3. Remove the conflict markers and write the resolved content back.",
+      "  4. Run `git add <file>` to mark it as resolved.",
+      "",
+      finalise,
+    ].join("\n");
+  }
+
+  /**
+   * Shared conflict-handoff. Used by merge / rebase / checkout-and-rebase
+   * — on a `kind: "conflicts"` response we mirror the dirty tree into the
+   * console and offer to open Claude with the appropriate per-flow prompt.
+   */
+  async function handleConflictBody(
+    kind: "merge" | "rebase",
+    commandLabel: string,
+    target: string,
+    body: { conflicts?: string[]; output?: string },
+  ): Promise<{ ok: false; error: string }> {
+    const conflicts = Array.isArray(body.conflicts) ? body.conflicts : [];
+    pushConsoleEntry({
+      command: commandLabel,
+      status: "error",
+      output: `Conflicts in ${conflicts.length} file(s):\n${conflicts
+        .map((p) => `  ${p}`)
+        .join("\n")}${body.output ? `\n\n${body.output}` : ""}`,
+    });
+    setChecked(new Set());
+    setSelected(null);
+    await refresh();
+    if (conflicts.length > 0) {
+      const prompt = buildConflictPrompt(kind, target, conflicts);
+      if (
+        confirm(
+          `Open Claude Code to resolve ${conflicts.length} ${kind} conflict${conflicts.length === 1 ? "" : "s"}?`,
+        )
+      ) {
+        router.push(`/?new=1&prompt=${encodeURIComponent(prompt)}`);
+      }
+    }
+    return {
+      ok: false,
+      error: `${conflicts.length} conflict${conflicts.length === 1 ? "" : "s"} during ${kind}`,
+    };
+  }
+
+  // The branch-op callbacks below are kept stable via useCallback so they
+  // don't churn the BranchSwitcher's `actions` array on every parent render.
+  // The React Compiler can't preserve the manual memoization because deps
+  // like `busy` "may be mutated later" — but they're derived state we
+  // explicitly want to capture, same as the existing
+  // `runRevertSingle`/`onCheckoutBranch` callbacks above.
+  const onMergeBranch = useCallback(
+    async (name: string): Promise<{ ok: true } | { ok: false; error: string }> => {
+      if (!wsId) return { ok: false, error: "no workspace" };
+      if (busy) return { ok: false, error: `busy: ${busy}` };
+      setBusy("merge");
+      setOpError(null);
+      const command = `git merge --no-rebase --no-edit ${name}`;
+      try {
+        const res = await fetch(`/api/workspaces/${wsId}/git/merge`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name }),
+        });
+        if (res.ok) {
+          const j = (await res.json().catch(() => ({}))) as { output?: string };
+          pushConsoleEntry({ command, status: "ok", output: j.output ?? "" });
+          await refresh();
+          return { ok: true };
+        }
+        const body = (await res.json().catch(() => ({}))) as {
+          kind?: string;
+          conflicts?: string[];
+          message?: string;
+          output?: string;
+          error?: string;
+        };
+        if (body.kind === "conflicts") {
+          return await handleConflictBody("merge", command, name, body);
+        }
+        const message = body.message ?? body.error ?? `HTTP ${res.status}`;
+        pushConsoleEntry({
+          command,
+          status: "error",
+          output: body.output ? `${message}\n\n${body.output}` : message,
+        });
+        return { ok: false, error: summarizeGitError(message) };
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        pushConsoleEntry({ command, status: "error", output: msg });
+        return { ok: false, error: summarizeGitError(msg) };
+      } finally {
+        setBusy(null);
+      }
+    },
+    // handleConflictBody / buildConflictPrompt are stable across renders for
+    // our purposes — they only close over router/pushConsoleEntry/refresh.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [wsId, busy, refresh, pushConsoleEntry, router],
+  );
+
+  /**
+   * Rebase current onto `name`, or — when `checkoutBranch` is set — switch
+   * to that branch first and rebase IT onto `name`. The conflict handoff
+   * uses rebase verbs, NOT merge verbs (see `buildConflictPrompt`).
+   */
+  const onRebaseBranch = useCallback(
+    async (
+      onto: string,
+      checkoutBranch?: string,
+    ): Promise<{ ok: true } | { ok: false; error: string }> => {
+      if (!wsId) return { ok: false, error: "no workspace" };
+      if (busy) return { ok: false, error: `busy: ${busy}` };
+      setBusy("rebase");
+      setOpError(null);
+      const command = checkoutBranch
+        ? `git switch ${checkoutBranch} && git rebase ${onto}`
+        : `git rebase ${onto}`;
+      const target = checkoutBranch ? `${checkoutBranch} onto ${onto}` : `current onto ${onto}`;
+      try {
+        const res = await fetch(`/api/workspaces/${wsId}/git/rebase`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ onto, checkoutBranch }),
+        });
+        if (res.ok) {
+          const j = (await res.json().catch(() => ({}))) as { output?: string };
+          pushConsoleEntry({ command, status: "ok", output: j.output ?? "" });
+          setChecked(new Set());
+          setSelected(null);
+          await refresh();
+          return { ok: true };
+        }
+        const body = (await res.json().catch(() => ({}))) as {
+          kind?: string;
+          conflicts?: string[];
+          message?: string;
+          output?: string;
+          error?: string;
+        };
+        if (body.kind === "conflicts") {
+          return await handleConflictBody("rebase", command, target, body);
+        }
+        const message = body.message ?? body.error ?? `HTTP ${res.status}`;
+        pushConsoleEntry({
+          command,
+          status: "error",
+          output: body.output ? `${message}\n\n${body.output}` : message,
+        });
+        return { ok: false, error: summarizeGitError(message) };
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        pushConsoleEntry({ command, status: "error", output: msg });
+        return { ok: false, error: summarizeGitError(msg) };
+      } finally {
+        setBusy(null);
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [wsId, busy, refresh, pushConsoleEntry, router],
+  );
+
+  const onRebaseCurrentOnto = useCallback(
+    (name: string) => onRebaseBranch(name),
+    [onRebaseBranch],
+  );
+  const onCheckoutAndRebase = useCallback(
+    (branch: string, onto: string) => onRebaseBranch(onto, branch),
+    [onRebaseBranch],
+  );
+
+  const onRenameBranch = useCallback(
+    // eslint-disable-next-line react-hooks/preserve-manual-memoization
+    async (
+      oldName: string,
+      newName: string,
+    ): Promise<{ ok: true } | { ok: false; error: string }> => {
+      if (!wsId) return { ok: false, error: "no workspace" };
+      if (busy) return { ok: false, error: `busy: ${busy}` };
+      setBusy("rename");
+      setOpError(null);
+      const command = `git branch -m ${oldName} ${newName}`;
+      try {
+        const res = await fetch(`/api/workspaces/${wsId}/git/branch-rename`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ oldName, newName }),
+        });
+        if (!res.ok) {
+          const j = (await res.json().catch(() => ({}))) as { error?: string };
+          const raw = j.error ?? `HTTP ${res.status}`;
+          pushConsoleEntry({ command, status: "error", output: raw });
+          return { ok: false, error: summarizeGitError(raw) };
+        }
+        const j = (await res.json().catch(() => ({}))) as { output?: string };
+        pushConsoleEntry({
+          command,
+          status: "ok",
+          output: j.output ?? `Renamed '${oldName}' → '${newName}'`,
+        });
+        await refresh();
+        return { ok: true };
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        pushConsoleEntry({ command, status: "error", output: msg });
+        return { ok: false, error: summarizeGitError(msg) };
+      } finally {
+        setBusy(null);
+      }
+    },
+    // eslint-disable-next-line react-hooks/preserve-manual-memoization
+    [wsId, busy, refresh, pushConsoleEntry],
+  );
+
+  const onDeleteLocalBranch = useCallback(
+    // eslint-disable-next-line react-hooks/preserve-manual-memoization
+    async (
+      name: string,
+      force: boolean,
+    ): Promise<{ ok: true } | { ok: false; error: string }> => {
+      if (!wsId) return { ok: false, error: "no workspace" };
+      if (busy) return { ok: false, error: `busy: ${busy}` };
+      setBusy("delete-branch");
+      setOpError(null);
+      const command = `git branch ${force ? "-D" : "-d"} ${name}`;
+      try {
+        const res = await fetch(`/api/workspaces/${wsId}/git/branch-delete`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, force }),
+        });
+        if (!res.ok) {
+          const j = (await res.json().catch(() => ({}))) as { error?: string };
+          const raw = j.error ?? `HTTP ${res.status}`;
+          pushConsoleEntry({ command, status: "error", output: raw });
+          // Surface the FULL message so the BranchSwitcher can detect
+          // "not fully merged" and offer the force escape hatch.
+          return { ok: false, error: raw };
+        }
+        const j = (await res.json().catch(() => ({}))) as { output?: string };
+        pushConsoleEntry({
+          command,
+          status: "ok",
+          output: j.output ?? `Deleted '${name}'`,
+        });
+        await refresh();
+        return { ok: true };
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        pushConsoleEntry({ command, status: "error", output: msg });
+        return { ok: false, error: summarizeGitError(msg) };
+      } finally {
+        setBusy(null);
+      }
+    },
+    // eslint-disable-next-line react-hooks/preserve-manual-memoization
+    [wsId, busy, refresh, pushConsoleEntry],
+  );
+
+  const onDeleteRemoteBranch = useCallback(
+    // eslint-disable-next-line react-hooks/preserve-manual-memoization
+    async (name: string): Promise<{ ok: true } | { ok: false; error: string }> => {
+      if (!wsId) return { ok: false, error: "no workspace" };
+      if (busy) return { ok: false, error: `busy: ${busy}` };
+      setBusy("delete-branch");
+      setOpError(null);
+      const slash = name.indexOf("/");
+      const remote = slash > 0 ? name.slice(0, slash) : "origin";
+      const branchName = slash > 0 ? name.slice(slash + 1) : name;
+      const command = `git push ${remote} --delete ${branchName}`;
+      try {
+        const res = await fetch(`/api/workspaces/${wsId}/git/branch-delete`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, remote: true }),
+        });
+        if (!res.ok) {
+          const j = (await res.json().catch(() => ({}))) as { error?: string };
+          const raw = j.error ?? `HTTP ${res.status}`;
+          pushConsoleEntry({ command, status: "error", output: raw });
+          return { ok: false, error: summarizeGitError(raw) };
+        }
+        const j = (await res.json().catch(() => ({}))) as { output?: string };
+        pushConsoleEntry({
+          command,
+          status: "ok",
+          output: j.output ?? `Deleted remote '${name}'`,
+        });
+        await refresh();
+        return { ok: true };
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        pushConsoleEntry({ command, status: "error", output: msg });
+        return { ok: false, error: summarizeGitError(msg) };
+      } finally {
+        setBusy(null);
+      }
+    },
+    // eslint-disable-next-line react-hooks/preserve-manual-memoization
+    [wsId, busy, refresh, pushConsoleEntry],
+  );
+
+  const onCompareBranches = useCallback(
+    // eslint-disable-next-line react-hooks/preserve-manual-memoization
+    async (
+      base: string,
+      head: string,
+    ): Promise<{ ok: true } | { ok: false; error: string }> => {
+      if (!wsId) return { ok: false, error: "no workspace" };
+      const command = `git log ${base}..${head}`;
+      try {
+        const res = await fetch(
+          `/api/workspaces/${wsId}/git/branch-compare?mode=log&base=${encodeURIComponent(base)}&head=${encodeURIComponent(head)}`,
+        );
+        if (!res.ok) {
+          const j = (await res.json().catch(() => ({}))) as { error?: string };
+          const raw = j.error ?? `HTTP ${res.status}`;
+          pushConsoleEntry({ command, status: "error", output: raw });
+          return { ok: false, error: summarizeGitError(raw) };
+        }
+        const j = (await res.json().catch(() => ({}))) as { output?: string };
+        pushConsoleEntry({ command, status: "ok", output: j.output ?? "" });
+        setConsoleOpen(true);
+        return { ok: true };
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        pushConsoleEntry({ command, status: "error", output: msg });
+        return { ok: false, error: summarizeGitError(msg) };
+      }
+    },
+    // eslint-disable-next-line react-hooks/preserve-manual-memoization
+    [wsId, pushConsoleEntry],
+  );
+
+  const onShowDiffWithWorktree = useCallback(
+    // eslint-disable-next-line react-hooks/preserve-manual-memoization
+    async (name: string): Promise<{ ok: true } | { ok: false; error: string }> => {
+      if (!wsId) return { ok: false, error: "no workspace" };
+      const command = `git diff ${name}`;
+      try {
+        const res = await fetch(
+          `/api/workspaces/${wsId}/git/branch-compare?mode=diff&head=${encodeURIComponent(name)}`,
+        );
+        if (!res.ok) {
+          const j = (await res.json().catch(() => ({}))) as { error?: string };
+          const raw = j.error ?? `HTTP ${res.status}`;
+          pushConsoleEntry({ command, status: "error", output: raw });
+          return { ok: false, error: summarizeGitError(raw) };
+        }
+        const j = (await res.json().catch(() => ({}))) as { output?: string };
+        pushConsoleEntry({ command, status: "ok", output: j.output ?? "" });
+        setConsoleOpen(true);
+        return { ok: true };
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        pushConsoleEntry({ command, status: "error", output: msg });
+        return { ok: false, error: summarizeGitError(msg) };
+      }
+    },
+    // eslint-disable-next-line react-hooks/preserve-manual-memoization
+    [wsId, pushConsoleEntry],
+  );
+
+  // Update/Push from the per-branch menu only render on the CURRENT branch
+  // (a deliberate scope choice — see the inline comment in BranchSwitcher.
+  // Non-current Update/Push semantics are a footgun.) Update calls the
+  // remote endpoint directly so we can report the failure back to the
+  // popover (`runRemote` catches its own errors and resolves `void`,
+  // which would make Update always appear successful in the menu).
+  const onUpdateCurrent = useCallback(
+    // eslint-disable-next-line react-hooks/preserve-manual-memoization
+    async (): Promise<{ ok: true } | { ok: false; error: string }> => {
+    if (!wsId) return { ok: false, error: "no workspace" };
+    setBusy("pull");
+    setOpError(null);
+    try {
+      const res = await fetch(`/api/workspaces/${wsId}/git/remote`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ op: "pull" }),
+      });
+      if (!res.ok) {
+        const j = (await res.json().catch(() => ({}))) as { error?: string };
+        const raw = j.error ?? `HTTP ${res.status}`;
+        pushConsoleEntry({ command: "git pull --ff-only", status: "error", output: raw });
+        return { ok: false, error: summarizeGitError(raw) };
+      }
+      const j = (await res.json().catch(() => ({}))) as { output?: string };
+      pushConsoleEntry({ command: "git pull --ff-only", status: "ok", output: j.output ?? "" });
+      await refresh();
+      return { ok: true };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      pushConsoleEntry({ command: "git pull --ff-only", status: "error", output: msg });
+      return { ok: false, error: summarizeGitError(msg) };
+    } finally {
+      setBusy(null);
+    }
+    },
+    // eslint-disable-next-line react-hooks/preserve-manual-memoization
+    [wsId, refresh, pushConsoleEntry],
+  );
+
+  const onPushCurrent = useCallback(
+    () => runPushSilent(),
+    // runPushSilent is recreated each render; capturing it directly is
+    // intentional (we only invoke it, never compare its identity).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [wsId],
+  );
+
   // Cheap pure call — no useMemo needed, React Compiler memoizes downstream.
   const commitPrefix = data?.isRepo
     ? renderCommitPrefix(data.branch ?? null, active?.commitPrefix)
@@ -1077,6 +1531,16 @@ export default function GitPage() {
                 loadBranches={loadBranches}
                 onCheckout={onCheckoutBranch}
                 onCreate={onCreateBranch}
+                onMerge={onMergeBranch}
+                onRebaseCurrentOnto={onRebaseCurrentOnto}
+                onCheckoutAndRebase={onCheckoutAndRebase}
+                onRename={onRenameBranch}
+                onDeleteLocal={onDeleteLocalBranch}
+                onDeleteRemote={onDeleteRemoteBranch}
+                onCompare={onCompareBranches}
+                onShowDiff={onShowDiffWithWorktree}
+                onUpdate={onUpdateCurrent}
+                onPush={onPushCurrent}
               />
             </>
           )}

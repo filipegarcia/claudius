@@ -813,6 +813,322 @@ export async function pullWithMerge(cwd: string): Promise<PullMergeResult> {
   }
 }
 
+/**
+ * Merge `name` into the current branch. Mirrors `pullWithMerge`'s taxonomy so
+ * the UI can reuse the same "hand the conflicts to Claude" plumbing — the only
+ * difference is which command we run.
+ *
+ *   - `--no-rebase --no-edit` is mandatory for the same reasons as pull (no
+ *      editor handoff, no surprise rebases).
+ *   - `--no-ff` is intentionally omitted: a fast-forward merge is the cheap,
+ *      conflict-free path and we don't want to force a commit when none is
+ *      needed.
+ */
+export async function mergeBranchIntoCurrent(
+  cwd: string,
+  name: string,
+): Promise<PullMergeResult> {
+  const root = await getRepoRoot(cwd);
+  if (!root) return { ok: false, kind: "error", message: "not a git repository" };
+  const trimmed = name.trim();
+  if (!isValidRefName(trimmed)) {
+    return { ok: false, kind: "error", message: "invalid branch name" };
+  }
+  try {
+    const r = await git(["merge", "--no-rebase", "--no-edit", trimmed], root);
+    return { ok: true, output: (r.stdout + r.stderr).trim() };
+  } catch (err) {
+    const stderr =
+      err instanceof GitFailure
+        ? err.stderr
+        : err instanceof Error
+          ? err.message
+          : String(err);
+    const conflicts = await listConflicts(root);
+    if (conflicts.length > 0) {
+      const output =
+        err instanceof GitFailure ? (err.stderr || "").trim() : stderr;
+      return { ok: false, kind: "conflicts", conflicts, output };
+    }
+    return { ok: false, kind: "error", message: stderr.trim() || "git merge failed" };
+  }
+}
+
+/**
+ * Rebase taxonomy. Same shape as PullMergeResult but the conflict branch is
+ * resolved via `git rebase --continue` / `--abort`, not `merge`. Keeping the
+ * type distinct prevents the UI from using merge-flavoured copy on a rebase.
+ */
+export type RebaseResult =
+  | { ok: true; output: string }
+  | { ok: false; kind: "conflicts"; conflicts: string[]; output: string }
+  | { ok: false; kind: "error"; message: string };
+
+/**
+ * Rebase the currently-checked-out branch onto `onto`. IntelliJ semantics:
+ * the *current* branch's history is rewritten on top of `onto`. The opposite
+ * direction (rebase `onto` onto current) is a "Checkout and Rebase onto" —
+ * see `checkoutAndRebaseOnto` for that.
+ *
+ * On conflicts the working tree stays in its half-rebased state; the caller
+ * is expected to hand off resolution to Claude with rebase verbs
+ * (`git add` + `git rebase --continue`), not merge verbs.
+ */
+export async function rebaseCurrentOnto(
+  cwd: string,
+  onto: string,
+): Promise<RebaseResult> {
+  const root = await getRepoRoot(cwd);
+  if (!root) return { ok: false, kind: "error", message: "not a git repository" };
+  const trimmed = onto.trim();
+  if (!isValidRefName(trimmed)) {
+    return { ok: false, kind: "error", message: "invalid branch name" };
+  }
+  try {
+    // --no-edit not needed: rebase doesn't auto-create a merge commit. We
+    // intentionally don't pass --autosquash/--autostash; the user already
+    // saw the "commit, stash, or rollback first" guidance for dirty trees.
+    const r = await git(["rebase", trimmed], root);
+    return { ok: true, output: (r.stdout + r.stderr).trim() };
+  } catch (err) {
+    const stderr =
+      err instanceof GitFailure
+        ? err.stderr
+        : err instanceof Error
+          ? err.message
+          : String(err);
+    const conflicts = await listConflicts(root);
+    if (conflicts.length > 0) {
+      const output =
+        err instanceof GitFailure ? (err.stderr || "").trim() : stderr;
+      return { ok: false, kind: "conflicts", conflicts, output };
+    }
+    return { ok: false, kind: "error", message: stderr.trim() || "git rebase failed" };
+  }
+}
+
+/**
+ * "Checkout and Rebase onto X": switch to `branch`, then rebase it onto
+ * `onto`. IntelliJ uses this for the common "I want to update a side branch
+ * with main's latest commits before working on it" flow.
+ *
+ * The switch is its own failure point (dirty tree, unknown branch) — we
+ * surface those as `error` results so the UI doesn't dress them up as merge
+ * conflicts.
+ */
+export async function checkoutAndRebaseOnto(
+  cwd: string,
+  branch: string,
+  onto: string,
+): Promise<RebaseResult> {
+  const switched = await checkoutBranch(cwd, { name: branch });
+  if (isGitError(switched)) {
+    return { ok: false, kind: "error", message: switched.message };
+  }
+  return rebaseCurrentOnto(cwd, onto);
+}
+
+/**
+ * `git branch -m <old> <new>`. Renaming the current branch works fine; git
+ * also rewrites HEAD. Refuses if the new name already exists (no `-M`).
+ */
+export async function renameBranch(
+  cwd: string,
+  oldName: string,
+  newName: string,
+): Promise<{ ok: true; output: string } | GitError> {
+  const root = await getRepoRoot(cwd);
+  if (!root) return { code: "not-a-repo", message: "not a git repository" };
+  const o = oldName.trim();
+  const n = newName.trim();
+  if (!isValidRefName(o) || !isValidRefName(n)) {
+    return { code: "git-failed", message: "invalid branch name" };
+  }
+  try {
+    const r = await git(["branch", "-m", o, n], root);
+    return { ok: true, output: (r.stdout + r.stderr).trim() || `Renamed '${o}' → '${n}'` };
+  } catch (err) {
+    return {
+      code: "git-failed",
+      message:
+        err instanceof GitFailure
+          ? err.stderr.trim() || err.message
+          : err instanceof Error
+            ? err.message
+            : String(err),
+    };
+  }
+}
+
+/**
+ * Delete a local branch. `force=false` runs `branch -d` (refuses unmerged);
+ * `force=true` upgrades to `-D` (drops the branch even when commits would be
+ * lost). The caller is responsible for the destructive confirm prompt — the
+ * server just does what it's told.
+ */
+export async function deleteLocalBranch(
+  cwd: string,
+  name: string,
+  force: boolean,
+): Promise<{ ok: true; output: string } | GitError> {
+  const root = await getRepoRoot(cwd);
+  if (!root) return { code: "not-a-repo", message: "not a git repository" };
+  const trimmed = name.trim();
+  if (!isValidRefName(trimmed)) {
+    return { code: "git-failed", message: "invalid branch name" };
+  }
+  try {
+    const r = await git(["branch", force ? "-D" : "-d", trimmed], root);
+    return { ok: true, output: (r.stdout + r.stderr).trim() };
+  } catch (err) {
+    return {
+      code: "git-failed",
+      message:
+        err instanceof GitFailure
+          ? err.stderr.trim() || err.message
+          : err instanceof Error
+            ? err.message
+            : String(err),
+    };
+  }
+}
+
+/**
+ * Delete a remote-tracking branch. Accepts the short form ("origin/foo") and
+ * splits it into `<remote> <name>` for `git push <remote> --delete <name>`.
+ * The remote prune that follows (`fetch --prune` on the next refresh) drops
+ * the local tracking ref.
+ */
+export async function deleteRemoteBranch(
+  cwd: string,
+  remoteRef: string,
+): Promise<{ ok: true; output: string } | GitError> {
+  const root = await getRepoRoot(cwd);
+  if (!root) return { code: "not-a-repo", message: "not a git repository" };
+  const trimmed = remoteRef.trim();
+  if (!isValidRefName(trimmed)) {
+    return { code: "git-failed", message: "invalid branch name" };
+  }
+  // "origin/foo" → remote=origin, branch=foo. We accept a single-slash split;
+  // if the user somehow has a remote called "feat/foo" we'd misparse, but
+  // that's vanishingly rare and refusing it would block legitimate cases.
+  const slash = trimmed.indexOf("/");
+  if (slash <= 0 || slash === trimmed.length - 1) {
+    return { code: "git-failed", message: "expected <remote>/<branch>" };
+  }
+  const remote = trimmed.slice(0, slash);
+  const branch = trimmed.slice(slash + 1);
+  if (!isValidRefName(remote) || !isValidRefName(branch)) {
+    return { code: "git-failed", message: "invalid remote or branch name" };
+  }
+  try {
+    const r = await git(["push", remote, "--delete", branch], root);
+    return { ok: true, output: (r.stdout + r.stderr).trim() };
+  } catch (err) {
+    return {
+      code: "git-failed",
+      message:
+        err instanceof GitFailure
+          ? err.stderr.trim() || err.message
+          : err instanceof Error
+            ? err.message
+            : String(err),
+    };
+  }
+}
+
+/**
+ * Read-only "what's in branch X that isn't in branch Y" report. Returns the
+ * commit log (oneline) for `base..head` and `head..base` plus a numstat
+ * summary. We render this into the git console rather than building a
+ * dedicated comparison pane — keeps surface area small and consistent.
+ */
+export async function compareBranches(
+  cwd: string,
+  base: string,
+  head: string,
+): Promise<{ ok: true; output: string } | GitError> {
+  const root = await getRepoRoot(cwd);
+  if (!root) return { code: "not-a-repo", message: "not a git repository" };
+  if (!isValidRefName(base) || !isValidRefName(head)) {
+    return { code: "git-failed", message: "invalid branch name" };
+  }
+  try {
+    const ahead = await git(
+      ["log", "--oneline", "--no-color", `${base}..${head}`],
+      root,
+    );
+    const behind = await git(
+      ["log", "--oneline", "--no-color", `${head}..${base}`],
+      root,
+    );
+    const stat = await git(
+      ["diff", "--stat", "--no-color", `${base}...${head}`],
+      root,
+    );
+    const aheadList = ahead.stdout.trim();
+    const behindList = behind.stdout.trim();
+    const statBlock = stat.stdout.trim();
+    const aheadCount = aheadList ? aheadList.split("\n").length : 0;
+    const behindCount = behindList ? behindList.split("\n").length : 0;
+    const lines: string[] = [];
+    lines.push(`# Comparing ${base} ↔ ${head}`);
+    lines.push("");
+    lines.push(`## ${head} has ${aheadCount} commit(s) not in ${base}:`);
+    lines.push(aheadList || "(none)");
+    lines.push("");
+    lines.push(`## ${base} has ${behindCount} commit(s) not in ${head}:`);
+    lines.push(behindList || "(none)");
+    if (statBlock) {
+      lines.push("");
+      lines.push(`## File-level diff (${base}...${head}):`);
+      lines.push(statBlock);
+    }
+    return { ok: true, output: lines.join("\n") };
+  } catch (err) {
+    return {
+      code: "git-failed",
+      message:
+        err instanceof GitFailure
+          ? err.stderr.trim() || err.message
+          : err instanceof Error
+            ? err.message
+            : String(err),
+    };
+  }
+}
+
+/**
+ * `git diff <branch>` — branch's tip vs. current working tree. Used by the
+ * "Show Diff with Working Tree" action. Returns the raw unified diff; the UI
+ * pipes it straight into the console.
+ */
+export async function diffBranchAgainstWorktree(
+  cwd: string,
+  branch: string,
+): Promise<{ ok: true; output: string } | GitError> {
+  const root = await getRepoRoot(cwd);
+  if (!root) return { code: "not-a-repo", message: "not a git repository" };
+  if (!isValidRefName(branch)) {
+    return { code: "git-failed", message: "invalid branch name" };
+  }
+  try {
+    const r = await git(["diff", "--no-color", branch], root);
+    const out = r.stdout.trim();
+    return { ok: true, output: out || `(no differences between ${branch} and the working tree)` };
+  } catch (err) {
+    return {
+      code: "git-failed",
+      message:
+        err instanceof GitFailure
+          ? err.stderr.trim() || err.message
+          : err instanceof Error
+            ? err.message
+            : String(err),
+    };
+  }
+}
+
 /** Unmerged-path list. Catches all of UU/AA/DD/AU/UA/UD/DU in one query. */
 async function listConflicts(root: string): Promise<string[]> {
   try {
