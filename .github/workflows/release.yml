@@ -93,11 +93,24 @@ jobs:
           node scripts/electron-stage-standalone.mjs
           bun run electron:compile
 
+      # create-dmg (Tarantsov bash tool) drives Finder via AppleScript so the
+      # DMG's .DS_Store gets an alias variant macOS 14+ Finder actually honours
+      # for the background image. electron-builder's bundled DMG creator only
+      # writes a legacy alias that Sonoma/Sequoia/Tahoe Finder silently ignores.
+      # See `scripts/make-dmg.mjs` for the rationale.
+      - name: Install create-dmg (for branded DMG)
+        run: brew install create-dmg
+
       # Package x64-only, unsigned (adhoc via build/after-pack.js), no notarize.
       # `--x64` keeps electron-builder's own pack-time rebuild on x64 too, so it
       # doesn't revert the asarUnpack copy back to the host arch.
-      - name: Package dmg + zip (x64, unsigned)
+      # NB: electron-builder only produces zip + .app here — the DMG comes
+      # from the create-dmg step below.
+      - name: Package zip (x64, unsigned)
         run: bunx electron-builder --mac --x64 -c.mac.notarize=false --publish never
+
+      - name: Package branded DMG (via create-dmg)
+        run: node scripts/make-dmg.mjs
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v5

@@ -35,7 +35,7 @@
     "electron:icons": "node scripts/make-icons.mjs",
     "electron:app": "bun run electron:build && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder -m --dir",
     "electron:dist": "bun run electron:build && electron-builder -mwl",
-    "electron:dist:mac": "bun run electron:build && electron-builder -m",
+    "electron:dist:mac": "bun run electron:build && electron-builder -m && node scripts/make-dmg.mjs",
     "electron:dist:win": "bun run electron:build && electron-builder -w",
     "electron:dist:linux": "bun run electron:build && electron-builder -l",
     "electron:rebuild-native": "electron-builder install-app-deps && node scripts/native-abi.mjs write electron",
