@@ -701,6 +701,14 @@ export type ChatActions = {
   setGoal(text: string): Promise<{ ok: true } | { ok: false; error: string }>;
   /** Clear the session goal (and any achievement). */
   clearGoal(): Promise<{ ok: true } | { ok: false; error: string }>;
+  /**
+   * Clear the session todos durably. POSTs to
+   * `/api/sessions/:id/clear-todos`; the server nulls its snapshot,
+   * persists the clear marker, and broadcasts `session_snapshot { todos: [] }`
+   * which `applyEvent` collapses to an empty `latestTodos`. Used by the
+   * chat-level TodosBanner's "Clear" affordance.
+   */
+  clearTodos(): Promise<void>;
   /** Resolve a pending AskUserQuestion form. */
   submitAskAnswer(requestId: string, answers: AskAnswer[]): Promise<void>;
   /**
