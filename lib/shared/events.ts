@@ -524,6 +524,26 @@ export type AccountAutoRotatedEvent = {
   toLabel: string;
 };
 
+/**
+ * The main-thread agent for this session changed mid-session via
+ * `applyFlagSettings({ agent })`. Broadcast optimistically from
+ * `Session.setAgent()` — the SDK emits no dedicated event for this, so
+ * we mirror the same pattern used for `model_changed` / `mode_changed`.
+ *
+ * `agent === null` means the session was reset to the default general-
+ * purpose agent (same as not specifying `agent` at all in Options). The
+ * StatusLine agent badge clears on null.
+ *
+ * Persisted: `Session.agent` is mutable (unlike `effort`/`ultracode`
+ * which are session-scoped), so a reap→resume will start with the
+ * switched agent rather than resetting to the workspace default.
+ */
+export type AgentChangedEvent = {
+  type: "agent_changed";
+  /** New main-thread agent name, or null to reset to the default agent. */
+  agent: string | null;
+};
+
 export type ServerEvent =
   | {
       type: "sdk";
@@ -544,6 +564,7 @@ export type ServerEvent =
   | SessionErrorEvent
   | ModeChangedEvent
   | ModelChangedEvent
+  | AgentChangedEvent
   | ReplayDoneEvent
   | TurnStatusEvent
   | SessionTitleEvent

@@ -1485,6 +1485,10 @@ export function useSession(): ChatState & ChatActions {
         setModelState(ev.model ?? null);
         return;
       }
+      if (ev.type === "agent_changed") {
+        setMainAgent(ev.agent);
+        return;
+      }
       if (ev.type === "session_title") {
         setSessionTitle(ev.title ?? null);
         return;
@@ -3991,6 +3995,25 @@ export function useSession(): ChatState & ChatActions {
     }).catch(() => {});
   }, []);
 
+  /**
+   * Live-switch the main-thread agent via `applyFlagSettings` (SDK 0.3.161+).
+   *
+   * Optimistic: updates `mainAgent` immediately so the StatusLine badge
+   * reflects the new agent before the network round-trip completes. Passes
+   * `null` to reset to the default general-purpose agent. The server
+   * broadcasts an `agent_changed` SSE event so all tabs stay in sync.
+   */
+  const setAgent = useCallback(async (name: string | null) => {
+    const id = sessionIdRef.current;
+    if (!id) return;
+    setMainAgent(name);
+    await fetch(`/api/sessions/${id}/agent`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ agent: name }),
+    }).catch(() => {});
+  }, []);
+
   const renameTitle = useCallback(
     async (title: string): Promise<{ ok: true } | { ok: false; error: string }> => {
       const id = sessionIdRef.current;
@@ -4234,6 +4257,7 @@ export function useSession(): ChatState & ChatActions {
     setEffort,
     setUltracode,
     setFast,
+    setAgent,
     switchSession,
     createNewSession,
     createSessionAt,

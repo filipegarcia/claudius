@@ -1326,6 +1326,7 @@ export default function Home() {
           mainAgent={session.mainAgent}
           sessionRoot={session.cwd}
           agentCwd={session.agentCwd}
+          onPickAgent={session.setAgent}
           onModeChange={session.setPermissionMode}
           sessions={pickerSessions}
           onSwitchSession={(id) => {

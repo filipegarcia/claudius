@@ -645,6 +645,15 @@ export type ChatActions = {
    */
   setFast(enabled: boolean): Promise<void>;
   /**
+   * Live-switch the main-thread agent for subsequent turns (SDK 0.3.161+).
+   *
+   * Calls `POST /api/sessions/[id]/agent` which in turn calls
+   * `applyFlagSettings({ agent })` on the SDK Query. Pass `null` to reset
+   * to the default general-purpose agent. The `mainAgent` field in
+   * `ChatState` is updated optimistically before the network round-trip.
+   */
+  setAgent(name: string | null): Promise<void>;
+  /**
    * Bind to a different session id. Awaits a wake POST so a reaped session
    * has its buffer rehydrated before the SSE subscribes; fire-and-forget
    * callers (every UI tab-click in this codebase) just drop the returned
