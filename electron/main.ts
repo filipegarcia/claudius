@@ -181,7 +181,38 @@ async function writePersistedPort(port: number): Promise<void> {
   }
 }
 
+/**
+ * Remote-backend override. When set, the renderer loads from this URL and
+ * we SKIP the embedded-Next bootstrap entirely — the Electron process
+ * becomes a thin native shell (notifications, dialogs, OS menu, IPC bridge)
+ * over a backend hosted elsewhere (container, devbox, remote VM).
+ *
+ * Accepts either:
+ *   - env var `CLAUDIUS_REMOTE_URL=http://host:port`, OR
+ *   - CLI flag `--remote-url=http://host:port`
+ *
+ * Honored in BOTH dev and packaged builds (unlike `ELECTRON_START_URL`,
+ * which is dev-only). See `docs/electron-conversion/REMOTE-BACKEND.md`
+ * for the container / port-forwarding setup.
+ */
+function resolveRemoteUrl(): string | undefined {
+  const flagPrefix = "--remote-url=";
+  const flag = process.argv.find((a) => a.startsWith(flagPrefix));
+  if (flag) return flag.slice(flagPrefix.length);
+  const env = process.env.CLAUDIUS_REMOTE_URL;
+  if (env && env.length > 0) return env;
+  return undefined;
+}
+
 async function resolveStartUrl(): Promise<string> {
+  // Remote backend (container / devbox / VM) — works in packaged builds too.
+  // Skips the embedded-Next bootstrap entirely.
+  const remoteUrl = resolveRemoteUrl();
+  if (remoteUrl) {
+    console.log(`[electron/main] using remote backend at ${remoteUrl}`);
+    return remoteUrl;
+  }
+
   // Dev: a `next dev` is already running on :3000. The concurrently
   // pipeline in `bun run electron:dev` set ELECTRON_START_URL before
   // launching us.
