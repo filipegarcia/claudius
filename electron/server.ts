@@ -20,21 +20,36 @@ import path from "node:path";
 
 export type EmbeddedNextServer = {
   url: string;
+  /** The actual port the server bound to — may differ from `preferredPort`. */
+  port: number;
   close: () => Promise<void>;
 };
 
 /**
- * Start Next.js inside the main process, listening on a random free
- * port on the loopback interface. The returned `url` is what the
+ * Start Next.js inside the main process, listening on `preferredPort` on
+ * the loopback interface — falling back to a random ephemeral port if the
+ * preferred port is taken or omitted. The returned `url` is what the
  * BrowserWindow should `loadURL()`.
+ *
+ * Why preferredPort matters — Chromium keys localStorage / IndexedDB by
+ * origin (scheme + host + **port**). A fresh random port on every launch
+ * means a brand-new storage bucket on every launch, so every user
+ * preference stored client-side (theme, shortcuts, link-target, the
+ * "Opus 4.8 is here" dismissal banner, …) gets reset. Persisting the
+ * port across launches (see `resolveStartUrl` in `electron/main.ts`)
+ * stabilizes the origin and lets localStorage actually persist.
  *
  * @param appDir Absolute path to the directory containing the .next/
  *   build output. In packaged builds this is `process.resourcesPath`
  *   (or one level above, depending on how electron-builder lays out
  *   `extraResources`); in dev it should be the project root.
+ * @param preferredPort If set, attempt to bind here first. Caller is
+ *   responsible for persisting the resolved port (it may have fallen
+ *   back to random) so the next launch can request it.
  */
 export async function startEmbeddedNextServer(
   appDir: string,
+  preferredPort?: number,
 ): Promise<EmbeddedNextServer> {
   // Dynamic require — see file header for rationale.
   // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -63,21 +78,56 @@ export async function startEmbeddedNextServer(
     });
   });
 
-  await new Promise<void>((resolve, reject) => {
-    server.once("error", reject);
-    // Port 0 — let the kernel pick a free ephemeral port. Binding to
-    // 127.0.0.1 (NOT 0.0.0.0) keeps the server invisible to other
-    // machines on the LAN — important because the renderer trusts this
-    // server implicitly (same-origin) and the Claude Agent SDK has
-    // permission to run shell commands.
-    server.listen(0, "127.0.0.1", () => resolve());
-  });
+  // Bind to 127.0.0.1 (NOT 0.0.0.0) to keep the server invisible to other
+  // machines on the LAN — important because the renderer trusts this server
+  // implicitly (same-origin) and the Claude Agent SDK has permission to run
+  // shell commands.
+  //
+  // Port resolution: try `preferredPort` first (so localStorage stays
+  // stable across launches); fall back to a kernel-chosen ephemeral port
+  // on EADDRINUSE / any bind error. The fallback can't be transparent —
+  // the caller must persist the resolved port so future launches request
+  // *this* port, not the one that just failed.
+  if (preferredPort != null && Number.isFinite(preferredPort)) {
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const onError = (err: unknown) => {
+          server.removeListener("error", onError);
+          reject(err);
+        };
+        server.once("error", onError);
+        server.listen(preferredPort, "127.0.0.1", () => {
+          server.removeListener("error", onError);
+          resolve();
+        });
+      });
+    } catch (err) {
+      // Most likely EADDRINUSE — another instance of the app, an unrelated
+      // service, or a leftover socket. Log so this is debuggable when a
+      // user reports "localStorage reset itself for no reason", then
+      // re-bind to a random port.
+      console.warn(
+        `[electron/server] preferred port ${preferredPort} unavailable, falling back to random:`,
+        err,
+      );
+      await new Promise<void>((resolve, reject) => {
+        server.once("error", reject);
+        server.listen(0, "127.0.0.1", () => resolve());
+      });
+    }
+  } else {
+    await new Promise<void>((resolve, reject) => {
+      server.once("error", reject);
+      server.listen(0, "127.0.0.1", () => resolve());
+    });
+  }
 
   const addr = server.address() as AddressInfo;
   const url = `http://127.0.0.1:${addr.port}`;
 
   return {
     url,
+    port: addr.port,
     close: () =>
       new Promise<void>((resolve, reject) => {
         server.close((err) => (err ? reject(err) : resolve()));

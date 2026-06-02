@@ -13,6 +13,7 @@
  * title bar, OS notifications, auto-updater, and deep-link handling.
  */
 import { app, BrowserWindow, ipcMain, shell } from "electron";
+import { promises as fs } from "node:fs";
 import path from "node:path";
 
 import { registerBadgeHandlers } from "./ipc/badge";
@@ -141,6 +142,45 @@ app.on("open-file", (event, filePath) => {
   }
 });
 
+/**
+ * Path to the persisted embedded-server port. Same `userData` we set above,
+ * so the file follows the branded "Claudius" dir across platforms. Stable
+ * across `app:` builds, e2e tests with `--user-data-dir` get their own
+ * isolated path.
+ */
+function portFilePath(): string {
+  return path.join(app.getPath("userData"), "embedded-port");
+}
+
+/**
+ * Read the embedded-server port persisted by the previous launch. Returns
+ * undefined for any reason — file missing, malformed contents, out of
+ * range. The caller falls back to a kernel-chosen random port and writes
+ * the new one back.
+ */
+async function readPersistedPort(): Promise<number | undefined> {
+  try {
+    const raw = await fs.readFile(portFilePath(), "utf8");
+    const n = parseInt(raw.trim(), 10);
+    // Ephemeral / privileged ports are unsafe to reuse — clamp to the
+    // user range (1024–65535). Anything outside means the file is stale
+    // or corrupt; fall back to random.
+    if (Number.isFinite(n) && n >= 1024 && n <= 65535) return n;
+    return undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Persist the resolved port so the next launch reads it back. Best-effort. */
+async function writePersistedPort(port: number): Promise<void> {
+  try {
+    await fs.writeFile(portFilePath(), String(port), "utf8");
+  } catch (err) {
+    console.warn("[electron/main] could not persist embedded port:", err);
+  }
+}
+
 async function resolveStartUrl(): Promise<string> {
   // Dev: a `next dev` is already running on :3000. The concurrently
   // pipeline in `bun run electron:dev` set ELECTRON_START_URL before
@@ -149,12 +189,25 @@ async function resolveStartUrl(): Promise<string> {
     return DEV_START_URL;
   }
 
-  // Packaged: spin up the embedded Next server on a random loopback
-  // port.
-  nextServer = await startEmbeddedNextServer(defaultAppDir());
-  // Log the resolved loopback URL — the port is random (server.ts binds :0),
-  // so this is the only way to know where the embedded server came up (useful
-  // for health probes / debugging a packaged launch).
+  // Packaged: spin up the embedded Next server on a STABLE loopback port.
+  //
+  // Why stable: Chromium keys localStorage / IndexedDB by origin (scheme +
+  // host + port). A new random port every launch means a brand-new storage
+  // bucket every launch — every localStorage-backed preference (theme,
+  // shortcuts, link-target, the "Opus 4.8 is here" dismissal banner, …)
+  // would reset on every relaunch. We persist the port to userData and
+  // request it on subsequent launches. Fallback to random on EADDRINUSE,
+  // and write the new port back so the *next* launch matches.
+  const preferredPort = await readPersistedPort();
+  nextServer = await startEmbeddedNextServer(defaultAppDir(), preferredPort);
+  if (nextServer.port !== preferredPort) {
+    // Either first launch (no file) or the previous port collided. Either
+    // way, persist what we actually got so we stabilize from here on.
+    await writePersistedPort(nextServer.port);
+  }
+  // Log the resolved loopback URL — useful for health probes and for
+  // verifying "is my port stable across launches?" by comparing two cold
+  // launches.
   console.log(`[electron/main] embedded server listening at ${nextServer.url}`);
   return nextServer.url;
 }
