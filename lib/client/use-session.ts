@@ -4026,6 +4026,37 @@ export function useSession(): ChatState & ChatActions {
     [sessionTitle, refreshSessions],
   );
 
+  // Durably clear the agent's TodoWrite snapshot. POSTs to
+  // `/api/sessions/:id/clear-todos`; the server nulls its in-memory
+  // snapshot, persists the clear marker so a future server restart can't
+  // resurrect the list from disk JSONL, and broadcasts
+  // `session_snapshot { todos: [] }` which the reducer below collapses to
+  // an empty `latestTodos`. We don't optimistically clear here — letting
+  // the SSE round-trip drive the state update keeps this tab and siblings
+  // in lock-step, and the round-trip is sub-frame for local servers.
+  //
+  // Errors are surfaced to the console (not silently swallowed) so a
+  // broken click — most commonly a 503 from a stale dev-HMR Session
+  // instance — actually tells the user what to do instead of looking like
+  // the button does nothing.
+  const clearTodos = useCallback(async (): Promise<void> => {
+    const id = sessionIdRef.current;
+    if (!id) return;
+    try {
+      const res = await fetch(`/api/sessions/${id}/clear-todos`, { method: "POST" });
+      if (!res.ok) {
+        const body = (await res.json().catch(() => ({}))) as { error?: string };
+
+        console.warn(
+          `[clearTodos] server returned ${res.status}: ${body.error ?? "no body"}`,
+        );
+      }
+    } catch (err) {
+
+      console.warn("[clearTodos] network error", err);
+    }
+  }, []);
+
   const clearGoal = useCallback(
     async (): Promise<{ ok: true } | { ok: false; error: string }> => {
       const id = sessionIdRef.current;
@@ -4169,6 +4200,7 @@ export function useSession(): ChatState & ChatActions {
     renameTitle,
     setGoal,
     clearGoal,
+    clearTodos,
   };
 }
 
