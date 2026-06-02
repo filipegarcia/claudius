@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="540" height="380" viewBox="0 0 540 380">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="14%" r="78%">
+      <stop offset="0%" stop-color="#f7d2bd"/>
+      <stop offset="42%" stop-color="#fbeee4"/>
+      <stop offset="100%" stop-color="#fbf7f2"/>
+    </radialGradient>
+    <linearGradient id="brand" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e08a64"/>
+      <stop offset="1" stop-color="#c9694a"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Backdrop -->
+  <rect width="540" height="380" fill="url(#bg)"/>
+
+  <!-- Headline -->
+  <text x="270" y="56" text-anchor="middle"
+        font-family="-apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'Helvetica', sans-serif"
+        font-size="17" font-weight="600" fill="#5a3a2a"
+        letter-spacing="0.4">Install Claudius</text>
+  <text x="270" y="80" text-anchor="middle"
+        font-family="-apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'Helvetica', sans-serif"
+        font-size="12" fill="#8a6a5a">Drag the app into your Applications folder</text>
+
+  <!-- Brand mark, upper right -->
+  <g transform="translate(468, 24)">
+    <rect width="48" height="48" rx="11" fill="url(#brand)"/>
+    <g transform="translate(24, 24) scale(0.05859375) translate(-512, -512)">
+      <path d="M449 -22Q361 12 289.5 58.5Q218 105 166.5 158.0Q115 211 87.0 264.5Q59 318 59 365Q59 426 103.5 495.0Q148 564 234.0 627.5Q320 691 445 732L485 655Q396 623 333.5 583.0Q271 543 232.0 502.0Q193 461 175.0 424.5Q157 388 157 362Q157 325 193.0 269.5Q229 214 302.0 156.0Q375 98 487 53Z" fill="#fff"
+            transform="translate(309.24 775.66) scale(0.74271 -0.74271)"/>
+    </g>
+  </g>
+
+  <!-- Dashed hint arrow between the two drop zones (icons at y=220) -->
+  <g opacity="0.7">
+    <line x1="222" y1="220" x2="312" y2="220"
+          stroke="#c9694a" stroke-width="2.4"
+          stroke-linecap="round" stroke-dasharray="4 7"/>
+    <polygon points="318,220 306,213 306,227"
+             fill="#c9694a"/>
+  </g>
+</svg>
