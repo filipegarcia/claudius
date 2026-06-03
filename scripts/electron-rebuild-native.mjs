@@ -132,18 +132,48 @@ function verifyLoadsInElectron() {
   // through `spawnSync` as `status: null, signal: null, error: ENOENT`,
   // and the catch-all error below renders it as "code null (signal=none)"
   // — which reads as a crash/hang but is actually a spawn-never-started.
-  // The class of bug this guards against: `bun install --frozen-lockfile`
-  // skips `electron`'s postinstall (the binary downloader) when the package
-  // isn't in `trustedDependencies`. Adding it there is the right fix; this
-  // assertion makes the failure mode self-describing on the next regression.
+  //
+  // The recovery path: invoke `node node_modules/electron/install.js`
+  // directly. That's the script Electron's own postinstall runs, which
+  // calls @electron/get to download the platform binary. We do this
+  // ourselves rather than relying on `bun install`'s lifecycle hooks
+  // because bun's `trustedDependencies` honoring is inconsistent across
+  // versions / lockfile states — observed empirically on the Linux CI
+  // runner, where adding "electron" to trustedDependencies + a fresh
+  // `bun install --frozen-lockfile` STILL left the binary absent. Doing
+  // it from here works on any runner, no env tweaks needed.
   if (!existsSync(electronPath)) {
-    throw new Error(
-      `Electron binary not found at ${electronPath}. ` +
-        `Most likely cause: \`bun install\` ran without "electron" in package.json's ` +
-        `trustedDependencies, so its postinstall (which downloads the platform binary) ` +
-        `was skipped. Either add electron to trustedDependencies or run ` +
-        `\`bunx electron-builder install-app-deps\` to seed the binary manually.`,
+    const installScript = path.join(
+      REPO_ROOT,
+      "node_modules",
+      "electron",
+      "install.js",
     );
+    if (!existsSync(installScript)) {
+      throw new Error(
+        `Neither ${electronPath} nor ${installScript} exists — ` +
+          `the electron package itself isn't installed. Run \`bun install\` and retry.`,
+      );
+    }
+    console.log(
+      `[rebuild-native] electron binary missing; running ${path.relative(REPO_ROOT, installScript)} to download it…`,
+    );
+    const install = spawnSync(process.execPath, [installScript], {
+      cwd: path.dirname(installScript), // install.js reads package.json relatively
+      stdio: "inherit",
+      env: process.env,
+    });
+    if (install.status !== 0) {
+      throw new Error(
+        `electron/install.js exited with code ${install.status} — binary download failed.`,
+      );
+    }
+    if (!existsSync(electronPath)) {
+      throw new Error(
+        `electron/install.js completed but ${electronPath} is still missing — ` +
+          `check @electron/get's download URL / cache for this Electron version.`,
+      );
+    }
   }
 
   // Write a one-shot loader to a tmp file. We do `require("better-sqlite3")`
