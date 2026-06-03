@@ -1,6 +1,6 @@
 import { promises as fs } from "node:fs";
 import { homedir } from "node:os";
-import { dirname, isAbsolute, join, resolve, sep } from "node:path";
+import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -116,10 +116,18 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "invalid folder name" }, { status: 400 });
   }
 
+  // Inline barrier at the stat sink, canonical `path.relative(...)` form.
+  // CodeQL's RelativePathStartsWithSanitizer recognizes this pattern and
+  // sanitizes the 2nd arg of `relative` for the fall-through branch — unlike
+  // L104's compound `A && !B` whose `parent === FS_ROOT` short-circuit left
+  // the stat sink tainted (this is what kept reopening alert #36).
+  // `relative(FS_ROOT, FS_ROOT)` returns "" so the legitimate root case
+  // passes without needing a disjunct that would re-break the barrier.
+  const rel = relative(FS_ROOT, parent);
+  if (rel.startsWith("..") || rel === "..") {
+    return NextResponse.json({ error: "parent outside allowed root" }, { status: 403 });
+  }
   try {
-    // Use `parent` directly at the fs sink. The L104 `resolve + startsWith`
-    // guard is the CodeQL-recognized barrier; passing through a helper
-    // (assertWithin) broke that recognition and reopened the alert.
     const stat = await fs.stat(parent);
     if (!stat.isDirectory()) {
       return NextResponse.json({ error: "parent is not a directory" }, { status: 400 });
