@@ -100,13 +100,26 @@ jobs:
       # electron-builder packs it (asarUnpack: node_modules/@next/** lives
       # in electron-builder.yml) and the runtime loader never reaches the
       # fallback path.
+      #
+      # We use npm (not bun) for this single step because Bun honors a
+      # package's declared `cpu`/`os` fields and SILENTLY skips installing
+      # any optional binding that doesn't match the host — on this arm64
+      # runner `bun add @next/swc-darwin-x64` prints "installed" but
+      # writes nothing to `node_modules/@next/`. npm has explicit
+      # `--cpu`/`--os` overrides that force the platform-mismatched
+      # binding onto disk, which is exactly what cross-building needs.
       - name: Install @next/swc-darwin-x64 (cross-build binding)
         run: |
           set -euo pipefail
           NEXT_VERSION=$(node -p "require('./node_modules/next/package.json').version")
-          echo "Installing @next/swc-darwin-x64@${NEXT_VERSION} for cross-build…"
-          bun add --no-save "@next/swc-darwin-x64@${NEXT_VERSION}"
-          ls -la node_modules/@next/swc-darwin-x64/ | head -5
+          echo "Installing @next/swc-darwin-x64@${NEXT_VERSION} via npm (cpu/os override)…"
+          npm install --no-save --no-package-lock \
+            --cpu=x64 --os=darwin --include=optional \
+            "@next/swc-darwin-x64@${NEXT_VERSION}"
+          # Sanity-check: the .node binary must be on disk for electron-builder
+          # to asarUnpack it. Fail loudly here rather than at runtime.
+          test -f node_modules/@next/swc-darwin-x64/next-swc.darwin-x64.node
+          ls -la node_modules/@next/swc-darwin-x64/
 
       # Resolve the .N component of the version tag that the BUILD should
       # bake into the binary's footer. Three input paths, in order:
