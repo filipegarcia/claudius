@@ -107,6 +107,51 @@ export function useCommunityNotificationsState(): UseCommunityNotifications {
     };
   }, []);
 
+  // Hydrate consent from the user-scope settings file at app startup.
+  //
+  // The provider mounts in the layout, which means this fires on the
+  // first page load regardless of where the user lands. Without this,
+  // a fresh browser / fresh Electron install on the same `~/.claude/`
+  // would have empty localStorage → `hasConsent=false` → no SSE → no
+  // unread badge on the workspace switcher, even though the user
+  // already opted in (via another device or before clearing storage).
+  //
+  // Server wins ONLY when localStorage is empty — same race-safe rule
+  // as `useCommunityConsent`. Writing to localStorage via writeLocal
+  // (well — direct setItem here because we don't import the helper)
+  // is paired with a manual `COMMUNITY_CONSENT_EVENT` dispatch so the
+  // localStorage-watching effect above re-reads and flips hasConsent.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const r = await fetch("/api/community/prefs");
+        if (!r.ok || cancelled) return;
+        const data = (await r.json()) as { consent: "yes" | "no" | null };
+        const serverConsent =
+          data.consent === "yes" || data.consent === "no" ? data.consent : null;
+        const localConsent = readCommunityConsent();
+        if (cancelled) return;
+        if (localConsent === null && serverConsent) {
+          try {
+            window.localStorage.setItem(LS_COMMUNITY_CONSENT_KEY, serverConsent);
+          } catch {
+            // Private mode / storage blocked — fall through; we'll
+            // still flip the in-memory state below.
+          }
+          // Cross-hook signal — picked up by useCommunityConsent on
+          // the /community page and by the read effect right above.
+          window.dispatchEvent(new Event(COMMUNITY_CONSENT_EVENT));
+        }
+      } catch {
+        // Network errors non-fatal — the local cache stands.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   // `configured` collapses three concerns: URL is known, the user has
   // opted in to the community at all, and they've toggled notifications
   // on. Treating them as one boolean keeps the gating logic in the SSE

@@ -3,9 +3,17 @@
 // What it draws (540×380 canvas; electron-builder's default DMG window):
 //   • cream-glow radial backdrop (warm brand tint top, fading to off-white)
 //   • headline "Install Claudius" + sublabel
-//   • the brand mark (terracotta squircle + archaic 𐌂 glyph) in the corner
+//   • the Claudius bust silhouette in the upper-right corner (the SAME mark
+//     used by site/index.html and components/brand/claudius-svg.ts — read
+//     verbatim from public/claudius.svg so changes there flow through)
 //   • a dashed arrow between the two drop zones at y=220 (matches the icon
 //     positions wired in electron-builder.yml: app at x=130, link at x=410)
+//
+// Why the bust and not the app squircle: the .app icon (the orange squircle +
+// archaic 𐌂 glyph) already sits in the centre-left of the DMG window. Putting
+// the same squircle in the corner read as "two logos of the same thing" — the
+// bust is the marketing illustration, distinct from the app icon, so it stamps
+// identity without competing visually with the drag-this-to-Applications cue.
 //
 // Output:
 //   • build/dmg-background.svg          — design source (SVG, vector)
@@ -21,7 +29,7 @@
 // Run with:  node scripts/make-dmg-background.mjs
 
 import { chromium } from "@playwright/test";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
@@ -40,23 +48,27 @@ const ICON_Y = 220;
 const ARROW_FROM_X = 222;
 const ARROW_TO_X = 318;
 
-// ── brand mark ─────────────────────────────────────────────────────────────
-// Reuses the SAME archaic 𐌂 glyph baked into scripts/make-icons.mjs so the
-// DMG window's corner badge reads as the same identity the desktop dock icon
-// does. The glyph is rendered inside a small terracotta squircle in the
-// upper-right corner of the DMG window.
-const GLYPH =
-  "M449 -22Q361 12 289.5 58.5Q218 105 166.5 158.0Q115 211 87.0 264.5Q59 318 59 365Q59 426 103.5 495.0Q148 564 234.0 627.5Q320 691 445 732L485 655Q396 623 333.5 583.0Q271 543 232.0 502.0Q193 461 175.0 424.5Q157 388 157 362Q157 325 193.0 269.5Q229 214 302.0 156.0Q375 98 487 53Z";
-const GLYPH_SCALE = 0.74271;
-const GLYPH_TX = 309.24;
-const GLYPH_TY = 775.66;
+// ── bust silhouette ────────────────────────────────────────────────────────
+// Source: public/claudius.svg (600×750 viewBox; black-fill silhouette of the
+// Roman bust used across the marketing surface). We read the file at build
+// time and embed its inner content verbatim — that way edits to the canonical
+// SVG flow into the DMG background without manual sync.
+//
+// Recolour: the on-disk SVG hardcodes fill="#000". On the cream gradient that
+// reads too stark, so we swap to the same warm dark-brown the headline uses
+// (#5a3a2a) for a softer, more printed-poster feel.
+const claudiusSvg = readFileSync(
+  path.join(ROOT, "public", "claudius.svg"),
+  "utf8",
+);
+const bustInner = claudiusSvg
+  .match(/<svg[^>]*>([\s\S]*)<\/svg>/)[1]
+  .replace(/fill="#000"/, 'fill="#5a3a2a"');
 
-const BRAND = 48; // brand-mark squircle edge in DMG-window pixels
-const BRAND_X = W - BRAND - 24; // 24px inset from right
-const BRAND_Y = 24; // 24px from top
-// The glyph inside icon.svg occupies the 1024-unit canvas; scale it to fill
-// ~80% of the brand-mark square so it reads at this size.
-const GLYPH_FIT = (BRAND / 1024) * 1.25;
+const BUST_W = 56; // wider than the old 48px squircle — the bust is tall and slender
+const BUST_H = 70; // preserves the source SVG's 4:5 aspect (600×750)
+const BUST_X = W - BUST_W - 20; // 20px inset from right edge
+const BUST_Y = 18; // 18px from top — visually balances the taller silhouette
 
 const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
   <defs>
@@ -65,10 +77,6 @@ const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" 
       <stop offset="42%" stop-color="#fbeee4"/>
       <stop offset="100%" stop-color="#fbf7f2"/>
     </radialGradient>
-    <linearGradient id="brand" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#e08a64"/>
-      <stop offset="1" stop-color="#c9694a"/>
-    </linearGradient>
   </defs>
 
   <!-- Backdrop -->
@@ -83,14 +91,11 @@ const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" 
         font-family="-apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'Helvetica', sans-serif"
         font-size="12" fill="#8a6a5a">Drag the app into your Applications folder</text>
 
-  <!-- Brand mark, upper right -->
-  <g transform="translate(${BRAND_X}, ${BRAND_Y})">
-    <rect width="${BRAND}" height="${BRAND}" rx="11" fill="url(#brand)"/>
-    <g transform="translate(${BRAND / 2}, ${BRAND / 2}) scale(${GLYPH_FIT}) translate(-512, -512)">
-      <path d="${GLYPH}" fill="#fff"
-            transform="translate(${GLYPH_TX} ${GLYPH_TY}) scale(${GLYPH_SCALE} -${GLYPH_SCALE})"/>
-    </g>
-  </g>
+  <!-- Claudius bust silhouette, upper right -->
+  <svg x="${BUST_X}" y="${BUST_Y}" width="${BUST_W}" height="${BUST_H}"
+       viewBox="0 0 600 750" preserveAspectRatio="xMidYMid meet">
+    ${bustInner}
+  </svg>
 
   <!-- Dashed hint arrow between the two drop zones (icons at y=${ICON_Y}) -->
   <g opacity="0.7">
@@ -121,7 +126,10 @@ try {
       { waitUntil: "load" },
     );
     const out = path.join(OUT, name);
-    await page.locator("svg").screenshot({ path: out });
+    // The bust silhouette is itself a nested <svg> now (read verbatim from
+    // public/claudius.svg), so the page has two SVGs. Target the outer one
+    // (the direct child of <body>) — first() also works but is order-fragile.
+    await page.locator("body > svg").screenshot({ path: out });
     console.log(`· wrote build/${name} (${W * dpr}×${H * dpr})`);
   }
 } finally {

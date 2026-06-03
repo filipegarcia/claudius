@@ -1,6 +1,6 @@
 "use client";
 
-import { MessagesSquare, ShieldOff } from "lucide-react";
+import { Loader2, MessagesSquare, ShieldOff } from "lucide-react";
 import { SideNav } from "@/components/nav/SideNav";
 import { CommunityChat } from "@/components/community/CommunityChat";
 import { useCommunityConsent } from "@/lib/client/use-community-consent";
@@ -22,7 +22,7 @@ import { useCommunityConsent } from "@/lib/client/use-community-consent";
  * reversible via "Disconnect from community" in the chat sidebar.
  */
 export default function CommunityPage() {
-  const { consent, accept, decline, reset } = useCommunityConsent();
+  const { consent, hydrated, accept, decline, reset } = useCommunityConsent();
 
   if (consent === "yes") {
     return <CommunityChat onOptOut={decline} />;
@@ -30,7 +30,29 @@ export default function CommunityPage() {
   if (consent === "no") {
     return <OptedOutScreen onReconnect={reset} />;
   }
+  // consent === null. Two ways to land here:
+  //   • Genuinely first visit on this `~/.claude/` — show the prompt.
+  //   • Fresh browser / Electron install where localStorage is empty
+  //     but ~/.claude/settings.json already has communityConsent.
+  //     The hydration effect inside useCommunityConsent will flip
+  //     `consent` to "yes" as soon as the GET resolves — we just
+  //     render a tiny placeholder until then so the prompt doesn't
+  //     flash for users who already opted in on another device.
+  if (!hydrated) {
+    return <HydratingScreen />;
+  }
   return <ConsentPrompt onAccept={accept} onDecline={decline} />;
+}
+
+function HydratingScreen() {
+  return (
+    <div className="flex h-full" data-testid="community-hydrating">
+      <SideNav />
+      <main className="flex flex-1 items-center justify-center p-8">
+        <Loader2 className="h-5 w-5 animate-spin text-[var(--muted)]" />
+      </main>
+    </div>
+  );
 }
 
 function ConsentPrompt({

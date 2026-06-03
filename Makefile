@@ -1,4 +1,4 @@
-.PHONY: help install dev build start lint unit test test-ui test-e2e-electron test-setup test-setup-local test-setup-docker test-install-public ci site screenshots screenshots-full claudius-revert claudius-revert-all run up down restart status logs electron electron-dev electron-build electron-icons electron-app electron-dist electron-e2e-loop sdk-update-check sdk-update-run sdk-update-fix-pr sdk-update-dry-run sdk-update-status sdk-update-logs sdk-update-install-cron sdk-update-uninstall-cron
+.PHONY: help install dev build start lint unit test test-ui test-e2e-electron test-setup test-setup-local test-setup-docker test-install-public ci site screenshots screenshots-full claudius-revert claudius-revert-all run up down restart status logs electron electron-dev electron-build electron-icons electron-app electron-dist electron-e2e-loop sdk-update-check sdk-update-run sdk-update-fix-pr sdk-update-dry-run sdk-update-status sdk-update-logs sdk-update-install-cron sdk-update-uninstall-cron debug-export
 
 # List every target, grouped by the section headers below.
 help:
@@ -297,3 +297,19 @@ sdk-update-uninstall-cron:
 		echo "✓ no sdk-update entry in crontab — nothing to do"; \
 	fi; \
 	rm -f "$$TMP"
+
+# ── Debug export ────────────────────────────────────────────────────────
+# Generates a portable debug bundle — `claudius-debug-YYYY-MM-DD.json` —
+# in the current directory. The file is:
+#   • A valid Claudius settings bundle (importable via Settings → Import)
+#     so the maintainer can recreate your exact configuration.
+#   • Annotated with diagnostic info (version, platform, workspace count)
+#     that helps reproduce the problem without access to your machine.
+#
+# API keys and other secrets are redacted automatically.
+# Claudius does NOT need to be running; the script reads from disk directly.
+#
+# Attach the generated file to your GitHub bug report.
+# See docs/debug-export.md for full details.
+debug-export:
+	@bun run scripts/debug-export.ts

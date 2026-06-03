@@ -1,0 +1,100 @@
+name: Bug Report
+description: Something isn't working as expected in Claudius.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report this!
+
+        **Before you submit**, please run `make debug-export` in the Claudius project directory and attach the generated `claudius-debug-*.json` file below. It contains your settings and workspace configuration (no API keys) and lets us reproduce your exact setup without back-and-forth.
+
+        See [docs/debug-export.md](https://github.com/filipegarcia/claudius/blob/main/docs/debug-export.md) for details on what the file contains and how to run it.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: A clear and concise description of the bug.
+      placeholder: "When I do X, Y happens instead of Z."
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: How can we make the bug happen reliably?
+      placeholder: |
+        1. Open workspace "..."
+        2. Start a session and type "..."
+        3. Click "..."
+        4. See error / wrong behaviour
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+      description: What should have happened?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behaviour
+      description: What actually happened? Paste any error messages or console output here.
+    validations:
+      required: true
+
+  - type: textarea
+    id: debug_bundle
+    attributes:
+      label: Debug bundle
+      description: |
+        Run this in the Claudius project directory (Claudius does **not** need to be running):
+
+        ```
+        make debug-export
+        ```
+
+        Then drag-and-drop the generated `claudius-debug-YYYY-MM-DD.json` file into this field, or paste its contents.
+
+        The file is a valid settings backup — it can be imported by the maintainer to recreate your exact configuration. API keys and secrets are automatically redacted. Review it before sharing; it includes your workspace paths.
+
+        See [docs/debug-export.md](https://github.com/filipegarcia/claudius/blob/main/docs/debug-export.md) if you run into trouble.
+    validations:
+      required: false
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - macOS
+        - Linux
+        - Windows
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Claudius version
+      description: "Found in the debug bundle (`debug.claudiusVersion`) or `package.json`."
+      placeholder: "0.3.161"
+    validations:
+      required: false
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else?
+      description: >
+        Logs, screenshots, related issues, recent changes to your setup —
+        anything that might help.
+    validations:
+      required: false

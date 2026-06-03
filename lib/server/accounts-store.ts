@@ -111,6 +111,125 @@ function accountsPath(): string {
   return join(accountsDir(), "accounts.json");
 }
 
+/**
+ * Per-profile config dir under our accounts root. Each profile gets
+ * a shadow `~/.claude/`-equivalent that the SDK reads from when we
+ * point `CLAUDE_CONFIG_DIR` at it — see `provisionProfileConfigDir`
+ * for the why-we-need-this.
+ */
+function profileConfigDir(profileId: string): string {
+  return join(accountsDir(), "profiles", profileId);
+}
+
+/**
+ * Real user config dir the SDK reads by default. We mirror its
+ * contents (minus `.credentials.json`) into the per-profile dir via
+ * symlinks so plugins/settings/MCP-servers/history etc. still apply
+ * to the session.
+ */
+function realClaudeDir(): string {
+  return join(homedir(), ".claude");
+}
+
+/**
+ * Create (or refresh) the per-profile config dir backing the
+ * `CLAUDE_CONFIG_DIR` env var for sessions spawned under `profile`.
+ *
+ * WHY THIS EXISTS — the load-bearing piece of the account switcher.
+ * Env-only injection of `CLAUDE_CODE_OAUTH_TOKEN` does NOT suppress
+ * the SDK's macOS Keychain credential lookup. Confirmed empirically:
+ * with profile B "active", sessions kept billing the keychain
+ * account A (the `claude /login` identity) regardless of which env
+ * we passed via `Options.env`. The keychain branch inside the SDK's
+ * credential resolver fires unless `CLAUDE_CONFIG_DIR` (or
+ * `ANTHROPIC_API_KEY`) is set in the context that resolver actually
+ * reads from — which evidently isn't the subprocess env our
+ * injection lands in.
+ *
+ * Pointing `CLAUDE_CONFIG_DIR` at a per-profile dir we control AND
+ * writing the profile's token into that dir's `.credentials.json`
+ * forces the SDK to read OUR token from disk and skip the keychain
+ * entirely. The other entries of `~/.claude/` (plugins, settings,
+ * MCP servers, projects, history, …) are mirrored via symlinks so
+ * the session still sees the user's real customizations.
+ *
+ * Idempotent: safe to call on every session start. The
+ * `.credentials.json` write is atomic (tmp + rename) so a concurrent
+ * spawn can't read a half-written file.
+ */
+async function provisionProfileConfigDir(profile: AccountProfile): Promise<string> {
+  const dir = profileConfigDir(profile.id);
+  await fs.mkdir(dir, { recursive: true, mode: 0o700 });
+
+  // Mirror everything from the real ~/.claude/ via symlinks, EXCEPT
+  // .credentials.json (which we write fresh, per-profile, below).
+  // The mirror is best-effort: a symlinkable error on one entry
+  // doesn't block the session — at worst the session won't see that
+  // particular customization.
+  let entries: string[] = [];
+  try {
+    entries = await fs.readdir(realClaudeDir());
+  } catch {
+    // No ~/.claude/ at all (fresh machine, or a Claudius-only user
+    // who never ran `claude /login`). Nothing to mirror — the
+    // session runs against the bare per-profile dir.
+  }
+  for (const name of entries) {
+    if (name === ".credentials.json") continue;
+    const target = join(realClaudeDir(), name);
+    const linkPath = join(dir, name);
+    try {
+      const existing = await fs.readlink(linkPath);
+      if (existing === target) continue;
+      // Stale symlink pointing somewhere wrong — replace it.
+      await fs.unlink(linkPath);
+    } catch (err) {
+      const e = err as NodeJS.ErrnoException;
+      // ENOENT: nothing there yet, fall through to create the link.
+      // EINVAL: a real file/dir exists at linkPath, not a symlink.
+      //         Leave it alone — could be user data we mustn't lose.
+      if (e.code !== "ENOENT" && e.code !== "EINVAL") {
+        // Some other error (EACCES etc.). Skip this entry; the
+        // mirror is best-effort.
+        continue;
+      }
+      if (e.code === "EINVAL") continue;
+    }
+    await fs.symlink(target, linkPath).catch(() => { /* best-effort */ });
+  }
+
+  // Now the actual credentials file. The SDK's keychain format is
+  // `{ claudeAiOauth: { accessToken, refreshToken?, expiresAt?, ... } }`
+  // — observed by reading the user's macOS Keychain entry under the
+  // `Claude Code-credentials` service. For long-lived setup-token
+  // OAuth tokens there's no refresh token, and the SDK only refreshes
+  // when it has one, so a minimal blob with just `accessToken` is
+  // sufficient.
+  const credsPath = join(dir, ".credentials.json");
+  if (profile.kind === "oauth-token") {
+    const credsBlob = {
+      claudeAiOauth: {
+        accessToken: profile.secret,
+      },
+    };
+    const tmp = `${credsPath}.${process.pid}.tmp`;
+    await fs.writeFile(tmp, JSON.stringify(credsBlob, null, 2), {
+      encoding: "utf8",
+      mode: 0o600,
+    });
+    await fs.rename(tmp, credsPath);
+    try { await fs.chmod(credsPath, 0o600); } catch { /* non-fatal */ }
+  } else {
+    // api-key profile — the SDK reads the key from ANTHROPIC_API_KEY
+    // in env; no credentials.json equivalent. Just make sure no
+    // stale file lingers (would shadow the env on the credential
+    // resolver's read path).
+    await fs.unlink(credsPath).catch(() => {});
+  }
+
+  return dir;
+}
+
 async function ensureDir(): Promise<void> {
   await fs.mkdir(accountsDir(), { recursive: true });
 }
@@ -306,6 +425,10 @@ export async function setActiveAccount(id: string): Promise<AccountsState> {
 /**
  * Remove a profile. If it was the active one, the active pointer is
  * re-aimed at whichever profile is left first (or null if none remain).
+ * Also wipes the per-profile config dir under
+ * `~/.claude/.claudius/profiles/<id>/` so the secret-bearing
+ * `.credentials.json` doesn't linger on disk after the user thinks
+ * they removed the account.
  */
 export async function deleteAccount(id: string): Promise<AccountsState> {
   const cur = await readAccountsRaw();
@@ -318,11 +441,18 @@ export async function deleteAccount(id: string): Promise<AccountsState> {
   if (activeProfileId === id) {
     activeProfileId = profiles[0]?.id ?? null;
   }
-  return writeAccounts({
+  const state = await writeAccounts({
     profiles,
     activeProfileId,
     autoRotateOnRateLimit: cur.autoRotateOnRateLimit,
   });
+  // Best-effort cleanup of the per-profile config dir. A failure here
+  // leaks a 0700 dir holding (at worst) a `.credentials.json` with a
+  // single OAuth token — annoying but not session-breaking. We log
+  // nothing because every interactive disk error during account
+  // deletion is one too many for the user.
+  await fs.rm(profileConfigDir(id), { recursive: true, force: true }).catch(() => {});
+  return state;
 }
 
 /**
@@ -348,11 +478,19 @@ export async function getActiveProfile(): Promise<AccountProfile | null> {
  * session (or vice versa). The single var the profile dictates is the
  * last write, so precedence is unambiguous.
  *
- * Returns null when no profile is configured — callers must then NOT
- * forward an `env` option to the SDK (so it inherits process.env, the
- * pre-account-switcher behavior).
+ * On top of the env scrub, we provision a per-profile config dir and
+ * point `CLAUDE_CONFIG_DIR` at it (see `provisionProfileConfigDir`).
+ * This is what actually makes the switch take effect for billing —
+ * env-only injection is silently ignored by the SDK's credential
+ * resolver, which falls back to the macOS Keychain instead.
+ *
+ * Async because the config-dir provisioning writes a `.credentials.json`
+ * to disk; callers must `await` this. Returns the env dict (never null;
+ * the no-profile case is handled by the caller — see `session.ts`).
  */
-export function buildEnvForProfile(profile: AccountProfile): NodeJS.ProcessEnv {
+export async function buildEnvForProfile(
+  profile: AccountProfile,
+): Promise<NodeJS.ProcessEnv> {
   const env: NodeJS.ProcessEnv = { ...process.env };
   // Scrub every auth-related variable we know about. Anything not
   // listed here is irrelevant — keeping the list explicit makes it
@@ -361,6 +499,9 @@ export function buildEnvForProfile(profile: AccountProfile): NodeJS.ProcessEnv {
     "ANTHROPIC_API_KEY",
     "CLAUDE_CODE_OAUTH_TOKEN",
     "ANTHROPIC_AUTH_TOKEN",
+    // CLAUDE_CONFIG_DIR is set fresh below — scrub a stray parent-
+    // shell value so it can't shadow our per-profile dir.
+    "CLAUDE_CONFIG_DIR",
     "CLAUDE_CODE_USE_BEDROCK",
     "CLAUDE_CODE_USE_VERTEX",
     "CLAUDE_CODE_USE_FOUNDRY",
@@ -377,6 +518,13 @@ export function buildEnvForProfile(profile: AccountProfile): NodeJS.ProcessEnv {
   } else {
     env.ANTHROPIC_API_KEY = profile.secret;
   }
+  // The load-bearing piece. CLAUDE_CONFIG_DIR points the SDK at a
+  // per-profile mirror dir whose `.credentials.json` contains THIS
+  // profile's token — bypassing the macOS Keychain that env-only
+  // injection can't override. Other ~/.claude/ entries (plugins,
+  // settings, MCP, etc.) are symlinked into the mirror so the
+  // session still sees the user's customizations.
+  env.CLAUDE_CONFIG_DIR = await provisionProfileConfigDir(profile);
   // Inject the account-info env vars when we have the full triple. The
   // SDK's `populateOAuthAccountInfoIfNeeded` short-circuits to these
   // when all three are set (see

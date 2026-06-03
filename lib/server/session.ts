@@ -1638,7 +1638,14 @@ export class Session {
       activeProfile = null;
     }
     this.accountProfileId = activeProfile?.id ?? null;
-    const envOverride = activeProfile ? buildEnvForProfile(activeProfile) : null;
+    // `buildEnvForProfile` is async: it provisions a per-profile
+    // config dir (with the profile's `.credentials.json`) and sets
+    // `CLAUDE_CONFIG_DIR` to it — the only mechanism we've found that
+    // actually routes billing to the chosen account. Env-only
+    // injection of `CLAUDE_CODE_OAUTH_TOKEN` is silently overridden by
+    // the SDK's macOS Keychain credential lookup. See
+    // `provisionProfileConfigDir` in `accounts-store.ts`.
+    const envOverride = activeProfile ? await buildEnvForProfile(activeProfile) : null;
     // Freeze for off-band queries (recap) — see `envOverride` field doc.
     this.envOverride = envOverride;
 

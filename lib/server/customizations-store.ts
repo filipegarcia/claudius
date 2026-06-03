@@ -221,6 +221,23 @@ export async function deleteCustomizationRecord(id: string): Promise<boolean> {
   return true;
 }
 
+/**
+ * Insert or update a customization record preserving its original `id`.
+ * Used by the settings-import path to restore a bundled customization without
+ * generating a new id.
+ */
+export async function upsertCustomizationRecord(c: Customization): Promise<void> {
+  const shape = await readShape();
+  const idx = shape.customizations.findIndex((x) => x.id === c.id);
+  if (idx >= 0) {
+    // Preserve any fields the bundle didn't carry (e.g. descriptionGeneratedAt).
+    shape.customizations[idx] = { ...shape.customizations[idx], ...c };
+  } else {
+    shape.customizations.push(c);
+  }
+  await writeShape(shape);
+}
+
 export async function listPublishes(customizationId?: string): Promise<PublishRecord[]> {
   const shape = await readShape();
   return customizationId

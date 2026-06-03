@@ -1012,9 +1012,12 @@ function runNotesStub(prevVersion: string, newVersion: string): string {
     ``,
     `## New UI surfaces`,
     ``,
-    `_(TODO: one bullet per new/changed screen with screenshot path under`,
-    `docs/sdk-updates/${newVersion}/. If none, write \`- No new UI surfaces`,
-    `this release.\` with a reason.)_`,
+    `_(TODO: one bullet per new/changed UI element. Each bullet must list`,
+    `(a) the screenshot path under docs/sdk-updates/${newVersion}/, (b) the`,
+    `Playwright spec under tests/e2e/ that captured it, and (c) a one-line`,
+    `note on the context the shot was taken in. The screenshot must show`,
+    `the element in real surrounding chrome — see Step 6 of prompt.md. If`,
+    `none, write \`- No new UI surfaces this release.\` with a reason.)_`,
     ``,
     `## Tests`,
     ``,
@@ -1813,6 +1816,14 @@ async function runFixPass(
  * problem the bot couldn't resolve on its own. Both halves are
  * best-effort — a failure to file the issue (or a chat outage) must
  * never mask the original problem or abort the run.
+ *
+ * De-dup: if an open issue with the same title already exists (e.g.
+ * the previous hourly firing crashed in the same way and we're now
+ * back for a retry), append a comment instead of opening a duplicate.
+ * Without this we ended up with one fresh "SDK update X → Y crashed"
+ * issue per firing — five open tickets for the same crash on the
+ * 0.3.160 → 0.3.161 upgrade alone. Same idempotency shape `openPr`
+ * uses to avoid duplicate PRs on re-runs.
  */
 async function reportProcessIssueSafe(args: {
   title: string;
@@ -1835,10 +1846,58 @@ async function reportProcessIssueSafe(args: {
 
   let issueUrl: string | null = null;
   try {
-    issueUrl = sh("gh", ["issue", "create", "--title", args.title, "--body", body]).trim();
-    log(`filed process issue: ${issueUrl}`);
+    // Look for an existing OPEN issue with exactly this title. We
+    // search by title (`in:title`) rather than scanning open issues
+    // because `gh issue list --search` lets the server do the match
+    // and won't paginate-trap on a busy repo. Exact-title check on
+    // the client side guards against a substring search match
+    // (e.g. "crashed" matching unrelated crash reports).
+    const listed = spawnSync(
+      "gh",
+      [
+        "issue",
+        "list",
+        "--state",
+        "open",
+        "--search",
+        `in:title "${args.title}"`,
+        "--json",
+        "url,title",
+      ],
+      { cwd: ROOT, encoding: "utf8" },
+    );
+    const existing = listed.status === 0
+      ? (JSON.parse(listed.stdout || "[]") as Array<{ url: string; title: string }>)
+          .filter((i) => i.title === args.title)
+      : [];
+
+    if (existing.length > 0) {
+      issueUrl = existing[0]!.url;
+      const commentBody = [
+        `Another firing of the SDK updater hit the same problem.`,
+        "",
+        `**What happened:** ${args.reason}`,
+        "",
+        ...(args.branch ? [`**Branch:** \`${args.branch}\``] : []),
+        ...(args.prUrl ? [`**PR:** ${args.prUrl}`] : []),
+        "",
+        "Posted automatically by `scripts/sdk-update/orchestrate.ts` to avoid opening a duplicate issue; see the run logs for the full transcript.",
+      ].join("\n");
+      const comment = spawnSync(
+        "gh",
+        ["issue", "comment", issueUrl, "--body-file", "-"],
+        { cwd: ROOT, input: commentBody, encoding: "utf8" },
+      );
+      if (comment.status !== 0) {
+        throw new Error(`gh issue comment exited ${comment.status}: ${comment.stderr ?? ""}`);
+      }
+      log(`commented on existing process issue: ${issueUrl}`);
+    } else {
+      issueUrl = sh("gh", ["issue", "create", "--title", args.title, "--body", body]).trim();
+      log(`filed process issue: ${issueUrl}`);
+    }
   } catch (err) {
-    log(`WARN could not file GitHub issue: ${String(err)}`);
+    log(`WARN could not file/update GitHub issue: ${String(err)}`);
   }
 
   const channelMsg = [

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 
 /**
  * Opt-in for the community chat.
@@ -128,6 +128,14 @@ async function writeServer(value: CommunityConsent): Promise<void> {
  */
 export function useCommunityConsent() {
   const consent = useSyncExternalStore(subscribe, readCommunityConsent, () => null);
+  // `hydrated` flips true once we've checked ~/.claude/settings.json for
+  // a recorded choice (or the GET has failed). Callers (the consent
+  // router page) use this to defer rendering the consent prompt until
+  // we KNOW the user hasn't already opted in on this `~/.claude/` —
+  // otherwise a fresh browser / Electron reinstall flashes the prompt
+  // for the few hundred ms the GET is in flight, even though the
+  // server is about to say "yes."
+  const [hydrated, setHydrated] = useState(false);
 
   // Hydrate from the server on mount.
   //
@@ -146,7 +154,7 @@ export function useCommunityConsent() {
     (async () => {
       try {
         const r = await fetch("/api/community/prefs");
-        if (!r.ok || cancelled) return;
+        if (!r.ok) return;
         const data = (await r.json()) as { consent: CommunityConsent };
         const serverConsent: CommunityConsent =
           data.consent === "yes" || data.consent === "no" ? data.consent : null;
@@ -167,6 +175,10 @@ export function useCommunityConsent() {
         }
       } catch {
         // Network errors are non-fatal — the local cache stands.
+      } finally {
+        // Flip hydrated regardless of outcome — callers that gate on
+        // it shouldn't hang forever if the server is down.
+        if (!cancelled) setHydrated(true);
       }
     })();
     return () => {
@@ -187,5 +199,5 @@ export function useCommunityConsent() {
     void writeServer(null);
   }, []);
 
-  return { consent, accept, decline, reset };
+  return { consent, hydrated, accept, decline, reset };
 }

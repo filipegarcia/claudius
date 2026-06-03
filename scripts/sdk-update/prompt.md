@@ -96,10 +96,23 @@ expand the reason in two-three sentences below.
 
 ## New UI surfaces
 
-One bullet per new/changed screen with the screenshot path under
-`docs/sdk-updates/{{NEW_VERSION}}/`. If the SDK update adds no
-user-visible UI surface, write exactly: `- No new UI surfaces this
-release. <reason>`.
+One bullet per new/changed UI element. Each bullet MUST include:
+
+- the screenshot path under `docs/sdk-updates/{{NEW_VERSION}}/`
+  (relative to the repo root),
+- the path to the Playwright spec that captured it (under
+  `tests/e2e/`), and
+- a one-line note on the context the shot was taken in (which
+  route, which workspace state, what was on screen around it).
+
+The screenshot is what the reviewer uses to validate the change
+visually, so it must show the element **in context** — the
+surrounding chrome (tab strip, side nav, page) is part of the
+evidence, not noise to crop out. A bare element on a blank canvas
+is not acceptable.
+
+If the SDK update adds no user-visible UI surface, write exactly:
+`- No new UI surfaces this release. <reason>`.
 
 ## Tests
 
@@ -259,22 +272,51 @@ done" below. If a pre-existing failure surfaces that's unrelated
 to the SDK bump, **fix it** — the orchestrator's exit gate doesn't
 distinguish "yours" from "theirs".
 
-### Step 6 — Screenshots
+### Step 6 — Build an e2e test that captures the screenshot
 
-For each new or materially-changed screen, capture a PNG using the
-existing screenshot harness:
+For every new or materially-changed UI element this release adds,
+ship a Playwright spec that **drives the app into the state the
+element is visible in and screenshots it in context**. The
+screenshot is what gets embedded in the PR body via the
+`{{SCREENSHOTS_BLOCK}}` block, and the human reviewer uses it to
+validate the change. So:
 
-```bash
-bun run site:screenshots
-```
+- The spec lives under `tests/e2e/sdk-update-{{NEW_VERSION}}-<short-slug>.spec.ts`
+  and follows the conventions of its `tests/e2e/` neighbours
+  (helpers from `tests/e2e/helpers/`, `data-testid` over CSS
+  selectors, `activateClaudiusWorkspace` when the chrome matters).
+- The spec writes the PNG to `docs/sdk-updates/{{NEW_VERSION}}/<short-slug>.png`
+  via `await page.screenshot({ path: ..., fullPage: false })`.
+  Use `mkdirSync(..., { recursive: true })` once at the top so the
+  spec works on a fresh checkout. `site-screenshots.spec.ts` is a
+  good shape to copy.
+- **Capture in context.** The shot must include the surrounding
+  chrome (tab strip, side nav, the route the element lives on) so
+  a reviewer can see *where* it shows up, not just *what* it looks
+  like. A bare element on a blank canvas is not acceptable —
+  navigate the page to the real route, get the app into the real
+  state, and snap the viewport. Use `page.locator(...).scrollIntoViewIfNeeded()`
+  + a small `page.waitForTimeout(...)` for layout settle if the
+  element animates in.
+- The spec must do more than screenshot: it should also
+  `expect(...)` the visible behaviour (text content, count,
+  enabled state) so the same file doubles as a regression test
+  the gate will catch on future changes.
+- Don't reuse the marketing harness (`tests/e2e/site-screenshots.spec.ts`)
+  for this — those PNGs go to `site/screenshots/` and feed the
+  marketing site, not the SDK-update PR. The two are separate.
 
-Commit the new PNGs under `docs/sdk-updates/{{NEW_VERSION}}/`. The
-PR template references them via `raw.githubusercontent.com` so
-they render in the GitHub UI. Filename convention:
-`docs/sdk-updates/{{NEW_VERSION}}/<short-slug>.png`.
+Commit the new spec **and** the PNG it produces together. The PR
+template inlines every PNG it finds under `docs/sdk-updates/{{NEW_VERSION}}/`
+via `raw.githubusercontent.com` URLs, so just dropping the file in
+the right folder is enough to land it in the ticket — the reviewer
+will see the screenshot rendered in the PR body.
 
 If the changelog adds no user-visible UI surface, skip this step
-and note it in the run-notes "## New UI surfaces" section.
+and write `- No new UI surfaces this release. <reason>` in the
+run-notes "## New UI surfaces" section. **Otherwise it is not
+optional** — a `[shipped]` item that touches the browser without a
+spec + PNG is an incomplete migration.
 
 ### Step 7 — Finalize the run-notes file
 
@@ -311,7 +353,14 @@ label.
    "(none)").
 6. Every `[shipped]` item in your run-notes is actually shipped —
    grep the diff to confirm.
-7. The working tree is clean — every file you touched is committed
+7. Every new or materially-changed UI element has a Playwright
+   spec under `tests/e2e/sdk-update-{{NEW_VERSION}}-*.spec.ts`
+   that captures a screenshot of it in context to
+   `docs/sdk-updates/{{NEW_VERSION}}/`, and the matching bullet in
+   "## New UI surfaces" lists both paths. (If the release adds no
+   UI, the section says `- No new UI surfaces this release.
+   <reason>` and `docs/sdk-updates/{{NEW_VERSION}}/` may be empty.)
+8. The working tree is clean — every file you touched is committed
    on `sdk-update/{{NEW_VERSION}}` with informative messages.
 
 If you can't get to all-green — a **genuine** gate failure you've

@@ -1,6 +1,6 @@
 import { promises as fs } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { randomUUID } from "node:crypto";
 
 import { writeSettings, readSettings, type ClaudeSettings } from "./settings";
@@ -14,8 +14,13 @@ import {
 import { setSettings as setCustomizeSettings } from "./customize-settings";
 import { patchUpdaterSettings } from "./updater/settings";
 import { readKeybindings, writeKeybindings } from "./keybindings";
-import { assertAbsoluteUserPath, PathInjectionError } from "./safe-path";
+import {
+  upsertCustomizationRecord,
+  customizationSrcDir,
+} from "./customizations-store";
+import { assertAbsoluteUserPath, assertWithin, PathInjectionError } from "./safe-path";
 import type {
+  BundledCustomization,
   BundledWorkspace,
   ImportDecision,
   ImportLogEntry,
@@ -229,6 +234,52 @@ async function mergeSystem(bundle: SettingsBundle): Promise<void> {
     const next = mergeDeep(current, sys.keybindings);
     await writeKeybindings(next);
   }
+
+  if (bundle.customizations && bundle.customizations.length > 0) {
+    await restoreCustomizations(bundle.customizations);
+  }
+}
+
+/** Pattern that every valid customization id must match. */
+const CUST_ID_RE = /^cust_[a-f0-9]{12}$/;
+
+/**
+ * Write each bundled customization's published source files to disk and
+ * upsert the index.json entry.
+ *
+ * Files land at `~/.claude/.claudius/customizations/<id>/src/<path>`.
+ * The customization is NOT auto-published — the user must click Publish in the
+ * UI to apply the overlay to the live source on the target machine.
+ *
+ * Security: `meta.id` and every file `path` come from an untrusted bundle.
+ * We validate the id against the known format and pin every write inside
+ * `srcDir` via `assertWithin` — the same barrier used in `db.ts`.
+ */
+async function restoreCustomizations(customizations: BundledCustomization[]): Promise<void> {
+  await Promise.all(
+    customizations.map(async (bundled) => {
+      const { meta, publishedFiles } = bundled;
+
+      // Validate id format before using it in a file path.
+      if (!CUST_ID_RE.test(meta.id)) {
+        throw new PathInjectionError(`invalid customization id: ${JSON.stringify(meta.id)}`);
+      }
+
+      // Create / update the index.json entry preserving the original id.
+      await upsertCustomizationRecord(meta);
+
+      // Write each published source file into the editable src/ mirror.
+      const srcDir = customizationSrcDir(meta.id);
+      await Promise.all(
+        publishedFiles.map(async ({ path, content }) => {
+          // Pin every write inside srcDir — guards against `../../` traversal.
+          const target = assertWithin(srcDir, join(srcDir, path));
+          await fs.mkdir(dirname(target), { recursive: true });
+          await fs.writeFile(target, content, "utf-8");
+        }),
+      );
+    }),
+  );
 }
 
 // ── Hazard detection + workspace commit ──────────────────────────────────

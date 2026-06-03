@@ -1,4 +1,6 @@
 import { hostname, platform } from "node:os";
+import { join } from "node:path";
+import { promises as fs } from "node:fs";
 
 import { readSettings } from "./settings";
 import { listWorkspaces, readIcon } from "./workspaces-store";
@@ -8,7 +10,14 @@ import {
 } from "./customize-settings";
 import { getUpdaterSettings } from "./updater/settings";
 import { readKeybindings } from "./keybindings";
+import {
+  listCustomizations,
+  listPublishes,
+  customizationSrcDir,
+} from "./customizations-store";
 import type {
+  BundledCustomization,
+  BundledCustomizationFile,
   BundledSystem,
   BundledWorkspace,
   SettingsBundle,
@@ -90,13 +99,60 @@ export async function buildExportBundle(): Promise<SettingsBundle> {
     }),
   );
 
-  return {
+  // ── Customization overlays ────────────────────────────────────────────────
+  //
+  // For each customization that has an active publish, bundle only the files
+  // referenced by the most recent active publish record. The full src/ mirror
+  // is intentionally excluded — it's a full project copy and can be gigabytes.
+  const [customizations, allPublishes] = await Promise.all([
+    listCustomizations(),
+    listPublishes(),
+  ]);
+
+  const bundledCustomizations: BundledCustomization[] = (
+    await Promise.all(
+      customizations.map(async (c) => {
+        // Find the most recent publish for this customization (active or
+        // reverted). We bundle reverted customizations too so the receiver can
+        // inspect and re-publish if needed; a revert on the source machine
+        // doesn't mean the overlay is unwanted on the target.
+        const latestPublish = allPublishes
+          .filter((p) => p.customizationId === c.id)
+          .sort((a, b) => b.publishedAt - a.publishedAt)[0];
+
+        if (!latestPublish) return null; // never published — no files to bundle
+
+        const srcDir = customizationSrcDir(c.id);
+        const files: BundledCustomizationFile[] = (
+          await Promise.all(
+            latestPublish.files.map(async ({ path }) => {
+              try {
+                const content = await fs.readFile(join(srcDir, path), "utf-8");
+                return { path, content };
+              } catch {
+                // File removed from src/ after publish — skip silently.
+                return null;
+              }
+            }),
+          )
+        ).filter((f): f is BundledCustomizationFile => f !== null);
+
+        return { meta: c, publishedFiles: files } satisfies BundledCustomization;
+      }),
+    )
+  ).filter((c): c is BundledCustomization => c !== null);
+
+  const bundle: SettingsBundle = {
     version: 1,
     exportedAt: Date.now(),
     exportedFrom: { hostname: hostname(), platform: platform() },
     system,
     workspaces: bundledWorkspaces,
   };
+  if (bundledCustomizations.length > 0) {
+    bundle.customizations = bundledCustomizations;
+  }
+  return bundle;
 }
 
 /**

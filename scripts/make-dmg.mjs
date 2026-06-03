@@ -27,7 +27,7 @@
 // Matches electron-builder's artifactName template so downstream tooling
 // (GitHub Release upload, latest-mac.yml hand-off) doesn't need to change.
 
-import { execFileSync, spawnSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, rmSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
@@ -112,5 +112,36 @@ const args = [
 ];
 
 console.log(`· create-dmg → ${path.relative(ROOT, OUT_PATH)}`);
-execFileSync("create-dmg", args, { stdio: "inherit" });
+
+// HARD TIMEOUT. On hosted macos-14 GitHub runners, create-dmg's first step
+// (`hdiutil create -srcfolder`) hangs indefinitely — we observed a 6h job
+// timeout on the v0.3.160.2 release. The hang is upstream of the AppleScript
+// stage, so passing flags or pre-launching Finder doesn't help; the only
+// reliable mitigation is to kill the process group and let CI fall back to
+// electron-builder's bundled DMG (build/after-pack of the workflow).
+//
+// MAKE_DMG_TIMEOUT_MS=600000 (10 min) is plenty: a successful local run takes
+// ~30 s for a 350 MB app. Unset → no timeout (the default for interactive use).
+const timeoutMs = Number(process.env.MAKE_DMG_TIMEOUT_MS) || undefined;
+const result = spawnSync("create-dmg", args, {
+  stdio: "inherit",
+  timeout: timeoutMs,
+  killSignal: "SIGKILL", // SIGTERM may leave hdiutil children alive
+});
+
+if (result.error && (result.error.code === "ETIMEDOUT" || result.signal === "SIGKILL")) {
+  console.error(
+    `✗ create-dmg exceeded MAKE_DMG_TIMEOUT_MS=${timeoutMs}ms — aborting. ` +
+      `If this is CI, fall back to electron-builder's DMG target.`,
+  );
+  // Leave the half-written file behind so a fallback step can replace it
+  // cleanly (the pre-flight rmSync above already cleared any prior output).
+  if (existsSync(OUT_PATH)) rmSync(OUT_PATH);
+  process.exit(124); // conventional timeout exit code
+}
+if (result.status !== 0) {
+  console.error(`✗ create-dmg exited with status ${result.status}`);
+  process.exit(result.status || 1);
+}
+
 console.log(`✓ ${path.relative(ROOT, OUT_PATH)}`);

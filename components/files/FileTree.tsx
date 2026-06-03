@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ChevronDown, ChevronRight, File, Folder } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
+import { FilePathContextMenu } from "./FilePathContextMenu";
 
 export type Entry = {
   name: string;
@@ -36,6 +37,11 @@ export function FileTree({ workspaceId, onPick, selectedPath, query }: Props) {
   const [selected, setSelected] = useState<string | null>(selectedPath ?? null);
   const [searchResults, setSearchResults] = useState<Entry[] | null>(null);
   const [searchTruncated, setSearchTruncated] = useState(false);
+  // Right-click "Reveal in Finder" menu state. `path` is the row's
+  // workspace-relative path; (x, y) are viewport coordinates fed straight
+  // into position: fixed. Single-menu invariant — opening on one row
+  // closes whichever was previously open.
+  const [menu, setMenu] = useState<{ path: string; x: number; y: number } | null>(null);
   const q = (query ?? "").trim();
 
   // Clear stale results when the query empties (so leaving search mode doesn't
@@ -193,32 +199,48 @@ export function FileTree({ workspaceId, onPick, selectedPath, query }: Props) {
     if (searchResults.length === 0)
       return <div className="px-3 py-3 text-xs text-[var(--muted)]">No files match.</div>;
     return (
-      <ul className="text-xs">
-        {searchResults.map((e) => (
-          <li key={e.relPath}>
-            <button
-              onClick={() => {
-                setSelected(e.relPath);
-                if (onPick) onPick(e);
-              }}
-              title={e.relPath}
-              className={cn(
-                "flex w-full min-w-0 items-center gap-1 rounded-md px-2 py-0.5 text-left",
-                "hover:bg-[var(--panel-2)]",
-                selected === e.relPath && "bg-[var(--panel-2)]",
-              )}
-            >
-              <File className="h-3 w-3 shrink-0 text-[var(--muted)]" />
-              <span className="min-w-0 flex-1 truncate font-mono">{e.relPath}</span>
-            </button>
-          </li>
-        ))}
-        {searchTruncated && (
-          <li className="px-3 py-1 text-[10px] italic text-[var(--muted)]">
-            Showing first {searchResults.length} matches…
-          </li>
+      <>
+        <ul className="text-xs">
+          {searchResults.map((e) => (
+            <li key={e.relPath}>
+              <button
+                onClick={() => {
+                  setSelected(e.relPath);
+                  if (onPick) onPick(e);
+                }}
+                onContextMenu={(ev) => {
+                  ev.preventDefault();
+                  ev.stopPropagation();
+                  setMenu({ path: e.relPath, x: ev.clientX, y: ev.clientY });
+                }}
+                title={e.relPath}
+                className={cn(
+                  "flex w-full min-w-0 items-center gap-1 rounded-md px-2 py-0.5 text-left",
+                  "hover:bg-[var(--panel-2)]",
+                  selected === e.relPath && "bg-[var(--panel-2)]",
+                )}
+              >
+                <File className="h-3 w-3 shrink-0 text-[var(--muted)]" />
+                <span className="min-w-0 flex-1 truncate font-mono">{e.relPath}</span>
+              </button>
+            </li>
+          ))}
+          {searchTruncated && (
+            <li className="px-3 py-1 text-[10px] italic text-[var(--muted)]">
+              Showing first {searchResults.length} matches…
+            </li>
+          )}
+        </ul>
+        {menu && (
+          <FilePathContextMenu
+            workspaceId={workspaceId}
+            relPath={menu.path}
+            x={menu.x}
+            y={menu.y}
+            onClose={() => setMenu(null)}
+          />
         )}
-      </ul>
+      </>
     );
   }
 
@@ -229,23 +251,35 @@ export function FileTree({ workspaceId, onPick, selectedPath, query }: Props) {
     );
 
   return (
-    <ul className="text-xs">
-      {root.map((e) => (
-        <Row
-          key={e.relPath}
-          entry={e}
-          depth={0}
-          expanded={expanded}
-          toggle={toggle}
-          selected={selected}
-          setSelected={(rel) => {
-            setSelected(rel);
-            const ent = findEntry(rel, root, expanded);
-            if (ent && onPick) onPick(ent);
-          }}
+    <>
+      <ul className="text-xs">
+        {root.map((e) => (
+          <Row
+            key={e.relPath}
+            entry={e}
+            depth={0}
+            expanded={expanded}
+            toggle={toggle}
+            selected={selected}
+            setSelected={(rel) => {
+              setSelected(rel);
+              const ent = findEntry(rel, root, expanded);
+              if (ent && onPick) onPick(ent);
+            }}
+            onContextOpen={(rel, x, y) => setMenu({ path: rel, x, y })}
+          />
+        ))}
+      </ul>
+      {menu && (
+        <FilePathContextMenu
+          workspaceId={workspaceId}
+          relPath={menu.path}
+          x={menu.x}
+          y={menu.y}
+          onClose={() => setMenu(null)}
         />
-      ))}
-    </ul>
+      )}
+    </>
   );
 }
 
@@ -256,6 +290,7 @@ function Row({
   toggle,
   selected,
   setSelected,
+  onContextOpen,
 }: {
   entry: Entry;
   depth: number;
@@ -263,6 +298,8 @@ function Row({
   toggle: (e: Entry) => Promise<void>;
   selected: string | null;
   setSelected: (rel: string) => void;
+  /** Right-click handler — opens the "Reveal in Finder" popover at (x,y). */
+  onContextOpen: (relPath: string, x: number, y: number) => void;
 }) {
   const isOpen = entry.kind === "dir" && expanded[entry.relPath];
   return (
@@ -272,6 +309,11 @@ function Row({
           onClick={() => {
             if (entry.kind === "dir") void toggle(entry);
             else setSelected(entry.relPath);
+          }}
+          onContextMenu={(ev) => {
+            ev.preventDefault();
+            ev.stopPropagation();
+            onContextOpen(entry.relPath, ev.clientX, ev.clientY);
           }}
           title={entry.name}
           className={cn(
@@ -313,6 +355,7 @@ function Row({
             toggle={toggle}
             selected={selected}
             setSelected={setSelected}
+            onContextOpen={onContextOpen}
           />
         ))}
     </>

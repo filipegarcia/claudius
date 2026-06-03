@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import type { GitFileChange } from "@/lib/server/git";
 import { cn } from "@/lib/utils/cn";
+import { FilePathContextMenu } from "@/components/files/FilePathContextMenu";
 
 export type DiffSelection = {
   path: string;
@@ -41,6 +42,14 @@ export function isPartialStage(f: GitFileChange): boolean {
 
 type Props = {
   files: GitFileChange[];
+  /**
+   * Workspace id — needed so the right-click "Reveal in Finder" popover
+   * can `POST /api/workspaces/<id>/reveal`. Optional: when omitted the
+   * context menu is suppressed (the list still renders + behaves
+   * normally). Keeps the component callable from contexts that don't
+   * have a workspace handle.
+   */
+  workspaceId?: string | null;
   selected: DiffSelection | null;
   onSelect: (sel: DiffSelection) => void;
   /** IntelliJ-style commit checkboxes — selected paths will be staged-then-committed. */
@@ -116,6 +125,7 @@ function groupFiles(files: GitFileChange[]): Grouped {
 
 export function ChangesList({
   files,
+  workspaceId,
   selected,
   onSelect,
   checked,
@@ -144,6 +154,11 @@ export function ChangesList({
   const allChecked =
     totalCheckable > 0 && visibleFiles.every((f) => checked.has(f.path));
   const someChecked = !allChecked && visibleFiles.some((f) => checked.has(f.path));
+
+  // Right-click "Reveal in Finder" menu state. `path` is the row's
+  // workspace-relative path; (x, y) are viewport coordinates fed into
+  // position: fixed. Hidden when `workspaceId` isn't supplied.
+  const [menu, setMenu] = useState<{ path: string; x: number; y: number } | null>(null);
 
   // Transient "Copied!" affordance: which path was last copied to clipboard,
   // cleared after a short timeout so the indicator fades out automatically.
@@ -213,6 +228,7 @@ export function ChangesList({
   }
 
   return (
+    <>
     <div className="text-xs">
       {header}
       <Group
@@ -230,6 +246,11 @@ export function ChangesList({
         deletingPath={deletingPath}
         onCopyPath={copyPath}
         copiedPath={copiedPath}
+        onContextOpen={
+          workspaceId
+            ? (rel, x, y) => setMenu({ path: rel, x, y })
+            : undefined
+        }
       />
       <Group
         title="Changed"
@@ -246,6 +267,11 @@ export function ChangesList({
         deletingPath={deletingPath}
         onCopyPath={copyPath}
         copiedPath={copiedPath}
+        onContextOpen={
+          workspaceId
+            ? (rel, x, y) => setMenu({ path: rel, x, y })
+            : undefined
+        }
       />
       <Group
         title="Unversioned"
@@ -262,8 +288,23 @@ export function ChangesList({
         deletingPath={deletingPath}
         onCopyPath={copyPath}
         copiedPath={copiedPath}
+        onContextOpen={
+          workspaceId
+            ? (rel, x, y) => setMenu({ path: rel, x, y })
+            : undefined
+        }
       />
     </div>
+    {workspaceId && menu && (
+      <FilePathContextMenu
+        workspaceId={workspaceId}
+        relPath={menu.path}
+        x={menu.x}
+        y={menu.y}
+        onClose={() => setMenu(null)}
+      />
+    )}
+    </>
   );
 }
 
@@ -282,6 +323,7 @@ function Group({
   deletingPath,
   onCopyPath,
   copiedPath,
+  onContextOpen,
 }: {
   title: string;
   items: GitFileChange[];
@@ -301,6 +343,14 @@ function Group({
   onCopyPath: (path: string) => void;
   /** Path of the row currently flashing "Copied!". */
   copiedPath: string | null;
+  /**
+   * Right-click handler — opens the "Reveal in Finder" popover at
+   * (clientX, clientY) for the given row path. Omitted when there's no
+   * `workspaceId` available at the call site (e.g. a hypothetical
+   * preview render); rows skip the `onContextMenu` wiring in that case
+   * so the browser's native menu still works.
+   */
+  onContextOpen?: (relPath: string, x: number, y: number) => void;
 }) {
   if (items.length === 0) return null;
   return (
@@ -346,6 +396,18 @@ function Group({
                     "hover:bg-[var(--panel-2)]",
                     isSel && "bg-[var(--panel-2)]",
                   )}
+                  onContextMenu={
+                    onContextOpen
+                      ? (ev) => {
+                          ev.preventDefault();
+                          ev.stopPropagation();
+                          // For renames we always pass `f.path` (the new
+                          // name on disk) — `f.oldPath` no longer exists,
+                          // so revealing it would 404 server-side.
+                          onContextOpen(f.path, ev.clientX, ev.clientY);
+                        }
+                      : undefined
+                  }
                 >
                   <input
                     type="checkbox"

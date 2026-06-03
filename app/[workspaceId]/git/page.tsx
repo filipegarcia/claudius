@@ -1706,6 +1706,7 @@ export default function GitPage() {
               ) : (
                 <ChangesList
                   files={data.files}
+                  workspaceId={wsId}
                   selected={selected}
                   onSelect={setSelected}
                   checked={checked}

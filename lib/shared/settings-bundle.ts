@@ -24,6 +24,42 @@ import type { Workspace } from "@/lib/server/workspaces-store";
 import type { CustomizeSettings } from "@/lib/server/customize-settings";
 import type { UpdaterSettings } from "@/lib/server/updater/settings";
 import type { KeybindingsFile } from "@/lib/server/keybindings";
+import type { Customization } from "@/lib/server/customizations-store";
+
+// ── Customization overlay types ───────────────────────────────────────────────
+
+/** A single source file from a customization's editable src/ tree. */
+export type BundledCustomizationFile = {
+  /** Path relative to the customization's src/ root, e.g. "app/api/docker/route.ts". */
+  path: string;
+  /**
+   * UTF-8 source text. Build artifacts (`.next/`, `node_modules/`) are de-facto
+   * excluded because publish records never reference them. Arbitrary binary
+   * blobs are not filtered by content-type — if a publish record included a
+   * binary path, `readFile("utf-8")` would return garbled text; the import
+   * side writes it back as-is.
+   */
+  content: string;
+};
+
+/**
+ * A self-modify customization overlay bundled for export.
+ *
+ * Only the files referenced by the customization's most recent **active**
+ * publish record are included — not the entire src/ mirror (which is a full
+ * project copy and can be gigabytes). This keeps the bundle focused on the
+ * user-authored changes and reasonably sized.
+ *
+ * On import, files are written to
+ * `~/.claude/.claudius/customizations/<meta.id>/src/<path>` and the
+ * `index.json` entry is created / updated. The customization is NOT
+ * auto-published; the user must hit Publish in the UI to apply changes to
+ * the live source.
+ */
+export type BundledCustomization = {
+  meta: Customization;
+  publishedFiles: BundledCustomizationFile[];
+};
 
 /** Per-workspace contribution to the bundle. */
 export type BundledWorkspace = {
@@ -70,6 +106,12 @@ export type SettingsBundle = {
   };
   system: BundledSystem;
   workspaces: BundledWorkspace[];
+  /**
+   * Self-modify customization overlays. Only present when at least one
+   * customization with an active publish exists. Each entry carries only the
+   * files from the most recent active publish — not the full src/ mirror.
+   */
+  customizations?: BundledCustomization[];
 };
 
 // ── Heal/resume protocol types ────────────────────────────────────────────
