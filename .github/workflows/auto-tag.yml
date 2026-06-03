@@ -131,13 +131,18 @@ jobs:
           # `if: startsWith(github.ref, 'refs/tags/')` upload step sees
           # `github.ref = refs/tags/$ANCHOR_TAG` and fires.
           #
-          # `-f release=0` passes the .N counter explicitly so release.yml
-          # bakes it into the binary footer (NEXT_PUBLIC_CLAUDIUS_RELEASE).
-          # Without this, release.yml's shallow checkout starves the
-          # release-counter script → in-app footer would read v<version>.0
-          # for every tag, even when the tag itself is .5 — the exact bug
-          # this whole machinery exists to prevent.
-          gh workflow run release.yml --ref "$ANCHOR_TAG" -f release=0
+          # NB: we deliberately do NOT pass `-f release=0` here. The GH
+          # API resolves release.yml at the dispatched ref — which IS
+          # the anchor commit — and a sufficiently old anchor (e.g. one
+          # that predates the `inputs.release` declaration) would reject
+          # the flag with HTTP 422. This bit us once during the initial
+          # rollout: v0.3.161.0 pointed at the SDK-bump commit, which
+          # didn't have the input yet. For .0 specifically the omission
+          # is benign — release.yml's `Determine release counter` step
+          # parses the tag name → 0, and older release.yml versions ran
+          # claudius-release.mjs against a shallow checkout that also
+          # returned 0. Either path bakes the correct counter.
+          gh workflow run release.yml --ref "$ANCHOR_TAG"
 
       - name: Create current tag (v<version>.<N>)
         env:
