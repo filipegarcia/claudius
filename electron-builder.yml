@@ -44,6 +44,14 @@ asarUnpack:
   - "**/*.node"
   - "node_modules/better-sqlite3/**"
   - "node_modules/next/**"
+  # The platform-specific SWC binding lives at node_modules/@next/swc-<os>-<arch>/.
+  # Next eagerly loads it at startup (even with dev:false); if it's missing
+  # OR packed inside the asar, Next falls back to a runtime downloader that
+  # tries to mkdir into the asar and dies with ENOTDIR — the embedded server
+  # never finishes preparing and the window stays blank. Unpacking the whole
+  # @next/ scope keeps the package.json + index.js readable next to the
+  # .node so Next's loader resolves the dlopen path correctly.
+  - "node_modules/@next/**"
   - "node_modules/.bin/next"
   - "node_modules/@anthropic-ai/claude-agent-sdk/**"
 
