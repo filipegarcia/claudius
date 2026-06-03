@@ -301,16 +301,16 @@ export function installAppMenu(
       label: "&Tab",
       submenu: [
         {
-          // Fallback matches the registry default (⌘⇧→), not the old
-          // ⌘⇧] — the two had drifted, so Settings/cheatsheet advertised
-          // a chord the menu didn't honor.
+          // Fallback matches the registry default (⌘⌥→). ⌘⌥ rather than
+          // ⌘⇧ so the chord doesn't shadow macOS's Shift+Arrow text
+          // selection in the composer / any input.
           label: "Next Tab",
-          accelerator: accelFor(accelerators, "tab.next", "CommandOrControl+Shift+Right"),
+          accelerator: accelFor(accelerators, "tab.next", "CommandOrControl+Alt+Right"),
           click: () => send("tab.next"),
         },
         {
           label: "Previous Tab",
-          accelerator: accelFor(accelerators, "tab.prev", "CommandOrControl+Shift+Left"),
+          accelerator: accelFor(accelerators, "tab.prev", "CommandOrControl+Alt+Left"),
           click: () => send("tab.prev"),
         },
         { type: "separator" },

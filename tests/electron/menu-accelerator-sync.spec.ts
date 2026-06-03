@@ -5,9 +5,10 @@
  * Coverage row: COVERAGE.md §12 "Keyboard shortcuts owned by the OS menu".
  *
  * Two things this guards:
- *   1. The shipped default for "Next Tab" is the registry's ⌘⇧→
- *      (`CommandOrControl+Shift+Right`), not the stale ⌘⇧] the menu used
- *      to hardcode — the menu and the cheatsheet now agree.
+ *   1. The shipped default for "Next Tab" is the registry's ⌘⌥→
+ *      (`CommandOrControl+Alt+Right`) — picked to dodge macOS's
+ *      Shift+Arrow text-selection chord. The menu and the cheatsheet
+ *      both read from the registry, so they stay in agreement.
  *   2. A remap written to the renderer's shortcut store propagates to the
  *      native menu accelerator (the renderer pushes it via
  *      `bridge.menu.setAccelerators`, main rebuilds the menu).
@@ -58,13 +59,13 @@ async function bootReady(page: Page): Promise<void> {
   await page.waitForTimeout(700);
 }
 
-test("menu accelerator: Next Tab default matches the registry (⌘⇧→)", async () => {
+test("menu accelerator: Next Tab default matches the registry (⌘⌥→)", async () => {
   const page = await launched.app.firstWindow();
   await bootReady(page);
 
   await expect
     .poll(() => acceleratorFor(launched, "Next Tab"), { timeout: 10_000 })
-    .toBe("CommandOrControl+Shift+Right");
+    .toBe("CommandOrControl+Alt+Right");
 });
 
 test("menu accelerator: remapping tab.next in the store updates the native menu", async () => {

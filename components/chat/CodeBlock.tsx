@@ -46,13 +46,17 @@ export function CodeBlock({ code, lang }: Props) {
           {copied ? "Copied" : "Copy"}
         </button>
       </div>
+      {/* Code body sized in em (0.86 ≈ 12/14 — the original text-xs vs. the
+          chat surface's default text-sm body) so it scales with the user's
+          Settings → Chat size slider. The header chrome above keeps its
+          fixed pixel sizes — those are UI controls, not content. */}
       {html ? (
         <div
-          className="shiki-host overflow-auto text-xs leading-5 scroll-thin"
+          className="shiki-host overflow-auto text-[0.86em] leading-[1.5] scroll-thin"
           dangerouslySetInnerHTML={{ __html: html }}
         />
       ) : (
-        <pre className="overflow-auto p-3 text-xs leading-5 scroll-thin">{code}</pre>
+        <pre className="overflow-auto p-3 text-[0.86em] leading-[1.5] scroll-thin">{code}</pre>
       )}
     </div>
   );

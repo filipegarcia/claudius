@@ -8,6 +8,15 @@
 //     verbatim from public/claudius.svg so changes there flow through)
 //   • a dashed arrow between the two drop zones at y=220 (matches the icon
 //     positions wired in electron-builder.yml: app at x=130, link at x=410)
+//   • a three-line first-launch helper below the drag row (y≈305–350) that
+//     explains the macOS Gatekeeper bypass. The release pipeline is unsigned
+//     (no Apple Developer ID — see .github/workflows/release.yml header), so
+//     every first-time user hits the "Apple could not verify Claudius" dialog
+//     on Sequoia and has nowhere to look for the bypass. By the time that
+//     dialog appears, the binary hasn't run, so the app cannot self-document
+//     the workaround; the DMG background is the only in-flow surface we
+//     control. Wording is the macOS 15 path — older bypasses (right-click →
+//     Open) were removed in Sequoia.
 //
 // Why the bust and not the app squircle: the .app icon (the orange squircle +
 // archaic 𐌂 glyph) already sits in the centre-left of the DMG window. Putting
@@ -105,6 +114,22 @@ const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" 
     <polygon points="${ARROW_TO_X},${ICON_Y} ${ARROW_TO_X - 12},${ICON_Y - 7} ${ARROW_TO_X - 12},${ICON_Y + 7}"
              fill="#c9694a"/>
   </g>
+
+  <!-- First-launch helper, below the drag row. See the header comment for
+       why this lives on the DMG background and not in the app itself. -->
+  <line x1="60" y1="285" x2="480" y2="285"
+        stroke="#c9694a" stroke-opacity="0.18" stroke-width="1"
+        stroke-dasharray="2 4"/>
+  <text x="${W / 2}" y="308" text-anchor="middle"
+        font-family="-apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'Helvetica', sans-serif"
+        font-size="11" font-weight="600" fill="#5a3a2a"
+        letter-spacing="0.3">First launch on macOS?</text>
+  <text x="${W / 2}" y="328" text-anchor="middle"
+        font-family="-apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'Helvetica', sans-serif"
+        font-size="10.5" fill="#8a6a5a">If macOS says it can't verify Claudius:</text>
+  <text x="${W / 2}" y="346" text-anchor="middle"
+        font-family="-apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'Helvetica', sans-serif"
+        font-size="10.5" fill="#8a6a5a">System Settings &#8594; Privacy &amp; Security &#8594; &#8220;Open Anyway&#8221;</text>
 </svg>`;
 
 mkdirSync(OUT, { recursive: true });

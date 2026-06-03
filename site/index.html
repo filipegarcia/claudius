@@ -590,6 +590,51 @@ HOST=0.0.0.0 PORT=8080 make up     # reachable from your LAN (careful)</code></p
               menus and the OS features a browser tab can't reach.
             </p>
 
+            <!-- Download CTA + macOS first-launch warning. The release pipeline
+                 is unsigned/adhoc (no Apple Developer ID — see the comment
+                 block at the top of .github/workflows/release.yml). Every
+                 new macOS user hits the Gatekeeper "could not verify" dialog
+                 on first launch; the bypass on macOS 15 Sequoia is System
+                 Settings → Privacy & Security → "Open Anyway". The DMG
+                 background image carries the same instruction (see
+                 scripts/make-dmg-background.mjs); this is the pre-download
+                 surface for users who haven't mounted it yet. -->
+            <div class="mt-8 rounded-lg border border-line bg-panel p-5">
+              <div class="flex flex-wrap items-center gap-x-4 gap-y-3">
+                <a
+                  href="https://github.com/filipegarcia/claudius/releases/latest"
+                  class="inline-flex items-center gap-2 rounded-md bg-accent/90 hover:bg-accent text-bg font-medium text-sm px-4 py-2.5 transition"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path d="M10 3a1 1 0 011 1v7.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L9 11.586V4a1 1 0 011-1z"/>
+                    <path d="M3 14a1 1 0 011 1v2h12v-2a1 1 0 112 0v3a1 1 0 01-1 1H3a1 1 0 01-1-1v-3a1 1 0 011-1z"/>
+                  </svg>
+                  Download for macOS
+                </a>
+                <span class="text-xs text-muted">
+                  Intel x64 ·
+                  <a href="https://github.com/filipegarcia/claudius/releases/latest" class="hover:text-fg underline-offset-2 hover:underline">Linux builds</a>
+                  ·
+                  <a href="https://github.com/filipegarcia/claudius/releases" class="hover:text-fg underline-offset-2 hover:underline">All releases</a>
+                </span>
+              </div>
+
+              <div class="mt-4 flex items-start gap-3 rounded-md bg-panel2/60 border border-line/60 px-4 py-3 text-xs text-muted leading-relaxed">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mt-0.5 shrink-0 text-accent" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                  <path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 6a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 6zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/>
+                </svg>
+                <div>
+                  <span class="text-fg font-medium">First launch on macOS?</span>
+                  The builds aren't notarized yet, so macOS 15 (Sequoia) shows
+                  <span class="text-fg">"Apple could not verify Claudius is free of malware"</span>
+                  the first time. To get past it open
+                  <span class="text-fg">System Settings &rarr; Privacy &amp; Security</span>
+                  and click <span class="text-fg">"Open Anyway"</span>.
+                  You only see it once per install.
+                </div>
+              </div>
+            </div>
+
             <!-- App icon, with the warm halo treatment from the hero -->
             <div class="mt-10 flex items-center gap-5">
               <div class="relative h-20 w-20 sm:h-24 sm:w-24 shrink-0">

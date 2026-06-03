@@ -85,6 +85,29 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      # Cross-build crux #2 — @next/swc-darwin-x64.
+      #
+      # `bun install` on this arm64 host only resolves the optional
+      # @next/swc-* package that matches the HOST platform — so we get
+      # `@next/swc-darwin-arm64` and never the x64 binding. Next then loads
+      # the wrong-arch binary at runtime in the packaged x64 app, falls
+      # back to its built-in downloader, and that downloader tries to
+      # mkdir inside the read-only asar (`ENOTDIR /…/app.asar/node_modules/
+      # next/next-swc-fallback/@next/swc-darwin-x64`). The embedded server
+      # never finishes preparing → the BrowserWindow hangs on a blank URL.
+      #
+      # Force-install the x64 binding pinned to the exact Next version so
+      # electron-builder packs it (asarUnpack: node_modules/@next/** lives
+      # in electron-builder.yml) and the runtime loader never reaches the
+      # fallback path.
+      - name: Install @next/swc-darwin-x64 (cross-build binding)
+        run: |
+          set -euo pipefail
+          NEXT_VERSION=$(node -p "require('./node_modules/next/package.json').version")
+          echo "Installing @next/swc-darwin-x64@${NEXT_VERSION} for cross-build…"
+          bun add --no-save "@next/swc-darwin-x64@${NEXT_VERSION}"
+          ls -la node_modules/@next/swc-darwin-x64/ | head -5
+
       # Resolve the .N component of the version tag that the BUILD should
       # bake into the binary's footer. Three input paths, in order:
       #   1. `inputs.release`     — set by auto-tag.yml on its
@@ -160,15 +183,24 @@ jobs:
       - name: Package zip (x64, unsigned)
         run: bunx electron-builder --mac --x64 -c.mac.notarize=false --publish never
 
-      # Try create-dmg with a hard 10-min timeout. On hosted macos-14 runners
-      # the underlying `hdiutil create` hangs indefinitely (v0.3.160.2's job
-      # was killed at the 6h GitHub limit) — the timeout lets the workflow
-      # advance to the fallback instead of burning a runner-hour for nothing.
+      # Try create-dmg with a per-attempt timeout. On hosted macos-14 runners
+      # the underlying `hdiutil create` was hanging indefinitely (v0.3.160.2's
+      # job was killed at the 6h GitHub limit, v0.3.161.9 fell back to the
+      # blank-background electron-builder DMG). scripts/make-dmg.mjs now
+      #   1. uses --filesystem APFS (the same runner produces APFS DMGs
+      #      successfully via electron-builder; HFS+ is what hangs);
+      #   2. retries up to MAKE_DMG_MAX_ATTEMPTS=3 times with a 5-min ceiling
+      #      each (silent hangs aren't caught by create-dmg's built-in
+      #      "Resource busy" retry, so we kill-and-retry externally);
+      #   3. streams a watchdog showing hdiutil/diskimages-helper/mds/XProtect
+      #      process state every 30 s so any future hang isn't blind.
+      # Worst case: 3 × 5 min = 15 min before falling back to electron-builder.
       - name: Package branded DMG (via create-dmg)
         id: create-dmg
         continue-on-error: true
         env:
-          MAKE_DMG_TIMEOUT_MS: "600000"
+          MAKE_DMG_TIMEOUT_MS: "300000"
+          MAKE_DMG_MAX_ATTEMPTS: "3"
         run: node scripts/make-dmg.mjs
 
       # Fallback: ask electron-builder to make a DMG from the already-packed

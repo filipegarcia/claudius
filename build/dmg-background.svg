@@ -33,4 +33,20 @@
     <polygon points="318,220 306,213 306,227"
              fill="#c9694a"/>
   </g>
+
+  <!-- First-launch helper, below the drag row. See the header comment for
+       why this lives on the DMG background and not in the app itself. -->
+  <line x1="60" y1="285" x2="480" y2="285"
+        stroke="#c9694a" stroke-opacity="0.18" stroke-width="1"
+        stroke-dasharray="2 4"/>
+  <text x="270" y="308" text-anchor="middle"
+        font-family="-apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'Helvetica', sans-serif"
+        font-size="11" font-weight="600" fill="#5a3a2a"
+        letter-spacing="0.3">First launch on macOS?</text>
+  <text x="270" y="328" text-anchor="middle"
+        font-family="-apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'Helvetica', sans-serif"
+        font-size="10.5" fill="#8a6a5a">If macOS says it can't verify Claudius:</text>
+  <text x="270" y="346" text-anchor="middle"
+        font-family="-apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'Helvetica', sans-serif"
+        font-size="10.5" fill="#8a6a5a">System Settings &#8594; Privacy &amp; Security &#8594; &#8220;Open Anyway&#8221;</text>
 </svg>

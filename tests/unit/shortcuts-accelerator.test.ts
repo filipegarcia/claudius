@@ -39,9 +39,9 @@ describe("codeToAcceleratorToken", () => {
 });
 
 describe("toElectronAccelerator", () => {
-  test("composes mod/shift with the key token (tab.next default)", () => {
-    const binding: ShortcutBinding = { mod: true, shift: true, code: "ArrowRight" };
-    expect(toElectronAccelerator(binding)).toBe("CommandOrControl+Shift+Right");
+  test("composes mod/alt with the key token (tab.next default)", () => {
+    const binding: ShortcutBinding = { mod: true, alt: true, code: "ArrowRight" };
+    expect(toElectronAccelerator(binding)).toBe("CommandOrControl+Alt+Right");
   });
 
   test("mod maps to CommandOrControl so one string covers mac + win/linux", () => {

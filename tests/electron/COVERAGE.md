@@ -199,7 +199,7 @@ Global (`app/*`):
 ## 12. Keyboard shortcuts owned by the OS menu
 
 - [x] `Cmd+,` opens `/settings` (`keybinding-cmd-comma-opens-settings.spec.ts`)
-- [x] Native menu accelerators follow the shortcut registry; "Next Tab" defaults to ⌘⇧→ not the stale ⌘⇧] (`menu-accelerator-sync.spec.ts`)
+- [x] Native menu accelerators follow the shortcut registry; "Next Tab" defaults to ⌘⌥→ (chosen to dodge ⌘⇧→ text selection) (`menu-accelerator-sync.spec.ts`)
 - [x] Remapping a shortcut in the renderer store updates the native menu accelerator (`menu-accelerator-sync.spec.ts`)
 - [x] `before-input-event` swallows owned chords (⌘⇧→) but not text-edit chords (⌘→ line-nav) — verified in `tests/unit/electron-owned-chords.test.ts`
   > Not an e2e row: Playwright's CDP key injection bypasses `before-input-event`

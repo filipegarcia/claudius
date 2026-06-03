@@ -27,7 +27,7 @@
 // Matches electron-builder's artifactName template so downstream tooling
 // (GitHub Release upload, latest-mac.yml hand-off) doesn't need to change.
 
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { existsSync, readFileSync, rmSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
@@ -84,9 +84,20 @@ if (existsSync(mountPath)) {
 // --hide-extension keeps the bundle label as "Claudius" (no ".app").
 // --no-internet-enable skips macOS's old "downloaded from internet" tag
 // dance, which is interactive and would hang the script in CI.
+//
+// --filesystem APFS is the headline fix for the macos-14 hang. The same CI
+// job that hung in `create-dmg --filesystem HFS+ (default)` succeeded for
+// electron-builder's DMG creator using APFS (`Detected arm64 process, HFS+ is
+// unavailable. Creating dmg with APFS`). Empirically, the runner CAN produce
+// DMGs there — what hangs is specifically `hdiutil create -srcfolder` on
+// HFS+, which is what create-dmg uses by default. Switching to APFS sidesteps
+// the failure mode entirely. APFS is supported on macOS 10.12+, comfortably
+// below our minimum, so the format change is transparent for users.
 const args = [
   "--volname",
   VOL_NAME,
+  "--filesystem",
+  "APFS",
   "--background",
   BACKGROUND,
   "--window-pos",
@@ -111,37 +122,123 @@ const args = [
   SRC_DIR,
 ];
 
-console.log(`· create-dmg → ${path.relative(ROOT, OUT_PATH)}`);
-
-// HARD TIMEOUT. On hosted macos-14 GitHub runners, create-dmg's first step
-// (`hdiutil create -srcfolder`) hangs indefinitely — we observed a 6h job
-// timeout on the v0.3.160.2 release. The hang is upstream of the AppleScript
-// stage, so passing flags or pre-launching Finder doesn't help; the only
-// reliable mitigation is to kill the process group and let CI fall back to
-// electron-builder's bundled DMG (build/after-pack of the workflow).
+// ── retry loop ─────────────────────────────────────────────────────────────
+// On hosted macos-14 GitHub runners, `hdiutil create` is flaky for reasons
+// outside create-dmg's control — Spotlight (mds), XProtectBehaviorService,
+// and other macOS daemons can hold a lock on the freshly-created volume,
+// causing either a fast "Resource busy" error OR a silent indefinite hang
+// (we saw the latter on v0.3.161.9, killed at the 10-min timeout). See
+// https://github.com/actions/runner-images/issues/7522 for the long story.
 //
-// MAKE_DMG_TIMEOUT_MS=600000 (10 min) is plenty: a successful local run takes
-// ~30 s for a 350 MB app. Unset → no timeout (the default for interactive use).
-const timeoutMs = Number(process.env.MAKE_DMG_TIMEOUT_MS) || undefined;
-const result = spawnSync("create-dmg", args, {
-  stdio: "inherit",
-  timeout: timeoutMs,
-  killSignal: "SIGKILL", // SIGTERM may leave hdiutil children alive
-});
+// create-dmg has its OWN `hdiutil_retry` that re-fires when hdiutil returns
+// with "Resource busy" in its log file — but a HUNG hdiutil never returns,
+// so that built-in retry is dead for our failure mode. We need an external
+// kill-and-retry. APFS (above) is the primary defense; this loop is the
+// belt-and-braces for any residual flakiness.
+//
+// MAKE_DMG_TIMEOUT_MS is the PER-ATTEMPT timeout. A successful local run
+// takes ~30 s for a 350 MB app; macos-14 cross-arch with a 700 MB bundle
+// runs ~1.5–2 min. 5 min per attempt × 3 attempts = 15 min worst case before
+// the workflow falls back to electron-builder's DMG creator.
+const PER_ATTEMPT_TIMEOUT_MS = Number(process.env.MAKE_DMG_TIMEOUT_MS) || 300_000;
+const MAX_ATTEMPTS = Number(process.env.MAKE_DMG_MAX_ATTEMPTS) || 3;
 
-if (result.error && (result.error.code === "ETIMEDOUT" || result.signal === "SIGKILL")) {
+// Watchdog: every 30 s, dump the state of hdiutil-related processes so a
+// future hang isn't blind. The advisor's note was sharp: --hdiutil-verbose
+// can't help because create-dmg buffers hdiutil's output to a log file and
+// only prints it AFTER hdiutil returns — so a hang shows nothing. ps +
+// `hdiutil info` give us forward-looking signal: WHICH process is stuck (or
+// whether the stall is in create-dmg's pre-hdiutil size estimation, not
+// hdiutil at all). Without this, every hung release is another 10 blind
+// minutes.
+//
+// Implementation note: spawnSync below blocks the JS event loop, so a
+// setInterval-based watchdog inside this Node process would NOT fire — its
+// callbacks would queue but never run until create-dmg returned. The watchdog
+// has to be its own child process, running in parallel, writing to our
+// inherited stdout.
+function startWatchdog() {
+  const script = `
+    while true; do
+      ts=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+      procs=$(ps -Ao pid,pcpu,etime,command | grep -E 'hdiutil|diskimages-helper|create-dmg|mds|XProtect|osascript|Finder' | grep -v grep || echo '  (none)')
+      info=$(hdiutil info 2>/dev/null | grep -E '^(/dev/|image-path)' || echo '  (none)')
+      printf '· [%s] watchdog\\n  procs:\\n%s\\n  hdiutil info:\\n%s\\n' "$ts" "$procs" "$info"
+      sleep 30
+    done
+  `;
+  const proc = spawn("/bin/bash", ["-c", script], {
+    stdio: ["ignore", "inherit", "inherit"],
+  });
+  // The parent intentionally outlives the watchdog: we always SIGTERM it when
+  // create-dmg exits (success or fail). If something fatal happens in JS
+  // before we reach the cleanup, the child becomes an orphan reparented to
+  // launchd and would keep printing — unref() at least frees the parent to
+  // exit even if we never explicitly kill it.
+  if (typeof proc.unref === "function") proc.unref();
+  return () => {
+    try {
+      proc.kill("SIGTERM");
+    } catch {
+      // already gone
+    }
+  };
+}
+
+let attempt = 0;
+let result;
+while (attempt < MAX_ATTEMPTS) {
+  attempt += 1;
+
+  // Per-attempt cleanup — leftover state from a prior failed attempt blocks
+  // create-dmg ("file exists") or makes the AppleScript drive the wrong window.
+  if (existsSync(OUT_PATH)) rmSync(OUT_PATH);
+  if (existsSync(blockmap)) rmSync(blockmap);
+  if (existsSync(mountPath)) {
+    spawnSync("hdiutil", ["detach", mountPath, "-force"], { stdio: "ignore" });
+  }
+
+  console.log(
+    `· create-dmg attempt ${attempt}/${MAX_ATTEMPTS} → ${path.relative(ROOT, OUT_PATH)} (timeout ${PER_ATTEMPT_TIMEOUT_MS}ms)`,
+  );
+
+  const stopWatchdog = startWatchdog();
+  try {
+    result = spawnSync("create-dmg", args, {
+      stdio: "inherit",
+      timeout: PER_ATTEMPT_TIMEOUT_MS,
+      killSignal: "SIGKILL", // SIGTERM may leave hdiutil children alive
+    });
+  } finally {
+    stopWatchdog();
+  }
+
+  if (result.status === 0) break;
+
+  const timedOut = result.error && (result.error.code === "ETIMEDOUT" || result.signal === "SIGKILL");
   console.error(
-    `✗ create-dmg exceeded MAKE_DMG_TIMEOUT_MS=${timeoutMs}ms — aborting. ` +
+    `✗ attempt ${attempt} ${timedOut ? `timed out after ${PER_ATTEMPT_TIMEOUT_MS}ms` : `failed (status=${result.status}, signal=${result.signal ?? "none"})`}`,
+  );
+
+  if (attempt < MAX_ATTEMPTS) {
+    // Best-effort: stomp on suspect daemons that may be holding the volume.
+    // We don't have sudo here in CI; killall without -KILL is the most
+    // we can do unprivileged. Failures are non-fatal — this is housekeeping.
+    spawnSync("killall", ["diskimages-helper"], { stdio: "ignore" });
+    console.log("· waiting 10s before retry...");
+    spawnSync("sleep", ["10"]);
+  }
+}
+
+if (result.status !== 0) {
+  const timedOut = result.error && (result.error.code === "ETIMEDOUT" || result.signal === "SIGKILL");
+  console.error(
+    `✗ create-dmg exhausted ${MAX_ATTEMPTS} attempts — ${timedOut ? `last attempt hit the ${PER_ATTEMPT_TIMEOUT_MS}ms timeout` : `last status ${result.status}`}. ` +
       `If this is CI, fall back to electron-builder's DMG target.`,
   );
-  // Leave the half-written file behind so a fallback step can replace it
-  // cleanly (the pre-flight rmSync above already cleared any prior output).
+  // Leave no half-written output for the fallback step to trip over.
   if (existsSync(OUT_PATH)) rmSync(OUT_PATH);
-  process.exit(124); // conventional timeout exit code
-}
-if (result.status !== 0) {
-  console.error(`✗ create-dmg exited with status ${result.status}`);
-  process.exit(result.status || 1);
+  process.exit(timedOut ? 124 : result.status || 1);
 }
 
 console.log(`✓ ${path.relative(ROOT, OUT_PATH)}`);

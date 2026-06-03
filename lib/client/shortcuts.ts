@@ -96,7 +96,10 @@ export const SHORTCUT_ACTIONS: ShortcutAction[] = [
     label: "Next tab",
     description: "Cycle to the next session tab. Wraps at the end.",
     category: "tabs",
-    default: { mod: true, shift: true, code: "ArrowRight" },
+    // ⌘⌥→ rather than ⌘⇧→ so the chord doesn't collide with macOS's
+    // word-by-word text selection (Shift+Arrow extends a selection in
+    // every text input, including the chat composer).
+    default: { mod: true, alt: true, code: "ArrowRight" },
     // The OS menu's "Next Tab" item owns this chord in the packaged
     // build, so it fires even while the chat composer holds focus (the
     // renderer's keydown listener bails on `isTypingTarget`). The menu
@@ -109,7 +112,8 @@ export const SHORTCUT_ACTIONS: ShortcutAction[] = [
     label: "Previous tab",
     description: "Cycle to the previous session tab. Wraps at the start.",
     category: "tabs",
-    default: { mod: true, shift: true, code: "ArrowLeft" },
+    // ⌘⌥← — see the note on tab.next above.
+    default: { mod: true, alt: true, code: "ArrowLeft" },
     electronMenuOwned: true,
   },
   {
@@ -137,6 +141,21 @@ export const SHORTCUT_ACTIONS: ShortcutAction[] = [
     category: "workspaces",
     default: { mod: true, shift: true, code: "BracketLeft" },
   },
+  // Direct jump to workspaces 1–9 by position in the rail. ⌘⌥<digit> was
+  // picked because ⌘<digit> is already owned by session tabs (tab.go1..go8)
+  // and ⌘⇧<digit> by `tab.selectByNumber`; ⌘⌥ stays out of the way of both
+  // the browser's reserved chords (⌘<digit> selects browser tabs) and macOS
+  // word-selection (⇧ extends a selection in any input). Workspaces beyond
+  // index 9 are reachable via the rail or the ⌘⇧[ / ⌘⇧] cycle keys.
+  ...workspaceGoAction(1),
+  ...workspaceGoAction(2),
+  ...workspaceGoAction(3),
+  ...workspaceGoAction(4),
+  ...workspaceGoAction(5),
+  ...workspaceGoAction(6),
+  ...workspaceGoAction(7),
+  ...workspaceGoAction(8),
+  ...workspaceGoAction(9),
 
   // Navigation — the icon strip immediately right of the workspace rail.
   // The defaults mirror the Alt+<letter> mnemonics declared in SideNav.tsx.
@@ -341,6 +360,18 @@ function tabGoAction(n: number): ShortcutAction[] {
       category: "tabs",
       default: { mod: true, code: `Digit${n}` },
       electronMenuOwned: true,
+    },
+  ];
+}
+
+function workspaceGoAction(n: number): ShortcutAction[] {
+  return [
+    {
+      id: `workspace.go${n}`,
+      label: `Go to workspace ${n}`,
+      description: `Jump to the workspace in position ${n} of the rail. No-op when fewer workspaces are configured.`,
+      category: "workspaces",
+      default: { mod: true, alt: true, code: `Digit${n}` },
     },
   ];
 }

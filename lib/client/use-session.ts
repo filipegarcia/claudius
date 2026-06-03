@@ -797,6 +797,16 @@ export function useSession(): ChatState & ChatActions {
   const scratchRef = useRef<Map<string, DeltaScratch>>(new Map());
   const lastAssistantUuidRef = useRef<string>("");
   const pendingRef = useRef(false);
+  // Mirror of the polled sessions list. Used by the safety-net reconcile
+  // interval below: a long-lived `useEffect` closes over its dependencies at
+  // creation time, so reading `sessions` directly inside the interval would
+  // see a frozen snapshot from when the effect was first wired up. The ref
+  // is updated by a sibling effect every time `sessions` changes, so the
+  // interval body always reads the latest list without retearing.
+  const sessionsRef = useRef<SessionInfo[]>([]);
+  useEffect(() => {
+    sessionsRef.current = sessions;
+  }, [sessions]);
 
   // Defensive chronological sort. The various `setMessages` call sites (live
   // SSE append, snapshot inject, optimistic send, `loadOlder` prepend,
@@ -1270,6 +1280,77 @@ export function useSession(): ChatState & ChatActions {
     }
     document.addEventListener("visibilitychange", onVis);
     return () => document.removeEventListener("visibilitychange", onVis);
+  }, [refreshSessions, setPendingTracked]);
+
+  // Safety-net poll for the same `turn_status: idle` drift the
+  // visibility-change handler above addresses. That handler only fires
+  // when the OS-level tab regains visibility — a user who stays focused on
+  // Claudius for tens of minutes while the SSE silently drops an `idle`
+  // event (NAT timeout, proxy buffering, an in-flight OS sleep that didn't
+  // hide the tab) would otherwise watch the StatusLine and the tab dots
+  // stay pinned at "Working" until they happened to switch desktops or
+  // reload — the exact symptom the user reported ("sessions that are done
+  // with work but keep the state running … if I leave the tab and get back
+  // it updates the state or if I refresh also gets the right state").
+  //
+  // Covers two distinct surfaces, each with its own bias toward drift:
+  //
+  //   1. ACTIVE session — only source of `pending` is the EventSource at
+  //      use-session.ts:~3226. A dropped `turn_status: idle` event leaves
+  //      `pendingRef.current === true` and the StatusLine pulsing.
+  //
+  //   2. BACKGROUND tabs — no SSE of their own. Their dot in SessionTabs
+  //      is driven by the polled list (`session.sessions`, written by
+  //      `refreshSessions`), which only re-runs on the active session's
+  //      `result` event, on visibilitychange, or on switchSession /
+  //      createSession / rename. A background session that goes idle in
+  //      between those triggers stays "Working" in the strip until one of
+  //      them fires — and the active session being already-idle can starve
+  //      every one of them indefinitely.
+  //
+  // The gate fires the poll if EITHER the active session believes it's
+  // pending OR any session in the polled list still reads `running`. This
+  // is deliberately a low-frequency safety net — a healthy SSE connection
+  // delivers `turn_status: idle` within milliseconds and always wins; we
+  // only need to catch the drift cases.
+  //
+  // `sessionsRef.current` is the live mirror of `sessions` (kept in sync
+  // by the sibling effect at the ref's declaration site) so the closed-
+  // over snapshot in this interval doesn't go stale across re-renders.
+  // Gated on `!document.hidden` so the visibility-change handler owns the
+  // tab-foregrounded case without us doubling up on setState.
+  //
+  // Same one-way contract as the visibility handler: TRUE → FALSE only.
+  // The FALSE → TRUE direction (server says running, client says idle)
+  // would also need to rehydrate any open ask-user / permission prompts
+  // and any streaming state — `refreshSessions` doesn't fetch those, so
+  // unilaterally flipping the active session to pending would leave the
+  // StatusLine pulsing with no matching UI elsewhere. A missed turn
+  // *start* signal therefore remains uncovered; the reported bug was a
+  // false-positive "Working" badge, and that's what we fix here.
+  //
+  // 30 s cadence: long enough to be invisible in steady state; short
+  // enough that a drift episode self-heals within one tip-rotation window
+  // so the user never has to think about it.
+  useEffect(() => {
+    const timer = setInterval(() => {
+      if (document.hidden) return;
+      const anyBackgroundRunning = sessionsRef.current.some(
+        (s) => s.status === "running",
+      );
+      if (!pendingRef.current && !anyBackgroundRunning) return;
+      void (async () => {
+        const merged = await refreshSessions();
+        const id = sessionIdRef.current;
+        if (!id) return;
+        const active = merged.find((s) => s.id === id);
+        if (!active) return;
+        if (pendingRef.current && active.status !== "running") {
+          setPendingTracked(false);
+        }
+      })();
+    }, 30_000);
+    return () => clearInterval(timer);
   }, [refreshSessions, setPendingTracked]);
 
   /**

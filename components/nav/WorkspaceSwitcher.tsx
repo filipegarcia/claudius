@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState, type DragEvent } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type DragEvent } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Plus, Plug, Settings, UserCircle, Radio } from "lucide-react";
@@ -23,6 +23,8 @@ import {
   isTypingTarget,
   matchBinding,
   useShortcut,
+  useShortcutRegistry,
+  type ShortcutBinding,
 } from "@/lib/client/shortcuts";
 import { cn } from "@/lib/utils/cn";
 import { CLAUDIUS_VERSION_DISPLAY } from "@/lib/shared/version";
@@ -155,6 +157,23 @@ export function WorkspaceSwitcher({ mobileOpen = false, onCloseMobile }: Props =
   // intentionally don't conflict with the browser's tab-switching shortcuts.
   const bindingNext = useShortcut("workspace.next");
   const bindingPrev = useShortcut("workspace.prev");
+
+  // Direct-jump bindings: workspace.go1..workspace.go9 → Cmd+Option+<digit>
+  // by default. Pulled from the full registry in one read so a remap in
+  // Settings updates both the keyboard handler AND the hover label that
+  // shows the chord next to each tile (see goBindingByIndex below). The
+  // map is keyed by 1-based position so the keydown handler can resolve
+  // `workspaces[n - 1]` in O(1) without a regex re-parse on every keypress.
+  const { items: registryItems } = useShortcutRegistry();
+  const goBindingByIndex = useMemo(() => {
+    const out = new Map<number, ShortcutBinding | null>();
+    for (const it of registryItems) {
+      const m = it.action.id.match(/^workspace\.go(\d)$/);
+      if (m) out.set(Number(m[1]), it.binding);
+    }
+    return out;
+  }, [registryItems]);
+
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (isTypingTarget(e.target)) return;
@@ -164,20 +183,40 @@ export function WorkspaceSwitcher({ mobileOpen = false, onCloseMobile }: Props =
       // the user back where they were inside the next workspace, not at
       // chat home.
       const dir = matchBinding(bindingNext, e) ? 1 : matchBinding(bindingPrev, e) ? -1 : 0;
-      if (dir === 0) return;
-      e.preventDefault();
-      const cur = ws.findIndex((w) => w.id === activeIdRef.current);
-      const target = ws[(cur + dir + ws.length) % ws.length];
-      if (target && target.id !== activeIdRef.current) {
-        // Cycle: pass the target workspace's saved URL (prefixed) so
-        // we land where the user last was inside it; fall back to that
-        // workspace's chat root when nothing is persisted.
-        void select(target.id, getLastPath(target.id) ?? `/${target.id}`);
+      if (dir !== 0) {
+        e.preventDefault();
+        const cur = ws.findIndex((w) => w.id === activeIdRef.current);
+        const target = ws[(cur + dir + ws.length) % ws.length];
+        if (target && target.id !== activeIdRef.current) {
+          // Cycle: pass the target workspace's saved URL (prefixed) so
+          // we land where the user last was inside it; fall back to that
+          // workspace's chat root when nothing is persisted.
+          void select(target.id, getLastPath(target.id) ?? `/${target.id}`);
+        }
+        return;
+      }
+      // Direct jump (⌘⌥1..9): land on the workspace at position N in the
+      // visible rail. We iterate matched against the live event so a remap
+      // (e.g. user reassigns ⌘⌥1 to something else) is honoured without a
+      // listener re-wire — the binding map is in the effect's deps.
+      for (const [n, binding] of goBindingByIndex) {
+        if (!matchBinding(binding, e)) continue;
+        e.preventDefault();
+        const target = ws[n - 1];
+        // No-op when fewer than N workspaces exist or the target is
+        // already active. Keeping the early return inside the loop means
+        // we don't fall through to a second binding that happens to share
+        // modifiers (shouldn't happen with the default chords, but a
+        // user-collision shouldn't double-fire either).
+        if (target && target.id !== activeIdRef.current) {
+          void select(target.id, getLastPath(target.id) ?? `/${target.id}`);
+        }
+        return;
       }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [select, bindingNext, bindingPrev]);
+  }, [select, bindingNext, bindingPrev, goBindingByIndex]);
 
   function onDragStart(id: string) {
     return (e: DragEvent<HTMLDivElement>) => {
@@ -256,10 +295,28 @@ export function WorkspaceSwitcher({ mobileOpen = false, onCloseMobile }: Props =
         data-pane-name="workspace-switcher"
         className={mobileOpen ? mobileAsideClass : desktopAsideClass}
       >
-        {projectItems.map((w) => {
+        {projectItems.map((w, idx) => {
           const active = w.id === activeId;
           const dimmed = draggingId && draggingId !== w.id;
           const isOver = overId === w.id && draggingId && draggingId !== w.id;
+          // 1-based position in the rail → chord for that slot. Only the
+          // first 9 tiles get a chord (workspace.go1..go9); anything past
+          // that returns `undefined` and the hover label just shows the
+          // workspace name without a binding glyph.
+          const goBinding = goBindingByIndex.get(idx + 1) ?? null;
+          const chordLabel = goBinding ? formatBinding(goBinding) : null;
+          // System-tooltip text. Tests in tests/e2e/workspace-*.spec.ts
+          // resolve tiles via `getByTitle(new RegExp("^<name>(\\n|$)"))`,
+          // so the first line must remain the bare workspace name —
+          // chord goes on its own line further down.
+          const titleText = [
+            `${w.name}${active ? " (active)" : ""}`,
+            w.rootPath,
+            chordLabel ? `Shortcut: ${chordLabel}` : null,
+            "Drag to reorder",
+          ]
+            .filter(Boolean)
+            .join("\n");
           return (
             <div
               key={w.id}
@@ -280,7 +337,10 @@ export function WorkspaceSwitcher({ mobileOpen = false, onCloseMobile }: Props =
                 setMenu({ id: w.id, x: e.clientX, y: e.clientY });
               }}
               className={cn(
-                "relative cursor-grab transition",
+                // `group` lets the hover label below pick up the tile's
+                // hover state with `group-hover:` — same idiom SideNav
+                // uses for its tile hover affordances.
+                "group relative cursor-grab transition",
                 dimmed && "opacity-40",
                 draggingId === w.id && "scale-95 cursor-grabbing",
                 isOver && "ring-2 ring-[var(--accent)] rounded-lg",
@@ -318,7 +378,7 @@ export function WorkspaceSwitcher({ mobileOpen = false, onCloseMobile }: Props =
                   }
                   void select(w.id, target);
                 }}
-                title={`${w.name}${active ? " (active)" : ""}\n${w.rootPath}\nDrag to reorder`}
+                title={titleText}
                 className={cn(
                   "relative block rounded-lg transition",
                   // Second cue: an accent ring + offset glow around the active
@@ -339,6 +399,25 @@ export function WorkspaceSwitcher({ mobileOpen = false, onCloseMobile }: Props =
                   </span>
                 )}
               </button>
+              {/* Hover label: floats out to the right of the rail and shows
+                  the workspace name with its direct-jump chord (when one is
+                  bound). Discoverability beats the native `title` tooltip
+                  because it appears immediately (no OS delay) and renders
+                  in the app's own typography. Pointer-events are off so the
+                  label doesn't fight the tile's own hover/click target;
+                  z-50 keeps it above the SideNav rail next door. */}
+              <span
+                role="tooltip"
+                data-testid={`workspace-hover-label-${w.id}`}
+                className="pointer-events-none absolute left-full top-1/2 z-50 ml-3 flex -translate-y-1/2 items-center gap-2 whitespace-nowrap rounded-md border border-[var(--border)] bg-[var(--panel)] px-2 py-1 text-xs text-[var(--foreground)] opacity-0 shadow-lg transition-opacity duration-100 group-hover:opacity-100"
+              >
+                <span className="font-medium">{w.name}</span>
+                {chordLabel && (
+                  <kbd className="rounded border border-[var(--border)] bg-[var(--panel-2)] px-1.5 py-0.5 font-mono text-[10px] leading-none text-[var(--muted)]">
+                    {chordLabel}
+                  </kbd>
+                )}
+              </span>
             </div>
           );
         })}

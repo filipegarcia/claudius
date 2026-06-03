@@ -66,7 +66,7 @@ const TAB_LABEL_MAX = 600;
  *
  *   length ≤ 9 → tab N (1-indexed) gets shortcut N.
  *   length > 9 → tabs 1..8 keep 1..8, the LAST tab gets 9, everything in
- *               between is unreachable by number (cycle with ⌘⇧← / →).
+ *               between is unreachable by number (cycle with ⌘⌥← / →).
  *
  * Returns `null` when the tab gets no number. The matching keyboard handler
  * uses the same rule so visual hint and binding never drift.
@@ -158,7 +158,8 @@ export function SessionTabs({
   const effectiveWidth = liveWidth ?? labelMaxWidth ?? 180;
 
   // Shortcuts come from the user-overridable registry now (lib/client/shortcuts.ts).
-  // The defaults still ship as ⌘⇧←/→ and ⌘⇧1..9 so existing muscle memory holds.
+  // Defaults: ⌘⌥←/→ for cycle (avoids ⌘⇧← text-selection collision) and
+  // ⌘⇧1..9 for numeric selection.
   //
   // KEYDOWN matching uses `useKeydownBinding`: in the Electron build these
   // chords are owned by the native menu (electron/menu.ts), which fires the
@@ -178,13 +179,14 @@ export function SessionTabs({
   const bindingClose = useKeydownBinding("tab.close");
   const bindingReopen = useKeydownBinding("tab.reopen");
   const bindingLast = useKeydownBinding("tab.last");
-  // Cmd+Shift+Arrow tab cycling needs a special in-composer path in Electron.
-  // Those chords are owned by the native menu, which fires them fine when no
-  // text field is focused — but a focused composer (textarea) claims
-  // ⌘⇧←/→ for "extend selection to line start/end" BEFORE the menu can fire,
-  // so cycling is dead while typing. We catch that gap below using the REAL
-  // (ungated) binding and cancel the text selection. Electron-only so the
-  // browser build keeps native text-selection behaviour.
+  // Tab-cycle chords need a special in-composer path in Electron. The
+  // OS menu owns the cycle, but a focused composer can swallow chords
+  // before the menu fires — historically that was ⌘⇧←/→ ("extend
+  // selection to line start/end"), and it can still happen if the user
+  // rebinds to any text-edit chord. The default is now ⌘⌥←/→ which
+  // does not collide, but we keep this defensive path so custom
+  // bindings still cycle while typing. Electron-only so the browser
+  // build keeps native text-selection behaviour.
   const isElectron = useIsElectron();
   const bindingNextReal = useShortcut("tab.next");
   const bindingPrevReal = useShortcut("tab.prev");
@@ -231,12 +233,15 @@ export function SessionTabs({
     function onKey(e: KeyboardEvent) {
       const typing = isTypingTarget(e.target);
 
-      // Electron + composer focused: the native menu can't deliver ⌘⇧←/→ here
-      // (the text field eats them first), so cycle tabs from the renderer and
-      // cancel the would-be text selection. When NOT typing the menu drives
-      // next/prev (and `bindingNext`/`bindingPrev` are null in Electron, so the
-      // not-typing branch below doesn't double-fire with it). Disjoint focus
-      // states ⇒ exactly one cycle either way.
+      // Electron + composer focused: if the user's cycle chord is one a
+      // text input claims first (e.g. they rebound to ⌘⇧←/→ for "extend
+      // selection to line start/end"), the native menu never sees it.
+      // Cycle from the renderer and cancel the would-be text selection.
+      // The default ⌘⌥←/→ doesn't collide, but this path is cheap and
+      // makes custom bindings work. When NOT typing the menu drives
+      // next/prev (`bindingNext`/`bindingPrev` are null in Electron, so
+      // the not-typing branch below doesn't double-fire with it).
+      // Disjoint focus states ⇒ exactly one cycle either way.
       if (isElectron && typing) {
         const dir = matchBinding(bindingNextReal, e)
           ? 1
@@ -297,9 +302,10 @@ export function SessionTabs({
         return;
       }
 
-      // Cycle: next/prev. Always wraps. Default bindings (⌘⇧←/→) override
-      // macOS "extend selection to line start/end" inside text fields, but
-      // the `isTypingTarget` guard above already excludes input focus.
+      // Cycle: next/prev. Always wraps. Default bindings are ⌘⌥←/→, which
+      // don't collide with the macOS Shift+Arrow text-selection chord —
+      // and we already excluded input focus via the `isTypingTarget`
+      // guard above.
       const dir = matchBinding(bindingNext, e) ? 1 : matchBinding(bindingPrev, e) ? -1 : 0;
       if (dir !== 0) {
         e.preventDefault();

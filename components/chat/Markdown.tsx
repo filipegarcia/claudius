@@ -69,12 +69,19 @@ const components: Components = {
   ol({ children }) {
     return <ol className="my-2 list-decimal pl-5">{children}</ol>;
   },
-  h1: ({ children }) => <h1 className="my-3 text-xl font-semibold">{children}</h1>,
-  h2: ({ children }) => <h2 className="my-3 text-lg font-semibold">{children}</h2>,
-  h3: ({ children }) => <h3 className="my-2 text-base font-semibold">{children}</h3>,
+  // Headings and the table use em-relative sizes (rather than Tailwind's
+  // fixed text-xs/text-base/text-lg/text-xl) so they scale with the parent
+  // `text-[length:var(--chat-text)]` on the chat surface — otherwise the
+  // user's Settings → Chat size slider grows the body text but leaves these
+  // children at a fixed pixel size, which reads as "boxes that didn't
+  // update". The ratios preserve the original look at the default chat-text
+  // (14px / text-sm): 12/14, 16/14, 18/14, 20/14.
+  h1: ({ children }) => <h1 className="my-3 text-[1.43em] font-semibold">{children}</h1>,
+  h2: ({ children }) => <h2 className="my-3 text-[1.29em] font-semibold">{children}</h2>,
+  h3: ({ children }) => <h3 className="my-2 text-[1.14em] font-semibold">{children}</h3>,
   table: ({ children }) => (
     <div className="my-2 overflow-x-auto rounded border border-[var(--border)] scroll-thin">
-      <table className="w-full border-collapse text-xs">{children}</table>
+      <table className="w-full border-collapse text-[0.86em]">{children}</table>
     </div>
   ),
   th: ({ children }) => <th className="border-b border-[var(--border)] bg-[var(--panel-2)] px-2 py-1 text-left">{children}</th>,
