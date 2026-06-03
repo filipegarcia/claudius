@@ -202,7 +202,16 @@ function verifyLoadsInElectron() {
   writeFileSync(tmpFile, script);
 
   try {
-    const result = spawnSync(electronPath, [tmpFile], {
+    // `--no-sandbox` is required on Linux CI runners. Chromium's SUID
+    // sandbox helper (`chrome-sandbox`) needs to be owned by root with
+    // mode 4755 to work; npm/bun installs lay it down as the unprivileged
+    // runner user, so Electron aborts at startup with
+    // "SUID sandbox helper binary was found, but is not configured correctly."
+    // For a sandboxed SQLite open/close test in CI this is the standard
+    // workaround — we're not loading any user content, just dlopen-ing a
+    // .node file against Electron's ABI. The flag is harmless on macOS /
+    // Windows (Electron ignores unknown sandbox flags).
+    const result = spawnSync(electronPath, ["--no-sandbox", tmpFile], {
       cwd: REPO_ROOT,
       stdio: "inherit",
       env: {
