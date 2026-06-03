@@ -2,6 +2,7 @@ import { promises as fs } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, isAbsolute, join, resolve, sep } from "node:path";
 import { NextResponse } from "next/server";
+import { assertWithin, PathInjectionError } from "@/lib/server/safe-path";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -9,9 +10,9 @@ export const dynamic = "force-dynamic";
 // Filesystem browsing/creation is confined to this root (default the user's
 // home directory). Override with CLAUDIUS_FS_ROOT for unusual setups. Resolved
 // once so the containment checks below compare against a normalized absolute
-// path. The `resolve(...) + startsWith(FS_ROOT + sep)` containment guard is
-// repeated inline at each fs sink on purpose: CodeQL's path-injection barrier
-// does not propagate reliably when the check is hidden behind a helper.
+// path. The `resolve(...) + startsWith(FS_ROOT + sep)` early guards below
+// provide fail-fast 403s; `assertWithin` at each fs sink is the CodeQL-
+// recognized barrier (same pattern that closed mcp.ts path-injection #13/#14).
 const FS_ROOT = resolve(process.env.CLAUDIUS_FS_ROOT?.trim() || homedir());
 
 const HIDDEN = new Set([
@@ -116,25 +117,31 @@ export async function POST(req: Request) {
   }
 
   try {
-    const stat = await fs.stat(parent);
+    // assertWithin resolves `parent` within FS_ROOT and throws PathInjectionError
+    // if it escapes — CodeQL sees the return value as the barrier-resolved path.
+    const safeParent = assertWithin(FS_ROOT, parent);
+    const stat = await fs.stat(safeParent);
     if (!stat.isDirectory()) {
       return NextResponse.json({ error: "parent is not a directory" }, { status: 400 });
     }
-  } catch {
+  } catch (err) {
+    if (err instanceof PathInjectionError) {
+      return NextResponse.json({ error: "parent outside allowed root" }, { status: 403 });
+    }
     return NextResponse.json({ error: "parent does not exist" }, { status: 404 });
   }
 
-  const target = join(parent, name);
-  // Guard the actual sink value (not just `parent`): `name` is already a
-  // validated basename and `parent` is confined, so this is always true at
-  // runtime, but CodeQL wants the containment check on the value that reaches
-  // fs.mkdir rather than relying on the barrier propagating through `join`.
-  if (target !== FS_ROOT && !target.startsWith(FS_ROOT + sep)) {
-    return NextResponse.json({ error: "path outside allowed root" }, { status: 403 });
-  }
   try {
+    // assertWithin(parent, name) replaces join(parent, name): produces the same
+    // resolved path but throws if name somehow escapes parent, giving CodeQL a
+    // recognized barrier on `target` directly at the mkdir sink.
+    const target = assertWithin(parent, name);
     await fs.mkdir(target);
+    return NextResponse.json({ path: target });
   } catch (err) {
+    if (err instanceof PathInjectionError) {
+      return NextResponse.json({ error: "path outside allowed root" }, { status: 403 });
+    }
     const e = err as NodeJS.ErrnoException;
     if (e.code === "EEXIST") {
       return NextResponse.json({ error: "folder already exists" }, { status: 409 });
@@ -144,6 +151,4 @@ export async function POST(req: Request) {
     }
     throw err;
   }
-
-  return NextResponse.json({ path: target });
 }
