@@ -96,30 +96,42 @@ jobs:
       # next/next-swc-fallback/@next/swc-darwin-x64`). The embedded server
       # never finishes preparing → the BrowserWindow hangs on a blank URL.
       #
-      # Force-install the x64 binding pinned to the exact Next version so
+      # Stage the x64 binding pinned to the exact Next version so
       # electron-builder packs it (asarUnpack: node_modules/@next/** lives
       # in electron-builder.yml) and the runtime loader never reaches the
       # fallback path.
       #
-      # We use npm (not bun) for this single step because Bun honors a
-      # package's declared `cpu`/`os` fields and SILENTLY skips installing
-      # any optional binding that doesn't match the host — on this arm64
-      # runner `bun add @next/swc-darwin-x64` prints "installed" but
-      # writes nothing to `node_modules/@next/`. npm has explicit
-      # `--cpu`/`--os` overrides that force the platform-mismatched
-      # binding onto disk, which is exactly what cross-building needs.
-      - name: Install @next/swc-darwin-x64 (cross-build binding)
+      # Neither `bun add` nor `npm install` can do this:
+      #   • Bun honors the package's declared `cpu`/`os` fields and
+      #     SILENTLY skips writing mismatched-platform bindings.
+      #   • npm's `--cpu`/`--os` flags only FILTER optionals when the host
+      #     matches; on an arm64 host trying to fetch a darwin-x64
+      #     package, npm rejects with EBADPLATFORM regardless of flags
+      #     (`--force` would downgrade it to a warning, but the install
+      #     still skips the tarball).
+      # Both behaviors are correct for normal use — they protect users
+      # from landing a binary that can't run on their machine. They just
+      # actively block what cross-building NEEDS, which is exactly that
+      # mismatched binary.
+      #
+      # So we pull the tarball straight from the registry and unpack it
+      # into the spot npm would have. Fully deterministic, no engine
+      # checks, no dependency on which package manager's overrides are
+      # currently honored.
+      - name: Stage @next/swc-darwin-x64 (cross-build binding)
         run: |
           set -euo pipefail
           NEXT_VERSION=$(node -p "require('./node_modules/next/package.json').version")
-          echo "Installing @next/swc-darwin-x64@${NEXT_VERSION} via npm (cpu/os override)…"
-          npm install --no-save --no-package-lock \
-            --cpu=x64 --os=darwin --include=optional \
-            "@next/swc-darwin-x64@${NEXT_VERSION}"
+          TARGET=node_modules/@next/swc-darwin-x64
+          TARBALL_URL="https://registry.npmjs.org/@next/swc-darwin-x64/-/swc-darwin-x64-${NEXT_VERSION}.tgz"
+          echo "Fetching ${TARBALL_URL}"
+          mkdir -p "${TARGET}"
+          curl -fsSL "${TARBALL_URL}" \
+            | tar -xz --strip-components=1 -C "${TARGET}"
           # Sanity-check: the .node binary must be on disk for electron-builder
           # to asarUnpack it. Fail loudly here rather than at runtime.
-          test -f node_modules/@next/swc-darwin-x64/next-swc.darwin-x64.node
-          ls -la node_modules/@next/swc-darwin-x64/
+          test -f "${TARGET}/next-swc.darwin-x64.node"
+          ls -la "${TARGET}/"
 
       # Resolve the .N component of the version tag that the BUILD should
       # bake into the binary's footer. Three input paths, in order:
