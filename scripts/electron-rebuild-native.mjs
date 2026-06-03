@@ -211,7 +211,22 @@ function verifyLoadsInElectron() {
     // workaround — we're not loading any user content, just dlopen-ing a
     // .node file against Electron's ABI. The flag is harmless on macOS /
     // Windows (Electron ignores unknown sandbox flags).
-    const result = spawnSync(electronPath, ["--no-sandbox", tmpFile], {
+    const electronArgs = ["--no-sandbox", tmpFile];
+
+    // Linux: Electron loads Ozone/X11 even before `app.whenReady()` resolves
+    // (it eagerly initializes the display subsystem), and on a headless
+    // runner there's no $DISPLAY, so we see:
+    //   ozone_platform_x11.cc: Missing X server or $DISPLAY
+    //   aura/env.cc: The platform failed to initialize.  Exiting.
+    // Wrap with `xvfb-run -a` (pre-installed on ubuntu-latest) which
+    // spins up a temporary virtual framebuffer for the spawned process.
+    // macOS / Windows runners have native window servers so xvfb isn't
+    // needed and isn't on PATH — we conditionally wrap on platform.
+    const isLinux = process.platform === "linux";
+    const cmd = isLinux ? "xvfb-run" : electronPath;
+    const args = isLinux ? ["-a", electronPath, ...electronArgs] : electronArgs;
+
+    const result = spawnSync(cmd, args, {
       cwd: REPO_ROOT,
       stdio: "inherit",
       env: {
@@ -226,7 +241,7 @@ function verifyLoadsInElectron() {
       // "Electron started but died" obvious in CI logs — the previous
       // catch-all "code null" message conflated the two.
       throw new Error(
-        `spawn(${electronPath}) failed: ${result.error.code ?? "unknown"} ${result.error.message ?? ""}`.trim(),
+        `spawn(${cmd}) failed: ${result.error.code ?? "unknown"} ${result.error.message ?? ""}`.trim(),
       );
     }
     if (result.status !== 0) {
