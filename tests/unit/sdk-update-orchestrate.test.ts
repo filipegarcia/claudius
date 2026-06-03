@@ -2,6 +2,7 @@ import { describe, expect, test, vi, beforeEach, afterEach } from "vitest";
 
 import {
   REQUIRED_RUN_NOTE_SECTIONS,
+  buildAnnounceFailureIssue,
   buildChangelogAnnouncement,
   buildFixResultAnnouncement,
   buildFixStartAnnouncement,
@@ -857,5 +858,57 @@ describe("buildFixResultAnnouncement", () => {
       markedReady: false,
     });
     expect(out).toContain("still red: lint, e2e");
+  });
+});
+
+describe("buildAnnounceFailureIssue", () => {
+  // Title is the dedup key. Several places downstream (gh search,
+  // exact-match filter) match on this exact string — if it drifts,
+  // every previous firing's issue is orphaned and a fresh one opens
+  // every run. Pin it here so the drift is caught at test time.
+  test("uses a stable, dedup-friendly title", () => {
+    const { title } = buildAnnounceFailureIssue({
+      reason: "anything",
+      roomSlug: "sdk-update",
+      chatServerUrl: "https://chat.claudius.network",
+    });
+    expect(title).toBe("Chat-server announce failed during SDK orchestrator run");
+  });
+
+  test("body embeds reason, room, chat-server url, and the run-log breadcrumb", () => {
+    const { body } = buildAnnounceFailureIssue({
+      reason: "HTTP 502 Bad Gateway",
+      roomSlug: "sdk-update",
+      chatServerUrl: "https://chat.claudius.network",
+    });
+    expect(body).toContain("HTTP 502 Bad Gateway");
+    expect(body).toContain("`sdk-update`");
+    expect(body).toContain("`https://chat.claudius.network`");
+    // Run-log path is the on-call breadcrumb; if it disappears the
+    // issue is much less actionable.
+    expect(body).toContain(".claudius/sdk-updater/logs/");
+  });
+
+  test("renders empty chatServerUrl as `(unset)` so the report is still readable", () => {
+    const { body } = buildAnnounceFailureIssue({
+      reason: "fetch failed",
+      roomSlug: "sdk-update",
+      chatServerUrl: "",
+    });
+    expect(body).toContain("`(unset)`");
+  });
+
+  test("comment body distinguishes itself from the original issue body", () => {
+    const { body, commentBody } = buildAnnounceFailureIssue({
+      reason: "ECONNRESET",
+      roomSlug: "sdk-update",
+      chatServerUrl: "https://chat.claudius.network",
+    });
+    // Each subsequent firing comments rather than refiling — its body
+    // says "another firing" so a reviewer scanning the issue page can
+    // tell duplicates apart from the original at a glance.
+    expect(commentBody).toContain("Another firing");
+    expect(commentBody).toContain("ECONNRESET");
+    expect(commentBody).not.toEqual(body);
   });
 });

@@ -30,6 +30,19 @@ import { cn } from "@/lib/utils/cn";
 import { CLAUDIUS_VERSION_DISPLAY } from "@/lib/shared/version";
 
 /**
+ * A binding counts as "plain" (= plausibly text input) only when neither
+ * mod nor alt is required. Shift alone still counts as plain because
+ * Shift+letter is just an uppercase letter in any input. The keyboard
+ * handler uses this to decide whether `isTypingTarget` should suppress
+ * a match — we only suppress when the chord could double as typing,
+ * so true chords like ⌘⇧[ / ⌘⌥1 keep working while focus is in the
+ * chat composer.
+ */
+function isPlainKey(b: ShortcutBinding | null): boolean {
+  return !!b && !b.mod && !b.alt;
+}
+
+/**
  * Props for the small-screen overlay behavior.
  *
  * Below the `lg` breakpoint the rail is hidden by default (`hidden lg:flex`)
@@ -176,14 +189,26 @@ export function WorkspaceSwitcher({ mobileOpen = false, onCloseMobile }: Props =
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (isTypingTarget(e.target)) return;
       const ws = itemsRef.current;
       if (ws.length === 0) return;
+      // Note: we DON'T short-circuit on `isTypingTarget` up here. After
+      // `select()` does a full-document load, the chat composer auto-
+      // focuses on the new page — a blanket guard would silently kill
+      // every subsequent ⌘⌥<digit> press, matching the "worked a bit
+      // then stopped" report. Instead the guard fires per-match below,
+      // and only when the matched binding has no chord modifier (the
+      // only case where the keystroke could double as text input). True
+      // chords like ⌘⇧[ / ⌘⌥1 never produce characters in a textarea,
+      // so suppressing them while focus is in the composer was always
+      // over-defensive.
+
       // Cycle: pass the target workspace's last-known URL so cycling drops
       // the user back where they were inside the next workspace, not at
       // chat home.
       const dir = matchBinding(bindingNext, e) ? 1 : matchBinding(bindingPrev, e) ? -1 : 0;
       if (dir !== 0) {
+        const cycleBinding = dir === 1 ? bindingNext : bindingPrev;
+        if (isPlainKey(cycleBinding) && isTypingTarget(e.target)) return;
         e.preventDefault();
         const cur = ws.findIndex((w) => w.id === activeIdRef.current);
         const target = ws[(cur + dir + ws.length) % ws.length];
@@ -201,6 +226,7 @@ export function WorkspaceSwitcher({ mobileOpen = false, onCloseMobile }: Props =
       // listener re-wire — the binding map is in the effect's deps.
       for (const [n, binding] of goBindingByIndex) {
         if (!matchBinding(binding, e)) continue;
+        if (isPlainKey(binding) && isTypingTarget(e.target)) return;
         e.preventDefault();
         const target = ws[n - 1];
         // No-op when fewer than N workspaces exist or the target is

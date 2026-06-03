@@ -101,7 +101,7 @@ export function WebDesktopBanner() {
         respects the OS quit/close flow.
       </span>
       <a
-        href="https://github.com/claudius-network/claudius/releases"
+        href="https://github.com/filipegarcia/claudius/releases"
         target="_blank"
         rel="noreferrer"
         className="ml-auto rounded border border-[var(--accent)]/40 bg-[var(--accent)]/15 px-2 py-0.5 hover:bg-[var(--accent)]/25"

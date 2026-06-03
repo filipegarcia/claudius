@@ -348,13 +348,13 @@ export function installAppMenu(
         {
           label: "Claudius on GitHub",
           click: () => {
-            void shell.openExternal("https://github.com/claudius-network/claudius");
+            void shell.openExternal("https://github.com/filipegarcia/claudius");
           },
         },
         {
           label: "Report an issue",
           click: () => {
-            void shell.openExternal("https://github.com/claudius-network/claudius/issues/new");
+            void shell.openExternal("https://github.com/filipegarcia/claudius/issues/new");
           },
         },
         { type: "separator" },

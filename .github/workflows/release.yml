@@ -118,20 +118,13 @@ jobs:
       # into the spot npm would have. Fully deterministic, no engine
       # checks, no dependency on which package manager's overrides are
       # currently honored.
+      #
+      # The implementation lives in scripts/electron-stage-next-swc.mjs so
+      # local mac builds (`bun run electron:dist:mac` from an arm64 dev
+      # machine) get the same staging step — same root cause, same fix,
+      # one source of truth. See the script header for the full rationale.
       - name: Stage @next/swc-darwin-x64 (cross-build binding)
-        run: |
-          set -euo pipefail
-          NEXT_VERSION=$(node -p "require('./node_modules/next/package.json').version")
-          TARGET=node_modules/@next/swc-darwin-x64
-          TARBALL_URL="https://registry.npmjs.org/@next/swc-darwin-x64/-/swc-darwin-x64-${NEXT_VERSION}.tgz"
-          echo "Fetching ${TARBALL_URL}"
-          mkdir -p "${TARGET}"
-          curl -fsSL "${TARBALL_URL}" \
-            | tar -xz --strip-components=1 -C "${TARGET}"
-          # Sanity-check: the .node binary must be on disk for electron-builder
-          # to asarUnpack it. Fail loudly here rather than at runtime.
-          test -f "${TARGET}/next-swc.darwin-x64.node"
-          ls -la "${TARGET}/"
+        run: node scripts/electron-stage-next-swc.mjs --arch=x64
 
       # Resolve the .N component of the version tag that the BUILD should
       # bake into the binary's footer. Three input paths, in order:
@@ -274,6 +267,7 @@ jobs:
           files: |
             release/*.dmg
             release/*.zip
+            release/latest-mac.yml
 
   linux-x64:
     name: Linux (x64)

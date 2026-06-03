@@ -1644,18 +1644,143 @@ async function postAnnouncement(body: string, opts: { pin?: boolean } = {}): Pro
 }
 
 /**
+ * Pure helper for fileAnnounceFailureIssueSafe — builds the GitHub
+ * issue title, body, and follow-up comment body for a swallowed
+ * chat-server announce failure. Exported only for tests; the
+ * side-effectful gh-spawning caller lives below.
+ *
+ * The title is the dedup key: every announce failure across every SDK
+ * orchestrator run collapses onto the same issue (with comments added
+ * for each subsequent firing). That matches the behaviour
+ * reportProcessIssueSafe uses for orchestrator crashes — the issue list
+ * stays scannable and you can tell at a glance "the announce path is
+ * broken" without scrolling through one ticket per firing.
+ */
+export function buildAnnounceFailureIssue(args: {
+  reason: string;
+  roomSlug: string;
+  chatServerUrl: string;
+}): { title: string; body: string; commentBody: string } {
+  const title = "Chat-server announce failed during SDK orchestrator run";
+  const safeUrl = args.chatServerUrl || "(unset)";
+  const body = [
+    `The SDK orchestrator tried to post a community update to the \`${args.roomSlug}\` room on \`${safeUrl}\` and the POST threw.`,
+    "",
+    `**Error:** ${args.reason}`,
+    "",
+    `**Effect:** the room missed at least one milestone (start / changelog / opened / shipped). Check the orchestrator run logs in \`.claudius/sdk-updater/logs/\` on the cron host for which one — then either post manually via \`gh issue\` / curl, or rerun the orchestrator if the underlying chat-server issue is resolved.`,
+    "",
+    "Filed automatically by `scripts/sdk-update/orchestrate.ts` because chat posts are best-effort by design (see the `announceSafe` helper for the rationale) — without this issue the failure would only show up as a `WARN` line in the cron host's stdout.",
+  ].join("\n");
+  const commentBody = [
+    `Another firing of the SDK orchestrator failed to post to the community room.`,
+    "",
+    `**Error:** ${args.reason}`,
+    "",
+    "Posted automatically by `scripts/sdk-update/orchestrate.ts` to avoid opening a duplicate issue.",
+  ].join("\n");
+  return { title, body, commentBody };
+}
+
+/**
+ * One-shot GitHub issue when announceSafe swallows a chat-server post
+ * failure. The orchestrator otherwise has no out-of-band signal that
+ * the community room missed a milestone — we'd only notice by eyeballing
+ * the room. This files an issue (or comments on the existing one if a
+ * prior firing already filed one), so the failure surfaces in the
+ * GitHub issue list without anyone SSH'ing into the cron host.
+ *
+ * Why NOT call `reportProcessIssueSafe`: that helper ends with
+ * `await announceSafe(...)` to also notify the community room. If we
+ * routed through it on a post failure, that final announce would
+ * re-throw, re-trigger this path, and loop. Filing the issue inline
+ * here — with no announce step — breaks the recursion cleanly.
+ *
+ * Best-effort: a gh failure here only emits a log line. The original
+ * announce failure was already swallowed; we cannot escalate further
+ * without aborting the run, which the design says we must not do.
+ */
+function fileAnnounceFailureIssueSafe(reason: string): void {
+  const { title, body, commentBody } = buildAnnounceFailureIssue({
+    reason,
+    roomSlug: ROOM_SLUG,
+    chatServerUrl: CHAT_SERVER_URL,
+  });
+
+  try {
+    // Same dedup shape as reportProcessIssueSafe: search by exact title,
+    // comment if already open, file fresh if not. `in:title "<...>"` lets
+    // the GitHub server do the match so we don't paginate; the exact-title
+    // filter on the result guards against substring search matches.
+    const listed = spawnSync(
+      "gh",
+      [
+        "issue",
+        "list",
+        "--state",
+        "open",
+        "--search",
+        `in:title "${title}"`,
+        "--json",
+        "url,title",
+      ],
+      { cwd: ROOT, encoding: "utf8" },
+    );
+    const existing = listed.status === 0
+      ? (JSON.parse(listed.stdout || "[]") as Array<{ url: string; title: string }>)
+          .filter((i) => i.title === title)
+      : [];
+
+    if (existing.length > 0) {
+      const issueUrl = existing[0]!.url;
+      const comment = spawnSync(
+        "gh",
+        ["issue", "comment", issueUrl, "--body-file", "-"],
+        { cwd: ROOT, input: commentBody, encoding: "utf8" },
+      );
+      if (comment.status !== 0) {
+        throw new Error(
+          `gh issue comment exited ${comment.status}: ${comment.stderr ?? ""}`,
+        );
+      }
+      log(`commented on existing announce-failure issue: ${issueUrl}`);
+    } else {
+      const issueUrl = sh("gh", [
+        "issue",
+        "create",
+        "--title",
+        title,
+        "--body",
+        body,
+      ]).trim();
+      log(`filed announce-failure issue: ${issueUrl}`);
+    }
+  } catch (err) {
+    log(
+      `WARN could not file announce-failure issue (non-fatal): ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+}
+
+/**
  * Best-effort community post. By the time we announce, the PR already
  * exists (and may already be green) — a chat-server outage must not
  * abort the orchestration or leave state inconsistent. We log and move
  * on. The announcement is a notification, not a gate.
+ *
+ * When the post fails, we also file (or comment on) a one-shot GitHub
+ * issue so the swallowed failure surfaces without anyone tailing the
+ * cron host's logs. The 0.3.160 → 0.3.161 announcement was lost this
+ * way — PR opened cleanly, room never heard about it, and the only
+ * signal was a missing message; the issue-filing path closes that gap.
  */
 async function announceSafe(body: string, opts: { pin?: boolean } = {}): Promise<void> {
   try {
     await postAnnouncement(body, opts);
   } catch (err) {
-    log(
-      `WARN community announce failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`,
-    );
+    const reason = err instanceof Error ? err.message : String(err);
+    log(`WARN community announce failed (non-fatal): ${reason}`);
+    fileAnnounceFailureIssueSafe(reason);
   }
 }
 

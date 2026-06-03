@@ -39,6 +39,7 @@ import {
   startEmbeddedNextServer,
   type EmbeddedNextServer,
 } from "./server";
+import { createSplashWindow, destroySplashWindow } from "./splash";
 
 const DEV_START_URL = process.env.ELECTRON_START_URL;
 const IS_PACKAGED = app.isPackaged || process.env.CLAUDIUS_PACKAGED === "1";
@@ -97,6 +98,7 @@ if (!userDataOverride) {
 }
 
 let mainWindow: BrowserWindow | null = null;
+let splashWindow: BrowserWindow | null = null;
 let nextServer: EmbeddedNextServer | null = null;
 
 // Last accelerator map the renderer pushed — kept so we can rebuild the menu
@@ -388,6 +390,19 @@ function createWindow(startUrl: string): BrowserWindow {
 
 app.whenReady().then(async () => {
   try {
+    // Paint a tiny splash window BEFORE the slow bits (embedded Next
+    // boot, first SSR). Without this the dock bounces and nothing
+    // visible happens for several seconds on cold start. See
+    // `electron/splash.ts` for why a renderer-side overlay can't do
+    // this — the renderer booting *is* the wait we're masking.
+    //
+    // Skipped when a remote backend is configured: in that mode the
+    // renderer points at an external URL with no embedded-Next boot,
+    // so cold start is already a normal HTTP round-trip and the
+    // splash would just flash on screen for a frame.
+    if (!resolveRemoteUrl()) {
+      splashWindow = createSplashWindow();
+    }
     installAppMenu();
     // Phase 3 follow-up — the renderer pushes its resolved shortcut
     // bindings (as Electron accelerators) so the native menu reflects the
@@ -427,6 +442,15 @@ app.whenReady().then(async () => {
     const startUrl = await resolveStartUrl();
     mainWindow = createWindow(startUrl);
 
+    // Tear down the splash the moment the main window is ready to
+    // paint — `ready-to-show` fires once on first paint and is the
+    // signal we used to gate the main window's own `show()`, so by
+    // the time it fires the user is about to see the real UI.
+    mainWindow.once("ready-to-show", () => {
+      destroySplashWindow(splashWindow);
+      splashWindow = null;
+    });
+
     mainWindow.on("closed", () => {
       mainWindow = null;
     });
@@ -456,6 +480,11 @@ app.whenReady().then(async () => {
     });
   } catch (err) {
     console.error("[electron/main] failed to start:", err);
+    // Don't leave the splash hanging on a startup failure — without
+    // this it stays on screen forever (closable: false on the main
+    // window, but the splash has no traffic lights either).
+    destroySplashWindow(splashWindow);
+    splashWindow = null;
     app.quit();
   }
 });
@@ -473,6 +502,10 @@ app.on("window-all-closed", () => {
 });
 
 app.on("before-quit", async () => {
+  // Best-effort splash teardown in case quit fires before the main
+  // window's `ready-to-show` (e.g. user Cmd+Q during startup).
+  destroySplashWindow(splashWindow);
+  splashWindow = null;
   if (nextServer) {
     try {
       await nextServer.close();

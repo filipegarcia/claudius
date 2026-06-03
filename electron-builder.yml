@@ -75,7 +75,7 @@ extraResources:
 # APPLE_APP_SPECIFIC_PASSWORD, APPLE_TEAM_ID in CI.
 publish:
   - provider: github
-    owner: claudius-network
+    owner: filipegarcia
     repo: claudius
     releaseType: release
 

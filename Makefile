@@ -1,4 +1,4 @@
-.PHONY: help install dev build start lint unit test test-ui test-e2e-electron test-setup test-setup-local test-setup-docker test-install-public ci site screenshots screenshots-full claudius-revert claudius-revert-all run up down restart status logs electron electron-dev electron-build electron-icons electron-app electron-dist electron-e2e-loop sdk-update-check sdk-update-run sdk-update-fix-pr sdk-update-dry-run sdk-update-status sdk-update-logs sdk-update-install-cron sdk-update-uninstall-cron debug-export
+.PHONY: help install dev build start lint unit test test-ui test-e2e-electron test-setup test-setup-local test-setup-docker test-install-public ci site screenshots screenshots-full claudius-revert claudius-revert-all run up down restart status logs electron electron-dev electron-build electron-icons electron-app electron-dist electron-dmg electron-e2e-loop sdk-update-check sdk-update-run sdk-update-fix-pr sdk-update-dry-run sdk-update-status sdk-update-logs sdk-update-install-cron sdk-update-uninstall-cron debug-export
 
 # List every target, grouped by the section headers below.
 help:
@@ -87,6 +87,11 @@ electron-app:
 # `electron:dist:win` / `electron:dist:linux` npm scripts directly.
 electron-dist:
 	bun run electron:dist:mac
+
+# Alias for the macOS DMG path — same recipe as `electron-dist`, just named
+# for what the user actually wants. Lands at
+# `release/Claudius-<version>-mac-x64.dmg`; open it with `open release/*.dmg`.
+electron-dmg: electron-dist
 
 # Print the autonomous Electron e2e Ralph-loop prompt so you can paste
 # it into `/ralph-loop:ralph-loop`. The loop reads

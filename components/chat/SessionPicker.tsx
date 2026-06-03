@@ -62,7 +62,10 @@ export function SessionPicker({
         title={current ? `Session ${current}` : "Switch session"}
         data-testid="session-picker-button"
       >
-        <span className="font-mono" data-testid="session-picker-label">
+        <span
+          className="whitespace-nowrap font-mono"
+          data-testid="session-picker-label"
+        >
           {label}
         </span>
         <ChevronDown className="h-3 w-3 opacity-60" />

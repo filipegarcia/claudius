@@ -214,7 +214,12 @@ export function StatusLine({
         CSS-only capitalization leaves the DOM text "idle" and the
         assertion fails.
       */}
-      <span data-testid="status-line-text">{status.charAt(0).toUpperCase() + status.slice(1)}</span>
+      <span
+        data-testid="status-line-text"
+        className="whitespace-nowrap"
+      >
+        {status.charAt(0).toUpperCase() + status.slice(1)}
+      </span>
       {model && (
         <>
           <span className="opacity-50">·</span>
@@ -239,7 +244,21 @@ export function StatusLine({
                 </span>
               );
             }
-            return <span className="font-mono opacity-80">{model}</span>;
+            // `truncate` (overflow:hidden + text-overflow:ellipsis +
+            // white-space:nowrap) collapses long model ids like
+            // `claude-opus-4-7` into a single line at narrow widths instead
+            // of wrapping at the hyphens (each `-` is a flex-pressure break
+            // opportunity). `max-w` caps the badge so the chips beside it
+            // stay visible; `title` keeps the full id discoverable on
+            // hover, matching the deprecation chip above.
+            return (
+              <span
+                title={model}
+                className="max-w-[10rem] truncate font-mono opacity-80 sm:max-w-[14rem]"
+              >
+                {model}
+              </span>
+            );
           })()}
         </>
       )}
@@ -266,8 +285,8 @@ export function StatusLine({
               title={`Main-thread agent: ${mainAgent} (its system prompt, tools, and model apply)`}
               className="flex items-center gap-1 rounded border border-[var(--border)] bg-[var(--panel-2)] px-1 py-0.5 font-mono text-[10px] opacity-80"
             >
-              <Bot className="h-3 w-3" />
-              {mainAgent}
+              <Bot className="h-3 w-3 shrink-0" />
+              <span className="max-w-[8rem] truncate">{mainAgent}</span>
             </span>
           ) : null}
         </>
@@ -567,8 +586,10 @@ function AgentPicker({
           open && "opacity-100 bg-[var(--panel)]",
         )}
       >
-        <Bot className="h-3 w-3" />
-        {currentAgent ?? "Default"}
+        <Bot className="h-3 w-3 shrink-0" />
+        {/* Truncate long agent names instead of wrapping at hyphens/dashes
+            when the row is squeezed. */}
+        <span className="max-w-[8rem] truncate">{currentAgent ?? "Default"}</span>
       </button>
       {open && (
         <div
