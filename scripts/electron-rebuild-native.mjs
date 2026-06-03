@@ -26,7 +26,7 @@
  * Run from package scripts as `bun run electron:rebuild-native` (build flow)
  * or directly: `node scripts/electron-rebuild-native.mjs`.
  */
-import { execFileSync, spawnSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -57,32 +57,48 @@ function rebuild(electronVersion) {
   // any existing .node it finds, even when it was compiled for the wrong ABI.
   // `--module-dir` keeps the scope to the project root; we don't want to
   // rebuild dev-only packages that may live elsewhere.
+  //
+  // We invoke `node_modules/.bin/electron-rebuild` DIRECTLY rather than
+  // going through `npx --no @electron/rebuild`. Why: when @electron/rebuild
+  // is installed only TRANSITIVELY (via electron-builder, as it is here —
+  // there's no direct devDep entry), npm 10's `npx --no` silently exits 0
+  // and prints the npm version instead of running the package. Symptom:
+  // the entire rebuild step "succeeded" in ~70ms with no compile output,
+  // better-sqlite3 was left at its bun-install (Node, not Electron) ABI,
+  // and the downstream verify spawned Electron against the wrong-ABI .node
+  // — a confusing chain that made the CI failure look like a display-init
+  // hang at first glance. Reproducer: `cd /tmp && npx --no @electron/rebuild`
+  // → prints the npm version, exits 0. The macOS job dodges this whole
+  // path by calling `bunx electron-builder install-app-deps` directly,
+  // which is why the bug only fired on Linux.
+  //
+  // Going direct also means we no longer need the npx preflight check —
+  // a missing electron-rebuild binary now means `@electron/rebuild` isn't
+  // installed at all, and the error below points the user at that.
+  const electronRebuildBin = path.join(
+    REPO_ROOT,
+    "node_modules",
+    ".bin",
+    process.platform === "win32" ? "electron-rebuild.cmd" : "electron-rebuild",
+  );
   const args = [
-    "--no",
-    "@electron/rebuild",
     "--force",
     `--version=${electronVersion}`,
     `--module-dir=${REPO_ROOT}`,
   ];
-  const result = spawnSync("npx", args, {
+  const result = spawnSync(electronRebuildBin, args, {
     cwd: REPO_ROOT,
     stdio: "inherit",
     env: process.env,
   });
+  if (result.error && result.error.code === "ENOENT") {
+    throw new Error(
+      `${electronRebuildBin} not found — run \`bun install\` (or \`npm install\`) so the @electron/rebuild binary is staged into node_modules/.bin.`,
+    );
+  }
   if (result.status !== 0) {
     throw new Error(`@electron/rebuild exited with code ${result.status}`);
   }
-}
-
-try {
-  // Sanity: bail if `npx` isn't on PATH. Surfacing this here is friendlier
-  // than letting spawn fail with ENOENT inside the bigger build pipeline.
-  execFileSync("npx", ["--version"], { stdio: "ignore" });
-} catch {
-  console.error(
-    "[rebuild-native] `npx` not found on PATH. Install Node.js / npm so npx is available, then retry.",
-  );
-  process.exit(1);
 }
 
 /**
