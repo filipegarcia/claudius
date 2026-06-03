@@ -84,5 +84,8 @@
   },
   "patchedDependencies": {
     "better-sqlite3@12.10.0": "patches/better-sqlite3@12.10.0.patch"
-  }
+  },
+  "trustedDependencies": [
+    "electron"
+  ]
 }

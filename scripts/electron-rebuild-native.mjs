@@ -27,7 +27,7 @@
  * or directly: `node scripts/electron-rebuild-native.mjs`.
  */
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import url from "node:url";
@@ -128,9 +128,23 @@ function verifyLoadsInElectron() {
     : isWin
       ? path.join(REPO_ROOT, "node_modules/electron/dist/electron.exe")
       : path.join(REPO_ROOT, "node_modules/electron/dist/electron");
-  // No `existsSync` check — let spawn surface a clear ENOENT if the path is
-  // missing, which means `electron` wasn't installed at all (an obviously
-  // bigger problem than this verifier).
+  // Cheap upfront existence check. Without it, a missing binary surfaces
+  // through `spawnSync` as `status: null, signal: null, error: ENOENT`,
+  // and the catch-all error below renders it as "code null (signal=none)"
+  // — which reads as a crash/hang but is actually a spawn-never-started.
+  // The class of bug this guards against: `bun install --frozen-lockfile`
+  // skips `electron`'s postinstall (the binary downloader) when the package
+  // isn't in `trustedDependencies`. Adding it there is the right fix; this
+  // assertion makes the failure mode self-describing on the next regression.
+  if (!existsSync(electronPath)) {
+    throw new Error(
+      `Electron binary not found at ${electronPath}. ` +
+        `Most likely cause: \`bun install\` ran without "electron" in package.json's ` +
+        `trustedDependencies, so its postinstall (which downloads the platform binary) ` +
+        `was skipped. Either add electron to trustedDependencies or run ` +
+        `\`bunx electron-builder install-app-deps\` to seed the binary manually.`,
+    );
+  }
 
   // Write a one-shot loader to a tmp file. We do `require("better-sqlite3")`
   // from the repo's node_modules — that's the same path electron-builder
@@ -167,6 +181,15 @@ function verifyLoadsInElectron() {
         ELECTRON_NO_ATTACH_CONSOLE: "1",
       },
     });
+    if (result.error) {
+      // ENOENT / EACCES / EPERM live here, not in `status`. Surfacing the
+      // raw error code makes the diff between "binary missing" and
+      // "Electron started but died" obvious in CI logs — the previous
+      // catch-all "code null" message conflated the two.
+      throw new Error(
+        `spawn(${electronPath}) failed: ${result.error.code ?? "unknown"} ${result.error.message ?? ""}`.trim(),
+      );
+    }
     if (result.status !== 0) {
       throw new Error(
         `Electron exited with code ${result.status} (signal=${result.signal ?? "none"}). ` +
