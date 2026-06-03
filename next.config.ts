@@ -17,19 +17,38 @@ const packaged = process.env.CLAUDIUS_PACKAGED === "1";
 // `version`, which resets this to 0 with no stored state. Falls back to "0"
 // when git history isn't available so the build never fails over a cosmetic
 // tag.
-const claudiusRelease = (() => {
-  try {
-    return (
-      execFileSync("node", [join(process.cwd(), "scripts/claudius-release.mjs")], {
-        stdio: ["ignore", "pipe", "ignore"],
-      })
-        .toString()
-        .trim() || "0"
-    );
-  } catch {
-    return "0";
-  }
-})();
+//
+// Precedence (env-var first):
+//   1. If NEXT_PUBLIC_CLAUDIUS_RELEASE is already set in the build env, use
+//      it verbatim. This is the path .github/workflows/release.yml takes
+//      when triggered by auto-tag.yml — it passes the tag's `.N` component
+//      as a workflow input, so the in-app footer of the SHIPPED binary
+//      matches the GitHub release tag exactly. Without this, release.yml's
+//      shallow `actions/checkout@v5` would starve the script (git log at
+//      depth 1 sees no package.json commits → returns 0) and produce
+//      v<version>.0 in-app for every .N>0 release — the exact mismatch
+//      this whole machinery was built to prevent.
+//   2. Otherwise, run the git-walking script (dev server, local
+//      production builds, anywhere with full history available).
+//   3. Script failure (no .git, no `node`, etc.) → "0".
+//
+// Empty-string env var (e.g. `NEXT_PUBLIC_CLAUDIUS_RELEASE=` from a workflow
+// that conditionally sets it) is treated as unset — `||` falls through.
+const claudiusRelease =
+  process.env.NEXT_PUBLIC_CLAUDIUS_RELEASE ||
+  (() => {
+    try {
+      return (
+        execFileSync("node", [join(process.cwd(), "scripts/claudius-release.mjs")], {
+          stdio: ["ignore", "pipe", "ignore"],
+        })
+          .toString()
+          .trim() || "0"
+      );
+    } catch {
+      return "0";
+    }
+  })();
 
 const nextConfig: NextConfig = {
   // Allow the e2e Playwright server to opt into its own dist dir

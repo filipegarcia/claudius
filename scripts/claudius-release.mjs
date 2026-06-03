@@ -5,6 +5,17 @@
  * Prints the Claudius "release" counter to stdout: the number of commits on
  * MAIN since `package.json`'s `version` field last changed.
  *
+ * Flags:
+ *   --anchor  print the ANCHOR commit SHA (the oldest commit on main whose
+ *             package.json `version` still equals the working-tree value)
+ *             instead of the counter. Empty output when no anchor exists
+ *             (e.g. the version was bumped but never merged to main). Used
+ *             by `.github/workflows/auto-tag.yml` to bootstrap the
+ *             `v<version>.0` tag at the same commit that introduced the
+ *             current SDK version — without that bootstrap, the very first
+ *             auto-tag firing after this workflow lands on main computes
+ *             N≥1 and would silently skip the `.0` release.
+ *
  * Counting is anchored on `main` (or `origin/main`) rather than `HEAD` on
  * purpose — the displayed version represents what's released, so a feature
  * branch with 30 local commits should not show `v0.3.152.30` while main is
@@ -89,11 +100,20 @@ function resolveMainRef() {
   return null;
 }
 
-function computeRelease() {
+/**
+ * Find the anchor commit (oldest commit in main's contiguous run whose
+ * `version` equals the working-tree value) and the count of commits on
+ * main since that anchor.
+ *
+ * Returns { anchor: string|null, release: number }. Anchor is null when no
+ * commit on main carries the current version yet (e.g. an SDK bump still on
+ * a PR branch), in which case release is 0.
+ */
+function compute() {
   // Working-tree version is the SDK-tracking part; the counter is "commits
   // on main since this value was introduced".
   const current = JSON.parse(readFileSync("package.json", "utf8")).version;
-  if (!current) return 0;
+  if (!current) return { anchor: null, release: 0 };
 
   // Endpoint for the walk + count. Falls back to HEAD only in setups with
   // no main ref at all — keeps the script from going silent in test repos.
@@ -102,7 +122,7 @@ function computeRelease() {
   // Commits ON MAIN that touched package.json, newest first. Restricting to
   // main here is what makes feature-branch commits invisible to the counter.
   const log = git(`log --format=%H ${mainRef} -- package.json`);
-  if (!log) return 0;
+  if (!log) return { anchor: null, release: 0 };
   const commits = log.split("\n").filter(Boolean);
 
   // Walk newest→oldest along main. The anchor is the OLDEST commit in the
@@ -122,18 +142,20 @@ function computeRelease() {
   // No commit on main carries the current version yet — e.g. an SDK bump
   // that's still on a PR branch, or an uncommitted working-tree change.
   // We're at .0 until the bump lands on main.
-  if (!anchor) return 0;
+  if (!anchor) return { anchor: null, release: 0 };
 
   // Count every commit on main after the anchor, regardless of what files
   // it touched. The current branch isn't in the picture.
   const n = Number(git(`rev-list --count ${anchor}..${mainRef}`));
-  return Number.isFinite(n) ? n : 0;
+  return { anchor, release: Number.isFinite(n) ? n : 0 };
 }
 
-let release = 0;
+const wantAnchor = process.argv.includes("--anchor");
+
+let result = { anchor: null, release: 0 };
 try {
-  release = computeRelease();
+  result = compute();
 } catch {
-  release = 0;
+  // Already defaulted above.
 }
-process.stdout.write(String(release));
+process.stdout.write(wantAnchor ? (result.anchor ?? "") : String(result.release));

@@ -25,6 +25,19 @@ name: release
 
 on:
   workflow_dispatch:
+    inputs:
+      release:
+        description: >
+          Release counter (the `.N` component of the version tag, e.g. `5`
+          for `v0.3.161.5`). When set, baked into the binary as
+          NEXT_PUBLIC_CLAUDIUS_RELEASE so the in-app footer matches the tag
+          name exactly. auto-tag.yml passes this from its computed value;
+          manual runs can leave it blank and the build will fall back to
+          running scripts/claudius-release.mjs against whatever history the
+          shallow checkout has (likely returns 0).
+        required: false
+        type: string
+        default: ""
   push:
     tags:
       - "v*"
@@ -39,6 +52,11 @@ jobs:
     # Intel `macos-13` hosted runners no longer schedule (Intel macOS runner
     # retirement), so we CROSS-build x64 on a current Apple Silicon runner.
     runs-on: macos-14
+    # Belt-and-braces ceiling. The per-step timeouts below (create-dmg's
+    # spawnSync, the fallback step) cover the known hang at `hdiutil create`,
+    # but the runner default is 6h — far too long for a build that takes ~15m
+    # on a good day. Cap the whole job so a new hang can't burn a runner-hour.
+    timeout-minutes: 45
     permissions:
       contents: write # attach artifacts to the Release on tag pushes
     env:
@@ -67,6 +85,35 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      # Resolve the .N component of the version tag that the BUILD should
+      # bake into the binary's footer. Three input paths, in order:
+      #   1. `inputs.release`     — set by auto-tag.yml on its
+      #                             `gh workflow run release.yml -f release=N`
+      #                             dispatch. Canonical path.
+      #   2. parse from tag name  — when triggered by `push: tags: v*`
+      #                             (manual `git push origin <tag>`) the
+      #                             tag itself is the source of truth.
+      #                             Matches the 4-part shape vMAJOR.MINOR.PATCH.RELEASE.
+      #   3. empty string         — falls through to next.config.ts's
+      #                             script-based fallback (which is wrong
+      #                             on shallow CI checkouts → 0). Only
+      #                             hit by manual workflow_dispatch with
+      #                             no inputs at a non-tag ref.
+      # Output consumed by the `Build Next standalone` step's env block.
+      - name: Determine release counter for in-app footer
+        id: rel
+        shell: bash
+        run: |
+          RELEASE="${{ inputs.release }}"
+          if [ -z "$RELEASE" ] && [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            TAG="${GITHUB_REF#refs/tags/}"
+            if [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+\.([0-9]+)$ ]]; then
+              RELEASE="${BASH_REMATCH[1]}"
+            fi
+          fi
+          echo "release=$RELEASE" >> "$GITHUB_OUTPUT"
+          echo "Computed release counter: '${RELEASE:-<empty, will fall back to script>}'"
+
       # CROSS-COMPILE CRUX. The bundled Next.js standalone server ships whatever
       # native better-sqlite3 binary sits in node_modules at `next build` time.
       # On this arm64 host that would be arm64 → the packaged x64 app would
@@ -86,6 +133,10 @@ jobs:
         env:
           CLAUDIUS_PACKAGED: "1"
           NODE_ENV: production
+          # See `Determine release counter` step. next.config.ts reads
+          # this with `||` so an empty string falls through to the
+          # script-based fallback — keeps manual non-tag dispatches working.
+          NEXT_PUBLIC_CLAUDIUS_RELEASE: ${{ steps.rel.outputs.release }}
         run: bunx next build
 
       - name: Stage standalone + compile Electron main
@@ -109,8 +160,45 @@ jobs:
       - name: Package zip (x64, unsigned)
         run: bunx electron-builder --mac --x64 -c.mac.notarize=false --publish never
 
+      # Try create-dmg with a hard 10-min timeout. On hosted macos-14 runners
+      # the underlying `hdiutil create` hangs indefinitely (v0.3.160.2's job
+      # was killed at the 6h GitHub limit) — the timeout lets the workflow
+      # advance to the fallback instead of burning a runner-hour for nothing.
       - name: Package branded DMG (via create-dmg)
+        id: create-dmg
+        continue-on-error: true
+        env:
+          MAKE_DMG_TIMEOUT_MS: "600000"
         run: node scripts/make-dmg.mjs
+
+      # Fallback: ask electron-builder to make a DMG from the already-packed
+      # .app. Verified safe on the macos-14 runner — v0.3.160 and v0.3.160.1
+      # both shipped DMGs this way (the create-dmg path only landed in v0.3.160.2).
+      # Tradeoffs vs the create-dmg path:
+      #   • Background image uses electron-builder's legacy `backgroundImageAlias`
+      #     variant that macOS 14+ Finder ignores → install window opens blank-white.
+      #   • `dmg.contents` (icon coordinates) intentionally NOT passed: the dotted
+      #     CLI (`-c.dmg.contents=…`) stores the JSON as a string instead of an
+      #     array (lodash.set quirk) and schema-validation fails at boot. Default
+      #     centered icon positions ship instead, slightly off from the background
+      #     drag-arrow cues. Both are CI-only degradations — the canonical release
+      #     path is `node scripts/make-dmg.mjs` from a developer Mac, which keeps
+      #     the proper layout and background.
+      #   • `--prepackaged` reuses release/mac/Claudius.app (no rebuild loop).
+      - name: Package DMG fallback (electron-builder, CI only)
+        if: steps.create-dmg.outcome == 'failure'
+        timeout-minutes: 15
+        run: |
+          echo "::warning::create-dmg failed or timed out — falling back to electron-builder DMG (background blank-white on macOS 14+, icons centered)"
+          bunx electron-builder \
+            --mac --x64 \
+            --prepackaged release/mac/Claudius.app \
+            -c.mac.target=dmg \
+            -c.mac.notarize=false \
+            -c.dmg.background=build/background.png \
+            -c.dmg.window.width=540 \
+            -c.dmg.window.height=380 \
+            --publish never
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v5
@@ -154,7 +242,30 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      # See the macos-x64 job's "Determine release counter" step for the
+      # full rationale — same input resolution, same fallback semantics.
+      - name: Determine release counter for in-app footer
+        id: rel
+        shell: bash
+        run: |
+          RELEASE="${{ inputs.release }}"
+          if [ -z "$RELEASE" ] && [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            TAG="${GITHUB_REF#refs/tags/}"
+            if [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+\.([0-9]+)$ ]]; then
+              RELEASE="${BASH_REMATCH[1]}"
+            fi
+          fi
+          echo "release=$RELEASE" >> "$GITHUB_OUTPUT"
+          echo "Computed release counter: '${RELEASE:-<empty, will fall back to script>}'"
+
       - name: Build (Next standalone + Electron main)
+        env:
+          # next.config.ts inlines this into the bundle as
+          # NEXT_PUBLIC_CLAUDIUS_RELEASE so the workspace-rail footer
+          # matches the GitHub release tag. `||` in next.config.ts treats
+          # an empty string as "not set" so this is safe to leave blank
+          # on manual non-tag dispatches.
+          NEXT_PUBLIC_CLAUDIUS_RELEASE: ${{ steps.rel.outputs.release }}
         run: bun run electron:build
 
       - name: Package AppImage + deb + rpm (x64)
