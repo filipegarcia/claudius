@@ -49,6 +49,13 @@ type Props = {
    * up in the user's current checkout — we surface a "worktree" badge.
    */
   agentCwd?: string | null;
+  /**
+   * Callback to live-switch the main-thread agent (SDK 0.3.161+). When provided,
+   * the agent badge becomes an interactive picker that lets the user switch to any
+   * available agent or reset to the default. When omitted the badge is read-only
+   * (as it was before this release).
+   */
+  onPickAgent?: (name: string | null) => Promise<void> | void;
   onModeChange: (m: PermissionMode) => void;
   sessions: SessionInfo[];
   onSwitchSession: (id: string) => void;
@@ -96,6 +103,7 @@ export function StatusLine({
   mainAgent,
   sessionRoot,
   agentCwd,
+  onPickAgent,
   onModeChange,
   sessions,
   onSwitchSession,
@@ -235,16 +243,33 @@ export function StatusLine({
           })()}
         </>
       )}
-      {mainAgent && (
+      {/* Agent pill: interactive when onPickAgent is provided (always visible so
+          the user can switch back after resetting to the default agent);
+          read-only static badge when onPickAgent is absent.
+
+          When mainAgent is null and onPickAgent is provided, the AgentPicker
+          shows a "Default" label so the user can see the current state and
+          click to switch to a named agent. When mainAgent is null and there is
+          no picker, we omit the pill entirely (original behaviour). */}
+      {(mainAgent || onPickAgent) && (
         <>
           <span className="opacity-50">·</span>
-          <span
-            title={`Main-thread agent: ${mainAgent} (its system prompt, tools, and model apply)`}
-            className="flex items-center gap-1 rounded border border-[var(--border)] bg-[var(--panel-2)] px-1 py-0.5 font-mono text-[10px] opacity-80"
-          >
-            <Bot className="h-3 w-3" />
-            {mainAgent}
-          </span>
+          {onPickAgent ? (
+            <AgentPicker
+              sessionId={sessionId}
+              currentAgent={mainAgent ?? null}
+              onPick={onPickAgent}
+            />
+          ) : mainAgent ? (
+            <span
+              data-testid="status-line-agent"
+              title={`Main-thread agent: ${mainAgent} (its system prompt, tools, and model apply)`}
+              className="flex items-center gap-1 rounded border border-[var(--border)] bg-[var(--panel-2)] px-1 py-0.5 font-mono text-[10px] opacity-80"
+            >
+              <Bot className="h-3 w-3" />
+              {mainAgent}
+            </span>
+          ) : null}
         </>
       )}
       {/* `shrink-0` on the cluster pairs with `min-w-0` on the workspace
@@ -454,6 +479,169 @@ function VerboseSelector({
             The right-side activity rail always shows every tool call,
             regardless of level. Saved per workspace.
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Agent info shape, mirroring AgentInfo from the SDK (no direct import to keep client bundles lean). */
+type AgentEntry = { name: string; description?: string; model?: string };
+
+/**
+ * Clickable agent badge that opens a mini dropdown for switching the
+ * main-thread agent (SDK 0.3.161+). Shows the currently active agent name
+ * and, on click, lists all agents available for this session plus a
+ * "General purpose (default)" reset option.
+ *
+ * The agent list is fetched lazily — only when the dropdown opens for the
+ * first time — from `GET /api/sessions/[id]/agents`, which is the same
+ * endpoint the `@`-mention picker uses for subagent invocation.
+ */
+function AgentPicker({
+  sessionId,
+  currentAgent,
+  onPick,
+}: {
+  sessionId: string | null;
+  currentAgent: string | null;
+  onPick: (name: string | null) => Promise<void> | void;
+}) {
+  const [open, setOpen] = useState(false);
+  // null = not yet fetched (shows loading spinner when open); array = fetched.
+  const [agents, setAgents] = useState<AgentEntry[] | null>(null);
+  const ref = useRef<HTMLDivElement | null>(null);
+
+  // Outside-click + Esc dismissal.
+  useEffect(() => {
+    if (!open) return;
+    function onDown(e: MouseEvent) {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    window.addEventListener("mousedown", onDown);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("mousedown", onDown);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  // Fetch agent list lazily on first open. Pattern mirrors AtMentionPicker:
+  // setState calls live in the async .then (not the effect body) so the rule
+  // react-hooks/set-state-in-effect is satisfied.
+  useEffect(() => {
+    if (!open || agents !== null || !sessionId) return;
+    let cancelled = false;
+    fetch(`/api/sessions/${encodeURIComponent(sessionId)}/agents`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: { agents?: AgentEntry[] } | null) => {
+        if (!cancelled) setAgents(d?.agents ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setAgents([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, agents, sessionId]);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        data-testid="status-line-agent"
+        data-agent={currentAgent ?? ""}
+        onClick={() => setOpen((o) => !o)}
+        title={
+          currentAgent
+            ? `Main-thread agent: ${currentAgent} (its system prompt, tools, and model apply). Click to switch.`
+            : "Running as the default general-purpose agent. Click to switch to a named agent."
+        }
+        className={cn(
+          "flex items-center gap-1 rounded border border-[var(--border)] bg-[var(--panel-2)] px-1 py-0.5 font-mono text-[10px]",
+          currentAgent ? "opacity-80" : "opacity-50",
+          "hover:opacity-100 hover:bg-[var(--panel)]",
+          open && "opacity-100 bg-[var(--panel)]",
+        )}
+      >
+        <Bot className="h-3 w-3" />
+        {currentAgent ?? "Default"}
+      </button>
+      {open && (
+        <div
+          data-testid="agent-picker-menu"
+          className="absolute left-0 top-full z-30 mt-1 w-64 overflow-hidden rounded-md border border-[var(--border)] bg-[var(--panel)] shadow-2xl"
+        >
+          <div className="border-b border-[var(--border)] px-3 py-1.5 text-[10px] uppercase tracking-wide text-[var(--muted)]">
+            Switch main-thread agent
+          </div>
+          {/* Reset-to-default entry */}
+          <button
+            type="button"
+            data-testid="agent-picker-default"
+            onClick={() => {
+              setOpen(false);
+              void onPick(null);
+            }}
+            className={cn(
+              "flex w-full items-start gap-2 px-3 py-2 text-left text-[11px] hover:bg-[var(--panel-2)]",
+              currentAgent === null && "bg-[var(--panel-2)]",
+            )}
+          >
+            <Check
+              className={cn(
+                "mt-0.5 h-3 w-3 shrink-0",
+                currentAgent === null ? "text-[var(--accent)]" : "opacity-0",
+              )}
+            />
+            <div className="min-w-0">
+              <div className="font-medium text-[var(--foreground)]">General purpose (default)</div>
+              <div className="text-[10px] text-[var(--muted)]">Reset to the default Claude Code agent</div>
+            </div>
+          </button>
+          {agents === null && (
+            <div className="px-3 py-2 text-[10px] text-[var(--muted)]">Loading agents…</div>
+          )}
+          {agents !== null &&
+            agents.map((a) => (
+              <button
+                key={a.name}
+                type="button"
+                data-testid={`agent-picker-option-${a.name}`}
+                onClick={() => {
+                  setOpen(false);
+                  void onPick(a.name);
+                }}
+                className={cn(
+                  "flex w-full items-start gap-2 px-3 py-2 text-left text-[11px] hover:bg-[var(--panel-2)]",
+                  currentAgent === a.name && "bg-[var(--panel-2)]",
+                )}
+              >
+                <Check
+                  className={cn(
+                    "mt-0.5 h-3 w-3 shrink-0",
+                    currentAgent === a.name ? "text-[var(--accent)]" : "opacity-0",
+                  )}
+                />
+                <div className="min-w-0">
+                  <div className="font-medium text-[var(--foreground)]">{a.name}</div>
+                  {a.description && (
+                    <div className="truncate text-[10px] text-[var(--muted)]">{a.description}</div>
+                  )}
+                  {a.model && (
+                    <div className="text-[10px] text-[var(--muted)] opacity-70 font-mono">{a.model}</div>
+                  )}
+                </div>
+              </button>
+            ))}
+          {agents !== null && agents.length === 0 && (
+            <div className="px-3 py-2 text-[10px] text-[var(--muted)]">
+              No additional agents found for this session.
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -868,8 +868,12 @@ export class Session {
    * agent's system prompt, tool restrictions, and model to the main
    * conversation. Set at construction from the session-create request /
    * workspace default; the agent must exist (file under .claude/agents).
+   *
+   * Mutable — `setAgent` flips it mid-session via `applyFlagSettings` and the
+   * updated value persists to the recovery snapshot so a reap→resume carries
+   * the switch forward (same semantics as `model`).
    */
-  readonly agent?: string;
+  agent?: string;
   /**
    * Hard spend cap (USD) for this session — SDK Options.maxBudgetUsd. The SDK
    * stops the turn with an `error_max_budget_usd` result once exceeded. Set at
@@ -3388,6 +3392,32 @@ export class Session {
   async setFast(enabled: boolean): Promise<void> {
     if (!this.query) return;
     await this.query.applyFlagSettings({ fastMode: enabled }).catch(() => {});
+  }
+
+  /**
+   * Switch the main-thread agent for subsequent turns (SDK 0.3.161+).
+   *
+   * `applyFlagSettings({ agent })` now live-applies agent changes: the new
+   * agent's system prompt, tool restrictions, and model take effect on the
+   * next turn without restarting the session. Passing `null` resets to the
+   * default general-purpose agent.
+   *
+   * Unlike `effort`/`ultracode`/`fastMode`, the agent name IS persisted
+   * to `this.agent` so the recovery snapshot carries the switch forward on
+   * reap → resume — matching the behaviour of `model`. The change is
+   * broadcast as an `agent_changed` event so all connected tabs update the
+   * StatusLine badge optimistically (no dedicated SDK change event exists).
+   *
+   * The named agent must be available in the session (a `.claude/agents`
+   * file or plugin-injected agent); the SDK silently no-ops on unknown
+   * names, so we trust it to validate rather than re-implementing that check.
+   */
+  async setAgent(name: string | null): Promise<void> {
+    if (!this.query) return;
+    // The Settings type accepts `null` to clear a field at the flag layer.
+    await this.query.applyFlagSettings({ agent: name as string | null }).catch(() => {});
+    this.agent = name ?? undefined;
+    this.broadcast({ type: "agent_changed", agent: name });
   }
 
   /**
