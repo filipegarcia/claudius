@@ -146,11 +146,11 @@ if (existsSync(installedPkgJsonPath) && existsSync(nodeBinaryPath)) {
 }
 
 // ── fetch + extract ────────────────────────────────────────────────────────
-// Shell out to `curl | tar` rather than parsing the tarball in Node. tar
-// isn't a Node builtin, and pulling in a tar npm dep for one script is
-// overkill. The pipefail flag is load-bearing: without it, a curl failure
-// (404, network) would let tar "succeed" with empty input and we'd extract
-// nothing without an exit code.
+// Two-step fetch + extract without a shell so targetDir is a plain argv
+// element passed directly to tar — no shell interpolation possible.
+// (Same pattern that closed shell-injection alert #38 in next.config.ts.)
+// curl stdout is buffered and piped as stdin to tar; the ~10 MB tarball
+// fits easily, 150 MB cap is just a safety ceiling.
 //
 // We always rm + mkdir the target first — extracting on top of a stale
 // directory can leave a hybrid version (new .node + old package.json) that
@@ -159,23 +159,29 @@ console.log(`[stage-next-swc] fetching ${tarballUrl}`);
 rmSync(targetDir, { recursive: true, force: true });
 mkdirSync(targetDir, { recursive: true });
 
-const piped = spawnSync(
-  "/bin/sh",
-  [
-    "-c",
-    `set -e -o pipefail; curl -fsSL "$1" | tar -xz --strip-components=1 -C "$2"`,
-    "sh", // $0 placeholder for `sh -c`
-    tarballUrl,
-    targetDir,
-  ],
-  { stdio: "inherit" },
-);
-if (piped.status !== 0) {
+const curlResult = spawnSync("curl", ["-fsSL", tarballUrl], {
+  encoding: "buffer",
+  maxBuffer: 150 * 1024 * 1024,
+  stdio: ["ignore", "pipe", "inherit"],
+});
+if (curlResult.status !== 0 || curlResult.error) {
   console.error(
-    `[stage-next-swc] curl/tar pipeline failed (status=${piped.status}, signal=${piped.signal ?? "none"})`,
+    `[stage-next-swc] curl failed (status=${curlResult.status}, signal=${curlResult.signal ?? "none"})`,
   );
   rmSync(targetDir, { recursive: true, force: true });
-  process.exit(piped.status ?? 1);
+  process.exit(curlResult.status ?? 1);
+}
+const tarResult = spawnSync(
+  "tar",
+  ["-xz", "--strip-components=1", "-C", targetDir],
+  { input: curlResult.stdout, stdio: ["pipe", "inherit", "inherit"] },
+);
+if (tarResult.status !== 0 || tarResult.error) {
+  console.error(
+    `[stage-next-swc] tar failed (status=${tarResult.status}, signal=${tarResult.signal ?? "none"})`,
+  );
+  rmSync(targetDir, { recursive: true, force: true });
+  process.exit(tarResult.status ?? 1);
 }
 
 // ── sanity-check ───────────────────────────────────────────────────────────
