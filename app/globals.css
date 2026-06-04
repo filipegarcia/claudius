@@ -141,9 +141,21 @@ body {
  * resolve on first paint. The `[data-electron]` attribute is set by
  * the inline bootstrap in `app/layout.tsx` so the rule never affects
  * the browser build.
+ *
+ * `--titlebar-height` is exposed as a variable so other fixed-position
+ * UI (e.g. the WorkspaceSwitcher's small-screen drawer, which is also
+ * `position: fixed` and therefore ignores the body padding above)
+ * can offset itself by the same amount. 0 in the browser build means
+ * `top: var(--titlebar-height)` behaves identically to `top: 0`.
  */
+:root {
+  --titlebar-height: 0px;
+}
+html[data-electron] {
+  --titlebar-height: 32px;
+}
 html[data-electron] body {
-  padding-top: 32px;
+  padding-top: var(--titlebar-height);
 }
 
 * {

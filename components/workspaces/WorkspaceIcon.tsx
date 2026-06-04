@@ -18,8 +18,14 @@ export function WorkspaceIcon({ workspace, size = 40 }: Props) {
     const bg =
       workspace.icon.kind === "letter" ? workspace.icon.color : "var(--accent)";
     return (
+      // `shrink-0` is critical: this icon is rendered inside flex rows
+      // (StatusLine breadcrumb, WorkspaceSwitcher tiles) where the default
+      // `flex-shrink: 1` would squeeze the explicit width/height below the
+      // declared size when the sibling text competes for space — turning the
+      // square badge into a vertically stretched pill (the "squashed" look).
+      // Keep the declared `size × size` as a hard floor in every branch.
       <div
-        className="flex items-center justify-center text-white"
+        className="flex shrink-0 items-center justify-center text-white"
         style={{
           width: size,
           height: size,
@@ -39,15 +45,21 @@ export function WorkspaceIcon({ workspace, size = 40 }: Props) {
         alt={workspace.name}
         width={size}
         height={size}
-        className="object-cover"
+        // See the comment on the customization branch above re: `shrink-0`.
+        // `<img>` is replaced content but Chromium still honors flex-shrink
+        // on it inside a flex row, so the same squash happens without this.
+        className="shrink-0 object-cover"
         style={{ width: size, height: size, borderRadius: radius }}
       />
     );
   }
   const fontSize = Math.round(size * 0.5);
   return (
+    // See the comment on the customization branch above re: `shrink-0`. This
+    // letter branch is the one rendered next to the workspace name in the
+    // StatusLine, which is the exact spot where the squash was reported.
     <div
-      className="flex items-center justify-center font-semibold text-white"
+      className="flex shrink-0 items-center justify-center font-semibold text-white"
       style={{
         width: size,
         height: size,

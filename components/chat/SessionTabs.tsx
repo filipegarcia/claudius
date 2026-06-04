@@ -640,7 +640,7 @@ export function SessionTabs({
   }, [menuOpen]);
 
   return (
-    <div className="flex h-8 shrink-0 items-stretch border-b border-[var(--border)] bg-[var(--panel)]">
+    <div className="flex h-9 shrink-0 items-stretch border-b border-[var(--border)] bg-[var(--panel)]">
       <div
         ref={stripRef}
         className="flex min-w-0 flex-1 items-stretch gap-px overflow-hidden"

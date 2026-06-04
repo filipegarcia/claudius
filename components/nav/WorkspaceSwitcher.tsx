@@ -299,8 +299,15 @@ export function WorkspaceSwitcher({ mobileOpen = false, onCloseMobile }: Props =
   // narrow viewport.
   const desktopAsideClass =
     "h-full w-14 shrink-0 flex-col items-center gap-2 border-r border-[var(--border)] bg-[var(--background)] py-3 hidden lg:flex";
+  // `top: var(--titlebar-height)` offsets the drawer below the Electron
+  // title bar (32px) so the first workspace tile isn't hidden behind the
+  // OS traffic lights. The variable is 0 in the browser build, so this
+  // collapses to plain `top: 0` there. `h-full` would re-introduce the
+  // bug by making the drawer 100vh and bleeding behind the title bar
+  // again — `bottom: 0` lets it stretch from the new top down to the
+  // viewport bottom without specifying an explicit height.
   const mobileAsideClass =
-    "fixed inset-y-0 left-0 z-50 flex h-full w-14 shrink-0 flex-col items-center gap-2 border-r border-[var(--border)] bg-[var(--background)] py-3 shadow-2xl overflow-y-auto scroll-thin lg:hidden";
+    "fixed top-[var(--titlebar-height)] bottom-0 left-0 z-50 flex w-14 shrink-0 flex-col items-center gap-2 border-r border-[var(--border)] bg-[var(--background)] py-3 shadow-2xl overflow-y-auto scroll-thin lg:hidden";
   // Workspace switching from inside the overlay should close the drawer in
   // the same gesture. Wrapped here so we don't sprinkle null-checks at every
   // click site below.
