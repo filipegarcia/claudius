@@ -40,7 +40,7 @@
     "electron:dist:linux": "bun run electron:build && electron-builder -l",
     "electron:rebuild-native": "node scripts/electron-rebuild-native.mjs && node scripts/native-abi.mjs write electron",
     "electron:rebuild-native-for-node": "bun install --force better-sqlite3 && node scripts/native-abi.mjs write node",
-    "electron:smoke": "bun run electron:rebuild-native-for-node && cross-env NODE_ENV=production next build && bun run electron:compile && node dist-electron/smoke.js"
+    "electron:smoke": "bun run electron:rebuild-native-for-node && cross-env CLAUDIUS_PACKAGED=1 NODE_ENV=production next build && node scripts/electron-stage-standalone.mjs && bun run electron:compile && node dist-electron/smoke.js"
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.3.161",

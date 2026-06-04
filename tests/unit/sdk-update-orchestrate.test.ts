@@ -2,13 +2,13 @@ import { describe, expect, test, vi, beforeEach, afterEach } from "vitest";
 
 import {
   REQUIRED_RUN_NOTE_SECTIONS,
-  buildAnnounceFailureIssue,
   buildChangelogAnnouncement,
   buildFixResultAnnouncement,
   buildFixStartAnnouncement,
   buildGateResultAnnouncement,
   buildImplementationAnnouncement,
   buildOpenedAnnouncement,
+  buildRunIssue,
   buildShippedAnnouncement,
   buildStartAnnouncement,
   buildTestingAnnouncement,
@@ -861,54 +861,91 @@ describe("buildFixResultAnnouncement", () => {
   });
 });
 
-describe("buildAnnounceFailureIssue", () => {
-  // Title is the dedup key. Several places downstream (gh search,
-  // exact-match filter) match on this exact string — if it drifts,
-  // every previous firing's issue is orphaned and a fresh one opens
-  // every run. Pin it here so the drift is caught at test time.
-  test("uses a stable, dedup-friendly title", () => {
-    const { title } = buildAnnounceFailureIssue({
-      reason: "anything",
-      roomSlug: "sdk-update",
-      chatServerUrl: "https://chat.claudius.network",
-    });
-    expect(title).toBe("Chat-server announce failed during SDK orchestrator run");
+describe("buildRunIssue", () => {
+  const base = {
+    prevVersion: "0.3.161",
+    newVersion: "0.3.162",
+    reason: "lint failed: 3 errors in app/api/foo/route.ts",
+    branch: "sdk-update/0.3.162",
+    prUrl: "https://github.com/filipegarcia/claudius/pull/29",
+  };
+
+  // Title is the dedup key. The shared `fileOrCommentRunIssueSafe`
+  // helper does `gh issue list --state open` and looks for an EXACT
+  // title match — if this string drifts, every previous firing's
+  // issue is orphaned and a fresh ticket opens every run (the bug
+  // this whole refactor exists to fix). Pin it here so the drift is
+  // caught at test time, not by a duplicate showing up in the GitHub
+  // issue list.
+  test("collapses every failure kind for one version onto the SAME title", () => {
+    const gates = buildRunIssue({ ...base, kind: "local gates failed" });
+    const ciRed = buildRunIssue({ ...base, kind: "CI still red after fix attempts" });
+    const crashed = buildRunIssue({ ...base, kind: "crashed" });
+    const announce = buildRunIssue({ ...base, kind: "chat-server announce failed" });
+    const expected = "SDK update 0.3.161 → 0.3.162 error";
+    expect(gates.title).toBe(expected);
+    expect(ciRed.title).toBe(expected);
+    expect(crashed.title).toBe(expected);
+    expect(announce.title).toBe(expected);
   });
 
-  test("body embeds reason, room, chat-server url, and the run-log breadcrumb", () => {
-    const { body } = buildAnnounceFailureIssue({
-      reason: "HTTP 502 Bad Gateway",
-      roomSlug: "sdk-update",
-      chatServerUrl: "https://chat.claudius.network",
+  test("uses different titles for different version pairs (no false dedup across upgrades)", () => {
+    const a = buildRunIssue({ ...base, kind: "crashed" });
+    const b = buildRunIssue({
+      ...base,
+      prevVersion: "0.3.162",
+      newVersion: "0.3.163",
+      kind: "crashed",
     });
-    expect(body).toContain("HTTP 502 Bad Gateway");
-    expect(body).toContain("`sdk-update`");
-    expect(body).toContain("`https://chat.claudius.network`");
+    expect(a.title).not.toBe(b.title);
+  });
+
+  test("body embeds the kind, reason, branch, PR, and the run-log breadcrumb", () => {
+    const { body } = buildRunIssue({ ...base, kind: "local gates failed" });
+    expect(body).toContain("local gates failed");
+    expect(body).toContain("lint failed: 3 errors in app/api/foo/route.ts");
+    expect(body).toContain("sdk-update/0.3.162");
+    expect(body).toContain("https://github.com/filipegarcia/claudius/pull/29");
     // Run-log path is the on-call breadcrumb; if it disappears the
     // issue is much less actionable.
     expect(body).toContain(".claudius/sdk-updater/logs/");
   });
 
-  test("renders empty chatServerUrl as `(unset)` so the report is still readable", () => {
-    const { body } = buildAnnounceFailureIssue({
-      reason: "fetch failed",
-      roomSlug: "sdk-update",
-      chatServerUrl: "",
+  test("renders null branch and PR as `(none)` so the report stays readable", () => {
+    const { body } = buildRunIssue({
+      ...base,
+      kind: "crashed",
+      branch: null,
+      prUrl: null,
     });
-    expect(body).toContain("`(unset)`");
+    expect(body).toContain("**Branch:** `(none)`");
+    expect(body).toContain("**PR:** (none)");
+  });
+
+  test("renders extras lines verbatim into both body and comment", () => {
+    // The swallowed-announce path uses extras to embed chat-server
+    // URL + room slug, which a reviewer needs to triage the outage.
+    const { body, commentBody } = buildRunIssue({
+      ...base,
+      kind: "chat-server announce failed",
+      extras: [
+        "**Chat-server URL:** `https://chat.claudius.network`",
+        "**Room slug:** `sdk-update`",
+      ],
+    });
+    expect(body).toContain("`https://chat.claudius.network`");
+    expect(body).toContain("`sdk-update`");
+    expect(commentBody).toContain("`https://chat.claudius.network`");
+    expect(commentBody).toContain("`sdk-update`");
   });
 
   test("comment body distinguishes itself from the original issue body", () => {
-    const { body, commentBody } = buildAnnounceFailureIssue({
-      reason: "ECONNRESET",
-      roomSlug: "sdk-update",
-      chatServerUrl: "https://chat.claudius.network",
-    });
-    // Each subsequent firing comments rather than refiling — its body
-    // says "another firing" so a reviewer scanning the issue page can
-    // tell duplicates apart from the original at a glance.
-    expect(commentBody).toContain("Another firing");
-    expect(commentBody).toContain("ECONNRESET");
+    const { body, commentBody } = buildRunIssue({ ...base, kind: "crashed" });
+    // Each subsequent failure comments rather than refiling — its
+    // body says "another failure" so a reviewer scanning the issue
+    // page can tell follow-ons apart from the original at a glance.
+    expect(commentBody).toContain("Another failure");
+    expect(commentBody).toContain(base.reason);
     expect(commentBody).not.toEqual(body);
   });
 });

@@ -88,6 +88,65 @@ export function stripGoalReminder(text: string): string {
 }
 
 /**
+ * Cross-turn `<system-reminder>` blocks the server prepends to the user's
+ * SDK input via `takePendingReminders` (todos-current every-turn nudge,
+ * stale-todowrite, date-change, plan-mode-reentry, etc. — see
+ * `lib/server/system-reminders.ts`'s `ReminderKind` union). Like the goal
+ * reminder, they ride the SDK input — and thus the on-disk JSONL — but
+ * were never authored by the user. The live broadcast deliberately omits
+ * them (so the chat shows the user's plain text), but a session resumed
+ * cold from disk would otherwise surface the wrapper inside the user's
+ * own bubble.
+ *
+ * `splitLeadingSystemReminders` peels off every consecutive leading block
+ * (multiple stack when several reminders queue between turns) and returns
+ * the parsed bodies separately so callers can render them as their own
+ * `system_reminder` system pill instead of inlining them in the user
+ * bubble. `stripSystemReminders` is the convenience wrapper that just
+ * returns the residual text — use it when the bodies aren't needed
+ * (`extractUserPromptText`, the pagination/`synthesizeOlder` path whose
+ * only output channel is DisplayMessage[]).
+ *
+ * Anchored at the start so a user prompt that quotes `<system-reminder>`
+ * mid-text isn't mangled.
+ */
+const SYSTEM_REMINDER_LEADING_RE = /^\s*<system-reminder>([\s\S]*?)<\/system-reminder>\s*/;
+
+export function splitLeadingSystemReminders(text: string): {
+  reminders: string[];
+  rest: string;
+} {
+  const reminders: string[] = [];
+  let rest = text;
+  // Loop because the server can queue several reminders for the same turn
+  // (e.g. todos-current + stale-task-tools + date-change) and they're
+  // emitted back-to-back into the same SDK content string.
+  for (;;) {
+    const m = SYSTEM_REMINDER_LEADING_RE.exec(rest);
+    if (!m) break;
+    reminders.push(m[1].trim());
+    rest = rest.slice(m[0].length);
+  }
+  return { reminders, rest };
+}
+
+export function stripSystemReminders(text: string): string {
+  return splitLeadingSystemReminders(text).rest;
+}
+
+/**
+ * Strip both the goal reminder and any leading `<system-reminder>` blocks
+ * from the start of `text`. The server prepends `goal + system-reminders`
+ * in that order (`Session.sendInput` →
+ * `reminder = takeGoalReminder(); pending = takePendingReminders()`), so
+ * the order here matches. Either side is a no-op when its wrapper is
+ * absent, so this is safe to run on every user message.
+ */
+function stripLeadingReminders(text: string): string {
+  return stripSystemReminders(stripGoalReminder(text));
+}
+
+/**
  * Pull the plain-text body out of a user SDK message's `content`. Returns
  * null for:
  *   - empty string content,
@@ -102,6 +161,9 @@ export function stripGoalReminder(text: string): string {
  *     `session_snapshot` rehydration from re-injecting it as a user bubble),
  *     and stops the client pin walk from pinning it as "the last prompt".
  *     The chat surfaces a `compact_boundary` divider in its place instead.
+ *   - reminder-only content: a user record whose entire body is goal /
+ *     system-reminder wrappers with no user text after them. After stripping
+ *     the residual is empty, so we return null and the pin walk skips it.
  *
  * Returns null for synthetic tool_result wrappers (which have no `text`
  * blocks) by virtue of the text accumulator staying at length 0.
@@ -115,7 +177,9 @@ export function extractUserPromptText(content: unknown): string | null {
     if (isTaskNotificationText(content)) return null;
     if (isCompactSummaryText(content)) return null;
     if (isCliPlumbingText(content)) return null;
-    return stripGoalReminder(content);
+    const stripped = stripLeadingReminders(content);
+    if (stripped.length === 0) return null;
+    return stripped;
   }
   if (!Array.isArray(content)) return null;
   let text = "";
@@ -129,7 +193,9 @@ export function extractUserPromptText(content: unknown): string | null {
   if (isTaskNotificationText(text)) return null;
   if (isCompactSummaryText(text)) return null;
   if (isCliPlumbingText(text)) return null;
-  return stripGoalReminder(text);
+  const stripped = stripLeadingReminders(text);
+  if (stripped.length === 0) return null;
+  return stripped;
 }
 
 /**

@@ -392,7 +392,18 @@ describe("isSystemEntryHiddenAtLevel", () => {
     expect(isSystemEntryHiddenAtLevel("status", "ultra-verbose")).toBe(false);
   });
 
-  test("non-status pills are never hidden at any level", () => {
+  test("system_reminder pills are hidden at compact and ultra-compact", () => {
+    expect(isSystemEntryHiddenAtLevel("system_reminder", "compact")).toBe(true);
+    expect(isSystemEntryHiddenAtLevel("system_reminder", "ultra-compact")).toBe(true);
+  });
+
+  test("system_reminder pills survive at normal / verbose / ultra-verbose", () => {
+    expect(isSystemEntryHiddenAtLevel("system_reminder", "normal")).toBe(false);
+    expect(isSystemEntryHiddenAtLevel("system_reminder", "verbose")).toBe(false);
+    expect(isSystemEntryHiddenAtLevel("system_reminder", "ultra-verbose")).toBe(false);
+  });
+
+  test("other pills are never hidden at any level", () => {
     const others: SystemEntry["kind"][] = [
       "init",
       "hook_started",

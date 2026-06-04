@@ -96,8 +96,45 @@ function makeCorpus(): DisplayMessage[] {
 // visible at normal / verbose / ultra-verbose. Lets the spec exercise the
 // system-entry filter (the live `systemEntries` stream is otherwise absent
 // from this fixture).
+//
+// The `system_reminder` fixtures exercise the cross-turn `<system-reminder>`
+// pill (collapsed-by-default, ▸ expand reveals the body). They're anchored
+// to the first assistant turn so on a long session you can see how a few
+// stacked reminders read — the every-turn `todos-current` nudge is the
+// pill's most common arrival shape, and seeing two in a row catches the
+// density risk that the design has to clear.
 function makeSystemEntries(): SystemEntry[] {
-  return [{ uuid: "s-status", afterMessageUuid: "a-1", kind: "status", label: "Status: requesting" }];
+  return [
+    { uuid: "s-status", afterMessageUuid: "a-1", kind: "status", label: "Status: requesting" },
+    {
+      uuid: "s-rem-1",
+      afterMessageUuid: "a-1",
+      kind: "system_reminder",
+      label: "System reminder",
+      reminderBody:
+        "The current to-do list for this session is shown below. As you work, " +
+        "keep it aligned with reality: mark items completed when finished " +
+        '(TodoWrite with status "completed", or TaskUpdate with ' +
+        'status="completed"), and prune items that are no longer relevant ' +
+        '(TaskUpdate with status="deleted", or omit them from the next ' +
+        "TodoWrite call). Add new items as they emerge via TaskCreate or by " +
+        "extending the next TodoWrite call. The list is visible to the user " +
+        "in real time — keeping it accurate is part of the turn's work.\n\n" +
+        'Current todos:\n[\n  { "id": "t1", "status": "in_progress", "content": "Fix the bug" }\n]',
+    },
+    {
+      uuid: "s-rem-2",
+      afterMessageUuid: "a-1",
+      kind: "system_reminder",
+      label: "System reminder",
+      reminderBody:
+        "## Re-entering Plan Mode\n" +
+        "You are returning to plan mode after having previously exited it. " +
+        "A plan from your previous planning session is reproduced below — " +
+        "treat this as a fresh planning round rather than assuming the prior " +
+        "plan still applies.",
+    },
+  ];
 }
 
 export default function ChatVerbosePreview() {

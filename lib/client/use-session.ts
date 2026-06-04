@@ -27,7 +27,7 @@ import {
   isSyntheticTaskNotification,
   parseSyntheticCliWrapper,
 } from "./sdk-message-filters";
-import { stripGoalReminder } from "@/lib/shared/user-prompt";
+import { splitLeadingSystemReminders, stripGoalReminder } from "@/lib/shared/user-prompt";
 import { parseWorkflowMeta } from "@/lib/shared/workflow-meta";
 import {
   dropProvisionalForToolUse,
@@ -302,9 +302,24 @@ export function buildSubagentMessages(
 export function extractUserContent(content: unknown): {
   text: string;
   images: AttachedImage[];
+  /**
+   * Bodies of any leading `<system-reminder>` blocks the server prepended
+   * to this user record (every-turn `todos-current` nudge, stale-todowrite,
+   * plan-mode-reentry, etc. — see `lib/server/system-reminders.ts`). Empty
+   * for live broadcasts (the server omits the wrapper from the broadcast
+   * echo) and for normal user prompts; populated on disk-replay so the
+   * caller can surface each as its own `system_reminder` pill instead of
+   * leaving the wrapper inside the user bubble. See
+   * `splitLeadingSystemReminders` for the parse contract.
+   */
+  reminderBodies: string[];
 } {
-  if (typeof content === "string") return { text: stripGoalReminder(content), images: [] };
-  if (!Array.isArray(content)) return { text: "", images: [] };
+  if (typeof content === "string") {
+    const goalStripped = stripGoalReminder(content);
+    const { reminders, rest } = splitLeadingSystemReminders(goalStripped);
+    return { text: rest, images: [], reminderBodies: reminders };
+  }
+  if (!Array.isArray(content)) return { text: "", images: [], reminderBodies: [] };
   let text = "";
   const images: AttachedImage[] = [];
   let ord = 0;
@@ -335,10 +350,15 @@ export function extractUserContent(content: unknown): {
       }
     }
   }
-  // Strip the Claude-only goal reminder the server prepends (survives in the
-  // JSONL, so a resumed-from-disk session would otherwise show it). No-op when
-  // absent.
-  return { text: stripGoalReminder(text), images };
+  // Strip the Claude-only goal reminder + any cross-turn `<system-reminder>`
+  // blocks the server prepends (both survive in the JSONL, so a
+  // resumed-from-disk session would otherwise show them inside the user
+  // bubble). The reminder bodies are returned separately so the caller can
+  // render each as its own `system_reminder` pill above the user bubble —
+  // visible-but-tidy instead of mistakenly shown as user-authored text.
+  const goalStripped = stripGoalReminder(text);
+  const { reminders, rest } = splitLeadingSystemReminders(goalStripped);
+  return { text: rest, images, reminderBodies: reminders };
 }
 
 function extractToolResult(content: unknown): { tool_use_id: string; text: string; isError?: boolean } | null {
@@ -2758,9 +2778,41 @@ export function useSession(): ChatState & ChatActions {
           // for why we reconstruct [Image #N] tokens here). The bail is on
           // BOTH text and images so an image-only paste still produces a
           // bubble on replay — the previous text-only gate dropped it.
-          const { text, images } = extractUserContent(content);
+          const { text, images, reminderBodies } = extractUserContent(content);
+          const uuid = (msg as { uuid?: string }).uuid ?? crypto.randomUUID();
+          // Cross-turn `<system-reminder>` blocks the server prepended to this
+          // user record (every-turn todos nudge, stale-todowrite, etc. — see
+          // `lib/server/system-reminders.ts`). The live broadcast deliberately
+          // omits them, but a session resumed cold from disk re-broadcasts the
+          // JSONL copy with the wrappers intact. Lift each into its own
+          // `system_reminder` pill anchored to the previous assistant message
+          // so they render *above* the user bubble (mirrors the slash / compact
+          // pill anchoring), instead of leaking the wrapper into the user's
+          // own bubble.
+          //
+          // Derived uuid `${msgUuid}-reminder-${i}` keeps the entry stable
+          // across watcher-driven `resyncFromDisk` re-fires: the same user
+          // record can rebroadcast many times over a long session and we must
+          // not multiply the pill on each one.
+          if (reminderBodies.length > 0) {
+            const anchor = lastAssistantUuidRef.current;
+            setSystemEntries((prev) => {
+              const next = prev.slice();
+              for (let i = 0; i < reminderBodies.length; i++) {
+                const entryUuid = `${uuid}-reminder-${i}`;
+                if (next.some((e) => e.uuid === entryUuid)) continue;
+                next.push({
+                  uuid: entryUuid,
+                  afterMessageUuid: anchor,
+                  kind: "system_reminder",
+                  label: "System reminder",
+                  reminderBody: reminderBodies[i],
+                });
+              }
+              return next;
+            });
+          }
           if (text || images.length) {
-            const uuid = (msg as { uuid?: string }).uuid ?? crypto.randomUUID();
             setMessages((prev) => {
               // Optimistic dedup: a fresh send seeded the bubble with the
               // composer's actual ordinals + uuids; don't replace it with our
@@ -4595,6 +4647,16 @@ function synthesizeOlder(raw: Array<Record<string, unknown>>): {
     // Rehydrate image attachments alongside the text so paginated history
     // still renders thumbnail chips (and `[Image #N]` tokens) for older
     // user messages that the SSE replay buffer no longer covers.
+    //
+    // `reminderBodies` (cross-turn <system-reminder> blocks the server
+    // prepended to this user record) is intentionally discarded here:
+    // `synthesizeOlder`'s only output channel is `DisplayMessage[]`, so we
+    // can't lift them into SystemEntries the way the live applyEvent path
+    // does. The reminder text is still stripped from `text` so the user
+    // bubble doesn't surface the wrapper — exactly the goal — and a
+    // follow-up `resyncFromDisk` will mint the system-reminder pills via
+    // the live path if the same record shows up in the active replay
+    // window.
     const { text, images } = extractUserContent(content);
     out.push({
       uuid,

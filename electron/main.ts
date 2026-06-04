@@ -245,6 +245,38 @@ async function resolveStartUrl(): Promise<string> {
   return nextServer.url;
 }
 
+/**
+ * Pre-warm the embedded server's root route. The first request to the
+ * standalone Next server pays one-time costs (React's renderToString
+ * init, per-request module imports, the first DB connection open). If
+ * the renderer's `loadURL(/)` is the request that pays them, the user
+ * sees the splash for an extra ~500ms-1s while the renderer waits on
+ * SSR. Issuing a synthetic GET BEFORE the renderer hits the server
+ * shifts that work earlier on the wall clock — the renderer's request
+ * then arrives on a warm server and returns immediately.
+ *
+ * Bounded by a short timeout so a misbehaving SSR can't hold up window
+ * creation. If the prewarm times out or errors, the main window's own
+ * load will still trigger SSR normally — net-net we lose nothing.
+ */
+async function prewarmRootRoute(serverUrl: string): Promise<void> {
+  const start = Date.now();
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 4_000);
+  try {
+    const res = await fetch(serverUrl + "/", { signal: controller.signal });
+    await res.text();
+    console.log(`[electron/main] prewarmed / in ${Date.now() - start}ms (status ${res.status})`);
+  } catch (err) {
+    console.warn(
+      `[electron/main] prewarm / failed after ${Date.now() - start}ms (non-fatal):`,
+      err instanceof Error ? err.message : err,
+    );
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 function createWindow(startUrl: string): BrowserWindow {
   // Platform variants for the frameless chrome — Phase 4 of
   // docs/electron-conversion/PLAN.md. The renderer-side <TitleBar />
@@ -440,6 +472,18 @@ app.whenReady().then(async () => {
     // two paths trying to rewrite the install at once.
     if (IS_PACKAGED) process.env.CLAUDIUS_UPDATER_DISABLED = "1";
     const startUrl = await resolveStartUrl();
+
+    // Pre-warm the embedded server's `/` route BEFORE the renderer asks
+    // for it. The splash is already up, so paying the SSR cost here
+    // (instead of inside `mainWindow.loadURL`) doesn't add user-perceived
+    // wait time — it just shifts the work earlier on the wall clock so
+    // the splash → main-window swap is one clean transition rather than
+    // "blank main window paints, sits for a beat, then content fills in".
+    // No-op for the remote-backend mode (nextServer is null).
+    if (nextServer != null) {
+      await prewarmRootRoute(startUrl);
+    }
+
     mainWindow = createWindow(startUrl);
 
     // Tear down the splash the moment the main window is ready to

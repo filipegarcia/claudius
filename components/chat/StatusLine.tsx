@@ -146,7 +146,25 @@ export function StatusLine({
   const worktreeLabel = worktreeBadge(agentCwd, sessionRoot);
 
   return (
-    <div className="flex h-9 items-center gap-3 border-b border-[var(--border)] bg-[var(--panel)] px-4 text-xs text-[var(--muted)]">
+    // `@container/statusline` lets the right-cluster labels collapse based on
+    // THIS row's width (i.e. the chat-area pane width) rather than the
+    // viewport. With the side rails open, the viewport can be 1280px while
+    // the chat area is only ~700–900px — viewport breakpoints fire too late
+    // and the cluster ("Compact", "Clear", "Copy resume", "Normal", "Bypass")
+    // overflows the row and bleeds over the right activity panel. Named
+    // container (`/statusline`) so child components (ModeSelector,
+    // VerboseSelector) anchor unambiguously to this row even when other
+    // `@container` ancestors get added later.
+    //
+    // `clip-path` is a backstop for the case where even icon-only items
+    // can't fit the chat-area width (very narrow Electron windows). It
+    // clips horizontally at the row's box (so the rightmost item — the
+    // ModeSelector shield — can't bleed over the right activity panel)
+    // but extends the clip region ±100vh vertically so the trigger
+    // dropdowns (which open downward via `top-full`) keep painting in
+    // full. `overflow-hidden` would clip the dropdowns too; clip-path
+    // with directional insets lets us clip one axis only.
+    <div className="@container/statusline relative flex h-9 items-center gap-3 border-b border-[var(--border)] bg-[var(--panel)] px-4 text-xs text-[var(--muted)] [clip-path:inset(-100vh_0_-100vh_0)]">
       {workspace && (
         <>
           {/* Workspace breadcrumb. The icon + name anchor the rest of the
@@ -332,7 +350,8 @@ export function StatusLine({
           >
             <span>⚡ {fastModeState}</span>
             {fastModeState === "on" && (
-              <span className="hidden text-[9px] opacity-80 md:inline">· credits</span>
+              // Container query — see "Compact" label above for the rationale.
+              <span className="hidden text-[9px] opacity-80 @3xl/statusline:inline">· credits</span>
             )}
           </span>
         )}
@@ -365,9 +384,14 @@ export function StatusLine({
             className="flex items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-1.5 py-0.5 hover:bg-[var(--panel)] disabled:opacity-40"
           >
             <Minimize2 className="h-3 w-3" />
-            {/* Below md the icon stands on its own — the `title` still
-                carries the full tooltip. */}
-            <span className="hidden text-[10px] md:inline">Compact</span>
+            {/* Below the @3xl threshold (≈768px of CHAT-AREA width — the
+                StatusLine row is the named container) the icon stands on its
+                own; the `title` carries the full tooltip. Viewport `md:` was
+                too eager: at a 1280px window with both rails open the chat
+                area is ~936px and labels still fit, but at narrower windows
+                the cluster overflowed the row and bled over the right
+                activity panel. */}
+            <span className="hidden text-[10px] @3xl/statusline:inline">Compact</span>
           </button>
         )}
         {onClear && (
@@ -377,7 +401,8 @@ export function StatusLine({
             className="flex items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-1.5 py-0.5 hover:bg-[var(--panel)]"
           >
             <Eraser className="h-3 w-3" />
-            <span className="hidden text-[10px] md:inline">Clear</span>
+            {/* See "Compact" label above for the @2xl/statusline rationale. */}
+            <span className="hidden text-[10px] @3xl/statusline:inline">Clear</span>
           </button>
         )}
         {notificationsState && onToggleNotifications && (
@@ -448,7 +473,14 @@ function VerboseSelector({
         )}
       >
         <Eye className="h-3 w-3" />
-        <span className="text-[10px]">{verboseLabel(value)}</span>
+        {/* Collapse the verbosity label to icon-only when the StatusLine row
+            (the named `@container/statusline` ancestor) is below ~768px —
+            same threshold as the Compact / Clear / Copy resume labels
+            above. Previously this label rendered unconditionally, so on a
+            narrow chat-area it (plus the ModeSelector label) was what
+            pushed the right cluster off the row. The `title` on the
+            button still carries the full label + description. */}
+        <span className="hidden text-[10px] @3xl/statusline:inline">{verboseLabel(value)}</span>
       </button>
       {open && (
         <div
@@ -688,10 +720,14 @@ function ShareButton({ sessionId }: { sessionId: string | null }) {
       className="flex items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-1.5 py-0.5 hover:bg-[var(--panel)]"
     >
       {copied ? <Check className="h-3 w-3 text-emerald-400" /> : <LinkIcon className="h-3 w-3" />}
-      {/* Label collapses below md so the right cluster fits alongside the
-          Compact / Clear / Verbose / Mode pills on narrow viewports. The
-          title attribute keeps the URL discoverable as a tooltip. */}
-      <span className="hidden text-[10px] md:inline">{copied ? "Copied" : "Copy resume"}</span>
+      {/* Label collapses when this button's container (the StatusLine row)
+          falls below ~672px so the right cluster fits alongside the Compact
+          / Clear / Verbose / Mode pills. Container query (not viewport `md:`)
+          because the chat-area width depends on whether the side rails are
+          open — viewport-based hiding fires too late and the cluster
+          overflowed. Title attribute keeps the URL discoverable as a
+          tooltip. */}
+      <span className="hidden text-[10px] @3xl/statusline:inline">{copied ? "Copied" : "Copy resume"}</span>
     </button>
   );
 }

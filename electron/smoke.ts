@@ -6,11 +6,12 @@
  * fetches `/api/heartbeat`, and exits 0 / 1 based on whether the
  * server responded with a 200. The whole script runs in Node, no
  * display server required, so CI can call it to catch the class of
- * runtime bugs that `tsc --noEmit` misses (e.g. wrong `defaultAppDir`,
- * unresolved `require("next")`, port collision, missing `.next/`).
+ * runtime bugs that `tsc --noEmit` misses (wrong `defaultAppDir`,
+ * missing standalone `server.js`, port collision).
  *
  * Prerequisites:
- *   - `bun run build`           → produces `.next/`
+ *   - `bun run build` with output:'standalone' → produces
+ *     `.next/standalone/server.js`
  *   - `bun run electron:compile` → produces `dist-electron/smoke.js`
  *
  * Then:
@@ -26,49 +27,26 @@ import { defaultAppDir, startEmbeddedNextServer } from "./server";
 const TIMEOUT_MS = 30_000;
 const HEARTBEAT_PATH = "/api/heartbeat";
 
-/**
- * Next 16 + Turbopack skips `prerender-manifest.json` in the regular
- * production build (it only appears in dev and inside the standalone
- * bundle). The embedded server's `app.prepare()` still requires the
- * file to exist. We write a minimal stub when missing so the smoke
- * works against any successful `next build`.
- */
-function ensurePrerenderManifest(appDir: string): void {
-  const dest = path.join(appDir, ".next", "prerender-manifest.json");
-  if (fs.existsSync(dest)) return;
-  // Try the dev copy first; fall back to a hard-coded minimal stub.
-  const devCopy = path.join(appDir, ".next", "dev", "prerender-manifest.json");
-  if (fs.existsSync(devCopy)) {
-    fs.copyFileSync(devCopy, dest);
-    console.log(`[smoke] seeded prerender-manifest.json from .next/dev/`);
-    return;
-  }
-  const stub = {
-    version: 4,
-    routes: {},
-    dynamicRoutes: {},
-    notFoundRoutes: [],
-    preview: {
-      previewModeId: "smoke-stub",
-      previewModeSigningKey: "smoke-stub",
-      previewModeEncryptionKey: "smoke-stub",
-    },
-  };
-  fs.writeFileSync(dest, JSON.stringify(stub));
-  console.log(`[smoke] wrote prerender-manifest.json stub`);
-}
-
 async function main(): Promise<void> {
   const appDir = process.env.CLAUDIUS_SMOKE_APP_DIR ?? defaultAppDir();
   // Sanity-check the resolved path so a typo in `defaultAppDir` fails
-  // here instead of inside Next with a less actionable error.
+  // here instead of inside the child-spawn with a less actionable error.
+  // The standalone tree must contain `server.js` (the entry we spawn)
+  // and its own `.next/` (the trimmed build output the entry reads).
+  const serverJs = path.join(appDir, "server.js");
   const nextDir = path.join(appDir, ".next");
   console.log(`[smoke] appDir=${appDir}`);
-  console.log(`[smoke] expected .next dir=${nextDir}`);
-  if (!fs.existsSync(nextDir)) {
-    throw new Error(`.next not found at ${nextDir} — run \`bun run build\` first`);
+  console.log(`[smoke] expected server.js=${serverJs}`);
+  if (!fs.existsSync(serverJs)) {
+    throw new Error(
+      `server.js not found at ${serverJs} — run \`bun run build\` first`,
+    );
   }
-  ensurePrerenderManifest(appDir);
+  if (!fs.existsSync(nextDir)) {
+    throw new Error(
+      `.next not found at ${nextDir} — standalone tree is incomplete`,
+    );
+  }
 
   const startedAt = Date.now();
   const server = await startEmbeddedNextServer(appDir);

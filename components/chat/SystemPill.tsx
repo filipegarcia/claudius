@@ -2,6 +2,7 @@
 
 import {
   AlertTriangle,
+  Bell,
   CheckCircle2,
   Clock,
   Cpu,
@@ -54,6 +55,12 @@ const KIND_META: Record<SystemEntry["kind"], { icon: typeof Info; tone: string }
   // the `init` pill (same icon, different tone) so a reader scans both as
   // "model state" rows.
   model_fallback: { icon: Cpu, tone: "text-amber-400" },
+  // Cross-turn `<system-reminder>` blocks the server prepends to the user's
+  // SDK input (every-turn todos nudge, stale-todowrite, plan-mode-reentry,
+  // etc. — see `lib/server/system-reminders.ts`). Rendered with the same
+  // muted tone as `info` because these are background nudges to the model,
+  // not events that demand the user's attention.
+  system_reminder: { icon: Bell, tone: "text-[var(--muted)]" },
   info: { icon: Info, tone: "text-[var(--muted)]" },
 };
 
@@ -83,11 +90,70 @@ export function SystemPill({
   if (entry.kind === "rate_limit" && entry.rateLimit) {
     return <RateLimitPill entry={entry} levers={levers} />;
   }
+  // System reminders are cross-turn nudges the server prepends to the user's
+  // SDK input. They survive in the JSONL and would otherwise leak into the
+  // user's own bubble on a cold resume; lifting them here keeps them
+  // visible-but-tidy. Collapsed by default because `todos-current` fires
+  // every turn — at one block per turn the chat would otherwise become
+  // wallpaper.
+  if (entry.kind === "system_reminder" && entry.reminderBody) {
+    return <SystemReminderPill entry={entry} />;
+  }
   return (
     <div className="my-1 flex items-center gap-2 text-[11px] text-[var(--muted)]">
       <Icon className={`h-3 w-3 ${meta.tone}`} />
       <span>{entry.label}</span>
       {entry.detail && <span className="opacity-70">— {entry.detail}</span>}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// System-reminder pill — collapsed by default, ▸ expand reveals the body
+// ---------------------------------------------------------------------------
+
+/**
+ * Best-effort short title derived from the reminder body's opening line.
+ * Used as the collapsed-pill label so a reader scanning the chat can tell
+ * a `todos-current` nudge from a `plan-mode-reentry` without expanding.
+ * Falls back to "System reminder" for bodies we don't recognise.
+ */
+function systemReminderTitle(body: string): string {
+  const lead = body.trimStart().slice(0, 120).toLowerCase();
+  if (lead.startsWith("the current to-do list")) return "Todos snapshot";
+  if (lead.startsWith("the todowrite tool hasn't")) return "TodoWrite idle";
+  if (lead.startsWith("the task tools haven't")) return "Task tools idle";
+  if (lead.startsWith("## re-entering plan mode")) return "Re-entering plan mode";
+  if (lead.startsWith("## exited auto mode")) return "Exited auto mode";
+  if (lead.startsWith("you have completed implementing the plan")) return "Verify plan";
+  if (lead.startsWith("the date has changed")) return "Date change";
+  if (lead.startsWith("memory")) return "Memory update";
+  return "System reminder";
+}
+
+function SystemReminderPill({ entry }: { entry: SystemEntry }) {
+  const [expanded, setExpanded] = useState(false);
+  const body = entry.reminderBody ?? "";
+  const title = systemReminderTitle(body);
+  return (
+    <div className="my-1 text-[11px] text-[var(--muted)]">
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        aria-expanded={expanded}
+        className="flex items-center gap-2 rounded px-1 py-0.5 text-left hover:bg-[var(--panel-2)]/40"
+        title={expanded ? "Hide reminder text" : "Show reminder text"}
+      >
+        <Bell className="h-3 w-3 text-[var(--muted)]" />
+        <span className="opacity-90">System reminder</span>
+        <span className="opacity-60">— {title}</span>
+        <span className="opacity-50">{expanded ? "▾" : "▸"}</span>
+      </button>
+      {expanded && (
+        <div className="ml-5 mt-1 max-h-60 overflow-auto whitespace-pre-wrap rounded-md border border-[var(--border)] bg-[var(--panel)]/40 p-2 text-[10.5px] leading-5 text-[var(--foreground)]/75 scroll-thin">
+          {body}
+        </div>
+      )}
     </div>
   );
 }

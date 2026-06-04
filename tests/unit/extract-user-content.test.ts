@@ -16,14 +16,30 @@ const JPG_DATA = "/9j/4AAQSkZJRg==";
 describe("extractUserContent", () => {
   test("string content passes through unchanged", () => {
     const r = extractUserContent("hello world");
-    expect(r).toEqual({ text: "hello world", images: [] });
+    expect(r).toEqual({ text: "hello world", images: [], reminderBodies: [] });
   });
 
   test("empty / non-array / non-string content returns empties", () => {
-    expect(extractUserContent(undefined)).toEqual({ text: "", images: [] });
-    expect(extractUserContent(null)).toEqual({ text: "", images: [] });
-    expect(extractUserContent({})).toEqual({ text: "", images: [] });
-    expect(extractUserContent([])).toEqual({ text: "", images: [] });
+    expect(extractUserContent(undefined)).toEqual({
+      text: "",
+      images: [],
+      reminderBodies: [],
+    });
+    expect(extractUserContent(null)).toEqual({
+      text: "",
+      images: [],
+      reminderBodies: [],
+    });
+    expect(extractUserContent({})).toEqual({
+      text: "",
+      images: [],
+      reminderBodies: [],
+    });
+    expect(extractUserContent([])).toEqual({
+      text: "",
+      images: [],
+      reminderBodies: [],
+    });
   });
 
   test("text-only content array concatenates", () => {
@@ -31,7 +47,7 @@ describe("extractUserContent", () => {
       { type: "text", text: "hello " },
       { type: "text", text: "world" },
     ]);
-    expect(r).toEqual({ text: "hello world", images: [] });
+    expect(r).toEqual({ text: "hello world", images: [], reminderBodies: [] });
   });
 
   test("image-only content rehydrates with [Image #1] token", () => {
@@ -79,7 +95,7 @@ describe("extractUserContent", () => {
       },
       { type: "text", text: "after" },
     ]);
-    expect(r).toEqual({ text: "before after", images: [] });
+    expect(r).toEqual({ text: "before after", images: [], reminderBodies: [] });
   });
 
   test("malformed blocks are silently ignored", () => {
@@ -91,7 +107,56 @@ describe("extractUserContent", () => {
       { type: "image", source: { type: "base64" } }, // no data / media_type
       { type: "text", text: " me" },
     ]);
-    expect(r).toEqual({ text: "keep me", images: [] });
+    expect(r).toEqual({ text: "keep me", images: [], reminderBodies: [] });
+  });
+
+  test("leading <system-reminder> blocks are peeled off into reminderBodies (string)", () => {
+    // Matches the wrap shape from `lib/server/system-reminders.ts` →
+    // `wrapReminder(body)`, which appends `\n\n` after the closing tag so
+    // multiple reminders concatenate cleanly.
+    const raw =
+      "<system-reminder>\nThe current to-do list…\n</system-reminder>\n\n" +
+      "real user prompt";
+    const r = extractUserContent(raw);
+    expect(r.text).toBe("real user prompt");
+    expect(r.images).toEqual([]);
+    expect(r.reminderBodies).toEqual(["The current to-do list…"]);
+  });
+
+  test("multiple stacked reminders are all peeled off in order (string)", () => {
+    const raw =
+      "<system-reminder>\ntodos body\n</system-reminder>\n\n" +
+      "<system-reminder>\nstale task tools body\n</system-reminder>\n\n" +
+      "actual prompt";
+    const r = extractUserContent(raw);
+    expect(r.text).toBe("actual prompt");
+    expect(r.reminderBodies).toEqual(["todos body", "stale task tools body"]);
+  });
+
+  test("leading <system-reminder> in a content-block array is peeled off", () => {
+    const raw =
+      "<system-reminder>\ntodos body\n</system-reminder>\n\n" +
+      "follow-up question";
+    const r = extractUserContent([{ type: "text", text: raw }]);
+    expect(r.text).toBe("follow-up question");
+    expect(r.reminderBodies).toEqual(["todos body"]);
+  });
+
+  test("goal reminder + system reminders are stripped in order; both surface", () => {
+    const goal =
+      "<session-goal>\nThe user has set this goal for the session: ship it\n</session-goal>\n\n";
+    const sys =
+      "<system-reminder>\nThe current to-do list…\n</system-reminder>\n\n";
+    const r = extractUserContent(goal + sys + "user text");
+    expect(r.text).toBe("user text");
+    expect(r.reminderBodies).toEqual(["The current to-do list…"]);
+  });
+
+  test("mid-text <system-reminder> is not stripped (only leading blocks are peeled)", () => {
+    const raw = "look at <system-reminder>quoted</system-reminder> in my docs";
+    const r = extractUserContent(raw);
+    expect(r.text).toBe(raw);
+    expect(r.reminderBodies).toEqual([]);
   });
 
   test("ordinals are freshly assigned per call (server stripped originals)", () => {

@@ -1644,38 +1644,59 @@ async function postAnnouncement(body: string, opts: { pin?: boolean } = {}): Pro
 }
 
 /**
- * Pure helper for fileAnnounceFailureIssueSafe — builds the GitHub
- * issue title, body, and follow-up comment body for a swallowed
- * chat-server announce failure. Exported only for tests; the
- * side-effectful gh-spawning caller lives below.
+ * Pure builder for the per-version "SDK update X → Y error" issue —
+ * shared by every bot-filed failure path (local gates failed, CI still
+ * red, orchestrator crash, swallowed chat-server announce). Exported
+ * only for tests; the side-effectful gh-spawning caller lives below.
  *
- * The title is the dedup key: every announce failure across every SDK
- * orchestrator run collapses onto the same issue (with comments added
- * for each subsequent firing). That matches the behaviour
- * reportProcessIssueSafe uses for orchestrator crashes — the issue list
- * stays scannable and you can tell at a glance "the announce path is
- * broken" without scrolling through one ticket per firing.
+ * Title shape `SDK update <prev> → <new> error` is the dedup key: all
+ * failure kinds within ONE upgrade collapse onto a single issue — the
+ * filer either opens it fresh OR appends a comment if it's already
+ * open. The previous design used one issue per (failure-kind ×
+ * version-pair) and additionally embedded the CI attempt count into
+ * the CI-red title, which scattered a single bad upgrade across three
+ * or four tickets and orphaned every previous firing's issue as soon
+ * as a new version came along. Collapsing onto one issue per version
+ * keeps the open-issue list scannable and lets a human see the full
+ * failure history for a given upgrade in one place.
+ *
+ * The fact that we comment-or-create on each new failure (rather than
+ * refile) is the dedup contract the unit test below pins.
  */
-export function buildAnnounceFailureIssue(args: {
+export function buildRunIssue(args: {
+  prevVersion: string;
+  newVersion: string;
+  kind: string;
   reason: string;
-  roomSlug: string;
-  chatServerUrl: string;
+  branch: string | null;
+  prUrl: string | null;
+  extras?: string[];
 }): { title: string; body: string; commentBody: string } {
-  const title = "Chat-server announce failed during SDK orchestrator run";
-  const safeUrl = args.chatServerUrl || "(unset)";
+  const title = `SDK update ${args.prevVersion} → ${args.newVersion} error`;
+  const meta = [
+    `**Branch:** \`${args.branch ?? "(none)"}\``,
+    `**PR:** ${args.prUrl ?? "(none)"}`,
+  ];
+  const extras = args.extras && args.extras.length ? ["", ...args.extras] : [];
   const body = [
-    `The SDK orchestrator tried to post a community update to the \`${args.roomSlug}\` room on \`${safeUrl}\` and the POST threw.`,
+    `Automated SDK update \`${args.prevVersion} → ${args.newVersion}\` hit a problem the orchestrator could not resolve on its own.`,
     "",
-    `**Error:** ${args.reason}`,
+    `**Kind:** ${args.kind}`,
+    `**What happened:** ${args.reason}`,
     "",
-    `**Effect:** the room missed at least one milestone (start / changelog / opened / shipped). Check the orchestrator run logs in \`.claudius/sdk-updater/logs/\` on the cron host for which one — then either post manually via \`gh issue\` / curl, or rerun the orchestrator if the underlying chat-server issue is resolved.`,
+    ...meta,
+    ...extras,
     "",
-    "Filed automatically by `scripts/sdk-update/orchestrate.ts` because chat posts are best-effort by design (see the `announceSafe` helper for the rationale) — without this issue the failure would only show up as a `WARN` line in the cron host's stdout.",
+    "Filed automatically by `scripts/sdk-update/orchestrate.ts`. Subsequent failures on this same upgrade comment here rather than opening duplicates — see the comments below for the full failure history. The orchestrator run logs live in `.claudius/sdk-updater/logs/` on the cron host.",
   ].join("\n");
   const commentBody = [
-    `Another firing of the SDK orchestrator failed to post to the community room.`,
+    `Another failure on this same upgrade.`,
     "",
-    `**Error:** ${args.reason}`,
+    `**Kind:** ${args.kind}`,
+    `**What happened:** ${args.reason}`,
+    "",
+    ...meta,
+    ...extras,
     "",
     "Posted automatically by `scripts/sdk-update/orchestrate.ts` to avoid opening a duplicate issue.",
   ].join("\n");
@@ -1683,59 +1704,94 @@ export function buildAnnounceFailureIssue(args: {
 }
 
 /**
- * One-shot GitHub issue when announceSafe swallows a chat-server post
- * failure. The orchestrator otherwise has no out-of-band signal that
- * the community room missed a milestone — we'd only notice by eyeballing
- * the room. This files an issue (or comments on the existing one if a
- * prior firing already filed one), so the failure surfaces in the
- * GitHub issue list without anyone SSH'ing into the cron host.
- *
- * Why NOT call `reportProcessIssueSafe`: that helper ends with
- * `await announceSafe(...)` to also notify the community room. If we
- * routed through it on a post failure, that final announce would
- * re-throw, re-trigger this path, and loop. Filing the issue inline
- * here — with no announce step — breaks the recursion cleanly.
- *
- * Best-effort: a gh failure here only emits a log line. The original
- * announce failure was already swallowed; we cannot escalate further
- * without aborting the run, which the design says we must not do.
+ * Per-run upgrade context (prev/new SDK versions). Set once at the
+ * top of `main()` so any later announce-failure has the version pair
+ * available without threading it through every callsite. Stays null
+ * in `fixPr()` — that path doesn't know prev offhand and its rare
+ * announce failures just log a WARN.
  */
-function fileAnnounceFailureIssueSafe(reason: string): void {
-  const { title, body, commentBody } = buildAnnounceFailureIssue({
-    reason,
-    roomSlug: ROOM_SLUG,
-    chatServerUrl: CHAT_SERVER_URL,
-  });
+let currentUpgradeContext: { prevVersion: string; newVersion: string } | null = null;
 
+/**
+ * In-process cache of "title → URL we already filed / found this
+ * run". Cron firings are minutes apart so cross-run dedup is fine
+ * via the gh list call below; this Map exists specifically for the
+ * within-run case where multiple announce failures fire seconds
+ * apart and GitHub's NOT-realtime issue-list returns "no match"
+ * for the issue we just created. This is what produced #32 and #33,
+ * filed 4 seconds apart with identical titles — both passed the
+ * "no existing issue" check because each one's `gh issue list`
+ * snapshot didn't yet see the other's create. The Map closes the
+ * race deterministically: the second call within a run sees the
+ * first call's URL and comments on it.
+ */
+const inProcessIssueByTitle = new Map<string, string>();
+
+/**
+ * Find an OPEN issue whose title exactly equals `title`. Uses
+ * `gh issue list --state open --limit 200 --json url,title` rather
+ * than `gh issue list --search`. The search variant routes through
+ * GitHub's search index, which is NOT real-time and was the cross-
+ * call bug behind #32/#33 — even with the in-process cache, the
+ * direct list is the right primitive because it surfaces an issue
+ * filed by a previous cron firing (which our cache doesn't carry
+ * across processes). The 200-issue limit is well above the
+ * practical open-issue count for this repo; raise if that stops
+ * being true.
+ */
+function findOpenIssueByTitle(title: string): string | null {
+  const cached = inProcessIssueByTitle.get(title);
+  if (cached) return cached;
   try {
-    // Same dedup shape as reportProcessIssueSafe: search by exact title,
-    // comment if already open, file fresh if not. `in:title "<...>"` lets
-    // the GitHub server do the match so we don't paginate; the exact-title
-    // filter on the result guards against substring search matches.
     const listed = spawnSync(
       "gh",
-      [
-        "issue",
-        "list",
-        "--state",
-        "open",
-        "--search",
-        `in:title "${title}"`,
-        "--json",
-        "url,title",
-      ],
+      ["issue", "list", "--state", "open", "--limit", "200", "--json", "url,title"],
       { cwd: ROOT, encoding: "utf8" },
     );
-    const existing = listed.status === 0
-      ? (JSON.parse(listed.stdout || "[]") as Array<{ url: string; title: string }>)
-          .filter((i) => i.title === title)
-      : [];
+    if (listed.status !== 0) return null;
+    const all = JSON.parse(listed.stdout || "[]") as Array<{ url: string; title: string }>;
+    const hit = all.find((i) => i.title === title);
+    if (hit) inProcessIssueByTitle.set(title, hit.url);
+    return hit?.url ?? null;
+  } catch {
+    return null;
+  }
+}
 
-    if (existing.length > 0) {
-      const issueUrl = existing[0]!.url;
+/**
+ * File the per-version run issue OR comment on an existing open one.
+ * The single dedup chokepoint for every bot-filed failure kind —
+ * `reportProcessIssueSafe` and the inline filer used by `announceSafe`
+ * both go through here so there's exactly one place that decides
+ * "create vs comment" and exactly one title to keep stable.
+ *
+ * Best-effort: returns the issue URL on success, null on any gh
+ * failure. Never throws — the orchestrator must not crash because
+ * the issue-filing step couldn't reach GitHub.
+ *
+ * Why NOT call `reportProcessIssueSafe` from `announceSafe`'s error
+ * handler: that helper ends with `await announceSafe(...)` to ALSO
+ * post to the community room. Routing the swallowed-announce path
+ * through it would re-throw on the second announce, re-trigger this
+ * filer, and loop. Calling this lower-level helper directly breaks
+ * the recursion cleanly.
+ */
+function fileOrCommentRunIssueSafe(args: {
+  prevVersion: string;
+  newVersion: string;
+  kind: string;
+  reason: string;
+  branch: string | null;
+  prUrl: string | null;
+  extras?: string[];
+}): string | null {
+  const { title, body, commentBody } = buildRunIssue(args);
+  try {
+    const existing = findOpenIssueByTitle(title);
+    if (existing) {
       const comment = spawnSync(
         "gh",
-        ["issue", "comment", issueUrl, "--body-file", "-"],
+        ["issue", "comment", existing, "--body-file", "-"],
         { cwd: ROOT, input: commentBody, encoding: "utf8" },
       );
       if (comment.status !== 0) {
@@ -1743,22 +1799,19 @@ function fileAnnounceFailureIssueSafe(reason: string): void {
           `gh issue comment exited ${comment.status}: ${comment.stderr ?? ""}`,
         );
       }
-      log(`commented on existing announce-failure issue: ${issueUrl}`);
-    } else {
-      const issueUrl = sh("gh", [
-        "issue",
-        "create",
-        "--title",
-        title,
-        "--body",
-        body,
-      ]).trim();
-      log(`filed announce-failure issue: ${issueUrl}`);
+      log(`commented on existing run issue (kind=${args.kind}): ${existing}`);
+      inProcessIssueByTitle.set(title, existing);
+      return existing;
     }
+    const url = sh("gh", ["issue", "create", "--title", title, "--body", body]).trim();
+    inProcessIssueByTitle.set(title, url);
+    log(`filed run issue (kind=${args.kind}): ${url}`);
+    return url;
   } catch (err) {
     log(
-      `WARN could not file announce-failure issue (non-fatal): ${err instanceof Error ? err.message : String(err)}`,
+      `WARN could not file/update GitHub issue (non-fatal): ${err instanceof Error ? err.message : String(err)}`,
     );
+    return null;
   }
 }
 
@@ -1768,11 +1821,15 @@ function fileAnnounceFailureIssueSafe(reason: string): void {
  * abort the orchestration or leave state inconsistent. We log and move
  * on. The announcement is a notification, not a gate.
  *
- * When the post fails, we also file (or comment on) a one-shot GitHub
- * issue so the swallowed failure surfaces without anyone tailing the
- * cron host's logs. The 0.3.160 → 0.3.161 announcement was lost this
- * way — PR opened cleanly, room never heard about it, and the only
- * signal was a missing message; the issue-filing path closes that gap.
+ * When the post fails AND we have an upgrade context (i.e. we're
+ * inside `main()`, not `fixPr()`), we also file or comment on the
+ * per-version run issue so the swallowed failure surfaces without
+ * anyone tailing the cron host's logs. The 0.3.160 → 0.3.161
+ * announcement was lost this way — PR opened cleanly, room never
+ * heard about it, and the only signal was a missing message; the
+ * issue-filing path closes that gap. The per-version (vs per-kind)
+ * title means a follow-on gate failure on the same upgrade comments
+ * on this same issue rather than opening a sibling ticket.
  */
 async function announceSafe(body: string, opts: { pin?: boolean } = {}): Promise<void> {
   try {
@@ -1780,7 +1837,23 @@ async function announceSafe(body: string, opts: { pin?: boolean } = {}): Promise
   } catch (err) {
     const reason = err instanceof Error ? err.message : String(err);
     log(`WARN community announce failed (non-fatal): ${reason}`);
-    fileAnnounceFailureIssueSafe(reason);
+    if (currentUpgradeContext) {
+      fileOrCommentRunIssueSafe({
+        prevVersion: currentUpgradeContext.prevVersion,
+        newVersion: currentUpgradeContext.newVersion,
+        kind: "chat-server announce failed",
+        reason,
+        branch: null,
+        prUrl: null,
+        extras: [
+          `**Chat-server URL:** \`${CHAT_SERVER_URL || "(unset)"}\``,
+          `**Room slug:** \`${ROOM_SLUG}\``,
+          `**Effect:** the room missed at least one milestone (start / changelog / opened / shipped). Check the orchestrator run logs in \`.claudius/sdk-updater/logs/\` on the cron host to find which.`,
+        ],
+      });
+    } else {
+      log(`WARN no upgrade context — skipping run-issue file for swallowed announce (this is normal in fix-pr mode).`);
+    }
   }
 }
 
@@ -1936,97 +2009,43 @@ async function runFixPass(
 }
 
 /**
- * Surface an orchestrator-level failure out-of-band: file a GitHub
- * issue AND post to the community channel, so a human hears about a
- * problem the bot couldn't resolve on its own. Both halves are
- * best-effort — a failure to file the issue (or a chat outage) must
- * never mask the original problem or abort the run.
+ * Surface an orchestrator-level failure out-of-band: file (or comment
+ * on) the per-version run issue AND post to the community channel, so
+ * a human hears about a problem the bot couldn't resolve on its own.
+ * Both halves are best-effort — a failure to file the issue (or a
+ * chat outage) must never mask the original problem or abort the run.
  *
- * De-dup: if an open issue with the same title already exists (e.g.
- * the previous hourly firing crashed in the same way and we're now
- * back for a retry), append a comment instead of opening a duplicate.
- * Without this we ended up with one fresh "SDK update X → Y crashed"
- * issue per firing — five open tickets for the same crash on the
- * 0.3.160 → 0.3.161 upgrade alone. Same idempotency shape `openPr`
- * uses to avoid duplicate PRs on re-runs.
+ * The issue logic lives in `fileOrCommentRunIssueSafe`: all failure
+ * kinds within one upgrade (local gates failed / CI still red /
+ * crashed / chat-server announce failed) collapse onto a single
+ * `SDK update <prev> → <new> error` ticket. Each new firing comments
+ * on it. Previously we used one title per (kind × version-pair) and
+ * the CI-red title even baked the attempt count in, scattering a
+ * single bad upgrade across three or four open tickets — one per kind
+ * the run hit. The per-version title is the smallest dedup key that
+ * still lets a reviewer separate "0.3.161 → 0.3.162 was a mess" from
+ * "0.3.163 → 0.3.164 was a mess" in the issue list.
  */
 async function reportProcessIssueSafe(args: {
-  title: string;
+  kind: string;
   reason: string;
   prevVersion: string;
   newVersion: string;
   branch: string | null;
   prUrl: string | null;
 }): Promise<void> {
-  const body = [
-    `Automated SDK update \`${args.prevVersion} → ${args.newVersion}\` hit a problem the orchestrator could not resolve on its own.`,
-    "",
-    `**What happened:** ${args.reason}`,
-    "",
-    ...(args.branch ? [`**Branch:** \`${args.branch}\``] : []),
-    ...(args.prUrl ? [`**PR:** ${args.prUrl}`] : []),
-    "",
-    "Filed automatically by `scripts/sdk-update/orchestrate.ts`; see the run logs for the full transcript.",
-  ].join("\n");
-
-  let issueUrl: string | null = null;
-  try {
-    // Look for an existing OPEN issue with exactly this title. We
-    // search by title (`in:title`) rather than scanning open issues
-    // because `gh issue list --search` lets the server do the match
-    // and won't paginate-trap on a busy repo. Exact-title check on
-    // the client side guards against a substring search match
-    // (e.g. "crashed" matching unrelated crash reports).
-    const listed = spawnSync(
-      "gh",
-      [
-        "issue",
-        "list",
-        "--state",
-        "open",
-        "--search",
-        `in:title "${args.title}"`,
-        "--json",
-        "url,title",
-      ],
-      { cwd: ROOT, encoding: "utf8" },
-    );
-    const existing = listed.status === 0
-      ? (JSON.parse(listed.stdout || "[]") as Array<{ url: string; title: string }>)
-          .filter((i) => i.title === args.title)
-      : [];
-
-    if (existing.length > 0) {
-      issueUrl = existing[0]!.url;
-      const commentBody = [
-        `Another firing of the SDK updater hit the same problem.`,
-        "",
-        `**What happened:** ${args.reason}`,
-        "",
-        ...(args.branch ? [`**Branch:** \`${args.branch}\``] : []),
-        ...(args.prUrl ? [`**PR:** ${args.prUrl}`] : []),
-        "",
-        "Posted automatically by `scripts/sdk-update/orchestrate.ts` to avoid opening a duplicate issue; see the run logs for the full transcript.",
-      ].join("\n");
-      const comment = spawnSync(
-        "gh",
-        ["issue", "comment", issueUrl, "--body-file", "-"],
-        { cwd: ROOT, input: commentBody, encoding: "utf8" },
-      );
-      if (comment.status !== 0) {
-        throw new Error(`gh issue comment exited ${comment.status}: ${comment.stderr ?? ""}`);
-      }
-      log(`commented on existing process issue: ${issueUrl}`);
-    } else {
-      issueUrl = sh("gh", ["issue", "create", "--title", args.title, "--body", body]).trim();
-      log(`filed process issue: ${issueUrl}`);
-    }
-  } catch (err) {
-    log(`WARN could not file/update GitHub issue: ${String(err)}`);
-  }
+  const issueUrl = fileOrCommentRunIssueSafe({
+    prevVersion: args.prevVersion,
+    newVersion: args.newVersion,
+    kind: args.kind,
+    reason: args.reason,
+    branch: args.branch,
+    prUrl: args.prUrl,
+  });
 
   const channelMsg = [
     `🛠️ **SDK update ${args.prevVersion} → ${args.newVersion} hit a problem.**`,
+    `Kind: ${args.kind}`,
     oneLine(args.reason, 400),
     issueUrl ? `Issue: ${issueUrl}` : "(issue could not be filed — check run logs)",
     args.prUrl ? `PR: ${args.prUrl}` : "",
@@ -2180,6 +2199,13 @@ async function main(): Promise<void> {
     fatal("orchestrate.ts requires --version=<x.y.z>");
   }
   const newVersion = newVersionArg!;
+
+  // Stash the version pair so any later announce-failure (handled in
+  // `announceSafe` → `fileOrCommentRunIssueSafe`) can file/comment on
+  // the same per-version run issue as the gate/CI/crash paths. Without
+  // this the swallowed-announce path can't compute a dedup-friendly
+  // title.
+  currentUpgradeContext = { prevVersion, newVersion };
 
   log(`starting upgrade ${prevVersion} → ${newVersion}`);
   // Pre-read state isn't strictly needed here — patchState reads the
@@ -2414,7 +2440,7 @@ async function main(): Promise<void> {
       const reason = budgetReason ?? "local gate not green";
       log(`local gate NOT green (${reason}) — not pushing; filing process issue`);
       await reportProcessIssueSafe({
-        title: `SDK update ${prevVersion} → ${newVersion} failed local gates`,
+        kind: "local gates failed",
         reason,
         prevVersion,
         newVersion,
@@ -2510,7 +2536,7 @@ async function main(): Promise<void> {
         // Best-effort label.
       }
       await reportProcessIssueSafe({
-        title: `SDK update ${prevVersion} → ${newVersion}: CI still red after ${ciAttempt} attempt(s)`,
+        kind: "CI still red after fix attempts",
         reason,
         prevVersion,
         newVersion,
@@ -2524,7 +2550,7 @@ async function main(): Promise<void> {
     // them. Best-effort — never let issue/announce failures mask the
     // original error or swallow the rethrow.
     await reportProcessIssueSafe({
-      title: `SDK update ${prevVersion} → ${newVersion} crashed`,
+      kind: "crashed",
       reason: err instanceof Error ? err.message : String(err),
       prevVersion,
       newVersion,

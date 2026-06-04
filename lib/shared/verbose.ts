@@ -193,6 +193,12 @@ export function isSystemEntryHiddenAtLevel(
   level: VerboseLevel,
 ): boolean {
   if ((level === "compact" || level === "ultra-compact") && kind === "status") return true;
+  // System reminders are server-side plumbing (cross-turn nudges the model
+  // sees, surfaced here so they're visible-but-tidy on resume). At compact
+  // and tighter the contract is "user + assistant text only" — hiding them
+  // there matches the same reasoning as the `status` rule above.
+  if ((level === "compact" || level === "ultra-compact") && kind === "system_reminder")
+    return true;
   return false;
 }
 

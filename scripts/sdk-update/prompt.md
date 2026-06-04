@@ -27,13 +27,43 @@ The full changelog between the two versions is in the
 
 ## The goal
 
-Your objective is a **migrated, all-green Claudius**: every gate
-(`lint`, `test`, `build`, `test:e2e`) passing, with every SDK change
-that affects Claudius wired through to working code. The run-notes
-file (next section) documents that work — it is a required
-deliverable, but it is **not** the objective. A polished run-notes
-file describing zero code changes, when the SDK actually required
-changes, is a failed run, not a clean one.
+Your deliverable is **all four gates green on the migrated tree** —
+`bun run lint`, `bun run test`, `bun run build`, and `bun run test:e2e`
+each emitting zero failures, with every SDK change that affects
+Claudius wired through to working code. The migration is the *means*;
+the green gate is *the thing*. A migration that ends with a red gate
+counts as a failed run, not a successful one with a follow-up. Drive
+every decision (ship vs type-only vs skip) toward landing all four
+green.
+
+The run-notes file (next section) documents that work — it is a
+required deliverable, but it is **not** the objective. A polished
+run-notes file describing zero code changes, when the SDK actually
+required changes, is a failed run, not a clean one.
+
+---
+
+## The single most common failure mode
+
+The pattern we see most often: Claude finishes the implementation,
+runs `bun run lint` and `bun run test`, sees them green, and reports
+done — **without running `bun run test:e2e` to completion**. The
+orchestrator runs the full gate suite after Claude returns, finds e2e
+red, and ends the run as a process-issue with no PR. See e.g.
+issues #16 and #31 ("Claude reported done but gate failed: e2e").
+
+Do not be that case. Before your final "done" message:
+
+1. Run **every** command in the Definition of Done (Step 8) in this
+   session, in order.
+2. Read the tail of each command's output. A green "X passed
+   (Y skipped)" — or the equivalent for `lint` / `build` — is the
+   only acceptable signal. Silence is **not** success; a command you
+   didn't run is **not** green.
+3. If any command is red, fix it (spawn a focused diagnose-and-fix
+   agent if useful) and re-run **all** of them from the top. Re-runs
+   are cheap; a draft PR that needed a human to finish the e2e suite
+   is expensive.
 
 ---
 
@@ -337,16 +367,22 @@ Commit: `docs(sdk-update): notes for {{NEW_VERSION}}`.
 ### Step 8 — Definition of done
 
 You are **not done** until **all** of the following are true. The
-orchestrator checks them before opening the PR; failing any of
-them forces the PR to open as **draft** with the `needs-human`
-label.
+orchestrator re-runs the gate commands below after you return; if
+any is red, the run ends as a process-issue with **no PR opened**
+(see "The single most common failure mode" near the top). Items
+1–4 are gate commands: run each in this session, read the tail of
+its output, and paste the last 5–10 lines (showing the green count
+/ "PASS" / "Compiled successfully") into your final message. That
+paste is the contract that you actually ran the gate — not that you
+believe it would pass. Silence is not success.
 
 1. `bun run lint` — zero errors across the whole repo.
 2. `bun run test` (vitest) — every spec passes.
 3. `bun run build` — production build succeeds.
 4. `bun run test:e2e` (Playwright, chromium project) — every spec
    passes. The Playwright browser is already installed; if it
-   isn't, run `make test` once which installs it.
+   isn't, run `make test` once which installs it. **This is the
+   one most often skipped — do not skip it.**
 5. `.claudius/sdk-updater/run-notes/{{NEW_VERSION}}.md` exists and
    contains all six `## ` headings listed above, each with
    non-trivial content (no placeholder text like "TODO" or
@@ -402,13 +438,17 @@ out. Decide, act, and document.
   **on the PR** — that is the channel for anything that genuinely needs
   a human, *after* you've shipped your best-effort answer, never instead
   of it. A documented best-effort decision always beats a halted run.
-- **Stopping is only for a genuine block, after real effort** — a test
-  you have honestly tried and cannot make pass, a gate that won't go
-  green for reasons outside your control. Then write what's blocking
-  you into "## Risks / follow-ups", commit what you have, and stop; the
-  orchestrator opens a draft PR and pings a human. "Stuck after trying"
-  is a valid stop. "Unsure, so I'll ask" is not — resolve it yourself
-  and document it.
+- **Stopping is only for a genuine block, after real effort.** For a
+  red gate, "real effort" has a concrete shape: you spawned at least
+  one focused diagnose-and-fix agent against the failure, applied its
+  proposed fix, re-ran **all** gates from the top, and the same gate
+  (or a new one surfaced by the fix) is still red — twice. Stopping
+  after the first red is not real effort; it is reporting done at the
+  wrong moment. Only once you've cleared that bar may you write what's
+  blocking you into "## Risks / follow-ups", commit what you have, and
+  stop; the orchestrator opens a draft PR and pings a human. "Stuck
+  after trying twice" is a valid stop. "Unsure, so I'll ask" is not —
+  resolve it yourself and document it.
 - This autonomy does **not** relax the constraints above. Never disable
   a test or lint rule, never `--no-verify`, never hack a gate to green
   just to avoid stopping. The escape hatch for uncertainty is a

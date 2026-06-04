@@ -89,10 +89,23 @@ export function ModeSelector({ mode, onChange }: Props) {
           "flex items-center gap-1.5 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1 text-xs",
           "hover:bg-[var(--panel)]",
         )}
-        title="Permission mode (Shift+Tab to cycle)"
+        // Include the active mode + description in the tooltip — the visible
+        // label collapses on narrow chat-area widths (icon-only) so the title
+        // is the user's textual fallback. The keyboard hint stays appended.
+        title={`Permission mode: ${meta.label} — ${meta.description}\nShift+Tab to cycle`}
       >
         <Icon className={`h-3.5 w-3.5 ${meta.tone}`} />
-        <span>{meta.label}</span>
+        {/* Collapse the mode label ("Default" / "Accept edits" / "Bypass"…)
+            to icon-only when the StatusLine container is below ~768px. This
+            button is rendered inside StatusLine's `@container/statusline`
+            named ancestor, so the variant resolves against the chat-area
+            width (not the viewport) — which is what we want, since the
+            chat area shrinks when the right activity rail is open. Without
+            this, "Bypass" was the chip that overflowed and clipped at the
+            window edge on narrow Electron windows. The button's title
+            ("Permission mode (Shift+Tab to cycle)") plus the dropdown
+            preserve the full label when the user needs it. */}
+        <span className="hidden @3xl/statusline:inline">{meta.label}</span>
         <ChevronDown className="h-3 w-3 opacity-60" />
       </button>
       {open && (

@@ -149,6 +149,7 @@ export type SystemEntry = {
     | "api_retry"
     | "permission_denied"
     | "model_fallback"
+    | "system_reminder"
     | "info";
   label: string;
   detail?: string;
@@ -188,6 +189,16 @@ export type SystemEntry = {
     trigger?: string;
   };
   compactSummary?: string;
+  /**
+   * Body text of a cross-turn `<system-reminder>` block the server
+   * prepended to the user's SDK input (e.g. the every-turn `todos-current`
+   * nudge, stale-todowrite, plan-mode-reentry — see
+   * `lib/server/system-reminders.ts`). Only present (and used) when
+   * `kind === "system_reminder"`. The pill renders a one-line collapsed
+   * "System reminder" with a ▸ expand that reveals this body, so the
+   * injection is visible-but-tidy instead of leaking into the user bubble.
+   */
+  reminderBody?: string;
 };
 
 export type ToolProgressInfo = {
