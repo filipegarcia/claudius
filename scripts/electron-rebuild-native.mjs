@@ -182,22 +182,27 @@ function verifyLoadsInElectron() {
   // packaging step too.
   const tmpDir = mkdtempSync(path.join(os.tmpdir(), "claudius-rebuild-verify-"));
   const tmpFile = path.join(tmpDir, "verify.js");
+  // Electron 42+ (Node 24 inside) no longer lets standalone scripts use
+  // `require("electron")` — the npm `electron` package only exports the
+  // binary path, not the API, when resolved from a tmpdir without a
+  // package.json `"main"` entry. Since we only need to dlopen better-sqlite3
+  // (a native .node, no Chromium APIs required), we skip `app.whenReady()`
+  // entirely and require the module directly. Native modules load fine
+  // before the app is ready; the only thing the ready gate buys is a
+  // live Chromium display, which we don't need here.
   const script = `
-    const { app } = require("electron");
-    app.whenReady().then(() => {
-      try {
-        const Database = require(${JSON.stringify(path.join(REPO_ROOT, "node_modules/better-sqlite3"))});
-        // Open an in-memory DB so we don't touch disk.
-        const db = new Database(":memory:");
-        db.prepare("SELECT 1").get();
-        db.close();
-        console.log("[rebuild-native] verify: better-sqlite3 loads in electron@" + process.versions.electron + " (modules=" + process.versions.modules + ")");
-        app.exit(0);
-      } catch (err) {
-        console.error("[rebuild-native] verify FAILED: " + (err && err.message ? err.message : err));
-        app.exit(2);
-      }
-    });
+    try {
+      const Database = require(${JSON.stringify(path.join(REPO_ROOT, "node_modules/better-sqlite3"))});
+      // Open an in-memory DB so we don't touch disk.
+      const db = new Database(":memory:");
+      db.prepare("SELECT 1").get();
+      db.close();
+      console.log("[rebuild-native] verify: better-sqlite3 loads in electron@" + process.versions.electron + " (modules=" + process.versions.modules + ")");
+      process.exit(0);
+    } catch (err) {
+      console.error("[rebuild-native] verify FAILED: " + (err && err.message ? err.message : err));
+      process.exit(2);
+    }
   `;
   writeFileSync(tmpFile, script);
 
@@ -209,9 +214,11 @@ function verifyLoadsInElectron() {
     // "SUID sandbox helper binary was found, but is not configured correctly."
     // For a sandboxed SQLite open/close test in CI this is the standard
     // workaround — we're not loading any user content, just dlopen-ing a
-    // .node file against Electron's ABI. The flag is harmless on macOS /
-    // Windows (Electron ignores unknown sandbox flags).
-    const electronArgs = ["--no-sandbox", tmpFile];
+    // .node file against Electron's ABI.
+    // NOTE: Electron 42 on macOS rejects `--no-sandbox` as a bad option
+    // ("bad option: --no-sandbox"), so we only pass it on Linux.
+    const isLinux = process.platform === "linux";
+    const electronArgs = [...(isLinux ? ["--no-sandbox"] : []), tmpFile];
 
     // Linux: Electron loads Ozone/X11 even before `app.whenReady()` resolves
     // (it eagerly initializes the display subsystem), and on a headless
@@ -222,7 +229,6 @@ function verifyLoadsInElectron() {
     // spins up a temporary virtual framebuffer for the spawned process.
     // macOS / Windows runners have native window servers so xvfb isn't
     // needed and isn't on PATH — we conditionally wrap on platform.
-    const isLinux = process.platform === "linux";
     const cmd = isLinux ? "xvfb-run" : electronPath;
     const args = isLinux ? ["-a", electronPath, ...electronArgs] : electronArgs;
 
