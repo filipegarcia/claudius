@@ -235,6 +235,22 @@ jobs:
       #     path is `node scripts/make-dmg.mjs` from a developer Mac, which keeps
       #     the proper layout and background.
       #   • `--prepackaged` reuses release/mac/Claudius.app (no rebuild loop).
+      #   • CRITICAL: electron-builder re-emits `latest-mac.yml` describing
+      #     whatever it just built — here, the DMG. electron-updater on macOS
+      #     can only consume a .zip, so a DMG-pointing manifest breaks every
+      #     installed client with "ZIP file not provided" (v0.3.161.17 →
+      #     v0.3.162.3 all shipped broken this way). The save/restore steps
+      #     around this fallback preserve the zip-pointing manifest produced
+      #     by the earlier `Package zip` step.
+      - name: Save zip-pointing latest-mac.yml before DMG fallback
+        if: steps.create-dmg.outcome == 'failure'
+        run: |
+          if [ -f release/latest-mac.yml ]; then
+            cp release/latest-mac.yml release/latest-mac.yml.zip-manifest
+          else
+            echo "::error::release/latest-mac.yml missing before DMG fallback — the zip target must have failed silently"
+            exit 1
+          fi
       - name: Package DMG fallback (electron-builder, CI only)
         if: steps.create-dmg.outcome == 'failure'
         timeout-minutes: 15
@@ -249,6 +265,9 @@ jobs:
             -c.dmg.window.width=540 \
             -c.dmg.window.height=380 \
             --publish never
+      - name: Restore zip-pointing latest-mac.yml after DMG fallback
+        if: steps.create-dmg.outcome == 'failure'
+        run: mv release/latest-mac.yml.zip-manifest release/latest-mac.yml
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v5
