@@ -73,24 +73,39 @@ export async function POST(req: Request) {
     planModeInstructions,
   } = mergeSessionDefaults(body, defaults);
 
-  const session = await sessionManager.create({
-    cwd,
-    model,
-    agent,
-    maxBudgetUsd,
-    taskBudgetTokens,
-    maxTurns,
-    fallbackModel,
-    sandboxEnabled,
-    enable1mContext,
-    persistSession,
-    additionalDirectories,
-    systemPromptAppend,
-    planModeInstructions,
-    permissionMode,
-    resume: body.resume,
-    resumeSessionAt: body.resumeSessionAt,
-  });
+  // Surface the underlying error to the renderer. Without this, an
+  // unhandled throw in Session construction / start (DB, SDK spawn,
+  // account-profile provisioning, …) bubbles to Next as a bare 500 with
+  // no body — the toast shows "create session failed: 500" and the
+  // packaged build's child-process stderr goes to /dev/null when launched
+  // from Finder. Returning `{ error, name }` makes the cause visible
+  // in-app and to anyone curling the endpoint directly.
+  let session;
+  try {
+    session = await sessionManager.create({
+      cwd,
+      model,
+      agent,
+      maxBudgetUsd,
+      taskBudgetTokens,
+      maxTurns,
+      fallbackModel,
+      sandboxEnabled,
+      enable1mContext,
+      persistSession,
+      additionalDirectories,
+      systemPromptAppend,
+      planModeInstructions,
+      permissionMode,
+      resume: body.resume,
+      resumeSessionAt: body.resumeSessionAt,
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    const name = err instanceof Error ? err.name : "Error";
+    console.error("[api/sessions] sessionManager.create failed:", err);
+    return NextResponse.json({ error: message, name }, { status: 500 });
+  }
 
   // If sessionManager returned an existing in-memory session via resume
   // idempotency, its mode is whatever it was last set to — possibly stale

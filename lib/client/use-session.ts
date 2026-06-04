@@ -3493,7 +3493,20 @@ export function useSession(): ChatState & ChatActions {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(opts),
         });
-        if (!res.ok) throw new Error(`create session failed: ${res.status}`);
+        if (!res.ok) {
+          // Read the route's JSON `{ error, name }` (see app/api/sessions/route.ts).
+          // Falling back to a bare status code makes the failure unreadable
+          // when the toast is the only visible signal — packaged Electron
+          // sinks server stderr to /dev/null on Finder launches.
+          let detail = `${res.status}`;
+          try {
+            const body = (await res.json()) as { error?: string; name?: string };
+            if (body?.error) detail = body.name ? `${body.name}: ${body.error}` : body.error;
+          } catch {
+            // Body wasn't JSON — keep the status code.
+          }
+          throw new Error(`create session failed: ${detail}`);
+        }
         const { id, cwd: createdCwd } = (await res.json()) as { id: string; cwd?: string };
         // A newer transition superseded this one — don't bind.
         if (switchGenRef.current !== gen) return null;
