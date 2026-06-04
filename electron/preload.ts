@@ -43,6 +43,7 @@ const TOPICS = {
   updaterCheck: "updater:check",
   updaterApply: "updater:apply",
   updaterStatus: "updater:status",
+  updaterOpenAppManagementSettings: "updater:open-app-management-settings",
   workspaceOpenFolder: "workspace:open-folder",
   chatNewWithText: "chat:new-with-text",
   chatAppendToComposer: "chat:append-to-composer",
@@ -66,7 +67,7 @@ function subscribe<T>(
 const api = {
   isElectron: true as const,
   platform: process.platform,
-  bridgeVersion: 6 as const,
+  bridgeVersion: 7 as const,
 
   menu: {
     on(action: string, cb: () => void): () => void {
@@ -132,9 +133,12 @@ const api = {
           | { kind: "available"; version: string }
           | { kind: "downloading"; percent: number }
           | { kind: "downloaded"; version: string }
-          | { kind: "error"; message: string },
+          | { kind: "error"; message: string }
+          | { kind: "blocked-app-management"; message: string },
       ) => void,
     ) => subscribe(TOPICS.updaterStatus, cb),
+    openAppManagementSettings: () =>
+      ipcRenderer.send(TOPICS.updaterOpenAppManagementSettings),
   },
 
   workspaces: {

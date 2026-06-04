@@ -19,6 +19,13 @@ export type ElectronUpdaterState = {
   status: ClaudiusUpdaterStatus;
   check: () => void;
   apply: () => void;
+  /**
+   * Deep-link to macOS Privacy & Security → App Management so the user
+   * can unblock self-replacement of the .app bundle. No-op when the
+   * bridge is older than v7 (older packaged builds won't have the
+   * IPC handler) or when the host platform isn't darwin.
+   */
+  openAppManagementSettings: () => void;
 };
 
 export function useElectronUpdater(): ElectronUpdaterState | null {
@@ -41,7 +48,14 @@ export function useElectronUpdater(): ElectronUpdaterState | null {
 
   const check = useCallback(() => bridge?.updater.check(), [bridge]);
   const apply = useCallback(() => bridge?.updater.apply(), [bridge]);
+  // Guard with a runtime feature-detect — older packaged builds load a
+  // preload that doesn't expose this method, and we don't want to crash
+  // when the renderer ships ahead of the main process.
+  const openAppManagementSettings = useCallback(
+    () => bridge?.updater.openAppManagementSettings?.(),
+    [bridge],
+  );
 
   if (!bridge) return null;
-  return { status, check, apply };
+  return { status, check, apply, openAppManagementSettings };
 }

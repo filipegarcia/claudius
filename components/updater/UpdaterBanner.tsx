@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowDownToLine, Loader2, RefreshCw, Sparkles, TriangleAlert, X } from "lucide-react";
+import { ArrowDownToLine, Loader2, RefreshCw, ShieldAlert, Sparkles, TriangleAlert, X } from "lucide-react";
 import { useUpdater } from "@/lib/client/use-updater";
 import { useElectronUpdater } from "@/lib/client/useElectronUpdater";
 
@@ -182,7 +182,7 @@ function ElectronUpdaterBanner({
 }: {
   state: ReturnType<typeof useElectronUpdater> & object;
 }) {
-  const { status, check, apply } = state;
+  const { status, check, apply, openAppManagementSettings } = state;
   const [dismissedError, setDismissedError] = useState<string | null>(null);
 
   if (status.kind === "idle" || status.kind === "checking") return null;
@@ -226,6 +226,49 @@ function ElectronUpdaterBanner({
         >
           <RefreshCw className="h-3 w-3" />
           Restart and install
+        </button>
+      </div>
+    );
+  }
+
+  // macOS App Management denial — distinct, actionable banner. Amber
+  // rather than red because this isn't a Claudius bug; the OS gated the
+  // bundle swap and the user can flip a switch to unblock it. Keyed on
+  // status.message so a future *different* App Management failure
+  // re-surfaces the banner after a dismissal.
+  if (status.kind === "blocked-app-management") {
+    if (dismissedError === status.message) return null;
+    return (
+      <div
+        data-pane-name="updater-banner-electron-blocked"
+        className="flex items-center gap-2 border-b border-amber-500/40 bg-amber-500/10 px-4 py-1.5 text-xs"
+      >
+        <ShieldAlert className="h-3.5 w-3.5 shrink-0 text-amber-400" />
+        <span className="font-medium">macOS blocked the update</span>
+        <span className="hidden text-[var(--muted)] sm:inline">
+          Allow Claudius in Privacy &amp; Security → App Management to update automatically.
+        </span>
+        <button
+          onClick={openAppManagementSettings}
+          className="ml-auto flex items-center gap-1 rounded border border-amber-500/40 bg-amber-500/15 px-2 py-0.5 hover:bg-amber-500/25"
+        >
+          <ShieldAlert className="h-3 w-3" />
+          Open Privacy &amp; Security
+        </button>
+        <button
+          onClick={check}
+          className="flex items-center gap-1 rounded border border-amber-500/40 bg-amber-500/15 px-2 py-0.5 hover:bg-amber-500/25"
+        >
+          <RefreshCw className="h-3 w-3" />
+          Retry update
+        </button>
+        <button
+          onClick={() => setDismissedError(status.message)}
+          aria-label="Dismiss App Management notice"
+          title="Dismiss until the error changes"
+          className="rounded p-0.5 text-[var(--muted)] hover:bg-amber-500/20 hover:text-[var(--foreground)]"
+        >
+          <X className="h-3.5 w-3.5" />
         </button>
       </div>
     );

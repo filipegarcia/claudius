@@ -37,7 +37,16 @@ export type ClaudiusUpdaterStatus =
   | { kind: "available"; version: string }
   | { kind: "downloading"; percent: number }
   | { kind: "downloaded"; version: string }
-  | { kind: "error"; message: string };
+  | { kind: "error"; message: string }
+  /**
+   * macOS-specific terminal state: the bundle swap was denied by the
+   * system's App Management policy (System Settings → Privacy & Security
+   * → App Management). We classify these out of the generic `error` bucket
+   * so the renderer can show a one-click "Open Settings" remediation
+   * instead of a cryptic `EPERM`/`EACCES` blob. `message` is the raw
+   * underlying error for diagnostics. Added in bridgeVersion 7.
+   */
+  | { kind: "blocked-app-management"; message: string };
 
 /** File-dialog filter, matching Electron's `FileFilter`. */
 export type ClaudiusFileFilter = {
@@ -70,6 +79,9 @@ export type ClaudiusBridge = {
    *  - 6: files.getPath (recover absolute OS path for a dropped File via
    *       webUtils.getPathForFile, so non-image chat drops can resolve to
    *       cwd-relative or absolute paths instead of basename-only)
+   *  - 7: updater.openAppManagementSettings (deep-link to macOS
+   *       Privacy & Security → App Management when an auto-update is
+   *       denied by the OS) + `blocked-app-management` status variant
    */
   readonly bridgeVersion: number;
 
@@ -149,6 +161,13 @@ export type ClaudiusBridge = {
     check(): void;
     apply(): void;
     onStatus(cb: (status: ClaudiusUpdaterStatus) => void): () => void;
+    /**
+     * Open the macOS System Settings → Privacy & Security → App
+     * Management pane so the user can flip Claudius to "allowed" and
+     * unblock the next update. No-op on non-darwin platforms. Added in
+     * bridgeVersion 7.
+     */
+    openAppManagementSettings(): void;
   };
 
   /**

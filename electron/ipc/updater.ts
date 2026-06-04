@@ -22,8 +22,18 @@
  *   - autoUpdater throws if you call `checkForUpdates()` in dev /
  *     unpackaged. We early-return in that case so calling check during
  *     `electron:dev` doesn't crash.
+ *   - macOS App Management denials happen POST-QUIT (the bundle swap
+ *     is performed by Squirrel.Mac's `ShipIt` helper after our process
+ *     has exited), so `u.on("error", …)` never sees them. To still
+ *     surface a remediation banner we persist the target version on
+ *     `update-downloaded` and, on the next launch's first
+ *     `updater:check`, compare it against `app.getVersion()`. A
+ *     mismatch on darwin is the load-bearing trigger for the
+ *     `blocked-app-management` status — the live classifier remains a
+ *     belt-and-suspenders second source for the rare in-process
+ *     denial.
  */
-import { app, BrowserWindow, ipcMain } from "electron";
+import { app, BrowserWindow, ipcMain, shell } from "electron";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -64,6 +74,7 @@ function loadAutoUpdater(): AutoUpdater {
 const TOPIC_CHECK = "updater:check";
 const TOPIC_APPLY = "updater:apply";
 const TOPIC_STATUS = "updater:status";
+const TOPIC_OPEN_APP_MANAGEMENT = "updater:open-app-management-settings";
 
 type Status =
   | { kind: "idle" }
@@ -71,9 +82,200 @@ type Status =
   | { kind: "available"; version: string }
   | { kind: "downloading"; percent: number }
   | { kind: "downloaded"; version: string }
-  | { kind: "error"; message: string };
+  | { kind: "error"; message: string }
+  | { kind: "blocked-app-management"; message: string };
+
+/**
+ * Classify a raw `electron-updater` error message.
+ *
+ * On macOS Ventura+, "App Management" gates writes to other apps' bundles
+ * (including self-replacement of `/Applications/Claudius.app`). When the
+ * user hasn't authorized Claudius, the OS surfaces a Privacy & Security
+ * notification AND the in-process write fails with `EPERM` / `EACCES` /
+ * "Operation not permitted". The raw error is useless to a non-developer
+ * — we promote it to a `blocked-app-management` status so the renderer
+ * can show a one-click remediation banner.
+ *
+ * The detector is intentionally broad: any darwin permission-denied error
+ * from the updater is overwhelmingly likely to be App Management, since
+ * the only thing the updater writes is the app bundle, and `/Applications`
+ * itself is writable by the user. False positives just show a slightly
+ * over-specific banner — still strictly better than the cryptic raw
+ * message.
+ *
+ * Exported so unit tests can exercise the classifier directly without
+ * trying to mock the lazily-required `electron-updater` module (whose
+ * CommonJS `require` bypasses `vi.mock`).
+ */
+export function classifyUpdaterError(message: string): Status {
+  if (process.platform === "darwin") {
+    // Match EPERM/EACCES codes, the "Operation not permitted" / "not
+    // permitted" strings the kernel returns, and any error that explicitly
+    // references the .app bundle path getting rejected.
+    if (
+      /\bEPERM\b|\bEACCES\b|operation not permitted|not permitted|denied by .* policy|App Management/i.test(
+        message,
+      )
+    ) {
+      return { kind: "blocked-app-management", message };
+    }
+  }
+  return { kind: "error", message };
+}
+
+/**
+ * Persistent marker for "we downloaded version X and asked the OS to
+ * install it on quit." Stored under `userData/` so it survives the quit.
+ *
+ * Why this exists: the live `error` event from `electron-updater` is
+ * almost never the one that catches an App Management denial. The
+ * bundle swap is performed by Squirrel.Mac's ShipIt helper AFTER
+ * `quitAndInstall()` has terminated our process — by which point
+ * neither our `u.on("error", …)` listener nor the renderer's IPC
+ * subscription can hear about the failure. The macOS notification the
+ * user sees (overlaying System Settings) fires at this same post-quit
+ * moment, attributed to Claudius even though Claudius is gone.
+ *
+ * The reliable signal is at NEXT launch: we wrote down "expected to
+ * become version X on next start"; if the running process is still on
+ * the previous version, the swap failed. App Management is the
+ * overwhelmingly likely cause on darwin.
+ */
+type PendingUpdate = {
+  /** Version we expected to be running after the next launch. */
+  targetVersion: string;
+  /** When `update-downloaded` fired. */
+  attemptedAt: number;
+};
+
+function pendingUpdatePath(): string {
+  return path.join(app.getPath("userData"), "claudius-pending-update.json");
+}
+
+function persistPendingUpdate(version: string): void {
+  try {
+    const data: PendingUpdate = {
+      targetVersion: version,
+      attemptedAt: Date.now(),
+    };
+    fs.writeFileSync(pendingUpdatePath(), JSON.stringify(data), "utf8");
+  } catch (err) {
+    // Best-effort: a failed persist just means we won't catch a
+    // *subsequent* post-quit swap denial. Still worth logging so the
+    // user can spot it via the updater log file.
+    console.warn("[updater] failed to persist pending update marker", err);
+  }
+}
+
+/**
+ * Read + delete the pending-update marker. Idempotent: returns null if
+ * the marker doesn't exist, was already consumed this launch, or is
+ * unreadable. The marker is consumed on read because we only want to
+ * compare against the FIRST process started after the download — a
+ * later attempt creates its own marker.
+ */
+function consumePendingUpdate(): PendingUpdate | null {
+  const p = pendingUpdatePath();
+  let raw: string;
+  try {
+    raw = fs.readFileSync(p, "utf8");
+  } catch {
+    return null;
+  }
+  try {
+    fs.unlinkSync(p);
+  } catch {
+    // already gone (race with a parallel launch) — fall through and
+    // honor whatever we read.
+  }
+  try {
+    const parsed = JSON.parse(raw) as Partial<PendingUpdate>;
+    if (
+      typeof parsed.targetVersion !== "string" ||
+      typeof parsed.attemptedAt !== "number"
+    ) {
+      return null;
+    }
+    return { targetVersion: parsed.targetVersion, attemptedAt: parsed.attemptedAt };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Detect "we downloaded an update but it didn't take effect."
+ *
+ * Returns a `blocked-app-management` status when the previous launch
+ * downloaded version X but the current launch is still on a different
+ * version. Returns `null` when:
+ *   - no marker (no pending update)
+ *   - version matches (swap succeeded — happy path, marker cleared)
+ *   - marker is stale (>14d — user probably never restarted; don't
+ *     guilt them about an old download)
+ *
+ * The detector is darwin-only: on Windows the failed-update flow is
+ * different (NSIS exit codes, UAC denials surface differently) and
+ * conflating the two would produce confusing copy in the banner.
+ *
+ * Pure function over its deps for testability — the production call
+ * site below threads in `process.platform`, `app.getVersion()`,
+ * `Date.now()`, and the filesystem-backed `consumePendingUpdate`.
+ */
+export function detectPostQuitSwapFailure(deps: {
+  platform: NodeJS.Platform;
+  currentVersion: string;
+  now: number;
+  consume: () => PendingUpdate | null;
+}): Status | null {
+  if (deps.platform !== "darwin") return null;
+  const pending = deps.consume();
+  if (!pending) return null;
+  if (pending.targetVersion === deps.currentVersion) {
+    // Swap succeeded — marker already consumed.
+    return null;
+  }
+  const STALE_MS = 14 * 24 * 60 * 60 * 1000;
+  if (deps.now - pending.attemptedAt > STALE_MS) return null;
+  return {
+    kind: "blocked-app-management",
+    message: `Attempted to install Claudius ${pending.targetVersion} but the running version is still ${deps.currentVersion}. The most common cause on macOS is App Management blocking the bundle replacement.`,
+  };
+}
+
+/**
+ * Best-effort deep link into the macOS App Management pane.
+ *
+ * On macOS 13+ (Ventura) System Settings exposes this as a dedicated
+ * Privacy & Security subpage. The `?Privacy_AppManagement` anchor jumps
+ * straight there; if Apple ever renames the anchor the URL still opens
+ * the Privacy & Security root, which is one click away from the right
+ * panel. On older macOS we'd fall through to the legacy security pane —
+ * but App Management itself only exists on 13+, so this code path won't
+ * fire in practice on those builds.
+ */
+function openAppManagementSettings(): void {
+  if (process.platform !== "darwin") return;
+  void shell
+    .openExternal(
+      "x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?Privacy_AppManagement",
+    )
+    .catch(() => {
+      // Fall back to the Privacy & Security root if the deep anchor
+      // ever stops resolving — better one extra click than a dead button.
+      void shell
+        .openExternal(
+          "x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension",
+        )
+        .catch(() => {});
+    });
+}
 
 let started = false;
+// Latched once the post-quit-swap-failure check runs at first
+// TOPIC_CHECK after registration. Subsequent checks proceed normally so
+// the user can retry the update after fixing their App Management
+// permission.
+let postQuitSwapChecked = false;
 
 function broadcast(status: Status): void {
   const wins = BrowserWindow.getAllWindows();
@@ -101,6 +303,23 @@ export function registerUpdaterHandlers(): void {
       broadcast({ kind: "idle" });
       return;
     }
+    // FIRST check after launch is also our chance to surface a swap
+    // that the OS denied post-quit on the previous shutdown. Runs once
+    // per process — a retry after the user fixes the permission goes
+    // straight into the normal check flow below.
+    if (!postQuitSwapChecked) {
+      postQuitSwapChecked = true;
+      const failure = detectPostQuitSwapFailure({
+        platform: process.platform,
+        currentVersion: app.getVersion(),
+        now: Date.now(),
+        consume: consumePendingUpdate,
+      });
+      if (failure) {
+        broadcast(failure);
+        return;
+      }
+    }
     bootstrap();
     loadAutoUpdater()
       .checkForUpdates()
@@ -113,7 +332,7 @@ export function registerUpdaterHandlers(): void {
           broadcast({ kind: "idle" });
           return;
         }
-        broadcast({ kind: "error", message: msg });
+        broadcast(classifyUpdaterError(msg));
       });
   });
 
@@ -122,8 +341,16 @@ export function registerUpdaterHandlers(): void {
     try {
       loadAutoUpdater().quitAndInstall();
     } catch (err) {
-      broadcast({ kind: "error", message: errorMessage(err) });
+      broadcast(classifyUpdaterError(errorMessage(err)));
     }
+  });
+
+  // Deep-link to System Settings → Privacy & Security → App Management
+  // so the `blocked-app-management` banner can offer a one-click fix.
+  // Registered even on non-darwin: the helper is a no-op there, so a
+  // stray renderer call doesn't error.
+  ipcMain.on(TOPIC_OPEN_APP_MANAGEMENT, () => {
+    openAppManagementSettings();
   });
 
   // Pre-attach listeners on first window so that an auto-check fired
@@ -166,12 +393,13 @@ function bootstrap(): void {
   u.on("download-progress", (p) =>
     broadcast({ kind: "downloading", percent: Math.round(p.percent) }),
   );
-  u.on("update-downloaded", (info) =>
-    broadcast({ kind: "downloaded", version: info.version }),
-  );
-  u.on("error", (err) =>
-    broadcast({ kind: "error", message: errorMessage(err) }),
-  );
+  u.on("update-downloaded", (info) => {
+    // Persist FIRST so a synchronous broadcast → "Restart now" click
+    // can't race the disk write and let a swap failure go undetected.
+    persistPendingUpdate(info.version);
+    broadcast({ kind: "downloaded", version: info.version });
+  });
+  u.on("error", (err) => broadcast(classifyUpdaterError(errorMessage(err))));
 }
 
 function errorMessage(err: unknown): string {
