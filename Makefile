@@ -1,4 +1,4 @@
-.PHONY: help install dev build start lint unit test test-ui test-e2e-electron test-setup test-setup-local test-setup-docker test-install-public ci site screenshots screenshots-full claudius-revert claudius-revert-all run up down restart status logs electron electron-dev electron-build electron-icons electron-app electron-dist electron-dmg electron-e2e-loop sdk-update-check sdk-update-run sdk-update-fix-pr sdk-update-dry-run sdk-update-status sdk-update-logs sdk-update-install-cron sdk-update-uninstall-cron debug-export
+.PHONY: help install dev build start lint unit test test-ui test-e2e-electron test-setup test-setup-local test-setup-docker test-install-public ci site screenshots screenshots-full claudius-revert claudius-revert-all run up down restart status logs electron electron-dev electron-build electron-icons electron-app electron-dist electron-dmg electron-e2e-loop sdk-update-check sdk-update-run sdk-update-fix-pr sdk-update-dry-run sdk-update-status sdk-update-logs sdk-update-install-cron sdk-update-uninstall-cron debug-export recover
 
 # List every target, grouped by the section headers below.
 help:
@@ -12,6 +12,19 @@ install:
 
 dev:
 	bun run dev
+
+# Diagnose + clean up when the browser shows an empty workspace rail
+# (or any "Electron sees it, browser doesn't" symptom). The script
+# reports the on-disk workspaces.json count, probes /api/workspaces on
+# the running dev server, and clears `.next/` when it's safe to do so
+# (no dev process listening on PORT). Pass `RESTART=1` to also stop the
+# dev server, clear the cache, and re-launch `bun run dev` in one go.
+#
+#   make recover            # diagnostic + safe cleanup
+#   make recover RESTART=1  # also stops dev, clears .next, restarts
+#   PORT=3001 make recover  # non-default dev port
+recover:
+	@PORT="$(PORT)" bun run scripts/dev-recover.mjs $(if $(RESTART),--restart,)
 
 build:
 	bun run build
