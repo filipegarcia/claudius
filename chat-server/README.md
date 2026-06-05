@@ -50,7 +50,7 @@ messages via SSE.
 |--------|-----------------------------------------|-----------|-------|
 | GET    | `/health`                               | none      | `{ ok: true }` |
 | GET    | `/rooms`                                | none      | List rooms |
-| GET    | `/rooms/:slug/stream`                   | none      | SSE: `replay { messages: [] }` (no history on join) then live events |
+| GET    | `/rooms/:slug/stream`                   | none      | SSE: `replay { messages }` with the last 50 messages on join, then live events |
 | GET    | `/rooms/:slug/messages?before=&limit=`  | none      | Backfill older history (default `limit=100`, max `500`). Client pulls 50 at a time via the “Load older” button as the user scrolls up |
 | POST   | `/rooms/:slug/messages`                 | nickname  | Body `{ nick, body }`; rate-limited 10/30s/IP. Server-side banned-words filter (channels only) returns 400 on a hit |
 | POST   | `/dms`                                  | nickname  | Send a direct message. Body `{ from, to, body }`. Same rate-limit + ban checks as channels; banned-words filter does NOT apply |
@@ -62,8 +62,8 @@ messages via SSE.
 | POST   | `/admin/messages/:id/pin`               | admin     | Pin (one per room) |
 | POST   | `/admin/rooms`                          | admin     | Create channel. Body `{ slug, name, description? }`. Slug must match `[a-z0-9][a-z0-9_-]{0,30}` |
 | POST   | `/admin/rooms/:slug/unpin`              | admin     | Clear pin |
-| POST   | `/admin/rooms/:slug/clear`              | admin     | Hard-delete every message in the room. Broadcasts an empty `replay` to subscribers |
-| POST   | `/admin/rooms/:slug/compact?keep=N`     | admin     | Trim room to the most recent N messages (default 100, max 10 000). Broadcasts a fresh `replay` |
+| POST   | `/admin/rooms/:slug/clear`              | admin     | Soft-delete every message in the room. Broadcasts an empty `room_replaced` (authoritative) to subscribers |
+| POST   | `/admin/rooms/:slug/compact?keep=N`     | admin     | Trim room to the most recent N messages (default 100, max 10 000). Broadcasts a fresh `room_replaced` (authoritative) |
 | GET    | `/admin/bans`                           | admin     | List bans |
 | POST   | `/admin/bans`                           | admin     | Body `{ kind: 'nick'\|'ip', value, reason?, purgeMessages? }`. When `purgeMessages: true`, soft-deletes every existing message from that user (matched by nick lowercased, or by IP) and broadcasts a `message_deleted` per row so connected clients render the placeholder live |
 | DELETE | `/admin/bans/:id`                       | admin     | Lift a ban |
@@ -80,7 +80,8 @@ Admin requests carry the token in `X-Admin-Token`.
 
 ```ts
 type ChatEvent =
-  | { type: "replay"; roomSlug; messages; pinnedMessageId }
+  | { type: "replay"; roomSlug; messages; pinnedMessageId }        // additive — client merges
+  | { type: "room_replaced"; roomSlug; messages; pinnedMessageId } // authoritative — client blind-replaces
   | { type: "message"; message }
   | { type: "message_deleted"; roomSlug; id }
   | { type: "message_pinned"; roomSlug; id }

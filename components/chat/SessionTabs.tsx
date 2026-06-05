@@ -684,8 +684,17 @@ export function SessionTabs({
             }}
             className={cn(
               "group relative flex shrink-0 items-center gap-1.5 border-r border-[var(--border)] px-2 text-[11px] select-none",
+              // Active tab signalling (works across all 7 themes):
+              //   1. Lighter background (--panel-2) so the tab reads as
+              //      "raised" off the strip (--panel) — flips the prior
+              //      behavior of using --background, which was darker than
+              //      the strip and produced barely-visible contrast.
+              //   2. A 2px accent line at the top edge (theme accent color)
+              //      — the only signal that survives every palette unchanged.
+              //   3. font-medium on the label (applied below) for a third
+              //      perceptual channel.
               active
-                ? "bg-[var(--background)] text-[var(--foreground)]"
+                ? "bg-[var(--panel-2)] text-[var(--foreground)] before:absolute before:inset-x-0 before:top-0 before:h-[2px] before:bg-[var(--accent)] before:content-['']"
                 : "bg-[var(--panel)]/40 text-[var(--muted)] hover:bg-[var(--panel-2)]/60",
             )}
           >
@@ -723,7 +732,7 @@ export function SessionTabs({
               <span
                 data-testid="session-tab-label"
                 style={{ maxWidth: `${effectiveWidth}px` }}
-                className="truncate font-mono"
+                className={cn("truncate font-mono", active && "font-medium")}
               >
                 {t.label ?? t.id.slice(0, 8)}
               </span>

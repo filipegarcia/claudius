@@ -547,6 +547,14 @@ export default function SettingsPage() {
                     onChange={(b) => update({ sessionRecapEnabled: b ? undefined : false })}
                     description='Show a "where were we?" one-line recap above the composer when you return after stepping away (≥5 min). On by default. Triggered automatically on tab refocus.'
                   />
+                  <ToggleRow
+                    label="queueDispatchMode = asap"
+                    checked={draft.queueDispatchMode === "asap"}
+                    onChange={(b) =>
+                      update({ queueDispatchMode: b ? "asap" : undefined })
+                    }
+                    description='When you send a message while the agent is still working, "wait" (default) stages it in the queue strip until the current turn ends. "asap" mirrors the Claude Code TUI — the message is pushed to the agent immediately and runs as the very next turn, with no queue-strip step. Per-message override available via the "Send now" button on individual queued messages.'
+                  />
                 </Section>
                 )}
 
@@ -733,6 +741,7 @@ const KNOWN_KEYS = new Set([
   "autoMemoryDirectory",
   "promptSuggestionEnabled",
   "sessionRecapEnabled",
+  "queueDispatchMode",
   "claudeMdExcludes",
   "enabledPlugins",
   "env",

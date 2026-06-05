@@ -42,12 +42,32 @@ export type Ban = {
 
 // ── SSE wire envelope ──────────────────────────────────────────────
 //
-// The server emits exactly one `replay` on connect (which may be empty)
-// then a stream of incremental events. The client treats `replay` as
-// authoritative for the visible window and applies later events on top.
+// The server emits exactly one `replay` on connect (carrying the most
+// recent window — see REPLAY_LIMIT in server.ts), then a stream of
+// incremental events. `replay` is ADDITIVE on the client side: the
+// browser merges it into whatever is already in the local buffer so
+// that a parallel "load older" pull, and any messages that arrived
+// between an SSE disconnect and the reconnect's fresh replay, are
+// preserved. For authoritative DESTRUCTIVE state changes (admin clear,
+// admin compact) the server emits the distinct `room_replaced` event —
+// the client blind-replaces on that one.
 
 export type ReplayEvent = {
   type: "replay";
+  roomSlug: string;
+  messages: Message[];
+  pinnedMessageId: string | null;
+};
+
+/**
+ * Authoritative room-state replacement. Used by the admin "clear room"
+ * and "compact room" actions to push the post-action state to every
+ * connected subscriber. Same payload shape as `replay`, but the client
+ * applies it with a blind replace rather than a merge — that's the
+ * whole reason it's a separate event tag.
+ */
+export type RoomReplacedEvent = {
+  type: "room_replaced";
   roomSlug: string;
   messages: Message[];
   pinnedMessageId: string | null;
@@ -88,13 +108,56 @@ export type CommunityStateEvent = {
   reason: string | null;
 };
 
+// ── Presence (IRC-style names list) ────────────────────────────────
+//
+// Three events power the per-room "who's here" sidebar:
+//   • presence      — snapshot of currently connected nicks. Sent to
+//                     each new subscriber after replay so they paint
+//                     the names list immediately on join.
+//   • member_joined — first SSE connection for a given nick. Suppressed
+//                     for multi-tab opens (a second tab from the same
+//                     nick doesn't re-announce). Fans out to everyone
+//                     in the room, including the joining user.
+//   • member_left   — last SSE connection for a given nick goes away.
+//                     A multi-tab user closing one tab doesn't fire
+//                     this; only the final disconnect does.
+//
+// Trust model: identical to channel posts — the nick is whatever the
+// SSE handshake's `?nick=` param claimed. Anonymous subscribers (no
+// handshake nick) don't show up in any of these events.
+
+/** Snapshot of all currently-connected nicks in this room. */
+export type PresenceEvent = {
+  type: "presence";
+  roomSlug: string;
+  nicks: string[];
+};
+
+/** A nick's first SSE connection landed — they "joined" the channel. */
+export type MemberJoinedEvent = {
+  type: "member_joined";
+  roomSlug: string;
+  nick: string;
+};
+
+/** A nick's last SSE connection dropped — they "parted" the channel. */
+export type MemberLeftEvent = {
+  type: "member_left";
+  roomSlug: string;
+  nick: string;
+};
+
 export type ChatEvent =
   | ReplayEvent
+  | RoomReplacedEvent
   | NewMessageEvent
   | MessageDeletedEvent
   | MessagePinnedEvent
   | MessageUnpinnedEvent
-  | CommunityStateEvent;
+  | CommunityStateEvent
+  | PresenceEvent
+  | MemberJoinedEvent
+  | MemberLeftEvent;
 
 // ── Direct messages ────────────────────────────────────────────────
 //

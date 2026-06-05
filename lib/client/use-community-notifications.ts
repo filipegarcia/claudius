@@ -8,30 +8,47 @@ import {
   LS_COMMUNITY_CONSENT_KEY,
   readCommunityConsent,
 } from "@/lib/client/use-community-consent";
+import {
+  appendMessageToCache,
+  markMessageDeletedInCache,
+} from "@/lib/client/community-messages-cache";
 
 /**
  * Background subscriber for the community chat. Mirrors the role of
- * `useNotifications` (per-workspace) for the /community surface:
+ * `useNotifications` (per-workspace) for the /community surface.
  *
- *   • Holds a global on/off toggle, persisted in localStorage.
- *   • When enabled, opens one EventSource per known room against the
- *     external chat-server. The chat-server stream is per-room, so we fan
- *     out — there's no aggregate stream. Room counts are tiny (a handful)
- *     so this is fine in practice.
- *   • Tracks unread per-room. Each room has its own "last seen" watermark
- *     (epoch ms) persisted as a JSON map. Landing on a room advances *that
- *     room's* watermark only, so other channels keep their unread badge
- *     until the user actually visits them.
- *   • Fires a browser `Notification` for new messages in rooms the user
- *     is not currently viewing.
- *   • Honours existing `Notification.permission`. We never re-prompt
- *     unless the user explicitly toggles ON from the "default" state.
+ * Architecture: opens one EventSource per known room (except the one
+ * the user is actively viewing) against the external chat-server, as
+ * long as the user has consented to the community at all. The fanout
+ * drives three things, with two distinct gate levels:
  *
- * State is owned at the hook level; a thin provider wraps the app with a
- * Context so the WorkspaceSwitcher can read the unread badge without each
- * consumer opening its own connections. The community page tells this
- * hook which room it's actively viewing via `setViewingRoom(slug)` — that
- * advances the watermark and silences badges for that one room.
+ *   • ALWAYS, regardless of the bell:
+ *       - Writes into the per-room message cache shared with
+ *         `useCommunity`. This is the load-bearing silent piece —
+ *         a muted user still expects to find new messages waiting
+ *         when they open the channel. Without this write, an
+ *         un-upgraded chat-server's empty join `replay` would leave
+ *         the cache stale.
+ *       - Advances the per-room watermark, so a later SSE reconnect's
+ *         `replay` doesn't re-deliver bell-off-period messages as if
+ *         they were freshly arrived.
+ *
+ *   • ONLY when the bell is on:
+ *       - Per-room unread badge (the red dot on the sidebar tile).
+ *       - OS desktop notification toasts (live arrivals only — replay
+ *         backlogs are silenced regardless to avoid dozens of toasts
+ *         after a reconnect; the badge already tells the user).
+ *
+ *   Honours existing `Notification.permission`. We never re-prompt
+ *   unless the user explicitly toggles the bell ON from the "default"
+ *   state.
+ *
+ * State is owned at the hook level; a thin provider wraps the app
+ * with a Context so the WorkspaceSwitcher can read the unread badge
+ * without each consumer opening its own connections. The community
+ * page tells this hook which room it's actively viewing via
+ * `setViewingRoom(slug)` — that advances the watermark and silences
+ * badges for that one room.
  */
 
 const LS_ENABLED = "claudius.community.notifications.enabled";
@@ -265,12 +282,19 @@ export function useCommunityNotificationsState(): UseCommunityNotifications {
   }, []);
 
   // ── Rooms list ─────────────────────────────────────────────────────
-  // Refresh on enable so we know which rooms to subscribe to. We refetch
-  // every 5 minutes so newly-created rooms get picked up without a full
-  // reload — cheap, since rooms is a small JSON list.
+  // Fetched whenever the user has consented to the community at all —
+  // NOT gated on the notifications toggle. Reason: the SSE fanout
+  // below needs the room list to drive both the unread badge AND the
+  // shared per-room message cache (used by `useCommunity` so a message
+  // shows up the moment you switch to its channel). Muting OS toasts
+  // shouldn't also disable those — that's a separate concern handled
+  // inside `handleNewMessage`.
+  //
+  // Refetched every 5 minutes so newly-created rooms get picked up
+  // without a full reload — cheap, since rooms is a small JSON list.
   const [rooms, setRooms] = useState<Room[]>([]);
   useEffect(() => {
-    if (!configured || !enabled) {
+    if (!configured) {
       setRooms([]);
       return;
     }
@@ -282,7 +306,7 @@ export function useCommunityNotificationsState(): UseCommunityNotifications {
         const data = (await r.json()) as { rooms: Room[] };
         if (!cancelled) setRooms(data.rooms);
       } catch {
-        // Best effort — we'll retry on the next interval / toggle.
+        // Best effort — we'll retry on the next interval / consent flip.
       }
     };
     void load();
@@ -291,7 +315,7 @@ export function useCommunityNotificationsState(): UseCommunityNotifications {
       cancelled = true;
       clearInterval(id);
     };
-  }, [configured, enabled, SERVER_URL]);
+  }, [configured, SERVER_URL]);
 
   // ── Unread tracking ────────────────────────────────────────────────
   const [unreadByRoom, setUnreadByRoom] = useState<Record<string, number>>({});
@@ -345,6 +369,15 @@ export function useCommunityNotificationsState(): UseCommunityNotifications {
     [advanceWatermark, clearRoomUnread],
   );
 
+  // Mirror of the bell toggle for use inside the SSE handler. The
+  // handler closure has empty deps so we can't read `enabled`
+  // directly — same pattern as `viewingRoomRef` / `myNickRef`. Reading
+  // through a ref means flipping the bell does NOT tear down + reopen
+  // every EventSource, so toggling it mid-session doesn't drop the
+  // already-established connections.
+  const enabledRef = useRef(enabled);
+  enabledRef.current = enabled;
+
   // Caller (the community page) tells us which nick is ours. Stored in a
   // ref so the SSE handler reads the current value without re-binding the
   // EventSource fanout. `null` means "we don't know" — in which case no
@@ -375,6 +408,17 @@ export function useCommunityNotificationsState(): UseCommunityNotifications {
       // this guard we'd double-count old messages.
       if (msg.createdAt <= wm) return;
 
+      // Mirror the message into the per-room cache shared with
+      // `useCommunity`. Done UNCONDITIONALLY (regardless of the bell):
+      // even when the user has muted notifications, a message that
+      // arrives while they're on another room/page still needs to be
+      // in the local buffer when they later open the channel — that's
+      // the "I muted you but I'll catch up by opening the room" UX
+      // the user wants. Watermark-passing `replay` rows go through
+      // here too; the helper dedupes by id, so overlap with what
+      // `useCommunity` may have already written is a no-op.
+      appendMessageToCache(msg.roomSlug, msg);
+
       // Our own message echoed back over SSE — never badge for ourselves.
       // Treat it as seen so a later reconnect/replay doesn't badge it
       // either (the watermark will be ahead of its createdAt).
@@ -390,17 +434,30 @@ export function useCommunityNotificationsState(): UseCommunityNotifications {
         return;
       }
 
-      // Advance the watermark to this message's time *before* badging.
-      // The provider re-opens the room's SSE every time `viewingRoom`
-      // changes, and each reopen replays the recent window. Without
-      // advancing here, those replays would re-count messages we've
-      // already badged — every nav cycle would double the unread count.
+      // Advance the watermark BEFORE the bell check below. We advance
+      // even when the bell is off, so a later reconnect doesn't re-
+      // deliver these messages through `replay` and badge them
+      // retroactively the moment the user toggles the bell back on.
+      // "Bell off" should mean "I'm caught up via the cache, don't
+      // surface a count for the silent window."
       advanceWatermark(msg.roomSlug, msg.createdAt);
+
+      // The bell is the user-facing mute switch — when it's off,
+      // suppress BOTH the unread badge AND the OS desktop toast. The
+      // cache write above is the only side effect that always runs;
+      // that's what lets a muted user still find messages waiting in
+      // the channel when they navigate to it. Read through the ref so
+      // a flip mid-session doesn't tear down the SSE fanout (the ref
+      // is updated during render — see the declaration at the top of
+      // the hook).
+      if (!enabledRef.current) return;
+
       setRoomUnread(msg.roomSlug, (n) => n + 1);
 
-      // OS notification — only for live arrivals. Replay backlogs from a
-      // reconnect could fan out dozens of toasts, which is worse than
-      // silence; the badge already tells the user they have unread.
+      // OS notification — only for live arrivals. Replay backlogs
+      // from a reconnect could fan out dozens of toasts at once,
+      // which is worse than silence; the badge already tells the user
+      // they have unread.
       if (source !== "live") return;
       if (
         typeof Notification !== "undefined" &&
@@ -434,8 +491,14 @@ export function useCommunityNotificationsState(): UseCommunityNotifications {
   // a few rooms + the in-page stream + the workspace notifications
   // stream, the 6-connection per-origin cap is reachable; skipping the
   // viewed room keeps us comfortably under it.
+  //
+  // Runs whenever the user has consented — NOT gated on `enabled`.
+  // The unread badge and the shared message cache are first-class UX
+  // and shouldn't disappear when the user mutes OS toasts; the toast
+  // itself is the only thing the bell controls (see the guard inside
+  // `handleNewMessage`).
   useEffect(() => {
-    if (!configured || !enabled || rooms.length === 0) return;
+    if (!configured || rooms.length === 0) return;
     const sources: EventSource[] = [];
     for (const room of rooms) {
       if (room.slug === viewingRoom) continue;
@@ -453,6 +516,13 @@ export function useCommunityNotificationsState(): UseCommunityNotifications {
             for (const msg of data.messages) {
               handleNewMessageRef.current(msg, "replay");
             }
+          } else if (data.type === "message_deleted") {
+            // Mirror the moderation event into the shared cache so a
+            // user landing on the room later sees the [deleted by admin]
+            // placeholder rather than the stale live body. We DON'T
+            // change unread state here — deletions are admin actions,
+            // not new content.
+            markMessageDeletedInCache(data.roomSlug, data.id);
           }
         } catch {
           // ignore malformed
@@ -465,7 +535,7 @@ export function useCommunityNotificationsState(): UseCommunityNotifications {
     return () => {
       for (const es of sources) es.close();
     };
-  }, [configured, enabled, rooms, SERVER_URL, viewingRoom]);
+  }, [configured, rooms, SERVER_URL, viewingRoom]);
 
   const unreadCount = useMemo(
     () => Object.values(unreadByRoom).reduce((a, b) => a + b, 0),

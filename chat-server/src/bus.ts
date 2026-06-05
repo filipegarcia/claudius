@@ -12,21 +12,44 @@ import type { ChatEvent, DMStreamEvent } from "./types.ts";
 type Subscriber = (event: ChatEvent) => void;
 type DMSubscriber = (event: DMStreamEvent) => void;
 
-class ChatBus {
-  private subscribers = new Map<string, Set<Subscriber>>();
+/**
+ * One subscriber entry: the SSE write callback plus the claimed nick
+ * (when known). Nick comes from the optional `?nick=` query param on
+ * the stream handshake — same trust model as channel posts (anyone
+ * can claim any nick), but it lets us power admin tools like the
+ * Members roster which want to surface lurkers, not just posters.
+ */
+type SubscriberEntry = {
+  fn: Subscriber;
+  nick: string | null;
+};
 
-  /** Subscribe to one room. Returns the unsubscribe handle. */
-  subscribe(roomSlug: string, fn: Subscriber): () => void {
+class ChatBus {
+  private subscribers = new Map<string, Set<SubscriberEntry>>();
+
+  /**
+   * Subscribe to one room. Returns the unsubscribe handle.
+   *
+   * `opts.nick` is optional — older callers / connections that don't
+   * pass `?nick=` on the handshake stay in the set as anonymous
+   * entries (counted by `size()`, ignored by `activeNicks()`).
+   */
+  subscribe(
+    roomSlug: string,
+    fn: Subscriber,
+    opts: { nick?: string | null } = {},
+  ): () => void {
     let set = this.subscribers.get(roomSlug);
     if (!set) {
       set = new Set();
       this.subscribers.set(roomSlug, set);
     }
-    set.add(fn);
+    const entry: SubscriberEntry = { fn, nick: opts.nick ?? null };
+    set.add(entry);
     return () => {
       const s = this.subscribers.get(roomSlug);
       if (!s) return;
-      s.delete(fn);
+      s.delete(entry);
       if (s.size === 0) this.subscribers.delete(roomSlug);
     };
   }
@@ -43,9 +66,9 @@ class ChatBus {
     if (!slug) return;
     const set = this.subscribers.get(slug);
     if (!set) return;
-    for (const fn of set) {
+    for (const entry of set) {
       try {
-        fn(event);
+        entry.fn(event);
       } catch (err) {
         // Per the NotificationBus convention: one bad subscriber must
         // not tank the rest. SSE writes can throw on closed sockets
@@ -61,6 +84,30 @@ class ChatBus {
   }
 
   /**
+   * Distinct claimed nicks currently subscribed to `roomSlug`.
+   *
+   * Used by the admin Members roster to surface lurkers — connected
+   * users who haven't posted yet. Dedup is case-insensitive (matching
+   * the rest of the chat-server's nick handling); we return the first
+   * casing we saw so the displayed nick matches what the user typed.
+   * Anonymous subscribers (no `?nick=` on the handshake) are skipped.
+   */
+  activeNicks(roomSlug: string): string[] {
+    const set = this.subscribers.get(roomSlug);
+    if (!set) return [];
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const entry of set) {
+      if (!entry.nick) continue;
+      const lc = entry.nick.toLowerCase();
+      if (seen.has(lc)) continue;
+      seen.add(lc);
+      out.push(entry.nick);
+    }
+    return out;
+  }
+
+  /**
    * Fan out to every subscriber, regardless of room. Used for
    * system-wide events (the community_state kill switch) that aren't
    * scoped to a room. Keeping this separate from `broadcast()` keeps
@@ -69,9 +116,9 @@ class ChatBus {
    */
   broadcastAll(event: ChatEvent): void {
     for (const set of this.subscribers.values()) {
-      for (const fn of set) {
+      for (const entry of set) {
         try {
-          fn(event);
+          entry.fn(event);
         } catch (err) {
           console.warn("[chat-server] subscriber threw", err);
         }

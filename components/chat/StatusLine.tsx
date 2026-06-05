@@ -164,7 +164,16 @@ export function StatusLine({
     // dropdowns (which open downward via `top-full`) keep painting in
     // full. `overflow-hidden` would clip the dropdowns too; clip-path
     // with directional insets lets us clip one axis only.
-    <div className="@container/statusline relative flex h-9 items-center gap-3 border-b border-[var(--border)] bg-[var(--panel)] px-4 text-xs text-[var(--muted)] [clip-path:inset(-100vh_0_-100vh_0)]">
+    // `z-20` lifts the whole status-line stacking context above the chat
+    // content that follows it as siblings (RecapBanner / GoalBanner /
+    // TodosBanner / MessageList — all at z=auto under `<main>`). Without it,
+    // the `[clip-path:inset(...)]` below creates a stacking context that
+    // *traps* the SessionPicker dropdown's internal `z-30` inside the status
+    // line, so MessageList — being a later sibling in DOM order — paints over
+    // the dropdown and makes its body look transparent. The other dropdowns
+    // (ModelPicker, etc.) escape via `position: fixed`; SessionPicker uses
+    // `absolute`, hence it relied on this lift to be visible.
+    <div className="@container/statusline relative z-20 flex h-9 items-center gap-3 border-b border-[var(--border)] bg-[var(--panel)] px-4 text-xs text-[var(--muted)] [clip-path:inset(-100vh_0_-100vh_0)]">
       {workspace && (
         <>
           {/* Workspace breadcrumb. The icon + name anchor the rest of the

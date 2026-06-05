@@ -73,11 +73,75 @@ type SDKContentBlock =
     }
   | { type: string; [k: string]: unknown };
 
-// sessionStorage tops out around 5–10 MB per origin in most browsers.
-// Cap our serialized queue payload at 5 MB to leave room for everything else.
-// Hoisted to module scope so `useCallback` deps can omit it without tripping
-// exhaustive-deps.
-const QUEUE_MAX_BYTES = 5 * 1024 * 1024;
+// Legacy sessionStorage key prefix from the pre-server-queue era. On mount,
+// `bindToSession` drains any leftover entries by POSTing them through the
+// normal /input endpoint (which routes them into the new server-side queue),
+// then deletes the key. Kept exposed so that one-shot migration can find it.
+const LEGACY_QUEUE_STORAGE_PREFIX = "claudius.queue.";
+
+/**
+ * One-shot upgrade path: drain any queued messages that the previous
+ * (sessionStorage-backed) client wrote for this session into the new
+ * server-side queue, then delete the key so we never re-drain it. Runs at
+ * most once per session per tab. Best-effort — a malformed JSON or a network
+ * failure silently drops the stash (it's salvage, not user-typed-just-now
+ * content). New users with no leftover data hit a cheap negative-cache lookup
+ * and return immediately.
+ */
+type LegacyQueuedShape = {
+  text?: string;
+  images?: Array<{ data: string; mediaType: string; ordinal?: number }>;
+  slash?: boolean;
+  fromSuggestion?: boolean;
+  fromGoal?: boolean;
+};
+
+async function migrateLegacySessionStorageQueue(sessionId: string): Promise<void> {
+  if (typeof window === "undefined") return;
+  const key = `${LEGACY_QUEUE_STORAGE_PREFIX}${sessionId}`;
+  let raw: string | null;
+  try {
+    raw = window.sessionStorage.getItem(key);
+  } catch {
+    return;
+  }
+  if (!raw) return;
+  // Remove immediately so a concurrent bindToSession (notification jump
+  // during a session switch, for example) doesn't re-drain the same items.
+  try {
+    window.sessionStorage.removeItem(key);
+  } catch {
+    // ignore — non-fatal
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return;
+  }
+  if (!Array.isArray(parsed)) return;
+  for (const item of parsed as LegacyQueuedShape[]) {
+    if (!item || (typeof item.text !== "string" && !Array.isArray(item.images))) {
+      continue;
+    }
+    try {
+      await fetch(`/api/sessions/${sessionId}/input`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text: item.text ?? "",
+          ...(item.images && item.images.length ? { images: item.images } : {}),
+          ...(item.slash ? { slash: true } : {}),
+          ...(item.fromSuggestion ? { fromSuggestion: true } : {}),
+          ...(item.fromGoal ? { fromGoal: true } : {}),
+          forceQueue: true,
+        }),
+      });
+    } catch {
+      // ignore — best-effort migration
+    }
+  }
+}
 
 /**
  * Detect the "hard rate-limit hit" assistant message.
@@ -902,7 +966,6 @@ export function useSession(): ChatState & ChatActions {
   // on the same identity as the eventual terminal `SDKAssistantMessage`
   // events (which carry `message.id` directly). Cleared on `message_stop`.
   const scopeMessageIdRef = useRef<Map<string, string>>(new Map());
-  const flushQueueRef = useRef<() => void>(() => {});
   // Monotonic counter for in-flight session transitions (switch / create).
   // Each call increments and captures it; after the wake POST resolves the
   // call rechecks the counter and bails if a newer transition has started.
@@ -914,153 +977,29 @@ export function useSession(): ChatState & ChatActions {
   // setMessages on a stale bindToSession callsite.
   const switchGenRef = useRef(0);
 
-  // ── sessionStorage persistence ────────────────────────────────────────
-  // Queue lives only for the duration of this tab — explicitly NOT
-  // localStorage, because a tab close should drop it.
-  const queueKey = (sid: string | null) => (sid ? `claudius.queue.${sid}` : null);
-
-  /**
-   * Persist a specific session's queue into sessionStorage. Keyed by the
-   * explicit `sid` parameter — NOT `sessionIdRef.current` — because the
-   * drain loop in `flushQueue` may write back to the originating session's
-   * queue (e.g. restoring a failed send) AFTER the user has switched to a
-   * different tab. Using the captured id keeps storage correctly partitioned
-   * per session. React state is only updated when `sid` matches the active
-   * binding; otherwise we touch only persistent storage so the queue is
-   * intact for when the user returns to that session.
-   *
-   * Trims oldest items when the serialized payload would exceed the
-   * QUEUE_MAX_BYTES cap. Surfaces a one-shot "queue too large" error in that
-   * case so the user knows we dropped something.
-   */
-  const persistQueueForSession = useCallback((sid: string, items: QueuedMessage[]) => {
-    if (typeof window === "undefined") return;
-    const k = queueKey(sid);
-    if (!k) return;
-    let trimmedDueToSize = false;
-    let toWrite = items;
-    let serialized = JSON.stringify(toWrite);
-    if (serialized.length > QUEUE_MAX_BYTES) {
-      const trimmed = items.slice();
-      while (trimmed.length > 1 && JSON.stringify(trimmed).length > QUEUE_MAX_BYTES) {
-        trimmed.shift();
-      }
-      if (trimmed.length === 1 && JSON.stringify(trimmed).length > QUEUE_MAX_BYTES) {
-        trimmed.length = 0;
-      }
-      toWrite = trimmed;
-      serialized = JSON.stringify(toWrite);
-      trimmedDueToSize = true;
-      // Only mirror the trim into React state if this is the currently
-      // bound session. Otherwise the user is on a different tab; we'd be
-      // silently mutating their visible queue.
-      if (sid === sessionIdRef.current) {
-        queueRef.current = toWrite;
-        setQueue([...toWrite]);
-      }
-    }
-    try {
-      window.sessionStorage.setItem(k, serialized);
-    } catch {
-      // Most likely QuotaExceededError — surface as the same kind of warning.
-      trimmedDueToSize = true;
-    }
-    if (trimmedDueToSize) {
-      setErrors((e) => {
-        const msg = "Queue too large; oldest items removed";
-        return e[e.length - 1] === msg ? e : [...e, msg];
-      });
-    }
-  }, []);
-
-  /**
-   * Back-compat wrapper that persists the *current* session's queue.
-   * Reads `sessionIdRef.current` at call time. Safe for user-driven
-   * actions (enqueue, cancel, edit, reorder) because those are synchronous
-   * with the active binding.
-   */
-  const persistQueue = useCallback((sid: string | null) => {
-    if (!sid) return;
-    persistQueueForSession(sid, queueRef.current);
-  }, [persistQueueForSession]);
-
-  const rehydrateQueue = useCallback((sid: string) => {
-    if (typeof window === "undefined") return;
-    const k = queueKey(sid);
-    if (!k) return;
-    try {
-      const raw = window.sessionStorage.getItem(k);
-      if (!raw) {
-        queueRef.current = [];
-        setQueue([]);
-        return;
-      }
-      const parsed = JSON.parse(raw) as QueuedMessage[];
-      if (!Array.isArray(parsed)) return;
-      queueRef.current = parsed;
-      setQueue([...parsed]);
-    } catch {
-      // ignore
-    }
-  }, []);
-
-
-  const writeQueue = useCallback(
-    (next: QueuedMessage[]) => {
-      queueRef.current = next;
-      setQueue([...next]);
-      persistQueue(sessionIdRef.current);
-    },
-    [persistQueue],
-  );
-
-  /**
-   * Like `writeQueue`, but parameterised on the target session id. Used by
-   * the drain loop in `flushQueue` so reads/writes during a long-running
-   * drain always land in the queue that *started* the drain, even if the
-   * user switches to a different session mid-flight. React state is only
-   * updated when `sid` is the currently bound session, so an in-flight
-   * drain that races with a tab switch never bleeds queue items into the
-   * incoming session's UI.
-   */
-  const writeQueueForSession = useCallback(
-    (sid: string, next: QueuedMessage[]) => {
-      if (sid === sessionIdRef.current) {
-        queueRef.current = next;
-        setQueue([...next]);
-      }
-      persistQueueForSession(sid, next);
-    },
-    [persistQueueForSession],
-  );
-
-  /**
-   * Read a specific session's queue from sessionStorage WITHOUT touching
-   * React state. Used by `flushQueue`'s error-restore path so we can
-   * prepend a failed message back to its originating session's queue even
-   * when the user has navigated away. Returns null when no entry exists or
-   * the JSON is malformed.
-   */
-  const readQueueFromStorage = useCallback((sid: string): QueuedMessage[] | null => {
-    if (typeof window === "undefined") return null;
-    const k = queueKey(sid);
-    if (!k) return null;
-    try {
-      const raw = window.sessionStorage.getItem(k);
-      if (!raw) return [];
-      const parsed = JSON.parse(raw) as QueuedMessage[];
-      return Array.isArray(parsed) ? parsed : null;
-    } catch {
-      return null;
-    }
+  // ── Local mirror of the server's authoritative queue ─────────────────
+  //
+  // The queue lives on the server now (lib/server/session.ts +
+  // queued_messages SQLite table). The drain is driven by the Session's
+  // `flushQueueIfIdle()` on every turn-end / answer / boot, independent of
+  // whether this tab — or any tab — is connected.
+  //
+  // This hook just MIRRORS server state: every `queue:updated` SSE event
+  // overwrites the local array. Mutations (enqueue, cancel, reorder) are
+  // round-trips to the server; we don't optimistically update the queue
+  // because the echo arrives within a few ms anyway and conflict-free
+  // server state is more important than snappy local rearrangements.
+  const writeQueueLocal = useCallback((next: QueuedMessage[]) => {
+    queueRef.current = next;
+    setQueue(next);
   }, []);
 
   const setPendingTracked = useCallback((p: boolean) => {
-    const wasPending = pendingRef.current;
     pendingRef.current = p;
     setPending(p);
-    // Any transition out of pending is a chance to drain the queue.
-    if (wasPending && !p) flushQueueRef.current();
+    // No queue drain here — the server's `flushQueueIfIdle` (in
+    // `lib/server/session.ts`) fires on every turn-end / answer / boot, so
+    // delivery is independent of any tab seeing the pending-edge transition.
   }, []);
 
   const resetState = useCallback(() => {
@@ -1070,17 +1009,11 @@ export function useSession(): ChatState & ChatActions {
     setMessages([]);
     setSystemEntries([]);
     setToolProgress({});
-    // DON'T wipe sessionStorage[claudius.queue.<sessionIdRef.current>]
-    // here. resetState runs at the top of switchSession / createSession —
-    // i.e. while `sessionIdRef.current` still points at the session the
-    // user is *leaving*. Wiping its queue dropped any unsent messages the
-    // user had staged there (user-visible bug: "I queued three follow-ups,
-    // switched away to check something, came back, and they're gone").
-    // The queue is intentionally scoped per-session-id in storage and
-    // rehydrated by bindToSession's `rehydrateQueue(newId)`; leaving the
-    // outgoing entry alone is exactly the right behavior. React state of
-    // the queue still gets cleared below so the outgoing UI doesn't bleed
-    // into the incoming view.
+    // Local queue is just a mirror of server state — clearing it here only
+    // wipes the *view* for the outgoing session. The authoritative queue
+    // sits in `queued_messages` on the server and stays intact; the
+    // incoming session's `queue:updated` SSE echo on subscribe will repaint
+    // the QueueIndicator strip with the right contents.
     setQueue([]);
     queueRef.current = [];
     setPendingPermission(null);
@@ -1373,30 +1306,6 @@ export function useSession(): ChatState & ChatActions {
     return () => clearInterval(timer);
   }, [refreshSessions, setPendingTracked]);
 
-  /**
-   * Single-pass flush: pop the head of the active session's queue, send it
-   * to the SDK, and STOP — waiting for the SDK's `result` event to flip
-   * pending back to false before the next call (which fires from
-   * `setPendingTracked`'s edge logic). This keeps the queue UI behaving
-   * like a staging area: while the agent is busy, follow-ups sit visible
-   * in the queue strip; each turn's completion peels off exactly one
-   * queued message and starts the next turn.
-   *
-   * Bails when:
-   *   - No active session id.
-   *   - The SDK is busy (`pendingRef.current`) — the next pending-edge
-   *     transition will retrigger us.
-   *   - A permission card is open (`pendingPermissionRef.current`) — the
-   *     SDK is parked on `canUseTool`; `resolvePermission` retriggers us.
-   *   - Queue is empty.
-   *
-   * Persistence: captures `id` at entry and routes every storage write
-   * through `writeQueueForSession(id, …)`. So if the user switches session
-   * during the POST and the send then fails, the failed item is restored
-   * into the *originating* session's queue, not the incoming one. (The
-   * pre-fix flushQueue persisted under `sessionIdRef.current`, which moved
-   * during the await.)
-   */
   // Tear down in-flight UI markers when the turn ends. The activity rail and
   // the "Claude streaming…" indicator are driven by per-block "running" flags
   // cleared by their own terminal events (tool_result, message_stop). When a
@@ -1410,82 +1319,6 @@ export function useSession(): ChatState & ChatActions {
     setToolHistory((prev) => sweepToolHistoryDone(prev, Date.now()));
     setToolProgress((prev) => (Object.keys(prev).length === 0 ? prev : {}));
   }, []);
-
-  const flushQueue = useCallback(async () => {
-    const id = sessionIdRef.current;
-    if (!id) return;
-    if (pendingRef.current) return;
-    if (pendingPermissionRef.current) return;
-    if (queueRef.current.length === 0) return;
-
-    const next = queueRef.current[0];
-    const rest = queueRef.current.slice(1);
-    writeQueueForSession(id, rest);
-    const uuid = crypto.randomUUID();
-    // A queued suggestion keeps its provenance: badge it optimistically and
-    // tell the server to persist it. The flush mints its own uuid (above), so
-    // this is the id that lands in the JSONL for this message.
-    if (next.fromSuggestion) {
-      setSuggestedUuids((prev) => new Set(prev).add(uuid));
-    }
-    if (next.fromGoal) {
-      setGoalUuids((prev) => new Set(prev).add(uuid));
-    }
-    // Same slash-command rule as `send()`: skip the optimistic user-message
-    // render so `/compact` doesn't show up as if the user typed it — the
-    // server emits a `slash_invoked` system pill instead.
-    if (!next.slash) {
-      const sentAt = Date.now();
-      setMessages((prev) => [
-        ...prev,
-        {
-          uuid,
-          role: "user",
-          blocks: [{ kind: "text", text: next.text }],
-          ...(next.images && next.images.length ? { images: next.images } : {}),
-          createdAt: sentAt,
-        },
-      ]);
-    }
-    setPendingTracked(true);
-    let res: Response;
-    try {
-      res = await fetch(`/api/sessions/${id}/input`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          text: next.text,
-          images: next.images,
-          uuid,
-          ...(next.slash ? { slash: true } : {}),
-          ...(next.fromSuggestion ? { fromSuggestion: true } : {}),
-          ...(next.fromGoal ? { fromGoal: true } : {}),
-        }),
-      });
-    } catch (err) {
-      // POST failed — restore THIS message into the originating session's
-      // queue (prepended). Read storage fresh in case more items landed
-      // while the POST was in flight. React state only mirrors the restore
-      // when we're still on `id`.
-      const currentForId = readQueueFromStorage(id) ?? rest;
-      writeQueueForSession(id, [next, ...currentForId]);
-      setErrors((e) => [
-        ...e,
-        `send failed: ${err instanceof Error ? err.message : String(err)}`,
-      ]);
-      if (sessionIdRef.current === id) setPendingTracked(false);
-      return;
-    }
-    if (!res.ok) {
-      const currentForId = readQueueFromStorage(id) ?? rest;
-      writeQueueForSession(id, [next, ...currentForId]);
-      setErrors((e) => [...e, `send failed: ${res.status}`]);
-      if (sessionIdRef.current === id) setPendingTracked(false);
-    }
-  }, [setPendingTracked, writeQueueForSession, readQueueFromStorage]);
-  flushQueueRef.current = () => {
-    void flushQueue();
-  };
 
   const applyEvent = useCallback(
     (ev: ServerEvent) => {
@@ -1523,6 +1356,23 @@ export function useSession(): ChatState & ChatActions {
       }
       if (ev.type === "tips") {
         setTips(ev.tips);
+        return;
+      }
+      if (ev.type === "queue:updated") {
+        // Authoritative snapshot of the server-side queue. Replace local
+        // state wholesale — we don't try to merge optimistic in-flight
+        // edits because the server broadcasts back within milliseconds of
+        // every mutation and conflict-free reconciliation matters more
+        // than micro-snappy rearrangements.
+        const next: QueuedMessage[] = ev.queue.map((q) => ({
+          id: q.uuid,
+          text: q.text,
+          ...(q.hasImages ? { hasImages: true } : {}),
+          ...(q.slash ? { slash: true } : {}),
+          ...(q.fromSuggestion ? { fromSuggestion: true } : {}),
+          ...(q.fromGoal ? { fromGoal: true } : {}),
+        }));
+        writeQueueLocal(next);
         return;
       }
       if (ev.type === "session_recap") {
@@ -2887,10 +2737,10 @@ export function useSession(): ChatState & ChatActions {
         // Idempotency: every SDK result event carries a uuid (see
         // SDKResultSuccess / SDKResultError). If we've already folded this
         // one into session state, the SSE stream is just replaying it — bail
-        // out before double-counting cost/turns. Still call flushQueue so
-        // the queued-input side-effects fire normally.
+        // out before double-counting cost/turns. No queue-drain call needed
+        // here: the server's `flushQueueIfIdle()` already fired on this same
+        // `result` and any pending queued message is on its way.
         if (r.uuid && seenResultUuidsRef.current.has(r.uuid)) {
-          void flushQueue();
           return;
         }
         if (r.uuid) seenResultUuidsRef.current.add(r.uuid);
@@ -2933,7 +2783,9 @@ export function useSession(): ChatState & ChatActions {
           cacheCreationInputTokens: prev?.cacheCreationInputTokens ?? 0,
           modelUsage: r.modelUsage ?? prev?.modelUsage,
         }));
-        void flushQueue();
+        // Queue drain is server-driven now (see
+        // `Session.flushQueueIfIdle()` in lib/server/session.ts); no client
+        // trigger needed on result-event handling.
         return;
       }
 
@@ -3298,7 +3150,7 @@ export function useSession(): ChatState & ChatActions {
         return;
       }
     },
-    [flushQueue, refreshSessions, setPendingTracked, reconcileToIdle],
+    [refreshSessions, setPendingTracked, reconcileToIdle, writeQueueLocal],
   );
 
   const bindToSession = useCallback(
@@ -3306,13 +3158,19 @@ export function useSession(): ChatState & ChatActions {
       eventSourceRef.current?.close();
       sessionIdRef.current = id;
       setSessionId(id);
-      rehydrateQueue(id);
-      // No flush trigger here. Rehydrated items stay visible in the
-      // QueueIndicator; the normal pending-edge cadence (turn ends →
-      // setPendingTracked false → flushQueue) drains them when the SDK
-      // returns to idle. If the SDK is *already* idle when the user
-      // returns to this session, the items wait for a manual user action
-      // — matching the staging-area UX the user reported preferring.
+      // Queue paint comes from the server's `queue:updated` SSE echo on
+      // subscribe — see `Session.sendQueueSnapshot()` re-emitted in
+      // `Session.subscribe()`. Local state stays empty until that echo
+      // lands; no rehydration step.
+      //
+      // One-shot migration from the previous (sessionStorage) queue: drain
+      // any leftover entries for this session id back through the normal
+      // `/input` endpoint with `forceQueue: true`, then delete the key.
+      // Best-effort — a malformed JSON or a network blip silently drops
+      // the stash; the user will have already moved on.
+      void migrateLegacySessionStorageQueue(id);
+      // Rehydrated items stay visible in the QueueIndicator; the server's
+      // `flushQueueIfIdle` drains them at the next idle transition.
       // URL reflection of the bound session id used to live here (a raw
       // window.history.replaceState). It moved out to a useEffect-driven
       // writer (see the `reflect bound session in URL` effect below)
@@ -3385,7 +3243,7 @@ export function useSession(): ChatState & ChatActions {
         }
       };
     },
-    [applyEvent, rehydrateQueue, setPendingTracked],
+    [applyEvent, setPendingTracked],
   );
 
   const switchSession = useCallback(
@@ -3402,7 +3260,7 @@ export function useSession(): ChatState & ChatActions {
       //  - Close the EventSource synchronously per the WHATWG spec, so
       //    the browser stops dispatching its events immediately.
       //  - Null sessionIdRef BEFORE the await: every read site (send,
-      //    flushQueue, resolvePermission, …) checks `if (!id) return`,
+      //    resolvePermission, …) checks `if (!id) return`,
       //    so any user activity during the ~30–100 ms wake POST window
       //    fail-softs instead of POSTing to the OUTGOING session and
       //    leaving an optimistic bubble that then renders against the
@@ -3665,7 +3523,8 @@ export function useSession(): ChatState & ChatActions {
         origin: null,
         errorReason: null,
       });
-      // Normalize to AttachedImage shape for client/queue persistence.
+      // Normalize image shape (mint a stable client id + ordinal) for the
+      // optimistic user bubble we may render below.
       const normalized = hasImages
         ? images!.map((img, i) => ({
             id: img.id ?? crypto.randomUUID(),
@@ -3674,31 +3533,15 @@ export function useSession(): ChatState & ChatActions {
             mediaType: img.mediaType,
           }))
         : undefined;
-      if (pendingRef.current || pendingPermissionRef.current) {
-        const q: QueuedMessage = {
-          id: crypto.randomUUID(),
-          text,
-          ...(normalized ? { images: normalized } : {}),
-          ...(isSlash ? { slash: true } : {}),
-          ...(fromSuggestion ? { fromSuggestion: true } : {}),
-          ...(fromGoal ? { fromGoal: true } : {}),
-        };
-        writeQueue([...queueRef.current, q]);
-        // No flush trigger here — that's intentional. The queue is a
-        // staging area: items stay visible in the QueueIndicator strip
-        // until the current turn finishes, then `setPendingTracked`'s
-        // true→false edge peels off exactly one item and starts the next
-        // turn. This is the original "single-pass" cadence; an earlier
-        // pipeline-drain version that auto-flushed here turned the queue
-        // into "type 3 messages, all 3 land as user bubbles immediately"
-        // which lost the staging UX.
-        return;
-      }
+      // Mint the uuid up front so the optimistic bubble and the server POST
+      // share the same id — needed for the rollback path below when the
+      // server decides this message landed in the queue instead of running.
       const uuid = crypto.randomUUID();
-      // Slash commands shouldn't render as user messages — the server emits a
+      // Slash commands don't render as user messages — the server emits a
       // `slash_invoked` system pill in their place. Skipping the optimistic
-      // add here keeps the chat clean even before the SSE pill arrives.
-      if (!isSlash) {
+      // add keeps the chat clean even before the SSE pill arrives.
+      const showedOptimisticBubble = !isSlash;
+      if (showedOptimisticBubble) {
         const sentAt = Date.now();
         setMessages((prev) => [
           ...prev,
@@ -3712,8 +3555,8 @@ export function useSession(): ChatState & ChatActions {
         ]);
       }
       // Badge this bubble as auto-suggested right away (the server persists it
-      // below so it survives reload). Keyed by the same uuid that lands in the
-      // JSONL, so the reload-time DB lookup re-marks the same message.
+      // server-side so it survives reload). Keyed by the same uuid that lands
+      // in the JSONL, so the reload-time DB lookup re-marks the same message.
       if (fromSuggestion) {
         setSuggestedUuids((prev) => new Set(prev).add(uuid));
       }
@@ -3721,17 +3564,14 @@ export function useSession(): ChatState & ChatActions {
         setGoalUuids((prev) => new Set(prev).add(uuid));
       }
       setPromptSuggestions([]);
-      setPendingTracked(true);
+      // We DON'T flip `pending` to true here anymore — the server decides
+      // whether this message runs now or gets enqueued, and we won't know
+      // which until the POST resolves. The SSE `turn_status` echo (and
+      // `queue:updated` if it was enqueued) will set the right state.
       setErrors([]);
       const res = await fetch(`/api/sessions/${id}/input`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // Pass the optimistic uuid so the server's broadcast echoes it back
-        // with the same id; applyEvent dedups by uuid so this tab doesn't
-        // double-render, while other subscribers pick it up for the first
-        // time on SSE replay. For slash commands the server doesn't echo a
-        // user message at all — the uuid still rides along as the SDK input
-        // id so the JSONL stays consistent.
         body: JSON.stringify({
           text,
           images: normalized,
@@ -3743,73 +3583,145 @@ export function useSession(): ChatState & ChatActions {
       });
       if (!res.ok) {
         setErrors((e) => [...e, `send failed: ${res.status}`]);
-        setPendingTracked(false);
+        // Roll back any optimistic bubble we added — there's no message in
+        // flight, the user should see their composer content lost into the
+        // void (not in the transcript as if it had been sent).
+        if (showedOptimisticBubble) {
+          setMessages((prev) => prev.filter((m) => m.uuid !== uuid));
+        }
+        return;
+      }
+      // Parse the server's decision: did the message dispatch now, or get
+      // queued? If queued, we need to roll back the optimistic user bubble
+      // — it'll reappear in the QueueIndicator strip via the next
+      // `queue:updated` SSE echo, and only land in `messages` when the
+      // server's drain feeds it through `sendInput` (which broadcasts the
+      // bubble back to us via SSE with this same uuid).
+      try {
+        const body = (await res.json()) as { queued?: boolean };
+        if (body?.queued && showedOptimisticBubble) {
+          setMessages((prev) => prev.filter((m) => m.uuid !== uuid));
+        }
+      } catch {
+        // best-effort — if the response body is unparseable, assume the
+        // optimistic path and let the SSE echo reconcile.
       }
     },
-    [setPendingTracked, writeQueue],
+    [],
   );
 
   const enqueue = useCallback(
-    (text: string, images?: AttachedImage[]) => {
+    async (text: string, images?: AttachedImage[]) => {
+      const id = sessionIdRef.current;
       const trimmed = text.trim();
-      if (!trimmed && (!images || images.length === 0)) return;
-      const q: QueuedMessage = {
-        id: crypto.randomUUID(),
-        text: trimmed,
-        ...(images && images.length ? { images } : {}),
-      };
-      writeQueue([...queueRef.current, q]);
-      // Intentionally no flush trigger — see comment in `send()`. Items
-      // sit in the queue until the next pending-edge transition drains
-      // the head.
+      if (!id || (!trimmed && (!images || images.length === 0))) return;
+      // Explicit "stage this for later" — bypass the server's idle check
+      // with `forceQueue: true` so a fresh send doesn't sneak in front of
+      // the already-staged item. The `queue:updated` SSE echo will paint
+      // the new item into the QueueIndicator strip.
+      try {
+        await fetch(`/api/sessions/${id}/input`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            text: trimmed,
+            ...(images && images.length ? { images } : {}),
+            forceQueue: true,
+          }),
+        });
+      } catch {
+        // Best-effort; an offline tab silently drops the enqueue, matching
+        // the previous client behaviour.
+      }
     },
-    [writeQueue],
+    [],
   );
 
-  const cancelQueued = useCallback(
-    (qid: string) => {
-      writeQueue(queueRef.current.filter((q) => q.id !== qid));
-    },
-    [writeQueue],
-  );
+  const cancelQueued = useCallback(async (qid: string) => {
+    const id = sessionIdRef.current;
+    if (!id) return;
+    try {
+      await fetch(`/api/sessions/${id}/queue/${qid}`, { method: "DELETE" });
+    } catch {
+      // ignore — SSE echo will reflect whatever did/didn't change
+    }
+  }, []);
 
   const editQueued = useCallback(
-    (qid: string): { text: string; images?: AttachedImage[] } | null => {
-      const item = queueRef.current.find((q) => q.id === qid);
-      if (!item) return null;
-      writeQueue(queueRef.current.filter((q) => q.id !== qid));
+    async (qid: string): Promise<{ text: string; images?: AttachedImage[] } | null> => {
+      const id = sessionIdRef.current;
+      if (!id) return null;
+      // DELETE returns the full row content (text + images) for the
+      // composer to pre-fill. Images aren't in the `queue:updated` snapshot
+      // (kept slim), so this round-trip is the only way to get the
+      // original base64 blobs back.
+      let res: Response;
+      try {
+        res = await fetch(`/api/sessions/${id}/queue/${qid}`, { method: "DELETE" });
+      } catch {
+        return null;
+      }
+      if (!res.ok) return null;
+      type EditedRow = { text?: string; images?: AttachedImage[] };
+      let body: EditedRow | null = null;
+      try {
+        body = (await res.json()) as EditedRow;
+      } catch {
+        return null;
+      }
+      if (!body || typeof body.text !== "string") return null;
       return {
-        text: item.text,
-        ...(item.images && item.images.length ? { images: item.images } : {}),
+        text: body.text,
+        ...(body.images && body.images.length ? { images: body.images } : {}),
       };
     },
-    [writeQueue],
+    [],
   );
 
-  const reorderQueued = useCallback(
-    (qid: string, dir: -1 | 1) => {
-      const idx = queueRef.current.findIndex((q) => q.id === qid);
-      if (idx === -1) return;
-      const swap = idx + dir;
-      if (swap < 0 || swap >= queueRef.current.length) return;
-      const next = [...queueRef.current];
-      [next[idx], next[swap]] = [next[swap], next[idx]];
-      writeQueue(next);
-    },
-    [writeQueue],
-  );
+  const reorderQueued = useCallback(async (qid: string, dir: -1 | 1) => {
+    const id = sessionIdRef.current;
+    if (!id) return;
+    const direction = dir === -1 ? "up" : "down";
+    try {
+      await fetch(`/api/sessions/${id}/queue/${qid}/move`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ direction }),
+      });
+    } catch {
+      // ignore — SSE echo reflects any swap that landed
+    }
+  }, []);
+
+  const sendQueuedNow = useCallback(async (qid: string) => {
+    const id = sessionIdRef.current;
+    if (!id) return;
+    // Per-message override of the workspace `queueDispatchMode` setting:
+    // server atomically pops this row and pushes it into the SDK input
+    // pipe so it runs as the very next turn — even when the agent is
+    // currently working. A `queue:updated` SSE echoes the removal and
+    // the user bubble appears when `sendInput`'s broadcast lands.
+    try {
+      await fetch(`/api/sessions/${id}/queue/${qid}/send-now`, {
+        method: "POST",
+      });
+    } catch {
+      // best-effort — the item stays queued on transient failure
+    }
+  }, []);
 
   const resolvePermission = useCallback(async (requestId: string, decision: PermissionDecision) => {
     const id = sessionIdRef.current;
     if (!id) return;
     setPendingPermission(null);
     pendingPermissionRef.current = null;
-    const res = await fetch(`/api/sessions/${id}/permission`, {
+    await fetch(`/api/sessions/${id}/permission`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ requestId, decision }),
     });
-    if (res.ok) flushQueueRef.current();
+    // Queue drain is server-driven now — `Session.resolvePermission` calls
+    // `flushQueueIfIdle()` after a successful resolve. No client trigger.
   }, []);
 
   const submitAskAnswer = useCallback(
@@ -4387,6 +4299,7 @@ export function useSession(): ChatState & ChatActions {
     cancelQueued,
     editQueued,
     reorderQueued,
+    sendQueuedNow,
     resolvePermission,
     submitAskAnswer,
     submitFeedback,

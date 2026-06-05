@@ -699,8 +699,10 @@ export default function Home() {
   );
 
   const liftQueued = useCallback(
-    (id: string) => {
-      const item = session.editQueued(id);
+    async (id: string) => {
+      // `editQueued` round-trips to the server (DELETE-and-return), so it's
+      // async now — await before pre-filling the composer.
+      const item = await session.editQueued(id);
       if (item == null) return;
       draftTokenRef.current += 1;
       setDraftInjection({ token: draftTokenRef.current, text: item.text, images: item.images });
@@ -1597,6 +1599,7 @@ export default function Home() {
             onCancel={session.cancelQueued}
             onEdit={liftQueued}
             onReorder={session.reorderQueued}
+            onSendNow={session.sendQueuedNow}
           />
           {tabClaim.readOnly && (
             <TabClaimBanner

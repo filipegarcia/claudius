@@ -13,14 +13,29 @@ import {
   Power,
   Filter,
   Plus,
+  Users,
+  MessageSquare,
+  RefreshCw,
 } from "lucide-react";
-import type { Ban, BannedWord, Room } from "@/lib/shared/community";
+import type {
+  Ban,
+  BannedWord,
+  ChannelMember,
+  Room,
+} from "@/lib/shared/community";
 import type { UseCommunity } from "@/lib/client/use-community";
 
 type Props = {
   community: UseCommunity;
   rooms: Room[];
   onClose: () => void;
+  /**
+   * Open a DM thread with the clicked nickname. Wired from
+   * CommunityChat so the "DM" button in the members list flips the
+   * main column to the DMThread view. Optional — when omitted, the
+   * members list still renders but without the DM action button.
+   */
+  onSelectNick?: (nick: string) => void;
 };
 
 /**
@@ -38,7 +53,7 @@ type Props = {
  * We deliberately don't surface delete/pin here — those are inline on
  * each Message row when admin mode is active.
  */
-export function AdminPanel({ community, rooms, onClose }: Props) {
+export function AdminPanel({ community, rooms, onClose, onSelectNick }: Props) {
   // Announce form state.
   const [announceRoom, setAnnounceRoom] = useState(community.currentRoom);
   const [announceBody, setAnnounceBody] = useState("");
@@ -90,6 +105,12 @@ export function AdminPanel({ community, rooms, onClose }: Props) {
   );
   const [roomOpErr, setRoomOpErr] = useState<string | null>(null);
 
+  // Members list (admin-only roster for the announce-selected room).
+  // Stored per-room would be tidier but the panel is short-lived and
+  // refetching on room switch is cheap.
+  const [members, setMembers] = useState<ChannelMember[] | null>(null);
+  const [membersBusy, setMembersBusy] = useState(false);
+
   // Re-fetch counters — the effects below run the actual fetch keyed on
   // these counters plus the admin flag. setState calls only happen in
   // Promise callbacks, satisfying react-hooks/set-state-in-effect. The
@@ -97,12 +118,14 @@ export function AdminPanel({ community, rooms, onClose }: Props) {
   // in-render reset block below, again to keep setState out of effects.
   const [bansTrigger, setBansTrigger] = useState(0);
   const [bannedWordsTrigger, setBannedWordsTrigger] = useState(0);
+  const [membersTrigger, setMembersTrigger] = useState(0);
   const [lastIsAdmin, setLastIsAdmin] = useState(community.isAdmin);
   if (lastIsAdmin !== community.isAdmin) {
     setLastIsAdmin(community.isAdmin);
     if (!community.isAdmin) {
       setBans(null);
       setBannedWords(null);
+      setMembers(null);
     }
   }
 
@@ -128,12 +151,42 @@ export function AdminPanel({ community, rooms, onClose }: Props) {
     };
   }, [community, bannedWordsTrigger]);
 
+  // Members fetch is keyed on the announce-selected room so switching
+  // channels (via the "Post as admin" selector at the top of the panel)
+  // reloads the roster for the new room. Re-fetch also runs when the
+  // admin clicks the manual refresh button.
+  useEffect(() => {
+    if (!community.isAdmin) return;
+    let cancelled = false;
+    // The sync setMembersBusy(true) here is the "I'm about to do
+    // work" flag for the refresh-spinner. It's not a cascade — deps
+    // are user-driven (room switch / explicit refresh), the post-
+    // resolution setMembers/setMembersBusy(false) live in the Promise
+    // callback, and we abort via `cancelled` if a re-run interrupts
+    // an in-flight fetch.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMembersBusy(true);
+    void community.listChannelMembers(announceRoom).then((m) => {
+      if (!cancelled) {
+        setMembers(m);
+        setMembersBusy(false);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [community, announceRoom, membersTrigger]);
+
   const refreshBans = useCallback(() => {
     setBansTrigger((n) => n + 1);
   }, []);
 
   const refreshBannedWords = useCallback(() => {
     setBannedWordsTrigger((n) => n + 1);
+  }, []);
+
+  const refreshMembers = useCallback(() => {
+    setMembersTrigger((n) => n + 1);
   }, []);
 
   const addWord = async () => {
@@ -508,6 +561,101 @@ export function AdminPanel({ community, rooms, onClose }: Props) {
           )}
         </section>
 
+        {/* Members — admin-only roster for the selected channel.
+            Derived from message history (no membership table exists),
+            so the list is "everyone who has ever posted here, live
+            messages only." Sorted newest-active first. */}
+        <section data-testid="community-admin-members">
+          <h3 className="mb-2 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-[var(--muted)]">
+            <Users className="h-3.5 w-3.5" /> Members
+            <button
+              type="button"
+              onClick={refreshMembers}
+              disabled={membersBusy || !community.isAdmin}
+              title="Refresh"
+              className="ml-auto rounded p-0.5 text-[var(--muted)] hover:bg-[var(--panel-2)] hover:text-[var(--foreground)] disabled:opacity-40"
+              data-testid="community-admin-members-refresh"
+            >
+              <RefreshCw
+                className={
+                  "h-3 w-3 " + (membersBusy ? "animate-spin" : "")
+                }
+              />
+            </button>
+          </h3>
+          <p className="mb-2 text-[10px] text-[var(--muted)]">
+            Connected users + posters in{" "}
+            <span className="font-mono text-[var(--foreground)]">
+              {currentRoomName(rooms, announceRoom)}
+            </span>
+            . Green dot = currently online; italic = lurking (connected
+            but never posted). Change the room via the “Post as admin”
+            selector above.
+          </p>
+          <ul className="space-y-1">
+            {members && members.length === 0 && !membersBusy && (
+              <li className="text-[10px] text-[var(--muted)]">
+                Nobody connected and no posters yet.
+              </li>
+            )}
+            {members === null && membersBusy && (
+              <li className="text-[10px] text-[var(--muted)]">Loading…</li>
+            )}
+            {members?.map((m) => {
+              const isLurker = m.messageCount === 0;
+              const statsLabel = isLurker
+                ? "connected · no posts"
+                : `${m.messageCount}·${m.lastSeen !== null ? formatRelative(m.lastSeen) : "—"}`;
+              const statsTitle = isLurker
+                ? `Connected to #${announceRoom} — has not posted yet`
+                : `${m.messageCount} message${m.messageCount === 1 ? "" : "s"} · last seen ${new Date(m.lastSeen ?? 0).toLocaleString()}${m.firstSeen !== null ? ` · first seen ${new Date(m.firstSeen).toLocaleString()}` : ""}`;
+              return (
+                <li
+                  key={m.nick.toLowerCase()}
+                  className="flex items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1 text-xs"
+                  data-testid={`community-admin-member-${m.nick}`}
+                >
+                  <span
+                    className={
+                      "h-1.5 w-1.5 shrink-0 rounded-full " +
+                      (m.online
+                        ? "bg-[var(--accent)]"
+                        : "bg-[var(--border)]")
+                    }
+                    title={m.online ? "Online" : "Offline"}
+                    aria-label={m.online ? "online" : "offline"}
+                  />
+                  <span
+                    className={
+                      "truncate font-mono " +
+                      (isLurker ? "text-[var(--muted)] italic" : "")
+                    }
+                  >
+                    {m.nick}
+                  </span>
+                  <span
+                    className="font-mono text-[10px] text-[var(--muted)]"
+                    title={statsTitle}
+                  >
+                    {statsLabel}
+                  </span>
+                  {onSelectNick && (
+                    <button
+                      type="button"
+                      onClick={() => onSelectNick(m.nick)}
+                      title={`Direct message ${m.nick}`}
+                      className="ml-auto rounded p-0.5 text-[var(--muted)] hover:bg-[var(--panel)] hover:text-[var(--accent)]"
+                      data-testid={`community-admin-member-dm-${m.nick}`}
+                    >
+                      <MessageSquare className="h-3 w-3" />
+                    </button>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+
         {/* Bans */}
         <section>
           <h3 className="mb-2 text-xs font-medium uppercase tracking-wider text-[var(--muted)]">
@@ -663,4 +811,19 @@ export function AdminPanel({ community, rooms, onClose }: Props) {
 
 function currentRoomName(rooms: Room[], slug: string): string {
   return rooms.find((r) => r.slug === slug)?.name ?? `#${slug}`;
+}
+
+/**
+ * Compact relative-time formatter for the members roster — "now",
+ * "Nm", "Nh", "Nd". Kept local (rather than reusing Message.tsx's
+ * formatTime) because the admin context wants days-level precision
+ * for stale members; the chat-row formatter falls back to a full
+ * date past 24h.
+ */
+function formatRelative(ts: number): string {
+  const delta = Date.now() - ts;
+  if (delta < 60_000) return "now";
+  if (delta < 3_600_000) return `${Math.floor(delta / 60_000)}m`;
+  if (delta < 86_400_000) return `${Math.floor(delta / 3_600_000)}h`;
+  return `${Math.floor(delta / 86_400_000)}d`;
 }

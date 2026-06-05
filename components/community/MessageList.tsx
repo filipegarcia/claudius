@@ -23,6 +23,13 @@ type Props = {
   loadingOlder?: boolean;
   /** Pull the next 50 older messages. No-op when !hasMore. */
   onLoadOlder?: () => void;
+  /**
+   * Open a DM thread with the clicked author. When provided, each
+   * non-own / non-deleted nickname renders as a button. Skipped for
+   * own messages (DMing yourself is a no-op) and for soft-deleted
+   * rows (no live author to chat with).
+   */
+  onSelectNick?: (nick: string) => void;
 };
 
 /**
@@ -55,6 +62,7 @@ export function MessageList({
   hasMore,
   loadingOlder,
   onLoadOlder,
+  onSelectNick,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -140,19 +148,28 @@ export function MessageList({
           </div>
         ) : (
           <ul className="flex flex-col gap-2">
-            {messages.map((m) => (
-              <li key={m.id}>
-                <Message
-                  message={m}
-                  isOwn={!!nick && m.nick === nick}
-                  isAdmin={isAdmin}
-                  isPinned={pinnedId === m.id}
-                  onDelete={isAdmin ? () => onDelete(m.id) : undefined}
-                  onPin={isAdmin ? () => onPin(m.id) : undefined}
-                  onBan={isAdmin ? () => onBan(m.nick) : undefined}
-                />
-              </li>
-            ))}
+            {messages.map((m) => {
+              const isOwn = !!nick && m.nick === nick;
+              const isDeleted = m.deletedAt != null;
+              return (
+                <li key={m.id}>
+                  <Message
+                    message={m}
+                    isOwn={isOwn}
+                    isAdmin={isAdmin}
+                    isPinned={pinnedId === m.id}
+                    onDelete={isAdmin ? () => onDelete(m.id) : undefined}
+                    onPin={isAdmin ? () => onPin(m.id) : undefined}
+                    onBan={isAdmin ? () => onBan(m.nick) : undefined}
+                    onSelectNick={
+                      onSelectNick && !isOwn && !isDeleted
+                        ? () => onSelectNick(m.nick)
+                        : undefined
+                    }
+                  />
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>

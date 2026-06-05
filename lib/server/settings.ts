@@ -48,6 +48,31 @@ export type ClaudeSettings = {
   // and (matching the CLI's `cooldownSessions:0` for overrides) ride the same
   // dismiss-weighting as everything else — see DISMISSED_TIP_SHOW_PROBABILITY.
   spinnerTipsOverride?: { excludeDefault?: boolean; tips?: string[] };
+  // How the server-side message queue dispatches new user messages
+  // typed while the agent is mid-turn (or waiting on a permission/ask
+  // prompt). Mirrors the Claude Code TUI's "fast-pipe" affordance: the
+  // CLI pushes the new user input into the SDK's input pipe IMMEDIATELY,
+  // so the model picks it up as soon as the current turn yields — no
+  // queue-strip delay.
+  //
+  //   • `"wait"` (default) — the message sits visibly in the
+  //     QueueIndicator strip; the server drains exactly one item per
+  //     `result` / answer transition. Users get edit/cancel/reorder
+  //     control before each message dispatches. Best when you often
+  //     change your mind mid-turn or want to batch refinements before
+  //     they run.
+  //
+  //   • `"asap"` — the server skips its DB queue entirely and calls
+  //     `sendInput()` directly on every send, even mid-turn. The SDK's
+  //     inputQueue picks up the message and runs it as the very next
+  //     turn. No queue strip; the user bubble appears immediately. Best
+  //     when you want TUI parity ("Claude reads my follow-up the
+  //     instant this turn finishes").
+  //
+  // Per-message override: the QueueIndicator strip's "Send now" button
+  // forces a single queued message through the asap path on demand,
+  // regardless of this setting.
+  queueDispatchMode?: "wait" | "asap";
   // Community chat preferences. Persisted at the user scope so the
   // first-visit consent prompt and the nickname picker don't reappear
   // after a Claudius upgrade, an Electron reinstall, or a switch

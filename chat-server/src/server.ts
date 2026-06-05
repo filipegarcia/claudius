@@ -7,7 +7,9 @@
 //
 // SSE shape mirrors Claudius' /api/notifications/stream/route.ts:
 //   1. open the ReadableStream
-//   2. immediately push a `replay` event (last 100 messages)
+//   2. immediately push a `replay` event with the last 50 messages so
+//      the user sees recent context on join (older history is pulled
+//      on demand via /rooms/:slug/messages?before=&limit=)
 //   3. subscribe to the room bus; every event becomes one `data:` frame
 //   4. 15-second heartbeat comment line keeps proxies happy
 //   5. on req.signal abort → unsubscribe + close
@@ -41,6 +43,7 @@ import {
   lastIpForNick,
   listBannedWords,
   listBans,
+  listChannelMembers,
   listConversationsFor,
   listRooms,
   messagesBefore,
@@ -58,6 +61,13 @@ import { tryConsume } from "./rate-limit.ts";
 import type { BanKind, ChatEvent, DMStreamEvent } from "./types.ts";
 
 const PORT = Number(process.env.PORT ?? 8787);
+
+// Size of the SSE replay window — how many recent messages a freshly
+// connected client receives so they see context the moment they land
+// on a channel. The client paginates older history at the same step
+// (50 per "Load older" click), so keeping replay and backfill aligned
+// makes the boundary unsurprising.
+const REPLAY_LIMIT = 50;
 
 // When the server runs behind a trusted reverse proxy (Caddy/nginx on
 // the same box, optionally fronted by Cloudflare), the socket-level
@@ -136,8 +146,22 @@ function handleListRooms(): Response {
   return json({ rooms: listRooms() });
 }
 
-function handleStream(roomSlug: string, req: Request): Response {
+function handleStream(roomSlug: string, req: Request, url: URL): Response {
   if (!getRoom(roomSlug)) return error(404, "no such room");
+  // Optional `?nick=` on the handshake — when present, the subscriber
+  // is registered with that nick so the admin Members roster can list
+  // lurkers (connected but never posted). Invalid / reserved nicks are
+  // silently ignored rather than erroring out: the stream is the read
+  // surface for the chat itself, so we'd rather degrade to "anonymous
+  // subscriber" than refuse the connection.
+  const rawNick = url.searchParams.get("nick");
+  let handshakeNick: string | null = null;
+  if (rawNick) {
+    const trimmed = rawNick.trim();
+    if (NICK_RE.test(trimmed) && !isReservedNick(trimmed)) {
+      handshakeNick = trimmed;
+    }
+  }
   const encoder = new TextEncoder();
 
   const stream = new ReadableStream<Uint8Array>({
@@ -150,16 +174,19 @@ function handleStream(roomSlug: string, req: Request): Response {
         }
       };
 
-      // 1. Send an empty replay — newcomers see a clean room and
-      //    pull history on demand via /rooms/:slug/messages?before=
-      //    &limit=50 (see handleBackfill). We still emit the event
-      //    (with messages: []) so the client knows the room's pin
-      //    state and resets its local buffer to "fresh."
+      // 1. Send a replay with the most recent window (REPLAY_LIMIT,
+      //    currently 50) so the user sees recent context the moment
+      //    they land on a channel. Older history is pulled on demand
+      //    via /rooms/:slug/messages?before=&limit= (see
+      //    handleBackfill) as the user scrolls up. We include
+      //    moderation-deleted rows as wire-visible placeholders so
+      //    the client renders "[deleted by admin]" markers consistently
+      //    with the rest of the history surface.
       const room = getRoom(roomSlug);
       send({
         type: "replay",
         roomSlug,
-        messages: [],
+        messages: recentMessages(roomSlug, REPLAY_LIMIT),
         pinnedMessageId: room?.pinnedMessageId ?? null,
       });
 
@@ -176,10 +203,51 @@ function handleStream(roomSlug: string, req: Request): Response {
         });
       }
 
-      // 3. Subscribe for live updates.
-      const unsubscribe = chatBus.subscribe(roomSlug, send);
+      // 3. Capture "is this the first SSE connection for this nick?"
+      //    BEFORE subscribing — that's what tells us whether to fire
+      //    `member_joined`. A second tab from the same nick is a
+      //    no-op (the nick stays in `activeNicks` the whole time).
+      //    Anonymous handshakes never join/part (handshakeNick is null).
+      const isFirstForNick =
+        handshakeNick !== null &&
+        !chatBus
+          .activeNicks(roomSlug)
+          .some((n) => n.toLowerCase() === handshakeNick.toLowerCase());
 
-      // 3. Heartbeat — comment lines are ignored by the EventSource
+      // 4. Subscribe for live updates. The handshake nick (if any)
+      //    travels with the subscriber so the admin Members roster
+      //    and the per-room presence list can enumerate connected
+      //    users.
+      const unsubscribe = chatBus.subscribe(roomSlug, send, {
+        nick: handshakeNick,
+      });
+
+      // 5. Presence snapshot — IRC NAMES equivalent. Sent AFTER
+      //    subscribing so the snapshot includes this client's own
+      //    nick (when present), matching the "you're in the list"
+      //    user expectation.
+      send({
+        type: "presence",
+        roomSlug,
+        nicks: chatBus.activeNicks(roomSlug),
+      });
+
+      // 6. Announce the new arrival to the whole room (including this
+      //    client — IRC echoes your own JOIN back to you). Skipped on
+      //    multi-tab opens so the sidebar doesn't blink for re-joins.
+      //    Repeating the `!== null` check here so the compiler can
+      //    narrow handshakeNick to `string` for the broadcast payload;
+      //    `isFirstForNick` already implies it but TS can't follow that
+      //    across statements.
+      if (isFirstForNick && handshakeNick !== null) {
+        chatBus.broadcast({
+          type: "member_joined",
+          roomSlug,
+          nick: handshakeNick,
+        });
+      }
+
+      // 7. Heartbeat — comment lines are ignored by the EventSource
       //    spec but keep load balancers from killing the socket.
       const hb = setInterval(() => {
         try {
@@ -192,6 +260,23 @@ function handleStream(roomSlug: string, req: Request): Response {
       const cleanup = () => {
         clearInterval(hb);
         unsubscribe();
+        // After unsubscribing, check whether this was the last
+        // connection for this nick. If so, fire `member_left` so the
+        // sidebars across all other tabs / users drop the entry. A
+        // multi-tab user closing one tab keeps the nick on screen for
+        // everyone else.
+        if (
+          handshakeNick !== null &&
+          !chatBus
+            .activeNicks(roomSlug)
+            .some((n) => n.toLowerCase() === handshakeNick.toLowerCase())
+        ) {
+          chatBus.broadcast({
+            type: "member_left",
+            roomSlug,
+            nick: handshakeNick,
+          });
+        }
         try {
           controller.close();
         } catch {
@@ -375,6 +460,70 @@ function handleAdminUnpin(roomSlug: string): Response {
   setRoomPin(roomSlug, null);
   chatBus.broadcast({ type: "message_unpinned", roomSlug });
   return json({ ok: true });
+}
+
+function handleAdminListMembers(roomSlug: string): Response {
+  if (!getRoom(roomSlug)) return error(404, "no such room");
+
+  // Union of two sources, both derived from runtime / DB state — there
+  // is no membership table:
+  //   1. Posters — distinct authors with live messages in this room
+  //      (from `listChannelMembers`). Carries stats: count, first/last
+  //      seen timestamps.
+  //   2. Online — currently-subscribed SSE clients whose handshake
+  //      carried a nick (`chatBus.activeNicks`). Lurkers — people who
+  //      have joined the channel but haven't posted yet — show up
+  //      here without poster stats.
+  //
+  // Dedup by lowercase nick (case-insensitive identity matches the
+  // rest of the chat-server's nick handling). Sort online-first, then
+  // by most-recent-post — so the active conversation is at the top of
+  // the roster and stale historical posters drift down.
+  const posters = listChannelMembers(roomSlug);
+  const online = chatBus.activeNicks(roomSlug);
+  const onlineLc = new Set(online.map((n) => n.toLowerCase()));
+
+  type Wire = {
+    nick: string;
+    online: boolean;
+    messageCount: number;
+    firstSeen: number | null;
+    lastSeen: number | null;
+  };
+  const byNick = new Map<string, Wire>();
+
+  for (const p of posters) {
+    byNick.set(p.nick.toLowerCase(), {
+      nick: p.nick,
+      online: onlineLc.has(p.nick.toLowerCase()),
+      messageCount: p.messageCount,
+      firstSeen: p.firstSeen,
+      lastSeen: p.lastSeen,
+    });
+  }
+  for (const nick of online) {
+    const lc = nick.toLowerCase();
+    if (byNick.has(lc)) continue;
+    byNick.set(lc, {
+      nick,
+      online: true,
+      messageCount: 0,
+      firstSeen: null,
+      lastSeen: null,
+    });
+  }
+
+  const members = [...byNick.values()].sort((a, b) => {
+    if (a.online !== b.online) return a.online ? -1 : 1;
+    // Lurkers (no lastSeen) sort to the end of their group — they're
+    // newer-than-anyone in terms of "no recent post," but the user is
+    // looking for active conversation up top, not silent connections.
+    const al = a.lastSeen ?? 0;
+    const bl = b.lastSeen ?? 0;
+    return bl - al;
+  });
+
+  return json({ members });
 }
 
 async function handleAdminBan(req: Request): Promise<Response> {
@@ -572,10 +721,14 @@ async function handleAdminClearRoom(roomSlug: string): Promise<Response> {
   if (!room) return error(404, "no such room");
   const removed = clearRoomMessages(roomSlug);
   // Tell every subscriber to drop their local message buffer by
-  // emitting an empty replay. Reusing the existing replay event
-  // shape means no new client-side reducer branch is needed.
+  // emitting an authoritative `room_replaced` with no messages. We
+  // can't reuse the additive `replay` event here — the client merges
+  // those into its local buffer (so an in-flight `loadOlder` result
+  // and any local-cache history aren't clobbered), and a merge with
+  // an empty payload would no-op on the client side. `room_replaced`
+  // carries the same shape but the client blind-replaces on it.
   chatBus.broadcast({
-    type: "replay",
+    type: "room_replaced",
     roomSlug,
     messages: [],
     pinnedMessageId: null,
@@ -597,12 +750,16 @@ async function handleAdminCompactRoom(
 
   const removed = compactRoomMessages(roomSlug, keep);
 
-  // Broadcast the post-trim state. `recentLiveMessages` excludes ALL
-  // deletions (including the moderation ones), so the visible chat
-  // is exactly the kept N — no placeholders for the compacted tail.
-  // The trimmed rows are still in the DB with deletion_reason set
-  // to 'compacted' (see clearRoomMessages / compactRoomMessages in
-  // db.ts) so an admin can review them out-of-band.
+  // Broadcast the post-trim state via `room_replaced` — an
+  // authoritative replace, not an additive replay. `recentLiveMessages`
+  // excludes ALL deletions (including moderation ones), so the visible
+  // chat is exactly the kept N — no placeholders for the compacted
+  // tail. The trimmed rows are still in the DB with deletion_reason
+  // set to 'compacted' (see clearRoomMessages / compactRoomMessages in
+  // db.ts) so an admin can review them out-of-band. Using `replay`
+  // would merge on the client side, so a client that had the trimmed
+  // older messages cached would silently un-do the compaction; the
+  // `room_replaced` tag opts into a blind replace instead.
   const fresh = recentLiveMessages(roomSlug, keep);
   let pinnedMessageId = room.pinnedMessageId;
   if (pinnedMessageId && !fresh.some((m) => m.id === pinnedMessageId)) {
@@ -611,7 +768,7 @@ async function handleAdminCompactRoom(
   }
 
   chatBus.broadcast({
-    type: "replay",
+    type: "room_replaced",
     roomSlug,
     messages: fresh,
     pinnedMessageId,
@@ -780,7 +937,7 @@ const server = Bun.serve({
 
     // /rooms/:slug/stream
     let m = path.match(/^\/rooms\/([^/]+)\/stream$/);
-    if (m && req.method === "GET") return handleStream(m[1]!, req);
+    if (m && req.method === "GET") return handleStream(m[1]!, req, url);
 
     // /rooms/:slug/messages — GET (backfill) or POST (send)
     m = path.match(/^\/rooms\/([^/]+)\/messages$/);
@@ -850,6 +1007,9 @@ const server = Bun.serve({
 
       m = path.match(/^\/admin\/rooms\/([^/]+)\/compact$/);
       if (m && req.method === "POST") return handleAdminCompactRoom(m[1]!, url);
+
+      m = path.match(/^\/admin\/rooms\/([^/]+)\/members$/);
+      if (m && req.method === "GET") return handleAdminListMembers(m[1]!);
 
       m = path.match(/^\/admin\/bans\/(\d+)$/);
       if (m && req.method === "DELETE") return handleAdminUnban(Number(m[1]!));

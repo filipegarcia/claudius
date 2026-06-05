@@ -58,6 +58,37 @@ const nextConfig: NextConfig = {
   // `--dist-dir` flag for `next dev`, so the only way to override is
   // here. Default stays `.next` for every other invocation.
   distDir: process.env.NEXT_DIST_DIR || ".next",
+  // Next 16 blocks cross-origin requests to dev-only assets and endpoints
+  // (HMR socket, SSE streams under /api/*) unless the requesting origin is
+  // explicitly allow-listed. Localhost works out of the box, but the moment
+  // the user opens the dev URL from another device on the LAN (laptop ↔
+  // phone, or two machines on the same Wi-Fi) every dev resource gets
+  // silently dropped — the page shell loads but the API/SSE traffic that
+  // drives the Activity rail and chat stream never makes it through, so
+  // the UI hangs on "Starting…". The patterns below cover the RFC1918
+  // private ranges (the only addresses a LAN device would ever have here),
+  // so `bun run dev` is reachable from any device on the same Wi-Fi.
+  // Production builds are unaffected — `allowedDevOrigins` is dev-only.
+  allowedDevOrigins: [
+    "10.*.*.*",
+    "172.16.*.*",
+    "172.17.*.*",
+    "172.18.*.*",
+    "172.19.*.*",
+    "172.20.*.*",
+    "172.21.*.*",
+    "172.22.*.*",
+    "172.23.*.*",
+    "172.24.*.*",
+    "172.25.*.*",
+    "172.26.*.*",
+    "172.27.*.*",
+    "172.28.*.*",
+    "172.29.*.*",
+    "172.30.*.*",
+    "172.31.*.*",
+    "192.168.*.*",
+  ],
   // The dev-only on-screen indicator (Next.js logo badge) defaults to
   // bottom-left, where it collides with the "claudius / vX.Y.Z" footer at
   // the bottom of the workspace rail. Park it bottom-right instead. Dev

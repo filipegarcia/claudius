@@ -117,6 +117,51 @@ describe("chatBus.broadcast", () => {
   });
 });
 
+describe("chatBus.activeNicks", () => {
+  test("empty when no one is subscribed", () => {
+    expect(chatBus.activeNicks("an-empty")).toEqual([]);
+  });
+
+  test("returns claimed nicks from the handshake opts", () => {
+    track(chatBus.subscribe("an-room", () => {}, { nick: "alice" }));
+    track(chatBus.subscribe("an-room", () => {}, { nick: "bob" }));
+    expect(chatBus.activeNicks("an-room").sort()).toEqual(["alice", "bob"]);
+  });
+
+  test("skips anonymous subscribers (no nick on handshake)", () => {
+    track(chatBus.subscribe("an-anon", () => {}, { nick: "alice" }));
+    track(chatBus.subscribe("an-anon", () => {}));
+    track(chatBus.subscribe("an-anon", () => {}, { nick: null }));
+    expect(chatBus.activeNicks("an-anon")).toEqual(["alice"]);
+    // size() still counts every subscriber including anonymous ones —
+    // diagnostics ≠ roster.
+    expect(chatBus.size("an-anon")).toBe(3);
+  });
+
+  test("dedups case-insensitively, preserves first-seen casing", () => {
+    track(chatBus.subscribe("an-case", () => {}, { nick: "Alice" }));
+    track(chatBus.subscribe("an-case", () => {}, { nick: "alice" }));
+    track(chatBus.subscribe("an-case", () => {}, { nick: "ALICE" }));
+    const nicks = chatBus.activeNicks("an-case");
+    expect(nicks).toEqual(["Alice"]);
+  });
+
+  test("scoped per-room — alice in room-x doesn't leak into room-y", () => {
+    track(chatBus.subscribe("an-x", () => {}, { nick: "alice" }));
+    track(chatBus.subscribe("an-y", () => {}, { nick: "bob" }));
+    expect(chatBus.activeNicks("an-x")).toEqual(["alice"]);
+    expect(chatBus.activeNicks("an-y")).toEqual(["bob"]);
+  });
+
+  test("unsubscribe drops the nick from the list", () => {
+    const unsub = chatBus.subscribe("an-leave", () => {}, { nick: "alice" });
+    track(chatBus.subscribe("an-leave", () => {}, { nick: "bob" }));
+    expect(chatBus.activeNicks("an-leave").sort()).toEqual(["alice", "bob"]);
+    unsub();
+    expect(chatBus.activeNicks("an-leave")).toEqual(["bob"]);
+  });
+});
+
 describe("chatBus.broadcastAll", () => {
   test("delivers system events to every subscribed room", () => {
     const r1: ChatEvent[] = [];

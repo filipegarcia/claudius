@@ -37,6 +37,21 @@ files:
   # They contain unix sockets (SingletonSocket) that electron-builder cannot
   # copy into the asar — "Unknown system error -102". Never package them.
   - "!dist-electron/playwright-userdata-*"
+  # The Claude Agent SDK and its ~210 MB native CLI binary
+  # (@anthropic-ai/claude-agent-sdk-<os>-<arch>/claude) are only imported by
+  # the embedded Next server (lib/server/scheduler.ts, session-recap.ts,
+  # commit-message.ts, sessions-store.ts) — NOT by the main process. The
+  # standalone tree shipped via extraResources already carries its own copy
+  # (scripts/electron-stage-standalone.mjs hard-fails the build if the host
+  # platform's `claude` binary is missing there). Excluding the root copy
+  # here saves ~210 MB per build — otherwise electron-builder follows
+  # package.json's `dependencies`, packs the SDK into the asar, and (because
+  # of the asarUnpack rule that used to live below) re-locates the platform
+  # binary as a NESTED node_modules tree under the SDK package — byte-for-
+  # byte duplicating the one already inside standalone/. Run
+  # `rg "@anthropic-ai" electron/ dist-electron/` before re-enabling.
+  - "!node_modules/@anthropic-ai/claude-agent-sdk/**"
+  - "!node_modules/@anthropic-ai/claude-agent-sdk-*/**"
 
 # Native modules and the embedded Next.js binary must live outside the
 # asar archive so they can be spawned/required at runtime.
@@ -53,7 +68,9 @@ asarUnpack:
   # .node so Next's loader resolves the dlopen path correctly.
   - "node_modules/@next/**"
   - "node_modules/.bin/next"
-  - "node_modules/@anthropic-ai/claude-agent-sdk/**"
+  # NB: `node_modules/@anthropic-ai/claude-agent-sdk/**` is intentionally
+  # absent — the SDK and its native binary are now shipped only inside the
+  # standalone extraResource. See the matching `!` rule under `files:`.
 
 # Anything we ship inside the resources/ folder of the app.
 extraResources:
@@ -86,6 +103,33 @@ mac:
   entitlements: build/entitlements.mac.plist
   entitlementsInherit: build/entitlements.mac.plist
   notarize: true
+  # Rationale strings macOS shows inside its TCC permission dialogs when a
+  # process first touches a protected user folder. Without these, the OS
+  # dialog says only "Claudius would like to access files in your Desktop
+  # folder" — no context for the user about why. With them, the dialog
+  # carries the Claudius-authored sentence below.
+  #
+  # Claudius also tries to surface its OWN heads-up modal BEFORE the OS
+  # dialog (see lib/shared/tcc-protected.ts + components/workspaces/
+  # DirectoryPicker.tsx), so these strings are the fallback for cases the
+  # in-app interception misses (e.g. Bash shell-outs that touch a protected
+  # path directly).
+  extendInfo:
+    NSDesktopFolderUsageDescription: >-
+      Claudius needs access to your Desktop folder only when you pick a
+      project from there. Files stay on your machine.
+    NSDocumentsFolderUsageDescription: >-
+      Claudius needs access to your Documents folder only when you pick a
+      project from there. Files stay on your machine.
+    NSDownloadsFolderUsageDescription: >-
+      Claudius needs access to your Downloads folder only when you pick a
+      project from there. Files stay on your machine.
+    NSRemovableVolumesUsageDescription: >-
+      Claudius needs access to removable volumes only when you pick a
+      project from one. Files stay on your machine.
+    NSNetworkVolumesUsageDescription: >-
+      Claudius needs access to network volumes only when you pick a
+      project from one. Files stay on your machine.
   # x64 (Intel) ONLY. The release pipeline cross-builds x64 on an Apple
   # Silicon runner and rebuilds better-sqlite3 for x64 before `next build`, so
   # the bundled standalone server is x64. An arm64 target here would reuse that

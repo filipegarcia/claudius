@@ -209,27 +209,40 @@ export type ToolProgressInfo = {
 };
 
 export type QueuedMessage = {
+  /**
+   * Server-side uuid (or client-minted uuid the server adopted). Stable from
+   * the moment a message lands in the queue through to the eventual `sendInput`
+   * broadcast — so the JSONL message, the provenance DB rows, and the inbox
+   * notifications all use this same id. Field name kept as `id` for back-compat
+   * with the `QueueIndicator` component.
+   */
   id: string;
   text: string;
-  /** Image attachments referenced by `[Image #ordinal]` markers in `text`. */
-  images?: AttachedImage[];
+  /**
+   * True when the queued entry carries one or more image attachments. The raw
+   * base64 blobs stay server-side — they're not shipped on every `queue:updated`
+   * SSE snapshot (multi-MB blobs × N reorders would crush the wire). The
+   * composer's "Edit" action fetches them back via the DELETE-and-return
+   * endpoint on demand.
+   */
+  hasImages?: boolean;
   /**
    * When true, this queued entry is an SDK-handled slash command (e.g.
-   * `/compact`). The flush path forwards it with `slash: true` so the server
-   * skips the user-message echo and emits a `slash_invoked` system pill
-   * instead.
+   * `/compact`). The server's drain forwards it with `slash: true` so the
+   * synthetic `slash_invoked` system pill is emitted in place of a user-message
+   * echo.
    */
   slash?: boolean;
   /**
-   * When true, this queued entry came from a clicked suggestion chip. The flush
-   * path forwards `fromSuggestion: true` so the server records its provenance
-   * and the bubble is badged as auto-suggested (see `suggestedUuids`).
+   * When true, this queued entry originated from a clicked suggestion chip. The
+   * server persisted provenance at enqueue time (keyed by `id`) so the eventual
+   * bubble is badged as auto-suggested.
    */
   fromSuggestion?: boolean;
   /**
-   * When true, this queued entry was submitted as the session goal. The flush
-   * path forwards `fromGoal: true` so the server records its provenance and the
-   * bubble is badged as a goal (see `goalUuids`).
+   * When true, this queued entry was submitted as the session goal. The server
+   * persisted provenance at enqueue time so the eventual bubble is badged as a
+   * goal.
    */
   fromGoal?: boolean;
 };
@@ -627,12 +640,31 @@ export type ChatActions = {
       fromGoal?: boolean;
     },
   ): Promise<void>;
-  enqueue(text: string, images?: AttachedImage[]): void;
-  cancelQueued(id: string): void;
-  /** Pull a queued item back into the input; returns its text and removes it. */
-  editQueued(id: string): { text: string; images?: AttachedImage[] } | null;
-  /** Move a queued item up (-1) or down (+1) in the queue. */
-  reorderQueued(id: string, dir: -1 | 1): void;
+  /**
+   * Explicitly stage a message in the server-side queue, even if the session
+   * is idle. Round-trips to `POST /api/sessions/[id]/input` with
+   * `forceQueue: true`; the local `QueueIndicator` paints from the
+   * `queue:updated` SSE echo that follows.
+   */
+  enqueue(text: string, images?: AttachedImage[]): Promise<void>;
+  /** Cancel a queued message. Round-trip; the SSE echo reflects the removal. */
+  cancelQueued(id: string): Promise<void>;
+  /**
+   * Pull a queued item back into the composer: round-trips a DELETE that
+   * returns the full row (text + images) so the composer can re-edit. Images
+   * aren't in the `queue:updated` snapshot — this is the only path that
+   * recovers their base64 bytes.
+   */
+  editQueued(id: string): Promise<{ text: string; images?: AttachedImage[] } | null>;
+  /** Move a queued item up (-1) or down (+1) in the queue. Server-side swap. */
+  reorderQueued(id: string, dir: -1 | 1): Promise<void>;
+  /**
+   * Per-message override of the workspace `queueDispatchMode` setting:
+   * atomically pop this queued item and push it to the agent immediately,
+   * jumping ahead of the other staged items. The SDK runs it as the very
+   * next turn, even while the current turn is still in flight.
+   */
+  sendQueuedNow(id: string): Promise<void>;
   resolvePermission(requestId: string, decision: PermissionDecision): Promise<void>;
   interrupt(): Promise<void>;
   setPermissionMode(mode: PermissionMode): Promise<void>;

@@ -62,6 +62,17 @@ import {
   type TaskSnapshotEntry,
 } from "@/lib/shared/events";
 import { listSessionTasks, saveSessionTask } from "./session-tasks-db";
+import {
+  listQueue,
+  enqueueTail,
+  popHead as popQueueHead,
+  popByUuid as popQueuedByUuid,
+  removeByUuid as removeQueuedByUuid,
+  updateByUuid as updateQueuedByUuid,
+  moveByUuid as moveQueuedByUuid,
+  type QueuedMessageRow,
+} from "./queued-messages-db";
+import type { QueuedMessageMeta } from "@/lib/shared/events";
 import { extractUserPromptText, isRealUserPrompt } from "@/lib/shared/user-prompt";
 import {
   planThinkingReplayRecovery,
@@ -1230,6 +1241,25 @@ export class Session {
   private isReplayingTranscript = false;
 
   /**
+   * In-memory mirror of `queued_messages` for this session, ordered by `position`
+   * ascending. Loaded lazily on first read/mutation and kept in sync by every
+   * queue method below. The cache exists so `getStatus()` and `flushQueueIfIdle()`
+   * can answer "is the queue empty?" without an awaited DB round-trip — the DB
+   * is still the source of truth, every mutation re-syncs from it.
+   */
+  private queueCache: QueuedMessageRow[] = [];
+  private queueLoaded = false;
+  /**
+   * Mutex for `flushQueueIfIdle()`. Two concurrent drains (e.g. a `result`
+   * handler firing at the same instant as `submitPermissionAnswer` resolving)
+   * would both pass the `getStatus()==="idle"` guard, both await `popQueueHead`,
+   * and pop two items in a single turn boundary — breaking the one-message-
+   * per-turn invariant. The flag is checked-and-set before any await so the
+   * second caller short-circuits before the race window opens.
+   */
+  private isDraining = false;
+
+  /**
    * One-shot flag for the post-plan-execution verify reminder (Claude Code TUI
    * parity, feature 39). Set true in `resolvePlan`'s accept branch and cleared
    * when the next `result` event lands in `consume()`, where we queue the
@@ -1265,6 +1295,27 @@ export class Session {
     enabled?: boolean;
     override?: { excludeDefault?: boolean; tips?: readonly string[] };
   } = {};
+
+  /**
+   * Default dispatch mode for new user messages — mirrors the user-scope
+   * `queueDispatchMode` setting. Cached at `start()` so the per-send hot
+   * path (`/api/sessions/[id]/input`) reads it from memory instead of
+   * stat-ing the settings file on every keystroke.
+   *
+   *   - `"wait"` (default): the existing queue/idle drain behaviour.
+   *   - `"asap"`: skip the DB queue, push straight to the SDK's input
+   *     pipe on every send, even when a turn is in flight.
+   *
+   * The per-message "Send now" override on the QueueIndicator strip
+   * bypasses this for one item at a time via `sendQueuedNow()` — that
+   * path is the same as asap for the popped item.
+   */
+  private queueDispatchMode: "wait" | "asap" = "wait";
+
+  /** Public accessor used by the /input route to resolve queue-vs-send. */
+  get effectiveQueueDispatchMode(): "wait" | "asap" {
+    return this.queueDispatchMode;
+  }
 
   constructor(opts: {
     id?: string;
@@ -1601,6 +1652,12 @@ export class Session {
             }
           : undefined,
     };
+    // Resolve the queue-dispatch mode from user settings (default "wait").
+    // Cached for the lifetime of this Session; a settings change after
+    // start() won't retroactively apply — the user already accepted that
+    // tradeoff for the other settings-derived caches above.
+    this.queueDispatchMode =
+      userSettings.queueDispatchMode === "asap" ? "asap" : "wait";
 
     // Unify everything that appends to the Claude Code system-prompt preset
     // into ONE `systemPrompt.append`. Two sources can contribute: the session
@@ -1963,6 +2020,14 @@ export class Session {
     // --resume <id>`) trigger a resync that broadcasts new turns to all
     // open browser tabs without a manual refresh.
     this.startJsonlWatcher();
+    // Auto-drain any items that were sitting in the queue when the server
+    // came back up (or when this session was reaped while idle and is now
+    // being revived). The whole point of moving the queue server-side: even
+    // if the user never reopens the tab, queued messages will eventually
+    // run. `flushQueueIfIdle` guards on `getStatus() === "idle"`, so if a
+    // resumed turn is somehow already running we'll skip and the result-
+    // handler drain picks it up later.
+    void this.flushQueueIfIdle().catch(() => {});
   }
 
   private startJsonlWatcher(): void {
@@ -2220,6 +2285,10 @@ export class Session {
     }
     pending.resolve(result);
     this.broadcastTurnStatusIfChanged();
+    // If this answer cleared the last gating prompt and no turn is in flight,
+    // drain a queued message. Idle-guard inside `flushQueueIfIdle` makes this
+    // a no-op when the turn continues, so we can call unconditionally.
+    void this.flushQueueIfIdle().catch(() => {});
     return true;
   }
 
@@ -2258,6 +2327,7 @@ export class Session {
     if (answers.length === 0 || !hasAnyContent) {
       pending.resolve({ behavior: "deny", message: "User cancelled the question" });
       this.broadcastTurnStatusIfChanged();
+      void this.flushQueueIfIdle().catch(() => {});
       return true;
     }
 
@@ -2266,6 +2336,7 @@ export class Session {
       updatedInput: buildAskUpdatedInput(pending.questions, answers),
     });
     this.broadcastTurnStatusIfChanged();
+    void this.flushQueueIfIdle().catch(() => {});
     return true;
   }
 
@@ -2295,6 +2366,7 @@ export class Session {
       // regardless of whether the user accepted the plan that produced it.
       void mergeSessionState(this.cwd, this.id, { priorPlan: pending.plan });
       this.broadcastTurnStatusIfChanged();
+      void this.flushQueueIfIdle().catch(() => {});
       return true;
     }
 
@@ -2355,6 +2427,7 @@ export class Session {
     // (plan → acceptEdits) follows along immediately.
     this.broadcast({ type: "mode_changed", mode: "acceptEdits" });
     this.broadcastTurnStatusIfChanged();
+    void this.flushQueueIfIdle().catch(() => {});
     return true;
   }
 
@@ -4481,10 +4554,32 @@ export class Session {
     // These ride on transient SSE-only events absent from the JSONL, so a
     // session rebuilt from disk loses them; this repaints them from SQLite.
     void this.sendTaskSnapshot(fn);
+    // Re-emit the current queue snapshot fresh on every subscribe.
+    // `queue:updated` is excluded from the replay buffer (it's a snapshot,
+    // not an event log — broadcasting full snapshots on every reorder/edit
+    // into a 1000-event buffer that trims FIFO would silently evict real
+    // history) so a late-joining tab needs this echo to paint the
+    // QueueIndicator strip with the right contents.
+    void this.sendQueueSnapshot(fn);
     return () => {
       this.subscribers.delete(fn);
       this.notifySubscriberCount();
     };
+  }
+
+  private async sendQueueSnapshot(fn: Subscriber): Promise<void> {
+    try {
+      await this.loadQueueIfNeeded();
+      if (this.queueCache.length === 0) return;
+      fn({
+        type: "queue:updated",
+        sessionId: this.id,
+        queue: this.queueSnapshot(),
+      });
+    } catch {
+      // best-effort: an empty snapshot just means the strip stays hidden
+      // until the next mutation broadcast.
+    }
   }
 
   /**
@@ -4525,6 +4620,234 @@ export class Session {
       this.pendingAskQuestions.size > 0 ||
       this.pendingPlans.size > 0
     );
+  }
+
+  // ────────────────────────── server-side message queue ──────────────────────
+  //
+  // Lifecycle: messages typed while the agent is mid-turn (or while an
+  // interactive prompt is open) are appended to this queue. The Session drains
+  // exactly one item per "idle transition" — the `result` handler on
+  // `subtype === "success"`, every successful permission/ask/plan answer, and
+  // once on session boot after `start()` completes. That makes delivery
+  // independent of any browser being open or focused: even a tab that was
+  // closed mid-session has its queued messages run eventually.
+  //
+  // The previous client-side queue (sessionStorage + `flushQueue()` in
+  // `use-session.ts`) was gated on a live, focused tab — backgrounded tabs
+  // are throttled by the browser, so the React effect that fired the drain
+  // never ran and messages sat indefinitely until refocus.
+  //
+  // The cache (queueCache) is an in-memory mirror of `queued_messages` for
+  // fast "is the queue empty?" reads. Every mutation re-syncs the cache from
+  // the DB so the broadcast snapshot is authoritative.
+
+  private toQueueMeta(row: QueuedMessageRow): QueuedMessageMeta {
+    return {
+      uuid: row.uuid,
+      text: row.text,
+      ...(row.slash ? { slash: true } : {}),
+      ...(row.fromSuggestion ? { fromSuggestion: true } : {}),
+      ...(row.fromGoal ? { fromGoal: true } : {}),
+      ...(row.images && row.images.length > 0 ? { hasImages: true } : {}),
+      createdAtMs: row.createdAtMs,
+    };
+  }
+
+  private queueSnapshot(): QueuedMessageMeta[] {
+    return this.queueCache.map((r) => this.toQueueMeta(r));
+  }
+
+  private broadcastQueue(): void {
+    this.broadcast({
+      type: "queue:updated",
+      sessionId: this.id,
+      queue: this.queueSnapshot(),
+    });
+  }
+
+  private async loadQueueIfNeeded(): Promise<void> {
+    if (this.queueLoaded) return;
+    this.queueCache = await listQueue(this.cwd, this.id).catch(() => []);
+    this.queueLoaded = true;
+  }
+
+  private async refreshQueueCache(): Promise<void> {
+    this.queueCache = await listQueue(this.cwd, this.id).catch(
+      () => this.queueCache,
+    );
+    this.queueLoaded = true;
+  }
+
+  /**
+   * Append a message to the tail of this session's queue. Used by `/api/sessions/[id]/input`
+   * when the session is busy (or when the client explicitly opted into
+   * `forceQueue`). Returns the uuid the message will carry through the
+   * eventual `sendInput()` — either the caller-supplied uuid or a server-minted
+   * one. Provenance bookkeeping (suggested/goal) is the route's job, keyed by
+   * this same uuid, so it stays consistent whether the message ran immediately
+   * or got drained later.
+   */
+  async enqueueMessage(input: {
+    text: string;
+    images?: Array<{ data: string; mediaType: string; ordinal?: number }>;
+    uuid?: string;
+    slash?: boolean;
+    fromSuggestion?: boolean;
+    fromGoal?: boolean;
+  }): Promise<string> {
+    await this.loadQueueIfNeeded();
+    const uuid = input.uuid ?? randomUUID();
+    const row = await enqueueTail(this.cwd, {
+      sessionId: this.id,
+      uuid,
+      text: input.text ?? "",
+      images: input.images,
+      slash: input.slash,
+      fromSuggestion: input.fromSuggestion,
+      fromGoal: input.fromGoal,
+    });
+    this.queueCache.push(row);
+    this.broadcastQueue();
+    return uuid;
+  }
+
+  async removeQueued(uuid: string): Promise<boolean> {
+    await this.loadQueueIfNeeded();
+    const ok = await removeQueuedByUuid(this.cwd, this.id, uuid);
+    if (ok) {
+      this.queueCache = this.queueCache.filter((r) => r.uuid !== uuid);
+      this.broadcastQueue();
+    }
+    return ok;
+  }
+
+  async editQueuedMessage(
+    uuid: string,
+    patch: {
+      text?: string;
+      images?: Array<{ data: string; mediaType: string; ordinal?: number }> | null;
+    },
+  ): Promise<boolean> {
+    await this.loadQueueIfNeeded();
+    const ok = await updateQueuedByUuid(this.cwd, this.id, uuid, patch);
+    if (ok) {
+      await this.refreshQueueCache();
+      this.broadcastQueue();
+    }
+    return ok;
+  }
+
+  /**
+   * Per-message "Send now" override: atomically pop a specific queued
+   * message and push it into the SDK input pipe via `sendInput()`. The
+   * SDK runs it as the very next turn (or right now, if the agent is
+   * already idle). Idempotent — a second call with the same uuid is a
+   * no-op because `popQueuedByUuid` returned null.
+   *
+   * Same semantics as the global "asap" mode for one specific item,
+   * which is why the QueueIndicator button labels it "Send now" rather
+   * than "Dispatch ahead of queue" — the user mental model is
+   * "skip the queue for this message".
+   *
+   * NB: this jumps the FIFO order. If the user has three queued
+   * messages [A, B, C] and clicks "Send now" on B, then B runs next
+   * (after the current turn), then A drains via `flushQueueIfIdle`,
+   * then C. That ordering is intentional — the explicit override is
+   * the user saying "this one is more urgent than the staged ones".
+   */
+  async sendQueuedNow(uuid: string): Promise<boolean> {
+    await this.loadQueueIfNeeded();
+    const row = await popQueuedByUuid(this.cwd, this.id, uuid);
+    if (!row) return false;
+    this.queueCache = this.queueCache.filter((r) => r.uuid !== row.uuid);
+    this.broadcastQueue();
+    // Provenance was persisted at enqueue time by the /input route — keyed
+    // by this same uuid, which we reuse — so the badge re-renders on the
+    // bubble when sendInput's broadcast echo lands.
+    this.sendInput(
+      row.text,
+      row.images ?? undefined,
+      {
+        uuid: row.uuid,
+        ...(row.slash ? { slash: true } : {}),
+      },
+    );
+    return true;
+  }
+
+  async moveQueuedMessage(uuid: string, direction: "up" | "down"): Promise<boolean> {
+    await this.loadQueueIfNeeded();
+    const ok = await moveQueuedByUuid(this.cwd, this.id, uuid, direction);
+    if (ok) {
+      await this.refreshQueueCache();
+      this.broadcastQueue();
+    }
+    return ok;
+  }
+
+  /** Sync queue-length check used by the input route to decide queue-vs-send. */
+  async queueLength(): Promise<number> {
+    await this.loadQueueIfNeeded();
+    return this.queueCache.length;
+  }
+
+  /** Public read for the SSE attach echo (and any future debug surface). */
+  async getQueueSnapshot(): Promise<QueuedMessageMeta[]> {
+    await this.loadQueueIfNeeded();
+    return this.queueSnapshot();
+  }
+
+  /**
+   * Pop the head of the queue and dispatch it via `sendInput()`, but only when
+   * the session is currently idle (no in-flight turn, no pending decisions, no
+   * live subagents). Single source of truth for "drain a queued message" —
+   * called from:
+   *
+   *   - the `result` handler in `consume()` on `subtype === "success"` only.
+   *     Interrupts (subtype !== "success") deliberately do NOT auto-drain, so
+   *     hitting Stop mid-turn doesn't immediately fire the next queued item.
+   *   - every successful `resolvePermission` / `submitAskAnswer` / `resolvePlan`.
+   *     The idle guard short-circuits when the turn continues; only the case
+   *     where the answer was the last thing actually drains.
+   *   - once at the end of `start()`, after the JSONL watcher is armed. That's
+   *     what gives a queue items survive a server restart: when the session
+   *     loads from disk, any leftover queued message in SQLite is pushed into
+   *     a fresh turn automatically.
+   *
+   * Guarded by `isDraining` to prevent two concurrent callers from popping
+   * twice in one boundary (see the field comment).
+   */
+  private async flushQueueIfIdle(): Promise<void> {
+    if (this.done) return;
+    if (this.isDraining) return;
+    if (this.getStatus() !== "idle") return;
+    this.isDraining = true;
+    try {
+      await this.loadQueueIfNeeded();
+      if (this.queueCache.length === 0) return;
+      // Re-check status after any await — a fresh sendInput from the route
+      // could have flipped us back to running between the guard above and
+      // the popHead below.
+      if (this.getStatus() !== "idle") return;
+      const head = await popQueueHead(this.cwd, this.id);
+      if (!head) return;
+      this.queueCache = this.queueCache.filter((r) => r.uuid !== head.uuid);
+      this.broadcastQueue();
+      // Provenance (suggested/goal/asset) was already persisted by the input
+      // route when this message was originally enqueued — keyed by the same
+      // uuid we now reuse — so the badge re-renders correctly when sendInput's
+      // broadcast echo lands. No bookkeeping needed here.
+      this.sendInput(
+        head.text,
+        head.images ?? undefined,
+        {
+          uuid: head.uuid,
+          ...(head.slash ? { slash: true } : {}),
+        },
+      );
+    } finally {
+      this.isDraining = false;
+    }
   }
 
   /**
@@ -4663,10 +4986,18 @@ export class Session {
     if (event.type === "sdk" && event.at == null) {
       event = { ...event, at: Date.now() };
     }
-    this.buffer.push(event);
-    if (this.buffer.length > 1000) {
-      this.bufferTrimmed = true;
-      this.buffer.splice(0, this.buffer.length - 1000);
+    // `queue:updated` is a SNAPSHOT, not an event log entry — its payload is
+    // the full current queue, so pushing every change into the 1000-event
+    // FIFO buffer would (a) waste capacity, evicting real history, and
+    // (b) replay stale snapshots on reload. Live subscribers see it directly
+    // via the for-loop below; new subscribers re-render the queue from
+    // `sendQueueSnapshot()` in `subscribe()`.
+    if (event.type !== "queue:updated") {
+      this.buffer.push(event);
+      if (this.buffer.length > 1000) {
+        this.bufferTrimmed = true;
+        this.buffer.splice(0, this.buffer.length - 1000);
+      }
     }
     // Sniff for derived state we want to rehydrate on tab-switch / reload.
     // The tail-replay window can slice off the original tool_use that set
@@ -5331,7 +5662,10 @@ export class Session {
             //      turn would shred long-running plans the user still
             //      expects to see (the user has manual per-item controls
             //      for that case — see `updateTodoItem`).
-            void this.maybeAutoSyncTodosOnTurnEnd();
+            //
+            // The call moved to the queue-drain block below — we need its
+            // promise to chain `flushQueueIfIdle` after the `todos-current`
+            // reminder lands so a drained queued turn picks it up.
           }
           // Turn boundary — release the per-turn overload dedupe so the next
           // turn's first 529 signal can bump the streak again. Cleared on
@@ -5343,6 +5677,32 @@ export class Session {
           // Occasionally nudge for feedback (CLI-style survey). Fire-and-
           // forget so the settings read never blocks the turn loop.
           void this.maybeOfferFeedbackSurvey(message);
+          // Drain one queued message into a fresh turn — but ONLY on
+          // `subtype === "success"`. Interrupts and errored turns drop into
+          // the parent `if (type === "result")` block above so `turnInFlight`
+          // clears, but we deliberately don't auto-fire the next item in
+          // those cases: the user (or the SDK error path) just signaled
+          // stop, queueing the next message would feel like the agent
+          // ignored them.
+          //
+          // Ordering matters: `maybeAutoSyncTodosOnTurnEnd()` above is async
+          // and may queue a `todos-current` reminder for the next turn. If
+          // we fire the drain before it lands, that reminder misses the
+          // drained turn's `takePendingReminders()` and waits another turn.
+          // The reminder-staging blocks earlier (date-change, plan-verify)
+          // were already sync, so they're safe; the todos one needs the
+          // chained-then below.
+          if ((message as { subtype?: string }).subtype === "success") {
+            const todosSettled = this.maybeAutoSyncTodosOnTurnEnd().catch(
+              () => {},
+            );
+            void todosSettled.then(() =>
+              this.flushQueueIfIdle().catch(() => {
+                // drain failures are non-fatal; the next idle transition
+                // will retry.
+              }),
+            );
+          }
         }
       }
     } catch (err) {

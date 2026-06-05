@@ -49,10 +49,58 @@ export type BannedWord = {
   addedAt: number;
 };
 
+/**
+ * Admin-only roster row for a channel. The chat-server has no
+ * membership table — public rooms have no join/leave — so this list
+ * is a union of two runtime sources:
+ *
+ *   1. Posters: everyone with a live (non-deleted) message in this
+ *      room. Carries `messageCount` ≥ 1 and timestamps.
+ *   2. Online: currently-subscribed SSE clients whose handshake
+ *      carried a nick. A lurker — connected but never posted — shows
+ *      up with `online: true`, `messageCount: 0`, and null timestamps.
+ *
+ * `online` reflects active SSE connections at the moment the admin
+ * fetched the roster; it's a snapshot, not a subscription (the panel
+ * has a manual refresh button).
+ */
+export type ChannelMember = {
+  nick: string;
+  online: boolean;
+  messageCount: number;
+  /** Null when the member has never posted (online lurker). */
+  firstSeen: number | null;
+  /** Null when the member has never posted (online lurker). */
+  lastSeen: number | null;
+};
+
 // ── SSE wire envelope ──────────────────────────────────────────────
 
+/**
+ * Recent-window broadcast — sent once at stream open with the most
+ * recent REPLAY_LIMIT messages (currently 50), and re-sent by the
+ * server when an EventSource reconnects. The client treats this as
+ * ADDITIVE: it merges into the existing buffer so a parallel
+ * `loadOlder` fetch and messages received between disconnect and
+ * reconnect aren't clobbered. See `mergeReplayMessages`.
+ */
 export type ReplayEvent = {
   type: "replay";
+  roomSlug: string;
+  messages: Message[];
+  pinnedMessageId: string | null;
+};
+
+/**
+ * Authoritative room-state replacement. Emitted by the server when an
+ * admin "clears" or "compacts" a room — the payload IS the new visible
+ * state for every connected client. Same shape as `ReplayEvent` but
+ * the client blind-replaces on this one (so a clear actually clears
+ * and a compact actually trims, even when the user has older messages
+ * cached locally from a prior session).
+ */
+export type RoomReplacedEvent = {
+  type: "room_replaced";
   roomSlug: string;
   messages: Message[];
   pinnedMessageId: string | null;
@@ -92,13 +140,44 @@ export type CommunityStateEvent = {
   reason: string | null;
 };
 
+// ── Presence (IRC-style names list) ────────────────────────────────
+//
+// Three events drive the per-room "who's here" sidebar. See the same
+// block in chat-server/src/types.ts for the protocol semantics; both
+// files must stay in sync.
+
+/** Snapshot of all currently-connected nicks in this room. */
+export type PresenceEvent = {
+  type: "presence";
+  roomSlug: string;
+  nicks: string[];
+};
+
+/** A nick's first SSE connection landed — they "joined" the channel. */
+export type MemberJoinedEvent = {
+  type: "member_joined";
+  roomSlug: string;
+  nick: string;
+};
+
+/** A nick's last SSE connection dropped — they "parted" the channel. */
+export type MemberLeftEvent = {
+  type: "member_left";
+  roomSlug: string;
+  nick: string;
+};
+
 export type ChatEvent =
   | ReplayEvent
+  | RoomReplacedEvent
   | NewMessageEvent
   | MessageDeletedEvent
   | MessagePinnedEvent
   | MessageUnpinnedEvent
-  | CommunityStateEvent;
+  | CommunityStateEvent
+  | PresenceEvent
+  | MemberJoinedEvent
+  | MemberLeftEvent;
 
 // ── Direct messages ────────────────────────────────────────────────
 //

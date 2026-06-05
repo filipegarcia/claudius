@@ -3,6 +3,12 @@ import { homedir } from "node:os";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { NextResponse } from "next/server";
 
+import {
+  categorizeTccPath,
+  isHiddenHomeSubpath,
+  type TccCategory,
+} from "@/lib/shared/tcc-protected";
+
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
@@ -27,15 +33,58 @@ const HIDDEN = new Set([
   ".DS_Store",
 ]);
 
+/**
+ * Response shape returned when the caller asked us to descend into a
+ * macOS TCC-protected folder (Desktop / Documents / Downloads / Movies /
+ * Music / Pictures) without setting `?ack=1`. The picker UI shows an
+ * in-app heads-up explaining what's about to happen and only then
+ * re-issues the request with `?ack=1`, at which point the OS-level TCC
+ * dialog may fire — but the user now has the context they were missing
+ * before. See `lib/shared/tcc-protected.ts` for the full rationale.
+ */
+type NeedsAckResponse = {
+  needsAck: true;
+  category: TccCategory;
+  path: string;
+};
+
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const requested = url.searchParams.get("path") ?? FS_ROOT;
+  const ack = url.searchParams.get("ack") === "1";
   const path = isAbsolute(requested) ? resolve(requested) : resolve(FS_ROOT, requested);
 
   // Confine browsing to FS_ROOT. `resolve` above collapsed any `..`, so the
   // path must equal the root or sit beneath it; anything else escaped.
   if (path !== FS_ROOT && !path.startsWith(FS_ROOT + sep)) {
     return NextResponse.json({ error: "path outside allowed root" }, { status: 403 });
+  }
+
+  // Hard-block descent into `~/Library/Containers/*` and
+  // `~/Library/Group Containers/*`. These trigger the macOS "Claudius
+  // would like to access data from other apps" prompt and no workspace
+  // legitimately lives under them. We hide them at the entry-listing
+  // level too (below), but defend-in-depth at the request boundary so a
+  // hand-crafted `?path=` can't slip through.
+  if (path !== FS_ROOT && path.startsWith(FS_ROOT + sep)) {
+    const relFromRoot = relative(FS_ROOT, path).split(sep).join("/");
+    if (isHiddenHomeSubpath(relFromRoot, process.platform)) {
+      return NextResponse.json(
+        { error: "path is in a hidden system folder" },
+        { status: 403 },
+      );
+    }
+  }
+
+  // TCC gate: a request that tries to read into Desktop/Documents/...
+  // without `?ack=1` gets a needsAck sentinel instead of an fs.stat. The
+  // picker UI uses that to show its in-app explanation BEFORE we make
+  // the syscall that fires macOS's own permission dialog. This is the
+  // whole point of the feature — see lib/shared/tcc-protected.ts.
+  const category = categorizeTccPath(path, FS_ROOT, process.platform);
+  if (category && !ack) {
+    const body: NeedsAckResponse = { needsAck: true, category, path };
+    return NextResponse.json(body);
   }
 
   let stat: import("node:fs").Stats;
@@ -57,11 +106,31 @@ export async function GET(req: Request) {
     throw err;
   }
 
-  const entries: { name: string; path: string }[] = [];
+  const entries: { name: string; path: string; protected?: boolean }[] = [];
   for (const ent of dirents) {
     if (HIDDEN.has(ent.name) || ent.name.startsWith(".")) continue;
     if (!ent.isDirectory()) continue;
-    entries.push({ name: ent.name, path: join(path, ent.name) });
+    const childPath = join(path, ent.name);
+
+    // Suppress Library/Containers and Library/Group Containers entries
+    // entirely on macOS so the user never even sees them as an option
+    // in the picker. The relative form `path.relative(FS_ROOT, child)`
+    // is what isHiddenHomeSubpath expects.
+    const childRelFromRoot = relative(FS_ROOT, childPath).split(sep).join("/");
+    if (isHiddenHomeSubpath(childRelFromRoot, process.platform)) continue;
+
+    // Tag TCC categories with `protected: true` so the picker can render
+    // a lock badge and intercept the click. We deliberately do NOT stat
+    // these children — `readdir` of the parent already returned them
+    // and we don't need to touch the protected dir to list it as an
+    // entry.
+    const childCategory = categorizeTccPath(childPath, FS_ROOT, process.platform);
+    const entry: { name: string; path: string; protected?: boolean } = {
+      name: ent.name,
+      path: childPath,
+    };
+    if (childCategory) entry.protected = true;
+    entries.push(entry);
   }
   entries.sort((a, b) => a.name.localeCompare(b.name));
 

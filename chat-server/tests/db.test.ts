@@ -31,6 +31,7 @@ import {
   insertMessage,
   isCommunityDisabled,
   listBannedWords,
+  listChannelMembers,
   listConversationsFor,
   messagesBefore,
   recentLiveMessages,
@@ -419,6 +420,85 @@ describe("community kill switch", () => {
     const s = setCommunityDisabled(null);
     expect(s.enabled).toBe(false);
     expect(s.reason).toBeNull();
+  });
+});
+
+// ── Channel members (admin roster) ───────────────────────────────
+
+describe("listChannelMembers", () => {
+  test("empty for a fresh room", () => {
+    expect(listChannelMembers(ROOM)).toEqual([]);
+  });
+
+  test("dedups by nick (case-insensitive) and counts live messages", () => {
+    insertN(3, { nick: "alice" });
+    insertN(2, { nick: "Alice", ip: "10.0.0.2" });
+    insertN(1, { nick: "bob", ip: "10.0.0.3" });
+
+    const members = listChannelMembers(ROOM);
+    expect(members).toHaveLength(2);
+
+    const alice = members.find((m) => m.nick.toLowerCase() === "alice")!;
+    expect(alice.messageCount).toBe(5);
+    expect(alice.firstSeen).toBeLessThanOrEqual(alice.lastSeen);
+
+    const bob = members.find((m) => m.nick === "bob")!;
+    expect(bob.messageCount).toBe(1);
+  });
+
+  test("excludes soft-deleted messages from the count", () => {
+    const [a, b, c] = insertN(3, { nick: "alice" });
+    softDeleteMessage(a!, "admin");
+    softDeleteMessage(b!, "banned");
+
+    const members = listChannelMembers(ROOM);
+    expect(members).toHaveLength(1);
+    expect(members[0]!.messageCount).toBe(1);
+    expect(members[0]!.nick.toLowerCase()).toBe("alice");
+    // lastSeen is the live row's timestamp — the deleted ones are gone
+    // from the GROUP entirely.
+    const live = recentMessages(ROOM, 100).find((m) => m.id === c)!;
+    expect(members[0]!.lastSeen).toBe(live.createdAt);
+  });
+
+  test("drops a member whose every message has been soft-deleted", () => {
+    const [a, b] = insertN(2, { nick: "spammer" });
+    insertN(1, { nick: "alice", ip: "10.0.0.2" });
+    softDeleteMessage(a!, "banned");
+    softDeleteMessage(b!, "banned");
+
+    const members = listChannelMembers(ROOM);
+    expect(members.map((m) => m.nick.toLowerCase())).toEqual(["alice"]);
+  });
+
+  test("excludes admin-posted messages (synthetic 'admin' nick)", () => {
+    insertN(1, { nick: "alice" });
+    insertN(2, { nick: "admin", ip: "10.0.0.9", isAdmin: true });
+
+    const members = listChannelMembers(ROOM);
+    expect(members).toHaveLength(1);
+    expect(members[0]!.nick.toLowerCase()).toBe("alice");
+  });
+
+  test("scopes by room — alice in #bugs doesn't leak into #general", () => {
+    insertN(1, { nick: "alice", roomSlug: "bugs" });
+    insertN(1, { nick: "bob", roomSlug: ROOM });
+
+    expect(listChannelMembers(ROOM).map((m) => m.nick.toLowerCase())).toEqual([
+      "bob",
+    ]);
+    expect(listChannelMembers("bugs").map((m) => m.nick.toLowerCase())).toEqual(
+      ["alice"],
+    );
+  });
+
+  test("orders newest-active first", () => {
+    insertWithTimestamp(ROOM, 1000, "old");
+    insertWithTimestamp(ROOM, 5000, "middle");
+    insertWithTimestamp(ROOM, 9000, "fresh");
+
+    const order = listChannelMembers(ROOM).map((m) => m.nick.toLowerCase());
+    expect(order).toEqual(["fresh", "middle", "old"]);
   });
 });
 

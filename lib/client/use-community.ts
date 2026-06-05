@@ -12,11 +12,17 @@ import type {
   Ban,
   BanKind,
   BannedWord,
+  ChannelMember,
   ChatEvent,
   Message,
   Room,
 } from "@/lib/shared/community";
 import { getCommunityServerUrl } from "@/lib/client/community-server-url";
+import { mergeReplayMessages } from "@/lib/client/merge-replay-messages";
+import {
+  getMessagesCache,
+  schedulePersist as scheduleCachePersist,
+} from "@/lib/client/community-messages-cache";
 
 /**
  * Hook for the /community page.
@@ -250,17 +256,38 @@ export function useCommunity(options: UseCommunityOptions = {}) {
   }, []);
 
   // ── Stream + messages ────────────────────────────────────────────
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [pinnedId, setPinnedId] = useState<string | null>(null);
+  //
+  // Per-room cache lives in a module-level singleton (see
+  // `getMessagesCache`) so the hook can paint the last-seen state on
+  // mount and on room switch without waiting for the SSE replay to
+  // land. Each useState below uses a lazy initializer that reads from
+  // the cache exactly once for the room the user lands on.
+  const [messages, setMessages] = useState<Message[]>(
+    () => getMessagesCache()[currentRoom]?.messages ?? [],
+  );
+  const [pinnedId, setPinnedId] = useState<string | null>(
+    () => getMessagesCache()[currentRoom]?.pinnedId ?? null,
+  );
   const [connected, setConnected] = useState(false);
   // Whether the room has older messages the user hasn't fetched yet.
-  // Starts `true` for every room (no replay on join = the server
-  // hasn't told us anything about history yet, so we assume there's
-  // more until a load-older call returns < 50 rows). Flips to `false`
-  // when the backfill comes back short, indicating we've hit the
-  // beginning of the room.
-  const [hasMore, setHasMore] = useState(true);
+  // Starts `true` for a fresh room — the server's join replay carries
+  // the most recent window (REPLAY_LIMIT, currently 50) but says
+  // nothing about whether older history exists, so we assume there's
+  // more until a backfill call returns < 50 rows. Hydrated from the
+  // per-room cache when available so a return visit keeps the "load
+  // older" button hidden if the user already scrolled to the start.
+  const [hasMore, setHasMore] = useState<boolean>(
+    () => getMessagesCache()[currentRoom]?.hasMore ?? true,
+  );
   const [loadingOlder, setLoadingOlder] = useState(false);
+  // Per-room presence — IRC-style names list of currently-connected
+  // nicks. Hydrated by a `presence` snapshot on stream open and
+  // updated incrementally via `member_joined` / `member_left`. The
+  // list is the displayed casing (server picks one when multiple
+  // tabs use different cases); dedup is case-insensitive in the
+  // reducer below. Reset to `[]` on every room switch so a stale
+  // snapshot from the previous room doesn't paint briefly.
+  const [members, setMembers] = useState<string[]>([]);
   // Kill-switch state. Defaults to enabled — the server only sends a
   // community_state event when it needs to override that default
   // (i.e. it's currently disabled, or just flipped state during the
@@ -281,12 +308,28 @@ export function useCommunity(options: UseCommunityOptions = {}) {
   // https://react.dev/reference/react/useState#storing-information-from-previous-renders
   const [loadedRoom, setLoadedRoom] = useState(currentRoom);
   if (loadedRoom !== currentRoom) {
+    // Snapshot the outgoing room into the cache so that returning to
+    // it later paints instantly. We use the in-render `messages` /
+    // `pinnedId` / `hasMore` values — they're the OLD room's state at
+    // this point because the setMessages/setPinnedId calls below queue
+    // updates that won't apply until the next render.
+    const cache = getMessagesCache();
+    cache[loadedRoom] = { messages, pinnedId, hasMore };
+    // Hydrate the incoming room from cache (or defaults for a room the
+    // user has never visited). The SSE replay will arrive shortly and
+    // replace this with the server-authoritative window; until then,
+    // the user sees their last-seen view instead of an empty flash.
+    const cached = cache[currentRoom];
     setLoadedRoom(currentRoom);
-    setMessages([]);
-    setPinnedId(null);
+    setMessages(cached?.messages ?? []);
+    setPinnedId(cached?.pinnedId ?? null);
     setConnected(false);
-    setHasMore(true);
+    setHasMore(cached?.hasMore ?? true);
     setLoadingOlder(false);
+    // Presence is per-room and per-connection — there's no useful
+    // "last-seen names list" to hydrate from. Start empty; the
+    // server's `presence` snapshot lands a moment after the SSE opens.
+    setMembers([]);
   }
 
   // applyEvent — pure-ish, swallows unknown event tags.
@@ -296,6 +339,32 @@ export function useCommunity(options: UseCommunityOptions = {}) {
       if ("roomSlug" in ev && ev.roomSlug !== slug) return;
       switch (ev.type) {
         case "replay":
+          // Additive merge — see `mergeReplayMessages` for the rules.
+          // The server emits `replay` on join with the most recent
+          // window (REPLAY_LIMIT, currently 50) and again on every
+          // EventSource auto-reconnect. Merging means:
+          //
+          //   • An empty payload (older chat-server that hadn't been
+          //     upgraded to send recent context on join) leaves the
+          //     local cache intact — no "flash of cached messages
+          //     then empty state" when the user returns to a room.
+          //   • A `loadOlder` fetch that resolved before this replay
+          //     landed isn't clobbered.
+          //   • Reconnect after a drop preserves messages that arrived
+          //     between the disconnect and the new connection's first
+          //     replay frame.
+          //
+          // Admin clear/compact use the distinct `room_replaced` event
+          // below so they still apply as an authoritative replace.
+          setMessages((prev) => mergeReplayMessages(prev, ev.messages));
+          setPinnedId(ev.pinnedMessageId);
+          break;
+        case "room_replaced":
+          // Authoritative replace from an admin action (clear room or
+          // compact room). Blind-replace the local buffer with the
+          // server's view — that's the whole reason this is a separate
+          // event from `replay`. Also drop loading-older state because
+          // the buffer just changed under us.
           setMessages(ev.messages);
           setPinnedId(ev.pinnedMessageId);
           break;
@@ -338,6 +407,32 @@ export function useCommunity(options: UseCommunityOptions = {}) {
             reason: ev.reason,
           });
           break;
+        case "presence":
+          // Snapshot — replace the names list wholesale. Sent once
+          // after replay on stream open, and as the source of truth
+          // when a stale `member_left`/`member_joined` race might
+          // otherwise drift.
+          setMembers(ev.nicks);
+          break;
+        case "member_joined":
+          // Idempotent add — server suppresses multi-tab dupes, but
+          // a stale SSE reconnect during the same session could
+          // resend a join we already have. Dedup case-insensitively
+          // so "Alice" and "alice" don't both appear; preserve the
+          // first-seen casing for display.
+          setMembers((prev) => {
+            const lc = ev.nick.toLowerCase();
+            if (prev.some((n) => n.toLowerCase() === lc)) return prev;
+            return [...prev, ev.nick];
+          });
+          break;
+        case "member_left":
+          // Idempotent remove — case-insensitive match.
+          setMembers((prev) => {
+            const lc = ev.nick.toLowerCase();
+            return prev.filter((n) => n.toLowerCase() !== lc);
+          });
+          break;
       }
     },
     [],
@@ -348,7 +443,15 @@ export function useCommunity(options: UseCommunityOptions = {}) {
     // Per-room state was cleared during the previous render (see the
     // `loadedRoom` block above). This effect's only job is to open the
     // EventSource and tear it down on switch.
-    const url = `${SERVER_URL}/rooms/${encodeURIComponent(currentRoom)}/stream`;
+    //
+    // The `?nick=` query param registers this subscriber under the
+    // user's claimed nick on the chat-server, so the admin Members
+    // roster can surface lurkers (connected but never posted). The
+    // chat-server treats it as advisory — invalid / missing nicks are
+    // silently ignored, so older chat-servers without nick-aware
+    // subscribers keep working with this URL unchanged.
+    const nickParam = nick ? `?nick=${encodeURIComponent(nick)}` : "";
+    const url = `${SERVER_URL}/rooms/${encodeURIComponent(currentRoom)}/stream${nickParam}`;
     const es = new EventSource(url);
     esRef.current = es;
 
@@ -370,7 +473,18 @@ export function useCommunity(options: UseCommunityOptions = {}) {
       es.close();
       esRef.current = null;
     };
-  }, [configured, currentRoom, applyEvent, SERVER_URL]);
+  }, [configured, currentRoom, nick, applyEvent, SERVER_URL]);
+
+  // Mirror the in-memory cache to localStorage on every meaningful
+  // state change. Debouncing lives in `scheduleCachePersist` (module
+  // level, shared with the notifications provider) — chatty rooms get
+  // batched into one localStorage write per debounce window, and
+  // mutations from either hook coordinate through the same timer.
+  useEffect(() => {
+    const cache = getMessagesCache();
+    cache[currentRoom] = { messages, pinnedId, hasMore };
+    scheduleCachePersist();
+  }, [currentRoom, messages, pinnedId, hasMore]);
 
   // ── Actions ──────────────────────────────────────────────────────
 
@@ -437,6 +551,51 @@ export function useCommunity(options: UseCommunityOptions = {}) {
       setLoadingOlder(false);
     }
   }, [configured, currentRoom, hasMore, loadingOlder, messages, SERVER_URL]);
+
+  // Auto-fire `loadOlder` once per room visit if the SSE join replay
+  // didn't land any content. Two cases this safety net covers:
+  //
+  //   1. The chat-server hasn't been upgraded to send a populated
+  //      `replay` on connect — old deployments sent an empty replay
+  //      and required a manual "Load older" click. The `/messages`
+  //      backfill endpoint has always worked, so we just call it
+  //      ourselves and the user sees the recent window with no extra
+  //      interaction.
+  //   2. Brand-new room with no history — `loadOlder` returns 0,
+  //      `hasMore` flips false, and the "empty room" state shows as
+  //      designed (no "Load older" button, no infinite retry).
+  //
+  // Per-room single-shot via `autoBackfilledRoomsRef`: a later admin
+  // clear (live or via reload-after-recovery) won't loop back into
+  // another backfill that resurrects the cleared content.
+  //
+  // Threshold is a recent-window size (not "any content") because the
+  // shared cache may have just 1–2 messages — anything the
+  // notifications provider appended for a room the user hadn't opened
+  // yet. A bare "messages.length > 0" gate would then skip the
+  // backfill and the user would see those 1–2 messages plus a "Load
+  // older" button instead of the recent window they expect.
+  const AUTO_BACKFILL_MIN_RECENT = 50;
+  const autoBackfilledRoomsRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!configured || !connected) return;
+    if (autoBackfilledRoomsRef.current.has(currentRoom)) return;
+    if (messages.length >= AUTO_BACKFILL_MIN_RECENT || !hasMore) {
+      // Cache already covers (or exceeds) the recent window we'd
+      // fetch, or the server has nothing older to give — mark this
+      // room as handled and stop watching.
+      autoBackfilledRoomsRef.current.add(currentRoom);
+      return;
+    }
+    autoBackfilledRoomsRef.current.add(currentRoom);
+    // `loadOlder` internally calls setMessages/setHasMore/setLoadingOlder.
+    // That's the right thing here — the whole point of this effect is to
+    // kick off a fetch whose result updates state — but the React 19
+    // lint rule flags any transitive setState-in-effect. The Set guard
+    // above prevents cascade re-runs, so this is safe.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadOlder();
+  }, [configured, connected, currentRoom, messages.length, hasMore, loadOlder]);
 
   // ── Admin actions ────────────────────────────────────────────────
   //
@@ -597,6 +756,24 @@ export function useCommunity(options: UseCommunityOptions = {}) {
     [adminCall],
   );
 
+  // Channel-members roster (admin-only): distinct posters in a room with
+  // last-seen + message count. Mirrors the listBans / listBannedWords
+  // shape — returns the unwrapped list directly because callers always
+  // want the array, not the SendResult wrapper.
+  const listChannelMembers = useCallback(
+    async (slug: string): Promise<ChannelMember[]> => {
+      if (!isAdmin) return [];
+      const res = await adminCall(
+        "GET",
+        `/rooms/${encodeURIComponent(slug)}/members`,
+      );
+      if (!res.ok) return [];
+      const data = res.data as { members?: ChannelMember[] } | undefined;
+      return data?.members ?? [];
+    },
+    [isAdmin, adminCall],
+  );
+
   // ── Public API ───────────────────────────────────────────────────
 
   return useMemo(
@@ -618,6 +795,8 @@ export function useCommunity(options: UseCommunityOptions = {}) {
       connected,
       hasMore,
       loadingOlder,
+      // IRC-style names list for the current room
+      members,
       // community-wide kill switch
       communityState,
       // actions
@@ -639,6 +818,7 @@ export function useCommunity(options: UseCommunityOptions = {}) {
       listBannedWords,
       addBannedWord,
       removeBannedWord,
+      listChannelMembers,
     }),
     [
       configured,
@@ -654,6 +834,7 @@ export function useCommunity(options: UseCommunityOptions = {}) {
       connected,
       hasMore,
       loadingOlder,
+      members,
       communityState,
       send,
       loadOlder,
@@ -672,6 +853,7 @@ export function useCommunity(options: UseCommunityOptions = {}) {
       listBannedWords,
       addBannedWord,
       removeBannedWord,
+      listChannelMembers,
     ],
   );
 }

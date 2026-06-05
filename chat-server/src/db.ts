@@ -295,6 +295,65 @@ export function softDeleteMessage(
   return stmtSoftDelete.run(Date.now(), reason, id).changes > 0;
 }
 
+// ── Channel members (admin-only roster) ───────────────────────────
+//
+// "Members" in a public chat-server doesn't mean a membership table —
+// there's no join/leave concept; anyone can read or post any channel.
+// What admins actually want is a moderation roster: distinct posters in
+// a room with last-seen + message count, so it's obvious who's active,
+// who's flooding, and who hasn't been seen for a while.
+//
+// GROUP BY uses COLLATE NOCASE because nicks are case-insensitive on
+// the wire (validation + ban + DM routing all lowercase before
+// comparing). The `nick` column returned is one of the matching rows'
+// casings (SQLite picks deterministically per-group but not necessarily
+// the most recent one); for a moderation list that's fine — the
+// lowercase identity is what matters and the displayed casing matches
+// what users have seen.
+
+export type ChannelMember = {
+  nick: string;
+  messageCount: number;
+  firstSeen: number;
+  lastSeen: number;
+};
+
+const stmtListChannelMembers = db.prepare(
+  `SELECT
+     nick,
+     COUNT(*)         AS message_count,
+     MIN(created_at)  AS first_seen,
+     MAX(created_at)  AS last_seen
+   FROM messages
+   WHERE room_slug = ? AND deleted_at IS NULL AND is_admin = 0
+   GROUP BY nick COLLATE NOCASE
+   ORDER BY MAX(created_at) DESC`,
+);
+
+type ChannelMemberRow = {
+  nick: string;
+  message_count: number;
+  first_seen: number;
+  last_seen: number;
+};
+
+/**
+ * Distinct posters in `roomSlug` (case-insensitive), newest-active
+ * first. Excludes soft-deleted messages so users whose posts have all
+ * been moderated away don't pad the list — but also excludes
+ * `is_admin = 1` rows so the synthetic "admin" account doesn't show up
+ * (it's not a real community member, just the announce/post-as-admin
+ * shape).
+ */
+export function listChannelMembers(roomSlug: string): ChannelMember[] {
+  return rows<ChannelMemberRow>(stmtListChannelMembers, [roomSlug]).map((r) => ({
+    nick: r.nick,
+    messageCount: r.message_count,
+    firstSeen: r.first_seen,
+    lastSeen: r.last_seen,
+  }));
+}
+
 // ── Pins ───────────────────────────────────────────────────────────
 
 const stmtSetPin = db.prepare(

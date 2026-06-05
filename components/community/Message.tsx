@@ -12,6 +12,13 @@ type Props = {
   onDelete?: () => void;
   onPin?: () => void;
   onBan?: () => void;
+  /**
+   * When provided, the nickname renders as a button that opens a DM
+   * thread with this message's author. Parent passes `undefined` for
+   * own / deleted rows so we don't show a "DM yourself" affordance
+   * or a click target on a tombstone.
+   */
+  onSelectNick?: () => void;
 };
 
 /**
@@ -33,6 +40,7 @@ export function Message({
   onDelete,
   onPin,
   onBan,
+  onSelectNick,
 }: Props) {
   // Soft-deleted rows render a minimal greyed placeholder where the
   // original message used to be — no moderation controls (the row is
@@ -66,18 +74,35 @@ export function Message({
         )}
       >
         <div className="mb-0.5 flex items-center gap-1.5 text-[11px] text-[var(--muted)]">
-          <span
-            className={cn(
-              "font-mono font-medium",
-              isDeleted
-                ? "text-[var(--muted)] line-through"
-                : message.isAdmin
+          {onSelectNick && !isDeleted ? (
+            <button
+              type="button"
+              onClick={onSelectNick}
+              title={`Direct message ${message.nick}`}
+              data-testid={`community-message-nick-${message.nick}`}
+              className={cn(
+                "rounded font-mono font-medium underline-offset-2 hover:underline focus:outline-none focus-visible:ring-1 focus-visible:ring-[var(--accent)]",
+                message.isAdmin
                   ? "text-[var(--accent)]"
                   : "text-[var(--foreground)]",
-            )}
-          >
-            {message.nick}
-          </span>
+              )}
+            >
+              {message.nick}
+            </button>
+          ) : (
+            <span
+              className={cn(
+                "font-mono font-medium",
+                isDeleted
+                  ? "text-[var(--muted)] line-through"
+                  : message.isAdmin
+                    ? "text-[var(--accent)]"
+                    : "text-[var(--foreground)]",
+              )}
+            >
+              {message.nick}
+            </span>
+          )}
           {message.isAdmin && !isDeleted && (
             <span className="rounded bg-[var(--accent)]/10 px-1 py-px font-mono text-[9px] uppercase tracking-wider text-[var(--accent)]">
               admin

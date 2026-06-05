@@ -22,6 +22,7 @@ import { NicknameModal } from "@/components/community/NicknameModal";
 import { AdminPanel } from "@/components/community/AdminPanel";
 import { DMThread } from "@/components/community/DMThread";
 import { NewDMModal } from "@/components/community/NewDMModal";
+import { MembersList } from "@/components/community/MembersList";
 
 type Props = {
   /**
@@ -130,6 +131,25 @@ export function CommunityChat({ onOptOut }: Props) {
     const r = await community.unpinRoom(community.currentRoom);
     if (!r.ok) alert(`Unpin failed: ${r.error}`);
   }, [community]);
+
+  // Open a DM thread with the clicked author. Skips no-ops (own nick,
+  // empty nick) so the channel column doesn't briefly flip to a
+  // "DM yourself" thread. Wired into MessageList + PinnedBanner so a
+  // click anywhere a nickname is shown in the channel view opens a DM.
+  const handleSelectNick = useCallback(
+    (peer: string) => {
+      const target = peer.trim();
+      if (!target) return;
+      if (
+        community.nick &&
+        target.toLowerCase() === community.nick.toLowerCase()
+      ) {
+        return;
+      }
+      dms.setCurrentPeer(target);
+    },
+    [community.nick, dms],
+  );
 
   const handleBan = useCallback(
     async (nick: string) => {
@@ -323,8 +343,8 @@ export function CommunityChat({ onOptOut }: Props) {
               onClick={toggleNotifications}
               title={
                 notifications.enabled
-                  ? "Notifications: on (click to mute)"
-                  : "Notifications: off (click to enable)"
+                  ? "Notifications: on (click to mute — silences badges and OS toasts)"
+                  : "Notifications: off (click to enable). Messages still appear in channels when you open them."
               }
               aria-pressed={notifications.enabled}
               data-testid="community-notifications-toggle"
@@ -390,6 +410,12 @@ export function CommunityChat({ onOptOut }: Props) {
             message={pinnedMessage}
             isAdmin={community.isAdmin}
             onUnpin={handleUnpin}
+            onSelectNick={
+              community.nick &&
+              pinnedMessage.nick.toLowerCase() === community.nick.toLowerCase()
+                ? undefined
+                : () => handleSelectNick(pinnedMessage.nick)
+            }
           />
         )}
 
@@ -404,6 +430,7 @@ export function CommunityChat({ onOptOut }: Props) {
           hasMore={community.hasMore}
           loadingOlder={community.loadingOlder}
           onLoadOlder={community.loadOlder}
+          onSelectNick={handleSelectNick}
         />
 
         <Composer
@@ -413,6 +440,18 @@ export function CommunityChat({ onOptOut }: Props) {
         />
       </main>
       )}
+
+      {/* IRC-style names list — always visible alongside the channel
+          column. Hydrated from the per-room `presence` snapshot the
+          chat-server sends on stream open, then kept in sync via
+          `member_joined` / `member_left` deltas. Stays mounted during
+          DM view too: the list belongs to the active channel (whose
+          SSE keeps running in the background), not to the main column. */}
+      <MembersList
+        members={community.members}
+        myNick={community.nick}
+        onSelectNick={handleSelectNick}
+      />
 
       {newDMOpen && (
         <NewDMModal
@@ -430,6 +469,7 @@ export function CommunityChat({ onOptOut }: Props) {
           community={community}
           rooms={community.rooms}
           onClose={() => setAdminOpen(false)}
+          onSelectNick={handleSelectNick}
         />
       )}
 

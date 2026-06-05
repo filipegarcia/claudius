@@ -8,6 +8,7 @@
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "node scripts/native-abi.mjs check node && next dev",
+    "prebuild": "node scripts/patch-next-generate-build-id.mjs",
     "build": "cross-env NODE_ENV=production next build",
     "start": "next start",
     "prepare": "git config core.hooksPath .githooks 2>/dev/null || true",

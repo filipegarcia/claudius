@@ -544,6 +544,38 @@ export type AgentChangedEvent = {
   agent: string | null;
 };
 
+/**
+ * Metadata view of one queued user message. Broadcast inside `QueueUpdatedEvent`
+ * so every connected tab can render the QueueIndicator strip without holding
+ * its own copy of the queue. Crucially does NOT include the base64 `images`
+ * blobs that may also be queued — those can be multi-MB and we'd be shipping
+ * them on every reorder/edit. The composer only needs to know `hasImages` to
+ * render the paperclip badge; the actual bytes never leave the server until
+ * the message is drained into `sendInput()`.
+ */
+export type QueuedMessageMeta = {
+  uuid: string;
+  text: string;
+  slash?: boolean;
+  fromSuggestion?: boolean;
+  fromGoal?: boolean;
+  hasImages?: boolean;
+  createdAtMs: number;
+};
+
+/**
+ * Server-authoritative snapshot of this session's pending-message queue.
+ * Emitted whenever the queue changes (enqueue / pop / remove / edit / reorder),
+ * and re-emitted fresh on subscribe so a late-joining tab sees current state
+ * without dependency on the replay buffer. Excluded from the replay buffer
+ * itself — it's a snapshot, not an event log.
+ */
+export type QueueUpdatedEvent = {
+  type: "queue:updated";
+  sessionId: string;
+  queue: QueuedMessageMeta[];
+};
+
 export type ServerEvent =
   | {
       type: "sdk";
@@ -580,7 +612,8 @@ export type ServerEvent =
   | TaskSnapshotEvent
   | AccountAutoRotatedEvent
   | SessionRecapEvent
-  | SessionRecapErrorEvent;
+  | SessionRecapErrorEvent
+  | QueueUpdatedEvent;
 
 export type PermissionDecision =
   | { kind: "allow_once" }
@@ -693,4 +726,26 @@ export type SendInputRequest = {
    * the message is replayed from the SDK JSONL with no in-memory provenance.
    */
   fromGoal?: boolean;
+  /**
+   * When true, always enqueue this message instead of running it immediately,
+   * even if the session is idle. Preserves the explicit `enqueue()` semantics
+   * from the previous client-side queue (stage a message to send after the
+   * current train of thought, without interrupting). When omitted/false the
+   * server decides: idle + empty queue → run now; otherwise enqueue.
+   */
+  forceQueue?: boolean;
+};
+
+/**
+ * Response shape for `POST /api/sessions/[id]/input`. The server decides
+ * whether the message ran immediately or got enqueued; the client uses
+ * `queued` to reconcile any optimistic local state (e.g. roll back the
+ * optimistic user bubble when the message actually landed in the queue
+ * instead of starting a turn). `uuid` echoes the id used for the action —
+ * either the client-supplied uuid or one the server minted.
+ */
+export type SendInputResponse = {
+  ok: true;
+  queued: boolean;
+  uuid: string;
 };
