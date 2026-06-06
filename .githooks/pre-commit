@@ -5,6 +5,10 @@
 
 set -eu
 
+# Recover PATH (git GUIs strip it) and select RUN/RUN_DIRECT. Exits with a
+# friendly error if neither bun nor npx is reachable.
+. "$(dirname "$0")/_runtime.sh"
+
 # Collect staged files (Added/Copied/Modified/Renamed) matching JS/TS
 # extensions, that still exist on disk (skip deletions / rename-from paths).
 files=$(
@@ -20,15 +24,6 @@ if [ -z "$files" ]; then
 fi
 
 count=$(printf '%s\n' "$files" | wc -l | tr -d ' ')
-
-# Prefer bun (matches the repo's tooling); fall back to npx.
-if command -v bun >/dev/null 2>&1; then
-  RUN="bun run"
-  RUN_DIRECT="bunx"
-else
-  RUN="npm run"
-  RUN_DIRECT="npx --no-install"
-fi
 
 echo "▶ Linting $count staged file(s)…"
 # Pass files via xargs so filenames with spaces are handled correctly. The `--`

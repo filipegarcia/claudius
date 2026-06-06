@@ -42,14 +42,9 @@ if [ "$have_input" = "1" ] && [ "$all_deletions" = "1" ]; then
   exit 0
 fi
 
-# Prefer bun (matches the repo's tooling); fall back to npm/npx.
-if command -v bun >/dev/null 2>&1; then
-  RUN="bun run"
-  RUN_DIRECT="bunx"
-else
-  RUN="npm run"
-  RUN_DIRECT="npx --no-install"
-fi
+# Recover PATH (git GUIs strip it) and select RUN/RUN_DIRECT. Exits with a
+# friendly error if neither bun nor npx is reachable.
+. "$(dirname "$0")/_runtime.sh"
 
 # 1. Type-check. This is the actual class of bug we're trying to stop.
 #    `tsc --noEmit` matches what `bun run build` does internally (Next runs
