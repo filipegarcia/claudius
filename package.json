@@ -32,7 +32,7 @@
     "electron:open": "node scripts/electron-open.mjs",
     "electron:typecheck": "tsc -p electron/tsconfig.json --noEmit",
     "electron:compile": "tsc -p electron/tsconfig.json",
-    "electron:build": "bun run electron:rebuild-native && cross-env CLAUDIUS_PACKAGED=1 NODE_ENV=production next build && node scripts/electron-stage-standalone.mjs && bun run electron:compile",
+    "electron:build": "bun run electron:rebuild-native && node scripts/patch-next-generate-build-id.mjs && cross-env CLAUDIUS_PACKAGED=1 NODE_ENV=production next build && node scripts/electron-stage-standalone.mjs && bun run electron:compile",
     "electron:icons": "node scripts/make-icons.mjs",
     "electron:app": "bun run electron:build && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder -m --dir",
     "electron:dist": "bun run electron:build && electron-builder -mwl",
