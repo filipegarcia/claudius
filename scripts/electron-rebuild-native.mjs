@@ -37,8 +37,8 @@ const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..");
 
 /**
- * Refuse to run if a `bun run dev` is already serving on $PORT (default
- * 3000). Why: the rebuild mutates `node_modules/better-sqlite3/build/
+ * Refuse to run if a `bun run dev` is currently serving the project on
+ * port 3000. Why: the rebuild mutates `node_modules/better-sqlite3/build/
  * Release/better_sqlite3.node` from Node ABI 127 to Electron ABI 146 in
  * place. The running dev server has the old .node loaded in memory and
  * keeps working, but the first hot-reload that re-requires `better-sqlite3`
@@ -51,46 +51,83 @@ const REPO_ROOT = path.resolve(__dirname, "..");
  * enough that practically every build sees this error fire at least once
  * in the dev server's logs. Cleanest fix is to refuse to start.
  *
+ * False-positive guard:
+ *   - Probe `http://localhost:3000/` — Next dev's default. Earlier we read
+ *     `process.env.PORT`, but PORT is set in lots of unrelated contexts
+ *     (Claudius itself running on a random port, MCP servers, the user's
+ *     shell), so blindly checking $PORT misfired when this script was
+ *     invoked from inside Claudius.
+ *   - Require BOTH "something is on :3000" AND "the response sniffs as
+ *     Next.js" (X-Powered-By / X-Nextjs-* headers, OR the Next dev HMR
+ *     marker visible in the HTML body). A random HTTP service on 3000
+ *     no longer trips the guard.
+ *
  * Override with CLAUDIUS_REBUILD_IGNORE_DEV=1 if you really know what
- * you're doing (e.g. CI where the dev probe is a false positive).
+ * you're doing (e.g. CI where the probe is still a false positive). The
+ * port can be overridden with CLAUDIUS_DEV_PORT for users who run
+ * `PORT=4000 bun run dev`.
  */
 async function refuseIfDevServerRunning() {
   if (process.env.CLAUDIUS_REBUILD_IGNORE_DEV === "1") return;
-  const port = Number(process.env.PORT ?? 3000);
-  const reachable = await new Promise((resolve) => {
+  const port = Number(process.env.CLAUDIUS_DEV_PORT ?? 3000);
+  const probe = await new Promise((resolve) => {
     const req = http.get(
       { host: "localhost", port, path: "/", timeout: 1000 },
       (res) => {
-        res.resume();
-        const code = res.statusCode ?? 0;
-        resolve(code > 0 && code < 500);
+        const headers = res.headers;
+        let body = "";
+        // Read at most ~4 KB — enough to catch the inline `__next` HMR
+        // bootstrap script Next emits at the top of every dev HTML
+        // response. We then abort so we don't pull megabytes of
+        // hydration markup we don't need.
+        res.setEncoding("utf8");
+        res.on("data", (chunk) => {
+          body += chunk;
+          if (body.length > 4096) {
+            body = body.slice(0, 4096);
+            res.destroy();
+          }
+        });
+        res.on("end", () => resolve({ headers, body }));
+        res.on("close", () => resolve({ headers, body }));
       },
     );
-    req.on("error", () => resolve(false));
+    req.on("error", () => resolve(null));
     req.on("timeout", () => {
       req.destroy();
-      resolve(false);
+      resolve(null);
     });
   });
-  if (reachable) {
-    console.error(
-      `\n[rebuild-native] REFUSING TO RUN — a dev server is responding on http://localhost:${port}.\n` +
-        `\n` +
-        `The rebuild swaps node_modules/better-sqlite3/.../better_sqlite3.node from\n` +
-        `Node ABI 127 to Electron ABI 146 in place. The running dev server has the old\n` +
-        `module loaded in memory; the next hot-reload that touches SQLite will throw\n` +
-        `ERR_DLOPEN_FAILED and the UI starts returning 500s.\n` +
-        `\n` +
-        `Stop it first:\n` +
-        `  - Ctrl+C the \`bun run dev\` terminal, OR\n` +
-        `  - lsof -ti tcp:${port} | xargs kill\n` +
-        `\n` +
-        `…then re-run this build. If you're certain this is a false positive (e.g. CI\n` +
-        `with an unrelated service on :${port}), bypass with:\n` +
-        `  CLAUDIUS_REBUILD_IGNORE_DEV=1 bun run electron:app\n`,
-    );
-    process.exit(1);
-  }
+  if (!probe) return;
+  // Sniff: Next dev sets X-Powered-By: Next.js on most responses. Some
+  // Next 16 middleware paths strip the header, so fall back to checking
+  // for any X-Nextjs-* header OR the inline `__next_f` HMR queue the
+  // dev server's HTML shell installs. We deliberately do NOT match on
+  // generic 200/whatever — only "looks like Next dev".
+  const isNext =
+    /next\.js/i.test(String(probe.headers["x-powered-by"] ?? "")) ||
+    Object.keys(probe.headers).some((k) => /^x-nextjs-/i.test(k)) ||
+    probe.body.includes("__next_f") ||
+    probe.body.includes("/_next/static/");
+  if (!isNext) return;
+  console.error(
+    `\n[rebuild-native] REFUSING TO RUN — a Next.js dev server is responding on http://localhost:${port}.\n` +
+      `\n` +
+      `The rebuild swaps node_modules/better-sqlite3/.../better_sqlite3.node from\n` +
+      `Node ABI 127 to Electron ABI 146 in place. The running dev server has the old\n` +
+      `module loaded in memory; the next hot-reload that touches SQLite will throw\n` +
+      `ERR_DLOPEN_FAILED and the UI starts returning 500s.\n` +
+      `\n` +
+      `Stop it first:\n` +
+      `  - Ctrl+C the \`bun run dev\` terminal, OR\n` +
+      `  - lsof -ti tcp:${port} | xargs kill\n` +
+      `\n` +
+      `…then re-run this build. If you're certain this is a false positive (e.g. CI\n` +
+      `with an unrelated Next install on :${port}), bypass with:\n` +
+      `  CLAUDIUS_REBUILD_IGNORE_DEV=1 bun run electron:app\n` +
+      `Use CLAUDIUS_DEV_PORT=<port> if your dev server runs somewhere other than 3000.\n`,
+  );
+  process.exit(1);
 }
 
 function readElectronVersion() {
