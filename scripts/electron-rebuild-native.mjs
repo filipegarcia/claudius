@@ -28,12 +28,70 @@
  */
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import http from "node:http";
 import os from "node:os";
 import path from "node:path";
 import url from "node:url";
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..");
+
+/**
+ * Refuse to run if a `bun run dev` is already serving on $PORT (default
+ * 3000). Why: the rebuild mutates `node_modules/better-sqlite3/build/
+ * Release/better_sqlite3.node` from Node ABI 127 to Electron ABI 146 in
+ * place. The running dev server has the old .node loaded in memory and
+ * keeps working, but the first hot-reload that re-requires `better-sqlite3`
+ * (any file in `lib/server/` touching SQLite — open-tabs writes, prompt
+ * drafts, sessions list, etc.) will throw `ERR_DLOPEN_FAILED: NODE_MODULE_
+ * VERSION 146 vs 127` and the chat UI starts returning 500s.
+ *
+ * The `postelectron:app` hook in package.json restores Node ABI at the
+ * end of the build, but the window between rebuild and restore is long
+ * enough that practically every build sees this error fire at least once
+ * in the dev server's logs. Cleanest fix is to refuse to start.
+ *
+ * Override with CLAUDIUS_REBUILD_IGNORE_DEV=1 if you really know what
+ * you're doing (e.g. CI where the dev probe is a false positive).
+ */
+async function refuseIfDevServerRunning() {
+  if (process.env.CLAUDIUS_REBUILD_IGNORE_DEV === "1") return;
+  const port = Number(process.env.PORT ?? 3000);
+  const reachable = await new Promise((resolve) => {
+    const req = http.get(
+      { host: "localhost", port, path: "/", timeout: 1000 },
+      (res) => {
+        res.resume();
+        const code = res.statusCode ?? 0;
+        resolve(code > 0 && code < 500);
+      },
+    );
+    req.on("error", () => resolve(false));
+    req.on("timeout", () => {
+      req.destroy();
+      resolve(false);
+    });
+  });
+  if (reachable) {
+    console.error(
+      `\n[rebuild-native] REFUSING TO RUN — a dev server is responding on http://localhost:${port}.\n` +
+        `\n` +
+        `The rebuild swaps node_modules/better-sqlite3/.../better_sqlite3.node from\n` +
+        `Node ABI 127 to Electron ABI 146 in place. The running dev server has the old\n` +
+        `module loaded in memory; the next hot-reload that touches SQLite will throw\n` +
+        `ERR_DLOPEN_FAILED and the UI starts returning 500s.\n` +
+        `\n` +
+        `Stop it first:\n` +
+        `  - Ctrl+C the \`bun run dev\` terminal, OR\n` +
+        `  - lsof -ti tcp:${port} | xargs kill\n` +
+        `\n` +
+        `…then re-run this build. If you're certain this is a false positive (e.g. CI\n` +
+        `with an unrelated service on :${port}), bypass with:\n` +
+        `  CLAUDIUS_REBUILD_IGNORE_DEV=1 bun run electron:app\n`,
+    );
+    process.exit(1);
+  }
+}
 
 function readElectronVersion() {
   const pkg = JSON.parse(
@@ -264,6 +322,10 @@ function verifyLoadsInElectron() {
 }
 
 try {
+  // Refuse first — the rebuild is in-place over node_modules; mutating
+  // those bytes while a dev server has them dlopen'd produces the
+  // hot-reload ERR_DLOPEN_FAILED users hit "every time I build".
+  await refuseIfDevServerRunning();
   const electronVersion = readElectronVersion();
   rebuild(electronVersion);
   verifyLoadsInElectron();

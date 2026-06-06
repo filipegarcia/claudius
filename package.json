@@ -7,7 +7,7 @@
   "description": "Claude Code in the browser, now on your desktop",
   "main": "dist-electron/main.js",
   "scripts": {
-    "dev": "node scripts/native-abi.mjs check node && next dev",
+    "dev": "node scripts/native-abi.mjs ensure node && next dev",
     "prebuild": "node scripts/patch-next-generate-build-id.mjs",
     "build": "cross-env NODE_ENV=production next build",
     "start": "next start",
