@@ -27,12 +27,22 @@ export function CodeBlock({ code, lang }: Props) {
   const [copied, setCopied] = useState(false);
   const sessionId = useActiveSessionId();
 
-  // `!`-mode parity: bash/sh/shell/zsh code fences get an Execute button.
-  // The button reuses the same /api/sessions/[id]/bash endpoint as the
-  // composer's `!` prefix — so the same persistent shell, same UI echo,
-  // same model-visibility contract. Disabled (with explanatory tooltip)
-  // until a session is bound and the code is non-empty.
+  // `!`-mode parity: the Execute button only appears when the model
+  // EXPLICITLY marked the fence as `!`-mode by prefixing the code with `!`.
+  // Plain ```bash fences (recap of a command the model already ran via its
+  // Bash tool, a snippet quoted from documentation, etc.) get no button —
+  // the user already saw the output upstream in the conversation, and we
+  // shouldn't tempt a second execution.
+  //
+  // Recognition: lang is a shell flavour AND the first non-empty line
+  // starts with `!`. The `!` itself is stripped before the command goes
+  // to the bash route, mirroring the composer's `!cmd` flow.
   const isShell = !!lang && SHELL_LANGS.has(lang);
+  const bangCommand = isShell ? extractBangCommand(code) : null;
+  // A bare `!` (no command after the marker) gives `bangCommand === ""`.
+  // Treat that as not-executable so the button doesn't fire an empty
+  // command at the server — the route would 400 it anyway.
+  const isExecutable = bangCommand !== null && bangCommand.trim().length > 0;
   const [sudoOpen, setSudoOpen] = useState(false);
   const [running, setRunning] = useState(false);
   const [lastResult, setLastResult] = useState<RunResult | null>(null);
@@ -59,11 +69,14 @@ export function CodeBlock({ code, lang }: Props) {
   }
 
   async function run(password?: string) {
-    if (!sessionId || running) return;
+    if (!sessionId || running || bangCommand === null) return;
     setRunning(true);
     try {
       const res = await sendBash(sessionId, {
-        command: code,
+        // bangCommand has the leading `!` stripped and the body trimmed —
+        // mirrors the composer's `!cmd` path so the bash route sees the
+        // exact same input shape either way.
+        command: bangCommand,
         sudoPassword: password,
       });
       if (res) {
@@ -90,8 +103,8 @@ export function CodeBlock({ code, lang }: Props) {
   }
 
   function onExecuteClick() {
-    if (!sessionId || running) return;
-    if (commandNeedsSudo(code)) {
+    if (!sessionId || running || bangCommand === null) return;
+    if (commandNeedsSudo(bangCommand)) {
       setSudoOpen(true);
       return;
     }
@@ -103,16 +116,16 @@ export function CodeBlock({ code, lang }: Props) {
       <div className="flex h-7 items-center justify-between border-b border-[var(--border)] bg-[var(--panel-2)] px-2 text-[10px] uppercase tracking-wide text-[var(--muted)]">
         <span>{lang || "text"}</span>
         <div className="flex items-center gap-1">
-          {isShell && (
+          {isExecutable && (
             <button
               onClick={onExecuteClick}
-              disabled={!sessionId || running || code.trim().length === 0}
+              disabled={!sessionId || running}
               data-testid="codeblock-execute"
               className="flex items-center gap-1 rounded px-1.5 py-0.5 text-amber-300 hover:bg-[var(--panel)] disabled:cursor-not-allowed disabled:opacity-40"
               title={
                 !sessionId
                   ? "Open a session to execute"
-                  : commandNeedsSudo(code)
+                  : commandNeedsSudo(bangCommand)
                     ? "Run with sudo — you'll be asked for a password"
                     : "Run this command in the session's shell"
               }
@@ -154,9 +167,9 @@ export function CodeBlock({ code, lang }: Props) {
           onToggle={() => setResultOpen((o) => !o)}
         />
       )}
-      {sudoOpen && (
+      {sudoOpen && bangCommand !== null && (
         <InlineSudoModal
-          command={code}
+          command={bangCommand}
           running={running}
           onCancel={() => setSudoOpen(false)}
           onSubmit={(pwd) => {
@@ -301,4 +314,39 @@ function InlineSudoModal({
       </form>
     </div>
   );
+}
+
+/**
+ * Inspect a shell-fence body and decide whether it's a model-authored
+ * `!`-mode invitation. Returns the command (without the leading `!`)
+ * when so; returns `null` otherwise so the caller can hide the Execute
+ * button entirely.
+ *
+ * Rules:
+ *   - Strip leading whitespace lines.
+ *   - The first non-empty line must start with `!`.
+ *   - Strip the `!` (and an optional single space after it) before
+ *     handing the command to the bash route. Subsequent lines are
+ *     preserved verbatim — multi-line commands are legitimate (`!for
+ *     f in *.ts; do …; done`).
+ *
+ * Examples:
+ *   `!ls`                → `"ls"`
+ *   `! ls -la`           → `"ls -la"`
+ *   `   !pwd`            → `"pwd"`
+ *   `!cd app\n!pwd`      → `"cd app\n!pwd"` (one `!`-fence, model-authored)
+ *   `ls -la`             → `null` (no marker — this is a recap, not an
+ *                          invitation)
+ *
+ * Multiple bash fences with their own `!` markers are independent —
+ * each renders its own Execute button, each strips its own `!`.
+ */
+export function extractBangCommand(code: string): string | null {
+  const trimmedStart = code.replace(/^\s+/, "");
+  if (!trimmedStart.startsWith("!")) return null;
+  const body = trimmedStart.slice(1);
+  // Accept `! cmd` (with a space) as well as `!cmd` (without). Strip
+  // just the one optional separator space so we don't accidentally
+  // eat into an indented multi-line script.
+  return body.startsWith(" ") ? body.slice(1) : body;
 }
