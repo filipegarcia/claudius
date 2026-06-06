@@ -247,12 +247,12 @@ function extractUserText(message: unknown): string {
   const m = message as { role?: string; content?: unknown };
   if (m.role && m.role !== "user") return "";
   const c = m.content;
-  if (typeof c === "string") return cleanReminders(c.trim());
+  if (typeof c === "string") return cleanBashBlocks(cleanReminders(c.trim()));
   if (!Array.isArray(c)) return "";
   const parts: string[] = [];
   for (const b of c as Array<{ type?: string; text?: string }>) {
     if (b && b.type === "text" && typeof b.text === "string") {
-      const cleaned = cleanReminders(b.text.trim());
+      const cleaned = cleanBashBlocks(cleanReminders(b.text.trim()));
       if (cleaned) parts.push(cleaned);
     }
   }
@@ -266,6 +266,23 @@ function extractUserText(message: unknown): string {
  */
 function cleanReminders(s: string): string {
   return s.replace(/<system-reminder>[\s\S]*?<\/system-reminder>/g, "").trim();
+}
+
+/**
+ * Strip the `!`-mode bash IO blocks (`<bash-input>`, `<bash-stdout>`,
+ * `<bash-stderr>`) injected into user-turn text by `pending-bash-output`.
+ * They're prior shell IO surfaced as conversation context — useful to the
+ * model on the actual turn, but pollutes anything we derive from the
+ * "what did the user say" channel (title summary, etc.). Pairs with
+ * `cleanReminders` at every call site.
+ */
+function cleanBashBlocks(s: string): string {
+  return s
+    .replace(
+      /<bash-input>[\s\S]*?<\/bash-input>\n?<bash-stdout>[\s\S]*?<\/bash-stdout>\n?<bash-stderr>[\s\S]*?<\/bash-stderr>/g,
+      "",
+    )
+    .trim();
 }
 
 function stripFences(s: string): string {

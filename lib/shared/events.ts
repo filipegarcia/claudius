@@ -749,3 +749,38 @@ export type SendInputResponse = {
   queued: boolean;
   uuid: string;
 };
+
+/**
+ * Request shape for `POST /api/sessions/[id]/bash` — the `!` input-box bash
+ * mode (Claude Code parity). The command runs on the session's persistent
+ * bash (anchored at `session.cwd`) without invoking the model. The result
+ * is echoed into the chat as a synthetic user-turn for the UI AND queued
+ * onto the bash-block pending channel so the model sees it as committed
+ * conversation context on the NEXT real user turn.
+ *
+ * `sudoPassword` is one-shot: it's piped to `sudo -S` via stdin and is
+ * never logged, broadcast, persisted to the JSONL, or included in the
+ * `<bash-input>` block the model receives. The route handler is the
+ * trust boundary.
+ */
+export type SendBashRequest = {
+  /** Raw shell command (no leading `!`). */
+  command: string;
+  /** Sent only when the command starts with `sudo`; never persisted. */
+  sudoPassword?: string;
+  /**
+   * Client-minted uuid for the synthetic user-turn echo, mirroring the
+   * SendInput pattern so reloads dedupe cleanly.
+   */
+  uuid?: string;
+};
+
+export type SendBashResponse = {
+  ok: true;
+  uuid: string;
+  stdout: string;
+  stderr: string;
+  exitCode: number;
+  truncated: boolean;
+  timedOut: boolean;
+};

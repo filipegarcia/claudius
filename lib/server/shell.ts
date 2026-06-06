@@ -78,10 +78,19 @@ export async function execShellCommand(
      * (`MAX_OUTPUT_BYTES`) is sized for build logs.
      */
     maxOutputBytes?: number;
+    /**
+     * Optional bytes piped to the child's stdin, then EOF. Added for the
+     * `!` bash-mode route so a sudo password can reach `sudo -S` without
+     * appearing in the command string (logs, SSE bus, JSONL). The caller
+     * MUST keep this value off any persisted/broadcast surface — this
+     * function never logs it.
+     */
+    stdin?: string;
   },
 ): Promise<ShellExecResult> {
   const timeoutMs = opts?.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const maxOutputBytes = opts?.maxOutputBytes ?? MAX_OUTPUT_BYTES;
+  const stdinPayload = opts?.stdin;
   return await new Promise<ShellExecResult>((resolve) => {
     let stdout = "";
     let stderr = "";
@@ -119,6 +128,19 @@ export async function execShellCommand(
       settled = true;
       clearTimeout(timer);
       resolve(result);
+    }
+
+    // Feed `stdin` (e.g. a sudo password) and close, so commands that don't
+    // read stdin aren't left waiting on EOF. We don't error if the child has
+    // already exited — write to a closed pipe surfaces as EPIPE, which the
+    // generic `child.on("error", …)` handler below picks up.
+    if (stdinPayload !== undefined && child.stdin) {
+      child.stdin.on("error", () => {
+        // EPIPE from a child that closed its stdin before we finished
+        // writing (e.g. sudo accepted the password and dropped the pipe).
+        // Swallow — we'd rather surface the real failure via exitCode.
+      });
+      child.stdin.end(stdinPayload);
     }
 
     child.stdout.setEncoding("utf8");

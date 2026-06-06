@@ -17,6 +17,7 @@ import { AtMentionPicker } from "./AtMentionPicker";
 import { ImageLightbox } from "./ImageLightbox";
 import { useVoice } from "@/lib/client/useVoice";
 import { useSdkCommands } from "@/lib/client/useSdkCommands";
+import { commandNeedsSudo, sendBash } from "@/lib/client/sendBash";
 import { readBridgeOnClient } from "@/lib/client/useElectron";
 import { resolveDroppedPath } from "@/lib/client/file-paths";
 import type { AttachedImage } from "@/lib/client/types";
@@ -208,6 +209,15 @@ export function PromptInput({
   const [dragOver, setDragOver] = useState(false);
   /** When set, opens the lightbox over the composer for click-to-zoom. */
   const [lightbox, setLightbox] = useState<AttachedImage | null>(null);
+  // `!`-mode bash (Claude Code parity). When the textarea starts with `!`,
+  // Enter routes to /api/sessions/:id/bash instead of the model. The sudo
+  // prompt opens a one-shot password modal when the command starts with
+  // `sudo` — the password is never persisted (no draft save, no log) and
+  // is dropped from memory the moment the request resolves. `bashRunning`
+  // disables the textarea while a `!` request is in flight so a second
+  // Enter doesn't fire a stale command.
+  const [sudoPrompt, setSudoPrompt] = useState<{ command: string } | null>(null);
+  const [bashRunning, setBashRunning] = useState(false);
   const taRef = useRef<HTMLTextAreaElement>(null);
   /** Per-prompt monotonic counter — increments on each insert, never decrements. */
   const ordinalCounterRef = useRef(0);
@@ -594,8 +604,75 @@ export function PromptInput({
     requestAnimationFrame(() => autosize());
   }
 
+  /**
+   * `!`-mode bash submission. Strips the leading `!`, opens the sudo modal
+   * when needed, otherwise calls `sendBash` directly. Clears the textarea
+   * on dispatch (same UX as a normal send); the result lands in the chat
+   * via the server-side broadcast so we don't need to thread it through
+   * the parent's `onSend` callback. Best-effort: a network failure leaves
+   * the value drained and the user can re-type — the bash route is local.
+   */
+  function submitBash() {
+    if (!sessionId) return;
+    const stripped = value.replace(/^!/, "");
+    const cmd = stripped.trim();
+    if (!cmd) return;
+    if (commandNeedsSudo(cmd)) {
+      setSudoPrompt({ command: cmd });
+      return;
+    }
+    void runBashCommand(cmd);
+  }
+
+  async function runBashCommand(command: string, sudoPassword?: string) {
+    if (!sessionId) return;
+    setBashRunning(true);
+    // Clear the textarea AND the draft right away so a fast follow-up `!`
+    // doesn't accidentally include the just-sent command. Mirrors the
+    // `submit()` reset block but without the model-bound side effects
+    // (suggested/queue/history) — bash-mode doesn't participate in those.
+    setValue("");
+    setDismissedHints(new Set());
+    setImages([]);
+    setPickerOpen(false);
+    setAtQuery(null);
+    ordinalCounterRef.current = 0;
+    histIdxRef.current = null;
+    userTypedRef.current = false;
+    if (sessionId) {
+      fetch(`/api/sessions/${sessionId}/prompt-draft`, { method: "DELETE" }).catch(() => {
+        // best-effort
+      });
+    }
+    requestAnimationFrame(() => {
+      if (taRef.current) {
+        taRef.current.style.height = "auto";
+        taRef.current.focus();
+      }
+    });
+    try {
+      await sendBash(sessionId, { command, sudoPassword });
+    } finally {
+      setBashRunning(false);
+      // Drop the password from memory the moment the call resolves. The
+      // setSudoPrompt(null) in the modal's handler already cleared the
+      // modal state; this resetSudoPrompt() guards against a race where
+      // the modal re-opened mid-call (it shouldn't, the textarea is
+      // disabled during bashRunning).
+      setSudoPrompt(null);
+    }
+  }
+
   function submit() {
     if (sendDisabled) return;
+    // `!`-mode takes precedence over the normal send. Detected at submit
+    // time (rather than during onKeyDown) so any code path that calls
+    // submit() — Enter, Send button click, IME flush — routes to bash
+    // when appropriate.
+    if (value.startsWith("!")) {
+      submitBash();
+      return;
+    }
     const text = value.trim();
     if (!text && images.length === 0) return;
     // The composer renders bullets as `•` so the textarea has something
@@ -1006,12 +1083,22 @@ export function PromptInput({
     });
   }
 
+  // `!`-mode visual / behavioural flag — drives the chip, monospace font,
+  // placeholder swap, and the keyword-hint suppression below. Hoisted up
+  // here so the keyword-hint derivation can consult it; the JSX render
+  // path re-reads the same identifier further down.
+  const isBashMode = value.startsWith("!");
+
   // First trigger word present in the draft — drives the dismissible footer
   // hint. We surface it in two states: `active` (still nudging) and `ignored`
   // (user clicked away, but the row stays put with an undo affordance for
   // hints that opt into the restore flow via `ignoredLabel`). `dismissedHints`
   // resets on send (below), so the "for this prompt" scope is automatic.
-  const detectedHint = KEYWORD_HINTS.find((h) => h.pattern.test(value)) ?? null;
+  // Skipped entirely in `!`-mode — the hints are model-prompt nudges and have
+  // no meaning when the input is a shell command.
+  const detectedHint = isBashMode
+    ? null
+    : KEYWORD_HINTS.find((h) => h.pattern.test(value)) ?? null;
   const hintState: "active" | "ignored" | null = detectedHint
     ? dismissedHints.has(detectedHint.id)
       ? detectedHint.ignoredLabel
@@ -1033,6 +1120,20 @@ export function PromptInput({
 
   return (
     <div className="border-t border-[var(--border)] bg-[var(--panel)] px-4 py-3">
+      {sudoPrompt ? (
+        <SudoPasswordModal
+          command={sudoPrompt.command}
+          running={bashRunning}
+          onCancel={() => setSudoPrompt(null)}
+          onSubmit={(password) => {
+            // Defer the run so the modal can unmount synchronously — keeps
+            // focus return cleaner. The password is dropped from React
+            // state immediately; only the in-flight closure holds it.
+            setSudoPrompt(null);
+            void runBashCommand(sudoPrompt.command, password);
+          }}
+        />
+      ) : null}
       {/* Whole-chat drop overlay. Portal'd into the chat-area container so it
           sits above tabs, banners, the message list, and the composer in one
           shot. Pointer-events: none — the underlying chat-area listener is
@@ -1152,9 +1253,21 @@ export function PromptInput({
             "flex items-end gap-2 rounded-2xl border bg-[var(--panel-2)] px-3 py-2 transition",
             !wideDropTarget && dragOver
               ? "border-[var(--accent)] bg-[var(--accent)]/5"
-              : "border-[var(--border)] focus-within:border-[var(--accent)]/60",
+              : isBashMode
+                ? "border-amber-500/60 focus-within:border-amber-500"
+                : "border-[var(--border)] focus-within:border-[var(--accent)]/60",
           )}
         >
+          {isBashMode ? (
+            <span
+              data-testid={`${testIdPrefix}-bash-chip`}
+              title="Bash mode — Enter runs locally, not as a prompt"
+              className="flex h-7 shrink-0 items-center gap-1 rounded-md border border-amber-500/40 bg-amber-500/10 px-2 font-mono text-[11px] font-semibold uppercase tracking-wide text-amber-400"
+            >
+              {bashRunning ? <Hourglass className="h-3 w-3 animate-spin" /> : null}
+              bash
+            </span>
+          ) : null}
           <button
             type="button"
             title="Attach file — images embed inline, other files are inserted as @path mentions"
@@ -1251,16 +1364,23 @@ export function PromptInput({
             onKeyDown={onKeyDown}
             onPaste={onPaste}
             rows={1}
-            disabled={inputDisabled}
+            disabled={inputDisabled || bashRunning}
             placeholder={
               placeholder ??
               (!mounted || ready
                 ? pending
                   ? "Queue a follow-up — Shift+Enter for newline"
-                  : "Message Claudius — / for commands, @ for files/agents, drop or paste images"
+                  : "Message Claudius — / for commands, @ for files/agents, drop or paste images, ! for shell"
                 : "Starting session…")
             }
-            className="flex-1 resize-none bg-transparent text-sm leading-6 text-[var(--foreground)] placeholder:text-[var(--muted)]/70 focus:outline-none disabled:cursor-not-allowed"
+            // In bash mode we drop to a monospace font so a long pipeline
+            // reads like terminal input. The leading `!` itself is included
+            // in the textarea value (no leading-character trick) so the
+            // user can backspace it to leave bash mode naturally.
+            className={cn(
+              "flex-1 resize-none bg-transparent leading-6 text-[var(--foreground)] placeholder:text-[var(--muted)]/70 focus:outline-none disabled:cursor-not-allowed",
+              isBashMode ? "font-mono text-[13px]" : "text-sm",
+            )}
           />
           {voice.supported && (
             <button
@@ -1389,6 +1509,108 @@ export function PromptInput({
             )}
             <span className="font-mono">{value.length} chars</span>
           </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * One-shot sudo password modal. Opens when the user types `!sudo …` (or
+ * clicks Execute on a ```bash code fence whose first token is sudo). The
+ * password lives only in the input ref + the in-flight closure passed to
+ * `onSubmit`; we deliberately don't store it in React state OR localStorage
+ * — closing the modal drops it from memory immediately.
+ *
+ * Render shape: a centred overlay using the existing Tailwind theme tokens.
+ * Esc cancels, Enter submits, the input takes focus on mount. While the
+ * command is in flight (`running`), Run is disabled and the input is
+ * read-only so a stray double-Enter can't re-send.
+ */
+function SudoPasswordModal({
+  command,
+  running,
+  onSubmit,
+  onCancel,
+}: {
+  command: string;
+  running: boolean;
+  onSubmit: (password: string) => void;
+  onCancel: () => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Enter sudo password"
+      data-testid="prompt-sudo-modal"
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm"
+      onClick={(e) => {
+        // Click-outside cancels — matches the rest of the app's modal feel.
+        if (e.target === e.currentTarget) onCancel();
+      }}
+    >
+      <div className="mx-4 w-full max-w-md rounded-2xl border border-[var(--border)] bg-[var(--panel)] p-4 shadow-xl">
+        <div className="mb-2 text-sm font-semibold">Run with sudo</div>
+        <div
+          className="mb-3 max-h-24 overflow-auto rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 font-mono text-[12px] text-[var(--foreground)]"
+          title="Command to run with sudo"
+        >
+          {command}
+        </div>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            const v = inputRef.current?.value ?? "";
+            if (!v) return;
+            onSubmit(v);
+            // Best-effort: zero out the field so the password isn't sitting
+            // in the DOM after the modal unmounts. The form-state path also
+            // hands the value off; this is purely a defense-in-depth.
+            if (inputRef.current) inputRef.current.value = "";
+          }}
+        >
+          <input
+            ref={inputRef}
+            type="password"
+            autoComplete="off"
+            data-testid="prompt-sudo-password"
+            disabled={running}
+            placeholder="Password"
+            // 1Password / Keychain autofill on a password field that lives
+            // outside a real login form is more annoying than helpful here —
+            // hint to skip via the standard attribute.
+            data-1p-ignore="true"
+            data-lpignore="true"
+            className="w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 font-mono text-sm text-[var(--foreground)] focus:border-[var(--accent)] focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+            onKeyDown={(e) => {
+              if (e.key === "Escape") onCancel();
+            }}
+          />
+          <div className="mt-3 flex items-center justify-end gap-2">
+            <button
+              type="button"
+              onClick={onCancel}
+              className="rounded-md px-3 py-1 text-sm text-[var(--muted)] hover:text-[var(--foreground)]"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={running}
+              data-testid="prompt-sudo-run"
+              className="rounded-md border border-amber-500/40 bg-amber-500/15 px-3 py-1 text-sm font-medium text-amber-300 hover:bg-amber-500/25 disabled:opacity-50"
+            >
+              {running ? "Running…" : "Run"}
+            </button>
+          </div>
+        </form>
+        <div className="mt-2 text-[11px] text-[var(--muted)]">
+          The password is sent once over a local request and never persisted.
         </div>
       </div>
     </div>

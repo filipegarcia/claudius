@@ -31,6 +31,12 @@ import {
   takePendingReminders,
 } from "./system-reminders";
 import {
+  formatBashIOBlock,
+  queueBashBlock,
+  takePendingBashBlocks,
+} from "./pending-bash-output";
+import { dropBashSession, getOrCreateBashSession } from "./bash-mode";
+import {
   isOpusModelId,
   isOverloadErrorText,
   isOverloadSignal,
@@ -2610,7 +2616,14 @@ export class Session {
       // by upcoming parity features — they ride the queued content only.
       const reminder = this.takeGoalReminder();
       const pending = takePendingReminders(this) ?? "";
-      const prefix = reminder + pending;
+      // `!` bash-mode output (Claude Code parity). Drained at the same site
+      // as reminders so a series of `!` commands followed by a real prompt
+      // hands the model `<bash-input>/…/<bash-stderr>` blocks as committed
+      // history. Order: bash blocks BEFORE goal/reminder text so the model
+      // reads them as past turns the user already saw, with the goal/nudge
+      // sitting closest to "now" in the assembled prefix.
+      const bashBlocks = takePendingBashBlocks(this) ?? "";
+      const prefix = bashBlocks + reminder + pending;
       const queued = prefix ? { role: "user" as const, content: prefix + text } : message;
       this.inputQueue.push({
         type: "user",
@@ -2680,7 +2693,12 @@ export class Session {
     // goal reminder so the goal stays the first thing the agent sees.
     const reminder = this.takeGoalReminder();
     const pending = takePendingReminders(this) ?? "";
-    const prefix = reminder + pending;
+    // `!` bash-mode output rides the same prefix slot here too — same
+    // ordering rationale as the text-only branch above. Falls into a
+    // single text block alongside reminders/goal so the prepend stays
+    // a single ContentBlock prepended ahead of the user's images.
+    const bashBlocks = takePendingBashBlocks(this) ?? "";
+    const prefix = bashBlocks + reminder + pending;
     const queuedContent = prefix
       ? [{ type: "text" as const, text: prefix }, ...content]
       : content;
@@ -2691,6 +2709,139 @@ export class Session {
       session_id: this.id,
       uuid,
     });
+  }
+
+  /**
+   * Run a command on the session's persistent `!` bash and surface the result
+   * to both the chat UI and the model (Claude Code `!`-mode parity).
+   *
+   *   - Live UI: a synthetic SDK user-turn event is broadcast carrying
+   *     `<bash-input>cmd</bash-input>` AND the formatted stdout/stderr block,
+   *     so the chat renders a BashIO row immediately. This event lives in
+   *     the SSE replay buffer only — it does NOT push into the SDK
+   *     inputQueue, so the model is NOT invoked (matching `shouldQuery:false`
+   *     in the leaked Claude Code `processBashCommand`).
+   *   - Next prompt: the same block is queued onto `pending-bash-output` so
+   *     when the user types a real prompt next, `sendInput`'s prefix drain
+   *     prepends the bash IO to the inputQueue content. The model reads it
+   *     as committed prior conversation context. This is the only path that
+   *     reaches JSONL (the SDK writes what it sees on the inputQueue).
+   *
+   * Sudo: if `sudoPassword` is set, the command is rewritten to `sudo -S
+   * -p '' …` and the password (with a trailing newline) is fed to the
+   * shell's stdin BEFORE the command runs, so the first `sudo` read picks
+   * it up. The password is NEVER logged, broadcast, queued, or persisted
+   * in any form — only the rewritten command string (which does NOT
+   * contain the password) appears in the user-visible echo.
+   */
+  async runBashCommand(opts: {
+    command: string;
+    sudoPassword?: string;
+    uuid?: string;
+  }): Promise<{
+    uuid: string;
+    stdout: string;
+    stderr: string;
+    exitCode: number;
+    truncated: boolean;
+    timedOut: boolean;
+  }> {
+    const { command, sudoPassword } = opts;
+    const uuid = (opts.uuid ?? randomUUID()) as ReturnType<typeof randomUUID>;
+
+    const bash = getOrCreateBashSession(this.id, this.cwd);
+    // Sudo wrapping: bash itself consumes stdin between commands in a
+    // persistent shell, so we can't safely feed the password via a stdin
+    // write. Instead we wrap the `sudo` invocation in a per-call heredoc
+    // — bash routes the heredoc body to sudo's stdin only, leaving the
+    // shell's own input stream untouched. The delimiter carries the same
+    // UUID-y entropy as the bash-mode sentinel so the password's content
+    // cannot collide with it.
+    let wrappedCommand = command;
+    if (sudoPassword) {
+      // Compound-command guard. The heredoc `<<'DELIM'` binds to the
+      // LAST simple command on its line, so `sudo a && sudo b` routes
+      // the password to `sudo b` and leaves `sudo a` waiting on stdin
+      // (which it gets from the persistent bash's input stream — a
+      // silent footgun). Detect and surface a clean error rather than
+      // produce a confusing half-broken run; users can run a single
+      // sudo (`sudo bash -c "a && b"`) instead. Word-anchored so a
+      // literal `sudo` inside e.g. `echo "use sudo"` is ignored.
+      const sudoOccurrences = (command.match(/\bsudo\b/g) ?? []).length;
+      if (sudoOccurrences > 1) {
+        const errBlock = formatBashIOBlock(command, {
+          stdout: "",
+          stderr:
+            "claudius: compound sudo commands aren't supported in `!`-mode. " +
+            "Wrap them in a single `sudo bash -c \"…\"` so one password unlocks the whole run.",
+        });
+        queueBashBlock(this, errBlock);
+        this.broadcast({
+          type: "sdk",
+          message: {
+            type: "user",
+            message: { role: "user", content: errBlock },
+            parent_tool_use_id: null,
+            session_id: this.id,
+            uuid,
+          } as unknown as SDKMessage,
+        });
+        return {
+          uuid,
+          stdout: "",
+          stderr:
+            "claudius: compound sudo commands aren't supported in `!`-mode. " +
+            "Wrap them in a single `sudo bash -c \"…\"` so one password unlocks the whole run.",
+          exitCode: -1,
+          truncated: false,
+          timedOut: false,
+        };
+      }
+      const delim = `__CLAUDIUS_PWD_${uuid.replace(/-/g, "")}__`;
+      // Inject `-S -p ''` so sudo reads from stdin and stays silent on
+      // its prompt. Anchor on the first `sudo` token so a literal `sudo`
+      // anywhere later (e.g. inside `echo`) is untouched.
+      const sudoified = command.replace(/^(\s*sudo\b)/, "$1 -S -p ''");
+      wrappedCommand = `${sudoified} <<'${delim}'\n${sudoPassword}\n${delim}`;
+    }
+
+    const result = await bash.exec(wrappedCommand);
+
+    // Build the IO block once — same string lives in the broadcast echo
+    // AND in the model-facing pending queue, so the UI and the model see
+    // byte-identical context.
+    const ioBlock = formatBashIOBlock(command, result);
+    queueBashBlock(this, ioBlock);
+
+    // Broadcast a synthetic user-turn message for the chat. The content
+    // is the full IO block (input + stdout + stderr); the chat renderer
+    // (`UserMessage`) recognises the `<bash-input>` opener and switches to
+    // the BashIO component. Lives only in the SSE replay buffer; reloads
+    // before the next real prompt won't see it (the model-facing copy
+    // arrives in JSONL via the next user-turn prefix drain). NB: we DO
+    // NOT set `isMeta` here — the client filter (`sdk-message-filters.ts`)
+    // drops `isMeta` messages, which would silently hide the bash echo.
+    // Derived-string cleanliness is handled by `cleanBashBlocks` in
+    // `customization-description.ts`, so isMeta carries downside only.
+    this.broadcast({
+      type: "sdk",
+      message: {
+        type: "user",
+        message: { role: "user", content: ioBlock },
+        parent_tool_use_id: null,
+        session_id: this.id,
+        uuid,
+      } as unknown as SDKMessage,
+    });
+
+    return {
+      uuid,
+      stdout: result.stdout,
+      stderr: result.stderr,
+      exitCode: result.exitCode,
+      truncated: result.truncated,
+      timedOut: result.timedOut,
+    };
   }
 
   /** Build the in-process MCP server that exposes the goal-reporting tool. */
@@ -4193,6 +4344,11 @@ export class Session {
     // loops or pending entries that will never resolve.
     this.scheduledLoops.clear();
     this.pendingScheduledLoops.clear();
+    // `!` bash-mode: kill the persistent shell + group so a long-running
+    // background command can't outlive the session. The map entry is
+    // keyed by sessionId in `bash-mode.ts`; drop is a no-op when the
+    // session never used bash mode.
+    dropBashSession(this.id);
   }
 
   /**

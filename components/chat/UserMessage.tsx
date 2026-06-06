@@ -1,12 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { Sparkles, Target, Undo2 } from "lucide-react";
+import { Sparkles, Target, Terminal, Undo2 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import type { AttachedImage, DisplayMessage } from "@/lib/client/types";
 import { formatMessageTime } from "@/lib/client/format-message-time";
 import { ImageLightbox } from "./ImageLightbox";
 import { RewindFilesButton } from "./RewindFilesButton";
+import { parseUserTextWithBashIO } from "@/lib/shared/bash-io";
 
 type Props = {
   message: DisplayMessage;
@@ -49,6 +50,17 @@ export function UserMessage({
 }: Props) {
   const text = message.blocks.map((b) => (b.kind === "text" ? b.text : "")).join("");
   const images = message.images ?? [];
+  // `!`-mode bash IO blocks ride in the user-turn text (live broadcast or
+  // JSONL replay). Splitting here lets us render each block as a terminal
+  // strip and only feed the remaining plain text to InlineUserText. When
+  // there are no bash blocks the segment shape collapses to a single
+  // text segment and the render is byte-identical to the original path.
+  const segments = parseUserTextWithBashIO(text);
+  const hasBash = segments.some((s) => s.kind === "bash");
+  // If the user-turn is *purely* bash IO (the live `!cmd` echo case), the
+  // bubble shouldn't carry the "Goal" / "Suggested" badges or the rewind
+  // affordance — there's nothing to rewind to. Hide them.
+  const isPureBashEcho = hasBash && segments.every((s) => s.kind === "bash");
   const stamp = formatMessageTime(message.createdAt);
   // Clicking the bubble scrolls back to where the user typed it. Bail when a
   // text selection is active so "select prompt text → copy" isn't hijacked
@@ -67,7 +79,7 @@ export function UserMessage({
         onClick={onJumpTo ? handleJump : undefined}
         title={onJumpTo ? "Scroll to this message" : undefined}
       >
-        {fromGoal && (
+        {fromGoal && !isPureBashEcho && (
           <div
             data-testid="user-message-goal-badge"
             className="mb-1 flex items-center justify-end gap-1 text-[10px] uppercase tracking-wide text-[var(--accent)]"
@@ -76,7 +88,7 @@ export function UserMessage({
             <Target className="h-3 w-3" /> Goal
           </div>
         )}
-        {suggested && !fromGoal && (
+        {suggested && !fromGoal && !isPureBashEcho && (
           <div
             className="mb-1 flex items-center justify-end gap-1 text-[10px] uppercase tracking-wide text-[var(--muted)]"
             title="Sent from a suggested follow-up"
@@ -84,7 +96,19 @@ export function UserMessage({
             <Sparkles className="h-3 w-3" /> Suggested
           </div>
         )}
-        <InlineUserText text={text} images={images} />
+        {hasBash ? (
+          <div className="flex flex-col gap-2">
+            {segments.map((seg, i) =>
+              seg.kind === "bash" ? (
+                <BashIOBlock key={i} command={seg.command} stdout={seg.stdout} stderr={seg.stderr} />
+              ) : (
+                <InlineUserText key={i} text={seg.text} images={images} />
+              ),
+            )}
+          </div>
+        ) : (
+          <InlineUserText text={text} images={images} />
+        )}
         {(stamp || onRewind || sessionId) && (
           <div className="mt-1 flex items-center justify-end gap-3">
             {stamp && (
@@ -96,8 +120,8 @@ export function UserMessage({
                 {stamp.short}
               </span>
             )}
-            {sessionId && <RewindFilesButton sessionId={sessionId} messageUuid={message.uuid} />}
-            {onRewind && (
+            {sessionId && !isPureBashEcho && <RewindFilesButton sessionId={sessionId} messageUuid={message.uuid} />}
+            {onRewind && !isPureBashEcho && (
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -195,5 +219,61 @@ function InlineUserText({ text, images }: { text: string; images: AttachedImage[
         />
       )}
     </>
+  );
+}
+
+/**
+ * Terminal-look renderer for a single `<bash-input>/<bash-stdout>/<bash-stderr>`
+ * triple. Matches the look of Claude Code's `!`-mode echo: a `$` gutter on
+ * the command line and dimmed output below. Click the header to expand /
+ * collapse the body — useful when the next prompt's prefix carries a
+ * series of fat `ls -la` outputs the user wants to skim past.
+ */
+function BashIOBlock({
+  command,
+  stdout,
+  stderr,
+}: {
+  command: string;
+  stdout: string;
+  stderr: string;
+}) {
+  const [open, setOpen] = useState(true);
+  const hasOutput = stdout.length > 0 || stderr.length > 0;
+  return (
+    <div
+      data-testid="user-bash-io"
+      className="overflow-hidden rounded-lg border border-amber-500/30 bg-[#0a0a0a]/40 text-left"
+    >
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          setOpen((o) => !o);
+        }}
+        className="flex w-full items-center gap-2 border-b border-amber-500/20 bg-amber-500/5 px-2 py-1 font-mono text-[12px] text-amber-300 hover:bg-amber-500/10"
+        title={open ? "Collapse output" : "Expand output"}
+      >
+        <Terminal className="h-3 w-3 shrink-0 opacity-70" />
+        <span className="select-text whitespace-pre-wrap text-left">$ {command}</span>
+      </button>
+      {open && hasOutput && (
+        <div className="max-h-80 overflow-auto px-2 py-1.5 scroll-thin">
+          {stdout && (
+            <pre className="whitespace-pre-wrap font-mono text-[12px] text-[var(--foreground)]">
+              {stdout}
+            </pre>
+          )}
+          {stderr && (
+            <pre className="whitespace-pre-wrap font-mono text-[12px] text-red-400">
+              {stderr}
+            </pre>
+          )}
+        </div>
+      )}
+      {open && !hasOutput && (
+        <div className="px-2 py-1 font-mono text-[12px] italic text-[var(--muted)]">(no output)</div>
+      )}
+    </div>
   );
 }
