@@ -347,7 +347,18 @@ function navAction(id: string, label: string, code: string): ShortcutAction[] {
       id,
       label,
       category: "navigation",
-      default: { alt: true, code },
+      // Cmd+Option+<letter> — was bare Alt+<letter>. The bare-Alt default
+      // had two problems:
+      //   1. macOS Option is a dead-key compose modifier; Alt+C in any
+      //      input inserts `ç`. We could only gate around that by
+      //      refusing the chord when focus is in a textarea, which
+      //      defeated the "from anywhere" feel of nav shortcuts.
+      //   2. SideNav's keydown handler used to early-return on
+      //      `isTypingTarget` for the same reason. With the Cmd
+      //      half added, the chord is safe inside inputs (Cmd+Option
+      //      doesn't produce a character on any keyboard layout) so
+      //      we drop the typing-target gate too — see `SideNav.tsx`.
+      default: { mod: true, alt: true, code },
     },
   ];
 }

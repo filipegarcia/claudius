@@ -11,7 +11,6 @@ import { useNotificationsContext } from "@/components/notifications/Notification
 import type { Customization, PublishRecord } from "@/lib/server/customizations-store";
 import {
   formatBinding,
-  isTypingTarget,
   matchBinding,
   useShortcutRegistry,
   type ShortcutBinding,
@@ -47,15 +46,20 @@ type Item = {
 // keeps the items table portable across workspaces (and survives the
 // route-memory hand-off in `WorkspaceSwitcher.tsx`).
 const items: Item[] = [
+  // Top of the rail: the four tiles you reach for ~daily. Chat then Git
+  // (review what's been touched), Sessions (jump between conversations),
+  // Files (poke at the tree). Anything below that is intentionally
+  // alphabetical-ish by use frequency.
+  //
   // The Chat button routes to the workspace root (`/<id>`) — boot resumes
   // the last-active tab (persisted in `ui_state.active_tab`) so coming
   // back to the chat view from another page lands you on the conversation
   // you left, instead of spawning a brand-new session on top of the
   // persisted strip. Inner path "" denotes the workspace root.
   { label: "Chat", icon: MessageSquare, href: "", actionId: "nav.chat" },
+  { label: "Git", icon: GitBranch, href: "/git", actionId: "nav.git" },
   { label: "Sessions", icon: FolderTree, href: "/sessions", actionId: "nav.sessions" },
   { label: "Files", icon: Folder, href: "/files", actionId: "nav.files" },
-  { label: "Git", icon: GitBranch, href: "/git", actionId: "nav.git" },
   { label: "Memory", icon: BookText, href: "/memory", actionId: "nav.memory" },
   // Assets uses ⌥I (Images) because ⌥A is taken by Agents — A/I picks the
   // mnemonic with the higher hit rate.
@@ -283,8 +287,8 @@ export function SideNav({ running = false }: { running?: boolean }) {
   //
   // We use `event.code` so the mapping is layout-independent and unaffected
   // by macOS Option's dead-key composition (Alt+C → `event.key === "ç"` on
-  // US layouts). The `isTypingTarget` guard mirrors the WorkspaceSwitcher
-  // pattern — typing in an input must never trigger navigation.
+  // US layouts). The chord requires Cmd+Option by default so it can fire
+  // even when focus is in the composer — see the `onKey` body below.
   // Bindings: a Map<actionId, binding> derived from the registry. The
   // tooltip path below reads from this too, so a remap in Settings updates
   // both the keyboard handler AND the hint glyph in one re-render.
@@ -297,7 +301,16 @@ export function SideNav({ running = false }: { running?: boolean }) {
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (isTypingTarget(e.target)) return;
+      // NB: no `isTypingTarget` gate. The nav defaults are Cmd+Option+letter
+      // (or whatever the user remapped them to in Settings → Web app
+      // shortcuts). Cmd+Option held alongside a letter produces no
+      // character in any input on any keyboard layout, so it's safe to
+      // grab from inside the composer / search palette / any text field.
+      // The chord intentionally takes precedence over the active editor —
+      // the whole point of these nav shortcuts is "jump from anywhere".
+      // If a user remaps to a chord without a mod-key (e.g. plain F) they
+      // re-introduce the typing collision themselves; that's their call.
+      //
       // Block keyboard nav until the active workspace has resolved —
       // there's no canonical URL to push to before that, and the same
       // condition already disables the rendered links above.
@@ -453,9 +466,18 @@ export function SideNav({ running = false }: { running?: boolean }) {
           // Active state uses the accent color + a left-edge bar (same
           // visual idiom as the workspace switcher's active tile) so the
           // current view is obvious from across the screen.
+          //
+          // Tiles render with a small chord glyph BELOW the icon when a
+          // binding is registered — the user asked for the keybinding to
+          // be visible on the tile itself, not just in the hover tooltip.
+          // We keep the chord muted (text-[var(--muted)]/70) and tiny
+          // (text-[9px]) so it teaches without competing with the icon;
+          // tiles without bindings keep the historical icon-only height
+          // so this is purely additive.
           const cls = cn(
-            "group relative flex h-9 w-9 items-center justify-center rounded-md text-[var(--muted)]",
+            "group relative flex w-9 flex-col items-center justify-center rounded-md text-[var(--muted)]",
             "hover:bg-[var(--panel-2)] hover:text-[var(--foreground)]",
+            shortcutLabel ? "h-11 gap-0.5 py-1" : "h-9",
             active &&
               "bg-[var(--accent)]/15 text-[var(--accent)] ring-1 ring-[var(--accent)]/40 hover:text-[var(--accent)]",
           );
@@ -472,6 +494,17 @@ export function SideNav({ running = false }: { running?: boolean }) {
                 />
               )}
               <Icon className="h-4.5 w-4.5" />
+              {shortcutLabel && (
+                <span
+                  aria-hidden
+                  className={cn(
+                    "select-none font-mono text-[9px] leading-none tracking-tight",
+                    active ? "text-[var(--accent)]/80" : "text-[var(--muted)]/60",
+                  )}
+                >
+                  {shortcutLabel}
+                </span>
+              )}
             </>
           );
           // Wrap each tile in a draggable container. Items without an
