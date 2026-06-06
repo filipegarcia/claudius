@@ -52,45 +52,50 @@ export function QueueIndicator({
               <button
                 onClick={() => onReorder(q.id, -1)}
                 disabled={i === 0}
-                className="rounded p-0.5 text-[var(--muted)] hover:bg-[var(--panel-2)] hover:text-[var(--foreground)] disabled:opacity-30"
-                title="Move up"
+                className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-[var(--muted)] hover:bg-[var(--panel-2)] hover:text-[var(--foreground)] disabled:opacity-30"
+                title="Move up in the queue"
               >
                 <ArrowUp className="h-3 w-3" />
+                <span>Up</span>
               </button>
               <button
                 onClick={() => onReorder(q.id, 1)}
                 disabled={i === queue.length - 1}
-                className="rounded p-0.5 text-[var(--muted)] hover:bg-[var(--panel-2)] hover:text-[var(--foreground)] disabled:opacity-30"
-                title="Move down"
+                className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-[var(--muted)] hover:bg-[var(--panel-2)] hover:text-[var(--foreground)] disabled:opacity-30"
+                title="Move down in the queue"
               >
                 <ArrowDown className="h-3 w-3" />
+                <span>Down</span>
               </button>
             </>
           )}
           {onSendNow && (
             <button
               onClick={() => onSendNow(q.id)}
-              className="rounded p-0.5 text-[var(--muted)] hover:bg-[var(--panel-2)] hover:text-[var(--foreground)]"
-              title="Send now (skip the queue — runs as the very next turn)"
+              className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-[var(--muted)] hover:bg-[var(--panel-2)] hover:text-[var(--foreground)]"
+              title="Send now — skip the queue and run as the very next turn"
             >
               <Send className="h-3 w-3" />
+              <span>Send now</span>
             </button>
           )}
           {onEdit && (
             <button
               onClick={() => onEdit(q.id)}
-              className="rounded p-0.5 text-[var(--muted)] hover:bg-[var(--panel-2)] hover:text-[var(--foreground)]"
-              title="Edit"
+              className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-[var(--muted)] hover:bg-[var(--panel-2)] hover:text-[var(--foreground)]"
+              title="Edit — pull the text back into the composer"
             >
               <Pencil className="h-3 w-3" />
+              <span>Edit</span>
             </button>
           )}
           <button
             onClick={() => onCancel(q.id)}
-            className="rounded p-0.5 text-[var(--muted)] hover:bg-[var(--panel-2)] hover:text-[var(--foreground)]"
-            title="Remove from queue"
+            className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-[var(--muted)] hover:bg-[var(--panel-2)] hover:text-[var(--foreground)]"
+            title="Remove from the queue"
           >
             <X className="h-3.5 w-3.5" />
+            <span>Remove</span>
           </button>
         </div>
       ))}
