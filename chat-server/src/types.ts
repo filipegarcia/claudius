@@ -108,43 +108,22 @@ export type CommunityStateEvent = {
   reason: string | null;
 };
 
-// ── Presence (IRC-style names list) ────────────────────────────────
+// ── Presence (admin-only HTTP, not SSE) ────────────────────────────
 //
-// Three events power the per-room "who's here" sidebar:
-//   • presence      — snapshot of currently connected nicks. Sent to
-//                     each new subscriber after replay so they paint
-//                     the names list immediately on join.
-//   • member_joined — first SSE connection for a given nick. Suppressed
-//                     for multi-tab opens (a second tab from the same
-//                     nick doesn't re-announce). Fans out to everyone
-//                     in the room, including the joining user.
-//   • member_left   — last SSE connection for a given nick goes away.
-//                     A multi-tab user closing one tab doesn't fire
-//                     this; only the final disconnect does.
+// The per-room "who's here" sidebar is admin-only and intentionally
+// kept off the public SSE stream — a chatty room would otherwise leak
+// the full nick roster to anyone with the wire, including curl. The
+// admin client polls `GET /admin/rooms/:slug/presence` every few
+// seconds to refresh the list; near-real-time is good enough for the
+// moderation surface.
 //
-// Trust model: identical to channel posts — the nick is whatever the
-// SSE handshake's `?nick=` param claimed. Anonymous subscribers (no
-// handshake nick) don't show up in any of these events.
+// Trust model: still anyone-can-claim-a-nick at the SSE handshake.
+// The admin-only surface is access control on *who can read the
+// roster*, not authenticity of individual nicks.
 
-/** Snapshot of all currently-connected nicks in this room. */
-export type PresenceEvent = {
-  type: "presence";
-  roomSlug: string;
+/** Snapshot returned by `GET /admin/rooms/:slug/presence`. */
+export type PresenceSnapshot = {
   nicks: string[];
-};
-
-/** A nick's first SSE connection landed — they "joined" the channel. */
-export type MemberJoinedEvent = {
-  type: "member_joined";
-  roomSlug: string;
-  nick: string;
-};
-
-/** A nick's last SSE connection dropped — they "parted" the channel. */
-export type MemberLeftEvent = {
-  type: "member_left";
-  roomSlug: string;
-  nick: string;
 };
 
 export type ChatEvent =
@@ -154,10 +133,7 @@ export type ChatEvent =
   | MessageDeletedEvent
   | MessagePinnedEvent
   | MessageUnpinnedEvent
-  | CommunityStateEvent
-  | PresenceEvent
-  | MemberJoinedEvent
-  | MemberLeftEvent;
+  | CommunityStateEvent;
 
 // ── Direct messages ────────────────────────────────────────────────
 //

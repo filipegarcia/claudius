@@ -203,51 +203,19 @@ function handleStream(roomSlug: string, req: Request, url: URL): Response {
         });
       }
 
-      // 3. Capture "is this the first SSE connection for this nick?"
-      //    BEFORE subscribing — that's what tells us whether to fire
-      //    `member_joined`. A second tab from the same nick is a
-      //    no-op (the nick stays in `activeNicks` the whole time).
-      //    Anonymous handshakes never join/part (handshakeNick is null).
-      const isFirstForNick =
-        handshakeNick !== null &&
-        !chatBus
-          .activeNicks(roomSlug)
-          .some((n) => n.toLowerCase() === handshakeNick.toLowerCase());
-
-      // 4. Subscribe for live updates. The handshake nick (if any)
-      //    travels with the subscriber so the admin Members roster
-      //    and the per-room presence list can enumerate connected
-      //    users.
+      // 3. Subscribe for live updates. The handshake nick (if any)
+      //    travels with the subscriber so the admin presence roster
+      //    can enumerate connected users via the HTTP endpoint
+      //    `/admin/rooms/:slug/presence`. We deliberately do NOT
+      //    broadcast presence/join/part events on the public stream —
+      //    leaking the nick roster to every connected client is a
+      //    privacy issue (a forked client or curl could harvest it).
+      //    Admins poll the HTTP endpoint instead.
       const unsubscribe = chatBus.subscribe(roomSlug, send, {
         nick: handshakeNick,
       });
 
-      // 5. Presence snapshot — IRC NAMES equivalent. Sent AFTER
-      //    subscribing so the snapshot includes this client's own
-      //    nick (when present), matching the "you're in the list"
-      //    user expectation.
-      send({
-        type: "presence",
-        roomSlug,
-        nicks: chatBus.activeNicks(roomSlug),
-      });
-
-      // 6. Announce the new arrival to the whole room (including this
-      //    client — IRC echoes your own JOIN back to you). Skipped on
-      //    multi-tab opens so the sidebar doesn't blink for re-joins.
-      //    Repeating the `!== null` check here so the compiler can
-      //    narrow handshakeNick to `string` for the broadcast payload;
-      //    `isFirstForNick` already implies it but TS can't follow that
-      //    across statements.
-      if (isFirstForNick && handshakeNick !== null) {
-        chatBus.broadcast({
-          type: "member_joined",
-          roomSlug,
-          nick: handshakeNick,
-        });
-      }
-
-      // 7. Heartbeat — comment lines are ignored by the EventSource
+      // 4. Heartbeat — comment lines are ignored by the EventSource
       //    spec but keep load balancers from killing the socket.
       const hb = setInterval(() => {
         try {
@@ -260,23 +228,6 @@ function handleStream(roomSlug: string, req: Request, url: URL): Response {
       const cleanup = () => {
         clearInterval(hb);
         unsubscribe();
-        // After unsubscribing, check whether this was the last
-        // connection for this nick. If so, fire `member_left` so the
-        // sidebars across all other tabs / users drop the entry. A
-        // multi-tab user closing one tab keeps the nick on screen for
-        // everyone else.
-        if (
-          handshakeNick !== null &&
-          !chatBus
-            .activeNicks(roomSlug)
-            .some((n) => n.toLowerCase() === handshakeNick.toLowerCase())
-        ) {
-          chatBus.broadcast({
-            type: "member_left",
-            roomSlug,
-            nick: handshakeNick,
-          });
-        }
         try {
           controller.close();
         } catch {
@@ -460,6 +411,18 @@ function handleAdminUnpin(roomSlug: string): Response {
   setRoomPin(roomSlug, null);
   chatBus.broadcast({ type: "message_unpinned", roomSlug });
   return json({ ok: true });
+}
+
+/**
+ * Live presence snapshot for the admin sidebar. Returns the set of
+ * currently-connected nicks in a room — what used to flow over the
+ * public SSE stream as `presence`/`member_joined`/`member_left`. We
+ * pulled that off the wire to avoid leaking the roster to non-admins;
+ * the admin client polls this endpoint every few seconds instead.
+ */
+function handleAdminListPresence(roomSlug: string): Response {
+  if (!getRoom(roomSlug)) return error(404, "no such room");
+  return json({ nicks: chatBus.activeNicks(roomSlug) });
 }
 
 function handleAdminListMembers(roomSlug: string): Response {
@@ -1010,6 +973,9 @@ const server = Bun.serve({
 
       m = path.match(/^\/admin\/rooms\/([^/]+)\/members$/);
       if (m && req.method === "GET") return handleAdminListMembers(m[1]!);
+
+      m = path.match(/^\/admin\/rooms\/([^/]+)\/presence$/);
+      if (m && req.method === "GET") return handleAdminListPresence(m[1]!);
 
       m = path.match(/^\/admin\/bans\/(\d+)$/);
       if (m && req.method === "DELETE") return handleAdminUnban(Number(m[1]!));

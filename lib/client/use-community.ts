@@ -280,13 +280,13 @@ export function useCommunity(options: UseCommunityOptions = {}) {
     () => getMessagesCache()[currentRoom]?.hasMore ?? true,
   );
   const [loadingOlder, setLoadingOlder] = useState(false);
-  // Per-room presence — IRC-style names list of currently-connected
-  // nicks. Hydrated by a `presence` snapshot on stream open and
-  // updated incrementally via `member_joined` / `member_left`. The
-  // list is the displayed casing (server picks one when multiple
-  // tabs use different cases); dedup is case-insensitive in the
-  // reducer below. Reset to `[]` on every room switch so a stale
-  // snapshot from the previous room doesn't paint briefly.
+  // Per-room presence — currently-connected nicks for the admin
+  // Members sidebar. Populated by polling `/admin/rooms/:slug/presence`
+  // in the effect below (admin-only); non-admins never fill this and
+  // the Members panel doesn't render for them. We pulled this off the
+  // public SSE stream because broadcasting the roster to every
+  // connected client (including forked / curl probes) leaked nicks
+  // that the admin-only HTTP surface is meant to gate.
   const [members, setMembers] = useState<string[]>([]);
   // Kill-switch state. Defaults to enabled — the server only sends a
   // community_state event when it needs to override that default
@@ -326,9 +326,10 @@ export function useCommunity(options: UseCommunityOptions = {}) {
     setConnected(false);
     setHasMore(cached?.hasMore ?? true);
     setLoadingOlder(false);
-    // Presence is per-room and per-connection — there's no useful
-    // "last-seen names list" to hydrate from. Start empty; the
-    // server's `presence` snapshot lands a moment after the SSE opens.
+    // Presence is admin-only and per-room. Reset on switch; the
+    // admin polling effect below repopulates within the poll
+    // interval. Non-admins never fill this — the panel isn't shown
+    // for them so the empty value is fine.
     setMembers([]);
   }
 
@@ -363,10 +364,14 @@ export function useCommunity(options: UseCommunityOptions = {}) {
           // Authoritative replace from an admin action (clear room or
           // compact room). Blind-replace the local buffer with the
           // server's view — that's the whole reason this is a separate
-          // event from `replay`. Also drop loading-older state because
-          // the buffer just changed under us.
+          // event from `replay`. Also flip `hasMore` to false: after
+          // a clear there's nothing older; after a compact the
+          // trimmed tail is gone. Without this the "Load older"
+          // button would stay visible until the next attempted fetch
+          // self-flipped it.
           setMessages(ev.messages);
           setPinnedId(ev.pinnedMessageId);
+          setHasMore(false);
           break;
         case "message":
           setMessages((prev) =>
@@ -405,32 +410,6 @@ export function useCommunity(options: UseCommunityOptions = {}) {
           setCommunityState({
             enabled: ev.enabled,
             reason: ev.reason,
-          });
-          break;
-        case "presence":
-          // Snapshot — replace the names list wholesale. Sent once
-          // after replay on stream open, and as the source of truth
-          // when a stale `member_left`/`member_joined` race might
-          // otherwise drift.
-          setMembers(ev.nicks);
-          break;
-        case "member_joined":
-          // Idempotent add — server suppresses multi-tab dupes, but
-          // a stale SSE reconnect during the same session could
-          // resend a join we already have. Dedup case-insensitively
-          // so "Alice" and "alice" don't both appear; preserve the
-          // first-seen casing for display.
-          setMembers((prev) => {
-            const lc = ev.nick.toLowerCase();
-            if (prev.some((n) => n.toLowerCase() === lc)) return prev;
-            return [...prev, ev.nick];
-          });
-          break;
-        case "member_left":
-          // Idempotent remove — case-insensitive match.
-          setMembers((prev) => {
-            const lc = ev.nick.toLowerCase();
-            return prev.filter((n) => n.toLowerCase() !== lc);
           });
           break;
       }
@@ -485,6 +464,38 @@ export function useCommunity(options: UseCommunityOptions = {}) {
     cache[currentRoom] = { messages, pinnedId, hasMore };
     scheduleCachePersist();
   }, [currentRoom, messages, pinnedId, hasMore]);
+
+  // ── Admin presence polling ──────────────────────────────────────
+  //
+  // The per-room "who's here" sidebar is admin-only — see the matching
+  // server-side note. We poll `/admin/rooms/:slug/presence` every 15s
+  // while admin is on this room. Non-admins skip the effect entirely
+  // (no HTTP, no state writes). Polling rather than SSE because we
+  // want the roster off the public stream and a sub-minute refresh is
+  // plenty for the moderation surface.
+  useEffect(() => {
+    if (!configured || !isAdmin || !currentRoom) return;
+    let cancelled = false;
+    const fetchPresence = async () => {
+      try {
+        const res = await fetch(
+          `/api/community/admin/rooms/${encodeURIComponent(currentRoom)}/presence`,
+        );
+        if (!res.ok || cancelled) return;
+        const data = (await res.json()) as { nicks?: string[] };
+        if (cancelled) return;
+        if (Array.isArray(data.nicks)) setMembers(data.nicks);
+      } catch {
+        // Best effort — the next interval will retry.
+      }
+    };
+    void fetchPresence();
+    const id = setInterval(fetchPresence, 15_000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, [configured, isAdmin, currentRoom]);
 
   // ── Actions ──────────────────────────────────────────────────────
 

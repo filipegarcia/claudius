@@ -73,6 +73,7 @@ messages via SSE.
 | GET    | `/admin/banned-words`                   | admin     | List the curated banned-word filter (channels only) |
 | POST   | `/admin/banned-words`                   | admin     | Body `{ word }` (≤ 100 chars). Channel posts containing this substring (case-insensitive) get rejected with 400 |
 | DELETE | `/admin/banned-words/:word`             | admin     | Remove a word (URL-encoded) from the filter |
+| GET    | `/admin/rooms/:slug/presence`           | admin     | `{ nicks: string[] }` — currently-connected nicks in this room. Polled by the admin client every ~15s. Kept off the public SSE stream so non-admins can't harvest the roster |
 
 Admin requests carry the token in `X-Admin-Token`.
 

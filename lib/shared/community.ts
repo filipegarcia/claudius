@@ -140,31 +140,17 @@ export type CommunityStateEvent = {
   reason: string | null;
 };
 
-// ── Presence (IRC-style names list) ────────────────────────────────
+// ── Presence (admin-only HTTP, not SSE) ────────────────────────────
 //
-// Three events drive the per-room "who's here" sidebar. See the same
-// block in chat-server/src/types.ts for the protocol semantics; both
-// files must stay in sync.
+// The per-room "who's here" sidebar is admin-only and intentionally
+// kept off the public SSE stream — see the matching block in
+// chat-server/src/types.ts for the protocol semantics; both files
+// must stay in sync. The admin client polls `GET /admin/rooms/:slug/
+// presence` every few seconds.
 
-/** Snapshot of all currently-connected nicks in this room. */
-export type PresenceEvent = {
-  type: "presence";
-  roomSlug: string;
+/** Snapshot returned by `GET /admin/rooms/:slug/presence`. */
+export type PresenceSnapshot = {
   nicks: string[];
-};
-
-/** A nick's first SSE connection landed — they "joined" the channel. */
-export type MemberJoinedEvent = {
-  type: "member_joined";
-  roomSlug: string;
-  nick: string;
-};
-
-/** A nick's last SSE connection dropped — they "parted" the channel. */
-export type MemberLeftEvent = {
-  type: "member_left";
-  roomSlug: string;
-  nick: string;
 };
 
 export type ChatEvent =
@@ -174,10 +160,7 @@ export type ChatEvent =
   | MessageDeletedEvent
   | MessagePinnedEvent
   | MessageUnpinnedEvent
-  | CommunityStateEvent
-  | PresenceEvent
-  | MemberJoinedEvent
-  | MemberLeftEvent;
+  | CommunityStateEvent;
 
 // ── Direct messages ────────────────────────────────────────────────
 //

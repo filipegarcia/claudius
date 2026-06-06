@@ -11,6 +11,7 @@ import {
 import {
   appendMessageToCache,
   markMessageDeletedInCache,
+  setRoomCacheEntry,
 } from "@/lib/client/community-messages-cache";
 
 /**
@@ -540,6 +541,25 @@ export function useCommunityNotificationsState(): UseCommunityNotifications {
             // change unread state here — deletions are admin actions,
             // not new content.
             markMessageDeletedInCache(data.roomSlug, data.id);
+          } else if (data.type === "room_replaced") {
+            // Admin cleared or compacted this room. Authoritatively
+            // replace the shared cache for the room — without this,
+            // a user sitting on another channel keeps the pre-clear
+            // messages in localStorage and sees them resurrected the
+            // moment they navigate to the cleared room. We also drop
+            // the unread badge: there's no point pointing the user
+            // at messages that no longer exist.
+            setRoomCacheEntry(data.roomSlug, {
+              messages: data.messages,
+              pinnedId: data.pinnedMessageId,
+              // After a clear there's nothing older; after a compact
+              // the trimmed tail is also gone. `false` makes the
+              // "Load older" affordance disappear immediately —
+              // `loadOlder` would just return 0 and self-flip anyway,
+              // but pinning it here avoids the dead button flash.
+              hasMore: false,
+            });
+            clearRoomUnread(data.roomSlug);
           }
         } catch {
           // ignore malformed
@@ -552,7 +572,7 @@ export function useCommunityNotificationsState(): UseCommunityNotifications {
     return () => {
       for (const es of sources) es.close();
     };
-  }, [configured, rooms, SERVER_URL, viewingRoom, myNick]);
+  }, [configured, rooms, SERVER_URL, viewingRoom, myNick, clearRoomUnread]);
 
   const unreadCount = useMemo(
     () => Object.values(unreadByRoom).reduce((a, b) => a + b, 0),
