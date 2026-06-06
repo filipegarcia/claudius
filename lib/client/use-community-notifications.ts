@@ -378,22 +378,32 @@ export function useCommunityNotificationsState(): UseCommunityNotifications {
   const enabledRef = useRef(enabled);
   enabledRef.current = enabled;
 
-  // Caller (the community page) tells us which nick is ours. Stored in a
-  // ref so the SSE handler reads the current value without re-binding the
-  // EventSource fanout. `null` means "we don't know" — in which case no
-  // message is treated as our own.
+  // Caller (the community page) tells us which nick is ours.
+  //
+  // Stored as STATE (not just a ref) because the SSE fanout effect
+  // below has to re-open the EventSources with `?nick=…` whenever the
+  // nick changes — that's what registers us in each room's Members
+  // roster on the chat-server. A pure ref would update silently and
+  // the existing connections would stay anonymous.
+  //
+  // We keep a mirror ref so the `handleNewMessage` closure (which has
+  // empty deps for stability) can read the nick without re-binding
+  // the fanout. The ref is updated during render so reads see the
+  // latest value.
+  const [myNick, setMyNickState] = useState<string | null>(null);
   const myNickRef = useRef<string | null>(null);
+  myNickRef.current = myNick;
   const setMyNick = useCallback((nick: string | null) => {
-    myNickRef.current = nick;
+    setMyNickState(nick);
   }, []);
-  // Seed from localStorage so the provider knows our nick even before the
-  // /community page has mounted (e.g. a background tab receiving SSE
-  // replays from another device-side send). Matches the key useCommunity
-  // writes to.
+  // Seed from localStorage on mount so the provider knows our nick
+  // even before the /community page has rendered (e.g. a background
+  // tab still wants to register under our nick for the Members
+  // roster). Matches the key useCommunity writes to.
   useEffect(() => {
     try {
       const stored = window.localStorage.getItem("claudius.community.nick");
-      if (stored) myNickRef.current = stored;
+      if (stored) setMyNickState(stored);
     } catch {
       // ignore
     }
@@ -500,9 +510,16 @@ export function useCommunityNotificationsState(): UseCommunityNotifications {
   useEffect(() => {
     if (!configured || rooms.length === 0) return;
     const sources: EventSource[] = [];
+    // `?nick=…` registers this subscriber under our claimed nick on
+    // the chat-server, so we appear in each room's Members roster
+    // (lurkers included). Falling back to "" when we don't yet know
+    // the nick means older chat-servers and the anonymous handshake
+    // both keep working — invalid / missing nicks are silently
+    // ignored server-side.
+    const nickParam = myNick ? `?nick=${encodeURIComponent(myNick)}` : "";
     for (const room of rooms) {
       if (room.slug === viewingRoom) continue;
-      const url = `${SERVER_URL}/rooms/${encodeURIComponent(room.slug)}/stream`;
+      const url = `${SERVER_URL}/rooms/${encodeURIComponent(room.slug)}/stream${nickParam}`;
       const es = new EventSource(url);
       es.onmessage = (ev) => {
         try {
@@ -535,7 +552,7 @@ export function useCommunityNotificationsState(): UseCommunityNotifications {
     return () => {
       for (const es of sources) es.close();
     };
-  }, [configured, rooms, SERVER_URL, viewingRoom]);
+  }, [configured, rooms, SERVER_URL, viewingRoom, myNick]);
 
   const unreadCount = useMemo(
     () => Object.values(unreadByRoom).reduce((a, b) => a + b, 0),

@@ -441,17 +441,25 @@ export function CommunityChat({ onOptOut }: Props) {
       </main>
       )}
 
-      {/* IRC-style names list — always visible alongside the channel
-          column. Hydrated from the per-room `presence` snapshot the
-          chat-server sends on stream open, then kept in sync via
-          `member_joined` / `member_left` deltas. Stays mounted during
-          DM view too: the list belongs to the active channel (whose
-          SSE keeps running in the background), not to the main column. */}
-      <MembersList
-        members={community.members}
-        myNick={community.nick}
-        onSelectNick={handleSelectNick}
-      />
+      {/* IRC-style names list — admin-only. Hydrated from the per-room
+          `presence` snapshot the chat-server sends on stream open,
+          then kept in sync via `member_joined` / `member_left` deltas.
+          Stays mounted during DM view too: the list belongs to the
+          active channel (whose SSE keeps running in the background),
+          not to the main column.
+
+          Hidden for non-admins because seeing who's connected to a
+          public chat raises a privacy bar we don't want by default —
+          moderation needs the roster, regular users don't. Behind the
+          existing `community.isAdmin` flag so the panel only shows on
+          installs where CLAUDIUS_CHAT_ADMIN_TOKEN is set. */}
+      {community.isAdmin && (
+        <MembersList
+          members={community.members}
+          myNick={community.nick}
+          onSelectNick={handleSelectNick}
+        />
+      )}
 
       {newDMOpen && (
         <NewDMModal
