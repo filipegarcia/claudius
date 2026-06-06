@@ -60,8 +60,28 @@ export type UpdaterPending = {
 export type UpdaterStatus =
   | { kind: "idle" }
   | { kind: "checking"; startedAt: number }
-  | { kind: "applying"; startedAt: number; strategy: "ff-only" | "cc-merge" }
+  | { kind: "applying"; startedAt: number; strategy: "ff-only" | "stash-ff" | "cc-merge" }
   | { kind: "restarting"; startedAt: number };
+
+/**
+ * Recorded when an apply succeeded at the git level (HEAD is at upstream)
+ * but the working tree has been left with merge conflict markers — typically
+ * a `git stash pop` collision after the stash-ff strategy. The user must
+ * resolve before install/build/restart can finish. Survives restarts so the
+ * banner persists and the "Resolve with Claude Code" button stays available
+ * until conflicts are cleared (by a subsequent check seeing a clean tree).
+ */
+export type UpdaterConflicts = {
+  /** SHA the tree was advanced to before conflicts blocked the rest of apply. */
+  toSha: string;
+  /** SHA before the apply started — useful for "show me the diff" hints. */
+  fromSha: string;
+  detectedAt: number;
+  /** Origin of the conflict: which strategy produced it. */
+  origin: "stash-ff" | "cc-merge";
+  /** One-line human-readable summary (e.g. the conflict marker filenames). */
+  detail: string;
+};
 
 export type UpdaterState = {
   /** Last time we ran a remote check (success or failure). */
@@ -74,6 +94,12 @@ export type UpdaterState = {
   lastError?: string;
   /** Pending update detected by the most recent successful check. */
   pending?: UpdaterPending;
+  /**
+   * Working-tree conflicts left over from a partially-applied update. The UI
+   * surfaces a "Resolve with Claude Code" action while this is set; cleared
+   * once the next check sees a clean tree at or past `toSha`.
+   */
+  conflicts?: UpdaterConflicts;
   /** Current in-flight operation, if any. */
   status: UpdaterStatus;
 };
@@ -125,6 +151,8 @@ function normalize(parsed: Partial<UpdaterFile> | null | undefined): UpdaterFile
     lastUpdateSha: typeof stateIn.lastUpdateSha === "string" ? stateIn.lastUpdateSha : undefined,
     lastError: typeof stateIn.lastError === "string" ? stateIn.lastError : undefined,
     pending: stateIn.pending && typeof stateIn.pending === "object" ? stateIn.pending : undefined,
+    conflicts:
+      stateIn.conflicts && typeof stateIn.conflicts === "object" ? stateIn.conflicts : undefined,
     status:
       stateIn.status && typeof stateIn.status === "object" && "kind" in stateIn.status
         ? (stateIn.status as UpdaterStatus)
@@ -196,6 +224,10 @@ export async function setUpdaterStatus(status: UpdaterStatus): Promise<void> {
 
 export async function clearUpdaterPending(): Promise<void> {
   await patchUpdaterState({ pending: undefined });
+}
+
+export async function clearUpdaterConflicts(): Promise<void> {
+  await patchUpdaterState({ conflicts: undefined });
 }
 
 export const updaterSettingsPath = SETTINGS_PATH;

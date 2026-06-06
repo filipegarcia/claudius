@@ -5,13 +5,18 @@ import {
   ArrowDownToLine,
   ArrowLeft,
   Download,
+  GitMerge,
   LifeBuoy,
   Loader2,
   RefreshCw,
   Sparkles,
 } from "lucide-react";
 import { SideNav } from "@/components/nav/SideNav";
-import { useUpdater, type UpdaterMode } from "@/lib/client/use-updater";
+import {
+  useUpdater,
+  type UpdaterConflicts,
+  type UpdaterMode,
+} from "@/lib/client/use-updater";
 import { cn } from "@/lib/utils/cn";
 
 /**
@@ -177,7 +182,16 @@ export default function UpdaterPage() {
                   )}
                 </Section>
 
-                {data.state.lastError && (
+                {data.state.conflicts && (
+                  <ConflictsSection
+                    conflicts={data.state.conflicts}
+                    installRoot={data.install.root}
+                    resolveWithClaude={u.resolveWithClaude}
+                    busy={u.busy}
+                  />
+                )}
+
+                {data.state.lastError && !data.state.conflicts && (
                   <RecoverySection
                     lastError={data.state.lastError}
                     installRoot={data.install.root}
@@ -326,6 +340,116 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
       <div className="w-28 shrink-0 text-[10px] uppercase tracking-wide text-[var(--muted)]">{label}</div>
       <div className="flex-1">{children}</div>
     </div>
+  );
+}
+
+/**
+ * Surfaced when the apply succeeded at the git level (HEAD moved to upstream)
+ * but the working tree was left with merge markers — almost always a
+ * `git stash pop` collision after the dirty-tree fast path. The primary
+ * action spawns an interactive Claude Code session at the install root with
+ * a seeded resolution prompt; the user reviews and sends it.
+ *
+ * Pinned above the recovery section because this is the actionable card —
+ * once the user clicks the button there's a real chat to talk to, not just
+ * a copy-pasteable command list.
+ */
+function ConflictsSection({
+  conflicts,
+  installRoot,
+  resolveWithClaude,
+  busy,
+}: {
+  conflicts: UpdaterConflicts;
+  installRoot: string;
+  resolveWithClaude: () => Promise<{ workspaceId: string; prompt: string } | null>;
+  busy: boolean;
+}) {
+  const onResolve = async () => {
+    const r = await resolveWithClaude();
+    if (!r) return;
+    // Stash the prompt into sessionStorage and land on the chat with
+    // `?prefill=1` so the composer is seeded but NOT auto-sent — same
+    // pattern as the customizations auto-fix flow (SyncFromBasePanel).
+    // Falling back to a URL-encoded prefill keeps the feature working in
+    // privacy/incognito contexts where sessionStorage throws.
+    if (typeof window === "undefined") return;
+    try {
+      sessionStorage.setItem("claudius.autofix-draft", r.prompt);
+      window.location.assign(`/${r.workspaceId}?new=1&prefill=1`);
+    } catch {
+      window.location.assign(
+        `/${r.workspaceId}?new=1&prefill=${encodeURIComponent(r.prompt)}`,
+      );
+    }
+  };
+
+  return (
+    <Section
+      title="Update needs your help"
+      subtitle="Upstream pulled in cleanly, but reapplying your local edits hit merge conflicts."
+    >
+      <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-3 text-xs">
+        <div className="flex items-start gap-2">
+          <GitMerge className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
+          <div className="flex-1 space-y-3">
+            <div>
+              <div className="font-medium">
+                Conflicts left in the working tree
+                <span className="ml-2 rounded bg-amber-500/15 px-1.5 py-0.5 font-mono text-[10px] uppercase text-amber-200">
+                  origin: {conflicts.origin}
+                </span>
+              </div>
+              <p className="mt-1 text-[var(--muted)]">
+                HEAD is at <code className="font-mono">{conflicts.toSha.slice(0, 7)}</code>{" "}
+                (upstream). Your stashed edits couldn&apos;t be cleanly reapplied — the
+                files with markers are listed below. Install/build/restart was
+                skipped so nothing is half-broken.
+              </p>
+              {conflicts.detail && (
+                <pre className="mt-2 whitespace-pre-wrap break-words rounded border border-amber-500/20 bg-amber-500/10 p-2 font-mono text-[11px] leading-snug text-amber-100">
+                  {conflicts.detail}
+                </pre>
+              )}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => void onResolve()}
+                disabled={busy}
+                className="flex items-center gap-1 rounded-md bg-amber-500/80 px-3 py-1 text-xs font-medium text-white hover:bg-amber-500 disabled:opacity-50"
+                title="Open a Claude Code session at the install root with a pre-filled prompt that walks through the conflicts."
+              >
+                {busy ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <Sparkles className="h-3 w-3" />
+                )}
+                Resolve with Claude Code
+              </button>
+              <span className="text-[var(--muted)]">
+                Opens a new chat in <code className="font-mono">{installRoot}</code>{" "}
+                with a draft prompt — review it and send when ready.
+              </span>
+            </div>
+
+            <div>
+              <div className="text-[10px] uppercase tracking-wide text-[var(--muted)]">
+                Prefer the terminal?
+              </div>
+              <pre className="mt-1 overflow-x-auto rounded bg-black/30 p-2 font-mono text-[11px] leading-relaxed text-[var(--foreground)]">
+                {`cd ${installRoot}
+git status                          # see which files have markers
+# edit each conflicted file, then:
+git add -A && git commit -m "merge: reconcile customizations"
+bun install && bun run build        # finish the update
+# restart Claudius (claudiusd restart, or kill+relaunch dev)`}
+              </pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Section>
   );
 }
 

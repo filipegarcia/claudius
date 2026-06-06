@@ -6,6 +6,8 @@ import {
   isDirty,
   pullFastForward,
   spawnStreamed,
+  stashPop,
+  stashPushIncludeUntracked,
   UpdaterGitError,
 } from "./git";
 import { checkForUpdates } from "./detect";
@@ -13,6 +15,7 @@ import { installRoot } from "./root";
 import {
   getUpdaterSettings,
   patchUpdaterState,
+  readUpdaterFile,
   setUpdaterStatus,
   type UpdaterMode,
   type UpdaterPending,
@@ -22,13 +25,20 @@ import { triggerRestart, type RestartResult } from "./restart";
 export type ApplyOutcome =
   | {
       kind: "applied";
-      strategy: "ff-only" | "cc-merge";
+      strategy: "ff-only" | "stash-ff" | "cc-merge";
       fromSha: string;
       toSha: string;
       restart: RestartResult;
     }
   | { kind: "no-update" }
   | { kind: "skipped"; reason: string }
+  | {
+      kind: "conflicts";
+      origin: "stash-ff" | "cc-merge";
+      fromSha: string;
+      toSha: string;
+      detail: string;
+    }
   | { kind: "error"; message: string; phase: ApplyPhase };
 
 type ApplyPhase = "detect" | "pull" | "merge" | "install" | "build" | "restart" | "init";
@@ -56,6 +66,18 @@ async function runApply(opts: { allowCcMerge?: boolean }): Promise<ApplyOutcome>
     return { kind: "skipped", reason: "updater disabled" };
   }
 
+  // Hold the line while there are unresolved conflicts. Any further apply
+  // would stash on top of conflict markers (or pull on top of a dirty merge),
+  // both of which compound the mess. The detect path clears `conflicts`
+  // automatically once the user lands on a clean tree.
+  const file = await readUpdaterFile();
+  if (file.state.conflicts) {
+    return {
+      kind: "skipped",
+      reason: "previous update left conflicts — resolve them first",
+    };
+  }
+
   // Always re-check first so we're acting on a fresh diff between local and
   // remote — the cached `pending` could be hours old.
   const check = await checkForUpdates();
@@ -76,10 +98,67 @@ async function runApply(opts: { allowCcMerge?: boolean }): Promise<ApplyOutcome>
   try {
     if (strategy.kind === "ff-only") {
       await runFastForward(root, settings.remote, settings.branch);
+    } else if (strategy.kind === "stash-ff") {
+      const result = await runStashFastForward(root, settings.remote, settings.branch);
+      if (result.kind === "conflicts") {
+        // HEAD is at upstream, working tree has conflict markers from the
+        // stash pop. Record so the UI can surface a "Resolve with Claude
+        // Code" action; bypass rollback so we DON'T `git reset --hard`
+        // over the user's edits. Skip install/build/restart — the tree
+        // is not in a runnable state.
+        const toSha = await headSha(root);
+        await patchUpdaterState({
+          lastError: `merge: ${result.detail}`,
+          conflicts: {
+            fromSha,
+            toSha,
+            detectedAt: Date.now(),
+            origin: "stash-ff",
+            detail: result.detail,
+          },
+          status: { kind: "idle" },
+        });
+        await appendLog(root, `stash-ff: pop conflicts — ${result.detail}\n`);
+        return {
+          kind: "conflicts",
+          origin: "stash-ff",
+          fromSha,
+          toSha,
+          detail: result.detail,
+        };
+      }
     } else {
       // strategy.kind === "cc-merge"
       const ok = await runCcMerge(root, pending, settings.remote);
       if (!ok.ok) {
+        // If the agent left the tree dirty after touching HEAD, surface
+        // as conflicts (with the resolve button) rather than a plain
+        // error — same recovery UX as stash-ff. Otherwise it's just an
+        // ordinary merge-phase failure.
+        const dirty = await isDirty(root);
+        const movedHead = (await headSha(root)) !== fromSha;
+        if (dirty && movedHead) {
+          const toSha = await headSha(root);
+          await patchUpdaterState({
+            lastError: `merge: ${ok.error}`,
+            conflicts: {
+              fromSha,
+              toSha,
+              detectedAt: Date.now(),
+              origin: "cc-merge",
+              detail: ok.error,
+            },
+            status: { kind: "idle" },
+          });
+          await appendLog(root, `cc-merge: left dirty — ${ok.error}\n`);
+          return {
+            kind: "conflicts",
+            origin: "cc-merge",
+            fromSha,
+            toSha,
+            detail: ok.error,
+          };
+        }
         await patchUpdaterState({
           lastError: `Claude merge failed: ${ok.error}`,
           status: { kind: "idle" },
@@ -89,9 +168,9 @@ async function runApply(opts: { allowCcMerge?: boolean }): Promise<ApplyOutcome>
     }
 
     // For ff-only the upstream lockfile is canonical, so frozen install is
-    // correct. For cc-merge the merge may have touched package.json /
-    // bun.lockb — frozen would fail, so use the unfrozen path so bun can
-    // resolve the merged manifest.
+    // correct. For stash-ff / cc-merge the merge may have touched
+    // package.json / bun.lockb — frozen would fail, so use the unfrozen
+    // path so bun can resolve the merged manifest.
     const installArgs =
       strategy.kind === "ff-only" ? ["install", "--frozen-lockfile"] : ["install"];
     await runStreamed(root, "bun", installArgs, "install", envForBunPhase("install"));
@@ -103,6 +182,7 @@ async function runApply(opts: { allowCcMerge?: boolean }): Promise<ApplyOutcome>
       lastUpdateSha: toSha,
       lastError: undefined,
       pending: undefined,
+      conflicts: undefined,
       status: { kind: "restarting", startedAt: Date.now() },
     });
     await appendLog(root, `apply ok — restarting (was ${fromSha.slice(0, 7)}, now ${toSha.slice(0, 7)})\n`);
@@ -126,9 +206,18 @@ async function runApply(opts: { allowCcMerge?: boolean }): Promise<ApplyOutcome>
     // before. `git reset --hard $fromSha` restores the exact pre-apply
     // commit; the served `.next/` build is still the old one and keeps
     // working until the user fixes the underlying issue.
+    //
+    // Stash-ff exception: after a successful pop, the user's edits are
+    // back in the working tree as uncommitted changes. A `git reset --hard`
+    // would discard them. Skip rollback for that strategy — node_modules
+    // might be in a transient state but the running .next/ build keeps
+    // serving until the user re-runs install/build manually.
     let rolledBack = false;
     let attemptedRollback = false;
-    if (phase === "install" || phase === "build" || phase === "merge") {
+    const canRollback =
+      strategy.kind !== "stash-ff" &&
+      (phase === "install" || phase === "build" || phase === "merge");
+    if (canRollback) {
       attemptedRollback = true;
       try {
         await rollbackTo(root, fromSha);
@@ -183,10 +272,12 @@ function phaseError(phase: ApplyPhase, message: string): PhaseError {
 
 type Strategy =
   | { kind: "ff-only" }
+  | { kind: "stash-ff" }
   | { kind: "cc-merge" }
   | { kind: "skip"; reason: string };
 
-function pickStrategy(
+/** Exported for unit tests — keep in sync with the production caller in `runApply`. */
+export function pickStrategy(
   mode: UpdaterMode,
   pending: UpdaterPending,
   allowCcMergeOverride: boolean,
@@ -196,9 +287,23 @@ function pickStrategy(
   const wantsCcMerge = mode === "cc-merge" || allowCcMergeOverride;
 
   const cleanFastForward = !pending.dirty && pending.ahead === 0 && pending.behind > 0;
-
   if (cleanFastForward) return { kind: "ff-only" };
 
+  // Dirty tree but no local commits ahead → stash, pull --ff-only, pop.
+  // The common case for users with published customizations: their edits
+  // are uncommitted, but the branch hasn't diverged at the commit level.
+  // Deterministic, fast, no LLM spend — and any pop conflicts surface a
+  // "Resolve with Claude Code" button. Available in every auto-apply mode
+  // (including ff-only) because it's strictly safer than the old "skip
+  // when dirty" behavior: a stash pop conflict leaves the user with the
+  // exact same files they had before, just in conflicted form.
+  const dirtyOnly = pending.dirty && pending.ahead === 0 && pending.behind > 0;
+  if (dirtyOnly && (mode === "cc-merge" || mode === "ff-only" || allowCcMergeOverride)) {
+    return { kind: "stash-ff" };
+  }
+
+  // Diverged at the commit level — stash won't help, and only the LLM path
+  // (or a manual `git pull --rebase`) can reconcile.
   if (wantsCcMerge) return { kind: "cc-merge" };
 
   if (mode === "ff-only") {
@@ -224,13 +329,59 @@ async function runFastForward(root: string, remote: string, branch: string): Pro
   }
 }
 
-const CC_MERGE_PROMPT = `You are reconciling this Claudius checkout with upstream.
+/**
+ * Dirty-but-non-diverged fast path. Stash the local edits, fast-forward
+ * pull, then pop. Three outcomes:
+ *
+ *   - applied   — pop succeeded, tree is clean past upstream. Install/build
+ *                 proceeds.
+ *   - conflicts — pop hit conflict markers. Returned as a structured outcome
+ *                 (NOT thrown) so the caller bypasses the install/build/rollback
+ *                 path and surfaces the resolve-with-Claude action instead.
+ *   - throw     — fetch/pull itself failed (network, FF-refused). The caller's
+ *                 standard rollback path handles it; we unstash first so the
+ *                 user's edits aren't trapped in the stash list.
+ */
+async function runStashFastForward(
+  root: string,
+  remote: string,
+  branch: string,
+): Promise<{ kind: "applied" } | { kind: "conflicts"; detail: string }> {
+  const { stashed } = await stashPushIncludeUntracked(root, "claudius-updater-stash");
+  try {
+    await pullFastForward(root, remote, branch);
+  } catch (err) {
+    if (stashed) {
+      // Best-effort restore so the user's edits are back in the tree if the
+      // pull fails. If the pop itself conflicts here it's surprising (tree
+      // was clean), but treat it the same way — leave conflicts in place
+      // for the user to inspect.
+      try {
+        await stashPop(root);
+      } catch {
+        // Swallow — outer catch in runApply will surface the pull error,
+        // and the stash entry is still in the list for manual recovery.
+      }
+    }
+    const msg =
+      err instanceof UpdaterGitError ? err.stderr.trim() || err.message : String(err);
+    throw phaseError("pull", msg);
+  }
+  if (!stashed) return { kind: "applied" };
+  const pop = await stashPop(root);
+  if (pop.ok) return { kind: "applied" };
+  return { kind: "conflicts", detail: pop.output };
+}
+
+const CC_MERGE_PROMPT = `You are reconciling this Claudius checkout with upstream after the local branch has DIVERGED — there are commits both upstream and locally.
+
+Context: the updater only spawns you for true commit-level divergence. The dirty-working-tree case is handled deterministically (stash → ff pull → pop) elsewhere; if the pop conflicts, the user gets an interactive resolution session, not you. So you should NOT see a "dirty tree, no local commits" state.
 
 Goal: bring the local working tree to a state where:
   1. The latest upstream changes from \`{{remote}}/{{branch}}\` are applied.
   2. Any local edits (published customizations, manual tweaks) that DON'T conflict are preserved.
   3. For real conflicts, prefer the customization intent for visible UI/behavior changes; prefer upstream for bug fixes and dependency bumps. When in doubt, keep both behaviors and resolve sensibly.
-  4. \`bun run lint\` (best effort) and \`bun run build\` will be run AFTER you finish — your job is just to leave a clean, building tree.
+  4. \`bun install\` and \`bun run build\` will be run AFTER you finish — your job is to leave a clean, committable tree.
 
 Current state (already verified before invoking you):
   - HEAD is at: {{localSha}}
@@ -240,16 +391,18 @@ Current state (already verified before invoking you):
   - Tracking: {{upstreamRef}}
 
 Approach:
-  1. Run \`git status\` and \`git log --oneline HEAD..{{upstreamRef}} | head -30\` to see what you're working with.
-  2. If the tree is dirty, decide whether to commit, stash, or merge as-is. For Claudius the right default is: \`git stash push -u -m claudius-updater-stash\`, then merge, then \`git stash pop\` and resolve conflicts.
-  3. If the tree is clean: \`git merge --no-edit {{upstreamRef}}\`. Resolve any conflict markers using your judgment (see goals above).
-  4. Once HEAD is at or ahead of {{upstreamRef}} and the tree has no conflict markers, you're done.
+  1. Run \`git status\` and \`git log --oneline HEAD..{{upstreamRef}} | head -30\` plus \`git log --oneline {{upstreamRef}}..HEAD | head -30\` to see both sides of the divergence.
+  2. If the tree happens to be dirty, \`git stash push -u -m claudius-updater-stash\` first so the merge starts clean.
+  3. \`git merge --no-edit {{upstreamRef}}\`. Resolve any conflict markers using the goals above, \`git add\` resolved files, and complete the merge commit.
+  4. If you stashed, \`git stash pop\` and resolve any remaining conflicts.
+  5. End with a clean working tree at or ahead of {{upstreamRef}}.
 
 Hard rules:
   - DO NOT \`git push\` anywhere.
-  - DO NOT delete the .claudius/ directory or .next/ directory.
-  - DO NOT modify .git/config or remotes.
-  - If you can't safely resolve, leave the tree as-is, run \`git merge --abort\` (or \`git stash pop\` to restore), and report failure in your final message.
+  - DO NOT delete \`.claudius/\` or \`.next/\`.
+  - DO NOT modify \`.git/config\` or remotes.
+  - DO NOT \`git reset --hard\` over uncommitted local work without good reason — leaving the dirty tree is preferable to discarding it silently.
+  - If you can't safely resolve, leave the tree as-is, run \`git merge --abort\` (or \`git stash pop\` to restore), and report failure. The user will get an interactive resolution session as the fallback.
   - Bound yourself to ~10 minutes. If you can't converge, abort and report.
 
 Report your final status as one line: either "MERGE_OK" if the tree is clean and HEAD includes upstream, or "MERGE_FAIL: <one-line reason>" if you had to abort.`;

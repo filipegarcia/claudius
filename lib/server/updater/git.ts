@@ -171,6 +171,60 @@ export async function pullFastForward(
 }
 
 /**
+ * Push the current working tree (tracked + untracked, no ignored) onto the
+ * stash with `-u`, tagged with `message`. Returns `false` when there was
+ * nothing to stash so the caller doesn't pop something it didn't push.
+ *
+ * `git stash push` exits 0 even when the tree is clean and prints "No local
+ * changes to save" — we detect that by re-querying isDirty afterwards rather
+ * than parsing stdout (which is locale-dependent).
+ */
+export async function stashPushIncludeUntracked(
+  cwd: string,
+  message: string,
+): Promise<{ stashed: boolean }> {
+  const dirtyBefore = await isDirty(cwd);
+  if (!dirtyBefore) return { stashed: false };
+  await git(["stash", "push", "-u", "-m", message], cwd, DEFAULT_TIMEOUT_MS * 2);
+  // If still dirty, the stash didn't actually move anything — treat as not
+  // stashed so the caller doesn't pop an unrelated entry from before.
+  const dirtyAfter = await isDirty(cwd);
+  return { stashed: !dirtyAfter };
+}
+
+/**
+ * Pop the most recent stash entry. Returns `{ ok: true }` when the working
+ * tree is clean after the pop, or `{ ok: false, conflicts: true, output }`
+ * when git reports merge conflicts (exit code 1 + the per-file conflict
+ * markers list). Other failures throw.
+ *
+ * Note: on a conflicting pop, git does NOT drop the stash entry — the user
+ * (or our recovery prompt) can re-run `git stash show` / `git stash drop`
+ * later as needed.
+ */
+export async function stashPop(
+  cwd: string,
+): Promise<{ ok: true } | { ok: false; conflicts: true; output: string }> {
+  try {
+    await git(["stash", "pop"], cwd, DEFAULT_TIMEOUT_MS * 2);
+    return { ok: true };
+  } catch (err) {
+    if (err instanceof UpdaterGitError && err.exitCode === 1) {
+      // Conflict — the stash entry is still in the list; the working tree
+      // has conflict markers. Surface for the caller to render a recovery
+      // action.
+      return {
+        ok: false,
+        conflicts: true,
+        output: (err.stderr || err.message).trim(),
+      };
+    }
+    throw err;
+  }
+}
+
+
+/**
  * Streaming spawn — the caller decides how to handle stdout/stderr. Used by
  * the apply path so long-running operations (`bun install`, `bun run build`)
  * can pipe progress into the updater log without buffering the whole output.

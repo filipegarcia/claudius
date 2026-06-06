@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowDownToLine, Loader2, RefreshCw, ShieldAlert, Sparkles, TriangleAlert, X } from "lucide-react";
+import { ArrowDownToLine, GitMerge, Loader2, RefreshCw, ShieldAlert, Sparkles, TriangleAlert, X } from "lucide-react";
 import { useUpdater } from "@/lib/client/use-updater";
 import { useElectronUpdater } from "@/lib/client/useElectronUpdater";
 
@@ -49,9 +49,13 @@ function WebUpdaterBanner() {
 
   const status = state.status.kind;
   const pending = state.pending && state.pending.behind > 0 ? state.pending : undefined;
-  const hasError = !!state.lastError && state.lastError !== dismissedError;
+  const conflicts = state.conflicts;
+  // Conflicts win over plain errors — `lastError` is set in parallel, so
+  // without this we'd double-render the same situation as both a red
+  // "update failed" banner and an amber "conflicts" banner.
+  const hasError = !!state.lastError && state.lastError !== dismissedError && !conflicts;
 
-  if (status === "idle" && !pending && !hasError) return null;
+  if (status === "idle" && !pending && !hasError && !conflicts) return null;
 
   // Mid-apply / restart — informational, no actions.
   if (status === "applying" || status === "restarting") {
@@ -72,6 +76,51 @@ function WebUpdaterBanner() {
         <Link
           href="/updater"
           className="ml-auto rounded border border-[var(--accent)]/40 bg-[var(--accent)]/15 px-2 py-0.5 hover:bg-[var(--accent)]/25"
+        >
+          Details
+        </Link>
+      </div>
+    );
+  }
+
+  // Conflicts — the update was partially applied (HEAD moved) but a
+  // stash pop or merge left markers in the tree. Surface the actionable
+  // path (spawn a Claude session at the install root) right here so the
+  // user doesn't have to dig into /updater.
+  if (conflicts) {
+    return (
+      <div
+        data-pane-name="updater-banner-conflicts"
+        className="flex items-center gap-2 border-b border-amber-500/40 bg-amber-500/10 px-4 py-1.5 text-xs"
+      >
+        <GitMerge className="h-3.5 w-3.5 shrink-0 text-amber-400" />
+        <span className="font-medium">Update needs your help</span>
+        <span className="hidden text-[var(--muted)] sm:inline">
+          local edits conflicted when reapplied on top of upstream
+          {conflicts.toSha ? ` · @ ${conflicts.toSha.slice(0, 7)}` : ""}
+        </span>
+        <button
+          onClick={async () => {
+            const r = await u.resolveWithClaude();
+            if (!r || typeof window === "undefined") return;
+            try {
+              sessionStorage.setItem("claudius.autofix-draft", r.prompt);
+              window.location.assign(`/${r.workspaceId}?new=1&prefill=1`);
+            } catch {
+              window.location.assign(
+                `/${r.workspaceId}?new=1&prefill=${encodeURIComponent(r.prompt)}`,
+              );
+            }
+          }}
+          disabled={u.busy}
+          className="ml-auto flex items-center gap-1 rounded border border-amber-500/40 bg-amber-500/15 px-2 py-0.5 hover:bg-amber-500/25 disabled:opacity-50"
+        >
+          {u.busy ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+          Resolve with Claude Code
+        </button>
+        <Link
+          href="/updater"
+          className="rounded border border-amber-500/40 bg-amber-500/15 px-2 py-0.5 hover:bg-amber-500/25"
         >
           Details
         </Link>

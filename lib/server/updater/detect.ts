@@ -79,18 +79,23 @@ async function runCheck(): Promise<CheckResult> {
     const localSha = await headSha(root);
     const remoteSha = await revParse(root, upstreamRef);
 
+    const dirty = await isDirty(root);
+
     if (localSha === remoteSha) {
+      // Clear conflicts when the working tree is back to clean — the user
+      // resolved them externally. A still-dirty tree might have lingering
+      // markers, so leave the state set in that case.
       await patchUpdaterState({
         lastCheckAt: Date.now(),
         lastError: undefined,
         pending: undefined,
+        ...(dirty ? {} : { conflicts: undefined }),
         status: { kind: "idle" },
       });
       return { kind: "up-to-date", sha: localSha, branch: localBranch };
     }
 
     const ab = await aheadBehind(root, "HEAD", upstreamRef);
-    const dirty = await isDirty(root);
     const commits = await recentCommits(root, "HEAD", upstreamRef);
 
     const pending: UpdaterPending = {
@@ -107,6 +112,10 @@ async function runCheck(): Promise<CheckResult> {
       lastCheckAt: Date.now(),
       lastError: undefined,
       pending,
+      // Clear conflicts when the tree is clean — even if behind > 0, a clean
+      // tree means the user committed their resolution. The next apply can
+      // proceed normally.
+      ...(dirty ? {} : { conflicts: undefined }),
       status: { kind: "idle" },
     });
 
