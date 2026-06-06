@@ -466,23 +466,18 @@ export function SideNav({ running = false }: { running?: boolean }) {
           // Active state uses the accent color + a left-edge bar (same
           // visual idiom as the workspace switcher's active tile) so the
           // current view is obvious from across the screen.
-          //
-          // Tiles render with a small chord glyph BELOW the icon when a
-          // binding is registered — the user asked for the keybinding to
-          // be visible on the tile itself, not just in the hover tooltip.
-          // We keep the chord muted (text-[var(--muted)]/70) and tiny
-          // (text-[9px]) so it teaches without competing with the icon;
-          // tiles without bindings keep the historical icon-only height
-          // so this is purely additive.
           const cls = cn(
-            "group relative flex w-9 flex-col items-center justify-center rounded-md text-[var(--muted)]",
+            "group relative flex h-9 w-9 items-center justify-center rounded-md text-[var(--muted)]",
             "hover:bg-[var(--panel-2)] hover:text-[var(--foreground)]",
-            shortcutLabel ? "h-11 gap-0.5 py-1" : "h-9",
             active &&
               "bg-[var(--accent)]/15 text-[var(--accent)] ring-1 ring-[var(--accent)]/40 hover:text-[var(--accent)]",
           );
-          // Tooltip: include the shortcut hint and a drag affordance so the
-          // user knows the tiles are reorderable.
+          // Tooltip: include the shortcut hint (visible on hover via the
+          // native OS tooltip) and a drag affordance so the user knows
+          // the tiles are reorderable. We deliberately do NOT render the
+          // chord on the tile itself — keeping the rail clean was the
+          // explicit user preference; hover surfaces the binding when
+          // someone needs it.
           const baseTooltip = shortcutLabel ? `${label}  ${shortcutLabel}` : label;
           const tooltip = actionId ? `${baseTooltip}\nDrag to reorder` : baseTooltip;
           const body = (
@@ -494,17 +489,6 @@ export function SideNav({ running = false }: { running?: boolean }) {
                 />
               )}
               <Icon className="h-4.5 w-4.5" />
-              {shortcutLabel && (
-                <span
-                  aria-hidden
-                  className={cn(
-                    "select-none font-mono text-[9px] leading-none tracking-tight",
-                    active ? "text-[var(--accent)]/80" : "text-[var(--muted)]/60",
-                  )}
-                >
-                  {shortcutLabel}
-                </span>
-              )}
             </>
           );
           // Wrap each tile in a draggable container. Items without an
