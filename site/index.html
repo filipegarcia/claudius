@@ -36,14 +36,19 @@
           // uBlock substring rules even on a first-party origin, and we don't
           // need session replay for a marketing page.
           disable_session_recording: true,
-          // Same reason for dead-clicks-autocapture.js — the chunk name leaks
-          // "dead-clicks" which several blocklists target. Regular autocapture
-          // (clicks/inputs) still flows through the proxy as part of array.js.
-          // NB: the config key is `capture_dead_clicks`, not the more obvious
-          // `dead_clicks_autocapture` — that name appears in PostHog's docs as
-          // the *feature* name, but the runtime flag in array.js is the
-          // capture_dead_clicks one (function `ms()` in the bundle).
+          // Same reason for dead-clicks-autocapture.js — its filename hits
+          // blocklists even on a first-party origin. PostHog loads it from
+          // TWO places in the bundle and both have to be silenced:
+          //   1. The standalone autocapture path, gated by capture_dead_clicks
+          //      via the bundle's `ms()` function.
+          //   2. The heatmaps class instantiates its own dead-clicks instance
+          //      with a hard-coded always-true gate (`_s = () => true` in the
+          //      bundle), so capture_dead_clicks alone doesn't help — we have
+          //      to disable heatmaps to stop that second construction site.
+          // Disabling heatmaps is fine for a static marketing page; flip back
+          // on if we add interactive surfaces where click-density data helps.
           capture_dead_clicks: false,
+          capture_heatmaps: false,
         });
       }
     </script>
