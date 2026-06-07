@@ -39,7 +39,11 @@
           // Same reason for dead-clicks-autocapture.js — the chunk name leaks
           // "dead-clicks" which several blocklists target. Regular autocapture
           // (clicks/inputs) still flows through the proxy as part of array.js.
-          dead_clicks_autocapture: false,
+          // NB: the config key is `capture_dead_clicks`, not the more obvious
+          // `dead_clicks_autocapture` — that name appears in PostHog's docs as
+          // the *feature* name, but the runtime flag in array.js is the
+          // capture_dead_clicks one (function `ms()` in the bundle).
+          capture_dead_clicks: false,
         });
       }
     </script>
