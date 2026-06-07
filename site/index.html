@@ -32,6 +32,14 @@
           api_host: "https://claudius.network/ph",
           defaults: "2026-05-30",
           person_profiles: "identified_only",
+          // Don't load posthog-recorder.js — its filename triggers EasyPrivacy /
+          // uBlock substring rules even on a first-party origin, and we don't
+          // need session replay for a marketing page.
+          disable_session_recording: true,
+          // Same reason for dead-clicks-autocapture.js — the chunk name leaks
+          // "dead-clicks" which several blocklists target. Regular autocapture
+          // (clicks/inputs) still flows through the proxy as part of array.js.
+          dead_clicks_autocapture: false,
         });
       }
     </script>
