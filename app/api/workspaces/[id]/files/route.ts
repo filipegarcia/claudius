@@ -1,14 +1,14 @@
 import { promises as fs } from "node:fs";
 import { isAbsolute, join, normalize, relative, resolve, sep } from "node:path";
 import { NextResponse } from "next/server";
-import { getWorkspace } from "@/lib/server/workspaces-store";
+import { resolveWorkspaceRoot } from "@/lib/server/workspace-roots";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export type FileEntry = {
   name: string;
-  /** Path relative to the workspace root, forward-slash. */
+  /** Path relative to the chosen root, forward-slash. */
   relPath: string;
   kind: "file" | "dir";
   sizeBytes?: number;
@@ -25,15 +25,24 @@ function inside(root: string, target: string): boolean {
 
 export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
-  const ws = await getWorkspace(id);
-  if (!ws) return NextResponse.json({ error: "workspace not found" }, { status: 404 });
-
   const url = new URL(req.url);
+  const rootSel = url.searchParams.get("root");
+  const resolved = await resolveWorkspaceRoot(id, rootSel);
+  if (!resolved) {
+    return NextResponse.json(
+      { error: rootSel ? "unknown root" : "workspace not found" },
+      { status: 404 },
+    );
+  }
+
   const rawPath = url.searchParams.get("path") ?? "";
   const depth = Math.min(3, Math.max(1, Number(url.searchParams.get("depth") ?? "1") || 1));
 
-  // Resolve the path *strictly* under the workspace root.
-  const root = resolve(ws.rootPath);
+  // Resolve the path *strictly* under the chosen root. Same shape as before:
+  // `rel` is the only client-tainted input; `root` is the trusted server-
+  // resolved base. CodeQL's StartsWithDirSanitizer wants `resolve` (not
+  // `join`) and the inline check below — see CLAUDE.md "Path safety".
+  const root = resolved.root.absPath;
   const rel = normalize(rawPath).replace(/^\/+/, "");
   const target = resolve(root, rel);
   if (!inside(root, target)) {
@@ -62,7 +71,8 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
       );
     }
     return NextResponse.json({
-      root,
+      rootId: resolved.root.id,
+      rootPath: root,
       relPath: relative(root, target).split(sep).join("/"),
       kind: "file",
       content,
@@ -82,7 +92,8 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
   if (search) {
     const { matches, truncated } = await searchFiles(root, target, search);
     return NextResponse.json({
-      root,
+      rootId: resolved.root.id,
+      rootPath: root,
       relPath: relative(root, target).split(sep).join("/"),
       entries: matches,
       truncated,
@@ -91,7 +102,8 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
 
   const entries = await listDir(root, target, depth);
   return NextResponse.json({
-    root,
+    rootId: resolved.root.id,
+    rootPath: root,
     relPath: relative(root, target).split(sep).join("/"),
     entries,
   });
@@ -99,12 +111,19 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
 
 async function resolveBoundedTarget(
   id: string,
+  rootSel: string | null,
   rawPath: string,
 ): Promise<{ ok: true; root: string; target: string } | { ok: false; status: number; error: string }> {
-  const ws = await getWorkspace(id);
-  if (!ws) return { ok: false, status: 404, error: "workspace not found" };
+  const resolved = await resolveWorkspaceRoot(id, rootSel);
+  if (!resolved) {
+    return {
+      ok: false,
+      status: 404,
+      error: rootSel ? "unknown root" : "workspace not found",
+    };
+  }
   if (!rawPath) return { ok: false, status: 400, error: "path required" };
-  const root = resolve(ws.rootPath);
+  const root = resolved.root.absPath;
   const rel = normalize(rawPath).replace(/^\/+/, "");
   if (rel === ".." || rel.startsWith("../")) {
     return { ok: false, status: 400, error: "path escapes workspace root" };
@@ -120,7 +139,7 @@ async function resolveBoundedTarget(
 export async function PUT(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
   const url = new URL(req.url);
-  const r = await resolveBoundedTarget(id, url.searchParams.get("path") ?? "");
+  const r = await resolveBoundedTarget(id, url.searchParams.get("root"), url.searchParams.get("path") ?? "");
   if (!r.ok) return NextResponse.json({ error: r.error }, { status: r.status });
   const body = await req.text();
   // Reject if target is an existing directory.
@@ -152,7 +171,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   if (kind !== "file" && kind !== "dir") {
     return NextResponse.json({ error: "kind must be file or dir" }, { status: 400 });
   }
-  const r = await resolveBoundedTarget(id, url.searchParams.get("path") ?? "");
+  const r = await resolveBoundedTarget(id, url.searchParams.get("root"), url.searchParams.get("path") ?? "");
   if (!r.ok) return NextResponse.json({ error: r.error }, { status: r.status });
   // Reject if anything already exists at the target.
   try {
@@ -181,7 +200,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
 export async function DELETE(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
   const url = new URL(req.url);
-  const r = await resolveBoundedTarget(id, url.searchParams.get("path") ?? "");
+  const r = await resolveBoundedTarget(id, url.searchParams.get("root"), url.searchParams.get("path") ?? "");
   if (!r.ok) return NextResponse.json({ error: r.error }, { status: r.status });
   try {
     await fs.rm(r.target, { recursive: true, force: false });
@@ -197,9 +216,13 @@ export async function DELETE(req: Request, ctx: { params: Promise<{ id: string }
 export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
   const url = new URL(req.url);
-  const src = await resolveBoundedTarget(id, url.searchParams.get("path") ?? "");
+  // Rename is bound to a single root — moving between roots requires copy +
+  // delete, which we don't support here. Both src and dst resolve under the
+  // same `?root=`.
+  const rootSel = url.searchParams.get("root");
+  const src = await resolveBoundedTarget(id, rootSel, url.searchParams.get("path") ?? "");
   if (!src.ok) return NextResponse.json({ error: src.error }, { status: src.status });
-  const dst = await resolveBoundedTarget(id, url.searchParams.get("newPath") ?? "");
+  const dst = await resolveBoundedTarget(id, rootSel, url.searchParams.get("newPath") ?? "");
   if (!dst.ok) return NextResponse.json({ error: dst.error }, { status: dst.status });
   // Reject if dst already exists — explicit overwrite is a separate operation.
   try {

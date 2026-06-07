@@ -38,6 +38,8 @@ describe("parseInitSystemMessage", () => {
       model: "claude-opus-4-7",
       permissionMode: "default",
       claudeCodeVersion: "2.1.99",
+      // Derived from tools.includes("advisor") — not present here.
+      advisorActive: false,
     });
   });
 
@@ -91,6 +93,7 @@ describe("parseInitSystemMessage", () => {
     });
     // Only the typed fields appear on the result.
     expect(Object.keys(out).sort()).toEqual([
+      "advisorActive",
       "agents",
       "claudeCodeVersion",
       "cwd",

@@ -71,6 +71,7 @@
     "zustand": "^5.0.13"
   },
   "devDependencies": {
+    "@modelcontextprotocol/server-everything": "2026.1.26",
     "@playwright/test": "^1.59.1",
     "@tailwindcss/postcss": "^4",
     "@types/better-sqlite3": "^7.6.13",

@@ -15,22 +15,32 @@ export type Entry = {
 
 type Props = {
   workspaceId: string;
+  /**
+   * Root selector — `primary` (default) for the workspace cwd, or
+   * `extra:<n>` for a Files-browser additional directory. Threaded into
+   * every fetch the tree issues so its rows stay bounded to the chosen
+   * root server-side.
+   */
+  root?: string;
   onPick?: (e: Entry) => void;
   /**
-   * Path (relative to workspace root) to highlight, and — on first mount —
+   * Path (relative to the chosen root) to highlight, and — on first mount —
    * auto-expand its ancestor folders so a deep-linked nested file is visible.
    */
   selectedPath?: string | null;
   /**
    * When non-empty, the tree switches to search mode: a flat list of every
-   * file (at any depth) whose workspace-relative path matches the query,
-   * fetched from the server (`?search=`). Empty string = normal lazy tree.
+   * file (at any depth) whose root-relative path matches the query, fetched
+   * from the server (`?search=`). Empty string = normal lazy tree.
    */
   query?: string;
 };
 
-export function FileTree({ workspaceId, onPick, selectedPath, query }: Props) {
-  const [root, setRoot] = useState<Entry[]>([]);
+export function FileTree({ workspaceId, root, onPick, selectedPath, query }: Props) {
+  // `root` (prop) is the selector — `rootEntries` is the top-level listing
+  // for that selector. Two different things; the rename keeps the prop name
+  // matching the API param.
+  const [rootEntries, setRootEntries] = useState<Entry[]>([]);
   const [expanded, setExpanded] = useState<Record<string, Entry[]>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -64,7 +74,8 @@ export function FileTree({ workspaceId, onPick, selectedPath, query }: Props) {
     if (!q) return;
     let cancelled = false;
     const t = setTimeout(() => {
-      fetch(`/api/workspaces/${workspaceId}/files?search=${encodeURIComponent(q)}`)
+      const rootParam = root ? `&root=${encodeURIComponent(root)}` : "";
+      fetch(`/api/workspaces/${workspaceId}/files?search=${encodeURIComponent(q)}${rootParam}`)
         .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
         .then((d: { entries?: Entry[]; truncated?: boolean }) => {
           if (cancelled) return;
@@ -82,7 +93,7 @@ export function FileTree({ workspaceId, onPick, selectedPath, query }: Props) {
       cancelled = true;
       clearTimeout(t);
     };
-  }, [q, workspaceId]);
+  }, [q, workspaceId, root]);
 
   // Mirror externally-driven selection (deep-link, or the parent opening a
   // file) into the highlight. "Store previous props" pattern so the update
@@ -98,8 +109,9 @@ export function FileTree({ workspaceId, onPick, selectedPath, query }: Props) {
   const didExpandRef = useRef(false);
 
   const load = useCallback(async (path: string): Promise<Entry[]> => {
+    const rootParam = root ? `&root=${encodeURIComponent(root)}` : "";
     const res = await fetch(
-      `/api/workspaces/${workspaceId}/files?path=${encodeURIComponent(path)}&depth=1`,
+      `/api/workspaces/${workspaceId}/files?path=${encodeURIComponent(path)}&depth=1${rootParam}`,
     );
     if (!res.ok) {
       const e = (await res.json().catch(() => ({}))) as { error?: string };
@@ -107,7 +119,7 @@ export function FileTree({ workspaceId, onPick, selectedPath, query }: Props) {
     }
     const d = (await res.json()) as { entries: Entry[] };
     return d.entries;
-  }, [workspaceId]);
+  }, [workspaceId, root]);
 
   // Flip loading on whenever `load` identity changes (workspaceId
   // switches) — "store previous props" pattern so the setState happens
@@ -125,7 +137,7 @@ export function FileTree({ workspaceId, onPick, selectedPath, query }: Props) {
     let cancelled = false;
     load("")
       .then((entries) => {
-        if (!cancelled) setRoot(entries);
+        if (!cancelled) setRootEntries(entries);
       })
       .catch((err) => {
         if (!cancelled) setError(err instanceof Error ? err.message : String(err));
@@ -234,6 +246,7 @@ export function FileTree({ workspaceId, onPick, selectedPath, query }: Props) {
         {menu && (
           <FilePathContextMenu
             workspaceId={workspaceId}
+            root={root}
             relPath={menu.path}
             x={menu.x}
             y={menu.y}
@@ -253,7 +266,7 @@ export function FileTree({ workspaceId, onPick, selectedPath, query }: Props) {
   return (
     <>
       <ul className="text-xs">
-        {root.map((e) => (
+        {rootEntries.map((e) => (
           <Row
             key={e.relPath}
             entry={e}
@@ -263,7 +276,7 @@ export function FileTree({ workspaceId, onPick, selectedPath, query }: Props) {
             selected={selected}
             setSelected={(rel) => {
               setSelected(rel);
-              const ent = findEntry(rel, root, expanded);
+              const ent = findEntry(rel, rootEntries, expanded);
               if (ent && onPick) onPick(ent);
             }}
             onContextOpen={(rel, x, y) => setMenu({ path: rel, x, y })}

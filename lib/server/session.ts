@@ -85,6 +85,7 @@ import {
   thinkingReplayErrorFrom,
 } from "./thinking-replay-recovery";
 import { extractReadPaths } from "@/lib/shared/read-tool-paths";
+import { parseTaskListResult } from "@/lib/shared/parse-tasklist-result";
 import { joinSystemPromptAppends } from "@/lib/shared/system-prompt-append";
 import { loadDbAgentsForOptions } from "@/lib/server/db-agents";
 import { selectTips } from "@/lib/shared/tips";
@@ -891,6 +892,22 @@ export class Session {
    * the switch forward (same semantics as `model`).
    */
   agent?: string;
+  /**
+   * Effective advisor model — what the SDK will escalate to mid-turn for
+   * stronger judgment. Tracked here so the client can be honestly informed
+   * of the current value at any point in the session lifetime (the SDK's
+   * `system:init` message does NOT carry advisorModel, so we can't rely on
+   * the existing init plumbing the way `model` / `permissionMode` do).
+   *
+   * Initialized in `start()` from `userSettings.advisorModel` (the value
+   * we also forward into the inline `settings` option at session start),
+   * and updated in `setAdvisorModel` so picker-driven mid-session changes
+   * are reflected here. The /api/sessions/[id]/advisor GET handler reads
+   * this field so the client can prime its optimistic mirror on bind.
+   *
+   * Undefined = no advisor in effect (neither per-session nor settings.json).
+   */
+  advisorModel?: string;
   /**
    * Hard spend cap (USD) for this session — SDK Options.maxBudgetUsd. The SDK
    * stops the turn with an `error_max_budget_usd` result once exceeded. Set at
@@ -1712,6 +1729,17 @@ export class Session {
     // Freeze for off-band queries (recap) — see `envOverride` field doc.
     this.envOverride = envOverride;
 
+    // Cache the effective advisor on `this` so the client can prime its
+    // optimistic mirror via GET /api/sessions/[id]/advisor — the SDK's
+    // `system:init` message doesn't carry advisorModel, so without this
+    // the SessionCard would always render "No advisor" even when the user's
+    // settings.json sets one (i.e. the recommended Sonnet-main / Opus-
+    // advisor setup). Updates flow through `setAdvisorModel` to keep this
+    // in lock-step with the flag-layer override during the session.
+    if (typeof userSettings.advisorModel === "string") {
+      this.advisorModel = userSettings.advisorModel;
+    }
+
     const options: Options = {
       cwd: this.cwd,
       model: this.model,
@@ -1837,12 +1865,42 @@ export class Session {
       // `promptSuggestions` fallback honors files written before the rename.
       promptSuggestions:
         (userSettings.promptSuggestionEnabled ?? userSettings.promptSuggestions) !== false,
-      // Honor the "Include Co-Authored-By" Git setting (Settings → Git).
-      // It's a Settings-level flag, not a direct Option, so we forward it
-      // through the inline `settings` object — the SDK doesn't auto-load
-      // settings.json into this session. Absent → SDK default (trailer on).
-      ...(typeof userSettings.includeCoAuthoredBy === "boolean"
-        ? { settings: { includeCoAuthoredBy: userSettings.includeCoAuthoredBy } }
+      // Forward Settings-level flags through the inline `settings` option —
+      // anything that lives in the `Settings` type (not `Options`) needs an
+      // explicit hand-off when we want the value at the SDK's *flag* layer
+      // rather than the *user/project/local* layer. The SDK does load
+      // filesystem settings by default (settingSources unset ⇒ all sources;
+      // sdk.d.ts ~1834), but the account-switcher above can re-point
+      // `CLAUDE_CONFIG_DIR` at a per-profile directory — and the SDK's
+      // auto-load follows that env, so a value in `~/.claude/settings.json`
+      // (what `readSettings("user")` here resolves) may NOT be the file the
+      // SDK actually reads under an active profile. Forwarding here puts
+      // the value at the flag layer, which sits above all filesystem layers
+      // in precedence — so the choice surfaced in the global Settings page
+      // takes effect even when the SDK's disk path has diverged from ours.
+      //
+      // Both forwarded values share the same `settings` key, so we build
+      // ONE object: an earlier `settings: {...}` spread would be clobbered
+      // by a later one (object-literal duplicate-key semantics).
+      //
+      //   • includeCoAuthoredBy — Git trailer toggle (Settings → Git).
+      //   • advisorModel — advisor escalation model (Settings → Model &
+      //     behavior). Picker lives both on the SessionCard and on the
+      //     global Settings page; values are constrained to those three
+      //     via lib/shared/advisor.ts but we forward whatever string the
+      //     user has (advanced users can hand-edit settings.json).
+      ...(typeof userSettings.includeCoAuthoredBy === "boolean" ||
+      typeof userSettings.advisorModel === "string"
+        ? {
+            settings: {
+              ...(typeof userSettings.includeCoAuthoredBy === "boolean"
+                ? { includeCoAuthoredBy: userSettings.includeCoAuthoredBy }
+                : {}),
+              ...(typeof userSettings.advisorModel === "string"
+                ? { advisorModel: userSettings.advisorModel }
+                : {}),
+            },
+          }
         : {}),
       // Track file edits so the user can rewind the working tree to its
       // state at any prior user message via Query.rewindFiles() (see the
@@ -3237,17 +3295,32 @@ export class Session {
    */
   private async maybeAutoSyncTodosOnTurnEnd(): Promise<void> {
     const snapshot = this.latestTodosSnapshot;
+    const rebuiltFromTaskList = this.todosRebuiltFromTaskListThisTurn;
     // Rearm at the END of every turn so a disk-replay path that left the
     // flag set to `true` (from historical TodoWrites) can't bleed into the
     // FIRST live turn's decisions downstream. The `sendInput` reset stays
     // as belt-and-suspenders for the sane path.
     this.todosTouchedThisTurn = false;
+    this.todosRebuiltFromTaskListThisTurn = false;
     // No snapshot or empty list → nothing to keep the model aware of.
     if (!snapshot || snapshot.length === 0) return;
     const allCompleted = snapshot.every(
       (t) => (t as { status?: unknown }).status === "completed",
     );
     if (allCompleted) {
+      // Suppress the all-completed auto-clear for one turn if the
+      // snapshot was just rebuilt by a TaskList read. Pattern: the user
+      // asked "what tasks do I have?" or "mark them done" on a previously-
+      // cleared rail — the TaskList result repopulates the snapshot mid-
+      // turn (see captureSnapshotState), but without this guard the
+      // turn-end auto-clear immediately wipes it again, so the user sees
+      // the same (0) rail they were complaining about. Skipping for one
+      // turn lets the user actually SEE the rebuilt list; on a subsequent
+      // turn that finishes all-done WITHOUT another TaskList read, this
+      // path re-arms and clears normally — the user's stated preference
+      // ("keep clearTodos auto-firing on stop-reason completed + all-done")
+      // is preserved everywhere except the explicit "show me" moment.
+      if (rebuiltFromTaskList) return;
       await this.clearTodos("completed").catch(() => {});
       return;
     }
@@ -3603,6 +3676,40 @@ export class Session {
   async setUltracode(enabled: boolean): Promise<void> {
     if (!this.query) return;
     await this.query.applyFlagSettings({ ultracode: enabled }).catch(() => {});
+  }
+
+  /**
+   * Set the advisor model for subsequent turns.
+   *
+   * The "advisor" is the SDK's server-side escalation model: when the main
+   * model needs stronger judgment (a complex decision, an ambiguous failure,
+   * a problem it's circling without progress) it pings the advisor for a
+   * second opinion and resumes. The SDK persists the choice as
+   * `Settings.advisorModel` (a free-form model id string); we set it via
+   * `applyFlagSettings`, matching `setEffort` / `setUltracode` / `setFast`.
+   *
+   * Passing `null` clears the override at the flag-settings layer (the SDK
+   * documents `null` as "clear" for `applyFlagSettings` keys; `undefined`
+   * would be dropped by JSON serialization and have no effect). When
+   * cleared, the SDK falls back to any persisted `advisorModel` in the
+   * user's settings.json (the same value forwarded once at session start
+   * via the inline `settings` option above).
+   *
+   * Session-scoped with no DB persistence (same as effort/ultracode/fast).
+   * After a reap → resume, the advisor falls back to whatever
+   * settings.json says — that's the desired behavior: the
+   * SessionCard picker is the "just for this conversation" override, and
+   * the global Settings page is the durable default.
+   */
+  async setAdvisorModel(model: string | null): Promise<void> {
+    if (!this.query) return;
+    await this.query.applyFlagSettings({ advisorModel: model }).catch(() => {});
+    // Mirror the new value so the GET endpoint and any future broadcast
+    // reflect it. `null` clears the flag-layer override — the effective
+    // advisor then falls back to whatever's in settings.json. We DON'T
+    // re-read settings.json here, so `undefined` is honest for "no
+    // per-session override" rather than implying we know the fallback.
+    this.advisorModel = model ?? undefined;
   }
 
   /**
@@ -5199,6 +5306,25 @@ export class Session {
   private latestTodosSnapshotAt = -Infinity;
   /** Pending TaskCreate tool_use blocks awaiting their tool_result. */
   private pendingTaskCreates = new Map<string, { content: string; activeForm?: string }>();
+  /**
+   * Pending TaskList tool_use ids awaiting their tool_result. When the
+   * result lands, `captureSnapshotState` parses the SDK's authoritative
+   * task list out of the result text and rebuilds `latestTodosSnapshot`.
+   * Self-healing path for the desync that happens after `clearTodos()`
+   * (manual, "completed" auto-clear, or "stale" auto-clear) nulls the
+   * snapshot while the SDK task store still has live items.
+   */
+  private pendingTaskLists = new Set<string>();
+  /**
+   * Did `captureSnapshotState` rebuild `latestTodosSnapshot` from a
+   * TaskList tool_result during the current turn? Consulted by
+   * `maybeAutoSyncTodosOnTurnEnd` to suppress the all-completed auto-
+   * clear for one turn — without this, the user's "what tasks are left?"
+   * (which is exactly the all-completed case) would trigger an immediate
+   * `clearTodos("completed")` at turn end, defeating the whole point of
+   * the rebuild. Rearmed false at turn end alongside `todosTouchedThisTurn`.
+   */
+  private todosRebuiltFromTaskListThisTurn = false;
 
   /**
    * Latest top-level user prompt (the real one the user typed, not a
@@ -5246,12 +5372,83 @@ export class Session {
         }
       }
       // TaskCreate tool_result — promote pending entry to snapshot with real id.
+      // TaskList  tool_result — rebuild the snapshot from the SDK's
+      // authoritative list (self-heal after a `clearTodos` desync).
       const userContent = m.message?.content;
       if (Array.isArray(userContent)) {
         for (const raw of userContent as Array<{ type?: string; tool_use_id?: string; content?: unknown; is_error?: boolean }>) {
           if (raw?.type !== "tool_result") continue;
           const toolUseId = raw.tool_use_id;
           if (!toolUseId) continue;
+
+          // TaskList result first — it's an independent self-heal path
+          // and the existing TaskCreate early-exit (`if (!pending) continue;`)
+          // below would otherwise skip every non-TaskCreate result before
+          // we ever look at it. The two are mutually exclusive: a single
+          // tool_use_id is either a TaskCreate or a TaskList, never both.
+          if (this.pendingTaskLists.has(toolUseId)) {
+            this.pendingTaskLists.delete(toolUseId);
+            if (raw.is_error) continue;
+            let listText = "";
+            if (typeof raw.content === "string") {
+              listText = raw.content;
+            } else if (Array.isArray(raw.content)) {
+              for (const c of raw.content as Array<{ type?: string; text?: string }>) {
+                if (c?.type === "text" && c.text) listText += c.text;
+              }
+            }
+            const parsed = parseTaskListResult(listText);
+            if (parsed === null) continue; // unknown shape → leave snapshot
+            // `at` is computed locally because the outer user-branch's
+            // `at` lives inside the `if (text && m.uuid)` block above and
+            // isn't in scope here.
+            const tlAt =
+              typeof event.at === "number" && Number.isFinite(event.at)
+                ? event.at
+                : Date.now();
+            // Cutoff guard — same shape as the TaskCreate branch
+            // (line ~5512 below). On a server restart that replays from
+            // disk JSONL, `latestTodosSnapshotAt` is seeded from
+            // `todosClearedAt` (line ~1426). A pre-clear TaskList replayed
+            // out of the transcript would otherwise resurrect the cleared
+            // list — exactly the durability bug the cutoff exists to
+            // prevent. The LIVE case (post-clear TaskList: `tlAt` is
+            // `Date.now()` and beats any disk cutoff) still passes, which
+            // is the self-healing path we want.
+            if (tlAt < this.latestTodosSnapshotAt) continue;
+            // Replace the snapshot with the SDK's authoritative view.
+            this.latestTodosSnapshot = parsed;
+            this.latestTodosSnapshotAt = tlAt;
+            // TaskList is a READ — the model isn't asserting fresh state
+            // per id, just reading the SDK's. Re-apply any active manual
+            // overrides on top so user-side edits still win over the
+            // rebuilt view (mirrors the start-of-session apply path).
+            this.applyManualTodoOverrides();
+            // Mark the turn as having touched the to-do list — see the
+            // TodoWrite branch below for the rationale.
+            this.todosTouchedThisTurn = true;
+            // Suppress the all-completed auto-clear for this turn (see
+            // `maybeAutoSyncTodosOnTurnEnd` and the field declaration). The
+            // user just explicitly asked "what tasks do I have?" — wiping
+            // the list at turn end would defeat the whole rebuild.
+            //
+            // Gated on the live path only. On disk replay this branch is
+            // re-running historical TaskList tool_results — `start()`'s
+            // resume loop processes the whole transcript and then runs
+            // the all-completed clear at line ~1622 deliberately. Setting
+            // the flag here would survive into the first LIVE turn (no
+            // `maybeAutoSyncTodosOnTurnEnd` runs during replay to clear
+            // it), suppressing the legitimate auto-clear of a freshly
+            // all-completed list — the exact bleed-across-replay hazard
+            // the codebase already guards for `todosTouchedThisTurn`
+            // (where it happens to be harmless because that flag isn't
+            // consulted).
+            if (!this.isReplayingTranscript) {
+              this.todosRebuiltFromTaskListThisTurn = true;
+            }
+            continue;
+          }
+
           const pending = this.pendingTaskCreates.get(toolUseId);
           if (!pending) continue;
           this.pendingTaskCreates.delete(toolUseId);
@@ -5446,6 +5643,21 @@ export class Session {
         // the same id is now stale (rare — the temp tool_use_id is fresh
         // per turn, but a user-typed id collision is possible).
         this.clearManualTodoOverrideFor(block.id);
+        continue;
+      }
+
+      // TaskList — register the tool_use_id so the matching tool_result
+      // (handled in the user-message branch above) can rebuild the
+      // snapshot from the SDK's authoritative list. Self-healing path
+      // after `clearTodos()` nulls the snapshot — without this, every
+      // subsequent `TaskUpdate` is silently dropped by the gated branch
+      // below and the rail stays at (0) forever even though the SDK store
+      // still has live tasks. NOT bounced by `latestTodosSnapshotAt`:
+      // a TaskList result that lands after a clear is exactly the
+      // signal we want to honour (it's the SDK's source of truth, not
+      // a pre-clear replay).
+      if (block.name === "TaskList" && typeof block.id === "string") {
+        this.pendingTaskLists.add(block.id);
         continue;
       }
 

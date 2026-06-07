@@ -8,7 +8,7 @@ import { UserMessage } from "./UserMessage";
 import { SystemPill, type SystemPillLevers } from "./SystemPill";
 import { SpinnerTip } from "./SpinnerTip";
 import type { Tip } from "@/lib/shared/tips";
-import { ClaudiusMark } from "@/components/brand/ClaudiusMark";
+import { SplashScreen } from "./SplashScreen";
 import { isRealUserDisplayMessage } from "@/lib/client/sdk-message-filters";
 import type { DisplayMessage, SystemEntry, TaskInfo } from "@/lib/client/types";
 import {
@@ -96,13 +96,6 @@ type Props = {
    */
   systemPillLevers?: SystemPillLevers;
 };
-
-const SPLASH_EXAMPLES = [
-  "Check for security vulnerabilities in the latest git commit",
-  "Improve test coverage",
-  "Find TODO comments in the codebase",
-  "Find performance bottlenecks and suggest fixes",
-];
 
 const NEAR_BOTTOM_PX = 80;
 
@@ -378,39 +371,19 @@ export function MessageList({
   if (messages.length === 0 && !hasMoreAbove) {
     const top = grouped.get("") ?? [];
     return (
-      <div className="flex flex-1 flex-col items-center justify-center px-8 text-center">
-        <ClaudiusMark color="var(--foreground)" size={120} className="mb-5 opacity-90" />
-        <h1 className="mb-2 text-3xl font-semibold tracking-tight">Claudius</h1>
-        <p className="mb-6 max-w-md text-sm text-[var(--muted)]">
-          A web interface for Claude Code. Type a prompt to start a session.
-        </p>
-        <div className="grid grid-cols-1 gap-2 text-left text-sm sm:grid-cols-2">
-          {SPLASH_EXAMPLES.map((s) => (
-            <button
-              key={s}
-              type="button"
-              onClick={onPickExample ? () => onPickExample(s) : undefined}
-              disabled={!onPickExample}
-              title={onPickExample ? "Send as prompt" : undefined}
-              className={cn(
-                "rounded-lg border border-[var(--border)] bg-[var(--panel)]/40 px-3 py-2 text-left text-[var(--muted)] transition",
-                onPickExample
-                  ? "cursor-pointer hover:border-[var(--accent)]/60 hover:bg-[var(--panel-2)]/60 hover:text-[var(--foreground)]"
-                  : "cursor-default",
-              )}
-            >
-              {s}
-            </button>
-          ))}
-        </div>
-        {top.length > 0 && (
-          <div className="mt-6 w-full max-w-md text-left">
-            {top.map((e) => (
-              <SystemPill key={e.uuid} entry={e} levers={systemPillLevers} />
-            ))}
-          </div>
-        )}
-      </div>
+      <SplashScreen
+        onPickExample={onPickExample}
+        activeWorkspaceId={activeWorkspaceId}
+        belowChips={
+          top.length > 0 ? (
+            <div className="mt-6 w-full max-w-md text-left">
+              {top.map((e) => (
+                <SystemPill key={e.uuid} entry={e} levers={systemPillLevers} />
+              ))}
+            </div>
+          ) : null
+        }
+      />
     );
   }
 

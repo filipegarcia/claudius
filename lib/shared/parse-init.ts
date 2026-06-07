@@ -23,6 +23,16 @@ export type InitInfo = {
   model?: string;
   permissionMode?: PermissionMode;
   claudeCodeVersion?: string;
+  /**
+   * Whether the SDK has the server-side advisor tool registered for this
+   * session — derived from `tools.includes("advisor")`. The init message
+   * doesn't carry the *model id* for the advisor (the SDK keeps that to
+   * itself), but the presence of the `advisor` tool is a reliable
+   * "advisor is on" signal we can use to seed the SessionCard badge
+   * when our `GET /api/sessions/[id]/advisor` fallback fails (stale
+   * server build, profile-dir divergence, settings.json read error).
+   */
+  advisorActive: boolean;
 };
 
 function stringArray(v: unknown): string[] {
@@ -44,8 +54,9 @@ function optionalString(v: unknown): string | undefined {
  */
 export function parseInitSystemMessage(msg: unknown): InitInfo {
   const m = (msg ?? {}) as Record<string, unknown>;
+  const tools = stringArray(m.tools);
   return {
-    tools: stringArray(m.tools),
+    tools,
     slashCommands: stringArray(m.slash_commands),
     agents: stringArray(m.agents),
     skills: stringArray(m.skills),
@@ -53,5 +64,8 @@ export function parseInitSystemMessage(msg: unknown): InitInfo {
     model: optionalString(m.model),
     permissionMode: optionalString(m.permissionMode) as PermissionMode | undefined,
     claudeCodeVersion: optionalString(m.claude_code_version),
+    // The SDK registers the `advisor` tool only when an advisorModel is
+    // configured. Reliable "is the advisor on" signal — see InitInfo doc.
+    advisorActive: tools.includes("advisor"),
   };
 }

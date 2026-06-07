@@ -19,6 +19,12 @@ import { ContextWarningSection } from "@/components/settings/ContextWarningSecti
 import { GoalBannerSection } from "@/components/settings/GoalBannerSection";
 import { BackupSection } from "@/components/settings/BackupSection";
 import { ChatSizeSection } from "@/components/settings/ChatSizeSection";
+import {
+  ADVISOR_COPY,
+  ADVISOR_OPTIONS,
+  type AdvisorChoice,
+  normalizeAdvisorChoice,
+} from "@/lib/shared/advisor";
 import { cn } from "@/lib/utils/cn";
 
 const SCOPE_LABELS: Record<SettingsScope, string> = {
@@ -1176,6 +1182,15 @@ function CatalogField({
 }) {
   const value = (draft as Record<string, unknown>)[meta.key];
   const set = (v: unknown) => update({ [meta.key]: v } as Patch);
+
+  // `advisorModel` gets a rich, Claude Code-style picker instead of the
+  // generic free-form text input. The radio options + copy come from
+  // `lib/shared/advisor.ts`, which is also what the SessionCard's
+  // ModelPicker renders — so the two surfaces stay in lock-step. Power
+  // users can still drop the value via the "default" row.
+  if (meta.key === "advisorModel") {
+    return <AdvisorCatalogField value={value} set={set} />;
+  }
   const inputCls =
     "w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 font-mono text-xs focus:outline-none";
   const selectCls =
@@ -1272,6 +1287,136 @@ function CatalogField({
       </div>
       <p className="mb-2 text-[11px] leading-4 text-[var(--muted)]">{meta.desc}</p>
       {control}
+    </div>
+  );
+}
+
+/**
+ * Custom catalog row for `advisorModel` — replaces the generic free-form
+ * text input with the Claude Code-style picker (3 fixed options, the
+ * "(experimental)" header, the explanatory paragraph, the recommended
+ * setup line, and a learn-more link). Mirrors the per-session picker in
+ * `components/panels/widgets/ModelPicker.tsx` exactly: the copy and
+ * options come from the same `lib/shared/advisor.ts` module.
+ *
+ * Selecting "No advisor" clears the key (writes `undefined`) so the key
+ * disappears from settings.json rather than persisting as an empty
+ * string — keeps the file tidy and matches the convention of the rest of
+ * the catalog (blank ⇄ unset).
+ */
+function AdvisorCatalogField({
+  value,
+  set,
+}: {
+  value: unknown;
+  set: (v: unknown) => void;
+}) {
+  // Normalize whatever's currently in settings.json to one of our three
+  // known choices. An unknown string (e.g. a hand-edited custom model id)
+  // collapses to "no advisor" in the UI — but we preserve the raw value
+  // until the user clicks a different row, so an accidental load of this
+  // page can't silently nuke a power-user override.
+  const current = normalizeAdvisorChoice(value);
+  const isSet = typeof value === "string" && value.length > 0;
+  const customValue =
+    isSet && current === null ? (value as string) : null;
+  const pick = (choice: AdvisorChoice) => {
+    // `null` → unset (`undefined`) so the key drops out of settings.json.
+    // A string value persists verbatim.
+    set(choice ?? undefined);
+  };
+  return (
+    <div className="rounded-md border border-[var(--border)] bg-[var(--panel-2)]/40 p-3">
+      <div className="mb-1 flex items-center gap-2">
+        <span className="font-mono text-xs">advisorModel</span>
+        <span className="rounded bg-amber-500/15 px-1.5 py-0.5 text-[9px] uppercase tracking-wide text-amber-400">
+          experimental
+        </span>
+        <span
+          className={cn(
+            "ml-auto text-[9px] uppercase tracking-wide",
+            isSet ? "text-[var(--accent)]" : "text-[var(--muted)]",
+          )}
+        >
+          {isSet ? "overridden" : "default"}
+        </span>
+      </div>
+      <div className="mb-2 text-sm font-medium">{ADVISOR_COPY.header}</div>
+      <p className="mb-3 text-[11px] leading-snug text-[var(--muted)]">
+        {ADVISOR_COPY.paragraph}
+      </p>
+      <ul
+        role="radiogroup"
+        aria-label={ADVISOR_COPY.header}
+        className="space-y-1.5"
+      >
+        {ADVISOR_OPTIONS.map((opt) => {
+          const isCurrent = opt.value === current && customValue === null;
+          return (
+            <li key={opt.value ?? "none"}>
+              <button
+                type="button"
+                role="radio"
+                aria-checked={isCurrent}
+                data-testid="advisor-setting-option"
+                data-advisor={opt.value ?? "none"}
+                data-current={isCurrent ? "1" : "0"}
+                onClick={() => pick(opt.value)}
+                className={cn(
+                  "flex w-full items-center gap-2 rounded border px-2 py-2 text-left transition",
+                  isCurrent
+                    ? "border-[var(--accent)]/50 bg-[var(--accent)]/10"
+                    : "border-[var(--border)] bg-[var(--panel-2)] hover:bg-[var(--panel)]",
+                )}
+              >
+                <span
+                  className={cn(
+                    "h-3 w-3 shrink-0 rounded-full border",
+                    isCurrent
+                      ? "border-[var(--accent)] bg-[var(--accent)]"
+                      : "border-[var(--border)] bg-transparent",
+                  )}
+                />
+                <span className="flex-1 truncate text-xs text-[var(--foreground)]">
+                  {opt.label}
+                </span>
+                {opt.recommended && (
+                  <span className="shrink-0 rounded border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-1.5 py-px text-[9px] text-[var(--accent)]">
+                    recommended
+                  </span>
+                )}
+              </button>
+            </li>
+          );
+        })}
+        {customValue !== null && (
+          <li>
+            <div
+              className="flex items-center gap-2 rounded border border-amber-500/30 bg-amber-500/5 px-2 py-2"
+              title="A non-standard advisor model is persisted in settings.json. Pick one of the three options above to overwrite it, or edit settings.json directly to keep it."
+            >
+              <span className="h-3 w-3 shrink-0 rounded-full border border-amber-500/40 bg-amber-500/20" />
+              <span className="flex-1 truncate font-mono text-[11px] text-amber-200">
+                {customValue}
+              </span>
+              <span className="shrink-0 rounded border border-amber-500/30 bg-amber-500/10 px-1.5 py-px text-[9px] text-amber-200">
+                custom
+              </span>
+            </div>
+          </li>
+        )}
+      </ul>
+      <p className="mt-3 text-[11px] leading-snug text-[var(--muted)]">
+        {ADVISOR_COPY.recommended}
+      </p>
+      <a
+        href={ADVISOR_COPY.learnMoreUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mt-1.5 inline-flex items-center gap-1 text-[11px] text-[var(--accent)] hover:underline"
+      >
+        {ADVISOR_COPY.learnMoreLabel} →
+      </a>
     </div>
   );
 }

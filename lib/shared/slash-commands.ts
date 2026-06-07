@@ -107,6 +107,14 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   { id: "model", name: "model", description: "Pick a model (e.g. claude-opus-4-7 / claude-sonnet-4-6).", category: "model", handler: "native", argsHint: "[model-id]" },
   { id: "effort", name: "effort", description: "Set effort level (low/medium/high/xhigh/max/auto).", category: "model", handler: "sdk", argsHint: "[level]" },
   { id: "fast", name: "fast", description: "Toggle fast mode.", category: "model", handler: "sdk", argsHint: "[on|off]" },
+  // `/advisor` isn't an SDK-registered slash command (typing it raw would
+  // return "/advisor isn't available in this environment.") — so we
+  // intercept it natively and open the SessionCard's picker, which
+  // already hosts the verbatim "Advisor (experimental)" UI shared with
+  // the global Settings page. The advisor is configured through the
+  // SDK's `Settings.advisorModel`; this command is just the discovery
+  // affordance for users used to typing slash commands.
+  { id: "advisor", name: "advisor", description: "Open the Advisor picker (Opus / Sonnet / off).", category: "model", handler: "native" },
 
   // ── UI ───────────────────────────────────────────────────────────────
   { id: "settings", name: "settings", aliases: ["config"], description: "Open the settings editor.", category: "ui", handler: "native" },
@@ -154,7 +162,12 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   { id: "feedback", name: "feedback", aliases: ["bug"], description: "Submit feedback.", category: "info", handler: "external" },
   { id: "insights", name: "insights", description: "Generate report on session patterns.", category: "info", handler: "sdk" },
   { id: "team-onboarding", name: "team-onboarding", description: "Generate team onboarding guide.", category: "info", handler: "sdk" },
-  { id: "heapdump", name: "heapdump", description: "Write a Node diagnostic report.", category: "info", handler: "native" },
+  // Forwarded to the SDK so the user gets the rich `claude-code` subprocess
+  // dump (RSS breakdown, native-memory hints, .heapsnapshot + diagnostics.json
+  // on Desktop) instead of a bare Node process-report path. NB: the dump is
+  // of the AGENT subprocess, not the Claudius Next server — for a server
+  // diagnostic, hit `POST /api/heapdump` directly (left in place on purpose).
+  { id: "heapdump", name: "heapdump", description: "Write a heap snapshot + diagnostics report (agent subprocess).", category: "info", handler: "sdk" },
   { id: "doctor", name: "doctor", description: "Diagnose installation/auth/git/permissions.", category: "info", handler: "native" },
   { id: "powerup", name: "powerup", description: "Animated feature lessons.", category: "info", handler: "external" },
   { id: "add-dir", name: "add-dir", description: "Add a working directory to this session.", category: "info", handler: "native", argsHint: "<path>" },

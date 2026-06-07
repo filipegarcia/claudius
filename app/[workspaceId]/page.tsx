@@ -95,6 +95,37 @@ import { useStartupCount } from "@/lib/client/useStartupCount";
 
 type OverlayKind = "help" | "skills" | "cost" | "status" | "rename" | "context" | "worktrees" | null;
 
+/**
+ * Per-command toast for slash commands the registry classifies as `external`
+ * — i.e. they're advertised in the picker but belong to the terminal CLI,
+ * the hosted claude.ai surface, or another app entirely. The picker shows
+ * them so users discover the feature exists; this map explains *why* hitting
+ * them here doesn't do anything. Fallback below is generic.
+ *
+ * `/tui` is the most explicit because it's the one users instinctively reach
+ * for when they want a "different UI" — the irony is that Claudius IS the
+ * UI; there's no other renderer to switch to.
+ */
+const EXTERNAL_SLASH_MESSAGE: Record<string, string> = {
+  tui: "Claudius IS the UI — /tui switches between renderers in the terminal and has nowhere to switch to here",
+  ide: "/ide configures the terminal CLI's IDE integration — open files directly in your editor instead",
+  "install-github-app": "Install Claude GitHub Actions from the terminal CLI",
+  "install-slack-app": "Install the Claude Slack app from the terminal CLI",
+  chrome: "/chrome configures the terminal CLI's Chrome integration",
+  "web-setup": "Connect GitHub for web sessions from the terminal CLI",
+  desktop: "Already in the desktop app — /desktop is for the terminal CLI",
+  mobile: "Open the Claude mobile app to use /mobile",
+  passes: "/passes opens the share-a-week flow on claude.ai",
+  stickers: "/stickers opens the Claude Code stickers order page",
+  teleport: "/teleport pulls a web session into the terminal CLI",
+  "remote-control": "/remote-control is a terminal-CLI feature for claude.ai",
+  "remote-env": "/remote-env configures the default remote environment via the terminal CLI",
+  upgrade: "Open https://claude.ai to manage your plan",
+  voice: "/voice is the terminal CLI's voice dictation mode",
+  feedback: "Submit feedback at https://github.com/anthropics/claude-code/issues",
+  powerup: "/powerup is the terminal CLI's animated feature tour",
+};
+
 export default function Home() {
   const session = useSession();
   const router = useRouter();
@@ -869,6 +900,24 @@ export default function Home() {
           router.push("/sessions");
           return true;
         }
+        case "advisor": {
+          // The SDK doesn't expose `/advisor` (typing it raw would return
+          // "isn't available in this environment."), so we intercept it
+          // here and open the SessionCard's model picker — which hosts the
+          // verbatim "Advisor (experimental)" UI shared with the global
+          // Settings page. A window CustomEvent is the lightest-weight
+          // way to reach the SessionCard without lifting its `pickerOpen`
+          // state to the page component. Matches the `claudius:session-
+          // bound` event pattern used elsewhere in this codebase.
+          if (typeof window !== "undefined") {
+            try {
+              window.dispatchEvent(new CustomEvent("claudius:open-advisor-picker"));
+            } catch {
+              // ignore — non-fatal
+            }
+          }
+          return true;
+        }
         case "recap": {
           // Manual recap trigger — the same path the away-blur watcher uses,
           // just with `"manual"` origin. The SDK's own `/recap` is a no-op
@@ -916,6 +965,10 @@ export default function Home() {
           router.push("/keybindings");
           return true;
         case "statusline":
+          // There's no dedicated statusline editor route in Claudius — the
+          // few statusline knobs live inside the general settings page, so
+          // the toast tells the user where to actually look.
+          showToast("Statusline lives under Settings");
           router.push("/settings");
           return true;
         case "theme": {
@@ -978,10 +1031,24 @@ export default function Home() {
         case "usage":
           router.push("/usage");
           return true;
+        // The four auth/provider commands all land on the Usage page (the
+        // single screen that owns the API-key + Bedrock + Vertex switches).
+        // Per-command toast so the user knows what action to take once they
+        // arrive — generic "/login goes to /usage" would feel disconnected.
         case "login":
+          showToast("Sign in to Anthropic on the Usage page");
+          router.push("/usage");
+          return true;
         case "logout":
+          showToast("Sign out from the Usage page");
+          router.push("/usage");
+          return true;
         case "setup-bedrock":
+          showToast("Configure Amazon Bedrock under Usage → Provider");
+          router.push("/usage");
+          return true;
         case "setup-vertex":
+          showToast("Configure Google Vertex AI under Usage → Provider");
           router.push("/usage");
           return true;
         case "status":
@@ -1000,15 +1067,12 @@ export default function Home() {
         case "schedule":
           router.push("/schedule");
           return true;
-        case "heapdump":
-          fetch("/api/heapdump", { method: "POST" })
-            .then(async (r) => {
-              const d = (await r.json().catch(() => ({}))) as { ok?: boolean; path?: string; error?: string };
-              if (d.ok && d.path) showToast(`Heap report → ${d.path}`);
-              else showToast(`Heapdump failed: ${d.error ?? r.status}`);
-            })
-            .catch(() => showToast("Heapdump failed"));
-          return true;
+        // /heapdump is now SDK-forwarded so the user sees the rich agent
+        // subprocess diagnostic (.heapsnapshot + breakdown + native-memory
+        // hints) instead of a single server-side process-report path. The
+        // server-side variant is still reachable at `POST /api/heapdump`
+        // when we need to introspect the Next process itself; it's just
+        // not bound to a slash command anymore.
         case "model": {
           if (args.trim()) {
             void session.setModel(args.trim());
@@ -1058,9 +1122,19 @@ export default function Home() {
         const cmd = findSlashCommand(head);
         if (cmd?.handler === "native") {
           if (runNative(cmd.id, args)) return;
+          // Registry classifies as `native` but `runNative` returned false
+          // (the `default:` arm — a registry entry whose case got removed
+          // without delisting the command). Don't let it fall through to
+          // the "unknown command" toast, which would misclassify a known
+          // command as a typo. Surface the real condition.
+          showToast(`/${cmd.name} isn't wired up yet`);
+          return;
         }
         if (cmd?.handler === "external") {
-          showToast(`/${cmd.name} is terminal/hosted only`);
+          // Per-command explanation when we have one; generic fallback
+          // otherwise. The toast is the *only* feedback for these, since
+          // the registry classifies them as "advertise but don't run."
+          showToast(EXTERNAL_SLASH_MESSAGE[cmd.id] ?? `/${cmd.name} is terminal/hosted only`);
           return;
         }
         if (cmd?.handler === "sdk") {
@@ -1073,6 +1147,22 @@ export default function Home() {
           void session.send(text, undefined, { asSlashCommand: true });
           return;
         }
+        // Not in the curated registry. Two possibilities:
+        //
+        //  1. It's a plugin / SDK-supplied command the registry doesn't
+        //     hardcode but the live SDK reports via system:init
+        //     (`session.slashCommands`) — those should still flow through as
+        //     SDK slash commands so plugin-installed commands keep working.
+        //
+        //  2. It's a typo or a command that doesn't exist anywhere — silently
+        //     sending `/lkjasdf` to the model is the wrong default (it
+        //     confuses the model AND eats the user's input). Toast and stop.
+        if (session.slashCommands.includes(head)) {
+          void session.send(text, undefined, { asSlashCommand: true });
+          return;
+        }
+        showToast(`Unknown command: /${head} — type / to see what's available`);
+        return;
       }
       void session.send(text, images, opts?.fromSuggestion ? { fromSuggestion: true } : undefined);
     },
@@ -1703,6 +1793,8 @@ export default function Home() {
         onChangeUltracode={session.setUltracode}
         fastMode={session.fastMode}
         onChangeFast={session.setFast}
+        advisorModel={session.advisorModel}
+        onChangeAdvisorModel={session.setAdvisorModel}
       />
 
       {liveOpenBash && (

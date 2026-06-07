@@ -108,6 +108,10 @@ type Props = {
   fastMode?: boolean;
   /** Toggle fast mode. Same plumbing rationale as `onChangeUltracode`. */
   onChangeFast?: (enabled: boolean) => Promise<void> | void;
+  /** Per-session advisor model (the Claude Code "Advisor" picker). */
+  advisorModel?: string | null;
+  /** Pick the advisor model. Same plumbing rationale as `onChangeFast`. */
+  onChangeAdvisorModel?: (model: string | null) => Promise<void> | void;
 };
 
 /**
@@ -205,6 +209,8 @@ export function BackgroundTasksPanel({
   onChangeUltracode,
   fastMode = false,
   onChangeFast,
+  advisorModel = null,
+  onChangeAdvisorModel,
 }: Props) {
   const [showCost, setShowCost] = useState(false);
   const [addTodosOpen, setAddTodosOpen] = useState(false);
@@ -430,6 +436,8 @@ export function BackgroundTasksPanel({
           onChangeUltracode={onChangeUltracode}
           fastMode={fastMode}
           onChangeFast={onChangeFast}
+          advisorModel={advisorModel}
+          onChangeAdvisorModel={onChangeAdvisorModel}
         />
         <ContextBar sessionId={sessionId} pending={pending} />
         <TokenMeter usage={usage} />

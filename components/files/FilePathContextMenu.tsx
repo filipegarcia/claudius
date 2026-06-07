@@ -14,7 +14,13 @@ const EST_HEIGHT = 56;
 
 type Props = {
   workspaceId: string;
-  /** Workspace-relative path of the row that was right-clicked. */
+  /**
+   * Root selector — `primary` for the workspace cwd, or `extra:<n>` for
+   * additionalDirectories. Optional; missing defaults to `primary` to keep
+   * older callers working.
+   */
+  root?: string;
+  /** Path relative to the chosen root of the row that was right-clicked. */
   relPath: string;
   /** Viewport coordinates of the click — fed straight into `position: fixed`. */
   x: number;
@@ -41,6 +47,7 @@ type Props = {
  */
 export function FilePathContextMenu({
   workspaceId,
+  root,
   relPath,
   x,
   y,
@@ -91,7 +98,7 @@ export function FilePathContextMenu({
       const res = await fetch(`/api/workspaces/${workspaceId}/reveal`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ relPath }),
+        body: JSON.stringify({ relPath, ...(root ? { root } : {}) }),
       });
       if (!res.ok) {
         const j = (await res.json().catch(() => ({}))) as { error?: string };

@@ -1,12 +1,22 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, CircuitBoard, Folder, Gauge, ShieldCheck, Workflow, Zap } from "lucide-react";
+import {
+  ChevronDown,
+  CircuitBoard,
+  Folder,
+  Gauge,
+  Lightbulb,
+  ShieldCheck,
+  Workflow,
+  Zap,
+} from "lucide-react";
 import type { PermissionMode } from "@anthropic-ai/claude-agent-sdk";
 import type { SessionUsage } from "@/lib/client/types";
 import { cn } from "@/lib/utils/cn";
 import { fmtElapsedSec, fmtPath } from "./format";
 import { ModelPicker } from "./ModelPicker";
+import { type AdvisorChoice, badgeAdvisorLabel } from "@/lib/shared/advisor";
 
 type EffortLevel = "low" | "medium" | "high" | "xhigh" | "max" | "auto";
 
@@ -49,6 +59,16 @@ type Props = {
   fastMode?: boolean;
   /** Toggle fast mode. Surfaced in the picker on fast-capable models. */
   onChangeFast?: (enabled: boolean) => Promise<void> | void;
+  /**
+   * Per-session advisor-model pick. `null` means "no per-session override";
+   * the actual SDK value still defaults to whatever settings.json carries
+   * (forwarded at session start in `lib/server/session.ts`). When set, a small
+   * "advisor: opus" badge appears next to the mode pill so the choice is
+   * visible at a glance without opening the picker.
+   */
+  advisorModel?: string | null;
+  /** Pick the advisor. Surfaces the verbatim Claude Code copy in the picker. */
+  onChangeAdvisorModel?: (model: AdvisorChoice) => Promise<void> | void;
 };
 
 const MODE_LABEL: Record<string, string> = {
@@ -73,6 +93,8 @@ export function SessionCard({
   onChangeUltracode,
   fastMode = false,
   onChangeFast,
+  advisorModel = null,
+  onChangeAdvisorModel,
 }: Props) {
   // Use `usage.durationMs` when present (server-known); otherwise track
   // wall time from when we first saw a non-null sessionId. The "first
@@ -115,6 +137,21 @@ export function SessionCard({
   const [pickerOpen, setPickerOpen] = useState(false);
   const modelButtonRef = useRef<HTMLButtonElement>(null);
 
+  // Listen for the `/advisor` slash-command intercept. The page-level
+  // `runNative` handler dispatches this CustomEvent when the user
+  // submits `/advisor`; opening the picker exposes the same Advisor
+  // section that's reachable by clicking the card directly. We only
+  // wire the listener when the picker is enabled — otherwise the event
+  // would fire into a no-op (read-only card surfaces).
+  useEffect(() => {
+    if (!pickerEnabled) return;
+    function onOpen() {
+      setPickerOpen(true);
+    }
+    window.addEventListener("claudius:open-advisor-picker", onOpen);
+    return () => window.removeEventListener("claudius:open-advisor-picker", onOpen);
+  }, [pickerEnabled]);
+
   return (
     <div className="relative mb-3 rounded-md border border-[var(--border)] bg-[var(--panel-2)]/40">
       {/* Header — the model name gets its own line so the status pills can't
@@ -143,6 +180,7 @@ export function SessionCard({
             permissionMode={permissionMode}
             ultracode={ultracode}
             fastMode={fastMode}
+            advisorModel={advisorModel}
             pickerOpen={pickerOpen}
           />
         </button>
@@ -154,6 +192,7 @@ export function SessionCard({
             permissionMode={permissionMode}
             ultracode={ultracode}
             fastMode={fastMode}
+            advisorModel={advisorModel}
           />
         </div>
       )}
@@ -216,6 +255,17 @@ export function SessionCard({
                 }
               : undefined
           }
+          advisorModel={advisorModel}
+          onPickAdvisor={
+            onChangeAdvisorModel
+              ? async (choice) => {
+                  await onChangeAdvisorModel(choice);
+                  // Keep the picker open — the advisor lives below the
+                  // model list and the user may still want to tweak the
+                  // effort/fast/ultracode chips after picking it.
+                }
+              : undefined
+          }
         />
       )}
     </div>
@@ -235,6 +285,7 @@ function CardHead({
   permissionMode,
   ultracode,
   fastMode,
+  advisorModel,
   pickerOpen,
 }: {
   model: string | null;
@@ -242,9 +293,20 @@ function CardHead({
   permissionMode: PermissionMode;
   ultracode: boolean;
   fastMode: boolean;
+  advisorModel: string | null;
   /** When provided, renders the picker chevron and reflects its open state. */
   pickerOpen?: boolean;
 }) {
+  // The badge renders for *any* configured advisor value — not just our
+  // three product-blessed options. Users who carry over an older
+  // settings.json (e.g. `"opus"` alias from Claude Code CLI, or a
+  // full id like `"claude-opus-4-7"`) deserve to see the badge too:
+  // the SDK still routes through their value, and silently hiding the
+  // badge gaslit them into thinking the advisor wasn't on.
+  // `normalizeAdvisorChoice` is intentionally not used here — its
+  // collapsing-to-null behavior is right for the *picker* (which can
+  // only emit our three values) but wrong for *display*.
+  const advisorBadge = badgeAdvisorLabel(advisorModel);
   return (
     <>
       <div className="flex items-center gap-1.5">
@@ -263,9 +325,33 @@ function CardHead({
         <EffortPill effort={effort} />
         {ultracode && <UltracodeBadge />}
         {fastMode && <FastBadge />}
+        {advisorBadge && <AdvisorBadge label={advisorBadge} raw={advisorModel} />}
         <ModePill mode={permissionMode} />
       </div>
     </>
+  );
+}
+
+/**
+ * "Advisor" badge. Rendered whenever the advisor is on — its presence is
+ * the signal, so there's no "off" state to show. Same muted treatment as
+ * the EffortPill: the advisor is informational, not alarming, and the
+ * user already saw the longer "Advisor (experimental)" copy in the
+ * picker when they enabled it. Accepts both the short display label
+ * (already truncated, no `claude-` prefix) and the raw value for the
+ * tooltip and `data-advisor` attribute.
+ */
+function AdvisorBadge({ label, raw }: { label: string; raw: string | null }) {
+  return (
+    <span
+      data-testid="session-card-advisor-pill"
+      data-advisor={raw ?? "none"}
+      title={`Advisor: ${raw ?? label}`}
+      className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded border border-[var(--border)] bg-[var(--panel)] px-1.5 py-px text-[9px] text-[var(--muted)]"
+    >
+      <Lightbulb className="h-2.5 w-2.5" />
+      advisor: {label}
+    </span>
   );
 }
 

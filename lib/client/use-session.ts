@@ -18,6 +18,7 @@ import type {
 import type { Tip } from "@/lib/shared/tips";
 import { costFromTokens } from "@/lib/shared/cost-pricing";
 import { parseInitSystemMessage } from "@/lib/shared/parse-init";
+import { ADVISOR_ACTIVE_SENTINEL } from "@/lib/shared/advisor";
 import {
   isCompactSummaryContent,
   isLocalCommandCaveatContent,
@@ -29,6 +30,7 @@ import {
 } from "./sdk-message-filters";
 import { splitLeadingSystemReminders, stripGoalReminder } from "@/lib/shared/user-prompt";
 import { parseWorkflowMeta } from "@/lib/shared/workflow-meta";
+import { parseTaskListResult } from "@/lib/shared/parse-tasklist-result";
 import {
   dropProvisionalForToolUse,
   findToolUseBlock,
@@ -867,6 +869,15 @@ export function useSession(): ChatState & ChatActions {
   // runtime status (off/cooldown/on); this is just the last toggle the user
   // made through the picker.
   const [fastMode, setFastEnabled] = useState<boolean>(false);
+  // Advisor model the SDK escalates to mid-turn. Same optimistic-mirror
+  // pattern as `effort` / `ultracode` / `fastMode`: the SDK doesn't emit a
+  // dedicated change event for this either, so the picker's pick is the
+  // source of truth until the user reloads (after which it resets to null
+  // here — the SDK still honors whatever settings.json holds via the
+  // server-side forward at session start). `null` means "no per-session
+  // override"; the actual value the SDK sees is whatever the user's
+  // settings.json carries, or "no advisor" if absent there too.
+  const [advisorModel, setAdvisorModelState] = useState<string | null>(null);
   const [sessions, setSessions] = useState<SessionInfo[]>([]);
 
   // Mirror `model` into the ref so SSE handlers can compute pricing without
@@ -1067,6 +1078,7 @@ export function useSession(): ChatState & ChatActions {
     setEffortState("auto");
     setUltracodeState(false);
     setFastEnabled(false);
+    setAdvisorModelState(null);
     scratchRef.current.clear();
     scopeMessageIdRef.current = new Map();
     lastAssistantUuidRef.current = "";
@@ -2463,6 +2475,20 @@ export function useSession(): ChatState & ChatActions {
               return prev;
             }
           });
+          // TaskList result — rebuild the rail from the SDK's authoritative
+          // task list. Self-heal after the rail desyncs (the auto-clear at
+          // stop-reason "completed", the staleness auto-clear, or the user
+          // hitting the Clear button can null `latestTodos` while the SDK
+          // task store still has live items — then every subsequent
+          // TaskUpdate is silently dropped by the gated branch above and
+          // the rail stays at 0 forever). Any TaskList call refreshes the
+          // view from the source of truth. Uses the already-resolved
+          // `taskToolBlock` (looked up above for the Task/Workflow rail
+          // reconciliation) rather than a second findToolUseBlock pass.
+          if (taskToolBlock?.name === "TaskList" && !result.isError) {
+            const parsed = parseTaskListResult(result.text);
+            if (parsed !== null) setLatestTodos(coerceTodos(parsed));
+          }
           return;
         }
         // Subagent user-shaped message (typically the spawning prompt). Route to subagent.
@@ -2826,6 +2852,24 @@ export function useSession(): ChatState & ChatActions {
           if (init.cwd) setCwd(init.cwd);
           if (init.model) setModelState(init.model);
           if (init.permissionMode) setPermissionModeState(init.permissionMode);
+          // Belt-and-braces advisor priming: the bind-time `GET /advisor`
+          // is the *authoritative* source (returns the literal value the
+          // SDK is honoring), but it can come back null on edge cases
+          // (stale dev-server build that doesn't have the route, a
+          // settings.json read failure, profile-dir divergence with
+          // CLAUDE_CONFIG_DIR). The init message's `tools` array carries
+          // a strong "advisor is on" signal — the SDK only registers the
+          // `advisor` tool when one is configured. We *don't* know the
+          // exact model id from init, so seed with `"(active)"` only if
+          // our mirror is still null AND the SDK confirms the tool is
+          // registered — the badge renders, just with a less specific
+          // label, until the GET resolves and overwrites this with the
+          // real id. Never *clears* the mirror on `advisorActive: false`;
+          // POST-driven optimistic updates set the real value too, and
+          // they should win.
+          if (init.advisorActive) {
+            setAdvisorModelState((prev) => prev ?? ADVISOR_ACTIVE_SENTINEL);
+          }
           setSystemEntries((prev) => [
             ...prev,
             {
@@ -3200,6 +3244,30 @@ export function useSession(): ChatState & ChatActions {
           // ignore — non-fatal
         }
       }
+      // Prime the advisor mirror from the server. The SDK's `system:init`
+      // message doesn't carry `advisorModel`, so the SessionCard would
+      // otherwise render "No advisor" even when settings.json sets one
+      // (i.e. the recommended Sonnet-main / Opus-advisor setup). Reads
+      // the effective value the server stashed at start; the guard against
+      // a late response after the user moved on uses the bound-id check.
+      void fetch(`/api/sessions/${id}/advisor`, { method: "GET" })
+        .then(async (r) => {
+          if (!r.ok) return;
+          if (sessionIdRef.current !== id) return;
+          const body = (await r.json().catch(() => null)) as
+            | { model?: string | null }
+            | null;
+          if (!body) return;
+          setAdvisorModelState(
+            typeof body.model === "string" && body.model.length > 0
+              ? body.model
+              : null,
+          );
+        })
+        .catch(() => {
+          // Non-fatal — picker just opens with "No advisor" pre-selected;
+          // user can still pick something and it'll persist normally.
+        });
       // Capture the bound id in the closure so SSE callbacks can early-out
       // when this tab has moved on. Two race shapes this defends against:
       //   1. `close()` is supposed to stop event delivery synchronously, but
@@ -4054,6 +4122,28 @@ export function useSession(): ChatState & ChatActions {
   }, []);
 
   /**
+   * Set the per-session advisor model. Mirrors `setFast` / `setUltracode`:
+   * a dedicated route POSTs through to `applyFlagSettings({ advisorModel })`
+   * server-side, and we optimistic-mirror locally so the picker reflects
+   * the pick before the round-trip completes.
+   *
+   * `null` clears the per-session override and falls back to whatever
+   * settings.json carries (forwarded once at session start). No SDK event
+   * exists to confirm the change, so this mirror is the source of truth
+   * until the user reloads — matching the effort/ultracode/fast story.
+   */
+  const setAdvisorModel = useCallback(async (model: string | null) => {
+    const id = sessionIdRef.current;
+    if (!id) return;
+    setAdvisorModelState(model);
+    await fetch(`/api/sessions/${id}/advisor`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ model }),
+    }).catch(() => {});
+  }, []);
+
+  /**
    * Live-switch the main-thread agent via `applyFlagSettings` (SDK 0.3.161+).
    *
    * Optimistic: updates `mainAgent` immediately so the StatusLine badge
@@ -4270,6 +4360,7 @@ export function useSession(): ChatState & ChatActions {
     effort,
     ultracode,
     fastMode,
+    advisorModel,
     sessions,
     skills,
     cwd,
@@ -4316,6 +4407,7 @@ export function useSession(): ChatState & ChatActions {
     setEffort,
     setUltracode,
     setFast,
+    setAdvisorModel,
     setAgent,
     switchSession,
     createNewSession,

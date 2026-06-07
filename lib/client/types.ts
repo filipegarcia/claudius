@@ -453,6 +453,16 @@ export type ChatState = {
    * SDK-reported runtime status (`off`/`cooldown`/`on`).
    */
   fastMode: boolean;
+  /**
+   * Per-session "Advisor" pick — the SDK escalates here for stronger judgment
+   * mid-turn (`Settings.advisorModel`). Optimistic, same as `ultracode`/`effort`:
+   * the SDK emits no event for this either, so we mirror the last pick and
+   * reset to `null` on a fresh session. `null` here only means "no per-session
+   * override"; the actual value the SDK uses still falls back to whatever
+   * `settings.json` carries (forwarded once at session start in
+   * `lib/server/session.ts`).
+   */
+  advisorModel: string | null;
   sessions: SessionInfo[];
   skills: string[];
   cwd: string | null;
@@ -687,6 +697,16 @@ export type ChatActions = {
    * effort: unlike `setUltracode` it does NOT move the effort mirror.
    */
   setFast(enabled: boolean): Promise<void>;
+  /**
+   * Set the per-session "Advisor" model — the SDK escalates to this model
+   * for stronger judgment mid-turn. Routed through
+   * `applyFlagSettings({ advisorModel })` server-side via
+   * `POST /api/sessions/[id]/advisor`. Pass `null` to clear the per-session
+   * override (the SDK then falls back to whatever `settings.json` carries).
+   * Values are constrained to the three product-blessed options listed in
+   * `lib/shared/advisor.ts`.
+   */
+  setAdvisorModel(model: string | null): Promise<void>;
   /**
    * Live-switch the main-thread agent for subsequent turns (SDK 0.3.161+).
    *

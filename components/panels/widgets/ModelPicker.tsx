@@ -1,8 +1,15 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Check, Cpu, Gauge, Loader2, Workflow, Zap } from "lucide-react";
+import { Check, Cpu, ExternalLink, Gauge, Lightbulb, Loader2, Workflow, Zap } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
+import {
+  ADVISOR_COPY,
+  ADVISOR_OPTIONS,
+  advisorFamily,
+  type AdvisorChoice,
+  isCustomAdvisor,
+} from "@/lib/shared/advisor";
 
 /**
  * Mirror of `ModelInfo` from `@anthropic-ai/claude-agent-sdk`. We don't
@@ -80,6 +87,17 @@ type Props = {
   fastMode?: boolean;
   onToggleFast?: (enabled: boolean) => Promise<void> | void;
   /**
+   * Advisor model the SDK escalates to mid-turn for stronger judgment
+   * (see `lib/shared/advisor.ts`). Optional so the picker can be reused on
+   * session-less surfaces (workspace defaults / new-session form) that don't
+   * surface advisor controls. When provided as a non-`null` value not in our
+   * three-option list, we treat it as "(no advisor selected here)" and let the
+   * user re-pick — we don't try to render an unknown model id as a custom
+   * fourth row.
+   */
+  advisorModel?: string | null;
+  onPickAdvisor?: (model: AdvisorChoice) => Promise<void> | void;
+  /**
    * When true, prepends an "(Inherit machine default)" entry that maps to
    * an empty model value (the workspace form treats empty as "use the
    * machine's default"). Selecting it calls `onPickModel("")`.
@@ -101,6 +119,8 @@ export function ModelPicker({
   onToggleUltracode,
   fastMode = false,
   onToggleFast,
+  advisorModel = null,
+  onPickAdvisor,
   showInherit = false,
   headerLabel = "Model",
 }: Props) {
@@ -479,6 +499,134 @@ export function ModelPicker({
           supported models (Opus 4.8). Only shown on a live session with a
           fast-capable model; amber to match the per-model "fast" chip in the
           list above. */}
+      {/* Advisor (experimental). The SDK's server-side escalation model —
+          when the main model needs stronger judgment, it pings the advisor
+          and resumes. Rendered as three fixed product-blessed options
+          (Opus 4.8 / Sonnet 4.6 / No advisor) regardless of the active
+          model's `supportsEffort` etc., because the advisor is a separate
+          model, not a setting of the main one. Hidden when the surface
+          didn't pass `onPickAdvisor` (e.g. workspace-defaults form).
+
+          Copy lives in `lib/shared/advisor.ts` so this picker and the
+          global Settings page render the same verbatim Claude Code message. */}
+      {(() => {
+        const pickAdvisor = onPickAdvisor;
+        if (!pickAdvisor) return null;
+        // Family-tolerant match — collapses aliases (`"opus"`,
+        // `"sonnet"`), older full ids (`"claude-opus-4-7"`), and the
+        // ADVISOR_ACTIVE_SENTINEL to the right product-blessed row so
+        // the radio doesn't lie when the persisted value isn't a
+        // verbatim match. The `null` row only wins when there's *no*
+        // advisor configured anywhere. See `advisorFamily` doc for the
+        // family rules; `isCustomAdvisor` returns true for advisors
+        // outside the opus/sonnet families (e.g. haiku, custom plugin).
+        const current = advisorFamily(advisorModel);
+        const custom = isCustomAdvisor(advisorModel) ? (advisorModel ?? "") : null;
+        return (
+          <div className="border-t border-[var(--border)]/60 px-3 py-2">
+            <div className="flex items-center gap-1.5">
+              <Lightbulb className="h-3 w-3 text-[var(--accent)]" />
+              <span className="text-[11px] font-medium uppercase tracking-wide text-[var(--muted)]">
+                {ADVISOR_COPY.header}
+              </span>
+            </div>
+            <p className="mt-1.5 text-[10px] leading-snug text-[var(--muted)]">
+              {ADVISOR_COPY.paragraph}
+            </p>
+            <p className="mt-1.5 text-[10px] italic leading-snug text-[var(--muted)]/80">
+              {ADVISOR_COPY.perSessionNote}
+            </p>
+            <ul
+              role="radiogroup"
+              aria-label={ADVISOR_COPY.header}
+              className="mt-2 space-y-1"
+            >
+              {ADVISOR_OPTIONS.map((opt) => {
+                // "No advisor" (opt.value === null) wins ONLY when *no*
+                // advisor is configured anywhere — not when `current` is
+                // null because the value is custom (a different family).
+                // Without this guard a user on `advisorModel: "haiku"`
+                // would see "No advisor" wrongly checked while the
+                // Custom row below shows their actual value.
+                const isCurrent =
+                  opt.value === null
+                    ? current === null && custom === null
+                    : opt.value === current;
+                return (
+                  <li key={opt.value ?? "none"}>
+                    <button
+                      type="button"
+                      role="radio"
+                      aria-checked={isCurrent}
+                      data-testid="model-picker-advisor"
+                      data-advisor={opt.value ?? "none"}
+                      data-current={isCurrent ? "1" : "0"}
+                      onClick={() => pickAdvisor(opt.value)}
+                      className={cn(
+                        "flex w-full items-center gap-2 rounded border px-2 py-1.5 text-left transition",
+                        isCurrent
+                          ? "border-[var(--accent)]/40 bg-[var(--accent)]/10"
+                          : "border-[var(--border)] bg-[var(--panel-2)] hover:bg-[var(--panel)]",
+                      )}
+                    >
+                      <Check
+                        className={cn(
+                          "h-3 w-3 shrink-0",
+                          isCurrent ? "text-[var(--accent)]" : "text-transparent",
+                        )}
+                      />
+                      <span className="flex-1 truncate text-[11px] text-[var(--foreground)]">
+                        {opt.label}
+                      </span>
+                      {opt.recommended && (
+                        <span className="shrink-0 rounded border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-1 py-px text-[9px] text-[var(--accent)]">
+                          recommended
+                        </span>
+                      )}
+                    </button>
+                  </li>
+                );
+              })}
+              {/* Read-only "Custom" row — surfaces a non-listed advisor
+                  value (haiku, hand-edited plugin id, etc.) so the user
+                  can see what's actually persisted. Clicking one of the
+                  three blessed rows above overwrites the value; the
+                  Custom row itself isn't clickable because we have no
+                  way to choose a single canonical replacement for it. */}
+              {custom && (
+                <li>
+                  <div
+                    data-testid="model-picker-advisor-custom"
+                    data-advisor={custom}
+                    title={`Custom advisor in settings.json — pick a row above to replace, or edit settings.json directly.`}
+                    className="flex items-center gap-2 rounded border border-amber-500/30 bg-amber-500/5 px-2 py-1.5"
+                  >
+                    <Check className="h-3 w-3 shrink-0 text-amber-300" />
+                    <span className="flex-1 truncate font-mono text-[10px] text-amber-200">
+                      {custom}
+                    </span>
+                    <span className="shrink-0 rounded border border-amber-500/30 bg-amber-500/10 px-1 py-px text-[9px] text-amber-200">
+                      custom
+                    </span>
+                  </div>
+                </li>
+              )}
+            </ul>
+            <p className="mt-2 text-[10px] leading-snug text-[var(--muted)]">
+              {ADVISOR_COPY.recommended}
+            </p>
+            <a
+              href={ADVISOR_COPY.learnMoreUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-1.5 inline-flex items-center gap-1 text-[10px] text-[var(--accent)] hover:underline"
+            >
+              {ADVISOR_COPY.learnMoreLabel}
+              <ExternalLink className="h-2.5 w-2.5" />
+            </a>
+          </div>
+        );
+      })()}
       {(() => {
         if (!onToggleFast || !activeModel?.supportsFastMode) {
           return null;

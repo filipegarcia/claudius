@@ -2,7 +2,7 @@ import { spawn } from "node:child_process";
 import { promises as fs } from "node:fs";
 import { isAbsolute, normalize, relative, resolve } from "node:path";
 import { NextResponse } from "next/server";
-import { getWorkspace } from "@/lib/server/workspaces-store";
+import { resolveWorkspaceRoot } from "@/lib/server/workspace-roots";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -30,13 +30,21 @@ export const dynamic = "force-dynamic";
  */
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
-  const ws = await getWorkspace(id);
-  if (!ws) return NextResponse.json({ error: "workspace not found" }, { status: 404 });
-
-  const body = (await req.json().catch(() => ({}))) as { relPath?: unknown };
+  const body = (await req.json().catch(() => ({}))) as {
+    relPath?: unknown;
+    root?: unknown;
+  };
+  const rootSel = typeof body.root === "string" ? body.root : null;
+  const resolved = await resolveWorkspaceRoot(id, rootSel);
+  if (!resolved) {
+    return NextResponse.json(
+      { error: rootSel ? "unknown root" : "workspace not found" },
+      { status: 404 },
+    );
+  }
   const rawRel = typeof body.relPath === "string" ? body.relPath : "";
 
-  const root = resolve(ws.rootPath);
+  const root = resolved.root.absPath;
   const rel = normalize(rawRel).replace(/^\/+/, "");
   // Bound under root — same check as the files route. Belt-and-braces given
   // that anything outside still just opens the user's Finder; we keep it so
