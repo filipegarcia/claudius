@@ -23,7 +23,7 @@
  *     with multipart metadata={"main_module":"worker.js"} and a worker.js part
  *     carrying this file's contents.
  */
-export default {
+const handler = {
   async fetch(request) {
     const url = new URL(request.url);
     if (!url.pathname.startsWith("/ph/")) {
@@ -54,3 +54,5 @@ export default {
     });
   },
 };
+
+export default handler;
