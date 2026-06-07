@@ -43,8 +43,8 @@ test.describe("TaskList rail self-heal — 20 tasks, desync, mark all done", () 
     baseURL,
   }) => {
     test.skip(
-      !process.env.ANTHROPIC_API_KEY,
-      "needs ANTHROPIC_API_KEY (or ~/.claude/.credentials.json on a logged-in machine) — this test drives the live Anthropic agent",
+      !process.env.ANTHROPIC_API_KEY && !process.env.CLAUDE_CODE_OAUTH_TOKEN,
+      "needs ANTHROPIC_API_KEY (api-key profile) or CLAUDE_CODE_OAUTH_TOKEN (oauth profile) — this test drives the live Anthropic agent. The two are not interchangeable: api-key profiles use `sk-ant-api03-…` via ANTHROPIC_API_KEY; oauth-token profiles use `sk-ant-oat01-…` via CLAUDE_CODE_OAUTH_TOKEN. The SDK rejects an oauth token presented as an api key.",
     );
     test.setTimeout(300_000); // 5 min — two heavy multi-tool turns.
 

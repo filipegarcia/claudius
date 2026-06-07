@@ -3,6 +3,7 @@
 import { Pin, Trash2, ShieldAlert } from "lucide-react";
 import type { Message as ChatMessage } from "@/lib/shared/community";
 import { cn } from "@/lib/utils/cn";
+import { MessageBody } from "./MessageBody";
 
 type Props = {
   message: ChatMessage;
@@ -123,9 +124,7 @@ export function Message({
             message deleted by admin
           </div>
         ) : (
-          <div className="whitespace-pre-wrap break-words text-sm leading-6">
-            {message.body}
-          </div>
+          <MessageBody body={message.body} />
         )}
         {!isDeleted && isAdmin && (onDelete || onPin || onBan) && (
           <div className="mt-1 flex justify-end gap-1 opacity-0 transition group-hover:opacity-100">

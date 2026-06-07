@@ -5,6 +5,7 @@ import { ArrowLeft, Send } from "lucide-react";
 import type { DM } from "@/lib/shared/community";
 import type { UseDMs } from "@/lib/client/use-dms";
 import { cn } from "@/lib/utils/cn";
+import { MessageBody } from "./MessageBody";
 
 type Props = {
   dms: UseDMs;
@@ -204,9 +205,7 @@ function DMRow({ message, isOwn }: { message: DM; isOwn: boolean }) {
         {isDeleted ? (
           <div className="text-sm italic text-[var(--muted)]">deleted</div>
         ) : (
-          <div className="whitespace-pre-wrap break-words text-sm leading-6">
-            {message.body}
-          </div>
+          <MessageBody body={message.body} />
         )}
       </div>
     </div>

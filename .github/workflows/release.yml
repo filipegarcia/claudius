@@ -360,3 +360,144 @@ jobs:
             release/*.AppImage
             release/*.deb
             release/*.rpm
+
+  # Post-build smoke: actually LAUNCH the AppImage we just shipped and assert
+  # the window comes up + the embedded server answers. The dev-server-backed
+  # `chromium-electron` Playwright project never runs the real artifact, so a
+  # packaging/sandbox regression (e.g. the AppImage chrome-sandbox crash) is
+  # invisible to it and only surfaces when a user double-clicks the download.
+  # This job closes that gap. It does NOT gate the release attach above (the
+  # linux-x64 job attaches on tag pushes); it's a loud red signal that the
+  # shipped binary is broken. To make it BLOCK the release, move the attach
+  # step into a final job that `needs: [linux-x64, linux-smoke]`.
+  linux-smoke:
+    name: Linux AppImage smoke (launch test)
+    needs: linux-x64
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      # @playwright/test (the `_electron` launcher) is a devDependency. No
+      # browser binaries are needed — we drive the AppImage's OWN bundled
+      # Electron, not a downloaded Chromium — so `playwright install` is skipped.
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Download Linux artifacts
+        uses: actions/download-artifact@v5
+        with:
+          name: claudius-linux-x64
+          path: dist-linux
+
+      # xvfb gives the headless runner the X display Electron's Ozone/X11
+      # init demands. No libfuse needed: we self-EXTRACT the AppImage
+      # (`--appimage-extract`, handled by the AppImage runtime's built-in
+      # unsquashfs, not FUSE) and launch the unpacked Electron binary
+      # directly. That keeps Playwright on its proven control path (a plain
+      # packaged Electron binary, same as the `chromium-electron` suite)
+      # instead of driving a FUSE-mounted image.
+      - name: Install headless display runtime
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends xvfb
+
+      # Force the exact condition the AppImage sandbox bug needs to reproduce:
+      # with unprivileged user namespaces restricted, Chromium MUST fall back
+      # to the setuid sandbox — which an AppImage can't provide (chrome-sandbox
+      # is read-only on the squashfs mount). A build that doesn't pass
+      # --no-sandbox for the AppImage case then aborts at launch; the fix in
+      # electron/main.ts makes it launch anyway. The sysctl name varies by
+      # kernel, so we set both best-effort, then VERIFY the restriction
+      # actually took — otherwise a green run could just mean "userns was
+      # available and saved us," silently masking a dropped-fix regression.
+      - name: Restrict unprivileged user namespaces (reproduce sandbox bug)
+        run: |
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=1 2>/dev/null || true
+          sudo sysctl -w kernel.unprivileged_userns_clone=0 2>/dev/null || true
+          # If unshare still succeeds, Chromium's namespace sandbox works and
+          # the AppImage would launch even WITHOUT the fix — i.e. this run did
+          # not actually exercise the sandbox dimension. Make that loud rather
+          # than letting a false-green slip through.
+          if unshare --user true 2>/dev/null; then
+            echo "::warning title=Sandbox dimension not exercised::Unprivileged user namespaces are still available on this runner — Chromium's namespace sandbox works, so the AppImage would launch even if the electron/main.ts --no-sandbox fix were removed. This run validates that the app BOOTS, but does NOT guard the sandbox regression. (The kernel didn't honor the restriction sysctls.)"
+          else
+            echo "Confirmed: unprivileged user namespaces are restricted — the AppImage sandbox path IS exercised this run."
+          fi
+
+      # Self-extract (no FUSE) and resolve the unpacked Electron binary.
+      - name: Extract AppImage
+        run: |
+          APPIMAGE_PATH="$(ls "$PWD"/dist-linux/*.AppImage 2>/dev/null | head -1)"
+          if [ -z "$APPIMAGE_PATH" ]; then
+            echo "::error::no .AppImage found under dist-linux/ — the linux-x64 build artifact is missing or misnamed"
+            exit 1
+          fi
+          echo "Extracting AppImage: $APPIMAGE_PATH"
+          chmod +x "$APPIMAGE_PATH"
+          "$APPIMAGE_PATH" --appimage-extract >/dev/null
+          # electron-builder names the linux executable after the (lowercased)
+          # productName; fall back to resolving the AppRun symlink target.
+          BIN="$PWD/squashfs-root/claudius"
+          if [ ! -x "$BIN" ]; then
+            BIN="$(readlink -f "$PWD/squashfs-root/AppRun")"
+          fi
+          if [ ! -x "$BIN" ]; then
+            echo "::error::could not locate the unpacked Electron binary under squashfs-root/"
+            ls -la "$PWD/squashfs-root" || true
+            exit 1
+          fi
+          echo "Resolved binary: $BIN"
+          # Persist for later steps. APPIMAGE/APPDIR mimic what the AppImage
+          # runtime exports at launch — electron/main.ts's fix keys on
+          # APPIMAGE, so setting it here is what makes the extracted binary
+          # take the same code path as a real double-clicked AppImage.
+          {
+            echo "CLAUDIUS_PACKAGED_BINARY=$BIN"
+            echo "APPIMAGE=$APPIMAGE_PATH"
+            echo "APPDIR=$PWD/squashfs-root"
+          } >> "$GITHUB_ENV"
+
+      # Fast, unambiguous pre-check: launch the binary raw and capture stderr.
+      # A sandbox abort exits within ~1s with the "SUID sandbox helper..." line
+      # — surfacing it directly in the CI log. A healthy app stays alive until
+      # `timeout` kills it (exit 124). Anything else = a launch crash, fail
+      # here with the captured output before the Playwright step.
+      - name: Pre-check — raw launch surfaces a sandbox abort
+        run: |
+          set +e
+          xvfb-run -a timeout 25 "$CLAUDIUS_PACKAGED_BINARY" \
+            --user-data-dir="$(mktemp -d)" > precheck.log 2>&1
+          code=$?
+          set -e
+          echo "--- raw launch output (tail) ---"
+          tail -60 precheck.log || true
+          echo "--------------------------------"
+          if [ "$code" = "124" ]; then
+            echo "OK: app stayed alive for 25s (timeout-killed) — no immediate launch crash."
+          else
+            echo "::error title=Packaged app crashed at launch::Raw launch exited early (code=$code) instead of running until the 25s timeout. If the output above mentions 'SUID sandbox helper', the AppImage --no-sandbox guard is missing or broken."
+            exit 1
+          fi
+
+      - name: Smoke-test the packaged app (Playwright)
+        run: xvfb-run -a bun run test:e2e:electron-packaged
+
+      - name: Upload smoke trace on failure
+        if: failure()
+        uses: actions/upload-artifact@v5
+        with:
+          name: linux-smoke-trace
+          path: |
+            test-results/**
+            playwright-report/**
+            precheck.log
+          if-no-files-found: ignore
+          retention-days: 7
