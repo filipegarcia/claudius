@@ -46,14 +46,14 @@ git tag vX.Y.Z
 git push origin main --tags
 ```
 
-Wait for GitHub Actions to go green. The `pages` job redeploys the marketing site automatically — verify <https://filipegarcia.github.io/claudius/> serves the new version's setup script.
+Wait for GitHub Actions to go green. The `pages` job redeploys the marketing site automatically — verify <https://claudius.network/> serves the new version's setup script.
 
 ## 5. Smoke the install
 
 Fresh shell, fresh dir:
 
 ```bash
-curl -fsSL https://filipegarcia.github.io/claudius/setup.sh | bash -s -- --prefix=/tmp/claudius-smoke
+curl -fsSL https://claudius.network/setup.sh | bash -s -- --prefix=/tmp/claudius-smoke
 cd /tmp/claudius-smoke && bun run dev
 ```
 

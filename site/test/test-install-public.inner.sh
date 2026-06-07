@@ -24,7 +24,7 @@
 set -euo pipefail
 
 BRANCH="${TEST_BRANCH:-main}"
-SETUP_URL="${SETUP_URL:-https://filipegarcia.github.io/claudius/setup.sh}"
+SETUP_URL="${SETUP_URL:-https://claudius.network/setup.sh}"
 PORT="${PORT:-3000}"
 BOOT_TIMEOUT_SECS="${BOOT_TIMEOUT_SECS:-180}"
 

@@ -129,7 +129,7 @@ push to main
    └─ test stage   (lint, unit, e2e, sast, secret-detection)
          └─ deploy stage
               └─ pages   (bundles site/ as-is — no build step)
-                    └─ https://filipegarcia.github.io/claudius/
+                    └─ https://claudius.network/
 ```
 
 If any `test`-stage job fails the `pages` job doesn't run, so the live

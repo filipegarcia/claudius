@@ -6,7 +6,7 @@ Chat, workflows, agents, MCP, and all the rest, in the browser and desktop. It e
 
 > Claudius is an independent, open-source project and is not affiliated with, sponsored by, or endorsed by Anthropic, PBC. See [TRADEMARKS.md](./TRADEMARKS.md).
 
-🌐 [**filipegarcia.github.io/claudius**](https://filipegarcia.github.io/claudius/) — overview, screenshots, install command.
+🌐 [**claudius.network**](https://claudius.network/) — overview, screenshots, install command.
 
 ![Chat surface](site/screenshots/chat.png)
 
@@ -34,7 +34,7 @@ Chat, workflows, agents, MCP, and all the rest, in the browser and desktop. It e
 One curl, then you're chatting:
 
 ```bash
-curl -fsSL https://filipegarcia.github.io/claudius/setup.sh | bash
+curl -fsSL https://claudius.network/setup.sh | bash
 ```
 
 The script clones into `~/claudius`, runs `bun install`, drops a `claudius` launcher into `~/.local/bin`, and starts the dev server. Re-running pulls the latest commit on `main`. Requires `git`; [Bun](https://bun.sh) auto-installs if missing.
@@ -42,7 +42,7 @@ The script clones into `~/claudius`, runs `bun install`, drops a `claudius` laun
 Flags (after `--`):
 
 ```bash
-curl -fsSL https://filipegarcia.github.io/claudius/setup.sh | bash -s -- \
+curl -fsSL https://claudius.network/setup.sh | bash -s -- \
   --prefix=$HOME/code/claudius \
   --branch=main \
   --no-start

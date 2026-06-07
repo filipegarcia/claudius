@@ -3,7 +3,7 @@
 #
 # Setup: enable Pages once in repo Settings → Pages → Source: "GitHub Actions"
 # (no source branch — the workflow uploads the artifact directly). After the
-# first successful deploy the URL is filipegarcia.github.io/claudius/.
+# first successful deploy the URL is claudius.network/.
 #
 # Screenshots in site/screenshots/ are committed (generated locally via
 # `make screenshots`); this workflow just bundles the directory.

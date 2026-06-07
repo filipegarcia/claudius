@@ -1,0 +1,18 @@
+# Wrangler config for the `posthog-proxy` Worker.
+#
+# Run from this directory:
+#   bunx wrangler login       # first time only — browser OAuth, no token file needed
+#   bunx wrangler deploy      # uploads posthog-proxy.js and binds the route
+#
+# See README.md for the curl-based alternative (deploy.sh) that doesn't
+# require wrangler.
+
+name = "posthog-proxy"
+main = "posthog-proxy.js"
+compatibility_date = "2025-01-01"
+
+# Bind the Worker to the marketing-site path. Cloudflare resolves zone_name
+# at deploy time, so this stays portable if the zone id ever changes.
+[[routes]]
+pattern = "claudius.network/ph/*"
+zone_name = "claudius.network"

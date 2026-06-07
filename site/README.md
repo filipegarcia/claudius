@@ -3,7 +3,7 @@
 Static `index.html` + assets published to GitHub Pages from `.github/workflows/`'s
 `pages` job (every push to `main`). No build step.
 
-Live: <https://filipegarcia.github.io/claudius/>
+Live: <https://claudius.network/>
 
 ## Adding content
 
