@@ -1,4 +1,4 @@
-.PHONY: help install dev build start lint unit test test-ui test-e2e-electron test-setup test-setup-local test-setup-docker test-install-public ci site screenshots screenshots-full claudius-revert claudius-revert-all run up down restart status logs electron electron-dev electron-build electron-icons electron-app electron-dist electron-dmg electron-e2e-loop sdk-update-check sdk-update-run sdk-update-fix-pr sdk-update-dry-run sdk-update-status sdk-update-logs sdk-update-install-cron sdk-update-uninstall-cron debug-export recover
+.PHONY: help install dev build start lint unit test test-ui test-e2e-electron test-setup test-setup-local test-setup-docker test-install-public ci site screenshots screenshots-full claudius-revert claudius-revert-all run up down restart status logs electron electron-dev electron-build electron-icons electron-app electron-dist electron-dmg electron-e2e-loop sdk-update-check sdk-update-run sdk-update-fix-pr sdk-update-dry-run sdk-update-status sdk-update-logs sdk-update-install-cron sdk-update-uninstall-cron cc-parity-check cc-parity-run cc-parity-fix-pr cc-parity-dry-run cc-parity-status cc-parity-logs cc-parity-install-cron cc-parity-uninstall-cron debug-export recover
 
 # List every target, grouped by the section headers below.
 help:
@@ -313,6 +313,118 @@ sdk-update-uninstall-cron:
 		rm -f "$$TMP.new"; \
 	else \
 		echo "✓ no sdk-update entry in crontab — nothing to do"; \
+	fi; \
+	rm -f "$$TMP"
+
+# ── Claude Code parity (scripts/cc-parity/) ────────────────────────────
+# Hourly cron pipeline that watches npm for new @anthropic-ai/claude-code
+# releases, classifies each changelog entry A/B/C, and reimplements the
+# bucket-B items in Claudius. Sibling to sdk-update; shares the same
+# .claudius/run.lock so the two cron lines block each other on purpose.
+# See scripts/cc-parity/README.md for the architecture + bucketing model.
+#
+# Env (loaded from .claudius/cc-parity/env if present, else falls back to
+# the sdk-updater env file): no extra Anthropic credential needed beyond
+# what sdk-update already uses; only the CC_PARITY_* tunables differ.
+
+# Dry-run probe: prints whether there's a new claude-code release worth
+# reviewing + what the orchestrator would do. Mutates state.json
+# (updates lastCheckedAt / lastSeenVersion / skipped) but does not touch
+# git. Safe to run locally.
+cc-parity-check:
+	bun run scripts/cc-parity/check.ts
+
+# One-shot manual fire — same code path as cron. Reads check, then runs
+# orchestrate if there's work. WILL create a branch, push, and open a
+# PR if a substantive new release is out, so don't run this on your
+# laptop unless that's what you want.
+cc-parity-run:
+	@scripts/cc-parity/run.sh
+
+# Fix an existing cc-parity PR by number. Checks out the PR's branch,
+# re-runs Claude with the failing CI checks + review comments as
+# context, re-gates, pushes, and posts progress to the community
+# channel. Marks the PR ready (and drops needs-human) if every gate
+# goes green. WILL push to the PR's branch.
+#
+#   make cc-parity-fix-pr PR=123
+#   make cc-parity-fix-pr PR=123 MSG="address the review note on the slash command"
+#   make cc-parity-fix-pr PR=123 SKIP=e2e        # skip slow gate steps
+cc-parity-fix-pr:
+	@if [ -z "$(PR)" ]; then \
+		echo "usage: make cc-parity-fix-pr PR=<number> [MSG=\"instruction\"] [SKIP=lint,e2e]"; \
+		exit 2; \
+	fi
+	@CC_PARITY_FIX_INSTRUCTION="$(MSG)" \
+		CC_PARITY_SKIP_GATES="$(SKIP)" \
+		scripts/cc-parity/run.sh fix-pr "$(PR)"
+
+# Local dry-run. Same as `cc-parity-run` through the gate, then stops
+# before push / PR / CI watch / announce. Branch + Claude's commits
+# stay on disk for inspection.
+#
+# Skip slow gate steps with SKIP (comma-separated of lint,unit,build,e2e).
+cc-parity-dry-run:
+	@CC_PARITY_DRY_RUN=1 \
+		CC_PARITY_SKIP_GATES="$(SKIP)" \
+		scripts/cc-parity/run.sh
+
+# Status summary — last check time, current state, in-flight review
+# (if any). Read-only. Also reports the SHARED lock state from
+# .claudius/run.lock (held by either pipeline).
+cc-parity-status:
+	@if [ -f .claudius/cc-parity/state.json ]; then \
+		echo "── state.json ─────────────────────────────────────"; \
+		cat .claudius/cc-parity/state.json; \
+	else \
+		echo "(no state file yet — cc-parity has never run on this host)"; \
+	fi
+	@echo
+	@if [ -f .claudius/run.lock ] && command -v flock >/dev/null 2>&1; then \
+		if ! flock -n -s .claudius/run.lock -c true 2>/dev/null; then \
+			echo "── lock ──────────────────────────────────────────"; \
+			echo "run.lock is currently HELD — a pipeline is in flight (shared between sdk-update and cc-parity)"; \
+		fi; \
+	fi
+
+# Tail the cron log. Pass FOLLOW=1 to stream (-f).
+cc-parity-logs:
+	@touch .claudius/cc-parity/logs/cron.log
+	@if [ "$(FOLLOW)" = "1" ]; then \
+		tail -f .claudius/cc-parity/logs/cron.log; \
+	else \
+		tail -n 200 .claudius/cc-parity/logs/cron.log; \
+	fi
+
+# Install the hourly crontab line for the current user. Fires at 15
+# past the hour so it doesn't collide with the sdk-update line (00).
+# Idempotent.
+cc-parity-install-cron:
+	@ROOT="$$(pwd)"; \
+	LINE="15 * * * * $$ROOT/scripts/cc-parity/run.sh >> $$ROOT/.claudius/cc-parity/logs/cron.log 2>&1"; \
+	mkdir -p "$$ROOT/.claudius/cc-parity/logs"; \
+	TMP="$$(mktemp)"; \
+	crontab -l 2>/dev/null > "$$TMP" || true; \
+	if grep -qF "scripts/cc-parity/run.sh" "$$TMP"; then \
+		echo "✓ crontab already contains a cc-parity entry — leaving it alone"; \
+	else \
+		echo "$$LINE" >> "$$TMP"; \
+		crontab "$$TMP"; \
+		echo "✓ installed: $$LINE"; \
+	fi; \
+	rm -f "$$TMP"
+
+# Remove the cc-parity crontab line.
+cc-parity-uninstall-cron:
+	@TMP="$$(mktemp)"; \
+	crontab -l 2>/dev/null > "$$TMP" || true; \
+	if grep -qF "scripts/cc-parity/run.sh" "$$TMP"; then \
+		grep -vF "scripts/cc-parity/run.sh" "$$TMP" > "$$TMP.new"; \
+		crontab "$$TMP.new"; \
+		echo "✓ removed cc-parity entry from crontab"; \
+		rm -f "$$TMP.new"; \
+	else \
+		echo "✓ no cc-parity entry in crontab — nothing to do"; \
 	fi; \
 	rm -f "$$TMP"
 
