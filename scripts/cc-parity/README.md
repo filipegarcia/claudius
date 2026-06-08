@@ -96,9 +96,15 @@ slash commands, small UI surfaces); some will be all-bucket-A (every
 entry already covered by the SDK updater) and the PR body will be
 mostly skip markers + a "no code changes required" note.
 
-If the volume is too high for your review bandwidth, throttle the
-cron with `CC_PARITY_MIN_HOURS_BETWEEN_RUNS=<n>` (default 0 — every
-firing is allowed). At 24 the pipeline runs at most once per day.
+If the volume is too high for your review bandwidth, the
+straightforward fix today is to edit the crontab and change `15 * * * *`
+to a less-frequent schedule (e.g. `15 8 * * *` for "once a day at
+08:15"). A `CC_PARITY_MIN_HOURS_BETWEEN_RUNS` env var is reserved for
+the same purpose but **not yet wired up** in the orchestrator — setting
+it today is a silent no-op. Implementing it properly needs a new
+state field (`lastRunStartedAt`, distinct from `lastCheckedAt` which
+updates on every probe), so it's deferred until the throttle is
+actually needed.
 
 ---
 
@@ -228,7 +234,7 @@ CC_PARITY_ROOM_SLUG=sdk-update
 # CC_PARITY_MAX_TURNS=200
 # CC_PARITY_MAX_WALL_MIN=360
 # CC_PARITY_MAX_MINOR_JUMP=1
-# CC_PARITY_MIN_HOURS_BETWEEN_RUNS=0     # throttle for noisy weeks
+# CC_PARITY_MIN_HOURS_BETWEEN_RUNS=0     # RESERVED, not yet honored
 EOF
 chmod 600 .claudius/cc-parity/env
 ```
