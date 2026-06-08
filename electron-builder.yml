@@ -145,7 +145,7 @@ mac:
   # an alias variant macOS 14+ honours. `zip` stays here for electron-updater.
   target:
     - target: zip
-      arch: [x64]
+      arch: [arm64]
   icon: build/icons/icon.icns
 
 # `dmg:` settings are intentionally absent — electron-builder no longer

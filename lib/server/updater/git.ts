@@ -1,5 +1,6 @@
 import { execFile, spawn } from "node:child_process";
 import { promisify } from "node:util";
+import { extendedPath } from "./spawn-env";
 
 /**
  * Thin wrapper around `git` for the updater path. We deliberately don't
@@ -45,6 +46,10 @@ async function git(
         // The updater must never block waiting for tty input.
         GIT_TERMINAL_PROMPT: "0",
         GIT_ASKPASS: "/bin/echo",
+        // Make sure git itself is findable when the daemon was launched
+        // outside a shell (Finder, launchd) — Apple Silicon homebrew git
+        // lives at /opt/homebrew/bin which isn't in the minimal kernel PATH.
+        PATH: extendedPath(process.env.PATH),
       },
     });
     return { stdout, stderr };
@@ -244,12 +249,18 @@ export function spawnStreamed(
   envOverrides: Partial<NodeJS.ProcessEnv> = {},
 ): Promise<number> {
   return new Promise((resolve, reject) => {
+    // Extend PATH with the standard bun/homebrew install locations BEFORE
+    // mixing in the caller's overrides — so a caller can still pin a custom
+    // PATH if they want to (last write wins). Without this, a daemon
+    // launched outside a shell (Finder, launchd, IDE) hits `spawn bun
+    // ENOENT` because ~/.bun/bin isn't on the inherited PATH.
     const child = spawn(cmd, args, {
       cwd,
       env: {
         ...process.env,
         GIT_TERMINAL_PROMPT: "0",
         GIT_ASKPASS: "/bin/echo",
+        PATH: extendedPath(process.env.PATH),
         ...envOverrides,
       },
       stdio: ["ignore", "pipe", "pipe"],

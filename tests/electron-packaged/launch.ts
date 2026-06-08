@@ -48,6 +48,13 @@ export async function launchPackaged(
     // `--user-data-dir` is honored by electron/main.ts (it skips its own
     // setPath override when the switch is present), giving this run a
     // throwaway profile.
+    //
+    // We do NOT pass --no-sandbox here: the executablePath is the AppImage
+    // launch wrapper (build/after-pack.js), which adds --no-sandbox itself when
+    // $APPIMAGE is set (the release job sets it). The wrapper `exec`s the real
+    // binary in-place (same PID, same stdio), so Playwright's CDP attachment
+    // survives. Letting the wrapper do it keeps this test exercising the real
+    // launch path rather than papering over it.
     args: [`--user-data-dir=${userData}`],
     // Packaged cold start = require("next") inside the asar + app.prepare()
     // + first SSR. Generous ceiling so a slow runner doesn't read as a hang.

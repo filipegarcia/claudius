@@ -84,21 +84,17 @@ app.setName("Claudius");
 // "Electron" — that's expected in dev and resolves once packaged.
 app.setAppUserModelId("network.claudius.desktop");
 
-// AppImage can't ship a setuid-root `chrome-sandbox`: it lives on the
-// read-only squashfs mount the AppImage exposes, so its mode/owner can't be
-// changed. On hosts without working unprivileged user namespaces (Ubuntu
-// 23.10+ restricts them via AppArmor, hardened kernels, or running as root)
-// Chromium then can't initialise EITHER sandbox and aborts at launch:
-//   "The SUID sandbox helper binary was found, but is not configured
-//    correctly. Rather than run without sandbox support, exiting."
-// Disable the setuid sandbox for the AppImage case ONLY — the deb/rpm
-// packages install a properly-SUID helper via their postinst (electron-
-// builder's after-install template chmods it 4755 when user namespaces are
-// unavailable) and stay fully sandboxed. The AppImage runtime exports
-// `APPIMAGE` (the path to the mounted image), which is our reliable signal
-// that we're running from one. Tested by tests/electron-packaged/.
-if (process.platform === "linux" && process.env.APPIMAGE) {
-  app.commandLine.appendSwitch("no-sandbox");
+// Linux boot marker. The Chromium setuid-sandbox host inits BEFORE any of our
+// JS runs, so the AppImage sandbox crash can't be fixed in-app — it's handled
+// at the launch layer by build/after-pack.js's --no-sandbox wrapper. This line
+// (the first user-JS statement on Linux) is the positive confirmation in the
+// linux-smoke pre-check that our process actually reached JS: present + no
+// setuid FATAL = the wrapper put --no-sandbox on the real argv. Linux-only so
+// mac/win startup stays quiet.
+if (process.platform === "linux") {
+  process.stderr.write(
+    `[electron/main] boot pid=${process.pid} argv=${JSON.stringify(process.argv.slice(1))} APPIMAGE=${process.env.APPIMAGE ?? "<unset>"}\n`,
+  );
 }
 
 // Only force-override userData when the launcher didn't pass an

@@ -82,6 +82,25 @@ jobs:
         with:
           python-version: "3.11"
 
+      # Cache the prebuilt Electron binaries electron-builder downloads from
+      # github.com/electron/electron/releases. When GitHub's CDN burps with
+      # a 504 (as it did on 2026-06-08), a cache hit means we never touch
+      # the network and the release sails through. Cache miss only happens
+      # on the first run after an Electron version bump (since the key
+      # hashes bun.lock — any electron bump changes that file). The actual
+      # cache directories vary by platform, so list both macOS and Linux
+      # paths here even though only the macOS one is read on this runner —
+      # actions/cache silently skips missing paths.
+      - name: Cache Electron binaries
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Caches/electron
+            ~/Library/Caches/electron-builder
+          key: electron-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            electron-${{ runner.os }}-${{ runner.arch }}-
+
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
@@ -309,6 +328,18 @@ jobs:
       - name: Install rpm tooling
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends rpm
 
+      # See the macos-x64 job for the rationale. Same shape, different
+      # platform-specific cache dirs.
+      - name: Cache Electron binaries
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/electron
+            ~/.cache/electron-builder
+          key: electron-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            electron-${{ runner.os }}-${{ runner.arch }}-
+
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
@@ -432,7 +463,11 @@ jobs:
             echo "Confirmed: unprivileged user namespaces are restricted — the AppImage sandbox path IS exercised this run."
           fi
 
-      # Self-extract (no FUSE) and resolve the unpacked Electron binary.
+      # Self-extract (no FUSE) and resolve the launch entry points. We dump the
+      # AppRun + dir listing UNCONDITIONALLY here, before any step that can
+      # fail, so if the pre-check goes red the AppRun contents are already in
+      # the log to show whether it invokes our --no-sandbox wrapper (claudius)
+      # or bypasses it.
       - name: Extract AppImage
         run: |
           APPIMAGE_PATH="$(ls "$PWD"/dist-linux/*.AppImage 2>/dev/null | head -1)"
@@ -443,49 +478,64 @@ jobs:
           echo "Extracting AppImage: $APPIMAGE_PATH"
           chmod +x "$APPIMAGE_PATH"
           "$APPIMAGE_PATH" --appimage-extract >/dev/null
-          # electron-builder names the linux executable after the (lowercased)
-          # productName; fall back to resolving the AppRun symlink target.
+          echo "=== ls -la squashfs-root/ ==="
+          ls -la "$PWD/squashfs-root" || true
+          echo "=== cat squashfs-root/AppRun ==="
+          cat "$PWD/squashfs-root/AppRun" 2>/dev/null || echo "(AppRun not a readable file — may be a binary)"
+          echo "============================="
+          APPRUN="$PWD/squashfs-root/AppRun"
+          # CLAUDIUS_PACKAGED_BINARY is the executable Playwright launches — the
+          # after-pack.js wrapper, installed at the productName-derived name.
           BIN="$PWD/squashfs-root/claudius"
-          if [ ! -x "$BIN" ]; then
-            BIN="$(readlink -f "$PWD/squashfs-root/AppRun")"
+          if [ ! -e "$BIN" ]; then
+            echo "::warning::expected wrapper at $BIN not found; Playwright smoke may fail"
           fi
-          if [ ! -x "$BIN" ]; then
-            echo "::error::could not locate the unpacked Electron binary under squashfs-root/"
-            ls -la "$PWD/squashfs-root" || true
+          if [ ! -x "$APPRUN" ]; then
+            echo "::error::no executable AppRun under squashfs-root/ — cannot test the real launch path"
             exit 1
           fi
-          echo "Resolved binary: $BIN"
-          # Persist for later steps. APPIMAGE/APPDIR mimic what the AppImage
-          # runtime exports at launch — electron/main.ts's fix keys on
-          # APPIMAGE, so setting it here is what makes the extracted binary
-          # take the same code path as a real double-clicked AppImage.
+          echo "AppRun: $APPRUN ; wrapper: $BIN"
+          # APPIMAGE/APPDIR mimic what the AppImage runtime exports at launch.
+          # The after-pack.js wrapper keys on APPIMAGE to add --no-sandbox, so
+          # setting it makes the extracted tree take the real double-click path.
           {
             echo "CLAUDIUS_PACKAGED_BINARY=$BIN"
+            echo "CLAUDIUS_APPRUN=$APPRUN"
             echo "APPIMAGE=$APPIMAGE_PATH"
             echo "APPDIR=$PWD/squashfs-root"
           } >> "$GITHUB_ENV"
 
-      # Fast, unambiguous pre-check: launch the binary raw and capture stderr.
-      # A sandbox abort exits within ~1s with the "SUID sandbox helper..." line
-      # — surfacing it directly in the CI log. A healthy app stays alive until
-      # `timeout` kills it (exit 124). Anything else = a launch crash, fail
-      # here with the captured output before the Playwright step.
-      - name: Pre-check — raw launch surfaces a sandbox abort
+      # Pre-check: launch through AppRun — the SAME entry a double-clicked
+      # AppImage uses — with APPIMAGE set, so the after-pack.js wrapper's
+      # --no-sandbox path is exercised end to end (AppRun → wrapper → binary).
+      # We can't gate on exit code (we kill it), so success is two signals:
+      #   1. no setuid-sandbox FATAL in the output, AND
+      #   2. the [electron/main] boot marker IS present — proving our JS ran
+      #      (a clean launch), not that it merely avoided crashing some other way.
+      - name: Pre-check — AppRun launch must not hit the sandbox abort
         run: |
           set +e
-          xvfb-run -a timeout 25 "$CLAUDIUS_PACKAGED_BINARY" \
-            --user-data-dir="$(mktemp -d)" > precheck.log 2>&1
-          code=$?
+          xvfb-run -a "$CLAUDIUS_APPRUN" --user-data-dir="$(mktemp -d)" > precheck.log 2>&1 &
+          APP_PID=$!
+          # Long enough for an immediate sandbox abort (~1s) or a full
+          # embedded-server boot to surface in the log.
+          sleep 20
+          kill "$APP_PID" 2>/dev/null
+          # Reap any forked Electron children so the step can exit.
+          pkill -f "$PWD/squashfs-root" 2>/dev/null || true
           set -e
-          echo "--- raw launch output (tail) ---"
-          tail -60 precheck.log || true
-          echo "--------------------------------"
-          if [ "$code" = "124" ]; then
-            echo "OK: app stayed alive for 25s (timeout-killed) — no immediate launch crash."
-          else
-            echo "::error title=Packaged app crashed at launch::Raw launch exited early (code=$code) instead of running until the 25s timeout. If the output above mentions 'SUID sandbox helper', the AppImage --no-sandbox guard is missing or broken."
+          echo "--- AppRun launch output ---"
+          cat precheck.log || true
+          echo "----------------------------"
+          if grep -qiE "setuid_sandbox_host|SUID sandbox helper|The SUID sandbox" precheck.log; then
+            echo "::error title=AppImage sandbox abort::AppRun launch still hit the setuid-sandbox FATAL — the after-pack.js --no-sandbox wrapper isn't on AppRun's launch path. See the 'cat AppRun' output in the Extract step."
             exit 1
           fi
+          if ! grep -q "\[electron/main\] boot" precheck.log; then
+            echo "::error title=App never reached JS::No [electron/main] boot marker in the AppRun launch output — the app didn't start cleanly. Inspect the AppRun contents + output above."
+            exit 1
+          fi
+          echo "OK: AppRun launch reached JS with no setuid-sandbox abort."
 
       - name: Smoke-test the packaged app (Playwright)
         run: xvfb-run -a bun run test:e2e:electron-packaged
