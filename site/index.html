@@ -350,14 +350,14 @@
                them to direct asset URLs once the latest release is known.
                If the fetch fails (rate limit, offline, unsupported browser),
                clicks just land on the releases page — still functional. -->
-          <div class="relative inline-block">
+          <div class="relative inline-block js-download-cta">
             <button
               id="download-btn"
               type="button"
               aria-haspopup="menu"
               aria-expanded="false"
               aria-controls="download-panel"
-              class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-md bg-accent px-5 py-3 sm:py-2.5 text-sm font-medium text-bg hover:brightness-110 transition"
+              class="js-download-btn w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-md bg-accent px-5 py-3 sm:py-2.5 text-sm font-medium text-bg hover:brightness-110 transition"
             >
               Download
               <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -369,7 +369,7 @@
               role="menu"
               aria-labelledby="download-btn"
               hidden
-              class="absolute left-1/2 -translate-x-1/2 sm:left-0 sm:translate-x-0 top-full mt-2 z-30 w-72 rounded-md border border-line bg-panel shadow-2xl text-left overflow-hidden"
+              class="js-download-panel absolute left-1/2 -translate-x-1/2 sm:left-0 sm:translate-x-0 top-full mt-2 z-30 w-72 rounded-md border border-line bg-panel shadow-2xl text-left overflow-hidden"
             >
               <div class="px-4 pt-3 pb-1 text-[11px] uppercase tracking-wider text-muted/80">macOS</div>
               <a role="menuitem" data-platform="mac-arm64" href="https://github.com/filipegarcia/claudius/releases/latest" class="block px-4 py-2 hover:bg-panel2 transition">
@@ -1550,6 +1550,77 @@ bun run electron:dist:linux   # AppImage + deb + rpm</code></pre>
       </div>
     </section>
 
+    <!-- ─────────────────────── Closing CTA — Download ──────────────────────
+         Last-chance pitch for the desktop app, after the visitor has seen
+         features / gallery / customize / meta. Shares the platform-picker
+         wiring with the hero `.js-download-cta` via the class-based handler
+         at the bottom of the page; the dropdown opens upward
+         (`bottom-full mb-2`) because the button sits near the footer. -->
+    <section id="get" class="border-t border-line/60">
+      <div class="max-w-3xl mx-auto px-6 py-14 sm:py-20 text-center">
+        <p class="font-mono text-xs uppercase tracking-widest text-accent">Ready when you are</p>
+        <h2 class="mt-2 text-3xl md:text-4xl font-semibold tracking-tight">
+          Bring Claudius to your desk.
+        </h2>
+        <p class="mt-4 text-muted leading-relaxed">
+          Native window, native notifications, native menus. Same Claudius,
+          first-class on macOS and Linux.
+        </p>
+        <div class="mt-8 flex justify-center">
+          <div class="relative inline-block js-download-cta">
+            <button
+              id="download-btn-bottom"
+              type="button"
+              aria-haspopup="menu"
+              aria-expanded="false"
+              aria-controls="download-panel-bottom"
+              class="js-download-btn inline-flex items-center justify-center gap-2 rounded-md bg-accent px-5 py-3 text-sm font-medium text-bg hover:brightness-110 transition"
+            >
+              Download
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" />
+              </svg>
+            </button>
+            <div
+              id="download-panel-bottom"
+              role="menu"
+              aria-labelledby="download-btn-bottom"
+              hidden
+              class="js-download-panel absolute left-1/2 -translate-x-1/2 bottom-full mb-2 z-30 w-72 rounded-md border border-line bg-panel shadow-2xl text-left overflow-hidden"
+            >
+              <div class="px-4 pt-3 pb-1 text-[11px] uppercase tracking-wider text-muted/80">macOS</div>
+              <a role="menuitem" data-platform="mac-arm64" href="https://github.com/filipegarcia/claudius/releases/latest" class="block px-4 py-2 hover:bg-panel2 transition">
+                <div class="text-sm text-fg">Apple Silicon</div>
+                <div class="text-xs text-muted">arm64 · zip</div>
+              </a>
+              <a role="menuitem" data-platform="mac-x64" href="https://github.com/filipegarcia/claudius/releases/latest" class="block px-4 py-2 hover:bg-panel2 transition">
+                <div class="text-sm text-fg">Intel</div>
+                <div class="text-xs text-muted">x64 · dmg</div>
+              </a>
+              <div class="border-t border-line"></div>
+              <div class="px-4 pt-3 pb-1 text-[11px] uppercase tracking-wider text-muted/80">Linux</div>
+              <a role="menuitem" data-platform="linux-appimage" href="https://github.com/filipegarcia/claudius/releases/latest" class="block px-4 py-2 hover:bg-panel2 transition">
+                <div class="text-sm text-fg">AppImage</div>
+                <div class="text-xs text-muted">universal · self-contained</div>
+              </a>
+              <a role="menuitem" data-platform="linux-deb" href="https://github.com/filipegarcia/claudius/releases/latest" class="block px-4 py-2 hover:bg-panel2 transition">
+                <div class="text-sm text-fg">Debian / Ubuntu</div>
+                <div class="text-xs text-muted">.deb</div>
+              </a>
+              <a role="menuitem" data-platform="linux-rpm" href="https://github.com/filipegarcia/claudius/releases/latest" class="block px-4 py-2 hover:bg-panel2 transition">
+                <div class="text-sm text-fg">Fedora / RHEL</div>
+                <div class="text-xs text-muted">.rpm</div>
+              </a>
+              <div class="border-t border-line"></div>
+              <a role="menuitem" href="https://github.com/filipegarcia/claudius/releases" class="block px-4 py-2 hover:bg-panel2 transition text-center">
+                <div class="text-xs text-muted">All releases →</div>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- ────────────────────────────── Footer ────────────────────────────── -->
     <footer class="border-t border-line/60">
       <div class="max-w-6xl mx-auto px-6 py-12 safe-bottom flex flex-col gap-8">
@@ -1747,46 +1818,76 @@ bun run electron:dist:linux   # AppImage + deb + rpm</code></pre>
     </script>
 
     <!-- ─────────────────────────── Download dropdown ──────────────────────
-         Toggles the platform-picker panel under the hero "Download" CTA and
-         upgrades the panel's hrefs from "/releases/latest" (which lands on
-         GitHub's release page) to direct asset URLs once the GitHub API
-         resolves. Silent failure on rate limit / offline / no JS — the
-         fallback hrefs still work, just one extra click on GitHub. -->
+         Wires every `.js-download-cta` on the page (currently the hero CTA
+         and the closing "Ready when you are" CTA above the footer). The
+         same markup can be dropped anywhere else and this script picks it
+         up automatically — useful if we want a third placement later.
+
+         Open/close: button toggles its own panel, outside click and Esc
+         close, selecting any menu item also closes (so the panel doesn't
+         linger after the download starts). Only one panel open at a time.
+
+         Hrefs: every panel item starts with the github.com/.../releases/
+         latest fallback so even a no-JS / pre-fetch click works. One
+         GitHub API call upgrades the matching entries across all panels
+         to direct asset URLs (matched by filename suffix —
+         electron-builder's `Claudius-{version}-{platform}.{ext}` shape
+         keeps the suffix stable across version bumps). -->
     <script>
       (() => {
-        const btn = document.getElementById("download-btn");
-        const panel = document.getElementById("download-panel");
-        if (!btn || !panel) return;
+        const ctas = Array.from(document.querySelectorAll(".js-download-cta"));
+        if (ctas.length === 0) return;
 
-        const setOpen = (open) => {
-          panel.hidden = !open;
-          btn.setAttribute("aria-expanded", String(open));
+        const pairs = ctas
+          .map((cta) => ({
+            cta,
+            btn: cta.querySelector(".js-download-btn"),
+            panel: cta.querySelector(".js-download-panel"),
+          }))
+          .filter((p) => p.btn && p.panel);
+
+        const closeAll = () => {
+          for (const { btn, panel } of pairs) {
+            if (!panel.hidden) {
+              panel.hidden = true;
+              btn.setAttribute("aria-expanded", "false");
+            }
+          }
         };
 
-        btn.addEventListener("click", (e) => {
-          e.stopPropagation();
-          setOpen(panel.hidden);
-        });
+        for (const { btn, panel, cta } of pairs) {
+          btn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const willOpen = panel.hidden;
+            // Close any other open panel before opening this one — keeps
+            // the page from showing two dropdowns at once if the user
+            // scrolls between CTAs while a panel is open.
+            closeAll();
+            if (willOpen) {
+              panel.hidden = false;
+              btn.setAttribute("aria-expanded", "true");
+            }
+          });
 
-        // Click outside the panel closes it. The button is its own handler
-        // above (stopPropagation), so a click on btn never reaches here.
-        document.addEventListener("click", (e) => {
-          if (!panel.hidden && e.target instanceof Node && !panel.contains(e.target)) {
-            setOpen(false);
-          }
-        });
+          // Selecting a menu item closes the panel so the dropdown doesn't
+          // linger after the download starts.
+          panel.querySelectorAll("a[role='menuitem']").forEach((a) => {
+            a.addEventListener("click", closeAll);
+          });
+
+          // Clicks inside the CTA (button or panel) are absorbed here so
+          // the document-level outside-click handler below doesn't fire.
+          cta.addEventListener("click", (e) => e.stopPropagation());
+        }
+
+        document.addEventListener("click", closeAll);
 
         document.addEventListener("keydown", (e) => {
-          if (e.key === "Escape" && !panel.hidden) {
-            setOpen(false);
-            btn.focus();
-          }
-        });
-
-        // A click on any menu item also closes the panel so the user doesn't
-        // see a stale dropdown after the download starts.
-        panel.querySelectorAll("a[role='menuitem']").forEach((a) => {
-          a.addEventListener("click", () => setOpen(false));
+          if (e.key !== "Escape") return;
+          const openPair = pairs.find((p) => !p.panel.hidden);
+          if (!openPair) return;
+          closeAll();
+          openPair.btn.focus();
         });
 
         // Upgrade hrefs to direct asset downloads via the GitHub API. Match
@@ -1812,11 +1913,14 @@ bun run electron:dist:linux   # AppImage + deb + rpm</code></pre>
         })
           .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
           .then((release) => {
-            for (const [key, suffix] of Object.entries(SUFFIX)) {
-              const asset = (release.assets ?? []).find((a) => a.name.endsWith(suffix));
-              if (!asset) continue;
-              const link = panel.querySelector(`[data-platform="${key}"]`);
-              if (link) link.href = asset.browser_download_url;
+            const assets = release.assets ?? [];
+            for (const { panel } of pairs) {
+              for (const [key, suffix] of Object.entries(SUFFIX)) {
+                const asset = assets.find((a) => a.name.endsWith(suffix));
+                if (!asset) continue;
+                const link = panel.querySelector(`[data-platform="${key}"]`);
+                if (link) link.href = asset.browser_download_url;
+              }
             }
           })
           .catch(() => {
