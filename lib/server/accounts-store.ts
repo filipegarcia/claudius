@@ -212,12 +212,28 @@ async function provisionProfileConfigDir(profile: AccountProfile): Promise<strin
         accessToken: profile.secret,
       },
     };
-    const tmp = `${credsPath}.${process.pid}.tmp`;
+    // Tmp name MUST be unique per call, not just per process. Without the
+    // random suffix two concurrent `provisionProfileConfigDir(sameProfile)`
+    // calls (the common case: two sessions starting at once, or the
+    // "Resolve with Claude Code" updater flow that spawns one) both
+    // compute the same `.credentials.json.<pid>.tmp`, both writeFile (the
+    // second overwrites the first), then the FIRST rename consumes the
+    // tmp and the SECOND rename throws `ENOENT … rename '<tmp>' →
+    // '<credsPath>'` because the tmp is gone. The random suffix gives
+    // each call its own tmp so the rename's source always exists.
+    const tmp = `${credsPath}.${process.pid}.${randomBytes(6).toString("hex")}.tmp`;
     await fs.writeFile(tmp, JSON.stringify(credsBlob, null, 2), {
       encoding: "utf8",
       mode: 0o600,
     });
-    await fs.rename(tmp, credsPath);
+    try {
+      await fs.rename(tmp, credsPath);
+    } catch (err) {
+      // Best-effort cleanup so a crashed rename (EXDEV, EACCES) doesn't
+      // leak a 0600 tmp containing the token. Idempotent on success.
+      await fs.unlink(tmp).catch(() => {});
+      throw err;
+    }
     try { await fs.chmod(credsPath, 0o600); } catch { /* non-fatal */ }
   } else {
     // api-key profile — the SDK reads the key from ANTHROPIC_API_KEY
@@ -281,10 +297,20 @@ async function writeAccounts(next: AccountsState): Promise<AccountsState> {
   await ensureDir();
   // Write to a temp + rename so a crash mid-write doesn't leave a
   // truncated accounts.json (we'd lose all configured profiles).
+  // Random suffix on the tmp so two concurrent writers (the
+  // settings-page POST + a background rotate, for example) don't both
+  // race on `.${pid}.tmp` and have the loser's rename ENOENT. Same fix
+  // as `provisionProfileConfigDir` above — see that note for the full
+  // race.
   const path = accountsPath();
-  const tmp = `${path}.${process.pid}.tmp`;
+  const tmp = `${path}.${process.pid}.${randomBytes(6).toString("hex")}.tmp`;
   await fs.writeFile(tmp, JSON.stringify(next, null, 2), { encoding: "utf8", mode: 0o600 });
-  await fs.rename(tmp, path);
+  try {
+    await fs.rename(tmp, path);
+  } catch (err) {
+    await fs.unlink(tmp).catch(() => {});
+    throw err;
+  }
   // Belt-and-braces: explicit chmod for the case where the file
   // pre-existed under a looser mode before we adopted 0600.
   try { await fs.chmod(path, 0o600); } catch { /* non-fatal */ }
