@@ -93,6 +93,9 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   { id: "mcp", name: "mcp", description: "Manage MCP servers and OAuth.", category: "tools", handler: "native" },
   { id: "plugin", name: "plugin", description: "Manage plugins.", category: "tools", handler: "native" },
   { id: "reload-plugins", name: "reload-plugins", description: "Reload plugins to apply changes.", category: "tools", handler: "native" },
+  // SDK-side counterpart — picks up skills added or changed on disk
+  // mid-session. Confirmed exposed by `supportedCommands()`.
+  { id: "reload-skills", name: "reload-skills", description: "Pick up skills added or changed on disk during this session.", category: "tools", handler: "sdk" },
   { id: "tasks", name: "tasks", aliases: ["bashes"], description: "List and manage background tasks.", category: "tools", handler: "native" },
   { id: "skills", name: "skills", description: "List available skills.", category: "tools", handler: "native" },
 
@@ -138,28 +141,48 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   { id: "setup-vertex", name: "setup-vertex", description: "Configure Google Vertex AI.", category: "auth", handler: "native" },
 
   // ── Integrations ─────────────────────────────────────────────────────
-  { id: "ide", name: "ide", description: "Manage IDE integrations.", category: "integrations", handler: "external" },
-  { id: "install-github-app", name: "install-github-app", description: "Install Claude GitHub Actions.", category: "integrations", handler: "external" },
-  { id: "install-slack-app", name: "install-slack-app", description: "Install Claude Slack app.", category: "integrations", handler: "external" },
-  { id: "chrome", name: "chrome", description: "Configure Chrome integration.", category: "integrations", handler: "external" },
-  { id: "web-setup", name: "web-setup", description: "Connect GitHub for web sessions.", category: "integrations", handler: "external" },
+  // /ide stays external (it configures the terminal CLI's IDE bridge —
+  // Claudius IS an editor for the workspace and has no equivalent knob).
+  // The other four flipped to native: each opens its install / setup page
+  // in a new tab so the user gets a real destination instead of "terminal
+  // only" gaslight. URLs match the patterns used elsewhere in the
+  // codebase or the documented public install endpoints.
+  // The CLI's /ide configures its terminal IDE bridge. Claudius IS an
+  // editor for the active workspace, so the closest analog is the Files
+  // browser. Native handler routes there with a toast.
+  { id: "ide", name: "ide", description: "Claudius is the IDE — opens the Files browser.", category: "integrations", handler: "native" },
+  { id: "install-github-app", name: "install-github-app", description: "Install Claude GitHub Actions.", category: "integrations", handler: "native" },
+  { id: "install-slack-app", name: "install-slack-app", description: "Install Claude Slack app.", category: "integrations", handler: "native" },
+  { id: "chrome", name: "chrome", description: "Configure Chrome integration (no-op — Claudius runs in Chromium).", category: "integrations", handler: "native" },
+  { id: "web-setup", name: "web-setup", description: "Connect GitHub for web sessions on claude.ai.", category: "integrations", handler: "native" },
 
   // ── Platform / hosted ────────────────────────────────────────────────
-  { id: "desktop", name: "desktop", aliases: ["app"], description: "Continue session in the Desktop app.", category: "platform", handler: "external" },
-  { id: "mobile", name: "mobile", aliases: ["ios", "android"], description: "Open mobile app via QR.", category: "platform", handler: "external" },
-  { id: "passes", name: "passes", description: "Share free week with friends.", category: "platform", handler: "external" },
-  { id: "stickers", name: "stickers", description: "Order Claude Code stickers.", category: "platform", handler: "external" },
-  { id: "teleport", name: "teleport", aliases: ["tp"], description: "Pull a web session into the terminal.", category: "platform", handler: "external" },
-  { id: "remote-control", name: "remote-control", aliases: ["rc"], description: "Enable remote control from claude.ai.", category: "platform", handler: "external" },
-  { id: "remote-env", name: "remote-env", description: "Configure default remote environment.", category: "platform", handler: "external" },
-  { id: "upgrade", name: "upgrade", description: "Open upgrade page.", category: "platform", handler: "external" },
+  // All went native. /desktop branches on isElectron (funny no-op vs.
+  // download nudge). /mobile, /passes, /stickers, /upgrade, /feedback,
+  // /powerup open their canonical page. /teleport, /remote-control,
+  // /remote-env explain why they don't apply locally without sending
+  // anything to the model. /voice stays external — its native overlay is
+  // in flight on a separate branch.
+  { id: "desktop", name: "desktop", aliases: ["app"], description: "Open or recommend the Claudius desktop app.", category: "platform", handler: "native" },
+  { id: "mobile", name: "mobile", aliases: ["ios", "android"], description: "Open the Claude mobile app page.", category: "platform", handler: "native" },
+  // `/passes` is genuinely CLI-only: it's an interactive flow the terminal
+  // owns, not an SDK control request, and `supportedCommands()` does not
+  // advertise it (confirmed by probing the live SDK). Native handler shows
+  // a clear toast — no URL, since there's no public landing page to mint
+  // passes from.
+  { id: "passes", name: "passes", description: "Share free week with friends (CLI only).", category: "platform", handler: "native" },
+  { id: "stickers", name: "stickers", description: "Order Claude Code stickers.", category: "platform", handler: "native" },
+  { id: "teleport", name: "teleport", aliases: ["tp"], description: "Pull a web session into the terminal (CLI only).", category: "platform", handler: "native" },
+  { id: "remote-control", name: "remote-control", aliases: ["rc"], description: "Enable remote control from claude.ai (CLI only).", category: "platform", handler: "native" },
+  { id: "remote-env", name: "remote-env", description: "Configure default remote environment on claude.ai.", category: "platform", handler: "native" },
+  { id: "upgrade", name: "upgrade", description: "Open the Claude plan upgrade page.", category: "platform", handler: "native" },
   { id: "voice", name: "voice", description: "Voice dictation mode.", category: "platform", handler: "external" },
 
   // ── Info / meta ──────────────────────────────────────────────────────
   { id: "help", name: "help", description: "Show all slash commands and shortcuts.", category: "info", handler: "native" },
   { id: "status", name: "status", description: "Show session/account/connectivity status.", category: "info", handler: "native" },
   { id: "release-notes", name: "release-notes", description: "Open the changelog.", category: "info", handler: "native" },
-  { id: "feedback", name: "feedback", aliases: ["bug"], description: "Submit feedback.", category: "info", handler: "external" },
+  { id: "feedback", name: "feedback", aliases: ["bug"], description: "Submit feedback via GitHub Issues.", category: "info", handler: "native" },
   { id: "insights", name: "insights", description: "Generate report on session patterns.", category: "info", handler: "sdk" },
   { id: "team-onboarding", name: "team-onboarding", description: "Generate team onboarding guide.", category: "info", handler: "sdk" },
   // Forwarded to the SDK so the user gets the rich `claude-code` subprocess
@@ -169,7 +192,7 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   // diagnostic, hit `POST /api/heapdump` directly (left in place on purpose).
   { id: "heapdump", name: "heapdump", description: "Write a heap snapshot + diagnostics report (agent subprocess).", category: "info", handler: "sdk" },
   { id: "doctor", name: "doctor", description: "Diagnose installation/auth/git/permissions.", category: "info", handler: "native" },
-  { id: "powerup", name: "powerup", description: "Animated feature lessons.", category: "info", handler: "external" },
+  { id: "powerup", name: "powerup", description: "Open the Release notes (Claudius's feature-tour surface).", category: "info", handler: "native" },
   { id: "add-dir", name: "add-dir", description: "Add a working directory to this session.", category: "info", handler: "native", argsHint: "<path>" },
   { id: "worktrees", name: "worktrees", aliases: ["worktree"], description: "Open a chat session in a git worktree.", category: "session", handler: "native" },
   { id: "files", name: "files", description: "Browse files in the active workspace.", category: "session", handler: "native" },
@@ -187,7 +210,9 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   { id: "ultraplan", name: "ultraplan", description: "Browser-based plan, then execute.", category: "skill", handler: "sdk", argsHint: "<prompt>" },
   { id: "ultrareview", name: "ultrareview", description: "Deep multi-agent code review.", category: "skill", handler: "sdk", argsHint: "[PR]" },
   { id: "autofix-pr", name: "autofix-pr", description: "Watch PR and auto-fix CI failures.", category: "skill", handler: "sdk", argsHint: "[prompt]" },
-  { id: "team-onboarding-skill", name: "team-onboarding", description: "Generate team onboarding guide (skill).", category: "skill", handler: "sdk" },
+  // Was a stale duplicate of the entry above (same `name: "team-onboarding"`,
+  // different id). ALIAS_INDEX is last-wins so it was dead code in the picker.
+  // Removed after live-SDK probe confirmed the single SDK entry is enough.
 
   // ── Experimental / niche ─────────────────────────────────────────────
   { id: "plan", name: "plan", description: "Enter plan mode (read-only planning).", category: "experimental", handler: "native", argsHint: "[description]" },

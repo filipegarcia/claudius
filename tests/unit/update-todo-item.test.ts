@@ -279,6 +279,93 @@ describe("Session — clear-on-touch for manual overrides", () => {
   });
 });
 
+describe("Session.clearTodos — auto-clear toast broadcast", () => {
+  // The transient `todos_auto_cleared` event surfaces a small inline toast
+  // when the SERVER closes the list (stale 24h sweep or all-completed turn
+  // end). Manual clears (user clicked Clear) deliberately do NOT broadcast
+  // it — the user already knows what they just did.
+  test("broadcasts the toast event for a `completed` clear", async () => {
+    const { internal, raw } = makeSession();
+    internal.captureSnapshotState(
+      todoWriteEvent(
+        "u-init",
+        [
+          { id: "1", content: "a", status: "completed" },
+          { id: "2", content: "b", status: "completed" },
+        ],
+        1_000,
+      ),
+    );
+
+    const seen: Array<{ type: string; reason?: string; count?: number }> = [];
+    const unsubscribe = raw.subscribe((ev) => {
+      seen.push(ev as { type: string; reason?: string; count?: number });
+    });
+
+    await raw.clearTodos("completed");
+    unsubscribe();
+
+    const toast = seen.find((e) => e.type === "todos_auto_cleared");
+    expect(toast).toBeDefined();
+    expect(toast?.reason).toBe("completed");
+    expect(toast?.count).toBe(2);
+  });
+
+  test("broadcasts the toast event for a `stale` clear", async () => {
+    const { internal, raw } = makeSession();
+    internal.captureSnapshotState(
+      todoWriteEvent("u-init", [{ id: "1", content: "a", status: "pending" }], 1_000),
+    );
+
+    const seen: Array<{ type: string; reason?: string; count?: number }> = [];
+    const unsubscribe = raw.subscribe((ev) => {
+      seen.push(ev as { type: string; reason?: string; count?: number });
+    });
+
+    await raw.clearTodos("stale");
+    unsubscribe();
+
+    const toast = seen.find((e) => e.type === "todos_auto_cleared");
+    expect(toast).toBeDefined();
+    expect(toast?.reason).toBe("stale");
+    expect(toast?.count).toBe(1);
+  });
+
+  test("does NOT broadcast the toast for a manual clear (user already knows)", async () => {
+    const { internal, raw } = makeSession();
+    internal.captureSnapshotState(
+      todoWriteEvent("u-init", [{ id: "1", content: "a", status: "pending" }], 1_000),
+    );
+
+    const seen: Array<{ type: string }> = [];
+    const unsubscribe = raw.subscribe((ev) => {
+      seen.push(ev as { type: string });
+    });
+
+    await raw.clearTodos("manual");
+    unsubscribe();
+
+    expect(seen.find((e) => e.type === "todos_auto_cleared")).toBeUndefined();
+    // The empty `session_snapshot` still fires — the UI needs it to repaint.
+    expect(seen.find((e) => e.type === "session_snapshot")).toBeDefined();
+  });
+
+  test("does NOT broadcast the toast when the snapshot was already empty", async () => {
+    const { raw } = makeSession();
+
+    const seen: Array<{ type: string }> = [];
+    const unsubscribe = raw.subscribe((ev) => {
+      seen.push(ev as { type: string });
+    });
+
+    await raw.clearTodos("completed");
+    unsubscribe();
+
+    // prevCount === 0 → nothing to brag about.
+    expect(seen.find((e) => e.type === "todos_auto_cleared")).toBeUndefined();
+  });
+});
+
 describe("Session TaskCreate tool_result — temp-id → real-id promotion", () => {
   // Regression guard for the live-session bug observed at session
   // `0976d610-7bf1-4c98-a839-6452a401b0bd`: the in-process TaskCreate

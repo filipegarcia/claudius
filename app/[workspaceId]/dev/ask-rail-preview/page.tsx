@@ -61,6 +61,7 @@ export default function AskRailPreviewPage() {
   return (
     <AskUserQuestionPrompt
       request={RAIL_FIXTURE}
+      sessionLabel="Rail mock"
       onSubmit={() => {
         // Preview page — discard answers, just demonstrate the rendering.
       }}

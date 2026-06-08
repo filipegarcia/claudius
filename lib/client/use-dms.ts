@@ -14,6 +14,7 @@ import type {
   DMStreamEvent,
 } from "@/lib/shared/community";
 import { getCommunityServerUrl } from "@/lib/client/community-server-url";
+import { withCommunityClientParam } from "@/lib/shared/community-client";
 import {
   COMMUNITY_CONSENT_EVENT,
   LS_COMMUNITY_CONSENT_KEY,
@@ -113,9 +114,12 @@ export function useDMs() {
     if (!configured || !nick) return;
     const controller = new AbortController();
 
-    fetch(`${SERVER_URL}/dms/conversations?for=${encodeURIComponent(nick)}`, {
-      signal: controller.signal,
-    })
+    fetch(
+      withCommunityClientParam(
+        `${SERVER_URL}/dms/conversations?for=${encodeURIComponent(nick)}`,
+      ),
+      { signal: controller.signal },
+    )
       .then(async (r) => {
         if (!r.ok) return null;
         return (await r.json()) as { conversations: ConversationSummary[] };
@@ -170,12 +174,13 @@ export function useDMs() {
     setLoadingOlder(true);
     try {
       const oldest = messages[0]?.createdAt ?? Date.now();
-      const url =
+      const url = withCommunityClientParam(
         `${SERVER_URL}/dms/conversation` +
-        `?for=${encodeURIComponent(nick)}` +
-        `&with=${encodeURIComponent(currentPeer)}` +
-        `&before=${encodeURIComponent(String(oldest))}` +
-        `&limit=50`;
+          `?for=${encodeURIComponent(nick)}` +
+          `&with=${encodeURIComponent(currentPeer)}` +
+          `&before=${encodeURIComponent(String(oldest))}` +
+          `&limit=50`,
+      );
       const r = await fetch(url);
       if (!r.ok) {
         const j = (await r.json().catch(() => ({}))) as { error?: string };
@@ -241,7 +246,9 @@ export function useDMs() {
   useEffect(() => {
     if (!configured || !nick) return;
     const es = new EventSource(
-      `${SERVER_URL}/dms/stream?for=${encodeURIComponent(nick)}`,
+      withCommunityClientParam(
+        `${SERVER_URL}/dms/stream?for=${encodeURIComponent(nick)}`,
+      ),
     );
     esRef.current = es;
     es.onopen = () => setConnected(true);
@@ -290,7 +297,7 @@ export function useDMs() {
     async (to: string, body: string): Promise<DMSendResult> => {
       if (!configured) return { ok: false, error: "chat not configured" };
       if (!nick) return { ok: false, error: "pick a nickname first" };
-      const r = await fetch(`${SERVER_URL}/dms`, {
+      const r = await fetch(withCommunityClientParam(`${SERVER_URL}/dms`), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ from: nick, to, body }),

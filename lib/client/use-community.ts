@@ -18,6 +18,7 @@ import type {
   Room,
 } from "@/lib/shared/community";
 import { getCommunityServerUrl } from "@/lib/client/community-server-url";
+import { withCommunityClientParam } from "@/lib/shared/community-client";
 import { mergeReplayMessages } from "@/lib/client/merge-replay-messages";
 import {
   getMessagesCache,
@@ -234,7 +235,9 @@ export function useCommunity(options: UseCommunityOptions = {}) {
     if (!configured) return;
     const controller = new AbortController();
 
-    fetch(`${SERVER_URL}/rooms`, { signal: controller.signal })
+    fetch(withCommunityClientParam(`${SERVER_URL}/rooms`), {
+      signal: controller.signal,
+    })
       .then(async (r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return (await r.json()) as { rooms: Room[] };
@@ -430,7 +433,9 @@ export function useCommunity(options: UseCommunityOptions = {}) {
     // silently ignored, so older chat-servers without nick-aware
     // subscribers keep working with this URL unchanged.
     const nickParam = nick ? `?nick=${encodeURIComponent(nick)}` : "";
-    const url = `${SERVER_URL}/rooms/${encodeURIComponent(currentRoom)}/stream${nickParam}`;
+    const url = withCommunityClientParam(
+      `${SERVER_URL}/rooms/${encodeURIComponent(currentRoom)}/stream${nickParam}`,
+    );
     const es = new EventSource(url);
     esRef.current = es;
 
@@ -504,7 +509,9 @@ export function useCommunity(options: UseCommunityOptions = {}) {
       if (!configured) return { ok: false, error: "chat server not configured" };
       if (!nick) return { ok: false, error: "pick a nickname first" };
       const r = await fetch(
-        `${SERVER_URL}/rooms/${encodeURIComponent(currentRoom)}/messages`,
+        withCommunityClientParam(
+          `${SERVER_URL}/rooms/${encodeURIComponent(currentRoom)}/messages`,
+        ),
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -534,9 +541,11 @@ export function useCommunity(options: UseCommunityOptions = {}) {
     setLoadingOlder(true);
     try {
       const oldest = messages[0]?.createdAt ?? Date.now();
-      const url = `${SERVER_URL}/rooms/${encodeURIComponent(
-        currentRoom,
-      )}/messages?before=${encodeURIComponent(String(oldest))}&limit=50`;
+      const url = withCommunityClientParam(
+        `${SERVER_URL}/rooms/${encodeURIComponent(
+          currentRoom,
+        )}/messages?before=${encodeURIComponent(String(oldest))}&limit=50`,
+      );
       const r = await fetch(url);
       if (!r.ok) {
         const j = (await r.json().catch(() => ({}))) as { error?: string };

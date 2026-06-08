@@ -23,5 +23,12 @@
     <!-- Customization preview server reads/writes inside ~/.claude/. -->
     <key>com.apple.security.files.downloads.read-write</key>
     <true/>
+    <!-- Voice dictation captures from the microphone via getUserMedia
+         and streams audio to the Anthropic transcription endpoint. The
+         entitlement is necessary for the macOS sandbox AND hardened
+         runtime to grant mic access; the user-facing rationale is in
+         NSMicrophoneUsageDescription (electron-builder.yml). -->
+    <key>com.apple.security.device.audio-input</key>
+    <true/>
 </dict>
 </plist>

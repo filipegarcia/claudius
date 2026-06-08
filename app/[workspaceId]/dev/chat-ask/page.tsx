@@ -119,6 +119,7 @@ export default function ChatAskPreview() {
         <div data-testid="ask-user-question-preview" className="absolute inset-0 z-30 flex items-center justify-center">
           <AskUserQuestionPrompt
             request={FIXTURE}
+            sessionLabel="SDK rollout plan"
             onSubmit={() => {}}
             onCancel={() => {}}
             onMinimize={() => {}}

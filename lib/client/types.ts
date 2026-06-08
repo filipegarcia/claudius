@@ -524,6 +524,18 @@ export type ChatState = {
   loadingOlder: boolean;
   /** Latest payload from a TodoWrite tool_use — the agent's current task list. */
   latestTodos: AgentTodo[];
+  /**
+   * Transient toast payload set when the server auto-clears the to-do
+   * snapshot (stale 24h sweep or all-completed turn-end). `null` when no
+   * toast should be showing. `id` is a stable counter that retriggers
+   * the toast component's fade-out timer on back-to-back fires.
+   *
+   * NOT set for manual user clears — the user already knows what they
+   * just did, so a toast would be noise.
+   */
+  todosAutoCleared:
+    | { id: number; reason: "stale" | "completed"; count: number }
+    | null;
   /** Capped log of recent edits (Edit/MultiEdit/Write). Newest first; max 20. */
   recentEdits: RecentEdit[];
   /** Active background bash shells, keyed by tool_use_id. */
@@ -798,6 +810,8 @@ export type ChatActions = {
     itemId: string,
     action: "complete" | "reopen" | "in_progress" | "delete",
   ): Promise<{ ok: true } | { ok: false; error: string }>;
+  /** Dismiss the transient auto-clear toast (manual × or fade-out timer). */
+  dismissTodosAutoCleared(): void;
   /** Resolve a pending AskUserQuestion form. */
   submitAskAnswer(requestId: string, answers: AskAnswer[]): Promise<void>;
   /**

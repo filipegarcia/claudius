@@ -7,6 +7,7 @@ import { StatusLine } from "@/components/chat/StatusLine";
 import { LoadingBar } from "@/components/chat/LoadingBar";
 import { MessageList } from "@/components/chat/MessageList";
 import { TodosBanner } from "@/components/chat/TodosBanner";
+import { TodosAutoClearedToast } from "@/components/chat/TodosAutoClearedToast";
 import { GoalBanner } from "@/components/chat/GoalBanner";
 import { useGoalBannerHidden } from "@/lib/client/useGoalBannerHidden";
 import { RecapBanner } from "@/components/chat/RecapBanner";
@@ -105,26 +106,59 @@ type OverlayKind = "help" | "skills" | "cost" | "status" | "rename" | "context" 
  * `/tui` is the most explicit because it's the one users instinctively reach
  * for when they want a "different UI" — the irony is that Claudius IS the
  * UI; there's no other renderer to switch to.
+ *
+ * NB: this map intentionally shrunk. Most of the 17 originally-external
+ * commands flipped to native handlers (see `slash-commands.ts` and the cases
+ * in `runNative` below) — `/voice` and `/tui` are the only survivors. Don't
+ * re-add an entry here when promoting a command to native, or you'll create
+ * dead-code that disagrees with the dispatcher.
  */
 const EXTERNAL_SLASH_MESSAGE: Record<string, string> = {
   tui: "Claudius IS the UI — /tui switches between renderers in the terminal and has nowhere to switch to here",
-  ide: "/ide configures the terminal CLI's IDE integration — open files directly in your editor instead",
-  "install-github-app": "Install Claude GitHub Actions from the terminal CLI",
-  "install-slack-app": "Install the Claude Slack app from the terminal CLI",
-  chrome: "/chrome configures the terminal CLI's Chrome integration",
-  "web-setup": "Connect GitHub for web sessions from the terminal CLI",
-  desktop: "Already in the desktop app — /desktop is for the terminal CLI",
-  mobile: "Open the Claude mobile app to use /mobile",
-  passes: "/passes opens the share-a-week flow on claude.ai",
-  stickers: "/stickers opens the Claude Code stickers order page",
-  teleport: "/teleport pulls a web session into the terminal CLI",
-  "remote-control": "/remote-control is a terminal-CLI feature for claude.ai",
-  "remote-env": "/remote-env configures the default remote environment via the terminal CLI",
-  upgrade: "Open https://claude.ai to manage your plan",
   voice: "/voice is the terminal CLI's voice dictation mode",
-  feedback: "Submit feedback at https://github.com/anthropics/claude-code/issues",
-  powerup: "/powerup is the terminal CLI's animated feature tour",
 };
+
+/**
+ * Canonical URLs used by the platform / integration slash commands. Centralised
+ * so a future rename is a single-touch update. Each URL was probed live before
+ * being added; the comment notes provenance so a future maintainer can re-verify.
+ *
+ *  - `claudiusReleases`:  download link reused from `components/chrome/WebDesktopBanner.tsx`
+ *  - `upgradePlan`:       `UPGRADE_PLAN_URL` in `components/chat/RateLimitHitPanel.tsx`
+ *  - `claudeCodeIssues`:  `FALLBACK_URL` in `components/chat/FeedbackBanner.tsx`
+ *  - `githubApp`:         confirmed live — the Claude GitHub App install page
+ *  - `slackApp`:          confirmed live — the "Claude for Slack" install page
+ *  - `mobileApp`:         confirmed live (the older `claude.ai/download` 301s here)
+ *  - `stickers`:          the canonical Claude Code merch store on Sticker Mule.
+ *                         The terminal CLI's /stickers is an interactive shipping
+ *                         form which we can't render in chat, so we link the store.
+ *  - `webSetupDocs`:      the documented entry for Claude Code on the web. The
+ *                         CLI's /web-setup is an interactive OAuth dance with no
+ *                         static landing page, so we send users to the docs that
+ *                         walk through the setup.
+ *
+ * NB: `/passes` is NOT in this map — it generates per-account codes server-side
+ * (MAX-plan feature) and is SDK-forwarded. See `slash-commands.ts`.
+ */
+const SLASH_LINKS = {
+  claudiusReleases: "https://github.com/filipegarcia/claudius/releases",
+  upgradePlan: "https://claude.ai/upgrade/max",
+  claudeCodeIssues: "https://github.com/anthropics/claude-code/issues",
+  githubApp: "https://github.com/apps/claude",
+  slackApp: "https://claude.com/slack",
+  mobileApp: "https://claude.com/download",
+  stickers: "https://www.stickermule.com/claudecode",
+  webSetupDocs: "https://code.claude.com/docs/en/claude-code-on-the-web",
+} as const;
+
+/** Open a URL in a new tab. Works in both the browser and Electron — the
+ * Electron main process registers a `window.open` handler that routes
+ * external URLs to `shell.openExternal`, so the same call site is correct
+ * in both runtimes. `noopener,noreferrer` matches the rest of the codebase.
+ */
+function openExternalUrl(url: string): void {
+  if (typeof window !== "undefined") window.open(url, "_blank", "noopener,noreferrer");
+}
 
 export default function Home() {
   const session = useSession();
@@ -1073,6 +1107,111 @@ export default function Home() {
         // server-side variant is still reachable at `POST /api/heapdump`
         // when we need to introspect the Next process itself; it's just
         // not bound to a slash command anymore.
+
+        // ─── Integration / install commands ─────────────────────────────
+        // Each opens its install or settings page in the user's browser.
+        // These used to be `external` toasts ("install from the terminal CLI")
+        // which was meaningless guidance — the install URL is the install URL
+        // whether you're in a terminal, a browser, or Electron.
+        case "install-github-app":
+          openExternalUrl(SLASH_LINKS.githubApp);
+          showToast("Opening the Claude GitHub App install page");
+          return true;
+        case "install-slack-app":
+          openExternalUrl(SLASH_LINKS.slackApp);
+          showToast("Opening the Claude Slack app install page");
+          return true;
+        case "chrome":
+          // Premise doesn't apply: the CLI's /chrome lets a terminal drive a
+          // browser. Claudius already runs *in* Chromium (Electron) and has
+          // its own DOM. No URL — just say so.
+          showToast("Claudius runs in Chromium already — no separate Chrome integration to configure");
+          return true;
+        case "ide":
+          // CLI's /ide bridges a terminal to an editor. Claudius IS the
+          // editor for the active workspace, so the Files page is the
+          // closest analog. Same shape as the /powerup → /release-notes
+          // remapping a few cases below.
+          showToast("Claudius is the IDE — opening the Files browser");
+          router.push("/files");
+          return true;
+        case "web-setup":
+          // The terminal CLI's /web-setup is an interactive OAuth flow
+          // (GitHub authorize → callback → token). No static landing page
+          // exists — the docs are the closest stable destination and walk
+          // the user through what /web-setup would have done.
+          openExternalUrl(SLASH_LINKS.webSetupDocs);
+          showToast("Opening the Claude Code on the web docs");
+          return true;
+
+        // ─── Platform / hosted ──────────────────────────────────────────
+        case "desktop":
+          // Branch on isElectron via the bridge we already capture above.
+          // In Electron: small joke — the user IS the desktop user.
+          // In the browser: nudge them at the GitHub Releases page (same
+          // destination as the existing WebDesktopBanner — single source of
+          // truth for the download URL).
+          if (claudiusBridge?.isElectron) {
+            showToast("You're already in the desktop app — /desktop is for CLI Claude trying to escape 🖥️");
+          } else {
+            openExternalUrl(SLASH_LINKS.claudiusReleases);
+            showToast("Grab the Claudius desktop app from GitHub Releases");
+          }
+          return true;
+        case "mobile":
+          openExternalUrl(SLASH_LINKS.mobileApp);
+          showToast("Opening the Claude mobile app download page");
+          return true;
+        case "passes":
+          // CLI-only feature — the SDK does NOT advertise `/passes` in its
+          // `supportedCommands()` response (verified by probing the live
+          // SDK with a `query()` + `supportedCommands()` call). There's
+          // also no public landing page to deep-link to; codes are minted
+          // by the terminal-CLI flow against the user's MAX-plan account.
+          // Honest toast beats a fake URL or a dead SDK forward.
+          showToast("/passes mints guest passes from the terminal CLI — not exposed by the SDK or claude.ai");
+          return true;
+        case "stickers":
+          // The CLI's /stickers shows an interactive shipping form which
+          // Claudius can't render — but the Sticker Mule store is the
+          // canonical Claude Code merch destination either way.
+          openExternalUrl(SLASH_LINKS.stickers);
+          showToast("Opening the Claude Code store on Sticker Mule");
+          return true;
+        case "upgrade":
+          openExternalUrl(SLASH_LINKS.upgradePlan);
+          showToast("Opening the Claude plan upgrade page");
+          return true;
+
+        // These three exist in the CLI but have no Claudius counterpart yet.
+        // Toast instead of opening a URL so we don't dump the user on a
+        // claude.ai page that won't recognise their local context.
+        case "teleport":
+          showToast("Teleport pulls a claude.ai session into the terminal CLI — Claudius doesn't import hosted sessions yet");
+          return true;
+        case "remote-control":
+          showToast("Remote control lets claude.ai drive a terminal Claude Code session — not exposed by Claudius");
+          return true;
+        case "remote-env":
+          showToast("Remote environments are configured on claude.ai");
+          return true;
+
+        // ─── Info / meta ────────────────────────────────────────────────
+        case "feedback":
+          // Same destination FeedbackBanner falls back to. /feedback is about
+          // the agent experience, so it lands on claude-code's issues, not
+          // Claudius's repo. (If a future user wants to file a Claudius bug,
+          // they can use the picker / `/help`.)
+          openExternalUrl(SLASH_LINKS.claudeCodeIssues);
+          showToast("Opening the Claude Code issues page");
+          return true;
+        case "powerup":
+          // No animated tour in Claudius. The Release notes page is the
+          // closest analog — it's where "what's new in this version" lives.
+          showToast("Feature tour lives on the Release notes page");
+          router.push("/release-notes");
+          return true;
+
         case "model": {
           if (args.trim()) {
             void session.setModel(args.trim());
@@ -1105,7 +1244,11 @@ export default function Home() {
           return false;
       }
     },
-    [router, session, showToast],
+    // `claudiusBridge` identity is stable for the lifetime of the renderer
+    // (see lib/client/useElectron.ts), so listing it doesn't churn the
+    // callback — but eslint-rule-of-hooks wants it spelled out so a future
+    // bridge-identity change doesn't silently break the /desktop branch.
+    [router, session, showToast, claudiusBridge],
   );
 
   const handleSend = useCallback(
@@ -1139,12 +1282,30 @@ export default function Home() {
         }
         if (cmd?.handler === "sdk") {
           // SDK-interpreted slash command (e.g. /compact, /init).
-          // Route through the no-echo path so the chat shows a "Running
-          // /compact…" pill instead of a user message whose text is the
-          // literal slash command. The SDK still receives the text and
-          // interprets it as a slash; its eventual reply (compact_boundary,
-          // init system message, etc.) lands as its own event.
-          void session.send(text, undefined, { asSlashCommand: true });
+          // BEFORE forwarding, validate against the live SDK list: probing
+          // `supportedCommands()` against a real session revealed that
+          // several static registry entries (`/sandbox`, `/effort`,
+          // `/fast`, `/color`, `/diff`, `/focus`, `/btw`, `/extra-usage`,
+          // `/ultraplan`, `/ultrareview`, `/autofix-pr`, `/advisor`)
+          // aren't reported by the SDK on the version we ship. Forwarding
+          // them silently let the model see a literal `/foo` and reply
+          // with confused prose. With the live check, the user gets a
+          // clear toast instead — and the picker still surfaces the
+          // command, so the discoverability is intact.
+          //
+          // Live-known commands (curated registry + skills + plugin-bundled
+          // ones) flow through unchanged.
+          if (session.slashCommands.includes(head)) {
+            // Route through the no-echo path so the chat shows a "Running
+            // /compact…" pill instead of a user message whose text is the
+            // literal slash command. The SDK still receives the text and
+            // interprets it as a slash; its eventual reply
+            // (compact_boundary, init system message, etc.) lands as its
+            // own event.
+            void session.send(text, undefined, { asSlashCommand: true });
+            return;
+          }
+          showToast(`/${cmd.name} isn't recognised by the Claude Code SDK on this version`);
           return;
         }
         // Not in the curated registry. Two possibilities:
@@ -1525,6 +1686,10 @@ export default function Home() {
             />
           </div>
         )}
+        <TodosAutoClearedToast
+          payload={session.todosAutoCleared}
+          onDismiss={session.dismissTodosAutoCleared}
+        />
         <TodosBanner
           todos={session.latestTodos}
           onDismiss={() => {
@@ -1892,6 +2057,11 @@ export default function Home() {
       {session.pendingAsk && askMinimizedFor !== session.pendingAsk.requestId && (
         <AskUserQuestionPrompt
           request={session.pendingAsk}
+          sessionLabel={
+            session.sessionId
+              ? tabLabelFor(session.sessionId, session.sessions, session.sessionTitle)
+              : null
+          }
           onSubmit={(answers) =>
             session.submitAskAnswer(session.pendingAsk!.requestId, answers)
           }
@@ -1916,6 +2086,11 @@ export default function Home() {
             toolUseId: resurrectedAsk.toolUseId,
             questions: resurrectedAsk.questions,
           }}
+          sessionLabel={
+            session.sessionId
+              ? tabLabelFor(session.sessionId, session.sessions, session.sessionTitle)
+              : null
+          }
           onSubmit={(answers) => {
             const text = formatAskAsPrompt(resurrectedAsk.questions, answers);
             setResurrectedAsk(null);

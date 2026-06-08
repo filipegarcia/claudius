@@ -2640,8 +2640,25 @@ export class Session {
     // rather than every-turn spam after the first fire.
     this.turnsSinceTodoWrite += 1;
     if (this.turnsSinceTodoWrite >= STALE_TODO_TURN_THRESHOLD) {
-      const body = staleTodoReminderBody(this.latestTodosSnapshot ?? []);
-      queueReminder(this, "stale-todowrite", body);
+      // Only fire when there's actually a list to be stale ABOUT. The
+      // legacy behavior queued the reminder unconditionally — including
+      // for sessions that had never touched a to-do (pure research /
+      // single-shot Q&A), nudging the model to "consider TodoWrite" for
+      // work that genuinely doesn't need tracking. That's noise: the
+      // upstream SDK already fires its own `task_reminder` for that
+      // case via the TaskCreate / TaskUpdate tool gate, which we can't
+      // suppress without disabling the tools, so duplicating the nudge
+      // from Claudius's side is pure tax. Gate on snapshot presence so
+      // this reminder is exclusively about cleaning up a list that's
+      // already started and gone idle — its honest signal.
+      //
+      // The counter still resets either way so a single "burned" silent
+      // stretch doesn't keep tripping every turn after threshold.
+      const snapshot = this.latestTodosSnapshot;
+      if (snapshot && snapshot.length > 0) {
+        const body = staleTodoReminderBody(snapshot);
+        queueReminder(this, "stale-todowrite", body);
+      }
       this.turnsSinceTodoWrite = 0;
     }
 
@@ -3090,6 +3107,25 @@ export class Session {
       // gives every connected tab an empty state immediately.
     }
     this.broadcast({ type: "session_snapshot", todos: [] });
+    // Transient toast for system-initiated closes only. Manual clears
+    // (the user clicked Clear) don't need a toast — the user already
+    // knows what they just did, and an "I cleared the list" notification
+    // for an action the user just took reads as either dismissive or
+    // chatty. Stale + all-completed clears DO benefit: the snapshot
+    // simply vanishing on its own otherwise looks indistinguishable
+    // from a bug, especially on a long session.
+    //
+    // Fire AFTER the empty `session_snapshot` so a client renderer that
+    // pivots off the toast (e.g. "Cleared 6 completed todos") has the
+    // empty state already in hand — no jank where the snapshot is still
+    // populated when the toast claims to have cleared it.
+    if (reason !== "manual" && prevCount > 0) {
+      this.broadcast({
+        type: "todos_auto_cleared",
+        reason,
+        count: prevCount,
+      });
+    }
     if (sessLoadDebug()) {
 
       console.log("[sess-load] clearTodos", { id: this.id, reason, prevCount });

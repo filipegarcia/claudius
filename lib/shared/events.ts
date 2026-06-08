@@ -610,10 +610,37 @@ export type ServerEvent =
   | PlanApprovalRequestEvent
   | SessionSnapshotEvent
   | TaskSnapshotEvent
+  | TodosAutoClearedEvent
   | AccountAutoRotatedEvent
   | SessionRecapEvent
   | SessionRecapErrorEvent
   | QueueUpdatedEvent;
+
+/**
+ * One-shot notification that the SERVER auto-cleared the to-do snapshot —
+ * either because every item finished (`reason: "completed"`) or because
+ * the list went idle past the staleness threshold (`reason: "stale"`).
+ *
+ * NOT emitted for manual user-driven clears: when the user clicks Clear
+ * they already know what they just did, so a toast would be noise. Manual
+ * clears emit only the empty `session_snapshot` and rely on the banner
+ * disappearing for feedback.
+ *
+ * The client renders a transient toast / inline banner that fades out
+ * after a few seconds. State is not persisted across the SSE replay
+ * buffer trim — late tabs that connect after the toast lifetime would
+ * just paint the empty list (the snapshot is authoritative), so missing
+ * this event is at worst "the user doesn't see the disappearance was
+ * automatic," which is identical to today's behavior.
+ *
+ * `count` is the number of items dropped at clear time. Useful for the
+ * UI string ("Cleared 6 completed todos" vs "Cleared 1 stale todo").
+ */
+export type TodosAutoClearedEvent = {
+  type: "todos_auto_cleared";
+  reason: "stale" | "completed";
+  count: number;
+};
 
 export type PermissionDecision =
   | { kind: "allow_once" }

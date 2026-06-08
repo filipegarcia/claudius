@@ -20,15 +20,7 @@ import { join } from "node:path";
  * assertion doesn't leak workspaces either.
  */
 test.describe("Workspace switch — workspace-scoped pages re-fetch on switch", () => {
-  // TODO(workspace-switch-refetch): Deterministic CI failure on GitHub
-  // Actions runners — the sidebar refetch never fires after the tile
-  // click, so the `beta-only` assertion times out (failed 3/3 attempts
-  // with retries: 2). Passes locally on macOS; GitLab runner history
-  // also showed it green. Suspect a slow/missed re-render in the
-  // useActiveCwd → agents-page refetch chain on slower headless
-  // chromium. Marking fixme to keep CI green while we triage —
-  // un-fixme once the underlying timing is fixed.
-  test.fixme("Agents sidebar updates when the active workspace changes", async ({
+  test("Agents sidebar updates when the active workspace changes", async ({
     page,
     baseURL,
   }) => {
@@ -64,6 +56,30 @@ test.describe("Workspace switch — workspace-scoped pages re-fetch on switch", 
     };
 
     try {
+      // Pre-seed per-workspace route memory so each tile click lands on
+      // `/<id>/agents` (the page we're testing), not `/<id>` (the chat
+      // home, which has no agents sidebar). The tile-click handler in
+      // WorkspaceSwitcher reads `getLastPath(w.id) ?? /${w.id}`, and
+      // since these scratch workspaces have never been navigated through,
+      // the fallback would otherwise pull us off the agents page entirely
+      // and the assertion below would time out for the wrong reason.
+      // Real users hit this codepath naturally once they've visited
+      // /agents in each workspace; we just front-load the same state.
+      await page.addInitScript(
+        (ids) => {
+          try {
+            localStorage.setItem(
+              "claudius.workspace.lastPath",
+              JSON.stringify({ [ids.a]: "/agents", [ids.b]: "/agents" }),
+            );
+          } catch {
+            // localStorage can be unavailable in some sandboxed contexts;
+            // the assertion below will still fail clearly if so.
+          }
+        },
+        { a: wsA.id, b: wsB.id },
+      );
+
       // ── Activate A, open /agents, assert A's agent shows ─────────────
       await select(wsA.id);
       await page.goto("/agents");
@@ -73,16 +89,14 @@ test.describe("Workspace switch — workspace-scoped pages re-fetch on switch", 
       await expect(aSidebar).toContainText("alpha-only", { timeout: 10_000 });
       await expect(aSidebar).not.toContainText("beta-only");
 
-      // ── Switch to B from inside the page (no reload) ─────────────────
-      // Click the workspace pill for B in the leftmost rail. Workspace
-      // tiles render the first letter of the name; we grab by title which
-      // exposes the full name.
+      // ── Switch to B by clicking its tile ─────────────────────────────
+      // The click triggers `select(wsB, "/<wsB>/agents")` (route memory
+      // seeded above) which does a full document load to the agents page
+      // under workspace B. AgentsPage remounts, `useActiveCwd` returns
+      // wsB's rootPath, and the cwd-scoped fetch returns wsB's agent.
       const tileForB = await findWorkspaceTile(page, wsB.id);
       await tileForB.click();
 
-      // useActiveCwd derives from the live useWorkspaces hook, so the
-      // refresh effect fires immediately. Just wait for the assertion —
-      // no manual sleep.
       await expect(aSidebar).toContainText("beta-only", { timeout: 10_000 });
       await expect(aSidebar).not.toContainText("alpha-only");
 
