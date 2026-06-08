@@ -82,6 +82,25 @@ jobs:
         with:
           python-version: "3.11"
 
+      # Cache the prebuilt Electron binaries electron-builder downloads from
+      # github.com/electron/electron/releases. When GitHub's CDN burps with
+      # a 504 (as it did on 2026-06-08), a cache hit means we never touch
+      # the network and the release sails through. Cache miss only happens
+      # on the first run after an Electron version bump (since the key
+      # hashes bun.lock — any electron bump changes that file). The actual
+      # cache directories vary by platform, so list both macOS and Linux
+      # paths here even though only the macOS one is read on this runner —
+      # actions/cache silently skips missing paths.
+      - name: Cache Electron binaries
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Caches/electron
+            ~/Library/Caches/electron-builder
+          key: electron-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            electron-${{ runner.os }}-${{ runner.arch }}-
+
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
@@ -308,6 +327,18 @@ jobs:
       # tooling are either present on the runner or fetched by electron-builder.
       - name: Install rpm tooling
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends rpm
+
+      # See the macos-x64 job for the rationale. Same shape, different
+      # platform-specific cache dirs.
+      - name: Cache Electron binaries
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/electron
+            ~/.cache/electron-builder
+          key: electron-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            electron-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
