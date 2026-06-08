@@ -465,27 +465,34 @@ jobs:
             echo "APPDIR=$PWD/squashfs-root"
           } >> "$GITHUB_ENV"
 
-      # Fast, unambiguous pre-check: launch the binary raw and capture stderr.
-      # A sandbox abort exits within ~1s with the "SUID sandbox helper..." line
-      # — surfacing it directly in the CI log. A healthy app stays alive until
-      # `timeout` kills it (exit 124). Anything else = a launch crash, fail
-      # here with the captured output before the Playwright step.
-      - name: Pre-check — raw launch surfaces a sandbox abort
+      # Pre-check: launch EXACTLY like a double-clicked AppImage — AppRun runs
+      # the binary with no --no-sandbox, APPIMAGE set — to exercise the
+      # self-relaunch fix in electron/main.ts. We can't gate on exit code: a
+      # working relaunch makes the original process app.exit(0) → code 0, while
+      # a broken one crashes → non-zero. So the success criterion is
+      # relaunch-agnostic — the captured output must not contain the
+      # setuid-sandbox FATAL. The captured [electron/main] boot marker also
+      # tells us whether our JS ran at all (vs a crash that precedes it).
+      - name: Pre-check — direct launch must not hit the sandbox abort
         run: |
           set +e
-          xvfb-run -a timeout 25 "$CLAUDIUS_PACKAGED_BINARY" \
-            --user-data-dir="$(mktemp -d)" > precheck.log 2>&1
-          code=$?
+          xvfb-run -a "$CLAUDIUS_PACKAGED_BINARY" --user-data-dir="$(mktemp -d)" > precheck.log 2>&1 &
+          APP_PID=$!
+          # Long enough for either an immediate sandbox abort (~1s) or a
+          # relaunch + embedded-server boot to surface in the log.
+          sleep 20
+          kill "$APP_PID" 2>/dev/null
+          # Reap any relaunched/forked Electron children so the step can exit.
+          pkill -f "$PWD/squashfs-root" 2>/dev/null || true
           set -e
-          echo "--- raw launch output (tail) ---"
-          tail -60 precheck.log || true
-          echo "--------------------------------"
-          if [ "$code" = "124" ]; then
-            echo "OK: app stayed alive for 25s (timeout-killed) — no immediate launch crash."
-          else
-            echo "::error title=Packaged app crashed at launch::Raw launch exited early (code=$code) instead of running until the 25s timeout. If the output above mentions 'SUID sandbox helper', the AppImage --no-sandbox guard is missing or broken."
+          echo "--- raw launch output ---"
+          cat precheck.log || true
+          echo "-------------------------"
+          if grep -qiE "setuid_sandbox_host|SUID sandbox helper|The SUID sandbox" precheck.log; then
+            echo "::error title=AppImage sandbox abort::The packaged app hit the setuid-sandbox FATAL on a direct (double-click-equivalent) launch — the electron/main.ts AppImage --no-sandbox relaunch is missing or not taking effect."
             exit 1
           fi
+          echo "OK: no setuid-sandbox abort on direct launch."
 
       - name: Smoke-test the packaged app (Playwright)
         run: xvfb-run -a bun run test:e2e:electron-packaged

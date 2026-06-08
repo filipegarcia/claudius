@@ -48,7 +48,14 @@ export async function launchPackaged(
     // `--user-data-dir` is honored by electron/main.ts (it skips its own
     // setPath override when the switch is present), giving this run a
     // throwaway profile.
-    args: [`--user-data-dir=${userData}`],
+    //
+    // `--no-sandbox` is passed explicitly so the AppImage self-relaunch in
+    // electron/main.ts is SKIPPED (its guard checks for this switch). If we
+    // let it relaunch, the original process Playwright spawned would exit and
+    // Playwright would lose its CDP attachment. The auto-relaunch path (no
+    // switch passed) is covered separately by the release job's raw pre-check;
+    // here we drive the booted app and assert it renders + serves.
+    args: [`--user-data-dir=${userData}`, "--no-sandbox"],
     // Packaged cold start = require("next") inside the asar + app.prepare()
     // + first SSR. Generous ceiling so a slow runner doesn't read as a hang.
     timeout: 120_000,
