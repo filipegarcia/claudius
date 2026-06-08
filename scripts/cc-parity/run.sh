@@ -29,7 +29,7 @@
 #   # credential needed.
 #   CC_PARITY_ROOM_SLUG=sdk-update    # same room; emoji disambiguates
 #   # CC_PARITY_MAX_MINOR_JUMP=1
-#   # CC_PARITY_MIN_HOURS_BETWEEN_RUNS=0   # throttle for noisy weeks
+#   # CC_PARITY_MIN_HOURS_BETWEEN_RUNS=0   # RESERVED, not yet honored
 #   EOF
 #   chmod 600 .claudius/cc-parity/env
 #
