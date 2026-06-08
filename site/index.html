@@ -344,15 +344,62 @@
           machine. Your sessions stay yours.
         </p>
         <div class="mt-10 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3">
-          <a
-            href="#install"
-            class="inline-flex items-center justify-center gap-2 rounded-md bg-accent px-5 py-3 sm:py-2.5 text-sm font-medium text-bg hover:brightness-110 transition"
-          >
-            Get started
-            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M5 12h14M13 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
-          </a>
+          <!-- Primary CTA — Download. Opens a small platform-picker panel
+               directly below the button. Hrefs default to the GitHub releases
+               page; a fetch against the GitHub API at script start upgrades
+               them to direct asset URLs once the latest release is known.
+               If the fetch fails (rate limit, offline, unsupported browser),
+               clicks just land on the releases page — still functional. -->
+          <div class="relative inline-block">
+            <button
+              id="download-btn"
+              type="button"
+              aria-haspopup="menu"
+              aria-expanded="false"
+              aria-controls="download-panel"
+              class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-md bg-accent px-5 py-3 sm:py-2.5 text-sm font-medium text-bg hover:brightness-110 transition"
+            >
+              Download
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" />
+              </svg>
+            </button>
+            <div
+              id="download-panel"
+              role="menu"
+              aria-labelledby="download-btn"
+              hidden
+              class="absolute left-1/2 -translate-x-1/2 sm:left-0 sm:translate-x-0 top-full mt-2 z-30 w-72 rounded-md border border-line bg-panel shadow-2xl text-left overflow-hidden"
+            >
+              <div class="px-4 pt-3 pb-1 text-[11px] uppercase tracking-wider text-muted/80">macOS</div>
+              <a role="menuitem" data-platform="mac-arm64" href="https://github.com/filipegarcia/claudius/releases/latest" class="block px-4 py-2 hover:bg-panel2 transition">
+                <div class="text-sm text-fg">Apple Silicon</div>
+                <div class="text-xs text-muted">arm64 · zip</div>
+              </a>
+              <a role="menuitem" data-platform="mac-x64" href="https://github.com/filipegarcia/claudius/releases/latest" class="block px-4 py-2 hover:bg-panel2 transition">
+                <div class="text-sm text-fg">Intel</div>
+                <div class="text-xs text-muted">x64 · dmg</div>
+              </a>
+              <div class="border-t border-line"></div>
+              <div class="px-4 pt-3 pb-1 text-[11px] uppercase tracking-wider text-muted/80">Linux</div>
+              <a role="menuitem" data-platform="linux-appimage" href="https://github.com/filipegarcia/claudius/releases/latest" class="block px-4 py-2 hover:bg-panel2 transition">
+                <div class="text-sm text-fg">AppImage</div>
+                <div class="text-xs text-muted">universal · self-contained</div>
+              </a>
+              <a role="menuitem" data-platform="linux-deb" href="https://github.com/filipegarcia/claudius/releases/latest" class="block px-4 py-2 hover:bg-panel2 transition">
+                <div class="text-sm text-fg">Debian / Ubuntu</div>
+                <div class="text-xs text-muted">.deb</div>
+              </a>
+              <a role="menuitem" data-platform="linux-rpm" href="https://github.com/filipegarcia/claudius/releases/latest" class="block px-4 py-2 hover:bg-panel2 transition">
+                <div class="text-sm text-fg">Fedora / RHEL</div>
+                <div class="text-xs text-muted">.rpm</div>
+              </a>
+              <div class="border-t border-line"></div>
+              <a role="menuitem" href="https://github.com/filipegarcia/claudius/releases" class="block px-4 py-2 hover:bg-panel2 transition text-center">
+                <div class="text-xs text-muted">All releases →</div>
+              </a>
+            </div>
+          </div>
           <a
             href="#gallery"
             class="inline-flex items-center justify-center gap-2 rounded-md border border-line bg-panel px-5 py-3 sm:py-2.5 text-sm font-medium text-fg hover:bg-panel2 transition"
@@ -1696,6 +1743,88 @@ bun run electron:dist:linux   # AppImage + deb + rpm</code></pre>
           });
         };
         wireIconCopy("hero-copy", "hero-cmd");
+      })();
+    </script>
+
+    <!-- ─────────────────────────── Download dropdown ──────────────────────
+         Toggles the platform-picker panel under the hero "Download" CTA and
+         upgrades the panel's hrefs from "/releases/latest" (which lands on
+         GitHub's release page) to direct asset URLs once the GitHub API
+         resolves. Silent failure on rate limit / offline / no JS — the
+         fallback hrefs still work, just one extra click on GitHub. -->
+    <script>
+      (() => {
+        const btn = document.getElementById("download-btn");
+        const panel = document.getElementById("download-panel");
+        if (!btn || !panel) return;
+
+        const setOpen = (open) => {
+          panel.hidden = !open;
+          btn.setAttribute("aria-expanded", String(open));
+        };
+
+        btn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          setOpen(panel.hidden);
+        });
+
+        // Click outside the panel closes it. The button is its own handler
+        // above (stopPropagation), so a click on btn never reaches here.
+        document.addEventListener("click", (e) => {
+          if (!panel.hidden && e.target instanceof Node && !panel.contains(e.target)) {
+            setOpen(false);
+          }
+        });
+
+        document.addEventListener("keydown", (e) => {
+          if (e.key === "Escape" && !panel.hidden) {
+            setOpen(false);
+            btn.focus();
+          }
+        });
+
+        // A click on any menu item also closes the panel so the user doesn't
+        // see a stale dropdown after the download starts.
+        panel.querySelectorAll("a[role='menuitem']").forEach((a) => {
+          a.addEventListener("click", () => setOpen(false));
+        });
+
+        // Upgrade hrefs to direct asset downloads via the GitHub API. Match
+        // by filename suffix — electron-builder names assets like
+        //   Claudius-{version}-{platform}.{ext}
+        // so the suffix is stable across version bumps.
+        //
+        // Skip on file:// previews — the browser logs a CORS pre-flight
+        // warning that the marketing e2e test treats as fatal. The hardcoded
+        // /releases/latest fallback hrefs still work from file:// when
+        // someone actually clicks.
+        if (!/^https?:$/.test(location.protocol)) return;
+
+        const SUFFIX = {
+          "mac-arm64": "mac-arm64.zip",
+          "mac-x64": ".dmg",
+          "linux-appimage": ".AppImage",
+          "linux-deb": ".deb",
+          "linux-rpm": ".rpm",
+        };
+        fetch("https://api.github.com/repos/filipegarcia/claudius/releases/latest", {
+          headers: { Accept: "application/vnd.github+json" },
+        })
+          .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
+          .then((release) => {
+            for (const [key, suffix] of Object.entries(SUFFIX)) {
+              const asset = (release.assets ?? []).find((a) => a.name.endsWith(suffix));
+              if (!asset) continue;
+              const link = panel.querySelector(`[data-platform="${key}"]`);
+              if (link) link.href = asset.browser_download_url;
+            }
+          })
+          .catch(() => {
+            // Silent fallback — the hardcoded /releases/latest hrefs still
+            // work, just send the user to the GitHub release page instead
+            // of starting a direct download. Don't console.error here; the
+            // marketing e2e test treats any console error as fatal.
+          });
       })();
     </script>
   </body>
