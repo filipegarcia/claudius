@@ -28,8 +28,15 @@ test.describe("/community soft-nav reconnect", () => {
       } catch {}
     });
 
-    // /rooms — return a stable list both times it's called.
-    await page.route(`${FAKE_URL}/rooms`, async (route) => {
+    // /rooms — return a stable list both times it's called. Match with or
+    // without the `?client=<id>` query param that withCommunityClientParam()
+    // now appends (an exact-string route stops matching once the param is
+    // present); the predicate excludes the /rooms/<id>/... sub-paths.
+    await page.route(
+      (url) =>
+        url.href === `${FAKE_URL}/rooms` ||
+        url.href.startsWith(`${FAKE_URL}/rooms?`),
+      async (route) => {
       await route.fulfill({
         status: 200,
         contentType: "application/json",
