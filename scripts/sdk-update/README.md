@@ -31,12 +31,16 @@ scripts/sdk-update/
 State lives outside the scripts dir, alongside other Claudius local state:
 
 ```
-.claudius/sdk-updater/
-├── env                # secrets (chmod 600). Optional; falls back to inherited env.
-├── state.json         # lastCheckedAt, lastSeenVersion, lastCompletedVersion, inFlight, skipped
-├── run.lock           # flock target — held while a run is in flight
-├── logs/cron.log      # stdout/stderr from every cron firing
-└── run-notes/<v>.md   # Claude writes one per upgrade — orchestrator parses into PR body
+.claudius/
+├── run.lock           # SHARED flock — held while either pipeline runs. The
+│                      # cc-parity sibling (scripts/cc-parity/) takes the
+│                      # same lock so the two updaters block each other on
+│                      # purpose; their crons fire at offset minutes.
+└── sdk-updater/
+    ├── env                # secrets (chmod 600). Optional; falls back to inherited env.
+    ├── state.json         # lastCheckedAt, lastSeenVersion, lastCompletedVersion, inFlight, skipped
+    ├── logs/cron.log      # stdout/stderr from every cron firing
+    └── run-notes/<v>.md   # Claude writes one per upgrade — orchestrator parses into PR body
 ```
 
 Everything under `.claudius/` is already gitignored.
@@ -295,7 +299,7 @@ until green.
 | --- | --- | --- |
 | PR opens but is `draft` with `needs-human` | Budget exhausted or gate red | Open the PR, read the warning banner + run-notes section, fix the remaining issues by hand or with `claude` locally on that branch, then mark ready. |
 | `check.ts` keeps emitting `skip` for the same version | Jump exceeds `SDK_UPDATE_MAX_MINOR_JUMP` | Pre-bump manually toward latest, or raise the limit. Skipped versions live in `state.skipped` — the entry is removed automatically the moment `decide()` makes a `run` choice. |
-| `run.lock` is held but no orchestrator is running | Previous firing was killed mid-run | `rm .claudius/sdk-updater/run.lock`. `state.inFlight` self-heals on its own after `SDK_UPDATE_STALE_INFLIGHT_HOURS` (default 24h); set the var lower or `rm state.json` to short-circuit. |
+| `run.lock` is held but no orchestrator is running | Previous firing was killed mid-run | `rm .claudius/run.lock` (the lock now lives at the shared `.claudius/run.lock`, see Layout above). `state.inFlight` self-heals on its own after `SDK_UPDATE_STALE_INFLIGHT_HOURS` (default 24h); set the var lower or `rm state.json` to short-circuit. |
 | `check.ts` keeps returning `in-flight` after a previous crash | `state.inFlight` was never cleared (SIGKILL / OOM / host reboot) | Wait for the 24h self-heal, OR `rm .claudius/sdk-updater/state.json` for immediate recovery (it's rebuilt with defaults on next run). |
 | Two PRs appear (one from this updater, one from Dependabot) | Both bots have npm-ecosystem updates enabled | Exclude `@anthropic-ai/claude-agent-sdk` from `.github/dependabot.yml`, or accept the duplication and close one. |
 | PR was announced but no pinned "shipped" message | CI failed | The PR-open announce (step 15) always fires; the pinned "shipped" message (step 17) is deliberately withheld until CI is green. Look at the PR's checks tab, then `make sdk-update-fix-pr PR=<n>`. |

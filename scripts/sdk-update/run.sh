@@ -53,10 +53,16 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 STATE_DIR="$ROOT/.claudius/sdk-updater"
 LOG_DIR="$STATE_DIR/logs"
-LOCK_FILE="$STATE_DIR/run.lock"
+# The flock lives at the SHARED location `$ROOT/.claudius/run.lock` so the
+# SDK-update pipeline and the CC-parity sibling pipeline
+# (scripts/cc-parity/) block each other on purpose. Their crons fire at
+# offset minutes (`0 * * * *` vs `15 * * * *`) so on a normal hour they
+# finish well before the next pipeline starts; if one runs long, the other
+# backs off cleanly via the "lock held, skipping" branch below.
+LOCK_FILE="$ROOT/.claudius/run.lock"
 ENV_FILE="$STATE_DIR/env"
 
-mkdir -p "$STATE_DIR" "$LOG_DIR"
+mkdir -p "$STATE_DIR" "$LOG_DIR" "$ROOT/.claudius"
 
 # Load env file if present. Don't fail when it's missing — operators
 # may inject env via systemd unit / cron entry instead.

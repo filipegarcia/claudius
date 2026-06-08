@@ -267,10 +267,10 @@ sdk-update-status:
 		echo "(no state file yet — updater has never run on this host)"; \
 	fi
 	@echo
-	@if [ -f .claudius/sdk-updater/run.lock ] && command -v flock >/dev/null 2>&1; then \
-		if ! flock -n -s .claudius/sdk-updater/run.lock -c true 2>/dev/null; then \
+	@if [ -f .claudius/run.lock ] && command -v flock >/dev/null 2>&1; then \
+		if ! flock -n -s .claudius/run.lock -c true 2>/dev/null; then \
 			echo "── lock ──────────────────────────────────────────"; \
-			echo "run.lock is currently HELD — an upgrade is in flight"; \
+			echo "run.lock is currently HELD — a pipeline is in flight (shared between sdk-update and cc-parity)"; \
 		fi; \
 	fi
 
