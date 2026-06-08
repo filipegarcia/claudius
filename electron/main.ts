@@ -84,48 +84,17 @@ app.setName("Claudius");
 // "Electron" — that's expected in dev and resolves once packaged.
 app.setAppUserModelId("network.claudius.desktop");
 
-// [diagnostic] First user-JS statement in the main process. Surfaces in the
-// AppImage smoke's precheck.log so we can tell apart three failure shapes:
-//   • marker present + APPIMAGE truthy → our JS ran; an in-app fix is viable.
-//   • marker present + APPIMAGE empty  → env-propagation bug, not timing.
-//   • marker absent                    → crash precedes our JS; only a
-//                                         build-level fix (chrome-sandbox /
-//                                         AppRun) can work. Linux-only so
-//                                         mac/win startup stays quiet.
+// Linux boot marker. The Chromium setuid-sandbox host inits BEFORE any of our
+// JS runs, so the AppImage sandbox crash can't be fixed in-app — it's handled
+// at the launch layer by build/after-pack.js's --no-sandbox wrapper. This line
+// (the first user-JS statement on Linux) is the positive confirmation in the
+// linux-smoke pre-check that our process actually reached JS: present + no
+// setuid FATAL = the wrapper put --no-sandbox on the real argv. Linux-only so
+// mac/win startup stays quiet.
 if (process.platform === "linux") {
   process.stderr.write(
     `[electron/main] boot pid=${process.pid} argv=${JSON.stringify(process.argv.slice(1))} APPIMAGE=${process.env.APPIMAGE ?? "<unset>"}\n`,
   );
-}
-
-// Linux AppImage + Chromium setuid sandbox.
-//
-// A double-clicked / directly-run AppImage executes its internal `AppRun` with
-// NO args, so electron-builder's `AppRun --no-sandbox %U` desktop-Exec line
-// (which only applies to an *integrated* .desktop launcher) never kicks in. On
-// hosts without working unprivileged user namespaces (Ubuntu 23.10+ AppArmor
-// restriction, hardened kernels, running as root) Chromium then aborts at the
-// setuid-sandbox check before a window ever opens:
-//   "The SUID sandbox helper binary was found, but is not configured correctly"
-//
-// `app.commandLine.appendSwitch("no-sandbox")` from here did NOT prevent that
-// in CI — the browser process's own sandbox host is decided too early for a
-// switch appended in user JS. The reliable lever (the same one electron-builder
-// uses) is `--no-sandbox` as a REAL argv entry, so re-exec ourselves once with
-// it appended. The `!includes` guard prevents an infinite relaunch loop and
-// makes the second launch a normal boot. deb/rpm never hit this — they install
-// a properly-SUID chrome-sandbox via their postinst and `APPIMAGE` is unset.
-// Validated by tests/electron-packaged/ + the release linux-smoke job.
-if (
-  process.platform === "linux" &&
-  process.env.APPIMAGE &&
-  !process.argv.includes("--no-sandbox")
-) {
-  // Belt-and-suspenders for any child processes spawned before the relaunch
-  // takes effect; the relaunch below is the load-bearing part.
-  app.commandLine.appendSwitch("no-sandbox");
-  app.relaunch({ args: process.argv.slice(1).concat("--no-sandbox") });
-  app.exit(0);
 }
 
 // Only force-override userData when the launcher didn't pass an
