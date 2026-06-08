@@ -422,6 +422,14 @@ async function runCcMerge(
 
   let lastText = "";
   try {
+    // Note: the SDK's `query()` spawns the `claude` CLI with the parent
+    // process env. If the daemon was launched with a stripped PATH (Finder,
+    // launchd) the spawn here can also hit ENOENT — same root cause as the
+    // bun ENOENT fixed in spawn-env.ts, but a different binary. The
+    // ff-only and stash-ff strategies don't shell out to claude so the
+    // common-case updater is unaffected; cc-merge users on a stripped-PATH
+    // daemon would still see "claude not found" until the SDK gains a
+    // PATH-extension equivalent or we set CLAUDE_BIN explicitly.
     const q = query({
       prompt,
       options: {
@@ -526,21 +534,36 @@ async function runStreamed(
   // message. Stdout typically just contains progress noise we don't want in
   // the UI, but stderr is where bun / tsc / git put the actual diagnostic.
   const errTail: string[] = [];
-  const code = await spawnStreamed(
-    cmd,
-    args,
-    root,
-    (line, stream) => {
-      void appendLog(root, `[${phase}/${stream}] ${line}\n`);
-      if (stream === "err" && line.trim().length > 0) {
-        const trimmed =
-          line.length > ERR_TAIL_MAX_LINE ? line.slice(0, ERR_TAIL_MAX_LINE) + "…" : line;
-        errTail.push(trimmed);
-        if (errTail.length > ERR_TAIL_LINES) errTail.shift();
-      }
-    },
-    env,
-  );
+  let code: number;
+  try {
+    code = await spawnStreamed(
+      cmd,
+      args,
+      root,
+      (line, stream) => {
+        void appendLog(root, `[${phase}/${stream}] ${line}\n`);
+        if (stream === "err" && line.trim().length > 0) {
+          const trimmed =
+            line.length > ERR_TAIL_MAX_LINE ? line.slice(0, ERR_TAIL_MAX_LINE) + "…" : line;
+          errTail.push(trimmed);
+          if (errTail.length > ERR_TAIL_LINES) errTail.shift();
+        }
+      },
+      env,
+    );
+  } catch (err) {
+    // The child failed to spawn at all (the most common case: ENOENT
+    // because `bun` isn't on the inherited PATH — see spawn-env.ts for the
+    // PATH-extension fix). Re-throw tagged with the actual phase so the UI
+    // banner reads "install: spawn bun ENOENT" instead of the misleading
+    // "init: spawn bun ENOENT" that a default-phase fallback produced.
+    const raw = err instanceof Error ? err.message : String(err);
+    const hint =
+      /ENOENT/.test(raw) && cmd === "bun"
+        ? " — bun was not found on PATH. Install bun (https://bun.com) or symlink it into /usr/local/bin so the daemon process can find it."
+        : "";
+    throw phaseError(phase, `${raw}${hint}`);
+  }
   if (code !== 0) {
     const head = `${cmd} ${args.join(" ")} exited with code ${code}`;
     // Keep the head as the first line so the banner (which truncates) still

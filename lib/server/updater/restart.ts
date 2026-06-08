@@ -3,6 +3,7 @@ import { existsSync } from "node:fs";
 import { promises as fs } from "node:fs";
 import { dirname } from "node:path";
 import { claudiusdPath, daemonLogFile, runtimeMode } from "./root";
+import { withExtendedPath } from "./spawn-env";
 
 export type RestartResult =
   | { kind: "scheduled"; mode: "daemon"; pid: number }
@@ -97,15 +98,23 @@ LOG=${shellQuote(log)}
 
   // Use bash with `-c` so we don't need a temp file; pass the script via -c.
   // Pre-pend `setsid` if available so the child gets its own session.
+  //
+  // PATH must be extended here so claudiusd's `ensure_bun` check succeeds
+  // and the `bun start` it execs can find bun. Without this, a daemon
+  // launched outside a shell would fall over at `[updater] parent gone —
+  // running claudiusd up` → `bun not on PATH — install from https://bun.sh/`.
+  const env = withExtendedPath(process.env);
   const useSetsid = await hasCmd("setsid");
   const child = useSetsid
     ? spawn("setsid", ["bash", "-c", script], {
         detached: true,
         stdio: "ignore",
+        env,
       })
     : spawn("nohup", ["bash", "-c", script], {
         detached: true,
         stdio: "ignore",
+        env,
       });
   child.unref();
 }
