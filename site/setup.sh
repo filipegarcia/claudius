@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # claudius — install script
-# https://claudius.network/setup.sh
+# https://claudius.network/install
 #
 # Supported: macOS and Linux. Windows users: run this inside WSL.
 #
 # Usage:
-#   curl -fsSL https://claudius.network/setup.sh | bash
-#   curl -fsSL https://claudius.network/setup.sh | bash -s -- --prefix=$HOME/code/claudius
+#   curl -fsSL https://claudius.network/install | bash
+#   curl -fsSL https://claudius.network/install | bash -s -- --prefix=$HOME/code/claudius
 #
 # Options (pass after `--`):
 #   --prefix=DIR     Install destination (default: $HOME/claudius)
@@ -106,7 +106,7 @@ case "$(uname -s 2>/dev/null)" in
     printf '  %sEasiest path on Windows is WSL:%s\n\n' "$C_ACCENT" "$C_RST" >&2
     printf '    wsl --install -d Ubuntu\n' >&2
     printf '    # then, inside your WSL shell:\n' >&2
-    printf '    curl -fsSL https://claudius.network/setup.sh | bash\n\n' >&2
+    printf '    curl -fsSL https://claudius.network/install | bash\n\n' >&2
     printf '  %sWant native Windows support? +1 on the tracker:%s\n' "$C_DIM" "$C_RST" >&2
     printf '  %shttps://github.com/filipegarcia/claudius/issues%s\n\n' "$C_DIM" "$C_RST" >&2
     exit 1
@@ -207,7 +207,7 @@ fi
 
 if [ ! -d "\$CLAUDIUS_HOME" ]; then
   printf 'claudius: install not found at %s\n' "\$CLAUDIUS_HOME" >&2
-  printf '         re-run: curl -fsSL https://claudius.network/setup.sh | bash\n' >&2
+  printf '         re-run: curl -fsSL https://claudius.network/install | bash\n' >&2
   exit 1
 fi
 

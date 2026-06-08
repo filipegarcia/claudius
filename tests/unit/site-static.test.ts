@@ -132,12 +132,16 @@ describe("site/index.html ↔ site/setup.sh consistency", () => {
     //   • the <code id="install-cmd"> block (the one users copy)
     //   • setup.sh's own usage docs (`# curl -fsSL …`)
     // If one moves and the other doesn't, copy/paste users land on a 404.
+    // The advertised URL can be the canonical /setup.sh OR the prettier
+    // /install alias (a Cloudflare Single Redirect at the edge — see
+    // cloudflare/redirects.sh). The contract is "whatever URL the site
+    // shows must appear in setup.sh too", not "the URL must be /setup.sh".
     const installCmdMatch = INDEX_HTML.match(
       /<code id="install-cmd">([^<]+)<\/code>/,
     );
     expect(installCmdMatch, "site is missing <code id=\"install-cmd\">").not.toBeNull();
     const installCmd = installCmdMatch![1]!.trim();
-    expect(installCmd).toMatch(/^curl -fsSL https:\/\/[^\s|]+\/setup\.sh \| bash$/);
+    expect(installCmd).toMatch(/^curl -fsSL https:\/\/\S+ \| bash$/);
     const url = installCmd.match(/https:\/\/\S+/)![0]!;
     expect(SETUP_SH).toContain(url);
   });

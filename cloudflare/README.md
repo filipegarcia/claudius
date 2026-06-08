@@ -10,7 +10,8 @@ dashboard.
 | --- | --- |
 | `posthog-proxy.js` | Cloudflare Worker source. First-party PostHog reverse proxy mounted at `claudius.network/ph/*`. |
 | `wrangler.toml` | Wrangler config for `posthog-proxy`. Lets you `wrangler deploy` from this directory. |
-| `deploy.sh` | Curl-based redeploy. Works without `wrangler` — needs only `bash`, `curl`, `jq`, and an API token in `CLOUDFLARE_API_TOKEN`. |
+| `deploy.sh` | Curl-based redeploy of the Worker. Works without `wrangler` — needs only `bash`, `curl`, `jq`, and an API token in `CLOUDFLARE_API_TOKEN`. |
+| `redirects.sh` | Curl-based deploy of zone-level **Single Redirects** (e.g. `/install` → `/setup.sh`). Same token contract as `deploy.sh`, different scope. |
 | `README.md` | This file. |
 
 ## What's deployed
@@ -21,6 +22,9 @@ dashboard.
 │   │                                                                    │
 │   ├── https://claudius.network/                ─────► GitHub Pages     │
 │   │                                                   (apex artifact)  │
+│   │                                                                    │
+│   ├── https://claudius.network/install         ── 302 ──► /setup.sh    │
+│   │   (Single Redirect rule, see redirects.sh — file lives in site/)   │
 │   │                                                                    │
 │   └── https://claudius.network/ph/*            ─────► Cloudflare Worker│
 │       (PostHog analytics, first-party path)           `posthog-proxy`  │
@@ -137,6 +141,26 @@ curl -sI https://claudius.network/ | head -3
 If `/ph/static/array.js` returns 404 or non-JS content, the route binding
 likely dropped — re-run `deploy.sh` or check Workers & Pages → posthog-proxy
 → Triggers.
+
+## Managing Single Redirects (`/install` → `/setup.sh`)
+
+`/install` is a prettier alias for the install script. Rather than ship a
+second copy of `setup.sh` to GitHub Pages, the alias is handled at the
+edge with a Cloudflare Single Redirect rule (free-tier feature).
+
+```bash
+export CLOUDFLARE_API_TOKEN=cfut_…    # Zone → Config Rules: Edit
+./cloudflare/redirects.sh
+```
+
+The script PUTs the full `http_request_dynamic_redirect` ruleset, so the
+file is the source of truth — to add or change rules, edit the heredoc
+in `redirects.sh` and re-run. It also smoke-tests the new rule by
+hitting `/install` with `-L` and confirming the final URL is `/setup.sh`.
+
+Dashboard equivalent: **Rules → Single Redirects → Create rule**, match
+`URI Path equals /install`, action `Static redirect` 302 to
+`https://claudius.network/setup.sh`, "Preserve query string" on.
 
 ## Rolling back
 

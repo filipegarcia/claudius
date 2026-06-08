@@ -29,7 +29,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 HERE="$REPO_ROOT/site/test"
 IMAGE="claudius-setup-test:latest"
 BRANCH="${TEST_BRANCH:-$(git -C "$REPO_ROOT" branch --show-current || echo main)}"
-SETUP_URL="${SETUP_URL:-https://claudius.network/setup.sh}"
+SETUP_URL="${SETUP_URL:-https://claudius.network/install}"
 
 if [ -z "$BRANCH" ]; then
   printf 'test-install-public: detached HEAD detected, please check out a branch first\n' >&2

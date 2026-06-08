@@ -53,7 +53,7 @@ Wait for GitHub Actions to go green. The `pages` job redeploys the marketing sit
 Fresh shell, fresh dir:
 
 ```bash
-curl -fsSL https://claudius.network/setup.sh | bash -s -- --prefix=/tmp/claudius-smoke
+curl -fsSL https://claudius.network/install | bash -s -- --prefix=/tmp/claudius-smoke
 cd /tmp/claudius-smoke && bun run dev
 ```
 

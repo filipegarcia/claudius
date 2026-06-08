@@ -34,7 +34,7 @@ Chat, workflows, agents, MCP, and all the rest, in the browser and desktop. It e
 One curl, then you're chatting:
 
 ```bash
-curl -fsSL https://claudius.network/setup.sh | bash
+curl -fsSL https://claudius.network/install | bash
 ```
 
 The script clones into `~/claudius`, runs `bun install`, drops a `claudius` launcher into `~/.local/bin`, and starts the dev server. Re-running pulls the latest commit on `main`. Requires `git`; [Bun](https://bun.sh) auto-installs if missing.
@@ -42,7 +42,7 @@ The script clones into `~/claudius`, runs `bun install`, drops a `claudius` laun
 Flags (after `--`):
 
 ```bash
-curl -fsSL https://claudius.network/setup.sh | bash -s -- \
+curl -fsSL https://claudius.network/install | bash -s -- \
   --prefix=$HOME/code/claudius \
   --branch=main \
   --no-start

@@ -362,7 +362,7 @@
         </div>
         <div class="mt-8 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 font-mono text-xs text-muted/80 px-2">
           <span class="italic text-muted/60" title="“let there be code” — a wink at fiat lux">fiat codex —</span>
-          <span class="wrap-anywhere min-w-0"><span class="text-accent">$</span> <span id="hero-cmd">curl -fsSL https://claudius.network/setup.sh | bash</span></span>
+          <span class="wrap-anywhere min-w-0"><span class="text-accent">$</span> <span id="hero-cmd">curl -fsSL https://claudius.network/install | bash</span></span>
           <button
             id="hero-copy"
             type="button"
@@ -401,7 +401,7 @@
         <!-- One-liner -->
         <div class="mt-10 rounded-lg border border-line bg-panel overflow-hidden">
           <div class="flex items-stretch">
-            <pre class="flex-1 min-w-0 overflow-x-auto px-4 sm:px-5 py-4 font-mono text-[13px] sm:text-sm text-fg leading-6 whitespace-pre"><code id="install-cmd">curl -fsSL https://claudius.network/setup.sh | bash</code></pre>
+            <pre class="flex-1 min-w-0 overflow-x-auto px-4 sm:px-5 py-4 font-mono text-[13px] sm:text-sm text-fg leading-6 whitespace-pre"><code id="install-cmd">curl -fsSL https://claudius.network/install | bash</code></pre>
             <button
               id="install-copy"
               type="button"
@@ -428,7 +428,7 @@
               Pass flags after <code class="font-mono text-fg bg-panel2 px-1.5 py-0.5 rounded text-xs">--</code>
               to change the destination, branch, or auto-start the dev server.
             </p>
-            <pre class="mt-4 overflow-x-auto rounded-md bg-panel2 px-4 py-3 font-mono text-xs text-fg leading-6 whitespace-pre"><code>curl -fsSL https://claudius.network/setup.sh \
+            <pre class="mt-4 overflow-x-auto rounded-md bg-panel2 px-4 py-3 font-mono text-xs text-fg leading-6 whitespace-pre"><code>curl -fsSL https://claudius.network/install \
   | bash -s -- \
       --prefix=$HOME/code/claudius \
       --branch=main \
@@ -449,7 +449,7 @@
               Piping <code class="font-mono text-fg bg-panel2 px-1.5 py-0.5 rounded text-xs">curl</code>
               into <code class="font-mono text-fg bg-panel2 px-1.5 py-0.5 rounded text-xs">bash</code> is fine when you trust the source — but if you'd rather see what runs, save it locally first.
             </p>
-            <pre class="mt-4 overflow-x-auto rounded-md bg-panel2 px-4 py-3 font-mono text-xs text-fg leading-6 whitespace-pre"><code>curl -fsSL https://claudius.network/setup.sh \
+            <pre class="mt-4 overflow-x-auto rounded-md bg-panel2 px-4 py-3 font-mono text-xs text-fg leading-6 whitespace-pre"><code>curl -fsSL https://claudius.network/install \
   -o setup.sh
 less setup.sh
 bash setup.sh --start    # runs bun run dev after</code></pre>
