@@ -326,9 +326,9 @@ export function registerUpdaterHandlers(): void {
       .catch((err) => {
         const msg = errorMessage(err);
         // Belt-and-suspenders: any "not actually updatable" packaging state
-        // (missing feed config, etc.) settles to idle rather than painting a
-        // red banner the user can't act on.
-        if (/app-update\.yml|ENOENT/i.test(msg)) {
+        // (missing feed config / update manifest) settles to idle rather than
+        // painting a red banner — or a raw stack trace — the user can't act on.
+        if (isBenignNoFeedError(msg)) {
           broadcast({ kind: "idle" });
           return;
         }
@@ -399,7 +399,30 @@ function bootstrap(): void {
     persistPendingUpdate(info.version);
     broadcast({ kind: "downloaded", version: info.version });
   });
-  u.on("error", (err) => broadcast(classifyUpdaterError(errorMessage(err))));
+  u.on("error", (err) => {
+    const msg = errorMessage(err);
+    // The autoUpdater's scheduled/event-path errors bypass the
+    // checkForUpdates().catch above, so apply the same benign-state filter
+    // here — a missing update manifest must never surface to the user.
+    if (isBenignNoFeedError(msg)) {
+      broadcast({ kind: "idle" });
+      return;
+    }
+    broadcast(classifyUpdaterError(msg));
+  });
+}
+
+/**
+ * True for "nothing to update from / the feed manifest isn't there" states that
+ * are NOT user-actionable and must never paint an error. Covers: local `--dir`
+ * builds with no app-update.yml; and a release that hasn't attached
+ * latest-{linux,mac,win}.yml — electron-updater reports the latter as
+ * "Cannot find latest-linux.yml in the latest release artifacts ... 404".
+ */
+function isBenignNoFeedError(msg: string): boolean {
+  return /app-update\.yml|latest-(?:linux|mac|win)\.yml|cannot find .* in the latest release|ENOENT|HttpError: 404/i.test(
+    msg,
+  );
 }
 
 function errorMessage(err: unknown): string {

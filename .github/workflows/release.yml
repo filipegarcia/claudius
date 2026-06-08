@@ -388,6 +388,7 @@ jobs:
             release/*.AppImage
             release/*.deb
             release/*.rpm
+            release/latest-linux.yml
           if-no-files-found: error
           retention-days: 14
 
@@ -395,10 +396,15 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
+          # latest-linux.yml is the electron-updater feed manifest. It's
+          # resynced to the FUSE-free AppImage by scripts/appimage-fuseless.mjs
+          # (the swap changes the AppImage's sha512), so it must be the version
+          # produced by that step — which it is, since this runs after it.
           files: |
             release/*.AppImage
             release/*.deb
             release/*.rpm
+            release/latest-linux.yml
 
   # Post-build smoke: actually LAUNCH the AppImage we just shipped and assert
   # the window comes up + the embedded server answers. The dev-server-backed
@@ -435,6 +441,28 @@ jobs:
         with:
           name: claudius-linux-x64
           path: dist-linux
+
+      # The electron-updater feed manifest (latest-linux.yml) must describe the
+      # SHIPPED AppImage — but the runtime swap rewrote it after electron-builder
+      # hashed it, so scripts/appimage-fuseless.mjs resynced the manifest. Verify
+      # they actually match: a stale sha512/size makes auto-update download then
+      # reject the update as corrupt — exactly the regression to guard.
+      - name: Verify latest-linux.yml matches the shipped AppImage
+        run: |
+          node -e '
+            const crypto=require("crypto"),fs=require("fs"),{parse}=require("yaml");
+            const dir=process.env.GITHUB_WORKSPACE+"/dist-linux";
+            const ymlPath=dir+"/latest-linux.yml";
+            if(!fs.existsSync(ymlPath)){console.error("::error::latest-linux.yml missing from the release artifacts — Linux auto-update feed not shipped");process.exit(1);}
+            const yml=parse(fs.readFileSync(ymlPath,"utf8"));
+            const app=fs.readdirSync(dir).find(f=>f.endsWith(".AppImage"));
+            const buf=fs.readFileSync(dir+"/"+app);
+            const sha=crypto.createHash("sha512").update(buf).digest("base64");
+            const entry=(yml.files||[]).find(f=>f.url===app)||{};
+            const ok = yml.sha512===sha && entry.sha512===sha && entry.size===buf.length;
+            if(!ok){console.error("::error title=Stale update manifest::latest-linux.yml sha512/size do not match the shipped AppImage — auto-update would reject the download.",JSON.stringify({app,ymlSha:yml.sha512,entrySha:entry.sha512,actualSha:sha,entrySize:entry.size,actualSize:buf.length}));process.exit(1);}
+            console.log("OK: latest-linux.yml sha512+size match the shipped AppImage ("+buf.length+" bytes)");
+          '
 
       # xvfb gives the headless runner the X display Electron's Ozone/X11
       # init demands. No libfuse needed: we self-EXTRACT the AppImage

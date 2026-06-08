@@ -28,9 +28,11 @@
  * the current runtime's offset, so re-running would re-splice from the new
  * static runtime's offset).
  */
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import url from "node:url";
+import { parse as yamlParse, stringify as yamlStringify } from "yaml";
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..");
@@ -95,14 +97,70 @@ function swap(appimage, runtime) {
     );
   }
   // Write [static runtime][payload] atomically.
+  const out = Buffer.concat([runtime, payload]);
   const tmp = `${appimage}.fuseless.tmp`;
-  fs.writeFileSync(tmp, Buffer.concat([runtime, payload]));
+  fs.writeFileSync(tmp, out);
   fs.chmodSync(tmp, 0o755);
   fs.renameSync(tmp, appimage);
   console.log(
     `[appimage-fuseless] ${path.basename(appimage)}: ` +
       `runtime ${offset}B → ${runtime.length}B (static type2-runtime), payload ${payloadLen}B preserved`,
   );
+  // Hash the exact bytes written (base64 sha512 — what electron-updater's
+  // latest-linux.yml uses) so we can resync the update manifest without
+  // re-reading the file.
+  return {
+    name: path.basename(appimage),
+    dir: path.dirname(appimage),
+    sha512: crypto.createHash("sha512").update(out).digest("base64"),
+    size: out.length,
+  };
+}
+
+/**
+ * Resync electron-builder's `latest-linux.yml` to the FUSE-free AppImage(s).
+ *
+ * electron-builder computes the manifest's sha512/size from the ORIGINAL
+ * AppImage, but the runtime swap above rewrites the file — so the manifest is
+ * stale and electron-updater would reject the download as corrupt. Patch the
+ * sha512/size (top-level + the matching files[] entry) to the bytes we wrote,
+ * and drop any differential `blockMapSize` (no blockmap is shipped, so updates
+ * are full, sha-verified downloads). Without this, Linux auto-update is broken.
+ */
+function resyncUpdateManifest(results) {
+  for (const dir of new Set(results.map((r) => r.dir))) {
+    const ymlPath = path.join(dir, "latest-linux.yml");
+    if (!fs.existsSync(ymlPath)) {
+      console.warn(
+        `[appimage-fuseless] ${ymlPath} not found — skipping manifest resync; Linux auto-update won't work for this build`,
+      );
+      continue;
+    }
+    const doc = yamlParse(fs.readFileSync(ymlPath, "utf8")) ?? {};
+    const files = Array.isArray(doc.files) ? doc.files : [];
+    for (const r of results.filter((x) => x.dir === dir)) {
+      let matched = false;
+      for (const f of files) {
+        if (f && f.url === r.name) {
+          f.sha512 = r.sha512;
+          f.size = r.size;
+          delete f.blockMapSize;
+          matched = true;
+        }
+      }
+      if (!matched) files.push({ url: r.name, sha512: r.sha512, size: r.size });
+      // Top-level path/sha512 describe the primary artifact (the AppImage).
+      if (!doc.path || doc.path.endsWith(".AppImage")) {
+        doc.path = r.name;
+        doc.sha512 = r.sha512;
+      }
+      console.log(
+        `[appimage-fuseless] ${path.basename(ymlPath)}: synced ${r.name} sha512+size (${r.size}B) to the FUSE-free AppImage`,
+      );
+    }
+    doc.files = files;
+    fs.writeFileSync(ymlPath, yamlStringify(doc));
+  }
 }
 
 function main() {
@@ -123,7 +181,8 @@ function main() {
   if (appimages.length === 0) {
     throw new Error("no *.AppImage found to process (looked in ./release by default)");
   }
-  for (const a of appimages) swap(a, runtime);
+  const results = appimages.map((a) => swap(a, runtime));
+  resyncUpdateManifest(results);
   console.log(`[appimage-fuseless] done — ${appimages.length} AppImage(s) made FUSE-free`);
 }
 
