@@ -372,6 +372,14 @@ jobs:
       - name: Package AppImage + deb + rpm (x64)
         run: bunx electron-builder --linux --x64 --publish never
 
+      # electron-builder embeds the classic AppImage runtime, which dynamically
+      # links libfuse2. Ubuntu 23.10+/24.04 dropped libfuse2 from the default
+      # install, so the stock AppImage dies at launch with
+      # "dlopen(): error loading libfuse.so.2". Swap the runtime for the static
+      # type2-runtime (bundles its own squashfuse) so the AppImage just runs.
+      - name: Make AppImage FUSE-free (static runtime)
+        run: node scripts/appimage-fuseless.mjs release
+
       - name: Upload build artifacts
         uses: actions/upload-artifact@v5
         with:
@@ -463,6 +471,45 @@ jobs:
             echo "Confirmed: unprivileged user namespaces are restricted — the AppImage sandbox path IS exercised this run."
           fi
 
+      # End-to-end: run the REAL .AppImage the way a user does — let its runtime
+      # mount the squashfs and exec the app. With the static type2-runtime swap
+      # (scripts/appimage-fuseless.mjs) this MUST work without libfuse2, which we
+      # deliberately never install. The AppImage runtime exports $APPIMAGE, so
+      # after-pack.js's wrapper also adds --no-sandbox — so this one check covers
+      # BOTH the FUSE fix and the sandbox fix via the true double-click path.
+      - name: Real AppImage launch (FUSE-free + sandbox, end-to-end)
+        run: |
+          if ldconfig -p 2>/dev/null | grep -q 'libfuse\.so\.2'; then
+            echo "::warning title=libfuse2 present::libfuse2 IS installed on this runner — a FUSE-free regression would be masked. The static-runtime fix isn't truly exercised this run."
+          else
+            echo "Confirmed: libfuse2 absent — the AppImage runtime must be self-sufficient to mount."
+          fi
+          APP="$(ls "$PWD"/dist-linux/*.AppImage 2>/dev/null | head -1)"
+          if [ -z "$APP" ]; then echo "::error::no .AppImage under dist-linux/"; exit 1; fi
+          chmod +x "$APP"
+          set +e
+          xvfb-run -a "$APP" --user-data-dir="$(mktemp -d)" > realrun.log 2>&1 &
+          APP_PID=$!
+          sleep 25
+          kill "$APP_PID" 2>/dev/null
+          pkill -f "$(basename "$APP")" 2>/dev/null || true
+          pkill -f "\.mount_" 2>/dev/null || true
+          set -e
+          echo "--- real AppImage launch output ---"; cat realrun.log || true; echo "-----------------------------------"
+          if grep -qiE "libfuse\.so\.2|AppImages require FUSE" realrun.log; then
+            echo "::error title=AppImage still needs FUSE2::The shipped AppImage depends on libfuse2 — the static-runtime swap didn't take. Stock Ubuntu 24.04 users can't launch it."
+            exit 1
+          fi
+          if grep -qiE "setuid_sandbox_host|SUID sandbox helper|The SUID sandbox" realrun.log; then
+            echo "::error title=Sandbox abort::Real AppImage launch hit the setuid-sandbox FATAL."
+            exit 1
+          fi
+          if ! grep -q "\[electron/main\] boot" realrun.log; then
+            echo "::error title=Never reached JS::Real AppImage launch produced no [electron/main] boot marker — it didn't start. See output above."
+            exit 1
+          fi
+          echo "OK: real AppImage mounted without libfuse2 and booted with no sandbox abort."
+
       # Self-extract (no FUSE) and resolve the launch entry points. We dump the
       # AppRun + dir listing UNCONDITIONALLY here, before any step that can
       # fail, so if the pre-check goes red the AppRun contents are already in
@@ -549,5 +596,6 @@ jobs:
             test-results/**
             playwright-report/**
             precheck.log
+            realrun.log
           if-no-files-found: ignore
           retention-days: 7

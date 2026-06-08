@@ -43,7 +43,7 @@
     "postelectron:dist:mac": "bun run electron:rebuild-native-for-node",
     "electron:dist:win": "bun run electron:build && electron-builder -w",
     "postelectron:dist:win": "bun run electron:rebuild-native-for-node",
-    "electron:dist:linux": "bun run electron:build && electron-builder -l",
+    "electron:dist:linux": "bun run electron:build && electron-builder -l && node scripts/appimage-fuseless.mjs release",
     "postelectron:dist:linux": "bun run electron:rebuild-native-for-node",
     "electron:rebuild-native": "node scripts/electron-rebuild-native.mjs && node scripts/native-abi.mjs write electron",
     "electron:rebuild-native-for-node": "bun install --force better-sqlite3 && node scripts/native-abi.mjs write node",
