@@ -204,7 +204,7 @@ function shStream(cmd: string, args: string[], opts: SpawnOptions = {}): number 
 
 // ── Pre-flight ────────────────────────────────────────────────────────
 
-function preflight(): void {
+export function preflight(): void {
   // Auth resolution mirrors what the bundled `cli.js` does inside
   // @anthropic-ai/claude-agent-sdk: it accepts any of (a) an explicit
   // ANTHROPIC_API_KEY, (b) a CLAUDE_CODE_OAUTH_TOKEN, or (c) a
@@ -638,7 +638,7 @@ export function summarizeSdkMessage(msg: unknown): string {
  * the iterator drained naturally; `false` means we hit the budget
  * abort. The caller decides what to do with a budget-aborted run.
  */
-async function runClaude(prompt: string, transcriptFile?: string): Promise<{
+export async function runClaude(prompt: string, transcriptFile?: string): Promise<{
   completed: boolean;
   turnCount: number;
   wallMs: number;
@@ -882,14 +882,14 @@ async function runClaude(prompt: string, transcriptFile?: string): Promise<{
 
 // ── Gate (lint / unit / build / e2e) ──────────────────────────────────
 
-type GateStep = "lint" | "unit" | "build" | "e2e";
-type GateResult = {
+export type GateStep = "lint" | "unit" | "build" | "e2e";
+export type GateResult = {
   step: GateStep;
   ok: boolean;
   skipped?: boolean;
 };
 
-const ALL_GATE_STEPS: readonly GateStep[] = ["lint", "unit", "build", "e2e"];
+export const ALL_GATE_STEPS: readonly GateStep[] = ["lint", "unit", "build", "e2e"];
 
 /**
  * Parse a comma-separated list of gate step names into a Set, with
@@ -910,7 +910,7 @@ export function parseSkipGates(raw: string | undefined): Set<GateStep> {
   return out;
 }
 
-function runGate(skip: Set<GateStep>): GateResult[] {
+export function runGate(skip: Set<GateStep>): GateResult[] {
   const steps: Array<{ step: GateStep; cmd: string; args: string[] }> = [
     { step: "lint", cmd: "bun", args: ["run", "lint"] },
     { step: "unit", cmd: "bun", args: ["run", "test"] },
@@ -1190,7 +1190,7 @@ function renderPrBody(args: {
 
 // ── Push & PR ─────────────────────────────────────────────────────────
 
-function pushBranch(branch: string): void {
+export function pushBranch(branch: string): void {
   // If Claude didn't commit anything (unlikely but possible) we make a
   // marker commit so the branch can still be pushed — that way the
   // human gets a draft PR pointing at the dependency bump even if the
@@ -1249,7 +1249,7 @@ function pushBranch(branch: string): void {
   }
 }
 
-function openPr(args: {
+export function openPr(args: {
   branch: string;
   newVersion: string;
   prevVersion: string;
@@ -1333,7 +1333,7 @@ function openPr(args: {
 
 // ── CI watch ──────────────────────────────────────────────────────────
 
-function watchCi(prUrl: string): { passed: boolean } {
+export function watchCi(prUrl: string): { passed: boolean } {
   log(`watching CI on ${prUrl}`);
   const code = shStream("gh", ["pr", "checks", prUrl, "--watch", "--fail-fast"]);
   return { passed: code === 0 };
@@ -1621,7 +1621,7 @@ export function buildFixResultAnnouncement(args: {
  * callers that don't want a transient chat-server hiccup to abort the
  * run wrap this in `announceSafe`.
  */
-async function postAnnouncement(body: string, opts: { pin?: boolean } = {}): Promise<void> {
+export async function postAnnouncement(body: string, opts: { pin?: boolean } = {}): Promise<void> {
   const pin = opts.pin === true;
   const res = await fetch(`${CHAT_SERVER_URL.replace(/\/$/, "")}/admin/announce`, {
     method: "POST",
@@ -1831,7 +1831,7 @@ function fileOrCommentRunIssueSafe(args: {
  * title means a follow-on gate failure on the same upgrade comments
  * on this same issue rather than opening a sibling ticket.
  */
-async function announceSafe(body: string, opts: { pin?: boolean } = {}): Promise<void> {
+export async function announceSafe(body: string, opts: { pin?: boolean } = {}): Promise<void> {
   try {
     await postAnnouncement(body, opts);
   } catch (err) {
@@ -1859,7 +1859,7 @@ async function announceSafe(body: string, opts: { pin?: boolean } = {}): Promise
 
 // ── Fix an existing PR ─────────────────────────────────────────────────
 
-type PrMeta = {
+export type PrMeta = {
   number: number;
   headRefName: string;
   url: string;
@@ -1869,7 +1869,7 @@ type PrMeta = {
   state: string;
 };
 
-function readPrMeta(prNumber: string): PrMeta {
+export function readPrMeta(prNumber: string): PrMeta {
   const raw = sh("gh", [
     "pr",
     "view",
@@ -1886,7 +1886,7 @@ function readPrMeta(prNumber: string): PrMeta {
  * whenever checks are failing or pending — exactly the case we care
  * about — and we still want the table either way.
  */
-function collectChecks(prNumber: string): string {
+export function collectChecks(prNumber: string): string {
   const res = spawnSync("gh", ["pr", "checks", prNumber], {
     cwd: ROOT,
     encoding: "utf8",
@@ -1901,7 +1901,7 @@ function collectChecks(prNumber: string): string {
  * obvious and a malformed field degrades to a note instead of breaking
  * the run.
  */
-function collectReviews(prNumber: string): string {
+export function collectReviews(prNumber: string): string {
   let parsed: {
     reviews?: Array<{ author?: { login?: string }; state?: string; body?: string }>;
     comments?: Array<{ author?: { login?: string }; body?: string }>;
