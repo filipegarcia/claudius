@@ -292,6 +292,21 @@ async function prewarmRootRoute(serverUrl: string): Promise<void> {
 }
 
 function createWindow(startUrl: string): BrowserWindow {
+  // Derive the origin once — the `internal-allow` carve-out in
+  // `resolveLinkAction` matches against THIS exact origin (with loopback
+  // hostname equivalence for the dev/packaged Next server on the same
+  // port). Without an origin, a click on `http://localhost:81` (a user's
+  // OWN admin app on a different port) would short-circuit to a default
+  // child window titled "Claudius" instead of routing through the user's
+  // link-target preference. Fall back to a synthetic value if parsing
+  // somehow fails so the carve-out simply never matches and clicks
+  // follow the preference.
+  let appOrigin: string;
+  try {
+    appOrigin = new URL(startUrl).origin;
+  } catch {
+    appOrigin = "http://invalid.invalid";
+  }
   // Platform variants for the frameless chrome — Phase 4 of
   // docs/electron-conversion/PLAN.md. The renderer-side <TitleBar />
   // component fills in the matching custom chrome (32px tall, drag
@@ -365,12 +380,14 @@ function createWindow(startUrl: string): BrowserWindow {
   // its unit tests.
   win.webContents.setWindowOpenHandler(({ url }) => {
     const pref = getLinkTarget();
-    const action = resolveLinkAction(url, pref);
+    const action = resolveLinkAction(url, pref, appOrigin);
     // One log per outbound click — low frequency, high value for diagnosing
     // "I switched to Default browser but links still open in-app" reports.
     // Shows the cached preference, the URL, and the action we took, so any
     // mismatch between /settings UI state and main-process state is obvious.
-    console.log(`[electron/link-target] click pref=${pref} action=${action} url=${url}`);
+    console.log(
+      `[electron/link-target] click pref=${pref} action=${action} appOrigin=${appOrigin} url=${url}`,
+    );
     switch (action) {
       case "internal-allow":
         return { action: "allow" };
@@ -397,6 +414,44 @@ function createWindow(startUrl: string): BrowserWindow {
   // system locale by default — we only force-seed when no languages have
   // been picked up (defensive: avoids a future Electron default change
   // breaking the "did you mean…" entries in the right-click menu).
+  // Grant microphone access when the renderer requests it via
+  // `getUserMedia({ audio: true })`. Without this handler Electron
+  // returns the WHATWG spec default ("denied"), and the voice-
+  // dictation button silently fails — the renderer sees a
+  // NotAllowedError it can't recover from.
+  //
+  // The CHECK handler answers Chromium's "do you already have
+  // permission?" probe (no UI is shown), the REQUEST handler runs
+  // when the renderer actually calls `getUserMedia` and is allowed
+  // to show UI. We grant unconditionally because the only renderer
+  // that can reach here is Claudius's own first-party UI (Electron's
+  // session-isolation means external pages get a different session
+  // — see the `in-app-browser.ts` flow that creates a sandbox session
+  // with no preload).
+  //
+  // macOS still gates the OS-level mic access on
+  // `NSMicrophoneUsageDescription` in the bundle's Info.plist —
+  // that's set via electron-builder.yml's `mac.extendInfo`.
+  try {
+    const ses = win.webContents.session;
+    // Electron's union types for the check vs. request handlers diverge
+    // (the request side has no `"microphone"` variant — Chromium routes
+    // mic access through the `"media"` umbrella), so we widen both
+    // signatures and let the matchers express the real Chromium event
+    // names. Keeping it lenient avoids brittle exhaustive switches
+    // breaking on a future Electron release that adds a new variant.
+    ses.setPermissionCheckHandler((_wc, permission) => {
+      const p = permission as string;
+      return p === "media" || p === "microphone";
+    });
+    ses.setPermissionRequestHandler((_wc, permission, callback) => {
+      const p = permission as string;
+      callback(p === "media" || p === "microphone");
+    });
+  } catch (err) {
+    console.error("[electron/main] permission handler install failed:", err);
+  }
+
   try {
     const ses = win.webContents.session;
     if (ses.availableSpellCheckerLanguages.length > 0) {

@@ -1385,13 +1385,26 @@ export function PromptInput({
           {voice.supported && (
             <button
               type="button"
+              data-testid={`${testIdPrefix}-mic`}
               onClick={toggleVoice}
-              title={voice.listening ? "Stop dictation" : "Voice dictation"}
+              // Hover title surfaces the last voice error so silent
+              // failures (denied permission, no Claude.ai account,
+              // upstream drop) don't look like a broken button. The
+              // error stays visible until the next successful start().
+              title={
+                voice.error
+                  ? `Voice: ${voice.error}`
+                  : voice.listening
+                    ? "Stop dictation"
+                    : "Voice dictation"
+              }
               className={cn(
                 "flex h-7 w-7 shrink-0 items-center justify-center rounded-md",
                 voice.listening
                   ? "bg-red-500/90 text-white animate-pulse"
-                  : "text-[var(--muted)] hover:bg-[var(--panel)]",
+                  : voice.error
+                    ? "text-amber-500 hover:bg-[var(--panel)]"
+                    : "text-[var(--muted)] hover:bg-[var(--panel)]",
               )}
             >
               {voice.listening ? <MicOff className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}

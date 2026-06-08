@@ -644,6 +644,22 @@ export function useSession(): ChatState & ChatActions {
   const [hasMoreAbove, setHasMoreAbove] = useState(false);
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [latestTodos, setLatestTodos] = useState<AgentTodo[]>([]);
+  /**
+   * Transient toast state: set when the SERVER auto-closes the to-do
+   * snapshot (stale 24h sweep or all-completed turn-end). Re-stamped on
+   * every fire (the `id` discriminator is what the UI watches to retrigger
+   * the auto-dismiss timer) so back-to-back auto-clears don't get
+   * swallowed by an in-flight fade. Cleared by the toast component itself
+   * once it finishes its fade.
+   *
+   * Manual user-driven clears DO NOT set this — the user already knows
+   * what they just did, and an "I cleared the list" notification for
+   * an action the user just took reads as either dismissive or chatty.
+   */
+  const [todosAutoCleared, setTodosAutoCleared] = useState<
+    | { id: number; reason: "stale" | "completed"; count: number }
+    | null
+  >(null);
   const [recentEdits, setRecentEdits] = useState<RecentEdit[]>([]);
   const [backgroundBashes, setBackgroundBashes] = useState<Record<string, BackgroundBash>>({});
   /**
@@ -1067,6 +1083,9 @@ export function useSession(): ChatState & ChatActions {
     setHasMoreAbove(false);
     setLoadingOlder(false);
     setLatestTodos([]);
+    // Cancel any in-flight auto-clear toast on session switch — it
+    // belongs to the session we're leaving, not the one we're entering.
+    setTodosAutoCleared(null);
     setRecentEdits([]);
     setBackgroundBashes({});
     setScheduledLoops({});
@@ -1343,6 +1362,21 @@ export function useSession(): ChatState & ChatActions {
       if (ev.type === "error") {
         setErrors((e) => [...e, ev.message]);
         setPendingTracked(false);
+        return;
+      }
+      if (ev.type === "todos_auto_cleared") {
+        // Transient toast: server announces a system-initiated clear
+        // (stale 24h sweep or all-completed turn-end). The toast
+        // component watches `todosAutoCleared.id` to retrigger its
+        // auto-dismiss timer on each fire, so a back-to-back clear is
+        // not swallowed by an in-flight fade. `Date.now()` + a tiny
+        // tie-breaker so the same-millisecond case still strictly
+        // increments.
+        setTodosAutoCleared((prev) => ({
+          id: (prev?.id ?? Date.now()) + 1 > Date.now() ? (prev?.id ?? Date.now()) + 1 : Date.now(),
+          reason: ev.reason,
+          count: ev.count,
+        }));
         return;
       }
       if (ev.type === "permission_request") {
@@ -4239,6 +4273,13 @@ export function useSession(): ChatState & ChatActions {
   // the console with the server-side reason — the most useful failure
   // modes (422 stale list, 503 dev-HMR stale instance) are diagnosable
   // from the console message.
+  // Dismiss the auto-cleared toast — the toast component calls this when
+  // its fade-out timer elapses, and the user's manual close button (×)
+  // calls it eagerly. No-op if there's nothing showing.
+  const dismissTodosAutoClearedCb = useCallback((): void => {
+    setTodosAutoCleared(null);
+  }, []);
+
   const updateTodoItem = useCallback(
     async (
       itemId: string,
@@ -4422,6 +4463,8 @@ export function useSession(): ChatState & ChatActions {
     clearGoal,
     clearTodos,
     updateTodoItem,
+    todosAutoCleared,
+    dismissTodosAutoCleared: dismissTodosAutoClearedCb,
   };
 }
 

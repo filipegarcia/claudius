@@ -21,6 +21,13 @@ type Props = {
    * provided (backwards-compatible).
    */
   onMinimize?: () => void;
+  /**
+   * Resolved label of the session this question belongs to (matches the
+   * SessionTabs strip). Surfaced in the header so the user can tell which
+   * tab fired the question while the overlay is covering the tab strip.
+   * Optional — the dev preview pages pass nothing and the chip simply hides.
+   */
+  sessionLabel?: string | null;
 };
 
 /**
@@ -40,7 +47,13 @@ function emptyWorking(): Working {
   return { selectedLabels: [], custom: "", showOther: false };
 }
 
-export function AskUserQuestionPrompt({ request, onSubmit, onCancel, onMinimize }: Props) {
+export function AskUserQuestionPrompt({
+  request,
+  onSubmit,
+  onCancel,
+  onMinimize,
+  sessionLabel,
+}: Props) {
   // Soft dismissal — Esc / click-outside / minimize button. Falls back to
   // `onCancel` for older call sites that don't pass `onMinimize`.
   const dismiss = onMinimize ?? onCancel;
@@ -227,6 +240,15 @@ export function AskUserQuestionPrompt({ request, onSubmit, onCancel, onMinimize 
           <span className="rounded-md bg-[var(--accent)]/15 px-2 py-0.5 font-medium uppercase tracking-wide text-[var(--accent)]">
             Question
           </span>
+          {sessionLabel && sessionLabel.trim() && (
+            <span
+              data-testid="ask-session-label"
+              className="max-w-[16rem] truncate rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-0.5 text-[var(--foreground)]"
+              title={`From session: ${sessionLabel}`}
+            >
+              {sessionLabel}
+            </span>
+          )}
           <span className="text-[var(--muted)]">
             {active + 1} of {total}
           </span>

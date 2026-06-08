@@ -130,6 +130,11 @@ mac:
     NSNetworkVolumesUsageDescription: >-
       Claudius needs access to network volumes only when you pick a
       project from one. Files stay on your machine.
+    NSMicrophoneUsageDescription: >-
+      Claudius captures audio from your microphone only while voice
+      dictation is active (when you click the mic button in the
+      composer). Audio is streamed to Anthropic for live transcription
+      and is not stored on your machine.
   # x64 (Intel) ONLY. The release pipeline cross-builds x64 on an Apple
   # Silicon runner and rebuilds better-sqlite3 for x64 before `next build`, so
   # the bundled standalone server is x64. An arm64 target here would reuse that

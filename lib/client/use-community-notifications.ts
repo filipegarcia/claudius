@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ChatEvent, Message, Room } from "@/lib/shared/community";
 import { getCommunityServerUrl } from "@/lib/client/community-server-url";
+import { withCommunityClientParam } from "@/lib/shared/community-client";
 import {
   COMMUNITY_CONSENT_EVENT,
   LS_COMMUNITY_CONSENT_KEY,
@@ -302,7 +303,7 @@ export function useCommunityNotificationsState(): UseCommunityNotifications {
     let cancelled = false;
     const load = async () => {
       try {
-        const r = await fetch(`${SERVER_URL}/rooms`);
+        const r = await fetch(withCommunityClientParam(`${SERVER_URL}/rooms`));
         if (!r.ok) return;
         const data = (await r.json()) as { rooms: Room[] };
         if (!cancelled) setRooms(data.rooms);
@@ -520,7 +521,9 @@ export function useCommunityNotificationsState(): UseCommunityNotifications {
     const nickParam = myNick ? `?nick=${encodeURIComponent(myNick)}` : "";
     for (const room of rooms) {
       if (room.slug === viewingRoom) continue;
-      const url = `${SERVER_URL}/rooms/${encodeURIComponent(room.slug)}/stream${nickParam}`;
+      const url = withCommunityClientParam(
+        `${SERVER_URL}/rooms/${encodeURIComponent(room.slug)}/stream${nickParam}`,
+      );
       const es = new EventSource(url);
       es.onmessage = (ev) => {
         try {

@@ -29,38 +29,93 @@ let currentTarget: LinkTarget = DEFAULT_TARGET;
  * Per-click decision returned by `resolveLinkAction`:
  *
  *   - `"internal-allow"` — let Chromium open the URL as a regular child
- *     window with the Claudius preload attached. ONLY for `127.0.0.1` /
- *     `localhost` / `[::1]` URLs that point at the embedded Next server.
+ *     window with the Claudius preload attached. ONLY for URLs that point
+ *     at the embedded Next / dev / remote server's exact origin (or one of
+ *     its loopback equivalents on the same port).
  *   - `"external"` — hand to `shell.openExternal`.
  *   - `"in-app"` — open in the sandboxed `electron/ipc/in-app-browser.ts`
  *     window.
  */
 export type LinkAction = "internal-allow" | "external" | "in-app";
 
+/** Loopback hostnames considered equivalent for the internal-origin check. */
+const LOOPBACK_HOSTNAMES = new Set([
+  "127.0.0.1",
+  "localhost",
+  // `new URL("http://[::1]/").hostname` is `[::1]` per WHATWG; some older
+  // runtimes return the bare `::1`. Accept both.
+  "[::1]",
+  "::1",
+]);
+
 /**
  * Decide what to do with a URL the renderer is trying to open. Pure — no
- * Electron, no shell, no DOM access. The localhost carve-out wins
- * regardless of `pref` so the dev-server / embedded-Next loopback URLs
- * always stay in the Claudius preload context (extracting them to a
- * sandboxed window would break the very bridge we use to talk to the
- * app).
+ * Electron, no shell, no DOM access.
+ *
+ * The internal carve-out wins regardless of `pref`: URLs that resolve to
+ * the same origin as the embedded / dev / remote server stay in the
+ * Claudius preload context (extracting them to a sandboxed window would
+ * break the very bridge we use to talk to the app). The check is
+ * deliberately narrow — only the app's actual `(scheme, host, port)`
+ * triple (with loopback host equivalence for the dev/packaged Next
+ * server) qualifies. A localhost link to *another* port (e.g. a user's
+ * `http://localhost:81` admin app) is NOT internal — that's an external
+ * destination that should follow the user's link-target preference.
  *
  * Unsupported / weird URL schemes (file://, mailto:, claudius://) fall
  * back to `"external"` — `shell.openExternal` is the OS-correct handler
  * for those.
  */
-export function resolveLinkAction(url: string, pref: LinkTarget): LinkAction {
+export function resolveLinkAction(
+  url: string,
+  pref: LinkTarget,
+  appOrigin: string,
+): LinkAction {
   if (typeof url !== "string" || url.length === 0) return "external";
-  if (isLocalhostHttpUrl(url)) return "internal-allow";
+  if (isInternalAppUrl(url, appOrigin)) return "internal-allow";
   if (pref === "in-app" && isHttpUrl(url)) return "in-app";
   return "external";
 }
 
 /**
- * True for `http://localhost…`, `http://127.0.0.1…`, and `http://[::1]…`
- * — the ONLY URLs we trust enough to load with the Claudius preload
- * attached. Anchored at the start of the string so a malicious
- * `http://attacker.example/?host=127.0.0.1` can't squeak through.
+ * True iff `url` points at the same origin as `appOrigin` — i.e. the
+ * embedded Next server (packaged), the dev `next dev` server, or the
+ * configured remote backend. Uses WHATWG URL parsing (not `startsWith`)
+ * so `http://attacker.example/?host=127.0.0.1` can't squeak through.
+ *
+ * Loopback equivalence: when the app origin is on `127.0.0.1` /
+ * `localhost` / `[::1]`, links targeting any of those hostnames on the
+ * SAME port are also considered internal — they all reach the same
+ * loopback server. The port match is mandatory; this is the bit the
+ * original `startsWith("http://localhost")` check missed.
+ */
+export function isInternalAppUrl(url: string, appOrigin: string): boolean {
+  let target: URL;
+  let app: URL;
+  try {
+    target = new URL(url);
+    app = new URL(appOrigin);
+  } catch {
+    return false;
+  }
+  if (target.protocol !== app.protocol) return false;
+  // Exact origin match — the common case (same hostname, same port).
+  if (target.origin === app.origin) return true;
+  // Loopback equivalence only when BOTH the app origin and the URL are
+  // loopback hostnames and they share the same port. A remote-backend
+  // origin doesn't get this carve-out (loopback links there are NOT
+  // the same server).
+  if (target.port !== app.port) return false;
+  return (
+    LOOPBACK_HOSTNAMES.has(target.hostname) &&
+    LOOPBACK_HOSTNAMES.has(app.hostname)
+  );
+}
+
+/**
+ * Legacy helper retained for tests and as a quick "does this URL look
+ * like a loopback HTTP address" predicate. NOT used by `resolveLinkAction`
+ * any more — see `isInternalAppUrl` for the routing-grade check.
  */
 export function isLocalhostHttpUrl(url: string): boolean {
   return (

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { withCommunityClientParam } from "@/lib/shared/community-client";
 
 export const runtime = "nodejs";
 
@@ -38,7 +39,9 @@ async function proxy(
     );
   }
   const { path } = await ctx.params;
-  const target = `${server}/admin/${path.map(encodeURIComponent).join("/")}`;
+  const target = withCommunityClientParam(
+    `${server}/admin/${path.map(encodeURIComponent).join("/")}`,
+  );
   const hasBody = req.method !== "GET" && req.method !== "HEAD";
   // Read the body as text — the admin surface only takes small JSON payloads,
   // and re-streaming would just add complexity for no gain.
