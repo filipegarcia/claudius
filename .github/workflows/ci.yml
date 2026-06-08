@@ -120,11 +120,31 @@ jobs:
             node_modules
             .bun-cache
           key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+      # `curl https://bun.sh/install | bash` ultimately fetches
+      # bun-linux-x64.zip from github.com/oven-sh/bun/releases. When GitHub's
+      # releases CDN burps with a 504 (as it did on 2026-06-08 ~06:40 UTC),
+      # the install script dies and the whole e2e job fails before a single
+      # test runs. Retry the install up to 5 times with linear backoff so a
+      # transient 5xx doesn't redden CI. Idempotent: each attempt
+      # re-downloads the install script and re-attempts the binary fetch.
       - name: Install bun + make
         run: |
+          set -e
           apt-get update -qq
           apt-get install -y --no-install-recommends make curl unzip
-          curl -fsSL https://bun.sh/install | bash
+          for attempt in 1 2 3 4 5; do
+            if curl -fsSL https://bun.sh/install | bash; then
+              break
+            fi
+            if [ "$attempt" -eq 5 ]; then
+              echo "::error::bun install failed after 5 attempts (probably a transient github.com 504)"
+              exit 1
+            fi
+            wait=$((attempt * 10))
+            echo "::warning::bun install attempt $attempt failed; retrying in ${wait}s"
+            sleep "$wait"
+          done
+          test -x "$HOME/.bun/bin/bun"
           echo "$HOME/.bun/bin" >> "$GITHUB_PATH"
       - name: Install deps
         run: make install
