@@ -38,7 +38,7 @@ import { ContextOverlay } from "@/components/overlays/ContextOverlay";
 import { PlanModeBanner } from "@/components/chat/PlanModeBanner";
 import { PlanOverlay } from "@/components/overlays/PlanOverlay";
 import { WorktreesOverlay } from "@/components/overlays/WorktreesOverlay";
-import type { AttachedImage } from "@/lib/client/types";
+import type { AttachedImage, SessionInfo } from "@/lib/client/types";
 import { useSession } from "@/lib/client/use-session";
 import { useClaudius, useElectronSubscription } from "@/lib/client/useElectron";
 import { parseAskQuestions, type AskAnswer, type AskQuestion } from "@/lib/shared/events";
@@ -488,6 +488,19 @@ export default function Home() {
   // tab list. `null` until the first fetch resolves so SessionTabs uses its
   // built-in default rather than flashing 0.
   const [tabLabelMaxWidth, setTabLabelMaxWidth] = useState<number | null>(null);
+  // Server-resolved titles for the persisted tabs, hydrated alongside
+  // `openTabs`. Used as a fallback in `tabLabelFor` for tabs that aren't
+  // (yet, or anymore) present in `session.sessions` — the freshest source
+  // remains `session.sessions` once `refreshSessions` resolves, so renames
+  // flow through normally. This patches two gaps:
+  //   1. The mount-race window where `session.sessions === []` before the
+  //      first `refreshSessions` call returns.
+  //   2. The "out-of-recency-slice" gap: `refreshSessions` sorts the disk
+  //      listing by recency and locally slices to the top 20, then only
+  //      re-adds *live* sessions. A disk-only tab older than the top 20
+  //      falls out of the merge and would otherwise show its id prefix
+  //      until the user clicks it (and SSE delivers `session_title`).
+  const [openTabTitles, setOpenTabTitles] = useState<Record<string, string>>({});
   // Hydrate once on mount.
   useEffect(() => {
     let cancelled = false;
@@ -495,7 +508,11 @@ export default function Home() {
       try {
         const res = await fetch("/api/sessions/open-tabs");
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = (await res.json()) as { tabs?: unknown; labelMaxWidth?: unknown };
+        const data = (await res.json()) as {
+          tabs?: unknown;
+          labelMaxWidth?: unknown;
+          titles?: unknown;
+        };
         if (cancelled) return;
         const saved = Array.isArray(data.tabs)
           ? (data.tabs.filter((x) => typeof x === "string") as string[])
@@ -510,6 +527,14 @@ export default function Home() {
         });
         if (typeof data.labelMaxWidth === "number" && Number.isFinite(data.labelMaxWidth)) {
           setTabLabelMaxWidth(data.labelMaxWidth);
+        }
+        if (data.titles && typeof data.titles === "object" && !Array.isArray(data.titles)) {
+          const raw = data.titles as Record<string, unknown>;
+          const cleaned: Record<string, string> = {};
+          for (const [id, t] of Object.entries(raw)) {
+            if (typeof t === "string" && t.trim()) cleaned[id] = t;
+          }
+          setOpenTabTitles(cleaned);
         }
       } catch {
         // Network/parse failure — fall through with whatever the auto-add
@@ -1483,6 +1508,23 @@ export default function Home() {
     return session.sessions.filter((s) => s.cwd === root || s.id === activeId);
   }, [session.sessions, session.sessionId, activeWorkspace?.rootPath]);
 
+  // Build the SessionInfo list used by `tabLabelFor` below. We patch
+  // synthetic `{ id, title }` rows for any open tab that isn't (yet)
+  // present in `session.sessions` but has a title in the persisted
+  // `openTabTitles` map. Live entries always win — so renames flowing
+  // through `refreshSessions` keep priority, and the fallback only fires
+  // for the gaps described where `openTabTitles` is declared.
+  const sessionsForTabs = useMemo<SessionInfo[]>(() => {
+    const known = new Set(session.sessions.map((s) => s.id));
+    const extras: SessionInfo[] = [];
+    for (const id of openTabs) {
+      if (known.has(id)) continue;
+      const title = openTabTitles[id];
+      if (title) extras.push({ id, title });
+    }
+    return extras.length === 0 ? session.sessions : [...session.sessions, ...extras];
+  }, [session.sessions, openTabs, openTabTitles]);
+
   return (
     <div className="flex h-full">
       <SideNav running={session.pending} />
@@ -1514,8 +1556,8 @@ export default function Home() {
               id,
               label:
                 id === session.sessionId
-                  ? tabLabelFor(id, session.sessions, session.sessionTitle)
-                  : tabLabelFor(id, session.sessions),
+                  ? tabLabelFor(id, sessionsForTabs, session.sessionTitle)
+                  : tabLabelFor(id, sessionsForTabs),
               status,
               unread: notifications.unreadBySession[id],
             };

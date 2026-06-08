@@ -188,11 +188,13 @@ export function useVoice(
     setError(null);
 
     // Generate a session id the renderer owns. The server uses it as
-    // a one-shot capability that pairs the SSE with the chunk POSTs.
-    const sessionId =
-      typeof crypto !== "undefined" && "randomUUID" in crypto
-        ? crypto.randomUUID().replace(/-/g, "")
-        : Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+    // a one-shot capability that pairs the SSE with the chunk POSTs —
+    // so it MUST come from a CSPRNG. Use crypto.randomUUID directly to
+    // match the rest of the codebase (use-session.ts, PromptInput.tsx)
+    // and avoid the Math.random fallback CodeQL flagged as
+    // js/insecure-randomness (#42). Any browser that supports the
+    // EventSource + MediaRecorder used below also supports randomUUID.
+    const sessionId = crypto.randomUUID().replace(/-/g, "");
     stateRef.current.sessionId = sessionId;
     setListening(true);
 
