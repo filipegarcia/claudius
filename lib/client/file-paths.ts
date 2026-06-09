@@ -48,7 +48,7 @@ export function toWorkspaceRelative(raw: string, cwd: string): string | null {
 }
 
 const FILE_EXT_RE =
-  /\.(?:md|mdx|markdown|txt|json|jsonc|ya?ml|toml|ini|env|lock|ts|tsx|js|jsx|mjs|cjs|css|scss|sass|less|html?|xml|svg|py|rb|go|rs|java|kt|swift|c|h|cc|cpp|hpp|cs|php|sh|bash|zsh|sql|prisma|graphql|gql|vue|svelte|astro)$/i;
+  /\.(?:md|mdx|markdown|txt|json|jsonc|ya?ml|toml|ini|env|lock|ts|tsx|js|jsx|mjs|cjs|css|scss|sass|less|html?|xml|svg|png|jpe?g|gif|webp|avif|ico|bmp|pdf|py|rb|go|rs|java|kt|swift|c|h|cc|cpp|hpp|cs|php|sh|bash|zsh|sql|prisma|graphql|gql|vue|svelte|astro)$/i;
 
 const PATH_PUNCT_RE = /[()<>{}[\]|*?"'`$!,;\s]/;
 

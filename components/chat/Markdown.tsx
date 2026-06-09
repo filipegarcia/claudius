@@ -42,6 +42,54 @@ function InlineCode({ children, rest }: { children?: ReactNode; rest: Record<str
   );
 }
 
+const LINK_CLASS = "text-[var(--accent)] underline-offset-2 hover:underline";
+
+/**
+ * Markdown anchor renderer. Two branches:
+ *
+ *  1. The href looks like a project file path AND resolves inside the active
+ *     workspace → route through `/<workspaceId>/files?path=…`, same-tab, as a
+ *     normal Next route. Critically, this catches `[…](site/og.png)` (and
+ *     `[![](path)](path)` linked-image shapes) that would otherwise resolve
+ *     RELATIVE to the current `/<workspaceId>/…` URL and, with `target="_blank"`,
+ *     open in a fresh Claudius window where the path matches no route — the
+ *     classic "I clicked the image and got a 404 inside a new Claudius window"
+ *     bug, since Electron's window-open handler treats same-origin URLs as
+ *     `internal-allow` and re-loads the whole app for them.
+ *
+ *  2. Anything else (real http(s) URLs, anchors, mailto:, paths outside the
+ *     workspace, no workspace context) → external `<a target="_blank">`,
+ *     matching the previous behaviour. Electron's link-target handler then
+ *     decides external-browser vs. in-app viewer based on the user setting.
+ */
+function MarkdownLink({
+  href,
+  children,
+}: {
+  href: string | undefined;
+  children?: ReactNode;
+}) {
+  const fileLink = useFileLink();
+  const raw = typeof href === "string" ? href.trim() : "";
+  const stripped = raw ? stripLineSuffix(raw) : "";
+  const rel =
+    fileLink && stripped && looksLikeFilePath(stripped)
+      ? toWorkspaceRelative(stripped, fileLink.cwd)
+      : null;
+  if (rel && fileLink) {
+    return (
+      <Link href={filesHref(fileLink.workspaceId, rel)} className={LINK_CLASS}>
+        {children}
+      </Link>
+    );
+  }
+  return (
+    <a href={href} target="_blank" rel="noreferrer" className={LINK_CLASS}>
+      {children}
+    </a>
+  );
+}
+
 const components: Components = {
   code(props) {
     const { className, children, ...rest } = props;
@@ -57,11 +105,7 @@ const components: Components = {
     return <>{children}</>;
   },
   a({ href, children }) {
-    return (
-      <a href={href} target="_blank" rel="noreferrer" className="text-[var(--accent)] underline-offset-2 hover:underline">
-        {children}
-      </a>
-    );
+    return <MarkdownLink href={href}>{children}</MarkdownLink>;
   },
   ul({ children }) {
     return <ul className="my-2 list-disc pl-5">{children}</ul>;

@@ -56,6 +56,14 @@ describe("looksLikeFilePath", () => {
       "src/app.ts:42",
       "src/app.ts:42:7",
       "app/globals.css",
+      // Binary / image references the chat regularly emits. Whitelisting
+      // these is what stops `[…](site/og.png)` from being routed to a
+      // `target="_blank"` anchor — and from there to a same-origin child
+      // window where `/<workspaceId>/site/og.png` 404s the whole app.
+      "site/og.png",
+      "docs/screenshots/hero.jpg",
+      "design/icon.svg",
+      "downloads/spec.pdf",
     ]) {
       expect(looksLikeFilePath(s), s).toBe(true);
     }
