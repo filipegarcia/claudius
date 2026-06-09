@@ -6,6 +6,7 @@ import type { PermissionMode } from "@anthropic-ai/claude-agent-sdk";
 import type {
   AgentTodo,
   BackgroundBash,
+  PlanRateLimits,
   RecentEdit,
   ScheduledLoop,
   SessionUsage,
@@ -40,6 +41,8 @@ type Props = {
   permissionMode: PermissionMode;
   cwd: string | null;
   usage: SessionUsage | null;
+  /** Plan-level rate-limit utilization from the experimental SDK usage API. */
+  planUsage?: PlanRateLimits | null;
   /** Fallback turn count from the transcript when usage is null (resumed sessions). */
   historicalTurnCount?: number;
   /** False while the session is still binding — combined with `pending`,
@@ -211,6 +214,7 @@ export function BackgroundTasksPanel({
   onChangeFast,
   advisorModel = null,
   onChangeAdvisorModel,
+  planUsage,
 }: Props) {
   const [showCost, setShowCost] = useState(false);
   const [addTodosOpen, setAddTodosOpen] = useState(false);
@@ -760,7 +764,7 @@ export function BackgroundTasksPanel({
       </div>
 
       {showCost && usage && (
-        <CostOverlay usage={usage} model={model} onClose={() => setShowCost(false)} />
+        <CostOverlay usage={usage} model={model} planUsage={planUsage} onClose={() => setShowCost(false)} />
       )}
     </div>
   );

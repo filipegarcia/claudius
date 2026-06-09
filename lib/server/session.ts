@@ -18,6 +18,7 @@ import {
   type PostToolUseHookInput,
   type PreToolUseHookInput,
   type Query,
+  type SDKControlGetUsageResponse,
   type SDKMessage,
   type SDKUserMessage,
 } from "@anthropic-ai/claude-agent-sdk";
@@ -68,6 +69,7 @@ import {
   type PermissionDecision,
   type PermissionRequestEvent,
   type PlanDecision,
+  type PlanUsageEvent,
   type ServerEvent,
   type TaskSnapshotEntry,
 } from "@/lib/shared/events";
@@ -6088,6 +6090,47 @@ export class Session {
             // unrelated 529 doesn't ride a stale count into the nudge. The
             // nudge itself is fire-once per session lifetime regardless.
             this.opusOverloadStreak = 0;
+            // Fetch structured plan-level usage (subscription type + rate-limit
+            // window utilization) and broadcast as a `plan_usage` event so the
+            // CostOverlay can show utilization alongside cost. Fire-and-forget,
+            // error-swallowed: the API is experimental and may change shape in
+            // any SDK release — a failure here is always non-fatal.
+            void (async () => {
+              if (!this.query) return;
+              let usageData: SDKControlGetUsageResponse;
+              try {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                usageData = await (this.query as any).usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET();
+              } catch {
+                return; // experimental API unavailable or changed — ignore
+              }
+              const rl = usageData.rate_limits;
+              const planUsageEvent: PlanUsageEvent = {
+                type: "plan_usage",
+                subscriptionType: usageData.subscription_type,
+                rateLimitsAvailable: usageData.rate_limits_available,
+                rateLimits: rl
+                  ? {
+                      fiveHour: rl.five_hour
+                        ? { utilization: rl.five_hour.utilization, resetsAt: rl.five_hour.resets_at }
+                        : rl.five_hour,
+                      sevenDay: rl.seven_day
+                        ? { utilization: rl.seven_day.utilization, resetsAt: rl.seven_day.resets_at }
+                        : rl.seven_day,
+                      sevenDayOauthApps: rl.seven_day_oauth_apps
+                        ? { utilization: rl.seven_day_oauth_apps.utilization, resetsAt: rl.seven_day_oauth_apps.resets_at }
+                        : rl.seven_day_oauth_apps,
+                      sevenDayOpus: rl.seven_day_opus
+                        ? { utilization: rl.seven_day_opus.utilization, resetsAt: rl.seven_day_opus.resets_at }
+                        : rl.seven_day_opus,
+                      sevenDaySonnet: rl.seven_day_sonnet
+                        ? { utilization: rl.seven_day_sonnet.utilization, resetsAt: rl.seven_day_sonnet.resets_at }
+                        : rl.seven_day_sonnet,
+                    }
+                  : null,
+              };
+              this.broadcast(planUsageEvent);
+            })();
             // Turn-end to-do synchronization (Claudius-specific, not CLI
             // parity). Two tiers, both gated on `subtype: "success"` so an
             // errored / aborted turn — where we have no reason to believe

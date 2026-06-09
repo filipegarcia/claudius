@@ -1980,6 +1980,7 @@ export default function Home() {
         permissionMode={session.permissionMode}
         cwd={session.cwd}
         usage={session.usage}
+        planUsage={session.planUsage}
         historicalTurnCount={session.messages.filter((m) => m.role === "assistant").length}
         ready={session.ready}
         pending={session.pending}
@@ -2034,7 +2035,7 @@ export default function Home() {
         />
       )}
       {overlay === "cost" && (
-        <CostOverlay usage={session.usage} model={session.model} onClose={() => setOverlay(null)} />
+        <CostOverlay usage={session.usage} model={session.model} planUsage={session.planUsage} onClose={() => setOverlay(null)} />
       )}
       {overlay === "status" && (
         <StatusOverlay
