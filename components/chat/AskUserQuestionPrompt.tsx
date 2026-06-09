@@ -324,6 +324,14 @@ export function AskUserQuestionPrompt({
             )}
           >
             <div className="px-5 pb-3 pt-4">
+              {q.header && (
+                <p
+                  data-testid="ask-question-header"
+                  className="mb-1 text-[10px] font-medium uppercase tracking-wide text-[var(--muted)]"
+                >
+                  {q.header}
+                </p>
+              )}
               <p className="text-sm font-medium leading-snug">{q.question}</p>
               {q.multiSelect && (
                 <p

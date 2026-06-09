@@ -1,11 +1,21 @@
 # Release builds for the Claudius desktop app (Electron).
 #
 # Targets, per the product decision:
-#   • macOS  — Intel / x64 ONLY (no Apple Silicon). Built on the Intel
-#              `macos-13` runner so better-sqlite3 et al. compile natively
-#              for x64 — no cross-compile from arm64.
-#   • Linux  — x64 (AppImage + deb + rpm). Built on `ubuntu-latest`.
+#   • macOS arm64 — NATIVE on the arm64 `macos-14` runner. Ships zip + dmg.
+#                   Primary target (most current Macs).
+#   • macOS x64   — CROSS-COMPILED on the same arm64 `macos-14` runner
+#                   (Intel `macos-13` was retired by GitHub). Ships zip + dmg.
+#                   The cross-compile rebuilds better-sqlite3 for x64 and
+#                   stages `@next/swc-darwin-x64` before `next build`.
+#   • Linux x64   — AppImage + deb + rpm. Built on `ubuntu-latest`.
 # Windows is intentionally not built here.
+#
+# The two macOS jobs are intentionally SEPARATE — a single mixed job
+# previously rebuilt better-sqlite3 for x64 BEFORE `next build`, then asked
+# electron-builder to also produce an arm64 zip. The arm64 zip shipped with
+# x64 native modules in its standalone tree and the bundled `claude` SDK
+# binary failed to spawn (EPERM-class). Splitting per-arch gives each
+# artifact its own internally-consistent standalone tree.
 #
 # Signing: UNSIGNED / adhoc. There are no Apple Developer credentials wired
 # up, so we force `CSC_IDENTITY_AUTO_DISCOVERY=false` and override the
@@ -47,6 +57,169 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  macos-arm64:
+    name: macOS (Apple Silicon arm64, native)
+    runs-on: macos-14
+    timeout-minutes: 45
+    permissions:
+      contents: write
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: "false"
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      # No setup-python here — the arm64 native rebuild has a prebuilt
+      # better-sqlite3 binary on the Electron arm64 ABI, so node-gyp's
+      # distutils dependency never gets exercised. (Contrast with the
+      # macos-x64 job, which DOES need Python 3.11 because better-sqlite3
+      # compiles from source for the x64 Electron ABI.)
+
+      # See the macos-x64 job for the full rationale of this cache step.
+      - name: Cache Electron binaries
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Caches/electron
+            ~/Library/Caches/electron-builder
+          key: electron-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            electron-${{ runner.os }}-${{ runner.arch }}-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # Host arch IS the target arch — `@next/swc-darwin-arm64` is the
+      # binding `bun install` already resolved. No staging needed.
+
+      # Same release-counter resolution as macos-x64 — see that job's
+      # `Determine release counter` step for the full rationale.
+      - name: Determine release counter for in-app footer
+        id: rel
+        shell: bash
+        run: |
+          RELEASE="${{ inputs.release }}"
+          if [ -z "$RELEASE" ] && [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            TAG="${GITHUB_REF#refs/tags/}"
+            if [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+\.([0-9]+)$ ]]; then
+              RELEASE="${BASH_REMATCH[1]}"
+            fi
+          fi
+          echo "release=$RELEASE" >> "$GITHUB_OUTPUT"
+          echo "Computed release counter: '${RELEASE:-<empty, will fall back to script>}'"
+
+      # Native rebuild for the host (arm64) Electron ABI. Without `--arch`,
+      # electron-builder rebuilds for the current host arch, which here is
+      # exactly what we want — every native module in the standalone tree
+      # (better-sqlite3, etc.) gets the arm64 Electron-ABI binary.
+      - name: Rebuild native modules for arm64 (Electron ABI)
+        run: |
+          bunx electron-builder install-app-deps
+          node scripts/native-abi.mjs write electron
+
+      - name: Build Next standalone
+        env:
+          CLAUDIUS_PACKAGED: "1"
+          NODE_ENV: production
+          NEXT_PUBLIC_CLAUDIUS_RELEASE: ${{ steps.rel.outputs.release }}
+        run: bunx next build
+
+      - name: Stage standalone + compile Electron main
+        run: |
+          node scripts/electron-stage-standalone.mjs
+          bun run electron:compile
+
+      - name: Install create-dmg (for branded DMG)
+        run: brew install create-dmg
+
+      # Package arm64 zip, unsigned (adhoc via build/after-pack.js), no notarize.
+      # `--arm64` filters electron-builder.yml's mac.target arch arrays to
+      # arm64 only. `-c.mac.target=zip` overrides the full target list to
+      # exclude the YAML's `dmg` target — we let `create-dmg` produce the
+      # branded DMG below instead of electron-builder's blank-background one.
+      # The zip pack leaves `release/mac-arm64/Claudius.app/` on disk as a
+      # side effect (electron-builder doesn't clean it up), which is exactly
+      # what `scripts/make-dmg.mjs --arch=arm64` reads from next.
+      - name: Package zip (arm64, unsigned)
+        run: bunx electron-builder --mac --arm64 -c.mac.notarize=false -c.mac.target=zip --publish never
+
+      # See make-dmg.mjs for the create-dmg rationale (electron-builder's
+      # bundled DMG creator writes a legacy backgroundImageAlias macOS 14+
+      # Finder silently ignores). `--arch=arm64` makes the script read
+      # `release/mac-arm64/Claudius.app` and write
+      # `release/Claudius-<version>-mac-arm64.dmg`.
+      - name: Package branded DMG (via create-dmg, arm64)
+        id: create-dmg
+        continue-on-error: true
+        env:
+          MAKE_DMG_TIMEOUT_MS: "300000"
+          MAKE_DMG_MAX_ATTEMPTS: "3"
+        run: node scripts/make-dmg.mjs --arch=arm64
+
+      # Same fallback as macos-x64: blank-background electron-builder DMG
+      # when create-dmg times out. Preserves the zip-pointing
+      # `latest-mac.yml` across the fallback step.
+      - name: Save zip-pointing latest-mac.yml before DMG fallback
+        if: steps.create-dmg.outcome == 'failure'
+        run: |
+          if [ -f release/latest-mac.yml ]; then
+            cp release/latest-mac.yml release/latest-mac.yml.zip-manifest
+          else
+            echo "::error::release/latest-mac.yml missing before DMG fallback — the zip target must have failed silently"
+            exit 1
+          fi
+      - name: Package DMG fallback (electron-builder, CI only)
+        if: steps.create-dmg.outcome == 'failure'
+        timeout-minutes: 15
+        run: |
+          echo "::warning::create-dmg failed or timed out — falling back to electron-builder DMG (background blank-white on macOS 14+, icons centered)"
+          bunx electron-builder \
+            --mac --arm64 \
+            --prepackaged release/mac-arm64/Claudius.app \
+            -c.mac.target=dmg \
+            -c.mac.notarize=false \
+            -c.dmg.background=build/background.png \
+            -c.dmg.window.width=540 \
+            -c.dmg.window.height=380 \
+            --publish never
+      - name: Restore zip-pointing latest-mac.yml after DMG fallback
+        if: steps.create-dmg.outcome == 'failure'
+        run: mv release/latest-mac.yml.zip-manifest release/latest-mac.yml
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v5
+        with:
+          name: claudius-macos-arm64
+          path: |
+            release/*.dmg
+            release/*.zip
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Attach to GitHub Release (tag pushes only)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          # latest-mac.yml is attached ONLY by this job — arm64 is the primary
+          # electron-updater channel. The x64 job intentionally does NOT
+          # upload its own latest-mac.yml because two jobs writing the same
+          # filename would race and corrupt auto-update for whichever arch
+          # loses. x64 users update via the next release's .dmg until a
+          # follow-up combines both archs into one shared manifest (see the
+          # upstream electron-updater docs for the `files:` array format that
+          # supports multi-arch entries in a single yml).
+          files: |
+            release/*.dmg
+            release/*.zip
+            release/latest-mac.yml
+
   macos-x64:
     name: macOS (Intel x64, cross-compiled)
     # Intel `macos-13` hosted runners no longer schedule (Intel macOS runner
@@ -213,12 +386,14 @@ jobs:
         run: brew install create-dmg
 
       # Package x64-only, unsigned (adhoc via build/after-pack.js), no notarize.
-      # `--x64` keeps electron-builder's own pack-time rebuild on x64 too, so it
-      # doesn't revert the asarUnpack copy back to the host arch.
-      # NB: electron-builder only produces zip + .app here — the DMG comes
-      # from the create-dmg step below.
+      # `--x64` filters the YAML mac.target arch arrays to x64 only.
+      # `-c.mac.target=zip` overrides the YAML target list to drop the `dmg`
+      # entry — we let `create-dmg` produce the branded DMG below instead of
+      # electron-builder's blank-background one. The zip pack leaves
+      # `release/mac/Claudius.app/` on disk (electron-builder doesn't clean
+      # it up), which `scripts/make-dmg.mjs --arch=x64` reads from next.
       - name: Package zip (x64, unsigned)
-        run: bunx electron-builder --mac --x64 -c.mac.notarize=false --publish never
+        run: bunx electron-builder --mac --x64 -c.mac.notarize=false -c.mac.target=zip --publish never
 
       # Try create-dmg with a per-attempt timeout. On hosted macos-14 runners
       # the underlying `hdiutil create` was hanging indefinitely (v0.3.160.2's
@@ -232,13 +407,13 @@ jobs:
       #   3. streams a watchdog showing hdiutil/diskimages-helper/mds/XProtect
       #      process state every 30 s so any future hang isn't blind.
       # Worst case: 3 × 5 min = 15 min before falling back to electron-builder.
-      - name: Package branded DMG (via create-dmg)
+      - name: Package branded DMG (via create-dmg, x64)
         id: create-dmg
         continue-on-error: true
         env:
           MAKE_DMG_TIMEOUT_MS: "300000"
           MAKE_DMG_MAX_ATTEMPTS: "3"
-        run: node scripts/make-dmg.mjs
+        run: node scripts/make-dmg.mjs --arch=x64
 
       # Fallback: ask electron-builder to make a DMG from the already-packed
       # .app. Verified safe on the macos-14 runner — v0.3.160 and v0.3.160.1
@@ -302,10 +477,15 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
+          # latest-mac.yml is INTENTIONALLY not attached here. The arm64 job
+          # owns the electron-updater channel (auto-updates for Apple Silicon,
+          # the primary install base). x64 users update by manually downloading
+          # the next release's .dmg until a follow-up merges both archs into
+          # one manifest. Shipping two latest-mac.yml's (one from each job)
+          # would race and corrupt auto-update for whichever arch loses.
           files: |
             release/*.dmg
             release/*.zip
-            release/latest-mac.yml
 
   linux-x64:
     name: Linux (x64)

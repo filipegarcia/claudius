@@ -256,18 +256,12 @@
     <rect x="164" y="0" width="68" height="22" rx="3" fill="#3a3a3a"/>
     <text x="198" y="15" text-anchor="middle" font-size="12" fill="#e0e0e0">main <tspan fill="#f1c40f" font-weight="700">!2</tspan></text>
 
-    <!-- loop indicator (NEW — the feature being shipped just lit up) -->
-    <rect x="238" y="0" width="118" height="22" rx="3" fill="#3a2418" stroke="#5a3a28" stroke-width="0.5"/>
-    <text x="297" y="15" text-anchor="middle" font-size="12" fill="#f1c40f">
-      <tspan font-weight="700">↻</tspan> /loop 30s · 4m left
-      <animate attributeName="opacity" values="0.8;1;0.8" dur="2.4s" repeatCount="indefinite"/>
-    </text>
-
-    <!-- progress percent -->
-    <text x="370" y="15" font-size="12" fill="#666" font-weight="700">--%</text>
+    <!-- progress percent — shifted left to close the gap that the /loop chip
+         used to occupy at x=238. -->
+    <text x="246" y="15" font-size="12" fill="#666" font-weight="700">--%</text>
 
     <!-- Date -->
-    <text x="402" y="15" font-size="12" fill="#888">2026/06/09 10:41</text>
+    <text x="278" y="15" font-size="12" fill="#888">2026/06/09 10:41</text>
   </g>
 
   <!-- ============================ Auto mode line ============================ -->

@@ -18,14 +18,21 @@
 //   the metadata Finder needs to resolve across volume IDs.
 //
 // Inputs:
-//   release/mac/Claudius.app  ← from `electron-builder --mac --dir` or zip
-//   build/background.png      ← from `node scripts/make-dmg-background.mjs`
+//   release/mac/Claudius.app          ← from `electron-builder --mac --x64 ...`   (x64)
+//   release/mac-arm64/Claudius.app    ← from `electron-builder --mac --arm64 ...` (arm64)
+//   build/background.png              ← from `node scripts/make-dmg-background.mjs`
 //
 // Output:
-//   release/Claudius-<version>-mac-x64.dmg
+//   release/Claudius-<version>-mac-<arch>.dmg
 //
 // Matches electron-builder's artifactName template so downstream tooling
 // (GitHub Release upload, latest-mac.yml hand-off) doesn't need to change.
+//
+// Arch selection:
+//   --arch=x64|arm64  (default: process.arch)
+// electron-builder convention: x64 builds land in `release/mac/`, arm64
+// builds land in `release/mac-arm64/`. We respect both so a single release
+// pipeline can produce a DMG per arch.
 
 import { spawn, spawnSync } from "node:child_process";
 import { existsSync, readFileSync, rmSync } from "node:fs";
@@ -35,17 +42,38 @@ import path from "node:path";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const pkg = JSON.parse(readFileSync(path.join(ROOT, "package.json"), "utf8"));
 
+// ── arg parsing ────────────────────────────────────────────────────────────
+// `--arch=x64|arm64` or `--arch x64` — defaults to the host arch so local
+// `bun run electron:dist:mac` keeps working without a flag.
+function readArg(name, fallback) {
+  const argv = process.argv.slice(2);
+  for (let i = 0; i < argv.length; i += 1) {
+    const a = argv[i];
+    if (a === `--${name}` && i + 1 < argv.length) return argv[i + 1];
+    if (a.startsWith(`--${name}=`)) return a.slice(name.length + 3);
+  }
+  return fallback;
+}
+
+const ARCH = readArg("arch", process.arch);
+if (ARCH !== "x64" && ARCH !== "arm64") {
+  console.error(`✗ unsupported --arch=${ARCH} (expected x64 or arm64)`);
+  process.exit(2);
+}
+
 const VERSION = pkg.version;
-const APP_PATH = path.join(ROOT, "release", "mac", "Claudius.app");
-const SRC_DIR = path.dirname(APP_PATH); // release/mac/ — create-dmg copies *contents* of this dir
+// electron-builder names the per-arch output dirs `mac` (x64) and `mac-arm64`.
+const MAC_DIR = ARCH === "arm64" ? "mac-arm64" : "mac";
+const APP_PATH = path.join(ROOT, "release", MAC_DIR, "Claudius.app");
+const SRC_DIR = path.dirname(APP_PATH); // create-dmg copies *contents* of this dir
 const BACKGROUND = path.join(ROOT, "build", "background.png");
-const OUT_PATH = path.join(ROOT, "release", `Claudius-${VERSION}-mac-x64.dmg`);
+const OUT_PATH = path.join(ROOT, "release", `Claudius-${VERSION}-mac-${ARCH}.dmg`);
 const VOL_NAME = `Claudius ${VERSION}`;
 
 // ── pre-flight ─────────────────────────────────────────────────────────────
 if (!existsSync(APP_PATH)) {
   console.error(
-    `✗ ${path.relative(ROOT, APP_PATH)} not found — run \`bun run electron:build && bunx electron-builder --mac --dir\` first`,
+    `✗ ${path.relative(ROOT, APP_PATH)} not found — run \`bun run electron:build && bunx electron-builder --mac --${ARCH} --dir\` first`,
   );
   process.exit(1);
 }

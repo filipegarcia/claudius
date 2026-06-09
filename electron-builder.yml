@@ -135,30 +135,48 @@ mac:
       dictation is active (when you click the mic button in the
       composer). Audio is streamed to Anthropic for live transcription
       and is not stored on your machine.
-  # x64 (Intel) ONLY. The release pipeline cross-builds x64 on an Apple
-  # Silicon runner and rebuilds better-sqlite3 for x64 before `next build`, so
-  # the bundled standalone server is x64. An arm64 target here would reuse that
-  # x64 standalone (electron-builder doesn't rebuild inside extraResources) and
-  # ship a crash-on-launch arm64 app. A proper arm64 build needs its own native
-  # rebuild + standalone — add it back as a separate native arm64 job if wanted.
-  # (CLI `--x64` does NOT override these explicit per-target arch arrays.)
-  # NB: no `dmg` here. electron-builder's bundled DMG creator writes only the
-  # legacy `backgroundImageAlias`, which macOS 14+ Finder silently ignores —
-  # the install window comes up blank-white. The DMG is built separately by
-  # `scripts/make-dmg.mjs`, which shells out to Tarantsov's create-dmg (the
-  # bash tool) — that drives Finder via AppleScript so Finder itself writes
-  # an alias variant macOS 14+ honours. `zip` stays here for electron-updater.
+  # Both archs ship both formats:
+  #   • zip   — electron-updater's macOS channel format (auto-update);
+  #             one zip per arch is required for arm64 / x64 self-update.
+  #   • dmg   — fresh-install download (what users click in Releases).
+  #
+  # release.yml splits the work into two NATIVE jobs (mac-arm64 + mac-x64) so
+  # each arch gets its own clean better-sqlite3 / @next/swc-darwin-* / next
+  # standalone rebuild — that's the only way the extraResources standalone
+  # tree matches the Electron container's arch. electron-builder doesn't
+  # rebuild inside extraResources, so a cross-arch build (e.g. arm64 zip
+  # packaged from an x64-standalone .next tree) ships a guaranteed crash —
+  # the bundled `claude` SDK binary fails to spawn with EPERM-class errors.
+  # That regression shipped as v0.3.168.x's arm64 zip; the split is the fix.
+  #
+  # Per-arch CLI flags (`electron-builder --mac --arm64`) filter the arch
+  # array below to that arch only — so the same YAML config drives both jobs.
+  #
+  # NB: electron-builder's bundled DMG creator writes only the legacy
+  # `backgroundImageAlias`, which macOS 14+ Finder silently ignores — the
+  # install window comes up blank-white. We list `dmg` here so electron-builder
+  # KNOWS the artifact name (`Claudius-<version>-mac-<arch>.dmg`) for
+  # `latest-mac.yml`, but the release pipeline replaces electron-builder's DMG
+  # with one produced by `scripts/make-dmg.mjs` (Tarantsov's `create-dmg` bash
+  # tool, which drives Finder via AppleScript and produces an alias variant
+  # macOS 14+ honours). The fallback in release.yml uses electron-builder's
+  # bundled DMG creator only when create-dmg times out.
   target:
     - target: zip
-      arch: [arm64]
+      arch: [arm64, x64]
+    - target: dmg
+      arch: [arm64, x64]
   icon: build/icons/icon.icns
 
-# `dmg:` settings are intentionally absent — electron-builder no longer
-# builds the DMG at all (see the `mac.target` comment above). The branded
-# DMG is produced by `scripts/make-dmg.mjs`, which carries the equivalent
-# of these `background`/`contents` settings as create-dmg CLI args. Keep the
+# `dmg:` settings are intentionally absent — the canonical macOS DMG is
+# produced by `scripts/make-dmg.mjs` (Tarantsov's `create-dmg`), which
+# carries the equivalent of `background`/`contents` as CLI args. Keep the
 # two icon centres (130, 220) and (410, 220) in sync with that script when
 # editing — the dashed arrow in build/dmg-background.svg lines up with them.
+# The release pipeline only invokes electron-builder's bundled DMG creator
+# as a FALLBACK (see release.yml `Package DMG fallback`), and that step
+# passes background + window dims via `-c.dmg.*` CLI overrides — so the
+# absence of a `dmg:` block here doesn't leave that path broken.
 
 win:
   target:

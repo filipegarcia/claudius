@@ -13,6 +13,7 @@
  * title bar, OS notifications, auto-updater, and deep-link handling.
  */
 import { app, BrowserWindow, ipcMain, shell } from "electron";
+import { spawn } from "node:child_process";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 
@@ -61,6 +62,45 @@ process.env.CLAUDIUS_ELECTRON = "1";
 // `defaultAppDir()` runs, so the embedded server resolves the standalone
 // build inside the asar instead of the (non-existent) dev project root.
 if (app.isPackaged) process.env.CLAUDIUS_PACKAGED = "1";
+
+// macOS: strip `com.apple.quarantine` from the bundle's Resources tree on
+// first launch.
+//
+// Why: a zip-distributed unsigned/adhoc build inherits quarantine on every
+// inner file when the browser flags the download. Gatekeeper lets the user
+// "approve" the .app itself (right-click → Open), but the deeply-nested
+// `claude` SDK binary at `Resources/standalone/node_modules/@anthropic-ai/
+// claude-agent-sdk-darwin-<arch>/claude` is never directly approved. When
+// the embedded Next server tries to spawn it, the hardened-runtime + quarantine
+// combination on the nested binary causes the spawn to fail with EPERM (the
+// SDK surfaces it as "Claude Code native binary at … exists but failed to
+// launch"). DMG-installed apps don't hit this because copying from a mounted
+// DMG to /Applications doesn't propagate quarantine to the inner files.
+//
+// Safe: shells out to /usr/bin/xattr, fire-and-forget. Failures (no xattr,
+// no write access, the attribute isn't present) are all ignored — this is a
+// best-effort safety net, not a hard requirement. Runs ONCE at startup; the
+// xattr stays cleared until the user re-downloads.
+//
+// Re-running on every launch is idempotent and cheap (~50ms cold, <5ms when
+// nothing to strip), so we don't bother gating it on a "did we already run"
+// marker.
+if (process.platform === "darwin" && app.isPackaged) {
+  try {
+    const child = spawn(
+      "/usr/bin/xattr",
+      ["-dr", "com.apple.quarantine", process.resourcesPath],
+      { stdio: "ignore", detached: false },
+    );
+    child.on("error", () => {
+      // xattr missing / not executable / spawn race — swallow.
+    });
+    // No `.unref()`: we want the process to be reaped, not orphaned.
+  } catch {
+    // Defensive: spawn() shouldn't throw synchronously for a missing binary
+    // (it emits 'error' instead), but if it does, ignore.
+  }
+}
 
 // Brand the user-data-dir so renderer localStorage and IndexedDB land
 // at `~/Library/Application Support/Claudius` instead of the default
