@@ -11,12 +11,34 @@
     <link rel="icon" type="image/svg+xml" href="icon.svg" />
     <link rel="apple-touch-icon" href="apple-icon.png" />
     <meta name="theme-color" content="#d97757" />
+
+    <!-- Open Graph + Twitter card. The image at /og.png is generated
+         from site/og-card.html via scripts/render-og.mjs — re-run that
+         script after editing the source HTML to refresh the PNG. After
+         deploy, social platforms cache OG images hard; re-scrape via
+         LinkedIn Post Inspector, X Card Validator, or the FB Sharing
+         Debugger to see the new card. Absolute URLs are intentional:
+         some crawlers won't resolve relative paths off the meta tag. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://claudius.network/" />
+    <meta property="og:site_name" content="Claudius" />
     <meta property="og:title" content="Claudius — Claude Code in the browser" />
     <meta
       property="og:description"
       content="Chat, workflows, agents, MCP, and all the rest, in the browser and desktop. It even reshapes itself — code the feature your workflow is missing directly into your workspace."
     />
-    <meta property="og:image" content="screenshots/chat.png" />
+    <meta property="og:image" content="https://claudius.network/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Claudius — a lunate Roman bust glowing terracotta beside the Claudius wordmark, on a dark gradient." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Claudius — Claude Code in the browser" />
+    <meta
+      name="twitter:description"
+      content="Chat, workflows, agents, MCP, and all the rest, in the browser and desktop. It even reshapes itself — code the feature your workflow is missing directly into your workspace."
+    />
+    <meta name="twitter:image" content="https://claudius.network/og.png" />
+    <meta name="twitter:image:alt" content="Claudius — a lunate Roman bust glowing terracotta beside the Claudius wordmark, on a dark gradient." />
 
     <!-- PostHog — product analytics for the marketing surface. Routed through
          a first-party Cloudflare Worker reverse proxy at /ph/* (script:

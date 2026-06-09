@@ -1,0 +1,262 @@
+<!doctype html>
+<!--
+  Social card source. Rendered to /site/og.png at 1200×630 via
+  scripts/render-og.mjs (headless chromium screenshot). Edit this file,
+  then re-run `node scripts/render-og.mjs` to refresh the PNG.
+
+  Design notes:
+    - Center-weighted so platforms that crop tighter (Twitter ~1200×600,
+      Instagram square preview) don't lose the wordmark.
+    - Two elements only do the visual work at thumbnail size: the lunate
+      Claudius bust and the "Claudius" wordmark. Everything else (tagline,
+      domain) is supporting matter that may or may not survive downscaling
+      to ~150px — that's fine, the bust + wordmark carry the recognition.
+    - Brand palette mirrors site/index.html: bg #0b0b0c, accent #d97757
+      (terracotta), the lavender-blue orb at #8b9bff for depth.
+    - No web fonts. The card renders in headless chromium with no network
+      access guaranteed — system-ui + ui-monospace are what we ship.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Claudius — social card</title>
+    <style>
+      :root {
+        --bg: #0b0b0c;
+        --fg: #e7e7ea;
+        --muted: #9a9aa3;
+        --accent: #d97757;
+        --line: #2a2a31;
+      }
+      * { box-sizing: border-box; }
+      html, body {
+        margin: 0;
+        padding: 0;
+        width: 1200px;
+        height: 630px;
+        overflow: hidden;
+        background: var(--bg);
+        color: var(--fg);
+        font-family:
+          ui-sans-serif, system-ui, -apple-system, "Segoe UI", "Inter",
+          sans-serif;
+        font-feature-settings: "ss01", "cv11";
+        -webkit-font-smoothing: antialiased;
+      }
+
+      /* ── Background stack ──────────────────────────────────────────────
+         Three layers, stacked: terracotta orb top-left, lavender orb
+         bottom-right, faint dotted grid masked into a vignette. Tuned to
+         survive JPEG-style recompression by social platforms — no thin
+         gradients that band, no high-contrast micro-detail. */
+      .bg {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+      }
+      .orb {
+        position: absolute;
+        border-radius: 50%;
+        filter: blur(120px);
+      }
+      .orb-warm {
+        width: 720px;
+        height: 720px;
+        top: -220px;
+        left: -160px;
+        background: radial-gradient(
+          circle,
+          rgba(217, 119, 87, 0.65),
+          rgba(217, 119, 87, 0) 60%
+        );
+      }
+      .orb-cool {
+        width: 640px;
+        height: 640px;
+        bottom: -200px;
+        right: -160px;
+        background: radial-gradient(
+          circle,
+          rgba(139, 155, 255, 0.45),
+          rgba(139, 155, 255, 0) 60%
+        );
+      }
+      .grid {
+        position: absolute;
+        inset: 0;
+        background-image:
+          linear-gradient(rgba(231, 231, 234, 0.04) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(231, 231, 234, 0.04) 1px, transparent 1px);
+        background-size: 48px 48px;
+        -webkit-mask-image: radial-gradient(
+          ellipse 80% 70% at 50% 45%,
+          rgba(0, 0, 0, 0.85),
+          transparent 80%
+        );
+                mask-image: radial-gradient(
+          ellipse 80% 70% at 50% 45%,
+          rgba(0, 0, 0, 0.85),
+          transparent 80%
+        );
+      }
+      /* A faint vertical inner shadow on the bottom edge to anchor the
+         card — without it the dark background feels like it floats. */
+      .vignette {
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(
+            ellipse 100% 60% at 50% 110%,
+            rgba(0, 0, 0, 0.55),
+            transparent 60%
+          ),
+          radial-gradient(
+            ellipse 100% 60% at 50% -10%,
+            rgba(0, 0, 0, 0.35),
+            transparent 60%
+          );
+      }
+
+      /* ── Foreground composition ────────────────────────────────────── */
+      .card {
+        position: relative;
+        z-index: 1;
+        width: 100%;
+        height: 100%;
+        display: grid;
+        grid-template-columns: 480px 1fr;
+        align-items: center;
+        padding: 64px 80px;
+        gap: 32px;
+      }
+
+      /* Bust slot — uses the same trick as the site hero: invert the dark
+         SVG into white linework, layer a terracotta halo behind it via a
+         blurred radial. The drop-shadow filters on the image itself add
+         the orange glow that makes the lunate read as "lit" rather than
+         "pasted". */
+      .bust {
+        position: relative;
+        width: 480px;
+        height: 480px;
+        display: grid;
+        place-items: center;
+        margin-left: -20px;
+      }
+      .bust::before {
+        content: "";
+        position: absolute;
+        inset: 40px;
+        border-radius: 50%;
+        background: radial-gradient(
+          circle at center,
+          rgba(217, 119, 87, 0.55),
+          rgba(217, 119, 87, 0.18) 35%,
+          transparent 70%
+        );
+        filter: blur(40px);
+      }
+      .bust img {
+        position: relative;
+        width: 380px;
+        height: 380px;
+        filter:
+          invert(1) brightness(0.6)
+          drop-shadow(0 0 24px rgba(217, 119, 87, 0.55))
+          drop-shadow(0 0 60px rgba(217, 119, 87, 0.30));
+      }
+
+      .copy {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 24px;
+        min-width: 0;
+      }
+
+      .eyebrow {
+        font-family:
+          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 18px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--accent);
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .eyebrow .dot {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--accent);
+        box-shadow: 0 0 12px rgba(217, 119, 87, 0.7);
+      }
+
+      .wordmark {
+        font-size: 132px;
+        line-height: 0.95;
+        letter-spacing: -0.035em;
+        font-weight: 600;
+        color: #f5f5f7;
+        margin: 0;
+      }
+
+      .tagline {
+        font-size: 36px;
+        line-height: 1.2;
+        font-weight: 500;
+        color: var(--fg);
+        margin: 0;
+        max-width: 540px;
+      }
+      .tagline .accent {
+        color: var(--accent);
+      }
+
+      .domain {
+        margin-top: 8px;
+        font-family:
+          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 18px;
+        color: var(--muted);
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .domain .prompt {
+        color: var(--accent);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="bg">
+      <div class="orb orb-warm"></div>
+      <div class="orb orb-cool"></div>
+      <div class="grid"></div>
+      <div class="vignette"></div>
+    </div>
+
+    <div class="card">
+      <div class="bust">
+        <img src="claudius.svg" alt="" />
+      </div>
+      <div class="copy">
+        <div class="eyebrow">
+          <span class="dot"></span>
+          <span>Claude Code · in the browser</span>
+        </div>
+        <h1 class="wordmark">Claudius</h1>
+        <p class="tagline">
+          Chat, workflows, agents, MCP — Claude Code with a
+          <span class="accent">real UI</span>.
+        </p>
+        <div class="domain">
+          <span class="prompt">$</span>
+          <span>claudius.network</span>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
