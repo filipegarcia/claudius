@@ -5,6 +5,7 @@
 # Jobs:
 #   - lint:          ESLint over the repo
 #   - unit:          Vitest suite (Node-side; SQLite roundtrips, pure logic)
+#   - build:         `next build` — the ONLY job that type-checks the repo
 #   - setup-script:  bash/zsh/fish-matrix smoke for site/setup.sh
 #   - e2e:           Playwright suite (heaviest; caches Bun + node_modules)
 #
@@ -64,6 +65,68 @@ jobs:
           key: npm-${{ runner.os }}-${{ hashFiles('bun.lock') }}
       - run: npm install --no-package-lock --no-audit --no-fund
       - run: npx vitest run
+
+  # Production build. This is the ONLY CI job that type-checks the repo:
+  # `next build` runs tsc (tsconfig `ignoreBuildErrors: false`) before it
+  # compiles. lint and unit both pass on code that doesn't type-check, so
+  # without this job a type error reaches main unnoticed — which is exactly
+  # what happened: a `let` declared inside a `try` block but read in the
+  # `finally` ("Cannot find name …") shipped to main because the only thing
+  # that ran `next build` was the SDK-updater's local gate on a cron host,
+  # not CI. This job closes that gap.
+  #
+  # Uses bun (the build script and lockfile are bun's) on the slim node image
+  # + git. git is needed because `next build` shells out to
+  # scripts/claudius-release.mjs to derive the displayed release counter from
+  # commit history; `fetch-depth: 0` gives it the full history it wants (the
+  # script degrades to 0 without it, so the build never FAILS for lack of
+  # history — but an accurate counter is free here).
+  build:
+    runs-on: ubuntu-latest
+    container: node:22-bookworm-slim
+    env:
+      BUN_INSTALL_CACHE_DIR: ${{ github.workspace }}/.bun-cache
+    steps:
+      - name: Pre-install git + curl/unzip (for checkout history + bun install)
+        run: |
+          apt-get update -qq
+          apt-get install -y --no-install-recommends git ca-certificates curl unzip
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Mark workspace safe for git (container runs as root)
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+      - name: Cache node_modules + bun cache
+        uses: actions/cache@v5
+        with:
+          path: |
+            node_modules
+            .bun-cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+      # Same retry-wrapped bun install as the e2e job: `curl bun.sh/install`
+      # fetches a binary from github.com/oven-sh releases, which has 504'd
+      # before and would otherwise redden the whole job before it builds.
+      - name: Install bun
+        run: |
+          set -e
+          for attempt in 1 2 3 4 5; do
+            if curl -fsSL https://bun.sh/install | bash; then
+              break
+            fi
+            if [ "$attempt" -eq 5 ]; then
+              echo "::error::bun install failed after 5 attempts (probably a transient github.com 504)"
+              exit 1
+            fi
+            wait=$((attempt * 10))
+            echo "::warning::bun install attempt $attempt failed; retrying in ${wait}s"
+            sleep "$wait"
+          done
+          test -x "$HOME/.bun/bin/bun"
+          echo "$HOME/.bun/bin" >> "$GITHUB_PATH"
+      - name: Install deps
+        run: bun install --frozen-lockfile
+      - name: Build (next build — type-checks then compiles)
+        run: bun run build
 
   # site/setup.sh smoke test. Boots a fresh Ubuntu container with the three
   # supported shells installed, then runs the same in-rig assertion script
