@@ -379,31 +379,112 @@ function branchName(version: string): string {
 }
 
 /**
- * Create the upgrade branch fresh off origin/main. Idempotent: if a
- * branch with this name already exists locally or on origin we delete
- * the local copy and re-create from the remote tip. If the branch
- * already exists on origin from a previous run, we hard-reset it to
- * origin/main — the previous run will have either landed or been
- * abandoned, and starting fresh is safer than rebasing on stale work.
+ * Check out the upgrade branch, preserving prior work where possible.
+ *
+ * Three cases, in priority order:
+ *
+ *  1. **No prior work** (no local branch, no `origin/<branch>`) →
+ *     create the branch fresh off `origin/main`. Today's default.
+ *
+ *  2. **Prior work exists, merge with main is clean** → reset local to
+ *     `origin/<branch>` if origin has it (so the cron host's view
+ *     matches the reviewer's), then merge `origin/main` into it. This
+ *     keeps Claude's previous attempt + picks up any main commits
+ *     landed since the prior run started (typically: bug fixes the
+ *     reviewer made manually, the SDK-update bot's own recent fixes,
+ *     unrelated `main` work). Returns `resumed: true` so the caller
+ *     can skip already-applied steps (dep bump, version bump, run-notes
+ *     stub, etc.).
+ *
+ *  3. **Prior work exists but merge with main conflicts** → abandon
+ *     the prior work, fall back to case 1's fresh-start behavior. A
+ *     conflict here almost always means `bun.lock` diverged in a way
+ *     that's not worth picking apart inside a cron run; starting
+ *     fresh on current main is the safer recovery. Logged loudly so an
+ *     operator can dig the abandoned branch out of the reflog if
+ *     genuinely needed.
+ *
+ * The motivation for this is: failed-but-non-trivial runs used to leave
+ * `sdk-update/<v>` on the cron host carrying real work, and the next
+ * firing wiped it. With the gate-fail-draft-PR behavior in place, the
+ * branch typically also has an open PR; redoing all the work on the
+ * next firing throws away whatever signal that PR carried. Case 2 fixes
+ * that — Claude resumes on a branch that's already up-to-date with main
+ * AND carries his previous attempt.
  */
-function checkoutFreshBranch(version: string): string {
+function checkoutFreshBranch(version: string): { branch: string; resumed: boolean } {
   const branch = branchName(version);
   log(`syncing origin/main`);
   sh("git", ["fetch", "origin", "main", "--prune"]);
 
-  // Detach so we can freely delete any branch including the current one.
+  // Also fetch origin's copy of the version branch if any. This handles
+  // the case where the cron host has no local branch but origin does
+  // (e.g. fresh clone, or local branch deleted manually since the prior
+  // firing). We swallow the failure because a missing remote branch is
+  // exactly the not-prior-work case.
+  let remoteExists = false;
+  try {
+    sh("git", ["fetch", "origin", branch]);
+    const rb = sh("git", ["branch", "-r", "--list", `origin/${branch}`]).trim();
+    remoteExists = rb !== "";
+  } catch {
+    remoteExists = false;
+  }
+  const localExists =
+    sh("git", ["branch", "--list", branch]).trim() !== "";
+
+  // Detach so we can manipulate any branch (including the one HEAD is
+  // currently on) without confusing git.
   sh("git", ["checkout", "--detach", "origin/main"]);
 
-  // Wipe local copy if present.
-  const local = sh("git", ["branch", "--list", branch]);
-  if (local.trim() !== "") {
-    log(`deleting stale local branch ${branch}`);
-    sh("git", ["branch", "-D", branch]);
+  // Case 1: nothing to resume.
+  if (!localExists && !remoteExists) {
+    log(`creating ${branch} off origin/main (no prior work to resume)`);
+    sh("git", ["checkout", "-b", branch, "origin/main"]);
+    return { branch, resumed: false };
   }
 
-  log(`creating ${branch} off origin/main`);
+  // Case 2/3 setup: reset local to origin/<branch> if it exists (origin
+  // is the source of truth — that's what reviewers see on the PR), then
+  // try to merge origin/main into it.
+  const source = remoteExists ? `origin/${branch}` : branch;
+  log(
+    `prior work found on ${branch} (local=${localExists}, remote=${remoteExists}); ` +
+      `resuming from ${source} and merging origin/main in`,
+  );
+  if (localExists) {
+    sh("git", ["branch", "-D", branch]);
+  }
+  sh("git", ["checkout", "-b", branch, source]);
+
+  // The merge: `--no-edit` keeps git's default merge-commit message,
+  // `--no-ff` forces a merge commit even when fast-forward is possible
+  // so the branch's history clearly shows the resume point.
+  const mergeRes = spawnSync(
+    "git",
+    ["merge", "origin/main", "--no-edit", "--no-ff", "-m", `Merge origin/main into ${branch} (resume)`],
+    { cwd: ROOT, encoding: "utf8" },
+  );
+  if (mergeRes.status === 0) {
+    log(`resumed ${branch}: origin/main merged in cleanly`);
+    return { branch, resumed: true };
+  }
+
+  // Case 3: merge conflict → fall back to fresh start.
+  const stderr = (mergeRes.stderr ?? "").trim();
+  log(
+    `merge of origin/main into ${branch} hit conflicts (status=${mergeRes.status}):\n${stderr || "(no stderr)"}\n` +
+      `→ falling back to fresh-start behavior; abandoning prior work on ${branch}`,
+  );
+  try {
+    sh("git", ["merge", "--abort"]);
+  } catch {
+    // best-effort — if --abort fails (e.g. nothing to abort), keep going
+  }
+  sh("git", ["checkout", "--detach", "origin/main"]);
+  sh("git", ["branch", "-D", branch]);
   sh("git", ["checkout", "-b", branch, "origin/main"]);
-  return branch;
+  return { branch, resumed: false };
 }
 
 // ── package.json bump ─────────────────────────────────────────────────
@@ -411,6 +492,21 @@ function checkoutFreshBranch(version: string): string {
 function bumpSdkDependency(version: string): void {
   const pkgPath = resolve(ROOT, "package.json");
   const raw = readFileSync(pkgPath, "utf8");
+
+  // Idempotency: when resuming a branch (checkoutFreshBranch case 2)
+  // the SDK bump is already in place from the prior firing. Detect
+  // that case and skip the rewrite + `bun install`. Without this, the
+  // regex replace below would be a no-op (`next === raw`) and we'd
+  // throw "pattern miss" — losing the resume — AND `bun install`
+  // would re-stamp the lockfile timestamp for no diff.
+  const currentMatch = raw.match(
+    new RegExp(`"${escapeRegExp(SDK_PKG_NAME)}"\\s*:\\s*"([^"]+)"`),
+  );
+  if (currentMatch && currentMatch[1] === `^${version}`) {
+    log(`${SDK_PKG_NAME} already at ^${version} — skipping bump (resumed branch)`);
+    return;
+  }
+
   // Keep the file's exact formatting (trailing newline, key order) by
   // doing a surgical regex replace rather than JSON.parse round-trip —
   // package.json is also read by bun's lockfile rebuilder, and a
@@ -454,6 +550,16 @@ function bumpSdkDependency(version: string): void {
 function bumpClaudiusVersion(version: string): void {
   const pkgPath = resolve(ROOT, "package.json");
   const raw = readFileSync(pkgPath, "utf8");
+
+  // Idempotency mirror of `bumpSdkDependency` — when resuming an
+  // existing branch the top-level version is already at the target,
+  // and the regex-replace below would be a no-op that throws "pattern
+  // miss". Detect + skip cleanly.
+  const currentMatch = raw.match(/"version"\s*:\s*"([^"]+)"/);
+  if (currentMatch && currentMatch[1] === version) {
+    log(`claudius version already at ${version} — skipping bump (resumed branch)`);
+    return;
+  }
 
   // Top-level "version" is the first "version": key in the file (the SDK dep
   // key is "@anthropic-ai/claude-agent-sdk", a different token), so an
@@ -3440,7 +3546,12 @@ async function main(): Promise<void> {
   };
 
   try {
-    const branch = checkoutFreshBranch(newVersion);
+    const { branch, resumed } = checkoutFreshBranch(newVersion);
+    if (resumed) {
+      log(
+        `RESUMING prior work on ${branch}; bump + bun install + run-notes stub will be no-ops if already done`,
+      );
+    }
 
     // 1st progress post: "found new version, starting upgrade". Goes out
     // as soon as the branch exists so the channel hears about the run
@@ -3458,12 +3569,24 @@ async function main(): Promise<void> {
 
     // First commit lands cleanly — gives Claude a known starting point
     // and makes the dep bump easy to revert independently if needed.
+    // Skip the commit when there's nothing staged: on a resumed branch
+    // both bumps were no-ops because the version is already at target,
+    // so `git add` adds nothing and `git commit` would fail with
+    // "nothing to commit, working tree clean". The resume path picks
+    // up the prior firing's bump commit verbatim.
     sh("git", ["add", "package.json", "bun.lock"]);
-    sh("git", [
-      "commit",
-      "-m",
-      `chore(deps): bump claude-agent-sdk to ${newVersion}`,
-    ]);
+    const staged = sh("git", ["diff", "--cached", "--name-only"]).trim();
+    if (staged !== "") {
+      sh("git", [
+        "commit",
+        "-m",
+        `chore(deps): bump claude-agent-sdk to ${newVersion}`,
+      ]);
+    } else {
+      log(
+        `no dep-bump diff to commit — package.json + bun.lock already at target (resumed branch)`,
+      );
+    }
 
     const changelog = extractChangelog(prevVersion, newVersion);
     log(`changelog: ${changelog.length} bytes`);

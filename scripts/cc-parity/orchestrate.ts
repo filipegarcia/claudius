@@ -136,22 +136,71 @@ function branchName(version: string): string {
   return `cc-parity/${version}`;
 }
 
-function checkoutFreshBranch(version: string): string {
+/**
+ * Mirrors `scripts/sdk-update/orchestrate.ts:checkoutFreshBranch`. See
+ * the doc comment there for the three cases (no prior work / clean
+ * resume / merge-conflict fall back to fresh start). Kept as a separate
+ * copy rather than imported to avoid a circular import — the SDK
+ * orchestrator already dynamically imports from this file.
+ */
+function checkoutFreshBranch(version: string): { branch: string; resumed: boolean } {
   const branch = branchName(version);
   log(`syncing origin/main`);
   sh("git", ["fetch", "origin", "main", "--prune"]);
 
+  let remoteExists = false;
+  try {
+    sh("git", ["fetch", "origin", branch]);
+    const rb = sh("git", ["branch", "-r", "--list", `origin/${branch}`]).trim();
+    remoteExists = rb !== "";
+  } catch {
+    remoteExists = false;
+  }
+  const localExists =
+    sh("git", ["branch", "--list", branch]).trim() !== "";
+
   sh("git", ["checkout", "--detach", "origin/main"]);
 
-  const local = sh("git", ["branch", "--list", branch]);
-  if (local.trim() !== "") {
-    log(`deleting stale local branch ${branch}`);
-    sh("git", ["branch", "-D", branch]);
+  if (!localExists && !remoteExists) {
+    log(`creating ${branch} off origin/main (no prior work to resume)`);
+    sh("git", ["checkout", "-b", branch, "origin/main"]);
+    return { branch, resumed: false };
   }
 
-  log(`creating ${branch} off origin/main`);
+  const source = remoteExists ? `origin/${branch}` : branch;
+  log(
+    `prior work found on ${branch} (local=${localExists}, remote=${remoteExists}); ` +
+      `resuming from ${source} and merging origin/main in`,
+  );
+  if (localExists) {
+    sh("git", ["branch", "-D", branch]);
+  }
+  sh("git", ["checkout", "-b", branch, source]);
+
+  const mergeRes = spawnSync(
+    "git",
+    ["merge", "origin/main", "--no-edit", "--no-ff", "-m", `Merge origin/main into ${branch} (resume)`],
+    { cwd: ROOT, encoding: "utf8" },
+  );
+  if (mergeRes.status === 0) {
+    log(`resumed ${branch}: origin/main merged in cleanly`);
+    return { branch, resumed: true };
+  }
+
+  const stderr = (mergeRes.stderr ?? "").trim();
+  log(
+    `merge of origin/main into ${branch} hit conflicts (status=${mergeRes.status}):\n${stderr || "(no stderr)"}\n` +
+      `→ falling back to fresh-start behavior; abandoning prior work on ${branch}`,
+  );
+  try {
+    sh("git", ["merge", "--abort"]);
+  } catch {
+    // best-effort
+  }
+  sh("git", ["checkout", "--detach", "origin/main"]);
+  sh("git", ["branch", "-D", branch]);
   sh("git", ["checkout", "-b", branch, "origin/main"]);
-  return branch;
+  return { branch, resumed: false };
 }
 
 // ── Claudius version bump ─────────────────────────────────────────────
@@ -1250,7 +1299,12 @@ async function main(): Promise<void> {
   };
 
   try {
-    const branch = checkoutFreshBranch(newVersion);
+    const { branch, resumed } = checkoutFreshBranch(newVersion);
+    if (resumed) {
+      log(
+        `RESUMING prior cc-parity work on ${branch}; run-notes / changelog steps will pick up where they left off`,
+      );
+    }
 
     await announceProgress(
       buildCcStartAnnouncement({ prevVersion, newVersion, branch }),
