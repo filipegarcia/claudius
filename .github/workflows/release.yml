@@ -76,11 +76,17 @@ jobs:
         with:
           bun-version: latest
 
-      # No setup-python here — the arm64 native rebuild has a prebuilt
-      # better-sqlite3 binary on the Electron arm64 ABI, so node-gyp's
-      # distutils dependency never gets exercised. (Contrast with the
-      # macos-x64 job, which DOES need Python 3.11 because better-sqlite3
-      # compiles from source for the x64 Electron ABI.)
+      # better-sqlite3 has prebuilt binaries for node's arm64 ABI but NOT
+      # for Electron's arm64 ABI — @electron/rebuild then drives node-gyp
+      # to compile from source. node-gyp needs Python's `distutils`, which
+      # was REMOVED in Python 3.12 (the macos-14 default). Pin 3.11 so the
+      # gyp build succeeds. Same dance the macos-x64 job does — I had the
+      # wrong assumption in a previous revision ("arm64 has a prebuilt
+      # Electron ABI binary, no python needed") and the macos-arm64 job
+      # died here for 7 consecutive releases (v0.3.168.31 → v0.3.168.41).
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
 
       # See the macos-x64 job for the full rationale of this cache step.
       - name: Cache Electron binaries
@@ -197,28 +203,31 @@ jobs:
         uses: actions/upload-artifact@v5
         with:
           name: claudius-macos-arm64
+          # `latest-mac.yml` is included so the `macos-manifest-merge` job
+          # downstream can pick up THIS job's arm64-only single-arch
+          # manifest and merge it with the x64 job's single-arch manifest
+          # into a multi-arch `latest-mac.yml` that lists both archs under
+          # one `files:` array (the shape electron-updater expects). See
+          # the merge job for the merging script + rationale.
           path: |
             release/*.dmg
             release/*.zip
+            release/latest-mac.yml
           if-no-files-found: error
           retention-days: 14
 
-      - name: Attach to GitHub Release (tag pushes only)
+      - name: Attach artifacts to GitHub Release (tag pushes only)
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          # latest-mac.yml is attached ONLY by this job — arm64 is the primary
-          # electron-updater channel. The x64 job intentionally does NOT
-          # upload its own latest-mac.yml because two jobs writing the same
-          # filename would race and corrupt auto-update for whichever arch
-          # loses. x64 users update via the next release's .dmg until a
-          # follow-up combines both archs into one shared manifest (see the
-          # upstream electron-updater docs for the `files:` array format that
-          # supports multi-arch entries in a single yml).
+          # `latest-mac.yml` is intentionally NOT attached here — it ships
+          # from the `macos-manifest-merge` job as a multi-arch combined
+          # manifest. Two mac jobs both attaching their own single-arch
+          # `latest-mac.yml` would race and electron-updater would see only
+          # one arch (the loser's auto-update would be broken).
           files: |
             release/*.dmg
             release/*.zip
-            release/latest-mac.yml
 
   macos-x64:
     name: macOS (Intel x64, cross-compiled)
@@ -467,25 +476,168 @@ jobs:
         uses: actions/upload-artifact@v5
         with:
           name: claudius-macos-x64
+          # Same shape as macos-arm64 — see that job for the full rationale.
+          # `latest-mac.yml` rides along so the manifest-merge job can pick
+          # up x64's single-arch manifest and combine it with arm64's.
           path: |
             release/*.dmg
             release/*.zip
+            release/latest-mac.yml
           if-no-files-found: error
           retention-days: 14
 
-      - name: Attach to GitHub Release (tag pushes only)
+      - name: Attach artifacts to GitHub Release (tag pushes only)
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          # latest-mac.yml is INTENTIONALLY not attached here. The arm64 job
-          # owns the electron-updater channel (auto-updates for Apple Silicon,
-          # the primary install base). x64 users update by manually downloading
-          # the next release's .dmg until a follow-up merges both archs into
-          # one manifest. Shipping two latest-mac.yml's (one from each job)
-          # would race and corrupt auto-update for whichever arch loses.
+          # `latest-mac.yml` is shipped by `macos-manifest-merge` as a
+          # multi-arch combined manifest — see that job. Same reasoning as
+          # macos-arm64's attach step.
           files: |
             release/*.dmg
             release/*.zip
+
+  # Combine the two single-arch `latest-mac.yml` manifests produced by
+  # `macos-arm64` and `macos-x64` into one multi-arch manifest that lists
+  # every Mac asset (arm64 + x64, zip + dmg) under a single `files:` array.
+  # electron-updater on the user's machine reads that array and picks the
+  # entry whose URL suffix matches `process.arch` — so one shipped manifest
+  # serves every Mac.
+  #
+  # Why this job exists (and didn't before the per-arch split): when a
+  # SINGLE electron-builder run produced both archs, electron-builder
+  # itself wrote one multi-arch manifest. Splitting per-job gives each
+  # job its own single-arch manifest, and there's no built-in merge step
+  # to combine them — so we do it here.
+  #
+  # `if: always()` (with the inline if-existence checks below) means even
+  # when one arch dies (e.g. the Python/distutils failure that nuked 7
+  # arm64 builds before this fix), the merge ships whatever single-arch
+  # manifest survived. That's a strictly better than v0.3.168.41's outcome
+  # (no manifest at all → auto-update broken for everyone).
+  macos-manifest-merge:
+    name: macOS manifest merge (latest-mac.yml)
+    needs: [macos-arm64, macos-x64]
+    if: always() && startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # Pull just `yaml` — the only dependency the merge script needs.
+      # Avoids the full `bun install` on a job that does no app build.
+      - name: Install yaml parser
+        run: npm install --no-save yaml@2.9.0
+
+      # Both jobs upload their build artifacts under
+      # `claudius-macos-<arch>`. Download into per-arch dirs so the merge
+      # script can read each `latest-mac.yml` separately. `continue-on-error`
+      # because we want the merge to proceed when one job died — see the
+      # job-level rationale.
+      - name: Download arm64 artifacts
+        id: dl-arm64
+        continue-on-error: true
+        uses: actions/download-artifact@v5
+        with:
+          name: claudius-macos-arm64
+          path: dist-mac-arm64
+      - name: Download x64 artifacts
+        id: dl-x64
+        continue-on-error: true
+        uses: actions/download-artifact@v5
+        with:
+          name: claudius-macos-x64
+          path: dist-mac-x64
+
+      # Merge the two single-arch manifests into one multi-arch manifest.
+      # Output: ./latest-mac.yml ready to attach to the release. Inline
+      # because it's a 30-line YAML transform — a standalone script would
+      # need its own repo scaffolding for what's effectively a one-shot.
+      - name: Merge single-arch manifests
+        run: |
+          node <<'EOF'
+            const fs = require("node:fs");
+            const yaml = require("yaml");
+
+            const ARM64 = "dist-mac-arm64/latest-mac.yml";
+            const X64 = "dist-mac-x64/latest-mac.yml";
+
+            const have = [
+              { arch: "arm64", file: ARM64 },
+              { arch: "x64", file: X64 },
+            ].filter((m) => {
+              const exists = fs.existsSync(m.file);
+              if (!exists) console.warn(`::warning::${m.file} missing — ${m.arch} arch will not appear in the merged manifest`);
+              return exists;
+            });
+
+            if (have.length === 0) {
+              console.error("::error::No latest-mac.yml found from either mac job — cannot ship an auto-update manifest");
+              process.exit(1);
+            }
+
+            const parsed = have.map((m) => ({ ...m, yml: yaml.parse(fs.readFileSync(m.file, "utf8")) }));
+
+            // Sanity: both manifests must agree on version. A mismatch would
+            // mean we're combining manifests from different builds (race
+            // condition we should never hit, but worth shouting about).
+            const versions = new Set(parsed.map((p) => p.yml.version));
+            if (versions.size > 1) {
+              console.error(`::error::Version mismatch across mac manifests: ${[...versions].join(", ")} — refusing to merge`);
+              process.exit(1);
+            }
+
+            // Concatenate files arrays, de-dup by url so a re-run doesn't
+            // double-list anything.
+            const seen = new Set();
+            const files = [];
+            for (const { yml } of parsed) {
+              for (const f of yml.files ?? []) {
+                if (seen.has(f.url)) continue;
+                seen.add(f.url);
+                files.push(f);
+              }
+            }
+
+            // Pick a primary (`path`/`sha512`) — electron-updater rarely uses
+            // it (the per-file array drives arch matching), but it's a
+            // required field. Prefer the arm64 zip when available since
+            // arm64 is the primary install base; fall back to whatever exists.
+            const primaryUrl = files.find((f) => f.url.endsWith("mac-arm64.zip"))?.url
+              ?? files.find((f) => f.url.endsWith("mac-x64.zip"))?.url
+              ?? files[0]?.url;
+            const primary = files.find((f) => f.url === primaryUrl);
+            if (!primary) {
+              console.error("::error::No primary zip entry found in merged manifest — electron-updater requires one");
+              process.exit(1);
+            }
+
+            // Prefer the arm64 yml as the base for top-level keys
+            // (releaseDate, version), fall back to whichever survived.
+            const base = parsed.find((p) => p.arch === "arm64")?.yml ?? parsed[0].yml;
+
+            const merged = {
+              version: base.version,
+              files,
+              path: primary.url,
+              sha512: primary.sha512,
+              releaseDate: base.releaseDate,
+            };
+
+            fs.writeFileSync("latest-mac.yml", yaml.stringify(merged));
+            console.log("Merged manifest:");
+            console.log(fs.readFileSync("latest-mac.yml", "utf8"));
+          EOF
+
+      - name: Attach merged latest-mac.yml to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: latest-mac.yml
 
   linux-x64:
     name: Linux (x64)
