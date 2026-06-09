@@ -63,6 +63,11 @@ const STATIC_FALLBACK: ModelInfo[] = [
     displayName: "Opus",
     description: "Latest Opus — deepest reasoning, slower.",
   },
+  {
+    value: "fable",
+    displayName: "Fable",
+    description: "Latest Fable — extended thinking and reasoning.",
+  },
 ];
 
 export async function GET() {

@@ -11,7 +11,7 @@ import { TodosAutoClearedToast } from "@/components/chat/TodosAutoClearedToast";
 import { GoalBanner } from "@/components/chat/GoalBanner";
 import { useGoalBannerHidden } from "@/lib/client/useGoalBannerHidden";
 import { RecapBanner } from "@/components/chat/RecapBanner";
-import { OpusLaunchTipBanner } from "@/components/chat/OpusLaunchTipBanner";
+import { FableLaunchTipBanner } from "@/components/chat/FableLaunchTipBanner";
 import { FeedbackBanner } from "@/components/chat/FeedbackBanner";
 import { SessionRecapBanner } from "@/components/chat/SessionRecapBanner";
 import { useAwayRecap } from "@/lib/client/useAwayRecap";
@@ -1685,7 +1685,7 @@ export default function Home() {
         {/* One-shot launch announcement, pinned above the session header so
             it sits at the very top of the feed. Mirrors the Claude Code TUI's
             `tengu-top-of-feed-tip`; per-browser localStorage dismiss. */}
-        <OpusLaunchTipBanner sessionId={session.sessionId} />
+        <FableLaunchTipBanner sessionId={session.sessionId} />
         {/* Session header — title and goal share one panel (two rows, one
             border) since both are session-level metadata. */}
         {session.sessionId && (
