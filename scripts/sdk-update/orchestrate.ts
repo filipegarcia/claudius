@@ -86,6 +86,18 @@ import {
   readState,
   repoRoot,
 } from "./check";
+// CC state helpers — aliased to avoid the name collision with the SDK
+// state helpers above. The CC orchestrator itself is imported
+// **dynamically** further down (inside the combined branch in main())
+// to break the import cycle between the two orchestrators.
+import {
+  decideCcCombinedRun,
+  fetchChangelogSlice as fetchCcChangelogSlice,
+  fetchLatestVersion as fetchCcLatestVersion,
+  patchState as patchCcState,
+  readState as readCcState,
+  type UpdaterState as CcUpdaterState,
+} from "../cc-parity/check";
 
 // ── Config ────────────────────────────────────────────────────────────
 
@@ -1188,6 +1200,465 @@ function renderPrBody(args: {
     .replace(/\{\{BUDGET_STATUS\}\}/g, args.budgetWarning);
 }
 
+// ── Combined-mode helpers (SDK + CC parity on one branch) ────────────
+
+/**
+ * Cc-parity run-notes path on disk. Kept here (rather than reaching
+ * into the CC orchestrator module) so the combined-mode helpers can be
+ * pure functions of the on-disk state, no cycle with cc-parity/orchestrate.
+ */
+function ccRunNotesPath(version: string): string {
+  return resolve(ROOT, ".claudius", "cc-parity", "run-notes", `${version}.md`);
+}
+
+/**
+ * Section extractor that handles regex metacharacters in the heading,
+ * inlined here to avoid importing `extractCcSection` from
+ * cc-parity/orchestrate.ts (that import would create a cycle:
+ * cc-parity/orchestrate already imports from sdk-update/orchestrate).
+ *
+ * Mirrors `extractSection` higher up, but runs the heading through the
+ * existing `escapeRegExp` so cc-parity's `Implemented (bucket B)` and
+ * `Risks / follow-ups` headings match literally.
+ *
+ * Exported only for the combined-mode PR body renderer's tests.
+ */
+export function extractEscapedSection(md: string, heading: string): string {
+  const re = new RegExp(
+    `(^|\\n)## +${escapeRegExp(heading)}[^\\n]*\\n([\\s\\S]*?)(?=\\n## |$)`,
+  );
+  const m = md.match(re);
+  return m
+    ? m[2]!.trim()
+    : `_(run-notes did not include a "${heading}" section)_`;
+}
+
+/**
+ * Build the screenshots block for the combined PR. Walks BOTH
+ * `docs/sdk-updates/<sdk-v>/` and `docs/cc-parity/<cc-v>/`, emits one
+ * raw.githubusercontent.com URL per image with a `### Source` header
+ * separating the two halves so reviewers can see which pipeline
+ * produced what.
+ *
+ * Exported for unit tests.
+ */
+export function buildCombinedScreenshotsBlock(args: {
+  branch: string;
+  sdkVersion: string;
+  ccVersion: string;
+  /** Override file listing for tests; production reads from disk. */
+  listSdk?: () => string[];
+  listCc?: () => string[];
+  repoSlug?: string;
+}): string {
+  const sdkFiles = args.listSdk?.() ?? listScreenshots(args.sdkVersion);
+  const ccFiles = args.listCc?.() ?? listCcScreenshots(args.ccVersion);
+  if (sdkFiles.length === 0 && ccFiles.length === 0) {
+    return "_(no screenshots captured by either half — see run notes for why.)_";
+  }
+  const slug = args.repoSlug ?? repoSlug();
+  const sdkBlock = sdkFiles.length
+    ? [
+        "### SDK half — `docs/sdk-updates/" + args.sdkVersion + "/`",
+        "",
+        ...sdkFiles.map((f) => {
+          const rel = `docs/sdk-updates/${args.sdkVersion}/${f}`;
+          const alt = f.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ");
+          return `![${alt}](https://raw.githubusercontent.com/${slug}/${args.branch}/${rel})`;
+        }),
+      ].join("\n\n")
+    : "";
+  const ccBlock = ccFiles.length
+    ? [
+        "### CC parity half — `docs/cc-parity/" + args.ccVersion + "/`",
+        "",
+        ...ccFiles.map((f) => {
+          const rel = `docs/cc-parity/${args.ccVersion}/${f}`;
+          const alt = f.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ");
+          return `![${alt}](https://raw.githubusercontent.com/${slug}/${args.branch}/${rel})`;
+        }),
+      ].join("\n\n")
+    : "";
+  return [sdkBlock, ccBlock].filter(Boolean).join("\n\n");
+}
+
+function listCcScreenshots(version: string): string[] {
+  const dir = resolve(ROOT, "docs", "cc-parity", version);
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir)
+    .filter((f) => /\.(png|jpg|jpeg|gif|webp)$/i.test(f))
+    .sort();
+}
+
+/**
+ * Render the combined PR body. Pure: takes already-read run-notes
+ * markdown strings (rather than reading files), so unit tests can hit
+ * it without a filesystem fixture and so this function avoids any
+ * dependency on `cc-parity/orchestrate.ts`'s internals (cycle-safe).
+ */
+export function renderCombinedPrBody(args: {
+  branch: string;
+  prevSdkVersion: string;
+  newSdkVersion: string;
+  sdkChangelog: string;
+  sdkRunNotes: string;
+  prevCcVersion: string;
+  newCcVersion: string;
+  ccChangelog: string;
+  ccRunNotes: string;
+  budgetWarning: string;
+  /** Override for tests; production reads pr-template-combined.md. */
+  template?: string;
+  /** Override for tests — production reads dirs under docs/. */
+  screenshotsBlock?: string;
+}): string {
+  const tpl =
+    args.template ??
+    readFileSync(resolve(SCRIPT_DIR, "pr-template-combined.md"), "utf8");
+
+  // Pull each half's sections.
+  const sdkSummary = extractSection(args.sdkRunNotes, "Summary");
+  const sdkSdkSection = extractSection(args.sdkRunNotes, "SDK changelog highlights");
+  const sdkCode = extractSection(args.sdkRunNotes, "Code changes");
+  const sdkUi = extractSection(args.sdkRunNotes, "New UI surfaces");
+  const sdkTests = extractSection(args.sdkRunNotes, "Tests");
+  const sdkRisks = extractSection(args.sdkRunNotes, "Risks / follow-ups");
+
+  // CC headings include regex metacharacters — use the escaped extractor.
+  const ccSummary = extractEscapedSection(args.ccRunNotes, "Summary");
+  const ccClassification = extractEscapedSection(args.ccRunNotes, "Changelog classification");
+  const ccImplemented = extractEscapedSection(args.ccRunNotes, "Implemented (bucket B)");
+  const ccUi = extractEscapedSection(args.ccRunNotes, "New UI surfaces");
+  const ccTests = extractEscapedSection(args.ccRunNotes, "Tests");
+  const ccRisks = extractEscapedSection(args.ccRunNotes, "Risks / follow-ups");
+
+  const combinedUi = [
+    `**From SDK half:**\n\n${sdkUi}`,
+    `**From CC parity half:**\n\n${ccUi}`,
+  ].join("\n\n");
+  const combinedTests = [
+    `**From SDK half:**\n\n${sdkTests}`,
+    `**From CC parity half:**\n\n${ccTests}`,
+  ].join("\n\n");
+  const combinedRisks = [
+    `**From SDK half:**\n\n${sdkRisks}`,
+    `**From CC parity half:**\n\n${ccRisks}`,
+  ].join("\n\n");
+
+  const screenshots =
+    args.screenshotsBlock ??
+    buildCombinedScreenshotsBlock({
+      branch: args.branch,
+      sdkVersion: args.newSdkVersion,
+      ccVersion: args.newCcVersion,
+    });
+
+  return tpl
+    .replace(/\{\{NEW_SDK_VERSION\}\}/g, args.newSdkVersion)
+    .replace(/\{\{PREVIOUS_SDK_VERSION\}\}/g, args.prevSdkVersion)
+    .replace(
+      /\{\{SDK_CHANGELOG_URL\}\}/g,
+      `https://github.com/${UPSTREAM_GH}/compare/v${args.prevSdkVersion}...v${args.newSdkVersion}`,
+    )
+    .replace(/\{\{SDK_CHANGELOG_BODY\}\}/g, args.sdkChangelog)
+    .replace(/\{\{NEW_CC_VERSION\}\}/g, args.newCcVersion)
+    .replace(/\{\{PREVIOUS_CC_VERSION\}\}/g, args.prevCcVersion)
+    .replace(
+      /\{\{CC_CHANGELOG_URL\}\}/g,
+      `https://github.com/anthropics/claude-code/compare/v${args.prevCcVersion}...v${args.newCcVersion}`,
+    )
+    .replace(/\{\{CC_CHANGELOG_BODY\}\}/g, args.ccChangelog)
+    .replace(/\{\{SDK_NOTES_SUMMARY\}\}/g, sdkSummary)
+    .replace(/\{\{SDK_NOTES_SDK\}\}/g, sdkSdkSection)
+    .replace(/\{\{SDK_NOTES_CODE\}\}/g, sdkCode)
+    .replace(/\{\{CC_NOTES_SUMMARY\}\}/g, ccSummary)
+    .replace(/\{\{CC_NOTES_CLASSIFICATION\}\}/g, ccClassification)
+    .replace(/\{\{CC_NOTES_IMPLEMENTED\}\}/g, ccImplemented)
+    .replace(/\{\{COMBINED_NOTES_UI\}\}/g, combinedUi)
+    .replace(/\{\{COMBINED_NOTES_TESTS\}\}/g, combinedTests)
+    .replace(/\{\{COMBINED_NOTES_RISKS\}\}/g, combinedRisks)
+    .replace(/\{\{COMBINED_SCREENSHOTS_BLOCK\}\}/g, screenshots)
+    .replace(/\{\{BUDGET_STATUS\}\}/g, args.budgetWarning);
+}
+
+// ── Combined-mode announcement builders ───────────────────────────────
+
+/** Start announcement for a combined run — replaces the SDK-only start. */
+export function buildCombinedStartAnnouncement(args: {
+  prevSdkVersion: string;
+  newSdkVersion: string;
+  prevCcVersion: string;
+  newCcVersion: string;
+  branch: string;
+}): string {
+  return [
+    `🆕 **Combined upgrade — SDK ${args.prevSdkVersion} → ${args.newSdkVersion} + CC parity ${args.prevCcVersion} → ${args.newCcVersion}.**`,
+    "",
+    `Starting combined upgrade on branch \`${args.branch}\` — SDK migration first, then CC parity on the same branch.`,
+    `SDK compare: https://github.com/${UPSTREAM_GH}/compare/v${args.prevSdkVersion}...v${args.newSdkVersion}`,
+    `CC compare: https://github.com/anthropics/claude-code/compare/v${args.prevCcVersion}...v${args.newCcVersion}`,
+  ].join("\n");
+}
+
+/**
+ * Combined gate result — mentions both versions when both halves are
+ * green. Used in place of the SDK-only gate-result announce on a
+ * combined firing.
+ */
+export function buildCombinedGateResultAnnouncement(args: {
+  prevSdkVersion: string;
+  newSdkVersion: string;
+  prevCcVersion: string;
+  newCcVersion: string;
+  sdkOk: boolean;
+  ccOk: boolean;
+}): string {
+  if (args.sdkOk && args.ccOk) {
+    return (
+      `✅ Local gates green for combined **SDK ${args.prevSdkVersion} → ${args.newSdkVersion} + ` +
+      `CC parity ${args.prevCcVersion} → ${args.newCcVersion}**. Opening combined PR and watching CI next.`
+    );
+  }
+  const halves: string[] = [];
+  if (!args.sdkOk) halves.push("SDK half failed");
+  if (!args.ccOk) halves.push("CC parity half failed");
+  return (
+    `⚠ Local gates partial for combined **SDK ${args.prevSdkVersion} → ${args.newSdkVersion} + ` +
+    `CC parity ${args.prevCcVersion} → ${args.newCcVersion}**: ${halves.join("; ")}.`
+  );
+}
+
+/** Combined PR-opened announcement. */
+export function buildCombinedOpenedAnnouncement(args: {
+  prUrl: string;
+  prevSdkVersion: string;
+  newSdkVersion: string;
+  prevCcVersion: string;
+  newCcVersion: string;
+  created: boolean;
+}): string {
+  const verb = args.created ? "opened" : "updated";
+  return [
+    `**Combined upgrade — SDK ${args.prevSdkVersion} → ${args.newSdkVersion} + CC parity ${args.prevCcVersion} → ${args.newCcVersion}** — PR ${verb}, watching CI.`,
+    "",
+    `PR: ${args.prUrl}`,
+  ].join("\n");
+}
+
+/** Combined shipped milestone. */
+export function buildCombinedShippedAnnouncement(args: {
+  prUrl: string;
+  prevSdkVersion: string;
+  newSdkVersion: string;
+  prevCcVersion: string;
+  newCcVersion: string;
+}): string {
+  return [
+    `**Combined upgrade — SDK ${args.prevSdkVersion} → ${args.newSdkVersion} + CC parity ${args.prevCcVersion} → ${args.newCcVersion}** has shipped to Claudius.`,
+    "",
+    `PR: ${args.prUrl}`,
+  ].join("\n");
+}
+
+/**
+ * Pure state-coordination helper: given the combined run's outcome,
+ * decide which state files to patch. Returns the patches the caller
+ * should apply via `patchState` / `patchCcState`. No I/O, no globals —
+ * the test asserts on these patches directly.
+ *
+ * Modes:
+ *   - "combined-success": both halves green → both states get
+ *     `lastCompletedVersion` bumped.
+ *   - "combined-draft":   SDK green, CC drafted on its own branch →
+ *     both states get `lastCompletedVersion` bumped (so the
+ *     standalone CC cron doesn't refire on the same CC version).
+ *   - "sdk-only-success": no combined run took place OR the combined
+ *     attempt was aborted before CC work started → only SDK state
+ *     gets `lastCompletedVersion` bumped.
+ *   - "failure": neither half completed → only `inFlight` cleared.
+ *
+ * Exported for unit tests.
+ */
+export type CombinedStatePatches = {
+  sdkPatch: {
+    inFlight: null;
+    lastCompletedVersion?: string;
+  };
+  ccPatch:
+    | {
+        lastCompletedVersion: string;
+      }
+    | null;
+};
+
+export function decideCombinedStateUpdates(args: {
+  mode: "combined-success" | "combined-draft" | "sdk-only-success" | "failure";
+  newSdkVersion: string;
+  newCcVersion: string | null;
+}): CombinedStatePatches {
+  switch (args.mode) {
+    case "combined-success":
+    case "combined-draft":
+      if (!args.newCcVersion) {
+        // Caller bug — combined modes require a CC version. Fail
+        // closed: don't pretend CC shipped if we have no version to
+        // record.
+        return {
+          sdkPatch: { inFlight: null, lastCompletedVersion: args.newSdkVersion },
+          ccPatch: null,
+        };
+      }
+      return {
+        sdkPatch: { inFlight: null, lastCompletedVersion: args.newSdkVersion },
+        ccPatch: { lastCompletedVersion: args.newCcVersion },
+      };
+    case "sdk-only-success":
+      return {
+        sdkPatch: { inFlight: null, lastCompletedVersion: args.newSdkVersion },
+        ccPatch: null,
+      };
+    case "failure":
+      return {
+        sdkPatch: { inFlight: null },
+        ccPatch: null,
+      };
+  }
+}
+
+/**
+ * Probe whether the CC parity pipeline should ride along on this
+ * branch, and if so, run the CC parity work.
+ *
+ * Called by the SDK orchestrator AFTER the SDK gate has gone green and
+ * BEFORE the branch is pushed. The CC orchestrator's
+ * `runCcParityOnExistingBranch` is imported **dynamically** to break
+ * the would-be cycle (cc-parity/orchestrate already statically imports
+ * from this module).
+ *
+ * Returns:
+ *   - `{ kind: "noop", reason }` — combined mode declined for `reason`;
+ *     caller proceeds with the existing SDK-only flow.
+ *   - `{ kind: "ran", ok, ... }` — combined mode ran. On `ok=true` the
+ *     caller renders the combined PR body and pushes both halves. On
+ *     `ok=false` the caller drops into the failure-mode path (commit
+ *     2 stops with a process issue; commit 3 peels + cherry-picks).
+ */
+type CombinedCcOutcome =
+  | { kind: "noop"; reason: string }
+  | {
+      kind: "ran";
+      ok: boolean;
+      prevCcVersion: string;
+      newCcVersion: string;
+      changelog: string;
+      summary: string;
+      budgetReason: string | null;
+      failedSteps: GateStep[];
+      shaBeforeCcWork: string;
+    };
+
+async function maybeRunCombinedCc(args: {
+  prevSdkVersion: string;
+  newSdkVersion: string;
+  branch: string;
+  skipGates: Set<GateStep>;
+  announceProgress: (body: string, opts?: { pin?: boolean }) => Promise<void>;
+}): Promise<CombinedCcOutcome> {
+  const ccState: CcUpdaterState = readCcState(ROOT);
+
+  let ccLatest: string;
+  try {
+    ccLatest = await fetchCcLatestVersion();
+  } catch (err) {
+    log(
+      `WARN cc-parity latest-version probe failed: ${err instanceof Error ? err.message : String(err)} — falling back to SDK-only`,
+    );
+    return { kind: "noop", reason: "cc-parity probe failed (network)" };
+  }
+
+  // Fetch a slice for the bug-fix-only filter. The decision helper
+  // handles `null` as "no signal" — we DO run rather than skip.
+  let changelogSlice: string | null = null;
+  const baseline = ccState.lastCompletedVersion ?? ccState.lastSeenVersion;
+  if (baseline) {
+    const prev = cleanRange(baseline);
+    try {
+      changelogSlice = await fetchCcChangelogSlice(prev, ccLatest);
+    } catch {
+      changelogSlice = null;
+    }
+  }
+
+  const maxMinorJump = Number(process.env.CC_PARITY_MAX_MINOR_JUMP ?? "1");
+  const decision = decideCcCombinedRun({
+    ccState,
+    ccLatest,
+    ccChangelogSlice: changelogSlice,
+    maxMinorJump,
+  });
+
+  if (decision.kind === "noop") {
+    log(`combined-mode cc-parity noop: ${decision.reason}`);
+    return { kind: "noop", reason: decision.reason };
+  }
+
+  // Combined mode is on. Announce the combined start so the channel
+  // hears that the SDK branch is about to absorb a CC parity tag-along
+  // (the SDK-only start announce already went out earlier).
+  await args.announceProgress(
+    buildCombinedStartAnnouncement({
+      prevSdkVersion: args.prevSdkVersion,
+      newSdkVersion: args.newSdkVersion,
+      prevCcVersion: decision.prevCcVersion,
+      newCcVersion: decision.newCcVersion,
+      branch: args.branch,
+    }),
+  ).catch(() => {
+    // Best-effort — never let an announce failure abort combined mode.
+  });
+
+  // Dynamic import to break the cycle. cc-parity/orchestrate.ts
+  // statically imports from THIS module; importing it back at the top
+  // of this file would TDZ-trip cc-parity/orchestrate's `void
+  // ALL_GATE_STEPS` module-level statement during the cycle.
+  const ccMod = (await import("../cc-parity/orchestrate")) as typeof import("../cc-parity/orchestrate");
+
+  // Combined-mode does NOT use the standalone CC announce stream — the
+  // combined orchestrator owns the channel for this firing. The CC
+  // core function still logs to the cron log as usual.
+  const ccResult = await ccMod.runCcParityOnExistingBranch({
+    prevCcVersion: decision.prevCcVersion,
+    newCcVersion: decision.newCcVersion,
+    branch: args.branch,
+    dryRun: false,
+    skipGates: args.skipGates,
+    combinedWith: { sdkPrev: args.prevSdkVersion, sdkNew: args.newSdkVersion },
+  });
+
+  await args.announceProgress(
+    buildCombinedGateResultAnnouncement({
+      prevSdkVersion: args.prevSdkVersion,
+      newSdkVersion: args.newSdkVersion,
+      prevCcVersion: decision.prevCcVersion,
+      newCcVersion: decision.newCcVersion,
+      sdkOk: true, // we only got here because SDK gate was green
+      ccOk: ccResult.ok,
+    }),
+  ).catch(() => {});
+
+  return {
+    kind: "ran",
+    ok: ccResult.ok,
+    prevCcVersion: decision.prevCcVersion,
+    newCcVersion: decision.newCcVersion,
+    changelog: ccResult.changelog,
+    summary: ccResult.summary,
+    budgetReason: ccResult.budgetReason,
+    failedSteps: ccResult.failedSteps,
+    shaBeforeCcWork: ccResult.shaBeforeCcWork,
+  };
+}
+
 // ── Push & PR ─────────────────────────────────────────────────────────
 
 export function pushBranch(branch: string): void {
@@ -1325,6 +1796,85 @@ export function openPr(args: {
     } catch (err) {
       // Don't fail the whole run just because the label doesn't exist
       // yet — the draft status itself is enough of a flag.
+      console.warn(`could not add needs-human label: ${String(err)}`);
+    }
+  }
+  return { url, created };
+}
+
+/**
+ * Combined-mode variant of `openPr`: takes an explicit title (rather
+ * than deriving one from prev/new versions). Sharing one implementation
+ * via parameterised title means combined-mode and standalone PRs go
+ * through identical idempotency + draft-label handling.
+ *
+ * Kept as a separate exported function rather than a flag on `openPr`
+ * so callers can't accidentally pass a stale (prev/new)-derived title
+ * to a combined PR.
+ */
+export function openPrWithTitle(args: {
+  branch: string;
+  title: string;
+  body: string;
+  draft: boolean;
+}): { url: string; created: boolean } {
+  const existingJson = spawnSync(
+    "gh",
+    ["pr", "list", "--head", args.branch, "--state", "open", "--json", "url,isDraft"],
+    { cwd: ROOT, encoding: "utf8" },
+  );
+  const existing = existingJson.status === 0
+    ? (JSON.parse(existingJson.stdout || "[]") as Array<{ url: string; isDraft: boolean }>)
+    : [];
+
+  let url: string;
+  let created: boolean;
+  if (existing.length > 0) {
+    url = existing[0]!.url;
+    created = false;
+    log(`PR already exists for ${args.branch} — updating body in place: ${url}`);
+    const edit = spawnSync(
+      "gh",
+      ["pr", "edit", url, "--title", args.title, "--body-file", "-"],
+      { cwd: ROOT, input: args.body, encoding: "utf8" },
+    );
+    if (edit.status !== 0) {
+      throw new Error(`gh pr edit failed (${edit.status}): ${edit.stderr ?? ""}`);
+    }
+  } else {
+    const ghArgs = [
+      "pr",
+      "create",
+      "--base",
+      "main",
+      "--head",
+      args.branch,
+      "--title",
+      args.title,
+      "--body-file",
+      "-",
+    ];
+    if (args.draft) ghArgs.push("--draft");
+
+    const child = spawnSync("gh", ghArgs, {
+      cwd: ROOT,
+      input: args.body,
+      encoding: "utf8",
+    });
+    if (child.status !== 0) {
+      throw new Error(`gh pr create failed (${child.status}): ${child.stderr ?? ""}`);
+    }
+    url = (child.stdout ?? "").trim().split("\n").pop() ?? "";
+    if (!url.startsWith("https://")) {
+      throw new Error(`gh pr create returned unexpected output: ${child.stdout ?? ""}`);
+    }
+    created = true;
+  }
+
+  if (args.draft) {
+    try {
+      sh("gh", ["pr", "edit", url, "--add-label", "needs-human"]);
+    } catch (err) {
       console.warn(`could not add needs-human label: ${String(err)}`);
     }
   }
@@ -2227,6 +2777,10 @@ async function main(): Promise<void> {
   let prUrl: string | null = null;
   let shipped = false;
   let budgetReason: string | null = null;
+  // Combined-mode tracking — hoisted so the `finally` block can patch
+  // BOTH state files in lockstep with `shipped`. Set inside the try
+  // block when the CC parity probe decides combined mode runs.
+  let combinedCcVersion: string | null = null;
 
   // Progress announcements (start / changelog / summary / testing) are
   // suppressed when dry-run is on — dry-run is for local prompt iteration
@@ -2450,6 +3004,38 @@ async function main(): Promise<void> {
       return;
     }
 
+    // 1b. Opportunistic combined-mode probe. If the cc-parity baseline
+    //     is behind the published claude-code version, run the CC parity
+    //     half on the same branch BEFORE we push, so the PR carries
+    //     both halves. CC failure semantics are handled below per the
+    //     combined-mode contract (commit 3 adds the peel+cherry-pick
+    //     fallback; for now a CC failure leaves the branch dirty and
+    //     files a process issue).
+    const combined = await maybeRunCombinedCc({
+      prevSdkVersion: prevVersion,
+      newSdkVersion: newVersion,
+      branch,
+      skipGates,
+      announceProgress,
+    });
+    if (combined.kind === "ran" && !combined.ok) {
+      // CC half failed. In commit 2 (no peel yet) we file a process
+      // issue and stop — the branch is left in its half-done state for
+      // the operator to recover. Commit 3 replaces this with the peel
+      // + cherry-pick path that ships SDK full + drafts CC separately.
+      await reportProcessIssueSafe({
+        kind: "combined CC parity half failed",
+        reason:
+          combined.budgetReason ??
+          `cc-parity gate failed: ${combined.failedSteps.join(", ") || "unknown"}`,
+        prevVersion,
+        newVersion,
+        branch,
+        prUrl: null,
+      });
+      return;
+    }
+
     // 2. Local green → push the branch.
     pushBranch(branch);
 
@@ -2458,26 +3044,65 @@ async function main(): Promise<void> {
     //    triggers CI. We open it as a draft ("not for review yet") and
     //    only promote it to ready once CI is green (step 5): that is the
     //    user-facing "create the PR" moment.
-    const body = renderPrBody({
-      branch,
-      prevVersion,
-      newVersion,
-      changelog,
-      budgetWarning: "",
-    });
-    const pr = openPr({ branch, newVersion, prevVersion, body, draft: true });
+    const isCombined = combined.kind === "ran" && combined.ok;
+    if (isCombined) {
+      // Record the CC version so the finally block can patch CC state
+      // in lockstep with the SDK state when `shipped` flips true below.
+      combinedCcVersion = combined.newCcVersion;
+    }
+    const body = isCombined
+      ? renderCombinedPrBody({
+          branch,
+          prevSdkVersion: prevVersion,
+          newSdkVersion: newVersion,
+          sdkChangelog: changelog,
+          sdkRunNotes: existsSync(runNotesPath(newVersion))
+            ? readFileSync(runNotesPath(newVersion), "utf8")
+            : "",
+          prevCcVersion: combined.prevCcVersion,
+          newCcVersion: combined.newCcVersion,
+          ccChangelog: combined.changelog,
+          ccRunNotes: existsSync(ccRunNotesPath(combined.newCcVersion))
+            ? readFileSync(ccRunNotesPath(combined.newCcVersion), "utf8")
+            : "",
+          budgetWarning: "",
+        })
+      : renderPrBody({
+          branch,
+          prevVersion,
+          newVersion,
+          changelog,
+          budgetWarning: "",
+        });
+    const pr = isCombined
+      ? openPrWithTitle({
+          branch,
+          title: `chore(deps): bump claude-agent-sdk ${prevVersion} → ${newVersion} + claude-code ${combined.prevCcVersion} → ${combined.newCcVersion}`,
+          body,
+          draft: true,
+        })
+      : openPr({ branch, newVersion, prevVersion, body, draft: true });
     prUrl = pr.url;
     const prNumber = prUrl.split("/").pop() ?? prUrl;
     log(`draft PR ${pr.created ? "opened" : "updated"}: ${prUrl} (watching CI before marking ready)`);
     await announceSafe(
-      buildOpenedAnnouncement({
-        prUrl,
-        prevVersion,
-        newVersion,
-        created: pr.created,
-        draft: true,
-        reason: "watching CI before marking ready for review",
-      }),
+      isCombined
+        ? buildCombinedOpenedAnnouncement({
+            prUrl,
+            prevSdkVersion: prevVersion,
+            newSdkVersion: newVersion,
+            prevCcVersion: combined.prevCcVersion,
+            newCcVersion: combined.newCcVersion,
+            created: pr.created,
+          })
+        : buildOpenedAnnouncement({
+            prUrl,
+            prevVersion,
+            newVersion,
+            created: pr.created,
+            draft: true,
+            reason: "watching CI before marking ready for review",
+          }),
       { pin: false },
     );
 
@@ -2522,7 +3147,15 @@ async function main(): Promise<void> {
       }
       shipped = true;
       await announceSafe(
-        buildShippedAnnouncement({ prUrl, newVersion, prevVersion }),
+        isCombined
+          ? buildCombinedShippedAnnouncement({
+              prUrl,
+              prevSdkVersion: prevVersion,
+              newSdkVersion: newVersion,
+              prevCcVersion: combined.prevCcVersion,
+              newCcVersion: combined.newCcVersion,
+            })
+          : buildShippedAnnouncement({ prUrl, newVersion, prevVersion }),
         { pin: true },
       );
     } else {
@@ -2559,15 +3192,30 @@ async function main(): Promise<void> {
     }).catch(() => {});
     throw err;
   } finally {
-    patchState(
-      {
-        inFlight: null,
-        ...(shipped ? { lastCompletedVersion: newVersion } : {}),
-      },
-      ROOT,
-    );
+    // State coordination: the `decideCombinedStateUpdates` helper
+    // decides which state files to patch based on what actually
+    // happened on this firing. Combined success → both SDK + CC
+    // states. SDK-only success → only SDK. Failure → only the
+    // inFlight clear.
+    const mode: "combined-success" | "sdk-only-success" | "failure" = !shipped
+      ? "failure"
+      : combinedCcVersion
+        ? "combined-success"
+        : "sdk-only-success";
+    const patches = decideCombinedStateUpdates({
+      mode,
+      newSdkVersion: newVersion,
+      newCcVersion: combinedCcVersion,
+    });
+    patchState(patches.sdkPatch, ROOT);
+    if (patches.ccPatch) {
+      patchCcState(patches.ccPatch, ROOT);
+    }
     if (prUrl) {
-      log(`final state: shipped=${shipped} pr=${prUrl}`);
+      log(
+        `final state: shipped=${shipped} mode=${mode} pr=${prUrl}` +
+          (combinedCcVersion ? ` ccVersion=${combinedCcVersion}` : ""),
+      );
     }
   }
 }
