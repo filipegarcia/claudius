@@ -399,7 +399,7 @@
               <div class="px-4 pt-3 pb-1 text-[11px] uppercase tracking-wider text-muted/80">macOS</div>
               <a role="menuitem" data-platform="mac-arm64" href="https://github.com/filipegarcia/claudius/releases/latest" class="block px-4 py-2 hover:bg-panel2 transition">
                 <div class="text-sm text-fg">Apple Silicon</div>
-                <div class="text-xs text-muted">arm64 · zip</div>
+                <div class="text-xs text-muted">arm64 · dmg</div>
               </a>
               <a role="menuitem" data-platform="mac-x64" href="https://github.com/filipegarcia/claudius/releases/latest" class="block px-4 py-2 hover:bg-panel2 transition">
                 <div class="text-sm text-fg">Intel</div>
@@ -719,7 +719,7 @@ HOST=0.0.0.0 PORT=8080 make up     # reachable from your LAN (careful)</code></p
                   Download for macOS
                 </a>
                 <span class="text-xs text-muted">
-                  Intel x64 ·
+                  Apple Silicon + Intel ·
                   <a href="https://github.com/filipegarcia/claudius/releases/latest" class="hover:text-fg underline-offset-2 hover:underline">Linux builds</a>
                   ·
                   <a href="https://github.com/filipegarcia/claudius/releases" class="hover:text-fg underline-offset-2 hover:underline">All releases</a>
@@ -1616,7 +1616,7 @@ bun run electron:dist:linux   # AppImage + deb + rpm</code></pre>
               <div class="px-4 pt-3 pb-1 text-[11px] uppercase tracking-wider text-muted/80">macOS</div>
               <a role="menuitem" data-platform="mac-arm64" href="https://github.com/filipegarcia/claudius/releases/latest" class="block px-4 py-2 hover:bg-panel2 transition">
                 <div class="text-sm text-fg">Apple Silicon</div>
-                <div class="text-xs text-muted">arm64 · zip</div>
+                <div class="text-xs text-muted">arm64 · dmg</div>
               </a>
               <a role="menuitem" data-platform="mac-x64" href="https://github.com/filipegarcia/claudius/releases/latest" class="block px-4 py-2 hover:bg-panel2 transition">
                 <div class="text-sm text-fg">Intel</div>
@@ -1926,9 +1926,15 @@ bun run electron:dist:linux   # AppImage + deb + rpm</code></pre>
         // someone actually clicks.
         if (!/^https?:$/.test(location.protocol)) return;
 
+        // Suffix-match against electron-builder's `${productName}-${version}-${os}-${arch}.${ext}`
+        // template. Both macOS archs ship a `.dmg` (fresh-install download)
+        // and a `.zip` (electron-updater channel) — the marketing CTA points
+        // at the .dmg in both cases since that's the right format for a
+        // first-time install. The `.zip` is wired into the in-app updater,
+        // not into download buttons.
         const SUFFIX = {
-          "mac-arm64": "mac-arm64.zip",
-          "mac-x64": ".dmg",
+          "mac-arm64": "mac-arm64.dmg",
+          "mac-x64": "mac-x64.dmg",
           "linux-appimage": ".AppImage",
           "linux-deb": ".deb",
           "linux-rpm": ".rpm",
