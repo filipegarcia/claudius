@@ -102,7 +102,14 @@ jobs:
           path: |
             node_modules
             .bun-cache
-          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          # Job-scoped key. MUST stay distinct from the e2e job's key:
+          # `node_modules` here holds native modules (better-sqlite3) compiled
+          # against THIS job's Node (node:22-bookworm-slim). The e2e job runs
+          # a different Node (Playwright image), so sharing one cache entry
+          # makes whichever job saves first poison the other — better-sqlite3
+          # then fails with "Module did not self-register / ERR_DLOPEN_FAILED"
+          # and the whole e2e webServer can't boot. Keep these caches isolated.
+          key: bun-build-${{ runner.os }}-${{ hashFiles('bun.lock') }}
       # Same retry-wrapped bun install as the e2e job: `curl bun.sh/install`
       # fetches a binary from github.com/oven-sh releases, which has 504'd
       # before and would otherwise redden the whole job before it builds.
@@ -182,7 +189,11 @@ jobs:
           path: |
             node_modules
             .bun-cache
-          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          # Job-scoped key — see the build job's cache note. This `node_modules`
+          # holds better-sqlite3 compiled against the Playwright image's Node;
+          # the build job's is compiled against node:22-bookworm-slim. They
+          # must NOT share a cache entry or the native module fails to load.
+          key: bun-e2e-${{ runner.os }}-${{ hashFiles('bun.lock') }}
       # `curl https://bun.sh/install | bash` ultimately fetches
       # bun-linux-x64.zip from github.com/oven-sh/bun/releases. When GitHub's
       # releases CDN burps with a 504 (as it did on 2026-06-08 ~06:40 UTC),
