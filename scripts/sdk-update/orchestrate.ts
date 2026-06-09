@@ -1401,6 +1401,48 @@ export function buildCombinedStartAnnouncement(args: {
 }
 
 /**
+ * Combined implementation summary — fires after BOTH the SDK and CC
+ * Claude runs finish, lifting the `## Summary` section from each
+ * half's run-notes. Used in combined mode in place of the SDK-only
+ * implementation-summary announce. Degrades gracefully when one or
+ * both summaries are still the stub placeholder.
+ *
+ * Per spec §6: "Implementation announcement: combined summary lifting
+ * both run-notes' `## Summary` sections."
+ */
+export function buildCombinedImplementationAnnouncement(args: {
+  prevSdkVersion: string;
+  newSdkVersion: string;
+  prevCcVersion: string;
+  newCcVersion: string;
+  sdkSummary: string;
+  ccSummary: string;
+}): string {
+  const looksPlaceholder = (s: string) => {
+    const t = s.trim();
+    return !t || /^_+\(/.test(t) || /^TODO/i.test(t) || /^_\(run-notes did not include/.test(t);
+  };
+  const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n)}…` : s);
+  const SDK_MAX = 700;
+  const CC_MAX = 700;
+  const sdkBody = looksPlaceholder(args.sdkSummary)
+    ? "_(SDK run-notes Summary missing — gate may flag.)_"
+    : clip(args.sdkSummary.trim(), SDK_MAX);
+  const ccBody = looksPlaceholder(args.ccSummary)
+    ? "_(CC run-notes Summary missing — gate may flag.)_"
+    : clip(args.ccSummary.trim(), CC_MAX);
+  return [
+    `🛠️ **Claude finished both halves — SDK ${args.prevSdkVersion} → ${args.newSdkVersion} + CC parity ${args.prevCcVersion} → ${args.newCcVersion}.**`,
+    "",
+    `**SDK summary:**`,
+    sdkBody,
+    "",
+    `**CC parity summary:**`,
+    ccBody,
+  ].join("\n");
+}
+
+/**
  * Combined gate result — mentions both versions when both halves are
  * green. Used in place of the SDK-only gate-result announce on a
  * combined firing.
@@ -1569,6 +1611,13 @@ async function maybeRunCombinedCc(args: {
   branch: string;
   skipGates: Set<GateStep>;
   announceProgress: (body: string, opts?: { pin?: boolean }) => Promise<void>;
+  /**
+   * The SDK half's run-notes Summary section, so the combined
+   * implementation announce can pair it with the CC Summary. Caller
+   * passes whatever it extracted into the SDK-only impl announce —
+   * we reuse it here rather than re-reading the file.
+   */
+  sdkRunNotesSummary: string;
 }): Promise<CombinedCcOutcome> {
   const ccState: CcUpdaterState = readCcState(ROOT);
 
@@ -1652,8 +1701,37 @@ async function maybeRunCombinedCc(args: {
   // would propagate up through main()'s catch as "crashed" and the
   // SDK PR would never ship — which is exactly the outcome the spec
   // says we must avoid in the combined-mode failure path.
+  //
+  // Per spec §6, the CC changelog still fires as its own post (the
+  // start + changelog announces stay split between SDK and CC; the
+  // SDK side fired earlier in main()). We post the CC changelog
+  // **before** handing off to the CC core so the channel has the
+  // context Claude has when reasoning about the CC half. The CC core
+  // does NOT receive an `announceProgress` callback — that would
+  // double-post in combined mode.
   let ccResult: Awaited<ReturnType<typeof ccMod.runCcParityOnExistingBranch>>;
   try {
+    // Reuse the slice we fetched earlier for the bug-fix-only filter
+    // when present; fall back to a fresh fetch if that came back null
+    // (the filter falls through to "run" on no signal, but the
+    // changelog announce wants a real body).
+    let ccChangelogPreview: string | null = changelogSlice;
+    if (!ccChangelogPreview) {
+      try {
+        ccChangelogPreview = await fetchCcChangelogSlice(decision.prevCcVersion, decision.newCcVersion);
+      } catch {
+        ccChangelogPreview = null;
+      }
+    }
+    if (ccChangelogPreview) {
+      await args.announceProgress(
+        ccMod.buildCcChangelogAnnouncement({
+          prevVersion: decision.prevCcVersion,
+          newVersion: decision.newCcVersion,
+          changelog: ccChangelogPreview,
+        }),
+      ).catch(() => {});
+    }
     ccResult = await ccMod.runCcParityOnExistingBranch({
       prevCcVersion: decision.prevCcVersion,
       newCcVersion: decision.newCcVersion,
@@ -1675,6 +1753,20 @@ async function maybeRunCombinedCc(args: {
       summary: "",
     };
   }
+
+  // Per spec §6, the combined implementation summary post pairs both
+  // halves' `## Summary` sections in a single post. Fires before the
+  // gate result so the channel sees what shipped before what passed.
+  await args.announceProgress(
+    buildCombinedImplementationAnnouncement({
+      prevSdkVersion: args.prevSdkVersion,
+      newSdkVersion: args.newSdkVersion,
+      prevCcVersion: decision.prevCcVersion,
+      newCcVersion: decision.newCcVersion,
+      sdkSummary: args.sdkRunNotesSummary,
+      ccSummary: ccResult.summary,
+    }),
+  ).catch(() => {});
 
   await args.announceProgress(
     buildCombinedGateResultAnnouncement({
@@ -3376,6 +3468,9 @@ async function main(): Promise<void> {
       branch,
       skipGates,
       announceProgress,
+      // Pass the SDK half's run-notes Summary so the combined
+      // implementation-summary announce can pair both halves.
+      sdkRunNotesSummary: runNotesSummary,
     });
 
     // `combinedOutcome` is the explicit state-machine tracker for the

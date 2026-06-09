@@ -3,6 +3,7 @@ import { describe, expect, test } from "vitest";
 import {
   buildCcDroppedAnnouncement,
   buildCombinedGateResultAnnouncement,
+  buildCombinedImplementationAnnouncement,
   buildCombinedOpenedAnnouncement,
   buildCombinedScreenshotsBlock,
   buildCombinedShippedAnnouncement,
@@ -376,6 +377,49 @@ describe("buildCombinedGateResultAnnouncement", () => {
     });
     expect(out).toContain("Local gates partial");
     expect(out).toContain("CC parity half failed");
+  });
+});
+
+describe("buildCombinedImplementationAnnouncement", () => {
+  const base = {
+    prevSdkVersion: "0.3.141",
+    newSdkVersion: "0.3.142",
+    prevCcVersion: "1.0.39",
+    newCcVersion: "1.0.40",
+  };
+
+  test("pairs SDK + CC summaries verbatim when both are real", () => {
+    const out = buildCombinedImplementationAnnouncement({
+      ...base,
+      sdkSummary: "Migrated session.ts and added permission mode.",
+      ccSummary: "Reviewed CC release; shipped /resume bucket-B.",
+    });
+    expect(out).toContain("Claude finished both halves");
+    expect(out).toContain("SDK summary:");
+    expect(out).toContain("Migrated session.ts and added permission mode.");
+    expect(out).toContain("CC parity summary:");
+    expect(out).toContain("Reviewed CC release; shipped /resume bucket-B.");
+  });
+
+  test("degrades cleanly when SDK Summary is a stub placeholder", () => {
+    const out = buildCombinedImplementationAnnouncement({
+      ...base,
+      sdkSummary: "_(TODO: one paragraph)_",
+      ccSummary: "Reviewed release.",
+    });
+    expect(out).toContain("SDK run-notes Summary missing");
+    expect(out).not.toContain("TODO");
+    expect(out).toContain("Reviewed release.");
+  });
+
+  test("degrades cleanly when CC Summary is missing", () => {
+    const out = buildCombinedImplementationAnnouncement({
+      ...base,
+      sdkSummary: "Migrated session.ts.",
+      ccSummary: '_(run-notes did not include a "Summary" section)_',
+    });
+    expect(out).toContain("CC run-notes Summary missing");
+    expect(out).toContain("Migrated session.ts.");
   });
 });
 
