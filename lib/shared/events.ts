@@ -595,6 +595,39 @@ export type QueueUpdatedEvent = {
   queue: QueuedMessageMeta[];
 };
 
+/**
+ * One utilization window from the claude.ai plan rate-limit response.
+ * `utilization` is 0-100 (percentage used), `resetsAt` is an ISO 8601 string.
+ * Either field may be null when the backend cannot determine the value.
+ */
+export type PlanUsageWindow = {
+  utilization: number | null;
+  resetsAt: string | null;
+};
+
+/**
+ * Structured plan-level usage data fetched after each successful turn via
+ * `Query.usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET()`.
+ *
+ * `subscriptionType` is "pro" | "max" | "team" | "enterprise" | null (null
+ * for API-key / Bedrock / Vertex sessions). `rateLimitsAvailable` is false
+ * (and `rateLimits` null) for non-claude.ai sessions.
+ *
+ * EXPERIMENTAL: the underlying SDK API may change shape in any release.
+ */
+export type PlanUsageEvent = {
+  type: "plan_usage";
+  subscriptionType: string | null;
+  rateLimitsAvailable: boolean;
+  rateLimits: {
+    fiveHour?: PlanUsageWindow | null;
+    sevenDay?: PlanUsageWindow | null;
+    sevenDayOauthApps?: PlanUsageWindow | null;
+    sevenDayOpus?: PlanUsageWindow | null;
+    sevenDaySonnet?: PlanUsageWindow | null;
+  } | null;
+};
+
 export type ServerEvent =
   | {
       type: "sdk";
@@ -634,7 +667,8 @@ export type ServerEvent =
   | AccountAutoRotatedEvent
   | SessionRecapEvent
   | SessionRecapErrorEvent
-  | QueueUpdatedEvent;
+  | QueueUpdatedEvent
+  | PlanUsageEvent;
 
 /**
  * One-shot notification that the SERVER auto-cleared the to-do snapshot —

@@ -401,6 +401,37 @@ export type SessionUsage = {
 };
 
 /**
+ * One utilization window from the claude.ai plan rate-limit response.
+ * Fields may be null when the backend cannot determine the value.
+ */
+export type PlanUsageWindow = {
+  utilization: number | null;
+  resetsAt: string | null;
+};
+
+/**
+ * Structured plan-level usage data from
+ * `Query.usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET()`.
+ *
+ * `subscriptionType` is "pro" | "max" | "team" | "enterprise" | null (null for
+ * API-key / Bedrock / Vertex sessions). When `rateLimitsAvailable` is false,
+ * `rateLimits` is null (non-claude.ai session).
+ *
+ * EXPERIMENTAL: the underlying SDK API may change shape in any release.
+ */
+export type PlanRateLimits = {
+  subscriptionType: string | null;
+  rateLimitsAvailable: boolean;
+  rateLimits: {
+    fiveHour?: PlanUsageWindow | null;
+    sevenDay?: PlanUsageWindow | null;
+    sevenDayOauthApps?: PlanUsageWindow | null;
+    sevenDayOpus?: PlanUsageWindow | null;
+    sevenDaySonnet?: PlanUsageWindow | null;
+  } | null;
+};
+
+/**
  * Per-session goal state surfaced in the GoalBanner. Mirrors the server's
  * `goal_changed` event. Null in {@link ChatState.goal} means no goal is set
  * (banner hidden); `achieved` is sticky until the goal is cleared or replaced.
@@ -476,6 +507,15 @@ export type ChatState = {
    */
   agentCwd: string | null;
   usage: SessionUsage | null;
+  /**
+   * Plan-level rate-limit utilization from
+   * `Query.usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET()`.
+   * Updated at each successful turn end. Null until the first successful turn
+   * or when the SDK call fails / is unavailable (non-fatal — cost data from
+   * `usage` is unaffected). Shows subscription type and per-window utilization
+   * in the "Session cost & usage" overlay.
+   */
+  planUsage: PlanRateLimits | null;
   /** All tasks ever started in this session, keyed by task_id. */
   tasks: Record<string, TaskInfo>;
   /** Subagent messages keyed by their parent_tool_use_id. */

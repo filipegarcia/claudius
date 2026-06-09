@@ -51,6 +51,7 @@ import type {
   DisplayMessage,
   GoalState,
   PendingPlan,
+  PlanRateLimits,
   QueuedMessage,
   RecentEdit,
   ScheduledLoop,
@@ -616,6 +617,7 @@ export function useSession(): ChatState & ChatActions {
   // self-clears (so there's no separate "exit" reset to forget).
   const [agentCwd, setAgentCwd] = useState<string | null>(null);
   const [usage, setUsage] = useState<SessionUsage | null>(null);
+  const [planUsage, setPlanUsage] = useState<PlanRateLimits | null>(null);
   const [tasks, setTasks] = useState<Record<string, TaskInfo>>({});
   const [subagentMessages, setSubagentMessages] = useState<Record<string, DisplayMessage[]>>({});
   const [pendingPlan, setPendingPlan] = useState<PendingPlan | null>(null);
@@ -1073,6 +1075,7 @@ export function useSession(): ChatState & ChatActions {
     setCwd(null);
     setAgentCwd(null);
     setUsage(null);
+    setPlanUsage(null);
     countedUsageRef.current = new Set();
     lastRateLimitInfoRef.current = null;
     estimatedTurnCostRef.current = 0;
@@ -1471,6 +1474,14 @@ export function useSession(): ChatState & ChatActions {
             origin: null,
             errorReason: null,
           };
+        });
+        return;
+      }
+      if (ev.type === "plan_usage") {
+        setPlanUsage({
+          subscriptionType: ev.subscriptionType,
+          rateLimitsAvailable: ev.rateLimitsAvailable,
+          rateLimits: ev.rateLimits ?? null,
         });
         return;
       }
@@ -4423,6 +4434,7 @@ export function useSession(): ChatState & ChatActions {
     cwd,
     agentCwd,
     usage,
+    planUsage,
     tasks,
     subagentMessages,
     pendingPlan,
