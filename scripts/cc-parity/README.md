@@ -14,6 +14,58 @@ well before the other starts.
 
 ---
 
+## Operating modes
+
+cc-parity runs in two distinct shapes — standalone (its own cron
+firing) and combined (the SDK updater opportunistically taking it
+along on the same branch when both pipelines have new versions on
+the same hour). Operators should expect to see PRs from either flow:
+
+- **Standalone CC** (no new SDK, CC cron firing): cc-parity runs
+  alone. One branch `cc-parity/<v>`, one PR with the A/B/C
+  classification + bucket-B implementation, marked ready when CI
+  is green. Today's behaviour and the default mode for the typical
+  hour when only Claude Code has shipped a release.
+
+- **Standalone SDK** (no new CC version, SDK cron firing): cc-parity
+  isn't touched. The SDK orchestrator's combined-mode probe sees
+  the CC baseline is at-or-ahead of latest and noops out.
+
+- **Combined** (both pipelines have new versions, SDK cron firing):
+  the SDK orchestrator runs its migration first, then dynamically
+  imports `runCcParityOnExistingBranch` and runs the CC parity work
+  on the same branch. The CC core gets a `combinedWith` argument
+  pointing at the SDK migration so the prompt's
+  `{{COMBINED_PREAMBLE}}` tells Claude to skip bucket-A items the
+  SDK pipeline already handled.
+
+  When both halves are green, one PR carries both halves; both state
+  files (`.claudius/sdk-updater/state.json` and
+  `.claudius/cc-parity/state.json`) get `lastCompletedVersion`
+  bumped on a green ship.
+
+  When the CC half fails locally, the SDK still ships full and the
+  CC commits are peeled (`git reset --hard <anchor>`) and
+  cherry-picked onto a separate
+  `cc-parity/<cc-v>-detached-from-sdk-<sdk-v>` branch off
+  `origin/main`. That branch is opened as a **draft + needs-human**
+  PR alongside the SDK PR. Both PR URLs are announced.
+
+  - **Cherry-pick succeeded → draft PR**: CC state IS bumped, so
+    the standalone cc-parity cron does NOT refire on the same
+    version while a human is already looking at the detached draft.
+  - **Cherry-pick failed → CC dropped**: CC state stays untouched.
+    The standalone cron will retry the CC version on its next tick.
+    A process issue is filed for the permanent record.
+
+**What operators see:** a single SDK-cron firing in combined mode
+can produce two PRs — one SDK PR and one detached cc-parity draft.
+This is expected. The standalone cc-parity cron stays installed and
+keeps watching: it's what catches the dropped-cherry-pick case
+above, and what handles the CC-only release hours.
+
+---
+
 ## The A/B/C bucketing model — read this first
 
 The cc-parity pipeline classifies every substantive Claude Code

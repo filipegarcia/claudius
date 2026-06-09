@@ -47,6 +47,62 @@ Everything under `.claudius/` is already gitignored.
 
 ---
 
+## Operating modes
+
+The SDK updater and its cc-parity sibling run independently on
+offset crons, but the SDK firing **opportunistically absorbs the CC
+parity work** when both pipelines have new versions on the same
+firing. That gives operators three distinct flow shapes:
+
+- **Standalone SDK** (no new CC version, SDK cron firing): SDK
+  pipeline runs alone, opens one PR. This is today's behaviour and
+  the only flow that fires on the typical hour where only the SDK
+  has released.
+
+- **Standalone CC** (no new SDK version, CC cron firing): cc-parity
+  pipeline runs alone, opens one PR. The cc-parity README has the
+  details — it's the flow that exists specifically for the
+  product-surface (bucket B) features the SDK doesn't carry.
+
+- **Combined** (both pipelines have new versions, SDK cron firing):
+  the SDK orchestrator runs its migration first, then asks
+  `decideCcCombinedRun` whether the cc-parity baseline is behind the
+  published claude-code version. If yes, it dynamically imports the
+  CC orchestrator and runs `runCcParityOnExistingBranch` on the
+  same branch. One PR carries both halves; the SDK and CC state
+  files both get bumped on a green ship.
+
+  When the CC half fails locally (gate red, run-notes incomplete, or
+  the CC core throws), the SDK still ships full — the spec is
+  explicit about that. The orchestrator peels the CC commits off via
+  `git reset --hard <anchor>`, cherry-picks them onto a fresh
+  `cc-parity/<cc-v>-detached-from-sdk-<sdk-v>` branch off
+  `origin/main`, and opens that as a **draft + needs-human** PR
+  alongside the SDK PR. The channel hears the split via
+  `buildDraftDetachedAnnouncement` (both URLs + reason). CC state
+  IS still bumped in this case so the standalone cron doesn't
+  refire on the same CC version while a human is already looking
+  at the detached draft.
+
+  If the cherry-pick itself fails (conflict, push rejection, etc.),
+  CC is dropped from this firing entirely — SDK still ships, CC
+  state stays untouched, the standalone cron will retry the CC
+  version on its next tick. The channel hears the drop via
+  `buildCcDroppedAnnouncement` and a process issue is filed for
+  the permanent record.
+
+  Operators reading this: **a single SDK-cron firing can produce
+  two PRs** — the SDK PR (ready or draft per the SDK CI outcome)
+  and a separate `cc-parity/<v>-detached-from-sdk-<v>` draft when
+  the CC half went red mid-flight. Both PRs are announced.
+
+The standalone CC cron stays installed so a green-then-red CC
+recovery (the dropped path above) or a CC-only release on an hour
+when there's no new SDK still gets handled — combined mode is purely
+additive on top of the standalone flows.
+
+---
+
 ## How a firing flows
 
 1. **Cron** invokes `scripts/sdk-update/run.sh` at the top of every hour.
