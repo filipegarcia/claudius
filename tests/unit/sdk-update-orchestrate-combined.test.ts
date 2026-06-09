@@ -294,6 +294,42 @@ describe("decideCombinedStateUpdates", () => {
     expect(out.ccPatch).toEqual({ lastCompletedVersion: "1.0.40" });
   });
 
+  test("sdk-failure-cc-draft patches ONLY the CC state (SDK PR is draft, CC drafted separately)", () => {
+    // Both halves are drafts — the SDK PR is itself draft+needs-human
+    // because SDK CI went red, and the CC half was peeled to a detached
+    // draft on its own branch. The version coordination rule for this
+    // shape:
+    //   - SDK lastCompletedVersion: NOT bumped (the SDK PR didn't ship)
+    //   - CC lastCompletedVersion: BUMPED (the CC version IS handled
+    //     this firing as a draft on origin; the standalone cron must
+    //     not refire and open another branch for the same version)
+    // Without this distinction, an SDK CI red + CC drafted run would
+    // leave an orphan branch AND duplicate-fire the CC version.
+    const out = decideCombinedStateUpdates({
+      mode: "sdk-failure-cc-draft",
+      newSdkVersion: "0.3.142",
+      newCcVersion: "1.0.40",
+    });
+    expect(out.sdkPatch).toEqual({ inFlight: null });
+    expect(out.sdkPatch.lastCompletedVersion).toBeUndefined();
+    expect(out.ccPatch).toEqual({ lastCompletedVersion: "1.0.40" });
+  });
+
+  test("sdk-failure-cc-draft without a CC version degrades to bare failure", () => {
+    // Caller-bug safety net mirroring combined-success/null-cc: if a
+    // caller routes through sdk-failure-cc-draft with no CC version,
+    // there's nothing to record. Fall back to "failure" semantics so we
+    // don't accidentally clear any CC state we shouldn't touch.
+    const out = decideCombinedStateUpdates({
+      mode: "sdk-failure-cc-draft",
+      newSdkVersion: "0.3.142",
+      newCcVersion: null,
+    });
+    expect(out.sdkPatch).toEqual({ inFlight: null });
+    expect(out.sdkPatch.lastCompletedVersion).toBeUndefined();
+    expect(out.ccPatch).toBeNull();
+  });
+
   test("sdk-only-success patches ONLY the SDK state", () => {
     const out = decideCombinedStateUpdates({
       mode: "sdk-only-success",
