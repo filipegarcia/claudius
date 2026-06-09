@@ -1538,10 +1538,16 @@ export function decideCombinedStateUpdates(args: {
  * Returns:
  *   - `{ kind: "noop", reason }` — combined mode declined for `reason`;
  *     caller proceeds with the existing SDK-only flow.
- *   - `{ kind: "ran", ok, ... }` — combined mode ran. On `ok=true` the
- *     caller renders the combined PR body and pushes both halves. On
- *     `ok=false` the caller drops into the failure-mode path (commit
- *     2 stops with a process issue; commit 3 peels + cherry-picks).
+ *   - `{ kind: "ran", ok, ... }` — combined mode attempted. On `ok=true`
+ *     the caller renders the combined PR body and pushes both halves
+ *     as one PR. On `ok=false` the caller peels CC commits off, ships
+ *     SDK full, and cherry-picks CC onto a detached branch as a
+ *     draft (see `peelAndShipCcDraft`).
+ *
+ * Throw-safety: this function CANNOT throw out of the combined branch.
+ * If the CC core throws (iterator error, gate spawn crash, anything),
+ * we capture the anchor SHA up-front so the caller still has the
+ * information needed to peel partial commits via `git reset --hard`.
  */
 type CombinedCcOutcome =
   | { kind: "noop"; reason: string }
@@ -1602,6 +1608,13 @@ async function maybeRunCombinedCc(args: {
     return { kind: "noop", reason: decision.reason };
   }
 
+  // Capture the anchor SHA BEFORE any CC work happens. This is the
+  // commit the caller will reset to if the CC half fails OR throws —
+  // capturing it here (rather than relying on the core's return value)
+  // is what makes the throw-safety contract work.
+  const shaBeforeCcWork = sh("git", ["rev-parse", "HEAD"]);
+  log(`combined-mode anchor sha=${shaBeforeCcWork} (CC work starts after this)`);
+
   // Combined mode is on. Announce the combined start so the channel
   // hears that the SDK branch is about to absorb a CC parity tag-along
   // (the SDK-only start announce already went out earlier).
@@ -1621,19 +1634,47 @@ async function maybeRunCombinedCc(args: {
   // statically imports from THIS module; importing it back at the top
   // of this file would TDZ-trip cc-parity/orchestrate's `void
   // ALL_GATE_STEPS` module-level statement during the cycle.
-  const ccMod = (await import("../cc-parity/orchestrate")) as typeof import("../cc-parity/orchestrate");
+  let ccMod: typeof import("../cc-parity/orchestrate");
+  try {
+    ccMod = (await import("../cc-parity/orchestrate")) as typeof import("../cc-parity/orchestrate");
+  } catch (err) {
+    log(`WARN dynamic import of cc-parity/orchestrate failed: ${String(err)} — falling back to SDK-only`);
+    return { kind: "noop", reason: "dynamic import of cc-parity/orchestrate failed" };
+  }
 
   // Combined-mode does NOT use the standalone CC announce stream — the
   // combined orchestrator owns the channel for this firing. The CC
   // core function still logs to the cron log as usual.
-  const ccResult = await ccMod.runCcParityOnExistingBranch({
-    prevCcVersion: decision.prevCcVersion,
-    newCcVersion: decision.newCcVersion,
-    branch: args.branch,
-    dryRun: false,
-    skipGates: args.skipGates,
-    combinedWith: { sdkPrev: args.prevSdkVersion, sdkNew: args.newSdkVersion },
-  });
+  //
+  // Wrap the core in try/catch so a runtime error (iterator crash,
+  // gate spawn failure, anything) ends in a `ran/ok:false` outcome
+  // with the anchor SHA we already have. Without this, the throw
+  // would propagate up through main()'s catch as "crashed" and the
+  // SDK PR would never ship — which is exactly the outcome the spec
+  // says we must avoid in the combined-mode failure path.
+  let ccResult: Awaited<ReturnType<typeof ccMod.runCcParityOnExistingBranch>>;
+  try {
+    ccResult = await ccMod.runCcParityOnExistingBranch({
+      prevCcVersion: decision.prevCcVersion,
+      newCcVersion: decision.newCcVersion,
+      branch: args.branch,
+      dryRun: false,
+      skipGates: args.skipGates,
+      combinedWith: { sdkPrev: args.prevSdkVersion, sdkNew: args.newSdkVersion },
+    });
+  } catch (err) {
+    const reason = err instanceof Error ? err.message : String(err);
+    log(`WARN cc-parity core threw: ${reason} — treating as ran/ok:false so SDK still ships`);
+    ccResult = {
+      ok: false,
+      budgetReason: `cc-parity core threw: ${reason}`,
+      failedSteps: [],
+      runNotesIssue: null,
+      shaBeforeCcWork,
+      changelog: "_(cc-parity core threw before changelog fetch)_",
+      summary: "",
+    };
+  }
 
   await args.announceProgress(
     buildCombinedGateResultAnnouncement({
@@ -1655,8 +1696,320 @@ async function maybeRunCombinedCc(args: {
     summary: ccResult.summary,
     budgetReason: ccResult.budgetReason,
     failedSteps: ccResult.failedSteps,
-    shaBeforeCcWork: ccResult.shaBeforeCcWork,
+    // Use the caller-captured SHA — we trust it more than the core's
+    // return value (which may have a stale value if the core threw).
+    shaBeforeCcWork,
   };
+}
+
+// ── Failure-mode peel + cherry-pick + detached draft ──────────────────
+
+/**
+ * A narrow git-runner interface scoped to the peel + cherry-pick path.
+ *
+ * Production wires this to `sh`/`shStream`. The unit test wires it to
+ * a recording mock so it can assert the exact sequence of git calls
+ * without ever spawning a subprocess.
+ *
+ * The interface deliberately covers ONLY the operations the failure
+ * path needs — the rest of the orchestrator's git plumbing (the SDK
+ * branch's own push, the eventual `pushBranch` on the SDK PR) keeps
+ * going through the real subprocess helpers, so the recorded call log
+ * in tests stays focused on the failure-mode sequence the spec names.
+ */
+export type GitRunner = {
+  /** `git log <fromSha>..HEAD --format=%H` — returns newest-first SHA list. */
+  log(fromSha: string): string[];
+  /** `git reset --hard <sha>`. */
+  resetHard(sha: string): void;
+  /** `git checkout -b <branch> origin/main`. */
+  checkoutNewBranchFromOriginMain(branch: string): void;
+  /** `git cherry-pick <sha>` — throws on conflict / non-zero exit. */
+  cherryPick(sha: string): void;
+  /** `git cherry-pick --abort` — best-effort, never throws. */
+  cherryPickAbort(): void;
+  /**
+   * `git push -u --force-with-lease origin <branch>` — throws on
+   * non-zero exit so a push rejection bubbles to the caller, who
+   * drops CC and reports.
+   */
+  pushForceWithLease(branch: string): void;
+};
+
+/** Production git runner — wires `sh`/`shStream` to the GitRunner interface. */
+export function realGitRunner(): GitRunner {
+  return {
+    log(fromSha: string): string[] {
+      const out = sh("git", ["log", `${fromSha}..HEAD`, "--format=%H"]);
+      return out
+        .split(/\r?\n/)
+        .map((s) => s.trim())
+        .filter(Boolean);
+    },
+    resetHard(sha: string): void {
+      sh("git", ["reset", "--hard", sha]);
+    },
+    checkoutNewBranchFromOriginMain(branch: string): void {
+      sh("git", ["checkout", "-b", branch, "origin/main"]);
+    },
+    cherryPick(sha: string): void {
+      const code = shStream("git", ["cherry-pick", sha]);
+      if (code !== 0) {
+        throw new Error(`git cherry-pick ${sha} exited ${code}`);
+      }
+    },
+    cherryPickAbort(): void {
+      try {
+        spawnSync("git", ["cherry-pick", "--abort"], { cwd: ROOT });
+      } catch {
+        // Best-effort — if abort itself fails the operator can resolve
+        // by hand. The peel path's primary job is the reset, which
+        // already succeeded by the time we'd reach this.
+      }
+    },
+    pushForceWithLease(branch: string): void {
+      const code = shStream("git", [
+        "-c",
+        "credential.helper=",
+        "-c",
+        "credential.helper=!gh auth git-credential",
+        "push",
+        "-u",
+        "--force-with-lease",
+        "origin",
+        branch,
+      ]);
+      if (code !== 0) {
+        throw new Error(`git push exited ${code} on detached cc-parity branch`);
+      }
+    },
+  };
+}
+
+/**
+ * Detached branch name for the cc-parity draft when the combined run
+ * peels CC commits off the SDK branch.
+ *
+ * The naming records both context pieces a reviewer needs at a glance:
+ * which CC version this draft covers AND which SDK firing produced it.
+ */
+export function detachedCcBranchName(args: {
+  newCcVersion: string;
+  newSdkVersion: string;
+}): string {
+  return `cc-parity/${args.newCcVersion}-detached-from-sdk-${args.newSdkVersion}`;
+}
+
+/**
+ * Peel CC commits off the SDK branch and cherry-pick them onto a
+ * fresh `cc-parity/<v>-detached-from-sdk-<sdk-v>` branch off
+ * `origin/main`. Returns the outcome the caller uses to decide whether
+ * to push + open a draft PR.
+ *
+ * Semantics (per spec + the failure-mode test):
+ *   - Capture the CC commit SHAs FIRST (`git log <shaBeforeCcWork>..HEAD`
+ *     before any reset — afterward the range is empty).
+ *   - Reverse them so the cherry-pick happens oldest-first
+ *     (`git log` is newest-first; cherry-pick wants chronological).
+ *   - `git reset --hard <shaBeforeCcWork>` — peels CC commits off the
+ *     SDK branch. The SDK working tree returns to the post-SDK-gate
+ *     state; SDK ships full from here.
+ *   - `git checkout -b cc-parity/<cc-v>-detached-from-sdk-<sdk-v> origin/main`.
+ *   - `git cherry-pick` each SHA in order. ANY non-zero exit (conflict
+ *     or otherwise) → `cherry-pick --abort` + return "dropped". The
+ *     caller drops CC entirely and reports via reportProcessIssueSafe;
+ *     CC state stays untouched so the standalone cron picks up next.
+ *
+ * Exported (and accepts an injectable runner) so the unit test can
+ * pin the exact sequence of git calls without spawning subprocesses.
+ */
+export type PeelOutcome =
+  | { kind: "drafted"; detachedBranch: string; ccCommitShas: string[] }
+  | { kind: "dropped"; reason: string };
+
+export function peelCcCommitsToDraftBranch(args: {
+  shaBeforeCcWork: string;
+  newSdkVersion: string;
+  newCcVersion: string;
+  runner: GitRunner;
+}): PeelOutcome {
+  // 1. Capture CC commit SHAs BEFORE the reset (range is empty afterward).
+  //    git log is newest-first; cherry-pick needs oldest-first.
+  let shasNewestFirst: string[];
+  try {
+    shasNewestFirst = args.runner.log(args.shaBeforeCcWork);
+  } catch (err) {
+    return {
+      kind: "dropped",
+      reason: `could not enumerate CC commits to peel: ${err instanceof Error ? err.message : String(err)}`,
+    };
+  }
+  const ccCommitShas = [...shasNewestFirst].reverse(); // oldest-first
+
+  if (ccCommitShas.length === 0) {
+    return {
+      kind: "dropped",
+      reason: "no CC commits to peel — the CC half produced no commits",
+    };
+  }
+
+  // 2. Reset the SDK branch to the anchor — peels CC commits off.
+  try {
+    args.runner.resetHard(args.shaBeforeCcWork);
+  } catch (err) {
+    return {
+      kind: "dropped",
+      reason: `git reset --hard failed: ${err instanceof Error ? err.message : String(err)}`,
+    };
+  }
+
+  // 3. Create the detached cc-parity branch off origin/main.
+  const detachedBranch = detachedCcBranchName({
+    newCcVersion: args.newCcVersion,
+    newSdkVersion: args.newSdkVersion,
+  });
+  try {
+    args.runner.checkoutNewBranchFromOriginMain(detachedBranch);
+  } catch (err) {
+    return {
+      kind: "dropped",
+      reason: `git checkout of ${detachedBranch} failed: ${err instanceof Error ? err.message : String(err)}`,
+    };
+  }
+
+  // 4. Cherry-pick each SHA in chronological order. Any non-zero exit
+  //    → abort + drop. We deliberately don't try to resolve conflicts
+  //    here; per the failure-mode test contract, a cherry-pick conflict
+  //    is treated identically to any other cherry-pick failure (drop
+  //    CC, report). That keeps the failure path single-branch and
+  //    matches what the test asserts.
+  for (const sha of ccCommitShas) {
+    try {
+      args.runner.cherryPick(sha);
+    } catch (err) {
+      args.runner.cherryPickAbort();
+      return {
+        kind: "dropped",
+        reason:
+          `cherry-pick of ${sha} onto ${detachedBranch} failed: ` +
+          (err instanceof Error ? err.message : String(err)),
+      };
+    }
+  }
+
+  // 5. Push the detached branch. A push rejection is treated as drop
+  //    (cherry-picks succeeded but we can't get them to origin — the
+  //    operator can recover from the local branch if needed; the SDK
+  //    PR ships and the cron channel hears the drop reason).
+  try {
+    args.runner.pushForceWithLease(detachedBranch);
+  } catch (err) {
+    return {
+      kind: "dropped",
+      reason: `push of ${detachedBranch} failed: ${err instanceof Error ? err.message : String(err)}`,
+    };
+  }
+
+  return { kind: "drafted", detachedBranch, ccCommitShas };
+}
+
+/**
+ * Render the body of the detached CC draft PR. Tells the reviewer
+ * exactly what happened: which SDK firing produced this branch, which
+ * commits were cherry-picked, what failed on the original combined
+ * branch, and what to look at first.
+ */
+export function buildDetachedCcPrBody(args: {
+  prevCcVersion: string;
+  newCcVersion: string;
+  prevSdkVersion: string;
+  newSdkVersion: string;
+  sdkPrUrl: string;
+  ccCommitShas: string[];
+  ccFailReason: string;
+  ccRunNotes: string;
+}): string {
+  const shaList = args.ccCommitShas.map((s) => `- ${s}`).join("\n");
+  // Pull what we can from the run-notes file the CC core did write —
+  // even on failure the classification section is often present.
+  const ccClassification = extractEscapedSection(args.ccRunNotes, "Changelog classification");
+  return [
+    `# CC parity \`${args.prevCcVersion}\` → \`${args.newCcVersion}\` (detached from SDK firing)`,
+    "",
+    "> ⚠️ **Draft + needs-human.** This PR was peeled off a combined SDK + CC firing whose CC half did not reach green locally. The SDK half shipped on its own PR; this branch carries the CC commits in isolation so a reviewer can take them through to landable state without blocking the SDK ship.",
+    "",
+    `**SDK PR (already opened, may already be merged):** ${args.sdkPrUrl}`,
+    `**Originating SDK upgrade:** \`${args.prevSdkVersion}\` → \`${args.newSdkVersion}\``,
+    `**CC version pair:** \`${args.prevCcVersion}\` → \`${args.newCcVersion}\``,
+    "",
+    "## Why this is detached",
+    "",
+    `The CC half of the combined firing failed: \`${args.ccFailReason}\``,
+    "",
+    "Rather than block the SDK ship, the orchestrator peeled the CC commits off and cherry-picked them onto this branch. The combined branch was reset to the SDK-only state and shipped as a normal SDK PR.",
+    "",
+    "## Cherry-picked commits (oldest-first)",
+    "",
+    shaList || "_(no commits — this should not happen; see run logs.)_",
+    "",
+    "## CC changelog classification (from the failed run)",
+    "",
+    ccClassification,
+    "",
+    "---",
+    "",
+    "<sub>Opened automatically by `scripts/sdk-update/orchestrate.ts` in combined-mode failure recovery. See `.claudius/cc-parity/run-notes/" + args.newCcVersion + ".md` for what Claude produced before the half failed.</sub>",
+  ].join("\n");
+}
+
+/**
+ * Announcement for the SDK-shipped + CC-drafted-detached outcome.
+ * Posts to the channel so reviewers see BOTH PR URLs and the reason
+ * the halves split.
+ */
+export function buildDraftDetachedAnnouncement(args: {
+  sdkPrUrl: string;
+  ccPrUrl: string;
+  prevSdkVersion: string;
+  newSdkVersion: string;
+  prevCcVersion: string;
+  newCcVersion: string;
+  reason: string;
+}): string {
+  return [
+    `⚠ **Combined firing split — SDK ${args.prevSdkVersion} → ${args.newSdkVersion} shipped, CC parity ${args.prevCcVersion} → ${args.newCcVersion} drafted separately.**`,
+    "",
+    `Reason: ${oneLine(args.reason, 600)}`,
+    "",
+    `SDK PR (ready): ${args.sdkPrUrl}`,
+    `CC draft (needs-human): ${args.ccPrUrl}`,
+  ].join("\n");
+}
+
+/**
+ * Announcement for the SDK-shipped + CC-dropped outcome (the
+ * cherry-pick or detached push failed; CC work is lost from this
+ * firing, the standalone cron will retry next tick).
+ */
+export function buildCcDroppedAnnouncement(args: {
+  sdkPrUrl: string;
+  prevSdkVersion: string;
+  newSdkVersion: string;
+  prevCcVersion: string;
+  newCcVersion: string;
+  ccFailReason: string;
+  peelFailReason: string;
+}): string {
+  return [
+    `⚠ **Combined firing — SDK ${args.prevSdkVersion} → ${args.newSdkVersion} shipped; CC parity ${args.prevCcVersion} → ${args.newCcVersion} dropped.**`,
+    "",
+    `CC half failed: ${oneLine(args.ccFailReason, 400)}`,
+    `Peel/cherry-pick also failed: ${oneLine(args.peelFailReason, 400)}`,
+    "",
+    "The standalone cc-parity cron will re-attempt this CC version on its next firing.",
+    "",
+    `SDK PR: ${args.sdkPrUrl}`,
+  ].join("\n");
 }
 
 // ── Push & PR ─────────────────────────────────────────────────────────
@@ -3007,10 +3360,16 @@ async function main(): Promise<void> {
     // 1b. Opportunistic combined-mode probe. If the cc-parity baseline
     //     is behind the published claude-code version, run the CC parity
     //     half on the same branch BEFORE we push, so the PR carries
-    //     both halves. CC failure semantics are handled below per the
-    //     combined-mode contract (commit 3 adds the peel+cherry-pick
-    //     fallback; for now a CC failure leaves the branch dirty and
-    //     files a process issue).
+    //     both halves. CC failure semantics:
+    //
+    //     - CC green: combined PR (one PR, both halves).
+    //     - CC red (or threw): peel CC commits off → ship SDK PR full;
+    //       cherry-pick CC onto detached branch as draft + needs-human
+    //       (cherry-pick failure → drop CC + report).
+    //
+    //     In all CC-fail paths the SDK PR ships — the spec is explicit
+    //     about that. See `peelCcCommitsToDraftBranch` for the actual
+    //     git plumbing (injectable git-runner so it's unit-testable).
     const combined = await maybeRunCombinedCc({
       prevSdkVersion: prevVersion,
       newSdkVersion: newVersion,
@@ -3018,22 +3377,43 @@ async function main(): Promise<void> {
       skipGates,
       announceProgress,
     });
+
+    // `combinedOutcome` is the explicit state-machine tracker for the
+    // finally block — derived state can't carry the three CC outcomes
+    // (success / drafted / dropped) cleanly. Default to undecided here
+    // and pin it at each branch below.
+    let combinedOutcome:
+      | "combined-success"
+      | "combined-draft"
+      | "sdk-only-success"
+      | "failure" = "failure";
+
+    // Peel outcome — carried out of the failure-mode branch so the
+    // draft-detached announce + CC draft PR open can happen AFTER the
+    // SDK PR ships (so the announce has both URLs).
+    let peelOutcome: PeelOutcome | null = null;
     if (combined.kind === "ran" && !combined.ok) {
-      // CC half failed. In commit 2 (no peel yet) we file a process
-      // issue and stop — the branch is left in its half-done state for
-      // the operator to recover. Commit 3 replaces this with the peel
-      // + cherry-pick path that ships SDK full + drafts CC separately.
-      await reportProcessIssueSafe({
-        kind: "combined CC parity half failed",
-        reason:
-          combined.budgetReason ??
-          `cc-parity gate failed: ${combined.failedSteps.join(", ") || "unknown"}`,
-        prevVersion,
-        newVersion,
-        branch,
-        prUrl: null,
+      log(
+        `combined CC half failed (${combined.budgetReason ?? "no reason given"}) — ` +
+          `peeling CC commits and shipping SDK PR full`,
+      );
+      peelOutcome = peelCcCommitsToDraftBranch({
+        shaBeforeCcWork: combined.shaBeforeCcWork,
+        newSdkVersion: newVersion,
+        newCcVersion: combined.newCcVersion,
+        runner: realGitRunner(),
       });
-      return;
+      // After the peel:
+      //   - "drafted": detached cc-parity branch is on origin; we'll
+      //     open the draft PR after the SDK PR ships.
+      //   - "dropped": CC work is lost from this firing; SDK still ships.
+      // Either way, we switch the SDK branch back to its name so the
+      // SDK push below targets the right ref.
+      try {
+        sh("git", ["checkout", branch]);
+      } catch (err) {
+        log(`WARN could not checkout SDK branch ${branch} after peel: ${String(err)} — SDK push may fail`);
+      }
     }
 
     // 2. Local green → push the branch.
@@ -3048,6 +3428,17 @@ async function main(): Promise<void> {
     if (isCombined) {
       // Record the CC version so the finally block can patch CC state
       // in lockstep with the SDK state when `shipped` flips true below.
+      combinedCcVersion = combined.newCcVersion;
+    } else if (
+      combined.kind === "ran" &&
+      !combined.ok &&
+      peelOutcome?.kind === "drafted"
+    ) {
+      // CC half failed AND we successfully peeled to a detached
+      // branch. Even though the combined PR isn't going to exist, the
+      // CC version IS handled this firing — record it now so the
+      // finally block knows to patch CC state in `combined-draft` mode
+      // alongside the SDK ship below.
       combinedCcVersion = combined.newCcVersion;
     }
     const body = isCombined
@@ -3146,6 +3537,13 @@ async function main(): Promise<void> {
         // Label may not be present — fine.
       }
       shipped = true;
+
+      // Set the outcome now so the finally block knows what to patch.
+      // The detached-draft branch below may upgrade `sdk-only-success`
+      // to `combined-draft` if the cherry-pick worked and the draft PR
+      // opened cleanly.
+      combinedOutcome = isCombined ? "combined-success" : "sdk-only-success";
+
       await announceSafe(
         isCombined
           ? buildCombinedShippedAnnouncement({
@@ -3158,6 +3556,122 @@ async function main(): Promise<void> {
           : buildShippedAnnouncement({ prUrl, newVersion, prevVersion }),
         { pin: true },
       );
+
+      // Combined-failure recovery: SDK has shipped. If we successfully
+      // peeled CC commits onto a detached branch, open the draft PR
+      // and announce both URLs. If we couldn't peel (cherry-pick or
+      // push failed), CC is dropped and we announce the drop.
+      if (
+        combined.kind === "ran" &&
+        !combined.ok &&
+        peelOutcome?.kind === "drafted"
+      ) {
+        const ccRunNotes = existsSync(ccRunNotesPath(combined.newCcVersion))
+          ? readFileSync(ccRunNotesPath(combined.newCcVersion), "utf8")
+          : "";
+        const ccPrBody = buildDetachedCcPrBody({
+          prevCcVersion: combined.prevCcVersion,
+          newCcVersion: combined.newCcVersion,
+          prevSdkVersion: prevVersion,
+          newSdkVersion: newVersion,
+          sdkPrUrl: prUrl,
+          ccCommitShas: peelOutcome.ccCommitShas,
+          ccFailReason:
+            combined.budgetReason ??
+            `cc-parity gate failed: ${combined.failedSteps.join(", ") || "unknown"}`,
+          ccRunNotes,
+        });
+        // We promote `combinedOutcome` to "combined-draft" the moment
+        // the cherry-pick has succeeded onto the detached branch on
+        // origin — regardless of whether the subsequent PR-open
+        // succeeds. The CC version IS handled this firing in either
+        // shape: the branch is on origin and a reviewer can open the
+        // PR by hand if `gh` fails. So combined-draft (which bumps
+        // CC state) is the correct outcome.
+        //
+        // The eslint-disable below silences a false-positive
+        // "assigned but never used" — the value IS read in the
+        // `finally` block at the bottom of `main()`; ESLint's flow
+        // analysis loses track across the try/catch + await boundary
+        // (see commit message).
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        combinedOutcome = "combined-draft";
+        let ccPrUrl: string | null = null;
+        try {
+          const ccPr = openPrWithTitle({
+            branch: peelOutcome.detachedBranch,
+            title: `feat(cc-parity): claude-code ${combined.prevCcVersion} → ${combined.newCcVersion} (detached from SDK ${newVersion})`,
+            body: ccPrBody,
+            draft: true,
+          });
+          ccPrUrl = ccPr.url;
+          log(`detached cc-parity draft PR opened: ${ccPrUrl}`);
+          await announceSafe(
+            buildDraftDetachedAnnouncement({
+              sdkPrUrl: prUrl,
+              ccPrUrl,
+              prevSdkVersion: prevVersion,
+              newSdkVersion: newVersion,
+              prevCcVersion: combined.prevCcVersion,
+              newCcVersion: combined.newCcVersion,
+              reason:
+                combined.budgetReason ??
+                `cc-parity gate failed: ${combined.failedSteps.join(", ") || "unknown"}`,
+            }),
+            { pin: false },
+          );
+        } catch (err) {
+          // Opening the detached draft PR failed AFTER cherry-pick
+          // succeeded. The branch is on origin; the operator can open
+          // the PR by hand. CC state still gets bumped (above) since
+          // the version is handled — just via a branch with no PR.
+          log(
+            `WARN detached cc-parity PR open failed: ${String(err)} — branch ${peelOutcome.detachedBranch} is on origin; operator can open the PR manually`,
+          );
+          await reportProcessIssueSafe({
+            kind: "combined CC parity detached PR open failed",
+            reason: err instanceof Error ? err.message : String(err),
+            prevVersion,
+            newVersion,
+            branch: peelOutcome.detachedBranch,
+            prUrl,
+          });
+        }
+      } else if (combined.kind === "ran" && !combined.ok && peelOutcome?.kind === "dropped") {
+        // CC half failed AND we couldn't even peel/cherry-pick it onto
+        // a separate branch. SDK still ships. CC state stays untouched
+        // — the standalone cron will retry on its next firing.
+        //
+        // No mutation needed here: `combinedOutcome` is already
+        // "sdk-only-success" (set by the SDK-ship branch above when
+        // `isCombined=false`), and `combinedCcVersion` was never
+        // populated for the dropped path (the only assignments to it
+        // are in `isCombined` and `drafted` branches).
+        await announceSafe(
+          buildCcDroppedAnnouncement({
+            sdkPrUrl: prUrl,
+            prevSdkVersion: prevVersion,
+            newSdkVersion: newVersion,
+            prevCcVersion: combined.prevCcVersion,
+            newCcVersion: combined.newCcVersion,
+            ccFailReason:
+              combined.budgetReason ??
+              `cc-parity gate failed: ${combined.failedSteps.join(", ") || "unknown"}`,
+            peelFailReason: peelOutcome.reason,
+          }),
+          { pin: false },
+        );
+        // Also file a process issue so the failure has a permanent
+        // home outside the chat channel.
+        await reportProcessIssueSafe({
+          kind: "combined CC parity dropped (peel/cherry-pick failed)",
+          reason: `CC: ${combined.budgetReason ?? "gate failed"}; peel: ${peelOutcome.reason}`,
+          prevVersion,
+          newVersion,
+          branch,
+          prUrl,
+        });
+      }
     } else {
       // Fix loop exhausted (or a fix run couldn't reach local green).
       // Leave the PR as a draft + needs-human and file a process issue.
@@ -3192,18 +3706,14 @@ async function main(): Promise<void> {
     }).catch(() => {});
     throw err;
   } finally {
-    // State coordination: the `decideCombinedStateUpdates` helper
-    // decides which state files to patch based on what actually
-    // happened on this firing. Combined success → both SDK + CC
-    // states. SDK-only success → only SDK. Failure → only the
-    // inFlight clear.
-    const mode: "combined-success" | "sdk-only-success" | "failure" = !shipped
-      ? "failure"
-      : combinedCcVersion
-        ? "combined-success"
-        : "sdk-only-success";
+    // State coordination: the explicit `combinedOutcome` variable
+    // carries the three-way CC outcome (success / drafted / dropped)
+    // that derived state from `shipped` + `combinedCcVersion` can't
+    // express. Each decision point above pins `combinedOutcome` to one
+    // of the four modes; the default is "failure" so an early throw
+    // before any decision still patches only the inFlight clear.
     const patches = decideCombinedStateUpdates({
-      mode,
+      mode: combinedOutcome,
       newSdkVersion: newVersion,
       newCcVersion: combinedCcVersion,
     });
@@ -3213,7 +3723,7 @@ async function main(): Promise<void> {
     }
     if (prUrl) {
       log(
-        `final state: shipped=${shipped} mode=${mode} pr=${prUrl}` +
+        `final state: shipped=${shipped} mode=${combinedOutcome} pr=${prUrl}` +
           (combinedCcVersion ? ` ccVersion=${combinedCcVersion}` : ""),
       );
     }

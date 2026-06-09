@@ -1,14 +1,20 @@
 import { describe, expect, test } from "vitest";
 
 import {
+  buildCcDroppedAnnouncement,
   buildCombinedGateResultAnnouncement,
   buildCombinedOpenedAnnouncement,
   buildCombinedScreenshotsBlock,
   buildCombinedShippedAnnouncement,
   buildCombinedStartAnnouncement,
+  buildDetachedCcPrBody,
+  buildDraftDetachedAnnouncement,
   decideCombinedStateUpdates,
+  detachedCcBranchName,
   extractEscapedSection,
+  peelCcCommitsToDraftBranch,
   renderCombinedPrBody,
+  type GitRunner,
 } from "@/scripts/sdk-update/orchestrate";
 
 /**
@@ -402,5 +408,241 @@ describe("buildCombinedShippedAnnouncement", () => {
     expect(out).toContain("has shipped to Claudius");
     expect(out).toContain("SDK 0.3.141 → 0.3.142");
     expect(out).toContain("CC parity 1.0.39 → 1.0.40");
+  });
+});
+
+// ── Failure-mode peel + cherry-pick ───────────────────────────────────
+
+describe("detachedCcBranchName", () => {
+  test("encodes both CC and SDK versions for at-a-glance triage", () => {
+    expect(
+      detachedCcBranchName({ newCcVersion: "1.0.40", newSdkVersion: "0.3.142" }),
+    ).toBe("cc-parity/1.0.40-detached-from-sdk-0.3.142");
+  });
+});
+
+/**
+ * Recording GitRunner mock: every method appends an entry to `calls`
+ * and returns a configured result (or throws if the caller asked for
+ * that). Lets tests assert the exact sequence of git operations the
+ * failure-mode path issues, without spawning any subprocess.
+ */
+type CallLog = string[];
+function recordingRunner(opts: {
+  logResult?: string[];
+  cherryPickFailsOn?: string;
+  pushFails?: boolean;
+}): { runner: GitRunner; calls: CallLog } {
+  const calls: CallLog = [];
+  const runner: GitRunner = {
+    log(fromSha) {
+      calls.push(`log ${fromSha}`);
+      return opts.logResult ?? [];
+    },
+    resetHard(sha) {
+      calls.push(`reset --hard ${sha}`);
+    },
+    checkoutNewBranchFromOriginMain(branch) {
+      calls.push(`checkout -b ${branch} origin/main`);
+    },
+    cherryPick(sha) {
+      calls.push(`cherry-pick ${sha}`);
+      if (opts.cherryPickFailsOn === sha) {
+        throw new Error(`mock cherry-pick conflict on ${sha}`);
+      }
+    },
+    cherryPickAbort() {
+      calls.push("cherry-pick --abort");
+    },
+    pushForceWithLease(branch) {
+      calls.push(`push -u --force-with-lease origin ${branch}`);
+      if (opts.pushFails) {
+        throw new Error("mock push rejection");
+      }
+    },
+  };
+  return { runner, calls };
+}
+
+describe("peelCcCommitsToDraftBranch", () => {
+  const base = {
+    shaBeforeCcWork: "anchor-sha",
+    newSdkVersion: "0.3.142",
+    newCcVersion: "1.0.40",
+  };
+  const expectedBranch = "cc-parity/1.0.40-detached-from-sdk-0.3.142";
+
+  test("happy path: log → reset → checkout → cherry-pick (oldest-first) → push", () => {
+    // `git log` is newest-first; the failure path must reverse to
+    // cherry-pick chronologically (oldest first). Two commits A then
+    // B chronologically → git log returns [B, A] → cherry-pick order
+    // must be [A, B].
+    const { runner, calls } = recordingRunner({
+      logResult: ["sha-B-newest", "sha-A-oldest"],
+    });
+
+    const out = peelCcCommitsToDraftBranch({ ...base, runner });
+
+    expect(out.kind).toBe("drafted");
+    if (out.kind === "drafted") {
+      expect(out.detachedBranch).toBe(expectedBranch);
+      // The returned SHA list is oldest-first.
+      expect(out.ccCommitShas).toEqual(["sha-A-oldest", "sha-B-newest"]);
+    }
+    expect(calls).toEqual([
+      "log anchor-sha",
+      "reset --hard anchor-sha",
+      `checkout -b ${expectedBranch} origin/main`,
+      "cherry-pick sha-A-oldest",
+      "cherry-pick sha-B-newest",
+      `push -u --force-with-lease origin ${expectedBranch}`,
+    ]);
+  });
+
+  test("captures SHAs BEFORE the reset (calling order, not just operations)", () => {
+    // Regression guard for the "reset before log" silent-bug:
+    // git log <sha>..HEAD is empty AFTER the reset, so capture must
+    // happen first. We assert the index of `log` is strictly less
+    // than `reset --hard`.
+    const { runner, calls } = recordingRunner({
+      logResult: ["sha-one"],
+    });
+    peelCcCommitsToDraftBranch({ ...base, runner });
+    const logIdx = calls.findIndex((c) => c.startsWith("log "));
+    const resetIdx = calls.findIndex((c) => c.startsWith("reset --hard "));
+    expect(logIdx).toBeGreaterThanOrEqual(0);
+    expect(resetIdx).toBeGreaterThan(logIdx);
+  });
+
+  test("drops if cherry-pick fails AND aborts the cherry-pick (does not push)", () => {
+    const { runner, calls } = recordingRunner({
+      logResult: ["sha-B-newest", "sha-A-oldest"],
+      cherryPickFailsOn: "sha-A-oldest", // first cherry-pick in order
+    });
+
+    const out = peelCcCommitsToDraftBranch({ ...base, runner });
+
+    expect(out.kind).toBe("dropped");
+    if (out.kind === "dropped") {
+      expect(out.reason).toMatch(/cherry-pick of sha-A-oldest/);
+    }
+    // Must abort, must NOT continue to subsequent cherry-picks, must
+    // NOT push the half-applied detached branch.
+    expect(calls).toEqual([
+      "log anchor-sha",
+      "reset --hard anchor-sha",
+      `checkout -b ${expectedBranch} origin/main`,
+      "cherry-pick sha-A-oldest",
+      "cherry-pick --abort",
+    ]);
+    expect(calls).not.toContain("cherry-pick sha-B-newest");
+    expect(calls.find((c) => c.startsWith("push "))).toBeUndefined();
+  });
+
+  test("drops if the detached push is rejected (does not patch CC state)", () => {
+    const { runner, calls } = recordingRunner({
+      logResult: ["sha-one"],
+      pushFails: true,
+    });
+    const out = peelCcCommitsToDraftBranch({ ...base, runner });
+    expect(out.kind).toBe("dropped");
+    if (out.kind === "dropped") {
+      expect(out.reason).toMatch(/push of /);
+    }
+    // The push attempt should still be in the call log.
+    expect(calls).toContain(`push -u --force-with-lease origin ${expectedBranch}`);
+  });
+
+  test("drops cleanly when the SHA list is empty (no CC commits to peel)", () => {
+    const { runner, calls } = recordingRunner({ logResult: [] });
+    const out = peelCcCommitsToDraftBranch({ ...base, runner });
+    expect(out.kind).toBe("dropped");
+    if (out.kind === "dropped") {
+      expect(out.reason).toMatch(/no CC commits to peel/);
+    }
+    // Crucial: we MUST NOT touch the working tree if there's nothing
+    // to peel — no reset, no checkout, no push.
+    expect(calls).toEqual(["log anchor-sha"]);
+  });
+});
+
+// ── Detached-PR body + dual-PR announcement ───────────────────────────
+
+describe("buildDetachedCcPrBody", () => {
+  const base = {
+    prevCcVersion: "1.0.39",
+    newCcVersion: "1.0.40",
+    prevSdkVersion: "0.3.141",
+    newSdkVersion: "0.3.142",
+    sdkPrUrl: "https://github.com/o/r/pull/100",
+    ccCommitShas: ["sha-A", "sha-B"],
+    ccFailReason: "wall-clock budget exhausted",
+    ccRunNotes: "## Changelog classification\n\n- [B] feature Y\n",
+  };
+
+  test("names the SDK PR + version ranges + cherry-picked SHAs", () => {
+    const out = buildDetachedCcPrBody(base);
+    expect(out).toContain("CC parity `1.0.39` → `1.0.40`");
+    expect(out).toContain("https://github.com/o/r/pull/100");
+    expect(out).toContain("`0.3.141` → `0.3.142`");
+    expect(out).toContain("- sha-A");
+    expect(out).toContain("- sha-B");
+    expect(out).toMatch(/draft \+ needs-human/i);
+  });
+
+  test("surfaces the CC failure reason verbatim", () => {
+    const out = buildDetachedCcPrBody(base);
+    expect(out).toContain("wall-clock budget exhausted");
+  });
+
+  test("inlines the CC classification section from the run-notes file (escaped extractor)", () => {
+    const out = buildDetachedCcPrBody(base);
+    expect(out).toContain("- [B] feature Y");
+  });
+
+  test("degrades gracefully when the CC run-notes is empty", () => {
+    const out = buildDetachedCcPrBody({ ...base, ccRunNotes: "" });
+    // Missing section comes through as the standard placeholder.
+    expect(out).toContain("did not include a");
+  });
+});
+
+describe("buildDraftDetachedAnnouncement", () => {
+  test("names BOTH PR URLs + the failure reason", () => {
+    const out = buildDraftDetachedAnnouncement({
+      sdkPrUrl: "https://github.com/o/r/pull/100",
+      ccPrUrl: "https://github.com/o/r/pull/101",
+      prevSdkVersion: "0.3.141",
+      newSdkVersion: "0.3.142",
+      prevCcVersion: "1.0.39",
+      newCcVersion: "1.0.40",
+      reason: "cc-parity gate failed: e2e",
+    });
+    expect(out).toContain("Combined firing split");
+    expect(out).toContain("SDK 0.3.141 → 0.3.142");
+    expect(out).toContain("CC parity 1.0.39 → 1.0.40");
+    expect(out).toContain("https://github.com/o/r/pull/100");
+    expect(out).toContain("https://github.com/o/r/pull/101");
+    expect(out).toContain("cc-parity gate failed: e2e");
+  });
+});
+
+describe("buildCcDroppedAnnouncement", () => {
+  test("names the SDK PR + the two failure reasons", () => {
+    const out = buildCcDroppedAnnouncement({
+      sdkPrUrl: "https://github.com/o/r/pull/100",
+      prevSdkVersion: "0.3.141",
+      newSdkVersion: "0.3.142",
+      prevCcVersion: "1.0.39",
+      newCcVersion: "1.0.40",
+      ccFailReason: "gate failed",
+      peelFailReason: "cherry-pick conflict on sha-A",
+    });
+    expect(out).toContain("Combined firing");
+    expect(out).toContain("CC parity 1.0.39 → 1.0.40 dropped");
+    expect(out).toContain("CC half failed: gate failed");
+    expect(out).toContain("Peel/cherry-pick also failed: cherry-pick conflict on sha-A");
+    expect(out).toContain("https://github.com/o/r/pull/100");
+    expect(out).toContain("standalone cc-parity cron will re-attempt");
   });
 });
