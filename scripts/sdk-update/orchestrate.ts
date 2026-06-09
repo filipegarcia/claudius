@@ -204,6 +204,78 @@ function sh(cmd: string, args: string[], opts: SpawnOptions = {}): string {
   return (result.stdout ?? "").toString().trim();
 }
 
+/**
+ * Run a command, stream stdout+stderr to the cron log in real time AND
+ * capture the last `tailLines` lines so the orchestrator can include
+ * them in a draft PR body or a GitHub issue body when the command fails.
+ *
+ * The motivation: when `bun run test:e2e` (or lint/build/unit) failed
+ * under the original `shStream`, the failure output went only to cron's
+ * inherited stdio — the orchestrator filed a GitHub issue with just
+ * "kind=local gates failed" and no tail, so the operator had to ssh
+ * onto the cron host and tail `cron.log` to see WHICH tests failed.
+ * Capturing the tail here means the issue + the draft PR body carry the
+ * actionable detail directly.
+ *
+ * Why async: `spawnSync` either inherits (loses output) or pipes (no
+ * live streaming until exit). `spawn` lets us tee each chunk to
+ * console.* AND a ring buffer so the cron tail still feels live during
+ * a 5-minute e2e run, AND the captured tail survives for the issue body.
+ *
+ * The ring buffer is bounded at 4×tailLines so memory stays reasonable
+ * even if a runaway test prints megabytes of logs before failing.
+ */
+async function shStreamCapture(
+  cmd: string,
+  args: string[],
+  opts: SpawnOptions = {},
+  tailLines = 80,
+): Promise<{ code: number; tail: string }> {
+  const { spawn: childSpawn } = await import("node:child_process");
+  return new Promise((resolve) => {
+    const child = childSpawn(cmd, args, {
+      cwd: ROOT,
+      stdio: ["ignore", "pipe", "pipe"],
+      ...opts,
+    });
+    const lines: string[] = [];
+    let pending = "";
+    const onChunk =
+      (stream: NodeJS.WriteStream) =>
+      (chunk: Buffer | string): void => {
+        const text =
+          typeof chunk === "string" ? chunk : chunk.toString("utf8");
+        stream.write(text);
+        // Reassemble line-wise so a chunk that ends mid-line doesn't
+        // create two ring-buffer entries.
+        pending += text;
+        const split = pending.split(/\r?\n/);
+        pending = split.pop() ?? "";
+        for (const ln of split) lines.push(ln);
+        // Bound memory at 4×tailLines; once we exceed it, trim the head
+        // back to 2×tailLines so we're not trimming on every chunk.
+        if (lines.length > tailLines * 4) {
+          lines.splice(0, lines.length - tailLines * 2);
+        }
+      };
+    child.stdout?.on("data", onChunk(process.stdout));
+    child.stderr?.on("data", onChunk(process.stderr));
+    child.on("close", (code) => {
+      // Flush any trailing partial line so the last test failure isn't
+      // silently dropped from the tail.
+      if (pending) lines.push(pending);
+      const tail = lines.slice(-tailLines).join("\n");
+      resolve({ code: code ?? -1, tail });
+    });
+    child.on("error", (err) => {
+      // spawn failures (e.g. command not found) get surfaced in-line so
+      // the tail explains WHY the step failed even without exec output.
+      lines.push(`(shStreamCapture spawn error: ${err.message})`);
+      resolve({ code: -1, tail: lines.slice(-tailLines).join("\n") });
+    });
+  });
+}
+
 /** Same as `sh` but inherits stdio so the user sees streaming output. */
 function shStream(cmd: string, args: string[], opts: SpawnOptions = {}): number {
   const result = spawnSync(cmd, args, {
@@ -899,6 +971,14 @@ export type GateResult = {
   step: GateStep;
   ok: boolean;
   skipped?: boolean;
+  /**
+   * Last N lines of stdout+stderr from the command. Populated for every
+   * non-skipped step (so a green step can still be read for diagnostic
+   * context if a later step's failure references it). Empty on skipped
+   * steps. The downstream `buildGateFailureBanner` reads this to render
+   * the actionable tail into the PR body / issue extras.
+   */
+  tailOutput?: string;
 };
 
 export const ALL_GATE_STEPS: readonly GateStep[] = ["lint", "unit", "build", "e2e"];
@@ -922,7 +1002,7 @@ export function parseSkipGates(raw: string | undefined): Set<GateStep> {
   return out;
 }
 
-export function runGate(skip: Set<GateStep>): GateResult[] {
+export async function runGate(skip: Set<GateStep>): Promise<GateResult[]> {
   const steps: Array<{ step: GateStep; cmd: string; args: string[] }> = [
     { step: "lint", cmd: "bun", args: ["run", "lint"] },
     { step: "unit", cmd: "bun", args: ["run", "test"] },
@@ -942,13 +1022,81 @@ export function runGate(skip: Set<GateStep>): GateResult[] {
       continue;
     }
     log(`gate: ${s.step}`);
-    const code = shStream(s.cmd, s.args);
-    out.push({ step: s.step, ok: code === 0 });
+    // shStreamCapture streams to the cron log AND retains the last 80
+    // lines so a failure can be surfaced in the GitHub issue + draft PR
+    // body. e2e is the most useful target — Playwright's tail names the
+    // failing tests + file:line, which is exactly what an operator needs
+    // to debug without ssh'ing onto the cron host.
+    const { code, tail } = await shStreamCapture(s.cmd, s.args);
+    out.push({ step: s.step, ok: code === 0, tailOutput: tail });
     if (code !== 0) {
       log(`gate: ${s.step} FAILED (exit ${code})`);
     }
   }
   return out;
+}
+
+/**
+ * Format a gate's failed steps into a markdown block suitable for
+ * embedding in BOTH a draft PR body (via `{{BUDGET_STATUS}}`) and a
+ * GitHub issue body (via the `extras` array on `buildRunIssue`).
+ *
+ * The motivation: before this, a local-gate failure filed a one-line
+ * "kind=local gates failed" issue and left the operator to ssh into the
+ * cron host to find out WHICH tests failed. With the tail captured per
+ * step in `GateResult.tailOutput`, we can paste the actionable failure
+ * detail straight into both surfaces — issue reviewer + PR reviewer see
+ * exactly the same content the cron log carried, no separate trip.
+ *
+ * Output shape: one collapsible `<details>` per failed step, with the
+ * tail inside a fenced code block. Collapsing keeps the issue body
+ * scannable when multiple gates failed (e.g. lint AND e2e). When no
+ * step failed (all green or all skipped), returns "" — callers can
+ * pass the result through unconditionally.
+ *
+ * Exported for unit tests.
+ */
+export function buildGateFailureBanner(gate: GateResult[]): string {
+  const failed = gate.filter((g) => !g.ok && !g.skipped);
+  if (failed.length === 0) return "";
+
+  // Map the gate-step enum to the command that produced its output, so
+  // the banner names what the reviewer would type to reproduce.
+  const cmd = (step: GateStep): string => {
+    switch (step) {
+      case "lint":
+        return "bun run lint";
+      case "unit":
+        return "bun run test";
+      case "build":
+        return "bun run build";
+      case "e2e":
+        return "bun run test:e2e";
+    }
+  };
+
+  const lines: string[] = [
+    "> ⚠️ **Local gate failed — opened as draft with `needs-human`.**",
+    ">",
+    "> Claude returned cleanly but the post-Claude gate suite found failures. The branch carries Claude's work as-is. Pull the branch locally, fix the failures (often a flaky test or a missed migration), push, and mark ready — or re-run via `make sdk-update-fix-pr PR=<n>` to let Claude iterate.",
+    "",
+    `**Failed steps:** ${failed.map((f) => `\`${f.step}\``).join(", ")}`,
+    "",
+  ];
+  for (const step of failed) {
+    const tail = step.tailOutput?.trim() || "_(no output captured for this step)_";
+    lines.push(
+      `<details><summary><strong>${step.step}</strong> — <code>${cmd(step.step)}</code> (click to expand tail)</summary>`,
+      "",
+      "```",
+      tail,
+      "```",
+      "",
+      "</details>",
+      "",
+    );
+  }
+  return lines.join("\n");
 }
 
 // ── Run-notes & PR body ───────────────────────────────────────────────
@@ -3034,7 +3182,7 @@ async function runFixPass(
       ` wall=${Math.round(claudeResult.wallMs / 1000)}s`,
   );
 
-  const gate = runGate(skipGates);
+  const gate = await runGate(skipGates);
   const allGreen = gate.every((g) => g.ok);
   const failedSteps = gate.filter((g) => !g.ok).map((g) => g.step);
   log(
@@ -3070,6 +3218,14 @@ async function reportProcessIssueSafe(args: {
   newVersion: string;
   branch: string | null;
   prUrl: string | null;
+  /**
+   * Additional markdown sections appended to the issue body / comment.
+   * The gate-failure path uses this to embed `buildGateFailureBanner`
+   * (per-step tail output in `<details>` blocks) so the reviewer can
+   * see WHICH tests failed and their assertion messages without ssh'ing
+   * onto the cron host. Empty / omitted = today's brief issue shape.
+   */
+  extras?: string[];
 }): Promise<void> {
   const issueUrl = fileOrCommentRunIssueSafe({
     prevVersion: args.prevVersion,
@@ -3078,6 +3234,7 @@ async function reportProcessIssueSafe(args: {
     reason: args.reason,
     branch: args.branch,
     prUrl: args.prUrl,
+    extras: args.extras,
   });
 
   const channelMsg = [
@@ -3386,7 +3543,7 @@ async function main(): Promise<void> {
       buildTestingAnnouncement({ prevVersion, newVersion }),
     );
 
-    const gate = runGate(skipGates);
+    const gate = await runGate(skipGates);
     const allGreen = gate.every((g) => g.ok);
     log(`gate result: ${gate.map((g) => `${g.step}=${g.skipped ? "skip" : g.ok ? "ok" : "FAIL"}`).join(" ")}`);
 
@@ -3472,21 +3629,83 @@ async function main(): Promise<void> {
     // ready when green. Any unrecoverable snag files a GitHub issue and
     // pings the community channel.
 
-    // 1. Push ONLY when the local gate is green. A red local tree never
-    //    reaches origin; we file a process issue + ping the channel and
-    //    stop. (`allGreen`/`runNotesIssue` were computed above; reuse
-    //    `budgetReason` as the human-readable cause.)
+    // 1. Local gate outcome.
+    //
+    //    Originally we returned early on a red local gate and the
+    //    operator was left with a one-line "kind=local gates failed"
+    //    issue and no PR — no way to see WHICH test failed without
+    //    ssh'ing to the cron host to tail `cron.log`.
+    //
+    //    Now: a red local gate ALSO ships Claude's work as a draft +
+    //    needs-human PR, with the per-step gate tail embedded in the
+    //    body via `buildGateFailureBanner`. The same banner goes into
+    //    the GitHub issue's body so the reviewer gets the actionable
+    //    detail in BOTH surfaces. The operator can then either fix the
+    //    branch by hand or re-run via `make sdk-update-fix-pr PR=<n>`
+    //    to let Claude iterate.
+    //
+    //    Failure mode for the draft-PR-open path itself (push fails,
+    //    `gh pr create` fails, etc.): we log + fall through to the
+    //    issue-only behavior so an operator still hears about the
+    //    underlying gate failure.
     const localGreen = allGreen && !runNotesIssue;
     if (!localGreen) {
       const reason = budgetReason ?? "local gate not green";
-      log(`local gate NOT green (${reason}) — not pushing; filing process issue`);
+      const gateBanner = buildGateFailureBanner(gate);
+      log(`local gate NOT green (${reason}) — opening as draft + filing process issue with tail output`);
+
+      let draftPrUrl: string | null = null;
+      try {
+        pushBranch(branch);
+        const draftBody = renderPrBody({
+          branch,
+          prevVersion,
+          newVersion,
+          changelog,
+          budgetWarning: gateBanner,
+        });
+        const draftPr = openPr({
+          branch,
+          newVersion,
+          prevVersion,
+          body: draftBody,
+          draft: true,
+        });
+        draftPrUrl = draftPr.url;
+        log(`draft PR opened: ${draftPrUrl}`);
+        await announceSafe(
+          buildOpenedAnnouncement({
+            prUrl: draftPrUrl,
+            prevVersion,
+            newVersion,
+            created: draftPr.created,
+            draft: true,
+            reason,
+          }),
+          { pin: false },
+        );
+      } catch (err) {
+        // Push or PR-open failed. The gate-fail issue below still
+        // surfaces the actionable detail; the operator has to inspect
+        // the local branch on the cron host this one time.
+        log(
+          `WARN could not push/open draft PR after local gate failure: ${err instanceof Error ? err.message : String(err)} — falling back to issue-only`,
+        );
+      }
+
       await reportProcessIssueSafe({
         kind: "local gates failed",
         reason,
         prevVersion,
         newVersion,
         branch,
-        prUrl: null,
+        prUrl: draftPrUrl,
+        // The banner duplicates content already in the PR body when the
+        // draft-PR open path succeeded, but it's exactly what makes the
+        // GitHub issue actionable on its own (e.g. when the operator
+        // hits the issue from a notification and wants to know what
+        // broke without navigating to the PR).
+        extras: gateBanner ? [gateBanner] : undefined,
       });
       return;
     }

@@ -5,6 +5,7 @@ import {
   buildChangelogAnnouncement,
   buildFixResultAnnouncement,
   buildFixStartAnnouncement,
+  buildGateFailureBanner,
   buildGateResultAnnouncement,
   buildImplementationAnnouncement,
   buildOpenedAnnouncement,
@@ -947,5 +948,97 @@ describe("buildRunIssue", () => {
     expect(commentBody).toContain("Another failure");
     expect(commentBody).toContain(base.reason);
     expect(commentBody).not.toEqual(body);
+  });
+});
+
+// ── buildGateFailureBanner ────────────────────────────────────────────
+
+describe("buildGateFailureBanner", () => {
+  test("returns empty string when no step failed", () => {
+    // All-green gate → no banner to render. Callers can pass the result
+    // straight through to `{{BUDGET_STATUS}}` / issue extras
+    // unconditionally without a `?:` guard.
+    expect(
+      buildGateFailureBanner([
+        { step: "lint", ok: true, tailOutput: "tail" },
+        { step: "unit", ok: true, tailOutput: "tail" },
+      ]),
+    ).toBe("");
+  });
+
+  test("skipped steps don't trigger a banner", () => {
+    // A step skipped via --skip-gates is marked `ok: true, skipped:
+    // true`. We treat skipped as not-a-failure for the banner so an
+    // operator running locally with SKIP=e2e doesn't get a banner
+    // saying "e2e failed".
+    expect(
+      buildGateFailureBanner([
+        { step: "lint", ok: true, tailOutput: "tail" },
+        { step: "e2e", ok: true, skipped: true },
+      ]),
+    ).toBe("");
+  });
+
+  test("single failed step renders one collapsible block with the tail", () => {
+    const out = buildGateFailureBanner([
+      { step: "lint", ok: true, tailOutput: "all green" },
+      { step: "unit", ok: true, tailOutput: "all green" },
+      { step: "build", ok: true, tailOutput: "all green" },
+      {
+        step: "e2e",
+        ok: false,
+        tailOutput:
+          "  3 failed\n    [chromium] › tests/e2e/model-picker.spec.ts:253:7 ‹ clicking a model POSTs the new value",
+      },
+    ]);
+    // Headline banner with the heads-up that we drafted + need-human'd.
+    expect(out).toContain("Local gate failed");
+    expect(out).toContain("needs-human");
+    // Lists which step failed.
+    expect(out).toContain("`e2e`");
+    // Names the actual command so the reviewer can reproduce.
+    expect(out).toContain("bun run test:e2e");
+    // Embeds the captured tail in a collapsible `<details>` so the
+    // banner stays scannable even with multi-screen tails.
+    expect(out).toContain("<details>");
+    expect(out).toContain("model-picker.spec.ts:253:7");
+    // Wraps the tail in a fenced code block so GH renders it
+    // verbatim (no markdown interpretation of test-name punctuation).
+    expect(out).toContain("```");
+  });
+
+  test("multiple failed steps each get their own collapsible block", () => {
+    const out = buildGateFailureBanner([
+      {
+        step: "lint",
+        ok: false,
+        tailOutput: "8:1  error  'foo' is defined but never used",
+      },
+      {
+        step: "e2e",
+        ok: false,
+        tailOutput: "1 failed\n  tests/e2e/foo.spec.ts:42",
+      },
+    ]);
+    // Both steps named in the headline list.
+    expect(out).toContain("`lint`");
+    expect(out).toContain("`e2e`");
+    // Both tails embedded.
+    expect(out).toContain("'foo' is defined but never used");
+    expect(out).toContain("tests/e2e/foo.spec.ts:42");
+    // Two collapsible blocks.
+    const detailsCount = out.match(/<details>/g)?.length ?? 0;
+    expect(detailsCount).toBe(2);
+  });
+
+  test("missing tailOutput degrades to a placeholder, not a blank block", () => {
+    // If shStreamCapture's child died before producing any output
+    // (e.g. spawn ENOENT — bun missing from PATH), `tailOutput` will be
+    // empty. We render a clear placeholder so the reviewer doesn't
+    // assume the test passed silently.
+    const out = buildGateFailureBanner([
+      { step: "build", ok: false, tailOutput: "" },
+    ]);
+    expect(out).toContain("no output captured");
   });
 });

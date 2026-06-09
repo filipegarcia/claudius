@@ -917,7 +917,7 @@ async function runFixPass(
       ` wall=${Math.round(claudeResult.wallMs / 1000)}s`,
   );
 
-  const gate = runGate(skipGates);
+  const gate = await runGate(skipGates);
   const allGreen = gate.every((g: GateResult) => g.ok);
   const failedSteps = gate.filter((g: GateResult) => !g.ok).map((g: GateResult) => g.step);
   log(
@@ -1130,7 +1130,7 @@ export async function runCcParityOnExistingBranch(args: {
   }
 
   // 7. Gate.
-  const gate = runGate(skipGates);
+  const gate = await runGate(skipGates);
   const allGreen = gate.every((g: GateResult) => g.ok);
   log(
     `gate result: ${gate
