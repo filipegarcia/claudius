@@ -152,6 +152,25 @@ export type LongContextCreditsNudgeEvent = {
 };
 
 /**
+ * One-shot nudge fired when a session's SDK iterator surfaces an
+ * authentication failure (HTTP 401 from Anthropic) — either as the SDK's
+ * structured `authentication_failed` tag on an assistant message or as a
+ * synthetic "API Error: 401 / Failed to authenticate" body, with the
+ * thrown-error path covered too. The Claude Code TUI surfaces this as
+ * "Please run /login"; Claudius mirrors that with a dismissible banner
+ * linking to the accounts section (`/usage#accounts`) so the user can
+ * swap their credential without leaving the chat. Live-only on the wire
+ * (skipped in the SSE replay buffer) so a stale event never re-pops on
+ * reload; the server's fire-once guard prevents re-emission inside one
+ * session lifetime.
+ */
+export type AuthFailedNudgeEvent = {
+  type: "auth_failed_required";
+  /** The model id active when the nudge fired (informational). */
+  model: string;
+};
+
+/**
  * Server-driven spinner tips — the catalog the client rotates through under
  * the "Claude is working…" row. Routed through SSE (rather than hardcoded on
  * the client) so the backend is the single source of truth: new-feature tips
@@ -604,6 +623,7 @@ export type ServerEvent =
   | FeedbackSurveyEvent
   | OpusOverloadNudgeEvent
   | LongContextCreditsNudgeEvent
+  | AuthFailedNudgeEvent
   | TipsEvent
   | CwdChangedEvent
   | AskUserQuestionEvent

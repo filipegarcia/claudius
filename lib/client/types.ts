@@ -3,6 +3,7 @@ import type { PermissionMode } from "@anthropic-ai/claude-agent-sdk";
 import type {
   AskAnswer,
   AskUserQuestionEvent,
+  AuthFailedNudgeEvent,
   FeedbackSurveyEvent,
   LongContextCreditsNudgeEvent,
   OpusOverloadNudgeEvent,
@@ -589,6 +590,16 @@ export type ChatState = {
    */
   longContextCreditsNudge: LongContextCreditsNudgeEvent | null;
   /**
+   * Active "Failed to authenticate" nudge, set when the server broadcasts an
+   * `auth_failed_required` event after an SDK 401 (structured tag or
+   * synthetic "API Error: 401" body, or a thrown auth failure caught in the
+   * session consume loop). Mirrors the Claude Code TUI's "Please run /login"
+   * hint — the banner links to the accounts section (`/usage#accounts`) so
+   * the user can swap their credential without leaving the chat. Null when
+   * no nudge is pending.
+   */
+  authFailedNudge: AuthFailedNudgeEvent | null;
+  /**
    * Server-driven spinner tips (the `tips` SSE event). The catalog the chat
    * rotates through under the working spinner; empty until the server emits it,
    * at which point the renderer prefers it over its built-in defaults.
@@ -830,6 +841,8 @@ export type ChatActions = {
   dismissOpusOverloadNudge(): void;
   /** Dismiss the long-context credits-required nudge banner. Client-side only. */
   dismissLongContextCreditsNudge(): void;
+  /** Dismiss the authentication-failed nudge banner. Client-side only. */
+  dismissAuthFailedNudge(): void;
   /** Dismiss the transient fast-mode transition toast. Client-side only. */
   dismissFastModeNotice(): void;
   /** Dismiss the transient model-switch-rejected toast. Client-side only. */

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import type { PermissionMode } from "@anthropic-ai/claude-agent-sdk";
 import type {
+  AuthFailedNudgeEvent,
   CreateSessionRequest,
   PermissionDecision,
   PermissionRequestEvent,
@@ -575,6 +576,12 @@ export function useSession(): ChatState & ChatActions {
   // re-pops on reload.
   const [longContextCreditsNudge, setLongContextCreditsNudge] =
     useState<LongContextCreditsNudgeEvent | null>(null);
+  // One-shot "Failed to authenticate" banner, broadcast by the server when
+  // an SDK 401 (structured `authentication_failed` tag or synthetic "API
+  // Error: 401" body) lands. Live-only: skipped in the SSE replay buffer
+  // so a stale event never re-pops on reload.
+  const [authFailedNudge, setAuthFailedNudge] =
+    useState<AuthFailedNudgeEvent | null>(null);
   // Server-driven spinner tips (see `tips` SSE event). Empty until the server
   // emits the catalog on subscribe; the renderer falls back to its built-in
   // defaults in the meantime.
@@ -1398,6 +1405,10 @@ export function useSession(): ChatState & ChatActions {
       }
       if (ev.type === "long_context_credits_required") {
         setLongContextCreditsNudge(ev);
+        return;
+      }
+      if (ev.type === "auth_failed_required") {
+        setAuthFailedNudge(ev);
         return;
       }
       if (ev.type === "tips") {
@@ -3887,6 +3898,10 @@ export function useSession(): ChatState & ChatActions {
     setLongContextCreditsNudge(null);
   }, []);
 
+  const dismissAuthFailedNudge = useCallback(() => {
+    setAuthFailedNudge(null);
+  }, []);
+
   const dismissFastModeNotice = useCallback(() => {
     setFastModeNotice(null);
   }, []);
@@ -4390,6 +4405,7 @@ export function useSession(): ChatState & ChatActions {
     feedbackSurvey,
     opusOverloadNudge,
     longContextCreditsNudge,
+    authFailedNudge,
     tips,
     sessionRecap,
     errors,
@@ -4438,6 +4454,7 @@ export function useSession(): ChatState & ChatActions {
     dismissFeedback,
     dismissOpusOverloadNudge,
     dismissLongContextCreditsNudge,
+    dismissAuthFailedNudge,
     dismissFastModeNotice,
     dismissModelSwitchNotice,
     requestRecap,

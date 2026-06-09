@@ -43,6 +43,10 @@ import {
 } from "./opus-overload-detector";
 import { isBillingErrorSignal } from "./long-context-credits-detector";
 import {
+  isAuthFailedErrorText,
+  isAuthFailedSignal,
+} from "./auth-failed-detector";
+import {
   clearSessionGoal,
   getSessionGoal,
   getSessionState,
@@ -1110,6 +1114,17 @@ export class Session {
    * session would just re-pop a dismissed banner.
    */
   private longContextCreditsNudgeFired = false;
+
+  /**
+   * Fire-once gate for the authentication-failed nudge — mirrors the Claude
+   * Code TUI "Please run /login" hint, scoped to Claudius's accounts UI
+   * (`/usage#accounts`). Trips when the SDK emits an `authentication_failed`
+   * structured tag OR a synthetic "API Error: 401 / Failed to authenticate"
+   * assistant body. Banner is dismissible client-side; re-firing inside the
+   * same session lifetime would just re-pop a dismissed banner, so we gate
+   * once-per-session like the other one-shot nudges.
+   */
+  private authFailedNudgeFired = false;
 
   /**
    * Per-session goal (see `/goal`, GoalBanner). Loaded from the per-project
@@ -4380,6 +4395,25 @@ export class Session {
   }
 
   /**
+   * Fire the one-shot authentication-failed nudge when an SDK
+   * `authentication_failed` signal (structured or synthetic-text) is
+   * observed. Unlike the long-context-credits nudge this is NOT gated on
+   * any session-specific config — a 401 is universal regardless of which
+   * model / beta the user picked, and the only fix is swapping the
+   * credential. Gated only on fire-once-per-session so a repeat 401 in the
+   * same session doesn't re-pop a dismissed banner.
+   */
+  private noteAuthFailedObservation(isAuthFailed: boolean): void {
+    if (!isAuthFailed) return;
+    if (this.authFailedNudgeFired) return;
+    this.authFailedNudgeFired = true;
+    this.broadcast({
+      type: "auth_failed_required",
+      model: this.model ?? "",
+    });
+  }
+
+  /**
    * Account-switcher: on the first rate-limit-hit message of this
    * session, rotate the global active profile to the next configured
    * one (round-robin) when the user enabled auto-rotate. Fire-once per
@@ -4699,6 +4733,11 @@ export class Session {
         // the billing-error has passed (or the user has acted on the dual
         // remediation) replaying on reload would re-pop a stale banner.
         ev.type === "long_context_credits_required" ||
+        // One-shot authentication-failed nudge — same shape: once the user
+        // has fixed (or dismissed) the bad credential, replaying on reload
+        // would re-pop a stale banner. Live subscribers see the original
+        // broadcast at the moment the 401 lands.
+        ev.type === "auth_failed_required" ||
         // Session recap is by definition "where were we" — replaying a stale
         // one on tab switch or reload would contradict the live state. Live
         // subscribers see the one true broadcast; reloaders just wait until
@@ -5990,6 +6029,12 @@ export class Session {
         // rate-limit `overageDisabledReason` copy in SystemPill, so the
         // 1M-only gate keeps the two paths from doubling up.
         this.noteLongContextCreditsObservation(isBillingErrorSignal(message));
+        // Authentication-failed nudge. Fires once per session when the SDK
+        // surfaces an `authentication_failed` structured tag or a synthetic
+        // "API Error: 401 / Failed to authenticate" assistant body — the
+        // banner links to the accounts section so the user can swap their
+        // credential without leaving the chat.
+        this.noteAuthFailedObservation(isAuthFailedSignal(message));
         // Account-switcher auto-rotate. Fire-and-forget — the rotation
         // is a global-state side-effect, not blocking on the consumer
         // iterator. See `noteAccountAutoRotateObservation` for the
@@ -6132,6 +6177,12 @@ export class Session {
         // synthetic API-error assistant message). Feed it through the same
         // overload counter so a catch-block path still trips the nudge.
         this.noteOverloadObservation(isOverloadErrorText(message));
+        // A thrown 401 can also land in this catch when the SDK aborts the
+        // iterator on a hard auth failure (no synthetic assistant message
+        // emitted). Feed the thrown message through the same auth detector
+        // so the nudge still fires on this path. Mirrors the overload
+        // catch-block hook one line above.
+        this.noteAuthFailedObservation(isAuthFailedErrorText(message));
       }
     } finally {
       this.done = true;

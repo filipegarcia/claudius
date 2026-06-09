@@ -20,6 +20,7 @@ import {
   OPUS_OVERLOAD_NUDGE_SONNET_TARGET,
 } from "@/components/chat/OpusOverloadNudgePanel";
 import { LongContextCreditsPanel } from "@/components/chat/LongContextCreditsPanel";
+import { AuthFailedPanel } from "@/components/chat/AuthFailedPanel";
 import { FastModeNoticePanel } from "@/components/chat/FastModeNoticePanel";
 import { ModelSwitchNoticePanel } from "@/components/chat/ModelSwitchNoticePanel";
 import { PromptInput } from "@/components/chat/PromptInput";
@@ -1783,6 +1784,10 @@ export default function Home() {
             });
           }}
           onDismiss={session.dismissLongContextCreditsNudge}
+        />
+        <AuthFailedPanel
+          nudge={session.authFailedNudge}
+          onDismiss={session.dismissAuthFailedNudge}
         />
         <FastModeNoticePanel
           notice={session.fastModeNotice}

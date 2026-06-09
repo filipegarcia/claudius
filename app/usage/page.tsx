@@ -686,7 +686,10 @@ function AccountsSection({
   const activeId = accounts?.activeProfileId ?? null;
 
   return (
-    <section className="rounded-lg border border-[var(--border)] bg-[var(--panel)]/40 p-4">
+    <section
+      id="accounts"
+      className="scroll-mt-12 rounded-lg border border-[var(--border)] bg-[var(--panel)]/40 p-4"
+    >
       <header className="mb-3 flex flex-wrap items-center gap-2">
         <h2 className="flex items-center gap-2 text-sm font-medium">
           <Users className="h-4 w-4 text-[var(--accent)]" /> Accounts
