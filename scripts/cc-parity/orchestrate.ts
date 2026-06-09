@@ -269,16 +269,51 @@ function extractChangelog(prevVersion: string, newVersion: string): string {
 
 // ── Prompt rendering ──────────────────────────────────────────────────
 
+/**
+ * Build the cc-parity preamble that's substituted into `{{COMBINED_PREAMBLE}}`.
+ *
+ * - Standalone mode (`combinedWith` undefined): empty string. The
+ *   placeholder collapses to nothing and the prompt reads as before.
+ * - Combined mode: a paragraph telling Claude that the SDK migration
+ *   has already landed on this branch and that bucket-A items handled
+ *   there must NOT be re-implemented — they should be marked
+ *   `[skip — already shipped via SDK migration on this branch]` in
+ *   the classification section.
+ *
+ * Exported so the SDK orchestrator can compose the preamble itself
+ * when it drives `runCcParityOnExistingBranch` in combined mode, and
+ * so unit tests can pin its shape.
+ */
+export function buildCombinedPreamble(
+  combinedWith?: { sdkPrev: string; sdkNew: string },
+): string {
+  if (!combinedWith) return "";
+  return [
+    "> **Combined-mode run.** The SDK migration from",
+    `> \`${combinedWith.sdkPrev}\` to \`${combinedWith.sdkNew}\` has just been`,
+    "> completed on this same branch. Read the SDK run-notes at",
+    `> \`.claudius/sdk-updater/run-notes/${combinedWith.sdkNew}.md\` AND the recent`,
+    "> commits on this branch (`git log origin/main..HEAD`) to see what the SDK pipeline",
+    "> already migrated. Bucket-A items in the CC changelog that were ALREADY",
+    "> handled by the SDK migration must be marked",
+    "> `[skip — already shipped via SDK migration on this branch]` in the",
+    "> Changelog classification section. Do NOT re-implement them; doing so",
+    "> would conflict with the SDK pipeline's work that just landed.",
+  ].join("\n");
+}
+
 function renderPrompt(
   prevVersion: string,
   newVersion: string,
   changelog: string,
+  combinedWith?: { sdkPrev: string; sdkNew: string },
 ): string {
   const tpl = readFileSync(resolve(SCRIPT_DIR, "prompt.md"), "utf8");
   return tpl
     .replace(/\{\{PREVIOUS_VERSION\}\}/g, prevVersion)
     .replace(/\{\{NEW_VERSION\}\}/g, newVersion)
-    .replace(/\{\{CHANGELOG_BLOCK\}\}/g, changelog);
+    .replace(/\{\{CHANGELOG_BLOCK\}\}/g, changelog)
+    .replace(/\{\{COMBINED_PREAMBLE\}\}/g, buildCombinedPreamble(combinedWith));
 }
 
 // ── Run-notes & PR body ───────────────────────────────────────────────
@@ -972,6 +1007,186 @@ async function fixPr(
   log(`fix-pr #${prNumber} done: green=${allGreen}`);
 }
 
+// ── Public entry point: runCcParityOnExistingBranch ───────────────────
+
+/**
+ * Run the cc-parity work on an already-checked-out branch.
+ *
+ * Shared between the standalone cc-parity pipeline (via the simplified
+ * `main()` below) and the SDK orchestrator's combined-mode path. The
+ * caller is responsible for:
+ *   - checking out the branch (and confirming the working tree is clean)
+ *   - pushing the branch
+ *   - opening / editing / labelling / announcing the PR
+ *   - watching CI
+ *   - updating state files
+ *
+ * What this function owns:
+ *   - extracting the CC changelog slice between the version pair
+ *   - pre-creating the run-notes stub and archiving the rendered prompt
+ *   - running Claude under the standard budgets
+ *   - running the local gate
+ *   - validating the run-notes file
+ *
+ * In combined mode (`combinedWith` set), the rendered prompt carries a
+ * preamble telling Claude to defer to the SDK migration that already
+ * landed on this branch — see `buildCombinedPreamble`.
+ *
+ * Captures `shaBeforeCcWork` at entry so the caller can `git reset
+ * --hard` back to that commit if the CC half fails after the SDK half
+ * has already committed work on the same branch.
+ */
+export async function runCcParityOnExistingBranch(args: {
+  prevCcVersion: string;
+  newCcVersion: string;
+  branch: string;
+  dryRun: boolean;
+  skipGates: Set<GateStep>;
+  /** Optional context: the SDK migration that just completed on this branch. */
+  combinedWith?: { sdkPrev: string; sdkNew: string };
+  /**
+   * Optional hook used in combined mode to announce CC-specific
+   * progress (start / changelog / summary / testing / gate result).
+   * The standalone caller wires `announceSafe` (gated by dryRun);
+   * the combined caller wires whatever the SDK orchestrator wants
+   * the channel to see for the CC half.
+   *
+   * Best-effort: throws are swallowed by the caller, never us.
+   */
+  announceProgress?: (body: string) => Promise<void>;
+}): Promise<{
+  ok: boolean;
+  budgetReason: string | null;
+  failedSteps: GateStep[];
+  runNotesIssue: string | null;
+  shaBeforeCcWork: string;
+  /** The CC changelog slice — re-usable by the caller for the PR body. */
+  changelog: string;
+  /** The rendered run-notes Summary section, for announcements. */
+  summary: string;
+}> {
+  const { prevCcVersion, newCcVersion, branch, dryRun, skipGates, combinedWith } = args;
+
+  // 1. Capture the anchor SHA so the caller can peel CC commits off
+  //    later if the half fails. Captured BEFORE any CC work commits or
+  //    file writes that might end up in a stash.
+  const shaBeforeCcWork = sh("git", ["rev-parse", "HEAD"]);
+  log(`cc-parity work anchor sha=${shaBeforeCcWork} branch=${branch}`);
+
+  // 2. Fetch upstream CC changelog slice (network only).
+  const changelog = extractChangelog(prevCcVersion, newCcVersion);
+  log(`changelog: ${changelog.length} bytes`);
+
+  if (args.announceProgress) {
+    await args.announceProgress(
+      buildCcChangelogAnnouncement({ prevVersion: prevCcVersion, newVersion: newCcVersion, changelog }),
+    ).catch((err) => log(`WARN cc announce (changelog) failed: ${String(err)}`));
+  }
+
+  // 3. Pre-create the run-notes stub so Claude only has to edit it.
+  mkdirSync(dirname(runNotesPath(newCcVersion)), { recursive: true });
+  if (!existsSync(runNotesPath(newCcVersion))) {
+    writeFileSync(
+      runNotesPath(newCcVersion),
+      runNotesStub(prevCcVersion, newCcVersion),
+      "utf8",
+    );
+    log(`run-notes stub created at ${relative(ROOT, runNotesPath(newCcVersion))}`);
+  }
+
+  // 4. Render + archive the prompt.
+  const prompt = renderPrompt(prevCcVersion, newCcVersion, changelog, combinedWith);
+  writeFileSync(promptArchivePath(newCcVersion), prompt, "utf8");
+  log(
+    `prompt archived to ${relative(ROOT, promptArchivePath(newCcVersion))} (${prompt.length} bytes)`,
+  );
+
+  // 5. Run Claude.
+  const claudeResult = await runClaude(prompt, transcriptPath(newCcVersion));
+  log(
+    `Claude exited: completed=${claudeResult.completed} turns=${claudeResult.turnCount}` +
+      ` wall=${Math.round(claudeResult.wallMs / 1000)}s`,
+  );
+  let budgetReason: string | null = claudeResult.budgetReason;
+
+  // 6. Pull the Summary section for the announce.
+  let summary = "";
+  const notesFile = runNotesPath(newCcVersion);
+  if (existsSync(notesFile)) {
+    summary = extractCcSection(readFileSync(notesFile, "utf8"), "Summary");
+  }
+  if (args.announceProgress) {
+    await args.announceProgress(
+      buildCcImplementationAnnouncement({
+        prevVersion: prevCcVersion,
+        newVersion: newCcVersion,
+        summary,
+        budgetReason,
+      }),
+    ).catch((err) => log(`WARN cc announce (implementation) failed: ${String(err)}`));
+    await args.announceProgress(
+      buildCcTestingAnnouncement({ prevVersion: prevCcVersion, newVersion: newCcVersion }),
+    ).catch((err) => log(`WARN cc announce (testing) failed: ${String(err)}`));
+  }
+
+  // 7. Gate.
+  const gate = runGate(skipGates);
+  const allGreen = gate.every((g: GateResult) => g.ok);
+  log(
+    `gate result: ${gate
+      .map((g: GateResult) => `${g.step}=${g.skipped ? "skip" : g.ok ? "ok" : "FAIL"}`)
+      .join(" ")}`,
+  );
+
+  if (!allGreen && !budgetReason) {
+    budgetReason = `Claude reported done but gate failed: ${gate
+      .filter((g: GateResult) => !g.ok)
+      .map((g: GateResult) => g.step)
+      .join(", ")}`;
+  }
+
+  // 8. Run-notes validation is part of the gate.
+  const runNotesIssue = validateRunNotes(newCcVersion);
+  if (runNotesIssue && !budgetReason) {
+    budgetReason = runNotesIssue;
+    log(`gate: run-notes validation FAILED — ${runNotesIssue}`);
+  } else if (runNotesIssue) {
+    budgetReason = `${budgetReason}; also: ${runNotesIssue}`;
+    log(`gate: run-notes validation FAILED — ${runNotesIssue}`);
+  } else {
+    log(`gate: run-notes validation ok`);
+  }
+
+  if (args.announceProgress) {
+    await args.announceProgress(
+      buildCcGateResultAnnouncement({
+        prevVersion: prevCcVersion,
+        newVersion: newCcVersion,
+        results: gate,
+        runNotesIssue,
+        budgetReason,
+      }),
+    ).catch((err) => log(`WARN cc announce (gate result) failed: ${String(err)}`));
+  }
+
+  const failedSteps = gate.filter((g: GateResult) => !g.ok).map((g: GateResult) => g.step);
+  const ok = allGreen && !runNotesIssue;
+
+  if (dryRun) {
+    log("DRY RUN — runCcParityOnExistingBranch returning without push/PR/announce");
+  }
+
+  return {
+    ok,
+    budgetReason,
+    failedSteps,
+    runNotesIssue,
+    shaBeforeCcWork,
+    changelog,
+    summary,
+  };
+}
+
 // ── Main ──────────────────────────────────────────────────────────────
 
 async function main(): Promise<void> {
@@ -1045,90 +1260,22 @@ async function main(): Promise<void> {
     // Claudius doesn't depend on @anthropic-ai/claude-code. The
     // upstream changelog is sourced over the network for analysis.
 
-    const changelog = extractChangelog(prevVersion, newVersion);
-    log(`changelog: ${changelog.length} bytes`);
-
-    await announceProgress(
-      buildCcChangelogAnnouncement({ prevVersion, newVersion, changelog }),
-    );
-
-    mkdirSync(dirname(runNotesPath(newVersion)), { recursive: true });
-
-    if (!existsSync(runNotesPath(newVersion))) {
-      writeFileSync(
-        runNotesPath(newVersion),
-        runNotesStub(prevVersion, newVersion),
-        "utf8",
-      );
-      log(`run-notes stub created at ${relative(ROOT, runNotesPath(newVersion))}`);
-    }
-
-    const prompt = renderPrompt(prevVersion, newVersion, changelog);
-    writeFileSync(promptArchivePath(newVersion), prompt, "utf8");
-    log(
-      `prompt archived to ${relative(ROOT, promptArchivePath(newVersion))} (${prompt.length} bytes)`,
-    );
-
-    const claudeResult = await runClaude(prompt, transcriptPath(newVersion));
-    log(
-      `Claude exited: completed=${claudeResult.completed} turns=${claudeResult.turnCount}` +
-        ` wall=${Math.round(claudeResult.wallMs / 1000)}s`,
-    );
-    budgetReason = claudeResult.budgetReason;
-
-    let runNotesSummary = "";
-    const notesFile = runNotesPath(newVersion);
-    if (existsSync(notesFile)) {
-      runNotesSummary = extractCcSection(readFileSync(notesFile, "utf8"), "Summary");
-    }
-    await announceProgress(
-      buildCcImplementationAnnouncement({
-        prevVersion,
-        newVersion,
-        summary: runNotesSummary,
-        budgetReason,
-      }),
-    );
-
-    await announceProgress(
-      buildCcTestingAnnouncement({ prevVersion, newVersion }),
-    );
-
-    const gate = runGate(skipGates);
-    const allGreen = gate.every((g: GateResult) => g.ok);
-    log(
-      `gate result: ${gate
-        .map((g: GateResult) => `${g.step}=${g.skipped ? "skip" : g.ok ? "ok" : "FAIL"}`)
-        .join(" ")}`,
-    );
-
-    if (!allGreen && !budgetReason) {
-      budgetReason = `Claude reported done but gate failed: ${gate
-        .filter((g: GateResult) => !g.ok)
-        .map((g: GateResult) => g.step)
-        .join(", ")}`;
-    }
-
-    const runNotesIssue = validateRunNotes(newVersion);
-    if (runNotesIssue && !budgetReason) {
-      budgetReason = runNotesIssue;
-      log(`gate: run-notes validation FAILED — ${runNotesIssue}`);
-    } else if (runNotesIssue) {
-      budgetReason = `${budgetReason}; also: ${runNotesIssue}`;
-      log(`gate: run-notes validation FAILED — ${runNotesIssue}`);
-    } else {
-      log(`gate: run-notes validation ok`);
-    }
-
-    await announceProgress(
-      buildCcGateResultAnnouncement({
-        prevVersion,
-        newVersion,
-        results: gate,
-        runNotesIssue,
-        budgetReason,
-      }),
-    );
+    // Delegate the bulk of the work — changelog fetch, run-notes stub,
+    // prompt render, Claude run, gate + run-notes validation — to the
+    // shared core, which is the same function the SDK orchestrator
+    // calls in combined mode. Standalone mode passes its own
+    // `announceProgress` so the channel sees the same progress posts
+    // as before the refactor.
+    const ccCore = await runCcParityOnExistingBranch({
+      prevCcVersion: prevVersion,
+      newCcVersion: newVersion,
+      branch,
+      dryRun,
+      skipGates,
+      announceProgress,
+    });
+    budgetReason = ccCore.budgetReason;
+    const changelog = ccCore.changelog;
 
     if (dryRun) {
       log("──────────────────────────────────────────────────────────");
@@ -1152,8 +1299,7 @@ async function main(): Promise<void> {
       return;
     }
 
-    const localGreen = allGreen && !runNotesIssue;
-    if (!localGreen) {
+    if (!ccCore.ok) {
       const reason = budgetReason ?? "local gate not green";
       log(`local gate NOT green (${reason}) — not pushing; filing process issue`);
       await reportProcessIssueSafe({
@@ -1170,6 +1316,11 @@ async function main(): Promise<void> {
     // Local-green: bump Claudius's own patch version (cc-parity ships
     // every successful run; the SDK pipeline owns the minor channel)
     // and commit the bump.
+    //
+    // Lives in the standalone caller, NOT in
+    // `runCcParityOnExistingBranch`, because combined mode must NOT
+    // bump this — the SDK pipeline already set claudius's version to
+    // the SDK version earlier on the same branch.
     const bumped = bumpClaudiusPatch();
     sh("git", ["add", "package.json"]);
     sh("git", [

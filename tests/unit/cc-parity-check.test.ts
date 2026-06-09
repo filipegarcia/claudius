@@ -3,6 +3,7 @@ import { describe, expect, test } from "vitest";
 import {
   containsOnlyBugFixEntries,
   decide,
+  decideCcCombinedRun,
   type UpdaterState,
 } from "@/scripts/cc-parity/check";
 
@@ -311,5 +312,153 @@ describe("decide", () => {
     // And a newer version still wants to run (skipping doesn't poison
     // future probes for unrelated versions).
     expect(decide(s, "1.0.41", { maxMinorJump: 1 }).kind).toBe("run");
+  });
+});
+
+// ── decideCcCombinedRun ───────────────────────────────────────────────
+
+/**
+ * `decideCcCombinedRun` is the SDK orchestrator's "should we also run
+ * CC parity on this branch?" gate. It's a strict subset of `decide()`
+ * (no in-flight handling, no skipped bookkeeping) — concurrency in
+ * combined mode is owned by the SDK orchestrator's lock, and skip
+ * semantics are owned by the standalone cc-parity firing.
+ */
+describe("decideCcCombinedRun", () => {
+  test("noops when CC state has no baseline yet", () => {
+    const d = decideCcCombinedRun({
+      ccState: emptyState(),
+      ccLatest: "1.0.40",
+      ccChangelogSlice: null,
+      maxMinorJump: 1,
+    });
+    expect(d.kind).toBe("noop");
+    if (d.kind === "noop") {
+      expect(d.reason).toMatch(/no baseline yet/);
+    }
+  });
+
+  test("noops when CC baseline is already at or ahead of latest", () => {
+    const s = emptyState();
+    s.lastCompletedVersion = "1.0.40";
+    const d = decideCcCombinedRun({
+      ccState: s,
+      ccLatest: "1.0.40",
+      ccChangelogSlice: null,
+      maxMinorJump: 1,
+    });
+    expect(d.kind).toBe("noop");
+    if (d.kind === "noop") {
+      expect(d.reason).toMatch(/already at or ahead/);
+    }
+  });
+
+  test("noops a bug-fix-only release with a descriptive reason", () => {
+    const s = emptyState();
+    s.lastCompletedVersion = "1.0.40";
+    const d = decideCcCombinedRun({
+      ccState: s,
+      ccLatest: "1.0.41",
+      ccChangelogSlice: "- Bug fix: foo\n- bugfix: bar",
+      maxMinorJump: 1,
+    });
+    expect(d.kind).toBe("noop");
+    if (d.kind === "noop") {
+      expect(d.reason).toMatch(/only bug-fix entries/);
+    }
+  });
+
+  test("does NOT noop a substantive release even with a partial bug-fix slice", () => {
+    const s = emptyState();
+    s.lastCompletedVersion = "1.0.40";
+    const d = decideCcCombinedRun({
+      ccState: s,
+      ccLatest: "1.0.41",
+      ccChangelogSlice: "- Bug fix: foo\n- Added /resume slash command",
+      maxMinorJump: 1,
+    });
+    expect(d.kind).toBe("run");
+    if (d.kind === "run") {
+      expect(d.prevCcVersion).toBe("1.0.40");
+      expect(d.newCcVersion).toBe("1.0.41");
+    }
+  });
+
+  test("does NOT noop when the changelog slice is null (no signal)", () => {
+    const s = emptyState();
+    s.lastCompletedVersion = "1.0.40";
+    const d = decideCcCombinedRun({
+      ccState: s,
+      ccLatest: "1.0.41",
+      ccChangelogSlice: null,
+      maxMinorJump: 1,
+    });
+    expect(d.kind).toBe("run");
+  });
+
+  test("noops when the minor jump exceeds the configured budget", () => {
+    // In combined mode we'd rather ship the SDK PR cleanly and let the
+    // standalone cc-parity firing surface the too-large jump as its
+    // own skip/process issue.
+    const s = emptyState();
+    s.lastCompletedVersion = "1.0.40";
+    const d = decideCcCombinedRun({
+      ccState: s,
+      ccLatest: "1.3.0",
+      ccChangelogSlice: null,
+      maxMinorJump: 1,
+    });
+    expect(d.kind).toBe("noop");
+    if (d.kind === "noop") {
+      expect(d.reason).toMatch(/exceeds maxMinorJump=1/);
+    }
+  });
+
+  test("falls back to lastSeenVersion when lastCompletedVersion is null", () => {
+    const s = emptyState();
+    s.lastSeenVersion = "1.0.40";
+    const d = decideCcCombinedRun({
+      ccState: s,
+      ccLatest: "1.0.41",
+      ccChangelogSlice: null,
+      maxMinorJump: 1,
+    });
+    expect(d.kind).toBe("run");
+    if (d.kind === "run") {
+      expect(d.prevCcVersion).toBe("1.0.40");
+    }
+  });
+
+  test("ignores inFlight markers (SDK orchestrator's lock covers concurrency)", () => {
+    // Unlike the standalone `decide()`, combined-mode must run even if
+    // a stale cc-parity inFlight marker is on disk — the SDK
+    // orchestrator owns the lock and the marker is irrelevant.
+    const s = emptyState();
+    s.lastCompletedVersion = "1.0.40";
+    s.inFlight = {
+      version: "1.0.41",
+      branch: "cc-parity/1.0.41",
+      startedAt: Date.now(),
+    };
+    const d = decideCcCombinedRun({
+      ccState: s,
+      ccLatest: "1.0.41",
+      ccChangelogSlice: null,
+      maxMinorJump: 1,
+    });
+    expect(d.kind).toBe("run");
+  });
+
+  test("ignores skipped entries (standalone cc-parity owns skip bookkeeping)", () => {
+    const s = emptyState();
+    s.lastCompletedVersion = "1.0.40";
+    s.skipped = [{ version: "1.0.41", reason: "test", at: 0 }];
+    const d = decideCcCombinedRun({
+      ccState: s,
+      ccLatest: "1.0.41",
+      ccChangelogSlice: null,
+      maxMinorJump: 1,
+    });
+    expect(d.kind).toBe("run");
   });
 });

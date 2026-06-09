@@ -356,6 +356,75 @@ export function decide(
   return { kind: "run", previousVersion: current, newVersion: latest };
 }
 
+// ── Combined-mode decision (called from the SDK orchestrator) ─────────
+
+/**
+ * Opportunistic "should we also run CC parity on this SDK branch?" check.
+ *
+ * Mirrors `decide()` but trimmed to what the SDK orchestrator actually
+ * needs in combined mode:
+ *   - no in-flight handling — the SDK orchestrator's own lock + state
+ *     guard concurrency; an inFlight CC marker is irrelevant to the
+ *     combined path (the SDK pipeline isn't gated on CC's lock and we
+ *     deliberately don't write CC's inFlight in combined mode).
+ *   - no "skipped" bookkeeping — combined runs don't write CC's
+ *     skipped list. A real cc-parity standalone firing will handle
+ *     skip semantics on its own next cron tick.
+ *   - the bug-fix-only filter reuses `containsOnlyBugFixEntries`.
+ *
+ * Returns a "noop" decision whenever the SDK orchestrator should ship
+ * a SDK-only PR (current behavior); returns "run" with the version
+ * pair the SDK orchestrator should hand to `runCcParityOnExistingBranch`.
+ */
+export function decideCcCombinedRun(args: {
+  ccState: UpdaterState;
+  ccLatest: string;
+  ccChangelogSlice: string | null;
+  maxMinorJump: number;
+}): { kind: "noop"; reason: string } | { kind: "run"; prevCcVersion: string; newCcVersion: string } {
+  const baseline = args.ccState.lastCompletedVersion ?? args.ccState.lastSeenVersion;
+  if (!baseline) {
+    return { kind: "noop", reason: "cc-parity has no baseline yet — skipping combined run" };
+  }
+  const current = cleanRange(baseline);
+
+  if (!isNewer(args.ccLatest, current)) {
+    return { kind: "noop", reason: "cc-parity baseline is already at or ahead of latest" };
+  }
+
+  if (
+    args.ccState.lastCompletedVersion &&
+    !isNewer(args.ccLatest, args.ccState.lastCompletedVersion)
+  ) {
+    return {
+      kind: "noop",
+      reason: `cc-parity already completed ${args.ccState.lastCompletedVersion} — waiting on merge`,
+    };
+  }
+
+  if (
+    args.ccChangelogSlice != null &&
+    containsOnlyBugFixEntries(args.ccChangelogSlice)
+  ) {
+    return {
+      kind: "noop",
+      reason: `cc-parity release ${args.ccLatest} contains only bug-fix entries — no combined work to do`,
+    };
+  }
+
+  const jump = minorJumpDistance(current, args.ccLatest);
+  if (jump !== null && jump > args.maxMinorJump) {
+    return {
+      kind: "noop",
+      reason:
+        `cc-parity jump ${current} → ${args.ccLatest} exceeds maxMinorJump=${args.maxMinorJump} — ` +
+        `skipping combined run (standalone cc-parity will surface this on its next tick)`,
+    };
+  }
+
+  return { kind: "run", prevCcVersion: current, newCcVersion: args.ccLatest };
+}
+
 // ── CLI ───────────────────────────────────────────────────────────────
 
 async function main(): Promise<void> {

@@ -12,6 +12,7 @@ import {
   buildCcShippedAnnouncement,
   buildCcStartAnnouncement,
   buildCcTestingAnnouncement,
+  buildCombinedPreamble,
   ccCompareUrlExported,
   extractCcSection,
   validateCcRunNotesContent,
@@ -366,6 +367,29 @@ describe("buildCcFixResultAnnouncement", () => {
       markedReady: false,
     });
     expect(out).toContain("still red: lint");
+  });
+});
+
+describe("buildCombinedPreamble", () => {
+  test("returns an empty string in standalone mode (no combinedWith arg)", () => {
+    expect(buildCombinedPreamble()).toBe("");
+    expect(buildCombinedPreamble(undefined)).toBe("");
+  });
+
+  test("names both SDK versions and the SDK run-notes path in combined mode", () => {
+    const out = buildCombinedPreamble({ sdkPrev: "0.3.141", sdkNew: "0.3.142" });
+    expect(out).toContain("Combined-mode");
+    expect(out).toContain("0.3.141");
+    expect(out).toContain("0.3.142");
+    // The preamble must point Claude at the SDK run-notes so it can
+    // see what was migrated and avoid re-implementing bucket-A items.
+    expect(out).toContain(".claudius/sdk-updater/run-notes/0.3.142.md");
+  });
+
+  test("instructs Claude to mark bucket-A items as already-shipped, not re-implement", () => {
+    const out = buildCombinedPreamble({ sdkPrev: "0.3.141", sdkNew: "0.3.142" });
+    expect(out).toContain("already shipped via SDK migration");
+    expect(out).toContain("Bucket-A");
   });
 });
 

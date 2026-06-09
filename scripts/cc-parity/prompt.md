@@ -4,6 +4,8 @@
 > before handing this prompt to `@anthropic-ai/claude-agent-sdk`'s `query()`.
 > Keep placeholders in sync with `renderPrompt()` in `orchestrate.ts`.
 
+{{COMBINED_PREAMBLE}}
+
 You are reviewing a new Claude Code release for features Claudius
 should adopt. Source: `@anthropic-ai/claude-code@{{NEW_VERSION}}`
 (previous: `{{PREVIOUS_VERSION}}`).
