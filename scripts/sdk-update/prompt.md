@@ -300,7 +300,34 @@ For every new component, hook, server module, or behaviour change:
 After adding tests, run the full suites listed in "Definition of
 done" below. If a pre-existing failure surfaces that's unrelated
 to the SDK bump, **fix it** — the orchestrator's exit gate doesn't
-distinguish "yours" from "theirs".
+distinguish "yours" from "theirs". **One exception, below.**
+
+#### The updater's own harness is OFF the migration surface
+
+**Never edit files under `scripts/sdk-update/` or `scripts/cc-parity/`.**
+That directory is the pipeline that is running you right now — the
+orchestrator, its prompt (this file), the check/state logic, the PR
+templates. It is NOT part of the Claudius app you're migrating.
+
+If a gate failure points INTO that harness (a TypeScript error in
+`scripts/sdk-update/orchestrate.ts`, a failing `scripts/`-related unit
+test, etc.) it is almost always a bug on `main` that has nothing to do
+with the SDK bump — do **not** try to fix it. Editing the harness
+mid-run is how you get a half-fixed harness committed onto an SDK PR
+where it doesn't belong (this has happened). Instead:
+
+- Note it under "## Risks / follow-ups" in the run-notes with the exact
+  error, and
+- Continue with the migration. A harness build error you didn't cause
+  is the operator's to fix on `main`, not yours to bury in this PR.
+
+The ONE case where touching `scripts/sdk-update/` is legitimate: the
+SDK changelog itself changed the `query()` signature / option shape
+that the orchestrator passes in `runClaude`, so the harness genuinely
+won't run against the new SDK. If — and only if — you hit that, make
+the minimal call-site fix and document it prominently in
+"## Risks / follow-ups" as a harness change. When unsure, treat the
+harness as off-limits and report rather than edit.
 
 ### Step 6 — Build an e2e test that captures the screenshot
 

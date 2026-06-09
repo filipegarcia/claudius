@@ -405,6 +405,17 @@ is red, the run ends as a process-issue with **no PR opened**.
 ## Hard constraints
 
 - **Never** edit files under `node_modules/`.
+- **Never** edit files under `scripts/sdk-update/` or `scripts/cc-parity/`.
+  That directory is the pipeline running you right now — the orchestrator,
+  this prompt, the check/state logic — NOT part of the Claudius app you're
+  working on. A gate failure that points into that harness (a TypeScript
+  error in `scripts/cc-parity/orchestrate.ts`, a failing `scripts/`-related
+  unit test) is almost always a pre-existing bug on `main` that has nothing
+  to do with Claude Code parity. Do **not** fix it — note it under
+  "## Risks / follow-ups" with the exact error and continue. Editing the
+  harness mid-run buries an unrelated fix in a parity PR where it doesn't
+  belong (this has happened on the SDK pipeline). When unsure, report
+  rather than edit.
 - **Never** disable a test, hook, or lint rule to make the suite green.
 - **Never** `--no-verify` on commits or `--force` on pushes.
 - **Never** rewrite history on `main` or on any branch other than

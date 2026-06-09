@@ -1109,11 +1109,26 @@ export function parseSkipGates(raw: string | undefined): Set<GateStep> {
 }
 
 export async function runGate(skip: Set<GateStep>): Promise<GateResult[]> {
-  const steps: Array<{ step: GateStep; cmd: string; args: string[] }> = [
+  const steps: Array<{ step: GateStep; cmd: string; args: string[]; env?: Record<string, string> }> = [
     { step: "lint", cmd: "bun", args: ["run", "lint"] },
     { step: "unit", cmd: "bun", args: ["run", "test"] },
     { step: "build", cmd: "bun", args: ["run", "build"] },
-    { step: "e2e", cmd: "bun", args: ["run", "test:e2e"] },
+    // Run the e2e step with CI=1 so it mirrors the GitHub Actions gate
+    // EXACTLY — which is the real mergeability bar. Two concrete effects
+    // (see playwright.config.ts): `retries: CI ? 2 : 0` and
+    // `headless: !!CI`.
+    //
+    // Why this matters: the orchestrator runs as a cron job, NOT inside
+    // GitHub Actions, so `CI` was unset → retries=0. A SINGLE flaky e2e
+    // (the model-picker panel-open race has musical-chaired across runs:
+    // specs 253/276/327/364 on different firings) sank the whole gate,
+    // opened a draft + needs-human, and stalled the upgrade — even
+    // though the very same suite passes on the PR's GitHub CI with
+    // retries=2. Aligning the gate to CI stops the orchestrator from
+    // being stricter than the bar the PR actually has to clear. Genuine
+    // (deterministic) failures still fail all 3 attempts and trip the
+    // gate, so this doesn't mask real regressions.
+    { step: "e2e", cmd: "bun", args: ["run", "test:e2e"], env: { CI: "1" } },
   ];
   const out: GateResult[] = [];
   for (const s of steps) {
@@ -1127,13 +1142,17 @@ export async function runGate(skip: Set<GateStep>): Promise<GateResult[]> {
       out.push({ step: s.step, ok: true, skipped: true });
       continue;
     }
-    log(`gate: ${s.step}`);
+    log(`gate: ${s.step}${s.env ? ` (env: ${Object.keys(s.env).join(",")})` : ""}`);
     // shStreamCapture streams to the cron log AND retains the last 80
     // lines so a failure can be surfaced in the GitHub issue + draft PR
     // body. e2e is the most useful target — Playwright's tail names the
     // failing tests + file:line, which is exactly what an operator needs
     // to debug without ssh'ing onto the cron host.
-    const { code, tail } = await shStreamCapture(s.cmd, s.args);
+    const { code, tail } = await shStreamCapture(
+      s.cmd,
+      s.args,
+      s.env ? { env: { ...process.env, ...s.env } } : {},
+    );
     out.push({ step: s.step, ok: code === 0, tailOutput: tail });
     if (code !== 0) {
       log(`gate: ${s.step} FAILED (exit ${code})`);
@@ -3531,6 +3550,21 @@ async function main(): Promise<void> {
   // BOTH state files in lockstep with `shipped`. Set inside the try
   // block when the CC parity probe decides combined mode runs.
   let combinedCcVersion: string | null = null;
+  // Explicit state-machine tracker for the finally block — derived state
+  // from `shipped` + `combinedCcVersion` can't carry the four CC outcomes
+  // (success / draft / sdk-fail-cc-draft / dropped) cleanly. MUST be
+  // hoisted here (not inside the try): a `let` declared inside `try {}` is
+  // NOT in scope in `finally {}`, so reading it there is a `Cannot find
+  // name` compile error. (That exact bug shipped to main once — caught
+  // only by `bun run build`, which is why the gate runs it.) Default
+  // "failure" so an early throw before any decision patches only the
+  // inFlight clear.
+  let combinedOutcome:
+    | "combined-success"
+    | "combined-draft"
+    | "sdk-failure-cc-draft"
+    | "sdk-only-success"
+    | "failure" = "failure";
 
   // Progress announcements (start / changelog / summary / testing) are
   // suppressed when dry-run is on — dry-run is for local prompt iteration
@@ -3857,16 +3891,10 @@ async function main(): Promise<void> {
       sdkRunNotesSummary: runNotesSummary,
     });
 
-    // `combinedOutcome` is the explicit state-machine tracker for the
-    // finally block — derived state can't carry the three CC outcomes
-    // (success / drafted / dropped) cleanly. Default to undecided here
-    // and pin it at each branch below.
-    let combinedOutcome:
-      | "combined-success"
-      | "combined-draft"
-      | "sdk-failure-cc-draft"
-      | "sdk-only-success"
-      | "failure" = "failure";
+    // `combinedOutcome` is declared above the try block (next to
+    // `combinedCcVersion`) so the finally block can always reference it,
+    // even on an early throw. Default "failure"; pinned at each decision
+    // point below.
 
     // Peel outcome — carried out of the failure-mode branch so the
     // draft-detached announce + CC draft PR open can happen AFTER the
@@ -4100,12 +4128,6 @@ async function main(): Promise<void> {
       // branch is on origin and a reviewer can open the PR by hand if
       // `gh` fails. Distinguish (SDK CI green) from (SDK CI red): the
       // former bumps both states, the latter bumps only CC state.
-      //
-      // The eslint-disable below silences a false-positive
-      // "assigned but never used" — the value IS read in the `finally`
-      // block at the bottom of `main()`; ESLint's flow analysis loses
-      // track across the try/catch + await boundary.
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       combinedOutcome = ciPassed ? "combined-draft" : "sdk-failure-cc-draft";
       let ccPrUrl: string | null = null;
       try {
