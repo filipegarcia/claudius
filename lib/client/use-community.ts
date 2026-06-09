@@ -56,6 +56,12 @@ import {
  */
 
 const LS_NICK = "claudius.community.nick";
+// Last-selected channel slug. Persisted so that navigating away from
+// /community and coming back drops the user into the same room they
+// were last reading, instead of always snapping to `general`. Local-
+// only (not mirrored to `~/.claude/settings.json`) — "last open"
+// is a per-device UI affordance, not a cross-device preference.
+const LS_CURRENT_ROOM = "claudius.community.currentRoom";
 // Legacy key from when the admin token was pasted into the UI. We clean
 // it up on first read so a stale token doesn't leak the previous trust
 // model. Done at module load — runs once per tab regardless of how many
@@ -80,6 +86,24 @@ function readNickSnapshot(): string | null {
     return window.localStorage.getItem(LS_NICK);
   } catch {
     return null;
+  }
+}
+
+/**
+ * Read the last-selected channel slug from localStorage, falling back
+ * to `"general"` on a fresh device or when storage is unavailable.
+ * Lazy-initializer for the `currentRoom` state below — safe because
+ * `<CommunityChat>` (the only caller of this hook) is gated behind
+ * `useCommunityConsent`'s `null → "yes"` flip, so the hook never runs
+ * during SSR or the initial hydration pass.
+ */
+function readInitialRoom(): string {
+  if (typeof window === "undefined") return "general";
+  try {
+    const stored = window.localStorage.getItem(LS_CURRENT_ROOM);
+    return stored && stored.length > 0 ? stored : "general";
+  } catch {
+    return "general";
   }
 }
 
@@ -227,9 +251,26 @@ export function useCommunity(options: UseCommunityOptions = {}) {
 
   // ── Rooms ────────────────────────────────────────────────────────
   const [rooms, setRooms] = useState<Room[]>([]);
-  const [currentRoom, setCurrentRoom] = useState<string>("general");
+  // Lazy initializer reads the persisted slug so a return visit picks
+  // up where the user left off. See `readInitialRoom` for the SSR
+  // guard and "general" fallback.
+  const [currentRoom, setCurrentRoom] = useState<string>(readInitialRoom);
   const [roomsError, setRoomsError] = useState<string | null>(null);
   const [roomsRefetchTrigger, setRoomsRefetchTrigger] = useState(0);
+
+  // Persist the active room slug on every change. Using an effect
+  // (rather than wrapping `setCurrentRoom`) catches every mutation
+  // path — including the channel-switch performed by clicking a room
+  // in the sidebar. `localStorage.setItem` is not setState, so this
+  // doesn't trip `react-hooks/set-state-in-effect`.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(LS_CURRENT_ROOM, currentRoom);
+    } catch {
+      // best-effort — private mode etc.
+    }
+  }, [currentRoom]);
 
   useEffect(() => {
     if (!configured) return;

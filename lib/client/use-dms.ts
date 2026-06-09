@@ -50,6 +50,12 @@ import {
 
 const LS_NICK = "claudius.community.nick";
 const NICK_CHANGED_EVENT = "claudius.community.nick-changed";
+// Last-opened DM peer nick. Persisted so a return visit to /community
+// re-opens the same DM thread the user was last reading. When the
+// user closes a DM (or hasn't opened one yet) the key is removed,
+// so `currentPeer` falls back to `null` and the channel view shows.
+// Local-only — same reasoning as `LS_CURRENT_ROOM` in use-community.
+const LS_CURRENT_PEER = "claudius.community.currentPeer";
 
 export type DMSendResult = { ok: true } | { ok: false; error: string };
 
@@ -92,6 +98,23 @@ function subscribeConsent(cb: () => void) {
     window.removeEventListener("storage", onStorage);
     window.removeEventListener(COMMUNITY_CONSENT_EVENT, cb);
   };
+}
+
+/**
+ * Read the last-opened DM peer from localStorage. Returns `null` when
+ * the key is missing, empty, or storage is unavailable — that's the
+ * "no DM open, show the channel" state. Lazy initializer for the
+ * `currentPeer` state; safe on SSR because `<CommunityChat>` only
+ * mounts client-side after the consent gate flips.
+ */
+function readInitialPeer(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const stored = window.localStorage.getItem(LS_CURRENT_PEER);
+    return stored && stored.length > 0 ? stored : null;
+  } catch {
+    return null;
+  }
 }
 
 export function useDMs() {
@@ -148,7 +171,13 @@ export function useDMs() {
   }
 
   // ── Current conversation ─────────────────────────────────────────
-  const [currentPeer, setCurrentPeerState] = useState<string | null>(null);
+  // Lazy initializer reads the persisted peer so a return visit drops
+  // the user back into the same DM they last had open. A null result
+  // (no DM was open, or never opened one) falls through to channel
+  // view via `dms.currentPeer ? <DMThread/> : <channel>` in the page.
+  const [currentPeer, setCurrentPeerState] = useState<string | null>(
+    readInitialPeer,
+  );
   const [messages, setMessages] = useState<DM[]>([]);
   const [hasMore, setHasMore] = useState(true);
   const [loadingOlder, setLoadingOlder] = useState(false);
@@ -160,6 +189,23 @@ export function useDMs() {
     setHasMore(true);
     setLoadingOlder(false);
   }, []);
+
+  // Persist the active peer (or clear the key when null) so a return
+  // visit re-opens the same DM. Effect over wrapping the setter
+  // catches every mutation site, and `localStorage.setItem` is not
+  // setState so this doesn't trip `react-hooks/set-state-in-effect`.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      if (currentPeer && currentPeer.length > 0) {
+        window.localStorage.setItem(LS_CURRENT_PEER, currentPeer);
+      } else {
+        window.localStorage.removeItem(LS_CURRENT_PEER);
+      }
+    } catch {
+      // best-effort — private mode etc.
+    }
+  }, [currentPeer]);
 
   /**
    * Pull the next page of conversation history. Uses the existing

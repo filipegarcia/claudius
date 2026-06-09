@@ -145,4 +145,121 @@ test.describe("/community soft-nav reconnect", () => {
     await expect(page.getByRole("button", { name: "general" })).toBeVisible({ timeout: 5_000 });
     await expect(page.getByRole("button", { name: "bugs" })).toBeVisible();
   });
+
+  /**
+   * Regression test for the "restore last open channel" feature: clicking
+   * `bugs`, navigating away, and returning to /community should land back
+   * on the `bugs` channel (not snap back to the default `general`). The
+   * channel slug is persisted in localStorage under
+   * `claudius.community.currentRoom` and the `useCommunity` hook
+   * lazy-initializes from it.
+   */
+  test("returning to /community restores the last-open channel", async ({ page }) => {
+    await page.addInitScript(() => {
+      try {
+        localStorage.setItem("claudius.community.nick", "tester");
+        localStorage.setItem("claudius.community.consent", "yes");
+      } catch {}
+    });
+
+    await page.route(
+      (url) =>
+        url.href === `${FAKE_URL}/rooms` ||
+        url.href.startsWith(`${FAKE_URL}/rooms?`),
+      async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            rooms: [
+              { slug: "general", name: "#general", description: "", pinnedMessageId: null },
+              { slug: "bugs", name: "#bugs", description: "", pinnedMessageId: null },
+            ],
+          }),
+        });
+      },
+    );
+
+    // Same FakeES stub as the test above — duped rather than hoisted to
+    // keep each test independently runnable.
+    await page.addInitScript(({ url }) => {
+      const Real = window.EventSource;
+      class FakeES extends EventTarget {
+        readonly CONNECTING = 0 as const;
+        readonly OPEN = 1 as const;
+        readonly CLOSED = 2 as const;
+        readyState: number = 1;
+        readonly url: string;
+        readonly withCredentials = false;
+        onopen: ((this: EventSource, ev: Event) => unknown) | null = null;
+        onmessage: ((this: EventSource, ev: MessageEvent) => unknown) | null = null;
+        onerror: ((this: EventSource, ev: Event) => unknown) | null = null;
+        constructor(u: string | URL) {
+          super();
+          this.url = String(u);
+          queueMicrotask(() => {
+            const openEv = new Event("open");
+            this.onopen?.call(this as unknown as EventSource, openEv);
+            this.dispatchEvent(openEv);
+            const slug = decodeURIComponent(
+              this.url.match(/\/rooms\/([^/]+)\/stream/)?.[1] ?? "",
+            );
+            const payload = {
+              type: "replay",
+              roomSlug: slug,
+              messages: [],
+              pinnedMessageId: null,
+            };
+            const msgEv = new MessageEvent("message", {
+              data: JSON.stringify(payload),
+            });
+            this.onmessage?.call(this as unknown as EventSource, msgEv);
+            this.dispatchEvent(msgEv);
+          });
+        }
+        close() {
+          this.readyState = 2;
+        }
+      }
+      window.EventSource = new Proxy(Real, {
+        construct(target, args) {
+          const u = String(args[0]);
+          if (u.startsWith(url)) return new FakeES(u) as unknown as EventSource;
+          return Reflect.construct(target, args);
+        },
+      }) as unknown as typeof EventSource;
+    }, { url: FAKE_URL });
+
+    // First visit — opens on the default `general` channel.
+    await page.goto("/community");
+    await expect(page.getByTestId("community-page")).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText("#general", { exact: true })).toBeVisible();
+
+    // Switch to `bugs`. The header text flips to `#bugs`, confirming the
+    // selection took before we navigate away.
+    await page.getByRole("button", { name: "bugs" }).click();
+    await expect(page.getByText("#bugs", { exact: true })).toBeVisible();
+
+    // Navigate away via the Chat tile and back via the Community tile,
+    // same path as the soft-nav reconnect test above.
+    await page
+      .locator('[data-pane-name="left-nav"] a[title^="Chat"]')
+      .first()
+      .click();
+    await expect(page).toHaveURL(/\/wks_[a-f0-9]{12}(?:$|\?)/);
+
+    const communityTile = page.locator(
+      '[data-pane-name="workspace-switcher"] a[href="/community"]',
+    );
+    await communityTile.waitFor({ state: "visible" });
+    await communityTile.click();
+    await expect(page).toHaveURL(/\/community/);
+
+    // Restore landed on `bugs`, not on the default `general`.
+    await expect(page.getByTestId("community-page")).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText("#bugs", { exact: true })).toBeVisible({
+      timeout: 5_000,
+    });
+    await expect(page.getByText("#general", { exact: true })).not.toBeVisible();
+  });
 });
