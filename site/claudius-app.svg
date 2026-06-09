@@ -1,0 +1,660 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" width="1200" height="720"
+     font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif">
+  <defs>
+    <!-- Window drop shadow -->
+    <filter id="winShadow" x="-5%" y="-5%" width="110%" height="115%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="8"/>
+      <feOffset dx="0" dy="10"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.4"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+
+    <!-- Soft underglow under the active tab indicator -->
+    <linearGradient id="tabActiveBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1a1a1f"/>
+      <stop offset="100%" stop-color="#13131a"/>
+    </linearGradient>
+
+    <!-- Mode chip palette -->
+    <linearGradient id="bypassChip" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#3a2418"/>
+      <stop offset="100%" stop-color="#2a1a12"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Backdrop so the window has something to sit on. -->
+  <rect width="1200" height="720" fill="#1c1d22"/>
+
+  <!-- ============================ Window shell ============================ -->
+  <g filter="url(#winShadow)">
+    <rect x="10" y="10" width="1180" height="700" rx="10" fill="#0a0a0a"/>
+
+    <!-- Title bar -->
+    <path d="M10 20 Q10 10 20 10 L1180 10 Q1190 10 1190 20 L1190 38 L10 38 Z" fill="#1c1c1c"/>
+    <line x1="10" y1="38" x2="1190" y2="38" stroke="#2a2a31" stroke-width="1"/>
+
+    <!-- Traffic lights -->
+    <circle cx="28" cy="24" r="6" fill="#ff5f57"/>
+    <circle cx="48" cy="24" r="6" fill="#febc2e"/>
+    <circle cx="68" cy="24" r="6" fill="#28c840"/>
+
+    <!-- Window title -->
+    <text x="600" y="28" text-anchor="middle" font-size="12" fill="#9a9aa3">Claudius</text>
+  </g>
+
+  <!-- ============================ Workspace column ============================ -->
+  <g transform="translate(10, 38)">
+    <rect width="56" height="672" fill="#0a0a0a"/>
+
+    <!-- Active workspace indicator bar -->
+    <rect x="0" y="18" width="3" height="28" rx="1.5" fill="#e7e7ea"/>
+
+    <!-- C (active) -->
+    <g transform="translate(10, 14)">
+      <rect width="36" height="36" rx="8" fill="#d97757"/>
+      <text x="18" y="25" text-anchor="middle" font-size="15" font-weight="700" fill="#fff">C</text>
+    </g>
+    <!-- E -->
+    <g transform="translate(10, 64)">
+      <rect width="36" height="36" rx="8" fill="#4a7be8"/>
+      <text x="18" y="25" text-anchor="middle" font-size="15" font-weight="700" fill="#fff">E</text>
+    </g>
+    <!-- M -->
+    <g transform="translate(10, 114)">
+      <rect width="36" height="36" rx="8" fill="#a59542"/>
+      <text x="18" y="25" text-anchor="middle" font-size="15" font-weight="700" fill="#fff">M</text>
+    </g>
+    <!-- R -->
+    <g transform="translate(10, 164)">
+      <rect width="36" height="36" rx="8" fill="#c1554a"/>
+      <text x="18" y="25" text-anchor="middle" font-size="15" font-weight="700" fill="#fff">R</text>
+    </g>
+    <!-- O -->
+    <g transform="translate(10, 214)">
+      <rect width="36" height="36" rx="8" fill="#d97757"/>
+      <text x="18" y="25" text-anchor="middle" font-size="15" font-weight="700" fill="#fff">O</text>
+    </g>
+
+    <!-- separator line -->
+    <line x1="14" y1="270" x2="42" y2="270" stroke="#2a2a31"/>
+
+    <!-- Magic wand glyph -->
+    <g transform="translate(18, 286)" stroke="#5a5a63" stroke-width="1.5" fill="none" stroke-linecap="round">
+      <path d="M3 17 L17 3"/>
+      <circle cx="3" cy="3" r="1" fill="#5a5a63"/>
+      <circle cx="17" cy="17" r="1" fill="#5a5a63"/>
+    </g>
+
+    <!-- + new workspace -->
+    <g transform="translate(10, 316)">
+      <rect width="36" height="36" rx="8" stroke="#2a2a31" fill="none" stroke-dasharray="3,2"/>
+      <path d="M18 12 L18 24 M12 18 L24 18" stroke="#5a5a63" stroke-width="1.5" stroke-linecap="round"/>
+    </g>
+
+    <!-- Bottom utility glyphs -->
+    <g stroke="#5a5a63" stroke-width="1.5" fill="none" stroke-linecap="round">
+      <g transform="translate(18, 384)">
+        <path d="M3 10 Q3 4 10 4 Q17 4 17 10"/>
+        <path d="M5 17 L15 17"/>
+      </g>
+      <g transform="translate(18, 426)">
+        <circle cx="10" cy="10" r="4"/>
+        <path d="M3 18 L17 18"/>
+      </g>
+    </g>
+
+    <!-- User avatar bottom -->
+    <g transform="translate(14, 614)">
+      <circle cx="14" cy="14" r="12" fill="#2a2a31"/>
+      <text x="14" y="18" text-anchor="middle" font-size="11" font-weight="700" fill="#9a9aa3">F</text>
+      <circle cx="24" cy="24" r="3" fill="#28c840"/>
+    </g>
+  </g>
+
+  <!-- ============================ Secondary sidebar ============================ -->
+  <g transform="translate(66, 38)">
+    <rect width="48" height="672" fill="#0e0e10"/>
+    <line x1="0" y1="0" x2="0" y2="672" stroke="#2a2a31"/>
+    <line x1="48" y1="0" x2="48" y2="672" stroke="#2a2a31"/>
+
+    <!-- Chat icon (active section) -->
+    <g transform="translate(8, 14)">
+      <rect width="32" height="32" rx="6" fill="#1a1a1f"/>
+      <path d="M8 11 L24 11 Q25 11 25 12 L25 19 Q25 21 23 21 L15 21 L11 24 L11 21 Q8 21 8 19 Z"
+            fill="none" stroke="#d97757" stroke-width="1.5" stroke-linejoin="round"/>
+    </g>
+
+    <!-- Other sidebar icons (abstract geometry, muted) -->
+    <g fill="none" stroke="#5a5a63" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <!-- Git -->
+      <g transform="translate(14, 60)">
+        <circle cx="3" cy="3" r="2"/>
+        <circle cx="3" cy="17" r="2"/>
+        <circle cx="17" cy="10" r="2"/>
+        <path d="M3 5 L3 15"/>
+        <path d="M3 10 Q3 10 15 10"/>
+      </g>
+      <!-- Folder tree -->
+      <g transform="translate(14, 100)">
+        <path d="M2 4 L8 4 M2 10 L10 10 M5 16 L13 16"/>
+        <circle cx="0" cy="4" r="1" fill="#5a5a63"/>
+        <circle cx="0" cy="10" r="1" fill="#5a5a63"/>
+        <circle cx="3" cy="16" r="1" fill="#5a5a63"/>
+      </g>
+      <!-- File -->
+      <g transform="translate(14, 140)">
+        <path d="M2 3 L11 3 L15 7 L15 17 L2 17 Z"/>
+        <path d="M11 3 L11 7 L15 7"/>
+      </g>
+      <!-- Notebook lines -->
+      <g transform="translate(14, 180)">
+        <rect x="2" y="2" width="14" height="16" rx="1"/>
+        <path d="M5 6 L13 6 M5 10 L13 10 M5 14 L11 14"/>
+      </g>
+      <!-- Image -->
+      <g transform="translate(14, 220)">
+        <rect x="2" y="3" width="14" height="13" rx="1"/>
+        <circle cx="6" cy="8" r="1.5"/>
+        <path d="M3 15 L8 10 L13 15"/>
+      </g>
+      <!-- Chart -->
+      <g transform="translate(14, 260)">
+        <path d="M3 17 L3 3 M3 17 L17 17"/>
+        <path d="M6 13 L9 9 L12 11 L15 5"/>
+      </g>
+      <!-- Briefcase -->
+      <g transform="translate(14, 300)">
+        <rect x="2" y="6" width="14" height="11" rx="1"/>
+        <path d="M6 6 L6 4 Q6 3 7 3 L11 3 Q12 3 12 4 L12 6"/>
+      </g>
+      <!-- Antenna pulses -->
+      <g transform="translate(14, 340)">
+        <circle cx="9" cy="9" r="1.5"/>
+        <path d="M5 5 Q7 7 9 9 M13 5 Q11 7 9 9 M3 3 Q6 6 9 9 M15 3 Q12 6 9 9"/>
+      </g>
+      <!-- Workflow -->
+      <g transform="translate(14, 380)">
+        <circle cx="9" cy="3" r="1.5"/>
+        <circle cx="3" cy="15" r="1.5"/>
+        <circle cx="15" cy="15" r="1.5"/>
+        <path d="M9 5 L9 9 M9 9 L4 13 M9 9 L14 13"/>
+      </g>
+      <!-- Agents nodes -->
+      <g transform="translate(14, 420)">
+        <circle cx="4" cy="4" r="2"/>
+        <circle cx="14" cy="4" r="2"/>
+        <circle cx="9" cy="14" r="2"/>
+        <path d="M5 6 L8 12 M13 6 L10 12 M5 4 L13 4"/>
+      </g>
+      <!-- Settings gear -->
+      <g transform="translate(14, 460)">
+        <circle cx="9" cy="9" r="3"/>
+        <path d="M9 2 L9 4 M9 14 L9 16 M2 9 L4 9 M14 9 L16 9 M4 4 L5.5 5.5 M12.5 12.5 L14 14 M4 14 L5.5 12.5 M12.5 5.5 L14 4"/>
+      </g>
+      <!-- User -->
+      <g transform="translate(14, 500)">
+        <circle cx="9" cy="6" r="3"/>
+        <path d="M3 17 Q3 11 9 11 Q15 11 15 17"/>
+      </g>
+      <!-- Shield -->
+      <g transform="translate(14, 540)">
+        <path d="M9 2 L15 4 L15 10 Q15 16 9 18 Q3 16 3 10 L3 4 Z"/>
+      </g>
+      <!-- Database -->
+      <g transform="translate(14, 580)">
+        <ellipse cx="9" cy="4" rx="6" ry="2"/>
+        <path d="M3 4 L3 14 Q3 16 9 16 Q15 16 15 14 L15 4"/>
+        <path d="M3 9 Q3 11 9 11 Q15 11 15 9"/>
+      </g>
+    </g>
+  </g>
+
+  <!-- ============================ Tab bar ============================ -->
+  <g transform="translate(114, 38)">
+    <rect width="786" height="34" fill="#0a0a0a"/>
+    <line x1="0" y1="34" x2="786" y2="34" stroke="#2a2a31"/>
+
+    <!-- Inactive tabs — varied status dots (gray = idle, green = working).
+         Tabs 2 and 3 from the previous revision were removed; the remaining
+         tabs were renumbered so the visible sequence stays 1 → 4. -->
+    <g font-size="11" fill="#9a9aa3">
+      <!-- Tab 1: idle -->
+      <g transform="translate(12, 0)">
+        <circle cx="6" cy="19" r="3" fill="#5a5a63"/>
+        <text x="18" y="22"><tspan fill="#5a5a63">1 </tspan>fix mcp loader</text>
+      </g>
+      <!-- Tab 2: idle (was Tab 4 "distro picker UI") -->
+      <g transform="translate(124, 0)">
+        <circle cx="6" cy="19" r="3" fill="#5a5a63"/>
+        <text x="18" y="22"><tspan fill="#5a5a63">2 </tspan>distro picker UI</text>
+      </g>
+      <!-- Tab 3: working green (was Tab 5 "hero animation v2") -->
+      <g transform="translate(224, 0)">
+        <circle cx="6" cy="19" r="3" fill="#28c840">
+          <animate attributeName="opacity" values="1;0.55;1" dur="2.2s" repeatCount="indefinite"/>
+        </circle>
+        <text x="18" y="22"><tspan fill="#5a5a63">3 </tspan>hero animation v2</text>
+      </g>
+    </g>
+
+    <!-- Active tab (was "7", now numbered "4" after the renumber). Sits flush
+         against tab 3 so the strip stays compact instead of leaving a gap
+         where tabs 2 and 3 used to live. -->
+    <g transform="translate(326, 0)">
+      <rect x="0" y="2" width="218" height="32" fill="url(#tabActiveBg)"/>
+      <rect x="0" y="32" width="218" height="2" fill="#d97757"/>
+      <!-- Pulsing accent dot -->
+      <circle cx="14" cy="19" r="3" fill="#d97757">
+        <animate attributeName="r" values="3;4.5;3" dur="1.6s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="1;0.55;1" dur="1.6s" repeatCount="indefinite"/>
+      </circle>
+      <text x="26" y="22" font-size="11" fill="#e7e7ea" font-weight="500">
+        <tspan fill="#9a9aa3">4 </tspan>add queue to worker
+      </text>
+    </g>
+
+    <!-- + new tab -->
+    <g transform="translate(550, 0)">
+      <text x="6" y="22" font-size="14" fill="#5a5a63">+</text>
+    </g>
+  </g>
+
+  <!-- ============================ Session header ============================ -->
+  <g transform="translate(114, 72)">
+    <rect width="786" height="38" fill="#0a0a0a"/>
+    <line x1="0" y1="38" x2="786" y2="38" stroke="#2a2a31"/>
+
+    <text x="14" y="24" font-size="12" fill="#e7e7ea" font-weight="500">✻ Claudius</text>
+    <circle cx="102" cy="20" r="3.5" fill="#28c840">
+      <animate attributeName="opacity" values="1;0.5;1" dur="2.4s" repeatCount="indefinite"/>
+    </circle>
+    <text x="118" y="24" font-size="11" fill="#9a9aa3">Session d711228c · Idle ·</text>
+    <text x="262" y="24" font-size="11" fill="#9a9aa3" font-family="ui-monospace, Menlo, monospace">claude-opus-4-7</text>
+
+    <!-- Default chip -->
+    <g transform="translate(380, 9)">
+      <rect width="58" height="22" rx="3" fill="#1a1a1f"/>
+      <text x="29" y="15" text-anchor="middle" font-size="10" fill="#9a9aa3">Default</text>
+    </g>
+
+    <!-- Cost / tokens / context -->
+    <text x="450" y="24" font-size="10" fill="#9a9aa3" font-family="ui-monospace, Menlo, monospace">$1.609</text>
+    <text x="488" y="24" font-size="10" fill="#5a5a63" font-family="ui-monospace, Menlo, monospace">476 tok</text>
+    <text x="534" y="24" font-size="10" fill="#9a9aa3" font-family="ui-monospace, Menlo, monospace">8%</text>
+
+    <!-- Action chips -->
+    <text x="566" y="24" font-size="10" fill="#9a9aa3">Compact</text>
+    <text x="612" y="24" font-size="10" fill="#9a9aa3">Clear</text>
+    <text x="644" y="24" font-size="10" fill="#9a9aa3">Copy resume</text>
+
+    <!-- Bypass (rightmost, accent) -->
+    <g transform="translate(714, 9)">
+      <rect width="58" height="22" rx="3" fill="url(#bypassChip)" stroke="#5a3a28" stroke-width="0.5"/>
+      <text x="29" y="15" text-anchor="middle" font-size="10" fill="#d97757" font-weight="500">⌁ Bypass</text>
+    </g>
+  </g>
+
+  <!-- ============================ Goal banner ============================ -->
+  <g transform="translate(114, 122)">
+    <rect width="786" height="30" fill="#0a0a0a"/>
+    <text x="14" y="20" font-size="11" fill="#9a9aa3">
+      <tspan fill="#d97757">◆</tspan>  add queue to worker — backpressure + graceful drain on SIGTERM
+    </text>
+    <text x="772" y="20" text-anchor="end" font-size="14" fill="#5a5a63">×</text>
+  </g>
+  <g transform="translate(114, 152)">
+    <text x="14" y="14" font-size="11" fill="#5a5a63">
+      <tspan fill="#5a5a63">✦</tspan>  Set a session goal
+    </text>
+  </g>
+
+  <!-- Faded scrollback to suggest earlier conversation -->
+  <g transform="translate(128, 188)" opacity="0.28">
+    <rect x="0" y="0" width="500" height="6" rx="3" fill="#2a2a31"/>
+    <rect x="0" y="14" width="380" height="6" rx="3" fill="#2a2a31"/>
+    <rect x="0" y="28" width="450" height="6" rx="3" fill="#2a2a31"/>
+  </g>
+
+  <!-- ============================ User message bubble ============================ -->
+  <g transform="translate(114, 252)">
+    <rect x="500" y="0" width="272" height="36" rx="10" fill="#15151a" stroke="#2a2a31"/>
+    <text x="520" y="22" font-size="11" fill="#e7e7ea">lets add the queue to this process</text>
+  </g>
+
+  <!-- ============================ Assistant streaming ============================ -->
+  <g transform="translate(114, 312)">
+    <!-- Speaker label with INLINE pulsing dots (placed after "streaming" so the dots
+         never sit over the body text below). -->
+    <g>
+      <circle cx="14" cy="7" r="8" fill="#d97757"/>
+      <text x="14" y="10.5" text-anchor="middle" font-size="9" font-weight="700" fill="#fff">C</text>
+      <text x="30" y="10" font-size="10" fill="#e7e7ea" font-family="ui-monospace, Menlo, monospace" font-weight="500">claude-opus-4-7</text>
+      <text x="138" y="10" font-size="10" fill="#5a5a63" font-family="ui-monospace, Menlo, monospace">·  streaming</text>
+
+      <!-- Inline pulsing dots right of "streaming" — same baseline, no overlap. -->
+      <g transform="translate(212, 7)">
+        <circle cx="0" cy="0" r="2.5" fill="#d97757">
+          <animate attributeName="opacity" values="0.3;1;0.3" dur="1.2s" repeatCount="indefinite" begin="0s"/>
+        </circle>
+        <circle cx="9" cy="0" r="2.5" fill="#d97757">
+          <animate attributeName="opacity" values="0.3;1;0.3" dur="1.2s" repeatCount="indefinite" begin="0.2s"/>
+        </circle>
+        <circle cx="18" cy="0" r="2.5" fill="#d97757">
+          <animate attributeName="opacity" values="0.3;1;0.3" dur="1.2s" repeatCount="indefinite" begin="0.4s"/>
+        </circle>
+      </g>
+    </g>
+  </g>
+
+  <!-- Streaming text body — same conversation as in claude-code-terminal.svg,
+       but rendered with the GUI components (TaskBlock-style agent box,
+       rounded tool blocks, status chips). The terminal renders the same
+       data as plain monospace text — the contrast is the showcase. -->
+  <g>
+    <!-- Line 1 -->
+    <text x="128" y="392" font-size="12" fill="#e7e7ea" opacity="0">On it. Spawning an agent to map how the worker pulls tasks before I wire in the queue.<animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.039;0.056;0.861;0.917;1" dur="18s" repeatCount="indefinite"/></text>
+
+    <!-- ════════ Agent box (TaskBlock-style component) ════════
+         Mirrors components/chat/TaskBlock.tsx: accent-tinted rounded card,
+         chevron + Bot icon + agent-type pill + truncated description,
+         status chip that crossfades from "running" (sky-blue, pulsing dot)
+         to "completed" (emerald, check icon). Same agent appears as a plain
+         "● Task(general-purpose)" line in the terminal SVG. -->
+    <g transform="translate(128, 408)" opacity="0">
+      <!-- Outer card -->
+      <rect width="620" height="32" rx="8" fill="#1a130f" stroke="#d97757" stroke-opacity="0.3"/>
+
+      <!-- Chevron right (collapsed state) -->
+      <g transform="translate(10, 12)" stroke="#9a9aa3" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M0 0 L4 4 L0 8"/>
+      </g>
+
+      <!-- Bot icon (lucide-style) -->
+      <g transform="translate(22, 9)" stroke="#d97757" stroke-width="1.3" fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="0" y="4" width="14" height="10" rx="2"/>
+        <line x1="7" y1="1" x2="7" y2="4"/>
+        <circle cx="4.5" cy="9" r="0.9" fill="#d97757" stroke="none"/>
+        <circle cx="9.5" cy="9" r="0.9" fill="#d97757" stroke="none"/>
+        <line x1="-2" y1="9" x2="0" y2="9"/>
+        <line x1="14" y1="9" x2="16" y2="9"/>
+      </g>
+
+      <!-- Agent-type pill -->
+      <g transform="translate(46, 9)">
+        <rect width="98" height="15" rx="3" fill="#241510" stroke="#d97757" stroke-opacity="0.3"/>
+        <text x="49" y="11" text-anchor="middle" font-size="9" font-family="ui-monospace, Menlo, monospace" fill="#d97757" font-weight="600">general-purpose</text>
+      </g>
+
+      <!-- Description (truncated, muted) -->
+      <text x="152" y="20" font-size="10" fill="#9a9aa3">— investigate worker pipeline</text>
+
+      <!-- RUNNING chip (sky-blue, pulsing dot) — visible while subagent works.
+           Chip x dropped from 420 → 376 so the wider "completed" state below
+           still leaves a clear gap before the right-anchored stats text. -->
+      <g transform="translate(376, 9)">
+        <rect width="62" height="15" rx="3" fill="#0f1e2b" stroke="#7dd3fc" stroke-opacity="0.3"/>
+        <circle cx="8" cy="7.5" r="1.8" fill="#7dd3fc">
+          <animate attributeName="opacity" values="0.4;1;0.4" dur="1.2s" repeatCount="indefinite"/>
+        </circle>
+        <text x="36" y="11" text-anchor="middle" font-size="9" fill="#7dd3fc" font-weight="500">running</text>
+        <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.094;0.111;0.361;0.375;1" dur="18s" repeatCount="indefinite"/>
+      </g>
+
+      <!-- COMPLETED chip (emerald, check icon) — crossfades in once subagent
+           returns. Same x=376 as the running chip so the swap is in-place. -->
+      <g transform="translate(376, 9)" opacity="0">
+        <rect width="74" height="15" rx="3" fill="#0d1f1a" stroke="#34d399" stroke-opacity="0.3"/>
+        <path d="M5 8 L8 11 L13 6" stroke="#34d399" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        <text x="42" y="11" text-anchor="middle" font-size="9" fill="#34d399" font-weight="500">completed</text>
+        <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.361;0.375;0.861;0.917;1" dur="18s" repeatCount="indefinite"/>
+      </g>
+
+      <!-- Stats (right-aligned, tabular nums feel) -->
+      <text x="608" y="20" text-anchor="end" font-size="9" fill="#5a5a63" font-family="ui-monospace, Menlo, monospace">12k tok · 4 tools · 8.2s</text>
+
+      <!-- Whole box appears at t≈1.7s and fades out with everything else. -->
+      <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.094;0.111;0.861;0.917;1" dur="18s" repeatCount="indefinite"/>
+    </g>
+
+    <!-- Line 2 -->
+    <text x="128" y="464" font-size="12" fill="#9a9aa3" opacity="0">Worker hits the DB one row at a time. Wiring a bounded queue with backpressure.<animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.417;0.433;0.861;0.917;1" dur="18s" repeatCount="indefinite"/></text>
+
+    <!-- Tool block: Read worker -->
+    <g transform="translate(128, 480)" opacity="0">
+      <rect width="340" height="28" rx="5" fill="#0f0f12" stroke="#2a2a31"/>
+      <text x="12" y="18" font-size="11" fill="#28c840" font-family="ui-monospace, Menlo, monospace">✓</text>
+      <text x="28" y="18" font-size="11" fill="#e7e7ea" font-family="ui-monospace, Menlo, monospace" font-weight="500">Read</text>
+      <text x="64" y="18" font-size="11" fill="#9a9aa3" font-family="ui-monospace, Menlo, monospace">lib/server/worker.ts</text>
+      <text x="328" y="18" text-anchor="end" font-size="10" fill="#5a5a63" font-family="ui-monospace, Menlo, monospace">0.3s</text>
+      <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.500;0.517;0.861;0.917;1" dur="18s" repeatCount="indefinite"/>
+    </g>
+
+    <!-- Tool block: Write queue -->
+    <g transform="translate(128, 516)" opacity="0">
+      <rect width="340" height="28" rx="5" fill="#0f0f12" stroke="#2a2a31"/>
+      <text x="12" y="18" font-size="11" fill="#d97757" font-family="ui-monospace, Menlo, monospace">✎</text>
+      <text x="28" y="18" font-size="11" fill="#e7e7ea" font-family="ui-monospace, Menlo, monospace" font-weight="500">Write</text>
+      <text x="66" y="18" font-size="11" fill="#9a9aa3" font-family="ui-monospace, Menlo, monospace">lib/server/queue.ts</text>
+      <text x="328" y="18" text-anchor="end" font-size="10" fill="#5a5a63" font-family="ui-monospace, Menlo, monospace">0.5s</text>
+      <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.583;0.600;0.861;0.917;1" dur="18s" repeatCount="indefinite"/>
+    </g>
+
+    <!-- Line 3 -->
+    <text x="128" y="568" font-size="12" fill="#e7e7ea" opacity="0">Done. Queue drains with <tspan font-family="ui-monospace, Menlo, monospace" fill="#cfcfd4">concurrency=4</tspan>; <tspan font-family="ui-monospace, Menlo, monospace" fill="#cfcfd4">SIGTERM</tspan> flushes in-flight tasks.<animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.667;0.683;0.861;0.917;1" dur="18s" repeatCount="indefinite"/></text>
+  </g>
+
+  <!-- ============================ Composer ============================ -->
+  <g transform="translate(114, 600)">
+    <line x1="0" y1="0" x2="786" y2="0" stroke="#2a2a31"/>
+    <rect x="14" y="14" width="758" height="84" rx="8" fill="#0f0f12" stroke="#2a2a31"/>
+
+    <!-- Placeholder + cursor -->
+    <text x="32" y="40" font-size="12" fill="#5a5a63">create another SVG with claudius simplified layout</text>
+    <rect x="316" y="29" width="2" height="14" fill="#e7e7ea">
+      <animate attributeName="opacity" values="1;1;0;0" keyTimes="0;0.5;0.5;1" dur="1s" repeatCount="indefinite"/>
+    </rect>
+
+    <!-- Composer toolbar (attach left, mic + send right) -->
+    <g transform="translate(28, 70)" stroke="#5a5a63" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M2 7 L8 1 Q11 -1 12 3 L7 8 Q4 11 3 8 Z"/>
+    </g>
+    <g transform="translate(720, 64)">
+      <!-- mic -->
+      <g stroke="#5a5a63" fill="none" stroke-width="1.5" stroke-linecap="round">
+        <rect x="0" y="0" width="8" height="13" rx="4"/>
+        <path d="M-2 8 Q-2 14 4 14 Q10 14 10 8 M4 14 L4 18"/>
+      </g>
+      <!-- send -->
+      <circle cx="34" cy="9" r="11" fill="#d97757"/>
+      <path d="M30 9 L34 4 L38 9 M34 4 L34 14" stroke="#fff" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+
+    <!-- Char count -->
+    <text x="760" y="106" text-anchor="end" font-size="9" fill="#5a5a63">116 chars</text>
+  </g>
+
+  <!-- ============================ Activity panel ============================ -->
+  <g transform="translate(900, 38)">
+    <rect width="290" height="672" fill="#0a0a0a"/>
+    <line x1="0" y1="0" x2="0" y2="672" stroke="#2a2a31"/>
+
+    <!-- Activity header -->
+    <rect width="290" height="40" fill="#0a0a0a"/>
+    <line x1="0" y1="40" x2="290" y2="40" stroke="#2a2a31"/>
+    <g transform="translate(14, 12)">
+      <!-- bell icon -->
+      <g fill="none" stroke="#e7e7ea" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 12 Q4 4 10 4 Q16 4 16 12 L17 14 L3 14 Z"/>
+        <path d="M8 16 Q8 18 10 18 Q12 18 12 16"/>
+      </g>
+      <text x="26" y="14" font-size="12" fill="#e7e7ea" font-weight="500">Activity</text>
+    </g>
+    <text x="270" y="26" text-anchor="end" font-size="11" fill="#5a5a63">0</text>
+
+    <!-- Notifications row -->
+    <g transform="translate(14, 50)">
+      <text x="0" y="14" font-size="11" fill="#9a9aa3">
+        <tspan fill="#5a5a63">▾</tspan>  Notifications
+      </text>
+    </g>
+
+    <!-- Model card -->
+    <g transform="translate(14, 74)">
+      <rect width="262" height="100" rx="6" fill="#0f0f12" stroke="#2a2a31"/>
+
+      <text x="14" y="22" font-size="12" fill="#e7e7ea" font-weight="500">opus-4-7</text>
+      <text x="248" y="22" text-anchor="end" font-size="10" fill="#5a5a63">▾</text>
+
+      <!-- Chips row -->
+      <g transform="translate(14, 32)">
+        <rect width="46" height="18" rx="3" fill="#1a1a1f"/>
+        <text x="23" y="12" text-anchor="middle" font-size="9" fill="#9a9aa3">⚡ auto</text>
+
+        <rect x="52" width="92" height="18" rx="3" fill="#1a1a1f"/>
+        <text x="98" y="12" text-anchor="middle" font-size="9" fill="#9a9aa3">advisor: opus</text>
+
+        <rect x="150" width="52" height="18" rx="3" fill="#3a2418"/>
+        <text x="176" y="12" text-anchor="middle" font-size="9" fill="#d97757">bypass</text>
+      </g>
+
+      <!-- Path -->
+      <g transform="translate(14, 64)">
+        <g stroke="#5a5a63" stroke-width="1.2" fill="none">
+          <path d="M0 2 L5 2 L7 4 L13 4 Q14 4 14 5 L14 10 Q14 11 13 11 L1 11 Q0 11 0 10 Z"/>
+        </g>
+        <text x="22" y="11" font-size="10" fill="#9a9aa3">../Projects/claudius</text>
+      </g>
+
+      <!-- Turns/time -->
+      <text x="14" y="92" font-size="10" fill="#5a5a63">14 turns  ·  2m 35s</text>
+    </g>
+
+    <!-- Context section -->
+    <g transform="translate(14, 188)">
+      <text x="0" y="12" font-size="11" fill="#9a9aa3" font-family="ui-sans-serif, sans-serif">Context</text>
+      <text x="262" y="12" text-anchor="end" font-size="11" fill="#e7e7ea" font-weight="500">8%</text>
+
+      <!-- Progress bar -->
+      <rect x="0" y="20" width="262" height="6" rx="3" fill="#1a1a1f"/>
+      <rect x="0" y="20" width="22" height="6" rx="3" fill="#d97757">
+        <animate attributeName="width" values="22;28;22" dur="3s" repeatCount="indefinite"/>
+      </rect>
+    </g>
+
+    <!-- Stats chips -->
+    <g transform="translate(14, 230)">
+      <g>
+        <rect width="62" height="40" rx="5" fill="#0f0f12" stroke="#2a2a31"/>
+        <text x="31" y="14" text-anchor="middle" font-size="8" fill="#5a5a63" letter-spacing="0.5">IN</text>
+        <text x="31" y="30" text-anchor="middle" font-size="12" fill="#e7e7ea" font-weight="500">19</text>
+      </g>
+      <g transform="translate(68, 0)">
+        <rect width="62" height="40" rx="5" fill="#0f0f12" stroke="#2a2a31"/>
+        <text x="31" y="14" text-anchor="middle" font-size="8" fill="#5a5a63" letter-spacing="0.5">OUT</text>
+        <text x="31" y="30" text-anchor="middle" font-size="12" fill="#e7e7ea" font-weight="500">476</text>
+      </g>
+      <g transform="translate(136, 0)">
+        <rect width="62" height="40" rx="5" fill="#0f0f12" stroke="#2a2a31"/>
+        <text x="31" y="14" text-anchor="middle" font-size="8" fill="#5a5a63" letter-spacing="0.5">CACHE</text>
+        <text x="31" y="30" text-anchor="middle" font-size="12" fill="#e7e7ea" font-weight="500">919k</text>
+      </g>
+      <g transform="translate(204, 0)">
+        <rect width="58" height="40" rx="5" fill="#0f0f12" stroke="#2a2a31"/>
+        <text x="29" y="14" text-anchor="middle" font-size="8" fill="#5a5a63">$</text>
+        <text x="29" y="30" text-anchor="middle" font-size="12" fill="#e7e7ea" font-weight="500">$1.61</text>
+      </g>
+    </g>
+
+    <!-- To-dos -->
+    <g transform="translate(14, 286)">
+      <text x="0" y="12" font-size="11" fill="#9a9aa3">
+        <tspan fill="#5a5a63">▾</tspan>  To-dos
+        <tspan fill="#5a5a63"> (0)</tspan>
+      </text>
+      <text x="262" y="12" text-anchor="end" font-size="11" fill="#5a5a63">+</text>
+      <text x="0" y="30" font-size="10" fill="#5a5a63">No tasks yet. Click + to add.</text>
+    </g>
+
+    <!-- Tools -->
+    <g transform="translate(14, 328)">
+      <text x="0" y="12" font-size="11" fill="#9a9aa3">
+        <tspan fill="#5a5a63">▾</tspan>  Tools
+        <tspan fill="#5a5a63"> (22)</tspan>
+      </text>
+
+      <!-- Tool rows fade in sequentially across the loop -->
+      <g transform="translate(0, 22)">
+        <g opacity="0">
+          <rect x="0" y="0" width="262" height="24" rx="4" fill="#0f0f12" stroke="#2a2a31"/>
+          <text x="10" y="16" font-size="11" fill="#28c840" font-family="ui-monospace, Menlo, monospace">✓</text>
+          <circle cx="32" cy="12" r="3" fill="#5a5a63"/>
+          <text x="42" y="16" font-size="11" fill="#9a9aa3" font-family="ui-monospace, Menlo, monospace">Thinking</text>
+          <text x="252" y="16" text-anchor="end" font-size="10" fill="#5a5a63" font-family="ui-monospace, Menlo, monospace">0s</text>
+          <animate attributeName="opacity" values="0;0;1;1" keyTimes="0;0.18;0.20;1" dur="14s" repeatCount="indefinite"/>
+        </g>
+        <g transform="translate(0, 28)" opacity="0">
+          <rect x="0" y="0" width="262" height="24" rx="4" fill="#0f0f12" stroke="#2a2a31"/>
+          <text x="10" y="16" font-size="11" fill="#28c840" font-family="ui-monospace, Menlo, monospace">✓</text>
+          <circle cx="32" cy="12" r="3" fill="#d97757"/>
+          <text x="42" y="16" font-size="11" fill="#9a9aa3" font-family="ui-monospace, Menlo, monospace">Bash</text>
+          <text x="252" y="16" text-anchor="end" font-size="10" fill="#5a5a63" font-family="ui-monospace, Menlo, monospace">0s</text>
+          <animate attributeName="opacity" values="0;0;1;1" keyTimes="0;0.28;0.30;1" dur="14s" repeatCount="indefinite"/>
+        </g>
+        <g transform="translate(0, 56)" opacity="0">
+          <rect x="0" y="0" width="262" height="24" rx="4" fill="#0f0f12" stroke="#2a2a31"/>
+          <text x="10" y="16" font-size="11" fill="#28c840" font-family="ui-monospace, Menlo, monospace">✓</text>
+          <circle cx="32" cy="12" r="3" fill="#4a7be8"/>
+          <text x="42" y="16" font-size="11" fill="#9a9aa3" font-family="ui-monospace, Menlo, monospace">Edit</text>
+          <text x="252" y="16" text-anchor="end" font-size="10" fill="#5a5a63" font-family="ui-monospace, Menlo, monospace">0s</text>
+          <animate attributeName="opacity" values="0;0;1;1" keyTimes="0;0.40;0.42;1" dur="14s" repeatCount="indefinite"/>
+        </g>
+        <g transform="translate(0, 84)" opacity="0">
+          <rect x="0" y="0" width="262" height="24" rx="4" fill="#0f0f12" stroke="#2a2a31"/>
+          <text x="10" y="16" font-size="11" fill="#28c840" font-family="ui-monospace, Menlo, monospace">✓</text>
+          <circle cx="32" cy="12" r="3" fill="#4a7be8"/>
+          <text x="42" y="16" font-size="11" fill="#9a9aa3" font-family="ui-monospace, Menlo, monospace">Edit</text>
+          <text x="252" y="16" text-anchor="end" font-size="10" fill="#5a5a63" font-family="ui-monospace, Menlo, monospace">0s</text>
+          <animate attributeName="opacity" values="0;0;1;1" keyTimes="0;0.52;0.54;1" dur="14s" repeatCount="indefinite"/>
+        </g>
+        <g transform="translate(0, 112)" opacity="0">
+          <rect x="0" y="0" width="262" height="24" rx="4" fill="#0f0f12" stroke="#2a2a31"/>
+          <text x="10" y="16" font-size="11" fill="#28c840" font-family="ui-monospace, Menlo, monospace">✓</text>
+          <circle cx="32" cy="12" r="3" fill="#a59542"/>
+          <text x="42" y="16" font-size="11" fill="#9a9aa3" font-family="ui-monospace, Menlo, monospace">Read</text>
+          <text x="252" y="16" text-anchor="end" font-size="10" fill="#5a5a63" font-family="ui-monospace, Menlo, monospace">0s</text>
+          <animate attributeName="opacity" values="0;0;1;1" keyTimes="0;0.64;0.66;1" dur="14s" repeatCount="indefinite"/>
+        </g>
+      </g>
+    </g>
+
+    <!-- Recent edits -->
+    <g transform="translate(14, 510)">
+      <text x="0" y="12" font-size="11" fill="#9a9aa3">
+        <tspan fill="#5a5a63">▾</tspan>  Recent edits
+      </text>
+      <g font-size="10" font-family="ui-monospace, Menlo, monospace">
+        <g transform="translate(0, 26)">
+          <text x="0" y="10" fill="#9a9aa3">slash-commands/loop.ts</text>
+          <text x="262" y="10" text-anchor="end" fill="#d97757">WRITE</text>
+        </g>
+        <g transform="translate(0, 44)">
+          <text x="0" y="10" fill="#9a9aa3">slash-commands/index.ts</text>
+          <text x="262" y="10" text-anchor="end" fill="#5a5a63">EDIT</text>
+        </g>
+        <g transform="translate(0, 62)">
+          <text x="0" y="10" fill="#9a9aa3">lib/server/session.ts</text>
+          <text x="262" y="10" text-anchor="end" fill="#5a5a63">EDIT</text>
+        </g>
+        <g transform="translate(0, 80)">
+          <text x="0" y="10" fill="#9a9aa3">lib/client/use-session.ts</text>
+          <text x="262" y="10" text-anchor="end" fill="#5a5a63">EDIT</text>
+        </g>
+        <g transform="translate(0, 98)">
+          <text x="0" y="10" fill="#9a9aa3">app/api/status/route.ts</text>
+          <text x="262" y="10" text-anchor="end" fill="#5a5a63">EDIT</text>
+        </g>
+      </g>
+    </g>
+  </g>
+</svg>

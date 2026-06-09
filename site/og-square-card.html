@@ -1,0 +1,240 @@
+<!doctype html>
+<!--
+  Square (1:1) social card source. Rendered to /site/og-square.png at
+  1080×1080 via scripts/render-og.mjs.
+
+  Why a separate file: Instagram (and any platform that center-crops the
+  default 1200×630 OG image to square) chops the side-by-side layout
+  right down the seam between the bust and the wordmark. This card is
+  stacked vertically so the same elements survive a 1:1 crop. We don't
+  swap og:image based on User-Agent — there's no reliable way — so this
+  asset is referenced explicitly where a square preview is useful
+  (Instagram link stickers, Pinterest, the components-page squint test).
+
+  Brand stack mirrors og-card.html: same orbs, same vignette, same bust
+  treatment, same type scale shrunk for the narrower canvas.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Claudius — social card (square)</title>
+    <style>
+      :root {
+        --bg: #0b0b0c;
+        --fg: #e7e7ea;
+        --muted: #9a9aa3;
+        --accent: #d97757;
+        --line: #2a2a31;
+      }
+      * { box-sizing: border-box; }
+      html, body {
+        margin: 0;
+        padding: 0;
+        width: 1080px;
+        height: 1080px;
+        overflow: hidden;
+        background: var(--bg);
+        color: var(--fg);
+        font-family:
+          ui-sans-serif, system-ui, -apple-system, "Segoe UI", "Inter",
+          sans-serif;
+        font-feature-settings: "ss01", "cv11";
+        -webkit-font-smoothing: antialiased;
+      }
+
+      /* ── Background stack (same idea as og-card.html, retuned for 1:1) — */
+      .bg {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+      }
+      .orb {
+        position: absolute;
+        border-radius: 50%;
+        filter: blur(140px);
+      }
+      .orb-warm {
+        width: 820px;
+        height: 820px;
+        top: -240px;
+        left: -200px;
+        background: radial-gradient(
+          circle,
+          rgba(217, 119, 87, 0.65),
+          rgba(217, 119, 87, 0) 60%
+        );
+      }
+      .orb-cool {
+        width: 780px;
+        height: 780px;
+        bottom: -240px;
+        right: -200px;
+        background: radial-gradient(
+          circle,
+          rgba(139, 155, 255, 0.42),
+          rgba(139, 155, 255, 0) 60%
+        );
+      }
+      .grid {
+        position: absolute;
+        inset: 0;
+        background-image:
+          linear-gradient(rgba(231, 231, 234, 0.04) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(231, 231, 234, 0.04) 1px, transparent 1px);
+        background-size: 54px 54px;
+        -webkit-mask-image: radial-gradient(
+          ellipse 75% 70% at 50% 50%,
+          rgba(0, 0, 0, 0.85),
+          transparent 80%
+        );
+                mask-image: radial-gradient(
+          ellipse 75% 70% at 50% 50%,
+          rgba(0, 0, 0, 0.85),
+          transparent 80%
+        );
+      }
+      .vignette {
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(
+            ellipse 100% 60% at 50% 115%,
+            rgba(0, 0, 0, 0.6),
+            transparent 60%
+          ),
+          radial-gradient(
+            ellipse 100% 60% at 50% -15%,
+            rgba(0, 0, 0, 0.4),
+            transparent 60%
+          );
+      }
+
+      /* ── Foreground composition ────────────────────────────────────── */
+      .card {
+        position: relative;
+        z-index: 1;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 80px;
+        text-align: center;
+        gap: 36px;
+      }
+
+      .bust {
+        position: relative;
+        width: 360px;
+        height: 360px;
+        display: grid;
+        place-items: center;
+      }
+      .bust::before {
+        content: "";
+        position: absolute;
+        inset: 20px;
+        border-radius: 50%;
+        background: radial-gradient(
+          circle at center,
+          rgba(217, 119, 87, 0.6),
+          rgba(217, 119, 87, 0.2) 35%,
+          transparent 70%
+        );
+        filter: blur(48px);
+      }
+      .bust img {
+        position: relative;
+        width: 300px;
+        height: 300px;
+        filter:
+          invert(1) brightness(0.6)
+          drop-shadow(0 0 24px rgba(217, 119, 87, 0.55))
+          drop-shadow(0 0 60px rgba(217, 119, 87, 0.30));
+      }
+
+      .eyebrow {
+        font-family:
+          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 22px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--accent);
+        display: inline-flex;
+        align-items: center;
+        gap: 14px;
+      }
+      .eyebrow .dot {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--accent);
+        box-shadow: 0 0 14px rgba(217, 119, 87, 0.7);
+      }
+
+      .wordmark {
+        font-size: 168px;
+        line-height: 0.95;
+        letter-spacing: -0.035em;
+        font-weight: 600;
+        color: #f5f5f7;
+        margin: 0;
+      }
+
+      .tagline {
+        font-size: 40px;
+        line-height: 1.25;
+        font-weight: 500;
+        color: var(--fg);
+        margin: 0;
+        max-width: 820px;
+      }
+      .tagline .accent {
+        color: var(--accent);
+      }
+
+      .domain {
+        margin-top: 12px;
+        font-family:
+          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 22px;
+        color: var(--muted);
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .domain .prompt {
+        color: var(--accent);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="bg">
+      <div class="orb orb-warm"></div>
+      <div class="orb orb-cool"></div>
+      <div class="grid"></div>
+      <div class="vignette"></div>
+    </div>
+
+    <div class="card">
+      <div class="bust">
+        <img src="claudius.svg" alt="" />
+      </div>
+      <div class="eyebrow">
+        <span class="dot"></span>
+        <span>Claude Code · in the browser</span>
+      </div>
+      <h1 class="wordmark">Claudius</h1>
+      <p class="tagline">
+        Chat, workflows, agents, MCP — Claude Code with a
+        <span class="accent">real UI</span>.
+      </p>
+      <div class="domain">
+        <span class="prompt">$</span>
+        <span>claudius.network</span>
+      </div>
+    </div>
+  </body>
+</html>

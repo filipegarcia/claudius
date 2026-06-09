@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Marketing assets — Claudius preview</title>
+    <link rel="icon" type="image/svg+xml" href="icon.svg" />
+    <meta name="theme-color" content="#d97757" />
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              bg: "#0b0b0c",
+              fg: "#e7e7ea",
+              panel: "#131316",
+              panel2: "#1a1a1f",
+              line: "#2a2a31",
+              muted: "#9a9aa3",
+              accent: "#d97757",
+            },
+            fontFamily: {
+              sans: ["ui-sans-serif", "system-ui", "-apple-system", "Segoe UI", "Inter", "sans-serif"],
+              mono: ["ui-monospace", "SFMono-Regular", "Menlo", "Monaco", "Consolas", "monospace"],
+            },
+          },
+        },
+      };
+    </script>
+
+    <style>
+      html { background: #0b0b0c; }
+      body { background: transparent; color: #e7e7ea; font-feature-settings: "ss01", "cv11"; }
+
+      /* Grain — same recipe as index.html so the preview matches. */
+      .grain::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        opacity: 0.04;
+        background-image:
+          radial-gradient(#fff 1px, transparent 1px),
+          radial-gradient(#fff 1px, transparent 1px);
+        background-size: 3px 3px, 7px 7px;
+        background-position: 0 0, 1px 2px;
+      }
+
+      .glow {
+        background:
+          radial-gradient(60% 50% at 50% 0%, rgba(217, 119, 87, 0.18), transparent 70%),
+          radial-gradient(40% 40% at 80% 30%, rgba(139, 155, 255, 0.10), transparent 70%);
+      }
+
+      /* ───────── Animated background — same orbs as the main site. ───────── */
+      .site-bg {
+        position: fixed; inset: 0; z-index: -1;
+        pointer-events: none; overflow: hidden;
+      }
+      .site-bg .orb {
+        position: absolute;
+        width: 55vmax; height: 55vmax;
+        border-radius: 50%;
+        filter: blur(80px);
+        will-change: transform;
+      }
+      .site-bg .orb-1 {
+        top: -25%; left: -15%; opacity: 0.45;
+        background: radial-gradient(circle, rgba(217,119,87,0.55), transparent 60%);
+        animation: orb1-drift 26s ease-in-out infinite alternate;
+      }
+      .site-bg .orb-2 {
+        bottom: -30%; right: -20%; opacity: 0.4;
+        background: radial-gradient(circle, rgba(139,155,255,0.45), transparent 60%);
+        animation: orb2-drift 32s ease-in-out infinite alternate;
+      }
+      .site-bg .orb-3 {
+        top: 30%; left: 35%; width: 40vmax; height: 40vmax; opacity: 0.3;
+        background: radial-gradient(circle, rgba(217,119,87,0.28), transparent 60%);
+        animation: orb3-drift 38s ease-in-out infinite;
+      }
+      .site-bg .bg-grid {
+        position: absolute; inset: -2px;
+        background-image:
+          linear-gradient(rgba(231,231,234,0.035) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(231,231,234,0.035) 1px, transparent 1px);
+        background-size: 56px 56px;
+        -webkit-mask-image: radial-gradient(ellipse at center, rgba(0,0,0,0.7), transparent 75%);
+                mask-image: radial-gradient(ellipse at center, rgba(0,0,0,0.7), transparent 75%);
+        animation: grid-pan 60s linear infinite;
+      }
+      @keyframes orb1-drift { 0%{transform:translate3d(0,0,0) scale(1);} 100%{transform:translate3d(18vw,12vh,0) scale(1.1);} }
+      @keyframes orb2-drift { 0%{transform:translate3d(0,0,0) scale(1);} 100%{transform:translate3d(-14vw,-10vh,0) scale(1.15);} }
+      @keyframes orb3-drift { 0%{transform:translate3d(0,0,0) scale(0.9);} 50%{transform:translate3d(-12vw,8vh,0) scale(1.1);} 100%{transform:translate3d(10vw,-6vh,0) scale(0.95);} }
+      @keyframes grid-pan { 0%{background-position:0 0;} 100%{background-position:56px 56px;} }
+      @media (prefers-reduced-motion: reduce) {
+        .site-bg .orb, .site-bg .bg-grid { animation: none !important; }
+      }
+
+      /* ───────── Terminal SVG framing.
+         Soft halo behind the window so it feels embedded in the page,
+         not pasted onto it. Same warmth as the hero bust. */
+      .terminal-wrap {
+        position: relative;
+      }
+      .terminal-wrap::before {
+        content: "";
+        position: absolute;
+        inset: -10%;
+        background:
+          radial-gradient(50% 40% at 50% 50%, rgba(217,119,87,0.22), transparent 70%),
+          radial-gradient(60% 50% at 30% 80%, rgba(139,155,255,0.15), transparent 75%);
+        filter: blur(40px);
+        z-index: -1;
+        pointer-events: none;
+      }
+      .terminal-wrap img {
+        display: block;
+        width: 100%;
+        height: auto;
+        border-radius: 10px;
+        /* The SVG already has a drop-shadow filter, but a soft outer ring
+           helps it feel "lifted" off the page. */
+        box-shadow:
+          0 30px 80px -20px rgba(0,0,0,0.7),
+          0 10px 30px -10px rgba(0,0,0,0.5),
+          0 0 0 1px rgba(255,255,255,0.04);
+      }
+    </style>
+  </head>
+
+  <body class="font-sans antialiased">
+    <!-- Same animated backdrop as the marketing site. -->
+    <div class="site-bg" aria-hidden="true">
+      <div class="orb orb-1"></div>
+      <div class="orb orb-2"></div>
+      <div class="orb orb-3"></div>
+      <div class="bg-grid"></div>
+    </div>
+
+    <!-- Same top bar as index.html, trimmed to the bits that affect layout. -->
+    <header class="sticky top-0 z-30 border-b border-line/60 backdrop-blur bg-bg/70">
+      <div class="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
+        <a href="index.html" class="flex items-center gap-2 group">
+          <img src="claudius.svg" alt="" class="h-6 w-6" />
+          <span class="font-mono text-sm tracking-tight text-fg/90 group-hover:text-fg">claudius</span>
+        </a>
+        <nav class="flex items-center gap-4 sm:gap-6 text-sm text-muted">
+          <a href="index.html" class="hover:text-fg">← Back to site</a>
+        </nav>
+      </div>
+    </header>
+
+    <!-- ────────────────────────────── Hero ────────────────────────────── -->
+    <section class="relative overflow-hidden grain">
+      <div class="absolute inset-0 glow"></div>
+      <div class="relative max-w-6xl mx-auto px-6 pt-14 pb-12 sm:pt-20 sm:pb-16 text-center">
+        <p class="font-mono text-xs uppercase tracking-widest text-accent">Live preview</p>
+        <h1 class="mt-3 text-[2.25rem] leading-[1.05] sm:text-5xl md:text-6xl font-semibold tracking-tight">
+          From the terminal to <span class="text-accent">the browser</span>.
+        </h1>
+        <p class="mt-5 text-lg md:text-xl text-muted max-w-2xl mx-auto leading-relaxed">
+          Two animated SVGs you can drop straight into the marketing page.
+          The terminal asset shows what Claude Code looks like before
+          Claudius. The app asset shows what it looks like after.
+        </p>
+      </div>
+    </section>
+
+    <!-- ────────────────────────── Terminal showcase ────────────────────────── -->
+    <section class="border-t border-line/60">
+      <div class="max-w-5xl mx-auto px-6 py-14 sm:py-20">
+        <div class="terminal-wrap mx-auto max-w-4xl">
+          <!-- Embedded as <img> so the SVG's SMIL animations play in every
+               modern browser without any JS. Object-fit + auto height keeps
+               the 870×360 aspect ratio on every viewport. -->
+          <img
+            src="claude-code-terminal.svg"
+            alt="Animated Claude Code terminal: pixel mascot, welcome banner, a sample /loop ship conversation streaming in, blinking cursor on the next prompt, and auto-mode indicator pulsing."
+            width="1200"
+            height="720"
+          />
+        </div>
+
+        <!-- Caption strip mirroring the index.html "Features" tone. -->
+        <div class="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+          <div class="rounded-lg border border-line bg-panel/60 p-4">
+            <div class="font-mono text-xs text-accent">Cursor</div>
+            <p class="mt-1 text-muted leading-relaxed">
+              Blinks at ~1 Hz and glides with the typed command, like a real REPL.
+            </p>
+          </div>
+          <div class="rounded-lg border border-line bg-panel/60 p-4">
+            <div class="font-mono text-xs text-accent">Mascot</div>
+            <p class="mt-1 text-muted leading-relaxed">
+              Pixel-art Claudius bobs gently. Eyes blink every few seconds.
+            </p>
+          </div>
+          <div class="rounded-lg border border-line bg-panel/60 p-4">
+            <div class="font-mono text-xs text-accent">/loop</div>
+            <p class="mt-1 text-muted leading-relaxed">
+              Soft glow pulse on the "Feature of the week" highlight.
+            </p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ────────────────────────── Claudius app showcase ────────────────────────── -->
+    <section class="border-t border-line/60 relative overflow-hidden">
+      <!-- Accent-wash backdrop, mirroring the install CTA in index.html -->
+      <div
+        class="absolute inset-0 pointer-events-none"
+        aria-hidden="true"
+        style="background: radial-gradient(60% 50% at 50% 0%, rgba(217,119,87,0.18), transparent 70%), radial-gradient(40% 40% at 80% 70%, rgba(139,155,255,0.10), transparent 75%);"
+      ></div>
+
+      <div class="relative max-w-6xl mx-auto px-6 py-14 sm:py-20">
+        <div class="text-center max-w-2xl mx-auto">
+          <p class="font-mono text-xs uppercase tracking-widest text-accent">Then with Claudius</p>
+          <h2 class="mt-2 text-3xl md:text-4xl font-semibold tracking-tight">
+            The same agent, with a <span class="text-accent">real UI</span>.
+          </h2>
+          <p class="mt-4 text-muted leading-relaxed">
+            Workspace switcher, tabs, chat, tool calls, activity, cost — all
+            the things a terminal can't show you at once.
+          </p>
+        </div>
+
+        <div class="terminal-wrap mx-auto mt-12 max-w-6xl">
+          <img
+            src="claudius-app.svg"
+            alt="Animated Claudius browser UI: workspace avatars on the left, sidebar of tools, tab strip with the active tab pulsing orange, streaming Claude response with typing dots, and an Activity panel ticking through tool calls."
+            width="1200"
+            height="720"
+            class="!rounded-xl"
+          />
+        </div>
+
+        <!-- Caption strip describing the animations -->
+        <div class="mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+          <div class="rounded-lg border border-line bg-panel/60 p-4">
+            <div class="font-mono text-xs text-accent">Active tab</div>
+            <p class="mt-1 text-muted leading-relaxed">
+              Orange dot pulses on the live session — the one Claude is currently driving.
+            </p>
+          </div>
+          <div class="rounded-lg border border-line bg-panel/60 p-4">
+            <div class="font-mono text-xs text-accent">Streaming</div>
+            <p class="mt-1 text-muted leading-relaxed">
+              Typing dots, then a wipe reveal that mimics the SSE stream — tools land mid-paragraph.
+            </p>
+          </div>
+          <div class="rounded-lg border border-line bg-panel/60 p-4">
+            <div class="font-mono text-xs text-accent">Activity feed</div>
+            <p class="mt-1 text-muted leading-relaxed">
+              Tool checkmarks fade in sequentially. Context bar breathes around 8%.
+            </p>
+          </div>
+          <div class="rounded-lg border border-line bg-panel/60 p-4">
+            <div class="font-mono text-xs text-accent">Composer</div>
+            <p class="mt-1 text-muted leading-relaxed">
+              Blinking cursor in the input. Idle dot in the session header softens on a 2.4s cycle.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ────────────────────────── Side-by-side / before & after ────────────────────────── -->
+    <section class="border-t border-line/60">
+      <div class="max-w-6xl mx-auto px-6 py-14 sm:py-20">
+        <div class="text-center max-w-2xl mx-auto">
+          <p class="font-mono text-xs uppercase tracking-widest text-accent">Before / after</p>
+          <h2 class="mt-2 text-2xl md:text-3xl font-semibold tracking-tight">
+            Two assets, one story.
+          </h2>
+          <p class="mt-3 text-muted leading-relaxed">
+            Drop them in adjacent sections of the marketing page — terminal first,
+            Claudius second — and let the difference speak for itself.
+          </p>
+        </div>
+
+        <div class="mt-10 grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+          <figure class="rounded-xl border border-line bg-panel p-5">
+            <img
+              src="claude-code-terminal.svg"
+              alt=""
+              class="w-full h-auto rounded-md"
+            />
+            <figcaption class="mt-3 flex items-center justify-between font-mono text-xs">
+              <span class="text-muted">Before — terminal only</span>
+              <span class="text-fg/70">1200 × 720</span>
+            </figcaption>
+          </figure>
+
+          <figure class="rounded-xl border border-line bg-panel p-5">
+            <img
+              src="claudius-app.svg"
+              alt=""
+              class="w-full h-auto rounded-md"
+            />
+            <figcaption class="mt-3 flex items-center justify-between font-mono text-xs">
+              <span class="text-muted">After — Claudius UI</span>
+              <span class="text-fg/70">1200 × 720</span>
+            </figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <!-- ────────────────────────────── Footer ────────────────────────────── -->
+    <footer class="border-t border-line/60">
+      <div class="max-w-6xl mx-auto px-6 py-10 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted">
+        <div>
+          Preview page for <code class="font-mono text-fg">claude-code-terminal.svg</code> and <code class="font-mono text-fg">claudius-app.svg</code>.
+        </div>
+        <div>
+          <a href="index.html" class="hover:text-fg">← Back to claudius.network</a>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
