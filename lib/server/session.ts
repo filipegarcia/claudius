@@ -1410,6 +1410,51 @@ export class Session {
   async start(): Promise<void> {
     if (this.query) return;
 
+    // Pre-flight: verify the workspace cwd actually exists on disk.
+    //
+    // Why this is needed: when the user moved/deleted/renamed the workspace
+    // folder (or rewired their home dir on a fresh OS install), `this.cwd`
+    // still points at the old path. The SDK then calls
+    // `child_process.spawn(claudeBin, args, { cwd })`; posix_spawn internally
+    // chdir()s into `cwd` BEFORE exec'ing the binary, so a missing cwd
+    // returns ENOENT — and Node's error message attributes ENOENT to the
+    // BINARY argument (the first arg of spawn), not to the cwd. The SDK
+    // then runs `existsSync(claudeBin)` → true and reports the famously
+    // misleading "Claude Code native binary at … exists but failed to
+    // launch." The actual problem is the cwd, but the user sees a binary
+    // error and has nowhere to go from there.
+    //
+    // Refuse to start with a clear, actionable error instead. Strict refuse
+    // rather than auto-mkdir: a silent recreate would leave the user with
+    // an empty workspace and no clue their real folder is somewhere else.
+    try {
+      const st = await fsp.stat(this.cwd);
+      if (!st.isDirectory()) {
+        this.broadcast({
+          type: "error",
+          message: `Workspace path \`${this.cwd}\` exists but isn't a directory. Pick a different folder for this workspace.`,
+        });
+        return;
+      }
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException)?.code;
+      if (code === "ENOENT") {
+        this.broadcast({
+          type: "error",
+          message: `Workspace folder \`${this.cwd}\` doesn't exist. The folder was moved or deleted — recreate it, or remove this workspace from the sidebar and re-add the real path.`,
+        });
+        return;
+      }
+      // Any other stat error (EACCES on a locked-down volume, etc.) — surface
+      // the raw code so the user can act on it instead of dropping through to
+      // the SDK's misleading "binary failed to launch" path.
+      this.broadcast({
+        type: "error",
+        message: `Can't read workspace folder \`${this.cwd}\` (${code ?? "unknown error"}). Fix the path or pick a different folder.`,
+      });
+      return;
+    }
+
     // Sweep orphaned actionable notification rows for this session. The
     // in-memory `pendingAskQuestions` / `pendingPermissions` / `pendingPlans`
     // maps start empty on a fresh Session instance — by definition, any
