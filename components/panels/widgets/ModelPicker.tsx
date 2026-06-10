@@ -1,7 +1,19 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Check, Cpu, ExternalLink, Gauge, Lightbulb, Loader2, Workflow, Zap } from "lucide-react";
+import {
+  Check,
+  ChevronDown,
+  ChevronRight,
+  Cpu,
+  ExternalLink,
+  Gauge,
+  Lightbulb,
+  Loader2,
+  Workflow,
+  X,
+  Zap,
+} from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import {
   ADVISOR_COPY,
@@ -29,6 +41,14 @@ type ModelInfo = {
 };
 
 type EffortLevel = "low" | "medium" | "high" | "xhigh" | "max";
+
+type ProbeResult = {
+  value: string;
+  displayName: string;
+  description: string;
+  ok: boolean;
+  error?: string;
+};
 
 const EFFORT_LABEL: Record<EffortLevel, string> = {
   low: "Low",
@@ -248,6 +268,37 @@ export function ModelPicker({
   // re-render to that model's `supportedEffortLevels`.
   const activeModel = models?.find((m) => m.value === currentModel) ?? null;
 
+  // "More models" — collapsible section that live-probes full versioned
+  // model IDs via /api/models/probe. State is lazily fetched the first time
+  // the user expands the section and cached for the picker's lifetime.
+  const [moreExpanded, setMoreExpanded] = useState(false);
+  const [probeResults, setProbeResults] = useState<ProbeResult[] | null>(null);
+  const [probeError, setProbeError] = useState<string | null>(null);
+  // Derived — avoids sync setState in effect body (react-hooks/set-state-in-effect).
+  const probing = moreExpanded && probeResults === null && probeError === null;
+
+  useEffect(() => {
+    if (!moreExpanded || probeResults !== null || probeError !== null) return;
+    const controller = new AbortController();
+    fetch("/api/models/probe", { signal: controller.signal })
+      .then(async (r) => {
+        if (controller.signal.aborted) return;
+        if (!r.ok) {
+          const body = (await r.json().catch(() => ({}))) as { error?: string };
+          setProbeError(body.error ?? `HTTP ${r.status}`);
+          return;
+        }
+        const data = (await r.json()) as { results?: ProbeResult[] };
+        setProbeResults(Array.isArray(data.results) ? data.results : []);
+      })
+      .catch((err) => {
+        if (controller.signal.aborted) return;
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        setProbeError(err instanceof Error ? err.message : String(err));
+      });
+    return () => controller.abort();
+  }, [moreExpanded, probeResults, probeError]);
+
   if (!position) return null;
 
   return (
@@ -389,6 +440,101 @@ export function ModelPicker({
           })}
         </ul>
       )}
+
+      {/* More models — collapsible section of full versioned model IDs.
+          Hidden entirely when every probe result is already covered by the
+          main alias list (deduped by exact `value` match). */}
+      {(() => {
+        // Deduplicate: hide probe results that are already in the main list.
+        const mainValues = new Set((models ?? []).map((m) => m.value));
+        const extra = (probeResults ?? []).filter((r) => !mainValues.has(r.value));
+        // Hide the section when the main list already covers everything and
+        // we're not mid-probe (i.e. we have a definitive empty extra list).
+        if (probeResults !== null && extra.length === 0 && !probeError) return null;
+        return (
+          <div className="border-t border-[var(--border)]/60">
+            {/* Toggle header */}
+            <button
+              type="button"
+              onClick={() => setMoreExpanded((v) => !v)}
+              className="flex w-full items-center gap-1.5 px-3 py-2 text-left transition hover:bg-[var(--panel-2)]/40"
+            >
+              {moreExpanded ? (
+                <ChevronDown className="h-3 w-3 shrink-0 text-[var(--muted)]" />
+              ) : (
+                <ChevronRight className="h-3 w-3 shrink-0 text-[var(--muted)]" />
+              )}
+              <span className="text-[11px] font-medium text-[var(--foreground)]">More models</span>
+              {probing && <Loader2 className="ml-auto h-3 w-3 animate-spin text-[var(--muted)]" />}
+            </button>
+
+            {moreExpanded && (
+              <div className="px-3 pb-3">
+                {probing && (
+                  <p className="text-[10px] text-[var(--muted)]">
+                    Testing availability… this takes a few seconds.
+                  </p>
+                )}
+                {probeError && (
+                  <p className="text-[10px] text-amber-300">{probeError}</p>
+                )}
+                {probeResults !== null && (
+                  <ul className="mt-1 space-y-0.5">
+                    {extra.map((r) => {
+                      const isCurrent = r.value === currentModel;
+                      return (
+                        <li key={r.value}>
+                          <button
+                            type="button"
+                            disabled={!r.ok}
+                            onClick={() => r.ok && onPickModel(r.value)}
+                            title={r.ok ? undefined : r.error ?? "Not available"}
+                            className={cn(
+                              "flex w-full items-start gap-2 rounded px-2 py-1.5 text-left transition",
+                              r.ok && !isCurrent
+                                ? "hover:bg-[var(--panel-2)]/60"
+                                : isCurrent
+                                  ? "bg-[var(--panel-2)]/40"
+                                  : "opacity-50 cursor-not-allowed",
+                            )}
+                          >
+                            {/* Status indicator */}
+                            <span className="mt-0.5 shrink-0">
+                              {isCurrent ? (
+                                <Check className="h-3 w-3 text-[var(--accent)]" />
+                              ) : r.ok ? (
+                                <Check className="h-3 w-3 text-emerald-400" />
+                              ) : (
+                                <X className="h-3 w-3 text-red-400" />
+                              )}
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-1.5">
+                                <span className="truncate text-[11px] font-medium text-[var(--foreground)]">
+                                  {r.displayName}
+                                </span>
+                              </div>
+                              <div className="truncate font-mono text-[9px] text-[var(--muted)]/80">
+                                {r.value}
+                              </div>
+                              {!r.ok && r.error && (
+                                <div className="truncate text-[9px] text-red-300/80">{r.error}</div>
+                              )}
+                            </div>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+                <p className="mt-2 text-[9px] leading-snug text-[var(--muted)]/70">
+                  Pinned versions bypass alias resolution. Availability depends on your plan.
+                </p>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {(() => {
         // Pulled into an IIFE so TS narrows `onPickEffort` to a defined
