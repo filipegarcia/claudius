@@ -198,14 +198,36 @@ export async function stashPushIncludeUntracked(
 }
 
 /**
- * Pop the most recent stash entry. Returns `{ ok: true }` when the working
- * tree is clean after the pop, or `{ ok: false, conflicts: true, output }`
- * when git reports merge conflicts (exit code 1 + the per-file conflict
- * markers list). Other failures throw.
+ * True when the index contains unmerged entries (i.e. real merge-conflict
+ * markers from a `git merge` or `git stash pop`). Used to distinguish a
+ * genuine pop conflict from a "file already exists, no checkout" error —
+ * the latter also exits 1 but leaves no unmerged index entries.
+ */
+export async function hasUnmergedFiles(cwd: string): Promise<boolean> {
+  const { stdout } = await git(["ls-files", "-u"], cwd);
+  return stdout.trim().length > 0;
+}
+
+/**
+ * Pop the most recent stash entry. Returns `{ ok: true }` when the pop
+ * succeeded (including the "file already exists" false-conflict case where
+ * upstream added a file that was also stashed as untracked). Returns
+ * `{ ok: false, conflicts: true, output }` only when there are genuine merge
+ * conflict markers in the index. Other failures throw.
  *
- * Note: on a conflicting pop, git does NOT drop the stash entry — the user
- * (or our recovery prompt) can re-run `git stash show` / `git stash drop`
- * later as needed.
+ * Background: `git stash pop` exits 1 for two distinct situations:
+ *   1. Real merge conflict — content markers in the index, git ls-files -u
+ *      is non-empty. The tree needs human (or Claude) resolution.
+ *   2. "file already exists, no checkout" — upstream added a file that was
+ *      also stashed as untracked. The pull already checked out the upstream
+ *      version; the pop can't restore the stash version on top of it.
+ *      git ls-files -u is EMPTY — no content conflict exists. The working
+ *      tree is at the correct upstream state; the stash entry is left in the
+ *      list but there is nothing to resolve. We return { ok: true }.
+ *
+ * Note: on a real conflicting pop, git does NOT drop the stash entry — the
+ * user (or our recovery prompt) can re-run `git stash show` / `git stash
+ * drop` later as needed. We never auto-drop to avoid data loss.
  */
 export async function stashPop(
   cwd: string,
@@ -215,9 +237,17 @@ export async function stashPop(
     return { ok: true };
   } catch (err) {
     if (err instanceof UpdaterGitError && err.exitCode === 1) {
-      // Conflict — the stash entry is still in the list; the working tree
-      // has conflict markers. Surface for the caller to render a recovery
-      // action.
+      // Distinguish a real content conflict from the "file already exists"
+      // false-conflict. If the index has no unmerged entries, the pop failed
+      // for a benign reason — the tree is at upstream HEAD. Treat as success.
+      // Fall back to conflict=true if the ls-files check itself fails.
+      const actual = await hasUnmergedFiles(cwd).catch(() => true);
+      if (!actual) {
+        // False conflict — "file already exists, no checkout". Working tree
+        // is at upstream HEAD; stash entry was not dropped (intentional —
+        // auto-drop risks data loss if the caller's logic is ever wrong).
+        return { ok: true };
+      }
       return {
         ok: false,
         conflicts: true,

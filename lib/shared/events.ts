@@ -50,6 +50,13 @@ export type ModeChangedEvent = {
 export type ModelChangedEvent = {
   type: "model_changed";
   model?: string;
+  /**
+   * Set to "chat_command" when the switch came from a `/model` slash command
+   * typed in the chat (as opposed to the picker UI). The client uses this to
+   * show "Your pick becomes the default for new sessions" — mirroring the
+   * Claude Code TUI's `/model` help text.
+   */
+  source?: "chat_command";
 };
 
 export type ReplayDoneEvent = {
@@ -564,6 +571,24 @@ export type AgentChangedEvent = {
 };
 
 /**
+ * The server automatically disabled the advisor when the user switched models
+ * mid-session because the current advisor model is not compatible with the new
+ * main-thread model. Carries the previous advisor value so the client can
+ * offer a one-click "Re-enable" action.
+ *
+ * Both settings.json and the flag-settings layer are cleared server-side so
+ * the next API request no longer includes an incompatible advisor tool entry.
+ * The user can restore the advisor via the SessionCard picker or Settings page.
+ */
+export type AdvisorDisabledOnModelChangeEvent = {
+  type: "advisor_disabled_on_model_change";
+  /** The advisor model id that was cleared (e.g. "claude-opus-4-8"). */
+  previousAdvisor: string;
+  /** The new main-thread model that triggered the disable. */
+  newModel: string | undefined;
+};
+
+/**
  * Metadata view of one queued user message. Broadcast inside `QueueUpdatedEvent`
  * so every connected tab can render the QueueIndicator strip without holding
  * its own copy of the queue. Crucially does NOT include the base64 `images`
@@ -628,6 +653,19 @@ export type PlanUsageEvent = {
   } | null;
 };
 
+/**
+ * Broadcast whenever session holder changes — identifies which tab (by its
+ * random `tabId`) currently holds the write lock. All connected clients
+ * compare this against their own `tabId`; mismatches render read-only. Set to
+ * `null` when no holder is registered (e.g. all tabs disconnected). Excluded
+ * from the SSE replay buffer — the current holder is echoed fresh in
+ * `Session.subscribe()` so every connecting client gets the live value.
+ */
+export type HolderChangedEvent = {
+  type: "holder_changed";
+  holderId: string | null;
+};
+
 export type ServerEvent =
   | {
       type: "sdk";
@@ -649,6 +687,7 @@ export type ServerEvent =
   | ModeChangedEvent
   | ModelChangedEvent
   | AgentChangedEvent
+  | AdvisorDisabledOnModelChangeEvent
   | ReplayDoneEvent
   | TurnStatusEvent
   | SessionTitleEvent
@@ -668,7 +707,8 @@ export type ServerEvent =
   | SessionRecapEvent
   | SessionRecapErrorEvent
   | QueueUpdatedEvent
-  | PlanUsageEvent;
+  | PlanUsageEvent
+  | HolderChangedEvent;
 
 /**
  * One-shot notification that the SERVER auto-cleared the to-do snapshot —

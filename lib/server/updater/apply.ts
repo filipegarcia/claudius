@@ -2,6 +2,7 @@ import { promises as fs } from "node:fs";
 import { dirname, join } from "node:path";
 import { query, type SDKMessage } from "@anthropic-ai/claude-agent-sdk";
 import {
+  hasUnmergedFiles,
   headSha,
   isDirty,
   pullFastForward,
@@ -68,14 +69,26 @@ async function runApply(opts: { allowCcMerge?: boolean }): Promise<ApplyOutcome>
 
   // Hold the line while there are unresolved conflicts. Any further apply
   // would stash on top of conflict markers (or pull on top of a dirty merge),
-  // both of which compound the mess. The detect path clears `conflicts`
-  // automatically once the user lands on a clean tree.
+  // both of which compound the mess.
+  //
+  // However, the conflicts record can become stale: the "file already exists,
+  // no checkout" failure from stash pop sets conflicts=true but leaves zero
+  // unmerged index entries (the upstream version of those files is already
+  // present — no content conflict). In that case git ls-files -u is empty
+  // and there is nothing to resolve. If the record is stale, clear it and
+  // proceed rather than blocking Apply forever.
   const file = await readUpdaterFile();
   if (file.state.conflicts) {
-    return {
-      kind: "skipped",
-      reason: "previous update left conflicts — resolve them first",
-    };
+    const hasUnmerged = await hasUnmergedFiles(root).catch(() => true);
+    if (hasUnmerged) {
+      return {
+        kind: "skipped",
+        reason: "previous update left conflicts — resolve them first",
+      };
+    }
+    // Stale record — no actual conflict markers in the index. Clear it so
+    // future applies don't go through this path again.
+    await patchUpdaterState({ conflicts: undefined });
   }
 
   // Always re-check first so we're acting on a fresh diff between local and

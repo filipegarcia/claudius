@@ -448,6 +448,12 @@ export type ChatState = {
   sessionId: string | null;
   ready: boolean;
   pending: boolean;
+  /**
+   * True when another browser/tab holds the write lock for this session.
+   * The input is disabled and a banner is shown. The user can call
+   * `takeOver()` to reclaim the lock from whatever tab currently holds it.
+   */
+  readOnly: boolean;
   messages: DisplayMessage[];
   systemEntries: SystemEntry[];
   toolProgress: Record<string, ToolProgressInfo>;
@@ -706,6 +712,13 @@ export type SendableImage = Partial<Pick<AttachedImage, "id" | "ordinal">> &
   Pick<AttachedImage, "data" | "mediaType">;
 
 export type ChatActions = {
+  /**
+   * Forcefully take over the write lock for this session from whichever tab
+   * currently holds it. Issues a PATCH to the server so all connected clients
+   * — across any browser or context — receive a `holder_changed` SSE event
+   * and the caller becomes the new holder.
+   */
+  takeOver(): Promise<void>;
   send(
     text: string,
     images?: SendableImage[],

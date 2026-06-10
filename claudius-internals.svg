@@ -1,0 +1,402 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" width="1200" height="720"
+     font-family="ui-monospace, 'SF Mono', Menlo, Monaco, monospace">
+  <defs>
+    <!-- Glow filters — softened (larger blur radii) for a less-sharp look -->
+    <filter id="glowSoft" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="5" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="glowStrong" x="-140%" y="-140%" width="380%" height="380%">
+      <feGaussianBlur stdDeviation="12" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <!-- Glowing conduit (soft tube) -->
+    <filter id="tube" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="3.2" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <!-- Atmospheric haze for rings / halos -->
+    <filter id="haze" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4"/>
+    </filter>
+
+    <!-- Window drop shadow -->
+    <filter id="winShadow" x="-5%" y="-5%" width="110%" height="115%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="8"/>
+      <feOffset dx="0" dy="10"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.4"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+
+    <!-- Gradients -->
+    <radialGradient id="brainGrad" cx="50%" cy="42%" r="62%">
+      <stop offset="0%" stop-color="#ffd9c2"/>
+      <stop offset="38%" stop-color="#e89576"/>
+      <stop offset="78%" stop-color="#c1554a"/>
+      <stop offset="100%" stop-color="#5e241f"/>
+    </radialGradient>
+    <linearGradient id="panelGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#12151c"/>
+      <stop offset="100%" stop-color="#0c0e13"/>
+    </linearGradient>
+    <radialGradient id="coreHalo" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#d97757" stop-opacity="0.32"/>
+      <stop offset="100%" stop-color="#d97757" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Blueprint grid -->
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M40 0 H0 V40" fill="none" stroke="#5a7bb0" stroke-opacity="0.055" stroke-width="1"/>
+    </pattern>
+    <pattern id="gridBig" width="200" height="200" patternUnits="userSpaceOnUse">
+      <path d="M200 0 H0 V200" fill="none" stroke="#5a7bb0" stroke-opacity="0.05" stroke-width="1"/>
+    </pattern>
+
+    <!-- Rounded window clip -->
+    <clipPath id="winClip">
+      <rect x="10" y="10" width="1180" height="700" rx="10"/>
+    </clipPath>
+  </defs>
+
+  <!-- Backdrop -->
+  <rect width="1200" height="720" fill="#1c1d22"/>
+
+  <!-- ===================== Window shell ===================== -->
+  <g filter="url(#winShadow)">
+    <rect x="10" y="10" width="1180" height="700" rx="10" fill="#0a0b0d"/>
+  </g>
+
+  <!-- All internals clipped to the rounded window -->
+  <g clip-path="url(#winClip)">
+    <!-- Grid + ambient washes (hazed soft) -->
+    <rect x="10" y="10" width="1180" height="700" fill="url(#grid)"/>
+    <rect x="10" y="10" width="1180" height="700" fill="url(#gridBig)"/>
+    <g filter="url(#haze)">
+      <ellipse cx="600" cy="380" rx="520" ry="320" fill="url(#coreHalo)"/>
+      <circle cx="600" cy="380" r="300" fill="none" stroke="#2a3a55" stroke-opacity="0.28" stroke-dasharray="2 9"/>
+      <circle cx="600" cy="380" r="430" fill="none" stroke="#2a3a55" stroke-opacity="0.2" stroke-dasharray="2 13"/>
+    </g>
+
+    <!-- ===================== Conduits (pipes) =====================
+         Dark base tubes + soft glowing dashed flow overlays. -->
+    <g fill="none" stroke-linecap="round">
+      <path d="M600 380 C 470 350, 372 262, 286 206" stroke="#16202e" stroke-width="12"/>
+      <path d="M600 380 C 732 350, 832 262, 916 206" stroke="#16202e" stroke-width="12"/>
+      <path d="M600 380 C 770 380, 880 374, 1000 372" stroke="#16202e" stroke-width="12"/>
+      <path d="M600 380 C 732 414, 832 486, 912 528" stroke="#16202e" stroke-width="12"/>
+      <path d="M600 380 C 470 414, 372 486, 296 528" stroke="#16202e" stroke-width="12"/>
+      <path d="M600 380 C 440 380, 330 380, 232 380" stroke="#16202e" stroke-width="12"/>
+    </g>
+    <g fill="none" stroke-linecap="round" filter="url(#tube)">
+      <!-- Memory -->
+      <path d="M600 380 C 470 350, 372 262, 286 206" stroke="#3a6aa8" stroke-width="3" stroke-dasharray="2 15" stroke-opacity="0.85">
+        <animate attributeName="stroke-dashoffset" values="34;0" dur="2.4s" repeatCount="indefinite"/>
+      </path>
+      <!-- Sessions -->
+      <path d="M600 380 C 732 350, 832 262, 916 206" stroke="#3a6aa8" stroke-width="3" stroke-dasharray="2 15" stroke-opacity="0.85">
+        <animate attributeName="stroke-dashoffset" values="34;0" dur="2.8s" repeatCount="indefinite"/>
+      </path>
+      <!-- MCP -->
+      <path d="M600 380 C 770 380, 880 374, 1000 372" stroke="#2f8f5a" stroke-width="3" stroke-dasharray="2 15" stroke-opacity="0.85">
+        <animate attributeName="stroke-dashoffset" values="0;34" dur="2.6s" repeatCount="indefinite"/>
+      </path>
+      <!-- Agents -->
+      <path d="M600 380 C 732 414, 832 486, 912 528" stroke="#b8693f" stroke-width="3" stroke-dasharray="2 15" stroke-opacity="0.85">
+        <animate attributeName="stroke-dashoffset" values="0;34" dur="2.2s" repeatCount="indefinite"/>
+      </path>
+      <!-- Scheduler -->
+      <path d="M600 380 C 470 414, 372 486, 296 528" stroke="#a98a2a" stroke-width="3" stroke-dasharray="2 15" stroke-opacity="0.85">
+        <animate attributeName="stroke-dashoffset" values="38;0" dur="3.2s" repeatCount="indefinite"/>
+      </path>
+      <!-- Tools -->
+      <path d="M600 380 C 440 380, 330 380, 232 380" stroke="#b8693f" stroke-width="3" stroke-dasharray="2 15" stroke-opacity="0.85">
+        <animate attributeName="stroke-dashoffset" values="34;0" dur="2.7s" repeatCount="indefinite"/>
+      </path>
+    </g>
+
+    <!-- ===================== Data packets (soft glow) ===================== -->
+    <g filter="url(#glowSoft)">
+      <!-- inbound: memory, sessions, scheduler, tools -->
+      <circle r="4.5" fill="#7db4ff">
+        <animateMotion dur="5.2s" repeatCount="indefinite" path="M286 206 C 372 262, 470 350, 600 380"/>
+      </circle>
+      <circle r="3.4" fill="#7db4ff">
+        <animateMotion dur="5.2s" begin="2.6s" repeatCount="indefinite" path="M286 206 C 372 262, 470 350, 600 380"/>
+      </circle>
+
+      <circle r="4.5" fill="#7db4ff">
+        <animateMotion dur="6.0s" repeatCount="indefinite" path="M916 206 C 832 262, 732 350, 600 380"/>
+      </circle>
+      <circle r="3.4" fill="#7db4ff">
+        <animateMotion dur="6.0s" begin="3.0s" repeatCount="indefinite" path="M916 206 C 832 262, 732 350, 600 380"/>
+      </circle>
+
+      <circle r="4.5" fill="#f5d56a">
+        <animateMotion dur="6.4s" repeatCount="indefinite" path="M296 528 C 372 486, 470 414, 600 380"/>
+      </circle>
+
+      <circle r="4.5" fill="#f0a878">
+        <animateMotion dur="5.4s" repeatCount="indefinite" path="M232 380 C 330 380, 440 380, 600 380"/>
+      </circle>
+      <circle r="3.4" fill="#f0a878">
+        <animateMotion dur="5.4s" begin="2.7s" repeatCount="indefinite" path="M232 380 C 330 380, 440 380, 600 380"/>
+      </circle>
+
+      <!-- outbound: mcp, agents -->
+      <circle r="4.5" fill="#5fd28a">
+        <animateMotion dur="5.0s" repeatCount="indefinite" path="M600 380 C 770 380, 880 374, 1000 372"/>
+      </circle>
+      <circle r="3.4" fill="#5fd28a">
+        <animateMotion dur="5.0s" begin="2.5s" repeatCount="indefinite" path="M600 380 C 770 380, 880 374, 1000 372"/>
+      </circle>
+
+      <circle r="5" fill="#f0a878">
+        <animateMotion dur="4.6s" repeatCount="indefinite" path="M600 380 C 732 414, 832 486, 912 528"/>
+      </circle>
+      <circle r="3.4" fill="#f0a878">
+        <animateMotion dur="4.6s" begin="2.3s" repeatCount="indefinite" path="M600 380 C 732 414, 832 486, 912 528"/>
+      </circle>
+    </g>
+
+    <!-- ===================== MEMORY module ===================== -->
+    <g transform="translate(160, 123)">
+      <rect width="184" height="106" rx="9" fill="url(#panelGrad)" stroke="#26344a" stroke-width="1" stroke-opacity="0.7"/>
+      <rect width="184" height="26" rx="9" fill="#14202f"/>
+      <rect y="16" width="184" height="10" fill="#14202f"/>
+      <g transform="translate(14, 6)" stroke="#5fa0ff" stroke-width="1.4" fill="none">
+        <ellipse cx="6" cy="3" rx="6" ry="2.2"/>
+        <path d="M0 3 V11 Q0 13 6 13 Q12 13 12 11 V3"/>
+        <path d="M0 7 Q0 9 6 9 Q12 9 12 7"/>
+      </g>
+      <text x="34" y="18" font-size="12" fill="#cfe0f5" font-weight="700" letter-spacing="0.5">MEMORY</text>
+      <text x="172" y="18" text-anchor="end" font-size="9" fill="#5a7bb0">SQLite</text>
+      <g transform="translate(14, 38)">
+        <g>
+          <rect width="156" height="9" rx="2" fill="#0e1620"/>
+          <rect width="120" height="9" rx="2" fill="#3a6aa8">
+            <animate attributeName="width" values="92;128;100;120;92" dur="8s" repeatCount="indefinite"/>
+          </rect>
+        </g>
+        <g transform="translate(0,16)">
+          <rect width="156" height="9" rx="2" fill="#0e1620"/>
+          <rect width="80" height="9" rx="2" fill="#3a6aa8">
+            <animate attributeName="width" values="64;104;72;90;64" dur="6.6s" repeatCount="indefinite"/>
+          </rect>
+        </g>
+        <g transform="translate(0,32)">
+          <rect width="156" height="9" rx="2" fill="#0e1620"/>
+          <rect width="140" height="9" rx="2" fill="#5fa0ff">
+            <animate attributeName="width" values="130;150;134;148;130" dur="7.4s" repeatCount="indefinite"/>
+          </rect>
+        </g>
+      </g>
+    </g>
+
+    <!-- ===================== SESSIONS module ===================== -->
+    <g transform="translate(856, 123)">
+      <rect width="184" height="106" rx="9" fill="url(#panelGrad)" stroke="#26344a" stroke-width="1" stroke-opacity="0.7"/>
+      <rect width="184" height="26" rx="9" fill="#14202f"/>
+      <rect y="16" width="184" height="10" fill="#14202f"/>
+      <g transform="translate(14, 7)" stroke="#5fa0ff" stroke-width="1.4" fill="none">
+        <path d="M0 5 L12 5 Q13 5 13 6 L13 11 Q13 12 12 12 L4 12 L1 14 L1 12 Q0 12 0 11 Z"/>
+      </g>
+      <text x="34" y="18" font-size="12" fill="#cfe0f5" font-weight="700" letter-spacing="0.5">SESSIONS</text>
+      <text x="172" y="18" text-anchor="end" font-size="9" fill="#28c840">14 live</text>
+      <g transform="translate(14, 40)" font-size="9" fill="#7d93b5" font-family="ui-monospace, Menlo, monospace">
+        <g>
+          <circle cx="4" cy="4" r="3" fill="#28c840" filter="url(#glowSoft)"><animate attributeName="opacity" values="1;0.4;1" dur="3.2s" repeatCount="indefinite"/></circle>
+          <text x="14" y="7">d711228c · streaming</text>
+        </g>
+        <g transform="translate(0,16)">
+          <circle cx="4" cy="4" r="3" fill="#d97757" filter="url(#glowSoft)"><animate attributeName="opacity" values="1;0.4;1" dur="4.0s" repeatCount="indefinite"/></circle>
+          <text x="14" y="7">a4f0 · awaiting input</text>
+        </g>
+        <g transform="translate(0,32)">
+          <circle cx="4" cy="4" r="3" fill="#5a7bb0"/>
+          <text x="14" y="7">71b2 · idle</text>
+        </g>
+      </g>
+    </g>
+
+    <!-- ===================== MCP module ===================== -->
+    <g transform="translate(972, 300)">
+      <rect width="150" height="120" rx="9" fill="url(#panelGrad)" stroke="#26344a" stroke-width="1" stroke-opacity="0.7"/>
+      <rect width="150" height="26" rx="9" fill="#14241c"/>
+      <rect y="16" width="150" height="10" fill="#14241c"/>
+      <text x="14" y="18" font-size="12" fill="#cfe0f5" font-weight="700" letter-spacing="0.5">MCP</text>
+      <text x="138" y="18" text-anchor="end" font-size="9" fill="#5fd28a">4 servers</text>
+      <g transform="translate(16, 40)" font-size="9" fill="#7d93b5">
+        <g>
+          <rect x="0" y="0" width="10" height="10" rx="2" fill="none" stroke="#2f8f5a"/>
+          <circle cx="5" cy="5" r="2.5" fill="#5fd28a" filter="url(#glowSoft)"><animate attributeName="opacity" values="1;0.3;1" dur="2.8s" repeatCount="indefinite"/></circle>
+          <text x="18" y="9">filesystem</text>
+        </g>
+        <g transform="translate(0,18)">
+          <rect x="0" y="0" width="10" height="10" rx="2" fill="none" stroke="#2f8f5a"/>
+          <circle cx="5" cy="5" r="2.5" fill="#5fd28a" filter="url(#glowSoft)"><animate attributeName="opacity" values="0.3;1;0.3" dur="3.6s" repeatCount="indefinite"/></circle>
+          <text x="18" y="9">postgres</text>
+        </g>
+        <g transform="translate(0,36)">
+          <rect x="0" y="0" width="10" height="10" rx="2" fill="none" stroke="#a98a2a"/>
+          <circle cx="5" cy="5" r="2.5" fill="#f1c40f" filter="url(#glowSoft)"><animate attributeName="opacity" values="1;0.2;1" dur="1.8s" repeatCount="indefinite"/></circle>
+          <text x="18" y="9">slack · …</text>
+        </g>
+        <g transform="translate(0,54)">
+          <rect x="0" y="0" width="10" height="10" rx="2" fill="none" stroke="#2f8f5a"/>
+          <circle cx="5" cy="5" r="2.5" fill="#5fd28a" filter="url(#glowSoft)"><animate attributeName="opacity" values="0.5;1;0.5" dur="3.0s" repeatCount="indefinite"/></circle>
+          <text x="18" y="9">sentry</text>
+        </g>
+      </g>
+    </g>
+
+    <!-- ===================== AGENTS module ===================== -->
+    <g transform="translate(856, 493)">
+      <rect width="190" height="112" rx="9" fill="url(#panelGrad)" stroke="#26344a" stroke-width="1" stroke-opacity="0.7"/>
+      <rect width="190" height="26" rx="9" fill="#241a14"/>
+      <rect y="16" width="190" height="10" fill="#241a14"/>
+      <text x="14" y="18" font-size="12" fill="#f3dccb" font-weight="700" letter-spacing="0.5">AGENTS</text>
+      <text x="178" y="18" text-anchor="end" font-size="9" fill="#f0a878">6 spawned</text>
+      <g transform="translate(28, 70)" stroke="#6a4a38" stroke-width="1.2">
+        <line x1="0" y1="0" x2="40" y2="-18"/>
+        <line x1="0" y1="0" x2="44" y2="6"/>
+        <line x1="0" y1="0" x2="34" y2="24"/>
+        <line x1="40" y1="-18" x2="90" y2="-10"/>
+        <line x1="44" y1="6" x2="92" y2="14"/>
+        <line x1="34" y1="24" x2="86" y2="26"/>
+      </g>
+      <g transform="translate(28, 70)" fill="#f0a878" filter="url(#glowSoft)">
+        <circle cx="0" cy="0" r="6"><animate attributeName="r" values="6;8;6" dur="3.2s" repeatCount="indefinite"/></circle>
+        <circle cx="40" cy="-18" r="4.5"><animate attributeName="opacity" values="1;0.4;1" dur="2.6s" repeatCount="indefinite" begin="0s"/></circle>
+        <circle cx="44" cy="6" r="4.5"><animate attributeName="opacity" values="1;0.4;1" dur="2.6s" repeatCount="indefinite" begin="0.6s"/></circle>
+        <circle cx="34" cy="24" r="4.5"><animate attributeName="opacity" values="1;0.4;1" dur="2.6s" repeatCount="indefinite" begin="1.2s"/></circle>
+        <circle cx="90" cy="-10" r="3.5"><animate attributeName="opacity" values="1;0.4;1" dur="2.6s" repeatCount="indefinite" begin="1.8s"/></circle>
+        <circle cx="92" cy="14" r="3.5"><animate attributeName="opacity" values="1;0.4;1" dur="2.6s" repeatCount="indefinite" begin="2.2s"/></circle>
+        <circle cx="86" cy="26" r="3.5"><animate attributeName="opacity" values="1;0.4;1" dur="2.6s" repeatCount="indefinite" begin="2.8s"/></circle>
+      </g>
+    </g>
+
+    <!-- ===================== SCHEDULER module ===================== -->
+    <g transform="translate(160, 493)">
+      <rect width="190" height="112" rx="9" fill="url(#panelGrad)" stroke="#26344a" stroke-width="1" stroke-opacity="0.7"/>
+      <rect width="190" height="26" rx="9" fill="#22200f"/>
+      <rect y="16" width="190" height="10" fill="#22200f"/>
+      <text x="14" y="18" font-size="12" fill="#f3eccb" font-weight="700" letter-spacing="0.5">SCHEDULER</text>
+      <text x="178" y="18" text-anchor="end" font-size="9" fill="#f1c40f">/loop 30s</text>
+      <g transform="translate(34, 70)">
+        <circle r="22" fill="#0e1117" stroke="#a98a2a" stroke-width="1.4"/>
+        <circle r="2" fill="#f1c40f"/>
+        <line x1="0" y1="0" x2="0" y2="-16" stroke="#f1c40f" stroke-width="2" stroke-linecap="round">
+          <animateTransform attributeName="transform" type="rotate" from="0 0 0" to="360 0 0" dur="6s" repeatCount="indefinite"/>
+        </line>
+        <g stroke="#a98a2a" stroke-width="1.2">
+          <line x1="0" y1="-22" x2="0" y2="-18"/>
+          <line x1="22" y1="0" x2="18" y2="0"/>
+          <line x1="0" y1="22" x2="0" y2="18"/>
+          <line x1="-22" y1="0" x2="-18" y2="0"/>
+        </g>
+      </g>
+      <g transform="translate(74, 52)" font-size="9" fill="#9a8f6b" font-family="ui-monospace, Menlo, monospace">
+        <text x="0" y="0">next run</text>
+        <text x="0" y="16" fill="#f1c40f">00:24</text>
+        <text x="0" y="34" fill="#7d7656">sync-tickets</text>
+      </g>
+    </g>
+
+    <!-- ===================== TOOLS module ===================== -->
+    <g transform="translate(88, 295)">
+      <rect width="142" height="130" rx="9" fill="url(#panelGrad)" stroke="#26344a" stroke-width="1" stroke-opacity="0.7"/>
+      <rect width="142" height="26" rx="9" fill="#241a14"/>
+      <rect y="16" width="142" height="10" fill="#241a14"/>
+      <text x="14" y="18" font-size="12" fill="#f3dccb" font-weight="700" letter-spacing="0.5">TOOLS</text>
+      <text x="130" y="18" text-anchor="end" font-size="9" fill="#f0a878">22</text>
+      <g transform="translate(14, 40)" font-size="10" fill="#9a9aa3" font-family="ui-monospace, Menlo, monospace">
+        <g>
+          <text x="0" y="8" fill="#28c840">✓</text><text x="16" y="8">Read</text>
+          <circle cx="116" cy="4" r="3" fill="#28c840" filter="url(#glowSoft)"><animate attributeName="opacity" values="1;0.3;1" dur="2.4s" repeatCount="indefinite"/></circle>
+        </g>
+        <g transform="translate(0,20)">
+          <text x="0" y="8" fill="#28c840">✓</text><text x="16" y="8">Bash</text>
+          <circle cx="116" cy="4" r="3" fill="#f1c40f" filter="url(#glowSoft)"><animate attributeName="opacity" values="0.3;1;0.3" dur="1.6s" repeatCount="indefinite"/></circle>
+        </g>
+        <g transform="translate(0,40)">
+          <text x="0" y="8" fill="#28c840">✓</text><text x="16" y="8">Edit</text>
+          <circle cx="116" cy="4" r="3" fill="#28c840" filter="url(#glowSoft)"><animate attributeName="opacity" values="0.5;1;0.5" dur="3.0s" repeatCount="indefinite"/></circle>
+        </g>
+        <g transform="translate(0,60)">
+          <text x="0" y="8" fill="#5a7bb0">·</text><text x="16" y="8" fill="#5a7bb0">Grep</text>
+        </g>
+      </g>
+    </g>
+
+    <!-- ===================== BRAIN / MODEL core ===================== -->
+    <!-- expanding pulse ring (slow, hazed) -->
+    <g filter="url(#haze)">
+      <polygon points="600,302 667.5,341 667.5,419 600,458 532.5,419 532.5,341"
+               fill="none" stroke="#d97757" stroke-width="2.5" stroke-opacity="0.55">
+        <animateTransform attributeName="transform" type="scale" additive="sum"
+                          values="1;1.6;1.6" keyTimes="0;0.7;1" dur="6.4s" repeatCount="indefinite"/>
+        <animate attributeName="stroke-opacity" values="0.55;0;0" keyTimes="0;0.7;1" dur="6.4s" repeatCount="indefinite"/>
+        <animateTransform attributeName="transform" type="translate" additive="sum"
+                          values="0 0;-360 -228;-360 -228" keyTimes="0;0.7;1" dur="6.4s" repeatCount="indefinite"/>
+      </polygon>
+    </g>
+
+    <!-- hexagon body -->
+    <g filter="url(#glowStrong)">
+      <polygon points="600,302 667.5,341 667.5,419 600,458 532.5,419 532.5,341"
+               fill="#0c0d10" stroke="#d97757" stroke-width="2.5"/>
+      <polygon points="600,310 660,345.5 660,414.5 600,450 540,414.5 540,345.5"
+               fill="url(#brainGrad)" opacity="0.18"/>
+    </g>
+
+    <!-- neural net inside the brain -->
+    <g stroke="#e89576" stroke-width="1" stroke-opacity="0.5">
+      <line x1="600" y1="380" x2="600" y2="338"/>
+      <line x1="600" y1="380" x2="636" y2="360"/>
+      <line x1="600" y1="380" x2="636" y2="402"/>
+      <line x1="600" y1="380" x2="600" y2="422"/>
+      <line x1="600" y1="380" x2="564" y2="402"/>
+      <line x1="600" y1="380" x2="564" y2="360"/>
+      <line x1="600" y1="338" x2="636" y2="360"/>
+      <line x1="636" y1="402" x2="600" y2="422"/>
+      <line x1="564" y1="402" x2="564" y2="360"/>
+    </g>
+    <g fill="#ffd9c2" filter="url(#glowSoft)">
+      <circle cx="600" cy="338" r="3.4"><animate attributeName="opacity" values="0.4;1;0.4" dur="2.8s" repeatCount="indefinite" begin="0s"/></circle>
+      <circle cx="636" cy="360" r="3.4"><animate attributeName="opacity" values="0.4;1;0.4" dur="2.8s" repeatCount="indefinite" begin="0.4s"/></circle>
+      <circle cx="636" cy="402" r="3.4"><animate attributeName="opacity" values="0.4;1;0.4" dur="2.8s" repeatCount="indefinite" begin="0.8s"/></circle>
+      <circle cx="600" cy="422" r="3.4"><animate attributeName="opacity" values="0.4;1;0.4" dur="2.8s" repeatCount="indefinite" begin="1.2s"/></circle>
+      <circle cx="564" cy="402" r="3.4"><animate attributeName="opacity" values="0.4;1;0.4" dur="2.8s" repeatCount="indefinite" begin="1.6s"/></circle>
+      <circle cx="564" cy="360" r="3.4"><animate attributeName="opacity" values="0.4;1;0.4" dur="2.8s" repeatCount="indefinite" begin="2.0s"/></circle>
+    </g>
+    <!-- pulsing core (extra soft) -->
+    <circle cx="600" cy="380" r="9" fill="#fff3ea" filter="url(#glowStrong)">
+      <animate attributeName="r" values="7;12;7" dur="3.6s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.8;1;0.8" dur="3.6s" repeatCount="indefinite"/>
+    </circle>
+
+    <text x="600" y="486" text-anchor="middle" font-size="12" fill="#f3dccb" font-weight="700" letter-spacing="1">MODEL</text>
+    <text x="600" y="502" text-anchor="middle" font-size="10" fill="#c98a6a">claude-opus-4-7</text>
+  </g>
+
+  <!-- ===================== Header strip ===================== -->
+  <g>
+    <rect x="10" y="10" width="1180" height="34" rx="10" fill="#0e1014"/>
+    <rect x="10" y="34" width="1180" height="10" fill="#0e1014"/>
+    <line x1="10" y1="44" x2="1190" y2="44" stroke="#1c2531"/>
+    <text x="28" y="31" font-size="12" fill="#9aa6b8" font-weight="700">✻ claudius</text>
+    <text x="600" y="31" text-anchor="middle" font-size="11" fill="#5a7bb0" letter-spacing="3">SYSTEM · INTERNALS</text>
+    <g font-size="10" font-family="ui-monospace, Menlo, monospace">
+      <text x="980" y="31" fill="#5a6678">throughput</text>
+      <text x="1060" y="31" fill="#5fd28a">1.2k tok/s</text>
+      <text x="1148" y="31" text-anchor="end" fill="#7d93b5">PWR</text>
+      <circle cx="1164" cy="27" r="4" fill="#28c840" filter="url(#glowSoft)">
+        <animate attributeName="opacity" values="1;0.4;1" dur="3.2s" repeatCount="indefinite"/>
+      </circle>
+    </g>
+  </g>
+
+  <text x="28" y="700" font-size="9" fill="#3a4658" font-family="ui-monospace, Menlo, monospace">claudius · v0.3.168.5 · node runtime</text>
+  <text x="1172" y="700" text-anchor="end" font-size="9" fill="#3a4658" font-family="ui-monospace, Menlo, monospace">uptime 2h 14m</text>
+</svg>

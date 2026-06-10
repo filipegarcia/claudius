@@ -460,6 +460,7 @@ export function MessageList({
                           onJumpTo={() => jumpToMessageTop(m.uuid)}
                           suggested={!!suggestedUuids?.has(m.uuid)}
                           fromGoal={!!goalUuids?.has(m.uuid)}
+                          verbose={verbose}
                         />
                       ) : (
                         <AssistantMessage

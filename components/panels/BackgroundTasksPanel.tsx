@@ -115,6 +115,8 @@ type Props = {
   advisorModel?: string | null;
   /** Pick the advisor model. Same plumbing rationale as `onChangeFast`. */
   onChangeAdvisorModel?: (model: string | null) => Promise<void> | void;
+  /** Open the full context-window breakdown overlay. */
+  onOpenContext?: () => void;
 };
 
 /**
@@ -215,6 +217,7 @@ export function BackgroundTasksPanel({
   advisorModel = null,
   onChangeAdvisorModel,
   planUsage,
+  onOpenContext,
 }: Props) {
   const [showCost, setShowCost] = useState(false);
   const [addTodosOpen, setAddTodosOpen] = useState(false);
@@ -443,7 +446,7 @@ export function BackgroundTasksPanel({
           advisorModel={advisorModel}
           onChangeAdvisorModel={onChangeAdvisorModel}
         />
-        <ContextBar sessionId={sessionId} pending={pending} />
+        <ContextBar sessionId={sessionId} pending={pending} onOpenContext={onOpenContext} />
         <TokenMeter usage={usage} />
 
         <div className="mb-3 border-t border-[var(--border)]/40" />

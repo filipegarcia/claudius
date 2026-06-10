@@ -74,7 +74,7 @@ export function AssistantMessage({
         {message.streaming && <span className="text-[10px] opacity-60">streaming…</span>}
         {stamp && (
           <span
-            className="ml-auto font-mono text-[10px] opacity-0 transition group-hover:opacity-100"
+            className={`ml-auto font-mono text-[10px] transition ${verbose === "ultra-verbose" ? "opacity-60" : "opacity-0 group-hover:opacity-100"}`}
             title={stamp.full}
             aria-label={`Sent ${stamp.full}`}
           >

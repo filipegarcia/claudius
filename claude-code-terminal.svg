@@ -1,0 +1,280 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" width="1200" height="720"
+     font-family="ui-monospace, 'SF Mono', Menlo, Monaco, 'Courier New', monospace">
+  <defs>
+    <!-- Soft glow for /loop highlight -->
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="1.4" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Typing clip: reveals "lets add the queue to this process" left-to-right
+         during the first ~3.5s of the 20s loop, then snaps to 0 at t≈4s once
+         the user "presses enter" — that's when the message appears at the top
+         as history and Claude starts replying. After the clear, width stays 0
+         for the rest of the loop (input sits empty under a blinking cursor). -->
+    <clipPath id="typingClip">
+      <rect x="62" y="570" width="0" height="32">
+        <animate attributeName="width"
+                 values="0;0;290;290;0;0"
+                 keyTimes="0;0.025;0.175;0.200;0.205;1"
+                 dur="20s"
+                 repeatCount="indefinite"/>
+      </rect>
+    </clipPath>
+
+    <!-- Window drop shadow -->
+    <filter id="winShadow" x="-5%" y="-5%" width="110%" height="115%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="8"/>
+      <feOffset dx="0" dy="10"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.4"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Backdrop (matches claudius-app.svg) -->
+  <rect width="1200" height="720" fill="#1c1d22"/>
+
+  <!-- ============================ Window shell ============================ -->
+  <g filter="url(#winShadow)">
+    <rect x="10" y="10" width="1180" height="700" rx="10" ry="10" fill="#0a0a0a"/>
+
+    <!-- Title bar -->
+    <path d="M10 20 Q10 10 20 10 L1180 10 Q1190 10 1190 20 L1190 38 L10 38 Z" fill="#1c1c1c"/>
+    <line x1="10" y1="38" x2="1190" y2="38" stroke="#2a2a31" stroke-width="1"/>
+
+    <!-- Traffic lights -->
+    <circle cx="28" cy="24" r="6" fill="#ff5f57"/>
+    <circle cx="48" cy="24" r="6" fill="#febc2e"/>
+    <circle cx="68" cy="24" r="6" fill="#28c840"/>
+
+    <!-- Window title -->
+    <text x="600" y="28" text-anchor="middle" font-size="12" fill="#9a9a9a"
+          font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif">
+      ✻ Claude Code
+    </text>
+    <text x="1178" y="28" text-anchor="end" font-size="12" fill="#666"
+          font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif">
+      ⌥⌘1
+    </text>
+  </g>
+
+  <!-- ============================ Welcome banner ============================ -->
+  <g transform="translate(40, 60)">
+    <!-- Subtle bob animation -->
+    <animateTransform attributeName="transform" type="translate"
+                      values="40,60; 40,56; 40,60; 40,64; 40,60"
+                      keyTimes="0;0.25;0.5;0.75;1" dur="4s" repeatCount="indefinite"/>
+
+    <!-- Mascot body: 12x12 grid of 5px pixels = 60x60 -->
+    <g fill="#e89576">
+      <rect x="20" y="0"  width="20" height="5"/>
+      <rect x="10" y="5"  width="40" height="5"/>
+      <rect x="5"  y="10" width="50" height="10"/>
+      <rect x="0"  y="20" width="60" height="20"/>
+      <rect x="5"  y="40" width="50" height="5"/>
+      <rect x="10" y="45" width="40" height="5"/>
+      <rect x="20" y="50" width="20" height="5"/>
+    </g>
+    <g fill="#f4a888">
+      <rect x="15" y="10" width="5" height="5"/>
+      <rect x="10" y="15" width="5" height="5"/>
+      <rect x="5"  y="20" width="5" height="5"/>
+    </g>
+    <g fill="#c47655">
+      <rect x="45" y="40" width="10" height="5"/>
+      <rect x="50" y="35" width="5"  height="5"/>
+      <rect x="40" y="45" width="15" height="5"/>
+    </g>
+
+    <!-- Eyes blink every ~4s -->
+    <g fill="#2a0d09">
+      <rect x="15" y="25" width="10" height="10">
+        <animate attributeName="height" values="10;10;10;1;10;10"
+                 keyTimes="0;0.7;0.92;0.95;0.98;1" dur="4s" repeatCount="indefinite"/>
+        <animate attributeName="y" values="25;25;25;29.5;25;25"
+                 keyTimes="0;0.7;0.92;0.95;0.98;1" dur="4s" repeatCount="indefinite"/>
+      </rect>
+      <rect x="35" y="25" width="10" height="10">
+        <animate attributeName="height" values="10;10;10;1;10;10"
+                 keyTimes="0;0.7;0.92;0.95;0.98;1" dur="4s" repeatCount="indefinite"/>
+        <animate attributeName="y" values="25;25;25;29.5;25;25"
+                 keyTimes="0;0.7;0.92;0.95;0.98;1" dur="4s" repeatCount="indefinite"/>
+      </rect>
+    </g>
+    <rect x="17.5" y="27.5" width="2.5" height="2.5" fill="#fff" opacity="0.6"/>
+    <rect x="37.5" y="27.5" width="2.5" height="2.5" fill="#fff" opacity="0.6"/>
+  </g>
+
+  <!-- Welcome header text -->
+  <g transform="translate(120, 60)">
+    <text x="0" y="18" font-size="17" fill="#fff" font-weight="700">Claude Code</text>
+    <text x="124" y="18" font-size="15" fill="#777">v2.1.169</text>
+    <text x="0" y="40" font-size="15" fill="#cfcfcf">Opus 4.7 · Claude Max</text>
+    <text x="0" y="62" font-size="15" fill="#777">~/Projects/claudius</text>
+  </g>
+
+  <!-- ============================ Feature of the week ============================ -->
+  <g transform="translate(36, 174)">
+    <text x="0" y="0" font-size="14" fill="#3a6dc8">›</text>
+    <text x="16" y="0" font-size="14" fill="#fff" font-weight="700">Feature of the week:</text>
+    <g filter="url(#glow)">
+      <text x="186" y="0" font-size="14" fill="#f1c40f" font-weight="700">/loop
+        <animate attributeName="opacity" values="0.78;1;0.78" dur="2.4s" repeatCount="indefinite"/>
+      </text>
+    </g>
+    <text x="224" y="0" font-size="14" fill="#a8a8a8">— run a prompt or slash command on a recurring interval</text>
+  </g>
+
+  <!-- ============================ Sample conversation ============================
+       Same content as the Claudius app SVG (claudius-app.svg), but this is
+       a TUI: pure monospace text, no boxes, no chips, no rounded panels.
+       Tool calls and the agent invocation are just plain ●/⎿ rows the way
+       real Claude Code prints them in a terminal. -->
+  <line x1="36" y1="200" x2="1164" y2="200" stroke="#1a1a1f"/>
+
+  <!-- User prompt as history. Hidden during the typing phase (t=0 → 4s) and
+       snaps in at t≈4s when the input is "submitted" — same instant the
+       input clip clears below. Stays visible through Claude's reply, fades
+       out with everything else at the end of the loop. -->
+  <g transform="translate(36, 240)" opacity="0">
+    <text x="0" y="0" font-size="14" fill="#3a6dc8">›</text>
+    <text x="20" y="0" font-size="14" fill="#e7e7ea">lets add the queue to this process</text>
+    <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.200;0.205;0.875;0.950;1" dur="20s" repeatCount="indefinite"/>
+  </g>
+
+  <!-- Claude reply — each line/block fades in on its own 18s-loop opacity animation -->
+
+  <!-- Line 1 -->
+  <text x="36" y="280" font-size="13" fill="#e7e7ea" opacity="0">On it. Spawning an agent to map how the worker pulls tasks before I wire in the queue.<animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.250;0.270;0.875;0.950;1" dur="20s" repeatCount="indefinite"/></text>
+
+  <!-- Agent invocation — pure text TUI row, no leading bullet, no card.
+       Header line: "Task(general-purpose) — investigate worker pipeline".
+       Continuation line below uses the ⎿ TUI mark and switches text from
+       "Running…" to "Done · …" mid-loop. -->
+  <g opacity="0">
+    <!-- Header: Task(general-purpose) — investigate worker pipeline -->
+    <text x="36" y="312" font-size="13" fill="#fff" font-weight="500">Task</text>
+    <text x="68" y="312" font-size="13" fill="#9a9a9a">(</text>
+    <text x="76" y="312" font-size="13" fill="#d97757">general-purpose</text>
+    <text x="190" y="312" font-size="13" fill="#9a9a9a">)</text>
+    <text x="202" y="312" font-size="13" fill="#9a9a9a">— investigate worker pipeline</text>
+    <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.300;0.320;0.875;0.950;1" dur="20s" repeatCount="indefinite"/>
+  </g>
+
+  <!-- Continuation line — RUNNING state: "  ⎿  Running…" -->
+  <g opacity="0">
+    <text x="56" y="334" font-size="13" fill="#5a5a63">⎿</text>
+    <text x="76" y="334" font-size="13" fill="#7dd3fc">Running</text>
+    <text x="126" y="334" font-size="13" fill="#7dd3fc">
+      ·
+      <animate attributeName="opacity" values="0.4;1;0.4" dur="1.2s" repeatCount="indefinite"/>
+    </text>
+    <text x="134" y="334" font-size="13" fill="#7dd3fc">
+      ·
+      <animate attributeName="opacity" values="0.4;1;0.4" dur="1.2s" repeatCount="indefinite" begin="0.2s"/>
+    </text>
+    <text x="142" y="334" font-size="13" fill="#7dd3fc">
+      ·
+      <animate attributeName="opacity" values="0.4;1;0.4" dur="1.2s" repeatCount="indefinite" begin="0.4s"/>
+    </text>
+    <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.300;0.320;0.500;0.520;1" dur="20s" repeatCount="indefinite"/>
+  </g>
+
+  <!-- Continuation line — COMPLETED state: "  ⎿  Done · 4 tools · 12k tok · 8.2s" -->
+  <g opacity="0">
+    <text x="56" y="334" font-size="13" fill="#5a5a63">⎿</text>
+    <text x="76" y="334" font-size="13" fill="#34d399">Done</text>
+    <text x="112" y="334" font-size="13" fill="#5a5a63">· 4 tools · 12k tok · 8.2s</text>
+    <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.500;0.520;0.875;0.950;1" dur="20s" repeatCount="indefinite"/>
+  </g>
+
+  <!-- Line 2 -->
+  <text x="36" y="368" font-size="13" fill="#9a9a9a" opacity="0">Worker hits the DB one row at a time. Wiring a bounded queue with backpressure.<animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.550;0.570;0.875;0.950;1" dur="20s" repeatCount="indefinite"/></text>
+
+  <!-- Tool: Read(lib/server/worker.ts) — plain TUI row, no leading bullet. -->
+  <g opacity="0">
+    <text x="36" y="398" font-size="13" fill="#fff" font-weight="500">Read</text>
+    <text x="72" y="398" font-size="13" fill="#9a9a9a">(</text>
+    <text x="80" y="398" font-size="13" fill="#cfcfcf">lib/server/worker.ts</text>
+    <text x="236" y="398" font-size="13" fill="#9a9a9a">)</text>
+    <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.625;0.645;0.875;0.950;1" dur="20s" repeatCount="indefinite"/>
+  </g>
+
+  <!-- Tool: Write(lib/server/queue.ts) — plain TUI row, no leading bullet. -->
+  <g opacity="0">
+    <text x="36" y="422" font-size="13" fill="#fff" font-weight="500">Write</text>
+    <text x="76" y="422" font-size="13" fill="#9a9a9a">(</text>
+    <text x="84" y="422" font-size="13" fill="#cfcfcf">lib/server/queue.ts</text>
+    <text x="232" y="422" font-size="13" fill="#9a9a9a">)</text>
+    <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.705;0.725;0.875;0.950;1" dur="20s" repeatCount="indefinite"/>
+  </g>
+
+  <!-- Line 3 -->
+  <text x="36" y="458" font-size="13" fill="#e7e7ea" opacity="0">Done. Queue drains with <tspan fill="#cfcfcf">concurrency=4</tspan>; <tspan fill="#cfcfcf">SIGTERM</tspan> flushes in-flight tasks.<animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.775;0.795;0.875;0.950;1" dur="20s" repeatCount="indefinite"/></text>
+
+  <!-- ============================ Active input ============================
+       Sits at the bottom of the visible content, above the status bar —
+       the natural place for the next prompt in a terminal session. -->
+  <line x1="36" y1="540" x2="1164" y2="540" stroke="#1a1a1f"/>
+  <text x="36" y="582" font-size="16" fill="#3a6dc8">›</text>
+
+  <!-- Cursor block — independent 0.95s blink + a 20s x-position animation
+       synchronized with the typing clip. Glides right with each typed char,
+       then snaps back to the start when the input clears at t≈4s. Stays at
+       the start (blinking in an empty input) for the rest of the loop while
+       the rendered conversation above is what Claude is replying. -->
+  <rect x="56" y="566" width="9" height="20" fill="#dadada">
+    <animate attributeName="opacity" values="1;1;0;0" keyTimes="0;0.5;0.5;1" dur="0.95s" repeatCount="indefinite"/>
+    <animate attributeName="x"
+             values="56;56;350;350;56;56"
+             keyTimes="0;0.025;0.175;0.200;0.205;1"
+             dur="20s" repeatCount="indefinite"/>
+  </rect>
+
+  <!-- Typed command revealed via clipPath — the user's prompt being typed. -->
+  <g clip-path="url(#typingClip)">
+    <text x="68" y="582" font-size="14" fill="#e8e8e8">lets add the queue to this process</text>
+  </g>
+
+  <line x1="36" y1="606" x2="1164" y2="606" stroke="#1a1a1f"/>
+
+  <!-- ============================ Status bar ============================ -->
+  <g transform="translate(36, 622)">
+    <!-- opus-4 -->
+    <rect x="0" y="0" width="68" height="22" rx="3" fill="#2c2c2c"/>
+    <text x="34" y="15" text-anchor="middle" font-size="12" fill="#e0e0e0" font-weight="700">opus-4</text>
+
+    <!-- claudius (active workspace) -->
+    <rect x="74" y="0" width="84" height="22" rx="3" fill="#4f6ef0"/>
+    <text x="116" y="15" text-anchor="middle" font-size="12" fill="#fff" font-weight="700">claudius</text>
+
+    <!-- main !2 -->
+    <rect x="164" y="0" width="68" height="22" rx="3" fill="#3a3a3a"/>
+    <text x="198" y="15" text-anchor="middle" font-size="12" fill="#e0e0e0">main <tspan fill="#f1c40f" font-weight="700">!2</tspan></text>
+
+    <!-- progress percent — shifted left to close the gap that the /loop chip
+         used to occupy at x=238. -->
+    <text x="246" y="15" font-size="12" fill="#666" font-weight="700">--%</text>
+
+    <!-- Date -->
+    <text x="278" y="15" font-size="12" fill="#888">2026/06/09 10:41</text>
+  </g>
+
+  <!-- ============================ Auto mode line ============================ -->
+  <g transform="translate(36, 660)">
+    <g fill="#f1c40f">
+      <path d="M0 0 L8 6 L0 12 Z">
+        <animate attributeName="opacity" values="0.45;1;0.45" dur="1.4s" repeatCount="indefinite"/>
+      </path>
+      <path d="M11 0 L19 6 L11 12 Z">
+        <animate attributeName="opacity" values="1;0.45;1" dur="1.4s" repeatCount="indefinite"/>
+      </path>
+    </g>
+    <text x="28" y="11" font-size="13" fill="#fff" font-weight="700">auto mode on</text>
+    <text x="138" y="11" font-size="13" fill="#777">(shift+tab to cycle) · ← for agents</text>
+  </g>
+</svg>
