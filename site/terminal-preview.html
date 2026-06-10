@@ -443,9 +443,14 @@
          pinned, fluid corner-curl. Single-page display so each SVG is one
          full page. Page 1 (Claude Code) shows first; after the countdown
          turn('next') folds page 2 (Claudius) over it at the spine. Drag the
-         page corner to peel between them — turn.js handles that natively. -->
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/turn.js/3/turn.min.js"></script>
+         page corner to peel between them — turn.js handles that natively.
+
+         jQuery + turn.js are vendored under ./vendor/ (same origin) instead
+         of pulled from a CDN — no js/functionality-from-untrusted-source
+         alerts (#43, #44) and no third-party trust requirement. The driver
+         below already bails gracefully if either fails to load. -->
+    <script src="./vendor/jquery-3.7.1.min.js"></script>
+    <script src="./vendor/turn.min.js"></script>
     <script>
       (() => {
         const wrap = document.querySelector('.flipbook-wrap');
