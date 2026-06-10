@@ -75,7 +75,10 @@
       }
     </script>
 
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tailwind Play CDN vendored under ./vendor/ (v3.4.17, same-origin) so
+         the marketing site doesn't pull executable JS from a third-party CDN.
+         Tailwind's v3 inline `tailwind.config` block below is still honored. -->
+    <script src="./vendor/tailwindcss-play.js"></script>
     <script>
       tailwind.config = {
         theme: {
