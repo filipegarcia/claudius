@@ -37,6 +37,7 @@ import {
   takePendingBashBlocks,
 } from "./pending-bash-output";
 import { dropBashSession, getOrCreateBashSession } from "./bash-mode";
+import { validateWorkspaceCwd } from "./workspace-cwd-preflight";
 import {
   isOpusModelId,
   isOverloadErrorText,
@@ -96,7 +97,7 @@ import { joinSystemPromptAppends } from "@/lib/shared/system-prompt-append";
 import { loadDbAgentsForOptions } from "@/lib/server/db-agents";
 import { selectTips } from "@/lib/shared/tips";
 import type { SessionLoop } from "@/lib/shared/session-loops";
-import { readSettings, type ClaudeSettings } from "./settings";
+import { readSettings, writeSettings, type ClaudeSettings } from "./settings";
 import {
   extractTranscriptTail,
   generateRecap,
@@ -1412,46 +1413,17 @@ export class Session {
 
     // Pre-flight: verify the workspace cwd actually exists on disk.
     //
-    // Why this is needed: when the user moved/deleted/renamed the workspace
-    // folder (or rewired their home dir on a fresh OS install), `this.cwd`
-    // still points at the old path. The SDK then calls
-    // `child_process.spawn(claudeBin, args, { cwd })`; posix_spawn internally
-    // chdir()s into `cwd` BEFORE exec'ing the binary, so a missing cwd
-    // returns ENOENT — and Node's error message attributes ENOENT to the
-    // BINARY argument (the first arg of spawn), not to the cwd. The SDK
-    // then runs `existsSync(claudeBin)` → true and reports the famously
-    // misleading "Claude Code native binary at … exists but failed to
-    // launch." The actual problem is the cwd, but the user sees a binary
-    // error and has nowhere to go from there.
-    //
-    // Refuse to start with a clear, actionable error instead. Strict refuse
-    // rather than auto-mkdir: a silent recreate would leave the user with
-    // an empty workspace and no clue their real folder is somewhere else.
-    try {
-      const st = await fsp.stat(this.cwd);
-      if (!st.isDirectory()) {
-        this.broadcast({
-          type: "error",
-          message: `Workspace path \`${this.cwd}\` exists but isn't a directory. Pick a different folder for this workspace.`,
-        });
-        return;
-      }
-    } catch (err) {
-      const code = (err as NodeJS.ErrnoException)?.code;
-      if (code === "ENOENT") {
-        this.broadcast({
-          type: "error",
-          message: `Workspace folder \`${this.cwd}\` doesn't exist. The folder was moved or deleted — recreate it, or remove this workspace from the sidebar and re-add the real path.`,
-        });
-        return;
-      }
-      // Any other stat error (EACCES on a locked-down volume, etc.) — surface
-      // the raw code so the user can act on it instead of dropping through to
-      // the SDK's misleading "binary failed to launch" path.
-      this.broadcast({
-        type: "error",
-        message: `Can't read workspace folder \`${this.cwd}\` (${code ?? "unknown error"}). Fix the path or pick a different folder.`,
-      });
+    // Refuses to spawn the SDK when the workspace folder is missing or
+    // isn't a directory. Without this, the SDK's `spawn(claudeBin, args,
+    // { cwd })` call fails with ENOENT on the cwd, Node attributes the
+    // errno to the binary arg, and the user sees the misleading "Claude
+    // Code native binary … exists but failed to launch" banner with no
+    // path forward. See `workspace-cwd-preflight.ts` for the full
+    // story + the regression that motivated extracting the check into
+    // its own unit-tested module.
+    const preflight = await validateWorkspaceCwd(this.cwd);
+    if (!preflight.ok) {
+      this.broadcast({ type: "error", message: preflight.message });
       return;
     }
 
@@ -3718,6 +3690,42 @@ export class Session {
       // falls back to the prior default.
     }
     this.broadcast({ type: "model_changed", model });
+
+    // Auto-disable the advisor when the model changes. The advisor tool
+    // carries a `model` field in the API request; not all model combinations
+    // are compatible (e.g. claude-fable-* rejects Opus as an advisor and
+    // returns a 400). Rather than letting the next turn fail with an opaque
+    // API error, we proactively clear the advisor here — both the flag-settings
+    // layer (so the current request is clean) and settings.json (because
+    // `applyFlagSettings({ advisorModel: null })` falls back to the file when
+    // null, so the file must also be cleared for the disable to be effective).
+    //
+    // We broadcast `advisor_disabled_on_model_change` with the previous value
+    // so the client can show a dismissible toast with a one-click "Re-enable"
+    // button — the user can restore it immediately if the new model is
+    // actually compatible.
+    if (this.advisorModel) {
+      const previousAdvisor = this.advisorModel;
+      try {
+        const current = await readSettings("user", this.cwd);
+        if (current.advisorModel) {
+          const next: ClaudeSettings = { ...current };
+          delete next.advisorModel;
+          await writeSettings("user", this.cwd, next);
+        }
+      } catch (err) {
+        // Non-fatal: the flag-settings clear below still applies for this
+        // session's remaining turns. The file write is best-effort.
+        console.error("[session.setModel] advisor settings write failed", err);
+      }
+      await this.setAdvisorModel(null);
+      this.broadcast({
+        type: "advisor_disabled_on_model_change",
+        previousAdvisor,
+        newModel: model,
+      });
+    }
+
     return { ok: true, model };
   }
 
