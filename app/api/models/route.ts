@@ -65,8 +65,21 @@ const STATIC_FALLBACK: ModelInfo[] = [
   },
   {
     value: "fable",
-    displayName: "Fable",
-    description: "Latest Fable — extended thinking and reasoning.",
+    displayName: "Fable 5",
+    // Mirrors the Claude Code TUI's `/model` picker copy verbatim so the
+    // sessionless picker (workspace-create form) reads the same as a live
+    // session. The "~2× faster than Opus" hint is the SDK's framing of
+    // Fable's plan-limit consumption, not a wall-clock claim.
+    description:
+      "Most capable for your hardest and longest-running tasks. Uses your limits ~2× faster than Opus.",
+    supportsEffort: true,
+    // Surface the effort tiers + adaptive-thinking flag so the
+    // sessionless form's picker shows the same effort chips & Ultracode
+    // (xhigh) toggle a live session would. The static fallback used to
+    // be a bare {value, displayName, description} stub; that read as
+    // "no effort support" in the picker, which is wrong for Fable.
+    supportedEffortLevels: ["low", "medium", "high", "xhigh", "max"],
+    supportsAdaptiveThinking: true,
   },
 ];
 

@@ -34,9 +34,18 @@ type ModelInfo = {
 const ALWAYS_SHOWN_ALIASES: ModelInfo[] = [
   {
     value: "fable",
-    displayName: "Fable",
-    description: "Latest Fable — extended thinking and reasoning.",
+    displayName: "Fable 5",
+    // Mirrors the Claude Code TUI's `/model` picker copy verbatim so the
+    // two surfaces read the same. The "~2× faster than Opus" hint is the
+    // SDK's own framing — Fable consumes plan limits roughly twice as fast
+    // as Opus, not "twice as quick in wall-clock".
+    description:
+      "Most capable for your hardest and longest-running tasks. Uses your limits ~2× faster than Opus.",
     supportsEffort: true,
+    // Matches the SDK's documented Fable tiers (`low, medium, high, xhigh,
+    // max`). The `xhigh` entry is what the picker surfaces as "Ultracode"
+    // (xhigh effort + dynamic-workflow orchestration); see the
+    // `onToggleUltracode` row in ModelPicker.tsx.
     supportedEffortLevels: ["low", "medium", "high", "xhigh", "max"],
     supportsAdaptiveThinking: true,
   },
