@@ -39,6 +39,10 @@ const eslintConfig = defineConfig([
     "dist-electron/**",
     // Electron-builder packaged artifacts.
     "release/**",
+    // Third-party minified vendor bundles dropped into the marketing site
+    // (jQuery + turn.js for the flipbook). Linting them produces hundreds
+    // of warnings on perfectly intentional minification patterns.
+    "site/vendor/**",
   ]),
   // The React 19 / React Compiler rule set fires on patterns this codebase
   // hasn't been migrated for (see `user_lint_policy.md` memory). Demote to
