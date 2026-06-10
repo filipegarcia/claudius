@@ -133,6 +133,11 @@ export function UpdaterSettingsSection() {
                 {u.busy ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
                 Check now
               </button>
+              {u.applyError && (
+                <span className="max-w-[24rem] truncate text-[11px] text-red-300" title={u.applyError}>
+                  {u.applyError}
+                </span>
+              )}
               {data.state.pending && data.state.pending.behind > 0 && (
                 <button
                   onClick={() =>
@@ -144,7 +149,11 @@ export function UpdaterSettingsSection() {
                   disabled={u.busy}
                   className="flex items-center gap-1 rounded-md bg-emerald-500/80 px-2 py-0.5 text-white hover:bg-emerald-500 disabled:opacity-50"
                 >
-                  <ArrowDownToLine className="h-3 w-3" />
+                  {u.busy ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <ArrowDownToLine className="h-3 w-3" />
+                  )}
                   Apply
                 </button>
               )}
