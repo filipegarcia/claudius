@@ -634,10 +634,226 @@ jobs:
             console.log(fs.readFileSync("latest-mac.yml", "utf8"));
           EOF
 
+      # Verify the MERGED manifest's sha512+size for every entry matches the
+      # actual shipped file on disk. Mirrors linux-smoke's "Verify
+      # latest-linux.yml matches the shipped AppImage" check. Catches:
+      #   • a merge-job bug that ships a stale sha (e.g. js-yaml coercing
+      #     the field to a Buffer instead of a string),
+      #   • an artifact-upload mismatch (the file electron-updater sha'd
+      #     during the build isn't byte-identical to the file we ship),
+      #   • a copy/rename mistake in the workflow.
+      # An auto-updater that downloads then rejects the file as corrupt
+      # ("sha512 checksum mismatch") is exactly what users experienced
+      # during the v0.3.161.x DMG-fallback regression — this guards it.
+      - name: Verify merged latest-mac.yml matches shipped files
+        run: |
+          node <<'EOF'
+            const crypto = require("node:crypto");
+            const fs = require("node:fs");
+            const path = require("node:path");
+            const yaml = require("yaml");
+
+            const yml = yaml.parse(fs.readFileSync("latest-mac.yml", "utf8"));
+            // Files live under dist-mac-arm64/ or dist-mac-x64/ depending on
+            // arch — match by suffix so we don't have to thread arch through.
+            const dirs = ["dist-mac-arm64", "dist-mac-x64"];
+
+            let bad = 0;
+            for (const f of yml.files ?? []) {
+              const dir = dirs.find((d) => fs.existsSync(path.join(d, f.url)));
+              if (!dir) {
+                console.error(`::error::manifest references ${f.url} but no shipped file matches — checked: ${dirs.join(", ")}`);
+                bad++;
+                continue;
+              }
+              const buf = fs.readFileSync(path.join(dir, f.url));
+              const sha = crypto.createHash("sha512").update(buf).digest("base64");
+              if (sha !== f.sha512 || buf.length !== f.size) {
+                console.error(
+                  `::error::sha512/size mismatch for ${f.url}: ` +
+                    `manifest sha=${f.sha512.slice(0, 16)}… size=${f.size}, ` +
+                    `actual sha=${sha.slice(0, 16)}… size=${buf.length}`,
+                );
+                bad++;
+              } else {
+                console.log(`OK ${f.url} (${buf.length} bytes)`);
+              }
+            }
+            if (bad > 0) {
+              console.error(`::error::${bad} manifest entry/entries don't match the shipped files — auto-update would reject the download as corrupt`);
+              process.exit(1);
+            }
+          EOF
+
       - name: Attach merged latest-mac.yml to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: latest-mac.yml
+
+  # Post-release smoke for the macOS arm64 artifact. Mirrors the linux-smoke
+  # pattern: download the just-built zip, extract, strip the quarantine
+  # xattr (otherwise Gatekeeper would block the adhoc-signed launch on a
+  # fresh runner), and run the Playwright spec against the unpacked .app.
+  # The dev-server-backed `chromium-electron` suite never runs the real
+  # .app, so a build regression (mixed-arch standalone tree, broken
+  # signing, missing native module) is invisible to it and only surfaces
+  # when a user double-clicks. This closes that gap.
+  #
+  # Runs only when the upstream arm64 build actually succeeded; we don't
+  # want a smoke failure cascade on top of a build failure (the build job's
+  # own red square is the primary signal in that case).
+  #
+  # Does NOT gate the release attach above — it's a loud red signal, not a
+  # blocker. To make it a blocker, move the per-job `Attach to GitHub
+  # Release` step into a final job that needs: [macos-arm64, macos-arm64-smoke].
+  macos-arm64-smoke:
+    name: macOS arm64 smoke (launch test)
+    needs: macos-arm64
+    runs-on: macos-14
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      # @playwright/test (the `_electron` launcher) is a devDependency. No
+      # browser binaries needed — we drive the .app's OWN bundled Electron,
+      # not a downloaded Chromium — so `playwright install` is skipped.
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Download arm64 artifacts
+        uses: actions/download-artifact@v5
+        with:
+          name: claudius-macos-arm64
+          path: dist-mac-arm64
+
+      # Extract the shipped zip into a temp dir. Using a temp dir (not the
+      # workspace) so the launcher's HOME isolation can't accidentally read
+      # repo state.
+      - name: Extract Claudius.app from the zip
+        id: extract
+        run: |
+          ZIP="$(ls dist-mac-arm64/*.zip 2>/dev/null | head -1)"
+          if [ -z "$ZIP" ]; then
+            echo "::error::no .zip under dist-mac-arm64/"
+            exit 1
+          fi
+          OUT="$(mktemp -d)"
+          /usr/bin/unzip -q "$ZIP" -d "$OUT"
+          APP="$OUT/Claudius.app"
+          if [ ! -d "$APP" ]; then
+            echo "::error::Claudius.app not found inside zip (extracted to $OUT)"
+            ls -la "$OUT"
+            exit 1
+          fi
+          # Strip the quarantine xattr that the GitHub Actions runner's
+          # download path may have applied (the .app inherits it on extract).
+          # Without this, the adhoc-signed binary won't launch — Gatekeeper
+          # silently refuses, no window appears, and Playwright times out.
+          /usr/bin/xattr -dr com.apple.quarantine "$APP" 2>/dev/null || true
+          echo "binary=$APP/Contents/MacOS/Claudius" >> "$GITHUB_OUTPUT"
+
+      - name: Run packaged-artifact smoke (arm64)
+        env:
+          CLAUDIUS_PACKAGED_BINARY: ${{ steps.extract.outputs.binary }}
+          CLAUDIUS_PACKAGED_ARCH: arm64
+        run: bun run test:e2e:electron-packaged
+
+      - name: Upload smoke trace on failure
+        if: failure()
+        uses: actions/upload-artifact@v5
+        with:
+          name: macos-arm64-smoke-trace
+          path: |
+            test-results/**
+            playwright-report/**
+          if-no-files-found: ignore
+          retention-days: 7
+
+  # macOS x64 smoke. Same shape as macos-arm64-smoke, but launches the x64
+  # zip on the same arm64 macos-14 runner — macOS auto-uses Rosetta to
+  # translate the x64 Mach-O Electron container, so the whole process tree
+  # (including the embedded server's ELECTRON_RUN_AS_NODE child and its
+  # better-sqlite3 dlopen) runs as x64. That's a partial-fidelity check
+  # (Rosetta ≠ native Intel hardware) but catches gross packaging breakage:
+  # missing x64 standalone files, x64 better-sqlite3 .node not loadable
+  # under Rosetta, etc.
+  macos-x64-smoke:
+    name: macOS x64 smoke (launch test under Rosetta)
+    needs: macos-x64
+    runs-on: macos-14
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # Rosetta is required to translate x64 binaries on this arm64 runner.
+      # macos-14 hosted runners DO ship with Rosetta, but a softwareupdate
+      # call is the only thing guaranteed to be a no-op on systems that have
+      # it and an install on the rare host that doesn't. `|| true` because
+      # the command exits non-zero on "Rosetta already installed" on some
+      # runner image versions.
+      - name: Ensure Rosetta is installed
+        run: /usr/sbin/softwareupdate --install-rosetta --agree-to-license || true
+
+      - name: Download x64 artifacts
+        uses: actions/download-artifact@v5
+        with:
+          name: claudius-macos-x64
+          path: dist-mac-x64
+
+      - name: Extract Claudius.app from the zip
+        id: extract
+        run: |
+          ZIP="$(ls dist-mac-x64/*.zip 2>/dev/null | head -1)"
+          if [ -z "$ZIP" ]; then
+            echo "::error::no .zip under dist-mac-x64/"
+            exit 1
+          fi
+          OUT="$(mktemp -d)"
+          /usr/bin/unzip -q "$ZIP" -d "$OUT"
+          APP="$OUT/Claudius.app"
+          if [ ! -d "$APP" ]; then
+            echo "::error::Claudius.app not found inside zip (extracted to $OUT)"
+            ls -la "$OUT"
+            exit 1
+          fi
+          /usr/bin/xattr -dr com.apple.quarantine "$APP" 2>/dev/null || true
+          echo "binary=$APP/Contents/MacOS/Claudius" >> "$GITHUB_OUTPUT"
+
+      - name: Run packaged-artifact smoke (x64 under Rosetta)
+        env:
+          CLAUDIUS_PACKAGED_BINARY: ${{ steps.extract.outputs.binary }}
+          CLAUDIUS_PACKAGED_ARCH: x64
+        run: bun run test:e2e:electron-packaged
+
+      - name: Upload smoke trace on failure
+        if: failure()
+        uses: actions/upload-artifact@v5
+        with:
+          name: macos-x64-smoke-trace
+          path: |
+            test-results/**
+            playwright-report/**
+          if-no-files-found: ignore
+          retention-days: 7
 
   linux-x64:
     name: Linux (x64)

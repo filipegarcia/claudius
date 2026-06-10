@@ -35,6 +35,15 @@ test.skip(
   !BINARY,
   "CLAUDIUS_PACKAGED_BINARY not set — packaged-artifact smoke runs in the release pipeline only",
 );
+// Platform guard: `playwright test --config=…electron-packaged…` discovers
+// this spec alongside `mac-smoke.spec.ts`. Without this guard, a macOS
+// smoke job's CLAUDIUS_PACKAGED_BINARY would un-skip this AppImage spec
+// too and it'd fail trying to launch a Mach-O via the AppRun helper. Skip
+// on the wrong platform so each job runs exactly the spec it's meant to.
+test.skip(
+  process.platform !== "linux",
+  `appimage-smoke runs on linux only (got ${process.platform})`,
+);
 
 // One window cold-start per test is expensive; give the file room.
 test.describe.configure({ timeout: 150_000 });
