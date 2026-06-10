@@ -111,6 +111,16 @@ jobs:
         # When RELEASE = 0, we ARE at the anchor — the "Create current tag"
         # step below tags v<version>.0 directly, so this step skips.
         if: steps.ver.outputs.anchor != '' && steps.ver.outputs.release != '0'
+        # The push at the bottom of this step can be rejected by GitHub when
+        # the anchor commit's `.github/workflows/*.yml` content differs from
+        # main's HEAD (see the pre-flight diff check below). GITHUB_TOKEN
+        # cannot create a ref that "exposes" workflow-file content different
+        # from the default branch — that requires the `workflows` GitHub-App
+        # permission, which is NOT exposable through a workflow YAML
+        # `permissions:` block. So `continue-on-error` so a failed bootstrap
+        # doesn't take the rolling `v<version>.<N>` tag down with it. We've
+        # already lost v0.3.170.0; we still want v0.3.170.<N> on every merge.
+        continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -119,6 +129,19 @@ jobs:
           ANCHOR="${{ steps.ver.outputs.anchor }}"
           if git ls-remote --exit-code --tags origin "refs/tags/$ANCHOR_TAG" >/dev/null 2>&1; then
             echo "Anchor tag $ANCHOR_TAG already exists on origin; skipping bootstrap."
+            exit 0
+          fi
+          # Pre-flight: GITHUB_TOKEN can't push a ref whose `.github/workflows/`
+          # tree differs from main's HEAD (the GitHub-App `workflows`
+          # permission, which YAML can't grant). Detect that *before* the
+          # push, fail soft with a precise log line, and let the rolling
+          # tag step proceed. The user can re-create the anchor tag manually
+          # with a PAT or App token that has the `workflow` scope.
+          if ! git diff --quiet "$ANCHOR" HEAD -- .github/workflows/; then
+            echo "::warning::Anchor commit $ANCHOR has workflow-file content that differs from main's HEAD."
+            echo "::warning::Pushing $ANCHOR_TAG via GITHUB_TOKEN would be rejected — see auto-tag.yml comments."
+            echo "::warning::Skipping bootstrap. Re-create with a PAT/App token that has the workflow scope:"
+            echo "::warning::  git tag -a $ANCHOR_TAG $ANCHOR -m 'Claudius $ANCHOR_TAG' && git push <PAT-remote> $ANCHOR_TAG"
             exit 0
           fi
           SUBJECT=$(git log -1 --format=%s "$ANCHOR")
