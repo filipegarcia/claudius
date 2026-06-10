@@ -84,7 +84,12 @@ describe("GET /api/sessions/[id]/model", () => {
     expect(body.error).toBe("session not active");
   });
 
-  test("200 with the model list when the SDK resolves", async () => {
+  test("200 with the SDK model list, augmented with Fable when the SDK omits it", async () => {
+    // The SDK gates Fable behind `isFableAvailable` in the bundled CLI
+    // binary — accounts whose entitlement check hasn't propagated see no
+    // `fable` row at all. The route augments the response with a static
+    // `fable` alias so the picker still surfaces it; selecting it falls
+    // through to `setModel` and returns 409 if the account can't use it.
     const models = [
       {
         value: "claude-opus-4-7",
@@ -106,9 +111,46 @@ describe("GET /api/sessions/[id]/model", () => {
     const res = await GET(makeReq(), makeCtx("active"));
 
     expect(res.status).toBe(200);
+    const body = (await res.json()) as { models: Array<{ value: string }> };
+    // SDK entries come first (preserving SDK ordering — the picker
+    // treats the first row as the default-pick), Fable appended.
+    expect(body.models.slice(0, 2)).toEqual(models);
+    expect(body.models.at(-1)).toMatchObject({
+      value: "fable",
+      displayName: "Fable",
+      supportsEffort: true,
+    });
+    expect(supportedModels).toHaveBeenCalledOnce();
+  });
+
+  test("does NOT duplicate Fable when the SDK already returns a fable-family entry", async () => {
+    // When the SDK returns the pinned `claude-fable-5`, the dedup-by-
+    // substring check in the route should recognise that as Fable
+    // coverage and skip the augment — otherwise the picker would show
+    // two rows ("Fable 5" and a generic "Fable").
+    const models = [
+      {
+        value: "claude-fable-5",
+        displayName: "Fable 5",
+        description: "Extended thinking",
+        supportsEffort: true,
+        supportedEffortLevels: ["low", "medium", "high", "xhigh", "max"],
+      },
+      {
+        value: "claude-sonnet-4-6",
+        displayName: "Sonnet 4.6",
+        description: "Balanced",
+      },
+    ];
+    const supportedModels = vi.fn().mockResolvedValue(models);
+    mockManager.get.mockReturnValue({ query: { supportedModels } });
+
+    const res = await GET(makeReq(), makeCtx("active"));
+
+    expect(res.status).toBe(200);
     const body = (await res.json()) as { models: typeof models };
     expect(body.models).toEqual(models);
-    expect(supportedModels).toHaveBeenCalledOnce();
+    expect(body.models.filter((m) => /fable/i.test(m.value))).toHaveLength(1);
   });
 
   test("503 with the SDK's error message when supportedModels() rejects", async () => {

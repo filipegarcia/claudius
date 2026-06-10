@@ -84,7 +84,7 @@ export function FableLaunchTipBanner({ sessionId }: { sessionId: string | null }
           <p className="text-[var(--foreground)]/90">
             <span className="font-medium text-amber-200">Meet Fable 5</span>
             <span className="text-[var(--muted)]">
-              , our newest model for complex, long-running work. Try anytime with{" "}
+              , Claude&apos;s newest model for complex, long-running work. Try anytime with{" "}
               <code className="rounded bg-[var(--panel-2)] px-1 font-mono text-[11px] text-[var(--foreground)]/90">
                 /model
               </code>

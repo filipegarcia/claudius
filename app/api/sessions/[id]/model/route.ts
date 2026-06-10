@@ -4,6 +4,59 @@ import { sessionManager } from "@/lib/server/session-manager";
 
 export const runtime = "nodejs";
 
+/**
+ * Mirror of the SDK's `ModelInfo` shape — kept local so we don't import
+ * the type-graph through this route handler. See `ModelPicker.tsx`.
+ */
+type ModelInfo = {
+  value: string;
+  displayName: string;
+  description: string;
+  supportsEffort?: boolean;
+  supportedEffortLevels?: Array<"low" | "medium" | "high" | "xhigh" | "max">;
+  supportsAdaptiveThinking?: boolean;
+  supportsFastMode?: boolean;
+  supportsAutoMode?: boolean;
+};
+
+/**
+ * Aliases we always want surfaced in the picker even when the SDK omits
+ * them from `supportedModels()`. The SDK gates some entries behind plan /
+ * account capability (e.g. `isFableAvailable` in the bundled CLI binary),
+ * which means a perfectly valid alias like `fable` can be invisible to a
+ * user whose entitlement check is still propagating. Selecting one of
+ * these still goes through the SDK's `setModel`, which returns a 409 if
+ * the account can't use it — so the worst case for a stale augment is a
+ * recoverable error toast, not a broken session.
+ *
+ * Kept in sync with the static fallback in `app/api/models/route.ts`.
+ */
+const ALWAYS_SHOWN_ALIASES: ModelInfo[] = [
+  {
+    value: "fable",
+    displayName: "Fable",
+    description: "Latest Fable — extended thinking and reasoning.",
+    supportsEffort: true,
+    supportedEffortLevels: ["low", "medium", "high", "xhigh", "max"],
+    supportsAdaptiveThinking: true,
+  },
+];
+
+/**
+ * Family detector for "is this entry already covering the alias?". A pinned
+ * id like `claude-fable-5` should count as a Fable entry — we don't want to
+ * append a duplicate `fable` row when the SDK already returned the pinned
+ * version. Match on substring of the alias inside the value or displayName.
+ */
+function listAlreadyCoversAlias(list: ModelInfo[], alias: ModelInfo): boolean {
+  const needle = alias.value.toLowerCase();
+  return list.some((m) => {
+    const v = (m.value ?? "").toLowerCase();
+    const d = (m.displayName ?? "").toLowerCase();
+    return v === needle || v.includes(needle) || d.includes(needle);
+  });
+}
+
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
   const session = sessionManager.get(id);
@@ -58,8 +111,18 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
     if (!query) {
       return NextResponse.json({ error: "session not active" }, { status: 503 });
     }
-    const models = await query.supportedModels();
-    return NextResponse.json({ models });
+    const sdkModels = (await query.supportedModels()) as ModelInfo[];
+    // Augment with aliases the SDK gated out for this account — see
+    // ALWAYS_SHOWN_ALIASES rationale. Order: SDK entries first (so the
+    // SDK's preferred ordering wins), augmented aliases appended at the
+    // end so they don't hijack the default-pick row.
+    const augmented = [...sdkModels];
+    for (const alias of ALWAYS_SHOWN_ALIASES) {
+      if (!listAlreadyCoversAlias(augmented, alias)) {
+        augmented.push(alias);
+      }
+    }
+    return NextResponse.json({ models: augmented });
   } catch (err) {
     // Defensive: anything unexpected (SDK shape changes, serialization edge
     // cases) becomes a typed error response instead of a generic 500 so the
