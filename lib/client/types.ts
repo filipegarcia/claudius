@@ -544,6 +544,30 @@ export type ChatState = {
     attempted: string | null;
     error: string;
   } | null;
+  /**
+   * Transient toast shown when the user switches model via the `/model` slash
+   * command typed in the chat. Mirrors the Claude Code TUI's help text:
+   * "Your pick becomes the default for new sessions."
+   */
+  chatCommandModelNotice: {
+    /** Stable across re-renders of the same notice; bumped per switch. */
+    uuid: string;
+    /** Full model id emitted by the SDK (e.g. "claude-fable-5"). */
+    model: string;
+  } | null;
+  /**
+   * Transient toast shown when the server automatically disabled the advisor
+   * because the user switched to a model incompatible with the active advisor
+   * tool. Carries the previous advisor id so the "Re-enable" button can
+   * restore it in one click without another round-trip to read settings.
+   */
+  advisorDisabledNotice: {
+    uuid: string;
+    /** The advisor model id that was cleared (e.g. "claude-opus-4-8"). */
+    previousAdvisor: string;
+    /** The new main-thread model that triggered the disable. */
+    newModel: string | undefined;
+  } | null;
   promptSuggestions: string[];
   /**
    * Uuids of user messages that originated from a clicked suggestion chip.
@@ -887,6 +911,16 @@ export type ChatActions = {
   dismissFastModeNotice(): void;
   /** Dismiss the transient model-switch-rejected toast. Client-side only. */
   dismissModelSwitchNotice(): void;
+  /** Dismiss the transient /model chat-command notice. Client-side only. */
+  dismissChatCommandModelNotice(): void;
+  /** Dismiss the advisor-auto-disabled notice. Client-side only. */
+  dismissAdvisorDisabledNotice(): void;
+  /**
+   * Re-enable the advisor after it was auto-disabled on a model change.
+   * Writes the given model id back to settings.json and applies it at the
+   * flag-settings layer for this session. Clears the notice optimistically.
+   */
+  reEnableAdvisor(advisorModel: string): Promise<void>;
   /**
    * Request a "where were we?" recap for the current session. The actual
    * recap text arrives asynchronously via a `session_recap` SSE event;

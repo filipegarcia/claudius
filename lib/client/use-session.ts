@@ -639,6 +639,26 @@ export function useSession(): ChatState & ChatActions {
   const [modelSwitchNotice, setModelSwitchNotice] = useState<
     { uuid: string; attempted: string | null; error: string } | null
   >(null);
+  /**
+   * Transient toast shown when the user switches model via the `/model` slash
+   * command in the chat. Carries the new model id so the banner can show
+   * "Switched to X · Your pick becomes the default for new sessions" —
+   * mirroring the Claude Code TUI's `/model` help text.
+   */
+  const [chatCommandModelNotice, setChatCommandModelNotice] = useState<{
+    uuid: string;
+    model: string;
+  } | null>(null);
+  /**
+   * Transient toast shown when the server auto-disabled the advisor because
+   * the user switched to an incompatible model. Carries the previous advisor
+   * model id so the "Re-enable" button can restore it in one click.
+   */
+  const [advisorDisabledNotice, setAdvisorDisabledNotice] = useState<{
+    uuid: string;
+    previousAdvisor: string;
+    newModel: string | undefined;
+  } | null>(null);
   // Prior fast_mode_state observed on a result event. Used to detect edges
   // without depending on the (stale-in-closure) `fastModeState` state value.
   const prevFastModeStateRef = useRef<"off" | "cooldown" | "on" | null>(null);
@@ -1502,6 +1522,22 @@ export function useSession(): ChatState & ChatActions {
       }
       if (ev.type === "model_changed") {
         setModelState(ev.model ?? null);
+        // When the switch came from a `/model` chat command (not the picker),
+        // surface the "Your pick becomes the default for new sessions" notice.
+        if (ev.source === "chat_command" && ev.model) {
+          setChatCommandModelNotice({ uuid: crypto.randomUUID(), model: ev.model });
+        }
+        return;
+      }
+      if (ev.type === "advisor_disabled_on_model_change") {
+        // Mirror the advisor clear so the SessionCard badge reflects "no
+        // advisor" immediately without a round-trip to the GET endpoint.
+        setAdvisorModelState(null);
+        setAdvisorDisabledNotice({
+          uuid: crypto.randomUUID(),
+          previousAdvisor: ev.previousAdvisor,
+          newModel: ev.newModel,
+        });
         return;
       }
       if (ev.type === "agent_changed") {
@@ -2680,10 +2716,25 @@ export function useSession(): ChatState & ChatActions {
             // which reads as a bug to the user. Suppress those specific
             // stdouts here. Other CLI stdout/stderr still surfaces as a
             // pill so legit slash-command output stays visible.
+            //
+            // Even though we suppress the pill, we must still sync the
+            // model state: when the user types `/model X` directly in
+            // the chat the picker never fires, so this stdout is the
+            // only signal the client gets that the model changed. For
+            // picker-driven changes the optimistic update already ran,
+            // so calling setModelState again is a harmless no-op.
             if (
               cli.kind === "stdout" &&
               /^set\s+model\s+to\s+/i.test(cli.text)
             ) {
+              // "Set model to <model>[<effort label>]" — capture the first
+              // whitespace-delimited token then strip any trailing effort
+              // suffix like "[medium effort]" or "[high]".
+              const m = /^set\s+model\s+to\s+(\S+)/i.exec(cli.text);
+              if (m?.[1]) {
+                const rawModel = m[1].replace(/\[.*$/, "");
+                if (rawModel) setModelState(rawModel);
+              }
               return;
             }
             const uuid = (msg as { uuid?: string }).uuid ?? crypto.randomUUID();
@@ -3917,9 +3968,39 @@ export function useSession(): ChatState & ChatActions {
     setFastModeNotice(null);
   }, []);
 
+  const dismissChatCommandModelNotice = useCallback(() => {
+    setChatCommandModelNotice(null);
+  }, []);
+
   const dismissModelSwitchNotice = useCallback(() => {
     setModelSwitchNotice(null);
   }, []);
+
+  const dismissAdvisorDisabledNotice = useCallback(() => {
+    setAdvisorDisabledNotice(null);
+  }, []);
+
+  /**
+   * Re-enable the advisor after it was auto-disabled on a model change.
+   * Calls the same advisor route the picker uses, so both settings.json and
+   * the flag-settings layer are updated. Clears the toast on success.
+   */
+  const reEnableAdvisor = useCallback(
+    async (advisorModel: string) => {
+      const id = sessionIdRef.current;
+      if (!id) return;
+      // Optimistic: update the advisor state and clear the toast so the
+      // button doesn't sit in a spinner state waiting for the network.
+      setAdvisorModelState(advisorModel);
+      setAdvisorDisabledNotice(null);
+      await fetch(`/api/sessions/${id}/advisor`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ model: advisorModel }),
+      }).catch(() => {});
+    },
+    [],
+  );
 
   const requestRecap = useCallback(async (origin: "away" | "manual" = "manual") => {
     const id = sessionIdRef.current;
@@ -4441,6 +4522,8 @@ export function useSession(): ChatState & ChatActions {
     fastModeState,
     fastModeNotice,
     modelSwitchNotice,
+    chatCommandModelNotice,
+    advisorDisabledNotice,
     promptSuggestions,
     suggestedUuids,
     goalUuids,
@@ -4469,6 +4552,9 @@ export function useSession(): ChatState & ChatActions {
     dismissAuthFailedNudge,
     dismissFastModeNotice,
     dismissModelSwitchNotice,
+    dismissChatCommandModelNotice,
+    dismissAdvisorDisabledNotice,
+    reEnableAdvisor,
     requestRecap,
     dismissRecap,
     interrupt,

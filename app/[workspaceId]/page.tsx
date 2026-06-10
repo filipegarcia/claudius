@@ -23,6 +23,7 @@ import { LongContextCreditsPanel } from "@/components/chat/LongContextCreditsPan
 import { AuthFailedPanel } from "@/components/chat/AuthFailedPanel";
 import { FastModeNoticePanel } from "@/components/chat/FastModeNoticePanel";
 import { ModelSwitchNoticePanel } from "@/components/chat/ModelSwitchNoticePanel";
+import { ModelChatCommandNoticePanel } from "@/components/chat/ModelChatCommandNoticePanel";
 import { AdvisorDisabledNoticePanel } from "@/components/chat/AdvisorDisabledNoticePanel";
 import { PromptInput } from "@/components/chat/PromptInput";
 import { PermissionPrompt } from "@/components/chat/PermissionPrompt";
@@ -1798,6 +1799,10 @@ export default function Home() {
           notice={session.modelSwitchNotice}
           onDismiss={session.dismissModelSwitchNotice}
         />
+        <ModelChatCommandNoticePanel
+          notice={session.chatCommandModelNotice}
+          onDismiss={session.dismissChatCommandModelNotice}
+        />
         <AdvisorDisabledNoticePanel
           notice={session.advisorDisabledNotice}
           onDismiss={session.dismissAdvisorDisabledNotice}
@@ -1973,6 +1978,7 @@ export default function Home() {
               promptHistory={promptHistory}
               sendDisabled={capBreached || tabClaim.readOnly}
               queuedCount={session.queue.length}
+              onSendQueuedNow={session.queue.length > 0 ? () => session.sendQueuedNow(session.queue[0].id) : undefined}
               // Capture file drops across the whole chat-area pane (message
               // list, banners, tabs, gutters) — not just the composer row.
               // GoalBanner's PromptInput intentionally leaves this off so the
@@ -2013,6 +2019,7 @@ export default function Home() {
           // persists a manual override and broadcasts the new snapshot.
           void session.updateTodoItem(itemId, action);
         }}
+        onOpenContext={() => setOverlay("context")}
         onChangeModel={session.setModel}
         onChangeEffort={session.setEffort}
         ultracode={session.ultracode}
