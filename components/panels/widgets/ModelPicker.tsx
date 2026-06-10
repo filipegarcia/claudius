@@ -431,6 +431,35 @@ export function ModelPicker({
                   tone={level}
                 />
               ))}
+              {/* Ultracode — composite "xhigh effort + ultracode session
+                  flag on" tier the TUI cycles through as a regular effort
+                  option. The SDK's typed `EffortLevel` union doesn't
+                  include it (it's a separate `ultracode: boolean` flag on
+                  top of `xhigh`), so we compose it at the chip layer:
+                  click sets effort=xhigh and toggles ultracode=true in
+                  one shot. Only meaningful on xhigh-capable models that
+                  also surface the ultracode toggle (i.e. a session with
+                  `onToggleUltracode` wired). The standalone Dynamic
+                  Workflows toggle below remains as the on/off indicator
+                  and as the way to turn ultracode back off without
+                  changing effort. */}
+              {onToggleUltracode &&
+                activeModel.supportedEffortLevels.includes("xhigh") && (
+                  <EffortChip
+                    label="Ultracode"
+                    onClick={async () => {
+                      // Sequence matters: pick the effort first so the
+                      // server applies it under the same picker turn,
+                      // then flip the ultracode flag. Both are queued
+                      // behind any in-flight turn server-side, so the
+                      // user-visible order is "set ultracode" — the
+                      // single composite affordance the TUI presents.
+                      await pickEffort("xhigh");
+                      await onToggleUltracode(true);
+                    }}
+                    tone="ultracode"
+                  />
+                )}
             </div>
             <div className="px-3 pb-2 text-[10px] text-[var(--muted)]">
               Applies on the next turn. If a turn is in flight, queues
@@ -693,8 +722,12 @@ function EffortChip({
   tone,
 }: {
   label: string;
-  onClick: () => void;
-  tone: EffortLevel | "adaptive";
+  /** Allow async handlers so the Ultracode chip can `await` both
+   *  `pickEffort` and `onToggleUltracode` from a single click. */
+  onClick: () => void | Promise<void>;
+  /** Includes the composite "ultracode" tone — see ModelPicker's effort
+   *  block for why it's chip-only rather than a real EffortLevel value. */
+  tone: EffortLevel | "adaptive" | "ultracode";
 }) {
   const toneClass =
     tone === "adaptive"
@@ -707,7 +740,12 @@ function EffortChip({
             ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/20"
             : tone === "xhigh"
               ? "border-amber-500/30 bg-amber-500/10 text-amber-200 hover:bg-amber-500/20"
-              : "border-red-500/30 bg-red-500/10 text-red-200 hover:bg-red-500/20";
+              : tone === "max"
+                ? "border-red-500/30 bg-red-500/10 text-red-200 hover:bg-red-500/20"
+                : // ultracode — mirror the TUI's ✦ amber + pink accent so the
+                  // composite tier reads as "more than xhigh" at a glance and
+                  // doesn't visually collide with the plain Very High chip.
+                  "border-fuchsia-500/40 bg-gradient-to-r from-amber-500/15 to-fuchsia-500/15 text-fuchsia-200 hover:from-amber-500/25 hover:to-fuchsia-500/25";
 
   return (
     <button
@@ -720,7 +758,10 @@ function EffortChip({
         toneClass,
       )}
     >
-      {label}
+      {/* Sparkle prefix mirrors the TUI's "✦ Ultracode effort" label so
+          the chip reads as the composite Ultracode tier rather than just
+          another effort row. Other tones get plain text. */}
+      {tone === "ultracode" ? `✦ ${label}` : label}
     </button>
   );
 }

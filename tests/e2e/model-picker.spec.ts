@@ -309,19 +309,24 @@ test.describe("model picker", () => {
     // Select Opus. The picker stays open, `setModel` updates `currentModel`
     // optimistically, and the effort row appears with one chip per
     // `supportedEffortLevels` value plus an Auto chip for adaptive
-    // thinking.
+    // thinking plus the composite Ultracode chip (xhigh-capable + the
+    // session has `onChangeUltracode` wired).
     await panel.locator('[data-model="claude-opus-4-7"]').click();
     const chips = panel.getByTestId("model-picker-effort");
-    await expect(chips).toHaveCount(5);
+    await expect(chips).toHaveCount(6);
     await expect(panel.locator('[data-effort="adaptive"]')).toBeVisible();
     await expect(panel.locator('[data-effort="low"]')).toBeVisible();
     await expect(panel.locator('[data-effort="xhigh"]')).toBeVisible();
+    // Ultracode is composite (xhigh effort + ultracode session flag) —
+    // rendered as a chip in the effort row to match the TUI's
+    // "✦ Ultracode effort" tier.
+    await expect(panel.locator('[data-effort="ultracode"]')).toBeVisible();
 
     // Hovering a row that DOESN'T support effort must NOT collapse the
     // chips — this is the bug the user hit reaching for the chips with
     // the mouse.
     await panel.locator('[data-model="claude-haiku-4-5"]').hover();
-    await expect(panel.getByTestId("model-picker-effort")).toHaveCount(5);
+    await expect(panel.getByTestId("model-picker-effort")).toHaveCount(6);
   });
 
   test("clicking an effort chip POSTs to `/api/sessions/<id>/effort` and closes the picker", async ({
