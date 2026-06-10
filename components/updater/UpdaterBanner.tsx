@@ -6,6 +6,55 @@ import { ArrowDownToLine, GitMerge, Loader2, RefreshCw, ShieldAlert, Sparkles, T
 import { useUpdater } from "@/lib/client/use-updater";
 import { useElectronUpdater } from "@/lib/client/useElectronUpdater";
 
+// ── 24-hour conflict-banner dismissal ──────────────────────────────────────
+//
+// The conflicts variant of this banner can persist for days (the user has
+// to actually resolve the merge before it clears) — and on every page load
+// the unresolved state re-surfaces it, which is a real "I can't get rid of
+// this distracting thing" problem. A 24h snooze gives the user a way to
+// close it without losing the signal entirely; the same unresolved conflict
+// re-appears tomorrow if they haven't dealt with it.
+//
+// Persisted in localStorage so it survives reload, keyed by the upstream
+// SHA the merge tried to land on. If a NEW conflict comes in on a different
+// SHA within the 24h window, the banner re-appears (different content,
+// dismissal doesn't carry across). Same SHA stays hidden until expiry.
+//
+// Errors during read/write are swallowed: a corrupt JSON blob or a quota-
+// full localStorage just devolves to "no dismissal recorded," which is the
+// safe default (banner shows) — not throwing here is more important than
+// telling the user a 24h snooze didn't take.
+type ConflictDismissal = { sha: string; dismissedAt: number };
+const CONFLICT_DISMISS_KEY = "claudius.updater.conflicts.dismissed";
+const CONFLICT_DISMISS_TTL_MS = 24 * 60 * 60 * 1000;
+
+function readConflictDismissal(): ConflictDismissal | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(CONFLICT_DISMISS_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<ConflictDismissal>;
+    if (typeof parsed?.sha !== "string" || typeof parsed?.dismissedAt !== "number") return null;
+    if (Date.now() - parsed.dismissedAt > CONFLICT_DISMISS_TTL_MS) return null;
+    return { sha: parsed.sha, dismissedAt: parsed.dismissedAt };
+  } catch {
+    return null;
+  }
+}
+
+function writeConflictDismissal(sha: string): ConflictDismissal {
+  const entry: ConflictDismissal = { sha, dismissedAt: Date.now() };
+  if (typeof window !== "undefined") {
+    try {
+      window.localStorage.setItem(CONFLICT_DISMISS_KEY, JSON.stringify(entry));
+    } catch {
+      // Private mode / quota exceeded — ignore. The in-memory state still
+      // hides the banner for the rest of this session, just not across reload.
+    }
+  }
+  return entry;
+}
+
 /**
  * Slim banner shown only when:
  *   - the updater detected a pending update, OR
@@ -42,6 +91,13 @@ function WebUpdaterBanner() {
   // closed instead of nagging on every 15s poll. Keyed by the error text:
   // a *different* error re-shows the banner; the same one stays hidden.
   const [dismissedError, setDismissedError] = useState<string | null>(null);
+  // 24h conflict dismissal — read once on mount from localStorage so a
+  // reload doesn't bring the banner back. Stays null when no valid
+  // unexpired entry exists; updates locally on Dismiss click so the banner
+  // hides immediately without waiting for the next render tick.
+  const [conflictDismissal, setConflictDismissal] = useState<ConflictDismissal | null>(() =>
+    readConflictDismissal(),
+  );
   if (!u.data) return null;
   const { state, settings, install } = u.data;
   if (!install.isGitCheckout) return null;
@@ -49,7 +105,27 @@ function WebUpdaterBanner() {
 
   const status = state.status.kind;
   const pending = state.pending && state.pending.behind > 0 ? state.pending : undefined;
-  const conflicts = state.conflicts;
+  const rawConflicts = state.conflicts;
+  // Honour the 24h dismissal: when the dismissal SHA matches the current
+  // conflict's SHA and the entry hasn't expired, treat conflicts as absent
+  // for rendering purposes. Done as a derived flag (not by mutating
+  // `state.conflicts`) so the underlying data stays accurate for /updater
+  // and any other consumer that might key off it.
+  // Fallback key "_no_sha" when conflicts.toSha is undefined keeps the
+  // snooze working even when the resolver didn't populate the field — at
+  // worst, a different no-sha conflict would also be hidden, which is the
+  // intended "shut up for a day" behaviour anyway.
+  const conflictSha = rawConflicts?.toSha ?? "_no_sha";
+  // The mount-time `readConflictDismissal()` already filtered out expired
+  // entries (anything past CONFLICT_DISMISS_TTL_MS returns null), so we
+  // don't need a `Date.now()` recheck here — that would also trip React
+  // Compiler's purity rule for impure render-time reads. Trade-off: a
+  // user who keeps the page open past the 24h boundary without reload
+  // stays in the dismissed state until they reload; acceptable for a
+  // "snooze 1 day" semantic.
+  const isConflictDismissed =
+    !!rawConflicts && !!conflictDismissal && conflictDismissal.sha === conflictSha;
+  const conflicts = isConflictDismissed ? undefined : rawConflicts;
   // Conflicts win over plain errors — `lastError` is set in parallel, so
   // without this we'd double-render the same situation as both a red
   // "update failed" banner and an amber "conflicts" banner.
@@ -124,6 +200,14 @@ function WebUpdaterBanner() {
         >
           Details
         </Link>
+        <button
+          onClick={() => setConflictDismissal(writeConflictDismissal(conflictSha))}
+          aria-label="Dismiss for 24 hours"
+          title="Hide for 24 hours — re-appears if a new conflict shows up or the snooze expires"
+          className="rounded p-0.5 text-[var(--muted)] hover:bg-amber-500/20 hover:text-[var(--foreground)]"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
       </div>
     );
   }
