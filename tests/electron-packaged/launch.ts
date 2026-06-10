@@ -26,6 +26,21 @@ import {
 
 export type LaunchedPackaged = {
   app: ElectronApplication;
+  /**
+   * Snapshot of everything the packaged Electron main process has emitted
+   * to stdout/stderr since launch. Updated live as the process writes.
+   * Used by `mac-smoke.spec.ts` / `appimage-smoke.spec.ts` to assert no
+   * fatal markers appear (uncaught exceptions, native-module load
+   * failures, the SDK's "exists but failed to launch" pattern, etc.).
+   *
+   * Empty string when the test runner couldn't attach to the child
+   * stdio — Playwright's `_electron.launch` doesn't expose its child's
+   * stdio handles directly, so we hold a reference and re-read it on
+   * demand. Reading the field is preferred over a snapshot callback so
+   * the test can decide WHEN to check (after both assertions land, after
+   * a known navigation, etc.).
+   */
+  readLogs: () => string;
 };
 
 /**
@@ -68,7 +83,26 @@ export async function launchPackaged(
     },
   });
 
-  return { app };
+  // Capture main-process stdout/stderr into a growing buffer.
+  //
+  // Why this is needed: the existing UI assertions (titlebar visible,
+  // /api/heartbeat OK) cover the "process didn't crash" dimension well, but
+  // miss a whole class of regressions that print loudly to the terminal
+  // without breaking the renderer — e.g. "Cannot find module" warnings from
+  // a dropped asarUnpack rule, `dlopen … incompatible architecture` from a
+  // mixed-arch standalone tree, "exists but failed to launch" from the SDK
+  // when a session is created. We capture stdio here so the spec can scan
+  // for those markers as a separate assertion after the boot path lands.
+  //
+  // `app.process()` returns the real ChildProcess Playwright spawned. Its
+  // stdout/stderr streams are inherited so they're readable here. We never
+  // re-emit — the buffer is text-only, the test reads it on demand.
+  const buf: string[] = [];
+  const child = app.process();
+  child.stdout?.on("data", (d: Buffer | string) => buf.push(d.toString()));
+  child.stderr?.on("data", (d: Buffer | string) => buf.push(d.toString()));
+
+  return { app, readLogs: () => buf.join("") };
 }
 
 /**

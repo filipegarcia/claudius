@@ -85,3 +85,72 @@ test("embedded server answers /api/heartbeat", async () => {
   });
   expect(result.ok, `heartbeat returned ${result.status}`).toBe(true);
 });
+
+test("main process emits no fatal markers to stdout/stderr", async () => {
+  // See `mac-smoke.spec.ts` for the full rationale of the patterns below
+  // and why this complements the UI-level assertions. Same list — these
+  // are platform-agnostic regression classes. The release job's shell
+  // greps cover the Linux-specific ones (libfuse2, sandbox abort); this
+  // covers the embedded-server / SDK / native-module class.
+  const page = await waitForMainWindow(launched.app);
+  await page.waitForLoadState("domcontentloaded");
+  await expect(page.locator('[data-testid="titlebar"]')).toBeVisible({
+    timeout: 60_000,
+  });
+  await page.waitForTimeout(2000);
+
+  const logs = launched.readLogs();
+  const fatals = [
+    { name: "SDK spawn failure", pattern: /exists but failed to launch/i },
+    { name: "Missing module", pattern: /Cannot find module/i },
+    {
+      name: "Wrong-arch native module",
+      pattern: /dlopen[^\n]*incompatible architecture/i,
+    },
+    { name: "Uncaught exception", pattern: /Uncaught Exception/i },
+    { name: "Unhandled promise rejection", pattern: /UnhandledPromiseRejection/i },
+    { name: "Port collision", pattern: /EADDRINUSE/i },
+  ];
+  const hits = fatals.filter((f) => f.pattern.test(logs));
+  expect(
+    hits,
+    `Main process emitted fatal-class log lines: ${hits.map((h) => h.name).join(", ")}.\n\n--- captured stdio (first 4 KB) ---\n${logs.slice(0, 4096)}\n--- captured stdio (last 2 KB) ---\n${logs.slice(-2048)}`,
+  ).toEqual([]);
+});
+
+test("renderer console emits no error-level messages during boot", async () => {
+  const consoleErrors: string[] = [];
+  const pageErrors: string[] = [];
+
+  launched.app.on("window", (w) => {
+    w.on("console", (msg) => {
+      if (msg.type() === "error") consoleErrors.push(msg.text());
+    });
+    w.on("pageerror", (err) => {
+      pageErrors.push(err.message);
+    });
+  });
+
+  const page = await waitForMainWindow(launched.app);
+  await page.waitForLoadState("domcontentloaded");
+  await expect(page.locator('[data-testid="titlebar"]')).toBeVisible({
+    timeout: 60_000,
+  });
+  await page.waitForTimeout(2000);
+
+  const NOISE = [
+    /Download the React DevTools/i,
+    /ResizeObserver loop/i,
+  ];
+  const isNoise = (s: string) => NOISE.some((re) => re.test(s));
+  const realConsoleErrors = consoleErrors.filter((s) => !isNoise(s));
+
+  expect(
+    pageErrors,
+    `Renderer hit uncaught page errors: ${pageErrors.join(" | ")}`,
+  ).toEqual([]);
+  expect(
+    realConsoleErrors,
+    `Renderer logged console.error during boot: ${realConsoleErrors.join(" | ")}`,
+  ).toEqual([]);
+});

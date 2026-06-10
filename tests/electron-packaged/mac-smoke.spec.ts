@@ -103,6 +103,111 @@ test("embedded server answers /api/heartbeat", async () => {
   expect(result.ok, `heartbeat returned ${result.status}`).toBe(true);
 });
 
+test("main process emits no fatal markers to stdout/stderr", async () => {
+  // Open the main window so the renderer is fully booted and any startup
+  // errors have had a chance to flush to stdio (the embedded server prints
+  // a lot during the first SSR; we want that window to settle before
+  // scanning).
+  const page = await waitForMainWindow(launched.app);
+  await page.waitForLoadState("domcontentloaded");
+  await expect(page.locator('[data-testid="titlebar"]')).toBeVisible({
+    timeout: 60_000,
+  });
+  // Give Next a beat to finish its post-render flushes — stdio is line-
+  // buffered, so a fatal printed during the last SSR can lag the visible
+  // DOM by hundreds of ms. 2s is plenty without dragging out the suite.
+  await page.waitForTimeout(2000);
+
+  const logs = launched.readLogs();
+
+  // The patterns below are FATAL-class — none of them appear in a healthy
+  // boot, and each one corresponds to a regression class the existing UI
+  // assertions might still let pass:
+  //
+  //   • "exists but failed to launch" — the SDK's catch-all spawn error
+  //     (covers ENOENT/EACCES/EPERM/ENOTDIR/ELOOP/EROFS; reproduced by
+  //     a wrong-arch claude binary OR by spawning with a missing cwd).
+  //   • "Cannot find module" — a node_modules path the bundler thought it
+  //     could `require()` is missing from the packaged tree (asarUnpack
+  //     rule drop, electron-builder excludes regression).
+  //   • "dlopen" + "incompatible architecture" — a `.node` whose binary
+  //     ABI doesn't match the running Electron (the v0.3.168.x mixed-arch
+  //     bug). The renderer might still hydrate if the broken module is
+  //     lazy-required and the boot path doesn't touch it, so the titlebar
+  //     test alone can let this through.
+  //   • "Uncaught Exception" / "UnhandledPromiseRejection" — anything the
+  //     main process bubbled to the top-level handler.
+  //   • "EADDRINUSE" — embedded server failed to bind, fell through to a
+  //     random port; on a fresh runner this is genuinely fatal (no other
+  //     Claudius is running).
+  //
+  // Each pattern is checked separately so a failure tells you WHICH
+  // dimension regressed, not just "something in logs."
+  const fatals = [
+    { name: "SDK spawn failure", pattern: /exists but failed to launch/i },
+    { name: "Missing module", pattern: /Cannot find module/i },
+    {
+      name: "Wrong-arch native module",
+      pattern: /dlopen[^\n]*incompatible architecture/i,
+    },
+    { name: "Uncaught exception", pattern: /Uncaught Exception/i },
+    { name: "Unhandled promise rejection", pattern: /UnhandledPromiseRejection/i },
+    { name: "Port collision", pattern: /EADDRINUSE/i },
+  ];
+
+  const hits = fatals.filter((f) => f.pattern.test(logs));
+  expect(
+    hits,
+    `Main process emitted fatal-class log lines: ${hits.map((h) => h.name).join(", ")}.\n\n--- captured stdio (first 4 KB) ---\n${logs.slice(0, 4096)}\n--- captured stdio (last 2 KB) ---\n${logs.slice(-2048)}`,
+  ).toEqual([]);
+});
+
+test("renderer console emits no error-level messages during boot", async () => {
+  const consoleErrors: string[] = [];
+  const pageErrors: string[] = [];
+
+  // Attach BEFORE waitForMainWindow so we don't miss an early console
+  // error that lands as the renderer hydrates.
+  launched.app.on("window", (w) => {
+    w.on("console", (msg) => {
+      if (msg.type() === "error") consoleErrors.push(msg.text());
+    });
+    w.on("pageerror", (err) => {
+      pageErrors.push(err.message);
+    });
+  });
+
+  const page = await waitForMainWindow(launched.app);
+  await page.waitForLoadState("domcontentloaded");
+  await expect(page.locator('[data-testid="titlebar"]')).toBeVisible({
+    timeout: 60_000,
+  });
+  // Same settling delay as the stdio test — async rejections + microtask
+  // errors can land a frame or two after first paint.
+  await page.waitForTimeout(2000);
+
+  // Filter known-noise patterns that fire on healthy boots but aren't
+  // signal. Keep this list tight — every line here is a future trap door
+  // for a real regression to hide behind.
+  const NOISE = [
+    // React-DevTools nag in production builds — informational, not an error.
+    /Download the React DevTools/i,
+    // ResizeObserver loop is a long-standing benign browser warning.
+    /ResizeObserver loop/i,
+  ];
+  const isNoise = (s: string) => NOISE.some((re) => re.test(s));
+  const realConsoleErrors = consoleErrors.filter((s) => !isNoise(s));
+
+  expect(
+    pageErrors,
+    `Renderer hit uncaught page errors: ${pageErrors.join(" | ")}`,
+  ).toEqual([]);
+  expect(
+    realConsoleErrors,
+    `Renderer logged console.error during boot: ${realConsoleErrors.join(" | ")}`,
+  ).toEqual([]);
+});
+
 test("bundled Claude SDK binary is the expected arch and executable", () => {
   test.skip(
     !EXPECTED_ARCH,

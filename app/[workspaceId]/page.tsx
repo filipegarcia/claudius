@@ -23,6 +23,7 @@ import { LongContextCreditsPanel } from "@/components/chat/LongContextCreditsPan
 import { AuthFailedPanel } from "@/components/chat/AuthFailedPanel";
 import { FastModeNoticePanel } from "@/components/chat/FastModeNoticePanel";
 import { ModelSwitchNoticePanel } from "@/components/chat/ModelSwitchNoticePanel";
+import { AdvisorDisabledNoticePanel } from "@/components/chat/AdvisorDisabledNoticePanel";
 import { PromptInput } from "@/components/chat/PromptInput";
 import { PermissionPrompt } from "@/components/chat/PermissionPrompt";
 import { AskUserQuestionPrompt } from "@/components/chat/AskUserQuestionPrompt";
@@ -1797,6 +1798,11 @@ export default function Home() {
           notice={session.modelSwitchNotice}
           onDismiss={session.dismissModelSwitchNotice}
         />
+        <AdvisorDisabledNoticePanel
+          notice={session.advisorDisabledNotice}
+          onDismiss={session.dismissAdvisorDisabledNotice}
+          onReEnable={session.reEnableAdvisor}
+        />
         <div className="flex flex-1 flex-col overflow-hidden">
           {searchOpen && (
             <TranscriptSearch
@@ -1885,6 +1891,13 @@ export default function Home() {
               {session.errors.map((e, i) => (
                 <div
                   key={i}
+                  // `data-testid` lets the packaged-artifact smoke (and any
+                  // future session-level e2e) assert "no error banner
+                  // visible" — when a `{ type: "error" }` SSE event lands
+                  // (SDK spawn failure, missing-cwd, etc.), this is the
+                  // user-facing surface. The smoke that found the v0.3.170
+                  // misleading-binary-error class needed a hook here.
+                  data-testid="session-error"
                   className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-300"
                 >
                   {e}
