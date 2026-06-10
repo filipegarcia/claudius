@@ -1242,7 +1242,7 @@ export default function Home() {
 
         case "model": {
           if (args.trim()) {
-            void session.setModel(args.trim());
+            void session.setModel(args.trim(), "chat_command");
             showToast(`Model → ${args.trim()}`);
           } else {
             showToast("Pass a model id, e.g. /model claude-sonnet-4-6");

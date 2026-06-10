@@ -765,7 +765,16 @@ export type ChatActions = {
   resolvePermission(requestId: string, decision: PermissionDecision): Promise<void>;
   interrupt(): Promise<void>;
   setPermissionMode(mode: PermissionMode): Promise<void>;
-  setModel(model: string | null): Promise<void>;
+  /**
+   * Switch the main-thread model. `source` distinguishes the model picker
+   * (default) from the `/model` slash command typed in chat — the latter
+   * triggers the "your pick becomes the default" notice via the
+   * `model_changed` broadcast's `source` field.
+   */
+  setModel(
+    model: string | null,
+    source?: "picker" | "chat_command",
+  ): Promise<void>;
   /**
    * Set the reasoning/effort level. Routed through the SDK's `/effort`
    * slash command so the change matches the CLI exactly. `auto` re-enables

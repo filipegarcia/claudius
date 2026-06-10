@@ -91,6 +91,13 @@ type Props = {
    */
   queuedCount?: number;
   /**
+   * Flush the first queued message immediately instead of waiting for the
+   * current turn to finish. When provided and at least one message is queued,
+   * the queue hint exposes a "send now" affordance. Optional — the goal-banner
+   * reuse of PromptInput leaves it off.
+   */
+  onSendQueuedNow?: () => void;
+  /**
    * When true, drag-and-drop is captured across the entire ancestor
    * `[data-pane-name="chat-area"]` container (not just the composer's input
    * row), and a portal'd overlay highlights the whole chat as a drop target
@@ -174,6 +181,7 @@ export function PromptInput({
   placeholder,
   testIdPrefix = "prompt",
   queuedCount = 0,
+  onSendQueuedNow,
   wideDropTarget = false,
 }: Props) {
   const [value, setValue] = useState("");
@@ -1512,7 +1520,19 @@ export function PromptInput({
               <span className="text-[var(--muted)]/70">· undo</span>
             </button>
           ) : (
-            <span>{queueHint}</span>
+            <span className="flex items-center gap-1.5">
+              <span>{queueHint}</span>
+              {pending && queuedCount > 0 && onSendQueuedNow ? (
+                <button
+                  type="button"
+                  onClick={onSendQueuedNow}
+                  title="Send the first queued message now instead of waiting"
+                  className="text-[var(--muted)] underline decoration-dotted underline-offset-2 hover:text-[var(--foreground)]"
+                >
+                  · send now
+                </button>
+              ) : null}
+            </span>
           )}
           <span className="flex items-center gap-2">
             {images.length > 0 && (

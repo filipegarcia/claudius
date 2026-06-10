@@ -70,8 +70,12 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   const { id } = await ctx.params;
   const session = sessionManager.get(id);
   if (!session) return NextResponse.json({ error: "session not found" }, { status: 404 });
-  const body = (await req.json()) as { model?: string | null };
-  const result = await session.setModel(body?.model ?? undefined);
+  const body = (await req.json()) as {
+    model?: string | null;
+    source?: "picker" | "chat_command";
+  };
+  const source = body?.source === "chat_command" ? "chat_command" : "picker";
+  const result = await session.setModel(body?.model ?? undefined, source);
   if (!result.ok) {
     // Surface the SDK rejection so the client can revert its optimistic
     // pick and toast. 409 because the model state is unchanged — the

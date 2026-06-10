@@ -50,6 +50,29 @@ export type ModeChangedEvent = {
 export type ModelChangedEvent = {
   type: "model_changed";
   model?: string;
+  /**
+   * Where the switch originated. `"picker"` is the default (model dropdown →
+   * `setModel` → this broadcast). `"chat_command"` is reserved for a switch
+   * driven by the `/model` slash command typed in the chat; the client uses
+   * it to decide whether to show the "your pick becomes the default" notice.
+   * Optional so older broadcasts (and the SDK-side `/model` path, which the
+   * client detects via CLI stdout instead) remain valid.
+   */
+  source?: "picker" | "chat_command";
+};
+
+/**
+ * Broadcast when the server auto-disables the advisor because the main-thread
+ * model changed to one incompatible with the active advisor tool. Carries the
+ * previous advisor id so the client's "Re-enable" button can restore it in a
+ * single click without re-reading settings.
+ */
+export type AdvisorDisabledOnModelChangeEvent = {
+  type: "advisor_disabled_on_model_change";
+  /** The advisor model id that was cleared (e.g. "claude-opus-4-8"). */
+  previousAdvisor: string;
+  /** The new main-thread model that triggered the disable. */
+  newModel?: string;
 };
 
 export type ReplayDoneEvent = {
@@ -648,6 +671,7 @@ export type ServerEvent =
   | SessionErrorEvent
   | ModeChangedEvent
   | ModelChangedEvent
+  | AdvisorDisabledOnModelChangeEvent
   | AgentChangedEvent
   | ReplayDoneEvent
   | TurnStatusEvent

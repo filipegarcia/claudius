@@ -3649,6 +3649,7 @@ export class Session {
 
   async setModel(
     model?: string,
+    source: "picker" | "chat_command" = "picker",
   ): Promise<{ ok: true; model?: string } | { ok: false; error: string; model?: string }> {
     // Forward the pick to the active SDK query and surface its rejection
     // instead of swallowing. Previously a `.catch(() => {})` discarded
@@ -3689,7 +3690,7 @@ export class Session {
       // still applied it. DB write failure just means the next resume
       // falls back to the prior default.
     }
-    this.broadcast({ type: "model_changed", model });
+    this.broadcast({ type: "model_changed", model, source });
 
     // Auto-disable the advisor when the model changes. The advisor tool
     // carries a `model` field in the API request; not all model combinations

@@ -64,6 +64,12 @@ type Props = {
   /** Open the live-tail viewer for this bash. */
   onOpenBash?: (b: BackgroundBash) => void;
   /**
+   * Open the full context-usage overlay. When provided, the compact
+   * `ContextBar` summary becomes a clickable affordance. Optional — read-only
+   * embeddings (e.g. the dev activity pages) leave it off.
+   */
+  onOpenContext?: () => void;
+  /**
    * Ask the agent to cancel a scheduled loop. The handler should compose a
    * "Please cancel cron <id>" prompt and pipe it through useSession.send.
    * Omitting this hides the per-entry Cancel button.
@@ -202,6 +208,7 @@ export function BackgroundTasksPanel({
   scheduledLoops,
   toolHistory,
   onOpenBash,
+  onOpenContext,
   onCancelScheduledLoop,
   onAddTodos,
   onClearTodos,
@@ -443,7 +450,18 @@ export function BackgroundTasksPanel({
           advisorModel={advisorModel}
           onChangeAdvisorModel={onChangeAdvisorModel}
         />
-        <ContextBar sessionId={sessionId} pending={pending} />
+        {onOpenContext ? (
+          <button
+            type="button"
+            onClick={onOpenContext}
+            title="Open context-usage details"
+            className="block w-full text-left"
+          >
+            <ContextBar sessionId={sessionId} pending={pending} />
+          </button>
+        ) : (
+          <ContextBar sessionId={sessionId} pending={pending} />
+        )}
         <TokenMeter usage={usage} />
 
         <div className="mb-3 border-t border-[var(--border)]/40" />

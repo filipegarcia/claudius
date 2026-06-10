@@ -4159,7 +4159,8 @@ export function useSession(): ChatState & ChatActions {
     [loadOlder],
   );
 
-  const setModel = useCallback(async (m: string | null) => {
+  const setModel = useCallback(
+    async (m: string | null, source: "picker" | "chat_command" = "picker") => {
     const id = sessionIdRef.current;
     if (!id) return;
     setModelState(m);
@@ -4167,7 +4168,7 @@ export function useSession(): ChatState & ChatActions {
       const r = await fetch(`/api/sessions/${id}/model`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model: m }),
+        body: JSON.stringify({ model: m, source }),
       });
       if (!r.ok) {
         // SDK rejected the switch (route returns 409 + the authoritative

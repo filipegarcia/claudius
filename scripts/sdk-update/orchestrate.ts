@@ -2422,6 +2422,21 @@ export function buildCcDroppedAnnouncement(args: {
 // ── Push & PR ─────────────────────────────────────────────────────────
 
 export function pushBranch(branch: string): void {
+  // Safety gate: pushBranch must run with HEAD on the very branch it is about
+  // to push. If HEAD were on `main`, the `--allow-empty` marker commit below
+  // (or any of Claude's work) would land directly on local main — which then
+  // can't fast-forward to origin/main and wedges the hourly sync FOREVER. That
+  // is exactly how the empty "so a PR can be opened" commit (df385ed) once
+  // stalled the whole pipeline. `--abbrev-ref` returns "HEAD" when detached,
+  // which also fails this check (we never want to commit/push from detached).
+  const head = sh("git", ["rev-parse", "--abbrev-ref", "HEAD"]);
+  if (head !== branch) {
+    throw new Error(
+      `pushBranch: HEAD is on '${head}', expected '${branch}'. Refusing to ` +
+        `commit or push — a marker commit here would land on the wrong ` +
+        `branch (this is how an empty commit once wedged main).`,
+    );
+  }
   // If Claude didn't commit anything (unlikely but possible) we make a
   // marker commit so the branch can still be pushed — that way the
   // human gets a draft PR pointing at the dependency bump even if the
@@ -2436,13 +2451,33 @@ export function pushBranch(branch: string): void {
       "chore(sdk-update): empty commit so a PR can be opened",
     ]);
   }
-  // Idempotency on re-run: a previous firing may have left the branch
-  // on origin. We already nuked the local copy in checkoutFreshBranch
-  // and built fresh on top of origin/main, so our local tree IS the
-  // canonical state — force-with-lease is safe (and rejects if someone
-  // else somehow pushed in between, which is the protection we want).
-  // `-u` sets upstream tracking the first time and is harmless on
-  // subsequent runs.
+  // Idempotency on re-run: a previous firing may have left the branch on
+  // origin. We already nuked the local copy in checkoutFreshBranch and built
+  // fresh on top of origin/main, so our local tree IS the canonical state and
+  // we deliberately overwrite whatever is on origin for this branch.
+  //
+  // Refresh our remote-tracking ref for THIS branch first so the push's lease
+  // compares against the actual remote tip rather than a stale local copy.
+  // Without this, a branch left on origin by a prior firing makes
+  // `--force-with-lease` reject with "! [rejected] … (stale info)" even though
+  // our tree is canonical — which is exactly the loop that wedged the updater.
+  // The explicit refspec updates only that one tracking ref; a non-zero exit
+  // (branch absent on origin) is fine — the first push simply creates it.
+  //
+  // NOTE: because we just refreshed the baseline to origin's current tip, the
+  // lease is effectively vacuous here — this is a `--force` with a millisecond
+  // race window, NOT protection against a concurrent pusher. That is
+  // acceptable: this branch has a single writer (the cron, serialized by
+  // run.sh's flock; an interactive `make sdk-update-run` takes the same lock),
+  // so there is no concurrent pusher to guard against. We keep the `--lease`
+  // form only so a push racing between this fetch and the push below still
+  // fails loudly instead of silently clobbering.
+  // `-u` sets upstream tracking the first time and is harmless on re-runs.
+  shStream("git", [
+    "fetch",
+    "origin",
+    `+refs/heads/${branch}:refs/remotes/origin/${branch}`,
+  ]);
   // Push using gh's token as the credential helper rather than whatever
   // git's global `credential.helper` happens to be. Preflight already
   // verified `gh auth status`, so this makes the long-standing "if gh
