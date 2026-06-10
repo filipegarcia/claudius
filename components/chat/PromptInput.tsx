@@ -441,6 +441,17 @@ export function PromptInput({
     // recall so the next Cmd/Ctrl+↑ starts fresh from the new session's tail.
     histIdxRef.current = null;
   }
+  // Guard: if a draft injection was applied but the first seed fetch hasn't
+  // resolved yet (seededForSessionRef is null), treat the composer as
+  // "user-typed" so the async seed doesn't clear the injected text. This
+  // fixes the ?prefill=1 flow where the injection fires (T3, sessionId=null),
+  // the session is then created and bound (T5), the session-reset above runs
+  // and resets userTypedRef to false, and the empty-draft seed fetch (T6)
+  // would otherwise clobber the injection. Only triggers for the first session
+  // per page mount (seededForSessionRef turns non-null once any session seeds).
+  if (seededForSessionRef.current === null && appliedInjectionToken >= 0) {
+    userTypedRef.current = true;
+  }
 
   useEffect(() => {
     if (!sessionId) return;
