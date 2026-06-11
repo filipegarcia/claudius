@@ -2136,12 +2136,93 @@ export type GitRunner = {
   /** `git cherry-pick --abort` — best-effort, never throws. */
   cherryPickAbort(): void;
   /**
-   * `git push -u --force-with-lease origin <branch>` — throws on
-   * non-zero exit so a push rejection bubbles to the caller, who
-   * drops CC and reports.
+   * Fetch the branch's tracking ref then push it with an explicit lease
+   * (`--force-with-lease=<branch>:<expect>`) — throws on non-zero exit so
+   * a push rejection bubbles to the caller, who drops CC and reports. The
+   * explicit lease avoids the "(stale info)" reject the bare form throws
+   * on a freshly-created tracking ref; see pushBranchWithExplicitLease.
    */
   pushForceWithLease(branch: string): void;
 };
+
+/**
+ * Push `branch` to origin, overwriting whatever is there, with an
+ * EXPLICIT lease — and capture the combined git output so a rejection
+ * can be reported with the real cause instead of a guess.
+ *
+ * Why explicit `--force-with-lease=<branch>:<expect>` and never the bare
+ * `--force-with-lease`: the bare form derives the expected pre-push value
+ * from the remote-tracking ref's REFLOG. On the cron host the branch is
+ * routinely left on origin by a prior firing while the local clone has
+ * never fetched it, so the pre-push fetch CREATES the tracking ref
+ * (`* [new branch]`). A just-created tracking ref has no reflog entry git
+ * trusts, so the bare lease rejects EVERY such push with
+ * "! [rejected] … (stale info)" — the exact loop that wedged the updater
+ * (GitHub issue #61). Passing the expected sha explicitly makes git
+ * compare against the value we just fetched (no reflog), which works on a
+ * fresh tracking ref AND still rejects loudly if origin actually moved
+ * between our fetch and the push.
+ *
+ * `expect` is gated on the fetch SUCCEEDING. A non-zero fetch means the
+ * branch is absent on origin (deleted between firings, or first push), in
+ * which case we lease the empty string — "the ref must not exist yet" —
+ * so the push creates it. Reading the local tracking ref unconditionally
+ * would lease a STALE sha for a since-deleted branch and re-introduce the
+ * very stale-info reject we are fixing here.
+ *
+ * Single-writer note: run.sh's flock serializes every firing, so there is
+ * no concurrent pusher to race; the explicit lease is cheap insurance
+ * against an out-of-band manual push, not a load-bearing guard.
+ */
+function pushBranchWithExplicitLease(branch: string): {
+  code: number;
+  output: string;
+} {
+  const trackingRef = `refs/remotes/origin/${branch}`;
+  // Refresh our remote-tracking ref so the lease baseline is origin's
+  // actual current tip. Capture+tee rather than inherit so the output is
+  // available for the failure report. A non-zero exit (branch absent on
+  // origin) is fine — handled by the empty-expect create path below.
+  const fetch = spawnSync(
+    "git",
+    ["fetch", "origin", `+refs/heads/${branch}:${trackingRef}`],
+    { cwd: ROOT, encoding: "utf8" },
+  );
+  if (fetch.stdout) process.stdout.write(fetch.stdout);
+  if (fetch.stderr) process.stderr.write(fetch.stderr);
+  let expect = "";
+  if (fetch.status === 0) {
+    const rev = spawnSync("git", ["rev-parse", trackingRef], {
+      cwd: ROOT,
+      encoding: "utf8",
+    });
+    if (rev.status === 0) expect = (rev.stdout ?? "").trim();
+  }
+  // Push using gh's token as the credential helper rather than whatever
+  // git's global `credential.helper` happens to be. The empty
+  // `credential.helper=` first clears any inherited helper (e.g.
+  // osxkeychain) so it can't shadow gh with a stale/missing entry; the
+  // second installs gh. `-u` sets upstream the first time, harmless after.
+  const push = spawnSync(
+    "git",
+    [
+      "-c",
+      "credential.helper=",
+      "-c",
+      "credential.helper=!gh auth git-credential",
+      "push",
+      "-u",
+      `--force-with-lease=${branch}:${expect}`,
+      "origin",
+      branch,
+    ],
+    { cwd: ROOT, encoding: "utf8" },
+  );
+  if (push.stdout) process.stdout.write(push.stdout);
+  if (push.stderr) process.stderr.write(push.stderr);
+  const output = `${push.stdout ?? ""}${push.stderr ?? ""}`.trim();
+  return { code: push.status ?? -1, output };
+}
 
 /** Production git runner — wires `sh`/`shStream` to the GitRunner interface. */
 export function realGitRunner(): GitRunner {
@@ -2175,19 +2256,15 @@ export function realGitRunner(): GitRunner {
       }
     },
     pushForceWithLease(branch: string): void {
-      const code = shStream("git", [
-        "-c",
-        "credential.helper=",
-        "-c",
-        "credential.helper=!gh auth git-credential",
-        "push",
-        "-u",
-        "--force-with-lease",
-        "origin",
-        branch,
-      ]);
+      // Explicit-lease push (see pushBranchWithExplicitLease): the bare
+      // `--force-with-lease` rejects with "(stale info)" whenever origin
+      // already carries this detached branch from a prior firing the local
+      // clone never fetched — the same bug that wedged the SDK branch push.
+      const { code, output } = pushBranchWithExplicitLease(branch);
       if (code !== 0) {
-        throw new Error(`git push exited ${code} on detached cc-parity branch`);
+        throw new Error(
+          `git push exited ${code} on detached cc-parity branch:\n${output}`,
+        );
       }
     },
   };
@@ -2454,63 +2531,23 @@ export function pushBranch(branch: string): void {
   // Idempotency on re-run: a previous firing may have left the branch on
   // origin. We already nuked the local copy in checkoutFreshBranch and built
   // fresh on top of origin/main, so our local tree IS the canonical state and
-  // we deliberately overwrite whatever is on origin for this branch.
-  //
-  // Refresh our remote-tracking ref for THIS branch first so the push's lease
-  // compares against the actual remote tip rather than a stale local copy.
-  // Without this, a branch left on origin by a prior firing makes
-  // `--force-with-lease` reject with "! [rejected] … (stale info)" even though
-  // our tree is canonical — which is exactly the loop that wedged the updater.
-  // The explicit refspec updates only that one tracking ref; a non-zero exit
-  // (branch absent on origin) is fine — the first push simply creates it.
-  //
-  // NOTE: because we just refreshed the baseline to origin's current tip, the
-  // lease is effectively vacuous here — this is a `--force` with a millisecond
-  // race window, NOT protection against a concurrent pusher. That is
-  // acceptable: this branch has a single writer (the cron, serialized by
-  // run.sh's flock; an interactive `make sdk-update-run` takes the same lock),
-  // so there is no concurrent pusher to guard against. We keep the `--lease`
-  // form only so a push racing between this fetch and the push below still
-  // fails loudly instead of silently clobbering.
-  // `-u` sets upstream tracking the first time and is harmless on re-runs.
-  shStream("git", [
-    "fetch",
-    "origin",
-    `+refs/heads/${branch}:refs/remotes/origin/${branch}`,
-  ]);
-  // Push using gh's token as the credential helper rather than whatever
-  // git's global `credential.helper` happens to be. Preflight already
-  // verified `gh auth status`, so this makes the long-standing "if gh
-  // works, push works" assumption actually true — no dependency on
-  // `gh auth setup-git` having been run, or on an osxkeychain entry that
-  // may not exist on a headless box. The empty `credential.helper=`
-  // first clears any inherited helper (e.g. osxkeychain) so it can't
-  // shadow gh with a stale/missing entry; the second installs gh.
-  const pushCode = shStream("git", [
-    "-c",
-    "credential.helper=",
-    "-c",
-    "credential.helper=!gh auth git-credential",
-    "push",
-    "-u",
-    "--force-with-lease",
-    "origin",
-    branch,
-  ]);
+  // we deliberately overwrite whatever is on origin for this branch. The
+  // fetch + explicit lease that makes that safe (and dodges the "(stale info)"
+  // reject that wedged issue #61) lives in pushBranchWithExplicitLease.
+  const { code: pushCode, output: pushOutput } =
+    pushBranchWithExplicitLease(branch);
   if (pushCode !== 0) {
-    // Earlier this was a silent fall-through into `gh pr create`,
-    // which then died with a misleading GraphQL error one step later.
-    // Surface the actual cause: a 403 here means the configured `gh`
-    // token is missing `repo` (classic PAT) or `Contents: Write` +
-    // `Pull requests: Write` (fine-grained PAT) on this repo. Fix:
-    // `gh auth login --git-protocol https --web` and re-run, or
-    // regenerate the PAT with the right scopes.
+    // Earlier this hardcoded "gh credentials don't have write access" — a
+    // guess that sent issue #61 chasing gh auth when the real cause was a
+    // stale-info lease reject (now fixed). Surface the ACTUAL git output so
+    // the next failure is diagnosable instead of misattributed. A genuine
+    // auth failure shows up as "403"/"Permission denied" in that output;
+    // the fix there is `gh auth login --git-protocol https --web` (or a PAT
+    // with `repo` / Contents+PR Write). A "(stale info)" line means origin
+    // moved under us — re-run.
     throw new Error(
       `git push exited ${pushCode} — refusing to attempt PR open.\n` +
-        `Most likely cause: gh credentials don't have write access. Try:\n` +
-        `  gh auth setup-git   # configure git to use gh's token\n` +
-        `  gh auth status      # confirm which scopes are granted\n` +
-        `If that still fails, re-do \`gh auth login --git-protocol https --web\`.`,
+        `git output:\n${pushOutput || "(no output captured)"}`,
     );
   }
 }
