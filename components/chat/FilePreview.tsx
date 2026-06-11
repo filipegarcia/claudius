@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ChevronDown, ChevronRight, ImageIcon, Globe } from "lucide-react";
 import { ImageLightbox } from "./ImageLightbox";
+import { LazyPreview } from "./LazyPreview";
 import type { PreviewType } from "@/lib/shared/file-types";
 
 type Props = {
@@ -68,7 +69,7 @@ export function FilePreview({ fileName, relPath, workspaceId, type }: Props) {
       </button>
 
       {open && (
-        <div className="border-t border-[var(--border)]">
+        <LazyPreview className="border-t border-[var(--border)]">
           {type === "image" ? (
             <div className="flex justify-center p-2">
               <button
@@ -96,7 +97,7 @@ export function FilePreview({ fileName, relPath, workspaceId, type }: Props) {
               />
             </div>
           )}
-        </div>
+        </LazyPreview>
       )}
 
       {lightbox && (

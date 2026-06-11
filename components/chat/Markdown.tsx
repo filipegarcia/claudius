@@ -11,6 +11,7 @@ import { filesHref, looksLikeFilePath, stripLineSuffix, toWorkspaceRelative } fr
 import { IMAGE_EXTS, HTML_EXTS } from "@/lib/shared/file-types";
 import { CodeBlock } from "./CodeBlock";
 import { ImageLightbox } from "./ImageLightbox";
+import { LazyPreview } from "./LazyPreview";
 
 const INLINE_CODE_CLASS = "rounded bg-[var(--panel-2)] px-1 py-0.5 font-mono text-[0.85em]";
 
@@ -176,7 +177,7 @@ function MarkdownFilePreview({ src, alt }: { src?: string; alt?: string }) {
 
       {/* ── Body ───────────────────────────────────────────────────── */}
       {open && (
-        <span className="block border-t border-[var(--border)] p-2">
+        <LazyPreview as="span" className="block border-t border-[var(--border)] p-2">
           {isHtml ? (
             htmlPreviewSrc ? (
               <iframe
@@ -205,7 +206,7 @@ function MarkdownFilePreview({ src, alt }: { src?: string; alt?: string }) {
               />
             </button>
           )}
-        </span>
+        </LazyPreview>
       )}
 
       {lightbox && (
