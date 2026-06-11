@@ -1,0 +1,55 @@
+# Refreshes site/releases.html daily by fetching fresh release data from
+# GitHub Releases and npm, then commits the updated page back to main so
+# the next pages.yml deploy picks it up automatically.
+#
+# Also runs on push when the scripts change, and can be triggered manually
+# via the Actions tab.
+name: refresh-releases-page
+
+on:
+  schedule:
+    # 06:30 UTC daily — after most overnight deploys have settled
+    - cron: '30 6 * * *'
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/releases/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write   # push the updated page back
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python deps
+        run: pip install -r scripts/releases/requirements.txt
+
+      - name: Fetch release data
+        run: |
+          cd scripts/releases
+          python release_analytics.py --json --no-color > release_data.json
+        env:
+          # Use the built-in token for 1 000 req/hr on the Actions runner.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate releases page
+        run: |
+          cd scripts/releases
+          python generate_dashboard.py
+
+      - name: Commit & push if changed
+        run: |
+          git config user.name  "claudius-bot"
+          git config user.email "bot@claudius.network"
+          git add scripts/releases/release_data.json site/releases.html
+          git diff --staged --quiet && echo "nothing changed" && exit 0
+          git commit -m "chore: refresh SDK release analytics [skip ci]"
+          git push
