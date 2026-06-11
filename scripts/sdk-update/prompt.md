@@ -67,6 +67,58 @@ Do not be that case. Before your final "done" message:
 
 ---
 
+## The second failure mode: dismissing model changes as "SDK-internal"
+
+When the changelog touches **model identity** — a renamed or
+suffixed model name (e.g. Fable's `[1m]` suffix), a new/renamed
+alias, a changed default model, a new context-window default, a new
+effort/thinking capability tier, or a pricing-tier change — the
+tempting (and wrong) move is to mark it
+`[skipped — SDK-internal model-name normalisation, no Claudius
+call-site]` and ship zero code. That reasoning is almost always
+false: **Claudius hard-codes model identity, names, descriptions,
+capability flags, context-window and pricing assumptions in app
+code.** The SDK normalising a name in its binary does *not* update
+our copies — if anything, it makes them stale.
+
+So **model-identity changelog items are not skippable on a generic
+"no call-site" justification.** Before you may mark any of them
+`[skipped]`, you must audit — and the run-notes `[skipped]` line must
+name which of these surfaces you checked and why each is genuinely
+unaffected:
+
+- `app/api/models/route.ts` — the `STATIC_FALLBACK` list: every
+  `value` / `displayName` / `description` / `supportsEffort` /
+  `supportedEffortLevels` / `supportsAdaptiveThinking` entry
+  (esp. the `fable` row).
+- `app/api/models/probe/route.ts` — the pinned-model probe list and
+  its descriptions.
+- `app/api/sessions/[id]/model/route.ts` — the session-scoped picker
+  rows and alias→displayName mapping.
+- `lib/client/types.ts` — the `ModelInfo` shape and any
+  hard-coded model-id strings.
+- `lib/server/session.ts` — model-conditional logic such as the
+  `fable`-advisor-incompatibility clearing and the `enable1mContext`
+  / `context-1m` beta-header gating (a "1M context is now default"
+  changelog item is exactly the kind of thing that flips this).
+- `lib/server/litellm-pricing.ts` + `lib/server/litellm-prices.json`
+  — the long-context (>200k) pricing tier, which a new default
+  context window can change.
+- `components/chat/` model UI (`ModelPicker.tsx`,
+  `FableLaunchTipBanner`) — copy and capability chips that mirror the
+  SDK's framing.
+
+If, after auditing all of the above, the item genuinely needs no
+change, that is a legitimate `[skipped]` — but the justification must
+be the *audit result* ("checked the four model routes, the picker
+copy, and the context-1m gate; none reference an explicit `[1m]`
+suffix and the 1M window is already the default we assume"), not a
+hand-wave about the SDK binary. A bare "SDK-internal, no call-site"
+on a model-identity item is treated as an un-audited skip — i.e. a
+failed run.
+
+---
+
 ## Your written deliverable: the run-notes file
 
 Alongside the code, you must produce a run-notes file that documents
@@ -116,6 +168,13 @@ relevant to Claudius. For each item mark one of:
 
 Cover EVERY item in the upstream changelog that touches a public
 SDK export. Do not pick favourites.
+
+**Model-identity items have a higher bar to skip.** Any item about a
+model name/suffix (e.g. Fable `[1m]`), alias, default model,
+context-window default, capability tier, or pricing tier may NOT be
+skipped with a generic "SDK-internal / no call-site" reason — Claudius
+hard-codes this information. To skip one, the justification must cite
+the model surfaces you audited (see "The second failure mode" above).
 
 ## Code changes
 
