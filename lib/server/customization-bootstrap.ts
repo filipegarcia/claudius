@@ -16,10 +16,17 @@ import { buildManifestFromTree, writeManifest } from "./customization-manifest";
  * regenerable, or environment-specific and would just bloat the user's edit
  * surface. The Next dev server inside the customization src will rebuild
  * `.next/` on first run and `npm install` will recreate `node_modules/`.
+ *
+ * `.next-e2e` (and any other `.next-*` variant) is the Playwright e2e dist
+ * dir. Turbopack actively writes and deletes files inside it while the dev
+ * server is running, so a concurrent copyFile call races and fails with ENOENT.
+ * Skip all `.next*` directories to keep the mirror free of build artifacts
+ * regardless of which dist-dir variant the dev server was started with.
  */
 const SKIP_DIRS = new Set([
   "node_modules",
   ".next",
+  ".next-e2e",
   ".git",
   ".turbo",
   ".cache",
