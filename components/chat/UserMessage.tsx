@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Sparkles, Target, Terminal, Undo2 } from "lucide-react";
+import { Check, Copy, Sparkles, Target, Terminal, Undo2 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import type { AttachedImage, DisplayMessage } from "@/lib/client/types";
 import { formatMessageTime } from "@/lib/client/format-message-time";
@@ -66,6 +66,17 @@ export function UserMessage({
   // affordance — there's nothing to rewind to. Hide them.
   const isPureBashEcho = hasBash && segments.every((s) => s.kind === "bash");
   const stamp = formatMessageTime(message.createdAt);
+  const [copied, setCopied] = useState(false);
+  const copy = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // ignore — clipboard unavailable (e.g. insecure context)
+    }
+  };
   // Clicking the bubble scrolls back to where the user typed it. Bail when a
   // text selection is active so "select prompt text → copy" isn't hijacked
   // into a scroll.
@@ -113,8 +124,18 @@ export function UserMessage({
         ) : (
           <InlineUserText text={text} images={images} />
         )}
-        {(stamp || onRewind || sessionId) && (
+        {(stamp || onRewind || sessionId || (text && !isPureBashEcho)) && (
           <div className="mt-1 flex items-center justify-end gap-3">
+            {text && !isPureBashEcho && (
+              <button
+                onClick={copy}
+                className="flex items-center gap-1 text-[10px] text-[var(--muted)] opacity-0 transition group-hover:opacity-100 hover:text-[var(--foreground)]"
+                title="Copy message"
+              >
+                {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                {copied ? "Copied" : "Copy"}
+              </button>
+            )}
             {stamp && (
               <span
                 className={cn(
