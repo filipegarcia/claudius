@@ -651,6 +651,19 @@ export type PlanUsageEvent = {
   } | null;
 };
 
+/**
+ * Broadcast whenever session holder changes — identifies which tab (by its
+ * random `tabId`) currently holds the write lock. All connected clients
+ * compare this against their own `tabId`; mismatches render read-only. Set to
+ * `null` when no holder is registered (e.g. all tabs disconnected). Excluded
+ * from the SSE replay buffer — the current holder is echoed fresh in
+ * `Session.subscribe()` so every connecting client gets the live value.
+ */
+export type HolderChangedEvent = {
+  type: "holder_changed";
+  holderId: string | null;
+};
+
 export type ServerEvent =
   | {
       type: "sdk";
@@ -692,7 +705,8 @@ export type ServerEvent =
   | SessionRecapEvent
   | SessionRecapErrorEvent
   | QueueUpdatedEvent
-  | PlanUsageEvent;
+  | PlanUsageEvent
+  | HolderChangedEvent;
 
 /**
  * One-shot notification that the SERVER auto-cleared the to-do snapshot —

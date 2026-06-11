@@ -450,18 +450,7 @@ export function BackgroundTasksPanel({
           advisorModel={advisorModel}
           onChangeAdvisorModel={onChangeAdvisorModel}
         />
-        {onOpenContext ? (
-          <button
-            type="button"
-            onClick={onOpenContext}
-            title="Open context-usage details"
-            className="block w-full text-left"
-          >
-            <ContextBar sessionId={sessionId} pending={pending} />
-          </button>
-        ) : (
-          <ContextBar sessionId={sessionId} pending={pending} />
-        )}
+        <ContextBar sessionId={sessionId} pending={pending} onOpenContext={onOpenContext} />
         <TokenMeter usage={usage} />
 
         <div className="mb-3 border-t border-[var(--border)]/40" />

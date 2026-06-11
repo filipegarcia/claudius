@@ -25,6 +25,7 @@ import {
   type AdvisorChoice,
   normalizeAdvisorChoice,
 } from "@/lib/shared/advisor";
+import { useMediaPreferences } from "@/lib/client/useMediaPreferences";
 import { cn } from "@/lib/utils/cn";
 
 const SCOPE_LABELS: Record<SettingsScope, string> = {
@@ -55,6 +56,7 @@ export default function SettingsPage() {
   const linkTarget = useLinkTarget();
   const isElectron = useIsElectron();
   const ide = useEditor();
+  const mediaPref = useMediaPreferences();
 
   const active = settings.scopes.find((s) => s.scope === scope);
 
@@ -118,6 +120,7 @@ export default function SettingsPage() {
   // widgets, not a flat list of fields).
   const sEditor = show("open in editor file paths tool blocks url scheme editor vscode click-through");
   const sTheme = show("web app theme dark light color appearance browser ui");
+  const sPreviews = show("previews images html render inline chat file browser preview toggle");
   const sChatSize = show(
     "chat size column width font body text reading column display zoom typography big screen large display retina",
   );
@@ -170,7 +173,7 @@ export default function SettingsPage() {
     .filter(([, visible]) => visible.length > 0);
 
   const anyMatch =
-    sEditor || sTheme || sChatSize || sLinkTarget || sUpdater || sShortcuts || sRateLimit || sContext || sGoalBanner ||
+    sEditor || sTheme || sPreviews || sChatSize || sLinkTarget || sUpdater || sShortcuts || sRateLimit || sContext || sGoalBanner ||
     sBackup || sModelUi || sMemory || sChat || sEnv || sPlugins || sOther ||
     catalogEntries.length > 0;
   const noMatches = !!q && !anyMatch;
@@ -323,6 +326,29 @@ export default function SettingsPage() {
                   </button>
                 ))}
               </div>
+            </Section>
+            )}
+
+            {sPreviews && (
+            <Section
+              title="Previews"
+              subtitle="Show inline image and HTML previews in chat tool calls and the file browser."
+            >
+              <label className="flex cursor-pointer items-center gap-3">
+                <input
+                  type="checkbox"
+                  checked={mediaPref.showPreviews}
+                  onChange={(e) => mediaPref.setShowPreviews(e.target.checked)}
+                  className="h-4 w-4 accent-[var(--accent)]"
+                />
+                <span className="text-xs">
+                  Show file previews — images (PNG, GIF, SVG, …) and rendered HTML
+                </span>
+              </label>
+              <p className="mt-1.5 text-[11px] text-[var(--muted)]">
+                Stored locally in the browser. Images render expanded by default; HTML renders collapsed.
+                All HTML runs inside a fully sandboxed iframe (no scripts).
+              </p>
             </Section>
             )}
 

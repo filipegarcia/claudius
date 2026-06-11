@@ -2,6 +2,7 @@ import {
   aheadBehind,
   currentBranch,
   fetch,
+  hasUnmergedFiles,
   headSha,
   isDirty,
   isGitCheckout,
@@ -80,16 +81,22 @@ async function runCheck(): Promise<CheckResult> {
     const remoteSha = await revParse(root, upstreamRef);
 
     const dirty = await isDirty(root);
+    // Use the absence of unmerged index entries rather than !dirty as the
+    // conflict-clear signal. A dirty tree with no unmerged files means the
+    // "conflict" was a false positive (e.g. "file already exists, no
+    // checkout" from stash pop) — there is nothing to resolve and blocking
+    // Apply forever is wrong. Falls back to hasUnmerged=true on error so we
+    // never clear a genuine conflict by accident.
+    const hasUnmerged = await hasUnmergedFiles(root).catch(() => true);
 
     if (localSha === remoteSha) {
-      // Clear conflicts when the working tree is back to clean — the user
-      // resolved them externally. A still-dirty tree might have lingering
-      // markers, so leave the state set in that case.
+      // Clear conflicts when there are no unmerged index entries — the user
+      // resolved them externally (or the conflict was a false positive).
       await patchUpdaterState({
         lastCheckAt: Date.now(),
         lastError: undefined,
         pending: undefined,
-        ...(dirty ? {} : { conflicts: undefined }),
+        ...(hasUnmerged ? {} : { conflicts: undefined }),
         status: { kind: "idle" },
       });
       return { kind: "up-to-date", sha: localSha, branch: localBranch };
@@ -112,10 +119,10 @@ async function runCheck(): Promise<CheckResult> {
       lastCheckAt: Date.now(),
       lastError: undefined,
       pending,
-      // Clear conflicts when the tree is clean — even if behind > 0, a clean
-      // tree means the user committed their resolution. The next apply can
-      // proceed normally.
-      ...(dirty ? {} : { conflicts: undefined }),
+      // Clear conflicts when there are no unmerged index entries — even if
+      // behind > 0, no markers means the user committed their resolution (or
+      // the conflict was a false positive). The next apply can proceed.
+      ...(hasUnmerged ? {} : { conflicts: undefined }),
       status: { kind: "idle" },
     });
 

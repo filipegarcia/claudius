@@ -56,6 +56,53 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     return NextResponse.json({ error: "path not found" }, { status: 404 });
   }
   if (stat.isFile()) {
+    // Raw binary serve mode — `?serve=1` returns the file bytes directly with
+    // the correct Content-Type. Used by the in-app image preview (img src=).
+    // The path resolution and inside() check above already bound the target,
+    // so we just branch on the extension here. Cap at 10 MB for images.
+    const serveRaw = url.searchParams.get("serve") === "1";
+    if (serveRaw) {
+      const IMAGE_MIME: Record<string, string> = {
+        png: "image/png",
+        jpg: "image/jpeg",
+        jpeg: "image/jpeg",
+        gif: "image/gif",
+        svg: "image/svg+xml",
+        webp: "image/webp",
+        ico: "image/x-icon",
+        bmp: "image/bmp",
+        avif: "image/avif",
+        tiff: "image/tiff",
+        tif: "image/tiff",
+      };
+      const ext = target.split(".").pop()?.toLowerCase() ?? "";
+      const contentType = IMAGE_MIME[ext];
+      if (!contentType) {
+        return NextResponse.json({ error: "not a supported image type" }, { status: 415 });
+      }
+      if (stat.size > 10 * 1024 * 1024) {
+        return NextResponse.json({ error: "image too large (>10MB)" }, { status: 413 });
+      }
+      let buf: Buffer;
+      try {
+        buf = await fs.readFile(target);
+      } catch (err) {
+        return NextResponse.json(
+          { error: err instanceof Error ? err.message : String(err) },
+          { status: 500 },
+        );
+      }
+      // Coerce to Uint8Array: Node's `Buffer` extends Uint8Array at runtime,
+      // but the lib.dom `BodyInit` type doesn't include Buffer. Cheap wrap,
+      // same byte payload.
+      return new Response(new Uint8Array(buf), {
+        headers: {
+          "Content-Type": contentType,
+          "Cache-Control": "private, max-age=60",
+        },
+      });
+    }
+
     // File content mode — return as UTF-8 text. Size-cap at 2 MB to avoid
     // accidentally streaming large binaries through the editor.
     if (stat.size > 2 * 1024 * 1024) {
@@ -97,6 +144,29 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
       relPath: relative(root, target).split(sep).join("/"),
       entries: matches,
       truncated,
+    });
+  }
+
+  // Recursive content-search mode. When `?contentSearch=` is present we walk
+  // the subtree under `target`, read each text file (size + binary capped),
+  // and return one entry per matching line. The folder-scoped "Find in
+  // folder" UI uses this to grep the directory the user picked.
+  const contentSearch = url.searchParams.get("contentSearch") ?? "";
+  if (contentSearch.trim()) {
+    const caseSensitive = url.searchParams.get("case") === "1";
+    const { matches, truncated, scanned } = await searchFileContents(
+      root,
+      target,
+      contentSearch,
+      caseSensitive,
+    );
+    return NextResponse.json({
+      rootId: resolved.root.id,
+      rootPath: root,
+      relPath: relative(root, target).split(sep).join("/"),
+      matches,
+      truncated,
+      scanned,
     });
   }
 
@@ -298,6 +368,156 @@ async function searchFiles(
   }
   matches.sort((a, b) => a.relPath.localeCompare(b.relPath));
   return { matches, truncated };
+}
+
+// Caps for the recursive content search. `RESULT_LIMIT` covers the wire
+// payload (one entry per matching line); `FILE_LIMIT` bounds disk reads
+// distinct from match count; `MAX_BYTES` skips obvious large/binary files.
+const CONTENT_RESULT_LIMIT = 1000;
+const CONTENT_FILE_LIMIT = 5000;
+const CONTENT_MAX_BYTES = 1024 * 1024; // 1 MB — heuristic, mirrors VS Code default
+const CONTENT_BINARY_PROBE = 8 * 1024; // 8 KB null-byte probe
+const CONTENT_LINE_SNIPPET = 400; // chars retained per matching line
+
+type ContentMatch = {
+  /** File path relative to the chosen root, forward-slash. */
+  relPath: string;
+  /** 1-based line number for the match. */
+  line: number;
+  /** 1-based column of the first match on the line. */
+  col: number;
+  /** End column (exclusive) of the first match on the line. */
+  colEnd: number;
+  /** Trimmed line text — at most `CONTENT_LINE_SNIPPET` chars. */
+  text: string;
+  /** Whether `text` was truncated from the original line. */
+  truncated: boolean;
+};
+
+/**
+ * Iterative content search under `baseDir`. Reads each text file once and
+ * returns one entry per matching line (`line`, `col`, snippet). Skips files
+ * over 1 MB and files whose first 8 KB contains a NUL byte — the standard
+ * "looks binary" heuristic used by ripgrep/grep — so the walk never tries
+ * to UTF-8-decode an image or lockfile blob.
+ *
+ * Same HIDDEN / dotfile / symlink rules as `searchFiles`, so results stay
+ * a subset of what the user can browse to in the tree.
+ */
+async function searchFileContents(
+  root: string,
+  baseDir: string,
+  rawQuery: string,
+  caseSensitive: boolean,
+): Promise<{ matches: ContentMatch[]; truncated: boolean; scanned: number }> {
+  const q = rawQuery;
+  if (!q) return { matches: [], truncated: false, scanned: 0 };
+  const needle = caseSensitive ? q : q.toLowerCase();
+  const matches: ContentMatch[] = [];
+  const stack: string[] = [baseDir];
+  let filesScanned = 0;
+  let truncated = false;
+  while (stack.length > 0 && !truncated) {
+    const dir = stack.pop()!;
+    let names: import("node:fs").Dirent[];
+    try {
+      names = await fs.readdir(dir, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+    for (const ent of names) {
+      if (HIDDEN.has(ent.name) || ent.name.startsWith(".")) continue;
+      if (ent.isSymbolicLink()) continue;
+      const abs = join(dir, ent.name);
+      if (!inside(root, abs)) continue;
+      if (ent.isDirectory()) {
+        stack.push(abs);
+        continue;
+      }
+      if (!ent.isFile()) continue;
+      if (++filesScanned >= CONTENT_FILE_LIMIT) {
+        truncated = true;
+        break;
+      }
+      let stat: import("node:fs").Stats;
+      try {
+        stat = await fs.stat(abs);
+      } catch {
+        continue;
+      }
+      if (stat.size === 0 || stat.size > CONTENT_MAX_BYTES) continue;
+      // Binary probe: read first 8 KB and reject if a NUL byte is present.
+      // Cheap (one allocation) and catches PNGs, lockfiles with embedded
+      // nuls, native binaries — without a hard mime/extension list.
+      let probe: Buffer;
+      try {
+        const fh = await fs.open(abs, "r");
+        try {
+          const len = Math.min(CONTENT_BINARY_PROBE, stat.size);
+          probe = Buffer.alloc(len);
+          await fh.read(probe, 0, len, 0);
+        } finally {
+          await fh.close();
+        }
+      } catch {
+        continue;
+      }
+      if (probe.includes(0)) continue;
+      let content: string;
+      try {
+        content = await fs.readFile(abs, "utf8");
+      } catch {
+        continue;
+      }
+      const rel = relative(root, abs).split(sep).join("/");
+      const lines = content.split(/\r?\n/);
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        const hay = caseSensitive ? line : line.toLowerCase();
+        const idx = hay.indexOf(needle);
+        if (idx === -1) continue;
+        let snippet = line;
+        let snippetTrunc = false;
+        // Centre the snippet on the match if the line is huge — so the user
+        // sees context, not just the first 400 chars of a one-liner.
+        if (snippet.length > CONTENT_LINE_SNIPPET) {
+          const half = Math.floor((CONTENT_LINE_SNIPPET - needle.length) / 2);
+          const start = Math.max(0, idx - half);
+          const end = Math.min(snippet.length, start + CONTENT_LINE_SNIPPET);
+          snippet = snippet.slice(start, end);
+          snippetTrunc = true;
+          // Adjust col so the highlight aligns with the snippet
+          matches.push({
+            relPath: rel,
+            line: i + 1,
+            col: Math.max(1, idx - start + 1),
+            colEnd: Math.max(1, idx - start + 1) + q.length,
+            text: snippet,
+            truncated: snippetTrunc,
+          });
+        } else {
+          matches.push({
+            relPath: rel,
+            line: i + 1,
+            col: idx + 1,
+            colEnd: idx + 1 + q.length,
+            text: snippet,
+            truncated: snippetTrunc,
+          });
+        }
+        if (matches.length >= CONTENT_RESULT_LIMIT) {
+          truncated = true;
+          break;
+        }
+      }
+      if (truncated) break;
+    }
+  }
+  matches.sort((a, b) => {
+    if (a.relPath !== b.relPath) return a.relPath.localeCompare(b.relPath);
+    return a.line - b.line;
+  });
+  return { matches, truncated, scanned: filesScanned };
 }
 
 async function listDir(root: string, dir: string, depth: number): Promise<FileEntry[]> {

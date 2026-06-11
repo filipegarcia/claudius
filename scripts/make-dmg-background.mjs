@@ -47,13 +47,17 @@ const OUT = path.join(ROOT, "build");
 
 // ── geometry ───────────────────────────────────────────────────────────────
 // 540×380 is electron-builder's default DMG window size. The two icon
-// centres (in DMG content coordinates) are wired in electron-builder.yml:
-//   app  → (130, 220)
-//   apps → (410, 220)
-// The hint arrow sits between them at y=220.
+// centres (in DMG content coordinates) are wired in make-dmg.mjs:
+//   app  → (130, 200)
+//   apps → (410, 200)
+// The hint arrow sits between them at y=200.
+// Icons were moved from y=220 → y=200 so the first-launch helper text at the
+// bottom clears the Finder window chrome (title bar + "5 items" status bar
+// consume ~50px, leaving an effective content area of ~330px; the old y=329
+// baseline put the text descenders past that boundary).
 const W = 540;
 const H = 380;
-const ICON_Y = 220;
+const ICON_Y = 200;
 const ARROW_FROM_X = 222;
 const ARROW_TO_X = 318;
 
@@ -119,21 +123,20 @@ const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" 
        why this lives on the DMG background and not in the app itself.
        Originally rendered at y=285..346; Finder on at least one Sequoia
        config clipped the last line because the visible DMG content area is
-       slightly under the 380px canvas. Shifted up by ~17px so the bottom
-       line sits at y=329 (50px clearance from canvas bottom). The dashed
-       separator is faint (opacity 0.18) so it overlaps the icon-label band
-       harmlessly. -->
-  <line x1="60" y1="275" x2="480" y2="275"
+       slightly under the 380px canvas. Icons moved up to y=200 (was 220)
+       and this block shifted up accordingly so the bottom line sits at y=310
+       (~20px clearance from the ~330px effective content area boundary). -->
+  <line x1="60" y1="257" x2="480" y2="257"
         stroke="#c9694a" stroke-opacity="0.18" stroke-width="1"
         stroke-dasharray="2 4"/>
-  <text x="${W / 2}" y="295" text-anchor="middle"
+  <text x="${W / 2}" y="275" text-anchor="middle"
         font-family="-apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'Helvetica', sans-serif"
         font-size="11" font-weight="600" fill="#5a3a2a"
         letter-spacing="0.3">First launch on macOS?</text>
-  <text x="${W / 2}" y="313" text-anchor="middle"
+  <text x="${W / 2}" y="293" text-anchor="middle"
         font-family="-apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'Helvetica', sans-serif"
         font-size="10.5" fill="#8a6a5a">If macOS says it can't verify Claudius:</text>
-  <text x="${W / 2}" y="329" text-anchor="middle"
+  <text x="${W / 2}" y="310" text-anchor="middle"
         font-family="-apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'Helvetica', sans-serif"
         font-size="10.5" fill="#8a6a5a">System Settings &#8594; Privacy &amp; Security &#8594; &#8220;Open Anyway&#8221;</text>
 </svg>`;

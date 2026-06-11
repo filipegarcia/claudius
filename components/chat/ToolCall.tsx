@@ -7,7 +7,10 @@ import { cn } from "@/lib/utils/cn";
 import { buildEditorUrl, pathFromToolInput, useEditor } from "@/lib/client/ide";
 import { useFileLink } from "@/lib/client/file-link-context";
 import { filesHref, toWorkspaceRelative } from "@/lib/client/file-paths";
+import { useMediaPreferences } from "@/lib/client/useMediaPreferences";
+import { getPreviewType } from "@/lib/shared/file-types";
 import { Markdown } from "./Markdown";
+import { FilePreview } from "./FilePreview";
 
 type Props = {
   name: string;
@@ -49,6 +52,7 @@ export function ToolCall({ name, input, result, liveAsk, onReopenAsk, defaultOpe
     setOpen(defaultOpen);
   }
   const { editor } = useEditor();
+  const { showPreviews } = useMediaPreferences();
   const status = !result ? "running" : result.isError ? "error" : "ok";
   const fileTarget = pathFromToolInput(input);
   // When the tool operates on a file inside the active workspace, link its
@@ -58,6 +62,15 @@ export function ToolCall({ name, input, result, liveAsk, onReopenAsk, defaultOpe
   const fileLink = useFileLink();
   const fileRel = fileTarget && fileLink ? toWorkspaceRelative(fileTarget.path, fileLink.cwd) : null;
   const filesUrl = fileRel && fileLink ? filesHref(fileLink.workspaceId, fileRel) : null;
+  // Determine if an inline preview should be shown. Only shown when:
+  //   1. The user has previews enabled.
+  //   2. The tool completed without error.
+  //   3. We have workspace context + a workspace-relative path.
+  //   4. The file extension is a previewable type.
+  const previewType =
+    showPreviews && result && !result.isError && fileRel && fileTarget
+      ? getPreviewType(fileTarget.path)
+      : null;
   // ExitPlanMode carries the plan markdown in `input.plan`. Render it as
   // readable prose when expanded (instead of the escaped JSON dump) so the
   // user can review an already-accepted plan after the approval overlay is
@@ -142,6 +155,17 @@ export function ToolCall({ name, input, result, liveAsk, onReopenAsk, defaultOpe
           {status === "error" && <AlertCircle className="h-3.5 w-3.5 text-red-500" />}
         </span>
       </div>
+      {/* Inline file preview — shown OUTSIDE the JSON expander so it's visible
+          without the user having to open the detail panel. Images default
+          expanded; HTML defaults collapsed. */}
+      {previewType && fileRel && fileLink && (
+        <FilePreview
+          fileName={fileTarget!.path.split("/").pop() ?? fileTarget!.path}
+          relPath={fileRel}
+          workspaceId={fileLink.workspaceId}
+          type={previewType}
+        />
+      )}
       {open && (
         <div className="border-t border-[var(--border)]">
           {planText ? (

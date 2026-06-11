@@ -482,11 +482,11 @@ function createWindow(startUrl: string): BrowserWindow {
     // breaking on a future Electron release that adds a new variant.
     ses.setPermissionCheckHandler((_wc, permission) => {
       const p = permission as string;
-      return p === "media" || p === "microphone";
+      return p === "media" || p === "microphone" || p === "notifications";
     });
     ses.setPermissionRequestHandler((_wc, permission, callback) => {
       const p = permission as string;
-      callback(p === "media" || p === "microphone");
+      callback(p === "media" || p === "microphone" || p === "notifications");
     });
   } catch (err) {
     console.error("[electron/main] permission handler install failed:", err);

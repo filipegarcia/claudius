@@ -180,6 +180,13 @@ export async function pullFastForward(
  * stash with `-u`, tagged with `message`. Returns `false` when there was
  * nothing to stash so the caller doesn't pop something it didn't push.
  *
+ * Before pushing, any pre-existing `claudius-updater-stash` entries are
+ * recovered and dropped: their tracked portion is applied to the working tree
+ * (restoring any WIP that was trapped by a previous failed pop), then the
+ * entry is removed. This prevents the stash list from accumulating across
+ * successive update attempts and ensures leftover WIP from prior cycles is
+ * folded into the new stash rather than silently lost.
+ *
  * `git stash push` exits 0 even when the tree is clean and prints "No local
  * changes to save" — we detect that by re-querying isDirty afterwards rather
  * than parsing stdout (which is locale-dependent).
@@ -188,6 +195,16 @@ export async function stashPushIncludeUntracked(
   cwd: string,
   message: string,
 ): Promise<{ stashed: boolean }> {
+  // Recover any leftover updater stash entries from previous cycles. A prior
+  // update may have left a `claudius-updater-stash` whose tracked changes were
+  // not restored (e.g. if the pop failed before the new recoverFalseConflictPop
+  // logic was in place). Apply the tracked portion back into the working tree
+  // first so the upcoming stash captures it, then drop the old entry.
+  await recoverUpdaterStashes(cwd).catch(() => {
+    // Best-effort — don't abort the update if cleanup fails. A stale stash
+    // entry is cosmetic; we'll create the new one on top.
+  });
+
   const dirtyBefore = await isDirty(cwd);
   if (!dirtyBefore) return { stashed: false };
   await git(["stash", "push", "-u", "-m", message], cwd, DEFAULT_TIMEOUT_MS * 2);
@@ -198,14 +215,81 @@ export async function stashPushIncludeUntracked(
 }
 
 /**
- * Pop the most recent stash entry. Returns `{ ok: true }` when the working
- * tree is clean after the pop, or `{ ok: false, conflicts: true, output }`
- * when git reports merge conflicts (exit code 1 + the per-file conflict
- * markers list). Other failures throw.
+ * Find all stash entries labeled `claudius-updater-stash`, apply their tracked
+ * changes back into the working tree, then drop them. Called before each new
+ * stash push so old updater entries don't accumulate.
  *
- * Note: on a conflicting pop, git does NOT drop the stash entry — the user
- * (or our recovery prompt) can re-run `git stash show` / `git stash drop`
- * later as needed.
+ * Only the entries with that specific label are touched — user stashes are
+ * never modified.
+ */
+async function recoverUpdaterStashes(cwd: string): Promise<void> {
+  const { stdout } = await git(["stash", "list", "--format=%gd %s"], cwd);
+  // Lines: "stash@{N} On branch: claudius-updater-stash"
+  const entries = stdout
+    .split("\n")
+    .filter((l) => l.includes("claudius-updater-stash"))
+    .map((l) => l.split(" ")[0])   // "stash@{N}"
+    .filter(Boolean)
+    .reverse(); // apply oldest first so indices stay stable as we drop
+
+  for (const ref of entries) {
+    try {
+      // Apply tracked changes only (no -u). Exit 0 = clean apply.
+      // Exit 1 with no unmerged files = already applied (or nothing to apply).
+      // Exit 1 with unmerged files = real conflict — leave this entry alone.
+      await git(["stash", "apply", ref], cwd, DEFAULT_TIMEOUT_MS * 2).catch(async (e) => {
+        if (e instanceof UpdaterGitError && e.exitCode === 1) {
+          if (await hasUnmergedFiles(cwd).catch(() => true)) {
+            // Real tracked-file conflict — skip this entry; don't drop it.
+            throw e;
+          }
+          // No unmerged files: changes were already in tree. Safe to drop.
+        } else {
+          throw e;
+        }
+      });
+      await git(["stash", "drop", ref], cwd, DEFAULT_TIMEOUT_MS).catch(() => {});
+    } catch {
+      // If apply or drop fails unexpectedly, skip this entry. The new stash
+      // will be created on top; the leftover entry is cosmetic noise.
+    }
+  }
+}
+
+/**
+ * True when the index contains unmerged entries (i.e. real merge-conflict
+ * markers from a `git merge` or `git stash pop`). Used to distinguish a
+ * genuine pop conflict from a "file already exists, no checkout" error —
+ * the latter also exits 1 but leaves no unmerged index entries.
+ */
+export async function hasUnmergedFiles(cwd: string): Promise<boolean> {
+  const { stdout } = await git(["ls-files", "-u"], cwd);
+  return stdout.trim().length > 0;
+}
+
+/**
+ * Pop the most recent stash entry. Returns `{ ok: true }` when the pop
+ * succeeded. Returns `{ ok: false, conflicts: true, output }` only when there
+ * are genuine merge conflict markers in the index. Other failures throw.
+ *
+ * Background: `git stash pop` exits 1 for two distinct situations:
+ *
+ *   1. Real merge conflict — content markers in the index, git ls-files -u
+ *      is non-empty. The tree needs human (or Claude) resolution.
+ *
+ *   2. "file already exists, no checkout" — upstream added a file that was
+ *      also stashed as untracked. The pull already checked out the upstream
+ *      version; the pop can't restore the stash's untracked version on top.
+ *      git ls-files -u is EMPTY — no content conflict. git's atomic rollback
+ *      means the user's TRACKED changes are still only in the stash (not
+ *      applied to the working tree). We detect this case, apply just the
+ *      tracked portion (no -u), then drop the stash entry — leaving the user's
+ *      working tree at upstream + their tracked modifications, which is exactly
+ *      the correct post-update state.
+ *
+ * Note: on a real conflicting pop, git does NOT drop the stash entry — the
+ * user (or our recovery prompt) can re-run `git stash show` / `git stash
+ * drop` later as needed.
  */
 export async function stashPop(
   cwd: string,
@@ -215,9 +299,15 @@ export async function stashPop(
     return { ok: true };
   } catch (err) {
     if (err instanceof UpdaterGitError && err.exitCode === 1) {
-      // Conflict — the stash entry is still in the list; the working tree
-      // has conflict markers. Surface for the caller to render a recovery
-      // action.
+      // Distinguish a real content conflict from the "file already exists"
+      // false-conflict. Fall back to conflict=true if the check itself fails.
+      const actual = await hasUnmergedFiles(cwd).catch(() => true);
+      if (!actual) {
+        // False conflict — "file already exists, no checkout". Apply the tracked
+        // portion of the stash (without untracked files) so the user's WIP is
+        // restored, then drop the entry to leave a clean state.
+        return await recoverFalseConflictPop(cwd, err.stderr || "");
+      }
       return {
         ok: false,
         conflicts: true,
@@ -226,6 +316,69 @@ export async function stashPop(
     }
     throw err;
   }
+}
+
+/**
+ * Recovery for "file already exists, no checkout": the stash pop failed
+ * because upstream added files that were also stashed as untracked. HEAD is
+ * at the correct upstream state. We need to restore the TRACKED changes (user
+ * WIP modifications to existing files) that git atomically rolled back.
+ *
+ *   - `git stash apply` (without -u) re-applies the tracked diff only.
+ *   - If it succeeds and leaves no unmerged entries → tracked WIP restored,
+ *     drop the stash entry, return ok.
+ *   - If apply itself produces merge conflicts in tracked files → real conflict,
+ *     leave the stash entry for the user to resolve, return conflicts.
+ *   - If apply exits 1 but leaves NO unmerged entries → tracked changes were
+ *     already in the working tree (git applied them before failing on the
+ *     untracked files — version-dependent behaviour); drop the stash and return ok.
+ *   - Any other failure → best-effort drop, return ok (HEAD is still correct,
+ *     the only loss is potentially untracked build artifacts that upstream now
+ *     owns anyway).
+ */
+async function recoverFalseConflictPop(
+  cwd: string,
+  originalOutput: string,
+): Promise<{ ok: true } | { ok: false; conflicts: true; output: string }> {
+  let applyFailed = false;
+  try {
+    await git(["stash", "apply"], cwd, DEFAULT_TIMEOUT_MS * 2);
+  } catch {
+    applyFailed = true;
+  }
+
+  // After `git stash apply`, check whether there are real merge conflicts in
+  // tracked files. This distinguishes a genuine content conflict (unmerged
+  // entries, needs resolution) from "apply exited 1 but nothing to merge"
+  // (changes were already in the tree — git applied them before the untracked-
+  // file failure).
+  const conflictsAfterApply = await hasUnmergedFiles(cwd).catch(() => false);
+  if (conflictsAfterApply) {
+    // Tracked files have real conflict markers. Leave the stash entry for the
+    // user/Claude to resolve; surface both the original pop error and the apply
+    // conflict so the recovery prompt has context.
+    return {
+      ok: false,
+      conflicts: true,
+      output: originalOutput
+        ? `${originalOutput}\n(tracked changes also conflicted during recovery apply)`
+        : "tracked changes conflict during stash recovery",
+    };
+  }
+
+  if (applyFailed) {
+    // Apply exited non-zero but left no unmerged entries — the tracked changes
+    // were already present in the working tree (git had applied them before
+    // failing on the untracked files). Nothing further to do.
+  }
+
+  // Clean state: tracked changes are in the working tree (either just applied
+  // or already there). Drop the stash entry. The untracked files in the stash
+  // are now owned by upstream, so the entry is fully redundant.
+  await git(["stash", "drop"], cwd, DEFAULT_TIMEOUT_MS).catch(() => {
+    // Best-effort — a stale stash entry is cosmetic, not a correctness issue.
+  });
+  return { ok: true };
 }
 
 

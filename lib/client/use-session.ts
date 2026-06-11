@@ -15,6 +15,7 @@ import type {
   OpusOverloadNudgeEvent,
   PlanDecision,
   ServerEvent,
+  TaskSnapshotEntry,
 } from "@/lib/shared/events";
 import type { Tip } from "@/lib/shared/tips";
 import { costFromTokens } from "@/lib/shared/cost-pricing";
@@ -550,6 +551,11 @@ export function sortMessagesByChronology(messages: DisplayMessage[]): DisplayMes
 
 export function useSession(): ChatState & ChatActions {
   const [sessionId, setSessionId] = useState<string | null>(null);
+  // Stable per-mount tab identifier. Uses the same lazy-useState trick as
+  // `useTabClaim` so it's generated once and never changes across re-renders.
+  // Appended to the SSE URL (`?tabId=<id>`) so the server can assign and
+  // track the write-lock holder across all browsers/contexts.
+  const [myTabId] = useState(() => "tab-" + Math.random().toString(36).slice(2, 10));
   // Track the committed pathname so the URL writer below can suppress
   // its replaceState when the user has navigated away from the chat
   // page. usePathname re-renders this hook on every Next.js commit, so
@@ -559,6 +565,10 @@ export function useSession(): ChatState & ChatActions {
   const pathname = usePathname();
   const [ready, setReady] = useState(false);
   const [pending, setPending] = useState(false);
+  // tabId of whichever client currently holds the write lock for this session.
+  // Null means no holder is registered (no live subscriber sent a tabId yet).
+  // readOnly is derived: holderId !== null && holderId !== myTabId.
+  const [holderTabId, setHolderTabId] = useState<string | null>(null);
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
   const [systemEntries, setSystemEntries] = useState<SystemEntry[]>([]);
   const [toolProgress, setToolProgress] = useState<Record<string, ToolProgressInfo>>({});
@@ -1061,6 +1071,7 @@ export function useSession(): ChatState & ChatActions {
   const resetState = useCallback(() => {
     setReady(false);
     setPending(false);
+    setHolderTabId(null);
     pendingRef.current = false;
     setMessages([]);
     setSystemEntries([]);
@@ -1381,12 +1392,27 @@ export function useSession(): ChatState & ChatActions {
     setToolProgress((prev) => (Object.keys(prev).length === 0 ? prev : {}));
   }, []);
 
+  // Ref to the "load older pages until all task pills are visible" helper.
+  // Populated after `loadOlder` is defined (see the useEffect below); the
+  // task_snapshot handler in applyEvent calls it via this ref so it doesn't
+  // need to close over `loadOlder` (which would widen the memo dependency
+  // array and make applyEvent recreate on every loading-state change).
+  // The second argument is the raw snapshot entries used as fallback data
+  // when the original parent message was compacted away from the JSONL.
+  const loadUntilTasksFoundRef = useRef<
+    ((tasks: Array<{ toolUseId: string; entry: TaskSnapshotEntry }>) => Promise<void>) | null
+  >(null);
+
   const applyEvent = useCallback(
     (ev: ServerEvent) => {
       if (ev.type === "ready") {
         setReady(true);
         setMainAgent(ev.agent ?? null);
         fallbackModelRef.current = ev.fallbackModel ?? null;
+        return;
+      }
+      if (ev.type === "holder_changed") {
+        setHolderTabId(ev.holderId);
         return;
       }
       if (ev.type === "error") {
@@ -1678,6 +1704,27 @@ export function useSession(): ChatState & ChatActions {
           }
           return changed ? next : prev;
         });
+        // If any persisted task pills live in a part of the transcript that's
+        // beyond the current tail window (or were compacted away), make them
+        // visible. Two paths:
+        //   1. hasMoreAbove=true  → load older pages until the parent message
+        //      arrives in the rendered list (normal "scrolled past tail" case).
+        //   2. hasMoreAbove=false → the message no longer exists in history
+        //      (SDK automatic compaction removed it). Synthesize a minimal
+        //      assistant message carrying the tool_use block so the TaskBlock
+        //      still renders with all the SQLite-recovered metadata and the
+        //      inner conversation.
+        {
+          const unlinked = ev.tasks
+            .filter(
+              (t): t is typeof t & { toolUseId: string } =>
+                !!t.toolUseId && !findToolUseBlock(t.toolUseId, messagesRef.current),
+            )
+            .map((t) => ({ toolUseId: t.toolUseId, entry: t }));
+          if (unlinked.length > 0) {
+            void loadUntilTasksFoundRef.current?.(unlinked);
+          }
+        }
         return;
       }
       if (ev.type === "turn_status") {
@@ -3389,7 +3436,7 @@ export function useSession(): ChatState & ChatActions {
       // `sessionIdRef.current` is the single source of truth for the active
       // binding — bindToSession sets it synchronously above.
       const boundId = id;
-      const es = new EventSource(`/api/sessions/${id}/stream?tail=20`);
+      const es = new EventSource(`/api/sessions/${id}/stream?tail=20&tabId=${myTabId}`);
       eventSourceRef.current = es;
       es.onmessage = (msg) => {
         if (sessionIdRef.current !== boundId) return;
@@ -3418,7 +3465,7 @@ export function useSession(): ChatState & ChatActions {
         }
       };
     },
-    [applyEvent, setPendingTracked],
+    [applyEvent, setPendingTracked, myTabId],
   );
 
   const switchSession = useCallback(
@@ -4058,6 +4105,22 @@ export function useSession(): ChatState & ChatActions {
     setPendingTracked(false);
   }, [setPendingTracked]);
 
+  /**
+   * Forcefully reclaim the write lock for this session. Issues a PATCH to the
+   * server; all connected clients receive `holder_changed` over SSE so any
+   * tab that was previously the holder renders read-only immediately — even
+   * across different browsers or Electron + browser contexts.
+   */
+  const takeOver = useCallback(async () => {
+    const id = sessionIdRef.current;
+    if (!id) return;
+    await fetch(`/api/sessions/${id}/holder`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tabId: myTabId }),
+    });
+  }, [myTabId]);
+
   const setPermissionMode = useCallback(async (mode: PermissionMode) => {
     const id = sessionIdRef.current;
     if (!id) return;
@@ -4124,6 +4187,75 @@ export function useSession(): ChatState & ChatActions {
       setLoadingOlder(false);
     }
   }, [hasMoreAbove, loadingOlder]);
+
+  // Stable ref that always points to the latest `loadOlder` closure. Used by
+  // `loadUntilTasksFoundRef` below so that function doesn't go stale when
+  // hasMoreAbove / loadingOlder flip during a pagination run.
+  const loadOlderRef = useRef(loadOlder);
+  useEffect(() => {
+    loadOlderRef.current = loadOlder;
+  }, [loadOlder]);
+
+  // Populate the ref declared before applyEvent. Runs once on mount and
+  // thereafter any time loadOlder is recreated, keeping the closure fresh.
+  // The function itself reads from stable refs (messagesRef, hasMoreAboveRef,
+  // loadOlderRef) and the stable setMessages setter so it never goes stale.
+  useEffect(() => {
+    loadUntilTasksFoundRef.current = async (
+      tasks: Array<{ toolUseId: string; entry: TaskSnapshotEntry }>,
+    ) => {
+      // Cap at 200 pages — same defensive limit as jumpToUuid.
+      for (let i = 0; i < 200; i++) {
+        const stillUnlinked = tasks.filter(
+          ({ toolUseId }) => !findToolUseBlock(toolUseId, messagesRef.current),
+        );
+        if (stillUnlinked.length === 0) break;
+        if (!hasMoreAboveRef.current) {
+          // Reached the beginning of history without finding the parent
+          // messages. Most likely cause: the SDK's automatic compaction
+          // rewrote the JSONL and the original assistant messages are gone.
+          // Synthesize minimal assistant messages so the TaskBlock can still
+          // render with the SQLite-recovered metadata and inner conversation.
+          const synthetic: DisplayMessage[] = stillUnlinked.map(({ toolUseId, entry }) => ({
+            uuid: `recovered-task-${toolUseId}`,
+            role: "assistant" as const,
+            blocks: [
+              {
+                kind: "tool_use" as const,
+                id: toolUseId,
+                // Must be "Agent" or "Task" so isSubagentToolName returns true
+                // and AssistantMessage routes the block to TaskBlock.
+                name: "Agent",
+                input: {
+                  // `subagent_type` is what TaskBlock shows as the pill label.
+                  subagent_type: entry.taskType ?? "Agent",
+                  description: entry.description ?? "",
+                  prompt: "",
+                },
+                // Pre-populate the result so the pill shows "completed"
+                // rather than "running" when the status is known.
+                ...(entry.status !== "running"
+                  ? {
+                      result: {
+                        content: entry.summary ?? "",
+                        isError: entry.status === "failed",
+                      },
+                    }
+                  : {}),
+              },
+            ],
+          }));
+          setMessages((prev) => {
+            const seenUuids = new Set(prev.map((m) => m.uuid));
+            const fresh = synthetic.filter((m) => !seenUuids.has(m.uuid));
+            return fresh.length > 0 ? [...fresh, ...prev] : prev;
+          });
+          break;
+        }
+        await loadOlderRef.current();
+      }
+    };
+  }, []); // intentionally empty: reads go through stable refs + stable setters (setMessages)
 
   /**
    * Make sure a given uuid is loaded into `messages` state, paginating older
@@ -4489,6 +4621,8 @@ export function useSession(): ChatState & ChatActions {
     sessionId,
     ready,
     pending,
+    readOnly: holderTabId !== null && holderTabId !== myTabId,
+    takeOver,
     messages: sortedMessages,
     systemEntries,
     toolProgress,

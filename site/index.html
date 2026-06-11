@@ -282,6 +282,47 @@
           padding-bottom: max(3rem, env(safe-area-inset-bottom, 0px));
         }
       }
+
+      /* ───────── Hero flipbook (turn.js, double display, clipped to one page) ─────────
+         A real page curl needs a real book — display:'double', where a leaf has
+         a genuine front and back. A double book is two pages wide, which would
+         halve each page, so we build a book 2× a page wide and clip the viewport
+         to ONE page: the RIGHT page shows (Claude Code, then Claudius), the LEFT
+         page — the leaf's back — stays clipped off. turn.js sizes #flipbook in
+         JS; the driver pins it left by one page. (Same component as the
+         terminal-preview page.) */
+      .flipbook-stage {
+        position: relative;
+        width: 100%;
+        max-width: 1100px;       /* one page wide */
+        margin: 0 auto;
+        aspect-ratio: 1200 / 720;
+        border-radius: 10px;
+        box-shadow:
+          0 30px 80px -20px rgba(0, 0, 0, 0.7),
+          0 10px 30px -10px rgba(0, 0, 0, 0.5);
+      }
+      .flipbook-viewport {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;        /* clips the 2×-wide book down to one page */
+        border-radius: 10px;
+      }
+      #flipbook {
+        position: absolute;
+        top: 0;
+        left: 0;                 /* JS pins this to -(one page) so the RIGHT page shows */
+      }
+      #flipbook .page {
+        background: #0a0a0a;
+        overflow: hidden;
+      }
+      #flipbook .page img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+      }
     </style>
   </head>
 
@@ -327,8 +368,11 @@
     <!-- ────────────────────────────── Hero ────────────────────────────── -->
     <section id="top" class="relative overflow-hidden grain">
       <div class="absolute inset-0 glow"></div>
-      <div class="relative max-w-6xl mx-auto px-6 pt-14 pb-16 sm:pt-20 sm:pb-24 text-center">
-        <div class="relative mx-auto mb-8 h-24 w-24 sm:h-28 sm:w-28">
+      <div class="relative max-w-7xl mx-auto px-6 pt-14 pb-16 sm:pt-20 sm:pb-24">
+       <div class="grid grid-cols-1 lg:grid-cols-3 gap-10 lg:gap-12 items-center">
+        <!-- LEFT column — logo, copy, CTAs (everything that was here before) -->
+        <div class="lg:col-span-1 text-center lg:text-left">
+        <div class="relative mx-auto lg:mx-0 mb-8 h-24 w-24 sm:h-28 sm:w-28">
           <!-- Warm halo: a blurred radial wash sitting behind the bust so
                the inverted linework doesn't read as a stark white sticker. -->
           <div
@@ -344,7 +388,7 @@
 
         <!-- Pseudo-imperial Latin flourish. Hover for the (loose) translation. -->
         <blockquote
-          class="mb-10 font-mono text-[13px] leading-7 text-muted italic max-w-xl mx-auto cursor-help"
+          class="mb-10 font-mono text-[13px] leading-7 text-muted italic max-w-xl mx-auto lg:mx-0 cursor-help"
           title="Hail Claudius, those about to code salute you. What the terminal closes, the browser opens. Come, see, refactor."
         >
           <span class="text-fg/80">“Ave Claudi, codicem morituri te salutant.</span><br />
@@ -352,7 +396,7 @@
           Veni, vide, refactora.”
         </blockquote>
 
-        <h1 class="text-[2.5rem] leading-[1.05] sm:text-5xl md:text-6xl font-semibold tracking-tight">
+        <h1 class="text-[2.5rem] leading-[1.05] sm:text-5xl md:text-6xl lg:text-5xl font-semibold tracking-tight">
           Claudius gives
           <a
             href="#legal"
@@ -362,13 +406,13 @@
           >
           a <span class="text-accent">real UI</span>.
         </h1>
-        <p class="mt-6 text-lg md:text-xl text-muted max-w-2xl mx-auto leading-relaxed">
+        <p class="mt-6 text-lg md:text-xl text-muted max-w-2xl mx-auto lg:mx-0 leading-relaxed">
           Chat, workflows, agents, MCP, and all the rest, in the browser
           and desktop. It even reshapes itself: code the feature your
           workflow is missing directly into your workspace. Runs on your
           machine. Your sessions stay yours.
         </p>
-        <div class="mt-10 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3">
+        <div class="mt-10 flex flex-col sm:flex-row items-stretch sm:items-center justify-center lg:justify-start gap-3">
           <!-- Primary CTA — Download. Opens a small platform-picker panel
                above the button (`bottom-full mb-2`) — same direction as the
                closing CTA, keeps the dropdown from covering the install
@@ -435,7 +479,25 @@
             See it in action
           </a>
         </div>
-        <div class="mt-8 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 font-mono text-xs text-muted/80 px-2">
+        </div><!-- /LEFT column -->
+
+        <!-- RIGHT — the 3-page turn.js flipbook, spanning the two right columns.
+             Opens on the Claude Code terminal; after a beat Claudius folds over
+             it. Click toggles. Same component as terminal-preview.html. -->
+        <div class="lg:col-span-2">
+          <div class="flipbook-stage">
+            <div class="flipbook-viewport">
+              <div id="flipbook">
+                <div class="page page-claudius"><img src="claudius-app.svg" alt="Claudius app — the page that turns over Claude Code" /></div>
+                <div class="page page-internals"><img src="claudius-internals.svg" alt="Claudius internals — the underside of the turning page" /></div>
+                <div class="page page-terminal"><img src="claude-code-terminal.svg" alt="Claude Code terminal — the page being covered" /></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Install one-liner — spans all three columns, full hero width. -->
+        <div class="lg:col-span-3 flex flex-wrap items-center justify-center lg:justify-start gap-x-3 gap-y-1 font-mono text-xs text-muted/80 px-2">
           <span class="italic text-muted/60" title="“let there be code” — a wink at fiat lux">fiat codex —</span>
           <span class="wrap-anywhere min-w-0"><span class="text-accent">$</span> <span id="hero-cmd">curl -fsSL https://claudius.network/install | bash</span></span>
           <button
@@ -452,6 +514,7 @@
             <span class="sr-only">Copy</span>
           </button>
         </div>
+       </div><!-- /grid -->
       </div>
     </section>
 
@@ -1963,6 +2026,96 @@ bun run electron:dist:linux   # AppImage + deb + rpm</code></pre>
             // of starting a direct download. Don't console.error here; the
             // marketing e2e test treats any console error as fatal.
           });
+      })();
+    </script>
+
+    <!-- ──────────────────── Hero flipbook (turn.js) driver ────────────────────
+         display:'double' so the leaf has a real front/back curl. The book is 2×
+         a page wide; we pin it left by one page so the viewport shows only the
+         RIGHT page (Claude Code, then Claudius). Opens on Claude Code (page 3);
+         after 5s a single turn('previous') folds the Claudius leaf over it.
+         Click toggles. Degrades gracefully if either vendored script is missing.
+         jQuery + turn.js are vendored under ./vendor/ (same origin). -->
+    <script src="./vendor/jquery-3.7.1.min.js"></script>
+    <script src="./vendor/turn.min.js"></script>
+    <script>
+      (() => {
+        const stage = document.querySelector('.flipbook-stage');
+        const el = document.getElementById('flipbook');
+        const countEl = document.getElementById('hintCount');
+        const hint = document.getElementById('flipbookHint');
+        if (!stage || !el) return;
+        const fail = (m) => { if (hint) hint.textContent = m; };
+
+        window.addEventListener('load', async () => {
+          if (typeof window.jQuery === 'undefined' || !window.jQuery.fn.turn) {
+            fail('Page turn unavailable — terminal stays put.');
+            return;
+          }
+          const $ = window.jQuery;
+          // Decode images before turn.js measures, or it sizes to 0x0.
+          await Promise.all(Array.from(el.querySelectorAll('img')).map((img) =>
+            img.complete && img.naturalWidth > 0 ? Promise.resolve()
+              : new Promise((r) => { img.addEventListener('load', r, { once: true }); img.addEventListener('error', r, { once: true }); })));
+
+          // One page = the stage width. The book is two pages wide; pinning it
+          // left by one page leaves only the RIGHT page inside the viewport.
+          const pageW = () => Math.round(stage.clientWidth);
+          const pageH = () => Math.round((stage.clientWidth * 720) / 1200);
+          const pin = () => { el.style.left = (-pageW()) + 'px'; };
+
+          const $book = $(el);
+          try {
+            $book.turn({
+              display: 'double',
+              width: pageW() * 2, height: pageH(),
+              autoCenter: false, acceleration: true, gradients: true,
+              elevation: 60, duration: 2000, pages: 3,
+              page: 3,            // open on Claude Code (right page of [internals|ClaudeCode])
+            });
+          } catch (err) {
+            fail('Page turn failed — terminal stays put.');
+            return;
+          }
+          pin();
+
+          let rRaf = 0;
+          window.addEventListener('resize', () => {
+            cancelAnimationFrame(rRaf);
+            rRaf = requestAnimationFrame(() => {
+              try { $book.turn('size', pageW() * 2, pageH()); pin(); } catch (e) {}
+            });
+          });
+
+          const onLanded = () => { if (hint) hint.textContent = 'Click the page to turn it back and forth.'; };
+          // Re-pin after every turn in case turn.js nudges the book's offset,
+          // and swap the hint once Claudius has landed (page 1).
+          $book.bind('turned', (e, page) => {
+            pin();
+            if (page === 1) onLanded();
+          });
+
+          const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+          if (prefersReduced) {
+            // Respect reduced motion: no auto-flip. Stay on Claude Code (page 3
+            // pins cleanly to the viewport); the user can click to fold Claudius
+            // over it. Avoid an instant turn('page', 1) — turn.js mispositions a
+            // cover page when it's set without animating.
+            if (hint) hint.textContent = 'Click the terminal to turn the page to Claudius.';
+          } else {
+            let count = 5;
+            const handle = setInterval(() => {
+              count -= 1;
+              if (countEl) countEl.textContent = String(Math.max(0, count));
+              if (count <= 0) { clearInterval(handle); try { $book.turn('previous'); } catch (e) {} }
+            }, 1000);
+          }
+
+          // Click toggles between Claude Code (page 3) and Claudius (page 1).
+          stage.addEventListener('click', () => {
+            try { $book.turn($book.turn('page') === 1 ? 'next' : 'previous'); } catch (e) {}
+          });
+        });
       })();
     </script>
   </body>

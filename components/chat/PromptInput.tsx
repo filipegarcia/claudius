@@ -241,6 +241,8 @@ export function PromptInput({
   // when browsing began so Cmd/Ctrl+↓ past the newest entry restores it.
   const histIdxRef = useRef<number | null>(null);
   const stashedDraftRef = useRef("");
+  // Tracks the timestamp of the last Escape keydown for double-press detection.
+  const lastEscapeRef = useRef<number>(0);
 
   // ── User-resizable composer ─────────────────────────────────────────
   // Default cap (px) when the user hasn't dragged the handle. Matches the
@@ -439,6 +441,17 @@ export function PromptInput({
     // Switching sessions means a different history — abandon any in-progress
     // recall so the next Cmd/Ctrl+↑ starts fresh from the new session's tail.
     histIdxRef.current = null;
+  }
+  // Guard: if a draft injection was applied but the first seed fetch hasn't
+  // resolved yet (seededForSessionRef is null), treat the composer as
+  // "user-typed" so the async seed doesn't clear the injected text. This
+  // fixes the ?prefill=1 flow where the injection fires (T3, sessionId=null),
+  // the session is then created and bound (T5), the session-reset above runs
+  // and resets userTypedRef to false, and the empty-draft seed fetch (T6)
+  // would otherwise clobber the injection. Only triggers for the first session
+  // per page mount (seededForSessionRef turns non-null once any session seeds).
+  if (seededForSessionRef.current === null && appliedInjectionToken >= 0) {
+    userTypedRef.current = true;
   }
 
   useEffect(() => {
@@ -671,6 +684,16 @@ export function PromptInput({
     }
   }
 
+  /** Wipe the composer: text, attached images, picker state. */
+  function clearInput() {
+    setValue("");
+    setImages([]);
+    setPickerOpen(false);
+    setAtQuery(null);
+    ordinalCounterRef.current = 0;
+    histIdxRef.current = null;
+  }
+
   function submit() {
     if (sendDisabled) return;
     // `!`-mode takes precedence over the normal send. Detected at submit
@@ -815,6 +838,40 @@ export function PromptInput({
     // fallback still respects `!pickerOpen && atQuery == null` below.
     if (composingRef.current) return;
 
+    // ── Ctrl+C — Claude Code parity ────────────────────────────────────────
+    // Only intercept when there is no active text selection (otherwise the
+    // user is copying text and we should leave the browser default alone).
+    if (e.ctrlKey && e.key === "c") {
+      const sel = e.currentTarget.selectionStart !== e.currentTarget.selectionEnd;
+      if (!sel) {
+        e.preventDefault();
+        if (pending) {
+          // Turn is running → interrupt (stop execution).
+          onInterrupt();
+        } else {
+          // Idle → clear the composer.
+          clearInput();
+        }
+        return;
+      }
+    }
+
+    // ── Double Escape — clear composer ─────────────────────────────────────
+    // Single Escape is left to the browser (closes pickers, blurs, etc.).
+    // Two Escape presses within 500 ms wipe the input, matching the feel of
+    // hitting Ctrl+C twice in a terminal to abandon the current line.
+    if (e.key === "Escape") {
+      const now = performance.now();
+      const gap = now - lastEscapeRef.current;
+      lastEscapeRef.current = now;
+      if (gap < 500) {
+        e.preventDefault();
+        clearInput();
+        lastEscapeRef.current = 0; // reset so a third press needs another pair
+      }
+      return;
+    }
+
     // Shell-style history recall. Intentionally NOT gated on the pickers: a
     // recalled slash command keeps the slash picker open, and we still want ↓
     // to walk back out of it. The pickers ignore Arrow keys while meta/ctrl is
@@ -854,6 +911,13 @@ export function PromptInput({
       // Shift+Enter inserts a plain newline (browser default).
       if (e.shiftKey) return;
       e.preventDefault();
+      // If the input is empty and there's a queued message, pressing Enter
+      // sends the first queued message immediately (before the current turn
+      // finishes) instead of submitting a no-op.
+      if (!value.trim() && images.length === 0 && onSendQueuedNow) {
+        onSendQueuedNow();
+        return;
+      }
       submit();
       return;
     }

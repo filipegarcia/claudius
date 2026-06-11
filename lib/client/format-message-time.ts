@@ -15,6 +15,8 @@
 export type FormattedMessageTime = {
   /** Compact label rendered in the bubble. */
   short: string;
+  /** Like `short` but with seconds appended — used at ultra-verbose. */
+  shortWithSeconds: string;
   /** Full date+time used for `title` / `aria-label`. */
   full: string;
 };
@@ -24,11 +26,25 @@ const SHORT_FMT = new Intl.DateTimeFormat(undefined, {
   minute: "2-digit",
 });
 
+const SHORT_WITH_SECONDS_FMT = new Intl.DateTimeFormat(undefined, {
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
+});
+
 const SHORT_WITH_DATE_FMT = new Intl.DateTimeFormat(undefined, {
   month: "short",
   day: "numeric",
   hour: "2-digit",
   minute: "2-digit",
+});
+
+const SHORT_WITH_DATE_AND_SECONDS_FMT = new Intl.DateTimeFormat(undefined, {
+  month: "short",
+  day: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
 });
 
 const FULL_FMT = new Intl.DateTimeFormat(undefined, {
@@ -50,6 +66,7 @@ export function formatMessageTime(at: number | undefined): FormattedMessageTime 
     d.getMonth() === now.getMonth() &&
     d.getDate() === now.getDate();
   const short = sameDay ? SHORT_FMT.format(d) : SHORT_WITH_DATE_FMT.format(d);
+  const shortWithSeconds = sameDay ? SHORT_WITH_SECONDS_FMT.format(d) : SHORT_WITH_DATE_AND_SECONDS_FMT.format(d);
   const full = FULL_FMT.format(d);
-  return { short, full };
+  return { short, shortWithSeconds, full };
 }

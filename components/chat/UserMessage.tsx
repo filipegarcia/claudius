@@ -8,6 +8,7 @@ import { formatMessageTime } from "@/lib/client/format-message-time";
 import { ImageLightbox } from "./ImageLightbox";
 import { RewindFilesButton } from "./RewindFilesButton";
 import { parseUserTextWithBashIO } from "@/lib/shared/bash-io";
+import { type VerboseLevel, DEFAULT_VERBOSE } from "@/lib/shared/verbose";
 
 type Props = {
   message: DisplayMessage;
@@ -37,6 +38,8 @@ type Props = {
    * reloads.
    */
   fromGoal?: boolean;
+  /** Current chat verbosity level — timestamps are always shown at ultra-verbose. */
+  verbose?: VerboseLevel;
 };
 
 export function UserMessage({
@@ -47,6 +50,7 @@ export function UserMessage({
   sessionId,
   suggested,
   fromGoal,
+  verbose = DEFAULT_VERBOSE,
 }: Props) {
   const text = message.blocks.map((b) => (b.kind === "text" ? b.text : "")).join("");
   const images = message.images ?? [];
@@ -113,11 +117,14 @@ export function UserMessage({
           <div className="mt-1 flex items-center justify-end gap-3">
             {stamp && (
               <span
-                className="font-mono text-[10px] text-[var(--muted)] opacity-0 transition group-hover:opacity-100"
+                className={cn(
+                  "font-mono text-[10px] text-[var(--muted)] transition",
+                  verbose === "ultra-verbose" ? "opacity-60" : "opacity-0 group-hover:opacity-100",
+                )}
                 title={stamp.full}
                 aria-label={`Sent ${stamp.full}`}
               >
-                {stamp.short}
+                {verbose === "ultra-verbose" ? stamp.shortWithSeconds : stamp.short}
               </span>
             )}
             {sessionId && !isPureBashEcho && <RewindFilesButton sessionId={sessionId} messageUuid={message.uuid} />}

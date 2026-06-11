@@ -7,10 +7,7 @@
     <link rel="icon" type="image/svg+xml" href="icon.svg" />
     <meta name="theme-color" content="#d97757" />
 
-    <!-- Tailwind Play CDN vendored under ./vendor/ (v3.4.17, same-origin) so
-         the marketing site doesn't pull executable JS from a third-party CDN.
-         Tailwind's v3 inline `tailwind.config` block below is still honored. -->
-    <script src="./vendor/tailwindcss-play.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
         theme: {
@@ -132,47 +129,47 @@
           0 0 0 1px rgba(255,255,255,0.04);
       }
 
-      /* ───────── Flipbook (turn.js, double display, clipped to one page) ─────────
-         A real page curl needs a real book — display:'double', where a leaf
-         has a genuine front and back. But a double book is two pages wide,
-         which would halve each page. So we build a book that is 2× a page
-         wide and clip the viewport to ONE page: the RIGHT page shows (Claude
-         Code, then Claudius), the LEFT page — the leaf's structural back —
-         stays clipped off. Opening on Claude Code and turning the leaf
-         'previous' folds Claudius over it, landing full-width. turn.js sizes
-         #flipbook in JS; the driver pins it left by one page. */
-      .flipbook-stage {
+      /* ───────── Flipbook (turn.js) ─────────
+         turn.js is a real book: consecutive pages are the front and back of
+         the same sheet, so the back of a turning page shows the next page's
+         content. Page order is [Claudius, internals, Claude Code]; we open
+         on Claude Code and turn('previous') to close the Claudius/internals
+         leaf over it — Claudius lands on top, internals (its back) shows
+         during the curl. turn.js sizes #flipbook in JS. */
+      .flipbook-wrap {
         position: relative;
         width: 100%;
-        max-width: 1100px;       /* one page wide */
+        max-width: 1100px;
         margin: 0 auto;
-        aspect-ratio: 1200 / 720;
-        border-radius: 10px;
-        /* Soft outer drop so the book sits on the page like the other SVGs. */
-        box-shadow:
-          0 30px 80px -20px rgba(0, 0, 0, 0.7),
-          0 10px 30px -10px rgba(0, 0, 0, 0.5);
-      }
-      .flipbook-viewport {
-        position: absolute;
-        inset: 0;
-        overflow: hidden;        /* clips the 2×-wide book down to one page */
-        border-radius: 10px;
+        display: flex;
+        justify-content: center;
       }
       #flipbook {
-        position: absolute;
-        top: 0;
-        left: 0;                 /* JS pins this to -(one page) so the RIGHT page shows */
+        width: 100%;
+        aspect-ratio: 1200 / 720;
       }
       #flipbook .page {
         background: #0a0a0a;
         overflow: hidden;
+        border-radius: 10px;
       }
       #flipbook .page img {
         display: block;
         width: 100%;
         height: 100%;
         pointer-events: none;
+      }
+      /* Soft outer drop so the book sits on the page like the other SVGs. */
+      .flipbook-wrap::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: 10px;
+        box-shadow:
+          0 30px 80px -20px rgba(0, 0, 0, 0.7),
+          0 10px 30px -10px rgba(0, 0, 0, 0.5);
+        pointer-events: none;
+        z-index: -1;
       }
 
       .flipbook-hint {
@@ -393,13 +390,12 @@
       </div>
     </section>
     <!-- ────────────────────────── Page turn (turn.js) ──────────────────────────
-         turn.js flipbook, three pages [Claudius, internals, Claude Code] in
-         DOUBLE display so the leaf has a real front and back. The book is 2×
-         a page wide; the viewport clips to the RIGHT page so it reads as one
-         full-size page (the LEFT page — internals, the leaf's back — is
-         clipped off). Opens on Claude Code; after a 5s countdown
-         turn('previous') folds the Claudius leaf over it, landing Claudius
-         full-width. Click toggles. See the .flipbook rules + driver script. -->
+         turn.js flipbook with three pages [Claudius, internals, Claude Code]
+         in single display. Opens on Claude Code; after a 5s countdown
+         turn('previous') closes the Claudius/internals leaf over it — a real
+         fluid curl that lands Claudius on top, showing the internals on the
+         curl's back. Click toggles. See the .flipbook rules + the turn.js
+         driver script. -->
     <section class="border-t border-line/60 relative overflow-hidden">
       <div
         class="absolute inset-0 pointer-events-none"
@@ -413,29 +409,29 @@
             Claude Code, then Claudius.
           </h2>
           <p class="mt-3 text-muted leading-relaxed">
-            It opens on the Claude Code terminal. After a beat a new page folds
-            over it — and Claudius lands on top. The same agent, now with a
-            real UI.
+            It opens on the Claude Code terminal. After a beat the page turns
+            over to Claudius — catch the system internals on its back as it
+            flips.
           </p>
         </div>
 
-        <div class="flipbook-stage">
-          <div class="flipbook-viewport">
-            <div id="flipbook">
-              <!-- turn.js leaf: front = Claudius (page 1), back = internals
-                   (page 2) — consecutive pages are the two sides of one sheet.
-                   Claude Code (page 3) is the page that gets covered. Open on
-                   Claude Code (right page of the [internals|ClaudeCode] spread,
-                   left page clipped); turn('previous') folds the leaf over it. -->
-              <div class="page page-claudius">
-                <img src="claudius-app.svg" alt="Claudius app — the page that turns over Claude Code" />
-              </div>
-              <div class="page page-internals">
-                <img src="claudius-internals.svg" alt="Claudius internals — the underside of the turning page" />
-              </div>
-              <div class="page page-terminal">
-                <img src="claude-code-terminal.svg" alt="Claude Code terminal — the page being covered" />
-              </div>
+        <div class="flipbook-wrap">
+          <div id="flipbook">
+            <!-- turn.js leaf: front = Claudius, back = internals (consecutive
+                 pages = the two sides of one sheet). Claude Code is the page
+                 that gets covered. Open on Claude Code; turn('previous')
+                 closes the Claudius/internals leaf over it. -->
+            <div class="page page-claudius">
+              <img src="claudius-app.svg" alt="Claudius app — front of the turning page" />
+            </div>
+            <div class="page page-internals">
+              <img src="claudius-internals.svg" alt="Claudius internals — back of the turning page" />
+            </div>
+            <div class="page page-terminal hard">
+              <img src="claude-code-terminal.svg" alt="Claude Code terminal — the covered page" />
+            </div>
+            <div class="page page-terminal hard">
+              <img src="claude-code-terminal.svg" alt="Claude Code terminal — the covered page" />
             </div>
           </div>
         </div>
@@ -501,26 +497,20 @@
     </footer>
 
     <!-- ──────────────────── Flipbook (turn.js) driver ────────────────────
-         display:'double' so the leaf has a real front/back curl. The book is
-         2× a page wide; we pin it left by one page so the viewport shows only
-         the RIGHT page (Claude Code, then Claudius). Open on Claude Code
-         (page 3). After 5s, a single turn('previous') folds the Claudius leaf
-         over it — one fluid curl, no stepping. Click toggles. Degrades
-         gracefully if either script fails to load.
-
-         jQuery + turn.js are vendored under ./vendor/ (same origin) instead
-         of pulled from a CDN — no js/functionality-from-untrusted-source
-         alerts and no third-party trust requirement. The driver below
-         already handles missing dependencies via `fail(...)`. -->
-    <script src="./vendor/jquery-3.7.1.min.js"></script>
-    <script src="./vendor/turn.min.js"></script>
+         Genuine fluid curl. Pages [Claudius, internals, Claude Code]; open
+         on Claude Code (page 3). After 5s, turn('previous') closes the
+         Claudius/internals leaf over Claude Code — Claudius lands on top and
+         the internals show on the curl's back. Click toggles it. Degrades
+         gracefully if the CDN is unavailable. -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/turn.js/3/turn.min.js"></script>
     <script>
       (() => {
-        const stage = document.querySelector('.flipbook-stage');
+        const wrap = document.querySelector('.flipbook-wrap');
         const el = document.getElementById('flipbook');
         const countEl = document.getElementById('hintCount');
         const hint = document.getElementById('flipbookHint');
-        if (!stage || !el) return;
+        if (!wrap || !el) return;
         const fail = (m) => { if (hint) hint.textContent = m; };
 
         window.addEventListener('load', async () => {
@@ -534,63 +524,68 @@
             img.complete && img.naturalWidth > 0 ? Promise.resolve()
               : new Promise((r) => { img.addEventListener('load', r, { once: true }); img.addEventListener('error', r, { once: true }); })));
 
-          // One page = the stage width. The book is two pages wide; pinning it
-          // left by one page leaves only the RIGHT page inside the viewport.
-          const pageW = () => Math.round(stage.clientWidth);
-          const pageH = () => Math.round((stage.clientWidth * 720) / 1200);
-          const pin = () => { el.style.left = (-pageW()) + 'px'; };
-
+          const dims = () => {
+            const w = Math.max(320, Math.min(wrap.clientWidth, 1100));
+            return { w, h: Math.round((w * 720) / 1200) };
+          };
+          const { w, h } = dims();
           const $book = $(el);
           try {
             $book.turn({
-              display: 'double',
-              width: pageW() * 2, height: pageH(),
-              autoCenter: false, acceleration: true, gradients: true,
-              elevation: 60, duration: 2000, pages: 3,
-              page: 3,            // open on Claude Code (right page of [internals|ClaudeCode])
+            //display: 'single',
+              width: w, height: h,
+              autoCenter: true, acceleration: true, gradients: true,
+              elevation: 60, duration: 1400, pages: 3,
+              page: 3,            // open on Claude Code
             });
           } catch (err) {
             console.error('turn.js init failed:', err);
             fail('Page turn failed — terminal stays put.');
             return;
           }
-          pin();
 
           let rRaf = 0;
           window.addEventListener('resize', () => {
             cancelAnimationFrame(rRaf);
-            rRaf = requestAnimationFrame(() => {
-              try { $book.turn('size', pageW() * 2, pageH()); pin(); } catch (e) {}
-            });
+            rRaf = requestAnimationFrame(() => { const d = dims(); try { $book.turn('size', d.w, d.h); } catch (e) {} });
           });
 
           const onLanded = () => { if (hint) hint.textContent = 'Click the page to turn it back and forth.'; };
-          // Re-pin after every turn in case turn.js nudges the book's offset,
-          // and swap the hint once Claudius has landed (page 1).
-          $book.bind('turned', (e, page) => {
-            pin();
-            if (page === 1) onLanded();
-          });
+          $book.bind('turned', (e, page) => { if (page === 1) onLanded(); });
+
+          // Step one page per curl toward `target`, ~820ms apart so each
+          // curl is visible — turning Claude Code (3) -> internals (2) ->
+          // Claudius (1) reads as one continuous fold that shows the
+          // internals on the way. Guarded so overlapping clicks don't stack.
+          let stepping = false;
+          const flipTo = (target) => {
+            if (stepping) return;
+            const dir = target < $book.turn('page') ? 'previous' : 'next';
+            stepping = true;
+            const step = () => {
+              if ($book.turn('page') === target) { stepping = false; return; }
+              try { $book.turn(dir); } catch (e) { stepping = false; return; }
+              setTimeout(step, 820);
+            };
+            step();
+          };
 
           const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-          if (prefersReduced) {
-            // Respect reduced motion: no auto-flip. Stay on Claude Code (page 3
-            // pins cleanly to the viewport); the user can click to fold Claudius
-            // over it. We deliberately avoid an instant turn('page', 1) here —
-            // turn.js mispositions a cover page when it's set without animating.
-            if (hint) hint.textContent = 'Click the terminal to turn the page to Claudius.';
-          } else {
+          if (prefersReduced) { $book.turn('page', 1); onLanded(); }
+          else {
             let count = 5;
             const handle = setInterval(() => {
               count -= 1;
               if (countEl) countEl.textContent = String(Math.max(0, count));
-              if (count <= 0) { clearInterval(handle); try { $book.turn('previous'); } catch (e) {} }
+              if (count <= 0) { clearInterval(handle); flipTo(1); }
             }, 1000);
           }
 
-          // Click toggles between Claude Code (page 3) and Claudius (page 1).
-          stage.addEventListener('click', () => {
-            try { $book.turn($book.turn('page') === 1 ? 'next' : 'previous'); } catch (e) {}
+          // Click toggles between Claude Code (page 3) and Claudius (page 1),
+          // curling through the internals each way.
+          wrap.addEventListener('click', () => {
+            if (stepping) return;
+            flipTo($book.turn('page') === 1 ? 3 : 1);
           });
         });
       })();

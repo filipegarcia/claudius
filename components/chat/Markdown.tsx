@@ -1,13 +1,16 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { ChevronDown, ChevronRight, ExternalLink, Globe, ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useFileLink } from "@/lib/client/file-link-context";
 import { filesHref, looksLikeFilePath, stripLineSuffix, toWorkspaceRelative } from "@/lib/client/file-paths";
+import { IMAGE_EXTS, HTML_EXTS } from "@/lib/shared/file-types";
 import { CodeBlock } from "./CodeBlock";
+import { ImageLightbox } from "./ImageLightbox";
 
 const INLINE_CODE_CLASS = "rounded bg-[var(--panel-2)] px-1 py-0.5 font-mono text-[0.85em]";
 
@@ -90,6 +93,128 @@ function MarkdownLink({
   );
 }
 
+/**
+ * Card-style file preview renderer for Markdown `![alt](src)` nodes.
+ *
+ * Handles two file kinds detected from the extension:
+ *  - **Image** (png, svg, gif, webp, …): expanded by default, click-to-zoom lightbox.
+ *  - **HTML** (html, htm): collapsed by default, lazy-fetched sandboxed iframe.
+ *
+ * Local workspace paths are rewritten to the files API (`?serve=1` for images,
+ * plain text endpoint for HTML). External URLs render as-is with the same card.
+ */
+function MarkdownFilePreview({ src, alt }: { src?: string; alt?: string }) {
+  const fileLink = useFileLink();
+  const raw = typeof src === "string" ? src.trim() : "";
+  const stripped = raw ? stripLineSuffix(raw) : "";
+  const ext = stripped.split(".").pop()?.toLowerCase() ?? "";
+  const isImage = IMAGE_EXTS.has(ext);
+  const isHtml = HTML_EXTS.has(ext);
+
+  // Images expand by default; HTML collapses (renders can be tall).
+  const [open, setOpen] = useState(isImage);
+  const [lightbox, setLightbox] = useState(false);
+
+  // Resolve workspace-relative paths.
+  const rel =
+    fileLink && stripped && looksLikeFilePath(stripped)
+      ? toWorkspaceRelative(stripped, fileLink.cwd)
+      : null;
+  const isLocal = !!(rel && fileLink && (isImage || isHtml));
+
+  // Image: binary serve endpoint. HTML: path-based preview route so relative
+  // assets (CSS, images) inside the file resolve correctly via browser URL logic.
+  const imageSrc =
+    isLocal && isImage
+      ? `/api/workspaces/${fileLink!.workspaceId}/files?path=${encodeURIComponent(rel!)}&serve=1`
+      : raw;
+  const htmlPreviewSrc =
+    isLocal && isHtml
+      ? `/api/workspaces/${fileLink!.workspaceId}/files/preview/${rel}`
+      : null;
+
+  if (!stripped) return null;
+
+  const fileName = (rel || stripped).split("/").pop() || alt || stripped;
+  const filesUrl = isLocal ? filesHref(fileLink!.workspaceId, rel!) : null;
+  const FileIcon = isHtml ? Globe : ImageIcon;
+
+  return (
+    <span className="my-2 block overflow-hidden rounded-md border border-[var(--border)] bg-[var(--panel)]/60">
+      {/* ── Header ─────────────────────────────────────────────────── */}
+      <span className="flex w-full items-center gap-2 px-2 py-1 text-[11px]">
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          className="flex shrink-0 items-center text-[var(--muted)] hover:text-[var(--foreground)]"
+          title={open ? "Collapse preview" : "Expand preview"}
+        >
+          {open ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+        </button>
+        <FileIcon className="h-3 w-3 shrink-0 text-[var(--accent)]" />
+        <span className="min-w-0 flex-1 truncate font-mono text-[10px] text-[var(--muted)]">
+          {fileName}
+        </span>
+        {filesUrl && (
+          <Link
+            href={filesUrl}
+            onClick={(e) => e.stopPropagation()}
+            className="ml-auto flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-[10px] text-[var(--accent)] hover:bg-[var(--panel-2)] hover:underline"
+          >
+            <ExternalLink className="h-2.5 w-2.5" />
+            Open file
+          </Link>
+        )}
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          className="shrink-0 rounded px-1.5 py-0.5 text-[10px] text-[var(--muted)] hover:bg-[var(--panel-2)] hover:text-[var(--foreground)]"
+        >
+          {open ? "Collapse" : "Preview"}
+        </button>
+      </span>
+
+      {/* ── Body ───────────────────────────────────────────────────── */}
+      {open && (
+        <span className="block border-t border-[var(--border)] p-2">
+          {isHtml ? (
+            htmlPreviewSrc ? (
+              <iframe
+                src={htmlPreviewSrc}
+                sandbox="allow-scripts allow-same-origin"
+                title={`Preview of ${fileName}`}
+                className="h-[300px] w-full rounded border border-[var(--border)] bg-white"
+              />
+            ) : (
+              <span className="block px-1 py-1 text-[11px] text-[var(--muted)]">
+                HTML preview only available for local workspace files.
+              </span>
+            )
+          ) : (
+            <button
+              type="button"
+              title="Click to zoom"
+              onClick={() => setLightbox(true)}
+              className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={imageSrc}
+                alt={alt ?? fileName}
+                className="max-h-[45vh] max-w-full cursor-zoom-in rounded object-contain transition hover:brightness-110"
+              />
+            </button>
+          )}
+        </span>
+      )}
+
+      {lightbox && (
+        <ImageLightbox src={imageSrc} label={alt || fileName} onClose={() => setLightbox(false)} />
+      )}
+    </span>
+  );
+}
+
 const components: Components = {
   code(props) {
     const { className, children, ...rest } = props;
@@ -106,6 +231,9 @@ const components: Components = {
   },
   a({ href, children }) {
     return <MarkdownLink href={href}>{children}</MarkdownLink>;
+  },
+  img({ src, alt }) {
+    return <MarkdownFilePreview src={typeof src === "string" ? src : undefined} alt={alt} />;
   },
   ul({ children }) {
     return <ul className="my-2 list-disc pl-5">{children}</ul>;

@@ -50,7 +50,6 @@ import { CapBreachBanner } from "@/components/chat/CapBreachBanner";
 import { TranscriptSearch, type SearchHit } from "@/components/chat/TranscriptSearch";
 import { SessionTabs, activeTabStatus, reorderArray, tabLabelFor, type TabStatus } from "@/components/chat/SessionTabs";
 import { TabClaimBanner } from "@/components/chat/TabClaimBanner";
-import { useTabClaim } from "@/lib/client/useTabClaim";
 import { BashViewer } from "@/components/panels/BashViewer";
 import { ClaudiusMark } from "@/components/brand/ClaudiusMark";
 import type { BackgroundBash } from "@/lib/client/types";
@@ -276,8 +275,6 @@ export default function Home() {
     } | undefined
   >(undefined);
   const draftTokenRef = useRef(0);
-  const tabClaim = useTabClaim(session.sessionId);
-
   const limits = useLimits(session.cwd);
 
   // Compute breach state. The override is keyed by `session:<id>:<today>` so
@@ -1309,31 +1306,27 @@ export default function Home() {
           return;
         }
         if (cmd?.handler === "sdk") {
-          // SDK-interpreted slash command (e.g. /compact, /init).
-          // BEFORE forwarding, validate against the live SDK list: probing
-          // `supportedCommands()` against a real session revealed that
-          // several static registry entries (`/sandbox`, `/effort`,
-          // `/fast`, `/color`, `/diff`, `/focus`, `/btw`, `/extra-usage`,
-          // `/ultraplan`, `/ultrareview`, `/autofix-pr`, `/advisor`)
-          // aren't reported by the SDK on the version we ship. Forwarding
-          // them silently let the model see a literal `/foo` and reply
-          // with confused prose. With the live check, the user gets a
-          // clear toast instead — and the picker still surfaces the
-          // command, so the discoverability is intact.
+          // SDK-interpreted slash command (e.g. /compact, /init, /heapdump).
+          // We trust the static registry — `session.slashCommands` is
+          // populated async from the SDK's `system:init` event and is
+          // legitimately empty during the brief startup window AND in
+          // sessions where the init payload's slash_commands field came
+          // back empty for any reason. Gating on it caused legit commands
+          // like /compact to toast "not recognised" while the SDK was
+          // perfectly ready to handle them.
           //
-          // Live-known commands (curated registry + skills + plugin-bundled
-          // ones) flow through unchanged.
-          if (session.slashCommands.includes(head)) {
-            // Route through the no-echo path so the chat shows a "Running
-            // /compact…" pill instead of a user message whose text is the
-            // literal slash command. The SDK still receives the text and
-            // interprets it as a slash; its eventual reply
-            // (compact_boundary, init system message, etc.) lands as its
-            // own event.
-            void session.send(text, undefined, { asSlashCommand: true });
-            return;
-          }
-          showToast(`/${cmd.name} isn't recognised by the Claude Code SDK on this version`);
+          // The trade-off: if a registry entry is misclassified as `sdk`
+          // and the SDK truly doesn't know it, the SDK's own response —
+          // an error message or a clarifying system event — lands in chat.
+          // That's the right place for that signal, not a client-side
+          // toast that can't see the live SDK state reliably.
+          //
+          // Route through the no-echo path so the chat shows a "Running
+          // /compact…" pill instead of a user message whose text is the
+          // literal slash command. The SDK still receives the text and
+          // interprets it as a slash; its eventual reply (compact_boundary,
+          // init system message, etc.) lands as its own event.
+          void session.send(text, undefined, { asSlashCommand: true });
           return;
         }
         // Not in the curated registry. Two possibilities:
@@ -1921,9 +1914,9 @@ export default function Home() {
             onReorder={session.reorderQueued}
             onSendNow={session.sendQueuedNow}
           />
-          {tabClaim.readOnly && (
+          {session.readOnly && (
             <TabClaimBanner
-              onTakeOver={tabClaim.takeOver}
+              onTakeOver={() => void session.takeOver()}
               onOpenNew={() => void session.createNewSession()}
             />
           )}
@@ -1976,7 +1969,7 @@ export default function Home() {
               onInterrupt={session.interrupt}
               draftInjection={draftInjection}
               promptHistory={promptHistory}
-              sendDisabled={capBreached || tabClaim.readOnly}
+              sendDisabled={capBreached || session.readOnly}
               queuedCount={session.queue.length}
               onSendQueuedNow={session.queue.length > 0 ? () => session.sendQueuedNow(session.queue[0].id) : undefined}
               // Capture file drops across the whole chat-area pane (message

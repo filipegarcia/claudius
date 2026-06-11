@@ -61,6 +61,12 @@ export type UseUpdater = {
   check: () => Promise<void>;
   apply: (opts?: { allowCcMerge?: boolean }) => Promise<void>;
   /**
+   * Set when the most recent `apply()` call returned a non-fatal outcome
+   * the user should know about (e.g. "skipped: resolve conflicts first").
+   * Cleared automatically at the start of each new `apply()` call.
+   */
+  applyError: string | null;
+  /**
    * Stages a Claude Code chat for resolving the merge conflicts. Switches
    * the active workspace to one rooted at the install dir (creating it if
    * needed) and returns the prompt text to seed into the composer. The
@@ -79,6 +85,7 @@ export function useUpdater(pollMs = 8_000): UseUpdater {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [applyError, setApplyError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     try {
@@ -117,12 +124,27 @@ export function useUpdater(pollMs = 8_000): UseUpdater {
   const apply = useCallback(
     async (opts?: { allowCcMerge?: boolean }) => {
       setBusy(true);
+      setApplyError(null);
       try {
-        await fetch("/api/updater/apply", {
+        const res = await fetch("/api/updater/apply", {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({ allowCcMerge: opts?.allowCcMerge === true }),
         });
+        if (res.ok) {
+          const body = (await res.json()) as {
+            kind?: string;
+            reason?: string;
+            message?: string;
+            phase?: string;
+          };
+          if (body.kind === "skipped") {
+            setApplyError(`Skipped: ${body.reason ?? "unknown reason"}`);
+          } else if (body.kind === "error") {
+            const where = body.phase ? ` (${body.phase})` : "";
+            setApplyError(`Failed${where}: ${body.message ?? "unknown error"}`);
+          }
+        }
         await refresh();
       } finally {
         setBusy(false);
@@ -165,5 +187,5 @@ export function useUpdater(pollMs = 8_000): UseUpdater {
     }
   }, []);
 
-  return { data, loading, error, refresh, check, apply, resolveWithClaude, setMode, busy };
+  return { data, loading, error, refresh, check, apply, applyError, resolveWithClaude, setMode, busy };
 }

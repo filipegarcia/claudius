@@ -113,7 +113,7 @@
   <g transform="translate(120, 60)">
     <text x="0" y="18" font-size="17" fill="#fff" font-weight="700">Claude Code</text>
     <text x="124" y="18" font-size="15" fill="#777">v2.1.169</text>
-    <text x="0" y="40" font-size="15" fill="#cfcfcf">Opus 4.8 · Claude Max</text>
+    <text x="0" y="40" font-size="15" fill="#cfcfcf">Opus 4.7 · Claude Max</text>
     <text x="0" y="62" font-size="15" fill="#777">~/Projects/claudius</text>
   </g>
 

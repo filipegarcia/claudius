@@ -990,6 +990,14 @@ export class Session {
   private bufferTrimmed = false;
   private subscribers = new Set<Subscriber>();
   private subscriberCountListeners = new Set<(count: number) => void>();
+  /**
+   * tabId of the SSE client that currently holds write access.
+   * The first client to subscribe with a tabId claims the holder slot;
+   * subsequent clients are notified via `holder_changed` and render read-only.
+   * Cleared when the holder's SSE stream disconnects.
+   * `null` = no holder (session has no live subscriber with a tabId).
+   */
+  private holderId: string | null = null;
   private pendingPermissions = new Map<string, PendingPermission>();
   private pendingAskQuestions = new Map<string, PendingAskQuestion>();
   private pendingPlans = new Map<string, PendingPlan>();
@@ -4811,7 +4819,7 @@ export class Session {
     return { added };
   }
 
-  subscribe(fn: Subscriber, opts?: { tail?: number }): () => void {
+  subscribe(fn: Subscriber, opts?: { tail?: number; tabId?: string }): () => void {
     const replayWindow = computeReplayWindow(this.buffer, opts?.tail);
     const startIdx = replayWindow.startIdx;
     const hasMoreAbove = replayWindow.hasMoreAbove || this.bufferTrimmed;
@@ -5007,6 +5015,25 @@ export class Session {
     }
     this.subscribers.add(fn);
     this.notifySubscriberCount();
+    // Holder tracking: first tab to subscribe with a tabId claims the write
+    // lock. All current subscribers (including this one) are notified; later
+    // tabs that join while a holder is active just receive the current holderId
+    // so they can render read-only without a full broadcast.
+    const tabId = opts?.tabId ?? null;
+    if (tabId) {
+      if (this.holderId === null) {
+        this.holderId = tabId;
+        // Notify everyone (including this new subscriber already in the Set).
+        this.announceHolder();
+      } else {
+        // Tell only the new subscriber who currently holds the lock.
+        try {
+          fn({ type: "holder_changed", holderId: this.holderId });
+        } catch {
+          // ignore
+        }
+      }
+    }
     // Pull the freshest SDK-derived title into this subscriber. Two reasons:
     //   1. start() captures the title once; if the SDK auto-generates an
     //      aiTitle/summary AFTER a turn lands (which is the common case for
@@ -5030,8 +5057,44 @@ export class Session {
     void this.sendQueueSnapshot(fn);
     return () => {
       this.subscribers.delete(fn);
+      // Release the holder slot when the holder's SSE stream disconnects so
+      // the next tab to subscribe can claim it.
+      if (tabId && tabId === this.holderId) {
+        this.holderId = null;
+        this.announceHolder();
+      }
       this.notifySubscriberCount();
     };
+  }
+
+  /**
+   * Iterate all live subscribers and push the current `holder_changed` state.
+   * Called directly (not via `broadcast`) so the event is never buffered —
+   * holder state is always re-echoed fresh in `subscribe()`.
+   */
+  private announceHolder(): void {
+    const ev: { type: "holder_changed"; holderId: string | null } = {
+      type: "holder_changed",
+      holderId: this.holderId,
+    };
+    for (const sub of this.subscribers) {
+      try {
+        sub(ev);
+      } catch {
+        // ignore subscriber errors
+      }
+    }
+  }
+
+  /**
+   * Force-reassign the write-lock holder. Called by the
+   * `PATCH /api/sessions/[id]/holder` take-over endpoint. Any connected client
+   * whose tabId no longer matches will receive the event and render read-only;
+   * the caller's tab becomes the new holder.
+   */
+  public claimHolder(tabId: string): void {
+    this.holderId = tabId;
+    this.announceHolder();
   }
 
   private async sendQueueSnapshot(fn: Subscriber): Promise<void> {
@@ -5459,7 +5522,12 @@ export class Session {
     // (b) replay stale snapshots on reload. Live subscribers see it directly
     // via the for-loop below; new subscribers re-render the queue from
     // `sendQueueSnapshot()` in `subscribe()`.
-    if (event.type !== "queue:updated") {
+    // `holder_changed` is also excluded — holder state is always re-echoed
+    // fresh in `subscribe()` so replaying stale ownership changes would
+    // confuse late-connecting tabs. In practice `holder_changed` never goes
+    // through `broadcast()` (it uses `announceHolder()` directly), but this
+    // guard is here as a safety net.
+    if (event.type !== "queue:updated" && event.type !== "holder_changed") {
       this.buffer.push(event);
       if (this.buffer.length > 1000) {
         this.bufferTrimmed = true;
@@ -6182,7 +6250,7 @@ export class Session {
         // Path extraction lives in `lib/shared/read-tool-paths.ts` (unit-tested);
         // the re-seed is fire-and-forget so it never blocks the iterator.
         for (const p of extractReadPaths(message)) this.recentReadPaths.add(p);
-        const sysMsg = message as { type?: string; subtype?: string };
+        const sysMsg = message as { type?: string; subtype?: string; content?: string };
         if (sysMsg.type === "system" && sysMsg.subtype === "compact_boundary") {
           void this.reseedReadPathsAfterCompact();
         }
