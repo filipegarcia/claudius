@@ -189,6 +189,7 @@ test.describe("CustomizationsDrawer", () => {
     await page.goto("/");
     const switcher = page.locator('[data-pane-name="workspace-switcher"]');
     const drawerBtn = switcher.locator('button[title*="ustomization"]').first();
+    await expect(drawerBtn).toBeVisible({ timeout: 15_000 });
     await drawerBtn.click();
 
     const heading = page.getByText("Customizations", { exact: true });
@@ -205,6 +206,7 @@ test.describe("CustomizationsDrawer", () => {
     await page.goto("/");
     const switcher = page.locator('[data-pane-name="workspace-switcher"]');
     const drawerBtn = switcher.locator('button[title*="ustomization"]').first();
+    await expect(drawerBtn).toBeVisible({ timeout: 15_000 });
     await drawerBtn.click();
 
     const heading = page.getByText("Customizations", { exact: true });
@@ -262,6 +264,7 @@ test.describe("CustomizationsDrawer", () => {
 
     const switcher = page.locator('[data-pane-name="workspace-switcher"]');
     const drawerBtn = switcher.locator('button[title*="ustomization"]').first();
+    await expect(drawerBtn).toBeVisible({ timeout: 15_000 });
     await drawerBtn.click();
     await page.getByRole("button", { name: /Fixture Custom A/ }).click();
 

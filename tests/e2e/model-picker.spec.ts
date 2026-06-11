@@ -259,7 +259,10 @@ test.describe("model picker", () => {
     await mockChatBackend(page, script);
 
     await page.goto("/");
-    await page.getByTestId("model-picker-trigger").click();
+    const trigger = page.getByTestId("model-picker-trigger");
+    await expect(trigger).toBeVisible({ timeout: 15_000 });
+    await expect(trigger).toHaveAttribute("aria-expanded", "false");
+    await trigger.click();
     const panel = page.getByTestId("model-picker-panel");
     await expect(panel).toBeVisible();
 
@@ -295,7 +298,10 @@ test.describe("model picker", () => {
     await mockChatBackend(page, script);
 
     await page.goto("/");
-    await page.getByTestId("model-picker-trigger").click();
+    const trigger = page.getByTestId("model-picker-trigger");
+    await expect(trigger).toBeVisible({ timeout: 15_000 });
+    await expect(trigger).toHaveAttribute("aria-expanded", "false");
+    await trigger.click();
     const panel = page.getByTestId("model-picker-panel");
     await expect(panel).toBeVisible();
 
@@ -340,7 +346,10 @@ test.describe("model picker", () => {
     await mockChatBackend(page, script);
 
     await page.goto("/");
-    await page.getByTestId("model-picker-trigger").click();
+    const trigger = page.getByTestId("model-picker-trigger");
+    await expect(trigger).toBeVisible({ timeout: 15_000 });
+    await expect(trigger).toHaveAttribute("aria-expanded", "false");
+    await trigger.click();
     const panel = page.getByTestId("model-picker-panel");
     await expect(panel).toBeVisible();
 
@@ -381,7 +390,10 @@ test.describe("model picker", () => {
     await mockChatBackend(page, script);
 
     await page.goto("/");
-    await page.getByTestId("model-picker-trigger").click();
+    const trigger = page.getByTestId("model-picker-trigger");
+    await expect(trigger).toBeVisible({ timeout: 15_000 });
+    await expect(trigger).toHaveAttribute("aria-expanded", "false");
+    await trigger.click();
     const panel = page.getByTestId("model-picker-panel");
     await expect(panel).toBeVisible();
     // Match the "load models" portion only — the apostrophe-shape is
@@ -406,6 +418,8 @@ test.describe("model picker", () => {
 
     await page.goto("/");
     const trigger = page.getByTestId("model-picker-trigger");
+    await expect(trigger).toBeVisible({ timeout: 15_000 });
+    await expect(trigger).toHaveAttribute("aria-expanded", "false");
     await trigger.click();
     const panel = page.getByTestId("model-picker-panel");
     await expect(panel).toBeVisible();
