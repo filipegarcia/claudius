@@ -945,7 +945,9 @@ export class Session {
   readonly sandboxEnabled?: boolean;
   /**
    * Enable the 1M-token context window beta — when true the Options.betas
-   * array carries `context-1m-2025-08-07`. Sonnet 4/4.5 only; off by default.
+   * array carries `context-1m-2025-08-07`. Only meaningful for Sonnet 4/4.5;
+   * newer models (Fable, Opus 4.6+, Sonnet 4.6) include a 1M window by default,
+   * so the beta is a no-op for them. Off by default.
    */
   readonly enable1mContext?: boolean;
   /**

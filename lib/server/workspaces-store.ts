@@ -35,9 +35,10 @@ export type WorkspaceDefaults = {
   sandboxEnabled?: boolean;
   /**
    * Enable the 1M-token context window beta (SDK `Options.betas` →
-   * `context-1m-2025-08-07`). Sonnet 4/4.5 only; dramatically raises cost, so
-   * it's off by default and gated behind an explicit opt-in. Absent/false ⇒
-   * standard context window.
+   * `context-1m-2025-08-07`). Only meaningful for Sonnet 4/4.5 — newer models
+   * (Fable, Opus 4.6+, Sonnet 4.6) ship a 1M window by default, so the beta is
+   * a no-op for them. Dramatically raises cost, so it's off by default and
+   * gated behind an explicit opt-in. Absent/false ⇒ standard context window.
    */
   enable1mContext?: boolean;
   /**

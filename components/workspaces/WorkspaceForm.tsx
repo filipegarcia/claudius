@@ -562,7 +562,8 @@ export function WorkspaceForm({ initial, onCancel, onSubmit, onIconUpload, onDel
                   />
                   <span>1M context window</span>
                   <span className="text-[10px] text-[var(--muted)]">
-                    Sonnet 4/4.5 only; significantly higher cost.
+                    Only needed for Sonnet 4/4.5; newer models include 1M by
+                    default. Significantly higher cost.
                   </span>
                 </label>
                 <label className="mt-2 flex cursor-pointer items-center gap-2 text-xs">
