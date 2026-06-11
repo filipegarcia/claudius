@@ -32,6 +32,8 @@ from typing import Optional
 parser = argparse.ArgumentParser(add_help=True, description=__doc__)
 parser.add_argument("--stable-only", action="store_true")
 parser.add_argument("--json",        action="store_true")
+parser.add_argument("--out",         metavar="PATH",
+                    help="write metrics JSON to PATH (clean — no report text mixed in)")
 parser.add_argument("--no-color",    action="store_true")
 ARGS = parser.parse_args()
 
@@ -72,6 +74,7 @@ GITHUB_REPOS = [
     ("C# SDK",         "anthropics/anthropic-sdk-csharp",      "🔷"),
     ("PHP SDK",        "anthropics/anthropic-sdk-php",         "🐘"),
     ("Claude Code",    "anthropics/claude-code",               "⚡"),
+    ("Agent SDK",      "anthropics/claude-agent-sdk-typescript", "🤖"),
 ]
 
 # npm packages: only used when GitHub releases are absent or insufficient
@@ -652,8 +655,11 @@ def main():
     # ── Report ────────────────────────────────────────────────────────────────
     print_report(all_metrics)
 
-    # ── Optional JSON dump ────────────────────────────────────────────────────
-    if ARGS.json:
+    # ── JSON export — stdout via --json, file via --out ───────────────────────
+    # Note: --out writes ONLY the JSON to the file, so the human-readable report
+    # above never pollutes it. Don't redirect stdout (`> file`) to capture JSON —
+    # the report prints to stdout too and would produce an invalid JSON file.
+    if ARGS.json or ARGS.out:
         def _serial(o):
             if isinstance(o, datetime):
                 return o.isoformat()
@@ -667,7 +673,14 @@ def main():
                 continue
             d = {k: v for k, v in m.items() if k not in ("releases", "releases_raw")}
             exportable.append(d)
-        print(json.dumps(exportable, default=_serial, indent=2))
+
+        payload = json.dumps(exportable, default=_serial, indent=2)
+        if ARGS.out:
+            with open(ARGS.out, "w") as f:
+                f.write(payload + "\n")
+            print(f"\n  {GREEN('✓')}  wrote {len(exportable)} repos → {ARGS.out}")
+        if ARGS.json:
+            print(payload)
 
 
 if __name__ == "__main__":

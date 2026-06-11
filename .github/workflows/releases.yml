@@ -35,7 +35,10 @@ jobs:
       - name: Fetch release data
         run: |
           cd scripts/releases
-          python release_analytics.py --json --no-color > release_data.json
+          # --out writes clean JSON straight to the file; the human report still
+          # streams to stdout for the CI log. Do NOT use `> release_data.json` —
+          # that captures the report text too and corrupts the JSON.
+          python release_analytics.py --out release_data.json --no-color
         env:
           # Use the built-in token for 1 000 req/hr on the Actions runner.
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

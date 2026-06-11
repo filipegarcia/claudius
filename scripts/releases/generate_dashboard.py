@@ -22,7 +22,9 @@ OUTPUT_FILE = SITE_DIR / "releases.html"
 with open(DATA_FILE) as f:
     repos = json.load(f)
 
-TODAY = date_cls(2026, 6, 11)
+# Anchors the time-axis (heatmap "today", predictor countdowns, spline window).
+# Uses the real current date so the daily CI refresh actually advances the calendar.
+TODAY = date_cls.today()
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -77,6 +79,7 @@ SHORT = {
     "🔷 C# SDK":         "C#",
     "🐘 PHP SDK":        "PHP",
     "⚡ Claude Code":    "Claude Code",
+    "🤖 Agent SDK":      "Agent SDK",
     "📘 TS SDK [npm]":   "TS (npm)",
 }
 short = [SHORT.get(r["label"], r["label"]) for r in repos]
@@ -90,6 +93,7 @@ REPO_URLS = {
     "🔷 C# SDK":         ("https://github.com/anthropics/anthropic-sdk-csharp",     "github"),
     "🐘 PHP SDK":        ("https://github.com/anthropics/anthropic-sdk-php",        "github"),
     "⚡ Claude Code":    ("https://github.com/anthropics/claude-code",              "github"),
+    "🤖 Agent SDK":      ("https://github.com/anthropics/claude-agent-sdk-typescript", "github"),
     "📘 TS SDK [npm]":   ("https://www.npmjs.com/package/@anthropic-ai/sdk",        "npm"),
 }
 
@@ -111,6 +115,7 @@ PALETTE = [
     "#fbbf24",  # amber
     "#f87171",  # red
     "#86efac",  # light green
+    "#a78bfa",  # violet (Agent SDK / 10th series)
 ]
 
 def rgba(hex_c, a=1.0):
@@ -535,6 +540,11 @@ html = f"""<!DOCTYPE html>
     -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
   }}
   header p {{ color: var(--muted); margin-top: 6px; font-size: 0.9rem; }}
+  .stale-note {{
+    color: #e8a98d; margin-top: 8px; font-size: 0.8rem;
+    background: rgba(217,119,87,0.08); border: 1px solid rgba(217,119,87,0.22);
+    border-radius: 8px; padding: 6px 12px; display: inline-block;
+  }}
   .badge {{
     display: inline-block; background: rgba(217,119,87,0.15);
     border: 1px solid rgba(217,119,87,0.35); color: #d97757;
@@ -702,8 +712,9 @@ html = f"""<!DOCTYPE html>
       <span>/</span>
       <a href="/releases.html">SDK Releases</a>
     </nav>
-    <h1>SDK Release Analytics <span class="badge">Live Data</span></h1>
+    <h1>SDK Release Analytics <span class="badge">Snapshot</span></h1>
     <p>Release cadence, changelog depth, velocity trends &amp; version breakdown across all Anthropic SDKs and Claude Code</p>
+    <p class="stale-note">⚠ These are stale numbers — this page is a snapshot that only refreshes when Claudius redeploys, not in real time.</p>
     <div class="repo-links">
       {repo_links_html}
     </div>
