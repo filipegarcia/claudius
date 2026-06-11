@@ -124,7 +124,7 @@ export function UserMessage({
                 title={stamp.full}
                 aria-label={`Sent ${stamp.full}`}
               >
-                {stamp.short}
+                {verbose === "ultra-verbose" ? stamp.shortWithSeconds : stamp.short}
               </span>
             )}
             {sessionId && !isPureBashEcho && <RewindFilesButton sessionId={sessionId} messageUuid={message.uuid} />}

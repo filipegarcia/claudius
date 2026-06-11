@@ -4620,6 +4620,8 @@ export function useSession(): ChatState & ChatActions {
     sessionId,
     ready,
     pending,
+    readOnly: holderTabId !== null && holderTabId !== myTabId,
+    takeOver,
     messages: sortedMessages,
     systemEntries,
     toolProgress,

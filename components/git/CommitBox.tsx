@@ -394,9 +394,9 @@ export function CommitBox({
       {error && (
         <div className="border-b border-red-500/30 bg-red-500/10 px-3 py-1 text-[11px] text-red-300">{error}</div>
       )}
-      <div className="flex items-center gap-2 px-3 py-1.5">
+      <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5 px-3 py-2">
         <span
-          className="truncate text-[10px] text-[var(--muted)]"
+          className="min-w-0 truncate text-[10px] text-[var(--muted)]"
           title={
             onPush
               ? "⌘/Ctrl + Enter to commit · add ⇧ to also push"
@@ -405,24 +405,28 @@ export function CommitBox({
         >
           ⌘/Ctrl + ⏎{onPush ? " · ⇧⏎ for + push" : ""}
         </span>
+        <div className="flex flex-wrap items-center justify-end gap-1.5">
         {onGenerate && (
-          <button
-            type="button"
-            onClick={() => void generate()}
-            disabled={!canGenerate}
-            title={
-              checkedCount === 0
-                ? "Check files to commit first"
-                : "Ask Claude to draft a commit message from the diff"
-            }
-            className={cn(
-              "ml-auto flex items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2.5 py-1 text-[11px] font-medium text-[var(--foreground)]",
-              "hover:bg-[var(--panel)] disabled:cursor-not-allowed disabled:opacity-40",
-            )}
-          >
-            <Sparkles className={cn("h-3 w-3", generating && "animate-pulse")} />
-            {generating ? "Generating…" : "Generate"}
-          </button>
+          <>
+            <button
+              type="button"
+              onClick={() => void generate()}
+              disabled={!canGenerate}
+              title={
+                checkedCount === 0
+                  ? "Check files to commit first"
+                  : "Ask Claude to draft a commit message from the diff"
+              }
+              className={cn(
+                "flex items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2.5 py-1 text-[11px] font-medium text-[var(--foreground)]",
+                "hover:bg-[var(--panel)] disabled:cursor-not-allowed disabled:opacity-40",
+              )}
+            >
+              <Sparkles className={cn("h-3 w-3", generating && "animate-pulse")} />
+              {generating ? "Generating…" : "Generate"}
+            </button>
+            <div className="h-3.5 w-px bg-[var(--border)]" />
+          </>
         )}
         <button
           type="button"
@@ -431,7 +435,6 @@ export function CommitBox({
           className={cn(
             "flex items-center gap-1 rounded-md bg-[var(--accent)] px-3 py-1 text-[11px] font-medium text-white",
             "hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40",
-            !onGenerate && "ml-auto",
           )}
         >
           <GitCommit className="h-3 w-3" />
@@ -503,6 +506,7 @@ export function CommitBox({
             </span>
           </button>
         )}
+        </div>
       </div>
     </div>
   );

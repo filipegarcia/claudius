@@ -104,10 +104,14 @@ if (existsSync(mountPath)) {
 
 // ── package ────────────────────────────────────────────────────────────────
 // Icon coordinates match the cues in build/dmg-background.png:
-//   • app at  (130, 220)
-//   • Applications symlink at (410, 220)
-//   • dashed arrow drawn between them at y=220
+//   • app at  (130, 200)
+//   • Applications symlink at (410, 200)
+//   • dashed arrow drawn between them at y=200
 // Window size matches the rendered background image (540×380).
+// Icons are at y=200 (not 220) to leave room for the first-launch helper
+// text at the bottom — the Finder title bar + status bar consume ~50px,
+// leaving ~330px of visible content; the old y=220 placement pushed the
+// bottom text past that boundary.
 //
 // --hide-extension keeps the bundle label as "Claudius" (no ".app").
 // --no-internet-enable skips macOS's old "downloaded from internet" tag
@@ -139,12 +143,12 @@ const args = [
   "--icon",
   "Claudius.app",
   "130",
-  "220",
+  "200",
   "--hide-extension",
   "Claudius.app",
   "--app-drop-link",
   "410",
-  "220",
+  "200",
   "--no-internet-enable",
   OUT_PATH,
   SRC_DIR,

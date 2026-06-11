@@ -1782,6 +1782,40 @@ export class Session {
       this.advisorModel = userSettings.advisorModel;
     }
 
+    // Proactively clear the advisor when the persisted model is incompatible
+    // with it. This handles the case where the user switched to an
+    // incompatible model in a *previous* session (setModel() cleared it for
+    // that session's turns, but the user may have the advisor re-enabled
+    // between sessions, or the model was set at DB level without going
+    // through setModel). Fable-class models reject any advisor tool in the
+    // API request (400: "cannot be used as an advisor when the request model
+    // is 'claude-fable-*'"). Clearing here — before options/settings are
+    // built — prevents the first user message from failing.
+    //
+    // We also delete the key from the in-memory `userSettings` object so
+    // that the `options.settings` spread below (which forwards advisorModel
+    // to the SDK flag layer) doesn't seed the incompatible value.
+    if (this.advisorModel && this.model?.includes("fable")) {
+      const previousAdvisor = this.advisorModel;
+      this.advisorModel = undefined;
+      delete (userSettings as ClaudeSettings).advisorModel;
+      // Best-effort disk clear so subsequent sessions also start clean.
+      const cleaned: ClaudeSettings = { ...userSettings };
+      writeSettings("user", this.cwd, cleaned).catch((err) => {
+        console.error("[session.start] advisor-fable-incompatible clear failed", err);
+      });
+      // We don't broadcast here synchronously; the SSE client subscribes
+      // after start() returns. Instead, schedule it after the session_ready
+      // broadcast so the client's event handler is live.
+      setImmediate(() => {
+        this.broadcast({
+          type: "advisor_disabled_on_model_change",
+          previousAdvisor,
+          newModel: this.model,
+        });
+      });
+    }
+
     const options: Options = {
       cwd: this.cwd,
       model: this.model,
@@ -3655,6 +3689,41 @@ export class Session {
     }
   }
 
+  /**
+   * Persist the picked model to `~/.claude/settings.json` so it becomes the
+   * default for any new session the user spawns afterwards — matching the
+   * Claude Code TUI's `/model` behavior, where the pick sticks across
+   * restarts.
+   *
+   * Precedence at session-create time stays:
+   *   request.body.model > workspace.defaults.model > ~/.claude/settings.json
+   * so workspace overrides still win. Empty / undefined removes the user
+   * override (clicking "Inherit machine default" in the picker → fall back
+   * to whatever the SDK CLI picks).
+   *
+   * Best-effort — never blocks the in-session model change on a settings
+   * write failure (broken JSON, EPERM, etc). Matches the advisor write at
+   * the end of `setModel` below.
+   */
+  private async persistModelToUserSettings(model: string | undefined): Promise<void> {
+    try {
+      const current = await readSettings("user", this.cwd);
+      // No-op if the file already matches — avoids touching mtime and
+      // triggering external watchers (Claude Code TUI, MDM tooling).
+      const desired = model || undefined;
+      if (current.model === desired) return;
+      const next: ClaudeSettings = { ...current };
+      if (desired) {
+        next.model = desired;
+      } else {
+        delete next.model;
+      }
+      await writeSettings("user", this.cwd, next);
+    } catch (err) {
+      console.error("[session.persistModelToUserSettings] write failed", err);
+    }
+  }
+
   async setModel(
     model?: string,
   ): Promise<{ ok: true; model?: string } | { ok: false; error: string; model?: string }> {
@@ -3697,6 +3766,10 @@ export class Session {
       // still applied it. DB write failure just means the next resume
       // falls back to the prior default.
     }
+    // Sticky model — write to ~/.claude/settings.json so the next NEW
+    // session in any workspace inherits this pick. Mirrors Claude Code's
+    // `/model` persistence (see `persistModelToUserSettings` doc).
+    await this.persistModelToUserSettings(model);
     this.broadcast({ type: "model_changed", model });
 
     // Auto-disable the advisor when the model changes. The advisor tool
@@ -6199,6 +6272,11 @@ export class Session {
               } catch {
                 // Non-fatal: the broadcast already updated the client.
               }
+              // Sticky model — same write the picker's setModel() does, so
+              // `/model X` in chat also makes X the default for future new
+              // sessions. The chat-command path bypasses setModel() entirely,
+              // so we mirror the persistence here.
+              await this.persistModelToUserSettings(newModel);
             }
           }
         }
