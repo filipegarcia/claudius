@@ -1,7 +1,7 @@
 import { promises as fs } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
-import { assertWithin, assertAbsoluteUserPath, PathInjectionError } from "./safe-path";
+import { join, resolve, sep } from "node:path";
+import { assertAbsoluteUserPath, PathInjectionError } from "./safe-path";
 
 /**
  * Lean plain-text CRUD for Claude Code rule files under `.claude/rules/*.md`.
@@ -78,9 +78,16 @@ export async function readRule(
   projectCwd?: string | null,
 ): Promise<string | null> {
   if (!isValidRuleFilename(name)) return null;
-  // assertWithin is the CodeQL `js/path-injection` sanitizer on the
-  // homedir/cwd → fs.* flow; FILENAME_RE above is defence-in-depth.
-  const target = assertWithin(rulesDir(scope, projectCwd), name);
+  // Inline path-injection barrier (CodeQL `js/path-injection`). The taint
+  // source is the API route's request (app/api/memory/rules/route.ts), and
+  // CodeQL does NOT propagate a helper-function barrier (assertWithin) across
+  // that route → lib call boundary — the resolve()+startsWith check must be
+  // visible right at the sink, and as a PLAIN `!startsWith` (a compound
+  // `!== base && !startsWith` suppresses the StartsWith sanitizer). FILENAME_RE
+  // already blocks path components; this is the recognized sanitizer.
+  const base = resolve(rulesDir(scope, projectCwd));
+  const target = resolve(base, name);
+  if (!target.startsWith(base + sep)) return null;
   try {
     return await fs.readFile(target, "utf8");
   } catch (err) {
@@ -110,12 +117,16 @@ export async function writeRule(
   if (!isValidRuleFilename(name)) {
     return { ok: false, status: 400, error: "invalid filename" };
   }
-  const dir = rulesDir(scope, projectCwd);
-  await fs.mkdir(dir, { recursive: true });
-  // assertWithin is the path-injection barrier on the homedir/cwd → fs.*
-  // flow; `name` already passed isValidRuleFilename, so this is
-  // defence-in-depth that also gives CodeQL a recognized sanitizer.
-  const target = assertWithin(dir, name);
+  const base = resolve(rulesDir(scope, projectCwd));
+  await fs.mkdir(base, { recursive: true });
+  // Inline path-injection barrier (see readRule): resolve()+plain `!startsWith`
+  // right at the sink, because CodeQL won't carry a helper barrier across the
+  // API route → rules.ts call boundary. Guards every fs.* sink below (all use
+  // `target`, no reassignment / call boundary between here and them).
+  const target = resolve(base, name);
+  if (!target.startsWith(base + sep)) {
+    return { ok: false, status: 400, error: "invalid path" };
+  }
   if (overwrite) {
     // Edit semantics: the file must already exist or this is a 404. (A plain
     // overwrite write would otherwise create the file silently.)
@@ -156,7 +167,12 @@ export async function deleteRule(
   if (!isValidRuleFilename(name)) {
     return { ok: false, status: 400, error: "invalid filename" };
   }
-  const target = assertWithin(rulesDir(scope, projectCwd), name);
+  // Inline path-injection barrier (see readRule).
+  const base = resolve(rulesDir(scope, projectCwd));
+  const target = resolve(base, name);
+  if (!target.startsWith(base + sep)) {
+    return { ok: false, status: 400, error: "invalid path" };
+  }
   try {
     await fs.unlink(target);
   } catch (err) {
