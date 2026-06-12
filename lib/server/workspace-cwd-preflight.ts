@@ -34,6 +34,7 @@
  * with no persisted stale workspaces.
  */
 import { promises as fsp } from "node:fs";
+import { isAbsolute, resolve } from "node:path";
 
 export type WorkspaceCwdPreflight =
   | { ok: true }
@@ -58,8 +59,31 @@ export type WorkspaceCwdPreflight =
 export async function validateWorkspaceCwd(
   cwd: string,
 ): Promise<WorkspaceCwdPreflight> {
+  // Defensive hardening before we touch the filesystem with a user-provided
+  // path. A workspace cwd must be ABSOLUTE: statting a relative cwd would
+  // resolve it against the SERVER process's working directory (a footgun that
+  // silently probes the wrong tree) rather than the folder the user
+  // configured. Reject non-absolute input outright, then stat the normalised
+  // (`resolve`d) form.
+  //
+  // NOTE: this is hardening, NOT a CodeQL `js/path-injection` barrier
+  // (alert #47). A workspace is intentionally ANY folder on the operator's own
+  // machine, so there is no base directory to confine it to — the recognised
+  // `resolve(base, x)` + `startsWith(base + sep)` jail does not apply here.
+  // The path-setter is the trusted operator: the same principal the API
+  // already trusts to run arbitrary agent shell commands, so a `stat` metadata
+  // probe is no escalation. We accept #47 as a false positive in practice;
+  // this guard documents the invariant and removes the relative-path footgun.
+  if (!isAbsolute(cwd)) {
+    return {
+      ok: false,
+      code: "OTHER",
+      message: `Workspace path \`${cwd}\` isn't an absolute folder path. Fix the path or re-add the workspace using its full path.`,
+    };
+  }
+  const target = resolve(cwd);
   try {
-    const st = await fsp.stat(cwd);
+    const st = await fsp.stat(target);
     if (!st.isDirectory()) {
       return {
         ok: false,

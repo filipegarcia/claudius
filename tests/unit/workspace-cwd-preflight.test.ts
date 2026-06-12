@@ -109,6 +109,20 @@ describe("validateWorkspaceCwd", () => {
     expect(result.message.toLowerCase()).toMatch(/fix the path|doesn't exist/);
   });
 
+  test("rejects a non-absolute path before touching the filesystem", async () => {
+    // Hardening (CodeQL #47): a relative cwd would `stat` against the server
+    // process's own working directory, not the user's folder. Reject it up
+    // front with actionable copy instead of silently probing the wrong tree.
+    const result = await validateWorkspaceCwd("relative/not/absolute");
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.code).toBe("OTHER");
+    expect(result.message).toContain("relative/not/absolute");
+    expect(result.message.toLowerCase()).toMatch(/absolute/);
+    expect(result.message.toLowerCase()).toMatch(/fix the path|re-add/);
+  });
+
   test("the ENOENT message does NOT match the SDK's misleading binary error", async () => {
     // Anti-regression: if a future refactor accidentally lets the SDK
     // error through (e.g. by removing the pre-flight or returning ok
