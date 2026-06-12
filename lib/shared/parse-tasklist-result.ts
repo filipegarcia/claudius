@@ -46,8 +46,17 @@ export type ParsedTaskListEntry = {
  * doesn't silently start dropping entries. The status is bracketed and the
  * subject is the rest of the line; we trim both to absorb any incidental
  * whitespace the SDK might emit.
+ *
+ * The subject is `\S.*` (not `.+`) on purpose: anchoring it to a non-space
+ * first char removes the overlap between the preceding `\s+` separator and a
+ * `.+` that could ALSO match those spaces. That overlap is an ambiguous
+ * adjacent-quantifier "pump" — CodeQL `js/polynomial-redos` flagged it as
+ * quadratic-time backtracking on lines with long runs of whitespace. With
+ * `\S.*` the whitespace split is deterministic (one way to match), so the
+ * regex is linear. The captured subject is `.trim()`ed by the caller anyway,
+ * so this only drops whitespace-only "subjects" (already meaningless).
  */
-const TASK_LIST_LINE_RE = /^#(\S+)\s+\[([^\]]+)\]\s+(.+)$/;
+const TASK_LIST_LINE_RE = /^#(\S+)\s+\[([^\]]+)\]\s+(\S.*)$/;
 
 export function parseTaskListResult(text: string | null | undefined): ParsedTaskListEntry[] | null {
   if (text == null) return null;
