@@ -226,6 +226,12 @@ jobs:
         run: make test
       - name: Upload Playwright artifacts
         if: always()
+        # The report is a debugging aid, not a gate. The artifact backend
+        # occasionally returns a transient "The server is busy." mid-upload
+        # (e.g. run 27402383470, where the Playwright suite PASSED but the
+        # upload flaked and reddened the whole run). Don't let a flaky upload
+        # fail CI when the tests themselves are green.
+        continue-on-error: true
         uses: actions/upload-artifact@v5
         with:
           name: playwright-report
