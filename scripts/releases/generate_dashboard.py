@@ -106,14 +106,14 @@ repo_links_html = " ".join(
 
 # Claudius palette for multi-repo charts (varied, readable on dark bg)
 PALETTE = [
-    "#d97757",  # terracotta accent (Claude Code / primary)
+    "#f0f0f3",  # off-white (Python — kept distinct from Claude Code's orange)
     "#60a5fa",  # blue
     "#34d399",  # emerald
     "#c084fc",  # purple
     "#f472b6",  # pink
     "#22d3ee",  # cyan
     "#fbbf24",  # amber
-    "#f87171",  # red
+    "#d97757",  # terracotta orange (Claude Code hero line)
     "#86efac",  # light green
     "#a78bfa",  # violet (Agent SDK / 10th series)
 ]
@@ -328,9 +328,9 @@ js_pred = json.dumps(pred_data)
 
 # ─── Monthly heatmap (pure flexbox) ──────────────────────────────────────────
 
-MH_CELL  = 36
+MH_CELL  = 36   # legacy fixed width — cells now flex to fill the container
 MH_H     = 28
-MH_GAP   = 3
+MH_GAP   = 2
 MH_LABEL = 90
 
 max_monthly = max(
@@ -368,58 +368,59 @@ repos_with_cl = [r for r in repos if r.get("cl_present")]
 biggest_cl    = max(repos_with_cl, key=lambda r: r["cl_max"]) if repos_with_cl else None
 
 cards = [
-    ("📦", "Total Releases", f"{total_all:,}", "across all tracked repos"),
-    ("⚡", "Fastest Cadence",
+    ("Total Releases", f"{total_all:,}", "across all tracked repos"),
+    ("Fastest Cadence",
      SHORT.get(fastest["label"], fastest["label"]),
      f"{fastest['per_week']:.1f} releases / week"),
-    ("🏆", "Most Prolific",
+    ("Most Prolific",
      SHORT.get(prolific["label"], prolific["label"]),
      f"{prolific['total']} total releases"),
-    ("🎂", "Oldest Project",
+    ("Oldest Project",
      SHORT.get(oldest["label"], oldest["label"]),
      f"since {oldest['first_date'][:10]}"),
-    ("📝", "Biggest Changelog",
+    ("Biggest Changelog",
      SHORT.get(biggest_cl["label"], biggest_cl["label"]) if biggest_cl else "—",
      f"{biggest_cl['cl_max']:,} chars" if biggest_cl else ""),
-    ("😴", "Longest Drought",
+    ("Longest Drought",
      SHORT.get(slowest_ever[0], slowest_ever[0]) if slowest_ever else "—",
      f"{fmt_h(slowest_ever[1]['hours'])}" if slowest_ever else ""),
 ]
 
 cards_html = "\n".join(
     f"""<div class="stat-card">
-  <span class="stat-icon">{icon}</span>
   <div class="stat-body">
     <div class="stat-value">{value}</div>
     <div class="stat-title">{title}</div>
     <div class="stat-sub">{sub}</div>
   </div>
 </div>"""
-    for icon, title, value, sub in cards
+    for title, value, sub in cards
 )
 
 # ─── Monthly heatmap HTML ────────────────────────────────────────────────────
 
+# Cells flex to share the available width so the whole grid fits on screen
+# without a horizontal scrollbar.
 def mh_cell(bg, fg, text, tip=""):
     tip_attr = f' title="{tip}"' if tip else ""
     return (
-        f'<div{tip_attr} style="flex:0 0 {MH_CELL}px;width:{MH_CELL}px;height:{MH_H}px;'
+        f'<div{tip_attr} style="flex:1 1 0;min-width:0;height:{MH_H}px;'
         f'background:{bg};color:{fg};border-radius:4px;font-size:11px;font-weight:600;'
         f'display:flex;align-items:center;justify-content:center;cursor:default;">'
         f'{text}</div>'
     )
 
-prev_m = None
+# Label every 3rd month so the headers stay legible at narrow cell widths.
+LABEL_EVERY = 3
 month_header_parts = [
     f'<div style="flex:0 0 {MH_LABEL}px;min-width:{MH_LABEL}px;"></div>'
 ]
-for m in all_months:
-    label = fmt_month(m) if m[:7] != prev_m else ""
-    prev_m = m[:7]
+for idx, m in enumerate(all_months):
+    label = fmt_month(m) if idx % LABEL_EVERY == 0 else ""
     month_header_parts.append(
-        f'<div style="flex:0 0 {MH_CELL}px;width:{MH_CELL}px;font-size:10px;'
+        f'<div style="flex:1 1 0;min-width:0;font-size:10px;'
         f'font-weight:600;color:#6b6b75;white-space:nowrap;overflow:visible;'
-        f'padding-bottom:4px;">{label}</div>'
+        f'text-align:center;padding-bottom:4px;">{label}</div>'
     )
 
 data_row_parts = []
@@ -441,7 +442,7 @@ for i, r in enumerate(repos):
     )
 
 heatmap_html = f"""
-<div style="display:inline-flex;flex-direction:column;gap:{MH_GAP}px;">
+<div style="display:flex;flex-direction:column;gap:{MH_GAP}px;width:100%;">
   <div style="display:flex;flex-direction:row;gap:{MH_GAP}px;">{"".join(month_header_parts)}</div>
   {"".join(data_row_parts)}
 </div>
@@ -634,6 +635,17 @@ html = f"""<!DOCTYPE html>
   }}
 
   /* ── Release predictor ── */
+  .pred-top-row {{
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 11px;
+    margin-bottom: 11px;
+  }}
+  .pred-top-row .pred-card {{
+    width: 320px;
+    max-width: 100%;
+  }}
   .pred-grid {{
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -675,7 +687,7 @@ html = f"""<!DOCTYPE html>
   .cal-wrap {{ overflow-x: auto; padding-bottom: 4px; }}
 
   /* ── Monthly heatmap ── */
-  .hm-wrap {{ overflow-x: auto; padding-bottom: 4px; }}
+  .hm-wrap {{ padding-bottom: 4px; }}
   .hm-legend {{
     display: flex; align-items: center; gap: 8px; margin-top: 14px;
     font-size: 0.74rem; color: var(--muted);
@@ -739,6 +751,7 @@ html = f"""<!DOCTYPE html>
 
   <!-- ── Release Predictor ── -->
   <div class="section-title">Release Predictor</div>
+  <div class="pred-top-row" id="pred-grid-top"></div>
   <div class="pred-grid" id="pred-grid"></div>
 
   <!-- ── Daily contribution calendar ── -->
@@ -970,7 +983,13 @@ const TICKS = {{ color: '#6b6b75' }};
 
 // ── 1. Release Predictor cards ─────────────────────────────────────────────
 (function() {{
-  const grid = document.getElementById('pred-grid');
+  const grid    = document.getElementById('pred-grid');
+  const topGrid = document.getElementById('pred-grid-top');
+
+  // Claude Code + Agent SDK get their own centered row on top.
+  const TOP_LABELS = ['Claude Code', 'Agent SDK'];
+  const topData  = TOP_LABELS.map(l => PRED_DATA.find(r => r.label === l)).filter(Boolean);
+  const restData = PRED_DATA.filter(r => !TOP_LABELS.includes(r.label));
 
   function pressureColor(p) {{
     if (p < 0.5)  return ['green',  '🟢 Just released'];
@@ -993,7 +1012,7 @@ const TICKS = {{ color: '#6b6b75' }};
     return d.toLocaleDateString('en-US', {{ month: 'short', day: 'numeric', year: 'numeric' }});
   }}
 
-  PRED_DATA.forEach(r => {{
+  function renderCard(r, container) {{
     const [badgeClass, badgeText] = pressureColor(r.pressure);
     const barPct  = Math.min(r.pressure * 100, 100).toFixed(1);
     const bColor  = barColor(r.pressure);
@@ -1029,7 +1048,7 @@ const TICKS = {{ color: '#6b6b75' }};
       <div class="pred-spark">
         <canvas id="${{sparkId}}" height="28" style="width:100%;display:block;"></canvas>
       </div>`;
-    grid.appendChild(card);
+    container.appendChild(card);
 
     requestAnimationFrame(() => {{
       const sc   = document.getElementById(sparkId);
@@ -1060,12 +1079,57 @@ const TICKS = {{ color: '#6b6b75' }};
         }}
       }});
     }});
-  }});
+  }}
+
+  topData.forEach(r => renderCard(r, topGrid));
+  restData.forEach(r => renderCard(r, grid));
 }})();
 
 // ── 2. Timeline ─────────────────────────────────────────────────────────────
+// On hover, draw each line's name directly on it (at the hovered point) so
+// every series is identifiable without scanning the legend.
+const timelineLabels = {{
+  id: 'timelineLabels',
+  afterDatasetsDraw(chart) {{
+    const active = chart.getActiveElements();
+    if (!active || !active.length) return;
+    const ctx  = chart.ctx;
+    const area = chart.chartArea;
+    const padX = 5, h = 16;
+    ctx.save();
+    ctx.font = "700 11px ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif";
+    ctx.textBaseline = 'middle';
+    active.forEach(a => {{
+      const meta = chart.getDatasetMeta(a.datasetIndex);
+      if (meta.hidden) return;
+      const ds = chart.data.datasets[a.datasetIndex];
+      const pt = meta.data[a.index];
+      if (!pt) return;
+      const text = ds.label;
+      const w = ctx.measureText(text).width;
+      // place to the right of the point, flip to the left near the edge
+      let x, align;
+      if (pt.x + 10 + w + padX * 2 < area.right) {{
+        x = pt.x + 10; align = 'left';
+      }} else {{
+        x = pt.x - 10; align = 'right';
+      }}
+      ctx.textAlign = align;
+      const bx = align === 'left' ? x - padX : x - w - padX;
+      ctx.fillStyle = 'rgba(11,11,12,0.85)';
+      ctx.beginPath();
+      ctx.roundRect(bx, pt.y - h / 2, w + padX * 2, h, 4);
+      ctx.fill();
+      ctx.fillStyle = ds.borderColor;
+      ctx.fillText(text, x, pt.y);
+    }});
+    ctx.restore();
+  }}
+}};
+
 new Chart(document.getElementById('timeline'), {{
   type: 'line',
+  plugins: [timelineLabels],
   data: {{
     labels: monthLabels,
     datasets: LABELS.map((lbl, i) => ({{
@@ -1078,6 +1142,7 @@ new Chart(document.getElementById('timeline'), {{
   }},
   options: {{
     responsive: true,
+    layout: {{ padding: {{ top: 14 }} }},
     interaction: {{ mode: 'index', intersect: false }},
     plugins: {{
       legend: {{ position: 'right', labels: {{ font: {{ size: 11 }} }} }},
