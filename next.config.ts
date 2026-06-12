@@ -9,14 +9,15 @@ import { join } from "node:path";
 // Default web builds stay unchanged.
 const packaged = process.env.CLAUDIUS_PACKAGED === "1";
 
-// Claudius "release" counter — the number of commits since package.json's
-// `version` last changed (see scripts/claudius-release.mjs). Computed once at
-// build / dev-server start and baked into the bundle as
+// Claudius "release" counter — the per-release ordinal for the current SDK
+// version: the highest `.N` among the `v<version>.N` release tags (one tag is
+// minted per push to main by auto-tag.yml), see scripts/claudius-release.mjs.
+// Computed once at build / dev-server start and baked into the bundle as
 // NEXT_PUBLIC_CLAUDIUS_RELEASE; the UI joins it with `version` to render the
 // version tag, e.g. v0.3.152.7 (lib/shared/version.ts). An SDK bump changes
-// `version`, which resets this to 0 with no stored state. Falls back to "0"
-// when git history isn't available so the build never fails over a cosmetic
-// tag.
+// `version` (no `v<new-sdk>.*` tags yet), which resets this to 0 with no
+// stored state. Falls back to "0" when git/tags aren't available so the build
+// never fails over a cosmetic tag.
 //
 // Precedence (env-var first):
 //   1. If NEXT_PUBLIC_CLAUDIUS_RELEASE is already set in the build env, use
@@ -24,12 +25,12 @@ const packaged = process.env.CLAUDIUS_PACKAGED === "1";
 //      when triggered by auto-tag.yml — it passes the tag's `.N` component
 //      as a workflow input, so the in-app footer of the SHIPPED binary
 //      matches the GitHub release tag exactly. Without this, release.yml's
-//      shallow `actions/checkout@v5` would starve the script (git log at
-//      depth 1 sees no package.json commits → returns 0) and produce
-//      v<version>.0 in-app for every .N>0 release — the exact mismatch
-//      this whole machinery was built to prevent.
-//   2. Otherwise, run the git-walking script (dev server, local
-//      production builds, anywhere with full history available).
+//      shallow `actions/checkout@v5` would starve the script (no release
+//      tags fetched → max is none → returns 0) and produce v<version>.0
+//      in-app for every .N>0 release — the exact mismatch this whole
+//      machinery was built to prevent.
+//   2. Otherwise, run the tag-reading script (dev server, local
+//      production builds, anywhere with the release tags fetched).
 //   3. Script failure (no .git, no `node`, etc.) → "0".
 //
 // Empty-string env var (e.g. `NEXT_PUBLIC_CLAUDIUS_RELEASE=` from a workflow

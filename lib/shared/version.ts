@@ -4,19 +4,22 @@
  * The scheme tracks the Claude Agent SDK: `package.json`'s `version` field
  * mirrors the installed `@anthropic-ai/claude-agent-sdk` version (kept in
  * sync by `scripts/sdk-update/orchestrate.ts`), and a trailing `.N` counter
- * is auto-derived from git — `N` is the number of commits on `main` since
- * `version` last changed. Feature branches don't inflate the number; they
- * show whatever main is at for the SDK version in their working tree.
+ * is a PER-RELEASE ordinal — `N` is bumped once per release (one push to
+ * `main` → one `v<version>.N` tag via `.github/workflows/auto-tag.yml`), NOT
+ * once per commit. A push that lands 8 commits is still a single release and
+ * bumps `N` by one. Feature branches don't inflate the number; they show
+ * whatever the latest release is for the SDK version in their working tree.
  *
- *   SDK 0.3.152, commit that bumps it       → 0.3.152.0
- *   one more commit on the same SDK         → 0.3.152.1
+ *   SDK 0.3.152, first release of it        → 0.3.152.0
+ *   next push to main on the same SDK       → 0.3.152.1
  *   SDK bumps to 0.3.153                    → 0.3.153.0   (reset is automatic)
  *
- * The counter has no stored state: it's computed by
- * `scripts/claudius-release.mjs` at build / dev-server start and baked into
- * the bundle as `NEXT_PUBLIC_CLAUDIUS_RELEASE` via `next.config.ts`. That
- * means an SDK bump automatically resets the trailing component to .0 — the
- * commit that changes `version` becomes the new anchor.
+ * The counter has no stored state: `scripts/claudius-release.mjs` derives it
+ * from the release tags (`N` = highest existing `v<version>.N`) at build /
+ * dev-server start, and it's baked into the bundle as
+ * `NEXT_PUBLIC_CLAUDIUS_RELEASE` via `next.config.ts`. An SDK bump resets the
+ * trailing component to .0 automatically — a freshly-bumped version has no
+ * `v<new-sdk>.*` tags yet.
  *
  * Why split the SDK part from the counter rather than putting four
  * components in `version`: electron-builder + macOS notarization cap bundle

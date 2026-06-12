@@ -1,52 +1,56 @@
-# Auto-tag every push to main with `v<sdk-version>.<N>` where N is the
-# number of commits on main since `package.json`'s `version` field last
-# changed. Same scheme `lib/shared/version.ts` shows in the UI, now produced
-# server-side instead of by hand.
+# Auto-tag every push to main with `v<sdk-version>.<N>`, where N is a
+# PER-RELEASE ordinal: the first release at an SDK version is `.0`, the next
+# `.1`, `.2`, … Same scheme `lib/shared/version.ts` shows in the UI.
 #
-# Why this exists:
+# Why per-release (not per-commit):
 #   - `package.json`'s `version` mirrors the Claude Agent SDK version the
 #     orchestrator most recently bumped to (3-part semver, capped by
 #     electron-builder + macOS notarization).
-#   - The 4th component is the count of commits on main at that SDK
-#     version. Computing it from git rather than storing it means there's
-#     no merge-conflict surface and no machine-dependent counter file.
-#   - Previously `v0.3.160`, `v0.3.160.1`, `v0.3.160.2` were tagged by
-#     hand. That's how we ended up with an inconsistent `.0`-less first
-#     tag and stale UI version footers when the cadence drifted.
+#   - This workflow fires once per push to main and mints exactly ONE tag, so
+#     N increments by ONE per push regardless of how many commits that push
+#     carried. The previous scheme counted COMMITS, so an 8-commit push jumped
+#     the line by 8 (e.g. `.5` → `.13`), and a 14-commit batch produced the
+#     surprising `v0.3.175.0` → `v0.3.175.14` gap.
 #
-# Pipeline:
-#   1. Checkout main with full history (fetch-depth: 0 — the release
-#      counter walks `git log` to find the anchor).
-#   2. Compute VERSION (from package.json), RELEASE (from
-#      scripts/claudius-release.mjs), ANCHOR (--anchor flag).
-#   3. BOOTSTRAP: if RELEASE > 0 AND `v<VERSION>.0` doesn't exist on
-#      origin, tag the anchor commit and dispatch release.yml for it.
-#      This is what makes the workflow's FIRST firing produce a clean
-#      `v0.3.161.0` even though main has already moved past the SDK-bump
-#      commit by the time this workflow lands.
-#   4. CURRENT: tag the current main tip as `v<VERSION>.<RELEASE>` and
-#      dispatch release.yml. Idempotent — re-running on a tag that
-#      already exists is a no-op (covers manual tag creation, reruns,
-#      force-pushes that don't move the anchor).
+# How N is chosen:
+#   - List the existing `v<version>.*` tags on origin (this workflow is their
+#     only creator, so they ARE the release ledger).
+#   - N = highest existing `.N` for this version, plus 1. No tags yet → N = 0
+#     (the first release at a freshly-bumped SDK version).
+#   - Bumping the SDK (`version` changes) resets the series automatically:
+#     there are no `v<new-sdk>.*` tags, so the next push is `.0`. No stored
+#     counter, no anchor commit to bootstrap.
+#
+# Idempotency:
+#   If HEAD is ALREADY released — some `v<version>.N` points at this commit —
+#   the run is a no-op. Covers reruns, force-pushes that don't move the tip,
+#   and the GITHUB_TOKEN tag-push below (which doesn't re-trigger this
+#   workflow, but a manual re-dispatch shouldn't double-tag). We check HEAD
+#   against the FULL `ls-remote` output (including the `^{}` peel lines) so
+#   annotated tags — whose commit SHA lives on the peel line — are detected.
 #
 # Downstream trigger:
-#   GITHUB_TOKEN-pushed events DO NOT trigger downstream workflows
-#   (GitHub's recursion guard). So a plain `git push origin <tag>` here
-#   would never fire release.yml. The exception is `workflow_dispatch`
-#   and `repository_dispatch`, so we explicitly call `gh workflow run
-#   release.yml --ref <tag>`. Under that dispatch, release.yml sees
-#   `github.ref = refs/tags/<tag>` and its
-#   `if: startsWith(github.ref, 'refs/tags/')` upload step fires.
+#   GITHUB_TOKEN-pushed tag events DO NOT trigger downstream workflows
+#   (GitHub's recursion guard). So a plain `git push origin <tag>` here would
+#   never fire release.yml. `workflow_dispatch` is exempt, so we explicitly
+#   `gh workflow run release.yml --ref <tag> -f release=<N>`. Under that
+#   dispatch release.yml sees `github.ref = refs/tags/<tag>` and its
+#   `if: startsWith(github.ref, 'refs/tags/')` upload step fires; it bakes the
+#   passed `<N>` into the in-app footer.
+#
+#   (We tag HEAD, whose `.github/workflows/` content IS main's HEAD, so the
+#   GITHUB_TOKEN tag-push is never rejected by the workflow-file-permission
+#   rule that blocked the old bootstrap-an-old-anchor step.)
 #
 # Concurrency:
-#   We QUEUE concurrent main-push runs (cancel-in-progress: false). Two
-#   merges landing back-to-back must each get their own tag; cancelling
-#   the in-flight run would drop one release.
+#   QUEUE concurrent main-push runs (cancel-in-progress: false). They must
+#   serialize — two pushes each need to compute N against the other's freshly
+#   pushed tag, or they'd collide on the same number.
 #
 # Trade-off the user signed off on:
-#   Every merge to main triggers release.yml — a full macOS + Linux
-#   Electron build, ~15–45 min of runner time per merge. That's the cost
-#   of "one release per merge."
+#   Every push to main triggers release.yml — a full macOS + Linux Electron
+#   build, ~15-45 min of runner time per push. That's the cost of "one release
+#   per push to main."
 name: auto-tag
 
 on:
@@ -68,120 +72,82 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
-          # claudius-release.mjs walks main's commit history to find the
-          # version-change anchor. A shallow clone starves it → it returns
-          # 0 and we'd silently re-tag .0 on every merge.
+          # Full history + tags. checkout@v5 fetches tags at fetch-depth: 0;
+          # we also query origin directly below so a missing local tag can't
+          # skew the ordinal.
           fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
           node-version: 22
 
-      - name: Compute version, release counter, anchor
+      - name: Compute version + next release ordinal
         id: ver
+        shell: bash
         run: |
           set -euo pipefail
           VERSION=$(node -e 'process.stdout.write(require("./package.json").version)')
-          RELEASE=$(node scripts/claudius-release.mjs)
-          ANCHOR=$(node scripts/claudius-release.mjs --anchor)
-          TAG="v${VERSION}.${RELEASE}"
-          ANCHOR_TAG="v${VERSION}.0"
+          HEAD_SHA=$(git rev-parse HEAD)
+
+          # Authoritative tag ledger straight from origin. Lines look like:
+          #   <sha>\trefs/tags/vX.Y.Z.N        (tag object, or commit for a lightweight tag)
+          #   <commit-sha>\trefs/tags/vX.Y.Z.N^{}   (peel: the commit an annotated tag points to)
+          ALL=$(git ls-remote --tags origin "v${VERSION}.*" || true)
+
+          # Idempotency: HEAD already released? Match against the FULL output
+          # (the ^{} peel carries the commit SHA for annotated tags).
+          if printf '%s\n' "$ALL" | grep -q "^${HEAD_SHA}"; then
+            echo "HEAD ${HEAD_SHA} already carries a v${VERSION}.* tag — nothing to do."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Next ordinal = highest existing .N + 1, or 0 if none. Parse names
+          # from the non-peel lines so the trailing component is the bare N.
+          TAGS=$(printf '%s\n' "$ALL" | grep -v '\^{}' || true)
+          MAX=-1
+          while IFS=$'\t' read -r _sha ref; do
+            [ -z "${ref:-}" ] && continue
+            tag="${ref#refs/tags/}"      # vX.Y.Z.N
+            n="${tag##*.}"               # N
+            case "$n" in ''|*[!0-9]*) continue ;; esac
+            if [ "$n" -gt "$MAX" ]; then MAX="$n"; fi
+          done < <(printf '%s\n' "$TAGS")
+          NEXT=$(( MAX + 1 ))
+          TAG="v${VERSION}.${NEXT}"
+
           {
             echo "version=$VERSION"
-            echo "release=$RELEASE"
-            echo "anchor=$ANCHOR"
+            echo "release=$NEXT"
             echo "tag=$TAG"
-            echo "anchor_tag=$ANCHOR_TAG"
+            echo "skip=false"
           } >> "$GITHUB_OUTPUT"
-          echo "Computed: tag=$TAG anchor=${ANCHOR:-<none>} anchor_tag=$ANCHOR_TAG"
+          echo "Next release: $TAG (highest existing .N was ${MAX})"
 
       - name: Configure git identity for tagging
-        # Both subsequent steps need an author identity to create annotated
-        # tags. Setting it once here keeps the actual tag steps focused.
+        if: steps.ver.outputs.skip != 'true'
         run: |
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
 
-      - name: Bootstrap anchor tag (v<version>.0) if missing
-        # First firing after this workflow lands on main: main's tip is
-        # past the SDK-bump commit, so RELEASE >= 1 and v<version>.0 was
-        # never created. We tag the anchor commit itself so every SDK
-        # version has a contiguous .0 → .N tag series.
-        #
-        # When RELEASE = 0, we ARE at the anchor — the "Create current tag"
-        # step below tags v<version>.0 directly, so this step skips.
-        if: steps.ver.outputs.anchor != '' && steps.ver.outputs.release != '0'
-        # The push at the bottom of this step can be rejected by GitHub when
-        # the anchor commit's `.github/workflows/*.yml` content differs from
-        # main's HEAD (see the pre-flight diff check below). GITHUB_TOKEN
-        # cannot create a ref that "exposes" workflow-file content different
-        # from the default branch — that requires the `workflows` GitHub-App
-        # permission, which is NOT exposable through a workflow YAML
-        # `permissions:` block. So `continue-on-error` so a failed bootstrap
-        # doesn't take the rolling `v<version>.<N>` tag down with it. We've
-        # already lost v0.3.170.0; we still want v0.3.170.<N> on every merge.
-        continue-on-error: true
+      - name: Create release tag + dispatch build
+        if: steps.ver.outputs.skip != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          ANCHOR_TAG="${{ steps.ver.outputs.anchor_tag }}"
-          ANCHOR="${{ steps.ver.outputs.anchor }}"
-          if git ls-remote --exit-code --tags origin "refs/tags/$ANCHOR_TAG" >/dev/null 2>&1; then
-            echo "Anchor tag $ANCHOR_TAG already exists on origin; skipping bootstrap."
-            exit 0
-          fi
-          # Pre-flight: GITHUB_TOKEN can't push a ref whose `.github/workflows/`
-          # tree differs from main's HEAD (the GitHub-App `workflows`
-          # permission, which YAML can't grant). Detect that *before* the
-          # push, fail soft with a precise log line, and let the rolling
-          # tag step proceed. The user can re-create the anchor tag manually
-          # with a PAT or App token that has the `workflow` scope.
-          if ! git diff --quiet "$ANCHOR" HEAD -- .github/workflows/; then
-            echo "::warning::Anchor commit $ANCHOR has workflow-file content that differs from main's HEAD."
-            echo "::warning::Pushing $ANCHOR_TAG via GITHUB_TOKEN would be rejected — see auto-tag.yml comments."
-            echo "::warning::Skipping bootstrap. Re-create with a PAT/App token that has the workflow scope:"
-            echo "::warning::  git tag -a $ANCHOR_TAG $ANCHOR -m 'Claudius $ANCHOR_TAG' && git push <PAT-remote> $ANCHOR_TAG"
-            exit 0
-          fi
-          SUBJECT=$(git log -1 --format=%s "$ANCHOR")
-          echo "Creating anchor tag $ANCHOR_TAG at $ANCHOR ($SUBJECT)"
-          git tag -a "$ANCHOR_TAG" "$ANCHOR" -m "Claudius $ANCHOR_TAG — $SUBJECT"
-          git push origin "$ANCHOR_TAG"
-          # Dispatch release.yml at the anchor tag. The GITHUB_TOKEN
-          # tag-push above doesn't auto-trigger downstream workflows;
-          # workflow_dispatch does. release.yml's
-          # `if: startsWith(github.ref, 'refs/tags/')` upload step sees
-          # `github.ref = refs/tags/$ANCHOR_TAG` and fires.
-          #
-          # NB: we deliberately do NOT pass `-f release=0` here. The GH
-          # API resolves release.yml at the dispatched ref — which IS
-          # the anchor commit — and a sufficiently old anchor (e.g. one
-          # that predates the `inputs.release` declaration) would reject
-          # the flag with HTTP 422. This bit us once during the initial
-          # rollout: v0.3.161.0 pointed at the SDK-bump commit, which
-          # didn't have the input yet. For .0 specifically the omission
-          # is benign — release.yml's `Determine release counter` step
-          # parses the tag name → 0, and older release.yml versions ran
-          # claudius-release.mjs against a shallow checkout that also
-          # returned 0. Either path bakes the correct counter.
-          gh workflow run release.yml --ref "$ANCHOR_TAG"
-
-      - name: Create current tag (v<version>.<N>)
-        env:
-          GH_TOKEN: ${{ github.token }}
+        shell: bash
         run: |
           set -euo pipefail
           TAG="${{ steps.ver.outputs.tag }}"
+          # Race guard: a concurrently-queued run may have just created it.
           if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
-            echo "Tag $TAG already exists on origin; nothing to do."
+            echo "$TAG already exists on origin; nothing to do."
             exit 0
           fi
           SUBJECT=$(git log -1 --format=%s)
           echo "Creating $TAG at $(git rev-parse HEAD) ($SUBJECT)"
           git tag -a "$TAG" -m "Claudius $TAG — $SUBJECT"
           git push origin "$TAG"
-          # Pass the release counter so release.yml bakes it into the
-          # binary footer — see the bootstrap step above for the full
-          # rationale.
+          # GITHUB_TOKEN tag-push doesn't auto-trigger downstream workflows;
+          # workflow_dispatch does. Pass the ordinal so release.yml bakes the
+          # correct in-app footer.
           gh workflow run release.yml --ref "$TAG" -f release="${{ steps.ver.outputs.release }}"
