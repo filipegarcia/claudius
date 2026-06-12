@@ -3239,15 +3239,15 @@ export function useSession(): ChatState & ChatActions {
           return;
         }
         // Automatic model-fallback announcement (Options.fallbackModel kicked in).
-        // The SDK emits one of these when the primary model is overloaded or
-        // returns model_not_found — the spawned `claude` binary builds the same
-        // "Switched to <new> because <old> is not available [due to high demand
-        // for <old>]" string the CLI prints. Reuse `content` verbatim so the
-        // wording tracks the SDK (it varies by `trigger`: `overloaded` adds the
-        // high-demand suffix, `model_not_found` doesn't).
+        // The SDK emits one of these for all fallback triggers: `overloaded`,
+        // `model_not_found`, `permission_denied`, `server_error`, and
+        // `last_resort` (the latter two added in SDK 0.3.174). The spawned
+        // `claude` binary builds the human-readable `content` string the CLI
+        // prints ("Switched to <new> because <old> is not available…"). Reuse
+        // `content` verbatim so the wording tracks the SDK across all triggers.
         if (sysAny.subtype === "model_fallback") {
           const f = sysAny as unknown as {
-            trigger?: "overloaded" | "model_not_found";
+            trigger?: "overloaded" | "model_not_found" | "permission_denied" | "server_error" | "last_resort";
             original_model?: string;
             fallback_model?: string;
             content?: string;
