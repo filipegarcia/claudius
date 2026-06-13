@@ -98,6 +98,9 @@ function WebUpdaterBanner() {
   const [conflictDismissal, setConflictDismissal] = useState<ConflictDismissal | null>(() =>
     readConflictDismissal(),
   );
+  // Session-only dismissal for the recoverable install/build-failure banner,
+  // keyed by the failed commit. A *different* failure (new toSha) re-shows it.
+  const [dismissedRecovery, setDismissedRecovery] = useState<string | null>(null);
   if (!u.data) return null;
   const { state, settings, install } = u.data;
   if (!install.isGitCheckout) return null;
@@ -126,12 +129,20 @@ function WebUpdaterBanner() {
   const isConflictDismissed =
     !!rawConflicts && !!conflictDismissal && conflictDismissal.sha === conflictSha;
   const conflicts = isConflictDismissed ? undefined : rawConflicts;
-  // Conflicts win over plain errors — `lastError` is set in parallel, so
-  // without this we'd double-render the same situation as both a red
-  // "update failed" banner and an amber "conflicts" banner.
-  const hasError = !!state.lastError && state.lastError !== dismissedError && !conflicts;
+  // Recoverable install/build failure (HEAD landed at upstream but
+  // `bun install` / `bun run build` failed). Like conflicts it's surfaced as
+  // its own actionable banner, not the generic red error.
+  const rawRecovery = state.recovery;
+  const recoveryKey = rawRecovery ? `${rawRecovery.toSha}:${rawRecovery.phase}` : "_none";
+  const recovery =
+    rawRecovery && dismissedRecovery !== recoveryKey && !conflicts ? rawRecovery : undefined;
+  // Conflicts/recovery win over the plain error — `lastError` is set in
+  // parallel for both, so without this we'd double-render the same situation
+  // as both a red "update failed" banner and the actionable one.
+  const hasError =
+    !!state.lastError && state.lastError !== dismissedError && !conflicts && !recovery;
 
-  if (status === "idle" && !pending && !hasError && !conflicts) return null;
+  if (status === "idle" && !pending && !hasError && !conflicts && !recovery) return null;
 
   // Mid-apply / restart — informational, no actions.
   if (status === "applying" || status === "restarting") {
@@ -204,6 +215,60 @@ function WebUpdaterBanner() {
           onClick={() => setConflictDismissal(writeConflictDismissal(conflictSha))}
           aria-label="Dismiss for 24 hours"
           title="Hide for 24 hours — re-appears if a new conflict shows up or the snooze expires"
+          className="rounded p-0.5 text-[var(--muted)] hover:bg-amber-500/20 hover:text-[var(--foreground)]"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
+      </div>
+    );
+  }
+
+  // Recoverable install/build failure — the pull landed but dependency
+  // install or the Next build failed (e.g. a native module couldn't
+  // compile). The new code is already checked out, so we don't roll back;
+  // instead hand the captured error to a Claude session that fixes the
+  // build in place. Same actionable shape as conflicts.
+  if (recovery) {
+    return (
+      <div
+        data-pane-name="updater-banner-recovery"
+        className="flex items-center gap-2 border-b border-amber-500/40 bg-amber-500/10 px-4 py-1.5 text-xs"
+      >
+        <TriangleAlert className="h-3.5 w-3.5 shrink-0 text-amber-400" />
+        <span className="font-medium">Update needs your help</span>
+        <span className="hidden text-[var(--muted)] sm:inline">
+          pulled, but {recovery.phase === "install" ? "installing dependencies" : "the build"} failed
+          {recovery.toSha ? ` · @ ${recovery.toSha.slice(0, 7)}` : ""}
+        </span>
+        <button
+          onClick={async () => {
+            const r = await u.resolveWithClaude();
+            if (!r || typeof window === "undefined") return;
+            try {
+              sessionStorage.setItem("claudius.autofix-draft", r.prompt);
+              window.location.assign(`/${r.workspaceId}?new=1&prefill=1`);
+            } catch {
+              window.location.assign(
+                `/${r.workspaceId}?new=1&prefill=${encodeURIComponent(r.prompt)}`,
+              );
+            }
+          }}
+          disabled={u.busy}
+          className="ml-auto flex items-center gap-1 rounded border border-amber-500/40 bg-amber-500/15 px-2 py-0.5 hover:bg-amber-500/25 disabled:opacity-50"
+        >
+          {u.busy ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+          Resolve with Claude Code
+        </button>
+        <Link
+          href="/updater"
+          className="rounded border border-amber-500/40 bg-amber-500/15 px-2 py-0.5 hover:bg-amber-500/25"
+        >
+          Details
+        </Link>
+        <button
+          onClick={() => setDismissedRecovery(recoveryKey)}
+          aria-label="Dismiss for this session"
+          title="Hide until this update finishes or a new failure shows up"
           className="rounded p-0.5 text-[var(--muted)] hover:bg-amber-500/20 hover:text-[var(--foreground)]"
         >
           <X className="h-3.5 w-3.5" />
@@ -359,6 +424,32 @@ function ElectronUpdaterBanner({
         >
           <RefreshCw className="h-3 w-3" />
           Restart and install
+        </button>
+      </div>
+    );
+  }
+
+  // macOS ad-hoc build — an update exists but this build can't self-install
+  // it (Squirrel.Mac rejects the swap; see autoUpdateIsSafe in
+  // electron/ipc/updater.ts). Point the user at the DMG. `apply()` routes to
+  // shell.openExternal(Releases) on the main side for this state.
+  if (status.kind === "manual-download") {
+    return (
+      <div
+        data-pane-name="updater-banner-electron-manual"
+        className="flex items-center gap-2 border-b border-emerald-500/40 bg-emerald-500/10 px-4 py-1.5 text-xs"
+      >
+        <Sparkles className="h-3.5 w-3.5 shrink-0 text-emerald-400" />
+        <span className="font-medium">Claudius {status.version} is available</span>
+        <span className="hidden text-[var(--muted)] sm:inline">
+          download the new version and drag it into Applications to update
+        </span>
+        <button
+          onClick={apply}
+          className="ml-auto flex items-center gap-1 rounded border border-emerald-500/40 bg-emerald-500/15 px-2 py-0.5 hover:bg-emerald-500/25"
+        >
+          <ArrowDownToLine className="h-3 w-3" />
+          Download update
         </button>
       </div>
     );

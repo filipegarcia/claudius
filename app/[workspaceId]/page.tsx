@@ -43,6 +43,7 @@ import { PlanOverlay } from "@/components/overlays/PlanOverlay";
 import { WorktreesOverlay } from "@/components/overlays/WorktreesOverlay";
 import type { AttachedImage, SessionInfo } from "@/lib/client/types";
 import { useSession } from "@/lib/client/use-session";
+import { matchBinding, useShortcut } from "@/lib/client/shortcuts";
 import { useClaudius, useElectronSubscription } from "@/lib/client/useElectron";
 import { parseAskQuestions, type AskAnswer, type AskQuestion } from "@/lib/shared/events";
 import { useLimits } from "@/lib/client/useLimits";
@@ -716,6 +717,11 @@ export default function Home() {
   // so each bump re-opens the editor.
   const [goalEditNonce, setGoalEditNonce] = useState(0);
 
+  // Bumped by the `session.focusTitle` keybinding (Cmd+Option+T by default) to open the
+  // RecapBanner's inline title editor and focus it. RecapBanner watches the
+  // value, not equality, so each press re-opens the editor.
+  const [titleEditNonce, setTitleEditNonce] = useState(0);
+
   // Per-browser pref: whether the empty "Set a session goal" prompt is hidden.
   // Only suppresses the empty state (an active goal still shows); restored from
   // the collapsed title row's hover affordance or from Settings.
@@ -737,6 +743,23 @@ export default function Home() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [searchOpen]);
+
+  // Focus session title ────────────────────────────────────────────────────
+  // The `session.focusTitle` binding (Cmd+Option+T by default) opens the
+  // RecapBanner's inline rename editor. The chord produces no character on any
+  // keyboard layout, so it's safe to fire even while the chat composer holds
+  // focus — no `isTypingTarget` gate needed.
+  const focusTitleBinding = useShortcut("session.focusTitle");
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (!matchBinding(focusTitleBinding, e)) return;
+      if (!session.sessionId) return;
+      e.preventDefault();
+      setTitleEditNonce((n) => n + 1);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [focusTitleBinding, session.sessionId]);
   const onPickHit = useCallback(
     async (hit: SearchHit) => {
       setSearchOpen(false);
@@ -1706,6 +1729,7 @@ export default function Home() {
               sessionId={session.sessionId}
               title={session.sessionTitle}
               onRename={session.renameTitle}
+              openEditNonce={titleEditNonce}
             />
             <GoalBanner
               embedded

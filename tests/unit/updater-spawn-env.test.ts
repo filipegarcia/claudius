@@ -165,9 +165,56 @@ describe("spawnStreamed env overrides", () => {
       //
       // Locking the rule here makes the regression a one-line test failure
       // instead of a fleet-wide outage discovered by users.
-      expect(envForBunPhase("install")).toEqual({ NODE_ENV: "development" });
-      expect(envForBunPhase("build")).toEqual({ NODE_ENV: "production" });
+      expect(envForBunPhase("install")).toMatchObject({ NODE_ENV: "development" });
+      expect(envForBunPhase("build")).toMatchObject({ NODE_ENV: "production" });
     },
+  );
+
+  test(
+    "envForBunPhase scrubs the Next standalone-server env that leaks into children",
+    () => {
+      // The daemon IS a Next standalone server; Next injects
+      // __NEXT_PRIVATE_STANDALONE_CONFIG (a frozen config with a baked
+      // outputFileTracingRoot/turbopack.root) and TURBOPACK into every child.
+      // A self-update's `next build` inheriting those rebuilds against a
+      // stale/foreign root and dies with Turbopack `Invalid distDirRoot` or
+      // emits the standalone tree under the wrong dir. envForBunPhase must
+      // mark them for deletion (value === undefined → spawnStreamed drops it).
+      for (const phase of ["install", "build"] as const) {
+        const env = envForBunPhase(phase);
+        for (const key of [
+          "__NEXT_PRIVATE_STANDALONE_CONFIG",
+          "__NEXT_PRIVATE_ORIGIN",
+          "TURBOPACK",
+          "NEXT_DEPLOYMENT_ID",
+        ]) {
+          expect(key in env).toBe(true);
+          expect(env[key]).toBeUndefined();
+        }
+      }
+    },
+  );
+
+  test(
+    "spawnStreamed deletes an inherited var when the override value is undefined",
+    async () => {
+      tmp = freshCwd();
+      // The scrub mechanism: a poisoned var present in the parent must not
+      // reach the child when the caller passes it as `undefined`.
+      process.env.__NEXT_PRIVATE_STANDALONE_CONFIG = '{"poisoned":true}';
+      try {
+        const { code, out } = await spawnPrintingEnv(
+          ["__NEXT_PRIVATE_STANDALONE_CONFIG"],
+          { __NEXT_PRIVATE_STANDALONE_CONFIG: undefined },
+          tmp,
+        );
+        expect(code).toBe(0);
+        expect(out).toBe("<undef>");
+      } finally {
+        delete process.env.__NEXT_PRIVATE_STANDALONE_CONFIG;
+      }
+    },
+    15_000,
   );
 
   test(

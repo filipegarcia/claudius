@@ -186,6 +186,18 @@ async function runApply(opts: { allowCcMerge?: boolean }): Promise<ApplyOutcome>
     // path so bun can resolve the merged manifest.
     const installArgs =
       strategy.kind === "ff-only" ? ["install", "--frozen-lockfile"] : ["install"];
+    // Skip lifecycle scripts (notably better-sqlite3's `node-gyp rebuild`)
+    // unless this pull actually changed a native dependency. better-sqlite3
+    // is *patched* (patches/better-sqlite3@*.patch edits the C++), so every
+    // install with scripts forces a from-source compile — and on the
+    // unattended daemon's stripped PATH that node-gyp build is exactly what
+    // was failing with `exited with code 7`, dead-ending the whole update.
+    // When neither bun.lock nor patches/ moved, the binary already on disk
+    // is still valid for the runtime, so the rebuild is pointless; skip it.
+    if (!(await nativeBuildAffected(root, fromSha))) {
+      installArgs.push("--ignore-scripts");
+      await appendLog(root, `install: no native dep change since ${fromSha.slice(0, 7)} — skipping rebuild scripts\n`);
+    }
     await runStreamed(root, "bun", installArgs, "install", envForBunPhase("install"));
     await runStreamed(root, "bun", ["run", "build"], "build", envForBunPhase("build"));
 
@@ -196,6 +208,7 @@ async function runApply(opts: { allowCcMerge?: boolean }): Promise<ApplyOutcome>
       lastError: undefined,
       pending: undefined,
       conflicts: undefined,
+      recovery: undefined,
       status: { kind: "restarting", startedAt: Date.now() },
     });
     await appendLog(root, `apply ok — restarting (was ${fromSha.slice(0, 7)}, now ${toSha.slice(0, 7)})\n`);
@@ -212,6 +225,28 @@ async function runApply(opts: { allowCcMerge?: boolean }): Promise<ApplyOutcome>
     const phase = (err as PhaseError).phase ?? "init";
     const msg = err instanceof Error ? err.message : String(err);
     await appendLog(root, `apply failed in ${phase}: ${msg}\n`);
+
+    // Install/build failures are RECOVERABLE, not dead ends. The git step
+    // already succeeded (HEAD is at upstream); only `bun install` or
+    // `bun run build` failed. Rolling back here would discard the pulled
+    // commits and strand the user facing the identical failure on the next
+    // attempt with no way forward — which is the exact "this should never
+    // happen, ever" trap. Instead, leave the tree advanced, record a
+    // recovery entry (the banner then offers "Resolve with Claude Code"),
+    // and skip the restart so the currently-running build keeps serving
+    // until the user finishes the update. Same recovery UX as a stash-pop
+    // conflict.
+    if (phase === "install" || phase === "build") {
+      const toSha = await headSha(root).catch(() => fromSha);
+      await patchUpdaterState({
+        lastError: `${phase}: ${msg}`,
+        recovery: { phase, fromSha, toSha, detail: msg, detectedAt: Date.now() },
+        status: { kind: "idle" },
+      });
+      await appendLog(root, `${phase} failed — recoverable, tree left at ${toSha.slice(0, 7)}\n`);
+      return { kind: "error", message: msg, phase };
+    }
+
     // Roll back the source tree so the install isn't wedged. If we got past
     // the pull/merge, the working tree is now upstream (and possibly with
     // partial install/build artifacts) — the next restart would refuse to
@@ -227,9 +262,11 @@ async function runApply(opts: { allowCcMerge?: boolean }): Promise<ApplyOutcome>
     // serving until the user re-runs install/build manually.
     let rolledBack = false;
     let attemptedRollback = false;
-    const canRollback =
-      strategy.kind !== "stash-ff" &&
-      (phase === "install" || phase === "build" || phase === "merge");
+    // install/build failures returned early above (recoverable). What's left
+    // here is a merge-phase failure that didn't surface as conflicts — roll
+    // that back to the pre-apply commit. stash-ff is never rolled back (it
+    // would discard the user's popped-back edits).
+    const canRollback = strategy.kind !== "stash-ff" && phase === "merge";
     if (canRollback) {
       attemptedRollback = true;
       try {
@@ -255,6 +292,40 @@ async function runApply(opts: { allowCcMerge?: boolean }): Promise<ApplyOutcome>
     });
     return { kind: "error", message: msg, phase };
   }
+}
+
+/**
+ * Did this pull change anything that requires a native module rebuild? A
+ * native addon (better-sqlite3) only needs to be recompiled when its package
+ * version moved (captured by `bun.lock`) or its applied patch changed
+ * (captured by `patches/`). When neither moved, the compiled binary already on
+ * disk is still valid for the runtime and re-running the fragile, toolchain-
+ * dependent `node-gyp` build is pointless — so we skip lifecycle scripts.
+ *
+ * Fail-safe: if we can't compute the diff, assume it changed and run the full
+ * install (correctness over speed). A rebuild that then fails routes to the
+ * recoverable install-failure path, not a silent stale binary.
+ */
+async function nativeBuildAffected(root: string, fromSha: string): Promise<boolean> {
+  const changed: string[] = [];
+  try {
+    const code = await spawnStreamed(
+      "git",
+      // bun.lock (text) is the current format; bun.lockb (binary) is passed
+      // too for robustness across bun versions — git ignores a pathspec that
+      // matches nothing here.
+      ["diff", "--name-only", fromSha, "HEAD", "--", "bun.lock", "bun.lockb", "patches"],
+      root,
+      (line) => {
+        const t = line.trim();
+        if (t) changed.push(t);
+      },
+    );
+    if (code !== 0) return true;
+  } catch {
+    return true;
+  }
+  return changed.length > 0;
 }
 
 async function rollbackTo(root: string, sha: string): Promise<void> {
@@ -522,14 +593,36 @@ const ERR_TAIL_MAX_LINE = 400;
  *     modes. Forcing "production" is what `next build` expects and is the
  *     only configuration we actually ship.
  *
+ * Scrubbed in BOTH phases (passed as `undefined`, which spawnStreamed deletes):
+ *
+ *   - __NEXT_PRIVATE_STANDALONE_CONFIG / __NEXT_PRIVATE_ORIGIN
+ *     The running daemon IS a Next standalone server, and Next injects these
+ *     into every child process. They pin a frozen, serialized config (with an
+ *     `outputFileTracingRoot` / `turbopack.root` baked at the ORIGINAL build
+ *     time) that overrides the project's own `next.config.ts`. A self-update's
+ *     `next build` inheriting them rebuilds against a stale/foreign root and
+ *     dies with Turbopack `Invalid distDirRoot` or emits the standalone tree
+ *     under the wrong directory. The build must read next.config.ts fresh.
+ *   - TURBOPACK / NEXT_DEPLOYMENT_ID
+ *     Bundler-selection / deployment leakage from the parent; harmless to drop
+ *     and avoids forcing a bundler the build didn't choose.
+ *
  * Tested in `tests/unit/updater-spawn-env.test.ts`.
  */
-export function envForBunPhase(
-  phase: "install" | "build",
-): { NODE_ENV: "development" | "production" } {
-  return phase === "install"
-    ? { NODE_ENV: "development" }
-    : { NODE_ENV: "production" };
+const SCRUBBED_NEXT_BUILD_ENV = [
+  "__NEXT_PRIVATE_STANDALONE_CONFIG",
+  "__NEXT_PRIVATE_ORIGIN",
+  "TURBOPACK",
+  "NEXT_DEPLOYMENT_ID",
+] as const;
+
+export function envForBunPhase(phase: "install" | "build"): Partial<NodeJS.ProcessEnv> {
+  const scrub: Partial<NodeJS.ProcessEnv> = {};
+  for (const key of SCRUBBED_NEXT_BUILD_ENV) scrub[key] = undefined;
+  return {
+    NODE_ENV: phase === "install" ? "development" : "production",
+    ...scrub,
+  };
 }
 
 async function runStreamed(

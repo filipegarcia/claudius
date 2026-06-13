@@ -118,8 +118,23 @@ additive on top of the standalone flows.
 4. If `run`, **`orchestrate.ts`** takes over:
    1. Pre-flight: `ANTHROPIC_API_KEY` set, `gh` authed, working tree
       clean. Refuses to start otherwise.
-   2. `git fetch origin` and create `sdk-update/<version>` fresh off
-      `origin/main` (stale local branch with the same name is deleted).
+   2. `git fetch origin`, then pick the working branch:
+      - **Continuation** — if an `sdk-update/*` PR is still **open** (a
+        newer release shipped before the human merged the prior one),
+        reuse that PR's existing branch so the new bump *stacks* onto the
+        prior work and lands in **one** PR. `main` is merged in first
+        (the existing resume path), the dep bump goes on top, and the
+        same PR is retitled `<prev> → <newest>` with a changelog spanning
+        the full range. The branch keeps its original name
+        (`sdk-update/<first-version>`) because GitHub ties a PR to its
+        head ref — renaming would orphan the PR; the PR *title* tracks the
+        real target. If somehow more than one is open, the
+        **highest-version** one is chosen and the rest are logged for a
+        human to close (never auto-closed). See `findOpenSdkUpdatePr` /
+        `pickContinuationPr`.
+      - **Fresh** — otherwise create `sdk-update/<version>` off
+        `origin/main` (a stale local branch with the same name is deleted).
+      Continuation detection is skipped under `--dry-run`.
    3. **Announce** "🆕 New claude-agent-sdk release: PREV → NEW.
       Starting upgrade on branch …" to `<CHAT_SERVER_URL>/admin/announce`
       so the channel hears about the run within seconds — not minutes

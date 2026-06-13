@@ -407,15 +407,25 @@ export function spawnStreamed(
     // PATH if they want to (last write wins). Without this, a daemon
     // launched outside a shell (Finder, launchd, IDE) hits `spawn bun
     // ENOENT` because ~/.bun/bin isn't on the inherited PATH.
+    const childEnv: NodeJS.ProcessEnv = {
+      ...process.env,
+      GIT_TERMINAL_PROMPT: "0",
+      GIT_ASKPASS: "/bin/echo",
+      PATH: extendedPath(process.env.PATH),
+      ...envOverrides,
+    };
+    // A spread can only ADD/replace keys, never remove an inherited one. To
+    // let a caller *scrub* a variable it inherited from this process, treat an
+    // override whose value is `undefined` as a deletion. (Needed because the
+    // daemon/standalone server leaks `__NEXT_PRIVATE_STANDALONE_CONFIG`,
+    // `TURBOPACK`, etc. into children, which poisons a self-update's
+    // `next build` — see envForBunPhase.)
+    for (const key of Object.keys(childEnv)) {
+      if (childEnv[key] === undefined) delete childEnv[key];
+    }
     const child = spawn(cmd, args, {
       cwd,
-      env: {
-        ...process.env,
-        GIT_TERMINAL_PROMPT: "0",
-        GIT_ASKPASS: "/bin/echo",
-        PATH: extendedPath(process.env.PATH),
-        ...envOverrides,
-      },
+      env: childEnv,
       stdio: ["ignore", "pipe", "pipe"],
     });
     let outBuf = "";

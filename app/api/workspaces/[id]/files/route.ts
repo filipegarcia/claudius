@@ -1,6 +1,7 @@
 import { promises as fs } from "node:fs";
 import { isAbsolute, join, normalize, relative, resolve, sep } from "node:path";
 import { NextResponse } from "next/server";
+import { getRepoRoot } from "@/lib/server/git";
 import { resolveWorkspaceRoot } from "@/lib/server/workspace-roots";
 
 export const runtime = "nodejs";
@@ -23,6 +24,28 @@ function inside(root: string, target: string): boolean {
   return !r.startsWith("..") && !isAbsolute(r);
 }
 
+/**
+ * Pick the base directory the request path resolves against.
+ *
+ * Default is the workspace root (`wsRoot`) — what the Files browser uses.
+ * When `?base=git` is passed, resolve against the **git repository root**
+ * instead. `git status` reports paths relative to the repo top-level, so the
+ * /git diff view (FileEditor) passes `base=git` to read/write the working-tree
+ * file. Without it, a workspace opened on a subdirectory of the repo would
+ * double up the path (`<wsRoot>/<repo-relative-path>`) and 404 with
+ * "path not found" — exactly the bug this fixes.
+ *
+ * The repo root comes from `git rev-parse --show-toplevel` (trusted, server-
+ * resolved) and is always an ancestor of — or equal to — `wsRoot`, so it's a
+ * superset boundary, not an escape. Falls back to `wsRoot` when the workspace
+ * isn't inside a git work tree.
+ */
+async function resolveBase(wsRoot: string, baseSel: string | null): Promise<string> {
+  if (baseSel !== "git") return wsRoot;
+  const repoRoot = await getRepoRoot(wsRoot);
+  return repoRoot ? resolve(repoRoot) : wsRoot;
+}
+
 export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
   const url = new URL(req.url);
@@ -42,7 +65,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
   // `rel` is the only client-tainted input; `root` is the trusted server-
   // resolved base. CodeQL's StartsWithDirSanitizer wants `resolve` (not
   // `join`) and the inline check below — see CLAUDE.md "Path safety".
-  const root = resolved.root.absPath;
+  const root = await resolveBase(resolved.root.absPath, url.searchParams.get("base"));
   const rel = normalize(rawPath).replace(/^\/+/, "");
   const target = resolve(root, rel);
   if (!inside(root, target)) {
@@ -183,6 +206,7 @@ async function resolveBoundedTarget(
   id: string,
   rootSel: string | null,
   rawPath: string,
+  baseSel: string | null = null,
 ): Promise<{ ok: true; root: string; target: string } | { ok: false; status: number; error: string }> {
   const resolved = await resolveWorkspaceRoot(id, rootSel);
   if (!resolved) {
@@ -193,7 +217,7 @@ async function resolveBoundedTarget(
     };
   }
   if (!rawPath) return { ok: false, status: 400, error: "path required" };
-  const root = resolved.root.absPath;
+  const root = await resolveBase(resolved.root.absPath, baseSel);
   const rel = normalize(rawPath).replace(/^\/+/, "");
   if (rel === ".." || rel.startsWith("../")) {
     return { ok: false, status: 400, error: "path escapes workspace root" };
@@ -209,7 +233,12 @@ async function resolveBoundedTarget(
 export async function PUT(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
   const url = new URL(req.url);
-  const r = await resolveBoundedTarget(id, url.searchParams.get("root"), url.searchParams.get("path") ?? "");
+  const r = await resolveBoundedTarget(
+    id,
+    url.searchParams.get("root"),
+    url.searchParams.get("path") ?? "",
+    url.searchParams.get("base"),
+  );
   if (!r.ok) return NextResponse.json({ error: r.error }, { status: r.status });
   const body = await req.text();
   // Reject if target is an existing directory.

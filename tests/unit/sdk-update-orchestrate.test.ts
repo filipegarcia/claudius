@@ -16,6 +16,8 @@ import {
   compareUrl,
   extractSection,
   parseSkipGates,
+  pickContinuationPr,
+  type OpenPrSummary,
   sliceChangelog,
   summarizeSdkMessage,
   validateRunNotesContent,
@@ -569,6 +571,59 @@ describe("buildStartAnnouncement", () => {
     const out = buildStartAnnouncement(base);
     // Header is short — well under the chat-server's 2000-char limit.
     expect(out.length).toBeLessThan(500);
+  });
+
+  test("calls out the continuation PR when stacking onto an open one", () => {
+    const out = buildStartAnnouncement({ ...base, continuationPrNumber: 48 });
+    expect(out).toContain("#48");
+    expect(out).toContain("Continuing");
+    // Still names versions + branch so the post is self-contained.
+    expect(out).toContain("0.3.141 → 0.3.142");
+    expect(out).toContain("sdk-update/0.3.142");
+  });
+
+  test("omits the continuation wording on a fresh run", () => {
+    const out = buildStartAnnouncement(base);
+    expect(out).not.toContain("Continuing");
+    expect(out).toContain("Starting upgrade");
+  });
+});
+
+// ── pickContinuationPr — chooses which open PR to stack onto ──────────
+describe("pickContinuationPr", () => {
+  const pr = (
+    number: number,
+    headRefName: string,
+  ): OpenPrSummary => ({ number, headRefName, url: `https://x/pull/${number}`, title: `pr ${number}` });
+
+  test("returns null when there are no open PRs", () => {
+    expect(pickContinuationPr([])).toBeNull();
+  });
+
+  test("ignores PRs whose branch is not an sdk-update branch", () => {
+    const out = pickContinuationPr([pr(10, "feat/cheatsheet"), pr(11, "fix/login")]);
+    expect(out).toBeNull();
+  });
+
+  test("returns the single open sdk-update PR with no duplicates", () => {
+    const out = pickContinuationPr([pr(48, "sdk-update/0.3.169"), pr(49, "site/flipbook")]);
+    expect(out?.number).toBe(48);
+    expect(out?.branch).toBe("sdk-update/0.3.169");
+    expect(out?.duplicates).toEqual([]);
+  });
+
+  test("picks the HIGHEST-version sdk-update PR when several are open", () => {
+    // The exact double-PR mess this feature exists to consolidate: 0.3.170
+    // shipped, 0.3.171 then shipped before a merge. We continue on the
+    // newest (0.3.171) and report the rest as duplicates to close.
+    const out = pickContinuationPr([
+      pr(48, "sdk-update/0.3.170"),
+      pr(50, "sdk-update/0.3.171"),
+      pr(46, "sdk-update/0.3.169"),
+    ]);
+    expect(out?.number).toBe(50);
+    expect(out?.branch).toBe("sdk-update/0.3.171");
+    expect(out?.duplicates.map((d) => d.number).sort()).toEqual([46, 48]);
   });
 });
 

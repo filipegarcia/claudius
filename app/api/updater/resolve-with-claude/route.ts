@@ -35,6 +35,7 @@ export async function POST() {
 
   const file = await readUpdaterFile();
   const conflicts = file.state.conflicts;
+  const recovery = file.state.recovery;
   const dirty = await isDirty(root).catch(() => true);
 
   // Find an existing workspace pointing at the install root; create one if
@@ -54,15 +55,71 @@ export async function POST() {
   await setActiveId(workspace.id);
   await writeActiveCookie(workspace.id);
 
-  const prompt = buildResolutionPrompt({
-    root,
-    dirty,
-    fromSha: conflicts?.fromSha,
-    toSha: conflicts?.toSha,
-    detail: conflicts?.detail,
-  });
+  // Two recovery shapes share this route and the same prefill plumbing:
+  //   - conflicts: a stash-pop / merge left markers in the tree.
+  //   - recovery:  the git step landed but `bun install` / `bun run build`
+  //                failed (e.g. a native module couldn't compile).
+  // Conflicts take priority when both are somehow set (markers block
+  // install/build anyway).
+  const prompt =
+    !conflicts && recovery
+      ? buildBuildFailurePrompt({
+          root,
+          phase: recovery.phase,
+          fromSha: recovery.fromSha,
+          toSha: recovery.toSha,
+          detail: recovery.detail,
+        })
+      : buildResolutionPrompt({
+          root,
+          dirty,
+          fromSha: conflicts?.fromSha,
+          toSha: conflicts?.toSha,
+          detail: conflicts?.detail,
+        });
 
   return NextResponse.json({ workspaceId: workspace.id, prompt });
+}
+
+function buildBuildFailurePrompt(input: {
+  root: string;
+  phase: "install" | "build";
+  fromSha?: string;
+  toSha?: string;
+  detail?: string;
+}): string {
+  const head = input.fromSha
+    ? `\nBefore the apply: HEAD was at \`${input.fromSha.slice(0, 7)}\`.`
+    : "";
+  const tip = input.toSha
+    ? `\nAfter the pull: HEAD is now at \`${input.toSha.slice(0, 7)}\` (upstream) — the new code is already checked out.`
+    : "";
+  const detail = input.detail
+    ? `\nThe failing command reported:\n\n\`\`\`\n${input.detail}\n\`\`\`\n`
+    : "";
+  const cmd = input.phase === "install" ? "`bun install`" : "`bun run build`";
+
+  return `The Claudius self-updater pulled new commits from upstream successfully, but then ${cmd} failed, so the update never finished. Please get the tree building again so I can restart into the new version.
+
+Install root: \`${input.root}\`${head}${tip}${detail}
+
+Context worth knowing:
+- This is a git checkout running as a daemon (\`bin/claudiusd\`), not the packaged Electron app.
+- \`better-sqlite3\` is a native module and is **patched** (see \`patches/\`), so a plain \`bun install\` recompiles it from source via \`node-gyp\`. That compile needs a working toolchain (a \`node\` on PATH, \`python3\`, and the Xcode command-line tools on macOS). A common cause of \`node-gyp ... exited with code 7\` is one of those missing from the daemon's environment.
+
+Step-by-step, please:
+
+1. Run the failing command yourself and read the real error — start with ${cmd}. If it's the native ${input.phase === "build" ? "build" : "module"}, check: is \`node\` on PATH? \`python3 --version\`? \`xcode-select -p\`?
+2. Diagnose the root cause from the actual output, not a guess. If a prebuilt binary for \`better-sqlite3\` already exists at \`node_modules/better-sqlite3/build/Release/better_sqlite3.node\` and the version didn't change, you may be able to finish with \`bun install --ignore-scripts\` and avoid the recompile entirely.
+3. Fix it, then prove the tree is healthy: run \`bun install\` (or \`bun install --ignore-scripts\` if appropriate) **and** \`bun run build\` to completion.
+4. Report exactly what was wrong and what you changed.
+
+Hard rules:
+- DO NOT \`git reset --hard\` or roll back the pulled commits — the goal is to make the NEW code build, not to revert it.
+- DO NOT push anywhere.
+- DO NOT touch \`.claudius/\` or delete \`.next/\` (the running server is still serving the old build from it).
+
+Once \`bun run build\` passes, I'll restart Claudius from the /updater page.`;
 }
 
 function buildResolutionPrompt(input: {

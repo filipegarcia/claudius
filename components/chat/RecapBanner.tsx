@@ -31,6 +31,12 @@ type Props = {
    * The parent only passes this when the goal is actually hidden.
    */
   onShowGoal?: () => void;
+  /**
+   * Parent-driven "open the rename editor" signal — bumped by the
+   * `session.focusTitle` keybinding (F2 by default). Each new value opens the
+   * inline title input and focuses it; mirrors GoalBanner's `openEditNonce`.
+   */
+  openEditNonce?: number;
 };
 
 const PLACEHOLDER = "Untitled session";
@@ -59,6 +65,7 @@ export function RecapBanner({
   embedded,
   goalRowBelow = true,
   onShowGoal,
+  openEditNonce,
 }: Props) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
@@ -71,6 +78,21 @@ export function RecapBanner({
       inputRef.current.select();
     }
   }, [editing]);
+
+  // Parent-driven "open the editor" signal (the `session.focusTitle`
+  // keybinding). Handled with React's "adjust state when a prop changes"
+  // pattern — compare the nonce against the last value we acted on and open
+  // during render rather than in an effect (avoids a cascading-render round
+  // trip). The `[editing]` effect above then focuses + selects the input.
+  const [seenEditNonce, setSeenEditNonce] = useState(openEditNonce ?? 0);
+  if (typeof openEditNonce === "number" && openEditNonce !== seenEditNonce) {
+    setSeenEditNonce(openEditNonce);
+    if (openEditNonce > 0 && Boolean(onRename)) {
+      setDraft(title ?? "");
+      setSaveErr(null);
+      setEditing(true);
+    }
+  }
 
   // Render the row even before the SDK surfaces a title so the rename
   // affordance is reachable from second one of a fresh session. The

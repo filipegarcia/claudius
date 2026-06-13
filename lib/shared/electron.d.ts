@@ -46,7 +46,18 @@ export type ClaudiusUpdaterStatus =
    * instead of a cryptic `EPERM`/`EACCES` blob. `message` is the raw
    * underlying error for diagnostics. Added in bridgeVersion 7.
    */
-  | { kind: "blocked-app-management"; message: string };
+  | { kind: "blocked-app-management"; message: string }
+  /**
+   * macOS-only: an update is published but this build cannot install it in
+   * place. Our certless release pipeline ad-hoc signs the macOS bundle, and
+   * Squirrel.Mac refuses to swap an update that doesn't satisfy the installed
+   * app's designated code requirement (ad-hoc builds never do). Rather than
+   * download an update that fails post-quit with "code failed to satisfy
+   * specified code requirement(s)", the main process surfaces this state so the
+   * renderer can prompt a manual download. `url` is the GitHub Releases page
+   * carrying the DMG.
+   */
+  | { kind: "manual-download"; version: string; url: string };
 
 /** File-dialog filter, matching Electron's `FileFilter`. */
 export type ClaudiusFileFilter = {

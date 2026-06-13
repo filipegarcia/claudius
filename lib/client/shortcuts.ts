@@ -173,7 +173,9 @@ export const SHORTCUT_ACTIONS: ShortcutAction[] = [
   ...navAction("nav.schedule", "Open Schedule", "KeyL"),
   ...navAction("nav.permissions", "Open Permissions", "KeyP"),
   ...navAction("nav.docker", "Open Docker", "KeyD"),
-  ...navAction("nav.tracker", "Open Tracker", "KeyT"),
+  // "KeyT" (Cmd+Option+T) was reassigned to session.focusTitle (rename);
+  // Tracker moved to Cmd+Option+R ("tRacker").
+  ...navAction("nav.tracker", "Open Tracker", "KeyR"),
   ...navAction("nav.database", "Open Database", "KeyE"),
   ...navAction("nav.notebooks", "Open Notebooks", "KeyJ"),
   ...navAction("nav.workspace", "Open Workspace settings", "KeyW"),
@@ -251,6 +253,19 @@ export const SHORTCUT_ACTIONS: ShortcutAction[] = [
     description: "Open the keyboard-shortcut help overlay.",
     category: "navigation",
     default: { mod: true, code: "Slash" },
+  },
+  {
+    id: "session.focusTitle",
+    label: "Rename session",
+    description:
+      "Focus the session title input so you can rename the current session.",
+    category: "navigation",
+    // Cmd+Option+T — picked over the F2 rename convention by request. The
+    // chord produces no character on any keyboard layout, so the
+    // window-level listener can fire it even while the chat composer holds
+    // focus (no `isTypingTarget` gate needed). Cmd+Option+T was previously
+    // nav.tracker's default; that action moved to Cmd+Option+R.
+    default: { mod: true, alt: true, code: "KeyT" },
   },
 
   // ── Window controls (Electron-only; web build no-ops) ──────────────

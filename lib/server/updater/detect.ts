@@ -92,6 +92,13 @@ async function runCheck(): Promise<CheckResult> {
     if (localSha === remoteSha) {
       // Clear conflicts when there are no unmerged index entries — the user
       // resolved them externally (or the conflict was a false positive).
+      //
+      // NOTE: do NOT clear `recovery` here. After an install/build failure
+      // HEAD is already at upstream, so being up-to-date is the *normal*
+      // state while the build is still broken — clearing on it would wipe the
+      // recovery affordance on the very next routine check. Recovery is
+      // cleared only by a successful apply or a successful process boot (the
+      // running build provably works), handled elsewhere.
       await patchUpdaterState({
         lastCheckAt: Date.now(),
         lastError: undefined,

@@ -331,6 +331,31 @@ the full contract lives in `lib/shared/electron.d.ts`.
 > `bun run test`. `scripts/native-abi.mjs` records the current side and warns
 > on mismatch.
 
+### macOS auto-update is gated on code signing — revisit when we sign builds
+
+> **⚠️ When we add Apple Developer ID code signing + notarization, come back to
+> this.** macOS auto-update (Squirrel.Mac / `ShipIt`) validates that the
+> downloaded update satisfies the *installed* app's designated code requirement.
+> Our public release pipeline currently **ad-hoc signs** the macOS bundle
+> (certless — `codesign --sign -` in `build/after-pack.js`, with
+> `-c.mac.notarize=false` in `.github/workflows/release.yml`). Ad-hoc signatures
+> have no Team ID anchor, so no two builds satisfy each other's requirement and
+> every in-place swap is rejected post-quit with *"code failed to satisfy
+> specified code requirement(s)"* — stranding the user on a half-applied update.
+>
+> Because of that, `electron/ipc/updater.ts` **disables the in-place self-update
+> on macOS unless the running app is Developer ID signed** (runtime `codesign`
+> probe — `isDeveloperIdSigned` / `autoUpdateIsSafe`). Unsigned mac builds skip
+> the download entirely and surface a "Download update" banner that points at the
+> GitHub Releases DMG instead.
+>
+> The gate is runtime, not build-time, so once real signing + notarization land
+> (wire the `CSC_*` / `APPLE_*` secrets into the two mac release jobs and drop the
+> `notarize=false` / `CSC_IDENTITY_AUTO_DISCOVERY=false` overrides), auto-update
+> re-enables itself with no code change. At that point, **revisit this**: confirm
+> the in-place swap actually works end-to-end on a signed build, and consider
+> retiring the `manual-download` status + banner if it's no longer reachable.
+
 ## Dev commands
 
 | Command | What it does |

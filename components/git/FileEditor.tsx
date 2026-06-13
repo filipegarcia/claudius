@@ -449,7 +449,12 @@ export function FileEditor({ wsId, relPath, diff, onSaved, split = false, mode }
    */
   useEffect(() => {
     const ac = new AbortController();
-    fetch(`/api/workspaces/${wsId}/files?path=${encodeURIComponent(relPath)}`, {
+    // `base=git`: `relPath` comes from `git status`, so it's relative to the
+    // git repo root — which differs from the workspace root when the workspace
+    // was opened on a subdirectory of the repo. The files API resolves against
+    // the repo root for this read (mirrors how `git show` already works for the
+    // left pane). Without it, a sub-repo workspace 404s with "path not found".
+    fetch(`/api/workspaces/${wsId}/files?path=${encodeURIComponent(relPath)}&base=git`, {
       signal: ac.signal,
     })
       .then(async (res) => {
@@ -604,7 +609,9 @@ export function FileEditor({ wsId, relPath, diff, onSaved, split = false, mode }
     setError(null);
     try {
       const res = await fetch(
-        `/api/workspaces/${wsId}/files?path=${encodeURIComponent(relPath)}`,
+        // `base=git` for the same reason as the read above — `relPath` is repo-
+        // root-relative, so the save must resolve against the repo root too.
+        `/api/workspaces/${wsId}/files?path=${encodeURIComponent(relPath)}&base=git`,
         { method: "PUT", body: draft },
       );
       if (!res.ok) {

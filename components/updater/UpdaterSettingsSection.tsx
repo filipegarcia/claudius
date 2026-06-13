@@ -1,9 +1,23 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowDownToLine, ExternalLink, Loader2, RefreshCw } from "lucide-react";
+import { ArrowDownToLine, ExternalLink, Loader2, RefreshCw, Sparkles, TriangleAlert } from "lucide-react";
 import { useUpdater, type UpdaterMode } from "@/lib/client/use-updater";
 import { cn } from "@/lib/utils/cn";
+
+/** Stage a Claude recovery chat and navigate to it with the prompt prefilled. */
+async function openResolveWithClaude(
+  resolve: () => Promise<{ workspaceId: string; prompt: string } | null>,
+) {
+  const r = await resolve();
+  if (!r || typeof window === "undefined") return;
+  try {
+    sessionStorage.setItem("claudius.autofix-draft", r.prompt);
+    window.location.assign(`/${r.workspaceId}?new=1&prefill=1`);
+  } catch {
+    window.location.assign(`/${r.workspaceId}?new=1&prefill=${encodeURIComponent(r.prompt)}`);
+  }
+}
 
 const MODE_OPTIONS: ReadonlyArray<{
   id: UpdaterMode;
@@ -100,6 +114,38 @@ export function UpdaterSettingsSection() {
                 </label>
               ))}
             </div>
+
+            {(data.state.recovery || data.state.conflicts) && (
+              <div className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-2.5 text-[11px]">
+                <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
+                <div className="flex-1">
+                  <div className="font-medium text-amber-100">
+                    {data.state.conflicts
+                      ? "Update left merge conflicts"
+                      : data.state.recovery!.phase === "install"
+                        ? "Update pulled, but installing dependencies failed"
+                        : "Update pulled, but the build failed"}
+                  </div>
+                  <p className="mt-0.5 text-amber-200/80">
+                    The new commits are checked out — the update just didn&apos;t finish. Hand the
+                    error to a Claude Code session to fix it in place, then restart from this page.
+                    Nothing was rolled back.
+                  </p>
+                </div>
+                <button
+                  onClick={() => void openResolveWithClaude(u.resolveWithClaude)}
+                  disabled={u.busy}
+                  className="flex shrink-0 items-center gap-1 self-center rounded-md border border-amber-500/40 bg-amber-500/15 px-2 py-1 text-amber-100 hover:bg-amber-500/25 disabled:opacity-50"
+                >
+                  {u.busy ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-3 w-3" />
+                  )}
+                  Resolve with Claude Code
+                </button>
+              </div>
+            )}
 
             <div className="flex flex-wrap items-center gap-3 text-[11px] text-[var(--muted)]">
               <span>

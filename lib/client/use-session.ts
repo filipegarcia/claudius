@@ -211,6 +211,57 @@ export function isOpusHighDemandText(blocks: DisplayBlock[]): boolean {
 }
 
 /**
+ * Copy shown in place of the SDK's `model_not_found` prose when the selected
+ * model can't be used (doesn't exist, or isn't enabled for this account /
+ * region — e.g. Claude Fable 5 outside its rollout). The bare URL is
+ * auto-linked by `remark-gfm` when the bubble renders through `<Markdown>`.
+ */
+export const MODEL_UNAVAILABLE_MESSAGE =
+  "Claude Fable 5 is currently unavailable. Please use Opus 4.8 or another available model. Learn more: https://www.anthropic.com/news/fable-mythos-access";
+
+/**
+ * Detect the Claude Code CLI's "selected model can't be used" prose. The
+ * bundle emits one of two templates with `error: "model_not_found"`:
+ *   "There's an issue with the selected model (<id>). It may not exist or you
+ *    may not have access to it."
+ *   "The model <id> is not available on your <deployment> deployment."
+ * We match the prose so the replacement also fires on the replay/pagination
+ * paths, where the structured `error` field is stripped by `/transcript`.
+ * Exported for unit testing (the regex is the brittle bit).
+ */
+const MODEL_NOT_FOUND_RE =
+  /there['’]s an issue with the selected model|may not exist or you may not have access|is not available on your .*deployment/i;
+
+export function isModelNotFoundText(blocks: DisplayBlock[]): boolean {
+  if (blocks.length === 0) return false;
+  if (!blocks.every((b) => b.kind === "text")) return false;
+  const first = blocks.find((b) => b.kind === "text");
+  return !!first && MODEL_NOT_FOUND_RE.test(first.text);
+}
+
+/**
+ * When an assistant message IS the SDK's model-unavailable notice *for the
+ * Fable model*, swap its prose for `MODEL_UNAVAILABLE_MESSAGE` (with the
+ * use-another-model + learn-more pointer). `assistantError === "model_not_found"`
+ * is the live signal; the prose match covers replay where the `error` field is
+ * gone. Scoped to Fable on purpose — the learn-more link is Fable-specific, so
+ * any *other* model that 404s keeps the SDK's own (model-named) prose. Returns
+ * the blocks unchanged otherwise so normal turns are untouched.
+ */
+export function rewriteModelUnavailableBlocks(
+  blocks: DisplayBlock[],
+  assistantError?: string,
+): DisplayBlock[] {
+  const isModelNotFound = assistantError === "model_not_found" || isModelNotFoundText(blocks);
+  if (!isModelNotFound) return blocks;
+  // The SDK prose embeds the offending model id (e.g. "(claude-fable-5)"), so
+  // we can tell Fable apart from any other unavailable model right here.
+  const first = blocks.find((b) => b.kind === "text");
+  if (!first || !/\bfable\b/i.test(first.text)) return blocks;
+  return [{ kind: "text", text: MODEL_UNAVAILABLE_MESSAGE }];
+}
+
+/**
  * Build the `DisplayMessage.rateLimitHit` payload for a hit message. Tier comes
  * from the preceding warning event when we have it (live), else the prose
  * label. The countdown `resetsAt` is only known live — the prose carries a
@@ -1913,13 +1964,17 @@ export function useSession(): ChatState & ChatActions {
         // live and replay paths. Tagging the bubble lets `AssistantMessage`
         // render the inline `OpusHighDemandPanel` with the /model hint.
         const opusHighDemand = isOpusHighDemandText(blocks) ? true : undefined;
+        // Model-unavailable notice: replace the SDK's "issue with the selected
+        // model" prose with our actionable copy (use a different model + learn
+        // more). The selected model isn't enabled for this account/region.
+        const displayBlocks = rewriteModelUnavailableBlocks(blocks, assistantError);
         lastAssistantUuidRef.current = messageId;
         setMessages((prev) =>
           upsertAssistantSplit(
             prev,
             messageId,
             sdkUuid,
-            blocks,
+            displayBlocks,
             hasStreamScratch,
             undefined,
             ev.at,
@@ -4888,10 +4943,14 @@ function synthesizeOlder(raw: Array<Record<string, unknown>>): {
         // pagination path. See the live applyEvent branch for the parity
         // rationale.
         const opusHighDemand = isOpusHighDemandText(newBlocks) ? true : undefined;
+        // Model-unavailable notice on the replay/pagination path. `error` is
+        // stripped by `/transcript`, so detection is prose-only here (see the
+        // live applyEvent branch for the structured signal).
+        const replayBlocks = rewriteModelUnavailableBlocks(newBlocks);
         out.push({
           uuid: msgId,
           role: "assistant",
-          blocks: newBlocks,
+          blocks: replayBlocks,
           streaming: false,
           foldedSdkUuids: new Set([uuid]),
           ...(typeof at === "number" ? { createdAt: at } : {}),

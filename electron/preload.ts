@@ -134,7 +134,8 @@ const api = {
           | { kind: "downloading"; percent: number }
           | { kind: "downloaded"; version: string }
           | { kind: "error"; message: string }
-          | { kind: "blocked-app-management"; message: string },
+          | { kind: "blocked-app-management"; message: string }
+          | { kind: "manual-download"; version: string; url: string },
       ) => void,
     ) => subscribe(TOPICS.updaterStatus, cb),
     openAppManagementSettings: () =>

@@ -1,7 +1,7 @@
 import { applyUpdate } from "./apply";
 import { checkForUpdates } from "./detect";
 import { isRunningInsideCustomizationMirror } from "../customizations-startup";
-import { getUpdaterSettings } from "./settings";
+import { getUpdaterSettings, patchUpdaterState, readUpdaterFile } from "./settings";
 
 /**
  * Background updater scheduler — single instance per process.
@@ -31,6 +31,13 @@ class UpdaterScheduler {
     this.booted = true;
     if (isRunningInsideCustomizationMirror()) return;
     if (process.env.CLAUDIUS_UPDATER_DISABLED === "1") return;
+    // Reaching here means this process booted far enough to serve, so whatever
+    // build is live actually works. Clear any leftover recoverable
+    // install/build-failure marker from a *previous* process — if the user
+    // restarted after fixing it (via "Resolve with Claude Code" or by hand),
+    // the banner shouldn't linger. A failure in THIS process is set later and
+    // survives because boot() only runs once per process.
+    void this.clearStaleRecovery();
     // Defer the first tick a bit so Next finishes initializing routes and
     // the user gets the UI before we start chewing on git.
     this.bootTimer = setTimeout(() => {
@@ -42,6 +49,22 @@ class UpdaterScheduler {
   /** Manual trigger (used by API route). Resolves after the check completes. */
   async runNow(): Promise<void> {
     await this.tick("manual");
+  }
+
+  /**
+   * Drop a stale recoverable install/build-failure marker on a fresh boot.
+   * Only clears `recovery` (and the matching `lastError`) — a live pending
+   * update or unrelated error is left untouched.
+   */
+  private async clearStaleRecovery(): Promise<void> {
+    try {
+      const file = await readUpdaterFile();
+      if (!file.state.recovery) return;
+      await patchUpdaterState({ recovery: undefined, lastError: undefined });
+    } catch {
+      // Best-effort — a failed read/write just leaves the banner up, which is
+      // the safe default.
+    }
   }
 
   private async tick(source: "boot" | "daily" | "manual"): Promise<void> {

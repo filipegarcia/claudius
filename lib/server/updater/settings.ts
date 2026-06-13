@@ -83,6 +83,28 @@ export type UpdaterConflicts = {
   detail: string;
 };
 
+/**
+ * Recorded when an apply got past the git step (HEAD is at upstream) but the
+ * dependency install or the Next build failed — e.g. `bun install` couldn't
+ * compile a native module, or `bun run build` hit a real build error. Unlike
+ * a plain transient error, this is RECOVERABLE: the new code is already in the
+ * tree, so we leave it there (no rollback) and surface the same "Resolve with
+ * Claude Code" action the conflict flow uses. Survives restarts so the
+ * affordance persists until the update actually finishes. Cleared on the next
+ * successful apply, or on a successful process boot (a build that boots works).
+ */
+export type UpdaterRecovery = {
+  /** Which phase blew up. */
+  phase: "install" | "build";
+  /** SHA the tree is sitting at (upstream) — the build target. */
+  toSha: string;
+  /** SHA before the apply started. */
+  fromSha: string;
+  detectedAt: number;
+  /** Captured failure tail (stderr / message) so Claude has the real error. */
+  detail: string;
+};
+
 export type UpdaterState = {
   /** Last time we ran a remote check (success or failure). */
   lastCheckAt?: number;
@@ -100,6 +122,13 @@ export type UpdaterState = {
    * once the next check sees a clean tree at or past `toSha`.
    */
   conflicts?: UpdaterConflicts;
+  /**
+   * Recoverable install/build failure left over from a partially-applied
+   * update. The UI surfaces a "Resolve with Claude Code" + "Retry" action
+   * while this is set; cleared on the next successful apply or once a check
+   * sees the install root up-to-date.
+   */
+  recovery?: UpdaterRecovery;
   /** Current in-flight operation, if any. */
   status: UpdaterStatus;
 };
@@ -153,6 +182,8 @@ function normalize(parsed: Partial<UpdaterFile> | null | undefined): UpdaterFile
     pending: stateIn.pending && typeof stateIn.pending === "object" ? stateIn.pending : undefined,
     conflicts:
       stateIn.conflicts && typeof stateIn.conflicts === "object" ? stateIn.conflicts : undefined,
+    recovery:
+      stateIn.recovery && typeof stateIn.recovery === "object" ? stateIn.recovery : undefined,
     status:
       stateIn.status && typeof stateIn.status === "object" && "kind" in stateIn.status
         ? (stateIn.status as UpdaterStatus)

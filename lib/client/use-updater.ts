@@ -28,6 +28,14 @@ export type UpdaterConflicts = {
   detail: string;
 };
 
+export type UpdaterRecovery = {
+  phase: "install" | "build";
+  fromSha: string;
+  toSha: string;
+  detectedAt: number;
+  detail: string;
+};
+
 export type UpdaterStatusResponse = {
   settings: {
     mode: UpdaterMode;
@@ -42,6 +50,7 @@ export type UpdaterStatusResponse = {
     lastError?: string;
     pending?: UpdaterPending;
     conflicts?: UpdaterConflicts;
+    recovery?: UpdaterRecovery;
     status: UpdaterStatusKind;
   };
   install: {

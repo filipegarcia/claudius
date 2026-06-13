@@ -164,6 +164,48 @@ describe("updater App Management classifier", () => {
   });
 });
 
+describe("isDeveloperIdSigned (auto-update safety gate)", () => {
+  // The codesign dump is the only signal distinguishing a self-updatable
+  // Developer ID build from an ad-hoc one that Squirrel.Mac can't swap. The
+  // predicate is pure over the dump text, so we exercise it with the real
+  // shapes `codesign --display --verbose=4` emits.
+  test("Developer ID Application authority → safe", async () => {
+    const { isDeveloperIdSigned } = await import("@/electron/ipc/updater");
+    const detail = [
+      "Executable=/Applications/Claudius.app/Contents/MacOS/Claudius",
+      "Identifier=network.claudius.desktop",
+      "Authority=Developer ID Application: Filipe Garcia (TEAMID1234)",
+      "Authority=Developer ID Certification Authority",
+      "Authority=Apple Root CA",
+    ].join("\n");
+    expect(isDeveloperIdSigned(detail)).toBe(true);
+  });
+
+  test("ad-hoc signature (no Authority chain) → unsafe", async () => {
+    const { isDeveloperIdSigned } = await import("@/electron/ipc/updater");
+    const detail = [
+      "Executable=/Applications/Claudius.app/Contents/MacOS/Claudius",
+      "Identifier=network.claudius.desktop",
+      "Signature=adhoc",
+      "Info.plist=not bound",
+    ].join("\n");
+    expect(isDeveloperIdSigned(detail)).toBe(false);
+  });
+
+  test("Mac App Store authority → unsafe (electron-updater can't drive MAS)", async () => {
+    const { isDeveloperIdSigned } = await import("@/electron/ipc/updater");
+    expect(
+      isDeveloperIdSigned("Authority=Apple Mac OS Application Signing"),
+    ).toBe(false);
+  });
+
+  test("empty / unsigned dump → unsafe", async () => {
+    const { isDeveloperIdSigned } = await import("@/electron/ipc/updater");
+    expect(isDeveloperIdSigned("")).toBe(false);
+    expect(isDeveloperIdSigned("code object is not signed at all")).toBe(false);
+  });
+});
+
 describe("detectPostQuitSwapFailure", () => {
   // Pure-function test — the production call site threads
   // process.platform/app.getVersion()/Date.now() in; we substitute

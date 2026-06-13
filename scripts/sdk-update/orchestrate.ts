@@ -11,7 +11,12 @@
  *
  * Pipeline (top-to-bottom in `main()`):
  *   1. Pre-flight  — sanity-check env, working tree, remote.
- *   2. Branch      — fetch origin, create `sdk-update/<version>` off main.
+ *   2. Branch      — fetch origin. If an SDK-update PR is still open (a
+ *                    newer release shipped before the human merged the
+ *                    prior one), CONTINUE on that PR's existing branch so
+ *                    the bump stacks into one reviewable PR; otherwise
+ *                    create `sdk-update/<version>` off main. See
+ *                    findOpenSdkUpdatePr.
  *   3. Announce    — "🆕 starting upgrade on branch X" — fires within
  *                    seconds of cron so the channel hears immediately,
  *                    not minutes later when the PR opens.
@@ -81,6 +86,7 @@ import { fileURLToPath } from "node:url";
 
 import {
   cleanRange,
+  isNewer,
   patchState,
   readInstalledRange,
   readState,
@@ -379,6 +385,123 @@ function branchName(version: string): string {
 }
 
 /**
+ * Parse the SDK version out of a branch this orchestrator created.
+ * `sdk-update/0.3.170` → `0.3.170`. Returns "" for anything that doesn't
+ * match the prefix (callers guard on that).
+ */
+function versionFromBranch(branch: string): string {
+  return branch.startsWith("sdk-update/") ? branch.slice("sdk-update/".length) : "";
+}
+
+/**
+ * Find an open SDK-update PR to CONTINUE, so a new upstream release that
+ * arrives before the previous PR is merged stacks onto that PR's branch
+ * instead of opening a parallel one.
+ *
+ * The motivating bug: a release ships overnight → PR #A opens. Before the
+ * human is awake to merge it, the next release ships → the orchestrator
+ * (which derives `prevVersion` from `main`, still on the pre-#A version)
+ * computes a *fresh* `sdk-update/<newer>` branch off main and opens PR #B.
+ * Now there are two competing PRs for the same dependency. Detecting #A here
+ * and reusing its branch keeps everything in one reviewable PR.
+ *
+ * Matching is by head-branch prefix (`sdk-update/`), which is how every
+ * branch this pipeline creates is named (combined SDK+CC runs included).
+ * Returns null when nothing is open — the caller then falls back to the
+ * usual fresh `sdk-update/<newVersion>` branch off main.
+ *
+ * If more than one open SDK-update PR exists (e.g. the pre-existing
+ * double-PR state this feature prevents going forward), we pick the
+ * highest-version one as the continuation target and log the rest loudly so
+ * a human can close the dupes. We deliberately do NOT auto-close — a
+ * reviewer may have left comments on one of them.
+ */
+export type OpenPrSummary = {
+  number: number;
+  headRefName: string;
+  url: string;
+  title: string;
+};
+
+export type ContinuationPr = {
+  number: number;
+  branch: string;
+  url: string;
+  title: string;
+  /** The other open SDK-update PRs that were NOT chosen, if any. */
+  duplicates: OpenPrSummary[];
+};
+
+/**
+ * Pure selection logic for findOpenSdkUpdatePr — given the list of open PRs,
+ * pick the SDK-update PR to continue (highest version wins) and report any
+ * duplicates. Extracted so the version filter + tie-break can be unit-tested
+ * without stubbing `gh` (the file's convention: side-effectful halves stay
+ * untested, the decision logic is pinned down). Returns null when no open PR
+ * matches the `sdk-update/` branch prefix.
+ */
+export function pickContinuationPr(prs: OpenPrSummary[]): ContinuationPr | null {
+  const candidates = prs.filter((p) => p.headRefName.startsWith("sdk-update/"));
+  if (candidates.length === 0) return null;
+
+  // Highest SDK version wins — that's the most recent prior attempt, the one
+  // worth stacking on. `isNewer(a, b)` is the same comparator the npm probe
+  // uses, so the ordering here matches "what counts as newer" everywhere else.
+  const sorted = [...candidates].sort((a, b) =>
+    isNewer(versionFromBranch(b.headRefName), versionFromBranch(a.headRefName)) ? 1 : -1,
+  );
+  const chosen = sorted[0]!;
+  return {
+    number: chosen.number,
+    branch: chosen.headRefName,
+    url: chosen.url,
+    title: chosen.title,
+    duplicates: sorted.slice(1),
+  };
+}
+
+export function findOpenSdkUpdatePr(): ContinuationPr | null {
+  const res = spawnSync(
+    "gh",
+    [
+      "pr",
+      "list",
+      "--state",
+      "open",
+      "--json",
+      "number,headRefName,url,title",
+      "--limit",
+      "100",
+    ],
+    { cwd: ROOT, encoding: "utf8" },
+  );
+  if (res.status !== 0) {
+    log(
+      `findOpenSdkUpdatePr: gh pr list failed (status=${res.status}): ` +
+        `${(res.stderr ?? "").trim() || "(no stderr)"} — treating as no open PR`,
+    );
+    return null;
+  }
+  let all: OpenPrSummary[];
+  try {
+    all = JSON.parse(res.stdout || "[]");
+  } catch (err) {
+    log(`findOpenSdkUpdatePr: could not parse gh output (${String(err)}) — treating as no open PR`);
+    return null;
+  }
+  const chosen = pickContinuationPr(all);
+  if (chosen && chosen.duplicates.length > 0) {
+    log(
+      `findOpenSdkUpdatePr: ${chosen.duplicates.length + 1} open SDK-update PRs found — ` +
+        `continuing on the highest, #${chosen.number} (${chosen.branch}). ` +
+        `Close the duplicates manually: ` +
+        chosen.duplicates.map((c) => `#${c.number} (${c.headRefName})`).join(", "),
+    );
+  }
+  return chosen;
+}
+
+/**
  * Check out the upgrade branch, preserving prior work where possible.
  *
  * Three cases, in priority order:
@@ -412,8 +535,17 @@ function branchName(version: string): string {
  * that — Claude resumes on a branch that's already up-to-date with main
  * AND carries his previous attempt.
  */
-function checkoutFreshBranch(version: string): { branch: string; resumed: boolean } {
-  const branch = branchName(version);
+function checkoutFreshBranch(
+  version: string,
+  opts: { branchOverride?: string } = {},
+): { branch: string; resumed: boolean } {
+  // `branchOverride` is set when we're CONTINUING an already-open SDK-update
+  // PR (see findOpenSdkUpdatePr): the working branch is that PR's existing
+  // head (e.g. `sdk-update/0.3.170`) rather than a fresh `sdk-update/<version>`.
+  // Because that branch already exists on origin, case 2 below (reset to
+  // origin/<branch> + merge main in) is what actually runs — exactly the
+  // resume behavior we want, the new bump stacking on the prior work.
+  const branch = opts.branchOverride ?? branchName(version);
   log(`syncing origin/main`);
   sh("git", ["fetch", "origin", "main", "--prune"]);
 
@@ -2792,11 +2924,20 @@ export function buildStartAnnouncement(args: {
   prevVersion: string;
   newVersion: string;
   branch: string;
+  /**
+   * When set, this run is STACKING onto an already-open SDK-update PR
+   * (a newer release shipped before the prior PR merged) rather than
+   * opening a fresh one. Surfaced so the channel knows the work continues
+   * in one place.
+   */
+  continuationPrNumber?: number;
 }): string {
   return [
     `🆕 **New claude-agent-sdk release: ${args.prevVersion} → ${args.newVersion}.**`,
     "",
-    `Starting upgrade on branch \`${args.branch}\` — fetching changelog, then handing the migration to Claude.`,
+    args.continuationPrNumber
+      ? `Continuing in the still-open PR #${args.continuationPrNumber} (branch \`${args.branch}\`) — stacking this bump on the prior work so it all lands in one PR. Fetching changelog, then handing the migration to Claude.`
+      : `Starting upgrade on branch \`${args.branch}\` — fetching changelog, then handing the migration to Claude.`,
     `Upstream compare: ${compareUrl(args.prevVersion, args.newVersion)}`,
   ].join("\n");
 }
@@ -3591,6 +3732,21 @@ async function main(): Promise<void> {
   }
   const newVersion = newVersionArg!;
 
+  // Continuation: if a prior SDK-update PR is still open (the human hadn't
+  // merged it before this newer release shipped), stack this bump onto that
+  // PR's existing branch instead of opening a parallel PR. Skipped in
+  // dry-run, which iterates on the prompt against a throwaway fresh branch
+  // and shouldn't touch real PRs. See findOpenSdkUpdatePr for the full
+  // rationale and the highest-version tie-break.
+  const continuation = dryRun ? null : findOpenSdkUpdatePr();
+  const inFlightBranch = continuation?.branch ?? branchName(newVersion);
+  if (continuation) {
+    log(
+      `open SDK-update PR #${continuation.number} found on ${continuation.branch} — ` +
+        `continuing the upgrade to ${newVersion} in that PR (no new PR will be opened)`,
+    );
+  }
+
   // Stash the version pair so any later announce-failure (handled in
   // `announceSafe` → `fileOrCommentRunIssueSafe`) can file/comment on
   // the same per-version run issue as the gate/CI/crash paths. Without
@@ -3608,7 +3764,7 @@ async function main(): Promise<void> {
     {
       inFlight: {
         version: newVersion,
-        branch: branchName(newVersion),
+        branch: inFlightBranch,
         startedAt: Date.now(),
       },
     },
@@ -3652,10 +3808,16 @@ async function main(): Promise<void> {
   };
 
   try {
-    const { branch, resumed } = checkoutFreshBranch(newVersion);
+    const { branch, resumed } = checkoutFreshBranch(newVersion, {
+      branchOverride: continuation?.branch,
+    });
     if (resumed) {
       log(
-        `RESUMING prior work on ${branch}; bump + bun install + run-notes stub will be no-ops if already done`,
+        `RESUMING prior work on ${branch}` +
+          (continuation
+            ? ` (continuation of open PR #${continuation.number})`
+            : "") +
+          `; bump + bun install + run-notes stub will be no-ops if already done`,
       );
     }
 
@@ -3663,7 +3825,12 @@ async function main(): Promise<void> {
     // as soon as the branch exists so the channel hears about the run
     // within seconds of cron firing — minutes before the draft PR.
     await announceProgress(
-      buildStartAnnouncement({ prevVersion, newVersion, branch }),
+      buildStartAnnouncement({
+        prevVersion,
+        newVersion,
+        branch,
+        continuationPrNumber: continuation?.number,
+      }),
     );
 
     bumpSdkDependency(newVersion);

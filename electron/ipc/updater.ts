@@ -34,8 +34,17 @@
  *     denial.
  */
 import { app, BrowserWindow, ipcMain, shell } from "electron";
+import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+
+/**
+ * Where we send macOS users when the in-place self-update is disabled (see
+ * `autoUpdateIsSafe`). Mirrors the `publish:` owner/repo in
+ * electron-builder.yml; `/releases/latest` always resolves to the newest
+ * published release's download page.
+ */
+const RELEASES_URL = "https://github.com/filipegarcia/claudius/releases/latest";
 
 /**
  * `electron-updater` reads its publish/feed config from `app-update.yml`,
@@ -83,7 +92,15 @@ type Status =
   | { kind: "downloading"; percent: number }
   | { kind: "downloaded"; version: string }
   | { kind: "error"; message: string }
-  | { kind: "blocked-app-management"; message: string };
+  | { kind: "blocked-app-management"; message: string }
+  /**
+   * macOS-only: an update exists but this build can't install it in place
+   * (ad-hoc signed — Squirrel.Mac would reject the swap; see
+   * `autoUpdateIsSafe`). The renderer shows a "download from Releases"
+   * prompt instead of a "restart to install" button. `url` points at the
+   * GitHub Releases page carrying the DMG.
+   */
+  | { kind: "manual-download"; version: string; url: string };
 
 /**
  * Classify a raw `electron-updater` error message.
@@ -121,6 +138,68 @@ export function classifyUpdaterError(message: string): Status {
     }
   }
   return { kind: "error", message };
+}
+
+/**
+ * True when a `codesign --display --verbose=4` dump describes a real Developer
+ * ID Application signature (the only macOS signing flavour Squirrel.Mac can
+ * self-update across builds). Ad-hoc signed bundles — our certless release
+ * pipeline (`codesign --sign -` in build/after-pack.js) — print `Signature=adhoc`
+ * and carry NO `Authority=` chain, so they fail this test.
+ *
+ * Mac App Store receipts (`Authority=Apple Mac OS Application Signing`) also fail
+ * it, which is correct: we never ship MAS builds and electron-updater can't drive
+ * a MAS install anyway.
+ *
+ * Pure over its input so the codesign-output parsing is unit-testable without
+ * shelling out (the production wrapper `autoUpdateIsSafe` runs the command).
+ */
+export function isDeveloperIdSigned(codesignDetail: string): boolean {
+  return /^Authority=Developer ID Application/m.test(codesignDetail);
+}
+
+/**
+ * Whether electron-updater may perform an in-place macOS self-update.
+ *
+ * Squirrel.Mac (the `ShipIt` helper) validates that the downloaded update
+ * satisfies the INSTALLED app's *designated code requirement*. Ad-hoc signed
+ * bundles have no Team ID / Developer ID anchor — every build gets a distinct
+ * cdhash-bound signature, so no two ad-hoc bundles ever satisfy each other's
+ * requirement. The swap is rejected post-quit with "code failed to satisfy
+ * specified code requirement(s)", stranding the user on a half-applied update.
+ *
+ * So on macOS we only allow the in-place swap when the running app is Developer
+ * ID signed; otherwise the caller falls back to a manual-download prompt (open
+ * Releases, install the DMG). The probe is runtime (not a build-time flag), so a
+ * future signed/notarized build re-enables auto-update with zero code change.
+ *
+ * Non-darwin platforms are always safe — this gate is macOS/Squirrel-specific.
+ * Result is memoised: the running bundle's signature can't change under us.
+ *
+ * Defaults to UNSAFE on darwin on any error/uncertainty: a needless
+ * manual-download prompt on a signed build is a mild annoyance; a false "safe"
+ * resurrects the broken ShipIt swap.
+ */
+let autoUpdateSafeCache: boolean | null = null;
+function autoUpdateIsSafe(): boolean {
+  if (process.platform !== "darwin") return true;
+  if (autoUpdateSafeCache !== null) return autoUpdateSafeCache;
+  let safe = false;
+  try {
+    // codesign writes the signing detail (incl. the `Authority=` chain) to
+    // stderr; spawnSync captures both streams and never throws on a non-zero
+    // exit, so we scan across stdout+stderr.
+    const res = spawnSync(
+      "/usr/bin/codesign",
+      ["--display", "--verbose=4", app.getPath("exe")],
+      { encoding: "utf8" },
+    );
+    safe = isDeveloperIdSigned(`${res.stdout ?? ""}${res.stderr ?? ""}`);
+  } catch {
+    safe = false;
+  }
+  autoUpdateSafeCache = safe;
+  return safe;
 }
 
 /**
@@ -338,6 +417,13 @@ export function registerUpdaterHandlers(): void {
 
   ipcMain.on(TOPIC_APPLY, () => {
     if (!packaged) return;
+    if (!autoUpdateIsSafe()) {
+      // No in-place swap on this build (ad-hoc signed macOS — Squirrel.Mac
+      // would reject it). The renderer's "manual-download" banner routes its
+      // button here; send the user to the Releases page for the DMG.
+      void shell.openExternal(RELEASES_URL).catch(() => {});
+      return;
+    }
     try {
       loadAutoUpdater().quitAndInstall();
     } catch (err) {
@@ -374,8 +460,15 @@ function bootstrap(): void {
   started = true;
   const u = loadAutoUpdater();
 
-  u.autoDownload = true;
-  u.autoInstallOnAppQuit = true;
+  // On an ad-hoc signed macOS build the in-place swap is impossible (see
+  // autoUpdateIsSafe), so we must NOT download or stage an install on quit —
+  // doing so only strands the user on a half-applied update. Leaving
+  // autoDownload off still lets `update-available` fire (handled below), which
+  // is what drives the manual-download prompt. Always true off-darwin and on
+  // genuinely Developer ID signed builds.
+  const allowSelfUpdate = autoUpdateIsSafe();
+  u.autoDownload = allowSelfUpdate;
+  u.autoInstallOnAppQuit = allowSelfUpdate;
   // Logs go to the OS-specific log path; users can inspect via
   // /api/doctor or by opening the file directly.
   u.logger = {
@@ -386,9 +479,19 @@ function bootstrap(): void {
   };
 
   u.on("checking-for-update", () => broadcast({ kind: "checking" }));
-  u.on("update-available", (info) =>
-    broadcast({ kind: "available", version: info.version }),
-  );
+  u.on("update-available", (info) => {
+    if (!autoUpdateIsSafe()) {
+      // Ad-hoc signed macOS build — point the user at the DMG instead of
+      // kicking off a download Squirrel.Mac would reject post-quit.
+      broadcast({
+        kind: "manual-download",
+        version: info.version,
+        url: RELEASES_URL,
+      });
+      return;
+    }
+    broadcast({ kind: "available", version: info.version });
+  });
   u.on("update-not-available", () => broadcast({ kind: "idle" }));
   u.on("download-progress", (p) =>
     broadcast({ kind: "downloading", percent: Math.round(p.percent) }),
