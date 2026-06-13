@@ -1,4 +1,4 @@
-.PHONY: help install dev build start lint unit test test-ui test-e2e-electron test-setup test-setup-local test-setup-docker test-install-public ci site screenshots screenshots-full claudius-revert claudius-revert-all run up down restart status logs electron electron-dev electron-build electron-icons electron-app electron-dist electron-dmg electron-e2e-loop sdk-update-check sdk-update-run sdk-update-fix-pr sdk-update-dry-run sdk-update-status sdk-update-logs sdk-update-install-cron sdk-update-uninstall-cron cc-parity-check cc-parity-run cc-parity-fix-pr cc-parity-dry-run cc-parity-status cc-parity-logs cc-parity-install-cron cc-parity-uninstall-cron debug-export recover
+.PHONY: help install dev build start lint unit test test-ui test-e2e-electron test-setup test-setup-local test-setup-docker test-install-public ci site screenshots screenshots-full claudius-revert claudius-revert-all run up down restart status logs electron electron-dev electron-build electron-icons electron-app electron-dist electron-dmg electron-e2e-loop sdk-update-check sdk-update-run sdk-update-fix-pr sdk-update-dry-run sdk-update-status sdk-update-logs sdk-update-install-cron sdk-update-uninstall-cron cc-parity-check cc-parity-run cc-parity-fix-pr cc-parity-dry-run cc-parity-status cc-parity-logs cc-parity-install-cron cc-parity-uninstall-cron debug-export recover documentation
 
 # List every target, grouped by the section headers below.
 help:
@@ -443,3 +443,20 @@ cc-parity-uninstall-cron:
 # See docs/debug-export.md for full details.
 debug-export:
 	@bun run scripts/debug-export.ts
+
+# ── Documentation ───────────────────────────────────────────────────────
+# Generate (and maintain) docs/SITEMAP.md — a catalog of every UI screen,
+# navigation menu, and HTTP endpoint in the app.
+#
+# The route *structure* is discovered from app/**, so it's always an exact
+# reflection of what exists. Per-interface descriptions are written by Claude
+# (via the same agent SDK the app uses for commit messages) and cached in
+# docs/.sitemap-cache.json keyed by a hash of each interface's source — so
+# re-running only re-describes the screens whose code actually changed. Uses
+# the machine's existing Claude Code credentials; no API key required.
+#
+#   make documentation            # incremental: only re-describe changed screens
+#   make documentation FORCE=1    # ignore the cache; regenerate everything
+#   make documentation NO_AI=1    # structure only, no Claude calls (offline)
+documentation:
+	@node scripts/gen-docs.mjs $(if $(FORCE),--force,) $(if $(NO_AI),--no-ai,)
