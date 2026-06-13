@@ -363,8 +363,13 @@ the full contract lives in `lib/shared/electron.d.ts`.
 | `bun run dev` | Dev server on `:3000` |
 | `bun run lint` | ESLint (scope by passing file paths) |
 | `bun run test:e2e` | Playwright |
+| `make documentation` | Generate/refresh [`docs/SITEMAP.md`](docs/SITEMAP.md) — the interface map |
 
 See `AGENTS.md` and `CLAUDE.md` for codebase conventions before contributing.
+
+### Interface map
+
+[`docs/SITEMAP.md`](docs/SITEMAP.md) catalogs every UI screen, navigation menu, and HTTP endpoint, with a short description of each. Run `make documentation` to (re)generate it: the route structure is discovered from `app/**`, and per-interface descriptions are written by Claude (via the bundled agent SDK — uses your existing Claude Code login, no API key) and cached in `docs/.sitemap-cache.json`, so re-runs only re-describe the screens whose source changed. Use `make documentation NO_AI=1` for a structure-only pass with no Claude calls, or `FORCE=1` to regenerate everything.
 
 ---
 
