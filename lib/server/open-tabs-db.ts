@@ -19,6 +19,7 @@ import { openDb } from "./db";
 
 const KEY = "open_tabs";
 const ACTIVE_KEY = "active_tab";
+const PINNED_KEY = "pinned_tabs";
 const TAB_LABEL_MAX_WIDTH_KEY = "tab_label_max_width";
 
 /** Bounds for the tab-label max width (px). Mirror these in the UI. */
@@ -69,6 +70,55 @@ export async function setOpenTabs(cwd: string, ids: string[]): Promise<void> {
     `INSERT INTO ui_state(key, value) VALUES(?, ?)
      ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
   ).run(KEY, JSON.stringify(cleaned));
+}
+
+/**
+ * Per-cwd pinned-tab set. Stored as a JSON array of session ids in the same
+ * `ui_state` table. A pinned tab sorts to the front of the strip and survives
+ * "Close all tabs"; the array is a subset of `open_tabs`. Like the open-tab
+ * list this is best-effort — a missing table (older DB opened readonly) reads
+ * as "nothing pinned".
+ */
+export async function getPinnedTabs(cwd: string): Promise<string[]> {
+  const db = await openDb(cwd, "readonly").catch(() => null);
+  if (!db) return [];
+  let row: { value: string } | undefined;
+  try {
+    row = db
+      .prepare<[string], { value: string } | undefined>(
+        "SELECT value FROM ui_state WHERE key = ?",
+      )
+      .get(PINNED_KEY);
+  } catch {
+    return [];
+  }
+  if (!row?.value) return [];
+  try {
+    const parsed = JSON.parse(row.value) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((x): x is string => typeof x === "string");
+  } catch {
+    return [];
+  }
+}
+
+export async function setPinnedTabs(cwd: string, ids: string[]): Promise<void> {
+  // Sanitize: drop non-strings, dedupe in-order, cap length so a runaway
+  // client can't bloat the row.
+  const seen = new Set<string>();
+  const cleaned: string[] = [];
+  for (const v of ids) {
+    if (typeof v !== "string") continue;
+    if (seen.has(v)) continue;
+    seen.add(v);
+    cleaned.push(v);
+    if (cleaned.length >= 200) break;
+  }
+  const db = await openDb(cwd);
+  db.prepare(
+    `INSERT INTO ui_state(key, value) VALUES(?, ?)
+     ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+  ).run(PINNED_KEY, JSON.stringify(cleaned));
 }
 
 export async function getActiveTab(cwd: string): Promise<string | null> {

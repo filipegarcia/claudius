@@ -49,7 +49,15 @@ import { parseAskQuestions, type AskAnswer, type AskQuestion } from "@/lib/share
 import { useLimits } from "@/lib/client/useLimits";
 import { CapBreachBanner } from "@/components/chat/CapBreachBanner";
 import { TranscriptSearch, type SearchHit } from "@/components/chat/TranscriptSearch";
-import { SessionTabs, activeTabStatus, reorderArray, tabLabelFor, type TabStatus } from "@/components/chat/SessionTabs";
+import {
+  SessionTabs,
+  activeTabStatus,
+  clampReorderTarget,
+  normalizePinnedOrder,
+  reorderArray,
+  tabLabelFor,
+  type TabStatus,
+} from "@/components/chat/SessionTabs";
 import { TabClaimBanner } from "@/components/chat/TabClaimBanner";
 import { BashViewer } from "@/components/panels/BashViewer";
 import { ClaudiusMark } from "@/components/brand/ClaudiusMark";
@@ -481,6 +489,11 @@ export default function Home() {
   // labels resolve through the existing `sessions` table, which already holds
   // custom titles. The active tab is whichever sessionId useSession is bound to.
   const [openTabs, setOpenTabs] = useState<string[]>([]);
+  // Pinned tab ids (a subset of `openTabs`). Pinned tabs sort to the front of
+  // the strip and survive "Close all"; the set persists in the same per-cwd
+  // `ui_state` table as the open-tab list. Hydrated alongside `openTabs`.
+  const [pinnedTabs, setPinnedTabs] = useState<string[]>([]);
+  const pinnedSet = useMemo(() => new Set(pinnedTabs), [pinnedTabs]);
   // Gate persistence until the initial fetch has resolved — otherwise the
   // first render's empty array would PUT-and-clobber the saved list before
   // the GET comes back. See the hydration-race note in the migration file.
@@ -513,11 +526,15 @@ export default function Home() {
           tabs?: unknown;
           labelMaxWidth?: unknown;
           titles?: unknown;
+          pinned?: unknown;
         };
         if (cancelled) return;
         const saved = Array.isArray(data.tabs)
           ? (data.tabs.filter((x) => typeof x === "string") as string[])
           : [];
+        if (Array.isArray(data.pinned)) {
+          setPinnedTabs(data.pinned.filter((x) => typeof x === "string") as string[]);
+        }
         // Merge: server list first, then anything the auto-add effect below
         // already pushed in (e.g. the boot session id) before the fetch
         // resolved, so we don't drop the active tab.
@@ -594,16 +611,21 @@ export default function Home() {
       session.sessionId && persistTabs.includes(session.sessionId)
         ? session.sessionId
         : null;
+    // Pinned ids are persisted as the subset that actually survives the
+    // foreign-session filter, so a pin can never reference a tab that isn't
+    // in the saved strip.
+    const persistPinned = pinnedTabs.filter((id) => persistTabs.includes(id));
     void fetch("/api/sessions/open-tabs", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ tabs: persistTabs, activeId }),
+      body: JSON.stringify({ tabs: persistTabs, activeId, pinned: persistPinned }),
     }).catch(() => {
       // Best-effort — a failed save just means the next reload sees the
       // last successfully persisted strip.
     });
   }, [
     openTabs,
+    pinnedTabs,
     tabsHydrated,
     session.sessionId,
     session.sessions,
@@ -628,6 +650,18 @@ export default function Home() {
     setOpenTabs((prev) => (prev.includes(sid) ? prev : [...prev, sid]));
   }
 
+  // Keep `openTabs` canonical: pinned ids always sort to the front. Doing this
+  // once here (render-time "adjust state" pattern) is the single chokepoint
+  // for every producer above — hydration merge, auto-add, reopen — so none of
+  // them have to know about pins. `normalizePinnedOrder` returns the same
+  // array reference when already normalized, so this converges in one pass and
+  // doesn't loop. Drag-reorder is clamped within-group in `reorderTab`, so it
+  // never produces an un-normalized order this would fight.
+  const normalizedTabs = normalizePinnedOrder(openTabs, pinnedSet);
+  if (normalizedTabs !== openTabs) {
+    setOpenTabs(normalizedTabs);
+  }
+
   // Phase 3 of docs/electron-conversion/PLAN.md — closed-tab undo stack so
   // Cmd+Shift+T can restore the most recently closed tab. We only push when
   // closeTab actually removes a known id; reopen pops + reinserts at the
@@ -638,6 +672,8 @@ export default function Home() {
 
   const closeTab = useCallback(
     (id: string) => {
+      // Drop any pin so a closed tab can't leave a dangling pinned id behind.
+      setPinnedTabs((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : prev));
       setOpenTabs((prev) => {
         const idx = prev.indexOf(id);
         if (idx === -1) return prev;
@@ -681,20 +717,49 @@ export default function Home() {
   // user cancelled the confirm or there was nothing to close — either way
   // no state change happened, so no follow-up side effects should fire.
   const closeAllTabs = useCallback((): string[] => {
-    if (openTabs.length === 0) return [];
-    if (!confirm(`Close all ${openTabs.length} tabs? Sessions remain on disk.`)) return [];
-    const closed = openTabs.slice();
-    setOpenTabs([]);
-    return closed;
-  }, [openTabs]);
+    // Pinned tabs survive "Close all" — that's the point of pinning. Only the
+    // unpinned tabs are closable; if everything is pinned there's nothing to do.
+    const closable = openTabs.filter((id) => !pinnedSet.has(id));
+    if (closable.length === 0) return [];
+    const keptPinned = openTabs.length - closable.length;
+    const msg =
+      keptPinned > 0
+        ? `Close ${closable.length} unpinned tab${closable.length === 1 ? "" : "s"}? ${keptPinned} pinned tab${keptPinned === 1 ? "" : "s"} and sessions on disk remain.`
+        : `Close all ${closable.length} tabs? Sessions remain on disk.`;
+    if (!confirm(msg)) return [];
+    setOpenTabs((prev) => prev.filter((id) => pinnedSet.has(id)));
+    return closable;
+  }, [openTabs, pinnedSet]);
+
+  // Toggle a tab's pinned state. The render-time normalization above moves the
+  // tab into / out of the pinned region; the persist effect saves the new set.
+  const togglePin = useCallback((id: string) => {
+    setPinnedTabs((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+  }, []);
 
   // Drag-reorder: SessionTabs hands us splice-compatible indices and the
   // pure `reorderArray` helper handles the splice + bounds checks. The
   // persistence effect above will PUT the new order to /api/sessions/open-tabs
   // automatically — no extra wiring needed.
-  const reorderTab = useCallback((fromIdx: number, toIdx: number) => {
-    setOpenTabs((prev) => reorderArray(prev, fromIdx, toIdx));
-  }, []);
+  const reorderTab = useCallback(
+    (fromIdx: number, toIdx: number) => {
+      setOpenTabs((prev) => {
+        // `prev` is pinned-first normalized, so the count of leading pinned
+        // tabs is the group boundary. Clamp the drop so a tab can't cross
+        // between the pinned and unpinned regions.
+        let pinnedCount = 0;
+        for (const id of prev) {
+          if (pinnedSet.has(id)) pinnedCount++;
+          else break;
+        }
+        const clamped = clampReorderTarget(fromIdx, toIdx, pinnedCount, prev.length);
+        return reorderArray(prev, fromIdx, clamped);
+      });
+    },
+    [pinnedSet],
+  );
 
   // Bash live-tail viewer ─────────────────────────────────────────────────
   const [openBash, setOpenBash] = useState<BackgroundBash | null>(null);
@@ -1579,6 +1644,7 @@ export default function Home() {
                   : tabLabelFor(id, sessionsForTabs),
               status,
               unread: notifications.unreadBySession[id],
+              pinned: pinnedSet.has(id),
             };
           })}
           activeId={session.sessionId}
@@ -1610,6 +1676,7 @@ export default function Home() {
           onNew={() => void session.createNewSession()}
           onReopen={reopenClosedTab}
           onReorder={reorderTab}
+          onTogglePin={togglePin}
           labelMaxWidth={tabLabelMaxWidth ?? undefined}
           onLabelWidthChange={onTabLabelWidthChange}
         />

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { ChevronDown, Plus, X, XSquare } from "lucide-react";
+import { ChevronDown, Pin, Plus, X, XSquare } from "lucide-react";
 import type { SessionInfo } from "@/lib/client/types";
 import {
   formatBinding,
@@ -27,6 +27,13 @@ type Tab = {
    * without expanding the notifications drawer.
    */
   unread?: number;
+  /**
+   * Whether this tab is pinned. Pinned tabs sort to the front of the strip,
+   * render a persistent pin affordance, and survive "Close all tabs". The
+   * parent owns the pinned set and keeps `tabs` normalized (pinned first), so
+   * this component just reflects the flag — see `normalizePinnedOrder`.
+   */
+  pinned?: boolean;
 };
 
 type Props = {
@@ -56,6 +63,11 @@ type Props = {
    * in the strip so the parent never sees `fromIdx === toIdx`.
    */
   onReorder?: (fromIdx: number, toIdx: number) => void;
+  /**
+   * Toggle the pinned state of a tab. When omitted the pin affordance is not
+   * rendered (web parity for hosts that don't persist pins).
+   */
+  onTogglePin?: (id: string) => void;
 };
 
 const TAB_LABEL_MIN = 60;
@@ -133,6 +145,50 @@ export function reorderArray<T>(arr: readonly T[], fromIdx: number, toIdx: numbe
   return next;
 }
 
+/**
+ * Reorder a tab-id list so every pinned id sorts to the front while the
+ * relative order *within* the pinned group and *within* the unpinned group is
+ * preserved. Returns the input by reference when it's already normalized so a
+ * `useState` setter (and the downstream persistence effect) bails on a no-op.
+ *
+ * Pure / no DOM — exported for unit tests and reused by the chat page to keep
+ * `openTabs` canonical (pinned-first) regardless of which producer mutated it.
+ */
+export function normalizePinnedOrder(
+  tabs: readonly string[],
+  pinned: ReadonlySet<string>,
+): string[] {
+  const pin: string[] = [];
+  const rest: string[] = [];
+  for (const id of tabs) (pinned.has(id) ? pin : rest).push(id);
+  const next = pin.concat(rest);
+  // Referential-stability guard: if nothing moved, hand back the original.
+  for (let i = 0; i < tabs.length; i++) {
+    if (tabs[i] !== next[i]) return next;
+  }
+  return tabs as string[];
+}
+
+/**
+ * Clamp a drag-reorder target index so a tab can only move *within* its own
+ * group (pinned tabs occupy `[0, pinnedCount)`, unpinned `[pinnedCount, len)`).
+ * Assumes the list is already pinned-first normalized, so `pinnedCount` is the
+ * count of leading pinned tabs. Returns `fromIdx` (a no-op for the caller's
+ * `fromIdx === toIdx` guard) when the group has no room to move.
+ */
+export function clampReorderTarget(
+  fromIdx: number,
+  toIdx: number,
+  pinnedCount: number,
+  length: number,
+): number {
+  const fromPinned = fromIdx < pinnedCount;
+  const lo = fromPinned ? 0 : pinnedCount;
+  const hi = fromPinned ? pinnedCount - 1 : length - 1;
+  if (hi < lo) return fromIdx;
+  return Math.min(Math.max(toIdx, lo), hi);
+}
+
 export function shortcutForTabIndex(idx: number, length: number): number | null {
   if (idx < 0 || idx >= length) return null;
   if (length <= 9) return idx + 1;
@@ -152,6 +208,7 @@ export function SessionTabs({
   labelMaxWidth,
   onLabelWidthChange,
   onReorder,
+  onTogglePin,
 }: Props) {
   const [liveWidth, setLiveWidth] = useState<number | null>(null);
   const dragRef = useRef<{ startX: number; startW: number } | null>(null);
@@ -750,6 +807,29 @@ export function SessionTabs({
                 </span>
               )}
             </button>
+            {onTogglePin && (
+              <button
+                type="button"
+                data-no-drag
+                data-testid="session-tab-pin"
+                data-tab-pinned={t.pinned ? "true" : "false"}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onTogglePin(t.id);
+                }}
+                title={t.pinned ? "Unpin tab" : "Pin tab"}
+                aria-label={t.pinned ? "Unpin tab" : "Pin tab"}
+                aria-pressed={t.pinned ? true : false}
+                className={cn(
+                  "flex h-4 w-4 items-center justify-center rounded hover:bg-[var(--panel-2)]",
+                  t.pinned
+                    ? "text-[var(--accent)]"
+                    : "text-[var(--muted)] opacity-0 hover:text-[var(--foreground)] group-hover:opacity-100",
+                )}
+              >
+                <Pin className={cn("h-3 w-3", t.pinned && "fill-current")} />
+              </button>
+            )}
             <button
               type="button"
               data-no-drag
@@ -859,6 +939,27 @@ export function SessionTabs({
                             {modHint}{shortcut}
                           </span>
                         )}
+                        {onTogglePin && (
+                          <button
+                            type="button"
+                            data-testid="session-tabs-overflow-pin"
+                            data-tab-pinned={t.pinned ? "true" : "false"}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onTogglePin(t.id);
+                            }}
+                            title={t.pinned ? "Unpin tab" : "Pin tab"}
+                            aria-label={t.pinned ? "Unpin tab" : "Pin tab"}
+                            className={cn(
+                              "flex h-4 w-4 items-center justify-center rounded hover:bg-[var(--panel)]",
+                              t.pinned
+                                ? "text-[var(--accent)]"
+                                : "text-[var(--muted)] hover:text-[var(--foreground)]",
+                            )}
+                          >
+                            <Pin className={cn("h-3 w-3", t.pinned && "fill-current")} />
+                          </button>
+                        )}
                         <button
                           type="button"
                           onClick={(e) => {
@@ -914,6 +1015,9 @@ export function SessionTabs({
               )}
             >
               <StatusDot status={t.status} />
+              {t.pinned && (
+                <Pin className="h-3 w-3 shrink-0 fill-current text-[var(--accent)]" aria-hidden />
+              )}
               {dragShortcut != null && (
                 <span
                   aria-hidden

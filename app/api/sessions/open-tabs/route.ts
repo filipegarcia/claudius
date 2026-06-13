@@ -3,9 +3,11 @@ import { resolveActiveWorkspace } from "@/lib/server/active-workspace";
 import {
   getActiveTab,
   getOpenTabs,
+  getPinnedTabs,
   getTabLabelMaxWidth,
   setActiveTab,
   setOpenTabs,
+  setPinnedTabs,
   setTabLabelMaxWidth,
   TAB_LABEL_DEFAULT,
 } from "@/lib/server/open-tabs-db";
@@ -39,10 +41,11 @@ async function activeCwd(): Promise<string> {
 
 export async function GET() {
   const cwd = await activeCwd();
-  const [tabs, activeId, labelWidth] = await Promise.all([
+  const [tabs, activeId, labelWidth, pinned] = await Promise.all([
     getOpenTabs(cwd),
     getActiveTab(cwd),
     getTabLabelMaxWidth(cwd),
+    getPinnedTabs(cwd),
   ]);
   // Resolve persisted titles for every tab id, so the strip can render
   // proper names from the first paint — without waiting for the client's
@@ -95,16 +98,25 @@ export async function GET() {
     activeId,
     labelMaxWidth: labelWidth ?? TAB_LABEL_DEFAULT,
     titles,
+    // The pinned subset is passed through verbatim; the client intersects it
+    // with the rendered strip, so a stale id here is harmless.
+    pinned,
   });
 }
 
 export async function PUT(req: Request) {
-  let body: { tabs?: unknown; activeId?: unknown; labelMaxWidth?: unknown } = {};
+  let body: {
+    tabs?: unknown;
+    activeId?: unknown;
+    labelMaxWidth?: unknown;
+    pinned?: unknown;
+  } = {};
   try {
     body = (await req.json()) as {
       tabs?: unknown;
       activeId?: unknown;
       labelMaxWidth?: unknown;
+      pinned?: unknown;
     };
   } catch {
     return NextResponse.json({ error: "invalid JSON" }, { status: 400 });
@@ -124,6 +136,13 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: "activeId must be a string or null" }, { status: 400 });
     }
     await setActiveTab(cwd, body.activeId);
+  }
+  if (body.pinned !== undefined) {
+    if (!Array.isArray(body.pinned)) {
+      return NextResponse.json({ error: "pinned must be an array of strings" }, { status: 400 });
+    }
+    const ids = body.pinned.filter((x): x is string => typeof x === "string");
+    await setPinnedTabs(cwd, ids);
   }
   if (body.labelMaxWidth !== undefined) {
     if (typeof body.labelMaxWidth !== "number" || !Number.isFinite(body.labelMaxWidth)) {
