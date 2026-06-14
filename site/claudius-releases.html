@@ -1,0 +1,792 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Claudius — Release Board</title>
+    <meta
+      name="description"
+      content="A split-flap departure board of every Claudius release — the latest version flips up in mechanical glory, with the recent shipping history below. Live from GitHub."
+    />
+    <link rel="icon" type="image/svg+xml" href="icon.svg" />
+    <link rel="apple-touch-icon" href="apple-icon.png" />
+    <meta name="theme-color" content="#0b0b0c" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://claudius.network/claudius-releases.html" />
+    <meta property="og:site_name" content="Claudius" />
+    <meta property="og:title" content="Claudius — Release Board" />
+    <meta
+      property="og:description"
+      content="A split-flap departure board of every Claudius release. Live from GitHub."
+    />
+    <meta property="og:image" content="https://claudius.network/og.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <style>
+      :root {
+        --bg: #0b0b0c;
+        --fg: #e7e7ea;
+        --panel: #131316;
+        --panel2: #1a1a1f;
+        --line: #2a2a31;
+        --muted: #9a9aa3;
+        --accent: #d97757;
+        --mono: ui-monospace, "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
+        --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Inter, sans-serif;
+
+        /* Split-flap geometry (overridden per-scale below). */
+        --fw: 26px;
+        --fh: 42px;
+        --fs: 26px;
+        --fr: 5px;
+        --gap: 2px;
+        --flap-fg: #f4efe9;
+      }
+
+      * { box-sizing: border-box; }
+      html, body { margin: 0; }
+      body {
+        background: var(--bg);
+        color: var(--fg);
+        font-family: var(--sans);
+        -webkit-font-smoothing: antialiased;
+        min-height: 100vh;
+        overflow-x: hidden;
+      }
+      a { color: inherit; }
+
+      /* ── Ambient background: soft terracotta orbs + faint grid ───────── */
+      .bg {
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+        overflow: hidden;
+        background: radial-gradient(120% 90% at 50% -10%, #16110f 0%, var(--bg) 55%);
+      }
+      .bg::before {
+        content: "";
+        position: absolute;
+        inset: -20%;
+        background:
+          radial-gradient(28% 32% at 20% 12%, rgba(217, 119, 87, 0.18), transparent 70%),
+          radial-gradient(26% 30% at 82% 26%, rgba(96, 132, 250, 0.12), transparent 70%),
+          radial-gradient(30% 34% at 60% 88%, rgba(217, 119, 87, 0.10), transparent 70%);
+        animation: drift 40s ease-in-out infinite alternate;
+      }
+      .bg::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background-image:
+          linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+          linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+        background-size: 46px 46px;
+        mask-image: radial-gradient(80% 60% at 50% 30%, #000 0%, transparent 80%);
+      }
+      @keyframes drift {
+        from { transform: translate3d(-2%, -1%, 0) scale(1); }
+        to { transform: translate3d(2%, 2%, 0) scale(1.06); }
+      }
+
+      /* ── Header ──────────────────────────────────────────────────────── */
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 30;
+        border-bottom: 1px solid rgba(42, 42, 49, 0.6);
+        background: rgba(11, 11, 12, 0.7);
+        backdrop-filter: blur(10px);
+      }
+      .header-inner {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 0 24px;
+        height: 56px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .brand { display: flex; align-items: center; gap: 8px; text-decoration: none; }
+      .brand img { height: 24px; width: 24px; }
+      .brand span { font-family: var(--mono); font-size: 14px; color: rgba(231, 231, 234, 0.9); }
+      nav { display: flex; align-items: center; gap: 22px; font-size: 14px; color: var(--muted); }
+      nav a { text-decoration: none; transition: color 0.15s; }
+      nav a:hover { color: var(--fg); }
+      nav a[aria-current="page"] { color: var(--fg); }
+      .nav-hide { display: none; }
+      @media (min-width: 680px) { .nav-hide { display: inline; } }
+
+      /* ── Layout ──────────────────────────────────────────────────────── */
+      main { max-width: 1100px; margin: 0 auto; padding: 56px 24px 96px; }
+      .eyebrow {
+        font-family: var(--mono);
+        font-size: 12px;
+        letter-spacing: 0.28em;
+        text-transform: uppercase;
+        color: var(--accent);
+        margin: 0 0 18px;
+      }
+
+      /* ── Flagship (latest release) ───────────────────────────────────── */
+      .flagship {
+        --fw: 46px;
+        --fh: 70px;
+        --fs: 46px;
+        --fr: 7px;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 14px;
+        padding: 30px 0 38px;
+      }
+      .flagship .label {
+        font-family: var(--mono);
+        font-size: 13px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .flagship .label b { color: var(--fg); font-weight: 600; }
+      .flagship .stamp {
+        font-family: var(--mono);
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .flagship .stamp .dot {
+        display: inline-block;
+        width: 7px; height: 7px;
+        border-radius: 50%;
+        background: var(--accent);
+        box-shadow: 0 0 10px 1px rgba(217, 119, 87, 0.7);
+        margin-right: 8px;
+        vertical-align: middle;
+        animation: pulse 2.4s ease-in-out infinite;
+      }
+      @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+      /* ── Departure board ─────────────────────────────────────────────── */
+      .board-card {
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: linear-gradient(180deg, rgba(26, 26, 31, 0.55), rgba(19, 19, 22, 0.55));
+        box-shadow: 0 24px 60px -30px rgba(0, 0, 0, 0.8);
+        overflow: hidden;
+      }
+      .board-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--line);
+        flex-wrap: wrap;
+      }
+      .board-title {
+        font-family: var(--mono);
+        font-size: 13px;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: var(--fg);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .board-title .blink {
+        width: 8px; height: 8px; border-radius: 2px;
+        background: #5dd07a; box-shadow: 0 0 8px #5dd07a;
+        animation: pulse 1.6s steps(1) infinite;
+      }
+      .controls { display: flex; align-items: center; gap: 12px; }
+      .status-pill {
+        font-family: var(--mono);
+        font-size: 11px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .status-pill.live { color: #5dd07a; }
+      button.refresh {
+        font-family: var(--mono);
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--fg);
+        background: var(--panel2);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 7px 14px;
+        cursor: pointer;
+        transition: border-color 0.15s, background 0.15s;
+      }
+      button.refresh:hover { border-color: var(--accent); background: #211a17; }
+      button.refresh:disabled { opacity: 0.45; cursor: default; }
+
+      /* ── Commit ticker ───────────────────────────────────────────────── */
+      .ticker { padding: 32px 24px 26px; overflow-x: auto; }
+      .ticker-msg {
+        display: flex;
+        flex-direction: column;
+        gap: var(--gap);
+        min-width: max-content;
+        min-height: calc(2 * var(--fh) + var(--gap));
+        --fw: 20px;
+        --fh: 30px;
+        --fs: 19px;
+      }
+      .ticker-meta {
+        margin-top: 22px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        font-family: var(--mono);
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .ticker-meta .dot {
+        width: 7px; height: 7px;
+        border-radius: 50%;
+        background: var(--accent);
+        box-shadow: 0 0 10px 1px rgba(217, 119, 87, 0.7);
+        animation: pulse 2.4s ease-in-out infinite;
+      }
+      .ticker-meta .sha { color: var(--accent); letter-spacing: 0.06em; }
+      .ticker-meta .sep { opacity: 0.45; }
+      .ticker-meta .counter {
+        margin-left: auto;
+        font-size: 11px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+      }
+      .field { display: flex; gap: var(--gap); }
+
+      /* ── Latest-release line (labelled single row) ───────────────────── */
+      .latest-line {
+        padding: 22px 24px 26px;
+        border-top: 1px solid var(--line);
+        overflow-x: auto;
+        --fw: 22px;
+        --fh: 32px;
+        --fs: 21px;
+        --c-ver: calc(11 * var(--fw) + 10 * var(--gap));
+        --c-date: calc(11 * var(--fw) + 10 * var(--gap));
+        --c-time: calc(5 * var(--fw) + 4 * var(--gap));
+        --c-status: calc(7 * var(--fw) + 6 * var(--gap));
+      }
+      .ll-head,
+      .ll-row {
+        display: grid;
+        grid-template-columns: var(--c-ver) var(--c-date) var(--c-time) var(--c-status);
+        gap: 18px;
+        min-width: max-content;
+      }
+      .ll-head {
+        padding: 0 2px 12px;
+        font-family: var(--mono);
+        font-size: 11px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .ll-row { align-items: center; }
+
+      /* ── The split-flap unit ─────────────────────────────────────────── */
+      .flap {
+        position: relative;
+        width: var(--fw);
+        height: var(--fh);
+        border-radius: var(--fr);
+        perspective: 180px;
+        background: #0d0d0f;
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+          0 1px 2px rgba(0, 0, 0, 0.6);
+      }
+      .flap .half,
+      .flap .fold {
+        position: absolute;
+        left: 0; right: 0;
+        height: 50%;
+        overflow: hidden;
+        background: linear-gradient(180deg, #1c1b1f 0%, #161518 100%);
+      }
+      .flap .half.bottom,
+      .flap .fold.foldBottom {
+        background: linear-gradient(180deg, #161518 0%, #100f12 100%);
+      }
+      .flap span {
+        position: absolute;
+        left: 0; right: 0;
+        height: var(--fh);
+        line-height: var(--fh);
+        text-align: center;
+        font-family: var(--mono);
+        font-weight: 700;
+        font-size: var(--fs);
+        color: var(--flap-fg);
+        text-shadow: 0 1px 0 rgba(0, 0, 0, 0.5);
+      }
+      .half.top, .fold.foldTop {
+        top: 0;
+        border-radius: var(--fr) var(--fr) 0 0;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.6);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      }
+      .half.bottom, .fold.foldBottom {
+        bottom: 0;
+        border-radius: 0 0 var(--fr) var(--fr);
+        box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.03);
+      }
+      .half.top span, .fold.foldTop span { top: 0; }
+      .half.bottom span, .fold.foldBottom span { bottom: 0; }
+      .fold {
+        z-index: 3;
+        backface-visibility: hidden;
+        -webkit-backface-visibility: hidden;
+        will-change: transform;
+        opacity: 0;
+      }
+      .fold.foldTop { transform-origin: 50% 100%; }
+      .fold.foldBottom { transform-origin: 50% 0%; transform: rotateX(90deg); }
+      /* The hinge highlight across the centre line. */
+      .flap::after {
+        content: "";
+        position: absolute;
+        left: 0; right: 0; top: 50%;
+        height: 1px;
+        transform: translateY(-0.5px);
+        background: rgba(0, 0, 0, 0.55);
+        box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04);
+        z-index: 4;
+        pointer-events: none;
+      }
+      .field.accent { --flap-fg: var(--accent); }
+
+      .foot {
+        margin-top: 28px;
+        font-size: 13px;
+        line-height: 1.7;
+        color: var(--muted);
+        max-width: 64ch;
+      }
+      .foot a { color: var(--accent); text-decoration: none; }
+      .foot a:hover { text-decoration: underline; }
+      .sr-only {
+        position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+        overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+      }
+
+      @media (max-width: 640px) {
+        :root { --fw: 23px; --fh: 36px; --fs: 22px; }
+        .flagship { --fw: 32px; --fh: 50px; --fs: 32px; }
+        .ticker-msg { --fw: 16px; --fh: 25px; --fs: 15px; }
+        main { padding: 36px 16px 72px; }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .bg::before { animation: none; }
+        .flagship .stamp .dot, .board-title .blink { animation: none; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="bg" aria-hidden="true"></div>
+
+    <header>
+      <div class="header-inner">
+        <a class="brand" href="index.html">
+          <img src="claudius.svg" alt="" />
+          <span>claudius</span>
+        </a>
+        <nav>
+          <a href="index.html">Home</a>
+          <a class="nav-hide" href="releases.html">SDK Releases</a>
+          <a href="claudius-releases.html" aria-current="page">Board</a>
+          <a href="https://github.com/filipegarcia/claudius/releases">Repo</a>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <p class="eyebrow">Claudius · Release Board</p>
+
+      <section class="flagship" aria-hidden="true">
+        <span class="label">Now shipping — <b>v</b></span>
+        <div class="field accent" id="flagship"></div>
+        <span class="stamp"><span class="dot"></span><span id="flagship-stamp">—</span></span>
+      </section>
+
+      <section class="board-card">
+        <div class="board-top">
+          <div class="board-title"><span class="blink"></span>Latest commits · main</div>
+          <div class="controls">
+            <span class="status-pill" id="status">snapshot</span>
+            <button class="refresh" id="next" type="button">Next ↻</button>
+          </div>
+        </div>
+        <div class="ticker">
+          <div class="ticker-msg" id="ticker-msg" aria-hidden="true"></div>
+          <div class="ticker-meta">
+            <span class="dot"></span>
+            <span class="sha" id="t-sha">—</span>
+            <span class="sep">·</span>
+            <span id="t-when">—</span>
+            <span class="sep">·</span>
+            <span id="t-who">—</span>
+            <span class="counter" id="t-counter"></span>
+          </div>
+        </div>
+        <!-- Latest release, labelled — the last line of the same board. -->
+        <div class="latest-line" aria-hidden="true">
+          <div class="ll-head">
+            <span>Version</span>
+            <span>Date · UTC</span>
+            <span>Time</span>
+            <span>Status</span>
+          </div>
+          <div class="ll-row" id="latest-row"></div>
+        </div>
+      </section>
+
+      <!-- Accessible, non-animated equivalent of the ticker. -->
+      <div class="sr-only" id="sr-list" aria-live="polite"></div>
+
+      <p class="foot">
+        The big flaps up top show the version that's
+        <a href="https://github.com/filipegarcia/claudius/releases">now shipping</a>.
+        Below, the board flips through the most recent commits on
+        <a href="https://github.com/filipegarcia/claudius/commits/main"><code>main</code></a>
+        — a live build heartbeat that auto-advances (hover to pause, or hit
+        <em>Next</em>). It paints from a snapshot, then refreshes from the GitHub API.
+        Looking for the Anthropic SDK cadence dashboard instead?
+        <a href="releases.html">See SDK Releases →</a>
+      </p>
+    </main>
+
+    <script>
+      // ── Baked snapshot ─────────────────────────────────────────────────
+      // Renders instantly and is the fallback when the GitHub API is rate
+      // limited or offline. Refreshed from the live API on load (see below).
+      // Latest release drives the big flagship flaps (version now shipping).
+      const RELEASES = [
+        { tag: "v0.3.177.5", at: "2026-06-14T08:02:06Z" },
+      ];
+      // Recent commits on main drive the ticker.
+      const COMMITS = [
+        { sha: "3dcf50b", at: "2026-06-14T08:04:31Z", who: "filipegarcia", msg: "feat(releases): reverse daily heatmap — newest month on the left" },
+        { sha: "4fdb396", at: "2026-06-14T08:03:19Z", who: "claudius-bot", msg: "chore: refresh SDK release analytics [skip ci]" },
+        { sha: "97707d2", at: "2026-06-13T21:38:51Z", who: "filipegarcia", msg: "Document `make documentation` and interface map in README" },
+        { sha: "6f6de74", at: "2026-06-13T21:31:18Z", who: "filipegarcia", msg: "feat(docs): generate docs/SITEMAP.md via make documentation" },
+        { sha: "91b41ab", at: "2026-06-13T21:31:08Z", who: "filipegarcia", msg: "feat(tabs): pin session tabs to the front of the strip" },
+        { sha: "b3816f9", at: "2026-06-13T20:17:41Z", who: "filipegarcia", msg: "updater: harden self-update apply flow and add model-unavailable handling" },
+        { sha: "16442aa", at: "2026-06-13T20:01:44Z", who: "filipegarcia", msg: "Merge remote-tracking branch 'origin/main'" },
+        { sha: "267c75f", at: "2026-06-13T18:14:50Z", who: "Filipe Garcia", msg: "Merge pull request #66 from filipegarcia/sdk-update/0.3.177" },
+        { sha: "726293a", at: "2026-06-13T07:49:11Z", who: "claudius-bot", msg: "chore: refresh SDK release analytics [skip ci]" },
+        { sha: "fae49c3", at: "2026-06-13T02:12:30Z", who: "filipegarcia", msg: "sync deprecation map with SDK 0.3.177 entries" },
+      ];
+
+      const REPO = "filipegarcia/claudius";
+      const MONTHS = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
+      // Spool ordering: digits + version punctuation first so numeric flips
+      // (versions, times) are short; letters trail, then commit punctuation.
+      const SPOOL = " 0123456789.:/-ABCDEFGHIJKLMNOPQRSTUVWXYZ()[],'#+!?@".split("");
+      const INDEX = new Map(SPOOL.map((c, i) => [c, i]));
+      const REDUCED = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const STEP = 40; // ms per spool step
+
+      const norm = (ch) => {
+        ch = (ch == null ? " " : String(ch)).toUpperCase();
+        return INDEX.has(ch) ? ch : " ";
+      };
+      const idx = (ch) => INDEX.get(norm(ch));
+
+      // ── A single split-flap cell ───────────────────────────────────────
+      class Flap {
+        constructor() {
+          const el = document.createElement("div");
+          el.className = "flap";
+          el.innerHTML =
+            '<div class="half top"><span></span></div>' +
+            '<div class="half bottom"><span></span></div>' +
+            '<div class="fold foldTop"><span></span></div>' +
+            '<div class="fold foldBottom"><span></span></div>';
+          this.el = el;
+          this.topS = el.querySelector(".top span");
+          this.botS = el.querySelector(".bottom span");
+          this.ftop = el.querySelector(".foldTop");
+          this.fbot = el.querySelector(".foldBottom");
+          this.ftopS = this.ftop.querySelector("span");
+          this.fbotS = this.fbot.querySelector("span");
+          this.cur = " ";
+          this.target = " ";
+          this.busy = false;
+          this.set(" ");
+        }
+        set(ch) {
+          ch = norm(ch);
+          this.cur = ch;
+          this.target = ch;
+          this.topS.textContent = ch;
+          this.botS.textContent = ch;
+          this.ftop.style.opacity = 0;
+          this.fbot.style.opacity = 0;
+        }
+        async to(ch) {
+          this.target = norm(ch);
+          if (REDUCED) { this.set(this.target); return; }
+          if (this.busy) return; // running loop converges to the new target
+          this.busy = true;
+          try {
+            while (this.cur !== this.target) {
+              const next = SPOOL[(idx(this.cur) + 1) % SPOOL.length];
+              await this.step(this.cur, next);
+              this.cur = next;
+            }
+          } finally {
+            this.busy = false;
+          }
+        }
+        step(oldc, newc) {
+          // Reveal new top behind the falling flap; keep old bottom until the
+          // rising flap settles.
+          this.topS.textContent = newc;
+          this.botS.textContent = oldc;
+          this.ftopS.textContent = oldc;
+          this.fbotS.textContent = newc;
+          this.ftop.style.opacity = 1;
+          this.fbot.style.opacity = 1;
+          this.ftop.style.transform = "rotateX(0deg)";
+          this.fbot.style.transform = "rotateX(90deg)";
+          const half = STEP / 2;
+          return new Promise((res) => {
+            const a1 = this.ftop.animate(
+              [{ transform: "rotateX(0deg)" }, { transform: "rotateX(-90deg)" }],
+              { duration: half, easing: "cubic-bezier(.4,0,1,.5)", fill: "forwards" }
+            );
+            a1.onfinish = () => {
+              this.ftop.style.opacity = 0;
+              const a2 = this.fbot.animate(
+                [{ transform: "rotateX(90deg)" }, { transform: "rotateX(0deg)" }],
+                { duration: half, easing: "cubic-bezier(0,.5,.5,1)", fill: "forwards" }
+              );
+              a2.onfinish = () => {
+                this.botS.textContent = newc;
+                this.fbot.style.opacity = 0;
+                res();
+              };
+            };
+          });
+        }
+      }
+
+      // ── A fixed-width field made of flaps ──────────────────────────────
+      class Field {
+        constructor(width, accent) {
+          this.el = document.createElement("div");
+          this.el.className = "field" + (accent ? " accent" : "");
+          this.flaps = Array.from({ length: width }, () => {
+            const f = new Flap();
+            this.el.appendChild(f.el);
+            return f;
+          });
+        }
+        // Flip to `str`, padded/truncated to width, with a left-to-right
+        // ripple. `delay` offsets the whole field (used to cascade rows).
+        show(str, delay = 0) {
+          const w = this.flaps.length;
+          const padded = String(str).slice(0, w).padEnd(w, " ");
+          this.flaps.forEach((f, i) => {
+            const ch = padded[i];
+            if (REDUCED) { f.to(ch); return; }
+            setTimeout(() => f.to(ch), delay + i * 16);
+          });
+        }
+      }
+
+      // ── Formatting ─────────────────────────────────────────────────────
+      const ver = (tag) => String(tag).replace(/^v/i, "");
+      function fmtDate(iso) {
+        const d = new Date(iso);
+        if (isNaN(d)) return "";
+        const day = String(d.getUTCDate()).padStart(2, "0");
+        return day + " " + MONTHS[d.getUTCMonth()] + " " + d.getUTCFullYear();
+      }
+      function fmtTime(iso) {
+        const d = new Date(iso);
+        if (isNaN(d)) return "";
+        return (
+          String(d.getUTCHours()).padStart(2, "0") + ":" +
+          String(d.getUTCMinutes()).padStart(2, "0")
+        );
+      }
+
+      // ── Flagship: the version that's now shipping ──────────────────────
+      const flagship = new Field(10, true);
+      document.getElementById("flagship").appendChild(flagship.el);
+
+      // Bottom labelled line: VERSION · DATE · TIME · STATUS for the latest release.
+      const latestRowEl = document.getElementById("latest-row");
+      const latest = {
+        ver: new Field(11, true),
+        date: new Field(11),
+        time: new Field(5),
+        status: new Field(7),
+      };
+      [latest.ver, latest.date, latest.time, latest.status].forEach((f) =>
+        latestRowEl.appendChild(f.el)
+      );
+
+      function setFlagship(rel) {
+        if (!rel) return;
+        flagship.show(ver(rel.tag));
+        document.getElementById("flagship-stamp").textContent =
+          "shipped " + fmtDate(rel.at) + " · " + fmtTime(rel.at) + " UTC";
+        latest.ver.show(ver(rel.tag));
+        latest.date.show(fmtDate(rel.at));
+        latest.time.show(fmtTime(rel.at));
+        latest.status.show("LATEST");
+      }
+
+      async function refreshReleases() {
+        try {
+          const res = await fetch(
+            "https://api.github.com/repos/" + REPO + "/releases?per_page=1",
+            { headers: { Accept: "application/vnd.github+json" } }
+          );
+          if (!res.ok) throw 0;
+          const data = await res.json();
+          const r = data.find((x) => !x.draft);
+          if (r) setFlagship({ tag: r.tag_name, at: r.published_at || r.created_at });
+        } catch (_) {
+          /* keep the baked flagship */
+        }
+      }
+
+      // ── Commit ticker: flip through recent commits on main ─────────────
+      const COLS = 38, LINES = 2, PERIOD = 6500;
+
+      function sanitize(s) {
+        return String(s)
+          .replace(/[—–]/g, "-")
+          .replace(/[’‘`]/g, "'")
+          .toUpperCase();
+      }
+      // Greedy word-wrap into `rows` lines of `cols`, hard-splitting any token
+      // longer than a line. Overflow past the last line is dropped.
+      function wrap(text, cols, rows) {
+        const words = text.split(/\s+/).filter(Boolean);
+        const lines = [];
+        let cur = "";
+        for (let w of words) {
+          while (w.length > cols) {
+            if (cur) { lines.push(cur); cur = ""; }
+            if (lines.length >= rows) break;
+            lines.push(w.slice(0, cols));
+            w = w.slice(cols);
+          }
+          if (lines.length >= rows) break;
+          if (!cur) cur = w;
+          else if (cur.length + 1 + w.length <= cols) cur += " " + w;
+          else { lines.push(cur); cur = w; }
+          if (lines.length >= rows) { cur = ""; break; }
+        }
+        if (cur && lines.length < rows) lines.push(cur);
+        while (lines.length < rows) lines.push("");
+        return lines.slice(0, rows).map((l) => l.slice(0, cols));
+      }
+      function ago(iso) {
+        const t = new Date(iso).getTime();
+        if (isNaN(t)) return "";
+        const s = Math.max(0, (Date.now() - t) / 1000);
+        if (s < 90) return "just now";
+        const m = Math.floor(s / 60);
+        if (m < 60) return m + " min ago";
+        const h = Math.floor(m / 60);
+        if (h < 24) return h + (h === 1 ? " hour ago" : " hours ago");
+        const d = Math.floor(h / 24);
+        if (d < 30) return d + (d === 1 ? " day ago" : " days ago");
+        const mo = Math.floor(d / 30);
+        return mo + (mo === 1 ? " month ago" : " months ago");
+      }
+
+      class MessageBoard {
+        constructor(host) {
+          this.lines = Array.from({ length: LINES }, () => {
+            const f = new Field(COLS);
+            host.appendChild(f.el);
+            return f;
+          });
+        }
+        show(text) {
+          const wrapped = wrap(sanitize(text), COLS, LINES);
+          this.lines.forEach((line, i) => line.show(wrapped[i], i * 110));
+        }
+      }
+
+      const ticker = new MessageBoard(document.getElementById("ticker-msg"));
+      let commits = COMMITS.slice();
+      let cur = 0;
+      let timer = null;
+
+      function showCommit(i) {
+        if (!commits.length) return;
+        cur = (i + commits.length) % commits.length;
+        const c = commits[cur];
+        ticker.show(c.msg);
+        document.getElementById("t-sha").textContent = c.sha;
+        document.getElementById("t-when").textContent = ago(c.at);
+        document.getElementById("t-who").textContent = c.who;
+        document.getElementById("t-counter").textContent = cur + 1 + " / " + commits.length;
+        document.getElementById("sr-list").textContent =
+          "Commit " + c.sha + " by " + c.who + ", " + ago(c.at) + ": " + c.msg;
+      }
+      const next = () => showCommit(cur + 1);
+      const stop = () => { if (timer) { clearInterval(timer); timer = null; } };
+      const start = () => { stop(); if (!REDUCED) timer = setInterval(next, PERIOD); };
+
+      async function refreshCommits() {
+        const status = document.getElementById("status");
+        try {
+          const res = await fetch(
+            "https://api.github.com/repos/" + REPO + "/commits?sha=main&per_page=12",
+            { headers: { Accept: "application/vnd.github+json" } }
+          );
+          if (!res.ok) throw new Error("HTTP " + res.status);
+          const data = await res.json();
+          const list = data
+            .map((x) => ({
+              sha: (x.sha || "").slice(0, 7),
+              at: x.commit && x.commit.author ? x.commit.author.date : null,
+              who:
+                (x.author && x.author.login) ||
+                (x.commit && x.commit.author && x.commit.author.name) ||
+                "unknown",
+              msg: (x.commit && x.commit.message ? x.commit.message : "").split("\n")[0],
+            }))
+            .filter((c) => c.sha && c.msg);
+          if (!list.length) throw new Error("empty");
+          commits = list;
+          status.textContent = "live · github";
+          status.classList.add("live");
+          showCommit(0);
+          start();
+        } catch (_) {
+          status.textContent = "snapshot";
+          status.classList.remove("live");
+        }
+      }
+
+      // First paint from the baked snapshot, then reconcile with the API.
+      setFlagship(RELEASES[0]);
+      showCommit(0);
+      start();
+      refreshReleases();
+      refreshCommits();
+
+      const tickerEl = document.querySelector(".ticker");
+      tickerEl.addEventListener("mouseenter", stop);
+      tickerEl.addEventListener("mouseleave", start);
+      document.getElementById("next").addEventListener("click", () => { next(); start(); });
+    </script>
+  </body>
+</html>

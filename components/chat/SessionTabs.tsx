@@ -704,6 +704,12 @@ export function SessionTabs({
       >
       {tabs.map((t, i) => {
         const active = t.id === activeId;
+        // Pinned-but-inactive tabs render compact (Chrome-style): a small pin
+        // glyph only, no label, so they occupy minimal width. They expand to
+        // show the name the moment they become active. Unpinning a compact tab
+        // is a two-step (select → unpin button appears) — same as Chrome's
+        // pinned tabs hiding their close affordance.
+        const compact = !!t.pinned && !active;
         const hidden = hiddenIds.has(t.id);
         const isBeingDragged = drag?.id === t.id;
         const shift = shiftFor(i);
@@ -740,7 +746,8 @@ export function SessionTabs({
               cursor: drag ? "grabbing" : "grab",
             }}
             className={cn(
-              "group relative flex shrink-0 items-center gap-1.5 border-r border-[var(--border)] px-2 text-[11px] select-none",
+              "group relative flex shrink-0 items-center gap-1.5 border-r border-[var(--border)] text-[11px] select-none",
+              compact ? "px-1.5" : "px-2",
               // Active tab signalling (works across all 7 themes):
               //   1. Lighter background (--panel-2) so the tab reads as
               //      "raised" off the strip (--panel) — flips the prior
@@ -771,28 +778,54 @@ export function SessionTabs({
               className="flex min-w-0 items-center gap-1.5"
               title={`${t.label ?? t.id}\n${t.status}${shortcutHint}`}
             >
-              <StatusDot status={t.status} />
-              {shortcut != null && (
-                // Sits OUTSIDE the truncated label so narrow tabs don't clip
-                // the digit. Mirrors the iTerm hint in the tab itself.
-                <span
-                  data-testid="session-tab-shortcut"
-                  aria-hidden
-                  className={cn(
-                    "shrink-0 font-mono text-[9px] leading-none tabular-nums",
-                    active ? "text-[var(--muted)]" : "text-[var(--muted)]/60",
+              {compact ? (
+                // Compact pinned tab: a small pin glyph plus the numeric
+                // shortcut hint stand in for the whole tab. The number keeps
+                // the tab jumpable (⌘-N) and easy to target by eye even
+                // without its label. Clicking selects the session, which makes
+                // it active and expands it to reveal the name + unpin control.
+                <>
+                  <Pin
+                    data-testid="session-tab-pin-indicator"
+                    className="h-2.5 w-2.5 shrink-0 fill-current text-[var(--accent)]"
+                    aria-hidden
+                  />
+                  {shortcut != null && (
+                    <span
+                      data-testid="session-tab-shortcut"
+                      aria-hidden
+                      className="shrink-0 font-mono text-[9px] leading-none tabular-nums text-[var(--muted)]/60"
+                    >
+                      {shortcut}
+                    </span>
                   )}
-                >
-                  {shortcut}
-                </span>
+                </>
+              ) : (
+                <>
+                  <StatusDot status={t.status} />
+                  {shortcut != null && (
+                    // Sits OUTSIDE the truncated label so narrow tabs don't clip
+                    // the digit. Mirrors the iTerm hint in the tab itself.
+                    <span
+                      data-testid="session-tab-shortcut"
+                      aria-hidden
+                      className={cn(
+                        "shrink-0 font-mono text-[9px] leading-none tabular-nums",
+                        active ? "text-[var(--muted)]" : "text-[var(--muted)]/60",
+                      )}
+                    >
+                      {shortcut}
+                    </span>
+                  )}
+                  <span
+                    data-testid="session-tab-label"
+                    style={{ maxWidth: `${effectiveWidth}px` }}
+                    className={cn("truncate font-mono", active && "font-medium")}
+                  >
+                    {t.label ?? t.id.slice(0, 8)}
+                  </span>
+                </>
               )}
-              <span
-                data-testid="session-tab-label"
-                style={{ maxWidth: `${effectiveWidth}px` }}
-                className={cn("truncate font-mono", active && "font-medium")}
-              >
-                {t.label ?? t.id.slice(0, 8)}
-              </span>
               {t.unread != null && t.unread > 0 && (
                 <span
                   data-testid="session-tab-unread"
@@ -807,7 +840,7 @@ export function SessionTabs({
                 </span>
               )}
             </button>
-            {onTogglePin && (
+            {onTogglePin && !compact && (
               <button
                 type="button"
                 data-no-drag
@@ -830,38 +863,43 @@ export function SessionTabs({
                 <Pin className={cn("h-3 w-3", t.pinned && "fill-current")} />
               </button>
             )}
-            <button
-              type="button"
-              data-no-drag
-              onClick={(e) => {
-                e.stopPropagation();
-                onClose(t.id);
-              }}
-              title="Close tab"
-              className={cn(
-                "flex h-4 w-4 items-center justify-center rounded text-[var(--muted)] hover:bg-[var(--panel-2)] hover:text-[var(--foreground)]",
-                !active && "opacity-0 group-hover:opacity-100",
-              )}
-            >
-              <X className="h-3 w-3" />
-            </button>
+            {!compact && (
+              <button
+                type="button"
+                data-no-drag
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onClose(t.id);
+                }}
+                title="Close tab"
+                className={cn(
+                  "flex h-4 w-4 items-center justify-center rounded text-[var(--muted)] hover:bg-[var(--panel-2)] hover:text-[var(--foreground)]",
+                  !active && "opacity-0 group-hover:opacity-100",
+                )}
+              >
+                <X className="h-3 w-3" />
+              </button>
+            )}
             {/*
               Drag handle on the right edge of every tab. Widths are global —
               dragging any tab's handle resizes them all in lockstep, with the
               chosen value persisted via onLabelWidthChange. Marked
-              `data-no-drag` so it does NOT engage the reorder drag.
+              `data-no-drag` so it does NOT engage the reorder drag. Hidden on
+              compact pinned tabs — there's no label to resize there.
             */}
-            <div
-              role="separator"
-              aria-orientation="vertical"
-              aria-label="Resize tab labels"
-              data-no-drag
-              onPointerDown={onResizeStart}
-              onPointerMove={onResizeMove}
-              onPointerUp={onResizeEnd}
-              onPointerCancel={onResizeEnd}
-              className="absolute right-0 top-0 h-full w-1 cursor-ew-resize select-none opacity-0 hover:bg-[var(--accent)]/40 hover:opacity-100 group-hover:opacity-60"
-            />
+            {!compact && (
+              <div
+                role="separator"
+                aria-orientation="vertical"
+                aria-label="Resize tab labels"
+                data-no-drag
+                onPointerDown={onResizeStart}
+                onPointerMove={onResizeMove}
+                onPointerUp={onResizeEnd}
+                onPointerCancel={onResizeEnd}
+                className="absolute right-0 top-0 h-full w-1 cursor-ew-resize select-none opacity-0 hover:bg-[var(--accent)]/40 hover:opacity-100 group-hover:opacity-60"
+              />
+            )}
           </div>
         );
       })}
@@ -997,6 +1035,9 @@ export function SessionTabs({
           const t = tabs[drag.fromIdx];
           if (!t) return null;
           const dragShortcut = shortcutForTabIndex(drag.fromIdx, tabs.length);
+          // Mirror the compact-pinned rendering so the floating clone matches
+          // the (narrow) source slot it was lifted from.
+          const dragCompact = !!t.pinned && t.id !== activeId;
           return (
             <div
               data-testid="session-tab-drag-clone"
@@ -1014,24 +1055,30 @@ export function SessionTabs({
                 "flex items-center gap-1.5 rounded-sm border border-[var(--border)] bg-[var(--background)] px-2 text-[11px] text-[var(--foreground)] shadow-xl",
               )}
             >
-              <StatusDot status={t.status} />
-              {t.pinned && (
-                <Pin className="h-3 w-3 shrink-0 fill-current text-[var(--accent)]" aria-hidden />
+              {dragCompact ? (
+                <Pin className="h-2.5 w-2.5 shrink-0 fill-current text-[var(--accent)]" aria-hidden />
+              ) : (
+                <>
+                  <StatusDot status={t.status} />
+                  {t.pinned && (
+                    <Pin className="h-3 w-3 shrink-0 fill-current text-[var(--accent)]" aria-hidden />
+                  )}
+                  {dragShortcut != null && (
+                    <span
+                      aria-hidden
+                      className="shrink-0 font-mono text-[9px] leading-none text-[var(--muted)] tabular-nums"
+                    >
+                      {dragShortcut}
+                    </span>
+                  )}
+                  <span
+                    style={{ maxWidth: `${effectiveWidth}px` }}
+                    className="truncate font-mono"
+                  >
+                    {t.label ?? t.id.slice(0, 8)}
+                  </span>
+                </>
               )}
-              {dragShortcut != null && (
-                <span
-                  aria-hidden
-                  className="shrink-0 font-mono text-[9px] leading-none text-[var(--muted)] tabular-nums"
-                >
-                  {dragShortcut}
-                </span>
-              )}
-              <span
-                style={{ maxWidth: `${effectiveWidth}px` }}
-                className="truncate font-mono"
-              >
-                {t.label ?? t.id.slice(0, 8)}
-              </span>
               {t.unread != null && t.unread > 0 && (
                 <span
                   className={cn(
