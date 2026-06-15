@@ -86,7 +86,7 @@ import {
   type QueuedMessageRow,
 } from "./queued-messages-db";
 import type { QueuedMessageMeta } from "@/lib/shared/events";
-import { extractUserPromptText, isRealUserPrompt } from "@/lib/shared/user-prompt";
+import { extractUserPromptText, isAnchorableUserPrompt } from "@/lib/shared/user-prompt";
 import {
   planThinkingReplayRecovery,
   thinkingReplayErrorFrom,
@@ -727,15 +727,24 @@ export function computeReplayWindow(
     };
     if (m.type !== "assistant" && m.type !== "user") continue;
     if (m.parent_tool_use_id) continue;
+    // The `tail` budget counts CONVERSATIONAL turns, not raw SDK messages.
+    // Tool round-trips in Claude Code emit a `user`-role SDK message whose
+    // content is a `tool_result` block (plus `<task-notification>`, the
+    // post-compact summary, CLI plumbing — all user-shaped bookkeeping the
+    // user never typed). A single agentic turn produces dozens of these, so
+    // counting them as turns exhausted `tail=20` almost immediately and the
+    // window opened deep inside a tool chain — on an assistant/tool turn
+    // rather than the prompt ("started on an agent" on reattach). Skip any
+    // user record that isn't an anchorable prompt so the budget reflects
+    // real back-and-forth. Assistant turns always count.
+    const isUserPrompt = m.type === "user" && isAnchorableUserPrompt(m.message?.content);
+    if (m.type === "user" && !isUserPrompt) continue;
     turnIdx.push(i);
-    // Only count REAL user prompts as user-turn anchors. Tool round-trips
-    // in Claude Code emit a `user`-role SDK message whose content is a
-    // `tool_result` block — those are bookkeeping, not user input, and
-    // there are typically dozens of them between real prompts. If we
-    // anchored on those we'd pin on the most recent tool result (already
-    // inside the default tail) and the actual prompt would still get
-    // dropped off the top — exactly the bug we're fixing here.
-    if (m.type === "user" && isRealUserPrompt(m.message?.content)) {
+    // Anchor the window on a real user prompt — `isAnchorableUserPrompt`
+    // accepts text prompts AND image-only pastes (genuine input that
+    // `isRealUserPrompt` rejects because it carries no prose), while still
+    // rejecting the bookkeeping records filtered out above.
+    if (isUserPrompt) {
       const at =
         typeof ev.at === "number" && Number.isFinite(ev.at)
           ? ev.at
@@ -5619,9 +5628,11 @@ export class Session {
     };
     const parent = (event.message as { parent_tool_use_id?: string | null }).parent_tool_use_id;
     if (parent) return;
-    // Real user prompt → cache for the rehydration snapshot. Skip
-    // SDK-synthetic tool_result wrappers (same distinction as
-    // `isRealUserPrompt` used by computeReplayWindow).
+    // Real user prompt → cache for the rehydration snapshot. Uses the
+    // text-only `extractUserPromptText` (not the image-aware
+    // `isAnchorableUserPrompt` that computeReplayWindow anchors on): this
+    // snapshot caches prose for rehydration and can't carry image pixels, so
+    // an image-only paste correctly doesn't update it.
     //
     // Prefer the envelope's `at` over wall-clock now: disk-replay callers
     // (`Session.start` resume path, `resyncFromDisk`) pre-set `at` from the

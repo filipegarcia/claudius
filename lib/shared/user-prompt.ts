@@ -207,3 +207,39 @@ export function extractUserPromptText(content: unknown): string | null {
 export function isRealUserPrompt(content: unknown): boolean {
   return extractUserPromptText(content) !== null;
 }
+
+/**
+ * Like {@link isRealUserPrompt}, but also treats **image-only** prompts as
+ * genuine user input.
+ *
+ * `extractUserPromptText` (and therefore `isRealUserPrompt`) returns null for a
+ * user record whose content is images with no text — see the doc comment there.
+ * That's correct for the snapshot/pin callers (they cache prose and can't carry
+ * pixels), but WRONG for the replay-window anchor: an image-only paste is a real
+ * thing the user did, it survives the SSE replay, and the window should be
+ * allowed to open on it instead of falling through to the assistant/tool turn
+ * that followed. Anchoring on text-only prompts left image pastes unable to
+ * anchor, so a reattach could land mid-tool-chain ("started on an agent").
+ *
+ * Still excludes the SDK bookkeeping that masquerades as a user record:
+ * `tool_result` envelopes, `<task-notification>` injections, the post-compact
+ * summary, CLI plumbing, and empty/reminder-only content — none of those are
+ * conversational turns and none should anchor the window.
+ */
+export function isAnchorableUserPrompt(content: unknown): boolean {
+  // Real text prompt (string or text blocks). Also rejects the synthetic
+  // wrappers (tool_result-only arrays have no text; task-notification /
+  // compact-summary / CLI plumbing are matched and stripped to empty).
+  if (extractUserPromptText(content) !== null) return true;
+  // No anchorable text — accept only if it's a genuine image-bearing prompt.
+  // A `tool_result` block disqualifies it outright (that's a tool round-trip
+  // envelope, never user input), regardless of any sibling blocks.
+  if (!Array.isArray(content)) return false;
+  let hasImage = false;
+  for (const block of content) {
+    const b = block as { type?: string } | null;
+    if (b?.type === "tool_result") return false;
+    if (b?.type === "image") hasImage = true;
+  }
+  return hasImage;
+}

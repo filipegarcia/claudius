@@ -75,6 +75,33 @@ function sdkSystem(uuid: string): ServerEvent {
   } as unknown as ServerEvent;
 }
 
+/**
+ * Image-only user prompt — a screenshot paste with no accompanying text.
+ * `isRealUserPrompt`/`extractUserPromptText` return null for these (they
+ * carry no prose), but they're genuine user input and MUST be able to anchor
+ * the replay window. Real sessions split a pasted image into an image-only
+ * record plus a separate `[Image: …]` caption record; this models the
+ * image-only half.
+ */
+function sdkImagePrompt(uuid: string, at?: number): ServerEvent {
+  return {
+    type: "sdk",
+    ...(typeof at === "number" ? { at } : {}),
+    message: {
+      type: "user",
+      uuid,
+      message: {
+        content: [
+          {
+            type: "image",
+            source: { type: "base64", media_type: "image/png", data: "iVBORw0KGgo=" },
+          },
+        ],
+      },
+    },
+  } as unknown as ServerEvent;
+}
+
 describe("computeReplayWindow", () => {
   test("returns the whole buffer when tail is unset", () => {
     const buffer = [sdkUser("u1"), sdkAssistant("a1")];
@@ -201,11 +228,10 @@ describe("computeReplayWindow", () => {
       sdkAssistant("a4"), // turn 8, idx 8
     ];
     const out = computeReplayWindow(buffer, 3);
-    // 9 turns total; tail=3 → naive start at turnIdx[6] = idx 6.
-    // Naive anchor (count tool_result wrappers): lastUserTurnIdx = idx 7
-    //   → 7 < 6 is false, no extension → real prompt at idx 1 stays dropped.
-    // Correct anchor (real prompts only): lastUserTurnIdx = idx 1
-    //   → 1 < 6 → extend back to idx 1.
+    // tool_result wrappers count as neither turns nor anchors, so the real
+    // turns are [a0, u1, a1, a2, a3, a4] at idxs [0,1,2,4,6,8] (6 turns).
+    // tail=3 → naive start at turnIdx[3] = idx 4 (a2). The only real prompt
+    // (u1, idx 1) is older than the naive start → extend back to idx 1.
     expect(out).toEqual({ startIdx: 1, hasMoreAbove: true });
   });
 
@@ -241,10 +267,10 @@ describe("computeReplayWindow", () => {
       sdkAssistant("a4"), // turn 6, idx 6
     ];
     const out = computeReplayWindow(buffer, 2);
-    // 7 turns, tail=2 → naive start at turnIdx[5] = idx 5.
-    // If taskNotif were counted as the latest user turn, lastUserTurnIdx=4,
-    // which is BEFORE idx 5 → window would extend to idx 4 (still skipping
-    // the real prompt at idx 1). Correct: anchor on idx 1.
+    // taskNotif counts as neither a turn nor an anchor, so the real turns are
+    // [a0, u1, a1, a2, a3, a4] at idxs [0,1,2,3,5,6] (6 turns). tail=2 → naive
+    // start at turnIdx[4] = idx 5 (a3). The real prompt (u1, idx 1) is older →
+    // extend back to idx 1, skipping the synthetic notification entirely.
     expect(out).toEqual({ startIdx: 1, hasMoreAbove: true });
   });
 
@@ -291,6 +317,68 @@ describe("computeReplayWindow", () => {
 
     // Naive buffer-order anchoring would extend only to idx 3 (u-old).
     // Correct chronological anchoring extends to idx 0 (u-new).
+    expect(out).toEqual({ startIdx: 0, hasMoreAbove: false });
+  });
+
+  test("tool-heavy short conversation opens on the first prompt, not mid-chain (2026-06 bug)", () => {
+    // The reported regression: a conversation that is SHORT in human terms
+    // (one prompt, a handful of replies) but tool-heavy generates many
+    // tool_result bookkeeping records. When those counted toward the tail
+    // budget, a session the user thinks of as "small" still blew past tail
+    // and the window opened on an assistant/tool turn ("started on an agent")
+    // with the prompt sliced off the top.
+    const buffer: ServerEvent[] = [
+      sdkUser("u1"), // idx 0 — the only real prompt
+      sdkAssistant("a1"), // idx 1
+      sdkToolResultWrapper("tr1"), // idx 2 — bookkeeping, not a turn
+      sdkAssistant("a2"), // idx 3
+      sdkToolResultWrapper("tr2"), // idx 4 — bookkeeping
+      sdkUser("u2"), // idx 5 — a follow-up prompt
+      sdkAssistant("a3"), // idx 6
+      sdkToolResultWrapper("tr3"), // idx 7 — bookkeeping
+    ];
+    const out = computeReplayWindow(buffer, 5);
+    // Real turns are [u1, a1, a2, u2, a3] (5) — within the tail=5 budget — so
+    // the whole buffer replays from the top and the first prompt is visible.
+    // OLD behavior counted the 3 tool_result wrappers too (8 "turns" > 5),
+    // sliced to a naive start at idx 3 (a2), and — because the latest prompt
+    // u2 was inside that window — never extended back, opening on an agent.
+    expect(out).toEqual({ startIdx: 0, hasMoreAbove: false });
+  });
+
+  test("image-only prompts anchor the window (regression: image pastes carry no text)", () => {
+    // An image-only paste is real user input but has no prose, so the
+    // text-based `isRealUserPrompt` rejected it. That left the replay anchor
+    // unable to land on it: a reattach right after pasting a screenshot would
+    // fall through to the assistant/tool turn that followed.
+    const buffer: ServerEvent[] = [
+      sdkAssistant("a0"), // idx 0
+      sdkImagePrompt("img1"), // idx 1 — image-only prompt, MUST anchor
+      sdkAssistant("a1"), // idx 2
+      sdkAssistant("a2"), // idx 3
+      sdkAssistant("a3"), // idx 4
+    ];
+    const out = computeReplayWindow(buffer, 2);
+    // Real turns [a0, img1, a1, a2, a3]; tail=2 → naive start at turnIdx[3] =
+    // idx 3 (a2). img1 (idx 1) is the latest anchorable prompt and is older
+    // than the naive start → extend back to idx 1. OLD behavior found no
+    // anchorable user (image rejected) and opened on a2 at idx 3.
+    expect(out).toEqual({ startIdx: 1, hasMoreAbove: true });
+  });
+
+  test("image-only prompt counts toward the tail budget like any real turn", () => {
+    // Companion to the anchor test: an image-only prompt is a conversational
+    // turn, so it occupies a budget slot (it isn't skipped like a tool_result
+    // wrapper). Here the whole short exchange fits within tail and replays
+    // from the top.
+    const buffer: ServerEvent[] = [
+      sdkImagePrompt("img1"), // idx 0
+      sdkAssistant("a1"), // idx 1
+      sdkToolResultWrapper("tr1"), // idx 2 — not a turn
+      sdkAssistant("a2"), // idx 3
+    ];
+    const out = computeReplayWindow(buffer, 3);
+    // Real turns [img1, a1, a2] (3) == tail budget → nothing dropped.
     expect(out).toEqual({ startIdx: 0, hasMoreAbove: false });
   });
 

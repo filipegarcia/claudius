@@ -15,10 +15,21 @@ import type { SDKSessionInfo } from "@anthropic-ai/claude-agent-sdk";
 export type StoredSession = SDKSessionInfo & { claudiusTitle?: string };
 
 /**
- * Load the global sessions history. Pattern matches `useCost`
+ * Load the sessions history. Pattern matches `useCost`
  * (refetchTrigger + AbortController + setState-in-callback).
+ *
+ * Pass `dir` to scope the fetch to a single workspace's project dir.
+ * This matters: `/api/sessions/all` applies its `limit` (default 200)
+ * by recency BEFORE any caller-side `cwd` filter runs. Fetching
+ * unscoped means the 200-most-recent sessions *across every project*
+ * are what the client gets — so a workspace with many sessions only
+ * surfaces the handful that happen to win the global recency race, and
+ * older ones vanish as unrelated projects get touched. Passing `dir`
+ * makes the limit per-workspace, so every session in that workspace is
+ * visible. Omit `dir` for a genuinely global listing.
  */
-export function useSessionsHistory() {
+export function useSessionsHistory(opts: { dir?: string } = {}) {
+  const { dir } = opts;
   const [sessions, setSessions] = useState<StoredSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -27,7 +38,10 @@ export function useSessionsHistory() {
   useEffect(() => {
     const controller = new AbortController();
 
-    fetch("/api/sessions/all", { signal: controller.signal })
+    const url = dir
+      ? `/api/sessions/all?dir=${encodeURIComponent(dir)}`
+      : "/api/sessions/all";
+    fetch(url, { signal: controller.signal })
       .then(async (res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return (await res.json()) as { sessions?: StoredSession[]; error?: string };
@@ -46,7 +60,7 @@ export function useSessionsHistory() {
       });
 
     return () => controller.abort();
-  }, [refetchTrigger]);
+  }, [refetchTrigger, dir]);
 
   const refresh = useCallback(() => {
     setLoading(true);

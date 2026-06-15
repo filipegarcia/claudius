@@ -25,20 +25,29 @@ function fmtBytes(n?: number): string {
 }
 
 export default function SessionsPage() {
-  const { sessions, loading, error, refresh, remove } = useSessionsHistory();
   const [filter, setFilter] = useState("");
   const [branchFilter, setBranchFilter] = useState<string | null>(null);
 
-  // Scope the list to the workspace in the URL. `useSessionsHistory` fetches
-  // every session on disk regardless of workspace; matching `cwd` against the
-  // route's workspace rootPath narrows it to "this workspace only" — the same
-  // exact-match rule the server uses for `/api/sessions?workspaceId` and the
-  // chat header's session picker. The URL param (not `useActiveCwd`'s
-  // cookie-resolved id) is authoritative for the page we're actually on.
+  // Scope the list to the workspace in the URL. The URL param (not
+  // `useActiveCwd`'s cookie-resolved id) is authoritative for the page we're
+  // actually on.
   const params = useParams<{ workspaceId: string }>();
   const { items: workspaces } = useWorkspaces();
   const workspace = workspaces.find((w) => w.id === params?.workspaceId) ?? null;
   const workspaceRoot = workspace?.rootPath ?? null;
+
+  // Fetch scoped to this workspace's project dir. Without `dir`,
+  // `/api/sessions/all` caps at the 200-most-recent sessions across ALL
+  // projects, then we'd filter that down to this workspace — so a busy
+  // workspace would only ever show the few sessions that survive the global
+  // recency cap. Passing `dir` makes the cap per-workspace so every session in
+  // it is listed. We still re-filter by `cwd` below as a belt-and-suspenders
+  // (same exact-match rule the server uses for `/api/sessions?workspaceId`),
+  // which also keeps the brief pre-resolution window (workspaceRoot == null →
+  // unscoped fetch) correct.
+  const { sessions, loading, error, refresh, remove } = useSessionsHistory({
+    dir: workspaceRoot ?? undefined,
+  });
   const scopedSessions = useMemo(
     () =>
       workspaceRoot == null ? sessions : sessions.filter((s) => s.cwd === workspaceRoot),
