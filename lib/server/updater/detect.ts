@@ -2,7 +2,7 @@ import {
   aheadBehind,
   currentBranch,
   fetch,
-  hasUnmergedFiles,
+  hasConflicts,
   headSha,
   isDirty,
   isGitCheckout,
@@ -81,13 +81,16 @@ async function runCheck(): Promise<CheckResult> {
     const remoteSha = await revParse(root, upstreamRef);
 
     const dirty = await isDirty(root);
-    // Use the absence of unmerged index entries rather than !dirty as the
-    // conflict-clear signal. A dirty tree with no unmerged files means the
-    // "conflict" was a false positive (e.g. "file already exists, no
-    // checkout" from stash pop) — there is nothing to resolve and blocking
-    // Apply forever is wrong. Falls back to hasUnmerged=true on error so we
+    // The conflict-clear signal is `hasConflicts` — unmerged index entries OR
+    // conflict markers still sitting in tracked file content. We deliberately
+    // do NOT use !dirty (a tree dirty with the user's legitimately-restored
+    // customizations is the normal post-stash-ff state and must not block).
+    // We also do NOT use index-only checks: markers can linger in file content
+    // (e.g. round-tripped through a stash pop) while `git ls-files -u` is empty
+    // — clearing the conflict flag there would unblock a `bun install` that
+    // then dies on the marker-laden JSON. Falls back to true on error so we
     // never clear a genuine conflict by accident.
-    const hasUnmerged = await hasUnmergedFiles(root).catch(() => true);
+    const hasConflict = await hasConflicts(root).catch(() => true);
 
     if (localSha === remoteSha) {
       // Clear conflicts when there are no unmerged index entries — the user
@@ -103,7 +106,7 @@ async function runCheck(): Promise<CheckResult> {
         lastCheckAt: Date.now(),
         lastError: undefined,
         pending: undefined,
-        ...(hasUnmerged ? {} : { conflicts: undefined }),
+        ...(hasConflict ? {} : { conflicts: undefined }),
         status: { kind: "idle" },
       });
       return { kind: "up-to-date", sha: localSha, branch: localBranch };
@@ -126,10 +129,11 @@ async function runCheck(): Promise<CheckResult> {
       lastCheckAt: Date.now(),
       lastError: undefined,
       pending,
-      // Clear conflicts when there are no unmerged index entries — even if
-      // behind > 0, no markers means the user committed their resolution (or
-      // the conflict was a false positive). The next apply can proceed.
-      ...(hasUnmerged ? {} : { conflicts: undefined }),
+      // Clear conflicts when the tree is free of both unmerged index entries
+      // and content markers — even if behind > 0, a clean tree means the user
+      // committed their resolution (or it was a false positive). The next
+      // apply can proceed.
+      ...(hasConflict ? {} : { conflicts: undefined }),
       status: { kind: "idle" },
     });
 

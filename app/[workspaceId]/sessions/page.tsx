@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, FolderTree, Search, X } from "lucide-react";
@@ -54,6 +54,56 @@ export default function SessionsPage() {
     [sessions, workspaceRoot],
   );
 
+  // Search-inside-transcripts. The metadata filter below (id / title /
+  // firstPrompt / cwd / branch) runs instantly client-side. This adds the
+  // "search the actual messages" capability: a debounced server scan of the
+  // workspace's `.jsonl` transcripts that returns sessionId → snippet for
+  // every session whose content contains the query. Mirrors the debounce +
+  // abort pattern of the in-conversation TranscriptSearch.
+  const [contentMatches, setContentMatches] = useState<Map<string, string>>(new Map());
+  const [contentSearching, setContentSearching] = useState(false);
+  useEffect(() => {
+    const q = filter.trim();
+    const controller = new AbortController();
+    // All state writes live inside the debounce timer so the effect body
+    // never calls setState synchronously (avoids cascading renders) and the
+    // spinner doesn't flash for queries that resolve faster than the debounce.
+    const t = setTimeout(() => {
+      // Short queries are well served by the instant metadata filter; only
+      // reach to disk for queries with enough signal to be worth a scan.
+      if (q.length < 2 || !workspaceRoot) {
+        setContentMatches((prev) => (prev.size ? new Map() : prev));
+        setContentSearching(false);
+        return;
+      }
+      setContentSearching(true);
+      const url = `/api/sessions/search?q=${encodeURIComponent(q)}&dir=${encodeURIComponent(workspaceRoot)}`;
+      fetch(url, { signal: controller.signal })
+        .then(async (res) => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return (await res.json()) as {
+            matches?: Array<{ sessionId: string; snippet: string }>;
+          };
+        })
+        .then((data) => {
+          const map = new Map<string, string>();
+          for (const m of data.matches ?? []) map.set(m.sessionId, m.snippet);
+          setContentMatches(map);
+        })
+        .catch((err: unknown) => {
+          if (err instanceof DOMException && err.name === "AbortError") return;
+          setContentMatches(new Map());
+        })
+        .finally(() => {
+          if (!controller.signal.aborted) setContentSearching(false);
+        });
+    }, 250);
+    return () => {
+      controller.abort();
+      clearTimeout(t);
+    };
+  }, [filter, workspaceRoot]);
+
   const branches = useMemo(() => {
     const counts = new Map<string, number>();
     for (const s of scopedSessions) {
@@ -69,15 +119,19 @@ export default function SessionsPage() {
     return scopedSessions.filter((s) => {
       if (branchFilter && s.gitBranch !== branchFilter) return false;
       if (!q) return true;
-      return (
+      if (
         s.sessionId.toLowerCase().includes(q) ||
         (s.summary ?? "").toLowerCase().includes(q) ||
         (s.cwd ?? "").toLowerCase().includes(q) ||
         (s.firstPrompt ?? "").toLowerCase().includes(q) ||
         (s.gitBranch ?? "").toLowerCase().includes(q)
-      );
+      ) {
+        return true;
+      }
+      // Matched inside the transcript (server-side content search).
+      return contentMatches.has(s.sessionId);
     });
-  }, [filter, branchFilter, scopedSessions]);
+  }, [filter, branchFilter, scopedSessions, contentMatches]);
 
   return (
     <div className="flex h-full">
@@ -97,6 +151,7 @@ export default function SessionsPage() {
           )}
           <span className="text-[var(--muted)]">({scopedSessions.length})</span>
           {loading && <span className="text-[var(--muted)]">loading…</span>}
+          {contentSearching && <span className="text-[var(--muted)]">searching transcripts…</span>}
           {error && <span className="text-red-400">{error}</span>}
           <div className="flex-1 px-3">
             <div className="relative mx-auto max-w-md">
@@ -159,7 +214,9 @@ export default function SessionsPage() {
 
         <div className="flex-1 overflow-y-auto scroll-thin">
           {filtered.length === 0 && !loading ? (
-            <div className="px-6 py-16 text-center text-sm text-[var(--muted)]">No sessions match.</div>
+            <div className="px-6 py-16 text-center text-sm text-[var(--muted)]">
+              {contentSearching ? "Searching transcripts…" : "No sessions match."}
+            </div>
           ) : (
             <ul className="divide-y divide-[var(--border)]">
               {filtered.map((s) => (
@@ -207,6 +264,22 @@ export default function SessionsPage() {
                       </div>
                       {s.firstPrompt && (
                         <div className="mt-1 line-clamp-2 text-xs text-[var(--muted)]">{s.firstPrompt}</div>
+                      )}
+                      {/*
+                        Transcript hit preview. Shown only when this session
+                        surfaced because the query was found INSIDE its
+                        messages (server-side content search) — gives the user
+                        the "why is this here" context the metadata fields
+                        can't. The label distinguishes it from the firstPrompt
+                        preview above.
+                      */}
+                      {contentMatches.get(s.sessionId) && (
+                        <div className="mt-1 line-clamp-2 text-xs text-[var(--muted)]">
+                          <span className="mr-1 rounded bg-[var(--panel-2)] px-1 py-0.5 text-[10px] uppercase tracking-wide text-[var(--accent)]">
+                            in transcript
+                          </span>
+                          <span className="font-mono">{contentMatches.get(s.sessionId)}</span>
+                        </div>
                       )}
                     </Link>
                     <div className="flex shrink-0 items-center gap-1 opacity-0 group-hover:opacity-100">

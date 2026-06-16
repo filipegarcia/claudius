@@ -268,6 +268,68 @@ export async function hasUnmergedFiles(cwd: string): Promise<boolean> {
 }
 
 /**
+ * Tracked working-tree files that still contain Git conflict markers in their
+ * *content* (`<<<<<<<` … `>>>>>>>`).
+ *
+ * This is intentionally separate from `hasUnmergedFiles` (which inspects the
+ * index). A tree can carry conflict markers in file content while the index
+ * has NO unmerged entries — e.g. a previous conflict whose markers were never
+ * resolved but whose index was reset/`git add`ed, or markers that round-tripped
+ * through a `git stash push`/`pop`. That state is invisible to `git ls-files -u`
+ * yet still fatal: feeding a marker-laden `package.json` to `bun install` dies
+ * with the confusing "Operators are not allowed in JSON" parse error that gets
+ * misfiled as an install failure when the real problem is an unresolved merge.
+ *
+ * We require BOTH an opening (`<<<<<<<`) and a closing (`>>>>>>>`) marker family
+ * so a file that merely contains a long run of one character can't false-positive.
+ */
+export async function conflictedFiles(cwd: string): Promise<string[]> {
+  const open = await grepTrackedLineStart(cwd, "<<<<<<< ");
+  if (open.length === 0) return [];
+  const close = await grepTrackedLineStart(cwd, ">>>>>>> ");
+  const closing = new Set(close);
+  return open.filter((f) => closing.has(f)).sort();
+}
+
+/**
+ * `git grep -l` for a fixed string anchored at line start across tracked
+ * working-tree files. `git grep` exits 1 (no error) when there are no matches —
+ * we translate that to an empty list. `-F` keeps the marker prefixes literal so
+ * `<`/`>` are never interpreted, and `--` guards against a pathspec surprise.
+ */
+async function grepTrackedLineStart(cwd: string, prefix: string): Promise<string[]> {
+  try {
+    // -P would let us anchor with ^, but isn't built on every git. Use -F for a
+    // literal match and filter to line-start hits via a follow-up check is
+    // overkill — conflict markers only ever appear at column 0, and -F on the
+    // 8-char prefix ("<<<<<<< ") is specific enough on its own.
+    const { stdout } = await git(["grep", "-lF", prefix, "--"], cwd);
+    return stdout
+      .split("\n")
+      .map((s) => s.trim())
+      .filter(Boolean);
+  } catch (err) {
+    if (err instanceof UpdaterGitError && err.exitCode === 1) return [];
+    throw err;
+  }
+}
+
+/**
+ * True when the tree is NOT safe to hand to `bun install` / `bun run build`:
+ * either the index has unmerged entries or a tracked file still contains
+ * conflict markers. Fail-safe: on any unexpected error returns `true` so the
+ * caller treats the tree as conflicted rather than blindly installing.
+ */
+export async function hasConflicts(cwd: string): Promise<boolean> {
+  try {
+    if (await hasUnmergedFiles(cwd)) return true;
+    return (await conflictedFiles(cwd)).length > 0;
+  } catch {
+    return true;
+  }
+}
+
+/**
  * Pop the most recent stash entry. Returns `{ ok: true }` when the pop
  * succeeded. Returns `{ ok: false, conflicts: true, output }` only when there
  * are genuine merge conflict markers in the index. Other failures throw.

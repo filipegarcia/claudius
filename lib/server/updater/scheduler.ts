@@ -1,5 +1,7 @@
 import { applyUpdate } from "./apply";
 import { checkForUpdates } from "./detect";
+import { hasConflicts } from "./git";
+import { installRoot } from "./root";
 import { isRunningInsideCustomizationMirror } from "../customizations-startup";
 import { getUpdaterSettings, patchUpdaterState, readUpdaterFile } from "./settings";
 
@@ -52,6 +54,21 @@ class UpdaterScheduler {
   }
 
   /**
+   * True when the install tree is stuck mid-update: conflict markers in tracked
+   * content or unmerged index entries left by a prior apply that couldn't
+   * finish. This is the signal `checkForUpdates` can't give us — HEAD is already
+   * at upstream, so it says "up-to-date" while the tree is unbuildable. Failing
+   * safe to `false` so a transient git hiccup never spuriously fires an apply.
+   */
+  private async treeNeedsResume(): Promise<boolean> {
+    try {
+      return await hasConflicts(installRoot());
+    } catch {
+      return false;
+    }
+  }
+
+  /**
    * Drop a stale recoverable install/build-failure marker on a fresh boot.
    * Only clears `recovery` (and the matching `lastError`) — a live pending
    * update or unrelated error is left untouched.
@@ -77,20 +94,28 @@ class UpdaterScheduler {
         return;
       }
       const result = await checkForUpdates();
-      if (result.kind === "update-available") {
-        // Auto-apply path: only if mode permits unattended action.
-        const autoApply = settings.mode === "cc-merge" || settings.mode === "ff-only";
-        if (autoApply) {
-          // Don't await the full apply — restart will SIGTERM us mid-await
-          // and we don't want to surface a misleading rejection to the
-          // caller. Fire and let log capture the outcome.
-          void applyUpdate().catch((err) => {
-            console.warn("[updater] apply failed:", err);
-          });
-          // Don't rearm: if apply succeeds we'll be restarted; if it fails,
-          // patchUpdaterState surfaces the error and the next boot picks up.
-          if (source !== "manual") return;
-        }
+      // Auto-apply path: only if mode permits unattended action.
+      const autoApply = settings.mode === "cc-merge" || settings.mode === "ff-only";
+      // Apply when there's a fresh update to pull OR when the local tree is
+      // stuck mid-update — conflict markers / unmerged files left behind by a
+      // prior apply that couldn't finish (e.g. a stash-pop conflict that ended
+      // up poisoning package.json). The stuck case is invisible to
+      // `checkForUpdates` because HEAD is already at upstream, so it reports
+      // "up-to-date" while the tree is unbuildable. Without this self-heal trip
+      // the update would dead-end forever; with it, `applyUpdate` resumes —
+      // healing the markers inline (cc-merge) and finishing install/build.
+      const stuck =
+        autoApply && result.kind !== "update-available" ? await this.treeNeedsResume() : false;
+      if (autoApply && (result.kind === "update-available" || stuck)) {
+        // Don't await the full apply — restart will SIGTERM us mid-await
+        // and we don't want to surface a misleading rejection to the
+        // caller. Fire and let log capture the outcome.
+        void applyUpdate().catch((err) => {
+          console.warn("[updater] apply failed:", err);
+        });
+        // Don't rearm: if apply succeeds we'll be restarted; if it fails,
+        // patchUpdaterState surfaces the error and the next boot picks up.
+        if (source !== "manual") return;
       }
       this.scheduleNext(settings.intervalHours);
     } catch (err) {

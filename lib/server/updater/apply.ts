@@ -2,6 +2,8 @@ import { promises as fs } from "node:fs";
 import { dirname, join } from "node:path";
 import { query, type SDKMessage } from "@anthropic-ai/claude-agent-sdk";
 import {
+  conflictedFiles,
+  hasConflicts,
   hasUnmergedFiles,
   headSha,
   isDirty,
@@ -67,125 +69,148 @@ async function runApply(opts: { allowCcMerge?: boolean }): Promise<ApplyOutcome>
     return { kind: "skipped", reason: "updater disabled" };
   }
 
-  // Hold the line while there are unresolved conflicts. Any further apply
-  // would stash on top of conflict markers (or pull on top of a dirty merge),
-  // both of which compound the mess.
-  //
-  // However, the conflicts record can become stale: the "file already exists,
-  // no checkout" failure from stash pop sets conflicts=true but leaves zero
-  // unmerged index entries (the upstream version of those files is already
-  // present — no content conflict). In that case git ls-files -u is empty
-  // and there is nothing to resolve. If the record is stale, clear it and
-  // proceed rather than blocking Apply forever.
   const file = await readUpdaterFile();
-  if (file.state.conflicts) {
-    const hasUnmerged = await hasUnmergedFiles(root).catch(() => true);
-    if (hasUnmerged) {
-      return {
-        kind: "skipped",
-        reason: "previous update left conflicts — resolve them first",
-      };
-    }
-    // Stale record — no actual conflict markers in the index. Clear it so
-    // future applies don't go through this path again.
-    await patchUpdaterState({ conflicts: undefined });
-  }
+  // Whether we're allowed to spawn Claude to resolve conflicts unattended:
+  // the cc-merge mode, or a manual "Update now" / "Let Claude resolve" click
+  // (which sets allowCcMerge). The override is named historically but in
+  // practice means "the user explicitly asked to apply".
+  const allow = settings.mode === "cc-merge" || (opts.allowCcMerge ?? false);
 
-  // Always re-check first so we're acting on a fresh diff between local and
-  // remote — the cached `pending` could be hours old.
-  const check = await checkForUpdates();
-  if (check.kind === "up-to-date") return { kind: "no-update" };
-  if (check.kind === "skipped") return { kind: "skipped", reason: check.reason };
-  if (check.kind === "error") return { kind: "error", message: check.message, phase: "detect" };
+  // Is there an UNFINISHED update to resume? A prior run can advance HEAD to
+  // upstream but fail to complete — leaving conflict markers in the tree, an
+  // unmerged index, or a failed install/build (recorded as `recovery`). The
+  // recorded flags can also be wiped out from under us: `recovery` is cleared
+  // on every clean boot (the live build serves) even though the install never
+  // actually finished, so the only durable evidence is the tree itself. We
+  // therefore treat a tree that physically carries conflict markers as
+  // unfinished regardless of the recorded flags. In every one of these cases
+  // the fix is identical and MUST be automatic — heal markers inline (no new
+  // workspace) and finish install/build/restart. Never strand the user at a
+  // half-applied update, and never hand a conflicted tree to `bun install`.
+  const treeConflicted = await hasConflicts(root);
+  const recordedUnfinished = !!file.state.conflicts || !!file.state.recovery;
+  const resumeOrigin: "stash-ff" | "cc-merge" = file.state.conflicts?.origin ?? "cc-merge";
+  const recordedFromSha = file.state.conflicts?.fromSha ?? file.state.recovery?.fromSha;
 
-  const pending = check.pending;
-  const fromSha = await headSha(root);
-  const strategy = pickStrategy(settings.mode, pending, opts.allowCcMerge ?? false);
-  if (strategy.kind === "skip") {
-    return { kind: "skipped", reason: strategy.reason };
-  }
-
-  await setUpdaterStatus({ kind: "applying", startedAt: Date.now(), strategy: strategy.kind });
-  await appendLog(root, `\n=== ${new Date().toISOString()} apply (${strategy.kind}) from ${fromSha.slice(0, 7)} → ${pending.remoteSha.slice(0, 7)} ===\n`);
+  // Strategy for a FRESH pull, decided below. Stays `skip` for a pure resume
+  // (HEAD already at upstream — nothing to pull). The catch block reads
+  // `strategy.kind`, so it must stay in scope.
+  let strategy: Strategy = { kind: "skip", reason: "resume" };
+  let fromSha = recordedFromSha ?? (await headSha(root));
+  // Reported in the "applied" outcome + the native-rebuild diff base.
+  let appliedStrategy: "ff-only" | "stash-ff" | "cc-merge" = resumeOrigin;
+  // ff-only is the only path where the upstream lockfile is canonical and a
+  // frozen install is correct; every other path (merge/resume) may have a
+  // touched manifest, so install unfrozen.
+  let installFrozen = false;
 
   try {
-    if (strategy.kind === "ff-only") {
-      await runFastForward(root, settings.remote, settings.branch);
-    } else if (strategy.kind === "stash-ff") {
-      const result = await runStashFastForward(root, settings.remote, settings.branch);
-      if (result.kind === "conflicts") {
-        // HEAD is at upstream, working tree has conflict markers from the
-        // stash pop. Record so the UI can surface a "Resolve with Claude
-        // Code" action; bypass rollback so we DON'T `git reset --hard`
-        // over the user's edits. Skip install/build/restart — the tree
-        // is not in a runnable state.
-        const toSha = await headSha(root);
-        await patchUpdaterState({
-          lastError: `merge: ${result.detail}`,
-          conflicts: {
-            fromSha,
-            toSha,
-            detectedAt: Date.now(),
-            origin: "stash-ff",
-            detail: result.detail,
-          },
-          status: { kind: "idle" },
-        });
-        await appendLog(root, `stash-ff: pop conflicts — ${result.detail}\n`);
-        return {
-          kind: "conflicts",
-          origin: "stash-ff",
-          fromSha,
-          toSha,
-          detail: result.detail,
-        };
+    // 1) HEAL FIRST. Clear any conflict markers already in the tree before we
+    //    touch git or bun. If we can't (mode disallows Claude, or resolution
+    //    failed), surface the resolve action instead of proceeding.
+    if (treeConflicted) {
+      const healed = await healConflicts(root, fromSha, resumeOrigin, allow);
+      if (healed.kind === "conflicts") {
+        return allow
+          ? healed.outcome
+          : { kind: "skipped", reason: "previous update left conflicts — resolve them first" };
       }
+    } else if (file.state.conflicts) {
+      // Recorded conflicts but the tree is actually clean (resolved externally,
+      // or a stale "file already exists" false positive). Clear the record.
+      await patchUpdaterState({ conflicts: undefined });
+    }
+
+    // 2) PULL fresh upstream commits, if any. We always re-check so we act on a
+    //    current diff, not the hours-old cached `pending`.
+    const check = await checkForUpdates();
+    const canFinishLocally = treeConflicted || recordedUnfinished;
+    if (check.kind === "error") {
+      // A network/check failure is only fatal when there's nothing to finish
+      // locally. If we have unfinished work at HEAD, proceed to finish it —
+      // install/build/restart need no network.
+      if (!canFinishLocally) return { kind: "error", message: check.message, phase: "detect" };
+    } else if (check.kind === "skipped") {
+      if (!canFinishLocally) return { kind: "skipped", reason: check.reason };
+    } else if (check.kind === "up-to-date") {
+      if (!canFinishLocally) return { kind: "no-update" };
+      // HEAD already at upstream but unfinished — fall through to finish it.
     } else {
-      // strategy.kind === "cc-merge"
-      const ok = await runCcMerge(root, pending, settings.remote);
-      if (!ok.ok) {
-        // If the agent left the tree dirty after touching HEAD, surface
-        // as conflicts (with the resolve button) rather than a plain
-        // error — same recovery UX as stash-ff. Otherwise it's just an
-        // ordinary merge-phase failure.
-        const dirty = await isDirty(root);
-        const movedHead = (await headSha(root)) !== fromSha;
-        if (dirty && movedHead) {
-          const toSha = await headSha(root);
-          await patchUpdaterState({
-            lastError: `merge: ${ok.error}`,
-            conflicts: {
-              fromSha,
-              toSha,
-              detectedAt: Date.now(),
-              origin: "cc-merge",
-              detail: ok.error,
-            },
-            status: { kind: "idle" },
-          });
-          await appendLog(root, `cc-merge: left dirty — ${ok.error}\n`);
-          return {
-            kind: "conflicts",
-            origin: "cc-merge",
-            fromSha,
-            toSha,
-            detail: ok.error,
-          };
+      // update-available — choose and run a pull/merge strategy.
+      const pending = check.pending;
+      fromSha = await headSha(root);
+      strategy = pickStrategy(settings.mode, pending, opts.allowCcMerge ?? false);
+      if (strategy.kind === "skip") {
+        // Can't pull (diverged in ff-only, notify-only without override, …).
+        // If there's unfinished local work, still finish the current HEAD;
+        // otherwise skip cleanly.
+        if (!canFinishLocally) return { kind: "skipped", reason: strategy.reason };
+      } else {
+        appliedStrategy = strategy.kind;
+        installFrozen = strategy.kind === "ff-only";
+        await setUpdaterStatus({ kind: "applying", startedAt: Date.now(), strategy: strategy.kind });
+        await appendLog(
+          root,
+          `\n=== ${new Date().toISOString()} apply (${strategy.kind}) from ${fromSha.slice(0, 7)} → ${pending.remoteSha.slice(0, 7)} ===\n`,
+        );
+
+        if (strategy.kind === "ff-only") {
+          await runFastForward(root, settings.remote, settings.branch);
+        } else if (strategy.kind === "stash-ff") {
+          const result = await runStashFastForward(root, settings.remote, settings.branch);
+          if (result.kind === "conflicts") {
+            // HEAD is at upstream; the pop left markers. Don't dead-end — the
+            // shared safety net below heals them inline (no new workspace) or
+            // surfaces the resolve action. We never `git reset --hard` over the
+            // user's popped-back edits; install/build only run on a clean tree.
+            await appendLog(root, `stash-ff: pop conflicts — ${result.detail}\n`);
+          }
+        } else {
+          // strategy.kind === "cc-merge"
+          const ok = await runCcMerge(root, pending, settings.remote);
+          if (!ok.ok) {
+            // If the agent left the tree dirty after touching HEAD, surface as
+            // conflicts (resolve button) rather than a plain error. Otherwise
+            // it's an ordinary merge-phase failure.
+            const dirty = await isDirty(root);
+            const movedHead = (await headSha(root)) !== fromSha;
+            if (dirty && movedHead) {
+              await appendLog(root, `cc-merge: left dirty — ${ok.error}\n`);
+              return (await recordConflicts(root, fromSha, "cc-merge", ok.error)).outcome;
+            }
+            await patchUpdaterState({
+              lastError: `Claude merge failed: ${ok.error}`,
+              status: { kind: "idle" },
+            });
+            return { kind: "error", message: ok.error, phase: "merge" };
+          }
         }
-        await patchUpdaterState({
-          lastError: `Claude merge failed: ${ok.error}`,
-          status: { kind: "idle" },
-        });
-        return { kind: "error", message: ok.error, phase: "merge" };
       }
     }
 
-    // For ff-only the upstream lockfile is canonical, so frozen install is
-    // correct. For stash-ff / cc-merge the merge may have touched
-    // package.json / bun.lockb — frozen would fail, so use the unfrozen
-    // path so bun can resolve the merged manifest.
-    const installArgs =
-      strategy.kind === "ff-only" ? ["install", "--frozen-lockfile"] : ["install"];
+    // 3) Ensure we're flagged as applying (the resume path may not have set it).
+    await setUpdaterStatus({ kind: "applying", startedAt: Date.now(), strategy: appliedStrategy });
+
+    // 4) SAFETY NET — the single chokepoint that guarantees we never hand a
+    //    conflicted tree to `bun install`. Markers can reach here from a stash
+    //    pop that wrote them, a pop that round-tripped pre-existing markers back
+    //    into the tree (clean pop, poisoned content), or a cc-merge that left
+    //    residue. A marker-laden package.json makes `bun install` die with
+    //    "Operators are not allowed in JSON" — the exact bug we're killing, and
+    //    one the catch below would misfile as a generic install failure. Heal
+    //    inline with Claude when allowed; otherwise surface the resolve action.
+    //    A clean ff hits this, finds nothing (two cheap git calls), and falls
+    //    straight through.
+    {
+      // `conflicts.origin` only models the two strategies that can produce
+      // markers; a clean ff-only never does, so fold it into "stash-ff".
+      const origin = appliedStrategy === "cc-merge" ? "cc-merge" : "stash-ff";
+      const guard = await healConflicts(root, fromSha, origin, allow);
+      if (guard.kind === "conflicts") return guard.outcome;
+    }
+
+    // 5) INSTALL + BUILD + RESTART.
+    const installArgs = installFrozen ? ["install", "--frozen-lockfile"] : ["install"];
     // Skip lifecycle scripts (notably better-sqlite3's `node-gyp rebuild`)
     // unless this pull actually changed a native dependency. better-sqlite3
     // is *patched* (patches/better-sqlite3@*.patch edits the C++), so every
@@ -216,7 +241,7 @@ async function runApply(opts: { allowCcMerge?: boolean }): Promise<ApplyOutcome>
     const restart = await triggerRestart();
     return {
       kind: "applied",
-      strategy: strategy.kind,
+      strategy: appliedStrategy,
       fromSha,
       toSha,
       restart,
@@ -504,23 +529,93 @@ async function runCcMerge(
     .replaceAll("{{remote}}", remote)
     .replaceAll("{{upstreamRef}}", pending.upstreamBranch);
 
+  const session = await runClaudeAgent(root, prompt);
+  if (!session.ok) return { ok: false, error: session.error };
+  const lastText = session.text;
+
+  // Independently verify the merge actually worked — don't trust the model's
+  // self-report. The agent is supposed to print MERGE_OK but we check git too.
+  if (await isDirty(root)) {
+    return { ok: false, error: "working tree still dirty after merge attempt" };
+  }
+  const newHead = await headSha(root);
+  if (newHead === localSha) {
+    return { ok: false, error: "HEAD didn't move; merge aborted or made no progress" };
+  }
+  if (lastText.includes("MERGE_FAIL")) {
+    return { ok: false, error: lastText.split("\n")[0] };
+  }
+  return { ok: true };
+}
+
+const CC_RESOLVE_PROMPT = `You are resolving leftover Git conflict markers in a Claudius checkout so an in-progress self-update can finish. HEAD is ALREADY at the upstream commit — do NOT pull, fetch, merge, or reset. Your ONLY job is to clear the conflict markers that are currently sitting in the working tree.
+
+Conflicted files (tracked files that still contain \`<<<<<<<\` / \`=======\` / \`>>>>>>>\` markers):
+{{files}}
+
+These markers came from a \`git stash pop\` (or merge) during an automatic update. The "Updated upstream" / "ours" side is upstream; the "Stashed changes" / "theirs" side is the user's local customizations.
+
+Goal: produce a clean, buildable tree with ZERO conflict markers.
+  1. Open each conflicted file and resolve EVERY conflict region by hand.
+  2. Prefer the customization intent for visible UI/behaviour changes; prefer upstream for bug fixes and dependency bumps. When unsure, keep both behaviours sensibly.
+  3. For \`package.json\`: keep upstream's structure and version, but preserve any extra dependencies or scripts the user added. The result MUST be valid JSON (no markers, no trailing commas). For lockfiles (\`bun.lock\`/\`bun.lockb\`), prefer the upstream version wholesale — they are regenerated by \`bun install\` anyway.
+  4. After resolving, run \`git diff --check\` — it must report NOTHING. Run \`git status\` to confirm there are no unmerged paths.
+  5. \`git add\` the files you resolved so the index has no unmerged entries.
+
+Hard rules:
+  - DO NOT \`git push\`, \`git pull\`, \`git fetch\`, \`git merge\`, or \`git reset --hard\`.
+  - DO NOT delete \`.claudius/\` or \`.next/\`.
+  - DO NOT commit — leaving the resolved customizations as uncommitted changes is correct.
+  - \`bun install\` and \`bun run build\` run automatically AFTER you finish; do not run them yourself.
+
+Report one line: "RESOLVE_OK" when every marker is gone and \`git diff --check\` is clean, or "RESOLVE_FAIL: <one-line reason>" if you could not.`;
+
+/**
+ * Resolve conflict markers already present in the working tree, inline, via the
+ * SDK — NOT a chat workspace. This is the "worst case, a Claude merge happens"
+ * path the product promises: rather than dead-ending an update at a marker-laden
+ * tree, we hand the existing markers to a bounded Claude session that edits them
+ * to a clean state. HEAD is untouched (already at upstream); only file content
+ * is resolved. The caller re-verifies with `conflictedFiles` afterwards.
+ */
+async function runCcConflictResolve(
+  root: string,
+  files: string[],
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const list = files.length > 0 ? files.map((f) => `  - ${f}`).join("\n") : "  (see `git status`)";
+  const prompt = CC_RESOLVE_PROMPT.replaceAll("{{files}}", list);
+  const session = await runClaudeAgent(root, prompt);
+  if (!session.ok) return { ok: false, error: session.error };
+  if (session.text.includes("RESOLVE_FAIL")) {
+    return { ok: false, error: session.text.split("\n").find((l) => l.includes("RESOLVE_FAIL")) ?? "resolve failed" };
+  }
+  return { ok: true };
+}
+
+/**
+ * Shared SDK-session plumbing for the updater's two Claude paths (divergence
+ * merge + in-tree conflict resolution). Bounded toolset (shell for git, file IO
+ * for markers), no network/MCP/sub-agents. Returns the final assistant/result
+ * text so callers can scan for their sentinel; verification of the actual git
+ * state is always the caller's job — never trust the model's self-report.
+ *
+ * Note: the SDK's `query()` spawns the `claude` CLI with the parent process
+ * env. On a daemon launched with a stripped PATH (Finder, launchd) this can hit
+ * ENOENT — same root cause as the bun ENOENT handled in spawn-env.ts, a
+ * different binary. The ff-only and stash-ff strategies don't shell out to
+ * claude, so the common-case updater is unaffected.
+ */
+async function runClaudeAgent(
+  root: string,
+  prompt: string,
+): Promise<{ ok: true; text: string } | { ok: false; error: string }> {
   let lastText = "";
   try {
-    // Note: the SDK's `query()` spawns the `claude` CLI with the parent
-    // process env. If the daemon was launched with a stripped PATH (Finder,
-    // launchd) the spawn here can also hit ENOENT — same root cause as the
-    // bun ENOENT fixed in spawn-env.ts, but a different binary. The
-    // ff-only and stash-ff strategies don't shell out to claude so the
-    // common-case updater is unaffected; cc-merge users on a stripped-PATH
-    // daemon would still see "claude not found" until the SDK gains a
-    // PATH-extension equivalent or we set CLAUDE_BIN explicitly.
     const q = query({
       prompt,
       options: {
         cwd: root,
         permissionMode: "bypassPermissions",
-        // Bounded toolset: shell for git ops, file IO for conflict markers.
-        // No network/MCP/sub-agents.
         allowedTools: ["Bash", "Read", "Edit", "Write", "Grep", "Glob"],
         maxTurns: 40,
       },
@@ -546,20 +641,75 @@ async function runCcMerge(
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : String(err) };
   }
+  return { ok: true, text: lastText };
+}
 
-  // Independently verify the merge actually worked — don't trust the model's
-  // self-report. The agent is supposed to print MERGE_OK but we check git too.
-  if (await isDirty(root)) {
-    return { ok: false, error: "working tree still dirty after merge attempt" };
+/**
+ * The single guard that stands between any merge strategy and `bun install`.
+ *
+ * If the working tree is free of conflict markers AND the index has no unmerged
+ * entries, returns `clean` — the update proceeds. Otherwise:
+ *
+ *   - when Claude is allowed (cc-merge mode or a manual "Update now" override),
+ *     resolve the markers inline via `runCcConflictResolve` (no new workspace),
+ *     re-verify, and return `clean` if the tree is now spotless;
+ *   - otherwise (or if the inline resolve fails / leaves residue), record a
+ *     `conflicts` state entry and return the `conflicts` outcome so the UI shows
+ *     the "Resolve with Claude Code" action. We never roll back here — HEAD is
+ *     at upstream and the user's edits stay in the tree.
+ *
+ * Idempotent and cheap on the happy path: two git calls (`git grep`,
+ * `git ls-files -u`) when there's nothing to resolve.
+ */
+async function healConflicts(
+  root: string,
+  fromSha: string,
+  origin: "stash-ff" | "cc-merge",
+  allow: boolean,
+): Promise<{ kind: "clean" } | { kind: "conflicts"; outcome: ApplyOutcome }> {
+  let conflicted = await conflictedFiles(root).catch(() => [] as string[]);
+  let unmerged = await hasUnmergedFiles(root).catch(() => false);
+  if (conflicted.length === 0 && !unmerged) return { kind: "clean" };
+
+  if (allow) {
+    await appendLog(
+      root,
+      `conflict markers in [${conflicted.join(", ") || "index"}] — resolving with Claude inline\n`,
+    );
+    const res = await runCcConflictResolve(root, conflicted);
+    conflicted = await conflictedFiles(root).catch(() => [] as string[]);
+    unmerged = await hasUnmergedFiles(root).catch(() => true);
+    if (res.ok && conflicted.length === 0 && !unmerged) {
+      await appendLog(root, `inline conflict resolution succeeded — tree clean\n`);
+      return { kind: "clean" };
+    }
+    const detail = res.ok
+      ? `conflict markers still present after resolution in ${conflicted.join(", ") || "the index"}`
+      : res.error;
+    return await recordConflicts(root, fromSha, origin, detail);
   }
-  const newHead = await headSha(root);
-  if (newHead === localSha) {
-    return { ok: false, error: "HEAD didn't move; merge aborted or made no progress" };
-  }
-  if (lastText.includes("MERGE_FAIL")) {
-    return { ok: false, error: lastText.split("\n")[0] };
-  }
-  return { ok: true };
+
+  const detail =
+    conflicted.length > 0
+      ? `unresolved conflict markers in ${conflicted.join(", ")}`
+      : "unmerged files in index";
+  return await recordConflicts(root, fromSha, origin, detail);
+}
+
+async function recordConflicts(
+  root: string,
+  fromSha: string,
+  origin: "stash-ff" | "cc-merge",
+  detail: string,
+): Promise<{ kind: "conflicts"; outcome: ApplyOutcome }> {
+  const toSha = await headSha(root).catch(() => fromSha);
+  await patchUpdaterState({
+    lastError: `merge: ${detail}`,
+    conflicts: { fromSha, toSha, detectedAt: Date.now(), origin, detail },
+    status: { kind: "idle" },
+  });
+  await appendLog(root, `conflicts recorded (${origin}) — ${detail}\n`);
+  return { kind: "conflicts", outcome: { kind: "conflicts", origin, fromSha, toSha, detail } };
 }
 
 /**
