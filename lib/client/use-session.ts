@@ -3323,6 +3323,71 @@ export function useSession(): ChatState & ChatActions {
           ]);
           return;
         }
+        // SDKPermissionDeniedMessage (0.3.178): emitted when a tool call is
+        // auto-denied without an interactive permission prompt (auto-mode
+        // classifier, dontAsk, headless-agent auto-deny, or a deny rule). The
+        // `decision_reason_type` discriminator now reliably carries values like
+        // `safetyCheck` and `asyncAgent` so hosts can programmatically match
+        // denial causes. The `permission_denied` kind was already defined in
+        // SystemEntry and registered in SystemPill.tsx (ShieldAlert, red tone)
+        // — this handler wires it up for the first time.
+        if (sysAny.subtype === "permission_denied") {
+          const p = sysAny as {
+            tool_name?: string;
+            decision_reason_type?: string;
+            decision_reason?: string;
+          };
+          setSystemEntries((prev) => [
+            ...prev,
+            {
+              ...baseEntry,
+              kind: "permission_denied",
+              label: `Permission denied: ${p.tool_name ?? "(unknown tool)"}`,
+              detail: p.decision_reason_type ?? p.decision_reason,
+            },
+          ]);
+          return;
+        }
+        // SDKInformationalMessage (0.3.178 fix): generic text banner — non-error
+        // status lines, hook feedback (e.g. a UserPromptSubmit hook's block
+        // reason), slash-command output. Previously this subtype fell through to
+        // the catch-all `system/informational` pill, losing the `content` text.
+        // Now renders `content` as the pill label so hook block reasons and other
+        // informational messages are visible to users.
+        if (sysAny.subtype === "informational") {
+          const inf = sysAny as { content?: string; level?: string; prevent_continuation?: boolean };
+          const content = typeof inf.content === "string" ? inf.content.trim() : "";
+          if (content) {
+            setSystemEntries((prev) => [
+              ...prev,
+              {
+                ...baseEntry,
+                kind: "info",
+                label: content,
+                detail: inf.prevent_continuation ? "blocked" : undefined,
+              },
+            ]);
+          }
+          return;
+        }
+        // SDKWorkerShuttingDownMessage (0.3.178): emitted by Remote Control
+        // workers on graceful exit so remote clients can show why the session
+        // ended instead of waiting for heartbeat timeout. Carries a short
+        // snake_case `reason` set by the host CLI (e.g. 'host_exit',
+        // 'remote_control_disabled'). Previously fell through to the generic
+        // `system/worker_shutting_down` catch-all pill; now renders the reason.
+        if (sysAny.subtype === "worker_shutting_down") {
+          const w = sysAny as { reason?: string };
+          setSystemEntries((prev) => [
+            ...prev,
+            {
+              ...baseEntry,
+              kind: "info",
+              label: `Session ended: ${w.reason ?? "worker shutting down"}`,
+            },
+          ]);
+          return;
+        }
         // Drop SDK system plumbing that carries no user-facing value instead
         // of rendering it as a cryptic `system/<subtype ?? "?">` pill. The
         // Ralph-loop Stop hook fires a `stop_hook_summary` per iteration whose
