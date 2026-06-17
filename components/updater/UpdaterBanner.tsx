@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowDownToLine, GitMerge, Loader2, RefreshCw, ShieldAlert, Sparkles, TriangleAlert, X } from "lucide-react";
 import { useUpdater } from "@/lib/client/use-updater";
 import { useElectronUpdater } from "@/lib/client/useElectronUpdater";
+import { ResolveWithClaudeModal } from "@/components/updater/ResolveWithClaudeModal";
 
 // ── 24-hour conflict-banner dismissal ──────────────────────────────────────
 //
@@ -101,6 +102,9 @@ function WebUpdaterBanner() {
   // Session-only dismissal for the recoverable install/build-failure banner,
   // keyed by the failed commit. A *different* failure (new toSha) re-shows it.
   const [dismissedRecovery, setDismissedRecovery] = useState<string | null>(null);
+  // In-place "Resolve with Claude" modal (auto-runs the inline resolution and
+  // streams progress — no workspace, no navigation).
+  const [resolveOpen, setResolveOpen] = useState(false);
   if (!u.data) return null;
   const { state, settings, install } = u.data;
   if (!install.isGitCheckout) return null;
@@ -176,50 +180,46 @@ function WebUpdaterBanner() {
   // user doesn't have to dig into /updater.
   if (conflicts) {
     return (
-      <div
-        data-pane-name="updater-banner-conflicts"
-        className="flex items-center gap-2 border-b border-amber-500/40 bg-amber-500/10 px-4 py-1.5 text-xs"
-      >
-        <GitMerge className="h-3.5 w-3.5 shrink-0 text-amber-400" />
-        <span className="font-medium">Update needs your help</span>
-        <span className="hidden text-[var(--muted)] sm:inline">
-          local edits conflicted when reapplied on top of upstream
-          {conflicts.toSha ? ` · @ ${conflicts.toSha.slice(0, 7)}` : ""}
-        </span>
-        <button
-          onClick={async () => {
-            const r = await u.resolveWithClaude();
-            if (!r || typeof window === "undefined") return;
-            try {
-              sessionStorage.setItem("claudius.autofix-draft", r.prompt);
-              window.location.assign(`/${r.workspaceId}?new=1&prefill=1`);
-            } catch {
-              window.location.assign(
-                `/${r.workspaceId}?new=1&prefill=${encodeURIComponent(r.prompt)}`,
-              );
-            }
-          }}
-          disabled={u.busy}
-          className="ml-auto flex items-center gap-1 rounded border border-amber-500/40 bg-amber-500/15 px-2 py-0.5 hover:bg-amber-500/25 disabled:opacity-50"
+      <>
+        <div
+          data-pane-name="updater-banner-conflicts"
+          className="flex items-center gap-2 border-b border-amber-500/40 bg-amber-500/10 px-4 py-1.5 text-xs"
         >
-          {u.busy ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
-          Resolve with Claude Code
-        </button>
-        <Link
-          href="/updater"
-          className="rounded border border-amber-500/40 bg-amber-500/15 px-2 py-0.5 hover:bg-amber-500/25"
-        >
-          Details
-        </Link>
-        <button
-          onClick={() => setConflictDismissal(writeConflictDismissal(conflictSha))}
-          aria-label="Dismiss for 24 hours"
-          title="Hide for 24 hours — re-appears if a new conflict shows up or the snooze expires"
-          className="rounded p-0.5 text-[var(--muted)] hover:bg-amber-500/20 hover:text-[var(--foreground)]"
-        >
-          <X className="h-3.5 w-3.5" />
-        </button>
-      </div>
+          <GitMerge className="h-3.5 w-3.5 shrink-0 text-amber-400" />
+          <span className="font-medium">Update needs your help</span>
+          <span className="hidden text-[var(--muted)] sm:inline">
+            local edits conflicted when reapplied on top of upstream
+            {conflicts.toSha ? ` · @ ${conflicts.toSha.slice(0, 7)}` : ""}
+          </span>
+          <button
+            onClick={() => setResolveOpen(true)}
+            className="ml-auto flex items-center gap-1 rounded border border-amber-500/40 bg-amber-500/15 px-2 py-0.5 hover:bg-amber-500/25"
+          >
+            <Sparkles className="h-3 w-3" />
+            Resolve with Claude
+          </button>
+          <Link
+            href="/updater"
+            className="rounded border border-amber-500/40 bg-amber-500/15 px-2 py-0.5 hover:bg-amber-500/25"
+          >
+            Details
+          </Link>
+          <button
+            onClick={() => setConflictDismissal(writeConflictDismissal(conflictSha))}
+            aria-label="Dismiss for 24 hours"
+            title="Hide for 24 hours — re-appears if a new conflict shows up or the snooze expires"
+            className="rounded p-0.5 text-[var(--muted)] hover:bg-amber-500/20 hover:text-[var(--foreground)]"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+        {resolveOpen && (
+          <ResolveWithClaudeModal
+            onClose={() => setResolveOpen(false)}
+            onDone={() => void u.refresh()}
+          />
+        )}
+      </>
     );
   }
 
@@ -230,50 +230,46 @@ function WebUpdaterBanner() {
   // build in place. Same actionable shape as conflicts.
   if (recovery) {
     return (
-      <div
-        data-pane-name="updater-banner-recovery"
-        className="flex items-center gap-2 border-b border-amber-500/40 bg-amber-500/10 px-4 py-1.5 text-xs"
-      >
-        <TriangleAlert className="h-3.5 w-3.5 shrink-0 text-amber-400" />
-        <span className="font-medium">Update needs your help</span>
-        <span className="hidden text-[var(--muted)] sm:inline">
-          pulled, but {recovery.phase === "install" ? "installing dependencies" : "the build"} failed
-          {recovery.toSha ? ` · @ ${recovery.toSha.slice(0, 7)}` : ""}
-        </span>
-        <button
-          onClick={async () => {
-            const r = await u.resolveWithClaude();
-            if (!r || typeof window === "undefined") return;
-            try {
-              sessionStorage.setItem("claudius.autofix-draft", r.prompt);
-              window.location.assign(`/${r.workspaceId}?new=1&prefill=1`);
-            } catch {
-              window.location.assign(
-                `/${r.workspaceId}?new=1&prefill=${encodeURIComponent(r.prompt)}`,
-              );
-            }
-          }}
-          disabled={u.busy}
-          className="ml-auto flex items-center gap-1 rounded border border-amber-500/40 bg-amber-500/15 px-2 py-0.5 hover:bg-amber-500/25 disabled:opacity-50"
+      <>
+        <div
+          data-pane-name="updater-banner-recovery"
+          className="flex items-center gap-2 border-b border-amber-500/40 bg-amber-500/10 px-4 py-1.5 text-xs"
         >
-          {u.busy ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
-          Resolve with Claude Code
-        </button>
-        <Link
-          href="/updater"
-          className="rounded border border-amber-500/40 bg-amber-500/15 px-2 py-0.5 hover:bg-amber-500/25"
-        >
-          Details
-        </Link>
-        <button
-          onClick={() => setDismissedRecovery(recoveryKey)}
-          aria-label="Dismiss for this session"
-          title="Hide until this update finishes or a new failure shows up"
-          className="rounded p-0.5 text-[var(--muted)] hover:bg-amber-500/20 hover:text-[var(--foreground)]"
-        >
-          <X className="h-3.5 w-3.5" />
-        </button>
-      </div>
+          <TriangleAlert className="h-3.5 w-3.5 shrink-0 text-amber-400" />
+          <span className="font-medium">Update needs your help</span>
+          <span className="hidden text-[var(--muted)] sm:inline">
+            pulled, but {recovery.phase === "install" ? "installing dependencies" : "the build"} failed
+            {recovery.toSha ? ` · @ ${recovery.toSha.slice(0, 7)}` : ""}
+          </span>
+          <button
+            onClick={() => setResolveOpen(true)}
+            className="ml-auto flex items-center gap-1 rounded border border-amber-500/40 bg-amber-500/15 px-2 py-0.5 hover:bg-amber-500/25"
+          >
+            <Sparkles className="h-3 w-3" />
+            Resolve with Claude
+          </button>
+          <Link
+            href="/updater"
+            className="rounded border border-amber-500/40 bg-amber-500/15 px-2 py-0.5 hover:bg-amber-500/25"
+          >
+            Details
+          </Link>
+          <button
+            onClick={() => setDismissedRecovery(recoveryKey)}
+            aria-label="Dismiss for this session"
+            title="Hide until this update finishes or a new failure shows up"
+            className="rounded p-0.5 text-[var(--muted)] hover:bg-amber-500/20 hover:text-[var(--foreground)]"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+        {resolveOpen && (
+          <ResolveWithClaudeModal
+            onClose={() => setResolveOpen(false)}
+            onDone={() => void u.refresh()}
+          />
+        )}
+      </>
     );
   }
 

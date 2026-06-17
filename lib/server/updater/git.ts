@@ -24,6 +24,11 @@ export class UpdaterGitError extends Error {
     message: string,
     readonly stderr: string = "",
     readonly exitCode: number | null = null,
+    // Some git subcommands write their findings to STDOUT and still exit
+    // non-zero (notably `git diff --check`, which lists conflict markers on
+    // stdout and exits 2). Carry stdout so callers that key off those findings
+    // can read them off the thrown error.
+    readonly stdout: string = "",
   ) {
     super(message);
     this.name = "UpdaterGitError";
@@ -56,11 +61,13 @@ async function git(
   } catch (err) {
     const e = err as NodeJS.ErrnoException & { stdout?: string; stderr?: string; code?: number | string };
     const stderr = typeof e.stderr === "string" ? e.stderr : "";
+    const stdout = typeof e.stdout === "string" ? e.stdout : "";
     const code = typeof e.code === "number" ? e.code : null;
     throw new UpdaterGitError(
       e.message ?? `git ${args[0] ?? ""} failed`,
       stderr,
       code,
+      stdout,
     );
   }
 }
@@ -268,50 +275,45 @@ export async function hasUnmergedFiles(cwd: string): Promise<boolean> {
 }
 
 /**
- * Tracked working-tree files that still contain Git conflict markers in their
- * *content* (`<<<<<<<` … `>>>>>>>`).
+ * Tracked files that carry REAL Git conflict-marker residue — markers that were
+ * ADDED relative to HEAD (a stash pop / merge that left `<<<<<<<` … `>>>>>>>`
+ * in the working tree or index), as opposed to marker-like strings that
+ * legitimately live in committed source.
  *
- * This is intentionally separate from `hasUnmergedFiles` (which inspects the
- * index). A tree can carry conflict markers in file content while the index
- * has NO unmerged entries — e.g. a previous conflict whose markers were never
- * resolved but whose index was reset/`git add`ed, or markers that round-tripped
- * through a `git stash push`/`pop`. That state is invisible to `git ls-files -u`
- * yet still fatal: feeding a marker-laden `package.json` to `bun install` dies
- * with the confusing "Operators are not allowed in JSON" parse error that gets
- * misfiled as an install failure when the real problem is an unresolved merge.
+ * Why `git diff --check HEAD` and not a content grep: an earlier version
+ * grepped all tracked content for the marker prefixes, which produced a
+ * SELF-REFERENTIAL false positive — this very file contains "<<<<<<< " as a
+ * string literal in the detection code, and the unit-test fixtures embed marker
+ * text too. On the Claudius repo itself that made `hasConflicts` permanently
+ * true, wedging the updater into a fake-conflict loop that repeatedly spawned a
+ * resolver agent. `git diff --check` only flags marker lines that differ from
+ * HEAD, so committed source (which matches HEAD) is never flagged, while actual
+ * conflict residue from a pop/merge — which is always a change vs HEAD — is.
  *
- * We require BOTH an opening (`<<<<<<<`) and a closing (`>>>>>>>`) marker family
- * so a file that merely contains a long run of one character can't false-positive.
+ * This still catches the case `hasUnmergedFiles` misses: markers sitting in
+ * tracked content with a clean index (round-tripped through a stash pop, or a
+ * half-resolved conflict that was `git add`ed). Feeding such a marker-laden
+ * `package.json` to `bun install` dies with the confusing "Operators are not
+ * allowed in JSON" parse error that gets misfiled as an install failure.
+ *
+ * Output of `git diff --check` is `path:line: leftover conflict marker`; it
+ * exits non-zero (findings on stdout) when any are present, which `git()`
+ * surfaces as a thrown error carrying `stdout`.
  */
 export async function conflictedFiles(cwd: string): Promise<string[]> {
-  const open = await grepTrackedLineStart(cwd, "<<<<<<< ");
-  if (open.length === 0) return [];
-  const close = await grepTrackedLineStart(cwd, ">>>>>>> ");
-  const closing = new Set(close);
-  return open.filter((f) => closing.has(f)).sort();
-}
-
-/**
- * `git grep -l` for a fixed string anchored at line start across tracked
- * working-tree files. `git grep` exits 1 (no error) when there are no matches —
- * we translate that to an empty list. `-F` keeps the marker prefixes literal so
- * `<`/`>` are never interpreted, and `--` guards against a pathspec surprise.
- */
-async function grepTrackedLineStart(cwd: string, prefix: string): Promise<string[]> {
+  let out = "";
   try {
-    // -P would let us anchor with ^, but isn't built on every git. Use -F for a
-    // literal match and filter to line-start hits via a follow-up check is
-    // overkill — conflict markers only ever appear at column 0, and -F on the
-    // 8-char prefix ("<<<<<<< ") is specific enough on its own.
-    const { stdout } = await git(["grep", "-lF", prefix, "--"], cwd);
-    return stdout
-      .split("\n")
-      .map((s) => s.trim())
-      .filter(Boolean);
+    out = (await git(["diff", "--check", "HEAD"], cwd)).stdout;
   } catch (err) {
-    if (err instanceof UpdaterGitError && err.exitCode === 1) return [];
-    throw err;
+    if (err instanceof UpdaterGitError) out = err.stdout || "";
+    else throw err;
   }
+  const files = new Set<string>();
+  for (const raw of out.split("\n")) {
+    const m = /^(.*):\d+: leftover conflict marker$/.exec(raw.trim());
+    if (m && m[1]) files.add(m[1]);
+  }
+  return [...files].sort();
 }
 
 /**

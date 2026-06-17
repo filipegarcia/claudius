@@ -12,6 +12,14 @@ type Props = {
   /** Optional: hide the banner entirely (e.g. user dismissed it for this session). */
   hidden?: boolean;
   /**
+   * Server-derived staleness: the model has open items but hasn't touched the
+   * list for several turns / many tool calls, so the displayed counts are no
+   * longer trustworthy. When true the banner dims and shows a "stale" badge so
+   * a frozen "0/N" stops reading as live truth. The list is auto-cleared by
+   * the server after a longer silence — this is the warning before that.
+   */
+  stale?: boolean;
+  /**
    * Optional dismiss callback. Wired to the durable server-side clear (see
    * `useSession.clearTodos`) so the cleared state survives reload and
    * server restart — not just a client-side banner hide. Rendered as the
@@ -50,7 +58,7 @@ type Props = {
  * plan, executes the work, and never marks anything done — the user takes
  * over without waiting for the model to acknowledge.
  */
-export function TodosBanner({ todos, hidden, onDismiss, onUpdateItem }: Props) {
+export function TodosBanner({ todos, hidden, stale, onDismiss, onUpdateItem }: Props) {
   // Boot from localStorage via a lazy initializer; default to expanded
   // the first time so the user discovers the feature. SSR returns the
   // expanded default so the first paint matches the most common state.
@@ -88,7 +96,14 @@ export function TodosBanner({ todos, hidden, onDismiss, onUpdateItem }: Props) {
   return (
     <div
       data-testid="todos-banner"
-      className="border-b border-[var(--border)] bg-[var(--panel-2)]/40"
+      data-stale={stale ? "true" : undefined}
+      className={cn(
+        "border-b border-[var(--border)] bg-[var(--panel-2)]/40",
+        // Stale: dim the whole banner so a frozen "0/N" stops reading as the
+        // live source of truth. Content stays legible (the user can still act
+        // on it via the per-item controls); it just visibly recedes.
+        stale && "opacity-60",
+      )}
     >
       <div className="mx-auto flex w-full max-w-[var(--chat-col)] items-center gap-2 px-4 py-1.5 text-xs">
         <ListChecks className="h-3.5 w-3.5 shrink-0 text-[var(--accent)]" />
@@ -101,6 +116,15 @@ export function TodosBanner({ todos, hidden, onDismiss, onUpdateItem }: Props) {
           <span className="font-medium" data-testid="todos-banner-progress">
             {done}/{total}
           </span>
+          {stale && (
+            <span
+              data-testid="todos-banner-stale"
+              title="The agent hasn't updated this list in a while — these counts may be out of date. It will be cleared automatically if it stays untouched."
+              className="shrink-0 rounded-sm border border-amber-400/40 bg-amber-400/10 px-1 text-[10px] font-medium uppercase tracking-wide text-amber-300/90"
+            >
+              stale
+            </span>
+          )}
           {active && activeText && (
             <span className="flex items-center gap-1 truncate text-[var(--muted)]" data-testid="todos-banner-active">
               <Loader2 className="h-3 w-3 shrink-0 animate-spin text-sky-300" />

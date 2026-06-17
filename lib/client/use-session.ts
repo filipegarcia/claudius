@@ -735,6 +735,15 @@ export function useSession(): ChatState & ChatActions {
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [latestTodos, setLatestTodos] = useState<AgentTodo[]>([]);
   /**
+   * Server-driven staleness flag for the to-do list. True when the model has
+   * gone several turns / many mid-turn tool calls with open items but no
+   * TodoWrite/Task* touch — the UI dims the banner + shows a "stale" badge so
+   * a frozen "0/N" stops reading as live truth. Mirrors the `todosStale`
+   * field on `session_snapshot`; reset to false whenever the model re-engages
+   * the list (a live TodoWrite/Task* tool_use) or the list is cleared.
+   */
+  const [todosStale, setTodosStale] = useState(false);
+  /**
    * Transient toast state: set when the SERVER auto-closes the to-do
    * snapshot (stale 24h sweep or all-completed turn-end). Re-stamped on
    * every fire (the `id` discriminator is what the UI watches to retrigger
@@ -1650,6 +1659,9 @@ export function useSession(): ChatState & ChatActions {
         //     even when the prompt is buried under a long tool chain
         //     and the tail window dropped it off the top).
         if (Array.isArray(ev.todos)) setLatestTodos(coerceTodos(ev.todos));
+        // Mirror the server's staleness flag. Optional on the wire — absent
+        // means "unchanged", so only react when it's an explicit boolean.
+        if (typeof ev.todosStale === "boolean") setTodosStale(ev.todosStale);
         const prompt = ev.lastUserPrompt;
         if (prompt && prompt.uuid && prompt.text) {
           // Inject the user message into the transcript if the SSE replay
@@ -2036,6 +2048,11 @@ export function useSession(): ChatState & ChatActions {
           if (b.name === "TodoWrite") {
             const raw = (b.input as { todos?: unknown }).todos;
             if (Array.isArray(raw)) setLatestTodos(coerceTodos(raw));
+            // NOTE: do NOT optimistically clear `todosStale` here. A touch is
+            // not progress — the runaway failure mode IS the model re-emitting
+            // / growing the list without completing anything. The server flips
+            // `todosStale` only on real progress (more items done, or pruned)
+            // and broadcasts it via `session_snapshot`; we mirror that.
             continue;
           }
 
@@ -2061,6 +2078,8 @@ export function useSession(): ChatState & ChatActions {
                 },
               ];
             });
+            // No optimistic un-stale — adding an item isn't progress; the
+            // server owns the `todosStale` flag (see the TodoWrite note above).
             continue;
           }
 
@@ -2088,6 +2107,9 @@ export function useSession(): ChatState & ChatActions {
                 return copy;
               });
             }
+            // The server re-evaluates progress at turn end and broadcasts the
+            // authoritative `todosStale` — a completion there un-stales, a
+            // status churn does not. We don't second-guess it client-side.
             continue;
           }
 
@@ -4786,6 +4808,7 @@ export function useSession(): ChatState & ChatActions {
     hasMoreAbove,
     loadingOlder,
     latestTodos,
+    todosStale,
     recentEdits,
     backgroundBashes,
     scheduledLoops,

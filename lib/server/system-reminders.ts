@@ -42,7 +42,8 @@ export type ReminderKind =
   // return before the agent's next tool call within the same turn.
   | "truncated-read"
   | "linter-modified-file-midturn"
-  | "mcp-delta-midturn";
+  | "mcp-delta-midturn"
+  | "todos-stale-midturn";
 
 /**
  * Minimal structural host. Anything with a stable `id` will do — keeping

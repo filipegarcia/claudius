@@ -1821,6 +1821,7 @@ export default function Home() {
         />
         <TodosBanner
           todos={session.latestTodos}
+          stale={session.todosStale}
           onDismiss={() => {
             // Durable clear: the server nulls its snapshot, persists the
             // marker so a JSONL-rebuild can't resurrect the list, and

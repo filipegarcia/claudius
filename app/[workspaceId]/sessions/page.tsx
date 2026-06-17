@@ -27,6 +27,10 @@ function fmtBytes(n?: number): string {
 export default function SessionsPage() {
   const [filter, setFilter] = useState("");
   const [branchFilter, setBranchFilter] = useState<string | null>(null);
+  // Opt-in transcript search. By default the box searches titles only (cheap,
+  // instant, no false positives from deep message text). Flip this on to also
+  // scan the `.jsonl` message bodies for the query.
+  const [searchTranscripts, setSearchTranscripts] = useState(false);
 
   // Scope the list to the workspace in the URL. The URL param (not
   // `useActiveCwd`'s cookie-resolved id) is authoritative for the page we're
@@ -54,11 +58,11 @@ export default function SessionsPage() {
     [sessions, workspaceRoot],
   );
 
-  // Search-inside-transcripts. The metadata filter below (id / title /
-  // firstPrompt / cwd / branch) runs instantly client-side. This adds the
-  // "search the actual messages" capability: a debounced server scan of the
-  // workspace's `.jsonl` transcripts that returns sessionId → snippet for
-  // every session whose content contains the query. Mirrors the debounce +
+  // Search-inside-transcripts. The title filter below runs instantly
+  // client-side. This is the opt-in "search the actual messages" capability:
+  // a debounced server scan of the workspace's `.jsonl` transcripts that
+  // returns sessionId → snippet for every session whose content contains the
+  // query. Only runs while `searchTranscripts` is on. Mirrors the debounce +
   // abort pattern of the in-conversation TranscriptSearch.
   const [contentMatches, setContentMatches] = useState<Map<string, string>>(new Map());
   const [contentSearching, setContentSearching] = useState(false);
@@ -69,9 +73,9 @@ export default function SessionsPage() {
     // never calls setState synchronously (avoids cascading renders) and the
     // spinner doesn't flash for queries that resolve faster than the debounce.
     const t = setTimeout(() => {
-      // Short queries are well served by the instant metadata filter; only
-      // reach to disk for queries with enough signal to be worth a scan.
-      if (q.length < 2 || !workspaceRoot) {
+      // Only reach to disk when the user opted into transcript search and the
+      // query has enough signal to be worth a scan.
+      if (!searchTranscripts || q.length < 2 || !workspaceRoot) {
         setContentMatches((prev) => (prev.size ? new Map() : prev));
         setContentSearching(false);
         return;
@@ -102,7 +106,7 @@ export default function SessionsPage() {
       controller.abort();
       clearTimeout(t);
     };
-  }, [filter, workspaceRoot]);
+  }, [filter, workspaceRoot, searchTranscripts]);
 
   const branches = useMemo(() => {
     const counts = new Map<string, number>();
@@ -119,19 +123,22 @@ export default function SessionsPage() {
     return scopedSessions.filter((s) => {
       if (branchFilter && s.gitBranch !== branchFilter) return false;
       if (!q) return true;
+      // Primary search: the session title. We match the same fields that feed
+      // the displayed title (claudiusTitle / customTitle), plus the firstPrompt
+      // since that's the effective title for sessions the user never renamed.
       if (
-        s.sessionId.toLowerCase().includes(q) ||
-        (s.summary ?? "").toLowerCase().includes(q) ||
-        (s.cwd ?? "").toLowerCase().includes(q) ||
+        (s.claudiusTitle ?? "").toLowerCase().includes(q) ||
+        (s.customTitle ?? "").toLowerCase().includes(q) ||
         (s.firstPrompt ?? "").toLowerCase().includes(q) ||
-        (s.gitBranch ?? "").toLowerCase().includes(q)
+        s.sessionId.toLowerCase().includes(q)
       ) {
         return true;
       }
-      // Matched inside the transcript (server-side content search).
-      return contentMatches.has(s.sessionId);
+      // Opt-in: also surface sessions matched inside the transcript body
+      // (server-side content search).
+      return searchTranscripts && contentMatches.has(s.sessionId);
     });
-  }, [filter, branchFilter, scopedSessions, contentMatches]);
+  }, [filter, branchFilter, scopedSessions, contentMatches, searchTranscripts]);
 
   return (
     <div className="flex h-full">
@@ -151,15 +158,17 @@ export default function SessionsPage() {
           )}
           <span className="text-[var(--muted)]">({scopedSessions.length})</span>
           {loading && <span className="text-[var(--muted)]">loading…</span>}
-          {contentSearching && <span className="text-[var(--muted)]">searching transcripts…</span>}
+          {searchTranscripts && contentSearching && (
+            <span className="text-[var(--muted)]">searching transcripts…</span>
+          )}
           {error && <span className="text-red-400">{error}</span>}
-          <div className="flex-1 px-3">
-            <div className="relative mx-auto max-w-md">
+          <div className="flex flex-1 items-center justify-center gap-2 px-3">
+            <div className="relative w-full max-w-md">
               <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--muted)]" />
               <input
                 value={filter}
                 onChange={(e) => setFilter(e.target.value)}
-                placeholder="Search by id, prompt, cwd, branch…"
+                placeholder="Search titles…"
                 aria-label="Search sessions"
                 className="w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] py-1 pl-8 pr-7 text-xs focus:outline-none"
               />
@@ -174,6 +183,19 @@ export default function SessionsPage() {
                 </button>
               )}
             </div>
+            <button
+              onClick={() => setSearchTranscripts((v) => !v)}
+              aria-pressed={searchTranscripts}
+              title="Also search inside message transcripts"
+              className={cn(
+                "shrink-0 rounded-md border px-2 py-1 text-[11px] whitespace-nowrap",
+                searchTranscripts
+                  ? "border-[var(--accent)] bg-[var(--panel-2)] text-[var(--foreground)]"
+                  : "border-[var(--border)] bg-[var(--panel)] text-[var(--muted)] hover:bg-[var(--panel-2)]",
+              )}
+            >
+              Transcripts
+            </button>
           </div>
           <button
             onClick={() => refresh()}
@@ -215,7 +237,7 @@ export default function SessionsPage() {
         <div className="flex-1 overflow-y-auto scroll-thin">
           {filtered.length === 0 && !loading ? (
             <div className="px-6 py-16 text-center text-sm text-[var(--muted)]">
-              {contentSearching ? "Searching transcripts…" : "No sessions match."}
+              {searchTranscripts && contentSearching ? "Searching transcripts…" : "No sessions match."}
             </div>
           ) : (
             <ul className="divide-y divide-[var(--border)]">
@@ -273,7 +295,7 @@ export default function SessionsPage() {
                         can't. The label distinguishes it from the firstPrompt
                         preview above.
                       */}
-                      {contentMatches.get(s.sessionId) && (
+                      {searchTranscripts && contentMatches.get(s.sessionId) && (
                         <div className="mt-1 line-clamp-2 text-xs text-[var(--muted)]">
                           <span className="mr-1 rounded bg-[var(--panel-2)] px-1 py-0.5 text-[10px] uppercase tracking-wide text-[var(--accent)]">
                             in transcript

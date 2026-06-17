@@ -596,6 +596,13 @@ export type ChatState = {
   /** Latest payload from a TodoWrite tool_use — the agent's current task list. */
   latestTodos: AgentTodo[];
   /**
+   * Server-derived staleness flag for `latestTodos`: true when the model has
+   * open items but hasn't touched the list for several turns / many mid-turn
+   * tool calls. The UI dims the banner + shows a "stale" badge so a frozen
+   * "0/N" stops reading as live truth. Reset on model re-engagement or clear.
+   */
+  todosStale: boolean;
+  /**
    * Transient toast payload set when the server auto-clears the to-do
    * snapshot (stale 24h sweep or all-completed turn-end). `null` when no
    * toast should be showing. `id` is a stable counter that retriggers

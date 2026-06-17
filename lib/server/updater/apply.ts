@@ -622,11 +622,33 @@ async function runClaudeAgent(
     });
     for await (const msg of q as AsyncIterable<SDKMessage>) {
       if (msg.type === "assistant") {
-        const blocks = (msg as { message?: { content?: Array<{ type?: string; text?: string }> } })
-          .message?.content;
+        const blocks = (
+          msg as {
+            message?: {
+              content?: Array<{
+                type?: string;
+                text?: string;
+                name?: string;
+                input?: Record<string, unknown>;
+              }>;
+            };
+          }
+        ).message?.content;
         if (Array.isArray(blocks)) {
           for (const b of blocks) {
-            if (b.type === "text" && typeof b.text === "string") lastText = b.text;
+            if (b.type === "text" && typeof b.text === "string") {
+              lastText = b.text;
+              // Surface a one-line gist into the updater log so the in-place
+              // resolve modal can show what Claude is doing in real time.
+              const gist = b.text.split("\n").map((l) => l.trim()).find(Boolean);
+              if (gist) void appendLog(root, `[claude] ${gist.slice(0, 160)}\n`);
+            } else if (b.type === "tool_use" && typeof b.name === "string") {
+              const cmd =
+                b.name === "Bash" && typeof b.input?.command === "string"
+                  ? `: ${(b.input.command as string).replace(/\s+/g, " ").slice(0, 120)}`
+                  : "";
+              void appendLog(root, `[claude] ⏵ ${b.name}${cmd}\n`);
+            }
           }
         }
       }

@@ -184,18 +184,35 @@ describe("conflict-marker detection (updater git helpers)", () => {
       expect(await hasConflicts(repo)).toBe(false);
     });
 
-    test("an opening marker with no closing marker", async () => {
-      // Requires BOTH families — a lone `<<<<<<<` (e.g. quoted in docs/code) is
-      // not a conflict.
-      writeFileSync(join(repo, "doc.md"), `${OPEN} this is prose, not a conflict\nmore text\n`);
+    test("a run of < characters without the trailing space+label", async () => {
+      writeFileSync(join(repo, "ascii.txt"), `${"<".repeat(20)}\n${">".repeat(20)}\n`);
       gitSync(["add", "."], repo);
       expect(await conflictedFiles(repo)).toEqual([]);
       expect(await hasConflicts(repo)).toBe(false);
     });
 
-    test("a run of < characters without the trailing space+label", async () => {
-      writeFileSync(join(repo, "ascii.txt"), `${"<".repeat(20)}\n${">".repeat(20)}\n`);
+    test("REGRESSION: marker strings in COMMITTED source are not flagged", async () => {
+      // The bug that wedged the updater on the Claudius repo itself: the
+      // detection implementation (lib/server/updater/git.ts) and its test
+      // fixtures legitimately contain "<<<<<<< " / ">>>>>>> " as string
+      // literals. A content grep matched its own source, so `hasConflicts`
+      // was permanently true and the scheduler looped on a phantom conflict.
+      // `git diff --check HEAD` only flags markers that DIFFER from HEAD, so
+      // marker text that's part of a clean commit must never be flagged.
+      writeFileSync(
+        join(repo, "detector.ts"),
+        [
+          "// matches conflict markers in content",
+          `const open = "${OPEN} ";`,
+          `const close = "${CLOSE} ";`,
+          "export { open, close };",
+          "",
+        ].join("\n"),
+      );
       gitSync(["add", "."], repo);
+      gitSync(["commit", "--quiet", "-m", "add detector with marker literals"], repo);
+
+      // Committed and clean — the literals match HEAD, so this is NOT a conflict.
       expect(await conflictedFiles(repo)).toEqual([]);
       expect(await hasConflicts(repo)).toBe(false);
     });

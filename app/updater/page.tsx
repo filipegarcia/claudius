@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import {
   ArrowDownToLine,
@@ -12,12 +13,43 @@ import {
   Sparkles,
 } from "lucide-react";
 import { SideNav } from "@/components/nav/SideNav";
+import { ResolveWithClaudeModal } from "@/components/updater/ResolveWithClaudeModal";
 import {
   useUpdater,
   type UpdaterConflicts,
   type UpdaterMode,
 } from "@/lib/client/use-updater";
 import { cn } from "@/lib/utils/cn";
+
+/**
+ * Opens the in-place "Resolve with Claude" modal — auto-runs the inline
+ * resolution (heal conflict markers via the SDK, then finish install/build) and
+ * streams the updater log live. Replaces the old "spawn a workspace + prefill a
+ * chat" flow; no navigation, no copy-paste.
+ */
+function ResolveButton({
+  onDone,
+  label = "Resolve with Claude",
+}: {
+  onDone?: () => void;
+  label?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        data-testid="updater-page-resolve"
+        className="flex items-center gap-1 rounded-md bg-amber-500/80 px-3 py-1 text-xs font-medium text-white hover:bg-amber-500"
+        title="Resolve in place and watch the progress live — no separate chat or workspace."
+      >
+        <Sparkles className="h-3 w-3" />
+        {label}
+      </button>
+      {open && <ResolveWithClaudeModal onClose={() => setOpen(false)} onDone={onDone} />}
+    </>
+  );
+}
 
 /**
  * Phase → user-facing guidance. The `lastError` string we get from the
@@ -186,8 +218,7 @@ export default function UpdaterPage() {
                   <ConflictsSection
                     conflicts={data.state.conflicts}
                     installRoot={data.install.root}
-                    resolveWithClaude={u.resolveWithClaude}
-                    busy={u.busy}
+                    onDone={() => void u.refresh()}
                   />
                 )}
 
@@ -195,6 +226,7 @@ export default function UpdaterPage() {
                   <RecoverySection
                     lastError={data.state.lastError}
                     installRoot={data.install.root}
+                    onDone={() => void u.refresh()}
                   />
                 )}
 
@@ -357,33 +389,12 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 function ConflictsSection({
   conflicts,
   installRoot,
-  resolveWithClaude,
-  busy,
+  onDone,
 }: {
   conflicts: UpdaterConflicts;
   installRoot: string;
-  resolveWithClaude: () => Promise<{ workspaceId: string; prompt: string } | null>;
-  busy: boolean;
+  onDone?: () => void;
 }) {
-  const onResolve = async () => {
-    const r = await resolveWithClaude();
-    if (!r) return;
-    // Stash the prompt into sessionStorage and land on the chat with
-    // `?prefill=1` so the composer is seeded but NOT auto-sent — same
-    // pattern as the customizations auto-fix flow (SyncFromBasePanel).
-    // Falling back to a URL-encoded prefill keeps the feature working in
-    // privacy/incognito contexts where sessionStorage throws.
-    if (typeof window === "undefined") return;
-    try {
-      sessionStorage.setItem("claudius.autofix-draft", r.prompt);
-      window.location.assign(`/${r.workspaceId}?new=1&prefill=1`);
-    } catch {
-      window.location.assign(
-        `/${r.workspaceId}?new=1&prefill=${encodeURIComponent(r.prompt)}`,
-      );
-    }
-  };
-
   return (
     <Section
       title="Update needs your help"
@@ -414,22 +425,10 @@ function ConflictsSection({
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <button
-                onClick={() => void onResolve()}
-                disabled={busy}
-                className="flex items-center gap-1 rounded-md bg-amber-500/80 px-3 py-1 text-xs font-medium text-white hover:bg-amber-500 disabled:opacity-50"
-                title="Open a Claude Code session at the install root with a pre-filled prompt that walks through the conflicts."
-              >
-                {busy ? (
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                ) : (
-                  <Sparkles className="h-3 w-3" />
-                )}
-                Resolve with Claude Code
-              </button>
+              <ResolveButton onDone={onDone} />
               <span className="text-[var(--muted)]">
-                Opens a new chat in <code className="font-mono">{installRoot}</code>{" "}
-                with a draft prompt — review it and send when ready.
+                Resolves in place at <code className="font-mono">{installRoot}</code> and
+                finishes the update — watch progress live, no separate chat.
               </span>
             </div>
 
@@ -468,9 +467,11 @@ bun install && bun run build        # finish the update
 function RecoverySection({
   lastError,
   installRoot,
+  onDone,
 }: {
   lastError: string;
   installRoot: string;
+  onDone?: () => void;
 }) {
   const phase = parsePhase(lastError);
   const guide = phase ? PHASE_GUIDE[phase] : null;
@@ -481,6 +482,14 @@ function RecoverySection({
         <div className="flex items-start gap-2">
           <LifeBuoy className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
           <div className="flex-1 space-y-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <ResolveButton onDone={onDone} label="Resolve with Claude" />
+              <span className="text-[var(--muted)]">
+                Re-runs the failed step in place (and resolves any leftover conflicts) — watch
+                progress live.
+              </span>
+            </div>
+
             {guide ? (
               <>
                 <div>
@@ -525,15 +534,14 @@ bun run build                       # re-run the build phase
 
             <div className="rounded border border-[var(--border)]/50 bg-[var(--panel-2)]/40 p-2 text-[var(--muted)]">
               <span className="font-medium text-[var(--foreground)]">
-                Why didn&apos;t Claude auto-fix this?
+                What does &ldquo;Resolve with Claude&rdquo; do?
               </span>{" "}
-              The <code className="font-mono">cc-merge</code> mode only spawns Claude for{" "}
-              <em>git merge conflicts</em> (phase <code className="font-mono">merge</code>). For{" "}
-              <code className="font-mono">install</code>, <code className="font-mono">build</code>,
-              and <code className="font-mono">restart</code> failures the updater just rolls back
-              and surfaces the error — there&apos;s no agent in the loop yet. Easiest workaround
-              when stuck: open a Claudius workspace at the install root above and paste the error
-              into the chat.
+              The new code is already checked out (nothing was rolled back). Resolve runs the
+              update in place: it heals any leftover merge conflicts with Claude, then re-runs{" "}
+              <code className="font-mono">bun install</code> and{" "}
+              <code className="font-mono">bun run build</code> and restarts — all here, with live
+              progress, no separate chat or workspace. The manual commands above do the same by
+              hand if you&apos;d rather.
             </div>
           </div>
         </div>

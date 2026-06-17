@@ -27,6 +27,7 @@ import { projectRoot } from "./db";
 import { AsyncQueue } from "./async-queue";
 import { notificationBus } from "./notification-bus";
 import {
+  queueMidTurnReminder,
   queueReminder,
   takeMidTurnReminders,
   takePendingReminders,
@@ -360,6 +361,33 @@ export function todosCurrentReminderBody(todos: readonly unknown[]): string {
 }
 
 /**
+ * Mid-turn staleness reminder — Claudius-specific. Fires DURING a turn (via
+ * the PreToolUse `additionalContext` channel) once the model has run
+ * `TODOS_MIDTURN_TOOLUSE_THRESHOLD` actions without touching an open to-do
+ * list. Distinct from `todosCurrentReminderBody` (which rides the NEXT user
+ * turn): this one reaches the model before its next tool call, so a long
+ * single-turn grind can't drift the list out of sync until the turn ends.
+ *
+ * Only ever queued when the list has open items (see the call site's
+ * `openTodoCount` gate) — never on an empty or all-completed list — so it
+ * can't reintroduce the "reminder with nothing to remind about" noise.
+ *
+ * Pure helper — no Session lifecycle — so the unit test pins the literal
+ * prose without constructing a Session.
+ */
+export function todosMidTurnReminderBody(todos: readonly unknown[]): string {
+  const base =
+    "You've taken several actions without updating the to-do list below. " +
+    "If any tracked item is now finished, mark it completed (TodoWrite with " +
+    'status "completed", or TaskUpdate with status="completed"); if one is no ' +
+    'longer relevant, prune it (TaskUpdate with status="deleted", or omit it ' +
+    "from the next TodoWrite). The list is visible to the user in real time " +
+    "and is currently showing items as open — keep it honest as you work.";
+  if (todos.length === 0) return base;
+  return `${base}\n\nCurrent todos:\n${JSON.stringify(todos, null, 2)}`;
+}
+
+/**
  * Claude Code TUI parity (33-plan-mode-reentry-reminder): when the user
  * flips back into plan mode after a prior planning round in this session,
  * inject a `## Re-entering Plan Mode` reminder pointing at the previously
@@ -660,6 +688,41 @@ const STALE_TODO_TURN_THRESHOLD = 15;
  * doesn't resurrect the dropped list.
  */
 const TODOS_AUTO_CLEAR_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Turn-counted staleness — the in-session counterpart to the 24h wall-clock
+ * `TODOS_AUTO_CLEAR_MS` clear (which only runs at resume). Within a single
+ * live session, a list the model emits once and never updates would sit at
+ * "0/N" forever: the wall-clock clear never fires (minutes, not a day) and
+ * the awareness reminder is advisory. We count consecutive turns that END
+ * with open (non-completed) items but NO model touch (TodoWrite / Task*):
+ *
+ *   - At `TODOS_STALE_FLAG_TURNS` untouched turns → mark the list stale.
+ *     Non-destructive: broadcasts `todosStale: true` so the UI dims the
+ *     banner / shows a badge. The list content is untouched.
+ *   - At `TODOS_STALE_CLEAR_TURNS` untouched turns → `clearTodos("stale")`.
+ *     The graduated upgrade the user asked for ("flag, then auto-clear"):
+ *     a stale badge warns first, a longer silence wipes.
+ *
+ * Reset to 0 the moment the model touches the list (any of the Task* tools
+ * or TodoWrite), so re-engagement immediately un-stales it.
+ */
+const TODOS_STALE_FLAG_TURNS = 3;
+const TODOS_STALE_CLEAR_TURNS = 6;
+
+/**
+ * Mid-turn staleness — closes the "no check while the model is working" gap.
+ * Turn-end and resume are the only reconciliation points today; a single long
+ * turn (dozens of Edit/Bash/Read calls building a feature) never revisits the
+ * to-do list until it ends. We count tool_use blocks observed within the
+ * current turn that AREN'T a todo tool; once the model has done this many
+ * actions with an open list untouched, queue a one-shot mid-turn reminder
+ * (via the PreToolUse `additionalContext` channel) so the nudge reaches the
+ * model BEFORE its next action instead of waiting for the turn to end. Fires
+ * at most once per turn (see `firedMidTurnTodoReminderThisTurn`) to avoid the
+ * every-N-calls spam the user flagged.
+ */
+const TODOS_MIDTURN_TOOLUSE_THRESHOLD = 12;
 
 type PendingPermission = {
   requestId: string;
@@ -1249,6 +1312,62 @@ export class Session {
    * is "current turn", same reasoning as the surrounding flags.
    */
   private todosTouchedThisTurn = false;
+
+  /**
+   * Consecutive turns that ENDED with open items and NO completion progress —
+   * the model neither completed an item nor pruned the list since the prior
+   * turn. This is the honest "dysfunction" signal: it catches BOTH failure
+   * modes the user hit —
+   *
+   *   - Abandonment: model emits a list once, never touches it again. No
+   *     progress every turn → counter climbs.
+   *   - Runaway / churn: model keeps ADDING items (the 0/26-and-growing
+   *     screenshot) but never marks anything completed. A naive "did the model
+   *     touch the list" signal resets here — adding counts as a touch — so the
+   *     list grows unbounded forever. Progress (done-count up, or list pruned)
+   *     is the only thing that resets this counter, so churn correctly climbs.
+   *
+   * Reset to 0 on real progress (`maybeAutoSyncTodosOnTurnEnd`) or when the
+   * list goes empty / is cleared. Drives the graduated
+   * `TODOS_STALE_FLAG_TURNS` → `TODOS_STALE_CLEAR_TURNS` staleness. In-memory
+   * only, same lifetime reasoning as the flags above.
+   */
+  private turnsTodosNoProgress = 0;
+
+  /**
+   * Completed-count and total-count of the snapshot as of the last turn end —
+   * the baseline `maybeAutoSyncTodosOnTurnEnd` compares against to decide
+   * whether THIS turn made progress (more items done, or the list shrank).
+   * Reset to 0 when the list is cleared / goes empty.
+   */
+  private lastTodosDoneCount = 0;
+  private lastTodosTotalCount = 0;
+
+  /**
+   * Is the to-do list currently flagged stale (open items, model gone quiet
+   * past `TODOS_STALE_FLAG_TURNS`)? Mirrored to the client via the
+   * `todosStale` field on `session_snapshot` so the banner dims / badges.
+   * Cleared on model re-engagement or `clearTodos`. Set via `setTodosStale`
+   * which only broadcasts on an actual change (no repaint spam).
+   */
+  private todosStale = false;
+
+  /**
+   * Count of non-todo tool_use blocks observed in the current turn since the
+   * model last touched the list. Drives the mid-turn staleness reminder.
+   * Reset on any todo touch and at turn boundaries (`sendInput`,
+   * `maybeAutoSyncTodosOnTurnEnd`). Live-only — replayed transcript tool_uses
+   * don't count (see the `isReplayingTranscript` gate at the increment site).
+   */
+  private toolUsesSinceTodoTouch = 0;
+
+  /**
+   * Did the mid-turn staleness reminder already fire this turn? Caps the
+   * mid-turn nudge at once per turn so a 50-tool-call turn doesn't inject a
+   * reminder every `TODOS_MIDTURN_TOOLUSE_THRESHOLD` calls. Reset at turn
+   * boundaries and on any todo touch.
+   */
+  private firedMidTurnTodoReminderThisTurn = false;
 
   /**
    * User-authored per-item overrides that beat what the agent's transcript
@@ -2756,6 +2875,10 @@ export class Session {
     // `sendInput` runs before the SDK has consumed the queued message, so
     // the assistant tool_uses can only land after this reset.
     this.todosTouchedThisTurn = false;
+    // Rearm the mid-turn staleness counters for the upcoming turn. Same
+    // ordering rationale as `todosTouchedThisTurn` above.
+    this.toolUsesSinceTodoTouch = 0;
+    this.firedMidTurnTodoReminderThisTurn = false;
 
     if (!images || images.length === 0) {
       const message = { role: "user" as const, content: text };
@@ -3146,6 +3269,54 @@ export class Session {
   }
 
   /**
+   * Count snapshot items the model has NOT marked completed. "Open" drives
+   * every staleness gate: an all-completed list is handled by the turn-end
+   * auto-clear, and a list with zero open items must never trip a stale flag
+   * or a reminder (that was the "noise with nothing to remind about" bug).
+   */
+  private static openTodoCount(snapshot: readonly unknown[] | null): number {
+    if (!snapshot) return 0;
+    return snapshot.filter(
+      (t) => (t as { status?: unknown }).status !== "completed",
+    ).length;
+  }
+
+  /**
+   * Flip the staleness flag and, only on an actual change, broadcast the
+   * current snapshot with the new `todosStale` value so the UI dims / badges
+   * (or un-dims). Includes the live `todos` payload so the flag-only repaint
+   * doesn't wipe the client's list. No-op when the value is unchanged — keeps
+   * the wire quiet (no per-turn repaint spam).
+   */
+  private setTodosStale(stale: boolean): void {
+    if (this.todosStale === stale) return;
+    this.todosStale = stale;
+    this.broadcast({
+      type: "session_snapshot",
+      todos: this.latestTodosSnapshot ?? [],
+      todosStale: stale,
+    });
+  }
+
+  /**
+   * The model engaged the to-do list this turn (TodoWrite / TaskCreate /
+   * TaskUpdate / TaskList). Resets the WITHIN-TURN silence counters that drive
+   * the mid-turn reminder — the model just acted, so it isn't going quiet.
+   *
+   * Deliberately does NOT reset the turn-to-turn progress counter or un-stale
+   * the list: a "touch" is not the same as PROGRESS. Adding 14 more items to a
+   * 0/12 list, or re-emitting the same all-pending list, is a touch but moves
+   * nothing forward — that's the "0/26 and growing" runaway the user hit.
+   * Only real completion progress (more items done, or the list pruned),
+   * evaluated at turn end in `maybeAutoSyncTodosOnTurnEnd`, resets staleness.
+   */
+  private markTodosTouchedThisTurn(): void {
+    this.todosTouchedThisTurn = true;
+    this.toolUsesSinceTodoTouch = 0;
+    this.firedMidTurnTodoReminderThisTurn = false;
+  }
+
+  /**
    * Drop the agent's TodoWrite snapshot — the user-facing "this list is
    * dead, stop showing it" lever. Wired from the chat-level `TodosBanner`
    * Clear button and the rail's To-dos eraser; also re-invoked internally
@@ -3186,6 +3357,14 @@ export class Session {
     // turn to immediately fire the gentle nudge (the list is gone; there's
     // nothing left to "prune").
     this.turnsSinceTodoWrite = 0;
+    // The list is gone — reset all staleness bookkeeping so a fresh list
+    // (e.g. a later TaskCreate) starts from a clean slate, and the flag
+    // doesn't linger as `true` over an empty list.
+    this.turnsTodosNoProgress = 0;
+    this.lastTodosDoneCount = 0;
+    this.lastTodosTotalCount = 0;
+    this.todosStale = false;
+    this.toolUsesSinceTodoTouch = 0;
     try {
       await mergeSessionState(this.cwd, this.id, { todosClearedAt: at });
     } catch {
@@ -3193,7 +3372,10 @@ export class Session {
       // re-replay the JSONL TodoWrites; the live broadcast below still
       // gives every connected tab an empty state immediately.
     }
-    this.broadcast({ type: "session_snapshot", todos: [] });
+    // `todosStale: false` rides the empty snapshot so a client that had the
+    // banner dimmed repaints clean (the empty list already hides it, but
+    // being explicit keeps the wire honest).
+    this.broadcast({ type: "session_snapshot", todos: [], todosStale: false });
     // Transient toast for system-initiated closes only. Manual clears
     // (the user clicked Clear) don't need a toast — the user already
     // knows what they just did, and an "I cleared the list" notification
@@ -3356,6 +3538,7 @@ export class Session {
     this.broadcast({
       type: "session_snapshot",
       todos: this.latestTodosSnapshot ?? [],
+      todosStale: this.todosStale,
     });
     return { ok: true };
   }
@@ -3425,8 +3608,20 @@ export class Session {
     // as belt-and-suspenders for the sane path.
     this.todosTouchedThisTurn = false;
     this.todosRebuiltFromTaskListThisTurn = false;
-    // No snapshot or empty list → nothing to keep the model aware of.
-    if (!snapshot || snapshot.length === 0) return;
+    // Per-turn mid-turn bookkeeping resets here too (belt-and-suspenders for
+    // the `sendInput` reset) so an errored/interrupted prior turn that
+    // skipped `sendInput`'s reset can't leak a "fired" flag forward.
+    this.toolUsesSinceTodoTouch = 0;
+    this.firedMidTurnTodoReminderThisTurn = false;
+    // No snapshot or empty list → nothing to keep the model aware of, and no
+    // list to be stale about. Reset the progress baseline so a fresh list
+    // later starts clean.
+    if (!snapshot || snapshot.length === 0) {
+      this.turnsTodosNoProgress = 0;
+      this.lastTodosDoneCount = 0;
+      this.lastTodosTotalCount = 0;
+      return;
+    }
     const allCompleted = snapshot.every(
       (t) => (t as { status?: unknown }).status === "completed",
     );
@@ -3443,14 +3638,57 @@ export class Session {
       // path re-arms and clears normally — the user's stated preference
       // ("keep clearTodos auto-firing on stop-reason completed + all-done")
       // is preserved everywhere except the explicit "show me" moment.
+      // All items done — nothing open to be stale about. Reset the baseline
+      // (the list is about to be cleared anyway, but the rebuilt-from-TaskList
+      // early-return path leaves it intact, so keep the bookkeeping honest).
+      this.turnsTodosNoProgress = 0;
+      this.lastTodosDoneCount = 0;
+      this.lastTodosTotalCount = 0;
       if (rebuiltFromTaskList) return;
       await this.clearTodos("completed").catch(() => {});
       return;
     }
-    // Open items remain — queue the awareness reminder for next turn. We
-    // pass the full snapshot (including any completed items) so the model
-    // sees the actual state — strikethroughs and all — not a filtered view
-    // that would let it forget items it already finished.
+    // Open items remain. Track turn-counted staleness on a PROGRESS signal,
+    // not a "did the model touch the list" one. The screenshot failure — a
+    // 0/26 list that grows every run — is the model TOUCHING the list every
+    // turn (adding items) while completing nothing. A touch-based reset would
+    // keep that list alive forever; a progress-based one correctly lets it go
+    // stale. "Progress" = at least one more item completed than last turn, OR
+    // the list shrank (the model pruned). Either is a sign the list is being
+    // used as a real tracker; neither happening across several turns is the
+    // dysfunction (abandonment OR runaway) we clean up.
+    const doneCount = snapshot.filter(
+      (t) => (t as { status?: unknown }).status === "completed",
+    ).length;
+    const totalCount = snapshot.length;
+    const progressed =
+      doneCount > this.lastTodosDoneCount ||
+      totalCount < this.lastTodosTotalCount;
+    this.lastTodosDoneCount = doneCount;
+    this.lastTodosTotalCount = totalCount;
+    if (progressed) {
+      this.turnsTodosNoProgress = 0;
+      this.setTodosStale(false);
+    } else {
+      this.turnsTodosNoProgress += 1;
+      if (this.turnsTodosNoProgress >= TODOS_STALE_CLEAR_TURNS) {
+        // Graduated upgrade: a list the model has made no progress on for this
+        // many turns is auto-cleared. `clearTodos("stale")` fires the transient
+        // toast so the list vanishing doesn't read as a bug, and resets all
+        // staleness state. This is the "then auto-clear" half the user chose.
+        await this.clearTodos("stale").catch(() => {});
+        return;
+      }
+      if (this.turnsTodosNoProgress >= TODOS_STALE_FLAG_TURNS) {
+        // The "flag" half: dim the banner / show a badge so a frozen "0/N"
+        // stops reading as live truth, without destroying the content yet.
+        this.setTodosStale(true);
+      }
+    }
+    // Queue the awareness reminder for next turn. We pass the full snapshot
+    // (including any completed items) so the model sees the actual state —
+    // strikethroughs and all — not a filtered view that would let it forget
+    // items it already finished.
     const body = todosCurrentReminderBody(snapshot);
     queueReminder(this, "todos-current", body);
   }
@@ -4921,7 +5159,9 @@ export class Session {
     if (hasTodosActivity || this.latestUserPromptSnapshot) {
       fn({
         type: "session_snapshot",
-        ...(hasTodosActivity ? { todos: this.latestTodosSnapshot ?? [] } : {}),
+        ...(hasTodosActivity
+          ? { todos: this.latestTodosSnapshot ?? [], todosStale: this.todosStale }
+          : {}),
         ...(this.latestUserPromptSnapshot
           ? { lastUserPrompt: this.latestUserPromptSnapshot }
           : {}),
@@ -5710,8 +5950,10 @@ export class Session {
             // rebuilt view (mirrors the start-of-session apply path).
             this.applyManualTodoOverrides();
             // Mark the turn as having touched the to-do list — see the
-            // TodoWrite branch below for the rationale.
-            this.todosTouchedThisTurn = true;
+            // TodoWrite branch below for the rationale. Resets staleness
+            // bookkeeping and un-stales: a TaskList read is the model paying
+            // attention to its list.
+            this.markTodosTouchedThisTurn();
             // Suppress the all-completed auto-clear for this turn (see
             // `maybeAutoSyncTodosOnTurnEnd` and the field declaration). The
             // user just explicitly asked "what tasks do I have?" — wiping
@@ -5823,6 +6065,44 @@ export class Session {
     for (const block of content as Array<{ type?: string; id?: string; name?: string; input?: unknown }>) {
       if (block?.type !== "tool_use") continue;
 
+      // Mid-turn staleness counting (closes the "no check while the model is
+      // working" gap). Every non-todo tool_use is an action the model took
+      // without touching the list; once it has taken
+      // `TODOS_MIDTURN_TOOLUSE_THRESHOLD` of them with an OPEN list, queue a
+      // one-shot mid-turn reminder so the nudge reaches the model BEFORE its
+      // next tool call (the PreToolUse `additionalContext` channel drains it)
+      // instead of waiting for the turn to end. Gates, all load-bearing:
+      //   - Live only: replayed-transcript tool_uses must never fire reminders.
+      //   - Open items only: an empty / all-completed list has nothing to
+      //     remind about — exactly the "noise" the user flagged.
+      //   - Once per turn: `firedMidTurnTodoReminderThisTurn` caps it so a
+      //     50-tool-call turn doesn't inject every N calls.
+      // Todo tools are excluded from the count — they reset it via
+      // `markTodosTouchedThisTurn` in their own branches below.
+      const isTodoTool =
+        block.name === "TodoWrite" ||
+        block.name === "TaskCreate" ||
+        block.name === "TaskUpdate" ||
+        block.name === "TaskList";
+      if (
+        !this.isReplayingTranscript &&
+        !isTodoTool &&
+        !this.firedMidTurnTodoReminderThisTurn
+      ) {
+        this.toolUsesSinceTodoTouch += 1;
+        if (
+          this.toolUsesSinceTodoTouch >= TODOS_MIDTURN_TOOLUSE_THRESHOLD &&
+          Session.openTodoCount(this.latestTodosSnapshot) > 0
+        ) {
+          queueMidTurnReminder(
+            this,
+            "todos-stale-midturn",
+            todosMidTurnReminderBody(this.latestTodosSnapshot ?? []),
+          );
+          this.firedMidTurnTodoReminderThisTurn = true;
+        }
+      }
+
       // Worktree detection that survives a disk rebuild. The live PreToolUse
       // hook (signal #2 in start()) flags the worktree as edits execute, but
       // that hook does NOT re-fire when a session is rebuilt from its JSONL on
@@ -5880,13 +6160,10 @@ export class Session {
         // historical write resetting 0 → 0 is harmless, and it keeps the
         // counter aligned with what the agent has actually done.
         this.turnsSinceTodoWrite = 0;
-        // Turn-end awareness nudge: bookkeeping for any future cadence-
-        // dependent reminder that wants to know whether the agent
-        // touched the list this turn. (The current `todos-current`
-        // reminder fires every turn regardless, so this flag is no longer
-        // load-bearing for it — kept for symmetry and as a hook for
-        // future per-turn decisions.)
-        this.todosTouchedThisTurn = true;
+        // Turn-end + staleness bookkeeping: record that the agent touched the
+        // list this turn, reset the untouched-turn and mid-turn counters, and
+        // un-stale (model re-engaged). See `markTodosTouchedThisTurn`.
+        this.markTodosTouchedThisTurn();
         continue;
       }
 
@@ -5921,9 +6198,9 @@ export class Session {
           },
         ];
         if (at >= this.latestTodosSnapshotAt) this.latestTodosSnapshotAt = at;
-        // Mark the turn as having touched the to-do list — see TodoWrite
-        // branch above for the rationale.
-        this.todosTouchedThisTurn = true;
+        // Mark the turn as having touched the to-do list (resets staleness
+        // bookkeeping) — see TodoWrite branch above for the rationale.
+        this.markTodosTouchedThisTurn();
         // Model created this item, so any pre-existing override keyed by
         // the same id is now stale (rare — the temp tool_use_id is fresh
         // per turn, but a user-typed id collision is possible).
@@ -5966,9 +6243,9 @@ export class Session {
             return updated;
           });
         }
-        // Mark the turn as having touched the to-do list — see TodoWrite
-        // branch above for the rationale.
-        this.todosTouchedThisTurn = true;
+        // Mark the turn as having touched the to-do list (resets staleness
+        // bookkeeping) — see TodoWrite branch above for the rationale.
+        this.markTodosTouchedThisTurn();
         // The model engaged with this specific id; drop any active user
         // override so the model's fresh assertion wins on the next replay.
         this.clearManualTodoOverrideFor(taskId);

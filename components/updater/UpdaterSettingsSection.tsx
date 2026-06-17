@@ -1,23 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { ArrowDownToLine, ExternalLink, Loader2, RefreshCw, Sparkles, TriangleAlert } from "lucide-react";
 import { useUpdater, type UpdaterMode } from "@/lib/client/use-updater";
+import { ResolveWithClaudeModal } from "@/components/updater/ResolveWithClaudeModal";
 import { cn } from "@/lib/utils/cn";
-
-/** Stage a Claude recovery chat and navigate to it with the prompt prefilled. */
-async function openResolveWithClaude(
-  resolve: () => Promise<{ workspaceId: string; prompt: string } | null>,
-) {
-  const r = await resolve();
-  if (!r || typeof window === "undefined") return;
-  try {
-    sessionStorage.setItem("claudius.autofix-draft", r.prompt);
-    window.location.assign(`/${r.workspaceId}?new=1&prefill=1`);
-  } catch {
-    window.location.assign(`/${r.workspaceId}?new=1&prefill=${encodeURIComponent(r.prompt)}`);
-  }
-}
 
 const MODE_OPTIONS: ReadonlyArray<{
   id: UpdaterMode;
@@ -57,6 +45,7 @@ const MODE_OPTIONS: ReadonlyArray<{
 export function UpdaterSettingsSection() {
   const u = useUpdater(15_000);
   const data = u.data;
+  const [resolveOpen, setResolveOpen] = useState(false);
 
   return (
     <section className="rounded-lg border border-[var(--border)] bg-[var(--panel)]/40 p-4">
@@ -133,18 +122,21 @@ export function UpdaterSettingsSection() {
                   </p>
                 </div>
                 <button
-                  onClick={() => void openResolveWithClaude(u.resolveWithClaude)}
-                  disabled={u.busy}
-                  className="flex shrink-0 items-center gap-1 self-center rounded-md border border-amber-500/40 bg-amber-500/15 px-2 py-1 text-amber-100 hover:bg-amber-500/25 disabled:opacity-50"
+                  onClick={() => setResolveOpen(true)}
+                  data-testid="updater-settings-resolve"
+                  className="flex shrink-0 items-center gap-1 self-center rounded-md border border-amber-500/40 bg-amber-500/15 px-2 py-1 text-amber-100 hover:bg-amber-500/25"
                 >
-                  {u.busy ? (
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                  ) : (
-                    <Sparkles className="h-3 w-3" />
-                  )}
-                  Resolve with Claude Code
+                  <Sparkles className="h-3 w-3" />
+                  Resolve with Claude
                 </button>
               </div>
+            )}
+
+            {resolveOpen && (
+              <ResolveWithClaudeModal
+                onClose={() => setResolveOpen(false)}
+                onDone={() => void u.refresh()}
+              />
             )}
 
             <div className="flex flex-wrap items-center gap-3 text-[11px] text-[var(--muted)]">

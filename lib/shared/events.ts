@@ -430,6 +430,17 @@ export type SessionSnapshotEvent = {
    */
   todos?: unknown[];
   /**
+   * Staleness flag for the to-do list. Set true by the server when the
+   * model has gone several turns (or many mid-turn tool calls) with open
+   * items but no TodoWrite/Task* touch — the list is no longer being kept
+   * in sync with reality. The client dims the banner and shows a "stale"
+   * badge so a frozen "0/N" stops reading as live truth. Cleared back to
+   * false the moment the model re-engages the list or it's cleared. Only
+   * meaningful alongside (or after) a `todos` field; absent means
+   * "unchanged".
+   */
+  todosStale?: boolean;
+  /**
    * Latest top-level user prompt — the actual one the user typed, not a
    * tool_result wrapper. Replayed so a client that reconnects to a long
    * session (tail window dropped the prompt off the top) still gets the
