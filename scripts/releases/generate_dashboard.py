@@ -496,6 +496,10 @@ html = f"""<!DOCTYPE html>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>SDK Release Analytics — Claudius</title>
+<link rel="icon" href="favicon.ico" sizes="32x32"/>
+<link rel="icon" type="image/png" sizes="48x48" href="favicon-48.png"/>
+<link rel="icon" type="image/svg+xml" href="icon.svg"/>
+<link rel="apple-touch-icon" href="apple-icon.png"/>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <style>
   *, *::before, *::after {{ box-sizing: border-box; margin: 0; padding: 0; }}
