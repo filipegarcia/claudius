@@ -84,6 +84,17 @@ export type DisplayMessage = {
      * — same graceful-degradation pattern as `resetsAt` above.
      */
     fallbackModel?: string;
+    /**
+     * SDK 0.3.181 — forwarded from `SDKRateLimitInfo.errorCode` when the
+     * hard-stop is a credits-required block rather than a plan-tier limit.
+     * Drives a "Buy credits" CTA in `RateLimitHitPanel` instead of the
+     * standard "Upgrade your plan" links.
+     */
+    errorCode?: "credits_required";
+    /** True when the user is eligible to purchase credits to lift the block. */
+    canUserPurchaseCredits?: boolean;
+    /** True when the user already has a payment method saved. */
+    hasChargeableSavedPaymentMethod?: boolean;
   };
   /**
    * Present when this assistant message IS the Anthropic backend's
@@ -174,6 +185,16 @@ export type SystemEntry = {
     overageDisabledReason?: string;
     isUsingOverage?: boolean;
     surpassedThreshold?: number;
+    /**
+     * SDK 0.3.181 — present when the rejection is specifically because the
+     * account lacks purchased credits (distinct from a plan-tier limit or overage cap).
+     * Drives a "buy credits" CTA in RateLimitPill instead of the standard upgrade links.
+     */
+    errorCode?: "credits_required";
+    /** True when the user is eligible to purchase credits to lift the block. */
+    canUserPurchaseCredits?: boolean;
+    /** True when the user already has a payment method saved, enabling a one-click buy. */
+    hasChargeableSavedPaymentMethod?: boolean;
   };
   /**
    * Compaction stats + summary, only present on `kind === "compact_boundary"`.
