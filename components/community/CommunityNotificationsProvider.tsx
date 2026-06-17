@@ -51,7 +51,9 @@ const EMPTY: UseCommunityNotifications = {
   permissionState: "unsupported",
   unreadCount: 0,
   unreadByRoom: {},
+  unreadByPeer: {},
   setEnabled: async () => false,
   setViewingRoom: () => {},
+  setViewingPeer: () => {},
   setMyNick: () => {},
 };

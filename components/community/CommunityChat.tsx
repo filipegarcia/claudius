@@ -77,7 +77,7 @@ export function CommunityChat({ onOptOut }: Props) {
   // the room slug with tab visibility — when the tab goes background we
   // tell the hook "viewing nothing" so badges/toasts resume for the room
   // the user can't see right now anyway.
-  const { setViewingRoom, setMyNick } = notifications;
+  const { setViewingRoom, setViewingPeer, setMyNick } = notifications;
   useEffect(() => {
     const update = () => {
       const visible =
@@ -94,6 +94,26 @@ export function CommunityChat({ onOptOut }: Props) {
     }
     return () => setViewingRoom(null);
   }, [community.currentRoom, setViewingRoom]);
+
+  // Same dance for the open DM thread: tell the notifications hook which
+  // peer we're actively reading (paired with tab visibility) so an
+  // incoming DM from that peer doesn't badge/toast while it's on screen.
+  useEffect(() => {
+    const update = () => {
+      const visible =
+        typeof document === "undefined" ? true : !document.hidden;
+      setViewingPeer(visible ? dms.currentPeer : null);
+    };
+    update();
+    if (typeof document !== "undefined") {
+      document.addEventListener("visibilitychange", update);
+      return () => {
+        document.removeEventListener("visibilitychange", update);
+        setViewingPeer(null);
+      };
+    }
+    return () => setViewingPeer(null);
+  }, [dms.currentPeer, setViewingPeer]);
 
   // Keep the notifications hook in sync with the user's nick so it can
   // ignore their own messages when computing unread counts.
@@ -265,6 +285,8 @@ export function CommunityChat({ onOptOut }: Props) {
             const preview = c.lastMessage.deletedAt
               ? "(deleted)"
               : c.lastMessage.body;
+            const unread =
+              notifications.unreadByPeer?.[c.peerNick.toLowerCase()] ?? 0;
             return (
               <li key={c.peerNick}>
                 <button
@@ -278,7 +300,17 @@ export function CommunityChat({ onOptOut }: Props) {
                   }
                   data-testid={`community-dm-conv-${c.peerNick}`}
                 >
-                  <span className="block truncate font-mono">@{c.peerNick}</span>
+                  <span className="flex items-center justify-between gap-2">
+                    <span className="truncate font-mono">@{c.peerNick}</span>
+                    {unread > 0 && (
+                      <span
+                        className="shrink-0 rounded-full bg-[var(--accent)] px-1.5 text-[10px] font-medium leading-4 text-white"
+                        data-testid={`community-dm-unread-${c.peerNick}`}
+                      >
+                        {unread}
+                      </span>
+                    )}
+                  </span>
                   <span className="block truncate text-[10px] text-[var(--muted)]">
                     {preview || " "}
                   </span>

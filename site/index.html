@@ -184,7 +184,7 @@
           rgba(217, 119, 87, 0.55),
           transparent 60%
         );
-        animation: orb1-drift 26s ease-in-out infinite alternate;
+        animation: orb1-drift 72s ease-in-out infinite;
       }
       .site-bg .orb-2 {
         bottom: -30%;
@@ -195,7 +195,7 @@
           rgba(139, 155, 255, 0.45),
           transparent 60%
         );
-        animation: orb2-drift 32s ease-in-out infinite alternate;
+        animation: orb2-drift 90s ease-in-out infinite;
       }
       .site-bg .orb-3 {
         top: 30%;
@@ -208,7 +208,23 @@
           rgba(217, 119, 87, 0.28),
           transparent 60%
         );
-        animation: orb3-drift 38s ease-in-out infinite;
+        animation: orb3-drift 108s ease-in-out infinite;
+      }
+      /* A fourth orb that lazily trails the cursor. Positioned at the viewport
+         centre at rest (no JS / touch / reduced-motion); the script below
+         lerps a transform toward the pointer very slowly for a "quiet chase". */
+      .site-bg .orb-cursor {
+        top: 50%;
+        left: 50%;
+        width: 34vmax;
+        height: 34vmax;
+        margin: -17vmax 0 0 -17vmax;
+        opacity: 0.22;
+        background: radial-gradient(
+          circle,
+          rgba(217, 119, 87, 0.5),
+          transparent 60%
+        );
       }
       .site-bg .bg-grid {
         position: absolute;
@@ -229,18 +245,28 @@
         );
         animation: grid-pan 60s linear infinite;
       }
+      /* Closed-loop wanders (0% == 100%) so the orbs drift continuously rather
+         than ping-ponging — long durations make it read as a very slow float. */
       @keyframes orb1-drift {
         0%   { transform: translate3d(0, 0, 0) scale(1); }
-        100% { transform: translate3d(18vw, 12vh, 0) scale(1.1); }
+        25%  { transform: translate3d(9vw, 11vh, 0) scale(1.06); }
+        50%  { transform: translate3d(17vw, 5vh, 0) scale(1.12); }
+        75%  { transform: translate3d(7vw, -7vh, 0) scale(1.05); }
+        100% { transform: translate3d(0, 0, 0) scale(1); }
       }
       @keyframes orb2-drift {
         0%   { transform: translate3d(0, 0, 0) scale(1); }
-        100% { transform: translate3d(-14vw, -10vh, 0) scale(1.15); }
+        25%  { transform: translate3d(-10vw, -6vh, 0) scale(1.08); }
+        50%  { transform: translate3d(-15vw, -11vh, 0) scale(1.15); }
+        75%  { transform: translate3d(-6vw, -3vh, 0) scale(1.06); }
+        100% { transform: translate3d(0, 0, 0) scale(1); }
       }
       @keyframes orb3-drift {
-        0%   { transform: translate3d(0, 0, 0) scale(0.9); }
-        50%  { transform: translate3d(-12vw, 8vh, 0) scale(1.1); }
-        100% { transform: translate3d(10vw, -6vh, 0) scale(0.95); }
+        0%   { transform: translate3d(0, 0, 0) scale(0.95); }
+        25%  { transform: translate3d(-12vw, 8vh, 0) scale(1.08); }
+        50%  { transform: translate3d(4vw, 12vh, 0) scale(1.0); }
+        75%  { transform: translate3d(10vw, -6vh, 0) scale(1.05); }
+        100% { transform: translate3d(0, 0, 0) scale(0.95); }
       }
       @keyframes grid-pan {
         0%   { background-position: 0 0; }
@@ -267,6 +293,7 @@
         .site-bg .orb-1 { opacity: 0.5; }
         .site-bg .orb-2 { opacity: 0.42; }
         .site-bg .orb-3,
+        .site-bg .orb-cursor,
         .site-bg .bg-grid {
           display: none;
         }
@@ -337,8 +364,43 @@
       <div class="orb orb-1"></div>
       <div class="orb orb-2"></div>
       <div class="orb orb-3"></div>
+      <div class="orb orb-cursor"></div>
       <div class="bg-grid"></div>
     </div>
+    <script>
+      // Quiet cursor-chasing orb: only on fine pointers (desktop) and when the
+      // visitor hasn't asked to reduce motion. A low lerp factor makes it trail
+      // lazily behind the pointer rather than snapping to it, and the rAF loop
+      // idles once it has caught up so it costs nothing while the mouse is still.
+      (function () {
+        var orb = document.querySelector(".site-bg .orb-cursor");
+        if (!orb) return;
+        var fine = window.matchMedia("(pointer: fine)").matches;
+        var still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        if (!fine || still) return;
+        var tx = 0, ty = 0, x = 0, y = 0, raf = 0;
+        function tick() {
+          x += (tx - x) * 0.022;
+          y += (ty - y) * 0.022;
+          orb.style.transform =
+            "translate3d(" + x.toFixed(1) + "px," + y.toFixed(1) + "px,0)";
+          if (Math.abs(tx - x) > 0.5 || Math.abs(ty - y) > 0.5) {
+            raf = requestAnimationFrame(tick);
+          } else {
+            raf = 0;
+          }
+        }
+        window.addEventListener(
+          "mousemove",
+          function (e) {
+            tx = e.clientX - window.innerWidth / 2;
+            ty = e.clientY - window.innerHeight / 2;
+            if (!raf) raf = requestAnimationFrame(tick);
+          },
+          { passive: true }
+        );
+      })();
+    </script>
 
     <!-- ────────────────────────────── Top bar ────────────────────────────── -->
     <header class="sticky top-0 z-30 border-b border-line/60 backdrop-blur bg-bg/70">
@@ -1714,6 +1776,62 @@ bun run electron:dist:linux   # AppImage + deb + rpm</code></pre>
           </div>
         </div>
       </div>
+    </section>
+
+    <!-- ────────────────────────────── Newsletter ────────────────────────── -->
+    <section id="newsletter" class="border-t border-line/60 scroll-mt-20">
+      <div class="max-w-6xl mx-auto px-6 py-16 flex flex-col items-center text-center gap-5">
+        <h2 class="text-2xl sm:text-3xl font-semibold tracking-tight">If you made it this far</h2>
+        <p class="text-muted max-w-md text-sm sm:text-base">
+          you might as well subscribe. Occasional updates — new features,
+          release notes, and the odd build log. No spam, unsubscribe anytime.
+        </p>
+        <!-- Custom-styled Substack form. Posts the no-JS endpoint into a hidden
+             iframe so the visitor stays on the page; JS shows an optimistic
+             confirmation. Falls back to a plain submit + the hosted page link. -->
+        <form
+          id="newsletter-form"
+          action="https://claudiusnetwork.substack.com/api/v1/free?nojs=true"
+          method="post"
+          target="ss-sink"
+          class="mt-1 flex w-full max-w-md flex-col gap-3 sm:flex-row"
+        >
+          <input type="hidden" name="first_url" value="https://claudius.network/" />
+          <input type="hidden" name="current_url" value="https://claudius.network/" />
+          <input
+            type="email"
+            name="email"
+            required
+            placeholder="you@example.com"
+            aria-label="Email address"
+            class="min-w-0 flex-1 rounded-lg border border-line bg-panel px-4 py-2.5 text-sm text-fg outline-none placeholder:text-muted/60 focus:border-accent"
+          />
+          <button
+            type="submit"
+            class="whitespace-nowrap rounded-lg bg-accent px-5 py-2.5 text-sm font-medium text-bg transition hover:opacity-90"
+          >
+            Subscribe
+          </button>
+        </form>
+        <p id="newsletter-status" class="h-4 text-xs text-accent" role="status" aria-live="polite"></p>
+      </div>
+      <iframe name="ss-sink" title="newsletter" class="hidden" aria-hidden="true"></iframe>
+      <script>
+        (function () {
+          var f = document.getElementById("newsletter-form");
+          if (!f) return;
+          f.addEventListener("submit", function () {
+            var s = document.getElementById("newsletter-status");
+            var email = f.querySelector('input[type="email"]');
+            // The POST lands in the hidden iframe (cross-origin, opaque), so we
+            // optimistically confirm. Double opt-in means an email follows.
+            setTimeout(function () {
+              if (s) s.textContent = "Thanks — check your inbox.";
+              if (email) email.value = "";
+            }, 150);
+          });
+        })();
+      </script>
     </section>
 
     <!-- ────────────────────────────── Footer ────────────────────────────── -->

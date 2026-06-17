@@ -1,7 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { ChatEvent, Message, Room } from "@/lib/shared/community";
+import type {
+  ChatEvent,
+  DM,
+  DMStreamEvent,
+  Message,
+  Room,
+} from "@/lib/shared/community";
 import { getCommunityServerUrl } from "@/lib/client/community-server-url";
 import { withCommunityClientParam } from "@/lib/shared/community-client";
 import {
@@ -51,6 +57,15 @@ import {
  * page tells this hook which room it's actively viewing via
  * `setViewingRoom(slug)` — that advances the watermark and silences
  * badges for that one room.
+ *
+ * Direct messages ride the same notification machinery. In addition to
+ * the per-room channel streams, this hook opens one DM stream
+ * (`/dms/stream?for=<nick>`) once it knows our nick, and treats an
+ * incoming DM exactly like a channel message for badge + toast
+ * purposes: bell-gated, suppressed for the peer the user is actively
+ * reading (pushed in via `setViewingPeer`), and never fired for our
+ * own echoed-back sends. The DM stream is live-only (no replay), so it
+ * needs no watermark — every frame is genuinely new.
  */
 
 const LS_ENABLED = "claudius.community.notifications.enabled";
@@ -73,10 +88,12 @@ export type UseCommunityNotifications = {
   enabled: boolean;
   /** Browser permission state. */
   permissionState: CommunityNotifyState;
-  /** Sum of unread messages across all rooms. */
+  /** Sum of unread messages across all rooms AND DM threads. */
   unreadCount: number;
   /** Per-room unread counts; missing entries mean zero. */
   unreadByRoom: Record<string, number>;
+  /** Per-peer (DM) unread counts, keyed by lowercased nick; missing means zero. */
+  unreadByPeer: Record<string, number>;
   /** Flip the toggle. Returns the resolved enabled state. */
   setEnabled: (next: boolean) => Promise<boolean>;
   /**
@@ -86,6 +103,13 @@ export type UseCommunityNotifications = {
    * messages there don't badge until the user looks away again.
    */
   setViewingRoom: (slug: string | null) => void;
+  /**
+   * Set the DM peer the user is actively looking at. `null` when no DM
+   * thread is open (or the tab is backgrounded). Setting a peer clears
+   * that thread's unread so future DMs from them don't badge/toast
+   * while the user is reading the thread.
+   */
+  setViewingPeer: (peer: string | null) => void;
   /**
    * Tell the hook which nick is "us." Messages with this nick never
    * count toward unread — they're our own sends being echoed back over
@@ -348,6 +372,38 @@ export function useCommunityNotificationsState(): UseCommunityNotifications {
     });
   }, []);
 
+  // ── DM unread tracking ─────────────────────────────────────────────
+  // Keyed by lowercased peer nick (the *other* party). Separate from
+  // `unreadByRoom` because DMs aren't rooms, but folded into the same
+  // `unreadCount` so the workspace switcher badge reflects both.
+  const [unreadByPeer, setUnreadByPeer] = useState<Record<string, number>>({});
+
+  const setPeerUnread = useCallback(
+    (peerKey: string, updater: (n: number) => number) => {
+      setUnreadByPeer((prev) => {
+        const cur = prev[peerKey] ?? 0;
+        const next = updater(cur);
+        if (next === cur) return prev;
+        if (next === 0) {
+          const { [peerKey]: _drop, ...rest } = prev;
+          void _drop;
+          return rest;
+        }
+        return { ...prev, [peerKey]: next };
+      });
+    },
+    [],
+  );
+
+  const clearPeerUnread = useCallback((peerKey: string) => {
+    setUnreadByPeer((prev) => {
+      if (!(peerKey in prev)) return prev;
+      const { [peerKey]: _drop, ...rest } = prev;
+      void _drop;
+      return rest;
+    });
+  }, []);
+
   // ── Viewing-room signal ────────────────────────────────────────────
   // Set by the community page so we know which room (if any) to treat as
   // "actively being looked at." State (not just a ref) so the SSE fanout
@@ -369,6 +425,22 @@ export function useCommunityNotificationsState(): UseCommunityNotifications {
       }
     },
     [advanceWatermark, clearRoomUnread],
+  );
+
+  // Same idea for DMs: the community page tells us which peer thread is
+  // open so we don't badge/toast a DM the user is already reading. A ref
+  // mirror lets the DM SSE handler (empty-deps closure) read the latest
+  // value without re-binding the connection.
+  const [viewingPeer, setViewingPeerState] = useState<string | null>(null);
+  const viewingPeerRef = useRef<string | null>(null);
+  viewingPeerRef.current = viewingPeer;
+
+  const setViewingPeer = useCallback(
+    (peer: string | null) => {
+      setViewingPeerState(peer);
+      if (peer) clearPeerUnread(peer.toLowerCase());
+    },
+    [clearPeerUnread],
   );
 
   // Mirror of the bell toggle for use inside the SSE handler. The
@@ -577,9 +649,94 @@ export function useCommunityNotificationsState(): UseCommunityNotifications {
     };
   }, [configured, rooms, SERVER_URL, viewingRoom, myNick, clearRoomUnread]);
 
+  // ── DM fanout ──────────────────────────────────────────────────────
+  // Mirror of `handleNewMessage` for direct messages. The DM stream is
+  // live-only (the chat-server never replays a backlog over it), so
+  // there's no watermark / replay dedup to do here — every frame is a
+  // genuinely new arrival.
+  const handleNewDm = useCallback(
+    (dm: DM) => {
+      const me = myNickRef.current;
+      // Our own DM echoed back over our `for=<nick>` stream — never
+      // badge/toast ourselves for a message we sent.
+      if (me && dm.fromNick.toLowerCase() === me.toLowerCase()) return;
+
+      // The peer is always the *other* party. For an incoming DM that's
+      // the sender; we key unread by their lowercased nick.
+      const peerKey = dm.fromNick.toLowerCase();
+
+      // Actively reading this thread → treat as seen, no badge/toast.
+      if (
+        viewingPeerRef.current &&
+        viewingPeerRef.current.toLowerCase() === peerKey
+      ) {
+        return;
+      }
+
+      // The bell is the user-facing mute switch — when off, suppress
+      // both the unread badge and the OS toast, exactly like channels.
+      if (!enabledRef.current) return;
+
+      setPeerUnread(peerKey, (n) => n + 1);
+
+      if (
+        typeof Notification !== "undefined" &&
+        Notification.permission === "granted"
+      ) {
+        try {
+          const n = new Notification(`DM from @${dm.fromNick}`, {
+            body: truncate(dm.body, 140),
+            icon: "/icon.svg",
+            tag: `community-dm:${dm.id}`,
+          });
+          n.onclick = () => {
+            window.focus();
+            n.close();
+            window.location.href = "/community";
+          };
+        } catch {
+          // Some browsers throw on tag re-use or quota — swallow.
+        }
+      }
+    },
+    [setPeerUnread],
+  );
+
+  const handleNewDmRef = useRef(handleNewDm);
+  handleNewDmRef.current = handleNewDm;
+
+  // One DM stream per known nick. Unlike channels, DMs are multiplexed
+  // onto a single per-nick stream (not per-peer), so there's nothing to
+  // skip for the "actively viewed" thread — `viewingPeerRef` handles
+  // that inside the handler. Re-opens only when the URL or nick changes.
+  useEffect(() => {
+    if (!configured || !myNick) return;
+    const url = withCommunityClientParam(
+      `${SERVER_URL}/dms/stream?for=${encodeURIComponent(myNick)}`,
+    );
+    const es = new EventSource(url);
+    es.onmessage = (ev) => {
+      try {
+        const data = JSON.parse(ev.data) as DMStreamEvent;
+        if (data.type === "dm") {
+          handleNewDmRef.current(data.message);
+        }
+        // `dm_deleted` carries no unread weight (it's a moderation/own
+        // action), and there's no shared DM cache at the provider level
+        // to mutate — the on-page `useDMs` owns thread state. Ignore.
+      } catch {
+        // ignore malformed
+      }
+    };
+    // No onerror — EventSource auto-reconnects.
+    return () => es.close();
+  }, [configured, myNick, SERVER_URL]);
+
   const unreadCount = useMemo(
-    () => Object.values(unreadByRoom).reduce((a, b) => a + b, 0),
-    [unreadByRoom],
+    () =>
+      Object.values(unreadByRoom).reduce((a, b) => a + b, 0) +
+      Object.values(unreadByPeer).reduce((a, b) => a + b, 0),
+    [unreadByRoom, unreadByPeer],
   );
 
   return useMemo(
@@ -589,8 +746,10 @@ export function useCommunityNotificationsState(): UseCommunityNotifications {
       permissionState,
       unreadCount,
       unreadByRoom,
+      unreadByPeer,
       setEnabled,
       setViewingRoom,
+      setViewingPeer,
       setMyNick,
     }),
     [
@@ -599,8 +758,10 @@ export function useCommunityNotificationsState(): UseCommunityNotifications {
       permissionState,
       unreadCount,
       unreadByRoom,
+      unreadByPeer,
       setEnabled,
       setViewingRoom,
+      setViewingPeer,
       setMyNick,
     ],
   );
