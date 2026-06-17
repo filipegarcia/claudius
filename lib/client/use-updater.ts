@@ -75,16 +75,6 @@ export type UseUpdater = {
    * Cleared automatically at the start of each new `apply()` call.
    */
   applyError: string | null;
-  /**
-   * Stages a Claude Code chat for resolving the merge conflicts. Switches
-   * the active workspace to one rooted at the install dir (creating it if
-   * needed) and returns the prompt text to seed into the composer. The
-   * caller is responsible for stashing the prompt into sessionStorage and
-   * navigating to `/<workspaceId>?new=1&prefill=1` — the chat page picks
-   * the prompt up via the existing `?prefill=1` mechanism. Returns null on
-   * failure.
-   */
-  resolveWithClaude: () => Promise<{ workspaceId: string; prompt: string } | null>;
   setMode: (mode: UpdaterMode) => Promise<void>;
   busy: boolean;
 };
@@ -179,22 +169,5 @@ export function useUpdater(pollMs = 8_000): UseUpdater {
     [refresh],
   );
 
-  const resolveWithClaude = useCallback(async (): Promise<
-    { workspaceId: string; prompt: string } | null
-  > => {
-    setBusy(true);
-    try {
-      const res = await fetch("/api/updater/resolve-with-claude", { method: "POST" });
-      if (!res.ok) return null;
-      const body = (await res.json()) as { workspaceId?: string; prompt?: string };
-      if (!body.workspaceId || !body.prompt) return null;
-      return { workspaceId: body.workspaceId, prompt: body.prompt };
-    } catch {
-      return null;
-    } finally {
-      setBusy(false);
-    }
-  }, []);
-
-  return { data, loading, error, refresh, check, apply, applyError, resolveWithClaude, setMode, busy };
+  return { data, loading, error, refresh, check, apply, applyError, setMode, busy };
 }

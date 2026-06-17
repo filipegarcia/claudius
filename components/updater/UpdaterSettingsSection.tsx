@@ -2,8 +2,18 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowDownToLine, ExternalLink, Loader2, RefreshCw, Sparkles, TriangleAlert } from "lucide-react";
+import {
+  ArrowDownToLine,
+  CheckCircle2,
+  ExternalLink,
+  Loader2,
+  RefreshCw,
+  ShieldAlert,
+  Sparkles,
+  TriangleAlert,
+} from "lucide-react";
 import { useUpdater, type UpdaterMode } from "@/lib/client/use-updater";
+import { useElectronUpdater, type ElectronUpdaterState } from "@/lib/client/useElectronUpdater";
 import { ResolveWithClaudeModal } from "@/components/updater/ResolveWithClaudeModal";
 import { cn } from "@/lib/utils/cn";
 
@@ -43,9 +53,17 @@ const MODE_OPTIONS: ReadonlyArray<{
  * manual-trigger surface lives at /updater.
  */
 export function UpdaterSettingsSection() {
+  // Inside the packaged desktop app there's no git checkout to pull from —
+  // updates ship as signed builds via electron-updater (download in the
+  // background, install + relaunch on restart). Show that flow instead of the
+  // git modes + the misleading "not a git checkout" warning. Hooks are called
+  // unconditionally above the branch to satisfy rules-of-hooks.
+  const electron = useElectronUpdater();
   const u = useUpdater(15_000);
   const data = u.data;
   const [resolveOpen, setResolveOpen] = useState(false);
+
+  if (electron) return <ElectronUpdaterSettings state={electron} />;
 
   return (
     <section className="rounded-lg border border-[var(--border)] bg-[var(--panel)]/40 p-4">
@@ -201,4 +219,135 @@ export function UpdaterSettingsSection() {
       </div>
     </section>
   );
+}
+
+/**
+ * Self-update card for the packaged desktop app. Mirrors the ElectronUpdaterBanner
+ * states (electron-updater: check → download in background → install + relaunch on
+ * restart) but in the settings-card layout, with an always-available "Check now".
+ */
+function ElectronUpdaterSettings({ state }: { state: ElectronUpdaterState }) {
+  const { status, check, apply, openAppManagementSettings } = state;
+  return (
+    <section className="rounded-lg border border-[var(--border)] bg-[var(--panel)]/40 p-4">
+      <div className="flex items-baseline justify-between gap-3">
+        <div>
+          <h2 className="text-sm font-medium">Self-update</h2>
+          <p className="mt-0.5 text-[11px] text-[var(--muted)]">
+            Desktop app — new versions download in the background and install when you restart.
+          </p>
+        </div>
+        <Link
+          href="/updater"
+          className="flex shrink-0 items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1 text-[11px] hover:bg-[var(--panel)]"
+        >
+          Open updater <ExternalLink className="h-3 w-3" />
+        </Link>
+      </div>
+
+      <div className="mt-3 flex items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--panel)]/40 p-3">
+        <ElectronStatusIcon kind={status.kind} />
+        <div className="min-w-0 flex-1 text-xs">
+          <ElectronStatusText status={status} />
+        </div>
+
+        {status.kind === "downloaded" && (
+          <button
+            onClick={apply}
+            data-testid="electron-update-install"
+            className="flex shrink-0 items-center gap-1 rounded-md border border-emerald-500/40 bg-emerald-500/15 px-2 py-1 text-emerald-100 hover:bg-emerald-500/25"
+          >
+            <RefreshCw className="h-3 w-3" />
+            Restart &amp; install
+          </button>
+        )}
+        {status.kind === "manual-download" && (
+          <button
+            onClick={apply}
+            data-testid="electron-update-download"
+            className="flex shrink-0 items-center gap-1 rounded-md border border-emerald-500/40 bg-emerald-500/15 px-2 py-1 text-emerald-100 hover:bg-emerald-500/25"
+          >
+            <ArrowDownToLine className="h-3 w-3" />
+            Download
+          </button>
+        )}
+        {status.kind === "blocked-app-management" && (
+          <button
+            onClick={openAppManagementSettings}
+            className="flex shrink-0 items-center gap-1 rounded-md border border-amber-500/40 bg-amber-500/15 px-2 py-1 text-amber-100 hover:bg-amber-500/25"
+          >
+            <ShieldAlert className="h-3 w-3" />
+            Privacy &amp; Security
+          </button>
+        )}
+        {status.kind !== "downloading" && (
+          <button
+            onClick={check}
+            data-testid="electron-update-check"
+            className="flex shrink-0 items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1 hover:bg-[var(--panel)]"
+          >
+            <RefreshCw className="h-3 w-3" />
+            Check now
+          </button>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function ElectronStatusIcon({ kind }: { kind: ElectronUpdaterState["status"]["kind"] }) {
+  if (kind === "checking" || kind === "downloading")
+    return <Loader2 className="h-4 w-4 shrink-0 animate-spin text-[var(--accent)]" />;
+  if (kind === "available" || kind === "downloaded" || kind === "manual-download")
+    return <Sparkles className="h-4 w-4 shrink-0 text-emerald-400" />;
+  if (kind === "blocked-app-management")
+    return <ShieldAlert className="h-4 w-4 shrink-0 text-amber-400" />;
+  if (kind === "error") return <TriangleAlert className="h-4 w-4 shrink-0 text-red-400" />;
+  return <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-400" />;
+}
+
+function ElectronStatusText({ status }: { status: ElectronUpdaterState["status"] }) {
+  switch (status.kind) {
+    case "checking":
+      return <span className="text-[var(--muted)]">Checking for updates…</span>;
+    case "available":
+      return (
+        <span>
+          <span className="font-medium">Claudius {status.version}</span> available — downloading…
+        </span>
+      );
+    case "downloading":
+      return <span className="font-medium">Downloading update… {status.percent}%</span>;
+    case "downloaded":
+      return (
+        <span>
+          <span className="font-medium text-emerald-300">Update ready: Claudius {status.version}</span>
+          <span className="text-[var(--muted)]"> — restart to install.</span>
+        </span>
+      );
+    case "manual-download":
+      return (
+        <span>
+          <span className="font-medium">Claudius {status.version}</span> available — download and drag
+          into Applications to update.
+        </span>
+      );
+    case "blocked-app-management":
+      return (
+        <span>
+          <span className="font-medium text-amber-200">macOS blocked the update.</span>{" "}
+          <span className="text-[var(--muted)]">
+            Allow Claudius in Privacy &amp; Security → App Management.
+          </span>
+        </span>
+      );
+    case "error":
+      return (
+        <span className="text-red-300" title={status.message}>
+          Updater error: {status.message}
+        </span>
+      );
+    default:
+      return <span className="text-[var(--muted)]">You&apos;re on the latest version.</span>;
+  }
 }

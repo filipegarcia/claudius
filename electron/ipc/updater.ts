@@ -33,10 +33,18 @@
  *     belt-and-suspenders second source for the rare in-process
  *     denial.
  */
-import { app, BrowserWindow, ipcMain, shell } from "electron";
-import { spawnSync } from "node:child_process";
+import { app, BrowserWindow, ipcMain, net, shell } from "electron";
+import { spawn, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import {
+  appBundleFromExecPath,
+  buildSwapScript,
+  pickMacZip,
+  releaseAssetUrl,
+  sha512Base64,
+  type ReleaseFile,
+} from "./self-replace-mac";
 
 /**
  * Where we send macOS users when the in-place self-update is disabled (see
@@ -45,6 +53,18 @@ import path from "node:path";
  * published release's download page.
  */
 const RELEASES_URL = "https://github.com/filipegarcia/claudius/releases/latest";
+
+/** Owner/repo for the GitHub Releases feed — mirrors electron-builder.yml's `publish`. */
+const RELEASE_OWNER = "filipegarcia";
+const RELEASE_REPO = "claudius";
+
+/**
+ * A new build we've downloaded + extracted ourselves and staged for an in-place
+ * swap on next quit. Set only on the macOS custom-self-replace path (ad-hoc /
+ * unsigned builds, where Squirrel.Mac refuses the swap). When set, `updater:apply`
+ * runs the detached swap helper + relaunch instead of `quitAndInstall()`.
+ */
+let customStaged: { version: string; newAppPath: string } | null = null;
 
 /**
  * `electron-updater` reads its publish/feed config from `app-update.yml`,
@@ -417,10 +437,16 @@ export function registerUpdaterHandlers(): void {
 
   ipcMain.on(TOPIC_APPLY, () => {
     if (!packaged) return;
+    // macOS custom self-replace: we downloaded + staged the new bundle
+    // ourselves; swap it in place and relaunch (no Squirrel, no signing).
+    if (customStaged) {
+      applyCustomStaged();
+      return;
+    }
     if (!autoUpdateIsSafe()) {
-      // No in-place swap on this build (ad-hoc signed macOS — Squirrel.Mac
-      // would reject it). The renderer's "manual-download" banner routes its
-      // button here; send the user to the Releases page for the DMG.
+      // No staged build and no in-place swap available (e.g. the custom
+      // download failed and we fell back to manual-download). Send the user
+      // to the Releases page for the DMG.
       void shell.openExternal(RELEASES_URL).catch(() => {});
       return;
     }
@@ -481,13 +507,16 @@ function bootstrap(): void {
   u.on("checking-for-update", () => broadcast({ kind: "checking" }));
   u.on("update-available", (info) => {
     if (!autoUpdateIsSafe()) {
-      // Ad-hoc signed macOS build — point the user at the DMG instead of
-      // kicking off a download Squirrel.Mac would reject post-quit.
-      broadcast({
-        kind: "manual-download",
-        version: info.version,
-        url: RELEASES_URL,
-      });
+      // Ad-hoc / unsigned macOS build — Squirrel.Mac would reject the swap
+      // post-quit. Instead of dead-ending at a "download the DMG yourself"
+      // prompt, run our OWN download + extract + in-place swap + relaunch
+      // (no signing required). `startMacSelfReplace` falls back to the
+      // manual-download banner if any step fails.
+      if (process.platform === "darwin") {
+        void startMacSelfReplace({ version: info.version, files: info.files as ReleaseFile[] });
+        return;
+      }
+      broadcast({ kind: "manual-download", version: info.version, url: RELEASES_URL });
       return;
     }
     broadcast({ kind: "available", version: info.version });
@@ -513,6 +542,138 @@ function bootstrap(): void {
     }
     broadcast(classifyUpdaterError(msg));
   });
+}
+
+/**
+ * macOS custom self-replace, step 1: download the new build's zip and stage it.
+ *
+ * Runs on ad-hoc/unsigned darwin builds where Squirrel.Mac can't swap. Drives
+ * the same `downloading` → `downloaded` renderer states the signed path uses, so
+ * the banner and settings card need no special case. Any failure falls back to
+ * the manual-download prompt — the user can still grab the DMG.
+ */
+async function startMacSelfReplace(info: { version: string; files?: ReleaseFile[] }): Promise<void> {
+  const asset = pickMacZip(info.files ?? [], process.arch);
+  if (!asset) {
+    broadcast({ kind: "manual-download", version: info.version, url: RELEASES_URL });
+    return;
+  }
+  const url = releaseAssetUrl(RELEASE_OWNER, RELEASE_REPO, info.version, asset.url);
+  const tmp = app.getPath("temp");
+  const zipPath = path.join(tmp, `claudius-update-${info.version}.zip`);
+  const extractDir = path.join(tmp, `claudius-update-${info.version}`);
+  try {
+    broadcast({ kind: "downloading", percent: 0 });
+    await downloadFile(url, zipPath, asset.size, (pct) =>
+      broadcast({ kind: "downloading", percent: pct }),
+    );
+
+    // Integrity check (TLS already covers transport; this catches truncation /
+    // a mismatched feed). Skip only if the feed didn't record a digest.
+    if (asset.sha512) {
+      const got = sha512Base64(fs.readFileSync(zipPath));
+      if (got !== asset.sha512) throw new Error("downloaded update failed checksum verification");
+    }
+
+    // `ditto -x -k` is the macOS-correct unzip — preserves the .app bundle
+    // (symlinks, perms, signature structure) which `unzip` mangles.
+    fs.rmSync(extractDir, { recursive: true, force: true });
+    fs.mkdirSync(extractDir, { recursive: true });
+    const dit = spawnSync("/usr/bin/ditto", ["-x", "-k", zipPath, extractDir], { encoding: "utf8" });
+    if (dit.status !== 0) throw new Error(`ditto extract failed: ${dit.stderr || dit.status}`);
+
+    const appName = fs.readdirSync(extractDir).find((e) => e.endsWith(".app"));
+    if (!appName) throw new Error("no .app found inside the update archive");
+    const newAppPath = path.join(extractDir, appName);
+    // Strip any quarantine now so the post-quit relaunch isn't Gatekeeper-blocked.
+    spawnSync("/usr/bin/xattr", ["-cr", newAppPath]);
+
+    customStaged = { version: info.version, newAppPath };
+    broadcast({ kind: "downloaded", version: info.version });
+  } catch (err) {
+    customStaged = null;
+    console.warn("[updater] mac self-replace download failed:", errorMessage(err));
+    broadcast({ kind: "manual-download", version: info.version, url: RELEASES_URL });
+  }
+}
+
+/**
+ * Download `url` to `dest`, reporting integer percent. Uses Electron's `net`
+ * (honours system proxy + follows the GitHub→CDN redirect automatically).
+ */
+function downloadFile(
+  url: string,
+  dest: string,
+  expectedSize: number | undefined,
+  onProgress: (pct: number) => void,
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const req = net.request(url);
+    req.on("response", (res) => {
+      const status = res.statusCode ?? 0;
+      if (status !== 200) {
+        reject(new Error(`download HTTP ${status}`));
+        return;
+      }
+      const header = res.headers["content-length"];
+      const fromHeader = Array.isArray(header) ? Number(header[0]) : Number(header);
+      const total = expectedSize || (Number.isFinite(fromHeader) ? fromHeader : 0);
+      const out = fs.createWriteStream(dest);
+      let received = 0;
+      res.on("data", (chunk: Buffer) => {
+        received += chunk.length;
+        out.write(chunk);
+        if (total > 0) onProgress(Math.min(99, Math.round((received / total) * 100)));
+      });
+      res.on("end", () => out.end(() => resolve()));
+      res.on("error", (e: Error) => {
+        out.destroy();
+        reject(e);
+      });
+    });
+    req.on("error", reject);
+    req.end();
+  });
+}
+
+/**
+ * macOS custom self-replace, step 2: swap the staged bundle in place + relaunch.
+ *
+ * Writes a detached helper script that waits for us to exit, swaps the bundle,
+ * de-quarantines it, and reopens the app — then we quit. We persist the
+ * post-quit marker first so the existing `detectPostQuitSwapFailure` check
+ * surfaces a `blocked-app-management` banner on next launch if macOS denied the
+ * bundle replacement.
+ */
+function applyCustomStaged(): void {
+  if (!customStaged) return;
+  const target = appBundleFromExecPath(app.getPath("exe"));
+  if (!target) {
+    // Not running from a .app bundle (shouldn't happen in a packaged build) —
+    // fall back to the Releases page.
+    broadcast({ kind: "manual-download", version: customStaged.version, url: RELEASES_URL });
+    return;
+  }
+  try {
+    const logPath = path.join(app.getPath("userData"), "claudius-self-replace.log");
+    const script = buildSwapScript({
+      pid: process.pid,
+      newApp: customStaged.newAppPath,
+      targetApp: target,
+      logPath,
+    });
+    const scriptPath = path.join(app.getPath("temp"), `claudius-swap-${customStaged.version}.sh`);
+    fs.writeFileSync(scriptPath, script, { mode: 0o755 });
+    // Reuse the post-quit-swap-failure detector: if the swap is blocked (App
+    // Management), next launch is still on the old version and we surface it.
+    persistPendingUpdate(customStaged.version);
+    const child = spawn("/bin/bash", [scriptPath], { detached: true, stdio: "ignore" });
+    child.unref();
+    // Give the helper a beat to start its wait loop, then quit so it can swap.
+    setTimeout(() => app.quit(), 250);
+  } catch (err) {
+    broadcast(classifyUpdaterError(errorMessage(err)));
+  }
 }
 
 /**

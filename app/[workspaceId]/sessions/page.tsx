@@ -183,19 +183,18 @@ export default function SessionsPage() {
                 </button>
               )}
             </div>
-            <button
-              onClick={() => setSearchTranscripts((v) => !v)}
-              aria-pressed={searchTranscripts}
+            <label
               title="Also search inside message transcripts"
-              className={cn(
-                "shrink-0 rounded-md border px-2 py-1 text-[11px] whitespace-nowrap",
-                searchTranscripts
-                  ? "border-[var(--accent)] bg-[var(--panel-2)] text-[var(--foreground)]"
-                  : "border-[var(--border)] bg-[var(--panel)] text-[var(--muted)] hover:bg-[var(--panel-2)]",
-              )}
+              className="flex shrink-0 cursor-pointer select-none items-center gap-1.5 whitespace-nowrap text-[11px] text-[var(--muted)] hover:text-[var(--foreground)]"
             >
-              Transcripts
-            </button>
+              <input
+                type="checkbox"
+                checked={searchTranscripts}
+                onChange={(e) => setSearchTranscripts(e.target.checked)}
+                className="h-3 w-3 accent-[var(--accent)]"
+              />
+              Search in transcripts
+            </label>
           </div>
           <button
             onClick={() => refresh()}
