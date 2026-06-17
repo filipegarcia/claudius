@@ -169,4 +169,32 @@ test.describe("SDKRateLimitInfo credits_required fields (SDK 0.3.181)", () => {
     await expect(addPaymentLink).toHaveText("Add payment method");
     await expect(addPaymentLink).toHaveAttribute("href", "https://claude.ai/settings/usage");
   });
+
+  test('shows contact-admin message when canUserPurchaseCredits is false', async ({ page }) => {
+    // When the account is org-managed and the user cannot purchase credits
+    // directly, the buy-credits link must not appear — show a contact-admin
+    // line instead so they have a clear next step.
+    const events = [
+      ...PRELUDE,
+      makeRateLimitEvent({
+        hasChargeableSavedPaymentMethod: false,
+        canUserPurchaseCredits: false,
+      }),
+    ];
+
+    await mockChatBackend(page, events);
+    await page.goto("/");
+
+    // Contact-admin text must appear.
+    const adminMsg = page.getByTestId("rate-limit-credits-contact-admin");
+    await expect(adminMsg).toBeVisible({ timeout: 15_000 });
+
+    // Purchase links must NOT appear.
+    await expect(page.getByTestId("rate-limit-buy-credits-link")).not.toBeVisible();
+    await expect(page.locator('a[href="https://claude.ai/settings/usage"]')).not.toBeVisible();
+
+    // Standard upgrade links also must not appear — this is still a credits block.
+    await expect(page.locator('a[href="https://claude.ai/upgrade/max"]')).not.toBeVisible();
+    await expect(page.locator('a[href="https://claude.ai/create/team"]')).not.toBeVisible();
+  });
 });

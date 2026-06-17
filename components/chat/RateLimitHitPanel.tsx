@@ -108,9 +108,12 @@ export function RateLimitHitPanel({ hit }: { hit: RateLimitHit }) {
         </div>
       )}
 
-      {/* SDK 0.3.181 — credits-required path: show "buy credits" CTA.
+      {/* SDK 0.3.181 — credits-required path: show "buy credits" CTA when the
+          user can actually purchase credits (canUserPurchaseCredits !== false).
+          When canUserPurchaseCredits is explicitly false (org-managed seat) the
+          user cannot act directly — show a contact-admin line instead.
           Falls back to the standard upgrade links for ordinary plan limits. */}
-      {hit.errorCode === "credits_required" ? (
+      {hit.errorCode === "credits_required" && hit.canUserPurchaseCredits !== false ? (
         <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-current/10 pt-1.5">
           <span className="opacity-70">Credits required to continue:</span>
           <a
@@ -122,6 +125,12 @@ export function RateLimitHitPanel({ hit }: { hit: RateLimitHit }) {
           >
             {hit.hasChargeableSavedPaymentMethod ? "Buy credits" : "Add payment method"}
           </a>
+        </div>
+      ) : hit.errorCode === "credits_required" ? (
+        <div className="mt-1.5 border-t border-current/10 pt-1.5">
+          <span className="opacity-70" data-testid="credits-contact-admin">
+            Credits required to continue — contact your administrator.
+          </span>
         </div>
       ) : (
         <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-current/10 pt-1.5">

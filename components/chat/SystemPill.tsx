@@ -432,11 +432,13 @@ function RateLimitPill({
       )}
 
       {/* Hard-stop next steps. SDK 0.3.181: when errorCode === "credits_required"
-          the user needs to buy credits, not upgrade their plan — show the purchase
-          CTA. For ordinary plan limits mirror the CLI's `/rate-limit-options`:
-          wait for the reset (the countdown above) or upgrade to lift the cap.
+          AND canUserPurchaseCredits !== false, the user needs to buy credits —
+          show the purchase CTA. When canUserPurchaseCredits is explicitly false
+          (org-managed seat, non-admin) they can't act directly — show a
+          contact-admin line. For ordinary plan limits mirror the CLI's
+          `/rate-limit-options`: wait for the reset or upgrade to lift the cap.
           Only shown on rejection — a warning isn't a wall yet. */}
-      {status === "rejected" && info.errorCode === "credits_required" ? (
+      {status === "rejected" && info.errorCode === "credits_required" && info.canUserPurchaseCredits !== false ? (
         <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-current/10 pt-1.5">
           <span className="opacity-70">Credits required to continue:</span>
           <a
@@ -448,6 +450,12 @@ function RateLimitPill({
           >
             {info.hasChargeableSavedPaymentMethod ? "Buy credits" : "Add payment method"}
           </a>
+        </div>
+      ) : status === "rejected" && info.errorCode === "credits_required" ? (
+        <div className="mt-1.5 border-t border-current/10 pt-1.5">
+          <span className="opacity-70" data-testid="rate-limit-credits-contact-admin">
+            Credits required to continue — contact your administrator.
+          </span>
         </div>
       ) : (
         status === "rejected" && (
