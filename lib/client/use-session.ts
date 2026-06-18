@@ -288,6 +288,13 @@ function rateLimitHitFromBlocks(
   ) {
     hit.fallbackModel = fallbackModel;
   }
+  // SDK 0.3.181 — forward credits-required signal so RateLimitHitPanel can
+  // show the "buy credits" CTA instead of the standard upgrade links.
+  if (last?.errorCode) hit.errorCode = last.errorCode;
+  if (typeof last?.canUserPurchaseCredits === "boolean")
+    hit.canUserPurchaseCredits = last.canUserPurchaseCredits;
+  if (typeof last?.hasChargeableSavedPaymentMethod === "boolean")
+    hit.hasChargeableSavedPaymentMethod = last.hasChargeableSavedPaymentMethod;
   return hit;
 }
 
@@ -3440,6 +3447,10 @@ export function useSession(): ChatState & ChatActions {
             overageDisabledReason?: string;
             isUsingOverage?: boolean;
             surpassedThreshold?: number;
+            // SDK 0.3.181 — credits-required rate-limit signal.
+            errorCode?: "credits_required";
+            canUserPurchaseCredits?: boolean;
+            hasChargeableSavedPaymentMethod?: boolean;
           };
           uuid: string;
         };
