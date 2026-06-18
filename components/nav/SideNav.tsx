@@ -7,6 +7,7 @@ import { MessageSquare, Menu, Network, Webhook, BookText, ShieldCheck, FolderTre
 import { cn } from "@/lib/utils/cn";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import { useWorkspaces } from "@/lib/client/useWorkspaces";
+import type { FocusLevel } from "@/lib/client/useFocusMode";
 import { useNotificationsContext } from "@/components/notifications/NotificationsProvider";
 import type { Customization, PublishRecord } from "@/lib/server/customizations-store";
 import {
@@ -155,7 +156,20 @@ function AnimatedGlyph({ running }: { running: boolean }) {
   );
 }
 
-export function SideNav({ running = false }: { running?: boolean }) {
+export function SideNav({
+  running = false,
+  focusLevel = "off",
+}: {
+  running?: boolean;
+  /**
+   * Focus level (see `useFocusMode`):
+   *   - "off"   → both rails visible.
+   *   - "focus" → hide the nav-icon rail (chat/git/files/…), keep the
+   *               leftmost WorkspaceSwitcher rail.
+   *   - "zen"   → hide both rails entirely.
+   */
+  focusLevel?: FocusLevel;
+}) {
   const pathname = usePathname();
   const router = useRouter();
   // Mobile workspace-switcher overlay. The rail itself paints below
@@ -402,10 +416,13 @@ export function SideNav({ running = false }: { running?: boolean }) {
 
   return (
     <>
-      <WorkspaceSwitcher
-        mobileOpen={switcherOpen}
-        onCloseMobile={() => setSwitcherOpen(false)}
-      />
+      {focusLevel !== "zen" && (
+        <WorkspaceSwitcher
+          mobileOpen={switcherOpen}
+          onCloseMobile={() => setSwitcherOpen(false)}
+        />
+      )}
+      {focusLevel === "off" && (
       <aside data-pane-name="left-nav" className="flex h-full w-14 shrink-0 flex-col items-center gap-1 border-r border-[var(--border)] bg-[var(--panel)] py-3">
         {/* Hamburger — only renders below the `lg` breakpoint, where the
             workspace-switcher rail is hidden. Tap to reveal the workspaces
@@ -568,6 +585,7 @@ export function SideNav({ running = false }: { running?: boolean }) {
           </Link>
         )}
       </aside>
+      )}
     </>
   );
 }

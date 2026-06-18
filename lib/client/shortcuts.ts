@@ -255,6 +255,13 @@ export const SHORTCUT_ACTIONS: ShortcutAction[] = [
     default: { mod: true, code: "Slash" },
   },
   {
+    id: "view.focusMode",
+    label: "Cycle focus mode",
+    description: "Cycle off → focus → zen (hide rails, then everything but chat).",
+    category: "navigation",
+    default: { mod: true, code: "Period" },
+  },
+  {
     id: "session.focusTitle",
     label: "Rename session",
     description:

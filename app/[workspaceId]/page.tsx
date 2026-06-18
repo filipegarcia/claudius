@@ -103,6 +103,7 @@ import { findSlashCommand } from "@/lib/shared/slash-commands";
 import { DEFAULT_TIPS, selectClientTips } from "@/lib/shared/tips";
 import { useWorkspaces } from "@/lib/client/useWorkspaces";
 import { useVerbose } from "@/lib/client/useVerbose";
+import { useFocusMode } from "@/lib/client/useFocusMode";
 import { useStartupCount } from "@/lib/client/useStartupCount";
 
 type OverlayKind = "help" | "skills" | "cost" | "status" | "rename" | "context" | "worktrees" | null;
@@ -271,6 +272,14 @@ export default function Home() {
     setPlanModeUsed(true);
   }
   const verbose = useVerbose(activeWorkspaceId);
+  // Focus mode — a global, remembered three-level toggle (off → focus → zen).
+  // "focus" hides the nav-icon rail + right BackgroundTasksPanel and forces
+  // ultra-compact chat; "zen" additionally hides the workspace rail and all
+  // header controls but the toggle. The verbose override is read-only over the
+  // stored per-workspace level (see `effectiveVerbose`) so exiting restores the
+  // user's saved verbosity.
+  const { focusLevel, isFocus, isZen, cycleFocus } = useFocusMode();
+  const effectiveVerbose = isFocus ? "ultra-compact" : verbose.verbose;
   // Per-browser launch counter for first-run tip gating. `< 10` mirrors the
   // Claude Code TUI's `numStartups < 10` first-run gate on the `/powerup`
   // onboarding nudge — bumped once per chat-page load (see useStartupCount).
@@ -825,6 +834,23 @@ export default function Home() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [focusTitleBinding, session.sessionId]);
+
+  // Toggle focus mode ───────────────────────────────────────────────────────
+  // The `view.focusMode` binding (Cmd/Ctrl+. by default) hides the side rails
+  // and switches chat to ultra-compact. The chord produces a character, so we
+  // gate it behind the composer/inputs the same way other character chords do —
+  // but Cmd/Ctrl is held, so it won't collide with typing a literal ".".
+  const focusModeBinding = useShortcut("view.focusMode");
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (!matchBinding(focusModeBinding, e)) return;
+      e.preventDefault();
+      cycleFocus();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [focusModeBinding, cycleFocus]);
+
   const onPickHit = useCallback(
     async (hit: SearchHit) => {
       setSearchOpen(false);
@@ -1611,7 +1637,10 @@ export default function Home() {
 
   return (
     <div className="flex h-full">
-      <SideNav running={session.pending} />
+      {/* Focus hides the nav-icon rail (and the right activity panel below)
+          but keeps the workspace rail; zen hides the workspace rail too.
+          SideNav handles the split internally. */}
+      <SideNav running={session.pending} focusLevel={focusLevel} />
       <main data-pane-name="chat-area" className="relative flex h-full min-w-0 flex-1 flex-col">
         <SessionTabs
           tabs={openTabs.map((id) => {
@@ -1731,6 +1760,8 @@ export default function Home() {
           onToggleNotifications={() => void notifications.toggleWorkspaceEnabled()}
           verbose={verbose.verbose}
           onChangeVerbose={verbose.setVerbose}
+          focusLevel={focusLevel}
+          onCycleFocus={cycleFocus}
           // Route the header Compact button through the same handler as the
           // warning banner's button so it surfaces the ContextWarningBanner
           // (with its progress bar) for the duration of the compaction — even
@@ -1772,8 +1803,9 @@ export default function Home() {
             `tengu-top-of-feed-tip`; per-browser localStorage dismiss. */}
         <FableLaunchTipBanner sessionId={session.sessionId} />
         {/* Session header — title and goal share one panel (two rows, one
-            border) since both are session-level metadata. */}
-        {session.sessionId && (
+            border) since both are session-level metadata. Hidden in zen mode
+            along with the rest of the chrome. */}
+        {session.sessionId && !isZen && (
           <div
             data-testid="session-header"
             className="border-b border-[var(--border)] bg-[var(--panel-2)]/40"
@@ -1936,7 +1968,7 @@ export default function Home() {
             )}
             suggestedUuids={session.suggestedUuids}
             goalUuids={session.goalUuids}
-            verbose={verbose.verbose}
+            verbose={effectiveVerbose}
             pendingAskToolUseId={session.pendingAsk?.toolUseId ?? null}
             // Two paths depending on which row was clicked:
             //   - Live: tool_use id matches `pendingAsk` — clear the
@@ -2075,6 +2107,7 @@ export default function Home() {
         </>
         )}
       </main>
+      {!isFocus && (
       <BackgroundTasksPanel
         progress={session.toolProgress}
         tasks={session.tasks}
@@ -2114,6 +2147,7 @@ export default function Home() {
         advisorModel={session.advisorModel}
         onChangeAdvisorModel={session.setAdvisorModel}
       />
+      )}
 
       {liveOpenBash && (
         <BashViewer

@@ -1,0 +1,5 @@
+# Claudius is open source and everything here is public — crawl away.
+# Humans behind it: https://claudius.network/humans.txt
+
+User-agent: *
+Allow: /

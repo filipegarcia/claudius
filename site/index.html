@@ -12,6 +12,7 @@
     <link rel="icon" type="image/png" sizes="48x48" href="favicon-48.png" />
     <link rel="icon" type="image/svg+xml" href="icon.svg" />
     <link rel="apple-touch-icon" href="apple-icon.png" />
+    <link rel="author" href="/humans.txt" />
     <meta name="theme-color" content="#d97757" />
 
     <!-- Open Graph + Twitter card. The image at /og.png is generated
@@ -809,6 +810,14 @@ HOST=0.0.0.0 PORT=8080 make up     # reachable from your LAN (careful)</code></p
               No cloud lock-in, no SaaS account required.
             </p>
           </div>
+          <div class="bg-panel p-6">
+            <div class="font-mono text-xs text-accent">10 · focus</div>
+            <h3 class="mt-2 text-lg font-medium">Focus &amp; Zen mode</h3>
+            <p class="mt-2 text-sm text-muted leading-relaxed">
+              Hit ⌘. to strip the chrome. Focus hides the side rails and tightens
+              chat to its essentials; tap again for Zen — just the conversation.
+            </p>
+          </div>
         </div>
       </div>
     </section>
@@ -1136,7 +1145,21 @@ bun run electron:dist:linux   # AppImage + deb + rpm</code></pre>
             </figcaption>
           </figure>
 
-          <!-- 5 sessions -->
+          <!-- 5 focus mode -->
+          <figure class="shot group rounded-lg border border-line overflow-hidden cursor-zoom-in hover:border-accent/70 transition-colors" role="button" tabindex="0">
+            <img
+              src="screenshots/focus-mode.png"
+              alt="Focus mode — distraction-free chat"
+              loading="lazy"
+              onerror="this.onerror=null;this.src='screenshots/_placeholder.svg'"
+            />
+            <figcaption class="px-5 py-4 border-t border-line">
+              <div class="font-mono text-xs text-accent">/ · focus</div>
+              <div class="text-sm text-fg">Hit ⌘. to clear the chrome. Focus hides the nav rail and activity panel and tightens the chat to its essentials; tap again for Zen — just the conversation, nothing else.</div>
+            </figcaption>
+          </figure>
+
+          <!-- 6 sessions -->
           <figure class="shot group rounded-lg border border-line overflow-hidden cursor-zoom-in hover:border-accent/70 transition-colors" role="button" tabindex="0">
             <img
               src="screenshots/sessions.png"
@@ -1888,8 +1911,30 @@ bun run electron:dist:linux   # AppImage + deb + rpm</code></pre>
           </p>
           <p>
             Claudius is not affiliated with, sponsored by, or endorsed by
-            Anthropic, PBC.
+            Anthropic, PBC — but happy to change that if you want to:
+            <!-- Email assembled at runtime from reversed parts so the plain
+                 address never appears in the markup (defeats naive scrapers). -->
+            <a
+              id="contact-anchor"
+              class="underline decoration-line hover:text-fg"
+              data-u="aicrag.c.epilif"
+              data-d="moc.liamg"
+              rel="nofollow"
+              >get in touch</a
+            >.
           </p>
+          <script>
+            (function () {
+              var a = document.getElementById("contact-anchor");
+              if (!a) return;
+              var rev = function (s) {
+                return s.split("").reverse().join("");
+              };
+              var addr =
+                rev(a.getAttribute("data-u")) + "@" + rev(a.getAttribute("data-d"));
+              a.setAttribute("href", "mailto:" + addr + "?subject=Claudius");
+            })();
+          </script>
         </div>
       </div>
     </footer>

@@ -8,6 +8,7 @@ import {
   Circle,
   Eraser,
   Eye,
+  Focus,
   GitBranch,
   Link as LinkIcon,
   Minimize2,
@@ -17,6 +18,8 @@ import { ModeSelector } from "./ModeSelector";
 import { SessionPicker } from "./SessionPicker";
 import { SessionNotifyMenu } from "./SessionNotifyMenu";
 import { WorkspaceIcon } from "@/components/workspaces/WorkspaceIcon";
+import { useWorkspaces } from "@/lib/client/useWorkspaces";
+import type { FocusLevel } from "@/lib/client/useFocusMode";
 import { cn } from "@/lib/utils/cn";
 import { worktreeBadge } from "@/lib/client/worktree";
 import type { SessionInfo } from "@/lib/client/types";
@@ -92,6 +95,14 @@ type Props = {
    * yet on first paint (useWorkspaces still loading).
    */
   workspace?: Workspace | null;
+  /**
+   * Focus level (see `useFocusMode`). "focus"/"zen" hide the side rails and
+   * force ultra-compact chat; "zen" additionally collapses the StatusLine to
+   * just the toggle below. The toggle button highlights while active.
+   */
+  focusLevel?: FocusLevel;
+  /** Advance the focus level (off → focus → zen → off). Omitting hides the toggle. */
+  onCycleFocus?: () => void;
 };
 
 export function StatusLine({
@@ -123,7 +134,11 @@ export function StatusLine({
   verbose,
   onChangeVerbose,
   workspace,
+  focusLevel = "off",
+  onCycleFocus,
 }: Props) {
+  // Zen mode collapses the StatusLine to just the focus toggle.
+  const zen = focusLevel === "zen";
   const status = !ready ? "starting" : pending ? "working" : "idle";
   const color =
     status === "starting"
@@ -178,23 +193,10 @@ export function StatusLine({
         <>
           {/* Workspace breadcrumb. The icon + name anchor the rest of the
               status line (session, model, mode) to a parent context — handy
-              when several workspaces are open in different windows. Title
-              attribute carries the rootPath so the user can confirm which
-              folder this workspace points at without leaving the chat. */}
-          <span
-            data-testid="status-line-workspace"
-            data-workspace-id={workspace.id}
-            title={`Workspace: ${workspace.name}\n${workspace.rootPath}`}
-            // `min-w-0` lets the truncate actually clip — without it the
-            // flex item refuses to shrink below its intrinsic content size
-            // and pushes the right-hand chip cluster off-screen on narrow
-            // viewports. `max-w` keeps long names from monopolising the bar
-            // even when there's room.
-            className="flex min-w-0 max-w-[10rem] items-center gap-1.5 sm:max-w-[14rem]"
-          >
-            <WorkspaceIcon workspace={workspace} size={16} />
-            <span className="truncate text-[var(--foreground)]">{workspace.name}</span>
-          </span>
+              when several workspaces are open in different windows. It's also
+              a switcher: with the left SideNav hidden (focus mode), this is
+              the way to change workspaces from the chat. */}
+          <WorkspaceChip workspace={workspace} />
           <span className="opacity-50">·</span>
         </>
       )}
@@ -322,6 +324,9 @@ export function StatusLine({
           breadcrumb above — the breadcrumb is the only thing that should
           give up width when the bar gets narrow. */}
       <div className="ml-auto flex shrink-0 items-center gap-2">
+        {/* Every control except the focus toggle is hidden in zen mode. */}
+        {!zen && (
+        <>
         {(typeof totalCostUsd === "number" && totalCostUsd > 0) || (typeof outputTokens === "number" && outputTokens > 0) ? (
           <button
             onClick={onOpenCost}
@@ -423,11 +428,140 @@ export function StatusLine({
           />
         )}
         <ShareButton sessionId={sessionId} />
-        {verbose && onChangeVerbose && (
+        </>
+        )}
+        {onCycleFocus && (
+          <button
+            type="button"
+            data-testid="focus-toggle"
+            data-focus-level={focusLevel}
+            aria-pressed={focusLevel !== "off"}
+            onClick={onCycleFocus}
+            title={
+              focusLevel === "off"
+                ? "Focus mode — hide the nav rail & activity panel and switch chat to ultra-compact (⌘.)"
+                : focusLevel === "focus"
+                ? "Zen mode — also hide the workspace rail and every other header control (⌘.)"
+                : "Exit Zen mode — restore the full UI and your chat verbosity (⌘.)"
+            }
+            className={cn(
+              "flex items-center gap-1 rounded-md border px-1.5 py-0.5",
+              focusLevel !== "off"
+                ? "border-[var(--accent)]/50 bg-[var(--accent)]/15 text-[var(--accent)]"
+                : "border-[var(--border)] bg-[var(--panel-2)] hover:bg-[var(--panel)]",
+            )}
+          >
+            <Focus className="h-3 w-3" />
+            {/* In zen the label always shows (it's the only control left);
+                otherwise it collapses with the row like its neighbours — see
+                the "Compact" label above for the @3xl/statusline rationale. */}
+            <span className={cn("text-[10px]", zen ? "inline" : "hidden @3xl/statusline:inline")}>
+              {zen ? "Zen Mode" : "Focus"}
+            </span>
+          </button>
+        )}
+        {!zen && verbose && onChangeVerbose && (
           <VerboseSelector value={verbose} onChange={onChangeVerbose} />
         )}
-        <ModeSelector mode={permissionMode} onChange={onModeChange} />
+        {!zen && <ModeSelector mode={permissionMode} onChange={onModeChange} />}
       </div>
+    </div>
+  );
+}
+
+/**
+ * Workspace breadcrumb that doubles as a switcher. The trigger shows the
+ * active workspace's icon + name (the read-only breadcrumb it replaces); the
+ * popover lists every workspace so the user can switch without the left
+ * SideNav — which focus mode hides. Switching reuses `useWorkspaces().select`,
+ * the same path WorkspaceSwitcher uses (POST /select + full-document load so
+ * the SDK child process restarts in the new cwd). We land on "/workspace" to
+ * mirror WorkspaceSwitcher's letter-switch target.
+ *
+ * Visual pattern matches VerboseSelector / SessionPicker: trigger + outside
+ * click + Esc closes the popover.
+ */
+function WorkspaceChip({ workspace }: { workspace: Workspace }) {
+  const { items, activeId, select } = useWorkspaces();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function onDown(e: MouseEvent) {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    window.addEventListener("mousedown", onDown);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("mousedown", onDown);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  return (
+    <div ref={ref} className="relative flex min-w-0">
+      <button
+        type="button"
+        data-testid="status-line-workspace"
+        data-workspace-id={workspace.id}
+        onClick={() => setOpen((o) => !o)}
+        title={`Workspace: ${workspace.name}\n${workspace.rootPath}\n\nClick to switch workspace.`}
+        // `min-w-0` lets the truncate actually clip — without it the flex item
+        // refuses to shrink below its intrinsic content size and pushes the
+        // right-hand chip cluster off-screen on narrow viewports. `max-w`
+        // keeps long names from monopolising the bar even when there's room.
+        className={cn(
+          "flex min-w-0 max-w-[10rem] items-center gap-1.5 rounded-md px-1 py-0.5 hover:bg-[var(--panel-2)] sm:max-w-[14rem]",
+          open && "bg-[var(--panel-2)]",
+        )}
+      >
+        <WorkspaceIcon workspace={workspace} size={16} />
+        <span className="truncate text-[var(--foreground)]">{workspace.name}</span>
+      </button>
+      {open && (
+        <div
+          data-testid="status-line-workspace-menu"
+          className="absolute left-0 top-full z-30 mt-1 max-h-80 w-64 overflow-y-auto rounded-md border border-[var(--border)] bg-[var(--panel)] shadow-2xl"
+        >
+          <div className="border-b border-[var(--border)] px-3 py-1.5 text-[10px] uppercase tracking-wide text-[var(--muted)]">
+            Switch workspace
+          </div>
+          <ul>
+            {items.map((w) => {
+              const active = w.id === (activeId ?? workspace.id);
+              return (
+                <li key={w.id}>
+                  <button
+                    type="button"
+                    data-testid={`status-line-workspace-option-${w.id}`}
+                    onClick={() => {
+                      setOpen(false);
+                      if (!active) void select(w.id, "/workspace");
+                    }}
+                    className={cn(
+                      "flex w-full items-center gap-2 px-3 py-2 text-left text-[11px] hover:bg-[var(--panel-2)]",
+                      active && "bg-[var(--panel-2)]",
+                    )}
+                  >
+                    <Check
+                      className={cn(
+                        "h-3 w-3 shrink-0",
+                        active ? "text-[var(--accent)]" : "opacity-0",
+                      )}
+                    />
+                    <WorkspaceIcon workspace={w} size={16} />
+                    <span className="min-w-0 truncate text-[var(--foreground)]">{w.name}</span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }

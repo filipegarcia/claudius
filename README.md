@@ -15,6 +15,7 @@ Chat, workflows, agents, MCP, and all the rest, in the browser and desktop. It e
 ## What's inside
 
 - **Chat** — streaming responses, tool calls, permission prompts, todos banner, `AskUserQuestion` forms, interrupt.
+- **Focus & Zen mode** — `⌘.` strips the chrome: Focus hides the side rails and tightens chat to ultra-compact; tap again for Zen — just the conversation, nothing else.
 - **Workspaces** — switch project context without losing sessions, schedules, or MCP config. Each workspace has its own SQLite store.
 - **Sub-agents** — define specialists (reviewer, planner, debugger) with their own system prompts, models, and tool sets. Launch them from chat.
 - **MCP & plugins** — first-class Model Context Protocol support and a plugin system for extending the agent's tool surface. Install community plugins from any marketplace.
@@ -137,6 +138,18 @@ When Claude needs a decision, it asks via `AskUserQuestion` and you pick from ty
 ![Sessions history](site/screenshots/sessions.png)
 
 Every conversation is kept under **`/sessions`** — search, resume, duplicate, or export.
+
+### Focus & Zen mode
+
+![Focus mode — distraction-free chat](site/screenshots/focus-mode.png)
+
+When you want to disappear into a single thread, press **`⌘.`** (or the **Focus** button in the header). It cycles three levels:
+
+- **Focus** — hides the nav-icon rail and the right activity panel, and tightens the transcript to ultra-compact (prompt + final answer per turn). Tabs, the workspace rail, and the header stay.
+- **Zen** — everything Focus does, plus it hides the workspace rail, the session header, and every other header control. All that's left is the conversation and a single **Zen Mode** button to bring it all back.
+- **Off** — the full UI.
+
+The level is remembered across reloads and synced across tabs, and your saved per-workspace verbosity is restored the moment you leave Focus.
 
 ### Sub-agents
 

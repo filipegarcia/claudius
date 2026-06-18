@@ -1,0 +1,51 @@
+/* TEAM */
+
+  Creator:  Filipe Garcia
+  Site:     https://claudius.network
+  GitHub:   https://github.com/filipegarcia
+  Contact:  filipe.c.garcia [at] gmail [dot] com
+  Location: Berlin, Germany
+
+
+/* SITE */
+
+  Project:     Claudius — Claude Code in the browser
+  Source:      https://github.com/filipegarcia/claudius
+  License:     MIT
+  Language:    English
+  Doctype:     HTML5
+  Components:  Next.js, React, Claude Agent SDK, Tailwind CSS,
+               better-sqlite3, Electron
+  Built with:  a coding agent that reshapes itself
+
+
+             ...........       .
+       ...        .  :     ..   . ...
+    ...     . .  :.:.-. . .. ...   . ...
+   ..  .  :.-.:..-..  .::  . -....:.    ..
+  :.  .:-.:....              .  ......   ..
+ :.  .::.                          ..:  ....
+ :...:.             ......           .:..  :
+ .: :.               :.              .::  .:
+  :.:..  .....:::...:.  .......::.... ::. :
+:..:::: :...::.::.: :.  : .::..::: .: :: :..
+-:  :-.      ...:.. ..  :  .....      :..  :
+.:.:..              :.  :.            .:. .:
+  .:...           :.:   .:..         .. ...
+   .. .-        ....::.....          :. :.
+       -:     .:     .:             .: ..
+       :..    .   ..........       .-
+       :. ..        ....:.       ...:
+       ..   ...          :    ...  ..
+       .:      ......  ..:....     ..
+       .:              .-          :
+       ..              ..          :
+   ....               :.           ....
+ ..                  :                ....
+  ...                ..                   ..
+    ..                 ....               ..
+     ...                  :.             .:
+       ..                 :         ..  ..
+                .         .:.       .
+
+                 C L A U D I U S
