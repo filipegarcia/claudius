@@ -89,9 +89,23 @@ async function git(
     child.stdout?.on("data", (c: string) => (stdout += c));
     child.stderr?.on("data", (c: string) => (stderr += c));
     child.on("error", rej);
-    child.on("close", (code) => {
-      if (code === 0) res({ stdout, stderr });
-      else rej(new GitFailure(`git ${args[0]} exited ${code}: ${stderr.trim() || stdout.trim()}`, code ?? -1, stderr));
+    child.on("close", (code, signal) => {
+      if (code === 0) return res({ stdout, stderr });
+      // Hook output (tsc/eslint) and git's own diagnostics land on different
+      // streams, and a timeout kills git mid-hook (code=null, signal set).
+      // Surface BOTH streams and the signal so the failure isn't truncated to
+      // whichever stream happened to be empty — that truncation is what made a
+      // killed/failed push read as a bare "$ eslint".
+      const combined = (stdout + stderr).trim();
+      const reason = signal ? `killed by ${signal}` : `exited ${code}`;
+      rej(
+        new GitFailure(
+          `git ${args[0]} ${reason}${combined ? `: ${combined}` : ""}`,
+          code ?? -1,
+          stdout,
+          stderr,
+        ),
+      );
     });
   });
   return result;
@@ -99,11 +113,22 @@ async function git(
 
 class GitFailure extends Error {
   exitCode: number;
+  stdout: string;
   stderr: string;
-  constructor(message: string, exitCode: number, stderr: string) {
+  constructor(message: string, exitCode: number, stdout: string, stderr: string) {
     super(message);
     this.exitCode = exitCode;
+    this.stdout = stdout;
     this.stderr = stderr;
+  }
+  /**
+   * Combined stdout+stderr, trimmed. Always prefer this over `.stderr` when
+   * surfacing a failure to the user: git hook output (eslint/tsc print to
+   * stdout) is otherwise dropped, which is what truncated push errors at
+   * `$ eslint`.
+   */
+  get output(): string {
+    return (this.stdout + this.stderr).trim();
   }
 }
 
@@ -595,7 +620,7 @@ export async function gitRemote(cwd: string, op: RemoteOp): Promise<RemoteResult
     } catch (err) {
       const msg =
         err instanceof GitFailure
-          ? err.stderr
+          ? err.output
           : err instanceof Error
             ? err.message
             : String(err);
@@ -761,7 +786,7 @@ export async function checkoutBranch(
   } catch (err) {
     const message =
       err instanceof GitFailure
-        ? err.stderr.trim() || err.message
+        ? err.output || err.message
         : err instanceof Error
           ? err.message
           : String(err);
@@ -815,14 +840,14 @@ export async function pullWithMerge(cwd: string): Promise<PullMergeResult> {
     // because the conflict branch is the one we hand off to Claude.
     const stderr =
       err instanceof GitFailure
-        ? err.stderr
+        ? err.output
         : err instanceof Error
           ? err.message
           : String(err);
     const conflicts = await listConflicts(root);
     if (conflicts.length > 0) {
       const output =
-        err instanceof GitFailure ? (err.stderr || "").trim() : stderr;
+        err instanceof GitFailure ? err.output : stderr;
       return { ok: false, kind: "conflicts", conflicts, output };
     }
     return { ok: false, kind: "error", message: stderr.trim() || "git pull failed" };
@@ -856,14 +881,14 @@ export async function mergeBranchIntoCurrent(
   } catch (err) {
     const stderr =
       err instanceof GitFailure
-        ? err.stderr
+        ? err.output
         : err instanceof Error
           ? err.message
           : String(err);
     const conflicts = await listConflicts(root);
     if (conflicts.length > 0) {
       const output =
-        err instanceof GitFailure ? (err.stderr || "").trim() : stderr;
+        err instanceof GitFailure ? err.output : stderr;
       return { ok: false, kind: "conflicts", conflicts, output };
     }
     return { ok: false, kind: "error", message: stderr.trim() || "git merge failed" };
@@ -909,14 +934,14 @@ export async function rebaseCurrentOnto(
   } catch (err) {
     const stderr =
       err instanceof GitFailure
-        ? err.stderr
+        ? err.output
         : err instanceof Error
           ? err.message
           : String(err);
     const conflicts = await listConflicts(root);
     if (conflicts.length > 0) {
       const output =
-        err instanceof GitFailure ? (err.stderr || "").trim() : stderr;
+        err instanceof GitFailure ? err.output : stderr;
       return { ok: false, kind: "conflicts", conflicts, output };
     }
     return { ok: false, kind: "error", message: stderr.trim() || "git rebase failed" };
@@ -968,7 +993,7 @@ export async function renameBranch(
       code: "git-failed",
       message:
         err instanceof GitFailure
-          ? err.stderr.trim() || err.message
+          ? err.output || err.message
           : err instanceof Error
             ? err.message
             : String(err),
@@ -1001,7 +1026,7 @@ export async function deleteLocalBranch(
       code: "git-failed",
       message:
         err instanceof GitFailure
-          ? err.stderr.trim() || err.message
+          ? err.output || err.message
           : err instanceof Error
             ? err.message
             : String(err),
@@ -1045,7 +1070,7 @@ export async function deleteRemoteBranch(
       code: "git-failed",
       message:
         err instanceof GitFailure
-          ? err.stderr.trim() || err.message
+          ? err.output || err.message
           : err instanceof Error
             ? err.message
             : String(err),
@@ -1106,7 +1131,7 @@ export async function compareBranches(
       code: "git-failed",
       message:
         err instanceof GitFailure
-          ? err.stderr.trim() || err.message
+          ? err.output || err.message
           : err instanceof Error
             ? err.message
             : String(err),
@@ -1137,7 +1162,7 @@ export async function diffBranchAgainstWorktree(
       code: "git-failed",
       message:
         err instanceof GitFailure
-          ? err.stderr.trim() || err.message
+          ? err.output || err.message
           : err instanceof Error
             ? err.message
             : String(err),
