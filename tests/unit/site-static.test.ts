@@ -57,9 +57,10 @@ function collectLocalAssetRefs(html: string): string[] {
     if (raw.startsWith("#")) continue;
     if (/^[a-z]+:/i.test(raw)) continue; // http(s):, mailto:, data:, etc.
     if (raw.startsWith("//")) continue; // protocol-relative externals
-    // Strip a leading `./` so callers can compare against on-disk paths
-    // without worrying about the dot.
-    out.add(raw.replace(/^\.\//, ""));
+    // Strip a leading `./` or root-relative `/` so callers can compare
+    // against on-disk paths under SITE_DIR. Both `./x` and `/x` map to `x`
+    // (GitHub Pages serves `site/` at the root).
+    out.add(raw.replace(/^\.?\//, ""));
   }
   return [...out];
 }
