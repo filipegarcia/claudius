@@ -13,6 +13,12 @@ import { formatResetClock, useCountdownSeconds } from "@/lib/client/use-countdow
 // nothing to click, you just wait.)
 export const UPGRADE_PLAN_URL = "https://claude.ai/upgrade/max";
 export const UPGRADE_TEAM_URL = "https://claude.ai/create/team";
+/**
+ * SDK 0.3.181 — destination for the "buy credits" CTA when
+ * `errorCode === 'credits_required'`. Reuses the same page the
+ * long-context credits nudge links to.
+ */
+export const PURCHASE_CREDITS_URL = "https://claude.ai/settings/usage";
 
 const RATE_LIMIT_TYPE_LABEL: Record<string, string> = {
   five_hour: "5-hour limit",
@@ -102,10 +108,36 @@ export function RateLimitHitPanel({ hit }: { hit: RateLimitHit }) {
         </div>
       )}
 
-      <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-current/10 pt-1.5">
-        <span className="opacity-70">Out of usage? Upgrade to keep going:</span>
-        <RateLimitUpgradeLinks />
-      </div>
+      {/* SDK 0.3.181 — credits-required path: show "buy credits" CTA when the
+          user can actually purchase credits (canUserPurchaseCredits !== false).
+          When canUserPurchaseCredits is explicitly false (org-managed seat) the
+          user cannot act directly — show a contact-admin line instead.
+          Falls back to the standard upgrade links for ordinary plan limits. */}
+      {hit.errorCode === "credits_required" && hit.canUserPurchaseCredits !== false ? (
+        <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-current/10 pt-1.5">
+          <span className="opacity-70">Credits required to continue:</span>
+          <a
+            href={PURCHASE_CREDITS_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="font-medium underline underline-offset-2 hover:opacity-80"
+            data-testid="buy-credits-link"
+          >
+            {hit.hasChargeableSavedPaymentMethod ? "Buy credits" : "Add payment method"}
+          </a>
+        </div>
+      ) : hit.errorCode === "credits_required" ? (
+        <div className="mt-1.5 border-t border-current/10 pt-1.5">
+          <span className="opacity-70" data-testid="credits-contact-admin">
+            Credits required to continue — contact your administrator.
+          </span>
+        </div>
+      ) : (
+        <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-current/10 pt-1.5">
+          <span className="opacity-70">Out of usage? Upgrade to keep going:</span>
+          <RateLimitUpgradeLinks />
+        </div>
+      )}
     </div>
   );
 }
