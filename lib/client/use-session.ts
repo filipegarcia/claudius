@@ -4311,20 +4311,42 @@ export function useSession(): ChatState & ChatActions {
         ? `/api/sessions/${id}/transcript?before=${encodeURIComponent(head)}&limit=50`
         : `/api/sessions/${id}/transcript?limit=50`;
       const res = await fetch(url);
-      if (!res.ok) return;
+      if (!res.ok) {
+        // A non-OK response — most commonly the 400 "before uuid not found"
+        // when the head cursor doesn't resolve against the JSONL's raw
+        // wrapper uuids — means we cannot advance the cursor. Clear
+        // hasMoreAbove so the top sentinel unmounts and its
+        // IntersectionObserver stops re-firing loadOlder in a tight loop
+        // (the "Loading older messages…" / "Scroll up" flicker).
+        setHasMoreAbove(false);
+        return;
+      }
       const data = (await res.json()) as {
         messages: Array<Record<string, unknown>>;
         hasMore: boolean;
       };
       const synth = synthesizeOlder(data.messages);
-      if (synth.messages.length > 0) {
+      // Compute fresh prepends against the current list up front so we can
+      // tell whether this page actually moved the head cursor. The cursor is
+      // always messagesRef.current[0]; if nothing fresh is prepended the head
+      // can't change, so a subsequent loadOlder would re-fetch this exact
+      // page forever — the second source of the flicker.
+      const seen = new Set(messagesRef.current.map((m) => m.uuid));
+      const fresh = synth.messages.filter((m) => !seen.has(m.uuid));
+      if (fresh.length > 0) {
         setMessages((prev) => {
-          const seen = new Set(prev.map((m) => m.uuid));
-          const fresh = synth.messages.filter((m) => !seen.has(m.uuid));
-          return [...fresh, ...prev];
+          // Re-dedupe against the latest list in case the head/tail shifted
+          // between snapshot and commit (SSE append, snapshot inject).
+          const seenNow = new Set(prev.map((m) => m.uuid));
+          const stillFresh = fresh.filter((m) => !seenNow.has(m.uuid));
+          return stillFresh.length > 0 ? [...stillFresh, ...prev] : prev;
         });
+        setHasMoreAbove(data.hasMore);
+      } else {
+        // Page resolved but every record dedupes against what's already
+        // loaded — no forward progress is possible. Stop paginating.
+        setHasMoreAbove(false);
       }
-      setHasMoreAbove(data.hasMore);
     } finally {
       setLoadingOlder(false);
     }
