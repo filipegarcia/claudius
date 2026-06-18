@@ -7,6 +7,17 @@ const execFileP = promisify(execFile);
 
 const MAX_BUFFER = 16 * 1024 * 1024;
 const TIMEOUT_MS = 15_000;
+/**
+ * Generous timeout for operations that hit the network and/or trigger git
+ * hooks: push/pull/fetch/merge/rebase plus commit (pre-commit hook). The
+ * default 15s is fine for local plumbing reads, but the pre-push hook in this
+ * repo runs a full `tsc --noEmit` + whole-tree `eslint` (~20s on its own), and
+ * SSH transfers can stall on slow links. Killing git mid-hook surfaces as a
+ * spurious "git push failed" with the output truncated at `$ eslint`. Ten
+ * minutes is far longer than any healthy hook/transfer yet still bounds a
+ * genuinely hung process.
+ */
+const HOOK_TIMEOUT_MS = 10 * 60_000;
 
 /**
  * Single character status codes from `git status --porcelain=v1`.
@@ -54,12 +65,12 @@ export type GitError = {
 async function git(
   args: string[],
   cwd: string,
-  opts: { input?: string } = {},
+  opts: { input?: string; timeoutMs?: number } = {},
 ): Promise<{ stdout: string; stderr: string }> {
   const child = execFile("git", args, {
     cwd,
     maxBuffer: MAX_BUFFER,
-    timeout: TIMEOUT_MS,
+    timeout: opts.timeoutMs ?? TIMEOUT_MS,
     encoding: "utf8",
   });
   if (opts.input != null && child.stdin) {
@@ -536,7 +547,12 @@ export async function commitStaged(cwd: string, message: string): Promise<Commit
     return { code: "git-failed", message: "commit message required" };
   }
   try {
-    await git(["commit", "-F", "-", "--cleanup=strip"], root, { input: message });
+    await git(["commit", "-F", "-", "--cleanup=strip"], root, {
+      input: message,
+      // The pre-commit hook lints staged files + runs related unit tests,
+      // which can exceed the 15s default. See HOOK_TIMEOUT_MS.
+      timeoutMs: HOOK_TIMEOUT_MS,
+    });
     const { stdout } = await git(["log", "-1", "--pretty=%H%n%s"], root);
     const [sha, subject] = stdout.split("\n");
     return { ok: true, sha: sha?.trim() ?? "", subject: subject?.trim() ?? "" };
@@ -565,16 +581,16 @@ export async function gitRemote(cwd: string, op: RemoteOp): Promise<RemoteResult
   if (!root) return { code: "not-a-repo", message: "not a git repository" };
   try {
     if (op === "fetch") {
-      const r = await git(["fetch", "--all", "--prune"], root);
+      const r = await git(["fetch", "--all", "--prune"], root, { timeoutMs: HOOK_TIMEOUT_MS });
       return { ok: true, output: (r.stdout + r.stderr).trim() };
     }
     if (op === "pull") {
-      const r = await git(["pull", "--ff-only"], root);
+      const r = await git(["pull", "--ff-only"], root, { timeoutMs: HOOK_TIMEOUT_MS });
       return { ok: true, output: (r.stdout + r.stderr).trim() };
     }
     // push: try the plain form first; on "no upstream" fall back to -u origin.
     try {
-      const r = await git(["push"], root);
+      const r = await git(["push"], root, { timeoutMs: HOOK_TIMEOUT_MS });
       return { ok: true, output: (r.stdout + r.stderr).trim() };
     } catch (err) {
       const msg =
@@ -604,7 +620,7 @@ export async function gitRemote(cwd: string, op: RemoteOp): Promise<RemoteResult
             ? remotes[0]
             : null;
         if (!remote) return { code: "git-failed", message: msg };
-        const r2 = await git(["push", "-u", remote, br], root);
+        const r2 = await git(["push", "-u", remote, br], root, { timeoutMs: HOOK_TIMEOUT_MS });
         return { ok: true, output: (r2.stdout + r2.stderr).trim() };
       }
       return { code: "git-failed", message: msg };
@@ -789,7 +805,7 @@ export async function pullWithMerge(cwd: string): Promise<PullMergeResult> {
   const root = await getRepoRoot(cwd);
   if (!root) return { ok: false, kind: "error", message: "not a git repository" };
   try {
-    const r = await git(["pull", "--no-rebase", "--no-edit"], root);
+    const r = await git(["pull", "--no-rebase", "--no-edit"], root, { timeoutMs: HOOK_TIMEOUT_MS });
     return { ok: true, output: (r.stdout + r.stderr).trim() };
   } catch (err) {
     // `git pull` exits non-zero in two distinct cases we care about: a
@@ -835,7 +851,7 @@ export async function mergeBranchIntoCurrent(
     return { ok: false, kind: "error", message: "invalid branch name" };
   }
   try {
-    const r = await git(["merge", "--no-rebase", "--no-edit", trimmed], root);
+    const r = await git(["merge", "--no-rebase", "--no-edit", trimmed], root, { timeoutMs: HOOK_TIMEOUT_MS });
     return { ok: true, output: (r.stdout + r.stderr).trim() };
   } catch (err) {
     const stderr =
@@ -888,7 +904,7 @@ export async function rebaseCurrentOnto(
     // --no-edit not needed: rebase doesn't auto-create a merge commit. We
     // intentionally don't pass --autosquash/--autostash; the user already
     // saw the "commit, stash, or rollback first" guidance for dirty trees.
-    const r = await git(["rebase", trimmed], root);
+    const r = await git(["rebase", trimmed], root, { timeoutMs: HOOK_TIMEOUT_MS });
     return { ok: true, output: (r.stdout + r.stderr).trim() };
   } catch (err) {
     const stderr =
@@ -1022,7 +1038,7 @@ export async function deleteRemoteBranch(
     return { code: "git-failed", message: "invalid remote or branch name" };
   }
   try {
-    const r = await git(["push", remote, "--delete", branch], root);
+    const r = await git(["push", remote, "--delete", branch], root, { timeoutMs: HOOK_TIMEOUT_MS });
     return { ok: true, output: (r.stdout + r.stderr).trim() };
   } catch (err) {
     return {

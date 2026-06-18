@@ -94,9 +94,14 @@ const nextConfig: NextConfig = {
   // bottom-left, where it collides with the "claudius / vX.Y.Z" footer at
   // the bottom of the workspace rail. Park it bottom-right instead. Dev
   // only — it never renders in a production build.
-  devIndicators: {
-    position: "bottom-right",
-  },
+  //
+  // The e2e dev server (NEXT_DIST_DIR=.next-e2e — see playwright.config.ts)
+  // disables it outright: the indicator's "N · 1 Issue" badge was bleeding
+  // into the marketing screenshots captured off that server. Disabling only
+  // hides the on-screen badge — build/runtime errors still surface in the
+  // console and fail CI, so we don't lose any signal.
+  devIndicators:
+    process.env.NEXT_DIST_DIR === ".next-e2e" ? false : { position: "bottom-right" },
   // Standalone output for Electron — Next traces every required file
   // and copies them under `.next/standalone/`, which the Electron build
   // ships verbatim as an extraResource.
