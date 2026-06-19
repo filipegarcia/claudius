@@ -16,10 +16,14 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 const send = vi.fn();
 const ipcHandlers = new Map<string, (...args: unknown[]) => void>();
 const checkForUpdates = vi.fn(() => Promise.resolve(null));
+// Toggled per-test to exercise the dev (unpackaged) vs packaged arming gate.
+let appIsPackaged = true;
 
 vi.mock("electron", () => ({
   app: {
-    isPackaged: true,
+    get isPackaged() {
+      return appIsPackaged;
+    },
     // Used by the post-quit swap-failure detector to compare against the
     // persisted target. The tests inject `currentVersion` directly so this
     // value is incidental — but updater.ts reads it at the production call
@@ -49,6 +53,7 @@ vi.mock("electron-updater", () => ({
     on: vi.fn(),
     checkForUpdates,
     quitAndInstall: vi.fn(),
+    setFeedURL: vi.fn(),
   },
 }));
 
@@ -61,6 +66,7 @@ beforeEach(() => {
   // `process.resourcesPath` is typed read-only; cast to override it for the
   // test (the updater config gate reads it to locate bundled resources).
   (process as unknown as { resourcesPath: string }).resourcesPath = "/tmp/fake-resources";
+  appIsPackaged = true;
   send.mockClear();
   checkForUpdates.mockClear();
   ipcHandlers.clear();
@@ -75,8 +81,9 @@ async function loadAndRegister() {
   mod.registerUpdaterHandlers();
 }
 
-describe("updater feed-config gate", () => {
-  test("packaged but no app-update.yml → check broadcasts idle, never error, never calls checkForUpdates", async () => {
+describe("updater arming gate (IPC)", () => {
+  test("unpackaged dev electron → check broadcasts idle, never error, never calls checkForUpdates", async () => {
+    appIsPackaged = false;
     updateConfigPresent = false;
     await loadAndRegister();
 
@@ -92,13 +99,71 @@ describe("updater feed-config gate", () => {
     expect(checkForUpdates).not.toHaveBeenCalled();
   });
 
-  // NOTE: the config-present path defers to `electron-updater`, which the
-  // module pulls in via a lazy CommonJS `require(...)` that bypasses vitest's
-  // `vi.mock`. Exercising it here would instantiate the real `MacUpdater`
-  // against a stubbed Electron `app` and crash on version probing — not a
-  // useful unit-level assertion. The gate's behavior is covered by the
-  // unconfigured case above; the configured path is exercised by the packaged
+  // NOTE: the *packaged* check paths (with or without app-update.yml) defer to
+  // `electron-updater`, which the module pulls in via a lazy CommonJS
+  // `require(...)` that bypasses vitest's `vi.mock`. Exercising them here would
+  // instantiate the real `MacUpdater`/`AppImageUpdater` against a stubbed
+  // Electron `app` and crash on version probing — not a useful unit-level
+  // assertion. The arming + fallback-feed + linux decisions are pure functions,
+  // tested directly below; the wired-up paths are exercised by the packaged
   // smoke build.
+});
+
+describe("updaterArming (arm + fallback-feed decision)", () => {
+  test("unpackaged dev electron → not armed", async () => {
+    const { updaterArming } = await import("@/electron/ipc/updater");
+    expect(updaterArming({ isPackaged: false, hasConfig: false })).toEqual({
+      arm: false,
+      useFallbackFeed: false,
+    });
+    // A stray app-update.yml in dev still shouldn't arm.
+    expect(updaterArming({ isPackaged: false, hasConfig: true }).arm).toBe(false);
+  });
+
+  test("packaged full distributable (has app-update.yml) → armed, real feed", async () => {
+    const { updaterArming } = await import("@/electron/ipc/updater");
+    expect(updaterArming({ isPackaged: true, hasConfig: true })).toEqual({
+      arm: true,
+      useFallbackFeed: false,
+    });
+  });
+
+  test("packaged sideloaded / --dir build (no app-update.yml) → armed, fallback feed", async () => {
+    const { updaterArming } = await import("@/electron/ipc/updater");
+    expect(updaterArming({ isPackaged: true, hasConfig: false })).toEqual({
+      arm: true,
+      useFallbackFeed: true,
+    });
+  });
+});
+
+describe("fallbackFeedConfig", () => {
+  test("mirrors the electron-builder.yml publish target", async () => {
+    const { fallbackFeedConfig } = await import("@/electron/ipc/updater");
+    expect(fallbackFeedConfig()).toEqual({
+      provider: "github",
+      owner: "filipegarcia",
+      repo: "claudius",
+    });
+  });
+});
+
+describe("linuxNeedsManualDownload (deb/rpm vs AppImage)", () => {
+  test("linux system package (no $APPIMAGE) → manual download", async () => {
+    const { linuxNeedsManualDownload } = await import("@/electron/ipc/updater");
+    expect(linuxNeedsManualDownload({ platform: "linux", isAppImage: false })).toBe(true);
+  });
+
+  test("linux AppImage → self-update (no manual download)", async () => {
+    const { linuxNeedsManualDownload } = await import("@/electron/ipc/updater");
+    expect(linuxNeedsManualDownload({ platform: "linux", isAppImage: true })).toBe(false);
+  });
+
+  test("macOS and Windows are never gated by this predicate", async () => {
+    const { linuxNeedsManualDownload } = await import("@/electron/ipc/updater");
+    expect(linuxNeedsManualDownload({ platform: "darwin", isAppImage: false })).toBe(false);
+    expect(linuxNeedsManualDownload({ platform: "win32", isAppImage: false })).toBe(false);
+  });
 });
 
 describe("updater App Management classifier", () => {

@@ -71,10 +71,14 @@ let customStaged: { version: string; newAppPath: string } | null = null;
  * which electron-builder only emits for full distributable targets
  * (dmg/nsis/zip with a `publish` block). Local `--dir` builds (e.g.
  * `bun run electron:app`) ARE packaged — `app.isPackaged === true` — but ship
- * no `app-update.yml`, so calling `checkForUpdates()` throws
- * `ENOENT … app-update.yml` and surfaces as a permanent red "Updater error"
- * banner. Treat a packaged-but-unconfigured build like dev: there's nothing
- * to update from, so settle into `idle` instead of erroring.
+ * no `app-update.yml`.
+ *
+ * This is no longer a reason to give up: when the file is absent, `bootstrap()`
+ * synthesizes the same GitHub feed via `setFeedURL(fallbackFeedConfig())` so
+ * the build still self-updates from Releases. So `hasUpdateConfig()` now only
+ * decides whether we need that fallback — NOT whether we arm at all (see
+ * `updaterArming`). The result is still memo-free (a packaged bundle's
+ * resources don't change under us).
  */
 function hasUpdateConfig(): boolean {
   try {
@@ -82,6 +86,68 @@ function hasUpdateConfig(): boolean {
   } catch {
     return false;
   }
+}
+
+/**
+ * Whether the updater should arm at all, and if so whether it must synthesize a
+ * feed.
+ *
+ * Contract (the "update ALWAYS" guarantee for non-git binaries):
+ *   - Unpackaged dev electron (`isPackaged === false`) → never arm. There is no
+ *     signed binary or feed to update from; the renderer settles to `idle`.
+ *   - Any packaged build → arm. Full distributables carry `app-update.yml`;
+ *     sideloaded / local `--dir` builds (e.g. `bun run electron:app`, or a
+ *     `.app` built from a git checkout) ship none, so they get a feed
+ *     synthesized from the hardcoded publish target (`useFallbackFeed`). Either
+ *     way the build can discover + pull published releases.
+ *
+ * Pure over its inputs so the arming decision is unit-testable without the
+ * lazily-required `electron-updater` module.
+ */
+export function updaterArming(deps: { isPackaged: boolean; hasConfig: boolean }): {
+  arm: boolean;
+  useFallbackFeed: boolean;
+} {
+  if (!deps.isPackaged) return { arm: false, useFallbackFeed: false };
+  return { arm: true, useFallbackFeed: !deps.hasConfig };
+}
+
+/**
+ * GitHub Releases feed config, mirroring electron-builder.yml's `publish:`
+ * block. Used to point a sideloaded / `--dir` build (which ships no
+ * `app-update.yml`) at the same release channel a full distributable reads
+ * automatically. Keep owner/repo in sync with `electron-builder.yml`.
+ */
+export function fallbackFeedConfig(): { provider: "github"; owner: string; repo: string } {
+  return { provider: "github", owner: RELEASE_OWNER, repo: RELEASE_REPO };
+}
+
+/**
+ * Linux only: whether this package format must fall back to a manual Releases
+ * download instead of an in-place self-update.
+ *
+ * electron-updater can self-replace an **AppImage** (it re-execs its own single
+ * file), but it cannot swap a system-installed **deb/rpm** — those files live
+ * under `/opt` and `/usr` and are owned by apt/dnf. The AppImage runtime sets
+ * `$APPIMAGE` to the image path; its absence on Linux means a system package,
+ * which we route to the same `manual-download` banner the unsupported-mac path
+ * uses. Non-Linux platforms are never affected here.
+ *
+ * Pure over its inputs for testability; the runtime wrapper threads
+ * `process.platform` and `$APPIMAGE` in.
+ */
+export function linuxNeedsManualDownload(deps: {
+  platform: NodeJS.Platform;
+  isAppImage: boolean;
+}): boolean {
+  return deps.platform === "linux" && !deps.isAppImage;
+}
+
+function isUnsupportedLinuxPackage(): boolean {
+  return linuxNeedsManualDownload({
+    platform: process.platform,
+    isAppImage: Boolean(process.env.APPIMAGE),
+  });
 }
 
 // We lazy-load electron-updater inside `bootstrap()` rather than at
@@ -385,20 +451,22 @@ function broadcast(status: Status): void {
 }
 
 export function registerUpdaterHandlers(): void {
-  // Defer to autoUpdater only in packaged builds that actually carry an
-  // update feed config — dev/unpackaged electron has no signed binary to
-  // update from, and a local `--dir` package has no `app-update.yml`.
-  const packaged = app.isPackaged && hasUpdateConfig();
+  // Arm for every packaged build. Full distributables read `app-update.yml`;
+  // sideloaded / `--dir` builds get a feed synthesized in bootstrap() from the
+  // publish target, so they self-update too (the "update ALWAYS" guarantee for
+  // non-git binaries). Only dev/unpackaged electron has nothing to update from.
+  const canUpdate = updaterArming({
+    isPackaged: app.isPackaged,
+    hasConfig: hasUpdateConfig(),
+  }).arm;
 
   ipcMain.on(TOPIC_CHECK, () => {
-    if (!packaged) {
-      // Dev / unpackaged builds — and packaged `--dir` builds with no
-      // `app-update.yml` — have no signed binary or feed to update from.
-      // Previously we broadcast `kind: "error"` here which surfaced as
-      // a red "Updater error" banner across the top of the window
-      // every time the renderer mounted and auto-checked. That's
-      // noise — developers know the dev build can't self-update.
-      // Settle into `idle` so the banner stays hidden.
+    if (!canUpdate) {
+      // Dev / unpackaged electron has no signed binary or feed to update from.
+      // Previously we also bailed here for packaged `--dir` builds (no
+      // `app-update.yml`); those now arm via the synthesized fallback feed.
+      // Broadcasting `idle` (not `error`) keeps the banner hidden in dev —
+      // developers know the dev build can't self-update.
       broadcast({ kind: "idle" });
       return;
     }
@@ -436,17 +504,17 @@ export function registerUpdaterHandlers(): void {
   });
 
   ipcMain.on(TOPIC_APPLY, () => {
-    if (!packaged) return;
+    if (!canUpdate) return;
     // macOS custom self-replace: we downloaded + staged the new bundle
     // ourselves; swap it in place and relaunch (no Squirrel, no signing).
     if (customStaged) {
       applyCustomStaged();
       return;
     }
-    if (!autoUpdateIsSafe()) {
-      // No staged build and no in-place swap available (e.g. the custom
-      // download failed and we fell back to manual-download). Send the user
-      // to the Releases page for the DMG.
+    if (isUnsupportedLinuxPackage() || !autoUpdateIsSafe()) {
+      // No in-place swap available: a Linux deb/rpm (system-owned, can't be
+      // replaced by electron-updater) or a macOS build whose staged download
+      // failed. Send the user to the Releases page to grab the new package.
       void shell.openExternal(RELEASES_URL).catch(() => {});
       return;
     }
@@ -472,7 +540,7 @@ export function registerUpdaterHandlers(): void {
   // require("electron-updater") can throw in some packaging edge
   // cases (missing assets, broken signing) — failing softly preserves
   // the rest of the app.
-  if (packaged) {
+  if (canUpdate) {
     try {
       bootstrap();
     } catch (err) {
@@ -486,13 +554,28 @@ function bootstrap(): void {
   started = true;
   const u = loadAutoUpdater();
 
-  // On an ad-hoc signed macOS build the in-place swap is impossible (see
-  // autoUpdateIsSafe), so we must NOT download or stage an install on quit —
-  // doing so only strands the user on a half-applied update. Leaving
-  // autoDownload off still lets `update-available` fire (handled below), which
-  // is what drives the manual-download prompt. Always true off-darwin and on
-  // genuinely Developer ID signed builds.
-  const allowSelfUpdate = autoUpdateIsSafe();
+  // Sideloaded / local `--dir` builds (and `.app`s built from a git checkout)
+  // ship no `app-update.yml`. Synthesize the GitHub feed from the same publish
+  // target electron-builder bakes into full distributables so these builds can
+  // still discover + pull published releases — without this they sit idle
+  // forever, since a non-git binary has no other place to learn about a new
+  // version. Best-effort: a failed set just leaves the build unable to check.
+  if (!hasUpdateConfig()) {
+    try {
+      u.setFeedURL(fallbackFeedConfig());
+    } catch (err) {
+      console.warn("[updater] failed to set fallback GitHub feed", err);
+    }
+  }
+
+  // The in-place swap is impossible on (a) ad-hoc signed macOS builds — see
+  // autoUpdateIsSafe — and (b) Linux deb/rpm packages (system-owned files
+  // electron-updater can't replace). In both cases we must NOT download or
+  // stage an install: doing so only strands the user on a half-applied update.
+  // Leaving autoDownload off still lets `update-available` fire (handled
+  // below), which drives the manual-download prompt. Always true off-darwin for
+  // AppImage and on genuinely Developer ID signed macOS builds.
+  const allowSelfUpdate = autoUpdateIsSafe() && !isUnsupportedLinuxPackage();
   u.autoDownload = allowSelfUpdate;
   u.autoInstallOnAppQuit = allowSelfUpdate;
   // Logs go to the OS-specific log path; users can inspect via
@@ -506,6 +589,12 @@ function bootstrap(): void {
 
   u.on("checking-for-update", () => broadcast({ kind: "checking" }));
   u.on("update-available", (info) => {
+    if (isUnsupportedLinuxPackage()) {
+      // Linux deb/rpm — electron-updater can't swap a system package in place.
+      // Point the user at Releases to install the new .deb/.rpm themselves.
+      broadcast({ kind: "manual-download", version: info.version, url: RELEASES_URL });
+      return;
+    }
     if (!autoUpdateIsSafe()) {
       // Ad-hoc / unsigned macOS build — Squirrel.Mac would reject the swap
       // post-quit. Instead of dead-ending at a "download the DMG yourself"
