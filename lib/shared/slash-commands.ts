@@ -124,7 +124,7 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   { id: "theme", name: "theme", description: "Pick a color theme.", category: "ui", handler: "native" },
   { id: "statusline", name: "statusline", description: "Configure the status line.", category: "ui", handler: "native" },
   { id: "keybindings", name: "keybindings", description: "Edit keybindings.", category: "ui", handler: "native" },
-  { id: "color", name: "color", description: "Set prompt accent color.", category: "ui", handler: "sdk", argsHint: "[color|default]" },
+  { id: "color", name: "color", description: "Set prompt accent color.", category: "ui", handler: "native", argsHint: "[color|default]" },
   { id: "diff", name: "diff", description: "Open the interactive diff viewer.", category: "ui", handler: "sdk" },
   { id: "focus", name: "focus", description: "Toggle focus view.", category: "ui", handler: "sdk" },
   { id: "tui", name: "tui", description: "Switch UI renderer.", category: "ui", handler: "external" },

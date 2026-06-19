@@ -6,6 +6,7 @@ import {
   useState,
   useSyncExternalStore,
   type ClipboardEvent,
+  type CSSProperties,
   type DragEvent,
   type KeyboardEvent,
 } from "react";
@@ -42,6 +43,12 @@ type Props = {
    * a transient ephemeral input until the id resolves.
    */
   sessionId: string | null;
+  /**
+   * Per-session prompt-bar accent set via `/color`, as a resolved CSS color
+   * (hex), or `null` to use the theme default. Recolors the composer border
+   * only (idle + focus) so each tab can be told apart at a glance.
+   */
+  promptColor?: string | null;
   onSend: (text: string, images?: AttachedImage[]) => void;
   onInterrupt: () => void;
   /**
@@ -172,6 +179,7 @@ export function PromptInput({
   skills,
   cwd,
   sessionId,
+  promptColor = null,
   onSend,
   onInterrupt,
   draftInjection,
@@ -1321,6 +1329,16 @@ export function PromptInput({
           }}
           onDragLeave={wideDropTarget ? undefined : () => setDragOver(false)}
           onDrop={wideDropTarget ? undefined : onDrop}
+          // `/color` sets a per-session border accent. Applied inline (not via a
+          // Tailwind arbitrary class) so the color reliably wins over the
+          // border-color utility in both idle and focus states. Border-only, so
+          // it never touches text/caret legibility. Drag-over and bash mode keep
+          // their own border treatment, so defer to them.
+          style={
+            promptColor && !(!wideDropTarget && dragOver) && !isBashMode
+              ? ({ borderColor: promptColor } as CSSProperties)
+              : undefined
+          }
           className={cn(
             "flex items-end gap-2 rounded-2xl border bg-[var(--panel-2)] px-3 py-2 transition",
             !wideDropTarget && dragOver

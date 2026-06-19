@@ -100,6 +100,13 @@ import {
 import { ContextWarningBanner } from "@/components/chat/ContextWarningBanner";
 import { useNotificationsContext } from "@/components/notifications/NotificationsProvider";
 import { findSlashCommand } from "@/lib/shared/slash-commands";
+import {
+  PROMPT_COLOR_NAMES,
+  PROMPT_COLOR_RESET_WORDS,
+  isPromptColorName,
+  resolvePromptColor,
+  type PromptColorName,
+} from "@/lib/shared/prompt-colors";
 import { DEFAULT_TIPS, selectClientTips } from "@/lib/shared/tips";
 import { useWorkspaces } from "@/lib/client/useWorkspaces";
 import { useVerbose } from "@/lib/client/useVerbose";
@@ -178,6 +185,17 @@ export default function Home() {
   const [rewindingUuid, setRewindingUuid] = useState<string | null>(null);
   const [overlay, setOverlay] = useState<OverlayKind>(null);
   const [toast, setToast] = useState<string | null>(null);
+  // Per-session prompt-bar accent (`/color`). Stored keyed by the session it
+  // belongs to so the displayed color resets to the theme default the instant
+  // a different tab is active — without a synchronous setState on switch. The
+  // hex is resolved when passed to the composer; the name is persisted
+  // server-side in the session `state` blob and refetched on switch.
+  const [promptColor, setPromptColor] = useState<{
+    sessionId: string | null;
+    name: PromptColorName | null;
+  }>({ sessionId: null, name: null });
+  const activePromptColor =
+    promptColor.sessionId === session.sessionId ? promptColor.name : null;
   // Tracks when the user has hidden the AskUserQuestion modal without
   // answering — keyed by requestId so a fresh question pops up again.
   // The modal renders only when there is a pendingAsk AND its requestId
@@ -205,6 +223,23 @@ export default function Home() {
   // of re-showing a stale, still-high percentage until the next idle poll.
   const [ctxRefreshSignal, setCtxRefreshSignal] = useState(0);
   const ctxSummary = useContextWatcher(session.sessionId, session.pending, ctxRefreshSignal);
+
+  // Load this session's saved prompt color on switch. `activePromptColor`
+  // already shows the theme default for any session we haven't recorded, so no
+  // synchronous reset is needed here — we only write once the fetch resolves.
+  useEffect(() => {
+    const id = session.sessionId;
+    if (!id) return;
+    const controller = new AbortController();
+    fetch(`/api/sessions/${id}/prompt-color`, { signal: controller.signal })
+      .then((res) => (res.ok ? (res.json() as Promise<{ color?: string | null }>) : null))
+      .then((data) => {
+        const name = data?.color && isPromptColorName(data.color) ? data.color : null;
+        setPromptColor({ sessionId: id, name });
+      })
+      .catch(() => {});
+    return () => controller.abort();
+  }, [session.sessionId]);
 
   // "Where were we?" auto-recap — fires when the user returns to this tab
   // after a long blur (≥5 min). The settings gate and multi-tab dedupe live
@@ -1156,6 +1191,36 @@ export default function Home() {
           }
           return true;
         }
+        case "color": {
+          if (!session.sessionId) {
+            showToast("No active session");
+            return true;
+          }
+          const raw = args.trim().toLowerCase();
+          let name: PromptColorName | null;
+          if (!raw) {
+            // No argument: pick a random color, like the terminal CLI. Exclude
+            // the current one so the border always visibly changes.
+            const choices = PROMPT_COLOR_NAMES.filter((c) => c !== activePromptColor);
+            name = choices[Math.floor(Math.random() * choices.length)];
+          } else if ((PROMPT_COLOR_RESET_WORDS as readonly string[]).includes(raw)) {
+            name = null;
+          } else if (isPromptColorName(raw)) {
+            name = raw;
+          } else {
+            showToast(`Unknown color: ${raw} — try ${PROMPT_COLOR_NAMES.join(", ")}, or default`);
+            return true;
+          }
+          setPromptColor({ sessionId: session.sessionId, name });
+          // Persist to the session state blob; optimistic UI above doesn't wait.
+          void fetch(`/api/sessions/${session.sessionId}/prompt-color`, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ color: name }),
+          }).catch(() => {});
+          showToast(name ? `Session color set to: ${name}` : "Session color cleared");
+          return true;
+        }
         case "plan": {
           void session.setPermissionMode("plan");
           showToast("Plan mode — Claude will produce a plan before executing");
@@ -1387,7 +1452,7 @@ export default function Home() {
     // (see lib/client/useElectron.ts), so listing it doesn't churn the
     // callback — but eslint-rule-of-hooks wants it spelled out so a future
     // bridge-identity change doesn't silently break the /desktop branch.
-    [router, session, showToast, claudiusBridge],
+    [router, session, showToast, claudiusBridge, activePromptColor],
   );
 
   const handleSend = useCallback(
@@ -2089,6 +2154,7 @@ export default function Home() {
               skills={session.skills}
               cwd={session.cwd}
               sessionId={session.sessionId}
+              promptColor={resolvePromptColor(activePromptColor)}
               onSend={handleSend}
               onInterrupt={session.interrupt}
               draftInjection={draftInjection}
