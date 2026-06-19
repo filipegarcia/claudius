@@ -214,11 +214,59 @@ export async function stashPushIncludeUntracked(
 
   const dirtyBefore = await isDirty(cwd);
   if (!dirtyBefore) return { stashed: false };
-  await git(["stash", "push", "-u", "-m", message], cwd, DEFAULT_TIMEOUT_MS * 2);
+  try {
+    await git(["stash", "push", "-u", "-m", message], cwd, DEFAULT_TIMEOUT_MS * 2);
+  } catch {
+    // A blocked `git stash push` is almost always a tree left WEDGED by a prior
+    // failed cycle — git refuses to stash over unmerged index entries or while a
+    // merge/rebase is mid-flight. This is the exact "apply failed in init:
+    // Command failed: git stash push -u" loop seen in the updater log. Heal it
+    // with NON-DESTRUCTIVE actions only (abort the in-progress op, rewind the
+    // index to HEAD — both preserve every file's content) and try once more
+    // rather than dead-ending the whole update. We never reset --hard / clean:
+    // the updater must self-heal without discarding the user's work.
+    await clearInProgressMergeState(cwd);
+    if (!(await isDirty(cwd))) {
+      // Aborting the wedged op restored a clean tree — nothing left to stash.
+      return { stashed: false };
+    }
+    await git(["stash", "push", "-u", "-m", message], cwd, DEFAULT_TIMEOUT_MS * 2);
+  }
   // If still dirty, the stash didn't actually move anything — treat as not
   // stashed so the caller doesn't pop an unrelated entry from before.
   const dirtyAfter = await isDirty(cwd);
   return { stashed: !dirtyAfter };
+}
+
+/**
+ * Non-destructively clear a tree wedged by a PRIOR failed update cycle so the
+ * next stash / merge can proceed. Run before retrying a blocked `git stash
+ * push`, or any time the updater finds itself unable to act on a dirty tree.
+ *
+ * Order — each step is a no-op (non-zero exit, swallowed) when it doesn't apply:
+ *   1. Abort any in-progress merge / rebase / cherry-pick / revert. This
+ *      restores the pre-op snapshot of the working tree.
+ *   2. If unmerged index entries still linger (a half-resolved conflict that was
+ *      `git add`ed, or stash-pop residue), `git reset` (MIXED) the index back to
+ *      HEAD.
+ *
+ * Every step PRESERVES working-tree file content: `merge --abort` restores it,
+ * and a mixed `reset` only rewinds the index — the files (conflict markers and
+ * all) stay on disk to be swept into the caller's subsequent `git stash push
+ * -u`. We deliberately never run `reset --hard` or `git clean`; healing must not
+ * discard the user's work. Idempotent and best-effort — a clean tree passes
+ * straight through.
+ */
+export async function clearInProgressMergeState(cwd: string): Promise<void> {
+  await git(["merge", "--abort"], cwd).catch(() => {});
+  await git(["rebase", "--abort"], cwd).catch(() => {});
+  await git(["cherry-pick", "--abort"], cwd).catch(() => {});
+  await git(["revert", "--abort"], cwd).catch(() => {});
+  if (await hasUnmergedFiles(cwd).catch(() => false)) {
+    // Mixed reset (no --hard): clears the unmerged index entries while leaving
+    // every file's content untouched on disk.
+    await git(["reset", "--quiet"], cwd).catch(() => {});
+  }
 }
 
 /**
