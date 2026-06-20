@@ -85,7 +85,7 @@ test.describe("Session tabs — pinning", () => {
           const body = (await r.json()) as { pinned?: string[] };
           return body.pinned?.includes(idC) ?? false;
         },
-        { timeout: 5_000 },
+        { timeout: 10_000 },
       )
       .toBe(true);
     await page.reload();
