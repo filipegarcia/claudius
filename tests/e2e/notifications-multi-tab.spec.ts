@@ -235,10 +235,27 @@ test.describe("Notifications: multi-tab + workspace switching", () => {
     });
     await page.reload();
     await waitForBoundSession(page);
+    // Wait for the client's hydration→render→persist cycle to complete.
+    // After page.reload() the useEffect hydration fetch can be slow when
+    // the dev server is under load from the rest of the suite.  The persist
+    // effect only fires after the hydration fetch resolves AND the strip
+    // re-renders, so the server tabs advancing from [A,B] to [A,B,bound]
+    // (length > 2) is the earliest safe signal that the DOM has updated.
+    await expect
+      .poll(
+        async () => {
+          const r = await page.request.get(`${baseURL}/api/sessions/open-tabs`);
+          const body = (await r.json()) as { tabs?: string[] };
+          const tabs = body.tabs ?? [];
+          return tabs.includes(SYNTHETIC_TAB_A) && tabs.length > 2;
+        },
+        { timeout: 15_000 },
+      )
+      .toBe(true);
     // The reload re-adds the bound session id to openTabs via the auto-add
     // effect; we expect three tabs total. The synthetic ones must be present.
     await expect(page.locator(`[data-tab-id="${SYNTHETIC_TAB_A}"]`)).toBeAttached({
-      timeout: 10_000,
+      timeout: 5_000,
     });
     await expect(page.locator(`[data-tab-id="${SYNTHETIC_TAB_B}"]`)).toBeAttached();
     await expect(page.getByTestId("notifications-drawer-trigger")).toBeVisible({

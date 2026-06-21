@@ -76,6 +76,18 @@ test.describe("Session tabs — pinning", () => {
     ).toHaveCount(1);
 
     // ── Persistence: a full reload restores the pinned-first order.
+    // The persist effect fires asynchronously after paint (useEffect), so wait
+    // until the server has confirmed the pin before triggering the reload.
+    await expect
+      .poll(
+        async () => {
+          const r = await page.request.get(`${baseURL}/api/sessions/open-tabs`);
+          const body = (await r.json()) as { pinned?: string[] };
+          return body.pinned?.includes(idC) ?? false;
+        },
+        { timeout: 10_000 },
+      )
+      .toBe(true);
     await page.reload();
     await waitForBoundSession(page);
     await expect
