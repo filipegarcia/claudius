@@ -8,6 +8,7 @@ import { PaneLabelsHost } from "@/components/overlays/PaneLabelsHost";
 import { CustomizationBanner } from "@/components/customize/CustomizationBanner";
 import { DeepLinksHandler } from "@/components/chrome/DeepLinksHandler";
 import { ElectronGlobalActions } from "@/components/chrome/ElectronGlobalActions";
+import { FilePermissionsGate } from "@/components/chrome/FilePermissionsGate";
 import { QuitWarningToast } from "@/components/chrome/QuitWarningToast";
 import { TitleBar } from "@/components/chrome/TitleBar";
 import { WebDesktopBanner } from "@/components/chrome/WebDesktopBanner";
@@ -136,6 +137,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
                 * dock-folder-drop events. No-op in the browser build.
                 * Phase 8 follow-up. */}
               <ElectronGlobalActions />
+              {/* First-launch macOS file-permission priming modal. Shows
+                * once per install; no-op in the browser build and off
+                * macOS. */}
+              <FilePermissionsGate />
               <PaneLabelsHost />
             </CommunityNotificationsProvider>
           </NotificationsProvider>

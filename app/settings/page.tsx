@@ -19,6 +19,7 @@ import { ContextWarningSection } from "@/components/settings/ContextWarningSecti
 import { GoalBannerSection } from "@/components/settings/GoalBannerSection";
 import { BackupSection } from "@/components/settings/BackupSection";
 import { ChatSizeSection } from "@/components/settings/ChatSizeSection";
+import { FilePermissionsSection } from "@/components/settings/FilePermissionsSection";
 import {
   ADVISOR_COPY,
   ADVISOR_OPTIONS,
@@ -140,6 +141,12 @@ export default function SettingsPage() {
   const sContext = show("context window warning compact banner threshold nudge chat");
   const sGoalBanner = show("session goal prompt banner hide show header objective chat");
   const sBackup = show("backup restore export import config bundle json snapshot");
+  // macOS file-permission priming — desktop-app only (the bridge doesn't
+  // exist in the browser build), so fold the platform gate into visibility
+  // like sLinkTarget does.
+  const sFilePerms =
+    isElectron &&
+    show("file permissions macos tcc documents desktop downloads pictures music movies access folder privacy claude code");
   const sWorktree = show("worktree sparse paths sparsepaths sparse-checkout cone monorepo symlink directories symlinkdirectories node_modules disk bloat");
   // Model & UI / Memory — matched per row against each field's label, so a query
   // like "output style" or "automemorydirectory" reveals just that row. A match
@@ -177,7 +184,7 @@ export default function SettingsPage() {
 
   const anyMatch =
     sEditor || sTheme || sPreviews || sChatSize || sLinkTarget || sUpdater || sShortcuts || sRateLimit || sContext || sGoalBanner ||
-    sBackup || sWorktree || sModelUi || sMemory || sChat || sEnv || sPlugins || sOther ||
+    sBackup || sFilePerms || sWorktree || sModelUi || sMemory || sChat || sEnv || sPlugins || sOther ||
     catalogEntries.length > 0;
   const noMatches = !!q && !anyMatch;
 
@@ -431,6 +438,12 @@ export default function SettingsPage() {
                 Outside the scope tabs because it spans every scope and
                 every workspace, not a single settings.json file. */}
             {sBackup && <BackupSection />}
+
+            {/* macOS file-permission priming — front-load the OS Files &
+                Folders prompts so Claude Code doesn't trip them at random.
+                Desktop-app only; outside the scope tabs (the marker lives in
+                Electron userData, not settings.json). */}
+            {sFilePerms && <FilePermissionsSection />}
 
             {showRaw ? (
               <Section title="Raw JSON" subtitle="Direct edit of the settings file.">

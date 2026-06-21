@@ -56,6 +56,42 @@ function writeConflictDismissal(sha: string): ConflictDismissal {
   return entry;
 }
 
+// ── "available, can't self-install" dismissal (per version) ─────────────────
+//
+// On a build that can't self-update in place (ad-hoc/unsigned mac, a
+// from-git or sideloaded bundle, or a Linux deb/rpm), the `manual-download`
+// banner is the TERMINAL state: it re-broadcasts on every check and there's
+// no "Restart and install" to make it go away — the user has to manually grab
+// the new build. That makes it a persistent nag, so it needs a close button.
+//
+// Dismissal is keyed by the offered VERSION and persisted in localStorage:
+// closing "0.3.185 is available" hides exactly that version across reloads,
+// but a LATER release (0.3.186) has a different key and re-surfaces — so the
+// user can mute the current notice without opting out of future updates.
+// Read/write errors devolve to "not dismissed" (banner shows), the safe default.
+const UPDATE_DISMISS_KEY = "claudius.updater.availableVersion.dismissed";
+
+function readDismissedUpdateVersion(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return window.localStorage.getItem(UPDATE_DISMISS_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function writeDismissedUpdateVersion(version: string): string {
+  if (typeof window !== "undefined") {
+    try {
+      window.localStorage.setItem(UPDATE_DISMISS_KEY, version);
+    } catch {
+      // Private mode / quota exceeded — in-memory state still hides it this
+      // session, just not across reload.
+    }
+  }
+  return version;
+}
+
 /**
  * Slim banner shown only when:
  *   - the updater detected a pending update, OR
@@ -378,6 +414,12 @@ function ElectronUpdaterBanner({
 }) {
   const { status, check, apply, openAppManagementSettings } = state;
   const [dismissedError, setDismissedError] = useState<string | null>(null);
+  // Per-version dismissal for the terminal "manual download" banner — read
+  // once on mount so a reload doesn't bring the dismissed version back; a newer
+  // version differs from the stored key and re-surfaces.
+  const [dismissedVersion, setDismissedVersion] = useState<string | null>(() =>
+    readDismissedUpdateVersion(),
+  );
 
   if (status.kind === "idle" || status.kind === "checking") return null;
 
@@ -430,6 +472,7 @@ function ElectronUpdaterBanner({
   // electron/ipc/updater.ts). Point the user at the DMG. `apply()` routes to
   // shell.openExternal(Releases) on the main side for this state.
   if (status.kind === "manual-download") {
+    if (dismissedVersion === status.version) return null;
     return (
       <div
         data-pane-name="updater-banner-electron-manual"
@@ -446,6 +489,14 @@ function ElectronUpdaterBanner({
         >
           <ArrowDownToLine className="h-3 w-3" />
           Download update
+        </button>
+        <button
+          onClick={() => setDismissedVersion(writeDismissedUpdateVersion(status.version))}
+          aria-label="Dismiss until a newer version is available"
+          title="Dismiss until a newer version is available"
+          className="rounded p-0.5 text-[var(--muted)] hover:bg-emerald-500/20 hover:text-[var(--foreground)]"
+        >
+          <X className="h-3.5 w-3.5" />
         </button>
       </div>
     );

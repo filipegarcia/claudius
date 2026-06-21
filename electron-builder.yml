@@ -124,6 +124,15 @@ mac:
     NSDownloadsFolderUsageDescription: >-
       Claudius needs access to your Downloads folder only when you pick a
       project from there. Files stay on your machine.
+    NSPicturesFolderUsageDescription: >-
+      Claudius needs access to your Pictures folder only when you pick a
+      project from there. Files stay on your machine.
+    NSMusicFolderUsageDescription: >-
+      Claudius needs access to your Music folder only when you pick a
+      project from there. Files stay on your machine.
+    NSMoviesFolderUsageDescription: >-
+      Claudius needs access to your Movies folder only when you pick a
+      project from there. Files stay on your machine.
     NSRemovableVolumesUsageDescription: >-
       Claudius needs access to removable volumes only when you pick a
       project from one. Files stay on your machine.

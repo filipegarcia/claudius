@@ -39,6 +39,9 @@ const TOPICS = {
   notificationClick: "notification:click",
   dialogOpenWorkspace: "dialog:open-workspace",
   dialogOpenFile: "dialog:open-file",
+  permissionStatus: "permission:status",
+  permissionRunScan: "permission:run-scan",
+  permissionMarkSeen: "permission:mark-seen",
   deepLinkOpen: "deeplink:open",
   updaterCheck: "updater:check",
   updaterApply: "updater:apply",
@@ -67,7 +70,7 @@ function subscribe<T>(
 const api = {
   isElectron: true as const,
   platform: process.platform,
-  bridgeVersion: 7 as const,
+  bridgeVersion: 8 as const,
 
   menu: {
     on(action: string, cb: () => void): () => void {
@@ -120,6 +123,18 @@ const api = {
   deepLinks: {
     onOpen: (cb: (url: string) => void) =>
       subscribe<string>(TOPICS.deepLinkOpen, cb),
+  },
+
+  permission: {
+    status: (): Promise<{
+      completed: boolean;
+      platform: NodeJS.Platform;
+    }> => ipcRenderer.invoke(TOPICS.permissionStatus),
+    runScan: (): Promise<
+      { category: string; path: string; ok: boolean; error?: string }[]
+    > => ipcRenderer.invoke(TOPICS.permissionRunScan),
+    markSeen: (): Promise<boolean> =>
+      ipcRenderer.invoke(TOPICS.permissionMarkSeen),
   },
 
   updater: {

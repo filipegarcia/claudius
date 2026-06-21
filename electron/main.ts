@@ -33,6 +33,7 @@ import {
   resolveLinkAction,
 } from "./ipc/link-target";
 import { registerNotificationHandlers } from "./ipc/notifications";
+import { registerPermissionPrimingHandlers } from "./ipc/permission-priming";
 import { registerUpdaterHandlers } from "./ipc/updater";
 import { installAppMenu, type MenuAccelerators } from "./menu";
 import {
@@ -571,6 +572,10 @@ app.whenReady().then(async () => {
     registerBadgeHandlers();
     registerUpdaterHandlers();
     registerDialogHandlers();
+    // First-run macOS TCC file-permission priming — lets the renderer
+    // front-load the Files & Folders consent prompts from an explanatory
+    // modal instead of having them fire at random mid-session.
+    registerPermissionPrimingHandlers();
     registerLinkTargetHandlers();
     registerDeepLinkHandlers({
       resolveWindow: () => mainWindow,

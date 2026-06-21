@@ -4391,35 +4391,51 @@ export function useSession(): ChatState & ChatActions {
           // rewrote the JSONL and the original assistant messages are gone.
           // Synthesize minimal assistant messages so the TaskBlock can still
           // render with the SQLite-recovered metadata and inner conversation.
-          const synthetic: DisplayMessage[] = stillUnlinked.map(({ toolUseId, entry }) => ({
-            uuid: `recovered-task-${toolUseId}`,
-            role: "assistant" as const,
-            blocks: [
-              {
-                kind: "tool_use" as const,
-                id: toolUseId,
-                // Must be "Agent" or "Task" so isSubagentToolName returns true
-                // and AssistantMessage routes the block to TaskBlock.
-                name: "Agent",
-                input: {
-                  // `subagent_type` is what TaskBlock shows as the pill label.
-                  subagent_type: entry.taskType ?? "Agent",
-                  description: entry.description ?? "",
-                  prompt: "",
-                },
-                // Pre-populate the result so the pill shows "completed"
-                // rather than "running" when the status is known.
-                ...(entry.status !== "running"
-                  ? {
-                      result: {
-                        content: entry.summary ?? "",
-                        isError: entry.status === "failed",
+          const synthetic: DisplayMessage[] = stillUnlinked.map(({ toolUseId, entry }) => {
+            // A workflow's aggregate task never captures inner messages — its
+            // child agents register their conversations under their own
+            // tool_use_ids (each surfaces as a separate `local_agent` task).
+            // Routing it through TaskBlock would always render an empty "No
+            // subagent messages captured." box. Synthesize a "Workflow" block
+            // instead so it routes to WorkflowBlock, which renders the
+            // recovered name / status / summary joined from the snapshot task.
+            const isWorkflow = entry.taskType === "local_workflow";
+            return {
+              uuid: `recovered-task-${toolUseId}`,
+              role: "assistant" as const,
+              blocks: [
+                {
+                  kind: "tool_use" as const,
+                  id: toolUseId,
+                  // "Workflow" routes to WorkflowBlock; "Agent" satisfies
+                  // isSubagentToolName so AssistantMessage routes to TaskBlock.
+                  name: isWorkflow ? "Workflow" : "Agent",
+                  input: isWorkflow
+                    ? {
+                        // WorkflowBlock falls back to `input.name` for the pill
+                        // when no script (and thus no parsed meta) is present.
+                        name: entry.workflowName ?? "Workflow",
+                      }
+                    : {
+                        // `subagent_type` is what TaskBlock shows as the pill label.
+                        subagent_type: entry.taskType ?? "Agent",
+                        description: entry.description ?? "",
+                        prompt: "",
                       },
-                    }
-                  : {}),
-              },
-            ],
-          }));
+                  // Pre-populate the result so the pill shows "completed"
+                  // rather than "running" when the status is known.
+                  ...(entry.status !== "running"
+                    ? {
+                        result: {
+                          content: entry.summary ?? "",
+                          isError: entry.status === "failed",
+                        },
+                      }
+                    : {}),
+                },
+              ],
+            };
+          });
           setMessages((prev) => {
             const seenUuids = new Set(prev.map((m) => m.uuid));
             const fresh = synthetic.filter((m) => !seenUuids.has(m.uuid));

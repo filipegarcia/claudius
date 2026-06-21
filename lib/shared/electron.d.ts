@@ -66,6 +66,22 @@ export type ClaudiusFileFilter = {
 };
 
 /**
+ * One protected-folder outcome from the first-run permission-priming scan
+ * (`permission.runScan`). `ok` is true when the folder was read without
+ * error (access already granted, or just granted via the OS prompt);
+ * `error` carries the raw message when the read failed (e.g. the user
+ * denied the TCC prompt). Added in bridgeVersion 8.
+ */
+export type FilePermissionScanResult = {
+  /** Display label: "Desktop", "Documents", "Downloads", "Movies", "Music", "Pictures". */
+  category: string;
+  /** Absolute path that was touched. */
+  path: string;
+  ok: boolean;
+  error?: string;
+};
+
+/**
  * The bridge object that the preload mounts on `window`. Every
  * subsystem is namespaced so it's clear at the call site which phase
  * owns the path (and what to mock in unit tests).
@@ -93,6 +109,8 @@ export type ClaudiusBridge = {
    *  - 7: updater.openAppManagementSettings (deep-link to macOS
    *       Privacy & Security → App Management when an auto-update is
    *       denied by the OS) + `blocked-app-management` status variant
+   *  - 8: permission.{status,runScan,markSeen} — first-run macOS TCC
+   *       file-permission priming (front-load the Files & Folders prompts)
    */
   readonly bridgeVersion: number;
 
@@ -165,6 +183,26 @@ export type ClaudiusBridge = {
    */
   deepLinks: {
     onOpen(cb: (url: string) => void): () => void;
+  };
+
+  /**
+   * First-run macOS file-permission priming. The desktop app embeds Claude
+   * Code, which reads files across the user's folders; macOS gates each
+   * protected folder (Desktop/Documents/Downloads/Pictures/Music/Movies)
+   * behind a TCC consent prompt that otherwise fires at unpredictable
+   * times. These methods let the renderer show an explanatory modal once
+   * and front-load all the prompts on the user's say-so. Added in
+   * bridgeVersion 8. No-op-ish off macOS (`runScan` returns `[]`).
+   */
+  permission: {
+    /** Has the priming step already run on this install? Also reports the
+     * OS so the renderer can skip the flow entirely off macOS. */
+    status(): Promise<{ completed: boolean; platform: NodeJS.Platform }>;
+    /** Touch each protected folder once (triggering the OS prompts), then
+     * persist the "done" marker. Resolves with the per-folder outcome. */
+    runScan(): Promise<FilePermissionScanResult[]>;
+    /** Mark priming complete WITHOUT scanning ("Don't show again"). */
+    markSeen(): Promise<boolean>;
   };
 
   /** Auto-update lifecycle (phase 7). */
