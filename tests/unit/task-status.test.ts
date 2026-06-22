@@ -7,6 +7,7 @@ import {
   isBackgroundedToolUse,
   reconcileTasksOnToolResult,
   seedTaskStatus,
+  shouldRecoverOrphanTask,
   statusFromToolResult,
   upsertProvisionalTask,
 } from "@/lib/client/task-status";
@@ -38,6 +39,57 @@ function toolUseMsg(
     ],
   };
 }
+
+describe("shouldRecoverOrphanTask", () => {
+  // Regression: "agent started before my message". On reattach to a live
+  // session, the task_snapshot can arrive before the SSE replay has painted the
+  // running subagent's tool_use block. Recovery would then synthesize a
+  // placeholder and prepend it above the user's prompt, duplicating the real
+  // pill. A running task is never orphaned — skip it.
+  test("a RUNNING task is never recovered (the reattach-duplicate bug)", () => {
+    const noMatch: DisplayMessage[] = []; // tool_use not painted yet (race)
+    expect(
+      shouldRecoverOrphanTask({ toolUseId: "toolu_live", status: "running" }, noMatch),
+    ).toBe(false);
+  });
+
+  test("a completed task with no parent in messages IS recovered (compaction orphan)", () => {
+    // Parent assistant message was compacted away — genuinely orphaned.
+    expect(
+      shouldRecoverOrphanTask({ toolUseId: "toolu_gone", status: "completed" }, []),
+    ).toBe(true);
+  });
+
+  test("a completed task whose tool_use IS already rendered is not recovered", () => {
+    const messages = [toolUseMsg("toolu_here")];
+    expect(
+      shouldRecoverOrphanTask({ toolUseId: "toolu_here", status: "completed" }, messages),
+    ).toBe(false);
+  });
+
+  test("a task without a toolUseId is never recovered", () => {
+    expect(shouldRecoverOrphanTask({ toolUseId: null, status: "completed" }, [])).toBe(false);
+    expect(shouldRecoverOrphanTask({ status: "failed" }, [])).toBe(false);
+  });
+
+  test("other terminal states (failed/killed/stopped) recover when unlinked", () => {
+    for (const status of ["failed", "killed", "stopped"] as const) {
+      expect(shouldRecoverOrphanTask({ toolUseId: `toolu_${status}`, status }, [])).toBe(true);
+    }
+  });
+
+  test("narrows toolUseId to string for the caller (type-guard contract)", () => {
+    const tasks: Array<{ toolUseId?: string | null; status?: string }> = [
+      { toolUseId: "toolu_x", status: "completed" },
+      { toolUseId: null, status: "completed" },
+      { toolUseId: "toolu_run", status: "running" },
+    ];
+    const recoverable = tasks
+      .filter((t) => shouldRecoverOrphanTask(t, []))
+      .map((t) => t.toolUseId.toUpperCase()); // .toUpperCase() proves `string`, not `string | null`
+    expect(recoverable).toEqual(["TOOLU_X"]);
+  });
+});
 
 describe("statusFromToolResult", () => {
   test("maps error → failed, otherwise completed", () => {

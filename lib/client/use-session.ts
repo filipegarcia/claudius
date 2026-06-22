@@ -39,6 +39,7 @@ import {
   isBackgroundedToolUse,
   reconcileTasksOnToolResult,
   seedTaskStatus,
+  shouldRecoverOrphanTask,
   upsertProvisionalTask,
 } from "./task-status";
 import { applyThinkingTokensEstimate, clearStreaming, sweepToolHistoryDone } from "./idle-reconcile";
@@ -1785,11 +1786,14 @@ export function useSession(): ChatState & ChatActions {
         //      still renders with all the SQLite-recovered metadata and the
         //      inner conversation.
         {
+          // Only recover GENUINELY orphaned tasks. `shouldRecoverOrphanTask`
+          // excludes running tasks: on reattach to a live session the snapshot
+          // can land before replay paints the running subagent's tool_use
+          // block, and synthesizing a placeholder for it prepends a duplicate
+          // pill ABOVE the user's prompt ("agent started before my message").
+          // The live stream links the real pill by tool_use_id instead.
           const unlinked = ev.tasks
-            .filter(
-              (t): t is typeof t & { toolUseId: string } =>
-                !!t.toolUseId && !findToolUseBlock(t.toolUseId, messagesRef.current),
-            )
+            .filter((t) => shouldRecoverOrphanTask(t, messagesRef.current))
             .map((t) => ({ toolUseId: t.toolUseId, entry: t }));
           if (unlinked.length > 0) {
             void loadUntilTasksFoundRef.current?.(unlinked);

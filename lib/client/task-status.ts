@@ -45,6 +45,35 @@ export function findToolUseBlock(
 }
 
 /**
+ * Whether a persisted snapshot task should trigger the synthesize-and-prepend
+ * orphan recovery in `use-session`'s `task_snapshot` handler.
+ *
+ * Qualifies only when the task (a) carries a `toolUseId`, (b) is NOT running,
+ * and (c) has no matching tool_use block already in the rendered `messages`.
+ *
+ * The running guard fixes the "agent started before my message" reattach bug.
+ * On reattach to a LIVE session, the `task_snapshot` event can be handled
+ * before the SSE replay has painted the running subagent's parent tool_use
+ * block (the messages ref lags the `setMessages` from replay). The task then
+ * looks orphaned, so recovery synthesizes a placeholder pill and PREPENDS it to
+ * the top of the timeline — above the user's prompt — duplicating the real pill
+ * the live stream paints a moment later. But a running task IS the current
+ * turn: its parent tool_use is always inside the tail window and arrives via
+ * the live stream, and SDK compaction (the only thing that orphans a task by
+ * removing its parent) never touches the in-flight turn. So a running-yet-
+ * unlinked task is always a transient race — skip recovery and let the live
+ * event link the TaskBlock by `toolUseId`. Recovery still fires for genuinely
+ * orphaned COMPLETED tasks (parent compacted away).
+ */
+export function shouldRecoverOrphanTask<
+  T extends { toolUseId?: string | null; status?: TaskStatus | string },
+>(task: T, messages: DisplayMessage[]): task is T & { toolUseId: string } {
+  if (!task.toolUseId) return false;
+  if (task.status === "running") return false;
+  return !findToolUseBlock(task.toolUseId, messages);
+}
+
+/**
  * A Task launched with `run_in_background` gets an immediate "started in
  * background" tool_result that is NOT its completion — its real result rides
  * on a later `task_notification`. Such tasks must be excluded from
