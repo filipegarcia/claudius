@@ -3,8 +3,14 @@
 Hourly pipeline that watches npm for new `@anthropic-ai/claude-agent-sdk`
 releases, lets Claude do the upgrade end-to-end, opens a PR against
 `main`, monitors CI, and announces the result on the community
-channel. Designed to be installed as a cron on a Linux server you
-control — not your laptop.
+channel. Designed to be installed as a cron on a long-lived host you
+control (a Linux server or a Mac — locking is portable, no `flock`).
+
+The recommended entrypoint runs BOTH this pipeline and the cc-parity
+reviewer from **one** cron line — see
+[scripts/update-pipeline.sh](../update-pipeline.sh) and
+`make update-install-cron`. The per-pipeline targets below still work
+for one-off manual runs.
 
 The repo's TypeScript is deliberately thin. Everything that needs
 judgment (which changelog items to ship, how to migrate call sites,
@@ -25,17 +31,25 @@ scripts/sdk-update/
 ├── prompt.md          # the upgrade prompt Claude runs with (placeholders substituted)
 ├── fix-prompt.md      # the fix-an-existing-PR prompt (used by `make sdk-update-fix-pr`)
 ├── pr-template.md     # PR body template
-└── run.sh             # cron entrypoint with flock guard (also `run.sh fix-pr <n>`)
+└── run.sh             # cron entrypoint with portable-lock guard (also `run.sh fix-pr <n>`)
+```
+
+The combined entrypoint and the portable lock helper live one level up:
+
+```
+scripts/
+├── update-pipeline.sh    # ONE cron → runs sdk-update then cc-parity (macOS-friendly PATH)
+└── lib/run-lock.sh       # portable single-instance lock (mkdir + PID; no flock)
 ```
 
 State lives outside the scripts dir, alongside other Claudius local state:
 
 ```
 .claudius/
-├── run.lock           # SHARED flock — held while either pipeline runs. The
-│                      # cc-parity sibling (scripts/cc-parity/) takes the
-│                      # same lock so the two updaters block each other on
-│                      # purpose; their crons fire at offset minutes.
+├── run.lock.d         # SHARED portable lock dir — held while either pipeline
+│                      # runs. The cc-parity sibling (scripts/cc-parity/) takes
+│                      # the same lock so the two updaters block each other on
+│                      # purpose, whether run back-to-back or separately.
 └── sdk-updater/
     ├── env                # secrets (chmod 600). Optional; falls back to inherited env.
     ├── state.json         # lastCheckedAt, lastSeenVersion, lastCompletedVersion, inFlight, skipped
@@ -106,7 +120,7 @@ additive on top of the standalone flows.
 ## How a firing flows
 
 1. **Cron** invokes `scripts/sdk-update/run.sh` at the top of every hour.
-2. **`run.sh`** takes a `flock` (no overlapping firings), sources
+2. **`run.sh`** takes the portable lock (no overlapping firings), sources
    `.claudius/sdk-updater/env`, then runs `check.ts`.
 3. **`check.ts`** GETs `registry.npmjs.org/@anthropic-ai/claude-agent-sdk/latest`,
    compares against `package.json`, and emits one JSON line:
@@ -210,20 +224,40 @@ the gate, pushes, and — if everything goes green — marks the PR ready
 and drops the `needs-human` label. It posts a **"working on PR #N"**
 message when it starts and a **result** message when it finishes, so
 each interaction with the PR is visible on the community channel.
-Neither fix message is pinned. Runs under the same `flock` as the cron
+Neither fix message is pinned. Runs under the same lock as the cron
 path, so it won't overlap an in-flight upgrade.
 
 ---
 
-## Setup on a Linux server
+## Setup (Linux server or macOS)
 
-You need a long-lived host (not your laptop) with internet access to
-npm, GitHub, your chat-server, and the Anthropic API.
+You need a long-lived host with internet access to npm, GitHub, your
+chat-server, and the Anthropic API. A Linux server is the typical
+deploy, but macOS works too — the lock is portable and needs no `flock`.
 
 ### 1. Required commands
 
-`bun`, `git`, `gh` (≥ 2.30, for `pr checks --watch --fail-fast`),
-`flock` (in `util-linux` — present on every mainstream distro).
+`bun`, `git`, `gh` (≥ 2.30, for `pr checks --watch --fail-fast`). No
+`flock` required — locking is a portable `mkdir`+PID lock
+([scripts/lib/run-lock.sh](../lib/run-lock.sh)).
+
+> **macOS notes (two gotchas that cause silent no-ops):**
+>
+> 1. **PATH.** cron/launchd run with a minimal `PATH` (`/usr/bin:/bin`),
+>    which won't find `bun` (`~/.bun/bin`) or Homebrew's `gh`
+>    (`/opt/homebrew/bin` on Apple Silicon, `/usr/local/bin` on Intel).
+>    `scripts/update-pipeline.sh` prepends those before running the
+>    pipelines, so install the **combined** cron (step 7) on a Mac rather
+>    than the per-pipeline lines. If your tools live elsewhere, edit the
+>    `export PATH=…` line at the top of `update-pipeline.sh`.
+> 2. **Full Disk Access.** Since macOS Catalina, `/usr/sbin/cron` has no
+>    Full Disk Access by default, so a cron job's reads of protected
+>    paths fail silently — including `~/.claude/.credentials.json` (the
+>    SDK's default auth). Grant it once: **System Settings → Privacy &
+>    Security → Full Disk Access → add `/usr/sbin/cron`** (⌘⇧G to type
+>    the path). Without this the hourly run fires and quietly does
+>    nothing. (Alternatively put `ANTHROPIC_API_KEY` in the env file so
+>    no protected-path read is needed.)
 
 ### 2. Clone + install
 
@@ -292,13 +326,29 @@ curl -X POST "$CHAT_SERVER_URL/admin/rooms" \
 
 ### 7. Install the cron line
 
+**Recommended — one cron that runs both pipelines:**
+
+```bash
+make update-install-cron
+```
+
+This appends a single hourly `0 * * * *` entry that runs
+`scripts/update-pipeline.sh` (sdk-update, then cc-parity). Idempotent;
+inspect with `crontab -l`, remove with `make update-uninstall-cron`.
+This is also the right choice on macOS (it sets a cron-safe `PATH`).
+
+<details>
+<summary>Or install just this pipeline's own cron line</summary>
+
 ```bash
 make sdk-update-install-cron
 ```
 
-This appends one hourly entry to the current user's crontab and is
-idempotent. Inspect it with `crontab -l`. Remove with
-`make sdk-update-uninstall-cron`.
+Appends one hourly entry for sdk-update only. If you also install
+`make cc-parity-install-cron`, the two fire at offset minutes
+(`0` / `15`) and block each other via the shared lock. Prefer the
+combined line above unless you specifically want them split.
+</details>
 
 ### 8. Smoke-test
 
@@ -322,7 +372,7 @@ manually, or temporarily set `SDK_UPDATE_MAX_MINOR_JUMP` higher.
 | `make sdk-update-run` | One-shot manual firing — same code path as the cron line. **Will** create a branch, push, and open a PR if a new version is out. |
 | `make sdk-update-fix-pr PR=<n>` | Re-run Claude against an existing PR by number to fix it (gate failures / review feedback). **Will** push to the PR's branch. Optional `MSG="…"` instruction and `SKIP=lint,e2e`. Posts start + result messages to the community channel. |
 | `make sdk-update-dry-run` | Same as `sdk-update-run` through the gate, then stops **before** push/PR/CI/announce. Branch + Claude's commits stay on disk for inspection. Pass `SKIP=e2e` (or any comma-separated subset of `lint,unit,build,e2e`) to skip slow gate steps — the typical fast-feedback combo is `SKIP=e2e make sdk-update-dry-run`. |
-| `make sdk-update-status` | Prints `state.json` and tells you if `run.lock` is currently held. |
+| `make sdk-update-status` | Prints `state.json` and tells you if the shared lock (`run.lock.d`) is currently held. |
 | `make sdk-update-logs` | Tails the cron log. `make sdk-update-logs FOLLOW=1` for `tail -f`. |
 | `make sdk-update-install-cron` | Adds the hourly entry to the current user's crontab. Idempotent. |
 | `make sdk-update-uninstall-cron` | Removes the entry. |
@@ -370,12 +420,12 @@ until green.
 | --- | --- | --- |
 | PR opens but is `draft` with `needs-human` | Budget exhausted or gate red | Open the PR, read the warning banner + run-notes section, fix the remaining issues by hand or with `claude` locally on that branch, then mark ready. |
 | `check.ts` keeps emitting `skip` for the same version | Jump exceeds `SDK_UPDATE_MAX_MINOR_JUMP` | Pre-bump manually toward latest, or raise the limit. Skipped versions live in `state.skipped` — the entry is removed automatically the moment `decide()` makes a `run` choice. |
-| `run.lock` is held but no orchestrator is running | Previous firing was killed mid-run | `rm .claudius/run.lock` (the lock now lives at the shared `.claudius/run.lock`, see Layout above). `state.inFlight` self-heals on its own after `SDK_UPDATE_STALE_INFLIGHT_HOURS` (default 24h); set the var lower or `rm state.json` to short-circuit. |
+| Lock is held but no orchestrator is running | Previous firing was killed mid-run | The portable lock self-clears: the next firing sees the holder PID is dead and reclaims it. To force it, `rm -rf .claudius/run.lock.d`. `state.inFlight` self-heals after `SDK_UPDATE_STALE_INFLIGHT_HOURS` (default 24h); set the var lower or `rm state.json` to short-circuit. |
 | `check.ts` keeps returning `in-flight` after a previous crash | `state.inFlight` was never cleared (SIGKILL / OOM / host reboot) | Wait for the 24h self-heal, OR `rm .claudius/sdk-updater/state.json` for immediate recovery (it's rebuilt with defaults on next run). |
 | Two PRs appear (one from this updater, one from Dependabot) | Both bots have npm-ecosystem updates enabled | Exclude `@anthropic-ai/claude-agent-sdk` from `.github/dependabot.yml`, or accept the duplication and close one. |
 | PR was announced but no pinned "shipped" message | CI failed | The PR-open announce (step 15) always fires; the pinned "shipped" message (step 17) is deliberately withheld until CI is green. Look at the PR's checks tab, then `make sdk-update-fix-pr PR=<n>`. |
 | PR opened but nothing posted to the channel at all | chat-server unreachable, or `CHAT_SERVER_URL` / token wrong | Announce is best-effort — check the cron log for a `WARN community announce failed` line. The PR is unaffected; fix the chat-server config and the next run/fix will post. |
-| Cron silently does nothing | flock held, env file missing, or `check.ts` exited non-zero | `make sdk-update-status` + `make sdk-update-logs`. |
+| Cron silently does nothing | lock held, env file missing, `check.ts` exited non-zero, or (macOS) `bun`/`gh` not on cron's `PATH` | `make sdk-update-status` + `make sdk-update-logs`. On macOS use the combined `make update-install-cron` so `PATH` is set for cron. |
 
 ---
 

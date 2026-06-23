@@ -1,4 +1,4 @@
-.PHONY: help install dev build start lint unit test test-ui test-e2e-electron test-setup test-setup-local test-setup-docker test-install-public ci site screenshots screenshots-full claudius-revert claudius-revert-all run up down restart status logs electron electron-dev electron-build electron-icons electron-app electron-dist electron-dmg electron-e2e-loop sdk-update-check sdk-update-run sdk-update-fix-pr sdk-update-dry-run sdk-update-status sdk-update-logs sdk-update-install-cron sdk-update-uninstall-cron cc-parity-check cc-parity-run cc-parity-fix-pr cc-parity-dry-run cc-parity-status cc-parity-logs cc-parity-install-cron cc-parity-uninstall-cron debug-export recover documentation
+.PHONY: help install dev build start lint unit test test-ui test-e2e-electron test-setup test-setup-local test-setup-docker test-install-public ci site screenshots screenshots-full claudius-revert claudius-revert-all run up down restart status logs electron electron-dev electron-build electron-icons electron-app electron-dist electron-dmg electron-e2e-loop update-run update-dry-run update-logs update-install-cron update-uninstall-cron sdk-update-check sdk-update-run sdk-update-fix-pr sdk-update-dry-run sdk-update-status sdk-update-logs sdk-update-install-cron sdk-update-uninstall-cron cc-parity-check cc-parity-run cc-parity-fix-pr cc-parity-dry-run cc-parity-status cc-parity-logs cc-parity-install-cron cc-parity-uninstall-cron debug-export recover documentation
 
 # List every target, grouped by the section headers below.
 help:
@@ -201,6 +201,74 @@ claudius-revert:
 claudius-revert-all:
 	bun bin/claudius-revert --all
 
+# ── Combined update pipeline (scripts/update-pipeline.sh) ──────────────
+# ONE cron that runs BOTH the SDK updater and the cc-parity reviewer
+# back-to-back in a single firing (SDK first; its combined mode absorbs a
+# claude-code release when both moved, so cc-parity then noops — no double
+# work). Portable lock + macOS-friendly PATH, so this is the recommended
+# entrypoint on a Mac as well as a Linux server. See update-pipeline.sh.
+
+# One-shot manual fire of BOTH pipelines — same code path as the cron.
+# WILL create branches, push, and open PRs if there's a new release.
+update-run:
+	@scripts/update-pipeline.sh
+
+# Local dry-run of BOTH pipelines: runs through the gates, then stops
+# before push / PR / CI watch / announce. Skip slow gate steps with SKIP
+# (comma-separated of lint,unit,build,e2e).
+update-dry-run:
+	@SDK_UPDATE_DRY_RUN=1 CC_PARITY_DRY_RUN=1 \
+		SDK_UPDATE_SKIP_GATES="$(SKIP)" CC_PARITY_SKIP_GATES="$(SKIP)" \
+		scripts/update-pipeline.sh
+
+# Tail the combined cron log. Pass FOLLOW=1 to stream (-f).
+update-logs:
+	@mkdir -p .claudius/logs
+	@touch .claudius/logs/update-pipeline.log
+	@if [ "$(FOLLOW)" = "1" ]; then \
+		tail -f .claudius/logs/update-pipeline.log; \
+	else \
+		tail -n 200 .claudius/logs/update-pipeline.log; \
+	fi
+
+# Install the SINGLE hourly crontab line that runs both pipelines.
+# Idempotent. Warns if the older split per-pipeline cron lines are still
+# present (run `make sdk-update-uninstall-cron cc-parity-uninstall-cron`
+# to drop them — the combined line supersedes both).
+update-install-cron:
+	@ROOT="$$(pwd)"; \
+	mkdir -p "$$ROOT/.claudius/logs"; \
+	LINE="0 * * * * $$ROOT/scripts/update-pipeline.sh >> $$ROOT/.claudius/logs/update-pipeline.log 2>&1"; \
+	TMP="$$(mktemp)"; \
+	crontab -l 2>/dev/null > "$$TMP" || true; \
+	if grep -qF "scripts/update-pipeline.sh" "$$TMP"; then \
+		echo "✓ crontab already contains the combined update-pipeline entry — leaving it alone"; \
+	else \
+		echo "$$LINE" >> "$$TMP"; \
+		crontab "$$TMP"; \
+		echo "✓ installed: $$LINE"; \
+	fi; \
+	if grep -qE "scripts/(sdk-update|cc-parity)/run.sh" "$$TMP"; then \
+		echo "⚠ note: the older split cron line(s) for sdk-update/cc-parity are still installed."; \
+		echo "  The combined line supersedes them — remove with:"; \
+		echo "    make sdk-update-uninstall-cron cc-parity-uninstall-cron"; \
+	fi; \
+	rm -f "$$TMP"
+
+# Remove the combined crontab line.
+update-uninstall-cron:
+	@TMP="$$(mktemp)"; \
+	crontab -l 2>/dev/null > "$$TMP" || true; \
+	if grep -qF "scripts/update-pipeline.sh" "$$TMP"; then \
+		grep -vF "scripts/update-pipeline.sh" "$$TMP" > "$$TMP.new"; \
+		crontab "$$TMP.new"; \
+		echo "✓ removed combined update-pipeline entry from crontab"; \
+		rm -f "$$TMP.new"; \
+	else \
+		echo "✓ no combined update-pipeline entry in crontab — nothing to do"; \
+	fi; \
+	rm -f "$$TMP"
+
 # ── SDK updater (scripts/sdk-update/) ──────────────────────────────────
 # Hourly cron pipeline that watches npm for new @anthropic-ai/claude-agent-sdk
 # releases, lets Claude do the upgrade, opens a PR, watches CI, and
@@ -267,11 +335,9 @@ sdk-update-status:
 		echo "(no state file yet — updater has never run on this host)"; \
 	fi
 	@echo
-	@if [ -f .claudius/run.lock ] && command -v flock >/dev/null 2>&1; then \
-		if ! flock -n -s .claudius/run.lock -c true 2>/dev/null; then \
-			echo "── lock ──────────────────────────────────────────"; \
-			echo "run.lock is currently HELD — a pipeline is in flight (shared between sdk-update and cc-parity)"; \
-		fi; \
+	@if [ -f .claudius/run.lock.d/holder.pid ] && kill -0 "$$(cat .claudius/run.lock.d/holder.pid 2>/dev/null)" 2>/dev/null; then \
+		echo "── lock ──────────────────────────────────────────"; \
+		echo "run.lock.d is currently HELD by pid $$(cat .claudius/run.lock.d/holder.pid) — a pipeline is in flight (shared between sdk-update and cc-parity)"; \
 	fi
 
 # Tail the cron log. Pass FOLLOW=1 to stream (-f).
@@ -320,7 +386,7 @@ sdk-update-uninstall-cron:
 # Hourly cron pipeline that watches npm for new @anthropic-ai/claude-code
 # releases, classifies each changelog entry A/B/C, and reimplements the
 # bucket-B items in Claudius. Sibling to sdk-update; shares the same
-# .claudius/run.lock so the two cron lines block each other on purpose.
+# .claudius/run.lock.d so the two pipelines block each other on purpose.
 # See scripts/cc-parity/README.md for the architecture + bucketing model.
 #
 # Env (loaded from .claudius/cc-parity/env if present, else falls back to
@@ -371,7 +437,7 @@ cc-parity-dry-run:
 
 # Status summary — last check time, current state, in-flight review
 # (if any). Read-only. Also reports the SHARED lock state from
-# .claudius/run.lock (held by either pipeline).
+# .claudius/run.lock.d (held by either pipeline).
 cc-parity-status:
 	@if [ -f .claudius/cc-parity/state.json ]; then \
 		echo "── state.json ─────────────────────────────────────"; \
@@ -380,11 +446,9 @@ cc-parity-status:
 		echo "(no state file yet — cc-parity has never run on this host)"; \
 	fi
 	@echo
-	@if [ -f .claudius/run.lock ] && command -v flock >/dev/null 2>&1; then \
-		if ! flock -n -s .claudius/run.lock -c true 2>/dev/null; then \
-			echo "── lock ──────────────────────────────────────────"; \
-			echo "run.lock is currently HELD — a pipeline is in flight (shared between sdk-update and cc-parity)"; \
-		fi; \
+	@if [ -f .claudius/run.lock.d/holder.pid ] && kill -0 "$$(cat .claudius/run.lock.d/holder.pid 2>/dev/null)" 2>/dev/null; then \
+		echo "── lock ──────────────────────────────────────────"; \
+		echo "run.lock.d is currently HELD by pid $$(cat .claudius/run.lock.d/holder.pid) — a pipeline is in flight (shared between sdk-update and cc-parity)"; \
 	fi
 
 # Tail the cron log. Pass FOLLOW=1 to stream (-f).

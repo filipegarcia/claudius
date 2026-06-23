@@ -2,8 +2,9 @@
 # scripts/sdk-update/run.sh — hourly cron entrypoint for the SDK updater.
 #
 # What this does:
-#   1. Acquire a flock so two firings can't overlap (one upgrade run
-#      may legitimately take hours).
+#   1. Acquire a portable single-instance lock so two firings can't
+#      overlap (one upgrade run may legitimately take hours). Works on
+#      macOS — no flock needed. See scripts/lib/run-lock.sh.
 #   2. Run `check.ts` — exits fast if there's no new SDK version.
 #   3. If there is one, call `orchestrate.ts` which does branch +
 #      Claude run + PR + CI watch + announce.
@@ -44,8 +45,9 @@
 #   crontab /tmp/cron.cur
 #
 # ─── Required commands on PATH ───────────────────────────────────────
-#   bun, git, gh, flock (util-linux). macOS doesn't ship flock — the
-#   target deploy is Linux per the user's "remote server, not my Mac".
+#   bun, git, gh. Locking is portable (scripts/lib/run-lock.sh), so no
+#   flock is required — runs on macOS and Linux alike. When launched from
+#   cron, scripts/update-pipeline.sh sets a macOS-friendly PATH first.
 
 set -euo pipefail
 
@@ -53,13 +55,13 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 STATE_DIR="$ROOT/.claudius/sdk-updater"
 LOG_DIR="$STATE_DIR/logs"
-# The flock lives at the SHARED location `$ROOT/.claudius/run.lock` so the
+# The lock lives at the SHARED location `$ROOT/.claudius/run.lock.d` so the
 # SDK-update pipeline and the CC-parity sibling pipeline
-# (scripts/cc-parity/) block each other on purpose. Their crons fire at
-# offset minutes (`0 * * * *` vs `15 * * * *`) so on a normal hour they
-# finish well before the next pipeline starts; if one runs long, the other
-# backs off cleanly via the "lock held, skipping" branch below.
-LOCK_FILE="$ROOT/.claudius/run.lock"
+# (scripts/cc-parity/) block each other on purpose — whether they're run
+# back-to-back by scripts/update-pipeline.sh (the recommended single cron)
+# or as two separate firings. If one runs long, the other backs off
+# cleanly via the "lock held, skipping" branch below.
+LOCK_DIR="$ROOT/.claudius/run.lock.d"
 ENV_FILE="$STATE_DIR/env"
 
 mkdir -p "$STATE_DIR" "$LOG_DIR" "$ROOT/.claudius"
@@ -78,12 +80,14 @@ log() {
 }
 
 # ── Concurrency guard ────────────────────────────────────────────────
-# flock -n exits 1 immediately if the lock is held. We use a separate
-# fd (200) so it lives for the duration of this process — when the
-# script exits, the kernel releases the lock for us.
-exec 200>"$LOCK_FILE"
-if ! flock -n 200; then
-  log "another run is already in progress (lock held on $LOCK_FILE) — skipping"
+# Portable single-instance lock (works on macOS — no flock). Released
+# via an EXIT trap, so the final orchestrate must be a plain `bun run`
+# (NOT `exec bun run`): `exec` would replace this shell and discard the
+# trap, leaking the lock dir. See scripts/lib/run-lock.sh.
+# shellcheck source=scripts/lib/run-lock.sh
+. "$ROOT/scripts/lib/run-lock.sh"
+if ! run_lock_acquire "$LOCK_DIR"; then
+  log "another run is already in progress (lock held on $LOCK_DIR) — skipping"
   exit 0
 fi
 
@@ -92,7 +96,7 @@ cd "$ROOT"
 # ── Mode dispatch ────────────────────────────────────────────────────
 # `run.sh fix-pr <number>` skips the npm version probe entirely: it
 # checks out an existing PR's branch and re-runs Claude to fix it.
-# Everything above this point (env loading, flock) is shared with the
+# Everything above this point (env loading, lock) is shared with the
 # cron upgrade path below. Invoked by `make sdk-update-fix-pr PR=<n>`.
 if [ "${1:-}" = "fix-pr" ]; then
   FIX_PR_NUM="${2:-}"
@@ -106,11 +110,13 @@ if [ "${1:-}" = "fix-pr" ]; then
     log "skipping gates: ${SDK_UPDATE_SKIP_GATES}"
     ORCH_ARGS+=("--skip-gates=${SDK_UPDATE_SKIP_GATES}")
   fi
-  exec bun run scripts/sdk-update/orchestrate.ts "${ORCH_ARGS[@]}"
+  # Plain `bun run` (not `exec`) so the lock's EXIT trap still fires.
+  bun run scripts/sdk-update/orchestrate.ts "${ORCH_ARGS[@]}"
+  exit $?
 fi
 
 # ── Check ────────────────────────────────────────────────────────────
-# We hold the exclusive flock from here on (see the concurrency guard
+# We hold the exclusive lock from here on (see the concurrency guard
 # above). A live orchestrate would still be holding that lock — so the
 # fact that we acquired it proves none is running. That means any
 # `inFlight` marker check.ts finds in state.json is necessarily STALE,
@@ -192,4 +198,6 @@ if [ -n "${SDK_UPDATE_SKIP_GATES:-}" ]; then
   log "skipping gates: ${SDK_UPDATE_SKIP_GATES}"
   ORCH_ARGS+=("--skip-gates=${SDK_UPDATE_SKIP_GATES}")
 fi
-exec bun run scripts/sdk-update/orchestrate.ts "${ORCH_ARGS[@]}"
+# Plain `bun run` (not `exec`) so the lock's EXIT trap releases the lock
+# dir when the orchestrator returns. See the concurrency guard above.
+bun run scripts/sdk-update/orchestrate.ts "${ORCH_ARGS[@]}"

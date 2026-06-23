@@ -3,14 +3,19 @@
 Hourly pipeline that watches npm for new `@anthropic-ai/claude-code`
 releases (the CLI npm package), reviews the changelog for features
 Claudius should reimplement in the browser, and opens a PR. Sibling
-to the SDK updater under `scripts/sdk-update/`. Designed to be
-installed as a cron line on a Linux server you control — not your
-laptop.
+to the SDK updater under `scripts/sdk-update/`. Designed to run from
+cron on a long-lived host you control — a Linux server or a Mac
+(locking is portable, no `flock`).
 
-The two pipelines share `.claudius/run.lock` so they block each other
-on purpose: their cron lines fire at offset minutes (`0 * * * *` for
-SDK, `15 * * * *` for cc-parity) and on a normal hour each finishes
-well before the other starts.
+**Recommended: one cron for both.** `scripts/update-pipeline.sh` runs
+the SDK updater and this reviewer back-to-back in a single firing (SDK
+first — its combined mode absorbs a claude-code release when both moved,
+so this half then noops). Install it with `make update-install-cron`.
+
+The two pipelines share `.claudius/run.lock.d` so they block each other
+on purpose: whether run back-to-back by the combined entrypoint or as
+two separate firings, a long-running one makes the other back off
+cleanly.
 
 ---
 
@@ -170,14 +175,14 @@ scripts/cc-parity/
 ├── prompt.md          # the review prompt Claude runs with
 ├── fix-prompt.md      # the fix-an-existing-PR prompt
 ├── pr-template.md     # PR body template
-└── run.sh             # cron entrypoint with flock guard (shared lock)
+└── run.sh             # cron entrypoint with portable-lock guard (shared lock)
 ```
 
 State lives alongside other Claudius local state:
 
 ```
 .claudius/
-├── run.lock                # SHARED flock — same file the sdk-update pipeline uses
+├── run.lock.d              # SHARED portable lock dir — same lock the sdk-update pipeline uses
 └── cc-parity/
     ├── env                     # optional secrets; falls back to .claudius/sdk-updater/env
     ├── state.json              # lastCheckedAt, lastSeenVersion, lastCompletedVersion, inFlight, skipped
@@ -192,7 +197,7 @@ Everything under `.claudius/` is already gitignored.
 ## How a firing flows
 
 1. **Cron** invokes `scripts/cc-parity/run.sh` at 15 past every hour.
-2. **`run.sh`** takes the SHARED `flock` (no overlap with sdk-update),
+2. **`run.sh`** takes the SHARED portable lock (no overlap with sdk-update),
    sources `.claudius/cc-parity/env` (or falls back to
    `.claudius/sdk-updater/env`), then runs `check.ts`.
 3. **`check.ts`** GETs
@@ -258,12 +263,12 @@ make cc-parity-fix-pr PR=123 SKIP=e2e
 ```
 
 Same flow as the SDK updater's `fix-pr` mode but with cc-parity
-wording on the start + result messages. Runs under the SHARED `flock`,
+wording on the start + result messages. Runs under the SHARED lock,
 so it won't overlap an in-flight SDK update either.
 
 ---
 
-## Setup on a Linux server
+## Setup (Linux server or macOS)
 
 If you already have the SDK updater installed, most of the setup is
 done. No extra Anthropic credentials, gh tokens, or chat-server tokens
@@ -272,7 +277,14 @@ needed — the cc-parity pipeline reads from
 
 ### 1. Required commands
 
-`bun`, `git`, `gh` (≥ 2.30), `flock` (in `util-linux`), `curl`.
+`bun`, `git`, `gh` (≥ 2.30), `curl`. No `flock` — the lock is portable
+([scripts/lib/run-lock.sh](../lib/run-lock.sh)), so this runs on macOS too.
+
+> **macOS:** install the combined cron (`make update-install-cron`) so
+> cron gets a working `PATH`, and grant `/usr/sbin/cron` **Full Disk
+> Access** (System Settings → Privacy & Security) or the run silently
+> no-ops on credential reads. See the sdk-update README's macOS notes
+> for the full explanation.
 
 ### 2. Optional cc-parity env file
 
@@ -303,16 +315,29 @@ defaults take effect — no further setup needed.
 
 ### 3. Install the cron line
 
+**Recommended — one cron for both pipelines** (and required on macOS,
+where it sets a cron-safe `PATH`):
+
+```bash
+make update-install-cron
+```
+
+This installs a single `0 * * * *` entry running
+`scripts/update-pipeline.sh`, which runs sdk-update then cc-parity in
+one firing. No separate cc-parity line needed.
+
+<details>
+<summary>Or install just this pipeline's own cron line</summary>
+
 ```bash
 make cc-parity-install-cron
 ```
 
-This appends a `15 * * * *` entry to the current user's crontab and is
-idempotent. Inspect with `crontab -l`; remove with
-`make cc-parity-uninstall-cron`. The 15-minute offset from the
-sdk-update line (`0 * * * *`) means a normal-length sdk-update finishes
-before this one fires, and a long-running one cleanly blocks it via
-the shared lock.
+Appends a `15 * * * *` entry (offset from the sdk-update line at `0`)
+so a normal-length sdk-update finishes before this fires, and a
+long-running one cleanly blocks it via the shared lock. Prefer the
+combined line above unless you specifically want them split.
+</details>
 
 ### 4. Smoke-test
 
@@ -337,7 +362,7 @@ review on day one.
 | `make cc-parity-run` | One-shot manual firing — same code path as the cron line. **Will** create a branch, push, and open a PR if a substantive release is out. |
 | `make cc-parity-fix-pr PR=<n>` | Re-run Claude against an existing PR by number. **Will** push to the PR's branch. Optional `MSG="…"` instruction and `SKIP=lint,e2e`. |
 | `make cc-parity-dry-run` | Same as `cc-parity-run` through the gate, then stops before push/PR/CI/announce. Pass `SKIP=e2e` for fast iteration. |
-| `make cc-parity-status` | Prints `state.json` and tells you if the SHARED `run.lock` is currently held. |
+| `make cc-parity-status` | Prints `state.json` and tells you if the SHARED lock (`run.lock.d`) is currently held. |
 | `make cc-parity-logs` | Tails the cron log. `FOLLOW=1` for `tail -f`. |
 | `make cc-parity-install-cron` | Adds the `15 * * * *` entry to the current user's crontab. Idempotent. |
 | `make cc-parity-uninstall-cron` | Removes the entry. |

@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# scripts/cc-parity/run.sh — hourly cron entrypoint for the cc-parity
-# reviewer. Sibling to scripts/sdk-update/run.sh; shares the same flock
-# at $ROOT/.claudius/run.lock so the two pipelines block each other on
-# purpose (cron lines fire at offset minutes — `0 * * * *` for SDK,
-# `15 * * * *` for cc-parity).
+# scripts/cc-parity/run.sh — cron entrypoint for the cc-parity reviewer.
+# Sibling to scripts/sdk-update/run.sh; shares the same portable lock at
+# $ROOT/.claudius/run.lock.d so the two pipelines block each other on
+# purpose. Normally both are run back-to-back in one firing by
+# scripts/update-pipeline.sh (the recommended single cron).
 #
 # What this does:
-#   1. Acquire the SHARED flock so an in-flight sdk-update OR cc-parity
+#   1. Acquire the SHARED lock so an in-flight sdk-update OR cc-parity
 #      run skips this firing cleanly.
 #   2. Run `check.ts` — exits fast unless there's a new claude-code
 #      release worth reviewing (and not just a bug-fix release).
@@ -33,13 +33,12 @@
 #   EOF
 #   chmod 600 .claudius/cc-parity/env
 #
-#   # crontab line — 15 past the hour so it doesn't collide with the
-#   # sdk-update line (which fires at :00).
-#   make cc-parity-install-cron
+#   # Recommended: one cron that runs BOTH pipelines back-to-back.
+#   make update-install-cron
 #
 # ─── Required commands on PATH ───────────────────────────────────────
-#   bun, git, gh, flock (util-linux), curl. macOS doesn't ship flock;
-#   the target deploy is Linux.
+#   bun, git, gh, curl. Locking is portable (scripts/lib/run-lock.sh),
+#   so no flock is required — runs on macOS and Linux alike.
 
 set -euo pipefail
 
@@ -47,11 +46,11 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 STATE_DIR="$ROOT/.claudius/cc-parity"
 LOG_DIR="$STATE_DIR/logs"
-# SHARED flock — see the matching comment in scripts/sdk-update/run.sh.
-# The two cron lines block each other on purpose so a long-running
+# SHARED lock — see the matching comment in scripts/sdk-update/run.sh.
+# The two pipelines block each other on purpose so a long-running
 # sdk-update doesn't have a cc-parity firing land mid-stream and
 # clobber the working tree.
-LOCK_FILE="$ROOT/.claudius/run.lock"
+LOCK_DIR="$ROOT/.claudius/run.lock.d"
 ENV_FILE="$STATE_DIR/env"
 
 mkdir -p "$STATE_DIR" "$LOG_DIR" "$ROOT/.claudius"
@@ -75,12 +74,14 @@ log() {
 }
 
 # ── Concurrency guard ────────────────────────────────────────────────
-# flock -n exits 1 immediately if the lock is held. We use a separate
-# fd (200) so it lives for the duration of this process — when the
-# script exits, the kernel releases the lock for us.
-exec 200>"$LOCK_FILE"
-if ! flock -n 200; then
-  log "another pipeline is already in progress (lock held on $LOCK_FILE) — skipping"
+# Portable single-instance lock (works on macOS — no flock). Released
+# via an EXIT trap, so the final orchestrate must be a plain `bun run`
+# (NOT `exec bun run`): `exec` would replace this shell and discard the
+# trap, leaking the lock dir. See scripts/lib/run-lock.sh.
+# shellcheck source=scripts/lib/run-lock.sh
+. "$ROOT/scripts/lib/run-lock.sh"
+if ! run_lock_acquire "$LOCK_DIR"; then
+  log "another pipeline is already in progress (lock held on $LOCK_DIR) — skipping"
   exit 0
 fi
 
@@ -102,11 +103,13 @@ if [ "${1:-}" = "fix-pr" ]; then
     log "skipping gates: ${CC_PARITY_SKIP_GATES}"
     ORCH_ARGS+=("--skip-gates=${CC_PARITY_SKIP_GATES}")
   fi
-  exec bun run scripts/cc-parity/orchestrate.ts "${ORCH_ARGS[@]}"
+  # Plain `bun run` (not `exec`) so the lock's EXIT trap still fires.
+  bun run scripts/cc-parity/orchestrate.ts "${ORCH_ARGS[@]}"
+  exit $?
 fi
 
 # ── Check ────────────────────────────────────────────────────────────
-# We hold the exclusive flock from here on. A live orchestrate would
+# We hold the exclusive lock from here on. A live orchestrate would
 # still be holding that lock — so the fact that we acquired it proves
 # none is running. Tell check.ts to reclaim any stale inFlight marker
 # immediately instead of waiting 24h.
@@ -170,4 +173,6 @@ if [ -n "${CC_PARITY_SKIP_GATES:-}" ]; then
   log "skipping gates: ${CC_PARITY_SKIP_GATES}"
   ORCH_ARGS+=("--skip-gates=${CC_PARITY_SKIP_GATES}")
 fi
-exec bun run scripts/cc-parity/orchestrate.ts "${ORCH_ARGS[@]}"
+# Plain `bun run` (not `exec`) so the lock's EXIT trap releases the lock
+# dir when the orchestrator returns. See the concurrency guard above.
+bun run scripts/cc-parity/orchestrate.ts "${ORCH_ARGS[@]}"
