@@ -824,6 +824,36 @@ export function sliceChangelog(
   return lines.slice(newIdx, end).join("\n").trim();
 }
 
+/**
+ * Return just the one `## [<version>]` section from a Keep-a-Changelog
+ * file — everything from that heading up to (but excluding) the next
+ * `## ` heading. Returns null if the version heading is missing.
+ *
+ * `sliceChangelog(prev, new)` can't do this when `prev === new` (its
+ * `end` falls through to EOF and you get the whole tail), so the
+ * SDK-PR "Claude Code is already current → show the latest release
+ * notes" path needs this dedicated single-section slicer.
+ *
+ * Exported so unit tests can pin it without a network/file dependency.
+ */
+export function sliceSingleSection(
+  source: string,
+  version: string,
+): string | null {
+  const lines = source.split(/\r?\n/);
+  const heading = new RegExp(`^##\\s+\\[?v?${escapeRegExp(version)}\\]?`, "i");
+  const start = lines.findIndex((l) => heading.test(l));
+  if (start < 0) return null;
+  let end = lines.length;
+  for (let i = start + 1; i < lines.length; i++) {
+    if (/^##\s+/.test(lines[i]!)) {
+      end = i;
+      break;
+    }
+  }
+  return lines.slice(start, end).join("\n").trim();
+}
+
 // ── Prompt rendering ──────────────────────────────────────────────────
 
 function renderPrompt(
@@ -1576,16 +1606,37 @@ function buildScreenshotsBlock(branch: string, version: string): string {
   return lines.join("\n\n");
 }
 
-function renderPrBody(args: {
+export function renderPrBody(args: {
   branch: string;
   prevVersion: string;
   newVersion: string;
   changelog: string;
+  /**
+   * Claude Code (NOT SDK) changelog body. Every SDK-bump PR surfaces
+   * "what's new in Claude Code" too, so a reader doesn't have to wait
+   * for a separate cc-parity PR to see it. Already-rendered markdown
+   * (a slice or a graceful "couldn't fetch" string) — never a literal
+   * placeholder. Defaults to a neutral note when the caller omits it
+   * (e.g. older call sites / tests that don't exercise the CC section).
+   */
+  ccChangelog?: string;
+  /** Compare/release URL for the CC changelog above. */
+  ccChangelogUrl?: string;
   budgetWarning: string;
+  /** Override for tests; production reads pr-template.md. */
+  template?: string;
+  /** Override for tests; production reads dirs under docs/. */
+  screenshotsBlock?: string;
 }): string {
   const notesFile = runNotesPath(args.newVersion);
   const notes = existsSync(notesFile) ? readFileSync(notesFile, "utf8") : "";
-  const tpl = readFileSync(resolve(SCRIPT_DIR, "pr-template.md"), "utf8");
+  const tpl =
+    args.template ?? readFileSync(resolve(SCRIPT_DIR, "pr-template.md"), "utf8");
+  const ccChangelog =
+    args.ccChangelog ??
+    "_(Claude Code changelog not resolved this run — see https://github.com/anthropics/claude-code/releases)_";
+  const ccChangelogUrl =
+    args.ccChangelogUrl ?? "https://github.com/anthropics/claude-code/releases";
 
   return tpl
     .replace(/\{\{NEW_VERSION\}\}/g, args.newVersion)
@@ -1595,14 +1646,89 @@ function renderPrBody(args: {
       `https://github.com/${UPSTREAM_GH}/compare/v${args.prevVersion}...v${args.newVersion}`,
     )
     .replace(/\{\{CHANGELOG_BODY\}\}/g, args.changelog)
+    .replace(/\{\{CC_CHANGELOG_URL\}\}/g, ccChangelogUrl)
+    .replace(/\{\{CC_CHANGELOG_BODY\}\}/g, ccChangelog)
     .replace(/\{\{NOTES_SUMMARY\}\}/g, extractSection(notes, "Summary"))
     .replace(/\{\{NOTES_SDK\}\}/g, extractSection(notes, "SDK changelog highlights"))
     .replace(/\{\{NOTES_CODE\}\}/g, extractSection(notes, "Code changes"))
     .replace(/\{\{NOTES_UI\}\}/g, extractSection(notes, "New UI surfaces"))
     .replace(/\{\{NOTES_TESTS\}\}/g, extractSection(notes, "Tests"))
     .replace(/\{\{NOTES_RISKS\}\}/g, extractSection(notes, "Risks / follow-ups"))
-    .replace(/\{\{SCREENSHOTS_BLOCK\}\}/g, buildScreenshotsBlock(args.branch, args.newVersion))
+    .replace(
+      /\{\{SCREENSHOTS_BLOCK\}\}/g,
+      args.screenshotsBlock ??
+        buildScreenshotsBlock(args.branch, args.newVersion),
+    )
     .replace(/\{\{BUDGET_STATUS\}\}/g, args.budgetWarning);
+}
+
+/**
+ * Best-effort Claude Code changelog for the (non-combined) SDK PR.
+ *
+ * The user wants every SDK-bump PR to surface "what's new in Claude
+ * Code", not just the combined-mode PRs. We reuse the cc-parity
+ * baseline (last fully-processed CC version) → latest published CC
+ * version. When CC is already current (baseline === latest, i.e. the
+ * cc-parity pipeline is caught up), we show just the latest section —
+ * that IS "the latest Claude Code release notes".
+ *
+ * gh-independent: fetches the raw CHANGELOG over `curl` (tag-pinned
+ * first, then `main`) so a missing/unauth `gh` on the cron host never
+ * drops the section. Never throws — the SDK PR must ship regardless.
+ */
+async function resolveCcChangelogForSdkPr(): Promise<{
+  body: string;
+  url: string;
+}> {
+  const releasesUrl = "https://github.com/anthropics/claude-code/releases";
+  try {
+    const latest = await fetchCcLatestVersion();
+    const ccState = readCcState(ROOT);
+    const rawBaseline =
+      ccState.lastCompletedVersion ?? ccState.lastSeenVersion ?? null;
+    const prev = rawBaseline ? cleanRange(rawBaseline) : null;
+    const hasRange = prev != null && prev !== latest;
+    const url = hasRange
+      ? `https://github.com/anthropics/claude-code/compare/v${prev}...v${latest}`
+      : `https://github.com/anthropics/claude-code/releases/tag/v${latest}`;
+
+    let raw = "";
+    try {
+      raw = sh("curl", [
+        "-fsSL",
+        `https://raw.githubusercontent.com/anthropics/claude-code/v${latest}/CHANGELOG.md`,
+      ]);
+    } catch {
+      raw = sh("curl", [
+        "-fsSL",
+        "https://raw.githubusercontent.com/anthropics/claude-code/main/CHANGELOG.md",
+      ]);
+    }
+    if (raw.trim() === "") {
+      return {
+        body: `_(could not fetch the Claude Code changelog this run — see ${url})_`,
+        url,
+      };
+    }
+
+    const body = hasRange
+      ? (sliceChangelog(raw, prev!, latest) ?? sliceSingleSection(raw, latest))
+      : sliceSingleSection(raw, latest);
+    return {
+      body:
+        body ??
+        `_(could not slice the Claude Code changelog at v${latest} — see ${url})_`,
+      url,
+    };
+  } catch (err) {
+    log(
+      `WARN could not build Claude Code changelog for SDK PR: ${String(err)}`,
+    );
+    return {
+      body: `_(Claude Code changelog unavailable this run — see ${releasesUrl})_`,
+      url: releasesUrl,
+    };
+  }
 }
 
 // ── Combined-mode helpers (SDK + CC parity on one branch) ────────────
@@ -4210,6 +4336,10 @@ async function main(): Promise<void> {
           prevVersion,
           newVersion,
           changelog,
+          ...(await resolveCcChangelogForSdkPr().then((cc) => ({
+            ccChangelog: cc.body,
+            ccChangelogUrl: cc.url,
+          }))),
           budgetWarning: "",
         });
     const pr = isCombined

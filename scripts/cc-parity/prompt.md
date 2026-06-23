@@ -71,9 +71,33 @@ should be able to do in the browser. Examples:
   `lib/client/` to match, with a settings escape hatch if the user
   wants the old behaviour.
 
-**Action:** ship it. This is the work. Wire it through end-to-end —
-server-side handling, SSE events if needed, client hook, React
-component, settings persistence, e2e spec, screenshot. If the changelog
+**Action:** ship it — the *real* product surface, not a behind-the-scenes
+stub. Wire it through end-to-end — server-side handling, SSE events if
+needed, client hook, React component, settings persistence, e2e spec,
+screenshot.
+
+**Decide the shape first: extend an existing screen, or build a new one.**
+Every bucket-B feature is delivered one of two ways, and you must make
+the call explicitly and record it (see the run-notes "Implemented
+(bucket B)" shape):
+
+- **`[extend: <screen>]` — DEFAULT.** Add the affordance to a screen/route
+  Claudius already has. A new setting joins the existing Settings panel; a
+  new per-session indicator joins the session chrome; a new slash command
+  joins the existing command surface. Prefer this whenever the feature is a
+  variation on something Claudius already shows.
+- **`[new screen: <route>]` — only for a genuinely new domain.** Build a new
+  route/page when the feature is a first-class surface with no existing home
+  — e.g. a dedicated `/usage` dashboard, an agents browser, a workflow
+  inspector — and cramming it into an existing screen would distort that
+  screen's purpose. A new screen is more work and more review surface, so
+  reach for it only when extending would be the wrong shape, and say why
+  under the rejected alternative.
+
+Do **not** downgrade a real UI feature to a hidden settings flag just to
+play it safe — if Claude Code ships it as a visible affordance, Claudius
+should too. The guard against over-building is the adversarial UX-fit
+verification below, not refusing to build. If the changelog
 entry is thin ("Added X setting"), fetch context yourself:
 
 - `gh api repos/anthropics/claude-code/commits?path=...&sha=v{{NEW_VERSION}}`
@@ -116,10 +140,15 @@ is still a wrong implementation — the gate has no way to know.
 
 What this means for you:
 
-- **Err conservative.** When in doubt, ship a minimal, behind-the-scenes
-  surface (e.g. a settings field with no UI surface yet) and document
-  the fuller proposal under "## Risks / follow-ups" so a human can
-  approve before the bigger investment.
+- **Build the real surface, but pick the right shape.** Ship the actual
+  user-facing affordance (extend an existing screen by default; a new
+  screen only for a genuinely new domain — see Bucket B). Don't hide a
+  visible feature behind a settings-only flag to play it safe. The lever
+  that keeps this honest is the adversarial UX-fit check below, not
+  under-building. The conservatism you DO owe is on *interpretation*: when
+  a changelog entry's intent is ambiguous, pick the reading that fits
+  Claudius's conventions and record the rejected reading under "## Risks /
+  follow-ups" — don't invent scope the changelog doesn't support.
 - **Match Claudius's existing UX patterns.** Look at how the codebase
   already surfaces analogous features. Don't import Claude Code's
   CLI-flavoured affordances unchanged — translate them to the
@@ -174,10 +203,19 @@ Cover EVERY substantive entry. Pure bug-fix entries can be elided.
 
 ## Implemented (bucket B)
 
-One bullet per bucket-B item that was actually shipped, with the
-files touched. If no bucket-B items applied this release, write
-exactly one bullet `- No bucket-B items in this release. <reason>`
-and expand the reason in two-three sentences below.
+One bullet per bucket-B item that was actually shipped. Each bullet MUST
+tag its delivery shape and name the rejected alternative:
+
+- `[extend: <screen>] <feature>` — added to an existing screen/route.
+  Files touched. Rejected alternative: <e.g. "a new screen — overkill,
+  it's a variation on the existing X panel">.
+- `[new screen: <route>] <feature>` — new route/page. Files touched.
+  Rejected alternative: <e.g. "extending the sessions list — would
+  distort it; this is a distinct domain">.
+
+If no bucket-B items applied this release, write exactly one bullet
+`- No bucket-B items in this release. <reason>` and expand the reason in
+two-three sentences below.
 
 ## New UI surfaces
 
@@ -329,10 +367,13 @@ For each `[B — reimplement in Claudius]` item:
 - Tailwind v4 — no `tailwind.config.*`. Theme lives in
   `app/globals.css` under `@theme`.
 
-**Conservative defaults principle.** If a bucket-B item could be
-shipped as either a behind-the-scenes setting OR a full UI surface,
-prefer the setting first and put the UI under "## Risks / follow-ups"
-as the next-step proposal. The PR reviewer can promote it on the PR.
+**Shape-decision principle.** For every bucket-B item, decide
+`[extend: <screen>]` vs `[new screen: <route>]` (Bucket B rubric) and
+build that surface for real. Default to extending an existing screen;
+build a new screen only when the feature is a genuinely new domain that
+would distort an existing screen. Don't park a visible feature behind a
+settings-only flag — record the rejected shape under "## Risks /
+follow-ups" instead, so the reviewer can see the alternative you weighed.
 
 ### Step 4 — Tests
 

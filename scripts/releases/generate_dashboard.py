@@ -197,13 +197,7 @@ while d <= cal_end + td_cls(days=6):
         d += td_cls(days=1)
     cal_weeks.append(week)
 
-# Display newest-first: render the most recent week on the LEFT (so the most
-# recent month is leftmost) instead of the GitHub-standard oldest-left. One
-# reverse flips both the month bar and the day cells together, since both
-# iterate `cal_weeks` below; the Mon–Sun row labels stay on the left edge and
-# still label the rows correctly. Each month label lands at the left edge of
-# its block (the newest week of that month).
-cal_weeks.reverse()
+# GitHub-standard orientation: oldest week on the left, most recent on the right.
 
 CELL  = 17   # px — slightly wider so single-digit counts fit comfortably
 GAP   = 3

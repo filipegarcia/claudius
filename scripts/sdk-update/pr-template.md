@@ -9,6 +9,9 @@
     {{PREVIOUS_VERSION}}   e.g. 0.3.141
     {{CHANGELOG_URL}}      compare URL between the two tags on the upstream repo
     {{CHANGELOG_BODY}}     verbatim changelog excerpt between PREV..NEW
+    {{CC_CHANGELOG_URL}}   compare/release URL for the Claude Code (CLI) changelog
+    {{CC_CHANGELOG_BODY}}  latest Claude Code release notes (baseline..latest, or
+                           just the latest section when cc-parity is caught up)
     {{NOTES_SUMMARY}}      "## Summary" section from run-notes
     {{NOTES_SDK}}          "## SDK changelog highlights" from run-notes
     {{NOTES_CODE}}         "## Code changes" from run-notes
@@ -41,6 +44,22 @@
 ### Highlights mapped to Claudius
 
 {{NOTES_SDK}}
+
+## Claude Code changelog (upstream)
+
+What's new in **Claude Code itself** since the cc-parity pipeline last
+caught up. Surfaced on every SDK bump so you don't have to wait for a
+separate cc-parity PR to see it. Many of these land in Claudius via this
+very SDK bump; the rest are tracked by `scripts/cc-parity/`.
+
+[Compare / release on GitHub →]({{CC_CHANGELOG_URL}})
+
+<details>
+<summary>Latest claude-code release notes</summary>
+
+{{CC_CHANGELOG_BODY}}
+
+</details>
 
 ## What changed in this repo
 

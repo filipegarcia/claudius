@@ -11,7 +11,6 @@ import { TodosAutoClearedToast } from "@/components/chat/TodosAutoClearedToast";
 import { GoalBanner } from "@/components/chat/GoalBanner";
 import { useGoalBannerHidden } from "@/lib/client/useGoalBannerHidden";
 import { RecapBanner } from "@/components/chat/RecapBanner";
-import { FableLaunchTipBanner } from "@/components/chat/FableLaunchTipBanner";
 import { FeedbackBanner } from "@/components/chat/FeedbackBanner";
 import { SessionRecapBanner } from "@/components/chat/SessionRecapBanner";
 import { useAwayRecap } from "@/lib/client/useAwayRecap";
@@ -313,7 +312,7 @@ export default function Home() {
   // header controls but the toggle. The verbose override is read-only over the
   // stored per-workspace level (see `effectiveVerbose`) so exiting restores the
   // user's saved verbosity.
-  const { focusLevel, isFocus, isZen, cycleFocus } = useFocusMode();
+  const { focusLevel, isFocus, isZen, cycleFocus, setFocusLevel } = useFocusMode();
   const effectiveVerbose = isFocus ? "ultra-compact" : verbose.verbose;
   // Per-browser launch counter for first-run tip gating. `< 10` mirrors the
   // Claude Code TUI's `numStartups < 10` first-run gate on the `/powerup`
@@ -1038,6 +1037,26 @@ export default function Home() {
           showToast("New session");
           return true;
         }
+        case "focus": {
+          // Wire the /focus command to the same state the header button and
+          // ⌘. shortcut drive (useFocusMode). Bare `/focus` cycles
+          // off → focus → zen; `/focus <level>` jumps straight to a level.
+          const lvl = args.trim().toLowerCase();
+          if (lvl === "off" || lvl === "focus" || lvl === "zen") {
+            setFocusLevel(lvl);
+            showToast(lvl === "off" ? "Focus mode off" : lvl === "zen" ? "Zen mode" : "Focus mode");
+          } else {
+            cycleFocus();
+          }
+          return true;
+        }
+        case "zen": {
+          // Jump straight in/out of zen — a shortcut past the focus level.
+          const next = isZen ? "off" : "zen";
+          setFocusLevel(next);
+          showToast(next === "zen" ? "Zen mode" : "Focus mode off");
+          return true;
+        }
         case "resume": {
           if (args) router.push(`/?session=${args.trim()}`);
           else router.push("/sessions");
@@ -1452,7 +1471,7 @@ export default function Home() {
     // (see lib/client/useElectron.ts), so listing it doesn't churn the
     // callback — but eslint-rule-of-hooks wants it spelled out so a future
     // bridge-identity change doesn't silently break the /desktop branch.
-    [router, session, showToast, claudiusBridge, activePromptColor],
+    [router, session, showToast, claudiusBridge, activePromptColor, cycleFocus, setFocusLevel, isZen],
   );
 
   const handleSend = useCallback(
@@ -1863,10 +1882,6 @@ export default function Home() {
           mode={session.permissionMode}
           onExit={() => void session.setPermissionMode("default")}
         />
-        {/* One-shot launch announcement, pinned above the session header so
-            it sits at the very top of the feed. Mirrors the Claude Code TUI's
-            `tengu-top-of-feed-tip`; per-browser localStorage dismiss. */}
-        <FableLaunchTipBanner sessionId={session.sessionId} />
         {/* Session header — title and goal share one panel (two rows, one
             border) since both are session-level metadata. Hidden in zen mode
             along with the rest of the chrome. */}

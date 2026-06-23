@@ -17,8 +17,10 @@ import {
   extractSection,
   parseSkipGates,
   pickContinuationPr,
+  renderPrBody,
   type OpenPrSummary,
   sliceChangelog,
+  sliceSingleSection,
   summarizeSdkMessage,
   validateRunNotesContent,
 } from "@/scripts/sdk-update/orchestrate";
@@ -139,6 +141,121 @@ describe("sliceChangelog", () => {
     ]) {
       expect(() => sliceChangelog("## [0.3.142]\n- one", "0.3.141", bad)).not.toThrow();
     }
+  });
+});
+
+describe("sliceSingleSection", () => {
+  const sample = [
+    "# Changelog",
+    "",
+    "## 2.1.186",
+    "- Added `claude mcp login`",
+    "- Fixed a streaming bug",
+    "",
+    "## 2.1.185",
+    "- the stream-stall hint changed",
+    "",
+  ].join("\n");
+
+  test("returns only the requested version's section", () => {
+    const out = sliceSingleSection(sample, "2.1.186");
+    expect(out).toContain("Added `claude mcp login`");
+    expect(out).toContain("Fixed a streaming bug");
+    // Crucially, it stops at the NEXT `## ` heading — unlike
+    // sliceChangelog(prev===new), which would run to EOF.
+    expect(out).not.toContain("stream-stall hint changed");
+  });
+
+  test("returns the last section through EOF when it's the newest", () => {
+    const out = sliceSingleSection(sample, "2.1.185");
+    expect(out).toContain("stream-stall hint changed");
+    expect(out).not.toContain("claude mcp login");
+  });
+
+  test("returns null when the version heading is absent", () => {
+    expect(sliceSingleSection(sample, "9.9.9")).toBeNull();
+  });
+
+  test("does not throw on pathological version strings", () => {
+    for (const bad of ["2.1.186\\", "2.1.186[", "(2.1.186)", ".*"]) {
+      expect(() => sliceSingleSection(sample, bad)).not.toThrow();
+    }
+  });
+});
+
+describe("renderPrBody — Claude Code changelog section", () => {
+  const TEMPLATE = [
+    "# bump {{PREVIOUS_VERSION}} -> {{NEW_VERSION}}",
+    "{{BUDGET_STATUS}}",
+    "{{NOTES_SUMMARY}}",
+    "SDK URL: {{CHANGELOG_URL}}",
+    "SDK_BODY: {{CHANGELOG_BODY}}",
+    "CC URL: {{CC_CHANGELOG_URL}}",
+    "CC_BODY: {{CC_CHANGELOG_BODY}}",
+    "{{NOTES_SDK}}",
+    "{{NOTES_CODE}}",
+    "{{NOTES_UI}}",
+    "{{NOTES_TESTS}}",
+    "{{NOTES_RISKS}}",
+    "SHOTS: {{SCREENSHOTS_BLOCK}}",
+  ].join("\n");
+
+  const base = {
+    branch: "sdk-update/0.3.142",
+    prevVersion: "0.3.141",
+    newVersion: "0.3.142",
+    changelog: "SDK changelog body",
+    budgetWarning: "",
+    template: TEMPLATE,
+    screenshotsBlock: "NO_SHOTS",
+  };
+
+  test("substitutes the CC changelog body and URL", () => {
+    const out = renderPrBody({
+      ...base,
+      ccChangelog: "## 2.1.186\n- Added `claude mcp login`",
+      ccChangelogUrl: "https://github.com/anthropics/claude-code/releases/tag/v2.1.186",
+    });
+    expect(out).toContain("CC_BODY: ## 2.1.186");
+    expect(out).toContain("Added `claude mcp login`");
+    expect(out).toContain(
+      "CC URL: https://github.com/anthropics/claude-code/releases/tag/v2.1.186",
+    );
+    // The SDK changelog still renders alongside it.
+    expect(out).toContain("SDK_BODY: SDK changelog body");
+  });
+
+  test("never leaves a literal CC placeholder when the caller omits it", () => {
+    const out = renderPrBody(base);
+    expect(out).not.toContain("{{CC_CHANGELOG_BODY}}");
+    expect(out).not.toContain("{{CC_CHANGELOG_URL}}");
+    // Falls back to a neutral note pointing at the releases page.
+    expect(out).toContain("Claude Code changelog not resolved this run");
+  });
+
+  test("the REAL pr-template.md has no unsubstituted placeholders after render", () => {
+    // Guards against the template file and the renderer drifting apart:
+    // a placeholder added to pr-template.md with no matching `.replace()`
+    // (or vice-versa) would ship a literal `{{...}}` in a real PR. We
+    // render the on-disk template (no `template` override) and assert
+    // nothing is left. screenshotsBlock is stubbed only to avoid a disk
+    // walk — the template itself is the real one.
+    const out = renderPrBody({
+      branch: base.branch,
+      prevVersion: base.prevVersion,
+      newVersion: base.newVersion,
+      changelog: "x",
+      ccChangelog: "y",
+      ccChangelogUrl: "z",
+      budgetWarning: "",
+      screenshotsBlock: "NO_SHOTS",
+    });
+    // Strip the template's HTML doc-comment first: it literally contains
+    // `{{...}}` and `{{NEW_VERSION}}`-style examples that are
+    // documentation, not rendered output, and would be false positives.
+    const rendered = out.replace(/<!--[\s\S]*?-->/g, "");
+    const leftovers = rendered.match(/\{\{[^}]+\}\}/g);
+    expect(leftovers).toBeNull();
   });
 });
 

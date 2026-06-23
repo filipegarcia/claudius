@@ -381,8 +381,8 @@
         if (!fine || still) return;
         var tx = 0, ty = 0, x = 0, y = 0, raf = 0;
         function tick() {
-          x += (tx - x) * 0.022;
-          y += (ty - y) * 0.022;
+          x += (tx - x) * 0.008;
+          y += (ty - y) * 0.008;
           orb.style.transform =
             "translate3d(" + x.toFixed(1) + "px," + y.toFixed(1) + "px,0)";
           if (Math.abs(tx - x) > 0.5 || Math.abs(ty - y) > 0.5) {

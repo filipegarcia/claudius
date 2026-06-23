@@ -126,7 +126,8 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   { id: "keybindings", name: "keybindings", description: "Edit keybindings.", category: "ui", handler: "native" },
   { id: "color", name: "color", description: "Set prompt accent color.", category: "ui", handler: "native", argsHint: "[color|default]" },
   { id: "diff", name: "diff", description: "Open the interactive diff viewer.", category: "ui", handler: "sdk" },
-  { id: "focus", name: "focus", description: "Toggle focus view.", category: "ui", handler: "sdk" },
+  { id: "focus", name: "focus", description: "Cycle focus mode (off → focus → zen).", category: "ui", handler: "native", argsHint: "[off|focus|zen]" },
+  { id: "zen", name: "zen", description: "Toggle Zen mode — hide everything but the chat.", category: "ui", handler: "native" },
   { id: "tui", name: "tui", description: "Switch UI renderer.", category: "ui", handler: "external" },
 
   // ── Cost & usage ─────────────────────────────────────────────────────

@@ -276,7 +276,27 @@ function extractChangelog(prevVersion: string, newVersion: string): string {
       return `_(could not slice upstream CHANGELOG.md between v${prevVersion} and v${newVersion} — returning full file. Section headers may have changed format; see ${compareUrl})_\n\n${raw}`;
     }
   } catch (err) {
-    log(`upstream CHANGELOG.md fetch (tag) failed: ${String(err)} — trying main`);
+    log(`upstream CHANGELOG.md fetch (tag, gh) failed: ${String(err)} — trying raw tag`);
+  }
+
+  // gh-independent tag-pinned fetch. `gh` can be missing or unauth on a
+  // cron host; raw.githubusercontent.com serves the same tagged file
+  // over plain `curl`, so the canonical tag-pinned content path no
+  // longer hinges on `gh` being present.
+  try {
+    const url = `https://raw.githubusercontent.com/${UPSTREAM_GH}/v${newVersion}/CHANGELOG.md`;
+    const raw = sh("curl", ["-fsSL", url]);
+    if (raw.trim() !== "") {
+      const sliced = sliceChangelog(raw, prevVersion, newVersion);
+      if (sliced) {
+        log(`changelog source: upstream CHANGELOG.md @ v${newVersion} (raw)`);
+        return sliced;
+      }
+      log(`changelog source: upstream CHANGELOG.md @ v${newVersion} (raw; slice missed — returning full file)`);
+      return `_(could not slice upstream CHANGELOG.md between v${prevVersion} and v${newVersion} — returning full file. Section headers may have changed format; see ${compareUrl})_\n\n${raw}`;
+    }
+  } catch (err) {
+    log(`upstream CHANGELOG.md fetch (tag, raw) failed: ${String(err)} — trying main`);
   }
 
   // Fallback to main: claude-code sometimes lands the CHANGELOG before
@@ -430,8 +450,11 @@ function runNotesStub(prevVersion: string, newVersion: string): string {
     ``,
     `## Implemented (bucket B)`,
     ``,
-    `_(TODO: one bullet per bucket-B item that was actually shipped, with`,
-    `the files touched. If no bucket-B items applied this release, write`,
+    `_(TODO: one bullet per bucket-B item that was actually shipped. Tag`,
+    `each with its delivery shape and the rejected alternative:`,
+    `\`[extend: <screen>] <feature>\` (DEFAULT — added to an existing screen)`,
+    `or \`[new screen: <route>] <feature>\` (only for a genuinely new domain),`,
+    `with the files touched. If no bucket-B items applied this release, write`,
     `\`- No bucket-B items in this release. <reason>\` and expand briefly.)_`,
     ``,
     `## New UI surfaces`,
