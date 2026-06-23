@@ -3873,6 +3873,20 @@ export function useSession(): ChatState & ChatActions {
       }
     })();
     return () => {
+      // Supersede any in-flight boot transition. Without this, a `createSession`
+      // POST still awaiting when the page unmounts (e.g. user navigates chat →
+      // git/schedule before the session is born) resolves AFTER cleanup, passes
+      // its `switchGenRef.current !== gen` guard (the gen was never bumped), and
+      // calls `bindToSession` — which opens a fresh EventSource on an unmounted
+      // component. Nothing ever closes that socket, so it leaks. Over a long
+      // session these orphans accumulate until the browser's 6-connections-per-
+      // origin HTTP/1.1 cap is saturated and every navigation queues for seconds.
+      // Bumping the generation here makes the late bind bail (returns null).
+      // We intentionally read/mutate the LIVE ref at cleanup time (not a value
+      // snapshotted at mount) — snapshotting, as the lint rule suggests, would
+      // defeat the guard.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      switchGenRef.current++;
       eventSourceRef.current?.close();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
