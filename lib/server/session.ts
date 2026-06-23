@@ -2491,6 +2491,10 @@ export class Session {
         title: ctx.title,
         description: ctx.description,
         displayName: ctx.displayName,
+        // SDK 0.3.186: background subagents now forward permission prompts
+        // to canUseTool (instead of auto-denying) and include the agent id
+        // so the host knows which subagent is asking.
+        agentId: ctx.agentID,
       };
       this.pendingPermissions.set(requestId, { requestId, resolve, meta });
       this.broadcast(meta);

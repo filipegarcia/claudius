@@ -32,7 +32,17 @@ export function PermissionPrompt({ request, onResolve }: Props) {
             <Shield className="h-3.5 w-3.5" />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="text-[11px] uppercase tracking-wide text-[var(--muted)]">Permission required</div>
+            <div className="flex items-center gap-2 text-[11px] uppercase tracking-wide text-[var(--muted)]">
+              <span>Permission required</span>
+              {request.agentId && (
+                <span
+                  data-testid="permission-agent-badge"
+                  className="inline-flex items-center gap-1 rounded-full border border-[var(--accent)]/30 bg-[var(--accent)]/10 px-1.5 py-0.5 font-mono text-[9px] normal-case tracking-normal text-[var(--accent)]"
+                >
+                  Subagent · {request.agentId}
+                </span>
+              )}
+            </div>
             <div className="mt-0.5 text-sm font-medium">{summary}</div>
             {request.description && (
               <div className="mt-1 text-xs text-[var(--muted)]">{request.description}</div>

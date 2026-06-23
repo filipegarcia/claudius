@@ -14,6 +14,13 @@ export type PermissionRequestEvent = {
   title?: string;
   description?: string;
   displayName?: string;
+  /**
+   * Set when the permission request originates from a background subagent
+   * rather than the main session thread. Added in SDK 0.3.186: background
+   * agents now forward prompts to canUseTool (with this id) instead of
+   * auto-denying.
+   */
+  agentId?: string;
 };
 
 export type SessionReadyEvent = {
