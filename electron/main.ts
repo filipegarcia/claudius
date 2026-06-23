@@ -481,13 +481,25 @@ function createWindow(startUrl: string): BrowserWindow {
     // signatures and let the matchers express the real Chromium event
     // names. Keeping it lenient avoids brittle exhaustive switches
     // breaking on a future Electron release that adds a new variant.
-    ses.setPermissionCheckHandler((_wc, permission) => {
-      const p = permission as string;
-      return p === "media" || p === "microphone" || p === "notifications";
-    });
+    // `clipboard-sanitized-write` (and `clipboard-read`) gate the renderer's
+    // async Clipboard API (`navigator.clipboard.writeText`/`readText`). With a
+    // custom check handler installed, Electron consults it for these too — so
+    // omitting them makes every in-app "Copy" button silently reject
+    // (NotAllowedError), even though the app loads over a secure 127.0.0.1
+    // origin. The main-process context-menu Copy is unaffected because it
+    // bypasses the renderer permission model entirely, which is why only the
+    // in-renderer buttons broke. Allow them here so renderer-side copy works.
+    const isAllowed = (p: string) =>
+      p === "media" ||
+      p === "microphone" ||
+      p === "notifications" ||
+      p === "clipboard-read" ||
+      p === "clipboard-sanitized-write";
+    ses.setPermissionCheckHandler((_wc, permission) =>
+      isAllowed(permission as string),
+    );
     ses.setPermissionRequestHandler((_wc, permission, callback) => {
-      const p = permission as string;
-      callback(p === "media" || p === "microphone" || p === "notifications");
+      callback(isAllowed(permission as string));
     });
   } catch (err) {
     console.error("[electron/main] permission handler install failed:", err);
