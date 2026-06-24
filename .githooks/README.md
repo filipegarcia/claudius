@@ -9,8 +9,28 @@ contributor by default — no opt-in step.
 | File              | Purpose                                                                 |
 | ----------------- | ----------------------------------------------------------------------- |
 | `_runtime.sh`     | PATH recovery + runner selection. Sourced by every hook. **Not a hook.** |
-| `pre-commit`      | Lint + related unit tests for staged JS/TS.                              |
+| `pre-commit`      | Secret scan (gitleaks) + lint + related unit tests for staged JS/TS.    |
 | `pre-push`        | Whole-tree `tsc --noEmit` + `eslint`.                                    |
+
+## Security scanning
+
+Two layers, split by speed:
+
+- **Secrets — `pre-commit`.** If [`gitleaks`](https://github.com/gitleaks/gitleaks)
+  is installed it scans the staged diff for committed credentials (the same
+  class GitHub's default secret scanning catches), in milliseconds. If gitleaks
+  isn't installed the hook prints a one-line install hint and continues — it's
+  **not** mandatory, so contributors aren't forced to install it, but
+  `brew install gitleaks` gets you the full gate. Bypass a false positive with
+  an inline `# gitleaks:allow` comment or a `.gitleaksignore` entry.
+
+- **CodeQL — on demand, `bun run security`.** Runs GitHub's actual CodeQL
+  engine + query suite locally (`scripts/codeql-local.mjs`), giving true parity
+  with the Security-tab alerts the `codeql.yml` workflow produces. It takes a
+  few minutes (and a one-time ~500 MB CLI download) but needs **no build** —
+  JS/TS analysis is source-based. It is deliberately **not** in a hook:
+  minutes-per-push would just get bypassed, and CI already runs it on every PR.
+  Run it before opening a PR if you want the alerts before the scan does.
 
 ## Adding a new hook
 

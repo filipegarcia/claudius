@@ -29,6 +29,8 @@ const eslintConfig = defineConfig([
     "playwright/.cache/**",
     // Claudiusd runtime state (pid file, logs, sqlite).
     ".claudius/**",
+    // Local CodeQL scan state (source DB + SARIF) — see `bun run security`.
+    ".codeql/**",
     // Per-session agent git worktrees (gitignored). Each is a full repo
     // copy with its own build output (.next, .next-e2e, etc.). The ignore
     // patterns above are relative to cwd and don't match these nested

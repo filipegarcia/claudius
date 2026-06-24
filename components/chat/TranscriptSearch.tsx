@@ -102,7 +102,7 @@ export function TranscriptSearch({ sessionId, onClose, onPick }: Props) {
             if (e.key === "Escape") onClose();
             if (e.key === "Enter" && hits[0]) onPick(hits[0]);
           }}
-          placeholder="Search transcript… (use /regex/ for regex)"
+          placeholder="Search transcript…"
           className="min-w-0 flex-1 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1 text-xs focus:outline-none"
         />
         {loading && <Loader2 className="h-3.5 w-3.5 animate-spin text-[var(--muted)]" />}

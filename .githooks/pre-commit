@@ -1,5 +1,6 @@
 #!/bin/sh
-# Pre-commit gate: lint + related unit tests for staged JS/TS files.
+# Pre-commit gate: secret scan (gitleaks) + lint + related unit tests for
+# staged JS/TS files.
 # Installed via `git config core.hooksPath .githooks` (run automatically by
 # the `prepare` npm script after `bun install`).
 
@@ -8,6 +9,22 @@ set -eu
 # Recover PATH (git GUIs strip it) and select RUN/RUN_DIRECT. Exits with a
 # friendly error if neither bun nor npx is reachable.
 . "$(dirname "$0")/_runtime.sh"
+
+# Secret scan first — block commits that stage credentials. Runs on ALL
+# staged content (not just the JS/TS the lint step below covers): secrets
+# hide in .env / yaml / config files too. Same class GitHub's default secret
+# scanning catches, but here before the secret ever leaves the machine.
+# `_runtime.sh` already put /opt/homebrew/bin on PATH, so gitleaks resolves
+# in GUI commit flows too. Soft-skip when gitleaks isn't installed so it's
+# not a hard dependency — `brew install gitleaks` turns the gate on. See
+# .githooks/README.md.
+if command -v gitleaks >/dev/null 2>&1; then
+  echo "▶ Scanning staged changes for secrets (gitleaks)…"
+  gitleaks git --staged --redact --no-banner
+else
+  echo "▶ gitleaks not installed — skipping secret scan (brew install gitleaks" \
+    "for the secret-scanning coverage GitHub runs)." 1>&2
+fi
 
 # Collect staged files (Added/Copied/Modified/Renamed) matching JS/TS
 # extensions, that still exist on disk (skip deletions / rename-from paths).

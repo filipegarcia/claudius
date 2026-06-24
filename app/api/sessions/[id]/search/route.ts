@@ -26,54 +26,24 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
   }
   if (!q.trim()) return NextResponse.json({ hits: [] });
 
-  // /regex/ syntax — fall back to substring on parse failure with a 400.
-  let matcher: ((haystack: string) => Array<{ index: number; length: number }>) | null = null;
-  if (q.length >= 2 && q.startsWith("/") && q.endsWith("/")) {
-    const pattern = q.slice(1, -1);
-    // Cap the pattern length as a defence-in-depth measure against ReDoS.
-    // Real user searches are short; anything beyond a couple hundred chars
-    // is almost certainly an attempt to wedge the engine on a pathological
-    // pattern. We also bound match iterations below.
-    if (pattern.length > 200) {
-      return NextResponse.json(
-        { error: "regex pattern too long (max 200 chars)" },
-        { status: 400 },
-      );
+  // Literal substring search only. Regex mode (`/…/`) was removed: compiling a
+  // user-supplied pattern is a regex-injection / ReDoS sink (CodeQL
+  // js/regex-injection — see CLAUDE.md and the sibling cross-workspace search
+  // at app/api/sessions/search/route.ts). `indexOf` over lower-cased text needs
+  // no RegExp, so there is no pattern to inject and no backtracking to exploit.
+  const needle = q.toLowerCase();
+  const matcher = (haystack: string): Array<{ index: number; length: number }> => {
+    const lower = haystack.toLowerCase();
+    const out: Array<{ index: number; length: number }> = [];
+    let from = 0;
+    while (out.length < 5) {
+      const idx = lower.indexOf(needle, from);
+      if (idx === -1) break;
+      out.push({ index: idx, length: needle.length });
+      from = idx + needle.length;
     }
-    let re: RegExp;
-    try {
-      re = new RegExp(pattern, "gi");
-    } catch (err) {
-      return NextResponse.json(
-        { error: `invalid regex: ${err instanceof Error ? err.message : String(err)}` },
-        { status: 400 },
-      );
-    }
-    matcher = (haystack) => {
-      const out: Array<{ index: number; length: number }> = [];
-      re.lastIndex = 0;
-      let m: RegExpExecArray | null;
-      while ((m = re.exec(haystack)) && out.length < 5) {
-        out.push({ index: m.index, length: m[0].length });
-        if (m[0].length === 0) re.lastIndex += 1; // avoid infinite loop on empty match
-      }
-      return out;
-    };
-  } else {
-    const needle = q.toLowerCase();
-    matcher = (haystack) => {
-      const lower = haystack.toLowerCase();
-      const out: Array<{ index: number; length: number }> = [];
-      let from = 0;
-      while (out.length < 5) {
-        const idx = lower.indexOf(needle, from);
-        if (idx === -1) break;
-        out.push({ index: idx, length: needle.length });
-        from = idx + needle.length;
-      }
-      return out;
-    };
-  }
+    return out;
+  };
 
   let all;
   try {
