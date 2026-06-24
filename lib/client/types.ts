@@ -867,7 +867,7 @@ export type ChatActions = {
    * promise.
    */
   switchSession(id: string): Promise<void>;
-  createNewSession(): Promise<void>;
+  createNewSession(): Promise<string | null>;
   /** Open a fresh session in a specific working directory (e.g. a git worktree). */
   createSessionAt(cwd: string): Promise<void>;
   /**

@@ -24,6 +24,7 @@ import { FastModeNoticePanel } from "@/components/chat/FastModeNoticePanel";
 import { ModelSwitchNoticePanel } from "@/components/chat/ModelSwitchNoticePanel";
 import { ModelChatCommandNoticePanel } from "@/components/chat/ModelChatCommandNoticePanel";
 import { AdvisorDisabledNoticePanel } from "@/components/chat/AdvisorDisabledNoticePanel";
+import { ClearedFromBanner } from "@/components/chat/ClearedFromBanner";
 import { PromptInput } from "@/components/chat/PromptInput";
 import { PermissionPrompt } from "@/components/chat/PermissionPrompt";
 import { AskUserQuestionPrompt } from "@/components/chat/AskUserQuestionPrompt";
@@ -182,6 +183,15 @@ export default function Home() {
   const session = useSession();
   const router = useRouter();
   const [rewindingUuid, setRewindingUuid] = useState<string | null>(null);
+  // Tracks the session this one was cleared from (set by /clear or the header
+  // Clear button). Drives the ClearedFromBanner so the user can undo a /clear
+  // by running /rewind in the fresh empty session. Scoped to the browser tab
+  // (sessionStorage) — survives page refresh within the same tab.
+  // Seeded during the initial render via `lastClearedSessionId` latch (same
+  // "adjust state during rendering" pattern used for `lastAddedKey` etc.) so
+  // the linter's react-hooks/set-state-in-effect rule is satisfied.
+  const [clearedFromSessionId, setClearedFromSessionId] = useState<string | null>(null);
+  const [lastClearedSessionId, setLastClearedSessionId] = useState<string | null>(null);
   const [overlay, setOverlay] = useState<OverlayKind>(null);
   const [toast, setToast] = useState<string | null>(null);
   // Per-session prompt-bar accent (`/color`). Stored keyed by the session it
@@ -239,6 +249,21 @@ export default function Home() {
       .catch(() => {});
     return () => controller.abort();
   }, [session.sessionId]);
+
+  // Hydrate `clearedFromSessionId` from sessionStorage when the active session
+  // changes. Written by the /clear handler (and the header Clear button) after
+  // `createNewSession()` resolves with the new session id. Cleared when the
+  // user rewinds or explicitly dismisses the banner.
+  // Uses the render-time "store previous props" pattern (like `lastAddedKey`)
+  // rather than a useEffect to satisfy react-hooks/set-state-in-effect.
+  if (lastClearedSessionId !== session.sessionId) {
+    setLastClearedSessionId(session.sessionId);
+    const stored =
+      session.sessionId && typeof window !== "undefined"
+        ? window.sessionStorage.getItem(`cleared:${session.sessionId}`)
+        : null;
+    setClearedFromSessionId(stored);
+  }
 
   // "Where were we?" auto-recap — fires when the user returns to this tab
   // after a long blur (≥5 min). The settings gate and multi-tab dedupe live
@@ -1033,8 +1058,13 @@ export default function Home() {
     (id: string, args: string): boolean => {
       switch (id) {
         case "clear": {
-          void session.createNewSession();
-          showToast("New session");
+          const oldId = session.sessionId;
+          void session.createNewSession().then((newId) => {
+            if (oldId && newId) {
+              window.sessionStorage.setItem(`cleared:${newId}`, oldId);
+            }
+          });
+          showToast("New session — /rewind to return");
           return true;
         }
         case "focus": {
@@ -1465,9 +1495,25 @@ export default function Home() {
             .catch(() => showToast("Copy failed"));
           return true;
         }
-        case "rewind":
-          showToast("Hover any user message and click ↺ Rewind here");
+        case "rewind": {
+          // If the user is in a fresh session that was created by /clear
+          // (signalled by `clearedFromSessionId`), navigate back to the
+          // previous session — matching CC 2.1.191's "rewind after clear"
+          // behaviour. Otherwise fall through to the existing hint toast.
+          const hasUserMessages = session.messages.some((m) => m.role === "user");
+          if (!hasUserMessages && clearedFromSessionId) {
+            const target = clearedFromSessionId;
+            setClearedFromSessionId(null);
+            if (session.sessionId) {
+              window.sessionStorage.removeItem(`cleared:${session.sessionId}`);
+            }
+            router.push(`/?session=${encodeURIComponent(target)}`);
+            showToast("Resuming previous session…");
+          } else {
+            showToast("Hover any user message and click ↺ Rewind here");
+          }
           return true;
+        }
         default:
           return false;
       }
@@ -1476,7 +1522,7 @@ export default function Home() {
     // (see lib/client/useElectron.ts), so listing it doesn't churn the
     // callback — but eslint-rule-of-hooks wants it spelled out so a future
     // bridge-identity change doesn't silently break the /desktop branch.
-    [router, session, showToast, claudiusBridge, activePromptColor, cycleFocus, setFocusLevel, isZen],
+    [router, session, showToast, claudiusBridge, activePromptColor, cycleFocus, setFocusLevel, isZen, clearedFromSessionId],
   );
 
   const handleSend = useCallback(
@@ -1870,7 +1916,11 @@ export default function Home() {
               // neighbor when the active tab is the one being closed — we
               // already want the new session to take focus.
               const oldId = session.sessionId;
-              void session.createNewSession();
+              void session.createNewSession().then((newId) => {
+                if (oldId && newId) {
+                  window.sessionStorage.setItem(`cleared:${newId}`, oldId);
+                }
+              });
               if (oldId) {
                 void notifications.markSessionRead(oldId);
                 setOpenTabs((prev) => prev.filter((x) => x !== oldId));
@@ -2009,6 +2059,31 @@ export default function Home() {
           notice={session.advisorDisabledNotice}
           onDismiss={session.dismissAdvisorDisabledNotice}
           onReEnable={session.reEnableAdvisor}
+        />
+        {/* CC 2.1.191: "/rewind after /clear" — shows only in a fresh session
+            that was created by /clear or the header Clear button. The user
+            can click Rewind to navigate back, or × to stay in the new
+            session. Driven by sessionStorage so it survives page refresh. */}
+        <ClearedFromBanner
+          clearedFromSessionId={
+            session.messages.some((m) => m.role === "user") ? null : clearedFromSessionId
+          }
+          onRewind={() => {
+            if (!clearedFromSessionId) return;
+            const target = clearedFromSessionId;
+            setClearedFromSessionId(null);
+            if (session.sessionId) {
+              window.sessionStorage.removeItem(`cleared:${session.sessionId}`);
+            }
+            router.push(`/?session=${encodeURIComponent(target)}`);
+            showToast("Resuming previous session…");
+          }}
+          onDismiss={() => {
+            setClearedFromSessionId(null);
+            if (session.sessionId) {
+              window.sessionStorage.removeItem(`cleared:${session.sessionId}`);
+            }
+          }}
         />
         <div className="flex flex-1 flex-col overflow-hidden">
           {searchOpen && (
