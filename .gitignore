@@ -68,3 +68,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .env.cloudflare.local
+
+# local CodeQL scan state (db + sarif) — see `bun run security`
+/.codeql/
