@@ -219,6 +219,7 @@ const RATE_LIMIT_TYPE_LABEL: Record<string, string> = {
   seven_day: "Weekly limit",
   seven_day_opus: "Weekly Opus limit",
   seven_day_sonnet: "Weekly Sonnet limit",
+  seven_day_overage_included: "Weekly limit (overage incl.)",
   overage: "Extra-usage limit",
 };
 

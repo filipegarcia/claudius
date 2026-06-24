@@ -6645,6 +6645,17 @@ export class Session {
                         : rl.seven_day_sonnet,
                     }
                   : null,
+                // SDK 0.3.190 — per-model weekly windows; additive, only present
+                // when the server emits them for the overage-included-models allowlist.
+                ...(rl?.model_scoped
+                  ? {
+                      modelScoped: rl.model_scoped.map((ms) => ({
+                        displayName: ms.display_name,
+                        utilization: ms.utilization,
+                        resetsAt: ms.resets_at,
+                      })),
+                    }
+                  : {}),
               };
               this.broadcast(planUsageEvent);
             })();
