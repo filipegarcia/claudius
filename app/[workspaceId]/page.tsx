@@ -1221,6 +1221,11 @@ export default function Home() {
             // No argument: pick a random color, like the terminal CLI. Exclude
             // the current one so the border always visibly changes.
             const choices = PROMPT_COLOR_NAMES.filter((c) => c !== activePromptColor);
+            // Cosmetic pick — Math.random is correct here. Do NOT "harden" this
+            // with crypto.getRandomValues: CodeQL then flags js/biased-cryptographic-
+            // random (both `% n` AND `/2**32 * n` scaling), and the crypto value
+            // taints downstream modulo (nextTipIndex). The insecure-randomness alert
+            // on this line is dismissed as a false positive. See CLAUDE.md.
             name = choices[Math.floor(Math.random() * choices.length)];
           } else if ((PROMPT_COLOR_RESET_WORDS as readonly string[]).includes(raw)) {
             name = null;
@@ -2202,6 +2207,7 @@ export default function Home() {
         historicalTurnCount={session.messages.filter((m) => m.role === "assistant").length}
         ready={session.ready}
         pending={session.pending}
+        ctxSummary={ctxSummary}
         pendingPermission={session.pendingPermission}
         latestTodos={session.latestTodos}
         recentEdits={session.recentEdits}

@@ -46,6 +46,8 @@ export function SpinnerTip({ onRunCommand, tips, intervalMs = 9000 }: Props) {
 
   // Pick a random starting tip once (lazy initializer — never re-rolls on
   // re-render). Rotation from there is deterministic via `nextTipIndex`.
+  // Cosmetic — Math.random is correct. Don't "harden" with crypto: it trips
+  // js/biased-cryptographic-random and taints nextTipIndex's modulo. See CLAUDE.md.
   const [index, setIndex] = useState(() =>
     list.length > 0 ? Math.floor(Math.random() * list.length) : 0,
   );

@@ -13,6 +13,7 @@
     "start": "next start",
     "prepare": "git config core.hooksPath .githooks 2>/dev/null || true",
     "lint": "eslint",
+    "security": "node scripts/codeql-local.mjs",
     "test": "node scripts/native-abi.mjs ensure node && vitest run",
     "test:watch": "node scripts/native-abi.mjs ensure node && vitest",
     "test:related": "node scripts/native-abi.mjs ensure node && vitest related --run --passWithNoTests",
