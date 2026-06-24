@@ -1,17 +1,24 @@
 "use client";
 
-import { useContextWatcher } from "@/lib/client/useContextWatcher";
+import type { ContextSummary } from "@/lib/client/useContextWatcher";
 import { cn } from "@/lib/utils/cn";
 
 type Props = {
-  sessionId: string | null;
-  pending: boolean;
+  /**
+   * Context usage for the active session. Owned by the parent (the workspace
+   * page already runs a single `useContextWatcher`) and passed down — ContextBar
+   * is purely presentational. It used to run its OWN watcher, which meant two
+   * pollers hit `/api/sessions/:id/context` for the same session; each call is a
+   * 1–3s SDK round-trip, so the duplicate doubled the slow-request load and the
+   * HTTP/1.1 connection-slot pressure. Null until the first poll lands.
+   */
+  summary: ContextSummary | null;
   /** Open the full context-window breakdown overlay. */
   onOpenContext?: () => void;
 };
 
-export function ContextBar({ sessionId, pending, onOpenContext }: Props) {
-  const ctx = useContextWatcher(sessionId, pending);
+export function ContextBar({ summary, onOpenContext }: Props) {
+  const ctx = summary;
   const pct = ctx?.percentage ?? 0;
   const total = ctx?.totalTokens ?? 0;
   const max = ctx?.maxTokens ?? 0;

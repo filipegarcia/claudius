@@ -16,6 +16,7 @@ import type {
 } from "@/lib/client/types";
 import type { PermissionRequestEvent } from "@/lib/shared/events";
 import { collectStoppableTaskIds } from "@/lib/client/task-status";
+import type { ContextSummary } from "@/lib/client/useContextWatcher";
 import { isStaleWakeup } from "@/lib/shared/session-loops";
 import { CostOverlay } from "@/components/overlays/CostOverlay";
 import { NotificationsDrawer } from "@/components/nav/NotificationsDrawer";
@@ -49,6 +50,13 @@ type Props = {
    *  drives the spinner in the Activity header. */
   ready?: boolean;
   pending: boolean;
+  /**
+   * Context usage for the active session, computed by the parent's single
+   * `useContextWatcher`. Threaded down to `ContextBar` so it doesn't run a
+   * second poller for the same session. Optional (defaults to null) so the dev
+   * activity harness pages can mount the panel with mock data and no live poll.
+   */
+  ctxSummary?: ContextSummary | null;
   pendingPermission: PermissionRequestEvent | null;
   latestTodos: AgentTodo[];
   recentEdits: RecentEdit[];
@@ -201,6 +209,7 @@ export function BackgroundTasksPanel({
   historicalTurnCount,
   ready = true,
   pending,
+  ctxSummary = null,
   pendingPermission,
   latestTodos,
   recentEdits,
@@ -450,7 +459,7 @@ export function BackgroundTasksPanel({
           advisorModel={advisorModel}
           onChangeAdvisorModel={onChangeAdvisorModel}
         />
-        <ContextBar sessionId={sessionId} pending={pending} onOpenContext={onOpenContext} />
+        <ContextBar summary={ctxSummary} onOpenContext={onOpenContext} />
         <TokenMeter usage={usage} />
 
         <div className="mb-3 border-t border-[var(--border)]/40" />

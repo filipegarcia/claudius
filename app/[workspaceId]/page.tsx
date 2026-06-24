@@ -2207,6 +2207,7 @@ export default function Home() {
         historicalTurnCount={session.messages.filter((m) => m.role === "assistant").length}
         ready={session.ready}
         pending={session.pending}
+        ctxSummary={ctxSummary}
         pendingPermission={session.pendingPermission}
         latestTodos={session.latestTodos}
         recentEdits={session.recentEdits}
