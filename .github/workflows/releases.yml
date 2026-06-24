@@ -2,8 +2,13 @@
 # GitHub Releases and npm, then commits the updated page back to main so
 # the next pages.yml deploy picks it up automatically.
 #
-# Also runs on push when the scripts change, and can be triggered manually
-# via the Actions tab.
+# Also runs:
+#   - on push to main when the generator scripts change, and
+#   - on push to main when an SDK/cc-parity bump lands (package.json /
+#     bun.lock change). The update pipelines stop at "PR ready" and don't
+#     merge, so the MERGE is the trigger — this refreshes the page right
+#     after a bump merges instead of waiting for the 06:30 UTC run.
+# Can also be triggered manually via the Actions tab.
 name: refresh-releases-page
 
 on:
@@ -14,7 +19,16 @@ on:
     branches: [main]
     paths:
       - 'scripts/releases/**'
+      # An SDK/cc-parity bump always touches these when it merges.
+      - 'package.json'
+      - 'bun.lock'
   workflow_dispatch:
+
+# Serialize refreshes so a bump-triggered run and the daily cron (or two
+# bumps merging close together) can't race on the `git push` below.
+concurrency:
+  group: refresh-releases-page
+  cancel-in-progress: false
 
 permissions:
   contents: write   # push the updated page back

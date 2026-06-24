@@ -166,6 +166,44 @@ State and logs live under `.claudius/` (gitignored):
 
 ---
 
+## Daily heartbeat
+
+A separate once-a-day job posts a liveness + activity summary to the same
+community channel, so you know the automation is alive even on quiet days.
+It runs [`scripts/heartbeat/run.sh`](./heartbeat/run.sh) and posts one
+message:
+
+- **Quiet day:** `💓 … alive. All quiet — no SDK or Claude Code update PRs …`
+- **Active day:** `💓 … alive. N update(s) …` listing each pipeline PR with
+  its outcome — ✅ merged, ⚠️ needs attention, 🔧 in progress, 👀 awaiting
+  review, ❌ closed — plus any `… error` issues the pipelines filed (so a
+  run that errored shows up too, "merged with error or not").
+
+Source of truth is **GitHub** (the PR/issue records), not the state files —
+only GitHub has the URLs and captures errored runs. The window is anchored
+to the **last heartbeat run** (`.claudius/heartbeat/state.json`), so a
+daily cron that drifts or gets skipped (machine asleep/off) never leaves a
+gap — the next run catches up. A `gh` failure is reported as "couldn't
+check GitHub", never as a false "all quiet".
+
+It's read-only and quick, takes **no lock**, and runs fine alongside the
+hourly update cron. Unlike the pipelines it reads `GH_TOKEN` /
+`CHAT_SERVER_*` from the env file and does **not** read
+`~/.claude/.credentials.json` — so the macOS Full Disk Access requirement
+does **not** apply to it.
+
+```bash
+make heartbeat-dry-run        # build + print the message, don't post (safe, repeatable)
+make heartbeat-run            # post now
+make heartbeat-install-cron   # daily at 09:00 local
+make heartbeat-uninstall-cron
+make heartbeat-logs           # tail; FOLLOW=1 to stream
+```
+
+Overrides (env file or inline): `HEARTBEAT_ROOM_SLUG` (defaults to
+`SDK_UPDATE_ROOM_SLUG`), `HEARTBEAT_WINDOW_HOURS` (first-run / fallback
+look-back, default 24).
+
 ## How the lock & scheduling work
 
 - **One firing at a time.** Each half takes a shared portable lock

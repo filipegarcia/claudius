@@ -1,4 +1,4 @@
-.PHONY: help install dev build start lint unit test test-ui test-e2e-electron test-setup test-setup-local test-setup-docker test-install-public ci site screenshots screenshots-full claudius-revert claudius-revert-all run up down restart status logs electron electron-dev electron-build electron-icons electron-app electron-dist electron-dmg electron-e2e-loop update-run update-dry-run update-logs update-install-cron update-uninstall-cron sdk-update-check sdk-update-run sdk-update-fix-pr sdk-update-dry-run sdk-update-status sdk-update-logs sdk-update-install-cron sdk-update-uninstall-cron cc-parity-check cc-parity-run cc-parity-fix-pr cc-parity-dry-run cc-parity-status cc-parity-logs cc-parity-install-cron cc-parity-uninstall-cron debug-export recover documentation
+.PHONY: help install dev build start lint unit test test-ui test-e2e-electron test-setup test-setup-local test-setup-docker test-install-public ci site screenshots screenshots-full claudius-revert claudius-revert-all run up down restart status logs electron electron-dev electron-build electron-icons electron-app electron-dist electron-dmg electron-e2e-loop update-run update-dry-run update-logs update-install-cron update-uninstall-cron sdk-update-check sdk-update-run sdk-update-fix-pr sdk-update-dry-run sdk-update-status sdk-update-logs sdk-update-install-cron sdk-update-uninstall-cron cc-parity-check cc-parity-run cc-parity-fix-pr cc-parity-dry-run cc-parity-status cc-parity-logs cc-parity-install-cron cc-parity-uninstall-cron heartbeat-run heartbeat-dry-run heartbeat-logs heartbeat-install-cron heartbeat-uninstall-cron debug-export recover documentation
 
 # List every target, grouped by the section headers below.
 help:
@@ -489,6 +489,69 @@ cc-parity-uninstall-cron:
 		rm -f "$$TMP.new"; \
 	else \
 		echo "✓ no cc-parity entry in crontab — nothing to do"; \
+	fi; \
+	rm -f "$$TMP"
+
+# ── Daily heartbeat (scripts/heartbeat/) ───────────────────────────────
+# Once-a-day liveness + activity post to the community channel: "alive,
+# all quiet" or "alive, N update(s)" listing each pipeline PR and its
+# outcome (merged / needs-attention / draft / closed), plus any "… error"
+# issues the pipelines filed. Source of truth is GitHub; the window is
+# anchored to the last heartbeat run (.claudius/heartbeat/state.json) so a
+# drifted/skipped daily cron never gaps. Read-only — takes no lock.
+#
+# Env (loaded from .claudius/heartbeat/env, else .claudius/sdk-updater/env):
+# CHAT_SERVER_URL, CHAT_SERVER_ADMIN_TOKEN, GH_TOKEN. Overrides:
+# HEARTBEAT_ROOM_SLUG (default = SDK_UPDATE_ROOM_SLUG), HEARTBEAT_WINDOW_HOURS.
+
+# Fire the heartbeat now — WILL post to the channel.
+heartbeat-run:
+	@scripts/heartbeat/run.sh
+
+# Build the message and print it WITHOUT posting (and without advancing
+# the window state). Safe to run repeatedly. Widen the look-back with
+# HEARTBEAT_WINDOW_HOURS=NN if you want to see more.
+heartbeat-dry-run:
+	@HEARTBEAT_DRY_RUN=1 scripts/heartbeat/run.sh
+
+# Tail the heartbeat cron log. Pass FOLLOW=1 to stream (-f).
+heartbeat-logs:
+	@mkdir -p .claudius/heartbeat/logs
+	@touch .claudius/heartbeat/logs/cron.log
+	@if [ "$(FOLLOW)" = "1" ]; then \
+		tail -f .claudius/heartbeat/logs/cron.log; \
+	else \
+		tail -n 200 .claudius/heartbeat/logs/cron.log; \
+	fi
+
+# Install the daily crontab line (09:00 local). Idempotent. Edit the time
+# afterwards with `crontab -e` if you want a different hour.
+heartbeat-install-cron:
+	@ROOT="$$(pwd)"; \
+	mkdir -p "$$ROOT/.claudius/heartbeat/logs"; \
+	LINE="0 9 * * * $$ROOT/scripts/heartbeat/run.sh >> $$ROOT/.claudius/heartbeat/logs/cron.log 2>&1"; \
+	TMP="$$(mktemp)"; \
+	crontab -l 2>/dev/null > "$$TMP" || true; \
+	if grep -qF "scripts/heartbeat/run.sh" "$$TMP"; then \
+		echo "✓ crontab already contains the heartbeat entry — leaving it alone"; \
+	else \
+		echo "$$LINE" >> "$$TMP"; \
+		crontab "$$TMP"; \
+		echo "✓ installed: $$LINE"; \
+	fi; \
+	rm -f "$$TMP"
+
+# Remove the daily heartbeat crontab line.
+heartbeat-uninstall-cron:
+	@TMP="$$(mktemp)"; \
+	crontab -l 2>/dev/null > "$$TMP" || true; \
+	if grep -qF "scripts/heartbeat/run.sh" "$$TMP"; then \
+		grep -vF "scripts/heartbeat/run.sh" "$$TMP" > "$$TMP.new"; \
+		crontab "$$TMP.new"; \
+		echo "✓ removed heartbeat entry from crontab"; \
+		rm -f "$$TMP.new"; \
+	else \
+		echo "✓ no heartbeat entry in crontab — nothing to do"; \
 	fi; \
 	rm -f "$$TMP"
 
