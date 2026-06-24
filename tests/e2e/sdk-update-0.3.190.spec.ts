@@ -164,12 +164,12 @@ test.describe("SDK 0.3.190 — seven_day_overage_included rate-limit tier", () =
 
     // The pill renders the tier label in the headline text.
     // For a rejected pill with seven_day_overage_included, the headline is:
-    //   "You've hit your Weekly (overage incl.)"
-    const pill = page.getByText(/Weekly \(overage incl\.\)/);
+    //   "You've hit your Weekly limit (overage incl.)"
+    const pill = page.getByText(/Weekly limit \(overage incl\.\)/);
     await expect(pill).toBeVisible({ timeout: 15_000 });
 
     // Also confirm the full headline.
-    await expect(page.getByText(/You've hit your Weekly \(overage incl\.\)/)).toBeVisible();
+    await expect(page.getByText(/You've hit your Weekly limit \(overage incl\.\)/)).toBeVisible();
 
     // Capture pill in context.
     await pill.scrollIntoViewIfNeeded();
