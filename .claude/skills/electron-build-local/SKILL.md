@@ -9,6 +9,18 @@ allowed-tools:
 
 # Building Claudius locally
 
+## Preferred path: `bun run build:app`
+
+`scripts/build-app-local.mjs` (run it as `bun run build:app`, or `bun run build:app --dmg`)
+automates the isolated recipe below and bakes in every trap fix: it builds in ONE
+reusable scratch dir (`../claudius-buildcache`), then **copies the finished
+`Claudius.app` back into this repo's `release/mac-<arch>/`** — so you launch from
+the repo, the scratch is never "busy", and there's no reason to spawn
+`claudius-build2`/`-build3`. It also strips the leaked `__NEXT_PRIVATE_*` env vars,
+runs `bun install --frozen-lockfile`, sets `CLAUDIUS_REBUILD_IGNORE_DEV=1`, and
+pins the mac target to the host arch. Prefer it. The manual recipe below remains
+the reference for what each step does and for debugging when the script fails.
+
 ## The traps (three of them, all bite silently)
 
 ### Trap 1 — host/target arch mismatch
