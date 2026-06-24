@@ -72,7 +72,7 @@ export type DisplayMessage = {
    * when the window reopens.
    */
   rateLimitHit?: {
-    rateLimitType?: "five_hour" | "seven_day" | "seven_day_opus" | "seven_day_sonnet" | "overage";
+    rateLimitType?: "five_hour" | "seven_day" | "seven_day_opus" | "seven_day_sonnet" | "seven_day_overage_included" | "overage";
     resetsAt?: number;
     /**
      * Configured `fallbackModel` for the session (SDK Options.fallbackModel),
@@ -177,7 +177,7 @@ export type SystemEntry = {
    */
   rateLimit?: {
     status?: "allowed" | "allowed_warning" | "rejected";
-    rateLimitType?: "five_hour" | "seven_day" | "seven_day_opus" | "seven_day_sonnet" | "overage";
+    rateLimitType?: "five_hour" | "seven_day" | "seven_day_opus" | "seven_day_sonnet" | "seven_day_overage_included" | "overage";
     resetsAt?: number;
     utilization?: number;
     overageStatus?: "allowed" | "allowed_warning" | "rejected";
@@ -450,6 +450,13 @@ export type PlanRateLimits = {
     sevenDayOpus?: PlanUsageWindow | null;
     sevenDaySonnet?: PlanUsageWindow | null;
   } | null;
+  /**
+   * Per-model weekly windows from the server limits[] array, filtered by the
+   * overage-included-models allowlist. Additive — present only when the server
+   * emits them. Each entry carries a server-supplied `displayName` (e.g.
+   * "Fable") for labeling the usage bar in CostOverlay.
+   */
+  modelScoped?: Array<{ displayName: string; utilization: number | null; resetsAt: string | null }>;
 };
 
 /**

@@ -667,6 +667,13 @@ export type PlanUsageEvent = {
     sevenDayOpus?: PlanUsageWindow | null;
     sevenDaySonnet?: PlanUsageWindow | null;
   } | null;
+  /**
+   * Per-model weekly windows from the server limits[] array, filtered by the
+   * overage-included-models allowlist (SDK 0.3.190). Additive — present only
+   * when the server emits them. Each entry carries the server-supplied
+   * `displayName` (e.g. "Fable") for labeling the usage bar in CostOverlay.
+   */
+  modelScoped?: Array<{ displayName: string; utilization: number | null; resetsAt: string | null }>;
 };
 
 /**

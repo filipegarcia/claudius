@@ -114,7 +114,7 @@ export function CostOverlay({ usage, model, planUsage, onClose }: Props) {
             )}
           </div>
 
-          {planUsage.rateLimitsAvailable && windows.length > 0 ? (
+          {planUsage.rateLimitsAvailable && (windows.length > 0 || (planUsage.modelScoped?.length ?? 0) > 0) ? (
             <div className="space-y-2">
               {windows.map(([key, w]) => (
                 <div key={key}>
@@ -130,6 +130,22 @@ export function CostOverlay({ usage, model, planUsage, onClose }: Props) {
                     </span>
                   </div>
                   <UsageBar utilization={w?.utilization ?? null} />
+                </div>
+              ))}
+              {planUsage.modelScoped?.map((ms, i) => (
+                <div key={`model_scoped_${i}`} data-testid="model-scoped-window">
+                  <div className="flex items-baseline justify-between text-[11px]">
+                    <span className="text-[var(--muted)]">
+                      7-day ({ms.displayName})
+                    </span>
+                    <span className="font-mono text-[var(--foreground)]">
+                      {fmtUtilization(ms.utilization)}
+                      <span className="text-[var(--muted)]">
+                        {fmtResetsAt(ms.resetsAt)}
+                      </span>
+                    </span>
+                  </div>
+                  <UsageBar utilization={ms.utilization} />
                 </div>
               ))}
             </div>
