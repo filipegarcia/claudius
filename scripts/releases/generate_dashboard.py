@@ -11,7 +11,12 @@ import json
 import calendar
 import pathlib
 from collections import defaultdict
-from datetime import date as date_cls, timedelta as td_cls
+from datetime import (
+    date as date_cls,
+    datetime as datetime_cls,
+    timedelta as td_cls,
+    timezone as tz_cls,
+)
 
 # ─── Paths (always relative to this script) ──────────────────────────────────
 SCRIPT_DIR  = pathlib.Path(__file__).resolve().parent
@@ -25,6 +30,17 @@ with open(DATA_FILE) as f:
 # Anchors the time-axis (heatmap "today", predictor countdowns, spline window).
 # Uses the real current date so the daily CI refresh actually advances the calendar.
 TODAY = date_cls.today()
+
+# When this snapshot was generated. Surfaced two ways:
+#   - GENERATED_AT (UTC string) in the stale-data note, and
+#   - GENERATED_AT_MS (epoch ms) embedded for the JS, so the Release
+#     Predictor can recompute "overdue / due soon / days ago" against the
+#     viewer's real clock (Date.now()) instead of freezing the status at
+#     build time. The release DATA is still a snapshot, but the time-axis
+#     advances as the page ages.
+GENERATED_AT_DT = datetime_cls.now(tz_cls.utc)
+GENERATED_AT    = GENERATED_AT_DT.strftime("%Y-%m-%d %H:%M UTC")
+GENERATED_AT_MS = int(GENERATED_AT_DT.timestamp() * 1000)
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -732,7 +748,7 @@ html = f"""<!DOCTYPE html>
     </nav>
     <h1>SDK Release Analytics <span class="badge">Snapshot</span></h1>
     <p>Release cadence, changelog depth, velocity trends &amp; version breakdown across all Anthropic SDKs and Claude Code</p>
-    <p class="stale-note">⚠ These are stale numbers — this page is a snapshot that only refreshes when Claudius redeploys, not in real time.</p>
+    <p class="stale-note">⚠ These are stale numbers — this page is a snapshot that only refreshes when Claudius redeploys, not in real time. Last regenerated {GENERATED_AT}.</p>
     <div class="repo-links">
       {repo_links_html}
     </div>
@@ -894,6 +910,7 @@ const streaks    = {js_streaks};
 const SPLINE_DATES  = {js_spline_dates};
 const SPLINE_COUNTS = {js_spline_counts};
 const PRED_DATA     = {js_pred};
+const GENERATED_AT_MS = {GENERATED_AT_MS};
 
 // ── Chart defaults ─────────────────────────────────────────────────────────
 Chart.defaults.color          = '#9a9aa3';
@@ -997,6 +1014,22 @@ const TICKS = {{ color: '#6b6b75' }};
   const topData  = TOP_LABELS.map(l => PRED_DATA.find(r => r.label === l)).filter(Boolean);
   const restData = PRED_DATA.filter(r => !TOP_LABELS.includes(r.label));
 
+  // ── Live recompute ──────────────────────────────────────────────────
+  // The page is a snapshot; its release DATA is frozen at build time. But
+  // "overdue / due soon / days ago / pressure" are time-relative, so we
+  // advance them by the real elapsed time since the page was generated,
+  // using the embedded build epoch and the viewer's Date.now(). Clamp to
+  // >= 0 so a viewer clock running behind the build clock can't UNDERshoot
+  // the build-time status.
+  const elapsedDays  = Math.max(0, (Date.now() - GENERATED_AT_MS) / 86400000);
+  const livePressure = r => Math.min((r.days_since + elapsedDays) / r.avg_gap_days, 3.0);
+
+  // Re-rank the lower grid by LIVE pressure (most overdue first): uniform
+  // elapsed time lifts shorter-cadence repos faster, so the order can
+  // legitimately drift from the build-time sort as the page ages. The top
+  // row (Claude Code, Agent SDK) stays pinned in its fixed order.
+  restData.sort((a, b) => livePressure(b) - livePressure(a));
+
   function pressureColor(p) {{
     if (p < 0.5)  return ['green',  '🟢 Just released'];
     if (p < 0.85) return ['green',  '✅ On track'];
@@ -1019,16 +1052,21 @@ const TICKS = {{ color: '#6b6b75' }};
   }}
 
   function renderCard(r, container) {{
-    const [badgeClass, badgeText] = pressureColor(r.pressure);
-    const barPct  = Math.min(r.pressure * 100, 100).toFixed(1);
-    const bColor  = barColor(r.pressure);
-    const daysSinceStr = r.days_since === 0 ? 'today' :
-                         r.days_since === 1 ? '1 day ago' :
-                         r.days_since + ' days ago';
-    const nextStr = r.days_until_next < 0
-      ? 'was ' + Math.abs(r.days_until_next) + 'd ago'
-      : r.days_until_next === 0 ? 'today!'
-      : 'in ~' + r.days_until_next + 'd (' + fmtDate(r.predicted_next) + ')';
+    // Live values (advanced by elapsedDays) — NOT the frozen build-time
+    // r.pressure / r.days_since / r.days_until_next.
+    const pressure   = livePressure(r);
+    const daysSince  = Math.floor(r.days_since + elapsedDays);
+    const daysToNext = Math.round(r.days_until_next - elapsedDays);
+    const [badgeClass, badgeText] = pressureColor(pressure);
+    const barPct  = Math.min(pressure * 100, 100).toFixed(1);
+    const bColor  = barColor(pressure);
+    const daysSinceStr = daysSince <= 0 ? 'today' :
+                         daysSince === 1 ? '1 day ago' :
+                         daysSince + ' days ago';
+    const nextStr = daysToNext < 0
+      ? 'was ' + Math.abs(daysToNext) + 'd ago'
+      : daysToNext === 0 ? 'today!'
+      : 'in ~' + daysToNext + 'd (' + fmtDate(r.predicted_next) + ')';
 
     const sparkId = 'spark-' + r.label.replace(/[^a-z0-9]/gi, '_');
 
@@ -1049,7 +1087,7 @@ const TICKS = {{ color: '#6b6b75' }};
       </div>
       <div class="pred-pressure">
         <span>Release pressure</span>
-        <span style="color:${{bColor}};font-weight:600;">${{(r.pressure * 100).toFixed(0)}}%</span>
+        <span style="color:${{bColor}};font-weight:600;">${{(pressure * 100).toFixed(0)}}%</span>
       </div>
       <div class="pred-spark">
         <canvas id="${{sparkId}}" height="28" style="width:100%;display:block;"></canvas>
