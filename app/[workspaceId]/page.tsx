@@ -1221,7 +1221,9 @@ export default function Home() {
             // No argument: pick a random color, like the terminal CLI. Exclude
             // the current one so the border always visibly changes.
             const choices = PROMPT_COLOR_NAMES.filter((c) => c !== activePromptColor);
-            name = choices[Math.floor(Math.random() * choices.length)];
+            // Cosmetic pick, but use the CSPRNG so CodeQL's insecure-randomness
+            // taint never reaches a "security context" sink (alert #57).
+            name = choices[crypto.getRandomValues(new Uint32Array(1))[0] % choices.length];
           } else if ((PROMPT_COLOR_RESET_WORDS as readonly string[]).includes(raw)) {
             name = null;
           } else if (isPromptColorName(raw)) {

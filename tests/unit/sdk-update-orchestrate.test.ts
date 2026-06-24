@@ -253,7 +253,14 @@ describe("renderPrBody — Claude Code changelog section", () => {
     // Strip the template's HTML doc-comment first: it literally contains
     // `{{...}}` and `{{NEW_VERSION}}`-style examples that are
     // documentation, not rendered output, and would be false positives.
-    const rendered = out.replace(/<!--[\s\S]*?-->/g, "");
+    // Loop until stable so a single pass can't leave a re-formed `<!--`
+    // (CodeQL js/incomplete-multi-character-sanitization, alert #58).
+    let rendered = out;
+    let prev: string;
+    do {
+      prev = rendered;
+      rendered = rendered.replace(/<!--[\s\S]*?-->/g, "");
+    } while (rendered !== prev);
     const leftovers = rendered.match(/\{\{[^}]+\}\}/g);
     expect(leftovers).toBeNull();
   });

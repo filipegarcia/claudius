@@ -1932,7 +1932,7 @@ bun run electron:dist:linux   # AppImage + deb + rpm</code></pre>
               };
               var addr =
                 rev(a.getAttribute("data-u")) + "@" + rev(a.getAttribute("data-d"));
-              a.setAttribute("href", "mailto:" + addr + "?subject=Claudius");
+              a.setAttribute("href", "mailto:" + encodeURI(addr) + "?subject=Claudius");
             })();
           </script>
         </div>

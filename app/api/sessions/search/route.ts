@@ -53,28 +53,17 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "dir is required" }, { status: 400 });
   }
 
-  // Build a case-insensitive matcher. `/…/` is treated as a regex (same
-  // syntax as the per-session message search); anything else is a literal
-  // substring. The pattern length is capped as ReDoS defence-in-depth.
-  let re: RegExp;
-  if (q.length >= 2 && q.startsWith("/") && q.endsWith("/")) {
-    const pattern = q.slice(1, -1);
-    if (pattern.length > 200) {
-      return NextResponse.json({ error: "regex pattern too long (max 200 chars)" }, { status: 400 });
-    }
-    try {
-      re = new RegExp(pattern, "gi");
-    } catch (err) {
-      return NextResponse.json(
-        { error: `invalid regex: ${err instanceof Error ? err.message : String(err)}` },
-        { status: 400 },
-      );
-    }
-  } else {
-    // Escape regex metacharacters so a literal search stays literal.
-    const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    re = new RegExp(escaped, "gi");
-  }
+  // Build a case-insensitive LITERAL matcher. The query is always treated as
+  // a literal substring: every regex metacharacter is escaped before it
+  // reaches `new RegExp`. We deliberately do NOT compile a user-supplied
+  // pattern — that is a regex-injection / ReDoS sink (CodeQL
+  // js/regex-injection): a crafted pattern could trigger catastrophic
+  // backtracking and wedge the Node event loop, reachable cross-origin since
+  // route handlers don't gate request processing on CSRF. The escape below is
+  // the canonical MDN metacharacter escape (CodeQL's MetacharEscapeSanitizer),
+  // so the value reaching the constructor carries no attacker regex syntax.
+  const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const re = new RegExp(escaped, "gi");
 
   // `projectRoot` runs `assertWithin` on the cwd→path flow and returns the
   // resolved `~/.claude/projects/<encoded-cwd>` directory. `encodeProjectDir`
