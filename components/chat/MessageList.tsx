@@ -124,12 +124,25 @@ export function MessageList({
   systemPillLevers,
 }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
   const topSentinelRef = useRef<HTMLDivElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
-  const isNearBottomRef = useRef(true);
+  // Timestamp (performance.now) of the most recent programmatic pin-to-bottom.
+  // `onScroll` ignores events fired within a short window after a pin: those
+  // are the browser dispatching the side-effect of our own `scrollTop` write —
+  // often with a `scrollHeight` that grew another step mid-stream — and reading
+  // that transient geometry would mis-flag "user scrolled up". Same workaround
+  // as the community MessageList.
+  const lastPinAtRef = useRef(0);
+  // Timestamp of the most recent load-older prepend. The always-pin handler
+  // below skips the brief window after a prepend so pulling in history doesn't
+  // immediately yank the reader back down to the newest message.
+  const lastPrependAtRef = useRef(0);
+  // Drives the "Jump to latest" affordance only — pinning no longer depends on
+  // it. True whenever the view sits at the bottom; false only while the user
+  // has scrolled up into history with no new content arriving.
   const [isNearBottom, setIsNearBottom] = useState(true);
-  const [unread, setUnread] = useState(0);
 
   // File-link coordinates for clickable project paths in tool-call headers and
   // inline-code spans. Resolved once here (a single useWorkspaces fetch) and
@@ -155,6 +168,10 @@ export function MessageList({
     const newHead = messages[0]?.uuid ?? "";
     const oldHead = prevHeadUuidRef.current;
     if (oldHead && newHead && oldHead !== newHead) {
+      // Older messages were prepended (load-older). Mark the moment so the
+      // always-pin handler skips the resize this prepend triggers — otherwise
+      // it would snap to the bottom and make history unreadable.
+      lastPrependAtRef.current = performance.now();
       // Find the prior head in the new list — its position is how far we
       // need to shift scrollTop down so the user's view doesn't jump.
       const newHeight = el.scrollHeight;
@@ -224,10 +241,9 @@ export function MessageList({
     if (!el) return;
     if (lastAnchoredUserUuidRef.current === lastUserUuid) return;
     lastAnchoredUserUuidRef.current = lastUserUuid;
+    lastPinAtRef.current = performance.now();
     el.scrollTop = el.scrollHeight;
-    isNearBottomRef.current = true;
     setIsNearBottom(true);
-    setUnread(0);
   }, [replaying, lastUserUuid]);
 
   // Reset anchor + prepend-tracking state when the session is swapped out
@@ -235,19 +251,7 @@ export function MessageList({
   // clear, the previous session's `lastAnchoredUserUuidRef` would suppress
   // the anchor on the first user message of the new session if the two
   // happen to share the same uuid (unlikely, but cheap insurance).
-  // Using the "store previous props" pattern so the `setUnread` reset
-  // runs during render — keeps it out of a useEffect body to satisfy
-  // react-hooks/set-state-in-effect. The ref clears stay in a layout
-  // effect because writing refs during render is itself disallowed.
-  // https://react.dev/reference/react/useState#storing-information-from-previous-renders
-  const [wasEmpty, setWasEmpty] = useState(messages.length === 0);
   const isEmpty = messages.length === 0;
-  if (wasEmpty !== isEmpty) {
-    setWasEmpty(isEmpty);
-    if (isEmpty) {
-      setUnread(0);
-    }
-  }
   useLayoutEffect(() => {
     if (isEmpty) {
       lastAnchoredUserUuidRef.current = "";
@@ -255,39 +259,48 @@ export function MessageList({
     }
   }, [isEmpty]);
 
-  // Track scroll position for "near bottom" gating.
+  // Track scroll position purely to toggle the "Jump to latest" button. Pinning
+  // doesn't read this — we always snap to the bottom (see below).
   const onScroll = useCallback(() => {
     const el = scrollRef.current;
     if (!el) return;
+    // Ignore scroll events that are the echo of our own pin (see lastPinAtRef).
+    // 250ms covers the slowest expected reflow-and-fire delay; a genuine user
+    // scroll inside that window is rare and harmless to miss (the next real
+    // scroll re-evaluates it).
+    if (performance.now() - lastPinAtRef.current < 250) return;
     const distFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
-    const near = distFromBottom <= NEAR_BOTTOM_PX;
-    isNearBottomRef.current = near;
-    setIsNearBottom(near);
-    if (near) setUnread(0);
+    setIsNearBottom(distFromBottom <= NEAR_BOTTOM_PX);
   }, []);
 
-  // Auto-scroll on new messages — only if user is already near the bottom.
-  // Don't smooth-scroll during the initial replay (avoids the
-  // "smooth-chasing" flicker).
-  const lastTailUuidRef = useRef<string>("");
+  // Always stay at the bottom. A ResizeObserver fires on every height change —
+  // a reply streaming in (the tail message grows under one uuid), a brand-new
+  // message, late reflow (font load, image decode), AND the viewport shrinking
+  // when the composer autosizes as you type or the window resizes. On any of
+  // those we snap to the newest content. Observing BOTH the content wrapper and
+  // the scroll container is what makes the typing case work — the composer
+  // growing changes the container's box, not the content's. Instant pin (no
+  // smooth) avoids smooth-chasing jank mid-stream.
+  //
+  // The one carve-out: a load-older prepend also fires a resize, but snapping
+  // there would make scrolling back through history impossible — so we skip the
+  // brief window after a prepend (lastPrependAtRef).
   useEffect(() => {
     const el = scrollRef.current;
-    if (!el) return;
-    const tail = messages[messages.length - 1]?.uuid ?? "";
-    const grew = tail !== lastTailUuidRef.current;
-    lastTailUuidRef.current = tail;
-    if (!grew) return;
-    if (replaying) {
-      // jump (no smooth) during the buffered replay
+    const content = contentRef.current;
+    if (!el || !content) return;
+    const pin = () => {
+      if (performance.now() - lastPrependAtRef.current < 350) return;
+      lastPinAtRef.current = performance.now();
       el.scrollTop = el.scrollHeight;
-      return;
-    }
-    if (isNearBottomRef.current) {
-      endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-    } else {
-      setUnread((n) => n + 1);
-    }
-  }, [messages, replaying]);
+      // setState bails out when already true, so repeated chunks don't re-render.
+      setIsNearBottom(true);
+    };
+    const ro = new ResizeObserver(pin);
+    ro.observe(content);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   // Scroll a highlighted message into view when the prop changes (search → jump).
   useEffect(() => {
@@ -341,7 +354,7 @@ export function MessageList({
 
   const jumpToBottom = useCallback(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-    setUnread(0);
+    setIsNearBottom(true);
   }, []);
 
   // Click-a-prompt-to-rewind-the-view: scroll the clicked user message's turn
@@ -394,8 +407,17 @@ export function MessageList({
         ref={scrollRef}
         onScroll={onScroll}
         className="flex-1 overflow-y-auto scroll-thin"
+        // Disable the browser's "preserve visual position when content shifts"
+        // anchoring. Without this, late reflow after our pin-to-bottom drags
+        // scrollTop forward and fires scroll events the handler mis-reads as
+        // "user scrolled up", stranding the view mid-list. We drive pinning
+        // ourselves (ResizeObserver + lastPinAtRef guard).
+        style={{ overflowAnchor: "none" }}
       >
-        <div className="mx-auto w-full max-w-[var(--chat-col)] space-y-4 px-2 py-6 sm:px-4">
+        <div
+          ref={contentRef}
+          className="mx-auto w-full max-w-[var(--chat-col)] space-y-4 px-2 py-6 sm:px-4"
+        >
           {/* Top sentinel: when it scrolls into view, the parent loads older. */}
           {hasMoreAbove && (
             <div ref={topSentinelRef} className="flex items-center justify-center py-2 text-[10px] text-[var(--muted)]">
@@ -491,13 +513,14 @@ export function MessageList({
         </div>
       </div>
 
-      {!isNearBottom && unread > 0 && (
+      {!isNearBottom && (
         <button
           type="button"
           onClick={jumpToBottom}
+          aria-label="Jump to latest"
           className="absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1 rounded-full border border-[var(--border)] bg-[var(--accent)] px-3 py-1 text-[11px] font-medium text-white shadow-lg hover:opacity-90"
         >
-          <ChevronDown className="h-3 w-3" /> {unread} new
+          <ChevronDown className="h-3 w-3" /> Jump to latest
         </button>
       )}
     </div>
