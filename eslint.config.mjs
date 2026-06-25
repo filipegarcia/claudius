@@ -45,6 +45,14 @@ const eslintConfig = defineConfig([
     // (jQuery + turn.js for the flipbook). Linting them produces hundreds
     // of warnings on perfectly intentional minification patterns.
     "site/vendor/**",
+    // DesignSync tooling artifacts (all gitignored). `ds-bundle/` holds a
+    // generated bundle (`_ds_bundle.js`) and the `.ds-sync/`/`.design-sync`
+    // caches hold tool state — none of it is app code. ESLint flat config
+    // doesn't honor .gitignore, so without these it walks the generated
+    // bundle and emits ~80 errors on minified output.
+    "ds-bundle/**",
+    ".ds-sync/**",
+    ".design-sync/.cache/**",
   ]),
   // The React 19 / React Compiler rule set fires on patterns this codebase
   // hasn't been migrated for (see `user_lint_policy.md` memory). Demote to
