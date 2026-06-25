@@ -179,3 +179,137 @@ test.describe("ClearedFromBanner — /rewind after /clear (CC 2.1.191)", () => {
     });
   });
 });
+
+/**
+ * Live `/clear` path — the regression this guards against.
+ *
+ * The earlier tests pre-seed `sessionStorage["cleared:<newId>"]` BEFORE
+ * navigating to the new session, so they only ever exercise the
+ * page-refresh hydration path (the render-time latch reading storage on
+ * mount). They pass even when the *interactive* `/clear` is broken.
+ *
+ * The real bug: when `/clear` runs, `createNewSession()` binds the new
+ * session id (firing the latch, which reads an EMPTY storage key) BEFORE
+ * the `.then()` that records the cleared-from pointer. Relying on storage
+ * + the latch alone, the banner never appears until a manual refresh. The
+ * fix sets `clearedFromSessionId` state directly in that `.then()`.
+ *
+ * This spec starts in the OLD session with NO seeded storage, runs a real
+ * `/clear`, and asserts the banner shows — so a regression to the
+ * storage-only approach fails here.
+ */
+test.describe("ClearedFromBanner — live /clear (regression guard)", () => {
+  test.beforeEach(async ({ page }) => {
+    // Same EventSource stub as above: emit `ready` synchronously so the
+    // composer enables and a freshly-bound session's stream "connects".
+    await page.addInitScript(() => {
+      class FakeES extends EventTarget {
+        readonly CONNECTING = 0 as const;
+        readonly OPEN = 1 as const;
+        readonly CLOSED = 2 as const;
+        readyState = 1;
+        readonly url: string;
+        readonly withCredentials = false;
+        onopen: ((this: EventSource, ev: Event) => unknown) | null = null;
+        onmessage: ((this: EventSource, ev: MessageEvent) => unknown) | null = null;
+        onerror: ((this: EventSource, ev: Event) => unknown) | null = null;
+        constructor(u: string | URL) {
+          super();
+          this.url = String(u);
+          queueMicrotask(() => {
+            this.onopen?.call(this as unknown as EventSource, new Event("open"));
+            this.onmessage?.call(
+              this as unknown as EventSource,
+              new MessageEvent("message", { data: JSON.stringify({ type: "ready" }) }),
+            );
+          });
+        }
+        close() {
+          this.readyState = 2;
+        }
+      }
+      const Real = window.EventSource;
+      window.EventSource = new Proxy(Real, {
+        construct(target, args) {
+          const u = String(args[0]);
+          if (/\/api\/sessions\/[^/]+\/stream/.test(u)) {
+            return new FakeES(u) as unknown as EventSource;
+          }
+          return Reflect.construct(target, args);
+        },
+      }) as unknown as typeof EventSource;
+    });
+
+    // Deliberately NO sessionStorage seeding — the banner must come from the
+    // live `/clear` handler, not from a pre-existing storage key.
+
+    // POST /api/sessions (create) → return the NEW session id. GET → list both.
+    await page.route("**/api/sessions**", async (route) => {
+      const req = route.request();
+      const url = req.url();
+      if (req.method() === "POST" && /\/api\/sessions(\?.*)?$/.test(url)) {
+        return route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ id: NEW_SESSION_ID, cwd: process.cwd() }),
+        });
+      }
+      if (req.method() === "GET" && /\/api\/sessions(\?.*)?$/.test(url)) {
+        return route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify([
+            { id: OLD_SESSION_ID, cwd: process.cwd(), model: null, title: null, status: "idle" },
+            { id: NEW_SESSION_ID, cwd: process.cwd(), model: null, title: null, status: "idle" },
+          ]),
+        });
+      }
+      return route.fallback();
+    });
+
+    await page.route("**/api/sessions/all**", async (route) =>
+      route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ sessions: [] }) }),
+    );
+
+    // Per-session stubs for BOTH ids (draft / color / commands) to keep the
+    // composer quiet and avoid 404/500 noise during the swap.
+    for (const id of [OLD_SESSION_ID, NEW_SESSION_ID]) {
+      await page.route(`**/api/sessions/${id}/prompt-draft`, async (route) =>
+        route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ text: "", images: [] }) }),
+      );
+      await page.route(`**/api/sessions/${id}/prompt-color`, async (route) =>
+        route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ color: null }) }),
+      );
+      await page.route(`**/api/sessions/${id}/commands**`, async (route) =>
+        route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ commands: [] }) }),
+      );
+    }
+
+    // Land in the OLD session — the one we're about to /clear out of.
+    await page.goto(`/?session=${OLD_SESSION_ID}`);
+  });
+
+  test("running /clear surfaces the banner without any pre-seeded storage", async ({ page }) => {
+    const composer = page.getByTestId("prompt-input");
+    await expect(composer).toBeVisible({ timeout: 30_000 });
+
+    // Banner must NOT be present before the clear (no storage seeded).
+    await expect(page.getByTestId("cleared-from-banner")).toHaveCount(0);
+
+    // Drive a real /clear. The Send button calls submit() directly, so it
+    // bypasses the slash-autocomplete menu's Enter interception.
+    await composer.fill("/clear");
+    await page.getByTestId("prompt-send").click();
+
+    // The fix: the banner appears immediately in the fresh session.
+    await expect(page.getByTestId("cleared-from-banner")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId("cleared-from-banner")).toContainText("Session cleared");
+
+    // And the cleared-from pointer is persisted for refresh-survival.
+    const stored = await page.evaluate(
+      (newId) => window.sessionStorage.getItem(`cleared:${newId}`),
+      NEW_SESSION_ID,
+    );
+    expect(stored).toBe(OLD_SESSION_ID);
+  });
+});

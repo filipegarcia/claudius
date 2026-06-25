@@ -1062,6 +1062,14 @@ export default function Home() {
           void session.createNewSession().then((newId) => {
             if (oldId && newId) {
               window.sessionStorage.setItem(`cleared:${newId}`, oldId);
+              // Set state directly too — don't rely on the sessionId-change
+              // latch to re-read storage. By the time this `.then` runs,
+              // `createNewSession` has already bound `newId` (so the latch
+              // fired and read an *empty* `cleared:${newId}` key). Since
+              // `sessionId` doesn't change again, the latch never re-reads;
+              // without this direct set the banner only appears after a page
+              // refresh. (The storage write above is purely for that refresh.)
+              setClearedFromSessionId(oldId);
             }
           });
           showToast("New session — /rewind to return");
@@ -1919,6 +1927,12 @@ export default function Home() {
               void session.createNewSession().then((newId) => {
                 if (oldId && newId) {
                   window.sessionStorage.setItem(`cleared:${newId}`, oldId);
+                  // Set state directly — the sessionId-change latch already
+                  // fired (and read empty storage) when `newId` bound, and
+                  // won't re-read since `sessionId` no longer changes. Without
+                  // this the banner only shows after a refresh. See the /clear
+                  // slash handler above for the full explanation.
+                  setClearedFromSessionId(oldId);
                 }
               });
               if (oldId) {
