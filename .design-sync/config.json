@@ -6,6 +6,7 @@
   "srcDir": "components",
   "tsconfig": ".design-sync/tsconfig.dssync.json",
   "cssEntry": ".design-sync/compiled.css",
+  "readmeHeader": ".design-sync/conventions.md",
   "libOverrides": {
     "source-kit.mjs": "inject browser process shim into synth entry (Next.js framework code via next/link+next/navigation reads process.env.__NEXT_*/process.platform)"
   }
