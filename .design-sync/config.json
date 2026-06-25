@@ -1,0 +1,12 @@
+{
+  "projectId": "5e843efd-cc64-4f7f-b4f7-098f0028f1c8",
+  "pkg": "claudius",
+  "globalName": "Claudius",
+  "shape": "package",
+  "srcDir": "components",
+  "tsconfig": ".design-sync/tsconfig.dssync.json",
+  "cssEntry": ".design-sync/compiled.css",
+  "libOverrides": {
+    "source-kit.mjs": "inject browser process shim into synth entry (Next.js framework code via next/link+next/navigation reads process.env.__NEXT_*/process.platform)"
+  }
+}

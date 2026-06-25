@@ -1,0 +1,10 @@
+{
+  "_comment": "Build-only tsconfig for design-sync. The converter's esbuild paths plugin reads compilerOptions.paths directly (does NOT follow `extends`), so the repo's `@/*` alias is duplicated inline here. baseUrl `..` makes both aliases resolve from the repo root (this file lives in .design-sync/). The extra `shiki` alias swaps the heavy syntax-highlighter package for a tiny stub so _ds_bundle.js stays under the 5 MB upload cap.",
+  "compilerOptions": {
+    "baseUrl": "..",
+    "paths": {
+      "@/*": ["./*"],
+      "shiki": ["./.design-sync/shiki-stub.ts"]
+    }
+  }
+}
