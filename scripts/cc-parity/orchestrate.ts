@@ -1136,6 +1136,12 @@ export async function runCcParityOnExistingBranch(args: {
   changelog: string;
   /** The rendered run-notes Summary section, for announcements. */
   summary: string;
+  /**
+   * The SDK session UUID of the CC run, so a detached/needs-human PR can
+   * print a `claude --resume <id>` handle. `null` if the run produced no
+   * messages carrying a session id.
+   */
+  sessionId: string | null;
 }> {
   const { prevCcVersion, newCcVersion, branch, dryRun, skipGates, combinedWith } = args;
 
@@ -1256,6 +1262,7 @@ export async function runCcParityOnExistingBranch(args: {
     shaBeforeCcWork,
     changelog,
     summary,
+    sessionId: claudeResult.sessionId,
   };
 }
 

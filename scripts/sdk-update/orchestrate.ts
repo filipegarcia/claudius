@@ -67,7 +67,7 @@
  *   CHAT_SERVER_ADMIN_TOKEN    required — matches chat-server admin token
  *   SDK_UPDATE_ROOM_SLUG       optional — default "sdk-update"
  *   SDK_UPDATE_MODEL           optional — Claude model alias, default "sonnet"
- *   SDK_UPDATE_MAX_TURNS       optional — agentic turn budget, default 200
+ *   SDK_UPDATE_MAX_TURNS       optional — agentic turn budget, default 400
  *   SDK_UPDATE_MAX_WALL_MIN    optional — wall-clock budget in minutes, default 360
  *   SDK_UPDATE_MAX_IDLE_MIN    optional — max silence between SDK messages, default 15
  */
@@ -127,7 +127,7 @@ const ROOM_SLUG = process.env.SDK_UPDATE_ROOM_SLUG ?? "sdk-update";
 process.env.GIT_TERMINAL_PROMPT = "0";
 
 const MODEL = process.env.SDK_UPDATE_MODEL ?? "sonnet";
-const MAX_TURNS = Number(process.env.SDK_UPDATE_MAX_TURNS ?? "200");
+const MAX_TURNS = Number(process.env.SDK_UPDATE_MAX_TURNS ?? "400");
 const MAX_WALL_MS = Number(process.env.SDK_UPDATE_MAX_WALL_MIN ?? "360") * 60_000;
 // Idle watchdog: maximum gap between consecutive SDK messages before we
 // assume the agent (or a tool subprocess it spawned) is hung. The
@@ -995,6 +995,15 @@ export async function runClaude(prompt: string, transcriptFile?: string): Promis
   turnCount: number;
   wallMs: number;
   budgetReason: string | null;
+  /**
+   * The SDK session UUID for this run, captured from the first message
+   * that carries one (the `system`/`init` message). Persisted by the
+   * SDK under `~/.claude/projects/<cwd-hash>/` so a human can resume the
+   * conversation with `claude --resume <sessionId>` from the repo root.
+   * `null` if the iterator closed before emitting any message with a
+   * `session_id` (e.g. the 0-message auth-failure mode).
+   */
+  sessionId: string | null;
 }> {
   // Importable check ahead of any orchestration. If the freshly-
   // installed SDK fails to load, throw a useful error instead of a
@@ -1031,6 +1040,10 @@ export async function runClaude(prompt: string, transcriptFile?: string): Promis
   let turnCount = 0;
   let completed = false;
   let budgetReason: string | null = null;
+  // First-seen SDK session UUID. Every SDKMessage carries `session_id`;
+  // we latch the first one so the PR body can print a `claude --resume`
+  // handle for the human who picks the run up.
+  let sessionId: string | null = null;
 
   // Streamed transcript — one JSON object per line so it's trivially
   // greppable (`jq -c '.type' transcript.jsonl | sort | uniq -c` to
@@ -1177,7 +1190,11 @@ export async function runClaude(prompt: string, transcriptFile?: string): Promis
       turnCount += 1;
       lastMsgAt = Date.now();
       warnedSlow = false; // reset half-way warning on each tick of progress
-      const m = msg as { type?: string; subtype?: string };
+      const m = msg as { type?: string; subtype?: string; session_id?: string };
+      if (!sessionId && typeof m.session_id === "string" && m.session_id) {
+        sessionId = m.session_id;
+        log(`claude session id: ${sessionId}`);
+      }
       const summary = summarizeSdkMessage(m);
       lastMsgSummary = summary;
       appendTranscript(msg);
@@ -1229,6 +1246,7 @@ export async function runClaude(prompt: string, transcriptFile?: string): Promis
     turnCount,
     wallMs: Date.now() - startedAt,
     budgetReason,
+    sessionId,
   };
 }
 
@@ -2176,6 +2194,8 @@ type CombinedCcOutcome =
       budgetReason: string | null;
       failedSteps: GateStep[];
       shaBeforeCcWork: string;
+      /** SDK session UUID of the CC run — for the detached PR's resume handle. */
+      ccSessionId: string | null;
     };
 
 async function maybeRunCombinedCc(args: {
@@ -2324,6 +2344,7 @@ async function maybeRunCombinedCc(args: {
       shaBeforeCcWork,
       changelog: "_(cc-parity core threw before changelog fetch)_",
       summary: "",
+      sessionId: null,
     };
   }
 
@@ -2361,6 +2382,7 @@ async function maybeRunCombinedCc(args: {
     summary: ccResult.summary,
     budgetReason: ccResult.budgetReason,
     failedSteps: ccResult.failedSteps,
+    ccSessionId: ccResult.sessionId,
     // Use the caller-captured SHA — we trust it more than the core's
     // return value (which may have a stale value if the core threw).
     shaBeforeCcWork,
@@ -2670,11 +2692,65 @@ export function buildDetachedCcPrBody(args: {
   ccCommitShas: string[];
   ccFailReason: string;
   ccRunNotes: string;
+  /**
+   * The SDK session UUID of the failed CC run. When present, the body
+   * prints a `claude --resume <id>` handle so the human taking this PR
+   * over can pick up the exact conversation where the bot left off
+   * (at the turn/wall budget). `null`/omitted → a short note explaining
+   * no resumable session was captured.
+   */
+  ccSessionId?: string | null;
+  /**
+   * The detached branch the CC commits were cherry-picked onto. Used in
+   * the resume command so the human lands on the right git state before
+   * resuming (the session ran on the combined branch, which no longer
+   * exists in that shape).
+   */
+  detachedBranch?: string;
 }): string {
   const shaList = args.ccCommitShas.map((s) => `- ${s}`).join("\n");
   // Pull what we can from the run-notes file the CC core did write —
   // even on failure the classification section is often present.
   const ccClassification = extractEscapedSection(args.ccRunNotes, "Changelog classification");
+
+  // "Continue this run" — the SDK persists the agent conversation under
+  // ~/.claude/projects/<cwd-hash>/, so a human on the cron host can
+  // resume the exact session (full context, at the turn/wall budget it
+  // stopped on) with `claude --resume <id>`. We prefix a checkout of the
+  // detached branch because the session ran on the *combined* branch,
+  // which was reset to SDK-only and the CC commits cherry-picked here
+  // under new SHAs — resuming without checking out first drops the human
+  // into the wrong working tree.
+  const branchForResume = args.detachedBranch ?? "<this PR's branch>";
+  const resumeCmd = args.ccSessionId
+    ? [
+        "```bash",
+        `git fetch origin ${branchForResume} \\`,
+        `  && git checkout ${branchForResume} \\`,
+        `  && claude --resume ${args.ccSessionId}`,
+        "```",
+      ].join("\n")
+    : null;
+  const continueSection = resumeCmd
+    ? [
+        "## Continue this run",
+        "",
+        `**Agent session:** \`${args.ccSessionId}\``,
+        "",
+        "Pick up the exact conversation where the bot stopped (it hit the turn/wall budget). Run from the repo root:",
+        "",
+        resumeCmd,
+        "",
+        "> **Notes.** `--resume` restores the *conversation*, not the working tree — that's why the command checks out the branch first. The session is stored on the machine that ran the firing (`~/.claude/projects/<cwd-hash>/`) and `claude --resume` only finds it from this repo's directory or one of its git worktrees; on any other machine this id is forensic metadata, not a runnable command. Resuming drops you back at the failing turn, so steer it (e.g. point it at the diagnosed root cause) rather than letting it re-thrash.",
+        "",
+      ]
+    : [
+        "## Continue this run",
+        "",
+        "_(No resumable agent session was captured for this run — drive the CC commits to green by hand.)_",
+        "",
+      ];
+
   return [
     `# CC parity \`${args.prevCcVersion}\` → \`${args.newCcVersion}\` (detached from SDK firing)`,
     "",
@@ -2694,6 +2770,7 @@ export function buildDetachedCcPrBody(args: {
     "",
     shaList || "_(no commits — this should not happen; see run logs.)_",
     "",
+    ...continueSection,
     "## CC changelog classification (from the failed run)",
     "",
     ccClassification,
@@ -4490,6 +4567,8 @@ async function main(): Promise<void> {
           combined.budgetReason ??
           `cc-parity gate failed: ${combined.failedSteps.join(", ") || "unknown"}`,
         ccRunNotes,
+        ccSessionId: combined.ccSessionId,
+        detachedBranch: peelOutcome.detachedBranch,
       });
       // Promote `combinedOutcome` the moment cherry-pick succeeded —
       // regardless of whether the subsequent PR-open call succeeds.

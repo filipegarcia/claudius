@@ -685,6 +685,27 @@ describe("buildDetachedCcPrBody", () => {
     // Missing section comes through as the standard placeholder.
     expect(out).toContain("did not include a");
   });
+
+  test("prints a resume command (branch checkout + claude --resume) when a session id is present", () => {
+    const out = buildDetachedCcPrBody({
+      ...base,
+      ccSessionId: "11111111-2222-3333-4444-555555555555",
+      detachedBranch: "cc-parity/1.0.40-detached-from-sdk-0.3.142",
+    });
+    expect(out).toContain("## Continue this run");
+    expect(out).toContain("11111111-2222-3333-4444-555555555555");
+    // Must check out the detached branch BEFORE resuming — the session
+    // ran on the combined branch, not this one.
+    expect(out).toContain("git checkout cc-parity/1.0.40-detached-from-sdk-0.3.142");
+    expect(out).toContain("claude --resume 11111111-2222-3333-4444-555555555555");
+  });
+
+  test("renders a no-session fallback when the session id is absent", () => {
+    const out = buildDetachedCcPrBody(base);
+    expect(out).toContain("## Continue this run");
+    expect(out).toContain("No resumable agent session");
+    expect(out).not.toContain("claude --resume");
+  });
 });
 
 describe("buildDraftDetachedAnnouncement", () => {
