@@ -3771,7 +3771,7 @@ export function useSession(): ChatState & ChatActions {
   );
 
   const createNewSession = useCallback(async () => {
-    await createSession({});
+    return await createSession({});
   }, [createSession]);
 
   const createSessionAt = useCallback(
