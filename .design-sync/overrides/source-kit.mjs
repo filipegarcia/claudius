@@ -77,7 +77,30 @@ export async function resolvePackage(ctx) {
       console.error(`[NO_DIST] ${PKG} has no built entry and no src/ to synthesize from — run its build.`);
       process.exit(1);
     }
-    const comps = srcFiles.filter((p) => SRC_IMPL_RX.test(p) && !NON_IMPL_RX.test(p));
+    let comps = srcFiles.filter((p) => SRC_IMPL_RX.test(p) && !NON_IMPL_RX.test(p));
+    // Fork addition: the synth entry below does `export *` per file, and ES
+    // `export *` exposes one symbol per NAME — so two src files that both
+    // export the same component name collide into `undefined` on the bundle
+    // global (the newer converter's [BUNDLE_EXPORT] check catches what older
+    // ones shipped silently). Claudius has exactly one such pair:
+    //   components/chat/MessageList.tsx   (592 lines — the canonical message
+    //                                      list, used by the workspace page)
+    //   components/community/MessageList.tsx (178 lines — used only inside
+    //                                      CommunityChat)
+    // Drop the secondary (community) file from the synth entry so the canonical
+    // chat MessageList is the one that survives on window.Claudius. Nothing is
+    // lost where it's actually used: CommunityChat still bundles its ./MessageList
+    // as an internal dep — it just stops being a top-level global it could never
+    // uniquely own anyway. The list is EXPLICIT (not basename-dedup): files that
+    // share a basename but export distinct names must not be dropped blindly.
+    // Re-check this list when components/ changes (a new same-name pair re-trips
+    // [BUNDLE_EXPORT]). componentSrcMap is deliberately NOT used: in synth mode
+    // the full 142-component list comes from a deriveComponentsFromSrc fallback
+    // that only fires when the name set is empty, so any componentSrcMap entry
+    // collapses the list to just that entry.
+    const SYNTH_ENTRY_DROP = ['components/community/MessageList.tsx'];
+    const dropAbs = new Set(SYNTH_ENTRY_DROP.map((r) => resolve(PKG_DIR, r)));
+    comps = comps.filter((p) => !dropAbs.has(resolve(p)));
     // Browser `process` shim — evaluated first (imported before any component
     // module) so Next.js framework code bundled via next/link + next/navigation
     // doesn't throw "process is not defined". See header note for the fork reason.
