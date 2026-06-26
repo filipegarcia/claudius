@@ -3438,6 +3438,21 @@ export function useSession(): ChatState & ChatActions {
           ]);
           return;
         }
+        // SDKCommandsChangedMessage (0.3.195 fix): fire-and-forget push of
+        // the full slash-command list after a mid-session change (e.g. skills
+        // discovered dynamically as the agent works in a subdirectory). The
+        // SDK docs say supportedCommands() is captured once at initialize and
+        // never reflects mid-session changes — so replace the cached list
+        // outright with the pushed one rather than re-fetching via the API.
+        // Note: this is a live-session-only fix; on tab-switch/reload the
+        // list rehydrates from the stale system:init snapshot (see run-notes
+        // 0.3.195 Risks/follow-ups for the full-fix approach).
+        if (sysAny.subtype === "commands_changed") {
+          const cc = sysAny as { commands?: Array<{ name: string }> };
+          const names = (cc.commands ?? []).map((c: { name: string }) => c.name);
+          if (names.length > 0) setSlashCommands(names);
+          return;
+        }
         // Drop SDK system plumbing that carries no user-facing value instead
         // of rendering it as a cryptic `system/<subtype ?? "?">` pill. The
         // Ralph-loop Stop hook fires a `stop_hook_summary` per iteration whose
