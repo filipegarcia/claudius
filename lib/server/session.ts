@@ -1212,6 +1212,24 @@ export class Session {
   private authFailedNudgeFired = false;
 
   /**
+   * Fire-once gate for the MCP needs-auth startup notice (CC 2.1.193 parity).
+   * Trips on the first live (non-replayed) `system:init` when any configured
+   * MCP server is in `needs-auth` state. The async check runs in
+   * `noteMcpNeedsAuthAtStartup()`; a `mcp_needs_auth_notice` SSE event is
+   * broadcast which the client renders as a transcript info pill.
+   */
+  private mcpNeedsAuthNoticeFired = false;
+
+  /**
+   * In-memory ring buffer of the most-recent permission denials for this
+   * session (CC 2.1.193 parity — "recent denials" section on /permissions).
+   * Capped at 20 entries; populated by `broadcast()` when a `permission_denied`
+   * SDK system message is observed. Not persisted: matches CC's own
+   * current-session scope; survives as long as this `Session` object lives.
+   */
+  private recentDenials: Array<{ toolName: string; reasonType: string; at: number }> = [];
+
+  /**
    * Per-session goal (see `/goal`, GoalBanner). Loaded from the per-project
    * DB on `start()` so it survives reload + resume. `null` goal means none is
    * set. Achievement is sticky until the user clears or replaces the goal.
@@ -4804,6 +4822,54 @@ export class Session {
   }
 
   /**
+   * Check MCP server status asynchronously on the first live `system:init`
+   * of a session. If any configured server is in `needs-auth` state, broadcast
+   * a `mcp_needs_auth_notice` SSE event so the client can surface a transcript
+   * info pill pointing the user at `/mcp`. Fire-once per session; the flag is
+   * set before the async call so a re-entrant `system:init` (unlikely but
+   * possible during edge-case replays) never double-fires.
+   */
+  private async noteMcpNeedsAuthAtStartup(): Promise<void> {
+    if (this.mcpNeedsAuthNoticeFired) return;
+    this.mcpNeedsAuthNoticeFired = true;
+    try {
+      const result = await this.mcpServerStatus();
+      if (!result.ok) return;
+      const statuses = result.data as Array<{ name?: string; status?: string }>;
+      if (!Array.isArray(statuses)) return;
+      const needsAuth = statuses.filter((s) => s?.status === "needs-auth");
+      if (needsAuth.length === 0) return;
+      this.broadcast({
+        type: "mcp_needs_auth_notice",
+        servers: needsAuth.map((s) => (typeof s?.name === "string" ? s.name : "unknown")),
+      });
+    } catch {
+      // best-effort — a status-check failure must never disrupt the session
+    }
+  }
+
+  /**
+   * Returns a snapshot of the in-memory denial ring buffer for this session.
+   * Used by `GET /api/sessions/[id]/denials` to populate the "Recent Denials"
+   * section on the /permissions page. Array is newest-last (insertion order).
+   */
+  getRecentDenials(): Array<{ toolName: string; reasonType: string; at: number }> {
+    return [...this.recentDenials];
+  }
+
+  /**
+   * Dev-only injection seam — lets Playwright tests seed the denial ring
+   * buffer deterministically without needing a live SDK permission_denied
+   * event. Guarded at the API layer (`NODE_ENV !== "production"`).
+   */
+  injectDenialForTesting(toolName: string, reasonType: string): void {
+    this.recentDenials.push({ toolName, reasonType, at: Date.now() });
+    if (this.recentDenials.length > 20) {
+      this.recentDenials.splice(0, this.recentDenials.length - 20);
+    }
+  }
+
+  /**
    * Account-switcher: on the first rate-limit-hit message of this
    * session, rotate the global active profile to the next configured
    * one (round-robin) when the user enabled auto-rotate. Fire-once per
@@ -5128,6 +5194,10 @@ export class Session {
         // would re-pop a stale banner. Live subscribers see the original
         // broadcast at the moment the 401 lands.
         ev.type === "auth_failed_required" ||
+        // One-shot MCP needs-auth startup notice (CC 2.1.193) — once the user
+        // has seen it (or connected the server) replaying on reload would
+        // surface a potentially stale notice. Fire-once per session lifetime.
+        ev.type === "mcp_needs_auth_notice" ||
         // Session recap is by definition "where were we" — replaying a stale
         // one on tab switch or reload would contradict the live state. Live
         // subscribers see the one true broadcast; reloaders just wait until
@@ -5798,6 +5868,27 @@ export class Session {
     // the inner conversation — and persist it on completion so it survives a
     // disk-rebuild of this session. See captureTaskState() + session-tasks-db.
     this.captureTaskState(event);
+    // CC 2.1.193 — MCP needs-auth startup notice and permission-denial ring buffer.
+    if (event.type === "sdk") {
+      const sdkMsg = event.message as { type?: string; subtype?: string; tool_name?: string; decision_reason_type?: string; decision_reason?: string };
+      if (sdkMsg?.type === "system") {
+        // Fire the one-shot MCP needs-auth notice on the first live system:init.
+        if (sdkMsg.subtype === "init" && !this.isReplayingTranscript) {
+          void this.noteMcpNeedsAuthAtStartup();
+        }
+        // Capture permission_denied events into the in-memory ring buffer.
+        if (sdkMsg.subtype === "permission_denied") {
+          this.recentDenials.push({
+            toolName: sdkMsg.tool_name ?? "(unknown)",
+            reasonType: sdkMsg.decision_reason_type ?? sdkMsg.decision_reason ?? "unknown",
+            at: typeof event.at === "number" ? event.at : Date.now(),
+          });
+          if (this.recentDenials.length > 20) {
+            this.recentDenials.splice(0, this.recentDenials.length - 20);
+          }
+        }
+      }
+    }
     for (const sub of this.subscribers) {
       try {
         sub(event);

@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ArrowLeft, Plus, X, Info } from "lucide-react";
+import { ArrowLeft, Plus, X, Info, Clock } from "lucide-react";
 import { SideNav } from "@/components/nav/SideNav";
 import { ScopeToggle, type Scope as IaScope } from "@/components/nav/ScopeToggle";
 import { usePermissions, type RuleKind, type Scope } from "@/lib/client/usePermissions";
+import { useActiveCwd } from "@/lib/client/useActiveCwd";
+import { useRecentDenials } from "@/lib/client/useRecentDenials";
 import { cn } from "@/lib/utils/cn";
 
 const SCOPES: { id: Scope; label: string; path: string }[] = [
@@ -34,6 +36,27 @@ export default function PermissionsPage() {
   const { rules, loading, error, updateRules } = usePermissions();
   const [scope, setScope] = useState<Scope>("project");
   const [iaScope, setIaScope] = useState<IaScope>("workspace");
+
+  // Find the live session matching the active workspace CWD so we can surface
+  // its recent-denial ring buffer (CC 2.1.193 parity). Same pattern as McpPage.
+  const cwd = useActiveCwd();
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  useEffect(() => {
+    if (cwd == null) return;
+    let cancelled = false;
+    fetch("/api/sessions")
+      .then((r) => r.json())
+      .then((arr: Array<{ id?: string; cwd?: string }>) => {
+        if (cancelled) return;
+        if (!Array.isArray(arr)) { setSessionId(null); return; }
+        const match = cwd ? arr.find((s) => s.cwd === cwd) : arr[0];
+        setSessionId(match?.id ?? null);
+      })
+      .catch(() => { if (!cancelled) setSessionId(null); });
+    return () => { cancelled = true; };
+  }, [cwd]);
+
+  const { denials } = useRecentDenials(sessionId);
 
   function setIaScopeWithSnap(next: IaScope) {
     setIaScope(next);
@@ -127,6 +150,42 @@ export default function PermissionsPage() {
                   onRemove={(v) => remove(k.id, v)}
                 />
               ))}
+            </div>
+
+            {/* Recent Denials — CC 2.1.193 parity */}
+            <div
+              data-testid="recent-denials-section"
+              className="mt-6 rounded-lg border border-[var(--border)] bg-[var(--panel)]/40 p-4"
+            >
+              <div className="mb-3 flex items-center gap-1.5 text-xs font-medium text-[var(--muted)]">
+                <Clock className="h-3.5 w-3.5" />
+                Recent Denials
+                {denials.length > 0 && (
+                  <span className="ml-1 opacity-70">({denials.length})</span>
+                )}
+              </div>
+              {denials.length === 0 ? (
+                <p className="text-[11px] text-[var(--muted)]">
+                  No permission denials recorded for this session.
+                </p>
+              ) : (
+                <div className="space-y-1.5">
+                  {[...denials].reverse().map((d, i) => (
+                    <div
+                      key={i}
+                      data-testid="recent-denial-entry"
+                      className="flex items-center gap-2 rounded-md border border-red-500/20 bg-red-500/5 px-2.5 py-1.5 text-xs"
+                    >
+                      <code className="font-mono text-red-200">{d.toolName}</code>
+                      <span className="text-[var(--muted)]">·</span>
+                      <span className="text-[var(--muted)]">{d.reasonType}</span>
+                      <span className="ml-auto font-mono text-[10px] text-[var(--muted)]">
+                        {new Date(d.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>

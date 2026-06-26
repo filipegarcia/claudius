@@ -1528,6 +1528,22 @@ export function useSession(): ChatState & ChatActions {
         setAuthFailedNudge(ev);
         return;
       }
+      if (ev.type === "mcp_needs_auth_notice") {
+        // CC 2.1.193 — inject a transcript info pill pointing the user at /mcp.
+        const count = ev.servers.length;
+        const names = ev.servers.join(", ");
+        const word = count === 1 ? "server needs" : "servers need";
+        setSystemEntries((prev) => [
+          ...prev,
+          {
+            uuid: crypto.randomUUID(),
+            afterMessageUuid: lastAssistantUuidRef.current,
+            kind: "info" as const,
+            label: `MCP ${word} auth: ${names} · open /mcp to connect`,
+          },
+        ]);
+        return;
+      }
       if (ev.type === "tips") {
         setTips(ev.tips);
         return;
