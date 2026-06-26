@@ -57,7 +57,15 @@ export function TaskBlock({ toolUseId, input, result, task, innerMessages, defau
     setOpen(defaultOpen);
   }
   const subagentName = (input as { subagent_type?: string; agent?: string }).subagent_type ?? (input as { agent?: string }).agent ?? "Task";
-  const description = task?.description ?? (input as { description?: string }).description ?? "";
+  // Title is the spawn *intent* (the Task tool's static `description` — the
+  // "why"), with live progress shown as a trailing detail only when it diverges.
+  // Previously live progress overwrote the intent, so parallel agents all read
+  // "Reading <file>" and were indistinguishable by purpose. Fall back to live
+  // progress when no static intent was supplied (older/recovered rows).
+  const intent = (input as { description?: string }).description ?? "";
+  const liveActivity = task?.description ?? "";
+  const title = intent || liveActivity;
+  const activity = intent && liveActivity && liveActivity !== intent ? liveActivity : "";
   const prompt = (input as { prompt?: string }).prompt ?? "";
   const status = task?.status ?? (result ? (result.isError ? "failed" : "completed") : "running");
 
@@ -91,8 +99,11 @@ export function TaskBlock({ toolUseId, input, result, task, innerMessages, defau
         <span className="shrink-0 whitespace-nowrap rounded-md border border-[var(--accent)]/30 bg-[var(--accent)]/10 px-1.5 py-0.5 font-mono text-[10px] text-[var(--accent)]">
           {subagentName}
         </span>
-        {description && (
-          <span className="min-w-0 flex-1 truncate text-[var(--muted)]">— {description}</span>
+        {title && (
+          <span className="min-w-0 flex-1 truncate text-[var(--muted)]">
+            — {title}
+            {activity && <span className="text-[var(--muted)]/60"> · {activity}</span>}
+          </span>
         )}
         {/* Trailing cluster never wraps: status chip + numeric metrics stay on
             one line; the description above truncates to yield space instead. */}
