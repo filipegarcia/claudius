@@ -201,6 +201,21 @@ export type AuthFailedNudgeEvent = {
 };
 
 /**
+ * One-shot notice fired when any configured MCP server is in `needs-auth`
+ * state at session startup. Emitted from `Session.noteMcpNeedsAuthAtStartup()`
+ * on the first live (non-replayed) `system:init`. The client renders it as a
+ * `kind: "info"` transcript pill pointing the user at `/mcp` to authenticate.
+ * Excluded from the SSE replay buffer so a stale notice never re-pops on
+ * reload; the server's fire-once guard prevents re-emission inside one
+ * session lifetime.
+ */
+export type McpNeedsAuthNoticeEvent = {
+  type: "mcp_needs_auth_notice";
+  /** Names of the MCP servers currently in `needs-auth` state. */
+  servers: string[];
+};
+
+/**
  * Server-driven spinner tips — the catalog the client rotates through under
  * the "Claude is working…" row. Routed through SSE (rather than hardcoded on
  * the client) so the backend is the single source of truth: new-feature tips
@@ -719,6 +734,7 @@ export type ServerEvent =
   | OpusOverloadNudgeEvent
   | LongContextCreditsNudgeEvent
   | AuthFailedNudgeEvent
+  | McpNeedsAuthNoticeEvent
   | TipsEvent
   | CwdChangedEvent
   | AskUserQuestionEvent
