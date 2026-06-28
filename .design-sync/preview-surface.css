@@ -1,0 +1,23 @@
+/* design-sync preview surface — DURABLE override (do not delete; committed).
+   The generated card HTML (lib/emit.mjs) links styles.css BEFORE an inline
+   <style> that hardcodes a LIGHT preview chrome:
+       body{background:#fff}  .ds-cell{border:#e5e7eb}  .ds-cell>h4{color:#6b7280}
+   Claudius is dark-first (:root tokens are the dark palette → light-on-dark
+   text), so token-driven components otherwise render light-on-white and fail
+   the "styled" check.
+
+   These rules pull the card cells back onto the DS tokens. Notes:
+   - !important is required to beat the later inline <style> (link precedes it).
+   - Scoped to .ds-cell / .ds-single — selectors that exist ONLY in preview
+     cards. A design built with the DS has no such elements and sets its own
+     surface, so nothing here can leak into shipped designs (this is why there
+     is deliberately NO bare body{} rule, even though the card page stays white).
+   - All colors are var(--*) tokens, so cells stay theme-correct under any
+     data-theme, never hardcoded.
+
+   DURABILITY: this block used to live only inside the gitignored compiled.css
+   and was lost twice. It is now committed here; the regen step in NOTES.md
+   appends it to compiled.css after every Tailwind recompile. */
+.ds-cell { background: var(--panel) !important; border-color: var(--border) !important; color: var(--foreground); }
+.ds-cell > h4 { color: var(--muted) !important; }
+.ds-single { background: var(--panel) !important; border-radius: 8px; color: var(--foreground); }

@@ -7,7 +7,11 @@
   "tsconfig": ".design-sync/tsconfig.dssync.json",
   "cssEntry": ".design-sync/compiled.css",
   "readmeHeader": ".design-sync/conventions.md",
+  "overrides": {
+    "LoadingBar": { "cardMode": "column" },
+    "CollapsibleSection": { "cardMode": "column" }
+  },
   "libOverrides": {
-    "source-kit.mjs": "inject browser process shim into synth entry (Next.js framework code via next/link+next/navigation reads process.env.__NEXT_*/process.platform)"
+    "source-kit.mjs": "inject browser process shim into synth entry (Next.js framework code via next/link+next/navigation reads process.env.__NEXT_*/process.platform); drop components/community/MessageList.tsx from the synth entry (SYNTH_ENTRY_DROP) so it doesn't collide with components/chat/MessageList.tsx into undefined on window.Claudius"
   }
 }
