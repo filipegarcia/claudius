@@ -9,6 +9,7 @@ import { SideNav } from "@/components/nav/SideNav";
 import { TranscriptViewer } from "@/components/sessions/TranscriptViewer";
 import { useSessionsHistory } from "@/lib/client/useSessionsHistory";
 import { cn } from "@/lib/utils/cn";
+import { readableSessionLabel } from "@/components/chat/SessionTabs";
 
 export default function SessionDetailPage() {
   const params = useParams<{ id: string }>();
@@ -137,7 +138,7 @@ export default function SessionDetailPage() {
               <span className="truncate font-medium">
                 {(info as { claudiusTitle?: string } | null)?.claudiusTitle
                   || info?.customTitle
-                  || "(untitled)"}
+                  || (info?.createdAt ? readableSessionLabel(info.createdAt) : "(untitled)")}
               </span>
               <button
                 onClick={() => setRenaming(true)}

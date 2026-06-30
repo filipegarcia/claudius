@@ -8,6 +8,7 @@ import { SideNav } from "@/components/nav/SideNav";
 import { useSessionsHistory } from "@/lib/client/useSessionsHistory";
 import { useWorkspaces } from "@/lib/client/useWorkspaces";
 import { cn } from "@/lib/utils/cn";
+import { readableSessionLabel } from "@/components/chat/SessionTabs";
 
 function fmtRelative(ms: number): string {
   const diff = Date.now() - ms;
@@ -262,7 +263,9 @@ export default function SessionsPage() {
                           this row for context.
                         */}
                         <span className="truncate text-sm font-medium">
-                          {s.claudiusTitle || s.customTitle || "(untitled)"}
+                          {s.claudiusTitle ||
+                            s.customTitle ||
+                            (s.createdAt ? readableSessionLabel(s.createdAt) : "(untitled)")}
                         </span>
                         <span className="text-[10px] font-mono text-[var(--muted)]">{s.sessionId.slice(0, 8)}</span>
                       </div>

@@ -936,6 +936,14 @@ export class Session {
   readonly id: string;
   readonly cwd: string;
   /**
+   * Epoch ms when this Session object was constructed. Used to generate
+   * a readable fallback label ("Today at 2:15 PM") in the tab strip for
+   * sessions that have no user-set or SDK-derived title yet. Kept in
+   * memory only — NOT persisted as a DB title, so it never clobbers the
+   * SDK's aiTitle once one is available.
+   */
+  readonly createdAt: number;
+  /**
    * Account profile this session was spawned under (account-switcher,
    * see `lib/server/accounts-store.ts`). Resolved in `start()` from the
    * "active" profile at the moment of spawn, then frozen — switching
@@ -1562,6 +1570,7 @@ export class Session {
     this.permissionMode = opts.permissionMode ?? "default";
     this.resumeFrom = opts.resume;
     this.resumeAt = opts.resumeSessionAt;
+    this.createdAt = Date.now();
   }
 
   async start(): Promise<void> {

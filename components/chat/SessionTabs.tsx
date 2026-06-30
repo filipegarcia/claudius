@@ -1138,11 +1138,38 @@ export function activeTabStatus(opts: {
  *      the tab updates the moment a rename succeeds).
  *   2. The session's persisted `title` from the `/api/sessions` list — this
  *      is what makes *non-active* tabs show their custom names.
- *   3. The first 8 characters of the session id as the fallback.
+ *   3. A readable date label derived from the session's `createdAt` timestamp,
+ *      e.g. "Today at 2:15 PM" or "Jun 30 at 2:15 PM". Computed at display
+ *      time only — NOT persisted to the DB — so it never clobbers the SDK's
+ *      aiTitle (CC 2.1.196 parity: readable default names for sessions at start).
+ *   4. The first 8 characters of the session id as the last-resort fallback.
  */
+
+/**
+ * Format a session creation timestamp into a human-readable label.
+ * Produces locale-aware output: "Today at 2:15 PM", "Jun 30 at 2:15 PM",
+ * "Jun 30, 2024 at 2:15 PM". The label is computed in the user's browser
+ * locale — display-only, not stored anywhere.
+ *
+ * Exported for unit testing.
+ */
+export function readableSessionLabel(createdAt: number): string {
+  const d = new Date(createdAt);
+  const now = new Date();
+  const time = d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  if (d.toDateString() === now.toDateString()) return `Today at ${time}`;
+  if (d.getFullYear() === now.getFullYear()) {
+    const date = d.toLocaleDateString([], { month: "short", day: "numeric" });
+    return `${date} at ${time}`;
+  }
+  const date = d.toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" });
+  return `${date} at ${time}`;
+}
+
 export function tabLabelFor(id: string, sessions: SessionInfo[], titleOverride?: string | null): string {
   if (titleOverride && titleOverride.trim()) return titleOverride.trim();
   const known = sessions.find((s) => s.id === id);
   if (known?.title && known.title.trim()) return known.title.trim();
+  if (known?.createdAt) return readableSessionLabel(known.createdAt);
   return id.slice(0, 8);
 }
