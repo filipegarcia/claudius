@@ -489,6 +489,64 @@ export function extractUserContent(content: unknown): {
   return { text: rest, images, reminderBodies: reminders };
 }
 
+/**
+ * TEMP replay-debug instrumentation. Enable in the browser console with
+ *   localStorage.setItem("claudius:replay-debug", "1")
+ * then reload (or trigger a reconnect by backgrounding the tab / toggling
+ * network). Logs every SSE event the client receives — its type, the inner
+ * Anthropic message.id, the SDK wrapper uuid, and a content-block summary —
+ * so a reconnect-time drop is visible as "this uuid/tool_use never arrived"
+ * (server never sent it) vs "arrived but the bubble is empty/red" (reducer
+ * dropped it). Remove once the replay/reconnect bug is fixed.
+ */
+function replayDebugEnabled(): boolean {
+  try {
+    return (
+      typeof window !== "undefined" &&
+      window.localStorage?.getItem("claudius:replay-debug") === "1"
+    );
+  } catch {
+    return false;
+  }
+}
+
+function summarizeEventForDebug(ev: unknown): string {
+  const e = ev as { type?: string; at?: number; message?: unknown; hasMoreAbove?: boolean };
+  if (e.type !== "sdk") {
+    const extra = e.type === "replay_done" ? ` hasMoreAbove=${e.hasMoreAbove}` : "";
+    return `[${e.type}]${extra}`;
+  }
+  const m = e.message as {
+    type?: string;
+    uuid?: string;
+    parent_tool_use_id?: string | null;
+    message?: { id?: string; content?: unknown };
+    event?: { type?: string; index?: number; message?: { id?: string } };
+  };
+  const wrap = (m.uuid ?? "").slice(-6);
+  const mid = (m.message?.id ?? "").slice(-6);
+  const parent = m.parent_tool_use_id ? ` parent=${String(m.parent_tool_use_id).slice(-6)}` : "";
+  if (m.type === "stream_event") {
+    const et = m.event?.type ?? "?";
+    const sid = (m.event?.message?.id ?? "").slice(-6);
+    return `[sdk:stream_event ${et} idx=${m.event?.index ?? "-"} msg.id=…${sid || mid} wrap=…${wrap}]${parent}`;
+  }
+  const blocks: string[] = [];
+  const content = m.message?.content;
+  if (Array.isArray(content)) {
+    for (const b of content as Array<Record<string, unknown>>) {
+      if (b.type === "tool_use") blocks.push(`TU:${b.name}:…${String(b.id ?? "").slice(-4)}`);
+      else if (b.type === "tool_result") blocks.push(`TR:…${String(b.tool_use_id ?? "").slice(-4)}`);
+      else if (b.type === "text") blocks.push(`text(${String((b.text as string) ?? "").length})`);
+      else if (b.type === "thinking" || b.type === "redacted_thinking") blocks.push("thinking");
+      else blocks.push(String(b.type));
+    }
+  } else if (typeof content === "string") {
+    blocks.push(`str(${content.length})`);
+  }
+  return `[sdk:${m.type} msg.id=…${mid} wrap=…${wrap} at=${e.at ?? "-"}]${parent} ${blocks.join(" ")}`;
+}
+
 function extractToolResult(content: unknown): { tool_use_id: string; text: string; isError?: boolean } | null {
   if (!Array.isArray(content)) return null;
   for (const raw of content as SDKContentBlock[]) {
@@ -1473,6 +1531,10 @@ export function useSession(): ChatState & ChatActions {
 
   const applyEvent = useCallback(
     (ev: ServerEvent) => {
+      if (replayDebugEnabled()) {
+
+        console.log("[replay-debug] recv", summarizeEventForDebug(ev));
+      }
       if (ev.type === "ready") {
         setReady(true);
         setMainAgent(ev.agent ?? null);
@@ -3627,6 +3689,14 @@ export function useSession(): ChatState & ChatActions {
       const boundId = id;
       const es = new EventSource(`/api/sessions/${id}/stream?tail=20&tabId=${myTabId}`);
       eventSourceRef.current = es;
+      es.onopen = () => {
+        if (replayDebugEnabled()) {
+
+          console.log(
+            `[replay-debug] === EventSource open/reconnect for ${id} (replay window follows) ===`,
+          );
+        }
+      };
       es.onmessage = (msg) => {
         if (sessionIdRef.current !== boundId) return;
         try {
