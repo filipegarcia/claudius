@@ -188,7 +188,7 @@ export function StatusLine({
     // the dropdown and makes its body look transparent. The other dropdowns
     // (ModelPicker, etc.) escape via `position: fixed`; SessionPicker uses
     // `absolute`, hence it relied on this lift to be visible.
-    <div className="@container/statusline relative z-20 flex h-9 items-center gap-3 border-b border-[var(--border)] bg-[var(--panel)] px-4 text-xs text-[var(--muted)] [clip-path:inset(-100vh_0_-100vh_0)]">
+    <div data-pane-name="chat-header" className="@container/statusline relative z-20 flex h-9 items-center gap-3 border-b border-[var(--border)] bg-[var(--panel)] px-4 text-xs text-[var(--muted)] [clip-path:inset(-100vh_0_-100vh_0)]">
       {workspace && (
         <>
           {/* Workspace breadcrumb. The icon + name anchor the rest of the

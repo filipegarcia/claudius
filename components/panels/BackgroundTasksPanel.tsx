@@ -436,11 +436,12 @@ export function BackgroundTasksPanel({
           half of it would render behind the chat area (see screenshot
           regression). Kept above the scrollable model/session card so the
           bar stays pinned under the Activity header. */}
-      <div className="px-2 pt-2">
+      <div data-pane-name="notifications" className="px-2 pt-2">
         <NotificationsDrawer />
       </div>
       <div className="flex-1 overflow-y-auto scroll-thin px-2 pb-2">
         {/* Always-on group */}
+        <div data-pane-name="session-card">
         <SessionCard
           sessionId={sessionId}
           model={model}
@@ -459,8 +460,13 @@ export function BackgroundTasksPanel({
           advisorModel={advisorModel}
           onChangeAdvisorModel={onChangeAdvisorModel}
         />
-        <ContextBar summary={ctxSummary} onOpenContext={onOpenContext} />
-        <TokenMeter usage={usage} />
+        </div>
+        <div data-pane-name="context">
+          <ContextBar summary={ctxSummary} onOpenContext={onOpenContext} />
+        </div>
+        <div data-pane-name="token-meter">
+          <TokenMeter usage={usage} />
+        </div>
 
         <div className="mb-3 border-t border-[var(--border)]/40" />
 
@@ -468,6 +474,7 @@ export function BackgroundTasksPanel({
         <PermissionPending request={pendingPermission} />
 
         {(latestTodos.length > 0 || onAddTodos) && (
+          <div data-pane-name="todos">
           <CollapsibleSection
             storageKey="todos"
             label="To-dos"
@@ -532,9 +539,11 @@ export function BackgroundTasksPanel({
               </div>
             ) : null}
           </CollapsibleSection>
+          </div>
         )}
 
         {subagents.length > 0 && (
+          <div data-pane-name="tasks">
           <CollapsibleSection storageKey="tasks" label="Tasks" badge={`(${subagents.length})`}>
             <ul id="activity-tasks" className="space-y-1">
               {subagents.map((t) => {
@@ -588,8 +597,10 @@ export function BackgroundTasksPanel({
               })}
             </ul>
           </CollapsibleSection>
+          </div>
         )}
 
+        <div data-pane-name="tools">
         <CollapsibleSection
           storageKey="tools"
           label="Tools"
@@ -677,6 +688,7 @@ export function BackgroundTasksPanel({
             </ul>
           )}
         </CollapsibleSection>
+        </div>
 
         {allLoops.length > 0 && (
           <CollapsibleSection
@@ -751,12 +763,15 @@ export function BackgroundTasksPanel({
         )}
 
         {recentEdits.length > 0 && (
+          <div data-pane-name="recent-edits">
           <CollapsibleSection storageKey="edits" label="Recent edits">
             <RecentEdits items={recentEdits} />
           </CollapsibleSection>
+          </div>
         )}
 
         {recent.length > 0 && (
+          <div data-pane-name="recent">
           <CollapsibleSection storageKey="recent" label="Recent">
             <ul className="space-y-1">
               {recent.map((t) => {
@@ -776,6 +791,7 @@ export function BackgroundTasksPanel({
               })}
             </ul>
           </CollapsibleSection>
+          </div>
         )}
       </div>
 

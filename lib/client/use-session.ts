@@ -666,7 +666,15 @@ export function sortMessagesByChronology(messages: DisplayMessage[]): DisplayMes
   return messages;
 }
 
-export function useSession(): ChatState & ChatActions {
+export function useSession(opts?: { defaultCwd?: string | null }): ChatState & ChatActions {
+  // The cwd to use when creating a *fresh* session (no resume). Workspaces
+  // leave this null and let the server resolve cwd from the active-workspace
+  // cookie; customizations pass their mirror src dir so a brand-new chat lands
+  // in the right place even on a direct deeplink (no cookie dependency). Held
+  // in a ref so the create callbacks always read the latest without being
+  // re-created on every prop change.
+  const defaultCwdRef = useRef<string | null>(opts?.defaultCwd ?? null);
+  defaultCwdRef.current = opts?.defaultCwd ?? null;
   const [sessionId, setSessionId] = useState<string | null>(null);
   // Stable per-mount tab identifier. Uses the same lazy-useState trick as
   // `useTabClaim` so it's generated once and never changes across re-renders.
@@ -939,7 +947,9 @@ export function useSession(): ChatState & ChatActions {
     // reported by the user ("the current chat now doesn't have the
     // session id in the url, I wanted this").
     const isChatRoot =
-      pathname === "/" || /^\/wks_[a-f0-9]+\/?$/.test(pathname ?? "");
+      pathname === "/" ||
+      /^\/wks_[a-f0-9]+\/?$/.test(pathname ?? "") ||
+      /^\/customize\/cust_[a-f0-9]+\/chat\/?$/.test(pathname ?? "");
     if (!isChatRoot) return;
     if (!sessionId) return;
     // Defer the write so it lands AFTER any in-flight Next.js navigation
@@ -1005,7 +1015,9 @@ export function useSession(): ChatState & ChatActions {
       // path would clobber it.
       const livePath = window.location.pathname;
       const stillOnChatRoot =
-        livePath === "/" || /^\/wks_[a-f0-9]+\/?$/.test(livePath);
+        livePath === "/" ||
+        /^\/wks_[a-f0-9]+\/?$/.test(livePath) ||
+        /^\/customize\/cust_[a-f0-9]+\/chat\/?$/.test(livePath);
       if (!stillOnChatRoot) return;
       try {
         const url = new URL(window.location.href);
@@ -3872,7 +3884,8 @@ export function useSession(): ChatState & ChatActions {
   );
 
   const createNewSession = useCallback(async () => {
-    return await createSession({});
+    const cwd = defaultCwdRef.current;
+    return await createSession(cwd ? { cwd } : {});
   }, [createSession]);
 
   const createSessionAt = useCallback(
@@ -3898,7 +3911,11 @@ export function useSession(): ChatState & ChatActions {
   const createNewSessionWithDraft = useCallback(
     async (draftText: string) => {
       const text = typeof draftText === "string" ? draftText : "";
-      await createSession(text ? { initialDraftText: text } : {});
+      const cwd = defaultCwdRef.current;
+      await createSession({
+        ...(text ? { initialDraftText: text } : {}),
+        ...(cwd ? { cwd } : {}),
+      });
     },
     [createSession],
   );
@@ -3941,7 +3958,13 @@ export function useSession(): ChatState & ChatActions {
           // Best-effort: a network failure just means we create fresh.
         }
       }
-      const created = await createSession(resume ? { resume, resumeSessionAt: at } : {});
+      const created = await createSession(
+        resume
+          ? { resume, resumeSessionAt: at }
+          : defaultCwdRef.current
+            ? { cwd: defaultCwdRef.current }
+            : {},
+      );
       if (created && seed) {
         // Wait briefly for the session to be `ready` before sending.
         const start = Date.now();

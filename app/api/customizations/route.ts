@@ -32,7 +32,6 @@ export async function POST(req: Request) {
     return NextResponse.json(
       {
         customization: result.customization,
-        workspaceId: result.workspaceId,
         filesCopied: result.filesCopied,
         srcDir: result.srcDir,
       },

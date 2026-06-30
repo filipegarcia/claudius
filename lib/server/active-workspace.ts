@@ -21,6 +21,10 @@ export async function writeActiveCookie(id: string): Promise<void> {
     path: "/",
     maxAge: 60 * 60 * 24 * 365,
   });
+  // Mutual exclusion: a workspace is now active, so clear any active-
+  // customization cookie. Literal name to avoid an import cycle with
+  // active-customization.ts (COOKIE_CUST there).
+  c.delete("claudius.customization");
 }
 
 export async function clearActiveCookie(): Promise<void> {

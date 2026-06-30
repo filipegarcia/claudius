@@ -1,5 +1,6 @@
 import { resolve } from "node:path";
 import { getWorkspace, type Workspace } from "./workspaces-store";
+import { customizationSrcDir, getCustomization } from "./customizations-store";
 import { readSettings } from "./settings";
 
 /**
@@ -98,7 +99,20 @@ export async function listWorkspaceRoots(ws: Workspace): Promise<WorkspaceRoot[]
 export async function resolveWorkspaceRoot(
   workspaceId: string,
   selector: string | null | undefined,
-): Promise<{ ws: Workspace; root: WorkspaceRoot } | null> {
+): Promise<{ ws: Workspace | null; root: WorkspaceRoot } | null> {
+  // Customizations are not backed by a workspace; the Files/Git panes pass the
+  // `cust_<id>` id here. They're single-root (the editable mirror), so only
+  // `primary` resolves — there are no additional directories.
+  if (workspaceId.startsWith("cust_")) {
+    const cust = await getCustomization(workspaceId).catch(() => null);
+    if (!cust) return null;
+    const id = selector && selector.length > 0 ? selector : "primary";
+    if (id !== "primary") return null;
+    return {
+      ws: null,
+      root: { id: "primary", absPath: resolve(customizationSrcDir(workspaceId)), source: "primary" },
+    };
+  }
   const ws = await getWorkspace(workspaceId);
   if (!ws) return null;
   const id = selector && selector.length > 0 ? selector : "primary";

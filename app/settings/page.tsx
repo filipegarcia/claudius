@@ -273,12 +273,35 @@ export default function SettingsPage() {
         </div>
 
         <div className="flex-1 overflow-y-auto scroll-thin pb-6">
+          {/* Active-search indicator. The Settings tab stays mounted, so a
+              query typed earlier persists when you return — and with only a
+              few matches the rest of the page is empty, which reads as a
+              broken/blank page. This banner makes the filtered state explicit
+              and offers a one-click clear. Only shown when the query actually
+              trims the list to some (non-zero) matches; the "No settings
+              match" message below covers the zero-match case. */}
+          {q && anyMatch && (
+            <div className="mx-auto mt-3 flex max-w-4xl items-center gap-2 px-6 text-[11px] text-[var(--muted)]">
+              <Search className="h-3 w-3 shrink-0" />
+              <span>
+                Filtered by “<span className="text-[var(--foreground)]">{query}</span>” — other
+                settings are hidden.
+              </span>
+              <button
+                onClick={() => setQuery("")}
+                className="rounded border border-[var(--border)] bg-[var(--panel-2)] px-1.5 py-0.5 text-[var(--foreground)] hover:bg-[var(--panel)]"
+              >
+                Clear filter
+              </button>
+            </div>
+          )}
           {/* Split layout: the centered `max-w-4xl` cap is great for cards but
               clips the chat-size preview behind it. The wrapper opens here for
               Editor + Theme, closes before ChatSizeSection (which spans the
               full scroll-container width), and reopens after for Link target
               onward. Each segment uses `mt-5` to mirror the original
               `space-y-5` rhythm between section cards. */}
+          {(sEditor || sTheme || sPreviews) && (
           <div className="mx-auto max-w-4xl space-y-5 px-6 pt-6">
             {sEditor && (
             <Section
@@ -363,6 +386,7 @@ export default function SettingsPage() {
             )}
 
           </div>
+          )}
 
           {/* Chat reading column + body text size. Rendered OUTSIDE the
               centered `max-w-4xl` wrapper so the live preview can span the

@@ -12,13 +12,14 @@ export async function register(): Promise<void> {
   // Best-effort: detect when the live source has been upgraded out from
   // under an active customization publish, and auto-revert before the new
   // base files get clobbered by stale snapshots. Failures are logged inside.
-  const { runCustomizationsUpgradeCheck, backfillCustomizationDefaults } = await import(
+  const { runCustomizationsUpgradeCheck, reconcileCustomizationWorkspaces } = await import(
     "@/lib/server/customizations-startup"
   );
   await runCustomizationsUpgradeCheck();
-  // Patch older customization workspaces (pre-defaults) to use bypass mode
-  // so chats inside them auto-allow tool calls. Idempotent.
-  await backfillCustomizationDefaults();
+  // Customizations are no longer backed by a Workspace. Strip the legacy
+  // workspaceId link and delete leftover kind:"customization" workspaces.
+  // Idempotent.
+  await reconcileCustomizationWorkspaces();
 
   // Self-update: kick off the background updater. Boot tick fires after a
   // short delay (so the UI is up first), then a daily timer re-checks. See

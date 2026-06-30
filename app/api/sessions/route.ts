@@ -1,11 +1,29 @@
 import { NextResponse } from "next/server";
+import { sep } from "node:path";
 import { sessionManager } from "@/lib/server/session-manager";
 import { resolveActiveWorkspace } from "@/lib/server/active-workspace";
+import { resolveActiveCustomization } from "@/lib/server/active-customization";
+import {
+  customizationSrcDir,
+  customizationsRoot,
+} from "@/lib/server/customizations-store";
 import { getWorkspace, listWorkspaces, type Workspace } from "@/lib/server/workspaces-store";
 import { info as sessionFileInfo } from "@/lib/server/sessions-store";
 import { setPromptDraft } from "@/lib/server/prompt-drafts-db";
 import type { CreateSessionRequest } from "@/lib/shared/events";
 import { mergeSessionDefaults } from "@/lib/shared/session-defaults";
+
+/**
+ * True when `cwd` points at a customization's editable mirror
+ * (`<customizationsRoot>/<id>/src`). Customizations have no Workspace record,
+ * so their per-session defaults (notably bypassPermissions) can't come from a
+ * workspace — they're re-injected here. Matches both the active-customization
+ * cookie path and an explicit `body.cwd`.
+ */
+function isCustomizationCwd(cwd: string): boolean {
+  const root = customizationsRoot();
+  return (cwd === root || cwd.startsWith(root + sep)) && cwd.endsWith(sep + "src");
+}
 
 /**
  * Defensive ceiling on the seed-draft size — matches the prompt-draft PUT
@@ -42,21 +60,34 @@ export async function POST(req: Request) {
     }
   }
   if (!cwd) {
-    const ws = await resolveActiveWorkspace().catch(() => null);
-    if (ws) {
-      cwd = ws.rootPath;
-      originWs = ws;
+    // Active-customization cookie wins over the workspace cookie — a chat
+    // opened inside a customization must run against its mirror.
+    const cust = await resolveActiveCustomization().catch(() => null);
+    if (cust) {
+      cwd = customizationSrcDir(cust.id);
+    } else {
+      const ws = await resolveActiveWorkspace().catch(() => null);
+      if (ws) {
+        cwd = ws.rootPath;
+        originWs = ws;
+      }
     }
-  } else {
-    // Explicit cwd — find the workspace whose rootPath matches so its
-    // defaults still apply.
+  } else if (!isCustomizationCwd(cwd)) {
+    // Explicit workspace cwd — find the workspace whose rootPath matches so
+    // its defaults still apply. (Customization cwds have no workspace.)
     const all = await listWorkspaces().catch(() => [] as Workspace[]);
     originWs = all.find((w) => w.rootPath === cwd) ?? null;
   }
 
-  // Merge: workspace defaults *under* explicit body fields. Spec rule:
-  //   effective = { ...workspace.defaults, ...request }
-  const defaults = originWs?.defaults ?? {};
+  // Merge: context defaults *under* explicit body fields. Spec rule:
+  //   effective = { ...defaults, ...request }
+  // Customization cwds carry no workspace, so re-inject the bypassPermissions
+  // default the customization workspace used to provide — otherwise every
+  // Write in a customization chat would prompt.
+  const defaults =
+    cwd && isCustomizationCwd(cwd)
+      ? { permissionMode: "bypassPermissions" as const }
+      : originWs?.defaults ?? {};
   const {
     model,
     permissionMode,
@@ -146,8 +177,14 @@ export async function POST(req: Request) {
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const workspaceId = url.searchParams.get("workspaceId");
+  const customizationId = url.searchParams.get("customizationId");
   let filter: ((cwd: string) => boolean) | null = null;
-  if (workspaceId) {
+  if (customizationId) {
+    // Scope the picker to a customization's mirror. No workspace lookup —
+    // the src dir is derived directly from the id.
+    const srcDir = customizationSrcDir(customizationId);
+    filter = (cwd) => cwd === srcDir;
+  } else if (workspaceId) {
     const ws = await getWorkspace(workspaceId).catch(() => null);
     if (ws) filter = (cwd) => cwd === ws.rootPath;
   }

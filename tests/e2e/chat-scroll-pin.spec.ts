@@ -1,34 +1,30 @@
 import { test, expect, type Page } from "../helpers/test";
 
 /**
- * Regression test for the chat auto-scroll "won't stay pinned to bottom /
- * random scroll-ups" bug in `components/chat/MessageList.tsx`.
+ * Regression test for the chat auto-scroll "I get pushed up randomly" bug in
+ * `components/chat/MessageList.tsx`.
  *
- * Root cause (introduced by 2abe5a5 "always-pin MessageList scroll via
- * ResizeObserver"): the load-older detector keys purely on
- * `messages[0].uuid` changing. But the chronologically-sorted message array
- * legitimately changes its head for NON-load-older reasons — a reconnect
- * replay landing out of order, or the `session_snapshot` fallback prepending
- * the server's latest prompt. When that happens the prepend branch runs
+ * Reported behavior: "I'm reading a chat message, the model sends another
+ * message, and I get pushed up" — i.e. the reader has scrolled UP into history
+ * and a newly-arriving assistant message yanks the viewport back to the bottom,
+ * tearing them off the message they were reading.
  *
- *     el.scrollTop = prevScrollTopRef.current + delta
+ * Root cause (commit 2abe5a5 "always-pin MessageList scroll via
+ * ResizeObserver"): the refactor dropped the near-bottom gate the old
+ * auto-scroll had (`if (isNearBottomRef.current)`). The ResizeObserver pin then
+ * snapped to the bottom on EVERY height change — including a new message
+ * arriving while the user was deliberately scrolled up. The fix restores the
+ * gate: the pin only follows the bottom when the reader is already there.
  *
- * using refs captured at the previous layout-effect pass — i.e. BEFORE the
- * ResizeObserver pinned the view to the bottom — so it restores a stale,
- * non-bottom scroll position: a visible jump UP, with the auto-pin also
- * suspended for 350ms.
- *
- * We reproduce it deterministically by driving a real bound session over the
- * dev-broadcast bus (no Anthropic key needed):
+ * We drive a real bound session over the dev-broadcast bus (no Anthropic key):
  *   1. a user prompt + a long assistant reply that overflows the viewport →
  *      the view auto-pins to the bottom.
- *   2. inject one assistant message with a very OLD `at` so the client's
- *      chronological sort places it at the FRONT — changing `messages[0].uuid`
- *      exactly the way a reconnect reorder / snapshot prepend does.
+ *   2. scroll to the TOP (the reader is now in history) and confirm the
+ *      "Jump to latest" affordance appears (proves isNearBottom went false).
+ *   3. the model sends ANOTHER assistant message at the tail.
  *
- * Correct behavior: the view stays at the bottom (the new content is older
- * history, scrolled off the top — it must not yank the reader away from the
- * freshest message). The bug strands the view far from the bottom.
+ * Correct behavior: the viewport stays where the reader left it (near the top).
+ * The bug snaps it to the bottom.
  */
 
 const SESSION_RE = /[?&]session=([0-9a-f-]{36})/i;
@@ -40,19 +36,16 @@ async function waitForBoundSession(page: Page): Promise<string> {
   return id!;
 }
 
-/** Push an assistant text message with an explicit observed-at timestamp. */
 async function pushAssistant(
   page: Page,
   sessionId: string,
   text: string,
   uuid: string,
-  at: number,
 ): Promise<void> {
   const res = await page.request.post(`/api/sessions/${sessionId}/dev-broadcast`, {
     data: {
       event: {
         type: "sdk",
-        at,
         message: {
           type: "assistant",
           uuid,
@@ -69,24 +62,17 @@ async function pushAssistant(
   expect(res.ok(), `dev-broadcast assistant should succeed for ${sessionId}`).toBeTruthy();
 }
 
-/** Push a user prompt with an explicit observed-at timestamp. */
 async function pushUser(
   page: Page,
   sessionId: string,
   text: string,
   uuid: string,
-  at: number,
 ): Promise<void> {
   const res = await page.request.post(`/api/sessions/${sessionId}/dev-broadcast`, {
     data: {
       event: {
         type: "sdk",
-        at,
-        message: {
-          type: "user",
-          uuid,
-          message: { content: [{ type: "text", text }] },
-        },
+        message: { type: "user", uuid, message: { content: [{ type: "text", text }] } },
       },
     },
   });
@@ -101,15 +87,11 @@ function longReplyText(): string {
   return Array.from({ length: 80 }, (_, i) => `Paragraph ${i + 1}. ${paragraph}`).join("\n\n");
 }
 
-/**
- * Resolve the MessageList scroll container (Tailwind soup — can't hardcode a
- * selector) and return its scroll geometry. `distFromBottom` is the metric
- * the test asserts on.
- */
+/** Resolve the MessageList scroll container and return its scroll geometry. */
 async function scrollMetrics(
   page: Page,
   anchorUuid: string,
-): Promise<{ distFromBottom: number; scrollHeight: number; clientHeight: number } | null> {
+): Promise<{ scrollTop: number; distFromBottom: number; scrollHeight: number } | null> {
   return page.evaluate((uuid) => {
     const el = document.querySelector<HTMLElement>(`[data-message-uuid="${uuid}"]`);
     let scroller: HTMLElement | null = el?.parentElement ?? null;
@@ -120,10 +102,24 @@ async function scrollMetrics(
     }
     if (!scroller) return null;
     return {
+      scrollTop: scroller.scrollTop,
       distFromBottom: scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight,
       scrollHeight: scroller.scrollHeight,
-      clientHeight: scroller.clientHeight,
     };
+  }, anchorUuid);
+}
+
+/** Scroll the MessageList container to the very top, as a user would. */
+async function scrollToTop(page: Page, anchorUuid: string): Promise<void> {
+  await page.evaluate((uuid) => {
+    const el = document.querySelector<HTMLElement>(`[data-message-uuid="${uuid}"]`);
+    let scroller: HTMLElement | null = el?.parentElement ?? null;
+    while (scroller && scroller !== document.body) {
+      const style = window.getComputedStyle(scroller);
+      if (style.overflowY === "auto" || style.overflowY === "scroll") break;
+      scroller = scroller.parentElement;
+    }
+    scroller?.scrollTo({ top: 0 });
   }, anchorUuid);
 }
 
@@ -132,7 +128,7 @@ test.describe("chat scroll pinning", () => {
     await request.put("/api/sessions/open-tabs", { data: { tabs: [], activeId: null } });
   });
 
-  test("stays pinned to bottom when an out-of-order message changes the head (no random scroll-up)", async ({
+  test("a reader scrolled up into history is NOT yanked to the bottom when the model sends another message", async ({
     page,
   }) => {
     test.setTimeout(60_000);
@@ -140,40 +136,40 @@ test.describe("chat scroll pinning", () => {
     await page.goto("/");
     const id = await waitForBoundSession(page);
 
-    const base = Date.now();
-    await pushUser(page, id, "What is the meaning of life?", "user-bug2", base);
-    await pushAssistant(page, id, longReplyText(), "asst-bug2", base + 1);
+    await pushUser(page, id, "What is the meaning of life?", "user-bug2");
+    await pushAssistant(page, id, longReplyText(), "asst-1");
 
-    const replyMsg = page.locator('[data-message-uuid="asst-bug2"]');
-    await expect(replyMsg).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator('[data-message-uuid="asst-1"]')).toBeVisible({ timeout: 15_000 });
 
-    // The reply must overflow the viewport, else the test proves nothing, and
-    // the activation anchor should have landed us at the bottom.
+    // The reply must overflow the viewport, else the test proves nothing.
     await expect
-      .poll(async () => (await scrollMetrics(page, "asst-bug2"))?.scrollHeight ?? 0, {
+      .poll(async () => (await scrollMetrics(page, "asst-1"))?.scrollHeight ?? 0, {
         timeout: 15_000,
       })
-      .toBeGreaterThan(1000);
-    await expect
-      .poll(async () => (await scrollMetrics(page, "asst-bug2"))?.distFromBottom ?? 9999, {
-        timeout: 15_000,
-      })
-      .toBeLessThanOrEqual(80);
+      .toBeGreaterThan(1500);
 
-    // Head-churn: an assistant message timestamped in 1970 sorts to the FRONT
-    // of the chronological array — the same head change a reconnect reorder /
-    // snapshot prepend produces. This must NOT pull the view off the bottom.
-    await pushAssistant(page, id, "ancient out-of-order context", "asst-ancient", 1000);
-    await expect(page.locator('[data-message-uuid="asst-ancient"]')).toBeAttached({
-      timeout: 15_000,
-    });
+    // The reader scrolls up into history. The "Jump to latest" affordance
+    // appearing confirms the client registered that we left the bottom
+    // (isNearBottom went false) — the precondition for the bug.
+    await scrollToTop(page, "asst-1");
+    await expect(page.getByTestId("jump-to-latest")).toBeVisible({ timeout: 10_000 });
 
-    // The freshest reply must still be the pinned, in-view content.
-    const after = await scrollMetrics(page, "asst-bug2");
+    const before = await scrollMetrics(page, "asst-1");
+    expect(before).not.toBeNull();
+    expect(before!.distFromBottom).toBeGreaterThan(300);
+
+    // The model sends ANOTHER message. On the buggy always-pin code this snaps
+    // the viewport to the bottom; the fix leaves the reader where they were.
+    await pushAssistant(page, id, "A second assistant message arrives mid-read.", "asst-2");
+    await expect(page.locator('[data-message-uuid="asst-2"]')).toBeAttached({ timeout: 15_000 });
+
+    // Give any (buggy) pin a chance to fire before we assert the reader stayed.
+    await expect(page.getByTestId("jump-to-latest")).toBeVisible({ timeout: 5_000 });
+    const after = await scrollMetrics(page, "asst-1");
     expect(after).not.toBeNull();
     expect(
       after!.distFromBottom,
-      `view was stranded ${after!.distFromBottom}px from the bottom after a head-changing inject`,
-    ).toBeLessThanOrEqual(80);
+      `reader was yanked toward the bottom: distFromBottom ${before!.distFromBottom} → ${after!.distFromBottom}`,
+    ).toBeGreaterThan(300);
   });
 });

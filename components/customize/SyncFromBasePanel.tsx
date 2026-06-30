@@ -121,10 +121,9 @@ export function SyncFromBasePanel({ customizationId }: { customizationId: string
   }, []);
 
   /**
-   * Compose the auto-fix prompt server-side, switch the active workspace
-   * to the customization's workspace, and route the user to chat with
-   * the prompt prefilled (?prefill=<encoded>). They can review and send.
-   * The actual file edits happen inside Claude Code's agent loop.
+   * Compose the auto-fix prompt server-side, make the customization the active
+   * context, and route the user to its chat with the prompt prefilled
+   * (?prefill=1). They can review and send; the edits happen in the agent loop.
    */
   const onAutoFix = useCallback(async () => {
     setAutoFixError(null);
@@ -137,18 +136,11 @@ export function SyncFromBasePanel({ customizationId }: { customizationId: string
         const e = (await r.json().catch(() => ({}))) as { error?: string };
         throw new Error(e.error ?? `HTTP ${r.status}`);
       }
-      const data = (await r.json()) as {
-        workspaceId: string | null;
-        prompt: string;
-      };
-      if (data.workspaceId) {
-        const ws = await fetch(`/api/workspaces/${data.workspaceId}/select`, { method: "POST" });
-        if (!ws.ok) throw new Error("could not switch to the customization's workspace");
-      } else {
-        throw new Error(
-          "this customization isn't linked to a workspace — recreate it before using auto-fix",
-        );
-      }
+      const data = (await r.json()) as { prompt: string };
+      // Make the customization the active context before routing.
+      const sel = await fetch(`/api/customizations/${customizationId}/select`, { method: "POST" });
+      if (!sel.ok) throw new Error("could not switch to this customization");
+      const chatBase = `/customize/${customizationId}/chat`;
       // Stash the prompt in sessionStorage; chat page picks it up via
       // ?prefill=1. URL-encoding the full prompt would balloon the URL
       // for long templates.
@@ -157,10 +149,10 @@ export function SyncFromBasePanel({ customizationId }: { customizationId: string
       } catch {
         // sessionStorage might be unavailable (privacy mode) — fall back
         // to URL param even if it's noisy.
-        window.location.assign(`/?new=1&prefill=${encodeURIComponent(data.prompt)}`);
+        window.location.assign(`${chatBase}?new=1&prefill=${encodeURIComponent(data.prompt)}`);
         return;
       }
-      window.location.assign("/?new=1&prefill=1");
+      window.location.assign(`${chatBase}?new=1&prefill=1`);
     } catch (err) {
       setAutoFixError(err instanceof Error ? err.message : String(err));
     } finally {

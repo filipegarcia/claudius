@@ -3,16 +3,18 @@ import { test, expect, type Page } from "../helpers/test";
 /**
  * Drawer behaviour, in isolation from the real customization bootstrap.
  *
- * Creating a real customization triggers a ~1.3 GB mirror copy and takes
+ * Creating a real customization triggers a large mirror copy and takes
  * seconds — fine for a feature smoke, far too slow for a UI spec that needs
- * predictable counts. We instead intercept `GET /api/workspaces` and inject
- * synthetic project + customization rows. The drawer reads exclusively from
- * that list, so it doesn't notice the difference.
+ * predictable counts. We instead intercept `GET /api/customizations` and
+ * inject synthetic customization rows. Customizations are no longer backed by
+ * workspaces, so the drawer reads exclusively from `/api/customizations`; a
+ * single project workspace is still injected via `/api/workspaces` so the rail
+ * renders and `/` boots the chat.
  *
- * `/select` is left to the real handler: the test doesn't verify what
- * happens AFTER selection (the page reloads — workspace-cwd-binding.spec
- * already covers that). It only verifies the drawer's open/close/click
- * affordances.
+ * `/select` is left to a stub: the test doesn't verify what happens AFTER
+ * selection (the page navigates to the customization chat). It only verifies
+ * the drawer's open/close/click affordances and that selecting a row fires
+ * `POST /api/customizations/<id>/select`.
  */
 
 const FIXTURE_WORKSPACES = [
@@ -25,27 +27,20 @@ const FIXTURE_WORKSPACES = [
     updatedAt: 1_700_000_000_000,
     defaults: {},
   },
+];
+
+const FIXTURE_CUSTOMIZATIONS = [
   {
-    id: "wks_fixture_cust_a",
-    name: "Customize · Fixture Custom A",
-    rootPath: "/tmp/cust-a",
-    icon: { kind: "letter" as const, letter: "A", color: "#9d6cdd" },
+    id: "cust_aaaa11110000",
+    name: "Fixture Custom A",
     createdAt: 1_700_000_001_000,
-    updatedAt: 1_700_000_001_000,
-    lastOpenedAt: 1_700_000_010_000,
-    kind: "customization" as const,
-    defaults: {},
+    updatedAt: 1_700_000_010_000,
   },
   {
-    id: "wks_fixture_cust_b",
-    name: "Customize · Fixture Custom B",
-    rootPath: "/tmp/cust-b",
-    icon: { kind: "letter" as const, letter: "B", color: "#2e9d8f" },
+    id: "cust_bbbb22220000",
+    name: "Fixture Custom B",
     createdAt: 1_700_000_002_000,
-    updatedAt: 1_700_000_002_000,
-    lastOpenedAt: 1_700_000_005_000,
-    kind: "customization" as const,
-    defaults: {},
+    updatedAt: 1_700_000_005_000,
   },
 ];
 
@@ -120,11 +115,21 @@ async function mountFixtureWorkspaces(page: Page): Promise<void> {
       body: JSON.stringify({ workspaces: FIXTURE_WORKSPACES }),
     });
   });
-  // Per-workspace GET. `useVerbose` (added in the chat-verbosity commit)
-  // fetches `/api/workspaces/<id>` to reconcile the persisted level. The
-  // fixture workspace ids only exist in this test, so hitting the real
-  // backend returns a slow 404 (~500ms in dev) — slow enough to widen
-  // the boot/click race the test depends on. Stub with a matching
+  // The drawer (and SideNav) read the customization list from here. Stub it
+  // with synthetic rows so the drawer renders predictable counts without a
+  // real bootstrap. `publishes` is empty — no tile gating in this spec.
+  await page.route("**/api/customizations", async (route) => {
+    if (route.request().method() !== "GET") return route.fallback();
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ customizations: FIXTURE_CUSTOMIZATIONS, publishes: [] }),
+    });
+  });
+  // Per-workspace GET. `useVerbose` fetches `/api/workspaces/<id>` to
+  // reconcile the persisted level. The fixture workspace ids only exist in
+  // this test, so hitting the real backend returns a slow 404 — slow enough
+  // to widen the boot/click race the test depends on. Stub with a matching
   // synthetic record so the hook resolves immediately.
   await page.route("**/api/workspaces/wks_fixture_*", async (route) => {
     if (route.request().method() !== "GET") return route.fallback();
@@ -238,27 +243,27 @@ test.describe("CustomizationsDrawer", () => {
     await expect(page).toHaveURL(/\/customize$/, { timeout: 15_000 });
   });
 
-  test("clicking a row fires /select for that workspace", async ({ page }) => {
+  test("clicking a row fires /select for that customization", async ({ page }) => {
     await page.goto("/");
 
-    // Watch for the select request. The hook then triggers window.location.reload;
-    // we don't wait for the reload — just verify the request was made for the
-    // right workspace id.
+    // Watch for the select request. The handler then navigates to the
+    // customization chat; we don't wait for that — just verify the request
+    // was made for the right customization id.
     const selectReq = page.waitForRequest(
       (req) =>
-        req.url().endsWith("/api/workspaces/wks_fixture_cust_a/select") &&
+        req.url().endsWith("/api/customizations/cust_aaaa11110000/select") &&
         req.method() === "POST",
       { timeout: 10_000 },
     );
 
-    // Stub the /select endpoint so the fixture-only workspace id doesn't 404
-    // out the assertion; the request itself is what we're measuring.
-    await page.route("**/api/workspaces/wks_fixture_cust_a/select", async (route) => {
+    // Stub the /select endpoint so the fixture-only customization id doesn't
+    // 404 out the assertion; the request itself is what we're measuring.
+    await page.route("**/api/customizations/cust_aaaa11110000/select", async (route) => {
       if (route.request().method() !== "POST") return route.fallback();
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify({ ok: true }),
+        body: JSON.stringify({ ok: true, id: "cust_aaaa11110000" }),
       });
     });
 
@@ -272,15 +277,13 @@ test.describe("CustomizationsDrawer", () => {
   });
 
   test("shows empty state when there are no customizations", async ({ page }) => {
-    await page.unroute("**/api/workspaces");
-    await page.route("**/api/workspaces", async (route) => {
+    await page.unroute("**/api/customizations");
+    await page.route("**/api/customizations", async (route) => {
       if (route.request().method() !== "GET") return route.fallback();
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify({
-          workspaces: [FIXTURE_WORKSPACES[0]], // project only, no customizations
-        }),
+        body: JSON.stringify({ customizations: [], publishes: [] }),
       });
     });
     await page.goto("/");

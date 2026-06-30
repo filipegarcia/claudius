@@ -139,10 +139,14 @@ export function MessageList({
   // below skips the brief window after a prepend so pulling in history doesn't
   // immediately yank the reader back down to the newest message.
   const lastPrependAtRef = useRef(0);
-  // Drives the "Jump to latest" affordance only — pinning no longer depends on
-  // it. True whenever the view sits at the bottom; false only while the user
-  // has scrolled up into history with no new content arriving.
+  // Drives the "Jump to latest" affordance AND gates the auto-pin. True
+  // whenever the view sits at the bottom; false while the user has scrolled up
+  // into history. The ResizeObserver pin below reads the REF (its effect has
+  // empty deps, so a state value would be stale) — without this gate, any new
+  // message or streaming chunk yanks a reader who scrolled up back to the
+  // bottom ("I'm reading a message, the model sends another, I get pushed up").
   const [isNearBottom, setIsNearBottom] = useState(true);
+  const isNearBottomRef = useRef(true);
 
   // File-link coordinates for clickable project paths in tool-call headers and
   // inline-code spans. Resolved once here (a single useWorkspaces fetch) and
@@ -243,6 +247,9 @@ export function MessageList({
     lastAnchoredUserUuidRef.current = lastUserUuid;
     lastPinAtRef.current = performance.now();
     el.scrollTop = el.scrollHeight;
+    // A fresh user prompt re-arms sticking — the user just acted, jump to
+    // the bottom and resume following new content.
+    isNearBottomRef.current = true;
     setIsNearBottom(true);
   }, [replaying, lastUserUuid]);
 
@@ -270,26 +277,37 @@ export function MessageList({
     // scroll re-evaluates it).
     if (performance.now() - lastPinAtRef.current < 250) return;
     const distFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
-    setIsNearBottom(distFromBottom <= NEAR_BOTTOM_PX);
+    const near = distFromBottom <= NEAR_BOTTOM_PX;
+    // Mirror into the ref the ResizeObserver pin reads. A genuine scroll-up
+    // (this event isn't our own pin echo — guarded above) drops the gate so
+    // the next height change won't drag the reader back down.
+    isNearBottomRef.current = near;
+    setIsNearBottom(near);
   }, []);
 
-  // Always stay at the bottom. A ResizeObserver fires on every height change —
-  // a reply streaming in (the tail message grows under one uuid), a brand-new
-  // message, late reflow (font load, image decode), AND the viewport shrinking
-  // when the composer autosizes as you type or the window resizes. On any of
-  // those we snap to the newest content. Observing BOTH the content wrapper and
-  // the scroll container is what makes the typing case work — the composer
-  // growing changes the container's box, not the content's. Instant pin (no
-  // smooth) avoids smooth-chasing jank mid-stream.
+  // Stay at the bottom WHILE THE READER IS THERE. A ResizeObserver fires on
+  // every height change — a reply streaming in (the tail message grows under
+  // one uuid), a brand-new message, late reflow (font load, image decode), AND
+  // the viewport shrinking when the composer autosizes as you type or the
+  // window resizes. On any of those we snap to the newest content. Observing
+  // BOTH the content wrapper and the scroll container is what makes the typing
+  // case work — the composer growing changes the container's box, not the
+  // content's. Instant pin (no smooth) avoids smooth-chasing jank mid-stream.
   //
-  // The one carve-out: a load-older prepend also fires a resize, but snapping
-  // there would make scrolling back through history impossible — so we skip the
-  // brief window after a prepend (lastPrependAtRef).
+  // Two carve-outs:
+  //   1. The reader scrolled up into history (isNearBottomRef false) — pinning
+  //      would yank them off the message they're reading the instant the model
+  //      emits anything. Honour their position; the "Jump to latest" button is
+  //      their way back down.
+  //   2. A load-older prepend also fires a resize, but snapping there would make
+  //      scrolling back through history impossible — skip the brief window after
+  //      a prepend (lastPrependAtRef).
   useEffect(() => {
     const el = scrollRef.current;
     const content = contentRef.current;
     if (!el || !content) return;
     const pin = () => {
+      if (!isNearBottomRef.current) return;
       if (performance.now() - lastPrependAtRef.current < 350) return;
       lastPinAtRef.current = performance.now();
       el.scrollTop = el.scrollHeight;
@@ -354,6 +372,8 @@ export function MessageList({
 
   const jumpToBottom = useCallback(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    // Re-arm sticking so subsequent content keeps following the bottom.
+    isNearBottomRef.current = true;
     setIsNearBottom(true);
   }, []);
 
@@ -517,6 +537,7 @@ export function MessageList({
         <button
           type="button"
           onClick={jumpToBottom}
+          data-testid="jump-to-latest"
           aria-label="Jump to latest"
           className="absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1 rounded-full border border-[var(--border)] bg-[var(--accent)] px-3 py-1 text-[11px] font-medium text-white shadow-lg hover:opacity-90"
         >

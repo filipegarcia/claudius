@@ -72,9 +72,11 @@ export default function CustomizePage() {
         const err = (await res.json().catch(() => ({}))) as { error?: string };
         throw new Error(err.error ?? `HTTP ${res.status}`);
       }
-      const d = (await res.json()) as { customization: Customization; workspaceId: string };
-      // Switch into the new customization workspace and land on chat.
-      await fetch(`/api/workspaces/${d.workspaceId}/select`, { method: "POST" });
+      const d = (await res.json()) as { customization: Customization };
+      // Make the new customization the active context, then land on its detail
+      // page (preview / publish / description / sync). The drawer's quick-create
+      // is the path that jumps straight to chat; the manage page lands here.
+      await fetch(`/api/customizations/${d.customization.id}/select`, { method: "POST" });
       router.push(`/customize/${d.customization.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));

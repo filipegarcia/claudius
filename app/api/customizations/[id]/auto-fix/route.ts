@@ -7,9 +7,8 @@ export const runtime = "nodejs";
 
 /**
  * Returns a fully-substituted prompt for auto-fixing the customization's
- * current set of conflicts, plus the workspaceId the chat session should
- * run inside. Frontend selects the workspace and routes the user to chat
- * with this prompt prefilled.
+ * current set of conflicts. The frontend makes the customization the active
+ * context and routes the user to its chat with this prompt prefilled.
  */
 export async function POST(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
@@ -37,7 +36,6 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string }>
     );
 
   return NextResponse.json({
-    workspaceId: cust.workspaceId ?? null,
     prompt: composed,
     conflictCount: conflictPaths.length,
   });

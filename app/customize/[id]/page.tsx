@@ -158,23 +158,19 @@ export default function CustomizationDetail({ params }: { params: Promise<{ id: 
   // automatically and the manual wrapper triggered preserve-manual-memoization
   // because of the optional-chained `item?.workspaceId` dep.
   const onGoToChat = async () => {
-    if (!item?.workspaceId) {
-      router.push("/");
-      return;
-    }
     try {
-      // Activate the customization's workspace before routing — otherwise
-      // the chat lands in whatever workspace was previously active.
-      await fetch(`/api/workspaces/${item.workspaceId}/select`, { method: "POST" });
+      // Make this customization the active context before routing so chat
+      // resolves its cwd to the customization mirror.
+      await fetch(`/api/customizations/${id}/select`, { method: "POST" });
     } catch {
-      // Best-effort: still navigate even if the cookie write fails — the user
-      // can switch via the workspace switcher.
+      // Best-effort: still navigate even if the cookie write fails — the chat
+      // route passes the cwd explicitly too.
     }
-    // Hard reload via window.location so server-rendered cwd is fresh.
+    // Hard reload via window.location so server-rendered state is fresh.
     if (typeof window !== "undefined") {
-      window.location.assign("/");
+      window.location.assign(`/customize/${id}/chat`);
     } else {
-      router.push("/");
+      router.push(`/customize/${id}/chat`);
     }
   };
 
@@ -275,6 +271,41 @@ export default function CustomizationDetail({ params }: { params: Promise<{ id: 
             <div className="text-sm text-[var(--muted)]">Customization not found.</div>
           ) : (
             <>
+              <section className="mb-6 rounded-md border border-[var(--accent)]/40 bg-[var(--accent)]/10 p-5">
+                <div className="flex items-start gap-4">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--accent)]/20">
+                    <MessageSquare className="h-5 w-5 text-[var(--accent)]" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h2 className="text-sm font-semibold text-[var(--foreground)]">Make changes — go to chat and prompt your way</h2>
+                    <p className="mt-1 text-xs text-[var(--muted)]">
+                      All edits happen through Claude Code in this customization. Open the chat, describe what
+                      you want (&ldquo;move the workspace switcher to the right&rdquo;, &ldquo;add a settings tile to the
+                      left-nav&rdquo;), and Claude edits the customization source. Use the component-labels overlay to learn
+                      the canonical names for each region.
+                    </p>
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <button
+                        onClick={() => void onGoToChat()}
+                        className="flex items-center gap-2 rounded-md bg-[var(--accent)] px-3 py-1.5 text-sm font-medium text-white hover:opacity-90"
+                      >
+                        <MessageSquare className="h-4 w-4" /> Go to chat
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (typeof window !== "undefined") {
+                            window.dispatchEvent(new Event(PANE_LABELS_EVENT));
+                          }
+                        }}
+                        className="flex items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--panel)] px-2.5 py-1.5 text-xs hover:bg-[var(--panel-2)]"
+                      >
+                        <Keyboard className="h-3.5 w-3.5" /> Show component names
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
               <DescriptionSection customizationId={id} />
 
               <Section title="Preview" subtitle="Spawns next dev on a separate port using your customization's source.">
@@ -357,46 +388,6 @@ export default function CustomizationDetail({ params }: { params: Promise<{ id: 
                   Reverts the most recent active publish using the snapshot stored alongside the customization.
                 </p>
               </Section>
-
-              <section className="rounded-md border border-[var(--accent)]/40 bg-[var(--accent)]/10 p-5">
-                <div className="flex items-start gap-4">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--accent)]/20">
-                    <MessageSquare className="h-5 w-5 text-[var(--accent)]" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <h2 className="text-sm font-semibold text-[var(--foreground)]">Make changes — go to chat and prompt your way</h2>
-                    <p className="mt-1 text-xs text-[var(--muted)]">
-                      All edits happen through Claude Code in this customization workspace. Open the chat, describe what
-                      you want (&ldquo;move the workspace switcher to the right&rdquo;, &ldquo;add a settings tile to the
-                      left-nav&rdquo;), and Claude edits the customization source. Use the component-labels overlay to learn
-                      the canonical names for each region.
-                    </p>
-                    <div className="mt-3 flex flex-wrap items-center gap-2">
-                      <button
-                        onClick={() => void onGoToChat()}
-                        className="flex items-center gap-2 rounded-md bg-[var(--accent)] px-3 py-1.5 text-sm font-medium text-white hover:opacity-90"
-                      >
-                        <MessageSquare className="h-4 w-4" /> Go to chat
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (typeof window !== "undefined") {
-                            window.dispatchEvent(new Event(PANE_LABELS_EVENT));
-                          }
-                        }}
-                        className="flex items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--panel)] px-2.5 py-1.5 text-xs hover:bg-[var(--panel-2)]"
-                      >
-                        <Keyboard className="h-3.5 w-3.5" /> Show component names
-                      </button>
-                      {!item.workspaceId && (
-                        <span className="text-xs text-amber-300">
-                          (this customization isn&apos;t linked to a workspace — recreate to fix)
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </section>
             </>
           )}
         </div>

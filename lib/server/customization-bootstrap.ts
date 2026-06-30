@@ -4,11 +4,11 @@ import { join, relative } from "node:path";
 import { getLiveSourceDir } from "./runtime-dir";
 import {
   createCustomizationRecord,
+  customizationDir,
   customizationSrcDir,
-  updateCustomizationRecord,
+  deleteCustomizationRecord,
   type Customization,
 } from "./customizations-store";
-import { createWorkspace, updateWorkspace } from "./workspaces-store";
 import { buildManifestFromTree, writeManifest } from "./customization-manifest";
 
 /**
@@ -35,6 +35,13 @@ const SKIP_DIRS = new Set([
   "playwright-report",
   "test-results",
   ".vercel",
+  // Electron build outputs. `release/` recursively nests prior packaged apps
+  // (including a multi-MB app.asar) and `dist-electron/` is regenerable — both
+  // would bloat the mirror, and copying into a packaged build's nested
+  // `release/.../app.asar` throws ENOENT (Electron's asar fs shim), which is
+  // what left orphan, workspace-less customization records.
+  "release",
+  "dist-electron",
 ]);
 
 const SKIP_FILES = new Set([
@@ -163,62 +170,55 @@ async function copyTree(srcRoot: string, dstRoot: string): Promise<number> {
 
 export type BootstrapResult = {
   customization: Customization;
-  workspaceId: string;
   filesCopied: number;
   srcDir: string;
 };
 
 /**
- * Creates a new customization: mirror the live source into
- * `<root>/<id>/src/`, register the customization, and create a linked
- * workspace whose `rootPath` is the mirror so the existing chat / git / files
- * panes work unchanged inside it.
+ * Creates a new customization: register the record and mirror the live source
+ * into `<root>/<id>/src/`. Customizations are first-class (no backing
+ * workspace) — the chat/git/files panes resolve a customization's cwd directly
+ * from its mirror dir.
+ *
+ * Atomic: if any step after the record is created fails, the record and the
+ * on-disk dir are both removed before rethrowing — a half-bootstrapped
+ * customization (record but no mirror) is exactly the broken state this
+ * replaces.
  */
 export async function bootstrapCustomization(input: { name: string }): Promise<BootstrapResult> {
   const live = getLiveSourceDir();
   const cust = await createCustomizationRecord({ name: input.name });
   const dst = customizationSrcDir(cust.id);
-  await fs.mkdir(dst, { recursive: true });
+  try {
+    // Sanity FIRST (cheap, fail fast): the mirror must not overlap the live
+    // source, or copyTree would recurse into itself.
+    const rel = relative(live, dst);
+    if (!rel.startsWith("..") && rel !== "") {
+      throw new Error(`refusing to bootstrap: mirror dir ${dst} is inside live source ${live}`);
+    }
+    await fs.mkdir(dst, { recursive: true });
 
-  const filesCopied = await copyTree(live, dst);
+    const filesCopied = await copyTree(live, dst);
 
-  // Snapshot the fork point. Subsequent "Sync from base" calls treat this
-  // manifest as the common ancestor when categorising user vs upstream
-  // changes. Built from the freshly-copied mirror so customHash and
-  // manifestHash start identical for every file.
-  const manifest = await buildManifestFromTree(dst);
-  await writeManifest(cust.id, manifest);
+    // Snapshot the fork point. Subsequent "Sync from base" calls treat this
+    // manifest as the common ancestor when categorising user vs upstream
+    // changes. Built from the freshly-copied mirror so customHash and
+    // manifestHash start identical for every file.
+    const manifest = await buildManifestFromTree(dst);
+    await writeManifest(cust.id, manifest);
 
-  // Sanity: the mirror must not overlap the live source (would cause the
-  // copyTree to recurse into itself if a future change moves ROOT under cwd).
-  const rel = relative(live, dst);
-  if (!rel.startsWith("..") && rel !== "") {
-    // The mirror is somehow inside the live source — abort to avoid corrupting
-    // the user's workspace. Keep the record so the user sees the error.
-    throw new Error(`refusing to bootstrap: mirror dir ${dst} is inside live source ${live}`);
+    // Mirror node_modules from the live source so the user can run lint /
+    // tsc / tests inside the customization immediately. Uses hardlinks so
+    // disk cost is near-zero. Turbopack rejects out-of-tree symlinks, so this
+    // MUST be a real in-tree directory of hardlinks rather than a single
+    // top-level symlink.
+    await ensureNodeModulesMirror(dst);
+
+    return { customization: cust, filesCopied, srcDir: dst };
+  } catch (err) {
+    // Roll back the partial bootstrap so no orphan record / dir lingers.
+    await deleteCustomizationRecord(cust.id).catch(() => {});
+    await fs.rm(customizationDir(cust.id), { recursive: true, force: true }).catch(() => {});
+    throw err;
   }
-
-  const ws = await createWorkspace({
-    name: `Customize · ${cust.name}`,
-    rootPath: dst,
-    // Customization workspaces auto-allow tools by default. The whole point
-    // is to let the agent write/edit files freely against an isolated mirror;
-    // permission prompts on every Write would defeat the workflow. The user
-    // can still override per-session via the mode pill.
-    defaults: { permissionMode: "bypassPermissions" },
-  });
-  // Tag the workspace as a customization so the UI can differentiate it.
-  // `createWorkspace` doesn't accept `kind` directly, so patch it after.
-  await updateWorkspace(ws.id, { kind: "customization" });
-
-  // Mirror node_modules from the live source so the user can run lint /
-  // tsc / tests inside the customization workspace immediately. Uses
-  // hardlinks so disk cost is near-zero. Turbopack rejects out-of-tree
-  // symlinks, so this MUST be a real in-tree directory of hardlinks rather
-  // than a single top-level symlink.
-  await ensureNodeModulesMirror(dst);
-
-  await updateCustomizationRecord(cust.id, { workspaceId: ws.id });
-
-  return { customization: cust, workspaceId: ws.id, filesCopied, srcDir: dst };
 }

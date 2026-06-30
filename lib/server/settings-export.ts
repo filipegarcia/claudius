@@ -76,7 +76,11 @@ export async function buildExportBundle(): Promise<SettingsBundle> {
   }
 
   const bundledWorkspaces: BundledWorkspace[] = await Promise.all(
-    workspaces.map(async (ws) => {
+    // Customizations are no longer backed by a workspace; skip any legacy
+    // kind:"customization" workspace so the bundle never re-creates one.
+    workspaces
+      .filter((ws) => ws.kind !== "customization")
+      .map(async (ws) => {
       const [projectSettings, localSettings, icon] = await Promise.all([
         readSettings("project", ws.rootPath).catch((err) => {
           // rootPath gone on the source machine — treat as "no settings".

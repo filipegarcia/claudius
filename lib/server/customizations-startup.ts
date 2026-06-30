@@ -2,11 +2,12 @@ import {
   activePublishesOrdered,
   customizationsRoot,
   markPublishReverted,
+  stripCustomizationWorkspaceIds,
 } from "./customizations-store";
 import { hashTree } from "./customization-hash";
 import { getLiveSourceDir } from "./runtime-dir";
 import { revertPublish } from "./customization-revert";
-import { listWorkspaces, updateWorkspace } from "./workspaces-store";
+import { deleteWorkspace, listWorkspaces } from "./workspaces-store";
 
 /**
  * Boot-time upgrade detection.
@@ -42,25 +43,35 @@ export function isRunningInsideCustomizationMirror(): boolean {
 }
 
 /**
- * Idempotent: any customization workspace that lacks an explicit
- * `permissionMode` default is patched to `bypassPermissions`. Workspaces
- * where the user already chose a mode (default / acceptEdits / etc.) are
- * left alone — we only touch the absence-of-setting case so the rule is
- * "new defaults" not "force this mode forever".
+ * Idempotent boot-time migration: customizations are no longer backed by a
+ * dedicated Workspace record. This (1) strips the legacy `workspaceId` field
+ * from every customization record, and (2) deletes every workspace tagged
+ * `kind:"customization"` (the now-orphaned mirror workspaces).
+ *
+ * `deleteWorkspace` already reassigns `workspaces.json`'s `activeId` to the
+ * next surviving workspace when it removes the active one, so the active-
+ * workspace hint self-heals. A stale `claudius.workspace` cookie pointing at a
+ * deleted id is tolerated by `resolveActiveWorkspace` (falls back to the hint /
+ * first workspace), so no cookie surgery is needed here.
+ *
+ * Idempotent: once the field is stripped and the workspaces deleted, a second
+ * boot finds nothing to do and writes nothing.
  */
-export async function backfillCustomizationDefaults(): Promise<void> {
+export async function reconcileCustomizationWorkspaces(): Promise<void> {
   if (isRunningInsideCustomizationMirror()) return;
   try {
+    const stripped = await stripCustomizationWorkspaceIds();
+    if (stripped > 0) {
+      console.log(`[customizations] stripped legacy workspaceId from ${stripped} record(s)`);
+    }
     const workspaces = await listWorkspaces();
     for (const ws of workspaces) {
       if (ws.kind !== "customization") continue;
-      if (ws.defaults?.permissionMode) continue;
-      await updateWorkspace(ws.id, {
-        defaults: { ...(ws.defaults ?? {}), permissionMode: "bypassPermissions" },
-      });
+      await deleteWorkspace(ws.id);
+      console.log(`[customizations] removed legacy customization workspace ${ws.id}`);
     }
   } catch (err) {
-    console.warn("[customizations] could not backfill workspace defaults:", err);
+    console.warn("[customizations] could not reconcile customization workspaces:", err);
   }
 }
 

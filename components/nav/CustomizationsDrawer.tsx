@@ -2,9 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { WandSparkles, Settings2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { WandSparkles, Settings2, Plus, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
-import type { Workspace } from "@/lib/server/workspaces-store";
+import type { Customization } from "@/lib/server/customizations-store";
 
 /**
  * Single rail tile that stands in for every customization workspace. The
@@ -25,30 +26,56 @@ export function CustomizationsDrawer({
   onOpen,
   unreadCounts,
 }: {
-  customizations: Workspace[];
+  customizations: Customization[];
+  /** The active customization id (the `claudius.customization` cookie), or null. */
   activeId: string | null;
   onSelect: (id: string) => void | Promise<void>;
   /**
    * Called when the popover transitions closed → open. The parent uses it
-   * to refetch `/api/workspaces` so newly-bootstrapped customizations
+   * to refetch `/api/customizations` so newly-bootstrapped customizations
    * (and removals) show up immediately rather than only after the next
    * full reload. Fired synchronously with the open-state flip — errors
    * inside the promise are swallowed so the panel still renders.
    */
   onOpen?: () => void | Promise<void>;
   /**
-   * Per-customization unread counts (keyed by workspaceId). The trigger
-   * tile renders a badge summing across all customizations, and the
-   * popover rows render per-tile badges. Without this prop, customization
-   * workspaces have no notification indicator anywhere — they're hidden
-   * from the main rail and the wand tile was previously badge-less, so
-   * any unread there was effectively invisible.
+   * Per-customization unread counts (keyed by customization id). Customization
+   * chats have no workspace, and the notification bus keys on workspace id, so
+   * in v1 these counts are empty (notifications for customization sessions are
+   * a deferred/degraded path) — the parent passes `{}` and the badges stay off.
    */
   unreadCounts?: Record<string, number>;
 }) {
   const [open, setOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
+
+  // Bootstrap a new customization, make it the active context, and land on its
+  // chat — mirrors the "New customization" flow on the /customize page so the
+  // user can spin one up without the extra hop through the manage screen.
+  async function onCreate() {
+    if (creating) return;
+    setCreating(true);
+    setCreateError(null);
+    try {
+      const res = await fetch("/api/customizations", { method: "POST" });
+      if (!res.ok) {
+        const err = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(err.error ?? `HTTP ${res.status}`);
+      }
+      const d = (await res.json()) as { customization: { id: string } };
+      await fetch(`/api/customizations/${d.customization.id}/select`, { method: "POST" });
+      setOpen(false);
+      router.push(`/customize/${d.customization.id}/chat`);
+    } catch (err) {
+      setCreateError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setCreating(false);
+    }
+  }
 
   const active = customizations.find((c) => c.id === activeId) ?? null;
   const hasActive = active !== null;
@@ -83,7 +110,7 @@ export function CustomizationsDrawer({
   const sorted = [...customizations].sort((a, b) => {
     if (a.id === activeId) return -1;
     if (b.id === activeId) return 1;
-    return (b.lastOpenedAt ?? 0) - (a.lastOpenedAt ?? 0);
+    return (b.updatedAt ?? 0) - (a.updatedAt ?? 0);
   });
 
   const titleAttr = hasActive
@@ -203,6 +230,23 @@ export function CustomizationsDrawer({
             </ul>
           )}
           <div className="my-1 h-px bg-[var(--border)]" />
+          <button
+            onClick={() => void onCreate()}
+            disabled={creating}
+            className="flex w-full items-center gap-2 px-3 py-2 text-xs text-[var(--muted)] hover:bg-[var(--panel-2)] hover:text-[var(--foreground)] disabled:opacity-50"
+          >
+            {creating ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Plus className="h-3.5 w-3.5" />
+            )}
+            {creating ? "Creating…" : "New customization"}
+          </button>
+          {createError && (
+            <div className="px-3 pb-1 text-[11px] text-[var(--danger,#ef4444)]">
+              {createError}
+            </div>
+          )}
           <Link
             href="/customize"
             onClick={() => setOpen(false)}

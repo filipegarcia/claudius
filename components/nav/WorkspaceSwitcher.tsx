@@ -5,6 +5,8 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Plus, Plug, Settings, UserCircle, Radio } from "lucide-react";
 import { useWorkspaces } from "@/lib/client/useWorkspaces";
+import { useActiveCustomization } from "@/lib/client/useActiveCustomization";
+import type { Customization } from "@/lib/server/customizations-store";
 import { useNotificationsContext } from "@/components/notifications/NotificationsProvider";
 import { useCommunityNotifications } from "@/components/community/CommunityNotificationsProvider";
 import { WorkspaceIcon } from "@/components/workspaces/WorkspaceIcon";
@@ -59,7 +61,7 @@ type Props = {
 };
 
 export function WorkspaceSwitcher({ mobileOpen = false, onCloseMobile }: Props = {}) {
-  const { items, activeId, select, create, update, remove, uploadIcon, reorder, refresh } =
+  const { items, activeId, select, create, update, remove, uploadIcon, reorder } =
     useWorkspaces();
   const { counts } = useNotificationsContext();
   const community = useCommunityNotifications();
@@ -114,13 +116,37 @@ export function WorkspaceSwitcher({ mobileOpen = false, onCloseMobile }: Props =
     ? activeAccountLabel.trim().charAt(0).toUpperCase() || null
     : null;
 
-  // Customization workspaces live in the drawer, not the main rail loop.
-  // Splitting them here keeps the rendered list, the drag-reorder, and the
-  // keyboard shortcut handler all consistent — see `reorder` below where the
-  // hidden customization ids are appended to preserve `reorderWorkspaces`'s
-  // strict length check.
-  const projectItems = items.filter((w) => w.kind !== "customization");
-  const customizationItems = items.filter((w) => w.kind === "customization");
+  // Customizations are no longer workspaces — they live in their own store and
+  // are surfaced via the wand drawer. Every workspace item is a project tile.
+  const projectItems = items;
+
+  // Customization list for the drawer (fetched from /api/customizations, not
+  // the workspace list). `activeCustomizationId` is the cookie-backed active
+  // context; when set, the drawer highlights that row.
+  const activeCustomizationId = useActiveCustomization();
+  const [customizations, setCustomizations] = useState<Customization[]>([]);
+  const [custRefetch, setCustRefetch] = useState(0);
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch("/api/customizations");
+        if (!res.ok) return;
+        const d = (await res.json()) as { customizations: Customization[] };
+        if (!cancelled) {
+          setCustomizations((prev) =>
+            JSON.stringify(prev) === JSON.stringify(d.customizations) ? prev : d.customizations,
+          );
+        }
+      } catch {
+        // Best-effort — leave the last list in place on a transient failure.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [custRefetch]);
+  const refreshCustomizations = () => setCustRefetch((n) => n + 1);
 
   // Per-workspace "last visited URL" tracker. Clicking a workspace tile
   // should return the user to wherever they last were *in that workspace*
@@ -265,10 +291,8 @@ export function WorkspaceSwitcher({ mobileOpen = false, onCloseMobile }: Props =
       setDraggingId(null);
       setOverId(null);
       if (!sourceId || sourceId === targetId) return;
-      // Reorder runs over visible project tiles only — customization ids are
-      // appended at the end so the server's length check (which requires the
-      // payload to include every workspace) still passes. Their relative
-      // order is preserved.
+      // Every workspace is a project tile now (customizations aren't
+      // workspaces), so the reorder payload is just the project ids.
       const projectIds = projectItems.map((w) => w.id);
       const from = projectIds.indexOf(sourceId);
       const to = projectIds.indexOf(targetId);
@@ -276,7 +300,7 @@ export function WorkspaceSwitcher({ mobileOpen = false, onCloseMobile }: Props =
       const nextProjects = projectIds.slice();
       nextProjects.splice(from, 1);
       nextProjects.splice(to, 0, sourceId);
-      void reorder([...nextProjects, ...customizationItems.map((w) => w.id)]);
+      void reorder(nextProjects);
     };
   }
   function onDragEnd() {
@@ -457,17 +481,24 @@ export function WorkspaceSwitcher({ mobileOpen = false, onCloseMobile }: Props =
         {/* Customizations live behind a single drawer tile instead of getting
             their own rail rows — see CustomizationsDrawer for the popover. */}
         <CustomizationsDrawer
-          customizations={customizationItems}
-          activeId={activeId}
+          customizations={customizations}
+          activeId={activeCustomizationId}
           onSelect={(id) => {
-            // Dismiss the mobile drawer first so the customization workspace
-            // page paints without the rail overlapping the chat area on the
-            // way out.
+            // Dismiss the mobile drawer first so the customization chat paints
+            // without the rail overlapping the chat area on the way out.
             closeMobileIfOpen();
-            void select(id);
+            void (async () => {
+              await fetch(`/api/customizations/${id}/select`, { method: "POST" });
+              if (typeof window !== "undefined") {
+                window.location.href = `/customize/${id}/chat`;
+              }
+            })();
           }}
-          onOpen={refresh}
-          unreadCounts={counts}
+          onOpen={refreshCustomizations}
+          // Customization chats have no workspace, and the notification bus
+          // keys on workspace id — so per-customization unread counts are a
+          // deferred path. Pass empty so the drawer badges stay off.
+          unreadCounts={{}}
         />
         <button
           onClick={() => {

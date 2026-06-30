@@ -4,12 +4,11 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { WandSparkles, ExternalLink, Keyboard, Eye, Rocket, Loader2, RotateCw } from "lucide-react";
-import type { Workspace } from "@/lib/server/workspaces-store";
 import type { Customization } from "@/lib/server/customizations-store";
 import type { PreviewState } from "@/lib/server/preview-server";
 import { PANE_LABELS_EVENT } from "@/components/overlays/PaneLabelsHost";
 
-const COOKIE = "claudius.workspace";
+const COOKIE = "claudius.customization";
 
 function readCookie(): string | null {
   if (typeof document === "undefined") return null;
@@ -32,7 +31,9 @@ type Runtime =
  *     preview and points them back to the main Claudius tab to publish.
  */
 export function CustomizationBanner() {
-  const [active, setActive] = useState<Workspace | null>(null);
+  // The active customization id (the `claudius.customization` cookie). Null when
+  // a workspace is active instead.
+  const [activeCustId, setActiveCustId] = useState<string | null>(null);
   const [runtime, setRuntime] = useState<Runtime | null>(null);
   const [customizations, setCustomizations] = useState<Customization[]>([]);
   const [preview, setPreview] = useState<PreviewState | null>(null);
@@ -43,17 +44,12 @@ export function CustomizationBanner() {
     let cancelled = false;
     async function load() {
       try {
-        const [wsRes, rtRes, custRes] = await Promise.all([
-          fetch("/api/workspaces").catch(() => null),
+        const [rtRes, custRes] = await Promise.all([
           fetch("/api/customize/runtime").catch(() => null),
           fetch("/api/customizations").catch(() => null),
         ]);
         if (cancelled) return;
-        if (wsRes && wsRes.ok) {
-          const d = (await wsRes.json()) as { workspaces: Workspace[] };
-          const id = readCookie();
-          setActive(id ? d.workspaces.find((w) => w.id === id) ?? null : null);
-        }
+        setActiveCustId(readCookie());
         if (rtRes && rtRes.ok) setRuntime((await rtRes.json()) as Runtime);
         if (custRes && custRes.ok) {
           const d = (await custRes.json()) as { customizations: Customization[] };
@@ -73,8 +69,8 @@ export function CustomizationBanner() {
   //   1. the preview's own runtime (authoritative inside a preview process),
   //   2. the URL — when the user is on /customize/<id>, that id wins so the
   //      banner's "Open preview" never targets the wrong customization just
-  //      because the active workspace cookie still points elsewhere,
-  //   3. the active workspace's rootPath matched to a customization src dir,
+  //      because the active-customization cookie still points elsewhere,
+  //   3. the active-customization cookie id,
   //   4. nothing — banner stays hidden.
   const pathname = usePathname();
   const customizeIdFromUrl = useMemo(() => {
@@ -89,9 +85,7 @@ export function CustomizationBanner() {
     [customizeIdFromUrl, customizations],
   );
   const customizationByActive =
-    active?.kind === "customization"
-      ? customizations.find((c) => active.id === c.workspaceId) ?? null
-      : null;
+    activeCustId ? customizations.find((c) => c.id === activeCustId) ?? null : null;
   const customizationInScope = customizationByUrl ?? customizationByActive;
   const customizationId =
     runtime?.isPreview ? runtime.customizationId : customizationInScope?.id ?? null;
@@ -198,8 +192,8 @@ export function CustomizationBanner() {
     );
   }
 
-  // ── Main server, customization workspace active OR /customize/<id> URL ──
-  if (active?.kind === "customization" || customizationByUrl) {
+  // ── Main server, customization active OR /customize/<id> URL ──
+  if (customizationByActive || customizationByUrl) {
     const previewRunning = preview && (preview.status === "ready" || preview.status === "starting");
     return (
       <div
@@ -209,7 +203,7 @@ export function CustomizationBanner() {
         <WandSparkles className="h-3.5 w-3.5 shrink-0 text-[var(--accent)]" />
         <span className="font-medium">Customization mode</span>
         <span className="hidden truncate text-[var(--muted)] sm:inline">
-          — edits in this workspace are isolated. Open the preview to see them; hit Publish to apply.
+          — edits in this customization are isolated. Open the preview to see them; hit Publish to apply.
         </span>
         <button
           onClick={onShowComponents}

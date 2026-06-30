@@ -8,7 +8,6 @@ import {
   listPublishes,
   updateCustomizationRecord,
 } from "@/lib/server/customizations-store";
-import { deleteWorkspace } from "@/lib/server/workspaces-store";
 import { stopPreview } from "@/lib/server/preview-server";
 
 export const runtime = "nodejs";
@@ -67,21 +66,16 @@ export async function DELETE(_req: Request, { params }: Ctx) {
     );
   }
 
-  // Best-effort: stop any running preview, then drop the linked workspace and
-  // the on-disk customization tree. Failures past this point are non-fatal —
-  // the record itself is removed regardless so a half-cleaned dir doesn't
-  // leave a phantom in the UI.
+  // Best-effort: stop any running preview, then drop the on-disk customization
+  // tree. Failures past this point are non-fatal — the record itself is removed
+  // regardless so a half-cleaned dir doesn't leave a phantom in the UI.
+  // (Customizations are no longer backed by a workspace, so there's nothing to
+  // cascade-delete; a stale active-customization cookie self-heals because
+  // resolveActiveCustomization returns null once the record is gone.)
   try {
     await stopPreview(id);
   } catch {
     // ignore
-  }
-  if (c.workspaceId) {
-    try {
-      await deleteWorkspace(c.workspaceId);
-    } catch {
-      // ignore
-    }
   }
   try {
     await fs.rm(customizationDir(id), { recursive: true, force: true });

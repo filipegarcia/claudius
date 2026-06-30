@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { resolveActiveWorkspace } from "@/lib/server/active-workspace";
+import { resolveActiveCwd } from "@/lib/server/active-customization";
 import {
   getActiveTab,
   getOpenTabs,
@@ -35,8 +35,7 @@ export const runtime = "nodejs";
  */
 
 async function activeCwd(): Promise<string> {
-  const ws = await resolveActiveWorkspace().catch(() => null);
-  return ws?.rootPath ?? process.cwd();
+  return (await resolveActiveCwd()).cwd;
 }
 
 export async function GET() {

@@ -7,6 +7,7 @@ import { MessageSquare, Menu, Network, Webhook, BookText, ShieldCheck, FolderTre
 import { cn } from "@/lib/utils/cn";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import { useWorkspaces } from "@/lib/client/useWorkspaces";
+import { useActiveCustomization } from "@/lib/client/useActiveCustomization";
 import type { FocusLevel } from "@/lib/client/useFocusMode";
 import { useNotificationsContext } from "@/components/notifications/NotificationsProvider";
 import type { Customization, PublishRecord } from "@/lib/server/customizations-store";
@@ -199,13 +200,10 @@ export function SideNav({
   // customization is active or while the lookup is in flight.
   const { items: workspaces, activeId, update } = useWorkspaces();
   const activeWorkspace = workspaces.find((w) => w.id === activeId) ?? null;
-  const isCustomizationWs = activeWorkspace?.kind === "customization";
-  // Cached resolution carries the workspace id it was computed for, so on
-  // render we can tell whether the cache is still valid for the current
-  // workspace. This avoids a synchronous setState in the effect body (which
-  // would trip react-hooks/set-state-in-effect) — the state only ever
-  // changes from the async fetch callback.
-  const [resolution, setResolution] = useState<{ workspaceId: string; customizationId: string } | null>(null);
+  // Customizations are no longer workspaces — being "inside" one is signalled
+  // by the `claudius.customization` cookie, not the active workspace's kind.
+  const activeCustomizationId = useActiveCustomization();
+  const isCustomization = activeCustomizationId != null;
   // Set of customization names (lowercased) that have at least one
   // un-reverted publish. Items tagged with `customizationName` are hidden
   // until their entry appears here. `null` = not yet fetched (during the
@@ -223,15 +221,6 @@ export function SideNav({
           publishes?: PublishRecord[];
         };
         if (cancelled) return;
-        // Detail-page resolution for the Customize tile href — only when
-        // the active workspace is a customization. Same fetch covers both
-        // jobs so the rail makes one network call instead of two.
-        if (isCustomizationWs && activeWorkspace) {
-          const match = d.customizations.find((c) => c.workspaceId === activeWorkspace.id);
-          if (match) {
-            setResolution({ workspaceId: activeWorkspace.id, customizationId: match.id });
-          }
-        }
         // Enabled set: any customization with at least one un-reverted
         // publish counts as "on". Stored by lowercased name for the
         // case-insensitive lookup in `items.filter` below.
@@ -256,7 +245,7 @@ export function SideNav({
     return () => {
       cancelled = true;
     };
-  }, [isCustomizationWs, activeWorkspace]);
+  }, []);
 
   // Apply the customizationName gate. Built-in tiles (no `customizationName`)
   // always render; gated tiles need their customization to be enabled.
@@ -283,9 +272,15 @@ export function SideNav({
     setLocalOrder(null);
   }
   const effectiveOrder = localOrder ?? persistedOrder;
-  const visibleItems = applyNavOrder(gatedItems, effectiveOrder);
-  const customizationDetailId =
-    isCustomizationWs && resolution?.workspaceId === activeWorkspace?.id ? resolution.customizationId : null;
+  const allVisibleItems = applyNavOrder(gatedItems, effectiveOrder);
+  // Inside a customization the workspace-scoped tiles (Git/Files/Sessions/…)
+  // have no customization route, so the rail collapses to just Chat (which
+  // points at the customization chat). The Customize tile is rendered
+  // separately below. Project workspaces keep the full rail.
+  const visibleItems = isCustomization
+    ? allVisibleItems.filter((it) => it.actionId === "nav.chat")
+    : allVisibleItems;
+  const customizationDetailId = activeCustomizationId;
   const customizeHref = customizationDetailId ? `/customize/${customizationDetailId}` : "/customize";
   const customizeActive = pathname?.startsWith("/customize") ?? false;
   const customizeTitle = customizationDetailId
@@ -468,8 +463,12 @@ export function SideNav({
           // render the link as a no-op anchor so the rail can hydrate
           // before workspaces have loaded — click during that window
           // does nothing rather than navigating to a broken URL.
-          const fullHref =
-            typeof href === "string" && activeId
+          // Inside a customization the Chat tile points at the customization
+          // chat route instead of a workspace root.
+          const isCustChat = isCustomization && actionId === "nav.chat";
+          const fullHref = isCustChat
+            ? `/customize/${activeCustomizationId}/chat`
+            : typeof href === "string" && activeId
               ? `/${activeId}${href}`
               : undefined;
           // Active state: strip the workspace prefix from `pathname` and
@@ -479,7 +478,11 @@ export function SideNav({
           // still highlights the right tile.
           const hrefPath = typeof href === "string" ? href.split("?")[0] : undefined;
           const innerPath = stripWorkspacePrefix(pathname);
-          const active = hrefPath !== undefined ? innerPath === hrefPath : false;
+          const active = isCustChat
+            ? (pathname?.startsWith(`/customize/${activeCustomizationId}/chat`) ?? false)
+            : hrefPath !== undefined
+              ? innerPath === hrefPath
+              : false;
           // Active state uses the accent color + a left-edge bar (same
           // visual idiom as the workspace switcher's active tile) so the
           // current view is obvious from across the screen.
@@ -564,7 +567,7 @@ export function SideNav({
             doesn't pop out from under them after a workspace switch). From
             a normal project workspace the entry point is the
             WorkspaceSwitcher's wand drawer → "Manage all". */}
-        {(isCustomizationWs || customizeActive) && (
+        {(isCustomization || customizeActive) && (
           <Link
             href={customizeHref}
             title={customizeTitle}

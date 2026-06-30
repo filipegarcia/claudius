@@ -8,7 +8,6 @@ import { customizationSrcDir, getCustomization } from "./customizations-store";
 import { getLiveSourceDir } from "./runtime-dir";
 import { computeSyncStatus, type SyncEntry, type SyncVerdict } from "./customization-sync";
 import { listIndexedSessions } from "./sessions-db";
-import { getWorkspace } from "./workspaces-store";
 
 /**
  * LLM-generated "feature description" for a customization. Synthesizes two
@@ -97,7 +96,7 @@ export async function describeCustomization(
   }
 
   const diffText = await buildUnifiedDiff(customizationId, files);
-  const intentText = c.workspaceId ? await collectUserIntent(c.workspaceId) : "";
+  const intentText = await collectUserIntent(customizationId);
 
   const userPrompt = composePrompt(diffText, intentText);
   const cwd = customizationSrcDir(customizationId);
@@ -201,15 +200,14 @@ function gitDiffNoIndex(a: string, b: string): Promise<string> {
 }
 
 /**
- * Pull the user's own chat messages from every indexed session in the
- * customization workspace, newest-first. Tool results, assistant turns, and
+ * Pull the user's own chat messages from every indexed session run inside the
+ * customization's mirror, newest-first. Tool results, assistant turns, and
  * synthetic user messages (e.g. injected system reminders) are dropped —
- * what we want is the human-typed intent.
+ * what we want is the human-typed intent. The cwd is the mirror src dir
+ * directly (customizations are no longer backed by a workspace).
  */
-async function collectUserIntent(workspaceId: string): Promise<string> {
-  const ws = await getWorkspace(workspaceId).catch(() => null);
-  if (!ws) return "";
-  const cwd = ws.rootPath;
+async function collectUserIntent(customizationId: string): Promise<string> {
+  const cwd = customizationSrcDir(customizationId);
   const sessions = await listIndexedSessions(cwd).catch(() => []);
   if (sessions.length === 0) return "";
 

@@ -26,8 +26,6 @@ import { randomUUID } from "node:crypto";
 export type Customization = {
   id: string;
   name: string;
-  /** Linked workspace id (the dev workspace pointing at <id>/src/). */
-  workspaceId?: string;
   createdAt: number;
   updatedAt: number;
   /** LLM-generated feature description. See customization-description.ts. */
@@ -132,14 +130,12 @@ export async function getCustomization(id: string): Promise<Customization | null
 
 export async function createCustomizationRecord(input: {
   name: string;
-  workspaceId?: string;
 }): Promise<Customization> {
   const shape = await readShape();
   const id = "cust_" + randomUUID().replace(/-/g, "").slice(0, 12);
   const c: Customization = {
     id,
     name: input.name.trim() || "Untitled",
-    workspaceId: input.workspaceId,
     createdAt: Date.now(),
     updatedAt: Date.now(),
   };
@@ -150,7 +146,7 @@ export async function createCustomizationRecord(input: {
 
 export async function updateCustomizationRecord(
   id: string,
-  patch: Partial<Pick<Customization, "name" | "workspaceId">>,
+  patch: Partial<Pick<Customization, "name">>,
 ): Promise<Customization | null> {
   const shape = await readShape();
   const idx = shape.customizations.findIndex((c) => c.id === id);
@@ -224,18 +220,41 @@ export async function deleteCustomizationRecord(id: string): Promise<boolean> {
 /**
  * Insert or update a customization record preserving its original `id`.
  * Used by the settings-import path to restore a bundled customization without
- * generating a new id.
+ * generating a new id. Any legacy `workspaceId` carried by an old bundle is
+ * dropped — customizations are no longer backed by a workspace.
  */
 export async function upsertCustomizationRecord(c: Customization): Promise<void> {
   const shape = await readShape();
-  const idx = shape.customizations.findIndex((x) => x.id === c.id);
+  // Defensively strip a legacy `workspaceId` an old export may still carry.
+  const clean = { ...(c as Customization & { workspaceId?: unknown }) };
+  delete (clean as { workspaceId?: unknown }).workspaceId;
+  const idx = shape.customizations.findIndex((x) => x.id === clean.id);
   if (idx >= 0) {
     // Preserve any fields the bundle didn't carry (e.g. descriptionGeneratedAt).
-    shape.customizations[idx] = { ...shape.customizations[idx], ...c };
+    shape.customizations[idx] = { ...shape.customizations[idx], ...clean };
   } else {
-    shape.customizations.push(c);
+    shape.customizations.push(clean);
   }
   await writeShape(shape);
+}
+
+/**
+ * One-time on-disk cleanup: remove the legacy `workspaceId` field from every
+ * customization record. Customizations are no longer backed by a workspace, so
+ * the field is vestigial. Returns the number of records changed. Idempotent —
+ * a second run finds nothing to strip and writes nothing.
+ */
+export async function stripCustomizationWorkspaceIds(): Promise<number> {
+  const shape = await readShape();
+  let changed = 0;
+  for (const c of shape.customizations as Array<Customization & { workspaceId?: unknown }>) {
+    if ("workspaceId" in c) {
+      delete c.workspaceId;
+      changed++;
+    }
+  }
+  if (changed > 0) await writeShape(shape);
+  return changed;
 }
 
 export async function listPublishes(customizationId?: string): Promise<PublishRecord[]> {
