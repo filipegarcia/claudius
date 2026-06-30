@@ -283,6 +283,14 @@ export type SessionInfo = {
    */
   lastModified?: number;
   /**
+   * Epoch ms when the server-side Session object was constructed. Populated
+   * for all in-memory sessions by `/api/sessions`. Used to generate a readable
+   * fallback label ("Today at 2:15 PM") in the tab strip for sessions that
+   * have no user-set or SDK-derived title yet — computed at display time and
+   * never persisted, so it does not clobber the SDK's aiTitle.
+   */
+  createdAt?: number;
+  /**
    * Coarse session state for the tabs strip. Only present for sessions
    * currently held in memory by the server (returned from `/api/sessions`);
    * absent for disk-only entries. Disk-only sessions render as `background`
