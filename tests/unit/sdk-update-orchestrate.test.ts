@@ -2,6 +2,7 @@ import { describe, expect, test, vi, beforeEach, afterEach } from "vitest";
 
 import {
   REQUIRED_RUN_NOTE_SECTIONS,
+  clampGitHubBody,
   buildChangelogAnnouncement,
   buildFixResultAnnouncement,
   buildFixStartAnnouncement,
@@ -225,6 +226,19 @@ describe("renderPrBody — Claude Code changelog section", () => {
     expect(out).toContain("SDK_BODY: SDK changelog body");
   });
 
+  test("clamps a huge changelog body so the PR body can't blow GitHub's cap", () => {
+    // Regression for issue #90: extractChangelog() can dump an entire
+    // CHANGELOG.md (the "returning full file" fallback). The renderer
+    // must clamp it at the source so the rest of the template survives.
+    const huge = "x".repeat(50_000);
+    const out = renderPrBody({ ...base, changelog: huge });
+    expect(out).toContain("changelog truncated — full text at the compare URL");
+    // The clamped changelog is far shorter than the raw 50k input, and
+    // the run-notes / screenshots sections still render after it.
+    expect(out.length).toBeLessThan(30_000);
+    expect(out).toContain("SHOTS: NO_SHOTS");
+  });
+
   test("never leaves a literal CC placeholder when the caller omits it", () => {
     const out = renderPrBody(base);
     expect(out).not.toContain("{{CC_CHANGELOG_BODY}}");
@@ -263,6 +277,41 @@ describe("renderPrBody — Claude Code changelog section", () => {
     } while (rendered !== prev);
     const leftovers = rendered.match(/\{\{[^}]+\}\}/g);
     expect(leftovers).toBeNull();
+  });
+});
+
+// ── clampGitHubBody ───────────────────────────────────────────────────
+
+describe("clampGitHubBody", () => {
+  const LIMIT = 65536;
+
+  test("leaves an under-limit body untouched", () => {
+    const body = "short body 🆕";
+    expect(clampGitHubBody(body)).toBe(body);
+    expect(clampGitHubBody(body, "tail")).toBe(body);
+  });
+
+  test("head-keep clamps an over-limit body under the GraphQL cap with a marker", () => {
+    const out = clampGitHubBody("a".repeat(200_000));
+    expect(out.length).toBeLessThanOrEqual(LIMIT);
+    expect(out.startsWith("aaaa")).toBe(true);
+    expect(out).toContain("truncated — exceeded GitHub's 65536-char body limit");
+  });
+
+  test("tail-keep drops the head and keeps the actionable end", () => {
+    const out = clampGitHubBody("HEAD" + "a".repeat(200_000) + "ERROR_TAIL", "tail");
+    expect(out.length).toBeLessThanOrEqual(LIMIT);
+    expect(out.endsWith("ERROR_TAIL")).toBe(true);
+    expect(out).toContain("earlier output truncated");
+    expect(out.startsWith("HEAD")).toBe(false);
+  });
+
+  test("stays under the cap even when the body is all emoji (UTF-16 vs codepoints)", () => {
+    // 🆕 is 2 UTF-16 code units / 1 codepoint. A `.length`-bounded clamp
+    // must still leave GitHub's *character* count under the limit.
+    const out = clampGitHubBody("🆕".repeat(80_000));
+    expect(out.length).toBeLessThanOrEqual(LIMIT);
+    expect([...out].length).toBeLessThanOrEqual(LIMIT);
   });
 });
 

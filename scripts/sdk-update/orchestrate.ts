@@ -1624,6 +1624,63 @@ function buildScreenshotsBlock(branch: string, version: string): string {
   return lines.join("\n\n");
 }
 
+/**
+ * GitHub's GraphQL API rejects any issue / PR / comment body longer
+ * than 65536 **characters** — `createPullRequest`, `createIssue`, and
+ * `addComment` all share the cap. Exceeding it on `gh pr create` is
+ * exactly what crashed issue #90 (a combined upgrade whose CC changelog
+ * fell through `extractChangelog`'s "returning full file" branch and
+ * dumped the entire CHANGELOG.md into the PR body).
+ */
+const GH_BODY_LIMIT = 65536;
+
+/**
+ * Per-changelog cap for the PR body. `extractChangelog()` returns the
+ * **whole** CHANGELOG.md when its heading-slice misses (the
+ * `returning full file` fallback) — for claude-code that's hundreds of
+ * versions and easily tens of thousands of chars. Clamp each changelog
+ * at the source so the template's run-notes / risks sections (the part
+ * a reviewer most needs) survive; `clampGitHubBody` at the `gh` sink
+ * stays as a last-resort backstop.
+ */
+const MAX_PR_CHANGELOG = 20000;
+function clampChangelogForPr(changelog: string): string {
+  if (changelog.length <= MAX_PR_CHANGELOG) return changelog;
+  return (
+    changelog.slice(0, MAX_PR_CHANGELOG) +
+    "\n\n_(changelog truncated — full text at the compare URL above)_"
+  );
+}
+
+/**
+ * Last-resort clamp applied at every `gh` body sink (PR create/edit,
+ * issue create/comment) so a body can never trip GitHub's
+ * `GH_BODY_LIMIT`. `.length` counts UTF-16 code units, which is always
+ * ≥ the codepoint count GitHub measures, so a body ≤ MAX by `.length`
+ * is guaranteed under the real character limit even though this file is
+ * full of emoji.
+ *
+ * `keep: "head"` (default) drops the tail — right for PR bodies, whose
+ * template leads with the versions, compare URLs and summary. `keep:
+ * "tail"` drops the head — right for crash reports, where the
+ * actionable error tail is the whole point.
+ */
+export function clampGitHubBody(
+  body: string,
+  keep: "head" | "tail" = "head",
+): string {
+  // Conservative ceiling under the hard 65536 to leave room for the
+  // marker and any code-unit/codepoint slack.
+  const MAX = 60000;
+  if (body.length <= MAX) return body;
+  if (keep === "tail") {
+    const marker = `_(…earlier output truncated — exceeded GitHub's ${GH_BODY_LIMIT}-char body limit)_\n\n`;
+    return marker + body.slice(body.length - (MAX - marker.length));
+  }
+  const marker = `\n\n_(truncated — exceeded GitHub's ${GH_BODY_LIMIT}-char body limit; see the compare URLs above for full detail)_`;
+  return body.slice(0, MAX - marker.length) + marker;
+}
+
 export function renderPrBody(args: {
   branch: string;
   prevVersion: string;
@@ -1663,9 +1720,9 @@ export function renderPrBody(args: {
       /\{\{CHANGELOG_URL\}\}/g,
       `https://github.com/${UPSTREAM_GH}/compare/v${args.prevVersion}...v${args.newVersion}`,
     )
-    .replace(/\{\{CHANGELOG_BODY\}\}/g, args.changelog)
+    .replace(/\{\{CHANGELOG_BODY\}\}/g, clampChangelogForPr(args.changelog))
     .replace(/\{\{CC_CHANGELOG_URL\}\}/g, ccChangelogUrl)
-    .replace(/\{\{CC_CHANGELOG_BODY\}\}/g, ccChangelog)
+    .replace(/\{\{CC_CHANGELOG_BODY\}\}/g, clampChangelogForPr(ccChangelog))
     .replace(/\{\{NOTES_SUMMARY\}\}/g, extractSection(notes, "Summary"))
     .replace(/\{\{NOTES_SDK\}\}/g, extractSection(notes, "SDK changelog highlights"))
     .replace(/\{\{NOTES_CODE\}\}/g, extractSection(notes, "Code changes"))
@@ -1909,14 +1966,14 @@ export function renderCombinedPrBody(args: {
       /\{\{SDK_CHANGELOG_URL\}\}/g,
       `https://github.com/${UPSTREAM_GH}/compare/v${args.prevSdkVersion}...v${args.newSdkVersion}`,
     )
-    .replace(/\{\{SDK_CHANGELOG_BODY\}\}/g, args.sdkChangelog)
+    .replace(/\{\{SDK_CHANGELOG_BODY\}\}/g, clampChangelogForPr(args.sdkChangelog))
     .replace(/\{\{NEW_CC_VERSION\}\}/g, args.newCcVersion)
     .replace(/\{\{PREVIOUS_CC_VERSION\}\}/g, args.prevCcVersion)
     .replace(
       /\{\{CC_CHANGELOG_URL\}\}/g,
       `https://github.com/anthropics/claude-code/compare/v${args.prevCcVersion}...v${args.newCcVersion}`,
     )
-    .replace(/\{\{CC_CHANGELOG_BODY\}\}/g, args.ccChangelog)
+    .replace(/\{\{CC_CHANGELOG_BODY\}\}/g, clampChangelogForPr(args.ccChangelog))
     .replace(/\{\{SDK_NOTES_SUMMARY\}\}/g, sdkSummary)
     .replace(/\{\{SDK_NOTES_SDK\}\}/g, sdkSdkSection)
     .replace(/\{\{SDK_NOTES_CODE\}\}/g, sdkCode)
@@ -2895,6 +2952,8 @@ export function openPr(args: {
   draft: boolean;
 }): { url: string; created: boolean } {
   const title = `chore(deps): bump claude-agent-sdk ${args.prevVersion} → ${args.newVersion}`;
+  // Backstop: never let a PR body trip GitHub's 65536-char cap (issue #90).
+  const body = clampGitHubBody(args.body);
 
   // Idempotency: if a PR already exists for this branch (previous
   // firing got this far), update its body rather than failing. We
@@ -2917,7 +2976,7 @@ export function openPr(args: {
     const edit = spawnSync(
       "gh",
       ["pr", "edit", url, "--title", title, "--body-file", "-"],
-      { cwd: ROOT, input: args.body, encoding: "utf8" },
+      { cwd: ROOT, input: body, encoding: "utf8" },
     );
     if (edit.status !== 0) {
       throw new Error(`gh pr edit failed (${edit.status}): ${edit.stderr ?? ""}`);
@@ -2944,7 +3003,7 @@ export function openPr(args: {
 
     const child = spawnSync("gh", ghArgs, {
       cwd: ROOT,
-      input: args.body,
+      input: body,
       encoding: "utf8",
     });
     if (child.status !== 0) {
@@ -2985,6 +3044,8 @@ export function openPrWithTitle(args: {
   body: string;
   draft: boolean;
 }): { url: string; created: boolean } {
+  // Backstop: never let a PR body trip GitHub's 65536-char cap (issue #90).
+  const body = clampGitHubBody(args.body);
   const existingJson = spawnSync(
     "gh",
     ["pr", "list", "--head", args.branch, "--state", "open", "--json", "url,isDraft"],
@@ -3003,7 +3064,7 @@ export function openPrWithTitle(args: {
     const edit = spawnSync(
       "gh",
       ["pr", "edit", url, "--title", args.title, "--body-file", "-"],
-      { cwd: ROOT, input: args.body, encoding: "utf8" },
+      { cwd: ROOT, input: body, encoding: "utf8" },
     );
     if (edit.status !== 0) {
       throw new Error(`gh pr edit failed (${edit.status}): ${edit.stderr ?? ""}`);
@@ -3025,7 +3086,7 @@ export function openPrWithTitle(args: {
 
     const child = spawnSync("gh", ghArgs, {
       cwd: ROOT,
-      input: args.body,
+      input: body,
       encoding: "utf8",
     });
     if (child.status !== 0) {
@@ -3511,7 +3572,13 @@ function fileOrCommentRunIssueSafe(args: {
   prUrl: string | null;
   extras?: string[];
 }): string | null {
-  const { title, body, commentBody } = buildRunIssue(args);
+  const { title, body: rawBody, commentBody: rawComment } = buildRunIssue(args);
+  // Issues / comments share the PR's 65536-char GraphQL cap, and the
+  // captured failure tail (the `extras`) is what would blow it — keep
+  // the tail, where the actionable error lives. Pass via stdin so a
+  // long body can't trip argv length limits either.
+  const body = clampGitHubBody(rawBody, "tail");
+  const commentBody = clampGitHubBody(rawComment, "tail");
   try {
     const existing = findOpenIssueByTitle(title);
     if (existing) {
@@ -3529,7 +3596,17 @@ function fileOrCommentRunIssueSafe(args: {
       inProcessIssueByTitle.set(title, existing);
       return existing;
     }
-    const url = sh("gh", ["issue", "create", "--title", title, "--body", body]).trim();
+    const created = spawnSync(
+      "gh",
+      ["issue", "create", "--title", title, "--body-file", "-"],
+      { cwd: ROOT, input: body, encoding: "utf8" },
+    );
+    if (created.status !== 0) {
+      throw new Error(
+        `gh issue create exited ${created.status}: ${created.stderr ?? ""}`,
+      );
+    }
+    const url = (created.stdout ?? "").trim().split("\n").pop() ?? "";
     inProcessIssueByTitle.set(title, url);
     log(`filed run issue (kind=${args.kind}): ${url}`);
     return url;
