@@ -1,7 +1,7 @@
 import { execFile, spawn, type ChildProcess } from "node:child_process";
-import { promises as fs } from "node:fs";
+import { existsSync, promises as fs } from "node:fs";
 import { createServer } from "node:net";
-import { join } from "node:path";
+import { basename, delimiter, dirname, join } from "node:path";
 import { promisify } from "node:util";
 
 import { customizationSrcDir } from "./customizations-store";
@@ -192,6 +192,85 @@ async function killSquatters(port: number): Promise<number> {
 }
 
 
+/**
+ * Locate a directory containing a `node` executable for the preview child.
+ *
+ * Turbopack spawns a `node` "pooled process" to evaluate the PostCSS/Tailwind
+ * loader; if `node` isn't on the child's PATH the dev server 500s with
+ * "spawning node pooled process: No such file or directory". The Claudius
+ * standalone parent runs under Electron with a minimal PATH that usually has
+ * no `node`, so we resolve one explicitly and prepend its dir to the child PATH.
+ *
+ * Returns null when no system `node` is found — the packaged/shipped app has no
+ * system node and needs an Electron-as-node shim instead (handled separately);
+ * in a dev checkout one of these locations resolves.
+ */
+function resolveNodeDir(): string | null {
+  // 1. Already running under Node → reuse its dir (the web dev / `next start`
+  //    case where process.execPath IS node).
+  try {
+    if (basename(process.execPath).toLowerCase().startsWith("node")) {
+      return dirname(process.execPath);
+    }
+  } catch {
+    // fall through to PATH scan
+  }
+  // 2. A `node` already resolvable on the inherited PATH.
+  for (const dir of (process.env.PATH ?? "").split(delimiter)) {
+    if (dir && existsSync(join(dir, "node"))) return dir;
+  }
+  // 3. Common install locations (Homebrew arm64/x64, /usr/local, system).
+  for (const dir of ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"]) {
+    if (existsSync(join(dir, "node"))) return dir;
+  }
+  return null;
+}
+
+/**
+ * Build the env for a spawned `next dev` preview.
+ *
+ * The Claudius standalone server (this process) injects env vars that, inherited
+ * verbatim, break a `next dev` child:
+ *  - `__NEXT_PRIVATE_STANDALONE_CONFIG` bakes `turbopack.root` /
+ *    `outputFileTracingRoot` to the *build* dir, so `.next` "navigates out of
+ *    projectPath" → Turbopack panics (`Invalid distDirRoot`) before serving a
+ *    single byte. `__NEXT_PRIVATE_ORIGIN` / `NEXT_DEPLOYMENT_ID` are similar
+ *    standalone-runtime hints.
+ *  - `CLAUDIUS_PACKAGED=1` flips the mirror's copied `next.config.ts` to
+ *    `output:"standalone"`, which is wrong for a dev server. `CLAUDIUS_ELECTRON`
+ *    makes the mirror's server-side `isElectron()` true — but the preview is a
+ *    plain browser tab, so it should behave as the web build.
+ *  - `NODE_ENV=production` silently disables Fast Refresh — the whole point of a
+ *    preview is edit→hot-reload, so force `development`.
+ *  - `TURBOPACK` is dropped (Turbopack is the dev default anyway; a stray value
+ *    only risks clashing with an explicit bundler flag).
+ * Finally prepend a real `node` dir to PATH so Turbopack's PostCSS pool can spawn.
+ */
+function buildPreviewEnv(port: number): NodeJS.ProcessEnv {
+  // A mutable record — `NodeJS.ProcessEnv` types `NODE_ENV` as read-only, which
+  // blocks the reassignment below.
+  const env: Record<string, string | undefined> = { ...process.env };
+  for (const key of Object.keys(env)) {
+    if (key.startsWith("__NEXT_PRIVATE_")) delete env[key];
+  }
+  delete env.TURBOPACK;
+  delete env.CLAUDIUS_PACKAGED;
+  delete env.CLAUDIUS_ELECTRON;
+  delete env.NEXT_DEPLOYMENT_ID;
+  env.NODE_ENV = "development";
+  // Disable Next telemetry banner spam in the preview logs.
+  env.NEXT_TELEMETRY_DISABLED = "1";
+  // Pin the port so a leaked parent PORT can't redirect the child.
+  env.PORT = String(port);
+
+  const nodeDir = resolveNodeDir();
+  if (nodeDir) {
+    env.PATH = env.PATH ? `${nodeDir}${delimiter}${env.PATH}` : nodeDir;
+  }
+  // NODE_ENV is set above, so the cast to ProcessEnv (which requires it) is safe.
+  return env as NodeJS.ProcessEnv;
+}
+
 export type PreviewState = {
   customizationId: string;
   status: Status;
@@ -275,14 +354,9 @@ export async function startPreview(customizationId: string): Promise<PreviewStat
   const nextBin = join(srcDir, "node_modules", ".bin", "next");
   const child = spawn(nextBin, ["dev", "-p", String(port)], {
     cwd: srcDir,
-    env: {
-      ...process.env,
-      // Disable Next telemetry banner spam in the preview logs.
-      NEXT_TELEMETRY_DISABLED: "1",
-      // Avoid the preview process re-using the parent's port if a parent env
-      // var leaked through.
-      PORT: String(port),
-    },
+    // A scrubbed, development env — inheriting the Claudius standalone parent's
+    // env verbatim wedges `next dev` (see buildPreviewEnv).
+    env: buildPreviewEnv(port),
     stdio: ["ignore", "pipe", "pipe"],
   });
 
