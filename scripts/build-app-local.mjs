@@ -36,7 +36,15 @@ import { fileURLToPath } from "node:url";
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 // Fixed, dedicated scratch — NOT claudius-build / -build2 / -build3 (those may
 // have a running app and can't be reset). Warm cache: kept between runs.
-const SCRATCH = join(dirname(REPO_ROOT), `${basename(REPO_ROOT)}-buildcache`);
+//
+// Override with CLAUDIUS_BUILD_SCRATCH when the *currently running* Claudius is
+// itself launched from the default buildcache (e.g. building from inside a
+// packaged Claudius): electron-builder would otherwise overwrite the running
+// app's bundle mid-build and crash it. Pointing at a different scratch keeps
+// the live app untouched.
+const SCRATCH = process.env.CLAUDIUS_BUILD_SCRATCH
+  ? resolve(process.env.CLAUDIUS_BUILD_SCRATCH)
+  : join(dirname(REPO_ROOT), `${basename(REPO_ROOT)}-buildcache`);
 
 const wantDmg = process.argv.includes("--dmg");
 
