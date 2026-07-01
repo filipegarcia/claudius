@@ -3,6 +3,8 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
 
+import { CLAUDIUS_VERSION } from "@/lib/shared/version";
+
 /**
  * Customizations are user-authored modifications to Claudius itself. Each
  * customization owns an editable mirror of the live source tree at
@@ -45,6 +47,16 @@ export type Customization = {
    * the customize detail page.
    */
   descriptionIsManual?: boolean;
+  /**
+   * The Claudius version this customization's fork point (base manifest) is
+   * aligned to — set to `CLAUDIUS_VERSION` at creation and advanced to the
+   * current version whenever a "Sync from base" successfully re-bases the
+   * mirror onto the running app. Comparing it to the live `CLAUDIUS_VERSION`
+   * tells the UI "Claudius updated vX → vY, sync your customization" — the
+   * backbone of carrying customizations across upgrades. Optional: absent on
+   * records created before version tracking (treated as "unknown fork point").
+   */
+  baseVersion?: string;
 };
 
 export type PublishRecord = {
@@ -138,6 +150,9 @@ export async function createCustomizationRecord(input: {
     name: input.name.trim() || "Untitled",
     createdAt: Date.now(),
     updatedAt: Date.now(),
+    // Record the version this customization forks from, so upgrades can offer
+    // to re-base the mirror onto the newer app.
+    baseVersion: CLAUDIUS_VERSION,
   };
   shape.customizations.push(c);
   await writeShape(shape);
@@ -146,7 +161,7 @@ export async function createCustomizationRecord(input: {
 
 export async function updateCustomizationRecord(
   id: string,
-  patch: Partial<Pick<Customization, "name">>,
+  patch: Partial<Pick<Customization, "name" | "baseVersion">>,
 ): Promise<Customization | null> {
   const shape = await readShape();
   const idx = shape.customizations.findIndex((c) => c.id === id);
