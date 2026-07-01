@@ -231,21 +231,80 @@ function sh(cmd: string, args: string[], opts: SpawnOptions = {}): string {
  * The ring buffer is bounded at 4×tailLines so memory stays reasonable
  * even if a runaway test prints megabytes of logs before failing.
  */
-async function shStreamCapture(
+// Exported for unit tests (the timeout/kill path is load-bearing).
+export async function shStreamCapture(
   cmd: string,
   args: string[],
   opts: SpawnOptions = {},
   tailLines = 80,
-): Promise<{ code: number; tail: string }> {
+  // Hard wall-clock cap on the child. 0 = no timeout. When it trips we
+  // kill the child's whole PROCESS GROUP and resolve with exit 124 (the
+  // conventional `timeout(1)` code) so the caller treats it as a normal
+  // step failure. This is the load-bearing guard against a hung gate step
+  // (e.g. Playwright wedged on a webServer that never comes up) running
+  // for hours, holding the pipeline lock, and blocking all recovery until
+  // an external kill bypasses the orchestrator's `finally` — the exact
+  // failure that stranded cc-parity 2.1.197.
+  timeoutMs = 0,
+): Promise<{ code: number; tail: string; timedOut: boolean }> {
   const { spawn: childSpawn } = await import("node:child_process");
   return new Promise((resolve) => {
     const child = childSpawn(cmd, args, {
       cwd: ROOT,
       stdio: ["ignore", "pipe", "pipe"],
+      // `detached: true` puts the child in its own process group (pgid =
+      // child.pid) so we can signal the WHOLE tree — bun → bash → node
+      // playwright → chromium — with `kill(-pid)`. Without this, killing
+      // just the `bun` parent leaves orphan chromium processes that pile
+      // up across firings.
+      detached: true,
       ...opts,
     });
     const lines: string[] = [];
     let pending = "";
+    let settled = false;
+    let killTimer: ReturnType<typeof setTimeout> | null = null;
+    let hardKillTimer: ReturnType<typeof setTimeout> | null = null;
+    let timedOut = false;
+
+    const done = (code: number): void => {
+      if (settled) return;
+      settled = true;
+      if (killTimer) clearTimeout(killTimer);
+      if (hardKillTimer) clearTimeout(hardKillTimer);
+      if (pending) lines.push(pending);
+      resolve({ code, tail: lines.slice(-tailLines).join("\n"), timedOut });
+    };
+
+    // Best-effort signal to the child's process group, falling back to the
+    // bare pid if the group send fails (ESRCH / not a group leader).
+    const signalGroup = (sig: NodeJS.Signals): void => {
+      if (child.pid == null) return;
+      try {
+        process.kill(-child.pid, sig);
+      } catch {
+        try {
+          child.kill(sig);
+        } catch {
+          // already gone
+        }
+      }
+    };
+
+    if (timeoutMs > 0) {
+      killTimer = setTimeout(() => {
+        timedOut = true;
+        const note = `(shStreamCapture: step exceeded ${Math.round(timeoutMs / 1000)}s wall-clock — killing process group)`;
+        lines.push(note);
+        process.stderr.write(note + "\n");
+        signalGroup("SIGTERM");
+        // Escalate to SIGKILL if SIGTERM doesn't land the `close` event
+        // within a short grace window (a truly wedged process may ignore
+        // TERM). `close` clears this via done().
+        hardKillTimer = setTimeout(() => signalGroup("SIGKILL"), 10_000);
+      }, timeoutMs);
+    }
+
     const onChunk =
       (stream: NodeJS.WriteStream) =>
       (chunk: Buffer | string): void => {
@@ -267,17 +326,16 @@ async function shStreamCapture(
     child.stdout?.on("data", onChunk(process.stdout));
     child.stderr?.on("data", onChunk(process.stderr));
     child.on("close", (code) => {
-      // Flush any trailing partial line so the last test failure isn't
-      // silently dropped from the tail.
-      if (pending) lines.push(pending);
-      const tail = lines.slice(-tailLines).join("\n");
-      resolve({ code: code ?? -1, tail });
+      // A timed-out kill surfaces as a null/signal exit; normalize to the
+      // conventional 124 so the caller (and the PR/issue tail) reads it as
+      // "timed out" rather than an ambiguous -1.
+      done(timedOut ? 124 : code ?? -1);
     });
     child.on("error", (err) => {
       // spawn failures (e.g. command not found) get surfaced in-line so
       // the tail explains WHY the step failed even without exec output.
       lines.push(`(shStreamCapture spawn error: ${err.message})`);
-      resolve({ code: -1, tail: lines.slice(-tailLines).join("\n") });
+      done(-1);
     });
   });
 }
@@ -981,6 +1039,64 @@ export function summarizeSdkMessage(msg: unknown): string {
   return `type=${type.padEnd(9)} subtype=${subtype}`;
 }
 
+// After this many CUMULATIVE dead-stream tool errors across the run we
+// abort. cc-parity 2.1.197 burned an entire firing this way: every
+// Write/Edit/Bash-mutation returned "Tool permission request failed:
+// Error: Stream closed", so Claude could read but never land an edit,
+// spinning uselessly toward the turn budget and producing nothing.
+//
+// The count is CUMULATIVE, not consecutive-reset-on-success: a dead WRITE
+// stream leaves READS working (the incident's own words: "reads still
+// work fine"), so the message sequence is Read(ok) → Edit(dead) →
+// Read(ok) → Edit(dead)…. A consecutive counter reset by the successful
+// reads would never trip. A healthy run produces ~0 dead-stream errors;
+// a dead-write run produces dozens — so a cumulative threshold is both
+// safe against false positives and reliable against the real failure.
+// Overridable via env for debugging.
+const DEAD_STREAM_ABORT_THRESHOLD = Math.max(
+  1,
+  Number(process.env.SDK_UPDATE_DEAD_STREAM_ABORT ?? "15"),
+);
+
+/**
+ * Scan one SDK message's tool_result blocks and count how many are the
+ * "dead tool-execution stream" signature vs how many succeeded. A dead
+ * stream means the SDK's tool channel is throwing on every call — the
+ * canonical text is "Tool permission request failed: Error: Stream
+ * closed" — so reads may work but no mutation ever lands.
+ *
+ * Exported for unit tests.
+ */
+export function classifyToolResults(msg: unknown): {
+  deadStream: number;
+  ok: number;
+} {
+  const content = (msg as { message?: { content?: unknown } })?.message?.content;
+  if (!Array.isArray(content)) return { deadStream: 0, ok: 0 };
+  let deadStream = 0;
+  let ok = 0;
+  for (const block of content) {
+    if (!block || typeof block !== "object") continue;
+    const b = block as { type?: string; is_error?: boolean; content?: unknown };
+    if (b.type !== "tool_result") continue;
+    if (!b.is_error) {
+      ok++;
+      continue;
+    }
+    const text = Array.isArray(b.content)
+      ? b.content
+          .map((c) =>
+            c && typeof c === "object" && "text" in c
+              ? String((c as { text?: unknown }).text ?? "")
+              : "",
+          )
+          .join(" ")
+      : String(b.content ?? "");
+    if (/stream closed|tool permission request failed/i.test(text)) deadStream++;
+  }
+  return { deadStream, ok };
+}
+
 /**
  * Hand the prompt to the Agent SDK. We import `query` dynamically so
  * the orchestrator stays importable in environments without the SDK
@@ -1167,6 +1283,10 @@ export async function runClaude(prompt: string, transcriptFile?: string): Promis
   let lastMsgSummary = "(boot)";
   let warnedSlow = false;
   let idleTimedOut = false;
+  // Cumulative count of dead-stream tool errors across the whole run —
+  // deliberately NOT reset by successful reads (a dead write channel keeps
+  // reads alive). Trips DEAD_STREAM_ABORT_THRESHOLD → fast-abort.
+  let deadStreamTotal = 0;
   const idleCheck = setInterval(() => {
     const idle = Date.now() - lastMsgAt;
     if (idle > MAX_IDLE_MS && !idleTimedOut) {
@@ -1200,6 +1320,24 @@ export async function runClaude(prompt: string, transcriptFile?: string): Promis
       appendTranscript(msg);
       log(`claude msg #${turnCount} ${summary}`);
       if (idleTimedOut) break;
+      // Dead tool-stream fast-abort. Cumulative — reads stay alive when
+      // the write channel dies, so we must NOT reset on successful tool
+      // calls or the counter never trips (see DEAD_STREAM_ABORT_THRESHOLD).
+      const tr = classifyToolResults(msg);
+      deadStreamTotal += tr.deadStream;
+      if (deadStreamTotal >= DEAD_STREAM_ABORT_THRESHOLD && !budgetReason) {
+        budgetReason =
+          `dead tool-execution stream — ${deadStreamTotal} "Stream closed" ` +
+          `tool errors this run. The SDK's write channel is broken; aborting ` +
+          `rather than burning the turn budget on a run that cannot land an edit.`;
+        log(`aborting Claude run: ${budgetReason}`);
+        try {
+          await q.interrupt?.();
+        } catch {
+          // best-effort; the loop exits on the next iteration regardless.
+        }
+        break;
+      }
       if (Date.now() > deadline) {
         budgetReason = `wall-clock budget exhausted (${Math.round(MAX_WALL_MS / 60_000)} min)`;
         log(`aborting Claude run: ${budgetReason}`);
@@ -1288,6 +1426,30 @@ export function parseSkipGates(raw: string | undefined): Set<GateStep> {
   return out;
 }
 
+// Per-step wall-clock caps for the gate. A gate step that runs longer
+// than this is treated as a failure (exit 124) rather than being allowed
+// to hang indefinitely — see shStreamCapture's `timeoutMs`. Defaults are
+// generous multiples of a healthy run (a green e2e suite is ~15min) so
+// only a genuinely wedged step trips them. Overridable per-step via env
+// for slow hosts, e.g. GATE_TIMEOUT_E2E_MIN=60.
+function gateTimeoutMs(step: GateStep): number {
+  const envMin = (name: string, fallback: number): number => {
+    const raw = process.env[name];
+    const n = raw ? Number(raw) : NaN;
+    return (Number.isFinite(n) && n > 0 ? n : fallback) * 60_000;
+  };
+  switch (step) {
+    case "lint":
+      return envMin("GATE_TIMEOUT_LINT_MIN", 15);
+    case "unit":
+      return envMin("GATE_TIMEOUT_UNIT_MIN", 15);
+    case "build":
+      return envMin("GATE_TIMEOUT_BUILD_MIN", 20);
+    case "e2e":
+      return envMin("GATE_TIMEOUT_E2E_MIN", 45);
+  }
+}
+
 export async function runGate(skip: Set<GateStep>): Promise<GateResult[]> {
   const steps: Array<{ step: GateStep; cmd: string; args: string[]; env?: Record<string, string> }> = [
     { step: "lint", cmd: "bun", args: ["run", "lint"] },
@@ -1328,13 +1490,19 @@ export async function runGate(skip: Set<GateStep>): Promise<GateResult[]> {
     // body. e2e is the most useful target — Playwright's tail names the
     // failing tests + file:line, which is exactly what an operator needs
     // to debug without ssh'ing onto the cron host.
-    const { code, tail } = await shStreamCapture(
+    const { code, tail, timedOut } = await shStreamCapture(
       s.cmd,
       s.args,
       s.env ? { env: { ...process.env, ...s.env } } : {},
+      80,
+      gateTimeoutMs(s.step),
     );
     out.push({ step: s.step, ok: code === 0, tailOutput: tail });
-    if (code !== 0) {
+    if (timedOut) {
+      log(
+        `gate: ${s.step} TIMED OUT (killed after ${Math.round(gateTimeoutMs(s.step) / 60_000)}min) — treating as a failed gate`,
+      );
+    } else if (code !== 0) {
       log(`gate: ${s.step} FAILED (exit ${code})`);
     }
   }

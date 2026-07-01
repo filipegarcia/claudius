@@ -14,11 +14,13 @@ import {
   buildShippedAnnouncement,
   buildStartAnnouncement,
   buildTestingAnnouncement,
+  classifyToolResults,
   compareUrl,
   extractSection,
   parseSkipGates,
   pickContinuationPr,
   renderPrBody,
+  shStreamCapture,
   type OpenPrSummary,
   sliceChangelog,
   sliceSingleSection,
@@ -1268,5 +1270,87 @@ describe("buildGateFailureBanner", () => {
       { step: "build", ok: false, tailOutput: "" },
     ]);
     expect(out).toContain("no output captured");
+  });
+});
+
+// ── classifyToolResults (dead tool-stream detection) ──────────────────
+describe("classifyToolResults", () => {
+  const wrap = (blocks: unknown[]) => ({ type: "user", message: { content: blocks } });
+
+  test("counts the 'Stream closed' tool error as a dead-stream signal", () => {
+    const msg = wrap([
+      { type: "tool_result", is_error: true, content: "Tool permission request failed: Error: Stream closed" },
+    ]);
+    expect(classifyToolResults(msg)).toEqual({ deadStream: 1, ok: 0 });
+  });
+
+  test("recognizes the signature inside a content-array tool_result", () => {
+    const msg = wrap([
+      { type: "tool_result", is_error: true, content: [{ type: "text", text: "Error: Stream closed" }] },
+    ]);
+    expect(classifyToolResults(msg).deadStream).toBe(1);
+  });
+
+  test("a successful tool_result counts as ok", () => {
+    const msg = wrap([{ type: "tool_result", is_error: false, content: "wrote file" }]);
+    expect(classifyToolResults(msg)).toEqual({ deadStream: 0, ok: 1 });
+  });
+
+  test("interleaved successful reads do NOT mask a dead write stream (cumulative)", () => {
+    // The real incident: reads keep working while every write throws
+    // "Stream closed". The fast-abort must count cumulatively — a
+    // consecutive counter reset by the successful reads would never trip.
+    const seq = [
+      wrap([{ type: "tool_result", is_error: false, content: "read ok" }]),
+      wrap([{ type: "tool_result", is_error: true, content: "Tool permission request failed: Error: Stream closed" }]),
+      wrap([{ type: "tool_result", is_error: false, content: "read ok" }]),
+      wrap([{ type: "tool_result", is_error: true, content: "Error: Stream closed" }]),
+      wrap([{ type: "tool_result", is_error: false, content: "read ok" }]),
+      wrap([{ type: "tool_result", is_error: true, content: "Error: Stream closed" }]),
+    ];
+    const total = seq.reduce((n, m) => n + classifyToolResults(m).deadStream, 0);
+    // Three dead writes despite a successful read between every one — a
+    // reset-on-ok strategy would have zeroed the run to a max of 1.
+    expect(total).toBe(3);
+  });
+
+  test("an unrelated tool error is NOT a dead-stream signal", () => {
+    const msg = wrap([
+      { type: "tool_result", is_error: true, content: "File not found: /nope" },
+    ]);
+    expect(classifyToolResults(msg)).toEqual({ deadStream: 0, ok: 0 });
+  });
+
+  test("non-tool messages and malformed shapes are ignored, not thrown on", () => {
+    expect(classifyToolResults({ type: "assistant", message: { content: [{ type: "text", text: "hi" }] } })).toEqual({ deadStream: 0, ok: 0 });
+    expect(classifyToolResults(null)).toEqual({ deadStream: 0, ok: 0 });
+    expect(classifyToolResults({})).toEqual({ deadStream: 0, ok: 0 });
+    expect(classifyToolResults({ message: { content: "not-an-array" } })).toEqual({ deadStream: 0, ok: 0 });
+  });
+});
+
+// ── shStreamCapture timeout (the load-bearing gate-stall guard) ────────
+describe("shStreamCapture timeout", () => {
+  test("kills a process that exceeds the timeout and reports exit 124", async () => {
+    const started = Date.now();
+    const { code, timedOut, tail } = await shStreamCapture("sleep", ["30"], {}, 80, 250);
+    const elapsed = Date.now() - started;
+    expect(timedOut).toBe(true);
+    expect(code).toBe(124);
+    expect(tail).toContain("exceeded");
+    // Must return promptly after the timeout+grace, not run the full sleep.
+    expect(elapsed).toBeLessThan(15_000);
+  }, 20_000);
+
+  test("a fast command finishes normally with timedOut=false and its real code", async () => {
+    const { code, timedOut } = await shStreamCapture("sh", ["-c", "exit 0"], {}, 80, 10_000);
+    expect(timedOut).toBe(false);
+    expect(code).toBe(0);
+  });
+
+  test("captures a non-zero exit without a timeout", async () => {
+    const { code, timedOut } = await shStreamCapture("sh", ["-c", "exit 3"], {}, 80, 10_000);
+    expect(timedOut).toBe(false);
+    expect(code).toBe(3);
   });
 });

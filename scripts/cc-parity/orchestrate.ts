@@ -47,6 +47,7 @@ import {
 import {
   ALL_GATE_STEPS,
   announceSafe,
+  clampGitHubBody,
   collectChecks,
   collectReviews,
   openPr,
@@ -868,7 +869,13 @@ function fileOrCommentRunIssueSafe(args: {
   prUrl: string | null;
   extras?: string[];
 }): string | null {
-  const { title, body, commentBody } = buildCcRunIssue(args);
+  const { title, body: rawBody, commentBody: rawCommentBody } = buildCcRunIssue(args);
+  // Issues / comments share the PR's 65536-char GraphQL cap (issue #90),
+  // and the captured failure tail is what would blow it — keep the tail,
+  // where the actionable error lives. The imported PR sinks already clamp;
+  // these standalone cc-parity issue sinks are the last unprotected ones.
+  const body = clampGitHubBody(rawBody, "tail");
+  const commentBody = clampGitHubBody(rawCommentBody, "tail");
   try {
     const existing = findOpenIssueByTitle(title);
     if (existing) {
@@ -923,6 +930,98 @@ async function reportProcessIssueSafe(args: {
     .filter(Boolean)
     .join("\n");
   await announceSafe(channelMsg, { pin: false });
+}
+
+/**
+ * Crash recovery: when the orchestrator throws AFTER Claude has already
+ * put work on the branch, push it and open a **draft** PR (needs-human)
+ * so the work is surfaced for a reviewer instead of being stranded —
+ * left uncommitted/local until the next firing's preflight silently
+ * autostashes it into the pile and redoes it from scratch.
+ *
+ * Best-effort and defensive: any dirty tree is snapshotted into a WIP
+ * commit first (so nothing is lost), then we draft only if the branch has
+ * commits ahead of origin/main. Never throws — a failure here just falls
+ * back to the plain crash-issue path. Returns the draft PR url or null.
+ */
+async function draftStrandedWorkSafe(args: {
+  branch: string;
+  prevVersion: string;
+  newVersion: string;
+}): Promise<string | null> {
+  try {
+    // Snapshot any uncommitted work so it rides along in the draft rather
+    // than being autostashed-and-forgotten next firing. `.claudius/` is
+    // gitignored, so transcripts/run-notes never get swept in here.
+    const dirty = sh("git", ["status", "--porcelain"]).trim();
+    if (dirty) {
+      sh("git", ["add", "-A"]);
+      // `--no-verify` is deliberate here (and ONLY here): this is a
+      // best-effort snapshot of a half-finished, already-crashed run whose
+      // whole point is to preserve work for a human on a DRAFT PR. A
+      // pre-commit hook failing on incomplete code must not swallow the
+      // rescue — the normal "never --no-verify" rule is about clean ships,
+      // which this explicitly is not.
+      sh("git", [
+        "commit",
+        "--no-verify",
+        "-m",
+        `wip(cc-parity): crash-recovery snapshot for ${args.newVersion}`,
+      ]);
+      log(`crash recovery: snapshotted dirty tree into a WIP commit`);
+    }
+    const ahead = sh("git", ["log", "origin/main..HEAD", "--oneline"]).trim();
+    if (!ahead) {
+      log(`crash recovery: no commits ahead of origin/main — nothing to draft`);
+      return null;
+    }
+    log(
+      `crash recovery: ${ahead.split("\n").length} un-PR'd commit(s) on ` +
+        `${args.branch} — pushing + opening a draft so the work isn't stranded`,
+    );
+    pushBranch(args.branch);
+    const body = clampGitHubBody(
+      [
+        `> ⚠️ **Draft opened by crash recovery.** The cc-parity run for ` +
+          `\`${args.prevVersion} → ${args.newVersion}\` threw before it could ` +
+          `finish, but Claude had already committed work to this branch. The ` +
+          `orchestrator pushed it and opened this draft so a human can take it ` +
+          `the rest of the way instead of the work being stranded and redone.`,
+        "",
+        "## Commits on this branch",
+        "```",
+        ahead,
+        "```",
+      ].join("\n"),
+      "tail",
+    );
+    const pr = openPr({
+      branch: args.branch,
+      newVersion: args.newVersion,
+      prevVersion: args.prevVersion,
+      body,
+      draft: true,
+    });
+    try {
+      sh("gh", [
+        "pr",
+        "edit",
+        pr.url,
+        "--title",
+        `feat(cc-parity): claude-code ${args.prevVersion} → ${args.newVersion} [crash-recovery draft]`,
+      ]);
+    } catch {
+      // title is cosmetic — leave openPr's default on failure
+    }
+    log(`crash recovery: draft PR ${pr.created ? "opened" : "updated"}: ${pr.url}`);
+    return pr.url;
+  } catch (err) {
+    log(
+      `crash recovery: could not draft stranded work (non-fatal): ` +
+        `${err instanceof Error ? err.message : String(err)}`,
+    );
+    return null;
+  }
 }
 
 // ── Fix an existing PR ─────────────────────────────────────────────────
@@ -1316,9 +1415,34 @@ async function main(): Promise<void> {
     ROOT,
   );
 
+  // Signal-safe inFlight release. The `finally` below clears inFlight on
+  // every catchable exit, but a SIGTERM (launchd tearing us down, an
+  // operator ^C, a host shutdown mid-run) bypasses it and would leave a
+  // dangling inFlight marker — exactly what stranded 2.1.197. Clear it
+  // synchronously on the way out. Kept minimal (a single sync writeState,
+  // no git/gh) per the rule that shutdown handlers must not do async work;
+  // the next firing's lock-held reclaim + reaper own the rest.
+  let signalHandled = false;
+  const onFatalSignal = (sig: NodeJS.Signals): void => {
+    if (signalHandled) return;
+    signalHandled = true;
+    try {
+      patchState({ inFlight: null }, ROOT);
+      log(`received ${sig} — cleared inFlight marker and exiting`);
+    } catch {
+      // best-effort; a dangling marker still self-heals next firing.
+    }
+    process.exit(130);
+  };
+  process.once("SIGTERM", () => onFatalSignal("SIGTERM"));
+  process.once("SIGINT", () => onFatalSignal("SIGINT"));
+
   let prUrl: string | null = null;
   let shipped = false;
   let budgetReason: string | null = null;
+  // Mirror of the in-try branch name so the catch/finalize path can push
+  // and draft any committed-but-un-PR'd work instead of stranding it.
+  let branchForCatch: string | null = null;
 
   const announceProgress = async (
     body: string,
@@ -1330,6 +1454,7 @@ async function main(): Promise<void> {
 
   try {
     const { branch, resumed } = checkoutFreshBranch(newVersion);
+    branchForCatch = branch;
     if (resumed) {
       log(
         `RESUMING prior cc-parity work on ${branch}; run-notes / changelog steps will pick up where they left off`,
@@ -1496,12 +1621,21 @@ async function main(): Promise<void> {
     }
   } catch (err) {
     log(`orchestrator threw: ${err instanceof Error ? err.stack : String(err)}`);
+    // Before filing the crash issue, try to rescue any work Claude already
+    // committed into a draft PR so it isn't stranded on a local branch.
+    if (!prUrl && branchForCatch && !dryRun) {
+      prUrl = await draftStrandedWorkSafe({
+        branch: branchForCatch,
+        prevVersion,
+        newVersion,
+      });
+    }
     await reportProcessIssueSafe({
       kind: "crashed",
       reason: err instanceof Error ? err.message : String(err),
       prevVersion,
       newVersion,
-      branch: null,
+      branch: branchForCatch,
       prUrl,
     }).catch(() => {});
     throw err;
