@@ -19,7 +19,7 @@
 // per-finding listing (still prints the summary + exit code).
 
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -106,13 +106,38 @@ mkdirSync(WORK_DIR, { recursive: true });
 rmSync(DB_DIR, { recursive: true, force: true });
 
 // 1. Build the database. The JS extractor walks the source tree (it skips
-//    node_modules / .git / minified assets by default) and needs no build.
+//    node_modules / .git / minified assets by default), but NOT build outputs —
+//    and `release/` in particular holds a copied .app whose standalone tree is a
+//    full, recursively-nested copy of the source (see `bun run build:app`).
+//    Without excluding it the scan double-counts every finding many times over.
+//    paths-ignore mirrors the generated/output dirs we never want analyzed.
+const CONFIG = join(WORK_DIR, "codeql-config.yml");
+writeFileSync(
+  CONFIG,
+  [
+    "paths-ignore:",
+    "  - release",
+    "  - .next",
+    "  - .next-e2e",
+    "  - .next-buildtest",
+    "  - dist-electron",
+    "  - .codeql",
+    "  - .claude/worktrees",
+    "  - site/vendor",
+    "  - playwright-report",
+    "  - blob-report",
+    "  - test-results",
+    "  - playwright/.cache",
+    "",
+  ].join("\n"),
+);
 run(codeql, [
   "database",
   "create",
   DB_DIR,
   `--language=${LANGUAGE}`,
   `--source-root=${REPO_ROOT}`,
+  `--codescanning-config=${CONFIG}`,
   "--overwrite",
   "--threads=0",
 ]);

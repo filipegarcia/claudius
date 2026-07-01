@@ -33,6 +33,7 @@ import {
 import { splitLeadingSystemReminders, stripGoalReminder } from "@/lib/shared/user-prompt";
 import { parseWorkflowMeta } from "@/lib/shared/workflow-meta";
 import { parseTaskListResult } from "@/lib/shared/parse-tasklist-result";
+import { newTabId } from "@/lib/client/tab-id";
 import {
   dropProvisionalForToolUse,
   findToolUseBlock,
@@ -680,7 +681,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
   // `useTabClaim` so it's generated once and never changes across re-renders.
   // Appended to the SSE URL (`?tabId=<id>`) so the server can assign and
   // track the write-lock holder across all browsers/contexts.
-  const [myTabId] = useState(() => "tab-" + Math.random().toString(36).slice(2, 10));
+  const [myTabId] = useState(newTabId);
   // Track the committed pathname so the URL writer below can suppress
   // its replaceState when the user has navigated away from the chat
   // page. usePathname re-renders this hook on every Next.js commit, so

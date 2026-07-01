@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { newTabId } from "@/lib/client/tab-id";
 
 /**
  * Per-tab session-claim coordination via BroadcastChannel.
@@ -24,10 +25,11 @@ export function useTabClaim(sessionId: string | null): {
   const [readOnly, setReadOnly] = useState(false);
   const channelRef = useRef<BroadcastChannel | null>(null);
   // Per-tab id pinned at first render. `useState` with a lazy initializer
-  // gives us a stable value without triggering the ref-during-render rule
-  // and without calling the impure `Math.random()` in the component body.
-  // The setter is unused — this is "lazy const" not state.
-  const [tabId] = useState(() => "tab-" + Math.random().toString(36).slice(2, 10));
+  // gives us a stable value without triggering the ref-during-render rule.
+  // The setter is unused — this is "lazy const" not state. `newTabId` uses the
+  // CSPRNG (see lib/client/tab-id.ts) so CodeQL's insecure-randomness taint
+  // doesn't fire on this identifier.
+  const [tabId] = useState(newTabId);
   const heldRef = useRef(false);
   const claimTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
