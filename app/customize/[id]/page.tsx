@@ -8,6 +8,7 @@ import { PANE_LABELS_EVENT } from "@/components/overlays/PaneLabelsHost";
 import { SideNav } from "@/components/nav/SideNav";
 import { PublishRevertPanel } from "@/components/customize/PublishRevertPanel";
 import { SyncFromBasePanel } from "@/components/customize/SyncFromBasePanel";
+import { BuildAppPanel } from "@/components/customize/BuildAppPanel";
 import type { Customization } from "@/lib/server/customizations-store";
 import type { PreviewState } from "@/lib/server/preview-server";
 
@@ -375,6 +376,13 @@ export default function CustomizationDetail({ params }: { params: Promise<{ id: 
 
               <Section title="Publish & revert" subtitle="Apply your changes to the running Claudius, or restore an earlier snapshot.">
                 <PublishRevertPanel customizationId={id} onChange={() => void refresh()} />
+              </Section>
+
+              <Section
+                title="Build installable app"
+                subtitle="Bake this customization into a fresh Claudius.app you can install — separate from publishing it into the running app."
+              >
+                <BuildAppPanel customizationId={id} />
               </Section>
 
               <Section

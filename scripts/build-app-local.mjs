@@ -28,7 +28,7 @@
 //     x64 from arm64 (which would silently produce a broken bundle).
 
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { arch as hostArch } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -39,6 +39,22 @@ const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const SCRATCH = join(dirname(REPO_ROOT), `${basename(REPO_ROOT)}-buildcache`);
 
 const wantDmg = process.argv.includes("--dmg");
+
+// Optional customization overlay: bake a customization's edited files into the
+// build so the produced .app ships with the customization applied — WITHOUT
+// publishing (touching the running app's source). The caller (the
+// "Build installable app" action) computes the overlay file list and passes:
+//   --overlay-src <customizationSrcDir>   the mirror to copy files FROM
+//   --overlay-manifest <file>             newline-separated relative paths
+// After the working tree is synced into scratch, each listed file is copied
+// from the mirror over the scratch copy, so the build compiles the customized
+// source.
+function argValue(flag) {
+  const i = process.argv.indexOf(flag);
+  return i !== -1 && i + 1 < process.argv.length ? process.argv[i + 1] : null;
+}
+const overlaySrc = argValue("--overlay-src");
+const overlayManifest = argValue("--overlay-manifest");
 // electron-builder names the mac output dir by arch: mac-arm64 on Apple
 // Silicon, plain mac on Intel.
 const ARCH = hostArch() === "arm64" ? "arm64" : "x64";
@@ -108,6 +124,36 @@ run("rsync", [
   `${REPO_ROOT}/`,
   `${SCRATCH}/`,
 ]);
+
+// 1b. Bake the customization overlay into the scratch copy (optional). Runs
+//     AFTER the rsync so it overwrites the pristine base with the user's edits,
+//     and BEFORE the build so Next compiles the customized source.
+if (overlaySrc && overlayManifest) {
+  step(`Baking customization overlay into ${SCRATCH}`);
+  const srcRoot = resolve(overlaySrc);
+  const rels = readFileSync(overlayManifest, "utf8")
+    .split("\n")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  let applied = 0;
+  for (const rel of rels) {
+    // Path-safety: both endpoints must stay inside their roots (no traversal).
+    const from = resolve(srcRoot, rel);
+    const to = resolve(SCRATCH, rel);
+    if (!from.startsWith(srcRoot + "/") || !to.startsWith(SCRATCH + "/")) {
+      console.log(`  ! skipped out-of-tree path: ${rel}`);
+      continue;
+    }
+    try {
+      mkdirSync(dirname(to), { recursive: true });
+      copyFileSync(from, to);
+      applied++;
+    } catch (err) {
+      console.log(`  ! failed to apply ${rel}: ${err?.message ?? err}`);
+    }
+  }
+  console.log(`  applied ${applied}/${rels.length} overlay file(s).`);
+}
 
 // 2. Re-apply the host-arch swap (rsync just restored the committed yaml). We
 //    only touch the mac target — win/linux already pin [x64].
