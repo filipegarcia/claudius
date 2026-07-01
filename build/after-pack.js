@@ -27,7 +27,36 @@
 
 const { execFileSync } = require("node:child_process");
 const fs = require("node:fs");
+const os = require("node:os");
 const path = require("node:path");
+
+// electron-builder's Arch enum → Node's dist arch token.
+const ARCH_TOKEN = { 1: "x64", 3: "arm64" };
+
+/**
+ * Bundle a RELOCATABLE `node` into `runtimeDir/node`. The build host's node is
+ * often Homebrew's, which is a non-relocatable stub linking `@rpath/libnode.*`
+ * — copied out of its Cellar it fails with "Library not loaded". The official
+ * nodejs.org binary is a single self-contained executable, so fetch that for
+ * the target arch (cached in tmp). Matches the build host's node version.
+ */
+function bundleRelocatableNode(runtimeDir, targetArch) {
+  const ver = process.version; // e.g. "v22.22.1"
+  const arch = ARCH_TOKEN[targetArch] ?? (os.arch() === "x64" ? "x64" : "arm64");
+  const base = `node-${ver}-darwin-${arch}`;
+  const cache = path.join(os.tmpdir(), "claudius-preview-node");
+  fs.mkdirSync(cache, { recursive: true });
+  const tgz = path.join(cache, `${base}.tar.gz`);
+  if (!fs.existsSync(tgz)) {
+    execFileSync("curl", ["-fsSL", "-o", tgz, `https://nodejs.org/dist/${ver}/${base}.tar.gz`], {
+      stdio: "inherit",
+    });
+  }
+  execFileSync("tar", ["-xzf", tgz, "-C", cache], { stdio: "inherit" });
+  const extracted = path.join(cache, base, "bin", "node");
+  fs.copyFileSync(extracted, path.join(runtimeDir, "node"));
+  fs.chmodSync(path.join(runtimeDir, "node"), 0o755);
+}
 
 /** @param {import("electron-builder").AfterPackContext} context */
 exports.default = async function afterPack(context) {
@@ -114,10 +143,9 @@ exec "$HERE/${exe}.bin" "$@"
     );
     try {
       fs.mkdirSync(runtimeDir, { recursive: true });
-      // `node`: the executable running this hook (electron-builder's node) is a
-      // real, standalone, target-arch node binary.
-      fs.copyFileSync(process.execPath, path.join(runtimeDir, "node"));
-      fs.chmodSync(path.join(runtimeDir, "node"), 0o755);
+      // Fetch the official, RELOCATABLE node for the target arch (the build
+      // host's node may be a non-relocatable Homebrew stub).
+      bundleRelocatableNode(runtimeDir, context.arch);
       // eslint-disable-next-line no-console
       console.log("[after-pack] bundled node → Resources/preview-runtime/node");
     } catch (e) {
