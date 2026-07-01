@@ -10,6 +10,12 @@ export const runtime = "nodejs";
  */
 type ModelInfo = {
   value: string;
+  /**
+   * Canonical wire model id this row's `value` resolves to (e.g. 'sonnet' →
+   * 'claude-sonnet-5'). Added in SDK 0.3.197 (`sdk.d.ts`); type-only here —
+   * `ALWAYS_SHOWN_ALIASES` rows don't need it, see run-notes for 0.3.197.
+   */
+  resolvedModel?: string;
   displayName: string;
   description: string;
   supportsEffort?: boolean;

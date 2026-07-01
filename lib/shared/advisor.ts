@@ -1,6 +1,6 @@
 /**
  * Single source of truth for the "Advisor" feature surface — the fixed
- * three-option choice (Opus 4.8 / Sonnet 4.6 / none) and the verbatim copy
+ * three-option choice (Opus 4.8 / Sonnet 5 / none) and the verbatim copy
  * Claude Code's CLI shows in its advisor picker. Imported by both the
  * SessionCard's ModelPicker (per-session pick) and the global Settings page
  * (persisted default in settings.json), so the two surfaces can't drift.
@@ -10,15 +10,21 @@
  * SDK uses for its server-side advisor escalation. The runtime accepts any
  * model id, but the Claude Code product surface intentionally narrows the
  * UI to these three values (the picker the user is mirroring shows exactly
- * Opus 4.8, Sonnet 4.6, or "No advisor"). We don't derive this list from
+ * Opus 4.8, Sonnet 5, or "No advisor"). We don't derive this list from
  * `supportedModels()` — it's a fixed product choice, not an enumeration of
  * everything the SDK could route to.
+ *
+ * SDK 0.3.197 bump: the SDK's own `Options.model` / prompt-hook / agent-hook
+ * doc examples replaced every `claude-sonnet-4-6` with `claude-sonnet-5`
+ * (`sdk.d.ts`), and the `xhigh` effort-tier doc gained "Sonnet 5" alongside
+ * Fable 5 / Opus 4.7+. That's the SDK's canonical "current Sonnet" id
+ * moving forward, so the product-blessed advisor value tracks it here.
  */
 
 /** Model id corresponding to "Opus 4.8" in the picker. */
 export const ADVISOR_OPUS_VALUE = "claude-opus-4-8";
-/** Model id corresponding to "Sonnet 4.6" in the picker. */
-export const ADVISOR_SONNET_VALUE = "claude-sonnet-4-6";
+/** Model id corresponding to "Sonnet 5" in the picker. */
+export const ADVISOR_SONNET_VALUE = "claude-sonnet-5";
 
 export type AdvisorChoice = typeof ADVISOR_OPUS_VALUE | typeof ADVISOR_SONNET_VALUE | null;
 
@@ -34,7 +40,7 @@ export type AdvisorOption = {
 /**
  * Order matches the Claude Code CLI exactly:
  *   1. Opus 4.8 (recommended)
- *   2. Sonnet 4.6
+ *   2. Sonnet 5
  *   3. No advisor
  *
  * Keep this ordering stable — both the SessionCard picker and the Settings
@@ -42,7 +48,7 @@ export type AdvisorOption = {
  */
 export const ADVISOR_OPTIONS: AdvisorOption[] = [
   { value: ADVISOR_OPUS_VALUE, label: "Opus 4.8", recommended: true },
-  { value: ADVISOR_SONNET_VALUE, label: "Sonnet 4.6" },
+  { value: ADVISOR_SONNET_VALUE, label: "Sonnet 5" },
   { value: null, label: "No advisor" },
 ];
 

@@ -33,6 +33,13 @@ export const runtime = "nodejs";
 /** Mirror of the SDK's `ModelInfo` shape — see ModelPicker.tsx. */
 type ModelInfo = {
   value: string;
+  /**
+   * Canonical wire model id this row's `value` resolves to (e.g. 'sonnet' →
+   * 'claude-sonnet-5'). Added in SDK 0.3.197 (`sdk.d.ts`); type-only here —
+   * `STATIC_FALLBACK` rows use bare aliases as `value` and don't need it to
+   * disambiguate anything yet, see run-notes for 0.3.197.
+   */
+  resolvedModel?: string;
   displayName: string;
   description: string;
   supportsEffort?: boolean;

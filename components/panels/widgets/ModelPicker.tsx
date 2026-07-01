@@ -31,6 +31,13 @@ import {
  */
 type ModelInfo = {
   value: string;
+  /**
+   * Canonical wire model id this row's `value` resolves to (e.g. 'sonnet' →
+   * 'claude-sonnet-5'). Added in SDK 0.3.197 (`sdk.d.ts`); type-only here —
+   * `isCurrent` highlighting below already does exact `value` matching, see
+   * run-notes for 0.3.197.
+   */
+  resolvedModel?: string;
   displayName: string;
   description: string;
   supportsEffort?: boolean;
@@ -677,7 +684,7 @@ export function ModelPicker({
       {/* Advisor (experimental). The SDK's server-side escalation model —
           when the main model needs stronger judgment, it pings the advisor
           and resumes. Rendered as three fixed product-blessed options
-          (Opus 4.8 / Sonnet 4.6 / No advisor) regardless of the active
+          (Opus 4.8 / Sonnet 5 / No advisor) regardless of the active
           model's `supportsEffort` etc., because the advisor is a separate
           model, not a setting of the main one. Hidden when the surface
           didn't pass `onPickAdvisor` (e.g. workspace-defaults form).

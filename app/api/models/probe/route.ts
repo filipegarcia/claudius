@@ -58,6 +58,12 @@ const PROBE_CANDIDATES: ProbeCandidate[] = [
     description: "Pinned to Opus 4.6.",
   },
   {
+    value: "claude-sonnet-5",
+    displayName: "Sonnet 5",
+    description:
+      "Pinned to Sonnet 5. Balanced speed and quality; supports adaptive thinking + xhigh effort.",
+  },
+  {
     value: "claude-sonnet-4-6",
     displayName: "Sonnet 4.6",
     description:
