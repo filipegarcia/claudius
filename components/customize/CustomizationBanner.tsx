@@ -7,6 +7,7 @@ import { WandSparkles, ExternalLink, Keyboard, Eye, Rocket, Loader2, RotateCw } 
 import type { Customization } from "@/lib/server/customizations-store";
 import type { PreviewState } from "@/lib/server/preview-server";
 import { PANE_LABELS_EVENT } from "@/components/overlays/PaneLabelsHost";
+import { useIsElectron } from "@/lib/client/useElectron";
 
 const COOKIE = "claudius.customization";
 
@@ -39,6 +40,10 @@ export function CustomizationBanner() {
   const [preview, setPreview] = useState<PreviewState | null>(null);
   const [openingPreview, setOpeningPreview] = useState(false);
   const [restartingPreview, setRestartingPreview] = useState(false);
+  // In the packaged Electron app the preview is a separate local dev server;
+  // `window.open` routes it to the user's default browser (not an in-app
+  // window yet). Surface that so the click isn't a surprise.
+  const isElectron = useIsElectron();
 
   useEffect(() => {
     let cancelled = false;
@@ -225,6 +230,14 @@ export function CustomizationBanner() {
           )}
           {previewRunning ? `Open preview · :${preview?.port}` : "Open preview"}
         </button>
+        {isElectron && (
+          <span
+            title="The preview runs as a local dev server and opens in your default browser."
+            className="hidden shrink-0 items-center gap-1 text-[10px] text-[var(--muted)] lg:flex"
+          >
+            <ExternalLink className="h-2.5 w-2.5" /> opens in browser
+          </span>
+        )}
         {previewRunning && (
           <button
             onClick={() => void onRestartPreview()}

@@ -27,7 +27,36 @@
 
 const { execFileSync } = require("node:child_process");
 const fs = require("node:fs");
+const os = require("node:os");
 const path = require("node:path");
+
+// electron-builder's Arch enum → Node's dist arch token.
+const ARCH_TOKEN = { 1: "x64", 3: "arm64" };
+
+/**
+ * Bundle a RELOCATABLE `node` into `runtimeDir/node`. The build host's node is
+ * often Homebrew's, which is a non-relocatable stub linking `@rpath/libnode.*`
+ * — copied out of its Cellar it fails with "Library not loaded". The official
+ * nodejs.org binary is a single self-contained executable, so fetch that for
+ * the target arch (cached in tmp). Matches the build host's node version.
+ */
+function bundleRelocatableNode(runtimeDir, targetArch) {
+  const ver = process.version; // e.g. "v22.22.1"
+  const arch = ARCH_TOKEN[targetArch] ?? (os.arch() === "x64" ? "x64" : "arm64");
+  const base = `node-${ver}-darwin-${arch}`;
+  const cache = path.join(os.tmpdir(), "claudius-preview-node");
+  fs.mkdirSync(cache, { recursive: true });
+  const tgz = path.join(cache, `${base}.tar.gz`);
+  if (!fs.existsSync(tgz)) {
+    execFileSync("curl", ["-fsSL", "-o", tgz, `https://nodejs.org/dist/${ver}/${base}.tar.gz`], {
+      stdio: "inherit",
+    });
+  }
+  execFileSync("tar", ["-xzf", tgz, "-C", cache], { stdio: "inherit" });
+  const extracted = path.join(cache, base, "bin", "node");
+  fs.copyFileSync(extracted, path.join(runtimeDir, "node"));
+  fs.chmodSync(path.join(runtimeDir, "node"), 0o755);
+}
 
 /** @param {import("electron-builder").AfterPackContext} context */
 exports.default = async function afterPack(context) {
@@ -86,6 +115,65 @@ exec "$HERE/${exe}.bin" "$@"
 
   // macOS only — Windows/Linux notification identity isn't gated this way.
   if (electronPlatformName !== "darwin") return;
+
+  // ── Bundle a real `node` + `bun` for the customization preview runtime ──
+  //
+  // The customization live-preview spawns `next dev`; Tailwind v4's native
+  // @tailwindcss/oxide SIGTRAPs under Electron-as-node, so the preview MUST run
+  // under a REAL node (proven in the de-risk spike). We also ship `bun` to
+  // complete the mirror's stripped dev deps on first preview (`bun install`).
+  // Shipped at Contents/Resources/preview-runtime/{node,bun}; lib/server/
+  // preview-server.ts resolves them via process.resourcesPath.
+  //
+  // Copied for darwin regardless of signing path (before the adhoc/real signing
+  // below) so both certless and notarized builds carry them. The binaries come
+  // from the BUILD HOST, which matches the target arch because release.yml runs
+  // one native job per arch (mac-arm64 / mac-x64) — a cross-arch copy would ship
+  // a broken node. `--deep` adhoc-signing (below) covers them for local builds;
+  // for notarized builds electron-builder's signing pass (after afterPack) signs
+  // nested Mach-O, and the app entitlements already allow JIT for V8.
+  {
+    const appName = packager.appInfo.productFilename;
+    const runtimeDir = path.join(
+      appOutDir,
+      `${appName}.app`,
+      "Contents",
+      "Resources",
+      "preview-runtime",
+    );
+    try {
+      fs.mkdirSync(runtimeDir, { recursive: true });
+      // Fetch the official, RELOCATABLE node for the target arch (the build
+      // host's node may be a non-relocatable Homebrew stub).
+      bundleRelocatableNode(runtimeDir, context.arch);
+      // eslint-disable-next-line no-console
+      console.log("[after-pack] bundled node → Resources/preview-runtime/node");
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.warn(`[after-pack] could not bundle node: ${e && e.message}`);
+    }
+    const bunCandidates = [
+      path.join(process.env.HOME || "", ".bun", "bin", "bun"),
+      ...(process.env.PATH || "").split(":").map((d) => (d ? path.join(d, "bun") : "")),
+    ].filter(Boolean);
+    const bunBin = bunCandidates.find((p) => fs.existsSync(p));
+    if (bunBin) {
+      try {
+        fs.copyFileSync(bunBin, path.join(runtimeDir, "bun"));
+        fs.chmodSync(path.join(runtimeDir, "bun"), 0o755);
+        // eslint-disable-next-line no-console
+        console.log("[after-pack] bundled bun → Resources/preview-runtime/bun");
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.warn(`[after-pack] could not bundle bun: ${e && e.message}`);
+      }
+    } else {
+      // eslint-disable-next-line no-console
+      console.warn(
+        "[after-pack] no bun binary found on the build host — packaged first-preview `bun install` will need a user-installed bun",
+      );
+    }
+  }
 
   // Skip when a real signing identity will be applied by electron-builder.
   // `electron:app` sets CSC_IDENTITY_AUTO_DISCOVERY=false; signed/notarized

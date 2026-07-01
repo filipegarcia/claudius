@@ -1,7 +1,7 @@
-import { execFile, spawn, type ChildProcess } from "node:child_process";
-import { promises as fs } from "node:fs";
+import { execFile, spawn, spawnSync, type ChildProcess } from "node:child_process";
+import { existsSync, promises as fs } from "node:fs";
 import { createServer } from "node:net";
-import { join } from "node:path";
+import { basename, delimiter, dirname, join } from "node:path";
 import { promisify } from "node:util";
 
 import { customizationSrcDir } from "./customizations-store";
@@ -192,6 +192,163 @@ async function killSquatters(port: number): Promise<number> {
 }
 
 
+/**
+ * Locate a directory containing a `node` executable for the preview child.
+ *
+ * Turbopack spawns a `node` "pooled process" to evaluate the PostCSS/Tailwind
+ * loader; if `node` isn't on the child's PATH the dev server 500s with
+ * "spawning node pooled process: No such file or directory". The Claudius
+ * standalone parent runs under Electron with a minimal PATH that usually has
+ * no `node`, so we resolve one explicitly and prepend its dir to the child PATH.
+ *
+ * Returns null when no system `node` is found — the packaged/shipped app has no
+ * system node and needs an Electron-as-node shim instead (handled separately);
+ * in a dev checkout one of these locations resolves.
+ */
+function resolveNodeDir(): string | null {
+  // 0. The node we ship for exactly this purpose (packaged app). Turbopack's
+  //    PostCSS worker crashes under Electron-as-node (@tailwindcss/oxide
+  //    SIGTRAPs on Electron's V8), so the packaged app bundles a REAL node at
+  //    <Resources>/preview-runtime/node — prefer it above everything.
+  const bundled = bundledRuntimeDir();
+  if (bundled && existsSync(join(bundled, "node"))) return bundled;
+  // 1. Already running under Node → reuse its dir (the web dev / `next start`
+  //    case where process.execPath IS node).
+  try {
+    if (basename(process.execPath).toLowerCase().startsWith("node")) {
+      return dirname(process.execPath);
+    }
+  } catch {
+    // fall through to PATH scan
+  }
+  // 2. A `node` already resolvable on the inherited PATH.
+  for (const dir of (process.env.PATH ?? "").split(delimiter)) {
+    if (dir && existsSync(join(dir, "node"))) return dir;
+  }
+  // 3. Common install locations (Homebrew arm64/x64, /usr/local, system).
+  for (const dir of ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"]) {
+    if (existsSync(join(dir, "node"))) return dir;
+  }
+  return null;
+}
+
+/**
+ * The dir holding the binaries bundled specifically for the preview runtime
+ * (`node`, `bun`), shipped at `<app>/Contents/Resources/preview-runtime` via
+ * electron-builder extraResources. `process.resourcesPath` is only set in a
+ * packaged Electron app; in dev this returns null and callers fall back to a
+ * system runtime.
+ */
+function bundledRuntimeDir(): string | null {
+  const resources = (process as NodeJS.Process & { resourcesPath?: string }).resourcesPath;
+  if (!resources) return null;
+  return join(resources, "preview-runtime");
+}
+
+/**
+ * Resolve a `bun` binary to install the mirror's dev dependencies on first
+ * preview: the packaged mirror hardlinks the app's SLIM standalone
+ * node_modules, which lacks the dev toolchain (`next dev` CLI, the Tailwind
+ * v4 PostCSS chain, client-only deps). Prefer the bundled bun, then the user's.
+ */
+function resolveBun(): string | null {
+  const bundled = bundledRuntimeDir();
+  if (bundled && existsSync(join(bundled, "bun"))) return join(bundled, "bun");
+  const home = process.env.HOME ?? "";
+  const homeBun = home ? join(home, ".bun", "bin", "bun") : "";
+  if (homeBun && existsSync(homeBun)) return homeBun;
+  for (const dir of (process.env.PATH ?? "").split(delimiter)) {
+    if (dir && existsSync(join(dir, "bun"))) return join(dir, "bun");
+  }
+  return null;
+}
+
+/**
+ * True when the mirror already has the dev toolchain needed to run `next dev`
+ * (the dev CLI + the Tailwind v4 PostCSS plugin). In a dev checkout the mirror
+ * hardlinks a complete node_modules, so this is true and no install runs. In a
+ * packaged app the standalone node_modules is stripped, so this is false on the
+ * first preview and we `bun install` to complete it.
+ */
+function mirrorDepsComplete(srcDir: string): boolean {
+  return (
+    existsSync(join(srcDir, "node_modules", "next", "dist", "cli", "next-dev.js")) &&
+    existsSync(join(srcDir, "node_modules", "@tailwindcss", "postcss"))
+  );
+}
+
+/**
+ * Ensure the mirror has a full dev dependency tree. No-op when already complete
+ * (every dev-checkout preview, and every preview after the first in a packaged
+ * app). On first packaged preview, runs `bun install` in the mirror — slow
+ * (~30-90s, needs network once) but leverages bun's global cache thereafter.
+ * Returns a status line for the caller to surface, or null when nothing ran.
+ */
+function ensureMirrorDeps(srcDir: string): string | null {
+  if (mirrorDepsComplete(srcDir)) return null;
+  const bun = resolveBun();
+  if (!bun) {
+    return "cannot complete preview dependencies: no `bun` found (install bun or run from source)";
+  }
+  const res = spawnSync(bun, ["install"], {
+    cwd: srcDir,
+    stdio: ["ignore", "pipe", "pipe"],
+    // Scrub the same leaked parent env that wedges the dev server.
+    env: buildPreviewEnv(0),
+    timeout: 5 * 60_000,
+  });
+  if (res.status !== 0) {
+    const tail = `${res.stdout ?? ""}${res.stderr ?? ""}`.split(/\r?\n/).filter(Boolean).slice(-3).join(" | ");
+    return `bun install failed (code ${res.status}): ${tail}`;
+  }
+  return "installed preview dependencies";
+}
+
+/**
+ * Build the env for a spawned `next dev` preview.
+ *
+ * The Claudius standalone server (this process) injects env vars that, inherited
+ * verbatim, break a `next dev` child:
+ *  - `__NEXT_PRIVATE_STANDALONE_CONFIG` bakes `turbopack.root` /
+ *    `outputFileTracingRoot` to the *build* dir, so `.next` "navigates out of
+ *    projectPath" → Turbopack panics (`Invalid distDirRoot`) before serving a
+ *    single byte. `__NEXT_PRIVATE_ORIGIN` / `NEXT_DEPLOYMENT_ID` are similar
+ *    standalone-runtime hints.
+ *  - `CLAUDIUS_PACKAGED=1` flips the mirror's copied `next.config.ts` to
+ *    `output:"standalone"`, which is wrong for a dev server. `CLAUDIUS_ELECTRON`
+ *    makes the mirror's server-side `isElectron()` true — but the preview is a
+ *    plain browser tab, so it should behave as the web build.
+ *  - `NODE_ENV=production` silently disables Fast Refresh — the whole point of a
+ *    preview is edit→hot-reload, so force `development`.
+ *  - `TURBOPACK` is dropped (Turbopack is the dev default anyway; a stray value
+ *    only risks clashing with an explicit bundler flag).
+ * Finally prepend a real `node` dir to PATH so Turbopack's PostCSS pool can spawn.
+ */
+function buildPreviewEnv(port: number): NodeJS.ProcessEnv {
+  // A mutable record — `NodeJS.ProcessEnv` types `NODE_ENV` as read-only, which
+  // blocks the reassignment below.
+  const env: Record<string, string | undefined> = { ...process.env };
+  for (const key of Object.keys(env)) {
+    if (key.startsWith("__NEXT_PRIVATE_")) delete env[key];
+  }
+  delete env.TURBOPACK;
+  delete env.CLAUDIUS_PACKAGED;
+  delete env.CLAUDIUS_ELECTRON;
+  delete env.NEXT_DEPLOYMENT_ID;
+  env.NODE_ENV = "development";
+  // Disable Next telemetry banner spam in the preview logs.
+  env.NEXT_TELEMETRY_DISABLED = "1";
+  // Pin the port so a leaked parent PORT can't redirect the child.
+  env.PORT = String(port);
+
+  const nodeDir = resolveNodeDir();
+  if (nodeDir) {
+    env.PATH = env.PATH ? `${nodeDir}${delimiter}${env.PATH}` : nodeDir;
+  }
+  // NODE_ENV is set above, so the cast to ProcessEnv (which requires it) is safe.
+  return env as NodeJS.ProcessEnv;
+}
+
 export type PreviewState = {
   customizationId: string;
   status: Status;
@@ -256,6 +413,12 @@ export async function startPreview(customizationId: string): Promise<PreviewStat
   // function detects + replaces it.
   await ensureNodeModulesMirror(srcDir);
 
+  // Complete the mirror's dev dependency tree if needed (packaged first
+  // preview): the shipped standalone node_modules is stripped of the dev
+  // toolchain, so `bun install` runs once. No-op in a dev checkout. Captured
+  // here and surfaced in the entry logs once it exists.
+  const depMsg = ensureMirrorDeps(srcDir);
+
   // If the previous Next dev process left a grandchild (worker) bound to its
   // port, our port-free probe correctly skips it now that we bind on `::` —
   // but if THIS customization's previous port still has a squatter (e.g.
@@ -275,14 +438,9 @@ export async function startPreview(customizationId: string): Promise<PreviewStat
   const nextBin = join(srcDir, "node_modules", ".bin", "next");
   const child = spawn(nextBin, ["dev", "-p", String(port)], {
     cwd: srcDir,
-    env: {
-      ...process.env,
-      // Disable Next telemetry banner spam in the preview logs.
-      NEXT_TELEMETRY_DISABLED: "1",
-      // Avoid the preview process re-using the parent's port if a parent env
-      // var leaked through.
-      PORT: String(port),
-    },
+    // A scrubbed, development env — inheriting the Claudius standalone parent's
+    // env verbatim wedges `next dev` (see buildPreviewEnv).
+    env: buildPreviewEnv(port),
     stdio: ["ignore", "pipe", "pipe"],
   });
 
@@ -297,6 +455,7 @@ export async function startPreview(customizationId: string): Promise<PreviewStat
     exitSignal: null,
   };
   entries.set(customizationId, entry);
+  if (depMsg) pushLog(entry, `[deps] ${depMsg}`);
 
   child.stdout?.on("data", (buf: Buffer) => pushLog(entry, buf.toString("utf8")));
   child.stderr?.on("data", (buf: Buffer) => pushLog(entry, buf.toString("utf8")));

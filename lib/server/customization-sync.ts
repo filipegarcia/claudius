@@ -1,10 +1,15 @@
 import { promises as fs } from "node:fs";
 import { dirname, join } from "node:path";
 
-import { customizationSrcDir } from "./customizations-store";
+import {
+  customizationSrcDir,
+  getCustomization,
+  updateCustomizationRecord,
+} from "./customizations-store";
 import { hashFileOrNull, listSourceFiles } from "./customization-hash";
 import { ensureManifest, writeManifest, type BaseManifest } from "./customization-manifest";
 import { getLiveSourceDir } from "./runtime-dir";
+import { CLAUDIUS_VERSION } from "@/lib/shared/version";
 
 /**
  * Per-file sync verdict:
@@ -44,6 +49,12 @@ export type SyncEntry = {
 
 export type SyncStatus = {
   manifestCreatedAt: number;
+  /** The Claudius version the fork point is aligned to (from the record). */
+  baseVersion?: string;
+  /** The running Claudius version, for "vX → vY" upgrade prompts. */
+  currentVersion: string;
+  /** True when baseVersion is set and differs from currentVersion. */
+  outdated: boolean;
   totals: Record<SyncVerdict, number>;
   entries: SyncEntry[];
 };
@@ -54,6 +65,8 @@ export async function computeSyncStatus(customizationId: string): Promise<SyncSt
   const live = getLiveSourceDir();
   const src = customizationSrcDir(customizationId);
   const manifest = await ensureManifest(customizationId, src);
+  const record = await getCustomization(customizationId);
+  const baseVersion = record?.baseVersion;
 
   // Union of paths from manifest, live, and custom — covers added, deleted,
   // and persistent files alike.
@@ -89,7 +102,14 @@ export async function computeSyncStatus(customizationId: string): Promise<SyncSt
       "deleted-user": 0,
     },
   );
-  return { manifestCreatedAt: manifest.createdAt, totals, entries };
+  return {
+    manifestCreatedAt: manifest.createdAt,
+    baseVersion,
+    currentVersion: CLAUDIUS_VERSION,
+    outdated: baseVersion != null && baseVersion !== CLAUDIUS_VERSION,
+    totals,
+    entries,
+  };
 }
 
 function classify(h: {
@@ -187,6 +207,13 @@ export async function applySafeSync(customizationId: string): Promise<SyncResult
   // so future syncs still recognise them correctly.
   const next = await rebuildManifestPreservingUserState(customizationId, status);
   await writeManifest(customizationId, next);
+
+  // The mirror is now re-based onto the running app, so advance the fork-point
+  // version. Even a no-op sync (0 safe changes) legitimately re-bases when the
+  // only differences are the user's own edits — the base itself is current.
+  await updateCustomizationRecord(customizationId, { baseVersion: CLAUDIUS_VERSION }).catch(() => {
+    // best-effort: version label is cosmetic; a write failure must not fail the sync
+  });
 
   return result;
 }

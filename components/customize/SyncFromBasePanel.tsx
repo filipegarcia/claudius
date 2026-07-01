@@ -24,6 +24,9 @@ type Verdict =
 
 type Status = {
   manifestCreatedAt: number;
+  baseVersion?: string;
+  currentVersion: string;
+  outdated: boolean;
   totals: Record<Verdict, number>;
   entries: { path: string; verdict: Verdict }[];
 };
@@ -228,6 +231,19 @@ export function SyncFromBasePanel({ customizationId }: { customizationId: string
         <div className="mb-3 rounded-md border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200">
           Synced {lastResult.applied} updated, {lastResult.added} added, {lastResult.deleted} removed.
           {lastResult.skippedConflicts > 0 ? ` ${lastResult.skippedConflicts} skipped (conflicts).` : ""}
+        </div>
+      )}
+
+      {status.outdated && (
+        <div className="mb-3 flex items-start gap-2 rounded-md border border-sky-500/40 bg-sky-500/10 px-3 py-2 text-xs text-sky-200">
+          <GitMerge className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-300" />
+          <span>
+            Claudius updated{" "}
+            <span className="font-medium text-[var(--foreground)]">v{status.baseVersion}</span> →{" "}
+            <span className="font-medium text-[var(--foreground)]">v{status.currentVersion}</span> since
+            this customization&apos;s fork point. Sync the safe updates below to carry your changes
+            onto the new version; any conflicts are flagged for a merge.
+          </span>
         </div>
       )}
 
