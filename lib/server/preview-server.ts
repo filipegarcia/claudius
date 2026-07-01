@@ -1,5 +1,5 @@
 import { execFile, spawn, spawnSync, type ChildProcess } from "node:child_process";
-import { existsSync, promises as fs } from "node:fs";
+import { existsSync, rmSync, promises as fs } from "node:fs";
 import { createServer } from "node:net";
 import { basename, delimiter, dirname, join } from "node:path";
 import { promisify } from "node:util";
@@ -289,6 +289,21 @@ function ensureMirrorDeps(srcDir: string): string | null {
   const bun = resolveBun();
   if (!bun) {
     return "cannot complete preview dependencies: no `bun` found (install bun or run from source)";
+  }
+  // The packaged standalone ships some deps PRESENT-BUT-STRIPPED — `next`
+  // without dist/cli+dist/bin, react/react-dom without their dev builds. A plain
+  // `bun install` treats a present package as satisfied and won't repair it, so
+  // `next dev` would still be missing its CLI. Remove the known-stripped
+  // packages (and the .bin dir so `.bin/next` is recreated) first; the install
+  // then refetches complete copies from the lockfile. (Verified: without this
+  // the mirror lacks node_modules/next/dist/cli/next-dev.js after install.)
+  const nm = join(srcDir, "node_modules");
+  for (const p of ["next", "react", "react-dom", "scheduler", ".bin"]) {
+    try {
+      rmSync(join(nm, p), { recursive: true, force: true });
+    } catch {
+      // best-effort — a missing entry is fine
+    }
   }
   const res = spawnSync(bun, ["install"], {
     cwd: srcDir,
