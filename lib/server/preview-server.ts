@@ -1,4 +1,4 @@
-import { execFile, spawn, type ChildProcess } from "node:child_process";
+import { execFile, spawn, spawnSync, type ChildProcess } from "node:child_process";
 import { existsSync, promises as fs } from "node:fs";
 import { createServer } from "node:net";
 import { basename, delimiter, dirname, join } from "node:path";
@@ -206,6 +206,12 @@ async function killSquatters(port: number): Promise<number> {
  * in a dev checkout one of these locations resolves.
  */
 function resolveNodeDir(): string | null {
+  // 0. The node we ship for exactly this purpose (packaged app). Turbopack's
+  //    PostCSS worker crashes under Electron-as-node (@tailwindcss/oxide
+  //    SIGTRAPs on Electron's V8), so the packaged app bundles a REAL node at
+  //    <Resources>/preview-runtime/node — prefer it above everything.
+  const bundled = bundledRuntimeDir();
+  if (bundled && existsSync(join(bundled, "node"))) return bundled;
   // 1. Already running under Node → reuse its dir (the web dev / `next start`
   //    case where process.execPath IS node).
   try {
@@ -224,6 +230,78 @@ function resolveNodeDir(): string | null {
     if (existsSync(join(dir, "node"))) return dir;
   }
   return null;
+}
+
+/**
+ * The dir holding the binaries bundled specifically for the preview runtime
+ * (`node`, `bun`), shipped at `<app>/Contents/Resources/preview-runtime` via
+ * electron-builder extraResources. `process.resourcesPath` is only set in a
+ * packaged Electron app; in dev this returns null and callers fall back to a
+ * system runtime.
+ */
+function bundledRuntimeDir(): string | null {
+  const resources = (process as NodeJS.Process & { resourcesPath?: string }).resourcesPath;
+  if (!resources) return null;
+  return join(resources, "preview-runtime");
+}
+
+/**
+ * Resolve a `bun` binary to install the mirror's dev dependencies on first
+ * preview: the packaged mirror hardlinks the app's SLIM standalone
+ * node_modules, which lacks the dev toolchain (`next dev` CLI, the Tailwind
+ * v4 PostCSS chain, client-only deps). Prefer the bundled bun, then the user's.
+ */
+function resolveBun(): string | null {
+  const bundled = bundledRuntimeDir();
+  if (bundled && existsSync(join(bundled, "bun"))) return join(bundled, "bun");
+  const home = process.env.HOME ?? "";
+  const homeBun = home ? join(home, ".bun", "bin", "bun") : "";
+  if (homeBun && existsSync(homeBun)) return homeBun;
+  for (const dir of (process.env.PATH ?? "").split(delimiter)) {
+    if (dir && existsSync(join(dir, "bun"))) return join(dir, "bun");
+  }
+  return null;
+}
+
+/**
+ * True when the mirror already has the dev toolchain needed to run `next dev`
+ * (the dev CLI + the Tailwind v4 PostCSS plugin). In a dev checkout the mirror
+ * hardlinks a complete node_modules, so this is true and no install runs. In a
+ * packaged app the standalone node_modules is stripped, so this is false on the
+ * first preview and we `bun install` to complete it.
+ */
+function mirrorDepsComplete(srcDir: string): boolean {
+  return (
+    existsSync(join(srcDir, "node_modules", "next", "dist", "cli", "next-dev.js")) &&
+    existsSync(join(srcDir, "node_modules", "@tailwindcss", "postcss"))
+  );
+}
+
+/**
+ * Ensure the mirror has a full dev dependency tree. No-op when already complete
+ * (every dev-checkout preview, and every preview after the first in a packaged
+ * app). On first packaged preview, runs `bun install` in the mirror — slow
+ * (~30-90s, needs network once) but leverages bun's global cache thereafter.
+ * Returns a status line for the caller to surface, or null when nothing ran.
+ */
+function ensureMirrorDeps(srcDir: string): string | null {
+  if (mirrorDepsComplete(srcDir)) return null;
+  const bun = resolveBun();
+  if (!bun) {
+    return "cannot complete preview dependencies: no `bun` found (install bun or run from source)";
+  }
+  const res = spawnSync(bun, ["install"], {
+    cwd: srcDir,
+    stdio: ["ignore", "pipe", "pipe"],
+    // Scrub the same leaked parent env that wedges the dev server.
+    env: buildPreviewEnv(0),
+    timeout: 5 * 60_000,
+  });
+  if (res.status !== 0) {
+    const tail = `${res.stdout ?? ""}${res.stderr ?? ""}`.split(/\r?\n/).filter(Boolean).slice(-3).join(" | ");
+    return `bun install failed (code ${res.status}): ${tail}`;
+  }
+  return "installed preview dependencies";
 }
 
 /**
@@ -335,6 +413,12 @@ export async function startPreview(customizationId: string): Promise<PreviewStat
   // function detects + replaces it.
   await ensureNodeModulesMirror(srcDir);
 
+  // Complete the mirror's dev dependency tree if needed (packaged first
+  // preview): the shipped standalone node_modules is stripped of the dev
+  // toolchain, so `bun install` runs once. No-op in a dev checkout. Captured
+  // here and surfaced in the entry logs once it exists.
+  const depMsg = ensureMirrorDeps(srcDir);
+
   // If the previous Next dev process left a grandchild (worker) bound to its
   // port, our port-free probe correctly skips it now that we bind on `::` —
   // but if THIS customization's previous port still has a squatter (e.g.
@@ -371,6 +455,7 @@ export async function startPreview(customizationId: string): Promise<PreviewStat
     exitSignal: null,
   };
   entries.set(customizationId, entry);
+  if (depMsg) pushLog(entry, `[deps] ${depMsg}`);
 
   child.stdout?.on("data", (buf: Buffer) => pushLog(entry, buf.toString("utf8")));
   child.stderr?.on("data", (buf: Buffer) => pushLog(entry, buf.toString("utf8")));
