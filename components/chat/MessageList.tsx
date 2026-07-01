@@ -259,6 +259,10 @@ export function MessageList({
   // the anchor on the first user message of the new session if the two
   // happen to share the same uuid (unlikely, but cheap insurance).
   const isEmpty = messages.length === 0;
+  // Empty transcript with nothing older to fetch → render the splash instead of
+  // the scroll container (see the early return below). Hoisted here so the
+  // scroll/pin effects can depend on it and re-attach when the scroller mounts.
+  const showSplash = isEmpty && !hasMoreAbove;
   useLayoutEffect(() => {
     if (isEmpty) {
       lastAnchoredUserUuidRef.current = "";
@@ -271,16 +275,16 @@ export function MessageList({
   const onScroll = useCallback(() => {
     const el = scrollRef.current;
     if (!el) return;
-    // Ignore scroll events that are the echo of our own pin (see lastPinAtRef).
-    // 250ms covers the slowest expected reflow-and-fire delay; a genuine user
-    // scroll inside that window is rare and harmless to miss (the next real
-    // scroll re-evaluates it).
-    if (performance.now() - lastPinAtRef.current < 250) return;
     const distFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
     const near = distFromBottom <= NEAR_BOTTOM_PX;
-    // Mirror into the ref the ResizeObserver pin reads. A genuine scroll-up
-    // (this event isn't our own pin echo — guarded above) drops the gate so
-    // the next height change won't drag the reader back down.
+    // The echo of our own pin ALWAYS lands at the bottom (near === true): the
+    // pin does `el.scrollTop = el.scrollHeight`. Suppress only those near=true
+    // echoes within the post-pin window (lastPinAtRef) so our own write doesn't
+    // re-assert "at bottom". A near=false event means the view genuinely moved
+    // up — a real scroll-up (wheel/drag, including mid-stream) — and must ALWAYS
+    // register, even inside the window: it drops the gate so the ResizeObserver
+    // pin stands down and the "Jump to latest" affordance appears.
+    if (near && performance.now() - lastPinAtRef.current < 250) return;
     isNearBottomRef.current = near;
     setIsNearBottom(near);
   }, []);
@@ -302,6 +306,13 @@ export function MessageList({
   //   2. A load-older prepend also fires a resize, but snapping there would make
   //      scrolling back through history impossible — skip the brief window after
   //      a prepend (lastPrependAtRef).
+  //
+  // Re-run when `showSplash` flips: on a session that starts empty the render
+  // returns <SplashScreen> (no scroll container), so scrollRef/contentRef are
+  // null on first mount and a `[]`-deps effect would attach the observer to
+  // nothing and never retry. Keying on `showSplash` re-runs this the moment the
+  // scroll branch mounts, so pinning actually works for fresh sessions (the bug
+  // behind the "reader pushed up / never follows the bottom" e2e failure).
   useEffect(() => {
     const el = scrollRef.current;
     const content = contentRef.current;
@@ -318,7 +329,7 @@ export function MessageList({
     ro.observe(content);
     ro.observe(el);
     return () => ro.disconnect();
-  }, []);
+  }, [showSplash]);
 
   // Scroll a highlighted message into view when the prop changes (search → jump).
   useEffect(() => {
@@ -401,7 +412,7 @@ export function MessageList({
   // `replaying` here because for a brand-new session replay_done arrives
   // empty (no flash); for a resumed session messages will populate before
   // replay finishes and we'll fall through to the scroll branch.
-  if (messages.length === 0 && !hasMoreAbove) {
+  if (showSplash) {
     const top = grouped.get("") ?? [];
     return (
       <SplashScreen
