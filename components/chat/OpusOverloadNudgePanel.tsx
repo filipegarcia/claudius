@@ -5,13 +5,19 @@ import type { OpusOverloadNudgeEvent } from "@/lib/shared/events";
 
 /**
  * Default Sonnet target the "Switch to Sonnet" button hands to `setModel`.
- * Matches the canonical id referenced elsewhere in the codebase
- * (`/model claude-sonnet-4-6` in the slash-command catalog and the workspace
- * docs). The SDK resolves short ids server-side, so a user whose org is
- * pinned to an alias still lands on the same family. Exported so unit tests
- * can pin against a single source of truth.
+ * The SDK resolves short ids server-side, so a user whose org is pinned to
+ * an alias still lands on the same family. Exported so unit tests can pin
+ * against a single source of truth.
+ *
+ * SDK 0.3.197 bumped the SDK's own "current Sonnet" doc examples from
+ * `claude-sonnet-4-6` to `claude-sonnet-5` (`Options.model`, prompt/agent
+ * hook docs in `sdk.d.ts`) — this nudge target tracks that, same as
+ * `lib/shared/advisor.ts`'s `ADVISOR_SONNET_VALUE`. Illustrative examples
+ * elsewhere (the slash-command catalog, workspace docs copy) still show
+ * `claude-sonnet-4-6` as a still-valid, just-not-newest id — they aren't
+ * "current Sonnet" assertions, so they weren't bumped.
  */
-export const OPUS_OVERLOAD_NUDGE_SONNET_TARGET = "claude-sonnet-4-6";
+export const OPUS_OVERLOAD_NUDGE_SONNET_TARGET = "claude-sonnet-5";
 
 /**
  * Manual-switch nudge banner mirroring the Claude Code TUI line "Opus is

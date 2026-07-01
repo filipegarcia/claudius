@@ -234,7 +234,7 @@ test.describe("advisor picker", () => {
     const opts = panel.getByTestId("model-picker-advisor");
     await expect(opts).toHaveCount(3);
     await expect(opts.nth(0)).toHaveAttribute("data-advisor", "claude-opus-4-8");
-    await expect(opts.nth(1)).toHaveAttribute("data-advisor", "claude-sonnet-4-6");
+    await expect(opts.nth(1)).toHaveAttribute("data-advisor", "claude-sonnet-5");
     await expect(opts.nth(2)).toHaveAttribute("data-advisor", "none");
 
     // Only the Opus row carries the "recommended" badge.
@@ -271,7 +271,7 @@ test.describe("advisor picker", () => {
 
     const opus = panel.locator('[data-testid="model-picker-advisor"][data-advisor="claude-opus-4-8"]');
     const sonnet = panel.locator(
-      '[data-testid="model-picker-advisor"][data-advisor="claude-sonnet-4-6"]',
+      '[data-testid="model-picker-advisor"][data-advisor="claude-sonnet-5"]',
     );
 
     // Wait for the bind-time GET to land and the state to reflect it.
@@ -284,7 +284,7 @@ test.describe("advisor picker", () => {
     await expect
       .poll(() => script.capture.advisorPosts.length, { timeout: 5_000 })
       .toBeGreaterThan(0);
-    expect(script.capture.advisorPosts.at(-1)?.model).toBe("claude-sonnet-4-6");
+    expect(script.capture.advisorPosts.at(-1)?.model).toBe("claude-sonnet-5");
 
     // Optimistic mirror: Sonnet is now the checked row, picker stays open.
     await expect(sonnet).toHaveAttribute("aria-checked", "true");
