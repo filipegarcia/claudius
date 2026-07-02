@@ -1,9 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Lightbulb, X } from "lucide-react";
+import { AlertTriangle, Lightbulb, X } from "lucide-react";
 import { DEFAULT_TIPS, nextTipIndexWithDismissals, type Tip } from "@/lib/shared/tips";
 import { useTipDismissals } from "@/lib/client/useTipDismissals";
+import {
+  ANTHROPIC_STATUS_URL,
+  describeApiRetry,
+  type ApiRetryState,
+} from "@/lib/client/api-retry";
 
 type Props = {
   /**
@@ -20,6 +25,13 @@ type Props = {
   tips?: Tip[];
   /** Rotation cadence in ms. */
   intervalMs?: number;
+  /**
+   * Live retry state from `session.apiRetry`. When present, replaces the
+   * rotating tip with the attempt/reason line (and, specifically for an
+   * overload, a status-page link) — the browser analog of the Claude Code
+   * CLI's 2.1.198 "improved API retry UX". See `describeApiRetry`.
+   */
+  apiRetry?: ApiRetryState | null;
 };
 
 /**
@@ -38,7 +50,7 @@ type Props = {
  * autoscroll watches scroll height, and a tip that wrapped or grew/shrank
  * would fight it.
  */
-export function SpinnerTip({ onRunCommand, tips, intervalMs = 9000 }: Props) {
+export function SpinnerTip({ onRunCommand, tips, intervalMs = 9000, apiRetry }: Props) {
   // Prefer the server-driven catalog; fall back to the built-in defaults while
   // it's empty (initial state before the `tips` event lands).
   const list = tips && tips.length > 0 ? tips : DEFAULT_TIPS;
@@ -59,6 +71,35 @@ export function SpinnerTip({ onRunCommand, tips, intervalMs = 9000 }: Props) {
     }, intervalMs);
     return () => clearInterval(t);
   }, [list, dismissed, intervalMs]);
+
+  // A retry in flight preempts the ordinary tip rotation — the CLI's
+  // "improved API retry UX" replaces the spinner tip with the retry's
+  // attempt/reason (and, for an overload specifically, a status-page link)
+  // rather than rotating an unrelated feature nudge while the user is
+  // waiting on a retry.
+  if (apiRetry) {
+    const { message, showStatusLink } = describeApiRetry(apiRetry);
+    return (
+      <div
+        data-testid="spinner-tip"
+        className="flex min-w-0 items-center gap-1.5 pl-[1.375rem] text-[11px] text-amber-400"
+      >
+        <AlertTriangle className="h-3 w-3 shrink-0" />
+        <span className="min-w-0 truncate">{message}</span>
+        {showStatusLink && (
+          <a
+            href={ANTHROPIC_STATUS_URL}
+            target="_blank"
+            rel="noreferrer"
+            data-testid="spinner-tip-status-link"
+            className="shrink-0 underline underline-offset-2 hover:opacity-80"
+          >
+            status.anthropic.com
+          </a>
+        )}
+      </div>
+    );
+  }
 
   if (list.length === 0) return null;
   const tip = list[index % list.length];
