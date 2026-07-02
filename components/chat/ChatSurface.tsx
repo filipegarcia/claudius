@@ -2164,6 +2164,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
                 newUser: startupCount < 10,
               },
             )}
+            apiRetry={session.apiRetry}
             suggestedUuids={session.suggestedUuids}
             goalUuids={session.goalUuids}
             verbose={effectiveVerbose}

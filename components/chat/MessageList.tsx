@@ -11,6 +11,7 @@ import type { Tip } from "@/lib/shared/tips";
 import { SplashScreen } from "./SplashScreen";
 import { isRealUserDisplayMessage } from "@/lib/client/sdk-message-filters";
 import type { DisplayMessage, SystemEntry, TaskInfo } from "@/lib/client/types";
+import type { ApiRetryState } from "@/lib/client/api-retry";
 import {
   DEFAULT_VERBOSE,
   filterMessagesByVerbose,
@@ -57,6 +58,12 @@ type Props = {
    * defaults.
    */
   tips?: Tip[];
+  /**
+   * Live retry state (`session.apiRetry`) — when set, the working-row
+   * {@link SpinnerTip} shows the retry attempt/reason instead of rotating
+   * tips. See `lib/client/api-retry.ts`.
+   */
+  apiRetry?: ApiRetryState | null;
   /**
    * Uuids of user messages that originated from a clicked suggestion chip.
    * Matching user bubbles get an "auto-suggested" badge.
@@ -116,6 +123,7 @@ export function MessageList({
   onPickExample,
   onRunCommand,
   tips,
+  apiRetry,
   suggestedUuids,
   goalUuids,
   pendingAskToolUseId = null,
@@ -532,13 +540,13 @@ export function MessageList({
                   );
                 })}
                 {isLastTurn && pending && (
-                  <WorkingRow onRunCommand={onRunCommand} tips={tips} />
+                  <WorkingRow onRunCommand={onRunCommand} tips={tips} apiRetry={apiRetry} />
                 )}
               </section>
             );
           })}
           {turns.length === 0 && pending && (
-            <WorkingRow onRunCommand={onRunCommand} tips={tips} />
+            <WorkingRow onRunCommand={onRunCommand} tips={tips} apiRetry={apiRetry} />
           )}
           <div ref={endRef} />
         </div>
@@ -570,9 +578,11 @@ export function MessageList({
 function WorkingRow({
   onRunCommand,
   tips,
+  apiRetry,
 }: {
   onRunCommand?: (command: string) => void;
   tips?: Tip[];
+  apiRetry?: ApiRetryState | null;
 }) {
   return (
     <div className="flex flex-col gap-1 text-xs text-[var(--muted)]">
@@ -580,7 +590,7 @@ function WorkingRow({
         <Loader2 className="h-3.5 w-3.5 animate-spin text-[var(--accent)]" />
         <span className="font-medium text-[var(--foreground)]/80">Claude is working…</span>
       </div>
-      <SpinnerTip onRunCommand={onRunCommand} tips={tips} />
+      <SpinnerTip onRunCommand={onRunCommand} tips={tips} apiRetry={apiRetry} />
     </div>
   );
 }

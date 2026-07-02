@@ -18,6 +18,7 @@ import type {
   TaskSnapshotEntry,
 } from "@/lib/shared/events";
 import type { Tip } from "@/lib/shared/tips";
+import type { ApiRetryState } from "@/lib/client/api-retry";
 import { costFromTokens } from "@/lib/shared/cost-pricing";
 import { parseInitSystemMessage } from "@/lib/shared/parse-init";
 import { ADVISOR_ACTIVE_SENTINEL } from "@/lib/shared/advisor";
@@ -707,6 +708,12 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
   // replay buffer, so a stale nudge never re-pops on reload.
   const [opusOverloadNudge, setOpusOverloadNudge] =
     useState<OpusOverloadNudgeEvent | null>(null);
+  // Live retry state derived directly from the SDK's `api_retry` system
+  // message — no server broadcast needed since `Session.broadcast` already
+  // forwards raw SDK messages verbatim. Cleared whenever a real assistant
+  // message or a turn's `result` arrives (see below), so it can never
+  // outlive the retry it describes.
+  const [apiRetry, setApiRetry] = useState<ApiRetryState | null>(null);
   // One-shot "Extra usage is required for long context" banner, broadcast by
   // the server when a 1M-context session hits the SDK's `billing_error`.
   // Live-only: skipped in the SSE replay buffer so a stale event never
@@ -1227,6 +1234,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     setPendingAsk(null);
     setFeedbackSurvey(null);
     setOpusOverloadNudge(null);
+    setApiRetry(null);
     setTips([]);
     // Reset recap state to idle on session switch — a recap belongs to the
     // session it was generated against, not the next one.
@@ -1962,6 +1970,10 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
       const msg = ev.message;
 
       if (msg.type === "assistant") {
+        // A real assistant message means the request succeeded (with or
+        // without prior retries) — clear any in-flight retry indicator so
+        // the spinner tip doesn't keep announcing a retry that's over.
+        setApiRetry((prev) => (prev ? null : prev));
         const beta = msg.message as {
           id?: string;
           content?: unknown;
@@ -3046,6 +3058,10 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
 
       if (msg.type === "result") {
         setPendingTracked(false);
+        // The turn is over (success or terminal error) — an in-flight retry
+        // indicator would otherwise survive as a stale "still retrying" line
+        // on the next render.
+        setApiRetry((prev) => (prev ? null : prev));
         // Tear down in-flight UI markers first (rail tools / thinking rows /
         // "Claude streaming…") — the per-block close events may not all have
         // landed. Runs before the cost/usage processing below.
@@ -3446,6 +3462,33 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
               detail: f.trigger,
             },
           ]);
+          return;
+        }
+        // SDKAPIRetryMessage — emitted when an API request fails with a
+        // retryable error (connection drop, 5xx, rate limit, 529 overload)
+        // and the SDK is about to retry with backoff. CLI 2.1.198 ("Improved
+        // API retry UX") surfaces this in the spinner rather than the
+        // transcript; we mirror that with `session.apiRetry`, consumed by
+        // `WorkingRow`/`SpinnerTip` (see `describeApiRetry` in
+        // `lib/client/api-retry.ts`) — not as a SystemEntry pill, so a
+        // resolved turn doesn't leave a stale "still retrying" marker behind
+        // in the transcript. Cleared below on the next assistant/result
+        // message.
+        if (sysAny.subtype === "api_retry") {
+          const rt = sysAny as {
+            attempt?: number;
+            max_retries?: number;
+            retry_delay_ms?: number;
+            error_status?: number | null;
+            error?: string;
+          };
+          setApiRetry({
+            attempt: typeof rt.attempt === "number" ? rt.attempt : 1,
+            maxRetries: typeof rt.max_retries === "number" ? rt.max_retries : 0,
+            retryDelayMs: typeof rt.retry_delay_ms === "number" ? rt.retry_delay_ms : 0,
+            errorStatus: rt.error_status ?? null,
+            error: rt.error ?? "unknown",
+          });
           return;
         }
         // SDKPermissionDeniedMessage (0.3.178): emitted when a tool call is
@@ -4966,6 +5009,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     pendingAsk,
     feedbackSurvey,
     opusOverloadNudge,
+    apiRetry,
     longContextCreditsNudge,
     authFailedNudge,
     tips,

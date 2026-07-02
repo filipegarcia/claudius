@@ -13,6 +13,7 @@ import type {
   ServerEvent,
 } from "@/lib/shared/events";
 import type { Tip } from "@/lib/shared/tips";
+import type { ApiRetryState } from "@/lib/client/api-retry";
 
 export type DisplayBlock =
   | { kind: "text"; text: string }
@@ -693,6 +694,16 @@ export type ChatState = {
    * Null when no nudge is pending.
    */
   opusOverloadNudge: OpusOverloadNudgeEvent | null;
+  /**
+   * Live retry state derived from the SDK's `api_retry` system message
+   * (emitted while a retryable API error — overload, rate limit, server
+   * error, connection drop — is being retried with backoff). Drives the
+   * "Claude is working…" row's spinner-tip swap (see `describeApiRetry` in
+   * `lib/client/api-retry.ts`). Cleared on the next assistant/result message
+   * so a resolved turn never leaves a stale "retrying" line behind. Null
+   * when no retry is in flight.
+   */
+  apiRetry: ApiRetryState | null;
   /**
    * Active "Extra usage is required for long context" nudge, set when the
    * server broadcasts a `long_context_credits_required` event after the SDK
