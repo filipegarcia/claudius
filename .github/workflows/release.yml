@@ -68,7 +68,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
 
@@ -84,13 +84,13 @@ jobs:
       # wrong assumption in a previous revision ("arm64 has a prebuilt
       # Electron ABI binary, no python needed") and the macos-arm64 job
       # died here for 7 consecutive releases (v0.3.168.31 → v0.3.168.41).
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
 
       # See the macos-x64 job for the full rationale of this cache step.
       - name: Cache Electron binaries
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/Library/Caches/electron
@@ -248,7 +248,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
 
@@ -260,7 +260,7 @@ jobs:
       # the x64 Electron ABI), and node-gyp needs Python's `distutils`, which
       # was REMOVED in Python 3.12 (the macos-14 default). Pin 3.11, whose
       # stdlib still ships distutils, so the gyp build succeeds.
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
 
@@ -274,7 +274,7 @@ jobs:
       # paths here even though only the macOS one is read on this runner —
       # actions/cache silently skips missing paths.
       - name: Cache Electron binaries
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/Library/Caches/electron
@@ -525,7 +525,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
 
@@ -714,7 +714,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
 
@@ -793,7 +793,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
 
@@ -863,7 +863,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
 
@@ -879,7 +879,7 @@ jobs:
       # See the macos-x64 job for the rationale. Same shape, different
       # platform-specific cache dirs.
       - name: Cache Electron binaries
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.cache/electron
@@ -970,7 +970,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
 
