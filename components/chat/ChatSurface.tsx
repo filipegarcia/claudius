@@ -258,7 +258,13 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
       .then((res) => (res.ok ? (res.json() as Promise<{ color?: string | null }>) : null))
       .then((data) => {
         const name = data?.color && isPromptColorName(data.color) ? data.color : null;
-        setPromptColor({ sessionId: id, name });
+        // Don't clobber a value already set for this session. If the user ran
+        // `/color` (optimistic setPromptColor) while this bind-load was in
+        // flight, its response — carrying the *pre-set* saved color — would
+        // otherwise land late and revert the border. The only way `prev`
+        // already holds THIS session's id here is such a mid-flight user set,
+        // so defer to it; the load only seeds sessions we haven't recorded.
+        setPromptColor((prev) => (prev.sessionId === id ? prev : { sessionId: id, name }));
       })
       .catch(() => {});
     return () => controller.abort();
