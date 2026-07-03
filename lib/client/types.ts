@@ -222,6 +222,20 @@ export type SystemEntry = {
    * injection is visible-but-tidy instead of leaking into the user bubble.
    */
   reminderBody?: string;
+  /**
+   * `kind === "hook_response"` only. True when the hook's `outcome` was
+   * `"error"` or `"cancelled"` (e.g. a `SessionStart`/`Setup`/`SubagentStart`
+   * hook that exited 2) — used to give the pill an error tone instead of the
+   * default informational one.
+   */
+  hookFailed?: boolean;
+  /**
+   * `kind === "hook_response"` only, present when `hookFailed` and the SDK's
+   * `hook_response` message carried a non-empty `stderr`. CC 2.1.199 stopped
+   * silently swallowing this on hooks that exit 2 — we mirror that by
+   * surfacing it here instead of dropping the field on the floor.
+   */
+  hookStderr?: string;
 };
 
 export type ToolProgressInfo = {

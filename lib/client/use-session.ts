@@ -3240,7 +3240,20 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
           return;
         }
         if (sysAny.subtype === "hook_response") {
-          const h = sysAny as { hook_name?: string; exit_code?: number; outcome?: string };
+          // CC 2.1.199: SessionStart/Setup/SubagentStart hooks that exit 2
+          // (a blocking failure) previously had their stderr silently
+          // swallowed — the SDK's `hook_response` message has always carried
+          // a `stderr` field, but until now it went unread here. Surface it
+          // whenever the hook didn't succeed so the failure reason is
+          // visible instead of just a bare "→ error" pill.
+          const h = sysAny as {
+            hook_name?: string;
+            exit_code?: number;
+            outcome?: string;
+            stderr?: string;
+          };
+          const failed = h.outcome === "error" || h.outcome === "cancelled";
+          const stderr = failed && h.stderr?.trim() ? h.stderr.trim() : undefined;
           setSystemEntries((prev) => [
             ...prev,
             {
@@ -3248,6 +3261,8 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
               kind: "hook_response",
               label: `Hook ${h.hook_name ?? ""} → ${h.outcome ?? "ok"}`,
               detail: typeof h.exit_code === "number" ? `exit ${h.exit_code}` : undefined,
+              hookFailed: failed,
+              hookStderr: stderr,
             },
           ]);
           return;
