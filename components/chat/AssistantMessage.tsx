@@ -148,6 +148,16 @@ export function AssistantMessage({
                 />
               );
             }
+            // Live AskUserQuestion: the inline form (rendered by MessageList,
+            // independent of verbose filtering) now carries the tool-call
+            // identity in its own header — the ask row and the question are one
+            // merged card. Suppress this standalone collapsed row while the ask
+            // is live so it isn't a duplicate stacked above that card. Once
+            // answered it's no longer `pendingAskToolUseId` and renders here
+            // normally as the historic record (with the "Reopen" pill).
+            if (b.name === "AskUserQuestion" && pendingAskToolUseId === b.id) {
+              return null;
+            }
             // Only AskUserQuestion rows get a click handler — the pill is
             // gated by `name === "AskUserQuestion"` inside ToolCall too, but
             // refusing to even hand the closure to non-ask rows keeps the

@@ -145,7 +145,9 @@ export default function ToolCallPreviewPage() {
   // Render an assistant turn that contains TWO AskUserQuestion tool_use
   // blocks (different toolUseIds) plus a non-ask tool. The page passes
   // `pendingAskToolUseId = TOOL_USE_ID_PENDING`, and we expect:
-  //   - the matching ask block: live pill (pulsing)
+  //   - the matching (live) ask block: SUPPRESSED — MessageList renders it as
+  //     the merged inline form (tool-call header + question in one card), so
+  //     AssistantMessage skips the standalone row to avoid a duplicate
   //   - the non-matching ask block: historic pill (still visible, no pulse)
   //   - the non-ask block: pill hidden (gated by name in AssistantMessage)
   const integrationMessage: DisplayMessage = {
@@ -203,9 +205,9 @@ export default function ToolCallPreviewPage() {
             AssistantMessage · pendingAskToolUseId matches one of two ask blocks
           </h2>
           <p className="mb-2 text-xs text-[var(--muted)]">
-            Both ask blocks render a pill — the matching one ({TOOL_USE_ID_PENDING}) in the
-            pulsing &quot;live&quot; variant, the other in the static &quot;Reopen&quot; variant. The
-            Read block stays plain.
+            The matching (live) ask block ({TOOL_USE_ID_PENDING}) is suppressed here —
+            MessageList renders it as the merged inline form instead. Only the non-matching
+            ask block shows its static &quot;Reopen&quot; pill. The Read block stays plain.
           </p>
           <AssistantMessage
             message={integrationMessage}

@@ -153,16 +153,18 @@ test.describe("AssistantMessage integration — pill variant per row", () => {
     await expect(page.getByTestId("tool-call-preview-root")).toBeVisible();
   });
 
-  test("matching ask block gets the live variant, non-matching one gets the historic variant", async ({
+  test("the live (matching) ask row is suppressed; the non-matching one shows the historic pill", async ({
     page,
   }) => {
     const scope = page.getByTestId("case:integration-matching");
-    // Both ask rows have pills now.
-    await expect(pillIn(scope)).toHaveCount(2);
-    // Exactly one of them is live.
+    // The live ask (matching pendingAskToolUseId) is no longer a standalone
+    // row here — MessageList renders it as the merged inline form (tool-call
+    // header + question in one card). So NO live pill appears through
+    // AssistantMessage; only the non-matching ask keeps its historic Reopen
+    // pill (and returns for the live one too, once it's answered).
     const livePill = scope.locator(`[data-testid="${PILL}"][data-live-ask="true"]`);
-    await expect(livePill).toHaveCount(1);
-    await expect(livePill).toHaveText(/Answer/);
+    await expect(livePill).toHaveCount(0);
+    await expect(pillIn(scope)).toHaveCount(1);
     const historicPill = scope.locator(`[data-testid="${PILL}"][data-live-ask="false"]`);
     await expect(historicPill).toHaveCount(1);
     await expect(historicPill).toHaveText(/Reopen/);
@@ -172,11 +174,12 @@ test.describe("AssistantMessage integration — pill variant per row", () => {
     page,
   }) => {
     const scope = page.getByTestId("case:integration-matching");
-    // Three tool rows total — two ask buttons, one Read button. Only the
-    // ask rows get pills.
+    // The Read row is present with no pill. The live ask is suppressed (shown
+    // as the merged form by MessageList), so only the historic ask's pill
+    // remains here.
     const readToggle = scope.getByRole("button", { name: /Read/ });
     await expect(readToggle).toHaveCount(1);
-    await expect(pillIn(scope)).toHaveCount(2);
+    await expect(pillIn(scope)).toHaveCount(1);
   });
 
   test("with pendingAskToolUseId=null, ALL ask blocks render the historic variant", async ({

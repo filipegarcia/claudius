@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowRight, Check, CheckSquare, Minus, Pencil, X } from "lucide-react";
+import { ArrowRight, Check, CheckSquare, Minus, Pencil, Wrench, X } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import type { AskAnswer, AskUserQuestionEvent } from "@/lib/shared/events";
 
@@ -270,6 +270,21 @@ export function AskUserQuestionPrompt({
             : "max-h-[85vh] max-w-4xl border border-[var(--border)] shadow-2xl",
         )}
       >
+        {/* Tool-call identity — inline only. Folds the "AskUserQuestion"
+            tool-call chrome into the same card as the form so the live ask is
+            ONE component, not a collapsed tool row stacked above a separate
+            form. AssistantMessage suppresses the standalone row while this is
+            live; once answered, that row returns as the historic record. */}
+        {inline && (
+          <div className="flex items-center gap-2 border-b border-[var(--border)] bg-[var(--panel-2)]/40 px-4 py-1.5 text-xs">
+            <Wrench className="h-3.5 w-3.5 text-[var(--accent)]" />
+            <span className="font-mono">AskUserQuestion</span>
+            <span className="ml-auto inline-flex items-center gap-1.5 text-[10px] text-[var(--accent)]">
+              <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-[var(--accent)]" />
+              Waiting for your answer
+            </span>
+          </div>
+        )}
         {/* Header */}
         <div className="flex items-center gap-3 border-b border-[var(--border)] px-4 py-3 text-xs">
           <span className="rounded-md bg-[var(--accent)]/15 px-2 py-0.5 font-medium uppercase tracking-wide text-[var(--accent)]">
