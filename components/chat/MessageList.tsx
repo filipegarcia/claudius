@@ -558,13 +558,18 @@ export function MessageList({
                     </div>
                   );
                 })}
-                {isLastTurn && pending && (
+                {/* Suppress the "Claude is working…" spinner while a question
+                    is pending. The turn stays `pending` (the agent is blocked in
+                    canUseTool), but it's WAITING for the user, not working —
+                    showing the spinner is misleading and, worse, splits the
+                    AskUserQuestion tool-call row from the inline form below it. */}
+                {isLastTurn && pending && !pendingAsk && (
                   <WorkingRow onRunCommand={onRunCommand} tips={tips} apiRetry={apiRetry} />
                 )}
               </section>
             );
           })}
-          {turns.length === 0 && pending && (
+          {turns.length === 0 && pending && !pendingAsk && (
             <WorkingRow onRunCommand={onRunCommand} tips={tips} apiRetry={apiRetry} />
           )}
           {/* Live question, embedded in the transcript flow so the reader can
