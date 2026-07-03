@@ -224,11 +224,6 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
   }>({ sessionId: null, name: null });
   const activePromptColor =
     promptColor.sessionId === session.sessionId ? promptColor.name : null;
-  // Tracks when the user has hidden the AskUserQuestion modal without
-  // answering — keyed by requestId so a fresh question pops up again.
-  // The modal renders only when there is a pendingAsk AND its requestId
-  // is not the one we just minimized.
-  const [askMinimizedFor, setAskMinimizedFor] = useState<string | null>(null);
   // "Resurrected" ask — the user clicked the Reopen pill on a historic /
   // errored AskUserQuestion row whose permission stream had already closed
   // server-side. We can't route an answer back through the SDK (it received
@@ -2169,10 +2164,24 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
             goalUuids={session.goalUuids}
             verbose={effectiveVerbose}
             pendingAskToolUseId={session.pendingAsk?.toolUseId ?? null}
+            pendingAsk={session.pendingAsk}
+            askSessionLabel={
+              session.sessionId
+                ? tabLabelFor(session.sessionId, session.sessions, session.sessionTitle)
+                : null
+            }
+            onSubmitAsk={(answers) =>
+              session.submitAskAnswer(session.pendingAsk!.requestId, answers)
+            }
+            onCancelAsk={() =>
+              // Cancel = decline-but-graceful: send empty answers so the SDK
+              // doesn't hang. The model treats this as the user declining.
+              session.submitAskAnswer(session.pendingAsk!.requestId, [])
+            }
             // Two paths depending on which row was clicked:
-            //   - Live: tool_use id matches `pendingAsk` — clear the
-            //     "minimized" flag and let the existing modal render
-            //     condition fall through.
+            //   - Live: tool_use id matches `pendingAsk` — the form already
+            //     renders inline at the bottom of the transcript, so just
+            //     scroll it into view.
             //   - Historic: any other ask row. The SDK has already received
             //     a tool_result for this question (often an error from the
             //     permission stream closing). We can't answer it back to
@@ -2180,7 +2189,9 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
             //     its submit as a fresh user prompt.
             onReopenAsk={({ toolUseId, input }) => {
               if (session.pendingAsk?.toolUseId === toolUseId) {
-                setAskMinimizedFor(null);
+                document
+                  .querySelector('[data-testid="ask-user-question-inline"]')
+                  ?.scrollIntoView({ behavior: "smooth", block: "center" });
                 return;
               }
               const questions = parseAskQuestions(input);
@@ -2257,24 +2268,6 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
               pending={session.pending}
               onCompact={startCompaction}
             />
-          )}
-          {session.pendingAsk && askMinimizedFor === session.pendingAsk.requestId && (
-            <div className="mx-auto flex w-full max-w-[var(--chat-col)] items-center gap-2 px-4 pb-2">
-              <button
-                type="button"
-                onClick={() => setAskMinimizedFor(null)}
-                className="flex w-full items-center gap-2 rounded-md border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-2 text-left text-xs text-[var(--foreground)] hover:bg-[var(--accent)]/15"
-              >
-                <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-[var(--accent)]" />
-                <span className="font-medium">Question pending</span>
-                <span className="truncate text-[var(--muted)]">
-                  {session.pendingAsk.questions[0]?.question ?? "Awaiting your answer"}
-                </span>
-                <span className="ml-auto shrink-0 rounded border border-[var(--border)] bg-[var(--panel-2)] px-1.5 py-0.5 text-[10px] text-[var(--muted)]">
-                  Click to answer
-                </span>
-              </button>
-            </div>
           )}
           <SessionRecapBanner
             recap={session.sessionRecap}
@@ -2443,25 +2436,10 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
         />
       )}
 
-      {session.pendingAsk && askMinimizedFor !== session.pendingAsk.requestId && (
-        <AskUserQuestionPrompt
-          request={session.pendingAsk}
-          sessionLabel={
-            session.sessionId
-              ? tabLabelFor(session.sessionId, session.sessions, session.sessionTitle)
-              : null
-          }
-          onSubmit={(answers) =>
-            session.submitAskAnswer(session.pendingAsk!.requestId, answers)
-          }
-          onCancel={() =>
-            // Cancel = decline-but-graceful: send empty answers so the SDK
-            // doesn't hang. The model treats this as the user declining.
-            session.submitAskAnswer(session.pendingAsk!.requestId, [])
-          }
-          onMinimize={() => setAskMinimizedFor(session.pendingAsk!.requestId)}
-        />
-      )}
+      {/* The live ask now renders inline inside the transcript (see
+          MessageList's `pendingAsk` prop) so the user can read the model's
+          preceding message before answering. Only the resurrected/historic
+          ask below still uses the fixed modal. */}
 
       {/* Resurrected modal — only renders when there's NO live ask in flight
           so the two can never stack. Submitting feeds the answers as a fresh

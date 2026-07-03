@@ -5,6 +5,8 @@ import { ChevronDown, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { AssistantMessage } from "./AssistantMessage";
 import { UserMessage } from "./UserMessage";
+import { AskUserQuestionPrompt } from "./AskUserQuestionPrompt";
+import type { AskAnswer, AskUserQuestionEvent } from "@/lib/shared/events";
 import { SystemPill, type SystemPillLevers } from "./SystemPill";
 import { SpinnerTip } from "./SpinnerTip";
 import type { Tip } from "@/lib/shared/tips";
@@ -88,6 +90,19 @@ type Props = {
    */
   onReopenAsk?: (args: { toolUseId: string; input: Record<string, unknown> }) => void;
   /**
+   * The live AskUserQuestion request, if one is pending. When set, its form
+   * renders inline as the last item in the transcript (right under the model's
+   * preceding text) instead of a fixed modal overlay. Null when nothing's
+   * pending.
+   */
+  pendingAsk?: AskUserQuestionEvent | null;
+  /** Session label chip shown in the inline ask header. */
+  askSessionLabel?: string | null;
+  /** Submit handler for the inline ask form (POSTs answers to the SDK). */
+  onSubmitAsk?: (answers: AskAnswer[]) => void | Promise<void>;
+  /** Cancel/decline handler for the inline ask form (sends empty answers). */
+  onCancelAsk?: () => void | Promise<void>;
+  /**
    * Chat verbosity level. Filters messages/blocks before render — see
    * `lib/shared/verbose.ts`. Empty assistant messages (all blocks filtered)
    * are dropped so the chat doesn't show an empty bubble. The right-side
@@ -128,6 +143,10 @@ export function MessageList({
   goalUuids,
   pendingAskToolUseId = null,
   onReopenAsk,
+  pendingAsk = null,
+  askSessionLabel = null,
+  onSubmitAsk,
+  onCancelAsk,
   verbose = DEFAULT_VERBOSE,
   systemPillLevers,
 }: Props) {
@@ -548,19 +567,53 @@ export function MessageList({
           {turns.length === 0 && pending && (
             <WorkingRow onRunCommand={onRunCommand} tips={tips} apiRetry={apiRetry} />
           )}
+          {/* Live question, embedded in the transcript flow so the reader can
+              see everything the model said before answering. The agent is
+              blocked in `canUseTool` awaiting this, so it's genuinely the last
+              thing in the conversation. Historic/resolved asks still reopen as
+              a modal (handled by the parent) — this is the live one only. */}
+          {pendingAsk && onSubmitAsk && (
+            <div data-testid="ask-user-question-inline" className="pt-2">
+              <AskUserQuestionPrompt
+                inline
+                request={pendingAsk}
+                sessionLabel={askSessionLabel}
+                onSubmit={onSubmitAsk}
+                onCancel={onCancelAsk ?? (() => onSubmitAsk([]))}
+              />
+            </div>
+          )}
           <div ref={endRef} />
         </div>
       </div>
 
       {!isNearBottom && (
+        // Doubles as the pending-question cue: the inline ask form is the last
+        // item in the transcript, so when it's scrolled out of view this is the
+        // one always-visible signal that a question is waiting (the modal's old
+        // job). Clicking jumps to the bottom, which lands on the form.
         <button
           type="button"
           onClick={jumpToBottom}
           data-testid="jump-to-latest"
-          aria-label="Jump to latest"
-          className="absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1 rounded-full border border-[var(--border)] bg-[var(--accent)] px-3 py-1 text-[11px] font-medium text-white shadow-lg hover:opacity-90"
+          aria-label={pendingAsk ? "Jump to pending question" : "Jump to latest"}
+          className={cn(
+            "absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1 rounded-full px-3 py-1 text-[11px] font-medium text-white shadow-lg hover:opacity-90",
+            pendingAsk
+              ? "border border-[var(--accent)] bg-[var(--accent)]"
+              : "border border-[var(--border)] bg-[var(--accent)]",
+          )}
         >
-          <ChevronDown className="h-3 w-3" /> Jump to latest
+          {pendingAsk ? (
+            <>
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" />
+              Answer question
+            </>
+          ) : (
+            <>
+              <ChevronDown className="h-3 w-3" /> Jump to latest
+            </>
+          )}
         </button>
       )}
     </div>

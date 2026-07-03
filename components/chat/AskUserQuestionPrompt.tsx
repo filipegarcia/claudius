@@ -28,6 +28,15 @@ type Props = {
    * Optional — the dev preview pages pass nothing and the chip simply hides.
    */
   sessionLabel?: string | null;
+  /**
+   * Render as an in-flow transcript card instead of a fixed modal overlay.
+   * Inline mode drops the backdrop, click-outside dismissal, and the global
+   * keyboard listener (the composer stays focusable alongside it, so grabbing
+   * window keydown — Escape especially — would hijack the user's typing).
+   * The option buttons are native <button>s, so Enter/Space still activate a
+   * focused option; only the arrow/digit list-nav shortcuts are dropped.
+   */
+  inline?: boolean;
 };
 
 /**
@@ -53,6 +62,7 @@ export function AskUserQuestionPrompt({
   onCancel,
   onMinimize,
   sessionLabel,
+  inline = false,
 }: Props) {
   // Soft dismissal — Esc / click-outside / minimize button. Falls back to
   // `onCancel` for older call sites that don't pass `onMinimize`.
@@ -168,8 +178,12 @@ export function AskUserQuestionPrompt({
     await onSubmit(answers);
   }
 
-  // Keyboard shortcuts.
+  // Keyboard shortcuts. Modal-only: inline mode shares the window with a live
+  // composer, and a global keydown listener would hijack the user's typing —
+  // most dangerously Escape, which isn't focus-gated and would decline the
+  // question mid-sentence. Native <button> Enter/Space still works inline.
   useEffect(() => {
+    if (inline) return;
     function onKey(e: KeyboardEvent) {
       // Don't intercept while the user is typing into an input.
       const target = e.target as HTMLElement | null;
@@ -221,20 +235,41 @@ export function AskUserQuestionPrompt({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [active, q, allReady, isLast, total, working]);
+  }, [active, q, allReady, isLast, total, working, inline]);
 
   return (
     <div
       data-testid="ask-user-question"
-      className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 p-4"
-      onClick={(e) => {
-        // Click outside hides the modal. We prefer minimize (recoverable)
-        // over cancel (sends empty answers) so an accidental click can't
-        // throw away the question while the agent is still waiting.
-        if (e.target === e.currentTarget) void dismiss();
-      }}
+      data-inline={inline ? "true" : "false"}
+      className={cn(
+        inline
+          ? // In-flow transcript card: no backdrop, no fixed positioning, no
+            // click-outside dismissal. Sits as the last item in the message
+            // list right under the model's preceding text.
+            "w-full"
+          : "fixed inset-0 z-40 flex items-center justify-center bg-black/60 p-4",
+      )}
+      onClick={
+        inline
+          ? undefined
+          : (e) => {
+              // Click outside hides the modal. We prefer minimize (recoverable)
+              // over cancel (sends empty answers) so an accidental click can't
+              // throw away the question while the agent is still waiting.
+              if (e.target === e.currentTarget) void dismiss();
+            }
+      }
     >
-      <div className="flex max-h-[85vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--panel)] shadow-2xl">
+      <div
+        className={cn(
+          "flex w-full flex-col overflow-hidden rounded-2xl bg-[var(--panel)]",
+          inline
+            ? // Accent-tinted border + ring substitutes for the modal's
+              // backdrop as the attention cue now that nothing dims the page.
+              "max-h-[70vh] border border-[var(--accent)]/50 ring-1 ring-[var(--accent)]/20 shadow-lg"
+            : "max-h-[85vh] max-w-4xl border border-[var(--border)] shadow-2xl",
+        )}
+      >
         {/* Header */}
         <div className="flex items-center gap-3 border-b border-[var(--border)] px-4 py-3 text-xs">
           <span className="rounded-md bg-[var(--accent)]/15 px-2 py-0.5 font-medium uppercase tracking-wide text-[var(--accent)]">
@@ -494,15 +529,41 @@ export function AskUserQuestionPrompt({
         {/* Footer */}
         <div className="flex items-center gap-2 border-t border-[var(--border)] bg-[var(--panel-2)]/40 px-4 py-2 text-xs">
           <span className="text-[var(--muted)]">
-            {q.multiSelect ? "↑/↓ navigate · 1–4 toggle" : "↑/↓ navigate · 1–4 select"} ·{" "}
-            {w.showOther
-              ? isLast
-                ? "⌘/Ctrl+Enter submit"
-                : "⌘/Ctrl+Enter next"
-              : isLast
-              ? "Enter submit"
-              : "Enter next"}{" "}
-            · Esc {onMinimize ? "hide" : "cancel"}
+            {inline ? (
+              // No global keyboard listener in inline mode — advertise only
+              // what actually works (clicking, and the split-Other shortcut),
+              // and reflect readiness so the hint doesn't say "pick an option"
+              // once one is already selected.
+              w.showOther ? (
+                isLast ? (
+                  "⌘/Ctrl+Enter submit"
+                ) : (
+                  "⌘/Ctrl+Enter next"
+                )
+              ) : allReady ? (
+                isLast ? (
+                  "Ready — press Submit"
+                ) : (
+                  "Ready — press Next"
+                )
+              ) : isReady(active) ? (
+                "Pick the remaining answers"
+              ) : (
+                "Pick an option to answer"
+              )
+            ) : (
+              <>
+                {q.multiSelect ? "↑/↓ navigate · 1–4 toggle" : "↑/↓ navigate · 1–4 select"} ·{" "}
+                {w.showOther
+                  ? isLast
+                    ? "⌘/Ctrl+Enter submit"
+                    : "⌘/Ctrl+Enter next"
+                  : isLast
+                  ? "Enter submit"
+                  : "Enter next"}{" "}
+                · Esc {onMinimize ? "hide" : "cancel"}
+              </>
+            )}
           </span>
           <div className="ml-auto flex items-center gap-2">
             {active > 0 && (

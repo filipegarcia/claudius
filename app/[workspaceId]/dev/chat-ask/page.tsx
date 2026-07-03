@@ -1,10 +1,13 @@
 "use client";
 
 /**
- * Dev-only preview: a chat with the AskUserQuestion modal open over a
- * dimmed conversation. Mounts the real `AskUserQuestionPrompt` component
- * with a fixture event so the marketing shot matches what users see in
- * a live session — without needing a real Claude turn.
+ * Dev-only preview: a chat with the AskUserQuestion form embedded inline in
+ * the transcript, right under the model's message. Mounts the real
+ * `AskUserQuestionPrompt` component (inline variant) with a fixture event so
+ * the marketing shot matches what users see in a live session — without
+ * needing a real Claude turn. The chat stays fully visible (no dim/blur):
+ * that's the whole point of the inline form — the reader keeps the context
+ * the model just wrote while answering.
  */
 
 import { AskUserQuestionPrompt } from "@/components/chat/AskUserQuestionPrompt";
@@ -68,8 +71,8 @@ export default function ChatAskPreview() {
       ]}
     >
       <div className="relative flex h-full flex-col">
-        {/* Status line — dimmed below the modal */}
-        <div className="flex shrink-0 items-center gap-2 border-b border-[var(--border)] bg-[var(--panel)] px-3 py-1.5 text-[11px] text-[var(--muted)] opacity-70">
+        {/* Status line */}
+        <div className="flex shrink-0 items-center gap-2 border-b border-[var(--border)] bg-[var(--panel)] px-3 py-1.5 text-[11px] text-[var(--muted)]">
           <span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-400" />
           <span className="rounded border border-[var(--border)] bg-[var(--panel-2)] px-1.5 py-0.5 font-medium text-[var(--foreground)]">
             Session 98a3c4f1
@@ -78,16 +81,20 @@ export default function ChatAskPreview() {
           <span>Awaiting answer</span>
         </div>
 
-        {/* Faded chat behind the modal so "the chat is still visible" reads */}
-        <div className="flex-1 overflow-hidden px-6 py-6 opacity-50 blur-[1px]">
-          <div className="mx-auto max-w-3xl space-y-6">
+        {/* Chat transcript — fully visible. The inline question form is the
+            last item, embedded right under the model's message. */}
+        <div className="flex-1 overflow-y-auto px-6 py-6">
+          <div
+            data-testid="ask-user-question-preview"
+            className="mx-auto max-w-3xl space-y-6"
+          >
             <div className="flex justify-end">
               <div className="max-w-[80%] rounded-2xl border border-[var(--border)] bg-[var(--panel-2)] px-4 py-2 text-sm">
                 Help me decide a couple of things for the Claudius site. Ask me both at once via AskUserQuestion.
               </div>
             </div>
-            <div className="text-[var(--muted)]">
-              <div className="mb-1 flex items-center gap-2 text-[11px] font-medium">
+            <div className="text-[var(--foreground)]">
+              <div className="mb-1 flex items-center gap-2 text-[11px] font-medium text-[var(--muted)]">
                 <span className="inline-block h-1.5 w-1.5 rounded-full bg-[var(--accent)]" />
                 Claude
               </div>
@@ -98,32 +105,31 @@ export default function ChatAskPreview() {
                 </p>
               </div>
             </div>
+
+            {/* The inline form — real component, fixture event */}
+            <AskUserQuestionPrompt
+              inline
+              request={FIXTURE}
+              sessionLabel="SDK rollout plan"
+              onSubmit={() => {}}
+              onCancel={() => {}}
+            />
           </div>
         </div>
 
-        {/* Prompt input (also dimmed) */}
-        <div className="shrink-0 px-6 pb-6 opacity-50">
+        {/* Prompt input — usable while a question is pending (typed messages
+            queue behind the blocked turn). */}
+        <div className="shrink-0 px-6 pb-6">
           <div className="mx-auto flex max-w-3xl items-center gap-3 rounded-full border border-[var(--border)] bg-[var(--panel)] px-4 py-2.5">
             <Paperclip className="h-4 w-4 text-[var(--muted)]" />
             <span className="flex-1 truncate text-sm text-[var(--muted)]">
-              Waiting on your answer above…
+              Answer above, or keep typing…
             </span>
             <Mic className="h-4 w-4 text-[var(--muted)]" />
-            <button className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--accent)]/50 text-[var(--background)]">
+            <button className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--background)]">
               <ArrowUp className="h-4 w-4" />
             </button>
           </div>
-        </div>
-
-        {/* The modal itself — real component, fixture event */}
-        <div data-testid="ask-user-question-preview" className="absolute inset-0 z-30 flex items-center justify-center">
-          <AskUserQuestionPrompt
-            request={FIXTURE}
-            sessionLabel="SDK rollout plan"
-            onSubmit={() => {}}
-            onCancel={() => {}}
-            onMinimize={() => {}}
-          />
         </div>
       </div>
     </PreviewChrome>
