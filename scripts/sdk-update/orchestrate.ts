@@ -3058,12 +3058,120 @@ export function buildCcDroppedAnnouncement(args: {
 
 // ── Push & PR ─────────────────────────────────────────────────────────
 
+/**
+ * Preflight for the "open a PR" step. Added after PRs #101 and #103 both
+ * shipped as junk from the same blind spot — the orchestrator decided to
+ * open a PR without first checking there was anything real left to ship:
+ *   - #101: `sdk-update/0.3.198` re-fired after its work had already
+ *     merged via #98, so `pushBranch` fabricated an empty "so a PR can be
+ *     opened" commit and opened a 0-file PR.
+ *   - #103: `cc-parity/2.1.198` re-shipped a version bump whose full
+ *     feature body described work that had already merged, leaving a
+ *     1-line diff under a feature-sized description.
+ *
+ * Returns a human-readable skip reason when there is nothing new to ship
+ * on `branch`, or null when the branch carries real, unmerged work:
+ *   #1 already-shipped — a PR for this exact head branch already merged
+ *      into main (e.g. the combined SDK PR carried the work).
+ *   #2 no real delta   — the branch introduces no file changes vs
+ *      origin/main (optionally ignoring release-only paths such as a
+ *      package.json version bump), so any PR would be empty/content-free.
+ *
+ * Callers should skip push + PR (logging the reason), NOT treat a
+ * non-null result as an error — "already shipped" is a normal outcome.
+ */
+export function branchShipBlocker(
+  branch: string,
+  opts: { ignorePaths?: string[] } = {},
+): string | null {
+  // #1 — a PR for this head already merged into main.
+  const mergedJson = spawnSync(
+    "gh",
+    [
+      "pr",
+      "list",
+      "--head",
+      branch,
+      "--state",
+      "merged",
+      "--json",
+      "number,url",
+      "--limit",
+      "1",
+    ],
+    { cwd: ROOT, encoding: "utf8" },
+  );
+  if (mergedJson.status === 0) {
+    const merged = JSON.parse(mergedJson.stdout || "[]") as Array<{
+      number: number;
+      url: string;
+    }>;
+    if (merged.length > 0) {
+      return `already shipped — PR #${merged[0]!.number} for '${branch}' already merged into main (${merged[0]!.url})`;
+    }
+  }
+
+  // #2 — no real file delta vs origin/main. Three-dot diff is "what this
+  // branch introduces since it forked from main", i.e. exactly the PR's
+  // content; two-dot would also flag main's own newer commits. HEAD must
+  // be on `branch` here (callers guarantee it via checkoutFreshBranch).
+  // Best-effort refresh so a stale origin/main ref can't manufacture a
+  // phantom diff; ignore fetch failures (offline/transient) and fall back
+  // to the ref we have.
+  spawnSync("git", ["fetch", "origin", "main", "--quiet"], {
+    cwd: ROOT,
+    encoding: "utf8",
+  });
+  const ignore = new Set(opts.ignorePaths ?? []);
+  const changed = sh("git", ["diff", "--name-only", "origin/main...HEAD"])
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean)
+    .filter((p) => !ignore.has(p));
+  if (changed.length === 0) {
+    const suffix =
+      ignore.size > 0 ? ` (ignoring ${[...ignore].join(", ")})` : "";
+    return `no real delta vs origin/main${suffix} — nothing to ship`;
+  }
+
+  return null;
+}
+
+/**
+ * Best-effort "return the working tree to `main`" for the end of a
+ * SUCCESSFUL run. The pipeline leaves HEAD on its feature branch when it
+ * finishes; switching back to main means the local checkout — and any
+ * running Claudius dev server reading these files — reflects main again
+ * instead of being stranded on a parity/sdk-update branch. The feature
+ * branch is already pushed to origin, so nothing is lost.
+ *
+ * Never throws: a failure (no local `main`, a dirty tree, a detached CI
+ * checkout) is logged and swallowed so it can't mask the run's real
+ * outcome or wedge the pipeline. Callers MUST only invoke this on success
+ * — on failure the run should stay on the branch so a human can debug it.
+ */
+export function returnToMainBestEffort(): void {
+  const res = spawnSync("git", ["checkout", "main"], {
+    cwd: ROOT,
+    encoding: "utf8",
+  });
+  if (res.status === 0) {
+    log("switched working tree back to main");
+  } else {
+    log(
+      `WARN could not switch back to main (staying on current branch): ` +
+        `${(res.stderr ?? "").trim() || `git checkout main exited ${res.status}`}`,
+    );
+  }
+}
+
 export function pushBranch(branch: string): void {
   // Safety gate: pushBranch must run with HEAD on the very branch it is about
-  // to push. If HEAD were on `main`, the `--allow-empty` marker commit below
-  // (or any of Claude's work) would land directly on local main — which then
-  // can't fast-forward to origin/main and wedges the hourly sync FOREVER. That
-  // is exactly how the empty "so a PR can be opened" commit (df385ed) once
+  // to push. If HEAD were on `main`, any of Claude's commits (historically
+  // also a fabricated `--allow-empty` marker commit, now removed — see the
+  // guard below) would land directly on local main — which then can't
+  // fast-forward to origin/main and wedges the hourly sync FOREVER. That is
+  // exactly how the empty "so a PR can be opened" commit (df385ed) once
   // stalled the whole pipeline. `--abbrev-ref` returns "HEAD" when detached,
   // which also fails this check (we never want to commit/push from detached).
   const head = sh("git", ["rev-parse", "--abbrev-ref", "HEAD"]);
@@ -3074,19 +3182,24 @@ export function pushBranch(branch: string): void {
         `branch (this is how an empty commit once wedged main).`,
     );
   }
-  // If Claude didn't commit anything (unlikely but possible) we make a
-  // marker commit so the branch can still be pushed — that way the
-  // human gets a draft PR pointing at the dependency bump even if the
-  // model bailed early.
-  // (Local name avoids shadowing the module-level `log()` helper.)
+  // Guard (added after PR #101): never fabricate an empty commit just to
+  // open a PR. If nothing is committed ahead of origin/main there is
+  // genuinely nothing to ship — the old `--allow-empty` "so a PR can be
+  // opened" fallback produced a 0-file PR (exactly how #101 happened),
+  // NOT the "draft PR pointing at the dependency bump" it claimed (a real
+  // bump is itself a commit, so this branch only fires when even that is
+  // absent). Refuse loudly so a no-op re-fire surfaces to a human instead
+  // of silently opening junk. Callers that can foresee this should gate on
+  // `branchShipBlocker(branch)` and skip cleanly before reaching here.
   const commitsAhead = sh("git", ["log", "origin/main..HEAD", "--oneline"]);
   if (commitsAhead.trim() === "") {
-    sh("git", [
-      "commit",
-      "--allow-empty",
-      "-m",
-      "chore(sdk-update): empty commit so a PR can be opened",
-    ]);
+    throw new Error(
+      `pushBranch: '${branch}' has no commits ahead of origin/main — ` +
+        `nothing to ship. Refusing to fabricate an empty commit to open a ` +
+        `PR (this is how PR #101 shipped an empty "so a PR can be opened" ` +
+        `commit). If the work already merged, this re-fire is a no-op — see ` +
+        `branchShipBlocker().`,
+    );
   }
   // Idempotency on re-run: a previous firing may have left the branch on
   // origin. We already nuked the local copy in checkoutFreshBranch and built
@@ -4241,6 +4354,12 @@ async function main(): Promise<void> {
     | "sdk-failure-cc-draft"
     | "sdk-only-success"
     | "failure" = "failure";
+  // Set true only when the run reaches its normal end without throwing.
+  // Gates the "switch the working tree back to main" step in `finally` so
+  // it fires on a successful finish but NOT on a crash, a local-gate
+  // failure, or a dry-run (all of which leave HEAD on the branch for
+  // inspection). Hoisted for the same finally-scope reason as above.
+  let completedOk = false;
 
   // Progress announcements (start / changelog / summary / testing) are
   // suppressed when dry-run is on — dry-run is for local prompt iteration
@@ -4895,6 +5014,11 @@ async function main(): Promise<void> {
         prUrl,
       });
     }
+
+    // Reached the normal end of the run without throwing — mark success so
+    // `finally` returns the working tree to main. (A dry-run or local-gate
+    // failure returns earlier and never gets here; a crash jumps to catch.)
+    completedOk = true;
   } catch (err) {
     log(`orchestrator threw: ${err instanceof Error ? err.stack : String(err)}`);
     // Surface unrecoverable failures out-of-band so a human hears about
@@ -4930,6 +5054,12 @@ async function main(): Promise<void> {
         `final state: shipped=${shipped} mode=${combinedOutcome} pr=${prUrl}` +
           (combinedCcVersion ? ` ccVersion=${combinedCcVersion}` : ""),
       );
+    }
+    // On a successful finish, return the working tree (and any running dev
+    // server) to main. Skipped on crash / gate-fail / dry-run so those
+    // stay on the branch for debugging.
+    if (completedOk) {
+      returnToMainBestEffort();
     }
   }
 }
