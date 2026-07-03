@@ -47,6 +47,7 @@ import {
 import {
   ALL_GATE_STEPS,
   announceSafe,
+  branchShipBlocker,
   clampGitHubBody,
   collectChecks,
   collectReviews,
@@ -55,6 +56,7 @@ import {
   preflight,
   pushBranch,
   readPrMeta,
+  returnToMainBestEffort,
   runClaude,
   runGate,
   sliceChangelog,
@@ -1443,6 +1445,12 @@ async function main(): Promise<void> {
   // Mirror of the in-try branch name so the catch/finalize path can push
   // and draft any committed-but-un-PR'd work instead of stranding it.
   let branchForCatch: string | null = null;
+  // Set true only when the run reaches its normal end (or the
+  // already-shipped skip) without throwing. Gates the "switch the working
+  // tree back to main" step in `finally` so it fires on a successful
+  // finish but NOT on a crash, a local-gate failure, or a dry-run (which
+  // all leave HEAD on the branch for inspection).
+  let completedOk = false;
 
   const announceProgress = async (
     body: string,
@@ -1519,6 +1527,35 @@ async function main(): Promise<void> {
         branch,
         prUrl: null,
       });
+      return;
+    }
+
+    // Preflight (added after PRs #101/#103): before bumping the version
+    // and opening a PR, confirm there is actually something to ship. When
+    // this CC version's work already merged (e.g. carried in via the
+    // combined SDK PR) the branch has no real delta vs main, so bumping
+    // the version and opening a PR would only produce a redundant
+    // version-bump-only PR under a full feature body — exactly #103.
+    // Check BEFORE the bump so the version-only commit is never even made.
+    const shipBlocker = branchShipBlocker(branch);
+    if (shipBlocker) {
+      log(
+        `cc-parity ${newVersion}: ${shipBlocker} — not bumping version or opening a PR`,
+      );
+      // Record the version as completed so the cron advances past it.
+      // Both blocker reasons (already-merged PR / no real delta vs main)
+      // mean this CC version is already handled on main; without this the
+      // scheduler would re-select it and burn a full Claude run every tick
+      // before hitting this same guard. patchState merges, so the finally's
+      // later `inFlight: null` patch preserves this. (This is why the guard
+      // runs in the standalone caller, which owns lastCompletedVersion.)
+      patchState({ lastCompletedVersion: newVersion }, ROOT);
+      await announceSafe(
+        `⏭️ cc-parity ${prevVersion} → ${newVersion}: ${shipBlocker}. No PR opened.`,
+        { pin: false },
+      );
+      // Already-shipped is a successful finish → let `finally` return to main.
+      completedOk = true;
       return;
     }
 
@@ -1619,6 +1656,12 @@ async function main(): Promise<void> {
         prUrl,
       });
     }
+
+    // Reached the normal end of the run without throwing (PR opened,
+    // whether CI went green or was left as a draft for a reviewer) — mark
+    // success so `finally` returns the working tree to main. A dry-run or
+    // local-gate failure returns earlier; a crash jumps to catch.
+    completedOk = true;
   } catch (err) {
     log(`orchestrator threw: ${err instanceof Error ? err.stack : String(err)}`);
     // Before filing the crash issue, try to rescue any work Claude already
@@ -1649,6 +1692,12 @@ async function main(): Promise<void> {
     );
     if (prUrl) {
       log(`final state: shipped=${shipped} pr=${prUrl}`);
+    }
+    // On a successful finish, return the working tree (and any running dev
+    // server) to main. Skipped on crash / gate-fail / dry-run so those
+    // stay on the branch for debugging.
+    if (completedOk) {
+      returnToMainBestEffort();
     }
   }
 }
