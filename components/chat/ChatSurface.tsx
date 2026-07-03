@@ -1564,6 +1564,17 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
       images?: Array<{ id?: string; ordinal?: number; data: string; mediaType: string }>,
       opts?: { fromSuggestion?: boolean },
     ) => {
+      // A live AskUserQuestion blocks the agent in `canUseTool`. If the user
+      // sends a new message instead of answering, treat it as moving on:
+      // decline the ask (empty answers → the SDK gets a graceful deny), which
+      // resolves that promise so the agent can process this message AND clears
+      // `pendingAsk` so the inline form collapses into its historic position —
+      // the AskUserQuestion tool-call row (with its "Reopen" pill) stays put in
+      // the transcript. Without this the message would just queue behind the
+      // still-blocked turn and the question would sit there unresolved.
+      if (session.pendingAsk) {
+        void session.submitAskAnswer(session.pendingAsk.requestId, []);
+      }
       const trimmed = text.trim();
       // Slash dispatch only when there are no images attached.
       if (trimmed.startsWith("/") && !images?.length) {
