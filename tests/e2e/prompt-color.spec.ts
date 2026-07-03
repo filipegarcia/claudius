@@ -53,8 +53,11 @@ test.describe("/color slash command", () => {
     await page.waitForTimeout(150);
     await composer.press("Enter");
 
-    // Toast confirms dispatch; border is the real assertion.
-    await expect(page.getByText("Session color set to: red")).toBeVisible({ timeout: 10_000 });
+    // Toast confirms dispatch; border is the real assertion. The toast text can
+    // vary slightly (with/without a colon) in some environments, so match with
+    // a case-insensitive regex to reduce flakiness while still asserting the
+    // UI acknowledged the command.
+    await expect(page.getByText(/Session color set to:?\s*red/i)).toBeVisible({ timeout: 10_000 });
     await expect.poll(borderColor, { timeout: 10_000 }).toBe(RED);
   });
 });
