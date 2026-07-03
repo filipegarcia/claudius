@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  AlertCircle,
   AlertTriangle,
   Bell,
   CheckCircle2,
@@ -99,6 +100,13 @@ export function SystemPill({
   if (entry.kind === "system_reminder" && entry.reminderBody) {
     return <SystemReminderPill entry={entry} />;
   }
+  // A failed hook (SessionStart/Setup/SubagentStart exiting 2, etc.) gets its
+  // own renderer: red tone so it reads as an error rather than routine hook
+  // chatter, plus an expandable stderr body when the SDK sent one — mirroring
+  // CC 2.1.199's "stop hiding the stderr" fix instead of silently dropping it.
+  if (entry.kind === "hook_response" && entry.hookFailed) {
+    return <HookFailurePill entry={entry} />;
+  }
   return (
     <div className="my-1 flex items-center gap-2 text-[11px] text-[var(--muted)]">
       <Icon className={`h-3 w-3 ${meta.tone}`} />
@@ -152,6 +160,37 @@ function SystemReminderPill({ entry }: { entry: SystemEntry }) {
       {expanded && (
         <div className="ml-5 mt-1 max-h-60 overflow-auto whitespace-pre-wrap rounded-md border border-[var(--border)] bg-[var(--panel)]/40 p-2 text-[10.5px] leading-5 text-[var(--foreground)]/75 scroll-thin">
           {body}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Hook-failure pill — red tone + expandable stderr (CC 2.1.199)
+// ---------------------------------------------------------------------------
+
+function HookFailurePill({ entry }: { entry: SystemEntry }) {
+  const [expanded, setExpanded] = useState(false);
+  const hasStderr = typeof entry.hookStderr === "string" && entry.hookStderr.length > 0;
+  return (
+    <div className="my-1 text-[11px] text-red-300">
+      <button
+        type="button"
+        onClick={() => hasStderr && setExpanded((v) => !v)}
+        aria-expanded={hasStderr ? expanded : undefined}
+        disabled={!hasStderr}
+        className="flex items-center gap-2 rounded px-1 py-0.5 text-left hover:bg-red-500/10 disabled:cursor-default disabled:hover:bg-transparent"
+        title={hasStderr ? (expanded ? "Hide hook stderr" : "Show hook stderr") : undefined}
+      >
+        <AlertCircle className="h-3 w-3 text-red-400" />
+        <span>{entry.label}</span>
+        {entry.detail && <span className="opacity-70">— {entry.detail}</span>}
+        {hasStderr && <span className="opacity-50">{expanded ? "▾" : "▸"}</span>}
+      </button>
+      {expanded && hasStderr && (
+        <div className="ml-5 mt-1 max-h-60 overflow-auto whitespace-pre-wrap rounded-md border border-red-500/30 bg-red-500/10 p-2 font-mono text-[10.5px] leading-5 text-red-200 scroll-thin">
+          {entry.hookStderr}
         </div>
       )}
     </div>
