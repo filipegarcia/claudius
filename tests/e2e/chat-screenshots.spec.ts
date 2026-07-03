@@ -1,7 +1,7 @@
 import { test, expect } from "../helpers/test";
 import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
-import { UPDATE_SCREENSHOTS } from "./helpers/marketing-screenshot";
+import { UPDATE_SCREENSHOTS, hideNextDevOverlay } from "./helpers/marketing-screenshot";
 
 /**
  * Marketing screenshots for the three chat states (empty, todos banner,
@@ -34,6 +34,7 @@ test.describe("chat states (fixture-driven)", () => {
     });
     await page.waitForTimeout(300);
     if (UPDATE_SCREENSHOTS) {
+      await hideNextDevOverlay(page);
       await page.screenshot({
         path: resolve(SHOTS_DIR, "chat.png"),
         fullPage: false,
@@ -51,6 +52,7 @@ test.describe("chat states (fixture-driven)", () => {
     });
     await page.waitForTimeout(300);
     if (UPDATE_SCREENSHOTS) {
+      await hideNextDevOverlay(page);
       await page.screenshot({
         path: resolve(SHOTS_DIR, "todos.png"),
         fullPage: false,
@@ -67,6 +69,7 @@ test.describe("chat states (fixture-driven)", () => {
     // the first question shown with focus rings stable.
     await page.waitForTimeout(500);
     if (UPDATE_SCREENSHOTS) {
+      await hideNextDevOverlay(page);
       await page.screenshot({
         path: resolve(SHOTS_DIR, "ask-user-question.png"),
         fullPage: false,
@@ -86,6 +89,7 @@ test.describe("chat states (fixture-driven)", () => {
     });
     await page.waitForTimeout(300);
     if (UPDATE_SCREENSHOTS) {
+      await hideNextDevOverlay(page);
       await page.screenshot({
         path: resolve(SHOTS_DIR, "workflow.png"),
         fullPage: false,

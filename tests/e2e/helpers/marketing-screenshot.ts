@@ -20,3 +20,28 @@
  * for the whole `playwright test` invocation.
  */
 export const UPDATE_SCREENSHOTS = process.env.UPDATE_SCREENSHOTS === "1";
+
+/**
+ * Hide the Next.js dev overlay before a marketing screenshot.
+ *
+ * `next dev` injects a floating dev-tools indicator that renders a "N · 1
+ * Issue" badge in the bottom-right whenever it detects a build/runtime issue
+ * (a stray hydration warning is enough). `next.config.ts` sets
+ * `devIndicators: false` under the e2e dist dir, but that flag only suppresses
+ * the *route* indicator — Next 16's error badge still bleeds through and lands
+ * in the committed gallery.
+ *
+ * The overlay lives inside a `<nextjs-portal>` custom element appended to the
+ * body (its UI is in a shadow root, but the host is light-DOM). Hiding the
+ * host element via a plain stylesheet reliably removes the whole overlay
+ * regardless of the flag. Selectors cover the 16.2.x host + badge + toast
+ * element names. No-op (caught) if the page navigated away mid-call.
+ */
+export async function hideNextDevOverlay(page: import("@playwright/test").Page) {
+  await page
+    .addStyleTag({
+      content:
+        "nextjs-portal,nextjs-dev-tools,nextjs-toast,[data-next-badge],[data-next-badge-root],#__next-build-watcher{display:none!important}",
+    })
+    .catch(() => {});
+}

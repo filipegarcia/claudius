@@ -2,6 +2,7 @@ import { test, expect, type Page } from "../helpers/test";
 import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { activateClaudiusWorkspace } from "./helpers/workspace";
+import { hideNextDevOverlay } from "./helpers/marketing-screenshot";
 
 /**
  * Captures screenshots used by the marketing site (site/index.html). The
@@ -26,6 +27,8 @@ const INCLUDE_CHAT = process.env.SCREENSHOTS_INCLUDE_CHAT === "1";
 
 
 async function snap(page: Page, name: string) {
+  // Strip the `next dev` overlay ("N · 1 Issue" badge) before every shot.
+  await hideNextDevOverlay(page);
   await page.screenshot({
     path: resolve(SHOTS_DIR, `${name}.png`),
     fullPage: false,
