@@ -148,15 +148,6 @@ export function AssistantMessage({
                 />
               );
             }
-            // Live AskUserQuestion: the inline form (rendered by MessageList
-            // right below this message) already shows the question in full —
-            // header, options, submit. The collapsed tool-call row here would
-            // be a redundant duplicate stacked above it, so skip it while the
-            // ask is live. Once answered it's no longer `pendingAskToolUseId`
-            // and renders normally as the historic record (with "Reopen").
-            if (b.name === "AskUserQuestion" && pendingAskToolUseId === b.id) {
-              return null;
-            }
             // Only AskUserQuestion rows get a click handler — the pill is
             // gated by `name === "AskUserQuestion"` inside ToolCall too, but
             // refusing to even hand the closure to non-ask rows keeps the
