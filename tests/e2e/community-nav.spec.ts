@@ -125,7 +125,13 @@ test.describe("/community soft-nav reconnect", () => {
       .locator('[data-pane-name="left-nav"] a[title^="Chat"]')
       .first()
       .click();
-    await expect(page).toHaveURL(/\/wks_[a-f0-9]{12}(?:$|\?)/);
+    // Wait for the Chat page to fully SETTLE — the workspace root auto-binds a
+    // session and appends `?session=<uuid>` via an async redirect. The bare
+    // `/wks_xxx` matched too early: clicking Community while that redirect was
+    // still pending let the redirect clobber the /community navigation (URL
+    // landed back on `/wks_xxx?session=…`). Waiting for the session-bound URL
+    // closes that race.
+    await expect(page).toHaveURL(/\/wks_[a-f0-9]{12}\?session=[0-9a-f-]{36}/i);
 
     // Come back via the workspace-rail Community tile. Use the title
     // attribute (set by SystemTile via the `label` prop) instead of href
@@ -246,7 +252,13 @@ test.describe("/community soft-nav reconnect", () => {
       .locator('[data-pane-name="left-nav"] a[title^="Chat"]')
       .first()
       .click();
-    await expect(page).toHaveURL(/\/wks_[a-f0-9]{12}(?:$|\?)/);
+    // Wait for the Chat page to fully SETTLE — the workspace root auto-binds a
+    // session and appends `?session=<uuid>` via an async redirect. The bare
+    // `/wks_xxx` matched too early: clicking Community while that redirect was
+    // still pending let the redirect clobber the /community navigation (URL
+    // landed back on `/wks_xxx?session=…`). Waiting for the session-bound URL
+    // closes that race.
+    await expect(page).toHaveURL(/\/wks_[a-f0-9]{12}\?session=[0-9a-f-]{36}/i);
 
     const communityTile = page.locator(
       '[data-pane-name="workspace-switcher"] a[href="/community"]',
