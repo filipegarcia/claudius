@@ -232,7 +232,7 @@ jobs:
         # upload flaked and reddened the whole run). Don't let a flaky upload
         # fail CI when the tests themselves are green.
         continue-on-error: true
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-report
           path: |
