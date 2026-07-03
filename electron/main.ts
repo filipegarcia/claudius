@@ -14,6 +14,7 @@
  */
 import { app, BrowserWindow, ipcMain, shell } from "electron";
 import { spawn } from "node:child_process";
+import { createHash, X509Certificate } from "node:crypto";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 
@@ -36,6 +37,7 @@ import { registerNotificationHandlers } from "./ipc/notifications";
 import { registerPermissionPrimingHandlers } from "./ipc/permission-priming";
 import { registerUpdaterHandlers } from "./ipc/updater";
 import { installAppMenu, type MenuAccelerators } from "./menu";
+import { startHttp2Proxy, type EmbeddedProxy } from "./proxy";
 import {
   defaultAppDir,
   startEmbeddedNextServer,
@@ -155,6 +157,19 @@ if (!userDataOverride) {
 let mainWindow: BrowserWindow | null = null;
 let splashWindow: BrowserWindow | null = null;
 let nextServer: EmbeddedNextServer | null = null;
+// The HTTP/2 TLS proxy that fronts the standalone Next server in packaged
+// builds (electron/proxy.ts). Null in dev / remote-backend / proxy-fallback
+// modes, where the renderer talks to an http origin directly.
+let proxy: EmbeddedProxy | null = null;
+// The origin the renderer is loaded from — `https://127.0.0.1:<proxyPort>` when
+// the proxy is up, else the plain-http Next/dev/remote origin. Module-level so
+// the `certificate-error` handler and the outbound-link carve-out both read the
+// same value. Set by resolveStartUrl before any loadURL.
+let appOrigin = "http://invalid.invalid";
+// The exact fingerprint (`sha256/<base64>`) of our self-signed loopback cert.
+// The `certificate-error` handler trusts ONLY this cert on ONLY `appOrigin`.
+// Null when the proxy isn't in use.
+let expectedFingerprint: string | null = null;
 
 // Last accelerator map the renderer pushed — kept so we can rebuild the menu
 // (e.g. to toggle recording mode) without waiting for another sync.
@@ -184,6 +199,28 @@ if (!gotTheLock) {
 // `whenReady` so cold-start URLs aren't lost. Phase 8 of
 // docs/electron-conversion/PLAN.md.
 registerProtocol();
+
+// Trust our self-signed loopback cert — but ONLY that exact cert, and ONLY on
+// our own origin. The in-app browser (electron/ipc/in-app-browser.ts) can
+// navigate to arbitrary https, so a blanket `callback(true)` would defeat TLS
+// for real sites. Default is reject; we bypass solely for a fingerprint match
+// on `appOrigin`. `expectedFingerprint` is null unless the h2 proxy is up.
+app.on("certificate-error", (event, _webContents, url, _error, certificate, callback) => {
+  try {
+    if (
+      expectedFingerprint != null &&
+      new URL(url).origin === appOrigin &&
+      certificate.fingerprint === expectedFingerprint
+    ) {
+      event.preventDefault();
+      callback(true);
+      return;
+    }
+  } catch {
+    // Malformed URL / cert — fall through to the safe default.
+  }
+  callback(false);
+});
 
 // Phase 8 follow-up: dock-drop folder support. mac fires this when
 // the user drops a folder on the Claudius dock icon; the path is the
@@ -239,6 +276,43 @@ async function writePersistedPort(port: number): Promise<void> {
 }
 
 /**
+ * Load the self-signed loopback cert that fronts the packaged app over HTTP/2
+ * (see electron/proxy.ts + scripts/electron-gen-cert.mjs). Packaged: shipped to
+ * `<Resources>/cert/` via electron-builder.yml. Dev/smoke: `<project>/build/cert/`
+ * (this file compiles to `dist-electron/main.js`, so `build/` is one level up).
+ *
+ * Returns null when the cert is missing — the caller then degrades to serving
+ * plain http (the pre-proxy behavior), so a missing/broken cert can't brick the
+ * app. The fingerprint is computed here in Electron's own format
+ * (`sha256/<base64-of-DER>`) so the `certificate-error` handler matches exactly.
+ */
+async function loadProxyCert(): Promise<{
+  key: Buffer;
+  cert: Buffer;
+  fingerprint: string;
+} | null> {
+  const dir =
+    process.env.CLAUDIUS_PACKAGED === "1"
+      ? path.join(process.resourcesPath, "cert")
+      : path.resolve(__dirname, "..", "build", "cert");
+  try {
+    const [key, cert] = await Promise.all([
+      fs.readFile(path.join(dir, "key.pem")),
+      fs.readFile(path.join(dir, "cert.pem")),
+    ]);
+    const der = new X509Certificate(cert).raw;
+    const fingerprint = "sha256/" + createHash("sha256").update(der).digest("base64");
+    return { key, cert, fingerprint };
+  } catch (err) {
+    console.warn(
+      "[electron/main] proxy cert unavailable, falling back to http:",
+      err instanceof Error ? err.message : err,
+    );
+    return null;
+  }
+}
+
+/**
  * Remote-backend override. When set, the renderer loads from this URL and
  * we SKIP the embedded-Next bootstrap entirely — the Electron process
  * becomes a thin native shell (notifications, dialogs, OS menu, IPC bridge)
@@ -277,26 +351,57 @@ async function resolveStartUrl(): Promise<string> {
     return DEV_START_URL;
   }
 
-  // Packaged: spin up the embedded Next server on a STABLE loopback port.
-  //
-  // Why stable: Chromium keys localStorage / IndexedDB by origin (scheme +
-  // host + port). A new random port every launch means a brand-new storage
-  // bucket every launch — every localStorage-backed preference (theme,
-  // shortcuts, link-target, the "Opus 4.8 is here" dismissal banner, …)
-  // would reset on every relaunch. We persist the port to userData and
-  // request it on subsequent launches. Fallback to random on EADDRINUSE,
-  // and write the new port back so the *next* launch matches.
-  const preferredPort = await readPersistedPort();
-  nextServer = await startEmbeddedNextServer(defaultAppDir(), preferredPort);
-  if (nextServer.port !== preferredPort) {
-    // Either first launch (no file) or the previous port collided. Either
-    // way, persist what we actually got so we stabilize from here on.
-    await writePersistedPort(nextServer.port);
+  // Packaged: standalone Next on an EPHEMERAL internal loopback port (the
+  // browser never sees it), fronted by an HTTP/2 TLS proxy on a STABLE public
+  // port. HTTP/2 multiplexes every request + SSE stream over one connection,
+  // eliminating Chromium's 6-connections-per-origin limit that stalled
+  // navigations for 10-17s once the pool saturated. See electron/proxy.ts.
+  nextServer = await startEmbeddedNextServer(defaultAppDir());
+  console.log(`[electron/main] embedded server listening at ${nextServer.url} (internal)`);
+
+  // Why the PUBLIC (proxy) port must be stable: Chromium keys localStorage /
+  // IndexedDB by origin (scheme + host + port). A random port every launch =
+  // a brand-new storage bucket every launch, resetting every localStorage
+  // preference (theme, shortcuts, dismissed banners). Persist + reuse it.
+  const preferredPublicPort = await readPersistedPort();
+  const certBundle = await loadProxyCert();
+
+  if (certBundle) {
+    try {
+      proxy = await startHttp2Proxy({
+        internalOrigin: nextServer.url,
+        publicPort: preferredPublicPort,
+        key: certBundle.key,
+        cert: certBundle.cert,
+      });
+      appOrigin = new URL(proxy.url).origin;
+      expectedFingerprint = certBundle.fingerprint;
+      if (proxy.port !== preferredPublicPort) {
+        await writePersistedPort(proxy.port);
+      }
+      console.log(`[electron/main] h2 proxy listening at ${proxy.url} (public)`);
+      return proxy.url;
+    } catch (err) {
+      // Proxy init failed (port unbindable, TLS error). Degrade to plain http
+      // rather than brick the app — the 6-connection limit returns, but the
+      // app works. Tear down any half-started proxy first.
+      console.error("[electron/main] h2 proxy failed to start, using http fallback:", err);
+      if (proxy) {
+        try {
+          await proxy.close();
+        } catch {
+          // ignore
+        }
+        proxy = null;
+      }
+    }
   }
-  // Log the resolved loopback URL — useful for health probes and for
-  // verifying "is my port stable across launches?" by comparing two cold
-  // launches.
-  console.log(`[electron/main] embedded server listening at ${nextServer.url}`);
+
+  // Fallback path (no cert, or proxy failed): serve the internal http URL
+  // directly — today's known-good behavior.
+  appOrigin = new URL(nextServer.url).origin;
+  expectedFingerprint = null;
+  console.log(`[electron/main] serving http directly at ${nextServer.url} (proxy disabled)`);
   return nextServer.url;
 }
 
@@ -333,21 +438,13 @@ async function prewarmRootRoute(serverUrl: string): Promise<void> {
 }
 
 function createWindow(startUrl: string): BrowserWindow {
-  // Derive the origin once — the `internal-allow` carve-out in
-  // `resolveLinkAction` matches against THIS exact origin (with loopback
-  // hostname equivalence for the dev/packaged Next server on the same
-  // port). Without an origin, a click on `http://localhost:81` (a user's
-  // OWN admin app on a different port) would short-circuit to a default
-  // child window titled "Claudius" instead of routing through the user's
-  // link-target preference. Fall back to a synthetic value if parsing
-  // somehow fails so the carve-out simply never matches and clicks
-  // follow the preference.
-  let appOrigin: string;
-  try {
-    appOrigin = new URL(startUrl).origin;
-  } catch {
-    appOrigin = "http://invalid.invalid";
-  }
+  // The module-level `appOrigin` was set by resolveStartUrl (which runs before
+  // any createWindow call) to the origin the renderer loads — the https proxy
+  // origin when the h2 proxy is up, else the plain-http Next/dev/remote origin.
+  // The `internal-allow` carve-out in `resolveLinkAction` (window-open handler
+  // below) matches against it so loopback clicks stay in-app; without it a
+  // click on `http://localhost:81` (a user's OWN admin app) would open a
+  // default child window instead of following the link-target preference.
   // Platform variants for the frameless chrome — Phase 4 of
   // docs/electron-conversion/PLAN.md. The renderer-side <TitleBar />
   // component fills in the matching custom chrome (32px tall, drag
@@ -605,9 +702,11 @@ app.whenReady().then(async () => {
     // wait time — it just shifts the work earlier on the wall clock so
     // the splash → main-window swap is one clean transition rather than
     // "blank main window paints, sits for a beat, then content fills in".
-    // No-op for the remote-backend mode (nextServer is null).
+    // No-op for the remote-backend mode (nextServer is null). Warm the INTERNAL
+    // Next origin directly — no reason to route a synthetic GET through the TLS
+    // proxy, and it works identically whether or not the proxy came up.
     if (nextServer != null) {
-      await prewarmRootRoute(startUrl);
+      await prewarmRootRoute(nextServer.url);
     }
 
     mainWindow = createWindow(startUrl);
@@ -676,6 +775,16 @@ app.on("before-quit", async () => {
   // window's `ready-to-show` (e.g. user Cmd+Q during startup).
   destroySplashWindow(splashWindow);
   splashWindow = null;
+  // Tear down the proxy BEFORE the Next server: the proxy holds upstream
+  // sockets to it, and closing the proxy destroys live SSE sessions.
+  if (proxy) {
+    try {
+      await proxy.close();
+    } catch {
+      // Ignore — we're tearing down anyway.
+    }
+    proxy = null;
+  }
   if (nextServer) {
     try {
       await nextServer.close();

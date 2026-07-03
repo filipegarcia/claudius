@@ -77,3 +77,6 @@ ds-bundle/
 .design-sync/learnings/
 .design-sync/node_modules
 .design-sync/compiled.css
+
+# Build-time self-signed loopback cert for the HTTP/2 proxy (regenerated each build; contains a private key)
+/build/cert/

@@ -77,6 +77,13 @@ extraResources:
   - from: lib/server/db-migrations
     to: db-migrations
     filter: ["**/*.sql"]
+  # Self-signed loopback cert for the HTTP/2 proxy (electron/proxy.ts), copied
+  # to `<app>/Contents/Resources/cert`. Generated at build time by
+  # scripts/electron-gen-cert.mjs (wired into `electron:build`). electron/main.ts
+  # resolves it at `process.resourcesPath/cert` and trusts it by fingerprint.
+  - from: build/cert
+    to: cert
+    filter: ["*.pem"]
   # The Next.js standalone server tree, copied verbatim to
   # `<app>/Contents/Resources/standalone`. The embedded server
   # (electron/server.ts) runs `next({ dir })` against this path — see
