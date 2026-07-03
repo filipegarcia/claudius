@@ -111,6 +111,14 @@ export function SystemPill({
     <div className="my-1 flex items-center gap-2 text-[11px] text-[var(--muted)]">
       <Icon className={`h-3 w-3 ${meta.tone}`} />
       <span>{entry.label}</span>
+      {typeof entry.count === "number" && entry.count > 1 && (
+        <span
+          className="rounded-full bg-[var(--panel-2)] px-1.5 py-0.5 text-[10px] tabular-nums opacity-80"
+          title={`Repeated ${entry.count}× in a row (collapsed)`}
+        >
+          ×{entry.count}
+        </span>
+      )}
       {entry.detail && <span className="opacity-70">— {entry.detail}</span>}
     </div>
   );

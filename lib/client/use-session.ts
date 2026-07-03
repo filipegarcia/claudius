@@ -67,6 +67,7 @@ import type {
   ToolHistoryEntry,
   ToolProgressInfo,
 } from "./types";
+import { appendCoalescedSystemEntry } from "./system-entries";
 
 type SDKContentBlock =
   | { type: "text"; text: string }
@@ -3220,15 +3221,14 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
           if (init.advisorActive) {
             setAdvisorModelState((prev) => prev ?? ADVISOR_ACTIVE_SENTINEL);
           }
-          setSystemEntries((prev) => [
-            ...prev,
-            {
+          setSystemEntries((prev) =>
+            appendCoalescedSystemEntry(prev, {
               ...baseEntry,
               kind: "init",
               label: `Session ready · ${init.model ?? ""}`,
               detail: `${init.tools.length} tools · ${init.slashCommands.length} commands · ${init.agents.length} agents`,
-            },
-          ]);
+            }),
+          );
           return;
         }
         if (sysAny.subtype === "hook_started") {
@@ -3269,10 +3269,13 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
         }
         if (sysAny.subtype === "status") {
           const s = sysAny as { status?: string };
-          setSystemEntries((prev) => [
-            ...prev,
-            { ...baseEntry, kind: "status", label: `Status: ${s.status ?? ""}` },
-          ]);
+          setSystemEntries((prev) =>
+            appendCoalescedSystemEntry(prev, {
+              ...baseEntry,
+              kind: "status",
+              label: `Status: ${s.status ?? ""}`,
+            }),
+          );
           return;
         }
         if (sysAny.subtype === "compact_boundary") {

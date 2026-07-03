@@ -168,6 +168,14 @@ export type SystemEntry = {
   detail?: string;
   ts?: string;
   /**
+   * Number of consecutive identical emissions collapsed onto this pill. Only
+   * set (and rendered as a `×N` badge) for the transient `init` / `status`
+   * kinds, which the SDK re-emits many times in a row during an API-retry /
+   * opus-overload storm. Absent (treated as 1) for a normal single emission.
+   * See `appendCoalescedSystemEntry` in `lib/client/use-session.ts`.
+   */
+  count?: number;
+  /**
    * Structured rate-limit payload. Only present (and used) when
    * `kind === "rate_limit"` — mirrors the SDK's `SDKRateLimitInfo` so the
    * pill can render a live countdown and surface overage / billing
