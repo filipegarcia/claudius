@@ -1619,7 +1619,11 @@ function runNotesStub(prevVersion: string, newVersion: string): string {
     `# SDK update ${prevVersion} → ${newVersion}`,
     ``,
     `<!--`,
-    `  This file is the PRIMARY DELIVERABLE for the SDK-update bot.`,
+    `  The DELIVERABLE is the implemented code change; this file only`,
+    `  DOCUMENTS it. Writing polished notes is not the job — shipping the`,
+    `  code the notes describe is. Every claim in "## Code changes" must`,
+    `  map to a real hunk in \`git diff main...HEAD\`; notes describing work`,
+    `  that isn't in the diff is the worst possible outcome (see prompt.md).`,
     `  The orchestrator parses each \`## \` section into the PR body.`,
     `  Replace EVERY \`_(TODO …)_\` placeholder with real content before`,
     `  finalizing — the gate fails the run if any section is still empty`,
@@ -1759,6 +1763,63 @@ function validateRunNotes(version: string): string | null {
       `Claude was told to write it as the primary deliverable, see prompt.md`;
   }
   return validateRunNotesContent(readFileSync(path, "utf8"));
+}
+
+/**
+ * Drift-proof backstop for the *assembled* PR body. `validateRunNotes`
+ * checks the per-version run-notes FILE; this checks the exact bytes
+ * headed for `gh pr create`/`edit`.
+ *
+ * The two are usually consistent (both key off `<newVersion>.md`), but
+ * the failure this guards against is the one that shipped on the
+ * sdk-update/0.3.200 → 0.3.201 continuation: a newer release stacked
+ * onto an already-open PR, the body was rebuilt from an unfilled
+ * `<newVersion>.md` stub, and the result was a *reviewable* PR whose
+ * body was wall-to-wall `_(TODO …)_`. Enforcement up to that point was
+ * "open as draft + needs-human" — a no-op on a PR the prior firing had
+ * already marked ready. This lets the sink refuse, unconditionally, to
+ * publish a non-draft PR carrying placeholder markers, regardless of how
+ * the draft flag was computed upstream.
+ *
+ * Deliberately narrow: it matches only the two markers the pipeline
+ * itself emits — `_(TODO` from `runNotesStub`, and the
+ * `run-notes did not include a "<section>" section` fallback from
+ * `extractSection`. It does NOT flag the legitimate italicised notes the
+ * template ships with (e.g. "_(no screenshots captured …)_",
+ * "_(Claude Code changelog not resolved this run …)_",
+ * "_(changelog truncated …)_"), so a clean run never trips it. Exported
+ * for unit coverage.
+ */
+export function findBodyPlaceholders(body: string): string[] {
+  const hits: string[] = [];
+  for (const line of body.split("\n")) {
+    const t = line.trim();
+    if (t.includes("_(TODO")) {
+      hits.push(t);
+    } else if (/run-notes did not include a "[^"]+" section/.test(t)) {
+      hits.push(t);
+    }
+  }
+  return hits;
+}
+
+/**
+ * Convert an already-open PR back to draft. Called only when the current
+ * run's gate is red or the assembled body still carries placeholders —
+ * a red gate must win even if a human (or a prior green firing) had
+ * marked the PR ready in the meantime. `openPr`/`openPrWithTitle`
+ * otherwise leave draft↔ready alone, so a green run never yanks a
+ * human's intentional mark-ready.
+ */
+function convertPrToDraft(url: string): void {
+  try {
+    sh("gh", ["pr", "ready", "--undo", url]);
+    log(`converted ${url} back to draft (gate red / body incomplete)`);
+  } catch (err) {
+    // Older gh / plans without draft support: the needs-human label and
+    // the process issue still flag the PR for a human. Don't fail the run.
+    console.warn(`could not convert PR to draft: ${String(err)}`);
+  }
 }
 
 function listScreenshots(version: string): string[] {
@@ -3236,6 +3297,21 @@ export function openPr(args: {
   // Backstop: never let a PR body trip GitHub's 65536-char cap (issue #90).
   const body = clampGitHubBody(args.body);
 
+  // Sink-level invariant: a body still carrying `_(TODO …)_` stubs or an
+  // `extractSection` missing-section fallback must NEVER land on a
+  // reviewable PR. Force draft + needs-human even if the caller asked for
+  // ready — this is the drift-proof backstop the 0.3.201 continuation
+  // needed (see findBodyPlaceholders).
+  const placeholders = findBodyPlaceholders(body);
+  if (placeholders.length > 0) {
+    log(
+      `WARN assembled PR body still contains ${placeholders.length} placeholder marker(s) — ` +
+        `forcing draft + needs-human so it never lands reviewable: ` +
+        placeholders.slice(0, 3).join(" | "),
+    );
+  }
+  const mustDraft = args.draft || placeholders.length > 0;
+
   // Idempotency: if a PR already exists for this branch (previous
   // firing got this far), update its body rather than failing. We
   // still re-write title/body so the latest run's notes win.
@@ -3262,10 +3338,15 @@ export function openPr(args: {
     if (edit.status !== 0) {
       throw new Error(`gh pr edit failed (${edit.status}): ${edit.stderr ?? ""}`);
     }
-    // Draft state can only transition with `gh pr ready` (draft→ready)
-    // or `--draft` on create; we don't flip an existing PR draft<->ready
-    // on the orchestrator side because the human may have already
-    // marked-ready intentionally between firings.
+    // A green run leaves draft↔ready alone — the human may have marked
+    // ready intentionally between firings. But a red gate / incomplete
+    // body (`mustDraft`) must win: if a prior firing marked this PR
+    // ready, yank it back to draft so a broken continuation can't ride a
+    // stale "ready" state. This is the no-op that let #109 land with a
+    // TODO body still marked reviewable.
+    if (mustDraft && existing[0]!.isDraft === false) {
+      convertPrToDraft(url);
+    }
   } else {
     // Pass the body via stdin to avoid argv length limits and escaping headaches.
     const ghArgs = [
@@ -3280,7 +3361,7 @@ export function openPr(args: {
       "--body-file",
       "-",
     ];
-    if (args.draft) ghArgs.push("--draft");
+    if (mustDraft) ghArgs.push("--draft");
 
     const child = spawnSync("gh", ghArgs, {
       cwd: ROOT,
@@ -3297,7 +3378,7 @@ export function openPr(args: {
     created = true;
   }
 
-  if (args.draft) {
+  if (mustDraft) {
     try {
       sh("gh", ["pr", "edit", url, "--add-label", "needs-human"]);
     } catch (err) {
@@ -3327,6 +3408,19 @@ export function openPrWithTitle(args: {
 }): { url: string; created: boolean } {
   // Backstop: never let a PR body trip GitHub's 65536-char cap (issue #90).
   const body = clampGitHubBody(args.body);
+
+  // Same sink-level invariant as `openPr`: an incomplete body (leftover
+  // `_(TODO …)_` / missing-section fallback) forces draft + needs-human.
+  const placeholders = findBodyPlaceholders(body);
+  if (placeholders.length > 0) {
+    log(
+      `WARN assembled PR body still contains ${placeholders.length} placeholder marker(s) — ` +
+        `forcing draft + needs-human so it never lands reviewable: ` +
+        placeholders.slice(0, 3).join(" | "),
+    );
+  }
+  const mustDraft = args.draft || placeholders.length > 0;
+
   const existingJson = spawnSync(
     "gh",
     ["pr", "list", "--head", args.branch, "--state", "open", "--json", "url,isDraft"],
@@ -3350,6 +3444,9 @@ export function openPrWithTitle(args: {
     if (edit.status !== 0) {
       throw new Error(`gh pr edit failed (${edit.status}): ${edit.stderr ?? ""}`);
     }
+    if (mustDraft && existing[0]!.isDraft === false) {
+      convertPrToDraft(url);
+    }
   } else {
     const ghArgs = [
       "pr",
@@ -3363,7 +3460,7 @@ export function openPrWithTitle(args: {
       "--body-file",
       "-",
     ];
-    if (args.draft) ghArgs.push("--draft");
+    if (mustDraft) ghArgs.push("--draft");
 
     const child = spawnSync("gh", ghArgs, {
       cwd: ROOT,
@@ -3380,7 +3477,7 @@ export function openPrWithTitle(args: {
     created = true;
   }
 
-  if (args.draft) {
+  if (mustDraft) {
     try {
       sh("gh", ["pr", "edit", url, "--add-label", "needs-human"]);
     } catch (err) {
