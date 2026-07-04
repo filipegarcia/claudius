@@ -27,8 +27,16 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
  * module level so we never spin up a real SDK process.
  */
 
+type SetModelResult =
+  | { ok: true; model?: string }
+  | { ok: false; error: string; model?: string };
+
 type FakeSession = {
   query: { supportedModels: () => Promise<unknown> } | null;
+  setModel?: (
+    model: string | undefined,
+    source: "picker" | "chat_command",
+  ) => Promise<SetModelResult>;
 };
 
 const mockManager = {
@@ -43,7 +51,7 @@ vi.mock("@/lib/server/session-manager", () => ({
 // Avoid top-level imports of the route — vitest hoists vi.mock above
 // imports, but the static import would still load the manager module
 // before the mock factory is registered if we placed it at the top.
-const { GET } = await import("@/app/api/sessions/[id]/model/route");
+const { GET, POST } = await import("@/app/api/sessions/[id]/model/route");
 
 function makeCtx(id: string): { params: Promise<{ id: string }> } {
   return { params: Promise.resolve({ id }) };
@@ -52,6 +60,14 @@ function makeCtx(id: string): { params: Promise<{ id: string }> } {
 function makeReq(): Request {
   // The handler doesn't read the request body — any Request object works.
   return new Request("http://localhost/api/sessions/test/model");
+}
+
+function makePostReq(body: { model?: string | null; source?: string }): Request {
+  return new Request("http://localhost/api/sessions/test/model", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
 }
 
 describe("GET /api/sessions/[id]/model", () => {
@@ -191,5 +207,98 @@ describe("GET /api/sessions/[id]/model", () => {
     // Should NOT throw `session.supportedModels is not a function`.
     expect(res.status).toBe(200);
     expect(supportedModels).toHaveBeenCalledOnce();
+  });
+});
+
+/**
+ * Coverage for the model-switch POST at the same route.
+ *
+ * SDK 0.3.200 hardened `set_model` so an unrecognized model string is
+ * rejected *before* it latches, instead of possibly landing half-applied.
+ * `session.setModel` already assumed reject-before-latch (it only mutates
+ * `this.model` / persists / broadcasts after `await query.setModel(...)`
+ * resolves), and the route already maps a `{ ok:false }` result to HTTP 409
+ * so the client can revert its optimistic pick and raise
+ * `ModelSwitchNoticePanel`. This block pins that contract down now that the
+ * release exercises the rejection path far more reliably.
+ */
+describe("POST /api/sessions/[id]/model", () => {
+  beforeEach(() => {
+    mockManager.get.mockReset();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  test("404 when the session id is unknown", async () => {
+    mockManager.get.mockReturnValue(undefined);
+
+    const res = await POST(makePostReq({ model: "claude-sonnet-5" }), makeCtx("missing"));
+
+    expect(res.status).toBe(404);
+    const body = (await res.json()) as { error?: string };
+    expect(body.error).toBe("session not found");
+    expect(mockManager.get).toHaveBeenCalledWith("missing");
+  });
+
+  test("200 with the server-authoritative model on a successful switch", async () => {
+    const setModel = vi.fn().mockResolvedValue({ ok: true, model: "claude-sonnet-5" });
+    mockManager.get.mockReturnValue({ query: null, setModel });
+
+    const res = await POST(
+      makePostReq({ model: "claude-sonnet-5", source: "picker" }),
+      makeCtx("active"),
+    );
+
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { ok: boolean; model: string | null };
+    expect(body).toEqual({ ok: true, model: "claude-sonnet-5" });
+    expect(setModel).toHaveBeenCalledWith("claude-sonnet-5", "picker");
+  });
+
+  test("409 with the SDK's rejection reason when the switch is refused (reject-before-latch)", async () => {
+    // The 0.3.200 contract: an unrecognized model is rejected before it
+    // latches, so `setModel` returns `{ ok:false }` and the *unchanged*
+    // (server-authoritative) model. The route surfaces both as 409 so the
+    // client reverts to `model` and toasts `error` via ModelSwitchNoticePanel.
+    const setModel = vi.fn().mockResolvedValue({
+      ok: false,
+      error: "unrecognized model 'definitely-not-a-real-model'",
+      model: "claude-opus-4-8",
+    });
+    mockManager.get.mockReturnValue({ query: null, setModel });
+
+    const res = await POST(
+      makePostReq({ model: "definitely-not-a-real-model", source: "chat_command" }),
+      makeCtx("active"),
+    );
+
+    expect(res.status).toBe(409);
+    const body = (await res.json()) as { ok: boolean; error: string; model: string | null };
+    expect(body.ok).toBe(false);
+    expect(body.error).toBe("unrecognized model 'definitely-not-a-real-model'");
+    // Server-authoritative model comes back unchanged so the client reverts.
+    expect(body.model).toBe("claude-opus-4-8");
+    expect(setModel).toHaveBeenCalledWith("definitely-not-a-real-model", "chat_command");
+  });
+
+  test("defaults an unknown source to 'picker' and passes undefined for a null model", async () => {
+    // `source` is narrowed to the two known literals server-side; anything
+    // else (or absent) falls back to 'picker'. A null model becomes
+    // undefined so `setModel` clears to the SDK default rather than
+    // forwarding a literal null.
+    const setModel = vi.fn().mockResolvedValue({ ok: true, model: undefined });
+    mockManager.get.mockReturnValue({ query: null, setModel });
+
+    const res = await POST(
+      makePostReq({ model: null, source: "nonsense" }),
+      makeCtx("active"),
+    );
+
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { ok: boolean; model: string | null };
+    expect(body).toEqual({ ok: true, model: null });
+    expect(setModel).toHaveBeenCalledWith(undefined, "picker");
   });
 });

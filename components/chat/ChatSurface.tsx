@@ -1506,7 +1506,12 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
         case "model": {
           if (args.trim()) {
             void session.setModel(args.trim(), "chat_command");
-            showToast(`Model → ${args.trim()}`);
+            // Fire-and-forget: the SDK may reject an unrecognized id
+            // (0.3.200 rejects bad models before latching). So the toast
+            // claims an *attempt*, not success — if the switch is rejected,
+            // ModelSwitchNoticePanel follows with the reason and this line
+            // no longer contradicts it.
+            showToast(`Switching model → ${args.trim()}`);
           } else {
             showToast("Pass a model id, e.g. /model claude-sonnet-4-6");
           }
