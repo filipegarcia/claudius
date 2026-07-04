@@ -34,7 +34,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: ${{ steps.deployment.outputs.page_url || steps.deployment_retry.outputs.page_url }}
     steps:
       - uses: actions/checkout@v5
       - uses: actions/configure-pages@v6
@@ -42,6 +42,15 @@ jobs:
         uses: actions/upload-pages-artifact@v5
         with:
           path: site
+      # The GitHub Pages backend intermittently fails a deployment with
+      # "Deployment failed, try again later." even though the artifact
+      # uploaded fine — a flaky service-side error, not a content problem.
+      # Don't fail the job on the first attempt; retry once if it flakes.
       - name: Deploy to GitHub Pages
         id: deployment
+        continue-on-error: true
+        uses: actions/deploy-pages@v5
+      - name: Deploy to GitHub Pages (retry after a flaky backend failure)
+        id: deployment_retry
+        if: steps.deployment.outcome == 'failure'
         uses: actions/deploy-pages@v5
