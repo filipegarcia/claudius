@@ -41,6 +41,19 @@ required deliverable, but it is **not** the objective. A polished
 run-notes file describing zero code changes, when the SDK actually
 required changes, is a failed run, not a clean one.
 
+**The worst failure mode of all — worse than doing nothing — is a
+run-notes file that *describes* code changes you never actually made.**
+That produces a PR that claims work it didn't do: reviewers read "we
+reworded the `/model` toast in `ChatSurface.tsx`", go to merge it, and
+the diff is just a version bump. This has already shipped once (the
+0.3.200 → 0.3.201 PR: notes described a `ChatSurface.tsx` fix that was
+never in the diff). **Your job is to IMPLEMENT, not to plan.** The
+"## Code changes" section is a *description of the committed diff* —
+never a description of intent. Every sentence in it must correspond to a
+hunk you can point to in `git diff main...HEAD`. If it doesn't, you are
+not done: go write the code, or delete the claim. There is no acceptable
+end-state where the notes describe work the diff doesn't contain.
+
 ---
 
 ## The single most common failure mode
@@ -119,8 +132,9 @@ failed run.
 
 ---
 
-## Your written deliverable: the run-notes file
+## Documenting the work: the run-notes file
 
+The deliverable is the implemented code; this file only *documents* it.
 Alongside the code, you must produce a run-notes file that documents
 the migration. Write it **first — before you code** — because the
 analysis it forces is what makes the code correct, not because the
@@ -316,6 +330,17 @@ least has the analysis to act on.
 
 Commit the draft: `docs(sdk-update): plan for {{NEW_VERSION}}`.
 
+> ⚠️ **This plan commit is a checkpoint, NOT a deliverable. Stopping
+> here is the failure that produced the broken 0.3.201 PR.** At this
+> point the notes describe changes you *intend* to make and the diff
+> contains none of them. You are less than halfway done. Do not treat
+> "I wrote the plan" as "I did the work" — Steps 4–7 are where the
+> `[shipped]` items become real code. If you feel budget pressure, spend
+> it on *implementing* the highest-value `[shipped]` item and downgrade
+> the rest to `[skipped — ran out of budget]`, so the notes never
+> over-claim. A smaller PR that implements what it describes beats a
+> complete-looking plan that implements nothing.
+
 ### Step 4 — Implement
 
 For each `[shipped]` item in your run-notes:
@@ -448,6 +473,52 @@ what you planned. Specifically:
 - Write "## Risks / follow-ups" honestly — anything the reviewer
   should look at, anything you skipped you're not 100% sure about.
 
+**Notes-vs-diff fidelity check (mandatory — this is the guard against
+the 0.3.201 failure).** Run `git diff main...HEAD --stat` and read it.
+Then, as an adversarial verify pass (a skeptic `agent()` per the Step 0
+phase-3 pattern, or inline if the diff is small), reconcile the notes
+against the actual committed diff **in both directions**:
+
+- Every non-`[skipped]` bullet in "## Code changes" and every `[shipped]`
+  item **must** map to a real hunk in the diff. If a described change is
+  absent, you have two honest choices and no third: **go implement it**
+  (preferred — that is the whole job), or, only if it genuinely turned
+  out not to apply, rewrite the bullet as `[skipped — reason]`. You may
+  **not** leave a claim the diff doesn't back.
+- If `git diff main...HEAD --stat` shows **only** `package.json`,
+  `bun.lock`, and files under `.claudius/sdk-updater/` (i.e. a
+  version-bump-plus-notes PR with zero product code) while any changelog
+  item is marked `[shipped]`, that is a contradiction: either the
+  `[shipped]` items are unimplemented (go implement them) or they were
+  never really `[shipped]` (re-mark them). A notes-only PR whose notes
+  claim shipped code is a hard failure — resolve it before finishing.
+
+**Leftover-TODO sweep of the diff (mandatory).** Run
+`git diff main...HEAD` and scan the *added* lines for any deferral
+marker you (or a sub-agent) left behind — `TODO`, `FIXME`, `XXX`,
+`_(TODO`, a stubbed `throw new Error("not implemented")`, an empty
+handler body with a "wire this up later" comment, etc.:
+
+```
+git diff main...HEAD | grep -nE '^\+.*(TODO|FIXME|XXX|not implemented)'
+```
+
+For **every** hit, the resolution is to **implement it now**, not to
+leave it for a human:
+- A TODO in *code you added* → finish the code the TODO describes, then
+  delete the marker. Shipping a half-written handler with a "TODO:
+  handle the error case" is the same failure as an empty PR, one file
+  down. The only exception is a TODO that documents a genuinely
+  out-of-scope future release — and that belongs in the run-notes
+  "## Risks / follow-ups", not as a bare marker in the diff.
+- A `_(TODO …)_` still in the *run-notes* → you skipped a section; fill
+  it (Steps 3/7).
+
+Re-run the grep until it comes back empty. A merged SDK-update PR must
+not introduce a single new unresolved TODO — the orchestrator's job is
+to *implement*, and a TODO in the diff is by definition unimplemented
+work you're punting.
+
 Commit: `docs(sdk-update): notes for {{NEW_VERSION}}`.
 
 ### Step 8 — Definition of done
@@ -484,14 +555,32 @@ believe it would pass. Silence is not success.
    <reason>` and `docs/sdk-updates/{{NEW_VERSION}}/` may be empty.)
 8. The working tree is clean — every file you touched is committed
    on `sdk-update/{{NEW_VERSION}}` with informative messages.
+9. `git diff main...HEAD | grep -nE '^\+.*(TODO|FIXME|XXX|not
+   implemented)'` returns **nothing** — no new unresolved deferral
+   markers in the diff, in either code or run-notes (see the
+   leftover-TODO sweep in Step 7). Every claim in "## Code changes"
+   maps to a real hunk in `git diff main...HEAD`.
 
-If you can't get to all-green — a **genuine** gate failure you've
-honestly tried to fix, not mere uncertainty about a design choice —
-write what's blocking you under "## Risks / follow-ups" in the
-run-notes file, commit what you have, and **stop**. The orchestrator
-will open a draft PR and ping a human. Aim to finish; don't aim for
-"draft is fine", and never stop merely because something was
-ambiguous — resolve that yourself (see "Work autonomously" below).
+Handing off to a human is the **last resort, not a checkpoint** — the
+point of this run is to converge autonomously. The escape hatch is
+narrow: it applies **only** to a *genuine gate failure you've already
+implemented against and honestly tried to fix* (e.g. a real e2e
+regression you can't crack within budget). Before you take it, you must
+have actually written the code — the notes-vs-diff fidelity check above
+must pass, so whatever you hand off is real work with a real blocker,
+not a plan. When (and only when) that's true: write what's blocking you
+under "## Risks / follow-ups", commit what you have, and **stop**; the
+orchestrator opens a draft PR and pings a human.
+
+You may **never** take the escape hatch because you:
+- wrote a plan but ran out of steam before implementing it (implement
+  the highest-value item and honestly `[skipped —]` the rest instead);
+- were unsure about a design choice (resolve it yourself — see "Work
+  autonomously" below);
+- want to "let a human finish the e2e suite" (you finish it).
+
+Aim to finish. A notes-only or plan-only stop is not a valid handoff —
+it produces exactly the empty PR this whole prompt exists to prevent.
 
 ---
 

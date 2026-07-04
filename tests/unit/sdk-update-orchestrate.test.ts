@@ -17,6 +17,7 @@ import {
   classifyToolResults,
   compareUrl,
   extractSection,
+  findBodyPlaceholders,
   parseSkipGates,
   pickContinuationPr,
   renderPrBody,
@@ -458,6 +459,66 @@ describe("validateRunNotesContent", () => {
       (heading) => `## ${heading}\n\n${justEnough}\n`,
     ).join("\n");
     expect(validateRunNotesContent(md)).toBeNull();
+  });
+});
+
+// ── findBodyPlaceholders ──────────────────────────────────────────────
+// The drift-proof sink guard: given the exact bytes headed for
+// `gh pr create`/`edit`, it must catch a body still carrying stub TODOs
+// or `extractSection` missing-section fallbacks — the failure that
+// shipped on the sdk-update/0.3.200 → 0.3.201 continuation (PR #109) —
+// while leaving the template's legitimate italicised notes alone.
+describe("findBodyPlaceholders", () => {
+  test("flags a body built from an unfilled run-notes stub (the #109 leak)", () => {
+    const body = [
+      "# Bump claude-agent-sdk `0.3.199` → `0.3.201`",
+      "",
+      "_(TODO: one paragraph — what changed in the SDK, what we changed in",
+      "Claudius, the headline risk to flag for review.)_",
+      "",
+      "## Tests",
+      "",
+      "_(TODO: vitest count, playwright count, anything explicitly not",
+      "covered with reason.)_",
+    ].join("\n");
+    const hits = findBodyPlaceholders(body);
+    expect(hits.length).toBeGreaterThan(0);
+  });
+
+  test("flags an extractSection missing-section fallback (empty run-notes file)", () => {
+    const body = [
+      "## SDK changelog (upstream)",
+      "",
+      `_(run-notes did not include a "Summary" section)_`,
+    ].join("\n");
+    expect(findBodyPlaceholders(body)).toHaveLength(1);
+  });
+
+  test("passes a complete body with the template's legitimate italicised notes", () => {
+    // None of these are failures — a clean run ships them verbatim.
+    const body = [
+      "# Bump claude-agent-sdk `0.3.199` → `0.3.200`",
+      "",
+      "SDK 0.3.200 is a small, mostly-internal release. We reworded the",
+      "`/model` toast so it no longer claims success before the SDK confirms.",
+      "",
+      "## New UI surfaces",
+      "",
+      "- No new UI surfaces this release.",
+      "",
+      "_(no screenshots captured — see run notes for why.)_",
+      "",
+      "## Claude Code changelog (upstream)",
+      "",
+      "_(Claude Code changelog not resolved this run — see https://github.com/anthropics/claude-code/releases)_",
+      "",
+      "_(changelog truncated — full text at the compare URL above)_",
+      "",
+      "## Risks / follow-ups",
+      "",
+      "- None identified.",
+    ].join("\n");
+    expect(findBodyPlaceholders(body)).toEqual([]);
   });
 });
 
