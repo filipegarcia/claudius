@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import type { Icon, Workspace } from "@/lib/server/workspaces-store";
+import { useEffect, useSyncExternalStore } from "react";
+import type { Icon, Workspace, WorkspaceDefaults } from "@/lib/server/workspaces-store";
 
 const COOKIE = "claudius.workspace";
 
@@ -11,285 +11,297 @@ function readCookie(): string | null {
   return m ? decodeURIComponent(m[1]) : null;
 }
 
+// ── Shared module-level store ──────────────────────────────────────────────
+// Previously every useWorkspaces() consumer held its own useState + useEffect
+// fetch. On the chat route ~7 consumers mount at once (NotificationsProvider,
+// ChatSurface, StatusLine, MessageList, SideNav, WorkspaceSwitcher,
+// NotificationsDrawer) — so each fired its own GET /api/workspaces, AND every
+// focus / visibilitychange / BroadcastChannel event fanned a refetch out to all
+// 7 simultaneously (~15 concurrent requests per interaction). Over HTTP/2 those
+// no longer queue on the 6-connection limit, but they still flood the single
+// Next process, so heavier requests (RSC route renders, file reads) pend behind
+// them. This shared store collapses all consumers to ONE fetch (in-flight
+// coalesced) and ONE set of refresh listeners, regardless of consumer count.
+// The hook's public API is unchanged.
+type Snapshot = {
+  items: Workspace[];
+  activeId: string | null;
+  loading: boolean;
+  error: string | null;
+};
+
+const INITIAL: Snapshot = { items: [], activeId: null, loading: true, error: null };
+
+let snapshot: Snapshot = INITIAL;
+const subscribers = new Set<() => void>();
+let inFlight: Promise<void> | null = null;
+let inFlightController: AbortController | null = null;
+let loadedOnce = false;
+let listenersInstalled = false;
+
+function emit(): void {
+  for (const s of subscribers) s();
+}
+
+function setSnapshot(patch: Partial<Snapshot>): void {
+  snapshot = { ...snapshot, ...patch };
+  emit();
+}
+
+function resolveActiveId(
+  workspaces: Workspace[],
+  serverActiveId: string | null | undefined,
+): string | null {
+  // Resolution order matches the server's `resolveActiveWorkspace`: cookie wins
+  // → server hint (workspaces.json activeId) → first workspace. Falling back to
+  // the first item used to disagree with the server whenever there was no
+  // cookie (fresh browser, incognito, Playwright).
+  const cookie = readCookie();
+  const cookieMatch = cookie && workspaces.some((w) => w.id === cookie) ? cookie : null;
+  const serverHint =
+    serverActiveId && workspaces.some((w) => w.id === serverActiveId) ? serverActiveId : null;
+  const fallback = workspaces[0]?.id ?? null;
+  return cookieMatch ?? serverHint ?? fallback;
+}
+
 /**
- * Load the workspace list with the active selection resolved. Pattern
- * matches `useCost` (refetchTrigger + AbortController +
- * setState-in-callback). `create` auto-selects the new workspace; `select`
- * navigates the browser to a per-workspace route after the server confirms
- * the switch.
+ * Fetch the workspace list into the shared store. Concurrent callers coalesce
+ * onto one in-flight request (this is what collapses the mount burst). `force`
+ * aborts any in-flight fetch and starts fresh, so a refresh after a mutation
+ * isn't served stale data from an older in-flight read.
+ */
+function load(force: boolean): Promise<void> {
+  if (inFlight && !force) return inFlight;
+  if (inFlight && force) {
+    inFlightController?.abort();
+    inFlight = null;
+    inFlightController = null;
+  }
+  const controller = new AbortController();
+  inFlightController = controller;
+  const p = fetch("/api/workspaces", { signal: controller.signal })
+    .then(async (res) => {
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return (await res.json()) as { workspaces: Workspace[]; activeId?: string | null };
+    })
+    .then((d) => {
+      // Keep the existing array reference when the payload is byte-identical so
+      // consumers with `items` in their effect deps don't re-run on every poll.
+      const items =
+        JSON.stringify(snapshot.items) === JSON.stringify(d.workspaces)
+          ? snapshot.items
+          : d.workspaces;
+      loadedOnce = true;
+      setSnapshot({
+        items,
+        activeId: resolveActiveId(d.workspaces, d.activeId),
+        error: null,
+        loading: false,
+      });
+    })
+    .catch((err: unknown) => {
+      if (err instanceof DOMException && err.name === "AbortError") return;
+      setSnapshot({ error: err instanceof Error ? err.message : String(err), loading: false });
+    })
+    .finally(() => {
+      if (inFlightController === controller) {
+        inFlight = null;
+        inFlightController = null;
+      }
+    });
+  inFlight = p;
+  return p;
+}
+
+function installListenersOnce(): void {
+  if (listenersInstalled || typeof window === "undefined") return;
+  listenersInstalled = true;
+  // ONE shared set of refresh triggers instead of one per consumer. The
+  // workspace list is server-side and shared between the browser tab and the
+  // Electron renderer, but each renderer's view is a snapshot from its last GET.
+  //   1. `visibilitychange → visible` / `focus` — the user returned to this
+  //      renderer, so re-validate (also covers the Electron↔browser case, whose
+  //      separate storage partitions don't share a BroadcastChannel).
+  //   2. `BroadcastChannel("claudius.workspaces")` — same-profile cross-tab
+  //      posts from the mutation helpers below.
+  // App-lifetime store → listeners are never removed (a fixed, tiny cost).
+  const onMaybeRefresh = () => {
+    if (typeof document !== "undefined" && document.hidden) return;
+    void load(true);
+  };
+  document.addEventListener("visibilitychange", onMaybeRefresh);
+  window.addEventListener("focus", onMaybeRefresh);
+  if (typeof BroadcastChannel !== "undefined") {
+    const bc = new BroadcastChannel("claudius.workspaces");
+    bc.addEventListener("message", () => void load(true));
+  }
+}
+
+/** Tell other tabs in the same profile the list changed; they refetch. */
+function announceMutation(): void {
+  if (typeof window === "undefined" || typeof BroadcastChannel === "undefined") return;
+  try {
+    const bc = new BroadcastChannel("claudius.workspaces");
+    bc.postMessage({ at: Date.now() });
+    bc.close();
+  } catch {
+    // Sandboxed contexts can throw — the focus-refetch path covers the change.
+  }
+}
+
+function refresh(): void {
+  setSnapshot({ loading: true });
+  void load(true);
+}
+
+async function select(id: string, route?: string): Promise<void> {
+  const res = await fetch(`/api/workspaces/${id}/select`, { method: "POST" });
+  if (!res.ok) return;
+  setSnapshot({ activeId: id });
+  if (typeof window === "undefined") return;
+  // Full-document load is intentional: the new workspace's cwd is server-side
+  // state, so a router.push wouldn't reset the SDK's child process.
+  if (typeof route === "string" && route.startsWith("/")) {
+    const target = route.startsWith(`/${id}`) ? route : `/${id}${route === "/" ? "" : route}`;
+    window.location.href = target;
+    return;
+  }
+  const path = window.location.pathname;
+  const m = path.match(/^\/wks_[a-f0-9]+(\/.*)?$/);
+  if (m) {
+    const inner = m[1] ?? "";
+    window.location.href = `/${id}${inner}`;
+    return;
+  }
+  if (path === "/" || /^\/customize($|\/)/.test(path)) {
+    window.location.href = `/${id}`;
+  } else {
+    window.location.reload();
+  }
+}
+
+async function create(input: {
+  name: string;
+  rootPath: string;
+  icon?: Icon;
+  defaults?: WorkspaceDefaults;
+}): Promise<{ ok: true; workspace: Workspace } | { ok: false; error: string }> {
+  const res = await fetch("/api/workspaces", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) {
+    const err = (await res.json().catch(() => ({}))) as { error?: string };
+    return { ok: false as const, error: err.error ?? `HTTP ${res.status}` };
+  }
+  const ws = (await res.json()) as Workspace;
+  refresh();
+  announceMutation();
+  await fetch(`/api/workspaces/${ws.id}/select`, { method: "POST" });
+  setSnapshot({ activeId: ws.id });
+  return { ok: true as const, workspace: ws };
+}
+
+async function update(id: string, patch: Partial<Workspace>): Promise<boolean> {
+  const res = await fetch(`/api/workspaces/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(patch),
+  });
+  if (res.ok) {
+    refresh();
+    announceMutation();
+  }
+  return res.ok;
+}
+
+async function remove(id: string): Promise<boolean> {
+  const res = await fetch(`/api/workspaces/${id}`, { method: "DELETE" });
+  if (res.ok) {
+    refresh();
+    announceMutation();
+  }
+  return res.ok;
+}
+
+async function reorder(ids: string[]): Promise<boolean> {
+  // Optimistic: reorder the shared list immediately; re-pull on server failure.
+  const byId = new Map(snapshot.items.map((w) => [w.id, w]));
+  setSnapshot({ items: ids.map((id) => byId.get(id)!).filter(Boolean) });
+  const res = await fetch("/api/workspaces/reorder", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ids }),
+  });
+  if (!res.ok) refresh();
+  return res.ok;
+}
+
+async function uploadIcon(id: string, file: File): Promise<boolean> {
+  const reader = new FileReader();
+  const dataUrl = await new Promise<string>((resolve, reject) => {
+    reader.onload = () => resolve(String(reader.result ?? ""));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+  const m = /^data:[^;]+;base64,(.+)$/.exec(dataUrl);
+  if (!m) return false;
+  const res = await fetch(`/api/workspaces/${id}/icon`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ data: m[1] }),
+  });
+  if (res.ok) {
+    const ext = ((await res.json().catch(() => ({}))) as { ext?: string }).ext ?? "png";
+    await update(id, { icon: { kind: "image", ext } });
+  }
+  return res.ok;
+}
+
+function subscribe(cb: () => void): () => void {
+  subscribers.add(cb);
+  return () => {
+    subscribers.delete(cb);
+  };
+}
+
+function getSnapshot(): Snapshot {
+  return snapshot;
+}
+
+function getServerSnapshot(): Snapshot {
+  return INITIAL;
+}
+
+/**
+ * Load the workspace list with the active selection resolved. Backed by a
+ * shared module-level store (see the note above) so N consumers = ONE fetch and
+ * ONE refresh-listener set. `create` auto-selects the new workspace; `select`
+ * navigates after the server confirms the switch. Returned function identities
+ * are module-stable, so callers can safely list them in effect deps.
  */
 export function useWorkspaces() {
-  const [items, setItems] = useState<Workspace[]>([]);
-  const [activeId, setActiveId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [refetchTrigger, setRefetchTrigger] = useState(0);
+  const snap = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
   useEffect(() => {
-    const controller = new AbortController();
-
-    fetch("/api/workspaces", { signal: controller.signal })
-      .then(async (res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return (await res.json()) as { workspaces: Workspace[]; activeId?: string | null };
-      })
-      .then((d) => {
-        // Keep the existing array reference when the payload is byte-identical.
-        // Without this guard every poll/refetch returns a brand-new array, which
-        // re-fires effects in any consumer that has `workspaces` in its deps —
-        // notably NotificationsProvider's "stale id in counts → refresh" effect,
-        // which would then refetch in a tight loop (refresh → new ref → effect
-        // re-runs → refresh → …). With ~10 workspaces JSON.stringify is
-        // microseconds; on a slow client it's still cheaper than the fetch we'd
-        // otherwise trigger again.
-        setItems((prev) =>
-          JSON.stringify(prev) === JSON.stringify(d.workspaces) ? prev : d.workspaces,
-        );
-        // Resolution order matches the server's `resolveActiveWorkspace`:
-        // cookie wins → server's hint (workspaces.json activeId) → first
-        // workspace. Falling back to the first item used to disagree with
-        // the server whenever there was no cookie (fresh browser, incognito,
-        // Playwright), so the workspace switcher highlighted one tile while
-        // the chat ran in another workspace's cwd.
-        const cookie = readCookie();
-        const cookieMatch =
-          cookie && d.workspaces.some((w) => w.id === cookie) ? cookie : null;
-        const serverHint =
-          d.activeId && d.workspaces.some((w) => w.id === d.activeId) ? d.activeId : null;
-        const fallback = d.workspaces[0]?.id ?? null;
-        setActiveId(cookieMatch ?? serverHint ?? fallback);
-        setError(null);
-      })
-      .catch((err: unknown) => {
-        if (err instanceof DOMException && err.name === "AbortError") return;
-        setError(err instanceof Error ? err.message : String(err));
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setLoading(false);
-      });
-
-    return () => controller.abort();
-  }, [refetchTrigger]);
-
-  const refresh = useCallback(() => {
-    setLoading(true);
-    setRefetchTrigger((n) => n + 1);
+    installListenersOnce();
+    // Coalesced: the first mounting consumer triggers the fetch; the rest reuse
+    // the in-flight promise. Skipped entirely once the list has loaded.
+    if (!loadedOnce) void load(false);
   }, []);
 
-  // ── Cross-runtime / cross-tab refresh triggers ─────────────────────────
-  // The workspace list is server-side (`~/.claude/.claudius/workspaces.json`)
-  // and is shared between the browser tab and the Electron renderer, but
-  // each renderer's view of it is just a snapshot from its last GET. When
-  // the user creates a workspace in Electron and then switches focus back
-  // to the browser (or vice versa), the other view stays stale until
-  // something forces a refetch.
-  //
-  // Two cheap signals cover the common cases:
-  //   1. `visibilitychange → visible` and `window focus` — the user
-  //      returned to this renderer, so re-validate.
-  //   2. `BroadcastChannel("claudius.workspaces")` — same-storage cross-
-  //      tab broadcasts. The `create`/`update`/`remove`/`reorder` helpers
-  //      below post to this channel; any other tab in the same Chromium
-  //      profile picks it up immediately.
-  //
-  // Electron and Chrome use DIFFERENT storage partitions even on the
-  // same origin (Electron's user-data-dir vs your Chrome profile), so
-  // the BroadcastChannel doesn't cross runtimes — the focus refetch
-  // covers that case instead. Both layered together = no manual reload
-  // needed for either flow.
-  useEffect(() => {
-    if (typeof window === "undefined") return undefined;
-
-    const onMaybeRefresh = () => {
-      if (typeof document !== "undefined" && document.hidden) return;
-      setRefetchTrigger((n) => n + 1);
-    };
-
-    document.addEventListener("visibilitychange", onMaybeRefresh);
-    window.addEventListener("focus", onMaybeRefresh);
-
-    let bc: BroadcastChannel | null = null;
-    if (typeof BroadcastChannel !== "undefined") {
-      bc = new BroadcastChannel("claudius.workspaces");
-      bc.addEventListener("message", () => {
-        setRefetchTrigger((n) => n + 1);
-      });
-    }
-
-    return () => {
-      document.removeEventListener("visibilitychange", onMaybeRefresh);
-      window.removeEventListener("focus", onMaybeRefresh);
-      bc?.close();
-    };
-  }, []);
-
-  /**
-   * Notify any other open tab in the same Chromium profile that the
-   * workspace list just changed. Cheap fire-and-forget; the listener
-   * above on each subscriber refetches.
-   */
-  const announceMutation = useCallback(() => {
-    if (typeof window === "undefined") return;
-    if (typeof BroadcastChannel === "undefined") return;
-    try {
-      const bc = new BroadcastChannel("claudius.workspaces");
-      bc.postMessage({ at: Date.now() });
-      bc.close();
-    } catch {
-      // BroadcastChannel can throw in some sandboxed contexts (private
-      // mode, very old browsers). Falling through silently is fine —
-      // the focus-refetch path will still pick the change up next time
-      // the user returns to the tab.
-    }
-  }, []);
-
-  const select = useCallback(
-    async (id: string, route?: string) => {
-      const res = await fetch(`/api/workspaces/${id}/select`, { method: "POST" });
-      if (res.ok) {
-        setActiveId(id);
-        if (typeof window !== "undefined") {
-          // Caller supplied a target URL. Two shapes flow in:
-          //   - A fully-prefixed URL for `id` (`/<id>/git`) — comes
-          //     from `workspace-route-memory.getLastPath`, which now
-          //     returns the prefix-included form.
-          //   - A workspace-relative *inner* path (`"/workspace"`,
-          //     `"/"`) — used by callers that haven't been migrated to
-          //     prefixed URLs (WorkspaceContextMenu, the cycle-prev/next
-          //     fallback). We detect this and prepend `/${id}`.
-          // The full-document load is intentional: the new workspace's
-          // cwd is server-side state, so a router.push wouldn't reset
-          // the SDK's child process. Same reason `/customize` and
-          // `/?session=X` get redirected to the workspace root instead
-          // of being preserved across the switch.
-          if (typeof route === "string" && route.startsWith("/")) {
-            const target = route.startsWith(`/${id}`) ? route : `/${id}${route === "/" ? "" : route}`;
-            window.location.href = target;
-            return;
-          }
-          // Legacy fallback when no route is supplied (e.g.
-          // CustomizationsDrawer). The current pathname categorises:
-          //   - `/<oldWorkspaceId>/...` — swap the workspace id and
-          //     keep the inner path. Same-tile-different-cwd is the
-          //     most common case.
-          //   - `/customize/...` — tied to a specific customization,
-          //     not the workspace; reset to the new workspace's root.
-          //   - everything else (global routes like /settings) —
-          //     plain reload; the page is workspace-agnostic.
-          const path = window.location.pathname;
-          const m = path.match(/^\/wks_[a-f0-9]+(\/.*)?$/);
-          if (m) {
-            const inner = m[1] ?? "";
-            window.location.href = `/${id}${inner}`;
-            return;
-          }
-          if (path === "/" || /^\/customize($|\/)/.test(path)) {
-            window.location.href = `/${id}`;
-          } else {
-            window.location.reload();
-          }
-        }
-      }
-    },
-    [],
-  );
-
-  const create = useCallback(
-    async (input: { name: string; rootPath: string; icon?: Icon; defaults?: import("@/lib/server/workspaces-store").WorkspaceDefaults }) => {
-      const res = await fetch("/api/workspaces", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(input),
-      });
-      if (!res.ok) {
-        const err = (await res.json().catch(() => ({}))) as { error?: string };
-        return { ok: false as const, error: err.error ?? `HTTP ${res.status}` };
-      }
-      const ws = (await res.json()) as Workspace;
-      // Trigger a background re-pull so the new workspace shows up in the
-      // list. The auto-select happens immediately on the optimistic id —
-      // callers that route off `activeId` don't have to wait for the GET.
-      refresh();
-      announceMutation();
-      await fetch(`/api/workspaces/${ws.id}/select`, { method: "POST" });
-      setActiveId(ws.id);
-      return { ok: true as const, workspace: ws };
-    },
-    [refresh, announceMutation],
-  );
-
-  const update = useCallback(
-    async (id: string, patch: Partial<Workspace>) => {
-      const res = await fetch(`/api/workspaces/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(patch),
-      });
-      if (res.ok) {
-        refresh();
-        announceMutation();
-      }
-      return res.ok;
-    },
-    [refresh, announceMutation],
-  );
-
-  const remove = useCallback(
-    async (id: string) => {
-      const res = await fetch(`/api/workspaces/${id}`, { method: "DELETE" });
-      if (res.ok) {
-        refresh();
-        announceMutation();
-      }
-      return res.ok;
-    },
-    [refresh, announceMutation],
-  );
-
-  /**
-   * Optimistically reorder + persist. The local list updates immediately; on
-   * server failure we re-pull canonical state.
-   */
-  const reorder = useCallback(
-    async (ids: string[]) => {
-      setItems((prev) => {
-        const byId = new Map(prev.map((w) => [w.id, w]));
-        return ids.map((id) => byId.get(id)!).filter(Boolean);
-      });
-      const res = await fetch("/api/workspaces/reorder", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ids }),
-      });
-      if (!res.ok) refresh();
-      return res.ok;
-    },
-    [refresh],
-  );
-
-  const uploadIcon = useCallback(
-    async (id: string, file: File): Promise<boolean> => {
-      const reader = new FileReader();
-      const dataUrl = await new Promise<string>((resolve, reject) => {
-        reader.onload = () => resolve(String(reader.result ?? ""));
-        reader.onerror = () => reject(reader.error);
-        reader.readAsDataURL(file);
-      });
-      const m = /^data:[^;]+;base64,(.+)$/.exec(dataUrl);
-      if (!m) return false;
-      const res = await fetch(`/api/workspaces/${id}/icon`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ data: m[1] }),
-      });
-      if (res.ok) {
-        const ext = ((await res.json().catch(() => ({}))) as { ext?: string }).ext ?? "png";
-        await update(id, { icon: { kind: "image", ext } });
-      }
-      return res.ok;
-    },
-    [update],
-  );
-
-  return { items, activeId, loading, error, refresh, select, create, update, remove, reorder, uploadIcon };
+  return {
+    items: snap.items,
+    activeId: snap.activeId,
+    loading: snap.loading,
+    error: snap.error,
+    refresh,
+    select,
+    create,
+    update,
+    remove,
+    reorder,
+    uploadIcon,
+  };
 }
