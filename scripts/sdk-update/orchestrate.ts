@@ -637,7 +637,15 @@ function checkoutFreshBranch(
   // Case 2/3 setup: reset local to origin/<branch> if it exists (origin
   // is the source of truth — that's what reviewers see on the PR), then
   // try to merge origin/main into it.
-  const source = remoteExists ? `origin/${branch}` : branch;
+  //
+  // Pin the resume point to a commit before deleting anything. When only
+  // a local branch exists (no remote), `git branch -D` below removes the
+  // very ref we'd branch from, so `git checkout -b <branch> <branch>`
+  // fails with "not a commit". Resolving to the SHA up front keeps the
+  // checkout start-point stable across the delete.
+  const source = remoteExists
+    ? `origin/${branch}`
+    : sh("git", ["rev-parse", branch]).trim();
   log(
     `prior work found on ${branch} (local=${localExists}, remote=${remoteExists}); ` +
       `resuming from ${source} and merging origin/main in`,
