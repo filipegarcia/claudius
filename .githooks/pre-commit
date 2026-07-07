@@ -1,6 +1,6 @@
 #!/bin/sh
-# Pre-commit gate: secret scan (gitleaks) + lint + related unit tests for
-# staged JS/TS files.
+# Pre-commit gate: customization guard + secret scan (gitleaks) + lint +
+# related unit tests for staged JS/TS files.
 # Installed via `git config core.hooksPath .githooks` (run automatically by
 # the `prepare` npm script after `bun install`).
 
@@ -10,7 +10,22 @@ set -eu
 # friendly error if neither bun nor npx is reachable.
 . "$(dirname "$0")/_runtime.sh"
 
-# Secret scan first — block commits that stage credentials. Runs on ALL
+# Customization guard first — block commits that stage files owned by an
+# ACTIVE customization publish. Publishing copies a customization's files
+# straight into the live source tree (lib/server/customization-publish.ts) so
+# the running app picks them up; git can't tell them from your own edits, so
+# without this gate a `git add -A` sweeps them into main. The guard reads the
+# JSON publish records under ~/.claude/.claudius/customizations/ — no app
+# runtime needed. Deliberately upstreaming a customization? Bypass once with
+# CLAUDIUS_ALLOW_CUSTOMIZATION_COMMIT=1. See scripts/customization-commit-guard.mjs.
+if command -v bun >/dev/null 2>&1; then
+  bun "$(dirname "$0")/../scripts/customization-commit-guard.mjs"
+else
+  # _runtime.sh guarantees bun or npx; npx implies node is installed.
+  node "$(dirname "$0")/../scripts/customization-commit-guard.mjs"
+fi
+
+# Secret scan next — block commits that stage credentials. Runs on ALL
 # staged content (not just the JS/TS the lint step below covers): secrets
 # hide in .env / yaml / config files too. Same class GitHub's default secret
 # scanning catches, but here before the secret ever leaves the machine.

@@ -9,8 +9,25 @@ contributor by default — no opt-in step.
 | File              | Purpose                                                                 |
 | ----------------- | ----------------------------------------------------------------------- |
 | `_runtime.sh`     | PATH recovery + runner selection. Sourced by every hook. **Not a hook.** |
-| `pre-commit`      | Secret scan (gitleaks) + lint + related unit tests for staged JS/TS.    |
+| `pre-commit`      | Customization guard + secret scan (gitleaks) + lint + related unit tests for staged JS/TS. |
 | `pre-push`        | Whole-tree `tsc --noEmit` + `eslint`.                                    |
+
+## Customization guard
+
+Publishing a customization (see `lib/server/customization-publish.ts`) copies
+its files **into the live source tree** so the running app picks them up —
+git can't tell those apart from your own edits, and a `git add -A` would
+sweep them into main (this happened: the cross-check button leaked in
+`edabbb6`). `pre-commit` runs `scripts/customization-commit-guard.mjs`,
+which reads the publish records in
+`~/.claude/.claudius/customizations/index.json` and blocks the commit if any
+staged path belongs to a publish that hasn't been reverted.
+
+To commit cleanly while a customization is published: revert the publish on
+`/customize` (the customization itself is kept — only the base files are
+restored), commit, then re-publish. To *deliberately* upstream a
+customization into main, bypass once with
+`CLAUDIUS_ALLOW_CUSTOMIZATION_COMMIT=1 git commit …`.
 
 ## Security scanning
 
