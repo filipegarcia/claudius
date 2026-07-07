@@ -15,7 +15,6 @@ import { ArrowUp, Hourglass, Image as ImageIcon, Mic, MicOff, Paperclip, Sparkle
 import { cn } from "@/lib/utils/cn";
 import { SlashCommandPicker } from "./SlashCommandPicker";
 import { AtMentionPicker } from "./AtMentionPicker";
-import { CrossCheckButton } from "./CrossCheckButton";
 import { ImageLightbox } from "./ImageLightbox";
 import { useVoice } from "@/lib/client/useVoice";
 import { useSdkCommands } from "@/lib/client/useSdkCommands";
@@ -91,12 +90,6 @@ type Props = {
    * mounted at once (e.g. the goal input) so each instance is addressable.
    */
   testIdPrefix?: string;
-  /**
-   * Show the "check with another LLM" toolbar button. Opt-in so it only
-   * appears on the main chat composer, not secondary composers like the goal
-   * input.
-   */
-  showCrossCheck?: boolean;
   /**
    * Number of messages currently queued for the next turn (drives a footer
    * nudge while `pending` so the user is reminded the visible queue panel is
@@ -195,7 +188,6 @@ export function PromptInput({
   disableSlash = false,
   placeholder,
   testIdPrefix = "prompt",
-  showCrossCheck = false,
   queuedCount = 0,
   onSendQueuedNow,
   wideDropTarget = false,
@@ -1480,7 +1472,6 @@ export function PromptInput({
               isBashMode ? "font-mono text-[13px]" : "text-sm",
             )}
           />
-          {showCrossCheck && <CrossCheckButton testIdPrefix={testIdPrefix} />}
           {voice.supported && (
             <button
               type="button"
