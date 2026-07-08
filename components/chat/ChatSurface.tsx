@@ -2326,6 +2326,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
       <BackgroundTasksPanel
         progress={session.toolProgress}
         tasks={session.tasks}
+        liveBackgroundTaskIds={session.liveBackgroundTaskIds}
         sessionId={session.sessionId}
         model={session.model}
         effort={session.effort}

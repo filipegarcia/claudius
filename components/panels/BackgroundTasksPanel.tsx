@@ -15,7 +15,7 @@ import type {
   ToolProgressInfo,
 } from "@/lib/client/types";
 import type { PermissionRequestEvent } from "@/lib/shared/events";
-import { collectStoppableTaskIds } from "@/lib/client/task-status";
+import { collectStoppableTaskIds, isBackgroundTaskLive } from "@/lib/client/task-status";
 import type { ContextSummary } from "@/lib/client/useContextWatcher";
 import { isStaleWakeup } from "@/lib/shared/session-loops";
 import { CostOverlay } from "@/components/overlays/CostOverlay";
@@ -35,6 +35,15 @@ import { cn } from "@/lib/utils/cn";
 type Props = {
   progress: Record<string, ToolProgressInfo>;
   tasks?: Record<string, TaskInfo>;
+  /**
+   * Authoritative set of live background-task ids from the SDK's
+   * `background_tasks_changed` message (0.3.203), or `null` when no snapshot
+   * has been received yet. Used purely as a liveness gate: a task the `tasks`
+   * map still shows as `running` but this set no longer lists is stale (its
+   * terminal `task_notification` was dropped) and is excluded from the running
+   * derivations below. `null` disables the gate.
+   */
+  liveBackgroundTaskIds?: Set<string> | null;
   sessionId: string | null;
   model: string | null;
   /** Current reasoning effort, surfaced on the SessionCard as a pill. */
@@ -200,6 +209,7 @@ function compactArg(name: string, arg: string): string {
 export function BackgroundTasksPanel({
   progress,
   tasks = {},
+  liveBackgroundTaskIds = null,
   sessionId,
   model,
   effort,
@@ -257,6 +267,12 @@ export function BackgroundTasksPanel({
     if (t.toolUseId) taskByToolUseId.set(t.toolUseId, t);
   }
 
+  // Authoritative liveness gate (SDK `background_tasks_changed`, 0.3.203) —
+  // drops stranded "running" rows the latest snapshot no longer lists. Pure +
+  // unit-tested in lib/client/task-status.ts; see isBackgroundTaskLive for the
+  // null-snapshot / non-running / self-correction semantics.
+  const isLive = (t: TaskInfo) => isBackgroundTaskLive(t, liveBackgroundTaskIds);
+
   // "Tasks" = agentic work only (subagents + workflows). Process-like tasks
   // (shells / monitors) are partitioned out into "Running" below so nothing
   // double-shows.
@@ -264,7 +280,8 @@ export function BackgroundTasksPanel({
     .filter(
       (t) =>
         (t.status === "running" || t.status === "pending") &&
-        !PROCESS_TASK_TYPES.has(t.taskType ?? ""),
+        !PROCESS_TASK_TYPES.has(t.taskType ?? "") &&
+        isLive(t),
     )
     .sort((a, b) => (b.durationMs ?? 0) - (a.durationMs ?? 0));
 
@@ -302,7 +319,8 @@ export function BackgroundTasksPanel({
     (t) =>
       (t.status === "running" || t.status === "pending") &&
       PROCESS_TASK_TYPES.has(t.taskType ?? "") &&
-      !(t.toolUseId && bashToolUseIds.has(t.toolUseId)),
+      !(t.toolUseId && bashToolUseIds.has(t.toolUseId)) &&
+      isLive(t),
   );
   const runningProcs = runningBashes.length + runningProcessTasks.length;
 

@@ -4,6 +4,7 @@ import {
   dropProvisionalForToolUse,
   findToolUseBlock,
   hasRealTaskForToolUse,
+  isBackgroundTaskLive,
   isBackgroundedToolUse,
   reconcileTasksOnToolResult,
   seedTaskStatus,
@@ -299,5 +300,49 @@ describe("collectStoppableTaskIds (Stop-all fan-out set)", () => {
 
   test("empty inputs → empty set (button hidden, stopAll no-ops)", () => {
     expect(collectStoppableTaskIds([], [], [], new Map()).size).toBe(0);
+  });
+});
+
+describe("isBackgroundTaskLive (background_tasks_changed gate)", () => {
+  const running = (id: string) => task({ taskId: id, status: "running" });
+
+  test("null snapshot disables the gate — everything is live", () => {
+    expect(isBackgroundTaskLive(running("a"), null)).toBe(true);
+    expect(isBackgroundTaskLive(running("a"), undefined)).toBe(true);
+  });
+
+  test("a running task listed in the live set stays live", () => {
+    expect(isBackgroundTaskLive(running("a"), new Set(["a", "b"]))).toBe(true);
+  });
+
+  test("a running task absent from the live set is stale (stranded row)", () => {
+    // 'a' was running but the authoritative snapshot no longer lists it — its
+    // terminal task_notification was dropped, so the gate drops the phantom row.
+    expect(isBackgroundTaskLive(running("a"), new Set(["b"]))).toBe(false);
+  });
+
+  test("an empty live set settles every running row", () => {
+    expect(isBackgroundTaskLive(running("a"), new Set())).toBe(false);
+  });
+
+  test("pending/provisional rows are never gated (pre-start, legitimately absent)", () => {
+    expect(isBackgroundTaskLive(task({ taskId: "a", status: "pending" }), new Set())).toBe(true);
+  });
+
+  test("terminal rows are never gated", () => {
+    for (const status of ["completed", "failed", "stopped"] as const) {
+      expect(isBackgroundTaskLive(task({ taskId: "a", status }), new Set(["z"]))).toBe(true);
+    }
+  });
+
+  test("out-of-order: a snapshot before a task's start hides it only until the next snapshot self-corrects", () => {
+    const t = running("x");
+    // Snapshot arrived before x started, so x is transiently excluded...
+    const stale = new Set(["a"]);
+    expect(isBackgroundTaskLive(t, stale)).toBe(false);
+    // ...and the very next snapshot (x's start is itself a membership change,
+    // so the SDK re-emits) brings it back — never a permanent hide.
+    const fresh = new Set(["a", "x"]);
+    expect(isBackgroundTaskLive(t, fresh)).toBe(true);
   });
 });

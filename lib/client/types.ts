@@ -583,6 +583,13 @@ export type ChatState = {
   planUsage: PlanRateLimits | null;
   /** All tasks ever started in this session, keyed by task_id. */
   tasks: Record<string, TaskInfo>;
+  /**
+   * Authoritative set of live background-task ids from the SDK's
+   * `background_tasks_changed` message (0.3.203), or `null` when no snapshot has
+   * been received (gate inactive). REPLACE semantics; ids only. Consumed as a
+   * liveness gate to drop stranded "running" rows — never merged into `tasks`.
+   */
+  liveBackgroundTaskIds: Set<string> | null;
   /** Subagent messages keyed by their parent_tool_use_id. */
   subagentMessages: Record<string, DisplayMessage[]>;
   pendingPlan: PendingPlan | null;
