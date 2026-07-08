@@ -16,6 +16,14 @@ type Check = {
   label: string;
   status: Status;
   detail?: string;
+  /**
+   * True when this check has a corresponding `POST /api/doctor/fix` action
+   * (see that route for the fixed allowlist of ids). Only offered for checks
+   * that are pure, local, non-destructive filesystem fixes against fixed
+   * paths derived from `homedir()` — never for auth, package installs, or
+   * anything that would require running an external command.
+   */
+  fixable?: boolean;
 };
 
 async function exists(path: string): Promise<boolean> {
@@ -116,6 +124,10 @@ export async function GET() {
     label: "~/.claude",
     status: claudeOk ? "ok" : "warn",
     detail: claudeDir,
+    // Only offer the Fix action when the directory is simply missing — an
+    // existing-but-read-only directory needs a permissions change we won't
+    // make on the user's behalf.
+    fixable: !claudeOk && !(await exists(claudeDir)),
   });
 
   // Sessions / projects directory writable
@@ -126,6 +138,7 @@ export async function GET() {
     label: "~/.claude/projects",
     status: projectsOk ? "ok" : "warn",
     detail: projectsOk ? "writable" : "missing or read-only — sessions can't persist",
+    fixable: !projectsOk && !(await exists(projectsDir)),
   });
 
   // git available
