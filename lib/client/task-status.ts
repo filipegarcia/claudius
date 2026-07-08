@@ -24,6 +24,36 @@ export function isNonTerminalTaskStatus(s: TaskStatus): boolean {
   return NON_TERMINAL.has(s);
 }
 
+/**
+ * Liveness gate driven by the SDK's `background_tasks_changed` snapshot
+ * (0.3.203). `liveIds` is the authoritative set of live background-task ids
+ * from the latest snapshot, or `null` when none has been received yet.
+ *
+ * Returns false only for a task the rail still shows as `running` that the
+ * snapshot no longer lists — i.e. a stranded row whose terminal
+ * `task_notification` was dropped (the exact failure the rest of this module
+ * works around). Everything else is live:
+ *   - a `null` snapshot disables the gate (we never hide a task we have no
+ *     authoritative word on — e.g. right after `system:init` reset it to null,
+ *     or on a resumed session before the first snapshot);
+ *   - non-`running` statuses (`pending`/provisional pre-start rows, or terminal
+ *     rows) are never gated — a not-yet-started task is legitimately absent
+ *     from the live set.
+ *
+ * Ordering vs the `task_*` edge stream is unspecified, so this is a
+ * derivation-time filter that self-corrects on the next snapshot (a task's
+ * start is itself a membership change, so the SDK re-emits a snapshot that
+ * includes it); it must never be used to mutate the canonical `tasks` map.
+ */
+export function isBackgroundTaskLive(
+  task: Pick<TaskInfo, "taskId" | "status">,
+  liveIds: ReadonlySet<string> | null | undefined,
+): boolean {
+  if (task.status !== "running") return true;
+  if (!liveIds) return true;
+  return liveIds.has(task.taskId);
+}
+
 /** Terminal status implied by a (foreground) Task tool_result. */
 export function statusFromToolResult(isError: boolean | undefined): TaskStatus {
   return isError ? "failed" : "completed";
