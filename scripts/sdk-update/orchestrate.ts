@@ -267,11 +267,34 @@ export async function shStreamCapture(
     let hardKillTimer: ReturnType<typeof setTimeout> | null = null;
     let timedOut = false;
 
+    // Timestamp each complete line of streamed child output so the cron log
+    // shows WHEN each line arrived. A gate step can sit silent for minutes
+    // between prints, and the raw passthrough gave no way to tell when e.g.
+    // the `$ playwright test …` echo actually started. Only the live display
+    // is stamped — the captured `tail` (used verbatim in the PR/issue body)
+    // stays raw so it isn't cluttered with timestamps. Partial lines are held
+    // per stream until their newline arrives, then flushed on close.
+    const displayPending = new Map<NodeJS.WriteStream, string>();
+    const writeStamped = (stream: NodeJS.WriteStream, text: string): void => {
+      const parts = ((displayPending.get(stream) ?? "") + text).split(/\r?\n/);
+      displayPending.set(stream, parts.pop() ?? "");
+      for (const ln of parts) {
+        stream.write(`[${new Date().toISOString()}] ${ln}\n`);
+      }
+    };
+    const flushStamped = (): void => {
+      for (const [stream, rest] of displayPending) {
+        if (rest) stream.write(`[${new Date().toISOString()}] ${rest}\n`);
+      }
+      displayPending.clear();
+    };
+
     const done = (code: number): void => {
       if (settled) return;
       settled = true;
       if (killTimer) clearTimeout(killTimer);
       if (hardKillTimer) clearTimeout(hardKillTimer);
+      flushStamped();
       if (pending) lines.push(pending);
       resolve({ code, tail: lines.slice(-tailLines).join("\n"), timedOut });
     };
@@ -310,7 +333,7 @@ export async function shStreamCapture(
       (chunk: Buffer | string): void => {
         const text =
           typeof chunk === "string" ? chunk : chunk.toString("utf8");
-        stream.write(text);
+        writeStamped(stream, text);
         // Reassemble line-wise so a chunk that ends mid-line doesn't
         // create two ring-buffer entries.
         pending += text;
