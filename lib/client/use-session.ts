@@ -16,6 +16,7 @@ import type {
   PlanDecision,
   ServerEvent,
   TaskSnapshotEntry,
+  TokenExpiringNudgeEvent,
 } from "@/lib/shared/events";
 import type { Tip } from "@/lib/shared/tips";
 import type { ApiRetryState } from "@/lib/client/api-retry";
@@ -727,6 +728,12 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
   // so a stale event never re-pops on reload.
   const [authFailedNudge, setAuthFailedNudge] =
     useState<AuthFailedNudgeEvent | null>(null);
+  // One-shot "your login is about to expire" banner (CC 2.1.203 parity),
+  // broadcast by the server when the active account profile's token falls
+  // within the warning window. Live-only: skipped in the SSE replay buffer
+  // so a stale warning never re-pops on reload.
+  const [tokenExpiringNudge, setTokenExpiringNudge] =
+    useState<TokenExpiringNudgeEvent | null>(null);
   // Server-driven spinner tips (see `tips` SSE event). Empty until the server
   // emits the catalog on subscribe; the renderer falls back to its built-in
   // defaults in the meantime.
@@ -1623,6 +1630,10 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
       }
       if (ev.type === "auth_failed_required") {
         setAuthFailedNudge(ev);
+        return;
+      }
+      if (ev.type === "token_expiring_required") {
+        setTokenExpiringNudge(ev);
         return;
       }
       if (ev.type === "mcp_needs_auth_notice") {
@@ -4404,6 +4415,10 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     setAuthFailedNudge(null);
   }, []);
 
+  const dismissTokenExpiringNudge = useCallback(() => {
+    setTokenExpiringNudge(null);
+  }, []);
+
   const dismissFastModeNotice = useCallback(() => {
     setFastModeNotice(null);
   }, []);
@@ -5065,6 +5080,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     apiRetry,
     longContextCreditsNudge,
     authFailedNudge,
+    tokenExpiringNudge,
     tips,
     sessionRecap,
     errors,
@@ -5119,6 +5135,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     dismissOpusOverloadNudge,
     dismissLongContextCreditsNudge,
     dismissAuthFailedNudge,
+    dismissTokenExpiringNudge,
     dismissFastModeNotice,
     dismissModelSwitchNotice,
     dismissChatCommandModelNotice,
