@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Copy, Sparkles, Target, Terminal, Undo2 } from "lucide-react";
+import { Check, Copy, Sparkles, Target, Terminal, Undo2, Users } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import type { AttachedImage, DisplayMessage } from "@/lib/client/types";
 import { formatMessageTime } from "@/lib/client/format-message-time";
@@ -109,6 +109,15 @@ export function UserMessage({
             title="Sent from a suggested follow-up"
           >
             <Sparkles className="h-3 w-3" /> Suggested
+          </div>
+        )}
+        {message.peer && !isPureBashEcho && (
+          <div
+            data-testid="user-message-peer-badge"
+            className="mb-1 flex items-center justify-end gap-1 text-[10px] uppercase tracking-wide text-[var(--muted)]"
+            title={`Sent by peer session ${message.peer.from}`}
+          >
+            <Users className="h-3 w-3" /> From {message.peer.name ?? message.peer.from}
           </div>
         )}
         {hasBash ? (

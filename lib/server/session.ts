@@ -3755,8 +3755,24 @@ export class Session {
     this.broadcastGoal();
   }
 
-  async interrupt(): Promise<void> {
-    if (this.query) await this.query.interrupt().catch(() => {});
+  /**
+   * Stop the in-flight turn. SDK 0.3.205's `Query.interrupt()` resolves to
+   * the typed interrupt receipt on CLIs advertising `interrupt_receipt_v1`
+   * (system/init `capabilities`) — `still_queued` uuids of async user
+   * messages that will still run despite the interrupt (e.g. a mid-turn
+   * "Mid-turn user inject nudge" queued via `sendInput`'s `wasMidTurn`
+   * branch, which pushes a second message onto `inputQueue` while the first
+   * turn is still in flight). Older CLIs resolve to `undefined` — that's
+   * the feature-detection Claudius needs here, so we don't separately parse
+   * `capabilities` off `system/init` for this. Returns the still-queued
+   * uuids (empty when there's nothing left, or on an older CLI / a failed
+   * interrupt) so the API route can tell the user their Stop click didn't
+   * fully cancel pending input.
+   */
+  async interrupt(): Promise<{ stillQueued: string[] }> {
+    if (!this.query) return { stillQueued: [] };
+    const receipt = await this.query.interrupt().catch(() => undefined);
+    return { stillQueued: receipt?.still_queued ?? [] };
   }
 
   async setPermissionMode(mode: PermissionMode): Promise<void> {

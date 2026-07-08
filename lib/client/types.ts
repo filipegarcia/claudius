@@ -112,6 +112,19 @@ export type DisplayMessage = {
    * all paths.
    */
   opusHighDemand?: boolean;
+  /**
+   * Provenance when this user-role turn was authored by another Claude Code
+   * session (the `SendMessage` tool, cross-session Remote Control) rather
+   * than typed by the human at the keyboard. Sourced from the SDK's
+   * `origin` field (`kind: "peer"`) on `SDKUserMessage` — `from` is the
+   * addressable session id, `name` is the sender's harness-normalized
+   * display name (SDK 0.3.205; absent on older senders/CLIs, in which case
+   * the bubble falls back to showing `from`). Renders a "From <name>" badge
+   * in `UserMessage` so peer-authored turns read as reported speech instead
+   * of blending into the user's own words. Set by every transcript builder
+   * (live stream, resumed-session replay, paginated scrollback).
+   */
+  peer?: { from: string; name?: string };
 };
 
 export type TaskStatus = "pending" | "running" | "completed" | "failed" | "killed" | "stopped";
