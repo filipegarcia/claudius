@@ -151,7 +151,14 @@ export default defineConfig({
     // exclusive lock at `<project>/.next/dev/lock`. The CLI flag
     // `--dist-dir` was removed from `next dev` in Next 16, so the
     // override has to flow through next.config.ts.
-    command: `next dev -p ${PORT}`,
+    // Normally the plain dev server. On the cron host — where the server has
+    // died mid-run leaving no cause (issue #128) — set CLAUDIUS_E2E_WEBSERVER_LOG
+    // to route it through scripts/e2e-webserver.sh, which records the server's
+    // exit code, timestamps and periodic memory snapshots to that file. Opt-in
+    // so a normal `bun run test:e2e` / CI run is unchanged (no extra process).
+    command: process.env.CLAUDIUS_E2E_WEBSERVER_LOG
+      ? `bash scripts/e2e-webserver.sh ${PORT}`
+      : `next dev -p ${PORT}`,
     url: BASE_URL,
     // CI runs once and exits; reusing buys nothing. Locally a stale dev
     // server on the same port (e.g. from a killed prior run) shouldn't
