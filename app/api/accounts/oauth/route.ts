@@ -72,6 +72,10 @@ export async function POST(req: Request) {
         emailAddress: exchanged.emailAddress,
         organizationUuid: exchanged.organizationUuid,
         subscriptionType: exchanged.subscriptionType,
+        // CC 2.1.203 parity: persist the token's reported expiry (when the
+        // exchange returns one) so `Session.noteTokenExpiringAtStartup()` can
+        // warn before it lapses. See `AccountProfile.expiresAt` doc.
+        expiresAt: exchanged.expiresAt,
       });
       // Fresh token, fresh profile — drop any stale cache so the
       // next Account-page read hits the OAuth endpoint with the new

@@ -11,6 +11,7 @@ import type {
   PermissionRequestEvent,
   PlanDecision,
   ServerEvent,
+  TokenExpiringNudgeEvent,
 } from "@/lib/shared/events";
 import type { Tip } from "@/lib/shared/tips";
 import type { ApiRetryState } from "@/lib/client/api-retry";
@@ -746,6 +747,15 @@ export type ChatState = {
    */
   authFailedNudge: AuthFailedNudgeEvent | null;
   /**
+   * Proactive "your login is about to expire" nudge (CC 2.1.203 parity) —
+   * set from the server's `token_expiring_required` event, fired once per
+   * session when the active account profile's OAuth token falls within
+   * `TOKEN_EXPIRY_WARNING_WINDOW_MS` of expiring. The banner links to
+   * `/usage#accounts` so the user can re-authenticate before a background
+   * session gets interrupted. Null when no nudge is pending.
+   */
+  tokenExpiringNudge: TokenExpiringNudgeEvent | null;
+  /**
    * Server-driven spinner tips (the `tips` SSE event). The catalog the chat
    * rotates through under the working spinner; empty until the server emits it,
    * at which point the renderer prefers it over its built-in defaults.
@@ -1005,6 +1015,8 @@ export type ChatActions = {
   dismissLongContextCreditsNudge(): void;
   /** Dismiss the authentication-failed nudge banner. Client-side only. */
   dismissAuthFailedNudge(): void;
+  /** Dismiss the token-expiring-soon nudge banner. Client-side only. */
+  dismissTokenExpiringNudge(): void;
   /** Dismiss the transient fast-mode transition toast. Client-side only. */
   dismissFastModeNotice(): void;
   /** Dismiss the transient model-switch-rejected toast. Client-side only. */

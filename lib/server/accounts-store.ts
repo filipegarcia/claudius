@@ -62,6 +62,20 @@ export type AccountProfile = {
   emailAddress?: string;
   organizationUuid?: string;
   subscriptionType?: string;
+  /**
+   * Unix-ms instant the OAuth access token stops working, when the
+   * token-exchange response reported one (CC 2.1.203 parity: "warning when
+   * your login is about to expire"). Claudius never refreshes this token on
+   * the profile's behalf — the `oauth-token` kind is meant to be the
+   * long-lived `setup-token`-style credential (see `AccountKind` doc), so in
+   * practice most profiles never set this. But when the exchange DOES report
+   * an expiry (short-lived grants, org policy, etc.) and nothing refreshes
+   * it, the session will eventually 401 exactly like `auth-failed-detector.ts`
+   * already handles reactively. `Session.noteTokenExpiringAtStartup()` reads
+   * this to fire a *proactive* nudge before that happens. Absent ⇒ treated
+   * as "never expires" (no nudge).
+   */
+  expiresAt?: number;
 };
 
 export type PublicAccountProfile = {
@@ -331,6 +345,7 @@ export async function addAccount(
     emailAddress?: string;
     organizationUuid?: string;
     subscriptionType?: string;
+    expiresAt?: number;
   },
 ): Promise<{ state: AccountsState; profile: AccountProfile }> {
   const label = (input.label ?? "").trim();
@@ -351,6 +366,7 @@ export async function addAccount(
     ...(input.emailAddress ? { emailAddress: input.emailAddress } : {}),
     ...(input.organizationUuid ? { organizationUuid: input.organizationUuid } : {}),
     ...(input.subscriptionType ? { subscriptionType: input.subscriptionType } : {}),
+    ...(typeof input.expiresAt === "number" ? { expiresAt: input.expiresAt } : {}),
   };
   const profiles = [...cur.profiles, profile];
   const activeProfileId = cur.activeProfileId ?? profile.id;
