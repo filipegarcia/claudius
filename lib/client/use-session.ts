@@ -16,6 +16,7 @@ import type {
   PlanDecision,
   ServerEvent,
   TaskSnapshotEntry,
+  TokenExpiringNudgeEvent,
 } from "@/lib/shared/events";
 import type { Tip } from "@/lib/shared/tips";
 import type { ApiRetryState } from "@/lib/client/api-retry";
@@ -727,6 +728,12 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
   // so a stale event never re-pops on reload.
   const [authFailedNudge, setAuthFailedNudge] =
     useState<AuthFailedNudgeEvent | null>(null);
+  // One-shot "your login is about to expire" banner (CC 2.1.203 parity),
+  // broadcast by the server when the active account profile's token falls
+  // within the warning window. Live-only: skipped in the SSE replay buffer
+  // so a stale warning never re-pops on reload.
+  const [tokenExpiringNudge, setTokenExpiringNudge] =
+    useState<TokenExpiringNudgeEvent | null>(null);
   // Server-driven spinner tips (see `tips` SSE event). Empty until the server
   // emits the catalog on subscribe; the renderer falls back to its built-in
   // defaults in the meantime.
@@ -763,6 +770,18 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
   const [usage, setUsage] = useState<SessionUsage | null>(null);
   const [planUsage, setPlanUsage] = useState<PlanRateLimits | null>(null);
   const [tasks, setTasks] = useState<Record<string, TaskInfo>>({});
+  // Authoritative set of live background-task ids from the SDK's
+  // `background_tasks_changed` message (0.3.203). REPLACE semantics, ids-only —
+  // kept as an INDEPENDENT liveness gate, never merged into `tasks`/`TaskInfo`
+  // (the payload has no status/description to merge). Its sole use is letting
+  // the Activity rail drop a phantom "running" row that the unreliable terminal
+  // `task_notification` never settled. `null` = no snapshot received yet → gate
+  // inactive (we never hide a task we have no authoritative word on). The set is
+  // per-process and resets to empty on CLI (re)start, so we clear it on
+  // `system:init` and session switch. Ordering vs the task_* edge stream is
+  // unspecified, so the gate only ever excludes at derivation time and
+  // self-corrects on the next snapshot — it must not permanently hide a task.
+  const [liveBackgroundTaskIds, setLiveBackgroundTaskIds] = useState<Set<string> | null>(null);
   const [subagentMessages, setSubagentMessages] = useState<Record<string, DisplayMessage[]>>({});
   const [pendingPlan, setPendingPlan] = useState<PendingPlan | null>(null);
   const [fastModeState, setFastModeState] = useState<"off" | "cooldown" | "on" | null>(null);
@@ -1260,6 +1279,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     estimatedTurnCostRef.current = 0;
     seenResultUuidsRef.current = new Set();
     setTasks({});
+    setLiveBackgroundTaskIds(null);
     setSubagentMessages({});
     setPendingPlan(null);
     pendingPlanRef.current = null;
@@ -1610,6 +1630,10 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
       }
       if (ev.type === "auth_failed_required") {
         setAuthFailedNudge(ev);
+        return;
+      }
+      if (ev.type === "token_expiring_required") {
+        setTokenExpiringNudge(ev);
         return;
       }
       if (ev.type === "mcp_needs_auth_notice") {
@@ -3197,6 +3221,12 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
           // the subagent `agents` list) is defensively typed and unit-tested
           // in one place rather than inline here. See lib/shared/parse-init.ts.
           const init = parseInitSystemMessage(sysAny);
+          // A CLI (re)start resets the SDK's background-task set to empty and
+          // emits nothing until the next membership change. Drop our snapshot
+          // back to `null` (gate inactive) rather than empty, so any genuinely
+          // live task on a resumed session isn't hidden before the first fresh
+          // `background_tasks_changed` arrives.
+          setLiveBackgroundTaskIds(null);
           if (init.slashCommands.length) setSlashCommands(init.slashCommands);
           if (init.agents.length) setAgents(init.agents);
           if (init.skills.length) setSkills(init.skills);
@@ -3436,6 +3466,22 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
               },
             };
           });
+          return;
+        }
+        if (sysAny.subtype === "background_tasks_changed") {
+          // SDKBackgroundTasksChangedMessage (0.3.203): the authoritative set of
+          // every live background task after a membership change. REPLACE
+          // semantics — swap our whole liveness set for this payload. Ids only,
+          // so this drives the independent `liveBackgroundTaskIds` gate, NOT the
+          // `tasks` map. An empty `tasks` array is meaningful ("nothing live")
+          // — it settles anything the rail still shows as running.
+          const payload = sysAny as unknown as { tasks?: { task_id?: string }[] };
+          const ids = new Set(
+            (payload.tasks ?? [])
+              .map((t) => t.task_id)
+              .filter((id): id is string => typeof id === "string" && id.length > 0),
+          );
+          setLiveBackgroundTaskIds(ids);
           return;
         }
         // SDKThinkingTokensMessage (0.3.153): live token-count estimate emitted
@@ -4369,6 +4415,10 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     setAuthFailedNudge(null);
   }, []);
 
+  const dismissTokenExpiringNudge = useCallback(() => {
+    setTokenExpiringNudge(null);
+  }, []);
+
   const dismissFastModeNotice = useCallback(() => {
     setFastModeNotice(null);
   }, []);
@@ -5030,6 +5080,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     apiRetry,
     longContextCreditsNudge,
     authFailedNudge,
+    tokenExpiringNudge,
     tips,
     sessionRecap,
     errors,
@@ -5049,6 +5100,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     usage,
     planUsage,
     tasks,
+    liveBackgroundTaskIds,
     subagentMessages,
     pendingPlan,
     fastModeState,
@@ -5083,6 +5135,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     dismissOpusOverloadNudge,
     dismissLongContextCreditsNudge,
     dismissAuthFailedNudge,
+    dismissTokenExpiringNudge,
     dismissFastModeNotice,
     dismissModelSwitchNotice,
     dismissChatCommandModelNotice,

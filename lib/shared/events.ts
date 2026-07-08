@@ -216,6 +216,25 @@ export type McpNeedsAuthNoticeEvent = {
 };
 
 /**
+ * One-shot proactive nudge fired when the active account profile's OAuth
+ * token is within `TOKEN_EXPIRY_WARNING_WINDOW_MS` of expiring (CC 2.1.203
+ * parity: "Added a warning when your login is about to expire, so you can
+ * re-authenticate before background sessions are interrupted"). Emitted from
+ * `Session.noteTokenExpiringAtStartup()` on the first live (non-replayed)
+ * `system:init`, mirroring `McpNeedsAuthNoticeEvent`'s timing. The client
+ * renders a dismissible banner (`TokenExpiringPanel`) linking to
+ * `/usage#accounts` so the user can re-authenticate before it lapses.
+ * Excluded from the SSE replay buffer so a stale warning never re-pops on
+ * reload; the server's fire-once guard prevents re-emission inside one
+ * session lifetime.
+ */
+export type TokenExpiringNudgeEvent = {
+  type: "token_expiring_required";
+  /** Unix-ms instant the active credential's access token expires. */
+  expiresAt: number;
+};
+
+/**
  * Server-driven spinner tips — the catalog the client rotates through under
  * the "Claude is working…" row. Routed through SSE (rather than hardcoded on
  * the client) so the backend is the single source of truth: new-feature tips
@@ -735,6 +754,7 @@ export type ServerEvent =
   | LongContextCreditsNudgeEvent
   | AuthFailedNudgeEvent
   | McpNeedsAuthNoticeEvent
+  | TokenExpiringNudgeEvent
   | TipsEvent
   | CwdChangedEvent
   | AskUserQuestionEvent

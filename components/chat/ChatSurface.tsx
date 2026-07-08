@@ -20,6 +20,7 @@ import {
 } from "@/components/chat/OpusOverloadNudgePanel";
 import { LongContextCreditsPanel } from "@/components/chat/LongContextCreditsPanel";
 import { AuthFailedPanel } from "@/components/chat/AuthFailedPanel";
+import { TokenExpiringPanel } from "@/components/chat/TokenExpiringPanel";
 import { FastModeNoticePanel } from "@/components/chat/FastModeNoticePanel";
 import { ModelSwitchNoticePanel } from "@/components/chat/ModelSwitchNoticePanel";
 import { ModelChatCommandNoticePanel } from "@/components/chat/ModelChatCommandNoticePanel";
@@ -2098,6 +2099,10 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
           nudge={session.authFailedNudge}
           onDismiss={session.dismissAuthFailedNudge}
         />
+        <TokenExpiringPanel
+          nudge={session.tokenExpiringNudge}
+          onDismiss={session.dismissTokenExpiringNudge}
+        />
         <FastModeNoticePanel
           notice={session.fastModeNotice}
           onDismiss={session.dismissFastModeNotice}
@@ -2326,6 +2331,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
       <BackgroundTasksPanel
         progress={session.toolProgress}
         tasks={session.tasks}
+        liveBackgroundTaskIds={session.liveBackgroundTaskIds}
         sessionId={session.sessionId}
         model={session.model}
         effort={session.effort}

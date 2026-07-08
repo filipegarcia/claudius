@@ -49,6 +49,7 @@ import {
   isAuthFailedErrorText,
   isAuthFailedSignal,
 } from "./auth-failed-detector";
+import { shouldWarnTokenExpiring } from "./token-expiry";
 import {
   clearSessionGoal,
   getSessionGoal,
@@ -1229,6 +1230,24 @@ export class Session {
   private mcpNeedsAuthNoticeFired = false;
 
   /**
+   * Fire-once gate for the token-expiring-soon startup nudge (CC 2.1.203
+   * parity — "warning when your login is about to expire"). Trips on the
+   * first live (non-replayed) `system:init` when `activeProfileExpiresAt` is
+   * set and falls inside `TOKEN_EXPIRY_WARNING_WINDOW_MS`. The check runs in
+   * `noteTokenExpiringAtStartup()`; a `token_expiring_required` SSE event is
+   * broadcast which the client renders as a dismissible banner.
+   */
+  private tokenExpiringNudgeFired = false;
+
+  /**
+   * The active account profile's reported token expiry (Unix ms), captured
+   * at session construction alongside `accountProfileId`. Null when no
+   * profile is active or the profile never reported one (the common case —
+   * see `AccountProfile.expiresAt` doc). Read by `noteTokenExpiringAtStartup()`.
+   */
+  private activeProfileExpiresAt: number | null = null;
+
+  /**
    * In-memory ring buffer of the most-recent permission denials for this
    * session (CC 2.1.193 parity — "recent denials" section on /permissions).
    * Capped at 20 entries; populated by `broadcast()` when a `permission_denied`
@@ -1917,6 +1936,7 @@ export class Session {
       activeProfile = null;
     }
     this.accountProfileId = activeProfile?.id ?? null;
+    this.activeProfileExpiresAt = activeProfile?.expiresAt ?? null;
     // `buildEnvForProfile` is async: it provisions a per-profile
     // config dir (with the profile's `.credentials.json`) and sets
     // `CLAUDE_CONFIG_DIR` to it — the only mechanism we've found that
@@ -4858,6 +4878,22 @@ export class Session {
   }
 
   /**
+   * Fire-once check for the token-expiring-soon nudge (CC 2.1.203 parity).
+   * Runs synchronously (no I/O — `activeProfileExpiresAt` was already read
+   * from disk at construction) on the first live `system:init`, mirroring
+   * `noteMcpNeedsAuthAtStartup()`'s timing and fire-once shape.
+   */
+  private noteTokenExpiringAtStartup(): void {
+    if (this.tokenExpiringNudgeFired) return;
+    this.tokenExpiringNudgeFired = true;
+    if (!shouldWarnTokenExpiring(this.activeProfileExpiresAt, Date.now())) return;
+    this.broadcast({
+      type: "token_expiring_required",
+      expiresAt: this.activeProfileExpiresAt as number,
+    });
+  }
+
+  /**
    * Returns a snapshot of the in-memory denial ring buffer for this session.
    * Used by `GET /api/sessions/[id]/denials` to populate the "Recent Denials"
    * section on the /permissions page. Array is newest-last (insertion order).
@@ -5207,6 +5243,11 @@ export class Session {
         // has seen it (or connected the server) replaying on reload would
         // surface a potentially stale notice. Fire-once per session lifetime.
         ev.type === "mcp_needs_auth_notice" ||
+        // One-shot token-expiring-soon nudge (CC 2.1.203 parity) — same
+        // shape: once the user has re-authenticated (or the warning window
+        // has simply moved on), replaying on reload would surface a
+        // potentially stale warning. Fire-once per session lifetime.
+        ev.type === "token_expiring_required" ||
         // Session recap is by definition "where were we" — replaying a stale
         // one on tab switch or reload would contradict the live state. Live
         // subscribers see the one true broadcast; reloaders just wait until
@@ -5884,6 +5925,7 @@ export class Session {
         // Fire the one-shot MCP needs-auth notice on the first live system:init.
         if (sdkMsg.subtype === "init" && !this.isReplayingTranscript) {
           void this.noteMcpNeedsAuthAtStartup();
+          this.noteTokenExpiringAtStartup();
         }
         // Capture permission_denied events into the in-memory ring buffer.
         if (sdkMsg.subtype === "permission_denied") {
