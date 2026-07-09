@@ -113,16 +113,13 @@ export type DisplayMessage = {
    */
   opusHighDemand?: boolean;
   /**
-   * Provenance when this user-role turn was authored by another Claude Code
-   * session (the `SendMessage` tool, cross-session Remote Control) rather
-   * than typed by the human at the keyboard. Sourced from the SDK's
-   * `origin` field (`kind: "peer"`) on `SDKUserMessage` — `from` is the
-   * addressable session id, `name` is the sender's harness-normalized
-   * display name (SDK 0.3.205; absent on older senders/CLIs, in which case
-   * the bubble falls back to showing `from`). Renders a "From <name>" badge
-   * in `UserMessage` so peer-authored turns read as reported speech instead
-   * of blending into the user's own words. Set by every transcript builder
-   * (live stream, resumed-session replay, paginated scrollback).
+   * SDK 0.3.205 — present when this user turn's `SDKMessageOrigin` is
+   * `kind: "peer"` (sent by another Claude Code session, e.g. via the
+   * `SendMessage` tool) rather than typed by the local user. `from` is the
+   * addressable sender identity; `name` is the harness-normalized display
+   * name, absent on older emitters or when the wire wasn't exactly one
+   * harness-formed envelope. Drives the "From `<name>`" badge in
+   * `UserMessage.tsx`.
    */
   peer?: { from: string; name?: string };
 };

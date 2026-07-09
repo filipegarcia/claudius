@@ -1,23 +1,19 @@
 /**
- * SDK 0.3.205 — peer-message session events gained structured `name` and
- * `body` fields on `SDKMessageOrigin` (`kind: "peer"`): the sender's
- * harness-normalized display name and the envelope-stripped decoded body,
- * byte-exact with what the model saw. Before this release Claudius didn't
- * read `origin` at all, so a message from another Claude Code session (the
- * `SendMessage` tool, cross-session Remote Control) rendered as a plain user
- * bubble with the raw sender envelope still in the text — indistinguishable
- * from something the human typed.
+ * SDK 0.3.205 — structured `name` and `body` fields on the `peer` variant of
+ * `SDKMessageOrigin`.
  *
- * This spec drives a fake SSE stream carrying one such peer-authored user
- * message and verifies:
- *   a. The bubble shows a "From <name>" badge
- *      (`data-testid="user-message-peer-badge"`) instead of the default
- *      (badge-less) rendering for human input.
- *   b. The bubble's visible text is `origin.body` (the decoded message),
- *      not the raw enveloped `message.content` the SDK also sent alongside
- *      it.
- *   c. A screenshot of the chat surface in context (tab strip / chrome
- *      around the bubble) for PR review.
+ * When a user-role turn's origin is `kind: "peer"` (sent by another Claude
+ * Code session, e.g. via the `SendMessage` tool), the SDK now stamps:
+ *   - `name?: string` — the sender's harness-normalized display name
+ *   - `body?: string` — the envelope-stripped decoded body, byte-exact with
+ *     what the model saw
+ *
+ * Claudius previously never read `origin` at all, so a peer-authored turn
+ * rendered as a plain, badge-less user bubble showing the raw enveloped
+ * text. This spec mocks the SSE stream with a peer-origin user message and
+ * asserts:
+ *   1. A "From `<name>`" badge renders on the bubble.
+ *   2. The bubble text is the decoded `body`, not the raw envelope content.
  *
  * Screenshot target: docs/sdk-updates/0.3.205/peer-message-badge.png
  */
@@ -25,11 +21,12 @@
 import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { test, expect, type Page, type Route } from "../helpers/test";
+import { activateClaudiusWorkspace } from "./helpers/workspace";
 
-const SHOTS_DIR = resolve(process.cwd(), "docs/sdk-updates/0.3.205");
-mkdirSync(SHOTS_DIR, { recursive: true });
+const SCREENSHOT_DIR = resolve(process.cwd(), "docs/sdk-updates/0.3.205");
+mkdirSync(SCREENSHOT_DIR, { recursive: true });
 
-const FAKE_SESSION_ID = "aaaaaaaa-bbbb-cccc-dddd-000000000205";
+const FAKE_SESSION_ID = "aaaaaaaa-bbbb-cccc-dddd-000000205a1";
 
 type SdkEvent = Record<string, unknown>;
 
@@ -84,81 +81,112 @@ async function mockChatBackend(page: Page, events: SdkEvent[]): Promise<void> {
   });
 }
 
-const RAW_ENVELOPE_TEXT =
-  "[peer:session-release-bot] Deploy finished — smoke tests are green, ready for review.";
-const DECODED_BODY = "Deploy finished — smoke tests are green, ready for review.";
-
-const EVENTS: SdkEvent[] = [
+/** Minimal SSE prelude emitted before any real assistant content. */
+const PRELUDE: SdkEvent[] = [
   { type: "ready", sessionId: FAKE_SESSION_ID },
   {
     type: "sdk",
     message: {
       type: "system",
       subtype: "init",
-      uuid: "sys-1",
+      uuid: "sys-init-0",
       model: "claude-sonnet-4-6",
     },
   },
-  {
-    type: "sdk",
-    message: {
-      type: "user",
-      uuid: "peer-msg-1",
-      parent_tool_use_id: null,
-      session_id: FAKE_SESSION_ID,
-      origin: {
-        kind: "peer",
-        from: "session-release-bot",
-        name: "Release Bot",
-        body: DECODED_BODY,
-      },
-      message: { role: "user", content: RAW_ENVELOPE_TEXT },
-    },
-  },
-  {
-    type: "sdk",
-    message: {
-      type: "assistant",
-      uuid: "a1",
-      parent_tool_use_id: null,
-      message: {
-        model: "claude-sonnet-4-6",
-        content: [{ type: "text", text: "Thanks — I'll take a look at the PR now." }],
-        usage: { input_tokens: 10, output_tokens: 10 },
-      },
-    },
-  },
   { type: "replay_done", hasMoreAbove: false },
-  { type: "turn_status", status: "idle" },
 ];
 
-test.describe("SDK 0.3.205 — peer-message name/body", () => {
-  test("a peer-authored user turn shows a 'From <name>' badge and the decoded body", async ({
+/**
+ * A user-role turn whose origin is `kind: "peer"` with the full 0.3.205
+ * shape (`name` + `body`). The raw `message.content` text intentionally
+ * differs from `origin.body` so the assertion below actually proves the
+ * client prefers the decoded body over its own re-parsed text.
+ */
+const PEER_MESSAGE: SdkEvent = {
+  type: "sdk",
+  at: 1_770_000_000_000,
+  message: {
+    type: "user",
+    uuid: "peer-msg-1",
+    parent_tool_use_id: null,
+    isSynthetic: false,
+    message: {
+      role: "user",
+      content: [
+        {
+          type: "text",
+          text: "[[peer-envelope from=session-release-bot]] Deploy finished successfully.",
+        },
+      ],
+    },
+    origin: {
+      kind: "peer",
+      from: "session-release-bot",
+      name: "Release Bot",
+      body: "Deploy finished successfully.",
+    },
+  },
+};
+
+const ASSISTANT_REPLY: SdkEvent = {
+  type: "sdk",
+  at: 1_770_000_001_000,
+  message: {
+    type: "assistant",
+    uuid: "a1",
+    parent_tool_use_id: null,
+    message: {
+      id: "msg_1",
+      model: "claude-sonnet-4-6",
+      content: [{ type: "text", text: "Thanks for the update — I'll keep an eye on the logs." }],
+      usage: { input_tokens: 50, output_tokens: 15 },
+    },
+  },
+};
+
+const RESULT: SdkEvent = {
+  type: "sdk",
+  message: {
+    type: "result",
+    uuid: "result-1",
+    subtype: "success",
+    total_cost_usd: 0.01,
+    num_turns: 1,
+    duration_ms: 500,
+    duration_api_ms: 400,
+  },
+};
+
+test.beforeEach(async ({ page }) => {
+  await activateClaudiusWorkspace(page);
+});
+
+test.describe("peer-message origin badge (SDK 0.3.205)", () => {
+  test('renders "From <name>" badge and the decoded body, not the raw envelope', async ({
     page,
   }) => {
-    await mockChatBackend(page, EVENTS);
+    await mockChatBackend(page, [...PRELUDE, PEER_MESSAGE, ASSISTANT_REPLY, RESULT]);
     await page.goto("/");
 
-    const bubble = page.locator('[data-message-role="user"]').first();
-    await expect(bubble).toBeVisible({ timeout: 15_000 });
-
-    const badge = bubble.getByTestId("user-message-peer-badge");
-    await expect(badge).toBeVisible();
+    const badge = page.getByTestId("user-message-peer-badge");
+    await expect(badge).toBeVisible({ timeout: 15_000 });
     await expect(badge).toContainText("From Release Bot");
 
-    // The raw enveloped text (with the sender wrapper) must NOT be what's
-    // shown — only the decoded `origin.body`.
-    await expect(bubble).toContainText(DECODED_BODY);
-    await expect(bubble).not.toContainText("[peer:session-release-bot]");
+    // The bubble shows the decoded body, not the raw enveloped text.
+    await expect(page.getByText("Deploy finished successfully.")).toBeVisible();
+    await expect(page.getByText("peer-envelope", { exact: false })).not.toBeVisible();
 
-    // Wait for the assistant reply so the shot shows a real turn, not a
-    // lone bubble.
-    await expect(page.getByText("Thanks — I'll take a look at the PR now.")).toBeVisible();
+    // Wait for the assistant reply so the screenshot shows a full turn
+    // (surrounding chrome: tab strip, side nav, chat transcript).
+    await expect(page.getByText("I'll keep an eye on the logs.", { exact: false })).toBeVisible({
+      timeout: 15_000,
+    });
 
-    await bubble.scrollIntoViewIfNeeded();
-    await page.waitForTimeout(200);
+    await badge.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(300);
+
     await page.screenshot({
-      path: resolve(SHOTS_DIR, "peer-message-badge.png"),
+      path: resolve(SCREENSHOT_DIR, "peer-message-badge.png"),
       fullPage: false,
     });
   });

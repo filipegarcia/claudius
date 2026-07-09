@@ -494,32 +494,30 @@ export function extractUserContent(content: unknown): {
 }
 
 /**
- * Reads the SDK's peer-message provenance (`origin.kind === "peer"`) off a
- * raw user-role message. SDK 0.3.205 added `name` (harness-normalized
- * display name) and `body` (envelope-stripped decoded text, byte-exact with
- * what the model saw) to this variant — `body` should be preferred over
- * re-parsing `message.content` whenever present. Returns `undefined` for
- * human-authored turns (absent `origin`, or any non-`peer` kind) and for a
- * malformed/missing `from` (the SDK's `PeerOrigin` always carries one, but
- * we stay defensive against an older sender that only stamped a partial
- * envelope).
+ * SDK 0.3.205 — reads the `SDKMessageOrigin` off a raw user-role SDK
+ * message and, when it's `kind: "peer"` (sent by another Claude Code
+ * session, e.g. via the `SendMessage` tool), returns the sender's
+ * addressable identity + display name + decoded body. Returns `undefined`
+ * for `human` / `channel` / any other origin kind, and for a malformed
+ * `peer` origin missing `from` (the one required field).
+ *
+ * `name` and `body` are both optional on the wire (absent on older
+ * emitters, or when the turn wasn't exactly one harness-formed envelope) —
+ * empty-string / non-string values are treated the same as absent rather
+ * than surfaced as a blank badge or bubble.
+ *
+ * Exported for unit testing.
  */
 export function extractPeerOrigin(
   msg: unknown,
 ): { from: string; name?: string; body?: string } | undefined {
-  const origin = (
-    msg as {
-      origin?: { kind?: string; from?: unknown; name?: unknown; body?: unknown };
-    }
-  ).origin;
-  if (!origin || origin.kind !== "peer" || typeof origin.from !== "string" || !origin.from) {
-    return undefined;
-  }
-  return {
-    from: origin.from,
-    ...(typeof origin.name === "string" && origin.name ? { name: origin.name } : {}),
-    ...(typeof origin.body === "string" && origin.body ? { body: origin.body } : {}),
-  };
+  const origin = (msg as { origin?: { kind?: unknown; from?: unknown; name?: unknown; body?: unknown } } | null)
+    ?.origin;
+  if (!origin || origin.kind !== "peer") return undefined;
+  if (typeof origin.from !== "string" || !origin.from) return undefined;
+  const name = typeof origin.name === "string" && origin.name ? origin.name : undefined;
+  const body = typeof origin.body === "string" && origin.body ? origin.body : undefined;
+  return { from: origin.from, ...(name ? { name } : {}), ...(body ? { body } : {}) };
 }
 
 /**
@@ -3054,16 +3052,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
           // for why we reconstruct [Image #N] tokens here). The bail is on
           // BOTH text and images so an image-only paste still produces a
           // bubble on replay — the previous text-only gate dropped it.
-          const { text: parsedText, images, reminderBodies } = extractUserContent(content);
-          // Peer-authored turn (SendMessage from another Claude Code
-          // session) — SDK 0.3.205's `origin.body` is the envelope-stripped
-          // decoded text, byte-exact with what the model saw, and should be
-          // shown instead of the re-parsed `message.content` when present.
-          // Claudius's own reminder/goal prepends never ride a peer turn
-          // (those are stamped by `sendInput`, which peer messages bypass),
-          // so overriding the displayed text here can't drop a reminder.
-          const peer = extractPeerOrigin(msg);
-          const text = peer?.body ?? parsedText;
+          const { text, images, reminderBodies } = extractUserContent(content);
           const uuid = (msg as { uuid?: string }).uuid ?? crypto.randomUUID();
           // Cross-turn `<system-reminder>` blocks the server prepended to this
           // user record (every-turn todos nudge, stale-todowrite, etc. — see
@@ -3097,7 +3086,14 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
               return next;
             });
           }
-          if (text || images.length) {
+          // SDK 0.3.205 — peer-authored turn (e.g. via the `SendMessage`
+          // tool). Prefer the origin's decoded `body` (byte-exact with what
+          // the model saw) over the re-parsed `text` when present — the
+          // envelope-stripped body is authoritative, `text` is just our own
+          // reconstruction of the wrapped content.
+          const peerOrigin = extractPeerOrigin(msg);
+          const displayText = peerOrigin?.body ?? text;
+          if (displayText || images.length) {
             setMessages((prev) => {
               // Optimistic dedup: a fresh send seeded the bubble with the
               // composer's actual ordinals + uuids; don't replace it with our
@@ -3108,11 +3104,11 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
                 {
                   uuid,
                   role: "user",
-                  blocks: text ? [{ kind: "text", text }] : [],
+                  blocks: displayText ? [{ kind: "text", text: displayText }] : [],
                   ...(images.length ? { images } : {}),
                   ...(typeof ev.at === "number" ? { createdAt: ev.at } : {}),
-                  ...(peer
-                    ? { peer: { from: peer.from, ...(peer.name ? { name: peer.name } : {}) } }
+                  ...(peerOrigin
+                    ? { peer: { from: peerOrigin.from, ...(peerOrigin.name ? { name: peerOrigin.name } : {}) } }
                     : {}),
                 },
               ];
@@ -4552,31 +4548,33 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     if (!id) return;
     const res = await fetch(`/api/sessions/${id}/interrupt`, { method: "POST" });
     setPendingTracked(false);
-    // SDK 0.3.205 interrupt receipt: `stillQueued` uuids are async user
-    // messages (e.g. a mid-turn follow-up already handed to the SDK) that
-    // will still run despite this Stop. Surface it as an info pill so the
-    // user isn't confused when a response keeps streaming right after they
-    // clicked Stop. Best-effort: an older CLI or a parse failure just means
-    // no pill, never a thrown error off the Stop button.
+    // SDK 0.3.205 — on a CLI advertising `interrupt_receipt_v1`, the route
+    // returns `stillQueued` uuids of async user messages that will still
+    // run despite this Stop (queued commands, or a batch already dequeued
+    // for the imminent turn). Surface an info pill so the user isn't
+    // surprised when queued input keeps executing after they hit Stop.
+    // Older CLIs / a rejected interrupt degrade to `[]` server-side, so
+    // this is a no-op there.
     try {
-      const body = (await res.json()) as { stillQueued?: string[] };
-      const n = body?.stillQueued?.length ?? 0;
-      if (n > 0) {
+      const data = (await res.json()) as { stillQueued?: unknown };
+      const stillQueued = Array.isArray(data.stillQueued)
+        ? data.stillQueued.filter((v): v is string => typeof v === "string")
+        : [];
+      if (stillQueued.length > 0) {
+        const anchor = lastAssistantUuidRef.current;
         setSystemEntries((prev) => [
           ...prev,
           {
             uuid: crypto.randomUUID(),
-            afterMessageUuid: lastAssistantUuidRef.current,
-            kind: "info",
-            label:
-              n === 1
-                ? "Stop: 1 queued message will still run"
-                : `Stop: ${n} queued messages will still run`,
+            afterMessageUuid: anchor,
+            kind: "info" as const,
+            label: `Stop: ${stillQueued.length} queued message${stillQueued.length === 1 ? "" : "s"} will still run`,
           },
         ]);
       }
     } catch {
-      // ignore — best-effort notice only
+      // Non-JSON / network hiccup on an already-fired Stop — nothing to
+      // recover, the interrupt itself already went out above.
     }
   }, [setPendingTracked]);
 
@@ -5261,8 +5259,13 @@ type RawSDKMessage = {
   isMeta?: boolean;
   isCompactSummary?: boolean;
   isVisibleInTranscriptOnly?: boolean;
-  /** Peer-message provenance (SDK 0.3.205) — see `extractPeerOrigin`. */
-  origin?: { kind?: string; from?: unknown; name?: unknown; body?: unknown };
+  /**
+   * SDK 0.3.205 — provenance of a user-role record (peer session, team
+   * lead, channel). Only the `peer` shape is read (via `extractPeerOrigin`)
+   * to drive the "From `<name>`" badge on the pagination path; other kinds
+   * are ignored here the same as on the live path.
+   */
+  origin?: { kind?: string; from?: string; name?: string; body?: string };
 };
 
 /**
@@ -5492,18 +5495,21 @@ function synthesizeOlder(raw: Array<Record<string, unknown>>): {
     // follow-up `resyncFromDisk` will mint the system-reminder pills via
     // the live path if the same record shows up in the active replay
     // window.
-    const { text: parsedText, images } = extractUserContent(content);
-    // See the live-path comment above `extractPeerOrigin` for why `body`
-    // (when present) wins over the re-parsed text on a peer-authored turn.
-    const peer = extractPeerOrigin(r);
-    const text = peer?.body ?? parsedText;
+    const { text, images } = extractUserContent(content);
+    // SDK 0.3.205 — same peer-origin preference as the live applyEvent
+    // path: the decoded `body` is byte-exact with what the model saw, so
+    // prefer it over our own re-parsed `text` when present.
+    const peerOrigin = extractPeerOrigin(r);
+    const displayText = peerOrigin?.body ?? text;
     out.push({
       uuid,
       role: "user",
-      blocks: text ? [{ kind: "text", text }] : [],
+      blocks: displayText ? [{ kind: "text", text: displayText }] : [],
       ...(images.length ? { images } : {}),
       ...(Number.isFinite(parsedTs) ? { createdAt: parsedTs } : {}),
-      ...(peer ? { peer: { from: peer.from, ...(peer.name ? { name: peer.name } : {}) } } : {}),
+      ...(peerOrigin
+        ? { peer: { from: peerOrigin.from, ...(peerOrigin.name ? { name: peerOrigin.name } : {}) } }
+        : {}),
     });
   }
   return { messages: out };
