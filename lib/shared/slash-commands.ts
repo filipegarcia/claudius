@@ -192,7 +192,7 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   // of the AGENT subprocess, not the Claudius Next server — for a server
   // diagnostic, hit `POST /api/heapdump` directly (left in place on purpose).
   { id: "heapdump", name: "heapdump", description: "Write a heap snapshot + diagnostics report (agent subprocess).", category: "info", handler: "sdk" },
-  { id: "doctor", name: "doctor", description: "Diagnose installation/auth/git/permissions.", category: "info", handler: "native" },
+  { id: "doctor", name: "doctor", aliases: ["checkup"], description: "Full setup checkup — diagnose and fix installation/auth/git/permissions issues.", category: "info", handler: "native" },
   { id: "powerup", name: "powerup", description: "Open the Release notes (Claudius's feature-tour surface).", category: "info", handler: "native" },
   { id: "add-dir", name: "add-dir", description: "Add a working directory to this session.", category: "info", handler: "native", argsHint: "<path>" },
   { id: "worktrees", name: "worktrees", aliases: ["worktree"], description: "Open a chat session in a git worktree.", category: "session", handler: "native" },

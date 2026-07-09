@@ -11,7 +11,7 @@ import { SideNav } from "@/components/nav/SideNav";
 import { useClaudius } from "@/lib/client/useElectron";
 import { cn } from "@/lib/utils/cn";
 
-type Check = { id: string; label: string; status: "ok" | "warn" | "fail"; detail?: string };
+type Check = { id: string; label: string; status: "ok" | "warn" | "fail"; detail?: string; fixable?: boolean };
 type Report = {
   runtime: { node: string; platform: string; arch: string };
   sdk: { version: string | null };
@@ -25,6 +25,11 @@ export default function DoctorPage() {
   const bridge = useClaudius();
 
   const [refetchTrigger, setRefetchTrigger] = useState(0);
+  // Check id currently being fixed — disables its Fix button and shows a
+  // spinner label while the POST is in flight. Cleared (success or failure)
+  // once the fix request settles.
+  const [fixingId, setFixingId] = useState<string | null>(null);
+  const [fixError, setFixError] = useState<string | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -54,6 +59,28 @@ export default function DoctorPage() {
     setRefetchTrigger((n) => n + 1);
   }, []);
 
+  const fixCheck = useCallback(
+    async (id: string) => {
+      setFixingId(id);
+      setFixError(null);
+      try {
+        const res = await fetch("/api/doctor/fix", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id }),
+        });
+        const data = (await res.json()) as { ok: boolean; error?: string };
+        if (!res.ok || !data.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
+        refresh();
+      } catch (err) {
+        setFixError(err instanceof Error ? err.message : String(err));
+      } finally {
+        setFixingId(null);
+      }
+    },
+    [refresh],
+  );
+
   return (
     <div className="flex h-full">
       <SideNav running={false} />
@@ -67,6 +94,7 @@ export default function DoctorPage() {
           <span className="font-medium">Doctor</span>
           {loading && <span className="text-[var(--muted)]">running checks…</span>}
           {error && <span className="text-red-400">{error}</span>}
+          {fixError && <span className="text-red-400">Fix failed: {fixError}</span>}
           <button
             onClick={refresh}
             className="ml-auto flex items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-0.5 hover:bg-[var(--panel)]"
@@ -125,6 +153,17 @@ export default function DoctorPage() {
                             </div>
                           )}
                         </div>
+                        {c.fixable && c.status !== "ok" && (
+                          <button
+                            onClick={() => fixCheck(c.id)}
+                            disabled={fixingId === c.id}
+                            data-testid={`doctor-fix-${c.id}`}
+                            title={`Create the missing directory for "${c.label}"`}
+                            className="shrink-0 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-0.5 text-[11px] hover:bg-[var(--panel)] disabled:opacity-50"
+                          >
+                            {fixingId === c.id ? "Fixing…" : "Fix"}
+                          </button>
+                        )}
                       </li>
                     ))}
                   </ul>
