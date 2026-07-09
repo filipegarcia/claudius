@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Copy, Sparkles, Target, Terminal, Undo2 } from "lucide-react";
+import { Check, Copy, Sparkles, Target, Terminal, Undo2, Users } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import type { AttachedImage, DisplayMessage } from "@/lib/client/types";
 import { formatMessageTime } from "@/lib/client/format-message-time";
@@ -54,6 +54,13 @@ export function UserMessage({
 }: Props) {
   const text = message.blocks.map((b) => (b.kind === "text" ? b.text : "")).join("");
   const images = message.images ?? [];
+  // SDK 0.3.205 — this turn's `SDKMessageOrigin` was `kind: "peer"` (sent by
+  // another Claude Code session, e.g. via the `SendMessage` tool) rather
+  // than typed by the local user. `name` is the harness-normalized display
+  // name; fall back to the addressable `from` identity for older emitters
+  // that only stamped that field.
+  const peer = message.peer;
+  const peerLabel = peer ? (peer.name ?? peer.from) : null;
   // `!`-mode bash IO blocks ride in the user-turn text (live broadcast or
   // JSONL replay). Splitting here lets us render each block as a terminal
   // strip and only feed the remaining plain text to InlineUserText. When
@@ -94,6 +101,15 @@ export function UserMessage({
         onClick={onJumpTo ? handleJump : undefined}
         title={onJumpTo ? "Scroll to this message" : undefined}
       >
+        {peerLabel && !isPureBashEcho && (
+          <div
+            data-testid="user-message-peer-badge"
+            className="mb-1 flex items-center justify-end gap-1 text-[10px] uppercase tracking-wide text-[var(--muted)]"
+            title={`Sent by peer session${peer && peer.from !== peerLabel ? ` (${peer.from})` : ""}`}
+          >
+            <Users className="h-3 w-3" /> From {peerLabel}
+          </div>
+        )}
         {fromGoal && !isPureBashEcho && (
           <div
             data-testid="user-message-goal-badge"
