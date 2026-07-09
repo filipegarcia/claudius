@@ -112,6 +112,16 @@ export type DisplayMessage = {
    * all paths.
    */
   opusHighDemand?: boolean;
+  /**
+   * SDK 0.3.205 — present when this user turn's `SDKMessageOrigin` is
+   * `kind: "peer"` (sent by another Claude Code session, e.g. via the
+   * `SendMessage` tool) rather than typed by the local user. `from` is the
+   * addressable sender identity; `name` is the harness-normalized display
+   * name, absent on older emitters or when the wire wasn't exactly one
+   * harness-formed envelope. Drives the "From `<name>`" badge in
+   * `UserMessage.tsx`.
+   */
+  peer?: { from: string; name?: string };
 };
 
 export type TaskStatus = "pending" | "running" | "completed" | "failed" | "killed" | "stopped";
