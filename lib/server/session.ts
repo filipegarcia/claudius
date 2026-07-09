@@ -3755,8 +3755,22 @@ export class Session {
     this.broadcastGoal();
   }
 
-  async interrupt(): Promise<void> {
-    if (this.query) await this.query.interrupt().catch(() => {});
+  /**
+   * Interrupt the current turn. SDK 0.3.205 — on a CLI advertising the
+   * `interrupt_receipt_v1` capability, `query.interrupt()` resolves to a
+   * typed receipt (`{ still_queued: string[] }`) listing uuids of async
+   * user messages that will still run despite the interrupt (queued
+   * commands, or a batch already dequeued for the imminent turn). Older
+   * CLIs resolve to `undefined`. We forward that list to the route so the
+   * client can warn the user instead of assuming Stop fully drained the
+   * queue — most relevant to the `sendInput` "mid-turn user inject" path
+   * (`wasMidTurn`), which pushes a second message onto the SDK's own
+   * input queue while a turn is in flight.
+   */
+  async interrupt(): Promise<{ stillQueued: string[] }> {
+    if (!this.query) return { stillQueued: [] };
+    const receipt = await this.query.interrupt().catch(() => undefined);
+    return { stillQueued: receipt?.still_queued ?? [] };
   }
 
   async setPermissionMode(mode: PermissionMode): Promise<void> {

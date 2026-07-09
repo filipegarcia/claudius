@@ -494,6 +494,33 @@ export function extractUserContent(content: unknown): {
 }
 
 /**
+ * SDK 0.3.205 — reads the `SDKMessageOrigin` off a raw user-role SDK
+ * message and, when it's `kind: "peer"` (sent by another Claude Code
+ * session, e.g. via the `SendMessage` tool), returns the sender's
+ * addressable identity + display name + decoded body. Returns `undefined`
+ * for `human` / `channel` / any other origin kind, and for a malformed
+ * `peer` origin missing `from` (the one required field).
+ *
+ * `name` and `body` are both optional on the wire (absent on older
+ * emitters, or when the turn wasn't exactly one harness-formed envelope) —
+ * empty-string / non-string values are treated the same as absent rather
+ * than surfaced as a blank badge or bubble.
+ *
+ * Exported for unit testing.
+ */
+export function extractPeerOrigin(
+  msg: unknown,
+): { from: string; name?: string; body?: string } | undefined {
+  const origin = (msg as { origin?: { kind?: unknown; from?: unknown; name?: unknown; body?: unknown } } | null)
+    ?.origin;
+  if (!origin || origin.kind !== "peer") return undefined;
+  if (typeof origin.from !== "string" || !origin.from) return undefined;
+  const name = typeof origin.name === "string" && origin.name ? origin.name : undefined;
+  const body = typeof origin.body === "string" && origin.body ? origin.body : undefined;
+  return { from: origin.from, ...(name ? { name } : {}), ...(body ? { body } : {}) };
+}
+
+/**
  * TEMP replay-debug instrumentation. Enable in the browser console with
  *   localStorage.setItem("claudius:replay-debug", "1")
  * then reload (or trigger a reconnect by backgrounding the tab / toggling
@@ -3059,7 +3086,14 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
               return next;
             });
           }
-          if (text || images.length) {
+          // SDK 0.3.205 — peer-authored turn (e.g. via the `SendMessage`
+          // tool). Prefer the origin's decoded `body` (byte-exact with what
+          // the model saw) over the re-parsed `text` when present — the
+          // envelope-stripped body is authoritative, `text` is just our own
+          // reconstruction of the wrapped content.
+          const peerOrigin = extractPeerOrigin(msg);
+          const displayText = peerOrigin?.body ?? text;
+          if (displayText || images.length) {
             setMessages((prev) => {
               // Optimistic dedup: a fresh send seeded the bubble with the
               // composer's actual ordinals + uuids; don't replace it with our
@@ -3070,9 +3104,12 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
                 {
                   uuid,
                   role: "user",
-                  blocks: text ? [{ kind: "text", text }] : [],
+                  blocks: displayText ? [{ kind: "text", text: displayText }] : [],
                   ...(images.length ? { images } : {}),
                   ...(typeof ev.at === "number" ? { createdAt: ev.at } : {}),
+                  ...(peerOrigin
+                    ? { peer: { from: peerOrigin.from, ...(peerOrigin.name ? { name: peerOrigin.name } : {}) } }
+                    : {}),
                 },
               ];
             });
@@ -4509,8 +4546,36 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
   const interrupt = useCallback(async () => {
     const id = sessionIdRef.current;
     if (!id) return;
-    await fetch(`/api/sessions/${id}/interrupt`, { method: "POST" });
+    const res = await fetch(`/api/sessions/${id}/interrupt`, { method: "POST" });
     setPendingTracked(false);
+    // SDK 0.3.205 — on a CLI advertising `interrupt_receipt_v1`, the route
+    // returns `stillQueued` uuids of async user messages that will still
+    // run despite this Stop (queued commands, or a batch already dequeued
+    // for the imminent turn). Surface an info pill so the user isn't
+    // surprised when queued input keeps executing after they hit Stop.
+    // Older CLIs / a rejected interrupt degrade to `[]` server-side, so
+    // this is a no-op there.
+    try {
+      const data = (await res.json()) as { stillQueued?: unknown };
+      const stillQueued = Array.isArray(data.stillQueued)
+        ? data.stillQueued.filter((v): v is string => typeof v === "string")
+        : [];
+      if (stillQueued.length > 0) {
+        const anchor = lastAssistantUuidRef.current;
+        setSystemEntries((prev) => [
+          ...prev,
+          {
+            uuid: crypto.randomUUID(),
+            afterMessageUuid: anchor,
+            kind: "info" as const,
+            label: `Stop: ${stillQueued.length} queued message${stillQueued.length === 1 ? "" : "s"} will still run`,
+          },
+        ]);
+      }
+    } catch {
+      // Non-JSON / network hiccup on an already-fired Stop — nothing to
+      // recover, the interrupt itself already went out above.
+    }
   }, [setPendingTracked]);
 
   /**
@@ -5194,6 +5259,13 @@ type RawSDKMessage = {
   isMeta?: boolean;
   isCompactSummary?: boolean;
   isVisibleInTranscriptOnly?: boolean;
+  /**
+   * SDK 0.3.205 — provenance of a user-role record (peer session, team
+   * lead, channel). Only the `peer` shape is read (via `extractPeerOrigin`)
+   * to drive the "From `<name>`" badge on the pagination path; other kinds
+   * are ignored here the same as on the live path.
+   */
+  origin?: { kind?: string; from?: string; name?: string; body?: string };
 };
 
 /**
@@ -5424,12 +5496,20 @@ function synthesizeOlder(raw: Array<Record<string, unknown>>): {
     // the live path if the same record shows up in the active replay
     // window.
     const { text, images } = extractUserContent(content);
+    // SDK 0.3.205 — same peer-origin preference as the live applyEvent
+    // path: the decoded `body` is byte-exact with what the model saw, so
+    // prefer it over our own re-parsed `text` when present.
+    const peerOrigin = extractPeerOrigin(r);
+    const displayText = peerOrigin?.body ?? text;
     out.push({
       uuid,
       role: "user",
-      blocks: text ? [{ kind: "text", text }] : [],
+      blocks: displayText ? [{ kind: "text", text: displayText }] : [],
       ...(images.length ? { images } : {}),
       ...(Number.isFinite(parsedTs) ? { createdAt: parsedTs } : {}),
+      ...(peerOrigin
+        ? { peer: { from: peerOrigin.from, ...(peerOrigin.name ? { name: peerOrigin.name } : {}) } }
+        : {}),
     });
   }
   return { messages: out };
