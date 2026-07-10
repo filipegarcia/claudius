@@ -1,22 +1,20 @@
 /**
- * CC 2.1.206 — "Added a `/doctor` check that proposes trimming checked-in
- * CLAUDE.md files by cutting content Claude could derive from the
- * codebase."
+ * CC 2.1.206 — "/doctor ... proposes trimming checked-in CLAUDE.md files by
+ * cutting content Claude could derive from the codebase."
  *
- * Claudius already ships a `/doctor` slash command + `app/doctor` page
- * (see `cc-parity-2.1.205-doctor-fix.spec.ts`). This release adds one more
- * check: a per-workspace warning when a project's checked-in CLAUDE.md
- * content (project root + `.claude/CLAUDE.md`) crosses a line-count
- * threshold (`CLAUDE_MD_WARN_LINES` in `lib/server/claudemd.ts`). Unlike
- * upstream's model-driven "what could be derived" analysis, this is a
- * fast, deterministic, session-less probe — so instead of an automated
- * "Fix" action it links into the existing per-workspace Memory editor
- * (`/[workspaceId]/memory`) where trimming is actually a judgment call.
+ * Claudius's `/doctor` (`app/doctor`) already ships deterministic, session-less
+ * checks (Node version, SDK version, auth, ~/.claude dirs, git). This release
+ * adds a per-workspace `claude-md-size:<id>` warn check (see
+ * `app/api/doctor/route.ts#claudeMdSizeChecks`) that flags a workspace whose
+ * checked-in CLAUDE.md content has grown past a line-count threshold, and
+ * links into the existing per-workspace Memory editor
+ * (`/[workspaceId]/memory`) instead of trying to auto-trim it — trimming
+ * needs judgment, which Claudius already has a chat/Memory surface for.
  *
- * This spec drives the Doctor page directly (mocked `GET /api/doctor`),
- * in the full app chrome (SideNav + header), and asserts the new warn row
- * and its "Review in Memory" link render and point at the active
- * workspace's Memory page.
+ * This spec drives the Doctor page directly (mocked `GET /api/doctor`) in
+ * the full app chrome (SideNav + header), asserts the warn row + its detail
+ * text, clicks the "Review in Memory" link, and asserts it lands on the
+ * real workspace's Memory page.
  *
  * Screenshot target: docs/cc-parity/2.1.206/doctor-claude-md-size.png
  */
@@ -51,10 +49,13 @@ function reportWith(workspaceId: string): {
     { id: "projects-dir", label: "~/.claude/projects", status: "ok", detail: "writable" },
     { id: "git", label: "git", status: "ok", detail: "git version 2.43.0" },
     {
-      id: `claude-md-size-${workspaceId}`,
+      id: `claude-md-size:${workspaceId}`,
       label: "CLAUDE.md size — claudius",
       status: "warn",
-      detail: "412 lines (18.3 KB) checked in — consider trimming content Claude could derive from the codebase",
+      detail:
+        "412 lines (~14 KB) across 1 checked-in file — Claude can usually re-derive routine " +
+        "info (file layout, tech stack, build commands) from the codebase itself; consider " +
+        "trimming content it doesn't need spelled out, or moving procedures into a skill.",
       link: { href: `/${workspaceId}/memory`, label: "Review in Memory" },
     },
   ];
@@ -71,31 +72,38 @@ async function mockDoctorBackend(page: Page, workspaceId: string): Promise<void>
   });
 }
 
+test.beforeEach(async ({ page }) => {
+  await activateClaudiusWorkspace(page);
+});
+
 test.describe("CC 2.1.206 — Doctor checked-in CLAUDE.md size check", () => {
-  test("warns when a workspace's CLAUDE.md crosses the line threshold, links into Memory", async ({ page }) => {
-    await activateClaudiusWorkspace(page);
-    const { workspaces } = (await page.request
+  test("warns on an oversized checked-in CLAUDE.md and links to Memory", async ({ page }) => {
+    const list = await page.request
       .get("/api/workspaces")
-      .then((r) => r.json())) as { workspaces: Array<{ id: string; name: string }> };
-    const ws = workspaces.find((w) => w.name === "claudius") ?? workspaces[0];
-    expect(ws).toBeTruthy();
+      .then((r) => r.json() as Promise<{ workspaces: Array<{ id: string; name: string }> }>);
+    const ws = list.workspaces[0];
+    expect(ws).toBeDefined();
 
     await mockDoctorBackend(page, ws.id);
     await page.goto("/doctor");
 
     const row = page.locator("li", { hasText: "CLAUDE.md size" });
     await expect(row).toBeVisible({ timeout: 15_000 });
-    await expect(row.getByText(/checked in — consider trimming/)).toBeVisible();
+    await expect(row.getByText(/412 lines/)).toBeVisible();
+    await expect(row.getByText(/Claude can usually re-derive/)).toBeVisible();
 
-    const link = page.getByTestId(`doctor-link-claude-md-size-${ws.id}`);
+    const link = page.getByTestId(`doctor-link-claude-md-size:${ws.id}`);
     await expect(link).toBeVisible();
     await expect(link).toHaveText("Review in Memory");
-    await expect(link).toHaveAttribute("href", `/${ws.id}/memory`);
 
     await page.waitForTimeout(200);
     await page.screenshot({
       path: resolve(SHOTS_DIR, "doctor-claude-md-size.png"),
       fullPage: false,
     });
+
+    await link.click();
+    await expect(page).toHaveURL(new RegExp(`/${ws.id}/memory$`));
+    await expect(page.getByText("Memory", { exact: true }).first()).toBeVisible();
   });
 });
