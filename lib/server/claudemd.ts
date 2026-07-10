@@ -154,3 +154,41 @@ export function relativeFromHome(p: string): string {
   if (p.startsWith(h + "/")) return "~/" + relative(h, p);
   return p;
 }
+
+/**
+ * CC 2.1.206 parity: "Added a `/doctor` check that proposes trimming
+ * checked-in CLAUDE.md files by cutting content Claude could derive from
+ * the codebase." Claudius has no session-less model call available to a
+ * fast doctor probe, so this is a deterministic line-count heuristic
+ * rather than the model-driven "what could be derived" analysis upstream
+ * runs — see `docs/cc-parity/2.1.206` run notes for the rejected
+ * alternative (an LLM-backed trim proposal).
+ *
+ * Pure so it's unit-testable without touching the filesystem or the
+ * workspace store — `app/api/doctor/route.ts` does the I/O and calls this
+ * with the combined checked-in content.
+ */
+export const CLAUDE_MD_WARN_LINES = 300;
+
+export type ClaudeMdSizeWarning = {
+  lines: number;
+  kb: number;
+  detail: string;
+  link: { href: string; label: string };
+};
+
+export function claudeMdSizeWarning(
+  workspaceId: string,
+  combinedContent: string,
+): ClaudeMdSizeWarning | null {
+  if (!combinedContent) return null;
+  const lines = combinedContent.split("\n").length;
+  if (lines <= CLAUDE_MD_WARN_LINES) return null;
+  const kb = Math.round((Buffer.byteLength(combinedContent, "utf8") / 1024) * 10) / 10;
+  return {
+    lines,
+    kb,
+    detail: `${lines} lines (${kb} KB) checked in — consider trimming content Claude could derive from the codebase`,
+    link: { href: `/${workspaceId}/memory`, label: "Review in Memory" },
+  };
+}

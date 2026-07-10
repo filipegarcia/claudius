@@ -4,6 +4,8 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
+import { readScope, claudeMdSizeWarning } from "@/lib/server/claudemd";
+import { listWorkspaces } from "@/lib/server/workspaces-store";
 
 const execFileP = promisify(execFile);
 
@@ -24,6 +26,13 @@ type Check = {
    * anything that would require running an external command.
    */
   fixable?: boolean;
+  /**
+   * Optional call-to-action link (CC 2.1.206 parity: the "checked-in
+   * CLAUDE.md too big" check). Routes into an existing Claudius screen
+   * rather than offering a `fixable` auto-fix — trimming CLAUDE.md is a
+   * judgment call, not a safe automated filesystem op.
+   */
+  link?: { href: string; label: string };
 };
 
 async function exists(path: string): Promise<boolean> {
@@ -158,6 +167,32 @@ export async function GET() {
       status: "warn",
       detail: "DISABLE_PROMPT_CACHING is set — caching off increases token cost and latency",
     });
+  }
+
+  // Checked-in CLAUDE.md size (CC 2.1.206 parity) — one warn row per
+  // workspace whose checked-in CLAUDE.md content (project root +
+  // .claude/CLAUDE.md) crosses a line-count threshold. Best-effort: a
+  // workspace-store read failure shouldn't fail the whole doctor report.
+  try {
+    const workspaces = await listWorkspaces();
+    for (const ws of workspaces) {
+      const [root, projectClaude] = await Promise.all([
+        readScope("project", ws.rootPath),
+        readScope("project-claude", ws.rootPath),
+      ]);
+      const combined = [root.content, projectClaude.content].filter(Boolean).join("\n");
+      const warning = claudeMdSizeWarning(ws.id, combined);
+      if (!warning) continue;
+      checks.push({
+        id: `claude-md-size-${ws.id}`,
+        label: `CLAUDE.md size — ${ws.name}`,
+        status: "warn",
+        detail: warning.detail,
+        link: warning.link,
+      });
+    }
+  } catch {
+    // Best-effort — see comment above.
   }
 
   return NextResponse.json({
