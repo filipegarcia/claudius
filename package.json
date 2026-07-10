@@ -1,6 +1,6 @@
 {
   "name": "claudius",
-  "version": "0.3.207",
+  "version": "0.3.208",
   "private": true,
   "license": "MIT",
   "author": "Claudius Network",
@@ -94,9 +94,6 @@
     "typescript": "^5",
     "vitest": "^4.1.6",
     "wait-on": "^8.0.1"
-  },
-  "patchedDependencies": {
-    "better-sqlite3@12.10.0": "patches/better-sqlite3@12.10.0.patch"
   },
   "trustedDependencies": [
     "better-sqlite3",
