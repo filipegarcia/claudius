@@ -127,15 +127,6 @@ export function UserMessage({
             <Sparkles className="h-3 w-3" /> Suggested
           </div>
         )}
-        {message.peer && !isPureBashEcho && (
-          <div
-            data-testid="user-message-peer-badge"
-            className="mb-1 flex items-center justify-end gap-1 text-[10px] uppercase tracking-wide text-[var(--muted)]"
-            title={`Sent by peer session ${message.peer.from}`}
-          >
-            <Users className="h-3 w-3" /> From {message.peer.name ?? message.peer.from}
-          </div>
-        )}
         {hasBash ? (
           <div className="flex flex-col gap-2">
             {segments.map((seg, i) =>
