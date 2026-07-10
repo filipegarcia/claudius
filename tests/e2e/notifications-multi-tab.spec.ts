@@ -637,6 +637,24 @@ test.describe("Notifications: multi-tab + workspace switching", () => {
     });
     await page.reload();
     await waitForBoundSession(page);
+    // Wait for the client's hydration→render→persist cycle to complete.
+    // After page.reload() the useEffect hydration fetch can be slow when
+    // the dev server is under load from the rest of the suite.  The persist
+    // effect only fires after the hydration fetch resolves AND the strip
+    // re-renders, so the server tabs advancing from [C] to [C, bound]
+    // (length > 1) is the earliest safe signal that the DOM has updated.
+    // Same pattern as the line-199 test (fixed in f07b879).
+    await expect
+      .poll(
+        async () => {
+          const r = await page.request.get(`${baseURL}/api/sessions/open-tabs`);
+          const body = (await r.json()) as { tabs?: string[] };
+          const tabs = body.tabs ?? [];
+          return tabs.includes(SYNTHETIC_TAB_C) && tabs.length > 1;
+        },
+        { timeout: 15_000 },
+      )
+      .toBe(true);
 
     const bgTab = page.locator(`[data-tab-id="${SYNTHETIC_TAB_C}"]`).first();
     await expect(bgTab).toBeAttached({ timeout: 15_000 });
@@ -752,6 +770,24 @@ test.describe("Notifications: multi-tab + workspace switching", () => {
     });
     await page.reload();
     await waitForBoundSession(page);
+    // Wait for the client's hydration→render→persist cycle to complete.
+    // After page.reload() the useEffect hydration fetch can be slow when
+    // the dev server is under load from the rest of the suite.  The persist
+    // effect only fires after the hydration fetch resolves AND the strip
+    // re-renders, so the server tabs advancing from [C] to [C, bound]
+    // (length > 1) is the earliest safe signal that the DOM has updated.
+    // Same pattern as the line-199 test (fixed in f07b879).
+    await expect
+      .poll(
+        async () => {
+          const r = await page.request.get(`${baseURL}/api/sessions/open-tabs`);
+          const body = (await r.json()) as { tabs?: string[] };
+          const tabs = body.tabs ?? [];
+          return tabs.includes(SYNTHETIC_TAB_C) && tabs.length > 1;
+        },
+        { timeout: 15_000 },
+      )
+      .toBe(true);
 
     const bgTab = page.locator(`[data-tab-id="${SYNTHETIC_TAB_C}"]`).first();
     await expect(bgTab).toBeAttached({ timeout: 15_000 });
