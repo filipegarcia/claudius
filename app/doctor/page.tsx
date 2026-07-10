@@ -11,7 +11,14 @@ import { SideNav } from "@/components/nav/SideNav";
 import { useClaudius } from "@/lib/client/useElectron";
 import { cn } from "@/lib/utils/cn";
 
-type Check = { id: string; label: string; status: "ok" | "warn" | "fail"; detail?: string; fixable?: boolean };
+type Check = {
+  id: string;
+  label: string;
+  status: "ok" | "warn" | "fail";
+  detail?: string;
+  fixable?: boolean;
+  link?: { href: string; label: string };
+};
 type Report = {
   runtime: { node: string; platform: string; arch: string };
   sdk: { version: string | null };
@@ -163,6 +170,15 @@ export default function DoctorPage() {
                           >
                             {fixingId === c.id ? "Fixing…" : "Fix"}
                           </button>
+                        )}
+                        {c.link && c.status !== "ok" && (
+                          <Link
+                            href={c.link.href}
+                            data-testid={`doctor-link-${c.id}`}
+                            className="shrink-0 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-0.5 text-[11px] hover:bg-[var(--panel)]"
+                          >
+                            {c.link.label}
+                          </Link>
                         )}
                       </li>
                     ))}

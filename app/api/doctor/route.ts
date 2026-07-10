@@ -4,6 +4,8 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
+import { listWorkspaces } from "@/lib/server/workspaces-store";
+import { readScope } from "@/lib/server/claudemd";
 
 const execFileP = promisify(execFile);
 
@@ -24,7 +26,82 @@ type Check = {
    * anything that would require running an external command.
    */
   fixable?: boolean;
+  /**
+   * Optional navigation affordance for checks that need a human/model
+   * judgment call rather than a mechanical fix (see `claudeMdSizeChecks`
+   * below) — the Doctor page renders this as a link button instead of a
+   * "Fix" button.
+   */
+  link?: { href: string; label: string };
 };
+
+/**
+ * CC 2.1.206 parity: "/doctor ... proposes trimming checked-in CLAUDE.md
+ * files by cutting content Claude could derive from the codebase." Upstream
+ * does this with a model call inside an interactive session; this route is a
+ * fast, deterministic, session-less GET probe (every other check here is a
+ * sync/fs heuristic), so trimming which lines to cut isn't something to do
+ * here — instead we flag checked-in CLAUDE.md files that have grown past a
+ * size where that kind of review is worth doing, and link to the existing
+ * per-workspace Memory editor where a human (or a chat turn) can actually
+ * do the trim.
+ *
+ * 300 lines is a Claudius-chosen heuristic, not scraped from upstream —
+ * upstream scales its own "CLAUDE.md is too long" threshold off the active
+ * model's context window, which a no-session diagnostic like this doesn't
+ * have. Flagged in the run-notes risk section for review.
+ */
+const CLAUDE_MD_TRIM_THRESHOLD_LINES = 300;
+
+async function claudeMdSizeChecks(): Promise<Check[]> {
+  let workspaces: Awaited<ReturnType<typeof listWorkspaces>>;
+  try {
+    workspaces = await listWorkspaces();
+  } catch {
+    return [];
+  }
+
+  const checks: Check[] = [];
+  for (const ws of workspaces) {
+    // Skip "customization" workspaces (Claudius's own dogfood/demo
+    // workspaces, not a user's project) — CLAUDE.md size only matters for
+    // real project checkouts. `kind` is absent on older records, which
+    // `?? "project"` treats as a project (matches the store's own
+    // documented default).
+    if ((ws.kind ?? "project") !== "project") continue;
+
+    const [project, projectClaude] = await Promise.all([
+      readScope("project", ws.rootPath),
+      readScope("project-claude", ws.rootPath),
+    ]);
+    const files = [project, projectClaude].filter((f) => f.exists);
+    if (files.length === 0) continue;
+
+    // `.split("\n").length` overcounts by one for the (near-universal) case
+    // of a trailing newline — subtract it so a file with exactly N lines
+    // and a trailing "\n" reports N, not N+1, matching `wc -l`.
+    const lineCount = (content: string): number => {
+      const parts = content.split("\n").length;
+      return content.endsWith("\n") ? parts - 1 : parts;
+    };
+    const totalLines = files.reduce((n, f) => n + lineCount(f.content), 0);
+    if (totalLines <= CLAUDE_MD_TRIM_THRESHOLD_LINES) continue;
+
+    const totalBytes = files.reduce((n, f) => n + Buffer.byteLength(f.content, "utf8"), 0);
+    checks.push({
+      id: `claude-md-size:${ws.id}`,
+      label: `CLAUDE.md size — ${ws.name}`,
+      status: "warn",
+      detail:
+        `${totalLines} lines (~${Math.round(totalBytes / 1024)} KB) across ${files.length} ` +
+        `checked-in file${files.length > 1 ? "s" : ""} — Claude can usually re-derive routine ` +
+        `info (file layout, tech stack, build commands) from the codebase itself; consider ` +
+        `trimming content it doesn't need spelled out, or moving procedures into a skill.`,
+      link: { href: `/${ws.id}/memory`, label: "Review in Memory" },
+    });
+  }
+  return checks;
+}
 
 async function exists(path: string): Promise<boolean> {
   try {
@@ -159,6 +236,10 @@ export async function GET() {
       detail: "DISABLE_PROMPT_CACHING is set — caching off increases token cost and latency",
     });
   }
+
+  // Checked-in CLAUDE.md files that have grown large enough to be worth
+  // trimming (CC 2.1.206 parity — see `claudeMdSizeChecks` above).
+  checks.push(...(await claudeMdSizeChecks()));
 
   return NextResponse.json({
     runtime: { node, platform: process.platform, arch: process.arch },
