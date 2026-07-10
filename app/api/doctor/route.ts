@@ -47,9 +47,10 @@ type Check = {
  * do the trim.
  *
  * 300 lines is a Claudius-chosen heuristic, not scraped from upstream —
- * upstream scales its own "CLAUDE.md is too long" threshold off the active
- * model's context window, which a no-session diagnostic like this doesn't
- * have. Flagged in the run-notes risk section for review.
+ * upstream's own version is that in-session model call proposing specific
+ * cuts, not a fixed line count, and a no-session diagnostic like this has no
+ * model call to substitute. Flagged in the run-notes risk section for
+ * review.
  */
 const CLAUDE_MD_TRIM_THRESHOLD_LINES = 300;
 
