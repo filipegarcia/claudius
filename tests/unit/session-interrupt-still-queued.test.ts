@@ -18,11 +18,11 @@ import { Session } from "@/lib/server/session";
  */
 type SessionInternals = {
   query: { interrupt: () => Promise<{ still_queued: string[] } | undefined> } | null;
+  interrupt: () => Promise<{ stillQueued: string[] }>;
 };
 
-function makeSession(): Session & SessionInternals {
-  return new Session({ id: "interrupt-test", cwd: "/tmp/fake-interrupt-cwd" }) as unknown as Session &
-    SessionInternals;
+function makeSession(): SessionInternals {
+  return new Session({ id: "interrupt-test", cwd: "/tmp/fake-interrupt-cwd" }) as unknown as SessionInternals;
 }
 
 describe("Session.interrupt()", () => {
