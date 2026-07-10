@@ -771,6 +771,40 @@ type PendingPlan = {
  *                the trailing `replay_done` so the client knows whether
  *                to show the "load older" affordance.
  */
+/**
+ * Whether a broadcast `ServerEvent` belongs in the 1000-event replay buffer
+ * (vs. live-subscriber-only). Two kinds of event are excluded because
+ * replaying them is actively wrong, not just wasteful:
+ *
+ * - `queue:updated` is a SNAPSHOT of the current queue, not a log entry —
+ *   replaying a stale one on reload would show a wrong queue.
+ * - `holder_changed` is always re-echoed fresh in `subscribe()`; replaying a
+ *   stale ownership change would confuse a late-connecting tab. In practice
+ *   this never reaches `broadcast()` (it uses `announceHolder()` directly);
+ *   the guard is a safety net.
+ *
+ * A third kind is excluded purely to preserve buffer capacity: SDK 0.3.206
+ * added `command_lifecycle` frames — uuid-stamped queued/started/completed/
+ * cancelled/discarded bookkeeping for the SDK's own internal async-message
+ * queue. They're not in the SDK's public `.d.ts` yet, and Claudius has no
+ * consumer for them (our queue UI — `QueueIndicator` — is driven by the
+ * server-side `queued_messages` table, not the SDK's internal queue), so
+ * replaying them on reload buys nothing. Left in the buffer they'd crowd out
+ * real transcript history under the FIFO cap on sessions that queue heavily.
+ * Still forwarded to live subscribers by the caller — exclusion here only
+ * affects what a reload/reattach replays.
+ *
+ * Exported for unit testing — pure over one event, worth pinning down
+ * separately from the Session lifecycle.
+ */
+export function shouldBufferEvent(event: ServerEvent): boolean {
+  if (event.type === "queue:updated" || event.type === "holder_changed") return false;
+  if (event.type === "sdk" && (event.message as { type?: string })?.type === "command_lifecycle") {
+    return false;
+  }
+  return true;
+}
+
 export function computeReplayWindow(
   buffer: ReadonlyArray<ServerEvent>,
   tail: number | undefined,
@@ -5916,7 +5950,7 @@ export class Session {
     // confuse late-connecting tabs. In practice `holder_changed` never goes
     // through `broadcast()` (it uses `announceHolder()` directly), but this
     // guard is here as a safety net.
-    if (event.type !== "queue:updated" && event.type !== "holder_changed") {
+    if (shouldBufferEvent(event)) {
       this.buffer.push(event);
       if (this.buffer.length > 1000) {
         this.bufferTrimmed = true;
