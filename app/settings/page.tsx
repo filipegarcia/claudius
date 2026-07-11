@@ -1035,6 +1035,13 @@ const SDK_SETTINGS_CATALOG: SettingMeta[] = [
     desc: "Whether the user has accepted the bypass permissions mode dialog",
   },
   {
+    key: "disableAutoMode",
+    type: "enum",
+    section: "Permissions",
+    options: ["disable"],
+    desc: 'Disable Auto mode (the autonomous permission mode) entirely — hides "Auto" from the mode picker and the Shift+Tab cycle. Default/absent leaves Auto mode available. Matches the SDK\'s single-literal key exactly (no separate "enabled" value).',
+  },
+  {
     key: "defaultShell",
     type: "enum",
     section: "Shell",
@@ -1392,7 +1399,10 @@ function CatalogField({
 
   const isSet = value !== undefined;
   return (
-    <div className="rounded-md border border-[var(--border)] bg-[var(--panel-2)]/40 p-2">
+    <div
+      data-testid={`catalog-field-${meta.key}`}
+      className="rounded-md border border-[var(--border)] bg-[var(--panel-2)]/40 p-2"
+    >
       <div className="mb-1 flex items-center gap-2">
         <span className="font-mono text-xs">{meta.key}</span>
         {meta.deprecated && (

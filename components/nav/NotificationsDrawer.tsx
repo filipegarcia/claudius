@@ -15,7 +15,7 @@ import { useNotificationCenter } from "@/lib/client/useNotificationCenter";
 import { useNotificationsContext } from "@/components/notifications/NotificationsProvider";
 import { useWorkspaces } from "@/lib/client/useWorkspaces";
 import { cn } from "@/lib/utils/cn";
-import type { NotificationKind, NotificationRow } from "@/lib/shared/notifications";
+import { isActionableKind, type NotificationKind, type NotificationRow } from "@/lib/shared/notifications";
 
 /**
  * Notification bar + flyout panel rendered at the top of the right-rail
@@ -213,6 +213,16 @@ function NotificationRowItem({
   // — Chrome/Safari deliver clicks inconsistently to the outer button when
   // there's an interactive descendant, which silently broke the jump-to-
   // session action.
+  //
+  // Blocked-session peek (Claude Code TUI parity, 2.1.207): the agent-view
+  // row for a still-pending permission/question/plan-review row now leads
+  // with the QUESTION itself rather than the generic kind label, and shows
+  // a worded staleness clock ("waiting 3m") instead of the same timestamp
+  // rendered twice. Only applies while the row is unread AND its kind is
+  // one the agent is actually blocked on (`isActionableKind`) — once
+  // answered/read, the row reverts to the generic title-first layout like
+  // every other notification.
+  const isPeek = unread && isActionableKind(row.kind) && !!row.body;
   return (
     <li
       data-testid={`notification-row-${row.id}`}
@@ -239,15 +249,23 @@ function NotificationRowItem({
         </span>
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
           <span className="flex items-center gap-1.5">
-            <span className={cn("truncate text-xs", unread ? "font-medium text-[var(--foreground)]" : "text-[var(--muted)]")}>
-              {row.title}
+            <span
+              data-testid="notification-row-primary"
+              className={cn(
+                "truncate text-xs",
+                unread ? "font-medium text-[var(--foreground)]" : "text-[var(--muted)]",
+              )}
+            >
+              {isPeek ? row.body : row.title}
             </span>
             {unread && (
               <span aria-hidden className="ml-auto inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--accent)]" />
             )}
           </span>
-          {row.body && (
-            <span className="line-clamp-2 text-[10px] text-[var(--muted)]">{row.body}</span>
+          {isPeek ? (
+            <span className="line-clamp-2 text-[10px] text-[var(--muted)]">{row.title}</span>
+          ) : (
+            row.body && <span className="line-clamp-2 text-[10px] text-[var(--muted)]">{row.body}</span>
           )}
           <span className="flex items-center gap-2 text-[9px] text-[var(--muted)]/70">
             {workspaceLabel && (
@@ -255,7 +273,9 @@ function NotificationRowItem({
                 {workspaceLabel}
               </span>
             )}
-            <span>{formatRelative(row.createdAt)}</span>
+            <span data-testid="notification-row-clock">
+              {isPeek ? `waiting ${formatWaiting(row.createdAt)}` : formatRelative(row.createdAt)}
+            </span>
             {unread && (
               <button
                 type="button"
@@ -305,4 +325,18 @@ function formatRelative(ts: number): string {
   if (delta < 3_600_000) return `${Math.floor(delta / 60_000)}m ago`;
   if (delta < 86_400_000) return `${Math.floor(delta / 3_600_000)}h ago`;
   return `${Math.floor(delta / 86_400_000)}d ago`;
+}
+
+/**
+ * Worded staleness clock for a still-pending blocked-session peek — e.g.
+ * "waiting 3m". Same bucketing as `formatRelative` but phrased as an
+ * ongoing wait rather than a point-in-time timestamp, since the row hasn't
+ * been answered yet (Claude Code TUI parity, 2.1.207).
+ */
+function formatWaiting(ts: number): string {
+  const delta = Date.now() - ts;
+  if (delta < 60_000) return "<1m";
+  if (delta < 3_600_000) return `${Math.floor(delta / 60_000)}m`;
+  if (delta < 86_400_000) return `${Math.floor(delta / 3_600_000)}h`;
+  return `${Math.floor(delta / 86_400_000)}d`;
 }

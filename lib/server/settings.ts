@@ -90,6 +90,19 @@ export type ClaudeSettings = {
   // Git worktree creation options (the --worktree flag / EnterWorktree).
   // Mirrors the SDK's `Settings.worktree` shape.
   worktree?: WorktreeSettings;
+  // Disable Auto mode (the SDK's autonomous permission mode) entirely.
+  // Mirrors the SDK's `Settings.disableAutoMode` key exactly: it's a
+  // single-literal "flag" rather than a boolean — presence of the string
+  // `"disable"` turns Auto mode off; absent (or any other value) leaves it
+  // available. Claude Code 2.1.207 made Auto mode available without the
+  // `CLAUDE_CODE_ENABLE_AUTO_MODE` opt-in on Bedrock/Vertex/Foundry and
+  // shipped this settings escape hatch alongside it; it also stopped
+  // reading auto-mode config from the repo-local `.claude/settings.local.json`
+  // in favor of `~/.claude/settings.json` only. Both `Session.setPermissionMode`
+  // (server-side enforcement) and the `useDisableAutoMode` client hook (hides
+  // "Auto" from the ModeSelector / Shift+Tab cycle) read this via
+  // `readSettings("user", cwd)` — the "user" scope only, matching upstream.
+  disableAutoMode?: "disable";
   // Catch-all for keys we don't yet know about — we never strip them.
   [key: string]: unknown;
 };
