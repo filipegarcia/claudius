@@ -136,9 +136,9 @@ test.describe("CC 2.1.207 — blocked-session peek leads with the question", () 
     // The question leads (primary line), the generic kind label demotes to
     // the secondary line, and the clock reads "waiting …" rather than a
     // plain "just now" / "Xm ago" timestamp — the exact 2.1.207 fix.
-    await expect(panel.getByTestId("notification-row-primary").first()).toHaveText(question);
+    await expect(panel.getByTestId("notification-primary-text").first()).toHaveText(question);
     await expect(panel.getByText("Claude needs permission")).toBeVisible();
-    await expect(panel.getByTestId("notification-row-clock").first()).toHaveText(/^waiting /);
+    await expect(panel.getByTestId("notification-clock-text").first()).toHaveText(/^waiting /);
 
     await page.waitForTimeout(200);
     await page.screenshot({
@@ -185,9 +185,9 @@ test.describe("CC 2.1.207 — blocked-session peek leads with the question", () 
     // "Session error" is the generic title; a session_error row is never
     // "peeked" even though it's unread, because it isn't one of the
     // ACTIONABLE_KINDS the agent is blocked on.
-    await expect(panel.getByTestId("notification-row-primary").first()).toHaveText(
+    await expect(panel.getByTestId("notification-primary-text").first()).toHaveText(
       "Session error",
     );
-    await expect(panel.getByTestId("notification-row-clock").first()).not.toHaveText(/^waiting /);
+    await expect(panel.getByTestId("notification-clock-text").first()).not.toHaveText(/^waiting /);
   });
 });

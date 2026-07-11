@@ -250,7 +250,7 @@ function NotificationRowItem({
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
           <span className="flex items-center gap-1.5">
             <span
-              data-testid="notification-row-primary"
+              data-testid="notification-primary-text"
               className={cn(
                 "truncate text-xs",
                 unread ? "font-medium text-[var(--foreground)]" : "text-[var(--muted)]",
@@ -273,7 +273,7 @@ function NotificationRowItem({
                 {workspaceLabel}
               </span>
             )}
-            <span data-testid="notification-row-clock">
+            <span data-testid="notification-clock-text">
               {isPeek ? `waiting ${formatWaiting(row.createdAt)}` : formatRelative(row.createdAt)}
             </span>
             {unread && (
