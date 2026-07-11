@@ -31,11 +31,11 @@
     "site:screenshots": "playwright test --project=screenshots",
     "site:screenshots:full": "SCREENSHOTS_INCLUDE_CHAT=1 playwright test --project=screenshots",
     "site:screenshots:customizations": "SCREENSHOTS_INCLUDE_CUSTOMIZATIONS=1 playwright test tests/e2e/customization-showcase.spec.ts",
-    "electron:dev": "bun run electron:rebuild-native && bun run electron:compile && node scripts/electron-brand-dev.mjs && concurrently -k -n next,electron -c blue,magenta \"bun run dev\" \"wait-on http://127.0.0.1:3000 && cross-env ELECTRON_START_URL=http://127.0.0.1:3000 electron dist-electron/main.js\"",
+    "electron:dev": "bun run electron:rebuild-native && bun run electron:compile && node scripts/electron-brand-dev.mjs && concurrently -k -n next,electron -c blue,magenta \"bun run dev\" \"wait-on http://localhost:3179 && node scripts/electron-open.mjs\"",
     "electron:open": "node scripts/electron-open.mjs",
     "electron:typecheck": "tsc -p electron/tsconfig.json --noEmit",
     "electron:compile": "tsc -p electron/tsconfig.json",
-    "electron:build": "bun run electron:rebuild-native && node scripts/patch-next-generate-build-id.mjs && cross-env CLAUDIUS_PACKAGED=1 NODE_ENV=production next build && node scripts/electron-stage-standalone.mjs && node scripts/electron-gen-cert.mjs && bun run electron:compile",
+    "electron:build": "bun run electron:rebuild-native && node scripts/patch-next-generate-build-id.mjs && cross-env CLAUDIUS_PACKAGED=1 NODE_ENV=production next build && node scripts/electron-stage-standalone.mjs && node scripts/electron-gen-cert.mjs && bun run electron:compile && node dist-electron/smoke.js",
     "electron:icons": "node scripts/make-icons.mjs",
     "electron:app": "bun run electron:build && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder -m --dir",
     "postelectron:app": "bun run electron:rebuild-native-for-node",
@@ -49,10 +49,10 @@
     "postelectron:dist:linux": "bun run electron:rebuild-native-for-node",
     "electron:rebuild-native": "node scripts/electron-rebuild-native.mjs && node scripts/native-abi.mjs write electron",
     "electron:rebuild-native-for-node": "bun install --force better-sqlite3 && node scripts/native-abi.mjs write node",
-    "electron:smoke": "bun run electron:rebuild-native-for-node && cross-env CLAUDIUS_PACKAGED=1 NODE_ENV=production next build && node scripts/electron-stage-standalone.mjs && node scripts/electron-gen-cert.mjs && bun run electron:compile && node dist-electron/smoke.js"
+    "electron:smoke": "bun run electron:rebuild-native-for-node && cross-env CLAUDIUS_PACKAGED=1 NODE_ENV=production next build && node scripts/electron-stage-standalone.mjs && node scripts/electron-stage-standalone.mjs && node scripts/electron-gen-cert.mjs && bun run electron:compile && node dist-electron/smoke.js"
   },
   "dependencies": {
-    "@anthropic-ai/claude-agent-sdk": "^0.3.206",
+    "@anthropic-ai/claude-agent-sdk": "^0.3.207",
     "better-sqlite3": "^12.11.1",
     "clsx": "^2.1.1",
     "cron-parser": "^5.5.0",
