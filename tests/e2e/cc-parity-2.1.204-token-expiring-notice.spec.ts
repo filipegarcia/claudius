@@ -125,6 +125,25 @@ test.describe("CC 2.1.204 — proactive login-expiry warning", () => {
       }),
     );
 
+    // The tab strip persists its "open tabs" list to the real per-cwd
+    // `.claudius.db` (see `app/api/sessions/open-tabs/route.ts`) — without
+    // this mock, mounting the fake `SESSION_ID` writes it there for real and
+    // it survives as the workspace's "last active tab" long after this spec
+    // finishes, so the next spec's `page.goto("/")` resurrects the fake
+    // session instead of binding a fresh one (observed: broke the
+    // alphabetically-following cc-parity-2.1.207-* specs in a full-suite
+    // run). Stub the PUT so the fake tab never lands in shared state.
+    await page.route("**/api/sessions/open-tabs", async (route) => {
+      if (route.request().method() === "PUT") {
+        return route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ ok: true }),
+        });
+      }
+      return route.fallback();
+    });
+
     await page.goto(`/?session=${SESSION_ID}`);
   });
 

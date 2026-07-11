@@ -3808,6 +3808,17 @@ export class Session {
   }
 
   async setPermissionMode(mode: PermissionMode): Promise<void> {
+    // Auto mode can be disabled via settings (Claude Code TUI parity,
+    // 2.1.207: `disableAutoMode` in `~/.claude/settings.json`). Coerce a
+    // requested "auto" back to "default" server-side so the gate holds
+    // regardless of what the client sent — the ModeSelector UI also hides
+    // "Auto" via `useDisableAutoMode`, but this is the authoritative check.
+    // User scope ONLY, matching upstream's 2.1.207 change to stop reading
+    // auto-mode config from the repo-local `.claude/settings.local.json`.
+    if (mode === "auto") {
+      const gate = await readSettings("user", this.cwd).catch(() => ({}) as ClaudeSettings);
+      if (gate.disableAutoMode === "disable") mode = "default";
+    }
     // Plan-mode re-entry reminder (Claude Code TUI parity, feature 33). When
     // the user flips back into plan mode after a prior planning round in
     // this session, queue a `plan-mode-reentry` reminder citing the

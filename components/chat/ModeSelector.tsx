@@ -4,15 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import type { PermissionMode } from "@anthropic-ai/claude-agent-sdk";
 import { ChevronDown, Shield, ShieldAlert, ShieldCheck, ShieldOff, ListChecks, Wand2 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
+import { PERMISSION_MODE_ORDER, nextPermissionMode } from "@/lib/shared/permission-modes";
 
-export const PERMISSION_MODE_ORDER: PermissionMode[] = [
-  "default",
-  "acceptEdits",
-  "auto",
-  "plan",
-  "dontAsk",
-  "bypassPermissions",
-];
+export { PERMISSION_MODE_ORDER, nextPermissionMode };
 const ORDER = PERMISSION_MODE_ORDER;
 
 export const PERMISSION_MODE_META: Record<PermissionMode, { label: string; description: string; icon: typeof Shield; tone: string }> = {
@@ -57,13 +51,24 @@ export const PERMISSION_MODE_META: Record<PermissionMode, { label: string; descr
 type Props = {
   mode: PermissionMode;
   onChange: (m: PermissionMode) => void;
+  /**
+   * Modes to hide from the dropdown entirely — currently only used for
+   * `["auto"]` when the `disableAutoMode` setting is on (see
+   * `useDisableAutoMode`). The active mode still renders normally in the
+   * trigger button even if disabled, so a session already in a
+   * since-disabled mode doesn't look broken; it just can't be re-selected.
+   */
+  disabledModes?: PermissionMode[];
 };
 
-export function ModeSelector({ mode, onChange }: Props) {
+export function ModeSelector({ mode, onChange, disabledModes }: Props) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const meta = PERMISSION_MODE_META[mode];
   const Icon = meta.icon;
+  const visibleOrder = disabledModes?.length
+    ? ORDER.filter((m) => m === mode || !disabledModes.includes(m))
+    : ORDER;
 
   useEffect(() => {
     if (!open) return;
@@ -84,6 +89,7 @@ export function ModeSelector({ mode, onChange }: Props) {
   return (
     <div ref={ref} className="relative">
       <button
+        data-testid="mode-selector-trigger"
         onClick={() => setOpen((o) => !o)}
         className={cn(
           "flex items-center gap-1.5 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1 text-xs",
@@ -113,13 +119,14 @@ export function ModeSelector({ mode, onChange }: Props) {
           <div className="px-3 py-2 text-[10px] uppercase tracking-wide text-[var(--muted)]">
             Permission mode · Shift+Tab cycles
           </div>
-          {ORDER.map((m) => {
+          {visibleOrder.map((m) => {
             const mm = PERMISSION_MODE_META[m];
             const I = mm.icon;
             const active = m === mode;
             return (
               <button
                 key={m}
+                data-testid={`mode-selector-option-${m}`}
                 onClick={() => {
                   onChange(m);
                   setOpen(false);
@@ -145,8 +152,3 @@ export function ModeSelector({ mode, onChange }: Props) {
   );
 }
 
-export function nextPermissionMode(mode: PermissionMode): PermissionMode {
-  const idx = ORDER.indexOf(mode);
-  if (idx < 0) return "default";
-  return ORDER[(idx + 1) % ORDER.length];
-}

@@ -32,7 +32,9 @@ import { AskUserQuestionPrompt } from "@/components/chat/AskUserQuestionPrompt";
 import { QueueIndicator } from "@/components/chat/QueueIndicator";
 import { PromptSuggestions } from "@/components/chat/PromptSuggestions";
 import { BackgroundTasksPanel } from "@/components/panels/BackgroundTasksPanel";
+import type { PermissionMode } from "@anthropic-ai/claude-agent-sdk";
 import { nextPermissionMode } from "@/components/chat/ModeSelector";
+import { useDisableAutoMode } from "@/lib/client/useDisableAutoMode";
 import { HelpOverlay } from "@/components/overlays/HelpOverlay";
 import { SkillsOverlay } from "@/components/overlays/SkillsOverlay";
 import { CostOverlay } from "@/components/overlays/CostOverlay";
@@ -379,6 +381,15 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
   >(undefined);
   const draftTokenRef = useRef(0);
   const limits = useLimits(session.cwd);
+  // Auto mode escape hatch (Claude Code TUI parity, 2.1.207's
+  // `disableAutoMode` setting). Hides "Auto" from the ModeSelector dropdown
+  // and skips it in the Shift+Tab cycle below; the server independently
+  // enforces the same gate in `Session.setPermissionMode`.
+  const autoModeDisabled = useDisableAutoMode(session.cwd);
+  const disabledPermissionModes = useMemo<PermissionMode[] | undefined>(
+    () => (autoModeDisabled ? ["auto"] : undefined),
+    [autoModeDisabled],
+  );
 
   // Compute breach state. The override is keyed by `session:<id>:<today>` so
   // it lifts the cap only for the current calendar day, per the spec.
@@ -1072,12 +1083,14 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
           if (v && v.length > 0) return;
         }
         e.preventDefault();
-        void session.setPermissionMode(nextPermissionMode(session.permissionMode));
+        void session.setPermissionMode(
+          nextPermissionMode(session.permissionMode, disabledPermissionModes),
+        );
       }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [session]);
+  }, [session, disabledPermissionModes]);
 
   // Native slash dispatcher. Returns true if the command was handled.
   const runNative = useCallback(
@@ -1923,6 +1936,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
           agentCwd={session.agentCwd}
           onPickAgent={session.setAgent}
           onModeChange={session.setPermissionMode}
+          disabledModes={disabledPermissionModes}
           sessions={pickerSessions}
           onSwitchSession={(id) => {
             // Re-add to strip in case the user closed all tabs and is

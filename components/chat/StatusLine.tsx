@@ -60,6 +60,12 @@ type Props = {
    */
   onPickAgent?: (name: string | null) => Promise<void> | void;
   onModeChange: (m: PermissionMode) => void;
+  /**
+   * Permission modes to hide from the ModeSelector dropdown — forwarded
+   * straight through to `ModeSelector`. Currently only ever `["auto"]`,
+   * driven by the `disableAutoMode` setting (see `useDisableAutoMode`).
+   */
+  disabledModes?: PermissionMode[];
   sessions: SessionInfo[];
   onSwitchSession: (id: string) => void;
   onCreateNewSession: () => void;
@@ -116,6 +122,7 @@ export function StatusLine({
   agentCwd,
   onPickAgent,
   onModeChange,
+  disabledModes,
   sessions,
   onSwitchSession,
   onCreateNewSession,
@@ -463,7 +470,9 @@ export function StatusLine({
         {!zen && verbose && onChangeVerbose && (
           <VerboseSelector value={verbose} onChange={onChangeVerbose} />
         )}
-        {!zen && <ModeSelector mode={permissionMode} onChange={onModeChange} />}
+        {!zen && (
+          <ModeSelector mode={permissionMode} onChange={onModeChange} disabledModes={disabledModes} />
+        )}
       </div>
     </div>
   );
