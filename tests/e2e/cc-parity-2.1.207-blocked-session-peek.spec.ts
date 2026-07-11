@@ -87,6 +87,22 @@ async function clearAllWorkspacesUnread(req: APIRequestContext, baseURL?: string
 
 test.beforeEach(async ({ page }) => {
   await activateClaudiusWorkspace(page);
+  // Each test here navigates to "/" and binds a session that gets persisted
+  // into the real per-cwd open-tabs store on boot — the same shared-state
+  // footprint the 2.1.204 spec fix addressed (see
+  // cc-parity-2.1.204-token-expiring-notice.spec.ts). Stub the PUT so this
+  // spec's runs don't add accumulated tabs that slow other specs' reload
+  // polls in a full-suite run.
+  await page.route("**/api/sessions/open-tabs", async (route) => {
+    if (route.request().method() === "PUT") {
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ ok: true }),
+      });
+    }
+    return route.fallback();
+  });
 });
 
 test.describe("CC 2.1.207 — blocked-session peek leads with the question", () => {

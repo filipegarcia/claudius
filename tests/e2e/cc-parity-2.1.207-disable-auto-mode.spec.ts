@@ -45,6 +45,22 @@ test.beforeEach(async ({ page }) => {
   // Start from a clean slate — clear any `disableAutoMode` left over from a
   // prior run so every test in this file sees Auto mode enabled by default.
   await clearDisableAutoMode(page);
+  // This spec navigates to "/" twice, each binding a session that gets
+  // persisted into the real per-cwd open-tabs store on boot. Left
+  // unmocked, that's the same shared-state footprint the 2.1.204 spec fix
+  // addressed (see cc-parity-2.1.204-token-expiring-notice.spec.ts) — extra
+  // accumulated tabs slow other specs' reload/hydration polls in a
+  // full-suite run. Stub the PUT so this spec's runs don't add to it.
+  await page.route("**/api/sessions/open-tabs", async (route) => {
+    if (route.request().method() === "PUT") {
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ ok: true }),
+      });
+    }
+    return route.fallback();
+  });
 });
 
 test.afterEach(async ({ page }) => {
