@@ -11,8 +11,12 @@
 #
 # Order matters: SDK first. When BOTH have updates the SDK half does
 # them together and advances cc-parity state, so the CC half then noops
-# — no double work. When only claude-code moved, the SDK half noops and
-# the CC half does the work.
+# — no double work. If the combined run FAILS (e.g. CI stays red) it
+# leaves cc-parity state un-advanced, but the CC half STILL noops: its
+# check.ts sees the open combined PR already carrying that claude-code
+# version and defers, so the combined PR is retried/updated in place
+# instead of a second cc-parity PR being opened. When only claude-code
+# moved, the SDK half noops and the CC half does the work.
 #
 # Concurrency: each child takes the SHARED single-instance lock itself
 # (scripts/lib/run-lock.sh — portable, no flock, works on macOS), so a
