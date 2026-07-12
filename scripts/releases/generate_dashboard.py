@@ -596,6 +596,7 @@ html = f"""<!DOCTYPE html>
     font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
     letter-spacing: 0.09em; color: var(--muted); margin: 36px 0 14px;
     display: flex; align-items: center; gap: 8px;
+    scroll-margin-top: 24px; /* breathing room when deep-linked via #anchor */
   }}
   .section-title::after {{
     content: ""; flex: 1; height: 1px; background: var(--border);
@@ -758,11 +759,11 @@ html = f"""<!DOCTYPE html>
 <div class="page">
 
   <!-- ── Stat cards ── -->
-  <div class="section-title">Highlights</div>
+  <div class="section-title" id="highlights">Highlights</div>
   <div class="stat-grid">{cards_html}</div>
 
   <!-- ── Activity Pulse ── -->
-  <div class="section-title">Activity Pulse</div>
+  <div class="section-title" id="activity-pulse">Activity Pulse</div>
   <div class="pulse-card">
     <div class="pulse-header">
       <h3>Daily release activity — 7-day rolling sum, all repos</h3>
@@ -772,12 +773,12 @@ html = f"""<!DOCTYPE html>
   </div>
 
   <!-- ── Release Predictor ── -->
-  <div class="section-title">Release Predictor</div>
+  <div class="section-title" id="release-predictor">Release Predictor</div>
   <div class="pred-top-row" id="pred-grid-top"></div>
   <div class="pred-grid" id="pred-grid"></div>
 
   <!-- ── Daily contribution calendar ── -->
-  <div class="section-title">Daily Release Heatmap — last 2 years</div>
+  <div class="section-title" id="daily-release-heatmap">Daily Release Heatmap — last 2 years</div>
   <div class="chart-card">
     <h3>Releases per day across all repos (hover for details)</h3>
     <div class="cal-wrap">
@@ -795,7 +796,7 @@ html = f"""<!DOCTYPE html>
   </div>
 
   <!-- ── Timeline ── -->
-  <div class="section-title">Cumulative Releases Over Time</div>
+  <div class="section-title" id="cumulative-releases">Cumulative Releases Over Time</div>
   <div class="chart-grid cols-1">
     <div class="chart-card">
       <h3>Cumulative releases — all repos</h3>
@@ -804,7 +805,7 @@ html = f"""<!DOCTYPE html>
   </div>
 
   <!-- ── Volume + velocity ── -->
-  <div class="section-title">Volume &amp; Cadence</div>
+  <div class="section-title" id="volume-cadence">Volume &amp; Cadence</div>
   <div class="chart-grid cols-2">
     <div class="chart-card">
       <h3>Total releases by repo</h3>
@@ -817,7 +818,7 @@ html = f"""<!DOCTYPE html>
   </div>
 
   <!-- ── Version types + Day of week ── -->
-  <div class="section-title">Release Composition &amp; Timing</div>
+  <div class="section-title" id="release-composition-timing">Release Composition &amp; Timing</div>
   <div class="chart-grid cols-2">
     <div class="chart-card">
       <h3>Version type breakdown</h3>
@@ -830,7 +831,7 @@ html = f"""<!DOCTYPE html>
   </div>
 
   <!-- ── Gap + Changelogs ── -->
-  <div class="section-title">Gap Distribution &amp; Changelog Depth</div>
+  <div class="section-title" id="gap-distribution-changelog-depth">Gap Distribution &amp; Changelog Depth</div>
   <div class="chart-grid cols-2">
     <div class="chart-card">
       <h3>Time between releases — box plot (days)</h3>
@@ -843,7 +844,7 @@ html = f"""<!DOCTYPE html>
   </div>
 
   <!-- ── Velocity trend + Streaks ── -->
-  <div class="section-title">Velocity Trend &amp; Streaks</div>
+  <div class="section-title" id="velocity-trend-streaks">Velocity Trend &amp; Streaks</div>
   <div class="chart-grid cols-2">
     <div class="chart-card">
       <h3>Velocity trend — first half vs second half (/wk)</h3>
@@ -856,7 +857,7 @@ html = f"""<!DOCTYPE html>
   </div>
 
   <!-- ── Monthly heatmap ── -->
-  <div class="section-title">Monthly Release Heatmap</div>
+  <div class="section-title" id="monthly-release-heatmap">Monthly Release Heatmap</div>
   <div class="chart-card">
     <h3>Releases per month — per repo</h3>
     <div class="hm-wrap">{heatmap_html}</div>
