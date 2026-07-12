@@ -159,6 +159,48 @@ export function minorJumpDistance(from: string, to: string): number | null {
   return b[1] - a[1];
 }
 
+// ── Combined SDK+CC PR title (shared producer/parser) ─────────────────
+//
+// The title of a combined-mode PR is BUILT here by the SDK orchestrator
+// (when an SDK bump ships with a cc-parity tag-along) and PARSED back
+// here by the cc-parity checker (to notice an open PR already carrying a
+// claude-code version, so it defers instead of opening a second PR).
+// Producer and parser live in different files; routing BOTH through this
+// round-trip-tested pair is what stops them drifting apart silently — a
+// hand-formatted title at either site would break the defer with no
+// error and no failing test. Never format this string by hand.
+
+/** Marker separating the SDK half of a combined title from the CC half. */
+const COMBINED_CC_MARKER = " + claude-code ";
+
+export function buildCombinedPrTitle(args: {
+  prevSdkVersion: string;
+  newSdkVersion: string;
+  prevCcVersion: string;
+  newCcVersion: string;
+}): string {
+  return (
+    `chore(deps): bump claude-agent-sdk ${args.prevSdkVersion} → ${args.newSdkVersion}` +
+    `${COMBINED_CC_MARKER}${args.prevCcVersion} → ${args.newCcVersion}`
+  );
+}
+
+/**
+ * Inverse of `buildCombinedPrTitle`: pull the shipped claude-code (newCc)
+ * version out of a combined PR title, or null if `title` isn't a combined
+ * one (an SDK-only title has no marker). Plain string ops (no RegExp)
+ * keep this off CodeQL's regex-injection radar.
+ */
+export function parseCcVersionFromCombinedTitle(title: string): string | null {
+  const idx = title.indexOf(COMBINED_CC_MARKER);
+  if (idx === -1) return null;
+  const seg = title.slice(idx + COMBINED_CC_MARKER.length);
+  const parts = seg.split("→");
+  if (parts.length < 2) return null;
+  const last = parts[parts.length - 1]!.trim();
+  return last.length > 0 ? last : null;
+}
+
 export function readInstalledRange(root = repoRoot()): string {
   const pkg = JSON.parse(
     readFileSync(resolve(root, "package.json"), "utf8"),

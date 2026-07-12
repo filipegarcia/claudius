@@ -85,6 +85,7 @@ import { dirname, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import {
+  buildCombinedPrTitle,
   cleanRange,
   isNewer,
   patchState,
@@ -4914,7 +4915,15 @@ async function main(): Promise<void> {
     const pr = isCombined
       ? openPrWithTitle({
           branch,
-          title: `chore(deps): bump claude-agent-sdk ${prevVersion} → ${newVersion} + claude-code ${combined.prevCcVersion} → ${combined.newCcVersion}`,
+          // Built via the shared helper (not hand-formatted) so
+          // cc-parity/check.ts's `parseCcVersionFromCombinedTitle` can
+          // recognize this PR and defer to it — see buildCombinedPrTitle.
+          title: buildCombinedPrTitle({
+            prevSdkVersion: prevVersion,
+            newSdkVersion: newVersion,
+            prevCcVersion: combined.prevCcVersion,
+            newCcVersion: combined.newCcVersion,
+          }),
           body,
           draft: true,
         })

@@ -1,10 +1,12 @@
 import { describe, expect, test } from "vitest";
 
 import {
+  buildCombinedPrTitle,
   cleanRange,
   decide,
   isNewer,
   minorJumpDistance,
+  parseCcVersionFromCombinedTitle,
   parseSemver,
   type UpdaterState,
 } from "@/scripts/sdk-update/check";
@@ -247,5 +249,38 @@ describe("decide", () => {
     expect(decide(state, "^0.2.132", "0.3.143", { maxMinorJump: 99, now }).kind).toBe(
       "run",
     );
+  });
+});
+
+// ── buildCombinedPrTitle / parseCcVersionFromCombinedTitle ────────────
+
+/**
+ * These two are the producer/parser pair that keeps the SDK orchestrator
+ * (which BUILDS the combined PR title) and cc-parity/check.ts (which
+ * PARSES it back to decide whether to defer) from drifting apart. The
+ * round-trip is the actual safety net — if the format changes, this
+ * fails here rather than silently reintroducing duplicate PRs.
+ */
+describe("combined PR title round-trip", () => {
+  test("parse recovers the newCc version that build put in", () => {
+    const title = buildCombinedPrTitle({
+      prevSdkVersion: "0.3.205",
+      newSdkVersion: "0.3.207",
+      prevCcVersion: "2.1.40",
+      newCcVersion: "2.1.41",
+    });
+    expect(parseCcVersionFromCombinedTitle(title)).toBe("2.1.41");
+  });
+
+  test("parse returns null for an SDK-only title (no cc tag-along)", () => {
+    expect(
+      parseCcVersionFromCombinedTitle(
+        "chore(deps): bump claude-agent-sdk 0.3.205 → 0.3.207",
+      ),
+    ).toBeNull();
+  });
+
+  test("parse returns null for an unrelated title", () => {
+    expect(parseCcVersionFromCombinedTitle("feat: something else")).toBeNull();
   });
 });

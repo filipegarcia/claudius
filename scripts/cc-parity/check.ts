@@ -32,6 +32,7 @@
  *   cron fires on a fresh deploy.
  */
 
+import { spawnSync } from "node:child_process";
 import {
   existsSync,
   mkdirSync,
@@ -51,6 +52,7 @@ import {
   cleanRange,
   isNewer,
   minorJumpDistance,
+  parseCcVersionFromCombinedTitle,
   parseSemver,
   repoRoot,
 } from "../sdk-update/check";
@@ -425,6 +427,82 @@ export function decideCcCombinedRun(args: {
   return { kind: "run", prevCcVersion: current, newCcVersion: args.ccLatest };
 }
 
+// ── Defer-to-open-combined-PR (standalone path only) ──────────────────
+
+/** One open PR as returned by `gh pr list --json number,headRefName,url,title`. */
+export type OpenPrSummary = {
+  number: number;
+  headRefName: string;
+  url: string;
+  title: string;
+};
+
+/**
+ * Pure matcher: find an open COMBINED sdk-update PR whose title already
+ * carries this exact claude-code version.
+ *
+ * Combined PRs are opened by the SDK orchestrator on `sdk-update/<sdk-v>`
+ * branches with a title of the form
+ *   `chore(deps): bump claude-agent-sdk A → B + claude-code P → <ccVersion>`
+ * When such a PR is open, the standalone cc-parity pipeline must NOT open
+ * a second PR for the same parity work — the combined PR IS the one PR,
+ * and the SDK half re-drives it on each firing until it merges. This is
+ * the discovery half of that "defer, don't duplicate" rule.
+ *
+ * A standalone cc-parity PR (`cc-parity/<v>`) is deliberately NOT matched:
+ * that one is this pipeline's OWN branch, reused in place via `gh`'s
+ * `--head` idempotency — deferring to it would deadlock the pipeline
+ * against itself.
+ */
+export function pickCombinedPrCarryingCc(
+  prs: OpenPrSummary[],
+  ccVersion: string,
+): OpenPrSummary | null {
+  for (const p of prs) {
+    if (!p.headRefName.startsWith("sdk-update/")) continue;
+    // Parse via the shared inverse of buildCombinedPrTitle so producer and
+    // parser can't drift — a title format change breaks the round-trip
+    // test in sdk-update, not silently in production.
+    if (parseCcVersionFromCombinedTitle(p.title) === ccVersion) return p;
+  }
+  return null;
+}
+
+/**
+ * Impure wrapper around `pickCombinedPrCarryingCc`: list open PRs via
+ * `gh` and return the combined PR carrying `ccVersion`, if any.
+ *
+ * Fail-open: if `gh` errors or returns junk we return null ("no combined
+ * PR"), matching how the SDK updater's `findOpenSdkUpdatePr` degrades. A
+ * flaky `gh` then just falls back to today's behavior rather than
+ * stranding real parity work.
+ */
+function findOpenCombinedPrForCc(ccVersion: string, root: string): OpenPrSummary | null {
+  const res = spawnSync(
+    "gh",
+    ["pr", "list", "--state", "open", "--json", "number,headRefName,url,title", "--limit", "100"],
+    { cwd: root, encoding: "utf8" },
+  );
+  if (res.status !== 0) {
+    console.error(
+      `[cc-parity/check] findOpenCombinedPrForCc: gh pr list failed (status=${res.status}): ` +
+        `${(res.stderr ?? "").trim() || "(no stderr)"} — not deferring`,
+    );
+    return null;
+  }
+  let all: OpenPrSummary[];
+  try {
+    all = JSON.parse(res.stdout || "[]") as OpenPrSummary[];
+  } catch (err) {
+    console.error(
+      `[cc-parity/check] findOpenCombinedPrForCc: could not parse gh output ` +
+        `(${err instanceof Error ? err.message : String(err)}) — not deferring`,
+    );
+    return null;
+  }
+  return pickCombinedPrCarryingCc(all, ccVersion);
+}
+
 // ── CLI ───────────────────────────────────────────────────────────────
 
 async function main(): Promise<void> {
@@ -514,24 +592,49 @@ async function main(): Promise<void> {
     root,
   );
 
+  // Defer to an already-open COMBINED PR. When a combined SDK+CC PR is
+  // still open carrying this exact claude-code version — e.g. the combined
+  // run shipped locally but its CI stayed red, leaving cc-parity state
+  // un-advanced (the orchestrator's "failure" mode writes no ccPatch) —
+  // opening a standalone cc-parity PR here would create a SECOND PR for the
+  // same parity work. Instead noop: the SDK half re-drives the combined PR
+  // on every firing (its decide() keeps returning "run" until the PR
+  // merges), so the same PR is updated in place rather than duplicated.
+  // Only relevant on a "run" decision; the probe is skipped otherwise.
+  let emitted: CheckDecision = decision;
+  if (decision.kind === "run") {
+    const combinedPr = findOpenCombinedPrForCc(decision.newVersion, root);
+    if (combinedPr) {
+      emitted = {
+        kind: "noop",
+        reason:
+          `claude-code ${decision.newVersion} is already carried by open combined PR ` +
+          `#${combinedPr.number} (${combinedPr.headRefName}) — deferring so the combined ` +
+          `PR is updated in place instead of opening a second cc-parity PR`,
+        current: baseline ? cleanRange(baseline) : null,
+        latest,
+      };
+    }
+  }
+
   console.error(
-    `[cc-parity/check] baseline=${baseline ?? "(none)"} latest=${latest} → ${decision.kind}`,
+    `[cc-parity/check] baseline=${baseline ?? "(none)"} latest=${latest} → ${emitted.kind}`,
   );
-  if (decision.kind !== "run") {
+  if (emitted.kind !== "run") {
     console.error(
-      `[cc-parity/check] ${"reason" in decision ? decision.reason : ""}`,
+      `[cc-parity/check] ${"reason" in emitted ? emitted.reason : ""}`,
     );
   }
   const flat: Record<string, string> = {
-    kind: decision.kind,
+    kind: emitted.kind,
     latest,
   };
   if (baseline) flat.baseline = cleanRange(baseline);
-  if (decision.kind === "run") {
-    flat.previousVersion = decision.previousVersion;
-    flat.newVersion = decision.newVersion;
+  if (emitted.kind === "run") {
+    flat.previousVersion = emitted.previousVersion;
+    flat.newVersion = emitted.newVersion;
   }
-  process.stdout.write(JSON.stringify({ ...flat, decision }) + "\n");
+  process.stdout.write(JSON.stringify({ ...flat, decision: emitted }) + "\n");
 }
 
 // Only run main() when executed directly (not when imported).

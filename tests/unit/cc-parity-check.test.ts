@@ -4,6 +4,8 @@ import {
   containsOnlyBugFixEntries,
   decide,
   decideCcCombinedRun,
+  type OpenPrSummary,
+  pickCombinedPrCarryingCc,
   type UpdaterState,
 } from "@/scripts/cc-parity/check";
 
@@ -460,5 +462,77 @@ describe("decideCcCombinedRun", () => {
       maxMinorJump: 1,
     });
     expect(d.kind).toBe("run");
+  });
+});
+
+// ── pickCombinedPrCarryingCc ──────────────────────────────────────────
+
+/**
+ * `pickCombinedPrCarryingCc` is the discovery half of the "defer, don't
+ * duplicate" rule: when a combined SDK+CC PR is already open carrying a
+ * given claude-code version, the standalone cc-parity pipeline must noop
+ * so it updates that same PR (via the SDK half's re-drive) rather than
+ * opening a competing PR. The title format it keys on is produced by the
+ * SDK orchestrator's combined-mode `openPrWithTitle` call.
+ */
+describe("pickCombinedPrCarryingCc", () => {
+  const combined = (ccNew: string, extra: Partial<OpenPrSummary> = {}): OpenPrSummary => ({
+    number: 42,
+    headRefName: "sdk-update/0.3.207",
+    url: "https://github.com/o/r/pull/42",
+    title: `chore(deps): bump claude-agent-sdk 0.3.205 → 0.3.207 + claude-code 2.1.40 → ${ccNew}`,
+    ...extra,
+  });
+
+  test("matches the combined PR carrying the exact cc version", () => {
+    const hit = pickCombinedPrCarryingCc([combined("2.1.41")], "2.1.41");
+    expect(hit?.number).toBe(42);
+  });
+
+  test("does not match when the combined PR carries a different cc version", () => {
+    expect(pickCombinedPrCarryingCc([combined("2.1.41")], "2.1.42")).toBeNull();
+  });
+
+  test("ignores a standalone cc-parity PR for the same version (its own branch)", () => {
+    const standalone: OpenPrSummary = {
+      number: 7,
+      headRefName: "cc-parity/2.1.41",
+      url: "https://github.com/o/r/pull/7",
+      title: "cc-parity: claude-code 2.1.40 → 2.1.41",
+    };
+    expect(pickCombinedPrCarryingCc([standalone], "2.1.41")).toBeNull();
+  });
+
+  test("ignores a plain SDK-only PR with no cc-parity tag-along", () => {
+    const sdkOnly: OpenPrSummary = {
+      number: 9,
+      headRefName: "sdk-update/0.3.207",
+      url: "https://github.com/o/r/pull/9",
+      title: "chore(deps): bump claude-agent-sdk 0.3.205 → 0.3.207",
+    };
+    expect(pickCombinedPrCarryingCc([sdkOnly], "2.1.41")).toBeNull();
+  });
+
+  test("returns null on an empty PR list", () => {
+    expect(pickCombinedPrCarryingCc([], "2.1.41")).toBeNull();
+  });
+
+  test("finds the combined PR among a mixed set", () => {
+    const prs: OpenPrSummary[] = [
+      {
+        number: 7,
+        headRefName: "cc-parity/2.1.41",
+        url: "u",
+        title: "cc-parity: claude-code 2.1.40 → 2.1.41",
+      },
+      combined("2.1.41", { number: 88 }),
+      {
+        number: 3,
+        headRefName: "feature/unrelated",
+        url: "u",
+        title: "feat: something else entirely",
+      },
+    ];
+    expect(pickCombinedPrCarryingCc(prs, "2.1.41")?.number).toBe(88);
   });
 });
