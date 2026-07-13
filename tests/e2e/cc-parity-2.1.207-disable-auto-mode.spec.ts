@@ -28,11 +28,32 @@ mkdirSync(SHOTS_DIR, { recursive: true });
 
 const SESSION_RE = /[?&]session=([0-9a-f-]{36})/i;
 
+/**
+ * Read a JSON endpoint, retrying transient connection resets. Under a
+ * full-suite CI run the dev server's event loop can briefly stall (other
+ * specs spawn real `claude` command-discovery subprocesses), which surfaces
+ * to `page.request` as a one-shot `read ECONNRESET` — Playwright does not
+ * auto-retry those. A couple of retries turn that flake into a non-event.
+ */
+async function getJsonWithRetry<T>(page: Page, url: string): Promise<T> {
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < 4; attempt++) {
+    try {
+      return (await page.request.get(url).then((r) => r.json())) as T;
+    } catch (err) {
+      lastErr = err;
+      await page.waitForTimeout(250 * (attempt + 1));
+    }
+  }
+  throw lastErr;
+}
+
 /** Clear `disableAutoMode` from the shared dev fixture's user-scope settings. */
 async function clearDisableAutoMode(page: Page): Promise<void> {
-  const cur = await page.request
-    .get("/api/settings?scope=user")
-    .then((r) => r.json() as Promise<{ settings: Record<string, unknown> }>);
+  const cur = await getJsonWithRetry<{ settings: Record<string, unknown> }>(
+    page,
+    "/api/settings?scope=user",
+  );
   const rest = { ...cur.settings };
   delete rest.disableAutoMode;
   await page.request.put("/api/settings/full", {
