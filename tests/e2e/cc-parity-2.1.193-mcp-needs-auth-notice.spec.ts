@@ -20,7 +20,10 @@
  */
 import { test, expect } from "../helpers/test";
 
-const SESSION_ID = "cc193-aaaa-bbbb-cccc-mcp-notice-test";
+// Must be a valid UUID: the POST /api/sessions route rejects a non-UUID
+// `resume` id with 400 (CC-parity 2.1.208 argv-injection hardening), which
+// would break the boot flow this test drives.
+const SESSION_ID = "aaaaaaaa-bbbb-cccc-dddd-000000002193";
 
 test.describe("CC 2.1.193 — MCP needs-auth startup notice", () => {
   test.beforeEach(async ({ page }) => {

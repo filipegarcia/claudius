@@ -2,7 +2,7 @@
  * CC 2.1.196 parity — readable default session names
  *
  * Before this release, untitled sessions showed an 8-char UUID prefix
- * ("cc196aaa") in the tab strip. Now they show a human-readable date label:
+ * ("aaaaaaaa") in the tab strip. Now they show a human-readable date label:
  *   • Same day   → "Today at 2:15 PM"
  *   • Same year  → "Jun 30 at 2:15 PM"
  *   • Older      → "Jun 30, 2024 at 2:15 PM"
@@ -20,7 +20,7 @@
  * app doesn't show a stream-error state). Then we assert that the tab-strip
  * label for our fake session contains " at " — the separator that appears in
  * ALL three forms of `readableSessionLabel` output — rather than the old
- * 8-char UUID prefix "cc196-aa".
+ * 8-char UUID prefix "aaaaaaaa".
  *
  * This simultaneously proves:
  *   1. `Session.createdAt` is serialised by `/api/sessions` (server wiring).
@@ -32,7 +32,10 @@
 import { test, expect } from "../helpers/test";
 import * as fs from "fs";
 
-const SESSION_ID = "cc196-aaaa-bbbb-cccc-readable-names-test";
+// Must be a valid UUID: the POST /api/sessions route rejects a non-UUID
+// `resume` id with 400 (CC-parity 2.1.208 argv-injection hardening), which
+// would break the boot flow this test drives.
+const SESSION_ID = "aaaaaaaa-bbbb-cccc-dddd-000000002196";
 
 // Matches all three forms produced by readableSessionLabel:
 //   "Today at 2:15 PM"  /  "Jun 30 at 2:15 PM"  /  "Jun 30, 2024 at 2:15 PM"

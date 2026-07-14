@@ -18,7 +18,10 @@
  */
 import { test, expect } from "../helpers/test";
 
-const SESSION_ID = "cc204-aaaa-bbbb-cccc-token-expiring-test";
+// Must be a valid UUID: the POST /api/sessions route rejects a non-UUID
+// `resume` id with 400 (CC-parity 2.1.208 argv-injection hardening), which
+// would break the boot flow this test drives.
+const SESSION_ID = "aaaaaaaa-bbbb-cccc-dddd-000000002204";
 // ~2 hours out, comfortably inside the 24h warning window.
 const EXPIRES_IN_MS = 2 * 60 * 60 * 1000;
 
