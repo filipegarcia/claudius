@@ -42,6 +42,12 @@ function fmtResetsAt(iso: string | null): string {
   return ` · resets ${d.toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}`;
 }
 
+function fmtAsOf(epochMs: number): string {
+  const d = new Date(epochMs);
+  if (isNaN(d.getTime())) return "";
+  return d.toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+
 function UsageBar({ utilization }: { utilization: number | null }) {
   const pct = utilization ?? 0;
   const color =
@@ -65,6 +71,18 @@ const WINDOW_LABELS: Record<string, string> = {
 };
 
 export function CostOverlay({ usage, model, planUsage, onClose }: Props) {
+  // CC parity 2.1.208: the CLI's `/usage` shows last-known bars with an
+  // "as of <time>" note when the usage endpoint is rate-limited, instead of
+  // an error screen. Claudius already showed last-known bars on a failed
+  // fetch (the server-side catch swallows the error and just doesn't
+  // broadcast fresh data), but had no freshness cue at all. `stale` is an
+  // explicit signal from the server (a `plan_usage_unavailable` event after
+  // a failed fetch attempt) rather than something inferred from elapsed
+  // time here — Claude Code turns routinely run past any reasonable
+  // wall-clock threshold, so timing out client-side would flag perfectly
+  // healthy long-running turns as stale. See `PlanUsageUnavailableEvent` in
+  // lib/shared/events.ts for the full rationale.
+  const isStale = !!planUsage?.stale;
   const windows =
     planUsage?.rateLimitsAvailable && planUsage.rateLimits
       ? (
@@ -112,10 +130,24 @@ export function CostOverlay({ usage, model, planUsage, onClose }: Props) {
                 API key
               </span>
             )}
+            {isStale && (
+              <span
+                data-testid="plan-usage-stale-note"
+                title="The usage endpoint didn't respond on the last attempt — showing the last known values."
+                className="ml-auto text-[10px] text-[var(--muted)]"
+              >
+                as of {fmtAsOf(planUsage.fetchedAt)}
+              </span>
+            )}
           </div>
 
           {planUsage.rateLimitsAvailable && (windows.length > 0 || (planUsage.modelScoped?.length ?? 0) > 0) ? (
-            <div className="space-y-2">
+            <div
+              data-stale={isStale ? "true" : undefined}
+              // Stale: dim the bars so a frozen utilization % stops reading
+              // as live, matching how TodosBanner.tsx dims a frozen list.
+              className={`space-y-2 ${isStale ? "opacity-60" : ""}`}
+            >
               {windows.map(([key, w]) => (
                 <div key={key}>
                   <div className="flex items-baseline justify-between text-[11px]">
