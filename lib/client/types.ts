@@ -499,6 +499,11 @@ export type PlanRateLimits = {
    * "Fable") for labeling the usage bar in CostOverlay.
    */
   modelScoped?: Array<{ displayName: string; utilization: number | null; resetsAt: string | null }>;
+  /**
+   * Epoch ms when this data was fetched. See `PlanUsageEvent.fetchedAt` in
+   * `lib/shared/events.ts` for the full rationale (CC parity 2.1.208).
+   */
+  fetchedAt: number;
 };
 
 /**

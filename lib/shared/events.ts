@@ -708,6 +708,17 @@ export type PlanUsageEvent = {
    * `displayName` (e.g. "Fable") for labeling the usage bar in CostOverlay.
    */
   modelScoped?: Array<{ displayName: string; utilization: number | null; resetsAt: string | null }>;
+  /**
+   * Epoch ms when this event's data was fetched (CC parity 2.1.208 — mirrors
+   * the CLI's `/usage` "as of <time>" note shown when the usage endpoint is
+   * rate-limited). Stamped server-side only on a *successful*
+   * `usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET()` call; a
+   * failing/rate-limited call broadcasts nothing at all, so the client keeps
+   * whatever `fetchedAt` it last received. CostOverlay uses the growing age
+   * of this timestamp to decide when to surface a staleness note over the
+   * last-known bars, without needing an explicit "this fetch failed" signal.
+   */
+  fetchedAt: number;
 };
 
 /**

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { Overlay } from "./Overlay";
 import type { PlanRateLimits, SessionUsage } from "@/lib/client/types";
 
@@ -42,6 +43,26 @@ function fmtResetsAt(iso: string | null): string {
   return ` · resets ${d.toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}`;
 }
 
+/**
+ * CC parity 2.1.208: the CLI's `/usage` now shows last-known bars with an
+ * "as of <time>" note when the usage endpoint is rate-limited, instead of an
+ * error screen. Claudius already shows last-known bars on a failed/rate-limited
+ * `usage_EXPERIMENTAL_...` fetch (the server-side catch swallows the error and
+ * simply doesn't broadcast — see `session.ts`), but had no freshness cue, so a
+ * stale value reads as live. Rather than detect the failure itself (Claudius
+ * has no explicit "this fetch was rate-limited" signal — only successful
+ * fetches broadcast), staleness is inferred from how old `fetchedAt` has
+ * grown: turns normally complete far faster than this, so an old timestamp
+ * means recent fetches have been silently failing.
+ */
+const PLAN_USAGE_STALE_AFTER_MS = 5 * 60 * 1000;
+
+function fmtAsOf(epochMs: number): string {
+  const d = new Date(epochMs);
+  if (isNaN(d.getTime())) return "";
+  return d.toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+
 function UsageBar({ utilization }: { utilization: number | null }) {
   const pct = utilization ?? 0;
   const color =
@@ -65,6 +86,20 @@ const WINDOW_LABELS: Record<string, string> = {
 };
 
 export function CostOverlay({ usage, model, planUsage, onClose }: Props) {
+  // `Date.now()` is impure during render (react-hooks/purity), so the "now"
+  // anchor for the staleness check lives in state, ticked once on mount and
+  // every 30s thereafter — the overlay is only ever rendered while open, so
+  // there's no separate `open` gate to tick against (see SessionNotifyMenu.tsx
+  // for the same pattern on a popover that stays mounted while closed).
+  const [now, setNow] = useState(0);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setNow(Date.now());
+    const t = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(t);
+  }, []);
+  const isStale =
+    !!planUsage?.fetchedAt && now > 0 && now - planUsage.fetchedAt > PLAN_USAGE_STALE_AFTER_MS;
   const windows =
     planUsage?.rateLimitsAvailable && planUsage.rateLimits
       ? (
@@ -110,6 +145,15 @@ export function CostOverlay({ usage, model, planUsage, onClose }: Props) {
                 className="rounded border border-[var(--border)] bg-[var(--panel)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--muted)]"
               >
                 API key
+              </span>
+            )}
+            {isStale && (
+              <span
+                data-testid="plan-usage-stale-note"
+                title="The usage endpoint hasn't refreshed recently — showing the last known values."
+                className="ml-auto text-[10px] text-[var(--muted)]"
+              >
+                as of {fmtAsOf(planUsage!.fetchedAt)}
               </span>
             )}
           </div>

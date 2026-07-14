@@ -6857,6 +6857,11 @@ export class Session {
                       })),
                     }
                   : {}),
+                // CC parity 2.1.208: stamped only on this successful fetch —
+                // a failing/rate-limited call returns above before reaching
+                // here, so the client simply keeps its last `fetchedAt` and
+                // CostOverlay's staleness note ages naturally.
+                fetchedAt: Date.now(),
               };
               this.broadcast(planUsageEvent);
             })();

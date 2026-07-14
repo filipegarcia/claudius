@@ -1748,6 +1748,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
           rateLimitsAvailable: ev.rateLimitsAvailable,
           rateLimits: ev.rateLimits ?? null,
           ...(ev.modelScoped ? { modelScoped: ev.modelScoped } : {}),
+          fetchedAt: ev.fetchedAt,
         });
         return;
       }
