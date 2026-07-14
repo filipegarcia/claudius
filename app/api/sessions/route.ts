@@ -34,12 +34,29 @@ const MAX_INITIAL_DRAFT_TEXT = 200_000;
 
 export const runtime = "nodejs";
 
+/**
+ * Session ids are always `crypto.randomUUID()` (see `lib/server/session.ts`
+ * `requestedId = opts.id ?? opts.resume ?? randomUUID()`) and the client only
+ * ever sends one back verbatim (`lib/client/use-session.ts`). `body.resume`
+ * flows straight through `sessionManager.create()` into the SDK's `resume`
+ * option — which becomes a literal CLI argument to the spawned Claude Code
+ * binary. Pre-0.3.208 SDKs parsed a dash-leading value (e.g. `--version`) as
+ * its own flag instead of an argument; the 0.3.208 SDK fix closes that in the
+ * CLI's argv construction, but this route is a cross-origin-reachable POST
+ * body field (Next.js route handlers aren't CSRF-gated), so we validate the
+ * shape here too rather than relying solely on the dependency.
+ */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function POST(req: Request) {
   let body: CreateSessionRequest = {};
   try {
     body = (await req.json()) as CreateSessionRequest;
   } catch {
     body = {};
+  }
+  if (typeof body.resume === "string" && !UUID_RE.test(body.resume)) {
+    return NextResponse.json({ error: "invalid resume id" }, { status: 400 });
   }
   // Default cwd resolution order:
   //   1. explicit body.cwd
