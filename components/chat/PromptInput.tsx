@@ -441,10 +441,25 @@ export function PromptInput({
   //      runs after this one in render order and overwrites.
   const userTypedRef = useRef(false);
   const seededForSessionRef = useRef<string | null>(null);
+  // Tracks the last sessionId this render-time block has already reacted
+  // to. This is DELIBERATELY separate from `seededForSessionRef` (which
+  // marks *seed-fetch completion* and can legitimately stay behind
+  // `sessionId` for a while — the GET can take well over a second under
+  // load). Reusing `seededForSessionRef` for both "did the session change"
+  // and "has this session's seed landed" meant the reset below re-ran on
+  // *every* render while the seed fetch was still in flight (not just the
+  // one render where sessionId actually changed), repeatedly stomping
+  // `userTypedRef` back to false. When the slow seed fetch finally
+  // resolved, it read that just-reset `false` and clobbered whatever the
+  // user had already typed — see prompt-color.spec.ts, which typed
+  // "/color red" and observed only the tail of it (e.g. "or red") land in
+  // the sent message once the draft seed raced ahead of a real re-render.
+  const lastSeenSessionIdRef = useRef<string | null>(null);
   // Reset the "typed" flag whenever the session id changes so the next seed
   // can land. We do this in render (cheap, idempotent) rather than in an
   // effect to avoid a frame of "stale typed=true" against the new session.
-  if (seededForSessionRef.current !== sessionId) {
+  if (lastSeenSessionIdRef.current !== sessionId) {
+    lastSeenSessionIdRef.current = sessionId;
     userTypedRef.current = false;
     // Switching sessions means a different history — abandon any in-progress
     // recall so the next Cmd/Ctrl+↑ starts fresh from the new session's tail.
