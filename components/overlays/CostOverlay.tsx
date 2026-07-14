@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
 import { Overlay } from "./Overlay";
 import type { PlanRateLimits, SessionUsage } from "@/lib/client/types";
 
@@ -43,20 +42,6 @@ function fmtResetsAt(iso: string | null): string {
   return ` · resets ${d.toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}`;
 }
 
-/**
- * CC parity 2.1.208: the CLI's `/usage` now shows last-known bars with an
- * "as of <time>" note when the usage endpoint is rate-limited, instead of an
- * error screen. Claudius already shows last-known bars on a failed/rate-limited
- * `usage_EXPERIMENTAL_...` fetch (the server-side catch swallows the error and
- * simply doesn't broadcast — see `session.ts`), but had no freshness cue, so a
- * stale value reads as live. Rather than detect the failure itself (Claudius
- * has no explicit "this fetch was rate-limited" signal — only successful
- * fetches broadcast), staleness is inferred from how old `fetchedAt` has
- * grown: turns normally complete far faster than this, so an old timestamp
- * means recent fetches have been silently failing.
- */
-const PLAN_USAGE_STALE_AFTER_MS = 5 * 60 * 1000;
-
 function fmtAsOf(epochMs: number): string {
   const d = new Date(epochMs);
   if (isNaN(d.getTime())) return "";
@@ -86,20 +71,18 @@ const WINDOW_LABELS: Record<string, string> = {
 };
 
 export function CostOverlay({ usage, model, planUsage, onClose }: Props) {
-  // `Date.now()` is impure during render (react-hooks/purity), so the "now"
-  // anchor for the staleness check lives in state, ticked once on mount and
-  // every 30s thereafter — the overlay is only ever rendered while open, so
-  // there's no separate `open` gate to tick against (see SessionNotifyMenu.tsx
-  // for the same pattern on a popover that stays mounted while closed).
-  const [now, setNow] = useState(0);
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setNow(Date.now());
-    const t = setInterval(() => setNow(Date.now()), 30_000);
-    return () => clearInterval(t);
-  }, []);
-  const isStale =
-    !!planUsage?.fetchedAt && now > 0 && now - planUsage.fetchedAt > PLAN_USAGE_STALE_AFTER_MS;
+  // CC parity 2.1.208: the CLI's `/usage` shows last-known bars with an
+  // "as of <time>" note when the usage endpoint is rate-limited, instead of
+  // an error screen. Claudius already showed last-known bars on a failed
+  // fetch (the server-side catch swallows the error and just doesn't
+  // broadcast fresh data), but had no freshness cue at all. `stale` is an
+  // explicit signal from the server (a `plan_usage_unavailable` event after
+  // a failed fetch attempt) rather than something inferred from elapsed
+  // time here — Claude Code turns routinely run past any reasonable
+  // wall-clock threshold, so timing out client-side would flag perfectly
+  // healthy long-running turns as stale. See `PlanUsageUnavailableEvent` in
+  // lib/shared/events.ts for the full rationale.
+  const isStale = !!planUsage?.stale;
   const windows =
     planUsage?.rateLimitsAvailable && planUsage.rateLimits
       ? (
@@ -150,16 +133,21 @@ export function CostOverlay({ usage, model, planUsage, onClose }: Props) {
             {isStale && (
               <span
                 data-testid="plan-usage-stale-note"
-                title="The usage endpoint hasn't refreshed recently — showing the last known values."
+                title="The usage endpoint didn't respond on the last attempt — showing the last known values."
                 className="ml-auto text-[10px] text-[var(--muted)]"
               >
-                as of {fmtAsOf(planUsage!.fetchedAt)}
+                as of {fmtAsOf(planUsage.fetchedAt)}
               </span>
             )}
           </div>
 
           {planUsage.rateLimitsAvailable && (windows.length > 0 || (planUsage.modelScoped?.length ?? 0) > 0) ? (
-            <div className="space-y-2">
+            <div
+              data-stale={isStale ? "true" : undefined}
+              // Stale: dim the bars so a frozen utilization % stops reading
+              // as live, matching how TodosBanner.tsx dims a frozen list.
+              className={`space-y-2 ${isStale ? "opacity-60" : ""}`}
+            >
               {windows.map(([key, w]) => (
                 <div key={key}>
                   <div className="flex items-baseline justify-between text-[11px]">

@@ -711,14 +711,33 @@ export type PlanUsageEvent = {
   /**
    * Epoch ms when this event's data was fetched (CC parity 2.1.208 — mirrors
    * the CLI's `/usage` "as of <time>" note shown when the usage endpoint is
-   * rate-limited). Stamped server-side only on a *successful*
-   * `usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET()` call; a
-   * failing/rate-limited call broadcasts nothing at all, so the client keeps
-   * whatever `fetchedAt` it last received. CostOverlay uses the growing age
-   * of this timestamp to decide when to surface a staleness note over the
-   * last-known bars, without needing an explicit "this fetch failed" signal.
+   * rate-limited/unavailable). Stamped server-side on every *successful*
+   * `usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET()` call, so
+   * CostOverlay can render "as of <this time>" once `PlanUsageUnavailableEvent`
+   * has flagged the data as stale (see that type for why staleness is an
+   * explicit signal rather than inferred from elapsed time).
    */
   fetchedAt: number;
+};
+
+/**
+ * Broadcast when the per-turn plan-usage fetch
+ * (`usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET()`) fails or the
+ * experimental API is unavailable — CC parity 2.1.208. Carries no payload:
+ * the client already holds the last-known `PlanUsageEvent` data and just
+ * flags it stale, mirroring the CLI's `/usage` "last-known bars with an
+ * 'as of' note ... when the usage endpoint is rate-limited" behavior.
+ *
+ * Deliberately NOT inferred from "how long since the last successful
+ * `plan_usage` event" — Claude Code turns routinely run well past any
+ * reasonable staleness threshold (multi-minute agentic turns are normal),
+ * so a purely time-based heuristic would flag perfectly healthy long-running
+ * turns as stale. An explicit per-attempt failure signal avoids that false
+ * positive entirely: the note only appears when a fetch actually failed,
+ * never merely because one hasn't happened recently.
+ */
+export type PlanUsageUnavailableEvent = {
+  type: "plan_usage_unavailable";
 };
 
 /**
@@ -778,6 +797,7 @@ export type ServerEvent =
   | SessionRecapErrorEvent
   | QueueUpdatedEvent
   | PlanUsageEvent
+  | PlanUsageUnavailableEvent
   | HolderChangedEvent;
 
 /**

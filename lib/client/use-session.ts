@@ -1749,7 +1749,15 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
           rateLimits: ev.rateLimits ?? null,
           ...(ev.modelScoped ? { modelScoped: ev.modelScoped } : {}),
           fetchedAt: ev.fetchedAt,
+          stale: false,
         });
+        return;
+      }
+      if (ev.type === "plan_usage_unavailable") {
+        // A fetch attempt failed — flag whatever plan-usage data we're
+        // already showing as stale (last-known, not live). Nothing to flag
+        // if we've never had a successful fetch yet.
+        setPlanUsage((prev) => (prev ? { ...prev, stale: true } : prev));
         return;
       }
       if (ev.type === "plan_approval_request") {

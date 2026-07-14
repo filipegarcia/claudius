@@ -10,19 +10,25 @@
  * (`Query.usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET()`).
  *
  * Claudius already degrades gracefully on a failed/rate-limited fetch — the
- * server-side catch swallows the error and simply doesn't broadcast, so the
- * client keeps whatever plan-usage state it last held (no error screen).
- * What was missing is CC's freshness cue: without it, stale bars read as
- * live. This release adds a `fetchedAt` timestamp to the `plan_usage` event
- * and an "as of <time>" note in the overlay once that timestamp is more than
- * `PLAN_USAGE_STALE_AFTER_MS` (5 minutes) old.
+ * server-side catch swallows the error and simply doesn't broadcast fresh
+ * data, so the client keeps whatever plan-usage state it last held (no error
+ * screen). What was missing is CC's freshness cue: without it, stale bars
+ * read as live. This release adds an explicit `plan_usage_unavailable` event
+ * (broadcast from that same catch branch) that flags the last-known
+ * `plan_usage` data as stale, plus an "as of <time>" note + dimmed bars in
+ * the overlay once that flag is set. The flag is deliberately event-driven
+ * rather than inferred from elapsed time — Claude Code turns routinely run
+ * past any reasonable wall-clock threshold, so a time-based guess would
+ * misfire on healthy long-running turns.
  *
  * This spec verifies both ends of that behavior:
- *   1. A fresh `plan_usage` event (fetchedAt: now) shows no staleness note.
- *   2. A stale `plan_usage` event (fetchedAt: 10 minutes ago) shows the
- *      "as of <time>" note, and the screenshot captures it in context
- *      alongside the rest of the overlay (subscription badge, utilization
- *      bars, surrounding chrome).
+ *   1. A `plan_usage` event with no follow-up `plan_usage_unavailable`
+ *      shows no staleness note.
+ *   2. A `plan_usage` event followed by `plan_usage_unavailable` shows the
+ *      "as of <time>" note over the (still-rendered, now dimmed) last-known
+ *      bars, and the screenshot captures it in context alongside the rest
+ *      of the overlay (subscription badge, utilization bars, surrounding
+ *      chrome).
  *
  * Screenshot target: docs/cc-parity/2.1.208/usage-staleness-note.png
  */
@@ -146,7 +152,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test.describe("CC parity 2.1.208 — plan-usage staleness note", () => {
-  test("fresh plan_usage data shows no staleness note", async ({ page }) => {
+  test("plan_usage with no failed follow-up attempt shows no staleness note", async ({ page }) => {
     const FRESH_PLAN_USAGE: SdkEvent = {
       type: "plan_usage",
       subscriptionType: "max",
@@ -164,9 +170,11 @@ test.describe("CC parity 2.1.208 — plan-usage staleness note", () => {
     await expect(page.getByTestId("plan-usage-stale-note")).not.toBeVisible();
   });
 
-  test("stale plan_usage data shows an 'as of <time>' note in context", async ({ page }) => {
-    const TEN_MINUTES_AGO = Date.now() - 10 * 60 * 1000;
-    const STALE_PLAN_USAGE: SdkEvent = {
+  test("plan_usage_unavailable after plan_usage shows an 'as of <time>' note in context", async ({
+    page,
+  }) => {
+    const FETCHED_AT = Date.now();
+    const PLAN_USAGE: SdkEvent = {
       type: "plan_usage",
       subscriptionType: "max",
       rateLimitsAvailable: true,
@@ -174,10 +182,20 @@ test.describe("CC parity 2.1.208 — plan-usage staleness note", () => {
         fiveHour: { utilization: 62, resetsAt: "2026-07-14T20:00:00Z" },
         sevenDay: { utilization: 88, resetsAt: "2026-07-18T00:00:00Z" },
       },
-      fetchedAt: TEN_MINUTES_AGO,
+      fetchedAt: FETCHED_AT,
     };
+    // The next turn's usage fetch failed/was rate-limited — the server
+    // broadcasts `plan_usage_unavailable` instead of a fresh `plan_usage`,
+    // flagging the data above as stale without replacing it.
+    const PLAN_USAGE_UNAVAILABLE: SdkEvent = { type: "plan_usage_unavailable" };
 
-    await mockChatBackend(page, [...PRELUDE, ASSISTANT, RESULT, STALE_PLAN_USAGE]);
+    await mockChatBackend(page, [
+      ...PRELUDE,
+      ASSISTANT,
+      RESULT,
+      PLAN_USAGE,
+      PLAN_USAGE_UNAVAILABLE,
+    ]);
     await page.goto("/");
     await openCostOverlay(page);
 
@@ -185,7 +203,7 @@ test.describe("CC parity 2.1.208 — plan-usage staleness note", () => {
     await expect(staleNote).toBeVisible();
     await expect(staleNote).toContainText("as of");
 
-    // The rest of the section still renders normally — stale bars, not an
+    // The rest of the section still renders the last-known bars, not an
     // error screen — matching the CLI's "last-known bars ... instead of an
     // error screen" behavior.
     const planSection = page.getByTestId("plan-usage-section");
@@ -193,7 +211,6 @@ test.describe("CC parity 2.1.208 — plan-usage staleness note", () => {
     await expect(planSection).toContainText("88%");
 
     // Screenshot: overlay in context (status line, chat surface behind it).
-    await page.waitForTimeout(300);
     await page.screenshot({
       path: resolve(SHOTS_DIR, "usage-staleness-note.png"),
       fullPage: false,

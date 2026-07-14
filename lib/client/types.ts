@@ -504,6 +504,15 @@ export type PlanRateLimits = {
    * `lib/shared/events.ts` for the full rationale (CC parity 2.1.208).
    */
   fetchedAt: number;
+  /**
+   * True when the most recent plan-usage fetch attempt failed (a
+   * `plan_usage_unavailable` event arrived after this data), so the bars
+   * below are last-known values, not live. Cleared by the next successful
+   * `plan_usage` event. CC parity 2.1.208 — see `PlanUsageUnavailableEvent`
+   * in `lib/shared/events.ts` for why this is an explicit signal rather than
+   * an elapsed-time guess.
+   */
+  stale: boolean;
 };
 
 /**

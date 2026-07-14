@@ -73,6 +73,7 @@ import {
   type PermissionRequestEvent,
   type PlanDecision,
   type PlanUsageEvent,
+  type PlanUsageUnavailableEvent,
   type ServerEvent,
   type TaskSnapshotEntry,
 } from "@/lib/shared/events";
@@ -6820,7 +6821,15 @@ export class Session {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 usageData = await (this.query as any).usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET();
               } catch {
-                return; // experimental API unavailable or changed — ignore
+                // Experimental API unavailable, changed shape, or rate-limited.
+                // CC parity 2.1.208: tell the client explicitly so CostOverlay
+                // can flag its last-known plan-usage data as stale, instead of
+                // inferring staleness from elapsed time (which would falsely
+                // trip on any turn that simply runs long — see
+                // PlanUsageUnavailableEvent's doc comment).
+                const unavailableEvent: PlanUsageUnavailableEvent = { type: "plan_usage_unavailable" };
+                this.broadcast(unavailableEvent);
+                return;
               }
               const rl = usageData.rate_limits;
               const planUsageEvent: PlanUsageEvent = {
@@ -6857,10 +6866,9 @@ export class Session {
                       })),
                     }
                   : {}),
-                // CC parity 2.1.208: stamped only on this successful fetch —
-                // a failing/rate-limited call returns above before reaching
-                // here, so the client simply keeps its last `fetchedAt` and
-                // CostOverlay's staleness note ages naturally.
+                // CC parity 2.1.208: a fresh successful fetch always implies
+                // "not stale" — the client clears any earlier staleness flag
+                // when it receives this event (see use-session.ts).
                 fetchedAt: Date.now(),
               };
               this.broadcast(planUsageEvent);
