@@ -228,11 +228,12 @@ function RuleColumn({ label, tone, rules, onAdd, onRemove }: ColumnProps) {
               className="group flex items-center gap-1.5 rounded-md border border-[var(--border)] bg-[var(--panel-2)]/60 px-2 py-1"
             >
               {lint && (
-                <AlertTriangle
+                <span
                   data-testid="permission-rule-warning-icon"
-                  className="h-3 w-3 shrink-0 text-amber-400"
                   title={`${lint.tool}(path) isn't a supported path-scoped rule — use ${lint.suggestion} instead`}
-                />
+                >
+                  <AlertTriangle className="h-3 w-3 shrink-0 text-amber-400" />
+                </span>
               )}
               <code className="flex-1 truncate font-mono text-xs text-[var(--foreground)]">{r}</code>
               <button
