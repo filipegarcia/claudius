@@ -47,9 +47,12 @@ describe("buildSubagentMessages", () => {
       PARENT,
     );
     expect(out).toHaveLength(1);
+    // tool_use blocks carry a client-stamped `startedAt` (Date.now() at
+    // build time — CC 2.1.210 parity, the elapsed-time counter on the
+    // collapsed tool-call row) that isn't deterministic here.
     expect(out[0].blocks).toEqual([
       { kind: "thinking", text: "hmm" },
-      { kind: "tool_use", id: "t1", name: "Grep", input: { pattern: "x" } },
+      { kind: "tool_use", id: "t1", name: "Grep", input: { pattern: "x" }, startedAt: expect.any(Number) },
     ]);
   });
 

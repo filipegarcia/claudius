@@ -172,6 +172,7 @@ export function AssistantMessage({
                 name={b.name}
                 input={b.input}
                 result={b.result}
+                startedAt={b.startedAt}
                 liveAsk={b.name === "AskUserQuestion" && pendingAskToolUseId === b.id}
                 onReopenAsk={askClick}
                 defaultOpen={expandAll}

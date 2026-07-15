@@ -79,7 +79,7 @@ export type WriteMemoryInput = {
 
 export type WriteMemoryResult =
   | { ok: true; name: string; path: string }
-  | { ok: false; status: 400 | 409 | 500; error: string };
+  | { ok: false; status: 400 | 409 | 413 | 500; error: string };
 
 /**
  * Writes a new auto-memory file with the canonical frontmatter shape and
@@ -121,7 +121,15 @@ export async function writeMemoryFile(
     if (e.code === "EEXIST") return { ok: false, status: 409, error: "file already exists" };
     return { ok: false, status: 500, error: e.message };
   }
-  await appendMemoryIndex(projectCwd, input.filename, input.name, input.description);
+  const indexed = await appendMemoryIndex(projectCwd, input.filename, input.name, input.description);
+  if (!indexed.ok) {
+    // Roll back the memory file we just wrote so a rejected index entry
+    // never leaves an unindexed file behind — the write as a whole fails,
+    // matching upstream's "explicit error instead of silent truncation"
+    // (the index isn't silently left inconsistent with what's on disk).
+    await fs.unlink(target).catch(() => {});
+    return indexed;
+  }
   return { ok: true, name: input.filename, path: target };
 }
 
@@ -293,16 +301,36 @@ async function removeMemoryIndexLine(projectCwd: string, filename: string): Prom
 }
 
 /**
+ * CC 2.1.210 parity: "Memory writes that leave a MEMORY.md index over its
+ * read limit now produce an explicit error instead of silent truncation."
+ * MEMORY.md is meant to stay a lightweight one-line-per-entry pointer index
+ * (the actual content lives in the individual memory files); this is a
+ * conservative cap chosen to catch genuinely degenerate growth (hundreds of
+ * entries) without flagging normal usage — there is no upstream-documented
+ * exact byte limit to mirror, so this is deliberately generous.
+ */
+export const MEMORY_INDEX_READ_LIMIT_BYTES = 20_000;
+
+export type AppendMemoryIndexResult =
+  | { ok: true }
+  | { ok: false; status: 413; error: string };
+
+/**
  * Idempotent: if any line in MEMORY.md already references `(<filename>)`, do
  * nothing. Otherwise append `- [<name>](<filename>) — <description>`. Creates
  * MEMORY.md if missing.
+ *
+ * Refuses (rather than silently truncating) when the append would push
+ * MEMORY.md over `MEMORY_INDEX_READ_LIMIT_BYTES` — the caller's memory file
+ * itself has already been written to disk by this point, so this only
+ * blocks the index entry, never the underlying memory content.
  */
 export async function appendMemoryIndex(
   projectCwd: string,
   filename: string,
   name: string,
   description: string,
-): Promise<void> {
+): Promise<AppendMemoryIndexResult> {
   const dir = autoMemoryDir(projectCwd);
   const indexPath = join(dir, "MEMORY.md");
   let existing = "";
@@ -314,9 +342,18 @@ export async function appendMemoryIndex(
   }
   // Idempotency check: look for `(<filename>)` substring (markdown link target).
   const marker = `(${filename})`;
-  if (existing.includes(marker)) return;
+  if (existing.includes(marker)) return { ok: true };
   const line = `- [${name}](${filename}) — ${description}\n`;
   // Ensure separation from prior content.
   const sep = existing.length > 0 && !existing.endsWith("\n") ? "\n" : "";
-  await fs.writeFile(indexPath, existing + sep + line, "utf8");
+  const next = existing + sep + line;
+  if (Buffer.byteLength(next, "utf8") > MEMORY_INDEX_READ_LIMIT_BYTES) {
+    return {
+      ok: false,
+      status: 413,
+      error: `MEMORY.md index would exceed its ${MEMORY_INDEX_READ_LIMIT_BYTES}-byte read limit — trim older entries before adding more`,
+    };
+  }
+  await fs.writeFile(indexPath, next, "utf8");
+  return { ok: true };
 }

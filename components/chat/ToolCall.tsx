@@ -8,6 +8,7 @@ import { buildEditorUrl, pathFromToolInput, useEditor } from "@/lib/client/ide";
 import { useFileLink } from "@/lib/client/file-link-context";
 import { filesHref, toWorkspaceRelative } from "@/lib/client/file-paths";
 import { useMediaPreferences } from "@/lib/client/useMediaPreferences";
+import { formatElapsed, useElapsedSeconds } from "@/lib/client/use-elapsed";
 import { getPreviewType } from "@/lib/shared/file-types";
 import { Markdown } from "./Markdown";
 import { FilePreview } from "./FilePreview";
@@ -16,6 +17,14 @@ type Props = {
   name: string;
   input: Record<string, unknown>;
   result?: { content: string; isError?: boolean };
+  /**
+   * Client-stamped wall-clock start (epoch ms) for this tool_use, from
+   * `DisplayBlock`'s `startedAt`. Drives the live "Xs" / "Xm Ys" elapsed
+   * badge next to the status dot while the tool is still running (CC
+   * 2.1.210 parity — "live elapsed-time counter on the collapsed tool
+   * summary line").
+   */
+  startedAt?: number;
   /**
    * For AskUserQuestion rows: when true, render the "Answer" pill in its
    * pulsing "live" variant to flag that the SDK is actively waiting on this
@@ -41,7 +50,7 @@ type Props = {
   defaultOpen?: boolean;
 };
 
-export function ToolCall({ name, input, result, liveAsk, onReopenAsk, defaultOpen = false }: Props) {
+export function ToolCall({ name, input, result, startedAt, liveAsk, onReopenAsk, defaultOpen = false }: Props) {
   const [open, setOpen] = useState(defaultOpen);
   // Re-apply the level-driven default when it changes (e.g. the user switches
   // to/from "extra verbose"), while leaving manual toggles in between intact.
@@ -83,6 +92,7 @@ export function ToolCall({ name, input, result, liveAsk, onReopenAsk, defaultOpe
   // the click sends the user's answer as a regular follow-up message, so
   // it's safe to expose even after `result.isError = true`.
   const showAnswerPill = name === "AskUserQuestion" && !!onReopenAsk;
+  const elapsedSeconds = useElapsedSeconds(startedAt, status === "running");
   return (
     <div
       data-testid="tool-call"
@@ -149,7 +159,18 @@ export function ToolCall({ name, input, result, liveAsk, onReopenAsk, defaultOpe
         )}
         <span className="inline-flex items-center gap-1 text-[var(--muted)]">
           {status === "running" && (
-            <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-[var(--accent)]" />
+            <>
+              {elapsedSeconds != null && (
+                <span
+                  data-testid="tool-call-elapsed"
+                  className="tabular-nums text-[10px] text-[var(--muted)]"
+                  title="Time since this tool call started"
+                >
+                  {formatElapsed(elapsedSeconds)}
+                </span>
+              )}
+              <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-[var(--accent)]" />
+            </>
           )}
           {status === "ok" && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />}
           {status === "error" && <AlertCircle className="h-3.5 w-3.5 text-red-500" />}

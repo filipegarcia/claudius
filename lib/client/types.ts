@@ -25,6 +25,15 @@ export type DisplayBlock =
       name: string;
       input: Record<string, unknown>;
       result?: { content: string; isError?: boolean };
+      /**
+       * Client-stamped wall-clock start (epoch ms), set the first time this
+       * tool_use block is built and preserved across scratch-buffer rebuilds
+       * while streaming (CC 2.1.210 parity — "live elapsed-time counter on
+       * the collapsed tool summary line"). Drives `ToolCall`'s ticking
+       * elapsed badge while `!result`; same `startedAt`-preserved-across-
+       * rebuilds pattern as `TaskInfo.startedAt` and the `result` map below.
+       */
+      startedAt?: number;
     };
 
 export type DisplayMessage = {

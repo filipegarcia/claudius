@@ -339,7 +339,12 @@ function blocksFromSDKContent(content: unknown): DisplayBlock[] {
       out.push({ kind: "thinking", text: "", redacted: true });
     else if (raw.type === "tool_use") {
       const tu = raw as Extract<SDKContentBlock, { type: "tool_use" }>;
-      out.push({ kind: "tool_use", id: tu.id, name: tu.name, input: tu.input ?? {} });
+      // Client-stamped — the SDK carries no start time on tool_use blocks
+      // (same known limitation as `TaskInfo.startedAt`). Harmless for a
+      // replayed/completed block: its `result` is attached immediately
+      // after by the caller, so `startedAt` never drives a visible elapsed
+      // reading once `!result` is false.
+      out.push({ kind: "tool_use", id: tu.id, name: tu.name, input: tu.input ?? {}, startedAt: Date.now() });
     }
   }
   return out;
@@ -2687,11 +2692,16 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
           // the result lands via a separate `user`/`tool_result` event and
           // would otherwise get wiped on every scratch flush.
           const preservedResults = new Map<string, { content: string; isError?: boolean }>();
+          // Same preservation for `startedAt` — the elapsed-time badge needs
+          // a stable start, not one that resets every streamed delta.
+          const preservedStartedAt = new Map<string, number>();
           for (const b of existingBlocks) {
             if (b.kind === "tool_use" && b.result) preservedResults.set(b.id, b.result);
+            if (b.kind === "tool_use" && b.startedAt) preservedStartedAt.set(b.id, b.startedAt);
           }
           for (const b of merged) {
             if (b.kind === "tool_use" && preservedResults.has(b.id)) b.result = preservedResults.get(b.id);
+            if (b.kind === "tool_use") b.startedAt = preservedStartedAt.get(b.id) ?? Date.now();
           }
           return merged;
         };
