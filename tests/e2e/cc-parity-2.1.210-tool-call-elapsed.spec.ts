@@ -30,17 +30,17 @@ function sseBody(events: SdkEvent[]): string {
   return events.map((e) => `data: ${JSON.stringify(e)}\n\n`).join("");
 }
 
-async function mockChatBackend(page: Page, events: SdkEvent[]): Promise<void> {
+async function mockChatBackend(page: Page, events: SdkEvent[], sessionId: string = FAKE_SESSION_ID): Promise<void> {
   await page.route("**/api/sessions", async (route: Route) => {
     if (route.request().method() !== "POST") return route.fallback();
     return route.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify({ id: FAKE_SESSION_ID }),
+      body: JSON.stringify({ id: sessionId }),
     });
   });
 
-  await page.route(`**/api/sessions/${FAKE_SESSION_ID}/stream*`, async (route: Route) => {
+  await page.route(`**/api/sessions/${sessionId}/stream*`, async (route: Route) => {
     return route.fulfill({
       status: 200,
       headers: {
@@ -60,7 +60,7 @@ async function mockChatBackend(page: Page, events: SdkEvent[]): Promise<void> {
     });
   });
 
-  await page.route(`**/api/sessions/${FAKE_SESSION_ID}/pending-prompts`, async (route: Route) => {
+  await page.route(`**/api/sessions/${sessionId}/pending-prompts`, async (route: Route) => {
     return route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -77,19 +77,22 @@ async function mockChatBackend(page: Page, events: SdkEvent[]): Promise<void> {
   });
 }
 
-const PRELUDE: SdkEvent[] = [
-  { type: "ready", sessionId: FAKE_SESSION_ID },
-  {
-    type: "sdk",
-    message: {
-      type: "system",
-      subtype: "init",
-      uuid: "sys-init-0",
-      model: "claude-sonnet-4-6",
+function prelude(sessionId: string): SdkEvent[] {
+  return [
+    { type: "ready", sessionId },
+    {
+      type: "sdk",
+      message: {
+        type: "system",
+        subtype: "init",
+        uuid: "sys-init-0",
+        model: "claude-sonnet-4-6",
+      },
     },
-  },
-  { type: "replay_done", hasMoreAbove: false },
-];
+    { type: "replay_done", hasMoreAbove: false },
+  ];
+}
+const PRELUDE = prelude(FAKE_SESSION_ID);
 
 /**
  * A tool_use with no matching tool_result — stays "running" indefinitely,
@@ -150,5 +153,79 @@ test.describe("Live elapsed-time counter on the collapsed tool summary line (CC 
       path: resolve(SHOTS_DIR, "tool-call-elapsed.png"),
       fullPage: false,
     });
+  });
+
+  test("startedAt survives raw content_block_delta streaming (doesn't reset every delta)", async ({
+    page,
+  }) => {
+    // The mocked test above exercises `blocksFromSDKContent` — a full,
+    // already-assembled assistant message. Real live streaming instead
+    // arrives as raw `stream_event` envelopes (message_start →
+    // content_block_start → N × content_block_delta), rebuilt every flush
+    // by `buildMerged`'s scratch-buffer path in use-session.ts. That path
+    // preserves `startedAt` across rebuilds the same way it already
+    // preserved `result` — this proves the preservation actually holds by
+    // sending several partial_json deltas for the same tool_use and
+    // confirming the elapsed counter keeps counting up from ONE start
+    // point instead of restarting at every delta.
+    const sessionId = "aaaaaaaa-bbbb-cccc-dddd-000000210e2";
+    const streamEvents: SdkEvent[] = [
+      {
+        type: "sdk",
+        message: {
+          type: "stream_event",
+          uuid: "se-0",
+          parent_tool_use_id: null,
+          event: { type: "message_start", message: { id: "msg_stream_1" } },
+        },
+      },
+      {
+        type: "sdk",
+        message: {
+          type: "stream_event",
+          uuid: "se-1",
+          parent_tool_use_id: null,
+          event: {
+            type: "content_block_start",
+            index: 0,
+            content_block: { type: "tool_use", id: TOOL_USE_ID, name: "Bash", input: {} },
+          },
+        },
+      },
+      ...["{\"command\"", ":\"npm run", " build:watch\"", "}"].map(
+        (chunk, i): SdkEvent => ({
+          type: "sdk",
+          message: {
+            type: "stream_event",
+            uuid: `se-delta-${i}`,
+            parent_tool_use_id: null,
+            event: {
+              type: "content_block_delta",
+              index: 0,
+              delta: { type: "input_json_delta", partial_json: chunk },
+            },
+          },
+        }),
+      ),
+      // Deliberately no content_block_stop / tool_result — stays "running"
+      // through several scratch-buffer rebuilds, same as the SDK does for
+      // a genuinely long tool call.
+    ];
+
+    await mockChatBackend(page, [...prelude(sessionId), ...streamEvents], sessionId);
+    await page.goto("/");
+
+    const toolCall = page.getByTestId("tool-call").filter({ hasText: "Bash" });
+    await expect(toolCall).toBeVisible({ timeout: 15_000 });
+    const elapsed = toolCall.getByTestId("tool-call-elapsed");
+    await expect(elapsed).toBeVisible({ timeout: 15_000 });
+
+    const firstReading = await elapsed.textContent();
+    await page.waitForTimeout(2200);
+    await expect
+      .poll(async () => elapsed.textContent())
+      .not.toBe(firstReading);
+    // Grew forward, not reset back to "0s"/"1s" by a later delta rebuild.
+    await expect(elapsed).not.toHaveText(/^[01]s$/);
   });
 });
