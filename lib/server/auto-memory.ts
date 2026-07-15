@@ -1,6 +1,6 @@
 import { promises as fs } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { join, resolve, sep } from "node:path";
 import { assertWithin } from "./safe-path";
 
 /**
@@ -127,7 +127,15 @@ export async function writeMemoryFile(
     // never leaves an unindexed file behind — the write as a whole fails,
     // matching upstream's "explicit error instead of silent truncation"
     // (the index isn't silently left inconsistent with what's on disk).
-    await fs.unlink(target).catch(() => {});
+    // Inline path-injection barrier: CodeQL's js/path-injection sanitizer
+    // doesn't propagate through the await + branch above, so re-derive and
+    // re-assert right at the fs.unlink call site (mirrors writeAgent in
+    // agents.ts — see CLAUDE.md path-safety notes).
+    const safeDir = resolve(dir);
+    const rollbackTarget = resolve(safeDir, input.filename);
+    if (rollbackTarget.startsWith(safeDir + sep)) {
+      await fs.unlink(rollbackTarget).catch(() => {});
+    }
     return indexed;
   }
   return { ok: true, name: input.filename, path: target };
