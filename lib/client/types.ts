@@ -398,7 +398,11 @@ export type ToolHistoryEntry = {
   estimatedThinkingTokens?: number;
 };
 
-/** A backgrounded bash shell tracked from Bash(run_in_background=true). */
+/**
+ * A backgrounded bash shell tracked either from Bash(run_in_background=true)
+ * or from the SDK auto-backgrounding a foreground command that hit its
+ * timeout (`BashOutput.timedOutAfterMs`, SDK 0.3.210+).
+ */
 export type BackgroundBash = {
   toolUseId: string;
   /** SDK-side shell id, parsed from the launching Bash tool_result. */
@@ -406,6 +410,13 @@ export type BackgroundBash = {
   command: string;
   startedAt: number;
   killed?: boolean;
+  /**
+   * Set when this shell wasn't launched with `run_in_background: true` but
+   * the SDK auto-backgrounded it after it hit its timeout — the timeout
+   * value, in ms, from `BashOutput.timedOutAfterMs`. Absent for shells that
+   * were explicitly launched in the background or manually backgrounded.
+   */
+  timedOutAfterMs?: number;
 };
 
 /**

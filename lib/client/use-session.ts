@@ -596,6 +596,55 @@ function extractToolResult(content: unknown): { tool_use_id: string; text: strin
 }
 
 /**
+ * The subset of `BashOutput` (the SDK's structured per-tool result shape,
+ * delivered on `SDKUserMessage.tool_use_result` — a sibling of
+ * `message.content`, not inside it) that background-bash tracking cares
+ * about. `timedOutAfterMs` was added in SDK 0.3.210.
+ */
+export type BashToolUseResult = {
+  backgroundTaskId?: string;
+  timedOutAfterMs?: number;
+};
+
+/**
+ * Fold a Bash tool_result's structured output into the background-bashes
+ * map. Handles two cases:
+ *  - Already tracked (launched with `run_in_background: true`) — merge in
+ *    the SDK-side `bashId` / `timedOutAfterMs`.
+ *  - NOT already tracked — the command ran in the foreground but hit its
+ *    timeout and the SDK auto-backgrounded it (`timedOutAfterMs` set).
+ *    Without this branch such a shell would keep running with zero
+ *    visibility in the UI, since nothing at launch time indicated it would
+ *    ever go to background.
+ * No-ops when the result doesn't indicate a (now-)backgrounded command, so
+ * a normal foreground Bash completion never creates a bogus entry.
+ */
+export function applyBashAutoBackground(
+  prev: Record<string, BackgroundBash>,
+  args: {
+    toolUseId: string;
+    command: string;
+    toolUseResult: BashToolUseResult | undefined;
+    startedAt: number;
+  },
+): Record<string, BackgroundBash> {
+  const { toolUseId, command, toolUseResult, startedAt } = args;
+  if (!toolUseResult) return prev;
+  const { backgroundTaskId, timedOutAfterMs } = toolUseResult;
+  if (!backgroundTaskId && typeof timedOutAfterMs !== "number") return prev;
+  const existing = prev[toolUseId];
+  const entry: BackgroundBash = {
+    toolUseId,
+    bashId: backgroundTaskId ?? existing?.bashId,
+    command: existing?.command || command,
+    startedAt: existing?.startedAt ?? startedAt,
+    killed: existing?.killed,
+    timedOutAfterMs: timedOutAfterMs ?? existing?.timedOutAfterMs,
+  };
+  return { ...prev, [toolUseId]: entry };
+}
+
+/**
  * Pick a single representative argument from a tool's input, keyed off the
  * tool name. Best-effort — falls back to common keys, then gives up. Used by
  * the activity rail's tool history to put a recognizable subtitle under each
@@ -2814,6 +2863,26 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
             if (!bashId) return prev;
             return { ...prev, [result.tool_use_id]: { ...entry, bashId } };
           });
+          // Auto-backgrounded-on-timeout (SDK 0.3.210): the structured
+          // `tool_use_result` sibling of `message.content` carries the raw
+          // `BashOutput`, including `timedOutAfterMs` when the command hit
+          // its timeout and was moved to background — regardless of
+          // whether it was launched with `run_in_background`. Reuses
+          // `taskToolBlock` resolved above (any tool_use lookup by id).
+          if (taskToolBlock?.name === "Bash") {
+            const toolUseResult = (msg as { tool_use_result?: unknown }).tool_use_result as
+              | BashToolUseResult
+              | undefined;
+            const command = (taskToolBlock.input as { command?: unknown }).command;
+            setBackgroundBashes((prev) =>
+              applyBashAutoBackground(prev, {
+                toolUseId: result.tool_use_id,
+                command: typeof command === "string" ? command : "",
+                toolUseResult,
+                startedAt: ev.at ?? Date.now(),
+              }),
+            );
+          }
           // CronCreate result — re-key the pending entry under the real cron
           // id and fold in `humanSchedule` / durability flags. The text shape
           // we parse against (recorded from a real session) looks like:
