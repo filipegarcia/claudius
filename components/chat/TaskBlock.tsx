@@ -218,7 +218,9 @@ function SubMessage({ message }: { message: DisplayMessage }) {
             );
           }
           if (b.kind === "tool_use")
-            return <ToolCall key={i} name={b.name} input={b.input} result={b.result} />;
+            return (
+              <ToolCall key={i} name={b.name} input={b.input} result={b.result} startedAt={b.startedAt} />
+            );
           return null;
         })}
       </div>

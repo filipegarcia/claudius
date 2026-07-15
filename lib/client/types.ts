@@ -25,6 +25,15 @@ export type DisplayBlock =
       name: string;
       input: Record<string, unknown>;
       result?: { content: string; isError?: boolean };
+      /**
+       * Client-stamped wall-clock start (epoch ms), set the first time this
+       * tool_use block is built and preserved across scratch-buffer rebuilds
+       * while streaming (CC 2.1.210 parity — "live elapsed-time counter on
+       * the collapsed tool summary line"). Drives `ToolCall`'s ticking
+       * elapsed badge while `!result`; same `startedAt`-preserved-across-
+       * rebuilds pattern as `TaskInfo.startedAt` and the `result` map below.
+       */
+      startedAt?: number;
     };
 
 export type DisplayMessage = {
@@ -398,7 +407,11 @@ export type ToolHistoryEntry = {
   estimatedThinkingTokens?: number;
 };
 
-/** A backgrounded bash shell tracked from Bash(run_in_background=true). */
+/**
+ * A backgrounded bash shell tracked either from Bash(run_in_background=true)
+ * or from the SDK auto-backgrounding a foreground command that hit its
+ * timeout (`BashOutput.timedOutAfterMs`, SDK 0.3.210+).
+ */
 export type BackgroundBash = {
   toolUseId: string;
   /** SDK-side shell id, parsed from the launching Bash tool_result. */
@@ -406,6 +419,13 @@ export type BackgroundBash = {
   command: string;
   startedAt: number;
   killed?: boolean;
+  /**
+   * Set when this shell wasn't launched with `run_in_background: true` but
+   * the SDK auto-backgrounded it after it hit its timeout — the timeout
+   * value, in ms, from `BashOutput.timedOutAfterMs`. Absent for shells that
+   * were explicitly launched in the background or manually backgrounded.
+   */
+  timedOutAfterMs?: number;
 };
 
 /**

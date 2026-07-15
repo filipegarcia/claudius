@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ArrowLeft, Plus, X, Info, Clock } from "lucide-react";
+import { ArrowLeft, Plus, X, Info, Clock, AlertTriangle } from "lucide-react";
 import { SideNav } from "@/components/nav/SideNav";
 import { ScopeToggle, type Scope as IaScope } from "@/components/nav/ScopeToggle";
 import { usePermissions, type RuleKind, type Scope } from "@/lib/client/usePermissions";
 import { useActiveCwd } from "@/lib/client/useActiveCwd";
 import { useRecentDenials } from "@/lib/client/useRecentDenials";
+import { lintPermissionRule } from "@/lib/shared/permission-rule-lint";
 import { cn } from "@/lib/utils/cn";
 
 const SCOPES: { id: Scope; label: string; path: string }[] = [
@@ -205,6 +206,11 @@ type ColumnProps = {
 
 function RuleColumn({ label, tone, rules, onAdd, onRemove }: ColumnProps) {
   const [draft, setDraft] = useState("");
+  // CC 2.1.210 parity: `Write(path)` / `NotebookEdit(path)` / `Glob(path)`
+  // don't support path scoping — warn (don't block; the rule still saves,
+  // matching upstream's "warn at startup" rather than reject) both as the
+  // user types and for rules already saved from before this check existed.
+  const draftLint = lintPermissionRule(draft);
   return (
     <div className={cn("rounded-lg border bg-[var(--panel)]/40", tone)}>
       <div className="border-b border-current/30 px-3 py-2 text-xs font-medium uppercase tracking-wide">
@@ -214,21 +220,32 @@ function RuleColumn({ label, tone, rules, onAdd, onRemove }: ColumnProps) {
         {rules.length === 0 && (
           <div className="text-[11px] text-[var(--muted)]">No rules in this scope.</div>
         )}
-        {rules.map((r) => (
-          <div
-            key={r}
-            className="group flex items-center gap-1.5 rounded-md border border-[var(--border)] bg-[var(--panel-2)]/60 px-2 py-1"
-          >
-            <code className="flex-1 truncate font-mono text-xs text-[var(--foreground)]">{r}</code>
-            <button
-              onClick={() => onRemove(r)}
-              className="rounded p-0.5 text-[var(--muted)] opacity-0 group-hover:opacity-100 hover:bg-[var(--panel)] hover:text-[var(--foreground)]"
-              title="Remove"
+        {rules.map((r) => {
+          const lint = lintPermissionRule(r);
+          return (
+            <div
+              key={r}
+              className="group flex items-center gap-1.5 rounded-md border border-[var(--border)] bg-[var(--panel-2)]/60 px-2 py-1"
             >
-              <X className="h-3 w-3" />
-            </button>
-          </div>
-        ))}
+              {lint && (
+                <span
+                  data-testid="permission-rule-warning-icon"
+                  title={`${lint.tool}(path) isn't a supported path-scoped rule — use ${lint.suggestion} instead`}
+                >
+                  <AlertTriangle className="h-3 w-3 shrink-0 text-amber-400" />
+                </span>
+              )}
+              <code className="flex-1 truncate font-mono text-xs text-[var(--foreground)]">{r}</code>
+              <button
+                onClick={() => onRemove(r)}
+                className="rounded p-0.5 text-[var(--muted)] opacity-0 group-hover:opacity-100 hover:bg-[var(--panel)] hover:text-[var(--foreground)]"
+                title="Remove"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </div>
+          );
+        })}
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -251,6 +268,19 @@ function RuleColumn({ label, tone, rules, onAdd, onRemove }: ColumnProps) {
             <Plus className="h-3.5 w-3.5" />
           </button>
         </form>
+        {draftLint && (
+          <p
+            data-testid="permission-rule-warning"
+            className="flex items-start gap-1 text-[10px] text-amber-400"
+          >
+            <AlertTriangle className="mt-px h-3 w-3 shrink-0" />
+            <span>
+              <code className="font-mono">{draftLint.tool}(path)</code> isn&apos;t a supported
+              path-scoped rule — use <code className="font-mono">{draftLint.suggestion}</code> instead.
+              The rule will still save as typed.
+            </span>
+          </p>
+        )}
       </div>
     </div>
   );

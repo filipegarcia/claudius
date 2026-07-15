@@ -70,6 +70,32 @@ export function ModeSelector({ mode, onChange, disabledModes }: Props) {
     ? ORDER.filter((m) => m === mode || !disabledModes.includes(m))
     : ORDER;
 
+  // CC 2.1.210 parity: "Screen reader mode now announces permission mode
+  // changes aloud when cycling modes with Shift+Tab." Claudius has the same
+  // Shift+Tab cycle (see `nextPermissionMode`); rather than porting a
+  // separate opt-in "screen reader mode" toggle, this announces via a
+  // standard `aria-live` region always — it's silent for sighted users and
+  // read automatically by whatever assistive tech is already running, no
+  // discovery step required. Fires regardless of whether the mode changed
+  // via Shift+Tab or a dropdown click, since both are "the mode changed"
+  // from the user's perspective.
+  //
+  // `prevModeRef` is seeded with a lazy initializer (runs exactly once, on
+  // the very first render — unaffected by React 18 Strict Mode's
+  // mount→cleanup→mount double-invoke of effects) rather than a boolean
+  // "have we mounted yet" latch in the effect body. A latch flips to `true`
+  // on the double-invoked mount's first pass and stays `true` for the
+  // second pass, which then misreads its own re-run as a real change and
+  // announces the *initial* mode on load — this compare-against-last-seen
+  // form is idempotent under that double-invoke instead.
+  const [announcement, setAnnouncement] = useState("");
+  const prevModeRef = useRef(mode);
+  useEffect(() => {
+    if (prevModeRef.current === mode) return;
+    prevModeRef.current = mode;
+    setAnnouncement(`Permission mode: ${meta.label} — ${meta.description}`);
+  }, [mode, meta.label, meta.description]);
+
   useEffect(() => {
     if (!open) return;
     function onClick(e: MouseEvent) {
@@ -88,6 +114,17 @@ export function ModeSelector({ mode, onChange, disabledModes }: Props) {
 
   return (
     <div ref={ref} className="relative">
+      {/* Visually hidden — announces mode changes to screen readers without
+          affecting sighted layout. `role="status"` + `aria-live="polite"`
+          waits for the current speech/focus to finish before reading. */}
+      <span
+        data-testid="mode-selector-announcement"
+        role="status"
+        aria-live="polite"
+        className="sr-only"
+      >
+        {announcement}
+      </span>
       <button
         data-testid="mode-selector-trigger"
         onClick={() => setOpen((o) => !o)}

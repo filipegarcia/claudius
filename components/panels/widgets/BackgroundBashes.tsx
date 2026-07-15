@@ -36,14 +36,28 @@ export function BackgroundBashes({
       {items.map((b) => {
         const elapsed = Math.max(0, (now - b.startedAt) / 1000);
         const stopTaskId = onStop ? getStopTaskId?.(b) : undefined;
+        const timedOut = !b.killed && b.timedOutAfterMs != null;
         const tone = b.killed
           ? "border-[var(--border)] bg-[var(--panel-2)]/40 text-[var(--muted)]"
-          : "border-emerald-500/30 bg-emerald-500/10 text-emerald-200";
+          : timedOut
+            ? "border-amber-500/30 bg-amber-500/10 text-amber-200"
+            : "border-emerald-500/30 bg-emerald-500/10 text-emerald-200";
         return (
           <li key={b.toolUseId} className={`rounded-md border px-2 py-1.5 ${tone}`}>
             <div className="flex items-center gap-1.5 text-[11px]">
               <Terminal className="h-3 w-3 shrink-0" />
               <span className="truncate font-mono">local_bash</span>
+              {timedOut && (
+                <span
+                  data-testid="bash-timeout-badge"
+                  title={`Auto-backgrounded after hitting its ${Math.round(
+                    (b.timedOutAfterMs ?? 0) / 1000,
+                  )}s timeout`}
+                  className="shrink-0 rounded-sm border border-amber-500/40 bg-amber-500/10 px-1 text-[9px] font-medium uppercase tracking-wide text-amber-300"
+                >
+                  timed out
+                </span>
+              )}
               <span className="ml-auto shrink-0 font-mono text-[10px]">
                 {b.killed ? "killed" : fmtElapsedSec(elapsed)}
               </span>
