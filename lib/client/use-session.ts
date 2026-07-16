@@ -23,6 +23,7 @@ import type { ApiRetryState } from "@/lib/client/api-retry";
 import { costFromTokens } from "@/lib/shared/cost-pricing";
 import { parseInitSystemMessage } from "@/lib/shared/parse-init";
 import { ADVISOR_ACTIVE_SENTINEL } from "@/lib/shared/advisor";
+import { matchesUsageLimitPrefix } from "@/lib/shared/rate-limit-prefixes";
 import {
   isCompactSummaryContent,
   isLocalCommandCaveatContent,
@@ -160,22 +161,24 @@ async function migrateLegacySessionStorageQueue(sessionId: string): Promise<void
  *   • Live  — an `SDKAssistantMessage` with `error: "rate_limit"`.
  *   • Replay — `getSessionMessages` (used to rehydrate a resumed session)
  *     strips both `error` and the preceding `rate_limit_event`s, leaving only
- *     the assistant *text* the CLI rendered: `You've hit your <label> · resets
- *     <time>` (template `You've hit your ${H}` in the CLI bundle).
+ *     the assistant *text* the CLI rendered — one of the CLI's usage-limit
+ *     templates ("You've hit your <label> · resets <time>", "You're out of
+ *     usage credits", "Your seat type doesn't include usage", …).
  *
- * So we match the prose as a fallback. Guarded to a pure-text message whose
- * leading clause is the CLI template — a normal turn that merely mentions
- * limits in passing won't be a standalone "You've hit your … limit" bubble.
+ * So we match the prose as a fallback, via `matchesUsageLimitPrefix`
+ * (`lib/shared/rate-limit-prefixes.ts`), which checks against the SDK's
+ * canonical `USAGE_LIMIT_ERROR_PREFIXES` list instead of a hand-rolled
+ * regex that only covered one of the twelve known templates. Guarded to a
+ * pure-text message whose leading clause matches — a normal turn that merely
+ * mentions limits in passing won't be a standalone rate-limit-wall bubble.
  */
-const RATE_LIMIT_HIT_TEXT_RE = /^you['’]ve hit your [\w .'-]*\blimit\b/i;
-
-// Exported for unit testing — the regex is the brittle bit (false positives on
-// normal prose would wrongly badge a message as a rate-limit wall).
+// Exported for unit testing — false positives on normal prose would wrongly
+// badge a message as a rate-limit wall.
 export function isRateLimitHitText(blocks: DisplayBlock[]): boolean {
   if (blocks.length === 0) return false;
   if (!blocks.every((b) => b.kind === "text")) return false;
   const first = blocks.find((b) => b.kind === "text");
-  return !!first && RATE_LIMIT_HIT_TEXT_RE.test(first.text.trim());
+  return !!first && matchesUsageLimitPrefix(first.text);
 }
 
 /**
