@@ -3,7 +3,12 @@ import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
 
-import { appendMemoryIndex, autoMemoryDir, writeMemoryFile } from "@/lib/server/auto-memory";
+import {
+  appendMemoryIndex,
+  autoMemoryDir,
+  measureMemoryIndexLoadedBytes,
+  writeMemoryFile,
+} from "@/lib/server/auto-memory";
 import { makeTempHome, type TmpHome } from "./helpers/tmp-home";
 
 /**
@@ -76,5 +81,49 @@ describe("auto-memory MEMORY.md read limit", () => {
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.status).toBe(413);
     expect(existsSync(join(dir, "overflow.md"))).toBe(false);
+  });
+
+  /**
+   * CC 2.1.211 parity: "Improved the memory index over-limit warning to
+   * measure only loaded content, excluding frontmatter and HTML comments."
+   */
+  describe("measureMemoryIndexLoadedBytes", () => {
+    test("strips a leading frontmatter block before measuring", () => {
+      const withFrontmatter = "---\ntitle: index\nnote: hand-edited\n---\n- [a](a.md) — desc\n";
+      const withoutFrontmatter = "- [a](a.md) — desc\n";
+      expect(measureMemoryIndexLoadedBytes(withFrontmatter)).toBe(
+        Buffer.byteLength(withoutFrontmatter, "utf8"),
+      );
+    });
+
+    test("strips HTML comments anywhere in the text before measuring", () => {
+      const withComment =
+        "- [a](a.md) — desc\n<!-- don't edit below this line, generated -->\n- [b](b.md) — desc\n";
+      const withoutComment = "- [a](a.md) — desc\n\n- [b](b.md) — desc\n";
+      expect(measureMemoryIndexLoadedBytes(withComment)).toBe(
+        Buffer.byteLength(withoutComment, "utf8"),
+      );
+    });
+
+    test("plain content with no frontmatter or comments measures unchanged", () => {
+      const plain = "- [a](a.md) — desc\n- [b](b.md) — desc\n";
+      expect(measureMemoryIndexLoadedBytes(plain)).toBe(Buffer.byteLength(plain, "utf8"));
+    });
+  });
+
+  test("appendMemoryIndex ignores a hand-edited HTML comment's bytes when checking the limit", async () => {
+    // A large HTML comment that alone would exceed the limit if counted
+    // verbatim, but contributes zero bytes toward "loaded content".
+    const dir = autoMemoryDir(cwd);
+    const indexPath = join(dir, "MEMORY.md");
+    const { mkdirSync, writeFileSync } = await import("node:fs");
+    mkdirSync(dir, { recursive: true });
+    const comment = `<!-- ${"x".repeat(19_950)} -->\n`;
+    writeFileSync(indexPath, comment, "utf8");
+
+    const result = await appendMemoryIndex(cwd, "notes.md", "Notes", "Some short description");
+
+    expect(result).toEqual({ ok: true });
+    expect(readFileSync(indexPath, "utf8")).toContain("- [Notes](notes.md) — Some short description");
   });
 });

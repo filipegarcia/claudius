@@ -21,6 +21,23 @@ describe("isRateLimitHitText", () => {
     expect(isRateLimitHitText(text("You've reached the end of the file."))).toBe(false);
   });
 
+  it("matches the other usage-limit templates from USAGE_LIMIT_ERROR_PREFIXES (SDK 0.3.211)", () => {
+    // Prior to 0.3.211 this only matched "You've hit your … limit" — the SDK's
+    // USAGE_LIMIT_ERROR_PREFIXES export documents eleven more templates the
+    // CLI actually emits for a genuine usage-limit wall. These previously
+    // fell through to normal prose rendering instead of the rate-limit panel.
+    expect(isRateLimitHitText(text("You're out of usage credits"))).toBe(true);
+    expect(isRateLimitHitText(text("Your org is out of usage · add funds to continue"))).toBe(true);
+    expect(isRateLimitHitText(text("Your org is out of usage · contact your admin"))).toBe(true);
+    expect(isRateLimitHitText(text("Your seat type doesn't include usage credits"))).toBe(true);
+    expect(isRateLimitHitText(text("Your seat type doesn't include usage"))).toBe(true);
+    expect(isRateLimitHitText(text("Your usage allocation has been disabled by your admin"))).toBe(true);
+    expect(isRateLimitHitText(text("Your group's usage limit is set to $0"))).toBe(true);
+    expect(isRateLimitHitText(text("Fable 5 requires usage credits"))).toBe(true);
+    expect(isRateLimitHitText(text("You're out of extra usage"))).toBe(true);
+    expect(isRateLimitHitText(text("Your seat type doesn't include extra usage"))).toBe(true);
+  });
+
   it("requires a pure-text message anchored at the start", () => {
     // Leading whitespace is tolerated (we trim), ...
     expect(isRateLimitHitText(text("  You've hit your session limit"))).toBe(true);

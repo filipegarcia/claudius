@@ -100,6 +100,7 @@ import { joinSystemPromptAppends } from "@/lib/shared/system-prompt-append";
 import { loadDbAgentsForOptions } from "@/lib/server/db-agents";
 import { selectTips } from "@/lib/shared/tips";
 import type { SessionLoop } from "@/lib/shared/session-loops";
+import { matchesUsageLimitPrefix } from "@/lib/shared/rate-limit-prefixes";
 import { readSettings, writeSettings, type ClaudeSettings } from "./settings";
 import {
   extractTranscriptTail,
@@ -137,16 +138,19 @@ export function worktreeRootFromPath(filePath: string): string | null {
 }
 
 /**
- * Server-side mirror of `RATE_LIMIT_HIT_TEXT_RE` from
- * `lib/client/use-session.ts`. The CLI emits the rate-limit wall as a
- * plain assistant text message — same regex shape on both sides keeps
- * server-side auto-rotate (account switcher) firing on exactly the
- * messages the client renders as a rate-limit hit. Duplicated rather
- * than shared to avoid pulling client-only types into the server tree.
+ * Server-side use of `matchesUsageLimitPrefix` (`lib/shared/rate-limit-prefixes.ts`),
+ * the same detector `isRateLimitHitText` in `lib/client/use-session.ts` uses.
+ * The CLI emits the rate-limit wall as a plain assistant text message — the
+ * shared prefix list (mirroring the SDK's `USAGE_LIMIT_ERROR_PREFIXES`) keeps
+ * server-side auto-rotate (account switcher) firing on exactly the same
+ * messages the client renders as a rate-limit hit. Previously this was a
+ * narrow regex duplicated on both sides that only matched "You've hit your …
+ * limit" and missed the CLI's other eleven usage-limit templates (credits
+ * exhausted, org out of usage, seat-type restrictions, …); both sides now
+ * share the one list instead of two hand-mirrored copies.
  */
-const RATE_LIMIT_HIT_TEXT_RE = /^you['’]ve hit your [\w .'-]*\blimit\b/i;
-
-function isRateLimitHitSdkMessage(message: unknown): boolean {
+// Exported for unit testing.
+export function isRateLimitHitSdkMessage(message: unknown): boolean {
   if (!message || typeof message !== "object") return false;
   const m = message as {
     type?: string;
@@ -168,7 +172,7 @@ function isRateLimitHitSdkMessage(message: unknown): boolean {
   }
   const first = content[0] as { text?: unknown };
   if (typeof first.text !== "string") return false;
-  return RATE_LIMIT_HIT_TEXT_RE.test(first.text.trim());
+  return matchesUsageLimitPrefix(first.text);
 }
 
 /**
@@ -4981,13 +4985,21 @@ export class Session {
    * session — replayed-from-disk messages would otherwise rotate
    * through every account every time the user reloads the tab.
    *
-   * Detection mirrors `RATE_LIMIT_HIT_TEXT_RE` in
-   * `lib/client/use-session.ts` so the server fires on exactly the
-   * same messages the client renders as a rate-limit wall. We don't
-   * try to swap the auth on the LIVE session — env is read at
-   * `query()` construction, and a rate-limited session can't
-   * usefully continue anyway. The rotation just teaches the NEXT
-   * session to spawn under a different credential.
+   * Detection shares `matchesUsageLimitPrefix` with `isRateLimitHitText` in
+   * `lib/client/use-session.ts` so the server fires on exactly the same
+   * messages the client renders as a rate-limit wall — now all twelve of the
+   * SDK's `USAGE_LIMIT_ERROR_PREFIXES` templates (credits exhausted, org out
+   * of usage, seat-type restrictions, …), not just "You've hit your … limit".
+   * Widening the trigger set is intentional and low-risk here: rotation is a
+   * best-effort, opt-in convenience (never blocking, never surfaced as an
+   * error on failure — see the catch below), so firing on an org-wide
+   * billing message is harmless even though rotating to another *account*
+   * can't fix an org-wide issue — the next configured profile might belong
+   * to a different org/plan entirely, and if not, this is a no-op modulo one
+   * wasted round-robin step. We don't try to swap the auth on the LIVE
+   * session — env is read at `query()` construction, and a rate-limited
+   * session can't usefully continue anyway. The rotation just teaches the
+   * NEXT session to spawn under a different credential.
    */
   private async noteAccountAutoRotateObservation(message: unknown): Promise<void> {
     if (this.accountAutoRotated) return;
