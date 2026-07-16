@@ -319,6 +319,22 @@ async function removeMemoryIndexLine(projectCwd: string, filename: string): Prom
  */
 export const MEMORY_INDEX_READ_LIMIT_BYTES = 20_000;
 
+/**
+ * CC 2.1.211 parity: "Improved the memory index over-limit warning to
+ * measure only loaded content, excluding frontmatter and HTML comments."
+ * MEMORY.md is generated as a plain pointer index with no frontmatter of
+ * its own (see the doc comment above), but nothing stops a user from
+ * hand-editing it to prepend a `--- … ---` block or drop in `<!-- -->`
+ * annotations (e.g. "don't edit below this line"). Those bytes are never
+ * loaded as index *content* — they'd just be noise counted against the
+ * limit — so they're stripped before measuring, matching upstream's fix.
+ */
+export function measureMemoryIndexLoadedBytes(text: string): number {
+  const withoutFrontmatter = text.replace(/^---\n[\s\S]*?\n---\n?/, "");
+  const withoutComments = withoutFrontmatter.replace(/<!--[\s\S]*?-->/g, "");
+  return Buffer.byteLength(withoutComments, "utf8");
+}
+
 export type AppendMemoryIndexResult =
   | { ok: true }
   | { ok: false; status: 413; error: string };
@@ -355,7 +371,7 @@ export async function appendMemoryIndex(
   // Ensure separation from prior content.
   const sep = existing.length > 0 && !existing.endsWith("\n") ? "\n" : "";
   const next = existing + sep + line;
-  if (Buffer.byteLength(next, "utf8") > MEMORY_INDEX_READ_LIMIT_BYTES) {
+  if (measureMemoryIndexLoadedBytes(next) > MEMORY_INDEX_READ_LIMIT_BYTES) {
     return {
       ok: false,
       status: 413,
