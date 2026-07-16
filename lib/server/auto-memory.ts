@@ -331,8 +331,50 @@ export const MEMORY_INDEX_READ_LIMIT_BYTES = 20_000;
  */
 export function measureMemoryIndexLoadedBytes(text: string): number {
   const withoutFrontmatter = text.replace(/^---\n[\s\S]*?\n---\n?/, "");
-  const withoutComments = withoutFrontmatter.replace(/<!--[\s\S]*?-->/g, "");
+  const withoutComments = stripHtmlComments(withoutFrontmatter);
   return Buffer.byteLength(withoutComments, "utf8");
+}
+
+/**
+ * Strips `<!-- ... -->` HTML comments from `text` in linear time.
+ *
+ * `text` ultimately derives from request bodies on `/api/memory/auto`
+ * (`name`/`description` feed into `appendMemoryIndex` → here), so it's
+ * attacker-controlled. A single global regex replace
+ * (`/<!--[\s\S]*?-->/g`) is CodeQL-flagged js/polynomial-redos: on a
+ * string starting with many repeated, unterminated `<!--` markers, the
+ * engine's lazy scan-to-`-->` fails from the first start position only
+ * after walking the whole remaining string, then retries from the next
+ * `<!--` and walks it again — O(n²) on adversarial input. Scanning with
+ * `indexOf` instead advances `cursor` monotonically, so the total work
+ * across the whole call is bounded by O(n) regardless of how many `<!--`
+ * markers appear.
+ *
+ * This also sidesteps js/incomplete-multi-character-sanitization: each
+ * removed span runs from a `<!--` up to the *first* `-->` that follows
+ * it, so nested/overlapping markers (e.g. `<!--<!---->`) are fully
+ * consumed in the same pass rather than leaving a residual `<!--` behind.
+ * An unterminated trailing `<!--` (no matching `-->` anywhere after it)
+ * is left verbatim, matching the original regex's behaviour — it never
+ * matches without a closing `-->`, so it never removes one either.
+ */
+function stripHtmlComments(text: string): string {
+  let result = "";
+  let cursor = 0;
+  for (;;) {
+    const start = text.indexOf("<!--", cursor);
+    if (start === -1) {
+      result += text.slice(cursor);
+      return result;
+    }
+    const end = text.indexOf("-->", start + 4);
+    if (end === -1) {
+      result += text.slice(cursor);
+      return result;
+    }
+    result += text.slice(cursor, start);
+    cursor = end + 3;
+  }
 }
 
 export type AppendMemoryIndexResult =
