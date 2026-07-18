@@ -4,7 +4,19 @@ import { useCallback, useEffect, useState } from "react";
 import type { AvailablePlugin, PluginsByScope } from "@/lib/server/plugins";
 import type { SettingsScope } from "@/lib/server/settings";
 
-export type InstalledPlugin = { name: string; path: string; source?: string };
+export type InstalledPlugin = {
+  name: string;
+  path: string;
+  source?: string;
+  /**
+   * SDK 0.3.214 — plugin's version as declared in its `plugin.json`
+   * manifest, forwarded verbatim by the SDK's `reload_plugins` response.
+   * Plugin-author-controlled (not validated by the SDK) — display only,
+   * never trust it for logic. Absent when the manifest declares no version
+   * (or on older SDKs that don't emit the field).
+   */
+  version?: string;
+};
 
 export function usePlugins(cwd: string | null, sessionId: string | null) {
   const [scopes, setScopes] = useState<PluginsByScope[]>([]);

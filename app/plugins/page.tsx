@@ -524,6 +524,15 @@ function PluginRow({
           {open ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
           <Plug className="h-3.5 w-3.5 text-[var(--accent)]" />
           <span className="font-medium">{installed?.name ?? id}</span>
+          {installed?.version && (
+            <span
+              data-testid="plugin-version"
+              className="rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--muted)]"
+              title="Version declared in the plugin's manifest (plugin-author-controlled)"
+            >
+              v{installed.version}
+            </span>
+          )}
           {installed?.source && installed.source !== installed.name && (
             <span className="font-mono text-[10px] text-[var(--muted)]">{installed.source}</span>
           )}

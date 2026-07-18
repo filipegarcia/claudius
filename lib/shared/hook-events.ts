@@ -60,7 +60,7 @@ export const HOOK_EVENTS: HookEventSpec[] = [
   { name: "PermissionDenied", category: "permission", description: "After a permission request is denied." },
 
   // Session lifecycle
-  { name: "SessionStart", category: "session", description: "When a session is created or resumed.", matcherHint: "startup | resume | clear | compact" },
+  { name: "SessionStart", category: "session", description: "When a session is created or resumed.", matcherHint: "startup | resume | clear | compact | fork" },
   { name: "SessionEnd", category: "session", description: "When a session ends." },
   { name: "Setup", category: "session", description: "First-run setup before a session begins." },
   { name: "Stop", category: "session", description: "When the assistant finishes a turn (idle).", canBlock: true },
