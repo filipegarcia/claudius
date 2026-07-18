@@ -1,4 +1,4 @@
-import type { DisplayBlock, DisplayMessage, TaskInfo, TaskStatus } from "./types";
+import type { DisplayBlock, DisplayMessage, TaskInfo, TaskStatus, ToolProgressInfo } from "./types";
 
 /**
  * Subagent (Task) status reconciliation.
@@ -250,4 +250,27 @@ export function collectStoppableTaskIds(
     if (id) ids.add(id);
   }
   return ids;
+}
+
+/**
+ * SDK 0.3.214 — find the live `subagent_retry` state (if any) for a Task's
+ * INNER tool call, given the outer Task's own `toolUseId` and the flat
+ * `session.toolProgress` map.
+ *
+ * `tool_progress.parent_tool_use_id` on a subagent's tool call points at the
+ * outer Task/Agent tool_use — never at itself — so the retry state is never
+ * keyed directly by `toolUseId`; it has to be found by scanning for an entry
+ * whose `parentToolUseId` matches. Only meaningful while the task is still
+ * running (a finished/failed/killed Task can't be mid-retry).
+ */
+export function findSubagentRetry(
+  toolUseId: string,
+  status: TaskStatus,
+  progress: Record<string, ToolProgressInfo> | undefined,
+): ToolProgressInfo["subagentRetry"] {
+  if (status !== "running" || !progress) return undefined;
+  for (const p of Object.values(progress)) {
+    if (p.parentToolUseId === toolUseId && p.subagentRetry) return p.subagentRetry;
+  }
+  return undefined;
 }

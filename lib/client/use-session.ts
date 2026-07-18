@@ -2157,6 +2157,11 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
         }
 
         const parent = (msg as { parent_tool_use_id?: string | null }).parent_tool_use_id ?? null;
+        // SDK 0.3.214 — true when this split was truncated by an
+        // interrupt/abort before the stream completed (content may end
+        // mid-word). Forwarded to `upsertAssistantSplit` for both the
+        // top-level and subagent paths below.
+        const aborted = (msg as { aborted?: true }).aborted === true;
         const blocks = blocksFromSDKContent(beta?.content);
         // If we already have a streaming scratch keyed on this messageId, the
         // bubble's blocks are being assembled live from content_block_*
@@ -2180,6 +2185,9 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
               hasStreamScratch,
               parent,
               ev.at,
+              undefined,
+              undefined,
+              aborted,
             ),
           }));
           // Don't override the main lastAssistantUuid — deltas anchor to top-level.
@@ -2225,6 +2233,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
             ev.at,
             rateLimitHit,
             opusHighDemand,
+            aborted,
           ),
         );
         setPendingTracked(true);
@@ -3319,21 +3328,24 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
       }
 
       if (msg.type === "tool_progress") {
-        const tp = msg as {
-          tool_use_id: string;
-          tool_name: string;
-          elapsed_time_seconds: number;
-          parent_tool_use_id: string | null;
-        };
-        setToolProgress((prev) => ({
-          ...prev,
-          [tp.tool_use_id]: {
-            toolUseId: tp.tool_use_id,
-            toolName: tp.tool_name,
-            elapsedSeconds: tp.elapsed_time_seconds,
-            parentToolUseId: tp.parent_tool_use_id,
+        const info = toolProgressInfoFromSdkMessage(
+          msg as {
+            tool_use_id: string;
+            tool_name: string;
+            elapsed_time_seconds: number;
+            parent_tool_use_id: string | null;
+            subagent_type?: string;
+            subagent_retry?: {
+              agent_id: string;
+              attempt: number;
+              max_retries: number;
+              retry_delay_ms: number;
+              error_status: number | null;
+              error_category: string;
+            };
           },
-        }));
+        );
+        setToolProgress((prev) => ({ ...prev, [info.toolUseId]: info }));
         return;
       }
 
@@ -5607,6 +5619,50 @@ function synthesizeOlder(raw: Array<Record<string, unknown>>): {
 }
 
 /**
+ * Map a raw SDK `tool_progress` message (snake_case wire shape) to the
+ * client's `ToolProgressInfo` (camelCase state shape). Pulled out as a pure
+ * function — separate from the `applyEvent` switch it's called from — so
+ * the SDK 0.3.214 `subagent_type` / `subagent_retry` field mapping has a
+ * unit-testable seam (see `tests/unit/tool-progress-subagent-retry.test.ts`).
+ */
+export function toolProgressInfoFromSdkMessage(tp: {
+  tool_use_id: string;
+  tool_name: string;
+  elapsed_time_seconds: number;
+  parent_tool_use_id: string | null;
+  subagent_type?: string;
+  subagent_retry?: {
+    agent_id: string;
+    attempt: number;
+    max_retries: number;
+    retry_delay_ms: number;
+    error_status: number | null;
+    error_category: string;
+  };
+}): ToolProgressInfo {
+  return {
+    toolUseId: tp.tool_use_id,
+    toolName: tp.tool_name,
+    elapsedSeconds: tp.elapsed_time_seconds,
+    parentToolUseId: tp.parent_tool_use_id,
+    subagentType: tp.subagent_type,
+    // SDK 0.3.214 — waiting-out-a-retry state for this subagent's tool
+    // call. Self-clearing: a later frame without `subagent_retry` naturally
+    // drops the badge.
+    subagentRetry: tp.subagent_retry
+      ? {
+          agentId: tp.subagent_retry.agent_id,
+          attempt: tp.subagent_retry.attempt,
+          maxRetries: tp.subagent_retry.max_retries,
+          retryDelayMs: tp.subagent_retry.retry_delay_ms,
+          errorStatus: tp.subagent_retry.error_status,
+          errorCategory: tp.subagent_retry.error_category,
+        }
+      : undefined,
+  };
+}
+
+/**
  * Fold one SDK split (a single `SDKAssistantMessage`, carrying one content
  * block) into the bubble identified by `messageId`. See the comment on
  * `DisplayMessage.uuid` for why we coalesce by `message.id`.
@@ -5648,6 +5704,14 @@ export function upsertAssistantSplit(
    * renders the inline `OpusHighDemandPanel`. Sticky like `rateLimitHit`.
    */
   opusHighDemand?: boolean,
+  /**
+   * SDK 0.3.214 — set when this split's `SDKAssistantMessage.aborted` is
+   * true (interrupt truncated the stream mid-turn). Sticky like
+   * `opusHighDemand` — once any split of a message is tagged aborted, the
+   * merged bubble stays tagged even if a later split (e.g. a replayed
+   * terminal event) omits it.
+   */
+  aborted?: boolean,
 ): DisplayMessage[] {
   const idx = prev.findIndex((m) => m.uuid === messageId);
   if (idx === -1) {
@@ -5663,6 +5727,7 @@ export function upsertAssistantSplit(
         ...(typeof at === "number" ? { createdAt: at } : {}),
         ...(rateLimitHit ? { rateLimitHit } : {}),
         ...(opusHighDemand ? { opusHighDemand } : {}),
+        ...(aborted ? { aborted } : {}),
       },
     ];
   }
@@ -5722,6 +5787,7 @@ export function upsertAssistantSplit(
   // isn't marked yet, so a late untagged terminal split can't clear it.
   const stickyHit = existing.rateLimitHit ?? rateLimitHit;
   const stickyOpus = existing.opusHighDemand || opusHighDemand;
+  const stickyAborted = existing.aborted || aborted;
   const copy = prev.slice();
   copy[idx] = {
     ...existing,
@@ -5731,6 +5797,7 @@ export function upsertAssistantSplit(
     streaming: true,
     ...(stickyHit ? { rateLimitHit: stickyHit } : {}),
     ...(stickyOpus ? { opusHighDemand: true } : {}),
+    ...(stickyAborted ? { aborted: true } : {}),
   };
   return copy;
 }

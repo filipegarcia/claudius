@@ -12,7 +12,7 @@ import { SpinnerTip } from "./SpinnerTip";
 import type { Tip } from "@/lib/shared/tips";
 import { SplashScreen } from "./SplashScreen";
 import { isRealUserDisplayMessage } from "@/lib/client/sdk-message-filters";
-import type { DisplayMessage, SystemEntry, TaskInfo } from "@/lib/client/types";
+import type { DisplayMessage, SystemEntry, TaskInfo, ToolProgressInfo } from "@/lib/client/types";
 import type { ApiRetryState } from "@/lib/client/api-retry";
 import {
   DEFAULT_VERBOSE,
@@ -33,6 +33,12 @@ type Props = {
   sessionId?: string;
   tasks?: Record<string, TaskInfo>;
   subagentMessages?: Record<string, DisplayMessage[]>;
+  /**
+   * Live `tool_progress` state (`session.toolProgress`), keyed by
+   * tool_use_id. Forwarded to `AssistantMessage` → `TaskBlock` so a Task
+   * card can show a subagent's rate-limit-retry state (SDK 0.3.214).
+   */
+  toolProgress?: Record<string, ToolProgressInfo>;
   /** True until the initial SSE replay window finishes. */
   replaying?: boolean;
   /** True if older history exists above what's currently loaded. */
@@ -130,6 +136,7 @@ export function MessageList({
   sessionId,
   tasks,
   subagentMessages,
+  toolProgress,
   replaying = false,
   hasMoreAbove = false,
   loadingOlder = false,
@@ -550,6 +557,7 @@ export function MessageList({
                           pendingAskToolUseId={pendingAskToolUseId}
                           onReopenAsk={onReopenAsk}
                           verbose={verbose}
+                          toolProgress={toolProgress}
                         />
                       )}
                       {(grouped.get(m.uuid) ?? []).map((e) => (
