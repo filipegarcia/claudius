@@ -106,11 +106,15 @@ export async function writeMemoryFile(
   // so this is defence-in-depth that also gives CodeQL a recognized
   // sanitizer.
   const target = assertWithin(dir, input.filename);
+  // CC 2.1.214 parity: stamp an ISO `modified` timestamp in the frontmatter,
+  // same as upstream's own memory-file writer. Refreshed on every write/patch
+  // below so it always reflects the file's actual last-edit time.
   const content =
     `---\n` +
     `name: ${input.name}\n` +
     `description: ${input.description}\n` +
     `type: ${input.type}\n` +
+    `modified: ${new Date().toISOString()}\n` +
     `---\n\n` +
     input.body;
   try {
@@ -146,12 +150,15 @@ export type ParsedMemory = {
   description: string;
   type: MemoryType | string;
   body: string;
+  /** ISO timestamp from frontmatter, if present (CC 2.1.214 parity). */
+  modified?: string;
 };
 
 /**
- * Loose frontmatter parse — pulls `name`/`description`/`type` from the first
- * `--- … ---` block. Tolerates extra keys; values may be quoted but quotes are
- * preserved verbatim (the writer doesn't quote, so a roundtrip is identity).
+ * Loose frontmatter parse — pulls `name`/`description`/`type`/`modified` from
+ * the first `--- … ---` block. Tolerates extra keys; values may be quoted but
+ * quotes are preserved verbatim (the writer doesn't quote, so a roundtrip is
+ * identity).
  */
 export function parseMemoryFrontmatter(raw: string): ParsedMemory | null {
   const m = raw.match(/^---\n([\s\S]*?)\n---\n?\n?([\s\S]*)$/);
@@ -166,8 +173,9 @@ export function parseMemoryFrontmatter(raw: string): ParsedMemory | null {
   const name = get("name") ?? "";
   const description = get("description") ?? "";
   const type = get("type") ?? "user";
+  const modified = get("modified") ?? undefined;
   if (!name) return null;
-  return { name, description, type, body };
+  return { name, description, type, body, modified };
 }
 
 export type PatchMemoryInput = {
@@ -210,17 +218,20 @@ export async function patchMemoryFile(
   if (!parsed) {
     return { ok: false, status: 400, error: "unparseable frontmatter" };
   }
+  const modified = new Date().toISOString();
   const next: ParsedMemory = {
     name: parsed.name, // identity — never patch
     description: input.description ?? parsed.description,
     type: input.type ?? parsed.type,
     body: input.body ?? parsed.body,
+    modified,
   };
   const content =
     `---\n` +
     `name: ${next.name}\n` +
     `description: ${next.description}\n` +
     `type: ${next.type}\n` +
+    `modified: ${modified}\n` +
     `---\n\n` +
     next.body;
   try {

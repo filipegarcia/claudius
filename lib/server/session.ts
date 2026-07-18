@@ -102,6 +102,8 @@ import { selectTips } from "@/lib/shared/tips";
 import type { SessionLoop } from "@/lib/shared/session-loops";
 import { matchesUsageLimitPrefix } from "@/lib/shared/rate-limit-prefixes";
 import { readSettings, writeSettings, type ClaudeSettings } from "./settings";
+import { readLimits, type Limits } from "./limits-store";
+import { checkToolBudget, toolBudgetKindFor } from "@/lib/shared/tool-budget";
 import {
   extractTranscriptTail,
   generateRecap,
@@ -1042,6 +1044,18 @@ export class Session {
    */
   readonly maxBudgetUsd?: number;
   /**
+   * CC 2.1.212 parity: session-wide WebSearch-call / subagent-spawn caps
+   * (`Limits.maxWebSearches` / `Limits.maxSubagents`), reimplemented as a
+   * per-cwd Limits setting instead of upstream's env vars — see
+   * `lib/server/limits-store.ts`. Loaded once in `start()`; a session
+   * started before a settings change keeps the value it started with,
+   * mirroring `maxBudgetUsd`'s creation-time-only semantics.
+   */
+  private toolBudgetLimits: Limits = {};
+  /** Running per-session counts checked against `toolBudgetLimits`. Reset is
+   * implicit: `/clear` starts a brand-new Session instance. */
+  private toolBudgetUsed = { webSearches: 0, subagents: 0 };
+  /**
    * Soft token budget the model paces against (Options.taskBudget.total).
    * Advisory — the model is told its remaining budget but isn't force-stopped.
    * Undefined/0 ⇒ no hint.
@@ -1648,6 +1662,16 @@ export class Session {
     if (!preflight.ok) {
       this.broadcast({ type: "error", message: preflight.message });
       return;
+    }
+
+    // CC 2.1.212 parity: load the WebSearch/subagent-spawn caps once at
+    // start — see the `toolBudgetLimits` field doc comment. Best-effort:
+    // a read failure just leaves the caps disabled for this session rather
+    // than blocking startup.
+    try {
+      this.toolBudgetLimits = (await readLimits(this.cwd)).limits;
+    } catch {
+      // leave toolBudgetLimits at {} (all caps disabled)
     }
 
     // Sweep orphaned actionable notification rows for this session. The
@@ -2484,6 +2508,28 @@ export class Session {
       if (toolName.startsWith("mcp__claudius_goal__")) {
         resolve({ behavior: "allow", updatedInput: input as Record<string, unknown> });
         return;
+      }
+
+      // ── CC 2.1.212 parity: session-wide WebSearch / subagent-spawn caps ──
+      // Runaway-loop safety net, reimplemented from upstream's
+      // CLAUDE_CODE_MAX_WEB_SEARCHES_PER_SESSION / _SUBAGENTS_ env vars as a
+      // per-cwd Limits setting (see `toolBudgetLimits` field doc comment).
+      // Only fires when the SDK actually routes this call through
+      // canUseTool — a permission mode that skips the check entirely (e.g.
+      // Bypass permissions) skips this cap too, same as it skips every other
+      // permission decision.
+      const budgetKind = toolBudgetKindFor(toolName);
+      if (budgetKind) {
+        const cap =
+          budgetKind === "webSearches" ? this.toolBudgetLimits.maxWebSearches : this.toolBudgetLimits.maxSubagents;
+        const decision = checkToolBudget(budgetKind, cap, this.toolBudgetUsed[budgetKind]);
+        if (!decision.allowed) {
+          resolve({ behavior: "deny", message: decision.message });
+          return;
+        }
+        this.toolBudgetUsed[budgetKind] += 1;
+        // Falls through to the normal permission flow below — the cap is a
+        // pre-check, not a replacement for the usual allow/ask/deny decision.
       }
 
       // ── ExitPlanMode is the model's "ready to execute" signal ─────────

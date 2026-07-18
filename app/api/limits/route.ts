@@ -34,6 +34,12 @@ export async function PUT(req: Request) {
   if (typeof body.sessionUsd === "number" && body.sessionUsd >= 0) {
     next.sessionUsd = body.sessionUsd;
   }
+  if (typeof body.maxWebSearches === "number" && body.maxWebSearches >= 0) {
+    next.maxWebSearches = body.maxWebSearches;
+  }
+  if (typeof body.maxSubagents === "number" && body.maxSubagents >= 0) {
+    next.maxSubagents = body.maxSubagents;
+  }
   const data = await writeLimits(cwd, next);
   return NextResponse.json(data);
 }

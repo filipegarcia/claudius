@@ -4,14 +4,28 @@ import { join } from "node:path";
 import { encodeProjectDir } from "./auto-memory";
 
 /**
- * Spend caps for a workspace. v1 stores a single JSON file per cwd. The
- * fields are independent: 0 / null / undefined disables that cap.
+ * Spend/tool-call caps for a workspace. v1 stores a single JSON file per cwd.
+ * The fields are independent: 0 / null / undefined disables that cap.
+ *
+ * `maxWebSearches` / `maxSubagents` are CC 2.1.212 parity — upstream added a
+ * session-wide WebSearch call cap and subagent-spawn cap (both default 200,
+ * tunable via `CLAUDE_CODE_MAX_WEB_SEARCHES_PER_SESSION` /
+ * `CLAUDE_CODE_MAX_SUBAGENTS_PER_SESSION`) as a runaway-loop safety net.
+ * Claudius reimplements them as per-cwd settings here instead of env vars,
+ * and — unlike upstream's default-on-at-200 — follows this file's existing
+ * "0/undefined disables" convention so the cap is opt-in, consistent with
+ * `projectDailyUsd`/`sessionUsd` above (see run-notes 2.1.214 for the
+ * rejected default-on alternative).
  */
 export type Limits = {
   /** Project-wide daily USD cap. 0 disables. */
   projectDailyUsd?: number;
   /** Per-session USD cap. 0 disables. */
   sessionUsd?: number;
+  /** Per-session WebSearch tool-call cap. 0/undefined disables. */
+  maxWebSearches?: number;
+  /** Per-session Task (subagent) spawn cap. 0/undefined disables. */
+  maxSubagents?: number;
 };
 
 export type LimitsAuditEvent = {
