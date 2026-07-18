@@ -684,23 +684,6 @@ export function BackgroundTasksPanel({
                             : e.estimatedThinkingTokens} tok
                         </span>
                       )}
-                      {/* SDK 0.3.214 — this row's subagent is waiting out an
-                          API rate-limit retry. Self-clearing: disappears the
-                          moment a `tool_progress` frame without
-                          `subagent_retry` arrives, so no explicit "retry
-                          resolved" handling is needed. Row-scoped precedent
-                          for the existing global `apiRetry` SpinnerTip, which
-                          can't represent one of several parallel subagents
-                          individually stalled. */}
-                      {!e.done && live?.subagentRetry && (
-                        <span
-                          data-testid="subagent-retry-badge"
-                          className="shrink-0 rounded-md border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[10px] text-amber-300"
-                          title={`Waiting out an API rate-limit retry (attempt ${live.subagentRetry.attempt}/${live.subagentRetry.maxRetries})`}
-                        >
-                          retrying {live.subagentRetry.attempt}/{live.subagentRetry.maxRetries}
-                        </span>
-                      )}
                       {elapsedSeconds != null && (
                         <span className="ml-auto shrink-0 text-[10px] text-[var(--muted)]">
                           {fmtElapsed(elapsedSeconds)}

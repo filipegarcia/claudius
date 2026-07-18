@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { Bot, ChevronDown, ChevronRight, AlertCircle, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
-import type { DisplayBlock, DisplayMessage, TaskInfo } from "@/lib/client/types";
+import type { DisplayBlock, DisplayMessage, TaskInfo, ToolProgressInfo } from "@/lib/client/types";
+import { findSubagentRetry } from "@/lib/client/task-status";
 import { Markdown } from "./Markdown";
 import { ThinkingBlock } from "./ThinkingBlock";
 import { ToolCall } from "./ToolCall";
@@ -21,6 +22,15 @@ type Props = {
    * when the level flips; manual toggles in between are preserved.
    */
   defaultOpen?: boolean;
+  /**
+   * Live `tool_progress` state, keyed by tool_use_id — same map
+   * `BackgroundTasksPanel` uses for the top-level Tools rail. Used here to
+   * find a `subagent_retry` (SDK 0.3.214) belonging to one of THIS Task's
+   * inner tool calls: `tool_progress.parent_tool_use_id` is the subagent's
+   * *own* tool_use, not this outer Task/Agent tool_use, so we scan for any
+   * entry whose `parentToolUseId` matches this block's `toolUseId`.
+   */
+  progress?: Record<string, ToolProgressInfo>;
 };
 
 // Tinted chip styles per status — icon + label live in a single pill so the
@@ -46,7 +56,15 @@ function formatDuration(ms: number): string {
   return `${hours}h ${min}m`;
 }
 
-export function TaskBlock({ toolUseId, input, result, task, innerMessages, defaultOpen = false }: Props) {
+export function TaskBlock({
+  toolUseId,
+  input,
+  result,
+  task,
+  innerMessages,
+  defaultOpen = false,
+  progress,
+}: Props) {
   // Collapsed by default — multiple parallel Task blocks otherwise flood the
   // transcript. Click the header to expand the subagent's inner messages.
   // `ultra-verbose` passes defaultOpen so they start expanded.
@@ -68,6 +86,9 @@ export function TaskBlock({ toolUseId, input, result, task, innerMessages, defau
   const activity = intent && liveActivity && liveActivity !== intent ? liveActivity : "";
   const prompt = (input as { prompt?: string }).prompt ?? "";
   const status = task?.status ?? (result ? (result.isError ? "failed" : "completed") : "running");
+  // SDK 0.3.214 — see `findSubagentRetry` for why this can't be a direct
+  // `progress[toolUseId]` lookup.
+  const retrying = findSubagentRetry(toolUseId, status, progress);
 
   // The numeric metrics render as a single "·"-joined run with tabular figures
   // so the digits don't jitter as they tick up during streaming. Each part is
@@ -108,6 +129,18 @@ export function TaskBlock({ toolUseId, input, result, task, innerMessages, defau
         {/* Trailing cluster never wraps: status chip + numeric metrics stay on
             one line; the description above truncates to yield space instead. */}
         <span className="ml-auto flex shrink-0 items-center gap-2 whitespace-nowrap">
+          {/* SDK 0.3.214 — this subagent's current tool call is waiting out
+              an API rate-limit retry. Self-clearing: a later `tool_progress`
+              frame without `subagent_retry` drops it automatically. */}
+          {retrying && (
+            <span
+              data-testid="subagent-retry-badge"
+              className="inline-flex items-center gap-1 rounded-md border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[10px] text-amber-300"
+              title={`Waiting out an API rate-limit retry (attempt ${retrying.attempt}/${retrying.maxRetries})`}
+            >
+              retrying {retrying.attempt}/{retrying.maxRetries}
+            </span>
+          )}
           <span
             className={cn(
               "inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-medium capitalize",

@@ -3328,44 +3328,24 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
       }
 
       if (msg.type === "tool_progress") {
-        const tp = msg as {
-          tool_use_id: string;
-          tool_name: string;
-          elapsed_time_seconds: number;
-          parent_tool_use_id: string | null;
-          subagent_type?: string;
-          subagent_retry?: {
-            agent_id: string;
-            attempt: number;
-            max_retries: number;
-            retry_delay_ms: number;
-            error_status: number | null;
-            error_category: string;
-          };
-        };
-        setToolProgress((prev) => ({
-          ...prev,
-          [tp.tool_use_id]: {
-            toolUseId: tp.tool_use_id,
-            toolName: tp.tool_name,
-            elapsedSeconds: tp.elapsed_time_seconds,
-            parentToolUseId: tp.parent_tool_use_id,
-            subagentType: tp.subagent_type,
-            // SDK 0.3.214 — waiting-out-a-retry state for this subagent's
-            // tool call. Self-clearing: a later frame without
-            // `subagent_retry` naturally drops the badge.
-            subagentRetry: tp.subagent_retry
-              ? {
-                  agentId: tp.subagent_retry.agent_id,
-                  attempt: tp.subagent_retry.attempt,
-                  maxRetries: tp.subagent_retry.max_retries,
-                  retryDelayMs: tp.subagent_retry.retry_delay_ms,
-                  errorStatus: tp.subagent_retry.error_status,
-                  errorCategory: tp.subagent_retry.error_category,
-                }
-              : undefined,
+        const info = toolProgressInfoFromSdkMessage(
+          msg as {
+            tool_use_id: string;
+            tool_name: string;
+            elapsed_time_seconds: number;
+            parent_tool_use_id: string | null;
+            subagent_type?: string;
+            subagent_retry?: {
+              agent_id: string;
+              attempt: number;
+              max_retries: number;
+              retry_delay_ms: number;
+              error_status: number | null;
+              error_category: string;
+            };
           },
-        }));
+        );
+        setToolProgress((prev) => ({ ...prev, [info.toolUseId]: info }));
         return;
       }
 
@@ -5636,6 +5616,50 @@ function synthesizeOlder(raw: Array<Record<string, unknown>>): {
     });
   }
   return { messages: out };
+}
+
+/**
+ * Map a raw SDK `tool_progress` message (snake_case wire shape) to the
+ * client's `ToolProgressInfo` (camelCase state shape). Pulled out as a pure
+ * function — separate from the `applyEvent` switch it's called from — so
+ * the SDK 0.3.214 `subagent_type` / `subagent_retry` field mapping has a
+ * unit-testable seam (see `tests/unit/tool-progress-subagent-retry.test.ts`).
+ */
+export function toolProgressInfoFromSdkMessage(tp: {
+  tool_use_id: string;
+  tool_name: string;
+  elapsed_time_seconds: number;
+  parent_tool_use_id: string | null;
+  subagent_type?: string;
+  subagent_retry?: {
+    agent_id: string;
+    attempt: number;
+    max_retries: number;
+    retry_delay_ms: number;
+    error_status: number | null;
+    error_category: string;
+  };
+}): ToolProgressInfo {
+  return {
+    toolUseId: tp.tool_use_id,
+    toolName: tp.tool_name,
+    elapsedSeconds: tp.elapsed_time_seconds,
+    parentToolUseId: tp.parent_tool_use_id,
+    subagentType: tp.subagent_type,
+    // SDK 0.3.214 — waiting-out-a-retry state for this subagent's tool
+    // call. Self-clearing: a later frame without `subagent_retry` naturally
+    // drops the badge.
+    subagentRetry: tp.subagent_retry
+      ? {
+          agentId: tp.subagent_retry.agent_id,
+          attempt: tp.subagent_retry.attempt,
+          maxRetries: tp.subagent_retry.max_retries,
+          retryDelayMs: tp.subagent_retry.retry_delay_ms,
+          errorStatus: tp.subagent_retry.error_status,
+          errorCategory: tp.subagent_retry.error_category,
+        }
+      : undefined,
+  };
 }
 
 /**

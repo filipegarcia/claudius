@@ -7,7 +7,7 @@ import { TaskBlock } from "./TaskBlock";
 import { WorkflowBlock } from "./WorkflowBlock";
 import { RateLimitHitPanel } from "./RateLimitHitPanel";
 import { OpusHighDemandPanel } from "./OpusHighDemandPanel";
-import type { DisplayMessage, TaskInfo } from "@/lib/client/types";
+import type { DisplayMessage, TaskInfo, ToolProgressInfo } from "@/lib/client/types";
 import { formatMessageTime } from "@/lib/client/format-message-time";
 import { isSubagentToolName } from "@/lib/shared/subagent-tool";
 import {
@@ -43,6 +43,12 @@ type Props = {
    * an empty bubble; it just trims content.
    */
   verbose?: VerboseLevel;
+  /**
+   * Live `tool_progress` state, keyed by tool_use_id. Threaded down to
+   * `TaskBlock` so it can surface a subagent's rate-limit-retry state (SDK
+   * 0.3.214) — see the prop doc on `TaskBlock`.
+   */
+  toolProgress?: Record<string, ToolProgressInfo>;
 };
 
 export function AssistantMessage({
@@ -52,6 +58,7 @@ export function AssistantMessage({
   pendingAskToolUseId = null,
   onReopenAsk,
   verbose = DEFAULT_VERBOSE,
+  toolProgress,
 }: Props) {
   const taskByToolUseId = new Map<string, TaskInfo>();
   for (const t of Object.values(tasks)) {
@@ -143,6 +150,7 @@ export function AssistantMessage({
                   task={taskByToolUseId.get(b.id)}
                   innerMessages={inner}
                   defaultOpen={expandAll}
+                  progress={toolProgress}
                 />
               );
             }

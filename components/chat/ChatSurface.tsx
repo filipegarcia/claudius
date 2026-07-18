@@ -2176,6 +2176,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
             sessionId={session.sessionId ?? undefined}
             tasks={session.tasks}
             subagentMessages={session.subagentMessages}
+            toolProgress={session.toolProgress}
             replaying={session.replaying}
             hasMoreAbove={session.hasMoreAbove}
             loadingOlder={session.loadingOlder}
