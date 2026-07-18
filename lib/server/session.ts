@@ -4202,10 +4202,12 @@ export class Session {
    */
   async setEffort(level: EffortLevel | "auto"): Promise<void> {
     if (!this.query) return;
-    // Cast: `Settings.effortLevel` is `'low' | 'medium' | 'high' | 'xhigh'`
-    // (no max), but the SDK accepts max at runtime on supporting models.
-    // Trust the SDK to reject unsupported levels rather than narrowing here.
-    const value = level === "auto" ? null : (level as "low" | "medium" | "high" | "xhigh");
+    // SDK 0.3.214: `applyFlagSettings`'s `effortLevel` param is typed as
+    // `EffortLevel | null` (which includes `'max'`) independent of the
+    // narrower `Settings['effortLevel']` shape, so `level` — already an
+    // `EffortLevel` — passes straight through without a cast. Trust the SDK
+    // to reject unsupported levels rather than narrowing here.
+    const value = level === "auto" ? null : level;
     await this.query.applyFlagSettings({ effortLevel: value }).catch(() => {});
   }
 

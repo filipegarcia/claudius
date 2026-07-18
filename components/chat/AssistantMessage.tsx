@@ -72,6 +72,21 @@ export function AssistantMessage({
         <span className={`inline-block h-1.5 w-1.5 rounded-full bg-[var(--accent)] ${message.streaming ? "animate-pulse" : ""}`} />
         Claude
         {message.streaming && <span className="text-[10px] opacity-60">streaming…</span>}
+        {/* SDK 0.3.214 — this split was truncated by an interrupt/abort
+            before the stream completed; the visible content may end
+            mid-word. Badge instead of a full panel: unlike the rate-limit /
+            high-demand cases there's no actionable follow-up, just a signal
+            that the cutoff was intentional (a Stop click) rather than the
+            model trailing off. */}
+        {message.aborted && (
+          <span
+            data-testid="assistant-aborted-badge"
+            className="rounded-md border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[10px] text-amber-300"
+            title="This message was cut short by an interrupt before it finished streaming."
+          >
+            Interrupted
+          </span>
+        )}
         {stamp && (
           <span
             className={`ml-auto font-mono text-[10px] transition ${verbose === "ultra-verbose" ? "opacity-60" : "opacity-0 group-hover:opacity-100"}`}

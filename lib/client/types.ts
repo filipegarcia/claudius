@@ -122,6 +122,18 @@ export type DisplayMessage = {
    */
   opusHighDemand?: boolean;
   /**
+   * SDK 0.3.214 — true when this assistant message was truncated by an
+   * interrupt/abort before the stream completed (`stop_reason` was never
+   * received, content may end mid-word). Forwarded verbatim from the SDK's
+   * `SDKAssistantMessage.aborted`. Sticky across splits like `opusHighDemand`
+   * — once any split of a message carries it, the merged `DisplayMessage`
+   * keeps it. Drives the "Interrupted" badge in `AssistantMessage.tsx`.
+   * Live-stream only for now; the replay/pagination transcript builders
+   * don't currently recompute it (same graceful-degradation trade as other
+   * structured-payload flags above).
+   */
+  aborted?: boolean;
+  /**
    * SDK 0.3.205 — present when this user turn's `SDKMessageOrigin` is
    * `kind: "peer"` (sent by another Claude Code session, e.g. via the
    * `SendMessage` tool) rather than typed by the local user. `from` is the
@@ -271,6 +283,26 @@ export type ToolProgressInfo = {
   toolName: string;
   elapsedSeconds: number;
   parentToolUseId?: string | null;
+  /**
+   * SDK 0.3.214 — subagent type for a `tool_progress` frame belonging to a
+   * Task-tool subagent. Absent for non-subagent tool progress.
+   */
+  subagentType?: string;
+  /**
+   * SDK 0.3.214 — present while this subagent's tool call is waiting out an
+   * API rate-limit retry. `errorStatus` is null for connection errors (no
+   * HTTP response), mirroring `SDKAPIRetryMessage`. Self-clearing: absent on
+   * the next `tool_progress` frame once the retry resolves, so no teardown
+   * logic is needed — the reducer just reflects the latest frame.
+   */
+  subagentRetry?: {
+    agentId: string;
+    attempt: number;
+    maxRetries: number;
+    retryDelayMs: number;
+    errorStatus: number | null;
+    errorCategory: string;
+  };
 };
 
 export type QueuedMessage = {
