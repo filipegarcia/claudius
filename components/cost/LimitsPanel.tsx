@@ -14,6 +14,8 @@ export function LimitsPanel({ cwd, todaySpendUsd }: Props) {
   const { state, loading, error, save } = useLimits(cwd);
   const [projectDailyUsd, setProjectDailyUsd] = useState<string>("");
   const [sessionUsd, setSessionUsd] = useState<string>("");
+  const [maxWebSearches, setMaxWebSearches] = useState<string>("");
+  const [maxSubagents, setMaxSubagents] = useState<string>("");
   const [saving, setSaving] = useState(false);
   const [savedTick, setSavedTick] = useState(0);
 
@@ -28,6 +30,8 @@ export function LimitsPanel({ cwd, todaySpendUsd }: Props) {
     if (state) {
       setProjectDailyUsd(toInputStr(state.limits.projectDailyUsd));
       setSessionUsd(toInputStr(state.limits.sessionUsd));
+      setMaxWebSearches(toInputStr(state.limits.maxWebSearches));
+      setMaxSubagents(toInputStr(state.limits.maxSubagents));
     }
   }
 
@@ -37,6 +41,8 @@ export function LimitsPanel({ cwd, todaySpendUsd }: Props) {
       const ok = await save({
         projectDailyUsd: parseUsd(projectDailyUsd),
         sessionUsd: parseUsd(sessionUsd),
+        maxWebSearches: parseCount(maxWebSearches),
+        maxSubagents: parseCount(maxSubagents),
       });
       if (ok) setSavedTick((t) => t + 1);
     } finally {
@@ -64,9 +70,12 @@ export function LimitsPanel({ cwd, todaySpendUsd }: Props) {
       </header>
 
       <p className="mb-4 text-[12px] leading-5 text-[var(--muted)]">
-        Caps are enforced client-side using the per-turn <code className="font-mono">total_cost_usd</code>
-        the SDK already reports. They do not affect Anthropic-side billing or rate limits — for that, see
-        your account dashboard.
+        The USD caps below are enforced client-side using the per-turn{" "}
+        <code className="font-mono">total_cost_usd</code> the SDK already reports — they do not affect
+        Anthropic-side billing or rate limits, for that see your account dashboard. The web-search and
+        subagent caps are enforced server-side (the tool call is denied outright) and only apply while a
+        permission check actually runs for that tool call — a mode that skips permission checks entirely
+        (e.g. Bypass permissions) also skips these caps.
       </p>
 
       {projectBreached && (
@@ -104,6 +113,38 @@ export function LimitsPanel({ cwd, todaySpendUsd }: Props) {
             inputMode="decimal"
             placeholder="0 (disabled)"
             className="w-32 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1 font-mono text-sm focus:outline-none"
+          />
+        </Field>
+
+        <div className="my-3 border-t border-[var(--border)]/50" />
+
+        <Field
+          label="Max web searches per session"
+          hint='CC 2.1.212 parity: a runaway-loop safety net. Once a session hits this many WebSearch calls, further calls are denied with a message the model can read — start a new session or use /clear to reset the count.'
+        >
+          <input
+            data-testid="limits-max-web-searches"
+            value={maxWebSearches}
+            onChange={(e) => setMaxWebSearches(e.target.value)}
+            inputMode="numeric"
+            placeholder="0 (disabled — Claude Code defaults to 200)"
+            className="w-64 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1 font-mono text-sm focus:outline-none"
+          />
+        </Field>
+
+        <div className="my-3 border-t border-[var(--border)]/50" />
+
+        <Field
+          label="Max subagent spawns per session"
+          hint="CC 2.1.212 parity: caps how many Task (subagent) calls a session can make before further spawns are denied. /clear resets the count."
+        >
+          <input
+            data-testid="limits-max-subagents"
+            value={maxSubagents}
+            onChange={(e) => setMaxSubagents(e.target.value)}
+            inputMode="numeric"
+            placeholder="0 (disabled — Claude Code defaults to 200)"
+            className="w-64 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1 font-mono text-sm focus:outline-none"
           />
         </Field>
 
@@ -191,5 +232,10 @@ function toInputStr(n: number | undefined | null): string {
 
 function parseUsd(s: string): number {
   const v = parseFloat(s.trim());
+  return isFinite(v) && v > 0 ? v : 0;
+}
+
+function parseCount(s: string): number {
+  const v = parseInt(s.trim(), 10);
   return isFinite(v) && v > 0 ? v : 0;
 }
