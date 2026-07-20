@@ -33,6 +33,20 @@ export async function GET(req: Request) {
         }
       };
 
+      // Flush an immediate SSE comment so the FIRST byte reaches the client (and
+      // any buffering proxy in front — e.g. the packaged app's HTTP/2 proxy)
+      // right away, without waiting on the async seeding below. On a fresh,
+      // zero-workspace install `getAllWorkspaceStates()` returns `{}` and sends
+      // nothing, so without this the stream stays silent until the 15s heartbeat
+      // — long enough to look like a dead/buffered stream (and to fail the
+      // electron smoke's 10s first-event check). Comments (`:`-prefixed lines)
+      // are ignored by EventSource, so this adds no spurious client event.
+      try {
+        controller.enqueue(encoder.encode(`: connected\n\n`));
+      } catch {
+        // controller already closed
+      }
+
       // Seed the stream with one state event per workspace. Bumps the bus's
       // `version` counter so any in-flight HTTP /counts response carrying a
       // smaller version is automatically dropped by the client.

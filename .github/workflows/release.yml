@@ -327,6 +327,16 @@ jobs:
       - name: Stage @next/swc-darwin-x64 (cross-build binding)
         run: node scripts/electron-stage-next-swc.mjs --arch=x64
 
+      # Cross-build crux #3 — @anthropic-ai/claude-agent-sdk-darwin-x64.
+      # Exact sibling of the @next/swc dance above: `bun install` on this arm64
+      # host only lands the SDK's darwin-arm64 optional, so the standalone stage
+      # would drop the x64 `claude` binary and the packaged x64 app would 500 on
+      # session creation (caught by the packaged-smoke arch assertion). Force-
+      # stage the x64 SDK package from the registry before the standalone stage.
+      # See scripts/electron-stage-claude-sdk.mjs for the full rationale.
+      - name: Stage @anthropic-ai/claude-agent-sdk-darwin-x64 (cross-build SDK binary)
+        run: node scripts/electron-stage-claude-sdk.mjs --arch=x64
+
       # Resolve the .N component of the version tag that the BUILD should
       # bake into the binary's footer. Three input paths, in order:
       #   1. `inputs.release`     — set by auto-tag.yml on its
@@ -382,6 +392,11 @@ jobs:
         run: bunx next build
 
       - name: Stage standalone + compile Electron main
+        # CLAUDIUS_TARGET_ARCH makes electron-stage-standalone.mjs hard-fail HERE
+        # if the x64 SDK binary wasn't force-staged above, instead of silently
+        # shipping a broken app that only the late packaged-smoke would catch.
+        env:
+          CLAUDIUS_TARGET_ARCH: x64
         run: |
           node scripts/electron-stage-standalone.mjs
           bun run electron:compile

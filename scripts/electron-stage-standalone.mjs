@@ -130,15 +130,32 @@ function stageSdkNativeBinaries() {
 
   // Hard-fail if the package for the platform we're packaging didn't get
   // staged. A silent skip ships a guaranteed-broken build (the 500 above).
-  const hostPlatform = `claude-agent-sdk-${process.platform}-${process.arch}`;
-  const staged = fs.existsSync(path.join(destAnthropic, hostPlatform, "claude"));
-  if (!staged) {
-    throw new Error(
-      `[stage-standalone] Claude Agent SDK native binary for ${process.platform}-${process.arch} ` +
-        `(@anthropic-ai/${hostPlatform}) is not installed, so it could not be staged into the ` +
-        `standalone bundle. The packaged app would 500 on session creation. Run a clean install ` +
-        `(without --omit=optional) on this platform before packaging.`,
-    );
+  //
+  // We guard BOTH the host arch AND — when cross-building — the target arch.
+  // On a native build they're the same. On the release's darwin-x64 cross-build
+  // (arm64 runner), `bun install` only lands the arm64 optional, so the target
+  // x64 package must be force-staged first (scripts/electron-stage-claude-sdk.mjs,
+  // mirroring the @next/swc-darwin-x64 dance). If that step is ever skipped, the
+  // host-only guard would pass while the shipped x64 app silently lacks its
+  // binary — caught only by the late packaged-smoke. Setting
+  // CLAUDIUS_TARGET_ARCH (the release job does) makes the miss fail HERE, loudly,
+  // at the staging step.
+  const targetArch = process.env.CLAUDIUS_TARGET_ARCH || process.arch;
+  const targetOs = process.env.CLAUDIUS_TARGET_OS || process.platform;
+  const required = new Set([
+    `claude-agent-sdk-${process.platform}-${process.arch}`,
+    `claude-agent-sdk-${targetOs}-${targetArch}`,
+  ]);
+  for (const pkg of required) {
+    if (!fs.existsSync(path.join(destAnthropic, pkg, "claude"))) {
+      throw new Error(
+        `[stage-standalone] Claude Agent SDK native binary for @anthropic-ai/${pkg} was not ` +
+          `staged into the standalone bundle — the packaged app would 500 on session creation. ` +
+          `For a native build, run a clean install (without --omit=optional) on this platform. ` +
+          `For a cross-build, force-install the target package first ` +
+          `(node scripts/electron-stage-claude-sdk.mjs --arch=${targetArch} --os=${targetOs}).`,
+      );
+    }
   }
 }
 
