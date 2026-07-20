@@ -25,6 +25,15 @@ type RewindResult = {
   filesChanged?: string[];
   insertions?: number;
   deletions?: number;
+  /**
+   * SDK 0.3.216 — count of tracked files the rewind safety guards refused to
+   * restore or delete (symlink / hard link / other non-regular file at the
+   * tracked path, a parent directory that no longer resolves where it did at
+   * checkpoint time, or a backup that couldn't be safely read). Only ever
+   * populated on a real (non-dryRun) rewind — a dry-run preview never sets
+   * it, even when the real rewind would later skip files.
+   */
+  skippedLinks?: number;
 };
 
 type Phase =
@@ -88,6 +97,7 @@ export function RewindFilesButton({
   return (
     <>
       <button
+        data-testid="restore-files-button"
         onClick={(e) => {
           e.stopPropagation();
           void startPreview();
@@ -193,12 +203,23 @@ function RewindPreview({
 
 function RewindDone({ result, onClose }: { result: RewindResult; onClose: () => void }) {
   const n = result.filesChanged?.length ?? 0;
+  const skipped = result.skippedLinks ?? 0;
   return (
     <>
       <h2 className="mb-1 text-sm font-semibold">Files restored</h2>
       <p className="mb-3 text-xs text-[var(--muted)]">
         {n > 0 ? `Restored ${n} file${n === 1 ? "" : "s"} to this message's state.` : "Working tree restored."}
       </p>
+      {skipped > 0 && (
+        <p
+          data-testid="rewind-skipped-links-warning"
+          className="mb-3 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1.5 text-xs text-amber-300"
+        >
+          Skipped {skipped} file{skipped === 1 ? "" : "s"} the safety guard refused to restore — a symlink, hard
+          link, or other non-regular file was tracked at that path. Restore {skipped === 1 ? "it" : "them"} by hand
+          if needed.
+        </p>
+      )}
       <div className="flex justify-end">
         <button
           onClick={onClose}
