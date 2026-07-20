@@ -78,6 +78,12 @@ export function WorkspaceForm({ initial, onCancel, onSubmit, onIconUpload, onDel
   const [defaultSandbox, setDefaultSandbox] = useState<boolean>(
     initial?.defaults?.sandboxEnabled === true,
   );
+  // Skip filesystem isolation while keeping network egress control (CC
+  // 2.1.216's `sandbox.filesystem.disabled`). Only meaningful when the
+  // sandbox itself is on — cleared alongside it on save.
+  const [defaultSandboxNoFs, setDefaultSandboxNoFs] = useState<boolean>(
+    initial?.defaults?.sandboxFilesystemDisabled === true,
+  );
   // 1M-token context beta — off by default; raises cost a lot and is Sonnet-only.
   const [default1m, setDefault1m] = useState<boolean>(
     initial?.defaults?.enable1mContext === true,
@@ -110,6 +116,7 @@ export function WorkspaceForm({ initial, onCancel, onSubmit, onIconUpload, onDel
     initialDefaults?.taskBudgetTokens ||
     initialDefaults?.maxTurns ||
     initialDefaults?.sandboxEnabled ||
+    initialDefaults?.sandboxFilesystemDisabled ||
     initialDefaults?.enable1mContext ||
     initialDefaults?.persistSession === false ||
     initialDefaults?.systemPromptAppend ||
@@ -211,6 +218,8 @@ export function WorkspaceForm({ initial, onCancel, onSubmit, onIconUpload, onDel
       else delete defaults.fallbackModel;
       if (defaultSandbox) defaults.sandboxEnabled = true;
       else delete defaults.sandboxEnabled;
+      if (defaultSandbox && defaultSandboxNoFs) defaults.sandboxFilesystemDisabled = true;
+      else delete defaults.sandboxFilesystemDisabled;
       if (default1m) defaults.enable1mContext = true;
       else delete defaults.enable1mContext;
       if (defaultEphemeral) defaults.persistSession = false;
@@ -553,6 +562,21 @@ export function WorkspaceForm({ initial, onCancel, onSubmit, onIconUpload, onDel
                     Linux only (bubblewrap); no-op on macOS.
                   </span>
                 </label>
+                {defaultSandbox && (
+                  <label className="mt-2 ml-5 flex cursor-pointer items-center gap-2 text-xs">
+                    <input
+                      type="checkbox"
+                      checked={defaultSandboxNoFs}
+                      onChange={(e) => setDefaultSandboxNoFs(e.target.checked)}
+                      className="h-3 w-3 rounded border-[var(--border)] bg-[var(--panel-2)]"
+                    />
+                    <span>Skip filesystem isolation</span>
+                    <span className="text-[10px] text-[var(--muted)]">
+                      Keeps network egress control; commands see the real
+                      filesystem.
+                    </span>
+                  </label>
+                )}
                 <label className="mt-2 flex cursor-pointer items-center gap-2 text-xs">
                   <input
                     type="checkbox"

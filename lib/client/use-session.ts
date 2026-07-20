@@ -1276,6 +1276,16 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
   // tile would drift upward on every reconnect. Mirrors `countedUsageRef`'s
   // contract but for the turn-end frame.
   const seenResultUuidsRef = useRef<Set<string>>(new Set());
+  // True while a server-dispatched `/compact` slash command is awaiting its
+  // outcome. Set on the `slash_invoked` breadcrumb, cleared either by a
+  // successful `compact_boundary` (compaction worked) or, as a fallback, by
+  // the very next `result` event (only one turn is ever in flight, so that
+  // result always corresponds to this compact attempt). If it's still true
+  // when a `result` lands, compaction never produced a boundary — an error
+  // subtype means it failed; surfaced below instead of silently reverting
+  // the "Compacting…" indicator (CC 2.1.216: "a failed /compact displays as
+  // an error").
+  const pendingCompactRef = useRef(false);
   // Per-scope (parent_tool_use_id, "" for top-level) → Anthropic message.id
   // currently being streamed. Captured from the inner `message_start` event
   // so subsequent content_block_* partials in the same scope can be anchored
@@ -3294,6 +3304,21 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
           ]);
         }
 
+        // A /compact turn that never produced a `compact_boundary` failed
+        // (or was a no-op) rather than succeeding — only one turn is ever in
+        // flight, so this result always belongs to the pending compact. An
+        // error subtype means it genuinely failed; surface that explicitly
+        // instead of letting the "Compacting…" indicator quietly revert with
+        // no explanation (CC 2.1.216 parity).
+        if (pendingCompactRef.current) {
+          pendingCompactRef.current = false;
+          if (r.subtype && r.subtype !== "success") {
+            const resultErrors = (msg as { errors?: string[] }).errors;
+            const detail = resultErrors && resultErrors.length ? resultErrors[0] : r.subtype;
+            setErrors((e) => [...e, `Compaction failed: ${detail}`]);
+          }
+        }
+
         // Capture the mid-turn estimate to a local BEFORE the setter so the
         // reducer closes over the value we measured here, not whatever the
         // ref happens to hold by the time React commits. The ref is reset
@@ -3458,6 +3483,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
             (sysAny as { compact_metadata?: unknown; compactMetadata?: unknown }).compact_metadata ??
               (sysAny as { compactMetadata?: unknown }).compactMetadata,
           );
+          pendingCompactRef.current = false;
           setSystemEntries((prev) =>
             mergeCompactBoundary(
               prev,
@@ -3476,6 +3502,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
           const s = sysAny as { command?: string; args?: string };
           const cmd = (s.command ?? "").trim() || "/?";
           const args = (s.args ?? "").trim();
+          if (cmd === "/compact") pendingCompactRef.current = true;
           setSystemEntries((prev) => [
             ...prev,
             {

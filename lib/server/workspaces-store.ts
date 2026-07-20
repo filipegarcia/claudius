@@ -34,6 +34,16 @@ export type WorkspaceDefaults = {
    */
   sandboxEnabled?: boolean;
   /**
+   * Skip filesystem isolation while keeping network egress control (SDK
+   * `Options.sandbox.filesystem.disabled`, CC 2.1.216). Only meaningful when
+   * `sandboxEnabled` is also true — the Session forwards it as
+   * `sandbox.filesystem.disabled: true` alongside `sandbox.enabled: true`, so
+   * bash commands still run inside the sandbox's network egress controls but
+   * are no longer restricted to the sandbox's filesystem view. Absent/false ⇒
+   * both filesystem and network isolation apply (the sandbox default).
+   */
+  sandboxFilesystemDisabled?: boolean;
+  /**
    * Enable the 1M-token context window beta (SDK `Options.betas` →
    * `context-1m-2025-08-07`). Only meaningful for Sonnet 4/4.5 — newer models
    * (Fable, Opus 4.6+, Sonnet 4.6+/5) ship a 1M window by default, so the

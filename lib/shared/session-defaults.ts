@@ -13,6 +13,7 @@ export type SessionDefaults = {
   maxTurns?: number;
   fallbackModel?: string;
   sandboxEnabled?: boolean;
+  sandboxFilesystemDisabled?: boolean;
   enable1mContext?: boolean;
   persistSession?: boolean;
   additionalDirectories?: string[];
@@ -47,6 +48,8 @@ export function mergeSessionDefaults(
     maxTurns: request.maxTurns ?? defaults.maxTurns,
     fallbackModel: request.fallbackModel ?? defaults.fallbackModel,
     sandboxEnabled: request.sandboxEnabled ?? defaults.sandboxEnabled,
+    sandboxFilesystemDisabled:
+      request.sandboxFilesystemDisabled ?? defaults.sandboxFilesystemDisabled,
     enable1mContext: request.enable1mContext ?? defaults.enable1mContext,
     persistSession: request.persistSession ?? defaults.persistSession,
     additionalDirectories: request.additionalDirectories ?? defaults.additionalDirectories,

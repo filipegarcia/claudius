@@ -53,6 +53,7 @@ describe("mergeSessionDefaults", () => {
       maxTurns: undefined,
       fallbackModel: undefined,
       sandboxEnabled: undefined,
+      sandboxFilesystemDisabled: undefined,
       enable1mContext: undefined,
       persistSession: undefined,
       additionalDirectories: undefined,
@@ -117,6 +118,27 @@ describe("mergeSessionDefaults", () => {
     // explicit request:false overrides default:true — ?? only falls through on
     // null/undefined, so a deliberate disable survives.
     expect(mergeSessionDefaults({ sandboxEnabled: false }, { sandboxEnabled: true }).sandboxEnabled).toBe(false);
+  });
+
+  test("sandboxFilesystemDisabled follows the same precedence (request wins, default fills)", () => {
+    // CC 2.1.216's `sandbox.filesystem.disabled` — request:true wins over default:false
+    expect(
+      mergeSessionDefaults(
+        { sandboxFilesystemDisabled: true },
+        { sandboxFilesystemDisabled: false },
+      ).sandboxFilesystemDisabled,
+    ).toBe(true);
+    // default fills when omitted
+    expect(
+      mergeSessionDefaults({}, { sandboxFilesystemDisabled: true }).sandboxFilesystemDisabled,
+    ).toBe(true);
+    // explicit request:false overrides default:true
+    expect(
+      mergeSessionDefaults(
+        { sandboxFilesystemDisabled: false },
+        { sandboxFilesystemDisabled: true },
+      ).sandboxFilesystemDisabled,
+    ).toBe(false);
   });
 
   test("fallbackModel follows the same precedence (request wins, default fills)", () => {
