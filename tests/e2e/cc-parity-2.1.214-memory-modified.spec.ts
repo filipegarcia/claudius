@@ -42,7 +42,19 @@ test.describe("Auto-memory frontmatter 'modified' timestamp (CC 2.1.214 parity)"
     try {
       await page.request.post(`${baseURL}/api/workspaces/${ws.id}/select`);
 
+      // The "No memory files." empty state renders synchronously from the
+      // initial `files: []` — it does NOT wait for the workspaces list to
+      // load, so asserting on it synchronizes on nothing. Meanwhile
+      // useActiveCwd() returns `null` until useWorkspaces resolves, and
+      // createMemory() hard-fails ("0: no cwd") if clicked in that window.
+      // Gate the whole flow on the auto-memory GET (which only fires once
+      // cwd is a real path) so every interaction below happens with cwd
+      // resolved. Register the waiter before goto so we don't miss it.
+      const listLoaded = page.waitForResponse(
+        (r) => r.url().includes("/api/memory/auto") && r.request().method() === "GET",
+      );
       await page.goto(`/${ws.id}/memory`);
+      await listLoaded;
       await expect(page.getByText("Auto-memory")).toBeVisible();
       await expect(page.getByText("No memory files.")).toBeVisible();
 
