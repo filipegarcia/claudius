@@ -38,7 +38,11 @@ export const CONTEXT_WARNING_PRESETS: { value: number; label: string; descriptio
   { value: 80, label: "Comfortable", description: "Warn once the window is mostly full." },
   { value: 90, label: "Recommended", description: "Nudge to compact before auto-compaction kicks in." },
   { value: 95, label: "Last call", description: "Only when the window is nearly exhausted." },
-  { value: 100, label: "Never", description: "Hide the context warning entirely." },
+  {
+    value: 100,
+    label: "Never",
+    description: "Hide the soft nudge; still warns if the window is actually exceeded.",
+  },
 ];
 
 function clamp(n: number): number {

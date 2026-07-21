@@ -135,6 +135,23 @@ test.describe("Context-exceeded warning + failed /compact error (CC 2.1.216 pari
     });
   });
 
+  test("boundary: 99.5% (rounds to 100%) shows the regular 'full' banner, not 'exceeded'", async ({
+    page,
+  }) => {
+    // Regression guard: the banner must derive `exceeded` from the RAW
+    // percentage, not `Math.round(percentage)` — rounding first would flip
+    // a genuine 99.5% into a displayed "100%" and wrongly call it exceeded.
+    await mockChatBackend(page, {
+      events: PRELUDE,
+      contextSummary: { totalTokens: 199_000, maxTokens: 200_000, percentage: 99.5 },
+    });
+
+    await page.goto("/");
+
+    await expect(page.getByText("Context window is 100% full")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText("Context window exceeded")).toHaveCount(0);
+  });
+
   test("a /compact turn that ends without a compact_boundary surfaces 'Compaction failed'", async ({
     page,
   }) => {
@@ -174,5 +191,49 @@ test.describe("Context-exceeded warning + failed /compact error (CC 2.1.216 pari
 
     await page.waitForTimeout(150);
     await page.screenshot({ path: resolve(SHOTS_DIR, "compact-failed.png"), fullPage: false });
+  });
+
+  test("a /compact that ends in error_max_budget_usd shows only the budget banner, not a duplicate", async ({
+    page,
+  }) => {
+    // Regression guard: error_max_budget_usd already gets its own clearer
+    // "Session stopped: max budget reached" banner a few lines above the
+    // compact-failed check — that check must not ALSO fire "Compaction
+    // failed: error_max_budget_usd" for the same result.
+    await mockChatBackend(page, {
+      events: [
+        ...PRELUDE,
+        {
+          type: "sdk",
+          message: {
+            type: "system",
+            subtype: "slash_invoked",
+            uuid: "sys-3",
+            command: "/compact",
+            args: "",
+          },
+        },
+        {
+          type: "sdk",
+          message: {
+            type: "result",
+            uuid: "result-2",
+            subtype: "error_max_budget_usd",
+            total_cost_usd: 5,
+            num_turns: 1,
+            duration_ms: 500,
+            duration_api_ms: 500,
+          },
+        },
+      ],
+    });
+
+    await page.goto("/");
+
+    await expect(page.getByText("Session stopped: max budget reached")).toBeVisible({
+      timeout: 15_000,
+    });
+    await expect(page.getByTestId("session-error")).toHaveCount(1);
+    await expect(page.getByText(/Compaction failed/)).toHaveCount(0);
   });
 });

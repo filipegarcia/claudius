@@ -554,7 +554,14 @@ export function WorkspaceForm({ initial, onCancel, onSubmit, onIconUpload, onDel
                   <input
                     type="checkbox"
                     checked={defaultSandbox}
-                    onChange={(e) => setDefaultSandbox(e.target.checked)}
+                    onChange={(e) => {
+                      setDefaultSandbox(e.target.checked);
+                      // Reset the nested option when the parent turns off —
+                      // otherwise re-checking Sandbox later would silently
+                      // re-reveal "Skip filesystem isolation" already
+                      // checked, with no visible state change to explain why.
+                      if (!e.target.checked) setDefaultSandboxNoFs(false);
+                    }}
                     className="h-3 w-3 rounded border-[var(--border)] bg-[var(--panel-2)]"
                   />
                   <span>Sandbox shell commands</span>
