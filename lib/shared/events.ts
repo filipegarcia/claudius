@@ -854,6 +854,11 @@ export type CreateSessionRequest = {
   fallbackModel?: string;
   /** Run shell commands in a sandbox — SDK Options.sandbox.enabled. */
   sandboxEnabled?: boolean;
+  /**
+   * Skip filesystem isolation while keeping network egress control — SDK
+   * Options.sandbox.filesystem.disabled. Only meaningful with sandboxEnabled.
+   */
+  sandboxFilesystemDisabled?: boolean;
   /** Enable the 1M-token context beta — SDK Options.betas (Sonnet 4/4.5). */
   enable1mContext?: boolean;
   /** Persist this session to disk — SDK Options.persistSession (false = ephemeral). */

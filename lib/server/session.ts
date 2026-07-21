@@ -1078,6 +1078,12 @@ export class Session {
    */
   readonly sandboxEnabled?: boolean;
   /**
+   * Skip filesystem isolation while keeping network egress control — when
+   * true (and sandboxEnabled is also true), forwarded as
+   * Options.sandbox.filesystem.disabled alongside sandbox.enabled: true.
+   */
+  readonly sandboxFilesystemDisabled?: boolean;
+  /**
    * Enable the 1M-token context window beta — when true the Options.betas
    * array carries `context-1m-2025-08-07`. Only meaningful for Sonnet 4/4.5;
    * newer models (Fable, Opus 4.6+, Sonnet 4.6+/5) include a 1M window by
@@ -1604,6 +1610,7 @@ export class Session {
     maxTurns?: number;
     fallbackModel?: string;
     sandboxEnabled?: boolean;
+    sandboxFilesystemDisabled?: boolean;
     enable1mContext?: boolean;
     persistSession?: boolean;
     additionalDirectories?: string[];
@@ -1634,6 +1641,7 @@ export class Session {
     this.maxTurns = opts.maxTurns;
     this.fallbackModel = opts.fallbackModel;
     this.sandboxEnabled = opts.sandboxEnabled;
+    this.sandboxFilesystemDisabled = opts.sandboxFilesystemDisabled;
     this.enable1mContext = opts.enable1mContext;
     this.persistSession = opts.persistSession;
     this.additionalDirectories = opts.additionalDirectories;
@@ -2118,12 +2126,19 @@ export class Session {
       // degrade gracefully on macOS (no bubblewrap) rather than failing the
       // whole query. The SDK leaves the actual access policy to the existing
       // Bash/WebFetch permission rules.
+      // sandboxFilesystemDisabled (CC 2.1.216) only has an effect nested under
+      // an enabled sandbox — skips the filesystem isolation layer while
+      // leaving network egress control (and autoAllowBashIfSandboxed /
+      // failIfUnavailable degradation) in place.
       ...(this.sandboxEnabled
         ? {
             sandbox: {
               enabled: true,
               autoAllowBashIfSandboxed: true,
               failIfUnavailable: false,
+              ...(this.sandboxFilesystemDisabled
+                ? { filesystem: { disabled: true } }
+                : {}),
             },
           }
         : {}),
@@ -4838,6 +4853,7 @@ export class Session {
     maxTurns?: number;
     fallbackModel?: string;
     sandboxEnabled?: boolean;
+    sandboxFilesystemDisabled?: boolean;
     enable1mContext?: boolean;
     persistSession?: boolean;
     additionalDirectories?: string[];
@@ -4857,6 +4873,7 @@ export class Session {
       maxTurns: this.maxTurns,
       fallbackModel: this.fallbackModel,
       sandboxEnabled: this.sandboxEnabled,
+      sandboxFilesystemDisabled: this.sandboxFilesystemDisabled,
       enable1mContext: this.enable1mContext,
       persistSession: this.persistSession,
       additionalDirectories: this.additionalDirectories,

@@ -118,6 +118,25 @@ describe("POST /api/sessions/[id]/rewind", () => {
     expect(body.result.error).toBe("no checkpoint for that message");
   });
 
+  test("forwards SDK 0.3.216 skippedLinks unchanged on a real rewind", async () => {
+    const result = {
+      canRewind: true,
+      filesChanged: ["a.ts"],
+      insertions: 2,
+      deletions: 0,
+      skippedLinks: 3,
+    };
+    const rewindFiles = vi.fn().mockResolvedValue(result);
+    mockManager.get.mockReturnValue({ query: { rewindFiles } });
+
+    const res = await POST(makeReq({ userMessageId: "u1", dryRun: false }), makeCtx("active"));
+
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { result: typeof result };
+    expect(body.result.skippedLinks).toBe(3);
+    expect(rewindFiles).toHaveBeenCalledWith("u1", { dryRun: false });
+  });
+
   test("503 with the SDK's error message when rewindFiles rejects", async () => {
     const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     mockManager.get.mockReturnValue({

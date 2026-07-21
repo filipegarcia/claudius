@@ -45,7 +45,15 @@ function formatElapsed(totalSec: number): string {
 export function ContextWarningBanner({ percentage, compacting, pending, onCompact }: Props) {
   const pct = Math.round(percentage);
   // Match RateLimitPill's tone scheme: amber while approaching, red once the
-  // window is nearly exhausted.
+  // window is nearly exhausted. Both ≥95% and ≥100% (exceeded) share the red
+  // tone — only the copy below distinguishes "nearly full" from "exceeded".
+  //
+  // `exceeded` is derived from the RAW percentage, not the rounded `pct` —
+  // rounding first would flip a genuine 99.5% ("nearly full") into a
+  // displayed "100%" and mislabel it "exceeded", and would also mislabel an
+  // exact 100.0% (at the limit, not over it) as exceeded. Must match the
+  // `> 100` boundary in `shouldShowContextWarning` (useContextWarning.ts).
+  const exceeded = percentage > 100;
   const tone =
     pct >= 95
       ? "border-red-500/30 bg-red-500/10 text-red-200"
@@ -89,6 +97,16 @@ export function ContextWarningBanner({ percentage, compacting, pending, onCompac
                 Compacting conversation…
                 <span className="ml-1.5 font-mono font-normal tabular-nums opacity-80">
                   {formatElapsed(elapsedSec)}
+                </span>
+              </>
+            ) : exceeded ? (
+              <>
+                {`Context window exceeded — ${pct}% full`}
+                <span
+                  className="ml-1 font-normal opacity-80"
+                  data-testid="context-exceeded-note"
+                >
+                  — over the model&apos;s context limit; compact now to continue.
                 </span>
               </>
             ) : (

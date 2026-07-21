@@ -1276,6 +1276,34 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
   // tile would drift upward on every reconnect. Mirrors `countedUsageRef`'s
   // contract but for the turn-end frame.
   const seenResultUuidsRef = useRef<Set<string>>(new Set());
+  // True while a server-dispatched `/compact` slash command — sent while
+  // idle — is awaiting its outcome. Set on the `slash_invoked` breadcrumb,
+  // cleared either by a successful `compact_boundary` (compaction worked) or,
+  // as a fallback, by the very next `result` event. If it's still true when
+  // a `result` lands, compaction never produced a boundary — an error
+  // subtype means it failed; surfaced below instead of silently reverting
+  // the "Compacting…" indicator (CC 2.1.216: "a failed /compact displays as
+  // an error").
+  //
+  // Deliberately narrow: only armed when `!pendingRef.current` at the moment
+  // `slash_invoked` arrives, i.e. no other turn was already in flight. A
+  // `/compact` queued behind a running turn (`sendQueuedNow` / the `asap`
+  // queue-dispatch mode) breaks the "next result belongs to this compact"
+  // assumption — the prior turn's result would land first — so tracking is
+  // skipped for that path rather than risking a misattributed banner. This
+  // matches how Claudius's own Compact affordances already work: both
+  // `ChatSurface.tsx`'s `startCompaction` (banner + StatusLine buttons) bail
+  // out when `session.pending`, so the tracked path covers every UI-driven
+  // compact; only a manually-typed `/compact` sent while mid-turn falls
+  // outside it, and silently reverts as before (no regression, just no new
+  // signal for that rarer case).
+  const pendingCompactRef = useRef(false);
+  // Dedupes the `slash_invoked` breadcrumb by uuid so an SSE reconnect's tail
+  // replay (which resends recently-seen events, including one whose matching
+  // `result` was already processed and dropped by `seenResultUuidsRef`'s
+  // dedup) can't re-arm `pendingCompactRef` a second time with no live result
+  // ever coming to clear it again.
+  const seenCompactSlashUuidsRef = useRef<Set<string>>(new Set());
   // Per-scope (parent_tool_use_id, "" for top-level) → Anthropic message.id
   // currently being streamed. Captured from the inner `message_start` event
   // so subsequent content_block_* partials in the same scope can be anchored
@@ -3294,6 +3322,23 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
           ]);
         }
 
+        // A tracked /compact that never produced a `compact_boundary` failed
+        // (or was a no-op) rather than succeeding. An error subtype means it
+        // genuinely failed; surface that explicitly instead of letting the
+        // "Compacting…" indicator quietly revert with no explanation (CC
+        // 2.1.216 parity). Skip `error_max_budget_usd` — that's already
+        // surfaced by its own clearer banner above; a second "Compaction
+        // failed: error_max_budget_usd" would just be visual noise for the
+        // same underlying stop.
+        if (pendingCompactRef.current) {
+          pendingCompactRef.current = false;
+          if (r.subtype && r.subtype !== "success" && r.subtype !== "error_max_budget_usd") {
+            const resultErrors = (msg as { errors?: string[] }).errors;
+            const detail = resultErrors && resultErrors.length ? resultErrors[0] : r.subtype;
+            setErrors((e) => [...e, `Compaction failed: ${detail}`]);
+          }
+        }
+
         // Capture the mid-turn estimate to a local BEFORE the setter so the
         // reducer closes over the value we measured here, not whatever the
         // ref happens to hold by the time React commits. The ref is reset
@@ -3458,6 +3503,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
             (sysAny as { compact_metadata?: unknown; compactMetadata?: unknown }).compact_metadata ??
               (sysAny as { compactMetadata?: unknown }).compactMetadata,
           );
+          pendingCompactRef.current = false;
           setSystemEntries((prev) =>
             mergeCompactBoundary(
               prev,
@@ -3476,6 +3522,14 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
           const s = sysAny as { command?: string; args?: string };
           const cmd = (s.command ?? "").trim() || "/?";
           const args = (s.args ?? "").trim();
+          if (cmd === "/compact" && !seenCompactSlashUuidsRef.current.has(sysAny.uuid)) {
+            seenCompactSlashUuidsRef.current.add(sysAny.uuid);
+            // Only track it if no other turn was already running — see
+            // `pendingCompactRef`'s doc comment for why a mid-turn-queued
+            // compact is intentionally left untracked rather than risking a
+            // misattributed banner.
+            if (!pendingRef.current) pendingCompactRef.current = true;
+          }
           setSystemEntries((prev) => [
             ...prev,
             {

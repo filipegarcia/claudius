@@ -38,7 +38,11 @@ export const CONTEXT_WARNING_PRESETS: { value: number; label: string; descriptio
   { value: 80, label: "Comfortable", description: "Warn once the window is mostly full." },
   { value: 90, label: "Recommended", description: "Nudge to compact before auto-compaction kicks in." },
   { value: 95, label: "Last call", description: "Only when the window is nearly exhausted." },
-  { value: 100, label: "Never", description: "Hide the context warning entirely." },
+  {
+    value: 100,
+    label: "Never",
+    description: "Hide the soft nudge; still warns if the window is actually exceeded.",
+  },
 ];
 
 function clamp(n: number): number {
@@ -94,14 +98,20 @@ export function useContextWarningPct() {
  *
  * Kept here (alongside the storage hook) so callers don't re-derive the
  * rule from a raw number — one place to change the policy. A threshold of
- * 100 means "never" (you'd have to be at exactly 100% to trip it, and the
- * UI presents 100 as the off switch).
+ * 100 means "never nudge me early" (the UI presents 100 as the "Never"
+ * preset) — but that preference only silences the *soft* approaching-full
+ * nudge. Once the conversation has actually exceeded the context window
+ * (percentage > 100), the SDK is no longer just close to the limit, it's
+ * over it — turns can start failing until a compact happens — so that state
+ * always surfaces regardless of the user's threshold pick (mirrors the CLI's
+ * unconditional "/context exceeds context window" warning, CC 2.1.216).
  */
 export function shouldShowContextWarning(
   percentage: number | null | undefined,
   thresholdPct: number,
 ): boolean {
   if (typeof percentage !== "number" || !Number.isFinite(percentage)) return false;
+  if (percentage > 100) return true;
   if (thresholdPct >= 100) return false;
   return percentage >= thresholdPct;
 }
