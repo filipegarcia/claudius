@@ -15,6 +15,8 @@ import { ArrowUp, Hourglass, Image as ImageIcon, Mic, MicOff, Paperclip, Sparkle
 import { cn } from "@/lib/utils/cn";
 import { SlashCommandPicker } from "./SlashCommandPicker";
 import { AtMentionPicker } from "./AtMentionPicker";
+import { EmojiShortcodePicker } from "./EmojiShortcodePicker";
+import { lookupEmojiShortcode, parseEmojiTrigger } from "@/lib/shared/emoji-shortcodes";
 import { ImageLightbox } from "./ImageLightbox";
 import { useVoice } from "@/lib/client/useVoice";
 import { useSdkCommands } from "@/lib/client/useSdkCommands";
@@ -82,6 +84,15 @@ type Props = {
    * text rather than a command trigger.
    */
   disableSlash?: boolean;
+  /**
+   * Whether `:shortcode:` emoji autocomplete is active in this composer.
+   * Mirrors the `emojiCompletionEnabled` setting (Claude Code 2.1.217
+   * parity): on by default, gates both the suggestion picker and the
+   * auto-replace-on-closing-colon behavior. Threaded down from
+   * `useEmojiCompletionEnabled` by the parent, same shape as
+   * `useDisableAutoMode`.
+   */
+  emojiCompletionEnabled?: boolean;
   /** Override the textarea placeholder (defaults to the chat-composer copy). */
   placeholder?: string;
   /**
@@ -186,6 +197,7 @@ export function PromptInput({
   promptHistory,
   sendDisabled = false,
   disableSlash = false,
+  emojiCompletionEnabled = true,
   placeholder,
   testIdPrefix = "prompt",
   queuedCount = 0,
@@ -210,6 +222,8 @@ export function PromptInput({
   // the DOM caret on every write path.
   const [pickerOpen, setPickerOpen] = useState(false);
   const [atQuery, setAtQuery] = useState<string | null>(null);
+  /** Active `:shortcode` token (leading `:` stripped), or null. Same update-site model as atQuery above. */
+  const [emojiQuery, setEmojiQuery] = useState<string | null>(null);
   // Hydration marker — `mounted` reads true on the client, false during SSR
   // (or the very first paint). Sourced from `useSyncExternalStore` rather
   // than a `useEffect(setMounted(true))` so we don't trip the
@@ -680,6 +694,7 @@ export function PromptInput({
     setImages([]);
     setPickerOpen(false);
     setAtQuery(null);
+    setEmojiQuery(null);
     ordinalCounterRef.current = 0;
     histIdxRef.current = null;
     userTypedRef.current = false;
@@ -713,6 +728,7 @@ export function PromptInput({
     setImages([]);
     setPickerOpen(false);
     setAtQuery(null);
+    setEmojiQuery(null);
     ordinalCounterRef.current = 0;
     histIdxRef.current = null;
   }
@@ -740,6 +756,7 @@ export function PromptInput({
     setImages([]);
     setPickerOpen(false);
     setAtQuery(null);
+    setEmojiQuery(null);
     // Each prompt is its own ordinal namespace.
     ordinalCounterRef.current = 0;
     // Sending ends any history browse; the just-sent prompt becomes the new tail.
@@ -772,6 +789,9 @@ export function PromptInput({
     // @-mention: capture the active token if it starts with @
     const atMatch = /(^|\s)@([^\s@]*)$/.exec(before);
     setAtQuery(atMatch ? atMatch[2] : null);
+    // :shortcode: emoji autocomplete — same trailing-token shape as @-mention,
+    // gated by the emojiCompletionEnabled setting.
+    setEmojiQuery(emojiCompletionEnabled ? parseEmojiTrigger(before) : null);
   }
 
   /**
@@ -904,7 +924,7 @@ export function PromptInput({
       return;
     }
 
-    if (e.key === "Enter" && !pickerOpen && atQuery == null) {
+    if (e.key === "Enter" && !pickerOpen && atQuery == null && emojiQuery == null) {
       const caret = e.currentTarget.selectionStart ?? 0;
       const lineStart = value.lastIndexOf("\n", caret - 1) + 1;
       const nlIdx = value.indexOf("\n", caret);
@@ -945,7 +965,7 @@ export function PromptInput({
       return;
     }
 
-    if (e.key === "Tab" && !pickerOpen && atQuery == null) {
+    if (e.key === "Tab" && !pickerOpen && atQuery == null && emojiQuery == null) {
       const caret = e.currentTarget.selectionStart ?? 0;
       const lineStart = value.lastIndexOf("\n", caret - 1) + 1;
       const nlIdx = value.indexOf("\n", caret);
@@ -978,6 +998,26 @@ export function PromptInput({
     const next = replaced + after;
     setValue(next);
     setAtQuery(null);
+    requestAnimationFrame(() => {
+      el?.focus();
+      const pos = replaced.length;
+      el?.setSelectionRange(pos, pos);
+      autosize();
+    });
+  }
+
+  /** Picker-select path for the emoji shortcode (Tab/Enter/click) — mirrors insertAtMention. */
+  function insertEmojiShortcode(name: string) {
+    const emoji = lookupEmojiShortcode(name);
+    if (!emoji) return;
+    const el = taRef.current;
+    const caret = el?.selectionStart ?? value.length;
+    const before = value.slice(0, caret);
+    const after = value.slice(caret);
+    const replaced = before.replace(/(^|\s):([a-zA-Z0-9_+-]*)$/, (_m, pre) => `${pre}${emoji} `);
+    const next = replaced + after;
+    setValue(next);
+    setEmojiQuery(null);
     requestAnimationFrame(() => {
       el?.focus();
       const pos = replaced.length;
@@ -1461,6 +1501,31 @@ export function PromptInput({
                     return;
                   }
                 }
+
+                // Emoji shortcode auto-complete (Claude Code 2.1.217 parity):
+                // typing the closing `:` of a known shortcode (e.g. finishing
+                // ":heart:") immediately swaps the whole `:name:` token for the
+                // emoji glyph. Same single-char-insertion guard as the bullet
+                // auto-insert above, so pastes/programmatic edits are inert;
+                // gated by emojiCompletionEnabled so the setting fully covers
+                // both this and the suggestion picker below.
+                if (emojiCompletionEnabled && next.length === value.length + 1 && next[caret - 1] === ":") {
+                  const beforeColon = next.slice(0, caret - 1);
+                  const shortcodeMatch = /(^|\s):([a-zA-Z0-9_+-]+)$/.exec(beforeColon);
+                  const emoji = shortcodeMatch ? lookupEmojiShortcode(shortcodeMatch[2]) : undefined;
+                  if (shortcodeMatch && emoji) {
+                    const tokenStart = shortcodeMatch.index + shortcodeMatch[1].length;
+                    const replaced = next.slice(0, tokenStart) + emoji + next.slice(caret);
+                    const pos = tokenStart + emoji.length;
+                    setValue(replaced);
+                    refreshPickerState(replaced, pos);
+                    requestAnimationFrame(() => {
+                      taRef.current?.setSelectionRange(pos, pos);
+                      autosize();
+                    });
+                    return;
+                  }
+                }
               }
               setValue(next);
               refreshPickerState(next, e.target.selectionStart ?? next.length);
@@ -1560,7 +1625,7 @@ export function PromptInput({
           )}
         </div>
 
-        {!disableSlash && pickerOpen && atQuery == null && (
+        {!disableSlash && pickerOpen && atQuery == null && emojiQuery == null && (
           <SlashCommandPicker
             value={value.trimStart()}
             sdkSlashCommands={slashCommands}
@@ -1582,6 +1647,14 @@ export function PromptInput({
             sessionId={sessionId}
             onSelect={(rel) => insertAtMention(rel)}
             onClose={() => setAtQuery(null)}
+          />
+        )}
+
+        {atQuery == null && emojiQuery != null && (
+          <EmojiShortcodePicker
+            query={emojiQuery}
+            onSelect={(name) => insertEmojiShortcode(name)}
+            onClose={() => setEmojiQuery(null)}
           />
         )}
 

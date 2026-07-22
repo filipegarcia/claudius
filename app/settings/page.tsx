@@ -165,8 +165,10 @@ export default function SettingsPage() {
   const rClaudeMdExcludes = fMemory || show("claudemdexcludes comma-separated globs");
   const sMemory = rAutoMemory || rAutoDream || rAutoMemDir || rClaudeMdExcludes;
 
-  // Chat has a single row, so its card guard is already row-level.
-  const sChat = show("chat promptsuggestionenabled prompt suggestion follow-up chips composer");
+  // Chat's card guard is a flat OR across all its rows' keywords.
+  const sChat = show(
+    "chat promptsuggestionenabled prompt suggestion follow-up chips composer emojicompletionenabled emoji shortcode autocomplete heart",
+  );
   const sEnv = show("environment env variables key value");
   const sPlugins = show("plugins enabled plugin marketplace");
   const sOther = show("other keys custom advanced extra json");
@@ -671,6 +673,12 @@ export default function SettingsPage() {
                     description="Show AI-predicted follow-up prompts as clickable chips under the composer after each turn. On by default."
                   />
                   <ToggleRow
+                    label="emojiCompletionEnabled"
+                    checked={draft.emojiCompletionEnabled !== false}
+                    onChange={(b) => update({ emojiCompletionEnabled: b ? undefined : false })}
+                    description='Type ":heart:" to insert ❤️, or ":hea" to see suggestions, in the message composer. On by default.'
+                  />
+                  <ToggleRow
                     label="sessionRecapEnabled"
                     checked={draft.sessionRecapEnabled !== false}
                     onChange={(b) => update({ sessionRecapEnabled: b ? undefined : false })}
@@ -869,6 +877,7 @@ const KNOWN_KEYS = new Set([
   "autoDreamEnabled",
   "autoMemoryDirectory",
   "promptSuggestionEnabled",
+  "emojiCompletionEnabled",
   "sessionRecapEnabled",
   "queueDispatchMode",
   "claudeMdExcludes",
