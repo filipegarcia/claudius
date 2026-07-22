@@ -91,14 +91,25 @@ export function SlashCommandPicker({ value, sdkSlashCommands, sdkSkills, sdkRich
       if ((e.metaKey || e.ctrlKey) && (e.key === "ArrowUp" || e.key === "ArrowDown")) return;
       if (e.key === "ArrowDown") {
         e.preventDefault();
+        e.stopPropagation();
         setHi((h) => (h + 1) % visible.length);
       } else if (e.key === "ArrowUp") {
         e.preventDefault();
+        e.stopPropagation();
         setHi((h) => (h - 1 + visible.length) % visible.length);
       } else if (e.key === "Tab" || (e.key === "Enter" && filter !== "")) {
         e.preventDefault();
+        // stopPropagation is load-bearing: without it, the same keydown can
+        // still reach PromptInput's onKeyDown (bubble phase) after onSelect
+        // has already flipped `pickerOpen` false, tripping the Tab-indent or
+        // Enter-submit fallback on the very keystroke that was meant to just
+        // insert the command. Same class of bug fixed in AtMentionPicker /
+        // EmojiShortcodePicker — found while wiring up the latter (CC
+        // 2.1.217 parity).
+        e.stopPropagation();
         onSelect(visible[hi].name);
       } else if (e.key === "Escape") {
+        e.stopPropagation();
         onClose();
       }
     }

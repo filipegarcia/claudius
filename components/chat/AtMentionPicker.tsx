@@ -131,15 +131,28 @@ export function AtMentionPicker({ query, cwd, sessionId, onSelect, onClose }: Pr
       if ((e.metaKey || e.ctrlKey) && (e.key === "ArrowUp" || e.key === "ArrowDown")) return;
       if (e.key === "ArrowDown") {
         e.preventDefault();
+        e.stopPropagation();
         setHi((h) => (h + 1) % visible.length);
       } else if (e.key === "ArrowUp") {
         e.preventDefault();
+        e.stopPropagation();
         setHi((h) => (h - 1 + visible.length) % visible.length);
       } else if (e.key === "Tab" || e.key === "Enter") {
         e.preventDefault();
+        // stopPropagation is load-bearing: this fires on `window` in the
+        // CAPTURE phase, ahead of PromptInput's own onKeyDown (bubble phase
+        // on the textarea). `onSelect` below clears `atQuery` synchronously
+        // enough that, left to propagate, the *same* keydown still reaches
+        // onKeyDown with `atQuery` already null — tripping the Enter-submits
+        // fallback (or the Tab-indent fallback) on the very keystroke meant
+        // to just insert the mention. Bug found while wiring up
+        // EmojiShortcodePicker (CC 2.1.217 parity), fixed here too since it's
+        // the same picker contract.
+        e.stopPropagation();
         onSelect(itemToken(visible[hi]));
       } else if (e.key === "Escape") {
         e.preventDefault();
+        e.stopPropagation();
         onClose();
       }
     }
