@@ -35,6 +35,7 @@ import { BackgroundTasksPanel } from "@/components/panels/BackgroundTasksPanel";
 import type { PermissionMode } from "@anthropic-ai/claude-agent-sdk";
 import { nextPermissionMode } from "@/components/chat/ModeSelector";
 import { useDisableAutoMode } from "@/lib/client/useDisableAutoMode";
+import { useEmojiCompletionEnabled } from "@/lib/client/useEmojiCompletionEnabled";
 import { HelpOverlay } from "@/components/overlays/HelpOverlay";
 import { SkillsOverlay } from "@/components/overlays/SkillsOverlay";
 import { CostOverlay } from "@/components/overlays/CostOverlay";
@@ -390,6 +391,9 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
     () => (autoModeDisabled ? ["auto"] : undefined),
     [autoModeDisabled],
   );
+  // :shortcode: emoji autocomplete (Claude Code 2.1.217 parity), gated by the
+  // user-scope `emojiCompletionEnabled` setting.
+  const emojiCompletionEnabled = useEmojiCompletionEnabled(session.cwd);
 
   // Compute breach state. The override is keyed by `session:<id>:<today>` so
   // it lifts the cap only for the current calendar day, per the spec.
@@ -2329,6 +2333,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
               draftInjection={draftInjection}
               promptHistory={promptHistory}
               sendDisabled={capBreached || session.readOnly}
+              emojiCompletionEnabled={emojiCompletionEnabled}
               queuedCount={session.queue.length}
               onSendQueuedNow={session.queue.length > 0 ? () => session.sendQueuedNow(session.queue[0].id) : undefined}
               // Capture file drops across the whole chat-area pane (message

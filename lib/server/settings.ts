@@ -29,6 +29,15 @@ export type ClaudeSettings = {
   // true, prompt suggestions are enabled." Read at session start in
   // `session.ts` and forwarded to the SDK's `Options.promptSuggestions`.
   promptSuggestionEnabled?: boolean;
+  // `:shortcode:` emoji autocomplete in the prompt composer (Claude Code
+  // 2.1.217: "Added emoji shortcode autocomplete in the prompt input: type
+  // `:heart:` to insert ❤️, or `:hea` for suggestions — disable with the
+  // `emojiCompletionEnabled` setting"). Mirrors the CLI's key name and
+  // absent/true = enabled, false = disabled contract exactly. Read client-side
+  // by `useEmojiCompletionEnabled` (user scope only — a personal composer
+  // preference, same reasoning as `disableAutoMode`); purely a browser-side
+  // text-replacement behavior, so there's no server/SDK forwarding involved.
+  emojiCompletionEnabled?: boolean;
   // Session recap — the "where were we?" one-liner the client shows when the
   // user returns to a tab after being blurred for ≥5 min. Mirrors the
   // (internal) Claude Code TUI key `awaySummaryEnabled`: `false` disables the
