@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { Zap, X } from "lucide-react";
+import { fastModeDisabledReasonLabel } from "@/lib/shared/fast-mode";
 
 /**
  * Transient toast-style banner that marks the *transition moment* when fast
@@ -10,14 +11,14 @@ import { Zap, X } from "lucide-react";
  * now using fast mode".
  *
  * Scope note (PARTIAL feature):
- *   The CLI also distinguishes "overloaded" vs "limit reached" and ticks a
- *   live "resets in <time>" countdown. The SDK exposes neither a fast-mode
- *   reason nor a fast-mode reset timestamp (FastModeState is the bare
- *   'off'|'cooldown'|'on'), so this surface stays neutral — the persistent
- *   `⚡ cooldown` chip on the StatusLine already carries the ongoing state.
- *   Borrowing SDKRateLimitInfo.resetsAt here would fake a signal: that
- *   timestamp is the overall subscription limit, not the fast-mode capacity
- *   cooldown.
+ *   SDK 0.3.219 added `fast_mode_disabled_reason` to the `result` / init
+ *   messages, so the cooldown toast below now shows *why* (see
+ *   `lib/shared/fast-mode.ts` for the reason → copy mapping) whenever the
+ *   SDK reported one. The CLI also ticks a live "resets in <time>"
+ *   countdown, which the SDK still doesn't expose a timestamp for — that
+ *   part stays out. Borrowing SDKRateLimitInfo.resetsAt here would fake a
+ *   signal: that timestamp is the overall subscription limit, not the
+ *   fast-mode capacity cooldown.
  *
  * The notice auto-fades; transitions are derived in `use-session.ts` from a
  * prior-state ref so we mark only the edges, not every result event that
@@ -29,6 +30,12 @@ export type FastModeNotice = {
   /** Stable across re-renders of the same notice; bumped per transition. */
   uuid: string;
   kind: FastModeNoticeKind;
+  /**
+   * SDK 0.3.219 `fast_mode_disabled_reason`, captured at the moment fast
+   * mode entered cooldown. Absent when the SDK didn't report one (older
+   * CLI, or a reason genuinely wasn't attached to that transition).
+   */
+  reason?: string;
 };
 
 const AUTO_DISMISS_MS = 8_000;
@@ -60,7 +67,7 @@ export function FastModeNoticePanel({
     ? "Fast mode temporarily unavailable"
     : "Fast mode reset — back to fast";
   const detail = isCooldown
-    ? "Falling back to normal mode until capacity recovers."
+    ? fastModeDisabledReasonLabel(notice.reason)
     : "Now using fast mode again.";
 
   return (

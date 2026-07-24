@@ -112,9 +112,35 @@ export type ClaudeSettings = {
   // "Auto" from the ModeSelector / Shift+Tab cycle) read this via
   // `readSettings("user", cwd)` — the "user" scope only, matching upstream.
   disableAutoMode?: "disable";
+  // SDK 0.3.219 — advisory size guideline for "ultracode" (Dynamic
+  // Workflows): how large a fan-out the model's own Workflow tool should
+  // aim for when it plans a run. Mirrors the SDK's `Settings.workflowSizeGuideline`
+  // exactly. Read at session start in `session.ts` and forwarded to the SDK's
+  // flag layer alongside `advisorModel`/`includeCoAuthoredBy`; surfaced in
+  // the Settings page catalog as an enum field next to `advisorModel` and
+  // `fastMode` (Model & behavior).
+  workflowSizeGuideline?: WorkflowSizeGuideline;
   // Catch-all for keys we don't yet know about — we never strip them.
   [key: string]: unknown;
 };
+
+/** The SDK's `Settings.workflowSizeGuideline` literal union (0.3.219). */
+export type WorkflowSizeGuideline = "unrestricted" | "small" | "medium" | "large";
+
+/** Runtime-checkable mirror of `WorkflowSizeGuideline`, for validating hand-edited settings.json values before forwarding them to the SDK. */
+export const WORKFLOW_SIZE_GUIDELINE_VALUES: readonly WorkflowSizeGuideline[] = [
+  "unrestricted",
+  "small",
+  "medium",
+  "large",
+];
+
+/** Type guard: is `v` one of the SDK's four `workflowSizeGuideline` literals? */
+export function isWorkflowSizeGuideline(v: unknown): v is WorkflowSizeGuideline {
+  return (
+    typeof v === "string" && (WORKFLOW_SIZE_GUIDELINE_VALUES as readonly string[]).includes(v)
+  );
+}
 
 export function pathFor(scope: SettingsScope, projectCwd: string): string {
   // assertWithin acts as the path-injection barrier on the projectCwd →

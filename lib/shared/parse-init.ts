@@ -33,6 +33,25 @@ export type InitInfo = {
    * server build, profile-dir divergence, settings.json read error).
    */
   advisorActive: boolean;
+  /**
+   * SDK 0.3.219 — the init message's `fast_mode_state` is now trustworthy
+   * even right after a `/model` switch (previously it could report the
+   * spawn-time model's state instead of the just-switched-to model's). We
+   * start reading it here so the StatusLine's `⚡` chip and fast-mode
+   * notice can paint their initial state from session start instead of
+   * waiting for the first `result` message.
+   */
+  fastModeState?: "off" | "cooldown" | "on";
+  /**
+   * SDK 0.3.219 — why fast mode can't serve right now (absent when nothing
+   * blocks it). Kept as a raw string, not a strict union: the SDK's reason
+   * list is an open set that may grow, and this parser is tolerant of
+   * schema drift by contract (see below) — an unrecognized reason should
+   * fall back to neutral copy at the display layer
+   * (`fastModeDisabledReasonLabel` in `lib/shared/fast-mode.ts`), not get
+   * silently dropped here.
+   */
+  fastModeDisabledReason?: string;
 };
 
 function stringArray(v: unknown): string[] {
@@ -67,5 +86,11 @@ export function parseInitSystemMessage(msg: unknown): InitInfo {
     // The SDK registers the `advisor` tool only when an advisorModel is
     // configured. Reliable "is the advisor on" signal — see InitInfo doc.
     advisorActive: tools.includes("advisor"),
+    fastModeState: (["off", "cooldown", "on"] as const).includes(
+      m.fast_mode_state as "off" | "cooldown" | "on",
+    )
+      ? (m.fast_mode_state as "off" | "cooldown" | "on")
+      : undefined,
+    fastModeDisabledReason: optionalString(m.fast_mode_disabled_reason),
   };
 }

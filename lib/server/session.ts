@@ -101,7 +101,12 @@ import { loadDbAgentsForOptions } from "@/lib/server/db-agents";
 import { selectTips } from "@/lib/shared/tips";
 import type { SessionLoop } from "@/lib/shared/session-loops";
 import { matchesUsageLimitPrefix } from "@/lib/shared/rate-limit-prefixes";
-import { readSettings, writeSettings, type ClaudeSettings } from "./settings";
+import {
+  readSettings,
+  writeSettings,
+  type ClaudeSettings,
+  isWorkflowSizeGuideline,
+} from "./settings";
 import { readLimits, type Limits } from "./limits-store";
 import { checkToolBudget, toolBudgetKindFor } from "@/lib/shared/tool-budget";
 import {
@@ -2220,8 +2225,15 @@ export class Session {
       //     global Settings page; values are constrained to those three
       //     via lib/shared/advisor.ts but we forward whatever string the
       //     user has (advanced users can hand-edit settings.json).
+      //   • workflowSizeGuideline (SDK 0.3.219) — advisory "ultracode"
+      //     (Dynamic Workflows) fan-out size (Settings → Model & behavior).
+      //     Validated against the SDK's four literals here — unlike
+      //     advisorModel, a hand-edited garbage value has no sensible
+      //     fallback for the SDK to trust, so we drop it rather than
+      //     forward it verbatim.
       ...(typeof userSettings.includeCoAuthoredBy === "boolean" ||
-      typeof userSettings.advisorModel === "string"
+      typeof userSettings.advisorModel === "string" ||
+      isWorkflowSizeGuideline(userSettings.workflowSizeGuideline)
         ? {
             settings: {
               ...(typeof userSettings.includeCoAuthoredBy === "boolean"
@@ -2229,6 +2241,9 @@ export class Session {
                 : {}),
               ...(typeof userSettings.advisorModel === "string"
                 ? { advisorModel: userSettings.advisorModel }
+                : {}),
+              ...(isWorkflowSizeGuideline(userSettings.workflowSizeGuideline)
+                ? { workflowSizeGuideline: userSettings.workflowSizeGuideline }
                 : {}),
             },
           }

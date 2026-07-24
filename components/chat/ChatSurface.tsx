@@ -1955,6 +1955,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
           contextPercent={ctxSummary?.percentage}
           onOpenContext={() => setOverlay("context")}
           fastModeState={session.fastModeState}
+          fastModeDisabledReason={session.fastModeDisabledReason}
           totalCostUsd={session.usage?.totalCostUsd}
           outputTokens={session.usage?.outputTokens}
           onOpenCost={() => setOverlay("cost")}

@@ -928,6 +928,13 @@ const SDK_SETTINGS_CATALOG: SettingMeta[] = [
     desc: "When true, fast mode is enabled. When absent or false, fast mode is off.",
   },
   {
+    key: "workflowSizeGuideline",
+    type: "enum",
+    section: "Model & behavior",
+    options: ["unrestricted", "small", "medium", "large"],
+    desc: 'Advisory size guideline for "ultracode" (Dynamic Workflows) — how large a fan-out the model should aim for when it plans a workflow run. Absent leaves the SDK default.',
+  },
+  {
     key: "alwaysThinkingEnabled",
     type: "boolean",
     section: "Thinking & effort",
