@@ -1402,6 +1402,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     setPendingPlan(null);
     pendingPlanRef.current = null;
     setFastModeState(null);
+    setFastModeDisabledReason(null);
     setFastModeNotice(null);
     prevFastModeStateRef.current = null;
     setPromptSuggestions([]);
@@ -3290,11 +3291,18 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
           // catalog).
           fast_mode_disabled_reason?: string;
         };
-        if (typeof r.fast_mode_disabled_reason === "string") {
-          setFastModeDisabledReason(r.fast_mode_disabled_reason);
-        }
         if (r.fast_mode_state) {
           setFastModeState(r.fast_mode_state);
+          // Mirror the reason alongside the state on every observation
+          // (not just when a reason string is present) — otherwise a
+          // recovery to "on", or a later cooldown that happens to omit the
+          // field, would leave the StatusLine chip's tooltip showing a
+          // stale reason from an earlier, unrelated cooldown. "on" always
+          // clears it (nothing's blocking fast mode); off/cooldown mirrors
+          // whatever this message reported, including absent → null.
+          setFastModeDisabledReason(
+            r.fast_mode_state === "on" ? null : (r.fast_mode_disabled_reason ?? null),
+          );
           // Edge-detect fast-mode transitions for the transient toast. The
           // first observation just seeds the ref (no toast), so a session
           // that lands in cooldown via the replay buffer doesn't flash a

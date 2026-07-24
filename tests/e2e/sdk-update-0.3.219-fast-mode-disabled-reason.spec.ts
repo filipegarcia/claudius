@@ -170,4 +170,33 @@ test.describe("fast_mode_disabled_reason (SDK 0.3.219)", () => {
       fullPage: false,
     });
   });
+
+  test("recovering to on clears the stale reason from the chip tooltip", async ({ page }) => {
+    // Regression guard: `fastModeDisabledReason` used to be write-only-on-
+    // presence in use-session.ts — a recovery result with no
+    // `fast_mode_disabled_reason` field left the StatusLine chip showing the
+    // *previous* cooldown's reason instead of the "active" copy. This
+    // stream's last event is the recovery (`on`, no reason), so the settled
+    // state is exactly what's under test.
+    await mockChatBackend(page, [
+      ...PRELUDE,
+      assistant("a1", "Working on the first turn…"),
+      result("result-1", "on"),
+      assistant("a2", "Working on the second turn…"),
+      result("result-2", "cooldown", "extra_usage_disabled"),
+      assistant("a3", "Working on the third turn…"),
+      result("result-3", "on"),
+    ]);
+    await page.goto("/");
+
+    const notice = page.locator('[data-pane-name="fast-mode-notice"]');
+    await expect(notice).toBeVisible({ timeout: 15_000 });
+    await expect(notice).toHaveAttribute("data-fast-mode-notice", "recovered");
+
+    const chip = page.getByTestId("status-line-fast");
+    await expect(chip).toBeVisible();
+    await expect(chip).toHaveAttribute("data-fast-state", "on");
+    // Must be the generic "active" tooltip, NOT the stale cooldown reason.
+    await expect(chip).toHaveAttribute("title", "Fast mode active — draws from usage credits");
+  });
 });
