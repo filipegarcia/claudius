@@ -75,11 +75,24 @@ test.describe("workflowSizeGuideline settings catalog row (SDK 0.3.219)", () => 
     await page.getByRole("button", { name: /^Save$/ }).click();
 
     await expect
-      .poll(async () => {
-        const r = await page.request.get("/api/settings?scope=user");
-        const body = (await r.json()) as { settings: { workflowSizeGuideline?: string } };
-        return body.settings.workflowSizeGuideline;
-      }, { timeout: 10_000 })
+      .poll(
+        async () => {
+          // Guarded read — under parallel-suite load (many specs writing the
+          // same shared user-scope settings.json) the GET can return a
+          // truncated body and `r.json()` throws "Unexpected end of JSON
+          // input"; swallow it so the poll retries instead of failing the
+          // test. Same pattern as cc-parity-2.1.217-emoji-shortcode-autocomplete.spec.ts.
+          try {
+            const body = await getJsonWithRetry<{
+              settings: { workflowSizeGuideline?: string };
+            }>(page, "/api/settings?scope=user");
+            return body.settings.workflowSizeGuideline;
+          } catch {
+            return undefined;
+          }
+        },
+        { timeout: 10_000 },
+      )
       .toBe("large");
 
     // Saving re-triggers a settings refetch that clears the search box —
