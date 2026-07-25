@@ -25,6 +25,7 @@ import { worktreeBadge } from "@/lib/client/worktree";
 import type { SessionInfo } from "@/lib/client/types";
 import type { Workspace } from "@/lib/server/workspaces-store";
 import { modelDeprecationDate } from "@/lib/shared/model-deprecations";
+import { fastModeDisabledReasonLabel } from "@/lib/shared/fast-mode";
 import {
   VERBOSE_LEVELS,
   verboseDescription,
@@ -73,6 +74,12 @@ type Props = {
   contextPercent?: number;
   onOpenContext?: () => void;
   fastModeState?: "off" | "cooldown" | "on" | null;
+  /**
+   * SDK 0.3.219 `fast_mode_disabled_reason` — why fast mode can't serve
+   * right now. Shown as the chip's tooltip when present, in place of the
+   * generic "Fast mode cooling down" copy. See `lib/shared/fast-mode.ts`.
+   */
+  fastModeDisabledReason?: string | null;
   totalCostUsd?: number;
   outputTokens?: number;
   onOpenCost?: () => void;
@@ -130,6 +137,7 @@ export function StatusLine({
   contextPercent,
   onOpenContext,
   fastModeState,
+  fastModeDisabledReason,
   totalCostUsd,
   outputTokens,
   onOpenCost,
@@ -366,7 +374,7 @@ export function StatusLine({
             title={
               fastModeState === "on"
                 ? "Fast mode active — draws from usage credits"
-                : "Fast mode cooling down"
+                : fastModeDisabledReasonLabel(fastModeDisabledReason)
             }
           >
             <span>⚡ {fastModeState}</span>

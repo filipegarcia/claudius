@@ -97,11 +97,42 @@ describe("parseInitSystemMessage", () => {
       "agents",
       "claudeCodeVersion",
       "cwd",
+      "fastModeDisabledReason",
+      "fastModeState",
       "model",
       "permissionMode",
       "skills",
       "slashCommands",
       "tools",
     ]);
+  });
+
+  // SDK 0.3.219 — fast_mode_state / fast_mode_disabled_reason on init.
+  describe("fast mode fields (SDK 0.3.219)", () => {
+    test("extracts a known fast_mode_state", () => {
+      const out = parseInitSystemMessage({ fast_mode_state: "cooldown" });
+      expect(out.fastModeState).toBe("cooldown");
+    });
+
+    test("drops an unrecognized fast_mode_state rather than passing it through", () => {
+      const out = parseInitSystemMessage({ fast_mode_state: "supersonic" });
+      expect(out.fastModeState).toBeUndefined();
+    });
+
+    test("extracts fast_mode_disabled_reason as a raw, tolerant string", () => {
+      const out = parseInitSystemMessage({ fast_mode_disabled_reason: "extra_usage_disabled" });
+      expect(out.fastModeDisabledReason).toBe("extra_usage_disabled");
+      // Tolerant of a reason value the SDK adds after this parser was
+      // written — no whitelist here, just pass the string through. Display
+      // layer (fastModeDisabledReasonLabel) does the fallback-copy work.
+      const future = parseInitSystemMessage({ fast_mode_disabled_reason: "some_future_reason" });
+      expect(future.fastModeDisabledReason).toBe("some_future_reason");
+    });
+
+    test("absent fast-mode fields collapse to undefined", () => {
+      const out = parseInitSystemMessage({ subtype: "init" });
+      expect(out.fastModeState).toBeUndefined();
+      expect(out.fastModeDisabledReason).toBeUndefined();
+    });
   });
 });

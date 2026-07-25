@@ -869,13 +869,19 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
   const [subagentMessages, setSubagentMessages] = useState<Record<string, DisplayMessage[]>>({});
   const [pendingPlan, setPendingPlan] = useState<PendingPlan | null>(null);
   const [fastModeState, setFastModeState] = useState<"off" | "cooldown" | "on" | null>(null);
+  // SDK 0.3.219 — `fast_mode_disabled_reason` on the `result` / init
+  // messages. `null` covers both "never told a reason" and "nothing is
+  // blocking fast mode right now"; display code (FastModeNoticePanel,
+  // StatusLine) treats those the same. See lib/shared/fast-mode.ts for the
+  // reason → copy mapping.
+  const [fastModeDisabledReason, setFastModeDisabledReason] = useState<string | null>(null);
   // Transient transition toast (entered cooldown / recovered to on). The
   // persistent `⚡ cooldown` chip on the StatusLine already carries the
-  // ongoing state — this only marks the edge moment and auto-fades. See
-  // FastModeNoticePanel for the scope note on why reason+countdown are
-  // omitted (no SDK signal for either).
+  // ongoing state. `reason` (SDK 0.3.219) carries the disabled reason at
+  // the moment of the cooldown edge, so the toast can say *why* — see
+  // FastModeNoticePanel.
   const [fastModeNotice, setFastModeNotice] = useState<
-    { uuid: string; kind: "cooldown" | "recovered" } | null
+    { uuid: string; kind: "cooldown" | "recovered"; reason?: string } | null
   >(null);
   // Transient toast for a rejected `/model` switch — the local analogue of the
   // TUI's "Remote session couldn't switch to <model>" notice. Fires when the
@@ -1396,6 +1402,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     setPendingPlan(null);
     pendingPlanRef.current = null;
     setFastModeState(null);
+    setFastModeDisabledReason(null);
     setFastModeNotice(null);
     prevFastModeStateRef.current = null;
     setPromptSuggestions([]);
@@ -3279,9 +3286,23 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
           };
           modelUsage?: Record<string, unknown>;
           fast_mode_state?: "off" | "cooldown" | "on";
+          // SDK 0.3.219 — why fast mode can't serve right now. Absent when
+          // nothing blocks it (see lib/shared/fast-mode.ts for the reason
+          // catalog).
+          fast_mode_disabled_reason?: string;
         };
         if (r.fast_mode_state) {
           setFastModeState(r.fast_mode_state);
+          // Mirror the reason alongside the state on every observation
+          // (not just when a reason string is present) — otherwise a
+          // recovery to "on", or a later cooldown that happens to omit the
+          // field, would leave the StatusLine chip's tooltip showing a
+          // stale reason from an earlier, unrelated cooldown. "on" always
+          // clears it (nothing's blocking fast mode); off/cooldown mirrors
+          // whatever this message reported, including absent → null.
+          setFastModeDisabledReason(
+            r.fast_mode_state === "on" ? null : (r.fast_mode_disabled_reason ?? null),
+          );
           // Edge-detect fast-mode transitions for the transient toast. The
           // first observation just seeds the ref (no toast), so a session
           // that lands in cooldown via the replay buffer doesn't flash a
@@ -3292,7 +3313,11 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
           const next = r.fast_mode_state;
           if (prev !== null && prev !== next && !replayingRef.current) {
             if (next === "cooldown" && prev !== "cooldown") {
-              setFastModeNotice({ uuid: crypto.randomUUID(), kind: "cooldown" });
+              setFastModeNotice({
+                uuid: crypto.randomUUID(),
+                kind: "cooldown",
+                reason: r.fast_mode_disabled_reason,
+              });
             } else if (next === "on" && prev === "cooldown") {
               setFastModeNotice({ uuid: crypto.randomUUID(), kind: "recovered" });
             }
@@ -3418,6 +3443,15 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
           if (init.cwd) setCwd(init.cwd);
           if (init.model) setModelState(init.model);
           if (init.permissionMode) setPermissionModeState(init.permissionMode);
+          // SDK 0.3.219: init now carries a trustworthy `fast_mode_state`
+          // (previously it could echo the spawn-time model's state after a
+          // `/model` switch). Seed the StatusLine chip from it so the initial
+          // paint doesn't have to wait for the first `result` message.
+          // `prevFastModeStateRef` is intentionally left untouched here — the
+          // edge-detector below still treats the first `result` observation
+          // as the seed, so this can't spuriously fire a transition toast.
+          if (init.fastModeState) setFastModeState(init.fastModeState);
+          if (init.fastModeDisabledReason) setFastModeDisabledReason(init.fastModeDisabledReason);
           // Belt-and-braces advisor priming: the bind-time `GET /advisor`
           // is the *authoritative* source (returns the literal value the
           // SDK is honoring), but it can come back null on edge cases
@@ -5326,6 +5360,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     subagentMessages,
     pendingPlan,
     fastModeState,
+    fastModeDisabledReason,
     fastModeNotice,
     modelSwitchNotice,
     chatCommandModelNotice,

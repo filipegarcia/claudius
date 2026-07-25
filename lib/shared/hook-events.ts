@@ -31,6 +31,7 @@ export const HOOK_EVENT_NAMES = [
   "InstructionsLoaded",
   "CwdChanged",
   "FileChanged",
+  "DirectoryAdded",
   "MessageDisplay",
 ] as const;
 
@@ -94,6 +95,7 @@ export const HOOK_EVENTS: HookEventSpec[] = [
   { name: "WorktreeCreate", category: "fs", description: "When a git worktree is created from Claude." },
   { name: "WorktreeRemove", category: "fs", description: "When a git worktree is removed." },
   { name: "FileChanged", category: "fs", description: "When a watched file changes on disk." },
+  { name: "DirectoryAdded", category: "fs", description: "When a new working directory is registered mid-session (/add-dir or the SDK's register_repo_root control request).", matcherHint: "slash_command | register_repo_root" },
 
   // Message display
   { name: "MessageDisplay", category: "other", description: "When a message is about to be rendered to the user (last chance to rewrite).", canBlock: false },

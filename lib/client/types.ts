@@ -672,14 +672,23 @@ export type ChatState = {
   pendingPlan: PendingPlan | null;
   fastModeState: "off" | "cooldown" | "on" | null;
   /**
+   * SDK 0.3.219 — why fast mode can't serve right now (`fast_mode_disabled_reason`
+   * on the `result` / init messages). `null` when nothing blocks it, or when
+   * no reason has been reported yet. See `lib/shared/fast-mode.ts` for the
+   * reason → human-copy mapping used by the StatusLine chip and the notice.
+   */
+  fastModeDisabledReason: string | null;
+  /**
    * Transient transition toast for fast-mode edges (entered cooldown /
    * recovered to on). Mirrors the Claude Code TUI's "Fast mode … is
-   * temporarily unavailable" + "Fast limit reset" toasts. Reason
-   * differentiation ("overloaded" vs "limit reached") and the live "resets
-   * in <time>" countdown are intentionally omitted — the SDK exposes neither
-   * a fast-mode reason nor a fast-mode reset timestamp.
+   * temporarily unavailable" + "Fast limit reset" toasts. `reason` (SDK
+   * 0.3.219) carries the disabled reason observed at the cooldown edge, when
+   * the SDK reported one. The live "resets in <time>" countdown is still
+   * omitted — the SDK exposes no fast-mode reset timestamp, only the
+   * overall subscription `resetsAt` (a different signal — see
+   * FastModeNoticePanel).
    */
-  fastModeNotice: { uuid: string; kind: "cooldown" | "recovered" } | null;
+  fastModeNotice: { uuid: string; kind: "cooldown" | "recovered"; reason?: string } | null;
   /**
    * Transient toast for a rejected `/model` switch. Mirrors the Claude Code
    * TUI's "Remote session couldn't switch to <model>" notice (PARTIAL — no
