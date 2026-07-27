@@ -1,7 +1,8 @@
 import { promises as fs } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { join, resolve, sep } from "node:path";
 import { encodeProjectDir } from "./auto-memory";
+import { PathInjectionError } from "./safe-path";
 
 /**
  * Spend/tool-call caps for a workspace. v1 stores a single JSON file per cwd.
@@ -51,8 +52,19 @@ function limitsDir(): string {
   return join(homedir(), ".claude", ".claudius", "limits");
 }
 
-function limitsPath(cwd: string): string {
-  return join(limitsDir(), `${encodeProjectDir(cwd)}.json`);
+// `cwd` is user-controlled (POST body → app/api/sessions/route.ts). The inline
+// resolve()+startsWith() barrier must sit RIGHT ABOVE each fs.* call — CodeQL's
+// js/path-injection sanitizer doesn't propagate through a path-returning helper
+// (alert #63; the source is a route-handler req.json(), so assertWithin's
+// wrapper shape isn't recognized either). encodeProjectDir already strips
+// separators; this is the CodeQL-visible defence-in-depth at the sink.
+async function persistLimits(cwd: string, state: LimitsState): Promise<void> {
+  const base = limitsDir();
+  const target = resolve(base, `${encodeProjectDir(cwd)}.json`);
+  if (!target.startsWith(base + sep)) {
+    throw new PathInjectionError("limits path escapes base directory");
+  }
+  await fs.writeFile(target, JSON.stringify(state, null, 2), "utf8");
 }
 
 async function ensureDir(): Promise<void> {
@@ -62,8 +74,14 @@ async function ensureDir(): Promise<void> {
 const EMPTY: LimitsState = { limits: {}, overrides: {}, audit: [] };
 
 export async function readLimits(cwd: string): Promise<LimitsState> {
+  const base = limitsDir();
+  // Inline path-injection barrier at the fs.readFile sink — see persistLimits.
+  const target = resolve(base, `${encodeProjectDir(cwd)}.json`);
+  if (!target.startsWith(base + sep)) {
+    throw new PathInjectionError("limits path escapes base directory");
+  }
   try {
-    const raw = await fs.readFile(limitsPath(cwd), "utf8");
+    const raw = await fs.readFile(target, "utf8");
     const parsed = JSON.parse(raw) as Partial<LimitsState>;
     return {
       limits: parsed.limits ?? {},
@@ -81,7 +99,7 @@ export async function writeLimits(cwd: string, limits: Limits): Promise<LimitsSt
   await ensureDir();
   const cur = await readLimits(cwd);
   const next: LimitsState = { ...cur, limits };
-  await fs.writeFile(limitsPath(cwd), JSON.stringify(next, null, 2), "utf8");
+  await persistLimits(cwd, next);
   return next;
 }
 
@@ -90,7 +108,7 @@ export async function appendAudit(cwd: string, ev: LimitsAuditEvent): Promise<Li
   const cur = await readLimits(cwd);
   const audit = [...cur.audit, ev].slice(-200); // cap history
   const next: LimitsState = { ...cur, audit };
-  await fs.writeFile(limitsPath(cwd), JSON.stringify(next, null, 2), "utf8");
+  await persistLimits(cwd, next);
   return next;
 }
 
@@ -105,7 +123,7 @@ export async function setOverride(
   if (on) overrides[key] = true;
   else delete overrides[key];
   const next: LimitsState = { ...cur, overrides };
-  await fs.writeFile(limitsPath(cwd), JSON.stringify(next, null, 2), "utf8");
+  await persistLimits(cwd, next);
   return next;
 }
 
