@@ -8,8 +8,11 @@ Writes: site/releases.html
 """
 
 import json
+import os
+import re
 import calendar
 import pathlib
+import urllib.request
 from collections import defaultdict
 from datetime import (
     date as date_cls,
@@ -26,6 +29,22 @@ OUTPUT_FILE = SITE_DIR / "releases.html"
 
 with open(DATA_FILE) as f:
     repos = json.load(f)
+
+# ─── Optional single-repo focus ──────────────────────────────────────────────
+# Set FOCUS_REPO to a repo name (substring match on the label, e.g. "Claude Code")
+# to emit a dedicated single-repo analytics page that reuses every chart and the
+# same styling. Unset → the full multi-repo dashboard (default, unchanged).
+FOCUS   = os.environ.get("FOCUS_REPO", "").strip()
+FOCUSED = False
+if FOCUS:
+    _sel = [r for r in repos if FOCUS.lower() in r["label"].lower()]
+    if not _sel:
+        raise SystemExit(
+            f"FOCUS_REPO={FOCUS!r} matched no repo. "
+            f"Available: {', '.join(r['label'] for r in repos)}"
+        )
+    repos   = _sel
+    FOCUSED = True
 
 # Anchors the time-axis (heatmap "today", predictor countdowns, spline window).
 # Uses the real current date so the daily CI refresh actually advances the calendar.
@@ -84,6 +103,46 @@ def cumulative(repo):
         out.append(total)
     return out
 
+# ─── Daily timeline ───────────────────────────────────────────────────────────
+# Reconstruct exact per-day release counts (accurate, incl. same-day duplicates)
+# so the cumulative chart can advance one day at a time. The first release of a
+# repo is the from_date of its first gap; every later release is a gap's to_date.
+
+def _release_days(repo):
+    days, gaps = [], repo.get("gaps", [])
+    if gaps:
+        days.append(gaps[0]["from_date"][:10])
+        days.extend(g["to_date"][:10] for g in gaps)
+    else:
+        fd = repo.get("first_date", "")[:10]
+        if fd:
+            days.append(fd)
+    return days
+
+_repo_day_counts = []
+_min_day = None
+for r in repos:
+    dc = defaultdict(int)
+    for d in _release_days(r):
+        dc[d] += 1
+        if _min_day is None or d < _min_day:
+            _min_day = d
+    _repo_day_counts.append(dc)
+
+day_labels = []
+if _min_day:
+    _d = date_cls.fromisoformat(_min_day)
+    while _d <= TODAY:
+        day_labels.append(_d.isoformat())
+        _d += td_cls(days=1)
+
+def cumulative_daily(idx):
+    total, out, dc = 0, [], _repo_day_counts[idx]
+    for d in day_labels:
+        total += dc.get(d, 0)
+        out.append(total)
+    return out
+
 # ─── Labels, colors, URLs ────────────────────────────────────────────────────
 
 SHORT = {
@@ -139,7 +198,27 @@ def rgba(hex_c, a=1.0):
     r2, g2, b2 = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
     return f"rgba({r2},{g2},{b2},{a})"
 
-colors_solid = [PALETTE[i % len(PALETTE)] for i in range(len(repos))]
+# Canonical per-repo colors (keyed by SHORT name) so a single-repo focus page
+# keeps each project's brand color instead of falling back to palette slot 0.
+# For the default (unfiltered) dashboard this maps 1:1 onto PALETTE order, so
+# the multi-repo page is byte-for-byte unchanged.
+REPO_COLOR = {
+    "Python":     "#f0f0f3",
+    "TypeScript": "#60a5fa",
+    "Java":       "#34d399",
+    "Go":         "#c084fc",
+    "Ruby":       "#f472b6",
+    "C#":         "#22d3ee",
+    "PHP":        "#fbbf24",
+    "Claude Code":"#d97757",
+    "Agent SDK":  "#86efac",
+    "TS (npm)":   "#a78bfa",
+}
+
+def repo_color(repo, i):
+    return REPO_COLOR.get(SHORT.get(repo["label"], repo["label"]), PALETTE[i % len(PALETTE)])
+
+colors_solid = [repo_color(r, i) for i, r in enumerate(repos)]
 colors_mid   = [rgba(c, 0.75) for c in colors_solid]
 colors_soft  = [rgba(c, 0.35) for c in colors_solid]
 
@@ -329,7 +408,7 @@ for i, r in enumerate(repos):
 
     pred_data.append({
         "label":           SHORT.get(r["label"], r["label"]),
-        "color":           PALETTE[i % len(PALETTE)],
+        "color":           repo_color(r, i),
         "latest_date":     latest,
         "days_since":      days_since,
         "avg_gap_days":    round(avg_gap_days, 1),
@@ -385,24 +464,44 @@ slowest_ever  = max(all_gaps_flat, key=lambda x: x[1]["hours"]) if all_gaps_flat
 repos_with_cl = [r for r in repos if r.get("cl_present")]
 biggest_cl    = max(repos_with_cl, key=lambda r: r["cl_max"]) if repos_with_cl else None
 
-cards = [
-    ("Total Releases", f"{total_all:,}", "across all tracked repos"),
-    ("Fastest Cadence",
-     SHORT.get(fastest["label"], fastest["label"]),
-     f"{fastest['per_week']:.1f} releases / week"),
-    ("Most Prolific",
-     SHORT.get(prolific["label"], prolific["label"]),
-     f"{prolific['total']} total releases"),
-    ("Oldest Project",
-     SHORT.get(oldest["label"], oldest["label"]),
-     f"since {oldest['first_date'][:10]}"),
-    ("Biggest Changelog",
-     SHORT.get(biggest_cl["label"], biggest_cl["label"]) if biggest_cl else "—",
-     f"{biggest_cl['cl_max']:,} chars" if biggest_cl else ""),
-    ("Longest Drought",
-     SHORT.get(slowest_ever[0], slowest_ever[0]) if slowest_ever else "—",
-     f"{fmt_h(slowest_ever[1]['hours'])}" if slowest_ever else ""),
-]
+if FOCUSED:
+    r0 = repos[0]
+    slow = r0.get("slowest_gap")
+    fast = r0.get("fastest_gap")
+    cards = [
+        ("Total Releases", f"{r0['total']:,}",
+         f"{r0['stable_count']} stable · {r0['pre_count']} pre-release"),
+        ("Release Cadence", f"{r0['per_week']:.1f}/wk",
+         f"over {r0['span_days']} days"),
+        ("First Release", r0["first_date"][:10],
+         f"latest {r0['latest_date'][:10]}"),
+        ("Median Gap", fmt_h(r0.get("median_gap_h", 0)),
+         "typical time between releases"),
+        ("Longest Drought", fmt_h(slow["hours"]) if slow else "—",
+         f"{slow['from_tag']} → {slow['to_tag']}" if slow else ""),
+        ("Biggest Changelog",
+         f"{r0['cl_max']:,} chars" if r0.get("cl_present") else "—",
+         (r0.get("cl_max_rel") or {}).get("tag", "") if r0.get("cl_present") else ""),
+    ]
+else:
+    cards = [
+        ("Total Releases", f"{total_all:,}", "across all tracked repos"),
+        ("Fastest Cadence",
+         SHORT.get(fastest["label"], fastest["label"]),
+         f"{fastest['per_week']:.1f} releases / week"),
+        ("Most Prolific",
+         SHORT.get(prolific["label"], prolific["label"]),
+         f"{prolific['total']} total releases"),
+        ("Oldest Project",
+         SHORT.get(oldest["label"], oldest["label"]),
+         f"since {oldest['first_date'][:10]}"),
+        ("Biggest Changelog",
+         SHORT.get(biggest_cl["label"], biggest_cl["label"]) if biggest_cl else "—",
+         f"{biggest_cl['cl_max']:,} chars" if biggest_cl else ""),
+        ("Longest Drought",
+         SHORT.get(slowest_ever[0], slowest_ever[0]) if slowest_ever else "—",
+         f"{fmt_h(slowest_ever[1]['hours'])}" if slowest_ever else ""),
+    ]
 
 cards_html = "\n".join(
     f"""<div class="stat-card">
@@ -496,7 +595,381 @@ js_dow_labels  = json.dumps([d[:3] for d in DAYS_ORDER])
 js_dow_vals    = json.dumps([all_dow[d] for d in DAYS_ORDER])
 js_months      = json.dumps(month_labels)
 js_cum         = json.dumps([cumulative(r) for r in repos])
+js_day_dates   = json.dumps(day_labels)
+js_cum_daily   = json.dumps([cumulative_daily(i) for i in range(len(repos))])
 js_streaks     = json.dumps([r.get("streak", 0) for r in repos])
+
+# ─── Page-scope copy (single-repo focus vs full dashboard) ───────────────────
+
+if FOCUSED:
+    FOCUS_NAME = SHORT.get(repos[0]["label"], repos[0]["label"])
+    _slug = FOCUS_NAME.lower().replace("#", "sharp").replace(" ", "-")
+    _slug = "".join(c for c in _slug if c.isalnum() or c == "-") or "repo"
+    # URL overrides for specific focus pages: the Claude Code page lives at
+    # /releases-claude-code.html (rather than /claude-code.html) for SEO.
+    # Drives both OUTPUT_FILE and the breadcrumb below, which use _slug.
+    _slug = {"Claude Code": "releases-claude-code"}.get(FOCUS_NAME, _slug)
+    OUTPUT_FILE = SITE_DIR / f"{_slug}.html"
+    PAGE_TITLE  = f"{FOCUS_NAME} Release Analytics — Claudius"
+    HERO_TITLE  = f"{FOCUS_NAME} Release Analytics"
+    HERO_DESC   = (f"Release cadence, changelog depth, velocity trends &amp; "
+                   f"version breakdown for {FOCUS_NAME}")
+    SCOPE_LABEL = FOCUS_NAME
+    BREADCRUMB  = (f'<a href="/releases.html">Anthropic Releases</a>\n'
+                   f'      <span>/</span>\n'
+                   f'      <a href="/{_slug}.html">{FOCUS_NAME}</a>')
+    MONTHLY_SUB = f"Releases per month — {FOCUS_NAME}"
+    TOTALS_SUB  = "Total releases — stable vs pre-release"
+else:
+    PAGE_TITLE  = "Anthropic Release Analytics — Claudius"
+    HERO_TITLE  = "Anthropic Release Analytics"
+    HERO_DESC   = ("Release cadence, changelog depth, velocity trends &amp; "
+                   "version breakdown across all Anthropic SDKs and Claude Code")
+    SCOPE_LABEL = "all repos"
+    BREADCRUMB  = '<a href="/releases.html">Anthropic Releases</a>'
+    MONTHLY_SUB = "Releases per month — per repo"
+    TOTALS_SUB  = "Total releases by repo"
+
+# ─── Volume & Cadence section (hidden on the Claude Code page) ─────────────────
+# Stable-vs-pre-release totals and lifetime releases/week are low-signal for a
+# single repo, so the Claude Code focus page omits the whole section (markup +
+# its two chart inits). The multi-repo dashboard keeps it.
+HIDE_VOLUME_CADENCE = FOCUSED and SHORT.get(repos[0]["label"], repos[0]["label"]) == "Claude Code"
+
+VOLUME_CADENCE_SECTION = f"""
+  <!-- ── Volume + velocity ── -->
+  <div class="section-title" id="volume-cadence">Volume &amp; Cadence</div>
+  <div class="chart-grid cols-2">
+    <div class="chart-card">
+      <h3>{TOTALS_SUB}</h3>
+      <canvas id="totals" height="220"></canvas>
+    </div>
+    <div class="chart-card">
+      <h3>Releases per week (lifetime avg)</h3>
+      <canvas id="velocity" height="220"></canvas>
+    </div>
+  </div>
+"""
+
+VOLUME_CADENCE_JS = r"""
+// ── 3. Total releases ───────────────────────────────────────────────────────
+(function() {
+  const order = totals.map((v, i) => i).sort((a, b) => totals[b] - totals[a]);
+  new Chart(document.getElementById('totals'), {
+    type: 'bar',
+    data: {
+      labels: order.map(i => LABELS[i]),
+      datasets: [
+        { label: 'Stable',      data: order.map(i => stable[i]), backgroundColor: order.map(i => COLORS_MID[i]), borderColor: order.map(i => COLORS[i]), borderWidth: 1, borderRadius: 4 },
+        { label: 'Pre-release', data: order.map(i => pre[i]),    backgroundColor: 'rgba(154,154,163,0.25)', borderColor: 'rgba(154,154,163,0.45)', borderWidth: 1, borderRadius: 4 },
+      ]
+    },
+    options: {
+      responsive: true, plugins: { legend: { position: 'top' } },
+      scales: {
+        x: { stacked: true, grid: GRID, ticks: { ...TICKS, maxRotation: 30 } },
+        y: { stacked: true, grid: GRID, ticks: TICKS },
+      }
+    }
+  });
+})();
+
+// ── 4. Per-week velocity ────────────────────────────────────────────────────
+(function() {
+  const order = perWeek.map((v, i) => i).sort((a, b) => perWeek[b] - perWeek[a]);
+  new Chart(document.getElementById('velocity'), {
+    type: 'bar',
+    data: {
+      labels: order.map(i => LABELS[i]),
+      datasets: [{ label: 'Releases / week', data: order.map(i => perWeek[i]), backgroundColor: order.map(i => COLORS_MID[i]), borderColor: order.map(i => COLORS[i]), borderWidth: 1, borderRadius: 4 }]
+    },
+    options: {
+      responsive: true, plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: GRID, ticks: { ...TICKS, maxRotation: 30 } },
+        y: { grid: GRID, ticks: TICKS, title: { display: true, text: 'releases / week', color: '#6b6b75' } },
+      }
+    }
+  });
+})();
+"""
+
+# ─── Release-pause bands (Claude Code focus page only) ────────────────────────
+# Instead of one busy "today" callout, shade every notable pause across history so
+# recurring stalls (e.g. the ~17-day Christmas/New-Year freeze) are visible at a
+# glance, with the current gap marked in the same language. Each band spans the
+# flat stretch between two consecutive releases; the ongoing gap runs to "today".
+_PAUSE_MIN_DAYS  = 5    # shade gaps at least this long
+_PAUSE_LABEL_MIN = 10   # gaps this long get the stronger "major" emphasis
+js_proj = "null"
+if HIDE_VOLUME_CADENCE and pred_data:
+    _pr    = pred_data[0]
+    _rdays = sorted(set(_release_days(repos[0])))
+    _idx   = {d: i for i, d in enumerate(day_labels)}
+    # Map each (last-day, next-day) boundary to its gap so we can link a pause to
+    # the changelog of the release that ended it (gap.to_tag).
+    #
+    # Link to CHANGELOG.md (not /releases/tag/): it covers the full history —
+    # GitHub only cut releases from the "v2.1.x" era, older versions are npm-only
+    # and 404 as release tags. Use GitHub's rendered heading anchor (dots stripped
+    # from the version, no "v": "2.1.83" → "#2183"). It's content-based, so it
+    # stays valid as the changelog grows — unlike a ?plain=1#L<line> anchor, which
+    # would rot because new versions are prepended and shift every line down.
+    # Two wrinkles handled via a one-off changelog fetch (Claude-Code build only):
+    #   • some versions have no heading (e.g. 2.0.77) → link the nearest documented
+    #     version at/below it, so the anchor actually exists;
+    #   • offline builds skip the fetch and fall back to the exact version's slug.
+    _base_url, _kind = REPO_URLS.get(repos[0]["label"], ("", ""))
+    _changelog = f"{_base_url}/blob/main/CHANGELOG.md" if _kind == "github" else ""
+    _cl_versions = set()   # version headings present in CHANGELOG.md
+    if _changelog:
+        try:
+            _cl_raw = urllib.request.urlopen(
+                "https://raw.githubusercontent.com/anthropics/claude-code/main/CHANGELOG.md",
+                timeout=10).read().decode()
+            _cl_versions = {m.group(1) for m in
+                            re.finditer(r"^##\s+(\S+)\s*$", _cl_raw, re.M)}
+        except Exception as _e:
+            print(f"   ⚠ changelog fetch failed ({_e}); using exact-version anchors")
+
+    def _semver(v):
+        return tuple(int("".join(c for c in p if c.isdigit()) or 0)
+                     for p in v.split("."))
+
+    def _changelog_url(tag):
+        if not tag or not _changelog:
+            return ""
+        ver  = tag.lstrip("v")
+        best = ver
+        if _cl_versions and ver not in _cl_versions:
+            below = [v for v in _cl_versions if _semver(v) <= _semver(ver)]
+            best  = max(below, key=_semver) if below else ver
+        return f"{_changelog}#{best.replace('.', '').lower()}"
+
+    _gap_by_days = {(g["from_date"][:10], g["to_date"][:10]): g
+                    for g in repos[0].get("gaps", [])}
+    _pauses = []
+    for _a, _b in zip(_rdays, _rdays[1:]):
+        _g = (date_cls.fromisoformat(_b) - date_cls.fromisoformat(_a)).days
+        if _g >= _PAUSE_MIN_DAYS and _a in _idx and _b in _idx:
+            _g_entry = _gap_by_days.get((_a, _b))
+            _tag = _g_entry.get("to_tag", "") if _g_entry else ""
+            _url = _changelog_url(_tag)
+            _pauses.append({
+                "from":  _idx[_a],
+                "to":    _idx[_b],
+                "days":  _g,
+                "label": date_cls.fromisoformat(_a).strftime("%b %Y"),
+                "tag":   _tag,
+                "url":   _url,
+            })
+    _last = _rdays[-1] if _rdays else None
+
+    # ── Pace vs average: rolling local slope (releases/day) minus the average
+    #    slope. Positive → shipping faster than usual (green), negative → slower
+    #    (red). Plotted on a hidden secondary axis and coloured per-segment; the
+    #    axis range is tightened so the wiggle is exaggerated and legible. ──
+    _PACE_WIN = 14
+    _cumc     = cumulative_daily(0)
+    _normal   = (1.0 / _pr["avg_gap_days"]) if _pr["avg_gap_days"] else 0.0
+    _slope_dev = []
+    for _i in range(len(day_labels)):
+        if _i < _PACE_WIN:
+            _slope_dev.append(None)               # need a full window first
+        else:
+            _s = (_cumc[_i] - _cumc[_i - _PACE_WIN]) / _PACE_WIN
+            _slope_dev.append(round(_s - _normal, 4))
+    _slope_max = max((abs(d) for d in _slope_dev if d is not None), default=1.0) or 1.0
+
+    js_proj = json.dumps({
+        "pauses":       _pauses,
+        "today":        len(day_labels) - 1,
+        "ongoingFrom":  _idx.get(_last, len(day_labels) - 1),
+        "labelMinDays": _PAUSE_LABEL_MIN,
+        "avgGapDays":   _pr["avg_gap_days"],
+        "daysSince":    _pr["days_since"],
+        "slopeDev":     _slope_dev,
+        "slopeMax":     round(_slope_max, 4),
+        "paceWin":      _PACE_WIN,
+    })
+
+# ─── Cumulative timeline chart JS (pause-band aware; single-brace JS) ──────────
+# Kept out of the big f-string below so the JS uses normal braces. It reads the
+# JS globals defined in that script (dayDates, cumDataDaily, LABELS, COLORS,
+# GRID, TICKS, GENERATED_AT_MS, timelineLabels, PROJ) — PROJ is null except on
+# the Claude Code focus page, where it carries the historical + ongoing pauses.
+TIMELINE_JS = r"""
+// Pause overlay: shade every notable release gap across history, plus the
+// current (ongoing) gap in its live pressure colour, and a "today" marker.
+const pauseOverlay = {
+  id: 'pauseOverlay',
+  afterDatasetsDraw(chart) {
+    if (!PROJ) return;
+    const { ctx, chartArea: area, scales } = chart;
+    const xAt = i => scales.x.getPixelForValue(i);
+    const top = area.top, bot = area.bottom;
+    const hits = [];
+    ctx.save();
+
+    // ── historical pause bands ──
+    (PROJ.pauses || []).forEach(p => {
+      const x0 = xAt(p.from), x1 = xAt(p.to);
+      if (x0 == null || x1 == null) return;
+      const w = Math.max(x1 - x0, 2);
+      const cx = (x0 + x1) / 2;
+      const major = p.days >= PROJ.labelMinDays;
+      // fill + dashed border (brighter for the longer, "major" pauses)
+      ctx.fillStyle = major ? 'rgba(245,158,11,0.16)' : 'rgba(245,158,11,0.10)';
+      ctx.fillRect(x0, top, w, bot - top);
+      ctx.strokeStyle = major ? 'rgba(245,158,11,0.55)' : 'rgba(245,158,11,0.30)';
+      ctx.setLineDash([3, 3]); ctx.lineWidth = 1;
+      ctx.strokeRect(x0 + 0.5, top, w, bot - top);
+      ctx.setLineDash([]);
+      // labels on every band: "Nd pause" above the plot, month just inside the
+      // top. Clickable bands (linking to the release that ended the pause) get
+      // a "↗" affordance and a recorded hit-rect (padded for easy clicking).
+      ctx.fillStyle = '#f59e0b';
+      ctx.font = (major ? '700 10px ' : '600 9.5px ') +
+                 "ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif";
+      ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+      ctx.fillText(p.days + 'd pause', cx, top - 3);
+      if (p.label) {
+        ctx.fillStyle = '#8a6d3b';
+        ctx.font = "500 9px ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif";
+        ctx.textBaseline = 'top';
+        ctx.fillText(p.label + (p.url ? '  ↗' : ''), cx, top + 3);
+      }
+      if (p.url) hits.push({ x0: x0 - 6, x1: x1 + 6, url: p.url, tag: p.tag });
+    });
+    chart.$pauseHits = hits;
+
+    // ── ongoing gap (last release → today), coloured by live pressure ──
+    const elapsed  = Math.max(0, (Date.now() - GENERATED_AT_MS) / 86400000);
+    const idle     = PROJ.daysSince + elapsed;
+    const pressure = idle / PROJ.avgGapDays;
+    const rgb = pressure >= 1.5 ? '239,68,68' : pressure >= 1.0 ? '245,158,11' : '34,197,94';
+    const xo = xAt(PROJ.ongoingFrom), xt = xAt(PROJ.today);
+    if (xo != null && xt != null) {
+      ctx.fillStyle = `rgba(${rgb},0.18)`;
+      ctx.fillRect(xo, top, Math.max(xt - xo, 2), bot - top);
+      // "today" marker
+      ctx.strokeStyle = 'rgba(154,154,163,0.5)';
+      ctx.setLineDash([4, 4]); ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(xt, top); ctx.lineTo(xt, bot); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = '#9a9aa3';
+      ctx.font = "600 10px ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif";
+      ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+      ctx.fillText('today', xt, top - 3);
+      if (pressure >= 1.0) {
+        ctx.fillStyle = `rgb(${rgb})`;
+        ctx.font = "700 10px ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif";
+        ctx.textAlign = 'right'; ctx.textBaseline = 'top';
+        ctx.fillText(Math.round(idle) + 'd idle', xt - 4, top + 4);
+      }
+    }
+
+    // ── "avg pace" baseline for the Pace-vs-average line (y2 == 0) ──
+    const y2 = chart.scales.y2;
+    if (y2) {
+      const yb = y2.getPixelForValue(0);
+      ctx.strokeStyle = 'rgba(154,154,163,0.35)';
+      ctx.setLineDash([2, 3]); ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(area.left, yb); ctx.lineTo(area.right, yb); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = 'rgba(154,154,163,0.7)';
+      ctx.font = "600 9px ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif";
+      ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+      ctx.fillText('avg pace', area.left + 4, yb - 2);
+    }
+
+    ctx.restore();
+  }
+};
+
+const tlPlugins = [timelineLabels];
+if (PROJ) tlPlugins.push(pauseOverlay);
+
+const tlDatasets = LABELS.map((lbl, i) => ({
+  label: lbl, data: cumDataDaily[i], borderColor: COLORS[i],
+  backgroundColor: 'transparent', borderWidth: 2, pointRadius: 0,
+  pointHoverRadius: 5, tension: 0,
+}));
+const tlScales = {
+  x: { grid: GRID, ticks: {
+    ...TICKS, maxRotation: 0, autoSkip: true, maxTicksLimit: 16,
+    callback: function(value) {
+      const d = this.getLabelForValue(value);
+      if (!d) return '';
+      const dt = new Date(d + 'T00:00:00');
+      return dt.toLocaleDateString('en-US', { month: 'short' }) +
+        " '" + String(dt.getFullYear()).slice(2);
+    },
+  } },
+  y: { grid: GRID, ticks: TICKS, title: { display: true, text: 'Cumulative releases', color: '#6b6b75' } },
+};
+
+// Pace-vs-average line: rolling slope minus the average, green above / red below
+// the "avg pace" baseline, on a hidden secondary axis tightened for legibility.
+if (PROJ && PROJ.slopeDev) {
+  tlDatasets.push({
+    label: 'Pace vs avg', data: PROJ.slopeDev, yAxisID: 'y2', order: 5,
+    borderColor: 'rgba(154,154,163,0.9)', borderWidth: 2,
+    pointRadius: 0, pointHoverRadius: 4, tension: 0.35, spanGaps: false,
+    segment: {
+      borderColor: c => ((c.p0.parsed.y + c.p1.parsed.y) / 2) >= 0 ? '#34d399' : '#f87171',
+    },
+  });
+  // Tighten the axis so the wiggle is exaggerated; keep 0 (avg) centred.
+  tlScales.y2 = { display: false, position: 'right',
+                  min: -PROJ.slopeMax / 0.6, max: PROJ.slopeMax / 0.6 };
+}
+
+new Chart(document.getElementById('timeline'), {
+  type: 'line',
+  plugins: tlPlugins,
+  data: { labels: dayDates, datasets: tlDatasets },
+  options: {
+    responsive: true,
+    layout: { padding: { top: 16 } },
+    interaction: { mode: 'index', intersect: false },
+    // Click a pause band to open the release that ended it; pointer cursor on hover.
+    onClick: (e, els, chart) => {
+      const hits = chart.$pauseHits || [];
+      const area = chart.chartArea;
+      if (e.y < area.top - 14 || e.y > area.bottom) return;
+      const hit = hits.find(h => e.x >= h.x0 && e.x <= h.x1);
+      if (hit && hit.url) window.open(hit.url, '_blank', 'noopener');
+    },
+    onHover: (e, els, chart) => {
+      const hits = chart.$pauseHits || [];
+      const area = chart.chartArea;
+      const over = e.y >= area.top - 14 && e.y <= area.bottom &&
+                   hits.some(h => e.x >= h.x0 && e.x <= h.x1);
+      chart.canvas.style.cursor = over ? 'pointer' : 'default';
+    },
+    plugins: {
+      legend: { position: 'right', labels: { font: { size: 11 } } },
+      tooltip: {
+        filter: item => item.raw != null,
+        callbacks: {
+          title: ctx => 'Through ' + new Date(ctx[0].label + 'T00:00:00')
+            .toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+          label: ctx => {
+            if (ctx.dataset.label === 'Pace vs avg') {
+              const d = ctx.raw;
+              const pct = PROJ && PROJ.avgGapDays ? Math.round((d / (1 / PROJ.avgGapDays)) * 100) : 0;
+              return ` Pace: ${d >= 0 ? '+' : ''}${d.toFixed(2)}/day vs avg (${d >= 0 ? '+' : ''}${pct}%, ${d >= 0 ? 'faster' : 'slower'})`;
+            }
+            return ` ${ctx.dataset.label}: ${ctx.raw} total`;
+          },
+        }
+      }
+    },
+    scales: tlScales,
+  }
+});
+"""
 
 # ─── Write HTML ───────────────────────────────────────────────────────────────
 
@@ -505,7 +978,7 @@ html = f"""<!DOCTYPE html>
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>SDK Release Analytics — Claudius</title>
+<title>{PAGE_TITLE}</title>
 <link rel="icon" href="favicon.ico" sizes="32x32"/>
 <link rel="icon" type="image/png" sizes="48x48" href="favicon-48.png"/>
 <link rel="icon" type="image/svg+xml" href="icon.svg"/>
@@ -591,7 +1064,7 @@ html = f"""<!DOCTYPE html>
   .repo-link--npm::before {{ content: "⬡"; margin-right: 2px; opacity: 0.65; }}
 
   /* ── Layout ── */
-  .page {{ max-width: 1400px; margin: 0 auto; padding: 0 24px; }}
+  .page {{ max-width: 100%; margin: 0 auto; padding: 0 24px; }}
   .section-title {{
     font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
     letter-spacing: 0.09em; color: var(--muted); margin: 36px 0 14px;
@@ -745,10 +1218,10 @@ html = f"""<!DOCTYPE html>
     <nav class="header-nav">
       <a href="/">Claudius</a>
       <span>/</span>
-      <a href="/releases.html">SDK Releases</a>
+      {BREADCRUMB}
     </nav>
-    <h1>SDK Release Analytics <span class="badge">Snapshot</span></h1>
-    <p>Release cadence, changelog depth, velocity trends &amp; version breakdown across all Anthropic SDKs and Claude Code</p>
+    <h1>{HERO_TITLE} <span class="badge">Snapshot</span></h1>
+    <p>{HERO_DESC}</p>
     <p class="stale-note">⚠ These are stale numbers — this page is a snapshot that only refreshes when Claudius redeploys, not in real time. Last regenerated {GENERATED_AT}.</p>
     <div class="repo-links">
       {repo_links_html}
@@ -766,7 +1239,7 @@ html = f"""<!DOCTYPE html>
   <div class="section-title" id="activity-pulse">Activity Pulse</div>
   <div class="pulse-card">
     <div class="pulse-header">
-      <h3>Daily release activity — 7-day rolling sum, all repos</h3>
+      <h3>Daily release activity — 7-day rolling sum, {SCOPE_LABEL}</h3>
       <span class="pulse-stat" id="pulse-peak-label"></span>
     </div>
     <canvas id="pulse" height="90"></canvas>
@@ -780,7 +1253,7 @@ html = f"""<!DOCTYPE html>
   <!-- ── Daily contribution calendar ── -->
   <div class="section-title" id="daily-release-heatmap">Daily Release Heatmap — last 2 years</div>
   <div class="chart-card">
-    <h3>Releases per day across all repos (hover for details)</h3>
+    <h3>Releases per day across {SCOPE_LABEL} (hover for details)</h3>
     <div class="cal-wrap">
       {contrib_html}
     </div>
@@ -799,24 +1272,12 @@ html = f"""<!DOCTYPE html>
   <div class="section-title" id="cumulative-releases">Cumulative Releases Over Time</div>
   <div class="chart-grid cols-1">
     <div class="chart-card">
-      <h3>Cumulative releases — all repos</h3>
+      <h3>Cumulative releases — {SCOPE_LABEL} (per day)</h3>
       <canvas id="timeline" height="100"></canvas>
     </div>
   </div>
 
-  <!-- ── Volume + velocity ── -->
-  <div class="section-title" id="volume-cadence">Volume &amp; Cadence</div>
-  <div class="chart-grid cols-2">
-    <div class="chart-card">
-      <h3>Total releases by repo</h3>
-      <canvas id="totals" height="220"></canvas>
-    </div>
-    <div class="chart-card">
-      <h3>Releases per week (lifetime avg)</h3>
-      <canvas id="velocity" height="220"></canvas>
-    </div>
-  </div>
-
+{"" if HIDE_VOLUME_CADENCE else VOLUME_CADENCE_SECTION}
   <!-- ── Version types + Day of week ── -->
   <div class="section-title" id="release-composition-timing">Release Composition &amp; Timing</div>
   <div class="chart-grid cols-2">
@@ -825,7 +1286,7 @@ html = f"""<!DOCTYPE html>
       <canvas id="vtypes" height="220"></canvas>
     </div>
     <div class="chart-card">
-      <h3>Day-of-week distribution (all repos)</h3>
+      <h3>Day-of-week distribution ({SCOPE_LABEL})</h3>
       <canvas id="dow" height="220"></canvas>
     </div>
   </div>
@@ -859,7 +1320,7 @@ html = f"""<!DOCTYPE html>
   <!-- ── Monthly heatmap ── -->
   <div class="section-title" id="monthly-release-heatmap">Monthly Release Heatmap</div>
   <div class="chart-card">
-    <h3>Releases per month — per repo</h3>
+    <h3>{MONTHLY_SUB}</h3>
     <div class="hm-wrap">{heatmap_html}</div>
     <div class="hm-legend">
       <span>Scale:</span>
@@ -907,6 +1368,9 @@ const dowLabels  = {js_dow_labels};
 const dowVals    = {js_dow_vals};
 const monthLabels= {js_months};
 const cumData    = {js_cum};
+const dayDates   = {js_day_dates};
+const cumDataDaily = {js_cum_daily};
+const PROJ       = {js_proj};
 const streaks    = {js_streaks};
 const SPLINE_DATES  = {js_spline_dates};
 const SPLINE_COUNTS = {js_spline_counts};
@@ -1172,80 +1636,9 @@ const timelineLabels = {{
   }}
 }};
 
-new Chart(document.getElementById('timeline'), {{
-  type: 'line',
-  plugins: [timelineLabels],
-  data: {{
-    labels: monthLabels,
-    datasets: LABELS.map((lbl, i) => ({{
-      label: lbl,
-      data: cumData[i],
-      borderColor: COLORS[i],
-      backgroundColor: 'transparent',
-      borderWidth: 2, pointRadius: 0, pointHoverRadius: 5, tension: 0.35,
-    }}))
-  }},
-  options: {{
-    responsive: true,
-    layout: {{ padding: {{ top: 14 }} }},
-    interaction: {{ mode: 'index', intersect: false }},
-    plugins: {{
-      legend: {{ position: 'right', labels: {{ font: {{ size: 11 }} }} }},
-      tooltip: {{
-        callbacks: {{
-          title: ctx => 'Through ' + ctx[0].label,
-          label: ctx => ` ${{ctx.dataset.label}}: ${{ctx.raw}} total`,
-        }}
-      }}
-    }},
-    scales: {{
-      x: {{ grid: GRID, ticks: {{ ...TICKS, maxTicksLimit: 18, maxRotation: 0 }} }},
-      y: {{ grid: GRID, ticks: TICKS, title: {{ display: true, text: 'Cumulative releases', color: '#6b6b75' }} }},
-    }}
-  }}
-}});
+{TIMELINE_JS}
 
-// ── 3. Total releases ───────────────────────────────────────────────────────
-(function() {{
-  const order = totals.map((v, i) => i).sort((a, b) => totals[b] - totals[a]);
-  new Chart(document.getElementById('totals'), {{
-    type: 'bar',
-    data: {{
-      labels: order.map(i => LABELS[i]),
-      datasets: [
-        {{ label: 'Stable',      data: order.map(i => stable[i]), backgroundColor: order.map(i => COLORS_MID[i]), borderColor: order.map(i => COLORS[i]), borderWidth: 1, borderRadius: 4 }},
-        {{ label: 'Pre-release', data: order.map(i => pre[i]),    backgroundColor: 'rgba(154,154,163,0.25)', borderColor: 'rgba(154,154,163,0.45)', borderWidth: 1, borderRadius: 4 }},
-      ]
-    }},
-    options: {{
-      responsive: true, plugins: {{ legend: {{ position: 'top' }} }},
-      scales: {{
-        x: {{ stacked: true, grid: GRID, ticks: {{ ...TICKS, maxRotation: 30 }} }},
-        y: {{ stacked: true, grid: GRID, ticks: TICKS }},
-      }}
-    }}
-  }});
-}})();
-
-// ── 4. Per-week velocity ────────────────────────────────────────────────────
-(function() {{
-  const order = perWeek.map((v, i) => i).sort((a, b) => perWeek[b] - perWeek[a]);
-  new Chart(document.getElementById('velocity'), {{
-    type: 'bar',
-    data: {{
-      labels: order.map(i => LABELS[i]),
-      datasets: [{{ label: 'Releases / week', data: order.map(i => perWeek[i]), backgroundColor: order.map(i => COLORS_MID[i]), borderColor: order.map(i => COLORS[i]), borderWidth: 1, borderRadius: 4 }}]
-    }},
-    options: {{
-      responsive: true, plugins: {{ legend: {{ display: false }} }},
-      scales: {{
-        x: {{ grid: GRID, ticks: {{ ...TICKS, maxRotation: 30 }} }},
-        y: {{ grid: GRID, ticks: TICKS, title: {{ display: true, text: 'releases / week', color: '#6b6b75' }} }},
-      }}
-    }}
-  }});
-}})();
-
+{"" if HIDE_VOLUME_CADENCE else VOLUME_CADENCE_JS}
 // ── 5. Version types ─────────────────────────────────────────────────────────
 new Chart(document.getElementById('vtypes'), {{
   type: 'bar',
