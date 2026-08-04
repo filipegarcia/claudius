@@ -72,6 +72,29 @@ describe("coerceAgentDefinition", () => {
   test("accepts numeric effort", () => {
     expect(coerceAgentDefinition({ description: "d", prompt: "p", effort: 3 })!.effort).toBe(3);
   });
+
+  // SDK 0.3.221 made the CLI's own `skills` validation strict (malformed
+  // names / wildcards now hard-error out of `query()` instead of being
+  // tolerated). Because Options.agents is built from every stored row, one
+  // bad name would otherwise break session start for every session in the
+  // project — so we filter defensively before it ever reaches the SDK.
+  test("keeps well-formed skill names, including plugin:skill qualification", () => {
+    const def = coerceAgentDefinition({
+      description: "d",
+      prompt: "p",
+      skills: ["pdf", "docx", "my-plugin:my-skill", "a.b_c"],
+    });
+    expect(def!.skills).toEqual(["pdf", "docx", "my-plugin:my-skill", "a.b_c"]);
+  });
+
+  test("drops malformed skill names (wildcards, delimiters, control chars)", () => {
+    const def = coerceAgentDefinition({
+      description: "d",
+      prompt: "p",
+      skills: ["pdf", "*", "all/skills", "has space", "bad\tname", "", ":leading-colon"],
+    });
+    expect(def!.skills).toEqual(["pdf"]);
+  });
 });
 
 describe("assertValidAgentName", () => {
