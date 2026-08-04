@@ -8,6 +8,10 @@
  * vitest suite can exercise the trigger-detection and filtering logic
  * directly — same split as `at-mention.ts` / `slash-commands.ts`.
  *
+ * CC 2.1.221 parity: "Changed emoji autocomplete to accept common alternate
+ * shortcodes like `:thumbsup:`, `:thumbsdown:`, and `:love:`" — see
+ * {@link EMOJI_ALIASES} below the main table.
+ *
  * The table below is a curated subset of the common GitHub/Slack shortcode
  * names, not an exhaustive Unicode CLDR dump — big enough to cover everyday
  * chat use without turning into a maintenance burden. Add to it as needed;
@@ -195,6 +199,28 @@ export const EMOJI_SHORTCODES: Record<string, string> = {
   arrow_down: "⬇️",
 };
 
+/**
+ * Alternate names for shortcodes already in {@link EMOJI_SHORTCODES} (CC
+ * 2.1.221 parity: "Changed emoji autocomplete to accept common alternate
+ * shortcodes like `:thumbsup:`, `:thumbsdown:`, and `:love:`"). Claudius's
+ * table already used `thumbsup`/`thumbsdown` as the canonical names, so the
+ * only real gap was `love` (a common Slack-style alias for `heart`) — this
+ * map exists so future alternates can be added as one-line aliases instead
+ * of duplicate table entries. Every value must be a valid lowercase key of
+ * `EMOJI_SHORTCODES`.
+ *
+ * Deliberately NOT adding `thumbs_up`/`thumbs_down` aliases for the already-
+ * canonical `thumbsup`/`thumbsdown`: `filterEmojiShortcodes("thumbs")` would
+ * surface both spellings as separate rows resolving to the same emoji
+ * (`EmojiShortcodePicker` has no de-dup pass), which is exactly the
+ * cluttered-picker outcome this table's "curated, not exhaustive" doc
+ * comment above warns against — and the changelog entry only asked for
+ * `thumbsup`/`thumbsdown` to be *accepted*, which they already are.
+ */
+export const EMOJI_ALIASES: Record<string, string> = {
+  love: "heart",
+};
+
 /** Max rows the emoji picker ever shows — matches `PICKER_LIMIT` in at-mention.ts. */
 export const EMOJI_PICKER_LIMIT = 30;
 
@@ -220,7 +246,16 @@ export function parseEmojiTrigger(before: string): string | null {
  */
 export function filterEmojiShortcodes(query: string): Array<{ name: string; emoji: string }> {
   const needle = query.toLowerCase();
-  const all = Object.entries(EMOJI_SHORTCODES);
+  const all: Array<[string, string]> = [
+    ...Object.entries(EMOJI_SHORTCODES),
+    // Aliases are searchable by their own name too (e.g. `:love` must
+    // surface a "love" row), resolved to the canonical emoji.
+    ...Object.entries(EMOJI_ALIASES)
+      .map(([alias, canonical]): [string, string] | null =>
+        EMOJI_SHORTCODES[canonical] ? [alias, EMOJI_SHORTCODES[canonical]] : null,
+      )
+      .filter((e): e is [string, string] => e !== null),
+  ];
   const starts: Array<{ name: string; emoji: string }> = [];
   const contains: Array<{ name: string; emoji: string }> = [];
   for (const [name, emoji] of all) {
@@ -236,7 +271,15 @@ export function filterEmojiShortcodes(query: string): Array<{ name: string; emoj
   return [...starts, ...contains].slice(0, EMOJI_PICKER_LIMIT);
 }
 
-/** Exact-match lookup (case-insensitive) used by the auto-complete-on-`:`-close path. */
+/**
+ * Exact-match lookup (case-insensitive) used by the auto-complete-on-`:`-close
+ * path. Checks the canonical table first, then falls back to
+ * {@link EMOJI_ALIASES} so `:love:` resolves the same as `:heart:`.
+ */
 export function lookupEmojiShortcode(name: string): string | undefined {
-  return EMOJI_SHORTCODES[name.toLowerCase()];
+  const lower = name.toLowerCase();
+  const direct = EMOJI_SHORTCODES[lower];
+  if (direct) return direct;
+  const canonical = EMOJI_ALIASES[lower];
+  return canonical ? EMOJI_SHORTCODES[canonical] : undefined;
 }

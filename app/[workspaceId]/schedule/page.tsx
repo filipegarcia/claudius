@@ -5,6 +5,8 @@ import Link from "next/link";
 import {
   ArrowLeft,
   Calendar,
+  Eye,
+  EyeOff,
   Pause,
   Play,
   Plus,
@@ -26,6 +28,16 @@ import {
   type SessionLoopListResponse,
 } from "@/lib/shared/session-loops";
 import { cn } from "@/lib/utils/cn";
+
+/**
+ * `attached` is server-computed ephemeral state (SSE subscriber count for
+ * the run's live stream) — never persisted alongside the stored `Run`, so
+ * it's not part of `lib/server/scheduler-store`'s `Run` type. The
+ * `/api/schedule/[id]/runs` route stamps it onto in-flight runs on every
+ * poll (see that route for the "attached vs unattended" CC 2.1.221 parity
+ * note).
+ */
+type RunWithLive = Run & { attached?: boolean };
 
 const STATUS_TONES: Record<RunStatus, string> = {
   running: "border-sky-500/40 bg-sky-500/10 text-sky-200",
@@ -52,7 +64,7 @@ function fmtUsd(n?: number): string {
 export default function SchedulePage() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [runs, setRuns] = useState<Run[]>([]);
+  const [runs, setRuns] = useState<RunWithLive[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
@@ -119,7 +131,7 @@ export default function SchedulePage() {
     fetch(`/api/schedule/${activeId}/runs?limit=50`, { signal: controller.signal })
       .then(async (res) => {
         if (!res.ok) return null;
-        return (await res.json()) as { runs: Run[] };
+        return (await res.json()) as { runs: RunWithLive[] };
       })
       .then((d) => {
         if (d) setRuns(d.runs);
@@ -473,7 +485,7 @@ function JobDetail({
   onRefreshRuns,
 }: {
   job: Job;
-  runs: Run[];
+  runs: RunWithLive[];
   onPatch: (p: Partial<Job>) => Promise<void>;
   onDelete: () => Promise<void>;
   onRunNow: () => Promise<void>;
@@ -551,7 +563,7 @@ function JobDetail({
                         activeRunId === r.id ? "bg-[var(--panel-2)]" : "hover:bg-[var(--panel-2)]/60",
                       )}
                     >
-                      <div className="flex w-full items-baseline justify-between gap-2">
+                      <div className="flex w-full items-baseline gap-2">
                         <span
                           className={cn(
                             "flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] uppercase tracking-wide",
@@ -563,7 +575,27 @@ function JobDetail({
                           )}
                           {r.status === "running" ? "Live" : r.status}
                         </span>
-                        <span className="font-mono text-[10px] text-[var(--muted)]">{fmtRel(r.startedAt)}</span>
+                        {r.status === "running" && (
+                          // CC 2.1.221 parity: "/status" now shows a
+                          // background job's kind as `attached` or
+                          // `unattended`. A scheduler run is Claudius's
+                          // analog of a background job — this chip shows
+                          // whether any tab currently has its live stream
+                          // open (this run's `RunTranscript` mounted).
+                          <span
+                            data-testid={`run-live-kind-${r.id}`}
+                            title={
+                              r.attached
+                                ? "Attached — a tab has this run's live stream open"
+                                : "Unattended — running with no live viewer"
+                            }
+                            className="flex shrink-0 items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-[var(--muted)]"
+                          >
+                            {r.attached ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+                            {r.attached ? "attached" : "unattended"}
+                          </span>
+                        )}
+                        <span className="ml-auto font-mono text-[10px] text-[var(--muted)]">{fmtRel(r.startedAt)}</span>
                       </div>
                       <span className="text-[10px] text-[var(--muted)]">
                         {dur ? `${Math.round(dur / 100) / 10}s` : "—"} · {fmtUsd(r.costUsd)}
@@ -593,7 +625,7 @@ function RunTranscript({
   jobId,
   onRunFinished,
 }: {
-  run: Run;
+  run: RunWithLive;
   jobId: string;
   onRunFinished: () => void | Promise<void>;
 }) {
@@ -658,6 +690,16 @@ function RunTranscript({
   const transcript = run.status === "running" ? liveEvents : (run.transcript ?? []);
   return (
     <div className="space-y-2 px-4 py-4 text-xs">
+      {/*
+        Deliberately NOT repeating the attached/unattended chip here as a
+        "Kind" stat: opening this transcript is itself what makes a run
+        "attached" (it mounts the live EventSource below), so a stat in this
+        exact pane would read as self-referential/paradoxical — "unattended"
+        while you're looking straight at it, correcting itself only on the
+        next 2s runs-list poll. The runs-list chip (where a genuinely
+        *other* tab's attachment is real information) is the right home for
+        this; see the adversarial UX review in the 2.1.221 run-notes.
+      */}
       <div className="flex flex-wrap gap-3 border-b border-[var(--border)] pb-2">
         <Stat label="Started" value={new Date(run.startedAt).toLocaleString()} />
         {run.endedAt && <Stat label="Ended" value={new Date(run.endedAt).toLocaleString()} />}

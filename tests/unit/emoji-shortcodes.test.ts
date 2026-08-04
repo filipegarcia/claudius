@@ -6,6 +6,7 @@
  */
 import { describe, expect, test } from "vitest";
 import {
+  EMOJI_ALIASES,
   EMOJI_PICKER_LIMIT,
   EMOJI_SHORTCODES,
   filterEmojiShortcodes,
@@ -95,5 +96,45 @@ describe("lookupEmojiShortcode", () => {
 
   test("returns undefined for an unknown shortcode", () => {
     expect(lookupEmojiShortcode("not_a_real_emoji_name")).toBeUndefined();
+  });
+});
+
+// CC 2.1.221 parity: "Changed emoji autocomplete to accept common alternate
+// shortcodes like `:thumbsup:`, `:thumbsdown:`, and `:love:`".
+describe("EMOJI_ALIASES", () => {
+  test("every alias target is a real key in EMOJI_SHORTCODES", () => {
+    for (const [alias, canonical] of Object.entries(EMOJI_ALIASES)) {
+      expect(alias).toBe(alias.toLowerCase());
+      expect(EMOJI_SHORTCODES[canonical]).toBeTruthy();
+    }
+  });
+
+  test("`love` resolves to the same emoji as `heart`", () => {
+    expect(lookupEmojiShortcode("love")).toBe(lookupEmojiShortcode("heart"));
+  });
+
+  test("lookup is case-insensitive for aliases too", () => {
+    expect(lookupEmojiShortcode("LOVE")).toBe(EMOJI_SHORTCODES.heart);
+  });
+
+  test("filterEmojiShortcodes surfaces alias names, resolved to the canonical emoji", () => {
+    const out = filterEmojiShortcodes("love");
+    expect(out.some((o) => o.name === "love" && o.emoji === EMOJI_SHORTCODES.heart)).toBe(true);
+  });
+
+  test("thumbsup/thumbsdown already exist as canonical names — no alias needed", () => {
+    expect(lookupEmojiShortcode("thumbsup")).toBe(EMOJI_SHORTCODES.thumbsup);
+    expect(lookupEmojiShortcode("thumbsdown")).toBe(EMOJI_SHORTCODES.thumbsdown);
+  });
+
+  test("does NOT alias thumbs_up/thumbs_down — would duplicate rows in the picker for the same emoji", () => {
+    // filterEmojiShortcodes has no de-dup pass, so an underscore alias for an
+    // already-canonical name would surface two rows resolving to the same
+    // emoji for the natural query ":thumbs". See the EMOJI_ALIASES doc
+    // comment for the full rationale.
+    expect(EMOJI_ALIASES.thumbs_up).toBeUndefined();
+    expect(EMOJI_ALIASES.thumbs_down).toBeUndefined();
+    expect(filterEmojiShortcodes("thumbs").filter((o) => o.emoji === EMOJI_SHORTCODES.thumbsup)).toHaveLength(1);
+    expect(filterEmojiShortcodes("thumbs").filter((o) => o.emoji === EMOJI_SHORTCODES.thumbsdown)).toHaveLength(1);
   });
 });

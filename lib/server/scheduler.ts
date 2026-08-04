@@ -239,6 +239,23 @@ class Scheduler {
     return !!buf && !buf.done;
   }
 
+  /**
+   * CC 2.1.221 parity ("Changed `/status` to show the session kind:
+   * `interactive`, or a background job that is `attached` or
+   * `unattended`"). Claudius's own equivalent of a "background job" is a
+   * scheduler run — it executes headlessly, with no interactive prompt
+   * loop, so it's never "interactive". What CAN vary is whether a browser
+   * tab currently has the run's live SSE stream open (`RunTranscript` in
+   * the Schedule page): `subscribers.size > 0` means "attached", an empty
+   * set while still running means "unattended" — fired and progressing
+   * with nobody watching. Returns `false` once the run is no longer live
+   * (finished runs aren't "unattended", they're just done).
+   */
+  isRunAttached(runId: string): boolean {
+    const buf = this.liveRuns.get(runId);
+    return !!buf && !buf.done && buf.subscribers.size > 0;
+  }
+
   // Re-export listing for the API layer.
   listJobs = listJobs;
   getJob = getJob;
