@@ -6,6 +6,7 @@
  */
 import { describe, expect, test } from "vitest";
 import {
+  EMOJI_ALIASES,
   EMOJI_PICKER_LIMIT,
   EMOJI_SHORTCODES,
   filterEmojiShortcodes,
@@ -95,5 +96,36 @@ describe("lookupEmojiShortcode", () => {
 
   test("returns undefined for an unknown shortcode", () => {
     expect(lookupEmojiShortcode("not_a_real_emoji_name")).toBeUndefined();
+  });
+});
+
+// CC 2.1.221 parity: "Changed emoji autocomplete to accept common alternate
+// shortcodes like `:thumbsup:`, `:thumbsdown:`, and `:love:`".
+describe("EMOJI_ALIASES", () => {
+  test("every alias target is a real key in EMOJI_SHORTCODES", () => {
+    for (const [alias, canonical] of Object.entries(EMOJI_ALIASES)) {
+      expect(alias).toBe(alias.toLowerCase());
+      expect(EMOJI_SHORTCODES[canonical]).toBeTruthy();
+    }
+  });
+
+  test("`love` resolves to the same emoji as `heart`", () => {
+    expect(lookupEmojiShortcode("love")).toBe(lookupEmojiShortcode("heart"));
+  });
+
+  test("lookup is case-insensitive for aliases too", () => {
+    expect(lookupEmojiShortcode("LOVE")).toBe(EMOJI_SHORTCODES.heart);
+  });
+
+  test("filterEmojiShortcodes surfaces alias names, resolved to the canonical emoji", () => {
+    const out = filterEmojiShortcodes("love");
+    expect(out.some((o) => o.name === "love" && o.emoji === EMOJI_SHORTCODES.heart)).toBe(true);
+  });
+
+  test("thumbsup/thumbsdown already exist as canonical names (not just aliases)", () => {
+    expect(lookupEmojiShortcode("thumbsup")).toBe(EMOJI_SHORTCODES.thumbsup);
+    expect(lookupEmojiShortcode("thumbsdown")).toBe(EMOJI_SHORTCODES.thumbsdown);
+    expect(lookupEmojiShortcode("thumbs_up")).toBe(EMOJI_SHORTCODES.thumbsup);
+    expect(lookupEmojiShortcode("thumbs_down")).toBe(EMOJI_SHORTCODES.thumbsdown);
   });
 });
