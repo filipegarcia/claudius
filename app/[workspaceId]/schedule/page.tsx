@@ -589,9 +589,9 @@ function JobDetail({
                                 ? "Attached — a tab has this run's live stream open"
                                 : "Unattended — running with no live viewer"
                             }
-                            className="flex shrink-0 items-center gap-0.5 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-1 py-0.5 text-[9px] uppercase tracking-wide text-[var(--muted)]"
+                            className="flex shrink-0 items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-[var(--muted)]"
                           >
-                            {r.attached ? <Eye className="h-2.5 w-2.5" /> : <EyeOff className="h-2.5 w-2.5" />}
+                            {r.attached ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
                             {r.attached ? "attached" : "unattended"}
                           </span>
                         )}
@@ -690,13 +690,20 @@ function RunTranscript({
   const transcript = run.status === "running" ? liveEvents : (run.transcript ?? []);
   return (
     <div className="space-y-2 px-4 py-4 text-xs">
+      {/*
+        Deliberately NOT repeating the attached/unattended chip here as a
+        "Kind" stat: opening this transcript is itself what makes a run
+        "attached" (it mounts the live EventSource below), so a stat in this
+        exact pane would read as self-referential/paradoxical — "unattended"
+        while you're looking straight at it, correcting itself only on the
+        next 2s runs-list poll. The runs-list chip (where a genuinely
+        *other* tab's attachment is real information) is the right home for
+        this; see the adversarial UX review in the 2.1.221 run-notes.
+      */}
       <div className="flex flex-wrap gap-3 border-b border-[var(--border)] pb-2">
         <Stat label="Started" value={new Date(run.startedAt).toLocaleString()} />
         {run.endedAt && <Stat label="Ended" value={new Date(run.endedAt).toLocaleString()} />}
         <Stat label="Status" value={run.status} />
-        {run.status === "running" && (
-          <Stat label="Kind" value={run.attached ? "background · attached" : "background · unattended"} />
-        )}
         {run.costUsd != null && <Stat label="Cost" value={fmtUsd(run.costUsd)} />}
         {typeof run.inputTokens === "number" && (
           <Stat label="In tok" value={run.inputTokens.toLocaleString()} />

@@ -208,11 +208,17 @@ export const EMOJI_SHORTCODES: Record<string, string> = {
  * map exists so future alternates can be added as one-line aliases instead
  * of duplicate table entries. Every value must be a valid lowercase key of
  * `EMOJI_SHORTCODES`.
+ *
+ * Deliberately NOT adding `thumbs_up`/`thumbs_down` aliases for the already-
+ * canonical `thumbsup`/`thumbsdown`: `filterEmojiShortcodes("thumbs")` would
+ * surface both spellings as separate rows resolving to the same emoji
+ * (`EmojiShortcodePicker` has no de-dup pass), which is exactly the
+ * cluttered-picker outcome this table's "curated, not exhaustive" doc
+ * comment above warns against — and the changelog entry only asked for
+ * `thumbsup`/`thumbsdown` to be *accepted*, which they already are.
  */
 export const EMOJI_ALIASES: Record<string, string> = {
   love: "heart",
-  thumbs_up: "thumbsup",
-  thumbs_down: "thumbsdown",
 };
 
 /** Max rows the emoji picker ever shows — matches `PICKER_LIMIT` in at-mention.ts. */

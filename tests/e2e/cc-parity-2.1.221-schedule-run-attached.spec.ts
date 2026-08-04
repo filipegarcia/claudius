@@ -14,8 +14,10 @@
  * states without spinning up a real SDK run, and asserts:
  *   1. the runs list shows an "attached" chip for a live run with a
  *      watcher, and an "unattended" chip for one with none,
- *   2. opening the unattended run's transcript shows "background ·
- *      unattended" in its stat row.
+ *   2. opening a run's transcript does NOT repeat that signal as a stat —
+ *      an adversarial UX review flagged the original "Kind" stat as
+ *      self-referential (opening the pane is what makes a run "attached"),
+ *      so the chip only lives in the runs list.
  *
  * Screenshot target: docs/cc-parity/2.1.221/schedule-run-attached.png
  */
@@ -114,12 +116,16 @@ test.describe("CC 2.1.221 — Schedule run kind: attached vs unattended", () => 
     await page.waitForTimeout(150);
     await page.screenshot({ path: resolve(SHOTS_DIR, "schedule-run-attached.png"), fullPage: false });
 
-    // Open the unattended run's detail and confirm the stat row agrees.
+    // Open the unattended run's detail pane. The attached/unattended signal
+    // is deliberately NOT repeated here as a stat: opening this very pane is
+    // what makes a run "attached" (it mounts the live stream), so restating
+    // it in the pane you're looking through would be self-referential. Only
+    // the runs-list chip (where a genuinely *other* tab's attachment is real
+    // information) shows it — see the "Kind" removal note in
+    // RunTranscript's JSDoc.
     await page.getByText(/unattended/i).first().click();
-    await expect(page.getByText("background · unattended")).toBeVisible();
-
-    // Switch to the attached run and confirm the stat row flips too.
-    await page.getByText(/attached/i).first().click();
-    await expect(page.getByText("background · attached")).toBeVisible();
+    await expect(page.getByText(/^Started$/)).toBeVisible();
+    await expect(page.getByText("running", { exact: true })).toBeVisible();
+    await expect(page.getByText(/background/i)).toHaveCount(0);
   });
 });

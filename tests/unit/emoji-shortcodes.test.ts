@@ -122,10 +122,19 @@ describe("EMOJI_ALIASES", () => {
     expect(out.some((o) => o.name === "love" && o.emoji === EMOJI_SHORTCODES.heart)).toBe(true);
   });
 
-  test("thumbsup/thumbsdown already exist as canonical names (not just aliases)", () => {
+  test("thumbsup/thumbsdown already exist as canonical names — no alias needed", () => {
     expect(lookupEmojiShortcode("thumbsup")).toBe(EMOJI_SHORTCODES.thumbsup);
     expect(lookupEmojiShortcode("thumbsdown")).toBe(EMOJI_SHORTCODES.thumbsdown);
-    expect(lookupEmojiShortcode("thumbs_up")).toBe(EMOJI_SHORTCODES.thumbsup);
-    expect(lookupEmojiShortcode("thumbs_down")).toBe(EMOJI_SHORTCODES.thumbsdown);
+  });
+
+  test("does NOT alias thumbs_up/thumbs_down — would duplicate rows in the picker for the same emoji", () => {
+    // filterEmojiShortcodes has no de-dup pass, so an underscore alias for an
+    // already-canonical name would surface two rows resolving to the same
+    // emoji for the natural query ":thumbs". See the EMOJI_ALIASES doc
+    // comment for the full rationale.
+    expect(EMOJI_ALIASES.thumbs_up).toBeUndefined();
+    expect(EMOJI_ALIASES.thumbs_down).toBeUndefined();
+    expect(filterEmojiShortcodes("thumbs").filter((o) => o.emoji === EMOJI_SHORTCODES.thumbsup)).toHaveLength(1);
+    expect(filterEmojiShortcodes("thumbs").filter((o) => o.emoji === EMOJI_SHORTCODES.thumbsdown)).toHaveLength(1);
   });
 });
