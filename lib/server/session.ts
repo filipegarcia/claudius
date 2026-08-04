@@ -1164,6 +1164,11 @@ export class Session {
   // don't flood the wire with redundant events (every pending-map mutation
   // calls into the helper).
   private lastBroadcastStatus: "running" | "idle" | null = null;
+  // Last backgrounded-task count broadcast alongside `turn_status`. Tracked
+  // separately from `lastBroadcastStatus` so a change in background work (which
+  // does NOT flip `getStatus()`) still re-emits `turn_status` and the header
+  // can update its "Idle · N running" cue. `-1` = never broadcast yet.
+  private lastBroadcastBackgroundCount = -1;
   /**
    * Frozen account-switcher env injected at session start (mirrors the
    * `env: envOverride` spread on the main `query()` Options). Cached so any
@@ -5471,7 +5476,11 @@ export class Session {
     // clears `pending`, which would leave the StatusLine / tab dot stuck on
     // "Idle" for a session that's still mid-turn (e.g. inside a long Bash).
     // This event resyncs `pending` to the server's authoritative state.
-    fn({ type: "turn_status", status: this.getStatus() });
+    fn({
+      type: "turn_status",
+      status: this.getStatus(),
+      backgroundTasks: this.countActiveBackgroundTasks(),
+    });
     // Server-driven spinner tips. The client rotates through these under the
     // "Claude is working…" row, but the *catalog* lives server-side so the
     // backend (and, later, the SDK) is the single source of truth — new-feature
@@ -5949,6 +5958,22 @@ export class Session {
   }
 
   /**
+   * Count of live *backgrounded* subagents/Tasks/Workflows
+   * (`run_in_background: true`). These are the exact tasks `hasActiveSubagents`
+   * excludes, so `getStatus()` reads "idle" while they run. Broadcast on
+   * `turn_status` so the StatusLine header can show an honest "Idle · N
+   * running" instead of hiding in-flight work behind a bare "Idle".
+   */
+  private countActiveBackgroundTasks(): number {
+    let n = 0;
+    for (const meta of this.taskMetaById.values()) {
+      if (!meta.isBackgrounded) continue;
+      if (meta.status === "running" || meta.status === "pending") n++;
+    }
+    return n;
+  }
+
+  /**
    * Broadcast a `turn_status` event when (and only when) `getStatus()` has
    * flipped since the last broadcast. Call this from every site that mutates
    * `turnInFlight` or the three pending-decision maps — the dedupe keeps the
@@ -5957,9 +5982,14 @@ export class Session {
    */
   private broadcastTurnStatusIfChanged(): void {
     const next = this.getStatus();
-    if (next === this.lastBroadcastStatus) return;
+    const bg = this.countActiveBackgroundTasks();
+    // Re-emit when EITHER the coarse status or the background-task count moves.
+    // A backgrounded task starting/finishing doesn't flip `getStatus()`, but the
+    // header still needs the new count — so the count is part of the dedupe key.
+    if (next === this.lastBroadcastStatus && bg === this.lastBroadcastBackgroundCount) return;
     this.lastBroadcastStatus = next;
-    this.broadcast({ type: "turn_status", status: next });
+    this.lastBroadcastBackgroundCount = bg;
+    this.broadcast({ type: "turn_status", status: next, backgroundTasks: bg });
   }
 
   private notifySubscriberCount(): void {

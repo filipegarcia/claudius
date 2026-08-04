@@ -98,6 +98,17 @@ export type ReplayDoneEvent = {
 export type TurnStatusEvent = {
   type: "turn_status";
   status: "running" | "idle";
+  /**
+   * Count of live *backgrounded* subagent/Task/Workflow runs
+   * (`run_in_background: true`). These are deliberately excluded from `status`
+   * — they're fire-and-forget by contract, so the session must still read
+   * "idle" for queue-flush / idle-reap purposes even while they run. Without a
+   * separate signal the StatusLine header would show a bare "Idle" and the user
+   * gets no feedback that work is still in flight. The header uses this to paint
+   * an honest "Idle · N running" cue. Optional for back-compat with older wire
+   * payloads (absent ⇒ treat as 0).
+   */
+  backgroundTasks?: number;
 };
 
 /**

@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Check, ListChecks, Pencil, X } from "lucide-react";
+import { createPortal } from "react-dom";
+import { Check, ListChecks, Maximize2, Pencil, X } from "lucide-react";
 import { Overlay } from "./Overlay";
 import { Markdown } from "@/components/chat/Markdown";
 import type { PendingPlan } from "@/lib/client/types";
@@ -22,11 +23,45 @@ type Props = {
 export function PlanOverlay({ plan, onAccept, onReject, onClose }: Props) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(plan.plan);
+  const [minimized, setMinimized] = useState(false);
 
   const isDirty = editing && draft.trim() !== plan.plan.trim();
 
+  // Minimized: collapse to a restorable pill so the user can read the agent's
+  // reasoning behind the overlay without losing the pending plan (and without
+  // an accidental backdrop click dismissing it).
+  //
+  // Rendered through a portal to <body> so it escapes the deep chat DOM: an
+  // inline `fixed` pill lands on top of the composer bar, where the composer's
+  // stacking context swallows the click. The portal + `z-[70]` (above the
+  // composer's z-[60] and the overlay's z-50) guarantees it's clickable, and
+  // `bottom-24` lifts it clear of the input bar.
+  if (minimized) {
+    if (typeof document === "undefined") return null;
+    return createPortal(
+      <button
+        onClick={() => setMinimized(false)}
+        className="fixed bottom-24 right-6 z-[70] flex items-center gap-2 rounded-full border border-violet-500/40 bg-[var(--panel)] px-4 py-2 text-sm shadow-2xl hover:bg-[var(--panel-2)]"
+        title="Restore the plan for review"
+      >
+        <ListChecks className="h-4 w-4 text-violet-300" />
+        <span className="font-medium">Plan ready for review</span>
+        <Maximize2 className="h-3.5 w-3.5 text-[var(--muted)]" />
+      </button>,
+      document.body,
+    );
+  }
+
   return (
-    <Overlay title="Plan ready for review" subtitle="ExitPlanMode" onClose={onClose} width={760}>
+    <Overlay
+      title="Plan ready for review"
+      subtitle="ExitPlanMode"
+      onClose={onClose}
+      width={1024}
+      maxHeightVh={88}
+      dismissOnBackdrop={false}
+      onMinimize={() => setMinimized(true)}
+    >
       <div className="border-b border-violet-500/30 bg-violet-500/10 px-4 py-2 text-[11px] text-violet-200">
         <ListChecks className="mr-1 inline h-3.5 w-3.5 align-middle" />
         Claude has produced a plan. Accepting will switch this session to <code className="font-mono">acceptEdits</code> so the agent can execute it.
@@ -53,10 +88,10 @@ export function PlanOverlay({ plan, onAccept, onReject, onClose }: Props) {
             }
           }}
           spellCheck={false}
-          className="block max-h-[55vh] min-h-[40vh] w-full resize-y bg-[var(--panel)] px-4 py-4 font-mono text-xs leading-relaxed text-[var(--foreground)] outline-none focus:bg-[var(--panel-2)]"
+          className="block max-h-[70vh] min-h-[55vh] w-full resize-y bg-[var(--panel)] px-4 py-4 font-mono text-xs leading-relaxed text-[var(--foreground)] outline-none focus:bg-[var(--panel-2)]"
         />
       ) : (
-        <div className="max-h-[55vh] overflow-y-auto scroll-thin px-4 py-4 text-sm leading-7">
+        <div className="max-h-[70vh] overflow-y-auto scroll-thin px-4 py-4 text-sm leading-7">
           <Markdown>{draft}</Markdown>
         </div>
       )}

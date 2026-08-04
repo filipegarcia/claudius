@@ -770,6 +770,8 @@ export type ChatState = {
   recentEdits: RecentEdit[];
   /** Active background bash shells, keyed by tool_use_id. */
   backgroundBashes: Record<string, BackgroundBash>;
+  /** Count of active background tasks reported with the latest turn_status. */
+  backgroundTasks: number;
   /**
    * Scheduled loops the agent has armed in this session (CronCreate +
    * ScheduleWakeup). Keyed by the loop's stable id (cron id for crons,

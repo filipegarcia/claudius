@@ -37,6 +37,12 @@ type Props = {
   sessionId: string | null;
   ready: boolean;
   pending: boolean;
+  /**
+   * Live backgrounded subagent/Task/Workflow count. These run while the session
+   * is otherwise idle, so when `pending` is false but this is > 0 the header
+   * shows "Idle · N running" (with a pulsing dot) instead of a bare "Idle".
+   */
+  backgroundTasks?: number;
   permissionMode: PermissionMode;
   model: string | null;
   /** Main-thread agent name (SDK Options.agent), or null for the default agent. */
@@ -122,6 +128,7 @@ export function StatusLine({
   sessionId,
   ready,
   pending,
+  backgroundTasks = 0,
   permissionMode,
   model,
   mainAgent,
@@ -154,13 +161,33 @@ export function StatusLine({
 }: Props) {
   // Zen mode collapses the StatusLine to just the focus toggle.
   const zen = focusLevel === "zen";
-  const status = !ready ? "starting" : pending ? "working" : "idle";
+  // "background" is a distinct fourth state: the turn is idle, but one or more
+  // fire-and-forget subagents / Workflows are still running. It reuses the
+  // pulsing dot (`busy` below) so the user always has a "something's running"
+  // cue, but a calmer sky tone + "Idle · N running" label so it doesn't read as
+  // an active turn.
+  const bgRunning = backgroundTasks > 0;
+  const status = !ready
+    ? "starting"
+    : pending
+    ? "working"
+    : bgRunning
+    ? "background"
+    : "idle";
   const color =
     status === "starting"
       ? "text-amber-400"
       : status === "working"
       ? "text-[var(--accent)]"
+      : status === "background"
+      ? "text-sky-400"
       : "text-emerald-400";
+  // Rendered label. Kept out of CSS `capitalize` so `textContent` matches what
+  // the user sees (the turn-status e2e specs assert on exact text).
+  const statusLabel =
+    status === "background"
+      ? `Idle · ${backgroundTasks} running`
+      : status.charAt(0).toUpperCase() + status.slice(1);
 
   const ctx = typeof contextPercent === "number" ? Math.round(contextPercent) : null;
   const ctxLevel: "ok" | "warn" | "danger" =
@@ -261,8 +288,13 @@ export function StatusLine({
       <span
         data-testid="status-line-text"
         className="whitespace-nowrap"
+        title={
+          status === "background"
+            ? `${backgroundTasks} background ${backgroundTasks === 1 ? "task is" : "tasks are"} still running — the turn is idle but work continues. See the Activity panel.`
+            : undefined
+        }
       >
-        {status.charAt(0).toUpperCase() + status.slice(1)}
+        {statusLabel}
       </span>
       {model && (
         <>

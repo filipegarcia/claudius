@@ -778,6 +778,12 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
   const pathname = usePathname();
   const [ready, setReady] = useState(false);
   const [pending, setPending] = useState(false);
+  // Count of live backgrounded subagent/Task/Workflow runs, from the server's
+  // authoritative `turn_status` signal. Distinct from `pending`: these run while
+  // the session reads "idle", so the header shows an "Idle · N running" cue
+  // rather than a bare "Idle" that hides in-flight work. Survives reconnect via
+  // the server's `turn_status` re-emit on subscribe.
+  const [backgroundTasks, setBackgroundTasks] = useState(0);
   // tabId of whichever client currently holds the write lock for this session.
   // Null means no holder is registered (no live subscriber sent a tabId yet).
   // readOnly is derived: holderId !== null && holderId !== myTabId.
@@ -1355,6 +1361,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
   const resetState = useCallback(() => {
     setReady(false);
     setPending(false);
+    setBackgroundTasks(0);
     setHolderTabId(null);
     pendingRef.current = false;
     setMessages([]);
@@ -2061,6 +2068,10 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
         // (long Bash, slow tool) paints the StatusLine / tab dot correctly
         // even when no further assistant chunks arrive.
         setPendingTracked(ev.status === "running");
+        // Backgrounded work that runs while `status` reads "idle" (fire-and-
+        // forget subagents / Workflows). Header uses it for the "Idle · N
+        // running" cue. Absent on older payloads ⇒ 0.
+        setBackgroundTasks(ev.backgroundTasks ?? 0);
         // Idle turn → clear any stuck "running" rail rows / streaming markers
         // (a tab attaching to an already-idle session gets this via the
         // server's turn_status re-emit on subscribe).
@@ -5323,6 +5334,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     sessionId,
     ready,
     pending,
+    backgroundTasks,
     readOnly: holderTabId !== null && holderTabId !== myTabId,
     takeOver,
     messages: sortedMessages,
