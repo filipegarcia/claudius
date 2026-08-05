@@ -5,6 +5,7 @@ import {
   type PermissionRules,
   type SettingsScope,
 } from "@/lib/server/settings";
+import { resolveTrustedCwd } from "@/lib/server/trusted-cwd";
 
 export const runtime = "nodejs";
 
@@ -24,14 +25,16 @@ export async function POST(req: Request) {
   if (!body.patch || typeof body.patch !== "object") {
     return NextResponse.json({ error: "patch required" }, { status: 400 });
   }
-  const cwd = body.cwd || process.cwd();
+  const cwd = await resolveTrustedCwd(body.cwd);
+  if (!cwd) return NextResponse.json({ error: "unknown cwd" }, { status: 400 });
   const next = await updatePermissions(body.scope, cwd, body.patch);
   return NextResponse.json({ ok: true, settings: next });
 }
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
-  const cwd = url.searchParams.get("cwd") || process.cwd();
+  const cwd = await resolveTrustedCwd(url.searchParams.get("cwd"));
+  if (!cwd) return NextResponse.json({ error: "unknown cwd" }, { status: 400 });
   const out: Record<string, PermissionRules> = {};
   for (const scope of SCOPES) {
     const s = await readSettings(scope, cwd);

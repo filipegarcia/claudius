@@ -8,19 +8,22 @@ import {
   type Limits,
   type LimitsAuditEvent,
 } from "@/lib/server/limits-store";
+import { resolveTrustedCwd } from "@/lib/server/trusted-cwd";
 
 export const runtime = "nodejs";
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
-  const cwd = url.searchParams.get("cwd") || process.cwd();
+  const cwd = await resolveTrustedCwd(url.searchParams.get("cwd"));
+  if (!cwd) return NextResponse.json({ error: "unknown cwd" }, { status: 400 });
   const data = await readLimits(cwd);
   return NextResponse.json(data);
 }
 
 export async function PUT(req: Request) {
   const url = new URL(req.url);
-  const cwd = url.searchParams.get("cwd") || process.cwd();
+  const cwd = await resolveTrustedCwd(url.searchParams.get("cwd"));
+  if (!cwd) return NextResponse.json({ error: "unknown cwd" }, { status: 400 });
   let body: Limits;
   try {
     body = (await req.json()) as Limits;
@@ -50,7 +53,8 @@ type ActionBody =
 
 export async function POST(req: Request) {
   const url = new URL(req.url);
-  const cwd = url.searchParams.get("cwd") || process.cwd();
+  const cwd = await resolveTrustedCwd(url.searchParams.get("cwd"));
+  if (!cwd) return NextResponse.json({ error: "unknown cwd" }, { status: 400 });
   let body: ActionBody;
   try {
     body = (await req.json()) as ActionBody;

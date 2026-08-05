@@ -300,10 +300,15 @@ export async function getDiff(
       // diffNoIndex() treats 0 and 1 as success and only rejects on >1.
       return await diffNoIndex(root, path);
     }
+    // `--no-textconv`: render the raw blob, not whatever a repo-configured
+    // `.gitattributes` `diff=`/`textconv` filter would produce. A workspace
+    // (potentially untrusted — this is a user-opened repo, not one we wrote)
+    // could otherwise hide or rewrite content in the diff pane. Mirrors
+    // Claude Code 2.1.222's fix for the same class of surface.
     const args =
       mode === "staged"
-        ? ["diff", "--cached", "--no-color", "--", path]
-        : ["diff", "--no-color", "--", path];
+        ? ["diff", "--cached", "--no-color", "--no-textconv", "--", path]
+        : ["diff", "--no-color", "--no-textconv", "--", path];
     const { stdout } = await git(args, root);
     const binary = /^Binary files /m.test(stdout);
     return { diff: stdout, binary };
@@ -362,9 +367,11 @@ async function diffNoIndex(root: string, path: string): Promise<{ diff: string; 
   return await new Promise((resolve, reject) => {
     let stdout = "";
     let stderr = "";
+    // `--no-textconv` — see the comment on `getDiff`'s raw `git diff` args;
+    // same raw-blob guarantee applies to the untracked-file synthesis here.
     const child = execFile(
       "git",
-      ["diff", "--no-index", "--no-color", "--", "/dev/null", path],
+      ["diff", "--no-index", "--no-color", "--no-textconv", "--", "/dev/null", path],
       { cwd: root, maxBuffer: MAX_BUFFER, timeout: TIMEOUT_MS, encoding: "utf8" },
     );
     child.stdout?.on("data", (c: string) => (stdout += c));
@@ -539,7 +546,12 @@ export async function getDiffForCommit(
   const parts: string[] = [];
   try {
     if (tracked.length > 0) {
-      const { stdout } = await git(["diff", "HEAD", "--no-color", "--", ...tracked], root);
+      // `--no-textconv` — this diff is fed to a model to draft a commit
+      // message; a textconv filter could hide the actual change from it.
+      const { stdout } = await git(
+        ["diff", "HEAD", "--no-color", "--no-textconv", "--", ...tracked],
+        root,
+      );
       if (stdout) parts.push(stdout);
     }
   } catch (err) {
@@ -1103,8 +1115,12 @@ export async function compareBranches(
       ["log", "--oneline", "--no-color", `${head}..${base}`],
       root,
     );
+    // `--no-textconv` — the +/- counts here are computed from whatever git
+    // diffed, so a workspace-configured textconv driver would make the
+    // summary report churn that has nothing to do with the real blobs. Same
+    // reasoning as `getDiff`/`diffBranchAgainstWorktree`.
     const stat = await git(
-      ["diff", "--stat", "--no-color", `${base}...${head}`],
+      ["diff", "--stat", "--no-color", "--no-textconv", `${base}...${head}`],
       root,
     );
     const aheadList = ahead.stdout.trim();
@@ -1154,7 +1170,9 @@ export async function diffBranchAgainstWorktree(
     return { code: "git-failed", message: "invalid branch name" };
   }
   try {
-    const r = await git(["diff", "--no-color", branch], root);
+    // `--no-textconv` — same raw-blob guarantee as `getDiff`/`diffNoIndex`;
+    // this output is piped straight into the GitConsole for the user to read.
+    const r = await git(["diff", "--no-color", "--no-textconv", branch], root);
     const out = r.stdout.trim();
     return { ok: true, output: out || `(no differences between ${branch} and the working tree)` };
   } catch (err) {

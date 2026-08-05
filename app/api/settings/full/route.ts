@@ -6,6 +6,7 @@ import {
   type ClaudeSettings,
   type SettingsScope,
 } from "@/lib/server/settings";
+import { resolveTrustedCwd } from "@/lib/server/trusted-cwd";
 
 export const runtime = "nodejs";
 
@@ -13,7 +14,8 @@ const SCOPES: SettingsScope[] = ["user", "project", "local"];
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
-  const cwd = url.searchParams.get("cwd") || process.cwd();
+  const cwd = await resolveTrustedCwd(url.searchParams.get("cwd"));
+  if (!cwd) return NextResponse.json({ error: "unknown cwd" }, { status: 400 });
   const out = await Promise.all(
     SCOPES.map(async (scope) => ({
       scope,
@@ -32,7 +34,8 @@ export async function PUT(req: Request) {
     return NextResponse.json({ error: "invalid scope" }, { status: 400 });
   if (typeof body.settings !== "object" || body.settings == null)
     return NextResponse.json({ error: "settings required" }, { status: 400 });
-  const cwd = body.cwd || process.cwd();
+  const cwd = await resolveTrustedCwd(body.cwd);
+  if (!cwd) return NextResponse.json({ error: "unknown cwd" }, { status: 400 });
   await writeSettings(body.scope, cwd, body.settings);
   return NextResponse.json({ ok: true });
 }

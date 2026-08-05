@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { notificationBus } from "@/lib/server/notification-bus";
+import { resolveTrustedCwd } from "@/lib/server/trusted-cwd";
 import type { ServerEvent } from "@/lib/shared/events";
 
 export const runtime = "nodejs";
@@ -38,7 +39,11 @@ export async function POST(req: Request) {
       { status: 400 },
     );
   }
-  await notificationBus.recordSessionEvent(body.cwd, body.sessionId, body.event, {
+  // recordSessionEvent opens `<cwd>/.claudius.db`, so this is a real write
+  // sink even though the route is dev-gated.
+  const cwd = await resolveTrustedCwd(body.cwd);
+  if (!cwd) return NextResponse.json({ error: "unknown cwd" }, { status: 400 });
+  await notificationBus.recordSessionEvent(cwd, body.sessionId, body.event, {
     ...(typeof body.hasSubscribers === "boolean"
       ? { hasSubscribers: body.hasSubscribers }
       : {}),

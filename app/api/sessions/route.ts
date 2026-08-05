@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { sep } from "node:path";
 import { sessionManager } from "@/lib/server/session-manager";
+import { resolveTrustedCwd } from "@/lib/server/trusted-cwd";
 import { resolveActiveWorkspace } from "@/lib/server/active-workspace";
 import { resolveActiveCustomization } from "@/lib/server/active-customization";
 import {
@@ -66,7 +67,17 @@ export async function POST(req: Request) {
   //      starts a fresh conversation under a new id)
   //   3. active workspace from cookie / hint
   //   4. process.cwd() (legacy fallback, kept so headless callers still work)
-  let cwd = body.cwd;
+  // An explicit cwd decides where the agent subprocess is spawned, so it has
+  // to be a directory the user actually registered rather than one the caller
+  // named — see lib/server/trusted-cwd.ts. Every other branch below derives
+  // the cwd server-side (resume JSONL, active-workspace cookie, customization
+  // mirror) and needs no check.
+  let cwd: string | undefined;
+  if (body.cwd) {
+    const trusted = await resolveTrustedCwd(body.cwd);
+    if (!trusted) return NextResponse.json({ error: "unknown cwd" }, { status: 400 });
+    cwd = trusted;
+  }
   let originWs: Workspace | null = null;
   if (!cwd && body.resume) {
     try {

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { listAgents, readAgent, writeAgent, type AgentScope } from "@/lib/server/agents";
 import { sessionManager } from "@/lib/server/session-manager";
+import { resolveTrustedCwd } from "@/lib/server/trusted-cwd";
 
 export const runtime = "nodejs";
 
@@ -8,7 +9,8 @@ const SCOPES: AgentScope[] = ["user", "project"];
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
-  const cwd = url.searchParams.get("cwd") || process.cwd();
+  const cwd = await resolveTrustedCwd(url.searchParams.get("cwd"));
+  if (!cwd) return NextResponse.json({ error: "unknown cwd" }, { status: 400 });
   const scope = url.searchParams.get("scope") as AgentScope | null;
   const name = url.searchParams.get("name");
   if (scope && name) {
@@ -30,7 +32,8 @@ export async function PUT(req: Request) {
   if (!body?.name) return NextResponse.json({ error: "name required" }, { status: 400 });
   if (typeof body.raw !== "string")
     return NextResponse.json({ error: "raw content required" }, { status: 400 });
-  const cwd = body.cwd || process.cwd();
+  const cwd = await resolveTrustedCwd(body.cwd);
+  if (!cwd) return NextResponse.json({ error: "unknown cwd" }, { status: 400 });
   await writeAgent(body.scope, cwd, body.name, body.raw);
   // Push the edit into any live session in this cwd so the agent is usable
   // without a restart. Best-effort — never fails the save.

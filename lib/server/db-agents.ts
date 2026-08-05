@@ -20,6 +20,22 @@ export type DbAgentRow = {
 
 const NAME_RE = /^[\w.\-]+$/;
 
+/**
+ * Valid skill-name shape for `AgentDefinition.skills` entries. SDK 0.3.221
+ * tightened server-side validation of skill names: malformed names
+ * (delimiter or control characters) and wildcard-form names (`*`) now throw
+ * a hard error out of `query()` instead of being silently tolerated. Because
+ * `Options.agents` is built from every stored row (`loadDbAgentsForOptions`
+ * merges them all), a single bad `skills` entry in any one row would
+ * previously have broken session start for *every* session in the project.
+ * Filtering here — on both the write path (`upsertDbAgent`) and the read
+ * path (`listDbAgents`) — keeps a malformed entry from ever reaching the SDK,
+ * matching this file's existing "malformed row can never crash session
+ * start" contract. Allows plain names and `plugin:skill`-qualified names;
+ * rejects wildcards, whitespace, path separators, and control characters.
+ */
+const SKILL_NAME_RE = /^[\w][\w.-]*(?::[\w][\w.-]*)?$/;
+
 /** Throws on an invalid agent name (mirrors the file-agent name rule). */
 export function assertValidAgentName(name: unknown): asserts name is string {
   if (typeof name !== "string" || !NAME_RE.test(name)) {
@@ -47,7 +63,8 @@ export function coerceAgentDefinition(input: unknown): AgentDefinition | null {
   if (Array.isArray(o.tools)) def.tools = o.tools.filter((t): t is string => typeof t === "string");
   if (Array.isArray(o.disallowedTools))
     def.disallowedTools = o.disallowedTools.filter((t): t is string => typeof t === "string");
-  if (Array.isArray(o.skills)) def.skills = o.skills.filter((s): s is string => typeof s === "string");
+  if (Array.isArray(o.skills))
+    def.skills = o.skills.filter((s): s is string => typeof s === "string" && SKILL_NAME_RE.test(s));
   if (typeof o.model === "string") def.model = o.model;
   if (typeof o.initialPrompt === "string") def.initialPrompt = o.initialPrompt;
   if (typeof o.maxTurns === "number") def.maxTurns = o.maxTurns;

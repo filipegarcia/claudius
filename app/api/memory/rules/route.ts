@@ -8,8 +8,24 @@ import {
   type RuleScope,
 } from "@/lib/server/rules";
 import { PathInjectionError } from "@/lib/server/safe-path";
+import { resolveTrustedCwd } from "@/lib/server/trusted-cwd";
 
 export const runtime = "nodejs";
+
+/**
+ * Project-scope rules live under the workspace, so a project-scope request has
+ * to name a cwd the user actually registered (see lib/server/trusted-cwd.ts).
+ * User scope ignores cwd entirely and keeps passing null, as it always has.
+ */
+async function scopedCwd(
+  scope: RuleScope,
+  url: URL,
+): Promise<{ cwd: string | null } | { error: NextResponse }> {
+  if (scope !== "project") return { cwd: null };
+  const cwd = await resolveTrustedCwd(url.searchParams.get("cwd"));
+  if (!cwd) return { error: NextResponse.json({ error: "unknown cwd" }, { status: 400 }) };
+  return { cwd };
+}
 
 function parseScope(url: URL): RuleScope | null {
   const raw = url.searchParams.get("scope") ?? "project";
@@ -33,7 +49,9 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const scope = parseScope(url);
   if (!scope) return NextResponse.json({ error: "invalid scope" }, { status: 400 });
-  const cwd = scope === "project" ? url.searchParams.get("cwd") : null;
+  const scoped = await scopedCwd(scope, url);
+  if ("error" in scoped) return scoped.error;
+  const cwd = scoped.cwd;
   const file = url.searchParams.get("file");
   try {
     if (file) {
@@ -54,7 +72,9 @@ export async function POST(req: Request) {
   const url = new URL(req.url);
   const scope = parseScope(url);
   if (!scope) return NextResponse.json({ error: "invalid scope" }, { status: 400 });
-  const cwd = scope === "project" ? url.searchParams.get("cwd") : null;
+  const scoped = await scopedCwd(scope, url);
+  if ("error" in scoped) return scoped.error;
+  const cwd = scoped.cwd;
   let body: PostBody;
   try {
     body = (await req.json()) as PostBody;
@@ -79,7 +99,9 @@ export async function PATCH(req: Request) {
   const url = new URL(req.url);
   const scope = parseScope(url);
   if (!scope) return NextResponse.json({ error: "invalid scope" }, { status: 400 });
-  const cwd = scope === "project" ? url.searchParams.get("cwd") : null;
+  const scoped = await scopedCwd(scope, url);
+  if ("error" in scoped) return scoped.error;
+  const cwd = scoped.cwd;
   const filename = url.searchParams.get("filename");
   if (!filename) {
     return NextResponse.json({ error: "filename query param required" }, { status: 400 });
@@ -106,7 +128,9 @@ export async function DELETE(req: Request) {
   const url = new URL(req.url);
   const scope = parseScope(url);
   if (!scope) return NextResponse.json({ error: "invalid scope" }, { status: 400 });
-  const cwd = scope === "project" ? url.searchParams.get("cwd") : null;
+  const scoped = await scopedCwd(scope, url);
+  if ("error" in scoped) return scoped.error;
+  const cwd = scoped.cwd;
   const filename = url.searchParams.get("filename");
   if (!filename) {
     return NextResponse.json({ error: "filename query param required" }, { status: 400 });

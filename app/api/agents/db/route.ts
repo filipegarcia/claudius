@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { listDbAgents, upsertDbAgent, deleteDbAgent } from "@/lib/server/db-agents";
+import { resolveTrustedCwd } from "@/lib/server/trusted-cwd";
 
 export const runtime = "nodejs";
 
@@ -10,7 +11,8 @@ export const runtime = "nodejs";
  */
 
 export async function GET(req: Request) {
-  const cwd = new URL(req.url).searchParams.get("cwd") || process.cwd();
+  const cwd = await resolveTrustedCwd(new URL(req.url).searchParams.get("cwd"));
+  if (!cwd) return NextResponse.json({ error: "unknown cwd" }, { status: 400 });
   const agents = await listDbAgents(cwd);
   return NextResponse.json({ cwd, agents });
 }
@@ -25,7 +27,8 @@ export async function PUT(req: Request) {
     return NextResponse.json({ error: "invalid JSON body" }, { status: 400 });
   }
   if (!body?.name) return NextResponse.json({ error: "name required" }, { status: 400 });
-  const cwd = body.cwd || process.cwd();
+  const cwd = await resolveTrustedCwd(body.cwd);
+  if (!cwd) return NextResponse.json({ error: "unknown cwd" }, { status: 400 });
   try {
     const row = await upsertDbAgent(cwd, body.name, body.definition);
     return NextResponse.json({ ok: true, agent: row });
@@ -40,7 +43,8 @@ export async function PUT(req: Request) {
 
 export async function DELETE(req: Request) {
   const url = new URL(req.url);
-  const cwd = url.searchParams.get("cwd") || process.cwd();
+  const cwd = await resolveTrustedCwd(url.searchParams.get("cwd"));
+  if (!cwd) return NextResponse.json({ error: "unknown cwd" }, { status: 400 });
   const name = url.searchParams.get("name");
   if (!name) return NextResponse.json({ error: "name required" }, { status: 400 });
   try {
