@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { addGroup, listAll, removeGroup } from "@/lib/server/hooks";
 import { HOOK_EVENT_NAMES, type HookEvent, type HookGroup } from "@/lib/shared/hook-events";
 import type { SettingsScope } from "@/lib/server/settings";
+import { resolveTrustedCwd } from "@/lib/server/trusted-cwd";
 
 export const runtime = "nodejs";
 
@@ -9,7 +10,8 @@ const SCOPES: SettingsScope[] = ["user", "project", "local"];
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
-  const cwd = url.searchParams.get("cwd") || process.cwd();
+  const cwd = await resolveTrustedCwd(url.searchParams.get("cwd"));
+  if (!cwd) return NextResponse.json({ error: "unknown cwd" }, { status: 400 });
   const data = await listAll(cwd);
   return NextResponse.json({ cwd, scopes: data });
 }
@@ -29,7 +31,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "invalid event" }, { status: 400 });
   if (!body?.group?.hooks?.length)
     return NextResponse.json({ error: "group.hooks required" }, { status: 400 });
-  const cwd = body.cwd || process.cwd();
+  const cwd = await resolveTrustedCwd(body.cwd);
+  if (!cwd) return NextResponse.json({ error: "unknown cwd" }, { status: 400 });
   await addGroup(body.scope, cwd, body.event, body.group);
   return NextResponse.json({ ok: true });
 }
@@ -49,7 +52,8 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ error: "invalid event" }, { status: 400 });
   if (typeof body.index !== "number")
     return NextResponse.json({ error: "index required" }, { status: 400 });
-  const cwd = body.cwd || process.cwd();
+  const cwd = await resolveTrustedCwd(body.cwd);
+  if (!cwd) return NextResponse.json({ error: "unknown cwd" }, { status: 400 });
   const ok = await removeGroup(body.scope, cwd, body.event, body.index);
   if (!ok) return NextResponse.json({ error: "not found" }, { status: 404 });
   return NextResponse.json({ ok: true });

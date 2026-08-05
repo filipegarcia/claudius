@@ -1,6 +1,6 @@
 import { promises as fs } from "node:fs";
 import { homedir } from "node:os";
-import { dirname, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import type { WorktreeSettings } from "@/lib/shared/worktree-settings";
 
 import { assertWithin } from "./safe-path";
@@ -142,6 +142,14 @@ export function isWorkflowSizeGuideline(v: unknown): v is WorkflowSizeGuideline 
   );
 }
 
+/**
+ * Monotonic suffix for `writeSettings`'s temp files. `Date.now()` alone is not
+ * enough: two writes landing in the same millisecond inside this process would
+ * pick the same temp name and interleave into it, reintroducing exactly the
+ * torn write the rename is there to prevent.
+ */
+let writeSeq = 0;
+
 export function pathFor(scope: SettingsScope, projectCwd: string): string {
   // assertWithin acts as the path-injection barrier on the projectCwd →
   // fs.* flow. The relative segment is always a constant string, so this
@@ -169,7 +177,22 @@ export async function writeSettings(
   next: ClaudeSettings,
 ): Promise<void> {
   const path = pathFor(scope, projectCwd);
-  await fs.mkdir(dirname(path), { recursive: true });
+  const dir = dirname(path);
+  await fs.mkdir(dir, { recursive: true });
+  const body = JSON.stringify(next, null, 2) + "\n";
+  // `lstat`, not `stat` — we need to know whether the destination is itself a
+  // symlink before deciding how to write it.
+  const st = await fs.lstat(path).catch(() => null);
+  if (st?.isSymbolicLink()) {
+    // `~/.claude/settings.json` symlinked into a dotfiles repo is a common
+    // setup, and `rename` would replace the link with a regular file —
+    // quietly severing it, so the user's dotfiles stop tracking their
+    // settings. Write through the link instead. That gives up atomicity for
+    // this one case, but it's the behavior these users already had, and a
+    // broken symlink is far worse than the rare torn read.
+    await fs.writeFile(path, body, "utf8");
+    return;
+  }
   // Write to a sibling temp file and rename into place instead of writing
   // `path` directly. `fs.writeFile` truncates the target before writing its
   // content, so a concurrent readSettings() racing a writeSettings() call
@@ -178,10 +201,30 @@ export async function writeSettings(
   // end of JSON input` out of JSON.parse. `rename` is atomic on the same
   // filesystem, so readers only ever see the old complete file or the new
   // complete file, never a torn write.
-  const tmpPath = `${path}.tmp-${process.pid}-${Date.now()}`;
-  // Pretty-print with 2 spaces, matches Claude Code conventions.
-  await fs.writeFile(tmpPath, JSON.stringify(next, null, 2) + "\n", "utf8");
-  await fs.rename(tmpPath, path);
+  //
+  // The temp name goes back through `assertWithin` rather than being built by
+  // string concatenation off `path`: concatenating onto a sanitized path
+  // produces a fresh value that CodeQL no longer considers sanitized, and
+  // `js/path-injection` fires on the writeFile/rename sinks below. The
+  // relative segment here is entirely constant-shaped (basename + pid +
+  // counter), so this is the same "stays inside the .claude dir" guard
+  // `pathFor` applies.
+  const tmpPath = assertWithin(dir, `.${basename(path)}.tmp-${process.pid}-${writeSeq++}`);
+  // Preserve the mode of an existing settings.json — rename replaces the
+  // inode, so without this a user who chmod'd the file (it can hold
+  // `apiKeyHelper` and `env` secrets) would silently get default 0644 back.
+  const mode = st ? st.mode & 0o777 : undefined;
+  try {
+    // Pretty-print with 2 spaces, matches Claude Code conventions.
+    await fs.writeFile(tmpPath, body, "utf8");
+    if (mode !== undefined) await fs.chmod(tmpPath, mode);
+    await fs.rename(tmpPath, path);
+  } catch (err) {
+    // Don't leave a stray temp file behind in the user's .claude dir if the
+    // write or the rename failed.
+    await fs.rm(tmpPath, { force: true }).catch(() => {});
+    throw err;
+  }
 }
 
 export async function updatePermissions(

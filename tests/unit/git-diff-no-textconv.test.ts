@@ -23,19 +23,31 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { getDiff, getDiffForCommit, diffBranchAgainstWorktree } from "@/lib/server/git";
 
+function gitEnv(): NodeJS.ProcessEnv {
+  // Strip every GIT_* var before spawning. Git hooks (this repo runs unit
+  // tests from pre-commit) export GIT_INDEX_FILE / GIT_DIR pointing at the
+  // *outer* repo, which makes git operations inside these throwaway repos
+  // fail with "index file open failed". Also pin config to /dev/null so a
+  // developer's global `commit.gpgsign` or `core.hooksPath` can't break the
+  // fixture locally while CI stays green.
+  const env = { ...process.env };
+  for (const k of Object.keys(env)) {
+    if (k.startsWith("GIT_")) delete env[k];
+  }
+  return {
+    ...env,
+    GIT_AUTHOR_NAME: "test",
+    GIT_AUTHOR_EMAIL: "test@example.com",
+    GIT_COMMITTER_NAME: "test",
+    GIT_COMMITTER_EMAIL: "test@example.com",
+    GIT_TERMINAL_PROMPT: "0",
+    GIT_CONFIG_GLOBAL: "/dev/null",
+    GIT_CONFIG_SYSTEM: "/dev/null",
+  };
+}
+
 function gitSync(args: string[], cwd: string): string {
-  return execFileSync("git", args, {
-    cwd,
-    encoding: "utf8",
-    env: {
-      ...process.env,
-      GIT_AUTHOR_NAME: "test",
-      GIT_AUTHOR_EMAIL: "test@example.com",
-      GIT_COMMITTER_NAME: "test",
-      GIT_COMMITTER_EMAIL: "test@example.com",
-      GIT_TERMINAL_PROMPT: "0",
-    },
-  }).trim();
+  return execFileSync("git", args, { cwd, encoding: "utf8", env: gitEnv() }).trim();
 }
 
 const REDACTED = "REDACTED BY TEXTCONV DRIVER";

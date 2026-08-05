@@ -1115,8 +1115,12 @@ export async function compareBranches(
       ["log", "--oneline", "--no-color", `${head}..${base}`],
       root,
     );
+    // `--no-textconv` — the +/- counts here are computed from whatever git
+    // diffed, so a workspace-configured textconv driver would make the
+    // summary report churn that has nothing to do with the real blobs. Same
+    // reasoning as `getDiff`/`diffBranchAgainstWorktree`.
     const stat = await git(
-      ["diff", "--stat", "--no-color", `${base}...${head}`],
+      ["diff", "--stat", "--no-color", "--no-textconv", `${base}...${head}`],
       root,
     );
     const aheadList = ahead.stdout.trim();

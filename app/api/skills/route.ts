@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { listSkills, readSkill, writeSkill, type SkillScope } from "@/lib/server/skills";
+import { resolveTrustedCwd } from "@/lib/server/trusted-cwd";
 
 export const runtime = "nodejs";
 
@@ -7,7 +8,8 @@ const SCOPES: SkillScope[] = ["user", "project"];
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
-  const cwd = url.searchParams.get("cwd") || process.cwd();
+  const cwd = await resolveTrustedCwd(url.searchParams.get("cwd"));
+  if (!cwd) return NextResponse.json({ error: "unknown cwd" }, { status: 400 });
   const scope = url.searchParams.get("scope") as SkillScope | null;
   const name = url.searchParams.get("name");
   if (scope && name) {
@@ -34,7 +36,8 @@ export async function PUT(req: Request) {
   if (!body?.name) return NextResponse.json({ error: "name required" }, { status: 400 });
   if (typeof body.raw !== "string")
     return NextResponse.json({ error: "raw content required" }, { status: 400 });
-  const cwd = body.cwd || process.cwd();
+  const cwd = await resolveTrustedCwd(body.cwd);
+  if (!cwd) return NextResponse.json({ error: "unknown cwd" }, { status: 400 });
   try {
     await writeSkill(body.scope, cwd, body.name, body.raw);
   } catch (err) {

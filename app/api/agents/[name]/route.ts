@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { deleteAgent, type AgentScope } from "@/lib/server/agents";
 import { sessionManager } from "@/lib/server/session-manager";
+import { resolveTrustedCwd } from "@/lib/server/trusted-cwd";
 
 export const runtime = "nodejs";
 
@@ -10,7 +11,8 @@ export async function DELETE(req: Request, ctx: { params: Promise<{ name: string
   const { name } = await ctx.params;
   const url = new URL(req.url);
   const scope = url.searchParams.get("scope") as AgentScope | null;
-  const cwd = url.searchParams.get("cwd") || process.cwd();
+  const cwd = await resolveTrustedCwd(url.searchParams.get("cwd"));
+  if (!cwd) return NextResponse.json({ error: "unknown cwd" }, { status: 400 });
   if (!scope || !SCOPES.includes(scope))
     return NextResponse.json({ error: "invalid scope" }, { status: 400 });
   const ok = await deleteAgent(scope, cwd, name);

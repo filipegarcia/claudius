@@ -28,10 +28,16 @@ vi.mock("@/lib/server/active-customization", () => ({
 vi.mock("@/lib/server/customizations-store", () => ({
   customizationSrcDir: vi.fn(() => "/tmp/customization-src"),
   customizationsRoot: vi.fn(() => "/tmp/customizations"),
+  // Reached via the route's trusted-cwd guard, which builds its allowlist
+  // from the workspace + customization stores.
+  listCustomizations: vi.fn().mockResolvedValue([]),
 }));
 vi.mock("@/lib/server/workspaces-store", () => ({
   getWorkspace: vi.fn().mockResolvedValue(null),
-  listWorkspaces: vi.fn().mockResolvedValue([]),
+  // `/tmp/proj` has to be a registered workspace for the route's trusted-cwd
+  // guard to accept it — an unregistered cwd is now a 400 before any of the
+  // resume validation under test runs.
+  listWorkspaces: vi.fn().mockResolvedValue([{ id: "wks_fixture", rootPath: "/tmp/proj", defaults: {} }]),
 }));
 vi.mock("@/lib/server/sessions-store", () => ({
   info: vi.fn().mockResolvedValue(null),

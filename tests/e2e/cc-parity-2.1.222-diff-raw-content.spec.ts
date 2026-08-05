@@ -46,6 +46,13 @@ function gitSync(args: string[], cwd: string): string {
       GIT_COMMITTER_NAME: "test",
       GIT_COMMITTER_EMAIL: "test@example.com",
       GIT_TERMINAL_PROMPT: "0",
+      // Isolate from the developer's own git config — a global
+      // `commit.gpgsign = true` or a `core.hooksPath` would otherwise make
+      // this setup fail locally while passing in CI. The textconv driver is
+      // written to the repo's *local* config, so the Claudius server process
+      // (which has no such override) still picks it up.
+      GIT_CONFIG_GLOBAL: "/dev/null",
+      GIT_CONFIG_SYSTEM: "/dev/null",
     },
   }).trim();
 }

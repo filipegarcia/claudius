@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { setDisableAllHooks } from "@/lib/server/hooks";
 import type { SettingsScope } from "@/lib/server/settings";
+import { resolveTrustedCwd } from "@/lib/server/trusted-cwd";
 
 export const runtime = "nodejs";
 
@@ -12,7 +13,8 @@ export async function POST(req: Request) {
   const body = (await req.json()) as Body;
   if (!body?.scope || !SCOPES.includes(body.scope))
     return NextResponse.json({ error: "invalid scope" }, { status: 400 });
-  const cwd = body.cwd || process.cwd();
+  const cwd = await resolveTrustedCwd(body.cwd);
+  if (!cwd) return NextResponse.json({ error: "unknown cwd" }, { status: 400 });
   await setDisableAllHooks(body.scope, cwd, !!body.disabled);
   return NextResponse.json({ ok: true });
 }
