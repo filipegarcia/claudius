@@ -170,8 +170,18 @@ export async function writeSettings(
 ): Promise<void> {
   const path = pathFor(scope, projectCwd);
   await fs.mkdir(dirname(path), { recursive: true });
+  // Write to a sibling temp file and rename into place instead of writing
+  // `path` directly. `fs.writeFile` truncates the target before writing its
+  // content, so a concurrent readSettings() racing a writeSettings() call
+  // (e.g. two API requests landing close together) could observe a
+  // zero-byte or partially-written file and throw `SyntaxError: Unexpected
+  // end of JSON input` out of JSON.parse. `rename` is atomic on the same
+  // filesystem, so readers only ever see the old complete file or the new
+  // complete file, never a torn write.
+  const tmpPath = `${path}.tmp-${process.pid}-${Date.now()}`;
   // Pretty-print with 2 spaces, matches Claude Code conventions.
-  await fs.writeFile(path, JSON.stringify(next, null, 2) + "\n", "utf8");
+  await fs.writeFile(tmpPath, JSON.stringify(next, null, 2) + "\n", "utf8");
+  await fs.rename(tmpPath, path);
 }
 
 export async function updatePermissions(
