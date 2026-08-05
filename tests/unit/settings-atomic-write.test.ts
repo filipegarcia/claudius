@@ -24,7 +24,18 @@
  *      `env` secrets, and silently widening 0600 → 0644 would be a real
  *      (if quiet) regression.
  */
-import { chmodSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from "node:fs";
+import {
+  chmodSync,
+  lstatSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -71,6 +82,22 @@ describe("writeSettings", () => {
     // Each concurrent write must have had its own temp file — two writers
     // sharing one temp name would interleave into a corrupt document.
     expect(() => JSON.parse(readFileSync(settingsPath(), "utf8"))).not.toThrow();
+  });
+
+  test("writes through a symlinked settings.json instead of replacing the link", async () => {
+    // `~/.claude/settings.json` symlinked into a dotfiles repo is a common
+    // setup; rename would sever it and the user's dotfiles would silently
+    // stop tracking their settings.
+    const real = join(cwd, "dotfiles-settings.json");
+    writeFileSync(real, "{}\n");
+    mkdirSync(join(cwd, ".claude"), { recursive: true });
+    symlinkSync(real, settingsPath());
+
+    await writeSettings("project", cwd, { model: "via-symlink" });
+
+    expect(lstatSync(settingsPath()).isSymbolicLink()).toBe(true);
+    expect(JSON.parse(readFileSync(real, "utf8"))).toEqual({ model: "via-symlink" });
+    expect(await readSettings("project", cwd)).toEqual({ model: "via-symlink" });
   });
 
   test("preserves the mode of an existing settings.json across the rename", async () => {

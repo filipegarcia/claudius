@@ -179,6 +179,20 @@ export async function writeSettings(
   const path = pathFor(scope, projectCwd);
   const dir = dirname(path);
   await fs.mkdir(dir, { recursive: true });
+  const body = JSON.stringify(next, null, 2) + "\n";
+  // `lstat`, not `stat` — we need to know whether the destination is itself a
+  // symlink before deciding how to write it.
+  const st = await fs.lstat(path).catch(() => null);
+  if (st?.isSymbolicLink()) {
+    // `~/.claude/settings.json` symlinked into a dotfiles repo is a common
+    // setup, and `rename` would replace the link with a regular file —
+    // quietly severing it, so the user's dotfiles stop tracking their
+    // settings. Write through the link instead. That gives up atomicity for
+    // this one case, but it's the behavior these users already had, and a
+    // broken symlink is far worse than the rare torn read.
+    await fs.writeFile(path, body, "utf8");
+    return;
+  }
   // Write to a sibling temp file and rename into place instead of writing
   // `path` directly. `fs.writeFile` truncates the target before writing its
   // content, so a concurrent readSettings() racing a writeSettings() call
@@ -199,13 +213,10 @@ export async function writeSettings(
   // Preserve the mode of an existing settings.json — rename replaces the
   // inode, so without this a user who chmod'd the file (it can hold
   // `apiKeyHelper` and `env` secrets) would silently get default 0644 back.
-  const mode = await fs.stat(path).then(
-    (s) => s.mode & 0o777,
-    () => undefined,
-  );
+  const mode = st ? st.mode & 0o777 : undefined;
   try {
     // Pretty-print with 2 spaces, matches Claude Code conventions.
-    await fs.writeFile(tmpPath, JSON.stringify(next, null, 2) + "\n", "utf8");
+    await fs.writeFile(tmpPath, body, "utf8");
     if (mode !== undefined) await fs.chmod(tmpPath, mode);
     await fs.rename(tmpPath, path);
   } catch (err) {
