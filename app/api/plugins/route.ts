@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { listAll, setEnabled, setMarketplaces } from "@/lib/server/plugins";
 import { sessionManager } from "@/lib/server/session-manager";
 import type { SettingsScope } from "@/lib/server/settings";
+import { resolveTrustedCwd } from "@/lib/server/trusted-cwd";
 
 export const runtime = "nodejs";
 
@@ -9,7 +10,8 @@ const SCOPES: SettingsScope[] = ["user", "project", "local"];
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
-  const cwd = url.searchParams.get("cwd") || process.cwd();
+  const cwd = await resolveTrustedCwd(url.searchParams.get("cwd"));
+  if (!cwd) return NextResponse.json({ error: "unknown cwd" }, { status: 400 });
   const sessionId = url.searchParams.get("sessionId");
   const scopes = await listAll(cwd);
 
@@ -53,7 +55,8 @@ export async function POST(req: Request) {
   const body = (await req.json()) as PostBody;
   if (!body?.scope || !SCOPES.includes(body.scope))
     return NextResponse.json({ error: "invalid scope" }, { status: 400 });
-  const cwd = body.cwd || process.cwd();
+  const cwd = await resolveTrustedCwd(body.cwd);
+  if (!cwd) return NextResponse.json({ error: "unknown cwd" }, { status: 400 });
   if (body.kind === "toggle") {
     if (!body.pluginId)
       return NextResponse.json({ error: "pluginId required" }, { status: 400 });

@@ -7,6 +7,7 @@ import {
   writeScope,
   type ClaudeMdScope,
 } from "@/lib/server/claudemd";
+import { resolveTrustedCwd } from "@/lib/server/trusted-cwd";
 
 export const runtime = "nodejs";
 
@@ -14,7 +15,8 @@ const SCOPES: ClaudeMdScope[] = ["user", "project", "project-claude", "local"];
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
-  const cwd = url.searchParams.get("cwd") || process.cwd();
+  const cwd = await resolveTrustedCwd(url.searchParams.get("cwd"));
+  if (!cwd) return NextResponse.json({ error: "unknown cwd" }, { status: 400 });
   const scope = url.searchParams.get("scope") as ClaudeMdScope | null;
   const resolved = url.searchParams.get("resolved") === "1";
 
@@ -45,7 +47,8 @@ export async function PUT(req: Request) {
   if (typeof body.content !== "string") {
     return NextResponse.json({ error: "content required" }, { status: 400 });
   }
-  const cwd = body.cwd || process.cwd();
+  const cwd = await resolveTrustedCwd(body.cwd);
+  if (!cwd) return NextResponse.json({ error: "unknown cwd" }, { status: 400 });
   await writeScope(body.scope, cwd, body.content);
   return NextResponse.json({ ok: true, path: pathFor(body.scope, cwd) });
 }

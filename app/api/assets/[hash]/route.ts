@@ -1,13 +1,15 @@
 import { NextResponse } from "next/server";
 import { deleteAsset, readAsset } from "@/lib/server/asset-store";
 import { deleteAssetRow, getAssetMeta } from "@/lib/server/asset-list";
+import { resolveTrustedCwd } from "@/lib/server/trusted-cwd";
 
 export const runtime = "nodejs";
 
 export async function GET(req: Request, ctx: { params: Promise<{ hash: string }> }) {
   const { hash } = await ctx.params;
   const url = new URL(req.url);
-  const cwd = url.searchParams.get("cwd") || process.cwd();
+  const cwd = await resolveTrustedCwd(url.searchParams.get("cwd"));
+  if (!cwd) return NextResponse.json({ error: "unknown cwd" }, { status: 400 });
   const meta = await getAssetMeta(cwd, hash);
   if (!meta) return NextResponse.json({ error: "not found" }, { status: 404 });
   const buf = await readAsset(cwd, hash, meta.mediaType);
@@ -25,7 +27,8 @@ export async function GET(req: Request, ctx: { params: Promise<{ hash: string }>
 export async function DELETE(req: Request, ctx: { params: Promise<{ hash: string }> }) {
   const { hash } = await ctx.params;
   const url = new URL(req.url);
-  const cwd = url.searchParams.get("cwd") || process.cwd();
+  const cwd = await resolveTrustedCwd(url.searchParams.get("cwd"));
+  if (!cwd) return NextResponse.json({ error: "unknown cwd" }, { status: 400 });
   const meta = await getAssetMeta(cwd, hash);
   if (!meta) return NextResponse.json({ error: "not found" }, { status: 404 });
   await deleteAsset(cwd, hash, meta.mediaType).catch(() => {});
