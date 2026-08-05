@@ -34,6 +34,13 @@ function gitSync(args: string[], cwd: string): string {
       GIT_COMMITTER_NAME: "test",
       GIT_COMMITTER_EMAIL: "test@example.com",
       GIT_TERMINAL_PROMPT: "0",
+      // Isolate from the developer's own git config — a global
+      // `commit.gpgsign = true` or a `core.hooksPath` would otherwise make
+      // these setup commands fail locally while passing in CI. The textconv
+      // driver below is written to the repo's *local* config, so Claudius's
+      // own git invocations (separate process, no env override) still see it.
+      GIT_CONFIG_GLOBAL: "/dev/null",
+      GIT_CONFIG_SYSTEM: "/dev/null",
     },
   }).trim();
 }
