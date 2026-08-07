@@ -238,10 +238,18 @@ update-logs:
 update-install-cron:
 	@ROOT="$$(pwd)"; \
 	mkdir -p "$$ROOT/.claudius/logs"; \
-	LINE="0 * * * * $$ROOT/scripts/update-pipeline.sh >> $$ROOT/.claudius/logs/update-pipeline.log 2>&1"; \
+	LINE="0 * * * * $$ROOT/scripts/update-pipeline.sh >/dev/null 2>&1"; \
 	TMP="$$(mktemp)"; \
 	crontab -l 2>/dev/null > "$$TMP" || true; \
-	if grep -qF "scripts/update-pipeline.sh" "$$TMP"; then \
+	if grep -qF "scripts/update-pipeline.sh" "$$TMP" && grep -qF "update-pipeline.log" "$$TMP"; then \
+		grep -vF "scripts/update-pipeline.sh" "$$TMP" > "$$TMP.new"; \
+		echo "$$LINE" >> "$$TMP.new"; \
+		crontab "$$TMP.new"; \
+		mv -f "$$TMP.new" "$$TMP"; \
+		echo "✓ migrated the legacy entry: update-pipeline.sh now writes the log itself,"; \
+		echo "  so the cron line no longer redirects into it (that would double every line)."; \
+		echo "  now: $$LINE"; \
+	elif grep -qF "scripts/update-pipeline.sh" "$$TMP"; then \
 		echo "✓ crontab already contains the combined update-pipeline entry — leaving it alone"; \
 	else \
 		echo "$$LINE" >> "$$TMP"; \
