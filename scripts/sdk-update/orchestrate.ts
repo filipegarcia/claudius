@@ -74,6 +74,7 @@
 
 import { spawn, spawnSync, type SpawnOptions } from "node:child_process";
 import {
+  appendFileSync,
   existsSync,
   mkdirSync,
   readFileSync,
@@ -145,12 +146,36 @@ const MAX_IDLE_MS = Number(process.env.SDK_UPDATE_MAX_IDLE_MIN ?? "15") * 60_000
 // loop (one CI check, then ship-or-report).
 const MAX_CI_FIX_ATTEMPTS = Number(process.env.SDK_UPDATE_MAX_CI_FIX ?? "3");
 
+// How many times runClaude re-issues query() after a TRANSIENT failure
+// (API/transport error, dead tool stream, empty iterator) before giving
+// up and handing the run to the draft-PR / needs-human path. Deterministic
+// stops — turn budget, wall clock, idle watchdog — are never retried; see
+// classifyAttemptStop(). Default 2 (so up to 3 attempts total); 0 restores
+// the old one-shot behaviour.
+//
+// This exists because 0.3.224 (2026-08-07) died on "API Error: Response
+// stalled mid-stream" 21 turns in. The SDK reports that in the terminal
+// `result` envelope (is_error=true, terminal_reason="api_error") and then
+// closes the iterator cleanly, so before this the run counted as a
+// success: the gate ran against an untouched tree and the run notes
+// shipped as an unfilled template.
+const MAX_API_RETRIES = Number(process.env.SDK_UPDATE_MAX_API_RETRIES ?? "2");
+// Backoff before the first retry; doubles each subsequent attempt.
+const RETRY_BACKOFF_MS = Number(process.env.SDK_UPDATE_RETRY_BACKOFF_SEC ?? "30") * 1000;
+// Don't start a retry that can't plausibly get anywhere: a fresh attempt
+// re-does the exploration phase from scratch, so with less than this much
+// of the wall budget left we stop and report instead.
+const MIN_RETRY_REMAINING_MS = 15 * 60_000;
+
 // ── Logging ───────────────────────────────────────────────────────────
 
 function log(line: string): void {
   // ISO timestamp keeps cron-log forensics easy.
   console.log(`[sdk-update/orchestrate ${new Date().toISOString()}] ${line}`);
 }
+
+const sleep = (ms: number): Promise<void> =>
+  new Promise((res) => setTimeout(res, ms));
 
 function fatal(line: string): never {
   console.error(`[sdk-update/orchestrate FATAL] ${line}`);
@@ -1138,7 +1163,69 @@ export function classifyToolResults(msg: unknown): {
  * the iterator drained naturally; `false` means we hit the budget
  * abort. The caller decides what to do with a budget-aborted run.
  */
-export async function runClaude(prompt: string, transcriptFile?: string): Promise<{
+/**
+ * Read the terminal `result` envelope and decide whether the run actually
+ * failed.
+ *
+ * This is the only place the SDK reports an API / transport failure: it
+ * does NOT throw, and the iterator closes normally right afterwards — so
+ * without this check a failed run is indistinguishable from a clean one.
+ * Verified against the real 0.3.224 envelope (2026-08-07):
+ *
+ *   { is_error: true, subtype: "success", terminal_reason: "api_error",
+ *     result: "API Error: Response stalled mid-stream. …" }
+ *
+ * Note `subtype` was **"success"** on that failure — `is_error` is the
+ * field to trust. The `subtype !== "success"` arm additionally catches
+ * `error_max_turns` / `error_during_execution`, which used to read as
+ * clean finishes too.
+ *
+ * Returns `null` when the run genuinely succeeded.
+ */
+export function classifyResultEnvelope(msg: unknown): {
+  reason: string;
+  retryable: boolean;
+} | null {
+  const r = (msg ?? {}) as {
+    is_error?: boolean;
+    subtype?: string;
+    result?: string;
+    terminal_reason?: string;
+  };
+  const failed =
+    r.is_error === true ||
+    (typeof r.subtype === "string" && r.subtype !== "success");
+  if (!failed) return null;
+
+  const text = typeof r.result === "string" ? r.result : "";
+  const detail = text ? `: ${text.slice(0, 300)}` : "";
+  // A blown turn budget is deterministic — retrying just burns another
+  // MAX_TURNS to land in the same place. Credential and quota failures are
+  // just as deterministic: they need a human, and hammering them three
+  // times only delays the report. Everything else at this layer is
+  // transport/API trouble, which is exactly what a fresh attempt fixes.
+  const deterministic =
+    r.subtype === "error_max_turns" || NON_RETRYABLE_RESULT_RE.test(text);
+  return {
+    reason:
+      `Claude ended in an error result (subtype=${r.subtype ?? "?"}` +
+      `${r.terminal_reason ? `, terminal_reason=${r.terminal_reason}` : ""}` +
+      `, is_error=${r.is_error === true})${detail}`,
+    retryable: !deterministic,
+  };
+}
+
+/**
+ * Result-text signatures that no amount of retrying will fix — they need a
+ * human to re-auth or top up. The OAuth one is verbatim from a real
+ * envelope observed on 2026-08-07:
+ *   "Failed to authenticate: OAuth session expired and could not be refreshed"
+ * Retrying that just burns the backoff and delays the needs-human report.
+ */
+const NON_RETRYABLE_RESULT_RE =
+  /failed to authenticate|oauth session expired|invalid api key|authentication_error|credit balance is too low|insufficient (credit|quota)/i;
+
+export type ClaudeRunResult = {
   completed: boolean;
   turnCount: number;
   wallMs: number;
@@ -1150,9 +1237,37 @@ export async function runClaude(prompt: string, transcriptFile?: string): Promis
    * conversation with `claude --resume <sessionId>` from the repo root.
    * `null` if the iterator closed before emitting any message with a
    * `session_id` (e.g. the 0-message auth-failure mode).
+   *
+   * When runClaude retried, this is the LAST attempt's session — the one
+   * a human picking the run up should resume.
    */
   sessionId: string | null;
-}> {
+  /**
+   * True when `budgetReason` describes a TRANSIENT failure (API/transport
+   * error, dead tool stream, empty iterator) rather than a deterministic
+   * stop (turn budget, wall clock, idle watchdog). Drives the retry loop
+   * in `runClaude`; on the value that loop finally returns it means "we
+   * exhausted the retries", not "worth another go".
+   */
+  retryable: boolean;
+  /** How many query() attempts it took. 1 = no retry was needed. */
+  attempts: number;
+};
+
+/**
+ * One query() pass. Callers want `runClaude` (below), which layers the
+ * transient-failure retry loop on top of this.
+ *
+ * `opts.deadline` shares one wall-clock budget across retries; `opts.append`
+ * keeps a retry from truncating the previous attempt's transcript;
+ * `opts.resumeSessionId` continues a cut-off session instead of starting
+ * the prompt over from scratch.
+ */
+async function runClaudeOnce(
+  prompt: string,
+  transcriptFile: string | undefined,
+  opts: { deadline?: number; append?: boolean; resumeSessionId?: string | null } = {},
+): Promise<ClaudeRunResult> {
   // Importable check ahead of any orchestration. If the freshly-
   // installed SDK fails to load, throw a useful error instead of a
   // silent empty-iterator (the 0-byte-transcript symptom seen on
@@ -1184,10 +1299,14 @@ export async function runClaude(prompt: string, transcriptFile?: string): Promis
   const query = sdk.query;
 
   const startedAt = Date.now();
-  const deadline = startedAt + MAX_WALL_MS;
+  // Shared across retries when the caller passes one, so three attempts
+  // can't add up to three times the wall budget.
+  const deadline = opts.deadline ?? startedAt + MAX_WALL_MS;
   let turnCount = 0;
   let completed = false;
   let budgetReason: string | null = null;
+  // Set alongside every budgetReason below. See ClaudeRunResult.retryable.
+  let retryable = false;
   // First-seen SDK session UUID. Every SDKMessage carries `session_id`;
   // we latch the first one so the PR body can print a `claude --resume`
   // handle for the human who picks the run up.
@@ -1202,8 +1321,10 @@ export async function runClaude(prompt: string, transcriptFile?: string): Promis
     // Truncate any prior transcript for this version so re-runs start
     // fresh. We don't care about preserving the old one — if the
     // operator wants forensics on a previous run they should copy the
-    // file aside before retrying.
-    writeFileSync(transcriptFile, "");
+    // file aside before retrying. `append` (set for retry attempts within
+    // ONE run) keeps the failed attempt that triggered the retry, so the
+    // transcript reads as one continuous post-mortem.
+    if (!opts.append) writeFileSync(transcriptFile, "");
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const fs = require("node:fs") as typeof import("node:fs");
     transcriptFd = fs.openSync(transcriptFile, "a");
@@ -1248,11 +1369,39 @@ export async function runClaude(prompt: string, transcriptFile?: string): Promis
     updatedInput: input,
   });
 
+  // On a retry we continue the cut-off session rather than replaying the
+  // whole prompt: a transport failure 300 turns into a 4h run would
+  // otherwise throw all of it away, and the cold restart may not even fit
+  // in what's left of the shared wall budget. The continuation prompt is
+  // deliberately short — everything the agent needs is already in the
+  // resumed context, and re-pasting the 30KB prompt on top of it just
+  // invites it to start over.
+  const resuming = Boolean(opts.resumeSessionId);
+  const turnPrompt = resuming
+    ? [
+        "Your previous turn was cut off by an API/transport error, not by anything you did wrong.",
+        "",
+        "Pick up exactly where you left off. Before writing anything new:",
+        "  1. Re-check `git status` and `git diff main...HEAD` — some of your work may already be committed.",
+        "  2. Re-read the run-notes file you were told to maintain; treat what's there as done.",
+        "",
+        "Then continue the task through to completion, including the run-notes sections that are still placeholders.",
+      ].join("\n")
+    : prompt;
+  if (resuming) {
+    log(`resuming session ${opts.resumeSessionId} instead of replaying the prompt`);
+  }
+
   const q = query({
-    prompt,
+    prompt: turnPrompt,
     options: {
       cwd: ROOT,
       model: MODEL,
+      // Set only on a retry. The bundled CLI reads the session from its
+      // own store under ~/.claude/projects/<cwd-hash>/; if it can't find
+      // it the run yields 0 messages, which runClaude's ladder treats as
+      // "resume failed" and answers with a cold restart.
+      ...(opts.resumeSessionId ? { resume: opts.resumeSessionId } : {}),
       // Default permission mode — every tool call routes through
       // canUseTool, which we wire to autoApprove below.
       permissionMode: "default",
@@ -1331,6 +1480,10 @@ export async function runClaude(prompt: string, transcriptFile?: string): Promis
         // (or stay stuck, in which case the wall-clock cap eventually fires).
       });
       budgetReason = `idle timeout (no SDK message in ${min} min; last was: ${lastMsgSummary})`;
+      // Deliberately NOT retryable: something hung for 15 minutes, and a
+      // fresh attempt would most likely hang on the same thing for another
+      // 15. A human should look at what `lastMsgSummary` was doing.
+      retryable = false;
     } else if (idle > MAX_IDLE_MS / 2 && !warnedSlow) {
       warnedSlow = true;
       log(`note: no SDK message in ${Math.round(idle / 60_000)}min (last was: ${lastMsgSummary}); idle timeout at ${Math.round(MAX_IDLE_MS / 60_000)}min`);
@@ -1352,6 +1505,23 @@ export async function runClaude(prompt: string, transcriptFile?: string): Promis
       appendTranscript(msg);
       log(`claude msg #${turnCount} ${summary}`);
       if (idleTimedOut) break;
+      // Terminal result envelope. THIS is where the SDK reports an API /
+      // transport failure — it does not throw, and the iterator closes
+      // normally right afterwards, so without this check a failed run
+      // reads as a clean finish. Observed on 0.3.224 (2026-08-07):
+      //   is_error=true, subtype="success", terminal_reason="api_error",
+      //   result="API Error: Response stalled mid-stream."
+      // Note `subtype` was "success" on that failure, so is_error is the
+      // signal to trust; `subtype !== "success"` additionally catches
+      // error_max_turns / error_during_execution.
+      if (m.type === "result" && !budgetReason) {
+        const failure = classifyResultEnvelope(msg);
+        if (failure) {
+          budgetReason = failure.reason;
+          retryable = failure.retryable;
+          log(`Claude run failed: ${budgetReason}`);
+        }
+      }
       // Dead tool-stream fast-abort. Cumulative — reads stay alive when
       // the write channel dies, so we must NOT reset on successful tool
       // calls or the counter never trips (see DEAD_STREAM_ABORT_THRESHOLD).
@@ -1362,6 +1532,10 @@ export async function runClaude(prompt: string, transcriptFile?: string): Promis
           `dead tool-execution stream — ${deadStreamTotal} "Stream closed" ` +
           `tool errors this run. The SDK's write channel is broken; aborting ` +
           `rather than burning the turn budget on a run that cannot land an edit.`;
+        // Retryable: the broken write channel belongs to THIS query()'s
+        // CLI subprocess, so a fresh attempt gets a fresh stream. This is
+        // the failure that burned an entire cc-parity firing (2.1.197).
+        retryable = true;
         log(`aborting Claude run: ${budgetReason}`);
         try {
           await q.interrupt?.();
@@ -1372,6 +1546,7 @@ export async function runClaude(prompt: string, transcriptFile?: string): Promis
       }
       if (Date.now() > deadline) {
         budgetReason = `wall-clock budget exhausted (${Math.round(MAX_WALL_MS / 60_000)} min)`;
+        retryable = false; // no budget left to retry into
         log(`aborting Claude run: ${budgetReason}`);
         try {
           await q.interrupt?.();
@@ -1381,7 +1556,6 @@ export async function runClaude(prompt: string, transcriptFile?: string): Promis
         break;
       }
     }
-    completed = budgetReason === null;
     if (turnCount === 0) {
       // Empty iterator with no thrown error = silent failure mode.
       // Most common causes: bundled CLI couldn't authenticate, the
@@ -1393,11 +1567,25 @@ export async function runClaude(prompt: string, transcriptFile?: string): Promis
         `Claude produced 0 messages — iterator closed without yielding. ` +
         `Check the per-version transcript and the cron log for stderr lines from the bundled CLI ` +
         `(common causes: auth not found, model alias rejected, CLI version mismatch).`;
+      // Cheap to retry (an empty run costs seconds), and a failed CLI
+      // spawn is often transient. A real auth failure just fails again
+      // and reaches the same needs-human path a few seconds later.
+      retryable = true;
       log(`WARN ${budgetReason}`);
     }
+    completed = budgetReason === null;
   } catch (err) {
     log(`claude iterator threw: ${err instanceof Error ? err.message : String(err)}`);
-    budgetReason = `iterator error: ${err instanceof Error ? err.message : String(err)}`;
+    // Do NOT clobber a reason the result envelope already gave us. The SDK
+    // emits the error result and THEN throws (observed on the expired-OAuth
+    // failure, 2026-08-07), and the envelope carries the specific,
+    // correctly-classified cause — the rethrown message is the generic
+    // "Claude Code returned an error result" wrapper around it. Overwriting
+    // here would relabel a deterministic auth failure as a retryable one.
+    if (!budgetReason) {
+      budgetReason = `iterator error: ${err instanceof Error ? err.message : String(err)}`;
+      retryable = true; // network / subprocess death — a fresh attempt may well work
+    }
   } finally {
     clearInterval(idleCheck);
     if (transcriptFd !== null) {
@@ -1417,7 +1605,143 @@ export async function runClaude(prompt: string, transcriptFile?: string): Promis
     wallMs: Date.now() - startedAt,
     budgetReason,
     sessionId,
+    retryable,
+    attempts: 1,
   };
+}
+
+/**
+ * Run Claude, retrying TRANSIENT failures.
+ *
+ * The retry lives here rather than in `run.sh` / `update-pipeline.sh` on
+ * purpose: re-running the shell wrapper would redo `bun install`, the
+ * version gate, the whole local gate suite, and risk a second push/PR for
+ * one dropped HTTP stream. Only the agent leg is worth re-issuing, and
+ * `prompt.md` is written to be resume-safe — it re-reads git state and
+ * the run-notes file first, so a fresh attempt picks up whatever the
+ * failed one already committed instead of starting over blind.
+ *
+ * Deterministic stops (turn budget, wall clock, idle watchdog) are NOT
+ * retried — see classify notes at each site in runClaudeOnce.
+ *
+ * All attempts share one wall-clock budget and one transcript file, so
+ * `MAX_WALL_MS` still bounds the total and the post-mortem stays in one
+ * place (attempt boundaries appear as `{type:"orchestrator",
+ * subtype:"retry"}` lines).
+ */
+export async function runClaude(
+  prompt: string,
+  transcriptFile?: string,
+): Promise<ClaudeRunResult> {
+  const startedAt = Date.now();
+  const deadline = startedAt + MAX_WALL_MS;
+  const maxAttempts = Math.max(1, MAX_API_RETRIES + 1);
+  let last: ClaudeRunResult | null = null;
+  let cumulativeTurns = 0;
+  // Latched across attempts — a retry that dies before its init message
+  // still leaves the human a resumable session id from an earlier attempt.
+  let lastSessionId: string | null = null;
+
+  // Resume ladder. A retry prefers to CONTINUE the cut-off session —
+  // that's the whole value of retrying a run that died 300 turns deep.
+  // But if the resume itself comes back empty (session not in the CLI's
+  // store, store wiped, SDK too old to honour `resume`), the next attempt
+  // falls back to a cold replay of the full prompt, which always works
+  // because prompt.md re-reads git state first.
+  let resumeSessionId: string | null = null;
+  let resumeFailed = false;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    if (attempt > 1) {
+      const backoffMs = RETRY_BACKOFF_MS * 2 ** (attempt - 2);
+      log(
+        `retrying Claude run (attempt ${attempt}/${maxAttempts}) after ${Math.round(backoffMs / 1000)}s ` +
+          `[${resumeSessionId ? "resume" : "cold restart"}] ` +
+          `— previous attempt stopped on: ${last?.budgetReason}`,
+      );
+      if (transcriptFile) {
+        appendFileSync(
+          transcriptFile,
+          JSON.stringify({
+            type: "orchestrator",
+            subtype: "retry",
+            attempt,
+            mode: resumeSessionId ? "resume" : "cold",
+            resumeSessionId,
+            previousReason: last?.budgetReason ?? null,
+            previousTurns: last?.turnCount ?? 0,
+          }) + "\n",
+        );
+      }
+      await sleep(backoffMs);
+    }
+
+    const result = await runClaudeOnce(prompt, transcriptFile, {
+      deadline,
+      append: attempt > 1,
+      resumeSessionId,
+    });
+
+    // A resume that yielded nothing means the session couldn't be picked
+    // up. Don't try the same session again — drop to a cold replay.
+    if (resumeSessionId && result.turnCount === 0) {
+      log(`resume of ${resumeSessionId} yielded 0 messages — next attempt replays the full prompt`);
+      resumeFailed = true;
+    }
+    cumulativeTurns += result.turnCount;
+    lastSessionId = result.sessionId ?? lastSessionId;
+    last = {
+      ...result,
+      // Report the whole run, not just the winning attempt: turns and
+      // wall-clock are what the budget announcements and PR body quote.
+      turnCount: cumulativeTurns,
+      wallMs: Date.now() - startedAt,
+      sessionId: lastSessionId,
+      attempts: attempt,
+    };
+
+    if (!result.budgetReason) return last; // clean finish
+    if (!result.retryable) return last; // deterministic stop — don't burn another attempt
+
+    // Decide how the NEXT attempt enters: continue this session when it
+    // got far enough to be worth continuing, otherwise replay cold.
+    resumeSessionId =
+      !resumeFailed && result.turnCount > 0 ? (result.sessionId ?? lastSessionId) : null;
+
+    if (attempt === maxAttempts) {
+      return {
+        ...last,
+        // Only worth saying when we actually retried — with retries
+        // disabled ("unchanged after 1 attempt") is just noise.
+        budgetReason:
+          attempt > 1
+            ? `${result.budgetReason} — unchanged after ${attempt} attempts`
+            : result.budgetReason,
+      };
+    }
+    const remainingMs = deadline - Date.now();
+    if (remainingMs < MIN_RETRY_REMAINING_MS) {
+      return {
+        ...last,
+        budgetReason:
+          `${result.budgetReason} — not retrying: only ${Math.round(remainingMs / 60_000)} min ` +
+          `of the ${Math.round(MAX_WALL_MS / 60_000)} min wall budget left`,
+      };
+    }
+  }
+
+  // Unreachable (the loop always returns), but keeps the types honest.
+  return (
+    last ?? {
+      completed: false,
+      turnCount: 0,
+      wallMs: Date.now() - startedAt,
+      budgetReason: "runClaude made no attempts",
+      sessionId: null,
+      retryable: false,
+      attempts: 0,
+    }
+  );
 }
 
 // ── Gate (lint / unit / build / e2e) ──────────────────────────────────
@@ -4207,7 +4531,7 @@ async function runFixPass(
   const claudeResult = await runClaude(prompt, txPath);
   log(
     `Claude (fix) exited: completed=${claudeResult.completed} turns=${claudeResult.turnCount}` +
-      ` wall=${Math.round(claudeResult.wallMs / 1000)}s`,
+      ` wall=${Math.round(claudeResult.wallMs / 1000)}s attempts=${claudeResult.attempts}`,
   );
 
   const gate = await runGate(skipGates);
@@ -4598,7 +4922,7 @@ async function main(): Promise<void> {
     const claudeResult = await runClaude(prompt, transcriptPath(newVersion));
     log(
       `Claude exited: completed=${claudeResult.completed} turns=${claudeResult.turnCount}` +
-        ` wall=${Math.round(claudeResult.wallMs / 1000)}s`,
+        ` wall=${Math.round(claudeResult.wallMs / 1000)}s attempts=${claudeResult.attempts}`,
     );
     budgetReason = claudeResult.budgetReason;
 

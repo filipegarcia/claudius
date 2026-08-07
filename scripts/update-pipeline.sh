@@ -48,6 +48,43 @@ export PATH="$HOME/.bun/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
 
 log() { printf '[update-pipeline %s] %s\n' "$(date -u +%FT%TZ)" "$*"; }
 
+# ── Self-logging ─────────────────────────────────────────────────────
+# EVERY firing persists its own output, whether it came from cron or
+# from `make update-run` by hand. Before this, a manual run's output
+# existed only in the operator's terminal scrollback: when the 0.3.224
+# firing (2026-08-07) died on an API stall there was nothing on disk to
+# read afterwards — `make update-logs` tailed a file that had never been
+# created, and the only forensics left were the SDK transcript and the
+# state JSON.
+#
+# Implemented as a re-exec through `tee` rather than `exec > >(tee …)`
+# so the parent waits on the pipeline: process substitution can lose the
+# final lines when the script exits, which is exactly the tail you need
+# after a crash. PIPESTATUS preserves the real exit code.
+#
+# The cron line therefore no longer redirects into this file — the
+# script owns it. `make update-install-cron` migrates a legacy
+# `>> …/update-pipeline.log` line automatically; if you keep your own
+# redirect into the same file, set UPDATE_PIPELINE_SELF_LOG=0 or every
+# line lands twice. (Detecting that case from inside the script is not
+# portable: on macOS `stat /dev/stdout` reports the device node, not the
+# redirect target, so there is nothing reliable to compare against.)
+LOG_FILE="${UPDATE_PIPELINE_LOG:-$ROOT/.claudius/logs/update-pipeline.log}"
+
+if [ "${UPDATE_PIPELINE_SELF_LOG:-1}" != "0" ] && [ -z "${UPDATE_PIPELINE_TEEING:-}" ]; then
+  mkdir -p "$(dirname "$LOG_FILE")"
+  touch "$LOG_FILE" 2>/dev/null || true
+  # One rotation at 16MB so an unattended host can't grow this forever.
+  _log_bytes="$(wc -c < "$LOG_FILE" 2>/dev/null | tr -d ' ')"
+  if [ "${_log_bytes:-0}" -gt 16777216 ]; then
+    mv -f "$LOG_FILE" "$LOG_FILE.1" 2>/dev/null || true
+    touch "$LOG_FILE" 2>/dev/null || true
+  fi
+  export UPDATE_PIPELINE_TEEING=1
+  "$0" "$@" 2>&1 | tee -a "$LOG_FILE"
+  exit "${PIPESTATUS[0]}"
+fi
+
 # ── Stale-process reaper ─────────────────────────────────────────────
 # The gate steps now self-timeout (shStreamCapture), but a stall OUTSIDE
 # a gate — a wedged git/gh/network call, or an orchestrate the OS froze

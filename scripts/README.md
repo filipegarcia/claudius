@@ -103,8 +103,14 @@ make update-install-cron
 `make update-install-cron` adds one idempotent crontab entry:
 
 ```
-0 * * * * /path/to/claudius/scripts/update-pipeline.sh >> /path/to/claudius/.claudius/logs/update-pipeline.log 2>&1
+0 * * * * /path/to/claudius/scripts/update-pipeline.sh >/dev/null 2>&1
 ```
+
+No redirect: the script writes `.claudius/logs/update-pipeline.log`
+itself (rotating once at 16MB), so **every** firing is on disk — cron or
+`make update-run` by hand. Re-running the installer migrates an older
+line that redirected into that file; keep your own redirect there only
+with `UPDATE_PIPELINE_SELF_LOG=0`, or each line lands twice.
 
 Inspect with `crontab -l`; remove with `make update-uninstall-cron`.
 
@@ -159,7 +165,7 @@ State and logs live under `.claudius/` (gitignored):
 ```
 .claudius/
 ├── run.lock.d                      # shared single-instance lock (both pipelines)
-├── logs/update-pipeline.log        # combined cron log
+├── logs/update-pipeline.log        # combined run log (cron AND manual), rotates at 16MB
 ├── sdk-updater/{env,state.json,logs/,run-notes/}
 └── cc-parity/{env,state.json,logs/,run-notes/}
 ```

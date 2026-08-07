@@ -14,6 +14,7 @@ import {
   buildShippedAnnouncement,
   buildStartAnnouncement,
   buildTestingAnnouncement,
+  classifyResultEnvelope,
   classifyToolResults,
   compareUrl,
   extractSection,
@@ -1413,5 +1414,104 @@ describe("shStreamCapture timeout", () => {
     const { code, timedOut } = await shStreamCapture("sh", ["-c", "exit 3"], {}, 80, 10_000);
     expect(timedOut).toBe(false);
     expect(code).toBe(3);
+  });
+});
+
+describe("classifyResultEnvelope", () => {
+  test("catches the real 0.3.224 stalled-stream envelope (is_error with subtype 'success')", () => {
+    // Verbatim shape from
+    // .claudius/sdk-updater/run-notes/0.3.224.transcript.jsonl (2026-08-07).
+    // The run died on a dropped API stream but the SDK still labelled the
+    // envelope subtype="success" — before this classifier the orchestrator
+    // read it as a clean finish, gated an untouched tree, and shipped an
+    // unfilled run-notes template.
+    const envelope = {
+      type: "result",
+      subtype: "success",
+      is_error: true,
+      terminal_reason: "api_error",
+      stop_reason: "stop_sequence",
+      num_turns: 21,
+      result: "API Error: Response stalled mid-stream. The response above may be incomplete.",
+    };
+    const failure = classifyResultEnvelope(envelope);
+    expect(failure).not.toBeNull();
+    expect(failure?.retryable).toBe(true);
+    expect(failure?.reason).toContain("terminal_reason=api_error");
+    expect(failure?.reason).toContain("stalled mid-stream");
+  });
+
+  test("a genuinely successful run classifies as no failure", () => {
+    expect(
+      classifyResultEnvelope({ type: "result", subtype: "success", is_error: false }),
+    ).toBeNull();
+  });
+
+  test("a blown turn budget is a failure but NOT retryable", () => {
+    // Deterministic: another attempt just burns MAX_TURNS again.
+    const failure = classifyResultEnvelope({
+      type: "result",
+      subtype: "error_max_turns",
+      is_error: true,
+    });
+    expect(failure?.retryable).toBe(false);
+  });
+
+  test("a non-success subtype is caught even when is_error is absent", () => {
+    const failure = classifyResultEnvelope({
+      type: "result",
+      subtype: "error_during_execution",
+    });
+    expect(failure?.retryable).toBe(true);
+    expect(failure?.reason).toContain("error_during_execution");
+  });
+
+  test("truncates a runaway result string instead of pasting it into the PR body", () => {
+    const failure = classifyResultEnvelope({
+      type: "result",
+      subtype: "success",
+      is_error: true,
+      result: "x".repeat(5000),
+    });
+    expect(failure?.reason.length).toBeLessThan(500);
+  });
+});
+
+describe("classifyResultEnvelope — deterministic failures are not retried", () => {
+  test("an expired OAuth session is a failure but NOT retryable", () => {
+    // Verbatim envelope observed on 2026-08-07 while probing the SDK.
+    // Same is_error/subtype shape as the stalled stream, but retrying it
+    // three times only delays the needs-human report.
+    const failure = classifyResultEnvelope({
+      type: "result",
+      subtype: "success",
+      is_error: true,
+      result: "Failed to authenticate: OAuth session expired and could not be refreshed",
+    });
+    expect(failure).not.toBeNull();
+    expect(failure?.retryable).toBe(false);
+  });
+
+  test("a low credit balance is not retryable either", () => {
+    expect(
+      classifyResultEnvelope({
+        type: "result",
+        subtype: "success",
+        is_error: true,
+        result: "Your credit balance is too low to access the Anthropic API.",
+      })?.retryable,
+    ).toBe(false);
+  });
+
+  test("a stalled stream stays retryable alongside those", () => {
+    expect(
+      classifyResultEnvelope({
+        type: "result",
+        subtype: "success",
+        is_error: true,
+        terminal_reason: "api_error",
+        result: "API Error: Response stalled mid-stream.",
+      })?.retryable,
+    ).toBe(true);
   });
 });
