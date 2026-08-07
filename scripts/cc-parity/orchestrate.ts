@@ -1094,7 +1094,7 @@ async function runFixPass(
   const claudeResult = await runClaude(prompt, txPath);
   log(
     `Claude (fix) exited: completed=${claudeResult.completed} turns=${claudeResult.turnCount}` +
-      ` wall=${Math.round(claudeResult.wallMs / 1000)}s`,
+      ` wall=${Math.round(claudeResult.wallMs / 1000)}s attempts=${claudeResult.attempts}`,
   );
 
   const gate = await runGate(skipGates);
@@ -1291,7 +1291,7 @@ export async function runCcParityOnExistingBranch(args: {
   const claudeResult = await runClaude(prompt, transcriptPath(newCcVersion));
   log(
     `Claude exited: completed=${claudeResult.completed} turns=${claudeResult.turnCount}` +
-      ` wall=${Math.round(claudeResult.wallMs / 1000)}s`,
+      ` wall=${Math.round(claudeResult.wallMs / 1000)}s attempts=${claudeResult.attempts}`,
   );
   let budgetReason: string | null = claudeResult.budgetReason;
 

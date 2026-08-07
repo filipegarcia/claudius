@@ -173,7 +173,30 @@ additive on top of the standalone flows.
       "⚠️ Claude was stopped before completing" when a turn-budget
       (`SDK_UPDATE_MAX_TURNS`, default 200), wall-clock
       (`SDK_UPDATE_MAX_WALL_MIN`, default 360), or idle
-      (`SDK_UPDATE_MAX_IDLE_MIN`, default 15) limit tripped.
+      (`SDK_UPDATE_MAX_IDLE_MIN`, default 15) limit tripped — or when
+      the run ended in an **error result** (see below).
+      - Transient failures — a dropped API stream, a dead tool-execution
+        stream, an empty iterator — are **retried in place**
+        (`SDK_UPDATE_MAX_API_RETRIES`, default 2, so 3 attempts) with a
+        doubling backoff, all sharing the one wall-clock budget and one
+        transcript file. Attempt boundaries show up in the transcript as
+        `{"type":"orchestrator","subtype":"retry"}` lines.
+      - A retry **resumes the cut-off session** (`options.resume`) rather
+        than replaying the prompt, so a stall 300 turns into a long run
+        doesn't throw those turns away. If the resume yields 0 messages
+        (session not in the CLI's store) the next attempt falls back to a
+        cold replay of the full prompt, which always works because
+        `prompt.md` re-reads git state first.
+      - Never retried: deterministic stops (turn budget, wall clock, idle
+        watchdog) and **credential/quota failures** — an expired OAuth
+        session or an empty credit balance needs a human, and retrying
+        only delays that report.
+      - The SDK reports API/transport failures in the terminal `result`
+        envelope rather than by throwing — `is_error: true` with
+        `terminal_reason: "api_error"`, and (as seen on 0.3.224)
+        `subtype` still reading `"success"`. The orchestrator classifies
+        that envelope explicitly; a run that dies this way is never
+        mistaken for a clean finish.
    10. **Announce** "🧪 running local gates" right before the gate
        starts, so the channel sees the handoff from agent work to
        automated checks.
@@ -400,6 +423,8 @@ All env vars are optional unless flagged otherwise.
 | `SDK_UPDATE_MAX_TURNS` | `200` | Maximum agentic round-trips before the SDK stops the run. |
 | `SDK_UPDATE_MAX_WALL_MIN` | `360` | Wall-clock budget in minutes. Orchestrator-side guard layered on top of the SDK's own ceiling. |
 | `SDK_UPDATE_MAX_IDLE_MIN` | `15` | Idle watchdog: if no SDK message arrives in this many minutes, the orchestrator assumes a tool subprocess hung and aborts to a draft PR. Comfortably exceeds the slowest expected tool (Playwright e2e at ~7 min) so legitimate long-running steps don't trip it. A half-way warning is logged at half this threshold. |
+| `SDK_UPDATE_MAX_API_RETRIES` | `2` | How many times the agent leg is re-issued after a *transient* failure (dropped API stream, dead tool-execution stream, empty iterator) before the run is handed to the draft-PR / needs-human path. `0` restores the old one-shot behaviour. Retries share the one wall-clock budget and never fire for deterministic stops (turn budget, wall clock, idle watchdog); a retry is also skipped when under 15 min of the budget remains. |
+| `SDK_UPDATE_RETRY_BACKOFF_SEC` | `30` | Delay before the first retry; doubles for each subsequent attempt. |
 | `SDK_UPDATE_MAX_MINOR_JUMP` | `1` | Refuse to upgrade if `latest - installed` is more minors than this. Stops the first cron firing from trying to absorb a year of changes in one PR. |
 | `SDK_UPDATE_STALE_INFLIGHT_HOURS` | `24` | Self-heal threshold. If `state.inFlight` is older than this, the next firing reclaims it instead of returning `in-flight` forever. Stops a SIGKILL/OOM/host-reboot from bricking the cron. |
 | `SDK_UPDATE_ROOM_SLUG` | `sdk-update` | Which chat-server room to post into when CI goes green. |
