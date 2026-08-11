@@ -88,6 +88,39 @@ describe("applyBashAutoBackground", () => {
     });
   });
 
+  // SDK 0.3.227 — `BashOutput` gained `backgroundEndsWithFinalResponse`, true
+  // when the shell is owned by a synchronous subagent and reaped on that
+  // agent's final response. Surfaced as an "ends with agent" hint.
+  test("threads backgroundEndsWithFinalResponse onto the entry", () => {
+    const prev: Record<string, BackgroundBash> = {};
+    const next = applyBashAutoBackground(prev, {
+      toolUseId: "toolu_1",
+      command: "sleep 999",
+      toolUseResult: { backgroundTaskId: "bash_abc", backgroundEndsWithFinalResponse: true },
+      startedAt: 100,
+    });
+    expect(next["toolu_1"]?.endsWithAgentFinalResponse).toBe(true);
+  });
+
+  test("preserves an existing endsWithAgentFinalResponse when a later result omits it", () => {
+    const prev: Record<string, BackgroundBash> = {
+      toolu_1: {
+        toolUseId: "toolu_1",
+        bashId: "bash_abc",
+        command: "sleep 999",
+        startedAt: 50,
+        endsWithAgentFinalResponse: true,
+      },
+    };
+    const next = applyBashAutoBackground(prev, {
+      toolUseId: "toolu_1",
+      command: "sleep 999",
+      toolUseResult: { timedOutAfterMs: 30000 },
+      startedAt: 999,
+    });
+    expect(next["toolu_1"]?.endsWithAgentFinalResponse).toBe(true);
+  });
+
   test("does not clobber an existing bashId when the new result omits backgroundTaskId", () => {
     const prev: Record<string, BackgroundBash> = {
       toolu_1: {

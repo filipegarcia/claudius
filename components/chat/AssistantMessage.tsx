@@ -5,6 +5,7 @@ import { ThinkingBlock } from "./ThinkingBlock";
 import { ToolCall } from "./ToolCall";
 import { TaskBlock } from "./TaskBlock";
 import { WorkflowBlock } from "./WorkflowBlock";
+import { ProposeGoalBlock } from "./ProposeGoalBlock";
 import { RateLimitHitPanel } from "./RateLimitHitPanel";
 import { OpusHighDemandPanel } from "./OpusHighDemandPanel";
 import type { DisplayMessage, TaskInfo, ToolProgressInfo } from "@/lib/client/types";
@@ -167,6 +168,22 @@ export function AssistantMessage({
                   input={b.input}
                   result={b.result}
                   task={taskByToolUseId.get(b.id)}
+                  defaultOpen={expandAll || undefined}
+                />
+              );
+            }
+            // ProposeGoal (SDK 0.3.227+): the agent proposes a verifiable
+            // completion condition. The raw JSON dump buries the one thing that
+            // matters — the condition — so give it a compact dedicated card that
+            // reads the condition + approval state. Distinct from Claudius's own
+            // goal banner (the report_goal_achieved MCP tool); this is the
+            // transcript record of the SDK-side proposal.
+            if (b.name === "ProposeGoal") {
+              return (
+                <ProposeGoalBlock
+                  key={i}
+                  input={b.input}
+                  result={b.result}
                   defaultOpen={expandAll || undefined}
                 />
               );
