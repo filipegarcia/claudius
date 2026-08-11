@@ -3092,9 +3092,23 @@ export type GitRunner = {
  * would lease a STALE sha for a since-deleted branch and re-introduce the
  * very stale-info reject we are fixing here.
  *
- * Single-writer note: run.sh's flock serializes every firing, so there is
- * no concurrent pusher to race; the explicit lease is cheap insurance
- * against an out-of-band manual push, not a load-bearing guard.
+ * Single-writer note: run.sh's flock serializes every firing ON ONE HOST,
+ * so there is no concurrent pusher to race locally; the explicit lease is
+ * cheap insurance against an out-of-band manual push, not a load-bearing
+ * guard.
+ *
+ * Multi-host idempotency: the flock is per-machine, so running the pipeline
+ * on TWO machines (e.g. a laptop and a server) defeats it — each host builds
+ * its own resume-merge lineage with an IDENTICAL tree but a different parent
+ * chain, and the plain force-push makes them ping-pong forever, each
+ * overwriting the other's equal-content commit (PR #182: 28 forced updates
+ * across 3 days, every A/B pair tree-identical). The guard below fixes this
+ * without any cross-host lock: before pushing we compare the TREE we'd push
+ * against origin's current branch tip, and if they match we skip the push
+ * entirely. Comparing trees (not commit SHAs) is the right test — the rival
+ * merge commits differ only by lineage, so a tree match means origin already
+ * ships our exact content and there is nothing to update. Whichever host
+ * pushes first wins; the other converges to a no-op instead of a fight.
  */
 function pushBranchWithExplicitLease(branch: string): {
   code: number;
@@ -3119,6 +3133,30 @@ function pushBranchWithExplicitLease(branch: string): {
       encoding: "utf8",
     });
     if (rev.status === 0) expect = (rev.stdout ?? "").trim();
+  }
+  // Multi-host idempotency guard (see the doc comment above): if origin's
+  // branch tip already carries the exact tree we'd push, skip the force-push
+  // so two machines building equal-tree resume merges can't ping-pong. Only
+  // runs when the branch exists on origin (`expect` non-empty) — a first
+  // push / recreated branch falls through to create it.
+  if (expect) {
+    const originTree = spawnSync("git", ["rev-parse", `${expect}^{tree}`], {
+      cwd: ROOT,
+      encoding: "utf8",
+    });
+    const headTree = spawnSync("git", ["rev-parse", "HEAD^{tree}"], {
+      cwd: ROOT,
+      encoding: "utf8",
+    });
+    const o = originTree.status === 0 ? (originTree.stdout ?? "").trim() : "";
+    const h = headTree.status === 0 ? (headTree.stdout ?? "").trim() : "";
+    if (o && h && o === h) {
+      const msg =
+        `skip push: origin/${branch} (${expect.slice(0, 9)}) already carries ` +
+        `our tree ${h.slice(0, 9)} — no force-push (multi-host idempotency)`;
+      process.stdout.write(msg + "\n");
+      return { code: 0, output: msg };
+    }
   }
   // Push using gh's token as the credential helper rather than whatever
   // git's global `credential.helper` happens to be. The empty
@@ -3621,9 +3659,12 @@ export function pushBranch(branch: string): void {
   // Idempotency on re-run: a previous firing may have left the branch on
   // origin. We already nuked the local copy in checkoutFreshBranch and built
   // fresh on top of origin/main, so our local tree IS the canonical state and
-  // we deliberately overwrite whatever is on origin for this branch. The
-  // fetch + explicit lease that makes that safe (and dodges the "(stale info)"
-  // reject that wedged issue #61) lives in pushBranchWithExplicitLease.
+  // we overwrite whatever is on origin for this branch — UNLESS origin already
+  // carries our exact tree, in which case the force-push is skipped so two
+  // machines can't ping-pong equal-content commits (PR #182). The fetch +
+  // explicit lease that makes the overwrite safe (and dodges the "(stale
+  // info)" reject that wedged issue #61), plus the tree-equality skip, live in
+  // pushBranchWithExplicitLease.
   const { code: pushCode, output: pushOutput } =
     pushBranchWithExplicitLease(branch);
   if (pushCode !== 0) {
