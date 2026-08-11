@@ -612,6 +612,14 @@ function extractToolResult(content: unknown): { tool_use_id: string; text: strin
 export type BashToolUseResult = {
   backgroundTaskId?: string;
   timedOutAfterMs?: number;
+  /**
+   * SDK 0.3.227+: true when this backgrounded command is owned by a
+   * synchronous subagent and is therefore terminated when that agent gives
+   * its final response. Absent when the shell survives (main loop, async
+   * subagents). Surfaced as a hint in the background-shell list so the user
+   * knows the shell will be reaped with its owning agent.
+   */
+  backgroundEndsWithFinalResponse?: true;
 };
 
 /**
@@ -638,7 +646,8 @@ export function applyBashAutoBackground(
 ): Record<string, BackgroundBash> {
   const { toolUseId, command, toolUseResult, startedAt } = args;
   if (!toolUseResult) return prev;
-  const { backgroundTaskId, timedOutAfterMs } = toolUseResult;
+  const { backgroundTaskId, timedOutAfterMs, backgroundEndsWithFinalResponse } =
+    toolUseResult;
   if (!backgroundTaskId && typeof timedOutAfterMs !== "number") return prev;
   const existing = prev[toolUseId];
   const entry: BackgroundBash = {
@@ -648,6 +657,8 @@ export function applyBashAutoBackground(
     startedAt: existing?.startedAt ?? startedAt,
     killed: existing?.killed,
     timedOutAfterMs: timedOutAfterMs ?? existing?.timedOutAfterMs,
+    endsWithAgentFinalResponse:
+      backgroundEndsWithFinalResponse ?? existing?.endsWithAgentFinalResponse,
   };
   return { ...prev, [toolUseId]: entry };
 }
@@ -685,6 +696,11 @@ function pickPrimaryArg(name: string, input: Record<string, unknown>): string | 
     CronCreate: ["cron"],
     CronDelete: ["id"],
     ScheduleWakeup: ["reason"],
+    // Cloud-routine tool (schema RemoteTriggerInput, surfaced as "Schedule"):
+    // the `action` (list/get/create/run/list_runs/get_run_log, …) is the
+    // meaningful summary. Handle both plausible tool names.
+    Schedule: ["action"],
+    RemoteTrigger: ["action"],
   };
   const keys = perTool[name] ?? ["file_path", "command", "pattern", "url", "query", "description", "path"];
   for (const k of keys) {

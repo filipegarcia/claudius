@@ -58,6 +58,15 @@ export function BackgroundBashes({
                   timed out
                 </span>
               )}
+              {!b.killed && b.endsWithAgentFinalResponse && (
+                <span
+                  data-testid="bash-ends-with-agent-badge"
+                  title="Owned by a synchronous subagent — this shell is terminated when that agent gives its final response"
+                  className="shrink-0 rounded-sm border border-sky-500/40 bg-sky-500/10 px-1 text-[9px] font-medium uppercase tracking-wide text-sky-300"
+                >
+                  ends with agent
+                </span>
+              )}
               <span className="ml-auto shrink-0 font-mono text-[10px]">
                 {b.killed ? "killed" : fmtElapsedSec(elapsed)}
               </span>

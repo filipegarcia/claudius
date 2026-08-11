@@ -1072,6 +1072,13 @@ const SDK_SETTINGS_CATALOG: SettingMeta[] = [
     desc: 'Force a specific login method: "claudeai" for Claude Pro/Max, "console" for Console billing',
   },
   {
+    key: "forceLoginGatewayUrl",
+    type: "string",
+    section: "Authentication",
+    placeholder: "https://gateway.example.com",
+    desc: 'Cloud gateway URL to pre-fill and auto-connect to during login, alongside forceLoginMethod: "gateway". Honored only from admin-controlled managed settings.',
+  },
+  {
     key: "apiKeyHelper",
     type: "string",
     section: "Authentication",

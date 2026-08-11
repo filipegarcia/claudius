@@ -13,6 +13,23 @@ import { getPreviewType } from "@/lib/shared/file-types";
 import { Markdown } from "./Markdown";
 import { FilePreview } from "./FilePreview";
 
+/**
+ * Readable labels for the cloud-routine tool's `action` (input schema
+ * `RemoteTriggerInput`, surfaced as the "Schedule" tool). `list_runs` and
+ * `get_run_log` arrived in SDK 0.3.227. Falls back to the raw action string
+ * for anything not listed, so a future action still shows something sane.
+ */
+const SCHEDULE_ACTION_LABELS: Record<string, string> = {
+  list: "List routines",
+  get: "Get routine",
+  create: "Create routine",
+  update: "Update routine",
+  run: "Run now",
+  create_webhook_trigger: "Create webhook trigger",
+  list_runs: "List runs",
+  get_run_log: "Get run log",
+};
+
 type Props = {
   name: string;
   input: Record<string, unknown>;
@@ -86,6 +103,14 @@ export function ToolCall({ name, input, result, startedAt, liveAsk, onReopenAsk,
   // gone. Falls back to the JSON view if the field is missing / not a string.
   const planText =
     name === "ExitPlanMode" && typeof input.plan === "string" ? (input.plan as string) : null;
+  // Cloud-routine tool: surface the `action` as a readable suffix so the user
+  // sees intent (e.g. "Run now", "List runs") without expanding the JSON.
+  // Handle both plausible tool names — the schema is `RemoteTriggerInput`, but
+  // the tool is commonly surfaced as "Schedule".
+  const scheduleAction =
+    (name === "Schedule" || name === "RemoteTrigger") && typeof input.action === "string"
+      ? (SCHEDULE_ACTION_LABELS[input.action as string] ?? (input.action as string))
+      : null;
   // Show the "Answer" pill on every AskUserQuestion row that has a click
   // handler wired — live asks pulse, historic ones don't. Resurrecting a
   // historic ask doesn't try to feed the SDK (which has already moved on);
@@ -120,6 +145,9 @@ export function ToolCall({ name, input, result, startedAt, liveAsk, onReopenAsk,
           <Wrench className="h-3.5 w-3.5 text-[var(--accent)]" />
           <span className="font-mono">{name}</span>
           {planText && <span className="text-[10px] text-[var(--muted)]">— Plan</span>}
+          {scheduleAction && (
+            <span className="text-[10px] text-[var(--muted)]">— {scheduleAction}</span>
+          )}
         </button>
         {fileTarget &&
           (filesUrl ? (

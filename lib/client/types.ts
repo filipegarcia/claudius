@@ -458,6 +458,13 @@ export type BackgroundBash = {
    * were explicitly launched in the background or manually backgrounded.
    */
   timedOutAfterMs?: number;
+  /**
+   * SDK 0.3.227+ (`BashOutput.backgroundEndsWithFinalResponse`): true when the
+   * shell is owned by a synchronous subagent and will be terminated when that
+   * agent gives its final response. Absent for shells that outlive their
+   * launch (main loop, async subagents). Drives a "ends with agent" hint.
+   */
+  endsWithAgentFinalResponse?: boolean;
 };
 
 /**
