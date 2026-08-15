@@ -106,6 +106,7 @@ import {
   writeSettings,
   type ClaudeSettings,
   isWorkflowSizeGuideline,
+  isCrossSessionInbound,
 } from "./settings";
 import { readLimits, type Limits } from "./limits-store";
 import { checkToolBudget, toolBudgetKindFor } from "@/lib/shared/tool-budget";
@@ -2236,9 +2237,15 @@ export class Session {
       //     advisorModel, a hand-edited garbage value has no sensible
       //     fallback for the SDK to trust, so we drop it rather than
       //     forward it verbatim.
+      //   • crossSessionInbound (Claude Code 2.1.224) — receive policy for
+      //     inbound cross-session `SendMessage` peer turns (Settings →
+      //     Collaboration). Validated against the SDK's three literals, same
+      //     reasoning as workflowSizeGuideline: a garbage value has no
+      //     sensible SDK fallback, so we drop it rather than forward it.
       ...(typeof userSettings.includeCoAuthoredBy === "boolean" ||
       typeof userSettings.advisorModel === "string" ||
-      isWorkflowSizeGuideline(userSettings.workflowSizeGuideline)
+      isWorkflowSizeGuideline(userSettings.workflowSizeGuideline) ||
+      isCrossSessionInbound(userSettings.crossSessionInbound)
         ? {
             settings: {
               ...(typeof userSettings.includeCoAuthoredBy === "boolean"
@@ -2249,6 +2256,9 @@ export class Session {
                 : {}),
               ...(isWorkflowSizeGuideline(userSettings.workflowSizeGuideline)
                 ? { workflowSizeGuideline: userSettings.workflowSizeGuideline }
+                : {}),
+              ...(isCrossSessionInbound(userSettings.crossSessionInbound)
+                ? { crossSessionInbound: userSettings.crossSessionInbound }
                 : {}),
             },
           }
