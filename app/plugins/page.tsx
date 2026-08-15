@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
+  AlertTriangle,
   ArrowLeft,
   ChevronDown,
   ChevronRight,
@@ -22,6 +23,7 @@ import { useActiveCwd } from "@/lib/client/useActiveCwd";
 import { usePlugins, type InstalledPlugin } from "@/lib/client/usePlugins";
 import type { AvailablePlugin } from "@/lib/server/plugins";
 import type { SettingsScope } from "@/lib/server/settings";
+import { lintMarketplaceRef, lintPluginRef } from "@/lib/shared/plugin-ref-lint";
 import { cn } from "@/lib/utils/cn";
 
 const SCOPE_LABELS: Record<SettingsScope, string> = {
@@ -221,6 +223,7 @@ function InstallSection({
   const [draft, setDraft] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [status, setStatus] = useState<{ ok: boolean; msg: string } | null>(null);
+  const draftLint = lintPluginRef(draft);
 
   return (
     <section className="rounded-lg border border-[var(--border)] bg-[var(--panel)]/40 p-4">
@@ -279,6 +282,16 @@ function InstallSection({
           <RefreshCw className="h-3 w-3" /> Refresh
         </button>
       </form>
+
+      {draftLint && (
+        <p
+          data-testid="plugin-ref-warning"
+          className="mt-2 flex items-start gap-1 text-[11px] text-amber-400"
+        >
+          <AlertTriangle className="mt-px h-3 w-3 shrink-0" />
+          <span>{draftLint.message} It will still send as typed.</span>
+        </p>
+      )}
 
       {status && (
         <p
@@ -629,6 +642,7 @@ function MarketplacesSection({
         values={blocked}
         onChange={(next) => onChange({ blockedMarketplaces: next })}
         placeholder="https://malicious.example.com"
+        allowWildcard
       />
     </section>
   );
@@ -639,13 +653,16 @@ function UrlList({
   values,
   onChange,
   placeholder,
+  allowWildcard,
 }: {
   title: string;
   values: string[];
   onChange: (next: string[]) => void;
   placeholder: string;
+  allowWildcard?: boolean;
 }) {
   const [draft, setDraft] = useState("");
+  const draftLint = lintMarketplaceRef(draft, { allowWildcard });
   return (
     <div className="mt-3">
       <div className="mb-1 text-[10px] uppercase tracking-wide text-[var(--muted)]">{title}</div>
@@ -688,6 +705,15 @@ function UrlList({
           <Plus className="h-3 w-3" />
         </button>
       </form>
+      {draftLint && (
+        <p
+          data-testid="marketplace-ref-warning"
+          className="mt-1 flex items-start gap-1 text-[10px] text-amber-400"
+        >
+          <AlertTriangle className="mt-px h-3 w-3 shrink-0" />
+          <span>{draftLint.message}</span>
+        </p>
+      )}
     </div>
   );
 }
