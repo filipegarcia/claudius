@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, RefreshCw, Save, Search, Settings as SettingsIcon, X } from "lucide-react";
 import { SideNav } from "@/components/nav/SideNav";
@@ -22,8 +22,10 @@ import { ChatSizeSection } from "@/components/settings/ChatSizeSection";
 import { FilePermissionsSection } from "@/components/settings/FilePermissionsSection";
 import {
   ADVISOR_COPY,
-  ADVISOR_OPTIONS,
+  ADVISOR_FABLE_VALUE,
+  advisorOptions,
   type AdvisorChoice,
+  hasFableModel,
   normalizeAdvisorChoice,
 } from "@/lib/shared/advisor";
 import { useMediaPreferences } from "@/lib/client/useMediaPreferences";
@@ -1477,6 +1479,42 @@ function AdvisorCatalogField({
   const isSet = typeof value === "string" && value.length > 0;
   const customValue =
     isSet && current === null ? (value as string) : null;
+
+  // Fable 5 is only offered as an advisor to orgs that have access. This
+  // page is session-less, so we probe `/api/models` — which opportunistically
+  // borrows a live session's `supportedModels()`. We only trust the Fable
+  // signal when the response came from a real session (`source: "session"`);
+  // the static fallback lists Fable unconditionally and must NOT be read as
+  // proof of access. Also keep the row when the persisted advisor already is
+  // Fable, so a configured value still checks its own row.
+  const [fableAccess, setFableAccess] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/models")
+      .then((r) => (r.ok ? r.json() : null))
+      .then(
+        (
+          data: {
+            models?: Array<{ value?: string; resolvedModel?: string }>;
+            source?: string;
+          } | null,
+        ) => {
+          if (cancelled || !data) return;
+          setFableAccess(data.source === "session" && hasFableModel(data.models));
+        },
+      )
+      .catch(() => {
+        // Probe failure → no Fable row. Safe default: withhold rather than
+        // over-offer a model the org may not have.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const includeFable = fableAccess || current === ADVISOR_FABLE_VALUE;
+  const options = advisorOptions(includeFable);
+
   const pick = (choice: AdvisorChoice) => {
     // `null` → unset (`undefined`) so the key drops out of settings.json.
     // A string value persists verbatim.
@@ -1507,7 +1545,7 @@ function AdvisorCatalogField({
         aria-label={ADVISOR_COPY.header}
         className="space-y-1.5"
       >
-        {ADVISOR_OPTIONS.map((opt) => {
+        {options.map((opt) => {
           const isCurrent = opt.value === current && customValue === null;
           return (
             <li key={opt.value ?? "none"}>

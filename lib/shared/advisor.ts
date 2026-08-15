@@ -25,8 +25,21 @@
 export const ADVISOR_OPUS_VALUE = "claude-opus-4-8";
 /** Model id corresponding to "Sonnet 5" in the picker. */
 export const ADVISOR_SONNET_VALUE = "claude-sonnet-5";
+/**
+ * Model id corresponding to "Fable 5" in the picker. Claude Code 2.1.232
+ * re-offers Fable 5 as an advisor option, but *only for orgs that have
+ * access to it* — so unlike Opus/Sonnet this row is conditional: it's shown
+ * only when the org's `supportedModels()` advertises a Fable model (see
+ * `hasFableModel` / `advisorOptions`). The runtime accepts any advisor id;
+ * the gating is a product-surface choice mirroring the CLI.
+ */
+export const ADVISOR_FABLE_VALUE = "claude-fable-5";
 
-export type AdvisorChoice = typeof ADVISOR_OPUS_VALUE | typeof ADVISOR_SONNET_VALUE | null;
+export type AdvisorChoice =
+  | typeof ADVISOR_OPUS_VALUE
+  | typeof ADVISOR_SONNET_VALUE
+  | typeof ADVISOR_FABLE_VALUE
+  | null;
 
 export type AdvisorOption = {
   /** The persisted `advisorModel` value. `null` clears the setting (no advisor). */
@@ -51,6 +64,71 @@ export const ADVISOR_OPTIONS: AdvisorOption[] = [
   { value: ADVISOR_SONNET_VALUE, label: "Sonnet 5" },
   { value: null, label: "No advisor" },
 ];
+
+/**
+ * The optional "Fable 5" row. Kept out of the base `ADVISOR_OPTIONS` so
+ * that surfaces which can't verify org access (and the two e2e specs that
+ * assert exactly three rows) keep their existing shape. Surfaces with an
+ * authoritative model list splice this in via `advisorOptions(true)`.
+ */
+export const ADVISOR_FABLE_OPTION: AdvisorOption = {
+  value: ADVISOR_FABLE_VALUE,
+  label: "Fable 5",
+};
+
+/**
+ * Every advisor value the pickers may legitimately write back — the three
+ * product-blessed choices plus Fable. The advisor POST route uses this to
+ * allowlist an incoming pick. Fable is always accepted at the write layer
+ * (the runtime tolerates any advisor id, and gating access at write-time
+ * would need a live `supportedModels()` probe); the *UI* is what withholds
+ * the Fable row from orgs without access.
+ */
+export const ADVISOR_PICKABLE_VALUES: ReadonlyArray<AdvisorChoice> = [
+  ADVISOR_OPUS_VALUE,
+  ADVISOR_SONNET_VALUE,
+  ADVISOR_FABLE_VALUE,
+  null,
+];
+
+/**
+ * The advisor options to render, given whether the org has Fable access.
+ * When `includeFable` is true the Fable row is inserted just before the
+ * terminal "No advisor" row (most-capable escalation target listed after
+ * the recommended Opus/Sonnet pair, before "off"). When false the list is
+ * the base three — identical to `ADVISOR_OPTIONS`.
+ */
+export function advisorOptions(includeFable: boolean): AdvisorOption[] {
+  if (!includeFable) return ADVISOR_OPTIONS;
+  return [
+    { value: ADVISOR_OPUS_VALUE, label: "Opus 4.8", recommended: true },
+    { value: ADVISOR_SONNET_VALUE, label: "Sonnet 5" },
+    ADVISOR_FABLE_OPTION,
+    { value: null, label: "No advisor" },
+  ];
+}
+
+/**
+ * Minimal shape of a `supportedModels()` entry we need to detect Fable
+ * access without importing the SDK's `ModelInfo` into shared code.
+ */
+type ModelLike = { value?: string | null; resolvedModel?: string | null };
+
+/**
+ * `true` when the given `supportedModels()` list advertises a Fable model —
+ * i.e. the org has access to Fable and it may be offered as an advisor.
+ * Matches both the bare `"fable"` alias and any `claude-fable-*` wire id, on
+ * either the row's `value` or its `resolvedModel`.
+ */
+export function hasFableModel(models: ReadonlyArray<ModelLike> | null | undefined): boolean {
+  if (!Array.isArray(models)) return false;
+  const isFable = (raw: string | null | undefined): boolean => {
+    if (typeof raw !== "string" || raw.length === 0) return false;
+    const id = raw.toLowerCase();
+    return id === "fable" || id.startsWith("claude-fable") || id.startsWith("fable-");
+  };
+  return models.some((m) => isFable(m?.value) || isFable(m?.resolvedModel));
+}
 
 /** Verbatim copy from the Claude Code CLI's advisor picker. */
 export const ADVISOR_COPY = {
@@ -85,6 +163,7 @@ export const ADVISOR_COPY = {
 export function normalizeAdvisorChoice(raw: unknown): AdvisorChoice {
   if (raw === ADVISOR_OPUS_VALUE) return ADVISOR_OPUS_VALUE;
   if (raw === ADVISOR_SONNET_VALUE) return ADVISOR_SONNET_VALUE;
+  if (raw === ADVISOR_FABLE_VALUE) return ADVISOR_FABLE_VALUE;
   return null;
 }
 
@@ -107,6 +186,7 @@ export function advisorFamily(raw: unknown): AdvisorChoice {
   // Exact product-blessed ids — the cheapest match.
   if (raw === ADVISOR_OPUS_VALUE) return ADVISOR_OPUS_VALUE;
   if (raw === ADVISOR_SONNET_VALUE) return ADVISOR_SONNET_VALUE;
+  if (raw === ADVISOR_FABLE_VALUE) return ADVISOR_FABLE_VALUE;
   // The sentinel means "advisor is on but we don't know which family" —
   // intentionally returns null so no row gets a stale check; the badge
   // is the surface that should communicate the on-but-unknown state.
@@ -121,6 +201,9 @@ export function advisorFamily(raw: unknown): AdvisorChoice {
   }
   if (lower === "sonnet" || lower.startsWith("sonnet-") || lower.startsWith("sonnet.")) {
     return ADVISOR_SONNET_VALUE;
+  }
+  if (lower === "fable" || lower.startsWith("fable-") || lower.startsWith("fable.")) {
+    return ADVISOR_FABLE_VALUE;
   }
   // Different family (haiku, custom plugin id, etc.) — render as "Custom"
   // in the picker rather than misleadingly checking an opus/sonnet row.
@@ -143,6 +226,7 @@ export function isCustomAdvisor(raw: unknown): boolean {
 export function shortAdvisorLabel(value: AdvisorChoice): string | null {
   if (value === ADVISOR_OPUS_VALUE) return "opus";
   if (value === ADVISOR_SONNET_VALUE) return "sonnet";
+  if (value === ADVISOR_FABLE_VALUE) return "fable";
   return null;
 }
 
@@ -176,6 +260,7 @@ export function badgeAdvisorLabel(raw: unknown): string | null {
   if (raw === ADVISOR_ACTIVE_SENTINEL) return "on";
   if (raw === ADVISOR_OPUS_VALUE) return "opus";
   if (raw === ADVISOR_SONNET_VALUE) return "sonnet";
+  if (raw === ADVISOR_FABLE_VALUE) return "fable";
   // Best-effort compact form for any other string: matches the
   // `shortModel()` helper in SessionCard.tsx so the advisor pill reads
   // the same way as the main model row above it.
