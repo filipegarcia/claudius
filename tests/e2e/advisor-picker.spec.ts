@@ -472,4 +472,53 @@ test.describe("advisor picker", () => {
     await expect(panel).toBeHidden();
     await expect(page.getByTestId("session-card-advisor-pill")).toHaveCount(0);
   });
+
+  test("offers Fable 5 as a fourth advisor row when the org has Fable access", async ({
+    page,
+  }) => {
+    // Claude Code 2.1.232 re-offers Fable 5 as an advisor — but only for
+    // orgs with access. Claudius gates the row on `supportedModels()`
+    // advertising a Fable model (the same list the picker already fetches).
+    // Here the mocked model list DOES include Fable, so a fourth row must
+    // appear between Sonnet and "No advisor" and POST the pinned Fable id.
+    const script: MockScript = {
+      events: PRELUDE,
+      models: [
+        ...MODELS,
+        {
+          value: "claude-fable-5",
+          displayName: "Fable 5",
+          description: "Most capable.",
+        },
+      ],
+      initialAdvisor: null,
+      capture: { advisorPosts: [] },
+    };
+    await mockChatBackend(page, script);
+
+    await page.goto("/");
+
+    const trigger = page.getByTestId("model-picker-trigger");
+    await expect(trigger).toContainText("sonnet-4-6", { timeout: 30_000 });
+    await trigger.click();
+    const panel = page.getByTestId("model-picker-panel");
+    await expect(panel).toBeVisible({ timeout: 10_000 });
+
+    // Four rows now: Opus → Sonnet → Fable → None.
+    const opts = panel.getByTestId("model-picker-advisor");
+    await expect(opts).toHaveCount(4);
+    await expect(opts.nth(0)).toHaveAttribute("data-advisor", "claude-opus-4-8");
+    await expect(opts.nth(1)).toHaveAttribute("data-advisor", "claude-sonnet-5");
+    await expect(opts.nth(2)).toHaveAttribute("data-advisor", "claude-fable-5");
+    await expect(opts.nth(2)).toContainText("Fable 5");
+    await expect(opts.nth(3)).toHaveAttribute("data-advisor", "none");
+
+    // Picking Fable POSTs the pinned id.
+    await opts.nth(2).click();
+    await expect
+      .poll(() => script.capture.advisorPosts.length, { timeout: 5_000 })
+      .toBeGreaterThan(0);
+    expect(script.capture.advisorPosts.at(-1)?.model).toBe("claude-fable-5");
+    await expect(opts.nth(2)).toHaveAttribute("aria-checked", "true");
+  });
 });
