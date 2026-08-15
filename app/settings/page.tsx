@@ -1058,6 +1058,20 @@ const SDK_SETTINGS_CATALOG: SettingMeta[] = [
     desc: 'Disable Auto mode (the autonomous permission mode) entirely — hides "Auto" from the mode picker and the Shift+Tab cycle. Default/absent leaves Auto mode available. Matches the SDK\'s single-literal key exactly (no separate "enabled" value).',
   },
   {
+    key: "dialogExpiry",
+    type: "enum",
+    section: "Dialogs & messaging",
+    options: ["60s", "5m", "10m", "never"],
+    desc: "Max time a permission/user dialog forwarded to a remote client stays parked awaiting an answer, and how long a HELD cross-session message awaits approval, before either resolves to its safe no-action default (cancelled / dropped-with-denial). Default/absent is 5m; \"never\" disables the deadline. Local-only permission prompts are unaffected.",
+  },
+  {
+    key: "crossSessionInbound",
+    type: "enum",
+    section: "Dialogs & messaging",
+    options: ["accept", "hold", "refuse"],
+    desc: "Inbound cross-session peer messages (SendMessage from your other sessions): 'accept' delivers them, 'hold' parks them for your review without letting Claude act, 'refuse' opts this session out. Default/absent delivers only when the sending session's permission-mode class matches yours, holding mismatches for approval.",
+  },
+  {
     key: "defaultShell",
     type: "enum",
     section: "Shell",
