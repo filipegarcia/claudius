@@ -1058,6 +1058,13 @@ const SDK_SETTINGS_CATALOG: SettingMeta[] = [
     desc: 'Disable Auto mode (the autonomous permission mode) entirely — hides "Auto" from the mode picker and the Shift+Tab cycle. Default/absent leaves Auto mode available. Matches the SDK\'s single-literal key exactly (no separate "enabled" value).',
   },
   {
+    key: "crossSessionInbound",
+    type: "enum",
+    section: "Collaboration",
+    options: ["accept", "hold", "refuse"],
+    desc: "How inbound cross-session SendMessage peer turns (a SendMessage fired from another of your sessions, for agent-to-agent communication) are handled here: 'accept' delivers them so Claude may act, 'hold' parks them for your review without letting Claude act, 'refuse' opts this session out. Default/absent uses the SDK's permission-mode parity (auto-deliver only when the sender's mode class matches yours).",
+  },
+  {
     key: "defaultShell",
     type: "enum",
     section: "Shell",

@@ -120,12 +120,32 @@ export type ClaudeSettings = {
   // the Settings page catalog as an enum field next to `advisorModel` and
   // `fastMode` (Model & behavior).
   workflowSizeGuideline?: WorkflowSizeGuideline;
+  // Cross-session SendMessage receive policy (Claude Code 2.1.224 —
+  // "cross-session SendMessage for agent-to-agent communication"). Governs
+  // how inbound peer messages — a `SendMessage` fired from ANOTHER of the
+  // same user's sessions (SDK subkind `peer-send-message`) — are handled by
+  // this session:
+  //   • `"accept"` — deliver them; Claude may act on them.
+  //   • `"hold"`   — park them for your review without letting Claude act.
+  //   • `"refuse"` — opt this session out of inbound peer messages entirely.
+  // Mirrors the SDK's `Settings.crossSessionInbound` key exactly. Absent =
+  // the SDK's "mode parity" default (auto-deliver only when the sending
+  // session's permission-mode class matches this one). Read at session start
+  // in `session.ts` and forwarded to the SDK's flag layer alongside
+  // `advisorModel`/`includeCoAuthoredBy`/`workflowSizeGuideline`; surfaced in
+  // the Settings page catalog under "Collaboration". The delivered peer turn
+  // is itself rendered with a "From <name>" badge (see `extractPeerOrigin` in
+  // `lib/client/use-session.ts`).
+  crossSessionInbound?: CrossSessionInbound;
   // Catch-all for keys we don't yet know about — we never strip them.
   [key: string]: unknown;
 };
 
 /** The SDK's `Settings.workflowSizeGuideline` literal union (0.3.219). */
 export type WorkflowSizeGuideline = "unrestricted" | "small" | "medium" | "large";
+
+/** The SDK's `Settings.crossSessionInbound` literal union (Claude Code 2.1.224). */
+export type CrossSessionInbound = "accept" | "hold" | "refuse";
 
 /** Runtime-checkable mirror of `WorkflowSizeGuideline`, for validating hand-edited settings.json values before forwarding them to the SDK. */
 export const WORKFLOW_SIZE_GUIDELINE_VALUES: readonly WorkflowSizeGuideline[] = [
@@ -139,6 +159,20 @@ export const WORKFLOW_SIZE_GUIDELINE_VALUES: readonly WorkflowSizeGuideline[] = 
 export function isWorkflowSizeGuideline(v: unknown): v is WorkflowSizeGuideline {
   return (
     typeof v === "string" && (WORKFLOW_SIZE_GUIDELINE_VALUES as readonly string[]).includes(v)
+  );
+}
+
+/** Runtime-checkable mirror of `CrossSessionInbound`, for validating hand-edited settings.json values before forwarding them to the SDK. */
+export const CROSS_SESSION_INBOUND_VALUES: readonly CrossSessionInbound[] = [
+  "accept",
+  "hold",
+  "refuse",
+];
+
+/** Type guard: is `v` one of the SDK's three `crossSessionInbound` literals? */
+export function isCrossSessionInbound(v: unknown): v is CrossSessionInbound {
+  return (
+    typeof v === "string" && (CROSS_SESSION_INBOUND_VALUES as readonly string[]).includes(v)
   );
 }
 
