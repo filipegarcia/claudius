@@ -137,6 +137,19 @@ export type ClaudeSettings = {
   // is itself rendered with a "From <name>" badge (see `extractPeerOrigin` in
   // `lib/client/use-session.ts`).
   crossSessionInbound?: CrossSessionInbound;
+  // Claude Code 2.1.232 — "/config rows: Dialog expiry". SDK settings key the
+  // bundled `claude` binary reads from `~/.claude/settings.json` (the same file
+  // the Settings page catalog edits), so surfacing it as a catalog row is all
+  // Claudius needs — there's no per-session SDK forwarding to add.
+  //
+  // `dialogExpiry`: max time a permission/user dialog forwarded to a remote
+  // client stays parked awaiting an answer, and how long a HELD cross-session
+  // message awaits approval, before either resolves to its safe no-action
+  // default (cancelled / dropped-with-denial). Defaults to 5m; "never" disables
+  // the deadline. Local-only permission prompts are unaffected. The
+  // CLAUDE_CODE_USER_DIALOG_TIMEOUT_MS env var, when set, overrides this. Read
+  // from trusted sources only (never a checked-in repo settings file).
+  dialogExpiry?: "60s" | "5m" | "10m" | "never";
   // Catch-all for keys we don't yet know about — we never strip them.
   [key: string]: unknown;
 };

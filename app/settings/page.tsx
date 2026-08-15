@@ -1065,6 +1065,13 @@ const SDK_SETTINGS_CATALOG: SettingMeta[] = [
     desc: "How inbound cross-session SendMessage peer turns (a SendMessage fired from another of your sessions, for agent-to-agent communication) are handled here: 'accept' delivers them so Claude may act, 'hold' parks them for your review without letting Claude act, 'refuse' opts this session out. Default/absent uses the SDK's permission-mode parity (auto-deliver only when the sender's mode class matches yours).",
   },
   {
+    key: "dialogExpiry",
+    type: "enum",
+    section: "Dialogs & messaging",
+    options: ["60s", "5m", "10m", "never"],
+    desc: "Max time a permission/user dialog forwarded to a remote client stays parked awaiting an answer, and how long a HELD cross-session message awaits approval, before either resolves to its safe no-action default (cancelled / dropped-with-denial). Default/absent is 5m; \"never\" disables the deadline. Local-only permission prompts are unaffected.",
+  },
+  {
     key: "defaultShell",
     type: "enum",
     section: "Shell",
