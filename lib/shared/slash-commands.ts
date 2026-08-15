@@ -208,7 +208,9 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   { id: "simplify", name: "simplify", description: "Review files, find issues, apply fixes.", category: "skill", handler: "sdk", argsHint: "[focus]" },
   { id: "review", name: "review", description: "Review a pull request.", category: "skill", handler: "sdk", argsHint: "[PR]" },
   { id: "security-review", name: "security-review", description: "Security review of pending changes.", category: "skill", handler: "sdk" },
-  { id: "ultraplan", name: "ultraplan", description: "Browser-based plan, then execute.", category: "skill", handler: "sdk", argsHint: "<prompt>" },
+  // `ultraplan` was removed upstream in Claude Code 2.1.222 — the bundled SDK
+  // no longer registers the skill, so surfacing `/ultraplan` here would forward
+  // to a command the binary rejects. Dropped for parity (ultrareview stays).
   { id: "ultrareview", name: "ultrareview", description: "Deep multi-agent code review.", category: "skill", handler: "sdk", argsHint: "[PR]" },
   { id: "autofix-pr", name: "autofix-pr", description: "Watch PR and auto-fix CI failures.", category: "skill", handler: "sdk", argsHint: "[prompt]" },
   // Was a stale duplicate of the entry above (same `name: "team-onboarding"`,
