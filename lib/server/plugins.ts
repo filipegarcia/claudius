@@ -34,6 +34,18 @@ function strArr(v: unknown): string[] {
   return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [];
 }
 
+/**
+ * Claude Code 2.1.232 added two settings aliases: `additionalMarketplaces`
+ * aliases `extraKnownMarketplaces`, and `allowedMarketplaces` aliases
+ * `strictKnownMarketplaces`. The canonical spelling wins when both keys are
+ * present in the same file (the alias is ignored with a warning), so we only
+ * fall back to the alias when the canonical key is absent — mirroring the CLI.
+ */
+function aliased(settings: ClaudeSettings, canonical: string, alias: string): unknown {
+  const s = settings as Record<string, unknown>;
+  return canonical in s ? s[canonical] : s[alias];
+}
+
 export async function listAll(cwd: string): Promise<PluginsByScope[]> {
   const scopes: SettingsScope[] = ["user", "project", "local"];
   const out: PluginsByScope[] = [];
@@ -44,9 +56,11 @@ export async function listAll(cwd: string): Promise<PluginsByScope[]> {
       scope,
       path: pathFor(scope, cwd),
       enabledPlugins: typeof ep === "object" && ep ? (ep as Record<string, boolean>) : {},
-      extraKnownMarketplaces: strArr((settings as { extraKnownMarketplaces?: unknown }).extraKnownMarketplaces),
+      extraKnownMarketplaces: strArr(
+        aliased(settings, "extraKnownMarketplaces", "additionalMarketplaces"),
+      ),
       strictKnownMarketplaces: Boolean(
-        (settings as { strictKnownMarketplaces?: unknown }).strictKnownMarketplaces,
+        aliased(settings, "strictKnownMarketplaces", "allowedMarketplaces"),
       ),
       blockedMarketplaces: strArr((settings as { blockedMarketplaces?: unknown }).blockedMarketplaces),
     });
@@ -177,10 +191,15 @@ export async function setMarketplaces(
   const settings = await readSettings(scope, cwd);
   const next: ClaudeSettings = { ...settings };
   if (patch.extraKnownMarketplaces !== undefined) {
+    // Persist under the canonical key and drop the `additionalMarketplaces`
+    // alias so the two spellings can't coexist (the CLI ignores the alias with
+    // a warning when both are present), matching Claude Code's file rewrite.
+    delete (next as Record<string, unknown>).additionalMarketplaces;
     if (patch.extraKnownMarketplaces.length === 0) delete (next as Record<string, unknown>).extraKnownMarketplaces;
     else (next as Record<string, unknown>).extraKnownMarketplaces = patch.extraKnownMarketplaces;
   }
   if (patch.strictKnownMarketplaces !== undefined) {
+    delete (next as Record<string, unknown>).allowedMarketplaces;
     if (!patch.strictKnownMarketplaces) delete (next as Record<string, unknown>).strictKnownMarketplaces;
     else (next as Record<string, unknown>).strictKnownMarketplaces = true;
   }
