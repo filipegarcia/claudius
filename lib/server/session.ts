@@ -4402,19 +4402,29 @@ export class Session {
    * Anthropic. We feature-detect and swallow failures: if a future SDK drops
    * the method, forwarding degrades to a no-op and the caller still persists
    * the feedback locally. Returns whether the SDK accepted the forward.
+   *
+   * When `attachTranscript` is set the SDK's `attach_transcript` option is
+   * passed through, so the bundled `claude` binary packages the session
+   * transcript — which now carries the model settings that were in effect
+   * (Claude Code 2.1.224: "feedback survey can share transcript model
+   * settings") — and forwards it alongside the free-text description.
    */
-  async submitFeedback(description: string, surface = "claudius"): Promise<boolean> {
+  async submitFeedback(
+    description: string,
+    surface = "claudius",
+    attachTranscript = false,
+  ): Promise<boolean> {
     const q = this.query as
       | (Query & {
           submitFeedback?: (
             description: string,
-            opts?: { surface?: string },
+            opts?: { surface?: string; attach_transcript?: boolean },
           ) => Promise<unknown>;
         })
       | null;
     if (!q || typeof q.submitFeedback !== "function") return false;
     try {
-      await q.submitFeedback(description, { surface });
+      await q.submitFeedback(description, { surface, attach_transcript: attachTranscript });
       return true;
     } catch {
       return false;

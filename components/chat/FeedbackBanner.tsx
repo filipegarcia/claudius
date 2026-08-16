@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import {
   Check,
   ExternalLink,
+  FileText,
   Loader2,
   MessageSquareHeart,
   Send,
@@ -65,7 +66,11 @@ export function FeedbackBanner({
   onDismiss,
 }: {
   survey: FeedbackSurveyEvent | null;
-  onSubmit: (input: { rating?: Rating; comment: string }) => Promise<SubmitResult>;
+  onSubmit: (input: {
+    rating?: Rating;
+    comment: string;
+    attachTranscript?: boolean;
+  }) => Promise<SubmitResult>;
   onDismiss: () => void;
 }) {
   // The nudge the banner is currently showing. Tracked separately from the
@@ -77,6 +82,9 @@ export function FeedbackBanner({
   const [phase, setPhase] = useState<Phase>("prompt");
   const [rating, setRating] = useState<Rating | null>(null);
   const [comment, setComment] = useState("");
+  // Opt-in to sharing the session transcript (with the model settings that were
+  // in effect) — mirrors the CLI survey's "share transcript" toggle.
+  const [attachTranscript, setAttachTranscript] = useState(false);
   const [result, setResult] = useState<SubmitResult | null>(null);
 
   // Adopt a fresh nudge during render (the React-recommended "adjust state
@@ -88,6 +96,7 @@ export function FeedbackBanner({
     setPhase("prompt");
     setRating(null);
     setComment("");
+    setAttachTranscript(false);
     setResult(null);
   } else if (!survey && active && (phase === "prompt" || phase === "submitting")) {
     // The hook cleared the nudge out from under us — almost always a session
@@ -120,10 +129,14 @@ export function FeedbackBanner({
 
   const submit = useCallback(async () => {
     setPhase("submitting");
-    const res = await onSubmit({ rating: rating ?? undefined, comment: comment.trim() });
+    const res = await onSubmit({
+      rating: rating ?? undefined,
+      comment: comment.trim(),
+      attachTranscript,
+    });
     setResult(res);
     setPhase(res.ok && res.forwarded ? "ok" : "fail");
-  }, [onSubmit, rating, comment]);
+  }, [onSubmit, rating, comment, attachTranscript]);
 
   if (!active) return null;
 
@@ -235,6 +248,21 @@ export function FeedbackBanner({
         maxLength={1000}
         className="min-w-0 flex-1 rounded border border-[var(--accent)]/30 bg-transparent px-2 py-0.5 text-xs outline-none placeholder:text-[var(--muted)] focus:border-[var(--accent)]/60 disabled:opacity-50"
       />
+
+      <button
+        onClick={() => setAttachTranscript((v) => !v)}
+        disabled={phase === "submitting"}
+        aria-pressed={attachTranscript}
+        title="Share this session's transcript (including model settings) with your feedback"
+        className={`flex shrink-0 items-center gap-1 rounded border px-1.5 py-0.5 disabled:opacity-50 ${
+          attachTranscript
+            ? "border-[var(--accent)]/60 bg-[var(--accent)]/25 text-[var(--accent)]"
+            : "border-[var(--accent)]/40 bg-[var(--accent)]/15 text-[var(--muted)] hover:bg-[var(--accent)]/25"
+        }`}
+      >
+        <FileText className="h-3 w-3" />
+        <span className="hidden sm:inline">Transcript</span>
+      </button>
 
       <button
         onClick={() => void submit()}

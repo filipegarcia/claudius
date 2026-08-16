@@ -1,0 +1,12 @@
+-- v15: record whether a feedback submission shared the session transcript.
+--
+-- Claude Code 2.1.224 let the feedback survey share the transcript (which now
+-- carries the model settings that were in effect) alongside the free-text
+-- comment. The SDK exposes this as the `attach_transcript` option on
+-- `query.submitFeedback`; when set, the bundled `claude` binary packages the
+-- transcript (including model settings) and forwards it to Anthropic.
+--
+-- We persist the user's choice here so the local record faithfully reflects
+-- what was shared: `attach_transcript` is 1 when the user opted to share the
+-- transcript with their feedback, 0 otherwise (the default).
+ALTER TABLE feedback ADD COLUMN attach_transcript INTEGER NOT NULL DEFAULT 0;
