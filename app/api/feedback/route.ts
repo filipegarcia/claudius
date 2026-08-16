@@ -26,6 +26,8 @@ type PostBody = {
   rating?: string;
   comment?: string;
   surface?: string;
+  /** Opt-in to sharing the session transcript (with its model settings). */
+  attachTranscript?: boolean;
 };
 
 const RATINGS = new Set<FeedbackRating>(["up", "down"]);
@@ -53,6 +55,7 @@ export async function POST(req: Request) {
 
   const sessionId = typeof body?.sessionId === "string" ? body.sessionId : undefined;
   const surface = typeof body?.surface === "string" ? body.surface : "claudius";
+  const attachTranscript = body?.attachTranscript === true;
   const session = sessionId ? sessionManager.get(sessionId) : undefined;
 
   // We need a live session both to forward (its Query holds the control
@@ -70,7 +73,11 @@ export async function POST(req: Request) {
 
   let forwarded = false;
   try {
-    forwarded = await session.submitFeedback(forwardText(rating, comment), surface);
+    forwarded = await session.submitFeedback(
+      forwardText(rating, comment),
+      surface,
+      attachTranscript,
+    );
   } catch {
     forwarded = false;
   }
@@ -83,6 +90,7 @@ export async function POST(req: Request) {
     comment,
     surface,
     forwarded,
+    attachTranscript,
     createdAt: Date.now(),
   }).catch(() => {
     // best-effort persistence
