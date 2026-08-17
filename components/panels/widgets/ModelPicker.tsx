@@ -17,9 +17,11 @@ import {
 import { cn } from "@/lib/utils/cn";
 import {
   ADVISOR_COPY,
-  ADVISOR_OPTIONS,
+  ADVISOR_FABLE_VALUE,
+  advisorOptions,
   advisorFamily,
   type AdvisorChoice,
+  hasFableModel,
   isCustomAdvisor,
 } from "@/lib/shared/advisor";
 
@@ -683,8 +685,9 @@ export function ModelPicker({
           list above. */}
       {/* Advisor (experimental). The SDK's server-side escalation model —
           when the main model needs stronger judgment, it pings the advisor
-          and resumes. Rendered as three fixed product-blessed options
-          (Opus 4.8 / Sonnet 5 / No advisor) regardless of the active
+          and resumes. Rendered as the product-blessed options
+          (Opus 4.8 / Sonnet 5 / No advisor, plus Fable 5 for orgs with
+          access) regardless of the active
           model's `supportsEffort` etc., because the advisor is a separate
           model, not a setting of the main one. Hidden when the surface
           didn't pass `onPickAdvisor` (e.g. workspace-defaults form).
@@ -704,6 +707,14 @@ export function ModelPicker({
         // outside the opus/sonnet families (e.g. haiku, custom plugin).
         const current = advisorFamily(advisorModel);
         const custom = isCustomAdvisor(advisorModel) ? (advisorModel ?? "") : null;
+        // Fable 5 is re-offered as an advisor only for orgs with access —
+        // detected from the same `supportedModels()` list this picker
+        // already fetched. Also keep the row if the persisted advisor *is*
+        // Fable, so a configured Fable advisor still checks its own row
+        // (instead of silently showing nothing) even on a probe miss.
+        const includeFable =
+          hasFableModel(models) || current === ADVISOR_FABLE_VALUE;
+        const advisorRows = advisorOptions(includeFable);
         return (
           <div className="border-t border-[var(--border)]/60 px-3 py-2">
             <div className="flex items-center gap-1.5">
@@ -723,7 +734,7 @@ export function ModelPicker({
               aria-label={ADVISOR_COPY.header}
               className="mt-2 space-y-1"
             >
-              {ADVISOR_OPTIONS.map((opt) => {
+              {advisorRows.map((opt) => {
                 // "No advisor" (opt.value === null) wins ONLY when *no*
                 // advisor is configured anywhere — not when `current` is
                 // null because the value is custom (a different family).

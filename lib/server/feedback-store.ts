@@ -20,6 +20,8 @@ export type FeedbackRecord = {
   surface?: string | null;
   /** Whether the SDK accepted the forward to Anthropic. */
   forwarded: boolean;
+  /** Whether the user opted to share the session transcript (with its model settings). */
+  attachTranscript?: boolean;
   createdAt: number;
 };
 
@@ -30,6 +32,7 @@ type RawRow = {
   comment: string | null;
   surface: string | null;
   forwarded: number;
+  attach_transcript: number;
   created_at: number;
 };
 
@@ -41,6 +44,7 @@ function rowToRecord(row: RawRow): FeedbackRecord {
     comment: row.comment ?? "",
     surface: row.surface,
     forwarded: row.forwarded === 1,
+    attachTranscript: row.attach_transcript === 1,
     createdAt: row.created_at,
   };
 }
@@ -52,8 +56,8 @@ export async function insertFeedback(
   const db = await openDb(cwd).catch(() => null);
   if (!db) return;
   db.prepare(
-    `INSERT INTO feedback(id, session_id, cwd, rating, comment, surface, forwarded, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO feedback(id, session_id, cwd, rating, comment, surface, forwarded, attach_transcript, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).run(
     record.id,
     record.sessionId ?? null,
@@ -62,6 +66,7 @@ export async function insertFeedback(
     record.comment,
     record.surface ?? null,
     record.forwarded ? 1 : 0,
+    record.attachTranscript ? 1 : 0,
     record.createdAt,
   );
 }
@@ -74,7 +79,7 @@ export async function listFeedback(
   if (!db) return [];
   const rows = db
     .prepare<[number], RawRow>(
-      `SELECT id, session_id, rating, comment, surface, forwarded, created_at
+      `SELECT id, session_id, rating, comment, surface, forwarded, attach_transcript, created_at
          FROM feedback
         ORDER BY created_at DESC
         LIMIT ?`,

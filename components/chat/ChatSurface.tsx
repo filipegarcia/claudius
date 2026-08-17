@@ -2432,6 +2432,8 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
           agentCount={session.agents.length}
           skillCount={session.skills.length}
           slashCount={session.slashCommands.length}
+          mainAgent={session.mainAgent}
+          agentCwd={session.agentCwd}
           onClose={() => setOverlay(null)}
         />
       )}

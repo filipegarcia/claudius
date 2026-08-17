@@ -4625,7 +4625,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
   // `dismissFeedback` when it's done. The server defaults `surface`, so we only
   // send the session id + the user's rating/comment.
   const submitFeedback = useCallback(
-    async (input: { rating?: "up" | "down"; comment: string }) => {
+    async (input: { rating?: "up" | "down"; comment: string; attachTranscript?: boolean }) => {
       const id = sessionIdRef.current;
       if (!id) return { ok: false, stored: false, forwarded: false };
       try {
@@ -4636,6 +4636,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
             sessionId: id,
             rating: input.rating,
             comment: input.comment,
+            attachTranscript: input.attachTranscript,
           }),
         });
         const j = (await res.json().catch(() => ({}))) as {

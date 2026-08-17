@@ -106,6 +106,7 @@ import {
   writeSettings,
   type ClaudeSettings,
   isWorkflowSizeGuideline,
+  isCrossSessionInbound,
 } from "./settings";
 import { readLimits, type Limits } from "./limits-store";
 import { checkToolBudget, toolBudgetKindFor } from "@/lib/shared/tool-budget";
@@ -2236,9 +2237,15 @@ export class Session {
       //     advisorModel, a hand-edited garbage value has no sensible
       //     fallback for the SDK to trust, so we drop it rather than
       //     forward it verbatim.
+      //   • crossSessionInbound (Claude Code 2.1.224) — receive policy for
+      //     inbound cross-session `SendMessage` peer turns (Settings →
+      //     Collaboration). Validated against the SDK's three literals, same
+      //     reasoning as workflowSizeGuideline: a garbage value has no
+      //     sensible SDK fallback, so we drop it rather than forward it.
       ...(typeof userSettings.includeCoAuthoredBy === "boolean" ||
       typeof userSettings.advisorModel === "string" ||
-      isWorkflowSizeGuideline(userSettings.workflowSizeGuideline)
+      isWorkflowSizeGuideline(userSettings.workflowSizeGuideline) ||
+      isCrossSessionInbound(userSettings.crossSessionInbound)
         ? {
             settings: {
               ...(typeof userSettings.includeCoAuthoredBy === "boolean"
@@ -2249,6 +2256,9 @@ export class Session {
                 : {}),
               ...(isWorkflowSizeGuideline(userSettings.workflowSizeGuideline)
                 ? { workflowSizeGuideline: userSettings.workflowSizeGuideline }
+                : {}),
+              ...(isCrossSessionInbound(userSettings.crossSessionInbound)
+                ? { crossSessionInbound: userSettings.crossSessionInbound }
                 : {}),
             },
           }
@@ -4402,19 +4412,29 @@ export class Session {
    * Anthropic. We feature-detect and swallow failures: if a future SDK drops
    * the method, forwarding degrades to a no-op and the caller still persists
    * the feedback locally. Returns whether the SDK accepted the forward.
+   *
+   * When `attachTranscript` is set the SDK's `attach_transcript` option is
+   * passed through, so the bundled `claude` binary packages the session
+   * transcript — which now carries the model settings that were in effect
+   * (Claude Code 2.1.224: "feedback survey can share transcript model
+   * settings") — and forwards it alongside the free-text description.
    */
-  async submitFeedback(description: string, surface = "claudius"): Promise<boolean> {
+  async submitFeedback(
+    description: string,
+    surface = "claudius",
+    attachTranscript = false,
+  ): Promise<boolean> {
     const q = this.query as
       | (Query & {
           submitFeedback?: (
             description: string,
-            opts?: { surface?: string },
+            opts?: { surface?: string; attach_transcript?: boolean },
           ) => Promise<unknown>;
         })
       | null;
     if (!q || typeof q.submitFeedback !== "function") return false;
     try {
-      await q.submitFeedback(description, { surface });
+      await q.submitFeedback(description, { surface, attach_transcript: attachTranscript });
       return true;
     } catch {
       return false;

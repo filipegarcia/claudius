@@ -79,6 +79,27 @@ describe("feedback-store roundtrip", () => {
     expect(rows[0].comment).toBe("just a note");
   });
 
+  test("persists the attach-transcript opt-in", async () => {
+    await insertFeedback(CWD, {
+      id: "fb-shared",
+      comment: "sharing the transcript",
+      forwarded: true,
+      attachTranscript: true,
+      createdAt: 4000,
+    });
+    await insertFeedback(CWD, {
+      id: "fb-private",
+      comment: "keeping it private",
+      forwarded: true,
+      createdAt: 5000,
+    });
+
+    const rows = await listFeedback(CWD);
+    // Newest first.
+    expect(rows[0]).toMatchObject({ id: "fb-private", attachTranscript: false });
+    expect(rows[1]).toMatchObject({ id: "fb-shared", attachTranscript: true });
+  });
+
   test("honors the limit", async () => {
     for (let i = 0; i < 5; i++) {
       await insertFeedback(CWD, {

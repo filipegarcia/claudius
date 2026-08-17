@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { sessionManager } from "@/lib/server/session-manager";
 import { readSettings, writeSettings, type ClaudeSettings } from "@/lib/server/settings";
 import {
-  ADVISOR_OPTIONS,
+  ADVISOR_PICKABLE_VALUES,
   type AdvisorChoice,
   normalizeAdvisorChoice,
 } from "@/lib/shared/advisor";
@@ -29,11 +29,14 @@ export const runtime = "nodejs";
  *     AND clear the flag-layer override. With both gone the SDK has no
  *     advisor configured, so this is an honest "off".
  *
- * Values are constrained to the three product-blessed choices listed in
- * `lib/shared/advisor.ts`; unknown strings collapse to `null`. Advanced
- * users with a non-listed advisor edit `settings.json` directly.
+ * Values are constrained to the pickable choices listed in
+ * `lib/shared/advisor.ts` (Opus 4.8 / Sonnet 5 / Fable 5 / none); unknown
+ * strings collapse to `null`. Fable is accepted here for orgs that have
+ * access — the UI only surfaces the Fable row when `supportedModels()`
+ * advertises it, so a non-access org never sends it. Advanced users with a
+ * non-listed advisor edit `settings.json` directly.
  */
-const ALLOWED = new Set<string | null>(ADVISOR_OPTIONS.map((o) => o.value));
+const ALLOWED = new Set<string | null>(ADVISOR_PICKABLE_VALUES);
 
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;

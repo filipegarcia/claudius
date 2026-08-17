@@ -34,7 +34,6 @@ export type ReminderKind =
   | "memory-update"
   | "verify-plan"
   | "ultrathink-prose"
-  | "ultraplan-prose"
   | "midturn-inject"
   | "linter-modified-file"
   | "mcp-delta"
