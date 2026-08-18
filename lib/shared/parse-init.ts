@@ -52,6 +52,19 @@ export type InitInfo = {
    * silently dropped here.
    */
   fastModeDisabledReason?: string;
+  /**
+   * SDK 0.3.234 — the session's *applied* effort level: the value the
+   * session will actually send on its next request, after env overrides,
+   * session state, org caps, and model-support downgrades. `null` means no
+   * effort parameter will be sent (a model without effort support, or
+   * CLAUDE_CODE_EFFORT_LEVEL unset). `undefined` means the field wasn't on
+   * the message at all — an older CLI that predates it, or a host that
+   * doesn't publish it. Only the three literal-level case corrects the
+   * client's optimistic effort mirror (see `effort` state in use-session.ts);
+   * `null`/absent leave the mirror as-is, since "no effort param" doesn't
+   * necessarily mean the UI's "auto" state is wrong.
+   */
+  effort?: "low" | "medium" | "high" | "xhigh" | "max" | null;
 };
 
 function stringArray(v: unknown): string[] {
@@ -92,5 +105,12 @@ export function parseInitSystemMessage(msg: unknown): InitInfo {
       ? (m.fast_mode_state as "off" | "cooldown" | "on")
       : undefined,
     fastModeDisabledReason: optionalString(m.fast_mode_disabled_reason),
+    effort: (["low", "medium", "high", "xhigh", "max"] as const).includes(
+      m.effort as "low" | "medium" | "high" | "xhigh" | "max",
+    )
+      ? (m.effort as "low" | "medium" | "high" | "xhigh" | "max")
+      : m.effort === null
+        ? null
+        : undefined,
   };
 }

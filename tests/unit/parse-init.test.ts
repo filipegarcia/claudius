@@ -97,6 +97,7 @@ describe("parseInitSystemMessage", () => {
       "agents",
       "claudeCodeVersion",
       "cwd",
+      "effort",
       "fastModeDisabledReason",
       "fastModeState",
       "model",
@@ -133,6 +134,33 @@ describe("parseInitSystemMessage", () => {
       const out = parseInitSystemMessage({ subtype: "init" });
       expect(out.fastModeState).toBeUndefined();
       expect(out.fastModeDisabledReason).toBeUndefined();
+    });
+  });
+
+  // SDK 0.3.234 — applied `effort` on init, used to correct the client's
+  // optimistic effort mirror (see `effort` state in lib/client/use-session.ts).
+  describe("effort field (SDK 0.3.234)", () => {
+    test.each(["low", "medium", "high", "xhigh", "max"] as const)(
+      "extracts a known effort level %s",
+      (level) => {
+        const out = parseInitSystemMessage({ effort: level });
+        expect(out.effort).toBe(level);
+      },
+    );
+
+    test("preserves an explicit null (no effort param for this model)", () => {
+      const out = parseInitSystemMessage({ effort: null });
+      expect(out.effort).toBeNull();
+    });
+
+    test("an unrecognized effort string collapses to undefined (schema-drift defense)", () => {
+      const out = parseInitSystemMessage({ effort: "supersonic" });
+      expect(out.effort).toBeUndefined();
+    });
+
+    test("absent effort field collapses to undefined (older CLI / host that doesn't publish it)", () => {
+      const out = parseInitSystemMessage({ subtype: "init" });
+      expect(out.effort).toBeUndefined();
     });
   });
 });

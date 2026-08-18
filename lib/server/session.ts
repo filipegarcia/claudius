@@ -689,6 +689,19 @@ const OPUS_OVERLOAD_NUDGE_THRESHOLD = 2;
 const STALE_TODO_TURN_THRESHOLD = 15;
 
 /**
+ * SDK 0.3.233: these five tools dropped out of the *default* tool surface on
+ * Opus 4.8, Sonnet 5, Fable 5, Mythos 5, and newer models. Referencing them
+ * in `Options.allowedTools` (see the `query()` options builder below) keeps
+ * them present regardless of model tier — Claudius's entire todos rail
+ * (TodosBanner, BackgroundTasksPanel, the captureSnapshotState machinery in
+ * this file) assumes they exist. Exported as a named constant, rather than
+ * inlined, purely so it's directly unit-testable without exercising
+ * `Session.start()`'s much heavier setup (disk I/O, DB reads, notification
+ * sweep) — see tests/unit/session-options.test.ts.
+ */
+export const TODO_TASK_TOOL_NAMES = ["TodoWrite", "TaskCreate", "TaskGet", "TaskUpdate", "TaskList"];
+
+/**
  * Wall-clock age at which a TodoWrite snapshot is considered abandoned and
  * dropped automatically — evaluated at session start (after disk replay).
  * The "stale-todowrite" reminder above is the *soft* nudge that hopes the
@@ -2269,6 +2282,25 @@ export class Session {
       // snapshots files before each modification; cleanup follows the
       // `cleanupPeriodDays` setting (default 30d).
       enableFileCheckpointing: true,
+      // SDK 0.3.233: TodoWrite/TaskCreate/TaskGet/TaskUpdate/TaskList dropped
+      // out of the *default* tool surface on Opus 4.8, Sonnet 5, Fable 5,
+      // Mythos 5, and newer models — the changelog names three ways to keep
+      // them: list them in `tools`, reference them in `allowedTools`, or set
+      // CLAUDE_CODE_ENABLE_TODO_TOOLS=1. Claudius has no `tools`/`disallowedTools`
+      // restriction anywhere in this options object (the SDK's full default
+      // preset always applied before), and the entire todos rail
+      // (TodosBanner, BackgroundTasksPanel, dev/chat-todos, the
+      // captureSnapshotState TaskCreate/TaskList/TaskUpdate machinery in this
+      // file) is built assuming these tools exist — losing them on a newer
+      // model would silently break that whole feature with no error surfaced
+      // to the user. `allowedTools` is additive (it doesn't restrict the
+      // surface the way `tools` would) and isn't clobbered by the account-
+      // switcher's `env` replacement above, so it's the safer of the three
+      // options here. These tools already have no special-cased `canUseTool`
+      // handling (they fall through to the normal allow/ask/deny flow), so
+      // adding them to the auto-allow list doesn't change any existing
+      // permission-prompt behavior.
+      allowedTools: TODO_TASK_TOOL_NAMES,
       // Opt into adaptive extended thinking explicitly so the agent
       // emits the full reasoning text in `thinking` blocks. Without
       // this, recent SDK builds default to a `display: 'omitted'`
