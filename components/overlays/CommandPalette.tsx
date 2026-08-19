@@ -36,6 +36,7 @@ import {
   isTypingTarget,
   matchBinding,
   SHORTCUT_ACTIONS,
+  useBindingPlatform,
   type ShortcutAction,
   type ShortcutBinding,
 } from "@/lib/client/shortcuts";
@@ -125,9 +126,12 @@ function fuzzyMatch(target: string, query: string): number | null {
   return matched / Math.max(t.length, 1);
 }
 
-function shortcutDetail(action: ShortcutAction): string {
+function shortcutDetail(
+  action: ShortcutAction,
+  platform: "mac" | "other",
+): string {
   const binding: ShortcutBinding | null = action.default;
-  return binding ? formatBinding(binding) : "no default";
+  return binding ? formatBinding(binding, { platform }) : "no default";
 }
 
 export function CommandPalette() {
@@ -136,6 +140,11 @@ export function CommandPalette() {
   const [activeIndex, setActiveIndex] = useState(0);
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement | null>(null);
+  // SSR-stable glyph platform — see `useBindingPlatform`. The palette
+  // itself never renders on the server (`if (!open) return null`), but the
+  // entry list is memoised, so without this the chords would freeze at the
+  // server's "Ctrl+…" spelling on macOS.
+  const bindingPlatform = useBindingPlatform();
 
   // ── Open / close wiring ────────────────────────────────────────────────
   // Centralized so the keyboard chord, OS menu, and any other call site
@@ -238,12 +247,12 @@ export function CommandPalette() {
         id: `shortcut:${a.id}`,
         kind: "shortcut",
         label: a.label,
-        detail: shortcutDetail(a),
+        detail: shortcutDetail(a, bindingPlatform),
       });
     }
 
     return out;
-  }, [workspaceId]);
+  }, [workspaceId, bindingPlatform]);
 
   const filtered = useMemo(() => {
     const q = query.trim();

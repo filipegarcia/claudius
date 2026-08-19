@@ -643,6 +643,38 @@ export function bindingsEqual(
 }
 
 /**
+ * The platform `formatBinding` should render for, resolved in an
+ * SSR-safe way.
+ *
+ * WHY A HOOK AND NOT A BARE `navigator.platform` SNIFF: `formatBinding`
+ * falls back to sniffing `navigator`, which does not exist during the
+ * server render. So the server emitted "Ctrl+Alt+L" while the browser's
+ * hydration pass produced "⌘⌥L", and React tore the whole subtree down
+ * with "Hydration failed because the server rendered text didn't match
+ * the client" — logged on every settings / side-nav paint in the e2e run.
+ *
+ * `useSyncExternalStore` with a server snapshot fixes it the same way the
+ * theme/ide stores in this codebase do: hydration renders the *server*
+ * value (so the trees match), then React immediately re-renders with the
+ * client value. The store never actually changes — the platform can't —
+ * so `subscribe` is a no-op.
+ */
+const noopSubscribe = () => () => {};
+const getPlatformSnapshot = (): "mac" | "other" =>
+  typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform)
+    ? "mac"
+    : "other";
+const getPlatformServerSnapshot = (): "mac" | "other" => "other";
+
+export function useBindingPlatform(): "mac" | "other" {
+  return useSyncExternalStore(
+    noopSubscribe,
+    getPlatformSnapshot,
+    getPlatformServerSnapshot,
+  );
+}
+
+/**
  * Pretty-print a binding for display. Uses platform-appropriate glyphs on
  * macOS (⌘ ⇧ ⌥ ↩︎) and spelled-out names elsewhere.
  */

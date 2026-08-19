@@ -14,6 +14,7 @@ import type { Customization, PublishRecord } from "@/lib/server/customizations-s
 import {
   formatBinding,
   matchBinding,
+  useBindingPlatform,
   useShortcutRegistry,
   type ShortcutBinding,
 } from "@/lib/client/shortcuts";
@@ -302,6 +303,11 @@ export function SideNav({
   // tooltip path below reads from this too, so a remap in Settings updates
   // both the keyboard handler AND the hint glyph in one re-render.
   const { items: registryItems } = useShortcutRegistry();
+  // SSR-stable glyph platform for the tooltip hints — see
+  // `useBindingPlatform`. Sniffing `navigator` inline made the server
+  // render "Ctrl+Alt+L" and the client "⌘⌥L", tearing down the rail on
+  // hydration.
+  const bindingPlatform = useBindingPlatform();
   const bindingByActionId = useMemo(() => {
     const out = new Map<string, ShortcutBinding | null>();
     for (const it of registryItems) out.set(it.action.id, it.binding);
@@ -454,7 +460,9 @@ export function SideNav({
           // shortcut in Settings the hint disappears; when they remap it,
           // the new chord shows up here without a code edit.
           const binding = actionId ? bindingByActionId.get(actionId) ?? null : null;
-          const shortcutLabel = binding ? formatBinding(binding) : undefined;
+          const shortcutLabel = binding
+            ? formatBinding(binding, { platform: bindingPlatform })
+            : undefined;
           // `href` in the items table is an *inner* path (e.g. "/git" or
           // "" for the workspace root). The actual <Link> target is built
           // by prefixing the active workspace id; the canonical URL shape

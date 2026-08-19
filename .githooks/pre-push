@@ -23,13 +23,21 @@ if [ "${CLAUDIUS_SKIP_PREPUSH:-0}" = "1" ]; then
   exit 0
 fi
 
-# Read the ref list from stdin (git's pre-push hook protocol). If every
-# entry is a deletion (new_sha is all zeros), there's nothing to type-check.
+# Read the ref list from stdin (git's pre-push hook protocol:
+# `<local_ref> <local_sha> <remote_ref> <remote_sha>`). If every entry is a
+# deletion there's nothing to type-check.
+#
+# A DELETION is `local_sha` all-zeros — you're pushing nothing at a remote
+# ref. This used to test `remote_sha`, which is all-zeros for a *new
+# branch* instead, so every first push of a branch announced "only
+# deletions in this push, skipping checks" and shipped without a
+# type-check or lint. The updater's branch pushes are all new branches,
+# so in practice the gate had stopped running there entirely.
 all_deletions=1
 have_input=0
-while read -r _local_ref _local_sha _remote_ref remote_sha; do
+while read -r _local_ref local_sha _remote_ref _remote_sha; do
   have_input=1
-  case "$remote_sha" in
+  case "$local_sha" in
     0000000000000000000000000000000000000000) ;;
     *) all_deletions=0 ;;
   esac

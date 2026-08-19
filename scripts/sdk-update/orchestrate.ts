@@ -236,6 +236,46 @@ function sh(cmd: string, args: string[], opts: SpawnOptions = {}): string {
   return (result.stdout ?? "").toString().trim();
 }
 
+/** Label a reviewer scans for on any PR the automation could not finish. */
+const NEEDS_HUMAN_LABEL = "needs-human";
+
+/**
+ * Tag a PR `needs-human`, creating the label first if the repo lacks it.
+ *
+ * `gh pr edit --add-label` hard-fails with `'needs-human' not found` when
+ * the label was never created — which is what happened on the 2026-08-18
+ * firing: the draft PR opened, the process issue was filed, but the one
+ * marker a reviewer filters on was silently absent. Create-then-retry
+ * makes the first such run in a repo self-healing instead of logging the
+ * same warning forever. Still best-effort: the PR's draft status is the
+ * load-bearing signal, the label is the convenience on top of it.
+ */
+export function addNeedsHumanLabel(prRef: string): void {
+  try {
+    sh("gh", ["pr", "edit", prRef, "--add-label", NEEDS_HUMAN_LABEL]);
+    return;
+  } catch {
+    // Fall through — most likely the label doesn't exist yet.
+  }
+  try {
+    // `--force` makes this idempotent: it updates an existing label
+    // rather than failing on the duplicate.
+    sh("gh", [
+      "label",
+      "create",
+      NEEDS_HUMAN_LABEL,
+      "--description",
+      "An automated run could not finish this — a human needs to take it over",
+      "--color",
+      "D93F0B",
+      "--force",
+    ]);
+    sh("gh", ["pr", "edit", prRef, "--add-label", NEEDS_HUMAN_LABEL]);
+  } catch (err) {
+    console.warn(`could not add ${NEEDS_HUMAN_LABEL} label: ${String(err)}`);
+  }
+}
+
 /**
  * Run a command, stream stdout+stderr to the cron log in real time AND
  * capture the last `tailLines` lines so the orchestrator can include
@@ -3776,13 +3816,9 @@ export function openPr(args: {
   }
 
   if (mustDraft) {
-    try {
-      sh("gh", ["pr", "edit", url, "--add-label", "needs-human"]);
-    } catch (err) {
-      // Don't fail the whole run just because the label doesn't exist
-      // yet — the draft status itself is enough of a flag.
-      console.warn(`could not add needs-human label: ${String(err)}`);
-    }
+    // Best-effort: never fail the whole run over a label. The draft
+    // status itself is enough of a flag.
+    addNeedsHumanLabel(url);
   }
   return { url, created };
 }
@@ -3875,11 +3911,7 @@ export function openPrWithTitle(args: {
   }
 
   if (mustDraft) {
-    try {
-      sh("gh", ["pr", "edit", url, "--add-label", "needs-human"]);
-    } catch (err) {
-      console.warn(`could not add needs-human label: ${String(err)}`);
-    }
+    addNeedsHumanLabel(url);
   }
   return { url, created };
 }
@@ -5382,11 +5414,7 @@ async function main(): Promise<void> {
       // block below upgrades it to "sdk-failure-cc-draft".
       const reason = `CI still red after ${ciAttempt} fix attempt(s) — see ${prUrl}`;
       log(reason);
-      try {
-        sh("gh", ["pr", "edit", prNumber, "--add-label", "needs-human"]);
-      } catch {
-        // Best-effort label.
-      }
+      addNeedsHumanLabel(prNumber);
       await reportProcessIssueSafe({
         kind: "CI still red after fix attempts",
         reason,

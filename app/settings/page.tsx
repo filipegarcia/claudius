@@ -56,6 +56,9 @@ export default function SettingsPage() {
   const [rawDraft, setRawDraft] = useState<string>("");
   const [rawError, setRawError] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
+  // Set by the explicit Refresh button so the next payload re-seeds even
+  // over an unsaved edit — "reload from disk" should mean exactly that.
+  const [forceReseed, setForceReseed] = useState(false);
   const [saving, setSaving] = useState(false);
   const theme = useTheme();
   const linkTarget = useLinkTarget();
@@ -72,14 +75,32 @@ export default function SettingsPage() {
   //
   // Keyed by `(scope, JSON of active settings)` so a re-fetch that returns
   // the same payload doesn't gratuitously wipe an in-progress edit.
+  //
+  // An in-progress edit is NEVER re-seeded over. `useSettings` fetches
+  // asynchronously (and refetches after every save), so a payload that
+  // lands a beat after the user touched a field used to wipe the draft
+  // *and* clear `dirty` — the edit silently reverted and Save greyed
+  // itself out. That was the flake behind
+  // `sdk-update-0.3.219-workflow-size-guideline.spec.ts`: the catalog row
+  // renders before settings resolve, so selecting a value and clicking
+  // Save raced the first fetch, and `onSave`'s `if (!dirty) return`
+  // swallowed the write. `dirty` is cleared by `onSave` on a successful
+  // write instead, which lets the following refetch re-seed normally.
+  // Switching scope tabs still re-seeds unconditionally — the draft
+  // belongs to the scope you left, so carrying it into another one would
+  // be worse than losing it.
   const activeKey = `${scope}:${JSON.stringify(active?.settings ?? {})}`;
   const [lastActiveKey, setLastActiveKey] = useState(activeKey);
   if (lastActiveKey !== activeKey) {
+    const scopeChanged = !lastActiveKey.startsWith(`${scope}:`);
     setLastActiveKey(activeKey);
-    setDraft(active?.settings ?? {});
-    setRawDraft(JSON.stringify(active?.settings ?? {}, null, 2));
-    setRawError(null);
-    setDirty(false);
+    if (scopeChanged || forceReseed || !dirty) {
+      setDraft(active?.settings ?? {});
+      setRawDraft(JSON.stringify(active?.settings ?? {}, null, 2));
+      setRawError(null);
+      setDirty(false);
+      setForceReseed(false);
+    }
   }
 
   const onSave = async () => {
@@ -96,7 +117,9 @@ export default function SettingsPage() {
           return;
         }
       }
-      await settings.save(scope, toWrite);
+      // Clearing `dirty` here (rather than letting the post-save refetch
+      // do it) is what lets the re-seed guard above protect unsaved edits.
+      if (await settings.save(scope, toWrite)) setDirty(false);
     } finally {
       setSaving(false);
     }
@@ -112,6 +135,10 @@ export default function SettingsPage() {
       return next;
     });
     setDirty(true);
+    // A fresh edit supersedes a Refresh whose payload never differed (so
+    // the re-seed branch never ran to clear the flag) — otherwise that
+    // stale intent would discard this edit on some later refetch.
+    setForceReseed(false);
   };
 
   // Case-insensitive substring match for the settings search. Each section
@@ -232,7 +259,10 @@ export default function SettingsPage() {
             </div>
           )}
           <button
-            onClick={settings.refresh}
+            onClick={() => {
+              setForceReseed(true);
+              settings.refresh();
+            }}
             className="flex items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-0.5 hover:bg-[var(--panel)]"
           >
             <RefreshCw className="h-3 w-3" /> Refresh
@@ -480,6 +510,7 @@ export default function SettingsPage() {
                   onChange={(e) => {
                     setRawDraft(e.target.value);
                     setDirty(true);
+                    setForceReseed(false);
                     setRawError(null);
                   }}
                   spellCheck={false}

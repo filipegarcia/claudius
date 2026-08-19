@@ -154,6 +154,37 @@ EOF
 
 reap_stalled_pipeline
 
+# ── e2e web-server forensics (issue #128) ────────────────────────────
+# The gate's Playwright `next dev` server has now died mid-run twice,
+# each time taking the rest of the suite with it in a connection-refused
+# cascade that reads like dozens of test regressions (2026-08-18: 36
+# "failures", every one of them after the server stopped answering).
+# scripts/e2e-webserver.sh exists to record the missing cause — exit
+# code, timestamps, a memory trail — but playwright.config.ts only
+# routes the webServer through it when CLAUDIUS_E2E_WEBSERVER_LOG is
+# set, and the env file its comment pointed at
+# (.claudius/sdk-updater/env) was never created on this host. So the
+# instrumentation added for #128 had never actually run, and the
+# recurrence again left nothing behind.
+#
+# Default it ON here — the one place both pipelines pass through — so a
+# cron firing and a hand-run `make update-run` are instrumented alike.
+# The children inherit it through their gate spawns. Operators can point
+# it elsewhere by exporting their own value, or opt out entirely with
+# CLAUDIUS_E2E_WEBSERVER_LOG= (set-but-empty is falsy in the config).
+if [ -z "${CLAUDIUS_E2E_WEBSERVER_LOG+x}" ]; then
+  export CLAUDIUS_E2E_WEBSERVER_LOG="$ROOT/.claudius/logs/e2e-webserver.log"
+fi
+if [ -n "${CLAUDIUS_E2E_WEBSERVER_LOG:-}" ]; then
+  mkdir -p "$(dirname "$CLAUDIUS_E2E_WEBSERVER_LOG")"
+  # Same one-rotation-at-16MB rule as the pipeline log above.
+  _ws_bytes="$(wc -c < "$CLAUDIUS_E2E_WEBSERVER_LOG" 2>/dev/null | tr -d ' ')"
+  if [ "${_ws_bytes:-0}" -gt 16777216 ]; then
+    mv -f "$CLAUDIUS_E2E_WEBSERVER_LOG" "$CLAUDIUS_E2E_WEBSERVER_LOG.1" 2>/dev/null || true
+  fi
+  log "e2e web-server forensics → $CLAUDIUS_E2E_WEBSERVER_LOG"
+fi
+
 log "starting combined update run (sdk-update → cc-parity)"
 
 sdk_rc=0

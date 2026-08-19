@@ -45,6 +45,7 @@ import {
   repoRoot,
 } from "./check";
 import {
+  addNeedsHumanLabel,
   ALL_GATE_STEPS,
   announceSafe,
   branchShipBlocker,
@@ -1649,11 +1650,7 @@ async function main(): Promise<void> {
     } else {
       const reason = `CI red on ${prUrl} — leaving draft + needs-human for a reviewer`;
       log(reason);
-      try {
-        sh("gh", ["pr", "edit", prNumber, "--add-label", "needs-human"]);
-      } catch {
-        // Best-effort label.
-      }
+      addNeedsHumanLabel(prNumber);
       await reportProcessIssueSafe({
         kind: "CI red on opened PR",
         reason,

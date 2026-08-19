@@ -152,10 +152,12 @@ export default defineConfig({
     // `--dist-dir` was removed from `next dev` in Next 16, so the
     // override has to flow through next.config.ts.
     // Normally the plain dev server. On the cron host — where the server has
-    // died mid-run leaving no cause (issue #128) — set CLAUDIUS_E2E_WEBSERVER_LOG
-    // to route it through scripts/e2e-webserver.sh, which records the server's
-    // exit code, timestamps and periodic memory snapshots to that file. Opt-in
-    // so a normal `bun run test:e2e` / CI run is unchanged (no extra process).
+    // died mid-run leaving no cause (issue #128) — CLAUDIUS_E2E_WEBSERVER_LOG
+    // routes it through scripts/e2e-webserver.sh, which records the server's
+    // exit code, timestamps and periodic memory snapshots to that file.
+    // scripts/update-pipeline.sh exports it for both update pipelines; a
+    // normal `bun run test:e2e` / CI run leaves it unset and is unchanged
+    // (no extra process).
     command: process.env.CLAUDIUS_E2E_WEBSERVER_LOG
       ? `bash scripts/e2e-webserver.sh ${PORT}`
       : `next dev -p ${PORT}`,

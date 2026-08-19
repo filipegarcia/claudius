@@ -7,6 +7,7 @@ import {
   formatBinding,
   isTypingTarget,
   matchBinding,
+  useBindingPlatform,
   useShortcut,
 } from "@/lib/client/shortcuts";
 import { useKeydownBinding } from "@/lib/client/useKeydownBinding";
@@ -435,8 +436,10 @@ export function SessionTabs({
   // Tooltip / numeric-hint formatting. Pulls the digit modifier from the
   // resolved `tab.selectByNumber` binding so renaming the prefix in
   // Settings (e.g. ⌥⇧ instead of ⌘⇧) updates the visible hint, too.
+  const bindingPlatform = useBindingPlatform();
   const modHint = bindingByNumber
-    ? formatBinding({ ...bindingByNumber, code: null }).replace(/1[…-]9$/, "")
+    ? formatBinding({ ...bindingByNumber, code: null }, { platform: bindingPlatform })
+        .replace(/1[…-]9$/, "")
     : "";
 
   function onResizeStart(e: React.PointerEvent<HTMLDivElement>) {

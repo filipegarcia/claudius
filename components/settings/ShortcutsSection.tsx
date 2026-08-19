@@ -16,6 +16,7 @@ import {
   formatBinding,
   reservedConflictFor,
   SHORTCUT_BY_ID,
+  useBindingPlatform,
   useShortcutRegistry,
   type ShortcutAction,
   type ShortcutBinding,
@@ -382,6 +383,9 @@ function BindingChip({
   binding: ShortcutBinding | null;
   recording: boolean;
 }) {
+  // SSR-stable platform — see `useBindingPlatform`. Called before the
+  // early returns so the hook order stays fixed across renders.
+  const platform = useBindingPlatform();
   if (recording && !binding) {
     return (
       <span className="flex h-7 min-w-[88px] items-center justify-center gap-1 rounded-md border border-dashed border-[var(--accent)]/60 bg-[var(--accent)]/5 px-2 font-mono text-[11px] text-[var(--accent)]">
@@ -406,7 +410,7 @@ function BindingChip({
           : "border-[var(--border)] text-[var(--foreground)]",
       )}
     >
-      {formatBinding(binding)}
+      {formatBinding(binding, { platform })}
     </span>
   );
 }

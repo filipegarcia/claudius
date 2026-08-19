@@ -24,6 +24,7 @@ import {
   formatBinding,
   isTypingTarget,
   matchBinding,
+  useBindingPlatform,
   useShortcut,
   useShortcutRegistry,
   type ShortcutBinding,
@@ -204,6 +205,8 @@ export function WorkspaceSwitcher({ mobileOpen = false, onCloseMobile }: Props =
   // map is keyed by 1-based position so the keydown handler can resolve
   // `workspaces[n - 1]` in O(1) without a regex re-parse on every keypress.
   const { items: registryItems } = useShortcutRegistry();
+  // SSR-stable glyph platform — see `useBindingPlatform`.
+  const bindingPlatform = useBindingPlatform();
   const goBindingByIndex = useMemo(() => {
     const out = new Map<number, ShortcutBinding | null>();
     for (const it of registryItems) {
@@ -361,7 +364,9 @@ export function WorkspaceSwitcher({ mobileOpen = false, onCloseMobile }: Props =
           // that returns `undefined` and the hover label just shows the
           // workspace name without a binding glyph.
           const goBinding = goBindingByIndex.get(idx + 1) ?? null;
-          const chordLabel = goBinding ? formatBinding(goBinding) : null;
+          const chordLabel = goBinding
+            ? formatBinding(goBinding, { platform: bindingPlatform })
+            : null;
           // System-tooltip text. Tests in tests/e2e/workspace-*.spec.ts
           // resolve tiles via `getByTitle(new RegExp("^<name>(\\n|$)"))`,
           // so the first line must remain the bare workspace name —
@@ -581,9 +586,9 @@ export function WorkspaceSwitcher({ mobileOpen = false, onCloseMobile }: Props =
             // Reflect whatever bindings the user has — if they remapped to
             // ⌥, ⇧ or anything else, the hint here updates with them.
             <span className="px-1 text-center text-[8px] leading-tight text-[var(--muted)]/60">
-              {bindingPrev ? formatBinding(bindingPrev) : ""}
+              {bindingPrev ? formatBinding(bindingPrev, { platform: bindingPlatform }) : ""}
               {bindingPrev && bindingNext ? " " : ""}
-              {bindingNext ? formatBinding(bindingNext) : ""}
+              {bindingNext ? formatBinding(bindingNext, { platform: bindingPlatform }) : ""}
             </span>
           )}
           {/* claudius version — tracks the Claude Agent SDK (see

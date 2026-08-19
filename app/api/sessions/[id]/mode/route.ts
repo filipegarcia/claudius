@@ -17,7 +17,12 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   const { id } = await ctx.params;
   const session = sessionManager.get(id);
   if (!session) return NextResponse.json({ error: "session not found" }, { status: 404 });
-  const body = (await req.json()) as { mode?: string };
+  // Guarded parse — an empty or truncated body (a request the browser
+  // aborted on navigation, say) threw an unhandled SyntaxError here and
+  // surfaced as a 500 with a stack trace in the server log. Same
+  // `.catch(() => null)` shape as the sibling holder route; a bad body is
+  // just an invalid mode.
+  const body = (await req.json().catch(() => null)) as { mode?: string } | null;
   if (!body?.mode || !MODES.includes(body.mode as PermissionMode)) {
     return NextResponse.json({ error: "invalid mode" }, { status: 400 });
   }

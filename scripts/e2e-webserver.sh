@@ -10,9 +10,13 @@
 # crash left no cause behind. This wrapper records that missing signal.
 #
 # OPT-IN: playwright.config.ts only routes the webServer through this
-# wrapper when CLAUDIUS_E2E_WEBSERVER_LOG is set (the cron sets it in
-# .claudius/sdk-updater/env). A normal `bun run test:e2e` and CI run the
-# plain `next dev` command unchanged — this adds no layer for anyone else.
+# wrapper when CLAUDIUS_E2E_WEBSERVER_LOG is set. scripts/update-pipeline.sh
+# exports it by default (→ .claudius/logs/e2e-webserver.log) so every cron
+# firing and hand-run `make update-run` is instrumented; it used to point at
+# an operator-authored `.claudius/sdk-updater/env` that never existed, which
+# is why the 2026-08-18 recurrence of #128 still left no cause behind. A
+# normal `bun run test:e2e` and CI run the plain `next dev` command
+# unchanged — this adds no layer for anyone else.
 #
 # What it captures to $CLAUDIUS_E2E_WEBSERVER_LOG (survives the run, separate
 # from the giant pipeline log):
