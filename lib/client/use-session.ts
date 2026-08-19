@@ -1183,13 +1183,15 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
 
   const [permissionMode, setPermissionModeState] = useState<PermissionMode>("default");
   const [model, setModelState] = useState<string | null>(null);
-  // Reasoning effort. The SDK doesn't expose the *current* effort on any
-  // event we replay — there's no `effort_changed` analogue to
-  // `model_changed`. We mirror what we know: "auto" until the user picks an
-  // explicit level via the picker, then whatever they picked. A user who
-  // types `/effort high` directly into the composer bypasses this mirror and
-  // the card will lag — acceptable because the picker is the canonical
-  // surface and the value re-syncs on the next picker interaction.
+  // Reasoning effort. The SDK still has no `effort_changed` analogue to
+  // `model_changed` for a live turn, so mid-turn changes (a user who types
+  // `/effort high` directly into the composer) still bypass this mirror
+  // until the picker is touched again. But SDK 0.3.234 added an `effort`
+  // field to the `system:init` message (the session's authoritative
+  // post-downgrade applied effort) — session start/reconnect now corrects
+  // the mirror from that instead of relying purely on optimism (see the
+  // `init.effort` handling below). We seed "auto" until the user picks an
+  // explicit level via the picker or init reports one.
   const [effort, setEffortState] =
     useState<"low" | "medium" | "high" | "xhigh" | "max" | "auto">("auto");
   // "Ultracode" (Dynamic Workflows). Same optimistic-mirror story as
@@ -3479,6 +3481,13 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
           // as the seed, so this can't spuriously fire a transition toast.
           if (init.fastModeState) setFastModeState(init.fastModeState);
           if (init.fastModeDisabledReason) setFastModeDisabledReason(init.fastModeDisabledReason);
+          // SDK 0.3.234: correct the optimistic effort mirror from the
+          // session's authoritative applied value (post env/session/org-cap/
+          // model-support resolution). Only the three literal levels count —
+          // `null` (no effort param for this model) or `undefined` (older
+          // CLI, host that doesn't publish the field) leave the mirror
+          // exactly as the user last set it via the picker.
+          if (init.effort) setEffortState(init.effort);
           // Belt-and-braces advisor priming: the bind-time `GET /advisor`
           // is the *authoritative* source (returns the literal value the
           // SDK is honoring), but it can come back null on edge cases
