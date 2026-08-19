@@ -22,6 +22,12 @@ describe("hook-events", () => {
     expect(spec?.description.length).toBeGreaterThan(0);
   });
 
+  test("PostToolUse documents classifierContext for the auto-mode permission classifier (SDK 0.3.236)", () => {
+    const spec = HOOK_EVENTS.find((e) => e.name === "PostToolUse");
+    expect(spec).toBeDefined();
+    expect(spec?.description).toMatch(/classifierContext/i);
+  });
+
   test("HOOK_EVENT_NAMES and HOOK_EVENTS stay in sync (no silent drift)", () => {
     const namesInEvents = HOOK_EVENTS.map((e) => e.name).sort();
     expect(namesInEvents).toEqual([...HOOK_EVENT_NAMES].sort());
