@@ -1,6 +1,8 @@
 import { describe, expect, test } from "vitest";
 
 import {
+  changelogVersions,
+  clearSettledAttempts,
   containsOnlyBugFixEntries,
   decide,
   decideCcCombinedRun,
@@ -534,5 +536,211 @@ describe("pickCombinedPrCarryingCc", () => {
       },
     ];
     expect(pickCombinedPrCarryingCc(prs, "2.1.41")?.number).toBe(88);
+  });
+});
+
+// ── attempt budget + baseline preservation ────────────────────────────
+
+/**
+ * Regression coverage for the failure that silently dropped
+ * claude-code 2.1.223 → 2.1.234 from parity entirely.
+ *
+ * `main()` used to write `lastSeenVersion = latest` on EVERY probe,
+ * before the orchestrator had done any work. Because
+ * `lastCompletedVersion` is null for any pipeline that hasn't shipped
+ * recently, `lastSeenVersion` IS the baseline — so a run that started and
+ * then failed still advanced it past its own range, and the next probe
+ * diffed from there. The intervening changelog was never classified by
+ * anything, ever, and the pipeline reported rc=0 throughout.
+ *
+ * The fix makes the baseline advance conditional on NOT starting a run,
+ * which means a failing version is retried instead of skipped. These
+ * tests pin the retry bound that keeps that from becoming an infinite
+ * hourly loop — and, critically, that parking a version does not move the
+ * baseline either.
+ */
+describe("decide — attempt budget", () => {
+  test("a version under the attempt budget still runs", () => {
+    const s = emptyState();
+    s.lastSeenVersion = "1.0.40";
+    s.attempts = { "1.0.41": { count: 2, firstAt: 1, lastAt: 2 } };
+    const d = decide(s, "1.0.41", { maxMinorJump: 1, maxRunAttempts: 3 });
+    expect(d.kind).toBe("run");
+  });
+
+  test("a version that burned the attempt budget is parked, not run", () => {
+    const s = emptyState();
+    s.lastSeenVersion = "1.0.40";
+    s.attempts = { "1.0.41": { count: 3, firstAt: 1, lastAt: 2 } };
+    const d = decide(s, "1.0.41", { maxMinorJump: 1, maxRunAttempts: 3 });
+    expect(d.kind).toBe("skip");
+    if (d.kind === "skip") {
+      expect(d.reason).toMatch(/failed 3 consecutive run attempts/);
+      // The load-bearing assertion: parking must NOT pretend the range
+      // was handled. The baseline reported stays at the last version
+      // that actually shipped, so the next release re-includes it.
+      expect(d.current).toBe("1.0.40");
+    }
+  });
+
+  test("parking one version does not park the NEXT one — the range is re-derived from the held baseline", () => {
+    const s = emptyState();
+    s.lastSeenVersion = "1.0.40";
+    s.attempts = { "1.0.41": { count: 9, firstAt: 1, lastAt: 2 } };
+    const d = decide(s, "1.0.42", { maxMinorJump: 1, maxRunAttempts: 3 });
+    expect(d.kind).toBe("run");
+    if (d.kind === "run") {
+      // Not 1.0.41 — the failed range is folded back into this run.
+      expect(d.previousVersion).toBe("1.0.40");
+      expect(d.newVersion).toBe("1.0.42");
+    }
+  });
+
+  test("attempt counters for shipped versions are cleared", () => {
+    const cleared = clearSettledAttempts(
+      {
+        "1.0.39": { count: 3, firstAt: 1, lastAt: 2 },
+        "1.0.40": { count: 1, firstAt: 1, lastAt: 2 },
+        "1.0.41": { count: 2, firstAt: 1, lastAt: 2 },
+      },
+      "1.0.40",
+    );
+    // At or behind the shipped version → settled, drop.
+    expect(cleared["1.0.39"]).toBeUndefined();
+    expect(cleared["1.0.40"]).toBeUndefined();
+    // Still ahead → an unsettled candidate, keep its history.
+    expect(cleared["1.0.41"]?.count).toBe(2);
+  });
+
+  test("nothing is cleared when the pipeline has never shipped", () => {
+    const attempts = { "1.0.41": { count: 2, firstAt: 1, lastAt: 2 } };
+    expect(clearSettledAttempts(attempts, null)).toEqual(attempts);
+  });
+});
+
+// ── catch-up chunking ─────────────────────────────────────────────────
+
+/**
+ * A run's budget is fixed (MAX_TURNS=400, 6h wall), so the number of
+ * changelog entries handed to it is what decides whether each entry gets
+ * read properly or skimmed. 2.1.234 → 2.1.237 was ~55 entries and produced
+ * two carefully-argued bucket-B items; the backlog the baseline-burn bug
+ * left behind is 2.1.222 → 2.1.237, ~260 entries across 15 releases.
+ *
+ * Chunking walks that forward a few releases at a time rather than
+ * attempting it in one rushed pass.
+ */
+describe("changelogVersions", () => {
+  test("extracts release headings newest-first", () => {
+    const slice = [
+      "## 2.1.237",
+      "- Added a thing",
+      "",
+      "## 2.1.236",
+      "- Fixed a thing",
+      "",
+      "## 2.1.235",
+    ].join("\n");
+    expect(changelogVersions(slice)).toEqual(["2.1.237", "2.1.236", "2.1.235"]);
+  });
+
+  test("ignores non-version headings and prose", () => {
+    const slice = ["# Changelog", "## Unreleased", "## 2.1.237", "### 2.1.236"].join("\n");
+    expect(changelogVersions(slice)).toEqual(["2.1.237"]);
+  });
+
+  test("returns [] for a missing slice", () => {
+    expect(changelogVersions(null)).toEqual([]);
+    expect(changelogVersions("")).toEqual([]);
+  });
+});
+
+describe("decide — catch-up chunking", () => {
+  const slice = (versions: string[]): string =>
+    versions.map((v) => `## ${v}\n- Added something substantive to ${v}\n`).join("\n");
+
+  test("a backlog larger than the cap targets an intermediate version", () => {
+    const s = emptyState();
+    s.lastCompletedVersion = "2.1.222";
+    const d = decide(s, "2.1.230", {
+      maxMinorJump: 1,
+      maxCatchUpReleases: 3,
+      changelogSlice: slice([
+        "2.1.230",
+        "2.1.229",
+        "2.1.228",
+        "2.1.227",
+        "2.1.226",
+        "2.1.225",
+      ]),
+    });
+    expect(d.kind).toBe("run");
+    if (d.kind === "run") {
+      expect(d.previousVersion).toBe("2.1.222");
+      // Advances by exactly maxCatchUpReleases from the old end.
+      expect(d.newVersion).toBe("2.1.227");
+    }
+  });
+
+  test("a backlog at or under the cap goes straight to latest", () => {
+    const s = emptyState();
+    s.lastCompletedVersion = "2.1.222";
+    const d = decide(s, "2.1.225", {
+      maxMinorJump: 1,
+      maxCatchUpReleases: 3,
+      changelogSlice: slice(["2.1.225", "2.1.224", "2.1.223"]),
+    });
+    expect(d.kind).toBe("run");
+    if (d.kind === "run") expect(d.newVersion).toBe("2.1.225");
+  });
+
+  test("chunking is disabled when the changelog could not be fetched", () => {
+    // Without the slice there's no way to name a REAL intermediate
+    // version, and inventing one would produce an empty diff. Fall back
+    // to the whole range rather than guess.
+    const s = emptyState();
+    s.lastCompletedVersion = "2.1.222";
+    const d = decide(s, "2.1.237", {
+      maxMinorJump: 1,
+      maxCatchUpReleases: 3,
+      changelogSlice: null,
+    });
+    expect(d.kind).toBe("run");
+    if (d.kind === "run") expect(d.newVersion).toBe("2.1.237");
+  });
+
+  test("maxCatchUpReleases=0 disables chunking", () => {
+    const s = emptyState();
+    s.lastCompletedVersion = "2.1.222";
+    const d = decide(s, "2.1.230", {
+      maxMinorJump: 1,
+      maxCatchUpReleases: 0,
+      changelogSlice: slice(["2.1.230", "2.1.229", "2.1.228", "2.1.227"]),
+    });
+    expect(d.kind).toBe("run");
+    if (d.kind === "run") expect(d.newVersion).toBe("2.1.230");
+  });
+
+  test("the attempt budget is judged against the CHUNK, not latest", () => {
+    // A chunked run ships (or fails to ship) its chunk. Keying the
+    // counter on `latest` would let a wedged chunk retry forever.
+    const s = emptyState();
+    s.lastCompletedVersion = "2.1.222";
+    s.attempts = { "2.1.227": { count: 3, firstAt: 1, lastAt: 2 } };
+    const d = decide(s, "2.1.230", {
+      maxMinorJump: 1,
+      maxCatchUpReleases: 3,
+      maxRunAttempts: 3,
+      changelogSlice: slice([
+        "2.1.230",
+        "2.1.229",
+        "2.1.228",
+        "2.1.227",
+        "2.1.226",
+        "2.1.225",
+      ]),
+    });
+    expect(d.kind).toBe("skip");
+    if (d.kind === "skip") expect(d.reason).toMatch(/2\.1\.227 failed 3/);
   });
 });

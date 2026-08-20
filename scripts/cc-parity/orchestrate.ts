@@ -49,6 +49,7 @@ import {
   ALL_GATE_STEPS,
   announceSafe,
   branchShipBlocker,
+  buildGateFailureBanner,
   clampGitHubBody,
   collectChecks,
   collectReviews,
@@ -958,7 +959,18 @@ async function draftStrandedWorkSafe(args: {
   branch: string;
   prevVersion: string;
   newVersion: string;
+  /**
+   * Why the work is being rescued. "crash" = the orchestrator threw;
+   * "gate" = Claude finished but the LOCAL gate went red. Only the
+   * wording of the banner/title differs — the rescue itself is identical,
+   * and in both cases GitHub CI is the real arbiter of mergeability.
+   */
+  kind?: "crash" | "gate";
+  /** Gate-failure detail (which steps, with tails) for the PR body. */
+  gateBanner?: string;
 }): Promise<string | null> {
+  const kind = args.kind ?? "crash";
+  const label = kind === "gate" ? "local-gate failure" : "crash recovery";
   try {
     // Snapshot any uncommitted work so it rides along in the draft rather
     // than being autostashed-and-forgotten next firing. `.claudius/` is
@@ -978,26 +990,36 @@ async function draftStrandedWorkSafe(args: {
         "-m",
         `wip(cc-parity): crash-recovery snapshot for ${args.newVersion}`,
       ]);
-      log(`crash recovery: snapshotted dirty tree into a WIP commit`);
+      log(`${label}: snapshotted dirty tree into a WIP commit`);
     }
     const ahead = sh("git", ["log", "origin/main..HEAD", "--oneline"]).trim();
     if (!ahead) {
-      log(`crash recovery: no commits ahead of origin/main — nothing to draft`);
+      log(`${label}: no commits ahead of origin/main — nothing to draft`);
       return null;
     }
     log(
-      `crash recovery: ${ahead.split("\n").length} un-PR'd commit(s) on ` +
+      `${label}: ${ahead.split("\n").length} un-PR'd commit(s) on ` +
         `${args.branch} — pushing + opening a draft so the work isn't stranded`,
     );
     pushBranch(args.branch);
     const body = clampGitHubBody(
       [
-        `> ⚠️ **Draft opened by crash recovery.** The cc-parity run for ` +
-          `\`${args.prevVersion} → ${args.newVersion}\` threw before it could ` +
-          `finish, but Claude had already committed work to this branch. The ` +
-          `orchestrator pushed it and opened this draft so a human can take it ` +
-          `the rest of the way instead of the work being stranded and redone.`,
+        kind === "gate"
+          ? `> ⚠️ **Draft opened after a local-gate failure.** Claude finished the ` +
+            `parity work for \`${args.prevVersion} → ${args.newVersion}\`, but the ` +
+            `orchestrator's own gate went red on the cron host. That host has a ` +
+            `documented habit of failing e2e for reasons unrelated to the diff ` +
+            `(see \`.claudius/logs/e2e-webserver.log\` — a second \`next dev\` ` +
+            `colliding on \`.next-e2e/dev/lock\` kills the suite's server mid-run). ` +
+            `Rather than strand the work on a local branch, it is pushed here as a ` +
+            `draft so **GitHub CI** — the actual mergeability bar — can rule on it.`
+          : `> ⚠️ **Draft opened by crash recovery.** The cc-parity run for ` +
+            `\`${args.prevVersion} → ${args.newVersion}\` threw before it could ` +
+            `finish, but Claude had already committed work to this branch. The ` +
+            `orchestrator pushed it and opened this draft so a human can take it ` +
+            `the rest of the way instead of the work being stranded and redone.`,
         "",
+        ...(args.gateBanner ? [args.gateBanner, ""] : []),
         "## Commits on this branch",
         "```",
         ahead,
@@ -1018,16 +1040,17 @@ async function draftStrandedWorkSafe(args: {
         "edit",
         pr.url,
         "--title",
-        `feat(cc-parity): claude-code ${args.prevVersion} → ${args.newVersion} [crash-recovery draft]`,
+        `feat(cc-parity): claude-code ${args.prevVersion} → ${args.newVersion} ` +
+          `[${kind === "gate" ? "local-gate red" : "crash-recovery"} draft]`,
       ]);
     } catch {
       // title is cosmetic — leave openPr's default on failure
     }
-    log(`crash recovery: draft PR ${pr.created ? "opened" : "updated"}: ${pr.url}`);
+    log(`${label}: draft PR ${pr.created ? "opened" : "updated"}: ${pr.url}`);
     return pr.url;
   } catch (err) {
     log(
-      `crash recovery: could not draft stranded work (non-fatal): ` +
+      `${label}: could not draft stranded work (non-fatal): ` +
         `${err instanceof Error ? err.message : String(err)}`,
     );
     return null;
@@ -1239,6 +1262,13 @@ export async function runCcParityOnExistingBranch(args: {
   ok: boolean;
   budgetReason: string | null;
   failedSteps: GateStep[];
+  /**
+   * Rendered markdown for the failed gate steps (collapsible <details>
+   * with each step's output tail), or "" when nothing failed. Lets a
+   * caller that drafts a PR on gate failure paste the actionable detail
+   * straight into the body instead of sending a reviewer to the cron log.
+   */
+  gateBanner: string;
   runNotesIssue: string | null;
   shaBeforeCcWork: string;
   /** The CC changelog slice — re-usable by the caller for the PR body. */
@@ -1367,6 +1397,7 @@ export async function runCcParityOnExistingBranch(args: {
     ok,
     budgetReason,
     failedSteps,
+    gateBanner: buildGateFailureBanner(gate),
     runNotesIssue,
     shaBeforeCcWork,
     changelog,
@@ -1526,14 +1557,43 @@ async function main(): Promise<void> {
 
     if (!ccCore.ok) {
       const reason = budgetReason ?? "local gate not green";
-      log(`local gate NOT green (${reason}) — not pushing; filing process issue`);
+      // Push a DRAFT rather than returning empty-handed.
+      //
+      // This used to `return` outright, which meant a red local gate
+      // destroyed the run's entire output: the branch stayed on local
+      // disk, nothing reached the remote, and the operator got a bare
+      // issue with no code attached. Combined with check.ts advancing the
+      // baseline on every probe, the changelog range was then dropped and
+      // never re-derived — that pairing is what silently lost
+      // 2.1.223 → 2.1.234.
+      //
+      // It also made the cron host the final authority on mergeability,
+      // which it is demonstrably not: every firing from 2026-08-07 to
+      // 2026-08-20 reported `e2e=FAIL` locally while the same suite was
+      // green on GitHub Actions. Pushing a draft hands the verdict to CI
+      // and keeps a flaky host from blocking parity indefinitely. The
+      // draft + needs-human label means nothing merges unattended.
+      log(`local gate NOT green (${reason}) — pushing as a draft so CI can arbitrate`);
+      prUrl = await draftStrandedWorkSafe({
+        branch,
+        prevVersion,
+        newVersion,
+        kind: "gate",
+        gateBanner: ccCore.gateBanner,
+      });
+      if (prUrl) {
+        const prNumber = prUrl.split("/").pop() ?? "";
+        if (prNumber) addNeedsHumanLabel(prNumber);
+      } else {
+        log(`could not open a draft — the work remains only on local branch ${branch}`);
+      }
       await reportProcessIssueSafe({
         kind: "local gates failed",
         reason,
         prevVersion,
         newVersion,
         branch,
-        prUrl: null,
+        prUrl,
       });
       return;
     }

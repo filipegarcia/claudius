@@ -84,6 +84,26 @@ export type UpdaterState = {
     startedAt: number;
   } | null;
   skipped: Array<{ version: string; reason: string; at: number }>;
+  /**
+   * Consecutive failed run attempts, keyed by the version that was being
+   * attempted. Incremented by `main()` every time it emits a `run`
+   * decision; cleared for good once `lastCompletedVersion` reaches that
+   * version (see `clearSettledAttempts`).
+   *
+   * Exists because `lastSeenVersion` is no longer allowed to advance on a
+   * failed run (that was the bug that silently dropped 2.1.223 → 2.1.234
+   * from parity entirely — see the comment on the patchState call in
+   * `main()`). Without a counter, a version that fails for an
+   * environmental reason would be retried every hour forever, filing a
+   * fresh GitHub issue each time. After `maxRunAttempts` tries the
+   * version lands in `skipped`, which pauses retries WITHOUT advancing
+   * the baseline — so the next release still diffs from the last version
+   * that actually shipped and nothing is lost.
+   *
+   * Optional for backward compatibility with state files written before
+   * this field existed.
+   */
+  attempts?: Record<string, { count: number; firstAt: number; lastAt: number }>;
 };
 
 function defaultState(): UpdaterState {
@@ -93,7 +113,32 @@ function defaultState(): UpdaterState {
     lastCompletedVersion: null,
     inFlight: null,
     skipped: [],
+    attempts: {},
   };
+}
+
+/**
+ * Drop attempt counters for versions the pipeline has moved past.
+ *
+ * A counter is only meaningful while its version is still the run
+ * candidate. Once `lastCompletedVersion` is at or ahead of it, the run
+ * succeeded (or was superseded by a combined SDK+CC run that shipped a
+ * newer version), so the counter would otherwise linger forever and
+ * poison a future retry of an unrelated version that happens to reuse
+ * the key.
+ *
+ * Exported for unit tests.
+ */
+export function clearSettledAttempts(
+  attempts: UpdaterState["attempts"],
+  lastCompletedVersion: string | null,
+): Record<string, { count: number; firstAt: number; lastAt: number }> {
+  const out = { ...(attempts ?? {}) };
+  if (!lastCompletedVersion) return out;
+  for (const version of Object.keys(out)) {
+    if (!isNewer(version, lastCompletedVersion)) delete out[version];
+  }
+  return out;
 }
 
 export function readState(root = repoRoot()): UpdaterState {
@@ -186,6 +231,25 @@ export async function fetchChangelogSlice(
   }
 }
 
+/**
+ * Every release version that appears as a `## x.y.z` heading in a
+ * changelog slice, newest-first (upstream writes the file newest-first).
+ *
+ * Used to bound how much history one run swallows — see the
+ * `maxCatchUpReleases` handling in `decide()`.
+ *
+ * Exported for unit tests.
+ */
+export function changelogVersions(slice: string | null | undefined): string[] {
+  if (!slice) return [];
+  const out: string[] = [];
+  for (const line of slice.split("\n")) {
+    const m = /^##\s+v?(\d+\.\d+\.\d+)\s*$/.exec(line.trim());
+    if (m) out.push(m[1]);
+  }
+  return out;
+}
+
 // ── Bug-fix-only filter ───────────────────────────────────────────────
 
 /**
@@ -248,7 +312,8 @@ export type CheckDecision =
  * Baseline resolution:
  *   - If `state.lastCompletedVersion` is set, use it (most-recent shipped).
  *   - Else, fall back to `state.lastSeenVersion` (record of the previous
- *     probe).
+ *     probe — only ever advanced when a probe did NOT start a run, so a
+ *     failed run can no longer move the baseline past its own range).
  *   - If both are null, we're on a fresh deploy: noop with reason
  *     "no baseline yet" and let `main()` patch lastSeenVersion so the
  *     next firing has a starting point.
@@ -265,6 +330,17 @@ export function decide(
     now?: number;
     /** Pre-fetched CHANGELOG slice between baseline and `latest`. */
     changelogSlice?: string | null;
+    /**
+     * How many times a version may be attempted before it's parked in
+     * `skipped`. Parking pauses the hourly retry WITHOUT advancing the
+     * baseline, so the range stays in the next release's diff.
+     */
+    maxRunAttempts?: number;
+    /**
+     * Cap on how many upstream releases a single run may cover. A larger
+     * backlog is walked in chunks instead of attempted in one pass.
+     */
+    maxCatchUpReleases?: number;
   },
 ): CheckDecision {
   // In-flight check fires first regardless of baseline — a half-finished
@@ -355,7 +431,61 @@ export function decide(
     };
   }
 
-  return { kind: "run", previousVersion: current, newVersion: latest };
+  // ── Catch-up chunking ───────────────────────────────────────────────
+  //
+  // Cap how much history one run swallows. The run budget is fixed
+  // (MAX_TURNS=400, 6h wall), so the number of changelog entries per run
+  // is what decides whether each one gets read properly or skimmed. The
+  // 2.1.234 → 2.1.237 run handled ~55 entries and produced 2 careful
+  // bucket-B items; the backlog left by the baseline-burn bug is
+  // 2.1.222 → 2.1.237, ~260 entries across 15 releases. Handing that to a
+  // single run doesn't produce 15x the parity work — it produces one
+  // rushed pass that classifies most entries as [A] or [C] to get
+  // through them, which is the "features aren't being implemented"
+  // symptom wearing a different hat.
+  //
+  // So: target an intermediate version and let successive firings walk
+  // forward. Each chunk ships and advances lastCompletedVersion, so the
+  // next firing picks up exactly where this one stopped. Only kicks in
+  // when we actually have the changelog to enumerate releases from —
+  // without it we can't name a real intermediate version, and inventing
+  // one would produce an empty diff.
+  const maxCatchUp = opts.maxCatchUpReleases ?? 5;
+  const releases = changelogVersions(opts.changelogSlice);
+  let target = latest;
+  if (maxCatchUp > 0 && releases.length > maxCatchUp) {
+    // `releases` is newest-first; the chunk target is the maxCatchUp-th
+    // from the OLD end, so we advance by exactly maxCatchUp releases.
+    const chunk = releases[releases.length - maxCatchUp];
+    if (chunk && isNewer(chunk, current)) target = chunk;
+  }
+
+  // Attempt budget — evaluated against the version we're about to TARGET,
+  // not against `latest`, since a chunked catch-up run is judged by
+  // whether that chunk shipped.
+  //
+  // `main()` bumps the counter each time it emits a `run`, so by the time
+  // we're back here with count >= max, this exact target has burned that
+  // many firings without ever reaching lastCompletedVersion. Park it
+  // rather than retry hourly forever — note this deliberately does NOT
+  // touch the baseline, so when the next upstream release lands, its diff
+  // still starts from the last version that genuinely shipped and the
+  // parked range is re-included.
+  const maxRunAttempts = opts.maxRunAttempts ?? 3;
+  const attempted = state.attempts?.[target]?.count ?? 0;
+  if (attempted >= maxRunAttempts) {
+    return {
+      kind: "skip",
+      reason:
+        `version ${target} failed ${attempted} consecutive run attempts —` +
+        ` parking it (baseline stays at ${current}, so the range is retried` +
+        ` with the next release). Clear state.attempts["${target}"] to retry now.`,
+      current,
+      latest,
+    };
+  }
+
+  return { kind: "run", previousVersion: current, newVersion: target };
 }
 
 // ── Combined-mode decision (called from the SDK orchestrator) ─────────
@@ -567,15 +697,22 @@ async function main(): Promise<void> {
     }
   }
 
+  const maxRunAttempts = Number(process.env.CC_PARITY_MAX_RUN_ATTEMPTS ?? "3");
   const decision = decide(state, latest, {
     maxMinorJump,
     staleInFlightMs,
     changelogSlice,
+    maxRunAttempts,
+    maxCatchUpReleases: Number(process.env.CC_PARITY_MAX_CATCHUP_RELEASES ?? "5"),
   });
+  if (decision.kind === "run" && decision.newVersion !== latest) {
+    console.error(
+      `[cc-parity/check] catch-up chunk: targeting ${decision.newVersion} instead of ` +
+        `${latest} — the ${decision.previousVersion}…${latest} backlog is too large for one ` +
+        `run's budget. Later firings walk the rest forward.`,
+    );
+  }
 
-  // Persist what we observed, regardless of action. The first-run noop
-  // path records lastSeenVersion = latest here so the NEXT firing has
-  // a baseline; otherwise we'd stay in the no-baseline branch forever.
   const nextSkipped =
     decision.kind === "skip"
       ? [
@@ -583,11 +720,60 @@ async function main(): Promise<void> {
           { version: latest, reason: decision.reason, at: Date.now() },
         ]
       : state.skipped;
+
+  // ── Baseline advance: ONLY when this probe is not starting a run ────
+  //
+  // `lastSeenVersion` is the de-facto baseline whenever
+  // `lastCompletedVersion` is null (which is the steady state for a
+  // pipeline that hasn't shipped in a while). This used to be written
+  // unconditionally — `lastSeenVersion: latest` on every single probe,
+  // BEFORE the orchestrator had done any work.
+  //
+  // That silently destroyed parity coverage. A run that started at
+  // 2.1.228 → 2.1.233 and then died (Claude crash, failed gate, missing
+  // announce credential) still left the baseline at 2.1.233, so the next
+  // firing diffed from there and the entire 2.1.229…2.1.233 changelog
+  // was never classified by anything, ever. Between 2026-08-05 and
+  // 2026-08-20 that burned 2.1.223 → 2.1.234 outright: ~12 releases
+  // including real product surfaces (the `selection:clear` keybinding,
+  // the GitLab MR badge, "continue automatically at usage limit",
+  // markdown rendering for user prompts, `@`-mentioning another
+  // session). The pipeline reported rc=0 the whole time.
+  //
+  // Now: a `run` decision leaves the baseline alone. Only the
+  // orchestrator's `lastCompletedVersion` write (on ship) is allowed to
+  // move the pipeline forward past work it actually did. Every other
+  // decision kind (noop / skip / in-flight) means no range is being
+  // consumed, so recording the observation is safe — and the first-run
+  // "no baseline yet" path still needs it to bootstrap.
+  const advanceBaseline = decision.kind !== "run";
+  const nextAttempts = clearSettledAttempts(state.attempts, state.lastCompletedVersion);
+  if (decision.kind === "run") {
+    // Key on the version this run will actually TARGET, not on `latest`.
+    // With catch-up chunking those differ, and a counter keyed on
+    // `latest` would never reach its cap while the chunk it's really
+    // attempting wedged — decide() reads the counter under the target.
+    const target = decision.newVersion;
+    const prior = nextAttempts[target];
+    nextAttempts[target] = {
+      count: (prior?.count ?? 0) + 1,
+      firstAt: prior?.firstAt ?? Date.now(),
+      lastAt: Date.now(),
+    };
+    if (nextAttempts[target].count > 1) {
+      console.error(
+        `[cc-parity/check] attempt ${nextAttempts[target].count}/${maxRunAttempts} for ${target}` +
+          ` (baseline held at ${cleanRange(baseline ?? target)} — prior attempts did not ship)`,
+      );
+    }
+  }
+
   patchState(
     {
       lastCheckedAt: Date.now(),
-      lastSeenVersion: latest,
+      ...(advanceBaseline ? { lastSeenVersion: latest } : {}),
       skipped: nextSkipped,
+      attempts: nextAttempts,
     },
     root,
   );

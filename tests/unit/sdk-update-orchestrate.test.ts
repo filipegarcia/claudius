@@ -14,8 +14,11 @@ import {
   buildShippedAnnouncement,
   buildStartAnnouncement,
   buildTestingAnnouncement,
+  assistantText,
   classifyResultEnvelope,
   classifyToolResults,
+  looksLikeDeadWebServer,
+  looksLikeDeferredFinish,
   compareUrl,
   extractSection,
   findBodyPlaceholders,
@@ -1513,5 +1516,143 @@ describe("classifyResultEnvelope — deterministic failures are not retried", ()
         result: "API Error: Response stalled mid-stream.",
       })?.retryable,
     ).toBe(true);
+  });
+});
+
+// ── looksLikeDeadWebServer ────────────────────────────────────────────
+
+/**
+ * The gate's e2e step failing does not, on its own, mean the diff is bad.
+ *
+ * Every update-pipeline firing between 2026-08-07 and 2026-08-20 reported
+ * `e2e=FAIL` on the cron host while the identical suite was green on
+ * GitHub Actions. `.claudius/logs/e2e-webserver.log` shows the mechanism:
+ * a second `next dev` starts, collides with Next 16's exclusive dev lock
+ * (shared at `.next-e2e/dev/lock` by BOTH e2e runs), and the losing run's
+ * teardown kills the gate's server mid-suite — after which ~110 specs
+ * cascade into ERR_CONNECTION_REFUSED behind one genuine failure.
+ *
+ * This predicate separates that signature from real failures so the gate
+ * can retry once instead of writing the whole run off.
+ */
+describe("looksLikeDeadWebServer", () => {
+  test("detects the dev-lock collision message on its own", () => {
+    expect(
+      looksLikeDeadWebServer("⨯ Another next dev server is already running.\n- PID: 98380"),
+    ).toBe(true);
+  });
+
+  test("detects a connection-refused burst", () => {
+    const tail = Array.from(
+      { length: 6 },
+      () => "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3179/",
+    ).join("\n");
+    expect(looksLikeDeadWebServer(tail)).toBe(true);
+  });
+
+  test("a lone connection-refused is NOT the signature", () => {
+    // A spec may legitimately assert offline behavior. Requiring a burst
+    // is what keeps this from masking a real single-test failure.
+    expect(
+      looksLikeDeadWebServer(
+        "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3179/",
+      ),
+    ).toBe(false);
+  });
+
+  test("ordinary assertion failures are NOT the signature", () => {
+    const tail = [
+      "Error: expect(received).toBe(expected)",
+      "Expected: true",
+      "Received: false",
+      "  3 failed, 120 passed",
+    ].join("\n");
+    expect(looksLikeDeadWebServer(tail)).toBe(false);
+  });
+
+  test("empty tail is not a false positive", () => {
+    expect(looksLikeDeadWebServer("")).toBe(false);
+  });
+});
+
+// ── looksLikeDeferredFinish ───────────────────────────────────────────
+
+/**
+ * The SDK reports `result: success` whenever the model stops cleanly,
+ * including when it stops to WAIT. On cc-parity 2.1.237 Claude launched
+ * the e2e suite as a background task and ended its turn with "I'll wait
+ * for the background e2e run to complete before proceeding" — 23 turns,
+ * 142s. The orchestrator read that as done and immediately started a
+ * second e2e run on top of Claude's, which is what produced the dev-lock
+ * collision above. Detecting the park lets the retry loop RESUME the
+ * session instead.
+ */
+describe("looksLikeDeferredFinish", () => {
+  test("catches the verbatim 2.1.237 park", () => {
+    expect(
+      looksLikeDeferredFinish(
+        "I'll wait for the background e2e run to complete before proceeding.",
+      ),
+    ).toBe(true);
+  });
+
+  test("catches a 'waiting on the suite' phrasing", () => {
+    expect(
+      looksLikeDeferredFinish("Waiting on the Playwright suite to finish before I continue."),
+    ).toBe(true);
+  });
+
+  test("does NOT fire on a genuine completion that mentions the suite", () => {
+    expect(
+      looksLikeDeferredFinish(
+        "The full e2e suite finished: 350 passed, 0 failed. All bucket-B items are implemented and the run-notes are complete.",
+      ),
+    ).toBe(false);
+  });
+
+  test("does NOT fire on a past-tense wait followed by results", () => {
+    expect(
+      looksLikeDeferredFinish(
+        "I waited for the background run to complete. It came back green, so the work is done.",
+      ),
+    ).toBe(false);
+  });
+
+  test("does NOT fire on parking language with no background work", () => {
+    // "I'll wait for your review" is a different ending — no in-flight
+    // process the orchestrator would race against.
+    expect(looksLikeDeferredFinish("I'll wait for your call on the naming.")).toBe(false);
+  });
+
+  test("empty text is not a park", () => {
+    expect(looksLikeDeferredFinish("")).toBe(false);
+  });
+});
+
+// ── assistantText ─────────────────────────────────────────────────────
+
+describe("assistantText", () => {
+  test("joins the text blocks of an assistant message", () => {
+    const msg = {
+      type: "assistant",
+      message: {
+        content: [
+          { type: "text", text: "first" },
+          { type: "tool_use", name: "Bash", input: {} },
+          { type: "text", text: "second" },
+        ],
+      },
+    };
+    expect(assistantText(msg)).toBe("first\nsecond");
+  });
+
+  test("returns '' for non-assistant messages", () => {
+    expect(assistantText({ type: "result", subtype: "success" })).toBe("");
+    expect(assistantText({ type: "user", message: { content: [] } })).toBe("");
+  });
+
+  test("survives a malformed message without throwing", () => {
+    expect(assistantText({ type: "assistant" })).toBe("");
+    expect(assistantText(null)).toBe("");
   });
 });
