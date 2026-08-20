@@ -468,9 +468,19 @@ export function preflight(): void {
         `picks up either automatically.`,
     );
   }
+  // Announce credentials are NOT preflight-fatal. They used to be, and it
+  // cost real parity work: on 2026-08-10/15/17/18 the pipeline aborted
+  // here with rc=1 before doing anything at all, purely because the
+  // community chat-server token wasn't exported into the cron env. Posting
+  // a status message to a chat room is a courtesy; it is not a
+  // precondition for upgrading the SDK or reimplementing a changelog
+  // entry. Every announce site already routes through `announceSafe`, and
+  // `postAnnouncement` now no-ops loudly when unconfigured, so a missing
+  // token degrades to "no chat messages" instead of "no pipeline".
   if (!CHAT_SERVER_URL || !CHAT_SERVER_ADMIN_TOKEN) {
-    fatal(
-      "CHAT_SERVER_URL and CHAT_SERVER_ADMIN_TOKEN must be set — needed for the announce step.",
+    log(
+      "WARN CHAT_SERVER_URL / CHAT_SERVER_ADMIN_TOKEN unset — the run proceeds, " +
+        "but progress announcements will be skipped.",
     );
   }
   // gh CLI is required for PR open + CI watch. We don't shell out to
@@ -1044,6 +1054,70 @@ function renderPrompt(
  * Best-effort: any field we can't introspect falls back to the bare
  * type/subtype pair (the previous behavior).
  */
+/**
+ * Extract the plain text of an assistant message, or "" for anything else.
+ * Used to spot a deferred finish — see `looksLikeDeferredFinish`.
+ *
+ * Exported for unit tests.
+ */
+export function assistantText(msg: unknown): string {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const m = msg as any;
+  if (m?.type !== "assistant") return "";
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const content: any[] = Array.isArray(m?.message?.content) ? m.message.content : [];
+  return content
+    .filter((b) => b?.type === "text" && typeof b.text === "string")
+    .map((b) => b.text as string)
+    .join("\n");
+}
+
+/**
+ * Did Claude end the turn by PARKING rather than finishing?
+ *
+ * The SDK's `result` envelope says "success" whenever the model stops
+ * cleanly, and the orchestrator treats any clean stop as "Claude is done,
+ * run the gate". That conflates two very different endings.
+ *
+ * Observed on cc-parity 2.1.237 (2026-08-20): Claude kicked off the e2e
+ * suite as a background Bash task, then ended its turn with
+ *
+ *   "I'll wait for the background e2e run to complete before proceeding."
+ *
+ *   msg #916  type=result subtype=success cost=$9.1290 duration=142s turns=23
+ *
+ * The orchestrator read that as a finish and immediately started its OWN
+ * `bun run test:e2e`. Two Playwright runs then collided on Next's shared
+ * `.next-e2e/dev/lock`, the gate's dev server was killed mid-suite, ~110
+ * specs cascaded into ERR_CONNECTION_REFUSED, and the run was written off
+ * as `e2e=FAIL`. Claude's background suite was itself SIGTERM'd the instant
+ * the session ended, so nobody ever saw its result either.
+ *
+ * A parked turn is exactly what `resume` is for: the retry loop continues
+ * the same session (prompt.md re-reads git state first), so Claude picks up
+ * where it left off with the background work now settled. Marked retryable
+ * for that reason.
+ *
+ * Kept deliberately narrow — it must match "I am stopping to wait", not
+ * "I waited for X, here are the results". Requires a first-person stop
+ * phrase near a wait/background reference, in the FINAL assistant message.
+ *
+ * Exported for unit tests.
+ */
+export function looksLikeDeferredFinish(text: string): boolean {
+  if (!text) return false;
+  // Only the tail matters: a long final message that ends with real
+  // conclusions isn't a park, even if it mentions waiting earlier on.
+  const tail = text.slice(-600).toLowerCase();
+  const parking =
+    /\b(i'?ll|i will|let'?s|going to|about to)\s+(just\s+)?(wait|hold|pause|check back|monitor|come back)\b/.test(
+      tail,
+    ) || /\bwaiting (for|on)\b[^.]*\b(to (complete|finish)|before (proceeding|continuing))/.test(tail);
+  const backgroundWork =
+    /\b(background|still running|in flight|in-flight|e2e|suite|playwright|test run|job)\b/.test(tail);
+  return parking && backgroundWork;
+}
+
 export function summarizeSdkMessage(msg: unknown): string {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const m = msg as any;
@@ -1347,6 +1421,9 @@ async function runClaudeOnce(
   let budgetReason: string | null = null;
   // Set alongside every budgetReason below. See ClaudeRunResult.retryable.
   let retryable = false;
+  // Text of the most recent assistant message that had any. Inspected
+  // after the loop to catch a parked turn — see looksLikeDeferredFinish.
+  let lastAssistantText = "";
   // First-seen SDK session UUID. Every SDKMessage carries `session_id`;
   // we latch the first one so the PR body can print a `claude --resume`
   // handle for the human who picks the run up.
@@ -1542,6 +1619,8 @@ async function runClaudeOnce(
       }
       const summary = summarizeSdkMessage(m);
       lastMsgSummary = summary;
+      const text = assistantText(msg);
+      if (text.trim()) lastAssistantText = text;
       appendTranscript(msg);
       log(`claude msg #${turnCount} ${summary}`);
       if (idleTimedOut) break;
@@ -1610,6 +1689,17 @@ async function runClaudeOnce(
       // Cheap to retry (an empty run costs seconds), and a failed CLI
       // spawn is often transient. A real auth failure just fails again
       // and reaches the same needs-human path a few seconds later.
+      retryable = true;
+      log(`WARN ${budgetReason}`);
+    }
+    if (!budgetReason && looksLikeDeferredFinish(lastAssistantText)) {
+      budgetReason =
+        `Claude parked the turn instead of finishing — its final message says it is ` +
+        `waiting on background work ("${lastAssistantText.trim().split("\n").pop()?.slice(0, 140)}"). ` +
+        `Accepting this as a finish is what let the orchestrator start a SECOND e2e run ` +
+        `on top of Claude's own (cc-parity 2.1.237). Resuming the session instead.`;
+      // Resume, don't replay: the retry loop continues this session when
+      // turnCount > 0, so Claude returns with its background work settled.
       retryable = true;
       log(`WARN ${budgetReason}`);
     }
@@ -1846,6 +1936,63 @@ function gateTimeoutMs(step: GateStep): number {
   }
 }
 
+/**
+ * Does this e2e tail look like the dev server DIED mid-suite, rather than
+ * like real test failures?
+ *
+ * The distinction matters because the two demand opposite responses. Real
+ * failures mean Claude's work is wrong and must not ship. A dead webServer
+ * means the *host* broke and the result carries no signal about the code at
+ * all — but it fails the gate identically, and cc-parity's failure path then
+ * refuses to push, so parity work is stranded on local disk.
+ *
+ * This is not hypothetical: every cc-parity/sdk-update firing between
+ * 2026-08-07 and 2026-08-20 ended `e2e=FAIL` while the very same suite was
+ * green on GitHub Actions. `.claudius/logs/e2e-webserver.log` shows why —
+ * a second `next dev` starts, hits Next 16's exclusive dev lock
+ * ("Another next dev server is already running", `.next-e2e/dev/lock` is
+ * shared by BOTH e2e runs even though `NEXT_DIST_DIR` isolates them from
+ * the operator's own dev server), dies, and takes the gate's server down
+ * with it. ~110 specs then cascade into ERR_CONNECTION_REFUSED behind one
+ * genuine failure.
+ *
+ * Signature: many connection-refused navigations to the suite's own
+ * baseURL. A handful can happen legitimately (a spec that asserts offline
+ * behavior), so require a burst — no healthy run refuses this many.
+ *
+ * Exported for unit tests.
+ */
+export function looksLikeDeadWebServer(tail: string): boolean {
+  if (!tail) return false;
+  const refusedBurst = (tail.match(/net::ERR_CONNECTION_REFUSED/g) ?? []).length;
+  const lockCollision = /Another\s+next\s+dev\s+server\s+is\s+already\s+running/i.test(tail);
+  return lockCollision || refusedBurst >= 5;
+}
+
+/**
+ * Fail fast when another `next dev` already holds the e2e dev lock.
+ *
+ * Starting the gate's suite anyway is what produced the collision above:
+ * Playwright brings up its server, Next refuses the lock, and the teardown
+ * of the losing run kills the winner's server mid-suite. Detecting it up
+ * front turns a 14-minute red herring into an immediate, accurate message.
+ *
+ * Best-effort: if `lsof` isn't available we return null and let the run
+ * proceed exactly as before.
+ */
+function conflictingDevServer(): string | null {
+  try {
+    const out = sh("bash", [
+      "-c",
+      `lsof -nP -iTCP -sTCP:LISTEN 2>/dev/null | grep -i next || true`,
+    ]).trim();
+    if (!out) return null;
+    return out.split("\n").slice(0, 5).join("\n");
+  } catch {
+    return null;
+  }
+}
+
 export async function runGate(skip: Set<GateStep>): Promise<GateResult[]> {
   const steps: Array<{ step: GateStep; cmd: string; args: string[]; env?: Record<string, string> }> = [
     { step: "lint", cmd: "bun", args: ["run", "lint"] },
@@ -1886,13 +2033,56 @@ export async function runGate(skip: Set<GateStep>): Promise<GateResult[]> {
     // body. e2e is the most useful target — Playwright's tail names the
     // failing tests + file:line, which is exactly what an operator needs
     // to debug without ssh'ing onto the cron host.
-    const { code, tail, timedOut } = await shStreamCapture(
+    if (s.step === "e2e") {
+      const conflict = conflictingDevServer();
+      if (conflict) {
+        log(
+          `gate: e2e — WARNING, a next dev server is already listening; ` +
+            `both runs share .next-e2e/dev/lock and the loser's teardown can kill ` +
+            `this suite's server mid-run:\n${conflict}`,
+        );
+      }
+    }
+
+    let { code, tail, timedOut } = await shStreamCapture(
       s.cmd,
       s.args,
       s.env ? { env: { ...process.env, ...s.env } } : {},
       80,
       gateTimeoutMs(s.step),
     );
+
+    // One retry when e2e failed because the dev server died, not because
+    // tests did. See looksLikeDeadWebServer() for why this is worth its
+    // wall-clock: without it, a host-side collision reads as "Claude's
+    // work is broken", the branch never gets pushed, and (before the
+    // check.ts fix) the whole changelog range was silently dropped.
+    // Deterministic failures reproduce on the retry and still trip the
+    // gate, so this masks nothing real.
+    if (s.step === "e2e" && code !== 0 && !timedOut && looksLikeDeadWebServer(tail)) {
+      log(
+        `gate: e2e failed with a dead-webServer signature (connection-refused cascade / ` +
+          `dev-lock collision), not test failures — retrying once`,
+      );
+      const retry = await shStreamCapture(
+        s.cmd,
+        s.args,
+        s.env ? { env: { ...process.env, ...s.env } } : {},
+        80,
+        gateTimeoutMs(s.step),
+      );
+      ({ code, tail, timedOut } = retry);
+      if (code === 0) {
+        log(`gate: e2e passed on retry — the first failure was host-side, not code`);
+      } else if (looksLikeDeadWebServer(tail)) {
+        log(
+          `gate: e2e hit the dead-webServer signature AGAIN — this host cannot run the ` +
+            `suite reliably right now. Treating as a failed gate, but check ` +
+            `.claudius/logs/e2e-webserver.log before blaming the diff.`,
+        );
+      }
+    }
+
     out.push({ step: s.step, ok: code === 0, tailOutput: tail });
     if (timedOut) {
       log(
@@ -3021,6 +3211,9 @@ async function maybeRunCombinedCc(args: {
     ccResult = {
       ok: false,
       budgetReason: `cc-parity core threw: ${reason}`,
+      // The core threw before/while gating, so there are no per-step
+      // tails to render — the throw reason is the whole story.
+      gateBanner: "",
       failedSteps: [],
       runNotesIssue: null,
       shaBeforeCcWork,
@@ -4217,6 +4410,13 @@ export function buildFixResultAnnouncement(args: {
  */
 export async function postAnnouncement(body: string, opts: { pin?: boolean } = {}): Promise<void> {
   const pin = opts.pin === true;
+  // Unconfigured is a skip, not a failure — see the preflight comment on
+  // CHAT_SERVER_URL. Returning here (rather than throwing into
+  // announceSafe) keeps the log honest about what was skipped and why.
+  if (!CHAT_SERVER_URL || !CHAT_SERVER_ADMIN_TOKEN) {
+    log(`announce skipped (chat-server not configured): ${body.split("\n")[0]}`);
+    return;
+  }
   const res = await fetch(`${CHAT_SERVER_URL.replace(/\/$/, "")}/admin/announce`, {
     method: "POST",
     headers: {
