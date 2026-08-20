@@ -15,7 +15,11 @@
  * Fixed with `isConfidentSlashMatch` (`lib/shared/slash-commands.ts`): Enter
  * only auto-completes when the top match is a prefix of the command's name
  * or one of its aliases. Tab (an explicit "insert the suggestion" gesture)
- * still uses the looser fuzzy ranking, unchanged.
+ * still uses the looser fuzzy ranking, unchanged. A non-confident Enter is
+ * fully swallowed (preventDefault + stopPropagation) rather than left to
+ * fall through to the textarea's default behavior — the first cut of this
+ * fix let it fall through, which inserted a stray literal newline into the
+ * composer instead of doing nothing; caught in adversarial review.
  *
  * Screenshot target: docs/cc-parity/2.1.237/slash-picker-typo.png
  */
@@ -64,10 +68,12 @@ test.describe("CC 2.1.236 — SlashCommandPicker Enter no longer auto-completes 
     await composer.press("Enter");
     await page.waitForTimeout(200);
 
-    const value = await composer.inputValue();
-    // Never silently rewritten to a real command like "/cost ".
-    expect(value).not.toBe("/cost ");
-    expect(value.startsWith("/cs")).toBe(true);
+    // Exact match, not just a prefix check — this is what would have caught
+    // the stray-newline regression found in adversarial review (a looser
+    // `value.startsWith("/cs")` assertion passes for "/cs", "/cs\n", or
+    // "/cscost " alike). Enter is fully swallowed: no autocomplete, no
+    // newline, the typed text is untouched.
+    expect(await composer.inputValue()).toBe("/cs");
   });
 
   test("typing a real command's prefix and pressing Enter still auto-completes it", async ({

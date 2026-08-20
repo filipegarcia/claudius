@@ -196,7 +196,7 @@ export default function SettingsPage() {
 
   // Chat's card guard is a flat OR across all its rows' keywords.
   const sChat = show(
-    "chat promptsuggestionenabled prompt suggestion follow-up chips composer emojicompletionenabled emoji shortcode autocomplete heart spellcheck spelling underline misspelled",
+    "chat promptsuggestionenabled prompt suggestion follow-up chips composer emojicompletionenabled emoji shortcode autocomplete heart spellcheckenabled spellcheck spelling underline misspelled",
   );
   const sEnv = show("environment env variables key value");
   const sPlugins = show("plugins enabled plugin marketplace");
@@ -712,9 +712,9 @@ export default function SettingsPage() {
                     description='Type ":heart:" to insert ❤️, or ":hea" to see suggestions, in the message composer. On by default.'
                   />
                   <ToggleRow
-                    label="spellcheck"
-                    checked={draft.spellcheck !== false}
-                    onChange={(b) => update({ spellcheck: b ? undefined : false })}
+                    label="spellcheckEnabled"
+                    checked={draft.spellcheckEnabled !== false}
+                    onChange={(b) => update({ spellcheckEnabled: b ? undefined : false })}
                     description="Underline misspelled words as you type in the message composer, using the browser's native spellcheck. On by default."
                   />
                   <ToggleRow
@@ -917,7 +917,7 @@ const KNOWN_KEYS = new Set([
   "autoMemoryDirectory",
   "promptSuggestionEnabled",
   "emojiCompletionEnabled",
-  "spellcheck",
+  "spellcheckEnabled",
   "sessionRecapEnabled",
   "queueDispatchMode",
   "claudeMdExcludes",

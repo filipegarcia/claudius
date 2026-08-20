@@ -5,8 +5,10 @@
  *
  * Claudius reimplements this as a browser-native equivalent: the composer's
  * `<textarea>` already gets free spellcheck from the browser, so this ships
- * as a Settings → Chat toggle (`spellcheck`, mirroring the CLI's key name)
- * wired to the textarea's `spellCheck` DOM attribute — see
+ * as a Settings → Chat toggle (`spellcheckEnabled` — NOT `spellcheck`; the
+ * SDK already owns that key as an object shape in the same
+ * `~/.claude/settings.json`, see `lib/server/settings.ts`) wired to the
+ * textarea's `spellCheck` DOM attribute — see
  * `lib/client/useSpellcheckEnabled.ts` / `components/chat/PromptInput.tsx`.
  *
  * Unlike the CLI, Claudius defaults this ON (absent/true = enabled) since
@@ -45,14 +47,14 @@ async function getJsonWithRetry<T>(page: Page, url: string): Promise<T> {
   throw lastErr;
 }
 
-/** Clear `spellcheck` from the shared dev fixture's user-scope settings. */
+/** Clear `spellcheckEnabled` from the shared dev fixture's user-scope settings. */
 async function clearSpellcheckSetting(page: Page): Promise<void> {
   const cur = await getJsonWithRetry<{ settings: Record<string, unknown> }>(
     page,
     "/api/settings?scope=user",
   );
   const rest = { ...cur.settings };
-  delete rest.spellcheck;
+  delete rest.spellcheckEnabled;
   await page.request.put("/api/settings/full", {
     data: { scope: "user", settings: rest },
   });
@@ -86,12 +88,12 @@ test.describe("CC 2.1.235 — prompt-input spellcheck setting", () => {
     await expect(composer).toHaveAttribute("spellcheck", "true");
   });
 
-  test("spellcheck=false (via the real Settings UI) disables the composer attribute", async ({
+  test("spellcheckEnabled=false (via the real Settings UI) disables the composer attribute", async ({
     page,
   }) => {
     await page.goto("/settings");
-    await page.getByLabel("Search settings").fill("spellcheck");
-    const row = page.locator("label", { hasText: "spellcheck" }).first();
+    await page.getByLabel("Search settings").fill("spellcheckEnabled");
+    const row = page.locator("label", { hasText: "spellcheckEnabled" }).first();
     await expect(row).toBeVisible({ timeout: 15_000 });
 
     // Screenshot in context — full Settings page chrome (side nav, header,
@@ -109,11 +111,11 @@ test.describe("CC 2.1.235 — prompt-input spellcheck setting", () => {
       .poll(
         async () => {
           try {
-            const body = await getJsonWithRetry<{ settings: { spellcheck?: boolean } }>(
+            const body = await getJsonWithRetry<{ settings: { spellcheckEnabled?: boolean } }>(
               page,
               "/api/settings?scope=user",
             );
-            return body.settings.spellcheck;
+            return body.settings.spellcheckEnabled;
           } catch {
             return undefined;
           }

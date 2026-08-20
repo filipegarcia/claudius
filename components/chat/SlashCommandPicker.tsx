@@ -121,6 +121,20 @@ export function SlashCommandPicker({ value, sdkSlashCommands, sdkSkills, sdkRich
         // 2.1.217 parity).
         e.stopPropagation();
         onSelect(visible[hi].name);
+      } else if (e.key === "Enter" && filter !== "") {
+        // Enter with the picker open but no confident match. Without this
+        // branch, the keydown falls through unhandled: PromptInput's own
+        // Enter-submit is gated on `!pickerOpen` (still true here) so it
+        // no-ops too, and the browser's default textarea behavior inserts a
+        // literal newline into the composer — a confusing regression this
+        // fix is supposed to prevent, not reintroduce in a different shape.
+        // Swallow the keystroke instead: no autocomplete, no stray newline,
+        // picker stays open so the user can see why nothing happened and
+        // keep refining the query (matches the CC intent of "reports it"
+        // over "silently runs the closest match", without adding a new
+        // inline-error affordance for what's a rare typo case).
+        e.preventDefault();
+        e.stopPropagation();
       } else if (e.key === "Escape") {
         e.stopPropagation();
         onClose();

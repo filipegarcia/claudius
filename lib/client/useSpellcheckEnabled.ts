@@ -5,15 +5,20 @@ import type { ClaudeSettings } from "@/lib/server/settings";
 
 /**
  * Whether the prompt composer underlines misspelled words as you type, per
- * the user-scope `spellcheck` setting (Claude Code 2.1.235 parity: "Added an
- * optional spellcheck setting that underlines misspelled words in the prompt
- * input as you type").
+ * the user-scope `spellcheckEnabled` setting (Claude Code 2.1.235 parity:
+ * "Added an optional spellcheck setting that underlines misspelled words in
+ * the prompt input as you type"). Named `spellcheckEnabled`, NOT
+ * `spellcheck` — the SDK already owns that key as an object shape in the
+ * same `~/.claude/settings.json`; see the comment on `ClaudeSettings.
+ * spellcheckEnabled` in `settings.ts` for why reusing the name would be a
+ * real (config-destroying) bug, not just a style nit.
  *
- * Unlike the CLI (which defaults this OFF — a terminal has no native
- * spellcheck), Claudius's composer is a real `<textarea>` that browsers
- * already spellcheck for free. Defaulting to `true` (on) preserves that
- * existing behavior instead of silently regressing it; see `settings.ts` and
- * the 2.1.237 run-notes for the full reasoning.
+ * Unlike the CLI (which defaults its own, differently-shaped setting OFF —
+ * a terminal has no native spellcheck), Claudius's composer is a real
+ * `<textarea>` that browsers already spellcheck for free. Defaulting to
+ * `true` (on) preserves that existing behavior instead of silently
+ * regressing it; see `settings.ts` and the 2.1.237 run-notes for the full
+ * reasoning.
  *
  * Defaults to `true` until the fetch resolves, matching the setting's
  * "absent or true = enabled" contract — same optimistic-default shape as
@@ -35,7 +40,7 @@ export function useSpellcheckEnabled(cwd: string | null): boolean {
       .then(async (res) => {
         if (!res.ok) return;
         const data = (await res.json()) as { settings: ClaudeSettings };
-        setEnabled(data.settings.spellcheck !== false);
+        setEnabled(data.settings.spellcheckEnabled !== false);
       })
       .catch((err: unknown) => {
         if (err instanceof DOMException && err.name === "AbortError") return;
