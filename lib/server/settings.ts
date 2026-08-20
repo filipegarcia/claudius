@@ -38,6 +38,29 @@ export type ClaudeSettings = {
   // preference, same reasoning as `disableAutoMode`); purely a browser-side
   // text-replacement behavior, so there's no server/SDK forwarding involved.
   emojiCompletionEnabled?: boolean;
+  // Spellcheck underline in the prompt input (Claude Code 2.1.235: "Added an
+  // optional spellcheck setting that underlines misspelled words in the
+  // prompt input as you type, using your installed aspell, hunspell, or
+  // ispell"). Deliberately NOT named `spellcheck` — the SDK already defines
+  // that key as an OBJECT (`{ enabled?, checker?, language?, color? }`, see
+  // `sdk.d.ts` ~L7280) read from the same `~/.claude/settings.json` this
+  // file writes. Reusing the name would let toggling this row silently wipe
+  // (or misread) a user's real CLI spellcheck config the next time they run
+  // `claude` — a boolean here would shadow/clobber that object. `xxxEnabled`
+  // also matches every other composer preference in this file
+  // (`emojiCompletionEnabled`, `promptSuggestionEnabled`, …).
+  //
+  // Also NOT the CLI's default — the CLI defaults its (differently-shaped)
+  // setting OFF because a terminal has no native spellcheck to fall back on;
+  // Claudius's composer is a real `<textarea>`, which browsers already
+  // spellcheck for free with no code at all. Defaulting this to off would be
+  // a silent regression for every existing user, so here absent/true =
+  // enabled (browser-native spellcheck), false = disabled.
+  //
+  // Read client-side by `useSpellcheckEnabled` (user scope only — a personal
+  // composer preference, same reasoning as `emojiCompletionEnabled`); purely
+  // a browser-native attribute toggle, no server/SDK forwarding involved.
+  spellcheckEnabled?: boolean;
   // Session recap — the "where were we?" one-liner the client shows when the
   // user returns to a tab after being blurred for ≥5 min. Mirrors the
   // (internal) Claude Code TUI key `awaySummaryEnabled`: `false` disables the

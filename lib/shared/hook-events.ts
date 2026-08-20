@@ -52,7 +52,7 @@ export type HookEventSpec = {
 export const HOOK_EVENTS: HookEventSpec[] = [
   // Tool lifecycle
   { name: "PreToolUse", category: "tool", description: "Before any tool execution. Can deny.", matcherHint: "tool name (e.g. Bash, Read) or regex", canBlock: true },
-  { name: "PostToolUse", category: "tool", description: "After successful tool execution.", matcherHint: "tool name or regex" },
+  { name: "PostToolUse", category: "tool", description: "After successful tool execution. Can assert classifierContext to inform the auto-mode permission classifier.", matcherHint: "tool name or regex" },
   { name: "PostToolUseFailure", category: "tool", description: "After a tool execution that failed.", matcherHint: "tool name or regex" },
   { name: "PostToolBatch", category: "tool", description: "After a batch of tool calls in one assistant turn." },
 
