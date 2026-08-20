@@ -93,6 +93,14 @@ type Props = {
    * `useDisableAutoMode`.
    */
   emojiCompletionEnabled?: boolean;
+  /**
+   * Whether the textarea underlines misspelled words as you type. Mirrors
+   * the `spellcheck` setting (Claude Code 2.1.235 parity): on by default,
+   * matching the browser's native behavior. Threaded down from
+   * `useSpellcheckEnabled` by the parent, same shape as
+   * `emojiCompletionEnabled`.
+   */
+  spellcheckEnabled?: boolean;
   /** Override the textarea placeholder (defaults to the chat-composer copy). */
   placeholder?: string;
   /**
@@ -193,6 +201,7 @@ export function PromptInput({
   sendDisabled = false,
   disableSlash = false,
   emojiCompletionEnabled = true,
+  spellcheckEnabled = true,
   placeholder,
   testIdPrefix = "prompt",
   queuedCount = 0,
@@ -1433,6 +1442,7 @@ export function PromptInput({
           <textarea
             ref={taRef}
             data-testid={`${testIdPrefix}-input`}
+            spellCheck={spellcheckEnabled}
             value={value}
             onCompositionStart={() => {
               composingRef.current = true;

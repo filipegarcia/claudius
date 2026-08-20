@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Wrench, Cpu, Zap, ExternalLink } from "lucide-react";
 import {
   CATEGORY_LABELS,
+  isConfidentSlashMatch,
   mergeSuggestions,
   type SdkSlashCommandInfo,
   type SlashSuggestion,
@@ -97,7 +98,19 @@ export function SlashCommandPicker({ value, sdkSlashCommands, sdkSkills, sdkRich
         e.preventDefault();
         e.stopPropagation();
         setHi((h) => (h - 1 + visible.length) % visible.length);
-      } else if (e.key === "Tab" || (e.key === "Enter" && filter !== "")) {
+      } else if (
+        e.key === "Tab" ||
+        // CC 2.1.236 parity: "Pressing Enter on a slash-command typo... now
+        // reports it instead of running the closest fuzzy match; prefixes
+        // and aliases still run." `filtered` ranks by subsequence fuzzy
+        // score (loose enough that a typo can still land a weak positive
+        // match on an unrelated command), which is fine for narrowing the
+        // visible list but not confident enough to silently rewrite the
+        // composer on Enter. Tab keeps the looser fuzzy pick — it's an
+        // explicit "insert the top suggestion" gesture, not an accidental
+        // Enter with a typo underneath it.
+        (e.key === "Enter" && filter !== "" && isConfidentSlashMatch(visible[hi], filter))
+      ) {
         e.preventDefault();
         // stopPropagation is load-bearing: without it, the same keydown can
         // still reach PromptInput's onKeyDown (bubble phase) after onSelect

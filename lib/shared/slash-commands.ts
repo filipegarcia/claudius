@@ -320,3 +320,28 @@ export function mergeSuggestions(
 
   return out;
 }
+
+/**
+ * Whether `filter` (the lowercased text after `/`) is a *confident* match on
+ * `cmd` — a prefix of its name, or an exact/prefix match on one of its
+ * aliases. Used to gate `SlashCommandPicker`'s Enter-to-select: the
+ * component's fuzzy ranking (subsequence matching against the name, aliases,
+ * *and description text*) is great for narrowing the visible list, but loose
+ * enough that a short typo can still land its top (`hi === 0`) score against
+ * a command whose name shares none of the typed letters — not confident
+ * enough to silently autocomplete on Enter.
+ *
+ * Claude Code 2.1.236 parity: "Pressing Enter on a slash-command typo or a
+ * command unavailable in this session now reports it instead of running the
+ * closest fuzzy match; prefixes and aliases still run." Claudius's picker is
+ * an independent implementation (no shared code with the CLI's), but had the
+ * identical footgun — see the 2.1.237 run-notes.
+ */
+export function isConfidentSlashMatch(
+  cmd: Pick<SlashCommand, "name" | "aliases">,
+  filter: string,
+): boolean {
+  if (!filter) return false;
+  if (cmd.name.startsWith(filter)) return true;
+  return (cmd.aliases ?? []).some((a) => a.startsWith(filter));
+}
