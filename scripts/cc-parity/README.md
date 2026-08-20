@@ -208,8 +208,29 @@ Everything under `.claudius/` is already gitignored.
      yet (first ever run records `lastSeenVersion = latest` and noops),
      or the upstream CHANGELOG slice contains only bug-fix entries.
    - `in-flight` — `state.json.inFlight` is non-null.
-   - `skip` — jump exceeds `CC_PARITY_MAX_MINOR_JUMP`; recorded.
-   - `run` — start the review.
+   - `skip` — jump exceeds `CC_PARITY_MAX_MINOR_JUMP`, or the target
+     version burned `CC_PARITY_MAX_RUN_ATTEMPTS` consecutive failed runs.
+     Recorded in `state.skipped`.
+   - `run` — start the review. When the backlog is larger than
+     `CC_PARITY_MAX_CATCHUP_RELEASES`, `newVersion` is an INTERMEDIATE
+     release, not `latest`; successive firings walk the rest forward.
+
+   **The baseline only moves on success.** `lastSeenVersion` is advanced
+   only by probes that did NOT start a run. This is load-bearing: it used
+   to be written on every probe, before any work happened, and because
+   `lastCompletedVersion` is null for any pipeline that hasn't shipped
+   recently, `lastSeenVersion` *is* the baseline. A run that started and
+   then failed therefore advanced the baseline past its own range, and the
+   next probe diffed from there — the intervening changelog was never
+   classified by anything, ever, while the pipeline reported `rc=0`.
+   Between 2026-08-05 and 2026-08-20 that silently dropped
+   2.1.223 → 2.1.234 (~12 releases, including the `selection:clear`
+   keybinding, the GitLab MR badge, "continue automatically at usage
+   limit", markdown rendering for user prompts, and `@`-mentioning another
+   session). A failed run is now retried; after
+   `CC_PARITY_MAX_RUN_ATTEMPTS` it is parked in `skipped`, which pauses
+   the hourly retry **without** advancing the baseline, so the range is
+   folded back into the next release's diff.
 4. If `run`, **`orchestrate.ts`** takes over:
    1. Pre-flight: auth, `gh`, working tree.
    2. `git fetch origin` and create `cc-parity/<version>` fresh off
@@ -298,6 +319,8 @@ CC_PARITY_ROOM_SLUG=sdk-update
 # CC_PARITY_MAX_TURNS=200
 # CC_PARITY_MAX_WALL_MIN=360
 # CC_PARITY_MAX_MINOR_JUMP=1
+# CC_PARITY_MAX_RUN_ATTEMPTS=3           # failed runs before a version is parked
+# CC_PARITY_MAX_CATCHUP_RELEASES=5       # releases per run when catching up (0 = no chunking)
 # CC_PARITY_MIN_HOURS_BETWEEN_RUNS=0     # RESERVED, not yet honored
 EOF
 chmod 600 .claudius/cc-parity/env
@@ -358,7 +381,7 @@ review on day one.
 
 | Make target | What it does |
 | --- | --- |
-| `make cc-parity-check` | Version probe + CHANGELOG slice. Prints decision JSON, updates `state.lastCheckedAt` / `state.lastSeenVersion`. Doesn't touch git. |
+| `make cc-parity-check` | Version probe + CHANGELOG slice. Prints decision JSON, updates `state.lastCheckedAt` (and `state.lastSeenVersion` only when the decision is *not* `run`). Bumps `state.attempts[target]` on a `run`. Doesn't touch git. |
 | `make cc-parity-run` | One-shot manual firing — same code path as the cron line. **Will** create a branch, push, and open a PR if a substantive release is out. |
 | `make cc-parity-fix-pr PR=<n>` | Re-run Claude against an existing PR by number. **Will** push to the PR's branch. Optional `MSG="…"` instruction and `SKIP=lint,e2e`. |
 | `make cc-parity-dry-run` | Same as `cc-parity-run` through the gate, then stops before push/PR/CI/announce. Pass `SKIP=e2e` for fast iteration. |
