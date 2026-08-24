@@ -3617,6 +3617,8 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
             description?: string;
             task_type?: string;
             workflow_name?: string;
+            is_backgrounded?: boolean;
+            spawn_depth?: number;
           };
           // SSE ordering can deliver the Task's tool_result before this
           // task_started; seed the terminal status in that case so the pill
@@ -3644,6 +3646,12 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
                 workflowName: t.workflow_name,
                 status: seedTaskStatus(startedBlock),
                 startedAt: carriedStartedAt ?? Date.now(),
+                // SDK 0.3.238: a task registered in the background from
+                // birth (e.g. a resumed subagent) never gets a follow-up
+                // task_updated patch, so this is the only chance to seed
+                // isBackgrounded. spawn_depth is likewise start-only.
+                isBackgrounded: t.is_backgrounded,
+                spawnDepth: t.spawn_depth,
               },
             };
           });

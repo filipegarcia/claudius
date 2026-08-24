@@ -526,14 +526,26 @@ export type TaskSnapshotEntry = {
   workflowName?: string;
   status: string;
   /**
-   * True if the parent launched this Task with `run_in_background: true`.
-   * Backgrounded tasks legitimately outlive a parent turn (their real
-   * completion rides on a later `task_notification`), so the session's
-   * "is busy?" check must exclude them — otherwise one fire-and-forget
-   * Task would pin the session at `running` forever. Populated from
-   * `task_updated.patch.is_backgrounded`.
+   * True if the parent launched this Task with `run_in_background: true`
+   * (or the task was otherwise registered in the background from birth —
+   * e.g. a resumed subagent, always backgrounded per the SDK). Backgrounded
+   * tasks legitimately outlive a parent turn (their real completion rides
+   * on a later `task_notification`), so the session's "is busy?" check must
+   * exclude them — otherwise one fire-and-forget Task would pin the session
+   * at `running` forever. Populated from `task_started.is_backgrounded`
+   * (SDK 0.3.238) and kept current by any later `task_updated.patch.is_backgrounded`
+   * (a foreground task moving to the background mid-run).
    */
   isBackgrounded?: boolean;
+  /**
+   * Nesting depth of a spawned subagent (`local_agent`) task: 1 for a
+   * top-level spawn, N+1 when spawned from inside a depth-N agent. Absent
+   * on non-agent tasks (bash/monitor/workflow) and on SDKs older than
+   * 0.3.238. Populated from `task_started.spawn_depth`; the SDK never
+   * revises it after the task starts. Drives the "L{n}" nesting badge in
+   * `BackgroundTasksPanel` for depth ≥ 2.
+   */
+  spawnDepth?: number;
   totalTokens?: number;
   toolUses?: number;
   durationMs?: number;

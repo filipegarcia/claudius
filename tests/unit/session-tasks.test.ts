@@ -41,7 +41,12 @@ function makeSession(): SessionInternals {
   return new Session({ id: "tasks-test", cwd: CWD }) as unknown as SessionInternals;
 }
 
-function startedEvent(taskId: string, toolUseId: string, description: string): ServerEvent {
+function startedEvent(
+  taskId: string,
+  toolUseId: string,
+  description: string,
+  extra?: { is_backgrounded?: boolean; spawn_depth?: number },
+): ServerEvent {
   return {
     type: "sdk",
     message: {
@@ -50,6 +55,7 @@ function startedEvent(taskId: string, toolUseId: string, description: string): S
       task_id: taskId,
       tool_use_id: toolUseId,
       description,
+      ...extra,
     },
   } as unknown as ServerEvent;
 }
@@ -197,5 +203,36 @@ describe("Session.captureTaskState end-to-end", () => {
     // throttle window elapsed since task_started — but the row is
     // guaranteed to exist with running metadata.
     expect(persisted!.toolUseId).toBe("toolu-3");
+  });
+
+  test("seeds isBackgrounded + spawnDepth from task_started (SDK 0.3.238)", async () => {
+    // Regression: before 0.3.238 these only arrived via a later
+    // task_updated patch. A task registered in the background from birth
+    // (e.g. a resumed subagent, always backgrounded per the SDK) never
+    // gets one of those patches — without seeding from task_started
+    // itself, isBackgrounded would stay unset and wrongly keep the task
+    // counted as an active, blocking subagent forever.
+    const session = makeSession();
+    session.captureTaskState(
+      startedEvent("task-4", "toolu-4", "resumed subagent", {
+        is_backgrounded: true,
+        spawn_depth: 2,
+      }),
+    );
+
+    const persisted = await waitForTask("task-4");
+    expect(persisted).toBeDefined();
+    expect(persisted!.isBackgrounded).toBe(true);
+    expect(persisted!.spawnDepth).toBe(2);
+  });
+
+  test("leaves isBackgrounded/spawnDepth unset for a plain top-level task_started", async () => {
+    const session = makeSession();
+    session.captureTaskState(startedEvent("task-5", "toolu-5", "top-level task"));
+
+    const persisted = await waitForTask("task-5");
+    expect(persisted).toBeDefined();
+    expect(persisted!.isBackgrounded).toBeUndefined();
+    expect(persisted!.spawnDepth).toBeUndefined();
   });
 });
