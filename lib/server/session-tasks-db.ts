@@ -32,6 +32,8 @@ type RawRow = {
   summary: string | null;
   error: string | null;
   inner_messages: string;
+  is_backgrounded: number | null;
+  spawn_depth: number | null;
 };
 
 function parseInnerMessages(raw: string): TaskSnapshotEntry["innerMessages"] {
@@ -62,6 +64,8 @@ function rowToEntry(row: RawRow): TaskSnapshotEntry {
     durationMs: row.duration_ms ?? undefined,
     summary: row.summary ?? undefined,
     error: row.error ?? undefined,
+    isBackgrounded: row.is_backgrounded == null ? undefined : row.is_backgrounded !== 0,
+    spawnDepth: row.spawn_depth ?? undefined,
     innerMessages: parseInnerMessages(row.inner_messages),
   };
 }
@@ -77,22 +81,25 @@ export async function saveSessionTask(
     `INSERT INTO session_tasks(
        session_id, task_id, tool_use_id, subagent_type, description,
        task_type, workflow_name, status, total_tokens, tool_uses,
-       duration_ms, summary, error, inner_messages, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       duration_ms, summary, error, inner_messages, is_backgrounded,
+       spawn_depth, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(session_id, task_id) DO UPDATE SET
-       tool_use_id    = excluded.tool_use_id,
-       subagent_type  = excluded.subagent_type,
-       description    = excluded.description,
-       task_type      = excluded.task_type,
-       workflow_name  = excluded.workflow_name,
-       status         = excluded.status,
-       total_tokens   = excluded.total_tokens,
-       tool_uses      = excluded.tool_uses,
-       duration_ms    = excluded.duration_ms,
-       summary        = excluded.summary,
-       error          = excluded.error,
-       inner_messages = excluded.inner_messages,
-       updated_at     = excluded.updated_at`,
+       tool_use_id     = excluded.tool_use_id,
+       subagent_type   = excluded.subagent_type,
+       description     = excluded.description,
+       task_type       = excluded.task_type,
+       workflow_name   = excluded.workflow_name,
+       status          = excluded.status,
+       total_tokens    = excluded.total_tokens,
+       tool_uses       = excluded.tool_uses,
+       duration_ms     = excluded.duration_ms,
+       summary         = excluded.summary,
+       error           = excluded.error,
+       inner_messages  = excluded.inner_messages,
+       is_backgrounded = excluded.is_backgrounded,
+       spawn_depth     = excluded.spawn_depth,
+       updated_at      = excluded.updated_at`,
   ).run(
     sessionId,
     task.taskId,
@@ -108,6 +115,8 @@ export async function saveSessionTask(
     task.summary ?? null,
     task.error ?? null,
     JSON.stringify(task.innerMessages ?? []),
+    task.isBackgrounded == null ? null : task.isBackgrounded ? 1 : 0,
+    task.spawnDepth ?? null,
     Date.now(),
   );
 }
@@ -122,7 +131,7 @@ export async function listSessionTasks(
     .prepare<[string], RawRow>(
       `SELECT task_id, tool_use_id, subagent_type, description, task_type,
               workflow_name, status, total_tokens, tool_uses, duration_ms,
-              summary, error, inner_messages
+              summary, error, inner_messages, is_backgrounded, spawn_depth
          FROM session_tasks
         WHERE session_id = ?
         ORDER BY updated_at ASC`,

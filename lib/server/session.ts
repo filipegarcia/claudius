@@ -6676,6 +6676,13 @@ export class Session {
       workflow_name?: string;
       summary?: string;
       status?: string;
+      // `task_started`-level fields (SDK 0.3.238): a task can be registered
+      // in the background from birth (e.g. a resumed subagent), in which
+      // case there is no follow-up `task_updated` patch to catch it — see
+      // the `task_started` case below. `spawn_depth` is likewise only ever
+      // set once, at start.
+      is_backgrounded?: boolean;
+      spawn_depth?: number;
       patch?: {
         status?: string;
         description?: string;
@@ -6715,6 +6722,13 @@ export class Session {
           taskType: msg.task_type,
           workflowName: msg.workflow_name,
           status: "running",
+          // Seed from the start-of-life fields (SDK 0.3.238) rather than
+          // waiting on a `task_updated` patch — a task backgrounded from
+          // birth (e.g. a resumed subagent) never gets one, which used to
+          // leave `isBackgrounded` unset and wrongly pin `hasActiveSubagents()`
+          // / `countActiveBackgroundTasks()` on it forever.
+          isBackgrounded: msg.is_backgrounded,
+          spawnDepth: msg.spawn_depth,
           innerMessages: [],
         };
         this.taskMetaById.set(taskId, meta);

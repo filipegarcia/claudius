@@ -156,6 +156,15 @@ export type TaskInfo = {
   status: TaskStatus;
   isBackgrounded?: boolean;
   /**
+   * Nesting depth of a spawned subagent (`local_agent`) task: 1 for a
+   * top-level spawn, N+1 when spawned from inside a depth-N agent (SDK
+   * 0.3.238, `task_started.spawn_depth`). Absent on non-agent tasks and on
+   * older SDKs. Drives the "L{n}" nesting badge in `BackgroundTasksPanel`
+   * for depth ≥ 2 — a top-level spawn (depth 1) is the common case and
+   * stays unbadged.
+   */
+  spawnDepth?: number;
+  /**
    * Client-stamped wall-clock start (epoch ms), set when the task first
    * appears (provisional launch ack or `task_started`). Drives the 1Hz
    * ticking "elapsed" timer in the rail — the SDK's `durationMs` is a

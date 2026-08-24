@@ -578,6 +578,20 @@ export function BackgroundTasksPanel({
                   <div className="flex items-center gap-1.5 text-xs">
                     <Icon className="h-3 w-3" />
                     <span className="truncate font-mono">{t.workflowName ?? t.taskType ?? "Task"}</span>
+                    {/* Nesting depth (SDK 0.3.238, task_started.spawn_depth) — a
+                        top-level spawn (depth 1) is the common case and stays
+                        unbadged; depth ≥ 2 means this subagent was itself spawned
+                        from inside another agent, which is worth flagging since
+                        it's easy to lose track of in a flat task list. */}
+                    {t.spawnDepth != null && t.spawnDepth >= 2 && (
+                      <span
+                        data-testid="task-nesting-badge"
+                        title={`Nested subagent — spawned from inside a depth-${t.spawnDepth - 1} agent`}
+                        className="shrink-0 rounded border border-current/30 px-1 text-[9px] font-medium opacity-80"
+                      >
+                        L{t.spawnDepth}
+                      </span>
+                    )}
                     <span className="ml-auto text-[10px]">{t.status}</span>
                     {sessionId && (
                       <button
