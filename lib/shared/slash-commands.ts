@@ -337,6 +337,58 @@ export function mergeSuggestions(
  * an independent implementation (no shared code with the CLI's), but had the
  * identical footgun — see the 2.1.237 run-notes.
  */
+/**
+ * Unicode *code point* indices in `name` that matched `filter` under the
+ * same prefix-then-subsequence rule `SlashCommandPicker`'s fuzzy ranking
+ * uses — `null` when `name` itself has no such match (e.g. the visible row
+ * only matched via an alias or the description text).
+ *
+ * CC 2.1.227 parity: "matched characters are bolded instead of recolored."
+ * Claudius's picker never recolored matches (it only shades the selected
+ * row's background), so the only actionable piece is adding the bolding —
+ * this is the pure, unit-testable half of that; `SlashCommandPicker` does
+ * the rendering.
+ *
+ * Indexed by code point (`Array.from`), not UTF-16 code unit (`.split("")`
+ * / string indexing) — a surrogate-pair emoji or an NFD-decomposed accented
+ * character (base letter + combining mark, common in filenames read off
+ * APFS/HFS+, and SDK/plugin command names can come from disk) is more than
+ * one UTF-16 unit but exactly one code point. Consuming callers must split
+ * `name` the same way (`Array.from(name)`, never `.split("")`) or a match
+ * boundary can land inside a surrogate pair / between a base character and
+ * its combining mark, breaking the very glyph this feature is about
+ * preserving. Caught in adversarial review: the first cut of this used
+ * `.split("")` and silently reintroduced that exact regression.
+ */
+export function fuzzySlashMatchIndices(filter: string, name: string): number[] | null {
+  if (!filter) return null;
+  const hay = Array.from(name.toLowerCase());
+  const needle = Array.from(filter.toLowerCase());
+  // Contiguous substring match — code-point-wise, so a run only counts if
+  // every code point lines up (mirrors fuzzyScore's `hay.indexOf(needle)`
+  // fast path, but can't reuse it: indexOf works in UTF-16 units).
+  for (let start = 0; start <= hay.length - needle.length; start++) {
+    let allMatch = true;
+    for (let k = 0; k < needle.length; k++) {
+      if (hay[start + k] !== needle[k]) {
+        allMatch = false;
+        break;
+      }
+    }
+    if (allMatch) return Array.from({ length: needle.length }, (_, k) => start + k);
+  }
+  // Subsequence match — same fallback fuzzyScore() uses for ranking.
+  const indices: number[] = [];
+  let n = 0;
+  for (let h = 0; h < hay.length && n < needle.length; h++) {
+    if (hay[h] === needle[n]) {
+      indices.push(h);
+      n += 1;
+    }
+  }
+  return n === needle.length ? indices : null;
+}
+
 export function isConfidentSlashMatch(
   cmd: Pick<SlashCommand, "name" | "aliases">,
   filter: string,

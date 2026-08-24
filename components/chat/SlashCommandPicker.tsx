@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Wrench, Cpu, Zap, ExternalLink } from "lucide-react";
 import {
   CATEGORY_LABELS,
+  fuzzySlashMatchIndices,
   isConfidentSlashMatch,
   mergeSuggestions,
   type SdkSlashCommandInfo,
@@ -44,6 +45,59 @@ function fuzzyScore(needle: string, hay: string): number {
     h += 1;
   }
   return n === needle.length ? score : -1;
+}
+
+/** Collapses sorted, unique code-point indices into `[start, end)` runs of consecutive values. */
+function toRuns(indices: number[]): Array<[number, number]> {
+  const runs: Array<[number, number]> = [];
+  let start = -1;
+  let prev = -2;
+  for (const i of indices) {
+    if (i !== prev + 1) {
+      if (start >= 0) runs.push([start, prev + 1]);
+      start = i;
+    }
+    prev = i;
+  }
+  if (start >= 0) runs.push([start, prev + 1]);
+  return runs;
+}
+
+/**
+ * Renders a command name with the characters that matched the typed filter
+ * bolded — CC 2.1.227 parity ("matched characters are bolded instead of
+ * recolored"). Falls back to plain text when there's no filter or the name
+ * itself didn't match (the row matched via an alias/description instead).
+ *
+ * Splits `name` by Unicode code point (`Array.from`), not UTF-16 code unit
+ * (`.split("")`) — the latter cuts a surrogate-pair emoji or an
+ * NFD-decomposed accented character (base + combining mark) in half across
+ * two DOM nodes, which is exactly the glyph-breaking regression the CC
+ * 2.1.227 changelog's "emoji or accented names keep their glyphs" clause is
+ * about avoiding. Matched runs are collapsed into contiguous `<span>`s
+ * (one per run, not one per character) — cheaper, and it's what keeps a
+ * multi-code-point glyph that's fully inside one run intact as a single
+ * rendered string rather than relying on the browser to visually reunite
+ * adjacent single-character elements.
+ */
+function HighlightedCommandName({ name, filter }: { name: string; filter: string }) {
+  const indices = useMemo(() => fuzzySlashMatchIndices(filter, name), [filter, name]);
+  if (!indices || indices.length === 0) return <>{name}</>;
+  const chars = Array.from(name);
+  const runs = toRuns(indices);
+  const nodes: ReactNode[] = [];
+  let cursor = 0;
+  runs.forEach(([start, end], i) => {
+    if (start > cursor) nodes.push(chars.slice(cursor, start).join(""));
+    nodes.push(
+      <span key={i} className="font-semibold">
+        {chars.slice(start, end).join("")}
+      </span>,
+    );
+    cursor = end;
+  });
+  if (cursor < chars.length) nodes.push(chars.slice(cursor).join(""));
+  return <>{nodes}</>;
 }
 
 export function SlashCommandPicker({ value, sdkSlashCommands, sdkSkills, sdkRichCommands, onSelect, onClose }: Props) {
@@ -193,7 +247,7 @@ export function SlashCommandPicker({ value, sdkSlashCommands, sdkSkills, sdkRich
                 <div className="flex items-baseline gap-2">
                   <span className="font-mono text-sm">
                     <span className="text-[var(--accent)]">/</span>
-                    {c.name}
+                    <HighlightedCommandName name={c.name} filter={filter} />
                   </span>
                   {c.argsHint && (
                     <span className="font-mono text-[10px] text-[var(--muted)]">{c.argsHint}</span>
