@@ -1619,6 +1619,21 @@ export class Session {
    */
   private queueDispatchMode: "wait" | "asap" = "wait";
 
+  /**
+   * Last `queued_turn_count` the SDK reported on a result message (SDK
+   * 0.3.243) — how many user sends are still waiting in the SDK's OWN
+   * command queue, which is a different queue from our `queued_messages`
+   * table.
+   *
+   * Only ever non-zero under `queueDispatchMode: "asap"` or after a
+   * "Send now", because those are the paths that push into the SDK's input
+   * pipe while a turn is in flight (see `queueDispatchMode` above). In the
+   * default "wait" mode sends park in our table instead and this stays 0.
+   * Mirrored to the client on `queue:updated` so the QueueIndicator can show
+   * pending turns it has no row for.
+   */
+  private sdkQueuedTurns = 0;
+
   /** Public accessor used by the /input route to resolve queue-vs-send. */
   get effectiveQueueDispatchMode(): "wait" | "asap" {
     return this.queueDispatchMode;
@@ -5688,11 +5703,15 @@ export class Session {
   private async sendQueueSnapshot(fn: Subscriber): Promise<void> {
     try {
       await this.loadQueueIfNeeded();
-      if (this.queueCache.length === 0) return;
+      // A late-joining tab needs the snapshot when EITHER queue has
+      // something in it. Keying only off `queueCache` would hide the
+      // asap-mode case, which is the one the SDK counter exists for.
+      if (this.queueCache.length === 0 && this.sdkQueuedTurns === 0) return;
       fn({
         type: "queue:updated",
         sessionId: this.id,
         queue: this.queueSnapshot(),
+        sdkQueuedTurns: this.sdkQueuedTurns,
       });
     } catch {
       // best-effort: an empty snapshot just means the strip stays hidden
@@ -5780,6 +5799,7 @@ export class Session {
       type: "queue:updated",
       sessionId: this.id,
       queue: this.queueSnapshot(),
+      sdkQueuedTurns: this.sdkQueuedTurns,
     });
   }
 
@@ -6973,6 +6993,22 @@ export class Session {
           sawResult = true;
           this.turnInFlight = false;
           this.broadcastTurnStatusIfChanged();
+          // `queued_turn_count` (SDK 0.3.243) — sends still pending in the
+          // SDK's own command queue. Absent on fatal startup results and on
+          // surfaces without a queue; treat absent as 0 so a stale count
+          // can't outlive the turn that reported it. Only re-broadcast on a
+          // change: a result lands on every turn and the strip doesn't need
+          // an identical snapshot each time.
+          const reported = (message as { queued_turn_count?: unknown })
+            .queued_turn_count;
+          const nextQueuedTurns =
+            typeof reported === "number" && Number.isFinite(reported) && reported > 0
+              ? Math.floor(reported)
+              : 0;
+          if (nextQueuedTurns !== this.sdkQueuedTurns) {
+            this.sdkQueuedTurns = nextQueuedTurns;
+            this.broadcastQueue();
+          }
           // Feature 39 parity: if a plan was accepted earlier this run, this
           // is the first turn boundary AFTER its execution finished. Queue
           // the verify-plan nudge so it rides the next real user turn's

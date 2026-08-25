@@ -795,6 +795,17 @@ export type ChatState = {
    * are session-scoped to the agent runtime and die when the session ends.
    */
   scheduledLoops: Record<string, ScheduledLoop>;
+  /**
+   * User sends still waiting inside the **SDK's own** command queue, from
+   * `queued_turn_count` on the result message (SDK 0.3.243) — as opposed to
+   * `queue`, which is Claudius's DB-backed table.
+   *
+   * Non-zero only under `queueDispatchMode: "asap"` or after a "Send now",
+   * because those push into the SDK's input pipe mid-turn instead of parking
+   * in our table. Without this the QueueIndicator reads empty while turns are
+   * genuinely pending.
+   */
+  sdkQueuedTurns: number;
   /** Capped log of tool_use events (newest first; max 100). Includes running and finished tools. */
   toolHistory: ToolHistoryEntry[];
   /** Persisted human-readable session title. Null until set by the user. */

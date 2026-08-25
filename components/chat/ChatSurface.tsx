@@ -2299,6 +2299,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
             onEdit={liftQueued}
             onReorder={session.reorderQueued}
             onSendNow={session.sendQueuedNow}
+            sdkQueuedTurns={session.sdkQueuedTurns}
           />
           {session.readOnly && (
             <TabClaimBanner

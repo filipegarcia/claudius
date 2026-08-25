@@ -988,6 +988,14 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
    * tool_result lands with `{ id, humanSchedule, durable, recurring }`.
    */
   const [scheduledLoops, setScheduledLoops] = useState<Record<string, ScheduledLoop>>({});
+  /**
+   * Mirror of the server's `sdkQueuedTurns` (SDK 0.3.243
+   * `queued_turn_count`) — user sends waiting inside the SDK's own command
+   * queue rather than our DB-backed one. Non-zero only under
+   * `queueDispatchMode: "asap"` or after a "Send now"; see the field doc on
+   * `QueueUpdatedEvent`.
+   */
+  const [sdkQueuedTurns, setSdkQueuedTurns] = useState(0);
   const [toolHistory, setToolHistory] = useState<ToolHistoryEntry[]>([]);
   const [sessionTitle, setSessionTitle] = useState<string | null>(null);
   const [goal, setGoalState] = useState<GoalState | null>(null);
@@ -1815,6 +1823,11 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
           ...(q.fromGoal ? { fromGoal: true } : {}),
         }));
         writeQueueLocal(next);
+        // Sends parked in the SDK's own command queue (asap mode /
+        // "Send now"), which `ev.queue` never lists. Absent means the SDK
+        // didn't report a count on the last result — fall back to 0 rather
+        // than keeping a stale number on screen.
+        setSdkQueuedTurns(ev.sdkQueuedTurns ?? 0);
         return;
       }
       if (ev.type === "session_recap") {
@@ -5422,6 +5435,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     recentEdits,
     backgroundBashes,
     scheduledLoops,
+    sdkQueuedTurns,
     toolHistory,
     sessionTitle,
     goal,
