@@ -159,8 +159,18 @@ additive on top of the standalone flows.
       stub URL fallback).
    6. **Announce** the upstream changelog body (clipped to fit the
       chat-server's 2000-char cap; full text always one URL away).
+   6b. **Diff the type surface** (`fetchTypeSurfaceDiff`): `npm pack`
+      the *previous* version into a temp dir and `git diff --no-index`
+      its `.d.ts` files against the freshly-installed `node_modules/`
+      copy. Produces (a) a list of every added declaration, with
+      `@internal` and nested inner fields flagged, and (b) the raw
+      diff with long JSDoc lines clipped. The top-level, non-internal
+      identifiers become the coverage gate in step 12. Best-effort:
+      any failure logs and yields an empty identifier list, so a
+      network hiccup can never turn into a false red gate.
    7. Render `prompt.md` with `{{PREVIOUS_VERSION}}`,
-      `{{NEW_VERSION}}`, `{{CHANGELOG_BLOCK}}`.
+      `{{NEW_VERSION}}`, `{{CHANGELOG_BLOCK}}`,
+      `{{TYPE_SURFACE_BLOCK}}`.
    8. Call `query()` from `@anthropic-ai/claude-agent-sdk` with
       `permissionMode: 'bypassPermissions'`,
       `allowDangerouslySkipPermissions: true`,
@@ -447,6 +457,8 @@ until green.
 | `check.ts` keeps emitting `skip` for the same version | Jump exceeds `SDK_UPDATE_MAX_MINOR_JUMP` | Pre-bump manually toward latest, or raise the limit. Skipped versions live in `state.skipped` — the entry is removed automatically the moment `decide()` makes a `run` choice. |
 | Lock is held but no orchestrator is running | Previous firing was killed mid-run | The portable lock self-clears: the next firing sees the holder PID is dead and reclaims it. To force it, `rm -rf .claudius/run.lock.d`. `state.inFlight` self-heals after `SDK_UPDATE_STALE_INFLIGHT_HOURS` (default 24h); set the var lower or `rm state.json` to short-circuit. |
 | `check.ts` keeps returning `in-flight` after a previous crash | `state.inFlight` was never cleared (SIGKILL / OOM / host reboot) | Wait for the 24h self-heal, OR `rm .claudius/sdk-updater/state.json` for immediate recovery (it's rebuilt with defaults on next run). |
+| PR is `draft` with "run-notes never mention N newly-added SDK type-surface identifier(s)" | Claude reasoned from the prose changelog and skipped the `.d.ts` diff — the failure the type-surface gate exists to catch (see `prompt.md`, "The third failure mode") | Open the PR, read the "## Type-surface diff" block in the archived prompt (`.claudius/sdk-updater/run-notes/<v>.prompt.md`), and take a position on each named field. Most resolve to a one-line `[skipped — reason]`; the point is that the decision is on the record. |
+| Type-surface block reads `_(type-surface diff unavailable: …)_` | `npm pack` of the previous version failed (offline runner, registry blip) or `node_modules/` wasn't installed | Harmless by design — the coverage gate no-ops rather than going falsely red, and the prompt tells Claude to read `sdk.d.ts` directly and say so in the run-notes. Re-run if you want the diff. |
 | Two PRs appear (one from this updater, one from Dependabot) | Both bots have npm-ecosystem updates enabled | Exclude `@anthropic-ai/claude-agent-sdk` from `.github/dependabot.yml`, or accept the duplication and close one. |
 | PR was announced but no pinned "shipped" message | CI failed | The PR-open announce (step 15) always fires; the pinned "shipped" message (step 17) is deliberately withheld until CI is green. Look at the PR's checks tab, then `make sdk-update-fix-pr PR=<n>`. |
 | PR opened but nothing posted to the channel at all | chat-server unreachable, or `CHAT_SERVER_URL` / token wrong | Announce is best-effort — check the cron log for a `WARN community announce failed` line. The PR is unaffected; fix the chat-server config and the next run/fix will post. |
@@ -491,8 +503,9 @@ until green.
 
 `prompt.md` is the contract with Claude. Tune it freely — the
 placeholders (`{{PREVIOUS_VERSION}}`, `{{NEW_VERSION}}`,
-`{{CHANGELOG_BLOCK}}`) are substituted by `renderPrompt()` in
-`orchestrate.ts`, so keep them present and keep their spelling.
+`{{CHANGELOG_BLOCK}}`, `{{TYPE_SURFACE_BLOCK}}`) are substituted by
+`renderPrompt()` in `orchestrate.ts`, so keep them present and keep
+their spelling.
 
 Things you might reasonably want to change:
 
@@ -504,6 +517,11 @@ Things you might reasonably want to change:
   list them so Claude includes them in its own iteration loop.
 - **Commit cadence.** The suggested breakdown is informational, not
   enforced. If you want squashed commits, say so.
+- **Type-surface gate strictness.** `MAX_GATED_IDENTIFIERS` (40) caps
+  how many new fields one run must account for; `extractDeclarationChanges`
+  decides what counts as a declaration. Loosening either weakens the
+  guard that caught the 0.3.245 empty-PR run — prefer adding an
+  `@internal` marker upstream to widening the cap.
 
 After editing the prompt, you don't need to redeploy anything — the
 next cron firing picks up the new file.

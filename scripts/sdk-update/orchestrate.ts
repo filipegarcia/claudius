@@ -77,12 +77,14 @@ import {
   appendFileSync,
   existsSync,
   mkdirSync,
+  mkdtempSync,
   readFileSync,
   readdirSync,
+  rmSync,
   writeFileSync,
 } from "node:fs";
-import { homedir } from "node:os";
-import { dirname, relative, resolve } from "node:path";
+import { homedir, tmpdir } from "node:os";
+import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import {
@@ -1019,18 +1021,434 @@ export function sliceSingleSection(
   return lines.slice(start, end).join("\n").trim();
 }
 
+// ── Type-surface diff ─────────────────────────────────────────────────
+
+/**
+ * The `.d.ts` files that make up the SDK's public type surface, in the
+ * order we present them to Claude. Anything the npm tarball ships with
+ * a `.d.ts` extension is diffed; this list only pins the *ordering* of
+ * the ones we care most about (a new `.d.ts` upstream still shows up,
+ * appended after these).
+ */
+const TYPE_SURFACE_FILES = [
+  "sdk.d.ts",
+  "sdk-tools.d.ts",
+  "agentSdkTypes.d.ts",
+  "bridge.d.ts",
+  "browser-sdk.d.ts",
+] as const;
+
+/**
+ * Total budget for the raw unified diff we paste into the prompt. The
+ * SDK's JSDoc runs to multi-thousand-character single-line paragraphs,
+ * so an unclipped four-version diff is easily 30–40 KB of mostly prose
+ * churn. `clipDiffLine` shrinks the fat lines first; this is the
+ * backstop for a genuinely enormous bump.
+ */
+const MAX_TYPE_SURFACE_DIFF = 60000;
+
+/**
+ * Per-line clip for the raw diff. Long enough that a reworded JSDoc
+ * paragraph is still identifiable (you can see WHICH doc changed and
+ * how it opens), short enough that ten of them don't crowd out the
+ * declaration changes that actually matter.
+ */
+const MAX_DIFF_LINE = 400;
+
+/**
+ * How many new identifiers the run-notes gate will demand coverage for.
+ * A normal bump adds a handful; the cap keeps a once-a-year mega-bump
+ * from producing an unsatisfiable gate. Capped runs log the overflow.
+ */
+const MAX_GATED_IDENTIFIERS = 40;
+
+/**
+ * One added declaration lifted from a `.d.ts` unified diff.
+ *
+ * We deliberately only track ADDED declarations. A removed one is
+ * already a breaking change that `bun run build` catches loudly; a
+ * silently-added optional field is the failure mode this whole
+ * mechanism exists for (see prompt.md, "The third failure mode").
+ */
+export type TypeSurfaceChange = {
+  /** `.d.ts` basename the declaration was added to. */
+  file: string;
+  /** Declared identifier — property name, type name, or member name. */
+  identifier: string;
+  /** The declaration line itself, trimmed of the diff's `+` marker. */
+  line: string;
+  /**
+   * Brace depth of the declaration within its own added block, counted
+   * from the start of the enclosing hunk. `0` is a direct member of an
+   * existing type — the level a host actually consumes. Anything deeper
+   * is an inner field of a newly-added object literal (`modelPicker`'s
+   * `label`, `imagePagesFailed`'s `page`), which is covered for free by
+   * naming its parent.
+   *
+   * Only depth-0 identifiers are gated. Nested ones are far too generic
+   * to gate on — `error`, `file`, `input`, `output`, `page` would each
+   * "pass" a mention-check by appearing incidentally in unrelated prose,
+   * which is worse than not checking at all.
+   */
+  depth: number;
+  /**
+   * True when the JSDoc block immediately above it carried `@internal`.
+   * Those are excluded from the run-notes coverage gate — the SDK marks
+   * them "not a stable consumer field" and we take it at its word — but
+   * they're still listed in the prompt block so Claude can see them.
+   */
+  internal: boolean;
+};
+
+/**
+ * Matches a property/member declaration: `foo?: string;`, `'bar': X`,
+ * `readonly baz(): void`. The capture group is the identifier, with the
+ * optional quoting stripped by the character class placement.
+ */
+const DECL_MEMBER_RE = /^(?:readonly\s+)?['"]?([A-Za-z_$][\w$]*)['"]?\??\s*[:(]/;
+
+/**
+ * Matches a top-level declaration: `export declare type Foo =`,
+ * `export interface Bar {`, `declare const baz:`.
+ */
+const DECL_TOPLEVEL_RE =
+  /^(?:export\s+)?(?:declare\s+)?(?:type|interface|const|function|class|enum)\s+([A-Za-z_$][\w$]*)/;
+
+/**
+ * Pull the added *declarations* out of a `.d.ts` unified diff, dropping
+ * the JSDoc prose that dominates it by volume.
+ *
+ * Why this matters: the SDK's prose changelog is written for CLI users,
+ * not for host authors. The 0.3.241 → 0.3.245 window shipped a
+ * four-bullet changelog while adding seven new public fields
+ * (`modelPicker`, `modelPricing`, `promptCacheTtl`,
+ * `subagentPromptCacheTtl`, `managedSourcesBehavior`, `default_to_no`,
+ * `ScheduleWakeup.noop`) that the changelog never mentioned. The run
+ * read the changelog, concluded "no code changes required", and shipped
+ * an empty PR. This function is the mechanical answer to that: the type
+ * surface can't omit what it adds.
+ *
+ * Exported so unit tests can pin the extraction without a network or
+ * tarball dependency.
+ */
+export function extractDeclarationChanges(
+  file: string,
+  diff: string,
+): TypeSurfaceChange[] {
+  const out: TypeSurfaceChange[] = [];
+  const seen = new Set<string>();
+  // JSDoc accumulated from consecutive added comment lines. Reset on
+  // anything that isn't a comment continuation, so a declaration only
+  // ever inherits the doc block directly above it.
+  let doc: string[] = [];
+  // Brace depth within the current hunk's added lines. Reset per hunk:
+  // we can't know the absolute nesting without parsing the whole file,
+  // but depth *relative to the added block* is exactly what tells a new
+  // top-level member apart from a new object literal's inner field.
+  let depth = 0;
+
+  for (const raw of diff.split(/\r?\n/)) {
+    // Diff furniture — never a declaration, and `+++` would otherwise
+    // look like an added line starting with `++`.
+    if (/^(\+\+\+|---|@@|diff |index |new file|deleted file|similarity)/.test(raw)) {
+      doc = [];
+      depth = 0;
+      continue;
+    }
+    if (!raw.startsWith("+")) {
+      // A context or removed line ends the current doc block.
+      doc = [];
+      continue;
+    }
+    const body = raw.slice(1);
+    const t = body.trim();
+    if (t === "") {
+      doc = [];
+      continue;
+    }
+    if (t.startsWith("/**") || t.startsWith("*") || t.startsWith("//")) {
+      doc.push(t);
+      continue;
+    }
+    const m = DECL_MEMBER_RE.exec(t) ?? DECL_TOPLEVEL_RE.exec(t);
+    // Brace delta for THIS line, applied after the declaration is
+    // recorded — `modelPicker?: {` is itself a depth-0 member that
+    // opens depth 1 for everything under it.
+    const delta = countChar(t, "{") - countChar(t, "}");
+    if (!m) {
+      // Structural noise: `};`, `} | {`, a bare union arm, an object
+      // literal's closing brace. Not a declaration, but also not doc —
+      // keep the doc buffer so `/** … */\n+ }\n+ foo?: x` still binds.
+      depth = Math.max(0, depth + delta);
+      continue;
+    }
+    const identifier = m[1]!;
+    const internal = doc.some((d) => d.includes("@internal"));
+    const at = depth;
+    doc = [];
+    depth = Math.max(0, depth + delta);
+    // Same field can be added to several overloads/union arms (e.g.
+    // `queued_turn_count` lands on both SDKResultSuccess and
+    // SDKResultError). One entry per identifier per file is enough.
+    const key = `${file}:${identifier}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({ file, identifier, line: t, internal, depth: at });
+  }
+  return out;
+}
+
+/** Count occurrences of a single character. Cheaper than a regex in a hot loop. */
+function countChar(s: string, ch: string): number {
+  let n = 0;
+  for (const c of s) if (c === ch) n++;
+  return n;
+}
+
+/**
+ * Clip a single diff line so one reworded 2000-char JSDoc paragraph
+ * can't eat the prompt budget. Only touches `+`/`-` lines — hunk
+ * headers and context stay verbatim so the diff is still navigable.
+ */
+export function clipDiffLine(line: string): string {
+  if (line.length <= MAX_DIFF_LINE) return line;
+  if (!/^[+-]/.test(line) || /^(\+\+\+|---)/.test(line)) return line;
+  return `${line.slice(0, MAX_DIFF_LINE)}… [clipped ${line.length - MAX_DIFF_LINE} chars]`;
+}
+
+/**
+ * Assemble the `{{TYPE_SURFACE_BLOCK}}` prompt section from per-file
+ * unified diffs, plus the identifier list the run-notes gate keys off.
+ *
+ * The block has two halves on purpose:
+ *
+ *   1. **New declarations** — the mechanical list. This is what the
+ *      gate enforces coverage of, and it's the half that catches
+ *      silently-added optional fields.
+ *   2. **Raw diff** — clipped, but complete enough that *doc-only*
+ *      semantic changes stay visible. Those matter too: the same
+ *      window that added the seven fields above also deprecated
+ *      `disableArtifact` purely by rewording its JSDoc, which no
+ *      declaration-level extraction would ever surface.
+ *
+ * Exported for unit tests.
+ */
+export function renderTypeSurfaceBlock(
+  files: { file: string; diff: string }[],
+): { markdown: string; identifiers: string[] } {
+  const changes = files.flatMap((f) => extractDeclarationChanges(f.file, f.diff));
+  const gated = changes
+    .filter((c) => !c.internal && c.depth === 0)
+    .map((c) => c.identifier);
+  const identifiers = [...new Set(gated)].slice(0, MAX_GATED_IDENTIFIERS);
+
+  const parts: string[] = [];
+
+  if (changes.length === 0) {
+    parts.push(
+      "**New declarations:** none — no `.d.ts` file added a property or type in this window.",
+    );
+  } else {
+    parts.push("**New declarations** (every one needs a position in the run-notes):");
+    parts.push("");
+    for (const c of changes) {
+      const tag = c.internal
+        ? " _(marked `@internal` — skippable on that basis)_"
+        : c.depth > 0
+          ? " _(inner field — covered by naming its parent)_"
+          : "";
+      const indent = "  ".repeat(Math.min(c.depth, 3));
+      parts.push(
+        `${indent}- \`${c.file}\` — \`${c.identifier}\`: \`${oneLine(c.line, 160)}\`${tag}`,
+      );
+    }
+  }
+  parts.push("");
+  parts.push("**Raw `.d.ts` diff** (long JSDoc lines clipped):");
+  parts.push("");
+
+  let budget = MAX_TYPE_SURFACE_DIFF;
+  for (const f of files) {
+    if (f.diff.trim() === "") continue;
+    const clipped = f.diff
+      .split(/\r?\n/)
+      .map(clipDiffLine)
+      .join("\n");
+    const body =
+      clipped.length > budget
+        ? `${clipped.slice(0, Math.max(budget, 0))}\n… [diff truncated — re-run \`npm pack\` locally for the full text]`
+        : clipped;
+    budget -= body.length;
+    parts.push(`<details><summary><code>${f.file}</code></summary>`);
+    parts.push("");
+    parts.push("```diff");
+    parts.push(body);
+    parts.push("```");
+    parts.push("");
+    parts.push("</details>");
+    parts.push("");
+    if (budget <= 0) {
+      parts.push("_(remaining files omitted — prompt diff budget exhausted)_");
+      break;
+    }
+  }
+
+  return { markdown: parts.join("\n").trim(), identifiers };
+}
+
+/**
+ * Gate half of the type-surface mechanism: refuse to call a run clean
+ * when the run-notes never took a position on a newly-added public
+ * field.
+ *
+ * Deliberately a *mention* check, not a semantic one. Writing
+ * "`queued_turn_count` — [skipped — we own our own queue]" costs one
+ * line and is exactly the artefact a reviewer needs; silently omitting
+ * the field is the failure this catches. We don't try to grade the
+ * justification — that's human review's job, same as
+ * `validateRunNotesContent`.
+ *
+ * Returns null when every identifier is accounted for.
+ */
+export function validateTypeSurfaceCoverage(
+  md: string,
+  identifiers: string[],
+): string | null {
+  const uncovered = identifiers.filter((id) => !md.includes(id));
+  if (uncovered.length === 0) return null;
+  const shown = uncovered.slice(0, 12).join(", ");
+  const more = uncovered.length > 12 ? `, +${uncovered.length - 12} more` : "";
+  return (
+    `run-notes never mention ${uncovered.length} newly-added SDK type-surface ` +
+    `identifier(s): ${shown}${more} — each new public field needs a ` +
+    `[shipped] / [type-only] / [skipped — reason] position (see prompt.md, ` +
+    `"The third failure mode")`
+  );
+}
+
+/**
+ * Extract the two versions' `.d.ts` files and diff them.
+ *
+ * The NEW side is `node_modules/` — the orchestrator has already bumped
+ * and installed by the time this runs, so that's the exact code Claude
+ * will be reading. Only the PREVIOUS version needs fetching.
+ *
+ * Never throws: a network hiccup here must not block a bump. On failure
+ * we return an explanatory block and an EMPTY identifier list, which
+ * makes the coverage gate a no-op rather than a false red.
+ */
+function fetchTypeSurfaceDiff(
+  prevVersion: string,
+  newVersion: string,
+): { markdown: string; identifiers: string[] } {
+  const unavailable = (why: string) => ({
+    markdown:
+      `_(type-surface diff unavailable: ${why}. Fall back to reading ` +
+      `\`node_modules/${SDK_PKG_NAME}/sdk.d.ts\` directly — and say so in the run-notes.)_`,
+    identifiers: [] as string[],
+  });
+
+  let tmp: string | null = null;
+  try {
+    const newDir = resolve(ROOT, "node_modules", SDK_PKG_NAME);
+    if (!existsSync(resolve(newDir, "sdk.d.ts"))) {
+      return unavailable(`node_modules/${SDK_PKG_NAME}/sdk.d.ts missing`);
+    }
+
+    tmp = mkdtempSync(join(tmpdir(), "sdk-typesurface-"));
+    const prevDir = resolve(tmp, "prev");
+    mkdirSync(prevDir, { recursive: true });
+
+    // `npm pack` writes `<scope>-<name>-<version>.tgz` into --pack-destination.
+    // We glob rather than parse stdout: npm's output format has churned
+    // across majors (plain filename / JSON / with --silent noise) and a
+    // directory listing is stable.
+    sh("npm", [
+      "pack",
+      `${SDK_PKG_NAME}@${prevVersion}`,
+      "--pack-destination",
+      tmp,
+    ]);
+    const tgz = readdirSync(tmp).find((f) => f.endsWith(".tgz"));
+    if (!tgz) return unavailable(`npm pack produced no tarball for ${prevVersion}`);
+    sh("tar", ["xzf", resolve(tmp, tgz), "-C", prevDir, "--strip-components=1"]);
+
+    const names = [
+      ...TYPE_SURFACE_FILES,
+      ...readdirSync(newDir).filter(
+        (f) => f.endsWith(".d.ts") && !TYPE_SURFACE_FILES.includes(f as never),
+      ),
+    ];
+
+    const files: { file: string; diff: string }[] = [];
+    for (const name of names) {
+      const oldPath = resolve(prevDir, name);
+      const newPath = resolve(newDir, name);
+      if (!existsSync(oldPath) && !existsSync(newPath)) continue;
+      // `git diff --no-index` exits 1 when the files differ, so we can't
+      // use `sh` (which throws on non-zero). git is already a hard
+      // dependency of every other step, unlike `diff(1)` on a minimal
+      // container.
+      const r = spawnSync(
+        "git",
+        [
+          "diff",
+          "--no-index",
+          "--unified=2",
+          existsSync(oldPath) ? oldPath : "/dev/null",
+          existsSync(newPath) ? newPath : "/dev/null",
+        ],
+        { cwd: tmp, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
+      );
+      // 0 = identical, 1 = differs. Anything else is a real failure.
+      if (r.status !== 0 && r.status !== 1) continue;
+      const diff = (r.stdout ?? "").toString();
+      if (diff.trim() === "") continue;
+      files.push({ file: name, diff });
+    }
+
+    if (files.length === 0) {
+      return {
+        markdown: `_(no \`.d.ts\` changes between ${prevVersion} and ${newVersion} — the public type surface is byte-identical.)_`,
+        identifiers: [],
+      };
+    }
+
+    const rendered = renderTypeSurfaceBlock(files);
+    log(
+      `type-surface diff: ${files.length} file(s), ` +
+        `${rendered.identifiers.length} gated identifier(s), ` +
+        `${rendered.markdown.length} bytes`,
+    );
+    return rendered;
+  } catch (err) {
+    log(`type-surface diff failed: ${String(err)} — continuing without it`);
+    return unavailable(String(err));
+  } finally {
+    if (tmp) {
+      try {
+        rmSync(tmp, { recursive: true, force: true });
+      } catch {
+        // Best-effort cleanup — a leftover temp dir is not worth failing a run.
+      }
+    }
+  }
+}
+
 // ── Prompt rendering ──────────────────────────────────────────────────
 
 function renderPrompt(
   prevVersion: string,
   newVersion: string,
   changelog: string,
+  typeSurface: string,
 ): string {
   const tpl = readFileSync(resolve(SCRIPT_DIR, "prompt.md"), "utf8");
   return tpl
     .replace(/\{\{PREVIOUS_VERSION\}\}/g, prevVersion)
     .replace(/\{\{NEW_VERSION\}\}/g, newVersion)
-    .replace(/\{\{CHANGELOG_BLOCK\}\}/g, changelog);
+    .replace(/\{\{CHANGELOG_BLOCK\}\}/g, changelog)
+    .replace(/\{\{TYPE_SURFACE_BLOCK\}\}/g, typeSurface);
 }
 
 // ── Claude run ────────────────────────────────────────────────────────
@@ -2225,7 +2643,10 @@ function runNotesStub(prevVersion: string, newVersion: string): string {
     ``,
     `_(TODO: bulleted list of upstream changelog items, each marked`,
     `[shipped] / [type-only] / [skipped — reason]. Cover every item that`,
-    `touches a public SDK export.)_`,
+    `touches a public SDK export — AND every identifier listed under`,
+    `"New declarations" in the prompt's type-surface block, which the`,
+    `prose changelog routinely omits. The gate fails the run if a new`,
+    `public field is never named here.)_`,
     ``,
     `## Code changes`,
     ``,
@@ -2349,6 +2770,27 @@ function validateRunNotes(version: string): string | null {
       `Claude was told to write it as the primary deliverable, see prompt.md`;
   }
   return validateRunNotesContent(readFileSync(path, "utf8"));
+}
+
+/**
+ * Disk-reading wrapper for `validateTypeSurfaceCoverage`, mirroring
+ * `validateRunNotes`. Kept separate so the caller can run it only
+ * AFTER the cheaper section-completeness check passes — a run-notes
+ * file that's still all `_(TODO …)_` should report *that*, not a wall
+ * of uncovered identifiers.
+ *
+ * A missing file or an empty identifier list (the type-surface fetch
+ * failed, or the `.d.ts` genuinely didn't change) is a no-op: this
+ * gate only ever fires on a positive finding.
+ */
+function validateTypeSurfaceCoverageForRun(
+  version: string,
+  identifiers: string[],
+): string | null {
+  if (identifiers.length === 0) return null;
+  const path = runNotesPath(version);
+  if (!existsSync(path)) return null;
+  return validateTypeSurfaceCoverage(readFileSync(path, "utf8"), identifiers);
 }
 
 /**
@@ -5157,6 +5599,13 @@ async function main(): Promise<void> {
     const changelog = extractChangelog(prevVersion, newVersion);
     log(`changelog: ${changelog.length} bytes`);
 
+    // The prose changelog is written for CLI users, not host authors —
+    // it routinely omits new public fields (see prompt.md, "The third
+    // failure mode"). Diff the shipped `.d.ts` files so the run reasons
+    // about what the SDK actually added, not just what it announced.
+    // The identifier list feeds the run-notes coverage gate below.
+    const typeSurface = fetchTypeSurfaceDiff(prevVersion, newVersion);
+
     // 2nd progress post: the upstream changelog body. Goes out before
     // Claude starts, so the channel has the same context Claude does
     // when reasoning about what's about to land. Body is clipped to fit
@@ -5183,7 +5632,12 @@ async function main(): Promise<void> {
       log(`run-notes stub created at ${relative(ROOT, runNotesPath(newVersion))}`);
     }
 
-    const prompt = renderPrompt(prevVersion, newVersion, changelog);
+    const prompt = renderPrompt(
+      prevVersion,
+      newVersion,
+      changelog,
+      typeSurface.markdown,
+    );
     // Archive the exact prompt Claude sees, for post-mortem inspection
     // when a run produces a surprising PR (or fails to write the
     // run-notes file as told). Mirrors the rendered prompt to disk
@@ -5250,7 +5704,8 @@ async function main(): Promise<void> {
     // bot look broken — strictly worse than a draft PR with an
     // explicit "no changes needed" analysis, because reviewers have
     // nothing to react to. Treat it the same as a red gate.
-    const runNotesIssue = validateRunNotes(newVersion);
+    const runNotesIssue = validateRunNotes(newVersion)
+      ?? validateTypeSurfaceCoverageForRun(newVersion, typeSurface.identifiers);
     if (runNotesIssue && !budgetReason) {
       budgetReason = runNotesIssue;
       log(`gate: run-notes validation FAILED — ${runNotesIssue}`);

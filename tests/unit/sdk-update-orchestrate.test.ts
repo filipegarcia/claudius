@@ -16,6 +16,10 @@ import {
   buildTestingAnnouncement,
   assistantText,
   classifyResultEnvelope,
+  clipDiffLine,
+  extractDeclarationChanges,
+  renderTypeSurfaceBlock,
+  validateTypeSurfaceCoverage,
   classifyToolResults,
   looksLikeDeadWebServer,
   looksLikeDeferredFinish,
@@ -1654,5 +1658,183 @@ describe("assistantText", () => {
   test("survives a malformed message without throwing", () => {
     expect(assistantText({ type: "assistant" })).toBe("");
     expect(assistantText(null)).toBe("");
+  });
+});
+
+// ── Type-surface diff ─────────────────────────────────────────────────
+
+/**
+ * Regression coverage for the mechanism added after the
+ * 0.3.241 → 0.3.245 run shipped an empty PR: that window published a
+ * four-bullet changelog while adding seven new public fields, and the
+ * run reasoned only from the prose. These tests pin the extraction
+ * shape against a miniature of that exact diff.
+ */
+describe("extractDeclarationChanges", () => {
+  const diff = `--- a/sdk.d.ts
++++ b/sdk.d.ts
+@@ -100,6 +100,10 @@
+     suppress_always_allow_rule?: boolean;
++    /**
++     * True when the ask must not be approvable by a single keystroke.
++     */
++    default_to_no?: boolean;
+     matched_ask_rule?: {
+@@ -200,6 +200,20 @@
+     modelOverrides?: {
+         [k: string]: string;
++    };
++    /**
++     * Curate the /model picker.
++     */
++    modelPicker?: {
++        options: {
++            model: string;
++            label?: string;
++        }[];
++        replaceBuiltInOptions?: boolean;
+     };
+`;
+
+  test("extracts added members and skips the JSDoc prose around them", () => {
+    const changes = extractDeclarationChanges("sdk.d.ts", diff);
+    const names = changes.map((c) => c.identifier);
+    expect(names).toContain("default_to_no");
+    expect(names).toContain("modelPicker");
+    // The doc lines themselves must never become identifiers.
+    expect(names).not.toContain("True");
+    expect(names).not.toContain("Curate");
+  });
+
+  test("marks a new object literal's inner fields as nested, not top-level", () => {
+    const byName = Object.fromEntries(
+      extractDeclarationChanges("sdk.d.ts", diff).map((c) => [c.identifier, c]),
+    );
+    expect(byName.modelPicker!.depth).toBe(0);
+    expect(byName.default_to_no!.depth).toBe(0);
+    // `options` / `model` / `label` are inner fields of modelPicker —
+    // gating on names this generic would pass on incidental prose.
+    expect(byName.options!.depth).toBeGreaterThan(0);
+    expect(byName.model!.depth).toBeGreaterThan(0);
+    expect(byName.label!.depth).toBeGreaterThan(0);
+  });
+
+  test("flags @internal declarations so the gate can exempt them", () => {
+    const internalDiff = `@@ -1,0 +1,8 @@
++      /**
++       * @internal Count of leading harness-authored content blocks
++       */
++      harnessNoteCount?: number;
++      agentType?: string;
+`;
+    const changes = extractDeclarationChanges("sdk-tools.d.ts", internalDiff);
+    const byName = Object.fromEntries(changes.map((c) => [c.identifier, c]));
+    expect(byName.harnessNoteCount!.internal).toBe(true);
+    // The doc block must not leak onto the NEXT declaration.
+    expect(byName.agentType!.internal).toBe(false);
+  });
+
+  test("dedupes a field added to several union arms", () => {
+    const dupe = `@@ -1,0 +1,4 @@
++    queued_turn_count?: number;
+@@ -9,0 +9,4 @@
++    queued_turn_count?: number;
+`;
+    const changes = extractDeclarationChanges("sdk.d.ts", dupe);
+    expect(changes.filter((c) => c.identifier === "queued_turn_count")).toHaveLength(1);
+  });
+
+  test("ignores removed lines and diff furniture", () => {
+    const removals = `--- a/sdk.d.ts
++++ b/sdk.d.ts
+@@ -1,3 +1,2 @@
+-    removedField?: string;
+     keptField?: string;
+`;
+    expect(extractDeclarationChanges("sdk.d.ts", removals)).toEqual([]);
+  });
+});
+
+describe("renderTypeSurfaceBlock", () => {
+  test("gates on top-level, non-internal identifiers only", () => {
+    const diff = `@@ -1,0 +1,10 @@
++    promptCacheTtl?: '5m' | '1h';
++    modelPricing?: {
++        multiplier?: number;
++    };
++    /**
++     * @internal bookkeeping
++     */
++    harnessTailCount?: number;
+`;
+    const { identifiers, markdown } = renderTypeSurfaceBlock([
+      { file: "sdk.d.ts", diff },
+    ]);
+    expect(identifiers).toEqual(["promptCacheTtl", "modelPricing"]);
+    // Everything is still *listed* for the model to read, gated or not.
+    expect(markdown).toContain("harnessTailCount");
+    expect(markdown).toContain("multiplier");
+  });
+
+  test("reports an empty window without inventing identifiers", () => {
+    const { identifiers, markdown } = renderTypeSurfaceBlock([]);
+    expect(identifiers).toEqual([]);
+    expect(markdown).toContain("none");
+  });
+});
+
+describe("clipDiffLine", () => {
+  test("clips a long changed line but leaves headers and short lines alone", () => {
+    const long = `+${"x".repeat(900)}`;
+    expect(clipDiffLine(long).length).toBeLessThan(long.length);
+    expect(clipDiffLine(long)).toContain("clipped");
+    expect(clipDiffLine("+ short")).toBe("+ short");
+    expect(clipDiffLine(`+++ b/${"y".repeat(900)}`)).toContain("y".repeat(900));
+  });
+});
+
+describe("validateTypeSurfaceCoverage", () => {
+  const notes = "## SDK changelog highlights\n- `queued_turn_count` — [skipped — we own our own queue]\n";
+
+  test("passes when every identifier is named somewhere in the notes", () => {
+    expect(validateTypeSurfaceCoverage(notes, ["queued_turn_count"])).toBeNull();
+  });
+
+  test("fails and names the uncovered identifiers", () => {
+    const reason = validateTypeSurfaceCoverage(notes, [
+      "queued_turn_count",
+      "modelPricing",
+      "promptCacheTtl",
+    ]);
+    expect(reason).not.toBeNull();
+    expect(reason).toContain("modelPricing");
+    expect(reason).toContain("promptCacheTtl");
+    expect(reason).not.toContain("queued_turn_count");
+  });
+
+  test("is a no-op when the type-surface fetch produced nothing", () => {
+    // A network failure must never turn into a false red gate.
+    expect(validateTypeSurfaceCoverage("", [])).toBeNull();
+  });
+
+  test("would have caught the 0.3.245 empty-PR run", () => {
+    // Verbatim shape of that run's reasoning: it took a position on
+    // `queued_turn_count` and on nothing else the type surface added.
+    const realNotes =
+      "## SDK changelog highlights\n" +
+      "- Added optional `queued_turn_count` to result messages — [skipped]\n" +
+      "- Fixed `mcp_status` reporting a server as connected — [skipped]\n";
+    const reason = validateTypeSurfaceCoverage(realNotes, [
+      "queued_turn_count",
+      "modelPicker",
+      "modelPricing",
+      "promptCacheTtl",
+      "subagentPromptCacheTtl",
+      "managedSourcesBehavior",
+      "default_to_no",
+      "noop",
+    ]);
+    expect(reason).toContain("7 newly-added");
+    expect(reason).toContain("modelPricing");
   });
 });

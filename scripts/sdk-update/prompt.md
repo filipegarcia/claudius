@@ -21,7 +21,9 @@ The orchestrator has already:
    a new file — edit the one that's already there.
 
 The full changelog between the two versions is in the
-"## Changelog block" section at the bottom of this prompt.
+"## Changelog block" section at the bottom of this prompt, and the
+diff of the SDK's shipped `.d.ts` files is in "## Type-surface diff"
+right below it. **Read both** — the changelog omits most new fields.
 
 ---
 
@@ -132,6 +134,67 @@ failed run.
 
 ---
 
+## The third failure mode: trusting the prose changelog
+
+The changelog upstream publishes is written for **CLI users**, not for
+host authors. It announces behaviour a person types at a terminal; it
+routinely says nothing at all about new fields on the types a wrapper
+like Claudius consumes. Two of the last four releases in a typical
+window are a bare "Updated to parity with Claude Code vX" line.
+
+This is not hypothetical. The 0.3.241 → 0.3.245 window published a
+four-bullet changelog — and added **seven** new public fields that
+appear nowhere in it:
+
+| Field | Where | Why it mattered |
+|---|---|---|
+| `promptCacheTtl`, `subagentPromptCacheTtl` | `Settings` | Belong in `SDK_SETTINGS_CATALOG` — plain `'5m' \| '1h'` enums |
+| `modelPicker`, `modelPricing` | `Settings` | Model-identity **and** pricing-tier surface (see the second failure mode) |
+| `managedSourcesBehavior` | `Settings` | Managed-settings composition |
+| `default_to_no` | `can_use_tool` control request | Permission-prompt UX |
+| `noop` | `ScheduleWakeupInput` | Claudius already reconstructs session loops from this tool's input |
+
+That run read the changelog, found nothing actionable, wrote polished
+notes concluding "No code changes required", and shipped a PR whose
+whole diff was a version bump. It also asserted "no item in this
+window touches a model name, capability tier, **or pricing tier**" —
+which `modelPricing` falsifies outright.
+
+**So the changelog is the source of truth for INTENT, and the `.d.ts`
+diff is the source of truth for SURFACE.** The orchestrator computes
+that diff for you and pastes it into the "## Type-surface diff"
+section at the bottom of this prompt. It has two halves:
+
+- **New declarations** — the mechanical list of every property and
+  type added between the two versions, with `@internal` ones flagged.
+- **Raw `.d.ts` diff** — clipped, but complete enough to show
+  *doc-only* semantic changes. Read this too: the same window above
+  deprecated `disableArtifact` purely by rewording its JSDoc, which no
+  declaration-level list would ever surface.
+
+**Every identifier under "New declarations" needs a position in
+"## SDK changelog highlights"** — `[shipped]`, `[type-only]`, or
+`[skipped — <reason>]`, exactly like a changelog item. A gate checks
+this mechanically and fails the run when a new public field is never
+named in the notes. Entries marked `@internal` are exempt from the
+gate (the SDK says "not a stable consumer field" and we take it at its
+word), but mentioning them costs one line and is never wrong.
+
+Two things worth knowing when you triage these:
+
+- **An optional field never breaks the build.** `bun run build` going
+  green tells you nothing about whether you should have adopted one.
+  Do not cite a green compile as evidence that a new field is
+  irrelevant.
+- **Check whether the field is actually reachable.** A field on an
+  internal control-protocol type may never be plumbed to the public
+  callback Claudius uses — `default_to_no` above sits on the
+  `can_use_tool` control request, but the exported `CanUseTool`
+  options object is byte-identical between the two versions, so there
+  is no supported way to read it. "Not reachable from our call path,
+  verified by diffing the exported signature" is a *strong* skip.
+  "Probably internal" is not.
+
 ## Documenting the work: the run-notes file
 
 The deliverable is the implemented code; this file only *documents* it.
@@ -182,6 +245,11 @@ relevant to Claudius. For each item mark one of:
 
 Cover EVERY item in the upstream changelog that touches a public
 SDK export. Do not pick favourites.
+
+**Then cover every identifier under "New declarations" in the
+"## Type-surface diff" block** — the changelog omits most of them, and
+a gate fails the run if one is never named here. Same three markers.
+See "The third failure mode" above.
 
 **Model-identity items have a higher bar to skip.** Any item about a
 model name/suffix (e.g. Fable `[1m]`), alias, default model,
@@ -289,16 +357,24 @@ wall-clock, and idle ceilings):
 - **Let every workflow complete before moving on** — a workflow you
   launch and ignore can leave the run wedged.
 
-### Step 1 — Read the changelog and the SDK source
+### Step 1 — Read the changelog AND the type-surface diff
 
-- Read the "## Changelog block" section at the bottom of this prompt
-  fully. Note **breaking changes**, **new features**, **deprecations**,
-  and **behaviour-changed** items separately — you'll triage them
-  differently.
-- Open `node_modules/@anthropic-ai/claude-agent-sdk/sdk.d.ts` and
-  skim any exports you don't recognise from the changelog. The
-  `.d.ts` is the source of truth for shapes; the changelog is the
-  source of truth for intent.
+Both blocks are at the bottom of this prompt. Neither is optional —
+the changelog tells you what upstream *meant*, the `.d.ts` diff tells
+you what upstream actually *shipped*, and the gap between the two is
+where every missed feature has lived (see "The third failure mode").
+
+- Read the "## Changelog block" fully. Note **breaking changes**,
+  **new features**, **deprecations**, and **behaviour-changed** items
+  separately — you'll triage them differently.
+- Read the "## Type-surface diff" fully. Take a position on every
+  identifier under "New declarations", and read the raw diff for
+  doc-only changes (a deprecation notice added to an existing field's
+  JSDoc is a real change that produces no new declaration).
+- Open `node_modules/@anthropic-ai/claude-agent-sdk/sdk.d.ts` for the
+  surrounding context of anything the diff flags — which type owns the
+  new field, whether it's reachable from the exported API Claudius
+  calls, and what the neighbouring fields do.
 
 ### Step 2 — Audit existing usage
 
@@ -546,6 +622,11 @@ believe it would pass. Silence is not success.
    "(none)").
 6. Every `[shipped]` item in your run-notes is actually shipped —
    grep the diff to confirm.
+6b. Every identifier under "New declarations" in the "## Type-surface
+   diff" block appears somewhere in the run-notes with a
+   `[shipped]` / `[type-only]` / `[skipped — reason]` position. The
+   orchestrator checks this mechanically and treats a miss like a red
+   gate. `@internal`-marked entries are exempt but cheap to include.
 7. Every new or materially-changed UI element has a Playwright
    spec under `tests/e2e/sdk-update-{{NEW_VERSION}}-*.spec.ts`
    that captures a screenshot of it in context to
@@ -644,3 +725,14 @@ is the actual goal.**
 ## Changelog block
 
 {{CHANGELOG_BLOCK}}
+
+## Type-surface diff
+
+Computed by the orchestrator from the `.d.ts` files shipped in the two
+npm tarballs — `{{PREVIOUS_VERSION}}` vs the `{{NEW_VERSION}}` copy now
+in `node_modules/`. This is the authoritative record of what the public
+type surface gained; the changelog above is not. Every non-`@internal`
+identifier below must appear in your run-notes.
+
+{{TYPE_SURFACE_BLOCK}}
+
