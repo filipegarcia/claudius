@@ -847,6 +847,17 @@ function SessionLoopsGroup({
                       recurring
                     </span>
                   )}
+                  {/* Quiet hold (SDK 0.3.245 `noop`) — see ScheduledLoops.tsx. */}
+                  {loop.noop && (
+                    <span
+                      data-testid="loop-noop"
+                      className="rounded bg-[var(--panel-2)] px-1 py-px text-[9px] uppercase tracking-wide opacity-70"
+                      title="The agent reported this tick changed nothing — it checked and had nothing to report."
+                    >
+                      quiet hold
+                      {(loop.noopStreak ?? 0) > 1 && ` ×${loop.noopStreak}`}
+                    </span>
+                  )}
                   {!muted && loop.kind === "cron" && (
                     <button
                       type="button"

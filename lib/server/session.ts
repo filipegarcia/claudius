@@ -4119,6 +4119,7 @@ export class Session {
             delaySeconds?: unknown;
             reason?: unknown;
             prompt?: unknown;
+            noop?: unknown;
           };
           // Dedup: replaying the same tool_use shouldn't reset its own
           // startedAt. Without this guard, the "delete prior wake-ups"
@@ -4127,11 +4128,22 @@ export class Session {
           // would lose the entry on subsequent re-broadcasts when no
           // new wake-up has actually been armed.
           if (this.scheduledLoops.has(tu.id)) continue;
+          const noop = inp.noop === true;
           // One-shot: a fresh wake-up supersedes any prior pending wake-up
-          // for this session (matches the client's reducer).
+          // for this session (matches the client's reducer). Carry the quiet
+          // streak across that replacement BEFORE deleting the predecessor —
+          // `noop` (SDK 0.3.245) is per-tick, and a dynamic loop chains one
+          // wake-up per turn, so the run length only exists if we accumulate
+          // it here. A tick that did something resets the count to 0.
+          let noopStreak = 0;
           for (const [k, v] of this.scheduledLoops) {
-            if (v.kind === "wakeup" && !v.cancelled) this.scheduledLoops.delete(k);
+            if (v.kind !== "wakeup" || v.cancelled) continue;
+            if (noop) noopStreak = Math.max(noopStreak, (v.noopStreak ?? 0) + 1);
+            this.scheduledLoops.delete(k);
           }
+          // A first quiet tick with no predecessor to inherit from is still a
+          // streak of one.
+          if (noop && noopStreak === 0) noopStreak = 1;
           this.scheduledLoops.set(tu.id, {
             kind: "wakeup",
             id: tu.id,
@@ -4145,6 +4157,7 @@ export class Session {
             durable: false,
             startedAt: observedAt,
             cancelled: false,
+            ...(noop ? { noop: true, noopStreak } : {}),
           });
           continue;
         }
