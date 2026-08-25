@@ -514,6 +514,22 @@ export type ScheduledLoop = {
   durable: boolean;
   /** ms since epoch when the schedule was armed. */
   startedAt: number;
+  /**
+   * `noop` from the ScheduleWakeup call (SDK 0.3.245): the agent reporting
+   * that this tick changed nothing — it checked and had nothing to report.
+   * `false`/absent means the tick did something worth keeping (edited a
+   * file, posted a message, surfaced a finding).
+   */
+  noop?: boolean;
+  /**
+   * How many consecutive quiet ticks this loop has now run, counting this
+   * one. Claude Code collapses consecutive `noop: true` ticks in its
+   * terminal view and tracks the run as a streak; we reconstruct the same
+   * number as each wake-up supersedes the last, so a long quiet hold reads
+   * as one chip instead of an indistinguishable series. `0`/absent for a
+   * tick that did something.
+   */
+  noopStreak?: number;
   /** True once the agent has been asked to cancel via CronDelete. */
   cancelled?: boolean;
 };
@@ -795,6 +811,17 @@ export type ChatState = {
    * are session-scoped to the agent runtime and die when the session ends.
    */
   scheduledLoops: Record<string, ScheduledLoop>;
+  /**
+   * User sends still waiting inside the **SDK's own** command queue, from
+   * `queued_turn_count` on the result message (SDK 0.3.243) — as opposed to
+   * `queue`, which is Claudius's DB-backed table.
+   *
+   * Non-zero only under `queueDispatchMode: "asap"` or after a "Send now",
+   * because those push into the SDK's input pipe mid-turn instead of parking
+   * in our table. Without this the QueueIndicator reads empty while turns are
+   * genuinely pending.
+   */
+  sdkQueuedTurns: number;
   /** Capped log of tool_use events (newest first; max 100). Includes running and finished tools. */
   toolHistory: ToolHistoryEntry[];
   /** Persisted human-readable session title. Null until set by the user. */

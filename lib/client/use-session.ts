@@ -988,6 +988,14 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
    * tool_result lands with `{ id, humanSchedule, durable, recurring }`.
    */
   const [scheduledLoops, setScheduledLoops] = useState<Record<string, ScheduledLoop>>({});
+  /**
+   * Mirror of the server's `sdkQueuedTurns` (SDK 0.3.243
+   * `queued_turn_count`) — user sends waiting inside the SDK's own command
+   * queue rather than our DB-backed one. Non-zero only under
+   * `queueDispatchMode: "asap"` or after a "Send now"; see the field doc on
+   * `QueueUpdatedEvent`.
+   */
+  const [sdkQueuedTurns, setSdkQueuedTurns] = useState(0);
   const [toolHistory, setToolHistory] = useState<ToolHistoryEntry[]>([]);
   const [sessionTitle, setSessionTitle] = useState<string | null>(null);
   const [goal, setGoalState] = useState<GoalState | null>(null);
@@ -1815,6 +1823,11 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
           ...(q.fromGoal ? { fromGoal: true } : {}),
         }));
         writeQueueLocal(next);
+        // Sends parked in the SDK's own command queue (asap mode /
+        // "Send now"), which `ev.queue` never lists. Absent means the SDK
+        // didn't report a count on the last result — fall back to 0 rather
+        // than keeping a stale number on screen.
+        setSdkQueuedTurns(ev.sdkQueuedTurns ?? 0);
         return;
       }
       if (ev.type === "session_recap") {
@@ -2548,10 +2561,15 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
               delaySeconds?: unknown;
               reason?: unknown;
               prompt?: unknown;
+              noop?: unknown;
             };
             const delay = typeof inp.delaySeconds === "number" ? inp.delaySeconds : null;
             const prompt = typeof inp.prompt === "string" ? inp.prompt : "";
             const reason = typeof inp.reason === "string" ? inp.reason : undefined;
+            // `noop` (SDK 0.3.245) — the agent reporting a tick that changed
+            // nothing. Per-tick, so the run length has to be accumulated as
+            // each wake-up supersedes the last (mirrors `trackScheduledLoops`).
+            const noop = inp.noop === true;
             setScheduledLoops((prev) => {
               // Dedup: if we've already tracked this exact tool_use,
               // don't reset its startedAt by re-running the "delete
@@ -2562,12 +2580,20 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
               // arming time via `ev.at`.
               if (prev[b.id]) return prev;
               // Replace any prior pending wake-up — dynamic-mode loops chain
-              // one wake-up per turn, so only the latest is "armed".
+              // one wake-up per turn, so only the latest is "armed". Inherit
+              // the quiet streak from the entry being superseded; a tick that
+              // did something resets it to 0.
               const next: Record<string, ScheduledLoop> = {};
+              let noopStreak = 0;
               for (const [k, v] of Object.entries(prev)) {
-                if (v.kind === "wakeup" && !v.cancelled) continue;
+                if (v.kind === "wakeup" && !v.cancelled) {
+                  if (noop) noopStreak = Math.max(noopStreak, (v.noopStreak ?? 0) + 1);
+                  continue;
+                }
                 next[k] = v;
               }
+              // A first quiet tick with no predecessor is still a streak of one.
+              if (noop && noopStreak === 0) noopStreak = 1;
               const entry: ScheduledLoop = {
                 kind: "wakeup",
                 id: b.id,
@@ -2584,6 +2610,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
                 // stability across reloads (see server-side
                 // `trackScheduledLoops` for the matching logic).
                 startedAt: ev.at ?? Date.now(),
+                ...(noop ? { noop: true, noopStreak } : {}),
               };
               next[b.id] = entry;
               return next;
@@ -5422,6 +5449,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     recentEdits,
     backgroundBashes,
     scheduledLoops,
+    sdkQueuedTurns,
     toolHistory,
     sessionTitle,
     goal,

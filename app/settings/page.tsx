@@ -1006,6 +1006,20 @@ const SDK_SETTINGS_CATALOG: SettingMeta[] = [
     desc: "Auto-compact window size",
   },
   {
+    key: "promptCacheTtl",
+    type: "enum",
+    section: "Context & compaction",
+    options: ["5m", "1h"],
+    desc: 'Prompt cache TTL for the main conversation (interactive, -p and SDK turns, plus the helpers that run inline with it): "5m" or "1h". Unset = automatic: 1 hour on a Claude subscription within its usage limits, 5 minutes on an API key, Bedrock, Vertex or Foundry. 1-hour cache writes are billed at a higher rate; the cache stays warm across longer breaks. The CLAUDE_CODE_PROMPT_CACHE_TTL environment variable takes precedence.',
+  },
+  {
+    key: "subagentPromptCacheTtl",
+    type: "enum",
+    section: "Context & compaction",
+    options: ["5m", "1h"],
+    desc: 'Prompt cache TTL for everything outside the main conversation — subagents, workflows, background and helper requests: "5m" or "1h". Unset = automatic (5 minutes unless ENABLE_PROMPT_CACHING_1H=1). The CLAUDE_CODE_SUBAGENT_PROMPT_CACHE_TTL environment variable takes precedence.',
+  },
+  {
     key: "cleanupPeriodDays",
     type: "number",
     section: "Storage & sessions",

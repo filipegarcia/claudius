@@ -1619,6 +1619,21 @@ export class Session {
    */
   private queueDispatchMode: "wait" | "asap" = "wait";
 
+  /**
+   * Last `queued_turn_count` the SDK reported on a result message (SDK
+   * 0.3.243) — how many user sends are still waiting in the SDK's OWN
+   * command queue, which is a different queue from our `queued_messages`
+   * table.
+   *
+   * Only ever non-zero under `queueDispatchMode: "asap"` or after a
+   * "Send now", because those are the paths that push into the SDK's input
+   * pipe while a turn is in flight (see `queueDispatchMode` above). In the
+   * default "wait" mode sends park in our table instead and this stays 0.
+   * Mirrored to the client on `queue:updated` so the QueueIndicator can show
+   * pending turns it has no row for.
+   */
+  private sdkQueuedTurns = 0;
+
   /** Public accessor used by the /input route to resolve queue-vs-send. */
   get effectiveQueueDispatchMode(): "wait" | "asap" {
     return this.queueDispatchMode;
@@ -4104,6 +4119,7 @@ export class Session {
             delaySeconds?: unknown;
             reason?: unknown;
             prompt?: unknown;
+            noop?: unknown;
           };
           // Dedup: replaying the same tool_use shouldn't reset its own
           // startedAt. Without this guard, the "delete prior wake-ups"
@@ -4112,11 +4128,22 @@ export class Session {
           // would lose the entry on subsequent re-broadcasts when no
           // new wake-up has actually been armed.
           if (this.scheduledLoops.has(tu.id)) continue;
+          const noop = inp.noop === true;
           // One-shot: a fresh wake-up supersedes any prior pending wake-up
-          // for this session (matches the client's reducer).
+          // for this session (matches the client's reducer). Carry the quiet
+          // streak across that replacement BEFORE deleting the predecessor —
+          // `noop` (SDK 0.3.245) is per-tick, and a dynamic loop chains one
+          // wake-up per turn, so the run length only exists if we accumulate
+          // it here. A tick that did something resets the count to 0.
+          let noopStreak = 0;
           for (const [k, v] of this.scheduledLoops) {
-            if (v.kind === "wakeup" && !v.cancelled) this.scheduledLoops.delete(k);
+            if (v.kind !== "wakeup" || v.cancelled) continue;
+            if (noop) noopStreak = Math.max(noopStreak, (v.noopStreak ?? 0) + 1);
+            this.scheduledLoops.delete(k);
           }
+          // A first quiet tick with no predecessor to inherit from is still a
+          // streak of one.
+          if (noop && noopStreak === 0) noopStreak = 1;
           this.scheduledLoops.set(tu.id, {
             kind: "wakeup",
             id: tu.id,
@@ -4130,6 +4157,7 @@ export class Session {
             durable: false,
             startedAt: observedAt,
             cancelled: false,
+            ...(noop ? { noop: true, noopStreak } : {}),
           });
           continue;
         }
@@ -5688,11 +5716,15 @@ export class Session {
   private async sendQueueSnapshot(fn: Subscriber): Promise<void> {
     try {
       await this.loadQueueIfNeeded();
-      if (this.queueCache.length === 0) return;
+      // A late-joining tab needs the snapshot when EITHER queue has
+      // something in it. Keying only off `queueCache` would hide the
+      // asap-mode case, which is the one the SDK counter exists for.
+      if (this.queueCache.length === 0 && this.sdkQueuedTurns === 0) return;
       fn({
         type: "queue:updated",
         sessionId: this.id,
         queue: this.queueSnapshot(),
+        sdkQueuedTurns: this.sdkQueuedTurns,
       });
     } catch {
       // best-effort: an empty snapshot just means the strip stays hidden
@@ -5780,6 +5812,7 @@ export class Session {
       type: "queue:updated",
       sessionId: this.id,
       queue: this.queueSnapshot(),
+      sdkQueuedTurns: this.sdkQueuedTurns,
     });
   }
 
@@ -6973,6 +7006,22 @@ export class Session {
           sawResult = true;
           this.turnInFlight = false;
           this.broadcastTurnStatusIfChanged();
+          // `queued_turn_count` (SDK 0.3.243) — sends still pending in the
+          // SDK's own command queue. Absent on fatal startup results and on
+          // surfaces without a queue; treat absent as 0 so a stale count
+          // can't outlive the turn that reported it. Only re-broadcast on a
+          // change: a result lands on every turn and the strip doesn't need
+          // an identical snapshot each time.
+          const reported = (message as { queued_turn_count?: unknown })
+            .queued_turn_count;
+          const nextQueuedTurns =
+            typeof reported === "number" && Number.isFinite(reported) && reported > 0
+              ? Math.floor(reported)
+              : 0;
+          if (nextQueuedTurns !== this.sdkQueuedTurns) {
+            this.sdkQueuedTurns = nextQueuedTurns;
+            this.broadcastQueue();
+          }
           // Feature 39 parity: if a plan was accepted earlier this run, this
           // is the first turn boundary AFTER its execution finished. Queue
           // the verify-plan nudge so it rides the next real user turn's

@@ -71,7 +71,13 @@ export function CollapsibleSection({ storageKey, label, badge, action, defaultCo
   }
 
   return (
-    <div className="mb-3">
+    // `storageKey` is already unique per section (it keys the collapse
+    // state in localStorage), so it doubles as a stable test handle.
+    // Deliberately NOT `data-pane-name` — several call sites already wrap
+    // this component in their own `data-pane-name` div, and a duplicate
+    // would turn every existing `[data-pane-name="tasks"]` locator into a
+    // strict-mode violation.
+    <div className="mb-3" data-testid={`activity-section-${storageKey}`}>
       <div className="flex items-center gap-1 pb-1 text-[10px] uppercase tracking-wide text-[var(--muted)]">
         <button
           type="button"

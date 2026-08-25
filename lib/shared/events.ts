@@ -691,6 +691,24 @@ export type QueueUpdatedEvent = {
   type: "queue:updated";
   sessionId: string;
   queue: QueuedMessageMeta[];
+  /**
+   * User sends still pending inside the **SDK's own** command queue, from
+   * `queued_turn_count` on the result message (SDK 0.3.243). Distinct from
+   * `queue` above, which is Claudius's DB-backed `queued_messages` table.
+   *
+   * The two are normally disjoint: in the default `queueDispatchMode: "wait"`
+   * everything parks in our table and this stays 0. But under
+   * `queueDispatchMode: "asap"` — and for every "Send now" click — we push
+   * straight to the SDK's input pipe mid-turn (`Session.send`,
+   * `sendQueuedNow`), so sends stack up on the SDK side where our table can't
+   * see them and the strip would otherwise read empty while turns are
+   * genuinely pending.
+   *
+   * `> 0` means at least one more turn (and result) follows without further
+   * input, barring cancellation. Absent on surfaces without a command queue
+   * and on fatal startup results; treat absent as "unknown", not zero.
+   */
+  sdkQueuedTurns?: number;
 };
 
 /**

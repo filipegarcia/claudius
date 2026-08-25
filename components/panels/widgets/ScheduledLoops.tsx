@@ -90,6 +90,20 @@ export function ScheduledLoops({
                   durable
                 </span>
               )}
+              {/* Quiet hold (SDK 0.3.245 `noop`): the agent checked and had
+                  nothing to report. Claude Code collapses a run of these in
+                  the terminal; the ×N mirrors that so a long hold reads as
+                  one chip instead of an indistinguishable series. */}
+              {loop.noop && (
+                <span
+                  data-testid="loop-noop"
+                  className="ml-1 rounded bg-[var(--panel)]/60 px-1 py-px text-[9px] uppercase tracking-wide opacity-70"
+                  title="The agent reported this tick changed nothing — it checked and had nothing to report."
+                >
+                  quiet hold
+                  {(loop.noopStreak ?? 0) > 1 && ` ×${loop.noopStreak}`}
+                </span>
+              )}
               {onCancel && !loop.cancelled && !cancelling && loop.kind === "cron" && (
                 <button
                   type="button"

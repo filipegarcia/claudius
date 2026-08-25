@@ -173,6 +173,26 @@ export type ClaudeSettings = {
   // CLAUDE_CODE_USER_DIALOG_TIMEOUT_MS env var, when set, overrides this. Read
   // from trusted sources only (never a checked-in repo settings file).
   dialogExpiry?: "60s" | "5m" | "10m" | "never";
+  // SDK 0.3.245 — prompt-cache TTL. Neither key appears in the upstream
+  // prose changelog for the 0.3.241 → 0.3.245 window; both were found by
+  // diffing `sdk.d.ts` (see `scripts/sdk-update/prompt.md`, "The third
+  // failure mode"). The bundled `claude` binary reads them straight from
+  // `~/.claude/settings.json` — the same file this module writes — so
+  // surfacing them as catalog rows is all Claudius needs; there is no
+  // per-session SDK forwarding to add.
+  //
+  // `promptCacheTtl`: TTL for the main conversation (interactive, -p and
+  // SDK turns, plus the helpers that run inline with it). Unset =
+  // automatic: 1 hour on a Claude subscription within its usage limits,
+  // 5 minutes on an API key, Bedrock, Vertex or Foundry. 1-hour cache
+  // writes bill at a higher rate but stay warm across longer breaks.
+  // `CLAUDE_CODE_PROMPT_CACHE_TTL` takes precedence over this.
+  promptCacheTtl?: PromptCacheTtl;
+  // `subagentPromptCacheTtl`: TTL for everything OUTSIDE the main
+  // conversation — subagents, workflows, background and helper requests.
+  // Unset = automatic (5 minutes unless `ENABLE_PROMPT_CACHING_1H=1`).
+  // `CLAUDE_CODE_SUBAGENT_PROMPT_CACHE_TTL` takes precedence over this.
+  subagentPromptCacheTtl?: PromptCacheTtl;
   // Catch-all for keys we don't yet know about — we never strip them.
   [key: string]: unknown;
 };
@@ -182,6 +202,13 @@ export type WorkflowSizeGuideline = "unrestricted" | "small" | "medium" | "large
 
 /** The SDK's `Settings.crossSessionInbound` literal union (Claude Code 2.1.224). */
 export type CrossSessionInbound = "accept" | "hold" | "refuse";
+
+/**
+ * The SDK's `Settings.promptCacheTtl` / `Settings.subagentPromptCacheTtl`
+ * literal union (SDK 0.3.245). Shared by both keys — they take the same
+ * two values and differ only in which requests they apply to.
+ */
+export type PromptCacheTtl = "5m" | "1h";
 
 /** Runtime-checkable mirror of `WorkflowSizeGuideline`, for validating hand-edited settings.json values before forwarding them to the SDK. */
 export const WORKFLOW_SIZE_GUIDELINE_VALUES: readonly WorkflowSizeGuideline[] = [
