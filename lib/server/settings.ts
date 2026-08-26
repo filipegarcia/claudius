@@ -203,6 +203,16 @@ export type ClaudeSettings = {
   // the sibling `syncClaudeAiSkills` key (pre-existing, not yet
   // surfaced — tracked as a follow-up in the 0.3.246 run notes).
   syncClaudeAiPlugins?: boolean;
+  // Claude Code 2.1.238 — set to "readline" to make Ctrl+W in the CLI's own
+  // prompt delete back to the previous whitespace, as in Bash; the default
+  // ("classic") is unchanged. Config-passthrough only: it's read by the
+  // bundled `claude` binary straight from this same `~/.claude/settings.json`,
+  // not by Claudius's own browser composer — browsers reserve Ctrl+W to close
+  // the tab and refuse to let page JavaScript intercept/preventDefault it, so
+  // there's no browser-side behavior to build here. Surfacing it as a
+  // catalog row (same treatment as `defaultShell`, `promptCacheTtl`) is all
+  // Claudius needs.
+  keybindingFlavor?: "classic" | "readline";
   // Catch-all for keys we don't yet know about — we never strip them.
   [key: string]: unknown;
 };

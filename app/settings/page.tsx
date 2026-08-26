@@ -1141,6 +1141,13 @@ const SDK_SETTINGS_CATALOG: SettingMeta[] = [
     desc: "Default shell for input-box ! commands. Defaults to 'bash' on all platforms (no Windows auto-flip).",
   },
   {
+    key: "keybindingFlavor",
+    type: "enum",
+    section: "Shell",
+    options: ["classic", "readline"],
+    desc: 'Set to "readline" to make Ctrl+W in the CLI\'s own prompt delete back to the previous whitespace, as in Bash; default ("classic") is unchanged. CLI-only — Claudius\'s browser composer can\'t intercept Ctrl+W (browsers reserve it to close the tab), so this row is a config-passthrough for when you run `claude` in a terminal against this same settings file.',
+  },
+  {
     key: "forceLoginMethod",
     type: "enum",
     section: "Authentication",

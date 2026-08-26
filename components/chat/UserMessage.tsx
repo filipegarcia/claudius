@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils/cn";
 import type { AttachedImage, DisplayMessage } from "@/lib/client/types";
 import { formatMessageTime } from "@/lib/client/format-message-time";
 import { ImageLightbox } from "./ImageLightbox";
+import { Markdown } from "./Markdown";
 import { RewindFilesButton } from "./RewindFilesButton";
 import { parseUserTextWithBashIO } from "@/lib/shared/bash-io";
 import { type VerboseLevel, DEFAULT_VERBOSE } from "@/lib/shared/verbose";
@@ -192,6 +193,18 @@ const TOKEN_RE = /\[Image #(\d+)\]/g;
  * Splits the user text on `[Image #N]` markers and inlines a small thumbnail
  * at each token's position. Tokens whose ordinal isn't in `images` (e.g. the
  * user typed `[Image #99]` literally) render as plain text.
+ *
+ * Claude Code 2.1.234 parity: "your own prompts now render markdown
+ * (highlighted code blocks, inline code, lists) the same way replies do."
+ * When the text carries no `[Image #N]` tokens (the common case — no image
+ * attachments interleaved), the whole segment renders through the same
+ * `<Markdown>` component `AssistantMessage` uses, instead of a plain
+ * `whitespace-pre-wrap` block. When image tokens ARE present, this keeps the
+ * pre-existing plain-text-with-inline-thumbnail rendering: interleaving
+ * block-level markdown (code fences, lists) between inline image thumbnails
+ * mid-paragraph has no clean layout and no upstream analogue (CC has no
+ * inline-image-token scheme), so that combination is out of scope here — see
+ * the 2.1.238 run-notes Risks section.
  */
 function InlineUserText({ text, images }: { text: string; images: AttachedImage[] }) {
   const [lightbox, setLightbox] = useState<AttachedImage | null>(null);
@@ -201,11 +214,19 @@ function InlineUserText({ text, images }: { text: string; images: AttachedImage[
   const nodes: React.ReactNode[] = [];
   let cursor = 0;
   let key = 0;
+  // Tracks whether an `[Image #N]` token actually resolved to an attached
+  // image — NOT the same as "nodes is non-empty": the trailing plain-text
+  // push below (`cursor < text.length`) always fires for ordinary text with
+  // zero image tokens, so `nodes.length` alone can't distinguish "plain
+  // text" from "text with images" (that conflation was a real bug caught in
+  // adversarial review — see the 2.1.238 run-notes).
+  let hasImageMatch = false;
   for (const m of text.matchAll(TOKEN_RE)) {
     const idx = m.index ?? 0;
     const ord = Number(m[1]);
     const img = byOrdinal.get(ord);
     if (!img) continue;
+    hasImageMatch = true;
     if (idx > cursor) {
       nodes.push(
         <span key={key++} className="whitespace-pre-wrap">
@@ -246,12 +267,24 @@ function InlineUserText({ text, images }: { text: string; images: AttachedImage[
       </span>,
     );
   }
-  const content =
-    nodes.length === 0 ? (
-      <div className="whitespace-pre-wrap text-[length:var(--chat-text)] leading-6 2xl:leading-7">{text}</div>
-    ) : (
-      <div className="text-[length:var(--chat-text)] leading-6 2xl:leading-7">{nodes}</div>
-    );
+  const content = hasImageMatch ? (
+    <div className="text-[length:var(--chat-text)] leading-6 2xl:leading-7">{nodes}</div>
+  ) : text === "" ? (
+    <div className="whitespace-pre-wrap text-[length:var(--chat-text)] leading-6 2xl:leading-7">{text}</div>
+  ) : (
+    <div className="text-[length:var(--chat-text)] leading-6 2xl:leading-7 text-[var(--foreground)]">
+      {/* allowExecute={false}: this text was authored by the local user OR
+          a peer session (via SendMessage), not the model — the `!`-mode
+          Execute button on fenced shell blocks is scoped to model-proposed
+          commands only (see CodeBlock's allowExecute doc comment). Caught
+          in adversarial review: without this, pasting or receiving a
+          ```bash fence starting with `!` would render a live "run in this
+          session's shell" button in the user's own bubble. */}
+      <Markdown breaks allowExecute={false}>
+        {text}
+      </Markdown>
+    </div>
+  );
   return (
     <>
       {content}

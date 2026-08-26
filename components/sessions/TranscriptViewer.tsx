@@ -76,9 +76,27 @@ export function TranscriptViewer({ messages, onRewind, rewinding }: Props) {
         }
         if (isUser) {
           return (
-            <div key={m.uuid} className="group flex justify-end">
-              <div className="max-w-[80%] whitespace-pre-wrap rounded-2xl border border-[var(--border)] bg-[var(--panel-2)] px-4 py-2 text-sm leading-6">
-                {userText}
+            <div key={m.uuid} data-message-uuid={m.uuid} data-message-role="user" className="group flex justify-end">
+              <div className="max-w-[80%] rounded-2xl border border-[var(--border)] bg-[var(--panel-2)] px-4 py-2 text-sm leading-6">
+                {userText === "" ? (
+                  userText
+                ) : (
+                  // Claude Code 2.1.234 parity, applied to the historic
+                  // transcript view too (found in adversarial review — the
+                  // live `UserMessage.tsx` path got the Markdown upgrade
+                  // first, but this second, independent renderer of the
+                  // same user-turn content was otherwise left inconsistent:
+                  // a past session's code-fenced prompt would render as
+                  // highlighted markdown live, then revert to a literal
+                  // ```-fenced wall of text once the session was reopened
+                  // from history). `allowExecute={false}` for the same
+                  // reason as `UserMessage.tsx`: this text isn't
+                  // model-authored, so the `!`-mode Execute button doesn't
+                  // apply.
+                  <Markdown breaks allowExecute={false}>
+                    {userText}
+                  </Markdown>
+                )}
                 {onRewind && (
                   <div className="mt-2 flex justify-end">
                     <button
@@ -95,7 +113,7 @@ export function TranscriptViewer({ messages, onRewind, rewinding }: Props) {
           );
         }
         return (
-          <div key={m.uuid}>
+          <div key={m.uuid} data-message-uuid={m.uuid} data-message-role="assistant">
             <div className="mb-1 flex items-center gap-2 text-[11px] text-[var(--muted)]">
               <span className="inline-block h-1.5 w-1.5 rounded-full bg-[var(--accent)]" />
               Claude
