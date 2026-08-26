@@ -55,11 +55,12 @@ export type Tip = {
 // page's `runNative` dispatcher (navigation or an overlay) — safe to invoke
 // while the agent is mid-turn.
 export const DEFAULT_TIPS: Tip[] = [
-  {
-    id: "agents",
-    text: "Define specialist subagents — reviewers, planners, debuggers — each with their own prompt, tools, and model.",
-    command: "agents",
-  },
+  // CC 2.1.232 parity: upstream removed its startup tip suggesting the user
+  // create custom subagents (and the matching /powerup-tour nudge) — this
+  // catalog's `id:"agents"` entry was Claudius's mirror of that exact tip, so
+  // it's retired here too. Claudius's own /powerup maps to the Release Notes
+  // page (a generic feature-tour surface, not a subagent-specific nudge), so
+  // there's no second nudge to remove on this side.
   {
     id: "mcp",
     text: "Plug in tools from anywhere over the Model Context Protocol — they show up to Claude automatically.",

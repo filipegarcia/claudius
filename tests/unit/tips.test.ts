@@ -54,6 +54,14 @@ describe("DEFAULT_TIPS", () => {
       expect(destructive.has(tip.command), `tip "${tip.id}" is destructive`).toBe(false);
     }
   });
+
+  test("no longer suggests creating custom subagents (CC 2.1.232 parity)", () => {
+    // Upstream removed its startup tip nudging the user toward custom
+    // subagents (and the matching /powerup-tour nudge); Claudius's mirror of
+    // that tip (`id: "agents"`) is retired to match.
+    expect(DEFAULT_TIPS.find((t) => t.id === "agents")).toBeUndefined();
+    expect(DEFAULT_TIPS.some((t) => t.text.includes("subagent"))).toBe(false);
+  });
 });
 
 describe("nextTipIndexWithDismissals", () => {
@@ -206,14 +214,14 @@ describe("selectTips", () => {
   });
 
   test("drops command tips whose command isn't available, keeps command-less ones", () => {
-    const onlyAgents = selectTips({ availableCommands: ["agents"] });
+    const onlyMcp = selectTips({ availableCommands: ["mcp"] });
     // Every surviving tip either has no command or a command in the list.
-    for (const tip of onlyAgents) {
-      if (tip.command) expect(tip.command).toBe("agents");
+    for (const tip of onlyMcp) {
+      if (tip.command) expect(tip.command).toBe("mcp");
     }
-    // The /mcp tip is gated out; the /agents tip stays.
-    expect(onlyAgents.some((t) => t.command === "agents")).toBe(true);
-    expect(onlyAgents.some((t) => t.command === "mcp")).toBe(false);
+    // The /skills tip is gated out; the /mcp tip stays.
+    expect(onlyMcp.some((t) => t.command === "mcp")).toBe(true);
+    expect(onlyMcp.some((t) => t.command === "skills")).toBe(false);
   });
 
   test("empty availability list gates out all command tips", () => {
@@ -276,12 +284,12 @@ describe("selectTips", () => {
 
   test("availableCommands gating composes with override append", () => {
     const result = selectTips({
-      availableCommands: ["agents"],
+      availableCommands: ["mcp"],
       spinnerTipsOverride: { tips: ["Custom"] },
     });
-    // No /mcp tip (gated), /agents tip present, custom tip at the tail.
-    expect(result.some((t) => t.command === "mcp")).toBe(false);
-    expect(result.some((t) => t.command === "agents")).toBe(true);
+    // No /skills tip (gated), /mcp tip present, custom tip at the tail.
+    expect(result.some((t) => t.command === "skills")).toBe(false);
+    expect(result.some((t) => t.command === "mcp")).toBe(true);
     expect(result[result.length - 1]).toEqual({ id: "custom-tip-0", text: "Custom" });
   });
 });
