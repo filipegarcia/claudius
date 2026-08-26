@@ -805,6 +805,18 @@ export type ChatState = {
   /** Count of active background tasks reported with the latest turn_status. */
   backgroundTasks: number;
   /**
+   * CC 2.1.246 parity — epoch ms the current turn started, or `null` when
+   * idle. Drives `StatusLine`'s live "Ns" elapsed ticker via
+   * `useElapsedSeconds`. Stamped on the `pending` false→true edge.
+   */
+  turnStartedAt: number | null;
+  /**
+   * CC 2.1.246 parity — epoch ms the most recently completed turn ended, or
+   * `null` before any turn has completed this session. Drives `StatusLine`'s
+   * "done H:MM AM/PM" label. Stamped on the `pending` true→false edge.
+   */
+  lastTurnCompletedAt: number | null;
+  /**
    * Scheduled loops the agent has armed in this session (CronCreate +
    * ScheduleWakeup). Keyed by the loop's stable id (cron id for crons,
    * tool_use_id for one-shot wake-ups). Lives in client state only — these

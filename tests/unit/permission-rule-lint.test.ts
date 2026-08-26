@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { lintPermissionRule } from "@/lib/shared/permission-rule-lint";
+import { lintBashWildcardRule, lintPermissionRule } from "@/lib/shared/permission-rule-lint";
 
 /**
  * CC 2.1.210 parity — "Added a startup warning for `Write(path)`,
@@ -44,5 +44,49 @@ describe("lintPermissionRule", () => {
 
   test("tolerates surrounding whitespace", () => {
     expect(lintPermissionRule("  Write(./src/**)  ")).toEqual({ tool: "Write", suggestion: "Edit(path)" });
+  });
+});
+
+/**
+ * CC 2.1.246 parity — "Added a startup warning for Bash allow rules with a
+ * wildcard before the subcommand (e.g. `Bash(git * main)`), since they
+ * also match options inserted before the subcommand". Claudius surfaces
+ * this inline on the `/permissions` page; this covers the pure lint logic.
+ */
+describe("lintBashWildcardRule", () => {
+  test("flags a wildcard before a fixed trailing token", () => {
+    expect(lintBashWildcardRule("Bash(git * main)")).toEqual({ command: "git * main" });
+  });
+
+  test("flags a wildcard in the middle with multiple trailing tokens", () => {
+    expect(lintBashWildcardRule("Bash(git * origin main)")).toEqual({
+      command: "git * origin main",
+    });
+  });
+
+  test("does not flag a trailing wildcard — the common 'anything after this' pattern", () => {
+    expect(lintBashWildcardRule("Bash(npm run *)")).toBeNull();
+    expect(lintBashWildcardRule("Bash(git commit *)")).toBeNull();
+    expect(lintBashWildcardRule("Bash(*)")).toBeNull();
+  });
+
+  test("does not flag rules with no wildcard", () => {
+    expect(lintBashWildcardRule("Bash(git status)")).toBeNull();
+    expect(lintBashWildcardRule("Bash")).toBeNull();
+  });
+
+  test("does not flag non-Bash rules", () => {
+    expect(lintBashWildcardRule("Read(./src/**)")).toBeNull();
+    expect(lintBashWildcardRule("mcp__server__tool")).toBeNull();
+  });
+
+  test("does not flag malformed input", () => {
+    expect(lintBashWildcardRule("")).toBeNull();
+    expect(lintBashWildcardRule("Bash(unterminated")).toBeNull();
+    expect(lintBashWildcardRule("Bash()")).toBeNull();
+  });
+
+  test("tolerates surrounding whitespace", () => {
+    expect(lintBashWildcardRule("  Bash(git * main)  ")).toEqual({ command: "git * main" });
   });
 });

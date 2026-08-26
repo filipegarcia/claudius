@@ -15,6 +15,33 @@ export type PermissionRules = {
   additionalDirectories?: string[];
 };
 
+/**
+ * CC 2.1.246 — configuration for Auto mode's server-side risk classifier.
+ * Mirrors the SDK's `Settings.autoMode` shape exactly: each key is an array
+ * of freeform prose strings (NOT tool-pattern rules like `permissions.*` —
+ * the classifier reads them as natural-language guidance, not syntax). The
+ * classifier itself runs server-side and is unaffected by Claudius; this
+ * type only carries the config a user can hand it.
+ *
+ * The literal string `"$defaults"` inside any of these arrays means "splice
+ * Anthropic's built-in rules for this section in at this position" —
+ * omitting it replaces the built-in list entirely for that section. Claudius
+ * doesn't interpret `"$defaults"`; it's stored and round-tripped verbatim,
+ * same as every other string in these arrays, and it's the SDK/classifier
+ * that expands it.
+ *
+ * Upstream reads `autoMode` from `~/.claude/settings.json` only — never
+ * project or project-local scope (a checked-in repo or build step
+ * shouldn't be able to widen what the classifier trusts) — so this field is
+ * only ever written via `updateAutoMode`, which hardcodes the "user" scope.
+ */
+export type AutoModeConfig = {
+  environment?: string[];
+  allow?: string[];
+  soft_deny?: string[];
+  hard_deny?: string[];
+};
+
 export type ClaudeSettings = {
   model?: string;
   theme?: string;
@@ -213,6 +240,8 @@ export type ClaudeSettings = {
   // catalog row (same treatment as `defaultShell`, `promptCacheTtl`) is all
   // Claudius needs.
   keybindingFlavor?: "classic" | "readline";
+  // CC 2.1.246 — Auto mode classifier configuration. See `AutoModeConfig`.
+  autoMode?: AutoModeConfig;
   // Catch-all for keys we don't yet know about — we never strip them.
   [key: string]: unknown;
 };
@@ -358,5 +387,28 @@ export async function updatePermissions(
     },
   };
   await writeSettings(scope, projectCwd, next);
+  return next;
+}
+
+/**
+ * Patch the Auto mode classifier config (CC 2.1.246). Unlike
+ * `updatePermissions`, the scope is hardcoded to `"user"` — upstream reads
+ * `autoMode` only from `~/.claude/settings.json`, never project or
+ * project-local scope (see `AutoModeConfig`'s doc comment), so there's no
+ * caller-supplied scope to accept.
+ */
+export async function updateAutoMode(
+  projectCwd: string,
+  patch: Partial<AutoModeConfig>,
+): Promise<ClaudeSettings> {
+  const current = await readSettings("user", projectCwd);
+  const next: ClaudeSettings = {
+    ...current,
+    autoMode: {
+      ...(current.autoMode ?? {}),
+      ...patch,
+    },
+  };
+  await writeSettings("user", projectCwd, next);
   return next;
 }

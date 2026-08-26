@@ -19,6 +19,7 @@ import { SessionPicker } from "./SessionPicker";
 import { SessionNotifyMenu } from "./SessionNotifyMenu";
 import { WorkspaceIcon } from "@/components/workspaces/WorkspaceIcon";
 import { useWorkspaces } from "@/lib/client/useWorkspaces";
+import { formatElapsed, useElapsedSeconds } from "@/lib/client/use-elapsed";
 import type { FocusLevel } from "@/lib/client/useFocusMode";
 import { cn } from "@/lib/utils/cn";
 import { worktreeBadge } from "@/lib/client/worktree";
@@ -43,6 +44,14 @@ type Props = {
    * shows "Idle · N running" (with a pulsing dot) instead of a bare "Idle".
    */
   backgroundTasks?: number;
+  /**
+   * CC 2.1.246 parity — "added the turn's completion time to the end-of-turn
+   * duration line". Epoch ms the current turn started (drives a live "Ns"
+   * ticker while `pending`), or `null` when idle.
+   */
+  turnStartedAt?: number | null;
+  /** Epoch ms the most recently completed turn ended, or `null`/`undefined` before any turn has finished. Renders as "done H:MM AM/PM" once idle. */
+  lastTurnCompletedAt?: number | null;
   permissionMode: PermissionMode;
   model: string | null;
   /** Main-thread agent name (SDK Options.agent), or null for the default agent. */
@@ -129,6 +138,8 @@ export function StatusLine({
   ready,
   pending,
   backgroundTasks = 0,
+  turnStartedAt,
+  lastTurnCompletedAt,
   permissionMode,
   model,
   mainAgent,
@@ -188,6 +199,18 @@ export function StatusLine({
     status === "background"
       ? `Idle · ${backgroundTasks} running`
       : status.charAt(0).toUpperCase() + status.slice(1);
+
+  // CC 2.1.246 parity — "added the turn's completion time to the end-of-turn
+  // duration line". Live "Ns" ticker while the turn is running; once it
+  // settles, a "done H:MM AM/PM" label using the real wall-clock time the
+  // turn ended. Both render as siblings of `status-line-text`, never inside
+  // it — the turn-status e2e specs assert exact text on that span (see
+  // `tests/e2e/turn-status.spec.ts`).
+  const turnElapsedSec = useElapsedSeconds(turnStartedAt ?? undefined, status === "working");
+  const doneAt =
+    status !== "working" && typeof lastTurnCompletedAt === "number"
+      ? new Date(lastTurnCompletedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
+      : null;
 
   const ctx = typeof contextPercent === "number" ? Math.round(contextPercent) : null;
   const ctxLevel: "ok" | "warn" | "danger" =
@@ -296,6 +319,24 @@ export function StatusLine({
       >
         {statusLabel}
       </span>
+      {typeof turnElapsedSec === "number" && (
+        <span
+          data-testid="status-line-elapsed"
+          className="whitespace-nowrap font-mono opacity-70"
+          title="Elapsed time for the current turn"
+        >
+          {formatElapsed(turnElapsedSec)}
+        </span>
+      )}
+      {doneAt && (
+        <span
+          data-testid="status-line-done"
+          className="whitespace-nowrap opacity-70"
+          title="Wall-clock time the last turn finished"
+        >
+          done {doneAt}
+        </span>
+      )}
       {model && (
         <>
           <span className="opacity-50">·</span>
