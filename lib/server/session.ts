@@ -2206,6 +2206,23 @@ export class Session {
       abortController: this.abortController,
       canUseTool: this.canUseTool,
       includePartialMessages: true,
+      // SDK 0.3.246: declare that this consumer renders its own per-task
+      // stop control. Claudius already ships exactly that affordance —
+      // `stopTask()` below (wired to `POST /api/sessions/[id]/stop-task`)
+      // targets a single Bash/subagent task via `query.stopTask(taskId)`,
+      // and BackgroundTasksPanel renders a stop button per task plus a
+      // "stop all" that fans out over every stoppable task id
+      // (collectStoppableTaskIds). Without this flag, the SDK fails closed
+      // on the open-input (interactive) session this class always runs —
+      // `interrupt()` (the composer's Stop button) kills every running
+      // background agent/workflow along with the current turn, on the
+      // theory that a spared runaway task would otherwise be unstoppable.
+      // That's no longer true here, so declaring it lets Stop abort only
+      // the current turn and leaves backgrounded work running until the
+      // user explicitly stops it via the panel — matching the existing UI's
+      // implied contract. (The SDK still fails closed on a *closed-input*
+      // one-shot run, which Claudius's interactive sessions never are.)
+      perTaskStopAffordance: true,
       // Forward subagent text and thinking blocks as assistant/user
       // messages with `parent_tool_use_id` set. Without this, SDK 0.3.152+
       // only emits subagent `tool_use` / `tool_result` blocks (enough for a

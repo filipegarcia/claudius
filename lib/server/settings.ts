@@ -193,6 +193,16 @@ export type ClaudeSettings = {
   // Unset = automatic (5 minutes unless `ENABLE_PROMPT_CACHING_1H=1`).
   // `CLAUDE_CODE_SUBAGENT_PROMPT_CACHE_TTL` takes precedence over this.
   subagentPromptCacheTtl?: PromptCacheTtl;
+  // SDK 0.3.246 — set to false to stop syncing plugins enabled on
+  // claude.ai. Mirrors the SDK's `Settings.syncClaudeAiPlugins` key
+  // exactly: "only false is honored" (the feature is enabled server-side
+  // for the account; setting true doesn't turn it on early), and it's
+  // read directly by the bundled `claude` binary from this same
+  // `~/.claude/settings.json` — so surfacing it as a catalog row is all
+  // Claudius needs; there is no per-session SDK forwarding to add. See
+  // the sibling `syncClaudeAiSkills` key (pre-existing, not yet
+  // surfaced — tracked as a follow-up in the 0.3.246 run notes).
+  syncClaudeAiPlugins?: boolean;
   // Catch-all for keys we don't yet know about — we never strip them.
   [key: string]: unknown;
 };
