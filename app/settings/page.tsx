@@ -199,7 +199,9 @@ export default function SettingsPage() {
     "chat promptsuggestionenabled prompt suggestion follow-up chips composer emojicompletionenabled emoji shortcode autocomplete heart spellcheckenabled spellcheck spelling underline misspelled",
   );
   const sEnv = show("environment env variables key value");
-  const sPlugins = show("plugins enabled plugin marketplace");
+  const sPlugins = show(
+    "plugins enabled plugin marketplace syncclaudeaiplugins sync claude.ai account",
+  );
   const sOther = show("other keys custom advanced extra json");
 
   // Catalog sections (data-driven) — filtered down to the matching fields, and
@@ -762,6 +764,12 @@ export default function SettingsPage() {
                   <pre className="rounded-md border border-[var(--border)] bg-[var(--panel-2)] p-3 font-mono text-[11px] scroll-thin overflow-auto">
                     {JSON.stringify(draft.enabledPlugins ?? {}, null, 2)}
                   </pre>
+                  <ToggleRow
+                    label="syncClaudeAiPlugins"
+                    checked={draft.syncClaudeAiPlugins !== false}
+                    onChange={(b) => update({ syncClaudeAiPlugins: b ? undefined : false })}
+                    description="Sync plugins you've enabled on claude.ai into every session (only applies when signed in with your Claude account). Only 'off' is honored here — turning this on doesn't enable the feature early if your account doesn't already have it. On by default."
+                  />
                 </Section>
                 )}
 
