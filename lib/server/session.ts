@@ -78,6 +78,7 @@ import {
   type TaskSnapshotEntry,
 } from "@/lib/shared/events";
 import { listSessionTasks, saveSessionTask } from "./session-tasks-db";
+import { attachLoopTickTokens, recordLoopTick } from "./loop-ticks-db";
 import {
   listQueue,
   enqueueTail,
@@ -1250,6 +1251,15 @@ export class Session {
    */
   private scheduledLoops = new Map<string, SessionLoop>();
   private pendingScheduledLoops = new Map<string, SessionLoop>();
+  /**
+   * `tool_use_id`s of `ScheduleWakeup` ticks recorded into the `loop_ticks`
+   * table this turn, awaiting the turn's `result` message so their token
+   * usage can be attached (Claude Code 2.1.243 "Loops breakdown" parity —
+   * see `trackScheduledLoops`'s `result` branch and `loop-ticks-db.ts`).
+   * Cleared once consumed; normally holds at most one entry (a turn arms at
+   * most one wake-up), kept as an array defensively.
+   */
+  private pendingLoopTickAttribution: string[] = [];
 
   /**
    * Set once `consume()` has seen the thinking-block replay 400 for this
@@ -4082,6 +4092,41 @@ export class Session {
       message?: { content?: unknown };
     };
 
+    // `result` messages carry no `.message.content` (their fields — usage,
+    // duration_ms, etc. — sit directly on the message), so this branch must
+    // run before the content-array guard below, which would otherwise
+    // early-return before it's ever reached.
+    if (m.type === "result") {
+      // Attach this turn's main-loop token usage to any loop tick armed
+      // during it. `usage` on a `result` message is per-turn (main agent
+      // loop only) in streaming-input sessions — see the SDK's own doc
+      // comment on `SDKResultSuccess.usage` — which is exactly the "tokens
+      // this tick cost" figure the Loops breakdown wants; `modelUsage` is
+      // cumulative and would need diffing across ticks instead.
+      if (this.pendingLoopTickAttribution.length > 0) {
+        const usage = (
+          message as {
+            usage?: {
+              input_tokens?: number;
+              output_tokens?: number;
+              cache_creation_input_tokens?: number;
+              cache_read_input_tokens?: number;
+            };
+          }
+        ).usage;
+        const total =
+          (usage?.input_tokens ?? 0) +
+          (usage?.output_tokens ?? 0) +
+          (usage?.cache_creation_input_tokens ?? 0) +
+          (usage?.cache_read_input_tokens ?? 0);
+        for (const toolUseId of this.pendingLoopTickAttribution) {
+          void attachLoopTickTokens(this.cwd, toolUseId, total);
+        }
+        this.pendingLoopTickAttribution = [];
+      }
+      return;
+    }
+
     const content = m.message?.content;
     if (!Array.isArray(content)) return;
 
@@ -4161,6 +4206,7 @@ export class Session {
           // A first quiet tick with no predecessor to inherit from is still a
           // streak of one.
           if (noop && noopStreak === 0) noopStreak = 1;
+          const wakeupPrompt = typeof inp.prompt === "string" ? inp.prompt : "";
           this.scheduledLoops.set(tu.id, {
             kind: "wakeup",
             id: tu.id,
@@ -4168,7 +4214,7 @@ export class Session {
             cron: null,
             humanSchedule: null,
             delaySeconds: typeof inp.delaySeconds === "number" ? inp.delaySeconds : null,
-            prompt: typeof inp.prompt === "string" ? inp.prompt : "",
+            prompt: wakeupPrompt,
             reason: typeof inp.reason === "string" ? inp.reason : undefined,
             recurring: false,
             durable: false,
@@ -4176,6 +4222,18 @@ export class Session {
             cancelled: false,
             ...(noop ? { noop: true, noopStreak } : {}),
           });
+          // Loops breakdown persistence (CC 2.1.243 parity) — record this
+          // tick and remember its tool_use_id so the turn's `result`
+          // message (handled below) can attach token usage once it lands.
+          void recordLoopTick(this.cwd, {
+            sessionId: this.id,
+            sessionTitle: this.title ?? null,
+            toolUseId: tu.id,
+            prompt: wakeupPrompt,
+            firedAt: observedAt,
+            noop,
+          });
+          this.pendingLoopTickAttribution.push(tu.id);
           continue;
         }
       }
@@ -5276,6 +5334,7 @@ export class Session {
     // loops or pending entries that will never resolve.
     this.scheduledLoops.clear();
     this.pendingScheduledLoops.clear();
+    this.pendingLoopTickAttribution = [];
     // `!` bash-mode: kill the persistent shell + group so a long-running
     // background command can't outlive the session. The map entry is
     // keyed by sessionId in `bash-mode.ts`; drop is a no-op when the

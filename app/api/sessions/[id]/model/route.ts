@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import type { Query } from "@anthropic-ai/claude-agent-sdk";
 import { sessionManager } from "@/lib/server/session-manager";
+import { applyModelPickerCuration } from "@/lib/server/model-picker-curation";
+import { readSettings } from "@/lib/server/settings";
 
 export const runtime = "nodejs";
 
@@ -141,7 +143,13 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
         augmented.push(alias);
       }
     }
-    return NextResponse.json({ models: augmented });
+    // `modelPicker` (Claude Code 2.1.243) — curation runs last so it can
+    // append to (or replace) the fully-augmented list. "user" scope
+    // ignores the cwd argument (always `~/.claude/settings.json`).
+    const picker = await readSettings("user", session.cwd)
+      .then((s) => s.modelPicker)
+      .catch(() => undefined);
+    return NextResponse.json({ models: applyModelPickerCuration(augmented, picker) });
   } catch (err) {
     // Defensive: anything unexpected (SDK shape changes, serialization edge
     // cases) becomes a typed error response instead of a generic 500 so the

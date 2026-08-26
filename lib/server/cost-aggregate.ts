@@ -8,7 +8,9 @@ import {
   priceForModel,
   type PricingTable,
 } from "./litellm-pricing";
+import { applyModelPricing, hasModelPricingOverride } from "./model-pricing-override";
 import { getSessionTitlesByCwd } from "./sessions-db";
+import { readSettings, type ModelPricingSettings } from "./settings";
 
 export type ByDay = {
   date: string; // YYYY-MM-DD (server local tz)
@@ -45,6 +47,12 @@ export type CostReport = {
   byDay: ByDay[];
   bySession: BySession[];
   byModel: ByModel[];
+  /**
+   * True when the `modelPricing` setting (Claude Code 2.1.243) has a
+   * discount multiplier or per-model rate configured, so the Cost page can
+   * show "using org pricing" instead of implying pure list-price figures.
+   */
+  pricingOverrideActive: boolean;
   /** Note shown to the user on the page. */
   note: string;
 };
@@ -190,14 +198,27 @@ async function summarizeFile(path: string, mtimeMs: number, size: number): Promi
   return summary;
 }
 
-function rowUsd(row: Row, table: PricingTable): number {
-  if (row.u != null) return row.u; // authoritative cost from the JSONL
-  return costFromUsage(priceForModel(row.m, table), {
-    input: row.i,
-    output: row.o,
-    cacheRead: row.cr,
-    cacheCreation: row.cw,
-  });
+function rowUsd(
+  row: Row,
+  table: PricingTable,
+  pricing: ModelPricingSettings | undefined,
+): number {
+  const base =
+    row.u != null // authoritative cost from the JSONL
+      ? row.u
+      : costFromUsage(priceForModel(row.m, table), {
+          input: row.i,
+          output: row.o,
+          cacheRead: row.cr,
+          cacheCreation: row.cw,
+        });
+  if (!pricing) return base;
+  return applyModelPricing(
+    base,
+    row.m,
+    { input: row.i, output: row.o, cacheRead: row.cr, cacheWrite: row.cw },
+    pricing,
+  );
 }
 
 export async function aggregate(cwd: string): Promise<CostReport> {
@@ -241,6 +262,9 @@ export async function aggregate(cwd: string): Promise<CostReport> {
   if (dirty) await writeCache(cwd, cache).catch(() => {});
 
   const table = await getPricingTable();
+  const pricing = await readSettings("user", cwd)
+    .then((s) => s.modelPricing)
+    .catch(() => undefined);
 
   // Dedup is global across files: when a session is resumed or forked, the new
   // JSONL replays prior turns verbatim (same message.id + requestId). We count
@@ -267,7 +291,7 @@ export async function aggregate(cwd: string): Promise<CostReport> {
         if (dedup.has(row.k)) continue;
         dedup.add(row.k);
       }
-      const usd = rowUsd(row, table);
+      const usd = rowUsd(row, table, pricing);
       totalUsd += usd;
 
       const day = byDayMap.get(row.d) ?? { date: row.d, usd: 0, inputTokens: 0, outputTokens: 0 };
@@ -366,7 +390,10 @@ export async function aggregate(cwd: string): Promise<CostReport> {
     byDay,
     bySession,
     byModel,
-    note: "Cost uses ccusage-compatible methodology: on-disk token counts priced with LiteLLM public list prices, deduplicated by message+request id so resumed/forked sessions aren't double-counted.",
+    pricingOverrideActive: hasModelPricingOverride(pricing),
+    note: hasModelPricingOverride(pricing)
+      ? "Cost uses your org's contracted modelPricing rates (settings.json) instead of list price where a rate matches; deduplicated by message+request id so resumed/forked sessions aren't double-counted."
+      : "Cost uses ccusage-compatible methodology: on-disk token counts priced with LiteLLM public list prices, deduplicated by message+request id so resumed/forked sessions aren't double-counted.",
   };
 }
 
@@ -379,6 +406,7 @@ function emptyReport(): CostReport {
     byDay: [],
     bySession: [],
     byModel: [],
+    pricingOverrideActive: false,
     note: "No sessions recorded yet for this project.",
   };
 }

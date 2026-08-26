@@ -11,6 +11,7 @@ import { LimitsPanel } from "@/components/cost/LimitsPanel";
 import { cn } from "@/lib/utils/cn";
 import { SessionCostTable } from "@/components/cost/SessionCostTable";
 import { ModelBreakdown } from "@/components/cost/ModelBreakdown";
+import { LoopsBreakdown } from "@/components/cost/LoopsBreakdown";
 import { useActiveCwd } from "@/lib/client/useActiveCwd";
 import { useCost } from "@/lib/client/useCost";
 
@@ -183,6 +184,13 @@ export default function CostPage() {
               <ModelBreakdown data={data?.byModel ?? []} />
             </section>
 
+            <section>
+              <h2 className="mb-2 text-[11px] font-medium uppercase tracking-wide text-[var(--muted)]">
+                Loops
+              </h2>
+              <LoopsBreakdown cwd={cwd} />
+            </section>
+
             <footer className="space-y-1.5 border-t border-[var(--border)] pt-3 text-[11px] text-[var(--muted)]">
               <p>
                 {data?.note ?? "—"} Numbers above are this project, on this machine. For account-wide
@@ -198,6 +206,15 @@ export default function CostPage() {
                 .
               </p>
               <div className="flex flex-wrap items-center gap-2">
+                {data?.pricingOverrideActive && (
+                  <span
+                    data-testid="cost-pricing-override-badge"
+                    className="rounded border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-1.5 py-0.5 text-[var(--accent)]"
+                    title="A modelPricing override in settings.json is replacing list price for matching models and/or applying a discount multiplier."
+                  >
+                    Using org pricing
+                  </span>
+                )}
                 <span>
                   Prices:{" "}
                   {priceStatus
