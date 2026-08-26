@@ -90,6 +90,15 @@ const PRELUDE: SdkEvent[] = [
 ];
 
 test.describe("Turn elapsed + completion time (CC 2.1.246)", () => {
+  // The elapsed/completion chips are deliberately the LAST items in the
+  // StatusLine's right-hand cluster (see StatusLine.tsx) — this row already
+  // runs out of room under real crowding (long session name + cost chip +
+  // notification bell all present at once), and a decorative timing chip is
+  // the right thing to lose first, not the Focus/Mode controls next to it.
+  // A wider viewport keeps this spec's screenshot representative of the
+  // common case (room to spare) rather than the worst-case crowded row.
+  test.use({ viewport: { width: 1600, height: 900 } });
+
   test("shows a live elapsed ticker while the turn is running", async ({ page }) => {
     await mockChatBackend(page, [
       ...PRELUDE,

@@ -319,24 +319,6 @@ export function StatusLine({
       >
         {statusLabel}
       </span>
-      {typeof turnElapsedSec === "number" && (
-        <span
-          data-testid="status-line-elapsed"
-          className="whitespace-nowrap font-mono opacity-70"
-          title="Elapsed time for the current turn"
-        >
-          {formatElapsed(turnElapsedSec)}
-        </span>
-      )}
-      {doneAt && (
-        <span
-          data-testid="status-line-done"
-          className="whitespace-nowrap opacity-70"
-          title="Wall-clock time the last turn finished"
-        >
-          done {doneAt}
-        </span>
-      )}
       {model && (
         <>
           <span className="opacity-50">·</span>
@@ -553,6 +535,33 @@ export function StatusLine({
         )}
         {!zen && (
           <ModeSelector mode={permissionMode} onChange={onModeChange} disabledModes={disabledModes} />
+        )}
+        {/* CC 2.1.246 parity — "added the turn's completion time to the
+            end-of-turn duration line". Deliberately the LAST items in this
+            cluster (not next to `status-line-text`): this row already runs
+            out of room with a long session name + cost chip + notification
+            bell all present (see the `clip-path` comment above), and a
+            decorative timing chip is the right thing to sacrifice first —
+            unlike Focus/Mode, losing it under real crowding costs nothing
+            functional. Placing them last keeps every interactive control's
+            layout position exactly as it was pre-2.1.246. */}
+        {!zen && typeof turnElapsedSec === "number" && (
+          <span
+            data-testid="status-line-elapsed"
+            className="hidden whitespace-nowrap font-mono opacity-70 @3xl/statusline:inline"
+            title="Elapsed time for the current turn"
+          >
+            {formatElapsed(turnElapsedSec)}
+          </span>
+        )}
+        {!zen && doneAt && (
+          <span
+            data-testid="status-line-done"
+            className="hidden whitespace-nowrap opacity-70 @3xl/statusline:inline"
+            title="Wall-clock time the last turn finished"
+          >
+            done {doneAt}
+          </span>
         )}
       </div>
     </div>
