@@ -9,6 +9,25 @@ import { commandNeedsSudo, sendBash } from "@/lib/client/sendBash";
 type Props = {
   code: string;
   lang?: string;
+  /**
+   * Whether the `!`-mode Execute button may appear at all, independent of
+   * the `isExecutable` shell/`!`-prefix check below. Defaults to `true`
+   * (assistant messages — the only place this button was designed for; see
+   * the comment on `isExecutable`). `Markdown`'s callers that render
+   * non-assistant-authored text — `UserMessage.tsx` (the local user's own
+   * prompt, or a peer session's text delivered via `SendMessage`) and
+   * `TranscriptViewer.tsx`'s historic user-turn view — pass `false`.
+   *
+   * Caught in adversarial review of the CC 2.1.234 "user prompts render
+   * markdown" parity work: before this flag existed, routing user/peer text
+   * through the same `Markdown` → `CodeBlock` pipeline as assistant text
+   * silently extended the Execute affordance to a message origin it was
+   * never scoped for — a user pasting untrusted text containing a ```bash
+   * fence starting with `!`, or a peer session in a multi-agent workflow
+   * sending one via `SendMessage`, would get a live "run in this session's
+   * shell" button rendered as if the model had proposed it.
+   */
+  allowExecute?: boolean;
 };
 
 /** Languages we recognise as shell. Matches what users tend to fence. */
@@ -22,7 +41,7 @@ type RunResult = {
   timedOut: boolean;
 };
 
-export function CodeBlock({ code, lang }: Props) {
+export function CodeBlock({ code, lang, allowExecute = true }: Props) {
   const [html, setHtml] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const sessionId = useActiveSessionId();
@@ -37,7 +56,7 @@ export function CodeBlock({ code, lang }: Props) {
   // Recognition: lang is a shell flavour AND the first non-empty line
   // starts with `!`. The `!` itself is stripped before the command goes
   // to the bash route, mirroring the composer's `!cmd` flow.
-  const isShell = !!lang && SHELL_LANGS.has(lang);
+  const isShell = allowExecute && !!lang && SHELL_LANGS.has(lang);
   const bangCommand = isShell ? extractBangCommand(code) : null;
   // A bare `!` (no command after the marker) gives `bangCommand === ""`.
   // Treat that as not-executable so the button doesn't fire an empty

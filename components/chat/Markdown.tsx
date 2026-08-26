@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import ReactMarkdown, { type Components } from "react-markdown";
+import remarkBreaks from "remark-breaks";
 import remarkGfm from "remark-gfm";
 import { ChevronDown, ChevronRight, ExternalLink, Globe, ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
@@ -216,8 +217,14 @@ function MarkdownFilePreview({ src, alt }: { src?: string; alt?: string }) {
   );
 }
 
-const components: Components = {
-  code(props) {
+/**
+ * The `code` renderer needs to know whether the surrounding `Markdown` call
+ * allows the `!`-mode Execute button (see `CodeBlock`'s `allowExecute` doc
+ * comment) — built per-render via `componentsFor` rather than as a single
+ * module-level object, so each `<Markdown>` call site controls it.
+ */
+function makeCodeComponent(allowExecute: boolean): Components["code"] {
+  return function CodeRenderer(props) {
     const { className, children, ...rest } = props;
     const match = /language-([\w+-]+)/.exec(className || "");
     const inline = !(props as { node?: { tagName?: string } }).node || !String(children).includes("\n");
@@ -225,8 +232,11 @@ const components: Components = {
       return <InlineCode rest={rest}>{children}</InlineCode>;
     }
     const code = String(children).replace(/\n$/, "");
-    return <CodeBlock code={code} lang={match?.[1]} />;
-  },
+    return <CodeBlock code={code} lang={match?.[1]} allowExecute={allowExecute} />;
+  };
+}
+
+const baseComponents: Omit<Components, "code"> = {
   pre({ children }) {
     return <>{children}</>;
   },
@@ -266,9 +276,51 @@ const components: Components = {
   ),
 };
 
-export function Markdown({ children }: { children: string }) {
+export function Markdown({
+  children,
+  breaks,
+  allowExecute = true,
+}: {
+  children: string;
+  /**
+   * Whether a fenced `!`-mode shell block may render CodeBlock's Execute
+   * button. Defaults to `true`, matching every pre-existing call site
+   * (`AssistantMessage`, `ToolCall`, `TaskBlock`, `PlanOverlay`,
+   * `TranscriptViewer`'s assistant branch) — the button was designed for
+   * model-proposed commands. Pass `false` for text whose author isn't the
+   * model: `UserMessage.tsx` (the local user's own prompt, or a peer
+   * session's text delivered via `SendMessage`) and `TranscriptViewer.tsx`'s
+   * historic user-turn view both do. See `CodeBlock`'s `allowExecute` doc
+   * comment for the concrete failure scenario this closes.
+   */
+  allowExecute?: boolean;
+  /**
+   * Render single newlines as hard line breaks (via `remark-breaks`) instead
+   * of the CommonMark default of collapsing them into a space within a
+   * paragraph. Assistant replies are model-generated markdown that already
+   * uses blank lines between paragraphs, so the default suits them. User
+   * prompts (Claude Code 2.1.234 parity — `UserMessage.tsx`) are plain text
+   * the user typed expecting every line break preserved, exactly like the
+   * `whitespace-pre-wrap` rendering this replaced — set `breaks` there so a
+   * multi-line prompt without blank lines doesn't get visually squashed into
+   * one paragraph.
+   */
+  breaks?: boolean;
+}) {
+  // Memoized on `allowExecute` (not recreated every render) so ReactMarkdown
+  // sees a stable `components.code` identity across re-renders with the same
+  // flag — matches the pre-existing single-static-object behavior for every
+  // caller that doesn't touch `allowExecute` at all (the default `true`
+  // resolves to one memoized object per component instance, same as before).
+  const componentsForRender = useMemo<Components>(
+    () => ({ ...baseComponents, code: makeCodeComponent(allowExecute) }),
+    [allowExecute],
+  );
   return (
-    <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
+    <ReactMarkdown
+      remarkPlugins={breaks ? [remarkGfm, remarkBreaks] : [remarkGfm]}
+      components={componentsForRender}
+    >
       {children}
     </ReactMarkdown>
   );
