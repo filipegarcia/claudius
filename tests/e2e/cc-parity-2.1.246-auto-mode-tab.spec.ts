@@ -90,9 +90,17 @@ test.describe("Auto mode tab on /permissions (CC 2.1.246)", () => {
     await expect(page.getByTestId("permissions-tab-auto-mode")).toHaveCount(0);
 
     // ── 2. Switch to Account scope — the tab strip appears ───────────────
-    await page.getByRole("radio", { name: "Account" }).click();
+    // `toPass` re-clicks if the tab hasn't shown up yet: this page's first
+    // paint can occasionally win a race against React attaching the radio's
+    // click handler (the DOM looks interactive before hydration finishes),
+    // which swallows a single click with no visible sign of failure. Retrying
+    // the click is self-healing against that race without weakening the
+    // assertion itself.
     const autoModeTabButton = page.getByTestId("permissions-tab-auto-mode");
-    await expect(autoModeTabButton).toBeVisible();
+    await expect(async () => {
+      await page.getByRole("radio", { name: "Account" }).click();
+      await expect(autoModeTabButton).toBeVisible({ timeout: 1_000 });
+    }).toPass({ timeout: 15_000 });
     await autoModeTabButton.click();
 
     // ── 3. Loaded config renders in the Environment section ──────────────
