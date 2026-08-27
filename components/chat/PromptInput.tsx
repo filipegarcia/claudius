@@ -2187,9 +2187,18 @@ export function PromptInput({
             // reads like terminal input. The leading `!` itself is included
             // in the textarea value (no leading-character trick) so the
             // user can backspace it to leave bash mode naturally.
+            // Font size tracks `--chat-text` (Settings > Chat size, plus the
+            // viewport clamp above 1536px) so the text you type is the same
+            // size as the text you read -- a fixed `text-sm` here left the
+            // composer illegibly small next to a scaled-up transcript.
+            // `leading` is a unitless ratio for the same reason: `leading-6`
+            // would clip descenders once the font passed 24px. 1.7 reproduces
+            // the previous 14px/24px line box at the default size.
             className={cn(
-              "flex-1 resize-none bg-transparent leading-6 text-[var(--foreground)] placeholder:text-[var(--muted)]/70 focus:outline-none disabled:cursor-not-allowed",
-              isBashMode ? "font-mono text-[13px]" : "text-sm",
+              "flex-1 resize-none bg-transparent leading-[1.7] text-[var(--foreground)] placeholder:text-[var(--muted)]/70 focus:outline-none disabled:cursor-not-allowed",
+              isBashMode
+                ? "font-mono text-[length:calc(var(--chat-text)*0.93)]"
+                : "text-[length:var(--chat-text)]",
             )}
           />
           {voice.supported && (
@@ -2306,7 +2315,16 @@ export function PromptInput({
           />
         )}
 
-        <div className="mt-1.5 flex items-center justify-between px-1 text-[11px] text-[var(--muted)]/70">
+        {/* Footer chrome (status notices / keyword hint / queue nudge / char
+            count) rides `--chat-text` like the textarea above it, at the
+            11/14 ratio it used to sit at against the old fixed `text-sm`
+            composer. Scaling the input but not this row left the hint
+            unreadable under a scaled-up composer. Its icons are sized in `em`
+            for the same reason. */}
+        <div
+          className="mt-1.5 flex items-center justify-between px-1 text-[var(--muted)]/70"
+          style={{ fontSize: "calc(var(--chat-text) * 0.79)" }}
+        >
           {sendFailedNotice ? (
             <span
               role="status"
@@ -2335,7 +2353,7 @@ export function PromptInput({
               data-testid={`${testIdPrefix}-voice-stop-notice`}
               className="flex min-w-0 items-center gap-1.5 text-amber-400"
             >
-              <MicOff className="h-3 w-3 shrink-0" aria-hidden />
+              <MicOff className="h-[1.1em] w-[1.1em] shrink-0" aria-hidden />
               <span className="truncate" title={voice.notice}>{voice.notice}</span>
               <button
                 type="button"
@@ -2406,7 +2424,7 @@ export function PromptInput({
           <span className="flex items-center gap-2">
             {images.length > 0 && (
               <span className="flex items-center gap-1">
-                <ImageIcon className="h-3 w-3" /> {images.length}
+                <ImageIcon className="h-[1.1em] w-[1.1em]" /> {images.length}
               </span>
             )}
             <span className="font-mono">{value.length} chars</span>
