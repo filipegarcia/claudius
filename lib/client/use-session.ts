@@ -3668,6 +3668,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
             workflow_name?: string;
             is_backgrounded?: boolean;
             spawn_depth?: number;
+            ambient?: boolean;
           };
           // SSE ordering can deliver the Task's tool_result before this
           // task_started; seed the terminal status in that case so the pill
@@ -3701,6 +3702,10 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
                 // isBackgrounded. spawn_depth is likewise start-only.
                 isBackgrounded: t.is_backgrounded,
                 spawnDepth: t.spawn_depth,
+                // SDK 0.3.247: housekeeping tasks the CLI doesn't surface as
+                // user work. Seeded here; kept current by task_notification
+                // and background_tasks_changed below.
+                ambient: t.ambient,
               },
             };
           });
@@ -3760,6 +3765,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
             status: "completed" | "failed" | "stopped";
             summary?: string;
             usage?: { total_tokens?: number; tool_uses?: number; duration_ms?: number };
+            ambient?: boolean;
           };
           setTasks((prev) => {
             // Authoritative cleanup: a notification can arrive WITHOUT a prior
@@ -3774,6 +3780,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
               toolUseId: t.tool_use_id,
               description: t.summary ?? "(unknown)",
               status: "completed",
+              ambient: t.ambient,
             };
             return {
               ...cleared,
@@ -3784,6 +3791,10 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
                 totalTokens: t.usage?.total_tokens ?? base.totalTokens,
                 toolUses: t.usage?.tool_uses ?? base.toolUses,
                 durationMs: t.usage?.duration_ms ?? base.durationMs,
+                // SDK 0.3.247: task_notification carries the authoritative
+                // late/final ambient value — prefer it, but keep whatever
+                // task_started already seeded when this notification omits it.
+                ambient: t.ambient ?? base.ambient,
               },
             };
           });
@@ -3796,13 +3807,40 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
           // so this drives the independent `liveBackgroundTaskIds` gate, NOT the
           // `tasks` map. An empty `tasks` array is meaningful ("nothing live")
           // — it settles anything the rail still shows as running.
-          const payload = sysAny as unknown as { tasks?: { task_id?: string }[] };
+          const payload = sysAny as unknown as {
+            tasks?: { task_id?: string; ambient?: boolean }[];
+          };
+          const entries = payload.tasks ?? [];
           const ids = new Set(
-            (payload.tasks ?? [])
+            entries
               .map((t) => t.task_id)
               .filter((id): id is string => typeof id === "string" && id.length > 0),
           );
           setLiveBackgroundTaskIds(ids);
+          // SDK 0.3.247: this snapshot now also re-fires whenever an entry's
+          // `ambient` flag flips, so it's the authoritative place to catch a
+          // late change (not just membership). Only refresh tasks we already
+          // know about — this is a level signal over an existing id space,
+          // never a source for creating new rows.
+          setTasks((prev) => {
+            let changed = false;
+            const next = { ...prev };
+            for (const entry of entries) {
+              if (typeof entry.task_id !== "string") continue;
+              const existing = next[entry.task_id];
+              if (!existing) continue;
+              const ambient = entry.ambient === true;
+              // `!!existing.ambient` normalizes a freshly-seeded `undefined`
+              // (non-ambient tasks never get an explicit `ambient: false`
+              // from task_started) to `false` before comparing — otherwise
+              // the very first snapshot after every non-ambient task starts
+              // would spuriously look like a "flip" and trigger a no-op update.
+              if (!!existing.ambient === ambient) continue;
+              next[entry.task_id] = { ...existing, ambient };
+              changed = true;
+            }
+            return changed ? next : prev;
+          });
           return;
         }
         // SDKThinkingTokensMessage (0.3.153): live token-count estimate emitted

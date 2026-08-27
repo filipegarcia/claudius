@@ -170,10 +170,14 @@ test.describe("peer-message origin badge (SDK 0.3.205)", () => {
 
     const badge = page.getByTestId("user-message-peer-badge");
     await expect(badge).toBeVisible({ timeout: 15_000 });
-    await expect(badge).toContainText("From Release Bot");
+    // Claude Code 2.1.247 parity: peer messages collapse by default to a
+    // one-line "Message from <sender>: <first line>" preview — the full
+    // body is not shown until the row is clicked to expand.
+    await expect(badge).toContainText("Message from Release Bot: Deploy finished successfully.");
+    await expect(page.getByText("Deploy finished successfully.", { exact: true })).not.toBeVisible();
 
-    // The bubble shows the decoded body, not the raw enveloped text.
-    await expect(page.getByText("Deploy finished successfully.")).toBeVisible();
+    await badge.click();
+    await expect(page.getByText("Deploy finished successfully.", { exact: true })).toBeVisible();
     await expect(page.getByText("peer-envelope", { exact: false })).not.toBeVisible();
 
     // Wait for the assistant reply so the screenshot shows a full turn

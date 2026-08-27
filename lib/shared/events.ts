@@ -546,6 +546,18 @@ export type TaskSnapshotEntry = {
    * `BackgroundTasksPanel` for depth ≥ 2.
    */
   spawnDepth?: number;
+  /**
+   * SDK 0.3.247 — true for housekeeping tasks the CLI does not surface as
+   * user work (every `skip_transcript` task, plus auto-started live-update
+   * watchers). Populated from `task_started.ambient` / `task_notification.ambient`
+   * and kept current by `background_tasks_changed`, which re-fires (per its
+   * updated JSDoc) whenever an entry's `ambient` flag flips. Unlike
+   * `skip_transcript` (hide from the inline transcript), `ambient` means
+   * "exclude from activity indicators" — the task still renders in the
+   * Tasks/Running panel, it's just excluded from `hasActiveSubagents()` /
+   * `countActiveBackgroundTasks()` and the Activity rail's attention count.
+   */
+  ambient?: boolean;
   totalTokens?: number;
   toolUses?: number;
   durationMs?: number;

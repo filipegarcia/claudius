@@ -35,6 +35,7 @@ afterEach(() => {
  */
 type SessionInternals = {
   captureTaskState: (event: ServerEvent) => void;
+  getStatus: () => "running" | "idle";
 };
 
 function makeSession(): SessionInternals {
@@ -45,7 +46,7 @@ function startedEvent(
   taskId: string,
   toolUseId: string,
   description: string,
-  extra?: { is_backgrounded?: boolean; spawn_depth?: number },
+  extra?: { is_backgrounded?: boolean; spawn_depth?: number; ambient?: boolean },
 ): ServerEvent {
   return {
     type: "sdk",
@@ -70,10 +71,10 @@ function progressEvent(
   } as unknown as ServerEvent;
 }
 
-function notificationEvent(taskId: string, status: string): ServerEvent {
+function notificationEvent(taskId: string, status: string, extra?: { ambient?: boolean }): ServerEvent {
   return {
     type: "sdk",
-    message: { type: "system", subtype: "task_notification", task_id: taskId, status },
+    message: { type: "system", subtype: "task_notification", task_id: taskId, status, ...extra },
   } as unknown as ServerEvent;
 }
 
@@ -129,6 +130,21 @@ describe("session-tasks-db roundtrip", () => {
       durationMs: 86000,
     });
     expect(rows[0].innerMessages).toEqual([{ at: 10, message: { type: "assistant", uuid: "a1" } }]);
+  });
+
+  test("SDK 0.3.247: round-trips ambient through session_tasks (migration 017)", async () => {
+    const entry: TaskSnapshotEntry = {
+      taskId: "task-ambient-1",
+      status: "running",
+      ambient: true,
+      innerMessages: [],
+    };
+    await saveSessionTask(CWD, "tasks-test", entry);
+
+    const rows = await listSessionTasks(CWD, "tasks-test");
+    const row = rows.find((r) => r.taskId === "task-ambient-1");
+    expect(row).toBeDefined();
+    expect(row!.ambient).toBe(true);
   });
 
   test("upserts by (session_id, task_id)", async () => {
@@ -234,5 +250,58 @@ describe("Session.captureTaskState end-to-end", () => {
     expect(persisted).toBeDefined();
     expect(persisted!.isBackgrounded).toBeUndefined();
     expect(persisted!.spawnDepth).toBeUndefined();
+  });
+
+  test("SDK 0.3.247: seeds ambient from task_started and persists it", async () => {
+    const session = makeSession();
+    session.captureTaskState(
+      startedEvent("task-6", "toolu-6", "auto-started live-update watcher", { ambient: true }),
+    );
+
+    const persisted = await waitForTask("task-6");
+    expect(persisted).toBeDefined();
+    expect(persisted!.ambient).toBe(true);
+  });
+
+  test("SDK 0.3.247: leaves ambient unset for a plain task_started", async () => {
+    const session = makeSession();
+    session.captureTaskState(startedEvent("task-7", "toolu-7", "regular subagent"));
+
+    const persisted = await waitForTask("task-7");
+    expect(persisted).toBeDefined();
+    expect(persisted!.ambient).toBeUndefined();
+  });
+
+  test("SDK 0.3.247: task_notification can set ambient late", async () => {
+    const session = makeSession();
+    session.captureTaskState(startedEvent("task-8", "toolu-8", "housekeeping task"));
+    session.captureTaskState(notificationEvent("task-8", "completed", { ambient: true }));
+
+    const persisted = await waitForTask("task-8");
+    expect(persisted).toBeDefined();
+    expect(persisted!.ambient).toBe(true);
+  });
+
+  test("SDK 0.3.247: a running ambient task does not pin getStatus() on 'running'", async () => {
+    // Regression target: without the ambient exclusion, a live housekeeping
+    // task (auto-started live-update watcher) would keep the StatusDot /
+    // tab-strip busy indicator lit even though there's no real user-facing
+    // work in flight — exactly what the SDK's "exclude from activity
+    // indicators" guidance exists to prevent.
+    const session = makeSession();
+    session.captureTaskState(
+      startedEvent("task-9", "toolu-9", "ambient watcher", { ambient: true }),
+    );
+
+    expect(session.getStatus()).toBe("idle");
+  });
+
+  test("SDK 0.3.247: a running non-ambient task still pins getStatus() on 'running'", async () => {
+    // Sanity check for the test above: the exclusion is specific to
+    // `ambient`, not a blanket regression that stops tracking subagents.
+    const session = makeSession();
+    session.captureTaskState(startedEvent("task-10", "toolu-10", "real subagent"));
+
+    expect(session.getStatus()).toBe("running");
   });
 });

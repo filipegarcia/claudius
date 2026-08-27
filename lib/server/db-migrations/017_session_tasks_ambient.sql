@@ -1,0 +1,15 @@
+-- v17: persist `ambient` on session_tasks rows.
+--
+-- SDK 0.3.247 added an `ambient` flag to `task_started` / `task_notification`
+-- / `background_tasks_changed` task entries — true for housekeeping tasks
+-- the CLI does not surface as user work (every `skip_transcript` task, plus
+-- auto-started live-update watchers). Without persisting it, a Task's
+-- ambient status would be lost on every reload rebuilt from `session_tasks`
+-- (idle-reap, server restart), and `hasActiveSubagents()` /
+-- `countActiveBackgroundTasks()` would wrongly re-treat a resumed ambient
+-- task as an active, indicator-worthy one.
+--
+-- `ambient` is stored as 0/1 (SQLite has no native boolean), nullable so
+-- "never reported" round-trips as `undefined`, not `false` — same
+-- convention as `is_backgrounded` (migration 016).
+ALTER TABLE session_tasks ADD COLUMN ambient INTEGER;

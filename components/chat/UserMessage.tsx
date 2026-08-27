@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Copy, Sparkles, Target, Terminal, Undo2, Users } from "lucide-react";
+import { Check, ChevronDown, ChevronRight, Copy, Sparkles, Target, Terminal, Undo2, Users } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import type { AttachedImage, DisplayMessage } from "@/lib/client/types";
 import { formatMessageTime } from "@/lib/client/format-message-time";
@@ -9,6 +9,7 @@ import { ImageLightbox } from "./ImageLightbox";
 import { Markdown } from "./Markdown";
 import { RewindFilesButton } from "./RewindFilesButton";
 import { parseUserTextWithBashIO } from "@/lib/shared/bash-io";
+import { peerMessagePreview } from "@/lib/shared/peer-message-preview";
 import { type VerboseLevel, DEFAULT_VERBOSE } from "@/lib/shared/verbose";
 
 type Props = {
@@ -62,6 +63,12 @@ export function UserMessage({
   // that only stamped that field.
   const peer = message.peer;
   const peerLabel = peer ? (peer.name ?? peer.from) : null;
+  // Claude Code 2.1.247 — "Changed cross-session peer messages to collapse
+  // by default to a one-line `Message from @<sender>: <first line>`
+  // preview." Claudius has no per-message keybinding equivalent to the
+  // CLI's Ctrl+O expand, so the header row itself is the click-to-expand
+  // affordance — same pattern as `BashIOBlock`'s collapsible output below.
+  const [peerExpanded, setPeerExpanded] = useState(false);
   // `!`-mode bash IO blocks ride in the user-turn text (live broadcast or
   // JSONL replay). Splitting here lets us render each block as a terminal
   // strip and only feed the remaining plain text to InlineUserText. When
@@ -73,6 +80,8 @@ export function UserMessage({
   // bubble shouldn't carry the "Goal" / "Suggested" badges or the rewind
   // affordance — there's nothing to rewind to. Hide them.
   const isPureBashEcho = hasBash && segments.every((s) => s.kind === "bash");
+  const showPeerCollapse = !!peerLabel && !isPureBashEcho;
+  const showBody = !showPeerCollapse || peerExpanded;
   const stamp = formatMessageTime(message.createdAt);
   const [copied, setCopied] = useState(false);
   const copy = async (e: React.MouseEvent) => {
@@ -102,14 +111,27 @@ export function UserMessage({
         onClick={onJumpTo ? handleJump : undefined}
         title={onJumpTo ? "Scroll to this message" : undefined}
       >
-        {peerLabel && !isPureBashEcho && (
-          <div
+        {showPeerCollapse && (
+          <button
+            type="button"
             data-testid="user-message-peer-badge"
-            className="mb-1 flex items-center justify-end gap-1 text-[10px] uppercase tracking-wide text-[var(--muted)]"
-            title={`Sent by peer session${peer && peer.from !== peerLabel ? ` (${peer.from})` : ""}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              setPeerExpanded((v) => !v);
+            }}
+            className="mb-1 flex w-full items-center justify-end gap-1 text-right text-[10px] uppercase tracking-wide text-[var(--muted)] hover:text-[var(--foreground)]"
+            title={`${peerExpanded ? "Collapse" : "Expand"} — sent by peer session${peer && peer.from !== peerLabel ? ` (${peer.from})` : ""}`}
           >
-            <Users className="h-3 w-3" /> From {peerLabel}
-          </div>
+            <span className="min-w-0 truncate normal-case tracking-normal">
+              {peerMessagePreview(peerLabel!, text)}
+            </span>
+            <Users className="h-3 w-3 shrink-0" />
+            {peerExpanded ? (
+              <ChevronDown className="h-3 w-3 shrink-0" />
+            ) : (
+              <ChevronRight className="h-3 w-3 shrink-0" />
+            )}
+          </button>
         )}
         {fromGoal && !isPureBashEcho && (
           <div
@@ -128,20 +150,21 @@ export function UserMessage({
             <Sparkles className="h-3 w-3" /> Suggested
           </div>
         )}
-        {hasBash ? (
-          <div className="flex flex-col gap-2">
-            {segments.map((seg, i) =>
-              seg.kind === "bash" ? (
-                <BashIOBlock key={i} command={seg.command} stdout={seg.stdout} stderr={seg.stderr} />
-              ) : (
-                <InlineUserText key={i} text={seg.text} images={images} />
-              ),
-            )}
-          </div>
-        ) : (
-          <InlineUserText text={text} images={images} />
-        )}
-        {(stamp || onRewind || sessionId || (text && !isPureBashEcho)) && (
+        {showBody &&
+          (hasBash ? (
+            <div className="flex flex-col gap-2">
+              {segments.map((seg, i) =>
+                seg.kind === "bash" ? (
+                  <BashIOBlock key={i} command={seg.command} stdout={seg.stdout} stderr={seg.stderr} />
+                ) : (
+                  <InlineUserText key={i} text={seg.text} images={images} />
+                ),
+              )}
+            </div>
+          ) : (
+            <InlineUserText text={text} images={images} />
+          ))}
+        {showBody && (stamp || onRewind || sessionId || (text && !isPureBashEcho)) && (
           <div className="mt-1 flex items-center justify-end gap-3">
             {text && !isPureBashEcho && (
               <button

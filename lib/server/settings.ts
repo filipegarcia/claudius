@@ -260,6 +260,23 @@ export type ClaudeSettings = {
   modelPricing?: ModelPricingSettings;
   // CC 2.1.246 — Auto mode classifier configuration. See `AutoModeConfig`.
   autoMode?: AutoModeConfig;
+  // Claude Code 2.1.247 — the model-drafted `SendFeedback` tool. When
+  // something goes wrong in a session, Claude can draft a feedback report
+  // for the user to review and send from `/feedback`; this setting controls
+  // how loudly that's surfaced: "notify" (default/absent) shows a one-line
+  // notice when a draft is queued, "quiet" shows only the footer counter,
+  // "off" disables the tool entirely so drafts are never queued. Mirrors the
+  // SDK's `Settings.feedbackDrafts` key exactly. Same treatment as
+  // `keybindingFlavor` / `syncClaudeAiPlugins` / `promptCacheTtl`: the tool
+  // itself and its queueing behavior are entirely engine-side, and the
+  // engine reads this key directly from this same `~/.claude/settings.json`
+  // — surfacing it as a catalog row (Settings → Storage & sessions, next to
+  // the sibling `feedbackSurveyRate`) is all Claudius needs; there is no
+  // per-session SDK forwarding to add. The drafted tool call itself renders
+  // with a dedicated "Feedback draft" label in the transcript (see
+  // `ToolCall.tsx`'s `SendFeedback` special-case) instead of the generic
+  // tool-call JSON dump.
+  feedbackDrafts?: "notify" | "quiet" | "off";
   // Catch-all for keys we don't yet know about — we never strip them.
   [key: string]: unknown;
 };

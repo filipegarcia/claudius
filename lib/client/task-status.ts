@@ -59,6 +59,19 @@ export function statusFromToolResult(isError: boolean | undefined): TaskStatus {
   return isError ? "failed" : "completed";
 }
 
+/**
+ * SDK 0.3.247 — whether a task should count toward an *activity indicator*
+ * (the Activity rail's attention/"N running" counts, the StatusLine badge).
+ * `ambient` tasks (housekeeping the CLI doesn't surface as user work — every
+ * `skip_transcript` task, plus auto-started live-update watchers) are
+ * excluded here, matching the SDK's own guidance — but they still get a row
+ * in the Tasks/Running panel, since `ambient` only means "don't count me",
+ * not "hide me" (that's `skip_transcript`'s job).
+ */
+export function isActivityCountableTask(t: Pick<TaskInfo, "ambient">): boolean {
+  return !t.ambient;
+}
+
 /** Locate a tool_use block by id across one or more message lists. */
 export function findToolUseBlock(
   toolUseId: string,
