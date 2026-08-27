@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ChevronDown, ChevronRight, Wrench, AlertCircle, CheckCircle2, ExternalLink, MessageCircleQuestion } from "lucide-react";
+import { ChevronDown, ChevronRight, Wrench, AlertCircle, CheckCircle2, ExternalLink, MessageCircleQuestion, MessageSquareHeart } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { buildEditorUrl, pathFromToolInput, useEditor } from "@/lib/client/ide";
 import { useFileLink } from "@/lib/client/file-link-context";
@@ -10,6 +10,7 @@ import { filesHref, toWorkspaceRelative } from "@/lib/client/file-paths";
 import { useMediaPreferences } from "@/lib/client/useMediaPreferences";
 import { formatElapsed, useElapsedSeconds } from "@/lib/client/use-elapsed";
 import { getPreviewType } from "@/lib/shared/file-types";
+import { extractFeedbackDraftText } from "@/lib/shared/feedback-draft";
 import { Markdown } from "./Markdown";
 import { FilePreview } from "./FilePreview";
 
@@ -103,6 +104,12 @@ export function ToolCall({ name, input, result, startedAt, liveAsk, onReopenAsk,
   // gone. Falls back to the JSON view if the field is missing / not a string.
   const planText =
     name === "ExitPlanMode" && typeof input.plan === "string" ? (input.plan as string) : null;
+  // Claude Code 2.1.247 — the model-drafted `SendFeedback` tool (see the
+  // `feedbackDrafts` setting). Give it a readable label + icon instead of
+  // the generic "Wrench" treatment, and prefer showing the drafted report
+  // text over the raw JSON input — same shape as `planText` above.
+  const isFeedbackDraft = name === "SendFeedback";
+  const feedbackDraftText = isFeedbackDraft ? extractFeedbackDraftText(input) : null;
   // Cloud-routine tool: surface the `action` as a readable suffix so the user
   // sees intent (e.g. "Run now", "List runs") without expanding the JSON.
   // Handle both plausible tool names — the schema is `RemoteTriggerInput`, but
@@ -142,8 +149,12 @@ export function ToolCall({ name, input, result, startedAt, liveAsk, onReopenAsk,
           )}
         >
           {open ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
-          <Wrench className="h-3.5 w-3.5 text-[var(--accent)]" />
-          <span className="font-mono">{name}</span>
+          {isFeedbackDraft ? (
+            <MessageSquareHeart className="h-3.5 w-3.5 text-[var(--accent)]" />
+          ) : (
+            <Wrench className="h-3.5 w-3.5 text-[var(--accent)]" />
+          )}
+          <span className="font-mono">{isFeedbackDraft ? "Feedback draft" : name}</span>
           {planText && <span className="text-[10px] text-[var(--muted)]">— Plan</span>}
           {scheduleAction && (
             <span className="text-[10px] text-[var(--muted)]">— {scheduleAction}</span>
@@ -222,6 +233,18 @@ export function ToolCall({ name, input, result, startedAt, liveAsk, onReopenAsk,
               <div className="mb-1 text-[10px] uppercase tracking-wide text-[var(--muted)]">plan</div>
               <div className="max-h-96 overflow-y-auto scroll-thin rounded bg-[var(--panel-2)] px-3 py-2 text-sm leading-7">
                 <Markdown>{planText}</Markdown>
+              </div>
+            </div>
+          ) : feedbackDraftText ? (
+            <div className="px-3 py-2">
+              <div className="mb-1 text-[10px] uppercase tracking-wide text-[var(--muted)]">
+                drafted report
+              </div>
+              <div className="max-h-96 overflow-y-auto scroll-thin whitespace-pre-wrap rounded bg-[var(--panel-2)] px-3 py-2 text-sm leading-6">
+                {feedbackDraftText}
+              </div>
+              <div className="mt-1 text-[10px] text-[var(--muted)]">
+                Review and send this report from <span className="font-mono">/feedback</span>.
               </div>
             </div>
           ) : (

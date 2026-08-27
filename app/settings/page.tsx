@@ -1042,6 +1042,13 @@ const SDK_SETTINGS_CATALOG: SettingMeta[] = [
     desc: "Probability (0–1) that the session quality survey appears when eligible. 0.05 is a reasonable starting point.",
   },
   {
+    key: "feedbackDrafts",
+    type: "enum",
+    section: "Storage & sessions",
+    options: ["notify", "quiet", "off"],
+    desc: 'How loudly Claude\'s model-drafted feedback reports (the SendFeedback tool) are surfaced: "notify" (default/absent) shows a one-line notice when a draft is queued for review at /feedback, "quiet" shows only the footer counter, "off" disables the tool entirely so drafts are never queued.',
+  },
+  {
     key: "respectGitignore",
     type: "boolean",
     section: "Files",

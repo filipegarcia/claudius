@@ -2490,6 +2490,8 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
         <PermissionPrompt
           request={session.pendingPermission}
           onResolve={(d) => session.resolvePermission(session.pendingPermission!.requestId, d)}
+          autoModeAvailable={!autoModeDisabled && session.permissionMode !== "auto"}
+          onSwitchToAutoMode={() => void session.setPermissionMode("auto")}
         />
       )}
 

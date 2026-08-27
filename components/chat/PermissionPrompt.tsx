@@ -1,15 +1,31 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ChevronDown, ChevronRight, Shield } from "lucide-react";
+import { ChevronDown, ChevronRight, Lightbulb, Shield } from "lucide-react";
 import type { PermissionDecision, PermissionRequestEvent } from "@/lib/shared/events";
 
 type Props = {
   request: PermissionRequestEvent;
   onResolve: (decision: PermissionDecision) => void;
+  /**
+   * Claude Code 2.1.247 — "Added a tip on Bash permission prompts pointing to
+   * auto mode, with a one-keystroke 'Yes, and switch to auto mode' option."
+   * True when Auto mode is available for this session (the `disableAutoMode`
+   * settings escape hatch — see `useDisableAutoMode` — hasn't hidden it and
+   * the user isn't already in it). Omit/false hides the tip entirely rather
+   * than showing a button that would just get coerced back server-side.
+   */
+  autoModeAvailable?: boolean;
+  /**
+   * Allow this request once AND switch the session into Auto mode, in one
+   * click. Only called from the tip button below — never wired to a
+   * keyboard shortcut, since Escape is already claimed for "deny" on this
+   * modal.
+   */
+  onSwitchToAutoMode?: () => void;
 };
 
-export function PermissionPrompt({ request, onResolve }: Props) {
+export function PermissionPrompt({ request, onResolve, autoModeAvailable, onSwitchToAutoMode }: Props) {
   const [showDeny, setShowDeny] = useState(false);
   const [feedback, setFeedback] = useState("");
   const [showInput, setShowInput] = useState(false);
@@ -64,6 +80,25 @@ export function PermissionPrompt({ request, onResolve }: Props) {
             </pre>
           )}
         </div>
+
+        {request.toolName === "Bash" && autoModeAvailable && onSwitchToAutoMode && (
+          <div
+            data-testid="permission-auto-mode-tip"
+            className="flex flex-wrap items-center gap-2 border-t border-[var(--border)] bg-[var(--accent)]/5 px-4 py-2 text-xs text-[var(--muted)]"
+          >
+            <Lightbulb className="h-3.5 w-3.5 shrink-0 text-[var(--accent)]" />
+            <span>Tip: Auto mode runs safe commands like this without asking each time.</span>
+            <button
+              onClick={() => {
+                onSwitchToAutoMode();
+                onResolve({ kind: "allow_once" });
+              }}
+              className="ml-auto shrink-0 rounded-md border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-2 py-1 font-medium text-[var(--accent)] hover:bg-[var(--accent)]/20"
+            >
+              Yes, and switch to auto mode
+            </button>
+          </div>
+        )}
 
         <div className="flex flex-wrap items-center gap-2 border-t border-[var(--border)] bg-[var(--panel-2)]/50 px-4 py-3">
           <button
