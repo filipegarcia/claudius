@@ -90,7 +90,6 @@ import { fileURLToPath } from "node:url";
 import {
   buildCombinedPrTitle,
   cleanRange,
-  isNewer,
   patchState,
   readInstalledRange,
   readState,
@@ -544,36 +543,48 @@ function branchName(version: string): string {
 }
 
 /**
- * Parse the SDK version out of a branch this orchestrator created.
- * `sdk-update/0.3.170` → `0.3.170`. Returns "" for anything that doesn't
- * match the prefix (callers guard on that).
+ * Head-branch prefixes for every PR the two update pipelines open. Both the
+ * SDK updater (`sdk-update/<sdk-v>`) and the cc-parity pipeline
+ * (`cc-parity/<cc-v>`) are treated as candidates to CONTINUE, so a new run
+ * of *either* pipeline stacks onto whichever update PR is already open
+ * rather than forking a parallel one. This is what keeps the two pipelines
+ * to a single rolling PR instead of the fan-out of independent per-version
+ * PRs they used to produce.
  */
-function versionFromBranch(branch: string): string {
-  return branch.startsWith("sdk-update/") ? branch.slice("sdk-update/".length) : "";
+const UPDATE_BRANCH_PREFIXES = ["sdk-update/", "cc-parity/"] as const;
+
+export function isUpdateBranch(branch: string): boolean {
+  return UPDATE_BRANCH_PREFIXES.some((p) => branch.startsWith(p));
 }
 
 /**
- * Find an open SDK-update PR to CONTINUE, so a new upstream release that
+ * Find an open update PR to CONTINUE, so a new upstream release that
  * arrives before the previous PR is merged stacks onto that PR's branch
  * instead of opening a parallel one.
  *
  * The motivating bug: a release ships overnight → PR #A opens. Before the
  * human is awake to merge it, the next release ships → the orchestrator
  * (which derives `prevVersion` from `main`, still on the pre-#A version)
- * computes a *fresh* `sdk-update/<newer>` branch off main and opens PR #B.
- * Now there are two competing PRs for the same dependency. Detecting #A here
- * and reusing its branch keeps everything in one reviewable PR.
+ * computes a *fresh* branch off main and opens PR #B. Now there are two
+ * competing PRs. Detecting #A here and reusing its branch keeps everything
+ * in one reviewable PR.
  *
- * Matching is by head-branch prefix (`sdk-update/`), which is how every
- * branch this pipeline creates is named (combined SDK+CC runs included).
- * Returns null when nothing is open — the caller then falls back to the
- * usual fresh `sdk-update/<newVersion>` branch off main.
+ * Matching is by head-branch prefix across BOTH pipelines (`sdk-update/`
+ * and `cc-parity/` — see UPDATE_BRANCH_PREFIXES): an SDK run will continue
+ * an open cc-parity PR and vice-versa, so the two pipelines converge on one
+ * rolling PR. Returns null when nothing is open — the caller then falls back
+ * to the usual fresh branch off main.
  *
- * If more than one open SDK-update PR exists (e.g. the pre-existing
- * double-PR state this feature prevents going forward), we pick the
- * highest-version one as the continuation target and log the rest loudly so
- * a human can close the dupes. We deliberately do NOT auto-close — a
- * reviewer may have left comments on one of them.
+ * If more than one open update PR exists (e.g. the pre-existing multi-PR
+ * state this feature prevents going forward), we pick the one with the
+ * HIGHEST PR NUMBER as the continuation target and log the rest loudly so a
+ * human can close the dupes. PR number — not branch version — is the
+ * ordering key: it's monotonic with recency both within a pipeline and
+ * across the two (an SDK version like `0.3.247` is not comparable to a CC
+ * version like `2.1.246`, so a version comparator would be meaningless
+ * cross-prefix). We deliberately do NOT auto-close the dupes: a reviewer
+ * may have left comments, and the non-chosen branches carry work that was
+ * NOT merged into the chosen one, so closing them would drop it.
  */
 export type OpenPrSummary = {
   number: number;
@@ -587,28 +598,29 @@ export type ContinuationPr = {
   branch: string;
   url: string;
   title: string;
-  /** The other open SDK-update PRs that were NOT chosen, if any. */
+  /** The other open update PRs (either pipeline) that were NOT chosen, if any. */
   duplicates: OpenPrSummary[];
 };
 
 /**
  * Pure selection logic for findOpenSdkUpdatePr — given the list of open PRs,
- * pick the SDK-update PR to continue (highest version wins) and report any
- * duplicates. Extracted so the version filter + tie-break can be unit-tested
+ * pick the update PR to continue (highest PR number wins) and report any
+ * duplicates. Extracted so the prefix filter + tie-break can be unit-tested
  * without stubbing `gh` (the file's convention: side-effectful halves stay
  * untested, the decision logic is pinned down). Returns null when no open PR
- * matches the `sdk-update/` branch prefix.
+ * matches an update-pipeline branch prefix (see UPDATE_BRANCH_PREFIXES).
  */
 export function pickContinuationPr(prs: OpenPrSummary[]): ContinuationPr | null {
-  const candidates = prs.filter((p) => p.headRefName.startsWith("sdk-update/"));
+  const candidates = prs.filter((p) => isUpdateBranch(p.headRefName));
   if (candidates.length === 0) return null;
 
-  // Highest SDK version wins — that's the most recent prior attempt, the one
-  // worth stacking on. `isNewer(a, b)` is the same comparator the npm probe
-  // uses, so the ordering here matches "what counts as newer" everywhere else.
-  const sorted = [...candidates].sort((a, b) =>
-    isNewer(versionFromBranch(b.headRefName), versionFromBranch(a.headRefName)) ? 1 : -1,
-  );
+  // Highest PR number wins — the most recent prior attempt, and the one
+  // worth stacking on. Ordering by number rather than by branch-version is
+  // what makes this correct ACROSS pipelines: an SDK version (`0.3.247`) and
+  // a CC version (`2.1.246`) aren't comparable, but PR numbers are monotonic
+  // with recency for both. Within a single pipeline this is equivalent to
+  // "highest version wins" because versions and PR numbers climb together.
+  const sorted = [...candidates].sort((a, b) => b.number - a.number);
   const chosen = sorted[0]!;
   return {
     number: chosen.number,
@@ -651,8 +663,8 @@ export function findOpenSdkUpdatePr(): ContinuationPr | null {
   const chosen = pickContinuationPr(all);
   if (chosen && chosen.duplicates.length > 0) {
     log(
-      `findOpenSdkUpdatePr: ${chosen.duplicates.length + 1} open SDK-update PRs found — ` +
-        `continuing on the highest, #${chosen.number} (${chosen.branch}). ` +
+      `findOpenSdkUpdatePr: ${chosen.duplicates.length + 1} open update PRs found — ` +
+        `continuing on the newest, #${chosen.number} (${chosen.branch}). ` +
         `Close the duplicates manually: ` +
         chosen.duplicates.map((c) => `#${c.number} (${c.headRefName})`).join(", "),
     );

@@ -844,22 +844,22 @@ describe("pickContinuationPr", () => {
     expect(pickContinuationPr([])).toBeNull();
   });
 
-  test("ignores PRs whose branch is not an sdk-update branch", () => {
+  test("ignores PRs whose branch is not an update-pipeline branch", () => {
     const out = pickContinuationPr([pr(10, "feat/cheatsheet"), pr(11, "fix/login")]);
     expect(out).toBeNull();
   });
 
-  test("returns the single open sdk-update PR with no duplicates", () => {
+  test("returns the single open update PR with no duplicates", () => {
     const out = pickContinuationPr([pr(48, "sdk-update/0.3.169"), pr(49, "site/flipbook")]);
     expect(out?.number).toBe(48);
     expect(out?.branch).toBe("sdk-update/0.3.169");
     expect(out?.duplicates).toEqual([]);
   });
 
-  test("picks the HIGHEST-version sdk-update PR when several are open", () => {
+  test("picks the HIGHEST-numbered sdk-update PR when several are open", () => {
     // The exact double-PR mess this feature exists to consolidate: 0.3.170
     // shipped, 0.3.171 then shipped before a merge. We continue on the
-    // newest (0.3.171) and report the rest as duplicates to close.
+    // newest (highest PR number) and report the rest as duplicates to close.
     const out = pickContinuationPr([
       pr(48, "sdk-update/0.3.170"),
       pr(50, "sdk-update/0.3.171"),
@@ -868,6 +868,28 @@ describe("pickContinuationPr", () => {
     expect(out?.number).toBe(50);
     expect(out?.branch).toBe("sdk-update/0.3.171");
     expect(out?.duplicates.map((d) => d.number).sort()).toEqual([46, 48]);
+  });
+
+  test("continues cc-parity PRs too — either pipeline's branch is a candidate", () => {
+    const out = pickContinuationPr([pr(224, "cc-parity/2.1.246"), pr(90, "feat/x")]);
+    expect(out?.number).toBe(224);
+    expect(out?.branch).toBe("cc-parity/2.1.246");
+    expect(out?.duplicates).toEqual([]);
+  });
+
+  test("picks the newest across BOTH prefixes by PR number, not by version", () => {
+    // The consolidation case from the field: an open cc-parity PR (#224) and
+    // a newer combined sdk-update PR (#225). Versions 2.1.246 vs 0.3.247 are
+    // not comparable, so ordering is by PR number: #225 wins, #224 is a dup.
+    // (A version comparator would pick 2.1.246 as "newer" — the bug.)
+    const out = pickContinuationPr([
+      pr(224, "cc-parity/2.1.246"),
+      pr(225, "sdk-update/0.3.247"),
+      pr(223, "cc-parity/2.1.245"),
+    ]);
+    expect(out?.number).toBe(225);
+    expect(out?.branch).toBe("sdk-update/0.3.247");
+    expect(out?.duplicates.map((d) => d.number).sort()).toEqual([223, 224]);
   });
 });
 

@@ -53,6 +53,7 @@ import {
   clampGitHubBody,
   collectChecks,
   collectReviews,
+  findOpenSdkUpdatePr,
   openPr,
   parseSkipGates,
   preflight,
@@ -148,8 +149,20 @@ function branchName(version: string): string {
  * copy rather than imported to avoid a circular import — the SDK
  * orchestrator already dynamically imports from this file.
  */
-function checkoutFreshBranch(version: string): { branch: string; resumed: boolean } {
-  const branch = branchName(version);
+function checkoutFreshBranch(
+  version: string,
+  opts: { branchOverride?: string } = {},
+): { branch: string; resumed: boolean } {
+  // `branchOverride` is set when we're CONTINUING an already-open update PR
+  // (see findOpenSdkUpdatePr, shared with the SDK pipeline): the working
+  // branch is that PR's existing head — which may be another `cc-parity/<v>`
+  // OR an `sdk-update/<v>` branch — rather than a fresh `cc-parity/<version>`.
+  // Because that branch already exists on origin, the resume path below
+  // (reset to origin/<branch> + merge main in) is what runs, stacking this
+  // parity work on the prior work so it all lands in ONE rolling PR. The
+  // working cc version comes from `version` (the check.ts newVersion arg),
+  // never from the branch name, so adopting a foreign-prefix branch is safe.
+  const branch = opts.branchOverride ?? branchName(version);
   log(`syncing origin/main`);
   sh("git", ["fetch", "origin", "main", "--prune"]);
 
@@ -1443,13 +1456,30 @@ async function main(): Promise<void> {
     fatal("no previous version recorded in state — pass --previous=<x.y.z> explicitly");
   }
 
+  // Continuation: if any update PR (this pipeline's OR the SDK updater's) is
+  // still open, stack this parity work onto that PR's existing branch
+  // instead of forking a fresh `cc-parity/<newVersion>` off main. This is
+  // the cc-parity half of the shared "one rolling PR" behavior — before it,
+  // cc-parity only ever resumed a branch of its OWN same version, so each
+  // new claude-code release opened a brand-new PR off main (the multi-open-PR
+  // pile this fixes). Skipped in dry-run, which iterates on the prompt
+  // against a throwaway branch and must not touch real PRs.
+  const continuation = dryRun ? null : findOpenSdkUpdatePr();
+  const inFlightBranch = continuation?.branch ?? branchName(newVersion);
+  if (continuation) {
+    log(
+      `open update PR #${continuation.number} found on ${continuation.branch} — ` +
+        `stacking cc-parity ${prevVersion} → ${newVersion} onto it (no new PR will be opened)`,
+    );
+  }
+
   log(`starting cc-parity review ${prevVersion} → ${newVersion}`);
   void readState(ROOT);
   patchState(
     {
       inFlight: {
         version: newVersion,
-        branch: branchName(newVersion),
+        branch: inFlightBranch,
         startedAt: Date.now(),
       },
     },
@@ -1500,11 +1530,17 @@ async function main(): Promise<void> {
   };
 
   try {
-    const { branch, resumed } = checkoutFreshBranch(newVersion);
+    const { branch, resumed } = checkoutFreshBranch(newVersion, {
+      branchOverride: continuation?.branch,
+    });
     branchForCatch = branch;
     if (resumed) {
       log(
-        `RESUMING prior cc-parity work on ${branch}; run-notes / changelog steps will pick up where they left off`,
+        `RESUMING prior work on ${branch}` +
+          (continuation
+            ? ` (continuation of open PR #${continuation.number})`
+            : "") +
+          `; run-notes / changelog steps will pick up where they left off`,
       );
     }
 
