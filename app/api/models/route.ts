@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import type { Query } from "@anthropic-ai/claude-agent-sdk";
 import { sessionManager } from "@/lib/server/session-manager";
+import { applyModelPickerCuration } from "@/lib/server/model-picker-curation";
+import { readSettings } from "@/lib/server/settings";
 
 export const runtime = "nodejs";
 
@@ -91,6 +93,13 @@ const STATIC_FALLBACK: ModelInfo[] = [
 ];
 
 export async function GET() {
+  // `modelPicker` (Claude Code 2.1.243) — read once and apply to whichever
+  // branch below produces the final list. "user" scope ignores the cwd
+  // argument entirely (always `~/.claude/settings.json`), so this route
+  // being sessionless doesn't matter here.
+  const picker = await readSettings("user", process.cwd())
+    .then((s) => s.modelPicker)
+    .catch(() => undefined);
   try {
     // Look for any bound session and borrow its Query. We access the
     // `query` instance field directly (not a wrapper method on Session)
@@ -102,7 +111,10 @@ export async function GET() {
       try {
         const models = await query.supportedModels();
         if (Array.isArray(models) && models.length > 0) {
-          return NextResponse.json({ models, source: "session" });
+          return NextResponse.json({
+            models: applyModelPickerCuration(models, picker),
+            source: "session",
+          });
         }
       } catch {
         // This session's query is unhappy — try the next one. If they
@@ -114,5 +126,8 @@ export async function GET() {
     // picker. Log and serve the fallback so the UI stays usable.
     console.error("[api/models] GET session-probe failed", err);
   }
-  return NextResponse.json({ models: STATIC_FALLBACK, source: "fallback" });
+  return NextResponse.json({
+    models: applyModelPickerCuration(STATIC_FALLBACK, picker),
+    source: "fallback",
+  });
 }

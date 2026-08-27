@@ -2,11 +2,16 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, RefreshCw, Save, Search, Settings as SettingsIcon, X } from "lucide-react";
+import { ArrowLeft, Plus, RefreshCw, Save, Search, Settings as SettingsIcon, Trash2, X } from "lucide-react";
 import { SideNav } from "@/components/nav/SideNav";
 import { useActiveCwd } from "@/lib/client/useActiveCwd";
 import { useSettings } from "@/lib/client/useSettings";
-import type { ClaudeSettings, SettingsScope } from "@/lib/server/settings";
+import type {
+  ClaudeSettings,
+  ModelPickerSettings,
+  ModelPricingSettings,
+  SettingsScope,
+} from "@/lib/server/settings";
 import { useTheme, THEMES, type ThemeId } from "@/lib/client/theme";
 import { useLinkTarget } from "@/lib/client/link-target";
 import { LINK_TARGETS } from "@/lib/shared/link-target";
@@ -983,6 +988,28 @@ const SDK_SETTINGS_CATALOG: SettingMeta[] = [
     desc: 'Advisory size guideline for "ultracode" (Dynamic Workflows) — how large a fan-out the model should aim for when it plans a workflow run. Absent leaves the SDK default.',
   },
   {
+    // Claude Code 2.1.243 — curate the /model picker with an ordered,
+    // labeled list of models. Rendered with a custom list editor —
+    // `ModelPickerCatalogField` below — since the value is a structured
+    // {mode, entries[]} object, not a scalar. `type` is a formality here
+    // (the custom-field early-return in `CatalogField` short-circuits
+    // before it's read).
+    key: "modelPicker",
+    type: "string",
+    section: "Model & behavior",
+    desc: "Curate the /model picker with an ordered, labeled list of models (any id spelling, including Vertex/Bedrock ids) — appended to or replacing the built-in lineup.",
+  },
+  {
+    // Claude Code 2.1.243 — org-contracted per-model rates + discount
+    // multiplier for the Cost page, instead of LiteLLM list price. Custom
+    // list editor — `ModelPricingCatalogField` below — same reasoning as
+    // modelPicker above.
+    key: "modelPricing",
+    type: "string",
+    section: "Cost & pricing",
+    desc: "Organization-contracted per-model $/MT rates and/or a discount multiplier, used on the Cost page instead of LiteLLM list price where a rate matches.",
+  },
+  {
     key: "alwaysThinkingEnabled",
     type: "boolean",
     section: "Thinking & effort",
@@ -1428,6 +1455,12 @@ function CatalogField({
   if (meta.key === "advisorModel") {
     return <AdvisorCatalogField value={value} set={set} />;
   }
+  if (meta.key === "modelPicker") {
+    return <ModelPickerCatalogField value={value} set={set} />;
+  }
+  if (meta.key === "modelPricing") {
+    return <ModelPricingCatalogField value={value} set={set} />;
+  }
   const inputCls =
     "w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 font-mono text-xs focus:outline-none";
   const selectCls =
@@ -1527,6 +1560,298 @@ function CatalogField({
       </div>
       <p className="mb-2 text-[11px] leading-4 text-[var(--muted)]">{meta.desc}</p>
       {control}
+    </div>
+  );
+}
+
+/**
+ * Custom catalog row for `modelPicker` (Claude Code 2.1.243) — curate the
+ * `/model` picker with an ordered, labeled list of models. The value is a
+ * structured `{mode, entries[]}` object, so it gets a small list editor
+ * (add/remove/reorder rows of id + label) instead of the generic scalar
+ * inputs, and a mode toggle for "append after the built-in lineup" vs
+ * "replace it entirely". Applied server-side by
+ * `lib/server/model-picker-curation.ts` to whatever `/api/models` and
+ * `/api/sessions/[id]/model` already return.
+ */
+function ModelPickerCatalogField({
+  value,
+  set,
+}: {
+  value: unknown;
+  set: (v: unknown) => void;
+}) {
+  const current: ModelPickerSettings =
+    value && typeof value === "object" ? (value as ModelPickerSettings) : {};
+  const entries = current.entries ?? [];
+  const mode = current.mode ?? "append";
+  const isSet = entries.length > 0;
+
+  const commit = (next: ModelPickerSettings) => {
+    // Persist whenever there's an entry to curate OR the mode was
+    // explicitly flipped to "replace" — a bare `entries.length > 0` check
+    // would silently discard a "replace" pick made before the first row is
+    // added (the next `set(undefined)` would forget it, and the following
+    // "add entry" commit would start from an empty `current` again).
+    const hasEntries = Boolean(next.entries && next.entries.length > 0);
+    const hasNonDefaultMode = next.mode === "replace";
+    set(hasEntries || hasNonDefaultMode ? next : undefined);
+  };
+
+  return (
+    <div
+      data-testid="catalog-field-modelPicker"
+      className="rounded-md border border-[var(--border)] bg-[var(--panel-2)]/40 p-3"
+    >
+      <div className="mb-1 flex items-center gap-2">
+        <span className="font-mono text-xs">modelPicker</span>
+        <span
+          className={cn(
+            "ml-auto text-[9px] uppercase tracking-wide",
+            isSet ? "text-[var(--accent)]" : "text-[var(--muted)]",
+          )}
+        >
+          {isSet ? "overridden" : "default"}
+        </span>
+      </div>
+      <p className="mb-2 text-[11px] leading-4 text-[var(--muted)]">
+        Curate the /model picker with an ordered, labeled list of models (any id spelling,
+        including Vertex/Bedrock ids).
+      </p>
+      <div className="mb-2 flex items-center gap-2 text-[11px]">
+        <span className="text-[var(--muted)]">Mode:</span>
+        <select
+          data-testid="model-picker-mode"
+          value={mode}
+          onChange={(e) =>
+            commit({ ...current, mode: e.target.value as "append" | "replace" })
+          }
+          className="rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-1.5 py-1 text-[11px] focus:outline-none"
+        >
+          <option value="append">Append after built-in lineup</option>
+          <option value="replace">Replace built-in lineup</option>
+        </select>
+      </div>
+      <ul className="space-y-1.5">
+        {entries.map((entry, i) => (
+          <li key={i} className="flex items-center gap-1.5">
+            <input
+              data-testid="model-picker-entry-id"
+              value={entry.id}
+              placeholder="claude-opus-4-8@20260115 / bedrock:anthropic.claude-…"
+              onChange={(e) => {
+                const next = entries.slice();
+                next[i] = { ...next[i], id: e.target.value };
+                commit({ ...current, entries: next });
+              }}
+              className="min-w-0 flex-[2] rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1 font-mono text-[11px] focus:outline-none"
+            />
+            <input
+              data-testid="model-picker-entry-label"
+              value={entry.label ?? ""}
+              placeholder="Label (optional)"
+              onChange={(e) => {
+                const next = entries.slice();
+                next[i] = { ...next[i], label: e.target.value || undefined };
+                commit({ ...current, entries: next });
+              }}
+              className="min-w-0 flex-1 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1 text-[11px] focus:outline-none"
+            />
+            <button
+              type="button"
+              data-testid="model-picker-entry-remove"
+              onClick={() => commit({ ...current, entries: entries.filter((_, j) => j !== i) })}
+              className="shrink-0 rounded-md border border-[var(--border)] bg-[var(--panel-2)] p-1 text-[var(--muted)] hover:text-red-400"
+              title="Remove"
+            >
+              <Trash2 className="h-3 w-3" />
+            </button>
+          </li>
+        ))}
+      </ul>
+      <button
+        type="button"
+        data-testid="model-picker-add-entry"
+        onClick={() => commit({ ...current, entries: [...entries, { id: "" }] })}
+        className="mt-2 flex items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1 text-[11px] hover:bg-[var(--panel)]"
+      >
+        <Plus className="h-3 w-3" /> Add model
+      </button>
+    </div>
+  );
+}
+
+/**
+ * Custom catalog row for `modelPricing` (Claude Code 2.1.243) — an
+ * organization's contracted per-model $/MT rates and a discount
+ * multiplier, applied on the Cost page instead of LiteLLM list price.
+ * Same reasoning as `ModelPickerCatalogField` above for why this gets a
+ * bespoke editor instead of the generic scalar inputs. Rate math lives in
+ * `lib/server/model-pricing-override.ts`.
+ */
+function ModelPricingCatalogField({
+  value,
+  set,
+}: {
+  value: unknown;
+  set: (v: unknown) => void;
+}) {
+  const current: ModelPricingSettings =
+    value && typeof value === "object" ? (value as ModelPricingSettings) : {};
+  const rateEntries = Object.entries(current.rates ?? {});
+  const isSet =
+    (typeof current.discountMultiplier === "number" && current.discountMultiplier > 0) ||
+    rateEntries.length > 0;
+
+  const commit = (next: ModelPricingSettings) => {
+    const hasRates = next.rates && Object.keys(next.rates).length > 0;
+    const hasDiscount = typeof next.discountMultiplier === "number" && next.discountMultiplier > 0;
+    set(hasRates || hasDiscount ? next : undefined);
+  };
+
+  const numInput = (
+    testid: string,
+    val: number | undefined,
+    onChange: (n: number | undefined) => void,
+    placeholder: string,
+  ) => (
+    <input
+      data-testid={testid}
+      type="number"
+      step="0.01"
+      value={val ?? ""}
+      placeholder={placeholder}
+      onChange={(e) => onChange(e.target.value === "" ? undefined : Number(e.target.value))}
+      className="w-full min-w-0 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-1.5 py-1 font-mono text-[10px] focus:outline-none"
+    />
+  );
+
+  return (
+    <div
+      data-testid="catalog-field-modelPricing"
+      className="rounded-md border border-[var(--border)] bg-[var(--panel-2)]/40 p-3"
+    >
+      <div className="mb-1 flex items-center gap-2">
+        <span className="font-mono text-xs">modelPricing</span>
+        <span
+          className={cn(
+            "ml-auto text-[9px] uppercase tracking-wide",
+            isSet ? "text-[var(--accent)]" : "text-[var(--muted)]",
+          )}
+        >
+          {isSet ? "overridden" : "default"}
+        </span>
+      </div>
+      <p className="mb-2 text-[11px] leading-4 text-[var(--muted)]">
+        Organization-contracted per-model $/MT rates and/or a discount multiplier, used on the
+        Cost page instead of LiteLLM list price where a rate matches.
+      </p>
+      <div className="mb-3 flex items-center gap-2 text-[11px]">
+        <span className="text-[var(--muted)]">Discount multiplier:</span>
+        <div className="w-20">
+          {numInput(
+            "model-pricing-discount",
+            current.discountMultiplier,
+            (n) => commit({ ...current, discountMultiplier: n }),
+            "0.9",
+          )}
+        </div>
+      </div>
+      <ul className="space-y-2">
+        {rateEntries.map(([model, rate], i) => (
+          <li key={i} className="rounded border border-[var(--border)] p-2">
+            <div className="mb-1.5 flex items-center gap-1.5">
+              <input
+                data-testid="model-pricing-rate-key"
+                value={model}
+                placeholder="opus / claude-opus-4-8"
+                onChange={(e) => {
+                  const nextRates = { ...current.rates };
+                  delete nextRates[model];
+                  nextRates[e.target.value] = rate;
+                  commit({ ...current, rates: nextRates });
+                }}
+                className="min-w-0 flex-1 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1 font-mono text-[11px] focus:outline-none"
+              />
+              <button
+                type="button"
+                data-testid="model-pricing-rate-remove"
+                onClick={() => {
+                  const nextRates = { ...current.rates };
+                  delete nextRates[model];
+                  commit({ ...current, rates: nextRates });
+                }}
+                className="shrink-0 rounded-md border border-[var(--border)] bg-[var(--panel-2)] p-1 text-[var(--muted)] hover:text-red-400"
+                title="Remove"
+              >
+                <Trash2 className="h-3 w-3" />
+              </button>
+            </div>
+            <div className="grid grid-cols-5 gap-1">
+              {numInput(
+                "model-pricing-rate-input",
+                rate.input,
+                (n) =>
+                  commit({
+                    ...current,
+                    rates: { ...current.rates, [model]: { ...rate, input: n } },
+                  }),
+                "in $/MT",
+              )}
+              {numInput(
+                "model-pricing-rate-output",
+                rate.output,
+                (n) =>
+                  commit({
+                    ...current,
+                    rates: { ...current.rates, [model]: { ...rate, output: n } },
+                  }),
+                "out $/MT",
+              )}
+              {numInput(
+                "model-pricing-rate-cache-read",
+                rate.cacheRead,
+                (n) =>
+                  commit({
+                    ...current,
+                    rates: { ...current.rates, [model]: { ...rate, cacheRead: n } },
+                  }),
+                "cache read",
+              )}
+              {numInput(
+                "model-pricing-rate-cache-write-5m",
+                rate.cacheWrite5m,
+                (n) =>
+                  commit({
+                    ...current,
+                    rates: { ...current.rates, [model]: { ...rate, cacheWrite5m: n } },
+                  }),
+                "write 5m",
+              )}
+              {numInput(
+                "model-pricing-rate-cache-write-1h",
+                rate.cacheWrite1h,
+                (n) =>
+                  commit({
+                    ...current,
+                    rates: { ...current.rates, [model]: { ...rate, cacheWrite1h: n } },
+                  }),
+                "write 1h",
+              )}
+            </div>
+          </li>
+        ))}
+      </ul>
+      <button
+        type="button"
+        data-testid="model-pricing-add-rate"
+        onClick={() =>
+          commit({ ...current, rates: { ...current.rates, "": {} } })
+        }
+        className="mt-2 flex items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1 text-[11px] hover:bg-[var(--panel)]"
+      >
+        <Plus className="h-3 w-3" /> Add model rate
+      </button>
     </div>
   );
 }

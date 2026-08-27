@@ -213,8 +213,48 @@ export type ClaudeSettings = {
   // catalog row (same treatment as `defaultShell`, `promptCacheTtl`) is all
   // Claudius needs.
   keybindingFlavor?: "classic" | "readline";
+  // Claude Code 2.1.243 — "Added a modelPicker setting: curate the /model
+  // picker with an ordered, labeled list of models (any id spelling,
+  // including Vertex/Bedrock ids), appended to or replacing the built-in
+  // lineup." Read at request time by `lib/server/model-picker-curation.ts`
+  // and applied to the model lists `/api/models` and
+  // `/api/sessions/[id]/model` already return — see that module for the
+  // curation logic. `mode: "append"` (default/absent) adds `entries` after
+  // the SDK's own list; `"replace"` shows ONLY the curated entries.
+  modelPicker?: ModelPickerSettings;
+  // Claude Code 2.1.243 — "Added modelPricing managed setting so an
+  // organization's contracted per-model rates and discount multiplier are
+  // used for /cost, the status line, and telemetry cost figures instead of
+  // list price." Read by `lib/server/cost-aggregate.ts` via
+  // `lib/server/model-pricing-override.ts` and applied to the Cost page's
+  // computed spend — see that module for scoping notes (not applied to the
+  // StatusLine's live per-turn estimate, which reconciles to the SDK's own
+  // authoritative `total_cost_usd`).
+  modelPricing?: ModelPricingSettings;
   // Catch-all for keys we don't yet know about — we never strip them.
   [key: string]: unknown;
+};
+
+/** The SDK's `Settings.modelPicker` shape (Claude Code 2.1.243). */
+export type ModelPickerSettings = {
+  /** "append" (default) adds `entries` after the built-in lineup; "replace" shows ONLY `entries`. */
+  mode?: "append" | "replace";
+  entries?: { id: string; label?: string }[];
+};
+
+/** The SDK's `Settings.modelPricing` shape (Claude Code 2.1.243). */
+export type ModelPricingSettings = {
+  discountMultiplier?: number;
+  rates?: Record<
+    string,
+    {
+      input?: number;
+      output?: number;
+      cacheRead?: number;
+      cacheWrite5m?: number;
+      cacheWrite1h?: number;
+    }
+  >;
 };
 
 /** The SDK's `Settings.workflowSizeGuideline` literal union (0.3.219). */
