@@ -1062,6 +1062,19 @@ const SDK_SETTINGS_CATALOG: SettingMeta[] = [
     desc: "Number of days to retain chat transcripts before automatic cleanup (default: 30). Minimum 1. Use a large value for long retention; use --no-session-persistence to disable transcript writes entirely.",
   },
   {
+    // SDK 0.3.248 — retention ceiling for transcripts written by a
+    // desktop-host surface (Claude Desktop, Cowork), which are otherwise
+    // exempt from the cleanupPeriodDays sweep above. Claudius itself isn't
+    // one of those hosts, so this never governs Claudius's own transcripts —
+    // it's surfaced here purely as a passthrough for a user who also runs
+    // one of those hosts and wants the same settings.json to bound both.
+    key: "desktopSessionCleanupPeriodDays",
+    type: "number",
+    section: "Storage & sessions",
+    placeholder: "0",
+    desc: "Retention ceiling (days) for session transcripts written by a desktop-host surface (Claude Desktop, Cowork), which are otherwise exempt from cleanupPeriodDays. 0 (default) = no ceiling, kept until deleted another way. Does not affect Claudius's own transcripts.",
+  },
+  {
     key: "feedbackSurveyRate",
     type: "number",
     section: "Storage & sessions",
