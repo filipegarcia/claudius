@@ -113,7 +113,7 @@ export function CodeBlock({ code, lang }: Props) {
 
   return (
     <div className="group relative my-2 overflow-hidden rounded-lg border border-[var(--border)] bg-[#0a0a0a]">
-      <div className="flex h-7 items-center justify-between border-b border-[var(--border)] bg-[var(--panel-2)] px-2 text-[10px] uppercase tracking-wide text-[var(--muted)]">
+      <div className="flex min-h-7 items-center justify-between border-b border-[var(--border)] bg-[var(--panel-2)] px-2 py-0.5 text-[0.71em] uppercase tracking-wide text-[var(--muted)]">
         <span>{lang || "text"}</span>
         <div className="flex items-center gap-1">
           {isExecutable && (
@@ -131,9 +131,9 @@ export function CodeBlock({ code, lang }: Props) {
               }
             >
               {running ? (
-                <Hourglass className="h-3 w-3 animate-spin" />
+                <Hourglass className="h-[1.2em] w-[1.2em] animate-spin" />
               ) : (
-                <Play className="h-3 w-3" />
+                <Play className="h-[1.2em] w-[1.2em]" />
               )}
               {running ? "Running" : "Execute"}
             </button>
@@ -143,15 +143,20 @@ export function CodeBlock({ code, lang }: Props) {
             className="flex items-center gap-1 rounded px-1.5 py-0.5 hover:bg-[var(--panel)]"
             title="Copy"
           >
-            {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+            {copied ? <Check className="h-[1.2em] w-[1.2em]" /> : <Copy className="h-[1.2em] w-[1.2em]" />}
             {copied ? "Copied" : "Copy"}
           </button>
         </div>
       </div>
       {/* Code body sized in em (0.86 ≈ 12/14 — the original text-xs vs. the
           chat surface's default text-sm body) so it scales with the user's
-          Settings → Chat size slider. The header chrome above keeps its
-          fixed pixel sizes — those are UI controls, not content. */}
+          Settings → Chat size slider. The header chrome and the execution
+          panel below ride the same variable at their own original ratios
+          (10/14, 12/14); everything in the box grows together, and the
+          ratios reproduce the old pixel sizes at the default chat-text.
+          NB: for the highlighted path this em only lands because
+          `.shiki-host pre` in globals.css inherits its font-size — a fixed
+          value there wins over this class. */}
       {html ? (
         <div
           className="shiki-host overflow-auto text-[0.86em] leading-[1.5] scroll-thin"
@@ -204,12 +209,12 @@ function ExecutionResult({
     >
       <button
         onClick={onToggle}
-        className="flex w-full items-center gap-1 px-2 py-1 text-left text-[10px] uppercase tracking-wide text-[var(--muted)] hover:bg-[var(--panel)]"
+        className="flex w-full items-center gap-1 px-2 py-1 text-left text-[0.84em] uppercase tracking-wide text-[var(--muted)] hover:bg-[var(--panel)]"
       >
         {open ? (
-          <ChevronDown className="h-3 w-3" />
+          <ChevronDown className="h-[1.2em] w-[1.2em]" />
         ) : (
-          <ChevronRight className="h-3 w-3" />
+          <ChevronRight className="h-[1.2em] w-[1.2em]" />
         )}
         <span className={success ? "text-emerald-400" : "text-red-400"}>
           exit {result.exitCode}
@@ -220,17 +225,17 @@ function ExecutionResult({
       {open && (
         <div className="max-h-64 overflow-auto px-2 pb-2 scroll-thin">
           {result.stdout && (
-            <pre className="whitespace-pre-wrap font-mono text-[12px] text-[var(--foreground)]">
+            <pre className="whitespace-pre-wrap font-mono text-[1em] text-[var(--foreground)]">
               {result.stdout}
             </pre>
           )}
           {result.stderr && (
-            <pre className="whitespace-pre-wrap font-mono text-[12px] text-red-400">
+            <pre className="whitespace-pre-wrap font-mono text-[1em] text-red-400">
               {result.stderr}
             </pre>
           )}
           {!result.stdout && !result.stderr && (
-            <div className="text-[12px] italic text-[var(--muted)]">(no output)</div>
+            <div className="text-[1em] italic text-[var(--muted)]">(no output)</div>
           )}
         </div>
       )}

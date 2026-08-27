@@ -205,14 +205,22 @@ html[data-electron] body {
   scrollbar-width: none;
 }
 
-/* Shiki host normalization — Shiki emits inline styles, we just want padding + scrolling. */
+/* Shiki host normalization — Shiki emits inline styles, we just want padding + scrolling.
+ *
+ * `font-size: inherit` is load-bearing, not a default. This rule targets the
+ * inner `pre`, so any fixed size here BEATS the `text-[0.86em]` the host div
+ * carries — a `rem` value froze every highlighted block at ~12.5px while the
+ * prose around it grew with Settings → Chat size. It must stay a font-size
+ * declaration (not be deleted) because `font-family: monospace` above would
+ * otherwise trip the UA monospace-default-size quirk and pin the block to
+ * ~13px instead of inheriting. */
 .shiki-host pre.shiki,
 .shiki-host pre {
   margin: 0;
   padding: 0.75rem 1rem;
   background: transparent !important;
   font-family: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, "Liberation Mono", monospace;
-  font-size: 0.78rem;
+  font-size: inherit;
   line-height: 1.5;
   white-space: pre;
   overflow-x: auto;

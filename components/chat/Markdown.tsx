@@ -143,33 +143,36 @@ function MarkdownFilePreview({ src, alt }: { src?: string; alt?: string }) {
   return (
     <span className="my-2 block overflow-hidden rounded-md border border-[var(--border)] bg-[var(--panel)]/60">
       {/* ── Header ─────────────────────────────────────────────────── */}
-      <span className="flex w-full items-center gap-2 px-2 py-1 text-[11px]">
+      {/* Preview chrome rides `--chat-text` at its original ratios (11/14,
+          then 10/11 for the nested bits) so the box scales with the prose
+          around it instead of shrinking into it. */}
+      <span className="flex w-full items-center gap-2 px-2 py-1 text-[0.79em]">
         <button
           type="button"
           onClick={() => setOpen((o) => !o)}
           className="flex shrink-0 items-center text-[var(--muted)] hover:text-[var(--foreground)]"
           title={open ? "Collapse preview" : "Expand preview"}
         >
-          {open ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+          {open ? <ChevronDown className="h-[1.1em] w-[1.1em]" /> : <ChevronRight className="h-[1.1em] w-[1.1em]" />}
         </button>
-        <FileIcon className="h-3 w-3 shrink-0 text-[var(--accent)]" />
-        <span className="min-w-0 flex-1 truncate font-mono text-[10px] text-[var(--muted)]">
+        <FileIcon className="h-[1.1em] w-[1.1em] shrink-0 text-[var(--accent)]" />
+        <span className="min-w-0 flex-1 truncate font-mono text-[0.91em] text-[var(--muted)]">
           {fileName}
         </span>
         {filesUrl && (
           <Link
             href={filesUrl}
             onClick={(e) => e.stopPropagation()}
-            className="ml-auto flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-[10px] text-[var(--accent)] hover:bg-[var(--panel-2)] hover:underline"
+            className="ml-auto flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-[0.91em] text-[var(--accent)] hover:bg-[var(--panel-2)] hover:underline"
           >
-            <ExternalLink className="h-2.5 w-2.5" />
+            <ExternalLink className="h-[1em] w-[1em]" />
             Open file
           </Link>
         )}
         <button
           type="button"
           onClick={() => setOpen((o) => !o)}
-          className="shrink-0 rounded px-1.5 py-0.5 text-[10px] text-[var(--muted)] hover:bg-[var(--panel-2)] hover:text-[var(--foreground)]"
+          className="shrink-0 rounded px-1.5 py-0.5 text-[0.91em] text-[var(--muted)] hover:bg-[var(--panel-2)] hover:text-[var(--foreground)]"
         >
           {open ? "Collapse" : "Preview"}
         </button>
@@ -187,7 +190,7 @@ function MarkdownFilePreview({ src, alt }: { src?: string; alt?: string }) {
                 className="h-[300px] w-full rounded border border-[var(--border)] bg-white"
               />
             ) : (
-              <span className="block px-1 py-1 text-[11px] text-[var(--muted)]">
+              <span className="block px-1 py-1 text-[0.79em] text-[var(--muted)]">
                 HTML preview only available for local workspace files.
               </span>
             )
