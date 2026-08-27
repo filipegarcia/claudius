@@ -218,11 +218,40 @@ function oneLine(s: string, n: number): string {
 // ── Shell helpers ─────────────────────────────────────────────────────
 
 /**
+ * The only executables this orchestrator is ever allowed to spawn. `sh`
+ * runs `spawnSync` WITHOUT `shell: true`, so there is no shell to inject
+ * into — but the command name still flows in from wrapper call sites that
+ * CodeQL can't prove are constant, so it flags `sh` as a
+ * command-injection sink (alerts #78/#79). Gating on this Set is a
+ * membership-test barrier CodeQL recognizes AND a real defence: a bug that
+ * ever routed an attacker-influenced string into `cmd` now throws instead
+ * of executing. Keep it in sync with the literal commands passed to `sh`
+ * below (git, gh, curl, npm, tar, bash) plus the `shStream*` helpers
+ * (bun, node) so the guard never rejects a legitimate call.
+ */
+const SH_ALLOWED_COMMANDS = new Set([
+  "git",
+  "gh",
+  "curl",
+  "npm",
+  "tar",
+  "bash",
+  "bun",
+  "node",
+  "make",
+]);
+
+/**
  * Run a command synchronously, fail loudly on non-zero exit. Used for
  * git and gh — both are short, cheap, and we want the orchestrator to
  * stop the moment the world stops looking like we expect.
  */
 function sh(cmd: string, args: string[], opts: SpawnOptions = {}): string {
+  // Command allowlist (see SH_ALLOWED_COMMANDS). Inline at the sink so
+  // CodeQL sees the membership barrier directly above the spawn.
+  if (!SH_ALLOWED_COMMANDS.has(cmd)) {
+    throw new Error(`sh: refusing to run non-allowlisted command: ${cmd}`);
+  }
   const result = spawnSync(cmd, args, {
     cwd: ROOT,
     encoding: "utf8",
@@ -5436,6 +5465,20 @@ async function main(): Promise<void> {
   const prevVersionArg = args
     .find((a) => a.startsWith("--previous="))
     ?.slice("--previous=".length);
+  // Validate the CLI-supplied version strings at the source, before they
+  // flow into git/gh argument vectors, branch names, and derived file
+  // paths. A strict semver shape can't start with `-` (no argument
+  // injection) and contains no path/shell-significant characters. This is
+  // a regexp-test whitelist guard CodeQL recognizes as a barrier for
+  // `js/command-line-injection` (alerts #78/#79); it is also the correct
+  // input contract — every real caller passes a plain `x.y.z[-tag]`.
+  const SEMVER_ARG_RE = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
+  if (newVersionArg !== undefined && !SEMVER_ARG_RE.test(newVersionArg)) {
+    fatal(`--version must be a semver string (x.y.z), got: ${newVersionArg}`);
+  }
+  if (prevVersionArg !== undefined && !SEMVER_ARG_RE.test(prevVersionArg)) {
+    fatal(`--previous must be a semver string (x.y.z), got: ${prevVersionArg}`);
+  }
   // Dry-run: do branch + bump + Claude + gate locally, then STOP
   // before push/PR/CI-watch/announce. Useful for iterating on the
   // prompt locally without spamming the remote with branches and
@@ -5456,6 +5499,12 @@ async function main(): Promise<void> {
   // `make sdk-update-fix-pr PR=<n>`. This is a wholly separate path
   // from the version upgrade below — it owns its own preflight.
   const fixPrArg = args.find((a) => a.startsWith("--fix-pr="))?.slice("--fix-pr=".length);
+  // A PR number is digits only — validate before it reaches `gh pr
+  // checkout <n>`. Same source-side whitelist-guard rationale as the
+  // version args above.
+  if (fixPrArg !== undefined && !/^\d+$/.test(fixPrArg)) {
+    fatal(`--fix-pr must be a positive integer, got: ${fixPrArg}`);
+  }
   if (fixPrArg) {
     const instruction =
       args.find((a) => a.startsWith("--instruction="))?.slice("--instruction=".length) ??
