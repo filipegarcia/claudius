@@ -6050,10 +6050,16 @@ export class Session {
    * flight. Backgrounded Tasks (`run_in_background: true`) are excluded:
    * they're fire-and-forget by contract, and the parent has already
    * moved past them.
+   *
+   * Also excludes `ambient` tasks (SDK 0.3.247) — CLI housekeeping the SDK
+   * says hosts should keep out of activity indicators, and `getStatus()`
+   * (which this feeds) is exactly that: the StatusDot / tab-strip "busy"
+   * signal.
    */
   private hasActiveSubagents(): boolean {
     for (const meta of this.taskMetaById.values()) {
       if (meta.isBackgrounded) continue;
+      if (meta.ambient) continue;
       if (meta.status === "running" || meta.status === "pending") return true;
     }
     return false;
@@ -6065,11 +6071,17 @@ export class Session {
    * excludes, so `getStatus()` reads "idle" while they run. Broadcast on
    * `turn_status` so the StatusLine header can show an honest "Idle · N
    * running" instead of hiding in-flight work behind a bare "Idle".
+   *
+   * Also excludes `ambient` tasks (SDK 0.3.247) — otherwise a backgrounded
+   * housekeeping task (e.g. an auto-started live-update watcher) would
+   * inflate the "N running" count with work the SDK explicitly says
+   * shouldn't count as an activity indicator.
    */
   private countActiveBackgroundTasks(): number {
     let n = 0;
     for (const meta of this.taskMetaById.values()) {
       if (!meta.isBackgrounded) continue;
+      if (meta.ambient) continue;
       if (meta.status === "running" || meta.status === "pending") n++;
     }
     return n;
@@ -6733,6 +6745,14 @@ export class Session {
       // set once, at start.
       is_backgrounded?: boolean;
       spawn_depth?: number;
+      // SDK 0.3.247 — housekeeping tasks the CLI doesn't surface as user
+      // work (every skip_transcript task, plus auto-started live-update
+      // watchers). Carried on task_started (seed) and task_notification
+      // (late/authoritative update); NOT on task_updated.patch — the SDK
+      // doesn't revise it there, only via a later background_tasks_changed
+      // snapshot (handled client-side; the server has no equivalent
+      // listener for that message today).
+      ambient?: boolean;
       patch?: {
         status?: string;
         description?: string;
@@ -6779,6 +6799,7 @@ export class Session {
           // / `countActiveBackgroundTasks()` on it forever.
           isBackgrounded: msg.is_backgrounded,
           spawnDepth: msg.spawn_depth,
+          ambient: msg.ambient,
           innerMessages: [],
         };
         this.taskMetaById.set(taskId, meta);
@@ -6843,6 +6864,7 @@ export class Session {
         if (msg.usage?.total_tokens != null) meta.totalTokens = msg.usage.total_tokens;
         if (msg.usage?.tool_uses != null) meta.toolUses = msg.usage.tool_uses;
         if (msg.usage?.duration_ms != null) meta.durationMs = msg.usage.duration_ms;
+        if (msg.ambient != null) meta.ambient = msg.ambient;
         this.taskMetaById.set(taskId, meta);
         this.persistTask(meta);
         // Terminal subagent event — if this was the last non-backgrounded

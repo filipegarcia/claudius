@@ -4,6 +4,7 @@ import {
   dropProvisionalForToolUse,
   findToolUseBlock,
   hasRealTaskForToolUse,
+  isActivityCountableTask,
   isBackgroundTaskLive,
   isBackgroundedToolUse,
   reconcileTasksOnToolResult,
@@ -344,5 +345,19 @@ describe("isBackgroundTaskLive (background_tasks_changed gate)", () => {
     // so the SDK re-emits) brings it back — never a permanent hide.
     const fresh = new Set(["a", "x"]);
     expect(isBackgroundTaskLive(t, fresh)).toBe(true);
+  });
+});
+
+describe("isActivityCountableTask (SDK 0.3.247 ambient exclusion)", () => {
+  test("an ambient task is excluded from activity indicators", () => {
+    expect(isActivityCountableTask({ ambient: true })).toBe(false);
+  });
+
+  test("a non-ambient task counts", () => {
+    expect(isActivityCountableTask({ ambient: false })).toBe(true);
+  });
+
+  test("an ambient-less (older SDK / not reported) task counts by default", () => {
+    expect(isActivityCountableTask({})).toBe(true);
   });
 });

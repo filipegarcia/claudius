@@ -15,7 +15,11 @@ import type {
   ToolProgressInfo,
 } from "@/lib/client/types";
 import type { PermissionRequestEvent } from "@/lib/shared/events";
-import { collectStoppableTaskIds, isBackgroundTaskLive } from "@/lib/client/task-status";
+import {
+  collectStoppableTaskIds,
+  isActivityCountableTask,
+  isBackgroundTaskLive,
+} from "@/lib/client/task-status";
 import type { ContextSummary } from "@/lib/client/useContextWatcher";
 import { isStaleWakeup } from "@/lib/shared/session-loops";
 import { CostOverlay } from "@/components/overlays/CostOverlay";
@@ -322,7 +326,14 @@ export function BackgroundTasksPanel({
       !(t.toolUseId && bashToolUseIds.has(t.toolUseId)) &&
       isLive(t),
   );
-  const runningProcs = runningBashes.length + runningProcessTasks.length;
+  // SDK 0.3.247: `ambient` housekeeping tasks (skip_transcript tasks, plus
+  // auto-started live-update watchers) still get a row below — the SDK
+  // deliberately distinguishes "exclude from activity indicators" (ambient)
+  // from "hide from the transcript" (skip_transcript) — but they're dropped
+  // from every *count*-shaped indicator (attention, the header's "N running"
+  // cue) so housekeeping the user never asked for can't inflate them.
+  const nonAmbientProcessTasks = runningProcessTasks.filter(isActivityCountableTask);
+  const runningProcs = runningBashes.length + nonAmbientProcessTasks.length;
 
   // The set of task ids the Stop-all button fans stop-task out over — agentic
   // tasks + process tasks + resolvable background shells, deduped. See
@@ -369,9 +380,13 @@ export function BackgroundTasksPanel({
   // Counter math: things needing attention. Includes scheduled loops so
   // the rail header reflects "things that will keep running" — the
   // user's complaint was that schedules had no visible cue at all.
+  // `nonAmbientSubagents` excludes SDK 0.3.247 `ambient` housekeeping tasks
+  // from the count — see `nonAmbientProcessTasks` above for why they still
+  // render as rows in `subagents` itself.
+  const nonAmbientSubagents = subagents.filter(isActivityCountableTask);
   const attention =
     runningCount +
-    subagents.length +
+    nonAmbientSubagents.length +
     (pendingPermission ? 1 : 0) +
     runningProcs +
     activeLoopCount;
@@ -382,7 +397,7 @@ export function BackgroundTasksPanel({
   // runs while the turn reads idle, so neither the spinner nor the "N running"
   // cue fired and the user had no signal it was alive ("I don't know what's
   // going on"). Counting subagents here is the always-visible fix.
-  const runningBg = runningProcs + subagents.length;
+  const runningBg = runningProcs + nonAmbientSubagents.length;
 
   // Reveal + scroll to a rail section (used by the header "running" cue). Force
   // the collapsible open by writing its persisted flag, then scroll — matches
@@ -397,8 +412,14 @@ export function BackgroundTasksPanel({
     }
     document.getElementById(anchorId)?.scrollIntoView({ behavior: "smooth", block: "center" });
   };
+  // Gated on `nonAmbientSubagents` (not the raw `subagents`, which can
+  // include ambient-only rows) — `runningBg` is built from the same
+  // ambient-filtered count, so a click on the "N running" cue must land on
+  // whichever section actually contributes to that N.
   const revealBackground = () =>
-    subagents.length > 0 ? reveal("tasks", "activity-tasks") : reveal("running", "activity-running");
+    nonAmbientSubagents.length > 0
+      ? reveal("tasks", "activity-tasks")
+      : reveal("running", "activity-running");
 
   // "Busy" covers session boot, turn-in-flight, AND backgrounded work that
   // outlives the turn (workflows/agents/shells) — so the spinner keeps saying
@@ -425,11 +446,11 @@ export function BackgroundTasksPanel({
           <button
             type="button"
             onClick={revealBackground}
-            title={subagents.length > 0 ? "Jump to running tasks" : "Jump to running processes"}
+            title={nonAmbientSubagents.length > 0 ? "Jump to running tasks" : "Jump to running processes"}
             aria-label={`${runningBg} background ${runningBg === 1 ? "task" : "tasks"} running — show them`}
             className="ml-auto flex items-center gap-1 rounded px-1 text-[10px] font-medium text-[var(--accent)] hover:bg-[var(--panel-2)]"
           >
-            {subagents.length > 0 ? <Bot className="h-3 w-3" /> : <Terminal className="h-3 w-3" />}
+            {nonAmbientSubagents.length > 0 ? <Bot className="h-3 w-3" /> : <Terminal className="h-3 w-3" />}
             {runningBg} running
           </button>
         )}

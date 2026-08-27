@@ -181,6 +181,18 @@ export type TaskInfo = {
    * backgrounded workflow is alive but has no rail signal yet.
    */
   provisional?: boolean;
+  /**
+   * SDK 0.3.247 — true for housekeeping tasks the CLI does not surface as
+   * user work (every `skip_transcript` task, plus auto-started live-update
+   * watchers); hosts should exclude them from activity indicators. Seeded
+   * from `task_started`/`task_notification` and kept current by
+   * `background_tasks_changed` (which now also re-fires when an entry's
+   * `ambient` flag flips). `BackgroundTasksPanel` excludes ambient tasks
+   * from its `attention`/`runningBg` counts but still renders their rows —
+   * mirrors the SDK's own distinction between `ambient` (indicators) and
+   * `skip_transcript` (transcript).
+   */
+  ambient?: boolean;
   totalTokens?: number;
   toolUses?: number;
   durationMs?: number;

@@ -34,6 +34,7 @@ type RawRow = {
   inner_messages: string;
   is_backgrounded: number | null;
   spawn_depth: number | null;
+  ambient: number | null;
 };
 
 function parseInnerMessages(raw: string): TaskSnapshotEntry["innerMessages"] {
@@ -66,6 +67,7 @@ function rowToEntry(row: RawRow): TaskSnapshotEntry {
     error: row.error ?? undefined,
     isBackgrounded: row.is_backgrounded == null ? undefined : row.is_backgrounded !== 0,
     spawnDepth: row.spawn_depth ?? undefined,
+    ambient: row.ambient == null ? undefined : row.ambient !== 0,
     innerMessages: parseInnerMessages(row.inner_messages),
   };
 }
@@ -82,8 +84,8 @@ export async function saveSessionTask(
        session_id, task_id, tool_use_id, subagent_type, description,
        task_type, workflow_name, status, total_tokens, tool_uses,
        duration_ms, summary, error, inner_messages, is_backgrounded,
-       spawn_depth, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       spawn_depth, ambient, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(session_id, task_id) DO UPDATE SET
        tool_use_id     = excluded.tool_use_id,
        subagent_type   = excluded.subagent_type,
@@ -99,6 +101,7 @@ export async function saveSessionTask(
        inner_messages  = excluded.inner_messages,
        is_backgrounded = excluded.is_backgrounded,
        spawn_depth     = excluded.spawn_depth,
+       ambient         = excluded.ambient,
        updated_at      = excluded.updated_at`,
   ).run(
     sessionId,
@@ -117,6 +120,7 @@ export async function saveSessionTask(
     JSON.stringify(task.innerMessages ?? []),
     task.isBackgrounded == null ? null : task.isBackgrounded ? 1 : 0,
     task.spawnDepth ?? null,
+    task.ambient == null ? null : task.ambient ? 1 : 0,
     Date.now(),
   );
 }
@@ -131,7 +135,8 @@ export async function listSessionTasks(
     .prepare<[string], RawRow>(
       `SELECT task_id, tool_use_id, subagent_type, description, task_type,
               workflow_name, status, total_tokens, tool_uses, duration_ms,
-              summary, error, inner_messages, is_backgrounded, spawn_depth
+              summary, error, inner_messages, is_backgrounded, spawn_depth,
+              ambient
          FROM session_tasks
         WHERE session_id = ?
         ORDER BY updated_at ASC`,
