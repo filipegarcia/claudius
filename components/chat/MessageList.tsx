@@ -479,9 +479,24 @@ export function MessageList({
         // ourselves (ResizeObserver + lastPinAtRef guard).
         style={{ overflowAnchor: "none" }}
       >
+        {/* `wrap-anywhere` (overflow-wrap: anywhere) is a safety net, not
+            cosmetics. `overflow-wrap` inherits, so this one class reaches
+            every text descendant — prose, inline code, links, pill labels,
+            `whitespace-pre-wrap` bodies. Without it a single unbreakable
+            token (a signed URL, an absolute path, base64) lays out wider
+            than the column, and since the scroller above sets `overflow-y`
+            with `overflow-x: visible`, the x-axis computes to `auto` — so
+            one long token anywhere in the transcript gives the whole list a
+            horizontal scrollbar and pages of empty space to scroll into.
+            `anywhere` rather than `break-words` because only `anywhere`
+            also shrinks min-content, which is what stops a long word inside
+            a flex row from forcing the row wide via `min-width: auto`.
+            Content that must not wrap is unaffected: wrapping is already
+            off under `white-space: pre` (code blocks keep their own
+            horizontal scroll) and under `truncate`'s `nowrap`. */}
         <div
           ref={contentRef}
-          className="mx-auto w-full max-w-[var(--chat-col)] space-y-4 px-2 py-6 sm:px-4"
+          className="mx-auto w-full max-w-[var(--chat-col)] space-y-4 px-2 py-6 wrap-anywhere sm:px-4"
         >
           {/* Top sentinel: when it scrolls into view, the parent loads older. */}
           {hasMoreAbove && (

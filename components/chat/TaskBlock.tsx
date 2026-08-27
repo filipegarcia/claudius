@@ -117,7 +117,13 @@ export function TaskBlock({
         <Bot className="h-3.5 w-3.5 shrink-0 text-[var(--accent)]" />
         {/* The agent-type pill is the title — the Bot icon already signals
             "subagent", so a separate "Task" label would be redundant noise. */}
-        <span className="shrink-0 whitespace-nowrap rounded-md border border-[var(--accent)]/30 bg-[var(--accent)]/10 px-1.5 py-0.5 font-mono text-[10px] text-[var(--accent)]">
+        {/* `min-w-0 shrink truncate` (the form WorkflowBlock and
+            ProposeGoalBlock already use) rather than `shrink-0`: the pill is
+            `whitespace-nowrap`, so wrapping can't save it, and a long custom
+            agent name under `shrink-0` can never yield — it pushes the row
+            past the reading column and scrolls the whole transcript
+            sideways. */}
+        <span className="min-w-0 shrink truncate whitespace-nowrap rounded-md border border-[var(--accent)]/30 bg-[var(--accent)]/10 px-1.5 py-0.5 font-mono text-[10px] text-[var(--accent)]">
           {subagentName}
         </span>
         {title && (
