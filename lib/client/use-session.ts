@@ -800,6 +800,16 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
   // rather than a bare "Idle" that hides in-flight work. Survives reconnect via
   // the server's `turn_status` re-emit on subscribe.
   const [backgroundTasks, setBackgroundTasks] = useState(0);
+  // CC 2.1.246 parity — "added the turn's completion time to the end-of-turn
+  // duration line". `turnStartedAt` (epoch ms) is stamped on the false→true
+  // edge of `pending` so `StatusLine` can drive a live elapsed ticker via
+  // `useElapsedSeconds`; `lastTurnCompletedAt` is stamped on the true→false
+  // edge so it can show "done H:MM AM/PM" once the turn settles. Both are
+  // edge-triggered inside `setPendingTracked` below (not on every render)
+  // so a same-value re-call (e.g. a repeated `turn_status: "running"`) is a
+  // no-op instead of resetting the clock mid-turn.
+  const [turnStartedAt, setTurnStartedAt] = useState<number | null>(null);
+  const [lastTurnCompletedAt, setLastTurnCompletedAt] = useState<number | null>(null);
   // tabId of whichever client currently holds the write lock for this session.
   // Null means no holder is registered (no live subscriber sent a tabId yet).
   // readOnly is derived: holderId !== null && holderId !== myTabId.
@@ -1377,6 +1387,16 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
   }, []);
 
   const setPendingTracked = useCallback((p: boolean) => {
+    // CC 2.1.246 parity — stamp the turn-timing edges before flipping
+    // `pendingRef`, so the comparison sees the *previous* value.
+    if (p !== pendingRef.current) {
+      if (p) {
+        setTurnStartedAt(Date.now());
+      } else {
+        setTurnStartedAt(null);
+        setLastTurnCompletedAt(Date.now());
+      }
+    }
     pendingRef.current = p;
     setPending(p);
     // No queue drain here — the server's `flushQueueIfIdle` (in
@@ -1390,6 +1410,8 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     setBackgroundTasks(0);
     setHolderTabId(null);
     pendingRef.current = false;
+    setTurnStartedAt(null);
+    setLastTurnCompletedAt(null);
     setMessages([]);
     setSystemEntries([]);
     setToolProgress({});
@@ -5396,6 +5418,8 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     ready,
     pending,
     backgroundTasks,
+    turnStartedAt,
+    lastTurnCompletedAt,
     readOnly: holderTabId !== null && holderTabId !== myTabId,
     takeOver,
     messages: sortedMessages,
