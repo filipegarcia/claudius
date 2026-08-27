@@ -132,7 +132,7 @@ describe("session-tasks-db roundtrip", () => {
     expect(rows[0].innerMessages).toEqual([{ at: 10, message: { type: "assistant", uuid: "a1" } }]);
   });
 
-  test("SDK 0.3.247: round-trips ambient through session_tasks (migration 017)", async () => {
+  test("SDK 0.3.247: round-trips ambient through session_tasks (migration 018)", async () => {
     const entry: TaskSnapshotEntry = {
       taskId: "task-ambient-1",
       status: "running",

@@ -1,4 +1,4 @@
--- v17: persist `ambient` on session_tasks rows.
+-- v18: persist `ambient` on session_tasks rows.
 --
 -- SDK 0.3.247 added an `ambient` flag to `task_started` / `task_notification`
 -- / `background_tasks_changed` task entries — true for housekeeping tasks
