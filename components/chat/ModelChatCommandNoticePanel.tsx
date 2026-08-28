@@ -4,12 +4,17 @@ import { useEffect } from "react";
 import { Cpu, X } from "lucide-react";
 
 /**
- * Transient toast shown when the user switches model via the `/model` slash
- * command typed in the chat (as opposed to the SessionCard picker). Mirrors
- * the Claude Code TUI's help text:
+ * Transient toast shown for a model switch the user didn't drive from the
+ * SessionCard picker:
  *
- *   "Switch between Claude models. Your pick becomes the default for new
- *    sessions."
+ *   - `reason: "chat_command"` — the `/model` slash command typed in the
+ *     chat. Mirrors the Claude Code TUI's help text: "Switch between Claude
+ *     models. Your pick becomes the default for new sessions."
+ *   - `reason: "auto"` (SDK 0.3.251) — the server observed an automatic
+ *     `fallbackModel` swap mid-turn via the `PostModelSwitch` hook
+ *     (`source: "auto"` in `lib/server/session.ts`). Previously this swap
+ *     was silent — the user only noticed once responses started coming back
+ *     from a different model.
  *
  * Auto-dismisses after a few seconds; the user can also dismiss manually.
  */
@@ -18,6 +23,7 @@ export type ModelChatCommandNotice = {
   uuid: string;
   /** Full model id emitted by the SDK (e.g. "claude-fable-5"). */
   model: string;
+  reason: "chat_command" | "auto";
 };
 
 const AUTO_DISMISS_MS = 8_000;
@@ -46,13 +52,16 @@ export function ModelChatCommandNoticePanel({
     <div
       data-pane-name="model-chat-command-notice"
       data-model={notice.model}
+      data-reason={notice.reason}
       className="border-y border-[var(--accent)]/30 bg-[var(--accent)]/8 px-4 py-1.5 text-xs text-[var(--foreground)]"
     >
       <div className="mx-auto flex max-w-[var(--chat-col)] items-center gap-2">
         <Cpu className="h-3.5 w-3.5 shrink-0 text-[var(--accent)]" />
         <span className="font-medium">Switched to {shortModel(notice.model)}</span>
         <span className="hidden truncate text-[var(--muted)] sm:inline">
-          · Your pick becomes the default for new sessions
+          {notice.reason === "auto"
+            ? "· Automatic fallback (rate limit)"
+            : "· Your pick becomes the default for new sessions"}
         </span>
         <button
           type="button"

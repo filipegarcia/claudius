@@ -762,14 +762,18 @@ export type ChatState = {
   } | null;
   /**
    * Transient toast shown when the user switches model via the `/model` slash
-   * command typed in the chat. Mirrors the Claude Code TUI's help text:
-   * "Your pick becomes the default for new sessions."
+   * command typed in the chat (`reason: "chat_command"`, mirrors the Claude
+   * Code TUI's help text: "Your pick becomes the default for new sessions"),
+   * or when the server observes an automatic `fallbackModel` swap mid-turn
+   * (`reason: "auto"`, SDK 0.3.251 `PostModelSwitch` hook) — previously a
+   * silent swap with no client-visible signal at all.
    */
   chatCommandModelNotice: {
     /** Stable across re-renders of the same notice; bumped per switch. */
     uuid: string;
     /** Full model id emitted by the SDK (e.g. "claude-fable-5"). */
     model: string;
+    reason: "chat_command" | "auto";
   } | null;
   /**
    * Transient toast shown when the server automatically disabled the advisor

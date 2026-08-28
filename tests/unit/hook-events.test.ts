@@ -28,6 +28,22 @@ describe("hook-events", () => {
     expect(spec?.description).toMatch(/classifierContext/i);
   });
 
+  test("HOOK_EVENT_NAMES includes PreModelSwitch and PostModelSwitch (SDK 0.3.251)", () => {
+    expect(HOOK_EVENT_NAMES).toContain("PreModelSwitch");
+    expect(HOOK_EVENT_NAMES).toContain("PostModelSwitch");
+  });
+
+  test("HOOK_EVENTS has display-metadata rows for PreModelSwitch and PostModelSwitch under a new 'model' category", () => {
+    const pre = HOOK_EVENTS.find((e) => e.name === "PreModelSwitch");
+    const post = HOOK_EVENTS.find((e) => e.name === "PostModelSwitch");
+    expect(pre).toBeDefined();
+    expect(post).toBeDefined();
+    expect(pre?.category).toBe("model");
+    expect(post?.category).toBe("model");
+    expect(pre?.canBlock).toBe(true);
+    expect(post?.description.length).toBeGreaterThan(0);
+  });
+
   test("HOOK_EVENT_NAMES and HOOK_EVENTS stay in sync (no silent drift)", () => {
     const namesInEvents = HOOK_EVENTS.map((e) => e.name).sort();
     expect(namesInEvents).toEqual([...HOOK_EVENT_NAMES].sort());

@@ -64,8 +64,18 @@ export type ModelChangedEvent = {
    * it to decide whether to show the "your pick becomes the default" notice.
    * Optional so older broadcasts (and the SDK-side `/model` path, which the
    * client detects via CLI stdout instead) remain valid.
+   *
+   * `"auto"` / `"resume"` / `"sdk"` (SDK 0.3.251): observed via the new
+   * `PostModelSwitch` hook in `lib/server/session.ts`, covering switches
+   * neither the picker nor the chat-command parser can see — an automatic
+   * `fallbackModel` swap mid-turn (previously applied "silently", see the
+   * `opusOverloadStreak` doc comment in session.ts), a resumed session
+   * landing on a different model than requested, or an external SDK/IDE/
+   * Remote Control caller setting the model out of band. `"auto"` fires a
+   * toast but is NOT persisted to `sessions.model` (transient — shouldn't
+   * become the sticky resume default); `"resume"`/`"sdk"` are persisted.
    */
-  source?: "picker" | "chat_command";
+  source?: "picker" | "chat_command" | "auto" | "resume" | "sdk";
 };
 
 /**

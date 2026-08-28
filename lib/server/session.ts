@@ -15,6 +15,7 @@ import {
   type Options,
   type PermissionMode,
   type PermissionResult,
+  type PostModelSwitchHookInput,
   type PostToolUseHookInput,
   type PreToolUseHookInput,
   type Query,
@@ -2482,6 +2483,69 @@ export class Session {
                 const cwd = (input as CwdChangedHookInput).new_cwd;
                 if (typeof cwd === "string" && cwd.length > 0) {
                   this.broadcastCwd(cwd);
+                }
+                return { continue: true };
+              },
+            ],
+          },
+        ],
+        // Observe model switches this session's own code can't otherwise see
+        // (SDK 0.3.251). `setModel()` (picker) and the `local_command_output`
+        // regex (chat `/model`) already keep `this.model` in sync for their
+        // two paths — this hook only fills the gap: an automatic
+        // `fallbackModel` swap mid-turn (previously silent, see the
+        // `opusOverloadStreak` doc comment above), a resumed session landing
+        // on a different model than requested, or an external SDK/IDE/Remote
+        // Control caller setting the model out of band. `source` is gated
+        // explicitly (not "if the model differs") so a picker/chat-command
+        // switch — already applied by its own path — is never double-handled
+        // here, regardless of which one wins the race.
+        //
+        // NOT registering `PreModelSwitch`: per the `WorktreeCreate`/
+        // `WorktreeRemove` precedent above, an event whose contract is more
+        // than a passive observer (here: `permissionDecision` — allow/deny/
+        // ask) risks breaking the extension point if handled incompletely.
+        // `PostModelSwitch`'s only output is informational
+        // (`additionalContext`), so it's safe as a pure observer.
+        PostModelSwitch: [
+          {
+            hooks: [
+              async (input) => {
+                const evt = input as PostModelSwitchHookInput;
+                if (
+                  evt.source !== "auto" &&
+                  evt.source !== "resume" &&
+                  evt.source !== "sdk"
+                ) {
+                  return { continue: true };
+                }
+                if (!evt.to_model || evt.to_model === evt.from_model) {
+                  return { continue: true };
+                }
+                this.model = evt.to_model;
+                this.broadcast({
+                  type: "model_changed",
+                  model: evt.to_model,
+                  source: evt.source,
+                });
+                // Don't persist a transient automatic fallback as the sticky
+                // resume default — the rate limit that caused it may already
+                // be gone by the time this session next resumes. `resume`/
+                // `sdk` reflect a durable state change, so those ARE synced
+                // to the sessions row (not `persistModelToUserSettings` —
+                // this only affects this session's own resume, never other
+                // sessions' defaults).
+                if (evt.source !== "auto") {
+                  try {
+                    await upsertSession({
+                      id: this.id,
+                      cwd: this.cwd,
+                      model: evt.to_model,
+                      title: this.title,
+                    });
+                  } catch {
+                    // Non-fatal: the broadcast already updated the client.
+                  }
                 }
                 return { continue: true };
               },
