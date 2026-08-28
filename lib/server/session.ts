@@ -3389,6 +3389,12 @@ export class Session {
     return createSdkMcpServer({
       name: "claudius_goal",
       version: "1.0.0",
+      // SDK 0.3.248 — per-server tool-call timeout, overriding the
+      // (unset, effectively-unbounded) MCP_TOOL_TIMEOUT default. The tool
+      // below only awaits a synchronous SQLite write (`setGoalAchieved`),
+      // so 10s is a generous defensive bound rather than a tuned value —
+      // it exists so a stuck write can't hang a turn forever.
+      timeout: 10_000,
       tools: [
         tool(
           "report_goal_achieved",
