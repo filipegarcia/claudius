@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Overlay } from "./Overlay";
 import type { PlanRateLimits, SessionUsage } from "@/lib/client/types";
+import { computePromptCacheStats } from "@/lib/shared/prompt-cache";
 
 type Props = {
   usage: SessionUsage | null;
@@ -83,6 +84,14 @@ export function CostOverlay({ usage, model, planUsage, onClose }: Props) {
   // healthy long-running turns as stale. See `PlanUsageUnavailableEvent` in
   // lib/shared/events.ts for the full rationale.
   const isStale = !!planUsage?.stale;
+  const promptCache = usage
+    ? computePromptCacheStats({
+        inputTokens: usage.inputTokens,
+        cacheReadInputTokens: usage.cacheReadInputTokens,
+        cacheCreationInputTokens: usage.cacheCreationInputTokens,
+      })
+    : null;
+  const spendLimit = planUsage?.rateLimits?.spendLimit ?? null;
   const windows =
     planUsage?.rateLimitsAvailable && planUsage.rateLimits
       ? (
@@ -90,7 +99,11 @@ export function CostOverlay({ usage, model, planUsage, onClose }: Props) {
             string,
             { utilization: number | null; resetsAt: string | null } | null | undefined,
           ][]
-        ).filter(([, v]) => v !== null && v !== undefined)
+          // `spendLimit` shares the rateLimits object but has a different
+          // shape ({limitUsd,usedUsd,currency} rather than {utilization,
+          // resetsAt}) and its own dedicated $ rendering below — exclude it
+          // from the generic percentage-window list.
+        ).filter(([k, v]) => k !== "spendLimit" && v !== null && v !== undefined)
       : [];
 
   return (
@@ -105,6 +118,42 @@ export function CostOverlay({ usage, model, planUsage, onClose }: Props) {
         <Stat label="Cache read" value={usage ? fmtTokens(usage.cacheReadInputTokens) : "—"} />
         <Stat label="Cache writes" value={usage ? fmtTokens(usage.cacheCreationInputTokens) : "—"} />
       </div>
+
+      {/* CC parity 2.1.251: prompt-cache line ("/cost" hit ratio, misses,
+          tokens re-cached, warm/cold). Derived client-side from the same
+          cache token totals shown above — see lib/shared/prompt-cache.ts
+          for why there's no new server field behind this. */}
+      {promptCache && (
+        <div data-testid="prompt-cache-section" className="border-t border-[var(--border)] px-4 py-3">
+          <div className="mb-2 flex items-center gap-2">
+            <span className="text-[11px] font-medium uppercase tracking-wide text-[var(--muted)]">
+              Prompt cache
+            </span>
+            <span
+              data-testid="prompt-cache-warm-badge"
+              className={`ml-auto rounded border px-1.5 py-0.5 font-mono text-[10px] ${
+                promptCache.warm
+                  ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
+                  : "border-[var(--border)] bg-[var(--panel)] text-[var(--muted)]"
+              }`}
+            >
+              {promptCache.warm ? "warm" : "cold"}
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-3 text-[11px] sm:grid-cols-4">
+            <Stat
+              label="Hit ratio"
+              value={promptCache.hitRatioPct === null ? "—" : `${Math.round(promptCache.hitRatioPct)}%`}
+            />
+            <Stat
+              label="Misses"
+              value={promptCache.missRatioPct === null ? "—" : `${Math.round(promptCache.missRatioPct)}%`}
+            />
+            <Stat label="Re-cached" value={fmtTokens(promptCache.tokensRecached)} />
+            <Stat label="Cache writes" value={fmtTokens(promptCache.cacheWriteTokens)} />
+          </div>
+        </div>
+      )}
 
       {planUsage && (
         <div
@@ -189,6 +238,32 @@ export function CostOverlay({ usage, model, planUsage, onClose }: Props) {
               Plan rate limits not available for this session type.
             </p>
           ) : null}
+
+          {/* CC parity 2.1.251: gateway-enforced spend limit — separate from
+              the percentage windows above (Anthropic-side) AND from
+              Claudius's own client-enforced USD caps in the Cost page's
+              Limits tab ("Spending limits" panel). Only for developers
+              behind a Claude apps gateway with an org-configured spend
+              limit; renders nothing when the field isn't present (which is
+              always, today — see the doc comment on
+              PlanUsageEvent.rateLimits.spendLimit). */}
+          {spendLimit && (
+            <div data-testid="spend-limit-bar" className="mt-3 border-t border-[var(--border)]/50 pt-3">
+              <div className="flex items-baseline justify-between text-[11px]">
+                <span className="text-[var(--muted)]">Gateway spend limit</span>
+                <span className="font-mono text-[var(--foreground)]">
+                  {fmtUsd(spendLimit.usedUsd ?? 0)} / {spendLimit.limitUsd === null ? "—" : fmtUsd(spendLimit.limitUsd)}
+                  {spendLimit.currency && spendLimit.currency !== "USD" ? ` ${spendLimit.currency}` : ""}
+                </span>
+              </div>
+              <UsageBar utilization={spendLimit.utilization} />
+              <p className="mt-1 text-[10px] text-[var(--muted)]">
+                Enforced by your organization&apos;s Claude apps gateway — separate from Anthropic&apos;s own
+                rate-limit windows above and from Claudius&apos;s client-side caps under the Cost page&apos;s
+                Limits tab.
+              </p>
+            </div>
+          )}
         </div>
       )}
 

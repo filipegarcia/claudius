@@ -7173,6 +7173,26 @@ export class Session {
                 return;
               }
               const rl = usageData.rate_limits;
+              // CC parity 2.1.251: `rate_limits.spend_limit` isn't in the
+              // SDK's published response type yet (verified against the
+              // latest `@anthropic-ai/claude-agent-sdk` `.d.ts` at review
+              // time) — read it defensively via a cast so this activates
+              // the day the field ships without a Claudius code change, and
+              // is a no-op (spendLimit stays undefined) until then. The
+              // field names are our best-effort guess at the eventual
+              // shape, mirroring the sibling `extra_usage` object's
+              // `{limit,used,utilization}` pattern — see the doc comment on
+              // `PlanUsageEvent.rateLimits.spendLimit` in lib/shared/events.ts.
+              const spendLimitRaw = (
+                rl as unknown as {
+                  spend_limit?: {
+                    limit_usd?: number | null;
+                    used_usd?: number | null;
+                    utilization?: number | null;
+                    currency?: string | null;
+                  } | null;
+                } | null
+              )?.spend_limit;
               const planUsageEvent: PlanUsageEvent = {
                 type: "plan_usage",
                 subscriptionType: usageData.subscription_type,
@@ -7194,6 +7214,16 @@ export class Session {
                       sevenDaySonnet: rl.seven_day_sonnet
                         ? { utilization: rl.seven_day_sonnet.utilization, resetsAt: rl.seven_day_sonnet.resets_at }
                         : rl.seven_day_sonnet,
+                      ...(spendLimitRaw
+                        ? {
+                            spendLimit: {
+                              limitUsd: spendLimitRaw.limit_usd ?? null,
+                              usedUsd: spendLimitRaw.used_usd ?? null,
+                              utilization: spendLimitRaw.utilization ?? null,
+                              currency: spendLimitRaw.currency ?? null,
+                            },
+                          }
+                        : {}),
                     }
                   : null,
                 // SDK 0.3.190 — per-model weekly windows; additive, only present

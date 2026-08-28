@@ -587,6 +587,19 @@ export type PlanRateLimits = {
     sevenDayOauthApps?: PlanUsageWindow | null;
     sevenDayOpus?: PlanUsageWindow | null;
     sevenDaySonnet?: PlanUsageWindow | null;
+    /**
+     * CC parity 2.1.251: dollar-denominated cap from a Claude apps gateway's
+     * org-configured spend limit. See `PlanUsageEvent.rateLimits.spendLimit`
+     * in `lib/shared/events.ts` for the full rationale on why the shape is
+     * inferred rather than confirmed. Absent is the expected case until the
+     * SDK publishes the field.
+     */
+    spendLimit?: {
+      limitUsd: number | null;
+      usedUsd: number | null;
+      utilization: number | null;
+      currency: string | null;
+    } | null;
   } | null;
   /**
    * Per-model weekly windows from the server limits[] array, filtered by the
