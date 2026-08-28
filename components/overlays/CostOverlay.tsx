@@ -91,7 +91,7 @@ export function CostOverlay({ usage, model, planUsage, onClose }: Props) {
         cacheCreationInputTokens: usage.cacheCreationInputTokens,
       })
     : null;
-  const spendLimit = planUsage?.rateLimits?.spendLimit ?? null;
+  const spendLimit = planUsage?.spendLimit ?? null;
   const windows =
     planUsage?.rateLimitsAvailable && planUsage.rateLimits
       ? (
@@ -99,11 +99,7 @@ export function CostOverlay({ usage, model, planUsage, onClose }: Props) {
             string,
             { utilization: number | null; resetsAt: string | null } | null | undefined,
           ][]
-          // `spendLimit` shares the rateLimits object but has a different
-          // shape ({limitUsd,usedUsd,currency} rather than {utilization,
-          // resetsAt}) and its own dedicated $ rendering below — exclude it
-          // from the generic percentage-window list.
-        ).filter(([k, v]) => k !== "spendLimit" && v !== null && v !== undefined)
+        ).filter(([, v]) => v !== null && v !== undefined)
       : [];
 
   return (
@@ -119,28 +115,27 @@ export function CostOverlay({ usage, model, planUsage, onClose }: Props) {
         <Stat label="Cache writes" value={usage ? fmtTokens(usage.cacheCreationInputTokens) : "—"} />
       </div>
 
-      {/* CC parity 2.1.251: prompt-cache line ("/cost" hit ratio, misses,
-          tokens re-cached, warm/cold). Derived client-side from the same
-          cache token totals shown above — see lib/shared/prompt-cache.ts
-          for why there's no new server field behind this. */}
+      {/* CC parity 2.1.251: prompt-cache line ("/cost" hit ratio / misses).
+          Derived client-side from the same cache token totals shown in the
+          stat grid above (Cache read / Cache writes) — see
+          lib/shared/prompt-cache.ts for why there's no new server field
+          behind this. Deliberately just the two ratios: the raw token
+          counts ("re-cached" == Cache read, cache-write tokens == Cache
+          writes) already have a home in the grid above, so repeating them
+          here would just be the same numbers twice. Also deliberately no
+          warm/cold badge — with only session-cumulative totals available
+          (no per-turn breakdown), "warm" would mean "hit cache at least
+          once, ever, this session" and stay pinned to true past the first
+          hit, which reads as live status but isn't; the hit-ratio % already
+          conveys the same information honestly. */}
       {promptCache && (
         <div data-testid="prompt-cache-section" className="border-t border-[var(--border)] px-4 py-3">
           <div className="mb-2 flex items-center gap-2">
             <span className="text-[11px] font-medium uppercase tracking-wide text-[var(--muted)]">
               Prompt cache
             </span>
-            <span
-              data-testid="prompt-cache-warm-badge"
-              className={`ml-auto rounded border px-1.5 py-0.5 font-mono text-[10px] ${
-                promptCache.warm
-                  ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
-                  : "border-[var(--border)] bg-[var(--panel)] text-[var(--muted)]"
-              }`}
-            >
-              {promptCache.warm ? "warm" : "cold"}
-            </span>
           </div>
-          <div className="grid grid-cols-2 gap-3 text-[11px] sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 text-[11px]">
             <Stat
               label="Hit ratio"
               value={promptCache.hitRatioPct === null ? "—" : `${Math.round(promptCache.hitRatioPct)}%`}
@@ -149,8 +144,6 @@ export function CostOverlay({ usage, model, planUsage, onClose }: Props) {
               label="Misses"
               value={promptCache.missRatioPct === null ? "—" : `${Math.round(promptCache.missRatioPct)}%`}
             />
-            <Stat label="Re-cached" value={fmtTokens(promptCache.tokensRecached)} />
-            <Stat label="Cache writes" value={fmtTokens(promptCache.cacheWriteTokens)} />
           </div>
         </div>
       )}

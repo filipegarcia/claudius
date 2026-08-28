@@ -1900,6 +1900,8 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
           rateLimitsAvailable: ev.rateLimitsAvailable,
           rateLimits: ev.rateLimits ?? null,
           ...(ev.modelScoped ? { modelScoped: ev.modelScoped } : {}),
+          // CC parity 2.1.251 — gateway spend limit, sibling of rateLimits.
+          ...(ev.spendLimit ? { spendLimit: ev.spendLimit } : {}),
           fetchedAt: ev.fetchedAt,
           stale: false,
         });

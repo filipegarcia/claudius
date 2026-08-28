@@ -7214,16 +7214,6 @@ export class Session {
                       sevenDaySonnet: rl.seven_day_sonnet
                         ? { utilization: rl.seven_day_sonnet.utilization, resetsAt: rl.seven_day_sonnet.resets_at }
                         : rl.seven_day_sonnet,
-                      ...(spendLimitRaw
-                        ? {
-                            spendLimit: {
-                              limitUsd: spendLimitRaw.limit_usd ?? null,
-                              usedUsd: spendLimitRaw.used_usd ?? null,
-                              utilization: spendLimitRaw.utilization ?? null,
-                              currency: spendLimitRaw.currency ?? null,
-                            },
-                          }
-                        : {}),
                     }
                   : null,
                 // SDK 0.3.190 — per-model weekly windows; additive, only present
@@ -7235,6 +7225,19 @@ export class Session {
                         utilization: ms.utilization,
                         resetsAt: ms.resets_at,
                       })),
+                    }
+                  : {}),
+                // CC parity 2.1.251 — gateway spend limit; a sibling of
+                // `rateLimits`/`modelScoped`, not nested inside `rateLimits`
+                // (see the doc comment on PlanUsageEvent.spendLimit).
+                ...(spendLimitRaw
+                  ? {
+                      spendLimit: {
+                        limitUsd: spendLimitRaw.limit_usd ?? null,
+                        usedUsd: spendLimitRaw.used_usd ?? null,
+                        utilization: spendLimitRaw.utilization ?? null,
+                        currency: spendLimitRaw.currency ?? null,
+                      },
                     }
                   : {}),
                 // CC parity 2.1.208: a fresh successful fetch always implies

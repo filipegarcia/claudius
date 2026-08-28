@@ -2,11 +2,14 @@
  * CC 2.1.251 parity — two additions to the "Session cost & usage" overlay
  * (opened via `/cost` · `/usage` · `/stats`, or the status-line cost tile):
  *
- *  1. "Prompt cache" line — hit ratio, misses, tokens re-cached, warm/cold.
- *     Upstream computes this CLI-side for its `/cost` output; there's no new
- *     server field for it (see lib/shared/prompt-cache.ts doc comment), so
- *     Claudius derives it purely client-side from the same cache-token
- *     totals the overlay already displays (Cache read / Cache writes stats).
+ *  1. "Prompt cache" line — hit ratio + misses, derived purely client-side
+ *     from the same cache-token totals the overlay already displays (Cache
+ *     read / Cache writes stats). Upstream computes this CLI-side for its
+ *     `/cost` output and there's no new server field for it (see
+ *     lib/shared/prompt-cache.ts doc comment). Deliberately just the two
+ *     ratios — no repeated raw token counts, no warm/cold badge (see that
+ *     file's doc comment for why a cumulative-only warm/cold signal would
+ *     be misleading).
  *
  *  2. "Gateway spend limit" bar — a dollar-denominated cap for sessions
  *     behind a Claude apps gateway with an org-configured spend limit
@@ -130,15 +133,19 @@ const RESULT: SdkEvent = {
   },
 };
 
-/** plan_usage event carrying a gateway spend limit alongside the usual windows. */
+/**
+ * plan_usage event carrying a gateway spend limit alongside the usual
+ * windows. `spendLimit` is a sibling of `rateLimits` (like `modelScoped`),
+ * not nested inside it — see PlanUsageEvent.spendLimit in lib/shared/events.ts.
+ */
 const PLAN_USAGE_WITH_SPEND_LIMIT: SdkEvent = {
   type: "plan_usage",
   subscriptionType: "enterprise",
   rateLimitsAvailable: true,
   rateLimits: {
     fiveHour: { utilization: 30, resetsAt: "2026-08-28T20:00:00Z" },
-    spendLimit: { limitUsd: 100, usedUsd: 42.5, utilization: 42.5, currency: "USD" },
   },
+  spendLimit: { limitUsd: 100, usedUsd: 42.5, utilization: 42.5, currency: "USD" },
 };
 
 test.beforeEach(async ({ page }) => {
@@ -146,7 +153,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test.describe("CostOverlay — prompt cache line + gateway spend limit bar (CC 2.1.251 parity)", () => {
-  test("shows hit ratio / warm badge and the gateway spend limit bar in context", async ({ page }) => {
+  test("shows the prompt-cache hit ratio and the gateway spend limit bar in context", async ({ page }) => {
     await mockChatBackend(page, [...PRELUDE, ASSISTANT, RESULT, PLAN_USAGE_WITH_SPEND_LIMIT]);
     await page.goto("/");
 
@@ -159,10 +166,9 @@ test.describe("CostOverlay — prompt cache line + gateway spend limit bar (CC 2
     // ── Prompt cache line ──────────────────────────────────────────────
     const cacheSection = page.getByTestId("prompt-cache-section");
     await expect(cacheSection).toBeVisible({ timeout: 5_000 });
-    // hit ratio = 900 / (50 + 900 + 50) = 90%
+    // hit ratio = 900 / (50 + 900 + 50) = 90%, misses = 10%
     await expect(cacheSection).toContainText("90%");
-    const warmBadge = page.getByTestId("prompt-cache-warm-badge");
-    await expect(warmBadge).toHaveText("warm");
+    await expect(cacheSection).toContainText("10%");
 
     // ── Gateway spend limit bar ────────────────────────────────────────
     const spendBar = page.getByTestId("spend-limit-bar");

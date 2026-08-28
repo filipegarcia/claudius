@@ -14,10 +14,18 @@
  * `inputTokens` / `cacheReadInputTokens` / `cacheCreationInputTokens`.
  *
  * CONSERVATIVE READING: these totals are cumulative for the whole session, not
- * per-turn, so "warm/cold" here reflects the session's cumulative cache-read
- * share rather than a true last-turn warm/cold flag (which would need
- * per-turn granularity Claudius doesn't retain). See run-notes Risks for the
- * rejected per-turn alternative.
+ * per-turn, so a cumulative "warm/cold" derived here would reflect "has this
+ * session ever hit cache" rather than a true last-turn warm/cold flag (which
+ * would need per-turn granularity Claudius doesn't retain) — after one cache
+ * hit it would stay pinned to "warm" for the rest of the session, reading as
+ * live status when it isn't. `computePromptCacheStats` still returns `warm`
+ * (and the raw `tokensRecached`/`cacheWriteTokens` split, which is just a
+ * pass-through of the inputs) for completeness and testability, but
+ * `CostOverlay` deliberately renders only `hitRatioPct`/`missRatioPct` — the
+ * raw counts already have a home in the overlay's main stat grid (Cache
+ * read / Cache writes), and the ratios convey the same "how warm is this
+ * session" signal honestly without the misleading badge. See run-notes
+ * Risks for the rejected per-turn alternative.
  */
 
 export type PromptCacheStats = {
