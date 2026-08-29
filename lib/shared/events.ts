@@ -64,8 +64,18 @@ export type ModelChangedEvent = {
    * it to decide whether to show the "your pick becomes the default" notice.
    * Optional so older broadcasts (and the SDK-side `/model` path, which the
    * client detects via CLI stdout instead) remain valid.
+   *
+   * `"auto"` / `"resume"` / `"sdk"` (SDK 0.3.251): observed via the new
+   * `PostModelSwitch` hook in `lib/server/session.ts`, covering switches
+   * neither the picker nor the chat-command parser can see — an automatic
+   * `fallbackModel` swap mid-turn (previously applied "silently", see the
+   * `opusOverloadStreak` doc comment in session.ts), a resumed session
+   * landing on a different model than requested, or an external SDK/IDE/
+   * Remote Control caller setting the model out of band. `"auto"` fires a
+   * toast but is NOT persisted to `sessions.model` (transient — shouldn't
+   * become the sticky resume default); `"resume"`/`"sdk"` are persisted.
    */
-  source?: "picker" | "chat_command";
+  source?: "picker" | "chat_command" | "auto" | "resume" | "sdk";
 };
 
 /**
@@ -761,6 +771,31 @@ export type PlanUsageEvent = {
    * `displayName` (e.g. "Fable") for labeling the usage bar in CostOverlay.
    */
   modelScoped?: Array<{ displayName: string; utilization: number | null; resetsAt: string | null }>;
+  /**
+   * CC parity 2.1.251: a dollar-denominated cap for sessions running behind
+   * a Claude apps gateway with an org-configured spend limit (distinct from
+   * Anthropic's own percentage rate-limit windows in `rateLimits` above, and
+   * distinct from Claudius's own client-enforced `LimitsPanel` caps). A
+   * sibling of `rateLimits`/`modelScoped` rather than nested inside
+   * `rateLimits` — same reason `modelScoped` isn't nested there either: it
+   * doesn't share the `{utilization, resetsAt}` window shape, so keeping it
+   * separate avoids a special-case filter everywhere `rateLimits` is mapped
+   * over as a homogeneous list of windows (see CostOverlay.tsx). Optional
+   * because, as of the SDK version this repo currently builds against, the
+   * upstream `usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET()`
+   * response does not publish a `spend_limit` field yet (checked against the
+   * latest published `@anthropic-ai/claude-agent-sdk` `.d.ts` at review
+   * time) — the field names below are our best-effort guess at the eventual
+   * shape, mirroring the sibling `extra_usage` object's
+   * `{limit,used,utilization}` pattern. Renders only when present; absent is
+   * the expected case today.
+   */
+  spendLimit?: {
+    limitUsd: number | null;
+    usedUsd: number | null;
+    utilization: number | null;
+    currency: string | null;
+  } | null;
   /**
    * Epoch ms when this event's data was fetched (CC parity 2.1.208 — mirrors
    * the CLI's `/usage` "as of <time>" note shown when the usage endpoint is

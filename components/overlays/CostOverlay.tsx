@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Overlay } from "./Overlay";
 import type { PlanRateLimits, SessionUsage } from "@/lib/client/types";
+import { computePromptCacheStats } from "@/lib/shared/prompt-cache";
 
 type Props = {
   usage: SessionUsage | null;
@@ -83,6 +84,14 @@ export function CostOverlay({ usage, model, planUsage, onClose }: Props) {
   // healthy long-running turns as stale. See `PlanUsageUnavailableEvent` in
   // lib/shared/events.ts for the full rationale.
   const isStale = !!planUsage?.stale;
+  const promptCache = usage
+    ? computePromptCacheStats({
+        inputTokens: usage.inputTokens,
+        cacheReadInputTokens: usage.cacheReadInputTokens,
+        cacheCreationInputTokens: usage.cacheCreationInputTokens,
+      })
+    : null;
+  const spendLimit = planUsage?.spendLimit ?? null;
   const windows =
     planUsage?.rateLimitsAvailable && planUsage.rateLimits
       ? (
@@ -105,6 +114,39 @@ export function CostOverlay({ usage, model, planUsage, onClose }: Props) {
         <Stat label="Cache read" value={usage ? fmtTokens(usage.cacheReadInputTokens) : "—"} />
         <Stat label="Cache writes" value={usage ? fmtTokens(usage.cacheCreationInputTokens) : "—"} />
       </div>
+
+      {/* CC parity 2.1.251: prompt-cache line ("/cost" hit ratio / misses).
+          Derived client-side from the same cache token totals shown in the
+          stat grid above (Cache read / Cache writes) — see
+          lib/shared/prompt-cache.ts for why there's no new server field
+          behind this. Deliberately just the two ratios: the raw token
+          counts ("re-cached" == Cache read, cache-write tokens == Cache
+          writes) already have a home in the grid above, so repeating them
+          here would just be the same numbers twice. Also deliberately no
+          warm/cold badge — with only session-cumulative totals available
+          (no per-turn breakdown), "warm" would mean "hit cache at least
+          once, ever, this session" and stay pinned to true past the first
+          hit, which reads as live status but isn't; the hit-ratio % already
+          conveys the same information honestly. */}
+      {promptCache && (
+        <div data-testid="prompt-cache-section" className="border-t border-[var(--border)] px-4 py-3">
+          <div className="mb-2 flex items-center gap-2">
+            <span className="text-[11px] font-medium uppercase tracking-wide text-[var(--muted)]">
+              Prompt cache
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-3 text-[11px]">
+            <Stat
+              label="Hit ratio"
+              value={promptCache.hitRatioPct === null ? "—" : `${Math.round(promptCache.hitRatioPct)}%`}
+            />
+            <Stat
+              label="Misses"
+              value={promptCache.missRatioPct === null ? "—" : `${Math.round(promptCache.missRatioPct)}%`}
+            />
+          </div>
+        </div>
+      )}
 
       {planUsage && (
         <div
@@ -189,6 +231,32 @@ export function CostOverlay({ usage, model, planUsage, onClose }: Props) {
               Plan rate limits not available for this session type.
             </p>
           ) : null}
+
+          {/* CC parity 2.1.251: gateway-enforced spend limit — separate from
+              the percentage windows above (Anthropic-side) AND from
+              Claudius's own client-enforced USD caps in the Cost page's
+              Limits tab ("Spending limits" panel). Only for developers
+              behind a Claude apps gateway with an org-configured spend
+              limit; renders nothing when the field isn't present (which is
+              always, today — see the doc comment on
+              PlanUsageEvent.rateLimits.spendLimit). */}
+          {spendLimit && (
+            <div data-testid="spend-limit-bar" className="mt-3 border-t border-[var(--border)]/50 pt-3">
+              <div className="flex items-baseline justify-between text-[11px]">
+                <span className="text-[var(--muted)]">Gateway spend limit</span>
+                <span className="font-mono text-[var(--foreground)]">
+                  {fmtUsd(spendLimit.usedUsd ?? 0)} / {spendLimit.limitUsd === null ? "—" : fmtUsd(spendLimit.limitUsd)}
+                  {spendLimit.currency && spendLimit.currency !== "USD" ? ` ${spendLimit.currency}` : ""}
+                </span>
+              </div>
+              <UsageBar utilization={spendLimit.utilization} />
+              <p className="mt-1 text-[10px] text-[var(--muted)]">
+                Enforced by your organization&apos;s Claude apps gateway — separate from Anthropic&apos;s own
+                rate-limit windows above and from Claudius&apos;s client-side caps under the Cost page&apos;s
+                Limits tab.
+              </p>
+            </div>
+          )}
         </div>
       )}
 

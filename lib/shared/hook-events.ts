@@ -17,6 +17,8 @@ export const HOOK_EVENT_NAMES = [
   "SubagentStop",
   "PreCompact",
   "PostCompact",
+  "PreModelSwitch",
+  "PostModelSwitch",
   "PermissionRequest",
   "PermissionDenied",
   "Setup",
@@ -37,7 +39,7 @@ export const HOOK_EVENT_NAMES = [
 
 export type HookEvent = (typeof HOOK_EVENT_NAMES)[number];
 
-export type HookCategory = "tool" | "session" | "user" | "agent" | "compaction" | "permission" | "context" | "elicitation" | "fs" | "other";
+export type HookCategory = "tool" | "session" | "user" | "agent" | "compaction" | "model" | "permission" | "context" | "elicitation" | "fs" | "other";
 
 export type HookEventSpec = {
   name: HookEvent;
@@ -82,6 +84,10 @@ export const HOOK_EVENTS: HookEventSpec[] = [
   { name: "PreCompact", category: "compaction", description: "Before context compaction.", matcherHint: "manual | auto", canBlock: true },
   { name: "PostCompact", category: "compaction", description: "After context compaction completes." },
 
+  // Model switching (SDK 0.3.251)
+  { name: "PreModelSwitch", category: "model", description: "Before the model changes mid-session (command, picker, or sdk). Can allow, deny, or ask for confirmation — a headless session refuses when asked.", matcherHint: "command | picker | sdk", canBlock: true },
+  { name: "PostModelSwitch", category: "model", description: "After the model changes mid-session (command, picker, sdk, automatic fallback, or resume). Can inject additionalContext for the new model's next request.", matcherHint: "command | picker | sdk | auto | resume" },
+
   // Context / config
   { name: "ConfigChange", category: "context", description: "When settings.json is modified mid-session." },
   { name: "CwdChanged", category: "context", description: "When the working directory changes." },
@@ -111,6 +117,7 @@ export const CATEGORY_LABELS: Record<HookCategory, string> = {
   user: "User input",
   agent: "Subagents & tasks",
   compaction: "Compaction",
+  model: "Model switching",
   context: "Context & config",
   elicitation: "Elicitation",
   fs: "Worktrees & files",
@@ -124,6 +131,7 @@ export const CATEGORY_ORDER: HookCategory[] = [
   "user",
   "agent",
   "compaction",
+  "model",
   "context",
   "elicitation",
   "fs",

@@ -15,6 +15,7 @@ import {
   type Options,
   type PermissionMode,
   type PermissionResult,
+  type PostModelSwitchHookInput,
   type PostToolUseHookInput,
   type PreToolUseHookInput,
   type Query,
@@ -144,6 +145,50 @@ import {
 export function worktreeRootFromPath(filePath: string): string | null {
   const m = /^(.*\/\.claude\/worktrees\/[^/]+)(?:\/|$)/.exec(filePath);
   return m ? m[1] : null;
+}
+
+/**
+ * Decision logic for the `PostModelSwitch` hook (SDK 0.3.251). Returns the
+ * action Claudius should take, or `null` if this switch shouldn't be
+ * re-broadcast.
+ *
+ * Only `source: "auto"` / `"resume"` / `"sdk"` qualify — the three cases
+ * where the model changed with no `setModel()` call and no
+ * `local_command_output` line from Claudius's own code: the SDK's automatic
+ * `fallbackModel` swap (previously silent — see the `opusOverloadStreak` doc
+ * comment in this file), a resumed session landing on a different model
+ * than requested, and an external SDK/IDE/Remote Control caller setting the
+ * model out of band. `"command"` / `"picker"` correspond to switches
+ * Claudius already broadcasts itself (`Session.setModel()`, or the
+ * `/model` chat-command watcher), so re-broadcasting those here would
+ * double-fire `model_changed` — gating on `source` rather than "did the
+ * model change" means that stays true regardless of which path wins the
+ * race. Also no-ops when `to_model` is missing, matches `from_model` (the
+ * SDK reporting a no-op switch), or already matches `currentModel` (a
+ * duplicate hook fire), so callers never emit a redundant broadcast.
+ *
+ * `persist` tells the caller whether to write the new model to the
+ * `sessions` row: `"auto"` is transient (the rate limit that caused it may
+ * already be gone by the next resume, so it shouldn't become the sticky
+ * default) while `"resume"`/`"sdk"` reflect a durable state change worth
+ * remembering.
+ *
+ * Exported (pure, no `this`) so it's unit-testable without a live
+ * `Session`/`query()` — see the `PostModelSwitch` hook registration in
+ * `start()` for the side-effecting caller (persist + broadcast).
+ */
+export function resolvePostModelSwitchHook(
+  input: PostModelSwitchHookInput,
+  currentModel: string | undefined,
+): { model: string; source: "auto" | "resume" | "sdk"; persist: boolean } | null {
+  if (input.source !== "auto" && input.source !== "resume" && input.source !== "sdk") {
+    return null;
+  }
+  const toModel = input.to_model;
+  if (!toModel || toModel === input.from_model || toModel === currentModel) {
+    return null;
+  }
+  return { model: toModel, source: input.source, persist: input.source !== "auto" };
 }
 
 /**
@@ -2482,6 +2527,49 @@ export class Session {
                 const cwd = (input as CwdChangedHookInput).new_cwd;
                 if (typeof cwd === "string" && cwd.length > 0) {
                   this.broadcastCwd(cwd);
+                }
+                return { continue: true };
+              },
+            ],
+          },
+        ],
+        // Observe model switches this session's own code can't otherwise see
+        // (SDK 0.3.251) — see `resolvePostModelSwitchHook`'s doc comment
+        // above for the full decision rationale (`this` closure only does
+        // the side effects: persist + broadcast).
+        //
+        // NOT registering `PreModelSwitch`: per the `WorktreeCreate`/
+        // `WorktreeRemove` precedent above, an event whose contract is more
+        // than a passive observer (here: `permissionDecision` — allow/deny/
+        // ask) risks breaking the extension point if handled incompletely.
+        // `PostModelSwitch`'s only output is informational
+        // (`additionalContext`), so it's safe as a pure observer.
+        PostModelSwitch: [
+          {
+            hooks: [
+              async (input) => {
+                const action = resolvePostModelSwitchHook(
+                  input as PostModelSwitchHookInput,
+                  this.model,
+                );
+                if (!action) return { continue: true };
+                this.model = action.model;
+                this.broadcast({
+                  type: "model_changed",
+                  model: action.model,
+                  source: action.source,
+                });
+                if (action.persist) {
+                  try {
+                    await upsertSession({
+                      id: this.id,
+                      cwd: this.cwd,
+                      model: action.model,
+                      title: this.title,
+                    });
+                  } catch {
+                    // Non-fatal: the broadcast already updated the client.
+                  }
                 }
                 return { continue: true };
               },
@@ -7173,6 +7261,26 @@ export class Session {
                 return;
               }
               const rl = usageData.rate_limits;
+              // CC parity 2.1.251: `rate_limits.spend_limit` isn't in the
+              // SDK's published response type yet (verified against the
+              // latest `@anthropic-ai/claude-agent-sdk` `.d.ts` at review
+              // time) — read it defensively via a cast so this activates
+              // the day the field ships without a Claudius code change, and
+              // is a no-op (spendLimit stays undefined) until then. The
+              // field names are our best-effort guess at the eventual
+              // shape, mirroring the sibling `extra_usage` object's
+              // `{limit,used,utilization}` pattern — see the doc comment on
+              // `PlanUsageEvent.rateLimits.spendLimit` in lib/shared/events.ts.
+              const spendLimitRaw = (
+                rl as unknown as {
+                  spend_limit?: {
+                    limit_usd?: number | null;
+                    used_usd?: number | null;
+                    utilization?: number | null;
+                    currency?: string | null;
+                  } | null;
+                } | null
+              )?.spend_limit;
               const planUsageEvent: PlanUsageEvent = {
                 type: "plan_usage",
                 subscriptionType: usageData.subscription_type,
@@ -7205,6 +7313,19 @@ export class Session {
                         utilization: ms.utilization,
                         resetsAt: ms.resets_at,
                       })),
+                    }
+                  : {}),
+                // CC parity 2.1.251 — gateway spend limit; a sibling of
+                // `rateLimits`/`modelScoped`, not nested inside `rateLimits`
+                // (see the doc comment on PlanUsageEvent.spendLimit).
+                ...(spendLimitRaw
+                  ? {
+                      spendLimit: {
+                        limitUsd: spendLimitRaw.limit_usd ?? null,
+                        usedUsd: spendLimitRaw.used_usd ?? null,
+                        utilization: spendLimitRaw.utilization ?? null,
+                        currency: spendLimitRaw.currency ?? null,
+                      },
                     }
                   : {}),
                 // CC parity 2.1.208: a fresh successful fetch always implies

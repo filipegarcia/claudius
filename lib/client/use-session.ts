@@ -926,13 +926,18 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
   >(null);
   /**
    * Transient toast shown when the user switches model via the `/model` slash
-   * command in the chat. Carries the new model id so the banner can show
-   * "Switched to X · Your pick becomes the default for new sessions" —
-   * mirroring the Claude Code TUI's `/model` help text.
+   * command in the chat (`reason: "chat_command"`) — "Switched to X · Your
+   * pick becomes the default for new sessions", mirroring the Claude Code
+   * TUI's `/model` help text — OR when the server observes an automatic
+   * `fallbackModel` swap mid-turn (`reason: "auto"`, SDK 0.3.251
+   * `PostModelSwitch` hook, `source: "auto"`) — "Switched to X · automatic
+   * fallback", replacing what was previously a silent swap the user only
+   * noticed once responses started coming back from a different model.
    */
   const [chatCommandModelNotice, setChatCommandModelNotice] = useState<{
     uuid: string;
     model: string;
+    reason: "chat_command" | "auto";
   } | null>(null);
   /**
    * Transient toast shown when the server auto-disabled the advisor because
@@ -1900,6 +1905,8 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
           rateLimitsAvailable: ev.rateLimitsAvailable,
           rateLimits: ev.rateLimits ?? null,
           ...(ev.modelScoped ? { modelScoped: ev.modelScoped } : {}),
+          // CC parity 2.1.251 — gateway spend limit, sibling of rateLimits.
+          ...(ev.spendLimit ? { spendLimit: ev.spendLimit } : {}),
           fetchedAt: ev.fetchedAt,
           stale: false,
         });
@@ -1932,8 +1939,16 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
         // When the switch came from a `/model` chat command (not the picker),
         // surface the "Your pick becomes the default for new sessions" notice.
         if (ev.source === "chat_command" && ev.model) {
-          setChatCommandModelNotice({ uuid: crypto.randomUUID(), model: ev.model });
+          setChatCommandModelNotice({ uuid: crypto.randomUUID(), model: ev.model, reason: "chat_command" });
+        } else if (ev.source === "auto" && ev.model) {
+          // Automatic fallback (SDK 0.3.251 PostModelSwitch hook) — this used
+          // to swap the running model with no client-visible signal at all.
+          setChatCommandModelNotice({ uuid: crypto.randomUUID(), model: ev.model, reason: "auto" });
         }
+        // `"resume"` / `"sdk"` sources update the model pill (setModelState
+        // above) without a toast — resume happens before the user is looking
+        // at a live turn, and an external sdk/IDE caller setting the model
+        // isn't a Claudius-initiated action worth interrupting the chat for.
         return;
       }
       if (ev.type === "advisor_disabled_on_model_change") {

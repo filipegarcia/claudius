@@ -596,6 +596,20 @@ export type PlanRateLimits = {
    */
   modelScoped?: Array<{ displayName: string; utilization: number | null; resetsAt: string | null }>;
   /**
+   * CC parity 2.1.251: dollar-denominated cap from a Claude apps gateway's
+   * org-configured spend limit. A sibling of `rateLimits`/`modelScoped`
+   * rather than nested inside `rateLimits` — see
+   * `PlanUsageEvent.spendLimit` in `lib/shared/events.ts` for the full
+   * rationale (it doesn't share the `{utilization, resetsAt}` window shape).
+   * Absent is the expected case until the SDK publishes the field.
+   */
+  spendLimit?: {
+    limitUsd: number | null;
+    usedUsd: number | null;
+    utilization: number | null;
+    currency: string | null;
+  } | null;
+  /**
    * Epoch ms when this data was fetched. See `PlanUsageEvent.fetchedAt` in
    * `lib/shared/events.ts` for the full rationale (CC parity 2.1.208).
    */
@@ -748,14 +762,18 @@ export type ChatState = {
   } | null;
   /**
    * Transient toast shown when the user switches model via the `/model` slash
-   * command typed in the chat. Mirrors the Claude Code TUI's help text:
-   * "Your pick becomes the default for new sessions."
+   * command typed in the chat (`reason: "chat_command"`, mirrors the Claude
+   * Code TUI's help text: "Your pick becomes the default for new sessions"),
+   * or when the server observes an automatic `fallbackModel` swap mid-turn
+   * (`reason: "auto"`, SDK 0.3.251 `PostModelSwitch` hook) — previously a
+   * silent swap with no client-visible signal at all.
    */
   chatCommandModelNotice: {
     /** Stable across re-renders of the same notice; bumped per switch. */
     uuid: string;
     /** Full model id emitted by the SDK (e.g. "claude-fable-5"). */
     model: string;
+    reason: "chat_command" | "auto";
   } | null;
   /**
    * Transient toast shown when the server automatically disabled the advisor
