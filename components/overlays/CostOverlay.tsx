@@ -262,8 +262,8 @@ export function CostOverlay({ usage, model, planUsage, onClose }: Props) {
 
       <div className="flex items-center gap-2 border-t border-[var(--border)] bg-[var(--panel-2)]/40 px-4 py-2 text-[11px] text-[var(--muted)]">
         <span>
-          Model: <span className="font-mono">{model ?? "—"}</span> · numbers accumulate per-turn from SDK result
-          messages.
+          Model: <span className="font-mono">{model ?? "—"}</span> · totals persist across restarts; live turns
+          update as estimates until the turn completes.
         </span>
         <Link
           href="/cost"

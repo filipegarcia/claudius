@@ -11,6 +11,7 @@ import type {
   PermissionRequestEvent,
   PlanDecision,
   ServerEvent,
+  SessionUsageTotals,
   TokenExpiringNudgeEvent,
 } from "@/lib/shared/events";
 import type { Tip } from "@/lib/shared/tips";
@@ -546,18 +547,12 @@ export type ScheduledLoop = {
   cancelled?: boolean;
 };
 
-export type SessionUsage = {
-  totalCostUsd: number;
-  numTurns: number;
-  durationMs: number;
-  durationApiMs: number;
-  inputTokens: number;
-  outputTokens: number;
-  cacheReadInputTokens: number;
-  cacheCreationInputTokens: number;
-  /** Per-model breakdown if available. */
-  modelUsage?: Record<string, unknown>;
-};
+/**
+ * Cumulative session cost/usage as shown in the /cost dialog. Alias of the
+ * shared `SessionUsageTotals` — the same shape the server's `usage_snapshot`
+ * event carries, so the client can adopt a snapshot wholesale.
+ */
+export type SessionUsage = SessionUsageTotals;
 
 /**
  * One utilization window from the claude.ai plan rate-limit response.

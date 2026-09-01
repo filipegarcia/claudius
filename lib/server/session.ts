@@ -76,8 +76,11 @@ import {
   type PlanUsageEvent,
   type PlanUsageUnavailableEvent,
   type ServerEvent,
+  type SessionUsageTotals,
   type TaskSnapshotEntry,
 } from "@/lib/shared/events";
+import { getSessionUsage, saveSessionUsage } from "./session-usage-db";
+import { costFromTokens } from "@/lib/shared/cost-pricing";
 import { listSessionTasks, saveSessionTask } from "./session-tasks-db";
 import { attachLoopTickTokens, recordLoopTick } from "./loop-ticks-db";
 import {
@@ -871,6 +874,11 @@ type PendingPlan = {
  */
 export function shouldBufferEvent(event: ServerEvent): boolean {
   if (event.type === "queue:updated" || event.type === "holder_changed") return false;
+  // `usage_snapshot` is also a SNAPSHOT (cumulative totals, not a log entry) —
+  // replaying a stale one on reload would regress the /cost tiles before the
+  // fresh per-subscriber emit in `subscribe()` repaints them, and buffering
+  // one per turn would crowd real history out of the FIFO cap.
+  if (event.type === "usage_snapshot") return false;
   if (event.type === "sdk" && (event.message as { type?: string })?.type === "command_lifecycle") {
     return false;
   }
@@ -941,6 +949,202 @@ export function computeReplayWindow(
     startIdx = latestUserTurnIdx;
   }
   return { startIdx, hasMoreAbove: startIdx > 0 };
+}
+
+const ZERO_SESSION_USAGE: SessionUsageTotals = {
+  totalCostUsd: 0,
+  numTurns: 0,
+  durationMs: 0,
+  durationApiMs: 0,
+  inputTokens: 0,
+  outputTokens: 0,
+  cacheReadInputTokens: 0,
+  cacheCreationInputTokens: 0,
+};
+
+export function zeroSessionUsage(): SessionUsageTotals {
+  return { ...ZERO_SESSION_USAGE };
+}
+
+/**
+ * Per-model `ModelUsage` fields that accumulate across SDK processes. The
+ * rest (contextWindow, maxOutputTokens, canonicalModel, provider, …) are
+ * descriptive — the latest observation wins.
+ */
+const ADDITIVE_MODEL_USAGE_FIELDS = new Set([
+  "inputTokens",
+  "outputTokens",
+  "cacheReadInputTokens",
+  "cacheCreationInputTokens",
+  "webSearchRequests",
+  "costUSD",
+]);
+
+/** Merge two per-model breakdowns, adding token/cost counters per model. */
+export function mergeModelUsage(
+  base: Record<string, unknown> | undefined,
+  next: Record<string, unknown> | undefined,
+): Record<string, unknown> | undefined {
+  if (!base) return next;
+  if (!next) return base;
+  const out: Record<string, unknown> = { ...base };
+  for (const [model, rawNext] of Object.entries(next)) {
+    const prev = out[model];
+    if (!prev || typeof prev !== "object" || !rawNext || typeof rawNext !== "object") {
+      out[model] = rawNext;
+      continue;
+    }
+    const merged: Record<string, unknown> = { ...(prev as Record<string, unknown>) };
+    for (const [field, value] of Object.entries(rawNext as Record<string, unknown>)) {
+      const before = merged[field];
+      merged[field] =
+        ADDITIVE_MODEL_USAGE_FIELDS.has(field) &&
+        typeof value === "number" &&
+        typeof before === "number"
+          ? before + value
+          : value;
+    }
+    out[model] = merged;
+  }
+  return out;
+}
+
+/** Scalar-wise sum of two usage totals, with per-model breakdowns merged. */
+export function addSessionUsage(
+  a: SessionUsageTotals,
+  b: SessionUsageTotals,
+): SessionUsageTotals {
+  const modelUsage = mergeModelUsage(a.modelUsage, b.modelUsage);
+  return {
+    totalCostUsd: a.totalCostUsd + b.totalCostUsd,
+    numTurns: a.numTurns + b.numTurns,
+    durationMs: a.durationMs + b.durationMs,
+    durationApiMs: a.durationApiMs + b.durationApiMs,
+    inputTokens: a.inputTokens + b.inputTokens,
+    outputTokens: a.outputTokens + b.outputTokens,
+    cacheReadInputTokens: a.cacheReadInputTokens + b.cacheReadInputTokens,
+    cacheCreationInputTokens: a.cacheCreationInputTokens + b.cacheCreationInputTokens,
+    ...(modelUsage ? { modelUsage } : {}),
+  };
+}
+
+/**
+ * Fold one SDK `result` message into the session's durable usage accounting.
+ *
+ * SEMANTICS (verified empirically against SDK 0.3.x streaming-input sessions
+ * — consecutive results in one session carried num_turns 6→19 and
+ * total_cost_usd 14.22→16.48 matching the cumulative `modelUsage` cost sums
+ * exactly): `total_cost_usd`, `num_turns`, `duration_ms`, `duration_api_ms`
+ * and `modelUsage` on a result are RUNNING TOTALS for the current SDK
+ * process, not per-turn deltas. So the model here is
+ *
+ *   totals = baseline (prior SDK processes, persisted) + running (latest
+ *            result's values)
+ *
+ * with two wrinkles:
+ *
+ * - A mid-session `/clear` (or in-place CLI restart) resets the SDK's
+ *   running totals. Detected as a DECREASE in num_turns/cost vs the last
+ *   result; the old running block is folded into the baseline so nothing
+ *   is lost, and the new (smaller) values start a fresh running block.
+ * - Crash / startup-error results "may carry zeroed values" (SDK docs).
+ *   A fully-zeroed frame is IGNORED rather than read as a reset — folding
+ *   on it and then seeing the real (still-cumulative) totals on the next
+ *   result would double-count the whole running block.
+ *
+ * Token counts come from `modelUsage` sums when present (cumulative, and the
+ * only field covering Task subagents/sidechains — "the correct field for
+ * token/cost accounting" per the SDK docs). When a result carries no
+ * modelUsage, the per-turn main-loop `usage` is added onto the previous
+ * running token counts as a best-effort approximation.
+ *
+ * Pure over (baseline, running, message) — returns the next pair, or `null`
+ * when the message contributes nothing. Exported for unit testing.
+ */
+export function foldResultIntoSessionUsage(
+  baseline: SessionUsageTotals,
+  running: SessionUsageTotals,
+  message: unknown,
+): { baseline: SessionUsageTotals; running: SessionUsageTotals } | null {
+  const r = message as {
+    total_cost_usd?: unknown;
+    num_turns?: unknown;
+    duration_ms?: unknown;
+    duration_api_ms?: unknown;
+    usage?: {
+      input_tokens?: unknown;
+      output_tokens?: unknown;
+      cache_read_input_tokens?: unknown;
+      cache_creation_input_tokens?: unknown;
+    };
+    modelUsage?: unknown;
+  };
+  const num = (v: unknown): number =>
+    typeof v === "number" && Number.isFinite(v) ? v : 0;
+  const cost = num(r.total_cost_usd);
+  const turns = num(r.num_turns);
+  const durationMs = num(r.duration_ms);
+  const durationApiMs = num(r.duration_api_ms);
+  const modelUsage =
+    r.modelUsage && typeof r.modelUsage === "object" && Object.keys(r.modelUsage).length > 0
+      ? (r.modelUsage as Record<string, unknown>)
+      : undefined;
+
+  // Zeroed crash/startup-error frame — contributes nothing; must not be
+  // mistaken for a /clear reset (see doc comment).
+  if (cost === 0 && turns === 0 && durationMs === 0 && !modelUsage) return null;
+
+  // Reset detection: running totals are monotonic within one SDK process,
+  // so a decrease means the process's counters restarted (/clear, in-place
+  // CLI restart). Bank the old running block into the baseline first.
+  const isReset =
+    turns < running.numTurns || cost < running.totalCostUsd - 1e-9;
+  const nextBaseline = isReset ? addSessionUsage(baseline, running) : baseline;
+  const prevRunning = isReset ? ZERO_SESSION_USAGE : running;
+
+  // Token running totals: prefer cumulative modelUsage sums; else add the
+  // per-turn main-loop usage onto the previous running counts.
+  let inputTokens = prevRunning.inputTokens;
+  let outputTokens = prevRunning.outputTokens;
+  let cacheReadInputTokens = prevRunning.cacheReadInputTokens;
+  let cacheCreationInputTokens = prevRunning.cacheCreationInputTokens;
+  if (modelUsage) {
+    inputTokens = 0;
+    outputTokens = 0;
+    cacheReadInputTokens = 0;
+    cacheCreationInputTokens = 0;
+    for (const entry of Object.values(modelUsage)) {
+      const m = entry as Record<string, unknown>;
+      inputTokens += num(m.inputTokens);
+      outputTokens += num(m.outputTokens);
+      cacheReadInputTokens += num(m.cacheReadInputTokens);
+      cacheCreationInputTokens += num(m.cacheCreationInputTokens);
+    }
+  } else if (r.usage && typeof r.usage === "object") {
+    inputTokens += num(r.usage.input_tokens);
+    outputTokens += num(r.usage.output_tokens);
+    cacheReadInputTokens += num(r.usage.cache_read_input_tokens);
+    cacheCreationInputTokens += num(r.usage.cache_creation_input_tokens);
+  }
+
+  return {
+    baseline: nextBaseline,
+    running: {
+      totalCostUsd: cost,
+      numTurns: turns,
+      durationMs,
+      durationApiMs,
+      inputTokens,
+      outputTokens,
+      cacheReadInputTokens,
+      cacheCreationInputTokens,
+      ...(modelUsage
+        ? { modelUsage }
+        : prevRunning.modelUsage
+          ? { modelUsage: prevRunning.modelUsage }
+          : {}),
+    },
+  };
 }
 
 /**
@@ -1850,6 +2054,12 @@ export class Session {
     // Live events after `start()` returns clear normally — that's the
     // "model engaged with this id post-click, take over" semantic.
     this.isReplayingTranscript = true;
+    // Legacy-session JSONL estimate source for `seedUsageBaseline` below —
+    // captured out of the resume try/catch so the seeding (which must also
+    // run for fresh sessions and after a failed history load, to pick up a
+    // persisted `session_usage` row) happens exactly once, after whatever
+    // history we could read is in hand.
+    let usageSeedHistorical: ReadonlyArray<unknown> = [];
     if (this.resumeFrom) {
       try {
         const loaded = await getSessionMessages(this.resumeFrom, {
@@ -1910,6 +2120,7 @@ export class Session {
           // time from the JSONL timestamp, not the moment of replay.
           this.trackScheduledLoops(sdk, at);
         }
+        usageSeedHistorical = historical;
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         if (sessLoadDebug()) {
@@ -1948,6 +2159,12 @@ export class Session {
         // ignore
       }
     }
+    // Seed the durable cost/usage baseline (persisted `session_usage` row,
+    // or a one-time JSONL estimate for legacy resumed sessions). Awaited
+    // here — before `start()` returns and the first subscriber can attach —
+    // so the per-subscriber `usage_snapshot` echo in `subscribe()` never
+    // paints zeros for a session that has real history.
+    await this.seedUsageBaseline(usageSeedHistorical);
     // Replay window is closed — from this point on, every
     // `captureSnapshotState` call is processing a LIVE event, and
     // `clearManualTodoOverrideFor` is allowed to drop overrides for ids
@@ -5731,6 +5948,15 @@ export class Session {
       status: this.getStatus(),
       backgroundTasks: this.countActiveBackgroundTasks(),
     });
+    // Authoritative cumulative cost/usage. Emitted per-subscriber (not via
+    // the buffer — see shouldBufferEvent) so every reload/tab starts from
+    // the durable totals instead of re-estimating from the tail-sliced
+    // replay, which is how the /cost dialog used to visibly reset whenever
+    // a session was rebuilt from disk (result frames never reach the JSONL).
+    // Ordered AFTER the sdk replay loop above: replayed assistant messages
+    // bump the client's estimate tiles first, then this snapshot repaints
+    // them with the real totals.
+    fn(this.usageSnapshotEvent());
     // Server-driven spinner tips. The client rotates through these under the
     // "Claude is working…" row, but the *catalog* lives server-side so the
     // backend (and, later, the SDK) is the single source of truth — new-feature
@@ -6453,6 +6679,120 @@ export class Session {
    * `replay_done`. Same shape of rehydration as the todos snapshot.
    */
   private latestUserPromptSnapshot: { uuid: string; text: string; at?: number } | null = null;
+
+  /**
+   * Durable cost/usage accounting — `totals = usageBaseline + sdkRunningUsage`
+   * (see `foldResultIntoSessionUsage` for the running-totals semantics).
+   *
+   * `usageBaseline` holds everything earned by PRIOR SDK processes: loaded
+   * once from the `session_usage` table in `start()` (or estimated from the
+   * JSONL for legacy sessions that predate the table), and grown in place
+   * when a mid-session `/clear`-style reset banks the old running block.
+   * `sdkRunningUsage` mirrors the latest `result` message's running totals
+   * for the CURRENT process. The sum is persisted on every result and
+   * emitted as `usage_snapshot` (live broadcast + per-subscriber echo in
+   * `subscribe()`), so the /cost dialog survives reloads, evictions and
+   * server restarts instead of resetting to a tail-window estimate.
+   */
+  private usageBaseline: SessionUsageTotals = zeroSessionUsage();
+  private sdkRunningUsage: SessionUsageTotals = zeroSessionUsage();
+
+  private currentUsageTotals(): SessionUsageTotals {
+    return addSessionUsage(this.usageBaseline, this.sdkRunningUsage);
+  }
+
+  private usageSnapshotEvent(): ServerEvent {
+    return { type: "usage_snapshot", usage: this.currentUsageTotals() };
+  }
+
+  /**
+   * Fold a live SDK `result` message into the durable totals, persist them,
+   * and broadcast the fresh snapshot. No-op for zeroed crash frames.
+   */
+  private foldUsageFromResult(message: unknown): void {
+    const folded = foldResultIntoSessionUsage(
+      this.usageBaseline,
+      this.sdkRunningUsage,
+      message,
+    );
+    if (!folded) return;
+    this.usageBaseline = folded.baseline;
+    this.sdkRunningUsage = folded.running;
+    const totals = this.currentUsageTotals();
+    // Fire-and-forget persistence: a failed write only costs durability of
+    // the latest turn, and the next result retries with the full totals.
+    void saveSessionUsage(this.cwd, this.id, totals).catch(() => {});
+    this.broadcast({ type: "usage_snapshot", usage: totals });
+  }
+
+  /**
+   * Seed `usageBaseline` at session start. Prefers the persisted
+   * `session_usage` row; for legacy resumed sessions that predate the table,
+   * estimates tokens/cost from the transcript's assistant records (deduped
+   * by API message id — the JSONL stores one record per content-block split,
+   * all carrying the same full `usage` payload) so a long-lived session
+   * doesn't restart its /cost dialog at $0 the first time it's rebuilt
+   * under this scheme. Durations aren't recoverable from the JSONL (result
+   * frames never reach it) and stay 0 in the estimated path; num_turns is
+   * approximated by the count of distinct assistant API messages (the SDK's
+   * num_turns counts API round-trips).
+   */
+  private async seedUsageBaseline(historical: ReadonlyArray<unknown>): Promise<void> {
+    try {
+      const persisted = await getSessionUsage(this.cwd, this.id);
+      if (persisted) {
+        this.usageBaseline = persisted;
+        return;
+      }
+    } catch {
+      // Unreadable DB — fall through to the transcript estimate.
+    }
+    if (!historical.length) return;
+    const seenApiMessageIds = new Set<string>();
+    const est = zeroSessionUsage();
+    for (const raw of historical) {
+      const m = raw as {
+        type?: string;
+        uuid?: string;
+        message?: {
+          id?: string;
+          model?: string;
+          usage?: {
+            input_tokens?: number;
+            output_tokens?: number;
+            cache_read_input_tokens?: number;
+            cache_creation_input_tokens?: number;
+          };
+        };
+      };
+      if (m.type !== "assistant") continue;
+      const u = m.message?.usage;
+      if (!u) continue;
+      const dedupeKey = m.message?.id ?? m.uuid ?? "";
+      if (!dedupeKey || seenApiMessageIds.has(dedupeKey)) continue;
+      seenApiMessageIds.add(dedupeKey);
+      const input = u.input_tokens ?? 0;
+      const output = u.output_tokens ?? 0;
+      const cacheRead = u.cache_read_input_tokens ?? 0;
+      const cacheWrite = u.cache_creation_input_tokens ?? 0;
+      est.numTurns += 1;
+      est.inputTokens += input;
+      est.outputTokens += output;
+      est.cacheReadInputTokens += cacheRead;
+      est.cacheCreationInputTokens += cacheWrite;
+      est.totalCostUsd += costFromTokens(m.message?.model, {
+        input,
+        output,
+        cacheRead,
+        cacheWrite5m: cacheWrite,
+        cacheWrite1h: 0,
+      });
+    }
+    if (est.numTurns === 0) return;
+    this.usageBaseline = est;
+    // Persist the estimate so it's computed once, not on every resume.
+    void saveSessionUsage(this.cwd, this.id, this.currentUsageTotals()).catch(() => {});
+  }
 
   private captureSnapshotState(event: ServerEvent): void {
     if (event.type !== "sdk") return;
@@ -7198,6 +7538,10 @@ export class Session {
           sawResult = true;
           this.turnInFlight = false;
           this.broadcastTurnStatusIfChanged();
+          // Fold the result's running cost/usage totals into the durable
+          // per-session accumulator, persist, and broadcast the fresh
+          // `usage_snapshot` (see foldResultIntoSessionUsage for semantics).
+          this.foldUsageFromResult(message);
           // `queued_turn_count` (SDK 0.3.243) — sends still pending in the
           // SDK's own command queue. Absent on fatal startup results and on
           // surfaces without a queue; treat absent as 0 so a stale count

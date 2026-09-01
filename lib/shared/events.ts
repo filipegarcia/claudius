@@ -519,6 +519,47 @@ export type SessionSnapshotEvent = {
 };
 
 /**
+ * Cumulative cost/usage totals for a session — the payload of
+ * `usage_snapshot` and the shape persisted in the `session_usage` table.
+ * Mirrors the client's `SessionUsage` (see `lib/client/types.ts`, which
+ * aliases this type).
+ */
+export type SessionUsageTotals = {
+  totalCostUsd: number;
+  numTurns: number;
+  durationMs: number;
+  durationApiMs: number;
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadInputTokens: number;
+  cacheCreationInputTokens: number;
+  /** Merged per-model breakdown (SDK `ModelUsage` shape), if available. */
+  modelUsage?: Record<string, unknown>;
+};
+
+/**
+ * Authoritative cumulative session cost/usage, emitted by the server after
+ * every SDK `result` message and re-echoed fresh to each new subscriber in
+ * `subscribe()` (like `turn_status` / `mode_changed`).
+ *
+ * WHY THIS EXISTS: SDK `result` messages never reach the session JSONL and
+ * the SDK's own running totals reset on every resume — so a client rebuilding
+ * usage from the (tail-sliced) SSE replay always under-counted, and the /cost
+ * dialog visibly reset whenever a session was rebuilt from disk. The server
+ * now owns the accumulator (persisted in `session_usage`, see
+ * `lib/server/session-usage-db.ts`); clients treat this snapshot as the
+ * baseline and only layer live mid-turn estimates on top.
+ *
+ * A SNAPSHOT, not a log entry — excluded from the replay buffer in
+ * `shouldBufferEvent` (a stale replayed snapshot would regress the tiles);
+ * `subscribe()` re-emits the current totals per-subscriber instead.
+ */
+export type UsageSnapshotEvent = {
+  type: "usage_snapshot";
+  usage: SessionUsageTotals;
+};
+
+/**
  * One persisted subagent (Task) row, replayed inside `task_snapshot`. Mirrors
  * the client's `TaskInfo` plus the captured inner conversation. Carries
  * everything the live `task_started` / `task_progress` / `task_notification`
@@ -878,6 +919,7 @@ export type ServerEvent =
   | AskUserQuestionEvent
   | PlanApprovalRequestEvent
   | SessionSnapshotEvent
+  | UsageSnapshotEvent
   | TaskSnapshotEvent
   | TodosAutoClearedEvent
   | AccountAutoRotatedEvent

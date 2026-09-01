@@ -1309,25 +1309,13 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
   // model name but the SSE event handler in `applyEvent` is stable (memoized
   // against state); a ref keeps it current without re-binding the EventSource.
   const modelRef = useRef<string | null>(null);
-  // Mid-turn cost estimate accumulator. Per-assistant-message we estimate
-  // cost from token counts using `costFromTokens` so the `$` tile updates
-  // alongside the IN/OUT/CACHE tiles (the SDK's authoritative `total_cost_usd`
-  // only lands on the `result` event at turn-end — until then the tile would
-  // sit at $0.00 even with thousands of tokens flowing). At result time we
-  // reconcile: subtract this turn's estimate and add the auth value.
-  // Reset to 0 on every result event AND on session reset.
-  // NOTE: subagent assistant events are intentionally counted here too — the
-  // existing token accumulator includes them (see comment near `countedUsageRef`
-  // dedupe below) and the SDK's `total_cost_usd` covers subagent cost as well,
-  // so reconciliation nets to zero. Don't "fix" that without re-reading both
-  // paths.
-  const estimatedTurnCostRef = useRef<number>(0);
-  // UUIDs of result events whose cost/turn totals have already been folded
-  // into session state. EventSource reconnects (network blip, dev HMR,
-  // tail-replay window) replay recent events, including the most recent
-  // `result` — without dedupe, cost would get added each time and the `$`
-  // tile would drift upward on every reconnect. Mirrors `countedUsageRef`'s
-  // contract but for the turn-end frame.
+  // UUIDs of result events already processed. EventSource reconnects
+  // (network blip, dev HMR, tail-replay window) replay recent events,
+  // including the most recent `result` — without dedupe, the one-shot
+  // side effects below (budget banner, compaction-failure banner) would
+  // re-fire on every reconnect. Cost/usage itself no longer needs this
+  // guard: the authoritative `usage_snapshot` the server emits alongside
+  // each result carries absolute totals and is idempotent by construction.
   const seenResultUuidsRef = useRef<Set<string>>(new Set());
   // True while a server-dispatched `/compact` slash command — sent while
   // idle — is awaiting its outcome. Set on the `slash_invoked` breadcrumb,
@@ -1454,7 +1442,6 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     setPlanUsage(null);
     countedUsageRef.current = new Set();
     lastRateLimitInfoRef.current = null;
-    estimatedTurnCostRef.current = 0;
     seenResultUuidsRef.current = new Set();
     setTasks({});
     setLiveBackgroundTaskIds(null);
@@ -1899,6 +1886,19 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
         });
         return;
       }
+      if (ev.type === "usage_snapshot") {
+        // Authoritative cumulative totals from the server-side accumulator
+        // (persisted per session — survives reloads, evictions and server
+        // restarts). Replaces the local state WHOLESALE: it supersedes both
+        // the mid-turn per-message estimates layered on below (assistant
+        // branch) and anything rebuilt from the tail-sliced replay. Arrives
+        // per-subscriber right after `replay_done` and live after every
+        // `result`, so drift between snapshots is bounded to one turn.
+        // Idempotent by construction (absolute values), so SSE reconnect
+        // re-emits need no uuid dedupe.
+        setUsage({ ...ev.usage });
+        return;
+      }
       if (ev.type === "plan_usage") {
         setPlanUsage({
           subscriptionType: ev.subscriptionType,
@@ -2239,10 +2239,11 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
           countedUsageRef.current.add(usageDedupKey);
           const u = beta.usage;
           // Estimate per-call cost so the `$` tile updates alongside the
-          // token tiles. Reconciled with the SDK's authoritative
-          // `total_cost_usd` at result-event time (see below). Falls back to
+          // token tiles. Superseded by the server's authoritative
+          // `usage_snapshot` at turn-end (broadcast right after every SDK
+          // `result`), which replaces the whole usage state. Falls back to
           // Sonnet pricing when the model is unknown, which is good enough
-          // for a mid-turn indicator — the auth value replaces it within a
+          // for a mid-turn indicator — the snapshot replaces it within a
           // few seconds anyway.
           const turnEstimate = costFromTokens(
             (beta as { model?: string }).model ?? modelRef.current ?? undefined,
@@ -2254,7 +2255,6 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
               cacheWrite1h: 0,
             },
           );
-          estimatedTurnCostRef.current += turnEstimate;
           setUsage((prev) => ({
             totalCostUsd: (prev?.totalCostUsd ?? 0) + turnEstimate,
             numTurns: prev?.numTurns ?? 0,
@@ -3457,33 +3457,16 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
           }
         }
 
-        // Capture the mid-turn estimate to a local BEFORE the setter so the
-        // reducer closes over the value we measured here, not whatever the
-        // ref happens to hold by the time React commits. The ref is reset
-        // synchronously below so the next turn starts at 0 even if the
-        // setter runs later.
-        const estimate = estimatedTurnCostRef.current;
-        estimatedTurnCostRef.current = 0;
-
-        // Cost reconciliation runs on EVERY result event — including
-        // non-success subtypes (`error_max_turns`, `error_during_execution`,
-        // cancellations). Errors still cost tokens, and gating on
-        // `subtype === "success"` was the second half of the "$0.00 forever"
-        // bug. If the SDK supplies an auth value we use it; otherwise we
-        // keep the estimate as the best signal we have.
-        const authCost = typeof r.total_cost_usd === "number" ? r.total_cost_usd : null;
-        setUsage((prev) => ({
-          totalCostUsd:
-            (prev?.totalCostUsd ?? 0) - estimate + (authCost ?? estimate),
-          numTurns: (prev?.numTurns ?? 0) + (r.num_turns ?? 0),
-          durationMs: (prev?.durationMs ?? 0) + (r.duration_ms ?? 0),
-          durationApiMs: (prev?.durationApiMs ?? 0) + (r.duration_api_ms ?? 0),
-          inputTokens: prev?.inputTokens ?? 0,
-          outputTokens: prev?.outputTokens ?? 0,
-          cacheReadInputTokens: prev?.cacheReadInputTokens ?? 0,
-          cacheCreationInputTokens: prev?.cacheCreationInputTokens ?? 0,
-          modelUsage: r.modelUsage ?? prev?.modelUsage,
-        }));
+        // NO local cost folding here anymore. The old code added each
+        // result's `total_cost_usd`/`num_turns`/durations onto the previous
+        // state — but those fields are RUNNING TOTALS per SDK process in
+        // streaming-input sessions ("read the latest result rather than
+        // summing across results" — SDK docs), so summing over-counted every
+        // turn after the first. The server now owns the accumulator
+        // (persisted in `session_usage`, cross-process safe) and broadcasts
+        // an authoritative `usage_snapshot` immediately after every result;
+        // the handler above adopts it wholesale, superseding the mid-turn
+        // per-message estimates layered on in the assistant branch.
         // Queue drain is server-driven now (see
         // `Session.flushQueueIfIdle()` in lib/server/session.ts); no client
         // trigger needed on result-event handling.
