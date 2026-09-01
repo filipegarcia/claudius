@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ChevronDown, ChevronRight, Wrench, AlertCircle, CheckCircle2, ExternalLink, MessageCircleQuestion, MessageSquareHeart } from "lucide-react";
+import { ChevronDown, ChevronRight, Wrench, AlertCircle, CheckCircle2, ExternalLink, MessageCircleQuestion, MessageSquareHeart, Paperclip } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { buildEditorUrl, pathFromToolInput, useEditor } from "@/lib/client/ide";
 import { useFileLink } from "@/lib/client/file-link-context";
@@ -11,6 +11,7 @@ import { useMediaPreferences } from "@/lib/client/useMediaPreferences";
 import { formatElapsed, useElapsedSeconds } from "@/lib/client/use-elapsed";
 import { getPreviewType } from "@/lib/shared/file-types";
 import { extractFeedbackDraftText } from "@/lib/shared/feedback-draft";
+import type { TaskResourceLink } from "@/lib/shared/events";
 import { Markdown } from "./Markdown";
 import { FilePreview } from "./FilePreview";
 
@@ -66,9 +67,37 @@ type Props = {
    * render-time sync below).
    */
   defaultOpen?: boolean;
+  /**
+   * SDK 0.3.257 — files an auto-backgrounded MCP tool call returned by
+   * reference (`task_notification.resource_links`, joined to this tool_use
+   * by id). Populated by `AssistantMessage` from the tasks map, gated to
+   * `taskType === "mcp_task"`; absent for every other tool.
+   */
+  resourceLinks?: TaskResourceLink[];
+  /**
+   * SDK 0.3.257 — the joined `mcp_task`'s authoritative status. An
+   * auto-backgrounded MCP tool call's `tool_use_result` is only ever the
+   * launch placeholder (per the SDK's own doc on `resource_links`) — the
+   * real completion arrives solely via `task_notification`, which this
+   * generic card otherwise has no way to observe (unlike `TaskBlock`, which
+   * already prefers `task.status` over `result`). Only ever passed for a
+   * `mcp_task`-backed tool call; every other tool keeps deriving status from
+   * `result` alone, unchanged.
+   */
+  taskStatus?: string;
 };
 
-export function ToolCall({ name, input, result, startedAt, liveAsk, onReopenAsk, defaultOpen = false }: Props) {
+export function ToolCall({
+  name,
+  input,
+  result,
+  startedAt,
+  liveAsk,
+  onReopenAsk,
+  defaultOpen = false,
+  resourceLinks,
+  taskStatus,
+}: Props) {
   const [open, setOpen] = useState(defaultOpen);
   // Re-apply the level-driven default when it changes (e.g. the user switches
   // to/from "extra verbose"), while leaving manual toggles in between intact.
@@ -80,7 +109,16 @@ export function ToolCall({ name, input, result, startedAt, liveAsk, onReopenAsk,
   }
   const { editor } = useEditor();
   const { showPreviews } = useMediaPreferences();
-  const status = !result ? "running" : result.isError ? "error" : "ok";
+  const status =
+    taskStatus === "completed"
+      ? "ok"
+      : taskStatus === "failed" || taskStatus === "killed"
+        ? "error"
+        : !result
+          ? "running"
+          : result.isError
+            ? "error"
+            : "ok";
   const fileTarget = pathFromToolInput(input);
   // When the tool operates on a file inside the active workspace, link its
   // path to the in-app Files browser so the user can open it on our own file
@@ -197,6 +235,18 @@ export function ToolCall({ name, input, result, startedAt, liveAsk, onReopenAsk,
           </button>
         )}
         <span className="inline-flex items-center gap-1 text-[var(--muted)]">
+          {/* SDK 0.3.257 — visible without expanding, same treatment as the
+              inline file preview below. */}
+          {resourceLinks && resourceLinks.length > 0 && (
+            <span
+              data-testid="tool-call-resource-links-badge"
+              className="inline-flex items-center gap-0.5 text-[10px] text-[var(--muted)]"
+              title={`${resourceLinks.length} file${resourceLinks.length === 1 ? "" : "s"} returned`}
+            >
+              <Paperclip className="h-3 w-3" />
+              {resourceLinks.length}
+            </span>
+          )}
           {status === "running" && (
             <>
               {elapsedSeconds != null && (
@@ -279,6 +329,25 @@ export function ToolCall({ name, input, result, startedAt, liveAsk, onReopenAsk,
               >
                 {result.content}
               </pre>
+            </div>
+          )}
+          {resourceLinks && resourceLinks.length > 0 && (
+            <div data-testid="tool-call-resource-links" className="px-3 pb-2">
+              <div className="mb-1 text-[10px] uppercase tracking-wide text-[var(--muted)]">
+                files returned
+              </div>
+              <ul className="space-y-0.5">
+                {resourceLinks.map((link) => (
+                  <li
+                    key={link.uri}
+                    className="flex items-center gap-1.5 truncate font-mono text-xs text-[var(--muted)]"
+                    title={link.description ?? link.uri}
+                  >
+                    <Paperclip className="h-3 w-3 shrink-0" />
+                    {link.title ?? link.name}
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
         </div>

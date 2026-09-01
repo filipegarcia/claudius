@@ -35,7 +35,18 @@ type RawRow = {
   is_backgrounded: number | null;
   spawn_depth: number | null;
   ambient: number | null;
+  resource_links: string | null;
 };
+
+function parseResourceLinks(raw: string | null): TaskSnapshotEntry["resourceLinks"] {
+  if (!raw) return undefined;
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    return Array.isArray(parsed) ? (parsed as TaskSnapshotEntry["resourceLinks"]) : undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 function parseInnerMessages(raw: string): TaskSnapshotEntry["innerMessages"] {
   try {
@@ -68,6 +79,7 @@ function rowToEntry(row: RawRow): TaskSnapshotEntry {
     isBackgrounded: row.is_backgrounded == null ? undefined : row.is_backgrounded !== 0,
     spawnDepth: row.spawn_depth ?? undefined,
     ambient: row.ambient == null ? undefined : row.ambient !== 0,
+    resourceLinks: parseResourceLinks(row.resource_links),
     innerMessages: parseInnerMessages(row.inner_messages),
   };
 }
@@ -84,8 +96,8 @@ export async function saveSessionTask(
        session_id, task_id, tool_use_id, subagent_type, description,
        task_type, workflow_name, status, total_tokens, tool_uses,
        duration_ms, summary, error, inner_messages, is_backgrounded,
-       spawn_depth, ambient, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       spawn_depth, ambient, resource_links, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(session_id, task_id) DO UPDATE SET
        tool_use_id     = excluded.tool_use_id,
        subagent_type   = excluded.subagent_type,
@@ -102,6 +114,7 @@ export async function saveSessionTask(
        is_backgrounded = excluded.is_backgrounded,
        spawn_depth     = excluded.spawn_depth,
        ambient         = excluded.ambient,
+       resource_links  = excluded.resource_links,
        updated_at      = excluded.updated_at`,
   ).run(
     sessionId,
@@ -121,6 +134,7 @@ export async function saveSessionTask(
     task.isBackgrounded == null ? null : task.isBackgrounded ? 1 : 0,
     task.spawnDepth ?? null,
     task.ambient == null ? null : task.ambient ? 1 : 0,
+    task.resourceLinks ? JSON.stringify(task.resourceLinks) : null,
     Date.now(),
   );
 }
@@ -136,7 +150,7 @@ export async function listSessionTasks(
       `SELECT task_id, tool_use_id, subagent_type, description, task_type,
               workflow_name, status, total_tokens, tool_uses, duration_ms,
               summary, error, inner_messages, is_backgrounded, spawn_depth,
-              ambient
+              ambient, resource_links
          FROM session_tasks
         WHERE session_id = ?
         ORDER BY updated_at ASC`,

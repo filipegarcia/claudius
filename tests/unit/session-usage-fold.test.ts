@@ -182,6 +182,27 @@ describe("mergeModelUsage / addSessionUsage", () => {
     expect(merged["claude-haiku-4-5"].inputTokens).toBe(1);
   });
 
+  // SDK 0.3.257 — `thinkingTokens` is a subset already counted inside
+  // `outputTokens`. It must accumulate the same way outputTokens does
+  // across SDK-process merges, not last-write-wins like a descriptive
+  // field (contextWindow).
+  test("accumulates thinkingTokens across merges (SDK 0.3.257)", () => {
+    const merged = mergeModelUsage(
+      { "claude-opus-5": { outputTokens: 200, thinkingTokens: 50 } },
+      { "claude-opus-5": { outputTokens: 20, thinkingTokens: 5 } },
+    ) as Record<string, Record<string, unknown>>;
+    expect(merged["claude-opus-5"].outputTokens).toBe(220);
+    expect(merged["claude-opus-5"].thinkingTokens).toBe(55);
+  });
+
+  test("thinkingTokens absent on one side is just carried, not treated as 0", () => {
+    const merged = mergeModelUsage(
+      { "claude-opus-5": { outputTokens: 200 } },
+      { "claude-opus-5": { outputTokens: 20, thinkingTokens: 5 } },
+    ) as Record<string, Record<string, unknown>>;
+    expect(merged["claude-opus-5"].thinkingTokens).toBe(5);
+  });
+
   test("addSessionUsage sums scalars and carries merged modelUsage", () => {
     const a: SessionUsageTotals = {
       ...zeroSessionUsage(),

@@ -12,6 +12,7 @@ import type {
   PlanDecision,
   ServerEvent,
   SessionUsageTotals,
+  TaskResourceLink,
   TokenExpiringNudgeEvent,
 } from "@/lib/shared/events";
 import type { Tip } from "@/lib/shared/tips";
@@ -200,6 +201,13 @@ export type TaskInfo = {
   lastToolName?: string;
   summary?: string;
   error?: string;
+  /**
+   * SDK 0.3.257 — files an auto-backgrounded MCP tool call returned by
+   * reference (the `resource_link` content blocks of its result), seeded
+   * from `task_notification.resource_links`. Absent when the task's result
+   * carried no resource links (the common case) or on older SDKs.
+   */
+  resourceLinks?: TaskResourceLink[];
 };
 
 export type SystemEntry = {

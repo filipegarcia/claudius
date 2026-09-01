@@ -15,6 +15,7 @@ import type {
   OpusOverloadNudgeEvent,
   PlanDecision,
   ServerEvent,
+  TaskResourceLink,
   TaskSnapshotEntry,
   TokenExpiringNudgeEvent,
 } from "@/lib/shared/events";
@@ -2084,6 +2085,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
               durationMs: t.durationMs,
               summary: t.summary,
               error: t.error,
+              resourceLinks: t.resourceLinks,
             };
             changed = true;
           }
@@ -3764,6 +3766,9 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
             summary?: string;
             usage?: { total_tokens?: number; tool_uses?: number; duration_ms?: number };
             ambient?: boolean;
+            // SDK 0.3.257 — files an auto-backgrounded MCP tool call returned
+            // by reference, joined to this notification via tool_use_id.
+            resource_links?: TaskResourceLink[];
           };
           setTasks((prev) => {
             // Authoritative cleanup: a notification can arrive WITHOUT a prior
@@ -3793,6 +3798,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
                 // late/final ambient value — prefer it, but keep whatever
                 // task_started already seeded when this notification omits it.
                 ambient: t.ambient ?? base.ambient,
+                resourceLinks: t.resource_links ?? base.resourceLinks,
               },
             };
           });
