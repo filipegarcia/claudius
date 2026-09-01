@@ -13,6 +13,18 @@ export type PermissionRules = {
   deny?: string[];
   defaultMode?: string;
   additionalDirectories?: string[];
+  /**
+   * CC 2.1.257 — "Refuse file-tool reads (Read, Grep, Glob, LSP) outside
+   * the working directories in every permission mode; true in any settings
+   * source wins." Upstream also shows a one-time auto-mode prompt offering
+   * to flip this on the first out-of-workspace read; Claudius has no
+   * equivalent one-time-prompt UI (auto mode's classifier runs server-side
+   * in the SDK), so this is exposed as a plain settings toggle instead —
+   * same treatment as `additionalDirectories` above (also per-scope, "true
+   * anywhere wins" is enforced by the SDK reading every scope, not by
+   * Claudius merging them itself).
+   */
+  blockReadsOutsideWorkingDirectories?: boolean;
 };
 
 /**

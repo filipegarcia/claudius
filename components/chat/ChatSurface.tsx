@@ -1353,9 +1353,16 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ scope: "project", cwd: session.cwd, add: [dir] }),
           })
-            .then((r) => {
-              if (r.ok) showToast(`Added ${dir} (project) — restart session to apply`);
-              else showToast(`add-dir failed: ${r.status}`);
+            .then(async (r) => {
+              if (r.ok) {
+                showToast(`Added ${dir} (project) — restart session to apply`);
+                return;
+              }
+              // CC 2.1.257 parity — network-path rejections (UNC shares,
+              // /net/<host> automounts) come back with a descriptive
+              // `error` message; surface it instead of the bare status.
+              const body = await r.json().catch(() => null);
+              showToast(body?.error ?? `add-dir failed: ${r.status}`);
             })
             .catch(() => showToast("add-dir failed"));
           return true;
@@ -2530,7 +2537,10 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
       )}
 
       {toast && (
-        <div className="pointer-events-none fixed bottom-24 left-1/2 z-50 -translate-x-1/2 rounded-md border border-[var(--border)] bg-[var(--panel)] px-3 py-1.5 text-xs shadow-2xl">
+        <div
+          data-testid="chat-toast"
+          className="pointer-events-none fixed bottom-24 left-1/2 z-50 -translate-x-1/2 rounded-md border border-[var(--border)] bg-[var(--panel)] px-3 py-1.5 text-xs shadow-2xl"
+        >
           {toast}
         </div>
       )}

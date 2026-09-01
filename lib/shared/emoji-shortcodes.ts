@@ -219,6 +219,16 @@ export const EMOJI_SHORTCODES: Record<string, string> = {
  */
 export const EMOJI_ALIASES: Record<string, string> = {
   love: "heart",
+  // CC 2.1.257 — "Improved emoji autocomplete to accept the remaining
+  // GitHub/Slack shortcode aliases (:satisfied:, :telephone:, :collision:,
+  // …)". `telephone` is already a canonical key in EMOJI_SHORTCODES (☎️),
+  // so it needs no alias entry — it's already accepted. `satisfied` and
+  // `collision` are the two named gaps against our existing canonical
+  // table (GitHub/Slack map them to the same glyphs as our `laughing` and
+  // `boom` entries respectively); kept to the entries the changelog
+  // actually names, per this table's "curated, not exhaustive" policy.
+  satisfied: "laughing",
+  collision: "boom",
 };
 
 /** Max rows the emoji picker ever shows — matches `PICKER_LIMIT` in at-mention.ts. */
