@@ -16,6 +16,17 @@ import { test, expect, type Page, type Route } from "../helpers/test";
  * starting point for a wider mocked-backend e2e harness (see
  * `mockChatBackend` below): you give it a script of SSE events, the page
  * runs against it, and assertions hit only deterministic UI state.
+ *
+ * CONTRACT UPDATE (2026-09-01): cost authority moved server-side. Result
+ * fields (`total_cost_usd` etc.) are RUNNING totals per SDK process, so the
+ * client no longer folds them; instead the server broadcasts an authoritative
+ * `usage_snapshot` right after every `result` (any subtype) from its durable
+ * accumulator, and the client adopts it wholesale. The fixture mirrors that:
+ * every scripted `result` is followed by the `usage_snapshot` the real
+ * server would emit (see `foldUsageFromResult` in lib/server/session.ts).
+ * The "errors still cost money" invariant now lives server-side and is
+ * pinned by tests/unit/session-usage-fold.test.ts; here we verify the
+ * client renders a snapshot that follows a non-success result.
  */
 
 const FAKE_SESSION_ID = "11111111-2222-3333-4444-555555555555";
@@ -149,6 +160,33 @@ function resultEvent(opts: {
   };
 }
 
+/**
+ * Server-authoritative cumulative totals — what `Session.foldUsageFromResult`
+ * broadcasts right after every `result` (any subtype). The client replaces
+ * its usage state wholesale with this, so token counts asserted elsewhere in
+ * a test must be carried here too, not just on the assistant events.
+ */
+function usageSnapshotEvent(opts: {
+  totalCostUsd: number;
+  numTurns?: number;
+  inputTokens?: number;
+  outputTokens?: number;
+}): SdkEvent {
+  return {
+    type: "usage_snapshot",
+    usage: {
+      totalCostUsd: opts.totalCostUsd,
+      numTurns: opts.numTurns ?? 1,
+      durationMs: 1234,
+      durationApiMs: 1234,
+      inputTokens: opts.inputTokens ?? 0,
+      outputTokens: opts.outputTokens ?? 0,
+      cacheReadInputTokens: 0,
+      cacheCreationInputTokens: 0,
+    },
+  };
+}
+
 /** Frames the chat page sends through `applyEvent` before useful state lands. */
 const PRELUDE: SdkEvent[] = [
   { type: "ready", sessionId: FAKE_SESSION_ID },
@@ -177,6 +215,9 @@ test.describe("cost tile", () => {
         // we get a stable 5-char render — values under $1 render as
         // "$0.420" which is fine but less obvious in test expectations).
         resultEvent({ totalCostUsd: 1.42, numTurns: 1 }),
+        // The server's follow-up snapshot is what the tile actually renders;
+        // it carries the token totals too (snapshot replaces state wholesale).
+        usageSnapshotEvent({ totalCostUsd: 1.42, inputTokens: 800, outputTokens: 200 }),
       ],
     });
 
@@ -234,6 +275,9 @@ test.describe("cost tile", () => {
         // turns still cost money. The pre-fix code gated cost updates on
         // `subtype === "success"`, so non-success turns left $0.00.
         resultEvent({ subtype: "error_max_turns", totalCostUsd: 1.23 }),
+        // The server folds cost on EVERY result subtype (errors still cost
+        // money) and broadcasts the snapshot; the client must render it.
+        usageSnapshotEvent({ totalCostUsd: 1.23 }),
       ],
     });
 
