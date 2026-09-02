@@ -1,13 +1,13 @@
 [
   {
     "label": "\ud83d\udc0d Python SDK",
-    "total": 223,
-    "stable_count": 223,
+    "total": 224,
+    "stable_count": 224,
     "pre_count": 0,
     "first_date": "2023-02-09T06:20:47+00:00",
-    "latest_date": "2026-08-27T20:28:58+00:00",
-    "span_days": 1295,
-    "per_week": 1.2054054054054053,
+    "latest_date": "2026-09-01T17:36:55+00:00",
+    "span_days": 1300,
+    "per_week": 1.2061538461538461,
     "gaps": [
       {
         "hours": 0.013055555555555556,
@@ -1562,6 +1562,13 @@
         "to_tag": "v1.2.0",
         "from_date": "2026-08-26T17:14:40+00:00",
         "to_date": "2026-08-27T20:28:58+00:00"
+      },
+      {
+        "hours": 117.1325,
+        "from_tag": "v1.2.0",
+        "to_tag": "v1.3.0",
+        "from_date": "2026-08-27T20:28:58+00:00",
+        "to_date": "2026-09-01T17:36:55+00:00"
       }
     ],
     "fastest_gap": {
@@ -1578,13 +1585,13 @@
       "from_date": "2025-02-28T19:35:15+00:00",
       "to_date": "2025-04-22T23:10:52+00:00"
     },
-    "avg_gap_h": 140.06367742742742,
-    "median_gap_h": 77.89722222222223,
-    "stdev_gap_h": 187.0484510541578,
+    "avg_gap_h": 139.9608470353762,
+    "median_gap_h": 80.80305555555556,
+    "stdev_gap_h": 186.63301264884373,
     "cl_present": true,
     "cl_max": 7863,
     "cl_min": 38,
-    "cl_avg": 1070.9638009049775,
+    "cl_avg": 1078.4774774774776,
     "cl_max_rel": {
       "tag": "v0.50.0",
       "name": "v0.50.0",
@@ -1610,7 +1617,7 @@
     "dow": {
       "Thursday": 46,
       "Monday": 36,
-      "Tuesday": 56,
+      "Tuesday": 57,
       "Wednesday": 47,
       "Saturday": 9,
       "Friday": 28,
@@ -1657,17 +1664,18 @@
       "2026-05": 13,
       "2026-06": 13,
       "2026-07": 9,
-      "2026-08": 8
+      "2026-08": 8,
+      "2026-09": 1
     },
     "years": {
       "2023": 41,
       "2024": 67,
       "2025": 48,
-      "2026": 67
+      "2026": 68
     },
     "fav_dow": [
       "Tuesday",
-      56
+      57
     ],
     "busiest_month": [
       "2024-04",
@@ -1677,22 +1685,22 @@
     "streak_start": "2024-04-04T12:58:35+00:00",
     "vtypes": {
       "patch": 97,
-      "minor": 125,
+      "minor": 126,
       "major": 1
     },
     "vel_trend": "accelerating",
-    "vel_first": 1.0912921348314608,
-    "vel_second": 1.3493975903614457
+    "vel_first": 1.0980392156862746,
+    "vel_second": 1.3470790378006874
   },
   {
     "label": "\ud83d\udcd8 TypeScript SDK",
-    "total": 362,
-    "stable_count": 362,
+    "total": 363,
+    "stable_count": 363,
     "pre_count": 0,
     "first_date": "2023-01-31T16:17:07+00:00",
-    "latest_date": "2026-08-27T20:33:46+00:00",
-    "span_days": 1304,
-    "per_week": 1.9432515337423313,
+    "latest_date": "2026-09-01T17:50:12+00:00",
+    "span_days": 1309,
+    "per_week": 1.9411764705882353,
     "gaps": [
       {
         "hours": 0.0625,
@@ -4220,6 +4228,13 @@
         "to_tag": "aws-sdk-v0.6.6",
         "from_date": "2026-08-27T20:33:41+00:00",
         "to_date": "2026-08-27T20:33:46+00:00"
+      },
+      {
+        "hours": 117.27388888888889,
+        "from_tag": "aws-sdk-v0.6.6",
+        "to_tag": "sdk-v0.123.0",
+        "from_date": "2026-08-27T20:33:46+00:00",
+        "to_date": "2026-09-01T17:50:12+00:00"
       }
     ],
     "fastest_gap": {
@@ -4236,13 +4251,13 @@
       "from_date": "2023-04-04T12:25:14+00:00",
       "to_date": "2023-06-05T20:25:36+00:00"
     },
-    "avg_gap_h": 86.70436980609418,
-    "median_gap_h": 8.523888888888889,
-    "stdev_gap_h": 184.5069877758344,
+    "avg_gap_h": 86.78881599140577,
+    "median_gap_h": 8.542361111111111,
+    "stdev_gap_h": 184.25826590221337,
     "cl_present": true,
     "cl_max": 38867,
     "cl_min": 26,
-    "cl_avg": 903.819944598338,
+    "cl_avg": 905.1878453038674,
     "cl_max_rel": {
       "tag": "sdk-v0.12.4",
       "name": "sdk: v0.12.4",
@@ -4266,7 +4281,7 @@
       "ver_type": "patch"
     },
     "dow": {
-      "Tuesday": 79,
+      "Tuesday": 80,
       "Wednesday": 77,
       "Friday": 63,
       "Monday": 43,
@@ -4315,13 +4330,14 @@
       "2026-05": 18,
       "2026-06": 28,
       "2026-07": 13,
-      "2026-08": 33
+      "2026-08": 33,
+      "2026-09": 1
     },
     "years": {
       "2023": 40,
       "2024": 107,
       "2025": 82,
-      "2026": 133
+      "2026": 134
     },
     "fav_dow": [
       "Thursday",
@@ -4335,21 +4351,21 @@
     "streak_start": "2026-08-13T19:53:37+00:00",
     "vtypes": {
       "patch": 208,
-      "minor": 154
+      "minor": 155
     },
     "vel_trend": "accelerating",
     "vel_first": 1.5173652694610777,
-    "vel_second": 2.707264957264957
+    "vel_second": 2.693446088794926
   },
   {
     "label": "\u2615 Java SDK",
-    "total": 100,
-    "stable_count": 89,
+    "total": 101,
+    "stable_count": 90,
     "pre_count": 11,
     "first_date": "2024-12-09T19:45:55+00:00",
-    "latest_date": "2026-08-27T20:30:45+00:00",
-    "span_days": 626,
-    "per_week": 1.1182108626198082,
+    "latest_date": "2026-09-01T18:07:38+00:00",
+    "span_days": 630,
+    "per_week": 1.1222222222222222,
     "gaps": [
       {
         "hours": 21.24416666666667,
@@ -5043,6 +5059,13 @@
         "to_tag": "v2.59.0",
         "from_date": "2026-08-26T17:18:11+00:00",
         "to_date": "2026-08-27T20:30:45+00:00"
+      },
+      {
+        "hours": 117.61472222222223,
+        "from_tag": "v2.59.0",
+        "to_tag": "v2.60.0",
+        "from_date": "2026-08-27T20:30:45+00:00",
+        "to_date": "2026-09-01T18:07:38+00:00"
       }
     ],
     "fastest_gap": {
@@ -5059,13 +5082,13 @@
       "from_date": "2025-11-19T23:24:26+00:00",
       "to_date": "2026-01-29T18:32:31+00:00"
     },
-    "avg_gap_h": 151.76512345679012,
-    "median_gap_h": 74.49194444444444,
-    "stdev_gap_h": 217.35341082306726,
+    "avg_gap_h": 151.42361944444445,
+    "median_gap_h": 84.39361111111111,
+    "stdev_gap_h": 216.27984342809157,
     "cl_present": true,
     "cl_max": 7045,
     "cl_min": 273,
-    "cl_avg": 1433.88,
+    "cl_avg": 1456.881188118812,
     "cl_max_rel": {
       "tag": "v2.12.0",
       "name": "v2.12.0",
@@ -5090,7 +5113,7 @@
     },
     "dow": {
       "Monday": 10,
-      "Tuesday": 21,
+      "Tuesday": 22,
       "Wednesday": 30,
       "Saturday": 3,
       "Friday": 13,
@@ -5116,12 +5139,13 @@
       "2026-05": 9,
       "2026-06": 15,
       "2026-07": 7,
-      "2026-08": 7
+      "2026-08": 7,
+      "2026-09": 1
     },
     "years": {
       "2024": 6,
       "2025": 39,
-      "2026": 55
+      "2026": 56
     },
     "fav_dow": [
       "Wednesday",
@@ -5135,23 +5159,23 @@
     "streak_start": "2026-06-05T16:02:40+00:00",
     "vtypes": {
       "pre": 11,
-      "minor": 72,
+      "minor": 73,
       "patch": 15,
       "major": 2
     },
     "vel_trend": "accelerating",
     "vel_first": 0.7743362831858407,
-    "vel_second": 2.0710059171597632
+    "vel_second": 2.0517241379310343
   },
   {
     "label": "\ud83d\udc39 Go SDK",
-    "total": 105,
-    "stable_count": 86,
+    "total": 106,
+    "stable_count": 87,
     "pre_count": 19,
     "first_date": "2024-08-14T19:02:27+00:00",
-    "latest_date": "2026-08-27T20:27:56+00:00",
-    "span_days": 743,
-    "per_week": 0.9892328398384926,
+    "latest_date": "2026-09-01T17:37:47+00:00",
+    "span_days": 747,
+    "per_week": 0.9933065595716198,
     "gaps": [
       {
         "hours": 1220.6505555555555,
@@ -5880,6 +5904,13 @@
         "to_tag": "v1.68.0",
         "from_date": "2026-08-26T17:07:29+00:00",
         "to_date": "2026-08-27T20:27:56+00:00"
+      },
+      {
+        "hours": 117.16416666666667,
+        "from_tag": "v1.68.0",
+        "to_tag": "v1.69.0",
+        "from_date": "2026-08-27T20:27:56+00:00",
+        "to_date": "2026-09-01T17:37:47+00:00"
       }
     ],
     "fastest_gap": {
@@ -5896,13 +5927,13 @@
       "from_date": "2025-11-24T20:58:28+00:00",
       "to_date": "2026-01-29T17:25:56+00:00"
     },
-    "avg_gap_h": 171.4752377136752,
-    "median_gap_h": 71.865,
-    "stdev_gap_h": 270.01758531783406,
+    "avg_gap_h": 170.9579894179894,
+    "median_gap_h": 72.4811111111111,
+    "stdev_gap_h": 268.7685544106558,
     "cl_present": true,
     "cl_max": 9654,
     "cl_min": 128,
-    "cl_avg": 1010.2857142857143,
+    "cl_avg": 1011.8679245283018,
     "cl_max_rel": {
       "tag": "v0.2.0-beta.4",
       "name": "v0.2.0-beta.4",
@@ -5928,7 +5959,7 @@
     "dow": {
       "Wednesday": 23,
       "Friday": 13,
-      "Tuesday": 29,
+      "Tuesday": 30,
       "Thursday": 24,
       "Monday": 12,
       "Sunday": 1,
@@ -5956,16 +5987,17 @@
       "2026-05": 9,
       "2026-06": 12,
       "2026-07": 8,
-      "2026-08": 8
+      "2026-08": 8,
+      "2026-09": 1
     },
     "years": {
       "2024": 10,
       "2025": 35,
-      "2026": 60
+      "2026": 61
     },
     "fav_dow": [
       "Tuesday",
-      29
+      30
     ],
     "busiest_month": [
       "2026-06",
@@ -5976,22 +6008,22 @@
     "vtypes": {
       "pre": 19,
       "major": 1,
-      "minor": 68,
+      "minor": 69,
       "patch": 17
     },
     "vel_trend": "accelerating",
-    "vel_first": 0.6582278481012658,
-    "vel_second": 1.962962962962963
+    "vel_first": 0.6696750902527077,
+    "vel_second": 1.922279792746114
   },
   {
     "label": "\ud83d\udc8e Ruby SDK",
-    "total": 91,
-    "stable_count": 82,
+    "total": 92,
+    "stable_count": 83,
     "pre_count": 9,
     "first_date": "2025-04-08T21:53:03+00:00",
-    "latest_date": "2026-08-27T20:32:03+00:00",
-    "span_days": 505,
-    "per_week": 1.2613861386138614,
+    "latest_date": "2026-09-01T18:08:05+00:00",
+    "span_days": 510,
+    "per_week": 1.2627450980392156,
     "gaps": [
       {
         "hours": 21.309722222222224,
@@ -6622,6 +6654,13 @@
         "to_tag": "v1.67.0",
         "from_date": "2026-08-26T17:23:55+00:00",
         "to_date": "2026-08-27T20:32:03+00:00"
+      },
+      {
+        "hours": 117.60055555555556,
+        "from_tag": "v1.67.0",
+        "to_tag": "v1.68.0",
+        "from_date": "2026-08-27T20:32:03+00:00",
+        "to_date": "2026-09-01T18:08:05+00:00"
       }
     ],
     "fastest_gap": {
@@ -6638,13 +6677,13 @@
       "from_date": "2025-05-28T13:21:00+00:00",
       "to_date": "2025-07-18T13:34:28+00:00"
     },
-    "avg_gap_h": 134.91833333333332,
-    "median_gap_h": 51.749861111111116,
-    "stdev_gap_h": 194.1797048296489,
+    "avg_gap_h": 134.72802808302808,
+    "median_gap_h": 53.10055555555556,
+    "stdev_gap_h": 193.1064487987867,
     "cl_present": true,
     "cl_max": 68129,
     "cl_min": 135,
-    "cl_avg": 1661.131868131868,
+    "cl_avg": 1690.4565217391305,
     "cl_max_rel": {
       "tag": "v0.1.0-alpha.1",
       "name": "v0.1.0-alpha.1",
@@ -6668,7 +6707,7 @@
       "ver_type": "patch"
     },
     "dow": {
-      "Tuesday": 20,
+      "Tuesday": 21,
       "Wednesday": 28,
       "Friday": 11,
       "Thursday": 20,
@@ -6691,11 +6730,12 @@
       "2026-05": 8,
       "2026-06": 11,
       "2026-07": 8,
-      "2026-08": 8
+      "2026-08": 8,
+      "2026-09": 1
     },
     "years": {
       "2025": 33,
-      "2026": 58
+      "2026": 59
     },
     "fav_dow": [
       "Wednesday",
@@ -6710,22 +6750,22 @@
     "vtypes": {
       "pre": 9,
       "major": 1,
-      "minor": 67,
+      "minor": 68,
       "patch": 14
     },
     "vel_trend": "accelerating",
-    "vel_first": 0.8848314606741574,
-    "vel_second": 2.175675675675676
+    "vel_first": 0.9019607843137255,
+    "vel_second": 2.146666666666667
   },
   {
     "label": "\ud83d\udd37 C# SDK",
-    "total": 113,
-    "stable_count": 113,
+    "total": 114,
+    "stable_count": 114,
     "pre_count": 0,
     "first_date": "2025-10-30T03:50:08+00:00",
-    "latest_date": "2026-08-27T20:31:35+00:00",
-    "span_days": 301,
-    "per_week": 2.627906976744186,
+    "latest_date": "2026-09-01T18:09:28+00:00",
+    "span_days": 306,
+    "per_week": 2.607843137254902,
     "gaps": [
       {
         "hours": 216.92944444444444,
@@ -7510,6 +7550,13 @@
         "to_tag": "Aws-v0.5.3",
         "from_date": "2026-08-27T20:31:29+00:00",
         "to_date": "2026-08-27T20:31:35+00:00"
+      },
+      {
+        "hours": 117.63138888888889,
+        "from_tag": "Aws-v0.5.3",
+        "to_tag": "Anthropic-v12.45.0",
+        "from_date": "2026-08-27T20:31:35+00:00",
+        "to_date": "2026-09-01T18:09:28+00:00"
       }
     ],
     "fastest_gap": {
@@ -7526,13 +7573,13 @@
       "from_date": "2026-02-19T20:25:30+00:00",
       "to_date": "2026-03-16T16:08:31+00:00"
     },
-    "avg_gap_h": 64.64902529761905,
-    "median_gap_h": 10.766666666666666,
-    "stdev_gap_h": 111.38064462663458,
+    "avg_gap_h": 65.11789577187807,
+    "median_gap_h": 14.969722222222222,
+    "stdev_gap_h": 110.99425727994294,
     "cl_present": true,
     "cl_max": 13492,
     "cl_min": 137,
-    "cl_avg": 953.4690265486726,
+    "cl_avg": 977.5350877192982,
     "cl_max_rel": {
       "tag": "v0.1.0",
       "name": "v0.1.0",
@@ -7558,7 +7605,7 @@
     "dow": {
       "Thursday": 29,
       "Saturday": 3,
-      "Tuesday": 33,
+      "Tuesday": 34,
       "Wednesday": 29,
       "Monday": 11,
       "Friday": 8
@@ -7574,15 +7621,16 @@
       "2026-05": 16,
       "2026-06": 21,
       "2026-07": 9,
-      "2026-08": 14
+      "2026-08": 14,
+      "2026-09": 1
     },
     "years": {
       "2025": 14,
-      "2026": 99
+      "2026": 100
     },
     "fav_dow": [
       "Tuesday",
-      33
+      34
     ],
     "busiest_month": [
       "2026-06",
@@ -7591,23 +7639,23 @@
     "streak": 11,
     "streak_start": "2026-05-05T01:10:38+00:00",
     "vtypes": {
-      "minor": 78,
+      "minor": 79,
       "patch": 33,
       "major": 2
     },
     "vel_trend": "accelerating",
-    "vel_first": 2.10752688172043,
-    "vel_second": 3.5
+    "vel_first": 2.1451612903225805,
+    "vel_second": 3.3529411764705883
   },
   {
     "label": "\ud83d\udc18 PHP SDK",
-    "total": 50,
-    "stable_count": 50,
+    "total": 51,
+    "stable_count": 51,
     "pre_count": 0,
     "first_date": "2025-08-27T01:47:27+00:00",
-    "latest_date": "2026-08-31T14:56:00+00:00",
-    "span_days": 369,
-    "per_week": 0.9485094850948509,
+    "latest_date": "2026-09-01T18:08:57+00:00",
+    "span_days": 370,
+    "per_week": 0.9648648648648649,
     "gaps": [
       {
         "hours": 1.158611111111111,
@@ -7951,6 +7999,13 @@
         "to_tag": "v0.45.0",
         "from_date": "2026-08-26T18:00:14+00:00",
         "to_date": "2026-08-31T14:56:00+00:00"
+      },
+      {
+        "hours": 27.215833333333332,
+        "from_tag": "v0.45.0",
+        "to_tag": "v0.46.0",
+        "from_date": "2026-08-31T14:56:00+00:00",
+        "to_date": "2026-09-01T18:08:57+00:00"
       }
     ],
     "fastest_gap": {
@@ -7967,13 +8022,13 @@
       "from_date": "2025-09-02T18:56:20+00:00",
       "to_date": "2025-11-24T23:38:45+00:00"
     },
-    "avg_gap_h": 181.00290816326532,
-    "median_gap_h": 93.79138888888889,
-    "stdev_gap_h": 361.5015697550059,
+    "avg_gap_h": 177.92716666666666,
+    "median_gap_h": 83.14861111111111,
+    "stdev_gap_h": 358.45416215634214,
     "cl_present": true,
     "cl_max": 7873,
     "cl_min": 291,
-    "cl_avg": 1212.16,
+    "cl_avg": 1213.313725490196,
     "cl_max_rel": {
       "tag": "v0.5.0",
       "name": "v0.5.0",
@@ -7998,7 +8053,7 @@
     },
     "dow": {
       "Wednesday": 12,
-      "Tuesday": 12,
+      "Tuesday": 13,
       "Monday": 8,
       "Friday": 4,
       "Thursday": 13,
@@ -8015,14 +8070,15 @@
       "2026-05": 8,
       "2026-06": 11,
       "2026-07": 8,
-      "2026-08": 5
+      "2026-08": 5,
+      "2026-09": 1
     },
     "years": {
       "2025": 4,
-      "2026": 46
+      "2026": 47
     },
     "fav_dow": [
-      "Thursday",
+      "Tuesday",
       13
     ],
     "busiest_month": [
@@ -8032,22 +8088,22 @@
     "streak": 6,
     "streak_start": "2026-06-29T14:58:51+00:00",
     "vtypes": {
-      "minor": 45,
+      "minor": 46,
       "patch": 5
     },
     "vel_trend": "accelerating",
     "vel_first": 0.6554307116104868,
-    "vel_second": 1.8617021276595744
+    "vel_second": 1.8958333333333335
   },
   {
     "label": "\u26a1 Claude Code",
-    "total": 505,
-    "stable_count": 505,
+    "total": 507,
+    "stable_count": 507,
     "pre_count": 0,
     "first_date": "2025-02-24T18:03:41.458000+00:00",
-    "latest_date": "2026-08-31T19:46:55+00:00",
-    "span_days": 553,
-    "per_week": 6.3924050632911396,
+    "latest_date": "2026-09-01T22:33:20+00:00",
+    "span_days": 554,
+    "per_week": 6.406137184115524,
     "gaps": [
       {
         "hours": 0.4709886111111111,
@@ -11576,6 +11632,20 @@
         "to_tag": "v2.1.252",
         "from_date": "2026-08-28T18:19:32+00:00",
         "to_date": "2026-08-31T19:46:55+00:00"
+      },
+      {
+        "hours": 22.115833333333335,
+        "from_tag": "v2.1.252",
+        "to_tag": "v2.1.257",
+        "from_date": "2026-08-31T19:46:55+00:00",
+        "to_date": "2026-09-01T17:53:52+00:00"
+      },
+      {
+        "hours": 4.657777777777778,
+        "from_tag": "v2.1.257",
+        "to_tag": "v2.1.258",
+        "from_date": "2026-09-01T17:53:52+00:00",
+        "to_date": "2026-09-01T22:33:20+00:00"
       }
     ],
     "fastest_gap": {
@@ -11592,22 +11662,22 @@
       "from_date": "2025-12-20T17:19:09.800000+00:00",
       "to_date": "2026-01-06T00:26:25.533000+00:00"
     },
-    "avg_gap_h": 26.336746881613756,
+    "avg_gap_h": 26.285561342775583,
     "median_gap_h": 21.99442861111111,
-    "stdev_gap_h": 29.391345417328615,
+    "stdev_gap_h": 29.34950247996428,
     "cl_present": true,
-    "cl_max": 12140,
+    "cl_max": 16257,
     "cl_min": 1,
-    "cl_avg": 2517.671568627451,
+    "cl_avg": 2573.4466019417478,
     "cl_max_rel": {
-      "tag": "v2.1.69",
-      "name": "v2.1.69",
-      "date": "2026-03-05T00:26:21+00:00",
-      "cl_chars": 12140,
-      "cl_lines": 106,
-      "cl_body": "## What's changed\n\n- Added the `/claude-api` skill for building applications with the Claude API and Anthropic SDK\n- Added Ctrl+U on an empty bash prompt (`!`) to exit bash mode, matching `escape` and `backspace`\n- Added numeric keypad support for selecting options in Claude's interview questions (previously only the number row above QWERTY worked)\n- Added optional name argument to `/remote-control` and `claude remote-control` (`/remote-control My Project` or `--name \"My Project\"`) to set a custom session title visible in claude.ai/code\n- Added Voice STT support for 10 new languages (20 total) \u2014 Russian, Polish, Turkish, Dutch, Ukrainian, Greek, Czech, Danish, Swedish, Norwegian\n- Added effort level display (e.g., \"with low effort\") to the logo and spinner, making it easier to see which ef",
+      "tag": "v2.1.257",
+      "name": "v2.1.257",
+      "date": "2026-09-01T17:53:52+00:00",
+      "cl_chars": 16257,
+      "cl_lines": 107,
+      "cl_body": "## What's changed\n\n- Added Claude Fable 5.1 (`claude-fable-5-1`), now the default Fable model \u2014 1M context, $10/$50 per Mtok with $0.25/Mtok cache reads\n- Added \"Time format\" (`timeFormat`) and `timeZone` settings: 12-hour, 24-hour, 24-hour UTC, or a strftime pattern for the turn-end clock and transcript-view timestamps\n- Added a Containment Escape rule to auto mode so cloud metadata-credential fetches, egress evasion, and cross-tenant reach are no longer auto-approved unless your environment marks them expected\n- Added `CLAUDE_CODE_SUBAGENT_MODEL_FORCE` to apply `CLAUDE_CODE_SUBAGENT_MODEL` (or the main model) to every subagent, ignoring per-spawn and agent-definition model overrides\n- Added `s` in `/effort` to change effort for the current session only, matching `/model`\n- Added a `/doct",
       "pre": false,
-      "url": "https://github.com/anthropics/claude-code/releases/tag/v2.1.69",
+      "url": "https://github.com/anthropics/claude-code/releases/tag/v2.1.257",
       "ver_type": "patch"
     },
     "cl_min_rel": {
@@ -11623,7 +11693,7 @@
     },
     "dow": {
       "Monday": 64,
-      "Tuesday": 96,
+      "Tuesday": 98,
       "Wednesday": 98,
       "Thursday": 96,
       "Friday": 103,
@@ -11649,11 +11719,12 @@
       "2026-05": 28,
       "2026-06": 30,
       "2026-07": 23,
-      "2026-08": 29
+      "2026-08": 29,
+      "2026-09": 2
     },
     "years": {
       "2025": 284,
-      "2026": 221
+      "2026": 223
     },
     "fav_dow": [
       "Friday",
@@ -11666,23 +11737,23 @@
     "streak": 14,
     "streak_start": "2025-04-25T17:15:09.772000+00:00",
     "vtypes": {
-      "patch": 502,
+      "patch": 504,
       "major": 2,
       "minor": 1
     },
     "vel_trend": "steady",
-    "vel_first": 6.7072243346007605,
-    "vel_second": 6.1923076923076925
+    "vel_first": 6.657894736842105,
+    "vel_second": 6.195121951219512
   },
   {
     "label": "\ud83e\udd16 Agent SDK",
-    "total": 203,
-    "stable_count": 203,
+    "total": 205,
+    "stable_count": 205,
     "pre_count": 0,
     "first_date": "2025-12-17T21:55:57+00:00",
-    "latest_date": "2026-08-31T19:47:20+00:00",
-    "span_days": 256,
-    "per_week": 5.55078125,
+    "latest_date": "2026-09-01T22:33:18+00:00",
+    "span_days": 258,
+    "per_week": 5.562015503875969,
     "gaps": [
       {
         "hours": 27.060277777777777,
@@ -13097,6 +13168,20 @@
         "to_tag": "v0.3.252",
         "from_date": "2026-08-28T18:19:38+00:00",
         "to_date": "2026-08-31T19:47:20+00:00"
+      },
+      {
+        "hours": 22.106666666666666,
+        "from_tag": "v0.3.252",
+        "to_tag": "v0.3.257",
+        "from_date": "2026-08-31T19:47:20+00:00",
+        "to_date": "2026-09-01T17:53:44+00:00"
+      },
+      {
+        "hours": 4.6594444444444445,
+        "from_tag": "v0.3.257",
+        "to_tag": "v0.3.258",
+        "from_date": "2026-09-01T17:53:44+00:00",
+        "to_date": "2026-09-01T22:33:18+00:00"
       }
     ],
     "fastest_gap": {
@@ -13113,22 +13198,22 @@
       "from_date": "2025-12-19T22:13:22+00:00",
       "to_date": "2026-01-07T20:37:12+00:00"
     },
-    "avg_gap_h": 30.524041529152914,
-    "median_gap_h": 23.099583333333335,
-    "stdev_gap_h": 39.89187625076067,
+    "avg_gap_h": 30.355992647058823,
+    "median_gap_h": 22.983472222222225,
+    "stdev_gap_h": 39.74040073620622,
     "cl_present": true,
-    "cl_max": 1491,
+    "cl_max": 2267,
     "cl_min": 1,
-    "cl_avg": 470.1773399014778,
+    "cl_avg": 478.09268292682924,
     "cl_max_rel": {
-      "tag": "v0.2.89",
-      "name": "v0.2.89",
-      "date": "2026-04-01T01:07:06+00:00",
-      "cl_chars": 1491,
-      "cl_lines": 25,
-      "cl_body": "## What's changed\n\n- Added `startup()` to pre-warm the CLI subprocess before `query()`, making the first query ~20x faster when startup cost can be paid upfront\n- Added `includeSystemMessages` option to `getSessionMessages()` to optionally include system messages in session history\n- Added `listSubagents()` and `getSubagentMessages()` functions to retrieve subagent conversation history from sessions\n- Added `includeHookEvents` option to enable hook lifecycle messages (`hook_started`, `hook_progress`, `hook_response`) for all hook event types\n- Fixed `ERR_STREAM_WRITE_AFTER_END` errors when single-turn queries with SDK MCP servers or hooks have control responses arriving after the result message\n- Fixed Zod v4 field `.describe()` metadata being dropped from `createSdkMcpServer` tool schemas",
+      "tag": "v0.3.257",
+      "name": "v0.3.257",
+      "date": "2026-09-01T17:53:44+00:00",
+      "cl_chars": 2267,
+      "cl_lines": 27,
+      "cl_body": "## What's changed\n\n- Added `thinkingTokens` to `ModelUsage` (a subset of `outputTokens`), and fixed result-message `usage.output_tokens_details.thinking_tokens` reporting 0 instead of the session's real count\n- Added `tool_use_result.resourceLinks` on user messages carrying MCP tool results: the `resource_link` blocks the tool returned, so hosts can render returned files without parsing the result text\n- Added optional `resource_links` to `task_notification` for an auto-backgrounded MCP tool call that completed, listing the files it returned by reference; join to the call via `tool_use_id`\n- Fixed `mcp_reconnect` and `mcp_toggle` acting on a same-named `.mcp.json` / `~/.claude.json` server instead of the `--mcp-config` or `mcp_set_servers` one\n- Fixed `mcp_toggle` disable also removing the",
       "pre": false,
-      "url": "https://github.com/anthropics/claude-agent-sdk-typescript/releases/tag/v0.2.89",
+      "url": "https://github.com/anthropics/claude-agent-sdk-typescript/releases/tag/v0.3.257",
       "ver_type": "patch"
     },
     "cl_min_rel": {
@@ -13147,7 +13232,7 @@
       "Friday": 42,
       "Sunday": 5,
       "Monday": 16,
-      "Tuesday": 36,
+      "Tuesday": 38,
       "Saturday": 25,
       "Thursday": 35
     },
@@ -13160,11 +13245,12 @@
       "2026-05": 28,
       "2026-06": 29,
       "2026-07": 22,
-      "2026-08": 27
+      "2026-08": 27,
+      "2026-09": 2
     },
     "years": {
       "2025": 3,
-      "2026": 200
+      "2026": 202
     },
     "fav_dow": [
       "Wednesday",
@@ -13177,21 +13263,21 @@
     "streak": 10,
     "streak_start": "2026-02-19T23:28:39+00:00",
     "vtypes": {
-      "patch": 203
+      "patch": 205
     },
     "vel_trend": "accelerating",
-    "vel_first": 5.086330935251798,
-    "vel_second": 6.155172413793103
+    "vel_first": 5.1,
+    "vel_second": 6.21551724137931
   },
   {
     "label": "\ud83d\udcd8 TS SDK [npm]",
-    "total": 202,
-    "stable_count": 201,
+    "total": 203,
+    "stable_count": 202,
     "pre_count": 1,
     "first_date": "2023-01-31T15:44:00.296000+00:00",
-    "latest_date": "2026-08-27T20:37:04.088000+00:00",
-    "span_days": 1304,
-    "per_week": 1.084355828220859,
+    "latest_date": "2026-09-01T17:54:56.803000+00:00",
+    "span_days": 1309,
+    "per_week": 1.085561497326203,
     "gaps": [
       {
         "hours": 0.5668377777777778,
@@ -14599,6 +14685,13 @@
         "to_tag": "0.122.0",
         "from_date": "2026-08-26T17:30:57.989000+00:00",
         "to_date": "2026-08-27T20:37:04.088000+00:00"
+      },
+      {
+        "hours": 117.2979763888889,
+        "from_tag": "0.122.0",
+        "to_tag": "0.123.0",
+        "from_date": "2026-08-27T20:37:04.088000+00:00",
+        "to_date": "2026-09-01T17:54:56.803000+00:00"
       }
     ],
     "fastest_gap": {
@@ -14615,9 +14708,9 @@
       "from_date": "2023-04-04T12:26:00.968000+00:00",
       "to_date": "2023-06-05T20:26:18.990000+00:00"
     },
-    "avg_gap_h": 155.72579296849088,
-    "median_gap_h": 80.52757416666667,
-    "stdev_gap_h": 234.14187363507835,
+    "avg_gap_h": 155.53555625275027,
+    "median_gap_h": 80.83896097222222,
+    "stdev_gap_h": 233.57435438791993,
     "cl_present": false,
     "cl_max": 0,
     "cl_min": 0,
@@ -14625,7 +14718,7 @@
     "cl_max_rel": null,
     "cl_min_rel": null,
     "dow": {
-      "Tuesday": 47,
+      "Tuesday": 48,
       "Wednesday": 46,
       "Friday": 31,
       "Monday": 33,
@@ -14673,17 +14766,18 @@
       "2026-05": 13,
       "2026-06": 11,
       "2026-07": 12,
-      "2026-08": 7
+      "2026-08": 7,
+      "2026-09": 1
     },
     "years": {
       "2023": 37,
       "2024": 59,
       "2025": 40,
-      "2026": 66
+      "2026": 67
     },
     "fav_dow": [
       "Tuesday",
-      47
+      48
     ],
     "busiest_month": [
       "2026-05",
@@ -14692,12 +14786,12 @@
     "streak": 8,
     "streak_start": "2026-07-16T19:38:50.369000+00:00",
     "vtypes": {
-      "minor": 108,
+      "minor": 109,
       "patch": 93,
       "pre": 1
     },
     "vel_trend": "accelerating",
     "vel_first": 0.9327176781002638,
-    "vel_second": 1.2972477064220183
+    "vel_second": 1.3005464480874316
   }
 ]
