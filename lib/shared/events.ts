@@ -567,6 +567,16 @@ export type UsageSnapshotEvent = {
  * absent from the on-disk JSONL, so they vanish once a session is rebuilt
  * from disk. See `lib/server/db-migrations/007_session_tasks.sql`.
  */
+/** SDK 0.3.257 `SDKMcpResourceLink` — a file an MCP tool result points to by reference. */
+export type TaskResourceLink = {
+  uri: string;
+  name: string;
+  title?: string;
+  description?: string;
+  mimeType?: string;
+  size?: number;
+};
+
 export type TaskSnapshotEntry = {
   taskId: string;
   /** Parent Task tool_use block id — the client's JOIN key. */
@@ -614,6 +624,13 @@ export type TaskSnapshotEntry = {
   durationMs?: number;
   summary?: string;
   error?: string;
+  /**
+   * SDK 0.3.257 — files an auto-backgrounded MCP tool call returned by
+   * reference (the `resource_link` content blocks of its result), from
+   * `task_notification.resource_links`. Absent when the task's result
+   * carried no resource links (the common case) or on older SDKs.
+   */
+  resourceLinks?: TaskResourceLink[];
   /**
    * Raw subagent SDK messages (those tagged with `parent_tool_use_id`),
    * in arrival order. `at` is the server-stamped epoch ms for ordering.

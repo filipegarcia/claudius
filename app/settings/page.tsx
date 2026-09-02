@@ -1195,6 +1195,25 @@ const SDK_SETTINGS_CATALOG: SettingMeta[] = [
     desc: 'Set to "readline" to make Ctrl+W in the CLI\'s own prompt delete back to the previous whitespace, as in Bash; default ("classic") is unchanged. CLI-only — Claudius\'s browser composer can\'t intercept Ctrl+W (browsers reserve it to close the tab), so this row is a config-passthrough for when you run `claude` in a terminal against this same settings file.',
   },
   {
+    // SDK 0.3.257 — clock format for the CLI's own TUI. Config-passthrough
+    // only, same reasoning as `keybindingFlavor` above: Claudius's browser
+    // UI renders its own message timestamps and isn't affected by this
+    // key either way — it's forwarded here purely for anyone who also runs
+    // the bundled `claude` binary in a terminal against this settings file.
+    key: "timeFormat",
+    type: "string",
+    section: "Display",
+    placeholder: "auto",
+    desc: 'Clock format for times the CLI shows in its own UI: "auto" (default, follows the locale), "12-hour", "24-hour", "24-hour-utc", or a strftime pattern such as "%H:%M" (any value containing "%"). Does not affect Claudius\'s own message timestamps.',
+  },
+  {
+    key: "timeZone",
+    type: "string",
+    section: "Display",
+    placeholder: "UTC",
+    desc: 'IANA time zone for times the CLI shows in its own UI, e.g. "UTC" or "Europe/Dublin". Default: the system time zone. Does not affect Claudius\'s own message timestamps.',
+  },
+  {
     key: "forceLoginMethod",
     type: "enum",
     section: "Authentication",

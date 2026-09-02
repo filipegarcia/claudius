@@ -138,3 +138,33 @@ describe("EMOJI_ALIASES", () => {
     expect(filterEmojiShortcodes("thumbs").filter((o) => o.emoji === EMOJI_SHORTCODES.thumbsdown)).toHaveLength(1);
   });
 });
+
+// CC 2.1.257 parity: "Improved emoji autocomplete to accept the remaining
+// GitHub/Slack shortcode aliases (:satisfied:, :telephone:, :collision:, …)".
+describe("EMOJI_ALIASES — 2.1.257 additions", () => {
+  test("`telephone` is already a canonical key — no alias needed, already accepted", () => {
+    expect(EMOJI_ALIASES.telephone).toBeUndefined();
+    expect(lookupEmojiShortcode("telephone")).toBe(EMOJI_SHORTCODES.telephone);
+  });
+
+  test("`satisfied` resolves to the same emoji as `laughing`", () => {
+    expect(EMOJI_ALIASES.satisfied).toBe("laughing");
+    expect(lookupEmojiShortcode("satisfied")).toBe(lookupEmojiShortcode("laughing"));
+  });
+
+  test("`collision` resolves to the same emoji as `boom`", () => {
+    expect(EMOJI_ALIASES.collision).toBe("boom");
+    expect(lookupEmojiShortcode("collision")).toBe(lookupEmojiShortcode("boom"));
+  });
+
+  test("filterEmojiShortcodes surfaces both new alias names, resolved to their canonical emoji", () => {
+    expect(
+      filterEmojiShortcodes("satisf").some(
+        (o) => o.name === "satisfied" && o.emoji === EMOJI_SHORTCODES.laughing,
+      ),
+    ).toBe(true);
+    expect(
+      filterEmojiShortcodes("collis").some((o) => o.name === "collision" && o.emoji === EMOJI_SHORTCODES.boom),
+    ).toBe(true);
+  });
+});

@@ -1,0 +1,14 @@
+-- v20: persist `resource_links` on session_tasks rows.
+--
+-- SDK 0.3.257 added `resource_links` to the terminal `task_notification` for
+-- an auto-backgrounded MCP tool call: the `resource_link` content blocks its
+-- result carried, i.e. the files it returned by reference. Without
+-- persisting it, those links would vanish on every reload rebuilt from
+-- `session_tasks` (idle-reap, server restart) even though the live SSE
+-- stream delivered them once.
+--
+-- Stored as a JSON array (TEXT), nullable so "never reported" round-trips
+-- as `undefined` rather than `[]` — same convention as `inner_messages`
+-- (migration 007) but nullable like `ambient` (migration 018) since most
+-- tasks never carry any.
+ALTER TABLE session_tasks ADD COLUMN resource_links TEXT;

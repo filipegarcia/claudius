@@ -13,6 +13,18 @@ export type PermissionRules = {
   deny?: string[];
   defaultMode?: string;
   additionalDirectories?: string[];
+  /**
+   * CC 2.1.257 — "Refuse file-tool reads (Read, Grep, Glob, LSP) outside
+   * the working directories in every permission mode; true in any settings
+   * source wins." Upstream also shows a one-time auto-mode prompt offering
+   * to flip this on the first out-of-workspace read; Claudius has no
+   * equivalent one-time-prompt UI (auto mode's classifier runs server-side
+   * in the SDK), so this is exposed as a plain settings toggle instead —
+   * same treatment as `additionalDirectories` above (also per-scope, "true
+   * anywhere wins" is enforced by the SDK reading every scope, not by
+   * Claudius merging them itself).
+   */
+  blockReadsOutsideWorkingDirectories?: boolean;
 };
 
 /**
@@ -277,6 +289,15 @@ export type ClaudeSettings = {
   // `ToolCall.tsx`'s `SendFeedback` special-case) instead of the generic
   // tool-call JSON dump.
   feedbackDrafts?: "notify" | "quiet" | "off";
+  // SDK 0.3.257 — clock format / time zone for times the CLI shows in its
+  // own TUI (message timestamps, /config, etc.). Same treatment as
+  // `keybindingFlavor`: config-passthrough only, read by the bundled
+  // `claude` binary straight from this settings file — Claudius's own
+  // browser UI renders its own timestamps independently and isn't
+  // affected either way. Surfacing both as catalog rows is all Claudius
+  // needs; see `SDK_SETTINGS_CATALOG` in `app/settings/page.tsx`.
+  timeFormat?: "auto" | "12-hour" | "24-hour" | "24-hour-utc" | string;
+  timeZone?: string;
   // Catch-all for keys we don't yet know about — we never strip them.
   [key: string]: unknown;
 };

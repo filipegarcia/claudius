@@ -77,6 +77,7 @@ import {
   type PlanUsageUnavailableEvent,
   type ServerEvent,
   type SessionUsageTotals,
+  type TaskResourceLink,
   type TaskSnapshotEntry,
 } from "@/lib/shared/events";
 import { getSessionUsage, saveSessionUsage } from "./session-usage-db";
@@ -974,6 +975,10 @@ export function zeroSessionUsage(): SessionUsageTotals {
 const ADDITIVE_MODEL_USAGE_FIELDS = new Set([
   "inputTokens",
   "outputTokens",
+  // SDK 0.3.257 — `thinkingTokens` is a subset already counted inside
+  // `outputTokens`; accumulate it the same way so a resumed session's
+  // per-model breakdown doesn't regress to last-write-wins for it.
+  "thinkingTokens",
   "cacheReadInputTokens",
   "cacheCreationInputTokens",
   "webSearchRequests",
@@ -5084,10 +5089,21 @@ export class Session {
     }
   }
 
-  async getContextUsage(): Promise<{ ok: true; data: unknown } | { ok: false; error: string }> {
+  /**
+   * `detail` (SDK 0.3.257): 'full' (default) counts each category with the
+   * token-count API; 'summary' answers from the last response's usage and
+   * local estimates, skipping those per-category calls. Same response shape
+   * either way (`totalTokens`/`maxTokens`/`percentage` plus `categories` /
+   * `gridRows` / `memoryFiles`) — callers that only need the headline numbers
+   * (e.g. the idle-polling context watcher) should pass 'summary'; the
+   * `/context` overlay's full breakdown still needs 'full'.
+   */
+  async getContextUsage(
+    opts?: { detail?: "summary" | "full" },
+  ): Promise<{ ok: true; data: unknown } | { ok: false; error: string }> {
     if (!this.query) return { ok: false, error: "no active query" };
     try {
-      const data = await this.query.getContextUsage();
+      const data = await this.query.getContextUsage(opts);
       return { ok: true, data };
     } catch (err) {
       return { ok: false, error: err instanceof Error ? err.message : String(err) };
@@ -7253,6 +7269,9 @@ export class Session {
         is_backgrounded?: boolean;
       };
       usage?: { total_tokens?: number; tool_uses?: number; duration_ms?: number };
+      // SDK 0.3.257 — files an auto-backgrounded MCP tool call returned by
+      // reference, on the terminal task_notification only.
+      resource_links?: TaskResourceLink[];
     };
 
     // Subagent inner message — accumulate the raw envelope under its parent
@@ -7358,6 +7377,9 @@ export class Session {
         if (msg.usage?.tool_uses != null) meta.toolUses = msg.usage.tool_uses;
         if (msg.usage?.duration_ms != null) meta.durationMs = msg.usage.duration_ms;
         if (msg.ambient != null) meta.ambient = msg.ambient;
+        // SDK 0.3.257 — files an auto-backgrounded MCP tool call returned by
+        // reference, joined to this notification via tool_use_id.
+        if (msg.resource_links != null) meta.resourceLinks = msg.resource_links;
         this.taskMetaById.set(taskId, meta);
         this.persistTask(meta);
         // Terminal subagent event — if this was the last non-backgrounded

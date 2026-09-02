@@ -206,6 +206,13 @@ export function AssistantMessage({
               b.name === "AskUserQuestion" && onReopenAsk
                 ? () => onReopenAsk({ toolUseId: b.id, input: b.input })
                 : undefined;
+            // SDK 0.3.257 — an auto-backgrounded MCP tool call's real
+            // completion (status + any returned files) only ever arrives via
+            // task_notification, joined here by tool_use id. Gated to
+            // taskType "mcp_task" so every other tool (Bash, etc.) keeps its
+            // existing result-only status derivation untouched.
+            const mcpTask = taskByToolUseId.get(b.id);
+            const isMcpTask = mcpTask?.taskType === "mcp_task";
             return (
               <ToolCall
                 key={i}
@@ -216,6 +223,8 @@ export function AssistantMessage({
                 liveAsk={b.name === "AskUserQuestion" && pendingAskToolUseId === b.id}
                 onReopenAsk={askClick}
                 defaultOpen={expandAll}
+                resourceLinks={isMcpTask ? mcpTask?.resourceLinks : undefined}
+                taskStatus={isMcpTask ? mcpTask?.status : undefined}
               />
             );
           }

@@ -94,7 +94,9 @@ async function mockChatBackend(
     });
   });
 
-  await page.route(`**/api/sessions/${FAKE_SESSION_ID}/context`, async (route: Route) => {
+  // SDK 0.3.257 — the idle-polling context watcher now appends
+  // `?detail=summary`; match with-or-without the query string.
+  await page.route(`**/api/sessions/${FAKE_SESSION_ID}/context*`, async (route: Route) => {
     return route.fulfill({
       status: 200,
       contentType: "application/json",

@@ -35,7 +35,7 @@ const SYNTAX_HINTS = [
 ];
 
 export default function PermissionsPage() {
-  const { rules, loading, error, updateRules } = usePermissions();
+  const { rules, loading, error, updateRules, updateBlockReadsOutsideWorkingDirectories } = usePermissions();
   const [scope, setScope] = useState<Scope>("project");
   const [iaScope, setIaScope] = useState<IaScope>("workspace");
   // CC 2.1.246 parity — the "Auto mode" tab only exists in account ("user")
@@ -165,6 +165,38 @@ export default function PermissionsPage() {
               <AutoModeTab />
             ) : (
               <>
+                {/* CC 2.1.257 parity — "Added a one-time prompt in auto mode
+                    before the first file read outside the working
+                    directories, with the option to block such reads
+                    (permissions.blockReadsOutsideWorkingDirectories)".
+                    Claudius has no one-time-prompt equivalent (auto mode's
+                    classifier is server-side, inside the SDK), so the
+                    setting itself is exposed as a plain per-scope toggle —
+                    "true in any settings source wins", same as upstream. */}
+                <div className="mb-4 rounded-lg border border-[var(--border)] bg-[var(--panel)]/40 p-3 text-xs">
+                  <label className="flex items-start gap-2">
+                    <input
+                      type="checkbox"
+                      data-testid="block-reads-outside-working-dirs"
+                      checked={rules[scope].blockReadsOutsideWorkingDirectories}
+                      onChange={(e) =>
+                        void updateBlockReadsOutsideWorkingDirectories(scope, e.target.checked)
+                      }
+                      className="mt-0.5"
+                    />
+                    <span>
+                      <span className="font-medium text-[var(--foreground)]">
+                        Block reads outside working directories
+                      </span>
+                      <p className="mt-0.5 text-[10px] text-[var(--muted)]">
+                        Refuse Read/Grep/Glob/LSP file access outside this session&apos;s working
+                        directories, in every permission mode. Enabled in any scope applies
+                        everywhere.
+                      </p>
+                    </span>
+                  </label>
+                </div>
+
                 <div className="mb-6 rounded-lg border border-[var(--border)] bg-[var(--panel)]/40 p-3 text-xs">
                   <div className="mb-2 flex items-center gap-1.5 text-[var(--muted)]">
                     <Info className="h-3.5 w-3.5" />

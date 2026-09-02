@@ -37,7 +37,11 @@ export function useContextWatcher(
 
     async function poll() {
       try {
-        const res = await fetch(`/api/sessions/${sessionId}/context`);
+        // SDK 0.3.257 — 'summary' skips the per-category token-count API
+        // calls; this poll only reads totalTokens/maxTokens/percentage, so
+        // the cheaper detail level is enough (the /context overlay requests
+        // the default 'full' for its category breakdown separately).
+        const res = await fetch(`/api/sessions/${sessionId}/context?detail=summary`);
         if (!res.ok) return;
         const d = (await res.json()) as ContextSummary & Record<string, unknown>;
         if (!cancelled && sessionId) {

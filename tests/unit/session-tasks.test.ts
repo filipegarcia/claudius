@@ -71,7 +71,11 @@ function progressEvent(
   } as unknown as ServerEvent;
 }
 
-function notificationEvent(taskId: string, status: string, extra?: { ambient?: boolean }): ServerEvent {
+function notificationEvent(
+  taskId: string,
+  status: string,
+  extra?: { ambient?: boolean; resource_links?: unknown },
+): ServerEvent {
   return {
     type: "sdk",
     message: { type: "system", subtype: "task_notification", task_id: taskId, status, ...extra },
@@ -145,6 +149,33 @@ describe("session-tasks-db roundtrip", () => {
     const row = rows.find((r) => r.taskId === "task-ambient-1");
     expect(row).toBeDefined();
     expect(row!.ambient).toBe(true);
+  });
+
+  test("SDK 0.3.257: round-trips resourceLinks through session_tasks (migration 020)", async () => {
+    const entry: TaskSnapshotEntry = {
+      taskId: "task-links-1",
+      status: "completed",
+      resourceLinks: [{ uri: "reports://q3/summary.pdf", name: "summary.pdf", title: "Q3 summary.pdf" }],
+      innerMessages: [],
+    };
+    await saveSessionTask(CWD, "tasks-test", entry);
+
+    const rows = await listSessionTasks(CWD, "tasks-test");
+    const row = rows.find((r) => r.taskId === "task-links-1");
+    expect(row).toBeDefined();
+    expect(row!.resourceLinks).toEqual([
+      { uri: "reports://q3/summary.pdf", name: "summary.pdf", title: "Q3 summary.pdf" },
+    ]);
+  });
+
+  test("SDK 0.3.257: leaves resourceLinks unset when never reported", async () => {
+    const entry: TaskSnapshotEntry = { taskId: "task-links-2", status: "completed", innerMessages: [] };
+    await saveSessionTask(CWD, "tasks-test", entry);
+
+    const rows = await listSessionTasks(CWD, "tasks-test");
+    const row = rows.find((r) => r.taskId === "task-links-2");
+    expect(row).toBeDefined();
+    expect(row!.resourceLinks).toBeUndefined();
   });
 
   test("upserts by (session_id, task_id)", async () => {
@@ -294,6 +325,20 @@ describe("Session.captureTaskState end-to-end", () => {
     );
 
     expect(session.getStatus()).toBe("idle");
+  });
+
+  test("SDK 0.3.257: captures resource_links from the terminal task_notification", async () => {
+    const session = makeSession();
+    session.captureTaskState(startedEvent("task-11", "toolu-11", "generate report"));
+    session.captureTaskState(
+      notificationEvent("task-11", "completed", {
+        resource_links: [{ uri: "reports://q3/data.csv", name: "data.csv" }],
+      }),
+    );
+
+    const persisted = await waitForTask("task-11");
+    expect(persisted).toBeDefined();
+    expect(persisted!.resourceLinks).toEqual([{ uri: "reports://q3/data.csv", name: "data.csv" }]);
   });
 
   test("SDK 0.3.247: a running non-ambient task still pins getStatus() on 'running'", async () => {
