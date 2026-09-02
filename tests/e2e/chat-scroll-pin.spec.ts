@@ -29,6 +29,9 @@ import { test, expect, type Page } from "../helpers/test";
 
 const SESSION_RE = /[?&]session=([0-9a-f-]{36})/i;
 
+/** Mirrors `NEAR_BOTTOM_PX` in components/chat/MessageList.tsx. */
+const NEAR_BOTTOM_PX = 80;
+
 async function waitForBoundSession(page: Page): Promise<string> {
   await page.waitForURL((url) => SESSION_RE.test(String(url)), { timeout: 30_000 });
   const id = page.url().match(SESSION_RE)?.[1];
@@ -41,11 +44,14 @@ async function pushAssistant(
   sessionId: string,
   text: string,
   uuid: string,
+  /** Explicit event timestamp; drives `createdAt` and therefore sort order. */
+  at?: number,
 ): Promise<void> {
   const res = await page.request.post(`/api/sessions/${sessionId}/dev-broadcast`, {
     data: {
       event: {
         type: "sdk",
+        ...(at !== undefined ? { at } : {}),
         message: {
           type: "assistant",
           uuid,
@@ -67,11 +73,14 @@ async function pushUser(
   sessionId: string,
   text: string,
   uuid: string,
+  /** Explicit event timestamp; drives `createdAt` and therefore sort order. */
+  at?: number,
 ): Promise<void> {
   const res = await page.request.post(`/api/sessions/${sessionId}/dev-broadcast`, {
     data: {
       event: {
         type: "sdk",
+        ...(at !== undefined ? { at } : {}),
         message: { type: "user", uuid, message: { content: [{ type: "text", text }] } },
       },
     },
@@ -171,5 +180,182 @@ test.describe("chat scroll pinning", () => {
       after!.distFromBottom,
       `reader was yanked toward the bottom: distFromBottom ${before!.distFromBottom} → ${after!.distFromBottom}`,
     ).toBeGreaterThan(300);
+  });
+
+  /**
+   * The CONVERSE of the test above, and the direction that was never covered.
+   *
+   * The two behaviors are in tension and the fix has swung between them twice
+   * (2abe5a5 → edabbb6 → 134639e), each swing shipping green because only one
+   * direction had a test. A reader sitting AT the bottom must keep following
+   * new content; a reader who scrolled UP must be left alone. Both specs have
+   * to pass simultaneously or the pin logic is wrong again.
+   *
+   * The failure mode this catches: `pin()` writes `scrollTop = scrollHeight`
+   * from a ResizeObserver callback, but the resulting scroll event is not
+   * dispatched until the NEXT frame — by which time another streaming chunk
+   * has been committed and `scrollHeight` has grown. `onScroll` then reads a
+   * grown height against the pinned scrollTop, computes distFromBottom > 80,
+   * and concludes the reader scrolled up. That permanently disarms the pin
+   * (`isNearBottomRef`), so the view stops following the bottom and the user
+   * has to scroll down by hand — repeatedly, for the rest of the turn.
+   *
+   * Several messages are pushed back-to-back on purpose: one tall append is
+   * enough in principle, but a burst reproduces the interleaving of commits
+   * and scroll dispatches that makes the stale read likely.
+   */
+  test("a reader sitting at the bottom keeps following new messages", async ({
+    page,
+  }) => {
+    test.setTimeout(60_000);
+
+    await page.goto("/");
+    const id = await waitForBoundSession(page);
+
+    await pushUser(page, id, "Walk me through it.", "user-follow");
+    await pushAssistant(page, id, longReplyText(), "follow-1");
+
+    await expect(page.locator('[data-message-uuid="follow-1"]')).toBeVisible({
+      timeout: 15_000,
+    });
+
+    // Precondition: the content overflows and we are pinned at the bottom.
+    await expect
+      .poll(async () => (await scrollMetrics(page, "follow-1"))?.scrollHeight ?? 0, {
+        timeout: 15_000,
+      })
+      .toBeGreaterThan(1500);
+    await expect
+      .poll(async () => (await scrollMetrics(page, "follow-1"))?.distFromBottom ?? 9999, {
+        timeout: 15_000,
+      })
+      .toBeLessThanOrEqual(NEAR_BOTTOM_PX);
+
+    // The reader does NOT touch the scroll wheel. Messages keep arriving.
+    //
+    // NOTE: this spec does NOT reproduce the user-reported "I get left behind
+    // mid-stream" bug — it passes on unmodified code. It was written to close
+    // the coverage gap that let the pin logic oscillate (2abe5a5 → edabbb6 →
+    // 134639e) with CI green each time, because only the scrolled-up-reader
+    // direction was ever asserted. Its job is to fail if a future fix for the
+    // follow-the-bottom direction breaks it back the other way.
+    //
+    // Why it doesn't reproduce: dev-broadcast pushes land close enough
+    // together that React batches them into one or two commits, so the
+    // container grows in one step and the geometry `onScroll` reads is never
+    // stale. Instrumenting the real container during this burst recorded only
+    // 2 scroll events, both near-bottom. Reproducing the real bug needs
+    // incremental `stream_event` deltas spread across many frames.
+    const burst: Array<Promise<void>> = [];
+    for (let i = 2; i <= 12; i++) {
+      burst.push(
+        pushAssistant(
+          page,
+          id,
+          Array.from(
+            { length: 6 },
+            (_, k) => `Follow-up message ${i}, line ${k + 1}. ${"Filler text to add height. ".repeat(6)}`,
+          ).join("\n\n"),
+          `follow-${i}`,
+        ),
+      );
+    }
+    await Promise.all(burst);
+    await expect(page.locator('[data-message-uuid="follow-12"]')).toBeAttached({
+      timeout: 15_000,
+    });
+
+    // The viewport must still be following the tail. Poll so a late reflow or
+    // a trailing pin gets its chance before we call it a failure.
+    await expect
+      .poll(async () => (await scrollMetrics(page, "follow-1"))?.distFromBottom ?? 9999, {
+        timeout: 10_000,
+        message:
+          "view stopped following the bottom while the reader sat still — the pin gate was disarmed by its own scroll echo",
+      })
+      .toBeLessThanOrEqual(NEAR_BOTTOM_PX);
+
+    // ...and the client must agree it is at the bottom, so the reader is not
+    // told to "Jump to latest" while already looking at the latest.
+    await expect(page.getByTestId("jump-to-latest")).toBeHidden();
+  });
+
+  /**
+   * Regression test for "when a new message arrives I randomly get scrolled
+   * UP, and it's worse on long conversations".
+   *
+   * `MessageList` treats any change of `messages[0].uuid` as a load-older
+   * prepend and runs a scroll-position restore. But the head also changes
+   * during ordinary streaming: `resyncFromDisk` re-broadcasts JSONL records
+   * mid-turn carrying their ORIGINAL timestamp, and `sortMessagesByChronology`
+   * sorts those to the front. Task-recovery and snapshot-fallback inserts
+   * prepend too. The restore then fired for a reader sitting at the bottom,
+   * landed above it, and stamped `lastPrependAtRef` — which suppressed the pin
+   * that would have corrected it. Measured before the fix: the viewport moved
+   * up 196px and sat 261px off the bottom until the next message re-pinned it.
+   *
+   * A front-sorting record is broadcast here with an explicit historical `at`,
+   * which is precisely the shape resyncFromDisk produces.
+   */
+  test("a record that sorts to the front does not move a reader who is at the bottom", async ({
+    page,
+  }) => {
+    test.setTimeout(90_000);
+
+    await page.goto("/");
+    const id = await waitForBoundSession(page);
+
+    // A long transcript with explicit, ordered timestamps.
+    // Size matters here. The defect displaces the viewport by ONE growth step,
+    // so a short transcript hides it under the 80px near-bottom tolerance.
+    // At 25 turns of this height the pre-fix displacement measured ~196px,
+    // leaving the reader 261px off the bottom.
+    const base = 1_800_000_000_000;
+    for (let i = 0; i < 25; i++) {
+      await pushUser(page, id, `Question ${i}?`, `q-${i}`, base + i * 1000);
+      await pushAssistant(
+        page,
+        id,
+        Array.from(
+          { length: 4 },
+          (_, k) => `Answer ${i} line ${k}. ${"body ".repeat(30)}`,
+        ).join("\n\n"),
+        `ans-${i}`,
+        base + i * 1000 + 1,
+      );
+    }
+    await expect(page.locator('[data-message-uuid="ans-24"]')).toBeAttached({
+      timeout: 20_000,
+    });
+
+    // Precondition: overflowing, and parked at the bottom.
+    await expect
+      .poll(async () => (await scrollMetrics(page, "ans-24"))?.distFromBottom ?? 9999, {
+        timeout: 15_000,
+      })
+      .toBeLessThanOrEqual(NEAR_BOTTOM_PX);
+
+    // A record from the past arrives and sorts ahead of everything on screen.
+    await pushAssistant(
+      page,
+      id,
+      "An older record replayed from disk mid-turn.",
+      "ghost-old",
+      base - 500_000,
+    );
+    await expect(page.locator('[data-message-uuid="ghost-old"]')).toBeAttached({
+      timeout: 15_000,
+    });
+
+    // The reader never touched the scroll wheel, so they must still be at the
+    // bottom. Before the fix this sat ~261px adrift.
+    await expect
+      .poll(async () => (await scrollMetrics(page, "ans-24"))?.distFromBottom ?? 9999, {
+        timeout: 10_000,
+        message:
+          "a front-sorting record scrolled the reader up: the prepend restore ran for someone who was already at the bottom",
+      })
+      .toBeLessThanOrEqual(NEAR_BOTTOM_PX);
+    await expect(page.getByTestId("jump-to-latest")).toBeHidden();
   });
 });

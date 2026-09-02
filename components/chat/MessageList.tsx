@@ -12,6 +12,7 @@ import { SpinnerTip } from "./SpinnerTip";
 import type { Tip } from "@/lib/shared/tips";
 import { SplashScreen } from "./SplashScreen";
 import { isRealUserDisplayMessage } from "@/lib/client/sdk-message-filters";
+import { nextPinGate } from "@/lib/client/scroll-gate";
 import type { DisplayMessage, SystemEntry, TaskInfo, ToolProgressInfo } from "@/lib/client/types";
 import type { ApiRetryState } from "@/lib/client/api-retry";
 import {
@@ -125,8 +126,6 @@ type Props = {
   systemPillLevers?: SystemPillLevers;
 };
 
-const NEAR_BOTTOM_PX = 80;
-
 export function MessageList({
   messages,
   systemEntries,
@@ -162,13 +161,26 @@ export function MessageList({
   const topSentinelRef = useRef<HTMLDivElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
-  // Timestamp (performance.now) of the most recent programmatic pin-to-bottom.
-  // `onScroll` ignores events fired within a short window after a pin: those
-  // are the browser dispatching the side-effect of our own `scrollTop` write —
-  // often with a `scrollHeight` that grew another step mid-stream — and reading
-  // that transient geometry would mis-flag "user scrolled up". Same workaround
-  // as the community MessageList.
-  const lastPinAtRef = useRef(0);
+  // Last scrollTop we either observed in a scroll event or wrote ourselves.
+  // `onScroll` compares against it to tell a REAL scroll-up from a bogus one.
+  //
+  // This replaces the old "ignore scroll events for 250ms after a pin" window.
+  // That window was a proxy for "this event was caused by us, not the user",
+  // and it never worked in both directions at once: suppressing the whole
+  // window means a genuine mid-stream scroll-up is ignored and the reader gets
+  // yanked back down (the bug edabbb6 fixed); suppressing only `near === true`
+  // means a stale-geometry `near === false` permanently disarms the pin and the
+  // reader stops following the bottom (the bug 134639e caused, reported as
+  // "I get scrolled up when new messages arrive and have to scroll down
+  // again"). The pin logic oscillated between those two for three commits.
+  //
+  // Direction is the signal the time window was only approximating. EVERY
+  // user-initiated scroll-up — wheel, trackpad, touch drag, scrollbar drag,
+  // PageUp/Home, find-in-page — decreases scrollTop. Our own pin, and content
+  // growing beneath a stationary viewport, never do: scrollTop is unchanged or
+  // larger. So we honour `near === false` only when the viewport actually moved
+  // up, and no longer have to guess from timing who caused the event.
+  const lastScrollTopRef = useRef(0);
   // Timestamp of the most recent load-older prepend. The always-pin handler
   // below skips the brief window after a prepend so pulling in history doesn't
   // immediately yank the reader back down to the newest message.
@@ -197,7 +209,13 @@ export function MessageList({
   // For scroll-anchor preservation on prepend.
   const prevHeadUuidRef = useRef<string>("");
   const prevHeightRef = useRef<number>(0);
-  const prevScrollTopRef = useRef<number>(0);
+  // `offsetTop` of the head message as of the last run. Comparing the SAME
+  // element's offsetTop before and after gives the height inserted ABOVE it,
+  // which is what a prepend actually needs to compensate for. The old code
+  // used total `scrollHeight` growth instead, which also includes the tail
+  // growing from the live stream — an error term that has nothing to do with
+  // the prepend.
+  const prevHeadOffsetRef = useRef<number>(0);
 
   // Detect "first uuid changed" → caller prepended older messages.
   useLayoutEffect(() => {
@@ -206,21 +224,52 @@ export function MessageList({
     const newHead = messages[0]?.uuid ?? "";
     const oldHead = prevHeadUuidRef.current;
     if (oldHead && newHead && oldHead !== newHead) {
-      // Older messages were prepended (load-older). Mark the moment so the
-      // always-pin handler skips the resize this prepend triggers — otherwise
-      // it would snap to the bottom and make history unreadable.
-      lastPrependAtRef.current = performance.now();
-      // Find the prior head in the new list — its position is how far we
-      // need to shift scrollTop down so the user's view doesn't jump.
-      const newHeight = el.scrollHeight;
-      const delta = newHeight - prevHeightRef.current;
-      if (delta > 0) {
-        el.scrollTop = prevScrollTopRef.current + delta;
+      // The head message changed. That is USUALLY a load-older prepend, but it
+      // is not only that: `resyncFromDisk` re-broadcasts JSONL records mid-turn
+      // carrying their original (historical) `at`, and `sortMessagesByChronology`
+      // puts those at the FRONT. Task-recovery and snapshot-fallback inserts
+      // prepend too. So this branch fires during ordinary streaming, not just
+      // when the reader pulls in history.
+      //
+      // Only a reader parked UP in history needs their visual position
+      // preserved. A reader at the bottom should simply stay at the bottom, and
+      // `pin()` already does that. Running the restore for them is what
+      // produced the reported "I randomly get scrolled up": the arithmetic
+      // landed above the true bottom, and the `lastPrependAtRef` stamp below
+      // then suppressed the pin that would have corrected it — leaving the
+      // reader stranded until the NEXT message happened to re-pin them.
+      if (!isNearBottomRef.current) {
+        // How much height was inserted above the message that used to be the
+        // head. Measured from that element's own offsetTop rather than from
+        // total scrollHeight growth, so concurrent growth at the TAIL (the
+        // live stream) is not mistaken for content added above.
+        const oldHeadEl = el.querySelector<HTMLElement>(
+          `[data-message-uuid="${CSS.escape(oldHead)}"]`,
+        );
+        const addedAbove = oldHeadEl
+          ? oldHeadEl.offsetTop - prevHeadOffsetRef.current
+          : el.scrollHeight - prevHeightRef.current;
+        if (addedAbove > 0) {
+          // Read scrollTop LIVE. `prevScrollTopRef` was captured during the
+          // React commit, before that frame's ResizeObserver pin wrote the
+          // authoritative value, so it was systematically one growth-step
+          // stale — and the restore inherited exactly that error.
+          el.scrollTop = el.scrollTop + addedAbove;
+          // Keep the direction baseline in step with the restore, so the scroll
+          // event it emits isn't misread as the reader scrolling up.
+          lastScrollTopRef.current = el.scrollTop;
+        }
+        // Stand the pin down briefly so the resize this prepend triggers
+        // doesn't snap the history reader to the bottom.
+        lastPrependAtRef.current = performance.now();
       }
     }
     prevHeadUuidRef.current = newHead;
     prevHeightRef.current = el.scrollHeight;
-    prevScrollTopRef.current = el.scrollTop;
+    const headEl = newHead
+      ? el.querySelector<HTMLElement>(`[data-message-uuid="${CSS.escape(newHead)}"]`)
+      : null;
+    prevHeadOffsetRef.current = headEl?.offsetTop ?? 0;
   }, [messages]);
 
   // Uuid of the chronologically-latest user message — re-derived on every
@@ -279,8 +328,8 @@ export function MessageList({
     if (!el) return;
     if (lastAnchoredUserUuidRef.current === lastUserUuid) return;
     lastAnchoredUserUuidRef.current = lastUserUuid;
-    lastPinAtRef.current = performance.now();
     el.scrollTop = el.scrollHeight;
+    lastScrollTopRef.current = el.scrollTop;
     // A fresh user prompt re-arms sticking — the user just acted, jump to
     // the bottom and resume following new content.
     isNearBottomRef.current = true;
@@ -309,18 +358,21 @@ export function MessageList({
   const onScroll = useCallback(() => {
     const el = scrollRef.current;
     if (!el) return;
-    const distFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
-    const near = distFromBottom <= NEAR_BOTTOM_PX;
-    // The echo of our own pin ALWAYS lands at the bottom (near === true): the
-    // pin does `el.scrollTop = el.scrollHeight`. Suppress only those near=true
-    // echoes within the post-pin window (lastPinAtRef) so our own write doesn't
-    // re-assert "at bottom". A near=false event means the view genuinely moved
-    // up — a real scroll-up (wheel/drag, including mid-stream) — and must ALWAYS
-    // register, even inside the window: it drops the gate so the ResizeObserver
-    // pin stands down and the "Jump to latest" affordance appears.
-    if (near && performance.now() - lastPinAtRef.current < 250) return;
-    isNearBottomRef.current = near;
-    setIsNearBottom(near);
+    const top = el.scrollTop;
+    const prevScrollTop = lastScrollTopRef.current;
+    lastScrollTopRef.current = top;
+    // `null` means "content moved, the reader didn't" — leave the gate alone
+    // and let `pin()` catch up. See lib/client/scroll-gate.ts for why direction
+    // rather than timing decides this.
+    const next = nextPinGate({
+      scrollTop: top,
+      scrollHeight: el.scrollHeight,
+      clientHeight: el.clientHeight,
+      prevScrollTop,
+    });
+    if (next === null) return;
+    isNearBottomRef.current = next;
+    setIsNearBottom(next);
   }, []);
 
   // Stay at the bottom WHILE THE READER IS THERE. A ResizeObserver fires on
@@ -354,8 +406,10 @@ export function MessageList({
     const pin = () => {
       if (!isNearBottomRef.current) return;
       if (performance.now() - lastPrependAtRef.current < 350) return;
-      lastPinAtRef.current = performance.now();
       el.scrollTop = el.scrollHeight;
+      // Record what we wrote so the echo of this write compares equal rather
+      // than looking like an upward move to `onScroll`.
+      lastScrollTopRef.current = el.scrollTop;
       // setState bails out when already true, so repeated chunks don't re-render.
       setIsNearBottom(true);
     };
@@ -417,9 +471,15 @@ export function MessageList({
 
   const jumpToBottom = useCallback(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-    // Re-arm sticking so subsequent content keeps following the bottom.
+    // Re-arm sticking so subsequent content keeps following the bottom. The
+    // smooth animation dispatches a run of intermediate scroll events that are
+    // still far from the bottom; because they move the viewport DOWN, the
+    // direction check in `onScroll` no longer reads them as a scroll-up and
+    // the gate we just armed survives the animation.
     isNearBottomRef.current = true;
     setIsNearBottom(true);
+    const el = scrollRef.current;
+    if (el) lastScrollTopRef.current = el.scrollTop;
   }, []);
 
   // Click-a-prompt-to-rewind-the-view: scroll the clicked user message's turn
@@ -476,7 +536,7 @@ export function MessageList({
         // anchoring. Without this, late reflow after our pin-to-bottom drags
         // scrollTop forward and fires scroll events the handler mis-reads as
         // "user scrolled up", stranding the view mid-list. We drive pinning
-        // ourselves (ResizeObserver + lastPinAtRef guard).
+        // ourselves (ResizeObserver pin + the direction check in onScroll).
         style={{ overflowAnchor: "none" }}
       >
         <div
