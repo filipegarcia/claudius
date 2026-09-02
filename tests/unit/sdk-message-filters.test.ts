@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import {
   isCompactSummaryContent,
+  isImageResizeNoteContent,
   isLocalCommandCaveatContent,
   isSdkInternalEnvelope,
   isSdkSlashUserMessage,
@@ -397,5 +398,80 @@ describe("isSuppressedSystemEvent", () => {
     // let it surface rather than silently swallowing a misshaped event.
     expect(isSuppressedSystemEvent(42)).toBe(false);
     expect(isSuppressedSystemEvent({})).toBe(false);
+  });
+});
+
+/**
+ * The CLI's image-downscale coordinate note. Stamped `isMeta: true` on disk
+ * (so the replay path already drops it via the envelope check) but the live
+ * `query` iterator strips the flag, which let it stream into the chat as a
+ * user bubble that then vanished on reload.
+ *
+ * The literals below are verbatim records pulled from real transcripts —
+ * both content shapes the CLI actually emits (bare string, and a single
+ * text block in an array) and the multi-note form a turn with several
+ * images produces.
+ */
+describe("isImageResizeNoteContent", () => {
+  const NOTE =
+    "[Image: original 2360x2000, displayed at 2000x1695. Multiply coordinates by 1.18 to map to original image.]";
+  const NOTE2 =
+    "[Image: original 1500x5259, displayed at 570x2000. Multiply coordinates by 2.63 to map to original image.]";
+
+  test("recognizes the note as a bare string", () => {
+    expect(isImageResizeNoteContent(NOTE)).toBe(true);
+  });
+
+  test("recognizes the note as a single text block in an array", () => {
+    expect(isImageResizeNoteContent([{ type: "text", text: NOTE }])).toBe(true);
+  });
+
+  test("tolerates surrounding whitespace", () => {
+    expect(isImageResizeNoteContent(`  \n${NOTE}\n  `)).toBe(true);
+  });
+
+  test("recognizes back-to-back notes from a multi-image turn", () => {
+    expect(isImageResizeNoteContent(`${NOTE}\n${NOTE2}`)).toBe(true);
+    expect(isImageResizeNoteContent([{ type: "text", text: `${NOTE} ${NOTE2} ${NOTE}` }])).toBe(
+      true,
+    );
+  });
+
+  test("does not match user prose that merely mentions the note", () => {
+    expect(
+      isImageResizeNoteContent(`why do I keep seeing ${NOTE} in my chat?`),
+    ).toBe(false);
+  });
+
+  test("does not match a note appended to real user prose", () => {
+    // Defensive: across 76 real occurrences the note is always the entire
+    // record, but if that ever changes we must not swallow the prose with it.
+    expect(isImageResizeNoteContent(`Here is the chart.\n${NOTE}`)).toBe(false);
+  });
+
+  test("does not match a content array carrying a real image block", () => {
+    // The genuine attachment turn. Flattening text-only would make this look
+    // note-shaped and silently drop the user's actual image.
+    expect(
+      isImageResizeNoteContent([
+        { type: "image", source: { type: "base64", media_type: "image/png", data: "iVBOR" } },
+        { type: "text", text: NOTE },
+      ]),
+    ).toBe(false);
+  });
+
+  test("does not match a differently-worded bracket line", () => {
+    // Strict by design: a CLI reword should re-expose the note (visible and
+    // obviously wrong) rather than widen the matcher toward real messages.
+    expect(isImageResizeNoteContent("[Image: attached screenshot.png]")).toBe(false);
+    expect(isImageResizeNoteContent("[Image: original AxB, displayed at CxD.]")).toBe(false);
+  });
+
+  test("returns false for unsupported content shapes", () => {
+    expect(isImageResizeNoteContent(null)).toBe(false);
+    expect(isImageResizeNoteContent(undefined)).toBe(false);
+    expect(isImageResizeNoteContent(42)).toBe(false);
+    expect(isImageResizeNoteContent({})).toBe(false);
+    expect(isImageResizeNoteContent("")).toBe(false);
   });
 });

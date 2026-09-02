@@ -27,6 +27,7 @@ import { ADVISOR_ACTIVE_SENTINEL } from "@/lib/shared/advisor";
 import { matchesUsageLimitPrefix } from "@/lib/shared/rate-limit-prefixes";
 import {
   isCompactSummaryContent,
+  isImageResizeNoteContent,
   isLocalCommandCaveatContent,
   isSdkInternalEnvelope,
   isSdkSlashUserMessage,
@@ -3189,6 +3190,11 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
           // so it becomes a divider rather than being dropped here).
           if (isSdkInternalEnvelope(msg)) return;
           if (isLocalCommandCaveatContent(content)) return;
+          // The CLI's image-downscale coordinate note. `isMeta` on disk, but
+          // the live iterator drops the flag, so the envelope check above
+          // misses it here and only here — it used to stream in as a user
+          // bubble and then disappear on reload.
+          if (isImageResizeNoteContent(content)) return;
           // Drop SDK-injected <task-notification> wrappers — they're context
           // for the model, not user-authored prose, and rendering them as a
           // user bubble surfaces XML the user didn't write. The matching
@@ -5793,6 +5799,7 @@ function synthesizeOlder(raw: Array<Record<string, unknown>>): {
     // these synthesized messages as user bubbles.
     if (isCompactSummaryContent(content)) continue;
     if (isLocalCommandCaveatContent(content)) continue;
+    if (isImageResizeNoteContent(content)) continue;
 
     // Mirror the live path's slash-command filters: a `/compact` user-shape
     // message OR the synthetic `<command-name>/compact</command-name>` /

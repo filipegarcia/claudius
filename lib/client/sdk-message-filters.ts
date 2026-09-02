@@ -140,6 +140,48 @@ export function isLocalCommandCaveatContent(content: unknown): boolean {
 }
 
 /**
+ * The coordinate-mapping note the Claude Code CLI injects whenever it
+ * downscales an attached image before handing it to the model:
+ *
+ *   [Image: original 2360x2000, displayed at 2000x1695. Multiply coordinates
+ *    by 1.18 to map to original image.]
+ *
+ * It arrives as its own `user`-role record stamped `isMeta: true` on disk, so
+ * the pagination/replay path already drops it via {@link isSdkInternalEnvelope}.
+ * The live `query` iterator strips that flag — the same gap that motivated
+ * {@link isCompactSummaryContent} and {@link isLocalCommandCaveatContent} — so
+ * without this content-shape counterpart the note streams into the chat as a
+ * bubble the user never typed (and then vanishes on reload, which reads as a
+ * ghost message). Display-side only: the note still reaches the model, which
+ * is the whole point of it.
+ *
+ * Verified against 76 occurrences in real transcripts: the note is always the
+ * *entire* content of its record (never appended to user prose), and a turn
+ * carrying several images emits several notes back-to-back — hence the `+`.
+ *
+ * Deliberately strict about the exact sentence. If the CLI ever rewords it,
+ * the note reappears in the chat (visible, and obviously wrong) rather than
+ * this matcher quietly widening to swallow a real user message.
+ */
+const IMAGE_RESIZE_NOTE_RE =
+  /^(?:\[Image: original \d+x\d+, displayed at \d+x\d+\. Multiply coordinates by [\d.]+ to map to original image\.\]\s*)+$/;
+
+export function isImageResizeNoteContent(content: unknown): boolean {
+  // An array carrying anything other than text blocks (notably a real
+  // `image` block) is a genuine attachment turn, not a bare note — bail
+  // before `contentAsTrimmedText` flattens the non-text blocks away and
+  // makes it look note-only. Same guard `isSdkSlashUserMessage` uses.
+  if (Array.isArray(content)) {
+    for (const c of content as Array<{ type?: string }>) {
+      if (c?.type !== "text") return false;
+    }
+  }
+  const trimmed = contentAsTrimmedText(content);
+  if (!trimmed) return false;
+  return IMAGE_RESIZE_NOTE_RE.test(trimmed);
+}
+
+/**
  * True when the SDK envelope itself is flagged as transcript-only plumbing —
  * `isMeta` (e.g. `<local-command-caveat>`), `isCompactSummary` (the synthesized
  * "Session continued from a previous conversation…" user message the SDK
