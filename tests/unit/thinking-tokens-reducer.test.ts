@@ -92,4 +92,48 @@ describe("applyThinkingTokensEstimate", () => {
     const result = applyThinkingTokensEstimate(entries, 77);
     expect(result).toBe(entries);
   });
+
+  // SDK 0.3.260 — `user_message_uuid` on SDKThinkingTokensMessage.
+  describe("userMessageUuid attribution (SDK 0.3.260)", () => {
+    test("stamps userMessageUuid on the row the first estimate lands on", () => {
+      const entries: ToolHistoryEntry[] = [thinkingEntry()];
+      const result = applyThinkingTokensEstimate(entries, 100, "send-a");
+      expect(result[0].userMessageUuid).toBe("send-a");
+      expect(result[0].estimatedThinkingTokens).toBe(100);
+    });
+
+    test("prefers the row already stamped with a matching uuid over a more recent unstamped row", () => {
+      const entries: ToolHistoryEntry[] = [
+        thinkingEntry({ toolUseId: "thinking:msg-1:0", startedAt: 800, userMessageUuid: "send-a" }),
+        thinkingEntry({ toolUseId: "thinking:msg-2:0", startedAt: 1200 }),
+      ];
+      const result = applyThinkingTokensEstimate(entries, 250, "send-a");
+      expect(result[0].estimatedThinkingTokens).toBe(250);
+      expect(result[1].estimatedThinkingTokens).toBeUndefined();
+    });
+
+    test("falls back to the most-recent open row when no row matches the uuid yet", () => {
+      const entries: ToolHistoryEntry[] = [
+        thinkingEntry({ toolUseId: "thinking:msg-1:0", startedAt: 800, userMessageUuid: "send-a" }),
+        thinkingEntry({ toolUseId: "thinking:msg-2:0", startedAt: 1200 }),
+      ];
+      const result = applyThinkingTokensEstimate(entries, 300, "send-b");
+      // No row is stamped "send-b" yet, so recency wins and the newer row
+      // gets stamped with it going forward.
+      expect(result[1].estimatedThinkingTokens).toBe(300);
+      expect(result[1].userMessageUuid).toBe("send-b");
+      expect(result[0].estimatedThinkingTokens).toBeUndefined();
+    });
+
+    test("without a uuid, behaves exactly like the pre-0.3.260 recency heuristic", () => {
+      const entries: ToolHistoryEntry[] = [
+        thinkingEntry({ toolUseId: "thinking:msg-1:0", startedAt: 800 }),
+        thinkingEntry({ toolUseId: "thinking:msg-2:0", startedAt: 1200 }),
+      ];
+      const result = applyThinkingTokensEstimate(entries, 400);
+      expect(result[1].estimatedThinkingTokens).toBe(400);
+      expect(result[1].userMessageUuid).toBeUndefined();
+      expect(result[0].estimatedThinkingTokens).toBeUndefined();
+    });
+  });
 });

@@ -3859,11 +3859,17 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
         // Activity rail so users see a live token counter in the spinner.
         // `SDKThinkingTokensMessage` carries no `message_id`, so we target the
         // latest open thinking entry by heuristic (in practice at most one
-        // thinking block is in flight at a time).
+        // thinking block is in flight at a time). SDK 0.3.260 adds
+        // `user_message_uuid` (the triggering send's client uuid) to each
+        // frame; forward it so `applyThinkingTokensEstimate` can prefer an
+        // exact match over recency when a stale frame from an interrupted
+        // turn races a freshly-opened row.
         if (sysAny.subtype === "thinking_tokens") {
-          const tt = sysAny as unknown as { estimated_tokens: number };
+          const tt = sysAny as unknown as { estimated_tokens: number; user_message_uuid?: string };
           if (typeof tt.estimated_tokens === "number") {
-            setToolHistory((prev) => applyThinkingTokensEstimate(prev, tt.estimated_tokens));
+            setToolHistory((prev) =>
+              applyThinkingTokensEstimate(prev, tt.estimated_tokens, tt.user_message_uuid),
+            );
           }
           return;
         }

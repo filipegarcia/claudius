@@ -467,6 +467,16 @@ export type ToolHistoryEntry = {
    * Approximate — not the authoritative billed output_tokens.
    */
   estimatedThinkingTokens?: number;
+  /**
+   * SDK 0.3.260 — the triggering user message's uuid, stamped from
+   * `SDKThinkingTokensMessage.user_message_uuid` the first time an estimate
+   * lands on this row. Lets `applyThinkingTokensEstimate` prefer an exact
+   * match over "most recent open" when a stale trailing frame from an
+   * interrupted turn races a freshly-opened thinking row for a new send.
+   * Absent on rows whose first estimate arrived from an older CLI that
+   * doesn't stamp the uuid.
+   */
+  userMessageUuid?: string;
 };
 
 /**
