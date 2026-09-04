@@ -112,12 +112,14 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   { id: "fast", name: "fast", description: "Toggle fast mode.", category: "model", handler: "sdk", argsHint: "[on|off]" },
   // `/advisor` isn't an SDK-registered slash command (typing it raw would
   // return "/advisor isn't available in this environment.") — so we
-  // intercept it natively and open the SessionCard's picker, which
+  // intercept it natively. No args opens the SessionCard's picker, which
   // already hosts the verbatim "Advisor (experimental)" UI shared with
-  // the global Settings page. The advisor is configured through the
-  // SDK's `Settings.advisorModel`; this command is just the discovery
-  // affordance for users used to typing slash commands.
-  { id: "advisor", name: "advisor", description: "Open the Advisor picker (Opus / Sonnet / off).", category: "model", handler: "native" },
+  // the global Settings page. CC 2.1.260 parity: `/advisor <model>` and
+  // `/advisor off` act directly (same `setAdvisorModel` call the picker
+  // makes) without opening the picker — see the `runNative()` handler in
+  // ChatSurface.tsx. The advisor is configured through the SDK's
+  // `Settings.advisorModel`.
+  { id: "advisor", name: "advisor", description: "Set the Advisor model (opus/sonnet/fable/off), or open the picker with no args.", category: "model", handler: "native", argsHint: "[model|off]" },
 
   // ── UI ───────────────────────────────────────────────────────────────
   { id: "settings", name: "settings", aliases: ["config"], description: "Open the settings editor.", category: "ui", handler: "native" },
@@ -125,7 +127,13 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   { id: "statusline", name: "statusline", description: "Configure the status line.", category: "ui", handler: "native" },
   { id: "keybindings", name: "keybindings", description: "Edit keybindings.", category: "ui", handler: "native" },
   { id: "color", name: "color", description: "Set prompt accent color.", category: "ui", handler: "native", argsHint: "[color|default]" },
-  { id: "diff", name: "diff", description: "Open the interactive diff viewer.", category: "ui", handler: "sdk" },
+  // CC 2.1.260 parity: was forwarded to the SDK as plain text (which
+  // returns "isn't available in this environment." — the CLI's diff panel
+  // is a terminal-UI feature, not a query()-level command). Intercepted
+  // natively instead, opening DiffOverlay — see the `case "diff"` handler
+  // in ChatSurface.tsx and DiffOverlay's doc comment for the shape
+  // rationale (full-screen overlay, not a beside-chat split pane).
+  { id: "diff", name: "diff", description: "Show uncommitted changes as an overlay.", category: "ui", handler: "native" },
   { id: "focus", name: "focus", description: "Cycle focus mode (off → focus → zen).", category: "ui", handler: "native", argsHint: "[off|focus|zen]" },
   { id: "zen", name: "zen", description: "Toggle Zen mode — hide everything but the chat.", category: "ui", handler: "native" },
   { id: "tui", name: "tui", description: "Switch UI renderer.", category: "ui", handler: "external" },

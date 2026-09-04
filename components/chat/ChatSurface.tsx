@@ -40,6 +40,7 @@ import { useSpellcheckEnabled } from "@/lib/client/useSpellcheckEnabled";
 import { HelpOverlay } from "@/components/overlays/HelpOverlay";
 import { SkillsOverlay } from "@/components/overlays/SkillsOverlay";
 import { CostOverlay } from "@/components/overlays/CostOverlay";
+import { DiffOverlay } from "@/components/overlays/DiffOverlay";
 import { StatusOverlay } from "@/components/overlays/StatusOverlay";
 import { RenameOverlay } from "@/components/overlays/RenameOverlay";
 import { ContextOverlay } from "@/components/overlays/ContextOverlay";
@@ -113,12 +114,13 @@ import {
   type PromptColorName,
 } from "@/lib/shared/prompt-colors";
 import { DEFAULT_TIPS, selectClientTips } from "@/lib/shared/tips";
+import { badgeAdvisorLabel, resolveAdvisorCommandArg } from "@/lib/shared/advisor";
 import { useWorkspaces } from "@/lib/client/useWorkspaces";
 import { useVerbose } from "@/lib/client/useVerbose";
 import { useFocusMode } from "@/lib/client/useFocusMode";
 import { useStartupCount } from "@/lib/client/useStartupCount";
 
-type OverlayKind = "help" | "skills" | "cost" | "status" | "rename" | "context" | "worktrees" | null;
+type OverlayKind = "help" | "skills" | "cost" | "status" | "rename" | "context" | "worktrees" | "diff" | null;
 
 /**
  * Per-command toast for slash commands the registry classifies as `external`
@@ -1215,19 +1217,37 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
         case "advisor": {
           // The SDK doesn't expose `/advisor` (typing it raw would return
           // "isn't available in this environment."), so we intercept it
-          // here and open the SessionCard's model picker — which hosts the
-          // verbatim "Advisor (experimental)" UI shared with the global
-          // Settings page. A window CustomEvent is the lightest-weight
-          // way to reach the SessionCard without lifting its `pickerOpen`
-          // state to the page component. Matches the `claudius:session-
-          // bound` event pattern used elsewhere in this codebase.
-          if (typeof window !== "undefined") {
-            try {
-              window.dispatchEvent(new CustomEvent("claudius:open-advisor-picker"));
-            } catch {
-              // ignore — non-fatal
+          // here. CC 2.1.260 added a text form — `/advisor`, `/advisor
+          // <model>`, `/advisor off` — for headless/Desktop/Remote Control
+          // sessions that can't click the picker. Mirror that here: with no
+          // args, keep the existing behavior (open the SessionCard's picker,
+          // which hosts the verbatim "Advisor (experimental)" UI shared with
+          // the global Settings page); with an arg, act directly on
+          // `session.setAdvisorModel` — the same call the picker itself
+          // makes — so typing is a first-class equivalent to clicking.
+          const parsed = resolveAdvisorCommandArg(args);
+          if (parsed.action === "open-picker") {
+            if (typeof window !== "undefined") {
+              try {
+                window.dispatchEvent(new CustomEvent("claudius:open-advisor-picker"));
+              } catch {
+                // ignore — non-fatal
+              }
             }
+            return true;
           }
+          if (parsed.action === "invalid") {
+            showToast(
+              `Unknown advisor model: ${parsed.raw} — try opus, sonnet, fable, or off`,
+            );
+            return true;
+          }
+          void session.setAdvisorModel(parsed.choice);
+          showToast(
+            parsed.choice === null
+              ? "Advisor off"
+              : `Advisor → ${badgeAdvisorLabel(parsed.choice) ?? parsed.choice}`,
+          );
           return true;
         }
         case "recap": {
@@ -1381,6 +1401,14 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
           return true;
         case "cost":
           setOverlay("cost");
+          return true;
+        case "diff":
+          // CC 2.1.260: "/diff" opens a panel showing uncommitted changes.
+          // Claudius has no beside-chat split-pane layout, so this reuses
+          // the full-screen-overlay pattern already established by /cost
+          // and /context — see DiffOverlay's doc comment for the rejected
+          // split-pane alternative.
+          setOverlay("diff");
           return true;
         case "usage":
           router.push("/usage");
@@ -2434,6 +2462,9 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
       )}
       {overlay === "cost" && (
         <CostOverlay usage={session.usage} model={session.model} planUsage={session.planUsage} onClose={() => setOverlay(null)} />
+      )}
+      {overlay === "diff" && (
+        <DiffOverlay workspaceId={activeWorkspaceId} onClose={() => setOverlay(null)} />
       )}
       {overlay === "status" && (
         <StatusOverlay

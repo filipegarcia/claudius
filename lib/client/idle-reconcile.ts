@@ -24,20 +24,42 @@ import type { DisplayMessage, ToolHistoryEntry } from "./types";
  * Apply a live thinking-token estimate from `SDKThinkingTokensMessage` to the
  * most-recent open thinking row in `entries`.
  *
- * The SDK emits these during the redacted-thinking streaming phase; they carry
- * no `message_id`, so we target the latest open thinking entry by heuristic
- * (in practice at most one thinking block is in flight at a time).
+ * The SDK emits these during the redacted-thinking streaming phase; they
+ * carry no `message_id`, so historically we could only target the latest
+ * open thinking entry by heuristic (in practice at most one thinking block
+ * is in flight at a time). SDK 0.3.260 adds `user_message_uuid` — the
+ * client-submitted uuid of the user message that triggered the turn — to
+ * every frame. When present, prefer an entry already stamped with a
+ * matching `userMessageUuid` over the plain "most recent open" pick: this
+ * guards the rare race where a stale trailing frame from a just-interrupted
+ * turn arrives after a new send has already opened its own thinking row
+ * (both rows are "open" for a brief window). Falls back to the old
+ * recency-only heuristic when no row carries a matching (or any) stamp yet,
+ * or when the frame carries no `userMessageUuid` (older CLI).
  *
  * Returns the same reference when nothing changed.
  */
 export function applyThinkingTokensEstimate(
   entries: ToolHistoryEntry[],
   estimatedTokens: number,
+  userMessageUuid?: string,
 ): ToolHistoryEntry[] {
-  const idx = entries.findLastIndex((e) => e.kind === "thinking" && !e.done);
+  let idx = -1;
+  if (userMessageUuid) {
+    idx = entries.findLastIndex(
+      (e) => e.kind === "thinking" && !e.done && e.userMessageUuid === userMessageUuid,
+    );
+  }
+  if (idx === -1) {
+    idx = entries.findLastIndex((e) => e.kind === "thinking" && !e.done);
+  }
   if (idx === -1) return entries;
   const next = entries.slice();
-  next[idx] = { ...next[idx], estimatedThinkingTokens: estimatedTokens };
+  next[idx] = {
+    ...next[idx],
+    estimatedThinkingTokens: estimatedTokens,
+    ...(userMessageUuid ? { userMessageUuid } : {}),
+  };
   return next;
 }
 

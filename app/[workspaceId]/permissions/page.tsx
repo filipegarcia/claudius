@@ -9,7 +9,7 @@ import { usePermissions, type RuleKind, type Scope } from "@/lib/client/usePermi
 import { useAutoMode } from "@/lib/client/useAutoMode";
 import { useActiveCwd } from "@/lib/client/useActiveCwd";
 import { useRecentDenials } from "@/lib/client/useRecentDenials";
-import { lintBashWildcardRule, lintPermissionRule } from "@/lib/shared/permission-rule-lint";
+import { lintBashWildcardRule, lintPermissionRule, lintTrailingGarbageRule } from "@/lib/shared/permission-rule-lint";
 import { cn } from "@/lib/utils/cn";
 
 const SCOPES: { id: Scope; label: string; path: string }[] = [
@@ -422,6 +422,12 @@ function RuleColumn({ kind, label, tone, rules, onAdd, onRemove }: ColumnProps) 
   // only when it widens what auto-runs; over-matching an `ask`/`deny` rule
   // just asks/denies more, which isn't a risk.
   const draftBashLint = kind === "allow" ? lintBashWildcardRule(draft) : null;
+  // CC 2.1.260 parity: text after a rule's closing parenthesis never
+  // matched anything and was silently ignored — warn instead, same
+  // "don't block, the rule still saves as typed" treatment as the two
+  // lints above. Applies to every kind (allow/ask/deny), not just allow —
+  // trailing garbage is a shape problem, not a widen-what-auto-runs one.
+  const draftTrailingLint = lintTrailingGarbageRule(draft);
   return (
     <div className={cn("rounded-lg border bg-[var(--panel)]/40", tone)}>
       <div className="border-b border-current/30 px-3 py-2 text-xs font-medium uppercase tracking-wide">
@@ -434,6 +440,7 @@ function RuleColumn({ kind, label, tone, rules, onAdd, onRemove }: ColumnProps) 
         {rules.map((r) => {
           const lint = lintPermissionRule(r);
           const bashLint = kind === "allow" ? lintBashWildcardRule(r) : null;
+          const trailingLint = lintTrailingGarbageRule(r);
           return (
             <div
               key={r}
@@ -451,6 +458,14 @@ function RuleColumn({ kind, label, tone, rules, onAdd, onRemove }: ColumnProps) 
                 <span
                   data-testid="permission-rule-bash-wildcard-warning-icon"
                   title={`The wildcard in "${bashLint.command}" sits before a fixed word — it also matches options inserted in between, not just the subcommand you intended`}
+                >
+                  <AlertTriangle className="h-3 w-3 shrink-0 text-amber-400" />
+                </span>
+              )}
+              {trailingLint && (
+                <span
+                  data-testid="permission-rule-trailing-garbage-warning-icon"
+                  title={`"${trailingLint.trailing}" after the closing parenthesis never matches anything — this rule is invalid`}
                 >
                   <AlertTriangle className="h-3 w-3 shrink-0 text-amber-400" />
                 </span>
@@ -511,6 +526,19 @@ function RuleColumn({ kind, label, tone, rules, onAdd, onRemove }: ColumnProps) 
               The wildcard in <code className="font-mono">{draftBashLint.command}</code> sits before a
               fixed word — it also matches options inserted in between (e.g. a flag), not just the
               subcommand you intended. The rule will still save as typed.
+            </span>
+          </p>
+        )}
+        {draftTrailingLint && (
+          <p
+            data-testid="permission-rule-trailing-garbage-warning"
+            className="flex items-start gap-1 text-[10px] text-amber-400"
+          >
+            <AlertTriangle className="mt-px h-3 w-3 shrink-0" />
+            <span>
+              <code className="font-mono">{draftTrailingLint.trailing}</code> after the closing
+              parenthesis never matches anything — this rule is invalid. The rule will still save as
+              typed.
             </span>
           </p>
         )}

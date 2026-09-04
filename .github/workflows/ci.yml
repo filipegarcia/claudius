@@ -36,7 +36,23 @@ jobs:
         with:
           path: node_modules
           key: npm-${{ runner.os }}-${{ hashFiles('bun.lock') }}
-      - run: npm install --no-package-lock --no-audit --no-fund
+      # --legacy-peer-deps: the npm bundled with node:22-bookworm-slim
+      # (10.9.x) crashes with "Cannot read properties of null (reading
+      # 'edgesOut')" — an arborist bug in its peer-set loader (build-ideal-
+      # tree.js #loadPeerSet) — when it hits a circular *optional*
+      # peerDependency (vitest's floating ^4.1.x now resolves to 4.1.11,
+      # whose optional peer @vitest/browser-playwright peers back on vitest
+      # itself). Reproduced locally against npm@10.9.4 with this repo's
+      # unmodified package.json; npm@11.x builds the same tree fine. The
+      # failing CI run logged a `node_modules` cache miss right before the
+      # crash — any bun.lock-changing commit invalidates the cache key and
+      # forces npm to resolve the tree from scratch, which is presumably why
+      # this had gone unnoticed until now. --legacy-peer-deps sidesteps
+      # npm's auto-peer-install/conflict-check path entirely; verified
+      # `eslint` and `vitest run` both still work correctly (zero lint
+      # findings, all 1867 unit tests pass) against the resulting tree —
+      # none of eslint's or vitest's *required* peers are affected.
+      - run: npm install --no-package-lock --no-audit --no-fund --legacy-peer-deps
       - run: npx eslint
 
   # Vitest. Runs under node — better-sqlite3 doesn't load under bun yet,
@@ -63,7 +79,9 @@ jobs:
         with:
           path: node_modules
           key: npm-${{ runner.os }}-${{ hashFiles('bun.lock') }}
-      - run: npm install --no-package-lock --no-audit --no-fund
+      # --legacy-peer-deps: see the identical flag + comment on the lint
+      # job above — same npm arborist bug, same fix.
+      - run: npm install --no-package-lock --no-audit --no-fund --legacy-peer-deps
       - run: npx vitest run
 
   # Production build. This is the ONLY CI job that type-checks the repo:
