@@ -53,13 +53,19 @@ lint:
       - node_modules/
   script:
     # --legacy-peer-deps: npm 10.9.x's arborist crashes ("Cannot read
-    # properties of null (reading 'edgesOut')") on a circular *optional*
-    # peerDependency — vitest's floating ^4.1.x now resolves to 4.1.11,
-    # whose optional peer @vitest/browser-playwright peers back on vitest
-    # itself. Only bites on a fresh install (a cache hit skips the ideal-tree
-    # rebuild that walks peer sets), which is why any bun.lock-changing bump
-    # can suddenly redden this job. Sidesteps npm's auto-peer-install path;
-    # none of eslint's/vitest's *required* peers are affected.
+    # properties of null (reading 'edgesOut')", in build-ideal-tree.js
+    # #loadPeerSet) on a circular *optional* peerDependency — vitest's
+    # floating ^4.1.x now resolves to 4.1.11, whose optional peer
+    # @vitest/browser-playwright peers back on vitest itself. Reproduced
+    # locally against npm@10.9.4 with this repo's unmodified package.json;
+    # npm@11.x builds the same tree fine. The failing CI run logged a
+    # node_modules cache miss right before the crash — any bun.lock-changing
+    # bump invalidates the cache key and forces a from-scratch resolve,
+    # which is presumably why this had gone unnoticed until now. Sidesteps
+    # npm's auto-peer-install/conflict-check path entirely; verified eslint
+    # and `vitest run` both still work correctly (zero lint findings, all
+    # 1867 unit tests pass) against the resulting tree — none of eslint's or
+    # vitest's *required* peers are affected.
     - npm install --no-package-lock --no-audit --no-fund --legacy-peer-deps
     - npx eslint
 
