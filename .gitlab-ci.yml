@@ -52,7 +52,15 @@ lint:
     paths:
       - node_modules/
   script:
-    - npm install --no-package-lock --no-audit --no-fund
+    # --legacy-peer-deps: npm 10.9.x's arborist crashes ("Cannot read
+    # properties of null (reading 'edgesOut')") on a circular *optional*
+    # peerDependency — vitest's floating ^4.1.x now resolves to 4.1.11,
+    # whose optional peer @vitest/browser-playwright peers back on vitest
+    # itself. Only bites on a fresh install (a cache hit skips the ideal-tree
+    # rebuild that walks peer sets), which is why any bun.lock-changing bump
+    # can suddenly redden this job. Sidesteps npm's auto-peer-install path;
+    # none of eslint's/vitest's *required* peers are affected.
+    - npm install --no-package-lock --no-audit --no-fund --legacy-peer-deps
     - npx eslint
 
 # Vitest suite — pure logic, SQLite round-trips, in-process notification bus.
@@ -80,7 +88,9 @@ unit:
     paths:
       - node_modules/
   script:
-    - npm install --no-package-lock --no-audit --no-fund
+    # --legacy-peer-deps: see the identical flag + comment on the lint job
+    # above — same npm arborist bug, same fix.
+    - npm install --no-package-lock --no-audit --no-fund --legacy-peer-deps
     - npx vitest run
 
 # site/setup.sh smoke test. Runs the in-container assertion script against
