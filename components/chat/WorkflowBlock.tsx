@@ -11,6 +11,7 @@ import {
 import { cn } from "@/lib/utils/cn";
 import type { TaskInfo } from "@/lib/client/types";
 import { parseWorkflowMeta } from "@/lib/shared/workflow-meta";
+import { JsonBlock } from "@/components/chat/JsonBlock";
 
 type Props = {
   toolUseId: string;
@@ -232,9 +233,23 @@ export function WorkflowBlock({ toolUseId, input, result, task, defaultOpen }: P
               <summary className="cursor-pointer text-[10px] uppercase tracking-wide text-[var(--muted)]">
                 Args
               </summary>
-              <pre className="mt-1 max-h-40 overflow-auto rounded bg-[var(--panel-2)] p-2 font-mono text-[11px] whitespace-pre-wrap scroll-thin">
-                {JSON.stringify(args, null, 2)}
-              </pre>
+              <div className="mt-1">
+                <JsonBlock
+                  value={args}
+                  className="max-h-40 overflow-auto rounded bg-[var(--panel-2)] p-2 font-mono text-[11px] whitespace-pre-wrap scroll-thin"
+                />
+              </div>
+            </details>
+          )}
+
+          {resultData && terminal && (
+            <details>
+              <summary className="cursor-pointer text-[10px] uppercase tracking-wide text-[var(--muted)]">
+                Raw output
+              </summary>
+              <div className="mt-1">
+                <JsonBlock value={resultData} />
+              </div>
             </details>
           )}
           {/* toolUseId is the join key to the live task; kept in props (and the

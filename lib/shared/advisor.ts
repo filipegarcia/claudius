@@ -268,3 +268,39 @@ export function badgeAdvisorLabel(raw: unknown): string | null {
   // Keep the badge from blowing up if someone sets a 60-char custom id.
   return short.length > 16 ? `${short.slice(0, 14)}…` : short;
 }
+
+/** Result of parsing a typed `/advisor [arg]` command. */
+export type AdvisorCommandResult =
+  | { action: "open-picker" }
+  | { action: "set"; choice: AdvisorChoice }
+  | { action: "invalid"; raw: string };
+
+/**
+ * Parses the text form of `/advisor` — CC 2.1.260 parity for
+ * `/advisor`, `/advisor <model>`, and `/advisor off`, for callers (like
+ * headless/Desktop/Remote Control sessions, or Claudius's own chat
+ * composer) that type the command instead of clicking the picker.
+ *
+ * Pure and UI-independent so it's unit-testable without mounting
+ * `ChatSurface`: the caller is responsible for actually opening the
+ * picker / calling `setAdvisorModel` / showing an error, based on the
+ * returned action.
+ *
+ *   - No argument (empty/whitespace) → `{ action: "open-picker" }`,
+ *     matching the pre-2.1.260 Claudius behavior of surfacing the full
+ *     picker UI when the user just wants to browse.
+ *   - `"off"` (case-insensitive) → `{ action: "set", choice: null }`.
+ *   - Anything else is resolved through `normalizeAdvisorChoice` (exact
+ *     product-blessed id) and, failing that, `advisorFamily` (tolerant
+ *     of aliases like `"opus"`/`"sonnet"`/`"fable"` and older full ids)
+ *     → `{ action: "set", choice }` on a match, `{ action: "invalid" }`
+ *     otherwise.
+ */
+export function resolveAdvisorCommandArg(rawArg: string): AdvisorCommandResult {
+  const raw = rawArg.trim();
+  if (!raw) return { action: "open-picker" };
+  if (raw.toLowerCase() === "off") return { action: "set", choice: null };
+  const choice = normalizeAdvisorChoice(raw) ?? advisorFamily(raw);
+  if (!choice) return { action: "invalid", raw };
+  return { action: "set", choice };
+}
