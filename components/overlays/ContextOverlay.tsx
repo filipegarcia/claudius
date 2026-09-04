@@ -14,6 +14,17 @@ type ContextResponse = {
   memoryFiles: { path: string; type: string; tokens: number }[];
   mcpTools: { name: string; serverName: string; tokens: number; isLoaded?: boolean }[];
   deferredBuiltinTools?: { name: string; tokens: number; isLoaded: boolean }[];
+  // CC 2.1.261 parity ("/skill-doctor"). Per-skill token cost, already
+  // computed by the SDK's getContextUsage() but not rendered until now.
+  // `totalSkills` can exceed `skillFrontmatter.length` — skills that
+  // contribute zero tokens (or aren't loaded into this session) are
+  // counted but not itemized.
+  skills?: {
+    totalSkills: number;
+    includedSkills: number;
+    tokens: number;
+    skillFrontmatter: { name: string; source: string; tokens: number }[];
+  };
 };
 
 function fmtTokens(n: number): string {
@@ -202,6 +213,29 @@ export function ContextOverlay({ sessionId, onClose }: Props) {
                     </span>
                   </li>
                 ))}
+              </ul>
+            </Section>
+          )}
+          {data.skills && data.skills.skillFrontmatter.length > 0 && (
+            <Section title={`Skills (${data.skills.includedSkills}/${data.skills.totalSkills} loaded · ${fmtTokens(data.skills.tokens)})`}>
+              <p className="mb-2 text-[10px] text-[var(--muted)]">
+                Sorted by context cost — the priciest, least-essential skills to prune are usually at the top.
+              </p>
+              <ul className="space-y-1 text-xs" data-testid="skill-cost-list">
+                {[...data.skills.skillFrontmatter]
+                  .sort((a, b) => b.tokens - a.tokens)
+                  .map((s) => (
+                    <li
+                      key={`${s.source}/${s.name}`}
+                      data-testid="skill-cost-row"
+                      className="flex items-baseline justify-between gap-2 rounded-md bg-[var(--panel-2)]/40 px-2 py-1"
+                    >
+                      <span className="truncate font-mono">/{s.name}</span>
+                      <span className="text-[var(--muted)]">
+                        {s.source} · {fmtTokens(s.tokens)}
+                      </span>
+                    </li>
+                  ))}
               </ul>
             </Section>
           )}
