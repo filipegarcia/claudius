@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { lintBashWildcardRule, lintPermissionRule } from "@/lib/shared/permission-rule-lint";
+import { lintBashWildcardRule, lintPermissionRule, lintTrailingGarbageRule } from "@/lib/shared/permission-rule-lint";
 
 /**
  * CC 2.1.210 parity — "Added a startup warning for `Write(path)`,
@@ -88,5 +88,47 @@ describe("lintBashWildcardRule", () => {
 
   test("tolerates surrounding whitespace", () => {
     expect(lintBashWildcardRule("  Bash(git * main)  ")).toEqual({ command: "git * main" });
+  });
+});
+
+/**
+ * CC 2.1.260 parity — "Changed permission rules with text after the closing
+ * parenthesis (e.g. `Bash(ls) x`), which never matched anything, to be
+ * reported as invalid settings instead of being silently ignored."
+ */
+describe("lintTrailingGarbageRule", () => {
+  test("flags text after the closing parenthesis", () => {
+    expect(lintTrailingGarbageRule("Bash(ls) x")).toEqual({ trailing: "x" });
+  });
+
+  test("flags text with no separating space", () => {
+    expect(lintTrailingGarbageRule("Bash(ls)x")).toEqual({ trailing: "x" });
+  });
+
+  test("does not flag a well-formed rule", () => {
+    expect(lintTrailingGarbageRule("Bash(ls)")).toBeNull();
+    expect(lintTrailingGarbageRule("Write(./src/**)")).toBeNull();
+  });
+
+  test("does not flag a bare, unscoped rule name", () => {
+    expect(lintTrailingGarbageRule("Bash")).toBeNull();
+    expect(lintTrailingGarbageRule("")).toBeNull();
+  });
+
+  test("does not flag trailing whitespace-only content", () => {
+    expect(lintTrailingGarbageRule("Bash(ls)   ")).toBeNull();
+  });
+
+  test("a rule with an inner, escaped-looking parenthesis is not misread as trailing garbage", () => {
+    // The ambiguous-escaping case CC 2.1.260 separately improves the error
+    // message for — Claudius deliberately doesn't attempt to disambiguate
+    // it here (see the doc comment), but it must not be misclassified as
+    // *this* warning either: the string DOES end with its true closing
+    // paren, so nothing should be flagged.
+    expect(lintTrailingGarbageRule("Edit(C:\\dir\\(name)\\**)")).toBeNull();
+  });
+
+  test("does not flag a rule with no closing paren at all", () => {
+    expect(lintTrailingGarbageRule("Bash(unterminated")).toBeNull();
   });
 });
