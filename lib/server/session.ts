@@ -6446,10 +6446,11 @@ export class Session {
    * they're fire-and-forget by contract, and the parent has already
    * moved past them.
    *
-   * Also excludes `ambient` tasks (SDK 0.3.247) — CLI housekeeping the SDK
-   * says hosts should keep out of activity indicators, and `getStatus()`
-   * (which this feeds) is exactly that: the StatusDot / tab-strip "busy"
-   * signal.
+   * Also excludes `ambient` tasks (SDK 0.3.247; scope of what counts as
+   * ambient broadened in 0.3.261 to every live-update watcher, not just
+   * auto-started ones) — tasks the SDK says hosts should keep out of
+   * activity indicators, and `getStatus()` (which this feeds) is exactly
+   * that: the StatusDot / tab-strip "busy" signal.
    */
   private hasActiveSubagents(): boolean {
     for (const meta of this.taskMetaById.values()) {
@@ -6467,10 +6468,10 @@ export class Session {
    * `turn_status` so the StatusLine header can show an honest "Idle · N
    * running" instead of hiding in-flight work behind a bare "Idle".
    *
-   * Also excludes `ambient` tasks (SDK 0.3.247) — otherwise a backgrounded
-   * housekeeping task (e.g. an auto-started live-update watcher) would
-   * inflate the "N running" count with work the SDK explicitly says
-   * shouldn't count as an activity indicator.
+   * Also excludes `ambient` tasks (SDK 0.3.247; 0.3.261 broadened this to
+   * every live-update watcher, requested or auto-started) — otherwise a
+   * backgrounded ambient task would inflate the "N running" count with
+   * work the SDK explicitly says shouldn't count as an activity indicator.
    */
   private countActiveBackgroundTasks(): number {
     let n = 0;
@@ -7613,8 +7614,15 @@ export class Session {
               if (!this.query) return;
               let usageData: SDKControlGetUsageResponse;
               try {
+                // SDK 0.3.261: `skipBehaviors` skips the local-transcript
+                // scan that fills the response's `behaviors` section (it
+                // comes back null) — Claudius only ever reads `rate_limits`
+                // below, never `behaviors`, so this is a pure latency win
+                // with no shape change on our side.
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                usageData = await (this.query as any).usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET();
+                usageData = await (this.query as any).usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET({
+                  skipBehaviors: true,
+                });
               } catch {
                 // Experimental API unavailable, changed shape, or rate-limited.
                 // CC parity 2.1.208: tell the client explicitly so CostOverlay

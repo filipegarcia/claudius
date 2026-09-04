@@ -251,6 +251,13 @@ export type ClaudeSettings = {
   // there's no browser-side behavior to build here. Surfacing it as a
   // catalog row (same treatment as `defaultShell`, `promptCacheTtl`) is all
   // Claudius needs.
+  //
+  // DEPRECATED as of SDK 0.3.261 / Claude Code 2.1.261 (doc-only change —
+  // the field itself wasn't removed): the CLI's word-editing keys now
+  // always follow Bash/readline conventions regardless of this value. Kept
+  // here — and in `SDK_SETTINGS_CATALOG` — only so a pre-existing value in
+  // a hand-edited settings.json stays visible/editable; see that catalog
+  // entry's `desc` for the user-facing deprecation notice.
   keybindingFlavor?: "classic" | "readline";
   // Claude Code 2.1.243 — "Added a modelPicker setting: curate the /model
   // picker with an ordered, labeled list of models (any id spelling,
@@ -298,6 +305,20 @@ export type ClaudeSettings = {
   // needs; see `SDK_SETTINGS_CATALOG` in `app/settings/page.tsx`.
   timeFormat?: "auto" | "12-hour" | "24-hour" | "24-hour-utc" | string;
   timeZone?: string;
+  // SDK 0.3.261 — how many characters of a successful Bash/PowerShell
+  // command's output Claude receives inline (default 30000; the SDK clamps
+  // to 4000-128000). Same treatment as `keybindingFlavor`: config-
+  // passthrough only, read by the bundled `claude` binary straight from
+  // this settings file when it truncates a tool result before it ever
+  // reaches Claudius over the control protocol — there's no browser-side
+  // truncation to mirror. Surfacing it as a catalog row (Settings →
+  // Storage & sessions) is all Claudius needs; see `SDK_SETTINGS_CATALOG`
+  // in `app/settings/page.tsx`.
+  bashOutputMaxChars?: number;
+  // SDK 0.3.261 — same treatment, for the TaskOutput tool's per-call
+  // inline character budget on a background task's output (default 32000,
+  // same 4000-128000 clamp).
+  taskOutputMaxChars?: number;
   // Catch-all for keys we don't yet know about — we never strip them.
   [key: string]: unknown;
 };

@@ -36,6 +36,15 @@ export type ApiRetryState = {
   retryDelayMs: number;
   errorStatus: number | null;
   error: ApiRetryErrorReason | (string & {});
+  /**
+   * Present only when this retry was triggered by the API sending no
+   * response headers within the first-byte timeout (SDK 0.3.261's
+   * `no_response`), rather than by an HTTP error status. `waitedMs` is how
+   * long the failed attempt waited; `retryWaitMs` is how long the upcoming
+   * retry will wait. For this cause, `maxRetries` is a small cap of its own
+   * (normally one retry) rather than the session's usual retry budget.
+   */
+  noResponse?: { waitedMs: number; retryWaitMs: number };
 };
 
 /**
@@ -87,6 +96,16 @@ export function describeApiRetry(retry: ApiRetryState): ApiRetryDescription {
     return {
       message: "Anthropic's API is overloaded right now — Claude will keep retrying.",
       showStatusLink: true,
+    };
+  }
+  // No response headers arrived within the first-byte timeout — a distinct
+  // cause from an HTTP error status, so it gets its own copy rather than
+  // falling into the generic/reason-named branches below (an "unknown"/
+  // "server_error" `error` tag would otherwise read as a normal HTTP retry).
+  if (retry.noResponse) {
+    return {
+      message: "Anthropic's API didn't respond in time — retrying…",
+      showStatusLink: false,
     };
   }
   if (retry.attempt >= SHOW_REASON_AT_ATTEMPT) {

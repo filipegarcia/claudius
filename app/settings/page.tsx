@@ -1188,11 +1188,39 @@ const SDK_SETTINGS_CATALOG: SettingMeta[] = [
     desc: "Default shell for input-box ! commands. Defaults to 'bash' on all platforms (no Windows auto-flip).",
   },
   {
+    // SDK 0.3.261 — config-passthrough only, same reasoning as
+    // `keybindingFlavor` below: the bundled `claude` binary truncates a
+    // successful Bash/PowerShell tool result to this many characters
+    // before it ever reaches Claudius over the control protocol, so
+    // there's no browser-side truncation to mirror.
+    key: "bashOutputMaxChars",
+    type: "number",
+    section: "Shell",
+    placeholder: "30000",
+    desc: "How many characters of a successful Bash/PowerShell command's output Claude receives inline (default 30000; clamps to 4000-128000). Output past this is saved to a file and Claude receives a short preview plus the path. Replaces BASH_MAX_OUTPUT_LENGTH, which on its own only sizes the read-back window.",
+  },
+  {
+    // SDK 0.3.261 — same treatment, for the TaskOutput tool's per-call
+    // inline budget on a background task's output.
+    key: "taskOutputMaxChars",
+    type: "number",
+    section: "Shell",
+    placeholder: "32000",
+    desc: "How many characters of a background task's output the TaskOutput tool hands Claude inline (default 32000; clamps to 4000-128000). Longer output is cut to its most recent characters with the path of the full output file. Replaces TASK_MAX_OUTPUT_LENGTH, which on its own only sizes the read-back window.",
+  },
+  {
+    // SDK 0.3.261 — deprecated: the JSDoc now reads "no longer has any
+    // effect. The prompt's word-editing keys always follow Bash (readline)
+    // conventions." (a doc-only change, the key itself is unremoved). Kept
+    // in the catalog — Claudius never strips unknown/stale keys from a
+    // hand-edited settings.json, and an old install may still have it set
+    // — but the description is updated so it stops promising behavior the
+    // SDK no longer provides.
     key: "keybindingFlavor",
     type: "enum",
     section: "Shell",
     options: ["classic", "readline"],
-    desc: 'Set to "readline" to make Ctrl+W in the CLI\'s own prompt delete back to the previous whitespace, as in Bash; default ("classic") is unchanged. CLI-only — Claudius\'s browser composer can\'t intercept Ctrl+W (browsers reserve it to close the tab), so this row is a config-passthrough for when you run `claude` in a terminal against this same settings file.',
+    desc: 'Deprecated as of Claude Code 2.1.261 — no longer has any effect; the CLI\'s own prompt always follows Bash (readline) word-editing conventions now. Safe to remove; kept here only so an existing value in settings.json is visible and editable.',
   },
   {
     // SDK 0.3.257 — clock format for the CLI's own TUI. Config-passthrough
