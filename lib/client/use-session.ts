@@ -3920,6 +3920,9 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
             retry_delay_ms?: number;
             error_status?: number | null;
             error?: string;
+            // SDK 0.3.261: present only when the retry was caused by no
+            // response headers arriving within the first-byte timeout.
+            no_response?: { waited_ms?: number; retry_wait_ms?: number } | null;
           };
           setApiRetry({
             attempt: typeof rt.attempt === "number" ? rt.attempt : 1,
@@ -3927,6 +3930,12 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
             retryDelayMs: typeof rt.retry_delay_ms === "number" ? rt.retry_delay_ms : 0,
             errorStatus: rt.error_status ?? null,
             error: rt.error ?? "unknown",
+            noResponse:
+              rt.no_response &&
+              typeof rt.no_response.waited_ms === "number" &&
+              typeof rt.no_response.retry_wait_ms === "number"
+                ? { waitedMs: rt.no_response.waited_ms, retryWaitMs: rt.no_response.retry_wait_ms }
+                : undefined,
           });
           return;
         }

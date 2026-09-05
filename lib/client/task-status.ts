@@ -62,8 +62,9 @@ export function statusFromToolResult(isError: boolean | undefined): TaskStatus {
 /**
  * SDK 0.3.247 — whether a task should count toward an *activity indicator*
  * (the Activity rail's attention/"N running" counts, the StatusLine badge).
- * `ambient` tasks (housekeeping the CLI doesn't surface as user work — every
- * `skip_transcript` task, plus auto-started live-update watchers) are
+ * `ambient` tasks (not activity — every `skip_transcript` task, plus every
+ * live-update watcher, requested or auto-started; SDK 0.3.261 broadened the
+ * watcher half of this from "auto-started only" to "every one") are
  * excluded here, matching the SDK's own guidance — but they still get a row
  * in the Tasks/Running panel, since `ambient` only means "don't count me",
  * not "hide me" (that's `skip_transcript`'s job).

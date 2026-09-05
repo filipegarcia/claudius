@@ -1397,6 +1397,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
           router.push("/memory");
           return true;
         case "context":
+        case "skill-doctor":
           setOverlay("context");
           return true;
         case "cost":

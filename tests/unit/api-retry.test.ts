@@ -60,6 +60,36 @@ describe("describeApiRetry", () => {
     const { showStatusLink } = describeApiRetry(retry({ attempt: 3, error: "overloaded" }));
     expect(showStatusLink).toBe(true);
   });
+
+  // SDK 0.3.261: `no_response` marks a retry caused by no response headers
+  // arriving within the first-byte timeout, rather than an HTTP error.
+  test("no_response gets its own copy, even on the first attempt", () => {
+    const { message, showStatusLink } = describeApiRetry(
+      retry({ attempt: 1, error: "unknown", noResponse: { waitedMs: 30_000, retryWaitMs: 5_000 } }),
+    );
+    expect(message).toBe("Anthropic's API didn't respond in time — retrying…");
+    expect(showStatusLink).toBe(false);
+  });
+
+  test("no_response takes priority over the attempt-based reason copy", () => {
+    const { message } = describeApiRetry(
+      retry({
+        attempt: 3,
+        maxRetries: 1,
+        error: "server_error",
+        noResponse: { waitedMs: 30_000, retryWaitMs: 5_000 },
+      }),
+    );
+    expect(message).toBe("Anthropic's API didn't respond in time — retrying…");
+  });
+
+  test("overload still wins over no_response if the SDK ever pairs them", () => {
+    const { message, showStatusLink } = describeApiRetry(
+      retry({ attempt: 1, error: "overloaded", noResponse: { waitedMs: 30_000, retryWaitMs: 5_000 } }),
+    );
+    expect(message).toMatch(/overloaded/i);
+    expect(showStatusLink).toBe(true);
+  });
 });
 
 test("ANTHROPIC_STATUS_URL is the public status page", () => {

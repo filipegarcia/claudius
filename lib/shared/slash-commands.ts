@@ -102,6 +102,13 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   // ── Memory & context ─────────────────────────────────────────────────
   { id: "memory", name: "memory", description: "Edit CLAUDE.md, browse memory, toggle auto-memory.", category: "memory", handler: "native" },
   { id: "context", name: "context", description: "Visualize context window usage.", category: "memory", handler: "native" },
+  // CC 2.1.261 parity — "Added /skill-doctor to show which loaded skills go
+  // unused and what they cost in context, so you can prune them." Reuses
+  // the /context overlay's plumbing: the SDK's getContextUsage() response
+  // already carries a per-skill token breakdown (`skills.skillFrontmatter`)
+  // that overlay wasn't rendering yet. See ContextOverlay.tsx's "Skills"
+  // section. Claudius doesn't attempt the "unused" half — see run-notes.
+  { id: "skill-doctor", name: "skill-doctor", description: "Show per-skill context cost, so you can prune what's not worth it.", category: "memory", handler: "native" },
   { id: "init", name: "init", description: "Initialize a CLAUDE.md for this project.", category: "memory", handler: "sdk" },
   { id: "recap", name: "recap", description: "Generate a one-line session summary.", category: "memory", handler: "native" },
   { id: "btw", name: "btw", description: "Side question — ephemeral, no tools, no history.", category: "memory", handler: "sdk", argsHint: "<question>" },
