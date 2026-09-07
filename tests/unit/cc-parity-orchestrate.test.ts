@@ -1,3 +1,6 @@
+import { existsSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
+
 import { describe, expect, test } from "vitest";
 
 import {
@@ -552,4 +555,47 @@ describe("validateCcImplementationClaims", () => {
       ),
     ).toBeNull();
   });
+});
+
+/**
+ * Real-note regression, tied to the F2 backfill in this same change. The
+ * 2.1.248 run-note names `tests/e2e/cc-parity-2.1.248-restricted-mode.spec.ts`
+ * and `docs/cc-parity/2.1.248/restricted-mode-toggle.png`. Before the backfill
+ * those files did not exist and the gate would (correctly) reject the note as a
+ * phantom; the restricted-mode feature was implemented in this change, so the
+ * real note now passes against the real filesystem. This doubles as a guard:
+ * deleting either 248 artifact reintroduces the phantom and fails here.
+ */
+describe("validateCcImplementationClaims — real 2.1.248 note (post-backfill)", () => {
+  const ROOT = resolve(__dirname, "..", "..");
+  const noteExists = existsSync(
+    resolve(ROOT, ".claudius/cc-parity/run-notes/2.1.248.md"),
+  );
+
+  test.runIf(noteExists)(
+    "the real 2.1.248 note now passes — its named spec + screenshot exist on disk",
+    () => {
+      const md = readFileSync(
+        resolve(ROOT, ".claudius/cc-parity/run-notes/2.1.248.md"),
+        "utf8",
+      );
+      const parsed = parseCcImplementationClaims(md);
+      // The note DOES claim bucket-B work and names the two artifacts.
+      expect(parsed.hasBucketBWork).toBe(true);
+      expect(parsed.specPaths).toContain(
+        "tests/e2e/cc-parity-2.1.248-restricted-mode.spec.ts",
+      );
+      expect(parsed.screenshotPaths).toContain(
+        "docs/cc-parity/2.1.248/restricted-mode-toggle.png",
+      );
+      // Against the real filesystem (both artifacts now exist) + a real
+      // product-code diff, the claims validate.
+      const issue = validateCcImplementationClaims(
+        md,
+        ["lib/server/session.ts", "components/workspaces/WorkspaceForm.tsx"],
+        (p) => existsSync(resolve(ROOT, p)),
+      );
+      expect(issue).toBeNull();
+    },
+  );
 });
