@@ -124,12 +124,22 @@ function MarkdownFilePreview({ src, alt }: { src?: string; alt?: string }) {
       : null;
   const isLocal = !!(rel && fileLink && (isImage || isHtml));
 
+  // Absolute image path that is NOT under the workspace (typically a
+  // screenshot the agent wrote to /tmp). The browser would otherwise request
+  // `http://host/tmp/x.png` and 404; route it through the temp-dir image
+  // endpoint instead, which decides server-side whether the location is
+  // allowed.
+  const isAbsOutsideImage =
+    !rel && isImage && stripped.startsWith("/") && looksLikeFilePath(stripped);
+
   // Image: binary serve endpoint. HTML: path-based preview route so relative
   // assets (CSS, images) inside the file resolve correctly via browser URL logic.
   const imageSrc =
     isLocal && isImage
       ? `/api/workspaces/${fileLink!.workspaceId}/files?path=${encodeURIComponent(rel!)}&serve=1`
-      : raw;
+      : isAbsOutsideImage
+        ? `/api/local-image?path=${encodeURIComponent(stripped)}`
+        : raw;
   const htmlPreviewSrc =
     isLocal && isHtml
       ? `/api/workspaces/${fileLink!.workspaceId}/files/preview/${rel}`
