@@ -572,6 +572,137 @@ function validateRunNotes(version: string): string | null {
   return validateCcRunNotesContent(readFileSync(path, "utf8"));
 }
 
+/**
+ * Anti-phantom-implementation gate.
+ *
+ * `validateCcRunNotesContent` only proves each section contains *prose* —
+ * not that the prose is *true*. A run where Claude writes a fully-fluent
+ * "Implemented (bucket B)" section but never commits the code passes every
+ * existing gate: completeness sees prose; lint/unit/build/e2e see no
+ * changed code so nothing breaks. cc-parity 2.1.248's `--restricted`
+ * feature shipped exactly this way — documented as done, never written
+ * (0 code refs, its named spec + screenshot absent, still missing many
+ * releases later). These two functions cross-check the note's *claims*
+ * against reality:
+ *
+ *   1. Every artifact path the note NAMES (an e2e/unit spec, a screenshot
+ *      under docs/cc-parity/) must actually exist on disk. This is the
+ *      load-bearing check and is diff-independent.
+ *   2. If the note claims bucket-B work at all, the cc-parity diff must
+ *      touch at least one file outside `.claudius/` and `docs/` (real
+ *      product code), so a docs-only "phantom" run is rejected.
+ *
+ * `changedFiles` MUST be the cc-parity slice only — diffed from the
+ * work-anchor sha, not from `main` — so a combined SDK+cc PR whose SDK
+ * half legitimately changed code cannot mask an empty cc-parity half.
+ *
+ * Split into a pure parser + a dependency-injected validator so both
+ * unit-test without a real working tree. Exported for tests.
+ */
+export function parseCcImplementationClaims(md: string): {
+  hasBucketBWork: boolean;
+  specPaths: string[];
+  screenshotPaths: string[];
+} {
+  const bucketB = extractCcSection(md, "Implemented (bucket B)");
+  // Explicit no-op: the section leads with "None" / "no bucket-B" /
+  // "nothing to implement" / "N/A" (optionally behind a bullet marker).
+  // Anything else is treated as a real implementation claim.
+  const firstMeaningful = bucketB.replace(/^[\s\-*_`]+/, "").toLowerCase();
+  const isNoOp = /^(none\b|no bucket.?b|nothing to implement|n\/a\b)/.test(
+    firstMeaningful,
+  );
+  // Named artifacts, anchored to real repo-path prefixes so a conversational
+  // mention can't trip the check. Scan the WHOLE note — the "New UI surfaces"
+  // and "Tests" sections carry the spec/screenshot names, not just "Implemented".
+  const specPaths = [
+    ...new Set(
+      Array.from(
+        md.matchAll(/\b(tests\/[\w./-]+?\.(?:spec|test)\.tsx?)\b/g),
+      ).map((m) => m[1]!),
+    ),
+  ];
+  const screenshotPaths = [
+    ...new Set(
+      Array.from(
+        md.matchAll(
+          /\b(docs\/cc-parity\/[\w./-]+?\.(?:png|jpe?g|gif|webp))\b/gi,
+        ),
+      ).map((m) => m[1]!),
+    ),
+  ];
+  return { hasBucketBWork: !isNoOp, specPaths, screenshotPaths };
+}
+
+export function validateCcImplementationClaims(
+  md: string,
+  changedFiles: readonly string[],
+  fileExists: (relPath: string) => boolean = (p) =>
+    existsSync(resolve(ROOT, p)),
+): string | null {
+  const { hasBucketBWork, specPaths, screenshotPaths } =
+    parseCcImplementationClaims(md);
+  if (!hasBucketBWork) return null; // genuine no-op release — nothing to verify
+
+  const issues: string[] = [];
+
+  // (1) Every named artifact must exist on disk.
+  for (const p of [...specPaths, ...screenshotPaths]) {
+    if (!fileExists(p)) {
+      issues.push(`run-note names \`${p}\` but that file does not exist`);
+    }
+  }
+
+  // (2) A bucket-B claim requires real product code in the cc-parity diff.
+  const productChanges = changedFiles.filter(
+    (f) => !f.startsWith(".claudius/") && !f.startsWith("docs/"),
+  );
+  if (productChanges.length === 0) {
+    issues.push(
+      "run-note claims bucket-B work but the cc-parity diff touches only " +
+        "docs/run-notes — no product code was committed (phantom implementation)",
+    );
+  }
+
+  return issues.length
+    ? `run-note implementation claims are unverified: ${issues.join("; ")}`
+    : null;
+}
+
+/**
+ * IO wrapper for `validateCcImplementationClaims`, mirroring
+ * `validateRunNotes`. Returns null when the note is missing (that case is
+ * already reported by `validateRunNotes`, so we don't double-report it).
+ */
+function validateImplementationClaims(
+  version: string,
+  changedFiles: readonly string[],
+): string | null {
+  const path = runNotesPath(version);
+  if (!existsSync(path)) return null;
+  return validateCcImplementationClaims(readFileSync(path, "utf8"), changedFiles);
+}
+
+/**
+ * All paths changed by the cc-parity half of the run, relative to the
+ * work-anchor sha — union of committed-since-anchor, uncommitted-tracked,
+ * and untracked. Used by the anti-phantom gate; scoped to the anchor (not
+ * main) so a combined run's SDK changes are excluded.
+ */
+function ccChangedFilesSince(anchorSha: string): string[] {
+  const committed = sh("git", ["diff", "--name-only", anchorSha, "HEAD"])
+    .split("\n")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  // `--porcelain` covers staged, unstaged, and untracked in one shot; the
+  // path starts at column 3 (2 status chars + a space).
+  const dirty = sh("git", ["status", "--porcelain"])
+    .split("\n")
+    .map((l) => l.slice(3).trim())
+    .filter(Boolean);
+  return [...new Set([...committed, ...dirty])];
+}
+
 function listScreenshots(version: string): string[] {
   const dir = resolve(ROOT, "docs", "cc-parity", version);
   if (!existsSync(dir)) return [];
@@ -1387,20 +1518,44 @@ export async function runCcParityOnExistingBranch(args: {
     log(`gate: run-notes validation ok`);
   }
 
+  // 8b. Anti-phantom check: verify the run-note's implementation CLAIMS
+  //     against the actual cc-parity diff. Only meaningful once the note
+  //     itself is complete (otherwise there's nothing trustworthy to parse),
+  //     so gate it behind a clean run-notes result.
+  let claimsIssue: string | null = null;
+  if (!runNotesIssue) {
+    let ccChanged: string[] = [];
+    try {
+      ccChanged = ccChangedFilesSince(shaBeforeCcWork);
+    } catch (err) {
+      log(`WARN could not compute cc-parity diff for claims check: ${String(err)}`);
+    }
+    claimsIssue = validateImplementationClaims(newCcVersion, ccChanged);
+    if (claimsIssue && !budgetReason) {
+      budgetReason = claimsIssue;
+      log(`gate: implementation-claims validation FAILED — ${claimsIssue}`);
+    } else if (claimsIssue) {
+      budgetReason = `${budgetReason}; also: ${claimsIssue}`;
+      log(`gate: implementation-claims validation FAILED — ${claimsIssue}`);
+    } else {
+      log(`gate: implementation-claims validation ok`);
+    }
+  }
+
   if (args.announceProgress) {
     await args.announceProgress(
       buildCcGateResultAnnouncement({
         prevVersion: prevCcVersion,
         newVersion: newCcVersion,
         results: gate,
-        runNotesIssue,
+        runNotesIssue: runNotesIssue ?? claimsIssue,
         budgetReason,
       }),
     ).catch((err) => log(`WARN cc announce (gate result) failed: ${String(err)}`));
   }
 
   const failedSteps = gate.filter((g: GateResult) => !g.ok).map((g: GateResult) => g.step);
-  const ok = allGreen && !runNotesIssue;
+  const ok = allGreen && !runNotesIssue && !claimsIssue;
 
   if (dryRun) {
     log("DRY RUN — runCcParityOnExistingBranch returning without push/PR/announce");
