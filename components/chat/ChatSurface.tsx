@@ -54,7 +54,7 @@ import { useClaudius, useElectronSubscription } from "@/lib/client/useElectron";
 import { parseAskQuestions, type AskAnswer, type AskQuestion } from "@/lib/shared/events";
 import { useLimits } from "@/lib/client/useLimits";
 import { CapBreachBanner } from "@/components/chat/CapBreachBanner";
-import { TranscriptSearch, type SearchHit } from "@/components/chat/TranscriptSearch";
+import { TranscriptSearch } from "@/components/chat/TranscriptSearch";
 import {
   SessionTabs,
   activeTabStatus,
@@ -909,12 +909,15 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
 
   // Transcript search ─────────────────────────────────────────────────────
   const [searchOpen, setSearchOpen] = useState(false);
-  const [highlightUuid, setHighlightUuid] = useState<string | null>(null);
+  // Bumped on every Cmd/Ctrl+F so an already-open find bar re-focuses and
+  // selects its text, like the browser's own bar.
+  const [findNonce, setFindNonce] = useState(0);
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && (e.key === "f" || e.key === "F")) {
         e.preventDefault();
         setSearchOpen(true);
+        setFindNonce((n) => n + 1);
       }
       if (e.key === "Escape" && searchOpen) {
         setSearchOpen(false);
@@ -957,16 +960,24 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
     return () => window.removeEventListener("keydown", onKey);
   }, [focusModeBinding, cycleFocus]);
 
-  const onPickHit = useCallback(
-    async (hit: SearchHit) => {
-      setSearchOpen(false);
-      // Search hits carry the JSONL wrapper uuid; jumpToUuid resolves it to
-      // the bubble's primary uuid (Anthropic message.id), which is what the
-      // `data-message-uuid` attribute and highlight comparison key on.
-      const resolved = await session.jumpToUuid(hit.messageUuid);
-      if (!resolved) return;
-      setHighlightUuid(resolved);
-      setTimeout(() => setHighlightUuid((prev) => (prev === resolved ? null : prev)), 1500);
+  // The find bar scans the rendered DOM, but the transcript is paginated.
+  // Ask the server search for the OLDEST message matching `q` (hits come
+  // back in transcript order, so limit=1 is exactly that) and paginate until
+  // it's rendered — then every matching message is in the DOM and the bar's
+  // count is complete. jumpToUuid accepts the JSONL wrapper uuid hits carry.
+  const ensureFindMatchesLoaded = useCallback(
+    async (q: string) => {
+      const id = session.sessionId;
+      if (!id || !session.hasMoreAbove) return;
+      const res = await fetch(
+        `/api/sessions/${id}/search?q=${encodeURIComponent(q)}&limit=1`,
+      );
+      if (!res.ok) return;
+      const d = (await res.json().catch(() => ({}))) as {
+        hits?: Array<{ messageUuid: string }>;
+      };
+      const oldest = d.hits?.[0];
+      if (oldest) await session.jumpToUuid(oldest.messageUuid);
     },
     [session],
   );
@@ -2212,7 +2223,9 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
             <TranscriptSearch
               sessionId={session.sessionId}
               onClose={() => setSearchOpen(false)}
-              onPick={onPickHit}
+              focusNonce={findNonce}
+              hasMoreAbove={session.hasMoreAbove}
+              onEnsureLoaded={ensureFindMatchesLoaded}
             />
           )}
           <MessageList
@@ -2229,7 +2242,6 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
             hasMoreAbove={session.hasMoreAbove}
             loadingOlder={session.loadingOlder}
             onLoadOlder={session.loadOlder}
-            highlightUuid={highlightUuid}
             onPickExample={handleSend}
             onRunCommand={handleSend}
             // Filter conditional tips (e.g. multi-Claude color/rename nudge,

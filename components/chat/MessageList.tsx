@@ -531,6 +531,8 @@ export function MessageList({
       <div
         ref={scrollRef}
         onScroll={onScroll}
+        // Anchor for the Cmd+F find bar's DOM scan (components/chat/TranscriptSearch.tsx).
+        data-transcript-root=""
         className="flex-1 overflow-y-auto scroll-thin"
         // Disable the browser's "preserve visual position when content shifts"
         // anchoring. Without this, late reflow after our pin-to-bottom drags

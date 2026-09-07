@@ -258,3 +258,16 @@ samp,
 .animate-indeterminate-slide {
   animation: indeterminate-slide 1.4s ease-in-out infinite;
 }
+
+/* Cmd+F find-in-transcript (components/chat/TranscriptSearch.tsx). Painted via
+ * the CSS Custom Highlight API so React's DOM is never touched. Colors mirror
+ * the native Chrome find bar: yellow for every hit, orange for the current one;
+ * dark text on both keeps contrast on every theme. */
+::highlight(transcript-find) {
+  background-color: #ffe14d;
+  color: #111;
+}
+::highlight(transcript-find-current) {
+  background-color: #ff9632;
+  color: #111;
+}
