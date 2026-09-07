@@ -92,6 +92,11 @@ export function WorkspaceForm({ initial, onCancel, onSubmit, onIconUpload, onDel
   const [defaultEphemeral, setDefaultEphemeral] = useState<boolean>(
     initial?.defaults?.persistSession === false,
   );
+  // Restricted mode (CC 2.1.248 `--restricted`): block Bash/BashOutput/KillBash
+  // + WebFetch and refuse bypassPermissions. Off by default.
+  const [defaultRestricted, setDefaultRestricted] = useState<boolean>(
+    initial?.defaults?.restrictedMode === true,
+  );
   // Extra system-prompt steering appended to the Claude Code preset.
   const [defaultSysAppend, setDefaultSysAppend] = useState(
     initial?.defaults?.systemPromptAppend ?? "",
@@ -119,6 +124,7 @@ export function WorkspaceForm({ initial, onCancel, onSubmit, onIconUpload, onDel
     initialDefaults?.sandboxFilesystemDisabled ||
     initialDefaults?.enable1mContext ||
     initialDefaults?.persistSession === false ||
+    initialDefaults?.restrictedMode ||
     initialDefaults?.systemPromptAppend ||
     initialDefaults?.planModeInstructions ||
     (initialDefaults?.additionalDirectories?.length ?? 0) > 0
@@ -224,6 +230,8 @@ export function WorkspaceForm({ initial, onCancel, onSubmit, onIconUpload, onDel
       else delete defaults.enable1mContext;
       if (defaultEphemeral) defaults.persistSession = false;
       else delete defaults.persistSession;
+      if (defaultRestricted) defaults.restrictedMode = true;
+      else delete defaults.restrictedMode;
       if (defaultSysAppend.trim()) defaults.systemPromptAppend = defaultSysAppend.trim();
       else delete defaults.systemPromptAppend;
       if (defaultPlanInstr.trim()) defaults.planModeInstructions = defaultPlanInstr.trim();
@@ -607,6 +615,20 @@ export function WorkspaceForm({ initial, onCancel, onSubmit, onIconUpload, onDel
                   <span>Ephemeral sessions</span>
                   <span className="text-[10px] text-[var(--muted)]">
                     Not saved to disk — can&apos;t be resumed or shown in history.
+                  </span>
+                </label>
+                <label className="mt-2 flex cursor-pointer items-center gap-2 text-xs">
+                  <input
+                    type="checkbox"
+                    data-testid="workspace-restricted-mode"
+                    checked={defaultRestricted}
+                    onChange={(e) => setDefaultRestricted(e.target.checked)}
+                    className="h-3 w-3 rounded border-[var(--border)] bg-[var(--panel-2)]"
+                  />
+                  <span>Restricted mode</span>
+                  <span className="text-[10px] text-[var(--muted)]">
+                    Blocks command/code tools (Bash) and web fetch, and refuses
+                    bypass-permissions. File edits stay confined to the workspace.
                   </span>
                 </label>
                 <Field label="System prompt append">

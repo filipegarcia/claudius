@@ -1017,6 +1017,12 @@ export type CreateSessionRequest = {
   /** Custom plan-mode workflow body — SDK Options.planModeInstructions. */
   planModeInstructions?: string;
   permissionMode?: PermissionMode;
+  /**
+   * Restricted mode (Claude Code 2.1.248 `--restricted`). Blocks the
+   * command/code-execution tools (Bash family) + WebFetch via
+   * Options.disallowedTools and refuses `bypassPermissions`.
+   */
+  restrictedMode?: boolean;
   /** If set, resume an existing session by id. */
   resume?: string;
   /** When resuming, only replay messages up to and including this message uuid. */

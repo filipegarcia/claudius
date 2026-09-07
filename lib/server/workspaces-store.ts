@@ -137,6 +137,15 @@ export type WorkspaceDefaults = {
    * the next session in the workspace inherits the new default.
    */
   verbose?: VerboseLevel;
+  /**
+   * Restricted mode (Claude Code 2.1.248 `--restricted` / `CLAUDE_CODE_RESTRICTED=1`).
+   * When true, sessions started in this workspace are locked down: the Session
+   * passes `disallowedTools` for the command/code-execution tools (`Bash`,
+   * `BashOutput`, `KillBash`) and `WebFetch`, and refuses `bypassPermissions`
+   * (any bypass default or later switch is coerced to `default`). File tools
+   * remain confined to the workspace cwd (unchanged). Absent/false ⇒ normal.
+   */
+  restrictedMode?: boolean;
 };
 
 /**

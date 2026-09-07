@@ -54,6 +54,19 @@ export type AutoModeConfig = {
   hard_deny?: string[];
 };
 
+/**
+ * Rich spinner-tip entry (Claude Code 2.1.247). The bare-string form is still
+ * accepted; an object entry contributes its `text`. `id`/`cooldownSessions`/
+ * `priority` are carried for shape-compatibility — Claudius overrides ride the
+ * shared dismiss-weighting, so they don't currently change rotation behaviour.
+ */
+export type SpinnerTipEntry = {
+  id?: string;
+  text: string;
+  cooldownSessions?: number;
+  priority?: number;
+};
+
 export type ClaudeSettings = {
   model?: string;
   theme?: string;
@@ -113,14 +126,27 @@ export type ClaudeSettings = {
   // cached `spinnerTipsConfig` on Session.
   spinnerTipsEnabled?: boolean;
   // Per-user override for the spinner-tip rotation. Mirrors the CLI shape:
-  // `{ excludeDefault?: boolean, tips?: string[] }`. When `tips` is a non-empty
-  // string list, each entry is mapped to a `custom-tip-${index}` Tip object
-  // with no command. When `excludeDefault` is true, the override REPLACES the
-  // built-in catalog; otherwise the override entries are appended to it.
-  // Unlike built-in tips, custom tips intentionally have no `requires*` gates
-  // and (matching the CLI's `cooldownSessions:0` for overrides) ride the same
-  // dismiss-weighting as everything else — see DISMISSED_TIP_SHOW_PROBABILITY.
-  spinnerTipsOverride?: { excludeDefault?: boolean; tips?: string[] };
+  // `{ excludeDefault?: boolean, tips?: (string | SpinnerTipEntry)[] }`. Each
+  // entry is mapped to a `custom-tip-${index}` Tip object with no command.
+  // When `excludeDefault` is true, the override REPLACES the built-in catalog;
+  // otherwise the override entries are appended to it. Unlike built-in tips,
+  // custom tips intentionally have no `requires*` gates and (matching the CLI's
+  // `cooldownSessions:0` for overrides) ride the same dismiss-weighting as
+  // everything else — see DISMISSED_TIP_SHOW_PROBABILITY.
+  //
+  // Claude Code 2.1.247 made the rich object form `{ id, text, cooldownSessions,
+  // priority }` canonical alongside the bare-string form (and added `tipsFile` /
+  // `label` for org-provisioned tip sets). Claudius accepts both entry shapes —
+  // an object entry contributes its `text` — so a settings file written in the
+  // now-canonical object form isn't silently discarded (see Session.start()'s
+  // normalization). `tipsFile` (a path to load tips from) and the group `label`
+  // are org-provisioning knobs with no browser-settings surface and are ignored.
+  spinnerTipsOverride?: {
+    excludeDefault?: boolean;
+    tips?: Array<string | SpinnerTipEntry>;
+    tipsFile?: string;
+    label?: string;
+  };
   // How the server-side message queue dispatches new user messages
   // typed while the agent is mid-turn (or waiting on a permission/ask
   // prompt). Mirrors the Claude Code TUI's "fast-pipe" affordance: the
