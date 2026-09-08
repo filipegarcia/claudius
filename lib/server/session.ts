@@ -102,7 +102,10 @@ import {
 } from "./thinking-replay-recovery";
 import { extractReadPaths } from "@/lib/shared/read-tool-paths";
 import { parseTaskListResult } from "@/lib/shared/parse-tasklist-result";
-import { joinSystemPromptAppends } from "@/lib/shared/system-prompt-append";
+import {
+  buildSystemPromptOption,
+  joinSystemPromptAppends,
+} from "@/lib/shared/system-prompt-append";
 import { loadDbAgentsForOptions } from "@/lib/server/db-agents";
 import { selectTips } from "@/lib/shared/tips";
 import type { SessionLoop } from "@/lib/shared/session-loops";
@@ -2345,6 +2348,7 @@ export class Session {
       this.goal.goal ? this.goalSystemPromptAppend() : "",
       this.systemPromptAppend,
     ]);
+    const systemPromptOption = buildSystemPromptOption(combinedSystemPromptAppend);
 
     // DB-backed programmatic subagents for this workspace (A-P3.8). Fed to the
     // SDK via Options.agents; undefined when none, so the file-based agents
@@ -2444,18 +2448,11 @@ export class Session {
       // set (the agent is only told to use it when a goal exists).
       mcpServers: { claudius_goal: this.buildGoalMcpServer() },
       // Single system-prompt spread combining the session goal + workspace
-      // systemPromptAppend (see `combinedSystemPromptAppend` above). Omitted
-      // entirely when neither is set, so the no-extras path stays byte-identical
-      // to the SDK default.
-      ...(combinedSystemPromptAppend
-        ? {
-            systemPrompt: {
-              type: "preset" as const,
-              preset: "claude_code" as const,
-              append: combinedSystemPromptAppend,
-            },
-          }
-        : {}),
+      // systemPromptAppend (see `combinedSystemPromptAppend` above and
+      // `buildSystemPromptOption`'s doc comment for the SDK 0.3.265
+      // `snapshot: false` trade-off). Omitted entirely when neither is set, so
+      // the no-extras path stays byte-identical to the SDK default.
+      ...(systemPromptOption ? { systemPrompt: systemPromptOption } : {}),
       // DB-backed programmatic subagents (A-P3.8). Merged into the agent set
       // the model can invoke via the Agent tool; programmatic agents take
       // precedence over same-named file-based ones. Omitted when there are
