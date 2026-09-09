@@ -1029,6 +1029,19 @@ const SDK_SETTINGS_CATALOG: SettingMeta[] = [
     desc: "Persisted effort level for supported models.",
   },
   {
+    // SDK 0.3.267 — org/user-level ceiling: an /effort or /model pick, a CLI
+    // flag, CLAUDE_CODE_EFFORT_LEVEL, or a model default above this is
+    // clamped to it. `modelSettings.<model>.maxEffortLevel` is the per-model
+    // override for this same cap; it stays out of this catalog (a nested
+    // per-model map, not a scalar) and falls through to the generic "Other"
+    // JSON editor, same as `modelSettings.<model>.effortLevel`.
+    key: "maxEffortLevel",
+    type: "enum",
+    section: "Thinking & effort",
+    options: ["low", "medium", "high", "xhigh", "max"],
+    desc: "Maximum effort level. Anything above it is clamped to it, on every provider including Bedrock, Vertex and Foundry.",
+  },
+  {
     key: "autoCompactEnabled",
     type: "boolean",
     section: "Context & compaction",
