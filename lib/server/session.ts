@@ -102,7 +102,10 @@ import {
 } from "./thinking-replay-recovery";
 import { extractReadPaths } from "@/lib/shared/read-tool-paths";
 import { parseTaskListResult } from "@/lib/shared/parse-tasklist-result";
-import { joinSystemPromptAppends } from "@/lib/shared/system-prompt-append";
+import {
+  buildSystemPromptOption,
+  joinSystemPromptAppends,
+} from "@/lib/shared/system-prompt-append";
 import { loadDbAgentsForOptions } from "@/lib/server/db-agents";
 import { selectTips } from "@/lib/shared/tips";
 import type { SessionLoop } from "@/lib/shared/session-loops";
@@ -752,6 +755,54 @@ const STALE_TODO_TURN_THRESHOLD = 15;
 export const TODO_TASK_TOOL_NAMES = ["TodoWrite", "TaskCreate", "TaskGet", "TaskUpdate", "TaskList"];
 
 /**
+ * Tools blocked in restricted mode (Claude Code 2.1.248 `--restricted`):
+ * the command/code-execution tools (`Bash` and its lifecycle companions
+ * `BashOutput`/`KillBash`) and `WebFetch`. Passed as `Options.disallowedTools`
+ * so the SDK blocks them entirely — not just at the `canUseTool` prompt.
+ * File tools (Read/Write/Edit/Glob/Grep) stay available, confined to cwd as
+ * usual. Exported for unit tests (see tests/unit/session-options.test.ts).
+ */
+export const RESTRICTED_MODE_DISALLOWED_TOOLS = [
+  "Bash",
+  "BashOutput",
+  "KillBash",
+  "WebFetch",
+];
+
+/**
+ * Normalize a `spinnerTipsOverride` setting into the `{ excludeDefault, tips }`
+ * shape the spinner rotation consumes, coercing every tip entry to a plain
+ * non-empty string. Accepts BOTH entry shapes (Claude Code 2.1.247): a bare
+ * string, or the canonical `{ id, text, … }` object (contributing its `text`).
+ *
+ * The prior inline logic string-`filter`ed the list, which silently dropped
+ * the object-form entries the 2.1.247 changelog made canonical. Extracted +
+ * exported so that coercion is unit-tested (see tests/unit/spinner-tips.test.ts)
+ * without exercising `Session.start()`'s disk/DB setup.
+ */
+export function normalizeSpinnerTipsOverride(
+  override: ClaudeSettings["spinnerTipsOverride"],
+): { excludeDefault?: boolean; tips?: string[] } | undefined {
+  if (!override || typeof override !== "object" || Array.isArray(override)) {
+    return undefined;
+  }
+  return {
+    excludeDefault: override.excludeDefault === true,
+    tips: Array.isArray(override.tips)
+      ? override.tips
+          .map((t) =>
+            typeof t === "string"
+              ? t
+              : t && typeof t === "object" && typeof t.text === "string"
+                ? t.text
+                : null,
+          )
+          .filter((t): t is string => typeof t === "string" && t.length > 0)
+      : undefined,
+  };
+}
+
+/**
  * Wall-clock age at which a TodoWrite snapshot is considered abandoned and
  * dropped automatically — evaluated at session start (after disk replay).
  * The "stale-todowrite" reminder above is the *soft* nudge that hopes the
@@ -1385,6 +1436,15 @@ export class Session {
    * the session is in plan mode. Undefined/empty ⇒ the default plan workflow.
    */
   readonly planModeInstructions?: string;
+  /**
+   * Restricted mode (Claude Code 2.1.248 `--restricted`). When true the query
+   * is built with `disallowedTools` covering the command/code-execution tools
+   * (`Bash`, `BashOutput`, `KillBash`) and `WebFetch`, and `bypassPermissions`
+   * is refused — both an initial bypass request and any later
+   * `setPermissionMode("bypassPermissions")` are coerced to `default`. File
+   * tools stay confined to cwd (unchanged). Undefined/false ⇒ unrestricted.
+   */
+  readonly restrictedMode?: boolean;
   readonly resumeFrom?: string;
   readonly resumeAt?: string;
   /**
@@ -1920,6 +1980,7 @@ export class Session {
     systemPromptAppend?: string;
     planModeInstructions?: string;
     permissionMode?: PermissionMode;
+    restrictedMode?: boolean;
     resume?: string;
     resumeSessionAt?: string;
   }) {
@@ -1950,7 +2011,10 @@ export class Session {
     this.additionalDirectories = opts.additionalDirectories;
     this.systemPromptAppend = opts.systemPromptAppend;
     this.planModeInstructions = opts.planModeInstructions;
-    this.permissionMode = opts.permissionMode ?? "default";
+    this.restrictedMode = opts.restrictedMode;
+    // Restricted mode refuses bypassPermissions — coerce an initial bypass
+    // request to `default` (see `coerceRestrictedMode` / `setPermissionMode`).
+    this.permissionMode = this.coerceRestrictedMode(opts.permissionMode ?? "default");
     this.resumeFrom = opts.resume;
     this.resumeAt = opts.resumeSessionAt;
     this.createdAt = Date.now();
@@ -2265,20 +2329,7 @@ export class Session {
         typeof userSettings.spinnerTipsEnabled === "boolean"
           ? userSettings.spinnerTipsEnabled
           : undefined,
-      override:
-        userSettings.spinnerTipsOverride &&
-        typeof userSettings.spinnerTipsOverride === "object" &&
-        !Array.isArray(userSettings.spinnerTipsOverride)
-          ? {
-              excludeDefault:
-                userSettings.spinnerTipsOverride.excludeDefault === true,
-              tips: Array.isArray(userSettings.spinnerTipsOverride.tips)
-                ? userSettings.spinnerTipsOverride.tips.filter(
-                    (t): t is string => typeof t === "string",
-                  )
-                : undefined,
-            }
-          : undefined,
+      override: normalizeSpinnerTipsOverride(userSettings.spinnerTipsOverride),
     };
     // Resolve the queue-dispatch mode from user settings (default "wait").
     // Cached for the lifetime of this Session; a settings change after
@@ -2297,6 +2348,7 @@ export class Session {
       this.goal.goal ? this.goalSystemPromptAppend() : "",
       this.systemPromptAppend,
     ]);
+    const systemPromptOption = buildSystemPromptOption(combinedSystemPromptAppend);
 
     // DB-backed programmatic subagents for this workspace (A-P3.8). Fed to the
     // SDK via Options.agents; undefined when none, so the file-based agents
@@ -2396,18 +2448,11 @@ export class Session {
       // set (the agent is only told to use it when a goal exists).
       mcpServers: { claudius_goal: this.buildGoalMcpServer() },
       // Single system-prompt spread combining the session goal + workspace
-      // systemPromptAppend (see `combinedSystemPromptAppend` above). Omitted
-      // entirely when neither is set, so the no-extras path stays byte-identical
-      // to the SDK default.
-      ...(combinedSystemPromptAppend
-        ? {
-            systemPrompt: {
-              type: "preset" as const,
-              preset: "claude_code" as const,
-              append: combinedSystemPromptAppend,
-            },
-          }
-        : {}),
+      // systemPromptAppend (see `combinedSystemPromptAppend` above and
+      // `buildSystemPromptOption`'s doc comment for the SDK 0.3.265
+      // `snapshot: false` trade-off). Omitted entirely when neither is set, so
+      // the no-extras path stays byte-identical to the SDK default.
+      ...(systemPromptOption ? { systemPrompt: systemPromptOption } : {}),
       // DB-backed programmatic subagents (A-P3.8). Merged into the agent set
       // the model can invoke via the Agent tool; programmatic agents take
       // precedence over same-named file-based ones. Omitted when there are
@@ -2480,6 +2525,14 @@ export class Session {
         ? { planModeInstructions: this.planModeInstructions }
         : {}),
       permissionMode: this.permissionMode,
+      // Restricted mode (2.1.248 `--restricted`): block the command/code
+      // tools + WebFetch outright via disallowedTools (not just at the
+      // canUseTool prompt). Omitted otherwise so the SDK default (no
+      // disallow list) is preserved. permissionMode is already coerced off
+      // bypassPermissions in the constructor / setPermissionMode.
+      ...(this.restrictedMode
+        ? { disallowedTools: RESTRICTED_MODE_DISALLOWED_TOOLS }
+        : {}),
       abortController: this.abortController,
       canUseTool: this.canUseTool,
       includePartialMessages: true,
@@ -4293,7 +4346,20 @@ export class Session {
     return { stillQueued: receipt?.still_queued ?? [] };
   }
 
+  /**
+   * Restricted mode (2.1.248 `--restricted`) refuses `bypassPermissions`.
+   * Returns `"default"` in place of a bypass request when restricted; passes
+   * every other mode through unchanged. Applied both at construction and on
+   * every `setPermissionMode` so a runtime switch can't escape the lockdown.
+   */
+  private coerceRestrictedMode(mode: PermissionMode): PermissionMode {
+    return this.restrictedMode && mode === "bypassPermissions" ? "default" : mode;
+  }
+
   async setPermissionMode(mode: PermissionMode): Promise<void> {
+    // Restricted mode refuses bypassPermissions — coerce before anything else
+    // so the lockdown holds regardless of what the client requested.
+    mode = this.coerceRestrictedMode(mode);
     // Auto mode can be disabled via settings (Claude Code TUI parity,
     // 2.1.207: `disableAutoMode` in `~/.claude/settings.json`). Coerce a
     // requested "auto" back to "default" server-side so the gate holds
@@ -5362,6 +5428,7 @@ export class Session {
     systemPromptAppend?: string;
     planModeInstructions?: string;
     permissionMode: PermissionMode;
+    restrictedMode?: boolean;
   } {
     // Must carry EVERY session-create option so an auto-recovered session
     // (recoverInPlace) is rebuilt identically — omitting a field silently
@@ -5382,6 +5449,7 @@ export class Session {
       systemPromptAppend: this.systemPromptAppend,
       planModeInstructions: this.planModeInstructions,
       permissionMode: this.permissionMode,
+      restrictedMode: this.restrictedMode,
     };
   }
 

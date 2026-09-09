@@ -1,5 +1,8 @@
 import { describe, expect, test } from "vitest";
-import { joinSystemPromptAppends } from "@/lib/shared/system-prompt-append";
+import {
+  buildSystemPromptOption,
+  joinSystemPromptAppends,
+} from "@/lib/shared/system-prompt-append";
 
 /**
  * Guards the fix for a duplicate-`systemPrompt`-key bug: the session goal and
@@ -30,5 +33,30 @@ describe("joinSystemPromptAppends", () => {
 
   test("preserves order of contributions", () => {
     expect(joinSystemPromptAppends(["1", "2", "3"])).toBe("1\n\n2\n\n3");
+  });
+});
+
+/**
+ * SDK 0.3.265 regression guard: the SDK flipped `Options.systemPrompt`'s
+ * `snapshot` default from "render fresh every launch" to "record on the
+ * first request, replay verbatim on every later request/resume until
+ * compaction". Claudius recomputes the combined append from mutable state
+ * (workspace `systemPromptAppend`, session goal) on every `Session.start()`,
+ * including a resume — so it must keep opting out with `snapshot: false` to
+ * preserve the pre-0.3.265 behaviour. See the doc comment on
+ * `buildSystemPromptOption` and its call site in `lib/server/session.ts`.
+ */
+describe("buildSystemPromptOption", () => {
+  test("empty append yields undefined so the caller omits systemPrompt entirely", () => {
+    expect(buildSystemPromptOption("")).toBeUndefined();
+  });
+
+  test("non-empty append builds the preset object with snapshot explicitly false", () => {
+    expect(buildSystemPromptOption("Always use TypeScript")).toEqual({
+      type: "preset",
+      preset: "claude_code",
+      append: "Always use TypeScript",
+      snapshot: false,
+    });
   });
 });

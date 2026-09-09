@@ -20,6 +20,13 @@ export type SessionDefaults = {
   systemPromptAppend?: string;
   planModeInstructions?: string;
   permissionMode?: PermissionMode;
+  /**
+   * Restricted mode (Claude Code 2.1.248 `--restricted` / `CLAUDE_CODE_RESTRICTED=1`).
+   * Locks a session down: no command/code-execution tools (Bash family) and no
+   * `WebFetch`, and `bypassPermissions` is refused (forced to `default`). File
+   * tools stay confined to the workspace cwd as usual. Absent/false ⇒ normal.
+   */
+  restrictedMode?: boolean;
 };
 
 /**
@@ -56,5 +63,6 @@ export function mergeSessionDefaults(
     systemPromptAppend: request.systemPromptAppend ?? defaults.systemPromptAppend,
     planModeInstructions: request.planModeInstructions ?? defaults.planModeInstructions,
     permissionMode: request.permissionMode ?? defaults.permissionMode,
+    restrictedMode: request.restrictedMode ?? defaults.restrictedMode,
   };
 }

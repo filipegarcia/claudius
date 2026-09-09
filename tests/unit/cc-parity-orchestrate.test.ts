@@ -1,3 +1,6 @@
+import { existsSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
+
 import { describe, expect, test } from "vitest";
 
 import {
@@ -15,6 +18,8 @@ import {
   buildCombinedPreamble,
   ccCompareUrlExported,
   extractCcSection,
+  parseCcImplementationClaims,
+  validateCcImplementationClaims,
   validateCcRunNotesContent,
 } from "@/scripts/cc-parity/orchestrate";
 
@@ -432,4 +437,165 @@ describe("buildCcRunIssue", () => {
     expect(commentBody).toContain("Another failure on this same cc-parity review");
     expect(commentBody).not.toEqual(body);
   });
+});
+
+/**
+ * Anti-phantom-implementation gate. Regression cover for the bug where the
+ * cc-parity orchestrator shipped a run-note describing a fully-implemented
+ * feature (2.1.248 `--restricted`) that was never actually committed — the
+ * completeness validator only checks prose, not truth. These tests pin the
+ * claim-vs-reality cross-check.
+ */
+describe("parseCcImplementationClaims", () => {
+  const withBucketB = (body: string) =>
+    [
+      "# Claude Code parity 2.1.x → 2.1.y",
+      "## Summary",
+      "s",
+      "## Changelog classification",
+      "c",
+      "## Implemented (bucket B)",
+      body,
+      "## New UI surfaces",
+      "u",
+      "## Tests",
+      "t",
+      "## Risks / follow-ups",
+      "r",
+    ].join("\n\n");
+
+  test("detects a genuine no-op release (bucket B = None)", () => {
+    const md = withBucketB("- None. There were no bucket-B entries this span.");
+    expect(parseCcImplementationClaims(md).hasBucketBWork).toBe(false);
+  });
+
+  test("treats a real implementation bullet as bucket-B work", () => {
+    const md = withBucketB(
+      "- `[extend: settings] foo toggle` — added `foo?: boolean`.",
+    );
+    expect(parseCcImplementationClaims(md).hasBucketBWork).toBe(true);
+  });
+
+  test("extracts named spec and screenshot paths anchored to repo prefixes", () => {
+    const md = withBucketB(
+      "- Shipped. Spec: `tests/e2e/cc-parity-x.spec.ts` and " +
+        "`tests/unit/y.test.ts`. Screenshot: `docs/cc-parity/2.1.x/z.png`.",
+    );
+    const parsed = parseCcImplementationClaims(md);
+    expect(parsed.specPaths).toEqual([
+      "tests/e2e/cc-parity-x.spec.ts",
+      "tests/unit/y.test.ts",
+    ]);
+    expect(parsed.screenshotPaths).toEqual(["docs/cc-parity/2.1.x/z.png"]);
+  });
+
+  test("does not extract conversational, non-repo-prefixed paths", () => {
+    const md = withBucketB("- Discussed foo.spec.ts and some/other/thing.png.");
+    const parsed = parseCcImplementationClaims(md);
+    expect(parsed.specPaths).toEqual([]);
+    expect(parsed.screenshotPaths).toEqual([]);
+  });
+});
+
+describe("validateCcImplementationClaims", () => {
+  const noteNaming = (spec: string) =>
+    [
+      "## Summary",
+      "s",
+      "## Changelog classification",
+      "c",
+      "## Implemented (bucket B)",
+      `- Shipped. Spec: \`${spec}\`.`,
+      "## New UI surfaces",
+      "u",
+      "## Tests",
+      "t",
+      "## Risks / follow-ups",
+      "r",
+    ].join("\n\n");
+
+  test("no-op release passes even with an empty diff", () => {
+    const md = [
+      "## Implemented (bucket B)",
+      "- None. Nothing to implement.",
+      "## Tests",
+      "t",
+    ].join("\n\n");
+    expect(validateCcImplementationClaims(md, [], () => false)).toBeNull();
+  });
+
+  test("fails when a named spec does not exist (the 2.1.248 phantom)", () => {
+    const md = noteNaming("tests/e2e/cc-parity-ghost.spec.ts");
+    const issue = validateCcImplementationClaims(
+      md,
+      ["lib/server/session.ts"], // real product code changed…
+      () => false, // …but the named spec is absent
+    );
+    expect(issue).toContain("cc-parity-ghost.spec.ts");
+    expect(issue).toContain("does not exist");
+  });
+
+  test("fails when bucket-B is claimed but only docs changed", () => {
+    const md = noteNaming("tests/e2e/cc-parity-real.spec.ts");
+    const issue = validateCcImplementationClaims(
+      md,
+      [".claudius/cc-parity/run-notes/2.1.x.md", "docs/cc-parity/2.1.x/a.png"],
+      () => true, // spec "exists"…
+    );
+    expect(issue).toContain("phantom implementation");
+  });
+
+  test("passes when the named artifact exists and product code changed", () => {
+    const md = noteNaming("tests/e2e/cc-parity-real.spec.ts");
+    expect(
+      validateCcImplementationClaims(
+        md,
+        ["app/settings/page.tsx"],
+        () => true,
+      ),
+    ).toBeNull();
+  });
+});
+
+/**
+ * Real-note regression, tied to the F2 backfill in this same change. The
+ * 2.1.248 run-note names `tests/e2e/cc-parity-2.1.248-restricted-mode.spec.ts`
+ * and `docs/cc-parity/2.1.248/restricted-mode-toggle.png`. Before the backfill
+ * those files did not exist and the gate would (correctly) reject the note as a
+ * phantom; the restricted-mode feature was implemented in this change, so the
+ * real note now passes against the real filesystem. This doubles as a guard:
+ * deleting either 248 artifact reintroduces the phantom and fails here.
+ */
+describe("validateCcImplementationClaims — real 2.1.248 note (post-backfill)", () => {
+  const ROOT = resolve(__dirname, "..", "..");
+  const noteExists = existsSync(
+    resolve(ROOT, ".claudius/cc-parity/run-notes/2.1.248.md"),
+  );
+
+  test.runIf(noteExists)(
+    "the real 2.1.248 note now passes — its named spec + screenshot exist on disk",
+    () => {
+      const md = readFileSync(
+        resolve(ROOT, ".claudius/cc-parity/run-notes/2.1.248.md"),
+        "utf8",
+      );
+      const parsed = parseCcImplementationClaims(md);
+      // The note DOES claim bucket-B work and names the two artifacts.
+      expect(parsed.hasBucketBWork).toBe(true);
+      expect(parsed.specPaths).toContain(
+        "tests/e2e/cc-parity-2.1.248-restricted-mode.spec.ts",
+      );
+      expect(parsed.screenshotPaths).toContain(
+        "docs/cc-parity/2.1.248/restricted-mode-toggle.png",
+      );
+      // Against the real filesystem (both artifacts now exist) + a real
+      // product-code diff, the claims validate.
+      const issue = validateCcImplementationClaims(
+        md,
+        ["lib/server/session.ts", "components/workspaces/WorkspaceForm.tsx"],
+        (p) => existsSync(resolve(ROOT, p)),
+      );
+      expect(issue).toBeNull();
+    },
+  );
 });

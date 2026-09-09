@@ -131,6 +131,7 @@ export async function POST(req: Request) {
     additionalDirectories,
     systemPromptAppend,
     planModeInstructions,
+    restrictedMode,
   } = mergeSessionDefaults(body, defaults);
 
   // Surface the underlying error to the renderer. Without this, an
@@ -158,6 +159,7 @@ export async function POST(req: Request) {
       systemPromptAppend,
       planModeInstructions,
       permissionMode,
+      restrictedMode,
       resume: body.resume,
       resumeSessionAt: body.resumeSessionAt,
     });
