@@ -27,7 +27,10 @@ export type ApiRetryErrorReason =
   | "model_not_found"
   | "server_error"
   | "unknown"
-  | "max_output_tokens";
+  | "max_output_tokens"
+  // SDK 0.3.267: cloud-provider (Bedrock/Vertex/Foundry) credential failure —
+  // distinct from `authentication_failed` (Anthropic-direct auth).
+  | "cloud_credential_error";
 
 /** Client-local mirror of `SDKAPIRetryMessage`'s payload fields. */
 export type ApiRetryState = {
@@ -72,6 +75,7 @@ const REASON_COPY: Record<string, string> = {
   server_error: "a server error",
   max_output_tokens: "an output-length limit",
   unknown: "a temporary error",
+  cloud_credential_error: "a cloud provider credential error",
 };
 
 /** Human-readable reason phrase for one of the SDK's retry error codes. */

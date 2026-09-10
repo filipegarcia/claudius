@@ -28,6 +28,13 @@ describe("humanizeApiRetryError", () => {
     expect(humanizeApiRetryError("some_future_code")).toBe("a temporary error");
     expect(humanizeApiRetryError("")).toBe("a temporary error");
   });
+
+  // SDK 0.3.267: `cloud_credential_error` added to `SDKAssistantMessageError`.
+  test("maps cloud_credential_error to a dedicated phrase", () => {
+    expect(humanizeApiRetryError("cloud_credential_error")).toBe(
+      "a cloud provider credential error",
+    );
+  });
 });
 
 describe("describeApiRetry", () => {
