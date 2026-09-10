@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "../helpers/test";
-import sharp from "sharp";
+import sharp, { type OverlayOptions } from "sharp";
 import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 
@@ -101,7 +101,7 @@ test("goal showcase: set + achieved composite", async ({ page, request, baseURL 
   const totalH = pad + capH + h1 + gap + capH + h2 + pad;
 
   let y = pad;
-  const layers: sharp.OverlayOptions[] = [];
+  const layers: OverlayOptions[] = [];
   layers.push({ input: caption(width, "1", "Setting a goal — Claude starts working on it"), top: y, left: 0 });
   y += capH;
   layers.push({ input: setShot, top: y, left: 0 });
