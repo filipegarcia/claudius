@@ -303,6 +303,8 @@ function ElectronStatusIcon({ kind }: { kind: ElectronUpdaterState["status"]["ki
   if (kind === "blocked-app-management")
     return <ShieldAlert className="h-4 w-4 shrink-0 text-amber-400" />;
   if (kind === "error") return <TriangleAlert className="h-4 w-4 shrink-0 text-red-400" />;
+  if (kind === "feed-unavailable")
+    return <TriangleAlert className="h-4 w-4 shrink-0 text-amber-400" />;
   return <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-400" />;
 }
 
@@ -345,6 +347,16 @@ function ElectronStatusText({ status }: { status: ElectronUpdaterState["status"]
       return (
         <span className="text-red-300" title={status.message}>
           Updater error: {status.message}
+        </span>
+      );
+    case "feed-unavailable":
+      return (
+        <span>
+          <span className="font-medium text-amber-200">Update check couldn&apos;t complete.</span>{" "}
+          <span className="text-[var(--muted)]" title={status.message}>
+            The latest release is missing its update manifest — a newer version may exist but
+            can&apos;t be installed yet.
+          </span>
         </span>
       );
     default:

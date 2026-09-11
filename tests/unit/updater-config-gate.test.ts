@@ -229,6 +229,48 @@ describe("updater App Management classifier", () => {
   });
 });
 
+describe("release-manifest 404 vs. benign no-feed classification", () => {
+  // Regression guard for the v0.3.259.0–v0.3.268.2 outage: the manifest-merge
+  // job died, no latest-mac.yml shipped, and the GitHub provider's 404 was
+  // classified "benign" → idle → "You're on the latest version" on every
+  // client. A missing REMOTE manifest must surface; only a missing LOCAL feed
+  // config is benign.
+  test("GitHub provider 'Cannot find latest-mac.yml' → missing manifest, not benign", async () => {
+    const { isMissingReleaseManifest, isBenignNoFeedError } = await import(
+      "@/electron/ipc/updater"
+    );
+    const msg =
+      "Cannot find latest-mac.yml in the latest release artifacts " +
+      "(https://github.com/filipegarcia/claudius/releases/download/v0.3.268.2/latest-mac.yml): " +
+      "HttpError: 404 ";
+    expect(isMissingReleaseManifest(msg)).toBe(true);
+    expect(isBenignNoFeedError(msg)).toBe(false);
+  });
+
+  test("bare HttpError: 404 → missing manifest", async () => {
+    const { isMissingReleaseManifest } = await import("@/electron/ipc/updater");
+    expect(isMissingReleaseManifest("HttpError: 404 Not Found")).toBe(true);
+  });
+
+  test("local app-update.yml ENOENT → benign (idle), not a missing manifest", async () => {
+    const { isMissingReleaseManifest, isBenignNoFeedError } = await import(
+      "@/electron/ipc/updater"
+    );
+    const msg = "ENOENT: no such file or directory, open '/x/Resources/app-update.yml'";
+    expect(isBenignNoFeedError(msg)).toBe(true);
+    expect(isMissingReleaseManifest(msg)).toBe(false);
+  });
+
+  test("unrelated network error → neither (falls through to classifyUpdaterError)", async () => {
+    const { isMissingReleaseManifest, isBenignNoFeedError } = await import(
+      "@/electron/ipc/updater"
+    );
+    const msg = "net::ERR_NAME_NOT_RESOLVED github.com";
+    expect(isMissingReleaseManifest(msg)).toBe(false);
+    expect(isBenignNoFeedError(msg)).toBe(false);
+  });
+});
+
 describe("isDeveloperIdSigned (auto-update safety gate)", () => {
   // The codesign dump is the only signal distinguishing a self-updatable
   // Developer ID build from an ad-hoc one that Squirrel.Mac can't swap. The

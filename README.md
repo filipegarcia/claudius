@@ -344,30 +344,43 @@ the full contract lives in `lib/shared/electron.d.ts`.
 > `bun run test`. `scripts/native-abi.mjs` records the current side and warns
 > on mismatch.
 
-### macOS auto-update is gated on code signing — revisit when we sign builds
+### macOS auto-update on unsigned builds — how it works
 
-> **⚠️ When we add Apple Developer ID code signing + notarization, come back to
-> this.** macOS auto-update (Squirrel.Mac / `ShipIt`) validates that the
-> downloaded update satisfies the *installed* app's designated code requirement.
-> Our public release pipeline currently **ad-hoc signs** the macOS bundle
-> (certless — `codesign --sign -` in `build/after-pack.js`, with
-> `-c.mac.notarize=false` in `.github/workflows/release.yml`). Ad-hoc signatures
-> have no Team ID anchor, so no two builds satisfy each other's requirement and
-> every in-place swap is rejected post-quit with *"code failed to satisfy
-> specified code requirement(s)"* — stranding the user on a half-applied update.
->
-> Because of that, `electron/ipc/updater.ts` **disables the in-place self-update
-> on macOS unless the running app is Developer ID signed** (runtime `codesign`
-> probe — `isDeveloperIdSigned` / `autoUpdateIsSafe`). Unsigned mac builds skip
-> the download entirely and surface a "Download update" banner that points at the
-> GitHub Releases DMG instead.
->
-> The gate is runtime, not build-time, so once real signing + notarization land
-> (wire the `CSC_*` / `APPLE_*` secrets into the two mac release jobs and drop the
-> `notarize=false` / `CSC_IDENTITY_AUTO_DISCOVERY=false` overrides), auto-update
-> re-enables itself with no code change. At that point, **revisit this**: confirm
-> the in-place swap actually works end-to-end on a signed build, and consider
-> retiring the `manual-download` status + banner if it's no longer reachable.
+Our public release pipeline **ad-hoc signs** the macOS bundle (certless —
+`codesign --sign -` in `build/after-pack.js`, `-c.mac.notarize=false` in
+`.github/workflows/release.yml`). Squirrel.Mac (`electron-updater`'s
+`quitAndInstall()` → `ShipIt`) validates that a downloaded update satisfies the
+*installed* app's designated code requirement; ad-hoc signatures have no Team ID
+anchor, so no two builds satisfy each other and every ShipIt swap is rejected
+post-quit with *"code failed to satisfy specified code requirement(s)"*.
+
+So `electron/ipc/updater.ts` probes the running bundle at runtime
+(`codesign --display` → `isDeveloperIdSigned` / `autoUpdateIsSafe`) and picks
+one of two paths:
+
+- **Developer ID signed** → the stock electron-updater flow (`autoDownload` +
+  `quitAndInstall()`).
+- **Ad-hoc / unsigned (today's releases)** → a custom self-replace
+  (`startMacSelfReplace` + `electron/ipc/self-replace-mac.ts`): download the
+  arch-matching `.zip` from GitHub Releases, verify its sha512 against
+  `latest-mac.yml`, extract with `ditto`, strip quarantine, and on "Restart to
+  update" hand off to a detached helper that swaps the `.app` in place and
+  relaunches. **No Apple certificate involved.** If any step fails it degrades
+  to the `manual-download` banner (link to the Releases DMG).
+
+Both paths depend on the release carrying a **`latest-mac.yml`**. That file is
+produced by the `macos-manifest-merge` job in `release.yml`, *not* by the
+per-arch build jobs — if that job fails, the zips still upload and the release
+still publishes, but clients get a 404 on the manifest. The updater reports that
+as `feed-unavailable` rather than pretending the app is up to date
+(v0.3.259.0 – v0.3.268.2 shipped without a manifest for exactly this reason).
+
+A real Developer ID cert + notarization would still buy: no Gatekeeper
+"unidentified developer" prompt on first launch, native notifications without
+the ad-hoc trick, and retiring the custom swap helper. To flip to it, wire the
+`CSC_*` / `APPLE_*` secrets into the two mac release jobs and drop the
+`notarize=false` / `CSC_IDENTITY_AUTO_DISCOVERY=false` overrides — the runtime
+probe re-enables the stock path with no code change.
 
 ## Dev commands
 

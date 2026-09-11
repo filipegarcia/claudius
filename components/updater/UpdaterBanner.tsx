@@ -502,6 +502,43 @@ function ElectronUpdaterBanner({
     );
   }
 
+  // The newest release exists but is missing its update manifest — a
+  // release-pipeline failure, not something the user can fix. Muted amber and
+  // dismissable per message rather than red: this used to be swallowed into
+  // `idle` ("You're on the latest version"), which hid a week of broken
+  // releases. Retry re-runs the check so it clears once a fixed release lands.
+  if (status.kind === "feed-unavailable") {
+    if (dismissedError === status.message) return null;
+    return (
+      <div
+        data-pane-name="updater-banner-electron-feed"
+        className="flex items-center gap-2 border-b border-amber-500/40 bg-amber-500/10 px-4 py-1.5 text-xs"
+      >
+        <TriangleAlert className="h-3.5 w-3.5 shrink-0 text-amber-400" />
+        <span className="font-medium">Update check couldn&apos;t complete</span>
+        <span className="hidden text-[var(--muted)] sm:inline" title={status.message}>
+          the latest release is missing its update manifest — a newer version may exist but
+          can&apos;t be installed yet.
+        </span>
+        <button
+          onClick={check}
+          className="ml-auto flex items-center gap-1 rounded border border-amber-500/40 bg-amber-500/15 px-2 py-0.5 hover:bg-amber-500/25"
+        >
+          <RefreshCw className="h-3 w-3" />
+          Retry
+        </button>
+        <button
+          onClick={() => setDismissedError(status.message)}
+          aria-label="Dismiss update-feed notice"
+          title="Dismiss until the error changes"
+          className="rounded p-0.5 text-[var(--muted)] hover:bg-amber-500/20 hover:text-[var(--foreground)]"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
+      </div>
+    );
+  }
+
   // macOS App Management denial — distinct, actionable banner. Amber
   // rather than red because this isn't a Claudius bug; the OS gated the
   // bundle swap and the user can flip a switch to unblock it. Keyed on
