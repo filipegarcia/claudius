@@ -184,6 +184,7 @@ function ServerRow({
           <span className="font-mono text-[10px] text-[var(--muted)]">[{transport}]</span>
           {status && (
             <span
+              data-testid={`mcp-status-badge-${server.name}`}
               className={cn(
                 "rounded-md border px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wide",
                 STATUS_TONES[status.status],

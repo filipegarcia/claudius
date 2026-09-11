@@ -84,6 +84,7 @@ import { getSessionUsage, saveSessionUsage } from "./session-usage-db";
 import { costFromTokens } from "@/lib/shared/cost-pricing";
 import { listSessionTasks, saveSessionTask } from "./session-tasks-db";
 import { attachLoopTickTokens, recordLoopTick } from "./loop-ticks-db";
+import { syncNeedsAuthNotifications } from "./mcp-needs-auth-db";
 import {
   listQueue,
   enqueueTail,
@@ -743,16 +744,43 @@ const STALE_TODO_TURN_THRESHOLD = 15;
 
 /**
  * SDK 0.3.233: these five tools dropped out of the *default* tool surface on
- * Opus 4.8, Sonnet 5, Fable 5, Mythos 5, and newer models. Referencing them
- * in `Options.allowedTools` (see the `query()` options builder below) keeps
- * them present regardless of model tier — Claudius's entire todos rail
- * (TodosBanner, BackgroundTasksPanel, the captureSnapshotState machinery in
- * this file) assumes they exist. Exported as a named constant, rather than
- * inlined, purely so it's directly unit-testable without exercising
+ * Opus 4.8, Sonnet 5, Fable 5, Mythos 5, and newer models — Claudius's
+ * entire todos rail (TodosBanner, BackgroundTasksPanel, the
+ * captureSnapshotState machinery in this file) assumes they exist.
+ *
+ * CORRECTION (CC 2.1.268 parity audit): an earlier revision of this comment
+ * claimed referencing these in `Options.allowedTools` keeps them registered
+ * regardless of model tier. That's wrong — verified against the compiled
+ * SDK binary's tool-gate (`isEnabled()` on each Task* tool def): the gate
+ * checks model tier and `CLAUDE_CODE_ENABLE_TODO_TOOLS` directly, and never
+ * consults `allowedTools`/`tools` at all. `allowedTools` only auto-approves
+ * a tool that's already in the surface — it can't re-add one the engine
+ * excluded from registration. The actual fix is setting
+ * `CLAUDE_CODE_ENABLE_TODO_TOOLS=1` in the `env` passed to `query()` (see
+ * the options builder below). `allowedTools: TODO_TASK_TOOL_NAMES` is kept
+ * too — harmless (no special-cased `canUseTool` handling on these tools, so
+ * it doesn't change permission-prompt behavior) but it was never what made
+ * the tools exist. Exported as a named constant, rather than inlined,
+ * purely so it's directly unit-testable without exercising
  * `Session.start()`'s much heavier setup (disk I/O, DB reads, notification
  * sweep) — see tests/unit/session-options.test.ts.
  */
 export const TODO_TASK_TOOL_NAMES = ["TodoWrite", "TaskCreate", "TaskGet", "TaskUpdate", "TaskList"];
+
+/**
+ * Builds the `env` object actually passed to `query()`'s `Options.env` —
+ * always sets `CLAUDE_CODE_ENABLE_TODO_TOOLS=1` (see the `TODO_TASK_TOOL_NAMES`
+ * doc comment above) on top of either the account-switcher's scrubbed
+ * per-profile env or a full copy of `process.env`. Extracted as a small
+ * pure function, rather than inlined in the `query()` options builder in
+ * `start()`, purely so it's directly unit-testable — same rationale as
+ * `TODO_TASK_TOOL_NAMES` itself (see tests/unit/session-options.test.ts).
+ */
+export function buildQueryEnv(
+  envOverride: Record<string, string | undefined> | null,
+): Record<string, string | undefined> {
+  return { ...(envOverride ?? process.env), CLAUDE_CODE_ENABLE_TODO_TOOLS: "1" };
+}
 
 /**
  * Tools blocked in restricted mode (Claude Code 2.1.248 `--restricted`):
@@ -1628,11 +1656,14 @@ export class Session {
   private authFailedNudgeFired = false;
 
   /**
-   * Fire-once gate for the MCP needs-auth startup notice (CC 2.1.193 parity).
-   * Trips on the first live (non-replayed) `system:init` when any configured
-   * MCP server is in `needs-auth` state. The async check runs in
-   * `noteMcpNeedsAuthAtStartup()`; a `mcp_needs_auth_notice` SSE event is
-   * broadcast which the client renders as a transcript info pill.
+   * Once-per-session-instance gate for the MCP needs-auth status check (CC
+   * 2.1.193 parity). Trips on the first live (non-replayed) `system:init`
+   * so a re-entrant `system:init` never re-checks within the same session.
+   * This alone does NOT dedupe the notice across sessions — as of CC
+   * 2.1.268 parity, cross-session "already announced this server" state is
+   * persisted via `syncNeedsAuthNotifications()` (see
+   * `mcp-needs-auth-db.ts`), so the notice announces each server once per
+   * needs-auth episode instead of at every session launch.
    */
   private mcpNeedsAuthNoticeFired = false;
 
@@ -2435,12 +2466,19 @@ export class Session {
     const options: Options = {
       cwd: this.cwd,
       model: this.model,
-      // Account-switcher env injection. When a profile is active, the SDK
-      // sees a scrubbed env (no stray auth vars) plus the single one this
-      // profile dictates. When no profile is configured we omit `env`
-      // entirely so the SDK falls back to inheriting process.env (the SDK
-      // contract: `Options.env` REPLACES the subprocess env if set).
-      ...(envOverride ? { env: envOverride } : {}),
+      // Account-switcher env injection, plus `CLAUDE_CODE_ENABLE_TODO_TOOLS`
+      // (CC 2.1.268 parity fix — see the `TODO_TASK_TOOL_NAMES` doc comment:
+      // `allowedTools` alone does NOT keep TodoWrite/TaskCreate/TaskGet/
+      // TaskUpdate/TaskList registered on Opus 4.8+/Sonnet 5+/Fable 5+/
+      // Mythos 5+; the engine's tool-gate checks the env var directly, not
+      // `allowedTools`). When a profile is active, the SDK sees a scrubbed
+      // env (no stray auth vars) plus the single one this profile dictates;
+      // otherwise it's a full copy of `process.env`. Either way we always
+      // pass `env` now (rather than omitting it when no profile is active)
+      // because `Options.env` REPLACES the subprocess env wholesale when
+      // set (SDK contract) — there's no way to inject a single var without
+      // supplying the rest.
+      env: buildQueryEnv(envOverride),
       // In-process MCP server exposing a single tool the agent calls to
       // report that the session goal is done (see `/goal`, GoalBanner). The
       // tool runs in this process, so its handler can broadcast straight to
@@ -2644,24 +2682,14 @@ export class Session {
       // snapshots files before each modification; cleanup follows the
       // `cleanupPeriodDays` setting (default 30d).
       enableFileCheckpointing: true,
-      // SDK 0.3.233: TodoWrite/TaskCreate/TaskGet/TaskUpdate/TaskList dropped
-      // out of the *default* tool surface on Opus 4.8, Sonnet 5, Fable 5,
-      // Mythos 5, and newer models — the changelog names three ways to keep
-      // them: list them in `tools`, reference them in `allowedTools`, or set
-      // CLAUDE_CODE_ENABLE_TODO_TOOLS=1. Claudius has no `tools`/`disallowedTools`
-      // restriction anywhere in this options object (the SDK's full default
-      // preset always applied before), and the entire todos rail
-      // (TodosBanner, BackgroundTasksPanel, dev/chat-todos, the
-      // captureSnapshotState TaskCreate/TaskList/TaskUpdate machinery in this
-      // file) is built assuming these tools exist — losing them on a newer
-      // model would silently break that whole feature with no error surfaced
-      // to the user. `allowedTools` is additive (it doesn't restrict the
-      // surface the way `tools` would) and isn't clobbered by the account-
-      // switcher's `env` replacement above, so it's the safer of the three
-      // options here. These tools already have no special-cased `canUseTool`
-      // handling (they fall through to the normal allow/ask/deny flow), so
-      // adding them to the auto-allow list doesn't change any existing
-      // permission-prompt behavior.
+      // TodoWrite/TaskCreate/TaskGet/TaskUpdate/TaskList: additive
+      // auto-approve only, NOT what keeps these tools registered — see the
+      // `TODO_TASK_TOOL_NAMES` doc comment above for the CC 2.1.268 parity
+      // correction. The actual fix (CLAUDE_CODE_ENABLE_TODO_TOOLS=1) is in
+      // the `env` field above. Kept here because it's harmless and still
+      // auto-approves these tools once they exist (no special-cased
+      // `canUseTool` handling on them, so this doesn't change any existing
+      // permission-prompt behavior).
       allowedTools: TODO_TASK_TOOL_NAMES,
       // Opt into adaptive extended thinking explicitly so the agent
       // emits the full reasoning text in `thinking` blocks. Without
@@ -3109,6 +3137,11 @@ export class Session {
         // to canUseTool (instead of auto-denying) and include the agent id
         // so the host knows which subagent is asking.
         agentId: ctx.agentID,
+        // SDK 0.3.268: rendering hints for prompts that must not be
+        // approvable by reflex (defaultToNo) or offer a standing grant
+        // wider than this one action (suppressAlwaysAllowRule).
+        defaultToNo: ctx.defaultToNo,
+        suppressAlwaysAllowRule: ctx.suppressAlwaysAllowRule,
       };
       this.pendingPermissions.set(requestId, { requestId, resolve, meta });
       this.broadcast(meta);
@@ -5271,10 +5304,26 @@ export class Session {
     }
   }
 
-  async reloadPlugins(): Promise<{ ok: true; data: unknown } | { ok: false; error: string }> {
+  /**
+   * `holdOnCacheImpact` (SDK 0.3.268, default true here): the same check the
+   * interactive CLI's `/reload-plugins` makes before it asks for `--force`.
+   * When applying would change the session's tool list while the
+   * conversation's prompt cache depends on it, the reload is NOT applied —
+   * the response carries `held: true` plus a `cache_impact` summary instead.
+   * Defaulting to held protects the plugins-list GET (`app/api/plugins`,
+   * which calls this just to read `installed`) from silently invalidating
+   * the cache as a side effect of a page load; the explicit reload route
+   * (`app/api/plugins/reload`) passes `holdOnCacheImpact: false` when the
+   * user re-sends via `/reload-plugins force`.
+   */
+  async reloadPlugins(
+    opts?: { holdOnCacheImpact?: boolean },
+  ): Promise<{ ok: true; data: unknown } | { ok: false; error: string }> {
     if (!this.query) return { ok: false, error: "no active query" };
     try {
-      const data = await this.query.reloadPlugins();
+      const data = await this.query.reloadPlugins({
+        holdOnCacheImpact: opts?.holdOnCacheImpact ?? true,
+      });
       return { ok: true, data };
     } catch (err) {
       return { ok: false, error: err instanceof Error ? err.message : String(err) };
@@ -5551,11 +5600,21 @@ export class Session {
 
   /**
    * Check MCP server status asynchronously on the first live `system:init`
-   * of a session. If any configured server is in `needs-auth` state, broadcast
-   * a `mcp_needs_auth_notice` SSE event so the client can surface a transcript
-   * info pill pointing the user at `/mcp`. Fire-once per session; the flag is
-   * set before the async call so a re-entrant `system:init` (unlikely but
-   * possible during edge-case replays) never double-fires.
+   * of a session. If any configured server is in `needs-auth` state,
+   * broadcast a `mcp_needs_auth_notice` SSE event so the client can surface
+   * a transcript info pill pointing the user at `/mcp`. Guarded by
+   * `mcpNeedsAuthNoticeFired` so a re-entrant `system:init` (unlikely but
+   * possible during edge-case replays) never double-checks within the same
+   * session instance.
+   *
+   * CC 2.1.268 parity: the servers to actually announce are filtered
+   * through `syncNeedsAuthNotifications()`, which persists "already
+   * announced" per server name across sessions (see
+   * `mcp-needs-auth-db.ts`) and clears the flag once a server leaves
+   * `needs-auth`. So a server only re-announces on a genuinely new
+   * needs-auth episode, not on every session launch. The `/mcp` page's
+   * per-server status badge is unaffected — it's the standing "still needs
+   * auth" signal; this only dedupes the one-shot pill.
    */
   private async noteMcpNeedsAuthAtStartup(): Promise<void> {
     if (this.mcpNeedsAuthNoticeFired) return;
@@ -5566,10 +5625,12 @@ export class Session {
       const statuses = result.data as Array<{ name?: string; status?: string }>;
       if (!Array.isArray(statuses)) return;
       const needsAuth = statuses.filter((s) => s?.status === "needs-auth");
-      if (needsAuth.length === 0) return;
+      const names = needsAuth.map((s) => (typeof s?.name === "string" ? s.name : "unknown"));
+      const toAnnounce = await syncNeedsAuthNotifications(this.cwd, names);
+      if (toAnnounce.length === 0) return;
       this.broadcast({
         type: "mcp_needs_auth_notice",
-        servers: needsAuth.map((s) => (typeof s?.name === "string" ? s.name : "unknown")),
+        servers: toAnnounce,
       });
     } catch {
       // best-effort — a status-check failure must never disrupt the session

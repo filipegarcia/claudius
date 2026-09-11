@@ -92,7 +92,16 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   { id: "hooks", name: "hooks", description: "View hook configurations.", category: "tools", handler: "native" },
   { id: "mcp", name: "mcp", description: "Manage MCP servers and OAuth.", category: "tools", handler: "native" },
   { id: "plugin", name: "plugin", description: "Manage plugins.", category: "tools", handler: "native" },
-  { id: "reload-plugins", name: "reload-plugins", description: "Reload plugins to apply changes.", category: "tools", handler: "native" },
+  {
+    id: "reload-plugins",
+    name: "reload-plugins",
+    description: "Reload plugins to apply changes.",
+    category: "tools",
+    handler: "native",
+    // SDK 0.3.268 — a reload that would invalidate the prompt cache is held
+    // by default; `force` lifts the hold and applies it anyway.
+    argsHint: "[force]",
+  },
   // SDK-side counterpart — picks up skills added or changed on disk
   // mid-session. Confirmed exposed by `supportedCommands()`.
   { id: "reload-skills", name: "reload-skills", description: "Pick up skills added or changed on disk during this session.", category: "tools", handler: "sdk" },

@@ -133,6 +133,15 @@ export function RateLimitHitPanel({ hit }: { hit: RateLimitHit }) {
             Credits required to continue — contact your administrator.
           </span>
         </div>
+      ) : hit.limitScope === "group_pool" ? (
+        // SDK 0.3.268 — the block is a pooled team/channel budget, not the
+        // user's own plan tier. Upgrading a personal plan wouldn't refill a
+        // shared pool, so point at an admin instead of the usual links.
+        <div className="mt-1.5 border-t border-current/10 pt-1.5">
+          <span className="opacity-70" data-testid="group-pool-contact-admin">
+            This is a shared team limit — contact your administrator to increase it.
+          </span>
+        </div>
       ) : (
         <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-current/10 pt-1.5">
           <span className="opacity-70">Out of usage? Upgrade to keep going:</span>

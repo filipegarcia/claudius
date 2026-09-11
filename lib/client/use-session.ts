@@ -305,6 +305,9 @@ function rateLimitHitFromBlocks(
     hit.canUserPurchaseCredits = last.canUserPurchaseCredits;
   if (typeof last?.hasChargeableSavedPaymentMethod === "boolean")
     hit.hasChargeableSavedPaymentMethod = last.hasChargeableSavedPaymentMethod;
+  // SDK 0.3.268 — forward a shared-pool denial so the panel can swap the
+  // personal upgrade links for a contact-your-admin line.
+  if (last?.limitScope) hit.limitScope = last.limitScope;
   return hit;
 }
 
@@ -4053,6 +4056,9 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
             errorCode?: "credits_required";
             canUserPurchaseCredits?: boolean;
             hasChargeableSavedPaymentMethod?: boolean;
+            // SDK 0.3.268 — which spend limit blocked the request when it's
+            // not the member's own cap ('group_pool' = a shared team budget).
+            limitScope?: "service" | "channel" | "group_pool";
           };
           uuid: string;
         };
@@ -4414,6 +4420,23 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
 
   // Boot on mount; honor URL ?session=, ?at=, and ?prompt= (seed initial input).
   useEffect(() => {
+    // React Strict Mode (dev only, always on for the e2e webServer) mounts
+    // this effect, cleans it up, then mounts it again — synchronously,
+    // before the `await fetch("/api/sessions/open-tabs")` below ever
+    // resolves. Without this flag, the FIRST (discarded) instance's async
+    // continuation still runs to completion once its fetch resolves and
+    // calls `createSession`. `createSession` bumps `switchGenRef` ITSELF
+    // (`gen = ++switchGenRef.current`), so its post-POST guard only catches
+    // a *newer* transition starting during its own fetch — it has no way to
+    // tell that its own effect instance was already cleaned up before it
+    // even ran. So both Strict-Mode instances complete a full create→bind
+    // cycle, and ChatSurface's render-time auto-add permanently appends
+    // EACH bound id to `openTabs` in turn — leaving one orphaned "phantom"
+    // tab per boot (see the session-tabs-* e2e specs' flaky off-by-one tab
+    // counts). Checking `cancelled` right before `createSession` closes
+    // that window by skipping the call entirely for a cleaned-up instance;
+    // `switchGenRef` alone only protects a *later* race, not this one.
+    let cancelled = false;
     const params = new URLSearchParams(window.location.search);
     // ?new=1 forces creating a fresh session, even if ?session= is present
     // and even if a last-active tab is persisted. Used by /clear and any
@@ -4450,6 +4473,11 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
           // Best-effort: a network failure just means we create fresh.
         }
       }
+      // This effect instance was already cleaned up (Strict Mode's
+      // synthetic double-invoke, or a genuine unmount before the
+      // open-tabs lookup finished) — don't spawn a session nobody will
+      // use. See the comment above the `cancelled` declaration.
+      if (cancelled) return;
       const created = await createSession(
         resume
           ? { resume, resumeSessionAt: at }
@@ -4490,6 +4518,11 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
       }
     })();
     return () => {
+      // Stop this instance's own continuation from calling `createSession`
+      // at all (see the `cancelled` comment above). This is the first line
+      // of defense — it prevents the wasted POST /api/sessions entirely
+      // when cleanup runs before that call site is reached.
+      cancelled = true;
       // Supersede any in-flight boot transition. Without this, a `createSession`
       // POST still awaiting when the page unmounts (e.g. user navigates chat →
       // git/schedule before the session is born) resolves AFTER cleanup, passes
@@ -4498,7 +4531,10 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
       // component. Nothing ever closes that socket, so it leaks. Over a long
       // session these orphans accumulate until the browser's 6-connections-per-
       // origin HTTP/1.1 cap is saturated and every navigation queues for seconds.
-      // Bumping the generation here makes the late bind bail (returns null).
+      // Bumping the generation here makes the late bind bail (returns null) —
+      // this is the second line of defense, covering the window where
+      // `cancelled` was already read as false (we're already inside/past the
+      // `createSession` call by the time cleanup runs).
       // We intentionally read/mutate the LIVE ref at cleanup time (not a value
       // snapshotted at mount) — snapshotting, as the lint rule suggests, would
       // defeat the guard.

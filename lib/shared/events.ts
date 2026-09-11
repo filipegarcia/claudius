@@ -21,6 +21,18 @@ export type PermissionRequestEvent = {
    * auto-denying.
    */
   agentId?: string;
+  /**
+   * SDK 0.3.268 — the prompt must not be approvable by a single stray
+   * keystroke: it should open on its decline option, with no one-key
+   * approve shortcut. Forwarded verbatim from `canUseTool`'s options.
+   */
+  defaultToNo?: boolean;
+  /**
+   * SDK 0.3.268 — the prompt must not offer a persistent "always allow"
+   * choice: the rule it would write grants more than this ask's own action.
+   * Forwarded verbatim from `canUseTool`'s options.
+   */
+  suppressAlwaysAllowRule?: boolean;
 };
 
 export type SessionReadyEvent = {

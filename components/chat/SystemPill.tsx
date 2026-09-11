@@ -505,6 +505,14 @@ function RateLimitPill({
             Credits required to continue — contact your administrator.
           </span>
         </div>
+      ) : status === "rejected" && info.limitScope === "group_pool" ? (
+        // SDK 0.3.268 — pooled team/channel budget, not the member's own
+        // plan tier; point at an admin instead of the personal upgrade links.
+        <div className="mt-1.5 border-t border-current/10 pt-1.5">
+          <span className="opacity-70" data-testid="rate-limit-group-pool-contact-admin">
+            This is a shared team limit — contact your administrator to increase it.
+          </span>
+        </div>
       ) : (
         status === "rejected" && (
           <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-current/10 pt-1.5">

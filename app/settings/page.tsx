@@ -1147,6 +1147,25 @@ const SDK_SETTINGS_CATALOG: SettingMeta[] = [
     desc: "List of rejected MCP servers from .mcp.json",
   },
   {
+    // SDK 0.3.268 — managed plugins whose hooks run first, outermost, in
+    // the listed order. Only honored from managed settings (or, on a
+    // machine with none, from user settings for your own plugins).
+    key: "prependPlugins",
+    type: "string[]",
+    section: "Plugins",
+    placeholder: "plugin@marketplace",
+    desc: "Managed plugins (plugin@marketplace ids) whose hooks run first, outermost, in the listed order. Managed-settings-only (or user settings when no managed tier exists).",
+  },
+  {
+    // SDK 0.3.268 — same managed-plugin-ordering feature, opposite end:
+    // hooks run last, innermost, just above the built-ins.
+    key: "appendPlugins",
+    type: "string[]",
+    section: "Plugins",
+    placeholder: "plugin@marketplace",
+    desc: "Managed plugins (plugin@marketplace ids) whose hooks run last among plugins, innermost, in the listed order. Managed-settings-only (or user settings when no managed tier exists).",
+  },
+  {
     key: "skillListingMaxDescChars",
     type: "number",
     section: "Skills",
@@ -1267,6 +1286,17 @@ const SDK_SETTINGS_CATALOG: SettingMeta[] = [
     section: "Authentication",
     placeholder: "https://gateway.example.com",
     desc: 'Cloud gateway URL to pre-fill and auto-connect to during login, alongside forceLoginMethod: "gateway". Honored only from admin-controlled managed settings.',
+  },
+  {
+    // SDK 0.3.268 — lets /login accept a gateway inside a listed public
+    // block over a direct connection, for orgs that number their internal
+    // gateway from a public IPv4 range instead of private space (where no
+    // entry here is needed).
+    key: "gatewayInternalNetworks",
+    type: "string[]",
+    section: "Authentication",
+    placeholder: "203.0.113.0/24",
+    desc: "IPv4 CIDR blocks (at most 4, each /8 to /32) your Cloud gateway sits in, letting /login reach a gateway numbered from your organization's public range. Managed-settings-only.",
   },
   {
     key: "apiKeyHelper",
