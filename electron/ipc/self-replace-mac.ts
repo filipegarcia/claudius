@@ -29,16 +29,23 @@ export function pickMacZip(files: ReleaseFile[], arch: string): ReleaseFile | nu
 
 /**
  * Build the GitHub Releases download URL for an asset filename. electron-updater
- * gives us the bare filename in `UpdateInfo.files[].url`; the GitHub provider
- * publishes with tag `v<version>`.
+ * gives us the bare filename in `UpdateInfo.files[].url`.
+ *
+ * `versionOrTag` MUST be the real release tag whenever the caller has it
+ * (`GithubUpdateInfo.tag`). Deriving the tag from the version is only a
+ * last-resort fallback: this repo's auto-tag mints FOUR-part tags
+ * (`v0.3.268.4`) while `package.json`/the feed carry the three-part semver
+ * (`0.3.268`), so `v${version}` resolves to a tag that does not exist and the
+ * download 404s — which silently dead-ends the self-replace into the
+ * "download the DMG yourself" prompt.
  */
 export function releaseAssetUrl(
   owner: string,
   repo: string,
-  version: string,
+  versionOrTag: string,
   filename: string,
 ): string {
-  const tag = version.startsWith("v") ? version : `v${version}`;
+  const tag = versionOrTag.startsWith("v") ? versionOrTag : `v${versionOrTag}`;
   return `https://github.com/${owner}/${repo}/releases/download/${encodeURIComponent(
     tag,
   )}/${encodeURIComponent(filename)}`;

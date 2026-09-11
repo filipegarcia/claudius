@@ -613,7 +613,14 @@ function bootstrap(): void {
       // (no signing required). `startMacSelfReplace` falls back to the
       // manual-download banner if any step fails.
       if (process.platform === "darwin") {
-        void startMacSelfReplace({ version: info.version, files: info.files as ReleaseFile[] });
+        void startMacSelfReplace({
+          version: info.version,
+          // electron-updater's GitHub provider resolves the REAL tag and
+          // exposes it as `GithubUpdateInfo.tag`; it is not always `v<version>`
+          // (our auto-tag adds a fourth rebuild component). Use it verbatim.
+          tag: (info as { tag?: string }).tag,
+          files: info.files as ReleaseFile[],
+        });
         return;
       }
       broadcast({ kind: "manual-download", version: info.version, url: RELEASES_URL });
@@ -656,13 +663,17 @@ function bootstrap(): void {
  * the banner and settings card need no special case. Any failure falls back to
  * the manual-download prompt — the user can still grab the DMG.
  */
-async function startMacSelfReplace(info: { version: string; files?: ReleaseFile[] }): Promise<void> {
+async function startMacSelfReplace(info: {
+  version: string;
+  tag?: string;
+  files?: ReleaseFile[];
+}): Promise<void> {
   const asset = pickMacZip(info.files ?? [], process.arch);
   if (!asset) {
     broadcast({ kind: "manual-download", version: info.version, url: RELEASES_URL });
     return;
   }
-  const url = releaseAssetUrl(RELEASE_OWNER, RELEASE_REPO, info.version, asset.url);
+  const url = releaseAssetUrl(RELEASE_OWNER, RELEASE_REPO, info.tag ?? info.version, asset.url);
   const tmp = app.getPath("temp");
   const zipPath = path.join(tmp, `claudius-update-${info.version}.zip`);
   const extractDir = path.join(tmp, `claudius-update-${info.version}`);

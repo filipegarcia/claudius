@@ -55,6 +55,18 @@ describe("releaseAssetUrl", () => {
       "https://github.com/o/r/releases/download/v2.0.0/a.zip",
     );
   });
+
+  // Regression: auto-tag mints four-part tags (v0.3.268.4) while the feed and
+  // package.json carry three-part semver (0.3.268). Deriving the tag from the
+  // version produced .../download/v0.3.268/... — a tag that does not exist —
+  // so the zip 404'd and the updater dead-ended at "download the DMG".
+  test("uses the real four-part release tag verbatim", () => {
+    expect(
+      releaseAssetUrl("filipegarcia", "claudius", "v0.3.268.4", "Claudius-0.3.268-mac-arm64.zip"),
+    ).toBe(
+      "https://github.com/filipegarcia/claudius/releases/download/v0.3.268.4/Claudius-0.3.268-mac-arm64.zip",
+    );
+  });
 });
 
 describe("appBundleFromExecPath", () => {
