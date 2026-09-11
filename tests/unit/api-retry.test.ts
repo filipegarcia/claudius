@@ -35,6 +35,13 @@ describe("humanizeApiRetryError", () => {
       "a cloud provider credential error",
     );
   });
+
+  // SDK 0.3.268: `verification_required` added to `SDKAssistantMessageError`.
+  test("maps verification_required to a dedicated phrase", () => {
+    expect(humanizeApiRetryError("verification_required")).toBe(
+      "an account verification requirement",
+    );
+  });
 });
 
 describe("describeApiRetry", () => {

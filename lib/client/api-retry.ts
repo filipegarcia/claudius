@@ -30,7 +30,11 @@ export type ApiRetryErrorReason =
   | "max_output_tokens"
   // SDK 0.3.267: cloud-provider (Bedrock/Vertex/Foundry) credential failure —
   // distinct from `authentication_failed` (Anthropic-direct auth).
-  | "cloud_credential_error";
+  | "cloud_credential_error"
+  // SDK 0.3.268: the account needs additional verification (e.g. a pending
+  // identity/compliance check) before requests will succeed — distinct from
+  // `authentication_failed` (bad/missing credentials) and `billing_error`.
+  | "verification_required";
 
 /** Client-local mirror of `SDKAPIRetryMessage`'s payload fields. */
 export type ApiRetryState = {
@@ -76,6 +80,7 @@ const REASON_COPY: Record<string, string> = {
   max_output_tokens: "an output-length limit",
   unknown: "a temporary error",
   cloud_credential_error: "a cloud provider credential error",
+  verification_required: "an account verification requirement",
 };
 
 /** Human-readable reason phrase for one of the SDK's retry error codes. */
