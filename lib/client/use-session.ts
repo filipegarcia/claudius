@@ -305,6 +305,9 @@ function rateLimitHitFromBlocks(
     hit.canUserPurchaseCredits = last.canUserPurchaseCredits;
   if (typeof last?.hasChargeableSavedPaymentMethod === "boolean")
     hit.hasChargeableSavedPaymentMethod = last.hasChargeableSavedPaymentMethod;
+  // SDK 0.3.268 — forward a shared-pool denial so the panel can swap the
+  // personal upgrade links for a contact-your-admin line.
+  if (last?.limitScope) hit.limitScope = last.limitScope;
   return hit;
 }
 
@@ -4053,6 +4056,9 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
             errorCode?: "credits_required";
             canUserPurchaseCredits?: boolean;
             hasChargeableSavedPaymentMethod?: boolean;
+            // SDK 0.3.268 — which spend limit blocked the request when it's
+            // not the member's own cap ('group_pool' = a shared team budget).
+            limitScope?: "service" | "channel" | "group_pool";
           };
           uuid: string;
         };

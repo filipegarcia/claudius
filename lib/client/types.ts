@@ -108,6 +108,15 @@ export type DisplayMessage = {
     canUserPurchaseCredits?: boolean;
     /** True when the user already has a payment method saved. */
     hasChargeableSavedPaymentMethod?: boolean;
+    /**
+     * SDK 0.3.268 — forwarded from `SDKRateLimitInfo.limitScope` when the
+     * block is a pooled group/team/channel budget rather than the member's
+     * own personal cap. Present only on a `group_pool` denial (and only from
+     * a CLI new enough to send it) — swaps the personal "Upgrade your plan"
+     * links for a "contact your admin" line, since upgrading a personal plan
+     * doesn't refill a shared pool.
+     */
+    limitScope?: "service" | "channel" | "group_pool";
   };
   /**
    * Present when this assistant message IS the Anthropic backend's
@@ -266,6 +275,12 @@ export type SystemEntry = {
     canUserPurchaseCredits?: boolean;
     /** True when the user already has a payment method saved, enabling a one-click buy. */
     hasChargeableSavedPaymentMethod?: boolean;
+    /**
+     * SDK 0.3.268 — present when the block is a pooled group/team/channel
+     * budget rather than the member's own personal cap. See the matching
+     * field on `DisplayMessage.rateLimitHit` above.
+     */
+    limitScope?: "service" | "channel" | "group_pool";
   };
   /**
    * Compaction stats + summary, only present on `kind === "compact_boundary"`.
