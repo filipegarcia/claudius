@@ -4882,6 +4882,15 @@ export class Session {
    * /config uses" per its doc comment in `sdk.d.ts` — alongside the
    * `/output-style` slash command that discovers this method.
    *
+   * Persists to the `local` settings scope (`.claude/settings.local.json`),
+   * NOT `user` — `sdk.d.ts`'s `SettingSource` doc comment confirms
+   * `'local'` *is* `.claude/settings.local.json`, the exact file
+   * `updateSettings('localSettings', …)` writes through. Persisting to a
+   * different scope (e.g. `user`) would leave two settings files
+   * disagreeing: the live-applied `local` value would silently outrank a
+   * later change made through the Settings page's `user`-scope dropdown on
+   * the next session start.
+   *
    * Best-effort on the live-apply call: no active query (session not
    * started, remote transport, `--setting-sources` excludes the target)
    * doesn't block the settings-file write below — the pick still survives
@@ -4898,30 +4907,12 @@ export class Session {
       }
     }
     try {
-      const current = await readSettings("user", this.cwd);
-      await writeSettings("user", this.cwd, { ...current, outputStyle: name });
+      const current = await readSettings("local", this.cwd);
+      await writeSettings("local", this.cwd, { ...current, outputStyle: name });
     } catch (err) {
       return { ok: false, error: err instanceof Error ? err.message : String(err) };
     }
     return { ok: true, outputStyle: name };
-  }
-
-  /**
-   * Forward the live output-style state from the SDK's
-   * `initializationResult()` (`output_style`, `available_output_styles`) —
-   * the same data the CLI's `/output-style` list surface reads, including
-   * any plugin-provided custom styles the static Settings-page dropdown
-   * doesn't know about. Same `{ ok, data | error }` envelope as
-   * `supportedModels` / `supportedAgents`.
-   */
-  async outputStyles(): Promise<{ ok: true; data: unknown } | { ok: false; error: string }> {
-    if (!this.query) return { ok: false, error: "session not active" };
-    try {
-      const data = await this.query.initializationResult();
-      return { ok: true, data };
-    } catch (err) {
-      return { ok: false, error: err instanceof Error ? err.message : String(err) };
-    }
   }
 
   /**
