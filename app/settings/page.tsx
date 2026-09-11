@@ -1220,6 +1220,13 @@ const SDK_SETTINGS_CATALOG: SettingMeta[] = [
     desc: "Default shell for input-box ! commands. Defaults to 'bash' on all platforms (no Windows auto-flip).",
   },
   {
+    // SDK 0.3.269
+    key: "bashEditDiffEnabled",
+    type: "boolean",
+    section: "Shell",
+    desc: "Whether the Bash tool shows a diff of the files a Bash command changed (PostToolUse Bash hooks get the changed-file list in tool_response). Set to false to turn that off. Default: on when the Bash tool handles file edits. Only user, flag or policy settings can turn it on outside auto and bypassPermissions modes.",
+  },
+  {
     // SDK 0.3.261 — config-passthrough only, same reasoning as
     // `keybindingFlavor` below: the bundled `claude` binary truncates a
     // successful Bash/PowerShell tool result to this many characters
