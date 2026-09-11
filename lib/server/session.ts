@@ -4868,6 +4868,54 @@ export class Session {
   }
 
   /**
+   * Set the response output style (`default` / `explanatory` / `concise` /
+   * `developer`, or a custom plugin-provided name) for subsequent turns.
+   *
+   * Claude Code 2.1.269 parity: "Added `/output-style [name]` to list and
+   * switch output styles, including over Remote Control and in cloud and
+   * other headless sessions." Claudius already modeled `outputStyle` as a
+   * `ClaudeSettings` field (the Settings page's dropdown, `readSettings`/
+   * `writeSettings`) — but a change there only took effect on the *next*
+   * session start, because nothing forwarded it to the already-running SDK
+   * subprocess. This adds the missing live-apply half via the SDK's
+   * `updateSettings('localSettings', …)` control request — "the same path
+   * /config uses" per its doc comment in `sdk.d.ts` — alongside the
+   * `/output-style` slash command that discovers this method.
+   *
+   * Persists to the `local` settings scope (`.claude/settings.local.json`),
+   * NOT `user` — `sdk.d.ts`'s `SettingSource` doc comment confirms
+   * `'local'` *is* `.claude/settings.local.json`, the exact file
+   * `updateSettings('localSettings', …)` writes through. Persisting to a
+   * different scope (e.g. `user`) would leave two settings files
+   * disagreeing: the live-applied `local` value would silently outrank a
+   * later change made through the Settings page's `user`-scope dropdown on
+   * the next session start.
+   *
+   * Best-effort on the live-apply call: no active query (session not
+   * started, remote transport, `--setting-sources` excludes the target)
+   * doesn't block the settings-file write below — the pick still survives
+   * to the next session, same as the pre-existing Settings-page-only path.
+   */
+  async setOutputStyle(
+    name: string,
+  ): Promise<{ ok: true; outputStyle: string } | { ok: false; error: string }> {
+    if (this.query) {
+      try {
+        await this.query.updateSettings("localSettings", { outputStyle: name });
+      } catch {
+        // Non-fatal — see doc comment above.
+      }
+    }
+    try {
+      const current = await readSettings("local", this.cwd);
+      await writeSettings("local", this.cwd, { ...current, outputStyle: name });
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : String(err) };
+    }
+    return { ok: true, outputStyle: name };
+  }
+
+  /**
    * Set the reasoning-effort level for subsequent turns.
    *
    * The SDK exposes effort via `applyFlagSettings({ effortLevel })`, not as

@@ -37,6 +37,7 @@ import { useMediaPreferences } from "@/lib/client/useMediaPreferences";
 import { cn } from "@/lib/utils/cn";
 import { setStatusLineCommand, setStatusLineRefreshInterval, type StatusLineConfig } from "@/lib/shared/status-line";
 import { nextWorktree, parseDirList } from "@/lib/shared/worktree-settings";
+import { STATIC_OUTPUT_STYLES } from "@/lib/shared/output-styles";
 
 const SCOPE_LABELS: Record<SettingsScope, string> = {
   user: "User",
@@ -45,7 +46,7 @@ const SCOPE_LABELS: Record<SettingsScope, string> = {
 };
 
 const SDK_THEMES = ["auto", "dark", "light", "dark-daltonized", "light-daltonized", "ansi"];
-const OUTPUT_STYLES = ["default", "explanatory", "concise", "developer"];
+const OUTPUT_STYLES = STATIC_OUTPUT_STYLES;
 
 export default function SettingsPage() {
   const cwd = useActiveCwd();
@@ -1218,6 +1219,13 @@ const SDK_SETTINGS_CATALOG: SettingMeta[] = [
     section: "Shell",
     options: ["bash", "powershell"],
     desc: "Default shell for input-box ! commands. Defaults to 'bash' on all platforms (no Windows auto-flip).",
+  },
+  {
+    // SDK 0.3.269
+    key: "bashEditDiffEnabled",
+    type: "boolean",
+    section: "Shell",
+    desc: "Whether the Bash tool shows a diff of the files a Bash command changed (PostToolUse Bash hooks get the changed-file list in tool_response). Set to false to turn that off. Default: on when the Bash tool handles file edits. Only user, flag or policy settings can turn it on outside auto and bypassPermissions modes.",
   },
   {
     // SDK 0.3.261 — config-passthrough only, same reasoning as

@@ -1375,6 +1375,47 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
           showToast(name ? `Session color set to: ${name}` : "Session color cleared");
           return true;
         }
+        case "output-style": {
+          // CC 2.1.269 parity — see Session.setOutputStyle/outputStyles doc
+          // comments in lib/server/session.ts for why this needed a real
+          // session round-trip rather than the localStorage-only shortcut
+          // `/theme` and `/color` use above: output style is a server-side
+          // setting the running SDK query needs to see live.
+          if (!session.sessionId) {
+            showToast("No active session");
+            return true;
+          }
+          const raw = args.trim();
+          if (!raw) {
+            fetch(`/api/sessions/${session.sessionId}/output-style`)
+              .then((r) => r.json())
+              .then((data: { current?: string; available?: string[] }) => {
+                const available = data.available ?? [];
+                showToast(
+                  `Output style: ${data.current ?? "default"}${
+                    available.length > 0 ? ` (try: ${available.join(", ")})` : ""
+                  }`,
+                );
+              })
+              .catch(() => showToast("Couldn't load output styles"));
+            return true;
+          }
+          fetch(`/api/sessions/${session.sessionId}/output-style`, {
+            method: "PATCH",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ outputStyle: raw }),
+          })
+            .then(async (r) => {
+              if (!r.ok) {
+                const body = await r.json().catch(() => ({}) as { error?: string });
+                showToast(`Output style change failed: ${body.error ?? r.status}`);
+                return;
+              }
+              showToast(`Output style → ${raw}`);
+            })
+            .catch(() => showToast("Output style change failed"));
+          return true;
+        }
         case "plan": {
           void session.setPermissionMode("plan");
           showToast("Plan mode — Claude will produce a plan before executing");
