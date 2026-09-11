@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ChevronDown, ChevronRight, Lightbulb, Shield } from "lucide-react";
 import type { PermissionDecision, PermissionRequestEvent } from "@/lib/shared/events";
 
@@ -26,11 +26,23 @@ type Props = {
 };
 
 export function PermissionPrompt({ request, onResolve, autoModeAvailable, onSwitchToAutoMode }: Props) {
-  const [showDeny, setShowDeny] = useState(false);
+  // SDK 0.3.268 `defaultToNo` — the prompt must not be approvable by a
+  // single stray keystroke: open straight on the decline panel instead of
+  // requiring a click on "Deny…" first.
+  const [showDeny, setShowDeny] = useState(!!request.defaultToNo);
   const [feedback, setFeedback] = useState("");
   const [showInput, setShowInput] = useState(false);
 
   const summary = request.title ?? `Claude wants to use ${request.displayName ?? request.toolName}`;
+  // SDK 0.3.268 `suppressAlwaysAllowRule` — the rule an "Always allow" click
+  // would write grants more than this ask's own action, so hide all three
+  // standing-grant buttons. The auto-mode tip button is itself a one-click
+  // standing grant (switches the whole session into Auto mode), so it's
+  // hidden under the same flag — and also under `defaultToNo`, since it's a
+  // one-key approve shortcut that flag explicitly rules out.
+  const hideAlwaysButtons = !!request.suppressAlwaysAllowRule;
+  const hideAutoModeTip = !!request.suppressAlwaysAllowRule || !!request.defaultToNo;
+  const denyButtonRef = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -40,8 +52,23 @@ export function PermissionPrompt({ request, onResolve, autoModeAvailable, onSwit
     return () => window.removeEventListener("keydown", onKey);
   }, [onResolve]);
 
+  // `defaultToNo`: put focus on the decline action explicitly rather than
+  // relying on the `autoFocus` DOM attribute, which is unreliable once this
+  // modal (and its already-autofocused composer sibling) mounts after the
+  // initial page load — a second competing `autoFocus` element doesn't
+  // reliably win the browser's autofocus processing at that point.
+  useEffect(() => {
+    if (request.defaultToNo) denyButtonRef.current?.focus();
+    // Runs once per request — `requestId` is a stable per-prompt identity.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [request.requestId]);
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" data-permission-modal>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+      data-permission-modal
+      data-default-to-no={request.defaultToNo ? "true" : undefined}
+    >
       <div className="w-[min(620px,92vw)] overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--panel)] shadow-2xl">
         <div className="flex items-start gap-3 border-b border-[var(--border)] px-4 py-3">
           <div className="mt-0.5 flex h-7 w-7 items-center justify-center rounded-md bg-[var(--accent)]/15 text-[var(--accent)]">
@@ -81,7 +108,7 @@ export function PermissionPrompt({ request, onResolve, autoModeAvailable, onSwit
           )}
         </div>
 
-        {request.toolName === "Bash" && autoModeAvailable && onSwitchToAutoMode && (
+        {request.toolName === "Bash" && autoModeAvailable && onSwitchToAutoMode && !hideAutoModeTip && (
           <div
             data-testid="permission-auto-mode-tip"
             className="flex flex-wrap items-center gap-2 border-t border-[var(--border)] bg-[var(--accent)]/5 px-4 py-2 text-xs text-[var(--muted)]"
@@ -107,27 +134,31 @@ export function PermissionPrompt({ request, onResolve, autoModeAvailable, onSwit
           >
             Allow once
           </button>
-          <button
-            onClick={() => onResolve({ kind: "allow_always_session" })}
-            className="rounded-md border border-[var(--border)] bg-[var(--panel)] px-3 py-1.5 text-sm hover:bg-[var(--panel-2)]"
-            title="Allow this tool for the rest of this session"
-          >
-            Always (session)
-          </button>
-          <button
-            onClick={() => onResolve({ kind: "allow_always_save", destination: "projectSettings" })}
-            className="rounded-md border border-[var(--border)] bg-[var(--panel)] px-3 py-1.5 text-sm hover:bg-[var(--panel-2)]"
-            title="Save an allow rule to .claude/settings.json"
-          >
-            Always (project)
-          </button>
-          <button
-            onClick={() => onResolve({ kind: "allow_always_save", destination: "userSettings" })}
-            className="rounded-md border border-[var(--border)] bg-[var(--panel)] px-3 py-1.5 text-sm hover:bg-[var(--panel-2)]"
-            title="Save an allow rule to ~/.claude/settings.json"
-          >
-            Always (user)
-          </button>
+          {!hideAlwaysButtons && (
+            <>
+              <button
+                onClick={() => onResolve({ kind: "allow_always_session" })}
+                className="rounded-md border border-[var(--border)] bg-[var(--panel)] px-3 py-1.5 text-sm hover:bg-[var(--panel-2)]"
+                title="Allow this tool for the rest of this session"
+              >
+                Always (session)
+              </button>
+              <button
+                onClick={() => onResolve({ kind: "allow_always_save", destination: "projectSettings" })}
+                className="rounded-md border border-[var(--border)] bg-[var(--panel)] px-3 py-1.5 text-sm hover:bg-[var(--panel-2)]"
+                title="Save an allow rule to .claude/settings.json"
+              >
+                Always (project)
+              </button>
+              <button
+                onClick={() => onResolve({ kind: "allow_always_save", destination: "userSettings" })}
+                className="rounded-md border border-[var(--border)] bg-[var(--panel)] px-3 py-1.5 text-sm hover:bg-[var(--panel-2)]"
+                title="Save an allow rule to ~/.claude/settings.json"
+              >
+                Always (user)
+              </button>
+            </>
+          )}
           <div className="ml-auto flex items-center gap-2">
             <button
               onClick={() => setShowDeny((s) => !s)}
@@ -144,7 +175,10 @@ export function PermissionPrompt({ request, onResolve, autoModeAvailable, onSwit
               Optional feedback for Claude
             </label>
             <textarea
-              autoFocus
+              // Skip the native autofocus when `defaultToNo` puts explicit
+              // focus on the deny button instead (see the ref effect above)
+              // — two competing autoFocus elements is unreliable.
+              autoFocus={!request.defaultToNo}
               value={feedback}
               onChange={(e) => setFeedback(e.target.value)}
               placeholder="Why are you denying this? (sent back to Claude as the deny message)"
@@ -153,7 +187,11 @@ export function PermissionPrompt({ request, onResolve, autoModeAvailable, onSwit
             />
             <div className="mt-2 flex justify-end gap-2">
               <button
+                ref={denyButtonRef}
                 onClick={() => onResolve({ kind: "deny" })}
+                // `defaultToNo`: this is the prompt's decline option — see
+                // the ref effect above, which focuses it explicitly so
+                // Enter denies rather than approves.
                 className="rounded-md border border-[var(--border)] bg-[var(--panel)] px-3 py-1.5 text-xs hover:bg-[var(--panel-2)]"
               >
                 Deny without feedback

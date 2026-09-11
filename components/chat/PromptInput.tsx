@@ -342,7 +342,16 @@ export function PromptInput({
       ae !== taRef.current &&
       (ae.tagName === "INPUT" || ae.tagName === "TEXTAREA" || ae.isContentEditable);
     if (inOtherEditor) return;
-    const handle = requestAnimationFrame(() => taRef.current?.focus());
+    const handle = requestAnimationFrame(() => {
+      // A permission prompt may have mounted (and claimed its own explicit
+      // focus — SDK 0.3.268 `defaultToNo` autofocuses its decline button)
+      // in the frame between scheduling this rAF and it firing. `activeElement`
+      // is a plain `<button>`, not INPUT/TEXTAREA/contentEditable, so the
+      // `inOtherEditor` check above wouldn't have caught it — recheck for the
+      // modal itself right before actually moving focus.
+      if (document.querySelector("[data-permission-modal]")) return;
+      taRef.current?.focus();
+    });
     return () => cancelAnimationFrame(handle);
   }, [sessionId, ready]);
 

@@ -3137,6 +3137,11 @@ export class Session {
         // to canUseTool (instead of auto-denying) and include the agent id
         // so the host knows which subagent is asking.
         agentId: ctx.agentID,
+        // SDK 0.3.268: rendering hints for prompts that must not be
+        // approvable by reflex (defaultToNo) or offer a standing grant
+        // wider than this one action (suppressAlwaysAllowRule).
+        defaultToNo: ctx.defaultToNo,
+        suppressAlwaysAllowRule: ctx.suppressAlwaysAllowRule,
       };
       this.pendingPermissions.set(requestId, { requestId, resolve, meta });
       this.broadcast(meta);
@@ -5299,10 +5304,26 @@ export class Session {
     }
   }
 
-  async reloadPlugins(): Promise<{ ok: true; data: unknown } | { ok: false; error: string }> {
+  /**
+   * `holdOnCacheImpact` (SDK 0.3.268, default true here): the same check the
+   * interactive CLI's `/reload-plugins` makes before it asks for `--force`.
+   * When applying would change the session's tool list while the
+   * conversation's prompt cache depends on it, the reload is NOT applied —
+   * the response carries `held: true` plus a `cache_impact` summary instead.
+   * Defaulting to held protects the plugins-list GET (`app/api/plugins`,
+   * which calls this just to read `installed`) from silently invalidating
+   * the cache as a side effect of a page load; the explicit reload route
+   * (`app/api/plugins/reload`) passes `holdOnCacheImpact: false` when the
+   * user re-sends via `/reload-plugins force`.
+   */
+  async reloadPlugins(
+    opts?: { holdOnCacheImpact?: boolean },
+  ): Promise<{ ok: true; data: unknown } | { ok: false; error: string }> {
     if (!this.query) return { ok: false, error: "no active query" };
     try {
-      const data = await this.query.reloadPlugins();
+      const data = await this.query.reloadPlugins({
+        holdOnCacheImpact: opts?.holdOnCacheImpact ?? true,
+      });
       return { ok: true, data };
     } catch (err) {
       return { ok: false, error: err instanceof Error ? err.message : String(err) };
