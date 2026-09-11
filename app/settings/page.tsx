@@ -37,6 +37,7 @@ import { useMediaPreferences } from "@/lib/client/useMediaPreferences";
 import { cn } from "@/lib/utils/cn";
 import { setStatusLineCommand, setStatusLineRefreshInterval, type StatusLineConfig } from "@/lib/shared/status-line";
 import { nextWorktree, parseDirList } from "@/lib/shared/worktree-settings";
+import { STATIC_OUTPUT_STYLES } from "@/lib/shared/output-styles";
 
 const SCOPE_LABELS: Record<SettingsScope, string> = {
   user: "User",
@@ -45,7 +46,7 @@ const SCOPE_LABELS: Record<SettingsScope, string> = {
 };
 
 const SDK_THEMES = ["auto", "dark", "light", "dark-daltonized", "light-daltonized", "ansi"];
-const OUTPUT_STYLES = ["default", "explanatory", "concise", "developer"];
+const OUTPUT_STYLES = STATIC_OUTPUT_STYLES;
 
 export default function SettingsPage() {
   const cwd = useActiveCwd();

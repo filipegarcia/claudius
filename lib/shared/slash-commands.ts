@@ -151,6 +151,12 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   // rationale (full-screen overlay, not a beside-chat split pane).
   { id: "diff", name: "diff", description: "Show uncommitted changes as an overlay.", category: "ui", handler: "native" },
   { id: "focus", name: "focus", description: "Cycle focus mode (off → focus → zen).", category: "ui", handler: "native", argsHint: "[off|focus|zen]" },
+  // CC 2.1.269 parity: "Added /output-style [name] to list and switch output
+  // styles, including over Remote Control and in cloud and other headless
+  // sessions." Claudius already modeled `outputStyle` as a Settings-page
+  // dropdown; this command adds the missing live-apply + discoverable-list
+  // half — see Session.setOutputStyle / Session.outputStyles in session.ts.
+  { id: "output-style", name: "output-style", description: "List or switch the response output style.", category: "ui", handler: "native", argsHint: "[name]" },
   { id: "zen", name: "zen", description: "Toggle Zen mode — hide everything but the chat.", category: "ui", handler: "native" },
   { id: "tui", name: "tui", description: "Switch UI renderer.", category: "ui", handler: "external" },
 
