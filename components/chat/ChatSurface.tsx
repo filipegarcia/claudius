@@ -115,6 +115,7 @@ import {
 } from "@/lib/shared/prompt-colors";
 import { DEFAULT_TIPS, selectClientTips } from "@/lib/shared/tips";
 import { badgeAdvisorLabel, resolveAdvisorCommandArg } from "@/lib/shared/advisor";
+import { describeReloadPluginsResult } from "@/lib/shared/reload-plugins";
 import { useWorkspaces } from "@/lib/client/useWorkspaces";
 import { useVerbose } from "@/lib/client/useVerbose";
 import { useFocusMode } from "@/lib/client/useFocusMode";
@@ -1296,8 +1297,21 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
             showToast("No active session");
             return true;
           }
-          fetch(`/api/plugins/reload?sessionId=${encodeURIComponent(sid)}`, { method: "POST" })
-            .then((r) => showToast(r.ok ? "Plugins reloaded" : `Reload failed: ${r.status}`))
+          // SDK 0.3.268 — `reloadPlugins()` now holds by default when
+          // applying would invalidate the session's prompt cache; `/reload-
+          // plugins force` re-sends with the hold lifted (see
+          // lib/shared/reload-plugins.ts for the shared toast copy).
+          const force = args.trim().toLowerCase() === "force";
+          const params = new URLSearchParams({ sessionId: sid });
+          if (force) params.set("force", "1");
+          fetch(`/api/plugins/reload?${params}`, { method: "POST" })
+            .then(async (r) => {
+              if (!r.ok) {
+                showToast(`Reload failed: ${r.status}`);
+                return;
+              }
+              showToast(describeReloadPluginsResult(await r.json()));
+            })
             .catch(() => showToast("Reload failed"));
           return true;
         }
