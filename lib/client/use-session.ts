@@ -4424,16 +4424,18 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     // this effect, cleans it up, then mounts it again — synchronously,
     // before the `await fetch("/api/sessions/open-tabs")` below ever
     // resolves. Without this flag, the FIRST (discarded) instance's async
-    // continuation still runs to completion once its fetch resolves: it
-    // calls `createSession`, which — since nothing has bumped
-    // `switchGenRef` yet — passes its own gen check and calls
-    // `bindToSession`. That briefly binds a real, server-created session
-    // that the render-time auto-add effect in ChatSurface permanently
-    // appends to `openTabs` before the SECOND instance's `createSession`
-    // supersedes it a moment later — leaving one orphaned "phantom" tab per
-    // boot (see the session-tabs-* e2e specs' flaky off-by-one tab counts).
-    // Checking `cancelled` right before `createSession` closes that window;
-    // `switchGenRef` alone only protects the *bind*, not this initial call.
+    // continuation still runs to completion once its fetch resolves and
+    // calls `createSession`. `createSession` bumps `switchGenRef` ITSELF
+    // (`gen = ++switchGenRef.current`), so its post-POST guard only catches
+    // a *newer* transition starting during its own fetch — it has no way to
+    // tell that its own effect instance was already cleaned up before it
+    // even ran. So both Strict-Mode instances complete a full create→bind
+    // cycle, and ChatSurface's render-time auto-add permanently appends
+    // EACH bound id to `openTabs` in turn — leaving one orphaned "phantom"
+    // tab per boot (see the session-tabs-* e2e specs' flaky off-by-one tab
+    // counts). Checking `cancelled` right before `createSession` closes
+    // that window by skipping the call entirely for a cleaned-up instance;
+    // `switchGenRef` alone only protects a *later* race, not this one.
     let cancelled = false;
     const params = new URLSearchParams(window.location.search);
     // ?new=1 forces creating a fresh session, even if ?session= is present
