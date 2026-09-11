@@ -181,6 +181,58 @@ export class SessionManager {
   }
 
   /**
+   * Tear down and respawn a session under the SAME id, resumed from its own
+   * transcript, with no truncation and no replayed prompt.
+   *
+   * Exists for the account-switcher escape hatch (`POST /api/sessions/[id]/account`):
+   * the SDK reads credentials once, when `query()` is constructed, and exposes
+   * no control-channel to swap them afterwards — so re-pointing a live session
+   * at a different account is *only* possible by rebuilding the query. Reuses
+   * the same `create({ resume })` path as `recoverInPlace`, which means the id
+   * is stable and open browser tabs just reconnect over SSE rather than
+   * navigating.
+   *
+   * Distinct from `recoverInPlace`: no `resumeSessionAt` (we're not dropping a
+   * poisoned turn, so the full history replays) and no `replayPrompt` (nothing
+   * needs re-driving — the user is mid-thought, not mid-turn). Also not capped
+   * by the thinking-recovery attempt budget, which guards a failure loop this
+   * path can't enter: it's user-initiated, one click at a time.
+   *
+   * Returns `{ ok: false, reason: "gone" }` when the id isn't live — the
+   * caller should treat that as "nothing to restart", since a reaped session
+   * will pick up the new pin on its next natural resume anyway.
+   */
+  /**
+   * Tell every live session to re-evaluate whether it's still on the
+   * globally-active account, after the user switched accounts.
+   *
+   * No session's credential changes — that's the point of pinning (see
+   * `Session.resolveAccountProfile`). This only refreshes the *standing* each
+   * session reports, so open tabs can warn "this conversation is on the
+   * previous account" at the moment of the switch instead of an hour later
+   * when the idle reaper finally recycles them.
+   *
+   * Best-effort per session: one failed recompute must not block the account
+   * switch itself, which has already been written to disk by the time we're
+   * called. Returns the number of sessions notified.
+   */
+  async notifyActiveAccountChanged(): Promise<number> {
+    const targets = [...this.sessions.values()];
+    await Promise.all(targets.map((s) => s.refreshAccountDrift().catch(() => undefined)));
+    return targets.length;
+  }
+
+  async restartInPlace(id: string): Promise<{ ok: true } | { ok: false; reason: "gone" }> {
+    const existing = this.sessions.get(id);
+    if (!existing) return { ok: false, reason: "gone" };
+    // Snapshot create options BEFORE teardown — `remove()` drops the instance.
+    const carry = existing.getRebuildOpts();
+    await this.remove(id);
+    await this.create({ ...carry, resume: id });
+    return { ok: true };
+  }
+
+  /**
    * Clear the consecutive-recovery budget for a session after it completes a
    * turn successfully. Called from `Session.consume()` on a `result` with
    * subtype `"success"`. This is what lets a long-lived session recover from

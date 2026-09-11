@@ -8,6 +8,7 @@ import {
   type AccountKind,
 } from "@/lib/server/accounts-store";
 import { invalidateProfileCache } from "@/lib/server/account-profile";
+import { sessionManager } from "@/lib/server/session-manager";
 
 export const runtime = "nodejs";
 
@@ -106,6 +107,13 @@ export async function PATCH(req: Request) {
     }
     if (body.activeProfileId) {
       await setActiveAccount(body.activeProfileId);
+      // Live sessions keep the credential they spawned under (see
+      // `Session.resolveAccountProfile`) — but they should say so. Nudge each
+      // one to recompute whether it's still on the default account and tell
+      // its subscribers, so the StatusLine badge warns at the moment of the
+      // switch rather than an hour later when the idle reaper recycles it.
+      // Best-effort: the switch itself is already persisted.
+      await sessionManager.notifyActiveAccountChanged().catch(() => 0);
     }
     return NextResponse.json(await readAccountsPublic());
   } catch (err) {

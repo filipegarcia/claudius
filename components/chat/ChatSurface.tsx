@@ -2004,6 +2004,8 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
           permissionMode={session.permissionMode}
           model={session.model}
           mainAgent={session.mainAgent}
+          account={session.account}
+          onMoveToActiveAccount={session.moveToActiveAccount}
           sessionRoot={session.cwd}
           agentCwd={session.agentCwd}
           onPickAgent={session.setAgent}

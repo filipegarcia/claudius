@@ -510,6 +510,26 @@ export async function getActiveProfile(): Promise<AccountProfile | null> {
 }
 
 /**
+ * Resolve one profile by id, independent of which one is "active".
+ *
+ * This is what backs session account *pinning* (see
+ * `Session.resolveAccountProfile`). A session records the profile it was
+ * first spawned under; when it's later reaped and resumed we want the SAME
+ * credential, not whatever the global active pointer happens to be by then
+ * — otherwise the conversation silently changes identity and billing
+ * mid-thread (confirmed symptom: the agent's injected `userEmail` and
+ * per-profile memory dir flip between turns of one session).
+ *
+ * Returns null when the id is unknown — the caller is expected to fall back
+ * to `getActiveProfile()` so a session pinned to a since-deleted account
+ * still starts instead of erroring.
+ */
+export async function getProfileById(id: string): Promise<AccountProfile | null> {
+  const cur = await readAccountsRaw();
+  return cur.profiles.find((p) => p.id === id) ?? null;
+}
+
+/**
  * Build the env block for an SDK spawn under the given profile.
  *
  * The SDK contract is that `Options.env` REPLACES the subprocess

@@ -15,6 +15,7 @@ import type {
   OpusOverloadNudgeEvent,
   PlanDecision,
   ServerEvent,
+  SessionReadyEvent,
   TaskResourceLink,
   TaskSnapshotEntry,
   TokenExpiringNudgeEvent,
@@ -877,6 +878,13 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
   // for the default agent. Carried on the `ready` event (the SDK init message
   // doesn't include it). Drives the StatusLine "running as <agent>" badge.
   const [mainAgent, setMainAgent] = useState<string | null>(null);
+  // Account-switcher profile this session is actually running under, carried
+  // on the `ready` event (no SDK message reports it, and `/api/accounts` only
+  // knows which profile is *active* — the very value that can disagree with a
+  // resumed session's own credential). `driftFromActive` is set when this
+  // session is pinned to a non-default account; the StatusLine badge warns on
+  // it and offers `moveToActiveAccount`.
+  const [account, setAccount] = useState<SessionReadyEvent["account"] | null>(null);
   const [skills, setSkills] = useState<string[]>([]);
   const [cwd, setCwd] = useState<string | null>(null);
   // The agent's *effective* working directory, updated live from the SDK's
@@ -1440,6 +1448,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     setSlashCommands([]);
     setAgents([]);
     setMainAgent(null);
+    setAccount(null);
     setSkills([]);
     setCwd(null);
     setAgentCwd(null);
@@ -1751,6 +1760,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
       if (ev.type === "ready") {
         setReady(true);
         setMainAgent(ev.agent ?? null);
+        setAccount(ev.account ?? null);
         fallbackModelRef.current = ev.fallbackModel ?? null;
         return;
       }
@@ -1965,6 +1975,13 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
           previousAdvisor: ev.previousAdvisor,
           newModel: ev.newModel,
         });
+        return;
+      }
+      if (ev.type === "account_changed") {
+        // The user switched the global default account while this session was
+        // live. Our credential is unchanged (pinned); what changed is whether
+        // we're still the default — repaint the StatusLine badge.
+        setAccount(ev.account);
         return;
       }
       if (ev.type === "agent_changed") {
@@ -5331,6 +5348,33 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     }).catch(() => {});
   }, []);
 
+  /**
+   * Escape hatch for session account pinning: move THIS session onto whatever
+   * account profile is currently active, and rebuild its query so the new
+   * credential takes effect immediately.
+   *
+   * The server restarts the SDK query under the same session id, so our
+   * EventSource reconnects and replays on its own — we don't re-bind here.
+   * Clearing `account` optimistically would flash the badge off and back on;
+   * instead we let the fresh `ready` event be the source of truth.
+   */
+  const moveToActiveAccount = useCallback(async (): Promise<
+    { ok: true } | { ok: false; error: string }
+  > => {
+    const id = sessionIdRef.current;
+    if (!id) return { ok: false, error: "no active session" };
+    try {
+      const res = await fetch(`/api/sessions/${id}/account`, { method: "POST" });
+      if (!res.ok) {
+        const body = (await res.json().catch(() => ({}))) as { error?: string };
+        return { ok: false, error: body.error ?? `HTTP ${res.status}` };
+      }
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : String(err) };
+    }
+  }, []);
+
   const renameTitle = useCallback(
     async (title: string): Promise<{ ok: true } | { ok: false; error: string }> => {
       const id = sessionIdRef.current;
@@ -5539,6 +5583,8 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     slashCommands,
     agents,
     mainAgent,
+    account,
+    moveToActiveAccount,
     permissionMode,
     model,
     effort,

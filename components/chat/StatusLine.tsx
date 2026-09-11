@@ -12,6 +12,7 @@ import {
   GitBranch,
   Link as LinkIcon,
   Minimize2,
+  Users,
 } from "lucide-react";
 import type { PermissionMode } from "@anthropic-ai/claude-agent-sdk";
 import { ModeSelector } from "./ModeSelector";
@@ -56,6 +57,27 @@ type Props = {
   model: string | null;
   /** Main-thread agent name (SDK Options.agent), or null for the default agent. */
   mainAgent?: string | null;
+  /**
+   * Account-switcher profile this session is running under, from the `ready`
+   * event. Null/undefined when no account profile is configured (the SDK is
+   * on the ambient environment) — the badge is omitted entirely then.
+   *
+   * `driftFromActive` present means the session is pinned to an account that
+   * is no longer the global default, i.e. the user switched accounts while
+   * this conversation was open. That's the case worth warning about: without
+   * the badge it's invisible which identity and bill the thread is on.
+   */
+  account?: {
+    id: string;
+    label: string;
+    driftFromActive?: { id: string; label: string };
+  } | null;
+  /**
+   * Move this session onto the currently-active account (re-pin + rebuild the
+   * SDK query). Wired to the drift badge; when omitted the badge stays
+   * informational rather than clickable.
+   */
+  onMoveToActiveAccount?: () => Promise<{ ok: true } | { ok: false; error: string }>;
   /**
    * Session root (the cwd the session was created with). Compared against
    * `agentCwd` to decide whether the agent has moved into a git worktree.
@@ -143,6 +165,8 @@ export function StatusLine({
   permissionMode,
   model,
   mainAgent,
+  account,
+  onMoveToActiveAccount,
   sessionRoot,
   agentCwd,
   onPickAgent,
@@ -388,6 +412,52 @@ export function StatusLine({
               <span className="max-w-[8rem] truncate">{mainAgent}</span>
             </span>
           ) : null}
+        </>
+      )}
+      {/* Account badge. Two states:
+            - quiet: the session is on the active account — a muted pill that
+              just names it, so "which account is this thread on?" is always
+              answerable without opening /usage.
+            - drift: the session is pinned to an account that is no longer the
+              default, because the user switched while it was open. Amber, same
+              visual language as the model-deprecation chip, and clickable to
+              move the session onto the active account.
+          Omitted entirely when no account profile is configured. */}
+      {account && (
+        <>
+          <span className="opacity-50">·</span>
+          {account.driftFromActive && onMoveToActiveAccount ? (
+            <button
+              type="button"
+              data-testid="status-line-account-drift"
+              data-account={account.id}
+              onClick={() => {
+                void onMoveToActiveAccount();
+              }}
+              title={
+                `This session is running as "${account.label}".\n` +
+                `You've since switched the default account to "${account.driftFromActive.label}".\n\n` +
+                `Its identity and billing stay on "${account.label}" so the ` +
+                `conversation doesn't change accounts mid-thread.\n\n` +
+                `Click to move this session to "${account.driftFromActive.label}" ` +
+                `— the session restarts and replays, nothing is lost.`
+              }
+              className="flex items-center gap-1 rounded border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 font-mono text-[10px] text-amber-200 hover:bg-amber-500/20"
+            >
+              <Users className="h-3 w-3 shrink-0" />
+              <span className="max-w-[8rem] truncate">{account.label}</span>
+            </button>
+          ) : (
+            <span
+              data-testid="status-line-account"
+              data-account={account.id}
+              title={`Running under account: ${account.label}`}
+              className="flex items-center gap-1 rounded border border-[var(--border)] bg-[var(--panel-2)] px-1 py-0.5 font-mono text-[10px] opacity-80"
+            >
+              <Users className="h-3 w-3 shrink-0" />
+              <span className="max-w-[8rem] truncate">{account.label}</span>
+            </span>
+          )}
         </>
       )}
       {/* `shrink-0` on the cluster pairs with `min-w-0` on the workspace

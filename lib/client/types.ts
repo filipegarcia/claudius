@@ -11,6 +11,7 @@ import type {
   PermissionRequestEvent,
   PlanDecision,
   ServerEvent,
+  SessionReadyEvent,
   SessionUsageTotals,
   TaskResourceLink,
   TokenExpiringNudgeEvent,
@@ -689,6 +690,17 @@ export type ChatState = {
    * for the default agent. From the `ready` event. Shown in the StatusLine.
    */
   mainAgent: string | null;
+  /**
+   * Account-switcher profile this session is actually running under, from the
+   * `ready` event. Null when no account profile is configured.
+   *
+   * Sessions are *pinned* to the account they were spawned under, so a session
+   * that was open across an account switch keeps its original credential
+   * instead of silently changing identity and billing on resume. When that
+   * pin diverges from the current default, `account.driftFromActive` names the
+   * new default and the StatusLine badge offers `moveToActiveAccount()`.
+   */
+  account: SessionReadyEvent["account"] | null;
   permissionMode: PermissionMode;
   model: string | null;
   /**
@@ -1118,6 +1130,17 @@ export type ChatActions = {
    * `ChatState` is updated optimistically before the network round-trip.
    */
   setAgent(name: string | null): Promise<void>;
+  /**
+   * Move this session onto the currently-active account profile — the escape
+   * hatch for account pinning (see `ChatState.account`).
+   *
+   * Calls `POST /api/sessions/[id]/account`, which re-pins the session and
+   * rebuilds its SDK query so the new credential takes effect (the SDK reads
+   * credentials once, at `query()` construction, so a live swap isn't
+   * possible). The session id is preserved, so the client's EventSource
+   * reconnects and replays rather than the user losing their tab.
+   */
+  moveToActiveAccount(): Promise<{ ok: true } | { ok: false; error: string }>;
   /**
    * Bind to a different session id. Awaits a wake POST so a reaped session
    * has its buffer rehydrated before the SSE subscribes; fire-and-forget

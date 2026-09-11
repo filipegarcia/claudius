@@ -54,6 +54,50 @@ export type SessionReadyEvent = {
    * above (same rationale: SDK init doesn't carry it).
    */
   fallbackModel?: string;
+  /**
+   * Account-switcher profile this session is actually running under (see
+   * `Session.resolveAccountProfile`). Absent when no account is configured,
+   * i.e. the SDK is using the ambient environment.
+   *
+   * Carried on `ready` for the same reason as `agent` / `fallbackModel`: no
+   * SDK message reports it, and the client can't infer it — `/api/accounts`
+   * only knows which profile is *active*, which is precisely the value that
+   * can disagree with a resumed session's own credential.
+   */
+  account?: {
+    id: string;
+    /** Display label ("Personal Max"), for the StatusLine badge. */
+    label: string;
+    /**
+     * Set when this session is pinned to a profile that is NOT the current
+     * global default — the "you switched accounts, this old session is
+     * still on the previous one" case. Carries the active profile so the
+     * UI can offer a one-click "Use <label> here" without a second fetch.
+     * Absent when the session is on the active account (the quiet path).
+     */
+    driftFromActive?: { id: string; label: string };
+  };
+};
+
+/**
+ * The session's account standing changed *without* the session restarting.
+ *
+ * Fired when the user switches the global active account while this session
+ * is still live. The session keeps its own credential (the SDK reads env once,
+ * at `query()` construction — see `Session.resolveAccountProfile`), so nothing
+ * about the running conversation changes; what changes is that it is now
+ * pinned to a NON-default account, which is what the StatusLine badge warns
+ * about. Without this event the warning would only appear after the session
+ * was reaped and resumed, i.e. long after the user made the switch.
+ */
+export type SessionAccountChangedEvent = {
+  type: "account_changed";
+  account: {
+    id: string;
+    label: string;
+    /** Present when the session is no longer on the active account. */
+    driftFromActive?: { id: string; label: string };
+  };
 };
 
 export type SessionErrorEvent = {
@@ -928,6 +972,7 @@ export type ServerEvent =
     }
   | PermissionRequestEvent
   | SessionReadyEvent
+  | SessionAccountChangedEvent
   | SessionErrorEvent
   | ModeChangedEvent
   | ModelChangedEvent

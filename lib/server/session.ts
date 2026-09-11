@@ -135,6 +135,7 @@ import {
 import {
   buildEnvForProfile,
   getActiveProfile,
+  getProfileById,
   readAccountsRaw,
   rotateToNextProfile,
   type AccountProfile,
@@ -1339,15 +1340,34 @@ export class Session {
    */
   readonly createdAt: number;
   /**
-   * Account profile this session was spawned under (account-switcher,
-   * see `lib/server/accounts-store.ts`). Resolved in `start()` from the
-   * "active" profile at the moment of spawn, then frozen — switching
-   * the global active profile mid-session must NOT change the auth a
-   * running query is using (the SDK reads env once, at `query()`
+   * Account profile this session is spawned under (account-switcher,
+   * see `lib/server/accounts-store.ts`). Resolved in `start()` by
+   * `resolveAccountProfile()` — the session's *pinned* profile when it
+   * has one, else the currently-active profile — then frozen, because
+   * switching the global active pointer mid-session must NOT change the
+   * auth a running query is using (the SDK reads env once, at `query()`
    * construction). Null = no profile configured; the SDK inherits the
    * ambient environment (pre-account-switcher behavior).
    */
   accountProfileId: string | null = null;
+  /**
+   * Display label of `accountProfileId` ("Personal Max", …), captured at
+   * start alongside the id so the StatusLine can name the account without
+   * the client having to join against `/api/accounts`. Null when no
+   * profile is configured.
+   */
+  accountProfileLabel: string | null = null;
+  /**
+   * The globally-active profile at the moment this session (re)started,
+   * when it differs from `accountProfileId`. Non-null means "this session
+   * is pinned to an account that is no longer the default" — the state the
+   * StatusLine badge warns about, and the target of the one-click
+   * `moveToActiveAccount()` escape hatch.
+   *
+   * Null in the common case (session is on the active account), so the
+   * badge stays quiet unless there's genuinely something to say.
+   */
+  accountDriftFromActive: { id: string; label: string } | null = null;
   /**
    * Per-session fire-once flag for account-switcher auto-rotation.
    * When the SDK emits the rate-limit-hit assistant message we want
@@ -1363,6 +1383,18 @@ export class Session {
    * `start()` (e.g. on resume) uses the latest pick.
    */
   model?: string;
+  /**
+   * Model id the SDK *actually* resolved for this session, as reported by
+   * its `system:init` message. Distinct from `model` above: `model` is the
+   * user's explicit pick (undefined = "inherit the machine default"), and
+   * we deliberately never seed it from init so a resume doesn't silently
+   * pin the inherited default. But the StatusLine still needs to show
+   * *something* for a default-model session, and the init message that
+   * carries it sits at buffer index ~1 — sliced off the replay window on
+   * any tail-truncated reattach. `subscribe()` echoes `model ?? sdkModel`
+   * so the pill survives reload/tab-switch on long sessions.
+   */
+  private sdkModel?: string;
   /**
    * Main-thread agent name (SDK Options.agent). When set, the SDK applies the
    * agent's system prompt, tool restrictions, and model to the main
@@ -2397,7 +2429,7 @@ export class Session {
     // byte-for-byte).
     let activeProfile: AccountProfile | null = null;
     try {
-      activeProfile = await getActiveProfile();
+      activeProfile = await this.resolveAccountProfile();
     } catch {
       // Disk read failed (corrupt JSON, perms). Fall through to ambient
       // env — refusing to start a session over an accounts.json glitch
@@ -2862,6 +2894,14 @@ export class Session {
                   model: action.model,
                   source: action.source,
                 });
+                // The model just moved underneath us without going through
+                // `setModel()` — most importantly on `source: "resume"`,
+                // where the SDK resolves the model from the transcript and
+                // it can disagree with the advisor re-armed from
+                // settings.json. Drop an incompatible advisor now rather
+                // than letting the next turn 400. See
+                // `enforceAdvisorModelCompatibility`.
+                await this.enforceAdvisorModelCompatibility(action.model);
                 if (action.persist) {
                   try {
                     await upsertSession({
@@ -2893,6 +2933,17 @@ export class Session {
       sessionId: this.id,
       ...(this.agent ? { agent: this.agent } : {}),
       ...(this.fallbackModel ? { fallbackModel: this.fallbackModel } : {}),
+      ...(this.accountProfileId && this.accountProfileLabel
+        ? {
+            account: {
+              id: this.accountProfileId,
+              label: this.accountProfileLabel,
+              ...(this.accountDriftFromActive
+                ? { driftFromActive: this.accountDriftFromActive }
+                : {}),
+            },
+          }
+        : {}),
     });
     if (this.title) this.broadcast({ type: "session_title", title: this.title });
     if (this.goal.goal) this.broadcastGoal();
@@ -5638,6 +5689,208 @@ export class Session {
   }
 
   /**
+   * Clear the advisor when it is incompatible with `model`, for the paths
+   * where the model changed WITHOUT going through `setModel()`.
+   *
+   * The bug this closes: `start()` runs the same Fable-incompatibility check
+   * against `this.model` — but on a resume, `this.model` is whatever the
+   * wake `POST /api/sessions {resume}` merged from the workspace defaults,
+   * NOT the model the resumed conversation actually runs on. The SDK only
+   * reports that later, via `system:init` (and `PostModelSwitch` with
+   * `source: "resume"`). Meanwhile the advisor is re-armed on every start
+   * from `~/.claude/settings.json` and forwarded to the SDK's flag layer.
+   *
+   * So a session whose transcript is on `claude-fable-5-1`, resumed with an
+   * advisor of `claude-fable-5` still in settings.json, would sail past the
+   * start-time guard and 400 on its first turn with:
+   *
+   *   tools.N.model: 'claude-fable-5' cannot be used as an advisor when the
+   *   request model is 'claude-fable-5-1'
+   *
+   * Re-running the check once the *real* model is known turns that into a
+   * silent, self-healing clear plus the same `advisor_disabled_on_model_change`
+   * toast the picker-driven path already shows.
+   *
+   * Narrower than `setModel()`'s blanket "any model change clears the
+   * advisor": these callers include transient auto-fallback swaps, where
+   * dropping the user's advisor would be surprising. Only a genuine
+   * incompatibility clears here.
+   *
+   * Idempotent and best-effort — no-ops when no advisor is set.
+   */
+  private async enforceAdvisorModelCompatibility(
+    model: string | null | undefined,
+  ): Promise<void> {
+    if (!this.advisorModel) return;
+    // Fable-class request models reject any advisor tool in the API request.
+    // Mirrors the start-time guard's condition so the two can't drift.
+    if (!model || !model.includes("fable")) return;
+    const previousAdvisor = this.advisorModel;
+    // Clear settings.json first: `applyFlagSettings({ advisorModel: null })`
+    // falls back to the file when null, so clearing only the flag layer
+    // would leave the incompatible value still in effect.
+    try {
+      const current = await readSettings("user", this.cwd);
+      if (current.advisorModel) {
+        const next: ClaudeSettings = { ...current };
+        delete next.advisorModel;
+        await writeSettings("user", this.cwd, next);
+      }
+    } catch (err) {
+      console.error("[session.advisor-compat] settings write failed", err);
+    }
+    await this.setAdvisorModel(null);
+    this.broadcast({
+      type: "advisor_disabled_on_model_change",
+      previousAdvisor,
+      newModel: model,
+    });
+  }
+
+  /**
+   * Decide which account profile this session runs under, and remember it.
+   *
+   * WHY THIS EXISTS — session account *pinning*. `start()` used to call
+   * `getActiveProfile()` unconditionally, which is correct for a brand-new
+   * session and wrong for a resumed one. Sessions are reaped after an idle
+   * window (`SessionManager` `DEFAULT_IDLE_REAP_MS`, 60min), and clicking
+   * back into a reaped tab fires a wake `POST /api/sessions {resume}` that
+   * runs `start()` again. If the user switched accounts in between, the
+   * resumed conversation silently continued under the NEW credential —
+   * different identity, different billing, same transcript. It's invisible
+   * because the per-profile `CLAUDE_CONFIG_DIR` mirror symlinks `projects/`
+   * back to the real `~/.claude/projects`, so resume finds the JSONL either
+   * way; the only outward tell is that the agent's own injected context
+   * (user email, per-profile memory dir) flips mid-thread.
+   *
+   * So: the first time a session resolves a profile we persist that id into
+   * the session's state bag, and every later `start()` for the same id
+   * prefers it. Precedence:
+   *
+   *   1. Pinned profile (persisted `accountProfileId`), if it still exists.
+   *   2. Currently-active profile — for fresh sessions, and as the fallback
+   *      when the pinned account has since been deleted. Re-pins to the
+   *      fallback so the session doesn't keep chasing a dead id.
+   *
+   * The pin is deliberately escapable: `moveToActiveAccount()` rewrites it.
+   * That matters because the account switcher's motivating use case is "I
+   * hit my Max-plan limit on A, flip to B" — a user in that situation wants
+   * their existing session moved, and a pin they can't break would resume
+   * them straight back into the rate-limited account.
+   *
+   * Also records `accountProfileLabel` / `accountDriftFromActive` for the
+   * StatusLine badge. Best-effort throughout: any DB failure degrades to
+   * "behave like before" (use the active profile) rather than blocking
+   * session start.
+   */
+  private async resolveAccountProfile(): Promise<AccountProfile | null> {
+    // What the global pointer says right now — needed both as the fallback
+    // and to compute drift for the badge.
+    const active = await getActiveProfile();
+
+    let pinnedId: string | null = null;
+    try {
+      const state = await getSessionState(this.cwd, this.id);
+      if (typeof state.accountProfileId === "string" && state.accountProfileId) {
+        pinnedId = state.accountProfileId;
+      }
+    } catch {
+      // No state row / unreadable DB — treat as "never pinned".
+    }
+
+    // (1) Honor the pin when the profile is still configured.
+    if (pinnedId) {
+      const pinned = await getProfileById(pinnedId).catch(() => null);
+      if (pinned) {
+        this.accountProfileLabel = pinned.label;
+        this.accountDriftFromActive =
+          active && active.id !== pinned.id
+            ? { id: active.id, label: active.label }
+            : null;
+        return pinned;
+      }
+      // Pinned account was deleted. Fall through to the active profile and
+      // re-pin below, so we stop resolving against a dead id every start.
+    }
+
+    // (2) Fresh session (or dead pin): adopt the active profile and record
+    // it, so the NEXT start of this same session is pinned to it.
+    this.accountProfileLabel = active?.label ?? null;
+    this.accountDriftFromActive = null;
+    if (active) {
+      try {
+        await mergeSessionState(this.cwd, this.id, { accountProfileId: active.id });
+      } catch {
+        // Non-fatal: the session still runs under `active`, it just won't
+        // be pinned. Worst case is today's (pre-pinning) behavior.
+      }
+    }
+    return active;
+  }
+
+  /**
+   * Recompute whether this session is still on the globally-active account,
+   * and tell subscribers if that answer changed.
+   *
+   * Called by `SessionManager.notifyActiveAccountChanged()` when the user
+   * switches accounts on the /usage page. The running query is deliberately
+   * untouched — the SDK reads credentials once at `query()` construction, and
+   * yanking the identity out from under an in-flight conversation is exactly
+   * the behavior this whole change exists to prevent. What updates is the
+   * session's *standing*: it is now pinned to a non-default account, which is
+   * what the StatusLine badge surfaces.
+   *
+   * Without this, the warning would only appear after the session was reaped
+   * and resumed — i.e. an hour after the switch that caused it, which is
+   * precisely when the user has forgotten they switched.
+   *
+   * Broadcasts only on an actual change, so repeated switches back and forth
+   * don't spam idle tabs.
+   */
+  async refreshAccountDrift(): Promise<void> {
+    if (!this.accountProfileId || !this.accountProfileLabel) return;
+    const active = await getActiveProfile().catch(() => null);
+    const next =
+      active && active.id !== this.accountProfileId
+        ? { id: active.id, label: active.label }
+        : null;
+    const before = this.accountDriftFromActive;
+    const unchanged =
+      (before === null && next === null) ||
+      (before !== null && next !== null && before.id === next.id && before.label === next.label);
+    if (unchanged) return;
+    this.accountDriftFromActive = next;
+    this.broadcast({
+      type: "account_changed",
+      account: {
+        id: this.accountProfileId,
+        label: this.accountProfileLabel,
+        ...(next ? { driftFromActive: next } : {}),
+      },
+    });
+  }
+
+  /**
+   * Escape hatch for the pin established by `resolveAccountProfile()`:
+   * re-point this session at whatever profile is currently active.
+   *
+   * Only rewrites the persisted pin — it deliberately does NOT mutate the
+   * live query's credential, because the SDK reads env once at `query()`
+   * construction and there's no control-channel to swap it afterwards. The
+   * caller (`POST /api/sessions/[id]/account`) follows this with a
+   * restart-in-place so the new credential actually takes effect.
+   *
+   * Returns the profile now pinned, or null when no account is configured
+   * at all (nothing to move to).
+   */
+  async moveToActiveAccount(): Promise<AccountProfile | null> {
+    const active = await getActiveProfile();
+    if (!active) return null;
+    await mergeSessionState(this.cwd, this.id, { accountProfileId: active.id });
+    return active;
+  }
+
+  /**
    * Fire-once check for the token-expiring-soon nudge (CC 2.1.203 parity).
    * Runs synchronously (no I/O — `activeProfileExpiresAt` was already read
    * from disk at construction) on the first live `system:init`, mirroring
@@ -6083,6 +6336,17 @@ export class Session {
     // SDK is running with a different mode. Echoing the authoritative
     // current mode here keeps the pill correct on every reconnect.
     fn({ type: "mode_changed", mode: this.permissionMode });
+    // Re-emit the active model for the same reason. The client seeds its
+    // model pill from the SDK's `system:init` message, which sits at buffer
+    // index ~1 — any session with more turns than `tail` slices it off and
+    // the StatusLine silently drops the model label. `model` is the user's
+    // explicit pick; `sdkModel` is what the SDK resolved when none was
+    // given (the common "default model" case). `source: "sdk"` updates the
+    // pill without raising the chat-command / auto-fallback toast.
+    const effectiveModel = this.model ?? this.sdkModel;
+    if (effectiveModel) {
+      fn({ type: "model_changed", model: effectiveModel, source: "sdk" });
+    }
     // Echo the current turn status. The buffer replay only carries
     // streaming assistant chunks; on `replay_done` the client unconditionally
     // clears `pending`, which would leave the StatusLine / tab dot stuck on
@@ -6741,12 +7005,26 @@ export class Session {
     this.captureTaskState(event);
     // CC 2.1.193 — MCP needs-auth startup notice and permission-denial ring buffer.
     if (event.type === "sdk") {
-      const sdkMsg = event.message as { type?: string; subtype?: string; tool_name?: string; decision_reason_type?: string; decision_reason?: string };
+      const sdkMsg = event.message as { type?: string; subtype?: string; model?: string; tool_name?: string; decision_reason_type?: string; decision_reason?: string };
       if (sdkMsg?.type === "system") {
+        // Remember the model the SDK resolved (see the `sdkModel` doc comment)
+        // so `subscribe()` can repaint the StatusLine pill for default-model
+        // sessions whose init has fallen out of the replay window.
+        if (sdkMsg.subtype === "init" && typeof sdkMsg.model === "string" && sdkMsg.model) {
+          this.sdkModel = sdkMsg.model;
+        }
         // Fire the one-shot MCP needs-auth notice on the first live system:init.
         if (sdkMsg.subtype === "init" && !this.isReplayingTranscript) {
           void this.noteMcpNeedsAuthAtStartup();
           this.noteTokenExpiringAtStartup();
+          // `init` is the first point where the SDK tells us the model it
+          // actually resolved — which on a resume comes from the transcript,
+          // not from the model we asked for. Re-run the advisor
+          // compatibility guard against that real value; the start-time
+          // check could only see the requested model. Backstops the
+          // `PostModelSwitch` hook, which doesn't fire when the resumed
+          // model equals the one we passed in.
+          void this.enforceAdvisorModelCompatibility(sdkMsg.model);
         }
         // Capture permission_denied events into the in-memory ring buffer.
         if (sdkMsg.subtype === "permission_denied") {
