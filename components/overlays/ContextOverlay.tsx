@@ -4,7 +4,21 @@ import { useEffect, useState } from "react";
 import { Overlay } from "./Overlay";
 
 type ContextResponse = {
-  categories: { name: string; tokens: number; color: string; isDeferred?: boolean }[];
+  categories: {
+    name: string;
+    tokens: number;
+    color: string;
+    isDeferred?: boolean;
+    /**
+     * SDK 0.3.268 — classification of this row: 'used' occupies the window,
+     * 'free' is the remaining window, 'buffer' is the compaction reserve,
+     * 'deferred' rows are out-of-window tool schemas. The SDK's own doc
+     * comment says to classify on this, never on `name` (which is
+     * English/localizable prose). Optional so a CLI that predates the field
+     * still round-trips — StackedBar falls back to the old `name` check.
+     */
+    kind?: "used" | "free" | "buffer" | "deferred";
+  }[];
   totalTokens: number;
   maxTokens: number;
   rawMaxTokens: number;
@@ -285,8 +299,13 @@ function StackedBar({
   // The SDK includes "Free space" in the categories list with the full
   // remaining budget. We render that as the diagonal-stripe filler below, so
   // skip it here to avoid double-counting (and to keep the colored portion
-  // representing *used* context only).
-  const usedCategories = categories.filter((c) => c.name !== "Free space");
+  // representing *used* context only). SDK 0.3.268 added `kind` so this no
+  // longer has to string-match the (English, localizable) `name` — classify
+  // on `kind` when present, falling back to the old name check for a CLI
+  // that predates the field.
+  const usedCategories = categories.filter((c) =>
+    c.kind ? c.kind !== "free" : c.name !== "Free space",
+  );
   // Sort biggest first so the bar's widest segments lead.
   const sorted = [...usedCategories].sort((a, b) => b.tokens - a.tokens);
   return (
