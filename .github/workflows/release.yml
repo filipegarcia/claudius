@@ -537,9 +537,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-    env:
-      # See "Install yaml parser" below — `yaml` lives outside the repo tree.
-      NODE_PATH: ${{ runner.temp }}/yaml-dep/node_modules
     steps:
       - uses: actions/checkout@v5
 
@@ -556,10 +553,14 @@ jobs:
       # via --legacy-peer-deps). The crash killed this job on every release
       # for a week: the zips still uploaded, the release still published, but
       # no latest-mac.yml shipped and every mac client reported "You're on
-      # the latest version". The job-level NODE_PATH makes the isolated
-      # install visible to the inline `require("yaml")` calls below.
+      # the latest version". NODE_PATH (exported via $GITHUB_ENV — the
+      # `runner` context isn't available in job-level `env:`, which broke the
+      # workflow file outright on first attempt) makes the isolated install
+      # visible to the inline `require("yaml")` calls in later steps.
       - name: Install yaml parser
-        run: npm install --prefix "$RUNNER_TEMP/yaml-dep" --no-audit --no-fund yaml@2.9.0
+        run: |
+          npm install --prefix "$RUNNER_TEMP/yaml-dep" --no-audit --no-fund yaml@2.9.0
+          echo "NODE_PATH=$RUNNER_TEMP/yaml-dep/node_modules" >> "$GITHUB_ENV"
 
       # Both jobs upload their build artifacts under
       # `claudius-macos-<arch>`. Download into per-arch dirs so the merge
