@@ -48,6 +48,14 @@ export type ClaudiusUpdaterStatus =
    */
   | { kind: "blocked-app-management"; message: string }
   /**
+   * The newest GitHub release exists but is missing its update manifest
+   * (`latest-mac.yml` / `latest-linux.yml`). A release-pipeline failure, not
+   * "up to date" — the renderer shows a muted, dismissable notice instead of
+   * the green "You're on the latest version". `message` is the raw
+   * electron-updater error for diagnostics.
+   */
+  | { kind: "feed-unavailable"; message: string }
+  /**
    * macOS-only: an update is published but this build cannot install it in
    * place. Our certless release pipeline ad-hoc signs the macOS bundle, and
    * Squirrel.Mac refuses to swap an update that doesn't satisfy the installed

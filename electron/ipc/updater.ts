@@ -186,7 +186,13 @@ type Status =
    * prompt instead of a "restart to install" button. `url` points at the
    * GitHub Releases page carrying the DMG.
    */
-  | { kind: "manual-download"; version: string; url: string };
+  | { kind: "manual-download"; version: string; url: string }
+  /**
+   * The newest GitHub release exists but is missing its update manifest
+   * (`latest-mac.yml` etc.) — a release-pipeline failure, not "up to date".
+   * Surfaced instead of being folded into `idle`; see `isMissingReleaseManifest`.
+   */
+  | { kind: "feed-unavailable"; message: string };
 
 /**
  * Classify a raw `electron-updater` error message.
@@ -492,9 +498,14 @@ export function registerUpdaterHandlers(): void {
       .checkForUpdates()
       .catch((err) => {
         const msg = errorMessage(err);
-        // Belt-and-suspenders: any "not actually updatable" packaging state
-        // (missing feed config / update manifest) settles to idle rather than
-        // painting a red banner — or a raw stack trace — the user can't act on.
+        // A release whose manifest is missing is a pipeline failure the user
+        // should SEE (feed-unavailable). Only a genuinely absent local feed
+        // config settles to idle — a red banner / raw stack trace for a
+        // build that simply can't self-update is noise the user can't act on.
+        if (isMissingReleaseManifest(msg)) {
+          broadcast({ kind: "feed-unavailable", message: msg });
+          return;
+        }
         if (isBenignNoFeedError(msg)) {
           broadcast({ kind: "idle" });
           return;
@@ -623,8 +634,12 @@ function bootstrap(): void {
   u.on("error", (err) => {
     const msg = errorMessage(err);
     // The autoUpdater's scheduled/event-path errors bypass the
-    // checkForUpdates().catch above, so apply the same benign-state filter
-    // here — a missing update manifest must never surface to the user.
+    // checkForUpdates().catch above, so apply the same classification here:
+    // missing release manifest → feed-unavailable, absent local feed → idle.
+    if (isMissingReleaseManifest(msg)) {
+      broadcast({ kind: "feed-unavailable", message: msg });
+      return;
+    }
     if (isBenignNoFeedError(msg)) {
       broadcast({ kind: "idle" });
       return;
@@ -772,10 +787,31 @@ function applyCustomStaged(): void {
  * latest-{linux,mac,win}.yml — electron-updater reports the latter as
  * "Cannot find latest-linux.yml in the latest release artifacts ... 404".
  */
-function isBenignNoFeedError(msg: string): boolean {
-  return /app-update\.yml|latest-(?:linux|mac|win)\.yml|cannot find .* in the latest release|ENOENT|HttpError: 404/i.test(
+/**
+ * A published release exists but its update manifest (`latest-mac.yml` /
+ * `latest-linux.yml` / `latest-win.yml`) is missing: electron-updater's GitHub
+ * provider resolves the newest tag from `releases.atom`, then 404s fetching the
+ * manifest. That is a release-pipeline failure (the `macos-manifest-merge` job
+ * in release.yml died), NOT "nothing to update" — from v0.3.259.0 to v0.3.268.2
+ * every release shipped without `latest-mac.yml`, and because this case used
+ * to be folded into `isBenignNoFeedError` → `idle`, every client showed
+ * "You're on the latest version" for a week. Surface it as `feed-unavailable`
+ * so the breakage is visible. Exported for unit tests.
+ */
+export function isMissingReleaseManifest(msg: string): boolean {
+  return /cannot find .* in the latest release|latest-(?:linux|mac|win)\.yml|HttpError: 404/i.test(
     msg,
   );
+}
+
+/**
+ * Genuinely "nothing to update from": no LOCAL feed config at all
+ * (`app-update.yml` absent / ENOENT on a resource). Settles to `idle`. Must be
+ * consulted AFTER `isMissingReleaseManifest` — a remote 404 is never benign.
+ * Exported for unit tests.
+ */
+export function isBenignNoFeedError(msg: string): boolean {
+  return /app-update\.yml|ENOENT/i.test(msg);
 }
 
 function errorMessage(err: unknown): string {

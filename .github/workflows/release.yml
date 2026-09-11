@@ -537,6 +537,9 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    env:
+      # See "Install yaml parser" below — `yaml` lives outside the repo tree.
+      NODE_PATH: ${{ runner.temp }}/yaml-dep/node_modules
     steps:
       - uses: actions/checkout@v5
 
@@ -544,10 +547,19 @@ jobs:
         with:
           node-version: 22
 
-      # Pull just `yaml` — the only dependency the merge script needs.
-      # Avoids the full `bun install` on a job that does no app build.
+      # Pull just `yaml` — the only dependency the merge/verify scripts need.
+      # Installed into an ISOLATED prefix, not the repo root: `npm install
+      # <pkg>` at the root re-resolves the entire app tree (1000+ packages)
+      # just to add one library, and since v0.3.259.0 that resolution crashes
+      # npm ("Cannot read properties of null (reading 'edgesOut')" — an
+      # arborist bug on a transitive peer-dep conflict; ci.yml only survives
+      # via --legacy-peer-deps). The crash killed this job on every release
+      # for a week: the zips still uploaded, the release still published, but
+      # no latest-mac.yml shipped and every mac client reported "You're on
+      # the latest version". The job-level NODE_PATH makes the isolated
+      # install visible to the inline `require("yaml")` calls below.
       - name: Install yaml parser
-        run: npm install --no-save yaml@2.9.0
+        run: npm install --prefix "$RUNNER_TEMP/yaml-dep" --no-audit --no-fund yaml@2.9.0
 
       # Both jobs upload their build artifacts under
       # `claudius-macos-<arch>`. Download into per-arch dirs so the merge
