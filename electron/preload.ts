@@ -44,6 +44,7 @@ const TOPICS = {
   permissionMarkSeen: "permission:mark-seen",
   deepLinkOpen: "deeplink:open",
   updaterCheck: "updater:check",
+  updaterDownload: "updater:download",
   updaterApply: "updater:apply",
   updaterStatus: "updater:status",
   updaterOpenAppManagementSettings: "updater:open-app-management-settings",
@@ -70,7 +71,7 @@ function subscribe<T>(
 const api = {
   isElectron: true as const,
   platform: process.platform,
-  bridgeVersion: 8 as const,
+  bridgeVersion: 9 as const,
 
   menu: {
     on(action: string, cb: () => void): () => void {
@@ -139,6 +140,7 @@ const api = {
 
   updater: {
     check: () => ipcRenderer.send(TOPICS.updaterCheck),
+    download: () => ipcRenderer.send(TOPICS.updaterDownload),
     apply: () => ipcRenderer.send(TOPICS.updaterApply),
     onStatus: (
       cb: (
@@ -147,9 +149,11 @@ const api = {
           | { kind: "checking" }
           | { kind: "available"; version: string }
           | { kind: "downloading"; percent: number }
+          | { kind: "installing"; version: string }
           | { kind: "downloaded"; version: string }
           | { kind: "error"; message: string }
           | { kind: "blocked-app-management"; message: string }
+          | { kind: "feed-unavailable"; message: string }
           | { kind: "manual-download"; version: string; url: string },
       ) => void,
     ) => subscribe(TOPICS.updaterStatus, cb),

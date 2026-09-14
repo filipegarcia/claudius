@@ -18,6 +18,11 @@ import type { ClaudiusUpdaterStatus } from "../shared/electron";
 export type ElectronUpdaterState = {
   status: ClaudiusUpdaterStatus;
   check: () => void;
+  /**
+   * Start downloading the announced update. Nothing is fetched until this is
+   * called — the main process parks the release info and waits for consent.
+   */
+  download: () => void;
   apply: () => void;
   /**
    * Deep-link to macOS Privacy & Security → App Management so the user
@@ -47,6 +52,9 @@ export function useElectronUpdater(): ElectronUpdaterState | null {
   }, [bridge]);
 
   const check = useCallback(() => bridge?.updater.check(), [bridge]);
+  // Feature-detected like openAppManagementSettings: a renderer newer than the
+  // packaged preload would otherwise crash on an absent method.
+  const download = useCallback(() => bridge?.updater.download?.(), [bridge]);
   const apply = useCallback(() => bridge?.updater.apply(), [bridge]);
   // Guard with a runtime feature-detect — older packaged builds load a
   // preload that doesn't expose this method, and we don't want to crash
@@ -57,5 +65,5 @@ export function useElectronUpdater(): ElectronUpdaterState | null {
   );
 
   if (!bridge) return null;
-  return { status, check, apply, openAppManagementSettings };
+  return { status, check, download, apply, openAppManagementSettings };
 }

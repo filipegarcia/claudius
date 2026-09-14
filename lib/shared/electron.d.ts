@@ -36,6 +36,14 @@ export type ClaudiusUpdaterStatus =
   | { kind: "checking" }
   | { kind: "available"; version: string }
   | { kind: "downloading"; percent: number }
+  /**
+   * The zip is on disk and we are unpacking + staging the new `.app`
+   * (ditto extract, quarantine strip). Distinct from `downloading` so the
+   * update modal can render "Install" as its own step — unpacking a ~370 MB
+   * bundle takes long enough that a stalled 100% progress bar reads as a
+   * hang. Added in bridgeVersion 9.
+   */
+  | { kind: "installing"; version: string }
   | { kind: "downloaded"; version: string }
   | { kind: "error"; message: string }
   /**
@@ -216,6 +224,13 @@ export type ClaudiusBridge = {
   /** Auto-update lifecycle (phase 7). */
   updater: {
     check(): void;
+    /**
+     * Begin downloading the update the last `available` status announced.
+     * Downloads no longer start on their own: the renderer asks first, so a
+     * few-hundred-MB fetch is never kicked off behind the user's back.
+     * Added in bridgeVersion 9.
+     */
+    download(): void;
     apply(): void;
     onStatus(cb: (status: ClaudiusUpdaterStatus) => void): () => void;
     /**

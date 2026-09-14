@@ -227,14 +227,14 @@ export function UpdaterSettingsSection() {
  * restart) but in the settings-card layout, with an always-available "Check now".
  */
 function ElectronUpdaterSettings({ state }: { state: ElectronUpdaterState }) {
-  const { status, check, apply, openAppManagementSettings } = state;
+  const { status, check, download, apply, openAppManagementSettings } = state;
   return (
     <section className="rounded-lg border border-[var(--border)] bg-[var(--panel)]/40 p-4">
       <div className="flex items-baseline justify-between gap-3">
         <div>
           <h2 className="text-sm font-medium">Self-update</h2>
           <p className="mt-0.5 text-[11px] text-[var(--muted)]">
-            Desktop app — new versions download in the background and install when you restart.
+            Desktop app — you choose when to download a new version and when to restart into it.
           </p>
         </div>
         <Link
@@ -251,6 +251,16 @@ function ElectronUpdaterSettings({ state }: { state: ElectronUpdaterState }) {
           <ElectronStatusText status={status} />
         </div>
 
+        {status.kind === "available" && (
+          <button
+            onClick={download}
+            data-testid="electron-update-start-download"
+            className="flex shrink-0 items-center gap-1 rounded-md border border-emerald-500/40 bg-emerald-500/15 px-2 py-1 text-emerald-100 hover:bg-emerald-500/25"
+          >
+            <ArrowDownToLine className="h-3 w-3" />
+            Download
+          </button>
+        )}
         {status.kind === "downloaded" && (
           <button
             onClick={apply}
@@ -280,7 +290,7 @@ function ElectronUpdaterSettings({ state }: { state: ElectronUpdaterState }) {
             Privacy &amp; Security
           </button>
         )}
-        {status.kind !== "downloading" && (
+        {status.kind !== "downloading" && status.kind !== "installing" && (
           <button
             onClick={check}
             data-testid="electron-update-check"
@@ -296,7 +306,7 @@ function ElectronUpdaterSettings({ state }: { state: ElectronUpdaterState }) {
 }
 
 function ElectronStatusIcon({ kind }: { kind: ElectronUpdaterState["status"]["kind"] }) {
-  if (kind === "checking" || kind === "downloading")
+  if (kind === "checking" || kind === "downloading" || kind === "installing")
     return <Loader2 className="h-4 w-4 shrink-0 animate-spin text-[var(--accent)]" />;
   if (kind === "available" || kind === "downloaded" || kind === "manual-download")
     return <Sparkles className="h-4 w-4 shrink-0 text-emerald-400" />;
@@ -315,11 +325,14 @@ function ElectronStatusText({ status }: { status: ElectronUpdaterState["status"]
     case "available":
       return (
         <span>
-          <span className="font-medium">Claudius {status.version}</span> available — downloading…
+          <span className="font-medium">Claudius {status.version}</span> available — download when
+          you&apos;re ready.
         </span>
       );
     case "downloading":
       return <span className="font-medium">Downloading update… {status.percent}%</span>;
+    case "installing":
+      return <span className="font-medium">Installing Claudius {status.version}…</span>;
     case "downloaded":
       return (
         <span>

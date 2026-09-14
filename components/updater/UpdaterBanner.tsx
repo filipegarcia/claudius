@@ -6,6 +6,7 @@ import { ArrowDownToLine, GitMerge, Loader2, RefreshCw, ShieldAlert, Sparkles, T
 import { useUpdater } from "@/lib/client/use-updater";
 import { useElectronUpdater } from "@/lib/client/useElectronUpdater";
 import { ResolveWithClaudeModal } from "@/components/updater/ResolveWithClaudeModal";
+import { UpdateModal } from "@/components/updater/UpdateModal";
 
 // ── 24-hour conflict-banner dismissal ──────────────────────────────────────
 //
@@ -412,7 +413,16 @@ function ElectronUpdaterBanner({
 }: {
   state: ReturnType<typeof useElectronUpdater> & object;
 }) {
-  const { status, check, apply, openAppManagementSettings } = state;
+  const { status, check, download, apply, openAppManagementSettings } = state;
+  const [modalOpen, setModalOpen] = useState(false);
+  // `downloading` carries only a percent, so remember the version the
+  // `available`/`installing`/`downloaded` events named to keep the modal
+  // header stable across the whole flow.
+  const [version, setVersion] = useState<string | null>(null);
+  const statusVersion = "version" in status ? status.version : null;
+  // Adjust-during-render rather than an effect: React re-runs this component
+  // immediately with the new value, so the modal never paints a stale header.
+  if (statusVersion && statusVersion !== version) setVersion(statusVersion);
   const [dismissedError, setDismissedError] = useState<string | null>(null);
   // Per-version dismissal for the terminal "manual download" banner — read
   // once on mount so a reload doesn't bring the dismissed version back; a newer
@@ -423,47 +433,65 @@ function ElectronUpdaterBanner({
 
   if (status.kind === "idle" || status.kind === "checking") return null;
 
-  if (status.kind === "available") {
+  // One surface for the whole self-update flow. The strip is the ambient
+  // signal; the modal is where the user actually decides. Nothing downloads
+  // until they say so, and once staged the restart is on their schedule.
+  if (
+    status.kind === "available" ||
+    status.kind === "downloading" ||
+    status.kind === "installing" ||
+    status.kind === "downloaded"
+  ) {
+    const ready = status.kind === "downloaded";
+    const busy = status.kind === "downloading" || status.kind === "installing";
+    const label = ready
+      ? `Update ready: Claudius ${status.version}`
+      : status.kind === "downloading"
+        ? `Downloading update… ${status.percent}%`
+        : status.kind === "installing"
+          ? "Installing update…"
+          : `Claudius ${status.version} is available`;
     return (
-      <div
-        data-pane-name="updater-banner-electron"
-        className="flex items-center gap-2 border-b border-emerald-500/40 bg-emerald-500/10 px-4 py-1.5 text-xs"
-      >
-        <Sparkles className="h-3.5 w-3.5 shrink-0 text-emerald-400" />
-        <span className="font-medium">Claudius {status.version} is downloading…</span>
-        <span className="ml-auto text-[var(--muted)]">we&apos;ll prompt you to restart when it&apos;s ready</span>
-      </div>
-    );
-  }
-
-  if (status.kind === "downloading") {
-    return (
-      <div
-        data-pane-name="updater-banner-electron"
-        className="flex items-center gap-2 border-b border-[var(--accent)]/40 bg-[var(--accent)]/10 px-4 py-1.5 text-xs"
-      >
-        <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-[var(--accent)]" />
-        <span className="font-medium">Downloading update… {status.percent}%</span>
-      </div>
-    );
-  }
-
-  if (status.kind === "downloaded") {
-    return (
-      <div
-        data-pane-name="updater-banner-electron"
-        className="flex items-center gap-2 border-b border-emerald-500/40 bg-emerald-500/10 px-4 py-1.5 text-xs"
-      >
-        <ArrowDownToLine className="h-3.5 w-3.5 shrink-0 text-emerald-400" />
-        <span className="font-medium">Update ready: Claudius {status.version}</span>
-        <button
-          onClick={apply}
-          className="ml-auto flex items-center gap-1 rounded border border-emerald-500/40 bg-emerald-500/15 px-2 py-0.5 hover:bg-emerald-500/25"
+      <>
+        <div
+          data-pane-name="updater-banner-electron"
+          className={`flex items-center gap-2 border-b px-4 py-1.5 text-xs ${
+            busy
+              ? "border-[var(--accent)]/40 bg-[var(--accent)]/10"
+              : "border-emerald-500/40 bg-emerald-500/10"
+          }`}
         >
-          <RefreshCw className="h-3 w-3" />
-          Restart and install
-        </button>
-      </div>
+          {busy ? (
+            <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-[var(--accent)]" />
+          ) : ready ? (
+            <ArrowDownToLine className="h-3.5 w-3.5 shrink-0 text-emerald-400" />
+          ) : (
+            <Sparkles className="h-3.5 w-3.5 shrink-0 text-emerald-400" />
+          )}
+          <span className="font-medium">{label}</span>
+          <button
+            onClick={() => setModalOpen(true)}
+            data-testid="updater-open-modal"
+            className={`ml-auto flex items-center gap-1 rounded border px-2 py-0.5 ${
+              busy
+                ? "border-[var(--accent)]/40 bg-[var(--accent)]/15 hover:bg-[var(--accent)]/25"
+                : "border-emerald-500/40 bg-emerald-500/15 hover:bg-emerald-500/25"
+            }`}
+          >
+            {ready ? <RefreshCw className="h-3 w-3" /> : <ArrowDownToLine className="h-3 w-3" />}
+            {ready ? "Restart and install" : busy ? "View progress" : "View update"}
+          </button>
+        </div>
+        {modalOpen && (
+          <UpdateModal
+            status={status}
+            version={version}
+            onDownload={download}
+            onApply={apply}
+            onClose={() => setModalOpen(false)}
+          />
+        )}
+      </>
     );
   }
 
