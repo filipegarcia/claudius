@@ -33,6 +33,7 @@ describe("coerceAgentDefinition", () => {
       initialPrompt: "go",
       maxTurns: 5,
       background: true,
+      omitClaudeMd: true,
       memory: "project",
       effort: "high",
       permissionMode: "plan",
@@ -45,10 +46,24 @@ describe("coerceAgentDefinition", () => {
       initialPrompt: "go",
       maxTurns: 5,
       background: true,
+      omitClaudeMd: true,
       memory: "project",
       effort: "high",
       permissionMode: "plan",
     });
+  });
+
+  // SDK 0.3.271 — `omitClaudeMd` on AgentDefinition.
+  test("carries omitClaudeMd and drops it when not a boolean", () => {
+    expect(coerceAgentDefinition({ description: "d", prompt: "p", omitClaudeMd: true })!.omitClaudeMd).toBe(
+      true,
+    );
+    expect(coerceAgentDefinition({ description: "d", prompt: "p", omitClaudeMd: false })!.omitClaudeMd).toBe(
+      false,
+    );
+    expect(
+      coerceAgentDefinition({ description: "d", prompt: "p", omitClaudeMd: "yes" })!.omitClaudeMd,
+    ).toBeUndefined();
   });
 
   test("drops unknown keys and malformed field types (no smuggling into Options)", () => {
