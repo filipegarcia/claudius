@@ -10,6 +10,7 @@ import {
   RefreshCw,
   ShieldAlert,
   Sparkles,
+  WifiOff,
   TriangleAlert,
 } from "lucide-react";
 import { useUpdater, type UpdaterMode } from "@/lib/client/use-updater";
@@ -310,6 +311,8 @@ function ElectronStatusIcon({ kind }: { kind: ElectronUpdaterState["status"]["ki
     return <Loader2 className="h-4 w-4 shrink-0 animate-spin text-[var(--accent)]" />;
   if (kind === "available" || kind === "downloaded" || kind === "manual-download")
     return <Sparkles className="h-4 w-4 shrink-0 text-emerald-400" />;
+  if (kind === "offline") return <WifiOff className="h-4 w-4 shrink-0 text-[var(--muted)]" />;
+  if (kind === "idle") return <RefreshCw className="h-4 w-4 shrink-0 text-[var(--muted)]" />;
   if (kind === "blocked-app-management")
     return <ShieldAlert className="h-4 w-4 shrink-0 text-amber-400" />;
   if (kind === "error") return <TriangleAlert className="h-4 w-4 shrink-0 text-red-400" />;
@@ -372,7 +375,24 @@ function ElectronStatusText({ status }: { status: ElectronUpdaterState["status"]
           </span>
         </span>
       );
+    case "up-to-date":
+      return (
+        <span className="text-[var(--muted)]">
+          You&apos;re on the latest version{status.version ? ` (${status.version})` : ""}.
+        </span>
+      );
+    case "offline":
+      return (
+        <span>
+          <span className="font-medium">Couldn&apos;t reach GitHub.</span>{" "}
+          <span className="text-[var(--muted)]" title={status.message}>
+            The update check failed to connect — check your network and try again.
+          </span>
+        </span>
+      );
     default:
-      return <span className="text-[var(--muted)]">You&apos;re on the latest version.</span>;
+      // `idle` — no check has completed yet (or this build has no feed).
+      // Deliberately makes no claim about being current.
+      return <span className="text-[var(--muted)]">Not checked yet.</span>;
   }
 }

@@ -71,7 +71,7 @@ function subscribe<T>(
 const api = {
   isElectron: true as const,
   platform: process.platform,
-  bridgeVersion: 9 as const,
+  bridgeVersion: 10 as const,
 
   menu: {
     on(action: string, cb: () => void): () => void {
@@ -147,6 +147,8 @@ const api = {
         status:
           | { kind: "idle" }
           | { kind: "checking" }
+          | { kind: "up-to-date"; version: string }
+          | { kind: "offline"; message: string }
           | { kind: "available"; version: string }
           | { kind: "downloading"; percent: number }
           | { kind: "installing"; version: string }

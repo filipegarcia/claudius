@@ -181,6 +181,53 @@ describe("updater App Management classifier", () => {
   // end-to-end assertion would fight the module system. The classifier
   // is the only piece of logic that meaningfully changes between the
   // two error variants; exporting + testing it directly is honest.
+  // The exact string electron-updater surfaced when the user's wifi changed
+  // mid-check. Its wrapper text ("please ensure a production release exists")
+  // pointed at a broken release pipeline; the real cause was a dropped socket.
+  const REAL_WORLD_NETWORK_CHANGED =
+    "Cannot parse releases feed: Error: Unable to find latest version on GitHub " +
+    "(https://github.com/filipegarcia/claudius/releases/latest), please ensure a " +
+    "production release exists: Error: net::ERR_NETWORK_CHANGED at " +
+    "SimpleURLLoaderWrapper.<anonymous> (node:electron/js2c/browser_init:2:81181)";
+
+  test("transient network failure → offline, not a red error", async () => {
+    setPlatform("darwin");
+    const { classifyUpdaterError } = await import("@/electron/ipc/updater");
+    expect(classifyUpdaterError(REAL_WORLD_NETWORK_CHANGED).kind).toBe("offline");
+  });
+
+  test.each([
+    "net::ERR_INTERNET_DISCONNECTED",
+    "net::ERR_NAME_NOT_RESOLVED",
+    "net::ERR_CONNECTION_RESET",
+    "net::ERR_CONNECTION_TIMED_OUT",
+    "net::ERR_PROXY_CONNECTION_FAILED",
+    "getaddrinfo ENOTFOUND github.com",
+    "connect ECONNREFUSED 140.82.121.4:443",
+    "socket hang up",
+  ])("connectivity failure %s → offline", async (msg) => {
+    setPlatform("darwin");
+    const { classifyUpdaterError } = await import("@/electron/ipc/updater");
+    expect(classifyUpdaterError(msg).kind).toBe("offline");
+  });
+
+  test("a genuine permission denial is still blocked-app-management", async () => {
+    // Guard the ordering: the network check runs first, so it must not
+    // swallow the macOS App Management case.
+    setPlatform("darwin");
+    const { classifyUpdaterError } = await import("@/electron/ipc/updater");
+    expect(
+      classifyUpdaterError("EPERM: operation not permitted, rename '/Applications/Claudius.app'")
+        .kind,
+    ).toBe("blocked-app-management");
+  });
+
+  test("a non-network, non-permission error stays a real error", async () => {
+    setPlatform("darwin");
+    const { classifyUpdaterError } = await import("@/electron/ipc/updater");
+    expect(classifyUpdaterError("update archive is corrupt").kind).toBe("error");
+  });
+
   test("darwin EPERM → blocked-app-management", async () => {
     setPlatform("darwin");
     const { classifyUpdaterError } = await import("@/electron/ipc/updater");
@@ -220,12 +267,15 @@ describe("updater App Management classifier", () => {
     ).toBe("error");
   });
 
-  test("darwin unrelated network error stays generic error", async () => {
+  test("darwin network error is never mistaken for a permission denial", async () => {
+    // Originally asserted `error`; a connectivity failure is now classified as
+    // the retryable `offline` state instead. The load-bearing part of this test
+    // is unchanged: it must NOT come back as blocked-app-management.
     setPlatform("darwin");
     const { classifyUpdaterError } = await import("@/electron/ipc/updater");
-    expect(
-      classifyUpdaterError("net::ERR_NAME_NOT_RESOLVED github.com").kind,
-    ).toBe("error");
+    const kind = classifyUpdaterError("net::ERR_NAME_NOT_RESOLVED github.com").kind;
+    expect(kind).not.toBe("blocked-app-management");
+    expect(kind).toBe("offline");
   });
 });
 
