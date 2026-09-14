@@ -431,7 +431,17 @@ function ElectronUpdaterBanner({
     readDismissedUpdateVersion(),
   );
 
-  if (status.kind === "idle" || status.kind === "checking") return null;
+  // `offline` is deliberately silent here: a background check that failed
+  // because the network flipped is not worth a persistent red bar. It still
+  // shows (with the raw error) in Settings → Self-update, where the user went
+  // looking for it. Same for `up-to-date` — nothing to announce.
+  if (
+    status.kind === "idle" ||
+    status.kind === "checking" ||
+    status.kind === "up-to-date" ||
+    status.kind === "offline"
+  )
+    return null;
 
   // One surface for the whole self-update flow. The strip is the ambient
   // signal; the modal is where the user actually decides. Nothing downloads

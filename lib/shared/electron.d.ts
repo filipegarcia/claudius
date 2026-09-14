@@ -32,8 +32,26 @@ export type ClaudiusNotificationOpts = {
 
 /** Status events surfaced by `electron-updater` to the renderer. */
 export type ClaudiusUpdaterStatus =
+  /**
+   * Nothing known yet — emitted before the first check completes and by builds
+   * with no feed to check. Deliberately NOT a claim of being up to date; the
+   * UI must not say "you're on the latest version" for this. Added meaning in
+   * bridgeVersion 10.
+   */
   | { kind: "idle" }
   | { kind: "checking" }
+  /**
+   * A check completed and this build is the newest published one. The only
+   * state that justifies "you're on the latest version". Added in
+   * bridgeVersion 10.
+   */
+  | { kind: "up-to-date"; version: string }
+  /**
+   * The update check couldn't reach GitHub (wifi change, VPN, DNS, captive
+   * portal). Transient and retryable — not a release-pipeline failure.
+   * Added in bridgeVersion 10.
+   */
+  | { kind: "offline"; message: string }
   | { kind: "available"; version: string }
   | { kind: "downloading"; percent: number }
   /**

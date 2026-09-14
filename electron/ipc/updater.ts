@@ -179,8 +179,25 @@ const TOPIC_STATUS = "updater:status";
 const TOPIC_OPEN_APP_MANAGEMENT = "updater:open-app-management-settings";
 
 type Status =
+  /**
+   * Nothing known yet. Emitted before the first check completes and by builds
+   * that have no feed to check (dev/unpackaged). Deliberately NOT "you are up
+   * to date" — see `up-to-date` for the state that actually claims that.
+   */
   | { kind: "idle" }
   | { kind: "checking" }
+  /**
+   * A check completed and the running build is the newest published one.
+   * Split out of `idle` so the UI only claims "you're on the latest version"
+   * when a check really said so.
+   */
+  | { kind: "up-to-date"; version: string }
+  /**
+   * The check couldn't reach GitHub (wifi flip, VPN, DNS, captive portal).
+   * Transient and retryable — NOT a release-pipeline failure, and not worth a
+   * red banner. `message` is the raw error for diagnostics.
+   */
+  | { kind: "offline"; message: string }
   | { kind: "available"; version: string }
   | { kind: "downloading"; percent: number }
   /**
@@ -230,6 +247,11 @@ type Status =
  * CommonJS `require` bypasses `vi.mock`).
  */
 export function classifyUpdaterError(message: string): Status {
+  // Checked before the permission heuristics: a dropped connection is the most
+  // common failure by far and has nothing to do with the release or the OS.
+  if (isTransientNetworkError(message)) {
+    return { kind: "offline", message };
+  }
   if (process.platform === "darwin") {
     // Match EPERM/EACCES codes, the "Operation not permitted" / "not
     // permitted" strings the kernel returns, and any error that explicitly
@@ -675,7 +697,9 @@ function bootstrap(): void {
     }
     broadcast({ kind: "available", version: info.version });
   });
-  u.on("update-not-available", () => broadcast({ kind: "idle" }));
+  u.on("update-not-available", () =>
+    broadcast({ kind: "up-to-date", version: app.getVersion() }),
+  );
   u.on("download-progress", (p) =>
     broadcast({ kind: "downloading", percent: Math.round(p.percent) }),
   );
@@ -873,6 +897,28 @@ export function isMissingReleaseManifest(msg: string): boolean {
  * consulted AFTER `isMissingReleaseManifest` — a remote 404 is never benign.
  * Exported for unit tests.
  */
+/**
+ * Transient connectivity failures, as reported by Chromium's net stack (the
+ * `net::ERR_*` family, since electron-updater fetches through `electron.net`)
+ * and by Node's socket layer.
+ *
+ * These say nothing about whether a release exists — electron-updater wraps
+ * them in its own "please ensure a production release exists" text, which sent
+ * users hunting for a broken release pipeline when their wifi had simply
+ * changed networks mid-check.
+ */
+export function isTransientNetworkError(msg: string): boolean {
+  return (
+    /net::ERR_(?:NETWORK_CHANGED|INTERNET_DISCONNECTED|NAME_NOT_RESOLVED|NAME_RESOLUTION_FAILED|CONNECTION_(?:RESET|REFUSED|TIMED_OUT|CLOSED|ABORTED)|TIMED_OUT|ADDRESS_UNREACHABLE|PROXY_CONNECTION_FAILED|NETWORK_IO_SUSPENDED)/i.test(
+      msg,
+    ) ||
+    /\b(?:ENOTFOUND|ECONNRESET|ECONNREFUSED|ETIMEDOUT|EAI_AGAIN|ENETUNREACH|ENETDOWN|EHOSTUNREACH)\b/i.test(
+      msg,
+    ) ||
+    /getaddrinfo|socket hang up|network timeout|request timed out/i.test(msg)
+  );
+}
+
 export function isBenignNoFeedError(msg: string): boolean {
   return /app-update\.yml|ENOENT/i.test(msg);
 }
