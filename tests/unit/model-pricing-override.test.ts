@@ -85,6 +85,20 @@ describe("applyModelPricing", () => {
     expect(applyModelPricing(10, "x", tokens, { discountMultiplier: -1 })).toBe(10);
     expect(applyModelPricing(10, "x", tokens, { discountMultiplier: Infinity })).toBe(10);
   });
+
+  // Claude Code 2.1.271 — "Added support for a multiplier above 1, up to 10...
+  // for marked-up internal chargeback rates."
+  test("a markup multiplier above 1 scales cost up", () => {
+    expect(applyModelPricing(10, "x", tokens, { discountMultiplier: 2 })).toBe(20);
+  });
+
+  test("clamps a multiplier above 10 to 10", () => {
+    expect(applyModelPricing(10, "x", tokens, { discountMultiplier: 25 })).toBe(100);
+  });
+
+  test("a multiplier of exactly 10 is not clamped away", () => {
+    expect(applyModelPricing(10, "x", tokens, { discountMultiplier: 10 })).toBe(100);
+  });
 });
 
 describe("hasModelPricingOverride", () => {
