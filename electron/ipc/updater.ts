@@ -65,6 +65,12 @@ const RELEASE_REPO = "claudius";
  * runs the detached swap helper + relaunch instead of `quitAndInstall()`.
  */
 let customStaged: { version: string; newAppPath: string } | null = null;
+/**
+ * The update announced by the last `available` status, parked until the user
+ * consents. Downloads are no longer fire-and-forget: the mac zip is ~370 MB,
+ * so we hold the release info here and only fetch once TOPIC_DOWNLOAD arrives.
+ */
+let pendingMacUpdate: { version: string; tag?: string; files?: ReleaseFile[] } | null = null;
 
 /**
  * `electron-updater` reads its publish/feed config from `app-update.yml`,
@@ -167,6 +173,7 @@ function loadAutoUpdater(): AutoUpdater {
 }
 
 const TOPIC_CHECK = "updater:check";
+const TOPIC_DOWNLOAD = "updater:download";
 const TOPIC_APPLY = "updater:apply";
 const TOPIC_STATUS = "updater:status";
 const TOPIC_OPEN_APP_MANAGEMENT = "updater:open-app-management-settings";
@@ -176,6 +183,12 @@ type Status =
   | { kind: "checking" }
   | { kind: "available"; version: string }
   | { kind: "downloading"; percent: number }
+  /**
+   * Unpacking + staging the downloaded bundle. Its own state so the update
+   * modal can show "Install" as a distinct step — ditto on a ~370 MB bundle
+   * runs long enough that a 100% progress bar reads as a hang.
+   */
+  | { kind: "installing"; version: string }
   | { kind: "downloaded"; version: string }
   | { kind: "error"; message: string }
   | { kind: "blocked-app-management"; message: string }
@@ -514,6 +527,32 @@ export function registerUpdaterHandlers(): void {
       });
   });
 
+  // User consented to the download from the update modal. Two paths:
+  //   - darwin ad-hoc: we own the fetch (parked in `pendingMacUpdate`).
+  //   - everything else that can self-install: hand back to electron-updater,
+  //     which we deliberately left with `autoDownload = false`.
+  ipcMain.on(TOPIC_DOWNLOAD, () => {
+    if (!canUpdate) return;
+    if (pendingMacUpdate) {
+      const pending = pendingMacUpdate;
+      pendingMacUpdate = null;
+      void startMacSelfReplace(pending);
+      return;
+    }
+    if (isUnsupportedLinuxPackage() || !autoUpdateIsSafe()) {
+      // No in-place install available — the renderer shows manual-download for
+      // these, but guard anyway so a stray call can't start a doomed fetch.
+      return;
+    }
+    try {
+      void loadAutoUpdater()
+        .downloadUpdate()
+        .catch((err: unknown) => broadcast(classifyUpdaterError(errorMessage(err))));
+    } catch (err) {
+      broadcast(classifyUpdaterError(errorMessage(err)));
+    }
+  });
+
   ipcMain.on(TOPIC_APPLY, () => {
     if (!canUpdate) return;
     // macOS custom self-replace: we downloaded + staged the new bundle
@@ -587,7 +626,12 @@ function bootstrap(): void {
   // below), which drives the manual-download prompt. Always true off-darwin for
   // AppImage and on genuinely Developer ID signed macOS builds.
   const allowSelfUpdate = autoUpdateIsSafe() && !isUnsupportedLinuxPackage();
-  u.autoDownload = allowSelfUpdate;
+  // Never download unprompted, even on the paths that CAN self-install. The
+  // renderer shows "update available" and calls TOPIC_DOWNLOAD on consent, so
+  // the user is never surprised by a few-hundred-MB background fetch.
+  // `autoInstallOnAppQuit` still tracks `allowSelfUpdate`: if the user picks
+  // "Later" after staging, quitting finishes the job for free.
+  u.autoDownload = false;
   u.autoInstallOnAppQuit = allowSelfUpdate;
   // Logs go to the OS-specific log path; users can inspect via
   // /api/doctor or by opening the file directly.
@@ -613,14 +657,17 @@ function bootstrap(): void {
       // (no signing required). `startMacSelfReplace` falls back to the
       // manual-download banner if any step fails.
       if (process.platform === "darwin") {
-        void startMacSelfReplace({
+        // Park it — the renderer's update modal drives the actual fetch via
+        // TOPIC_DOWNLOAD once the user says go.
+        pendingMacUpdate = {
           version: info.version,
           // electron-updater's GitHub provider resolves the REAL tag and
           // exposes it as `GithubUpdateInfo.tag`; it is not always `v<version>`
           // (our auto-tag adds a fourth rebuild component). Use it verbatim.
           tag: (info as { tag?: string }).tag,
           files: info.files as ReleaseFile[],
-        });
+        };
+        broadcast({ kind: "available", version: info.version });
         return;
       }
       broadcast({ kind: "manual-download", version: info.version, url: RELEASES_URL });
@@ -689,6 +736,11 @@ async function startMacSelfReplace(info: {
       const got = sha512Base64(fs.readFileSync(zipPath));
       if (got !== asset.sha512) throw new Error("downloaded update failed checksum verification");
     }
+
+    // Unpack + stage. Surfaced as its own `installing` status because ditto on
+    // a ~370 MB bundle runs for a while, and a progress bar frozen at 100%
+    // looks like a hang.
+    broadcast({ kind: "installing", version: info.version });
 
     // `ditto -x -k` is the macOS-correct unzip — preserves the .app bundle
     // (symlinks, perms, signature structure) which `unzip` mangles.
