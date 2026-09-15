@@ -293,6 +293,25 @@ export type McpNeedsAuthNoticeEvent = {
 };
 
 /**
+ * One-shot notice fired when any configured MCP server is observed in
+ * `failed` state at a status check (CC 2.1.273 parity: "Added a
+ * notification when an MCP server disconnects mid-session and automatic
+ * reconnection gives up, pointing at `/mcp`"). Emitted from
+ * `Session.noteMcpDisconnectedAtStartup()`, mirroring
+ * `McpNeedsAuthNoticeEvent`'s shape and timing exactly. The client renders
+ * it as a `kind: "info"` transcript pill pointing the user at `/mcp` to
+ * reconnect. Excluded from the SSE replay buffer so a stale notice never
+ * re-pops on reload; the server's fire-once guard prevents re-emission
+ * inside one session lifetime, and `mcp-disconnected-db.ts` dedupes across
+ * session lifetimes per server.
+ */
+export type McpDisconnectedNoticeEvent = {
+  type: "mcp_disconnected_notice";
+  /** Names of the MCP servers currently observed as `failed`. */
+  servers: string[];
+};
+
+/**
  * One-shot proactive nudge fired when the active account profile's OAuth
  * token is within `TOKEN_EXPIRY_WARNING_WINDOW_MS` of expiring (CC 2.1.203
  * parity: "Added a warning when your login is about to expire, so you can
@@ -996,6 +1015,7 @@ export type ServerEvent =
   | LongContextCreditsNudgeEvent
   | AuthFailedNudgeEvent
   | McpNeedsAuthNoticeEvent
+  | McpDisconnectedNoticeEvent
   | TokenExpiringNudgeEvent
   | TipsEvent
   | CwdChangedEvent

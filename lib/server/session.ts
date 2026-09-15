@@ -85,6 +85,7 @@ import { costFromTokens } from "@/lib/shared/cost-pricing";
 import { listSessionTasks, saveSessionTask } from "./session-tasks-db";
 import { attachLoopTickTokens, recordLoopTick } from "./loop-ticks-db";
 import { syncNeedsAuthNotifications } from "./mcp-needs-auth-db";
+import { syncDisconnectedNotifications } from "./mcp-disconnected-db";
 import {
   listQueue,
   enqueueTail,
@@ -1698,6 +1699,15 @@ export class Session {
    * needs-auth episode instead of at every session launch.
    */
   private mcpNeedsAuthNoticeFired = false;
+
+  /**
+   * Fire-once-per-session guard for `noteMcpDisconnectedAtStartup()` (CC
+   * 2.1.273 parity — see that method's doc comment). Mirrors
+   * `mcpNeedsAuthNoticeFired` exactly; cross-session "already announced this
+   * server" state is persisted via `syncDisconnectedNotifications()` (see
+   * `mcp-disconnected-db.ts`).
+   */
+  private mcpDisconnectedNoticeFired = false;
 
   /**
    * Fire-once gate for the token-expiring-soon startup nudge (CC 2.1.203
@@ -5762,6 +5772,58 @@ export class Session {
   }
 
   /**
+   * Check MCP server status asynchronously on the first live `system:init`
+   * of a session for servers observed as `failed`, and broadcast a
+   * `mcp_disconnected_notice` SSE event so the client can surface a
+   * transcript info pill pointing the user at `/mcp` (CC 2.1.273 parity:
+   * "Added a notification when an MCP server disconnects mid-session and
+   * automatic reconnection gives up, pointing at `/mcp`").
+   *
+   * Conservative interpretation: the SDK's own MCP-transport auto-reconnect
+   * loop is CLI/engine-internal and Claudius has no push signal for "just
+   * gave up retrying" (`mcpServerStatus()` is a pull-based control call —
+   * see the 0.3.273 SDK run-notes, which added no such event). Rather than
+   * add a new mid-session polling timer (session.ts has none today) purely
+   * for this notice, this reuses the SAME `system:init` check points
+   * `noteMcpNeedsAuthAtStartup()` already has (fresh session start, and any
+   * resume, which re-emits `system:init`) and treats a server observed as
+   * `failed` there as the proxy for "disconnected and not self-healing".
+   * The maximal shape — a live mid-session poll that fires the instant a
+   * server flips from `connected` to `failed` — is deferred; see the
+   * cc-parity run-notes "Risks / follow-ups" for 2.1.273.
+   *
+   * Guarded by `mcpDisconnectedNoticeFired` so a re-entrant `system:init`
+   * never double-checks within the same session instance. The servers to
+   * actually announce are filtered through `syncDisconnectedNotifications()`
+   * (`mcp-disconnected-db.ts`), which persists "already announced" per
+   * server name across sessions and clears the flag once a server leaves
+   * `failed` — so a server only re-announces on a genuinely new disconnect
+   * episode, not on every session launch. The `/mcp` page's per-server
+   * status badge is unaffected — it's the standing "still failed" signal;
+   * this only dedupes the one-shot pill.
+   */
+  private async noteMcpDisconnectedAtStartup(): Promise<void> {
+    if (this.mcpDisconnectedNoticeFired) return;
+    this.mcpDisconnectedNoticeFired = true;
+    try {
+      const result = await this.mcpServerStatus();
+      if (!result.ok) return;
+      const statuses = result.data as Array<{ name?: string; status?: string }>;
+      if (!Array.isArray(statuses)) return;
+      const failed = statuses.filter((s) => s?.status === "failed");
+      const names = failed.map((s) => (typeof s?.name === "string" ? s.name : "unknown"));
+      const toAnnounce = await syncDisconnectedNotifications(this.cwd, names);
+      if (toAnnounce.length === 0) return;
+      this.broadcast({
+        type: "mcp_disconnected_notice",
+        servers: toAnnounce,
+      });
+    } catch {
+      // best-effort — a status-check failure must never disrupt the session
+    }
+  }
+
+  /**
    * Clear the advisor when it is incompatible with `model`, for the paths
    * where the model changed WITHOUT going through `setModel()`.
    *
@@ -6338,6 +6400,11 @@ export class Session {
         // has seen it (or connected the server) replaying on reload would
         // surface a potentially stale notice. Fire-once per session lifetime.
         ev.type === "mcp_needs_auth_notice" ||
+        // One-shot MCP disconnected/reconnect-gave-up notice (CC 2.1.273) —
+        // same shape as the needs-auth notice above: once the user has seen
+        // it (or the server reconnected) replaying on reload would surface
+        // a potentially stale notice. Fire-once per session lifetime.
+        ev.type === "mcp_disconnected_notice" ||
         // One-shot token-expiring-soon nudge (CC 2.1.203 parity) — same
         // shape: once the user has re-authenticated (or the warning window
         // has simply moved on), replaying on reload would surface a
@@ -7089,6 +7156,7 @@ export class Session {
         // Fire the one-shot MCP needs-auth notice on the first live system:init.
         if (sdkMsg.subtype === "init" && !this.isReplayingTranscript) {
           void this.noteMcpNeedsAuthAtStartup();
+          void this.noteMcpDisconnectedAtStartup();
           this.noteTokenExpiringAtStartup();
           // `init` is the first point where the SDK tells us the model it
           // actually resolved — which on a resume comes from the transcript,

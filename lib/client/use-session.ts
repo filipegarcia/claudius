@@ -1865,6 +1865,23 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
         ]);
         return;
       }
+      if (ev.type === "mcp_disconnected_notice") {
+        // CC 2.1.273 — inject a transcript info pill pointing the user at
+        // /mcp when a server disconnects and auto-reconnect gives up.
+        const count = ev.servers.length;
+        const names = ev.servers.join(", ");
+        const word = count === 1 ? "server has" : "servers have";
+        setSystemEntries((prev) => [
+          ...prev,
+          {
+            uuid: crypto.randomUUID(),
+            afterMessageUuid: lastAssistantUuidRef.current,
+            kind: "info" as const,
+            label: `MCP ${word} disconnected: ${names} · open /mcp to reconnect`,
+          },
+        ]);
+        return;
+      }
       if (ev.type === "tips") {
         setTips(ev.tips);
         return;
