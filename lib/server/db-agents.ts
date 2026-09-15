@@ -69,6 +69,10 @@ export function coerceAgentDefinition(input: unknown): AgentDefinition | null {
   if (typeof o.initialPrompt === "string") def.initialPrompt = o.initialPrompt;
   if (typeof o.maxTurns === "number") def.maxTurns = o.maxTurns;
   if (typeof o.background === "boolean") def.background = o.background;
+  // SDK 0.3.271 — run this agent without the user/project/local CLAUDE.md
+  // instruction files when it runs as a subagent (managed policy files still
+  // load). Same shape as `background` above.
+  if (typeof o.omitClaudeMd === "boolean") def.omitClaudeMd = o.omitClaudeMd;
   if (o.memory === "user" || o.memory === "project" || o.memory === "local") def.memory = o.memory;
   if (
     o.effort === "low" ||

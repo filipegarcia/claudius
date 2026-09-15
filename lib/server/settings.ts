@@ -356,7 +356,13 @@ export type ModelPickerSettings = {
   entries?: { id: string; label?: string }[];
 };
 
-/** The SDK's `Settings.modelPricing` shape (Claude Code 2.1.243). */
+/**
+ * The SDK's `Settings.modelPricing` shape (Claude Code 2.1.243). Claude
+ * Code 2.1.271 extended `discountMultiplier` to also accept values above 1
+ * (up to 10x) for marked-up internal chargeback rates — see
+ * `MODEL_PRICING_MULTIPLIER_MAX` in `lib/shared/cost-pricing.ts` and the
+ * clamp in `lib/server/model-pricing-override.ts#applyModelPricing`.
+ */
 export type ModelPricingSettings = {
   discountMultiplier?: number;
   rates?: Record<

@@ -38,6 +38,7 @@ import { cn } from "@/lib/utils/cn";
 import { setStatusLineCommand, setStatusLineRefreshInterval, type StatusLineConfig } from "@/lib/shared/status-line";
 import { nextWorktree, parseDirList } from "@/lib/shared/worktree-settings";
 import { STATIC_OUTPUT_STYLES } from "@/lib/shared/output-styles";
+import { MODEL_PRICING_MULTIPLIER_MAX } from "@/lib/shared/cost-pricing";
 
 const SCOPE_LABELS: Record<SettingsScope, string> = {
   user: "User",
@@ -1801,11 +1802,21 @@ function ModelPickerCatalogField({
 
 /**
  * Custom catalog row for `modelPricing` (Claude Code 2.1.243) — an
- * organization's contracted per-model $/MT rates and a discount
- * multiplier, applied on the Cost page instead of LiteLLM list price.
- * Same reasoning as `ModelPickerCatalogField` above for why this gets a
- * bespoke editor instead of the generic scalar inputs. Rate math lives in
+ * organization's contracted per-model $/MT rates and a pricing multiplier,
+ * applied on the Cost page instead of LiteLLM list price. Same reasoning as
+ * `ModelPickerCatalogField` above for why this gets a bespoke editor
+ * instead of the generic scalar inputs. Rate math lives in
  * `lib/server/model-pricing-override.ts`.
+ *
+ * Claude Code 2.1.271 extended the multiplier from a discount-only knob
+ * (< 1) to also cover markup, up to {@link MODEL_PRICING_MULTIPLIER_MAX}x,
+ * for internal chargeback rates — the field is relabelled "Pricing
+ * multiplier" (was "Discount multiplier"). The input itself commits
+ * whatever's typed unclamped (a managed settings.json can set a value
+ * outside this ceiling directly too); an out-of-range value surfaces an
+ * inline warning instead, and the ceiling is enforced only where cost is
+ * actually computed (`applyModelPricing` in
+ * `lib/server/model-pricing-override.ts`).
  */
 function ModelPricingCatalogField({
   value,
@@ -1823,7 +1834,12 @@ function ModelPricingCatalogField({
 
   const commit = (next: ModelPricingSettings) => {
     const hasRates = next.rates && Object.keys(next.rates).length > 0;
-    const hasDiscount = typeof next.discountMultiplier === "number" && next.discountMultiplier > 0;
+    // Any explicitly-typed number counts as "set", including 0/negative —
+    // those are invalid (ignored by `applyModelPricing`) but the field
+    // still needs to hold and show them with the warning below, rather
+    // than silently discarding the keystroke and reverting to blank.
+    const hasDiscount =
+      typeof next.discountMultiplier === "number" && Number.isFinite(next.discountMultiplier);
     set(hasRates || hasDiscount ? next : undefined);
   };
 
@@ -1861,20 +1877,61 @@ function ModelPricingCatalogField({
         </span>
       </div>
       <p className="mb-2 text-[11px] leading-4 text-[var(--muted)]">
-        Organization-contracted per-model $/MT rates and/or a discount multiplier, used on the
+        Organization-contracted per-model $/MT rates and/or a pricing multiplier, used on the
         Cost page instead of LiteLLM list price where a rate matches.
       </p>
-      <div className="mb-3 flex items-center gap-2 text-[11px]">
-        <span className="text-[var(--muted)]">Discount multiplier:</span>
+      <div className="mb-1 flex items-center gap-2 text-[11px]">
+        <span className="text-[var(--muted)]">Pricing multiplier:</span>
         <div className="w-20">
-          {numInput(
-            "model-pricing-discount",
-            current.discountMultiplier,
-            (n) => commit({ ...current, discountMultiplier: n }),
-            "0.9",
-          )}
+          <input
+            data-testid="model-pricing-discount"
+            type="number"
+            step="0.01"
+            min="0"
+            max={MODEL_PRICING_MULTIPLIER_MAX}
+            value={current.discountMultiplier ?? ""}
+            placeholder="0.9"
+            onChange={(e) => {
+              if (e.target.value === "") {
+                commit({ ...current, discountMultiplier: undefined });
+                return;
+              }
+              // Commit the raw typed value, same as every sibling numeric
+              // field in this catalog (the rate inputs via `numInput` below
+              // never clamp either). A managed settings.json can also write
+              // a value above the ceiling directly — clamping in place here
+              // would both fight mid-typing keystrokes (typing "100" digit
+              // by digit gets stuck at "10") AND silently overwrite a value
+              // this field never set, hiding what was actually configured.
+              // The warning below surfaces the *effective* value instead;
+              // `applyModelPricing` is the one place that actually enforces
+              // the ceiling.
+              const n = Number(e.target.value);
+              if (!Number.isNaN(n)) commit({ ...current, discountMultiplier: n });
+            }}
+            className="w-full min-w-0 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-1.5 py-1 font-mono text-[10px] focus:outline-none"
+          />
         </div>
       </div>
+      {typeof current.discountMultiplier === "number" &&
+        Number.isFinite(current.discountMultiplier) &&
+        (current.discountMultiplier > MODEL_PRICING_MULTIPLIER_MAX ||
+          current.discountMultiplier <= 0) && (
+          <div
+            data-testid="model-pricing-discount-warning"
+            className="mb-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[10px] text-amber-300"
+          >
+            {current.discountMultiplier <= 0
+              ? "0 or negative — ignored; the base cost is used unmultiplied."
+              : `Effective: ${MODEL_PRICING_MULTIPLIER_MAX}x — values above ${MODEL_PRICING_MULTIPLIER_MAX} clamp to it on the Cost page.`}
+          </div>
+        )}
+      <p className="mb-3 text-[10px] leading-4 text-[var(--muted)]">
+        0.1–{MODEL_PRICING_MULTIPLIER_MAX} — e.g. 0.9 for a 10% discount, or up to{" "}
+        {MODEL_PRICING_MULTIPLIER_MAX}x for a marked-up internal chargeback rate (stored as the{" "}
+        <code>discountMultiplier</code> key). Values above {MODEL_PRICING_MULTIPLIER_MAX} clamp to
+        it.
+      </p>
       <ul className="space-y-2">
         {rateEntries.map(([model, rate], i) => (
           <li key={i} className="rounded border border-[var(--border)] p-2">

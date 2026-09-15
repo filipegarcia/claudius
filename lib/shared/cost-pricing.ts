@@ -72,3 +72,16 @@ export function costFromTokens(model: string | undefined, t: TokenBreakdown): nu
     1_000_000
   );
 }
+
+/**
+ * Ceiling for the `modelPricing.discountMultiplier` setting (Claude Code
+ * 2.1.271 — "Added support for a multiplier above 1, up to 10, in the
+ * modelPricing managed setting... for marked-up internal chargeback
+ * rates"). Originally (2.1.243) the field only had to support a *discount*
+ * (< 1); this release extends it to a markup use case, capped at 10x.
+ * Shared between the server-side clamp (`lib/server/model-pricing-override.ts`)
+ * and the client-side Settings input (`app/settings/page.tsx`) so both sides
+ * agree on the same ceiling without either importing the other's module
+ * (the override module is `lib/server/`-only; this file is browser-safe).
+ */
+export const MODEL_PRICING_MULTIPLIER_MAX = 10;

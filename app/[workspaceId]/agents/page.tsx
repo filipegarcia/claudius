@@ -38,6 +38,7 @@ model: claude-opus-4-7
 # effort: high                 # low | medium | high | xhigh | max
 # maxTurns: 20                 # cap agentic round-trips before stopping
 # background: false            # run as a non-blocking background task when invoked
+# omitClaudeMd: false          # run without user/project/local CLAUDE.md files (managed policy files still load)
 # memory: project              # user | project | local — auto-load agent memory
 # isolation: worktree         # run the agent in a temporary git worktree (isolated copy of the repo)
 # permissionMode: default      # default | acceptEdits | bypassPermissions | plan | dontAsk
@@ -370,6 +371,7 @@ export default function AgentsPage() {
                         model?: string;
                         effort?: string | number;
                         background?: boolean;
+                        omitClaudeMd?: boolean;
                         memory?: string;
                         maxTurns?: number;
                         permissionMode?: string;
@@ -382,6 +384,10 @@ export default function AgentsPage() {
                       const metaBadges: string[] = [];
                       if (fm.effort != null) metaBadges.push(`effort ${fm.effort}`);
                       if (fm.background === true) metaBadges.push("background");
+                      // SDK 0.3.271 — `omitClaudeMd` frontmatter key: run without the
+                      // user/project/local CLAUDE.md files when this agent runs as a
+                      // subagent (managed policy files still load).
+                      if (fm.omitClaudeMd === true) metaBadges.push("no CLAUDE.md");
                       if (fm.memory) metaBadges.push(`mem:${fm.memory}`);
                       if (fm.isolation === "worktree") metaBadges.push("worktree");
                       if (typeof fm.maxTurns === "number") metaBadges.push(`≤${fm.maxTurns} turns`);
@@ -437,6 +443,7 @@ export default function AgentsPage() {
                                 {metaBadges.map((b) => (
                                   <span
                                     key={b}
+                                    data-testid="agent-meta-badge"
                                     className="rounded-md border border-[var(--border)] bg-[var(--panel-2)]/60 px-1 py-0.5 text-[9px] text-[var(--muted)]"
                                   >
                                     {b}

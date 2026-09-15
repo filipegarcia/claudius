@@ -21,6 +21,7 @@ import { SessionNotifyMenu } from "./SessionNotifyMenu";
 import { WorkspaceIcon } from "@/components/workspaces/WorkspaceIcon";
 import { useWorkspaces } from "@/lib/client/useWorkspaces";
 import { formatElapsed, useElapsedSeconds } from "@/lib/client/use-elapsed";
+import { workingStatusLabel } from "@/lib/shared/turn-status-label";
 import type { FocusLevel } from "@/lib/client/useFocusMode";
 import { cn } from "@/lib/utils/cn";
 import { worktreeBadge } from "@/lib/client/worktree";
@@ -217,12 +218,6 @@ export function StatusLine({
       : status === "background"
       ? "text-sky-400"
       : "text-emerald-400";
-  // Rendered label. Kept out of CSS `capitalize` so `textContent` matches what
-  // the user sees (the turn-status e2e specs assert on exact text).
-  const statusLabel =
-    status === "background"
-      ? `Idle · ${backgroundTasks} running`
-      : status.charAt(0).toUpperCase() + status.slice(1);
 
   // CC 2.1.246 parity — "added the turn's completion time to the end-of-turn
   // duration line". Live "Ns" ticker while the turn is running; once it
@@ -231,6 +226,19 @@ export function StatusLine({
   // it — the turn-status e2e specs assert exact text on that span (see
   // `tests/e2e/turn-status.spec.ts`).
   const turnElapsedSec = useElapsedSeconds(turnStartedAt ?? undefined, status === "working");
+
+  // Rendered label. Kept out of CSS `capitalize` so `textContent` matches what
+  // the user sees (the turn-status e2e specs assert on exact text).
+  // CC 2.1.271 parity — "Improved the spinner status during long thinking:
+  // it now reads 'deep in thought' after 45s" — swaps the "Working" text
+  // once `turnElapsedSec` crosses the threshold. See `workingStatusLabel`.
+  const statusLabel =
+    status === "background"
+      ? `Idle · ${backgroundTasks} running`
+      : status === "working"
+      ? workingStatusLabel(turnElapsedSec)
+      : status.charAt(0).toUpperCase() + status.slice(1);
+
   const doneAt =
     status !== "working" && typeof lastTurnCompletedAt === "number"
       ? new Date(lastTurnCompletedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
@@ -338,7 +346,18 @@ export function StatusLine({
         title={
           status === "background"
             ? `${backgroundTasks} background ${backgroundTasks === 1 ? "task is" : "tasks are"} still running — the turn is idle but work continues. See the Activity panel.`
-            : undefined
+            : // CC 2.1.271 parity: give the "Deep in thought" swap an explanatory
+              // tooltip — the elapsed-time chip that would otherwise clarify it
+              // hides below the `@3xl/statusline` breakpoint on a narrow chat
+              // pane (see the elapsed chip below), so the label alone needs to
+              // stand on its own. Every other non-obvious StatusLine pill
+              // (worktree, model-deprecation, fast-mode, context, background)
+              // already carries a `title` — this keeps the same convention.
+              statusLabel === "Deep in thought"
+              ? `Still working — this turn has been running for ${
+                  typeof turnElapsedSec === "number" ? formatElapsed(turnElapsedSec) : "a while"
+                } without a break.`
+              : undefined
         }
       >
         {statusLabel}
