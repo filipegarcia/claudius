@@ -166,6 +166,25 @@ const TASK_TONES: Record<string, string> = {
 };
 
 /**
+ * Short status label for a task row, with a `(restarted)` suffix when the
+ * SDK reported `reason: "worker_restart"` (0.3.273) — a "stopped" task that
+ * didn't stop because of the user or the agent, but because the worker
+ * process itself restarted and found the task orphaned on resume. Worth
+ * distinguishing from a normal stop so the user doesn't read it as
+ * something they (or the agent) did.
+ */
+function taskStatusLabel(t: TaskInfo): string {
+  return t.reason === "worker_restart" ? `${t.status} (restarted)` : t.status;
+}
+
+/** Tooltip text explaining a `worker_restart` status, undefined otherwise. */
+function taskStatusTitle(t: TaskInfo): string | undefined {
+  return t.reason === "worker_restart"
+    ? "Stopped because the background worker process restarted and found this task orphaned — not a user or agent action."
+    : undefined;
+}
+
+/**
  * Row icon that reflects the task's *kind*, not a generic agent glyph: a
  * background shell gets a terminal, a monitor gets the activity pulse, and
  * agentic work (subagents / workflows) keeps the bot. Used anywhere a task
@@ -613,7 +632,13 @@ export function BackgroundTasksPanel({
                         L{t.spawnDepth}
                       </span>
                     )}
-                    <span className="ml-auto text-[10px]">{t.status}</span>
+                    <span
+                      data-testid="task-status"
+                      className="ml-auto text-[10px]"
+                      title={taskStatusTitle(t)}
+                    >
+                      {taskStatusLabel(t)}
+                    </span>
                     {sessionId && (
                       <button
                         onClick={() => stopTask(t.taskId)}
@@ -785,7 +810,13 @@ export function BackgroundTasksPanel({
                         <span className="truncate font-mono">
                           {t.workflowName ?? t.taskType ?? "Process"}
                         </span>
-                        <span className="ml-auto text-[10px]">{t.status}</span>
+                        <span
+                          data-testid="task-status"
+                          className="ml-auto text-[10px]"
+                          title={taskStatusTitle(t)}
+                        >
+                          {taskStatusLabel(t)}
+                        </span>
                         {sessionId && (
                           <button
                             onClick={() => stopTask(t.taskId)}
@@ -837,7 +868,9 @@ export function BackgroundTasksPanel({
                   <div className="flex items-center gap-1.5">
                     <Icon className="h-3 w-3" />
                     <span className="truncate font-mono">{t.description}</span>
-                    <span className="ml-auto">{t.status}</span>
+                    <span data-testid="task-status" className="ml-auto" title={taskStatusTitle(t)}>
+                      {taskStatusLabel(t)}
+                    </span>
                   </div>
                 </li>
                 );

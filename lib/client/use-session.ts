@@ -1865,6 +1865,29 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
         ]);
         return;
       }
+      if (ev.type === "mcp_disconnected_notice") {
+        // CC 2.1.273 — inject a transcript info pill pointing the user at
+        // /mcp when a server is observed `failed`. Deliberately worded as
+        // "unavailable" rather than "disconnected": the pull-based status
+        // check this proxies (see Session.noteMcpDisconnectedAtStartup())
+        // can't distinguish a server that dropped mid-session and gave up
+        // reconnecting from one that never connected in the first place
+        // (bad command, dead URL, etc.) — "disconnected … reconnect" would
+        // be factually wrong for the latter, much more common case.
+        const count = ev.servers.length;
+        const names = ev.servers.join(", ");
+        const word = count === 1 ? "server is" : "servers are";
+        setSystemEntries((prev) => [
+          ...prev,
+          {
+            uuid: crypto.randomUUID(),
+            afterMessageUuid: lastAssistantUuidRef.current,
+            kind: "info" as const,
+            label: `MCP ${word} unavailable: ${names} · open /mcp to check`,
+          },
+        ]);
+        return;
+      }
       if (ev.type === "tips") {
         setTips(ev.tips);
         return;
@@ -2139,6 +2162,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
               summary: t.summary,
               error: t.error,
               resourceLinks: t.resourceLinks,
+              reason: t.reason,
             };
             changed = true;
           }
@@ -3857,6 +3881,9 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
             // SDK 0.3.257 — files an auto-backgrounded MCP tool call returned
             // by reference, joined to this notification via tool_use_id.
             resource_links?: TaskResourceLink[];
+            // SDK 0.3.273 — set only when a worker-process restart orphaned
+            // the task (always alongside status: "stopped").
+            reason?: "worker_restart";
           };
           setTasks((prev) => {
             // Authoritative cleanup: a notification can arrive WITHOUT a prior
@@ -3887,6 +3914,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
                 // task_started already seeded when this notification omits it.
                 ambient: t.ambient ?? base.ambient,
                 resourceLinks: t.resource_links ?? base.resourceLinks,
+                reason: t.reason ?? base.reason,
               },
             };
           });
