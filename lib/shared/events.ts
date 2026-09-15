@@ -300,7 +300,10 @@ export type McpNeedsAuthNoticeEvent = {
  * `Session.noteMcpDisconnectedAtStartup()`, mirroring
  * `McpNeedsAuthNoticeEvent`'s shape and timing exactly. The client renders
  * it as a `kind: "info"` transcript pill pointing the user at `/mcp` to
- * reconnect. Excluded from the SSE replay buffer so a stale notice never
+ * check on the server — worded "unavailable", not "disconnected", because
+ * a single point-in-time `failed` read can't distinguish a mid-session
+ * drop from a server that never connected at all. Excluded from the SSE
+ * replay buffer so a stale notice never
  * re-pops on reload; the server's fire-once guard prevents re-emission
  * inside one session lifetime, and `mcp-disconnected-db.ts` dedupes across
  * session lifetimes per server.

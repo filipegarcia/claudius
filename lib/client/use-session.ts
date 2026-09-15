@@ -1867,17 +1867,23 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
       }
       if (ev.type === "mcp_disconnected_notice") {
         // CC 2.1.273 — inject a transcript info pill pointing the user at
-        // /mcp when a server disconnects and auto-reconnect gives up.
+        // /mcp when a server is observed `failed`. Deliberately worded as
+        // "unavailable" rather than "disconnected": the pull-based status
+        // check this proxies (see Session.noteMcpDisconnectedAtStartup())
+        // can't distinguish a server that dropped mid-session and gave up
+        // reconnecting from one that never connected in the first place
+        // (bad command, dead URL, etc.) — "disconnected … reconnect" would
+        // be factually wrong for the latter, much more common case.
         const count = ev.servers.length;
         const names = ev.servers.join(", ");
-        const word = count === 1 ? "server has" : "servers have";
+        const word = count === 1 ? "server is" : "servers are";
         setSystemEntries((prev) => [
           ...prev,
           {
             uuid: crypto.randomUUID(),
             afterMessageUuid: lastAssistantUuidRef.current,
             kind: "info" as const,
-            label: `MCP ${word} disconnected: ${names} · open /mcp to reconnect`,
+            label: `MCP ${word} unavailable: ${names} · open /mcp to check`,
           },
         ]);
         return;

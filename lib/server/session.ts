@@ -5792,6 +5792,14 @@ export class Session {
    * server flips from `connected` to `failed` — is deferred; see the
    * cc-parity run-notes "Risks / follow-ups" for 2.1.273.
    *
+   * Because this reads `failed` at a single point in time rather than
+   * watching a `connected` → `failed` transition, it can't tell "dropped
+   * mid-session and gave up reconnecting" apart from "never connected in
+   * the first place" (bad command, dead URL, etc.) — the far more common
+   * case at a fresh `system:init`. The broadcast event and pill copy are
+   * deliberately worded "unavailable"/"check", not "disconnected"/
+   * "reconnect", so the notice stays accurate for both cases.
+   *
    * Guarded by `mcpDisconnectedNoticeFired` so a re-entrant `system:init`
    * never double-checks within the same session instance. The servers to
    * actually announce are filtered through `syncDisconnectedNotifications()`

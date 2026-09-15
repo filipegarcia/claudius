@@ -20,6 +20,12 @@
  * followed immediately by `{ type: "mcp_disconnected_notice", servers:
  * ["linear"] }`. The client's `applyEvent()` handler processes the latter
  * and calls `setSystemEntries()`, producing the visible info pill.
+ *
+ * The pill reads "unavailable" / "check", not "disconnected" / "reconnect":
+ * the server-side `failed` read this proxies is a single point-in-time
+ * status check that can't distinguish a mid-session drop from a server
+ * that never connected in the first place — see
+ * `Session.noteMcpDisconnectedAtStartup()`'s doc comment.
  */
 import { test, expect } from "../helpers/test";
 
@@ -136,15 +142,15 @@ test.describe("CC 2.1.273 — MCP disconnected / reconnect-gave-up notice", () =
     page,
   }) => {
     // The info pill text should contain the server name and the /mcp hint.
-    const pill = page.getByText(/MCP server has disconnected.*linear/i);
+    const pill = page.getByText(/MCP server is unavailable.*linear/i);
     await expect(pill).toBeVisible({ timeout: 15_000 });
-    await expect(pill).toContainText("open /mcp to reconnect");
+    await expect(pill).toContainText("open /mcp to check");
   });
 
   test("screenshot — MCP disconnected notice pill in chat transcript (CC 2.1.273)", async ({
     page,
   }) => {
-    await expect(page.getByText(/MCP server has disconnected.*linear/i)).toBeVisible({
+    await expect(page.getByText(/MCP server is unavailable.*linear/i)).toBeVisible({
       timeout: 15_000,
     });
     await page.screenshot({
