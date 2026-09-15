@@ -2230,6 +2230,19 @@ export class Session {
         // user timestamp + 1ms-per-step so successive assistants in a turn
         // stay in their original order.
         let carriedAt: number | undefined;
+        // Per-message failure isolation. `broadcast()` fans out into
+        // `captureSnapshotState`, `captureTaskState` and assorted DB writes,
+        // and `trackScheduledLoops` parses arbitrary tool inputs off disk —
+        // a wide surface over records written by *any* CC version. This loop
+        // used to sit bare inside the enclosing try/catch, so a single
+        // throwing record aborted the replay and silently dropped EVERY
+        // later message: the buffer kept only the prefix, and the user came
+        // back to a transcript that just stopped mid-turn with its tool rows
+        // frozen on the running spinner (their `tool_result` was in the
+        // dropped tail). Losing one malformed record is survivable; losing
+        // the rest of the conversation is not.
+        let replayFailures = 0;
+        let firstReplayError: string | undefined;
         for (const m of historical) {
           const ts = (m as { timestamp?: string }).timestamp;
           const parsed = typeof ts === "string" ? Date.parse(ts) : NaN;
@@ -2242,28 +2255,40 @@ export class Session {
             at = carriedAt;
           }
           const sdk = m as unknown as SDKMessage;
-          this.broadcast({ type: "sdk", message: sdk, at });
-          // Replay disk-resident tool_use / tool_result blocks through the
-          // loop tracker too — without this, a session resumed from JSONL
-          // would have a populated client rail (which observes the rebroadcast
-          // SSE events) but an empty server-side store, breaking
-          // `/api/schedule/session-loops` for any pre-existing loops.
-          // Pass `at` so the entry's `startedAt` is the original arming
-          // time from the JSONL timestamp, not the moment of replay.
-          this.trackScheduledLoops(sdk, at);
+          try {
+            this.broadcast({ type: "sdk", message: sdk, at });
+            // Replay disk-resident tool_use / tool_result blocks through the
+            // loop tracker too — without this, a session resumed from JSONL
+            // would have a populated client rail (which observes the rebroadcast
+            // SSE events) but an empty server-side store, breaking
+            // `/api/schedule/session-loops` for any pre-existing loops.
+            // Pass `at` so the entry's `startedAt` is the original arming
+            // time from the JSONL timestamp, not the moment of replay.
+            this.trackScheduledLoops(sdk, at);
+          } catch (err) {
+            replayFailures++;
+            if (firstReplayError === undefined) {
+              firstReplayError = err instanceof Error ? err.message : String(err);
+            }
+          }
+        }
+        if (replayFailures > 0) {
+          // Unconditional (not gated on `sessLoadDebug()`): this is silent
+          // transcript corruption and it needs to be visible in the server log
+          // without the user first knowing to set CLAUDIUS_DEBUG_SESSIONS.
+          console.warn(
+            `[session] ${this.id}: skipped ${replayFailures}/${historical.length} unreadable message(s) during transcript replay — first error: ${firstReplayError}`,
+          );
         }
         usageSeedHistorical = historical;
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
-        if (sessLoadDebug()) {
-
-          console.warn("[sess-load] start.resume loadHistorical FAILED", {
-            id: this.id,
-            resumeFrom: this.resumeFrom,
-            cwd: this.cwd,
-            err: message,
-          });
-        }
+        // Unconditional: reaching here means the chat renders with NO history
+        // at all while the JSONL on disk is intact. That's the loudest failure
+        // in this file and it shouldn't require CLAUDIUS_DEBUG_SESSIONS to see.
+        console.warn(
+          `[session] ${this.id}: failed to load transcript history from ${this.cwd} (resumeFrom=${this.resumeFrom}) — ${message}`,
+        );
         this.broadcast({ type: "error", message: `Failed to load session history: ${message}` });
       }
       // Pull the persisted title. Our index is authoritative because it

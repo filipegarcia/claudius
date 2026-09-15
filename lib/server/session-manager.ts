@@ -52,6 +52,27 @@ export class SessionManager {
    * session, where each successful turn clears the budget.
    */
   private thinkingRecoveryAttempts = new Map<string, number>();
+  /**
+   * In-flight `create()` calls keyed by the session id being built, published
+   * for the whole duration of `session.start()`.
+   *
+   * Returning to a workspace fires several `[id]`-keyed requests at once (the
+   * SSE stream plus pollers like `/context` and `/todos`, all routed through
+   * `getOrResumeSession`). Before this map existed, `create()` published the
+   * Session into `this.sessions` *before* awaiting `start()`, so whichever
+   * request lost the race got handed a session whose replay buffer was still
+   * being filled from the JSONL — and `subscribe()` then replayed that PARTIAL
+   * buffer. That's the "came back to my workspace and the chat is truncated /
+   * empty, but `claude --resume` shows everything" bug: the transcript on disk
+   * was always complete, playback just started too early. (Worse, two
+   * simultaneous misses each ran `new Session()` and the second `sessions.set`
+   * silently orphaned the first, leaving the SSE subscriber bound to a Session
+   * nothing else would ever broadcast to.)
+   *
+   * Concurrent callers now await the SAME promise and every one of them gets a
+   * fully-started session with a complete buffer.
+   */
+  private starting = new Map<string, Promise<Session>>();
 
   async create(opts: CreateSessionRequest = {}): Promise<Session> {
     // Idempotent resume: if the caller is resuming an id we already have
@@ -68,30 +89,53 @@ export class SessionManager {
         this.cancelReap(opts.resume);
         return existing;
       }
+      // Rebuild already under way for this id — join it instead of starting a
+      // second one. See the `starting` doc comment.
+      const inFlight = this.starting.get(opts.resume);
+      if (inFlight) return inFlight;
     }
     const session = new Session(opts);
-    this.sessions.set(session.id, session);
 
-    // Wire idle reaping: when subscribers drop to 0, schedule end() after
-    // the grace window. New subscribers cancel the timer.
-    const unsubscribe = session.onSubscriberCountChange((count) => {
-      this.handleSubscriberCount(session.id, count);
-    });
-    this.subscriberWatchers.set(session.id, unsubscribe);
+    // Publish the in-flight promise BEFORE the first await so a concurrent
+    // `create()` for the same id can't slip past the check above.
+    const startPromise = (async () => {
+      // Await start() so historical messages are buffered before the session
+      // becomes reachable. The client's SSE subscribe then replays the full
+      // transcript on bind, instead of catching only events that arrive after
+      // connect — or, worse, a half-replayed buffer.
+      await session.start();
 
-    // Sessions are created with 0 subscribers; the client's POST → SSE
-    // round-trip happens in milliseconds. Arm the initial timer so a session
-    // that's created and then immediately abandoned (e.g. POST succeeds, the
-    // browser tab is closed before the SSE opens) doesn't leak the SDK
-    // process forever.
-    this.scheduleReap(session.id);
+      // Only now is the session safe to hand out via `get()`.
+      this.sessions.set(session.id, session);
 
-    // Await start() so historical messages are buffered before the route
-    // handler returns the id to the client. The client's SSE subscribe will
-    // then replay the full transcript on bind, instead of catching only
-    // events that arrive after connect.
-    await session.start();
-    return session;
+      // Wire idle reaping: when subscribers drop to 0, schedule end() after
+      // the grace window. New subscribers cancel the timer.
+      const unsubscribe = session.onSubscriberCountChange((count) => {
+        this.handleSubscriberCount(session.id, count);
+      });
+      this.subscriberWatchers.set(session.id, unsubscribe);
+
+      // Sessions are created with 0 subscribers; the client's POST → SSE
+      // round-trip happens in milliseconds. Arm the initial timer so a session
+      // that's created and then immediately abandoned (e.g. POST succeeds, the
+      // browser tab is closed before the SSE opens) doesn't leak the SDK
+      // process forever.
+      this.scheduleReap(session.id);
+      return session;
+    })();
+
+    this.starting.set(session.id, startPromise);
+    try {
+      return await startPromise;
+    } catch (err) {
+      // start() failed, so the session was never registered and nothing will
+      // ever call `remove()` on it. Tear down whatever the SDK managed to
+      // spawn rather than leaking the child process, then surface the error.
+      await session.end().catch(() => {});
+      throw err;
+    } finally {
+      this.starting.delete(session.id);
+    }
   }
 
   get(id: string): Session | undefined {
