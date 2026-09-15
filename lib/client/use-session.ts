@@ -203,6 +203,20 @@ export function rateLimitTypeFromText(
 }
 
 /**
+ * SDK 0.3.269 — `resume_reason` values, mirroring the host's
+ * `CLAUDE_CODE_RESUME_REASON` env var when it set one, else the SDK's own
+ * `interrupted_turn` fallback. Exported for the unit test; unrecognized
+ * values (a future reason the SDK adds) fall back to the raw string so the
+ * pill still shows *something* meaningful rather than going blank.
+ */
+export const RESUME_REASON_LABELS: Record<string, string> = {
+  interrupted_turn: "the session process restarted mid-turn",
+  host_draining: "the host was draining for maintenance",
+  checkpoint_restore: "the session was restored from a checkpoint",
+  container_recreated: "the session container was recreated",
+};
+
+/**
  * Detect the Opus-4 high-demand banner the Anthropic backend emits as
  * assistant prose. The CLI strings are
  *   "We are experiencing high demand for Opus 4."
@@ -592,7 +606,21 @@ function summarizeEventForDebug(ev: unknown): string {
   return `[sdk:${m.type} msg.id=…${mid} wrap=…${wrap} at=${e.at ?? "-"}]${parent} ${blocks.join(" ")}`;
 }
 
-function extractToolResult(content: unknown): { tool_use_id: string; text: string; isError?: boolean } | null {
+/**
+ * @param toolUseResult The wrapper `SDKUserMessage`'s `tool_use_result` —
+ *   "Structured tool output — the tool's full Output object, not the string
+ *   content sent to the model" (sdk.d.ts). SDK 0.3.272 added `staged` to
+ *   `FileEditOutput`/`FileWriteOutput`: true when the edit/write was held for
+ *   review instead of applied (file unchanged on disk). Earlier code tried to
+ *   recover this by `JSON.parse`-ing `tr.content` — wrong: real Edit/Write
+ *   `tool_result.content` is plain prose ("The file ... has been updated
+ *   successfully."), never JSON. The structured object lives here instead,
+ *   as a sibling of `content` on the message, not inside it.
+ */
+function extractToolResult(
+  content: unknown,
+  toolUseResult?: unknown,
+): { tool_use_id: string; text: string; isError?: boolean; staged?: boolean } | null {
   if (!Array.isArray(content)) return null;
   for (const raw of content as SDKContentBlock[]) {
     if (raw.type === "tool_result") {
@@ -603,7 +631,11 @@ function extractToolResult(content: unknown): { tool_use_id: string; text: strin
         text = tr.content
           .map((c) => (typeof c === "object" && c && "text" in c ? c.text ?? "" : ""))
           .join("");
-      return { tool_use_id: tr.tool_use_id, text, isError: tr.is_error };
+      const staged =
+        !!toolUseResult &&
+        typeof toolUseResult === "object" &&
+        (toolUseResult as { staged?: unknown }).staged === true;
+      return { tool_use_id: tr.tool_use_id, text, isError: tr.is_error, ...(staged ? { staged } : {}) };
     }
   }
   return null;
@@ -2923,7 +2955,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
         const inner = (msg as { message: { content?: unknown } }).message;
         const isSynthetic = (msg as { isSynthetic?: boolean }).isSynthetic === true;
         const parent = (msg as { parent_tool_use_id?: string | null }).parent_tool_use_id ?? null;
-        const result = extractToolResult(inner?.content);
+        const result = extractToolResult(inner?.content, (msg as { tool_use_result?: unknown }).tool_use_result);
         if (result) {
           // Tool results land on whichever tool_use carries that id, in main or subagent.
           setMessages((prev) =>
@@ -2931,7 +2963,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
               ...m,
               blocks: m.blocks.map((b) =>
                 b.kind === "tool_use" && b.id === result.tool_use_id
-                  ? { ...b, result: { content: result.text, isError: result.isError } }
+                  ? { ...b, result: { content: result.text, isError: result.isError, staged: result.staged } }
                   : b,
               ),
             })),
@@ -2943,7 +2975,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
                 ...m,
                 blocks: m.blocks.map((b) =>
                   b.kind === "tool_use" && b.id === result.tool_use_id
-                    ? { ...b, result: { content: result.text, isError: result.isError } }
+                    ? { ...b, result: { content: result.text, isError: result.isError, staged: result.staged } }
                     : b,
                 ),
               }));
@@ -3411,6 +3443,12 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
           // nothing blocks it (see lib/shared/fast-mode.ts for the reason
           // catalog).
           fast_mode_disabled_reason?: string;
+          // SDK 0.3.269 — set only on the automatic re-run of a turn that a
+          // host restart interrupted mid-way. Claudius persists sessions to
+          // SQLite and can resume the Node process independently of the
+          // browser tab, so this is a real (if rare) path here, not just a
+          // hosted-container concern.
+          resume_reason?: string;
         };
         if (r.fast_mode_state) {
           setFastModeState(r.fast_mode_state);
@@ -3456,6 +3494,30 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
           return;
         }
         if (r.uuid) seenResultUuidsRef.current.add(r.uuid);
+
+        // SDK 0.3.269 — `resume_reason` marks the result of a turn that was
+        // automatically re-run because a prior host restart interrupted it
+        // mid-way (the CLI's CLAUDE_CODE_RESUME_INTERRUPTED_TURN rescue
+        // path). Surface it as a transcript-anchored info pill so a user who
+        // sees an unexplained repeated/continued turn after Claudius itself
+        // restarted (e.g. a `bun run dev` reload, a service restart) knows
+        // why, instead of wondering if their prompt silently duplicated.
+        if (r.resume_reason) {
+          // Narrowed to `string` here, but TS doesn't carry a member-access
+          // narrow (`r.resume_reason`) across the closure below — capture it
+          // in a local so the lookup stays typed instead of `string | undefined`.
+          const resumeReason = r.resume_reason;
+          setSystemEntries((prev) => [
+            ...prev,
+            {
+              uuid: r.uuid ? `${r.uuid}-resumed` : crypto.randomUUID(),
+              afterMessageUuid: anchor,
+              kind: "info",
+              label: "Turn resumed after interruption",
+              detail: RESUME_REASON_LABELS[resumeReason] ?? resumeReason,
+            },
+          ]);
+        }
 
         // Surface the spend-cap stop as a clear banner. When Options.maxBudgetUsd
         // is exceeded the SDK ends the turn with this result subtype instead of
@@ -5865,7 +5927,7 @@ function synthesizeOlder(raw: Array<Record<string, unknown>>): {
     }
 
     // user — could be plain text input, or a tool_result envelope.
-    const tr = extractToolResult(content);
+    const tr = extractToolResult(content, (r as { tool_use_result?: unknown }).tool_use_result);
     if (tr) {
       // Walk back through `out` and patch the matching tool_use block.
       for (let i = out.length - 1; i >= 0; i--) {
@@ -5875,7 +5937,7 @@ function synthesizeOlder(raw: Array<Record<string, unknown>>): {
         if (idx === -1) continue;
         const blk = m.blocks[idx];
         if (blk.kind !== "tool_use") break;
-        const patched = { ...blk, result: { content: tr.text, isError: tr.isError } };
+        const patched = { ...blk, result: { content: tr.text, isError: tr.isError, staged: tr.staged } };
         const blocks = m.blocks.slice();
         blocks[idx] = patched;
         out[i] = { ...m, blocks };

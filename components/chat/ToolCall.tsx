@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ChevronDown, ChevronRight, Wrench, AlertCircle, CheckCircle2, ExternalLink, MessageCircleQuestion, MessageSquareHeart, Paperclip } from "lucide-react";
+import { ChevronDown, ChevronRight, Wrench, AlertCircle, CheckCircle2, Clock, ExternalLink, MessageCircleQuestion, MessageSquareHeart, Paperclip } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { buildEditorUrl, pathFromToolInput, useEditor } from "@/lib/client/ide";
 import { useFileLink } from "@/lib/client/file-link-context";
@@ -35,7 +35,7 @@ const SCHEDULE_ACTION_LABELS: Record<string, string> = {
 type Props = {
   name: string;
   input: Record<string, unknown>;
-  result?: { content: string; isError?: boolean };
+  result?: { content: string; isError?: boolean; staged?: boolean };
   /**
    * Client-stamped wall-clock start (epoch ms) for this tool_use, from
    * `DisplayBlock`'s `startedAt`. Drives the live "Xs" / "Xm Ys" elapsed
@@ -119,6 +119,16 @@ export function ToolCall({
           : result.isError
             ? "error"
             : "ok";
+  // SDK 0.3.272 — `FileEditOutput`/`FileWriteOutput` gained `staged`: true
+  // when the edit/write was held for the machine owner to review instead of
+  // applied — the file is UNCHANGED on disk. Without this the card would
+  // show its ordinary green checkmark and (below) try to inline-preview a
+  // file that was never actually written. `staged` is read (in
+  // `use-session.ts`'s `extractToolResult`) off the SDK message's
+  // `tool_use_result` — the structured per-tool Output object — NOT parsed
+  // out of `result.content`, which for Edit/Write is plain prose ("The file
+  // ... has been updated successfully."), never JSON.
+  const staged = !result?.isError && result?.staged === true;
   const fileTarget = pathFromToolInput(input);
   // When the tool operates on a file inside the active workspace, link its
   // path to the in-app Files browser so the user can open it on our own file
@@ -133,7 +143,7 @@ export function ToolCall({
   //   3. We have workspace context + a workspace-relative path.
   //   4. The file extension is a previewable type.
   const previewType =
-    showPreviews && result && !result.isError && fileRel && fileTarget
+    showPreviews && result && !result.isError && !staged && fileRel && fileTarget
       ? getPreviewType(fileTarget.path)
       : null;
   // ExitPlanMode carries the plan markdown in `input.plan`. Render it as
@@ -245,6 +255,16 @@ export function ToolCall({
             >
               <Paperclip className="h-3 w-3" />
               {resourceLinks.length}
+            </span>
+          )}
+          {staged && (
+            <span
+              data-testid="tool-call-staged-badge"
+              className="inline-flex items-center gap-1 rounded-md border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-300"
+              title="Held for review — the file was not written to disk"
+            >
+              <Clock className="h-3 w-3" />
+              Staged
             </span>
           )}
           {status === "running" && (

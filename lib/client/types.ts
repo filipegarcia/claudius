@@ -27,7 +27,7 @@ export type DisplayBlock =
       id: string;
       name: string;
       input: Record<string, unknown>;
-      result?: { content: string; isError?: boolean };
+      result?: { content: string; isError?: boolean; staged?: boolean };
       /**
        * Client-stamped wall-clock start (epoch ms), set the first time this
        * tool_use block is built and preserved across scratch-buffer rebuilds
