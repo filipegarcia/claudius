@@ -3857,6 +3857,9 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
             // SDK 0.3.257 — files an auto-backgrounded MCP tool call returned
             // by reference, joined to this notification via tool_use_id.
             resource_links?: TaskResourceLink[];
+            // SDK 0.3.273 — set only when a worker-process restart orphaned
+            // the task (always alongside status: "stopped").
+            reason?: "worker_restart";
           };
           setTasks((prev) => {
             // Authoritative cleanup: a notification can arrive WITHOUT a prior
@@ -3887,6 +3890,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
                 // task_started already seeded when this notification omits it.
                 ambient: t.ambient ?? base.ambient,
                 resourceLinks: t.resource_links ?? base.resourceLinks,
+                reason: t.reason ?? base.reason,
               },
             };
           });

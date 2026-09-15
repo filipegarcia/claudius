@@ -7753,6 +7753,10 @@ export class Session {
       // SDK 0.3.257 — files an auto-backgrounded MCP tool call returned by
       // reference, on the terminal task_notification only.
       resource_links?: TaskResourceLink[];
+      // SDK 0.3.273 — set only when a worker-process restart orphaned the
+      // task (always alongside status: "stopped"); absent on an ordinary
+      // completion, failure, or user-initiated stop.
+      reason?: "worker_restart";
     };
 
     // Subagent inner message — accumulate the raw envelope under its parent
@@ -7861,6 +7865,8 @@ export class Session {
         // SDK 0.3.257 — files an auto-backgrounded MCP tool call returned by
         // reference, joined to this notification via tool_use_id.
         if (msg.resource_links != null) meta.resourceLinks = msg.resource_links;
+        // SDK 0.3.273 — worker-restart orphan cause, surfaced verbatim.
+        if (msg.reason != null) meta.reason = msg.reason;
         this.taskMetaById.set(taskId, meta);
         this.persistTask(meta);
         // Terminal subagent event — if this was the last non-backgrounded

@@ -74,7 +74,7 @@ function progressEvent(
 function notificationEvent(
   taskId: string,
   status: string,
-  extra?: { ambient?: boolean; resource_links?: unknown },
+  extra?: { ambient?: boolean; resource_links?: unknown; reason?: "worker_restart" },
 ): ServerEvent {
   return {
     type: "sdk",
@@ -176,6 +176,31 @@ describe("session-tasks-db roundtrip", () => {
     const row = rows.find((r) => r.taskId === "task-links-2");
     expect(row).toBeDefined();
     expect(row!.resourceLinks).toBeUndefined();
+  });
+
+  test("SDK 0.3.273: round-trips reason through session_tasks (migration 022)", async () => {
+    const entry: TaskSnapshotEntry = {
+      taskId: "task-reason-1",
+      status: "stopped",
+      reason: "worker_restart",
+      innerMessages: [],
+    };
+    await saveSessionTask(CWD, "tasks-test", entry);
+
+    const rows = await listSessionTasks(CWD, "tasks-test");
+    const row = rows.find((r) => r.taskId === "task-reason-1");
+    expect(row).toBeDefined();
+    expect(row!.reason).toBe("worker_restart");
+  });
+
+  test("SDK 0.3.273: leaves reason unset when never reported", async () => {
+    const entry: TaskSnapshotEntry = { taskId: "task-reason-2", status: "completed", innerMessages: [] };
+    await saveSessionTask(CWD, "tasks-test", entry);
+
+    const rows = await listSessionTasks(CWD, "tasks-test");
+    const row = rows.find((r) => r.taskId === "task-reason-2");
+    expect(row).toBeDefined();
+    expect(row!.reason).toBeUndefined();
   });
 
   test("upserts by (session_id, task_id)", async () => {
@@ -339,6 +364,29 @@ describe("Session.captureTaskState end-to-end", () => {
     const persisted = await waitForTask("task-11");
     expect(persisted).toBeDefined();
     expect(persisted!.resourceLinks).toEqual([{ uri: "reports://q3/data.csv", name: "data.csv" }]);
+  });
+
+  test("SDK 0.3.273: captures reason from the terminal task_notification", async () => {
+    const session = makeSession();
+    session.captureTaskState(startedEvent("task-12", "toolu-12", "long-running loop"));
+    session.captureTaskState(
+      notificationEvent("task-12", "stopped", { reason: "worker_restart" }),
+    );
+
+    const persisted = await waitForTask("task-12");
+    expect(persisted).toBeDefined();
+    expect(persisted!.status).toBe("stopped");
+    expect(persisted!.reason).toBe("worker_restart");
+  });
+
+  test("SDK 0.3.273: leaves reason unset for an ordinary stop", async () => {
+    const session = makeSession();
+    session.captureTaskState(startedEvent("task-13", "toolu-13", "user-stopped task"));
+    session.captureTaskState(notificationEvent("task-13", "stopped"));
+
+    const persisted = await waitForTask("task-13");
+    expect(persisted).toBeDefined();
+    expect(persisted!.reason).toBeUndefined();
   });
 
   test("SDK 0.3.247: a running non-ambient task still pins getStatus() on 'running'", async () => {

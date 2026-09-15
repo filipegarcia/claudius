@@ -688,6 +688,15 @@ export type TaskSnapshotEntry = {
    */
   resourceLinks?: TaskResourceLink[];
   /**
+   * SDK 0.3.273 — machine-readable cause, set only when the task did not
+   * end through an ordinary completion, failure, or stop. Currently the
+   * only value is `'worker_restart'`: the worker process restarted and the
+   * resumed process found the task orphaned (always paired with
+   * `status: 'stopped'`). Absent on any other termination, and on older
+   * SDKs. Populated from `task_notification.reason`.
+   */
+  reason?: "worker_restart";
+  /**
    * Raw subagent SDK messages (those tagged with `parent_tool_use_id`),
    * in arrival order. `at` is the server-stamped epoch ms for ordering.
    * `message` is the untouched SDK envelope so the client can rebuild
