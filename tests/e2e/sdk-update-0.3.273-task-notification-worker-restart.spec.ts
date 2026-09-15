@@ -97,6 +97,12 @@ const PRELUDE: SdkEvent[] = [
 ];
 
 /** The turn spawns a long-running backgrounded workflow subagent. */
+// Uses the "Task" tool name (a plain subagent spawn), deliberately NOT
+// "Workflow" — a tool_result for a "Workflow" tool_use triggers a separate
+// provisional-task-seeding path in use-session.ts (see `upsertProvisionalTask`
+// around line 3040), which would be a confounder here since this spec never
+// sends that tool_result and wants only the task_started/task_notification
+// system events (and, in the last test, task_snapshot) to drive task state.
 const WORKFLOW_TOOL_USE: SdkEvent = {
   type: "sdk",
   at: NOW,
@@ -112,8 +118,8 @@ const WORKFLOW_TOOL_USE: SdkEvent = {
         {
           type: "tool_use",
           id: TASK_TOOL_USE_ID,
-          name: "Workflow",
-          input: { name: "nightly-report" },
+          name: "Task",
+          input: { description: "nightly-report", prompt: "Generate the nightly report" },
         },
       ],
       usage: { input_tokens: 40, output_tokens: 20 },
@@ -175,8 +181,8 @@ test.describe("Task notification worker-restart reason (SDK 0.3.273 task_notific
     await expect(recent).toBeVisible({ timeout: 15_000 });
     await expect(recent).toContainText("Generate the nightly report");
 
-    const statusLabel = recent.getByText("stopped (restarted)");
-    await expect(statusLabel).toBeVisible();
+    const statusLabel = recent.getByTestId("task-status");
+    await expect(statusLabel).toHaveText("stopped (restarted)");
     await expect(statusLabel).toHaveAttribute(
       "title",
       "Stopped because the background worker process restarted and found this task orphaned — not a user or agent action.",
@@ -209,9 +215,47 @@ test.describe("Task notification worker-restart reason (SDK 0.3.273 task_notific
 
     const recent = page.locator('[data-pane-name="recent"]');
     await expect(recent).toBeVisible({ timeout: 15_000 });
-    await expect(recent.getByText("stopped (restarted)")).toHaveCount(0);
-    const statusLabel = recent.getByText("stopped", { exact: true });
-    await expect(statusLabel).toBeVisible();
+    const statusLabel = recent.getByTestId("task-status");
+    await expect(statusLabel).toHaveText("stopped");
     expect(await statusLabel.getAttribute("title")).toBeNull();
+  });
+
+  test("a worker-restart orphan rehydrated from a disk-rebuilt session (task_snapshot) still reads 'stopped (restarted)'", async ({
+    page,
+  }) => {
+    // Mirrors the real idle-reap/reload path: the live task_started /
+    // task_notification events never happened in THIS process — the
+    // session was rebuilt from SQLite and the server replays everything
+    // it persisted via a single `task_snapshot` event instead (see
+    // `Session.sendTaskSnapshot` in lib/server/session.ts). This exercises
+    // the client's task_snapshot -> TaskInfo mapping in
+    // lib/client/use-session.ts, a separate code path from the live
+    // task_notification reducer covered by the test above.
+    const TASK_SNAPSHOT: SdkEvent = {
+      type: "task_snapshot",
+      tasks: [
+        {
+          taskId: "task_nightly_report_rehydrated",
+          toolUseId: "toolu_rehydrated",
+          description: "Generate the nightly report (rehydrated)",
+          taskType: "local_workflow",
+          status: "stopped",
+          reason: "worker_restart",
+          innerMessages: [],
+        },
+      ],
+    };
+    await mockChatBackend(page, [...PRELUDE, TASK_SNAPSHOT]);
+    await page.goto("/");
+
+    const recent = page.locator('[data-pane-name="recent"]');
+    await expect(recent).toBeVisible({ timeout: 15_000 });
+    await expect(recent).toContainText("Generate the nightly report (rehydrated)");
+    const statusLabel = recent.getByTestId("task-status");
+    await expect(statusLabel).toHaveText("stopped (restarted)");
+    await expect(statusLabel).toHaveAttribute(
+      "title",
+      "Stopped because the background worker process restarted and found this task orphaned — not a user or agent action.",
+    );
   });
 });

@@ -633,6 +633,7 @@ export function BackgroundTasksPanel({
                       </span>
                     )}
                     <span
+                      data-testid="task-status"
                       className="ml-auto text-[10px]"
                       title={taskStatusTitle(t)}
                     >
@@ -810,6 +811,7 @@ export function BackgroundTasksPanel({
                           {t.workflowName ?? t.taskType ?? "Process"}
                         </span>
                         <span
+                          data-testid="task-status"
                           className="ml-auto text-[10px]"
                           title={taskStatusTitle(t)}
                         >
@@ -866,7 +868,7 @@ export function BackgroundTasksPanel({
                   <div className="flex items-center gap-1.5">
                     <Icon className="h-3 w-3" />
                     <span className="truncate font-mono">{t.description}</span>
-                    <span className="ml-auto" title={taskStatusTitle(t)}>
+                    <span data-testid="task-status" className="ml-auto" title={taskStatusTitle(t)}>
                       {taskStatusLabel(t)}
                     </span>
                   </div>

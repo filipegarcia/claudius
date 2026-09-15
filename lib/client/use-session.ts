@@ -2139,6 +2139,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
               summary: t.summary,
               error: t.error,
               resourceLinks: t.resourceLinks,
+              reason: t.reason,
             };
             changed = true;
           }
