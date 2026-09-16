@@ -293,6 +293,28 @@ export type McpNeedsAuthNoticeEvent = {
 };
 
 /**
+ * One-shot notice fired when any configured MCP server is observed in
+ * `failed` state at a status check (CC 2.1.273 parity: "Added a
+ * notification when an MCP server disconnects mid-session and automatic
+ * reconnection gives up, pointing at `/mcp`"). Emitted from
+ * `Session.noteMcpDisconnectedAtStartup()`, mirroring
+ * `McpNeedsAuthNoticeEvent`'s shape and timing exactly. The client renders
+ * it as a `kind: "info"` transcript pill pointing the user at `/mcp` to
+ * check on the server — worded "unavailable", not "disconnected", because
+ * a single point-in-time `failed` read can't distinguish a mid-session
+ * drop from a server that never connected at all. Excluded from the SSE
+ * replay buffer so a stale notice never
+ * re-pops on reload; the server's fire-once guard prevents re-emission
+ * inside one session lifetime, and `mcp-disconnected-db.ts` dedupes across
+ * session lifetimes per server.
+ */
+export type McpDisconnectedNoticeEvent = {
+  type: "mcp_disconnected_notice";
+  /** Names of the MCP servers currently observed as `failed`. */
+  servers: string[];
+};
+
+/**
  * One-shot proactive nudge fired when the active account profile's OAuth
  * token is within `TOKEN_EXPIRY_WARNING_WINDOW_MS` of expiring (CC 2.1.203
  * parity: "Added a warning when your login is about to expire, so you can
@@ -688,6 +710,15 @@ export type TaskSnapshotEntry = {
    */
   resourceLinks?: TaskResourceLink[];
   /**
+   * SDK 0.3.273 — machine-readable cause, set only when the task did not
+   * end through an ordinary completion, failure, or stop. Currently the
+   * only value is `'worker_restart'`: the worker process restarted and the
+   * resumed process found the task orphaned (always paired with
+   * `status: 'stopped'`). Absent on any other termination, and on older
+   * SDKs. Populated from `task_notification.reason`.
+   */
+  reason?: "worker_restart";
+  /**
    * Raw subagent SDK messages (those tagged with `parent_tool_use_id`),
    * in arrival order. `at` is the server-stamped epoch ms for ordering.
    * `message` is the untouched SDK envelope so the client can rebuild
@@ -987,6 +1018,7 @@ export type ServerEvent =
   | LongContextCreditsNudgeEvent
   | AuthFailedNudgeEvent
   | McpNeedsAuthNoticeEvent
+  | McpDisconnectedNoticeEvent
   | TokenExpiringNudgeEvent
   | TipsEvent
   | CwdChangedEvent

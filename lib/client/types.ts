@@ -218,6 +218,15 @@ export type TaskInfo = {
    * carried no resource links (the common case) or on older SDKs.
    */
   resourceLinks?: TaskResourceLink[];
+  /**
+   * SDK 0.3.273 — machine-readable cause, set only when the task did not
+   * end through an ordinary completion, failure, or stop. Currently the
+   * only value is `'worker_restart'`: the worker process restarted and the
+   * resumed process found the task orphaned (always paired with
+   * `status: 'stopped'`). Drives the "restarted" note in
+   * `BackgroundTasksPanel`.
+   */
+  reason?: "worker_restart";
 };
 
 export type SystemEntry = {
