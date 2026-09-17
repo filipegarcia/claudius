@@ -265,9 +265,16 @@ export type ClaudeSettings = {
   // read directly by the bundled `claude` binary from this same
   // `~/.claude/settings.json` — so surfacing it as a catalog row is all
   // Claudius needs; there is no per-session SDK forwarding to add. See
-  // the sibling `syncClaudeAiSkills` key (pre-existing, not yet
-  // surfaced — tracked as a follow-up in the 0.3.246 run notes).
+  // the sibling `syncClaudeAiSkills` key just below.
   syncClaudeAiPlugins?: boolean;
+  // Claude Code 2.1.275 — set to false to stop syncing skills enabled on
+  // claude.ai into terminal sessions signed in with that account. Same
+  // config-passthrough shape as `syncClaudeAiPlugins` immediately above
+  // (only `false` is honored; the bundled `claude` binary reads this key
+  // straight from this same `~/.claude/settings.json`, so there's no
+  // per-session SDK forwarding to add here either) — was the tracked
+  // follow-up from the 0.3.246 run notes, now surfaced.
+  syncClaudeAiSkills?: boolean;
   // Claude Code 2.1.238 — set to "readline" to make Ctrl+W in the CLI's own
   // prompt delete back to the previous whitespace, as in Bash; the default
   // ("classic") is unchanged. Config-passthrough only: it's read by the

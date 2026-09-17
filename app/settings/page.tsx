@@ -207,7 +207,7 @@ export default function SettingsPage() {
   );
   const sEnv = show("environment env variables key value");
   const sPlugins = show(
-    "plugins enabled plugin marketplace syncclaudeaiplugins sync claude.ai account",
+    "plugins enabled plugin marketplace syncclaudeaiplugins syncclaudeaiskills sync claude.ai account skills",
   );
   const sOther = show("other keys custom advanced extra json");
 
@@ -776,6 +776,12 @@ export default function SettingsPage() {
                     checked={draft.syncClaudeAiPlugins !== false}
                     onChange={(b) => update({ syncClaudeAiPlugins: b ? undefined : false })}
                     description="Sync plugins you've enabled on claude.ai into every session (only applies when signed in with your Claude account). Only 'off' is honored here — turning this on doesn't enable the feature early if your account doesn't already have it. On by default."
+                  />
+                  <ToggleRow
+                    label="syncClaudeAiSkills"
+                    checked={draft.syncClaudeAiSkills !== false}
+                    onChange={(b) => update({ syncClaudeAiSkills: b ? undefined : false })}
+                    description="Sync skills you've enabled on claude.ai into every session (only applies when signed in with your Claude account). Only 'off' is honored here — turning this on doesn't enable the feature early if your account doesn't already have it. On by default."
                   />
                 </Section>
                 )}
