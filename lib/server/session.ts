@@ -777,11 +777,23 @@ export const TODO_TASK_TOOL_NAMES = ["TodoWrite", "TaskCreate", "TaskGet", "Task
  * pure function, rather than inlined in the `query()` options builder in
  * `start()`, purely so it's directly unit-testable — same rationale as
  * `TODO_TASK_TOOL_NAMES` itself (see tests/unit/session-options.test.ts).
+ *
+ * SDK 0.3.274 also sets `CLAUDE_CODE_STARTUP_FAILURE_RESULTS=1` here: some
+ * known startup failures used to end with stderr alone, and only write the
+ * structured `result` message carrying `startup_failure_reason` (see
+ * `STARTUP_FAILURE_REASON_LABELS` in lib/client/use-session.ts) when the
+ * host opts in with this env var. Claudius's session process is a
+ * stream-json `query()` run, so this is reachable and worth the friendlier
+ * error surface.
  */
 export function buildQueryEnv(
   envOverride: Record<string, string | undefined> | null,
 ): Record<string, string | undefined> {
-  return { ...(envOverride ?? process.env), CLAUDE_CODE_ENABLE_TODO_TOOLS: "1" };
+  return {
+    ...(envOverride ?? process.env),
+    CLAUDE_CODE_ENABLE_TODO_TOOLS: "1",
+    CLAUDE_CODE_STARTUP_FAILURE_RESULTS: "1",
+  };
 }
 
 /**
@@ -1176,9 +1188,18 @@ export function foldResultIntoSessionUsage(
       ? (r.modelUsage as Record<string, unknown>)
       : undefined;
 
-  // Zeroed crash/startup-error frame — contributes nothing; must not be
-  // mistaken for a /clear reset (see doc comment).
-  if (cost === 0 && turns === 0 && durationMs === 0 && !modelUsage) return null;
+  // Zeroed crash/startup-error frame, OR (SDK 0.3.274) an "empty" queued
+  // background-task completion — when several queued tasks finish off one
+  // shared model call, all but the last get their own `result` message with
+  // `num_turns: 0` and no cost/modelUsage, even though real wall-clock time
+  // may have elapsed (nonzero duration_ms). Either way this frame carries no
+  // authoritative usage: a real result always has num_turns >= 1 once any
+  // turn has happened, so turns===0 with cost===0 and no modelUsage can
+  // never legitimately represent post-reset usage. Deliberately NOT also
+  // requiring durationMs === 0 (unlike pre-0.3.274) — that would let an
+  // empty queued-completion frame's nonzero duration fall through to the
+  // reset check below and mistake it for a /clear, double-counting cost.
+  if (cost === 0 && turns === 0 && !modelUsage) return null;
 
   // Reset detection: running totals are monotonic within one SDK process,
   // so a decrease means the process's counters restarted (/clear, in-place
@@ -3228,6 +3249,12 @@ export class Session {
         // wider than this one action (suppressAlwaysAllowRule).
         defaultToNo: ctx.defaultToNo,
         suppressAlwaysAllowRule: ctx.suppressAlwaysAllowRule,
+        // SDK 0.3.274 — which MCP server is serving this tool and where its
+        // definition came from (source: "sdk" | "plugin" | a config scope).
+        // Forwarded as-is so the UI can show it; never used here to bypass
+        // the prompt below since only the well-known internal tool prefix
+        // (above) is auto-allowed today.
+        mcpServer: ctx.mcpServer,
       };
       this.pendingPermissions.set(requestId, { requestId, resolve, meta });
       this.broadcast(meta);

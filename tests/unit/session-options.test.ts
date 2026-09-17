@@ -67,4 +67,12 @@ describe("buildQueryEnv (CC 2.1.268 parity — CLAUDE_CODE_ENABLE_TODO_TOOLS)", 
     const env = buildQueryEnv({ CLAUDE_CODE_ENABLE_TODO_TOOLS: "0" });
     expect(env.CLAUDE_CODE_ENABLE_TODO_TOOLS).toBe("1");
   });
+
+  // SDK 0.3.274 — opts into the `startup_failure_reason` result field for
+  // startup failures that used to end with stderr alone (see
+  // STARTUP_FAILURE_REASON_LABELS in lib/client/use-session.ts).
+  test("also sets CLAUDE_CODE_STARTUP_FAILURE_RESULTS=1", () => {
+    const env = buildQueryEnv(null);
+    expect(env.CLAUDE_CODE_STARTUP_FAILURE_RESULTS).toBe("1");
+  });
 });

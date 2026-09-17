@@ -13,6 +13,13 @@ export type LiveStatus = {
   config?: unknown;
   scope?: string;
   tools?: { name: string; description?: string; annotations?: unknown }[];
+  /**
+   * SDK 0.3.274 — where the server definition came from: "sdk" (an
+   * in-process server this host registered), "plugin", or the config scope
+   * (user/project/local/dynamic/managed/enterprise/claudeai/agent). Absent
+   * on CLIs that predate the field.
+   */
+  source?: string;
 };
 
 /**
