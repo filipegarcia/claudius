@@ -8349,13 +8349,13 @@
   },
   {
     "label": "\u26a1 Claude Code",
-    "total": 520,
-    "stable_count": 520,
+    "total": 521,
+    "stable_count": 521,
     "pre_count": 0,
     "first_date": "2025-02-24T18:03:41.458000+00:00",
-    "latest_date": "2026-09-15T20:23:03+00:00",
-    "span_days": 568,
-    "per_week": 6.408450704225352,
+    "latest_date": "2026-09-17T00:12:02+00:00",
+    "span_days": 569,
+    "per_week": 6.409490333919156,
     "gaps": [
       {
         "hours": 0.4709886111111111,
@@ -11989,6 +11989,13 @@
         "to_tag": "v2.1.273",
         "from_date": "2026-09-15T00:42:25+00:00",
         "to_date": "2026-09-15T20:23:03+00:00"
+      },
+      {
+        "hours": 27.816388888888888,
+        "from_tag": "v2.1.273",
+        "to_tag": "v2.1.274",
+        "from_date": "2026-09-15T20:23:03+00:00",
+        "to_date": "2026-09-17T00:12:02+00:00"
       }
     ],
     "fastest_gap": {
@@ -12005,22 +12012,22 @@
       "from_date": "2025-12-20T17:19:09.800000+00:00",
       "to_date": "2026-01-06T00:26:25.533000+00:00"
     },
-    "avg_gap_h": 26.270371195675445,
-    "median_gap_h": 22.007419444444448,
-    "stdev_gap_h": 29.09191309567115,
+    "avg_gap_h": 26.273344306623933,
+    "median_gap_h": 22.032371805555556,
+    "stdev_gap_h": 29.06395176641096,
     "cl_present": true,
-    "cl_max": 16257,
+    "cl_max": 16355,
     "cl_min": 1,
-    "cl_avg": 2866.6255707762557,
+    "cl_avg": 2927.9363636363637,
     "cl_max_rel": {
-      "tag": "v2.1.257",
-      "name": "v2.1.257",
-      "date": "2026-09-01T17:53:52+00:00",
-      "cl_chars": 16257,
-      "cl_lines": 107,
-      "cl_body": "## What's changed\n\n- Added Claude Fable 5.1 (`claude-fable-5-1`), now the default Fable model \u2014 1M context, $10/$50 per Mtok with $0.25/Mtok cache reads\n- Added \"Time format\" (`timeFormat`) and `timeZone` settings: 12-hour, 24-hour, 24-hour UTC, or a strftime pattern for the turn-end clock and transcript-view timestamps\n- Added a Containment Escape rule to auto mode so cloud metadata-credential fetches, egress evasion, and cross-tenant reach are no longer auto-approved unless your environment marks them expected\n- Added `CLAUDE_CODE_SUBAGENT_MODEL_FORCE` to apply `CLAUDE_CODE_SUBAGENT_MODEL` (or the main model) to every subagent, ignoring per-spawn and agent-definition model overrides\n- Added `s` in `/effort` to change effort for the current session only, matching `/model`\n- Added a `/doct",
+      "tag": "v2.1.274",
+      "name": "v2.1.274",
+      "date": "2026-09-17T00:12:02+00:00",
+      "cl_chars": 16355,
+      "cl_lines": 111,
+      "cl_body": "## What's changed\n\n- Added a visible warning when memory usage is critical, with steps to free memory or restart safely\n- Added `CLAUDE_CODE_MCP_STARTUP_WAIT_MS` to bound how long the first non-interactive turn waits for connecting MCP servers (`0` = don't wait)\n- Added `effort` attribute to the `claude_code.llm_request` OpenTelemetry trace span, matching the `api_request` event\n- Added `claude_code.managed_settings_resolved` OTel event: managed-settings sources and policy helper state; redacted settings and digests with `OTEL_LOG_MANAGED_SETTINGS=1`\n- Added `store.connect_timeout_seconds` to the Claude apps gateway config to lengthen the Postgres connect timeout (default 5 seconds), and improved the boot error when the database is unreachable to point to `store.postgres_url` and the confi",
       "pre": false,
-      "url": "https://github.com/anthropics/claude-code/releases/tag/v2.1.257",
+      "url": "https://github.com/anthropics/claude-code/releases/tag/v2.1.274",
       "ver_type": "patch"
     },
     "cl_min_rel": {
@@ -12038,7 +12045,7 @@
       "Monday": 65,
       "Tuesday": 102,
       "Wednesday": 100,
-      "Thursday": 98,
+      "Thursday": 99,
       "Friday": 105,
       "Saturday": 41,
       "Sunday": 9
@@ -12063,11 +12070,11 @@
       "2026-06": 30,
       "2026-07": 23,
       "2026-08": 29,
-      "2026-09": 15
+      "2026-09": 16
     },
     "years": {
       "2025": 284,
-      "2026": 236
+      "2026": 237
     },
     "fav_dow": [
       "Friday",
@@ -12080,23 +12087,23 @@
     "streak": 14,
     "streak_start": "2025-04-25T17:15:09.772000+00:00",
     "vtypes": {
-      "patch": 517,
+      "patch": 518,
       "major": 2,
       "minor": 1
     },
     "vel_trend": "steady",
     "vel_first": 6.666666666666667,
-    "vel_second": 6.190476190476191
+    "vel_second": 6.172297297297297
   },
   {
     "label": "\ud83e\udd16 Agent SDK",
-    "total": 218,
-    "stable_count": 218,
+    "total": 219,
+    "stable_count": 219,
     "pre_count": 0,
     "first_date": "2025-12-17T21:55:57+00:00",
-    "latest_date": "2026-09-15T20:22:43+00:00",
-    "span_days": 271,
-    "per_week": 5.630996309963099,
+    "latest_date": "2026-09-17T00:11:58+00:00",
+    "span_days": 273,
+    "per_week": 5.615384615384615,
     "gaps": [
       {
         "hours": 27.060277777777777,
@@ -13616,6 +13623,13 @@
         "to_tag": "v0.3.273",
         "from_date": "2026-09-15T00:42:34+00:00",
         "to_date": "2026-09-15T20:22:43+00:00"
+      },
+      {
+        "hours": 27.820833333333333,
+        "from_tag": "v0.3.273",
+        "to_tag": "v0.3.274",
+        "from_date": "2026-09-15T20:22:43+00:00",
+        "to_date": "2026-09-17T00:11:58+00:00"
       }
     ],
     "fastest_gap": {
@@ -13632,13 +13646,13 @@
       "from_date": "2025-12-19T22:13:22+00:00",
       "to_date": "2026-01-07T20:37:12+00:00"
     },
-    "avg_gap_h": 30.07578853046595,
-    "median_gap_h": 23.087222222222223,
-    "stdev_gap_h": 38.74530942732216,
+    "avg_gap_h": 30.06544469928644,
+    "median_gap_h": 23.099583333333335,
+    "stdev_gap_h": 38.65623312922266,
     "cl_present": true,
     "cl_max": 2267,
     "cl_min": 1,
-    "cl_avg": 497.91743119266056,
+    "cl_avg": 502.8493150684931,
     "cl_max_rel": {
       "tag": "v0.3.257",
       "name": "v0.3.257",
@@ -13668,7 +13682,7 @@
       "Monday": 17,
       "Tuesday": 42,
       "Saturday": 26,
-      "Thursday": 37
+      "Thursday": 38
     },
     "months": {
       "2025-12": 3,
@@ -13680,11 +13694,11 @@
       "2026-06": 29,
       "2026-07": 22,
       "2026-08": 27,
-      "2026-09": 15
+      "2026-09": 16
     },
     "years": {
       "2025": 3,
-      "2026": 215
+      "2026": 216
     },
     "fav_dow": [
       "Wednesday",
@@ -13697,11 +13711,11 @@
     "streak": 10,
     "streak_start": "2026-02-19T23:28:39+00:00",
     "vtypes": {
-      "patch": 218
+      "patch": 219
     },
     "vel_trend": "accelerating",
     "vel_first": 5.190476190476191,
-    "vel_second": 6.203252032520325
+    "vel_second": 6.16
   },
   {
     "label": "\ud83d\udcd8 TS SDK [npm]",
