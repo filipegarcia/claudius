@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown, ChevronRight, Lightbulb, Shield } from "lucide-react";
 import type { PermissionDecision, PermissionRequestEvent } from "@/lib/shared/events";
+import { cn } from "@/lib/utils/cn";
 
 type Props = {
   request: PermissionRequestEvent;
@@ -83,6 +84,20 @@ export function PermissionPrompt({ request, onResolve, autoModeAvailable, onSwit
                   className="inline-flex items-center gap-1 rounded-full border border-[var(--accent)]/30 bg-[var(--accent)]/10 px-1.5 py-0.5 font-mono text-[9px] normal-case tracking-normal text-[var(--accent)]"
                 >
                   Subagent · {request.agentId}
+                </span>
+              )}
+              {request.mcpServer && (
+                <span
+                  data-testid="permission-mcp-source-badge"
+                  title="Which MCP server is serving this tool, and where its definition came from"
+                  className={cn(
+                    "inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 font-mono text-[9px] normal-case tracking-normal",
+                    request.mcpServer.source === "sdk"
+                      ? "border-[var(--accent)]/30 bg-[var(--accent)]/10 text-[var(--accent)]"
+                      : "border-amber-500/30 bg-amber-500/10 text-amber-300",
+                  )}
+                >
+                  MCP · {request.mcpServer.name} ({request.mcpServer.source})
                 </span>
               )}
             </div>

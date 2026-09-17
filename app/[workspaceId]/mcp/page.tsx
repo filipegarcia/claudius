@@ -194,6 +194,20 @@ function ServerRow({
             </span>
           )}
           <span className="ml-2 text-[10px] text-[var(--muted)]">{SCOPE_LABELS[server.scope]}</span>
+          {status?.source && (
+            <span
+              data-testid={`mcp-source-badge-${server.name}`}
+              title="Where this server's definition came from"
+              className={cn(
+                "ml-1 rounded-md border px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wide",
+                status.source === "sdk"
+                  ? "border-[var(--accent)]/30 bg-[var(--accent)]/10 text-[var(--accent)]"
+                  : "border-[var(--border)] bg-[var(--panel-2)] text-[var(--muted)]",
+              )}
+            >
+              {status.source}
+            </span>
+          )}
           {status?.tools && status.tools.length > 0 && (
             <span className="ml-2 text-[10px] text-[var(--muted)]">· {status.tools.length} tools</span>
           )}
