@@ -217,6 +217,33 @@ export const RESUME_REASON_LABELS: Record<string, string> = {
 };
 
 /**
+ * SDK 0.3.274 — `startup_failure_reason` values on the zeroed error result a
+ * stream-json run (Claudius's session process, launched via `query()`)
+ * writes before exiting on a known startup failure. Lets us show a specific
+ * fix instead of a generic "session failed to start" message. Unrecognized
+ * values (a future reason the SDK adds) fall back to the raw string.
+ */
+export const STARTUP_FAILURE_REASON_LABELS: Record<string, string> = {
+  org_pin_api_key_conflict:
+    "your organization requires signing in, but an API key or auth token is configured instead",
+  org_verify_failed: "your sign-in's organization could not be verified — check network connectivity or sign in again",
+  org_pin_mismatch: "your sign-in belongs to an organization this workspace doesn't allow",
+  managed_settings_invalid: "managed policy settings could not be read, or the pin names no organization",
+  remote_settings_required_unavailable: "settings your organization requires could not be loaded",
+  gateway_signin_required: "the Cloud gateway ended this sign-in — sign in again",
+  gateway_access_denied: "the Cloud gateway refused managed settings for this account",
+  proxy_invalid: "a configured proxy setting is not a complete URL",
+  temp_dir_unusable: "the per-user temp directory is unsafe or could not be created",
+  cwd_unavailable: "the working directory was deleted, moved, or cannot be read",
+  shell_tool_missing: "no usable shell tool was found (Git Bash or PowerShell)",
+  session_held_by_background: "this session is already running as a background task",
+  worktree_resume_refused: "the resume was refused because the session's worktree failed its safety checks",
+  worktree_unverified: "the session's worktree could not be verified right now — retrying may succeed",
+  cli_version_too_old: "this Claude Code version is below the minimum Anthropic requires",
+  bypass_root: "bypass-permissions mode was requested while running as root",
+};
+
+/**
  * Detect the Opus-4 high-demand banner the Anthropic backend emits as
  * assistant prose. The CLI strings are
  *   "We are experiencing high demand for Opus 4."
@@ -3473,6 +3500,11 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
           // browser tab, so this is a real (if rare) path here, not just a
           // hosted-container concern.
           resume_reason?: string;
+          // SDK 0.3.274 — set on the zeroed error result a stream-json run
+          // (which is what Claudius's session process is) writes before
+          // exiting on a known, fixable startup failure. Absent on every
+          // other result and on startup failures without a known cause.
+          startup_failure_reason?: string;
         };
         if (r.fast_mode_state) {
           setFastModeState(r.fast_mode_state);
@@ -3540,6 +3572,21 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
               label: "Turn resumed after interruption",
               detail: RESUME_REASON_LABELS[resumeReason] ?? resumeReason,
             },
+          ]);
+        }
+
+        // SDK 0.3.274 — a known, fixable startup failure (org policy
+        // conflict, unusable temp dir, missing shell tool, etc.) ended the
+        // session before any turn ran. Surface the specific reason instead
+        // of a bare "session failed" — the whole point of the field is to
+        // let a host offer the fix instead of a blind retry.
+        if (r.startup_failure_reason) {
+          const reason = r.startup_failure_reason;
+          const resultErrors = (msg as { errors?: string[] }).errors;
+          const detail = STARTUP_FAILURE_REASON_LABELS[reason] ?? reason;
+          setErrors((e) => [
+            ...e,
+            `Session failed to start: ${detail}.${resultErrors?.length ? ` (${resultErrors[0]})` : ""}`,
           ]);
         }
 

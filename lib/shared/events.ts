@@ -33,6 +33,16 @@ export type PermissionRequestEvent = {
    * Forwarded verbatim from `canUseTool`'s options.
    */
   suppressAlwaysAllowRule?: boolean;
+  /**
+   * SDK 0.3.274 — for `mcp__*` tools, the MCP server serving this tool and
+   * where its definition came from. `source: "sdk"` means one of the
+   * in-process servers this host registered (name is a key we chose); any
+   * other value is a server from configuration, whose `name` is untrusted
+   * text as authored there — never used for a trust decision, only shown.
+   * Forwarded verbatim from `canUseTool`'s options; absent for non-MCP
+   * tools and on CLIs that predate the field.
+   */
+  mcpServer?: { name: string; source: string };
 };
 
 export type SessionReadyEvent = {
