@@ -201,6 +201,48 @@ async function cachedWorktrees(root: string): Promise<string[]> {
   return paths;
 }
 
+/**
+ * Given a session's (already-trusted) cwd, return the registered root it is
+ * a git worktree of — or `null` when `cwd` is itself a registered root, or
+ * isn't a worktree of anything we know about.
+ *
+ * Feeds `Options.projectConfigRoot` (SDK 0.3.275). When a session starts
+ * with its cwd already pointed at a worktree — e.g. `WorktreesOverlay`'s
+ * "open a fresh session in this worktree" — the SDK would otherwise load
+ * project settings, hooks, `.mcp.json`, and the `.claude` config trees from
+ * *inside* the worktree, i.e. from whatever the checked-out branch happens
+ * to carry. That inverts the trust model this module exists to enforce (see
+ * the module doc above): branch-carried content is exactly what should NOT
+ * get to decide which hooks run. Pointing `projectConfigRoot` back at the
+ * trusted checkout keeps config authority with the root the user actually
+ * registered, no matter what the worktree's branch contains.
+ *
+ * Callers are expected to pass a `cwd` that already went through
+ * `resolveTrustedCwd` (every session-creating route does), so the common
+ * case — cwd IS a registered root — resolves off the roots list with no
+ * subprocess spawn. Best-effort and read-only: never throws. A
+ * `git worktree list` failure (git missing, root not a repo) degrades to
+ * "no projectConfigRoot", i.e. exactly pre-0.3.275 behavior — never a
+ * session-start failure.
+ */
+export async function projectConfigRootFor(cwd: string): Promise<string | null> {
+  if (typeof cwd !== "string" || !cwd.trim()) return null;
+  try {
+    const wanted = resolve(cwd);
+    const roots = await trustedRoots();
+    // Already a registered root (or its realpath) — not a worktree of
+    // anything, nothing to redirect config loading to.
+    if (roots.includes(wanted)) return null;
+    for (const root of roots) {
+      const worktrees = await cachedWorktrees(root);
+      if (worktrees.includes(wanted)) return root;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 /** Test seam: drops the memoised roots/resolutions. */
 export function __resetTrustedCwdCache(): void {
   rootsCache = null;

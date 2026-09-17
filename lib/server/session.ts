@@ -40,6 +40,7 @@ import {
 } from "./pending-bash-output";
 import { dropBashSession, getOrCreateBashSession } from "./bash-mode";
 import { validateWorkspaceCwd } from "./workspace-cwd-preflight";
+import { projectConfigRootFor } from "./trusted-cwd";
 import {
   isOpusModelId,
   isOverloadErrorText,
@@ -2475,6 +2476,14 @@ export class Session {
     // programmatic agents rather than blocking session start.
     const dbAgents = await loadDbAgentsForOptions(this.cwd).catch(() => undefined);
 
+    // SDK 0.3.275 `Options.projectConfigRoot`: when `this.cwd` is itself a
+    // git worktree of a registered root (e.g. a session opened via the
+    // "worktrees" overlay), point project-settings/hooks/.mcp.json loading
+    // back at the trusted root rather than the worktree's own checkout — see
+    // `projectConfigRootFor`'s doc for why. `null` (the common case: cwd IS
+    // the root) omits the option so the SDK default (load from cwd) applies.
+    const projectConfigRoot = await projectConfigRootFor(this.cwd).catch(() => null);
+
     // Account-switcher (see `accounts-store.ts`). When the user has
     // configured one or more accounts and picked an active one, build a
     // scrubbed env that injects exactly that profile's credential — and
@@ -2642,6 +2651,11 @@ export class Session {
       ...(this.additionalDirectories && this.additionalDirectories.length > 0
         ? { additionalDirectories: this.additionalDirectories }
         : {}),
+      // SDK 0.3.275: redirect project-settings/hooks/.mcp.json loading back
+      // to the trusted root when cwd is a worktree of one — see
+      // `projectConfigRoot` above and `projectConfigRootFor`'s doc. Omitted
+      // (SDK default: load from cwd) when cwd IS the root.
+      ...(projectConfigRoot ? { projectConfigRoot } : {}),
       // (workspace systemPromptAppend is merged into the unified `systemPrompt`
       // spread above, alongside any session goal — see combinedSystemPromptAppend.)
       // Custom plan-mode workflow body. The SDK only consults this in plan
