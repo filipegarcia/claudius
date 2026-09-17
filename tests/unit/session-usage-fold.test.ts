@@ -131,6 +131,35 @@ describe("foldResultIntoSessionUsage", () => {
     expect(totals.numTurns).toBe(5);
   });
 
+  test("SDK 0.3.274: an empty queued-completion frame with nonzero duration is ignored, not read as a reset", () => {
+    let baseline = zeroSessionUsage();
+    let running = zeroSessionUsage();
+    ({ baseline, running } = foldResultIntoSessionUsage(
+      baseline,
+      running,
+      resultMsg({ total_cost_usd: 5, num_turns: 4, duration_ms: 30_000 }),
+    )!);
+    // Queued background-task completions can share one model call: all but
+    // the last get num_turns: 0 and no cost/modelUsage, but may still carry
+    // a nonzero duration_ms for the wall-clock time that elapsed. Must NOT
+    // be treated as a decreasing-counter reset (that would double-count the
+    // next real result, same failure mode as the crash-frame case above).
+    const empty = foldResultIntoSessionUsage(
+      baseline,
+      running,
+      resultMsg({ duration_ms: 1_200 }),
+    );
+    expect(empty).toBeNull();
+    ({ baseline, running } = foldResultIntoSessionUsage(
+      baseline,
+      running,
+      resultMsg({ total_cost_usd: 6, num_turns: 5, duration_ms: 40_000 }),
+    )!);
+    const totals = addSessionUsage(baseline, running);
+    expect(totals.totalCostUsd).toBeCloseTo(6, 6);
+    expect(totals.numTurns).toBe(5);
+  });
+
   test("tokens come from cumulative modelUsage sums across models", () => {
     const { baseline, running } = foldResultIntoSessionUsage(
       zeroSessionUsage(),
