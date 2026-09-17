@@ -4,6 +4,7 @@ import {
   type AccountProfile,
 } from "./accounts-store";
 import { readClaudeGlobalOauthAccount } from "./claude-global-config";
+import { describeBedrockConfig } from "@/lib/shared/accounts";
 
 /**
  * Resolve account-profile metadata (email / org / subscription /
@@ -31,14 +32,16 @@ import { readClaudeGlobalOauthAccount } from "./claude-global-config";
  * Usage page already renders so the rewire is a one-liner there.
  */
 export type AccountProfileInfo = {
-  /** Used in the API-provider row. */
-  provider: "firstParty";
+  /** Used in the API-provider row. `bedrock` for Amazon Bedrock profiles. */
+  provider: "firstParty" | "bedrock";
   /** Account-switcher profile id this info was resolved from. */
   profileId: string;
   /** Profile label the user gave it ("Personal Max", etc.). */
   profileLabel: string;
-  /** "oauth-token" | "api-key" — drives badges in the UI. */
+  /** "oauth-token" | "api-key" | "bedrock" — drives badges in the UI. */
   profileKind: AccountProfile["kind"];
+  /** Bedrock only — secret-free summary (`us-east-1 · profile work-sso`). */
+  bedrockSummary?: string;
   email?: string;
   displayName?: string;
   organizationUuid?: string;
@@ -132,6 +135,22 @@ export async function getProfileInfoForAccount(
   if (profile.kind === "api-key") {
     cache.set(profileId, { info: fromCached, fetchedAt: Date.now() });
     return fromCached;
+  }
+
+  // Bedrock profiles: no Anthropic identity at all — the AWS account is
+  // the identity, and there's no cheap "who am I" call worth making from
+  // here. Report the provider so the /usage Provider switcher lights up
+  // the Bedrock card, plus a secret-free config summary for the row.
+  if (profile.kind === "bedrock") {
+    const info: AccountProfileInfo = {
+      provider: "bedrock",
+      profileId: profile.id,
+      profileLabel: profile.label,
+      profileKind: profile.kind,
+      bedrockSummary: describeBedrockConfig(profile.bedrock ?? { auth: "ambient" }),
+    };
+    cache.set(profileId, { info, fetchedAt: Date.now() });
+    return info;
   }
 
   // OAuth-token: try a live round-trip to Anthropic's profile endpoint.

@@ -5,7 +5,9 @@ import {
   readAccountsPublic,
   setActiveAccount,
   setAutoRotate,
+  toPublic,
   type AccountKind,
+  type BedrockConfig,
 } from "@/lib/server/accounts-store";
 import { invalidateProfileCache } from "@/lib/server/account-profile";
 import { sessionManager } from "@/lib/server/session-manager";
@@ -25,7 +27,14 @@ export async function GET() {
 type PostBody = {
   label?: string;
   kind?: AccountKind;
+  /**
+   * Anthropic kinds: the token / key. Bedrock: the secret access key
+   * (`auth: "access-keys"`) or Bedrock API key (`auth: "bearer-token"`);
+   * omitted for `aws-profile` / `ambient`.
+   */
   secret?: string;
+  /** Required iff `kind === "bedrock"`. Validated server-side. */
+  bedrock?: Partial<BedrockConfig>;
 };
 
 /**
@@ -40,7 +49,12 @@ export async function POST(req: Request) {
   } catch {
     return NextResponse.json({ error: "invalid JSON" }, { status: 400 });
   }
-  if (!body.label || !body.kind || !body.secret) {
+  if (!body.label || !body.kind) {
+    return NextResponse.json({ error: "label, kind required" }, { status: 400 });
+  }
+  // Only the Bedrock kind may omit the secret (its aws-profile / ambient
+  // auth methods carry none) — `addAccount` enforces the per-method rule.
+  if (body.kind !== "bedrock" && !body.secret) {
     return NextResponse.json(
       { error: "label, kind, secret required" },
       { status: 400 },
@@ -51,19 +65,13 @@ export async function POST(req: Request) {
       label: body.label,
       kind: body.kind,
       secret: body.secret,
+      ...(body.kind === "bedrock" ? { bedrock: body.bedrock } : {}),
     });
     // Fresh secret ⇒ fresh profile — wipe any stale cached info so the
     // next GET re-fetches against the new token.
     invalidateProfileCache(profile.id);
     const publicState = {
-      profiles: state.profiles.map((p) => ({
-        id: p.id,
-        label: p.label,
-        kind: p.kind,
-        secretPreview:
-          p.secret.length <= 4 ? "•".repeat(p.secret.length) : `…${p.secret.slice(-4)}`,
-        createdAt: p.createdAt,
-      })),
+      profiles: state.profiles.map(toPublic),
       activeProfileId: state.activeProfileId,
       autoRotateOnRateLimit: state.autoRotateOnRateLimit,
     };

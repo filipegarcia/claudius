@@ -113,6 +113,8 @@ Claudius does not ship with Anthropic credentials and the maintainers do not rel
 - an **Anthropic OAuth session** (via Claude Code), or
 - a provider such as **Amazon Bedrock** or **Google Vertex AI**.
 
+All three of the first kinds are managed in-app under **Usage → Accounts**: add an OAuth token, an API key, or an **Amazon Bedrock** profile (AWS profile / access keys / Bedrock API key / ambient AWS credentials, plus region and an optional default model or inference-profile ARN) and pick which one new sessions spawn under. A Bedrock profile keeps the same Claude Code harness — tools, hooks, MCP, permissions — and only moves inference and billing to your AWS account. Note that Claude Code's `WebSearch` tool is unavailable on Bedrock. Vertex AI is still env-only (`CLAUDE_CODE_USE_VERTEX=1` in the shell that launches Claudius).
+
 When using Anthropic's API you are bound by their [Commercial Terms](https://www.anthropic.com/legal/commercial-terms), [Usage Policy](https://www.anthropic.com/legal/aup), and [Privacy Policy](https://www.anthropic.com/legal/privacy).
 
 ### Workspaces

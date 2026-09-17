@@ -6,6 +6,7 @@ import {
   ArrowLeft,
   Building2,
   Check,
+  Cloud,
   CreditCard,
   Database,
   Globe,
@@ -20,14 +21,25 @@ import {
 } from "lucide-react";
 import { SideNav } from "@/components/nav/SideNav";
 import { cn } from "@/lib/utils/cn";
+import {
+  ACCOUNT_KIND_LABEL,
+  BEDROCK_AUTH_LABEL,
+  BEDROCK_AUTH_METHODS,
+  BEDROCK_REGION_PREFIXES,
+  type AccountKind,
+  type BedrockAuthMethod,
+  type BedrockConfig,
+  type BedrockRegionPrefix,
+  type PublicBedrockConfig,
+} from "@/lib/shared/accounts";
 
-type AccountKind = "oauth-token" | "api-key";
 type PublicAccountProfile = {
   id: string;
   label: string;
   kind: AccountKind;
   secretPreview: string;
   createdAt: string;
+  bedrock?: PublicBedrockConfig;
 };
 type AccountsState = {
   profiles: PublicAccountProfile[];
@@ -35,9 +47,12 @@ type AccountsState = {
   autoRotateOnRateLimit: boolean;
 };
 
-const ACCOUNT_KIND_LABEL: Record<AccountKind, string> = {
-  "oauth-token": "Subscription (OAuth)",
-  "api-key": "API key",
+/** Wire shape of `POST /api/accounts`. */
+type AddAccountInput = {
+  label: string;
+  kind: AccountKind;
+  secret?: string;
+  bedrock?: Partial<BedrockConfig>;
 };
 
 type AccountInfo = {
@@ -55,7 +70,7 @@ type AccountInfo = {
    */
   fromActiveProfile?: {
     label: string;
-    kind: "oauth-token" | "api-key";
+    kind: AccountKind;
     errored?: boolean;
     error?: string;
   };
@@ -63,10 +78,11 @@ type AccountInfo = {
 
 type AccountProfileInfoResponse = {
   info: {
-    provider: "firstParty";
+    provider: "firstParty" | "bedrock";
     profileId: string;
     profileLabel: string;
-    profileKind: "oauth-token" | "api-key";
+    profileKind: AccountKind;
+    bedrockSummary?: string;
     email?: string;
     displayName?: string;
     organizationUuid?: string;
@@ -233,7 +249,9 @@ export default function UsagePage() {
           apiKeySource:
             info.profileKind === "api-key"
               ? "account-switcher"
-              : prev?.apiKeySource,
+              : info.profileKind === "bedrock"
+                ? `AWS credentials (${info.bedrockSummary ?? "account-switcher"})`
+                : prev?.apiKeySource,
           fromActiveProfile: {
             label: info.profileLabel,
             kind: info.profileKind,
@@ -599,7 +617,7 @@ function AccountsSection({
   pendingId: string | null;
   onSwitch: (id: string) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
-  onAdd: (input: { label: string; kind: AccountKind; secret: string }) => Promise<void>;
+  onAdd: (input: AddAccountInput) => Promise<void>;
   /** Begin a browser OAuth flow. Returns the URL the user opens. */
   onOAuthStart: () => Promise<{ flowId: string; authUrl: string }>;
   /** Exchange the user-pasted code for a token and add the profile. */
@@ -613,6 +631,19 @@ function AccountsSection({
   const [addSecret, setAddSecret] = useState("");
   const [addError, setAddError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  // Bedrock form state. Kept flat (one useState per field) to match the
+  // rest of this form; `addSecret` doubles as the secret access key /
+  // Bedrock API key depending on `bedrockAuth`.
+  const [bedrockAuth, setBedrockAuth] = useState<BedrockAuthMethod>("aws-profile");
+  const [bedrockRegion, setBedrockRegion] = useState("");
+  const [bedrockAwsProfile, setBedrockAwsProfile] = useState("");
+  const [bedrockAccessKeyId, setBedrockAccessKeyId] = useState("");
+  const [bedrockSessionToken, setBedrockSessionToken] = useState("");
+  const [bedrockModel, setBedrockModel] = useState("");
+  const [bedrockPrefix, setBedrockPrefix] = useState<BedrockRegionPrefix | "">("");
+  const [bedrockBaseUrl, setBedrockBaseUrl] = useState("");
+  const [bedrockAdvanced, setBedrockAdvanced] = useState(false);
 
   // Browser OAuth flow state. `flow` is non-null after the user clicks
   // "Sign in with browser" — until the paste-code step completes. We
@@ -632,13 +663,56 @@ function AccountsSection({
     setFlow(null);
     setOauthCode("");
     setShowPasteFallback(false);
+    setBedrockAuth("aws-profile");
+    setBedrockRegion("");
+    setBedrockAwsProfile("");
+    setBedrockAccessKeyId("");
+    setBedrockSessionToken("");
+    setBedrockModel("");
+    setBedrockPrefix("");
+    setBedrockBaseUrl("");
+    setBedrockAdvanced(false);
   };
+
+  // Whether the Bedrock form has what its auth method needs. The server
+  // re-validates (`normalizeBedrockConfig`); this only gates the button.
+  const bedrockReady =
+    bedrockAuth === "aws-profile"
+      ? bedrockAwsProfile.trim().length > 0
+      : bedrockAuth === "access-keys"
+        ? bedrockAccessKeyId.trim().length > 0 && addSecret.trim().length > 0
+        : bedrockAuth === "bearer-token"
+          ? addSecret.trim().length > 0
+          : true;
 
   const submit = async () => {
     setBusy(true);
     setAddError(null);
     try {
-      await onAdd({ label: addLabel, kind: addKind, secret: addSecret });
+      if (addKind === "bedrock") {
+        await onAdd({
+          label: addLabel,
+          kind: "bedrock",
+          // Only the secret-bearing auth methods send one; the server
+          // rejects a stray secret on aws-profile/ambient by ignoring it.
+          ...(bedrockAuth === "access-keys" || bedrockAuth === "bearer-token"
+            ? { secret: addSecret }
+            : {}),
+          bedrock: {
+            auth: bedrockAuth,
+            region: bedrockRegion,
+            ...(bedrockAuth === "aws-profile" ? { awsProfile: bedrockAwsProfile } : {}),
+            ...(bedrockAuth === "access-keys"
+              ? { accessKeyId: bedrockAccessKeyId, sessionToken: bedrockSessionToken }
+              : {}),
+            model: bedrockModel,
+            ...(bedrockPrefix ? { regionPrefix: bedrockPrefix } : {}),
+            baseUrl: bedrockBaseUrl,
+          },
+        });
+      } else {
+        await onAdd({ label: addLabel, kind: addKind, secret: addSecret });
+      }
       reset();
     } catch (err) {
       setAddError(err instanceof Error ? err.message : String(err));
@@ -750,7 +824,8 @@ function AccountsSection({
           itself is signed in with (keychain / env).
           <br />
           Click <span className="font-medium">Add account</span> to register an
-          OAuth token (from <code className="rounded bg-[var(--panel-2)] px-1">claude setup-token</code>) or an API key.
+          OAuth token (from <code className="rounded bg-[var(--panel-2)] px-1">claude setup-token</code>), an API key,
+          or an Amazon Bedrock profile.
         </div>
       )}
 
@@ -770,7 +845,11 @@ function AccountsSection({
                     : "border-[var(--border)] bg-[var(--panel-2)]/40",
                 )}
               >
-                <KeyRound className="h-3.5 w-3.5 shrink-0 text-[var(--muted)]" />
+                {p.kind === "bedrock" ? (
+                  <Cloud className="h-3.5 w-3.5 shrink-0 text-[var(--muted)]" />
+                ) : (
+                  <KeyRound className="h-3.5 w-3.5 shrink-0 text-[var(--muted)]" />
+                )}
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <span className="truncate font-medium">{p.label}</span>
@@ -859,8 +938,228 @@ function AccountsSection({
             >
               <option value="oauth-token">Subscription OAuth token (Pro / Max)</option>
               <option value="api-key">API key (pay-per-token)</option>
+              <option value="bedrock">Amazon Bedrock (AWS billing)</option>
             </select>
           </div>
+
+          {/* Amazon Bedrock — Claude Code's own Bedrock mode
+              (CLAUDE_CODE_USE_BEDROCK=1 + AWS credentials). Same harness,
+              inference + billing on AWS. Secrets (secret access key /
+              Bedrock API key / session token) POST to the server and never
+              come back — the list only shows region + auth method. */}
+          {addKind === "bedrock" && (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                void submit();
+              }}
+              className="space-y-2"
+              data-testid="account-bedrock-form"
+            >
+              <p className="rounded-md border border-[var(--accent)]/30 bg-[var(--accent)]/5 px-3 py-2 text-[11px] text-[var(--muted)]">
+                Runs the same Claude Code harness with inference on <span className="font-medium">Amazon Bedrock</span> —
+                billed to your AWS account. Enable Anthropic models in the Bedrock console first.
+                The WebSearch tool is unavailable on Bedrock.
+              </p>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1 block text-[10px] uppercase tracking-wide text-[var(--muted)]">
+                    AWS auth
+                  </label>
+                  <select
+                    value={bedrockAuth}
+                    onChange={(e) => {
+                      setBedrockAuth(e.target.value as BedrockAuthMethod);
+                      setAddSecret("");
+                    }}
+                    className="w-full rounded-md border border-[var(--border)] bg-[var(--panel)] px-2 py-1 text-xs focus:border-[var(--accent)] focus:outline-none"
+                    data-testid="account-bedrock-auth"
+                  >
+                    {BEDROCK_AUTH_METHODS.map((m) => (
+                      <option key={m} value={m}>
+                        {BEDROCK_AUTH_LABEL[m]}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1 block text-[10px] uppercase tracking-wide text-[var(--muted)]">
+                    AWS region <span className="normal-case">(optional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={bedrockRegion}
+                    onChange={(e) => setBedrockRegion(e.target.value)}
+                    placeholder="us-east-1"
+                    className="w-full rounded-md border border-[var(--border)] bg-[var(--panel)] px-2 py-1 font-mono text-xs focus:border-[var(--accent)] focus:outline-none"
+                    data-testid="account-bedrock-region"
+                  />
+                </div>
+              </div>
+
+              {bedrockAuth === "aws-profile" && (
+                <div>
+                  <label className="mb-1 block text-[10px] uppercase tracking-wide text-[var(--muted)]">
+                    AWS profile name
+                  </label>
+                  <input
+                    type="text"
+                    value={bedrockAwsProfile}
+                    onChange={(e) => setBedrockAwsProfile(e.target.value)}
+                    placeholder="my-sso-profile"
+                    className="w-full rounded-md border border-[var(--border)] bg-[var(--panel)] px-2 py-1 font-mono text-xs focus:border-[var(--accent)] focus:outline-none"
+                    data-testid="account-bedrock-aws-profile"
+                  />
+                  <p className="mt-1 text-[10.5px] text-[var(--muted)]">
+                    A profile from <code className="rounded bg-[var(--panel)] px-1">~/.aws/config</code>. For SSO, run{" "}
+                    <code className="rounded bg-[var(--panel)] px-1">aws sso login --profile …</code> in a terminal when it expires.
+                  </p>
+                </div>
+              )}
+
+              {bedrockAuth === "access-keys" && (
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <div>
+                    <label className="mb-1 block text-[10px] uppercase tracking-wide text-[var(--muted)]">
+                      Access key id
+                    </label>
+                    <input
+                      type="text"
+                      value={bedrockAccessKeyId}
+                      onChange={(e) => setBedrockAccessKeyId(e.target.value)}
+                      placeholder="AKIA…"
+                      className="w-full rounded-md border border-[var(--border)] bg-[var(--panel)] px-2 py-1 font-mono text-xs focus:border-[var(--accent)] focus:outline-none"
+                      data-testid="account-bedrock-access-key-id"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-[10px] uppercase tracking-wide text-[var(--muted)]">
+                      Secret access key
+                    </label>
+                    <input
+                      type="password"
+                      value={addSecret}
+                      onChange={(e) => setAddSecret(e.target.value)}
+                      className="w-full rounded-md border border-[var(--border)] bg-[var(--panel)] px-2 py-1 font-mono text-xs focus:border-[var(--accent)] focus:outline-none"
+                      data-testid="account-add-secret"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="mb-1 block text-[10px] uppercase tracking-wide text-[var(--muted)]">
+                      Session token <span className="normal-case">(optional, temporary credentials)</span>
+                    </label>
+                    <input
+                      type="password"
+                      value={bedrockSessionToken}
+                      onChange={(e) => setBedrockSessionToken(e.target.value)}
+                      className="w-full rounded-md border border-[var(--border)] bg-[var(--panel)] px-2 py-1 font-mono text-xs focus:border-[var(--accent)] focus:outline-none"
+                      data-testid="account-bedrock-session-token"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {bedrockAuth === "bearer-token" && (
+                <div>
+                  <label className="mb-1 block text-[10px] uppercase tracking-wide text-[var(--muted)]">
+                    Bedrock API key
+                  </label>
+                  <input
+                    type="password"
+                    value={addSecret}
+                    onChange={(e) => setAddSecret(e.target.value)}
+                    placeholder="bedrock-api-key-…"
+                    className="w-full rounded-md border border-[var(--border)] bg-[var(--panel)] px-2 py-1 font-mono text-xs focus:border-[var(--accent)] focus:outline-none"
+                    data-testid="account-add-secret"
+                  />
+                  <p className="mt-1 text-[10.5px] text-[var(--muted)]">
+                    Sent as <code className="rounded bg-[var(--panel)] px-1">AWS_BEARER_TOKEN_BEDROCK</code>. Generate one in the Bedrock console — no IAM role needed.
+                  </p>
+                </div>
+              )}
+
+              {bedrockAuth === "ambient" && (
+                <p className="text-[10.5px] text-[var(--muted)]">
+                  Nothing is injected beyond <code className="rounded bg-[var(--panel)] px-1">CLAUDE_CODE_USE_BEDROCK=1</code>: sessions use
+                  whatever the AWS default credential chain already resolves in Claudius&apos;s own environment
+                  (instance role, <code className="rounded bg-[var(--panel)] px-1">aws login</code>, exported keys).
+                </p>
+              )}
+
+              <div>
+                <label className="mb-1 block text-[10px] uppercase tracking-wide text-[var(--muted)]">
+                  Default model <span className="normal-case">(optional)</span>
+                </label>
+                <input
+                  type="text"
+                  value={bedrockModel}
+                  onChange={(e) => setBedrockModel(e.target.value)}
+                  placeholder="us.anthropic.claude-sonnet-4-6 or arn:aws:bedrock:…:application-inference-profile/…"
+                  className="w-full rounded-md border border-[var(--border)] bg-[var(--panel)] px-2 py-1 font-mono text-xs focus:border-[var(--accent)] focus:outline-none"
+                  data-testid="account-bedrock-model"
+                />
+                <p className="mt-1 text-[10.5px] text-[var(--muted)]">
+                  Used when a session starts without a model of its own. A model picked in chat still wins — Claude Code maps
+                  Anthropic ids like <code className="rounded bg-[var(--panel)] px-1">claude-sonnet-4-6</code> to Bedrock inference profiles itself.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setBedrockAdvanced((v) => !v)}
+                className="text-[11px] text-[var(--muted)] underline hover:text-[var(--foreground)]"
+                data-testid="account-bedrock-advanced-toggle"
+              >
+                {bedrockAdvanced ? "Hide advanced" : "Advanced (inference prefix, custom endpoint)"}
+              </button>
+              {bedrockAdvanced && (
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <div>
+                    <label className="mb-1 block text-[10px] uppercase tracking-wide text-[var(--muted)]">
+                      Inference-profile prefix
+                    </label>
+                    <select
+                      value={bedrockPrefix}
+                      onChange={(e) => setBedrockPrefix(e.target.value as BedrockRegionPrefix | "")}
+                      className="w-full rounded-md border border-[var(--border)] bg-[var(--panel)] px-2 py-1 text-xs focus:border-[var(--accent)] focus:outline-none"
+                      data-testid="account-bedrock-prefix"
+                    >
+                      <option value="">Derive from region (default)</option>
+                      {BEDROCK_REGION_PREFIXES.map((pfx) => (
+                        <option key={pfx} value={pfx}>
+                          {pfx}.
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-[10px] uppercase tracking-wide text-[var(--muted)]">
+                      Bedrock endpoint URL
+                    </label>
+                    <input
+                      type="text"
+                      value={bedrockBaseUrl}
+                      onChange={(e) => setBedrockBaseUrl(e.target.value)}
+                      placeholder="https://bedrock-runtime.us-east-1.amazonaws.com"
+                      className="w-full rounded-md border border-[var(--border)] bg-[var(--panel)] px-2 py-1 font-mono text-xs focus:border-[var(--accent)] focus:outline-none"
+                      data-testid="account-bedrock-base-url"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="submit"
+                  disabled={busy || !addLabel.trim() || !bedrockReady}
+                  className="rounded-md border border-[var(--accent)]/60 bg-[var(--accent)]/15 px-3 py-1 text-xs text-[var(--accent)] hover:bg-[var(--accent)]/25 disabled:opacity-50"
+                  data-testid="account-add-submit"
+                >
+                  {busy ? "Adding…" : "Add"}
+                </button>
+              </div>
+            </form>
+          )}
 
           {/* OAuth browser flow (default for oauth-token). Three states:
               (1) idle — show "Sign in with browser" button

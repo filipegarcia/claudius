@@ -2,6 +2,16 @@ import { promises as fs } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { randomBytes } from "node:crypto";
+import {
+  describeBedrockConfig,
+  isAccountKind,
+  normalizeBedrockConfig,
+  type AccountKind,
+  type BedrockConfig,
+  type PublicBedrockConfig,
+} from "@/lib/shared/accounts";
+
+export type { AccountKind, BedrockConfig, PublicBedrockConfig } from "@/lib/shared/accounts";
 
 /**
  * Account-switcher store. Lets a single Claudius install hold several
@@ -23,7 +33,8 @@ import { randomBytes } from "node:crypto";
  */
 
 /**
- * Auth kind a profile carries.
+ * `AccountKind` lives in `lib/shared/accounts.ts` (the /usage page needs
+ * it too). Summary:
  *
  * - `oauth-token`: long-lived `CLAUDE_CODE_OAUTH_TOKEN` — what
  *   `claude setup-token` emits. Backed by the user's Anthropic
@@ -33,16 +44,26 @@ import { randomBytes } from "node:crypto";
  * - `api-key`: pay-per-token `ANTHROPIC_API_KEY` (`sk-ant-...`). Not
  *   subject to subscription rate limits; a useful "overflow lane" when
  *   a subscription account is exhausted.
+ * - `bedrock`: Claude Code's own Amazon Bedrock mode
+ *   (`CLAUDE_CODE_USE_BEDROCK=1` + AWS credentials). Same SDK harness,
+ *   different inference backend; billed to the AWS account. Non-secret
+ *   settings live in `AccountProfile.bedrock`, the secret half (secret
+ *   access key / Bedrock API key) in `secret` like every other kind.
  */
-export type AccountKind = "oauth-token" | "api-key";
 
 export type AccountProfile = {
   id: string;
   label: string;
   kind: AccountKind;
-  /** Raw credential. Never sent to the client — see `toPublic`. */
+  /**
+   * Raw credential. Never sent to the client — see `toPublic`.
+   * Empty string is legal ONLY for `bedrock` profiles whose auth method
+   * carries no secret of its own (`aws-profile`, `ambient`).
+   */
   secret: string;
   createdAt: string;
+  /** Bedrock settings — present iff `kind === "bedrock"`. */
+  bedrock?: BedrockConfig;
   /**
    * Cached metadata captured at the moment the profile was created
    * (either from the OAuth token-exchange response, or — for paste
@@ -82,9 +103,15 @@ export type PublicAccountProfile = {
   id: string;
   label: string;
   kind: AccountKind;
-  /** Last 4 chars of the secret, for a recognizable badge in the UI. */
+  /**
+   * Last 4 chars of the secret, for a recognizable badge in the UI. For
+   * `bedrock` profiles this is a secret-free one-liner instead
+   * (`us-east-1 · profile work-sso`) — see `describeBedrockConfig`.
+   */
   secretPreview: string;
   createdAt: string;
+  /** Secret-stripped Bedrock settings — present iff `kind === "bedrock"`. */
+  bedrock?: PublicBedrockConfig;
 };
 
 export type AccountsState = {
@@ -250,10 +277,10 @@ async function provisionProfileConfigDir(profile: AccountProfile): Promise<strin
     }
     try { await fs.chmod(credsPath, 0o600); } catch { /* non-fatal */ }
   } else {
-    // api-key profile — the SDK reads the key from ANTHROPIC_API_KEY
-    // in env; no credentials.json equivalent. Just make sure no
-    // stale file lingers (would shadow the env on the credential
-    // resolver's read path).
+    // api-key / bedrock profile — the SDK reads the credential from env
+    // (ANTHROPIC_API_KEY, or the AWS credential chain); no
+    // credentials.json equivalent. Just make sure no stale file lingers
+    // (would shadow the env on the credential resolver's read path).
     await fs.unlink(credsPath).catch(() => {});
   }
 
@@ -340,7 +367,11 @@ async function writeAccounts(next: AccountsState): Promise<AccountsState> {
  * by the OAuth flow from the token-exchange response.
  */
 export async function addAccount(
-  input: Pick<AccountProfile, "label" | "kind" | "secret"> & {
+  input: Pick<AccountProfile, "label" | "kind"> & {
+    /** Required for oauth-token / api-key; per-auth-method for bedrock. */
+    secret?: string;
+    /** Required iff `kind === "bedrock"`; validated by `normalizeBedrockConfig`. */
+    bedrock?: Partial<BedrockConfig>;
     accountUuid?: string;
     emailAddress?: string;
     organizationUuid?: string;
@@ -351,9 +382,17 @@ export async function addAccount(
   const label = (input.label ?? "").trim();
   const secret = (input.secret ?? "").trim();
   if (!label) throw new Error("label required");
-  if (!secret) throw new Error("secret required");
-  if (input.kind !== "oauth-token" && input.kind !== "api-key") {
-    throw new Error("kind must be oauth-token or api-key");
+  if (!isAccountKind(input.kind)) {
+    throw new Error("kind must be oauth-token, api-key or bedrock");
+  }
+  // Bedrock validates its own secret requirement per auth method
+  // (aws-profile / ambient legitimately carry none); the Anthropic kinds
+  // always need one.
+  let bedrock: BedrockConfig | undefined;
+  if (input.kind === "bedrock") {
+    bedrock = normalizeBedrockConfig(input.bedrock, secret);
+  } else if (!secret) {
+    throw new Error("secret required");
   }
   const cur = await readAccountsRaw();
   const profile: AccountProfile = {
@@ -362,6 +401,7 @@ export async function addAccount(
     kind: input.kind,
     secret,
     createdAt: new Date().toISOString(),
+    ...(bedrock ? { bedrock } : {}),
     ...(input.accountUuid ? { accountUuid: input.accountUuid } : {}),
     ...(input.emailAddress ? { emailAddress: input.emailAddress } : {}),
     ...(input.organizationUuid ? { organizationUuid: input.organizationUuid } : {}),
@@ -575,17 +615,26 @@ export async function buildEnvForProfile(
   ]) {
     delete env[k];
   }
+  // NOTE: AWS_* vars are deliberately NOT scrubbed for the Anthropic
+  // kinds. With CLAUDE_CODE_USE_BEDROCK gone they're inert for inference,
+  // but the agent's Bash tool inherits this env too and users routinely
+  // rely on AWS_PROFILE there (`aws s3 ls` from a chat). Only a bedrock
+  // profile with explicit credentials overrides them — see below.
   if (profile.kind === "oauth-token") {
     env.CLAUDE_CODE_OAUTH_TOKEN = profile.secret;
-  } else {
+  } else if (profile.kind === "api-key") {
     env.ANTHROPIC_API_KEY = profile.secret;
+  } else {
+    applyBedrockEnv(env, profile);
   }
   // The load-bearing piece. CLAUDE_CONFIG_DIR points the SDK at a
   // per-profile mirror dir whose `.credentials.json` contains THIS
   // profile's token — bypassing the macOS Keychain that env-only
   // injection can't override. Other ~/.claude/ entries (plugins,
   // settings, MCP, etc.) are symlinked into the mirror so the
-  // session still sees the user's customizations.
+  // session still sees the user's customizations. (Bedrock profiles
+  // get the same mirror — no credentials file, but the per-profile
+  // dir keeps memory/settings isolation consistent across kinds.)
   env.CLAUDE_CONFIG_DIR = await provisionProfileConfigDir(profile);
   // Inject the account-info env vars when we have the full triple. The
   // SDK's `populateOAuthAccountInfoIfNeeded` short-circuits to these
@@ -602,7 +651,97 @@ export async function buildEnvForProfile(
   return env;
 }
 
-function toPublic(p: AccountProfile): PublicAccountProfile {
+/**
+ * AWS credential vars a Bedrock profile with explicit credentials takes
+ * ownership of. Scrubbed before injection so the AWS default chain can't
+ * pick up a parent-shell value that outranks what the profile says
+ * (env keys beat `AWS_PROFILE` in the chain, so a stray
+ * `AWS_ACCESS_KEY_ID` would silently hijack an `aws-profile` profile).
+ */
+const BEDROCK_CREDENTIAL_VARS = [
+  "AWS_PROFILE",
+  "AWS_ACCESS_KEY_ID",
+  "AWS_SECRET_ACCESS_KEY",
+  "AWS_SESSION_TOKEN",
+  "AWS_BEARER_TOKEN_BEDROCK",
+] as const;
+
+/**
+ * Translate a `bedrock` profile into the env Claude Code's Bedrock mode
+ * reads (see code.claude.com/docs/en/amazon-bedrock — "Set up manually").
+ * Mutates `env` in place. Pure apart from that; unit-tested directly.
+ *
+ * Contract (Claude Code ≥ 2.1.207, bundled SDK ships 2.1.272):
+ *   CLAUDE_CODE_USE_BEDROCK=1             — the switch
+ *   AWS_REGION                            — optional; profile/us-east-1 fallback
+ *   AWS_PROFILE | AWS_ACCESS_KEY_ID+AWS_SECRET_ACCESS_KEY[+AWS_SESSION_TOKEN]
+ *     | AWS_BEARER_TOKEN_BEDROCK          — one credential source
+ *   ANTHROPIC_MODEL                       — default model when the session
+ *                                           passes none (`--model` wins)
+ *   ANTHROPIC_BEDROCK_REGION_PREFIX       — us/eu/apac/jp/au/global
+ *   ANTHROPIC_BEDROCK_BASE_URL            — gateway / custom endpoint
+ */
+export function applyBedrockEnv(env: NodeJS.ProcessEnv, profile: AccountProfile): void {
+  const cfg = profile.bedrock;
+  if (profile.kind !== "bedrock" || !cfg) {
+    throw new Error("applyBedrockEnv: not a bedrock profile");
+  }
+  env.CLAUDE_CODE_USE_BEDROCK = "1";
+  // Mantle is a different endpoint with its own model lineup; a stray
+  // parent-shell opt-in would silently reroute this profile's requests.
+  delete env.CLAUDE_CODE_USE_MANTLE;
+  if (cfg.auth !== "ambient") {
+    for (const k of BEDROCK_CREDENTIAL_VARS) delete env[k];
+  }
+  switch (cfg.auth) {
+    case "aws-profile":
+      env.AWS_PROFILE = cfg.awsProfile;
+      break;
+    case "access-keys":
+      env.AWS_ACCESS_KEY_ID = cfg.accessKeyId;
+      env.AWS_SECRET_ACCESS_KEY = profile.secret;
+      if (cfg.sessionToken) env.AWS_SESSION_TOKEN = cfg.sessionToken;
+      break;
+    case "bearer-token":
+      env.AWS_BEARER_TOKEN_BEDROCK = profile.secret;
+      break;
+    case "ambient":
+      // Inherit the chain as-is (instance role, `aws login`, exported keys).
+      break;
+  }
+  if (cfg.region) {
+    env.AWS_REGION = cfg.region;
+    // AWS_DEFAULT_REGION is lower precedence, but a mismatched value is
+    // confusing in `/status` — keep the two in agreement.
+    delete env.AWS_DEFAULT_REGION;
+  }
+  if (cfg.model) env.ANTHROPIC_MODEL = cfg.model;
+  else delete env.ANTHROPIC_MODEL;
+  if (cfg.regionPrefix) env.ANTHROPIC_BEDROCK_REGION_PREFIX = cfg.regionPrefix;
+  else delete env.ANTHROPIC_BEDROCK_REGION_PREFIX;
+  if (cfg.baseUrl) env.ANTHROPIC_BEDROCK_BASE_URL = cfg.baseUrl;
+  else delete env.ANTHROPIC_BEDROCK_BASE_URL;
+}
+
+/**
+ * Client-safe projection of a profile. Exported so route handlers reuse
+ * the one definition of "what leaves the server" rather than re-deriving
+ * the preview inline.
+ */
+export function toPublic(p: AccountProfile): PublicAccountProfile {
+  if (p.kind === "bedrock" && p.bedrock) {
+    // Strip the session token (secret) and describe the rest.
+    const { sessionToken: _sessionToken, ...bedrock } = p.bedrock;
+    void _sessionToken;
+    return {
+      id: p.id,
+      label: p.label,
+      kind: p.kind,
+      secretPreview: describeBedrockConfig(bedrock),
+      createdAt: p.createdAt,
+      bedrock,
+    };
+  }
   return {
     id: p.id,
     label: p.label,
@@ -627,11 +766,19 @@ function isProfileShape(x: unknown): x is AccountProfile {
   const p = x as Partial<AccountProfile>;
   // Required fields. The optional metadata (emailAddress, …) is
   // tolerated as missing or present — we don't gate validity on it.
-  return (
-    typeof p.id === "string" &&
-    typeof p.label === "string" &&
-    (p.kind === "oauth-token" || p.kind === "api-key") &&
-    typeof p.secret === "string" &&
-    typeof p.createdAt === "string"
-  );
+  if (
+    typeof p.id !== "string" ||
+    typeof p.label !== "string" ||
+    !isAccountKind(p.kind) ||
+    typeof p.secret !== "string" ||
+    typeof p.createdAt !== "string"
+  ) {
+    return false;
+  }
+  // A bedrock row without its config block can't be turned into env —
+  // drop it rather than let `applyBedrockEnv` throw at session start.
+  if (p.kind === "bedrock") {
+    return !!p.bedrock && typeof p.bedrock === "object" && typeof p.bedrock.auth === "string";
+  }
+  return true;
 }
