@@ -27,6 +27,16 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string }>
   await session.interrupt();
   const snapshot = await session.getQueueSnapshot();
   const dispatched: string[] = [];
+  // Iterate the snapshot in FIFO order and dispatch each in turn. Node is
+  // single-threaded and nothing else in this process writes to
+  // `Session.inputQueue`, so even though `sendQueuedNow`'s internal
+  // `await`s yield the event loop between iterations, the `push()` calls
+  // it makes land in the same order this loop issues them — the SDK may
+  // start consuming item 0 before item 1 is even popped from the DB, but
+  // it can never observe item 1 before item 0. This is the same "asap"
+  // sequential-turn model the single-item "Send now" override already
+  // documents (see `Session.sendQueuedNow`'s docstring): each dispatched
+  // message becomes its own turn, run back-to-back, not one merged turn.
   for (const item of snapshot) {
     const ok = await session.sendQueuedNow(item.uuid);
     if (ok) dispatched.push(item.uuid);
