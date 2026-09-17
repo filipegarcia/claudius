@@ -58,6 +58,27 @@ const SUBAGENT_PERMISSION_EVENT: SdkEvent = {
   agentId: FAKE_AGENT_ID,
 };
 
+// Event types the real server's replay buffer drops on reconnect — see
+// `lib/server/session.ts`'s `subscribe()` ("Drop ephemeral interactive
+// events from the replay"). These represent live, in-flight UI prompts;
+// once resolved, a real reconnect never re-sends them, only the still-
+// pending ones via a dedicated resend path. `route.fulfill` below can't
+// model a genuinely long-lived stream — it completes the HTTP response,
+// which makes the browser's EventSource auto-reconnect and re-request
+// this route. Replaying the full fixture (including an already-resolved
+// `permission_request`) on that reconnect would re-pop the modal this
+// spec just dismissed — a fixture-only race the real server design
+// explicitly prevents. Serving the ephemeral events only on the FIRST
+// connection keeps the mock honest to that contract.
+const EPHEMERAL_EVENT_TYPES = new Set([
+  "permission_request",
+  "ask_user_question",
+  "plan_approval_request",
+  "feedback_survey",
+  "opus_overload_nudge",
+  "long_context_credits_required",
+]);
+
 async function mockChatBackend(page: Page, events: SdkEvent[]): Promise<void> {
   await page.route("**/api/sessions", async (route: Route) => {
     if (route.request().method() !== "POST") return route.fallback();
@@ -68,9 +89,15 @@ async function mockChatBackend(page: Page, events: SdkEvent[]): Promise<void> {
     });
   });
 
+  let streamConnections = 0;
   await page.route(
     `**/api/sessions/${FAKE_SESSION_ID}/stream*`,
     async (route: Route) => {
+      streamConnections += 1;
+      const isReconnect = streamConnections > 1;
+      const body = isReconnect
+        ? events.filter((e) => !EPHEMERAL_EVENT_TYPES.has(String(e.type)))
+        : events;
       return route.fulfill({
         status: 200,
         headers: {
@@ -78,7 +105,7 @@ async function mockChatBackend(page: Page, events: SdkEvent[]): Promise<void> {
           "Cache-Control": "no-cache",
           Connection: "keep-alive",
         },
-        body: sseBody(events),
+        body: sseBody(body),
       });
     },
   );
