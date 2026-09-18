@@ -4,6 +4,7 @@ import {
   addSessionUsage,
   foldResultIntoSessionUsage,
   mergeModelUsage,
+  reconcileUsageBaselineOnFirstFold,
   zeroSessionUsage,
 } from "@/lib/server/session";
 import type { SessionUsageTotals } from "@/lib/shared/events";
@@ -196,6 +197,90 @@ describe("foldResultIntoSessionUsage", () => {
     const totals = addSessionUsage(baseline, running);
     expect(totals.inputTokens).toBe(15);
     expect(totals.outputTokens).toBe(27);
+  });
+});
+
+describe("reconcileUsageBaselineOnFirstFold (SDK 0.3.277)", () => {
+  test("zero baseline passes through untouched (fresh, never-resumed session)", () => {
+    const baseline = zeroSessionUsage();
+    const running: SessionUsageTotals = { ...zeroSessionUsage(), totalCostUsd: 4, numTurns: 3 };
+    const out = reconcileUsageBaselineOnFirstFold(baseline, running);
+    expect(out).toBe(baseline);
+  });
+
+  test("SDK's first post-resume result already reaches the baseline cost: cost/tokens/modelUsage zeroed, numTurns/durations preserved", () => {
+    const baseline: SessionUsageTotals = {
+      totalCostUsd: 5,
+      numTurns: 10,
+      durationMs: 60_000,
+      durationApiMs: 50_000,
+      inputTokens: 1000,
+      outputTokens: 2000,
+      cacheReadInputTokens: 300,
+      cacheCreationInputTokens: 40,
+      modelUsage: mu({ "claude-opus-5": { in: 1000, out: 2000, cost: 5 } }),
+    };
+    // Post-fix SDK: the first result after resume already carries the
+    // pre-resume total_cost_usd (5) plus whatever this process itself has
+    // added so far (0.5) — 5.5 total, at/above the baseline's 5.
+    const firstResultRunning: SessionUsageTotals = {
+      ...zeroSessionUsage(),
+      totalCostUsd: 5.5,
+      numTurns: 1,
+    };
+    const out = reconcileUsageBaselineOnFirstFold(baseline, firstResultRunning);
+    expect(out.totalCostUsd).toBe(0);
+    expect(out.inputTokens).toBe(0);
+    expect(out.outputTokens).toBe(0);
+    expect(out.cacheReadInputTokens).toBe(0);
+    expect(out.cacheCreationInputTokens).toBe(0);
+    expect(out.modelUsage).toBeUndefined();
+    // Not named in the SDK's fix — left exactly as seeded.
+    expect(out.numTurns).toBe(10);
+    expect(out.durationMs).toBe(60_000);
+    expect(out.durationApiMs).toBe(50_000);
+  });
+
+  test("SDK's first post-resume result does NOT reach the baseline cost (no transcript continuity): baseline left untouched", () => {
+    const baseline: SessionUsageTotals = {
+      ...zeroSessionUsage(),
+      totalCostUsd: 5,
+      numTurns: 10,
+    };
+    // Pre-fix-shaped SDK behavior, or a transcript with nothing to
+    // continue from ("when it has one" carve-out) — the first result
+    // starts low, same as before 0.3.277.
+    const firstResultRunning: SessionUsageTotals = {
+      ...zeroSessionUsage(),
+      totalCostUsd: 0.1,
+      numTurns: 1,
+    };
+    const out = reconcileUsageBaselineOnFirstFold(baseline, firstResultRunning);
+    expect(out).toEqual(baseline);
+  });
+
+  test("end-to-end via foldResultIntoSessionUsage: reconciled baseline + running does not double-count post-resume", () => {
+    const seededBaseline: SessionUsageTotals = {
+      ...zeroSessionUsage(),
+      totalCostUsd: 5,
+      numTurns: 10,
+      modelUsage: mu({ "claude-opus-5": { cost: 5 } }),
+    };
+    const rawMessage = resultMsg({
+      total_cost_usd: 5.5,
+      num_turns: 1,
+      modelUsage: mu({ "claude-opus-5": { cost: 5.5 } }),
+    });
+    const probe = foldResultIntoSessionUsage(zeroSessionUsage(), zeroSessionUsage(), rawMessage)!;
+    const reconciled = reconcileUsageBaselineOnFirstFold(seededBaseline, probe.running);
+    const folded = foldResultIntoSessionUsage(reconciled, zeroSessionUsage(), rawMessage)!;
+    const totals = addSessionUsage(folded.baseline, folded.running);
+    // Without reconciliation this would read 5 (stale baseline) + 5.5
+    // (running, which already includes the pre-resume 5) = 10.5.
+    expect(totals.totalCostUsd).toBeCloseTo(5.5, 6);
+    // numTurns isn't part of the fix, so the old additive model still
+    // applies there: baseline's 10 + this process's 1 = 11.
+    expect(totals.numTurns).toBe(11);
   });
 });
 

@@ -350,7 +350,9 @@ export type ClaudeSettings = {
   bashOutputMaxChars?: number;
   // SDK 0.3.261 — same treatment, for the TaskOutput tool's per-call
   // inline character budget on a background task's output (default 32000,
-  // same 4000-128000 clamp).
+  // same 4000-128000 clamp). SDK 0.3.277: the TaskOutput tool was removed
+  // upstream and this key is now a documented no-op — kept as passthrough
+  // only (see the catalog row's `desc` in app/settings/page.tsx).
   taskOutputMaxChars?: number;
   // Catch-all for keys we don't yet know about — we never strip them.
   [key: string]: unknown;

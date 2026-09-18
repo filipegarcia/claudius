@@ -1247,13 +1247,18 @@ const SDK_SETTINGS_CATALOG: SettingMeta[] = [
     desc: "How many characters of a successful Bash/PowerShell command's output Claude receives inline (default 30000; clamps to 4000-128000). Output past this is saved to a file and Claude receives a short preview plus the path. Replaces BASH_MAX_OUTPUT_LENGTH, which on its own only sizes the read-back window.",
   },
   {
-    // SDK 0.3.261 — same treatment, for the TaskOutput tool's per-call
-    // inline budget on a background task's output.
+    // SDK 0.3.277 — the TaskOutput tool this setting governed was removed
+    // upstream (see sdk-tools.d.ts: TaskOutputInput/TaskOutputOutput are
+    // gone from ToolInputSchemas/ToolOutputSchemas); the SDK's own JSDoc
+    // now reads "Deprecated: no longer has any effect". Left in the
+    // catalog as passthrough (still a valid settings.json key some
+    // installs may carry) but the copy below no longer describes live
+    // behavior.
     key: "taskOutputMaxChars",
     type: "number",
     section: "Shell",
     placeholder: "32000",
-    desc: "How many characters of a background task's output the TaskOutput tool hands Claude inline (default 32000; clamps to 4000-128000). Longer output is cut to its most recent characters with the path of the full output file. Replaces TASK_MAX_OUTPUT_LENGTH, which on its own only sizes the read-back window.",
+    desc: "Deprecated: no longer has any effect (the TaskOutput tool was removed). Read a background task's output file with the Read tool instead.",
   },
   {
     // SDK 0.3.261 — deprecated: the JSDoc now reads "no longer has any

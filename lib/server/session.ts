@@ -1256,6 +1256,56 @@ export function foldResultIntoSessionUsage(
 }
 
 /**
+ * SDK 0.3.277 fixed `total_cost_usd`/`modelUsage`/`get_usage` (the changelog
+ * names exactly those three — NOT `num_turns` or the duration fields) to
+ * continue from "the total its transcript saved" on a resumed/forked
+ * session's first `result`, instead of starting at zero the way pre-0.3.277
+ * SDKs did (the old JSDoc literally said "resumed sessions start fresh";
+ * the new one says "a resumed or forked session continues from the total
+ * its transcript saved... so the first result already carries the earlier
+ * turns").
+ *
+ * `usageBaseline` (see `Session.seedUsageBaseline`) exists specifically to
+ * paper over that OLD zero-start bug: it's Claudius's own
+ * persisted-in-SQLite (or JSONL-estimated, for legacy sessions) pre-resume
+ * total, added on top of the SDK's own per-process running total in
+ * `currentUsageTotals()`. Post-fix, if the very first post-resume result
+ * already reports a cost at or above what we separately tracked, the SDK
+ * has already folded that history in — adding our baseline's cost on top
+ * would double it.
+ *
+ * Only the cost/token/modelUsage components are zeroed when that happens —
+ * `numTurns`/`durationMs`/`durationApiMs` are left untouched, because the
+ * changelog doesn't name them as fixed and (per empirical testing history
+ * recorded in this file's other doc comments) the SDK's running totals for
+ * those fields still restart at zero for a new process. Zeroing them too
+ * would silently drop turn/duration history the SDK doesn't yet restore.
+ *
+ * Called once, from `foldUsageFromResult`, on the first successful fold
+ * after session start — a mid-session `/clear`-style reset is handled
+ * entirely by `foldResultIntoSessionUsage`'s own reset detection and never
+ * reaches this function. Pure — exported for unit testing.
+ */
+export function reconcileUsageBaselineOnFirstFold(
+  baseline: SessionUsageTotals,
+  firstResultRunning: SessionUsageTotals,
+): SessionUsageTotals {
+  if (baseline.totalCostUsd === 0 && !baseline.modelUsage) return baseline;
+  const sdkAlreadyIncludesBaseline =
+    firstResultRunning.totalCostUsd >= baseline.totalCostUsd - 1e-6;
+  if (!sdkAlreadyIncludesBaseline) return baseline;
+  return {
+    ...baseline,
+    totalCostUsd: 0,
+    inputTokens: 0,
+    outputTokens: 0,
+    cacheReadInputTokens: 0,
+    cacheCreationInputTokens: 0,
+    modelUsage: undefined,
+  };
+}
+
+/**
  * Reorder `sdk` events in a replay slice into chronological order by their
  * `at` epoch ms. Non-sdk events (ready, session_title, mode_changed, etc.)
  * stay anchored at their original buffer index so control-plane ordering
@@ -5010,11 +5060,19 @@ export class Session {
    * it; we cast and forward so the picker's max chip works on models that
    * support it.
    *
-   * No DB persistence — effort isn't on the `sessions` schema. After a
-   * reap → resume, the level falls back to default. The client mirrors the
-   * pick optimistically so the SessionCard pill stays honest within a
-   * session's lifetime; that's the trade we accept until the SDK adds an
-   * `effort_changed` event we can subscribe to.
+   * SDK 0.3.277 partially closes the "falls back to default" gap above:
+   * `updateSettings('userSettings', { effortLevel })` persists the pick to
+   * the user's `settings.json` "the same way /effort saves it" — but per
+   * its own doc comment it does NOT itself live-apply to the running
+   * session, so the `applyFlagSettings` call below still owns the live
+   * half. We call both, mirroring what `/effort` does in the CLI: a
+   * reap → resume now picks up the persisted level instead of whatever
+   * Settings → Thinking & effort last saved (assuming that page hasn't
+   * separately pinned `effortLevel` at project/local scope, which takes
+   * precedence over the user-scope write here — an accepted edge case,
+   * not a Claudius-specific quirk). The writer doesn't support deletion,
+   * so `"auto"`/clear skips the persist call entirely; the live clear via
+   * `applyFlagSettings` below still takes effect for this session.
    */
   async setEffort(level: EffortLevel | "auto"): Promise<void> {
     if (!this.query) return;
@@ -5025,6 +5083,9 @@ export class Session {
     // to reject unsupported levels rather than narrowing here.
     const value = level === "auto" ? null : level;
     await this.query.applyFlagSettings({ effortLevel: value }).catch(() => {});
+    if (value !== null) {
+      await this.query.updateSettings("userSettings", { effortLevel: value }).catch(() => {});
+    }
   }
 
   /**
@@ -7310,6 +7371,11 @@ export class Session {
    */
   private usageBaseline: SessionUsageTotals = zeroSessionUsage();
   private sdkRunningUsage: SessionUsageTotals = zeroSessionUsage();
+  // SDK 0.3.277 — set on the first successful `foldUsageFromResult` call so
+  // the baseline/running reconciliation below (see
+  // `reconcileUsageBaselineOnFirstFold`) only ever runs once, at the resume
+  // boundary, never on later folds within the same process.
+  private hasFoldedResultSinceStart = false;
 
   private currentUsageTotals(): SessionUsageTotals {
     return addSessionUsage(this.usageBaseline, this.sdkRunningUsage);
@@ -7324,11 +7390,21 @@ export class Session {
    * and broadcast the fresh snapshot. No-op for zeroed crash frames.
    */
   private foldUsageFromResult(message: unknown): void {
-    const folded = foldResultIntoSessionUsage(
-      this.usageBaseline,
-      this.sdkRunningUsage,
-      message,
-    );
+    let baseline = this.usageBaseline;
+    if (!this.hasFoldedResultSinceStart) {
+      // Probe the raw message with an empty baseline/running pair to get a
+      // clean parse of what the SDK itself reports as this result's totals
+      // (reusing `foldResultIntoSessionUsage`'s own null-frame detection —
+      // a zeroed crash/startup frame here means "not yet a real first
+      // fold", so `hasFoldedResultSinceStart` stays false and we try again
+      // on the next message).
+      const probe = foldResultIntoSessionUsage(zeroSessionUsage(), zeroSessionUsage(), message);
+      if (probe) {
+        this.hasFoldedResultSinceStart = true;
+        baseline = reconcileUsageBaselineOnFirstFold(baseline, probe.running);
+      }
+    }
+    const folded = foldResultIntoSessionUsage(baseline, this.sdkRunningUsage, message);
     if (!folded) return;
     this.usageBaseline = folded.baseline;
     this.sdkRunningUsage = folded.running;

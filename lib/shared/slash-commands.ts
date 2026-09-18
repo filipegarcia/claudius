@@ -267,6 +267,14 @@ export function findSlashCommand(nameOrAlias: string): SlashCommand | undefined 
 
 export type SlashSuggestion = SlashCommand & {
   source: "registry" | "sdk" | "skill" | "mcp";
+  /**
+   * SDK 0.3.277 `SlashCommand.builtin` — true when the SDK reports this
+   * command as one of Claude Code's own, as opposed to a user/project/
+   * plugin/MCP-defined command. Only ever set on `source: "sdk"`/`"skill"`
+   * rows (from `richCommands`); the curated static registry doesn't carry
+   * this distinction for its own entries.
+   */
+  builtin?: boolean;
 };
 
 /**
@@ -280,6 +288,8 @@ export type SdkSlashCommandInfo = {
   description?: string;
   argumentHint?: string;
   aliases?: string[];
+  /** SDK 0.3.277 — true when this is one of Claude Code's own built-in commands. */
+  builtin?: boolean;
 };
 
 /**
@@ -336,6 +346,7 @@ export function mergeSuggestions(
       source: isSkill ? "skill" : "sdk",
       ...(rich?.argumentHint?.trim() ? { argsHint: rich.argumentHint.trim() } : {}),
       ...(rich?.aliases && rich.aliases.length > 0 ? { aliases: rich.aliases } : {}),
+      ...(rich?.builtin ? { builtin: true } : {}),
     });
   }
 
