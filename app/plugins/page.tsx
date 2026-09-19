@@ -221,9 +221,17 @@ function InstallSection({
   onRefresh: () => Promise<void> | void;
 }) {
   const [draft, setDraft] = useState("");
+  // Claude Code 2.1.275 — `/plugin install <plugin> --marketplace <source>`:
+  // offer to add the marketplace before installing, instead of requiring a
+  // separate trip through the Marketplaces section first. Optional — most
+  // installs still target an already-known marketplace via `name@id`.
+  const [marketplaceSource, setMarketplaceSource] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [status, setStatus] = useState<{ ok: boolean; msg: string } | null>(null);
-  const draftLint = lintPluginRef(draft);
+  const composedRef = marketplaceSource.trim()
+    ? `${draft.trim()} --marketplace ${marketplaceSource.trim()}`
+    : draft.trim();
+  const draftLint = lintPluginRef(composedRef);
 
   return (
     <section className="rounded-lg border border-[var(--border)] bg-[var(--panel)]/40 p-4">
@@ -240,7 +248,7 @@ function InstallSection({
       <form
         onSubmit={async (e) => {
           e.preventDefault();
-          const v = draft.trim();
+          const v = composedRef;
           if (!v) return;
           setSubmitting(true);
           setStatus(null);
@@ -252,6 +260,7 @@ function InstallSection({
               msg: `Sent “/plugin install ${v}” to chat. Watch progress there, then refresh.`,
             });
             setDraft("");
+            setMarketplaceSource("");
           } else {
             setStatus({ ok: false, msg: r.error ?? "Install failed." });
           }
@@ -264,6 +273,15 @@ function InstallSection({
           placeholder="frontend-design@claude-plugins-official"
           spellCheck={false}
           className="min-w-[280px] flex-1 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1 font-mono text-xs focus:outline-none"
+        />
+        <input
+          value={marketplaceSource}
+          onChange={(e) => setMarketplaceSource(e.target.value)}
+          placeholder="marketplace source (optional) — e.g. owner/repo"
+          spellCheck={false}
+          data-testid="plugin-install-marketplace-source"
+          title="Offer to add this marketplace before installing, instead of adding it separately below first"
+          className="min-w-[220px] flex-1 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1 font-mono text-xs focus:outline-none"
         />
         <button
           type="submit"
@@ -325,7 +343,8 @@ function InstallSection({
           </div>
           <div>
             Add custom marketplaces in the <em>Marketplaces</em> section below before
-            referencing plugins from them.
+            referencing plugins from them — or fill in the marketplace source field
+            above to have the SDK offer to add it as part of this install.
           </div>
         </div>
       </details>

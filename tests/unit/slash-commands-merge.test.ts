@@ -83,6 +83,16 @@ describe("mergeSuggestions", () => {
     }
   });
 
+  test("SDK 0.3.277: builtin threads through for a sdk-sourced row and is absent otherwise", () => {
+    const rich: SdkSlashCommandInfo[] = [
+      { name: "core-cmd", description: "A Claude Code built-in", builtin: true },
+      { name: "plugin-cmd", description: "A plugin command" },
+    ];
+    const out = mergeSuggestions(["core-cmd", "plugin-cmd"], [], rich);
+    expect(out.find((c) => c.name === "core-cmd")!.builtin).toBe(true);
+    expect(out.find((c) => c.name === "plugin-cmd")!.builtin).toBeUndefined();
+  });
+
   test("blank rich description/argumentHint fall back to placeholder (no empty strings)", () => {
     const rich: SdkSlashCommandInfo[] = [
       { name: "blanky", description: "   ", argumentHint: "  " },

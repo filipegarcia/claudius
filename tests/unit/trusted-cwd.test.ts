@@ -22,7 +22,7 @@ import { randomUUID } from "node:crypto";
 
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
 
-import { resolveTrustedCwd, __resetTrustedCwdCache } from "@/lib/server/trusted-cwd";
+import { resolveTrustedCwd, projectConfigRootFor, __resetTrustedCwdCache } from "@/lib/server/trusted-cwd";
 import { workspacesFile, type Workspace } from "@/lib/server/workspaces-store";
 import { makeTempHome, type TmpHome } from "./helpers/tmp-home";
 
@@ -169,5 +169,49 @@ describe("resolveTrustedCwd", () => {
     // in the path; trustedRoots() carries both forms so that isn't a rejection.
     const real = await realpath(wsRoot);
     expect(await resolveTrustedCwd(real)).toBe(real);
+  });
+});
+
+/**
+ * `projectConfigRootFor` feeds `Options.projectConfigRoot` (SDK 0.3.275):
+ * when a session's cwd is a worktree of a registered root, project
+ * settings/hooks/.mcp.json should load from the trusted root, not from
+ * whatever the worktree's checked-out branch carries.
+ */
+describe("projectConfigRootFor", () => {
+  test("returns null for a registered root (not a worktree of anything)", async () => {
+    expect(await projectConfigRootFor(wsRoot)).toBeNull();
+  });
+
+  test("returns null for an unrecognized directory", async () => {
+    const outsider = mkdtempSync(join(tmpdir(), "claudius-trusted-evil-"));
+    try {
+      expect(await projectConfigRootFor(outsider)).toBeNull();
+    } finally {
+      rmSync(outsider, { recursive: true, force: true });
+    }
+  });
+
+  test("returns the owning root for a git worktree of a registered root", async () => {
+    const git = (args: string[], cwd: string) =>
+      execFileSync("git", args, { cwd, encoding: "utf8", env: gitEnv() });
+
+    git(["init", "-q", "-b", "main"], wsRoot);
+    writeFileSync(join(wsRoot, "f.txt"), "x\n");
+    git(["add", "."], wsRoot);
+    git(["commit", "-qm", "base"], wsRoot);
+
+    const wt = join(mkdtempSync(join(tmpdir(), "claudius-trusted-wt-")), "tree");
+    try {
+      git(["worktree", "add", "-q", wt, "-b", "side"], wsRoot);
+      const reported = git(["rev-parse", "--show-toplevel"], wt).trim();
+      // The worktree itself resolves as trusted (existing behavior)...
+      expect(await resolveTrustedCwd(reported)).toBe(reported);
+      // ...but a session started there should load project config from the
+      // root it's a worktree of, not from the worktree's own branch.
+      expect(await projectConfigRootFor(reported)).toBe(resolve(wsRoot));
+    } finally {
+      rmSync(dirname(wt), { recursive: true, force: true });
+    }
   });
 });

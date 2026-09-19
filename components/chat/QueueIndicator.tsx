@@ -27,6 +27,13 @@ type Props = {
    */
   onSendNow?: (id: string) => void | Promise<void>;
   /**
+   * "Send all now" override for the whole queue at once — Ctrl+Enter
+   * (Claude Code parity, 2.1.275). Interrupts the in-flight turn and
+   * dispatches every queued item in FIFO order, same "asap" semantics as
+   * `onSendNow` applied per-item.
+   */
+  onSendAllNow?: () => void | Promise<void>;
+  /**
    * Sends already handed to the SDK and waiting in ITS command queue —
    * `queued_turn_count` from the result message (SDK 0.3.243). These have
    * no row in `queue`: under `queueDispatchMode: "asap"`, and after a
@@ -47,6 +54,7 @@ export function QueueIndicator({
   onEdit,
   onReorder,
   onSendNow,
+  onSendAllNow,
   sdkQueuedTurns = 0,
 }: Props) {
   // Either queue can be the reason the strip is visible. Keying only off
@@ -62,6 +70,17 @@ export function QueueIndicator({
         <div className="flex items-center gap-1 text-[10px] uppercase tracking-wide text-[var(--muted)]">
           <Hourglass className="h-3 w-3" />
           Queued · sends after current response
+          {onSendAllNow && queue.length > 1 && (
+            <button
+              onClick={() => onSendAllNow()}
+              data-testid="queue-send-all-now"
+              className="ml-1 flex items-center gap-1 rounded px-1.5 py-0.5 normal-case tracking-normal text-[var(--muted)] underline decoration-dotted underline-offset-2 hover:text-[var(--foreground)]"
+              title="Send all queued messages now (Ctrl+Enter) — interrupts the current turn"
+            >
+              <Send className="h-3 w-3" />
+              Send all now
+            </button>
+          )}
         </div>
       )}
       {queue.map((q, i) => (

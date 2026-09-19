@@ -252,6 +252,15 @@ export function SlashCommandPicker({ value, sdkSlashCommands, sdkSkills, sdkRich
                   {c.argsHint && (
                     <span className="font-mono text-[10px] text-[var(--muted)]">{c.argsHint}</span>
                   )}
+                  {c.builtin && (
+                    <span
+                      data-testid="slash-command-builtin-badge"
+                      className="rounded bg-[var(--panel-2)] px-1 py-0.5 text-[9px] font-medium uppercase tracking-wide text-[var(--muted)]"
+                      title="Built into Claude Code"
+                    >
+                      built-in
+                    </span>
+                  )}
                 </div>
                 <div className="line-clamp-1 text-[11px] text-[var(--muted)]">{c.description}</div>
               </div>

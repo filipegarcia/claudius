@@ -50,6 +50,41 @@ describe("lintPluginRef", () => {
   test("tolerates surrounding whitespace", () => {
     expect(lintPluginRef("  frontend-design@official  ")).toBeNull();
   });
+
+  // CC 2.1.275 parity — `/plugin install <plugin> --marketplace <source>`
+  describe("--marketplace flag", () => {
+    test("accepts a bare name with --marketplace <source>", () => {
+      expect(lintPluginRef("frontend-design --marketplace owner/repo")).toBeNull();
+      expect(
+        lintPluginRef("frontend-design --marketplace git+https://example.com/mkt"),
+      ).toBeNull();
+    });
+
+    test("accepts name@marketplace with --marketplace <source>", () => {
+      expect(
+        lintPluginRef("frontend-design@claude-plugins-official --marketplace owner/repo"),
+      ).toBeNull();
+    });
+
+    test("does not flag the two-token form as containing spaces", () => {
+      // Would previously fire the generic "can't contain spaces" warning —
+      // this is the one legitimate multi-token ref.
+      const warning = lintPluginRef("frontend-design --marketplace owner/repo");
+      expect(warning).toBeNull();
+    });
+
+    test("still flags an invalid plugin name before --marketplace", () => {
+      expect(lintPluginRef("bad!name --marketplace owner/repo")).not.toBeNull();
+    });
+
+    test("flags a missing source after --marketplace", () => {
+      expect(lintPluginRef("frontend-design --marketplace")).not.toBeNull();
+    });
+
+    test("flags unrelated multi-word input that isn't the --marketplace form", () => {
+      expect(lintPluginRef("my plugin --something owner/repo")).not.toBeNull();
+    });
+  });
 });
 
 describe("lintMarketplaceRef", () => {

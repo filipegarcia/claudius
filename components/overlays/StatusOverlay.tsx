@@ -19,6 +19,13 @@ type Props = {
   mainAgent: string | null;
   /** Agent's live effective cwd — differs from `cwd` when it's working in a git worktree. */
   agentCwd: string | null;
+  /**
+   * Account-switcher profile this session runs under (carried on the SDK
+   * `ready` event — see `SessionReadyEvent.account` / `Session.resolveAccountProfile`).
+   * Null when no account is configured (SDK using the ambient environment).
+   * Claude Code parity, 2.1.275: "the signed-in account ... /status shows it."
+   */
+  account: { label: string; driftFromActive?: { label: string } } | null;
   onClose: () => void;
 };
 
@@ -49,12 +56,30 @@ export function StatusOverlay({
   slashCount,
   mainAgent,
   agentCwd,
+  account,
   onClose,
 }: Props) {
   return (
     <Overlay title="Session status" subtitle="/status" onClose={onClose} width={520}>
       <dl className="divide-y divide-[var(--border)] text-sm">
         <Row label="Session id" value={<code className="font-mono">{sessionId ?? "—"}</code>} />
+        <Row
+          label="Account"
+          value={
+            account ? (
+              <span data-testid="status-account">
+                {account.label}
+                {account.driftFromActive && (
+                  <span className="ml-1 text-[var(--muted)]">
+                    (switched default to “{account.driftFromActive.label}”)
+                  </span>
+                )}
+              </span>
+            ) : (
+              <span className="text-[var(--muted)]">ambient environment</span>
+            )
+          }
+        />
         <Row label="Kind" value={sessionKindLabel(mainAgent, cwd, agentCwd)} />
         <Row label="State" value={!ready ? "starting" : pending ? "working" : "idle"} />
         <Row label="Model" value={<code className="font-mono">{model ?? "—"}</code>} />

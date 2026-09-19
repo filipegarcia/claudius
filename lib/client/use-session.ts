@@ -4910,6 +4910,22 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     }
   }, []);
 
+  const sendAllQueuedNow = useCallback(async () => {
+    const id = sessionIdRef.current;
+    if (!id) return;
+    // Ctrl+Enter send-now key (Claude Code parity, 2.1.275): interrupt the
+    // in-flight turn and flush every queued message at once. Server-side
+    // this is the same interrupt + per-item pop+send primitive as
+    // `sendQueuedNow`, just looped over the whole queue — see
+    // `app/api/sessions/[id]/queue/send-all/route.ts`.
+    try {
+      await fetch(`/api/sessions/${id}/queue/send-all`, { method: "POST" });
+    } catch {
+      // best-effort — items stay queued on transient failure, same as
+      // sendQueuedNow above
+    }
+  }, []);
+
   const resolvePermission = useCallback(async (requestId: string, decision: PermissionDecision) => {
     const id = sessionIdRef.current;
     if (!id) return;
@@ -5765,6 +5781,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     editQueued,
     reorderQueued,
     sendQueuedNow,
+    sendAllQueuedNow,
     resolvePermission,
     submitAskAnswer,
     submitFeedback,

@@ -265,9 +265,16 @@ export type ClaudeSettings = {
   // read directly by the bundled `claude` binary from this same
   // `~/.claude/settings.json` — so surfacing it as a catalog row is all
   // Claudius needs; there is no per-session SDK forwarding to add. See
-  // the sibling `syncClaudeAiSkills` key (pre-existing, not yet
-  // surfaced — tracked as a follow-up in the 0.3.246 run notes).
+  // the sibling `syncClaudeAiSkills` key just below.
   syncClaudeAiPlugins?: boolean;
+  // Claude Code 2.1.275 — set to false to stop syncing skills enabled on
+  // claude.ai into terminal sessions signed in with that account. Same
+  // config-passthrough shape as `syncClaudeAiPlugins` immediately above
+  // (only `false` is honored; the bundled `claude` binary reads this key
+  // straight from this same `~/.claude/settings.json`, so there's no
+  // per-session SDK forwarding to add here either) — was the tracked
+  // follow-up from the 0.3.246 run notes, now surfaced.
+  syncClaudeAiSkills?: boolean;
   // Claude Code 2.1.238 — set to "readline" to make Ctrl+W in the CLI's own
   // prompt delete back to the previous whitespace, as in Bash; the default
   // ("classic") is unchanged. Config-passthrough only: it's read by the
@@ -343,7 +350,9 @@ export type ClaudeSettings = {
   bashOutputMaxChars?: number;
   // SDK 0.3.261 — same treatment, for the TaskOutput tool's per-call
   // inline character budget on a background task's output (default 32000,
-  // same 4000-128000 clamp).
+  // same 4000-128000 clamp). SDK 0.3.277: the TaskOutput tool was removed
+  // upstream and this key is now a documented no-op — kept as passthrough
+  // only (see the catalog row's `desc` in app/settings/page.tsx).
   taskOutputMaxChars?: number;
   // Catch-all for keys we don't yet know about — we never strip them.
   [key: string]: unknown;
