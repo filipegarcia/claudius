@@ -2406,6 +2406,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
             onEdit={liftQueued}
             onReorder={session.reorderQueued}
             onSendNow={session.sendQueuedNow}
+            onSendAllNow={session.sendAllQueuedNow}
             sdkQueuedTurns={session.sdkQueuedTurns}
           />
           {session.readOnly && (
@@ -2451,6 +2452,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
               spellcheckEnabled={spellcheckEnabled}
               queuedCount={session.queue.length}
               onSendQueuedNow={session.queue.length > 0 ? () => session.sendQueuedNow(session.queue[0].id) : undefined}
+              onSendAllQueuedNow={session.sendAllQueuedNow}
               // Capture file drops across the whole chat-area pane (message
               // list, banners, tabs, gutters) — not just the composer row.
               // GoalBanner's PromptInput intentionally leaves this off so the
@@ -2550,6 +2552,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
           slashCount={session.slashCommands.length}
           mainAgent={session.mainAgent}
           agentCwd={session.agentCwd}
+          account={session.account ?? null}
           onClose={() => setOverlay(null)}
         />
       )}

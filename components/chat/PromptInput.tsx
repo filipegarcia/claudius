@@ -124,6 +124,13 @@ type Props = {
    */
   onSendQueuedNow?: () => void;
   /**
+   * Ctrl+Enter send-now key (Claude Code parity, 2.1.275): interrupt the
+   * in-flight turn and flush every queued message at once, regardless of
+   * how many are staged. Bound in `onKeyDown` below. Optional — the
+   * goal-banner reuse of PromptInput leaves it off, same as `onSendQueuedNow`.
+   */
+  onSendAllQueuedNow?: () => void;
+  /**
    * When true, drag-and-drop is captured across the entire ancestor
    * `[data-pane-name="chat-area"]` container (not just the composer's input
    * row), and a portal'd overlay highlights the whole chat as a drop target
@@ -206,6 +213,7 @@ export function PromptInput({
   testIdPrefix = "prompt",
   queuedCount = 0,
   onSendQueuedNow,
+  onSendAllQueuedNow,
   wideDropTarget = false,
 }: Props) {
   const [value, setValue] = useState("");
@@ -910,6 +918,17 @@ export function PromptInput({
         }
         return;
       }
+    }
+
+    // ── Ctrl+Enter — send-now key, Claude Code parity (2.1.275) ────────────
+    // Interrupts the current turn and flushes every queued message at once.
+    // Distinct from the empty-composer "plain Enter → send first queued"
+    // shortcut below: this one fires regardless of composer contents or
+    // queue length, and works even mid-turn (that's the "interrupts" part).
+    if (e.ctrlKey && e.key === "Enter" && onSendAllQueuedNow) {
+      e.preventDefault();
+      onSendAllQueuedNow();
+      return;
     }
 
     // ── Double Escape — clear composer ─────────────────────────────────────

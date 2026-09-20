@@ -1089,6 +1089,13 @@ export type ChatActions = {
    * next turn, even while the current turn is still in flight.
    */
   sendQueuedNow(id: string): Promise<void>;
+  /**
+   * Ctrl+Enter send-now key (Claude Code parity, 2.1.275): interrupt the
+   * in-flight turn and dispatch every queued message at once, in FIFO
+   * order. Same "asap" semantics as `sendQueuedNow`, applied to the whole
+   * queue instead of one item.
+   */
+  sendAllQueuedNow(): Promise<void>;
   resolvePermission(requestId: string, decision: PermissionDecision): Promise<void>;
   interrupt(): Promise<void>;
   setPermissionMode(mode: PermissionMode): Promise<void>;

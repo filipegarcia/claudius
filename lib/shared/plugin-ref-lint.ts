@@ -36,6 +36,30 @@ const NAME_RE = /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/;
 export function lintPluginRef(ref: string): PluginLintWarning | null {
   const trimmed = ref.trim();
   if (!trimmed) return null;
+
+  // `<ref> --marketplace <source>` (Claude Code 2.1.275): the CLI offers to
+  // register the marketplace before installing when it isn't already known.
+  // This is the one legitimate two-token ref, so split it off before the
+  // whitespace check below — otherwise a correctly-typed flag would get
+  // flagged as "can't contain spaces". The name half still gets the normal
+  // NAME_RE check; the source half (a git URL, npm package, or local path)
+  // isn't validated here for the same reason `lintMarketplaceRef` doesn't
+  // validate marketplace sources beyond the wildcard case.
+  const withMarketplaceFlag = trimmed.match(/^(\S+)\s+--marketplace(?:\s+(\S+))?$/);
+  if (withMarketplaceFlag) {
+    const [, refPart, source] = withMarketplaceFlag;
+    const name = refPart.split("@")[0] ?? "";
+    if (!NAME_RE.test(name)) {
+      return {
+        message: `“${name}” isn't a valid plugin name — use letters, digits, “.”, “-”, or “_” (starting with a letter or digit).`,
+      };
+    }
+    if (!source) {
+      return { message: "Missing a marketplace source after “--marketplace”." };
+    }
+    return null;
+  }
+
   if (/\s/.test(trimmed)) {
     return { message: "A plugin reference can't contain spaces." };
   }
