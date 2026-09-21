@@ -30,6 +30,7 @@ import {
   type ShortcutBinding,
 } from "@/lib/client/shortcuts";
 import { cn } from "@/lib/utils/cn";
+import { RailTooltip } from "@/components/ui/RailTooltip";
 import { CLAUDIUS_VERSION_DISPLAY } from "@/lib/shared/version";
 
 /**
@@ -516,9 +517,10 @@ export function WorkspaceSwitcher({ mobileOpen = false, onCloseMobile }: Props =
             setShowForm({ kind: "new" });
           }}
           title="New workspace"
-          className="mt-1 flex h-10 w-10 items-center justify-center rounded-lg border border-dashed border-[var(--border)] text-[var(--muted)] hover:bg-[var(--panel-2)] hover:text-[var(--foreground)]"
+          className="group relative mt-1 flex h-10 w-10 items-center justify-center rounded-lg border border-dashed border-[var(--border)] text-[var(--muted)] hover:bg-[var(--panel-2)] hover:text-[var(--foreground)]"
         >
           <Plus className="h-4 w-4" />
+          <RailTooltip text="New workspace" />
         </button>
         {/* Notifications used to live here as a bell tile; it now sits at
             the top of the Activity rail (BackgroundTasksPanel) so it's next
@@ -722,7 +724,7 @@ function SystemTile({
       title={label}
       onClick={onClick}
       className={cn(
-        "relative flex h-10 w-10 items-center justify-center rounded-lg text-[var(--muted)] hover:bg-[var(--panel-2)] hover:text-[var(--foreground)]",
+        "group relative flex h-10 w-10 items-center justify-center rounded-lg text-[var(--muted)] hover:bg-[var(--panel-2)] hover:text-[var(--foreground)]",
         accentActive
           ? "bg-[var(--accent)]/15 text-[var(--accent)] ring-1 ring-[var(--accent)]/40 hover:text-[var(--accent)]"
           : active &&
@@ -748,6 +750,10 @@ function SystemTile({
           {cornerChar}
         </span>
       )}
+      {/* Immediate hover label — the native `title` above only shows after
+          the OS delay, which left users guessing what the gear / avatar /
+          plug icons were. Same idiom as the workspace tiles' hover label. */}
+      <RailTooltip text={label} />
     </Link>
   );
 }

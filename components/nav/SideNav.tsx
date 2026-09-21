@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { MessageSquare, Menu, Network, Webhook, BookText, ShieldCheck, FolderTree, Bot, Calendar, BarChart3, Image as ImageIcon, Folder, Briefcase, GitBranch, Sparkles, WandSparkles, Container, CircleDot, Database as DatabaseIcon, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
+import { RailTooltip } from "@/components/ui/RailTooltip";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import { useWorkspaces } from "@/lib/client/useWorkspaces";
 import { useActiveCustomization } from "@/lib/client/useActiveCustomization";
@@ -438,12 +439,13 @@ export function SideNav({
           title="Show workspaces"
           onClick={() => setSwitcherOpen((v) => !v)}
           className={cn(
-            "relative mb-1 flex h-9 w-9 items-center justify-center rounded-md text-[var(--muted)] hover:bg-[var(--panel-2)] hover:text-[var(--foreground)] lg:hidden",
+            "group relative mb-1 flex h-9 w-9 items-center justify-center rounded-md text-[var(--muted)] hover:bg-[var(--panel-2)] hover:text-[var(--foreground)] lg:hidden",
             switcherOpen && "bg-[var(--panel-2)] text-[var(--foreground)]",
           )}
           data-testid="sidenav-workspaces-toggle"
         >
           <Menu className="h-4.5 w-4.5" />
+          <RailTooltip text="Show workspaces" />
           {aggregateOtherWorkspaceUnread > 0 && (
             <span
               aria-label={`${aggregateOtherWorkspaceUnread} unread in other workspaces`}
@@ -517,6 +519,13 @@ export function SideNav({
                 />
               )}
               <Icon className="h-4.5 w-4.5" />
+              {/* Immediate hover label (the `title` below is the slow native
+                  fallback + what the e2e selectors key on). Shortcut renders
+                  as a kbd chip; the drag hint goes on a muted second line. */}
+              <RailTooltip
+                text={actionId ? `${label}\nDrag to reorder` : label}
+                shortcut={shortcutLabel}
+              />
             </>
           );
           // Wrap each tile in a draggable container. Items without an
@@ -593,6 +602,7 @@ export function SideNav({
               />
             )}
             <WandSparkles className="h-4.5 w-4.5" />
+            <RailTooltip text={customizeTitle} />
           </Link>
         )}
       </aside>
