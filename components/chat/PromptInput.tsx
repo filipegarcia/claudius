@@ -704,7 +704,13 @@ export function PromptInput({
   function submitBash() {
     if (!sessionId) return;
     const stripped = value.replace(/^!/, "");
-    const cmd = stripped.trim();
+    // Claude Code 2.1.280 [VSCode] parity, applied here too: a bidi-control
+    // override hidden in a pasted/typed shell command is exactly the
+    // "Trojan Source" attack this strip exists to catch, and `!`-mode is
+    // where the string is actually executed — this must not be skipped.
+    const { cleaned, removedCount } = stripInvisibleUnicode(stripped);
+    if (removedCount > 0) noteInvisibleStrip(removedCount);
+    const cmd = cleaned.trim();
     if (!cmd) return;
     if (commandNeedsSudo(cmd)) {
       setSudoPrompt({ command: cmd });
@@ -774,20 +780,24 @@ export function PromptInput({
       submitBash();
       return;
     }
-    const text = value.trim();
+    // Claude Code 2.1.280 [VSCode] parity: strip invisible Unicode
+    // formatting/tag characters "from anything else before it is sent" —
+    // catches invisible characters that arrived via typing, IME, or a paste
+    // that didn't go through the onPaste interceptor above (e.g. drag-drop
+    // text, or a browser that fires paste without a text/plain item). Runs
+    // before `trim()`/the empty-check below: `trim()` alone doesn't remove
+    // zero-width space, word joiner, or bidi controls, so a draft that's
+    // *only* invisible characters would otherwise read as non-empty and
+    // reach `onSend("")` once stripped.
+    const { cleaned: strippedValue, removedCount } = stripInvisibleUnicode(value);
+    if (removedCount > 0) noteInvisibleStrip(removedCount);
+    const text = strippedValue.trim();
     if (!text && images.length === 0) return;
     // The composer renders bullets as `•` so the textarea has something
     // nicer to look at than `*`, but the wire format / Claude rendering
     // expect standard markdown — convert back here so what Claude sees is
     // what the user would have typed in any other markdown editor.
-    const wireRaw = bulletsToMarkdown(text);
-    // Claude Code 2.1.280 [VSCode] parity: strip invisible Unicode
-    // formatting/tag characters "from anything else before it is sent" —
-    // catches invisible characters that arrived via typing, IME, or a paste
-    // that didn't go through the onPaste interceptor above (e.g. drag-drop
-    // text, or a browser that fires paste without a text/plain item).
-    const { cleaned: wire, removedCount } = stripInvisibleUnicode(wireRaw);
-    if (removedCount > 0) noteInvisibleStrip(removedCount);
+    const wire = bulletsToMarkdown(text);
     onSend(wire, images.length ? images : undefined);
     setValue("");
     setDismissedHints(new Set());
@@ -1284,9 +1294,22 @@ export function PromptInput({
       if (removedCount > 0) {
         e.preventDefault();
         const el = taRef.current;
-        const start = el?.selectionStart ?? value.length;
-        const end = el?.selectionEnd ?? value.length;
-        applyEdit(start, end, cleaned, cleaned.length);
+        // Prefer `execCommand("insertText", …)`: it goes through the real
+        // native text-insertion path (dispatching a genuine `input` event
+        // our `onChange` already handles), which — unlike `applyEdit`'s
+        // `setValue` — keeps the browser's undo/redo stack intact. Fall
+        // back to `applyEdit` in case `execCommand` is unavailable/refused
+        // (deprecated API; still universally supported in the Chromium
+        // Claudius targets, but the fallback keeps this from being a hard
+        // dependency).
+        el?.focus();
+        const inserted =
+          typeof document.execCommand === "function" && document.execCommand("insertText", false, cleaned);
+        if (!inserted) {
+          const start = el?.selectionStart ?? value.length;
+          const end = el?.selectionEnd ?? value.length;
+          applyEdit(start, end, cleaned, cleaned.length);
+        }
         noteInvisibleStrip(removedCount);
       }
     }

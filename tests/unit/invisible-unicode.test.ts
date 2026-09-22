@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { containsInvisibleUnicode, stripInvisibleUnicode } from "@/lib/shared/invisible-unicode";
+import { stripInvisibleUnicode } from "@/lib/shared/invisible-unicode";
 
 describe("stripInvisibleUnicode", () => {
-  it("removes zero-width formatting characters", () => {
-    const { cleaned, removedCount } = stripInvisibleUnicode("hi​there‍⁠﻿!");
+  it("removes zero-width space, word joiner, and BOM", () => {
+    const { cleaned, removedCount } = stripInvisibleUnicode("hi​there⁠﻿!");
     expect(cleaned).toBe("hithere!");
-    expect(removedCount).toBe(4);
+    expect(removedCount).toBe(3);
   });
 
   it("removes bidi control characters", () => {
@@ -31,23 +31,19 @@ describe("stripInvisibleUnicode", () => {
     expect(removedCount).toBe(0);
   });
 
+  it("preserves the zero-width joiner (U+200D) so emoji ZWJ sequences survive intact", () => {
+    // "woman technologist" — U+1F469 U+200D U+1F4BB. An earlier draft
+    // stripped ZWJ unconditionally, which split this into two separate
+    // emoji and fired a false "hidden characters" notice.
+    const emoji = String.fromCodePoint(0x1f469, 0x200d, 0x1f4bb);
+    const { cleaned, removedCount } = stripInvisibleUnicode(emoji);
+    expect(cleaned).toBe(emoji);
+    expect(removedCount).toBe(0);
+  });
+
   it("leaves ordinary text untouched", () => {
     const { cleaned, removedCount } = stripInvisibleUnicode("plain ascii text 123 — em dash");
     expect(cleaned).toBe("plain ascii text 123 — em dash");
     expect(removedCount).toBe(0);
-  });
-});
-
-describe("containsInvisibleUnicode", () => {
-  it("returns true when an invisible character is present", () => {
-    expect(containsInvisibleUnicode("hi​there")).toBe(true);
-  });
-
-  it("returns false for clean text", () => {
-    expect(containsInvisibleUnicode("hi there")).toBe(false);
-  });
-
-  it("returns false when only the preserved ZWNJ is present", () => {
-    expect(containsInvisibleUnicode("a‌b")).toBe(false);
   });
 });
