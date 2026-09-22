@@ -51,10 +51,19 @@ const PROBE_CANDIDATES: ProbeCandidate[] = [
       "Pinned to Fable 5 (prior generation). Full effort tiers + adaptive thinking.",
   },
   {
+    // Claude Code 2.1.280 made Opus 5.5 the new default Opus model
+    // (1M context, $4/$20 per Mtok). Same treatment as the 2.1.257 Fable
+    // 5.1 pin: probing just reports unavailable on accounts without access.
+    value: "claude-opus-5-5",
+    displayName: "Opus 5.5",
+    description:
+      "Pinned to Opus 5.5. Deepest reasoning on complex, long-horizon tasks; 1M context.",
+  },
+  {
     value: "claude-opus-4-8",
     displayName: "Opus 4.8",
     description:
-      "Pinned to Opus 4.8. Deepest reasoning on complex, long-horizon tasks.",
+      "Pinned to Opus 4.8 (prior generation). Deepest reasoning on complex, long-horizon tasks.",
   },
   {
     value: "claude-opus-4-7",
