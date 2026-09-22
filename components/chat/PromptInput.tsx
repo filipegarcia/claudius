@@ -30,6 +30,7 @@ import {
   computeListContinuation,
   isListLine,
 } from "@/lib/shared/markdown-list";
+import { stripInvisibleUnicode } from "@/lib/shared/invisible-unicode";
 
 type Props = {
   pending: boolean;
@@ -260,6 +261,15 @@ export function PromptInput({
   // Enter doesn't fire a stale command.
   const [sudoPrompt, setSudoPrompt] = useState<{ command: string } | null>(null);
   const [bashRunning, setBashRunning] = useState(false);
+  /**
+   * Transient footer notice (Claude Code 2.1.280 [VSCode] parity): shown for
+   * a few seconds after invisible Unicode formatting/tag characters were
+   * stripped from a paste, or from the text right before it's sent. `null`
+   * when there's nothing to report — the footer falls back to the existing
+   * hint/queue row (see the render ternary below).
+   */
+  const [invisibleNotice, setInvisibleNotice] = useState<string | null>(null);
+  const invisibleNoticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
   /** Per-prompt monotonic counter — increments on each insert, never decrements. */
   const ordinalCounterRef = useRef(0);
@@ -770,7 +780,14 @@ export function PromptInput({
     // nicer to look at than `*`, but the wire format / Claude rendering
     // expect standard markdown — convert back here so what Claude sees is
     // what the user would have typed in any other markdown editor.
-    const wire = bulletsToMarkdown(text);
+    const wireRaw = bulletsToMarkdown(text);
+    // Claude Code 2.1.280 [VSCode] parity: strip invisible Unicode
+    // formatting/tag characters "from anything else before it is sent" —
+    // catches invisible characters that arrived via typing, IME, or a paste
+    // that didn't go through the onPaste interceptor above (e.g. drag-drop
+    // text, or a browser that fires paste without a text/plain item).
+    const { cleaned: wire, removedCount } = stripInvisibleUnicode(wireRaw);
+    if (removedCount > 0) noteInvisibleStrip(removedCount);
     onSend(wire, images.length ? images : undefined);
     setValue("");
     setDismissedHints(new Set());
@@ -821,6 +838,24 @@ export function PromptInput({
    * continue-list and Tab indent/outdent so they all share the same
    * setValue + setSelectionRange dance.
    */
+  /**
+   * Surface the transient "removed N hidden character(s)" footer notice
+   * (Claude Code 2.1.280 [VSCode] parity) and auto-dismiss it after a few
+   * seconds. No-op when nothing was actually stripped.
+   */
+  function noteInvisibleStrip(removedCount: number) {
+    if (removedCount <= 0) return;
+    if (invisibleNoticeTimerRef.current != null) clearTimeout(invisibleNoticeTimerRef.current);
+    setInvisibleNotice(`Removed ${removedCount} hidden character${removedCount === 1 ? "" : "s"}`);
+    invisibleNoticeTimerRef.current = setTimeout(() => setInvisibleNotice(null), 4000);
+  }
+
+  useEffect(() => {
+    return () => {
+      if (invisibleNoticeTimerRef.current != null) clearTimeout(invisibleNoticeTimerRef.current);
+    };
+  }, []);
+
   function applyEdit(start: number, end: number, insert: string, caretOffset: number) {
     const el = taRef.current;
     if (!el) return;
@@ -1236,6 +1271,24 @@ export function PromptInput({
     if (files.length) {
       e.preventDefault();
       await ingestFiles(files);
+      return;
+    }
+    // Claude Code 2.1.280 [VSCode] parity: strip invisible Unicode
+    // formatting/tag characters from pasted plain text. Only intercept the
+    // paste (and hand-insert the cleaned text at the caret) when there's
+    // actually something to strip — otherwise fall through to the browser's
+    // default paste so undo/redo and IME behavior stay untouched.
+    const pasted = e.clipboardData?.getData("text/plain") ?? "";
+    if (pasted) {
+      const { cleaned, removedCount } = stripInvisibleUnicode(pasted);
+      if (removedCount > 0) {
+        e.preventDefault();
+        const el = taRef.current;
+        const start = el?.selectionStart ?? value.length;
+        const end = el?.selectionEnd ?? value.length;
+        applyEdit(start, end, cleaned, cleaned.length);
+        noteInvisibleStrip(removedCount);
+      }
     }
   }
 
@@ -1692,7 +1745,11 @@ export function PromptInput({
         )}
 
         <div className="mt-1.5 flex items-center justify-between px-1 text-[11px] text-[var(--muted)]/70">
-          {hintState === "active" && detectedHint ? (
+          {invisibleNotice ? (
+            <span data-testid={`${testIdPrefix}-invisible-unicode-notice`} className="flex items-center gap-1.5">
+              <span>{invisibleNotice}</span>
+            </span>
+          ) : hintState === "active" && detectedHint ? (
             <button
               type="button"
               data-testid={`${testIdPrefix}-keyword-hint-active`}
