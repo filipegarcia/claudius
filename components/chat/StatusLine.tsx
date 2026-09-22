@@ -106,6 +106,8 @@ type Props = {
    */
   disabledModes?: PermissionMode[];
   sessions: SessionInfo[];
+  /** Configured account-profile count; gates the picker's account labels. */
+  accountsConfigured?: number;
   onSwitchSession: (id: string) => void;
   onCreateNewSession: () => void;
   onRefreshSessions: () => void;
@@ -174,6 +176,7 @@ export function StatusLine({
   onModeChange,
   disabledModes,
   sessions,
+  accountsConfigured,
   onSwitchSession,
   onCreateNewSession,
   onRefreshSessions,
@@ -318,6 +321,7 @@ export function StatusLine({
       <SessionPicker
         current={sessionId}
         sessions={sessions}
+        accountsConfigured={accountsConfigured}
         onSwitch={onSwitchSession}
         onCreateNew={onCreateNewSession}
         onRefresh={onRefreshSessions}

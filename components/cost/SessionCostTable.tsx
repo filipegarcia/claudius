@@ -30,7 +30,19 @@ function fmtRel(ms: number): string {
   return new Date(ms).toLocaleDateString();
 }
 
-export function SessionCostTable({ sessions }: { sessions: BySession[] }) {
+export function SessionCostTable({
+  sessions,
+  accountsConfigured = 0,
+}: {
+  sessions: BySession[];
+  /**
+   * Configured account-profile count. The Account column only appears at
+   * 2+: with one profile every row repeats the same value, and this table
+   * is already wide enough to scroll horizontally.
+   */
+  accountsConfigured?: number;
+}) {
+  const showAccounts = accountsConfigured > 1;
   const [sortKey, setSortKey] = useState<SortKey>("totalUsd");
   const [dir, setDir] = useState<-1 | 1>(-1);
   const [page, setPage] = useState(0);
@@ -61,6 +73,7 @@ export function SessionCostTable({ sessions }: { sessions: BySession[] }) {
             <tr>
               <th className="px-3 py-1.5 text-left">Session</th>
               <th className="px-3 py-1.5 text-left">Model</th>
+              {showAccounts && <th className="px-3 py-1.5 text-left">Account</th>}
               {COLUMNS.map((c) => (
                 <th
                   key={c.key}
@@ -98,6 +111,18 @@ export function SessionCostTable({ sessions }: { sessions: BySession[] }) {
                   </Link>
                 </td>
                 <td className="px-3 py-1.5 font-mono text-[var(--muted)]">{s.model ?? "—"}</td>
+                {showAccounts && (
+                  <td
+                    className="px-3 py-1.5 text-[var(--muted)]"
+                    data-testid="cost-session-account"
+                    data-account={s.accountId}
+                  >
+                    {/* Em dash = this session predates account pinning or ran
+                        with no profile configured. Deliberately NOT filled in
+                        with the active account, which would misattribute spend. */}
+                    {s.accountLabel ?? "—"}
+                  </td>
+                )}
                 <td className="px-3 py-1.5">{fmtRel(s.lastSeenMs)}</td>
                 <td className="px-3 py-1.5">{fmtRel(s.firstSeenMs)}</td>
                 <td className="px-3 py-1.5 text-right font-mono">{s.numTurns}</td>
@@ -106,7 +131,7 @@ export function SessionCostTable({ sessions }: { sessions: BySession[] }) {
             ))}
             {slice.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-3 py-8 text-center text-[var(--muted)]">
+                <td colSpan={showAccounts ? 7 : 6} className="px-3 py-8 text-center text-[var(--muted)]">
                   No sessions.
                 </td>
               </tr>

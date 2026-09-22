@@ -479,3 +479,105 @@ async function readLegacyTitle(id: string): Promise<string | null> {
     return null;
   }
 }
+
+/**
+ * Batch lookup: for every (cwd, sessionId) pair, return the id of the
+ * account profile that session is pinned to.
+ *
+ * WHY THIS EXISTS — the account pin is real but invisible. `Session.
+ * resolveAccountProfile()` persists `accountProfileId` into the session's
+ * JSON state bag (migration 013) so a resumed conversation keeps billing the
+ * identity it started on, even after the user switches the global default.
+ * That pin drives the StatusLine badge, but the StatusLine only exists for a
+ * LIVE session — `/api/sessions/[id]/account` 404s once the session has been
+ * reaped. So every *listing* surface (the sessions page, the picker, the
+ * /cost table) had no way to answer "which account was this thread on?".
+ * This is the read side of that pin for sessions that are no longer resident.
+ *
+ * Reads through `json_extract` rather than parsing every row in JS: the
+ * listing surfaces ask about up to a few hundred sessions at once and we
+ * only want one scalar out of the bag.
+ *
+ * Mirrors `getSessionTitlesByCwd`'s key scheme exactly — `${cwd}:${id}`
+ * when the caller knows the cwd, `*:${id}` for the cross-workspace fan-out
+ * used by sessions whose JSONL header dropped the cwd — so callers can
+ * reuse the same two-key probe they already do for titles. There is no
+ * legacy-file fallback here: the pin postdates the per-project DB, so a
+ * miss genuinely means "never pinned" (a pre-account-switcher session, or
+ * one that ran with no profile configured). Callers must treat a miss as
+ * "unknown", never as "the active account".
+ */
+export async function getSessionAccountsByCwd(
+  pairs: ReadonlyArray<{ cwd: string | undefined; id: string }>,
+): Promise<Map<string, string>> {
+  const byCwd = new Map<string, string[]>();
+  const noCwdIds: string[] = [];
+  for (const { cwd, id } of pairs) {
+    if (!id) continue;
+    if (!cwd) {
+      noCwdIds.push(id);
+      continue;
+    }
+    const list = byCwd.get(cwd) ?? [];
+    list.push(id);
+    byCwd.set(cwd, list);
+  }
+  const out = new Map<string, string>();
+  for (const [cwd, ids] of byCwd) {
+    await probeCwdAccounts(cwd, ids, out);
+  }
+  if (noCwdIds.length > 0) {
+    const workspaces = await listWorkspaces().catch(() => []);
+    for (const ws of workspaces) {
+      if (!ws.rootPath) continue;
+      const stillMissing = noCwdIds.filter((id) => !out.has(`*:${id}`));
+      if (stillMissing.length === 0) break;
+      await probeCwdAccounts(ws.rootPath, stillMissing, out, { unkeyed: true });
+    }
+  }
+  return out;
+}
+
+/**
+ * Open the cwd's `.claudius.db` (readonly) and pull `state.accountProfileId`
+ * for the given ids. Same chunking / `unkeyed` contract as `probeCwd`.
+ *
+ * `json_extract` returns SQL NULL both when `state` itself is NULL and when
+ * the key is absent, so the `IS NOT NULL` filter covers "session predates
+ * pinning" and "row has other state but no account" in one predicate. A
+ * malformed `state` blob would make json_extract throw at the SQLite level,
+ * which is why the whole probe is best-effort at the call sites.
+ */
+async function probeCwdAccounts(
+  cwd: string,
+  ids: string[],
+  out: Map<string, string>,
+  opts: { unkeyed?: boolean } = {},
+): Promise<void> {
+  const db = await openDb(cwd, "readonly").catch(() => null);
+  if (!db) return;
+  for (let i = 0; i < ids.length; i += 500) {
+    const chunk = ids.slice(i, i + 500);
+    const placeholders = chunk.map(() => "?").join(",");
+    let rows: Array<{ id: string; account: string | null }> = [];
+    try {
+      rows = db
+        .prepare(
+          `SELECT id, json_extract(state, '$.accountProfileId') AS account
+             FROM sessions
+            WHERE json_extract(state, '$.accountProfileId') IS NOT NULL
+              AND id IN (${placeholders})`,
+        )
+        .all(...chunk) as Array<{ id: string; account: string | null }>;
+    } catch {
+      // Malformed JSON in `state` (hand-edited DB, truncated write) makes
+      // json_extract raise. Skip this chunk rather than failing the listing.
+      continue;
+    }
+    for (const r of rows) {
+      if (typeof r.account !== "string" || !r.account) continue;
+      const key = opts.unkeyed ? `*:${r.id}` : `${cwd}:${r.id}`;
+      if (!out.has(key)) out.set(key, r.account);
+    }
+  }
+}

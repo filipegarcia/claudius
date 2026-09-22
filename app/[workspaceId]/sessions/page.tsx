@@ -67,9 +67,11 @@ export default function SessionsPage() {
   // (same exact-match rule the server uses for `/api/sessions?workspaceId`),
   // which also keeps the brief pre-resolution window (workspaceRoot == null →
   // unscoped fetch) correct.
-  const { sessions, loading, error, refresh, remove } = useSessionsHistory({
+  const { sessions, accountsConfigured, loading, error, refresh, remove } = useSessionsHistory({
     dir: workspaceRoot ?? undefined,
   });
+  // Only worth a column when there's more than one identity in play.
+  const showAccounts = accountsConfigured > 1;
   const scopedSessions = useMemo(
     () =>
       workspaceRoot == null ? sessions : sessions.filter((s) => s.cwd === workspaceRoot),
@@ -366,6 +368,24 @@ export default function SessionsPage() {
                           <>
                             <span className="opacity-50">·</span>
                             <span className="truncate font-mono">{s.cwd}</span>
+                          </>
+                        )}
+                        {/* Which account this session is bound to. Sessions
+                            are pinned to the identity they started on, so on
+                            a multi-account install this row can differ from
+                            the currently-selected account — that's the whole
+                            reason to show it. Suppressed below 2 profiles. */}
+                        {showAccounts && s.accountLabel && (
+                          <>
+                            <span className="opacity-50">·</span>
+                            <span
+                              className="truncate"
+                              data-testid="session-account"
+                              data-account={s.accountId}
+                              title={`This session runs under account: ${s.accountLabel}`}
+                            >
+                              {s.accountLabel}
+                            </span>
                           </>
                         )}
                       </div>

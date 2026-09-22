@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { list, type SessionListItem } from "@/lib/server/sessions-store";
 import { getSessionTitlesByCwd, listAllIndexedSessions } from "@/lib/server/sessions-db";
+import { lookupSessionAccount, resolveSessionAccounts } from "@/lib/server/session-accounts";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -75,7 +76,27 @@ export async function GET(req: Request) {
     // synthetic rows would always pile up at the end and could push
     // legitimately-recent JSONL sessions off the visible page.
     enriched.sort((a, b) => (b.lastModified ?? 0) - (a.lastModified ?? 0));
-    return NextResponse.json({ sessions: enriched.slice(0, limit) });
+    const page = enriched.slice(0, limit);
+
+    // Attach the account each session is pinned to. Done AFTER the slice so
+    // we only join for the rows we're about to return — the pin lives in the
+    // per-project DB's JSON state bag, so this is one `json_extract` query
+    // per distinct cwd and there's no reason to pay it for rows the caller
+    // will never see.
+    //
+    // `accountsConfigured` rides along so the client can hide the badge
+    // entirely when only one profile exists (with a single account, "which
+    // account?" has no interesting answer). A session with no pin simply
+    // gets no `accountId` — see `getSessionAccountsByCwd` on why a miss must
+    // not be read as "the currently-active account".
+    const { byKey, accountsConfigured } = await resolveSessionAccounts(
+      page.map((s) => ({ cwd: s.cwd, id: s.sessionId })),
+    );
+    const withAccounts = page.map((s) => {
+      const acct = lookupSessionAccount(byKey, s.cwd, s.sessionId);
+      return acct ? { ...s, ...acct } : s;
+    });
+    return NextResponse.json({ sessions: withAccounts, accountsConfigured });
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : String(err) },

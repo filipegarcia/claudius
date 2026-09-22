@@ -1926,6 +1926,21 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
     return session.sessions.filter((s) => s.cwd === root || s.id === activeId);
   }, [session.sessions, session.sessionId, contextRoot]);
 
+  // Account shown in the cost overlay. `session.account` is the live,
+  // authoritative answer, but it only arrives with the `ready` SSE event —
+  // so a tab opened on a reaped session (or one still spinning up) would
+  // show no attribution at all on the very panel where "who is being billed
+  // for this?" is the question. Fall back to the pin persisted in the
+  // sessions listing, which is the same value `ready` will report once it
+  // lands. Undefined on both sides stays null: never guess the account.
+  const costAccount = useMemo(() => {
+    if (session.account) return session.account;
+    const row = session.sessions.find((s) => s.id === session.sessionId);
+    return row?.accountId && row.accountLabel
+      ? { id: row.accountId, label: row.accountLabel }
+      : null;
+  }, [session.account, session.sessions, session.sessionId]);
+
   // Build the SessionInfo list used by `tabLabelFor` below. We patch
   // synthetic `{ id, title }` rows for any open tab that isn't (yet)
   // present in `session.sessions` but has a title in the persisted
@@ -2053,6 +2068,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
           onModeChange={session.setPermissionMode}
           disabledModes={disabledPermissionModes}
           sessions={pickerSessions}
+          accountsConfigured={session.accountsConfigured}
           onSwitchSession={(id) => {
             // Re-add to strip in case the user closed all tabs and is
             // re-picking the same session that's still bound internally —
@@ -2466,6 +2482,8 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
       </main>
       {!isFocus && (
       <BackgroundTasksPanel
+        account={costAccount}
+        accountsConfigured={session.accountsConfigured}
         progress={session.toolProgress}
         tasks={session.tasks}
         liveBackgroundTaskIds={session.liveBackgroundTaskIds}
@@ -2533,7 +2551,14 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
         />
       )}
       {overlay === "cost" && (
-        <CostOverlay usage={session.usage} model={session.model} planUsage={session.planUsage} onClose={() => setOverlay(null)} />
+        <CostOverlay
+          usage={session.usage}
+          model={session.model}
+          planUsage={session.planUsage}
+          account={costAccount}
+          accountsConfigured={session.accountsConfigured}
+          onClose={() => setOverlay(null)}
+        />
       )}
       {overlay === "diff" && (
         <DiffOverlay workspaceId={activeWorkspaceId} onClose={() => setOverlay(null)} />

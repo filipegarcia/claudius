@@ -403,6 +403,15 @@ export type SessionInfo = {
   id: string;
   cwd?: string;
   model?: string;
+  /**
+   * Account profile this session is pinned to. Sourced from the live
+   * session when it's resident, otherwise from the persisted pin in
+   * `sessions.state.accountProfileId`. Undefined means "unknown" — either
+   * the session predates account pinning or no profile is configured — and
+   * must NOT be rendered as "the currently-active account".
+   */
+  accountId?: string;
+  accountLabel?: string;
   /** Custom title set by the user. Null when none. */
   title?: string | null;
   /**
@@ -710,6 +719,17 @@ export type ChatState = {
    * new default and the StatusLine badge offers `moveToActiveAccount()`.
    */
   account: SessionReadyEvent["account"] | null;
+  /**
+   * How many account profiles are configured system-wide, learned from
+   * `/api/sessions/all` (which reports it alongside the listing, so no
+   * separate `/api/accounts` fetch is needed).
+   *
+   * Every account badge in the UI is gated on this being > 1: with a single
+   * profile the answer to "which account?" is never in doubt, and the badge
+   * is pure clutter. 0 while the first listing fetch is in flight, which
+   * correctly renders as "no badges yet" rather than flashing one on.
+   */
+  accountsConfigured: number;
   permissionMode: PermissionMode;
   model: string | null;
   /**

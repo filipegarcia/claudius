@@ -1309,6 +1309,9 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
   // settings.json carries, or "no advisor" if absent there too.
   const [advisorModel, setAdvisorModelState] = useState<string | null>(null);
   const [sessions, setSessions] = useState<SessionInfo[]>([]);
+  // Number of configured account profiles, learned from /api/sessions/all.
+  // Drives whether account badges render at all — see the fetch below.
+  const [accountsConfigured, setAccountsConfigured] = useState(0);
 
   // Mirror `model` into the ref so SSE handlers can compute pricing without
   // re-binding on every model change.
@@ -1599,11 +1602,23 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
         firstPrompt?: string;
         lastModified?: number;
         cwd?: string;
+        /** Account profile the session is pinned to (`sessions.state`). */
+        accountId?: string;
+        accountLabel?: string;
       };
       let disk: DiskItem[] = [];
       if (diskRes.status === "fulfilled" && diskRes.value.ok) {
-        const data = (await diskRes.value.json()) as { sessions?: unknown };
+        const data = (await diskRes.value.json()) as {
+          sessions?: unknown;
+          accountsConfigured?: unknown;
+        };
         if (Array.isArray(data.sessions)) disk = data.sessions as DiskItem[];
+        // Piggybacks on a request we already make. Every surface that shows
+        // an account badge hides it below 2 profiles, and this saves each of
+        // them an independent /api/accounts round-trip.
+        if (typeof data.accountsConfigured === "number") {
+          setAccountsConfigured(data.accountsConfigured);
+        }
       }
 
       const byId = new Map<string, SessionInfo>();
@@ -1624,6 +1639,8 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
           cwd: d.cwd,
           title,
           lastModified: d.lastModified,
+          accountId: d.accountId,
+          accountLabel: d.accountLabel,
         });
       }
       for (const l of live) {
@@ -5737,6 +5754,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     agents,
     mainAgent,
     account,
+    accountsConfigured,
     moveToActiveAccount,
     permissionMode,
     model,

@@ -12,6 +12,12 @@ type Props = {
   onSwitch: (id: string) => void;
   onCreateNew: () => void;
   onRefresh: () => void;
+  /**
+   * Number of configured account profiles. Below 2 the per-row account
+   * label is suppressed — every session would show the same value, and this
+   * metadata line is already dense (id · dir · model).
+   */
+  accountsConfigured?: number;
 };
 
 /**
@@ -26,7 +32,10 @@ export function SessionPicker({
   onSwitch,
   onCreateNew,
   onRefresh,
+  accountsConfigured = 0,
 }: Props) {
+  // Multi-account installs only — see the prop doc.
+  const showAccounts = accountsConfigured > 1;
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -111,6 +120,7 @@ export function SessionPicker({
                       <span className="font-mono">{s.id.slice(0, 8)}</span>
                       {s.cwd ? ` · ${cwdBasename(s.cwd)}` : ""}
                       {s.model ? ` · ${s.model}` : ""}
+                      {showAccounts && s.accountLabel ? ` · ${s.accountLabel}` : ""}
                     </div>
                   </div>
                   {active && <span className="mt-0.5 text-[10px] text-[var(--accent)]">●</span>}

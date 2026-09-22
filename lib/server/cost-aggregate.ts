@@ -10,6 +10,7 @@ import {
 } from "./litellm-pricing";
 import { applyModelPricing, hasModelPricingOverride } from "./model-pricing-override";
 import { getSessionTitlesByCwd } from "./sessions-db";
+import { lookupSessionAccount, resolveSessionAccounts } from "./session-accounts";
 import { readSettings, type ModelPricingSettings } from "./settings";
 
 export type ByDay = {
@@ -28,6 +29,10 @@ export type BySession = {
   model?: string;
   /** User-assigned Claudius title (from `.claudius.db`), when the session has one. */
   title?: string;
+  /** Account profile this session is pinned to, when it has a pin. */
+  accountId?: string;
+  /** Display label for `accountId` (`Removed account` if since deleted). */
+  accountLabel?: string;
 };
 
 export type ByModel = {
@@ -53,6 +58,12 @@ export type CostReport = {
    * show "using org pricing" instead of implying pure list-price figures.
    */
   pricingOverrideActive: boolean;
+  /**
+   * How many account profiles are configured system-wide. The Cost page
+   * only breaks spend out by account when this is > 1 — with a single
+   * account every row would carry the same badge.
+   */
+  accountsConfigured: number;
   /** Note shown to the user on the page. */
   note: string;
 };
@@ -367,6 +378,20 @@ export async function aggregate(cwd: string): Promise<CostReport> {
     // Title lookup is best-effort — never fail the cost report over it.
   }
 
+  // Attach the account each session ran under, so spend on this page can be
+  // read per identity. Same best-effort contract as titles: the report is
+  // scoped to one cwd, a miss just leaves the row unbadged.
+  const { byKey, accountsConfigured } = await resolveSessionAccounts(
+    bySession.map((s) => ({ cwd, id: s.sessionId })),
+  );
+  for (const s of bySession) {
+    const acct = lookupSessionAccount(byKey, cwd, s.sessionId);
+    if (acct) {
+      s.accountId = acct.accountId;
+      s.accountLabel = acct.accountLabel;
+    }
+  }
+
   const today = dayKey(Date.now());
   const weekDays = new Set<string>();
   const monthDays = new Set<string>();
@@ -391,6 +416,7 @@ export async function aggregate(cwd: string): Promise<CostReport> {
     bySession,
     byModel,
     pricingOverrideActive: hasModelPricingOverride(pricing),
+    accountsConfigured,
     note: hasModelPricingOverride(pricing)
       ? "Cost uses your org's contracted modelPricing rates (settings.json) instead of list price where a rate matches; deduplicated by message+request id so resumed/forked sessions aren't double-counted."
       : "Cost uses ccusage-compatible methodology: on-disk token counts priced with LiteLLM public list prices, deduplicated by message+request id so resumed/forked sessions aren't double-counted.",
@@ -407,6 +433,7 @@ function emptyReport(): CostReport {
     bySession: [],
     byModel: [],
     pricingOverrideActive: false,
+    accountsConfigured: 0,
     note: "No sessions recorded yet for this project.",
   };
 }

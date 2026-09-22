@@ -57,6 +57,9 @@ type Props = {
   usage: SessionUsage | null;
   /** Plan-level rate-limit utilization from the experimental SDK usage API. */
   planUsage?: PlanRateLimits | null;
+  /** Account the session is billed to; forwarded to the cost overlay. */
+  account?: { id: string; label: string; driftFromActive?: { id: string; label: string } } | null;
+  accountsConfigured?: number;
   /** Fallback turn count from the transcript when usage is null (resumed sessions). */
   historicalTurnCount?: number;
   /** False while the session is still binding — combined with `pending`,
@@ -264,6 +267,8 @@ export function BackgroundTasksPanel({
   advisorModel = null,
   onChangeAdvisorModel,
   planUsage,
+  account,
+  accountsConfigured,
 }: Props) {
   const [showCost, setShowCost] = useState(false);
   const [addTodosOpen, setAddTodosOpen] = useState(false);
@@ -882,7 +887,14 @@ export function BackgroundTasksPanel({
       </div>
 
       {showCost && usage && (
-        <CostOverlay usage={usage} model={model} planUsage={planUsage} onClose={() => setShowCost(false)} />
+        <CostOverlay
+          usage={usage}
+          model={model}
+          planUsage={planUsage}
+          account={account}
+          accountsConfigured={accountsConfigured}
+          onClose={() => setShowCost(false)}
+        />
       )}
     </div>
   );

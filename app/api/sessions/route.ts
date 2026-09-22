@@ -235,6 +235,14 @@ export async function GET(req: Request) {
       // SessionTabs strip can paint the dot for non-active tabs whose SSE
       // isn't bound to this client. See Session.getStatus().
       status: s.getStatus(),
+      // Account this live session is pinned to. Resolved in memory at
+      // `Session.start()`, so it's correct even before the pin has been
+      // flushed to the DB — which is what `/api/sessions/all` reads. The
+      // client merges live over disk, so a just-spawned session still gets
+      // a correct badge. `undefined` (no profile configured) is spread away
+      // rather than clobbering the disk value.
+      ...(s.accountProfileId ? { accountId: s.accountProfileId } : {}),
+      ...(s.accountProfileLabel ? { accountLabel: s.accountProfileLabel } : {}),
     }))
     .filter((s) => (filter ? filter(s.cwd) : true));
   return NextResponse.json(list);

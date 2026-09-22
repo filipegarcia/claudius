@@ -12,7 +12,17 @@ import type { SDKSessionInfo } from "@anthropic-ai/claude-agent-sdk";
  * be `claudiusTitle || customTitle || "(untitled)"`; `summary` and
  * `firstPrompt` are deliberately NOT title candidates.
  */
-export type StoredSession = SDKSessionInfo & { claudiusTitle?: string };
+export type StoredSession = SDKSessionInfo & {
+  claudiusTitle?: string;
+  /**
+   * Account profile the session is pinned to, resolved server-side from
+   * `sessions.state.accountProfileId`. Absent means "unknown" (session
+   * predates account pinning, or no profile was configured) — never
+   * assume it's the currently-active account.
+   */
+  accountId?: string;
+  accountLabel?: string;
+};
 
 /**
  * Load the sessions history. Pattern matches `useCost`
@@ -31,6 +41,9 @@ export type StoredSession = SDKSessionInfo & { claudiusTitle?: string };
 export function useSessionsHistory(opts: { dir?: string } = {}) {
   const { dir } = opts;
   const [sessions, setSessions] = useState<StoredSession[]>([]);
+  // Configured account-profile count, reported by the same endpoint. Below
+  // 2 the UI hides account badges entirely — every row would read the same.
+  const [accountsConfigured, setAccountsConfigured] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refetchTrigger, setRefetchTrigger] = useState(0);
@@ -44,11 +57,16 @@ export function useSessionsHistory(opts: { dir?: string } = {}) {
     fetch(url, { signal: controller.signal })
       .then(async (res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return (await res.json()) as { sessions?: StoredSession[]; error?: string };
+        return (await res.json()) as {
+          sessions?: StoredSession[];
+          accountsConfigured?: number;
+          error?: string;
+        };
       })
       .then((data) => {
         if (data.error) throw new Error(data.error);
         setSessions(data.sessions ?? []);
+        setAccountsConfigured(data.accountsConfigured ?? 0);
         setError(null);
       })
       .catch((err: unknown) => {
@@ -107,5 +125,5 @@ export function useSessionsHistory(opts: { dir?: string } = {}) {
     [refresh],
   );
 
-  return { sessions, loading, error, refresh, rename, fork, remove };
+  return { sessions, accountsConfigured, loading, error, refresh, rename, fork, remove };
 }

@@ -174,7 +174,10 @@ export default function CostPage() {
               <h2 className="mb-2 text-[11px] font-medium uppercase tracking-wide text-[var(--muted)]">
                 Per session
               </h2>
-              <SessionCostTable sessions={data?.bySession ?? []} />
+              <SessionCostTable
+                sessions={data?.bySession ?? []}
+                accountsConfigured={data?.accountsConfigured ?? 0}
+              />
             </section>
 
             <section>

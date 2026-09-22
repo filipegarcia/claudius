@@ -9,6 +9,20 @@ type Props = {
   usage: SessionUsage | null;
   model: string | null;
   planUsage?: PlanRateLimits | null;
+  /**
+   * Account profile this session is pinned to (from the `ready` /
+   * `account_changed` SSE events). Null when no profile is configured.
+   * `driftFromActive` means the user has since switched the global default
+   * — the numbers above are still billed to `label`, which is exactly the
+   * surprise this panel should not let happen silently.
+   */
+  account?: { id: string; label: string; driftFromActive?: { id: string; label: string } } | null;
+  /**
+   * How many account profiles exist system-wide. The attribution line is
+   * hidden at <= 1: with a single account every session is on it, so the
+   * line would be noise on the one panel people scan for numbers.
+   */
+  accountsConfigured?: number;
   onClose: () => void;
 };
 
@@ -71,7 +85,14 @@ const WINDOW_LABELS: Record<string, string> = {
   sevenDayOauthApps: "7-day (OAuth apps)",
 };
 
-export function CostOverlay({ usage, model, planUsage, onClose }: Props) {
+export function CostOverlay({
+  usage,
+  model,
+  planUsage,
+  account,
+  accountsConfigured = 0,
+  onClose,
+}: Props) {
   // CC parity 2.1.208: the CLI's `/usage` shows last-known bars with an
   // "as of <time>" note when the usage endpoint is rate-limited, instead of
   // an error screen. Claudius already showed last-known bars on a failed
@@ -256,6 +277,28 @@ export function CostOverlay({ usage, model, planUsage, onClose }: Props) {
                 Limits tab.
               </p>
             </div>
+          )}
+        </div>
+      )}
+
+      {/* Cost attribution. These totals are billed to the account the session
+          is PINNED to, which is not necessarily the one currently selected in
+          the switcher — sessions keep their identity across an account switch
+          on purpose (see `Session.resolveAccountProfile`). Spelling that out
+          here is the whole point: this is the panel someone opens when a bill
+          looks wrong. Hidden entirely with 0-1 profiles configured. */}
+      {account && accountsConfigured > 1 && (
+        <div
+          className="flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-[var(--border)] px-4 py-2 text-[11px]"
+          data-testid="cost-overlay-account"
+          data-account={account.id}
+        >
+          <span className="text-[10px] uppercase tracking-wide text-[var(--muted)]">Billed to</span>
+          <span className="font-mono text-[var(--foreground)]">{account.label}</span>
+          {account.driftFromActive && (
+            <span className="text-amber-400" data-testid="cost-overlay-account-drift">
+              · not your current default ({account.driftFromActive.label})
+            </span>
           )}
         </div>
       )}
