@@ -28,6 +28,15 @@ export async function generateCommitMessage(
         tools: [],
         permissionMode: "bypassPermissions",
         maxTurns: 1,
+        // SDK 0.3.280 `verbatimPrompts`: `userPrompt` embeds a raw unified
+        // diff, which routinely contains `@@ hunk @@` headers and file
+        // paths that look like `@path` mentions. Without this, the CLI's
+        // turn-start attachment pass could try to expand those as file
+        // mentions instead of treating them as literal diff text. Safe
+        // here specifically because `tools: []` + `maxTurns: 1` mean the
+        // attachment pass (CLAUDE.md/skills/tool listings) this also
+        // skips was never going to matter for a single tool-less turn.
+        verbatimPrompts: true,
       },
     });
     for await (const msg of q) {

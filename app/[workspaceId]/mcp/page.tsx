@@ -2,7 +2,20 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, ChevronDown, ChevronRight, Network, Plug, Plug2, Plus, Power, RefreshCw, Trash2, Wrench } from "lucide-react";
+import {
+  ArrowLeft,
+  ChevronDown,
+  ChevronRight,
+  LayoutPanelTop,
+  Network,
+  Plug,
+  Plug2,
+  Plus,
+  Power,
+  RefreshCw,
+  Trash2,
+  Wrench,
+} from "lucide-react";
 import { SideNav } from "@/components/nav/SideNav";
 import { useActiveCwd } from "@/lib/client/useActiveCwd";
 import { useMcp, type ConfiguredServer, type LiveStatus } from "@/lib/client/useMcp";
@@ -22,6 +35,27 @@ const SCOPE_LABELS: Record<McpScope, string> = {
   project: "Project (.mcp.json)",
   local: "Local (.claude/settings.local.json)",
 };
+
+/**
+ * SDK 0.3.280 — a tool's `_meta` carries MCP Apps (SEP-1865) metadata under
+ * `ui.resourceUri` (or the deprecated flat `ui/resourceUri`), a `ui://`
+ * string a host can pass to `readMcpResource()` to fetch the tool's widget.
+ * We only surface *presence*, not the resource itself — reading and
+ * rendering third-party `ui://` HTML needs a sandboxing design of its own
+ * (tracked as a follow-up), so this is deliberately a "has a UI" indicator,
+ * nothing more.
+ */
+function mcpToolUiResourceUri(meta: Record<string, unknown> | undefined): string | null {
+  if (!meta) return null;
+  const ui = meta.ui;
+  if (ui && typeof ui === "object" && "resourceUri" in ui) {
+    const uri = (ui as { resourceUri?: unknown }).resourceUri;
+    if (typeof uri === "string" && uri.startsWith("ui://")) return uri;
+  }
+  const flat = meta["ui/resourceUri"];
+  if (typeof flat === "string" && flat.startsWith("ui://")) return flat;
+  return null;
+}
 
 export default function McpPage() {
   const cwd = useActiveCwd();
@@ -273,16 +307,28 @@ function ServerRow({
             <div className="mt-2">
               <div className="mb-1 text-[10px] uppercase tracking-wide text-[var(--muted)]">Tools</div>
               <ul className="space-y-1">
-                {status.tools.map((t) => (
-                  <li
-                    key={t.name}
-                    className="flex items-baseline gap-2 rounded-md border border-[var(--border)] bg-[var(--panel-2)]/40 px-2 py-1 text-[11px]"
-                  >
-                    <Wrench className="h-3 w-3 shrink-0 text-[var(--accent)]" />
-                    <span className="font-mono">{t.name}</span>
-                    {t.description && <span className="truncate text-[var(--muted)]">— {t.description}</span>}
-                  </li>
-                ))}
+                {status.tools.map((t) => {
+                  const uiResourceUri = mcpToolUiResourceUri(t._meta);
+                  return (
+                    <li
+                      key={t.name}
+                      className="flex items-baseline gap-2 rounded-md border border-[var(--border)] bg-[var(--panel-2)]/40 px-2 py-1 text-[11px]"
+                    >
+                      <Wrench className="h-3 w-3 shrink-0 text-[var(--accent)]" />
+                      <span className="font-mono">{t.name}</span>
+                      {uiResourceUri && (
+                        <span
+                          data-testid={`mcp-tool-ui-badge-${t.name}`}
+                          title={`Ships an MCP Apps UI resource: ${uiResourceUri}`}
+                          className="flex shrink-0 items-center gap-1 rounded-md border border-[var(--accent)]/30 bg-[var(--accent)]/10 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wide text-[var(--accent)]"
+                        >
+                          <LayoutPanelTop className="h-2.5 w-2.5" /> UI
+                        </span>
+                      )}
+                      {t.description && <span className="truncate text-[var(--muted)]">— {t.description}</span>}
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           )}

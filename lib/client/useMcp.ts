@@ -12,7 +12,22 @@ export type LiveStatus = {
   error?: string;
   config?: unknown;
   scope?: string;
-  tools?: { name: string; description?: string; annotations?: unknown }[];
+  tools?: {
+    name: string;
+    description?: string;
+    annotations?: unknown;
+    /**
+     * SDK 0.3.280 — MCP Apps (SEP-1865) metadata a tool's `_meta` carries,
+     * under the keys the server used: `ui` (an object with a `resourceUri`
+     * of scheme `ui://`, plus `visibility` and any other server-sent
+     * member) or the deprecated flat `ui/resourceUri`. We only surface
+     * *presence* of a `ui://` resource as a badge — reading the resource
+     * itself (`readMcpResource()`) is alpha, requires the
+     * `mcp_read_resource_v1` capability, and returns untrusted third-party
+     * HTML that needs sandboxed rendering design; out of scope for now.
+     */
+    _meta?: Record<string, unknown>;
+  }[];
   /**
    * SDK 0.3.274 — where the server definition came from: "sdk" (an
    * in-process server this host registered), "plugin", or the config scope

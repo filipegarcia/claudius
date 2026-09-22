@@ -110,6 +110,13 @@ export async function describeCustomization(
         tools: [],
         permissionMode: "bypassPermissions",
         maxTurns: 1,
+        // SDK 0.3.280 `verbatimPrompts`: `userPrompt` embeds a raw unified
+        // diff and free-text user intent, either of which can contain
+        // `@path`-looking or `/command`-looking substrings that aren't
+        // meant to be expanded/dispatched. Safe here because `tools: []`
+        // + `maxTurns: 1` mean losing the turn-start attachment pass costs
+        // nothing for this single tool-less turn.
+        verbatimPrompts: true,
       },
     });
     for await (const msg of q) {
