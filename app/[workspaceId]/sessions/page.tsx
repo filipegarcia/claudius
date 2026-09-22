@@ -3,8 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, FolderTree, Search, X } from "lucide-react";
+import { ArrowLeft, Bell, FolderTree, Search, X } from "lucide-react";
 import { SideNav } from "@/components/nav/SideNav";
+import { useNotificationsContext } from "@/components/notifications/NotificationsProvider";
 import { useSessionsHistory } from "@/lib/client/useSessionsHistory";
 import { useWorkspaces } from "@/lib/client/useWorkspaces";
 import { cn } from "@/lib/utils/cn";
@@ -32,14 +33,30 @@ export default function SessionsPage() {
   // instant, no false positives from deep message text). Flip this on to also
   // scan the `.jsonl` message bodies for the query.
   const [searchTranscripts, setSearchTranscripts] = useState(false);
+  // Narrow the list to sessions that have unread notifications. Off by
+  // default — the badges alone are enough when there are only one or two.
+  const [unreadOnly, setUnreadOnly] = useState(false);
 
   // Scope the list to the workspace in the URL. The URL param (not
   // `useActiveCwd`'s cookie-resolved id) is authoritative for the page we're
   // actually on.
   const params = useParams<{ workspaceId: string }>();
+  const workspaceId = params?.workspaceId ?? null;
   const { items: workspaces } = useWorkspaces();
-  const workspace = workspaces.find((w) => w.id === params?.workspaceId) ?? null;
+  const workspace = workspaces.find((w) => w.id === workspaceId) ?? null;
   const workspaceRoot = workspace?.rootPath ?? null;
+
+  // Per-session unread counts for THIS workspace. We key off the URL param
+  // rather than the provider's `unreadBySession` (which tracks the active
+  // workspace) so browsing another workspace's history doesn't paint that
+  // workspace's rows with the active one's badges. The map is fed by the
+  // same SSE `state` events as the chat tab badges, so a notification that
+  // lands while this page is open shows up without a refresh.
+  const { unreadBySessionByWorkspace } = useNotificationsContext();
+  const unreadBySession = useMemo<Record<string, number>>(
+    () => (workspaceId ? unreadBySessionByWorkspace[workspaceId] ?? {} : {}),
+    [workspaceId, unreadBySessionByWorkspace],
+  );
 
   // Fetch scoped to this workspace's project dir. Without `dir`,
   // `/api/sessions/all` caps at the 200-most-recent sessions across ALL
@@ -119,10 +136,33 @@ export default function SessionsPage() {
     return [...counts.entries()].sort((a, b) => b[1] - a[1]);
   }, [scopedSessions]);
 
+  // Header summary: how many of the listed sessions have something new, and
+  // how many notifications that adds up to.
+  const { newSessions, newTotal } = useMemo(() => {
+    let sessionsWithUnread = 0;
+    let total = 0;
+    for (const s of scopedSessions) {
+      const n = unreadBySession[s.sessionId] ?? 0;
+      if (n > 0) {
+        sessionsWithUnread += 1;
+        total += n;
+      }
+    }
+    return { newSessions: sessionsWithUnread, newTotal: total };
+  }, [scopedSessions, unreadBySession]);
+
+  // Derived, not stored: opening the last unread session clears its badge
+  // while this page is still mounted, and a latched `unreadOnly` would then
+  // render an empty list with no visible control to escape it (the pill
+  // hides at zero). Collapsing the filter to a no-op at zero keeps the list
+  // self-healing without a setState-in-effect.
+  const filterUnread = unreadOnly && newSessions > 0;
+
   const filtered = useMemo(() => {
     const q = filter.trim().toLowerCase();
     return scopedSessions.filter((s) => {
       if (branchFilter && s.gitBranch !== branchFilter) return false;
+      if (filterUnread && !(unreadBySession[s.sessionId] > 0)) return false;
       if (!q) return true;
       // Primary search: the session title. We match the same fields that feed
       // the displayed title (claudiusTitle / customTitle), plus the firstPrompt
@@ -139,7 +179,7 @@ export default function SessionsPage() {
       // (server-side content search).
       return searchTranscripts && contentMatches.has(s.sessionId);
     });
-  }, [filter, branchFilter, scopedSessions, contentMatches, searchTranscripts]);
+  }, [filter, branchFilter, scopedSessions, contentMatches, searchTranscripts, filterUnread, unreadBySession]);
 
   return (
     <div className="flex h-full">
@@ -158,6 +198,28 @@ export default function SessionsPage() {
             </span>
           )}
           <span className="text-[var(--muted)]">({scopedSessions.length})</span>
+          {newSessions > 0 && (
+            <button
+              type="button"
+              onClick={() => setUnreadOnly((v) => !v)}
+              data-testid="sessions-unread-filter"
+              aria-pressed={filterUnread}
+              title={
+                filterUnread
+                  ? "Showing only sessions with new notifications — click to show all"
+                  : `${newTotal} new notification${newTotal === 1 ? "" : "s"} across ${newSessions} session${newSessions === 1 ? "" : "s"} — click to filter`
+              }
+              className={cn(
+                "flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium",
+                filterUnread
+                  ? "border-[var(--accent)] bg-[var(--accent)]/15 text-[var(--accent)]"
+                  : "border-[var(--accent)]/40 text-[var(--accent)] hover:bg-[var(--accent)]/10",
+              )}
+            >
+              <Bell className="h-3 w-3" />
+              {newTotal > 99 ? "99+" : newTotal} new
+            </button>
+          )}
           {loading && <span className="text-[var(--muted)]">loading…</span>}
           {searchTranscripts && contentSearching && (
             <span className="text-[var(--muted)]">searching transcripts…</span>
@@ -241,9 +303,16 @@ export default function SessionsPage() {
             </div>
           ) : (
             <ul className="divide-y divide-[var(--border)]">
-              {filtered.map((s) => (
+              {filtered.map((s) => {
+                const unread = unreadBySession[s.sessionId] ?? 0;
+                return (
                 <li key={s.sessionId} className="group">
-                  <div className="flex items-start gap-3 px-4 py-3 hover:bg-[var(--panel)]/40">
+                  <div
+                    className={cn(
+                      "flex items-start gap-3 border-l-2 px-4 py-3 hover:bg-[var(--panel)]/40",
+                      unread > 0 ? "border-l-[var(--accent)] bg-[var(--accent)]/5" : "border-l-transparent",
+                    )}
+                  >
                     <Link
                       href={`/sessions/${s.sessionId}${s.cwd ? `?dir=${encodeURIComponent(s.cwd)}` : ""}`}
                       className="min-w-0 flex-1"
@@ -268,6 +337,20 @@ export default function SessionsPage() {
                             (s.createdAt ? readableSessionLabel(s.createdAt) : "(untitled)")}
                         </span>
                         <span className="text-[10px] font-mono text-[var(--muted)]">{s.sessionId.slice(0, 8)}</span>
+                        {unread > 0 && (
+                          <span
+                            data-testid="session-row-unread"
+                            data-session-id={s.sessionId}
+                            aria-label={`${unread} new notification${unread === 1 ? "" : "s"}`}
+                            title={`${unread} new notification${unread === 1 ? "" : "s"} — open the session to clear`}
+                            className={cn(
+                              "shrink-0 rounded-full px-1.5 py-px text-[9px] font-semibold leading-none tabular-nums",
+                              "bg-[var(--accent)]/85 text-[var(--background)]",
+                            )}
+                          >
+                            {unread > 99 ? "99+" : unread} new
+                          </span>
+                        )}
                       </div>
                       <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[11px] text-[var(--muted)]">
                         <span>{fmtRelative(s.lastModified)}</span>
@@ -335,7 +418,8 @@ export default function SessionsPage() {
                     </div>
                   </div>
                 </li>
-              ))}
+                );
+              })}
             </ul>
           )}
         </div>

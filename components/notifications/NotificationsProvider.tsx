@@ -56,6 +56,14 @@ type ContextValue = {
    * workspace.
    */
   unreadBySession: Record<string, number>;
+  /**
+   * The same per-session unread map, but for **every** workspace, keyed by
+   * workspace id. The sessions list page is scoped by the `[workspaceId]` URL
+   * param rather than the cookie-resolved active workspace, so it can't read
+   * `unreadBySession` (which is hard-wired to `activeId`) without showing the
+   * wrong workspace's badges when the two disagree.
+   */
+  unreadBySessionByWorkspace: Record<string, Record<string, number>>;
   /** Last ~50 live rows that arrived in this tab, newest first. */
   recent: NotificationRow[];
   /** Bumps whenever any workspace's state changes. Consumers can use this as a refetch trigger. */
@@ -383,9 +391,14 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     () => Object.values(counts).reduce((a, b) => a + b, 0),
     [counts],
   );
+  const unreadBySessionByWorkspace = useMemo<Record<string, Record<string, number>>>(() => {
+    const out: Record<string, Record<string, number>> = {};
+    for (const [id, s] of Object.entries(byWorkspace)) out[id] = s.perSession;
+    return out;
+  }, [byWorkspace]);
   const unreadBySession = useMemo<Record<string, number>>(
-    () => (activeId ? byWorkspace[activeId]?.perSession ?? {} : {}),
-    [activeId, byWorkspace],
+    () => (activeId ? unreadBySessionByWorkspace[activeId] ?? {} : {}),
+    [activeId, unreadBySessionByWorkspace],
   );
   const stateVersion = useMemo(
     () => Object.values(byWorkspace).reduce((acc, s) => acc + s.version, 0),
@@ -542,6 +555,7 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
       counts,
       totalUnread,
       unreadBySession,
+      unreadBySessionByWorkspace,
       recent,
       stateVersion,
       markRead,
@@ -558,6 +572,7 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
       counts,
       totalUnread,
       unreadBySession,
+      unreadBySessionByWorkspace,
       recent,
       stateVersion,
       markRead,
@@ -590,6 +605,7 @@ const EMPTY: ContextValue = {
   counts: {},
   totalUnread: 0,
   unreadBySession: {},
+  unreadBySessionByWorkspace: {},
   recent: [],
   stateVersion: 0,
   markRead: async () => {},
