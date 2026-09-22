@@ -146,7 +146,13 @@ export async function listFs(opts: ListOptions): Promise<FsEntry[]> {
   const all = await walk(root, { max: 5000, maxDepth: 6 });
   const q = (opts.query ?? "").trim().toLowerCase();
   if (!q) return all.slice(0, opts.limit ?? 200);
-  // Score by closest match: prefix > substring > subsequence.
+  // Score by closest match: prefix > substring > subsequence. On top of
+  // that, a match against the entry's own filename outranks one that only
+  // exists because a parent folder's name happens to contain the query —
+  // e.g. querying "config" should rank `src/config.ts` above
+  // `packages/config/index.ts` (CC 2.1.280 parity: "@ file suggestions...
+  // a file whose name contains the query now ranks above one that only
+  // matches across its folder names").
   type Scored = { e: FsEntry; score: number };
   const scored: Scored[] = [];
   for (const e of all) {
@@ -167,7 +173,12 @@ export async function listFs(opts: ListOptions): Promise<FsEntry[]> {
         if (n === q.length) score = 100 - hay.length / 100;
       }
     }
-    if (score > 0) scored.push({ e, score });
+    if (score > 0) {
+      const slash = hay.lastIndexOf("/");
+      const basename = slash >= 0 ? hay.slice(slash + 1) : hay;
+      if (basename.includes(q)) score += 10000;
+      scored.push({ e, score });
+    }
   }
   scored.sort((a, b) => b.score - a.score);
   return scored.slice(0, opts.limit ?? 200).map((s) => s.e);
