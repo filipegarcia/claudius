@@ -65,7 +65,7 @@ type Props = {
 export function WorkspaceSwitcher({ mobileOpen = false, onCloseMobile }: Props = {}) {
   const { items, activeId, select, create, update, remove, uploadIcon, reorder } =
     useWorkspaces();
-  const { counts } = useNotificationsContext();
+  const { counts, markAllRead } = useNotificationsContext();
   const community = useCommunityNotifications();
   const pathname = usePathname();
   const router = useRouter();
@@ -643,6 +643,10 @@ export function WorkspaceSwitcher({ mobileOpen = false, onCloseMobile }: Props =
             const color =
               menuWorkspace.icon.kind === "letter" ? menuWorkspace.icon.color : "#d97757";
             await update(id, { icon: { kind: "letter", letter, color } });
+          }}
+          unreadCount={counts[menuWorkspace.id] ?? 0}
+          onClearNotifications={async (id) => {
+            await markAllRead(id);
           }}
           onOpenSettings={(id) => {
             // /workspace edits the *active* workspace, so we have to

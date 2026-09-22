@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Pencil, Settings as SettingsIcon, Trash2, Type } from "lucide-react";
+import { BellOff, Pencil, Settings as SettingsIcon, Trash2, Type } from "lucide-react";
 import type { Workspace } from "@/lib/server/workspaces-store";
 import { cn } from "@/lib/utils/cn";
 
@@ -23,7 +23,7 @@ const PRESET_COLORS = [
 
 /** Estimated menu size used for the initial clamp before measurement. */
 const EST_WIDTH = 240;
-const EST_HEIGHT = 220;
+const EST_HEIGHT = 260;
 
 type Props = {
   workspace: Workspace;
@@ -42,6 +42,15 @@ type Props = {
   onSwitchToLetter: (id: string) => Promise<void>;
   /** Open the full settings page for this workspace. */
   onOpenSettings: (id: string) => void;
+  /**
+   * Unread notification count for this workspace — the same number the rail
+   * tile's corner badge shows. Drives the "Clear notifications" item, which
+   * is hidden at zero rather than rendered disabled (a permanently-dead entry
+   * on every right-click is worse than an item that appears when it applies).
+   */
+  unreadCount: number;
+  /** Mark every unread notification in this workspace as read. */
+  onClearNotifications: (id: string) => Promise<void>;
   /** Delete the workspace. Confirmation lives in the caller. */
   onDelete: (id: string) => Promise<void>;
 };
@@ -65,6 +74,8 @@ export function WorkspaceContextMenu({
   onChangeColor,
   onSwitchToLetter,
   onOpenSettings,
+  unreadCount,
+  onClearNotifications,
   onDelete,
 }: Props) {
   const panelRef = useRef<HTMLDivElement>(null);
@@ -193,6 +204,25 @@ export function WorkspaceContextMenu({
           onClose();
         }}
       />
+
+      {unreadCount > 0 && (
+        <>
+          <div className="my-1 h-px bg-[var(--border)]" />
+          <MenuButton
+            icon={<BellOff className="h-3 w-3" />}
+            label={`Clear ${unreadCount > 99 ? "99+" : unreadCount} notification${unreadCount === 1 ? "" : "s"}`}
+            sublabel="Marks them read — the tile badge clears"
+            onClick={() => {
+              // Swallow rejections before `finally`: `void` doesn't attach a
+              // handler and `.finally` re-throws, so a failing clear would
+              // surface as an unhandled rejection AND leave the menu open.
+              void onClearNotifications(workspace.id)
+                .catch(() => {})
+                .finally(onClose);
+            }}
+          />
+        </>
+      )}
 
       <div className="my-1 h-px bg-[var(--border)]" />
 
