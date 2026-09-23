@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   Clock,
   Cpu,
+  Eraser,
   GitMerge,
   Info,
   ShieldAlert,
@@ -17,6 +18,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useParams } from "next/navigation";
 import type { SystemEntry } from "@/lib/client/types";
+import { formatMessageTime } from "@/lib/client/format-message-time";
 import {
   shouldShowRateLimitPill,
   useRateLimitWarningPct,
@@ -62,6 +64,11 @@ const KIND_META: Record<SystemEntry["kind"], { icon: typeof Info; tone: string }
   // muted tone as `info` because these are background nudges to the model,
   // not events that demand the user's attention.
   system_reminder: { icon: Bell, tone: "text-[var(--muted)]" },
+  // SDK 0.3.281 — `conversation_reset` frame (trigger/timestamp now
+  // attached). Violet like `compact_boundary` since both are thread-state
+  // transitions, but its own icon so the two are still distinguishable at a
+  // glance.
+  conversation_reset: { icon: Eraser, tone: "text-violet-400" },
   info: { icon: Info, tone: "text-[var(--muted)]" },
 };
 
@@ -82,6 +89,13 @@ export function SystemPill({
   // doesn't add hooks to the other (hookless) SystemPill render paths.
   if (entry.kind === "compact_boundary") {
     return <CompactBoundaryDivider entry={entry} />;
+  }
+  // Conversation-reset gets the same full-width-divider treatment as
+  // compact-boundary — both mark a thread-state transition the reader
+  // should notice even skimming — with the SDK's own wall-clock timestamp
+  // (SDK 0.3.281) when one was sent.
+  if (entry.kind === "conversation_reset") {
+    return <ConversationResetDivider entry={entry} />;
   }
   // Rate-limit gets a richer renderer: tier label + live mm:ss countdown
   // to the reset, plus overage / billing hints. The Claude Code CLI surfaces
@@ -253,6 +267,37 @@ function CompactBoundaryDivider({ entry }: { entry: SystemEntry }) {
           {entry.compactSummary}
         </div>
       )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Conversation-reset divider — SDK 0.3.281 trigger + timestamp
+// ---------------------------------------------------------------------------
+
+function ConversationResetDivider({ entry }: { entry: SystemEntry }) {
+  const parsedTs = entry.ts ? new Date(entry.ts) : null;
+  const formatted =
+    parsedTs && !Number.isNaN(parsedTs.getTime()) ? formatMessageTime(parsedTs.getTime()) : null;
+  return (
+    <div
+      className="my-4 w-full text-[11px] text-[var(--muted)]"
+      data-testid="conversation-reset-divider"
+    >
+      <div className="flex items-center gap-3">
+        <div className="h-px flex-1 bg-[var(--border)]" />
+        <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
+          <Eraser className="h-3.5 w-3.5 shrink-0 text-violet-400" />
+          <span className="font-medium">{entry.label}</span>
+          {entry.detail && <span className="opacity-70">— {entry.detail}</span>}
+          {formatted && (
+            <span className="opacity-50" title={formatted.full}>
+              · {formatted.short}
+            </span>
+          )}
+        </div>
+        <div className="h-px flex-1 bg-[var(--border)]" />
+      </div>
     </div>
   );
 }
