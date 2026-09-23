@@ -19,6 +19,18 @@ import type {
 import type { Tip } from "@/lib/shared/tips";
 import type { ApiRetryState } from "@/lib/client/api-retry";
 
+/**
+ * Connection health of the per-session SSE stream, as seen by one tab.
+ *
+ * - `"live"` — socket open, or in a routine `EventSource` auto-retry that
+ *   will replay on its own when it lands. The transcript is trustworthy.
+ * - `"reconnecting"` — the socket is gone and a rebuild is armed. Everything
+ *   the session has done since it died is missing from the transcript on
+ *   screen (it is still on disk and in the server's buffer), so the
+ *   StatusLine surfaces it rather than letting the chat look merely quiet.
+ */
+export type StreamStatus = "live" | "reconnecting";
+
 export type DisplayBlock =
   | { kind: "text"; text: string }
   | { kind: "thinking"; text: string; redacted?: boolean }
@@ -872,6 +884,8 @@ export type ChatState = {
   goalUuids: Set<string>;
   /** True until the SSE replay window finishes (initial render only). */
   replaying: boolean;
+  /** Connection health of this tab's SSE stream. See {@link StreamStatus}. */
+  streamStatus: StreamStatus;
   /** True if older history exists above what's currently loaded. */
   hasMoreAbove: boolean;
   /** True while a loadOlder() request is in flight. */

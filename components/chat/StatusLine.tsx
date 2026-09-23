@@ -13,6 +13,7 @@ import {
   Link as LinkIcon,
   Minimize2,
   Users,
+  WifiOff,
 } from "lucide-react";
 import type { PermissionMode } from "@anthropic-ai/claude-agent-sdk";
 import { ModeSelector } from "./ModeSelector";
@@ -25,7 +26,7 @@ import { workingStatusLabel } from "@/lib/shared/turn-status-label";
 import type { FocusLevel } from "@/lib/client/useFocusMode";
 import { cn } from "@/lib/utils/cn";
 import { worktreeBadge } from "@/lib/client/worktree";
-import type { SessionInfo } from "@/lib/client/types";
+import type { SessionInfo, StreamStatus } from "@/lib/client/types";
 import type { Workspace } from "@/lib/server/workspaces-store";
 import { modelDeprecationDate } from "@/lib/shared/model-deprecations";
 import { fastModeDisabledReasonLabel } from "@/lib/shared/fast-mode";
@@ -40,6 +41,14 @@ type Props = {
   sessionId: string | null;
   ready: boolean;
   pending: boolean;
+  /**
+   * Health of this tab's SSE socket. The transcript is the only SSE-only
+   * surface in the app — everything around it is HTTP-polled — so a dead
+   * socket freezes the chat while the rest of the header keeps updating, and
+   * the session reads as "done, with nothing to show". The badge is the only
+   * thing that distinguishes a stale transcript from a quiet one.
+   */
+  streamStatus?: StreamStatus;
   /**
    * Live backgrounded subagent/Task/Workflow count. These run while the session
    * is otherwise idle, so when `pending` is false but this is > 0 the header
@@ -162,6 +171,7 @@ export function StatusLine({
   sessionId,
   ready,
   pending,
+  streamStatus = "live",
   backgroundTasks = 0,
   turnStartedAt,
   lastTurnCompletedAt,
@@ -334,6 +344,20 @@ export function StatusLine({
         >
           <GitBranch className="h-3 w-3" />
           <span className="max-w-[12rem] truncate">{worktreeLabel}</span>
+        </span>
+      )}
+      {streamStatus === "reconnecting" && (
+        <span
+          data-testid="status-line-stream"
+          title={
+            "Lost the live connection to this session — reconnecting.\n\n" +
+            "Nothing is lost: the transcript is written to disk by the agent itself and the server keeps its own buffer, both independently of this tab. " +
+            "What you see below may be behind until the connection is back, at which point the transcript rebuilds from the server."
+          }
+          className="flex items-center gap-1 rounded border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 font-mono text-[10px] text-amber-200"
+        >
+          <WifiOff className="h-3 w-3" />
+          <span>Reconnecting</span>
         </span>
       )}
       <span className="opacity-50">·</span>

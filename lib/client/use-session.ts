@@ -66,6 +66,7 @@ import type {
   ScheduledLoop,
   SessionInfo,
   SessionUsage,
+  StreamStatus,
   SystemEntry,
   TaskInfo,
   TaskStatus,
@@ -73,6 +74,11 @@ import type {
   ToolProgressInfo,
 } from "./types";
 import { appendCoalescedSystemEntry } from "./system-entries";
+import {
+  STREAM_BADGE_AFTER_MS,
+  shouldRebuildTranscript,
+  streamRecoveryDelayMs,
+} from "./stream-recovery";
 
 type SDKContentBlock =
   | { type: "text"; text: string }
@@ -1032,6 +1038,25 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
   const [suggestedUuids, setSuggestedUuids] = useState<Set<string>>(() => new Set());
   const [goalUuids, setGoalUuids] = useState<Set<string>>(() => new Set());
   const [replaying, setReplaying] = useState(true);
+  /**
+   * Health of THIS tab's SSE socket to the session stream.
+   *
+   * The transcript is the only surface in the app fed exclusively by SSE —
+   * everything else (status dots, cost, suggested follow-ups, session list)
+   * is HTTP-polled. So when the socket dies permanently the chat silently
+   * freezes at whatever it had while every other panel keeps updating, and
+   * the session reads as "finished with nothing to show" rather than
+   * "disconnected". That was a real user-visible data-loss-looking bug: a
+   * turn ran for five more minutes and ~250 more records after the socket
+   * went away, all of it on disk and in the server buffer, none of it in
+   * the tab.
+   *
+   * `"reconnecting"` is surfaced in the StatusLine so a frozen transcript is
+   * never again indistinguishable from a quiet one. There's no terminal
+   * `"offline"` state on purpose — recovery retries forever (capped backoff),
+   * because the server can always rebuild the window from the JSONL.
+   */
+  const [streamStatus, setStreamStatus] = useState<StreamStatus>("live");
   const [hasMoreAbove, setHasMoreAbove] = useState(false);
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [latestTodos, setLatestTodos] = useState<AgentTodo[]>([]);
@@ -1321,6 +1346,37 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
 
   const sessionIdRef = useRef<string | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
+  /** Pending `scheduleStreamRecovery` timer, or null when no retry is armed. */
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Consecutive failed reconnects; drives the backoff, reset on `onopen`. */
+  const reconnectAttemptsRef = useRef(0);
+  /**
+   * Epoch ms the stream went down, or null while it's healthy.
+   *
+   * Drives the merge-vs-rebuild call on reconnect (see
+   * `shouldRebuildTranscript`). Covers the `EventSource`-driven retry too —
+   * that one never passes through `bindToSession`, so a flag set in `onerror`
+   * and read in `onopen` is the only place to catch it. A tab hidden for
+   * twenty minutes across a dropped socket is the common way to end up with
+   * a silently holed transcript.
+   */
+  const streamDownSinceRef = useRef<number | null>(null);
+  /** Debounce timer for the "Reconnecting" badge. See `STREAM_BADGE_AFTER_MS`. */
+  const badgeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /**
+   * Stable handle on `bindToSession` for the recovery paths below.
+   *
+   * `bindToSession` is declared ~3000 lines down and its `useCallback`
+   * identity churns with `applyEvent`. Routing the recovery calls through a
+   * ref keeps the visibility-change listener and the retry timer off that
+   * dependency treadmill (re-registering a document-level listener on every
+   * `applyEvent` identity change is pure waste) and sidesteps the
+   * declaration-order cycle — `scheduleStreamRecovery` is referenced from
+   * inside `bindToSession`'s own `onerror`.
+   */
+  const rebindRef = useRef<
+    ((id: string, opts?: { rebuildOnOpen?: boolean }) => void) | null
+  >(null);
   const messagesRef = useRef<DisplayMessage[]>([]);
   const scratchRef = useRef<Map<string, DeltaScratch>>(new Map());
   const lastAssistantUuidRef = useRef<string>("");
@@ -1554,6 +1610,87 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     lastAssistantUuidRef.current = "";
   }, []);
 
+  /**
+   * Disarm any pending reconnect. Called whenever something else takes over
+   * the binding (switch / create / recovery itself) and on unmount — a timer
+   * that survives unmount would open an EventSource nobody closes, the exact
+   * socket leak the boot-effect cleanup guards against.
+   */
+  const cancelStreamRecovery = useCallback(() => {
+    if (reconnectTimerRef.current !== null) {
+      clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = null;
+    }
+  }, []);
+
+  /**
+   * Arm the "Reconnecting" badge, debounced — see `STREAM_BADGE_AFTER_MS` for
+   * why it isn't immediate. Idempotent: `onerror` fires repeatedly during one
+   * outage and the badge should measure the outage, not the latest retry.
+   */
+  const armReconnectingBadge = useCallback(() => {
+    if (badgeTimerRef.current !== null) return;
+    badgeTimerRef.current = setTimeout(() => {
+      badgeTimerRef.current = null;
+      setStreamStatus("reconnecting");
+    }, STREAM_BADGE_AFTER_MS);
+  }, []);
+
+  /** Disarm the debounce — the outage ended before it was worth mentioning. */
+  const clearReconnectingBadge = useCallback(() => {
+    if (badgeTimerRef.current !== null) {
+      clearTimeout(badgeTimerRef.current);
+      badgeTimerRef.current = null;
+    }
+  }, []);
+
+  /**
+   * Re-open a permanently-dead stream after a backoff.
+   *
+   * `EventSource` retries transient drops on its own; it gives up (readyState
+   * CLOSED) when the server answers a retry with a non-2xx — a dev-server
+   * rebuild, a 404 from `getOrResumeSession` during the idle-reap window, a
+   * proxy hiccup. Before this, that was terminal for the tab: `onerror` only
+   * cleared `pending`, and `bindToSession` is reachable only from boot and
+   * `switchSession` (which early-returns on the current id), so nothing could
+   * resurrect the feed short of a reload.
+   *
+   * Recovery rebuilds the transcript (`rebuildOnOpen`) rather than merging
+   * the replay into what's on screen. The replay window is only the last
+   * `tail=20` turns, so a tab that missed the middle of a long turn (the
+   * reported case missed ~250 records) would otherwise end up with the stale
+   * head, a fresh tail, and a silent hole between them — with the "load
+   * older" sentinel stranded above the head where it can't reach the gap. A
+   * clean rebuild is cheap: the stream route calls `resyncFromDisk()` on
+   * every subscribe, so the server hands back whatever the in-memory buffer
+   * missed, and `hasMoreAbove` re-arms pagination for anything above it.
+   *
+   * The wipe deliberately waits for `onopen` instead of running here. Reset
+   * first and a retry against a server that's still down leaves the user
+   * staring at an EMPTY chat until it comes back — strictly worse than the
+   * stale-but-complete-looking one they had, and indistinguishable from a
+   * session that lost its history. Stale + a "Reconnecting" badge is the
+   * honest intermediate state.
+   */
+  const scheduleStreamRecovery = useCallback(
+    (id: string) => {
+      // One retry in flight at a time. `onerror` can fire more than once for
+      // a single death (and the visibility handler may race it); without this
+      // they'd stack into a reconnect storm against a server that's likely
+      // still down.
+      if (reconnectTimerRef.current !== null) return;
+      const delay = streamRecoveryDelayMs(reconnectAttemptsRef.current++);
+      reconnectTimerRef.current = setTimeout(() => {
+        reconnectTimerRef.current = null;
+        // The user moved on (switch / create / unmount) — that transition
+        // owns the binding now and has opened its own socket.
+        if (sessionIdRef.current !== id) return;
+        rebindRef.current?.(id, { rebuildOnOpen: true });
+      }, delay);
+    },
+    [],
+  );
+
   const refreshSessions = useCallback(async () => {
     // Merge two sources so the dropdown shows historical sessions too — not
     // just whatever survives the in-memory reaper:
@@ -1697,6 +1834,22 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
   useEffect(() => {
     function onVis() {
       if (document.hidden) return;
+      // Revive a dead stream FIRST, and synchronously — this is the common
+      // shape of the bug: the socket dies while the tab is hidden (sleep,
+      // network change, a dev-server rebuild), the user comes back minutes
+      // or hours later, and the transcript is frozen at the moment of death
+      // with no indication. Waiting out the backoff here would mean staring
+      // at a stale chat for up to 30s after returning, so jump the queue:
+      // cancel the armed retry, reset the backoff (this is a fresh user-
+      // initiated attempt, not a continuation of the failed series) and
+      // rebuild now.
+      const liveId = sessionIdRef.current;
+      const es = eventSourceRef.current;
+      if (liveId && (!es || es.readyState === EventSource.CLOSED)) {
+        cancelStreamRecovery();
+        reconnectAttemptsRef.current = 0;
+        rebindRef.current?.(liveId, { rebuildOnOpen: true });
+      }
       void (async () => {
         const merged = await refreshSessions();
         // Reconcile the active session's `pending` flag against the
@@ -1729,7 +1882,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     }
     document.addEventListener("visibilitychange", onVis);
     return () => document.removeEventListener("visibilitychange", onVis);
-  }, [refreshSessions, setPendingTracked]);
+  }, [refreshSessions, setPendingTracked, cancelStreamRecovery]);
 
   // Safety-net poll for the same `turn_status: idle` drift the
   // visibility-change handler above addresses. That handler only fires
@@ -4284,7 +4437,10 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
   );
 
   const bindToSession = useCallback(
-    (id: string) => {
+    (id: string, opts?: { rebuildOnOpen?: boolean }) => {
+      // This binding supersedes any armed reconnect — including the one that
+      // may have scheduled THIS call.
+      cancelStreamRecovery();
       eventSourceRef.current?.close();
       sessionIdRef.current = id;
       setSessionId(id);
@@ -4371,6 +4527,29 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
       const es = new EventSource(`/api/sessions/${id}/stream?tail=20&tabId=${myTabId}`);
       eventSourceRef.current = es;
       es.onopen = () => {
+        if (sessionIdRef.current !== boundId) return;
+        // A completed handshake means the replay window is on its way, so the
+        // transcript is about to be authoritative again. Clearing the attempt
+        // counter here (rather than when we schedule) is what makes the
+        // backoff measure *consecutive* failures — an hourly blip shouldn't
+        // inherit yesterday's 30s delay.
+        reconnectAttemptsRef.current = 0;
+        const downSince = streamDownSinceRef.current;
+        streamDownSinceRef.current = null;
+        // Drop the stale transcript when the replay can't be stitched onto
+        // it — either we rebuilt this socket ourselves after the browser gave
+        // up, or the outage outran the 20-turn replay window. Safe to do from
+        // `onopen`: it fires before any `message`, and React applies queued
+        // updaters in call order, so the replay's `setMessages(prev => …)`
+        // runs against the cleared list rather than racing it.
+        if (
+          opts?.rebuildOnOpen ||
+          (downSince !== null && shouldRebuildTranscript(Date.now() - downSince))
+        ) {
+          resetState();
+        }
+        clearReconnectingBadge();
+        setStreamStatus("live");
         if (replayDebugEnabled()) {
 
           console.log(
@@ -4391,22 +4570,57 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
         if (sessionIdRef.current !== boundId) return;
         // EventSource fires `error` for both transient drops (it will retry
         // automatically) and permanent failures. Distinguish by readyState:
-        //   CONNECTING (0) → reconnect in flight, do nothing — when it lands
-        //                    the server replays buffered events and the
-        //                    `replay_done` handler re-asserts pending state.
+        //   CONNECTING (0) → the browser's own retry is in flight; leave the
+        //                    socket alone. We only mark the stream unhealthy,
+        //                    because a server that is simply down keeps the
+        //                    socket cycling here FOREVER without ever
+        //                    reaching CLOSED — silent, and identical on
+        //                    screen to an idle session. When the retry lands,
+        //                    `onopen` decides merge-vs-rebuild and
+        //                    `replay_done` re-asserts pending state.
         //   CLOSED (2)     → browser has given up (server returned non-2xx,
-        //                    or repeated retries failed). No more events
-        //                    will arrive on this socket, so a `pending`
-        //                    flag set to true earlier is now stuck — clear
-        //                    it so the StatusLine stops claiming "Working"
-        //                    against a dead stream.
+        //                    or repeated retries failed). No more events will
+        //                    arrive on this socket, so a `pending` flag set
+        //                    to true earlier is now stuck — clear it so the
+        //                    StatusLine stops claiming "Working" against a
+        //                    dead stream, and arm our own rebuild since the
+        //                    browser won't retry again. Without that rebuild
+        //                    this is terminal for the tab: the transcript
+        //                    freezes at the instant of death while every
+        //                    HTTP-polled surface around it keeps updating.
+        // Stamp the start of the outage once per outage — `onerror` can fire
+        // repeatedly while the browser retries, and we want the elapsed time
+        // since the stream ACTUALLY died, not since the latest failed retry.
+        if (streamDownSinceRef.current === null) streamDownSinceRef.current = Date.now();
+        // Debounced — a blip the browser fixes within one retry cycle isn't
+        // worth a warning. Armed for CONNECTING too: a server that's simply
+        // down leaves the socket cycling there forever without ever reaching
+        // CLOSED, and that state is otherwise indistinguishable on screen
+        // from an idle session with nothing to say.
+        armReconnectingBadge();
+        if (es.readyState === EventSource.CONNECTING) return;
         if (es.readyState === EventSource.CLOSED) {
           setPendingTracked(false);
+          scheduleStreamRecovery(boundId);
         }
       };
     },
-    [applyEvent, setPendingTracked, myTabId],
+    [
+      applyEvent,
+      setPendingTracked,
+      myTabId,
+      cancelStreamRecovery,
+      scheduleStreamRecovery,
+      resetState,
+      armReconnectingBadge,
+      clearReconnectingBadge,
+    ],
   );
+
+  // Mirror `bindToSession` for the recovery call sites — see `rebindRef`.
+  useEffect(() => {
+    rebindRef.current = bindToSession;
+  }, [bindToSession]);
 
   const switchSession = useCallback(
     async (id: string): Promise<void> => {
@@ -4712,6 +4926,18 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
       // eslint-disable-next-line react-hooks/exhaustive-deps
       switchGenRef.current++;
       eventSourceRef.current?.close();
+      // Same leak, one step removed: an armed reconnect that fires after
+      // unmount would open a socket on a dead component with nothing left to
+      // close it. Cleared inline (rather than via `cancelStreamRecovery`) to
+      // keep this cleanup free of the dependency it would otherwise need.
+      if (reconnectTimerRef.current !== null) {
+        clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+      }
+      if (badgeTimerRef.current !== null) {
+        clearTimeout(badgeTimerRef.current);
+        badgeTimerRef.current = null;
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -5782,6 +6008,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     suggestedUuids,
     goalUuids,
     replaying,
+    streamStatus,
     hasMoreAbove,
     loadingOlder,
     latestTodos,

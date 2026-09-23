@@ -2054,6 +2054,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
           sessionId={session.sessionId}
           ready={session.ready}
           pending={session.pending}
+          streamStatus={session.streamStatus}
           backgroundTasks={session.backgroundTasks}
           turnStartedAt={session.turnStartedAt}
           lastTurnCompletedAt={session.lastTurnCompletedAt}
