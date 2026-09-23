@@ -312,6 +312,29 @@ export type ClaudeSettings = {
   modelPricing?: ModelPricingSettings;
   // CC 2.1.246 — Auto mode classifier configuration. See `AutoModeConfig`.
   autoMode?: AutoModeConfig;
+  // CC 2.1.280 — VS Code's Slash commands dialog added per-skill source,
+  // token estimate and an on/off toggle (typed `/skills`). Claudius already
+  // has a `/skills` overlay (`components/overlays/SkillsOverlay.tsx`); this
+  // is the settings-side half of the toggle. Mirrors the SDK's
+  // `Settings.skillOverrides` key exactly (`sdk.d.ts` ~L6650): keyed by
+  // skill name, "on" (or the key absent) shows it normally, "name-only"
+  // lists it without its description, "user-invocable-only" hides it from
+  // the model but keeps the explicit `/name` invocation, "off" hides it
+  // entirely. Same treatment as `feedbackDrafts` above — this is a
+  // filesystem-settings key the engine reads natively (via the SDK's
+  // default `settingSources`, which include project scope), so writing it
+  // through `writeSettings("project", ...)` is all Claudius needs; there's
+  // no per-session `Options` field to forward separately. Claudius's own UI
+  // only exercises the "on"/"off" pair (the simplest reading of upstream's
+  // "on/off state, with a click to change the state"); "name-only" and
+  // "user-invocable-only" are accepted on read (so a hand-edited value
+  // round-trips instead of being clobbered) but not offered as a toggle
+  // target — see the run-notes Risks section for the rejected 4-state UI.
+  // Like every filesystem-settings key, the SDK reads this at session
+  // start — toggling mid-session takes effect on the *next* session start,
+  // not the current turn. The overlay surfaces that in its own copy rather
+  // than here, since it's a UI-facing caveat, not a settings-shape one.
+  skillOverrides?: Record<string, "on" | "name-only" | "user-invocable-only" | "off">;
   // Claude Code 2.1.247 — the model-drafted `SendFeedback` tool. When
   // something goes wrong in a session, Claude can draft a feedback report
   // for the user to review and send from `/feedback`; this setting controls
@@ -426,6 +449,20 @@ export function isCrossSessionInbound(v: unknown): v is CrossSessionInbound {
   return (
     typeof v === "string" && (CROSS_SESSION_INBOUND_VALUES as readonly string[]).includes(v)
   );
+}
+
+/** The SDK's four `skillOverrides[name]` literals (CC 2.1.280 / `sdk.d.ts` ~L6650). */
+export const SKILL_OVERRIDE_VALUES = [
+  "on",
+  "name-only",
+  "user-invocable-only",
+  "off",
+] as const;
+export type SkillOverrideValue = (typeof SKILL_OVERRIDE_VALUES)[number];
+
+/** Type guard: is `v` one of the SDK's four `skillOverrides[name]` literals? */
+export function isSkillOverrideValue(v: unknown): v is SkillOverrideValue {
+  return typeof v === "string" && (SKILL_OVERRIDE_VALUES as readonly string[]).includes(v);
 }
 
 /**
@@ -550,5 +587,34 @@ export async function updateAutoMode(
     },
   };
   await writeSettings("user", projectCwd, next);
+  return next;
+}
+
+/**
+ * Patch a single skill's `skillOverrides` entry (CC 2.1.280 parity). Scoped
+ * to `"project"` — same rationale as `enabledPlugins`: this is a
+ * team-visible "which skills are on for this workspace" decision, not a
+ * personal preference, so it lives in `.claude/settings.json` (checked in),
+ * not `~/.claude/settings.json` or the untracked `.local.json`. Setting a
+ * name to `"on"` deletes its entry instead of storing a redundant `"on"`
+ * value — `skillOverrides` absent-for-a-name already means on, per the
+ * SDK's own contract, so this keeps the file minimal (only actual
+ * overrides recorded) the same way a "restore default" action would.
+ */
+export async function updateSkillOverride(
+  projectCwd: string,
+  name: string,
+  value: SkillOverrideValue,
+): Promise<ClaudeSettings> {
+  const current = await readSettings("project", projectCwd);
+  const overrides = { ...(current.skillOverrides ?? {}) };
+  if (value === "on") delete overrides[name];
+  else overrides[name] = value;
+  const next: ClaudeSettings = {
+    ...current,
+    ...(Object.keys(overrides).length > 0 ? { skillOverrides: overrides } : { skillOverrides: undefined }),
+  };
+  if (next.skillOverrides === undefined) delete next.skillOverrides;
+  await writeSettings("project", projectCwd, next);
   return next;
 }

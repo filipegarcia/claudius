@@ -2548,6 +2548,8 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
           agents={session.agents}
           skills={session.skills}
           slashCommands={session.slashCommands}
+          sessionId={session.sessionId}
+          cwd={session.cwd}
           onClose={() => setOverlay(null)}
         />
       )}

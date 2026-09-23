@@ -257,6 +257,13 @@ export async function generateRecap(
     // unencumbered. The recap instruction is in the user prompt.
     permissionMode: "default",
     ...(input.signal ? { abortController: signalToController(input.signal) } : {}),
+    // SDK 0.3.280 `verbatimPrompts`: `prompt` embeds `input.transcriptTail`
+    // verbatim — prior conversation text the model or user wrote, which can
+    // contain `@path`/`/command`-looking substrings. `canUseTool` already
+    // denies every tool and `maxTurns: 1` closes the turn after one
+    // response, so losing the turn-start attachment pass (CLAUDE.md,
+    // skills, tool listings) this also skips costs nothing here.
+    verbatimPrompts: true,
   };
 
   try {
