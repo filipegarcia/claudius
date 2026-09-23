@@ -230,17 +230,45 @@ test.describe("Notifications: multi-tab + workspace switching", () => {
     // session (the bound id auto-reads). These IDs aren't in sessionManager,
     // so the dot will paint "background" (gray) — that's fine; this test
     // doesn't assert dot state, it asserts the unread badge.
-    await request.put(`${baseURL}/api/sessions/open-tabs`, {
-      data: { tabs: [SYNTHETIC_TAB_A, SYNTHETIC_TAB_B] },
-    });
-    await page.reload();
+    //
+    // Park the page on about:blank before seeding. A mounted <ChatSurface />
+    // re-PUTs its own tab list from the persist effect every time
+    // `session.sessions` changes — and the `ensureKindsEnabled` /
+    // `clearAllWorkspacesUnread` calls above trigger exactly such an
+    // SSE-driven refresh. Seeding under a live page is a race we lose on a
+    // loaded runner: the page's PUT lands ~60-170ms AFTER ours and clobbers
+    // [A,B] back to [boundSession], so the reload hydrates a one-tab strip
+    // and the `length > 2` poll below can never pass. Unmounting first
+    // removes the competing writer.
+    await page.goto("about:blank");
+    // Re-assert the seed until it sticks. Unmounting isn't enough on its
+    // own: a PUT the old page had already dispatched still completes
+    // server-side even though the navigation aborts it client-side (observed
+    // as a status -1 request landing 170ms after ours). Writing in a poll
+    // out-waits that drain instead of assuming a fixed settle time.
+    const openTabsUrl = `${baseURL}/api/sessions/open-tabs`;
+    await expect
+      .poll(
+        async () => {
+          await request.put(openTabsUrl, {
+            data: { tabs: [SYNTHETIC_TAB_A, SYNTHETIC_TAB_B] },
+          });
+          const body = (await (await request.get(openTabsUrl)).json()) as { tabs?: string[] };
+          const tabs = body.tabs ?? [];
+          return tabs.includes(SYNTHETIC_TAB_A) && tabs.includes(SYNTHETIC_TAB_B);
+        },
+        { timeout: 10_000 },
+      )
+      .toBe(true);
+    await page.goto("/");
     await waitForBoundSession(page);
     // Wait for the client's hydration→render→persist cycle to complete.
-    // After page.reload() the useEffect hydration fetch can be slow when
-    // the dev server is under load from the rest of the suite.  The persist
-    // effect only fires after the hydration fetch resolves AND the strip
-    // re-renders, so the server tabs advancing from [A,B] to [A,B,bound]
-    // (length > 2) is the earliest safe signal that the DOM has updated.
+    // After the navigation above the useEffect hydration fetch can be slow
+    // when the dev server is under load from the rest of the suite.  The
+    // persist effect only fires after the hydration fetch resolves AND the
+    // strip re-renders, so the server tabs advancing from [A,B] to
+    // [A,B,bound] (length > 2) is the earliest safe signal that the DOM has
+    // updated.
     await expect
       .poll(
         async () => {
@@ -252,7 +280,7 @@ test.describe("Notifications: multi-tab + workspace switching", () => {
         { timeout: 15_000 },
       )
       .toBe(true);
-    // The reload re-adds the bound session id to openTabs via the auto-add
+    // Re-mounting re-adds the bound session id to openTabs via the auto-add
     // effect; we expect three tabs total. The synthetic ones must be present.
     await expect(page.locator(`[data-tab-id="${SYNTHETIC_TAB_A}"]`)).toBeAttached({
       timeout: 5_000,
