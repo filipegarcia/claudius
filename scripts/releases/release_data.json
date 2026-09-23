@@ -1,13 +1,13 @@
 [
   {
     "label": "\ud83d\udc0d Python SDK",
-    "total": 228,
-    "stable_count": 228,
+    "total": 229,
+    "stable_count": 229,
     "pre_count": 0,
     "first_date": "2023-02-09T06:20:47+00:00",
-    "latest_date": "2026-09-18T16:12:53+00:00",
-    "span_days": 1317,
-    "per_week": 1.2118451025056949,
+    "latest_date": "2026-09-22T16:25:23+00:00",
+    "span_days": 1321,
+    "per_week": 1.2134746404239212,
     "gaps": [
       {
         "hours": 0.013055555555555556,
@@ -1597,6 +1597,13 @@
         "to_tag": "v1.7.0",
         "from_date": "2026-09-15T15:14:42+00:00",
         "to_date": "2026-09-18T16:12:53+00:00"
+      },
+      {
+        "hours": 96.20833333333333,
+        "from_tag": "v1.7.0",
+        "to_tag": "v1.8.0",
+        "from_date": "2026-09-18T16:12:53+00:00",
+        "to_date": "2026-09-22T16:25:23+00:00"
       }
     ],
     "fastest_gap": {
@@ -1613,13 +1620,13 @@
       "from_date": "2025-02-28T19:35:15+00:00",
       "to_date": "2025-04-22T23:10:52+00:00"
     },
-    "avg_gap_h": 139.28576358296624,
-    "median_gap_h": 80.80305555555556,
-    "stdev_gap_h": 185.08030144194962,
+    "avg_gap_h": 139.09682748538012,
+    "median_gap_h": 84.8451388888889,
+    "stdev_gap_h": 184.69422032667572,
     "cl_present": true,
     "cl_max": 7863,
     "cl_min": 38,
-    "cl_avg": 1119.8185840707965,
+    "cl_avg": 1128.691629955947,
     "cl_max_rel": {
       "tag": "v0.50.0",
       "name": "v0.50.0",
@@ -1645,7 +1652,7 @@
     "dow": {
       "Thursday": 47,
       "Monday": 36,
-      "Tuesday": 58,
+      "Tuesday": 59,
       "Wednesday": 47,
       "Saturday": 9,
       "Friday": 30,
@@ -1693,17 +1700,17 @@
       "2026-06": 13,
       "2026-07": 9,
       "2026-08": 8,
-      "2026-09": 5
+      "2026-09": 6
     },
     "years": {
       "2023": 41,
       "2024": 67,
       "2025": 48,
-      "2026": 72
+      "2026": 73
     },
     "fav_dow": [
       "Tuesday",
-      58
+      59
     ],
     "busiest_month": [
       "2024-04",
@@ -1713,22 +1720,22 @@
     "streak_start": "2024-04-04T12:58:35+00:00",
     "vtypes": {
       "patch": 97,
-      "minor": 130,
+      "minor": 131,
       "major": 1
     },
     "vel_trend": "accelerating",
     "vel_first": 1.1114206128133706,
-    "vel_second": 1.3854166666666665
+    "vel_second": 1.3879310344827585
   },
   {
     "label": "\ud83d\udcd8 TypeScript SDK",
-    "total": 385,
-    "stable_count": 385,
+    "total": 391,
+    "stable_count": 391,
     "pre_count": 0,
     "first_date": "2023-01-31T16:17:07+00:00",
-    "latest_date": "2026-09-18T16:25:20+00:00",
-    "span_days": 1326,
-    "per_week": 2.032428355957768,
+    "latest_date": "2026-09-22T16:28:25+00:00",
+    "span_days": 1330,
+    "per_week": 2.057894736842105,
     "gaps": [
       {
         "hours": 0.0625,
@@ -4417,6 +4424,48 @@
         "to_tag": "google-cloud-sdk-v0.0.13",
         "from_date": "2026-09-18T16:25:14+00:00",
         "to_date": "2026-09-18T16:25:20+00:00"
+      },
+      {
+        "hours": 96.04305555555555,
+        "from_tag": "google-cloud-sdk-v0.0.13",
+        "to_tag": "sdk-v0.128.0",
+        "from_date": "2026-09-18T16:25:20+00:00",
+        "to_date": "2026-09-22T16:27:55+00:00"
+      },
+      {
+        "hours": 0.0016666666666666668,
+        "from_tag": "sdk-v0.128.0",
+        "to_tag": "vertex-sdk-v0.19.11",
+        "from_date": "2026-09-22T16:27:55+00:00",
+        "to_date": "2026-09-22T16:28:01+00:00"
+      },
+      {
+        "hours": 0.0016666666666666668,
+        "from_tag": "vertex-sdk-v0.19.11",
+        "to_tag": "bedrock-sdk-v0.33.8",
+        "from_date": "2026-09-22T16:28:01+00:00",
+        "to_date": "2026-09-22T16:28:07+00:00"
+      },
+      {
+        "hours": 0.0016666666666666668,
+        "from_tag": "bedrock-sdk-v0.33.8",
+        "to_tag": "foundry-sdk-v0.4.9",
+        "from_date": "2026-09-22T16:28:07+00:00",
+        "to_date": "2026-09-22T16:28:13+00:00"
+      },
+      {
+        "hours": 0.0016666666666666668,
+        "from_tag": "foundry-sdk-v0.4.9",
+        "to_tag": "aws-sdk-v0.7.4",
+        "from_date": "2026-09-22T16:28:13+00:00",
+        "to_date": "2026-09-22T16:28:19+00:00"
+      },
+      {
+        "hours": 0.0016666666666666668,
+        "from_tag": "aws-sdk-v0.7.4",
+        "to_tag": "google-cloud-sdk-v0.0.14",
+        "from_date": "2026-09-22T16:28:19+00:00",
+        "to_date": "2026-09-22T16:28:25+00:00"
       }
     ],
     "fastest_gap": {
@@ -4433,13 +4482,13 @@
       "from_date": "2023-04-04T12:25:14+00:00",
       "to_date": "2023-06-05T20:25:36+00:00"
     },
-    "avg_gap_h": 82.87535662615741,
-    "median_gap_h": 4.023888888888889,
-    "stdev_gap_h": 179.8626283337925,
+    "avg_gap_h": 81.84663675213675,
+    "median_gap_h": 3.6725000000000003,
+    "stdev_gap_h": 178.7155495037579,
     "cl_present": true,
     "cl_max": 38867,
     "cl_min": 26,
-    "cl_avg": 907.265625,
+    "cl_avg": 902.0615384615385,
     "cl_max_rel": {
       "tag": "sdk-v0.12.4",
       "name": "sdk: v0.12.4",
@@ -4463,7 +4512,7 @@
       "ver_type": "patch"
     },
     "dow": {
-      "Tuesday": 86,
+      "Tuesday": 92,
       "Wednesday": 77,
       "Friday": 74,
       "Monday": 43,
@@ -4513,13 +4562,13 @@
       "2026-06": 28,
       "2026-07": 13,
       "2026-08": 33,
-      "2026-09": 23
+      "2026-09": 29
     },
     "years": {
       "2023": 40,
       "2024": 107,
       "2025": 82,
-      "2026": 156
+      "2026": 162
     },
     "fav_dow": [
       "Thursday",
@@ -4532,22 +4581,22 @@
     "streak": 21,
     "streak_start": "2026-08-13T19:53:37+00:00",
     "vtypes": {
-      "patch": 225,
-      "minor": 160
+      "patch": 230,
+      "minor": 161
     },
     "vel_trend": "accelerating",
-    "vel_first": 1.525539160045403,
-    "vel_second": 3.0427927927927927
+    "vel_first": 1.5441176470588234,
+    "vel_second": 3.0831460674157305
   },
   {
     "label": "\u2615 Java SDK",
-    "total": 105,
-    "stable_count": 94,
+    "total": 106,
+    "stable_count": 95,
     "pre_count": 11,
     "first_date": "2024-12-09T19:45:55+00:00",
-    "latest_date": "2026-09-18T15:54:50+00:00",
-    "span_days": 647,
-    "per_week": 1.1360123647604328,
+    "latest_date": "2026-09-22T16:32:50+00:00",
+    "span_days": 651,
+    "per_week": 1.1397849462365592,
     "gaps": [
       {
         "hours": 21.24416666666667,
@@ -5276,6 +5325,13 @@
         "to_tag": "v2.64.0",
         "from_date": "2026-09-15T15:30:34+00:00",
         "to_date": "2026-09-18T15:54:50+00:00"
+      },
+      {
+        "hours": 96.63333333333334,
+        "from_tag": "v2.64.0",
+        "to_tag": "v2.65.0",
+        "from_date": "2026-09-18T15:54:50+00:00",
+        "to_date": "2026-09-22T16:32:50+00:00"
       }
     ],
     "fastest_gap": {
@@ -5292,13 +5348,13 @@
       "from_date": "2025-11-19T23:24:26+00:00",
       "to_date": "2026-01-29T18:32:31+00:00"
     },
-    "avg_gap_h": 149.50142895299146,
-    "median_gap_h": 85.26319444444445,
-    "stdev_gap_h": 212.33137713767766,
+    "avg_gap_h": 148.9979232804233,
+    "median_gap_h": 94.29527777777778,
+    "stdev_gap_h": 211.37106519601568,
     "cl_present": true,
     "cl_max": 7045,
     "cl_min": 273,
-    "cl_avg": 1530.247619047619,
+    "cl_avg": 1541.5754716981132,
     "cl_max_rel": {
       "tag": "v2.12.0",
       "name": "v2.12.0",
@@ -5323,7 +5379,7 @@
     },
     "dow": {
       "Monday": 10,
-      "Tuesday": 23,
+      "Tuesday": 24,
       "Wednesday": 30,
       "Saturday": 3,
       "Friday": 15,
@@ -5350,12 +5406,12 @@
       "2026-06": 15,
       "2026-07": 7,
       "2026-08": 7,
-      "2026-09": 5
+      "2026-09": 6
     },
     "years": {
       "2024": 6,
       "2025": 39,
-      "2026": 60
+      "2026": 61
     },
     "fav_dow": [
       "Wednesday",
@@ -5369,23 +5425,23 @@
     "streak_start": "2026-06-05T16:02:40+00:00",
     "vtypes": {
       "pre": 11,
-      "minor": 77,
+      "minor": 78,
       "patch": 15,
       "major": 2
     },
     "vel_trend": "accelerating",
-    "vel_first": 0.789587852494577,
-    "vel_second": 2.027322404371585
+    "vel_first": 0.8012958963282938,
+    "vel_second": 2.132183908045977
   },
   {
     "label": "\ud83d\udc39 Go SDK",
-    "total": 112,
-    "stable_count": 93,
+    "total": 113,
+    "stable_count": 94,
     "pre_count": 19,
     "first_date": "2024-08-14T19:02:27+00:00",
-    "latest_date": "2026-09-18T16:46:57+00:00",
-    "span_days": 764,
-    "per_week": 1.0261780104712042,
+    "latest_date": "2026-09-22T16:26:45+00:00",
+    "span_days": 768,
+    "per_week": 1.0299479166666667,
     "gaps": [
       {
         "hours": 1220.6505555555555,
@@ -6163,6 +6219,13 @@
         "to_tag": "v1.74.0",
         "from_date": "2026-09-15T15:14:31+00:00",
         "to_date": "2026-09-18T16:46:57+00:00"
+      },
+      {
+        "hours": 95.66333333333333,
+        "from_tag": "v1.74.0",
+        "to_tag": "v1.75.0",
+        "from_date": "2026-09-18T16:46:57+00:00",
+        "to_date": "2026-09-22T16:26:45+00:00"
       }
     ],
     "fastest_gap": {
@@ -6179,13 +6242,13 @@
       "from_date": "2025-11-24T20:58:28+00:00",
       "to_date": "2026-01-29T17:25:56+00:00"
     },
-    "avg_gap_h": 165.38506006006006,
-    "median_gap_h": 72.4811111111111,
-    "stdev_gap_h": 262.631182742726,
+    "avg_gap_h": 164.76254464285714,
+    "median_gap_h": 72.98972222222221,
+    "stdev_gap_h": 261.5284752329352,
     "cl_present": true,
     "cl_max": 9654,
     "cl_min": 128,
-    "cl_avg": 1031.1785714285713,
+    "cl_avg": 1042.1769911504425,
     "cl_max_rel": {
       "tag": "v0.2.0-beta.4",
       "name": "v0.2.0-beta.4",
@@ -6211,7 +6274,7 @@
     "dow": {
       "Wednesday": 23,
       "Friday": 15,
-      "Tuesday": 31,
+      "Tuesday": 32,
       "Thursday": 27,
       "Monday": 12,
       "Sunday": 1,
@@ -6240,16 +6303,16 @@
       "2026-06": 12,
       "2026-07": 8,
       "2026-08": 8,
-      "2026-09": 7
+      "2026-09": 8
     },
     "years": {
       "2024": 10,
       "2025": 35,
-      "2026": 67
+      "2026": 68
     },
     "fav_dow": [
       "Tuesday",
-      31
+      32
     ],
     "busiest_month": [
       "2026-06",
@@ -6260,22 +6323,22 @@
     "vtypes": {
       "pre": 19,
       "major": 1,
-      "minor": 74,
+      "minor": 75,
       "patch": 18
     },
     "vel_trend": "accelerating",
     "vel_first": 0.6758620689655173,
-    "vel_second": 2.3058823529411767
+    "vel_second": 2.293103448275862
   },
   {
     "label": "\ud83d\udc8e Ruby SDK",
-    "total": 96,
-    "stable_count": 87,
+    "total": 97,
+    "stable_count": 88,
     "pre_count": 9,
     "first_date": "2025-04-08T21:53:03+00:00",
-    "latest_date": "2026-09-18T16:13:35+00:00",
-    "span_days": 527,
-    "per_week": 1.2751423149905123,
+    "latest_date": "2026-09-22T16:32:36+00:00",
+    "span_days": 531,
+    "per_week": 1.2787193973634652,
     "gaps": [
       {
         "hours": 21.309722222222224,
@@ -6941,6 +7004,13 @@
         "to_tag": "v1.72.0",
         "from_date": "2026-09-15T15:15:56+00:00",
         "to_date": "2026-09-18T16:13:35+00:00"
+      },
+      {
+        "hours": 96.31694444444445,
+        "from_tag": "v1.72.0",
+        "to_tag": "v1.73.0",
+        "from_date": "2026-09-18T16:13:35+00:00",
+        "to_date": "2026-09-22T16:32:36+00:00"
       }
     ],
     "fastest_gap": {
@@ -6957,13 +7027,13 @@
       "from_date": "2025-05-28T13:21:00+00:00",
       "to_date": "2025-07-18T13:34:28+00:00"
     },
-    "avg_gap_h": 133.32991812865498,
-    "median_gap_h": 67.66222222222223,
-    "stdev_gap_h": 189.1606515660942,
+    "avg_gap_h": 132.94436631944444,
+    "median_gap_h": 68.08430555555556,
+    "stdev_gap_h": 188.20035201285538,
     "cl_present": true,
     "cl_max": 68129,
     "cl_min": 135,
-    "cl_avg": 1738.78125,
+    "cl_avg": 1750.6288659793815,
     "cl_max_rel": {
       "tag": "v0.1.0-alpha.1",
       "name": "v0.1.0-alpha.1",
@@ -6987,7 +7057,7 @@
       "ver_type": "patch"
     },
     "dow": {
-      "Tuesday": 22,
+      "Tuesday": 23,
       "Wednesday": 28,
       "Friday": 13,
       "Thursday": 21,
@@ -7011,11 +7081,11 @@
       "2026-06": 11,
       "2026-07": 8,
       "2026-08": 8,
-      "2026-09": 5
+      "2026-09": 6
     },
     "years": {
       "2025": 33,
-      "2026": 63
+      "2026": 64
     },
     "fav_dow": [
       "Wednesday",
@@ -7030,22 +7100,22 @@
     "vtypes": {
       "pre": 9,
       "major": 1,
-      "minor": 72,
+      "minor": 73,
       "patch": 14
     },
     "vel_trend": "accelerating",
     "vel_first": 0.9256198347107438,
-    "vel_second": 2.061349693251534
+    "vel_second": 2.053892215568862
   },
   {
     "label": "\ud83d\udd37 C# SDK",
-    "total": 119,
-    "stable_count": 119,
+    "total": 121,
+    "stable_count": 121,
     "pre_count": 0,
     "first_date": "2025-10-30T03:50:08+00:00",
-    "latest_date": "2026-09-18T15:54:25+00:00",
-    "span_days": 323,
-    "per_week": 2.5789473684210527,
+    "latest_date": "2026-09-22T16:32:21+00:00",
+    "span_days": 327,
+    "per_week": 2.5902140672782874,
     "gaps": [
       {
         "hours": 216.92944444444444,
@@ -7872,6 +7942,20 @@
         "to_tag": "Bedrock-v0.13.2",
         "from_date": "2026-09-18T15:54:19+00:00",
         "to_date": "2026-09-18T15:54:25+00:00"
+      },
+      {
+        "hours": 96.63083333333333,
+        "from_tag": "Bedrock-v0.13.2",
+        "to_tag": "Anthropic-v12.50.0",
+        "from_date": "2026-09-18T15:54:25+00:00",
+        "to_date": "2026-09-22T16:32:16+00:00"
+      },
+      {
+        "hours": 0.001388888888888889,
+        "from_tag": "Anthropic-v12.50.0",
+        "to_tag": "Bedrock-v0.13.3",
+        "from_date": "2026-09-22T16:32:16+00:00",
+        "to_date": "2026-09-22T16:32:21+00:00"
       }
     ],
     "fastest_gap": {
@@ -7888,13 +7972,13 @@
       "from_date": "2026-02-19T20:25:30+00:00",
       "to_date": "2026-03-16T16:08:31+00:00"
     },
-    "avg_gap_h": 65.79721516007533,
+    "avg_gap_h": 65.50586342592592,
     "median_gap_h": 18.805555555555557,
-    "stdev_gap_h": 109.09394731554285,
+    "stdev_gap_h": 108.37779662479154,
     "cl_present": true,
     "cl_max": 13492,
     "cl_min": 137,
-    "cl_avg": 1020.2605042016806,
+    "cl_avg": 1025.702479338843,
     "cl_max_rel": {
       "tag": "v0.1.0",
       "name": "v0.1.0",
@@ -7920,7 +8004,7 @@
     "dow": {
       "Thursday": 30,
       "Saturday": 3,
-      "Tuesday": 35,
+      "Tuesday": 37,
       "Wednesday": 29,
       "Monday": 11,
       "Friday": 11
@@ -7937,15 +8021,15 @@
       "2026-06": 21,
       "2026-07": 9,
       "2026-08": 14,
-      "2026-09": 6
+      "2026-09": 8
     },
     "years": {
       "2025": 14,
-      "2026": 105
+      "2026": 107
     },
     "fav_dow": [
       "Tuesday",
-      35
+      37
     ],
     "busiest_month": [
       "2026-06",
@@ -7954,23 +8038,23 @@
     "streak": 11,
     "streak_start": "2026-05-05T01:10:38+00:00",
     "vtypes": {
-      "minor": 83,
-      "patch": 34,
+      "minor": 84,
+      "patch": 35,
       "major": 2
     },
     "vel_trend": "accelerating",
-    "vel_first": 2.2085561497326203,
-    "vel_second": 3.111111111111111
+    "vel_first": 2.234042553191489,
+    "vel_second": 3.0719424460431655
   },
   {
     "label": "\ud83d\udc18 PHP SDK",
-    "total": 55,
-    "stable_count": 55,
+    "total": 56,
+    "stable_count": 56,
     "pre_count": 0,
     "first_date": "2025-08-27T01:47:27+00:00",
-    "latest_date": "2026-09-18T15:55:26+00:00",
-    "span_days": 387,
-    "per_week": 0.9948320413436693,
+    "latest_date": "2026-09-22T16:27:28+00:00",
+    "span_days": 391,
+    "per_week": 1.0025575447570334,
     "gaps": [
       {
         "hours": 1.158611111111111,
@@ -8349,6 +8433,13 @@
         "to_tag": "v0.50.0",
         "from_date": "2026-09-15T15:15:47+00:00",
         "to_date": "2026-09-18T15:55:26+00:00"
+      },
+      {
+        "hours": 96.5338888888889,
+        "from_tag": "v0.50.0",
+        "to_tag": "v0.51.0",
+        "from_date": "2026-09-18T15:55:26+00:00",
+        "to_date": "2026-09-22T16:27:28+00:00"
       }
     ],
     "fastest_gap": {
@@ -8365,13 +8456,13 @@
       "from_date": "2025-09-02T18:56:20+00:00",
       "to_date": "2025-11-24T23:38:45+00:00"
     },
-    "avg_gap_h": 172.2617232510288,
-    "median_gap_h": 85.17305555555555,
-    "stdev_gap_h": 345.34006147171254,
+    "avg_gap_h": 170.88485353535353,
+    "median_gap_h": 93.79138888888889,
+    "stdev_gap_h": 342.2798728832229,
     "cl_present": true,
     "cl_max": 7873,
     "cl_min": 291,
-    "cl_avg": 1316.6181818181817,
+    "cl_avg": 1350.5714285714287,
     "cl_max_rel": {
       "tag": "v0.5.0",
       "name": "v0.5.0",
@@ -8396,7 +8487,7 @@
     },
     "dow": {
       "Wednesday": 12,
-      "Tuesday": 14,
+      "Tuesday": 15,
       "Monday": 8,
       "Friday": 6,
       "Thursday": 14,
@@ -8414,15 +8505,15 @@
       "2026-06": 11,
       "2026-07": 8,
       "2026-08": 5,
-      "2026-09": 5
+      "2026-09": 6
     },
     "years": {
       "2025": 4,
-      "2026": 51
+      "2026": 52
     },
     "fav_dow": [
       "Tuesday",
-      14
+      15
     ],
     "busiest_month": [
       "2026-06",
@@ -8431,22 +8522,22 @@
     "streak": 6,
     "streak_start": "2026-06-29T14:58:51+00:00",
     "vtypes": {
-      "minor": 50,
+      "minor": 51,
       "patch": 5
     },
     "vel_trend": "accelerating",
-    "vel_first": 0.6702127659574468,
-    "vel_second": 1.9029126213592233
+    "vel_first": 0.6925795053003533,
+    "vel_second": 1.8846153846153846
   },
   {
     "label": "\u26a1 Claude Code",
-    "total": 525,
-    "stable_count": 525,
+    "total": 526,
+    "stable_count": 526,
     "pre_count": 0,
     "first_date": "2025-02-24T18:03:41.458000+00:00",
-    "latest_date": "2026-09-19T03:10:40+00:00",
-    "span_days": 571,
-    "per_week": 6.436077057793345,
+    "latest_date": "2026-09-22T16:38:14+00:00",
+    "span_days": 574,
+    "per_week": 6.414634146341464,
     "gaps": [
       {
         "hours": 0.4709886111111111,
@@ -12115,6 +12206,13 @@
         "to_tag": "v2.1.278",
         "from_date": "2026-09-18T18:06:32+00:00",
         "to_date": "2026-09-19T03:10:40+00:00"
+      },
+      {
+        "hours": 85.45944444444444,
+        "from_tag": "v2.1.278",
+        "to_tag": "v2.1.280",
+        "from_date": "2026-09-19T03:10:40+00:00",
+        "to_date": "2026-09-22T16:38:14+00:00"
       }
     ],
     "fastest_gap": {
@@ -12131,22 +12229,22 @@
       "from_date": "2025-12-20T17:19:09.800000+00:00",
       "to_date": "2026-01-06T00:26:25.533000+00:00"
     },
-    "avg_gap_h": 26.170069201653945,
-    "median_gap_h": 22.003675416666667,
-    "stdev_gap_h": 28.983124165244185,
+    "avg_gap_h": 26.283001344973545,
+    "median_gap_h": 22.007419444444448,
+    "stdev_gap_h": 29.070845673295388,
     "cl_present": true,
-    "cl_max": 16355,
+    "cl_max": 17256,
     "cl_min": 1,
-    "cl_avg": 3000.464285714286,
+    "cl_avg": 3063.822222222222,
     "cl_max_rel": {
-      "tag": "v2.1.274",
-      "name": "v2.1.274",
-      "date": "2026-09-17T00:12:02+00:00",
-      "cl_chars": 16355,
-      "cl_lines": 111,
-      "cl_body": "## What's changed\n\n- Added a visible warning when memory usage is critical, with steps to free memory or restart safely\n- Added `CLAUDE_CODE_MCP_STARTUP_WAIT_MS` to bound how long the first non-interactive turn waits for connecting MCP servers (`0` = don't wait)\n- Added `effort` attribute to the `claude_code.llm_request` OpenTelemetry trace span, matching the `api_request` event\n- Added `claude_code.managed_settings_resolved` OTel event: managed-settings sources and policy helper state; redacted settings and digests with `OTEL_LOG_MANAGED_SETTINGS=1`\n- Added `store.connect_timeout_seconds` to the Claude apps gateway config to lengthen the Postgres connect timeout (default 5 seconds), and improved the boot error when the database is unreachable to point to `store.postgres_url` and the confi",
+      "tag": "v2.1.280",
+      "name": "v2.1.280",
+      "date": "2026-09-22T16:38:14+00:00",
+      "cl_chars": 17256,
+      "cl_lines": 117,
+      "cl_body": "## What's changed\n\n- Added Claude Opus 5.5 (`claude-opus-5-5`), now the default Opus model \u2014 1M context, $4/$20 per Mtok with $0.20/Mtok cache reads\n- Added mouse support to more lists in fullscreen mode: the wheel scrolls the `/skills` list, and a skill's state options in `/plugin` can be clicked\n- Added `CLAUDE_CODE_MAX_MCP_DESCRIPTION_LENGTH` to change the 2,048-character cap on MCP tool descriptions and server instructions for every MCP server in the session\n- Added hook output sizes and the number of oversized outputs saved to a file to the `hook_execution_complete` OpenTelemetry event\n- Fixed writes through a symlinked path being judged by their in-tree spelling: the prompt names where the write lands, and `acceptEdits`, allow rules and auto mode no longer approve one landing outside",
       "pre": false,
-      "url": "https://github.com/anthropics/claude-code/releases/tag/v2.1.274",
+      "url": "https://github.com/anthropics/claude-code/releases/tag/v2.1.280",
       "ver_type": "patch"
     },
     "cl_min_rel": {
@@ -12162,7 +12260,7 @@
     },
     "dow": {
       "Monday": 65,
-      "Tuesday": 102,
+      "Tuesday": 103,
       "Wednesday": 100,
       "Thursday": 100,
       "Friday": 107,
@@ -12189,11 +12287,11 @@
       "2026-06": 30,
       "2026-07": 23,
       "2026-08": 29,
-      "2026-09": 20
+      "2026-09": 21
     },
     "years": {
       "2025": 284,
-      "2026": 241
+      "2026": 242
     },
     "fav_dow": [
       "Friday",
@@ -12206,23 +12304,23 @@
     "streak": 14,
     "streak_start": "2025-04-25T17:15:09.772000+00:00",
     "vtypes": {
-      "patch": 522,
+      "patch": 523,
       "major": 2,
       "minor": 1
     },
     "vel_trend": "steady",
-    "vel_first": 6.717948717948718,
-    "vel_second": 6.198653198653198
+    "vel_first": 6.71897810218978,
+    "vel_second": 6.157190635451505
   },
   {
     "label": "\ud83e\udd16 Agent SDK",
-    "total": 223,
-    "stable_count": 223,
+    "total": 224,
+    "stable_count": 224,
     "pre_count": 0,
     "first_date": "2025-12-17T21:55:57+00:00",
-    "latest_date": "2026-09-19T03:10:32+00:00",
-    "span_days": 275,
-    "per_week": 5.676363636363637,
+    "latest_date": "2026-09-22T16:38:27+00:00",
+    "span_days": 278,
+    "per_week": 5.640287769784172,
     "gaps": [
       {
         "hours": 27.060277777777777,
@@ -13777,6 +13875,13 @@
         "to_tag": "v0.3.278",
         "from_date": "2026-09-18T18:06:37+00:00",
         "to_date": "2026-09-19T03:10:32+00:00"
+      },
+      {
+        "hours": 85.46527777777777,
+        "from_tag": "v0.3.278",
+        "to_tag": "v0.3.280",
+        "from_date": "2026-09-19T03:10:32+00:00",
+        "to_date": "2026-09-22T16:38:27+00:00"
       }
     ],
     "fastest_gap": {
@@ -13793,13 +13898,13 @@
       "from_date": "2025-12-19T22:13:22+00:00",
       "to_date": "2026-01-07T20:37:12+00:00"
     },
-    "avg_gap_h": 29.753347097097098,
-    "median_gap_h": 22.865277777777777,
-    "stdev_gap_h": 38.38605277594279,
+    "avg_gap_h": 30.003176382660687,
+    "median_gap_h": 22.879722222222224,
+    "stdev_gap_h": 38.48077677885423,
     "cl_present": true,
     "cl_max": 2267,
     "cl_min": 1,
-    "cl_avg": 506.7533632286995,
+    "cl_avg": 511.7544642857143,
     "cl_max_rel": {
       "tag": "v0.3.257",
       "name": "v0.3.257",
@@ -13827,7 +13932,7 @@
       "Friday": 46,
       "Sunday": 6,
       "Monday": 17,
-      "Tuesday": 42,
+      "Tuesday": 43,
       "Saturday": 27,
       "Thursday": 39
     },
@@ -13841,11 +13946,11 @@
       "2026-06": 29,
       "2026-07": 22,
       "2026-08": 27,
-      "2026-09": 20
+      "2026-09": 21
     },
     "years": {
       "2025": 3,
-      "2026": 220
+      "2026": 221
     },
     "fav_dow": [
       "Wednesday",
@@ -13858,21 +13963,21 @@
     "streak": 10,
     "streak_start": "2026-02-19T23:28:39+00:00",
     "vtypes": {
-      "patch": 223
+      "patch": 224
     },
     "vel_trend": "accelerating",
-    "vel_first": 5.2147651006711415,
-    "vel_second": 6.3739837398373975
+    "vel_first": 5.157894736842105,
+    "vel_second": 6.272
   },
   {
     "label": "\ud83d\udcd8 TS SDK [npm]",
-    "total": 207,
-    "stable_count": 206,
+    "total": 208,
+    "stable_count": 207,
     "pre_count": 1,
     "first_date": "2023-01-31T15:44:00.296000+00:00",
-    "latest_date": "2026-09-18T16:30:38.109000+00:00",
-    "span_days": 1326,
-    "per_week": 1.0927601809954752,
+    "latest_date": "2026-09-22T16:38:57.478000+00:00",
+    "span_days": 1330,
+    "per_week": 1.0947368421052632,
     "gaps": [
       {
         "hours": 0.5668377777777778,
@@ -15315,6 +15420,13 @@
         "to_tag": "0.127.0",
         "from_date": "2026-09-15T17:41:19.060000+00:00",
         "to_date": "2026-09-18T16:30:38.109000+00:00"
+      },
+      {
+        "hours": 96.13871361111111,
+        "from_tag": "0.127.0",
+        "to_tag": "0.128.0",
+        "from_date": "2026-09-18T16:30:38.109000+00:00",
+        "to_date": "2026-09-22T16:38:57.478000+00:00"
       }
     ],
     "fastest_gap": {
@@ -15331,9 +15443,9 @@
       "from_date": "2023-04-04T12:26:00.968000+00:00",
       "to_date": "2023-06-05T20:26:18.990000+00:00"
     },
-    "avg_gap_h": 154.48920956445522,
-    "median_gap_h": 80.83896097222222,
-    "stdev_gap_h": 231.43966263363737,
+    "avg_gap_h": 154.20732311057435,
+    "median_gap_h": 81.15034777777777,
+    "stdev_gap_h": 230.9128508678369,
     "cl_present": false,
     "cl_max": 0,
     "cl_min": 0,
@@ -15341,7 +15453,7 @@
     "cl_max_rel": null,
     "cl_min_rel": null,
     "dow": {
-      "Tuesday": 49,
+      "Tuesday": 50,
       "Wednesday": 46,
       "Friday": 33,
       "Monday": 33,
@@ -15390,17 +15502,17 @@
       "2026-06": 11,
       "2026-07": 12,
       "2026-08": 7,
-      "2026-09": 5
+      "2026-09": 6
     },
     "years": {
       "2023": 37,
       "2024": 59,
       "2025": 40,
-      "2026": 71
+      "2026": 72
     },
     "fav_dow": [
       "Tuesday",
-      49
+      50
     ],
     "busiest_month": [
       "2026-05",
@@ -15409,12 +15521,12 @@
     "streak": 8,
     "streak_start": "2026-07-16T19:38:50.369000+00:00",
     "vtypes": {
-      "minor": 113,
+      "minor": 114,
       "patch": 93,
       "pre": 1
     },
     "vel_trend": "accelerating",
-    "vel_first": 0.8857493857493857,
-    "vel_second": 1.435897435897436
+    "vel_first": 0.8899755501222494,
+    "vel_second": 1.4473161033797215
   }
 ]
