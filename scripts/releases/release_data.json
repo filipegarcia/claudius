@@ -8531,13 +8531,13 @@
   },
   {
     "label": "\u26a1 Claude Code",
-    "total": 526,
-    "stable_count": 526,
+    "total": 527,
+    "stable_count": 527,
     "pre_count": 0,
     "first_date": "2025-02-24T18:03:41.458000+00:00",
-    "latest_date": "2026-09-22T16:38:14+00:00",
-    "span_days": 574,
-    "per_week": 6.414634146341464,
+    "latest_date": "2026-09-23T19:19:15+00:00",
+    "span_days": 576,
+    "per_week": 6.404513888888888,
     "gaps": [
       {
         "hours": 0.4709886111111111,
@@ -12213,6 +12213,13 @@
         "to_tag": "v2.1.280",
         "from_date": "2026-09-19T03:10:40+00:00",
         "to_date": "2026-09-22T16:38:14+00:00"
+      },
+      {
+        "hours": 26.683611111111112,
+        "from_tag": "v2.1.280",
+        "to_tag": "v2.1.281",
+        "from_date": "2026-09-22T16:38:14+00:00",
+        "to_date": "2026-09-23T19:19:15+00:00"
       }
     ],
     "fastest_gap": {
@@ -12229,22 +12236,22 @@
       "from_date": "2025-12-20T17:19:09.800000+00:00",
       "to_date": "2026-01-06T00:26:25.533000+00:00"
     },
-    "avg_gap_h": 26.283001344973545,
-    "median_gap_h": 22.007419444444448,
-    "stdev_gap_h": 29.070845673295388,
+    "avg_gap_h": 26.28376296049852,
+    "median_gap_h": 22.032371805555556,
+    "stdev_gap_h": 29.043151209690798,
     "cl_present": true,
-    "cl_max": 17256,
+    "cl_max": 28783,
     "cl_min": 1,
-    "cl_avg": 3063.822222222222,
+    "cl_avg": 3177.6238938053098,
     "cl_max_rel": {
-      "tag": "v2.1.280",
-      "name": "v2.1.280",
-      "date": "2026-09-22T16:38:14+00:00",
-      "cl_chars": 17256,
-      "cl_lines": 117,
-      "cl_body": "## What's changed\n\n- Added Claude Opus 5.5 (`claude-opus-5-5`), now the default Opus model \u2014 1M context, $4/$20 per Mtok with $0.20/Mtok cache reads\n- Added mouse support to more lists in fullscreen mode: the wheel scrolls the `/skills` list, and a skill's state options in `/plugin` can be clicked\n- Added `CLAUDE_CODE_MAX_MCP_DESCRIPTION_LENGTH` to change the 2,048-character cap on MCP tool descriptions and server instructions for every MCP server in the session\n- Added hook output sizes and the number of oversized outputs saved to a file to the `hook_execution_complete` OpenTelemetry event\n- Fixed writes through a symlinked path being judged by their in-tree spelling: the prompt names where the write lands, and `acceptEdits`, allow rules and auto mode no longer approve one landing outside",
+      "tag": "v2.1.281",
+      "name": "v2.1.281",
+      "date": "2026-09-23T19:19:15+00:00",
+      "cl_chars": 28783,
+      "cl_lines": 179,
+      "cl_body": "## What's changed\n\n- Added Claude apps gateway support for newer Claude Desktop keys in `desktop` policy blocks, including `blockReadsOutsideWorkingDirectories` and `disableBypassPermissionsMode`\n- Added `assume_role` on Claude apps gateway Bedrock upstreams: the gateway calls Bedrock as an IAM role it assumes through STS, in another AWS account if needed, optionally one session per developer\n- Added `guardrail: {id, version}` on Claude apps gateway Bedrock upstreams to apply an Amazon Bedrock guardrail to every request sent through them (set it on all Bedrock upstreams or none)\n- Added `telemetry.resource_attributes` to the Claude apps gateway config, to put fixed labels on the telemetry of Claude Desktop and `/login` sessions\n- Added `\"attribution\": false` in `settings.json` to hide all ",
       "pre": false,
-      "url": "https://github.com/anthropics/claude-code/releases/tag/v2.1.280",
+      "url": "https://github.com/anthropics/claude-code/releases/tag/v2.1.281",
       "ver_type": "patch"
     },
     "cl_min_rel": {
@@ -12261,7 +12268,7 @@
     "dow": {
       "Monday": 65,
       "Tuesday": 103,
-      "Wednesday": 100,
+      "Wednesday": 101,
       "Thursday": 100,
       "Friday": 107,
       "Saturday": 42,
@@ -12287,11 +12294,11 @@
       "2026-06": 30,
       "2026-07": 23,
       "2026-08": 29,
-      "2026-09": 21
+      "2026-09": 22
     },
     "years": {
       "2025": 284,
-      "2026": 242
+      "2026": 243
     },
     "fav_dow": [
       "Friday",
@@ -12304,23 +12311,23 @@
     "streak": 14,
     "streak_start": "2025-04-25T17:15:09.772000+00:00",
     "vtypes": {
-      "patch": 523,
+      "patch": 524,
       "major": 2,
       "minor": 1
     },
     "vel_trend": "steady",
     "vel_first": 6.71897810218978,
-    "vel_second": 6.157190635451505
+    "vel_second": 6.16
   },
   {
     "label": "\ud83e\udd16 Agent SDK",
-    "total": 224,
-    "stable_count": 224,
+    "total": 225,
+    "stable_count": 225,
     "pre_count": 0,
     "first_date": "2025-12-17T21:55:57+00:00",
-    "latest_date": "2026-09-22T16:38:27+00:00",
-    "span_days": 278,
-    "per_week": 5.640287769784172,
+    "latest_date": "2026-09-23T19:19:40+00:00",
+    "span_days": 279,
+    "per_week": 5.645161290322581,
     "gaps": [
       {
         "hours": 27.060277777777777,
@@ -13882,6 +13889,13 @@
         "to_tag": "v0.3.280",
         "from_date": "2026-09-19T03:10:32+00:00",
         "to_date": "2026-09-22T16:38:27+00:00"
+      },
+      {
+        "hours": 26.686944444444446,
+        "from_tag": "v0.3.280",
+        "to_tag": "v0.3.281",
+        "from_date": "2026-09-22T16:38:27+00:00",
+        "to_date": "2026-09-23T19:19:40+00:00"
       }
     ],
     "fastest_gap": {
@@ -13898,13 +13912,13 @@
       "from_date": "2025-12-19T22:13:22+00:00",
       "to_date": "2026-01-07T20:37:12+00:00"
     },
-    "avg_gap_h": 30.003176382660687,
-    "median_gap_h": 22.879722222222224,
-    "stdev_gap_h": 38.48077677885423,
+    "avg_gap_h": 29.988371775793652,
+    "median_gap_h": 22.983472222222225,
+    "stdev_gap_h": 38.39503941897919,
     "cl_present": true,
     "cl_max": 2267,
     "cl_min": 1,
-    "cl_avg": 511.7544642857143,
+    "cl_avg": 516.28,
     "cl_max_rel": {
       "tag": "v0.3.257",
       "name": "v0.3.257",
@@ -13928,7 +13942,7 @@
       "ver_type": "patch"
     },
     "dow": {
-      "Wednesday": 46,
+      "Wednesday": 47,
       "Friday": 46,
       "Sunday": 6,
       "Monday": 17,
@@ -13946,15 +13960,15 @@
       "2026-06": 29,
       "2026-07": 22,
       "2026-08": 27,
-      "2026-09": 21
+      "2026-09": 22
     },
     "years": {
       "2025": 3,
-      "2026": 221
+      "2026": 222
     },
     "fav_dow": [
       "Wednesday",
-      46
+      47
     ],
     "busiest_month": [
       "2026-06",
@@ -13963,11 +13977,11 @@
     "streak": 10,
     "streak_start": "2026-02-19T23:28:39+00:00",
     "vtypes": {
-      "patch": 224
+      "patch": 225
     },
     "vel_trend": "accelerating",
     "vel_first": 5.157894736842105,
-    "vel_second": 6.272
+    "vel_second": 6.277777777777778
   },
   {
     "label": "\ud83d\udcd8 TS SDK [npm]",
