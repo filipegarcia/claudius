@@ -412,6 +412,10 @@ describe("isSystemEntryHiddenAtLevel", () => {
       "rate_limit",
       "api_retry",
       "permission_denied",
+      // SDK 0.3.281 `conversation_reset` (trigger/timestamp) — a thread-state
+      // transition on par with compact_boundary, so it gets the same
+      // always-visible treatment.
+      "conversation_reset",
       "info",
     ];
     for (const kind of others) {

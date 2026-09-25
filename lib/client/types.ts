@@ -256,6 +256,7 @@ export type SystemEntry = {
     | "permission_denied"
     | "model_fallback"
     | "system_reminder"
+    | "conversation_reset"
     | "info";
   label: string;
   detail?: string;
@@ -343,6 +344,17 @@ export type SystemEntry = {
    * surfacing it here instead of dropping the field on the floor.
    */
   hookStderr?: string;
+  /**
+   * `kind === "conversation_reset"` only. SDK 0.3.281 added `trigger` to
+   * `SDKConversationResetMessage`: what discarded the conversation —
+   * 'clear' (/clear or its /reset, /new aliases), 'plan_mode_exit' (leaving
+   * plan mode with the clear-context option), 'fresh_session' (a flow that
+   * starts a fresh session to implement an approved plan), or 'onboarding'
+   * (an onboarding flow re-run inside an existing session). Absent from
+   * older emitters or an unrecognized value — render as an unspecified
+   * reset either way, per the SDK's own guidance.
+   */
+  resetTrigger?: "clear" | "plan_mode_exit" | "fresh_session" | "onboarding";
 };
 
 export type ToolProgressInfo = {

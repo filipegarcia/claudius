@@ -99,6 +99,18 @@ type SDKContentBlock =
 // then deletes the key. Kept exposed so that one-shot migration can find it.
 const LEGACY_QUEUE_STORAGE_PREFIX = "claudius.queue.";
 
+// SDK 0.3.281 `SDKConversationResetMessage.trigger`. Human copy for the
+// `conversation_reset` divider's `detail` line — see the `msg.type ===
+// "conversation_reset"` branch below. An absent or unrecognized value falls
+// back to "reason unspecified" at the call site, per the SDK's own guidance
+// to treat those the same as a known-but-unspecified reset.
+const CONVERSATION_RESET_TRIGGER_LABEL: Record<string, string> = {
+  clear: "via /clear",
+  plan_mode_exit: "left plan mode with context cleared",
+  fresh_session: "fresh session started to implement the approved plan",
+  onboarding: "onboarding re-run",
+};
+
 /**
  * One-shot upgrade path: drain any queued messages that the previous
  * (sessionStorage-backed) client wrote for this session into the new
@@ -4356,6 +4368,46 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
         setSystemEntries((prev) => [
           ...prev,
           { ...baseEntry, kind: "info", label: `system/${sysAny.subtype ?? "?"}` },
+        ]);
+        return;
+      }
+
+      if (msg.type === "conversation_reset") {
+        // SDK 0.3.281 added `trigger` / `user_message_uuid` / `timestamp` to
+        // the pre-existing `conversation_reset` message (emitted on /clear,
+        // plan-mode-exit-with-clear-context, a fresh-session-for-approved-
+        // plan flow, or an in-session onboarding re-run). Claudius's own
+        // `/clear` (and its /reset, /new aliases — see runNative "clear" in
+        // ChatSurface.tsx) never reaches the SDK: it's intercepted client-
+        // side and spins up a brand-new session instead, so that path never
+        // produces this frame. The other three triggers, however, originate
+        // inside the CLI itself and are outside Claudius's control — until
+        // now the client silently dropped them (this `if` branch didn't
+        // exist), leaving the visible transcript stale after an out-of-band
+        // reset. We don't yet remount the transcript under
+        // `new_conversation_id` (that's a materially bigger change to how
+        // sessions are loaded/replayed — see run-notes Risks/follow-ups);
+        // this surfaces the event as a divider row so the user at least
+        // sees *that* and *why* a reset happened, with the SDK's own
+        // wall-clock timestamp when it sent one.
+        const r = msg as {
+          uuid: string;
+          trigger?: "clear" | "plan_mode_exit" | "fresh_session" | "onboarding";
+          user_message_uuid?: string;
+          timestamp?: string;
+        };
+        const anchor = lastAssistantUuidRef.current;
+        setSystemEntries((prev) => [
+          ...prev,
+          {
+            uuid: r.uuid,
+            afterMessageUuid: anchor,
+            kind: "conversation_reset",
+            label: "Conversation reset",
+            detail: CONVERSATION_RESET_TRIGGER_LABEL[r.trigger ?? ""] ?? "reason unspecified",
+            ts: r.timestamp,
+            resetTrigger: r.trigger,
+          },
         ]);
         return;
       }
