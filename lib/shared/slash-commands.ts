@@ -222,7 +222,10 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   // of the AGENT subprocess, not the Claudius Next server — for a server
   // diagnostic, hit `POST /api/heapdump` directly (left in place on purpose).
   { id: "heapdump", name: "heapdump", description: "Write a heap snapshot + diagnostics report (agent subprocess).", category: "info", handler: "sdk" },
-  { id: "doctor", name: "doctor", aliases: ["checkup"], description: "Full setup checkup — diagnose and fix installation/auth/git/permissions issues.", category: "info", handler: "native" },
+  // CC 2.1.283 parity — `prompt-audit` deep-links into the Doctor page's
+  // new "Prompt audit" section (`app/doctor/page.tsx`) instead of just the
+  // top of the page. See `ChatSurface.tsx`'s `case "doctor":`.
+  { id: "doctor", name: "doctor", aliases: ["checkup"], description: "Full setup checkup — diagnose and fix installation/auth/git/permissions issues.", category: "info", handler: "native", argsHint: "[prompt-audit]" },
   { id: "powerup", name: "powerup", description: "Open the Release notes (Claudius's feature-tour surface).", category: "info", handler: "native" },
   { id: "add-dir", name: "add-dir", description: "Add a working directory to this session.", category: "info", handler: "native", argsHint: "<path>" },
   { id: "worktrees", name: "worktrees", aliases: ["worktree"], description: "Open a chat session in a git worktree.", category: "session", handler: "native" },

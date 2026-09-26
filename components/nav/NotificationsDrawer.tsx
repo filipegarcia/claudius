@@ -223,6 +223,18 @@ function NotificationRowItem({
   // answered/read, the row reverts to the generic title-first layout like
   // every other notification.
   const isPeek = unread && isActionableKind(row.kind) && !!row.body;
+  // CC 2.1.283 parity — "Added click-to-expand for truncated messages from
+  // your other sessions in fullscreen mode." Claudius's blocked-session peek
+  // (2.1.207 parity, above) already leads a peeked row with the OTHER
+  // session's own question (`row.body`, single-line `truncate`'d as the
+  // primary text) instead of the generic kind label — but a long question
+  // still gets cut off with no way to read the rest short of navigating away
+  // to that session. This adds the missing expand affordance. Local per-row
+  // state (not lifted to the drawer) — same shape as `SystemPill.tsx`'s
+  // `SystemReminderPill` expand toggle. Length threshold is a cheap proxy
+  // for "would actually truncate" without a DOM measurement.
+  const [expanded, setExpanded] = useState(false);
+  const peekTextLikelyTruncated = isPeek && (row.body?.length ?? 0) > 60;
   return (
     <li
       data-testid={`notification-row-${row.id}`}
@@ -252,12 +264,28 @@ function NotificationRowItem({
             <span
               data-testid="notification-primary-text"
               className={cn(
-                "truncate text-xs",
+                "min-w-0 flex-1 text-xs",
+                expanded ? "whitespace-normal break-words" : "truncate",
                 unread ? "font-medium text-[var(--foreground)]" : "text-[var(--muted)]",
               )}
             >
               {isPeek ? row.body : row.title}
             </span>
+            {peekTextLikelyTruncated && (
+              <button
+                type="button"
+                data-testid="notification-peek-expand"
+                aria-expanded={expanded}
+                title={expanded ? "Show less" : "Show full message"}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setExpanded((v) => !v);
+                }}
+                className="shrink-0 text-[9px] text-[var(--muted)]/70 hover:text-[var(--foreground)]"
+              >
+                {expanded ? "▾" : "▸"}
+              </button>
+            )}
             {unread && (
               <span aria-hidden className="ml-auto inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--accent)]" />
             )}

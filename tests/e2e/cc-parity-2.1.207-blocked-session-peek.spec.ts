@@ -21,6 +21,7 @@ import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { test, expect, type APIRequestContext } from "../helpers/test";
 import { activateClaudiusWorkspace } from "./helpers/workspace";
+import { DEFAULT_ENABLED_KINDS } from "@/lib/shared/notifications";
 
 const SHOTS_DIR = resolve(process.cwd(), "docs/cc-parity/2.1.207");
 mkdirSync(SHOTS_DIR, { recursive: true });
@@ -49,6 +50,15 @@ async function getActiveWorkspace(req: APIRequestContext, baseURL?: string): Pro
  * `DEFAULT_ENABLED_KINDS` in `lib/shared/notifications.ts`), but it's the
  * cleanest non-actionable kind to synthesize for the "never peeked" negative
  * test below. Mirrors `ensureNotificationsEnabled` in `notifications.spec.ts`.
+ *
+ * `prevKinds` is `undefined` for the seeded e2e workspace (it never sets
+ * `enabledKinds` explicitly, meaning "use `DEFAULT_ENABLED_KINDS`"). Falling
+ * back to `[]` instead of `DEFAULT_ENABLED_KINDS` here would PATCH the
+ * workspace down to `enabledKinds: ["session_error"]` — silently dropping
+ * `permission_request`/`ask_user_question`/`plan_approval_request`/
+ * `session_idle` for the rest of the CI job (single shared `workspaces.json`,
+ * `workers: 1`), which broke every later actionable-kind spec that ran after
+ * this one alphabetically (e.g. `cc-parity-2.1.283-notification-expand`).
  */
 async function ensureSessionErrorEnabled(
   req: APIRequestContext,
@@ -56,7 +66,7 @@ async function ensureSessionErrorEnabled(
   ws: Workspace,
 ): Promise<void> {
   const prevKinds = ws.defaults?.notifications?.enabledKinds;
-  const nextKinds = Array.from(new Set([...(prevKinds ?? []), "session_error"]));
+  const nextKinds = Array.from(new Set([...(prevKinds ?? DEFAULT_ENABLED_KINDS), "session_error"]));
   const res = await req.patch(`${baseURL}/api/workspaces/${ws.id}`, {
     data: {
       defaults: {
