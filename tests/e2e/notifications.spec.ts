@@ -1,4 +1,5 @@
 import { test, expect, type Page, type APIRequestContext } from "../helpers/test";
+import { DEFAULT_ENABLED_KINDS } from "@/lib/shared/notifications";
 
 const SESSION_RE = /[?&]session=([0-9a-f-]{36})/i;
 
@@ -90,7 +91,14 @@ async function ensureNotificationsEnabled(
   const needsKinds = !prevKinds || !prevKinds.includes("session_error");
   const needsEnable = ws.defaults?.notifications?.enabled === false;
   if (!needsKinds && !needsEnable) return;
-  const nextKinds = Array.from(new Set([...(prevKinds ?? []), "session_error"]));
+  // `prevKinds` is undefined for the seeded e2e workspace (it never sets
+  // enabledKinds explicitly, meaning "use DEFAULT_ENABLED_KINDS"). Falling
+  // back to [] instead of DEFAULT_ENABLED_KINDS here would PATCH the
+  // workspace down to enabledKinds: ["session_error"] -- silently dropping
+  // permission_request/ask_user_question/plan_approval_request/session_idle
+  // for the rest of the CI job (single shared workspaces.json, workers: 1),
+  // breaking any actionable-kind spec that happens to run after this one.
+  const nextKinds = Array.from(new Set([...(prevKinds ?? DEFAULT_ENABLED_KINDS), "session_error"]));
   const res = await req.patch(`${baseURL}/api/workspaces/${ws.id}`, {
     data: {
       defaults: {

@@ -1510,7 +1510,10 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
           router.push("/release-notes");
           return true;
         case "doctor":
-          router.push("/doctor");
+          // CC 2.1.283 — "/doctor prompt-audit" (also "/checkup
+          // prompt-audit") deep-links into the new Prompt audit section
+          // (`app/doctor/page.tsx`) instead of just the top of the page.
+          router.push(args.trim().toLowerCase() === "prompt-audit" ? "/doctor?section=prompt-audit" : "/doctor");
           return true;
         case "loop":
         case "schedule":

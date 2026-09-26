@@ -6,6 +6,11 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { listWorkspaces } from "@/lib/server/workspaces-store";
 import { readScope } from "@/lib/server/claudemd";
+import {
+  auditWorkspacePrompts,
+  type PromptAuditFinding,
+  type PromptAuditStalePath,
+} from "@/lib/server/prompt-audit";
 
 const execFileP = promisify(execFile);
 
@@ -33,6 +38,14 @@ type Check = {
    * "Fix" button.
    */
   link?: { href: string; label: string };
+  /**
+   * CC 2.1.283 parity — tags the `/doctor prompt-audit` checks so the
+   * Doctor page can group them under their own section and the
+   * `/doctor prompt-audit` slash-command deep link (`?section=prompt-audit`)
+   * has something stable to scroll to, independent of the general
+   * environment checks above.
+   */
+  category?: "prompt-audit";
 };
 
 /**
@@ -99,6 +112,96 @@ async function claudeMdSizeChecks(): Promise<Check[]> {
         `info (file layout, tech stack, build commands) from the codebase itself; consider ` +
         `trimming content it doesn't need spelled out, or moving procedures into a skill.`,
       link: { href: `/${ws.id}/memory`, label: "Review in Memory" },
+    });
+  }
+  return checks;
+}
+
+/**
+ * CC 2.1.283 parity — "Added `/doctor prompt-audit` (also `/checkup
+ * prompt-audit`) to audit your CLAUDE.md files, skills, agents and commands
+ * for prompting patterns written for older models." One check per project
+ * workspace that has at least one CLAUDE.md/skill/agent/command source —
+ * `ok` (green) when nothing stale is found, `warn` otherwise — unlike
+ * `claudeMdSizeChecks` above (which stays silent below its threshold), so
+ * the `/doctor prompt-audit` deep link always has something to land on
+ * rather than looking broken for a clean workspace.
+ */
+/**
+ * "Review in Memory" only makes sense when at least one finding came from a
+ * CLAUDE.md source — a workspace whose only stale prompting lives in a skill
+ * or agent should link to the editor that actually owns that file, not the
+ * unrelated Memory page. CLAUDE.md takes priority when it's present at all,
+ * matching the "leads the report" ordering above. Commands have no dedicated
+ * Claudius browser yet (`.claude/commands/*.md` is SDK-loaded, file-only —
+ * see `lib/server/prompt-audit.ts`), so a commands-only finding gets no link.
+ */
+function pickPromptAuditLink(
+  workspaceId: string,
+  findings: PromptAuditFinding[],
+  stalePaths: PromptAuditStalePath[],
+): { href: string; label: string } | undefined {
+  const kinds = new Set([...findings, ...stalePaths].map((x) => x.source.kind));
+  if (kinds.has("claude-md")) return { href: `/${workspaceId}/memory`, label: "Review in Memory" };
+  if (kinds.has("skill")) return { href: `/${workspaceId}/skills`, label: "Review in Skills" };
+  if (kinds.has("agent")) return { href: `/${workspaceId}/agents`, label: "Review in Agents" };
+  return undefined;
+}
+
+async function promptAuditChecks(): Promise<Check[]> {
+  let workspaces: Awaited<ReturnType<typeof listWorkspaces>>;
+  try {
+    workspaces = await listWorkspaces();
+  } catch {
+    return [];
+  }
+
+  const checks: Check[] = [];
+  for (const ws of workspaces) {
+    if ((ws.kind ?? "project") !== "project") continue;
+
+    let report: Awaited<ReturnType<typeof auditWorkspacePrompts>>;
+    try {
+      report = await auditWorkspacePrompts(ws.rootPath);
+    } catch {
+      continue;
+    }
+    if (!report.hadSources) continue;
+
+    const { findings, stalePaths } = report;
+    if (findings.length === 0 && stalePaths.length === 0) {
+      checks.push({
+        id: `prompt-audit:${ws.id}`,
+        label: `Prompt audit — ${ws.name}`,
+        status: "ok",
+        detail: "No stale prompting patterns or broken path references found.",
+        category: "prompt-audit",
+      });
+      continue;
+    }
+
+    // CC 2.1.283: "stale paths, stale commands and contradicting instruction
+    // files now lead the report" — stale paths (this release's build; stale
+    // commands and contradicting-file detection are deferred, see run-notes
+    // Risks) come first in both the summary and the examples.
+    const parts: string[] = [];
+    if (stalePaths.length > 0) {
+      parts.push(`${stalePaths.length} path reference${stalePaths.length === 1 ? "" : "s"} to a missing file`);
+    }
+    if (findings.length > 0) {
+      parts.push(`${findings.length} stale prompting pattern${findings.length === 1 ? "" : "s"}`);
+    }
+    const examples = [
+      ...stalePaths.slice(0, 2).map((p) => `${p.source.kind}:${p.source.name} — references missing \`${p.path}\``),
+      ...findings.slice(0, 2).map((f) => `${f.source.kind}:${f.source.name} — ${f.note} ("${f.snippet}")`),
+    ];
+    checks.push({
+      id: `prompt-audit:${ws.id}`,
+      label: `Prompt audit — ${ws.name}`,
+      status: "warn",
+      detail: `${parts.join(" · ")}. ${examples.join("; ")}`,
+      link: pickPromptAuditLink(ws.id, findings, stalePaths),
+      category: "prompt-audit",
     });
   }
   return checks;
@@ -241,6 +344,9 @@ export async function GET() {
   // Checked-in CLAUDE.md files that have grown large enough to be worth
   // trimming (CC 2.1.206 parity — see `claudeMdSizeChecks` above).
   checks.push(...(await claudeMdSizeChecks()));
+
+  // CC 2.1.283 parity — see `promptAuditChecks` above.
+  checks.push(...(await promptAuditChecks()));
 
   return NextResponse.json({
     runtime: { node, platform: process.platform, arch: process.arch },

@@ -18,6 +18,8 @@ type Check = {
   detail?: string;
   fixable?: boolean;
   link?: { href: string; label: string };
+  /** CC 2.1.283 parity — see `app/api/doctor/route.ts`'s `Check.category`. */
+  category?: "prompt-audit";
 };
 type Report = {
   runtime: { node: string; platform: string; arch: string };
@@ -30,6 +32,19 @@ export default function DoctorPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const bridge = useClaudius();
+  // `/doctor prompt-audit` (and `/checkup prompt-audit`) route here with
+  // `?section=prompt-audit` — see `ChatSurface.tsx`'s `case "doctor":`.
+  // Scroll the Prompt audit section into view once the report has loaded, so
+  // the deep link lands somewhere visible instead of the page top. Reads
+  // `window.location.search` directly rather than `useSearchParams()` —
+  // `/doctor` is a static route (not nested under `[workspaceId]`), and a
+  // static page calling `useSearchParams()` without a `<Suspense>` ancestor
+  // fails `next build`'s missing-suspense-boundary check.
+  useEffect(() => {
+    if (!report) return;
+    if (new URLSearchParams(window.location.search).get("section") !== "prompt-audit") return;
+    document.getElementById("prompt-audit-section")?.scrollIntoView({ block: "start" });
+  }, [report]);
 
   const [refetchTrigger, setRefetchTrigger] = useState(0);
   // Check id currently being fixed — disables its Fix button and shows a
@@ -133,56 +148,44 @@ export default function DoctorPage() {
                     Checks
                   </h2>
                   <ul className="space-y-1.5">
-                    {report.checks.map((c) => (
-                      <li
-                        key={c.id}
-                        className={cn(
-                          "flex items-start gap-3 rounded-md border px-3 py-2 text-xs",
-                          c.status === "ok" && "border-emerald-500/30 bg-emerald-500/5",
-                          c.status === "warn" && "border-amber-500/30 bg-amber-500/5",
-                          c.status === "fail" && "border-red-500/30 bg-red-500/5",
-                        )}
-                      >
-                        {c.status === "ok" && (
-                          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
-                        )}
-                        {c.status === "warn" && (
-                          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
-                        )}
-                        {c.status === "fail" && (
-                          <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-400" />
-                        )}
-                        <div className="min-w-0 flex-1">
-                          <div className="font-medium">{c.label}</div>
-                          {c.detail && (
-                            <div className="mt-0.5 break-all font-mono text-[11px] text-[var(--muted)]">
-                              {c.detail}
-                            </div>
-                          )}
-                        </div>
-                        {c.fixable && c.status !== "ok" && (
-                          <button
-                            onClick={() => fixCheck(c.id)}
-                            disabled={fixingId === c.id}
-                            data-testid={`doctor-fix-${c.id}`}
-                            title={`Create the missing directory for "${c.label}"`}
-                            className="shrink-0 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-0.5 text-[11px] hover:bg-[var(--panel)] disabled:opacity-50"
-                          >
-                            {fixingId === c.id ? "Fixing…" : "Fix"}
-                          </button>
-                        )}
-                        {c.link && c.status !== "ok" && (
-                          <Link
-                            href={c.link.href}
-                            data-testid={`doctor-link-${c.id}`}
-                            className="shrink-0 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-0.5 text-[11px] hover:bg-[var(--panel)]"
-                          >
-                            {c.link.label}
-                          </Link>
-                        )}
-                      </li>
-                    ))}
+                    {report.checks
+                      .filter((c) => c.category !== "prompt-audit")
+                      .map((c) => (
+                        <CheckRow key={c.id} check={c} fixingId={fixingId} onFix={fixCheck} />
+                      ))}
                   </ul>
+                </section>
+
+                {/*
+                  CC 2.1.283 parity — "/doctor prompt-audit" (also
+                  "/checkup prompt-audit"): audits CLAUDE.md files, skills,
+                  agents and commands for prompting patterns written for
+                  older models. Own section (not folded into "Checks" above)
+                  so the slash command's `?section=prompt-audit` deep link
+                  has a stable, discoverable landing spot — see the
+                  scroll-into-view effect above.
+                */}
+                <section id="prompt-audit-section" data-testid="doctor-prompt-audit-section">
+                  <h2 className="mb-2 text-[11px] font-medium uppercase tracking-wide text-[var(--muted)]">
+                    Prompt audit
+                  </h2>
+                  {(() => {
+                    const promptAuditChecks = report.checks.filter((c) => c.category === "prompt-audit");
+                    if (promptAuditChecks.length === 0) {
+                      return (
+                        <p className="text-[11px] text-[var(--muted)]">
+                          No CLAUDE.md files, skills, agents, or commands found to audit yet.
+                        </p>
+                      );
+                    }
+                    return (
+                      <ul className="space-y-1.5" data-testid="doctor-prompt-audit-list">
+                        {promptAuditChecks.map((c) => (
+                          <CheckRow key={c.id} check={c} fixingId={fixingId} onFix={fixCheck} />
+                        ))}
+                      </ul>
+                    );
+                  })()}
                 </section>
               </>
             )}
@@ -190,6 +193,62 @@ export default function DoctorPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+/**
+ * Single check row — shared by the general "Checks" list and the
+ * CC 2.1.283 "Prompt audit" section so both render identically (icon by
+ * status, Fix/Review-in-Memory affordance) without duplicating the JSX.
+ */
+function CheckRow({
+  check: c,
+  fixingId,
+  onFix,
+}: {
+  check: Check;
+  fixingId: string | null;
+  onFix: (id: string) => void;
+}) {
+  return (
+    <li
+      className={cn(
+        "flex items-start gap-3 rounded-md border px-3 py-2 text-xs",
+        c.status === "ok" && "border-emerald-500/30 bg-emerald-500/5",
+        c.status === "warn" && "border-amber-500/30 bg-amber-500/5",
+        c.status === "fail" && "border-red-500/30 bg-red-500/5",
+      )}
+    >
+      {c.status === "ok" && <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />}
+      {c.status === "warn" && <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />}
+      {c.status === "fail" && <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-400" />}
+      <div className="min-w-0 flex-1">
+        <div className="font-medium">{c.label}</div>
+        {c.detail && (
+          <div className="mt-0.5 break-all font-mono text-[11px] text-[var(--muted)]">{c.detail}</div>
+        )}
+      </div>
+      {c.fixable && c.status !== "ok" && (
+        <button
+          onClick={() => onFix(c.id)}
+          disabled={fixingId === c.id}
+          data-testid={`doctor-fix-${c.id}`}
+          title={`Create the missing directory for "${c.label}"`}
+          className="shrink-0 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-0.5 text-[11px] hover:bg-[var(--panel)] disabled:opacity-50"
+        >
+          {fixingId === c.id ? "Fixing…" : "Fix"}
+        </button>
+      )}
+      {c.link && c.status !== "ok" && (
+        <Link
+          href={c.link.href}
+          data-testid={`doctor-link-${c.id}`}
+          className="shrink-0 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-0.5 text-[11px] hover:bg-[var(--panel)]"
+        >
+          {c.link.label}
+        </Link>
+      )}
+    </li>
   );
 }
 
