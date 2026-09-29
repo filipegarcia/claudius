@@ -244,6 +244,8 @@ export const RESUME_REASON_LABELS: Record<string, string> = {
 export const STARTUP_FAILURE_REASON_LABELS: Record<string, string> = {
   org_pin_api_key_conflict:
     "your organization requires signing in, but an API key or auth token is configured instead",
+  provider_not_allowed:
+    "your organization's managed settings don't allow the API provider this session is set up for",
   org_verify_failed: "your sign-in's organization could not be verified — check network connectivity or sign in again",
   org_pin_mismatch: "your sign-in belongs to an organization this workspace doesn't allow",
   managed_settings_invalid: "managed policy settings could not be read, or the pin names no organization",
@@ -1330,6 +1332,10 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
   // `effort` — no SDK event to replay, so we track the last toggle and
   // reset to off on a fresh session.
   const [ultracode, setUltracodeState] = useState<boolean>(false);
+  // Latest effort for callbacks that must compare against it without
+  // re-creating themselves (see `setEffort`).
+  const effortRef = useRef(effort);
+  effortRef.current = effort;
   // "Fast mode" user-toggle intent. Same optimistic-mirror story as
   // `ultracode` (no SDK event to replay, resets to off on a fresh session).
   // Distinct from `fastModeState` above (line ~472), which is the SDK-reported
@@ -5705,6 +5711,9 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     async (level: "low" | "medium" | "high" | "xhigh" | "max" | "auto") => {
       const id = sessionIdRef.current;
       if (!id) return;
+      // SDK 0.3.284: an effortLevel that moves the session to a different
+      // level (sent without an `ultracode` key) turns ultracode off.
+      if (level !== effortRef.current) setUltracodeState(false);
       setEffortState(level);
       await fetch(`/api/sessions/${id}/effort`, {
         method: "POST",
@@ -5718,17 +5727,14 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
   /**
    * Toggle "ultracode" (Dynamic Workflows). Mirrors `setEffort` — POSTs to a
    * dedicated route that calls `applyFlagSettings({ ultracode })` server-
-   * side. Enabling ultracode forces `xhigh` effort on the SDK side, so we
-   * move the local effort mirror to `xhigh` too; otherwise the effort pill
-   * would lag behind reality. Disabling leaves effort untouched (it stays
-   * wherever the user last set it — session-scoped on the SDK).
+   * side. Since SDK 0.3.284 toggling ultracode (either way) keeps the
+   * current effort level, so the effort mirror is left untouched.
    */
   const setUltracode = useCallback(
     async (enabled: boolean) => {
       const id = sessionIdRef.current;
       if (!id) return;
       setUltracodeState(enabled);
-      if (enabled) setEffortState("xhigh");
       await fetch(`/api/sessions/${id}/ultracode`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
