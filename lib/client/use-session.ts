@@ -244,6 +244,8 @@ export const RESUME_REASON_LABELS: Record<string, string> = {
 export const STARTUP_FAILURE_REASON_LABELS: Record<string, string> = {
   org_pin_api_key_conflict:
     "your organization requires signing in, but an API key or auth token is configured instead",
+  provider_not_allowed:
+    "your organization's managed settings don't allow the API provider this session is set up for",
   org_verify_failed: "your sign-in's organization could not be verified — check network connectivity or sign in again",
   org_pin_mismatch: "your sign-in belongs to an organization this workspace doesn't allow",
   managed_settings_invalid: "managed policy settings could not be read, or the pin names no organization",
