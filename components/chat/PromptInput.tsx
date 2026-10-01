@@ -125,8 +125,8 @@ type Props = {
    */
   onSendQueuedNow?: () => void;
   /**
-   * Ctrl+Enter send-now key (Claude Code parity, 2.1.275): interrupt the
-   * in-flight turn and flush every queued message at once, regardless of
+   * Ctrl+Enter send-now key (Claude Code parity, 2.1.275 / 2.1.281): flush
+   * every queued message at once into the in-flight turn, regardless of
    * how many are staged. Bound in `onKeyDown` below. Optional — the
    * goal-banner reuse of PromptInput leaves it off, same as `onSendQueuedNow`.
    */
@@ -965,11 +965,12 @@ export function PromptInput({
       }
     }
 
-    // ── Ctrl+Enter — send-now key, Claude Code parity (2.1.275) ────────────
-    // Interrupts the current turn and flushes every queued message at once.
+    // ── Ctrl+Enter — send-now key, Claude Code parity (2.1.275 / 2.1.281) ──
+    // Flushes every queued message at once into the running turn; the CLI
+    // moves running tools to the background instead of cancelling the turn.
     // Distinct from the empty-composer "plain Enter → send first queued"
     // shortcut below: this one fires regardless of composer contents or
-    // queue length, and works even mid-turn (that's the "interrupts" part).
+    // queue length, and works even mid-turn.
     if (e.ctrlKey && e.key === "Enter" && onSendAllQueuedNow) {
       e.preventDefault();
       onSendAllQueuedNow();

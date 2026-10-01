@@ -5214,10 +5214,11 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
   const sendAllQueuedNow = useCallback(async () => {
     const id = sessionIdRef.current;
     if (!id) return;
-    // Ctrl+Enter send-now key (Claude Code parity, 2.1.275): interrupt the
-    // in-flight turn and flush every queued message at once. Server-side
-    // this is the same interrupt + per-item pop+send primitive as
-    // `sendQueuedNow`, just looped over the whole queue — see
+    // Ctrl+Enter send-now key (Claude Code parity, 2.1.275 / 2.1.281): flush
+    // every queued message at once so it joins the in-flight turn; the CLI
+    // moves running tools to the background rather than cancelling. Server
+    // side this is the per-item pop+send primitive behind `sendQueuedNow`,
+    // looped with `priority: "now"` — see
     // `app/api/sessions/[id]/queue/send-all/route.ts`.
     try {
       await fetch(`/api/sessions/${id}/queue/send-all`, { method: "POST" });
