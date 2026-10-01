@@ -28,9 +28,9 @@ type Props = {
   onSendNow?: (id: string) => void | Promise<void>;
   /**
    * "Send all now" override for the whole queue at once — Ctrl+Enter
-   * (Claude Code parity, 2.1.275). Interrupts the in-flight turn and
-   * dispatches every queued item in FIFO order, same "asap" semantics as
-   * `onSendNow` applied per-item.
+   * (Claude Code parity, 2.1.275 / 2.1.281). Dispatches every queued item
+   * in FIFO order so it joins the in-flight turn; running tools move to the
+   * background rather than being cancelled. See the send-all route.
    */
   onSendAllNow?: () => void | Promise<void>;
   /**
@@ -75,7 +75,7 @@ export function QueueIndicator({
               onClick={() => onSendAllNow()}
               data-testid="queue-send-all-now"
               className="ml-1 flex items-center gap-1 rounded px-1.5 py-0.5 normal-case tracking-normal text-[var(--muted)] underline decoration-dotted underline-offset-2 hover:text-[var(--foreground)]"
-              title="Send all queued messages now (Ctrl+Enter) — interrupts the current turn"
+              title="Send all queued messages now (Ctrl+Enter) — running tools move to the background"
             >
               <Send className="h-3 w-3" />
               Send all now

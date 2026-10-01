@@ -4,19 +4,26 @@ import { sessionManager } from "@/lib/server/session-manager";
 export const runtime = "nodejs";
 
 /**
- * "Send all now" — the Ctrl+Enter send-now key from the QueueIndicator strip
- * (Claude Code parity, 2.1.275: "a send-now key ... that interrupts the
- * current turn and sends all queued messages at once"). Interrupts any
- * in-flight turn, then dispatches every currently queued message via the
- * same per-item `Session.sendQueuedNow` primitive the single-item "Send
- * now" button already uses — just looped over a snapshot of the queue
- * taken after the interrupt.
+ * "Send all now" — the Ctrl+Enter send-now key from the QueueIndicator strip.
  *
- * No new session-state mutation logic: this route is a thin orchestration
- * of three existing, already-tested `Session` methods (`interrupt`,
- * `getQueueSnapshot`, `sendQueuedNow`), so it inherits their idempotency —
- * a uuid that's already gone (raced by another tab, or by `flushQueueIfIdle`)
- * is silently skipped rather than erroring.
+ * Claude Code parity: 2.1.275 added the key ("interrupts the current turn and
+ * sends all queued messages at once"); 2.1.281 changed it to "move running
+ * tools to the background instead of cancelling the turn". SDK 0.3.286 makes
+ * that reachable from a host: a user message sent with `priority: "now"` (plus
+ * `origin: { kind: "human" }` — see `Session.sendInput`) joins the running
+ * turn, and the CLI backgrounds any in-flight shell command, subagent or MCP
+ * call so the model reads the message right away. So this route no longer
+ * calls `session.interrupt()`: nothing the agent was doing is lost.
+ *
+ * Dispatches every queued message (FIFO) via `Session.sendQueuedNow`, which
+ * is idempotent — a uuid already gone (raced by another tab, or by
+ * `flushQueueIfIdle`) is silently skipped.
+ *
+ * Slash commands can't join a running turn; they always run as their own
+ * turn. To keep queue order intact, the first queued slash command ends the
+ * "join now" run: it and everything after it are sent without priority, so
+ * they run back-to-back after the current turn, in order (the CLI's own
+ * command queue is FIFO).
  */
 export async function POST(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
@@ -24,21 +31,18 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string }>
   if (!session) {
     return NextResponse.json({ error: "session not found" }, { status: 404 });
   }
-  await session.interrupt();
   const snapshot = await session.getQueueSnapshot();
   const dispatched: string[] = [];
-  // Iterate the snapshot in FIFO order and dispatch each in turn. Node is
-  // single-threaded and nothing else in this process writes to
-  // `Session.inputQueue`, so even though `sendQueuedNow`'s internal
-  // `await`s yield the event loop between iterations, the `push()` calls
-  // it makes land in the same order this loop issues them — the SDK may
-  // start consuming item 0 before item 1 is even popped from the DB, but
-  // it can never observe item 1 before item 0. This is the same "asap"
-  // sequential-turn model the single-item "Send now" override already
-  // documents (see `Session.sendQueuedNow`'s docstring): each dispatched
-  // message becomes its own turn, run back-to-back, not one merged turn.
+  // Node is single-threaded and nothing else in this process writes to
+  // `Session.inputQueue`, so although `sendQueuedNow` awaits between
+  // iterations, its `push()` calls land in the order this loop issues them.
+  let joinRunningTurn = true;
   for (const item of snapshot) {
-    const ok = await session.sendQueuedNow(item.uuid);
+    if (item.slash) joinRunningTurn = false;
+    const ok = await session.sendQueuedNow(
+      item.uuid,
+      joinRunningTurn ? { priority: "now" } : undefined,
+    );
     if (ok) dispatched.push(item.uuid);
   }
   return NextResponse.json({ ok: true, dispatched });

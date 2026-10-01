@@ -3529,15 +3529,31 @@ export class Session {
     return true;
   }
 
+  /**
+   * `opts.priority: "now"` is the Ctrl+Enter send-now key (Claude Code
+   * parity, 2.1.281 / SDK 0.3.286): the message joins the running turn and
+   * the CLI moves any in-flight shell command, subagent or MCP call to the
+   * background instead of cancelling it. Ignored for slash commands — those
+   * always run as their own turn.
+   */
   sendInput(
     text: string,
     images?: Array<{ data: string; mediaType: string; ordinal?: number }>,
-    opts?: { uuid?: string; slash?: boolean },
+    opts?: { uuid?: string; slash?: boolean; priority?: "now" },
   ): void {
     if (this.done) return;
     type ContentBlock =
       | { type: "text"; text: string }
       | { type: "image"; source: { type: "base64"; media_type: string; data: string } };
+
+    // The CLI only honours `priority: "now"` from a person: verified live
+    // against SDK 0.3.286, a `now` message WITHOUT `origin: { kind: "human" }`
+    // still waits for the running tool to finish and then runs as its own
+    // turn, exactly like an unprioritised send. Both fields are required.
+    const sendNowFields =
+      opts?.priority === "now"
+        ? ({ priority: "now", origin: { kind: "human" } } as const)
+        : {};
 
     // Pin a uuid for this user turn. The SDK's iterator never echoes user
     // input back to consume(), so without surfacing it ourselves the in-memory
@@ -3744,6 +3760,7 @@ export class Session {
         parent_tool_use_id: null,
         session_id: this.id,
         uuid,
+        ...sendNowFields,
       });
       return;
     }
@@ -3821,6 +3838,7 @@ export class Session {
       parent_tool_use_id: null,
       session_id: this.id,
       uuid,
+      ...sendNowFields,
     });
   }
 
@@ -6960,8 +6978,12 @@ export class Session {
    * (after the current turn), then A drains via `flushQueueIfIdle`,
    * then C. That ordering is intentional — the explicit override is
    * the user saying "this one is more urgent than the staged ones".
+   *
+   * `opts.priority: "now"` is passed by the Ctrl+Enter send-all route so
+   * the message joins the running turn instead of waiting for it (see
+   * `sendInput`). The per-item button leaves it off.
    */
-  async sendQueuedNow(uuid: string): Promise<boolean> {
+  async sendQueuedNow(uuid: string, opts?: { priority?: "now" }): Promise<boolean> {
     await this.loadQueueIfNeeded();
     const row = await popQueuedByUuid(this.cwd, this.id, uuid);
     if (!row) return false;
@@ -6976,6 +6998,7 @@ export class Session {
       {
         uuid: row.uuid,
         ...(row.slash ? { slash: true } : {}),
+        ...(opts?.priority === "now" ? { priority: "now" as const } : {}),
       },
     );
     return true;
