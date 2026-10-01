@@ -113,6 +113,12 @@ async function probeOne(candidate: ProbeCandidate): Promise<ProbeResult> {
         model: candidate.value,
         maxTurns: 1,
         persistSession: false,
+        // Explicit, like every other query() call site. Since SDK 0.3.286
+        // an omitted permissionMode is resolved by Claude Code — the user's
+        // settings `defaultMode`, or `auto` on third-party providers / with
+        // telemetry off — so leaving it out would make this probe run under
+        // whatever mode the user happens to configure.
+        permissionMode: "default",
         abortController: controller,
         // Override advisor model to match the candidate being probed.
         // Some models (e.g. fable-5) require their sub-agent tools to use the
