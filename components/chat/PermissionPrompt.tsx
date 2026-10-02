@@ -24,9 +24,16 @@ type Props = {
    * modal.
    */
   onSwitchToAutoMode?: () => void;
+  /**
+   * How many permission requests are waiting, including this one (Claude
+   * Code 2.1.286 parity: "2 of 5" when several stack up — e.g. parallel
+   * subagents each asking). This prompt is always the oldest, so it is "1 of
+   * N"; answering it brings up the next. Hidden when 1 or omitted.
+   */
+  queueTotal?: number;
 };
 
-export function PermissionPrompt({ request, onResolve, autoModeAvailable, onSwitchToAutoMode }: Props) {
+export function PermissionPrompt({ request, onResolve, autoModeAvailable, onSwitchToAutoMode, queueTotal }: Props) {
   // SDK 0.3.268 `defaultToNo` — the prompt must not be approvable by a
   // single stray keystroke: open straight on the decline panel instead of
   // requiring a click on "Deny…" first.
@@ -47,7 +54,9 @@ export function PermissionPrompt({ request, onResolve, autoModeAvailable, onSwit
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") onResolve({ kind: "deny" });
+      // Ignore auto-repeat: with a queue, a held Escape would otherwise deny
+      // every stacked request in a row, including ones never seen.
+      if (e.key === "Escape" && !e.repeat) onResolve({ kind: "deny" });
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -78,6 +87,15 @@ export function PermissionPrompt({ request, onResolve, autoModeAvailable, onSwit
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 text-[11px] uppercase tracking-wide text-[var(--muted)]">
               <span>Permission required</span>
+              {queueTotal !== undefined && queueTotal > 1 && (
+                <span
+                  data-testid="permission-queue-count"
+                  title={`${queueTotal - 1} more waiting after this one`}
+                  className="rounded-full border border-[var(--border)] bg-[var(--panel-2)] px-1.5 py-0.5 font-mono text-[9px] normal-case tracking-normal text-[var(--foreground)]"
+                >
+                  1 of {queueTotal}
+                </span>
+              )}
               {request.agentId && (
                 <span
                   data-testid="permission-agent-badge"

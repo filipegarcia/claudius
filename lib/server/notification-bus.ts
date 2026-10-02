@@ -678,6 +678,17 @@ export function mapEventToKind(
         },
         requestId: event.requestId,
       };
+    case "mcp_elicitation_request":
+      // Rides the `permission_request` kind: it's the same "the agent is
+      // blocked until you act" class, and reusing the kind keeps it on by
+      // default and under the user's existing per-kind preference.
+      return {
+        kind: "permission_request",
+        title: event.mode === "url" ? `${event.serverName} needs you to sign in` : `${event.serverName} needs your input`,
+        body: firstLine(event.message),
+        payload: { serverName: event.serverName, mode: event.mode },
+        requestId: event.requestId,
+      };
     case "ask_user_question": {
       const first = event.questions?.[0];
       return {
@@ -833,6 +844,7 @@ function isStatusSyncRelevant(event: AnyEvent): boolean {
     case "error":
     case "permission_request":
     case "ask_user_question":
+    case "mcp_elicitation_request":
     case "plan_approval_request":
       return true;
     case "sdk": {

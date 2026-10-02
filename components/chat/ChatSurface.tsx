@@ -28,6 +28,7 @@ import { AdvisorDisabledNoticePanel } from "@/components/chat/AdvisorDisabledNot
 import { ClearedFromBanner } from "@/components/chat/ClearedFromBanner";
 import { PromptInput } from "@/components/chat/PromptInput";
 import { PermissionPrompt } from "@/components/chat/PermissionPrompt";
+import { McpElicitationPrompt } from "@/components/chat/McpElicitationPrompt";
 import { AskUserQuestionPrompt } from "@/components/chat/AskUserQuestionPrompt";
 import { QueueIndicator } from "@/components/chat/QueueIndicator";
 import { PromptSuggestions } from "@/components/chat/PromptSuggestions";
@@ -2632,10 +2633,26 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
 
       {session.pendingPermission && (
         <PermissionPrompt
+          // Keyed per request so the deny panel / feedback text of an
+          // answered prompt don't carry over to the next one in the queue.
+          key={session.pendingPermission.requestId}
           request={session.pendingPermission}
+          queueTotal={session.pendingPermissionCount}
           onResolve={(d) => session.resolvePermission(session.pendingPermission!.requestId, d)}
           autoModeAvailable={!autoModeDisabled && session.permissionMode !== "auto"}
           onSwitchToAutoMode={() => void session.setPermissionMode("auto")}
+        />
+      )}
+
+      {/* MCP elicitation — form input or a URL to open (sign-in). Shown only
+          when no permission prompt is up so two modals never stack; a
+          pending permission is the agent's own tool call and goes first. */}
+      {!session.pendingPermission && session.pendingElicitation && (
+        <McpElicitationPrompt
+          key={session.pendingElicitation.requestId}
+          request={session.pendingElicitation}
+          queueTotal={session.pendingElicitationCount}
+          onResolve={(d) => session.resolveElicitation(session.pendingElicitation!.requestId, d)}
         />
       )}
 

@@ -418,6 +418,65 @@ export type AskUserQuestionEvent = {
 };
 
 /**
+ * A pending interactive prompt left the server's pending set: it was answered
+ * (from this tab or another), aborted along with its tool call, or drained
+ * when the session ended.
+ *
+ * The client keeps a FIFO queue per prompt kind (several background subagents
+ * can each be waiting on a permission at once — Claude Code 2.1.286 added the
+ * "2 of 5" count for exactly this). This event is what removes an entry the
+ * local tab didn't answer itself, so a second tab — or a prompt whose tool
+ * call was interrupted — doesn't keep showing a dead modal.
+ *
+ * Live-only: never buffered for replay (see `shouldBufferEvent`). A reconnecting
+ * tab gets the authoritative pending set from `subscribe()`'s re-emit and the
+ * `/pending-prompts` fetch instead.
+ */
+export type PromptSettledEvent = {
+  type: "prompt_settled";
+  kind: "permission" | "ask" | "elicitation";
+  requestId: string;
+};
+
+/**
+ * An MCP server asked the user for input via elicitation (SDK
+ * `Options.onElicitation`). Two modes:
+ *
+ * - `form` — fill in fields described by `requestedSchema` (a flat JSON
+ *   Schema object of primitives, per the MCP spec).
+ * - `url` — open `url` in a browser to finish something out-of-band, usually
+ *   signing in. Claude Code 2.1.287 turned these on for servers speaking the
+ *   2025-11-25 protocol.
+ *
+ * Everything here is server-authored and untrusted: `url` must be checked for
+ * an http(s) scheme before it's ever made clickable, and `message` is shown
+ * as plain text.
+ */
+export type McpElicitationRequestEvent = {
+  type: "mcp_elicitation_request";
+  requestId: string;
+  serverName: string;
+  message: string;
+  mode: "form" | "url";
+  url?: string;
+  elicitationId?: string;
+  requestedSchema?: Record<string, unknown>;
+  /** MCP `_meta['anthropic/permissionDisplay']` hints, forwarded verbatim. */
+  title?: string;
+  displayName?: string;
+  description?: string;
+};
+
+/** Values an elicitation form can carry back (MCP `ElicitResult.content`). */
+export type ElicitationContent = Record<string, string | number | boolean | string[]>;
+
+/** The user's answer to an `mcp_elicitation_request`. */
+export type ElicitationDecision =
+  | { action: "accept"; content?: ElicitationContent }
+  | { action: "decline" }
+  | { action: "cancel" };
+
+/**
  * Best-effort coercion of the SDK's AskUserQuestion tool input into our
  * server-event shape. Defensive against schema drift — if the SDK changes
  * the field names, we drop unknown shapes rather than throw.
@@ -1063,6 +1122,8 @@ export type ServerEvent =
   | TipsEvent
   | CwdChangedEvent
   | AskUserQuestionEvent
+  | PromptSettledEvent
+  | McpElicitationRequestEvent
   | PlanApprovalRequestEvent
   | SessionSnapshotEvent
   | UsageSnapshotEvent

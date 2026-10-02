@@ -12,6 +12,8 @@ import {
   type EffortLevel,
   type McpSdkServerConfigWithInstance,
   type McpServerConfig,
+  type ElicitationRequest,
+  type ElicitationResult,
   type Options,
   type PermissionMode,
   type PermissionResult,
@@ -72,12 +74,15 @@ import {
   parseAskQuestions,
   type AskAnswer,
   type AskQuestion,
+  type ElicitationDecision,
   type GoalChangedEvent,
+  type McpElicitationRequestEvent,
   type PermissionDecision,
   type PermissionRequestEvent,
   type PlanDecision,
   type PlanUsageEvent,
   type PlanUsageUnavailableEvent,
+  type PromptSettledEvent,
   type ServerEvent,
   type SessionSnapshotEvent,
   type SessionUsageTotals,
@@ -912,6 +917,12 @@ type PendingAskQuestion = {
   resolve: (result: PermissionResult) => void;
 };
 
+type PendingElicitation = {
+  requestId: string;
+  resolve: (result: ElicitationResult) => void;
+  meta: McpElicitationRequestEvent;
+};
+
 type PendingPlan = {
   requestId: string;
   toolUseId: string;
@@ -978,6 +989,11 @@ export function shouldBufferEvent(event: ServerEvent): boolean {
   // fresh per-subscriber emit in `subscribe()` repaints them, and buffering
   // one per turn would crowd real history out of the FIFO cap.
   if (event.type === "usage_snapshot") return false;
+  // `prompt_settled` only matters to a tab that is live while the prompt
+  // leaves the pending set. A reconnecting tab gets the authoritative pending
+  // set from `subscribe()`'s re-emit, so replaying settles would only burn
+  // buffer capacity.
+  if (event.type === "prompt_settled") return false;
   if (event.type === "sdk" && (event.message as { type?: string })?.type === "command_lifecycle") {
     return false;
   }
@@ -1673,6 +1689,13 @@ export class Session {
   private holderId: string | null = null;
   private pendingPermissions = new Map<string, PendingPermission>();
   private pendingAskQuestions = new Map<string, PendingAskQuestion>();
+  /**
+   * MCP elicitations (SDK `Options.onElicitation`) waiting on the user — form
+   * input or a URL to open (sign-in). Without an `onElicitation` handler the
+   * SDK declines every elicitation automatically, which since Claude Code
+   * 2.1.287 includes URL sign-in prompts from 2025-11-25 servers.
+   */
+  private pendingElicitations = new Map<string, PendingElicitation>();
   private pendingPlans = new Map<string, PendingPlan>();
   private done = false;
   // True once a real user prompt has been pushed in THIS process. Gates the
@@ -2789,6 +2812,10 @@ export class Session {
         : {}),
       abortController: this.abortController,
       canUseTool: this.canUseTool,
+      // MCP elicitation (form input / URL sign-in). Without a handler the SDK
+      // declines every elicitation, so a server that asks the user to sign in
+      // just fails. See `onElicitation`.
+      onElicitation: this.onElicitation,
       includePartialMessages: true,
       // SDK 0.3.246: declare that this consumer renders its own per-task
       // stop control. Claudius already ships exactly that affordance —
@@ -3351,6 +3378,7 @@ export class Session {
             // drainPendingDecisions for the full rationale.
             void notificationBus.markReadByRequestId(this.cwd, requestId);
             p.resolve({ behavior: "deny", message: "Aborted" });
+            this.broadcastPromptSettled("ask", requestId);
             this.broadcastTurnStatusIfChanged();
           });
           return;
@@ -3397,10 +3425,87 @@ export class Session {
         // drainPendingDecisions for the full rationale.
         void notificationBus.markReadByRequestId(this.cwd, requestId);
         pending.resolve({ behavior: "deny", message: "Aborted" });
+        this.broadcastPromptSettled("permission", requestId);
         this.broadcastTurnStatusIfChanged();
       });
     });
   };
+
+  /**
+   * Tell live tabs a pending prompt is gone so they drop it from their queue.
+   * See {@link PromptSettledEvent}. Called on every exit from the pending
+   * maps — answered, aborted, or drained — so a tab that didn't answer it
+   * itself (a second tab, or an interrupted tool call) stops showing it.
+   */
+  private broadcastPromptSettled(kind: PromptSettledEvent["kind"], requestId: string): void {
+    this.broadcast({ type: "prompt_settled", kind, requestId });
+  }
+
+  /**
+   * SDK `Options.onElicitation` — an MCP server wants user input: a form
+   * (`requestedSchema`) or a URL to open (typically sign-in, which Claude
+   * Code 2.1.287 enabled for servers on the 2025-11-25 protocol).
+   *
+   * Same lifecycle as `canUseTool`: park the resolver in a pending map,
+   * broadcast the request, and settle it from `resolveElicitation()` (the
+   * `/elicitation` route), the abort signal, or `drainPendingDecisions()`.
+   * Abort and drain answer `cancel` — the user never saw a choice through,
+   * which is different from an explicit decline.
+   */
+  private onElicitation = (
+    request: ElicitationRequest,
+    options: { signal: AbortSignal },
+  ): Promise<ElicitationResult> => {
+    const requestId = randomUUID();
+    return new Promise<ElicitationResult>((resolve) => {
+      const meta: McpElicitationRequestEvent = {
+        type: "mcp_elicitation_request",
+        requestId,
+        serverName: request.serverName,
+        message: request.message,
+        mode: request.mode === "url" ? "url" : "form",
+        ...(request.url ? { url: request.url } : {}),
+        ...(request.elicitationId ? { elicitationId: request.elicitationId } : {}),
+        ...(request.requestedSchema ? { requestedSchema: request.requestedSchema } : {}),
+        ...(request.title ? { title: request.title } : {}),
+        ...(request.displayName ? { displayName: request.displayName } : {}),
+        ...(request.description ? { description: request.description } : {}),
+      };
+      this.pendingElicitations.set(requestId, { requestId, resolve, meta });
+      this.broadcast(meta);
+      this.broadcastTurnStatusIfChanged();
+
+      options.signal.addEventListener(
+        "abort",
+        () => {
+          const pending = this.pendingElicitations.get(requestId);
+          if (!pending) return;
+          this.pendingElicitations.delete(requestId);
+          void notificationBus.markReadByRequestId(this.cwd, requestId);
+          pending.resolve({ action: "cancel" });
+          this.broadcastPromptSettled("elicitation", requestId);
+          this.broadcastTurnStatusIfChanged();
+        },
+        { once: true },
+      );
+    });
+  };
+
+  resolveElicitation(requestId: string, decision: ElicitationDecision): boolean {
+    const pending = this.pendingElicitations.get(requestId);
+    if (!pending) return false;
+    this.pendingElicitations.delete(requestId);
+    void notificationBus.markReadByRequestId(this.cwd, requestId);
+    pending.resolve(
+      decision.action === "accept"
+        ? { action: "accept", ...(decision.content ? { content: decision.content } : {}) }
+        : { action: decision.action },
+    );
+    this.broadcastPromptSettled("elicitation", requestId);
+    this.broadcastTurnStatusIfChanged();
+    void this.flushQueueIfIdle().catch(() => {});
+    return true;
+  }
 
   resolvePermission(requestId: string, decision: PermissionDecision): boolean {
     const pending = this.pendingPermissions.get(requestId);
@@ -3409,6 +3514,7 @@ export class Session {
     // The request is now resolved — clear the matching inbox row so the user
     // doesn't keep seeing "Claude needs permission" after they've answered.
     void notificationBus.markReadByRequestId(this.cwd, requestId);
+    this.broadcastPromptSettled("permission", requestId);
 
     if (decision.kind === "deny") {
       pending.resolve({ behavior: "deny", message: decision.message ?? "User denied" });
@@ -3478,6 +3584,7 @@ export class Session {
     // Mirror resolvePermission: clear the matching inbox row so an answered
     // question stops showing as unread.
     void notificationBus.markReadByRequestId(this.cwd, requestId);
+    this.broadcastPromptSettled("ask", requestId);
 
     const hasAnyContent = answers.some((a) => {
       if (!a) return false;
@@ -6399,7 +6506,8 @@ export class Session {
     if (
       this.pendingPermissions.size === 0 &&
       this.pendingAskQuestions.size === 0 &&
-      this.pendingPlans.size === 0
+      this.pendingPlans.size === 0 &&
+      this.pendingElicitations.size === 0
     ) {
       return;
     }
@@ -6418,6 +6526,7 @@ export class Session {
       } catch {
         // resolver already settled — fine, we just needed the map slot freed
       }
+      this.broadcastPromptSettled("permission", id);
     }
     for (const [id, p] of this.pendingAskQuestions) {
       this.pendingAskQuestions.delete(id);
@@ -6427,6 +6536,17 @@ export class Session {
       } catch {
         // ignore
       }
+      this.broadcastPromptSettled("ask", id);
+    }
+    for (const [id, p] of this.pendingElicitations) {
+      this.pendingElicitations.delete(id);
+      void notificationBus.markReadByRequestId(this.cwd, id);
+      try {
+        p.resolve({ action: "cancel" });
+      } catch {
+        // ignore
+      }
+      this.broadcastPromptSettled("elicitation", id);
     }
     for (const [id, p] of this.pendingPlans) {
       this.pendingPlans.delete(id);
@@ -6572,6 +6692,7 @@ export class Session {
       if (
         ev.type === "permission_request" ||
         ev.type === "ask_user_question" ||
+        ev.type === "mcp_elicitation_request" ||
         ev.type === "plan_approval_request" ||
         // A one-shot feedback nudge tied to a turn that already finished —
         // replaying it on reload would re-pop a stale survey.
@@ -6757,6 +6878,9 @@ export class Session {
     for (const pending of this.pendingPermissions.values()) {
       fn(pending.meta);
     }
+    for (const pending of this.pendingElicitations.values()) {
+      fn(pending.meta);
+    }
     for (const pending of this.pendingPlans.values()) {
       fn({
         type: "plan_approval_request",
@@ -6905,7 +7029,8 @@ export class Session {
     return (
       this.pendingPermissions.size > 0 ||
       this.pendingAskQuestions.size > 0 ||
-      this.pendingPlans.size > 0
+      this.pendingPlans.size > 0 ||
+      this.pendingElicitations.size > 0
     );
   }
 
@@ -7160,6 +7285,7 @@ export class Session {
     if (this.pendingPermissions.size > 0) return "running";
     if (this.pendingAskQuestions.size > 0) return "running";
     if (this.pendingPlans.size > 0) return "running";
+    if (this.pendingElicitations.size > 0) return "running";
     if (this.hasActiveSubagents()) return "running";
     return "idle";
   }

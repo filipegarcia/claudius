@@ -356,6 +356,7 @@ function AddServerForm({
   const [headersText, setHeadersText] = useState("");
   const [envText, setEnvText] = useState("");
   const [alwaysLoad, setAlwaysLoad] = useState(false);
+  const [bareElicitation, setBareElicitation] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -388,6 +389,7 @@ function AddServerForm({
         args: args.trim() ? args.trim().split(/\s+/) : undefined,
         env: Object.keys(env.value).length ? env.value : undefined,
         alwaysLoad: alwaysLoad || undefined,
+        bareElicitationCapability: bareElicitation || undefined,
       };
     } else {
       if (!url.trim()) return setError("URL required");
@@ -398,6 +400,7 @@ function AddServerForm({
         url: url.trim(),
         headers: Object.keys(headers.value).length ? headers.value : undefined,
         alwaysLoad: alwaysLoad || undefined,
+        bareElicitationCapability: bareElicitation || undefined,
       };
     }
     setSubmitting(true);
@@ -511,6 +514,19 @@ function AddServerForm({
         <span>
           alwaysLoad — load tools immediately at startup (don&apos;t defer behind tool search; blocks startup until
           connected)
+        </span>
+      </label>
+      <label className="mt-1.5 flex items-center gap-2 text-xs text-[var(--muted)]">
+        <input
+          type="checkbox"
+          data-testid="mcp-bare-elicitation"
+          checked={bareElicitation}
+          onChange={(e) => setBareElicitation(e.target.checked)}
+          className="h-3 w-3"
+        />
+        <span>
+          bareElicitationCapability — only if this server won&apos;t connect: skips advertising URL sign-in prompts
+          (MCP 2025-11-25), which some older servers reject
         </span>
       </label>
       {error && (

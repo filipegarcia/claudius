@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { sessionManager } from "@/lib/server/session-manager";
 import type {
   AskUserQuestionEvent,
+  McpElicitationRequestEvent,
   PermissionRequestEvent,
 } from "@/lib/shared/events";
 
@@ -10,8 +11,10 @@ export const dynamic = "force-dynamic";
 
 /**
  * Returns interactive prompts that the agent is currently blocked on for
- * this session — questions awaiting an answer and permission requests
- * awaiting a decision. Powers the client's "fetch on mount / after replay"
+ * this session — questions awaiting an answer, permission requests awaiting
+ * a decision, and MCP elicitations (form input / URL sign-in). Each list is
+ * the full pending set in arrival order (oldest first); the client merges it
+ * into its local queues (`mergeServerPrompts` in lib/client/prompt-queue.ts). Powers the client's "fetch on mount / after replay"
  * recovery path so reloading a tab while the agent is mid-question still
  * shows the modal.
  *
@@ -36,6 +39,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
       { requestId: string; toolUseId: string; questions: AskUserQuestionEvent["questions"] }
     >;
     pendingPermissions?: Map<string, { requestId: string; meta: PermissionRequestEvent }>;
+    pendingElicitations?: Map<string, { requestId: string; meta: McpElicitationRequestEvent }>;
   };
 
   const asks: AskUserQuestionEvent[] = [];
@@ -57,5 +61,12 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
     }
   }
 
-  return NextResponse.json({ asks, permissions });
+  const elicitations: McpElicitationRequestEvent[] = [];
+  if (internals.pendingElicitations) {
+    for (const p of internals.pendingElicitations.values()) {
+      elicitations.push(p.meta);
+    }
+  }
+
+  return NextResponse.json({ asks, permissions, elicitations });
 }

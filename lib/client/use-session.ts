@@ -9,6 +9,8 @@ import type {
   PermissionDecision,
   PermissionRequestEvent,
   AskUserQuestionEvent,
+  McpElicitationRequestEvent,
+  ElicitationDecision,
   AskAnswer,
   FeedbackSurveyEvent,
   LongContextCreditsNudgeEvent,
@@ -38,6 +40,7 @@ import {
 } from "./sdk-message-filters";
 import { splitLeadingSystemReminders, stripGoalReminder } from "@/lib/shared/user-prompt";
 import { parseWorkflowMeta } from "@/lib/shared/workflow-meta";
+import { dropPrompt, enqueuePrompt, mergeServerPrompts } from "./prompt-queue";
 import { parseTaskListResult } from "@/lib/shared/parse-tasklist-result";
 import { newTabId } from "@/lib/client/tab-id";
 import {
@@ -948,8 +951,19 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
   const [systemEntries, setSystemEntries] = useState<SystemEntry[]>([]);
   const [toolProgress, setToolProgress] = useState<Record<string, ToolProgressInfo>>({});
   const [queue, setQueue] = useState<QueuedMessage[]>([]);
-  const [pendingPermission, setPendingPermission] = useState<PermissionRequestEvent | null>(null);
-  const [pendingAsk, setPendingAsk] = useState<AskUserQuestionEvent | null>(null);
+  // FIFO queues (oldest first) — several prompts can be pending at once when
+  // parallel subagents each ask. Only the head is shown; see prompt-queue.ts.
+  const [pendingPermissions, setPendingPermissions] = useState<PermissionRequestEvent[]>([]);
+  const [pendingAsks, setPendingAsks] = useState<AskUserQuestionEvent[]>([]);
+  const [pendingElicitations, setPendingElicitations] = useState<McpElicitationRequestEvent[]>([]);
+  const pendingPermission = pendingPermissions[0] ?? null;
+  const pendingAsk = pendingAsks[0] ?? null;
+  const pendingElicitation = pendingElicitations[0] ?? null;
+  // Ids of prompts this tab has seen leave (answered here, or
+  // `prompt_settled`), so a late subscribe() re-emit or an older
+  // `/pending-prompts` response can't resurrect them. Request ids are
+  // per-prompt UUIDs, so "gone" is permanent. Reset on session switch.
+  const promptGoneRef = useRef(new Set<string>());
   const [feedbackSurvey, setFeedbackSurvey] = useState<FeedbackSurveyEvent | null>(null);
   // One-shot "Opus is overloaded — switch to Sonnet" banner, broadcast by the
   // server after a streak of 529s on Opus. Live-only: skipped in the SSE
@@ -1478,7 +1492,6 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
   }, [hasMoreAbove]);
 
   const queueRef = useRef<QueuedMessage[]>([]);
-  const pendingPermissionRef = useRef<PermissionRequestEvent | null>(null);
   const pendingPlanRef = useRef<PendingPlan | null>(null);
   // UUIDs of assistant messages whose `usage` has already been folded into
   // the running session totals. Streaming can re-emit the same uuid as
@@ -1609,9 +1622,10 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     // the QueueIndicator strip with the right contents.
     setQueue([]);
     queueRef.current = [];
-    setPendingPermission(null);
-    pendingPermissionRef.current = null;
-    setPendingAsk(null);
+    setPendingPermissions([]);
+    setPendingAsks([]);
+    setPendingElicitations([]);
+    promptGoneRef.current.clear();
     setFeedbackSurvey(null);
     setOpusOverloadNudge(null);
     setApiRetry(null);
@@ -2080,13 +2094,26 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
         }));
         return;
       }
-      if (ev.type === "permission_request") {
-        setPendingPermission(ev);
-        pendingPermissionRef.current = ev;
+      if (
+        ev.type === "permission_request" ||
+        ev.type === "ask_user_question" ||
+        ev.type === "mcp_elicitation_request"
+      ) {
+        // Already answered here / settled: a re-emit on resubscribe can
+        // race the answer's POST — don't bring the prompt back.
+        if (promptGoneRef.current.has(ev.requestId)) return;
+        if (ev.type === "permission_request") setPendingPermissions((prev) => enqueuePrompt(prev, ev));
+        else if (ev.type === "ask_user_question") setPendingAsks((prev) => enqueuePrompt(prev, ev));
+        else setPendingElicitations((prev) => enqueuePrompt(prev, ev));
         return;
       }
-      if (ev.type === "ask_user_question") {
-        setPendingAsk(ev);
+      if (ev.type === "prompt_settled") {
+        // Answered in another tab, aborted with its tool call, or drained at
+        // session end — drop it so this tab doesn't keep a dead prompt up.
+        promptGoneRef.current.add(ev.requestId);
+        if (ev.kind === "permission") setPendingPermissions((prev) => dropPrompt(prev, ev.requestId));
+        else if (ev.kind === "ask") setPendingAsks((prev) => dropPrompt(prev, ev.requestId));
+        else setPendingElicitations((prev) => dropPrompt(prev, ev.requestId));
         return;
       }
       if (ev.type === "feedback_survey") {
@@ -2534,16 +2561,19 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
               const j = (await res.json().catch(() => ({}))) as {
                 asks?: AskUserQuestionEvent[];
                 permissions?: PermissionRequestEvent[];
+                elicitations?: McpElicitationRequestEvent[];
               };
               if (sessionIdRef.current !== id) return; // user switched
-              const ask = j.asks?.[0];
-              if (ask) {
-                setPendingAsk(ask);
-              }
-              const perm = j.permissions?.[0];
-              if (perm) {
-                setPendingPermission(perm);
-                pendingPermissionRef.current = perm;
+              // Each list is the server's full pending set, oldest first —
+              // merged into the queue, never replacing it (see
+              // `mergeServerPrompts` for why). A list missing from the body
+              // (older server) is simply skipped.
+              const gone = promptGoneRef.current;
+              const { asks, permissions, elicitations } = j;
+              if (Array.isArray(asks)) setPendingAsks((prev) => mergeServerPrompts(prev, asks, gone));
+              if (Array.isArray(permissions)) setPendingPermissions((prev) => mergeServerPrompts(prev, permissions, gone));
+              if (Array.isArray(elicitations)) {
+                setPendingElicitations((prev) => mergeServerPrompts(prev, elicitations, gone));
               }
             })
             .catch(() => {
@@ -5303,8 +5333,9 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
   const resolvePermission = useCallback(async (requestId: string, decision: PermissionDecision) => {
     const id = sessionIdRef.current;
     if (!id) return;
-    setPendingPermission(null);
-    pendingPermissionRef.current = null;
+    // Drop just this one — the next queued request (if any) shows next.
+    promptGoneRef.current.add(requestId);
+    setPendingPermissions((prev) => dropPrompt(prev, requestId));
     await fetch(`/api/sessions/${id}/permission`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -5314,11 +5345,24 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     // `flushQueueIfIdle()` after a successful resolve. No client trigger.
   }, []);
 
+  const resolveElicitation = useCallback(async (requestId: string, decision: ElicitationDecision) => {
+    const id = sessionIdRef.current;
+    if (!id) return;
+    promptGoneRef.current.add(requestId);
+    setPendingElicitations((prev) => dropPrompt(prev, requestId));
+    await fetch(`/api/sessions/${id}/elicitation`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ requestId, decision }),
+    }).catch(() => {});
+  }, []);
+
   const submitAskAnswer = useCallback(
     async (requestId: string, answers: AskAnswer[]) => {
       const id = sessionIdRef.current;
       if (!id) return;
-      setPendingAsk(null);
+      promptGoneRef.current.add(requestId);
+      setPendingAsks((prev) => dropPrompt(prev, requestId));
       await fetch(`/api/sessions/${id}/ask-answer`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -6097,7 +6141,11 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     toolProgress,
     queue,
     pendingPermission,
+    pendingPermissionCount: pendingPermissions.length,
     pendingAsk,
+    pendingAskCount: pendingAsks.length,
+    pendingElicitation,
+    pendingElicitationCount: pendingElicitations.length,
     feedbackSurvey,
     opusOverloadNudge,
     apiRetry,
@@ -6159,6 +6207,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     sendQueuedNow,
     sendAllQueuedNow,
     resolvePermission,
+    resolveElicitation,
     submitAskAnswer,
     submitFeedback,
     dismissFeedback,

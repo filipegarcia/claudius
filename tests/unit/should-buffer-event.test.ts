@@ -62,3 +62,10 @@ describe("shouldBufferEvent", () => {
     expect(shouldBufferEvent(event)).toBe(true);
   });
 });
+
+describe("shouldBufferEvent — prompt_settled", () => {
+  test("excludes prompt_settled (live-only; reconnecting tabs get the pending set re-emitted)", () => {
+    const event = { type: "prompt_settled", kind: "permission", requestId: "r1" } as ServerEvent;
+    expect(shouldBufferEvent(event)).toBe(false);
+  });
+});

@@ -9,6 +9,8 @@ import type {
   OpusOverloadNudgeEvent,
   PermissionDecision,
   PermissionRequestEvent,
+  McpElicitationRequestEvent,
+  ElicitationDecision,
   PlanDecision,
   ServerEvent,
   SessionReadyEvent,
@@ -732,7 +734,14 @@ export type ChatState = {
   systemEntries: SystemEntry[];
   toolProgress: Record<string, ToolProgressInfo>;
   queue: QueuedMessage[];
+  /** Oldest pending permission request — the one to show. Null when none. */
   pendingPermission: PermissionRequestEvent | null;
+  /**
+   * How many permission requests are queued, including `pendingPermission`.
+   * Several can stack up when parallel subagents each ask; the prompt shows
+   * "1 of N" (Claude Code 2.1.286 parity).
+   */
+  pendingPermissionCount: number;
   errors: string[];
   slashCommands: string[];
   agents: string[];
@@ -984,6 +993,16 @@ export type ChatState = {
    * resolving is `submitAskAnswer(requestId, answers)`.
    */
   pendingAsk: AskUserQuestionEvent | null;
+  /** How many AskUserQuestion forms are queued, including `pendingAsk`. */
+  pendingAskCount: number;
+  /**
+   * Oldest pending MCP elicitation — a server asking for form input or for
+   * the user to open a URL (usually to sign in). Resolved with
+   * `resolveElicitation`. Null when none.
+   */
+  pendingElicitation: McpElicitationRequestEvent | null;
+  /** How many MCP elicitations are queued, including `pendingElicitation`. */
+  pendingElicitationCount: number;
   /**
    * Active CLI-style feedback nudge, set when the server broadcasts a
    * `feedback_survey` after a turn. The browser shows a slim dismissible
@@ -1152,6 +1171,8 @@ export type ChatActions = {
    */
   sendAllQueuedNow(): Promise<void>;
   resolvePermission(requestId: string, decision: PermissionDecision): Promise<void>;
+  /** Answer a pending MCP elicitation (accept with form content, decline, or cancel). */
+  resolveElicitation(requestId: string, decision: ElicitationDecision): Promise<void>;
   interrupt(): Promise<void>;
   setPermissionMode(mode: PermissionMode): Promise<void>;
   /**

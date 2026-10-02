@@ -10,6 +10,12 @@ export type McpStdioConfig = {
   args?: string[];
   env?: Record<string, string>;
   alwaysLoad?: boolean;
+  /**
+   * Claude Code 2.1.287 escape hatch: advertise the bare (pre-2025-11-25)
+   * elicitation capability. Set it when a server stopped connecting after
+   * the CLI started offering URL elicitation.
+   */
+  bareElicitationCapability?: boolean;
 };
 
 export type McpHttpConfig = {
@@ -17,6 +23,12 @@ export type McpHttpConfig = {
   url: string;
   headers?: Record<string, string>;
   alwaysLoad?: boolean;
+  /**
+   * Claude Code 2.1.287 escape hatch: advertise the bare (pre-2025-11-25)
+   * elicitation capability. Set it when a server stopped connecting after
+   * the CLI started offering URL elicitation.
+   */
+  bareElicitationCapability?: boolean;
 };
 
 export type McpSseConfig = {
@@ -24,6 +36,12 @@ export type McpSseConfig = {
   url: string;
   headers?: Record<string, string>;
   alwaysLoad?: boolean;
+  /**
+   * Claude Code 2.1.287 escape hatch: advertise the bare (pre-2025-11-25)
+   * elicitation capability. Set it when a server stopped connecting after
+   * the CLI started offering URL elicitation.
+   */
+  bareElicitationCapability?: boolean;
 };
 
 export type McpServerConfig = McpStdioConfig | McpHttpConfig | McpSseConfig;
