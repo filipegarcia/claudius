@@ -77,12 +77,14 @@ import {
   type PlanUsageEvent,
   type PlanUsageUnavailableEvent,
   type ServerEvent,
+  type SessionSnapshotEvent,
   type SessionUsageTotals,
   type TaskResourceLink,
   type TaskSnapshotEntry,
 } from "@/lib/shared/events";
 import { getSessionUsage, saveSessionUsage } from "./session-usage-db";
 import { costFromTokens } from "@/lib/shared/cost-pricing";
+import { parseInitSystemMessage } from "@/lib/shared/parse-init";
 import { listSessionTasks, saveSessionTask } from "./session-tasks-db";
 import { attachLoopTickTokens, recordLoopTick } from "./loop-ticks-db";
 import { syncNeedsAuthNotifications } from "./mcp-needs-auth-db";
@@ -980,6 +982,42 @@ export function shouldBufferEvent(event: ServerEvent): boolean {
   return true;
 }
 
+/**
+ * Assemble the post-replay `session_snapshot`, or `null` when there's nothing
+ * worth rehydrating.
+ *
+ * Every field here is state that lives UPSTREAM of the tail-replay window and
+ * therefore can't be recovered from the buffer: the todo list may have been
+ * set hundreds of turns ago, the last user prompt is routinely buried under a
+ * long tool chain, and `system:init` is broadcast once at session start.
+ * Whenever a new field joins that category it belongs here — and the gate
+ * below has to grow with it, which is the part that's easy to forget: adding
+ * a field but not its clause means the snapshot silently doesn't fire for a
+ * session that has ONLY that field.
+ *
+ * Exported for unit testing — the assembly is pure and worth pinning down
+ * separately from the Session lifecycle, in the same spirit as
+ * {@link computeReplayWindow} and {@link shouldBufferEvent}.
+ */
+export function buildSessionSnapshot(parts: {
+  todos?: unknown[];
+  todosStale?: boolean;
+  lastUserPrompt?: SessionSnapshotEvent["lastUserPrompt"];
+  init?: SessionSnapshotEvent["init"];
+}): SessionSnapshotEvent | null {
+  // `todos` is checked for PRESENCE, not truthiness: an empty array is a
+  // meaningful payload (the list was explicitly cleared) and painting it is
+  // what overrides the list the client rebuilt from replayed TodoWrites.
+  const hasTodos = parts.todos !== undefined;
+  if (!hasTodos && !parts.lastUserPrompt && !parts.init) return null;
+  return {
+    type: "session_snapshot",
+    ...(hasTodos ? { todos: parts.todos ?? [], todosStale: parts.todosStale ?? false } : {}),
+    ...(parts.lastUserPrompt ? { lastUserPrompt: parts.lastUserPrompt } : {}),
+    ...(parts.init ? { init: parts.init } : {}),
+  };
+}
+
 export function computeReplayWindow(
   buffer: ReadonlyArray<ServerEvent>,
   tail: number | undefined,
@@ -1468,6 +1506,30 @@ export class Session {
    * so the pill survives reload/tab-switch on long sessions.
    */
   private sdkModel?: string;
+  /**
+   * Init-derived chrome (slash commands, subagents, skills, cwd) cached for
+   * `subscribe()` to re-emit on the `session_snapshot`.
+   *
+   * Exact same shape of problem as `sdkModel` above, and fixed the same way:
+   * `system:init` is broadcast once at session start, lands at buffer index
+   * ~1, and is sliced off the replay window for any session with more turns
+   * than `tail`. `ready` / `mode_changed` / `model_changed` already get an
+   * explicit echo in `subscribe()`; without this one, reconnecting or
+   * tab-switching into a long session leaves the client with an empty
+   * slash-command picker, no subagent list and no cwd — state the session
+   * itself still holds perfectly well.
+   *
+   * Re-emitted as inert data rather than by replaying the raw init event:
+   * the client's init branch also appends a "Session ready" transcript pill
+   * and resets the background-task gate, neither of which should fire again
+   * on a reconnect.
+   */
+  private latestInitSnapshot?: {
+    slashCommands: string[];
+    agents: string[];
+    skills: string[];
+    cwd?: string;
+  };
   /**
    * Main-thread agent name (SDK Options.agent). When set, the SDK applies the
    * agent's system prompt, tool restrictions, and model to the main
@@ -6570,17 +6632,16 @@ export class Session {
     // open. For a session that's never seen a TodoWrite, this stays a
     // no-op (the field isn't emitted at all).
     const hasTodosActivity = Number.isFinite(this.latestTodosSnapshotAt);
-    if (hasTodosActivity || this.latestUserPromptSnapshot) {
-      fn({
-        type: "session_snapshot",
-        ...(hasTodosActivity
-          ? { todos: this.latestTodosSnapshot ?? [], todosStale: this.todosStale }
-          : {}),
-        ...(this.latestUserPromptSnapshot
-          ? { lastUserPrompt: this.latestUserPromptSnapshot }
-          : {}),
-      });
-    }
+    const snapshot = buildSessionSnapshot({
+      ...(hasTodosActivity
+        ? { todos: this.latestTodosSnapshot ?? [], todosStale: this.todosStale }
+        : {}),
+      ...(this.latestUserPromptSnapshot
+        ? { lastUserPrompt: this.latestUserPromptSnapshot }
+        : {}),
+      ...(this.latestInitSnapshot ? { init: this.latestInitSnapshot } : {}),
+    });
+    if (snapshot) fn(snapshot);
     // Re-emit `ready` for tail-truncated sessions. `ready` is broadcast
     // exactly once at start() (sits at buffer index 0), so any session
     // with more turns than `tail` slices it off the replay window —
@@ -7285,6 +7346,17 @@ export class Session {
         // sessions whose init has fallen out of the replay window.
         if (sdkMsg.subtype === "init" && typeof sdkMsg.model === "string" && sdkMsg.model) {
           this.sdkModel = sdkMsg.model;
+        }
+        // Cache the init-derived chrome for `subscribe()` to re-emit. See
+        // `latestInitSnapshot` for why this can't just be a buffer replay.
+        if (sdkMsg.subtype === "init") {
+          const init = parseInitSystemMessage(sdkMsg);
+          this.latestInitSnapshot = {
+            slashCommands: init.slashCommands,
+            agents: init.agents,
+            skills: init.skills,
+            ...(init.cwd ? { cwd: init.cwd } : {}),
+          };
         }
         // Fire the one-shot MCP needs-auth notice on the first live system:init.
         if (sdkMsg.subtype === "init" && !this.isReplayingTranscript) {

@@ -2287,6 +2287,22 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
         //     even when the prompt is buried under a long tool chain
         //     and the tail window dropped it off the top).
         if (Array.isArray(ev.todos)) setLatestTodos(coerceTodos(ev.todos));
+        // Re-seed the chrome that only ever arrives on `system:init` — which
+        // sits at buffer index ~1 and is sliced off the replay window on any
+        // session longer than `tail`. Without this, reconnecting or
+        // tab-switching into a long session leaves the slash-command picker
+        // empty and the cwd badge blank on a perfectly healthy session.
+        //
+        // Guarded on non-empty exactly like the init branch: an empty list
+        // means "the server has nothing to say about this", not "the session
+        // genuinely has zero slash commands", and clobbering a populated list
+        // with `[]` would be a regression rather than a rehydration.
+        if (ev.init) {
+          if (ev.init.slashCommands.length) setSlashCommands(ev.init.slashCommands);
+          if (ev.init.agents.length) setAgents(ev.init.agents);
+          if (ev.init.skills.length) setSkills(ev.init.skills);
+          if (ev.init.cwd) setCwd(ev.init.cwd);
+        }
         // Mirror the server's staleness flag. Optional on the wire — absent
         // means "unchanged", so only react when it's an explicit boolean.
         if (typeof ev.todosStale === "boolean") setTodosStale(ev.todosStale);
@@ -4658,6 +4674,17 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
         armReconnectingBadge();
         if (es.readyState === EventSource.CONNECTING) return;
         if (es.readyState === EventSource.CLOSED) {
+          // Unconditional (not gated on the replay-debug flag): reaching here
+          // means the browser has permanently abandoned the transcript feed,
+          // and the cause lives in whatever response killed it — a dev-server
+          // rebuild, a 404 from `getOrResumeSession` inside the idle-reap
+          // window, a proxy. That cause is invisible after the fact, and
+          // recovery now papers over the symptom, so without a breadcrumb the
+          // underlying trigger would never get diagnosed. Mirrors the server's
+          // "silent transcript corruption" warn in `session.ts`.
+          console.warn(
+            `[claudius] SSE stream for session ${boundId} was closed by the browser (it will not retry) — rebuilding. Check the Network tab for the failed /stream response.`,
+          );
           setPendingTracked(false);
           scheduleStreamRecovery(boundId);
         }

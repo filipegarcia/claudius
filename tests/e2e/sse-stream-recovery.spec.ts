@@ -43,13 +43,28 @@ function sseBody(events: SdkEvent[]): string {
   return ["retry: 500\n\n", ...events.map((e) => `data: ${JSON.stringify(e)}\n\n`)].join("");
 }
 
+/**
+ * Only ever announced by `system:init` — so if it's still in the slash picker
+ * after a rebuild, the chrome was rehydrated rather than replayed.
+ */
+const SDK_COMMAND = "zz-fake-deploy";
+
 const PRELUDE: SdkEvent[] = [
   { type: "ready", sessionId: FAKE_SESSION_ID },
   {
     type: "sdk",
-    message: { type: "system", subtype: "init", uuid: "sys-1", model: "claude-sonnet-4-6" },
+    message: {
+      type: "system",
+      subtype: "init",
+      uuid: "sys-1",
+      model: "claude-sonnet-4-6",
+      slash_commands: [SDK_COMMAND],
+    },
   },
 ];
+
+/** The same `PRELUDE` minus `system:init` — what a tail-truncated window looks like. */
+const PRELUDE_WITHOUT_INIT: SdkEvent[] = [{ type: "ready", sessionId: FAKE_SESSION_ID }];
 
 function assistantEvent(uuid: string, text: string): SdkEvent {
   return {
@@ -195,5 +210,54 @@ test.describe("SSE stream recovery", () => {
     // stops trying once it has seen the 404, so every GET past the second can
     // only have come from our own timer.
     expect(attempts()).toBeGreaterThanOrEqual(5);
+  });
+
+  test("init-derived chrome survives a rebuild that replays no system:init", async ({
+    page,
+  }) => {
+    // `system:init` is broadcast once at session start, so it sits at buffer
+    // index ~1 and is sliced off the replay window for any session with more
+    // turns than `tail=20`. The server already re-emits `ready`,
+    // `mode_changed` and `model_changed` in `subscribe()` for exactly this
+    // reason — the slash commands, subagents, skills and cwd were the
+    // remaining hole, and a rebuild would leave them empty on a perfectly
+    // healthy session. They now ride on `session_snapshot.init`.
+    await mockChatBackend(page, [
+      { status: 200, events: [...PRELUDE, assistantEvent("a1", BEFORE_TEXT), ...TAIL] },
+      { status: 404 },
+      { status: 404 },
+      { status: 404 },
+      {
+        status: 200,
+        // Deliberately NO `system:init` — this is the truncated window the
+        // rehydration exists for. The chrome can only come from the snapshot.
+        events: [
+          ...PRELUDE_WITHOUT_INIT,
+          assistantEvent("a1", BEFORE_TEXT),
+          assistantEvent("a2", AFTER_TEXT),
+          {
+            type: "session_snapshot",
+            init: { slashCommands: [SDK_COMMAND], agents: [], skills: [] },
+          },
+          ...TAIL,
+        ],
+      },
+    ]);
+
+    await page.goto("/");
+    await expect(page.getByText(BEFORE_TEXT)).toBeVisible({ timeout: 15_000 });
+
+    // Wait for the rebuild to land before checking the chrome, so we're
+    // asserting against post-recovery state rather than the original init.
+    await expect(page.getByText(AFTER_TEXT)).toBeVisible({ timeout: 20_000 });
+
+    const composer = page.getByTestId("prompt-input");
+    await expect(composer).toBeEnabled({ timeout: 30_000 });
+    await composer.click();
+    await composer.pressSequentially("/zz-fake", { delay: 20 });
+
+    // Pre-fix this picker is empty: the rebuild cleared `slashCommands` and
+    // nothing in the replay put them back.
+    await expect(page.getByText(SDK_COMMAND).first()).toBeVisible({ timeout: 10_000 });
   });
 });

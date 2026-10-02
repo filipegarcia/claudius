@@ -591,6 +591,30 @@ export type SessionSnapshotEvent = {
    */
   todosStale?: boolean;
   /**
+   * Chrome the client seeds from the SDK's `system:init` message — the slash
+   * command list, subagent names, skills, and the session cwd.
+   *
+   * `system:init` is broadcast exactly once, at session start, so it sits at
+   * buffer index ~1 and any session with more turns than `tail` slices it off
+   * the replay window. `ready`, `mode_changed` and `model_changed` are already
+   * re-emitted in `subscribe()` for exactly this reason; these four were the
+   * remaining hole, and they go empty on every reconnect or tab switch into a
+   * long session (no slash-command picker, no cwd badge) even though the
+   * session is perfectly healthy.
+   *
+   * Carried here rather than by re-broadcasting the raw init event, because
+   * the client's init branch also appends a "Session ready" transcript pill
+   * and resets the background-task gate — replaying those on every reconnect
+   * would stamp a stale pill at the bottom of the chat. This field is inert
+   * state only: the client applies the setters and nothing else.
+   */
+  init?: {
+    slashCommands: string[];
+    agents: string[];
+    skills: string[];
+    cwd?: string;
+  };
+  /**
    * Latest top-level user prompt — the actual one the user typed, not a
    * tool_result wrapper. Replayed so a client that reconnects to a long
    * session (tail window dropped the prompt off the top) still gets the
