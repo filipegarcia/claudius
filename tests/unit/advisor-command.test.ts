@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import {
   ADVISOR_FABLE_VALUE,
+  ADVISOR_OPUS_55_VALUE,
   ADVISOR_OPUS_VALUE,
   ADVISOR_SONNET_VALUE,
   resolveAdvisorCommandArg,
@@ -25,6 +26,10 @@ describe("resolveAdvisorCommandArg", () => {
   });
 
   test("a verbatim product-blessed id resolves directly", () => {
+    expect(resolveAdvisorCommandArg(ADVISOR_OPUS_55_VALUE)).toEqual({
+      action: "set",
+      choice: ADVISOR_OPUS_55_VALUE,
+    });
     expect(resolveAdvisorCommandArg(ADVISOR_OPUS_VALUE)).toEqual({
       action: "set",
       choice: ADVISOR_OPUS_VALUE,
@@ -40,9 +45,14 @@ describe("resolveAdvisorCommandArg", () => {
   });
 
   test("family aliases resolve like the picker's own tolerance", () => {
+    // The bare alias resolves to the newest Opus — the recommended row.
     expect(resolveAdvisorCommandArg("opus")).toEqual({
       action: "set",
-      choice: ADVISOR_OPUS_VALUE,
+      choice: ADVISOR_OPUS_55_VALUE,
+    });
+    expect(resolveAdvisorCommandArg("claude-opus-5")).toEqual({
+      action: "set",
+      choice: ADVISOR_OPUS_55_VALUE,
     });
     expect(resolveAdvisorCommandArg("Sonnet")).toEqual({
       action: "set",
@@ -52,7 +62,7 @@ describe("resolveAdvisorCommandArg", () => {
       action: "set",
       choice: ADVISOR_FABLE_VALUE,
     });
-    // Older full id, still in the opus family.
+    // Older 4.x id lands on the Opus 4.8 row.
     expect(resolveAdvisorCommandArg("claude-opus-4-7")).toEqual({
       action: "set",
       choice: ADVISOR_OPUS_VALUE,

@@ -122,9 +122,9 @@ type Props = {
    * (see `lib/shared/advisor.ts`). Optional so the picker can be reused on
    * session-less surfaces (workspace defaults / new-session form) that don't
    * surface advisor controls. When provided as a non-`null` value not in our
-   * three-option list, we treat it as "(no advisor selected here)" and let the
+   * option list, we treat it as "(no advisor selected here)" and let the
    * user re-pick — we don't try to render an unknown model id as a custom
-   * fourth row.
+   * extra row.
    */
   advisorModel?: string | null;
   onPickAdvisor?: (model: AdvisorChoice) => Promise<void> | void;
@@ -688,7 +688,7 @@ export function ModelPicker({
       {/* Advisor (experimental). The SDK's server-side escalation model —
           when the main model needs stronger judgment, it pings the advisor
           and resumes. Rendered as the product-blessed options
-          (Opus 4.8 / Sonnet 5 / No advisor, plus Fable 5 for orgs with
+          (Opus 5.5 / Opus 4.8 / Sonnet 5 / No advisor, plus Fable 5 for orgs with
           access) regardless of the active
           model's `supportsEffort` etc., because the advisor is a separate
           model, not a setting of the main one. Hidden when the surface
@@ -805,7 +805,7 @@ export function ModelPicker({
               {/* Read-only "Custom" row — surfaces a non-listed advisor
                   value (haiku, hand-edited plugin id, etc.) so the user
                   can see what's actually persisted. Clicking one of the
-                  three blessed rows above overwrites the value; the
+                  blessed rows above overwrites the value; the
                   Custom row itself isn't clickable because we have no
                   way to choose a single canonical replacement for it. */}
               {custom && (

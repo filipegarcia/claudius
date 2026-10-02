@@ -187,13 +187,14 @@ test.describe("SDK 0.3.197 — Sonnet 5 advisor rename", () => {
     await expect(panel).toBeVisible({ timeout: 10_000 });
 
     const opts = panel.getByTestId("model-picker-advisor");
-    await expect(opts).toHaveCount(3);
-    await expect(opts.nth(0)).toHaveAttribute("data-advisor", "claude-opus-4-8");
+    await expect(opts).toHaveCount(4);
+    await expect(opts.nth(0)).toHaveAttribute("data-advisor", "claude-opus-5-5");
+    await expect(opts.nth(1)).toHaveAttribute("data-advisor", "claude-opus-4-8");
 
-    const sonnetRow = opts.nth(1);
+    const sonnetRow = opts.nth(2);
     await expect(sonnetRow).toHaveAttribute("data-advisor", "claude-sonnet-5");
     await expect(sonnetRow).toContainText("Sonnet 5");
-    await expect(opts.nth(2)).toHaveAttribute("data-advisor", "none");
+    await expect(opts.nth(3)).toHaveAttribute("data-advisor", "none");
 
     // Scroll the row into view and let the panel settle before the shot —
     // captures the full SessionCard chrome (trigger, header, all three

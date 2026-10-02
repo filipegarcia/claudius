@@ -30,7 +30,7 @@ export const runtime = "nodejs";
  *     advisor configured, so this is an honest "off".
  *
  * Values are constrained to the pickable choices listed in
- * `lib/shared/advisor.ts` (Opus 4.8 / Sonnet 5 / Fable 5 / none); unknown
+ * `lib/shared/advisor.ts` (Opus 5.5 / Opus 4.8 / Sonnet 5 / Fable 5 / none); unknown
  * strings collapse to `null`. Fable is accepted here for orgs that have
  * access — the UI only surfaces the Fable row when `supportedModels()`
  * advertises it, so a non-access org never sends it. Advanced users with a

@@ -12,9 +12,9 @@ import { test, expect, type Page, type Route } from "../helpers/test";
  *   - Inside the picker the verbatim Claude Code copy renders: the
  *     "(experimental)" header, the explanatory paragraph, the recommended
  *     setup line, and the learn-more link.
- *   - Three fixed options render in order: Opus 4.8 (marked recommended) /
- *     Sonnet 4.6 / No advisor. List is product-blessed, not derived from
- *     `supportedModels`.
+ *   - Fixed options render in order: Opus 5.5 (marked recommended) /
+ *     Opus 4.8 / Sonnet 5 / No advisor. List is product-blessed, not
+ *     derived from `supportedModels`.
  *   - Clicking an option POSTs `{ model: <value> | null }` to
  *     `/api/sessions/<id>/advisor`, which persists to settings.json AND
  *     calls `applyFlagSettings` mid-session. The picker stays open so the
@@ -192,7 +192,7 @@ async function mockChatBackend(page: Page, script: MockScript): Promise<void> {
 }
 
 test.describe("advisor picker", () => {
-  test("renders the verbatim Claude Code copy and the three options", async ({ page }) => {
+  test("renders the verbatim Claude Code copy and the fixed options", async ({ page }) => {
     const script: MockScript = {
       events: PRELUDE,
       models: MODELS,
@@ -230,17 +230,18 @@ test.describe("advisor picker", () => {
     const learnMore = panel.locator('a[href="https://claude.com/blog/the-advisor-strategy"]');
     await expect(learnMore).toBeVisible();
 
-    // Three radio rows, ordered Opus → Sonnet → None.
+    // Four radio rows, ordered Opus 5.5 → Opus 4.8 → Sonnet → None.
     const opts = panel.getByTestId("model-picker-advisor");
-    await expect(opts).toHaveCount(3);
-    await expect(opts.nth(0)).toHaveAttribute("data-advisor", "claude-opus-4-8");
-    await expect(opts.nth(1)).toHaveAttribute("data-advisor", "claude-sonnet-5");
-    await expect(opts.nth(2)).toHaveAttribute("data-advisor", "none");
+    await expect(opts).toHaveCount(4);
+    await expect(opts.nth(0)).toHaveAttribute("data-advisor", "claude-opus-5-5");
+    await expect(opts.nth(0)).toContainText("Opus 5.5");
+    await expect(opts.nth(1)).toHaveAttribute("data-advisor", "claude-opus-4-8");
+    await expect(opts.nth(2)).toHaveAttribute("data-advisor", "claude-sonnet-5");
+    await expect(opts.nth(3)).toHaveAttribute("data-advisor", "none");
 
-    // Only the Opus row carries the "recommended" badge.
+    // Only the Opus 5.5 row carries the "recommended" badge.
     await expect(opts.nth(0)).toContainText(/recommended/i);
-    await expect(opts.nth(1)).not.toContainText(/recommended/i);
-    await expect(opts.nth(2)).not.toContainText(/recommended/i);
+    for (const i of [1, 2, 3]) await expect(opts.nth(i)).not.toContainText(/recommended/i);
   });
 
   test("seeds the radio from GET /advisor and updates on click", async ({ page }) => {
@@ -338,8 +339,9 @@ test.describe("advisor picker", () => {
     //   the strict `normalizeAdvisorChoice` only matched the exact
     //   `claude-opus-4-8` string.
     // The fix: use family-matching (`advisorFamily`) for the radio
-    // highlight so an alias like `"opus"` (or an older full id like
-    // `"claude-opus-4-7"`) still checks the Opus row.
+    // highlight so an alias like `"opus"` still checks an Opus row. The
+    // bare alias resolves to the newest Opus, so it lands on Opus 5.5;
+    // older 4.x ids (`"claude-opus-4-7"`) land on Opus 4.8.
     const script: MockScript = {
       events: PRELUDE,
       models: MODELS,
@@ -358,7 +360,7 @@ test.describe("advisor picker", () => {
     await expect(panel).toBeVisible({ timeout: 10_000 });
 
     const opus = panel.locator(
-      '[data-testid="model-picker-advisor"][data-advisor="claude-opus-4-8"]',
+      '[data-testid="model-picker-advisor"][data-advisor="claude-opus-5-5"]',
     );
     const none = panel.locator(
       '[data-testid="model-picker-advisor"][data-advisor="none"]',
@@ -473,7 +475,7 @@ test.describe("advisor picker", () => {
     await expect(page.getByTestId("session-card-advisor-pill")).toHaveCount(0);
   });
 
-  test("offers Fable 5 as a fourth advisor row when the org has Fable access", async ({
+  test("offers Fable 5 as an extra advisor row when the org has Fable access", async ({
     page,
   }) => {
     // Claude Code 2.1.232 re-offers Fable 5 as an advisor — but only for
@@ -504,21 +506,22 @@ test.describe("advisor picker", () => {
     const panel = page.getByTestId("model-picker-panel");
     await expect(panel).toBeVisible({ timeout: 10_000 });
 
-    // Four rows now: Opus → Sonnet → Fable → None.
+    // Five rows now: Opus 5.5 → Opus 4.8 → Sonnet → Fable → None.
     const opts = panel.getByTestId("model-picker-advisor");
-    await expect(opts).toHaveCount(4);
-    await expect(opts.nth(0)).toHaveAttribute("data-advisor", "claude-opus-4-8");
-    await expect(opts.nth(1)).toHaveAttribute("data-advisor", "claude-sonnet-5");
-    await expect(opts.nth(2)).toHaveAttribute("data-advisor", "claude-fable-5");
-    await expect(opts.nth(2)).toContainText("Fable 5");
-    await expect(opts.nth(3)).toHaveAttribute("data-advisor", "none");
+    await expect(opts).toHaveCount(5);
+    await expect(opts.nth(0)).toHaveAttribute("data-advisor", "claude-opus-5-5");
+    await expect(opts.nth(1)).toHaveAttribute("data-advisor", "claude-opus-4-8");
+    await expect(opts.nth(2)).toHaveAttribute("data-advisor", "claude-sonnet-5");
+    await expect(opts.nth(3)).toHaveAttribute("data-advisor", "claude-fable-5");
+    await expect(opts.nth(3)).toContainText("Fable 5");
+    await expect(opts.nth(4)).toHaveAttribute("data-advisor", "none");
 
     // Picking Fable POSTs the pinned id.
-    await opts.nth(2).click();
+    await opts.nth(3).click();
     await expect
       .poll(() => script.capture.advisorPosts.length, { timeout: 5_000 })
       .toBeGreaterThan(0);
     expect(script.capture.advisorPosts.at(-1)?.model).toBe("claude-fable-5");
-    await expect(opts.nth(2)).toHaveAttribute("aria-checked", "true");
+    await expect(opts.nth(3)).toHaveAttribute("aria-checked", "true");
   });
 });

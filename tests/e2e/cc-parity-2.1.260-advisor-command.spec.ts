@@ -91,11 +91,13 @@ test.describe("Text form of /advisor (CC 2.1.260 parity)", () => {
     await composer.fill("/advisor opus");
     await page.getByTestId("prompt-send").click();
     const req = await advisorPost;
-    expect(JSON.parse(req.postData() ?? "{}")).toEqual({ model: "claude-opus-4-8" });
+    // The bare `opus` alias resolves to the newest Opus — the recommended
+    // Opus 5.5 advisor.
+    expect(JSON.parse(req.postData() ?? "{}")).toEqual({ model: "claude-opus-5-5" });
 
     const toast = page.getByTestId("chat-toast");
     await expect(toast).toBeVisible({ timeout: 5_000 });
-    await expect(toast).toContainText("Advisor → opus");
+    await expect(toast).toContainText("Advisor → opus 5.5");
 
     // Screenshot in context — chat surface + composer + toast, all visible.
     await page.waitForTimeout(150);

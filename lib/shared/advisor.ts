@@ -1,6 +1,7 @@
 /**
  * Single source of truth for the "Advisor" feature surface — the fixed
- * three-option choice (Opus 4.8 / Sonnet 5 / none) and the verbatim copy
+ * option list (Opus 5.5 / Opus 4.8 / Sonnet 5 / none, plus Fable 5 for orgs
+ * with access) and the verbatim copy
  * Claude Code's CLI shows in its advisor picker. Imported by both the
  * SessionCard's ModelPicker (per-session pick) and the global Settings page
  * (persisted default in settings.json), so the two surfaces can't drift.
@@ -8,9 +9,9 @@
  * Mechanism: the SDK exposes `Settings.advisorModel` (see
  * `node_modules/@anthropic-ai/claude-agent-sdk/sdk.d.ts`) — a model id the
  * SDK uses for its server-side advisor escalation. The runtime accepts any
- * model id, but the Claude Code product surface intentionally narrows the
- * UI to these three values (the picker the user is mirroring shows exactly
- * Opus 4.8, Sonnet 5, or "No advisor"). We don't derive this list from
+ * model id, but the product surface intentionally narrows the UI to a short
+ * fixed list (Opus 5.5 — recommended — Opus 4.8, Sonnet 5, or "No advisor",
+ * plus Fable 5 for orgs with access). We don't derive this list from
  * `supportedModels()` — it's a fixed product choice, not an enumeration of
  * everything the SDK could route to.
  *
@@ -21,6 +22,15 @@
  * moving forward, so the product-blessed advisor value tracks it here.
  */
 
+/**
+ * Model id corresponding to "Opus 5.5" in the picker — the recommended
+ * advisor. Opus 5.5 is the current Opus and the only non-Fable advisor the
+ * API accepts for every current main model up to Opus 5.5 itself; Sonnet 5.5
+ * and Opus 5.5 main models refuse the Opus 4.8 and Sonnet 5 advisors (see
+ * `advisorPairingRejected`), so recommending Opus 4.8 left those sessions
+ * with no valid recommended choice.
+ */
+export const ADVISOR_OPUS_55_VALUE = "claude-opus-5-5";
 /** Model id corresponding to "Opus 4.8" in the picker. */
 export const ADVISOR_OPUS_VALUE = "claude-opus-4-8";
 /** Model id corresponding to "Sonnet 5" in the picker. */
@@ -36,6 +46,7 @@ export const ADVISOR_SONNET_VALUE = "claude-sonnet-5";
 export const ADVISOR_FABLE_VALUE = "claude-fable-5";
 
 export type AdvisorChoice =
+  | typeof ADVISOR_OPUS_55_VALUE
   | typeof ADVISOR_OPUS_VALUE
   | typeof ADVISOR_SONNET_VALUE
   | typeof ADVISOR_FABLE_VALUE
@@ -51,24 +62,25 @@ export type AdvisorOption = {
 };
 
 /**
- * Order matches the Claude Code CLI exactly:
- *   1. Opus 4.8 (recommended)
- *   2. Sonnet 5
- *   3. No advisor
+ * Row order:
+ *   1. Opus 5.5 (recommended)
+ *   2. Opus 4.8
+ *   3. Sonnet 5
+ *   4. No advisor
  *
  * Keep this ordering stable — both the SessionCard picker and the Settings
  * page iterate this array directly to render their radio rows.
  */
 export const ADVISOR_OPTIONS: AdvisorOption[] = [
-  { value: ADVISOR_OPUS_VALUE, label: "Opus 4.8", recommended: true },
+  { value: ADVISOR_OPUS_55_VALUE, label: "Opus 5.5", recommended: true },
+  { value: ADVISOR_OPUS_VALUE, label: "Opus 4.8" },
   { value: ADVISOR_SONNET_VALUE, label: "Sonnet 5" },
   { value: null, label: "No advisor" },
 ];
 
 /**
  * The optional "Fable 5" row. Kept out of the base `ADVISOR_OPTIONS` so
- * that surfaces which can't verify org access (and the two e2e specs that
- * assert exactly three rows) keep their existing shape. Surfaces with an
+ * that surfaces which can't verify org access keep the base rows only. Surfaces with an
  * authoritative model list splice this in via `advisorOptions(true)`.
  */
 export const ADVISOR_FABLE_OPTION: AdvisorOption = {
@@ -77,7 +89,7 @@ export const ADVISOR_FABLE_OPTION: AdvisorOption = {
 };
 
 /**
- * Every advisor value the pickers may legitimately write back — the three
+ * Every advisor value the pickers may legitimately write back — the
  * product-blessed choices plus Fable. The advisor POST route uses this to
  * allowlist an incoming pick. Fable is always accepted at the write layer
  * (the runtime tolerates any advisor id, and gating access at write-time
@@ -85,6 +97,7 @@ export const ADVISOR_FABLE_OPTION: AdvisorOption = {
  * the Fable row from orgs without access.
  */
 export const ADVISOR_PICKABLE_VALUES: ReadonlyArray<AdvisorChoice> = [
+  ADVISOR_OPUS_55_VALUE,
   ADVISOR_OPUS_VALUE,
   ADVISOR_SONNET_VALUE,
   ADVISOR_FABLE_VALUE,
@@ -95,17 +108,12 @@ export const ADVISOR_PICKABLE_VALUES: ReadonlyArray<AdvisorChoice> = [
  * The advisor options to render, given whether the org has Fable access.
  * When `includeFable` is true the Fable row is inserted just before the
  * terminal "No advisor" row (most-capable escalation target listed after
- * the recommended Opus/Sonnet pair, before "off"). When false the list is
- * the base three — identical to `ADVISOR_OPTIONS`.
+ * the Opus/Sonnet rows, before "off"). When false the list is the base
+ * rows — identical to `ADVISOR_OPTIONS`.
  */
 export function advisorOptions(includeFable: boolean): AdvisorOption[] {
   if (!includeFable) return ADVISOR_OPTIONS;
-  return [
-    { value: ADVISOR_OPUS_VALUE, label: "Opus 4.8", recommended: true },
-    { value: ADVISOR_SONNET_VALUE, label: "Sonnet 5" },
-    ADVISOR_FABLE_OPTION,
-    { value: null, label: "No advisor" },
-  ];
+  return [...ADVISOR_OPTIONS.slice(0, -1), ADVISOR_FABLE_OPTION, ADVISOR_OPTIONS[ADVISOR_OPTIONS.length - 1]];
 }
 
 /**
@@ -153,7 +161,7 @@ export const ADVISOR_COPY = {
 } as const;
 
 /**
- * Strict normalization into one of our three known `AdvisorChoice` values
+ * Strict normalization into one of our known `AdvisorChoice` values
  * — `null` for anything else. Used at the *POST* layer to constrain what
  * the picker writes back over the wire: even if the user is currently on
  * a custom advisor id, clicking a radio row sends a clean product-blessed
@@ -161,6 +169,7 @@ export const ADVISOR_COPY = {
  * `advisorFamily` instead (it's tolerant of aliases and older ids).
  */
 export function normalizeAdvisorChoice(raw: unknown): AdvisorChoice {
+  if (raw === ADVISOR_OPUS_55_VALUE) return ADVISOR_OPUS_55_VALUE;
   if (raw === ADVISOR_OPUS_VALUE) return ADVISOR_OPUS_VALUE;
   if (raw === ADVISOR_SONNET_VALUE) return ADVISOR_SONNET_VALUE;
   if (raw === ADVISOR_FABLE_VALUE) return ADVISOR_FABLE_VALUE;
@@ -176,7 +185,7 @@ export function normalizeAdvisorChoice(raw: unknown): AdvisorChoice {
  * but-unknown-family, or a string from a different family (e.g. Haiku).
  *
  * The picker uses this to mark the right row as "current" when the user's
- * actual `advisorModel` isn't a verbatim match for our three options.
+ * actual `advisorModel` isn't a verbatim match for one of our options.
  * Without it, a user with `advisorModel: "opus"` would see the
  * "advisor: opus" badge on the closed card AND "No advisor" checked
  * inside the picker — the exact contradiction the user reported.
@@ -184,6 +193,7 @@ export function normalizeAdvisorChoice(raw: unknown): AdvisorChoice {
 export function advisorFamily(raw: unknown): AdvisorChoice {
   if (typeof raw !== "string" || raw.length === 0) return null;
   // Exact product-blessed ids — the cheapest match.
+  if (raw === ADVISOR_OPUS_55_VALUE) return ADVISOR_OPUS_55_VALUE;
   if (raw === ADVISOR_OPUS_VALUE) return ADVISOR_OPUS_VALUE;
   if (raw === ADVISOR_SONNET_VALUE) return ADVISOR_SONNET_VALUE;
   if (raw === ADVISOR_FABLE_VALUE) return ADVISOR_FABLE_VALUE;
@@ -196,8 +206,13 @@ export function advisorFamily(raw: unknown): AdvisorChoice {
   // bucket. We test the *raw* family token at the start of the string
   // (an id like `claude-opus-…` has `opus` right after the prefix).
   const lower = raw.toLowerCase().replace(/^claude-/, "");
-  if (lower === "opus" || lower.startsWith("opus-") || lower.startsWith("opus.")) {
-    return ADVISOR_OPUS_VALUE;
+  // Two Opus rows: Opus 4.x ids map to the Opus 4.8 row; Opus 5+ ids and
+  // the bare `opus` alias (which resolves to the newest Opus) map to the
+  // Opus 5.5 row.
+  if (lower === "opus") return ADVISOR_OPUS_55_VALUE;
+  if (lower.startsWith("opus-") || lower.startsWith("opus.")) {
+    const major = Number.parseInt(lower.slice(5), 10);
+    return Number.isFinite(major) && major <= 4 ? ADVISOR_OPUS_VALUE : ADVISOR_OPUS_55_VALUE;
   }
   if (lower === "sonnet" || lower.startsWith("sonnet-") || lower.startsWith("sonnet.")) {
     return ADVISOR_SONNET_VALUE;
@@ -224,7 +239,8 @@ export function isCustomAdvisor(raw: unknown): boolean {
 
 /** Short label suitable for a compact pill / badge (e.g. "opus", "sonnet"). */
 export function shortAdvisorLabel(value: AdvisorChoice): string | null {
-  if (value === ADVISOR_OPUS_VALUE) return "opus";
+  if (value === ADVISOR_OPUS_55_VALUE) return "opus 5.5";
+  if (value === ADVISOR_OPUS_VALUE) return "opus 4.8";
   if (value === ADVISOR_SONNET_VALUE) return "sonnet";
   if (value === ADVISOR_FABLE_VALUE) return "fable";
   return null;
@@ -241,7 +257,7 @@ export const ADVISOR_ACTIVE_SENTINEL = "(active)";
 
 /**
  * Short, human-readable badge text for *any* advisor model value — the
- * three known options get the curated label ("opus" / "sonnet"); the
+ * known options get the curated label ("opus 5.5" / "sonnet"); the
  * `ADVISOR_ACTIVE_SENTINEL` collapses to "on" (we know it's enabled but
  * not which model); a string we don't recognize (a model alias like
  * `"opus"` itself, an older full id like `"claude-opus-4-7"`, or a
@@ -252,13 +268,14 @@ export const ADVISOR_ACTIVE_SENTINEL = "(active)";
  * This is what the SessionCard's badge renders. It is intentionally
  * stricter than `shortAdvisorLabel` (which returns `null` for unknown
  * values) — the user has the advisor on and deserves to see it, even if
- * the exact id wasn't one of the three product-blessed options. Returns
+ * the exact id wasn't one of the product-blessed options. Returns
  * `null` only when the value is empty / null / not a string.
  */
 export function badgeAdvisorLabel(raw: unknown): string | null {
   if (typeof raw !== "string" || raw.length === 0) return null;
   if (raw === ADVISOR_ACTIVE_SENTINEL) return "on";
-  if (raw === ADVISOR_OPUS_VALUE) return "opus";
+  if (raw === ADVISOR_OPUS_55_VALUE) return "opus 5.5";
+  if (raw === ADVISOR_OPUS_VALUE) return "opus 4.8";
   if (raw === ADVISOR_SONNET_VALUE) return "sonnet";
   if (raw === ADVISOR_FABLE_VALUE) return "fable";
   // Best-effort compact form for any other string: matches the

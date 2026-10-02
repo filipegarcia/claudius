@@ -2062,8 +2062,8 @@ function AdvisorCatalogField({
   value: unknown;
   set: (v: unknown) => void;
 }) {
-  // Normalize whatever's currently in settings.json to one of our three
-  // known choices. An unknown string (e.g. a hand-edited custom model id)
+  // Normalize whatever's currently in settings.json to one of our known
+  // choices. An unknown string (e.g. a hand-edited custom model id)
   // collapses to "no advisor" in the UI — but we preserve the raw value
   // until the user clicks a different row, so an accidental load of this
   // page can't silently nuke a power-user override.
@@ -2180,7 +2180,7 @@ function AdvisorCatalogField({
           <li>
             <div
               className="flex items-center gap-2 rounded border border-amber-500/30 bg-amber-500/5 px-2 py-2"
-              title="A non-standard advisor model is persisted in settings.json. Pick one of the three options above to overwrite it, or edit settings.json directly to keep it."
+              title="A non-standard advisor model is persisted in settings.json. Pick one of the options above to overwrite it, or edit settings.json directly to keep it."
             >
               <span className="h-3 w-3 shrink-0 rounded-full border border-amber-500/40 bg-amber-500/20" />
               <span className="flex-1 truncate font-mono text-[11px] text-amber-200">

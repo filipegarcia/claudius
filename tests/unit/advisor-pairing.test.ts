@@ -1,9 +1,14 @@
 import { describe, expect, test } from "vitest";
 import {
   ADVISOR_FABLE_VALUE,
+  ADVISOR_OPTIONS,
+  ADVISOR_OPUS_55_VALUE,
   ADVISOR_OPUS_VALUE,
   ADVISOR_SONNET_VALUE,
+  advisorFamily,
+  advisorOptions,
   advisorPairingRejected,
+  badgeAdvisorLabel,
   canonicalModelId,
   prettyModelName,
 } from "@/lib/shared/advisor";
@@ -66,5 +71,48 @@ describe("prettyModelName", () => {
     expect(prettyModelName("claude-opus-4-8[1m]")).toBe("Opus 4.8");
     expect(prettyModelName("claude-fable-5")).toBe("Fable 5");
     expect(prettyModelName("sonnet")).toBe("sonnet");
+  });
+});
+
+describe("advisor options — Opus 5.5 recommended", () => {
+  test("Opus 5.5 is the first, recommended row and the only recommended one", () => {
+    expect(ADVISOR_OPTIONS.map((o) => o.value)).toEqual([
+      ADVISOR_OPUS_55_VALUE,
+      ADVISOR_OPUS_VALUE,
+      ADVISOR_SONNET_VALUE,
+      null,
+    ]);
+    expect(ADVISOR_OPTIONS.filter((o) => o.recommended).map((o) => o.value)).toEqual([ADVISOR_OPUS_55_VALUE]);
+    // Fable slots in just before "No advisor".
+    expect(advisorOptions(true).map((o) => o.value)).toEqual([
+      ADVISOR_OPUS_55_VALUE,
+      ADVISOR_OPUS_VALUE,
+      ADVISOR_SONNET_VALUE,
+      ADVISOR_FABLE_VALUE,
+      null,
+    ]);
+  });
+
+  test("the recommended advisor is accepted for every current non-Fable-5.1 main model", () => {
+    for (const main of [
+      "claude-haiku-4-5",
+      "claude-sonnet-4-6",
+      "claude-sonnet-5",
+      "claude-sonnet-5-5",
+      "claude-opus-4-8",
+      "claude-opus-5",
+      "claude-opus-5-5",
+    ]) {
+      expect(advisorPairingRejected(main, ADVISOR_OPUS_55_VALUE)).toBe(false);
+    }
+  });
+
+  test("family matching splits the two Opus rows by generation", () => {
+    expect(advisorFamily("opus")).toBe(ADVISOR_OPUS_55_VALUE);
+    expect(advisorFamily("claude-opus-5")).toBe(ADVISOR_OPUS_55_VALUE);
+    expect(advisorFamily("claude-opus-4-7")).toBe(ADVISOR_OPUS_VALUE);
+    expect(advisorFamily("claude-opus-4-8-20260101")).toBe(ADVISOR_OPUS_VALUE);
+    expect(badgeAdvisorLabel(ADVISOR_OPUS_55_VALUE)).toBe("opus 5.5");
+    expect(badgeAdvisorLabel(ADVISOR_OPUS_VALUE)).toBe("opus 4.8");
   });
 });
