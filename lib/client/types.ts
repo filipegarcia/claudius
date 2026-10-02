@@ -39,7 +39,12 @@ export type DisplayBlock =
       id: string;
       name: string;
       input: Record<string, unknown>;
-      result?: { content: string; isError?: boolean; staged?: boolean };
+      /**
+       * `detached`: SDK 0.3.287 — a WebFetch/WebSearch moved to the
+       * background for a priority "now" message; its real result lands in a
+       * later turn.
+       */
+      result?: { content: string; isError?: boolean; staged?: boolean; detached?: boolean };
       /**
        * Client-stamped wall-clock start (epoch ms), set the first time this
        * tool_use block is built and preserved across scratch-buffer rebuilds

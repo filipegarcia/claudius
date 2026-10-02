@@ -50,6 +50,8 @@ import { isBillingErrorSignal } from "./long-context-credits-detector";
 import {
   isAuthFailedErrorText,
   isAuthFailedSignal,
+  isOAuthRevokedSignal,
+  isOAuthRevokedText,
 } from "./auth-failed-detector";
 import { shouldWarnTokenExpiring } from "./token-expiry";
 import {
@@ -5904,13 +5906,14 @@ export class Session {
    * credential. Gated only on fire-once-per-session so a repeat 401 in the
    * same session doesn't re-pop a dismissed banner.
    */
-  private noteAuthFailedObservation(isAuthFailed: boolean): void {
+  private noteAuthFailedObservation(isAuthFailed: boolean, oauthRevoked = false): void {
     if (!isAuthFailed) return;
     if (this.authFailedNudgeFired) return;
     this.authFailedNudgeFired = true;
     this.broadcast({
       type: "auth_failed_required",
       model: this.model ?? "",
+      ...(oauthRevoked ? { reason: "oauth_revoked" as const } : {}),
     });
   }
 
@@ -8277,7 +8280,7 @@ export class Session {
         // "API Error: 401 / Failed to authenticate" assistant body — the
         // banner links to the accounts section so the user can swap their
         // credential without leaving the chat.
-        this.noteAuthFailedObservation(isAuthFailedSignal(message));
+        this.noteAuthFailedObservation(isAuthFailedSignal(message), isOAuthRevokedSignal(message));
         // Account-switcher auto-rotate. Fire-and-forget — the rotation
         // is a global-state side-effect, not blocking on the consumer
         // iterator. See `noteAccountAutoRotateObservation` for the
@@ -8577,7 +8580,7 @@ export class Session {
         // emitted). Feed the thrown message through the same auth detector
         // so the nudge still fires on this path. Mirrors the overload
         // catch-block hook one line above.
-        this.noteAuthFailedObservation(isAuthFailedErrorText(message));
+        this.noteAuthFailedObservation(isAuthFailedErrorText(message), isOAuthRevokedText(message));
       }
     } finally {
       this.done = true;

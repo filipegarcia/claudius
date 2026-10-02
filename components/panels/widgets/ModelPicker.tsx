@@ -20,9 +20,11 @@ import {
   ADVISOR_FABLE_VALUE,
   advisorOptions,
   advisorFamily,
+  advisorPairingRejected,
   type AdvisorChoice,
   hasFableModel,
   isCustomAdvisor,
+  prettyModelName,
 } from "@/lib/shared/advisor";
 
 /**
@@ -715,6 +717,14 @@ export function ModelPicker({
         const includeFable =
           hasFableModel(models) || current === ADVISOR_FABLE_VALUE;
         const advisorRows = advisorOptions(includeFable);
+        // CC 2.1.287 — flag advisor/main-model pairs the API refuses up front
+        // (the advisor must be at least as capable as the main model; e.g.
+        // Sonnet 5.5 refuses Opus 4.8 and Sonnet 5). Resolve an alias like
+        // "sonnet" through the fetched model list; anything we can't resolve
+        // to a known id is never flagged.
+        const executorId = activeModel?.resolvedModel ?? currentModel;
+        const executorLabel = prettyModelName(executorId);
+        const currentRejected = !!advisorModel && advisorPairingRejected(executorId, advisorModel);
         return (
           <div className="border-t border-[var(--border)]/60 px-3 py-2">
             <div className="flex items-center gap-1.5">
@@ -745,6 +755,7 @@ export function ModelPicker({
                   opt.value === null
                     ? current === null && custom === null
                     : opt.value === current;
+                const rejected = opt.value !== null && advisorPairingRejected(executorId, opt.value);
                 return (
                   <li key={opt.value ?? "none"}>
                     <button
@@ -754,6 +765,8 @@ export function ModelPicker({
                       data-testid="model-picker-advisor"
                       data-advisor={opt.value ?? "none"}
                       data-current={isCurrent ? "1" : "0"}
+                      data-rejected={rejected ? "1" : undefined}
+                      title={rejected ? `The API won't accept ${opt.label} as an advisor for ${executorLabel}` : undefined}
                       onClick={() => pickAdvisor(opt.value)}
                       className={cn(
                         "flex w-full items-center gap-2 rounded border px-2 py-1.5 text-left transition",
@@ -771,10 +784,19 @@ export function ModelPicker({
                       <span className="flex-1 truncate text-[11px] text-[var(--foreground)]">
                         {opt.label}
                       </span>
-                      {opt.recommended && (
-                        <span className="shrink-0 rounded border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-1 py-px text-[9px] text-[var(--accent)]">
-                          recommended
+                      {rejected ? (
+                        <span
+                          data-testid="model-picker-advisor-rejected"
+                          className="shrink-0 rounded border border-amber-500/40 bg-amber-500/10 px-1 py-px text-[9px] text-amber-300"
+                        >
+                          not for {executorLabel}
                         </span>
+                      ) : (
+                        opt.recommended && (
+                          <span className="shrink-0 rounded border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-1 py-px text-[9px] text-[var(--accent)]">
+                            recommended
+                          </span>
+                        )
                       )}
                     </button>
                   </li>
@@ -805,6 +827,15 @@ export function ModelPicker({
                 </li>
               )}
             </ul>
+            {currentRejected && (
+              <p
+                data-testid="model-picker-advisor-pairing-warning"
+                className="mt-2 rounded border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[10px] leading-snug text-amber-200"
+              >
+                The API won&apos;t accept {prettyModelName(advisorModel)} as an advisor for {executorLabel} — the
+                advisor must be at least as capable as the main model. Pick another advisor, or turn it off.
+              </p>
+            )}
             <p className="mt-2 text-[10px] leading-snug text-[var(--muted)]">
               {ADVISOR_COPY.recommended}
             </p>

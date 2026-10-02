@@ -304,3 +304,83 @@ export function resolveAdvisorCommandArg(rawArg: string): AdvisorCommandResult {
   if (!choice) return { action: "invalid", raw };
   return { action: "set", choice };
 }
+
+/**
+ * Canonical `claude-<family>-<major>[-<minor>]` id for a model string, or
+ * null when it isn't recognisable. Tolerates date suffixes
+ * (`claude-opus-4-20250514` → `claude-opus-4`), a `[1m]` suffix, and
+ * provider wrapping (`us.anthropic.claude-sonnet-5-5-v1:0`). Bare aliases
+ * (`"opus"`, `"sonnet"`) return null — resolve them through
+ * `supportedModels()` first.
+ */
+export function canonicalModelId(raw: string | null | undefined): string | null {
+  if (typeof raw !== "string" || !raw) return null;
+  const m = /claude-(opus|sonnet|haiku|fable|mythos)-(\d+)(?:[-.](\d)(?!\d))?(?!\d)/.exec(raw.toLowerCase());
+  if (!m) return null;
+  return m[3] ? `claude-${m[1]}-${m[2]}-${m[3]}` : `claude-${m[1]}-${m[2]}`;
+}
+
+const GEN5_ADVISORS = [
+  "claude-mythos-5-1",
+  "claude-fable-5-1",
+  "claude-mythos-5",
+  "claude-fable-5",
+  "claude-opus-5-5",
+  "claude-opus-5",
+];
+
+/**
+ * Executor (main model) → advisors the API accepts. An advisor must be at
+ * least as capable as the executor; anything else is a `400` from the
+ * advisor tool. Claude Code 2.1.287 started flagging refused pairs up front
+ * instead of silently dropping the advisor — notably Sonnet 5.5 refuses the
+ * Opus 4.8 and Sonnet 5 advisors, and Sonnet 5.5 can now advise Opus
+ * 4.7/4.8. Source: the Claude API advisor-tool pairing table.
+ */
+const ADVISOR_PAIRS: Record<string, readonly string[]> = (() => {
+  const upTo46 = [...GEN5_ADVISORS, "claude-opus-4-8", "claude-opus-4-7", "claude-opus-4-6", "claude-sonnet-5-5", "claude-sonnet-5", "claude-sonnet-4-6"];
+  const opus47 = [...GEN5_ADVISORS, "claude-opus-4-8", "claude-opus-4-7", "claude-sonnet-5-5"];
+  const gen5 = GEN5_ADVISORS;
+  const gen51 = ["claude-mythos-5-1", "claude-fable-5-1"];
+  return {
+    "claude-haiku-4-5": upTo46,
+    "claude-sonnet-4-6": upTo46,
+    "claude-sonnet-5": [...GEN5_ADVISORS, "claude-opus-4-8", "claude-opus-4-7", "claude-sonnet-5-5", "claude-sonnet-5"],
+    "claude-opus-4-6": [...GEN5_ADVISORS, "claude-opus-4-8", "claude-opus-4-7", "claude-opus-4-6", "claude-sonnet-5-5", "claude-sonnet-5"],
+    "claude-opus-4-7": opus47,
+    "claude-opus-4-8": opus47,
+    "claude-opus-5-5": gen5,
+    "claude-opus-5": gen5,
+    "claude-fable-5": gen5,
+    "claude-mythos-5": gen5,
+    "claude-fable-5-1": gen51,
+    "claude-mythos-5-1": gen51,
+    "claude-sonnet-5-5": [...GEN5_ADVISORS, "claude-sonnet-5-5"],
+  };
+})();
+
+/**
+ * `true` when the API is known to refuse `advisor` as the advisor for a
+ * session running `executor`. Unknown or unresolved models (aliases, custom
+ * ids, models newer than this table) return false — only flag what we know.
+ */
+export function advisorPairingRejected(
+  executor: string | null | undefined,
+  advisor: string | null | undefined,
+): boolean {
+  const exec = canonicalModelId(executor);
+  const adv = canonicalModelId(advisor);
+  if (!exec || !adv) return false;
+  const allowed = ADVISOR_PAIRS[exec];
+  if (!allowed) return false;
+  return !allowed.includes(adv);
+}
+
+/** "claude-sonnet-5-5" → "Sonnet 5.5" for warning copy. */
+export function prettyModelName(id: string | null | undefined): string {
+  const c = canonicalModelId(id);
+  if (!c) return id ?? "";
+  const [, family, major, minor] = /^claude-([a-z]+)-(\d+)(?:-(\d))?$/.exec(c) ?? [];
+  if (!family) return c;
+  return `${family[0].toUpperCase()}${family.slice(1)} ${major}${minor ? `.${minor}` : ""}`;
+}

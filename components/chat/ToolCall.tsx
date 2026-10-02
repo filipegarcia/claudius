@@ -35,7 +35,7 @@ const SCHEDULE_ACTION_LABELS: Record<string, string> = {
 type Props = {
   name: string;
   input: Record<string, unknown>;
-  result?: { content: string; isError?: boolean; staged?: boolean };
+  result?: { content: string; isError?: boolean; staged?: boolean; detached?: boolean };
   /**
    * Client-stamped wall-clock start (epoch ms) for this tool_use, from
    * `DisplayBlock`'s `startedAt`. Drives the live "Xs" / "Xm Ys" elapsed
@@ -129,6 +129,10 @@ export function ToolCall({
   // out of `result.content`, which for Edit/Write is plain prose ("The file
   // ... has been updated successfully."), never JSON.
   const staged = !result?.isError && result?.staged === true;
+  // SDK 0.3.287 — a WebFetch/WebSearch that stepped aside for a "Send all
+  // now" message reports `detachedToolCall`; it keeps loading in the
+  // background and the real result reaches the model in a later turn.
+  const detached = !result?.isError && result?.detached === true;
   const fileTarget = pathFromToolInput(input);
   // When the tool operates on a file inside the active workspace, link its
   // path to the in-app Files browser so the user can open it on our own file
@@ -265,6 +269,16 @@ export function ToolCall({
             >
               <Clock className="h-3 w-3" />
               Staged
+            </span>
+          )}
+          {detached && (
+            <span
+              data-testid="tool-call-detached-badge"
+              className="inline-flex items-center gap-1 rounded-md border border-sky-500/30 bg-sky-500/10 px-1.5 py-0.5 text-[10px] font-medium text-sky-300"
+              title="Moved to the background so your message could go first — the result arrives in a later turn"
+            >
+              <Clock className="h-3 w-3" />
+              Continuing in background
             </span>
           )}
           {status === "running" && (

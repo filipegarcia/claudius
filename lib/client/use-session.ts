@@ -698,11 +698,16 @@ function summarizeEventForDebug(ev: unknown): string {
  *   `tool_result.content` is plain prose ("The file ... has been updated
  *   successfully."), never JSON. The structured object lives here instead,
  *   as a sibling of `content` on the message, not inside it.
+ *
+ *   SDK 0.3.287: a WebFetch/WebSearch that steps aside for a priority "now"
+ *   message (our send-all-now path) reports `{ detachedToolCall: true }`
+ *   here; the real result arrives in a later turn. Surfaced as `detached`
+ *   so the card doesn't read as finished with a placeholder result.
  */
-function extractToolResult(
+export function extractToolResult(
   content: unknown,
   toolUseResult?: unknown,
-): { tool_use_id: string; text: string; isError?: boolean; staged?: boolean } | null {
+): { tool_use_id: string; text: string; isError?: boolean; staged?: boolean; detached?: boolean } | null {
   if (!Array.isArray(content)) return null;
   for (const raw of content as SDKContentBlock[]) {
     if (raw.type === "tool_result") {
@@ -713,11 +718,16 @@ function extractToolResult(
         text = tr.content
           .map((c) => (typeof c === "object" && c && "text" in c ? c.text ?? "" : ""))
           .join("");
-      const staged =
-        !!toolUseResult &&
-        typeof toolUseResult === "object" &&
-        (toolUseResult as { staged?: unknown }).staged === true;
-      return { tool_use_id: tr.tool_use_id, text, isError: tr.is_error, ...(staged ? { staged } : {}) };
+      const tur = toolUseResult && typeof toolUseResult === "object" ? (toolUseResult as Record<string, unknown>) : null;
+      const staged = tur?.staged === true;
+      const detached = tur?.detachedToolCall === true;
+      return {
+        tool_use_id: tr.tool_use_id,
+        text,
+        isError: tr.is_error,
+        ...(staged ? { staged } : {}),
+        ...(detached ? { detached } : {}),
+      };
     }
   }
   return null;
@@ -3253,7 +3263,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
               ...m,
               blocks: m.blocks.map((b) =>
                 b.kind === "tool_use" && b.id === result.tool_use_id
-                  ? { ...b, result: { content: result.text, isError: result.isError, staged: result.staged } }
+                  ? { ...b, result: { content: result.text, isError: result.isError, staged: result.staged, detached: result.detached } }
                   : b,
               ),
             })),
@@ -3265,7 +3275,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
                 ...m,
                 blocks: m.blocks.map((b) =>
                   b.kind === "tool_use" && b.id === result.tool_use_id
-                    ? { ...b, result: { content: result.text, isError: result.isError, staged: result.staged } }
+                    ? { ...b, result: { content: result.text, isError: result.isError, staged: result.staged, detached: result.detached } }
                     : b,
                 ),
               }));
@@ -6395,7 +6405,7 @@ function synthesizeOlder(raw: Array<Record<string, unknown>>): {
         if (idx === -1) continue;
         const blk = m.blocks[idx];
         if (blk.kind !== "tool_use") break;
-        const patched = { ...blk, result: { content: tr.text, isError: tr.isError, staged: tr.staged } };
+        const patched = { ...blk, result: { content: tr.text, isError: tr.isError, staged: tr.staged, detached: tr.detached } };
         const blocks = m.blocks.slice();
         blocks[idx] = patched;
         out[i] = { ...m, blocks };

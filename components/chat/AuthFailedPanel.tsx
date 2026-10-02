@@ -45,10 +45,17 @@ export function AuthFailedPanel({
     >
       <div className="mx-auto flex max-w-[var(--chat-col)] items-center gap-2">
         <KeyRound className="h-3.5 w-3.5 shrink-0 text-red-400" />
-        <span className="min-w-0 flex-1">
-          Failed to authenticate — Anthropic rejected the active credential
-          (HTTP 401). Add a new one or switch profile to keep going.
-        </span>
+        {nudge.reason === "oauth_revoked" ? (
+          <span data-testid="auth-failed-oauth-revoked" className="min-w-0 flex-1">
+            Your claude.ai login was revoked (OAuth token revoked). Sign in again or switch profile to keep
+            going.
+          </span>
+        ) : (
+          <span className="min-w-0 flex-1">
+            Failed to authenticate — Anthropic rejected the active credential
+            (HTTP 401). Add a new one or switch profile to keep going.
+          </span>
+        )}
         <Link
           href={ACCOUNTS_URL}
           onClick={onDismiss}

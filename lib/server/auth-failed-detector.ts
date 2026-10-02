@@ -83,3 +83,23 @@ export function isAuthFailedSignal(sdkMessage: unknown): boolean {
   // (2) Text fallback.
   return isAuthFailedErrorText(extractAssistantText(m.message));
 }
+
+/**
+ * Claude Code 2.1.287 / SDK 0.3.287: a revoked claude.ai login now reads
+ * "Failed to authenticate: OAuth token revoked" instead of a generic 401 or
+ * "does not have access". Distinguishing it lets the banner say what
+ * actually happened (the login was signed out elsewhere) rather than "the
+ * credential was rejected". Still an auth failure — this only refines the
+ * copy, never whether the nudge fires.
+ */
+export function isOAuthRevokedText(text: string): boolean {
+  return !!text && text.toLowerCase().includes("oauth token revoked");
+}
+
+/** {@link isOAuthRevokedText} over an SDK assistant message. Exported for unit testing. */
+export function isOAuthRevokedSignal(sdkMessage: unknown): boolean {
+  if (!sdkMessage || typeof sdkMessage !== "object") return false;
+  const m = sdkMessage as { type?: string; message?: unknown };
+  if (m.type !== "assistant") return false;
+  return isOAuthRevokedText(extractAssistantText(m.message));
+}

@@ -285,6 +285,12 @@ export type AuthFailedNudgeEvent = {
   type: "auth_failed_required";
   /** The model id active when the nudge fired (informational). */
   model: string;
+  /**
+   * Why, when known. `oauth_revoked` (SDK 0.3.287 / CC 2.1.287): the
+   * claude.ai login was revoked — "Failed to authenticate: OAuth token
+   * revoked" — so the fix is signing in again rather than replacing a key.
+   */
+  reason?: "oauth_revoked";
 };
 
 /**
