@@ -153,6 +153,15 @@
       .shot img {
         display: block;
       }
+      /* Two-column gallery with an odd number of shots: center the lone last
+         card at the same width instead of leaving it hugging the left edge. */
+      @media (min-width: 768px) {
+        #gallery .shot:last-child:nth-child(odd) {
+          grid-column: 1 / -1;
+          justify-self: center;
+          width: calc(50% - 0.75rem);
+        }
+      }
 
       /* ───────── Animated background ─────────
          A fixed layer behind every section: three soft, blurred orbs in
@@ -1148,6 +1157,20 @@ bun run electron:dist:linux   # AppImage + deb + rpm</code></pre>
             <figcaption class="px-5 py-4 border-t border-line">
               <div class="font-mono text-xs text-accent">/ · workflow</div>
               <div class="text-sm text-fg">For bigger jobs, Claude fans out a workflow — parallel sub-agents across phases. It renders inline: declared phases, live progress, and the script, collapsible right in the transcript.</div>
+            </figcaption>
+          </figure>
+
+          <!-- peer messages -->
+          <figure class="shot group rounded-lg border border-line overflow-hidden cursor-zoom-in hover:border-accent/70 transition-colors" role="button" tabindex="0">
+            <img
+              src="screenshots/peer-message.png"
+              alt="A message from another session, with the explainer tooltip open"
+              loading="lazy"
+              onerror="this.onerror=null;this.src='screenshots/_placeholder.svg'"
+            />
+            <figcaption class="px-5 py-4 border-t border-line">
+              <div class="font-mono text-xs text-accent">/ · peer messages</div>
+              <div class="text-sm text-fg">Run several sessions at once and they coordinate on their own — before touching a file, an agent checks in with its siblings. Replies land as a one-line message: hover to see who sent it and where it's running, or jump straight to that session.</div>
             </figcaption>
           </figure>
 

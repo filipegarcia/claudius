@@ -581,18 +581,53 @@ export function extractUserContent(content: unknown): {
  * empty-string / non-string values are treated the same as absent rather
  * than surfaced as a blank badge or bubble.
  *
+ * `pid` (`verifiedPeerPid`) and `msgId` (`msg_id`, an untyped wire field the
+ * CLI stamps on every peer delivery) let the UI locate the sending session —
+ * see `/api/sessions/peer-source`. Both are dropped when malformed.
+ *
  * Exported for unit testing.
  */
 export function extractPeerOrigin(
   msg: unknown,
-): { from: string; name?: string; body?: string } | undefined {
-  const origin = (msg as { origin?: { kind?: unknown; from?: unknown; name?: unknown; body?: unknown } } | null)
-    ?.origin;
+): { from: string; name?: string; body?: string; pid?: number; msgId?: string } | undefined {
+  const origin = (
+    msg as {
+      origin?: {
+        kind?: unknown;
+        from?: unknown;
+        name?: unknown;
+        body?: unknown;
+        verifiedPeerPid?: unknown;
+        msg_id?: unknown;
+      };
+    } | null
+  )?.origin;
   if (!origin || origin.kind !== "peer") return undefined;
   if (typeof origin.from !== "string" || !origin.from) return undefined;
   const name = typeof origin.name === "string" && origin.name ? origin.name : undefined;
   const body = typeof origin.body === "string" && origin.body ? origin.body : undefined;
-  return { from: origin.from, ...(name ? { name } : {}), ...(body ? { body } : {}) };
+  const pid =
+    typeof origin.verifiedPeerPid === "number" && Number.isSafeInteger(origin.verifiedPeerPid) && origin.verifiedPeerPid > 0
+      ? origin.verifiedPeerPid
+      : undefined;
+  const msgId = typeof origin.msg_id === "string" && origin.msg_id ? origin.msg_id : undefined;
+  return {
+    from: origin.from,
+    ...(name ? { name } : {}),
+    ...(body ? { body } : {}),
+    ...(pid ? { pid } : {}),
+    ...(msgId ? { msgId } : {}),
+  };
+}
+
+/** `extractPeerOrigin` result → the `DisplayMessage.peer` shape (no body). */
+function toDisplayPeer(p: NonNullable<ReturnType<typeof extractPeerOrigin>>): NonNullable<DisplayMessage["peer"]> {
+  return {
+    from: p.from,
+    ...(p.name ? { name: p.name } : {}),
+    ...(p.pid ? { pid: p.pid } : {}),
+    ...(p.msgId ? { msgId: p.msgId } : {}),
+  };
 }
 
 /**
@@ -3651,7 +3686,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
                   ...(images.length ? { images } : {}),
                   ...(typeof ev.at === "number" ? { createdAt: ev.at } : {}),
                   ...(peerOrigin
-                    ? { peer: { from: peerOrigin.from, ...(peerOrigin.name ? { name: peerOrigin.name } : {}) } }
+                    ? { peer: toDisplayPeer(peerOrigin) }
                     : {}),
                 },
               ];
@@ -6429,7 +6464,7 @@ function synthesizeOlder(raw: Array<Record<string, unknown>>): {
       ...(images.length ? { images } : {}),
       ...(Number.isFinite(parsedTs) ? { createdAt: parsedTs } : {}),
       ...(peerOrigin
-        ? { peer: { from: peerOrigin.from, ...(peerOrigin.name ? { name: peerOrigin.name } : {}) } }
+        ? { peer: toDisplayPeer(peerOrigin) }
         : {}),
     });
   }

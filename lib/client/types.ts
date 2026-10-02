@@ -165,8 +165,12 @@ export type DisplayMessage = {
    * name, absent on older emitters or when the wire wasn't exactly one
    * harness-formed envelope. Drives the "From `<name>`" badge in
    * `UserMessage.tsx`.
+   *
+   * `pid` (`origin.verifiedPeerPid`) and `msgId` (`origin.msg_id`) are what
+   * `/api/sessions/peer-source` keys on to find the sending session for the
+   * "open sender session" link — see `lib/server/peer-source.ts`.
    */
-  peer?: { from: string; name?: string };
+  peer?: { from: string; name?: string; pid?: number; msgId?: string };
 };
 
 export type TaskStatus = "pending" | "running" | "completed" | "failed" | "killed" | "stopped";

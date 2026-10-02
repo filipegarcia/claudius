@@ -135,7 +135,7 @@ export type PublicAccountsState = {
   autoRotateOnRateLimit: boolean;
 };
 
-function accountsDir(): string {
+export function accountsDir(): string {
   // Smoke / unit tests must NOT touch the user's real
   // ~/.claude/.claudius/accounts.json. We tried overriding `HOME`
   // and that didn't work — bun caches `os.homedir()` at the native

@@ -52,6 +52,36 @@ describe("extractPeerOrigin", () => {
     ).toEqual({ from: "session-abc" });
   });
 
+  test("carries verifiedPeerPid + msg_id for the sender-session link", () => {
+    expect(
+      extractPeerOrigin({
+        origin: {
+          kind: "peer",
+          from: "uds:/tmp/cc-socks/6151.sock",
+          name: "afrexim-99",
+          verifiedPeerPid: 6151,
+          msg_id: "9861e8f9-3c29-45c7-9fa5-3182778c60c5",
+        },
+      }),
+    ).toEqual({
+      from: "uds:/tmp/cc-socks/6151.sock",
+      name: "afrexim-99",
+      pid: 6151,
+      msgId: "9861e8f9-3c29-45c7-9fa5-3182778c60c5",
+    });
+  });
+
+  test("malformed pid / msg_id are dropped", () => {
+    expect(
+      extractPeerOrigin({
+        origin: { kind: "peer", from: "session-abc", verifiedPeerPid: -1, msg_id: 42 },
+      }),
+    ).toEqual({ from: "session-abc" });
+    expect(
+      extractPeerOrigin({ origin: { kind: "peer", from: "session-abc", verifiedPeerPid: 1.5 } }),
+    ).toEqual({ from: "session-abc" });
+  });
+
   test("non-string name/body are ignored rather than surfaced", () => {
     expect(
       extractPeerOrigin({

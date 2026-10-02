@@ -178,4 +178,73 @@ test.describe("Claude Code 2.1.247 — peer message collapse", () => {
     await row.click();
     await expect(page.getByText("All 412 checks passed.")).not.toBeVisible();
   });
+
+  test("hover explains the peer message; ↗ opens the sender session", async ({ page }, testInfo) => {
+    const SENDER_ID = "d7cd522c-97aa-4af7-8e30-8cecd23aa78e";
+    const QUEUED_PEER: SdkEvent = {
+      ...PEER_MESSAGE,
+      message: {
+        ...(PEER_MESSAGE.message as Record<string, unknown>),
+        // Queued (mid-turn) delivery shape: no verifiedPeerPid / msg_id —
+        // the sender is found by its socket address and body instead.
+        origin: {
+          kind: "peer",
+          from: "uds:/tmp/cc-socks/99549.sock",
+          name: "afrexim-99",
+          fromMode: "bypass",
+          body: "Deploy finished successfully.\nAll 412 checks passed.",
+        },
+      },
+    };
+    await mockChatBackend(page, [...PRELUDE, QUEUED_PEER, ASSISTANT_REPLY, RESULT]);
+    const lookups: URL[] = [];
+    await page.route("**/api/sessions/peer-source*", async (route: Route) => {
+      lookups.push(new URL(route.request().url()));
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          source: {
+            sessionId: SENDER_ID,
+            cwd: "/work/afrexim",
+            name: "afrexim-99",
+            // Running in another process → the link must open the read-only
+            // transcript rather than resume a second writer in chat.
+            live: true,
+            hostedHere: false,
+            workspaceId: null,
+          },
+        }),
+      });
+    });
+    await page.goto("/");
+
+    const row = page.getByTestId("user-message-peer-badge");
+    await expect(row).toContainText("Message from afrexim-99: Deploy finished successfully.");
+
+    const tooltip = page.getByTestId("user-message-peer-tooltip");
+    await expect(tooltip).toHaveCount(0);
+    // Side panels are still mounting at this point, which can slide the chat
+    // column out from under Playwright's stationary pointer — Chrome then
+    // fires mouseleave and the tip (correctly) closes. Re-hover until it's up.
+    await expect(async () => {
+      await row.hover();
+      await expect(tooltip).toBeVisible({ timeout: 1_500 });
+      await expect(tooltip).toContainText("Message from another session");
+      await expect(tooltip).toContainText("afrexim-99");
+      await expect(tooltip).toContainText("Running in another process");
+    }).toPass({ timeout: 15_000 });
+    await page.screenshot({ path: testInfo.outputPath("peer-message-tooltip.png") });
+
+    expect(lookups).toHaveLength(1);
+    expect(lookups[0].searchParams.get("from")).toBe("uds:/tmp/cc-socks/99549.sock");
+    expect(lookups[0].searchParams.get("snippet")).toBe(
+      "Deploy finished successfully.\nAll 412 checks passed.",
+    );
+
+    await page.getByTestId("user-message-peer-open").click();
+    await expect(page).toHaveURL(
+      new RegExp(`/wks_[a-f0-9]{12}/sessions/${SENDER_ID}\\?dir=%2Fwork%2Fafrexim$`),
+    );
+  });
 });

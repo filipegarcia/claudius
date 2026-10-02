@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Check, ChevronDown, ChevronRight, Copy, Sparkles, Target, Terminal, Undo2, Users } from "lucide-react";
+import { Check, Copy, Sparkles, Target, Terminal, Undo2 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import type { AttachedImage, DisplayMessage } from "@/lib/client/types";
 import { formatMessageTime } from "@/lib/client/format-message-time";
 import { ImageLightbox } from "./ImageLightbox";
+import { PeerMessageHeader } from "./PeerMessageHeader";
 import { Markdown } from "./Markdown";
 import { RewindFilesButton } from "./RewindFilesButton";
 import { parseUserTextWithBashIO } from "@/lib/shared/bash-io";
@@ -111,27 +112,16 @@ export function UserMessage({
         onClick={onJumpTo ? handleJump : undefined}
         title={onJumpTo ? "Scroll to this message" : undefined}
       >
-        {showPeerCollapse && (
-          <button
-            type="button"
-            data-testid="user-message-peer-badge"
-            onClick={(e) => {
-              e.stopPropagation();
-              setPeerExpanded((v) => !v);
-            }}
-            className="mb-1 flex w-full items-center justify-end gap-1 text-right text-[10px] uppercase tracking-wide text-[var(--muted)] hover:text-[var(--foreground)]"
-            title={`${peerExpanded ? "Collapse" : "Expand"} — sent by peer session${peer && peer.from !== peerLabel ? ` (${peer.from})` : ""}`}
-          >
-            <span className="min-w-0 truncate normal-case tracking-normal">
-              {peerMessagePreview(peerLabel!, text)}
-            </span>
-            <Users className="h-3 w-3 shrink-0" />
-            {peerExpanded ? (
-              <ChevronDown className="h-3 w-3 shrink-0" />
-            ) : (
-              <ChevronRight className="h-3 w-3 shrink-0" />
-            )}
-          </button>
+        {showPeerCollapse && peer && (
+          <PeerMessageHeader
+            peer={peer}
+            label={peerLabel!}
+            preview={peerMessagePreview(peerLabel!, text)}
+            body={text}
+            createdAt={message.createdAt}
+            expanded={peerExpanded}
+            onToggle={() => setPeerExpanded((v) => !v)}
+          />
         )}
         {fromGoal && !isPureBashEcho && (
           <div
