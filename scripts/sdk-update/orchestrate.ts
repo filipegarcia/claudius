@@ -1367,6 +1367,109 @@ export function validateTypeSurfaceCoverage(
   );
 }
 
+/** `foo_bar` → `fooBar` (SDK snake_case field → the camelCase our code tends to use). */
+function snakeToCamel(s: string): string {
+  return s.replace(/_+([a-zA-Z0-9])/g, (_m, c: string) => c.toUpperCase());
+}
+
+/** `fooBar` → `foo_bar` (our camelCase → the SDK's snake_case wire name). */
+function camelToSnake(s: string): string {
+  return s.replace(/([a-z0-9])([A-Z])/g, "$1_$2").toLowerCase();
+}
+
+/**
+ * The name-forms a `[shipped]` identifier might legitimately take in our
+ * code: the raw SDK name plus its snake⇄camel transliterations. The SDK
+ * declares a field snake_case on the wire (`plugin_errors`) but a host
+ * usually binds it camelCase (`pluginErrors`); either is real evidence.
+ * Exported for unit tests.
+ */
+export function identifierVariants(identifier: string): string[] {
+  return [...new Set([identifier, snakeToCamel(identifier), camelToSnake(identifier)])];
+}
+
+/**
+ * Whether the run-notes CLAIM `identifier` was shipped — any line that
+ * both names it and carries a `[shipped]` tag. `[skipped — …]` does not
+ * match ("skipped" contains no "shipped" substring), and markdown emphasis
+ * around the word (`[**shipped**]`) is tolerated by stripping `*` and
+ * backticks before the test. Exported for unit tests.
+ */
+export function isClaimedShipped(md: string, identifier: string): boolean {
+  for (const rawLine of md.split(/\r?\n/)) {
+    if (!rawLine.includes(identifier)) continue;
+    const line = rawLine.replace(/[*`]/g, "").toLowerCase();
+    if (line.includes("[shipped")) return true;
+  }
+  return false;
+}
+
+/**
+ * Phantom-implementation gate — the 0.3.283 failure mode.
+ *
+ * `validateTypeSurfaceCoverage` only checks that a new identifier TAKES a
+ * position in the notes; it is satisfied by the word `[shipped]` alone.
+ * That is exactly what let the 0.3.283 run-notes describe `plugin_errors`
+ * and `maxProseWidth` as "shipped end-to-end" — naming a `parsePluginErrors`
+ * function, a spec file, a screenshot — while the committed diff contained
+ * ZERO code for either. Every gate passed: the notes took a position, and
+ * lint/build/e2e saw no changed code so nothing broke. The claim was
+ * fiction and shipped as the PR body.
+ *
+ * This closes the loop the run-notes stub already demands ("every claim in
+ * Code changes must map to a real hunk in `git diff main...HEAD`"): for
+ * every identifier the notes tag `[shipped]`, the identifier — or a
+ * snake⇄camel variant — must appear in the ADDED lines of the *product*
+ * diff (committed code + tests, with the notes/docs that carry the claim
+ * stripped out; see `collectProductDiffAdded`). An identifier claimed
+ * shipped but present nowhere except the prose is a phantom.
+ *
+ * Deliberately conservative: it only fires on `[shipped]` (not
+ * `[type-only]`/`[skipped]`), matches case-insensitively on the variant
+ * set, and fails OPEN when the diff is unavailable — so a genuine ship is
+ * near-impossible to flag (a built field almost always appears by name in
+ * a type, a field access, or a test; a field consumed generically should
+ * be `[type-only]`, which this never inspects). The cost of a miss is a
+ * draft PR + human look, same as any other red gate.
+ *
+ * Shares the `MAX_GATED_IDENTIFIERS` (40) cap with the coverage gate: a
+ * single huge catch-up window can cap the list and drop an identifier
+ * before it's checked. The narrow per-release run that ORIGINATES a
+ * phantom stays well under the cap, so the common case is covered; a
+ * capped mega-bump is a known blind spot, not a regression.
+ *
+ * Returns null when no phantom is found. Exported for unit tests.
+ */
+export function validateNoPhantomShipped(
+  md: string,
+  identifiers: string[],
+  productDiffAdded: string,
+): string | null {
+  if (identifiers.length === 0) return null;
+  // Fail open on a missing diff — never manufacture a red gate from an
+  // input we couldn't read (mirrors fetchTypeSurfaceDiff's empty-list path).
+  if (productDiffAdded.trim() === "") return null;
+  const haystack = productDiffAdded.toLowerCase();
+  const phantom: string[] = [];
+  for (const id of identifiers) {
+    if (!isClaimedShipped(md, id)) continue;
+    const present = identifierVariants(id).some((v) =>
+      haystack.includes(v.toLowerCase()),
+    );
+    if (!present) phantom.push(id);
+  }
+  if (phantom.length === 0) return null;
+  const shown = phantom.slice(0, 12).join(", ");
+  const more = phantom.length > 12 ? `, +${phantom.length - 12} more` : "";
+  return (
+    `run-notes tag ${phantom.length} identifier(s) [shipped] with no matching ` +
+    `code in \`git diff origin/main...HEAD\`: ${shown}${more} — a [shipped] ` +
+    `claim must map to a real hunk, not just the notes. If the field is ` +
+    `consumed generically with code of its own, tag it [type-only]; if it ` +
+    `was not actually built, tag it [skipped — reason]. (phantom-implementation gate)`
+  );
+}
+
 /**
  * Extract the two versions' `.d.ts` files and diff them.
  *
@@ -2832,6 +2935,87 @@ function validateTypeSurfaceCoverageForRun(
   const path = runNotesPath(version);
   if (!existsSync(path)) return null;
   return validateTypeSurfaceCoverage(readFileSync(path, "utf8"), identifiers);
+}
+
+/**
+ * A diff path that only CARRIES a `[shipped]` claim rather than
+ * implements it — the run-notes and other `.claudius/` artifacts, `docs/`,
+ * `site/`, the dependency manifest/lockfile bump, and SDK `.d.ts` files.
+ * Added lines in these files are NOT evidence a field was built.
+ */
+export function isClaimCarryingPath(p: string): boolean {
+  return (
+    p.startsWith(".claudius/") ||
+    p.startsWith("docs/") ||
+    p.startsWith("site/") ||
+    p.endsWith(".d.ts") ||
+    p === "package.json" ||
+    p === "bun.lock"
+  );
+}
+
+/**
+ * Pure half of `collectProductDiffAdded`: given the text of a
+ * `git diff`, return the ADDED source lines from files that aren't
+ * claim-carrying (see `isClaimCarryingPath`). Split out so the parsing —
+ * the part where a silent no-op would hide a dead gate — is unit-tested
+ * without shelling to git. Exported for that reason.
+ */
+export function parseAddedProductLines(diff: string): string {
+  const out: string[] = [];
+  let excluded = false;
+  for (const line of diff.split(/\r?\n/)) {
+    const m = /^diff --git a\/.+? b\/(.+)$/.exec(line);
+    if (m) {
+      excluded = isClaimCarryingPath(m[1]!);
+      continue;
+    }
+    if (excluded) continue;
+    // `+++ b/…` is a file header, not an added source line.
+    if (line.startsWith("+") && !line.startsWith("+++")) out.push(line.slice(1));
+  }
+  return out.join("\n");
+}
+
+/**
+ * Concatenate the ADDED product lines of `git diff origin/main...HEAD` —
+ * the committed code + tests a `[shipped]` claim must show up in, with the
+ * notes/docs that carry the claim stripped out (see `isClaimCarryingPath`).
+ * Never throws — returns "" on any git failure so `validateNoPhantomShipped`
+ * fails open.
+ */
+function collectProductDiffAdded(): string {
+  // Best-effort refresh so a stale origin/main can't manufacture or mask a
+  // phantom; ignore failures (offline/transient) and use the ref we have.
+  // spawnSync (not `sh`) so a non-zero fetch never throws here.
+  spawnSync("git", ["fetch", "origin", "main", "--quiet"], {
+    cwd: ROOT,
+    encoding: "utf8",
+  });
+  try {
+    return parseAddedProductLines(sh("git", ["diff", "origin/main...HEAD"]));
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * Disk+git wrapper for `validateNoPhantomShipped`, mirroring
+ * `validateTypeSurfaceCoverageForRun`. Runs only on a positive identifier
+ * list and an existing notes file; gathers the product diff itself.
+ */
+function validateNoPhantomShippedForRun(
+  version: string,
+  identifiers: string[],
+): string | null {
+  if (identifiers.length === 0) return null;
+  const path = runNotesPath(version);
+  if (!existsSync(path)) return null;
+  return validateNoPhantomShipped(
+    readFileSync(path, "utf8"),
+    identifiers,
+    collectProductDiffAdded(),
+  );
 }
 
 /**
@@ -5766,7 +5950,8 @@ async function main(): Promise<void> {
     // explicit "no changes needed" analysis, because reviewers have
     // nothing to react to. Treat it the same as a red gate.
     const runNotesIssue = validateRunNotes(newVersion)
-      ?? validateTypeSurfaceCoverageForRun(newVersion, typeSurface.identifiers);
+      ?? validateTypeSurfaceCoverageForRun(newVersion, typeSurface.identifiers)
+      ?? validateNoPhantomShippedForRun(newVersion, typeSurface.identifiers);
     if (runNotesIssue && !budgetReason) {
       budgetReason = runNotesIssue;
       log(`gate: run-notes validation FAILED — ${runNotesIssue}`);

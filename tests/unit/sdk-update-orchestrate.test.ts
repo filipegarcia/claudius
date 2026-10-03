@@ -20,6 +20,11 @@ import {
   extractDeclarationChanges,
   renderTypeSurfaceBlock,
   validateTypeSurfaceCoverage,
+  validateNoPhantomShipped,
+  isClaimedShipped,
+  identifierVariants,
+  parseAddedProductLines,
+  isClaimCarryingPath,
   classifyToolResults,
   looksLikeDeadWebServer,
   looksLikeDeferredFinish,
@@ -1858,5 +1863,181 @@ describe("validateTypeSurfaceCoverage", () => {
     ]);
     expect(reason).toContain("7 newly-added");
     expect(reason).toContain("modelPricing");
+  });
+});
+
+describe("identifierVariants", () => {
+  test("bridges snake_case → camelCase", () => {
+    expect(identifierVariants("plugin_errors")).toContain("pluginErrors");
+  });
+
+  test("bridges camelCase → snake_case", () => {
+    expect(identifierVariants("maxProseWidth")).toContain("max_prose_width");
+  });
+
+  test("always includes the raw identifier and dedupes a no-op transform", () => {
+    expect(identifierVariants("pinned")).toEqual(["pinned"]);
+  });
+});
+
+describe("isClaimedShipped", () => {
+  test("true when the identifier's line carries a [shipped] tag", () => {
+    const md = "- `plugin_errors` on `system/init` [shipped — Plugins page section].";
+    expect(isClaimedShipped(md, "plugin_errors")).toBe(true);
+  });
+
+  test("tolerates markdown emphasis around the tag", () => {
+    const md = "- `maxProseWidth` (`Settings`) [**shipped this PR** — Display row].";
+    expect(isClaimedShipped(md, "maxProseWidth")).toBe(true);
+  });
+
+  test("[skipped — …] does not read as shipped (no 'shipped' substring in 'skipped')", () => {
+    const md = "- `view_mode` on `system/init` [skipped — focus view is CLI-only].";
+    expect(isClaimedShipped(md, "view_mode")).toBe(false);
+  });
+
+  test("false when the identifier is not named on any shipped line", () => {
+    const md = "- `plugin_errors` [shipped].\n- `maxProseWidth` [type-only].";
+    expect(isClaimedShipped(md, "maxProseWidth")).toBe(false);
+  });
+});
+
+describe("validateNoPhantomShipped", () => {
+  // The exact 0.3.283 failure: notes claim both fields shipped, but the
+  // committed product diff contains neither — a phantom implementation.
+  const phantomNotes =
+    "## SDK changelog highlights\n" +
+    "- `plugin_errors` on `system/init` [shipped — new 'Failed to load' section].\n" +
+    "- `maxProseWidth` (`Settings`) [shipped — Settings → Display row].\n";
+
+  test("flags a [shipped] identifier with no matching code in the diff", () => {
+    const diff = "+  const unrelated = 1;\n+  return unrelated;";
+    const reason = validateNoPhantomShipped(
+      phantomNotes,
+      ["plugin_errors", "maxProseWidth"],
+      diff,
+    );
+    expect(reason).not.toBeNull();
+    expect(reason).toContain("2 identifier(s) [shipped]");
+    expect(reason).toContain("plugin_errors");
+    expect(reason).toContain("maxProseWidth");
+    expect(reason).toContain("phantom-implementation gate");
+  });
+
+  test("passes a genuine ship via the snake→camel variant bridge", () => {
+    // Notes say `plugin_errors`; code binds it camelCase as `pluginErrors`.
+    const diff =
+      "+  const [pluginErrors, setPluginErrors] = useState([]);\n" +
+      "+  maxProseWidth?: number;";
+    expect(
+      validateNoPhantomShipped(phantomNotes, ["plugin_errors", "maxProseWidth"], diff),
+    ).toBeNull();
+  });
+
+  test("ignores [skipped] / [type-only] identifiers entirely", () => {
+    const notes =
+      "- `view_mode` [skipped — CLI-only].\n- `severity` [type-only].\n";
+    expect(
+      validateNoPhantomShipped(notes, ["view_mode", "severity"], "+ unrelated code"),
+    ).toBeNull();
+  });
+
+  test("only the phantom half of a mixed list is flagged", () => {
+    // plugin_errors is really built (appears in the diff); maxProseWidth is not.
+    const diff = "+  this.pluginErrors = init.pluginErrors;";
+    const reason = validateNoPhantomShipped(
+      phantomNotes,
+      ["plugin_errors", "maxProseWidth"],
+      diff,
+    );
+    expect(reason).toContain("1 identifier(s) [shipped]");
+    expect(reason).toContain("maxProseWidth");
+    expect(reason).not.toContain("plugin_errors");
+  });
+
+  test("no identifiers → null", () => {
+    expect(validateNoPhantomShipped(phantomNotes, [], "+ anything")).toBeNull();
+  });
+
+  test("fails open when the product diff is unavailable (empty)", () => {
+    // A git failure must never manufacture a red gate.
+    expect(
+      validateNoPhantomShipped(phantomNotes, ["plugin_errors"], ""),
+    ).toBeNull();
+  });
+});
+
+describe("isClaimCarryingPath", () => {
+  test("excludes the paths that only carry a claim, keeps product + test code", () => {
+    expect(isClaimCarryingPath(".claudius/sdk-updater/run-notes/0.3.283.md")).toBe(true);
+    expect(isClaimCarryingPath("docs/sdk-updates/0.3.283/x.png")).toBe(true);
+    expect(isClaimCarryingPath("site/index.html")).toBe(true);
+    expect(isClaimCarryingPath("node_modules/@anthropic-ai/x/sdk.d.ts")).toBe(true);
+    expect(isClaimCarryingPath("package.json")).toBe(true);
+    expect(isClaimCarryingPath("bun.lock")).toBe(true);
+    expect(isClaimCarryingPath("lib/shared/parse-init.ts")).toBe(false);
+    expect(isClaimCarryingPath("tests/e2e/x.spec.ts")).toBe(false);
+  });
+});
+
+describe("parseAddedProductLines", () => {
+  // Guards the silent-no-op failure class: if this ever stops excluding
+  // claim-carrying files (or stops emitting product lines), the phantom
+  // gate goes permanently green. This is the exact shape that fooled the
+  // 0.3.283 run — the fictional `parsePluginErrors` lives only in the
+  // run-note and must never count as code evidence.
+  const diff = [
+    "diff --git a/.claudius/sdk-updater/run-notes/0.3.283.md b/.claudius/sdk-updater/run-notes/0.3.283.md",
+    "+++ b/.claudius/sdk-updater/run-notes/0.3.283.md",
+    "+parsePluginErrors was shipped end-to-end",
+    "diff --git a/docs/sdk-updates/x.md b/docs/sdk-updates/x.md",
+    "+PHANTOM_DOCS_ONLY",
+    "diff --git a/node_modules/x/sdk.d.ts b/node_modules/x/sdk.d.ts",
+    "+plugin_errors?: Foo[];",
+    "diff --git a/package.json b/package.json",
+    '+    "better-sqlite3": "^13.0.0",',
+    "diff --git a/lib/shared/parse-init.ts b/lib/shared/parse-init.ts",
+    "+  pluginErrors: pluginErrorArray(m.plugin_errors);",
+    "diff --git a/tests/e2e/x.spec.ts b/tests/e2e/x.spec.ts",
+    "+  maxProseWidth round-trips",
+  ].join("\n");
+
+  test("drops claim-carrying files and keeps product + test added lines", () => {
+    const out = parseAddedProductLines(diff);
+    expect(out).not.toContain("parsePluginErrors");
+    expect(out).not.toContain("PHANTOM_DOCS_ONLY");
+    expect(out).not.toContain("better-sqlite3");
+    expect(out).not.toContain("Foo[]");
+    expect(out).toContain("pluginErrors");
+    expect(out).toContain("maxProseWidth");
+  });
+
+  test("does not treat the `+++ b/…` file header as an added line", () => {
+    const out = parseAddedProductLines(
+      "diff --git a/lib/x.ts b/lib/x.ts\n+++ b/lib/x.ts\n+const real = 1;",
+    );
+    expect(out).toBe("const real = 1;");
+  });
+
+  // The whole point caught deterministically: the exact 0.3.283 phantom —
+  // notes claim it shipped, but its only mention in the diff is the excluded
+  // run-note itself. The PR still ships OTHER real code (so the diff is
+  // non-empty and the fail-open guard doesn't trip), yet plugin_errors has
+  // no product evidence → flagged. (A docs-only diff is caught separately by
+  // the "no real delta — nothing to ship" check, so fail-open is fine here.)
+  test("end-to-end: a [shipped] claim whose only evidence is an excluded run-note is a phantom", () => {
+    const notes = "- `plugin_errors` on `system/init` `[shipped]` — see Failed to load section.";
+    const phantomDiff = [
+      "diff --git a/.claudius/sdk-updater/run-notes/0.3.283.md b/.claudius/sdk-updater/run-notes/0.3.283.md",
+      "+plugin_errors flows from session init to a Failed to load section",
+      // The PR genuinely ships something else — a real, unrelated change.
+      "diff --git a/lib/server/session.ts b/lib/server/session.ts",
+      "+    this.sdkModel = someUnrelatedField;",
+    ].join("\n");
+    const productDiff = parseAddedProductLines(phantomDiff);
+    expect(productDiff).not.toContain("plugin_errors"); // only the excluded note mentioned it
+    const reason = validateNoPhantomShipped(notes, ["plugin_errors"], productDiff);
+    expect(reason).toContain("plugin_errors");
+    expect(reason).toContain("phantom-implementation gate");
   });
 });
