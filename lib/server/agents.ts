@@ -83,6 +83,15 @@ export async function writeAgent(
   raw: string,
 ): Promise<void> {
   if (!/^[\w.\-]+$/.test(name)) throw new Error("invalid agent name");
+  // CC 2.1.218 parity: ':' is reserved for plugin namespacing (e.g.
+  // `plugin-name:agent-name`), so a hand-authored agent may not claim one.
+  // The on-disk filename above is already `\w`-restricted (no ':' can reach
+  // it), but the frontmatter `name:` field is free-text in the raw textarea
+  // and was never checked — validate it too so the two can't diverge.
+  const { frontmatter } = parseFrontmatter(raw);
+  if (typeof frontmatter.name === "string" && frontmatter.name.includes(":")) {
+    throw new Error("agent name cannot contain ':' — reserved for plugin namespacing");
+  }
   // Inline path-injection barrier: resolve both sides and assert the
   // child path stays inside the scoped agents directory. CodeQL's
   // js/path-injection query only recognizes the sanitizer when it

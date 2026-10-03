@@ -34,7 +34,14 @@ export async function PUT(req: Request) {
     return NextResponse.json({ error: "raw content required" }, { status: 400 });
   const cwd = await resolveTrustedCwd(body.cwd);
   if (!cwd) return NextResponse.json({ error: "unknown cwd" }, { status: 400 });
-  await writeAgent(body.scope, cwd, body.name, body.raw);
+  try {
+    await writeAgent(body.scope, cwd, body.name, body.raw);
+  } catch (err) {
+    // writeAgent validates the on-disk filename AND (CC 2.1.218 parity) the
+    // frontmatter `name:` field — surface the specific reason instead of a
+    // bare 500 so the editor can show it inline.
+    return NextResponse.json({ error: err instanceof Error ? err.message : "invalid agent" }, { status: 400 });
+  }
   // Push the edit into any live session in this cwd so the agent is usable
   // without a restart. Best-effort — never fails the save.
   const reloaded = await sessionManager.reloadForCwd(cwd);

@@ -290,6 +290,14 @@ function ServerRow({
               {status.error}
             </div>
           )}
+          {server.warnings && server.warnings.length > 0 && (
+            <div
+              data-testid="mcp-whitespace-warning"
+              className="mb-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[11px] text-amber-300"
+            >
+              {server.warnings.join("; ")}
+            </div>
+          )}
           {status?.serverInfo && (
             <div className="mb-2 text-[11px] text-[var(--muted)]">
               <span className="font-mono">{status.serverInfo.name}</span> v{status.serverInfo.version}

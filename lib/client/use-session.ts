@@ -1064,7 +1064,13 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
   // the moment of the cooldown edge, so the toast can say *why* — see
   // FastModeNoticePanel.
   const [fastModeNotice, setFastModeNotice] = useState<
-    { uuid: string; kind: "cooldown" | "recovered"; reason?: string } | null
+    | { uuid: string; kind: "cooldown" | "recovered"; reason?: string }
+    // CC 2.1.218 parity: fired from the `model_changed` handler below when
+    // the server attributes a fast-mode capability change to this specific
+    // switch (see `Session.setModel`'s `fastModeNowSupported`), not from the
+    // SDK's bare `fast_mode_state` edge — that field carries no "why".
+    | { uuid: string; kind: "model-switch"; model: string; nowSupported: boolean }
+    | null
   >(null);
   // Transient toast for a rejected `/model` switch — the local analogue of the
   // TUI's "Remote session couldn't switch to <model>" notice. Fires when the
@@ -2306,6 +2312,16 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
         // above) without a toast — resume happens before the user is looking
         // at a live turn, and an external sdk/IDE caller setting the model
         // isn't a Claudius-initiated action worth interrupting the chat for.
+        // CC 2.1.218 parity: announce a fast-mode capability change caused by
+        // this switch (see `fastModeNowSupported`'s doc in lib/shared/events.ts).
+        if (ev.fastModeNowSupported !== undefined && ev.model) {
+          setFastModeNotice({
+            uuid: crypto.randomUUID(),
+            kind: "model-switch",
+            model: ev.model,
+            nowSupported: ev.fastModeNowSupported,
+          });
+        }
         return;
       }
       if (ev.type === "advisor_disabled_on_model_change") {

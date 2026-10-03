@@ -856,8 +856,15 @@ export type ChatState = {
    * omitted — the SDK exposes no fast-mode reset timestamp, only the
    * overall subscription `resetsAt` (a different signal — see
    * FastModeNoticePanel).
+   *
+   * A third variant, "model-switch" (CC 2.1.218 parity), fires when a model
+   * switch changes fast-mode *capability* — see `FastModeNoticePanel`'s doc
+   * and `Session.setModel`'s `fastModeNowSupported`.
    */
-  fastModeNotice: { uuid: string; kind: "cooldown" | "recovered"; reason?: string } | null;
+  fastModeNotice:
+    | { uuid: string; kind: "cooldown" | "recovered"; reason?: string }
+    | { uuid: string; kind: "model-switch"; model: string; nowSupported: boolean }
+    | null;
   /**
    * Transient toast for a rejected `/model` switch. Mirrors the Claude Code
    * TUI's "Remote session couldn't switch to <model>" notice (PARTIAL — no

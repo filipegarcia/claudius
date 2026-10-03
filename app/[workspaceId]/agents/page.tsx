@@ -187,7 +187,8 @@ export default function AgentsPage() {
       setDirty(false);
       await refresh();
     } else {
-      setError(`save failed: ${res.status}`);
+      const body = (await res.json().catch(() => ({}))) as { error?: string };
+      setError(body.error ?? `save failed: ${res.status}`);
     }
   };
 
@@ -250,7 +251,11 @@ export default function AgentsPage() {
           <ScopeToggle value={iaScope} onChange={setIaScope} />
           <span className="text-[var(--muted)]">({totalFiles})</span>
           {loading && <span className="text-[var(--muted)]">loading…</span>}
-          {error && <span className="text-red-400">{error}</span>}
+          {error && (
+            <span data-testid="agent-editor-error" className="text-red-400">
+              {error}
+            </span>
+          )}
           <div className="flex-1 px-3">
             <div className="relative mx-auto max-w-md">
               <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--muted)]" />
@@ -499,6 +504,7 @@ export default function AgentsPage() {
                   </button>
                 </div>
                 <textarea
+                  data-testid="agent-editor-textarea"
                   value={draft}
                   onChange={(e) => {
                     setDraft(e.target.value);

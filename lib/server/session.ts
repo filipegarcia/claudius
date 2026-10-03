@@ -5118,6 +5118,7 @@ export class Session {
     //
     // No remote/teleport concept exists in Claudius; this is the local
     // analogue of the TUI's host-rejected model switch.
+    const previousModel = this.model;
     if (this.query) {
       try {
         await this.query.setModel(model);
@@ -5151,7 +5152,38 @@ export class Session {
     // session in any workspace inherits this pick. Mirrors Claude Code's
     // `/model` persistence (see `persistModelToUserSettings` doc).
     await this.persistModelToUserSettings(model);
-    this.broadcast({ type: "model_changed", model, source });
+
+    // CC 2.1.218 parity: "Added an announcement when fast mode changes as a
+    // result of switching models". The SDK has no field correlating a
+    // `fast_mode_state` change back to a model switch (it's just a bare
+    // 'off'|'cooldown'|'on' on result messages — see FastModeNoticePanel's
+    // scope note), so watching for a state edge right after this switch
+    // could just as easily be a coincidental cooldown/recovery. Instead we
+    // derive the signal ourselves from the same `supportsFastMode` capability
+    // catalog the picker already reads (`ModelPicker.tsx`'s `ModelInfo`):
+    // if the old and new model disagree on fast-mode support, that's a real,
+    // attributable capability change. Best-effort — a catalog-fetch failure
+    // or an unresolvable model id just means no notice, not a broken switch.
+    let fastModeNowSupported: boolean | undefined;
+    if (this.query && model && previousModel && model !== previousModel) {
+      try {
+        const models = await this.query.supportedModels();
+        const find = (id: string) => models.find((m) => m.value === id || m.resolvedModel === id);
+        const prevInfo = find(previousModel);
+        const nextInfo = find(model);
+        if (prevInfo && nextInfo && Boolean(prevInfo.supportsFastMode) !== Boolean(nextInfo.supportsFastMode)) {
+          fastModeNowSupported = Boolean(nextInfo.supportsFastMode);
+        }
+      } catch {
+        // Non-fatal — the model switch itself already succeeded above.
+      }
+    }
+    this.broadcast({
+      type: "model_changed",
+      model,
+      source,
+      ...(fastModeNowSupported !== undefined ? { fastModeNowSupported } : {}),
+    });
 
     // Auto-disable the advisor when the model changes. The advisor tool
     // carries a `model` field in the API request; not all model combinations

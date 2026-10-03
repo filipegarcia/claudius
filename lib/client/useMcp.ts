@@ -3,7 +3,12 @@
 import { useCallback, useEffect, useState } from "react";
 import type { McpScope, McpServerConfig } from "@/lib/server/mcp";
 
-export type ConfiguredServer = { scope: McpScope; name: string; config: McpServerConfig };
+export type ConfiguredServer = {
+  scope: McpScope;
+  name: string;
+  config: McpServerConfig;
+  warnings?: string[];
+};
 
 export type LiveStatus = {
   name: string;

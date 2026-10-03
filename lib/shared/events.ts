@@ -142,6 +142,15 @@ export type ModelChangedEvent = {
    * become the sticky resume default); `"resume"`/`"sdk"` are persisted.
    */
   source?: "picker" | "chat_command" | "auto" | "resume" | "sdk";
+  /**
+   * CC 2.1.218 parity — set only when this switch changed fast-mode
+   * *capability* (the old and new model disagreed on `supportsFastMode` in
+   * the SDK's model catalog). `true` = fast mode just became available on
+   * `model`; `false` = it just became unavailable. Omitted (not `undefined`
+   * written to JSON, simply absent) when capability didn't change or
+   * couldn't be determined — see `Session.setModel`.
+   */
+  fastModeNowSupported?: boolean;
 };
 
 /**
