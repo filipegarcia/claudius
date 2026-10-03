@@ -40,6 +40,8 @@ describe("parseInitSystemMessage", () => {
       claudeCodeVersion: "2.1.99",
       // Derived from tools.includes("advisor") — not present here.
       advisorActive: false,
+      // SDK 0.3.283 — absent `plugin_errors` key means a clean load.
+      pluginErrors: [],
     });
   });
 
@@ -102,6 +104,7 @@ describe("parseInitSystemMessage", () => {
       "fastModeState",
       "model",
       "permissionMode",
+      "pluginErrors",
       "skills",
       "slashCommands",
       "tools",
@@ -161,6 +164,80 @@ describe("parseInitSystemMessage", () => {
     test("absent effort field collapses to undefined (older CLI / host that doesn't publish it)", () => {
       const out = parseInitSystemMessage({ subtype: "init" });
       expect(out.effort).toBeUndefined();
+    });
+  });
+
+  // SDK 0.3.283 — `plugin_errors` on init: plugins that failed to load (or
+  // lost a component). Surfaced on the Plugins page so a silently-skipped
+  // plugin becomes visible. The SDK omits the key on a clean load.
+  describe("plugin_errors field (SDK 0.3.283)", () => {
+    test("absent key collapses to an empty array (clean load / older CLI)", () => {
+      const out = parseInitSystemMessage({ subtype: "init" });
+      expect(out.pluginErrors).toEqual([]);
+    });
+
+    test("extracts a well-formed error with its optional path", () => {
+      const out = parseInitSystemMessage({
+        plugin_errors: [
+          {
+            plugin: "synced[0]",
+            type: "path-not-found",
+            message: "No such directory",
+            path: "/home/user/.claude/plugins/missing",
+          },
+        ],
+      });
+      expect(out.pluginErrors).toEqual([
+        {
+          plugin: "synced[0]",
+          type: "path-not-found",
+          message: "No such directory",
+          path: "/home/user/.claude/plugins/missing",
+        },
+      ]);
+    });
+
+    test("omits path when absent", () => {
+      const out = parseInitSystemMessage({
+        plugin_errors: [
+          { plugin: "foo@mkt", type: "hook-load-failed", message: "boom" },
+        ],
+      });
+      expect(out.pluginErrors).toEqual([
+        { plugin: "foo@mkt", type: "hook-load-failed", message: "boom" },
+      ]);
+      expect("path" in out.pluginErrors[0]).toBe(false);
+    });
+
+    test("passes through an unrecognized type verbatim (open set, no whitelist)", () => {
+      const out = parseInitSystemMessage({
+        plugin_errors: [
+          { plugin: "foo@mkt", type: "some-future-category", message: "x" },
+        ],
+      });
+      expect(out.pluginErrors[0]?.type).toBe("some-future-category");
+    });
+
+    test("drops rows missing a required string (schema-drift defense)", () => {
+      const out = parseInitSystemMessage({
+        plugin_errors: [
+          { plugin: "ok@mkt", type: "generic-error", message: "kept" },
+          { plugin: "", type: "generic-error", message: "no plugin" },
+          { type: "generic-error", message: "no plugin key" },
+          { plugin: "p@m", message: "no type" },
+          { plugin: "p@m", type: "generic-error" },
+          "not an object",
+          null,
+        ],
+      });
+      expect(out.pluginErrors).toEqual([
+        { plugin: "ok@mkt", type: "generic-error", message: "kept" },
+      ]);
+    });
+
+    test("non-array input collapses to an empty array", () => {
+      const out = parseInitSystemMessage({ plugin_errors: "nope" });
+      expect(out.pluginErrors).toEqual([]);
     });
   });
 });

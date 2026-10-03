@@ -1,6 +1,30 @@
 import type { PermissionMode } from "@anthropic-ai/claude-agent-sdk";
 
 /**
+ * SDK 0.3.283 — one entry of the init message's `plugin_errors` array: a
+ * plugin (or `--plugin-dir` / synced directory entry) that hit a load-time
+ * failure. A plugin that did not load at all is absent from `plugins[]` and
+ * only appears here; a plugin that loaded but lost one component keeps its
+ * `plugins[]` row AND gets an entry here.
+ *
+ * - `plugin` — `name@marketplace`, or the positional `inline[N]` / `synced[N]`
+ *   tag for a directory entry that failed before it had a name.
+ * - `type` — an open-set category (`path-not-found`, `generic-error`,
+ *   `manifest-validation-error`, `dependency-unsatisfied`, `hook-load-failed`,
+ *   …). Treat an unrecognized value as a generic failure; never branch on it
+ *   in a way that drops the entry.
+ * - `message` — display text, author-controlled; render, don't trust.
+ * - `path` — present only for a directory/archive entry that failed to load at
+ *   all, resolved against the cwd; lets a host pair the error to its own mount.
+ */
+export type PluginLoadError = {
+  plugin: string;
+  type: string;
+  message: string;
+  path?: string;
+};
+
+/**
  * Normalized view of the SDK `system:init` message (SDKSystemMessage with
  * subtype "init"). The init message announces, for the freshly-started
  * session, the tools, slash commands, **subagents**, skills, cwd, model, and
@@ -65,6 +89,15 @@ export type InitInfo = {
    * necessarily mean the UI's "auto" state is wrong.
    */
   effort?: "low" | "medium" | "high" | "xhigh" | "max" | null;
+  /**
+   * SDK 0.3.283 — plugins that hit a load-time error this session. The SDK
+   * omits the key entirely when every plugin loaded cleanly, so an empty
+   * array here means "no errors reported" (and a Remote Control worker always
+   * omits it — but Claudius runs local sessions, where absence means clean).
+   * Surfaced on the Plugins page so a silently-skipped plugin is visible
+   * instead of just missing from the list.
+   */
+  pluginErrors: PluginLoadError[];
 };
 
 function stringArray(v: unknown): string[] {
@@ -73,6 +106,28 @@ function stringArray(v: unknown): string[] {
 
 function optionalString(v: unknown): string | undefined {
   return typeof v === "string" && v.length > 0 ? v : undefined;
+}
+
+/**
+ * Normalize the init message's `plugin_errors` into a defensive shape. Drops
+ * any row missing the required `plugin`/`type`/`message` strings rather than
+ * throwing — the parser's schema-drift-tolerant contract (see below) applies
+ * here too. Absent / non-array input collapses to `[]`.
+ */
+function pluginErrorArray(v: unknown): PluginLoadError[] {
+  if (!Array.isArray(v)) return [];
+  const out: PluginLoadError[] = [];
+  for (const raw of v) {
+    if (!raw || typeof raw !== "object") continue;
+    const e = raw as Record<string, unknown>;
+    const plugin = optionalString(e.plugin);
+    const type = optionalString(e.type);
+    const message = optionalString(e.message);
+    if (!plugin || !type || !message) continue;
+    const path = optionalString(e.path);
+    out.push(path ? { plugin, type, message, path } : { plugin, type, message });
+  }
+  return out;
 }
 
 /**
@@ -112,5 +167,6 @@ export function parseInitSystemMessage(msg: unknown): InitInfo {
       : m.effort === null
         ? null
         : undefined,
+    pluginErrors: pluginErrorArray(m.plugin_errors),
   };
 }

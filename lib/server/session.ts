@@ -91,7 +91,7 @@ import {
 } from "@/lib/shared/events";
 import { getSessionUsage, saveSessionUsage } from "./session-usage-db";
 import { costFromTokens } from "@/lib/shared/cost-pricing";
-import { parseInitSystemMessage } from "@/lib/shared/parse-init";
+import { parseInitSystemMessage, type PluginLoadError } from "@/lib/shared/parse-init";
 import { listSessionTasks, saveSessionTask } from "./session-tasks-db";
 import { attachLoopTickTokens, recordLoopTick } from "./loop-ticks-db";
 import { syncNeedsAuthNotifications } from "./mcp-needs-auth-db";
@@ -1548,6 +1548,15 @@ export class Session {
     skills: string[];
     cwd?: string;
   };
+  /**
+   * SDK 0.3.283 — the `plugin_errors` the SDK reported on the most recent
+   * `system:init`: plugins that failed to load (or lost a component) this
+   * session. Captured here rather than in `latestInitSnapshot` because the
+   * only consumer is the Plugins page over REST (`GET /api/plugins`), not the
+   * chat init-chrome replay. A re-emitted init (resume / reconnect) overwrites
+   * it — the newest frame wins, matching the SDK's documented semantics.
+   */
+  private pluginLoadErrors: PluginLoadError[] = [];
   /**
    * Main-thread agent name (SDK Options.agent). When set, the SDK applies the
    * agent's system prompt, tool restrictions, and model to the main
@@ -5741,6 +5750,15 @@ export class Session {
    * (`app/api/plugins/reload`) passes `holdOnCacheImpact: false` when the
    * user re-sends via `/reload-plugins force`.
    */
+  /**
+   * The plugin load-time errors captured from this session's most recent
+   * `system:init` (SDK 0.3.283 `plugin_errors`). Empty when the load was
+   * clean or on a CLI that predates the field. Read by `GET /api/plugins`.
+   */
+  getPluginLoadErrors(): PluginLoadError[] {
+    return this.pluginLoadErrors;
+  }
+
   async reloadPlugins(
     opts?: { holdOnCacheImpact?: boolean },
   ): Promise<{ ok: true; data: unknown } | { ok: false; error: string }> {
@@ -7486,6 +7504,11 @@ export class Session {
             skills: init.skills,
             ...(init.cwd ? { cwd: init.cwd } : {}),
           };
+          // Capture plugin load-time errors for the Plugins page. The SDK
+          // omits the key when the load was clean, which parses to `[]`;
+          // overwrite unconditionally so a re-emitted init can clear a
+          // stale error set (newest frame wins).
+          this.pluginLoadErrors = init.pluginErrors;
         }
         // Fire the one-shot MCP needs-auth notice on the first live system:init.
         if (sdkMsg.subtype === "init" && !this.isReplayingTranscript) {
