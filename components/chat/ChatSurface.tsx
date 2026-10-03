@@ -1481,6 +1481,10 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
         case "usage":
           router.push("/usage");
           return true;
+        case "rate-limit-options":
+          showToast("Rate-limit options: switch accounts, auto-rotate, or buy credits on the Usage page");
+          router.push("/usage");
+          return true;
         // The four auth/provider commands all land on the Usage page (the
         // single screen that owns the API-key + Bedrock + Vertex switches).
         // Per-command toast so the user knows what action to take once they

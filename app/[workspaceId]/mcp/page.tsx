@@ -88,6 +88,12 @@ export default function McpPage() {
 
   const mcp = useMcp(cwd, sessionId);
   const [showAdd, setShowAdd] = useState(false);
+  const [reconnectingAll, setReconnectingAll] = useState(false);
+
+  const needsReconnectCount = useMemo(
+    () => mcp.status.filter((s) => s.status === "failed" || s.status === "needs-auth").length,
+    [mcp.status],
+  );
 
   const merged = useMemo(() => {
     const map = new Map<string, { server: ConfiguredServer; status?: LiveStatus }>();
@@ -127,6 +133,24 @@ export default function McpPage() {
           >
             <RefreshCw className="h-3 w-3" /> Refresh
           </button>
+          {sessionId && needsReconnectCount > 0 && (
+            <button
+              data-testid="mcp-reconnect-all"
+              disabled={reconnectingAll}
+              onClick={async () => {
+                setReconnectingAll(true);
+                try {
+                  await mcp.reconnectAll();
+                } finally {
+                  setReconnectingAll(false);
+                }
+              }}
+              title={`Retry every server that failed to connect or needs authentication (${needsReconnectCount})`}
+              className="flex items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-0.5 hover:bg-[var(--panel)] disabled:opacity-40"
+            >
+              <RefreshCw className={cn("h-3 w-3", reconnectingAll && "animate-spin")} /> Reconnect all ({needsReconnectCount})
+            </button>
+          )}
           <button
             onClick={() => setShowAdd((s) => !s)}
             className="flex items-center gap-1 rounded-md bg-[var(--accent)] px-2 py-0.5 text-white hover:opacity-90"

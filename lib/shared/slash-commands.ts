@@ -164,6 +164,11 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   { id: "cost", name: "cost", description: "Show session cost & usage as an overlay.", category: "cost", handler: "native" },
   { id: "usage", name: "usage", aliases: ["stats"], description: "Open the Usage & account page.", category: "cost", handler: "native" },
   { id: "extra-usage", name: "extra-usage", description: "Configure extra usage for rate-limit recovery.", category: "cost", handler: "sdk" },
+  // CC 2.1.284 — "/rate-limit-options" so a usage-limit notice that mentions
+  // it points at a findable command. Claudius already has the underlying
+  // controls (RateLimitPill's buy-credits CTA, autoRotateOnRateLimit,
+  // provider switching) on the Usage page — no separate screen needed.
+  { id: "rate-limit-options", name: "rate-limit-options", description: "Show options for handling a usage limit (Usage page).", category: "cost", handler: "native" },
 
   // ── Auth / providers ─────────────────────────────────────────────────
   { id: "login", name: "login", description: "Sign in to Anthropic.", category: "auth", handler: "native" },

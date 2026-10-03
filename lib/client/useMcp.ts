@@ -129,6 +129,32 @@ export function useMcp(cwd: string | null, sessionId: string | null) {
     [refresh, sessionId],
   );
 
+  /**
+   * Claude Code 2.1.284 — `/mcp reconnect all` retries every server that
+   * failed to connect or needs authentication in one shot, instead of
+   * clicking "Reconnect" on each row individually. Reuses the existing
+   * single-server endpoint per server rather than adding a bulk server
+   * route — there are only ever a handful of configured servers, and this
+   * keeps the debounce/refresh handling in one place (see `reconnect`
+   * above). Returns the count of servers it attempted to reconnect so the
+   * caller can toast something meaningful; servers already `connected`,
+   * `pending`, or `disabled` are left alone.
+   */
+  const reconnectAll = useCallback(async (): Promise<number> => {
+    if (!sessionId) return 0;
+    const targets = status.filter((s) => s.status === "failed" || s.status === "needs-auth");
+    if (targets.length === 0) return 0;
+    await Promise.all(
+      targets.map((s) =>
+        fetch(`/api/mcp/${encodeURIComponent(s.name)}/reconnect?sessionId=${encodeURIComponent(sessionId)}`, {
+          method: "POST",
+        }).catch(() => null),
+      ),
+    );
+    setTimeout(refresh, 800);
+    return targets.length;
+  }, [refresh, sessionId, status]);
+
   const toggle = useCallback(
     async (name: string, enabled: boolean) => {
       if (!sessionId) return false;
@@ -143,5 +169,5 @@ export function useMcp(cwd: string | null, sessionId: string | null) {
     [refresh, sessionId],
   );
 
-  return { configured, status, statusError, loading, error, refresh, upsert, remove, reconnect, toggle };
+  return { configured, status, statusError, loading, error, refresh, upsert, remove, reconnect, reconnectAll, toggle };
 }
