@@ -10,6 +10,16 @@ export type ScopeFile = {
   path: string;
   exists: boolean;
   content: string;
+  /**
+   * Set on the "project" scope when this file is AGENTS.md rather than
+   * CLAUDE.md — Claude Code 2.1.277 ("Added AGENTS.md support: in a project
+   * with no CLAUDE.md, Claude Code reads AGENTS.md instead") reads AGENTS.md
+   * for project instructions when no CLAUDE.md exists. Claudius's own Memory
+   * page mirrors that so it shows the same file the live agent session
+   * actually reads, instead of an empty "Project" tab. Absent (not `false`)
+   * for every other scope and for "project" when CLAUDE.md exists.
+   */
+  usingAgentsFallback?: boolean;
 };
 
 export type ResolvedSegment = {
@@ -32,6 +42,11 @@ export function pathFor(scope: ClaudeMdScope, projectCwd: string): string {
   return assertWithin(projectCwd, "CLAUDE.local.md");
 }
 
+/** AGENTS.md path for the project-scope fallback — same directory as CLAUDE.md. */
+function agentsPathFor(projectCwd: string): string {
+  return assertWithin(projectCwd, "AGENTS.md");
+}
+
 export async function readScope(scope: ClaudeMdScope, projectCwd: string): Promise<ScopeFile> {
   const path = pathFor(scope, projectCwd);
   try {
@@ -39,8 +54,45 @@ export async function readScope(scope: ClaudeMdScope, projectCwd: string): Promi
     return { scope, path, exists: true, content };
   } catch (err) {
     const e = err as NodeJS.ErrnoException;
+    if (e.code !== "ENOENT") throw err;
+  }
+  if (scope !== "project") return { scope, path, exists: false, content: "" };
+  // No CLAUDE.md — Claude Code 2.1.277's AGENTS.md fallback. Only the
+  // "project" scope is ambiguous this way (user/project-claude/local all
+  // have one canonical file); see the ScopeFile.usingAgentsFallback doc.
+  const agentsPath = agentsPathFor(projectCwd);
+  try {
+    const content = await fs.readFile(agentsPath, "utf8");
+    return { scope, path: agentsPath, exists: true, content, usingAgentsFallback: true };
+  } catch (err) {
+    const e = err as NodeJS.ErrnoException;
     if (e.code === "ENOENT") return { scope, path, exists: false, content: "" };
     throw err;
+  }
+}
+
+/**
+ * Which file a "project" scope write should target — mirrors `readScope`'s
+ * fallback so a save lands wherever the editor's content actually came
+ * from: CLAUDE.md when it already exists, AGENTS.md when it's the active
+ * fallback (CLAUDE.md absent, AGENTS.md present), else CLAUDE.md as the
+ * default target for a brand-new project (matches Claude Code's own
+ * default — AGENTS.md is only read, never created, by the fallback).
+ */
+async function resolveProjectWritePath(projectCwd: string): Promise<string> {
+  const claudePath = pathFor("project", projectCwd);
+  try {
+    await fs.access(claudePath);
+    return claudePath;
+  } catch {
+    // fall through to the AGENTS.md check below
+  }
+  const agentsPath = agentsPathFor(projectCwd);
+  try {
+    await fs.access(agentsPath);
+    return agentsPath;
+  } catch {
+    return claudePath;
   }
 }
 
@@ -48,10 +100,12 @@ export async function writeScope(
   scope: ClaudeMdScope,
   projectCwd: string,
   content: string,
-): Promise<void> {
-  const path = pathFor(scope, projectCwd);
+): Promise<{ path: string }> {
+  const path =
+    scope === "project" ? await resolveProjectWritePath(projectCwd) : pathFor(scope, projectCwd);
   await fs.mkdir(dirname(path), { recursive: true });
   await fs.writeFile(path, content, "utf8");
+  return { path };
 }
 
 export async function readAllScopes(projectCwd: string): Promise<ScopeFile[]> {

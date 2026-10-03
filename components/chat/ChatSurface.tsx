@@ -2466,6 +2466,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
               promptColor={resolvePromptColor(activePromptColor)}
               onSend={handleSend}
               onInterrupt={session.interrupt}
+              onNotice={showToast}
               draftInjection={draftInjection}
               promptHistory={promptHistory}
               sendDisabled={capBreached || session.readOnly}

@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import {
-  pathFor,
   readScope,
   readAllScopes,
   resolveHierarchy,
@@ -49,6 +48,6 @@ export async function PUT(req: Request) {
   }
   const cwd = await resolveTrustedCwd(body.cwd);
   if (!cwd) return NextResponse.json({ error: "unknown cwd" }, { status: 400 });
-  await writeScope(body.scope, cwd, body.content);
-  return NextResponse.json({ ok: true, path: pathFor(body.scope, cwd) });
+  const { path } = await writeScope(body.scope, cwd, body.content);
+  return NextResponse.json({ ok: true, path });
 }

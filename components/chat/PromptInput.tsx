@@ -140,6 +140,14 @@ type Props = {
    * wider drop zone; otherwise both instances would race for the same drop.
    */
   wideDropTarget?: boolean;
+  /**
+   * Fired with a short human-readable message when the composer intercepts
+   * something worth a passive notice — currently only the invisible-Unicode
+   * prompt-injection guard (Claude Code 2.1.277 parity). Optional: the
+   * goal-banner reuse of PromptInput leaves it off and the guard still
+   * holds the send, it just has no surface to announce why.
+   */
+  onNotice?: (message: string) => void;
 };
 
 const MAX_IMAGE_BYTES = 20 * 1024 * 1024; // 20MB
@@ -216,6 +224,7 @@ export function PromptInput({
   onSendQueuedNow,
   onSendAllQueuedNow,
   wideDropTarget = false,
+  onNotice,
 }: Props) {
   const [value, setValue] = useState("");
   // Keyword hints (see KEYWORD_HINTS) the user has dismissed for the current
@@ -780,17 +789,29 @@ export function PromptInput({
       submitBash();
       return;
     }
-    // Claude Code 2.1.280 [VSCode] parity: strip invisible Unicode
-    // formatting/tag characters "from anything else before it is sent" —
-    // catches invisible characters that arrived via typing, IME, or a paste
-    // that didn't go through the onPaste interceptor above (e.g. drag-drop
-    // text, or a browser that fires paste without a text/plain item). Runs
-    // before `trim()`/the empty-check below: `trim()` alone doesn't remove
-    // zero-width space, word joiner, or bidi controls, so a draft that's
-    // *only* invisible characters would otherwise read as non-empty and
-    // reach `onSend("")` once stripped.
+    // Strip invisible Unicode formatting/tag characters before anything is
+    // sent (Claude Code 2.1.280 [VSCode] parity) — catches characters that
+    // arrived via typing, IME, drag-drop, or a paste that bypassed the
+    // onPaste interceptor above. Runs before `trim()`: `trim()` doesn't
+    // remove zero-width space, word joiner or bidi controls, so a draft of
+    // *only* invisible characters would otherwise read as non-empty.
+    //
+    // Claude Code 2.1.277 parity: a prompt that needed cleaning is never
+    // forwarded silently-cleaned — the cleaned text is put back in the
+    // composer for review and the user presses Send again to confirm
+    // (steganographic prompt injection hides instructions the user never
+    // saw, so they get to see exactly what will be sent).
     const { cleaned: strippedValue, removedCount } = stripInvisibleUnicode(value);
-    if (removedCount > 0) noteInvisibleStrip(removedCount);
+    if (removedCount > 0) {
+      setValue(strippedValue);
+      onNotice?.(
+        `Removed ${removedCount} hidden character${removedCount === 1 ? "" : "s"} from your prompt — review and press Send again.`,
+      );
+      requestAnimationFrame(() => {
+        taRef.current?.focus();
+      });
+      return;
+    }
     const text = strippedValue.trim();
     if (!text && images.length === 0) return;
     // The composer renders bullets as `•` so the textarea has something
