@@ -23,6 +23,7 @@ import { useActiveCwd } from "@/lib/client/useActiveCwd";
 import { usePlugins, type InstalledPlugin } from "@/lib/client/usePlugins";
 import type { AvailablePlugin } from "@/lib/server/plugins";
 import type { SettingsScope } from "@/lib/server/settings";
+import type { PluginLoadError } from "@/lib/shared/parse-init";
 import { lintMarketplaceRef, lintPluginRef } from "@/lib/shared/plugin-ref-lint";
 import { cn } from "@/lib/utils/cn";
 
@@ -161,6 +162,8 @@ export default function PluginsPage() {
               onInstall={(ref) => plugins.install(ref)}
               onRefresh={() => plugins.refreshAvailable()}
             />
+
+            <PluginErrorsSection errors={plugins.pluginErrors} />
 
             <section>
               <h2 className="mb-2 text-[11px] font-medium uppercase tracking-wide text-[var(--muted)]">
@@ -533,6 +536,54 @@ function formatInstalls(n: number): string {
   if (n >= 10_000) return `${Math.round(n / 1_000)}k`;
   if (n >= 1_000) return `${(n / 1_000).toFixed(1).replace(/\.0$/, "")}k`;
   return `${n}`;
+}
+
+/**
+ * Plugin load-time errors from the session's `system:init` (SDK 0.3.283
+ * `plugin_errors`). A plugin that failed to load entirely is otherwise just
+ * *absent* from the installed list — a silent gap. Surfacing the error here,
+ * above the list, turns "it's not there" into "it's not there, and here's
+ * why". Renders nothing when the load was clean.
+ *
+ * `type` is an open set — we show it verbatim as a label rather than mapping
+ * to friendly copy, so a category the SDK adds later still reads sensibly.
+ */
+function PluginErrorsSection({ errors }: { errors: PluginLoadError[] }) {
+  if (errors.length === 0) return null;
+  return (
+    <section data-testid="plugin-load-errors">
+      <h2 className="mb-1 flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-amber-400">
+        <AlertTriangle className="h-3.5 w-3.5" />
+        Plugin load {errors.length === 1 ? "error" : "errors"} ({errors.length})
+      </h2>
+      <p className="mb-2 text-[11px] text-[var(--muted)]">
+        Reported when this session loaded plugins. Fix the cause, then press{" "}
+        <span className="font-medium">Reload</span> above to re-check.
+      </p>
+      <ul className="space-y-1.5">
+        {errors.map((e, i) => (
+          <li
+            key={`${e.plugin}:${e.type}:${i}`}
+            data-testid="plugin-load-error"
+            className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[11px]"
+          >
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-mono font-medium text-amber-100">{e.plugin}</span>
+              <span className="rounded-md border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 font-mono text-[10px] text-amber-200">
+                {e.type}
+              </span>
+            </div>
+            <p className="mt-1 leading-relaxed text-amber-100/90">{e.message}</p>
+            {e.path && (
+              <code className="mt-1 block break-all font-mono text-[10px] text-amber-200/70">
+                {e.path}
+              </code>
+            )}
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
 }
 
 function PluginRow({

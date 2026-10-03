@@ -377,6 +377,15 @@ export type ClaudeSettings = {
   // upstream and this key is now a documented no-op — kept as passthrough
   // only (see the catalog row's `desc` in app/settings/page.tsx).
   taskOutputMaxChars?: number;
+  // SDK 0.3.283 — max width (in terminal columns, min 40) of the prose in
+  // Claude's responses in the bundled CLI's TUI; tables and code blocks keep
+  // full width, and only the display wraps (the response text gains no line
+  // breaks). Unset uses the full terminal width. Same treatment as
+  // `timeFormat`/`bashOutputMaxChars`: config-passthrough only, read by the
+  // `claude` binary straight from this file — Claudius's own browser UI wraps
+  // prose with CSS and isn't affected. Surfaced as a catalog row (Settings →
+  // Display); see `SDK_SETTINGS_CATALOG` in `app/settings/page.tsx`.
+  maxProseWidth?: number;
   // Catch-all for keys we don't yet know about — we never strip them.
   [key: string]: unknown;
 };

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { AvailablePlugin, PluginsByScope } from "@/lib/server/plugins";
 import type { SettingsScope } from "@/lib/server/settings";
+import type { PluginLoadError } from "@/lib/shared/parse-init";
 
 export type InstalledPlugin = {
   name: string;
@@ -22,6 +23,7 @@ export function usePlugins(cwd: string | null, sessionId: string | null) {
   const [scopes, setScopes] = useState<PluginsByScope[]>([]);
   const [installed, setInstalled] = useState<InstalledPlugin[]>([]);
   const [installedError, setInstalledError] = useState<string | null>(null);
+  const [pluginErrors, setPluginErrors] = useState<PluginLoadError[]>([]);
   const [available, setAvailable] = useState<AvailablePlugin[]>([]);
   const [availableLoading, setAvailableLoading] = useState(true);
   const [loading, setLoading] = useState(true);
@@ -41,10 +43,12 @@ export function usePlugins(cwd: string | null, sessionId: string | null) {
         scopes: PluginsByScope[];
         installed: InstalledPlugin[];
         installedError: string | null;
+        pluginErrors?: PluginLoadError[];
       };
       setScopes(d.scopes);
       setInstalled(d.installed ?? []);
       setInstalledError(d.installedError);
+      setPluginErrors(d.pluginErrors ?? []);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -154,6 +158,7 @@ export function usePlugins(cwd: string | null, sessionId: string | null) {
     scopes,
     installed,
     installedError,
+    pluginErrors,
     available,
     availableLoading,
     loading,
