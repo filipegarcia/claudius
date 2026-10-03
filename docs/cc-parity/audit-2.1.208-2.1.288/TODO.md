@@ -48,9 +48,9 @@ grep evidence): [`audit/chunk0.md`](audit/chunk0.md) (2.1.285–288) …
 
 ## Wave 0 — land stranded bot work
 
-- [ ] **O1** [2.1.218] Cherry-pick `c7e56ec`+`8513ab2`: MCP config hidden-whitespace warning, agent `name:` colon validation, fast-mode notice on model switch
-- [ ] **O2** [2.1.277] Cherry-pick `3b66af8`: AGENTS.md fallback on the Memory page, hold prompts with invisible Unicode for review (reuse `lib/shared/invisible-unicode.ts`, drop the duplicate `sanitize-prompt.ts`), deprecate `taskOutputMaxChars`
-- [ ] **O3** [2.1.284] Cherry-pick `c8cdef2`: `/mcp` "Reconnect all" + `/rate-limit-options`
+- [x] **O1** [2.1.218] Cherry-pick `c7e56ec`+`8513ab2`: MCP config hidden-whitespace warning, agent `name:` colon validation, fast-mode notice on model switch
+- [x] **O2** [2.1.277] Cherry-pick `3b66af8`: AGENTS.md fallback on the Memory page, hold prompts with invisible Unicode for review (reuse `lib/shared/invisible-unicode.ts`, drop the duplicate `sanitize-prompt.ts`), deprecate `taskOutputMaxChars`
+- [x] **O3** [2.1.284] Cherry-pick `c8cdef2`: `/mcp` "Reconnect all" + `/rate-limit-options`
 
 ## A — Security & permissions
 
@@ -182,3 +182,4 @@ grep evidence): [`audit/chunk0.md`](audit/chunk0.md) (2.1.285–288) …
 - Spend-limit bar + `period` (2.1.251/284) and "auto mode server" `/status` row (2.1.278): no SDK 0.3.288 type/signal.
 - Host memory-critical monitor (2.1.274) beyond B1's notification rendering.
 - Artifacts surface, `/btw` side panel, bookmarks, session groups, per-turn focus summaries, keyless Console sign-in, managed-settings diagnostics, `/hooks` & `/permissions` managed/plugin read-only views, prompt-cache warm/cold cause, suggestion throttling, org-blocked MCP tools, `encodeProjectDir` collisions: new features or no reliable signal — follow-ups.
+- `instructionFiles` modes other than the default (`claude-md`, `claude-md-and-agents-md`, `managed-only`) — in 2.1.288 this is an option of a built-in plugin (`pluginConfigs`), not a top-level setting; O2 implements the default `claude-md-or-agents-md` behaviour only.
