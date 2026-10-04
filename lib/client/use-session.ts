@@ -4096,17 +4096,19 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
           // hook that failed (so the error is visible); a routine success of a
           // frequent hook just clears the indicator above with no pill.
           if (hookEventGetsDurablePill(h.hook_event ?? "", failed)) {
-            setSystemEntries((prev) => [
-              ...prev,
-              {
+            // CC 2.1.257 — coalesce repeated identical hook-completion notices
+            // onto one `×N` line (keyed on kind+label+anchor) instead of
+            // stacking a pill per response, the same way init/status bursts fold.
+            setSystemEntries((prev) =>
+              appendCoalescedSystemEntry(prev, {
                 ...baseEntry,
                 kind: "hook_response",
                 label: `Hook ${h.hook_name ?? ""} → ${h.outcome ?? "ok"}`,
                 detail: typeof h.exit_code === "number" ? `exit ${h.exit_code}` : undefined,
                 hookFailed: failed,
                 hookStderr: stderr,
-              },
-            ]);
+              }),
+            );
           }
           return;
         }
