@@ -284,7 +284,10 @@ function InlineUserText({ text, images }: { text: string; images: AttachedImage[
     );
   }
   const content = hasImageMatch ? (
-    <div className="text-[length:var(--chat-text)] leading-6 2xl:leading-7">{nodes}</div>
+    // CC 2.1.216 (F2) — the image-token branch bypasses <Markdown>, so it
+    // carries its own dir="auto" to render an RTL prompt correctly (the
+    // Markdown branch below gets per-block direction from the renderers).
+    <div dir="auto" className="text-[length:var(--chat-text)] leading-6 2xl:leading-7">{nodes}</div>
   ) : text === "" ? (
     <div className="whitespace-pre-wrap text-[length:var(--chat-text)] leading-6 2xl:leading-7">{text}</div>
   ) : (

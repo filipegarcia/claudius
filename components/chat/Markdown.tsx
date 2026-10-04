@@ -34,6 +34,11 @@ function InlineCode({ children, rest }: { children?: ReactNode; rest: Record<str
       <Link
         href={filesHref(fileLink.workspaceId, rel)}
         title="Open in Files"
+        // CC 2.1.216 (F2) — inline code/paths are LTR; pin direction so a
+        // code span inside an RTL (Arabic/Hebrew/Persian) sentence keeps its
+        // punctuation order (the `dir` attribute also applies the UA's
+        // `unicode-bidi: isolate`, which is what stops the reordering).
+        dir="ltr"
         className={cn(INLINE_CODE_CLASS, "text-[var(--accent)] underline-offset-2 hover:underline")}
       >
         {children}
@@ -41,7 +46,7 @@ function InlineCode({ children, rest }: { children?: ReactNode; rest: Record<str
     );
   }
   return (
-    <code className={INLINE_CODE_CLASS} {...rest}>
+    <code dir="ltr" className={INLINE_CODE_CLASS} {...rest}>
       {children}
     </code>
   );
@@ -256,8 +261,19 @@ const baseComponents: Omit<Components, "code"> = {
   img({ src, alt }) {
     return <MarkdownFilePreview src={typeof src === "string" ? src : undefined} alt={alt} />;
   },
+  // CC 2.1.216 (F2) — `dir="auto"` lets each block pick its own direction from
+  // its first strong character, and `ps-5`/`ps-…` (logical start-padding) keeps
+  // the list marker padded on the correct side in RTL (plain `pl-5` would leave
+  // an RTL marker flush against the unpadded right edge).
+  p({ children }) {
+    return <p dir="auto">{children}</p>;
+  },
   ul({ children }) {
-    return <ul className="my-2 list-disc pl-5">{children}</ul>;
+    return (
+      <ul dir="auto" className="my-2 list-disc ps-5">
+        {children}
+      </ul>
+    );
   },
   ol({ children, start, type }) {
     // CC 2.1.274/2.1.281 — honor the list's `start` (and `type`) so a list that
@@ -265,7 +281,7 @@ const baseComponents: Omit<Components, "code"> = {
     // resuming after a code block keeps its number. Dropping `start` (the old
     // behavior) silently rewrote the user's own typed numbers.
     return (
-      <ol start={start} type={type} className="my-2 list-decimal pl-5">
+      <ol dir="auto" start={start} type={type} className="my-2 list-decimal ps-5">
         {children}
       </ol>
     );
@@ -277,18 +293,18 @@ const baseComponents: Omit<Components, "code"> = {
   // children at a fixed pixel size, which reads as "boxes that didn't
   // update". The ratios preserve the original look at the default chat-text
   // (14px / text-sm): 12/14, 16/14, 18/14, 20/14.
-  h1: ({ children }) => <h1 className="my-3 text-[1.43em] font-semibold">{children}</h1>,
-  h2: ({ children }) => <h2 className="my-3 text-[1.29em] font-semibold">{children}</h2>,
-  h3: ({ children }) => <h3 className="my-2 text-[1.14em] font-semibold">{children}</h3>,
+  h1: ({ children }) => <h1 dir="auto" className="my-3 text-[1.43em] font-semibold">{children}</h1>,
+  h2: ({ children }) => <h2 dir="auto" className="my-3 text-[1.29em] font-semibold">{children}</h2>,
+  h3: ({ children }) => <h3 dir="auto" className="my-2 text-[1.14em] font-semibold">{children}</h3>,
   table: ({ children }) => (
     <div className="my-2 overflow-x-auto rounded border border-[var(--border)] scroll-thin">
       <table className="w-full border-collapse text-[0.86em]">{children}</table>
     </div>
   ),
-  th: ({ children }) => <th className="border-b border-[var(--border)] bg-[var(--panel-2)] px-2 py-1 text-left">{children}</th>,
-  td: ({ children }) => <td className="border-b border-[var(--border)] px-2 py-1">{children}</td>,
+  th: ({ children }) => <th dir="auto" className="border-b border-[var(--border)] bg-[var(--panel-2)] px-2 py-1 text-start">{children}</th>,
+  td: ({ children }) => <td dir="auto" className="border-b border-[var(--border)] px-2 py-1">{children}</td>,
   blockquote: ({ children }) => (
-    <blockquote className="my-2 border-l-2 border-[var(--accent)]/60 pl-3 text-[var(--muted)]">
+    <blockquote dir="auto" className="my-2 border-s-2 border-[var(--accent)]/60 ps-3 text-[var(--muted)]">
       {children}
     </blockquote>
   ),

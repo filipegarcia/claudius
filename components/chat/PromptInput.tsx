@@ -1693,6 +1693,9 @@ export function PromptInput({
           <textarea
             ref={taRef}
             data-testid={`${testIdPrefix}-input`}
+            // CC 2.1.216 (F2) — let the composer flip to RTL when the user
+            // types Arabic/Hebrew/Persian, while staying LTR for English/code.
+            dir="auto"
             spellCheck={spellcheckEnabled}
             value={value}
             onCompositionStart={() => {
