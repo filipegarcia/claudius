@@ -28,6 +28,7 @@ import { costFromTokens } from "@/lib/shared/cost-pricing";
 import { classifyInformationalLevel } from "@/lib/shared/system-informational";
 import { parseInitSystemMessage } from "@/lib/shared/parse-init";
 import { hookEventGetsDurablePill } from "@/lib/shared/hook-events";
+import { commandNamesFromChanged } from "@/lib/shared/slash-commands";
 import { ADVISOR_ACTIVE_SENTINEL } from "@/lib/shared/advisor";
 import { matchesUsageLimitPrefix } from "@/lib/shared/rate-limit-prefixes";
 import {
@@ -4506,8 +4507,8 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
         // list rehydrates from the stale system:init snapshot (see run-notes
         // 0.3.195 Risks/follow-ups for the full-fix approach).
         if (sysAny.subtype === "commands_changed") {
-          const cc = sysAny as { commands?: Array<{ name: string }> };
-          const names = (cc.commands ?? []).map((c: { name: string }) => c.name);
+          const cc = sysAny as { commands?: Array<{ name?: unknown }> };
+          const names = commandNamesFromChanged(cc.commands);
           if (names.length > 0) setSlashCommands(names);
           return;
         }

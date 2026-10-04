@@ -93,6 +93,7 @@ import {
 import { getSessionUsage, saveSessionUsage } from "./session-usage-db";
 import { costFromTokens } from "@/lib/shared/cost-pricing";
 import { parseInitSystemMessage, type PluginLoadError } from "@/lib/shared/parse-init";
+import { commandNamesFromChanged } from "@/lib/shared/slash-commands";
 import { listSessionTasks, saveSessionTask } from "./session-tasks-db";
 import { attachLoopTickTokens, recordLoopTick } from "./loop-ticks-db";
 import { syncNeedsAuthNotifications } from "./mcp-needs-auth-db";
@@ -7640,6 +7641,19 @@ export class Session {
           // overwrite unconditionally so a re-emitted init can clear a
           // stale error set (newest frame wins).
           this.pluginLoadErrors = init.pluginErrors;
+        }
+        // CC 2.1.216 — keep the cached init chrome's slash-command list fresh
+        // when the SDK pushes a `commands_changed` mid-session (skills/commands
+        // discovered as the agent works, a plugin reload). Without this, the
+        // `session_snapshot` re-emitted on a reload / tab switch reverts the
+        // palette to the stale init list even though the live path already
+        // applied the change (see use-session.ts `commands_changed`).
+        if (sdkMsg.subtype === "commands_changed" && this.latestInitSnapshot) {
+          const cc = sdkMsg as { commands?: Array<{ name?: unknown }> };
+          const names = commandNamesFromChanged(cc.commands);
+          if (names.length > 0) {
+            this.latestInitSnapshot = { ...this.latestInitSnapshot, slashCommands: names };
+          }
         }
         // Fire the one-shot MCP needs-auth notice on the first live system:init.
         if (sdkMsg.subtype === "init" && !this.isReplayingTranscript) {

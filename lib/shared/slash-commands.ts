@@ -446,3 +446,18 @@ export function isConfidentSlashMatch(
   if (cmd.name.startsWith(filter)) return true;
   return (cmd.aliases ?? []).some((a) => a.startsWith(filter));
 }
+
+/**
+ * CC 2.1.216 — extract the slash-command NAMES from a `commands_changed`
+ * SDK message's `commands` array, dropping anything without a non-empty string
+ * name. Shared by the client (live palette update) and the server (keeping the
+ * cached init snapshot fresh so a reload / tab switch doesn't revert to the
+ * stale list). Pure, for unit tests.
+ */
+export function commandNamesFromChanged(
+  commands: ReadonlyArray<{ name?: unknown }> | undefined,
+): string[] {
+  return (commands ?? [])
+    .map((c) => c?.name)
+    .filter((n): n is string => typeof n === "string" && n.length > 0);
+}
