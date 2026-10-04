@@ -106,7 +106,8 @@ import {
 } from "@/lib/client/useContextWarning";
 import { ContextWarningBanner } from "@/components/chat/ContextWarningBanner";
 import { useNotificationsContext } from "@/components/notifications/NotificationsProvider";
-import { findSlashCommand, isSlashCommandHead } from "@/lib/shared/slash-commands";
+import { findSlashCommand, isSlashCommandHead, userCommandShadowsBuiltin } from "@/lib/shared/slash-commands";
+import { useSdkCommands } from "@/lib/client/useSdkCommands";
 import {
   PROMPT_COLOR_NAMES,
   PROMPT_COLOR_RESET_WORDS,
@@ -255,6 +256,9 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
   // of re-showing a stale, still-high percentage until the next idle poll.
   const [ctxRefreshSignal, setCtxRefreshSignal] = useState(0);
   const ctxSummary = useContextWatcher(session.sessionId, session.pending, ctxRefreshSignal);
+  // CC 2.1.287 — the SDK's rich command list (carries the `builtin` flag), used
+  // to let a user/project/plugin command shadow a same-named built-in dialog.
+  const sdkCommands = useSdkCommands(session.sessionId);
 
   // Load this session's saved prompt color on switch. `activePromptColor`
   // already shows the theme default for any session we haven't recorded, so no
@@ -1725,6 +1729,14 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
       if (trimmed.startsWith("/") && !images?.length && isSlashCommandHead(slashHead)) {
         const head = slashHead;
         const args = trimmed.slice(1 + head.length).trim();
+        // CC 2.1.287 — a user/project/plugin command that shares a name with a
+        // built-in (/usage, /context, /cost, /stats, …) must run the user's
+        // command, not Claudius's native dialog. When the SDK reports a
+        // non-builtin command of this name, forward to the SDK first.
+        if (userCommandShadowsBuiltin(head, sdkCommands)) {
+          void session.send(text, undefined, { asSlashCommand: true });
+          return;
+        }
         const cmd = findSlashCommand(head);
         if (cmd?.handler === "native") {
           if (runNative(cmd.id, args)) return;
@@ -1786,7 +1798,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
       }
       void session.send(text, images, opts?.fromSuggestion ? { fromSuggestion: true } : undefined);
     },
-    [runNative, session, showToast],
+    [runNative, session, showToast, sdkCommands],
   );
 
   // Goal submit — set the tracked objective AND kick off Claude with the same
