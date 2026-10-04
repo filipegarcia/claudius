@@ -308,6 +308,24 @@ export function slashTokenBeforeCaret(before: string): string | null {
 }
 
 /**
+ * CC 2.1.286 — the slash picker matches a command's *description* by word
+ * prefix, not a loose letter-subsequence. A subsequence match on the whole
+ * description (name+aliases+description joined) surfaced unrelated commands for
+ * short queries (e.g. `/co` matching any description with a c…o somewhere).
+ * Returns a modest positive score when `filter` prefixes any word of the
+ * description, else 0 — kept below the name/alias scores so a name match still
+ * ranks first. Pure, for unit tests.
+ */
+export function descriptionWordPrefixScore(filter: string, description: string): number {
+  if (!filter) return 0;
+  const f = filter.toLowerCase();
+  for (const word of description.toLowerCase().split(/[^a-z0-9]+/)) {
+    if (word && word.startsWith(f)) return 10;
+  }
+  return 0;
+}
+
+/**
  * The built-in *dialog* commands this precedence rule covers: Claudius renders
  * each as a native overlay/dialog, and Claude Code renders each as a built-in
  * dialog too. These are the names 2.1.287 is about (`/usage` and its `/cost`

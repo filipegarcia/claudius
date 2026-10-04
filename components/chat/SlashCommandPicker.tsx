@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Wrench, Cpu, Zap, ExternalLink } from "lucide-react";
 import {
   CATEGORY_LABELS,
+  descriptionWordPrefixScore,
   fuzzySlashMatchIndices,
   isConfidentSlashMatch,
   mergeSuggestions,
@@ -126,11 +127,13 @@ export function SlashCommandPicker({
     if (!filter) return all;
     const scored: Array<{ cmd: SlashSuggestion; score: number }> = [];
     for (const cmd of all) {
-      const haystack = [cmd.name, ...(cmd.aliases ?? []), cmd.description.toLowerCase()].join(" ");
+      // CC 2.1.286 — name/aliases stay fuzzy; the description matches by word
+      // prefix (not a loose subsequence over a joined haystack), so a short
+      // query no longer surfaces unrelated commands via their descriptions.
       const score = Math.max(
         fuzzyScore(filter, cmd.name),
         ...((cmd.aliases ?? []).map((a) => fuzzyScore(filter, a))),
-        fuzzyScore(filter, haystack) * 0.3,
+        descriptionWordPrefixScore(filter, cmd.description),
       );
       if (score > 0) scored.push({ cmd, score });
     }
