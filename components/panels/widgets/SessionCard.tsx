@@ -16,7 +16,7 @@ import type { SessionUsage } from "@/lib/client/types";
 import { cn } from "@/lib/utils/cn";
 import { fmtElapsedSec, fmtPath } from "./format";
 import { ModelPicker } from "./ModelPicker";
-import { type AdvisorChoice, badgeAdvisorLabel } from "@/lib/shared/advisor";
+import { type AdvisorChoice, badgeAdvisorLabel, prettyModelName } from "@/lib/shared/advisor";
 
 type EffortLevel = "low" | "medium" | "high" | "xhigh" | "max" | "auto";
 
@@ -445,6 +445,9 @@ function EffortPill({ effort }: { effort: EffortLevel }) {
 
 function shortModel(m: string | null): string {
   if (!m) return "—";
-  // trim "claude-" prefix and version suffixes for compactness
-  return m.replace(/^claude-/, "").replace(/-\d{8}$/, "");
+  // CC 2.1.261 — friendly name ("Sonnet 5.5"), which also unwraps raw
+  // Bedrock/Vertex/gateway ids (via canonicalModelId) instead of only trimming
+  // the `claude-` prefix. Falls back to the raw string for an alias it can't
+  // parse (e.g. "sonnet").
+  return prettyModelName(m);
 }

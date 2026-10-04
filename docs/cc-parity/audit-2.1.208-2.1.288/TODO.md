@@ -113,7 +113,7 @@ grep evidence): [`audit/chunk0.md`](audit/chunk0.md) (2.1.285–288) …
 - [x] **E3** [2.1.284/2.1.282] Ultracode is an independent toggle at any effort, plain styling, `/effort` args handled
 - [x] **E4** [2.1.257] `/effort` "this session only"
 - [ ] **E5** [2.1.267 low] Respect `maxEffortLevel` in the model picker
-- [ ] **E6** [2.1.261] Friendly model names in session/status pills
+- [x] **E6** [2.1.261] Friendly model names in session/status pills
 - [ ] **E7** [2.1.271] `modelPricing`: real keys (`multiplier`, `overrides`) and the managed source via `resolveSettings()`
 - [ ] **E8** [2.1.236] `/usage` usage-credits row (`extra_usage`)
 - [ ] **E9** [2.1.284] Usage-limit panel: no "upgrade" for Team/Enterprise, usage-credits link

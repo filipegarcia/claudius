@@ -29,6 +29,7 @@ import { worktreeBadge } from "@/lib/client/worktree";
 import type { SessionInfo, StreamStatus } from "@/lib/client/types";
 import type { Workspace } from "@/lib/server/workspaces-store";
 import { modelDeprecationDate } from "@/lib/shared/model-deprecations";
+import { prettyModelName } from "@/lib/shared/advisor";
 import { fastModeDisabledReasonLabel } from "@/lib/shared/fast-mode";
 import {
   VERBOSE_LEVELS,
@@ -425,7 +426,8 @@ export function StatusLine({
                   className="flex items-center gap-1 rounded border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 font-mono text-[10px] text-amber-200"
                 >
                   <AlertTriangle className="h-3 w-3" />
-                  <span className="max-w-[14rem] truncate">{model}</span>
+                  {/* CC 2.1.261 — friendly name; raw id stays in data-model/title. */}
+                  <span className="max-w-[14rem] truncate">{prettyModelName(model)}</span>
                 </span>
               );
             }
@@ -441,7 +443,8 @@ export function StatusLine({
                 title={model}
                 className="max-w-[10rem] truncate font-mono opacity-80 sm:max-w-[14rem]"
               >
-                {model}
+                {/* CC 2.1.261 — friendly name, not the raw Bedrock/Vertex id. */}
+                {prettyModelName(model)}
               </span>
             );
           })()}
