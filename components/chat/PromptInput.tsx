@@ -31,6 +31,7 @@ import {
   isListLine,
 } from "@/lib/shared/markdown-list";
 import { stripInvisibleUnicode } from "@/lib/shared/invisible-unicode";
+import { slashTokenBeforeCaret } from "@/lib/shared/slash-commands";
 
 type Props = {
   pending: boolean;
@@ -243,6 +244,13 @@ export function PromptInput({
   // site that changes value" model is unambiguous and stays in sync with
   // the DOM caret on every write path.
   const [pickerOpen, setPickerOpen] = useState(false);
+  /**
+   * CC 2.1.265 — the active slash token (leading `/` stripped) when a command
+   * is typed mid-prompt, not just when the whole input is one `/word`. Same
+   * caret-token model as {@link atQuery}; null when no slash token is under the
+   * caret. The picker filters on this, and selecting splices it in place.
+   */
+  const [slashQuery, setSlashQuery] = useState<string | null>(null);
   const [atQuery, setAtQuery] = useState<string | null>(null);
   /** Active `:shortcode` token (leading `:` stripped), or null. Same update-site model as atQuery above. */
   const [emojiQuery, setEmojiQuery] = useState<string | null>(null);
@@ -739,6 +747,7 @@ export function PromptInput({
     setDismissedHints(new Set());
     setImages([]);
     setPickerOpen(false);
+    setSlashQuery(null);
     setAtQuery(null);
     setEmojiQuery(null);
     ordinalCounterRef.current = 0;
@@ -773,6 +782,7 @@ export function PromptInput({
     setValue("");
     setImages([]);
     setPickerOpen(false);
+    setSlashQuery(null);
     setAtQuery(null);
     setEmojiQuery(null);
     ordinalCounterRef.current = 0;
@@ -824,6 +834,7 @@ export function PromptInput({
     setDismissedHints(new Set());
     setImages([]);
     setPickerOpen(false);
+    setSlashQuery(null);
     setAtQuery(null);
     setEmojiQuery(null);
     // Each prompt is its own ordinal namespace.
@@ -853,8 +864,13 @@ export function PromptInput({
   // `useEffect([value])` that tripped react-hooks/set-state-in-effect.
   function refreshPickerState(nextValue: string, caret: number) {
     const before = nextValue.slice(0, caret);
-    // First-line slash picker: line starts with / (skipped when disabled).
-    setPickerOpen(!disableSlash && /^\s*\/\S*$/.test(nextValue));
+    // Slash picker: a `/token` under the caret, preceded by start-or-whitespace
+    // — so it opens mid-prompt (CC 2.1.265), not only when the whole input is
+    // one `/word`. The boundary requirement means `https://x` and `a/b` don't
+    // trigger it. Skipped when slash is disabled.
+    const slashTok = disableSlash ? null : slashTokenBeforeCaret(before);
+    setSlashQuery(slashTok);
+    setPickerOpen(slashTok != null);
     // @-mention: capture the active token if it starts with @
     const atMatch = /(^|\s)@([^\s@]*)$/.exec(before);
     setAtQuery(atMatch ? atMatch[2] : null);
@@ -1097,6 +1113,31 @@ export function PromptInput({
     const next = replaced + after;
     setValue(next);
     setAtQuery(null);
+    requestAnimationFrame(() => {
+      el?.focus();
+      const pos = replaced.length;
+      el?.setSelectionRange(pos, pos);
+      autosize();
+    });
+  }
+
+  /**
+   * Picker-select path for a slash command (Tab/Enter/click). Splices the
+   * selected command in place of the `/token` under the caret — mirrors
+   * insertAtMention — so a command chosen mid-prompt (CC 2.1.265) doesn't wipe
+   * the rest of the composer. For a first-line `/foo` this still yields
+   * `/<cmd> `, exactly as the old whole-input replace did.
+   */
+  function insertSlashCommand(cmd: string) {
+    const el = taRef.current;
+    const caret = el?.selectionStart ?? value.length;
+    const before = value.slice(0, caret);
+    const after = value.slice(caret);
+    const replaced = before.replace(/(^|\s)\/(\S*)$/, (_m, pre) => `${pre}/${cmd} `);
+    const next = replaced + after;
+    setValue(next);
+    setSlashQuery(null);
+    setPickerOpen(false);
     requestAnimationFrame(() => {
       el?.focus();
       const pos = replaced.length;
@@ -1758,16 +1799,15 @@ export function PromptInput({
 
         {!disableSlash && pickerOpen && atQuery == null && emojiQuery == null && (
           <SlashCommandPicker
-            value={value.trimStart()}
+            value={`/${slashQuery ?? ""}`}
             sdkSlashCommands={slashCommands}
             sdkSkills={skills}
             sdkRichCommands={sdkRichCommands}
-            onSelect={(cmd) => {
-              setValue(`/${cmd} `);
+            onSelect={(cmd) => insertSlashCommand(cmd)}
+            onClose={() => {
               setPickerOpen(false);
-              requestAnimationFrame(() => taRef.current?.focus());
+              setSlashQuery(null);
             }}
-            onClose={() => setPickerOpen(false)}
           />
         )}
 

@@ -294,6 +294,20 @@ export function isSlashCommandHead(head: string): boolean {
 }
 
 /**
+ * CC 2.1.265 — the slash token under the caret for the mid-prompt command
+ * picker: the `\S*` after a `/` that is itself preceded by the start of input
+ * or whitespace. `before` is the text up to the caret. Returns the token with
+ * its leading `/` stripped, or null when no slash token is under the caret.
+ * The boundary requirement keeps it from firing inside `https://x` or `a/b`.
+ * `PromptInput.insertSlashCommand` splices with the same `(^|\s)\/(\S*)$`
+ * pattern — keep the two in sync.
+ */
+export function slashTokenBeforeCaret(before: string): string | null {
+  const m = /(^|\s)\/(\S*)$/.exec(before);
+  return m ? m[2] : null;
+}
+
+/**
  * CC 2.1.287 (FIX) — a user/project/plugin command that shares a name with a
  * built-in (`/usage`, `/context`, `/cost`, `/stats`, …) must run the user's
  * command, not open Claudius's native dialog. The SDK's `supportedCommands()`
@@ -480,6 +494,13 @@ export function isConfidentSlashMatch(
 ): boolean {
   if (!filter) return false;
   if (cmd.name.startsWith(filter)) return true;
+  // CC 2.1.265 — a plugin/namespaced command (`plugin:skill`) is also a
+  // confident match by its bare name (the part after the last ':'), so typing
+  // the skill name without the plugin prefix still gets Enter-to-run.
+  if (cmd.name.includes(":")) {
+    const bare = cmd.name.slice(cmd.name.lastIndexOf(":") + 1);
+    if (bare.startsWith(filter)) return true;
+  }
   return (cmd.aliases ?? []).some((a) => a.startsWith(filter));
 }
 
