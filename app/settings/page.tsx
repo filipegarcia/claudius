@@ -2092,23 +2092,46 @@ function AttributionCatalogField({
   set: (v: unknown) => void;
 }) {
   const state = attributionFieldState(value);
-  if (state === "custom") {
-    return (
-      <p className="text-[11px] leading-4 text-[var(--muted)]">
-        A custom attribution object is set — edit it as raw JSON in the{" "}
-        <span className="font-mono">Other</span> section below.
-      </p>
-    );
-  }
+  const isSet = value !== undefined;
   return (
-    <select
-      value={state}
-      onChange={(e) => set(e.target.value === "hidden" ? false : undefined)}
-      className="w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 text-xs focus:outline-none"
+    <div
+      data-testid="catalog-field-attribution"
+      className="rounded-md border border-[var(--border)] bg-[var(--panel-2)]/40 p-2"
     >
-      <option value="default">Default (attribution shown)</option>
-      <option value="hidden">Hidden (attribution: false)</option>
-    </select>
+      <div className="mb-1 flex items-center gap-2">
+        <span className="font-mono text-xs">attribution</span>
+        <span
+          className={cn(
+            "ml-auto text-[9px] uppercase tracking-wide",
+            isSet ? "text-[var(--accent)]" : "text-[var(--muted)]",
+          )}
+        >
+          {isSet ? "overridden" : "default"}
+        </span>
+      </div>
+      <p className="mb-2 text-[11px] leading-4 text-[var(--muted)]">
+        Attribution in commits and PRs. Default shows the standard Claude Code attribution;{" "}
+        <span className="font-mono">Hidden</span> writes <span className="font-mono">attribution: false</span>{" "}
+        to suppress all of it. For per-field customization (custom commit/PR text, session URL),
+        edit the object form as raw JSON in the <span className="font-mono">Other</span> section
+        below. Supersedes the deprecated <span className="font-mono">includeCoAuthoredBy</span>.
+      </p>
+      {state === "custom" ? (
+        <p className="text-[11px] leading-4 text-[var(--muted)]">
+          A custom attribution object is set — edit it as raw JSON in the{" "}
+          <span className="font-mono">Other</span> section below.
+        </p>
+      ) : (
+        <select
+          value={state}
+          onChange={(e) => set(e.target.value === "hidden" ? false : undefined)}
+          className="w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 text-xs focus:outline-none"
+        >
+          <option value="default">Default (attribution shown)</option>
+          <option value="hidden">Hidden (attribution: false)</option>
+        </select>
+      )}
+    </div>
   );
 }
 
