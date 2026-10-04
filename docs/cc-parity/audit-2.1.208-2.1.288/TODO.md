@@ -60,7 +60,7 @@ grep evidence): [`audit/chunk0.md`](audit/chunk0.md) (2.1.285–288) …
 - [x] **A4** [2.1.259] Pass `permissionPrompts: "none"` to unattended runs (scheduler, updater apply)
 - [x] **A5** [2.1.280] Hooks editor: disallow/flag `agent`-type hooks on `PermissionRequest`
 - [x] **A6** [2.1.212] Auto-mode tab: "Reset to defaults" with confirmation
-- [ ] **A7** [2.1.219] Sandbox `network.allowedDomains` + `network.strictAllowlist` in the workspace sandbox settings
+- [x] **A7** [2.1.219] Sandbox `network.allowedDomains` + `network.strictAllowlist` in the workspace sandbox settings
 - [x] **A8** [2.1.212] WebSearch/subagent per-session caps: forward the `CLAUDE_CODE_MAX_*_PER_SESSION` env, fix `Task`→`Agent` tool-name matching
 - [ ] **A9** [2.1.260 low] Permission-rule lint: flag ambiguous `\(` in Windows paths
 

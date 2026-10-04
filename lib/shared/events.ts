@@ -1215,6 +1215,14 @@ export type CreateSessionRequest = {
    * Options.sandbox.filesystem.disabled. Only meaningful with sandboxEnabled.
    */
   sandboxFilesystemDisabled?: boolean;
+  /**
+   * CC 2.1.219 — sandbox network egress allow-list, forwarded as
+   * SDK Options.sandbox.network.{allowedDomains,strictAllowlist}. Only
+   * meaningful with sandboxEnabled; strictAllowlist makes allowedDomains
+   * exhaustive (deny everything else).
+   */
+  sandboxNetworkAllowedDomains?: string[];
+  sandboxNetworkStrictAllowlist?: boolean;
   /** Enable the 1M-token context beta — SDK Options.betas (Sonnet 4/4.5). */
   enable1mContext?: boolean;
   /** Persist this session to disk — SDK Options.persistSession (false = ephemeral). */

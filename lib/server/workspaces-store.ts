@@ -44,6 +44,14 @@ export type WorkspaceDefaults = {
    */
   sandboxFilesystemDisabled?: boolean;
   /**
+   * CC 2.1.219 — sandbox network egress allow-list, forwarded as
+   * `Options.sandbox.network.{allowedDomains,strictAllowlist}`. Only
+   * meaningful with `sandboxEnabled`; `strictAllowlist` makes `allowedDomains`
+   * exhaustive (deny everything else) rather than additive.
+   */
+  sandboxNetworkAllowedDomains?: string[];
+  sandboxNetworkStrictAllowlist?: boolean;
+  /**
    * Enable the 1M-token context window beta (SDK `Options.betas` →
    * `context-1m-2025-08-07`). Only meaningful for Sonnet 4/4.5 — newer models
    * (Fable, Opus 4.6+, Sonnet 4.6+/5) ship a 1M window by default, so the

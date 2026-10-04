@@ -84,6 +84,15 @@ export function WorkspaceForm({ initial, onCancel, onSubmit, onIconUpload, onDel
   const [defaultSandboxNoFs, setDefaultSandboxNoFs] = useState<boolean>(
     initial?.defaults?.sandboxFilesystemDisabled === true,
   );
+  // CC 2.1.219 — sandbox network egress allow-list. One domain per line; the
+  // "strict" toggle makes the list exhaustive (deny everything else). Only
+  // meaningful when the sandbox is on — cleared alongside it on save.
+  const [defaultSandboxDomains, setDefaultSandboxDomains] = useState<string>(
+    (initial?.defaults?.sandboxNetworkAllowedDomains ?? []).join("\n"),
+  );
+  const [defaultSandboxStrict, setDefaultSandboxStrict] = useState<boolean>(
+    initial?.defaults?.sandboxNetworkStrictAllowlist === true,
+  );
   // 1M-token context beta — off by default; raises cost a lot and is Sonnet-only.
   const [default1m, setDefault1m] = useState<boolean>(
     initial?.defaults?.enable1mContext === true,
@@ -226,6 +235,16 @@ export function WorkspaceForm({ initial, onCancel, onSubmit, onIconUpload, onDel
       else delete defaults.sandboxEnabled;
       if (defaultSandbox && defaultSandboxNoFs) defaults.sandboxFilesystemDisabled = true;
       else delete defaults.sandboxFilesystemDisabled;
+      // CC 2.1.219 — network allow-list, only when the sandbox is on.
+      const sandboxDomains = defaultSandboxDomains
+        .split("\n")
+        .map((d) => d.trim())
+        .filter(Boolean);
+      if (defaultSandbox && sandboxDomains.length > 0)
+        defaults.sandboxNetworkAllowedDomains = sandboxDomains;
+      else delete defaults.sandboxNetworkAllowedDomains;
+      if (defaultSandbox && defaultSandboxStrict) defaults.sandboxNetworkStrictAllowlist = true;
+      else delete defaults.sandboxNetworkStrictAllowlist;
       if (default1m) defaults.enable1mContext = true;
       else delete defaults.enable1mContext;
       if (defaultEphemeral) defaults.persistSession = false;
@@ -568,7 +587,10 @@ export function WorkspaceForm({ initial, onCancel, onSubmit, onIconUpload, onDel
                       // otherwise re-checking Sandbox later would silently
                       // re-reveal "Skip filesystem isolation" already
                       // checked, with no visible state change to explain why.
-                      if (!e.target.checked) setDefaultSandboxNoFs(false);
+                      if (!e.target.checked) {
+                        setDefaultSandboxNoFs(false);
+                        setDefaultSandboxStrict(false);
+                      }
                     }}
                     className="h-3 w-3 rounded border-[var(--border)] bg-[var(--panel-2)]"
                   />
@@ -591,6 +613,39 @@ export function WorkspaceForm({ initial, onCancel, onSubmit, onIconUpload, onDel
                       filesystem.
                     </span>
                   </label>
+                )}
+                {defaultSandbox && (
+                  <div className="mt-2 ml-5 text-xs">
+                    <div className="mb-1 flex items-center gap-2">
+                      <span>Network allow-list</span>
+                      <span className="text-[10px] text-[var(--muted)]">
+                        One domain per line (e.g. <code className="font-mono">api.github.com</code>).
+                      </span>
+                    </div>
+                    <textarea
+                      data-testid="workspace-sandbox-domains"
+                      value={defaultSandboxDomains}
+                      onChange={(e) => setDefaultSandboxDomains(e.target.value)}
+                      rows={3}
+                      spellCheck={false}
+                      placeholder={"api.github.com\nregistry.npmjs.org"}
+                      className="w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1 font-mono text-[11px] focus:outline-none"
+                    />
+                    <label className="mt-1 flex cursor-pointer items-center gap-2">
+                      <input
+                        type="checkbox"
+                        data-testid="workspace-sandbox-strict"
+                        checked={defaultSandboxStrict}
+                        onChange={(e) => setDefaultSandboxStrict(e.target.checked)}
+                        className="h-3 w-3 rounded border-[var(--border)] bg-[var(--panel-2)]"
+                      />
+                      <span>Strict allow-list</span>
+                      <span className="text-[10px] text-[var(--muted)]">
+                        Deny every domain not listed above (instead of adding to
+                        the defaults).
+                      </span>
+                    </label>
+                  </div>
                 )}
                 <label className="mt-2 flex cursor-pointer items-center gap-2 text-xs">
                   <input

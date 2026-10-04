@@ -1666,6 +1666,14 @@ export class Session {
    */
   readonly sandboxFilesystemDisabled?: boolean;
   /**
+   * CC 2.1.219 — sandbox network egress allow-list, forwarded as
+   * `Options.sandbox.network.{allowedDomains,strictAllowlist}`. Only meaningful
+   * when `sandboxEnabled` is true. `strictAllowlist` makes `allowedDomains`
+   * exhaustive (deny everything else) instead of additive.
+   */
+  readonly sandboxNetworkAllowedDomains?: string[];
+  readonly sandboxNetworkStrictAllowlist?: boolean;
+  /**
    * Enable the 1M-token context window beta — when true the Options.betas
    * array carries `context-1m-2025-08-07`. Only meaningful for Sonnet 4/4.5;
    * newer models (Fable, Opus 4.6+, Sonnet 4.6+/5) include a 1M window by
@@ -2250,6 +2258,8 @@ export class Session {
     fallbackModel?: string;
     sandboxEnabled?: boolean;
     sandboxFilesystemDisabled?: boolean;
+    sandboxNetworkAllowedDomains?: string[];
+    sandboxNetworkStrictAllowlist?: boolean;
     enable1mContext?: boolean;
     persistSession?: boolean;
     additionalDirectories?: string[];
@@ -2282,6 +2292,8 @@ export class Session {
     this.fallbackModel = opts.fallbackModel;
     this.sandboxEnabled = opts.sandboxEnabled;
     this.sandboxFilesystemDisabled = opts.sandboxFilesystemDisabled;
+    this.sandboxNetworkAllowedDomains = opts.sandboxNetworkAllowedDomains;
+    this.sandboxNetworkStrictAllowlist = opts.sandboxNetworkStrictAllowlist;
     this.enable1mContext = opts.enable1mContext;
     this.persistSession = opts.persistSession;
     this.additionalDirectories = opts.additionalDirectories;
@@ -2815,6 +2827,24 @@ export class Session {
               failIfUnavailable: false,
               ...(this.sandboxFilesystemDisabled
                 ? { filesystem: { disabled: true } }
+                : {}),
+              // CC 2.1.219 — network egress allow-list. `allowedDomains`
+              // names the hosts the sandboxed process may reach;
+              // `strictAllowlist` makes that list exhaustive (deny everything
+              // else) rather than additive. Only nested when at least one is
+              // set, and only under an enabled sandbox.
+              ...((this.sandboxNetworkAllowedDomains?.length ?? 0) > 0 ||
+              this.sandboxNetworkStrictAllowlist
+                ? {
+                    network: {
+                      ...(this.sandboxNetworkAllowedDomains?.length
+                        ? { allowedDomains: this.sandboxNetworkAllowedDomains }
+                        : {}),
+                      ...(this.sandboxNetworkStrictAllowlist
+                        ? { strictAllowlist: true }
+                        : {}),
+                    },
+                  }
                 : {}),
             },
           }
@@ -6006,6 +6036,8 @@ export class Session {
     fallbackModel?: string;
     sandboxEnabled?: boolean;
     sandboxFilesystemDisabled?: boolean;
+    sandboxNetworkAllowedDomains?: string[];
+    sandboxNetworkStrictAllowlist?: boolean;
     enable1mContext?: boolean;
     persistSession?: boolean;
     additionalDirectories?: string[];
@@ -6027,6 +6059,8 @@ export class Session {
       fallbackModel: this.fallbackModel,
       sandboxEnabled: this.sandboxEnabled,
       sandboxFilesystemDisabled: this.sandboxFilesystemDisabled,
+      sandboxNetworkAllowedDomains: this.sandboxNetworkAllowedDomains,
+      sandboxNetworkStrictAllowlist: this.sandboxNetworkStrictAllowlist,
       enable1mContext: this.enable1mContext,
       persistSession: this.persistSession,
       additionalDirectories: this.additionalDirectories,
