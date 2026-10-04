@@ -83,6 +83,13 @@ const NOTIFICATION_TONE: Record<NonNullable<SystemEntry["priority"]>, string> = 
   immediate: "text-red-400",
 };
 
+/** CC 2.1.217 — map a system/informational level to its pill tone. */
+const INFO_LEVEL_TONE: Record<NonNullable<SystemEntry["infoLevel"]>, string> = {
+  notice: "text-[var(--muted)]",
+  suggestion: "text-sky-400",
+  warning: "text-amber-400",
+};
+
 export function SystemPill({
   entry,
   levers,
@@ -92,11 +99,14 @@ export function SystemPill({
 }) {
   const meta = KIND_META[entry.kind];
   const Icon = meta.icon;
-  // CC 2.1.267/2.1.274 — a notification pill is toned by its priority.
+  // CC 2.1.267/2.1.274 — a notification pill is toned by its priority;
+  // CC 2.1.217 — an informational pill is toned by its level.
   const tone =
     entry.kind === "notification" && entry.priority
       ? NOTIFICATION_TONE[entry.priority]
-      : meta.tone;
+      : entry.kind === "info" && entry.infoLevel
+        ? INFO_LEVEL_TONE[entry.infoLevel]
+        : meta.tone;
   // Compact-boundary is a major thread-state transition (the SDK summarized
   // earlier turns into a single context block). Show it as a full-width
   // horizontal rule with the token-reduction stats and an expandable summary —

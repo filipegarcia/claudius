@@ -25,6 +25,7 @@ import type {
 import type { Tip } from "@/lib/shared/tips";
 import type { ApiRetryState } from "@/lib/client/api-retry";
 import { costFromTokens } from "@/lib/shared/cost-pricing";
+import { classifyInformationalLevel } from "@/lib/shared/system-informational";
 import { parseInitSystemMessage } from "@/lib/shared/parse-init";
 import { ADVISOR_ACTIVE_SENTINEL } from "@/lib/shared/advisor";
 import { matchesUsageLimitPrefix } from "@/lib/shared/rate-limit-prefixes";
@@ -4425,6 +4426,12 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
         if (sysAny.subtype === "informational") {
           const inf = sysAny as { content?: string; level?: string; prevent_continuation?: boolean };
           const content = typeof inf.content === "string" ? inf.content.trim() : "";
+          // CC 2.1.217 — `level: 'info'` is transcript-mode-only; don't surface
+          // it in the chat. Other levels tone the pill (notice gray, suggestion
+          // sky, warning amber) so a data-loss warning stops looking like
+          // routine info.
+          const { hidden, infoLevel } = classifyInformationalLevel(inf.level);
+          if (hidden) return;
           if (content) {
             setSystemEntries((prev) => [
               ...prev,
@@ -4433,6 +4440,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
                 kind: "info",
                 label: content,
                 detail: inf.prevent_continuation ? "blocked" : undefined,
+                ...(infoLevel ? { infoLevel } : {}),
               },
             ]);
           }

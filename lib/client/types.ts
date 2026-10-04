@@ -281,6 +281,13 @@ export type SystemEntry = {
    */
   priority?: "low" | "medium" | "high" | "immediate";
   /**
+   * CC 2.1.217 — only for `kind === "info"` carrying an SDK
+   * `system/informational` message: its render level, used to tone the pill
+   * (notice gray, suggestion sky, warning amber). `info`-level lines are
+   * transcript-mode-only and never create an entry.
+   */
+  infoLevel?: "notice" | "suggestion" | "warning";
+  /**
    * Number of consecutive identical emissions collapsed onto this pill. Only
    * set (and rendered as a `×N` badge) for the transient `init` / `status`
    * kinds, which the SDK re-emits many times in a row during an API-retry /
