@@ -2754,6 +2754,12 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
         // model" prose with our actionable copy (use a different model + learn
         // more). The selected model isn't enabled for this account/region.
         const displayBlocks = rewriteModelUnavailableBlocks(blocks, assistantError);
+        // CC 2.1.243 — a generic SDKAssistantMessageError frame (server_error,
+        // billing_error, invalid_request, …) that isn't already handled by the
+        // rate-limit panel gets error styling instead of rendering as plain
+        // model prose.
+        const errorTag =
+          assistantError && assistantError !== "rate_limit" ? assistantError : undefined;
         lastAssistantUuidRef.current = messageId;
         setMessages((prev) =>
           upsertAssistantSplit(
@@ -2767,6 +2773,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
             rateLimitHit,
             opusHighDemand,
             aborted,
+            errorTag,
           ),
         );
         setPendingTracked(true);
@@ -6798,6 +6805,14 @@ export function upsertAssistantSplit(
    * terminal event) omits it.
    */
   aborted?: boolean,
+  /**
+   * CC 2.1.243 — the `SDKAssistantMessageError` tag (`server_error`,
+   * `billing_error`, `invalid_request`, …) when this split is an error frame
+   * whose dedicated handler (rate-limit panel, model-unavailable rewrite)
+   * didn't already claim it. Sticky like `opusHighDemand`; drives the error
+   * styling in `AssistantMessage`.
+   */
+  errorTag?: string,
 ): DisplayMessage[] {
   const idx = prev.findIndex((m) => m.uuid === messageId);
   if (idx === -1) {
@@ -6814,6 +6829,7 @@ export function upsertAssistantSplit(
         ...(rateLimitHit ? { rateLimitHit } : {}),
         ...(opusHighDemand ? { opusHighDemand } : {}),
         ...(aborted ? { aborted } : {}),
+        ...(errorTag ? { errorTag } : {}),
       },
     ];
   }
@@ -6874,6 +6890,7 @@ export function upsertAssistantSplit(
   const stickyHit = existing.rateLimitHit ?? rateLimitHit;
   const stickyOpus = existing.opusHighDemand || opusHighDemand;
   const stickyAborted = existing.aborted || aborted;
+  const stickyErrorTag = existing.errorTag ?? errorTag;
   const copy = prev.slice();
   copy[idx] = {
     ...existing,
@@ -6884,6 +6901,7 @@ export function upsertAssistantSplit(
     ...(stickyHit ? { rateLimitHit: stickyHit } : {}),
     ...(stickyOpus ? { opusHighDemand: true } : {}),
     ...(stickyAborted ? { aborted: true } : {}),
+    ...(stickyErrorTag ? { errorTag: stickyErrorTag } : {}),
   };
   return copy;
 }

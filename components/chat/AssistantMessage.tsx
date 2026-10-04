@@ -10,6 +10,7 @@ import { RateLimitHitPanel } from "./RateLimitHitPanel";
 import { OpusHighDemandPanel } from "./OpusHighDemandPanel";
 import type { DisplayMessage, TaskInfo, ToolProgressInfo } from "@/lib/client/types";
 import { formatMessageTime } from "@/lib/client/format-message-time";
+import { cn } from "@/lib/utils/cn";
 import { isSubagentToolName } from "@/lib/shared/subagent-tool";
 import {
   DEFAULT_VERBOSE,
@@ -95,6 +96,17 @@ export function AssistantMessage({
             Interrupted
           </span>
         )}
+        {/* CC 2.1.243 — an API/client error frame (server_error, billing_error,
+            …) is flagged so it doesn't read as ordinary model output. */}
+        {message.errorTag && (
+          <span
+            data-testid="assistant-error-badge"
+            className="rounded-md border border-red-500/40 bg-red-500/10 px-1.5 py-0.5 text-[10px] text-red-300"
+            title={`The model turn ended with an error: ${message.errorTag}`}
+          >
+            Error · {message.errorTag.replace(/_/g, " ")}
+          </span>
+        )}
         {stamp && (
           <span
             className={`ml-auto font-mono text-[10px] transition ${verbose === "ultra-verbose" ? "opacity-60" : "opacity-0 group-hover:opacity-100"}`}
@@ -105,7 +117,13 @@ export function AssistantMessage({
           </span>
         )}
       </div>
-      <div className="space-y-1 text-[length:var(--chat-text)] leading-7 2xl:leading-8">
+      <div
+        className={cn(
+          "space-y-1 text-[length:var(--chat-text)] leading-7 2xl:leading-8",
+          // CC 2.1.243 — error frames read as an error, not model prose.
+          message.errorTag && "rounded-md border-l-2 border-red-500/50 bg-red-500/5 pl-3",
+        )}
+      >
         {filterAssistantBlocks(message.blocks, verbose).map((b, i) => {
           if (b.kind === "text")
             return (

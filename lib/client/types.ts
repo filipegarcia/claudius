@@ -172,6 +172,16 @@ export type DisplayMessage = {
    */
   aborted?: boolean;
   /**
+   * CC 2.1.243 — the `SDKAssistantMessageError` tag (`server_error`,
+   * `billing_error`, `invalid_request`, `overloaded`, `cloud_credential_error`,
+   * …) for an assistant frame that's actually an API/client error, when no
+   * dedicated handler (rate-limit panel) already claimed it. Sticky across
+   * splits like `opusHighDemand`; drives error styling in `AssistantMessage`
+   * so an error frame stops looking like ordinary model output. Excludes
+   * `rate_limit`, which has its own `rateLimitHit` panel.
+   */
+  errorTag?: string;
+  /**
    * SDK 0.3.205 — present when this user turn's `SDKMessageOrigin` is
    * `kind: "peer"` (sent by another Claude Code session, e.g. via the
    * `SendMessage` tool) rather than typed by the local user. `from` is the
