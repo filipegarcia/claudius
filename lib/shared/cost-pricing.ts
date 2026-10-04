@@ -46,10 +46,31 @@ const HAIKU: Pricing = {
   cacheWrite1h: 2,
 };
 
+// CC 2.1.257/2.1.284/2.1.219/2.1.280 — current-generation list prices (per MT),
+// from the LiteLLM table (verified against ~/.claude/.claudius-litellm-prices
+// .json). Cache-write follows Anthropic's standard 1.25×(5m)/2×(1h) of input,
+// matching the family entries above. Without these the estimator billed every
+// opus at $15/$75 (≈3.75× high for Opus 5.5), every sonnet at $3/$15, and fable
+// at Sonnet rates.
+const OPUS_5_5: Pricing = { input: 4, output: 20, cacheRead: 0.2, cacheWrite5m: 5, cacheWrite1h: 8 };
+const OPUS_5: Pricing = { input: 5, output: 25, cacheRead: 0.5, cacheWrite5m: 6.25, cacheWrite1h: 10 };
+// Sonnet 5 / 5.5 share a price point.
+const SONNET_5: Pricing = { input: 2, output: 10, cacheRead: 0.2, cacheWrite5m: 2.5, cacheWrite1h: 4 };
+// Fable 5.1 (current). Fable 5 differs only in cache-read ($1.00); prior gen.
+const FABLE_5_1: Pricing = { input: 10, output: 50, cacheRead: 0.25, cacheWrite5m: 12.5, cacheWrite1h: 20 };
+const FABLE_5: Pricing = { input: 10, output: 50, cacheRead: 1, cacheWrite5m: 12.5, cacheWrite1h: 20 };
+
 export function priceFor(model: string | undefined): Pricing {
   const m = (model ?? "").toLowerCase();
+  // Specific current-gen ids before the generic family fallbacks (match the
+  // more specific id first, e.g. opus-5-5 before opus-5 before opus).
+  if (m.includes("opus-5-5")) return OPUS_5_5;
+  if (m.includes("opus-5")) return OPUS_5;
   if (m.includes("opus")) return OPUS;
   if (m.includes("haiku")) return HAIKU;
+  if (m.includes("fable-5-1") || m.includes("fable-5.1")) return FABLE_5_1;
+  if (m.includes("fable")) return FABLE_5;
+  if (m.includes("sonnet-5")) return SONNET_5; // sonnet-5 and sonnet-5-5
   return SONNET; // sonnet covers most defaults including unknown
 }
 
