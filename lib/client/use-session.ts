@@ -3713,6 +3713,19 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
               if (prev.some((e) => e.uuid === uuid)) return prev;
               return [...prev, { uuid, afterMessageUuid: anchor, kind: "info", label }];
             });
+            // CC 2.1.285 — a user message that leads with a quoted CC/IDE tag
+            // still has its real text after the wrapper. Render that as a normal
+            // user bubble instead of dropping it with the pill.
+            if (cli.trailing) {
+              const trailUuid = `${uuid}:trailing`;
+              setMessages((prev) => {
+                if (prev.some((m) => m.uuid === trailUuid)) return prev;
+                return [
+                  ...prev,
+                  { uuid: trailUuid, role: "user", blocks: [{ kind: "text", text: cli.trailing }] },
+                ];
+              });
+            }
             return;
           }
           // Rebuild text + image attachments together (see extractUserContent
@@ -6686,7 +6699,21 @@ function synthesizeOlder(raw: Array<Record<string, unknown>>): {
     // pagination path would also double-count after a subsequent
     // resyncFromDisk.
     if (isSdkSlashUserMessage(content)) continue;
-    if (parseSyntheticCliWrapper(content)) continue;
+    {
+      const cliWrap = parseSyntheticCliWrapper(content);
+      if (cliWrap) {
+        // CC 2.1.285 — the wrapper pill isn't reproduced on this path (no
+        // SystemEntry channel), but real user text after the tag must survive.
+        if (cliWrap.trailing) {
+          out.push({
+            uuid: `${uuid}:trailing`,
+            role: "user",
+            blocks: [{ kind: "text", text: cliWrap.trailing }],
+          });
+        }
+        continue;
+      }
+    }
 
     // Plain user message — text or array content. The SDK stamps user
     // records in the JSONL with an ISO `timestamp`; parse it so paginated

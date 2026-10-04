@@ -104,7 +104,7 @@ grep evidence): [`audit/chunk0.md`](audit/chunk0.md) (2.1.285–288) …
 - [x] **D11** [2.1.265 low] Toast when an oversized image is dropped
 - [x] **D12** [2.1.278 low] `@./src` — normalise the leading `./` in file mentions
 - [x] **D13** [2.1.286 low] `/output-style` picker instead of a toast
-- [ ] **D14** [2.1.285 low F] User text after a leading `<command-name>`/`<local-command-stdout>` tag is lost
+- [x] **D14** [2.1.285 low F] User text after a leading `<command-name>`/`<local-command-stdout>` tag is lost
 
 ## E — Models, pricing, usage & limits
 
