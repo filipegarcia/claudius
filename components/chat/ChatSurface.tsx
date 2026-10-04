@@ -39,6 +39,8 @@ import { useDisableAutoMode } from "@/lib/client/useDisableAutoMode";
 import { useEmojiCompletionEnabled } from "@/lib/client/useEmojiCompletionEnabled";
 import { useSpellcheckEnabled } from "@/lib/client/useSpellcheckEnabled";
 import { useProseMaxWidth } from "@/lib/client/useProseMaxWidth";
+import { useClockOptions } from "@/lib/client/useClockOptions";
+import { ClockOptionsProvider } from "@/lib/client/clock-options-context";
 import { HelpOverlay } from "@/components/overlays/HelpOverlay";
 import { SkillsOverlay } from "@/components/overlays/SkillsOverlay";
 import { CostOverlay } from "@/components/overlays/CostOverlay";
@@ -415,6 +417,10 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
   // prose renderers inherit it; tables/code opt out and keep full width. Null
   // when unset → the variable isn't set → prose fills the full chat column.
   const proseMaxWidth = useProseMaxWidth(session.cwd);
+  // CC 2.1.257 (F4) — resolve `timeFormat`/`timeZone` once and share via
+  // context so every message-bubble timestamp and the StatusLine turn-end
+  // clock honor the user's clock settings.
+  const clockOptions = useClockOptions(session.cwd);
 
   // Compute breach state. The override is keyed by `session:<id>:<today>` so
   // it lifts the cap only for the current calendar day, per the spec.
@@ -2042,6 +2048,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
   }, [session.sessions, openTabs, openTabTitles]);
 
   return (
+    <ClockOptionsProvider value={clockOptions}>
     <div className="flex h-full">
       {/* Focus hides the nav-icon rail (and the right activity panel below)
           but keeps the workspace rail; zen hides the workspace rail too.
@@ -2811,5 +2818,6 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
         </div>
       )}
     </div>
+    </ClockOptionsProvider>
   );
 }

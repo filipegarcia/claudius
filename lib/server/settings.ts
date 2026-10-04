@@ -364,13 +364,13 @@ export type ClaudeSettings = {
   // `ToolCall.tsx`'s `SendFeedback` special-case) instead of the generic
   // tool-call JSON dump.
   feedbackDrafts?: "notify" | "quiet" | "off";
-  // SDK 0.3.257 — clock format / time zone for times the CLI shows in its
-  // own TUI (message timestamps, /config, etc.). Same treatment as
-  // `keybindingFlavor`: config-passthrough only, read by the bundled
-  // `claude` binary straight from this settings file — Claudius's own
-  // browser UI renders its own timestamps independently and isn't
-  // affected either way. Surfacing both as catalog rows is all Claudius
-  // needs; see `SDK_SETTINGS_CATALOG` in `app/settings/page.tsx`.
+  // SDK 0.3.257 — clock format / time zone. Honored in Claudius's browser UI
+  // (CC 2.1.257 / F4): resolved by `lib/shared/time-format.ts` and applied to
+  // the message-bubble timestamps and the StatusLine turn-end clock, as well
+  // as by the bundled `claude` binary's TUI. A strftime `timeFormat` pattern
+  // applies only in the CLI (the browser falls back to the locale hour cycle),
+  // but `timeZone` is honored regardless. Surfaced as catalog rows; see
+  // `SDK_SETTINGS_CATALOG` in `app/settings/page.tsx`.
   timeFormat?: "auto" | "12-hour" | "24-hour" | "24-hour-utc" | string;
   timeZone?: string;
   // SDK 0.3.261 — how many characters of a successful Bash/PowerShell
@@ -390,13 +390,12 @@ export type ClaudeSettings = {
   // only (see the catalog row's `desc` in app/settings/page.tsx).
   taskOutputMaxChars?: number;
   // SDK 0.3.283 — max width (in terminal columns, min 40) of the prose in
-  // Claude's responses in the bundled CLI's TUI; tables and code blocks keep
-  // full width, and only the display wraps (the response text gains no line
-  // breaks). Unset uses the full terminal width. Same treatment as
-  // `timeFormat`/`bashOutputMaxChars`: config-passthrough only, read by the
-  // `claude` binary straight from this file — Claudius's own browser UI wraps
-  // prose with CSS and isn't affected. Surfaced as a catalog row (Settings →
-  // Display); see `SDK_SETTINGS_CATALOG` in `app/settings/page.tsx`.
+  // Claude's responses; tables and code blocks keep full width. Honored in
+  // Claudius's browser UI (CC 2.1.282 / F3 — the column count maps to `ch` via
+  // `--prose-max-width`; see `lib/client/prose-width.ts`) as well as by the
+  // bundled `claude` binary's TUI. Unset uses the full chat-column width.
+  // Surfaced as a catalog row (Settings → Display); see `SDK_SETTINGS_CATALOG`
+  // in `app/settings/page.tsx`.
   maxProseWidth?: number;
   // Catch-all for keys we don't yet know about — we never strip them.
   [key: string]: unknown;

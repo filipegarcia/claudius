@@ -5,6 +5,7 @@ import { Check, Copy, Sparkles, Target, Terminal, Undo2 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import type { AttachedImage, DisplayMessage } from "@/lib/client/types";
 import { formatMessageTime } from "@/lib/client/format-message-time";
+import { useClockOptionsContext } from "@/lib/client/clock-options-context";
 import { ImageLightbox } from "./ImageLightbox";
 import { PeerMessageHeader } from "./PeerMessageHeader";
 import { Markdown } from "./Markdown";
@@ -83,7 +84,8 @@ export function UserMessage({
   const isPureBashEcho = hasBash && segments.every((s) => s.kind === "bash");
   const showPeerCollapse = !!peerLabel && !isPureBashEcho;
   const showBody = !showPeerCollapse || peerExpanded;
-  const stamp = formatMessageTime(message.createdAt);
+  const clock = useClockOptionsContext();
+  const stamp = formatMessageTime(message.createdAt, clock);
   const [copied, setCopied] = useState(false);
   const copy = async (e: React.MouseEvent) => {
     e.stopPropagation();

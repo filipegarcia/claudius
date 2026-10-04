@@ -1282,23 +1282,21 @@ const SDK_SETTINGS_CATALOG: SettingMeta[] = [
     desc: 'Deprecated as of Claude Code 2.1.261 — no longer has any effect; the CLI\'s own prompt always follows Bash (readline) word-editing conventions now. Safe to remove; kept here only so an existing value in settings.json is visible and editable.',
   },
   {
-    // SDK 0.3.257 — clock format for the CLI's own TUI. Config-passthrough
-    // only, same reasoning as `keybindingFlavor` above: Claudius's browser
-    // UI renders its own message timestamps and isn't affected by this
-    // key either way — it's forwarded here purely for anyone who also runs
-    // the bundled `claude` binary in a terminal against this settings file.
+    // SDK 0.3.257 — drives the clock format in Claudius's browser UI (CC
+    // 2.1.257 / F4) and in the bundled CLI's TUI. See
+    // `lib/shared/time-format.ts`.
     key: "timeFormat",
     type: "string",
     section: "Display",
     placeholder: "auto",
-    desc: 'Clock format for times the CLI shows in its own UI: "auto" (default, follows the locale), "12-hour", "24-hour", "24-hour-utc", or a strftime pattern such as "%H:%M" (any value containing "%"). Does not affect Claudius\'s own message timestamps.',
+    desc: 'Clock format for Claudius\'s message timestamps and turn-end clock (and the CLI\'s own UI): "auto" (default, follows the locale), "12-hour", "24-hour", "24-hour-utc", or a strftime pattern such as "%H:%M" (any value containing "%"). A strftime pattern applies only in the CLI; in the browser it falls back to the locale clock, but "timeZone" below is still honored.',
   },
   {
     key: "timeZone",
     type: "string",
     section: "Display",
     placeholder: "UTC",
-    desc: 'IANA time zone for times the CLI shows in its own UI, e.g. "UTC" or "Europe/Dublin". Default: the system time zone. Does not affect Claudius\'s own message timestamps.',
+    desc: 'IANA time zone for Claudius\'s message timestamps and turn-end clock (and the CLI\'s own UI), e.g. "UTC" or "Europe/Dublin". Default: the system time zone. An unrecognized name is ignored.',
   },
   {
     // SDK 0.3.283 — honored in Claudius's browser UI (CC 2.1.282 / F3): the

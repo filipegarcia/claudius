@@ -10,6 +10,7 @@ import { RateLimitHitPanel } from "./RateLimitHitPanel";
 import { OpusHighDemandPanel } from "./OpusHighDemandPanel";
 import type { DisplayMessage, TaskInfo, ToolProgressInfo } from "@/lib/client/types";
 import { formatMessageTime } from "@/lib/client/format-message-time";
+import { useClockOptionsContext } from "@/lib/client/clock-options-context";
 import { cn } from "@/lib/utils/cn";
 import { isSubagentToolName } from "@/lib/shared/subagent-tool";
 import {
@@ -68,12 +69,13 @@ export function AssistantMessage({
   autoContinueAtUsageLimit,
   onCancelAutoContinue,
 }: Props) {
+  const clock = useClockOptionsContext();
   const taskByToolUseId = new Map<string, TaskInfo>();
   for (const t of Object.values(tasks)) {
     if (t.toolUseId) taskByToolUseId.set(t.toolUseId, t);
   }
 
-  const stamp = formatMessageTime(message.createdAt);
+  const stamp = formatMessageTime(message.createdAt, clock);
 
   // `ultra-verbose` opts every collapsible card open by default. Threaded
   // into each card's `defaultOpen`; the cards re-apply this whenever the

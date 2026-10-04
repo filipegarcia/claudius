@@ -19,6 +19,7 @@ import { useState } from "react";
 import { useParams } from "next/navigation";
 import type { SystemEntry } from "@/lib/client/types";
 import { formatMessageTime } from "@/lib/client/format-message-time";
+import { useClockOptionsContext } from "@/lib/client/clock-options-context";
 import {
   shouldShowRateLimitPill,
   useRateLimitWarningPct,
@@ -334,9 +335,12 @@ function CompactBoundaryDivider({ entry }: { entry: SystemEntry }) {
 // ---------------------------------------------------------------------------
 
 function ConversationResetDivider({ entry }: { entry: SystemEntry }) {
+  const clock = useClockOptionsContext();
   const parsedTs = entry.ts ? new Date(entry.ts) : null;
   const formatted =
-    parsedTs && !Number.isNaN(parsedTs.getTime()) ? formatMessageTime(parsedTs.getTime()) : null;
+    parsedTs && !Number.isNaN(parsedTs.getTime())
+      ? formatMessageTime(parsedTs.getTime(), clock)
+      : null;
   return (
     <div
       className="my-4 w-full text-[11px] text-[var(--muted)]"

@@ -22,6 +22,8 @@ import { SessionNotifyMenu } from "./SessionNotifyMenu";
 import { WorkspaceIcon } from "@/components/workspaces/WorkspaceIcon";
 import { useWorkspaces } from "@/lib/client/useWorkspaces";
 import { formatElapsed, useElapsedSeconds } from "@/lib/client/use-elapsed";
+import { formatClockTime } from "@/lib/client/format-message-time";
+import { useClockOptionsContext } from "@/lib/client/clock-options-context";
 import { workingStatusLabel } from "@/lib/shared/turn-status-label";
 import type { FocusLevel } from "@/lib/client/useFocusMode";
 import { cn } from "@/lib/utils/cn";
@@ -252,6 +254,8 @@ export function StatusLine({
   // turn ended. Both render as siblings of `status-line-text`, never inside
   // it — the turn-status e2e specs assert exact text on that span (see
   // `tests/e2e/turn-status.spec.ts`).
+  // CC 2.1.257 (F4) — the turn-end clock honors timeFormat/timeZone.
+  const clock = useClockOptionsContext();
   const turnElapsedSec = useElapsedSeconds(turnStartedAt ?? undefined, status === "working");
   // CC 2.1.271 — live "Ns" for the running hook.
   const hookElapsedSec = useElapsedSeconds(runningHook?.startedAt, !!runningHook);
@@ -270,7 +274,7 @@ export function StatusLine({
 
   const doneAt =
     status !== "working" && typeof lastTurnCompletedAt === "number"
-      ? new Date(lastTurnCompletedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
+      ? formatClockTime(lastTurnCompletedAt, clock)
       : null;
 
   const ctx = typeof contextPercent === "number" ? Math.round(contextPercent) : null;

@@ -128,7 +128,7 @@ grep evidence): [`audit/chunk0.md`](audit/chunk0.md) (2.1.285–288) …
 - [x] **F1** [2.1.281/2.1.274 F] Ordered lists keep their `start` number (and the user's typed numbers)
 - [x] **F2** [2.1.216 F] Right-to-left text (`dir="auto"`)
 - [x] **F3** [2.1.282] `maxProseWidth` actually caps prose width
-- [ ] **F4** [2.1.257] `timeFormat` / `timeZone` drive Claudius's own clocks
+- [x] **F4** [2.1.257] `timeFormat` / `timeZone` drive Claudius's own clocks
 - [ ] **F5** [2.1.239] Middle-truncate long paths on tool rows (keep the filename)
 - [ ] **F6** [2.1.216] `/context` overlay: "over the window" callout with `/compact`/`/clear`
 - [ ] **F7** [2.1.281] `attribution: false` settings row; mark `includeCoAuthoredBy` deprecated
