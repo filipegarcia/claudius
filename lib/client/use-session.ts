@@ -6037,7 +6037,10 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
    * picker.
    */
   const setEffort = useCallback(
-    async (level: "low" | "medium" | "high" | "xhigh" | "max" | "auto") => {
+    async (
+      level: "low" | "medium" | "high" | "xhigh" | "max" | "auto",
+      opts?: { sessionOnly?: boolean },
+    ) => {
       const id = sessionIdRef.current;
       if (!id) return;
       // CC 2.1.284: ultracode is independent of effort and stays on across a
@@ -6048,7 +6051,11 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
       await fetch(`/api/sessions/${id}/effort`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ level, ultracode: ultracodeRef.current }),
+        body: JSON.stringify({
+          level,
+          ultracode: ultracodeRef.current,
+          ...(opts?.sessionOnly ? { sessionOnly: true } : {}),
+        }),
       }).catch(() => {});
     },
     [],

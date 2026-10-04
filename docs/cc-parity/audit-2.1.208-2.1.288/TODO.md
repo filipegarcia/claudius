@@ -111,7 +111,7 @@ grep evidence): [`audit/chunk0.md`](audit/chunk0.md) (2.1.285–288) …
 - [x] **E1** [2.1.257/2.1.284/2.1.219/2.1.280] Pricing for Fable 5.1, Sonnet 5.5, Opus 5 / 5.5 (`cost-pricing.ts`, LiteLLM fallback + bundled snapshot)
 - [x] **E2** [2.1.257/2.1.284/2.1.219] Model lists/labels: Sonnet 5.5 + Opus 5 probe rows, Fable 5.1 labels, overload nudge → `sonnet` alias
 - [x] **E3** [2.1.284/2.1.282] Ultracode is an independent toggle at any effort, plain styling, `/effort` args handled
-- [ ] **E4** [2.1.257] `/effort` "this session only"
+- [x] **E4** [2.1.257] `/effort` "this session only"
 - [ ] **E5** [2.1.267 low] Respect `maxEffortLevel` in the model picker
 - [ ] **E6** [2.1.261] Friendly model names in session/status pills
 - [ ] **E7** [2.1.271] `modelPricing`: real keys (`multiplier`, `overrides`) and the managed source via `resolveSettings()`

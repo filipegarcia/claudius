@@ -5420,7 +5420,7 @@ export class Session {
    * so `"auto"`/clear skips the persist call entirely; the live clear via
    * `applyFlagSettings` below still takes effect for this session.
    */
-  async setEffort(level: EffortLevel | "auto", keepUltracode = false): Promise<void> {
+  async setEffort(level: EffortLevel | "auto", keepUltracode = false, sessionOnly = false): Promise<void> {
     if (!this.query) return;
     // SDK 0.3.214: `applyFlagSettings`'s `effortLevel` param is typed as
     // `EffortLevel | null` (which includes `'max'`) independent of the
@@ -5433,7 +5433,10 @@ export class Session {
     // FlagSettings).
     const settings = buildEffortFlagSettings(level, keepUltracode);
     await this.query.applyFlagSettings(settings).catch(() => {});
-    if (settings.effortLevel !== null) {
+    // CC 2.1.257 — `/effort <level> s` applies to this session only: the live
+    // applyFlagSettings above takes effect, but we skip persisting it to
+    // userSettings (which would make it the saved default for the model).
+    if (settings.effortLevel !== null && !sessionOnly) {
       await this.query
         .updateSettings("userSettings", { effortLevel: settings.effortLevel })
         .catch(() => {});

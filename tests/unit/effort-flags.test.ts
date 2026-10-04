@@ -28,10 +28,17 @@ describe("parseEffortArgs (E3d)", () => {
     expect(parseEffortArgs("   ")).toEqual({ kind: "show" });
   });
 
-  test("a valid level", () => {
-    expect(parseEffortArgs("high")).toEqual({ kind: "level", level: "high" });
-    expect(parseEffortArgs("XHIGH")).toEqual({ kind: "level", level: "xhigh" });
-    expect(parseEffortArgs("auto")).toEqual({ kind: "level", level: "auto" });
+  test("a valid level persists by default (sessionOnly false)", () => {
+    expect(parseEffortArgs("high")).toEqual({ kind: "level", level: "high", sessionOnly: false });
+    expect(parseEffortArgs("XHIGH")).toEqual({ kind: "level", level: "xhigh", sessionOnly: false });
+    expect(parseEffortArgs("auto")).toEqual({ kind: "level", level: "auto", sessionOnly: false });
+  });
+
+  test("CC 2.1.257 — a trailing s/session makes it session-only", () => {
+    expect(parseEffortArgs("high s")).toEqual({ kind: "level", level: "high", sessionOnly: true });
+    expect(parseEffortArgs("xhigh session")).toEqual({ kind: "level", level: "xhigh", sessionOnly: true });
+    // an unrelated trailing token is invalid, not session-only
+    expect(parseEffortArgs("high please")).toMatchObject({ kind: "invalid" });
   });
 
   test("ultracode on/off", () => {

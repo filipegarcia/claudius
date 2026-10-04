@@ -1270,7 +1270,10 @@ export type ChatActions = {
    * slash command so the change matches the CLI exactly. `auto` re-enables
    * adaptive thinking; the numeric levels lock to a specific budget.
    */
-  setEffort(level: "low" | "medium" | "high" | "xhigh" | "max" | "auto"): Promise<void>;
+  setEffort(
+    level: "low" | "medium" | "high" | "xhigh" | "max" | "auto",
+    opts?: { sessionOnly?: boolean },
+  ): Promise<void>;
   /**
    * Toggle "ultracode" (Dynamic Workflows) — Opus 4.8's xhigh + parallel-
    * subagent orchestration. Routed through `applyFlagSettings({ ultracode })`

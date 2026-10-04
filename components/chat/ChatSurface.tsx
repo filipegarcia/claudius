@@ -1509,8 +1509,10 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
           // on|off` toggles ultracode; bare `/effort` shows the current state.
           const parsed = parseEffortArgs(args);
           if (parsed.kind === "level") {
-            void session.setEffort(parsed.level);
-            showToast(`Effort set to ${parsed.level}`);
+            void session.setEffort(parsed.level, { sessionOnly: parsed.sessionOnly });
+            showToast(
+              `Effort set to ${parsed.level}${parsed.sessionOnly ? " (this session only)" : ""}`,
+            );
           } else if (parsed.kind === "ultracode") {
             void session.setUltracode(parsed.on);
             showToast(`Ultracode ${parsed.on ? "on" : "off"}`);
