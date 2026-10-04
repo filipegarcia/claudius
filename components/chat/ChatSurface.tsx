@@ -106,7 +106,7 @@ import {
 } from "@/lib/client/useContextWarning";
 import { ContextWarningBanner } from "@/components/chat/ContextWarningBanner";
 import { useNotificationsContext } from "@/components/notifications/NotificationsProvider";
-import { findSlashCommand } from "@/lib/shared/slash-commands";
+import { findSlashCommand, isSlashCommandHead } from "@/lib/shared/slash-commands";
 import {
   PROMPT_COLOR_NAMES,
   PROMPT_COLOR_RESET_WORDS,
@@ -1715,9 +1715,15 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
         void session.submitAskAnswer(session.pendingAsk.requestId, []);
       }
       const trimmed = text.trim();
-      // Slash dispatch only when there are no images attached.
-      if (trimmed.startsWith("/") && !images?.length) {
-        const head = trimmed.slice(1).split(/\s+/, 1)[0] ?? "";
+      // Slash dispatch only when there are no images attached AND the head
+      // actually looks like a command name. CC 2.1.246 — `/`-prefixed prose
+      // whose head isn't a command identifier (`/--flag`, `/usr/bin/x …`, a
+      // path) is ordinary text and must be sent to the model, not rejected as
+      // "Unknown command". A command-shaped-but-unknown head still dispatches
+      // (and toasts as a typo) via the branch below.
+      const slashHead = trimmed.startsWith("/") ? (trimmed.slice(1).split(/\s+/, 1)[0] ?? "") : "";
+      if (trimmed.startsWith("/") && !images?.length && isSlashCommandHead(slashHead)) {
+        const head = slashHead;
         const args = trimmed.slice(1 + head.length).trim();
         const cmd = findSlashCommand(head);
         if (cmd?.handler === "native") {

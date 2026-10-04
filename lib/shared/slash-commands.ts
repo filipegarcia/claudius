@@ -277,6 +277,22 @@ export function findSlashCommand(nameOrAlias: string): SlashCommand | undefined 
   return ALIAS_INDEX.get(nameOrAlias);
 }
 
+/**
+ * CC 2.1.246 (FIX) — whether a `/`-prefixed head actually looks like a slash
+ * command name, as opposed to `/`-prefixed prose the user means to send to the
+ * model: `/--flag`, `/usr/bin/x …`, a leading file path. A command name is an
+ * identifier (letters/digits, with `-`, `_`, `:` for plugin/namespaced
+ * commands) starting with an alphanumeric. Anything else — a path separator, a
+ * leading dash, punctuation — isn't a command, so the caller sends it as text
+ * instead of rejecting it with "Unknown command". A command-shaped-but-unknown
+ * head (`/lkjasdf`) still passes here and is handled as a typo by the caller.
+ */
+const SLASH_COMMAND_HEAD = /^[a-zA-Z0-9][a-zA-Z0-9:_-]*$/;
+
+export function isSlashCommandHead(head: string): boolean {
+  return SLASH_COMMAND_HEAD.test(head);
+}
+
 export type SlashSuggestion = SlashCommand & {
   source: "registry" | "sdk" | "skill" | "mcp";
   /**
