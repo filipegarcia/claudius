@@ -600,6 +600,21 @@ export async function updateAutoMode(
 }
 
 /**
+ * CC 2.1.212 — `claude auto-mode reset`: restore the default auto-mode config
+ * by DELETING the `autoMode` key from user settings (not writing an empty
+ * object, which would still override the engine defaults). A no-op when the
+ * key was never set.
+ */
+export async function resetAutoMode(projectCwd: string): Promise<ClaudeSettings> {
+  const current = await readSettings("user", projectCwd);
+  if (current.autoMode === undefined) return current;
+  const next: ClaudeSettings = { ...current };
+  delete next.autoMode;
+  await writeSettings("user", projectCwd, next);
+  return next;
+}
+
+/**
  * Patch a single skill's `skillOverrides` entry (CC 2.1.280 parity). Scoped
  * to `"project"` — same rationale as `enabledPlugins`: this is a
  * team-visible "which skills are on for this workspace" decision, not a

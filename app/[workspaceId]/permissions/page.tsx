@@ -280,13 +280,33 @@ export default function PermissionsPage() {
  * alongside the user's own.
  */
 function AutoModeTab() {
-  const { config, loading, error, updateConfig } = useAutoMode();
+  const { config, loading, error, updateConfig, reset } = useAutoMode();
+  const hasConfig = (["environment", "allow", "soft_deny", "hard_deny"] as const).some(
+    (k) => (config[k]?.length ?? 0) > 0,
+  );
   return (
     <div className="space-y-4">
       <div className="rounded-lg border border-[var(--border)] bg-[var(--panel)]/40 p-3 text-xs text-[var(--muted)]">
         <div className="mb-1 flex items-center gap-1.5 font-medium text-[var(--foreground)]">
           <Info className="h-3.5 w-3.5" />
           Auto mode classifier configuration
+          {/* CC 2.1.212 — `claude auto-mode reset`. */}
+          <button
+            data-testid="auto-mode-reset"
+            disabled={!hasConfig}
+            onClick={() => {
+              if (
+                confirm(
+                  "Reset auto mode to defaults? This clears your Environment / Allow / Soft deny / Hard deny lists and reverts the classifier to its built-in configuration.",
+                )
+              )
+                void reset();
+            }}
+            className="ml-auto rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-0.5 text-[11px] text-[var(--muted)] hover:text-[var(--foreground)] disabled:opacity-40"
+            title={hasConfig ? "Restore the default auto-mode configuration" : "Already at defaults"}
+          >
+            Reset to defaults
+          </button>
         </div>
         Auto mode routes tool calls through a server-side classifier instead of asking you. These
         sections tell it what to trust — the classifier&apos;s own judgment isn&apos;t something

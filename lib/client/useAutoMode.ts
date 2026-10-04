@@ -67,5 +67,14 @@ export function useAutoMode() {
     [refresh],
   );
 
-  return { config, loading, error, refresh, updateConfig };
+  const reset = useCallback(async () => {
+    // CC 2.1.212 — drop the whole autoMode key so the classifier reverts to
+    // the engine defaults. Optimistically clear, then refetch to confirm.
+    setConfig(EMPTY);
+    const res = await fetch("/api/settings/auto-mode", { method: "DELETE" });
+    if (!res.ok) setError(`reset failed: ${res.status}`);
+    refresh();
+  }, [refresh]);
+
+  return { config, loading, error, refresh, updateConfig, reset };
 }
