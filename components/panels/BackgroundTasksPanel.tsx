@@ -666,6 +666,17 @@ export function BackgroundTasksPanel({
                       {t.summary}
                     </div>
                   )}
+                  {/* CC 2.1.284 — the file holding what this task/Monitor
+                      printed, instead of dropping its per-event output. */}
+                  {t.outputFile && (
+                    <div
+                      data-testid="task-output-file"
+                      title={t.outputFile}
+                      className="mt-0.5 truncate font-mono text-[10px] opacity-60"
+                    >
+                      output: {t.outputFile}
+                    </div>
+                  )}
                   <div className="mt-1 flex flex-wrap gap-2 text-[10px] opacity-70">
                     {t.totalTokens != null && <span>{t.totalTokens.toLocaleString()} tok</span>}
                     {t.toolUses != null && <span>{t.toolUses} tools</span>}

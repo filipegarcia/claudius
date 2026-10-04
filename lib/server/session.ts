@@ -8390,6 +8390,9 @@ export class Session {
       // task (always alongside status: "stopped"); absent on an ordinary
       // completion, failure, or user-initiated stop.
       reason?: "worker_restart";
+      // CC 2.1.284 — the file the task's full output was written to (a
+      // Monitor event's print, a background task's stdout).
+      output_file?: string;
     };
 
     // Subagent inner message — accumulate the raw envelope under its parent
@@ -8500,6 +8503,8 @@ export class Session {
         if (msg.resource_links != null) meta.resourceLinks = msg.resource_links;
         // SDK 0.3.273 — worker-restart orphan cause, surfaced verbatim.
         if (msg.reason != null) meta.reason = msg.reason;
+        // CC 2.1.284 — path to what this task/Monitor printed.
+        if (msg.output_file != null) meta.outputFile = msg.output_file;
         this.taskMetaById.set(taskId, meta);
         this.persistTask(meta);
         // Terminal subagent event — if this was the last non-backgrounded

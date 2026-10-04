@@ -2493,6 +2493,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
               error: t.error,
               resourceLinks: t.resourceLinks,
               reason: t.reason,
+              outputFile: t.outputFile,
             };
             changed = true;
           }
@@ -4257,6 +4258,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
             tool_use_id?: string;
             status: "completed" | "failed" | "stopped";
             summary?: string;
+            output_file?: string;
             usage?: { total_tokens?: number; tool_uses?: number; duration_ms?: number };
             ambient?: boolean;
             // SDK 0.3.257 — files an auto-backgrounded MCP tool call returned
@@ -4295,6 +4297,8 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
                 // task_started already seeded when this notification omits it.
                 ambient: t.ambient ?? base.ambient,
                 resourceLinks: t.resource_links ?? base.resourceLinks,
+                // CC 2.1.284 — the file holding what this task/Monitor printed.
+                outputFile: t.output_file ?? base.outputFile,
                 reason: t.reason ?? base.reason,
               },
             };

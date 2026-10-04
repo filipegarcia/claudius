@@ -824,6 +824,12 @@ export type TaskSnapshotEntry = {
   summary?: string;
   error?: string;
   /**
+   * CC 2.1.284 — `task_notification.output_file`: the path the task's full
+   * output was written to (a Monitor event's print, a background task's
+   * stdout). Persisted so it survives a reload. Absent on older SDKs.
+   */
+  outputFile?: string;
+  /**
    * SDK 0.3.257 — files an auto-backgrounded MCP tool call returned by
    * reference (the `resource_link` content blocks of its result), from
    * `task_notification.resource_links`. Absent when the task's result

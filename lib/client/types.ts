@@ -240,6 +240,13 @@ export type TaskInfo = {
   durationMs?: number;
   lastToolName?: string;
   summary?: string;
+  /**
+   * CC 2.1.284 — `task_notification.output_file`: the path the task's full
+   * output was written to (what a Monitor event printed, a background task's
+   * stdout, …). Surfaced so the user can open it rather than having the
+   * per-event output silently dropped.
+   */
+  outputFile?: string;
   error?: string;
   /**
    * SDK 0.3.257 — files an auto-backgrounded MCP tool call returned by
