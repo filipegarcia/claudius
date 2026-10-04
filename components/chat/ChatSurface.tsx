@@ -42,6 +42,7 @@ import { HelpOverlay } from "@/components/overlays/HelpOverlay";
 import { SkillsOverlay } from "@/components/overlays/SkillsOverlay";
 import { CostOverlay } from "@/components/overlays/CostOverlay";
 import { DiffOverlay } from "@/components/overlays/DiffOverlay";
+import { OutputStyleOverlay } from "@/components/overlays/OutputStyleOverlay";
 import { StatusOverlay } from "@/components/overlays/StatusOverlay";
 import { RenameOverlay } from "@/components/overlays/RenameOverlay";
 import { ContextOverlay } from "@/components/overlays/ContextOverlay";
@@ -123,7 +124,7 @@ import { useVerbose } from "@/lib/client/useVerbose";
 import { useFocusMode } from "@/lib/client/useFocusMode";
 import { useStartupCount } from "@/lib/client/useStartupCount";
 
-type OverlayKind = "help" | "skills" | "cost" | "status" | "rename" | "context" | "worktrees" | "diff" | null;
+type OverlayKind = "help" | "skills" | "cost" | "status" | "rename" | "context" | "worktrees" | "diff" | "output-style" | null;
 
 /**
  * Per-command toast for slash commands the registry classifies as `external`
@@ -1393,17 +1394,9 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
           }
           const raw = args.trim();
           if (!raw) {
-            fetch(`/api/sessions/${session.sessionId}/output-style`)
-              .then((r) => r.json())
-              .then((data: { current?: string; available?: string[] }) => {
-                const available = data.available ?? [];
-                showToast(
-                  `Output style: ${data.current ?? "default"}${
-                    available.length > 0 ? ` (try: ${available.join(", ")})` : ""
-                  }`,
-                );
-              })
-              .catch(() => showToast("Couldn't load output styles"));
+            // CC 2.1.286 — open a picker (lands on the current style, a
+            // description under each name) instead of a bare toast.
+            setOverlay("output-style");
             return true;
           }
           fetch(`/api/sessions/${session.sessionId}/output-style`, {
@@ -2653,6 +2646,13 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
       )}
       {overlay === "diff" && (
         <DiffOverlay workspaceId={activeWorkspaceId} onClose={() => setOverlay(null)} />
+      )}
+      {overlay === "output-style" && session.sessionId && (
+        <OutputStyleOverlay
+          sessionId={session.sessionId}
+          onClose={() => setOverlay(null)}
+          onNotice={showToast}
+        />
       )}
       {overlay === "status" && (
         <StatusOverlay

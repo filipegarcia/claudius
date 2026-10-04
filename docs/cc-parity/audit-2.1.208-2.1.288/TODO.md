@@ -103,7 +103,7 @@ grep evidence): [`audit/chunk0.md`](audit/chunk0.md) (2.1.285–288) …
 - [x] **D10** [2.1.223 low] `/review` description is stale (now an alias of `/code-review`)
 - [x] **D11** [2.1.265 low] Toast when an oversized image is dropped
 - [x] **D12** [2.1.278 low] `@./src` — normalise the leading `./` in file mentions
-- [ ] **D13** [2.1.286 low] `/output-style` picker instead of a toast
+- [x] **D13** [2.1.286 low] `/output-style` picker instead of a toast
 - [ ] **D14** [2.1.285 low F] User text after a leading `<command-name>`/`<local-command-stdout>` tag is lost
 
 ## E — Models, pricing, usage & limits
