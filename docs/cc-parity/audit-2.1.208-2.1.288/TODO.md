@@ -169,13 +169,16 @@ grep evidence): [`audit/chunk0.md`](audit/chunk0.md) (2.1.285–288) …
 
 ---
 
-## Needs a decision — not built (reverses a deliberate Claudius choice)
+## DEC — decided (owner chose full CC parity, 2026-10-04)
 
-- **`/goal` check-ins (2.1.236/239/246)** — Claudius runs its own `/goal` (`claudius_goal` MCP tool + DB). Parity means either forwarding `/goal` to the engine (driving `GoalBanner` from `active_goal`) and retiring Claudius's system, or reimplementing check-ins (30m→1h→2h, max 3). Pick one; keeping both is wrong.
-- **Auto mode as default (2.1.283/284)** — Claudius deliberately pins new workspaces to `bypassPermissions`.
-- **`/fork` → own worktree (2.1.221) + one-line confirmation (2.1.212/216)** — changes what `/fork` does on disk and where the user lands.
-- **OAuth `claude.ai` plugin scope (2.1.273)** — Claudius requests only `user:inference` on purpose.
-- **Sensitive plugin options** — the CLI keeps them in secure storage; G3 writes only non-sensitive values.
+These reverse deliberate Claudius choices; the repo owner chose the parity
+direction for each on 2026-10-04.
+
+- [ ] **DEC1** [2.1.236/239/246] **`/goal` → forward to the engine.** Retire Claudius's own `/goal` (`claudius_goal` MCP tool + DB), drive `GoalBanner` from the engine's `active_goal`, and surface the engine's check-in cadence (30m→1h→2h, max 3). _(Chosen: "Forward to engine".)_
+- [ ] **DEC2** [2.1.283/284] **Auto mode as the new-workspace default.** Switch new workspaces from `bypassPermissions` to auto mode. _(Chosen: "Switch to auto mode".)_
+- [ ] **DEC3** [2.1.221 + 2.1.212/216] **`/fork` → own git worktree + one-line confirmation.** _(Chosen: "Add worktree + confirm".)_
+- [ ] **DEC4** [2.1.273] **Broaden the claude.ai OAuth scope** beyond `user:inference` so plugins work. _(Chosen: "Request broader scope".)_
+- Sensitive plugin options — not a decision: keep the CLI's secure-storage behaviour; G3 writes only non-sensitive values (documented default).
 
 ## Blocked / out of scope (documented, not built)
 
