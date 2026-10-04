@@ -8,7 +8,11 @@ import {
   priceForModel,
   type PricingTable,
 } from "./litellm-pricing";
-import { applyModelPricing, hasModelPricingOverride } from "./model-pricing-override";
+import {
+  applyModelPricing,
+  hasModelPricingOverride,
+  resolveManagedModelPricing,
+} from "./model-pricing-override";
 import { getSessionTitlesByCwd } from "./sessions-db";
 import { lookupSessionAccount, resolveSessionAccounts } from "./session-accounts";
 import { readSettings, type ModelPricingSettings } from "./settings";
@@ -273,9 +277,14 @@ export async function aggregate(cwd: string): Promise<CostReport> {
   if (dirty) await writeCache(cwd, cache).catch(() => {});
 
   const table = await getPricingTable();
-  const pricing = await readSettings("user", cwd)
+  // CC 2.1.271 — the engine honors modelPricing only from managed sources, so
+  // prefer the managed/policy tier (via resolveSettings) over Claudius's own
+  // user-scope setting; fall back to user scope when no managed value is set.
+  const userPricing = await readSettings("user", cwd)
     .then((s) => s.modelPricing)
     .catch(() => undefined);
+  const managedPricing = await resolveManagedModelPricing(cwd);
+  const pricing = managedPricing ?? userPricing;
 
   // Dedup is global across files: when a session is resumed or forked, the new
   // JSONL replays prior turns verbatim (same message.id + requestId). We count

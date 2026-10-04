@@ -405,6 +405,11 @@ export type ModelPickerSettings = {
  * clamp in `lib/server/model-pricing-override.ts#applyModelPricing`.
  */
 export type ModelPricingSettings = {
+  // CC 2.1.271 — the SDK's real keys (`sdk.d.ts` `Settings.modelPricing`).
+  multiplier?: number;
+  overrides?: Record<string, { input: number; output: number; cacheRead: number; cacheWrite: number }>;
+  // Legacy Claudius keys, still read for back-compat (see
+  // `lib/server/model-pricing-override.ts`).
   discountMultiplier?: number;
   rates?: Record<
     string,
