@@ -241,7 +241,11 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   { id: "claude-api", name: "claude-api", description: "Claude API reference / migration helper.", category: "skill", handler: "sdk" },
   { id: "debug", name: "debug", description: "Enable debug logging and troubleshoot.", category: "skill", handler: "sdk" },
   { id: "fewer-permission-prompts", name: "fewer-permission-prompts", description: "Allowlist common read-only tools.", category: "skill", handler: "sdk" },
-  { id: "loop", name: "loop", description: "Run a prompt or slash command on an interval.", category: "skill", handler: "native", argsHint: "[interval] [prompt]" },
+  // CC 2.1.248 — `/loop` is SDK-forwarded (not native) so its arguments reach
+  // the SDK's `/loop` skill: `/loop <interval> <prompt>`, self-paced dynamic
+  // `/loop <prompt>`, and the bare autonomous `/loop` default. Routing it to
+  // the Schedule page (as `/schedule` still does) dropped the arguments.
+  { id: "loop", name: "loop", description: "Run a prompt or slash command on an interval, or self-paced.", category: "skill", handler: "sdk", argsHint: "[interval] [prompt]" },
   { id: "schedule", name: "schedule", aliases: ["routines"], description: "Manage scheduled routines.", category: "skill", handler: "native" },
   { id: "simplify", name: "simplify", description: "Review files, find issues, apply fixes.", category: "skill", handler: "sdk", argsHint: "[focus]" },
   { id: "review", name: "review", description: "Review a pull request.", category: "skill", handler: "sdk", argsHint: "[PR]" },

@@ -91,7 +91,7 @@ grep evidence): [`audit/chunk0.md`](audit/chunk0.md) (2.1.285–288) …
 
 ## D — Composer & slash dispatch
 
-- [ ] **D1** [2.1.248] `/loop` is wired to the Schedule page and drops its arguments — forward to the SDK
+- [x] **D1** [2.1.248] `/loop` is wired to the Schedule page and drops its arguments — forward to the SDK
 - [ ] **D2** [2.1.246 F] Prompts that start with `/` but aren't commands (`/--`, `/usr/bin/x …`) are swallowed as "Unknown command"
 - [ ] **D3** [2.1.287 F] A user command with the same name as a built-in (`/usage`, `/context`, …) should run the user's command
 - [ ] **D4** [2.1.265] Slash suggestions mid-prompt; plugin skills selectable by bare name

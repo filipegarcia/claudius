@@ -1520,7 +1520,9 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
           // (`app/doctor/page.tsx`) instead of just the top of the page.
           router.push(args.trim().toLowerCase() === "prompt-audit" ? "/doctor?section=prompt-audit" : "/doctor");
           return true;
-        case "loop":
+        // `/loop` is SDK-forwarded (CC 2.1.248) — handled by the `handler:"sdk"`
+        // path, not here — so its arguments reach the SDK's loop skill.
+        // `/schedule` stays native: it just opens the loops page.
         case "schedule":
           router.push("/schedule");
           return true;
