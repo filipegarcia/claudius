@@ -1705,7 +1705,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
     (
       text: string,
       images?: Array<{ id?: string; ordinal?: number; data: string; mediaType: string }>,
-      opts?: { fromSuggestion?: boolean },
+      opts?: { fromSuggestion?: boolean; inlinePastes?: string[] },
     ) => {
       // A live AskUserQuestion blocks the agent in `canUseTool`. If the user
       // sends a new message instead of answering, treat it as moving on:
@@ -1796,7 +1796,16 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
         showToast(`Unknown command: /${head} — type / to see what's available`);
         return;
       }
-      void session.send(text, images, opts?.fromSuggestion ? { fromSuggestion: true } : undefined);
+      void session.send(
+        text,
+        images,
+        opts?.fromSuggestion || opts?.inlinePastes?.length
+          ? {
+              ...(opts?.fromSuggestion ? { fromSuggestion: true } : {}),
+              ...(opts?.inlinePastes?.length ? { inlinePastes: opts.inlinePastes } : {}),
+            }
+          : undefined,
+      );
     },
     [runNative, session, showToast, sdkCommands],
   );
@@ -2509,7 +2518,9 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
               cwd={session.cwd}
               sessionId={session.sessionId}
               promptColor={resolvePromptColor(activePromptColor)}
-              onSend={handleSend}
+              onSend={(text, images, inlinePastes) =>
+                handleSend(text, images, inlinePastes?.length ? { inlinePastes } : undefined)
+              }
               onInterrupt={session.interrupt}
               onNotice={showToast}
               draftInjection={draftInjection}

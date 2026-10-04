@@ -33,6 +33,7 @@ import {
 import { stripInvisibleUnicode } from "@/lib/shared/invisible-unicode";
 import { slashTokenBeforeCaret } from "@/lib/shared/slash-commands";
 import { canRestoreClearedDraft, shouldStashClearedDraft } from "@/lib/client/cleared-draft";
+import { isLargePaste } from "@/lib/shared/large-paste";
 
 type Props = {
   pending: boolean;
@@ -54,7 +55,7 @@ type Props = {
    * only (idle + focus) so each tab can be told apart at a glance.
    */
   promptColor?: string | null;
-  onSend: (text: string, images?: AttachedImage[]) => void;
+  onSend: (text: string, images?: AttachedImage[], inlinePastes?: string[]) => void;
   onInterrupt: () => void;
   /**
    * Set by the parent to inject text into the input (e.g. when the user lifts
@@ -307,6 +308,10 @@ export function PromptInput({
   // wiped, so a plain ↑ on the empty composer can restore it. Null when nothing
   // is stashed (a fresh session, or already restored).
   const clearedDraftRef = useRef<{ text: string; images: AttachedImage[] } | null>(null);
+  // CC 2.1.280 — large paste segments recorded from onPaste, sent as the SDK's
+  // `inline_pastes` so the model can tell pasted spans from typed text. Reset
+  // on send and on clear.
+  const pastedSegmentsRef = useRef<string[]>([]);
   // Tracks the timestamp of the last Escape keydown for double-press detection.
   const lastEscapeRef = useRef<number>(0);
 
@@ -788,6 +793,7 @@ export function PromptInput({
     if (shouldStashClearedDraft(value, images.length)) {
       clearedDraftRef.current = { text: value, images };
     }
+    pastedSegmentsRef.current = [];
     setValue("");
     setImages([]);
     setPickerOpen(false);
@@ -838,7 +844,11 @@ export function PromptInput({
     // expect standard markdown — convert back here so what Claude sees is
     // what the user would have typed in any other markdown editor.
     const wire = bulletsToMarkdown(text);
-    onSend(wire, images.length ? images : undefined);
+    // CC 2.1.280 — forward the recorded large-paste segments that are still
+    // present in the outgoing text (the user may have edited/deleted some).
+    const inlinePastes = pastedSegmentsRef.current.filter((s) => wire.includes(s));
+    pastedSegmentsRef.current = [];
+    onSend(wire, images.length ? images : undefined, inlinePastes.length ? inlinePastes : undefined);
     setValue("");
     setDismissedHints(new Set());
     setImages([]);
@@ -1397,6 +1407,9 @@ export function PromptInput({
     const pasted = e.clipboardData?.getData("text/plain") ?? "";
     if (pasted) {
       const { cleaned, removedCount } = stripInvisibleUnicode(pasted);
+      // CC 2.1.280 — record a large paste (the cleaned text that actually
+      // lands) so send() can mark it as `inline_pastes` for the model.
+      if (isLargePaste(cleaned)) pastedSegmentsRef.current.push(cleaned);
       if (removedCount > 0) {
         e.preventDefault();
         const el = taRef.current;

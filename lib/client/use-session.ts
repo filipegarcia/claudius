@@ -5292,7 +5292,12 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     async (
       text: string,
       images?: Array<{ id?: string; ordinal?: number; data: string; mediaType: string }>,
-      opts?: { asSlashCommand?: boolean; fromSuggestion?: boolean; fromGoal?: boolean },
+      opts?: {
+        asSlashCommand?: boolean;
+        fromSuggestion?: boolean;
+        fromGoal?: boolean;
+        inlinePastes?: string[];
+      },
     ) => {
       const id = sessionIdRef.current;
       const trimmedText = text.trim();
@@ -5371,6 +5376,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
           ...(isSlash ? { slash: true } : {}),
           ...(fromSuggestion ? { fromSuggestion: true } : {}),
           ...(fromGoal ? { fromGoal: true } : {}),
+          ...(opts?.inlinePastes?.length ? { inlinePastes: opts.inlinePastes } : {}),
         }),
       });
       if (!res.ok) {

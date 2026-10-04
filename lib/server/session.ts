@@ -3823,7 +3823,7 @@ export class Session {
   sendInput(
     text: string,
     images?: Array<{ data: string; mediaType: string; ordinal?: number }>,
-    opts?: { uuid?: string; slash?: boolean; priority?: "now" },
+    opts?: { uuid?: string; slash?: boolean; priority?: "now"; inlinePastes?: string[] },
   ): void {
     if (this.done) return;
     type ContentBlock =
@@ -3837,6 +3837,15 @@ export class Session {
     const sendNowFields =
       opts?.priority === "now"
         ? ({ priority: "now", origin: { kind: "human" } } as const)
+        : {};
+
+    // CC 2.1.280 — mark large pasted spans so the SDK can wrap them in
+    // `<pasted_content>` and the model treats them as not user-authored. The
+    // paste text itself stays inline in `text`; this is just the provenance
+    // marker. Non-slash user turns only (slash commands carry no paste).
+    const inlinePastesField =
+      opts?.inlinePastes && opts.inlinePastes.length > 0
+        ? { inline_pastes: opts.inlinePastes }
         : {};
 
     // Pin a uuid for this user turn. The SDK's iterator never echoes user
@@ -4045,6 +4054,7 @@ export class Session {
         session_id: this.id,
         uuid,
         ...sendNowFields,
+        ...inlinePastesField,
       });
       return;
     }
@@ -4123,6 +4133,7 @@ export class Session {
       session_id: this.id,
       uuid,
       ...sendNowFields,
+      ...inlinePastesField,
     });
   }
 

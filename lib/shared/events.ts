@@ -1329,6 +1329,15 @@ export type SendInputRequest = {
    * server decides: idle + empty queue → run now; otherwise enqueue.
    */
   forceQueue?: boolean;
+  /**
+   * CC 2.1.280 — substrings of `text` the user pasted (>800 chars or >2 line
+   * breaks) rather than typed. Forwarded to the SDK as
+   * `SDKUserMessage.inline_pastes`; the paste text stays inline in `text` where
+   * the user put it, and the CLI wraps each entry in `<pasted_content>` tags so
+   * the model treats that span as not user-authored (prompt-injection
+   * provenance).
+   */
+  inlinePastes?: string[];
 };
 
 /**
