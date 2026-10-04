@@ -17,6 +17,9 @@ export type InstalledPlugin = {
    * (or on older SDKs that don't emit the field).
    */
   version?: string;
+  /** CC 2.1.265 (G2) — from the SDK object, else the plugin's own plugin.json. */
+  description?: string;
+  displayName?: string;
 };
 
 export function usePlugins(cwd: string | null, sessionId: string | null) {

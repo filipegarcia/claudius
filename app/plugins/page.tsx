@@ -399,7 +399,7 @@ function AvailableSection({
     return plugins.filter((p) => {
       if (category && p.category !== category) return false;
       if (!q) return true;
-      const hay = `${p.name} ${p.description ?? ""} ${p.category ?? ""} ${p.marketplace}`.toLowerCase();
+      const hay = `${p.name} ${p.displayName ?? ""} ${p.description ?? ""} ${p.category ?? ""} ${p.marketplace}`.toLowerCase();
       return hay.includes(q);
     });
   }, [plugins, query, category]);
@@ -474,7 +474,7 @@ function AvailableSection({
               <li key={ref} className="flex items-start gap-3 px-4 py-3">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <span className="font-medium">{p.name}</span>
+                    <span className="font-medium">{p.displayName ?? p.name}</span>
                     {p.category && (
                       <span className="rounded-md bg-[var(--panel-2)] px-1.5 py-0.5 text-[10px] text-[var(--muted)]">
                         {p.category}
@@ -614,7 +614,7 @@ function PluginRow({
         <button onClick={() => setOpen((o) => !o)} className="flex flex-1 items-center gap-2 text-left">
           {open ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
           <Plug className="h-3.5 w-3.5 text-[var(--accent)]" />
-          <span className="font-medium">{installed?.name ?? id}</span>
+          <span className="font-medium">{installed?.displayName ?? installed?.name ?? id}</span>
           {installed?.version && (
             <span
               data-testid="plugin-version"
@@ -657,6 +657,10 @@ function PluginRow({
       </div>
       {open && (
         <div className="border-t border-[var(--border)] px-3 py-2 text-[11px]">
+          {/* CC 2.1.265 (G2) — description from the plugin's plugin.json. */}
+          {installed?.description && (
+            <p className="mb-2 text-[var(--foreground)]/80">{installed.description}</p>
+          )}
           <div className="text-[var(--muted)]">id</div>
           <code className="mb-2 block break-all font-mono">{id}</code>
           {installed?.path && (

@@ -1,6 +1,7 @@
 import { promises as fs } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { join, resolve, sep } from "node:path";
+import { mergePluginMeta, pluginSubdirFromSource, type PluginManifest } from "@/lib/shared/plugin-metadata";
 import {
   pathFor,
   readSettings,
@@ -39,6 +40,8 @@ export type AvailablePlugin = {
   /** The marketplace directory name (matches the install ref's `@…` part). */
   marketplace: string;
   name: string;
+  /** CC 2.1.265 (G2) — friendly name from the entry or the plugin's plugin.json. */
+  displayName?: string;
   description?: string;
   author?: { name?: string; email?: string } | string;
   category?: string;
@@ -46,6 +49,29 @@ export type AvailablePlugin = {
   /** Public unique-install count from Anthropic's plugin counts cache, when known. */
   installs?: number;
 };
+
+/**
+ * CC 2.1.265 (G2) — best-effort read of a plugin's own `.claude-plugin/
+ * plugin.json` (falling back to a bare `plugin.json`) under `dir`, used to
+ * recover a description / displayName the marketplace entry omitted. Returns
+ * `null` when absent or malformed. `dir` is inline-guarded to stay within
+ * `base` so a crafted marketplace.json `source.path` can't walk outside the
+ * marketplace checkout.
+ */
+async function readPluginManifest(base: string, dir: string): Promise<PluginManifest | null> {
+  const resolved = resolve(base, dir);
+  if (resolved !== base && !resolved.startsWith(base + sep)) return null;
+  for (const rel of [".claude-plugin/plugin.json", "plugin.json"]) {
+    try {
+      const raw = await fs.readFile(join(resolved, rel), "utf8");
+      const parsed = JSON.parse(raw) as PluginManifest;
+      if (parsed && typeof parsed === "object") return parsed;
+    } catch {
+      // Try the next candidate / give up silently.
+    }
+  }
+  return null;
+}
 
 /**
  * Claude Code 2.1.232 added two settings aliases: `additionalMarketplaces`
@@ -79,6 +105,42 @@ export async function listAll(cwd: string): Promise<PluginsByScope[]> {
       ),
       legacyExtra: Array.isArray(extraRaw),
     });
+  }
+  return out;
+}
+
+export type InstalledPluginInfo = {
+  name: string;
+  path?: string;
+  source?: string;
+  version?: string;
+  /** CC 2.1.265 (G2) — from the SDK object, else the plugin's own plugin.json. */
+  description?: string;
+  displayName?: string;
+};
+
+/**
+ * CC 2.1.265 (G2) — enrich the SDK's `reload_plugins` objects (name / path /
+ * source / version only) with a `description` / `displayName`, read from each
+ * installed plugin's own `plugin.json` at its on-disk `path` when the SDK
+ * didn't already provide them. `path` comes from the engine (not request
+ * input); the read is best-effort and never throws.
+ */
+export async function enrichInstalled(raw: unknown[]): Promise<InstalledPluginInfo[]> {
+  const str = (v: unknown): string | undefined => (typeof v === "string" && v ? v : undefined);
+  const out: InstalledPluginInfo[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const o = item as Record<string, unknown>;
+    const name = str(o.name);
+    if (!name) continue;
+    const path = str(o.path);
+    let meta = mergePluginMeta(o, undefined);
+    if (path && (!meta.description || !meta.displayName)) {
+      const manifest = await readPluginManifest(path, ".");
+      if (manifest) meta = mergePluginMeta(o, manifest);
+    }
+    out.push({ name, path, source: str(o.source), version: str(o.version), ...meta });
   }
   return out;
 }
@@ -155,20 +217,35 @@ export async function listAvailable(): Promise<AvailablePlugin[]> {
       const manifest = JSON.parse(raw) as {
         plugins?: Array<{
           name?: unknown;
+          displayName?: unknown;
           description?: unknown;
           author?: unknown;
           category?: unknown;
           homepage?: unknown;
+          source?: unknown;
         }>;
       };
       if (!Array.isArray(manifest.plugins)) continue;
+      const marketplaceDir = join(root, entry.name);
       for (const p of manifest.plugins) {
         if (typeof p?.name !== "string" || !p.name) continue;
         const ref = `${p.name}@${entry.name}`;
+        // CC 2.1.265 (G2) — when the marketplace entry omits description or
+        // displayName, fall back to the plugin's own plugin.json (its local
+        // checkout lives under the marketplace dir at `source`'s subdir).
+        let meta = mergePluginMeta(p, undefined);
+        if (!meta.description || !meta.displayName) {
+          const subdir = pluginSubdirFromSource(p.source);
+          if (subdir) {
+            const manifestJson = await readPluginManifest(marketplaceDir, subdir);
+            if (manifestJson) meta = mergePluginMeta(p, manifestJson);
+          }
+        }
         out.push({
           marketplace: entry.name,
           name: p.name,
-          description: typeof p.description === "string" ? p.description : undefined,
+          displayName: meta.displayName,
+          description: meta.description,
           author:
             typeof p.author === "string"
               ? p.author

@@ -142,7 +142,7 @@ grep evidence): [`audit/chunk0.md`](audit/chunk0.md) (2.1.285–288) …
 ## G — Plugins, marketplaces, agents/skills/memory files
 
 - [x] **G1** [2.1.223/2.1.232/2.1.238] Marketplace settings editor corrupts `settings.json` (`extraKnownMarketplaces` map, `strict`/`blocked` source objects, `headersHelper`, archive/command sources, `owner/*`)
-- [ ] **G2** [2.1.265 F] Plugin descriptions fall back to `plugin.json`; Installed rows show descriptions
+- [x] **G2** [2.1.265 F] Plugin descriptions fall back to `plugin.json`; Installed rows show descriptions
 - [ ] **G3** [2.1.285] Plugin options form (`userConfig` → `pluginConfigs`)
 - [ ] **G4** [2.1.239 F] Agent/skill files with a UTF-8 BOM lose their frontmatter
 - [ ] **G5** [2.1.214 F] Auto-memory frontmatter is written unquoted (YAML injection / truncation)

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import {
   addExtraMarketplace,
+  enrichInstalled,
   listAll,
   removeExtraMarketplace,
   removePolicyMarketplaceEntry,
@@ -37,7 +38,8 @@ export async function GET(req: Request) {
       const r = await session.reloadPlugins();
       if (r.ok) {
         const d = r.data as { plugins?: unknown[]; error_count?: number };
-        installed = Array.isArray(d.plugins) ? d.plugins : [];
+        // G2 — enrich with description/displayName from each plugin's plugin.json.
+        installed = await enrichInstalled(Array.isArray(d.plugins) ? d.plugins : []);
         // The detailed `plugin_errors` array is captured once at init; a live
         // `reload_plugins` only reports a coarse `error_count`. If that count
         // is now zero, the user has fixed whatever failed (edited config, then
