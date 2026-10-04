@@ -96,6 +96,14 @@ describe("addExtraMarketplace (G1)", () => {
     expect(res.ok).toBe(false);
   });
 
+  test("refuses to overwrite an existing name (would drop its headers)", () => {
+    const raw = { keep: { source: { source: "url", url: "https://a", headers: { A: "tok" } } } };
+    const res = addExtraMarketplace(raw, "keep", { source: "github", repo: "o/r" });
+    expect(res.ok).toBe(false);
+    // The stored value is untouched.
+    expect(raw.keep.source).toEqual({ source: "url", url: "https://a", headers: { A: "tok" } });
+  });
+
   test("rejects a wildcard repo and a non-http url", () => {
     expect(addExtraMarketplace({}, "x", { source: "github", repo: "owner/*" }).ok).toBe(false);
     expect(addExtraMarketplace({}, "x", { source: "url", url: "ftp://x" }).ok).toBe(false);

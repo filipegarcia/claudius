@@ -195,6 +195,11 @@ export function addExtraMarketplace(raw: unknown, name: string, source: Marketpl
   const valid = validateAddSource(source);
   if (!valid.ok) return valid;
   const base = isObject(raw) ? (raw as Record<string, { source: MarketplaceSource }>) : {};
+  // Refuse to overwrite an existing entry — silently replacing it would drop
+  // its `headers`/`headersHelper`/ref, the exact corruption G1 set out to fix.
+  if (trimmed in base) {
+    return { ok: false, error: `A marketplace named "${trimmed}" already exists — remove it first.` };
+  }
   return { ok: true, value: { ...base, [trimmed]: { source } } };
 }
 
