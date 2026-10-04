@@ -755,6 +755,12 @@ export type ChatState = {
   readOnly: boolean;
   messages: DisplayMessage[];
   systemEntries: SystemEntry[];
+  /**
+   * CC 2.1.271 — the hook currently running (non-lifecycle events, with
+   * `includeHookEvents`), for the "Running <event> hook · Ns" status line.
+   * Null when no hook is running.
+   */
+  runningHook: { event: string; startedAt: number } | null;
   toolProgress: Record<string, ToolProgressInfo>;
   queue: QueuedMessage[];
   /** Oldest pending permission request — the one to show. Null when none. */

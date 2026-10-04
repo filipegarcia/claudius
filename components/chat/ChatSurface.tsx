@@ -2066,6 +2066,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
           backgroundTasks={session.backgroundTasks}
           turnStartedAt={session.turnStartedAt}
           lastTurnCompletedAt={session.lastTurnCompletedAt}
+          runningHook={session.runningHook}
           permissionMode={session.permissionMode}
           model={session.model}
           mainAgent={session.mainAgent}

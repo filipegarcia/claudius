@@ -61,6 +61,12 @@ type Props = {
    * ticker while `pending`), or `null` when idle.
    */
   turnStartedAt?: number | null;
+  /**
+   * CC 2.1.271 — the hook currently running (PreToolUse, UserPromptSubmit, …),
+   * shown as "Running <event> hook · Ns" while it blocks the turn. Null when no
+   * hook is running.
+   */
+  runningHook?: { event: string; startedAt: number } | null;
   /** Epoch ms the most recently completed turn ended, or `null`/`undefined` before any turn has finished. Renders as "done H:MM AM/PM" once idle. */
   lastTurnCompletedAt?: number | null;
   permissionMode: PermissionMode;
@@ -174,6 +180,7 @@ export function StatusLine({
   streamStatus = "live",
   backgroundTasks = 0,
   turnStartedAt,
+  runningHook,
   lastTurnCompletedAt,
   permissionMode,
   model,
@@ -239,6 +246,8 @@ export function StatusLine({
   // it — the turn-status e2e specs assert exact text on that span (see
   // `tests/e2e/turn-status.spec.ts`).
   const turnElapsedSec = useElapsedSeconds(turnStartedAt ?? undefined, status === "working");
+  // CC 2.1.271 — live "Ns" for the running hook.
+  const hookElapsedSec = useElapsedSeconds(runningHook?.startedAt, !!runningHook);
 
   // Rendered label. Kept out of CSS `capitalize` so `textContent` matches what
   // the user sees (the turn-status e2e specs assert on exact text).
@@ -669,6 +678,17 @@ export function StatusLine({
             title="Elapsed time for the current turn"
           >
             {formatElapsed(turnElapsedSec)}
+          </span>
+        )}
+        {/* CC 2.1.271 — a hook is blocking the turn; show which and for how long. */}
+        {!zen && runningHook && (
+          <span
+            data-testid="status-line-hook"
+            className="whitespace-nowrap text-sky-400"
+            title={`A ${runningHook.event} hook is running`}
+          >
+            Running {runningHook.event} hook
+            {typeof hookElapsedSec === "number" ? ` · ${formatElapsed(hookElapsedSec)}` : ""}
           </span>
         )}
         {!zen && doneAt && (

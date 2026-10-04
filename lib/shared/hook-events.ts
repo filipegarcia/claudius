@@ -142,6 +142,27 @@ export const CATEGORY_ORDER: HookCategory[] = [
 
 export type HandlerType = "command" | "http" | "prompt" | "agent" | "mcp_tool";
 
+/**
+ * CC 2.1.271 — hook events that keep a durable transcript pill. These are the
+ * one-time lifecycle hooks (always emitted, low volume). Every other hook event
+ * (PreToolUse, PostToolUse, UserPromptSubmit, …) streams with `includeHookEvents`
+ * and is shown as a transient "Running <event> hook · Ns" status-line indicator
+ * instead, to avoid flooding the transcript with a pill per tool call.
+ */
+export const HOOK_PILL_EVENTS: ReadonlySet<string> = new Set([
+  "SessionStart",
+  "Setup",
+  "SubagentStart",
+  "SessionEnd",
+]);
+
+/** Whether a hook event's completion gets a durable transcript pill: the
+ * one-time lifecycle hooks always do, and ANY hook that failed does (so the
+ * error stays visible); a routine success of a frequent hook does not. */
+export function hookEventGetsDurablePill(event: string, failed: boolean): boolean {
+  return failed || HOOK_PILL_EVENTS.has(event);
+}
+
 export type HookHandler =
   | { type: "command"; command: string; timeout?: number; async?: boolean; asyncRewake?: boolean; once?: boolean; if?: string }
   | { type: "http"; url: string; method?: "POST" | "GET"; headers?: Record<string, string>; timeout?: number; async?: boolean; asyncRewake?: boolean; once?: boolean; if?: string }

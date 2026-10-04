@@ -27,6 +27,7 @@ import type { ApiRetryState } from "@/lib/client/api-retry";
 import { costFromTokens } from "@/lib/shared/cost-pricing";
 import { classifyInformationalLevel } from "@/lib/shared/system-informational";
 import { parseInitSystemMessage } from "@/lib/shared/parse-init";
+import { hookEventGetsDurablePill } from "@/lib/shared/hook-events";
 import { ADVISOR_ACTIVE_SENTINEL } from "@/lib/shared/advisor";
 import { matchesUsageLimitPrefix } from "@/lib/shared/rate-limit-prefixes";
 import {
@@ -950,6 +951,10 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
   const [holderTabId, setHolderTabId] = useState<string | null>(null);
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
   const [systemEntries, setSystemEntries] = useState<SystemEntry[]>([]);
+  // CC 2.1.271 — the hook currently running (for the "Running <event> hook · Ns"
+  // status line). Set on hook_started, cleared on the matching hook_response.
+  const [runningHook, setRunningHook] = useState<{ event: string; startedAt: number } | null>(null);
+  const runningHookIdRef = useRef<string | null>(null);
   const [toolProgress, setToolProgress] = useState<Record<string, ToolProgressInfo>>({});
   const [queue, setQueue] = useState<QueuedMessage[]>([]);
   // FIFO queues (oldest first) — several prompts can be pending at once when
@@ -4021,11 +4026,21 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
           return;
         }
         if (sysAny.subtype === "hook_started") {
-          const h = sysAny as { hook_name?: string; hook_event?: string };
-          setSystemEntries((prev) => [
-            ...prev,
-            { ...baseEntry, kind: "hook_started", label: `Hook ${h.hook_name ?? h.hook_event ?? ""}` },
-          ]);
+          const h = sysAny as { hook_id?: string; hook_name?: string; hook_event?: string };
+          const event = h.hook_event ?? h.hook_name ?? "";
+          // CC 2.1.271 — with includeHookEvents every PreToolUse/UserPromptSubmit
+          // hook now streams; show the frequent ones as a transient status-line
+          // indicator rather than flooding the transcript with a pill each.
+          // The one-time lifecycle hooks keep their durable pill.
+          if (hookEventGetsDurablePill(event, false)) {
+            setSystemEntries((prev) => [
+              ...prev,
+              { ...baseEntry, kind: "hook_started", label: `Hook ${h.hook_name ?? event}` },
+            ]);
+          } else {
+            runningHookIdRef.current = h.hook_id ?? null;
+            setRunningHook({ event, startedAt: Date.now() });
+          }
           return;
         }
         if (sysAny.subtype === "hook_response") {
@@ -4036,24 +4051,36 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
           // whenever the hook didn't succeed so the failure reason is
           // visible instead of just a bare "→ error" pill.
           const h = sysAny as {
+            hook_id?: string;
             hook_name?: string;
+            hook_event?: string;
             exit_code?: number;
             outcome?: string;
             stderr?: string;
           };
+          // CC 2.1.271 — clear the transient "Running <event> hook" indicator.
+          if (h.hook_id && h.hook_id === runningHookIdRef.current) {
+            runningHookIdRef.current = null;
+            setRunningHook(null);
+          }
           const failed = h.outcome === "error" || h.outcome === "cancelled";
           const stderr = failed && h.stderr?.trim() ? h.stderr.trim() : undefined;
-          setSystemEntries((prev) => [
-            ...prev,
-            {
-              ...baseEntry,
-              kind: "hook_response",
-              label: `Hook ${h.hook_name ?? ""} → ${h.outcome ?? "ok"}`,
-              detail: typeof h.exit_code === "number" ? `exit ${h.exit_code}` : undefined,
-              hookFailed: failed,
-              hookStderr: stderr,
-            },
-          ]);
+          // Keep a durable pill for the one-time lifecycle hooks and for ANY
+          // hook that failed (so the error is visible); a routine success of a
+          // frequent hook just clears the indicator above with no pill.
+          if (hookEventGetsDurablePill(h.hook_event ?? "", failed)) {
+            setSystemEntries((prev) => [
+              ...prev,
+              {
+                ...baseEntry,
+                kind: "hook_response",
+                label: `Hook ${h.hook_name ?? ""} → ${h.outcome ?? "ok"}`,
+                detail: typeof h.exit_code === "number" ? `exit ${h.exit_code}` : undefined,
+                hookFailed: failed,
+                hookStderr: stderr,
+              },
+            ]);
+          }
           return;
         }
         if (sysAny.subtype === "status") {
@@ -6252,6 +6279,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     takeOver,
     messages: sortedMessages,
     systemEntries,
+    runningHook,
     toolProgress,
     queue,
     pendingPermission,

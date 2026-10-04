@@ -2891,6 +2891,10 @@ export class Session {
       // just fails. See `onElicitation`.
       onElicitation: this.onElicitation,
       includePartialMessages: true,
+      // CC 2.1.271 — emit hook_started/hook_progress/hook_response for ALL
+      // hook events (PreToolUse, UserPromptSubmit, SessionEnd, …), not just
+      // SessionStart/Setup, so the status line can show "Running <event> hook".
+      includeHookEvents: true,
       // SDK 0.3.246: declare that this consumer renders its own per-task
       // stop control. Claudius already ships exactly that affordance —
       // `stopTask()` below (wired to `POST /api/sessions/[id]/stop-task`)

@@ -6,7 +6,27 @@ import {
   CATEGORY_LABELS,
   agentHandlerAllowed,
   AGENT_HANDLER_DISALLOWED_EVENTS,
+  hookEventGetsDurablePill,
 } from "@/lib/shared/hook-events";
+
+describe("hookEventGetsDurablePill (CC 2.1.271 — B5)", () => {
+  test("one-time lifecycle hooks get a durable pill", () => {
+    expect(hookEventGetsDurablePill("SessionStart", false)).toBe(true);
+    expect(hookEventGetsDurablePill("Setup", false)).toBe(true);
+    expect(hookEventGetsDurablePill("SessionEnd", false)).toBe(true);
+  });
+
+  test("frequent hooks get no pill on success (shown as a transient status instead)", () => {
+    expect(hookEventGetsDurablePill("PreToolUse", false)).toBe(false);
+    expect(hookEventGetsDurablePill("UserPromptSubmit", false)).toBe(false);
+    expect(hookEventGetsDurablePill("PostToolUse", false)).toBe(false);
+  });
+
+  test("ANY failed hook keeps a pill so the error stays visible", () => {
+    expect(hookEventGetsDurablePill("PreToolUse", true)).toBe(true);
+    expect(hookEventGetsDurablePill("UserPromptSubmit", true)).toBe(true);
+  });
+});
 
 describe("agentHandlerAllowed (CC 2.1.280)", () => {
   test("agent hooks are disallowed on PermissionRequest", () => {
