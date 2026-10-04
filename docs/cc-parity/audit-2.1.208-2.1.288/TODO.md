@@ -87,7 +87,7 @@ grep evidence): [`audit/chunk0.md`](audit/chunk0.md) (2.1.285–288) …
 - [x] **C5** [2.1.243] Show each subagent's model / effort in the task block and Activity panel
 - [x] **C6** [2.1.280 F] Strip the internal "[Subagent hand-back]" frame from subagent results
 - [x] **C7** [2.1.257 low] Coalesce hook-completion notices
-- [ ] **C8** [2.1.243 low] Compaction stall hint
+- [x] **C8** [2.1.243 low] Compaction stall hint
 
 ## D — Composer & slash dispatch
 

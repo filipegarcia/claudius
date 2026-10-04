@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { AlertTriangle, Loader2, Shrink } from "lucide-react";
+import { compactionStallHint } from "@/lib/shared/compaction-stall";
 
 type Props = {
   /** Context-window usage as a 0–100 percentage. */
@@ -81,6 +82,7 @@ export function ContextWarningBanner({ percentage, compacting, pending, onCompac
   }, [compacting]);
 
   const elapsedSec = Math.floor(elapsed / 1000);
+  const stallHint = compactionStallHint(elapsedSec);
   const headPos = Math.floor(elapsed / 150) % SEGMENTS;
   const marquee = Array.from({ length: SEGMENTS }, (_, i) =>
     (i - headPos + SEGMENTS) % SEGMENTS < WINDOW ? "▰" : "▱",
@@ -148,6 +150,16 @@ export function ContextWarningBanner({ percentage, compacting, pending, onCompac
             <span className="whitespace-pre tracking-[0.08em]" aria-hidden="true">
               {marquee}
             </span>
+            {/* CC 2.1.228 — stall hint once compaction runs past the threshold,
+                so a long summarization doesn't read as a hang. */}
+            {stallHint && (
+              <div
+                data-testid="compaction-stall-hint"
+                className="mt-1 font-sans font-normal normal-case opacity-70"
+              >
+                {stallHint}
+              </div>
+            )}
           </div>
         )}
       </div>
