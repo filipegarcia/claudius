@@ -8,13 +8,19 @@ import { userCommandShadowsBuiltin, type SdkSlashCommandInfo } from "@/lib/share
  * same name signals the user has overridden it.
  */
 describe("userCommandShadowsBuiltin (CC 2.1.287 — D3)", () => {
-  test("forwards when an unmarked command shares a built-in dialog's name", () => {
-    // User defined their own /usage (unmarked) alongside CC's own (builtin).
+  test("forwards only when the user's command has fully replaced the built-in", () => {
+    // User's /usage is the sole row (unmarked, no built-in row) → forward.
+    expect(userCommandShadowsBuiltin("usage", [{ name: "usage" }])).toBe(true);
+  });
+
+  test("does NOT forward when a marked built-in row of the name still exists", () => {
+    // Per the SDK contract, `/usage` runs the MARKED row when both exist — so
+    // Claudius keeps its native dialog rather than forwarding to CLI output.
     const sdk: SdkSlashCommandInfo[] = [
       { name: "usage", builtin: true },
-      { name: "usage" }, // the user's, unmarked
+      { name: "usage" }, // unmarked, but the marked one wins
     ];
-    expect(userCommandShadowsBuiltin("usage", sdk)).toBe(true);
+    expect(userCommandShadowsBuiltin("usage", sdk)).toBe(false);
   });
 
   test("does NOT forward when only the built-in dialog exists", () => {

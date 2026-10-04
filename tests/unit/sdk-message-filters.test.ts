@@ -146,6 +146,13 @@ describe("parseSyntheticCliWrapper", () => {
     ).toEqual({ kind: "stdout", text: "ok", trailing: "now do the next thing" });
   });
 
+  test("drops tag-like trailing (residual plumbing), not real user prose", () => {
+    const out = parseSyntheticCliWrapper(
+      "<command-name>/compact</command-name>\n<command-args></command-args>\n<local-command-stdout>x</local-command-stdout>",
+    );
+    expect(out).toEqual({ kind: "command", command: "/compact", args: "", trailing: "" });
+  });
+
   test("returns null for plain user prose", () => {
     expect(parseSyntheticCliWrapper("hello world")).toBeNull();
   });

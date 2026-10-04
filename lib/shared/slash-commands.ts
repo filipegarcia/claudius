@@ -357,7 +357,15 @@ export function userCommandShadowsBuiltin(
   sdkCommands: SdkSlashCommandInfo[] | undefined,
 ): boolean {
   if (!sdkCommands || !SHADOWABLE_BUILTIN_DIALOGS.has(head)) return false;
-  return sdkCommands.some((c) => c?.name === head && c.builtin !== true);
+  // Per the SDK `builtin` contract: when a marked (built-in) row of this name
+  // exists, `/name` runs THAT one — so an unmarked row only wins (and we should
+  // forward) when NO marked row shares the name, i.e. the user's command has
+  // fully replaced the built-in. Forwarding while a marked row still exists
+  // would just surface the built-in as CLI output, never the user's command.
+  const rows = sdkCommands.filter((c) => c?.name === head);
+  const hasUnmarked = rows.some((c) => c.builtin !== true);
+  const hasMarked = rows.some((c) => c.builtin === true);
+  return hasUnmarked && !hasMarked;
 }
 
 export type SlashSuggestion = SlashCommand & {
