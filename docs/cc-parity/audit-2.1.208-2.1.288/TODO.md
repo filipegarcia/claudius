@@ -85,7 +85,7 @@ grep evidence): [`audit/chunk0.md`](audit/chunk0.md) (2.1.285–288) …
 - [x] **C3** [2.1.243 F] Error-tagged assistant replies (`server_error`, `billing_error`, …) get error styling
 - [x] **C4** [2.1.271] "Deep in thought" only while no tool is running; "Picking the thought back up" after `max_output_tokens`
 - [x] **C5** [2.1.243] Show each subagent's model / effort in the task block and Activity panel
-- [ ] **C6** [2.1.280 F] Strip the internal "[Subagent hand-back]" frame from subagent results
+- [x] **C6** [2.1.280 F] Strip the internal "[Subagent hand-back]" frame from subagent results
 - [ ] **C7** [2.1.257 low] Coalesce hook-completion notices
 - [ ] **C8** [2.1.243 low] Compaction stall hint
 

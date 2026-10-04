@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils/cn";
 import type { DisplayBlock, DisplayMessage, TaskInfo, ToolProgressInfo } from "@/lib/client/types";
 import { findSubagentRetry } from "@/lib/client/task-status";
 import { prettyModelName } from "@/lib/shared/advisor";
+import { stripSubagentHandBackFrame } from "@/lib/shared/subagent-handback";
 import { Markdown } from "./Markdown";
 import { ThinkingBlock } from "./ThinkingBlock";
 import { ToolCall } from "./ToolCall";
@@ -203,7 +204,7 @@ export function TaskBlock({
                   result.isError && "text-red-300",
                 )}
               >
-                {result.content}
+                {stripSubagentHandBackFrame(result.content)}
               </pre>
             </details>
           )}
