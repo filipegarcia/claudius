@@ -232,6 +232,11 @@ export type ClaudeSettings = {
   // (the engine reads + honors it), and surfaced in the Settings catalog and
   // the RateLimitHitPanel's "Continuing automatically at HH:MM" line.
   autoContinueAtUsageLimit?: boolean;
+  // Claude Code 2.1.267 — caps the effort level; an /effort or /model pick
+  // above it is clamped. Mirrors the SDK's `Settings.maxEffortLevel`. Surfaced
+  // in the Settings catalog, and the model picker hides tiers above it
+  // (`capEffortLevels`).
+  maxEffortLevel?: "low" | "medium" | "high" | "xhigh" | "max";
   // Claude Code 2.1.232 — "/config rows: Dialog expiry". SDK settings key the
   // bundled `claude` binary reads from `~/.claude/settings.json` (the same file
   // the Settings page catalog edits), so surfacing it as a catalog row is all

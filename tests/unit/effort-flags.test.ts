@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { buildEffortFlagSettings, parseEffortArgs } from "@/lib/shared/effort-flags";
+import { buildEffortFlagSettings, capEffortLevels, parseEffortArgs, type EffortTier } from "@/lib/shared/effort-flags";
 
 /**
  * CC 2.1.284 (E3a) — an effort change keeps ultracode on by sending both keys;
@@ -54,5 +54,27 @@ describe("parseEffortArgs (E3d)", () => {
   test("an unknown level is invalid", () => {
     expect(parseEffortArgs("turbo")).toMatchObject({ kind: "invalid" });
     expect(parseEffortArgs("high extra")).toMatchObject({ kind: "invalid" });
+  });
+});
+
+describe("capEffortLevels (CC 2.1.267 — E5)", () => {
+  const ALL: EffortTier[] = ["low", "medium", "high", "xhigh", "max"];
+
+  test("caps the list at maxEffortLevel", () => {
+    expect(capEffortLevels(ALL, "high")).toEqual(["low", "medium", "high"]);
+    expect(capEffortLevels(ALL, "low")).toEqual(["low"]);
+  });
+
+  test("'max' or absent cap leaves the list unchanged", () => {
+    expect(capEffortLevels(ALL, "max")).toEqual(ALL);
+    expect(capEffortLevels(ALL, undefined)).toEqual(ALL);
+  });
+
+  test("an unknown cap leaves the list unchanged", () => {
+    expect(capEffortLevels(ALL, "turbo")).toEqual(ALL);
+  });
+
+  test("preserves the model's own subset ordering", () => {
+    expect(capEffortLevels(["low", "high", "xhigh"], "high")).toEqual(["low", "high"]);
   });
 });

@@ -15,6 +15,7 @@ import {
   Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
+import { capEffortLevels } from "@/lib/shared/effort-flags";
 import {
   ADVISOR_COPY,
   ADVISOR_FABLE_VALUE,
@@ -102,6 +103,11 @@ type Props = {
    */
   onPickEffort?: (level: EffortLevel | "auto") => Promise<void> | void;
   /**
+   * CC 2.1.267 — the `maxEffortLevel` setting (top-level or per-model). Effort
+   * tiers above it are hidden from the picker (the engine clamps them anyway).
+   */
+  maxEffortLevel?: string;
+  /**
    * "Ultracode" (Dynamic Workflows) — Opus 4.8's xhigh-effort + parallel-
    * subagent mode. Only meaningful in a live session on an xhigh-capable
    * model, so optional: the row hides itself when this is absent or the
@@ -146,6 +152,7 @@ export function ModelPicker({
   onClose,
   onPickModel,
   onPickEffort,
+  maxEffortLevel,
   ultracode = false,
   onToggleUltracode,
   fastMode = false,
@@ -580,7 +587,10 @@ export function ModelPicker({
                   tone="adaptive"
                 />
               )}
-              {activeModel.supportedEffortLevels.map((level) => (
+              {/* CC 2.1.267 — don't offer effort tiers above `maxEffortLevel`
+                  (the engine would silently clamp them, and the pill could then
+                  show a level above the cap). */}
+              {capEffortLevels(activeModel.supportedEffortLevels, maxEffortLevel).map((level) => (
                 <EffortChip
                   key={level}
                   label={EFFORT_LABEL[level]}

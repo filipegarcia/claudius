@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils/cn";
 import { fmtElapsedSec, fmtPath } from "./format";
 import { ModelPicker } from "./ModelPicker";
 import { type AdvisorChoice, badgeAdvisorLabel, prettyModelName } from "@/lib/shared/advisor";
+import { useMaxEffortLevel } from "@/lib/client/useMaxEffortLevel";
 
 type EffortLevel = "low" | "medium" | "high" | "xhigh" | "max" | "auto";
 
@@ -96,6 +97,9 @@ export function SessionCard({
   advisorModel = null,
   onChangeAdvisorModel,
 }: Props) {
+  // CC 2.1.267 — the user's effort cap, passed to the model picker so it hides
+  // tiers above it.
+  const maxEffortLevel = useMaxEffortLevel(cwd);
   // Use `usage.durationMs` when present (server-known); otherwise track
   // wall time from when we first saw a non-null sessionId. The "first
   // saw" is captured in `boundAt`, reset on unbind, refreshed on rebind.
@@ -237,6 +241,7 @@ export function SessionCard({
             await onChangeEffort?.(level);
             setPickerOpen(false);
           }}
+          maxEffortLevel={maxEffortLevel}
           ultracode={ultracode}
           onToggleUltracode={
             onChangeUltracode

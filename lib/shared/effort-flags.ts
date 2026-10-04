@@ -23,6 +23,23 @@ export function buildEffortFlagSettings(level: EffortFlagLevel, ultracode: boole
 
 const EFFORT_LEVELS = new Set<EffortFlagLevel>(["low", "medium", "high", "xhigh", "max", "auto"]);
 
+/** Effort tiers low→high (excludes "auto", which is adaptive, not a tier). */
+export type EffortTier = "low" | "medium" | "high" | "xhigh" | "max";
+const EFFORT_TIER_ORDER: EffortTier[] = ["low", "medium", "high", "xhigh", "max"];
+
+/**
+ * CC 2.1.267 — cap a model's selectable effort tiers by the `maxEffortLevel`
+ * setting so the picker can't offer (and the pill can't show) a level above
+ * the cap the engine would silently clamp. `max` as the cap exempts everything.
+ * An unknown/absent cap leaves the list unchanged. Pure, for unit tests.
+ */
+export function capEffortLevels(levels: EffortTier[], maxEffortLevel: string | undefined): EffortTier[] {
+  if (!maxEffortLevel || maxEffortLevel === "max") return levels;
+  const capIdx = EFFORT_TIER_ORDER.indexOf(maxEffortLevel as EffortTier);
+  if (capIdx < 0) return levels;
+  return levels.filter((l) => EFFORT_TIER_ORDER.indexOf(l) <= capIdx);
+}
+
 /**
  * CC 2.1.284 — parse a typed `/effort` command's args. Claude Code handles
  * `/effort <level>`, `/effort ultracode on|off`, and bare `/effort` (show
