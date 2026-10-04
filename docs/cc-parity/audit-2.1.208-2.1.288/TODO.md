@@ -95,7 +95,7 @@ grep evidence): [`audit/chunk0.md`](audit/chunk0.md) (2.1.285–288) …
 - [x] **D2** [2.1.246 F] Prompts that start with `/` but aren't commands (`/--`, `/usr/bin/x …`) are swallowed as "Unknown command"
 - [x] **D3** [2.1.287 F] A user command with the same name as a built-in (`/usage`, `/context`, …) should run the user's command
 - [x] **D4** [2.1.265] Slash suggestions mid-prompt; plugin skills selectable by bare name
-- [ ] **D5** [2.1.288] ↑ on an empty composer restores a draft cleared with Ctrl+C / Esc-Esc (incl. images)
+- [x] **D5** [2.1.288] ↑ on an empty composer restores a draft cleared with Ctrl+C / Esc-Esc (incl. images)
 - [ ] **D6** [2.1.280] Mark large pastes (`inline_pastes`) so Claude can tell them from typed text
 - [ ] **D7** [2.1.232] `@`-mention another live session
 - [ ] **D8** [2.1.259] `/install-github-app` in a GitLab repo → GitLab CI/CD docs

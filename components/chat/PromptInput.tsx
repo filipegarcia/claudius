@@ -32,6 +32,7 @@ import {
 } from "@/lib/shared/markdown-list";
 import { stripInvisibleUnicode } from "@/lib/shared/invisible-unicode";
 import { slashTokenBeforeCaret } from "@/lib/shared/slash-commands";
+import { canRestoreClearedDraft, shouldStashClearedDraft } from "@/lib/client/cleared-draft";
 
 type Props = {
   pending: boolean;
@@ -302,6 +303,10 @@ export function PromptInput({
   // when browsing began so Cmd/Ctrl+↓ past the newest entry restores it.
   const histIdxRef = useRef<number | null>(null);
   const stashedDraftRef = useRef("");
+  // CC 2.1.288 — the draft (text + pasted images) that Ctrl+C / double-Esc last
+  // wiped, so a plain ↑ on the empty composer can restore it. Null when nothing
+  // is stashed (a fresh session, or already restored).
+  const clearedDraftRef = useRef<{ text: string; images: AttachedImage[] } | null>(null);
   // Tracks the timestamp of the last Escape keydown for double-press detection.
   const lastEscapeRef = useRef<number>(0);
 
@@ -779,6 +784,10 @@ export function PromptInput({
 
   /** Wipe the composer: text, attached images, picker state. */
   function clearInput() {
+    // CC 2.1.288 — stash a non-empty draft so plain ↑ can bring it back.
+    if (shouldStashClearedDraft(value, images.length)) {
+      clearedDraftRef.current = { text: value, images };
+    }
     setValue("");
     setImages([]);
     setPickerOpen(false);
@@ -1036,6 +1045,40 @@ export function PromptInput({
     // held (see SlashCommandPicker / AtMentionPicker), so there's no conflict.
     if ((e.metaKey || e.ctrlKey) && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
       if (recallHistory(e.key === "ArrowUp" ? -1 : 1)) e.preventDefault();
+      return;
+    }
+
+    // ── Plain ↑ on an empty composer restores a cleared draft (CC 2.1.288) ──
+    // Text + pasted images that Ctrl+C / double-Esc wiped come back. Gated so
+    // ↑ stays ordinary caret movement whenever the composer isn't empty.
+    if (
+      e.key === "ArrowUp" &&
+      !e.metaKey &&
+      !e.ctrlKey &&
+      !e.altKey &&
+      !e.shiftKey &&
+      canRestoreClearedDraft({
+        value,
+        imageCount: images.length,
+        pickerOpen,
+        atActive: atQuery != null,
+        emojiActive: emojiQuery != null,
+        browsingHistory: histIdxRef.current !== null,
+        hasStash: clearedDraftRef.current != null,
+      })
+    ) {
+      e.preventDefault();
+      const d = clearedDraftRef.current!;
+      clearedDraftRef.current = null;
+      setValue(d.text);
+      setImages(d.images);
+      requestAnimationFrame(() => {
+        const el = taRef.current;
+        el?.focus();
+        const pos = d.text.length;
+        el?.setSelectionRange(pos, pos);
+        autosize();
+      });
       return;
     }
 
