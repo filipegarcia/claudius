@@ -3,6 +3,12 @@ import { homedir } from "node:os";
 import { join, resolve, sep } from "node:path";
 import { mergePluginMeta, pluginSubdirFromSource, type PluginManifest } from "@/lib/shared/plugin-metadata";
 import {
+  parseUserConfig,
+  setPluginOption,
+  type PluginConfigOption,
+  type PluginOptionValue,
+} from "@/lib/shared/plugin-config";
+import {
   pathFor,
   readSettings,
   writeSettings,
@@ -34,6 +40,12 @@ export type PluginsByScope = {
   strictKnownMarketplaces: MarketplaceSourceView[];
   blockedMarketplaces: MarketplaceSourceView[];
   legacyExtra: boolean;
+  /**
+   * G3 — current `pluginConfigs` values for this scope (keyed by plugin id).
+   * Holds the non-sensitive option values the options form reads back; sensitive
+   * values never land here (the CLI routes them to secure storage).
+   */
+  pluginConfigs: Record<string, unknown>;
 };
 
 export type AvailablePlugin = {
@@ -104,6 +116,11 @@ export async function listAll(cwd: string): Promise<PluginsByScope[]> {
         (settings as { blockedMarketplaces?: unknown }).blockedMarketplaces,
       ),
       legacyExtra: Array.isArray(extraRaw),
+      pluginConfigs:
+        typeof (settings as { pluginConfigs?: unknown }).pluginConfigs === "object" &&
+        (settings as { pluginConfigs?: unknown }).pluginConfigs
+          ? ((settings as { pluginConfigs: Record<string, unknown> }).pluginConfigs)
+          : {},
     });
   }
   return out;
@@ -117,6 +134,8 @@ export type InstalledPluginInfo = {
   /** CC 2.1.265 (G2) — from the SDK object, else the plugin's own plugin.json. */
   description?: string;
   displayName?: string;
+  /** CC 2.1.285 (G3) — the plugin's `userConfig` option schema, when declared. */
+  userConfig?: PluginConfigOption[];
 };
 
 /**
@@ -135,14 +154,47 @@ export async function enrichInstalled(raw: unknown[]): Promise<InstalledPluginIn
     const name = str(o.name);
     if (!name) continue;
     const path = str(o.path);
-    let meta = mergePluginMeta(o, undefined);
-    if (path && (!meta.description || !meta.displayName)) {
-      const manifest = await readPluginManifest(path, ".");
-      if (manifest) meta = mergePluginMeta(o, manifest);
-    }
-    out.push({ name, path, source: str(o.source), version: str(o.version), ...meta });
+    // G2/G3 — read the plugin's own manifest once for both the description/
+    // displayName fallback and the `userConfig` option schema (G3).
+    const manifest = path ? await readPluginManifest(path, ".") : null;
+    const meta = mergePluginMeta(o, manifest ?? undefined);
+    const userConfig = manifest ? parseUserConfig(manifest) : [];
+    out.push({
+      name,
+      path,
+      source: str(o.source),
+      version: str(o.version),
+      ...meta,
+      userConfig: userConfig.length > 0 ? userConfig : undefined,
+    });
   }
   return out;
+}
+
+/**
+ * G3 — set (or clear, when `value` is undefined) one plugin option under
+ * `pluginConfigs.<pluginId>.options.<name>` in the given scope, preserving the
+ * plugin's `mcpServers` config and every other plugin's entry. Only
+ * non-sensitive options reach here (the UI withholds sensitive ones).
+ */
+export async function setPluginOptionValue(
+  scope: SettingsScope,
+  cwd: string,
+  pluginId: string,
+  name: string,
+  value: PluginOptionValue | undefined,
+): Promise<void> {
+  const settings = await readSettings(scope, cwd);
+  const next = { ...settings } as Record<string, unknown>;
+  const updated = setPluginOption(
+    (settings as { pluginConfigs?: unknown }).pluginConfigs,
+    pluginId,
+    name,
+    value,
+  );
+  if (updated === undefined) delete next.pluginConfigs;
+  else next.pluginConfigs = updated;
+  await writeSettings(scope, cwd, next as ClaudeSettings);
 }
 
 export async function setEnabled(

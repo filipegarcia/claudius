@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import {
   AlertTriangle,
@@ -15,6 +15,7 @@ import {
   Power,
   RefreshCw,
   Search,
+  Settings2,
   ShieldCheck,
   X,
 } from "lucide-react";
@@ -30,6 +31,11 @@ import type {
   MarketplaceSource,
   MarketplaceSourceView,
 } from "@/lib/shared/marketplace-settings";
+import {
+  readPluginOptions,
+  type PluginConfigOption,
+  type PluginOptionValue,
+} from "@/lib/shared/plugin-config";
 import { cn } from "@/lib/utils/cn";
 
 const SCOPE_LABELS: Record<SettingsScope, string> = {
@@ -188,6 +194,9 @@ export default function PluginsPage() {
                       enabledInScope={Boolean(active?.enabledPlugins?.[row.id])}
                       enabledInAnyScope={row.enabledIn}
                       onToggle={(enabled) => plugins.toggle(scope, row.id, enabled)}
+                      scope={scope}
+                      optionValues={readPluginOptions(active?.pluginConfigs, row.id)}
+                      onSetOption={(name, value) => plugins.setPluginOption(scope, row.id, name, value)}
                     />
                   ))}
                 </ul>
@@ -600,12 +609,18 @@ function PluginRow({
   enabledInScope,
   enabledInAnyScope,
   onToggle,
+  scope,
+  optionValues,
+  onSetOption,
 }: {
   id: string;
   installed?: InstalledPlugin;
   enabledInScope: boolean;
   enabledInAnyScope: SettingsScope[];
   onToggle: (enabled: boolean) => void;
+  scope: SettingsScope;
+  optionValues: Record<string, PluginOptionValue>;
+  onSetOption: (name: string, value: PluginOptionValue | undefined) => Promise<boolean>;
 }) {
   const [open, setOpen] = useState(false);
   return (
@@ -669,9 +684,121 @@ function PluginRow({
               <code className="block break-all font-mono">{installed.path}</code>
             </>
           )}
+          {installed?.userConfig && installed.userConfig.length > 0 && (
+            <PluginOptionsForm
+              options={installed.userConfig}
+              values={optionValues}
+              scope={scope}
+              onSetOption={onSetOption}
+            />
+          )}
         </div>
       )}
     </li>
+  );
+}
+
+/**
+ * CC 2.1.285 (G3) — the plugin options form. Renders each `userConfig` option
+ * by type (text / number / checkbox / enum select), prefilled with the current
+ * value or the manifest default, and persists non-sensitive edits to
+ * `pluginConfigs.<id>.options` in the active scope. Sensitive options are
+ * shown read-only — the CLI stores those in secure storage, which Claudius's
+ * plaintext settings.json intentionally won't do.
+ */
+function PluginOptionsForm({
+  options,
+  values,
+  scope,
+  onSetOption,
+}: {
+  options: PluginConfigOption[];
+  values: Record<string, PluginOptionValue>;
+  scope: SettingsScope;
+  onSetOption: (name: string, value: PluginOptionValue | undefined) => Promise<boolean>;
+}) {
+  const current = (o: PluginConfigOption): PluginOptionValue | undefined =>
+    o.name in values ? values[o.name] : o.default;
+  return (
+    <div className="mt-2 border-t border-[var(--border)] pt-2">
+      <div className="mb-1 flex items-center gap-1.5 text-[var(--muted)]">
+        <Settings2 className="h-3 w-3" /> Options
+        <span className="font-mono text-[10px]">({scope})</span>
+      </div>
+      <div className="space-y-2">
+        {options.map((o) => {
+          const val = current(o);
+          const label = (
+            <div className="min-w-0">
+              <div className="font-mono text-[11px]">{o.title ?? o.name}</div>
+              {o.description && <div className="text-[10px] text-[var(--muted)]">{o.description}</div>}
+            </div>
+          );
+          if (o.sensitive) {
+            return (
+              <div key={o.name} className="flex items-start justify-between gap-2">
+                {label}
+                <span className="shrink-0 rounded bg-amber-500/15 px-1.5 py-0.5 text-[9px] uppercase tracking-wide text-amber-400">
+                  sensitive — set via CLI
+                </span>
+              </div>
+            );
+          }
+          let control: ReactNode;
+          if (o.type === "boolean") {
+            control = (
+              <input
+                type="checkbox"
+                checked={val === true}
+                onChange={(e) => void onSetOption(o.name, e.target.checked)}
+                className="h-3.5 w-3.5 shrink-0"
+              />
+            );
+          } else if (o.type === "enum") {
+            control = (
+              <select
+                value={typeof val === "string" ? val : ""}
+                onChange={(e) => void onSetOption(o.name, e.target.value || undefined)}
+                className="w-40 shrink-0 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-1.5 py-1 text-[11px] focus:outline-none"
+              >
+                <option value="">(default)</option>
+                {o.options?.map((opt) => (
+                  <option key={opt} value={opt}>
+                    {opt}
+                  </option>
+                ))}
+              </select>
+            );
+          } else if (o.type === "number") {
+            control = (
+              <input
+                type="number"
+                defaultValue={typeof val === "number" ? val : ""}
+                onBlur={(e) =>
+                  void onSetOption(o.name, e.target.value === "" ? undefined : Number(e.target.value))
+                }
+                className="w-40 shrink-0 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1 font-mono text-[11px] focus:outline-none"
+              />
+            );
+          } else {
+            control = (
+              <input
+                defaultValue={typeof val === "string" ? val : ""}
+                placeholder="(default)"
+                onBlur={(e) => void onSetOption(o.name, e.target.value === "" ? undefined : e.target.value)}
+                className="w-40 shrink-0 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1 font-mono text-[11px] focus:outline-none"
+              />
+            );
+          }
+          return (
+            <div key={o.name} className="flex items-start justify-between gap-2">
+              {label}
+              {control}
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 

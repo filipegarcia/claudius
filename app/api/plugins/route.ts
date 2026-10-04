@@ -6,8 +6,10 @@ import {
   removeExtraMarketplace,
   removePolicyMarketplaceEntry,
   setEnabled,
+  setPluginOptionValue,
 } from "@/lib/server/plugins";
 import type { MarketplaceSource } from "@/lib/shared/marketplace-settings";
+import type { PluginOptionValue } from "@/lib/shared/plugin-config";
 import { sessionManager } from "@/lib/server/session-manager";
 import type { SettingsScope } from "@/lib/server/settings";
 import { resolveTrustedCwd } from "@/lib/server/trusted-cwd";
@@ -75,6 +77,15 @@ type PostBody =
       source?: MarketplaceSource;
       list?: "strict" | "blocked";
       index?: number;
+    }
+  | {
+      // G3 — set/clear one plugin option value (value omitted = clear).
+      kind: "plugin-config";
+      scope: SettingsScope;
+      cwd?: string;
+      pluginId: string;
+      name: string;
+      value?: PluginOptionValue;
     };
 
 export async function POST(req: Request) {
@@ -110,6 +121,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true });
     }
     return NextResponse.json({ error: "invalid op" }, { status: 400 });
+  }
+  if (body.kind === "plugin-config") {
+    if (typeof body.pluginId !== "string" || typeof body.name !== "string")
+      return NextResponse.json({ error: "pluginId and name required" }, { status: 400 });
+    await setPluginOptionValue(body.scope, cwd, body.pluginId, body.name, body.value);
+    return NextResponse.json({ ok: true });
   }
   return NextResponse.json({ error: "invalid kind" }, { status: 400 });
 }

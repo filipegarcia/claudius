@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { AvailablePlugin, PluginsByScope } from "@/lib/server/plugins";
 import type { SettingsScope } from "@/lib/server/settings";
 import type { PluginLoadError } from "@/lib/shared/parse-init";
+import type { PluginConfigOption, PluginOptionValue } from "@/lib/shared/plugin-config";
 
 export type InstalledPlugin = {
   name: string;
@@ -20,6 +21,8 @@ export type InstalledPlugin = {
   /** CC 2.1.265 (G2) — from the SDK object, else the plugin's own plugin.json. */
   description?: string;
   displayName?: string;
+  /** CC 2.1.285 (G3) — the plugin's `userConfig` option schema, when declared. */
+  userConfig?: PluginConfigOption[];
 };
 
 export function usePlugins(cwd: string | null, sessionId: string | null) {
@@ -136,6 +139,25 @@ export function usePlugins(cwd: string | null, sessionId: string | null) {
     [marketplaceOp],
   );
 
+  // G3 — set (or clear, when `value` is undefined) one plugin option value.
+  const setPluginOption = useCallback(
+    async (
+      scope: SettingsScope,
+      pluginId: string,
+      name: string,
+      value: PluginOptionValue | undefined,
+    ): Promise<boolean> => {
+      const res = await fetch("/api/plugins", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind: "plugin-config", scope, cwd, pluginId, name, value }),
+      });
+      if (res.ok) await refresh();
+      return res.ok;
+    },
+    [cwd, refresh],
+  );
+
   const reload = useCallback(async () => {
     if (!sessionId) return false;
     const res = await fetch(`/api/plugins/reload?sessionId=${encodeURIComponent(sessionId)}`, {
@@ -188,6 +210,7 @@ export function usePlugins(cwd: string | null, sessionId: string | null) {
     addExtraMarketplace,
     removeExtraMarketplace,
     removePolicyMarketplace,
+    setPluginOption,
     reload,
     install,
   };
