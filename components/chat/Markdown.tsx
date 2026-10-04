@@ -259,8 +259,16 @@ const baseComponents: Omit<Components, "code"> = {
   ul({ children }) {
     return <ul className="my-2 list-disc pl-5">{children}</ul>;
   },
-  ol({ children }) {
-    return <ol className="my-2 list-decimal pl-5">{children}</ol>;
+  ol({ children, start, type }) {
+    // CC 2.1.274/2.1.281 — honor the list's `start` (and `type`) so a list that
+    // begins at `3.` renders 3./4./5. (not renumbered to 1./2./3.), and a list
+    // resuming after a code block keeps its number. Dropping `start` (the old
+    // behavior) silently rewrote the user's own typed numbers.
+    return (
+      <ol start={start} type={type} className="my-2 list-decimal pl-5">
+        {children}
+      </ol>
+    );
   },
   // Headings and the table use em-relative sizes (rather than Tailwind's
   // fixed text-xs/text-base/text-lg/text-xl) so they scale with the parent

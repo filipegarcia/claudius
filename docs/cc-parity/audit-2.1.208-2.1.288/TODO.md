@@ -125,7 +125,7 @@ grep evidence): [`audit/chunk0.md`](audit/chunk0.md) (2.1.285–288) …
 
 ## F — Markdown, settings page & chrome
 
-- [ ] **F1** [2.1.281/2.1.274 F] Ordered lists keep their `start` number (and the user's typed numbers)
+- [x] **F1** [2.1.281/2.1.274 F] Ordered lists keep their `start` number (and the user's typed numbers)
 - [ ] **F2** [2.1.216 F] Right-to-left text (`dir="auto"`)
 - [ ] **F3** [2.1.282] `maxProseWidth` actually caps prose width
 - [ ] **F4** [2.1.257] `timeFormat` / `timeZone` drive Claudius's own clocks
