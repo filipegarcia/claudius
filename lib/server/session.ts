@@ -798,6 +798,15 @@ export const TODO_TASK_TOOL_NAMES = ["TodoWrite", "TaskCreate", "TaskGet", "Task
  * stream-json `query()` run, so this is reachable and worth the friendlier
  * error surface.
  */
+/**
+ * CC 2.1.273/2.1.288 — whether a mid-session MCP status re-check is due: at
+ * most once per `intervalMs` (default 30s) so a busy session doesn't issue an
+ * `mcpServerStatus()` control call on every turn. Pure, for unit tests.
+ */
+export function mcpRecheckDue(now: number, lastAt: number, intervalMs = 30_000): boolean {
+  return now - lastAt >= intervalMs;
+}
+
 export function buildQueryEnv(
   envOverride: Record<string, string | undefined> | null,
   restrictedMode?: boolean,
@@ -6194,6 +6203,17 @@ export class Session {
   private async noteMcpNeedsAuthAtStartup(): Promise<void> {
     if (this.mcpNeedsAuthNoticeFired) return;
     this.mcpNeedsAuthNoticeFired = true;
+    await this.runMcpNeedsAuthCheck();
+  }
+
+  /**
+   * Core of the needs-auth check (no fire-once guard). Run at startup via
+   * `noteMcpNeedsAuthAtStartup`, and again mid-session via
+   * `recheckMcpStatusMidSession` (CC 2.1.288 — a server can ask for more
+   * OAuth scope mid tool-call). `syncNeedsAuthNotifications` dedups per server,
+   * so a re-run only announces a server newly in `needs-auth`.
+   */
+  private async runMcpNeedsAuthCheck(): Promise<void> {
     try {
       const result = await this.mcpServerStatus();
       if (!result.ok) return;
@@ -6254,6 +6274,11 @@ export class Session {
   private async noteMcpDisconnectedAtStartup(): Promise<void> {
     if (this.mcpDisconnectedNoticeFired) return;
     this.mcpDisconnectedNoticeFired = true;
+    await this.runMcpDisconnectedCheck();
+  }
+
+  /** Core of the disconnected check (no fire-once guard); see `runMcpNeedsAuthCheck`. */
+  private async runMcpDisconnectedCheck(): Promise<void> {
     try {
       const result = await this.mcpServerStatus();
       if (!result.ok) return;
@@ -6270,6 +6295,25 @@ export class Session {
     } catch {
       // best-effort — a status-check failure must never disrupt the session
     }
+  }
+
+  /**
+   * CC 2.1.273/2.1.288 — mid-session MCP re-check. The startup notices only
+   * fire on the first `system:init`; a server that drops (gives up
+   * reconnecting) or asks for more OAuth scope DURING the session is otherwise
+   * never surfaced (the CLI's own notice is Ink-only, off the SDK channel).
+   * Re-run both checks at turn boundaries, throttled so a busy session doesn't
+   * issue an `mcpServerStatus()` control call every turn; the per-server DB
+   * dedup keeps it from re-announcing a server already flagged.
+   */
+  private lastMcpRecheckAt = 0;
+  private async recheckMcpStatusMidSession(): Promise<void> {
+    if (this.isReplayingTranscript) return;
+    const now = Date.now();
+    if (!mcpRecheckDue(now, this.lastMcpRecheckAt)) return;
+    this.lastMcpRecheckAt = now;
+    await this.runMcpNeedsAuthCheck();
+    await this.runMcpDisconnectedCheck();
   }
 
   /**
@@ -8636,6 +8680,10 @@ export class Session {
           sawResult = true;
           this.turnInFlight = false;
           this.broadcastTurnStatusIfChanged();
+          // CC 2.1.273/2.1.288 — turn boundary is our mid-session poll point:
+          // re-check MCP status so a server that dropped or now needs more
+          // OAuth scope during the turn surfaces a notice (throttled inside).
+          void this.recheckMcpStatusMidSession();
           // Fold the result's running cost/usage totals into the durable
           // per-session accumulator, persist, and broadcast the fresh
           // `usage_snapshot` (see foldResultIntoSessionUsage for semantics).
