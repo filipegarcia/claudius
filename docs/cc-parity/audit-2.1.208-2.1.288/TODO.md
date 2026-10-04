@@ -145,7 +145,7 @@ grep evidence): [`audit/chunk0.md`](audit/chunk0.md) (2.1.285–288) …
 - [x] **G2** [2.1.265 F] Plugin descriptions fall back to `plugin.json`; Installed rows show descriptions
 - [x] **G3** [2.1.285] Plugin options form (`userConfig` → `pluginConfigs`)
 - [x] **G4** [2.1.239 F] Agent/skill files with a UTF-8 BOM lose their frontmatter
-- [ ] **G5** [2.1.214 F] Auto-memory frontmatter is written unquoted (YAML injection / truncation)
+- [x] **G5** [2.1.214 F] Auto-memory frontmatter is written unquoted (YAML injection / truncation)
 - [ ] **G6** [2.1.247] `spinnerTipsOverride`: `tipsFile`, `label`, `priority`, `cooldownSessions`, `id`
 - [ ] **G7** [2.1.268 low] Plugin list refreshes after an install finishes
 - [ ] **G8** [2.1.248 low] `experimental.cacheTtl` agent-frontmatter hint/badge
