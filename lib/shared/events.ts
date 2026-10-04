@@ -34,6 +34,16 @@ export type PermissionRequestEvent = {
    */
   suppressAlwaysAllowRule?: boolean;
   /**
+   * CC 2.1.235 — the narrow permission rules an "Always allow" click will
+   * write, derived from the SDK's `canUseTool` `suggestions` (e.g.
+   * `Bash(git status:*)` rather than a blanket `Bash` grant). Shown next to
+   * the standing-grant buttons so the user sees the exact scope they're
+   * granting; empty/absent means the SDK offered no narrow rule and the
+   * grant falls back to the whole tool. `toolName` + optional `ruleContent`
+   * mirror the SDK's `PermissionRuleValue`.
+   */
+  suggestedRules?: { toolName: string; ruleContent?: string }[];
+  /**
    * SDK 0.3.274 — for `mcp__*` tools, the MCP server serving this tool and
    * where its definition came from. `source: "sdk"` means one of the
    * in-process servers this host registered (name is a key we chose); any

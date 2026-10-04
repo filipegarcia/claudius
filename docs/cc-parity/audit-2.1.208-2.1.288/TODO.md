@@ -54,7 +54,7 @@ grep evidence): [`audit/chunk0.md`](audit/chunk0.md) (2.1.285–288) …
 
 ## A — Security & permissions
 
-- [ ] **A1** [2.1.235] **Security:** "Always allow" saves a whole-tool rule (`Bash` for `git status`). Use the SDK's `ctx.suggestions` (narrow rules) and show them in the prompt; never silently fall back to a whole-tool rule
+- [x] **A1** [2.1.235] **Security:** "Always allow" saves a whole-tool rule (`Bash` for `git status`). Use the SDK's `ctx.suggestions` (narrow rules) and show them in the prompt; never silently fall back to a whole-tool rule
 - [ ] **A2** [2.1.211 F] Permission prompt shows bidi-override / zero-width chars raw — render them as visible escapes
 - [ ] **A3** [2.1.248] Restricted mode is partial: engine-level enforcement (verify `CLAUDE_CODE_RESTRICTED`), block `Monitor`/`TaskStop`, drop stale tool names
 - [ ] **A4** [2.1.259] Pass `permissionPrompts: "none"` to unattended runs (scheduler, updater apply)

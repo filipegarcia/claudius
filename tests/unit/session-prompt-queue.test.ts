@@ -82,6 +82,56 @@ describe("permission queue — server side", () => {
     expect(s.hasPendingUserPrompts()).toBe(false);
   });
 
+  // CC 2.1.235 — "Always allow" must write the SDK's narrow rule suggestion
+  // (e.g. `Bash(git status:*)`), not a blanket whole-tool grant.
+  test("allow_always writes the narrow rule suggestion, not the whole tool", async () => {
+    const { s, events } = makeSession();
+    const narrowCtx = {
+      signal: new AbortController().signal,
+      toolUseID: "tuN",
+      suggestions: [
+        {
+          type: "addRules",
+          behavior: "allow",
+          rules: [{ toolName: "Bash", ruleContent: "git status:*" }],
+          destination: "session",
+        },
+      ],
+    };
+    const p = s.canUseTool("Bash", { command: "git status" }, narrowCtx);
+    const [r] = requests(events);
+    // The prompt carries the display form so the user sees the scope.
+    expect(r.suggestedRules).toEqual([{ toolName: "Bash", ruleContent: "git status:*" }]);
+
+    expect(s.resolvePermission(r.requestId, { kind: "allow_always_save", destination: "projectSettings" })).toBe(true);
+    const res = await p;
+    expect(res).toMatchObject({
+      behavior: "allow",
+      updatedPermissions: [
+        {
+          type: "addRules",
+          behavior: "allow",
+          rules: [{ toolName: "Bash", ruleContent: "git status:*" }],
+          destination: "projectSettings", // user's chosen scope wins over the suggestion's
+        },
+      ],
+    });
+  });
+
+  test("allow_always falls back to the whole tool when the SDK offers no suggestion", async () => {
+    const { s, events } = makeSession();
+    const p = s.canUseTool("Bash", { command: "ls" }, ctx("tuF"));
+    const [r] = requests(events);
+    expect(r.suggestedRules).toEqual([]);
+    expect(s.resolvePermission(r.requestId, { kind: "allow_always_session" })).toBe(true);
+    const res = await p;
+    expect(res).toMatchObject({
+      updatedPermissions: [
+        { type: "addRules", behavior: "allow", rules: [{ toolName: "Bash" }], destination: "session" },
+      ],
+    });
+  });
+
   test("an aborted tool call settles its prompt", async () => {
     const { s, events } = makeSession();
     const ac = new AbortController();

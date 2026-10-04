@@ -17,6 +17,7 @@ import {
   type Options,
   type PermissionMode,
   type PermissionResult,
+  type PermissionUpdate,
   type PostModelSwitchHookInput,
   type PostToolUseHookInput,
   type PreToolUseHookInput,
@@ -908,7 +909,26 @@ type PendingPermission = {
   requestId: string;
   resolve: (result: PermissionResult) => void;
   meta: PermissionRequestEvent;
+  /**
+   * CC 2.1.235 — the SDK's narrow rule suggestions for this exact call
+   * (e.g. `Bash(git status:*)` rather than the whole `Bash` tool). Captured
+   * from `ctx.suggestions` so an "Always allow" click writes the narrow rule
+   * instead of a blanket tool grant. Server-only (raw SDK shape); the display
+   * form rides on `meta.suggestedRules`.
+   */
+  suggestions?: PermissionUpdate[];
 };
+
+/** The `addRules`/`allow` entries of a canUseTool `suggestions` set. */
+function allowRuleSuggestions(suggestions: PermissionUpdate[] | undefined): PermissionUpdate[] {
+  return (suggestions ?? []).filter(
+    (u): u is Extract<PermissionUpdate, { type: "addRules" }> =>
+      u.type === "addRules" &&
+      u.behavior === "allow" &&
+      Array.isArray(u.rules) &&
+      u.rules.length > 0,
+  );
+}
 
 type PendingAskQuestion = {
   requestId: string;
@@ -3420,8 +3440,22 @@ export class Session {
         // the prompt below since only the well-known internal tool prefix
         // (above) is auto-allowed today.
         mcpServer: ctx.mcpServer,
+        // CC 2.1.235 — show the narrow rule(s) an "Always allow" will write.
+        suggestedRules: allowRuleSuggestions(ctx.suggestions).flatMap((u) =>
+          u.rules.map((r) => ({
+            toolName: r.toolName,
+            ...(r.ruleContent ? { ruleContent: r.ruleContent } : {}),
+          })),
+        ),
       };
-      this.pendingPermissions.set(requestId, { requestId, resolve, meta });
+      this.pendingPermissions.set(requestId, {
+        requestId,
+        resolve,
+        meta,
+        // CC 2.1.235 — keep the raw suggestions so resolvePermission can echo
+        // them back as the standing grant instead of a whole-tool rule.
+        suggestions: ctx.suggestions,
+      });
       this.broadcast(meta);
       this.broadcastTurnStatusIfChanged();
 
@@ -3541,24 +3575,31 @@ export class Session {
         ? (pending.meta.input as Record<string, unknown>)
         : {};
     const result: PermissionResult = { behavior: "allow", updatedInput: inputRecord };
-    if (decision.kind === "allow_always_session") {
-      result.updatedPermissions = [
-        {
-          type: "addRules",
-          behavior: "allow",
-          rules: [{ toolName: pending.meta.toolName }],
-          destination: "session",
-        },
-      ];
-    } else if (decision.kind === "allow_always_save") {
-      result.updatedPermissions = [
-        {
-          type: "addRules",
-          behavior: "allow",
-          rules: [{ toolName: pending.meta.toolName }],
-          destination: decision.destination,
-        },
-      ];
+    if (decision.kind === "allow_always_session" || decision.kind === "allow_always_save") {
+      const destination =
+        decision.kind === "allow_always_session" ? "session" : decision.destination;
+      // CC 2.1.235 — prefer the SDK's narrow rule suggestions (e.g.
+      // `Bash(git status:*)`) over a blanket whole-tool grant. Only fall back
+      // to `{ toolName }` when the SDK offered no allow-rule suggestion for
+      // this call. The user's chosen scope (session vs a settings file) wins
+      // over the suggestion's own destination.
+      const narrow = allowRuleSuggestions(pending.suggestions);
+      result.updatedPermissions =
+        narrow.length > 0
+          ? narrow.map((u) => ({
+              type: "addRules" as const,
+              behavior: "allow" as const,
+              rules: u.rules,
+              destination,
+            }))
+          : [
+              {
+                type: "addRules",
+                behavior: "allow",
+                rules: [{ toolName: pending.meta.toolName }],
+                destination,
+              },
+            ];
     }
     pending.resolve(result);
     this.broadcastTurnStatusIfChanged();

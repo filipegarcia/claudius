@@ -49,6 +49,12 @@ export function PermissionPrompt({ request, onResolve, autoModeAvailable, onSwit
   // hidden under the same flag — and also under `defaultToNo`, since it's a
   // one-key approve shortcut that flag explicitly rules out.
   const hideAlwaysButtons = !!request.suppressAlwaysAllowRule;
+  // CC 2.1.235 — the narrow rule(s) an "Always allow" click will actually
+  // write, from the SDK's suggestions. Rendered as `Tool(ruleContent)` so the
+  // user sees they're granting `Bash(git status:*)`, not all of `Bash`.
+  const alwaysRuleLabels = (request.suggestedRules ?? []).map((r) =>
+    r.ruleContent ? `${r.toolName}(${r.ruleContent})` : r.toolName,
+  );
   const hideAutoModeTip = !!request.suppressAlwaysAllowRule || !!request.defaultToNo;
   const denyButtonRef = useRef<HTMLButtonElement | null>(null);
 
@@ -157,6 +163,24 @@ export function PermissionPrompt({ request, onResolve, autoModeAvailable, onSwit
             >
               Yes, and switch to auto mode
             </button>
+          </div>
+        )}
+
+        {!hideAlwaysButtons && alwaysRuleLabels.length > 0 && (
+          <div
+            data-testid="permission-always-rule"
+            className="border-t border-[var(--border)] bg-[var(--panel-2)]/50 px-4 pt-2 text-[11px] text-[var(--muted)]"
+          >
+            “Always” saves{" "}
+            {alwaysRuleLabels.map((label, i) => (
+              <span key={label}>
+                {i > 0 && ", "}
+                <code className="rounded bg-[var(--panel)] px-1 font-mono text-[var(--foreground)]">
+                  {label}
+                </code>
+              </span>
+            ))}
+            {" "}— not the whole tool.
           </div>
         )}
 
