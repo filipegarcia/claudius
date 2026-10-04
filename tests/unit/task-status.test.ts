@@ -7,6 +7,7 @@ import {
   isActivityCountableTask,
   isBackgroundTaskLive,
   isBackgroundedToolUse,
+  isNonTerminalTaskStatus,
   reconcileTasksOnToolResult,
   seedTaskStatus,
   shouldRecoverOrphanTask,
@@ -359,5 +360,21 @@ describe("isActivityCountableTask (SDK 0.3.247 ambient exclusion)", () => {
 
   test("an ambient-less (older SDK / not reported) task counts by default", () => {
     expect(isActivityCountableTask({})).toBe(true);
+  });
+});
+
+describe("isNonTerminalTaskStatus (CC 2.1.271 — C1)", () => {
+  test("running, pending and paused are non-terminal", () => {
+    expect(isNonTerminalTaskStatus("running")).toBe(true);
+    expect(isNonTerminalTaskStatus("pending")).toBe(true);
+    // paused auto-resumes when the usage limit resets — stays live.
+    expect(isNonTerminalTaskStatus("paused")).toBe(true);
+  });
+
+  test("completed / failed / killed / stopped are terminal", () => {
+    expect(isNonTerminalTaskStatus("completed")).toBe(false);
+    expect(isNonTerminalTaskStatus("failed")).toBe(false);
+    expect(isNonTerminalTaskStatus("killed")).toBe(false);
+    expect(isNonTerminalTaskStatus("stopped")).toBe(false);
   });
 });

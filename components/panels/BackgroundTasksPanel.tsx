@@ -166,6 +166,8 @@ const TASK_TONES: Record<string, string> = {
   failed: "border-red-500/30 bg-red-500/10 text-red-200",
   killed: "border-red-500/30 bg-red-500/10 text-red-200",
   stopped: "border-amber-500/30 bg-amber-500/10 text-amber-200",
+  // CC 2.1.271 — a usage-limit hold; amber like "stopped" but it auto-resumes.
+  paused: "border-amber-500/30 bg-amber-500/10 text-amber-200",
 };
 
 /**
@@ -307,7 +309,9 @@ export function BackgroundTasksPanel({
   const subagents = Object.values(tasks)
     .filter(
       (t) =>
-        (t.status === "running" || t.status === "pending") &&
+        // CC 2.1.271 — keep a usage-limit-paused workflow agent in the live
+        // list (and Stop-all) instead of letting it vanish.
+        (t.status === "running" || t.status === "pending" || t.status === "paused") &&
         !PROCESS_TASK_TYPES.has(t.taskType ?? "") &&
         isLive(t),
     )
@@ -326,7 +330,7 @@ export function BackgroundTasksPanel({
     }).catch(() => {});
   };
   const recent = Object.values(tasks)
-    .filter((t) => t.status !== "running" && t.status !== "pending")
+    .filter((t) => t.status !== "running" && t.status !== "pending" && t.status !== "paused")
     .slice(-3)
     .reverse();
   // Live background shells. Beyond the explicit `killed` flag (set when the

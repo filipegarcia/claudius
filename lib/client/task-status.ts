@@ -18,7 +18,10 @@ import type { DisplayBlock, DisplayMessage, TaskInfo, TaskStatus, ToolProgressIn
 
 type ToolUseBlock = Extract<DisplayBlock, { kind: "tool_use" }>;
 
-const NON_TERMINAL: ReadonlySet<TaskStatus> = new Set(["running", "pending"]);
+// CC 2.1.271 — "paused" (a usage-limit hold on a dynamic-workflow agent) is
+// non-terminal: the run auto-resumes when the limit resets, so it must stay in
+// the live/active set rather than reading as finished.
+const NON_TERMINAL: ReadonlySet<TaskStatus> = new Set(["running", "pending", "paused"]);
 
 export function isNonTerminalTaskStatus(s: TaskStatus): boolean {
   return NON_TERMINAL.has(s);

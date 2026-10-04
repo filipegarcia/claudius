@@ -4208,7 +4208,15 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
         if (sysAny.subtype === "task_updated") {
           const t = sysAny as unknown as {
             task_id: string;
-            patch: { status?: TaskStatus; description?: string; error?: string; is_backgrounded?: boolean };
+            patch: {
+              status?: TaskStatus;
+              description?: string;
+              error?: string;
+              is_backgrounded?: boolean;
+              // CC 2.1.271 — cumulative paused time for a usage-limit-paused
+              // dynamic-workflow agent.
+              total_paused_ms?: number;
+            };
           };
           setTasks((prev) => {
             const existing = prev[t.task_id];
@@ -4221,6 +4229,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
                 description: t.patch.description ?? existing.description,
                 error: t.patch.error ?? existing.error,
                 isBackgrounded: t.patch.is_backgrounded ?? existing.isBackgrounded,
+                totalPausedMs: t.patch.total_paused_ms ?? existing.totalPausedMs,
               },
             };
           });

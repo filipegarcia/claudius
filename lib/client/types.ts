@@ -187,7 +187,10 @@ export type DisplayMessage = {
   peer?: { from: string; name?: string; pid?: number; msgId?: string };
 };
 
-export type TaskStatus = "pending" | "running" | "completed" | "failed" | "killed" | "stopped";
+// CC 2.1.271 — "paused": a dynamic-workflow agent paused on a usage limit,
+// auto-continuing when it resets. Kept visible (and Stop-able) rather than
+// vanishing from the live list.
+export type TaskStatus = "pending" | "running" | "completed" | "failed" | "killed" | "stopped" | "paused";
 
 export type TaskInfo = {
   taskId: string;
@@ -238,6 +241,8 @@ export type TaskInfo = {
   totalTokens?: number;
   toolUses?: number;
   durationMs?: number;
+  /** CC 2.1.271 — cumulative ms this task spent paused (usage-limit waits). */
+  totalPausedMs?: number;
   lastToolName?: string;
   summary?: string;
   /**

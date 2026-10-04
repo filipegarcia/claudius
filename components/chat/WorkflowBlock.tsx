@@ -39,6 +39,8 @@ const STATUS_CHIP: Record<string, string> = {
   failed: "border-red-400/30 bg-red-400/10 text-red-300",
   killed: "border-red-400/30 bg-red-400/10 text-red-300",
   stopped: "border-amber-400/30 bg-amber-400/10 text-amber-300",
+  // CC 2.1.271 — paused on a usage limit; amber, auto-resumes on reset.
+  paused: "border-amber-400/30 bg-amber-400/10 text-amber-300",
 };
 
 function fmtDuration(ms: number): string {
@@ -147,6 +149,10 @@ export function WorkflowBlock({ toolUseId, input, result, task, defaultOpen }: P
             )}
             {status === "completed" && <CheckCircle2 className="h-3 w-3" />}
             {(status === "failed" || status === "killed") && <AlertCircle className="h-3 w-3" />}
+            {/* CC 2.1.271 — paused (usage limit); a static dot, not the running pulse. */}
+            {status === "paused" && (
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-current" />
+            )}
             {streaming ? "preparing" : status}
           </span>
           {stats.length > 0 && (
