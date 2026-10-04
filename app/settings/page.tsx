@@ -35,6 +35,14 @@ import {
 } from "@/lib/shared/advisor";
 import { useMediaPreferences } from "@/lib/client/useMediaPreferences";
 import { attributionFieldState } from "@/lib/shared/attribution-setting";
+import {
+  AUTO_COMPACT_WINDOW_MAX,
+  AUTO_COMPACT_WINDOW_MIN,
+  isAutoCompactWindowOutOfRange,
+  parseAutoCompactWindowInput,
+  readPerModelAutoCompact,
+  setModelAutoCompactWindow,
+} from "@/lib/shared/auto-compact-window";
 import { cn } from "@/lib/utils/cn";
 import { setStatusLineCommand, setStatusLineRefreshInterval, type StatusLineConfig } from "@/lib/shared/status-line";
 import { nextWorktree, parseDirList } from "@/lib/shared/worktree-settings";
@@ -1398,7 +1406,13 @@ function OtherEditor({
   update: (patch: Patch) => void;
 }) {
   const others = Object.entries(draft).filter(
-    ([k]) => !KNOWN_KEYS.has(k) && !CATALOG_KEYS.has(k),
+    ([k, v]) =>
+      (!KNOWN_KEYS.has(k) && !CATALOG_KEYS.has(k)) ||
+      // CC 2.1.281 (F7) — `attribution` is a catalog key, but only its simple
+      // boolean hide-all case is editable there. When it holds a custom object
+      // the catalog control steps aside and points here, so it must remain
+      // listed in Other (the filter would otherwise hide a configured object).
+      (k === "attribution" && v !== null && typeof v === "object"),
   );
   return (
     <div className="space-y-2">
@@ -1622,6 +1636,9 @@ function CatalogField({
   }
   if (meta.key === "attribution") {
     return <AttributionCatalogField value={value} set={set} />;
+  }
+  if (meta.key === "autoCompactWindow") {
+    return <AutoCompactWindowCatalogField draft={draft} update={update} />;
   }
   const inputCls =
     "w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 font-mono text-xs focus:outline-none";
@@ -2070,6 +2087,158 @@ function ModelPricingCatalogField({
       >
         <Plus className="h-3 w-3" /> Add model rate
       </button>
+    </div>
+  );
+}
+
+/**
+ * CC 2.1.288 (F8) — per-model `autoCompactWindow` overrides. Edits both the
+ * top-level `autoCompactWindow` (a number) and the per-model entries under
+ * `modelSettings.<model>.autoCompactWindow` ('auto' | number), where
+ * `/autocompact` saves. Keyed on `autoCompactWindow` (NOT `modelSettings`) so
+ * the per-model `effortLevel`/`maxEffortLevel` keys stay in the "Other" editor.
+ * Existing rows are read-only on the model id (they come from `/autocompact`,
+ * keyed by canonical model name) and edit/remove just the window; a separate
+ * add-form holds a new model id in local state until "Add", so an empty key
+ * never reaches settings.json.
+ */
+function AutoCompactWindowCatalogField({
+  draft,
+  update,
+}: {
+  draft: ClaudeSettings;
+  update: (patch: Patch) => void;
+}) {
+  const topLevel = (draft as Record<string, unknown>).autoCompactWindow;
+  const modelSettings = (draft as Record<string, unknown>).modelSettings;
+  const overrides = readPerModelAutoCompact(modelSettings);
+  const isSet = topLevel !== undefined || overrides.length > 0;
+
+  const [newModel, setNewModel] = useState("");
+  const [newWindow, setNewWindow] = useState("");
+
+  const commitModel = (model: string, value: "auto" | number | undefined) => {
+    update({ modelSettings: setModelAutoCompactWindow(modelSettings, model, value) } as Patch);
+  };
+
+  const inputCls =
+    "w-full min-w-0 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1 font-mono text-[11px] focus:outline-none";
+
+  return (
+    <div
+      data-testid="catalog-field-autoCompactWindow"
+      className="rounded-md border border-[var(--border)] bg-[var(--panel-2)]/40 p-2"
+    >
+      <div className="mb-1 flex items-center gap-2">
+        <span className="font-mono text-xs">autoCompactWindow</span>
+        <span
+          className={cn(
+            "ml-auto text-[9px] uppercase tracking-wide",
+            isSet ? "text-[var(--accent)]" : "text-[var(--muted)]",
+          )}
+        >
+          {isSet ? "overridden" : "default"}
+        </span>
+      </div>
+      <p className="mb-2 text-[11px] leading-4 text-[var(--muted)]">
+        Auto-compact window size, in tokens ({AUTO_COMPACT_WINDOW_MIN.toLocaleString()}–
+        {AUTO_COMPACT_WINDOW_MAX.toLocaleString()}). The top-level value applies to every model
+        without its own window below.
+      </p>
+      <input
+        data-testid="auto-compact-window-top"
+        type="number"
+        value={typeof topLevel === "number" ? topLevel : ""}
+        placeholder="(default)"
+        onChange={(e) => {
+          if (e.target.value === "") return update({ autoCompactWindow: undefined } as Patch);
+          const n = Number(e.target.value);
+          if (!Number.isNaN(n)) update({ autoCompactWindow: n } as Patch);
+        }}
+        className={inputCls}
+      />
+      {isAutoCompactWindowOutOfRange(topLevel) && (
+        <div
+          data-testid="auto-compact-window-top-warning"
+          className="mt-1 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[10px] text-amber-300"
+        >
+          Outside {AUTO_COMPACT_WINDOW_MIN.toLocaleString()}–
+          {AUTO_COMPACT_WINDOW_MAX.toLocaleString()} — the engine may reject it.
+        </div>
+      )}
+
+      {overrides.length > 0 && (
+        <p
+          data-testid="auto-compact-window-precedence"
+          className="mt-2 text-[10px] leading-4 text-amber-300/90"
+        >
+          Overridden for {overrides.length} model{overrides.length === 1 ? "" : "s"} below — those
+          windows replace the value above for those models (saved by /autocompact).
+        </p>
+      )}
+
+      <ul className="mt-2 space-y-1.5">
+        {overrides.map(({ model, window }) => (
+          <li key={model} className="flex items-center gap-1.5">
+            <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-[var(--muted)]" title={model}>
+              {model}
+            </span>
+            <input
+              data-testid="auto-compact-window-model-input"
+              defaultValue={typeof window === "number" || typeof window === "string" ? String(window) : ""}
+              placeholder="auto / 200000"
+              onChange={(e) => {
+                const parsed = parseAutoCompactWindowInput(e.target.value);
+                if (parsed.kind === "ignore") return;
+                commitModel(model, parsed.kind === "remove" ? undefined : parsed.value);
+              }}
+              className="w-28 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1 font-mono text-[11px] focus:outline-none"
+            />
+            <button
+              type="button"
+              data-testid="auto-compact-window-model-remove"
+              onClick={() => commitModel(model, undefined)}
+              className="shrink-0 rounded-md border border-[var(--border)] bg-[var(--panel-2)] p-1 text-[var(--muted)] hover:text-red-400"
+              title="Remove this model's window"
+            >
+              <Trash2 className="h-3 w-3" />
+            </button>
+          </li>
+        ))}
+      </ul>
+
+      <div className="mt-2 flex items-center gap-1.5 border-t border-[var(--border)] pt-2">
+        <input
+          data-testid="auto-compact-window-new-model"
+          value={newModel}
+          placeholder="claude-opus-4-8"
+          onChange={(e) => setNewModel(e.target.value)}
+          className="min-w-0 flex-1 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1 font-mono text-[11px] focus:outline-none"
+        />
+        <input
+          data-testid="auto-compact-window-new-window"
+          value={newWindow}
+          placeholder="auto / 200000"
+          onChange={(e) => setNewWindow(e.target.value)}
+          className="w-28 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1 font-mono text-[11px] focus:outline-none"
+        />
+        <button
+          type="button"
+          data-testid="auto-compact-window-add"
+          disabled={newModel.trim() === "" || parseAutoCompactWindowInput(newWindow).kind !== "set"}
+          onClick={() => {
+            const parsed = parseAutoCompactWindowInput(newWindow);
+            if (parsed.kind !== "set") return;
+            commitModel(newModel.trim(), parsed.value);
+            setNewModel("");
+            setNewWindow("");
+          }}
+          className="shrink-0 rounded-md border border-[var(--border)] bg-[var(--panel-2)] p-1 text-[var(--accent)] hover:bg-[var(--panel)] disabled:opacity-40"
+          title="Add a per-model window"
+        >
+          <Plus className="h-3 w-3" />
+        </button>
+      </div>
     </div>
   );
 }
