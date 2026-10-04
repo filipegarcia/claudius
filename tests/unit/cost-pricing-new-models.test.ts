@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { priceFor } from "@/lib/shared/cost-pricing";
+import { inferenceGeoMultiplier, priceFor } from "@/lib/shared/cost-pricing";
 
 /**
  * CC 2.1.257/2.1.284/2.1.219/2.1.280 (E1) — the browser cost estimator prices
@@ -40,5 +40,19 @@ describe("priceFor — current-generation models (E1)", () => {
     expect(priceFor("claude-opus-5-5").input).toBe(4);
     expect(priceFor("claude-opus-5").input).toBe(5);
     expect(priceFor("claude-opus-4-8").input).toBe(15);
+  });
+});
+
+describe("inferenceGeoMultiplier (CC 2.1.239 — E12)", () => {
+  test("US-only inference carries a 1.1x premium", () => {
+    expect(inferenceGeoMultiplier("us")).toBe(1.1);
+    expect(inferenceGeoMultiplier("US")).toBe(1.1);
+  });
+
+  test("other regions / not_available / null carry no premium", () => {
+    expect(inferenceGeoMultiplier("not_available")).toBe(1);
+    expect(inferenceGeoMultiplier("eu")).toBe(1);
+    expect(inferenceGeoMultiplier(null)).toBe(1);
+    expect(inferenceGeoMultiplier(undefined)).toBe(1);
   });
 });

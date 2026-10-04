@@ -106,3 +106,16 @@ export function costFromTokens(model: string | undefined, t: TokenBreakdown): nu
  * (the override module is `lib/server/`-only; this file is browser-safe).
  */
 export const MODEL_PRICING_MULTIPLIER_MAX = 10;
+
+/**
+ * CC 2.1.239 — US-only inference (data residency) carries a 1.1× premium. The
+ * usage row's `inference_geo` (SDK `string | null`) names the residency; the
+ * US-only value is `"us"`. Returns the multiplier to apply to a *token-computed*
+ * cost estimate (the authoritative JSONL `total_cost_usd` already includes it,
+ * so only the fallback estimate needs this). Any other value — `not_available`,
+ * null, another region — carries no premium. Matching only the exact canonical
+ * value avoids charging a phantom premium on an unrecognized token.
+ */
+export function inferenceGeoMultiplier(geo: string | null | undefined): number {
+  return typeof geo === "string" && geo.toLowerCase() === "us" ? 1.1 : 1;
+}

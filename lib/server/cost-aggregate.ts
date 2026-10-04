@@ -14,6 +14,7 @@ import {
   resolveManagedModelPricing,
 } from "./model-pricing-override";
 import { getSessionTitlesByCwd } from "./sessions-db";
+import { inferenceGeoMultiplier } from "@/lib/shared/cost-pricing";
 import { lookupSessionAccount, resolveSessionAccounts } from "./session-accounts";
 import { readSettings, type ModelPricingSettings } from "./settings";
 
@@ -88,6 +89,8 @@ type Row = {
   cw: number; // cache creation tokens
   /** Authoritative per-turn cost from the JSONL, when present (else null). */
   u: number | null;
+  /** CC 2.1.239 — `usage.inference_geo`; `"us"` carries a 1.1× data-residency premium. */
+  geo?: string | null;
 };
 
 type FileSummary = {
@@ -204,6 +207,7 @@ async function summarizeFile(path: string, mtimeMs: number, size: number): Promi
       cr: Number(u.cache_read_input_tokens ?? 0),
       cw: cacheWrite,
       u: costUsd,
+      geo: typeof u.inference_geo === "string" ? u.inference_geo : null,
     });
 
     if (ts < summary.firstSeenMs) summary.firstSeenMs = ts;
@@ -219,14 +223,16 @@ function rowUsd(
   pricing: ModelPricingSettings | undefined,
 ): number {
   const base =
-    row.u != null // authoritative cost from the JSONL
+    row.u != null // authoritative cost from the JSONL (already includes any geo premium)
       ? row.u
-      : costFromUsage(priceForModel(row.m, table), {
+      : // CC 2.1.239 — the token-computed fallback must add the 1.1× US-only
+        // data-residency premium itself (`inference_geo === "us"`).
+        costFromUsage(priceForModel(row.m, table), {
           input: row.i,
           output: row.o,
           cacheRead: row.cr,
           cacheCreation: row.cw,
-        });
+        }) * inferenceGeoMultiplier(row.geo);
   if (!pricing) return base;
   return applyModelPricing(
     base,
