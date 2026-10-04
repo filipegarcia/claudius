@@ -1052,7 +1052,10 @@ const SDK_SETTINGS_CATALOG: SettingMeta[] = [
     type: "enum",
     section: "Thinking & effort",
     options: ["low", "medium", "high", "xhigh"],
-    desc: "Persisted effort level for supported models.",
+    // CC 2.1.280 (F12) — this top-level value is the legacy fallback; once you
+    // set effort per model (via /effort, saved to modelSettings.<model>.
+    // effortLevel), newer models read that instead and ignore this one.
+    desc: "Persisted effort level — the legacy fallback for supported models. A per-model effort set with /effort (stored under modelSettings.<model>.effortLevel) takes precedence, and newer models (e.g. Opus 5.5) use only the per-model value, ignoring this one.",
   },
   {
     // SDK 0.3.267 — org/user-level ceiling: an /effort or /model pick, a CLI
