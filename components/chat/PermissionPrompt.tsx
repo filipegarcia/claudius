@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown, ChevronRight, Lightbulb, Shield } from "lucide-react";
 import type { PermissionDecision, PermissionRequestEvent } from "@/lib/shared/events";
+import { visualizeInvisibleUnicode } from "@/lib/shared/invisible-unicode";
 import { cn } from "@/lib/utils/cn";
 
 type Props = {
@@ -54,6 +55,12 @@ export function PermissionPrompt({ request, onResolve, autoModeAvailable, onSwit
   // user sees they're granting `Bash(git status:*)`, not all of `Bash`.
   const alwaysRuleLabels = (request.suggestedRules ?? []).map((r) =>
     r.ruleContent ? `${r.toolName}(${r.ruleContent})` : r.toolName,
+  );
+  // CC 2.1.211 — the tool input is untrusted text the user is about to
+  // authorise; surface any bidi-override / zero-width characters as visible
+  // `‹U+XXXX›` tokens so a Trojan-Source command can't disguise what it runs.
+  const { visualized: inputText, count: hiddenCharCount } = visualizeInvisibleUnicode(
+    JSON.stringify(request.input, null, 2),
   );
   const hideAutoModeTip = !!request.suppressAlwaysAllowRule || !!request.defaultToNo;
   const denyButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -140,9 +147,19 @@ export function PermissionPrompt({ request, onResolve, autoModeAvailable, onSwit
             {showInput ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
             Tool input — {request.toolName}
           </button>
+          {hiddenCharCount > 0 && (
+            <div
+              data-testid="permission-hidden-chars"
+              className="mb-2 flex items-center gap-1.5 rounded border border-amber-500/40 bg-amber-500/10 px-2 py-1 text-[11px] text-amber-300"
+            >
+              <Shield className="h-3 w-3 shrink-0" />
+              Contains {hiddenCharCount} hidden/bidi character{hiddenCharCount === 1 ? "" : "s"}, shown
+              below as <code className="font-mono">‹U+…›</code> — read the command carefully.
+            </div>
+          )}
           {showInput && (
             <pre className="max-h-60 overflow-auto rounded bg-[var(--panel-2)] p-2 font-mono text-xs whitespace-pre-wrap scroll-thin">
-              {JSON.stringify(request.input, null, 2)}
+              {inputText}
             </pre>
           )}
         </div>

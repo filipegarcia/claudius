@@ -63,3 +63,22 @@ export function stripInvisibleUnicode(text: string): { cleaned: string; removedC
   });
   return { cleaned, removedCount };
 }
+
+/**
+ * CC 2.1.211 — render invisible / bidi-override characters as a visible
+ * `‹U+XXXX›` token instead of leaving them to act on the display. Used where
+ * we must show untrusted text that the user is about to authorise (the
+ * permission prompt's tool input) and therefore must NOT strip — the point
+ * is to make a Trojan-Source / zero-width payload *visible*, not to silently
+ * remove it. Same character set as `stripInvisibleUnicode`. `count` is how
+ * many were surfaced, so the caller can flag the input.
+ */
+export function visualizeInvisibleUnicode(text: string): { visualized: string; count: number } {
+  let count = 0;
+  const visualized = text.replace(INVISIBLE_UNICODE_RE, (ch) => {
+    count += 1;
+    const cp = (ch.codePointAt(0) ?? 0).toString(16).toUpperCase().padStart(4, "0");
+    return `‹U+${cp}›`;
+  });
+  return { visualized, count };
+}
