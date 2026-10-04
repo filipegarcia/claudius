@@ -4485,6 +4485,42 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
         // subtype is stripped to `undefined` before it reaches us — without
         // this guard, a long loop floods the chat with `system/?` rows that
         // aren't even durable across a reload. See isSuppressedSystemEvent.
+        // CC 2.1.284 — a safeguards/refusal block. `model_refusal_fallback`
+        // (a fallback model answered) and `model_refusal_no_fallback` (the
+        // turn stopped with no retry) both carry `content`, an
+        // `api_refusal_explanation`, and the refused user message's uuid for
+        // edit-and-retry. Surface it prominently instead of dropping it.
+        if (
+          sysAny.subtype === "model_refusal_fallback" ||
+          sysAny.subtype === "model_refusal_no_fallback"
+        ) {
+          const r = sysAny as {
+            content?: string;
+            api_refusal_explanation?: string | null;
+            refused_user_message_uuid?: string | null;
+          };
+          const label =
+            typeof r.content === "string" && r.content.trim()
+              ? r.content.trim()
+              : "The model declined this request for safety reasons.";
+          const detail =
+            typeof r.api_refusal_explanation === "string" && r.api_refusal_explanation.trim()
+              ? r.api_refusal_explanation.trim()
+              : undefined;
+          setSystemEntries((prev) => [
+            ...prev,
+            {
+              ...baseEntry,
+              kind: "model_refusal",
+              label,
+              ...(detail ? { detail } : {}),
+              ...(typeof r.refused_user_message_uuid === "string" && r.refused_user_message_uuid
+                ? { refusedUserMessageUuid: r.refused_user_message_uuid }
+                : {}),
+            },
+          ]);
+          return;
+        }
         // CC 2.1.267/2.1.274 — loop-side `system/notification` carries
         // `{text, priority}`; render the text (priority-toned) instead of a
         // text-less `system/notification` pill.

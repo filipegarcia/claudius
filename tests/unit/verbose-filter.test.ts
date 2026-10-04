@@ -419,6 +419,8 @@ describe("isSystemEntryHiddenAtLevel", () => {
       // CC 2.1.267/2.1.274 — loop-side notification pills carry user-facing
       // text and are always shown.
       "notification",
+      // CC 2.1.284 — a safeguards/refusal block is always shown.
+      "model_refusal",
       "info",
     ];
     for (const kind of others) {

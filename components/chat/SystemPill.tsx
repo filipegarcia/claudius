@@ -41,6 +41,11 @@ export type SystemPillLevers = {
   effort?: "low" | "medium" | "high" | "xhigh" | "max" | "auto";
   onSwitchToSonnet?: () => void | Promise<void>;
   onStepEffortDown?: () => void | Promise<void>;
+  /**
+   * CC 2.1.284 — "Edit & retry" on a model-refusal pill: prefill the composer
+   * with the refused user message's text so the user can reword and resend.
+   */
+  onEditAndRetry?: (refusedUserMessageUuid: string) => void;
 };
 
 const KIND_META: Record<SystemEntry["kind"], { icon: typeof Info; tone: string }> = {
@@ -72,6 +77,9 @@ const KIND_META: Record<SystemEntry["kind"], { icon: typeof Info; tone: string }
   // CC 2.1.267/2.1.274 — loop-side `system/notification`. Default tone is
   // muted; the render overrides it from `entry.priority` (see NOTIFICATION_TONE).
   notification: { icon: Bell, tone: "text-[var(--muted)]" },
+  // CC 2.1.284 — a model safeguards/refusal block. Red like permission_denied
+  // since both are "the request did not run as asked".
+  model_refusal: { icon: ShieldAlert, tone: "text-red-400" },
   info: { icon: Info, tone: "text-[var(--muted)]" },
 };
 
@@ -146,6 +154,30 @@ export function SystemPill({
   // CC 2.1.199's "stop hiding the stderr" fix instead of silently dropping it.
   if (entry.kind === "hook_response" && entry.hookFailed) {
     return <HookFailurePill entry={entry} />;
+  }
+  // CC 2.1.284 — a model safeguards/refusal block: show why (content +
+  // explanation) and, when the refused turn was human-authored, an
+  // "Edit & retry" that reloads the refused prompt into the composer.
+  if (entry.kind === "model_refusal") {
+    const retryUuid = entry.refusedUserMessageUuid;
+    return (
+      <div className="my-1 flex items-start gap-2 rounded-md border border-red-500/30 bg-red-500/5 px-2 py-1.5 text-[11px]">
+        <ShieldAlert className="mt-px h-3.5 w-3.5 shrink-0 text-red-400" />
+        <div className="min-w-0 flex-1">
+          <div className="text-[var(--foreground)]">{entry.label}</div>
+          {entry.detail && <div className="mt-0.5 text-[var(--muted)]">{entry.detail}</div>}
+        </div>
+        {retryUuid && levers?.onEditAndRetry && (
+          <button
+            data-testid="model-refusal-edit-retry"
+            onClick={() => levers.onEditAndRetry?.(retryUuid)}
+            className="shrink-0 rounded-md border border-red-500/40 bg-red-500/10 px-2 py-0.5 font-medium text-red-300 hover:bg-red-500/20"
+          >
+            Edit &amp; retry
+          </button>
+        )}
+      </div>
+    );
   }
   return (
     <div className="my-1 flex items-center gap-2 text-[11px] text-[var(--muted)]">

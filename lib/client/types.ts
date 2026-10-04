@@ -269,6 +269,7 @@ export type SystemEntry = {
     | "system_reminder"
     | "conversation_reset"
     | "notification"
+    | "model_refusal"
     | "info";
   label: string;
   detail?: string;
@@ -287,6 +288,13 @@ export type SystemEntry = {
    * transcript-mode-only and never create an entry.
    */
   infoLevel?: "notice" | "suggestion" | "warning";
+  /**
+   * CC 2.1.284 — only for `kind === "model_refusal"` (SDK
+   * `model_refusal_fallback` / `model_refusal_no_fallback`): the uuid of the
+   * refused user message, the "Edit & retry" target. Absent when the refused
+   * turn wasn't human-authored (nothing to edit-and-retry).
+   */
+  refusedUserMessageUuid?: string;
   /**
    * Number of consecutive identical emissions collapsed onto this pill. Only
    * set (and rendered as a `×N` badge) for the transient `init` / `status`

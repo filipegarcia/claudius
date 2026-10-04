@@ -2400,6 +2400,21 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
               onSwitchToSonnet: () =>
                 session.setModel(OPUS_OVERLOAD_NUDGE_SONNET_TARGET),
               onStepEffortDown: () => session.setEffort("medium"),
+              // CC 2.1.284 — "Edit & retry" on a refusal: reload the refused
+              // prompt's text into the composer so the user can reword it.
+              onEditAndRetry: (uuid: string) => {
+                const m = session.messages.find(
+                  (msg) => msg.uuid === uuid && msg.role === "user",
+                );
+                const text = (m?.blocks ?? [])
+                  .filter((b): b is { kind: "text"; text: string } => b.kind === "text")
+                  .map((b) => b.text)
+                  .join("")
+                  .trim();
+                if (!text) return;
+                draftTokenRef.current += 1;
+                setDraftInjection({ token: draftTokenRef.current, text, mode: "replace" });
+              },
             }}
           />
           {session.errors.length > 0 && (
