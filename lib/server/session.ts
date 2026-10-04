@@ -131,7 +131,7 @@ import {
   isCrossSessionInbound,
 } from "./settings";
 import { readLimits, type Limits } from "./limits-store";
-import { checkToolBudget, toolBudgetKindFor } from "@/lib/shared/tool-budget";
+import { checkToolBudget, resolveCap, toolBudgetKindFor } from "@/lib/shared/tool-budget";
 import {
   extractTranscriptTail,
   generateRecap,
@@ -3323,8 +3323,12 @@ export class Session {
       // permission decision.
       const budgetKind = toolBudgetKindFor(toolName);
       if (budgetKind) {
+        // CC 2.1.212 — the per-cwd Limits setting wins, but fall back to
+        // upstream's own `CLAUDE_CODE_MAX_*_PER_SESSION` env when it's unset.
         const cap =
-          budgetKind === "webSearches" ? this.toolBudgetLimits.maxWebSearches : this.toolBudgetLimits.maxSubagents;
+          budgetKind === "webSearches"
+            ? resolveCap(this.toolBudgetLimits.maxWebSearches, process.env.CLAUDE_CODE_MAX_WEB_SEARCHES_PER_SESSION)
+            : resolveCap(this.toolBudgetLimits.maxSubagents, process.env.CLAUDE_CODE_MAX_SUBAGENTS_PER_SESSION);
         const decision = checkToolBudget(budgetKind, cap, this.toolBudgetUsed[budgetKind]);
         if (!decision.allowed) {
           resolve({ behavior: "deny", message: decision.message });
