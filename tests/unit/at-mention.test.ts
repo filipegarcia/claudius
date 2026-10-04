@@ -15,8 +15,25 @@ import {
   type Agent,
   filterAgents,
   itemToken,
+  normalizeFileMentionQuery,
   parseAtMentionQuery,
 } from "@/components/chat/at-mention";
+
+describe("normalizeFileMentionQuery (CC 2.1.275/2.1.278 — D12)", () => {
+  test("strips a leading ./ so @./src matches relPaths without it", () => {
+    expect(normalizeFileMentionQuery("./src")).toBe("src");
+    expect(normalizeFileMentionQuery("./src/app.tsx")).toBe("src/app.tsx");
+    expect(normalizeFileMentionQuery("./")).toBe("");
+  });
+
+  test("leaves a plain path or bare dot alone", () => {
+    expect(normalizeFileMentionQuery("src")).toBe("src");
+    expect(normalizeFileMentionQuery(".")).toBe(".");
+    expect(normalizeFileMentionQuery(".env")).toBe(".env");
+    // only the single leading ./ is stripped
+    expect(normalizeFileMentionQuery("././x")).toBe("./x");
+  });
+});
 
 describe("parseAtMentionQuery (the `@` is already stripped upstream)", () => {
   test("an `agent-` prefix flips to agent mode and exposes the trailing filter", () => {
