@@ -122,6 +122,22 @@ export const DEFAULT_TIPS: Tip[] = [
     command: "help",
   },
   {
+    // CC 2.1.269 (F13) — the CLI's spinner tip pointed at its `/focus` view
+    // (prompt + a one-line work summary, chrome hidden). Claudius's /focus is
+    // the browser analogue (cycles off → focus → zen, hiding the rails).
+    id: "focus",
+    text: "Cut the chrome and keep just the conversation in view — /focus cycles a distraction-free layout.",
+    command: "focus",
+  },
+  {
+    // CC 2.1.271 (F13) — the CLI's spinner tip pointed Bedrock/Vertex/Foundry/
+    // gateway users at the Claude desktop app. Claudius's browser analogue
+    // points at its own desktop app via /desktop.
+    id: "desktop",
+    text: "Prefer a dedicated window? /desktop opens — or recommends — the Claudius desktop app.",
+    command: "desktop",
+  },
+  {
     // Conditional: only surfaces once the user has 2+ tabs open in this
     // workspace (see `selectClientTips`). Mirrors the Claude Code TUI's
     // `wo_() >= 2` gate. Command-less because both /color (sdk-handled) and

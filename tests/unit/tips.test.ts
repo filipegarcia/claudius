@@ -55,6 +55,13 @@ describe("DEFAULT_TIPS", () => {
     }
   });
 
+  test("surfaces the /focus and /desktop tips (CC 2.1.269/2.1.271 — F13)", () => {
+    const focus = DEFAULT_TIPS.find((t) => t.id === "focus");
+    const desktop = DEFAULT_TIPS.find((t) => t.id === "desktop");
+    expect(focus?.command).toBe("focus");
+    expect(desktop?.command).toBe("desktop");
+  });
+
   test("no longer suggests creating custom subagents (CC 2.1.232 parity)", () => {
     // Upstream removed its startup tip nudging the user toward custom
     // subagents (and the matching /powerup-tour nudge); Claudius's mirror of
