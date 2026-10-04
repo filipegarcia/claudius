@@ -761,6 +761,8 @@ export type ChatState = {
    * Null when no hook is running.
    */
   runningHook: { event: string; startedAt: number } | null;
+  /** CC 2.1.212 — true while the turn is blocked on a user prompt ("Needs input"). */
+  needsInput: boolean;
   toolProgress: Record<string, ToolProgressInfo>;
   queue: QueuedMessage[];
   /** Oldest pending permission request — the one to show. Null when none. */

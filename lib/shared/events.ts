@@ -192,7 +192,10 @@ export type ReplayDoneEvent = {
  */
 export type TurnStatusEvent = {
   type: "turn_status";
-  status: "running" | "idle";
+  // CC 2.1.212 — "needs_input": the turn is blocked on a user prompt
+  // (permission / ask / plan / elicitation). Distinct from "running" (agent is
+  // working) and "idle" so the tab strip / status line can say "Needs input".
+  status: "running" | "idle" | "needs_input";
   /**
    * Count of live *backgrounded* subagent/Task/Workflow runs
    * (`run_in_background: true`). These are deliberately excluded from `status`

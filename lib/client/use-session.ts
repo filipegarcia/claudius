@@ -955,6 +955,9 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
   // status line). Set on hook_started, cleared on the matching hook_response.
   const [runningHook, setRunningHook] = useState<{ event: string; startedAt: number } | null>(null);
   const runningHookIdRef = useRef<string | null>(null);
+  // CC 2.1.212 — true while the turn is blocked on a user prompt (the server's
+  // getStatus() returns "needs_input"); drives the tab strip's "Needs input".
+  const [needsInput, setNeedsInput] = useState(false);
   const [toolProgress, setToolProgress] = useState<Record<string, ToolProgressInfo>>({});
   const [queue, setQueue] = useState<QueuedMessage[]>([]);
   // FIFO queues (oldest first) — several prompts can be pending at once when
@@ -2540,6 +2543,8 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
         // (long Bash, slow tool) paints the StatusLine / tab dot correctly
         // even when no further assistant chunks arrive.
         setPendingTracked(ev.status === "running");
+        // CC 2.1.212 — server-authoritative "blocked on a user prompt" signal.
+        setNeedsInput(ev.status === "needs_input");
         // Backgrounded work that runs while `status` reads "idle" (fire-and-
         // forget subagents / Workflows). Header uses it for the "Idle · N
         // running" cue. Absent on older payloads ⇒ 0.
@@ -6280,6 +6285,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     messages: sortedMessages,
     systemEntries,
     runningHook,
+    needsInput,
     toolProgress,
     queue,
     pendingPermission,

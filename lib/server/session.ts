@@ -1764,7 +1764,7 @@ export class Session {
   // compares `getStatus()` against this and emits only on transitions so we
   // don't flood the wire with redundant events (every pending-map mutation
   // calls into the helper).
-  private lastBroadcastStatus: "running" | "idle" | null = null;
+  private lastBroadcastStatus: "running" | "idle" | "needs_input" | null = null;
   // Last backgrounded-task count broadcast alongside `turn_status`. Tracked
   // separately from `lastBroadcastStatus` so a change in background work (which
   // does NOT flip `getStatus()`) still re-emits `turn_status` and the header
@@ -7428,12 +7428,13 @@ export class Session {
    *   - `"idle"`     → in memory, last result has been received, no pending
    *                    decisions. The session is ready to accept new input.
    */
-  getStatus(): "running" | "idle" {
+  getStatus(): "running" | "idle" | "needs_input" {
+    // CC 2.1.212 — a turn blocked on a user prompt (permission / ask / plan /
+    // elicitation) is "needs_input", not "running": the agent can't progress
+    // until the user answers. Checked first so it wins over `turnInFlight`,
+    // which stays true while the turn is parked on the prompt.
+    if (this.hasPendingUserPrompts()) return "needs_input";
     if (this.turnInFlight) return "running";
-    if (this.pendingPermissions.size > 0) return "running";
-    if (this.pendingAskQuestions.size > 0) return "running";
-    if (this.pendingPlans.size > 0) return "running";
-    if (this.pendingElicitations.size > 0) return "running";
     if (this.hasActiveSubagents()) return "running";
     return "idle";
   }

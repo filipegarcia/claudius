@@ -1991,6 +1991,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
                 ready: session.ready,
                 pending: session.pending,
                 hasError: session.errors.length > 0,
+                needsInput: session.needsInput,
               });
             } else {
               const live = session.sessions.find((s) => s.id === id);

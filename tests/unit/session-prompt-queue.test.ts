@@ -37,7 +37,7 @@ type Internals = {
   drainPendingDecisions: (reason: string) => void;
   resolvePermission: Session["resolvePermission"];
   resolveElicitation: Session["resolveElicitation"];
-  getStatus: () => "running" | "idle";
+  getStatus: () => "running" | "idle" | "needs_input";
   hasPendingUserPrompts: () => boolean;
 };
 
@@ -132,6 +132,19 @@ describe("permission queue — server side", () => {
     });
   });
 
+  // CC 2.1.212 (B6) — a turn blocked on a prompt reports "needs_input", and
+  // returns to idle once answered.
+  test("getStatus() is 'needs_input' while a prompt is pending, then idle", async () => {
+    const { s, events } = makeSession();
+    expect(s.getStatus()).toBe("idle");
+    const p = s.canUseTool("Bash", { command: "ls" }, ctx("tu-ni"));
+    const [r] = requests(events);
+    expect(s.getStatus()).toBe("needs_input");
+    s.resolvePermission(r.requestId, { kind: "deny" });
+    await p;
+    expect(s.getStatus()).toBe("idle");
+  });
+
   test("an aborted tool call settles its prompt", async () => {
     const { s, events } = makeSession();
     const ac = new AbortController();
@@ -156,7 +169,8 @@ describe("MCP elicitation", () => {
     const p = s.onElicitation(formReq, { signal: new AbortController().signal, requestId: "sdk-1" });
     const req = events.find((e) => e.type === "mcp_elicitation_request");
     expect(req).toMatchObject({ serverName: "acme", message: "Which project?", mode: "form" });
-    expect(s.getStatus()).toBe("running");
+    // CC 2.1.212 (B6) — a pending prompt is "needs_input", not "running".
+    expect(s.getStatus()).toBe("needs_input");
     expect(s.hasPendingUserPrompts()).toBe(true);
 
     const requestId = (req as { requestId: string }).requestId;
