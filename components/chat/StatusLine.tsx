@@ -67,6 +67,10 @@ type Props = {
    * hook is running.
    */
   runningHook?: { event: string; startedAt: number } | null;
+  /** CC 2.1.271 — a tool is currently executing (gates the "Deep in thought" label). */
+  toolActive?: boolean;
+  /** CC 2.1.271 — the turn is resuming after the output-token limit ("Picking the thought back up"). */
+  resumingThought?: boolean;
   /** Epoch ms the most recently completed turn ended, or `null`/`undefined` before any turn has finished. Renders as "done H:MM AM/PM" once idle. */
   lastTurnCompletedAt?: number | null;
   permissionMode: PermissionMode;
@@ -181,6 +185,8 @@ export function StatusLine({
   backgroundTasks = 0,
   turnStartedAt,
   runningHook,
+  toolActive,
+  resumingThought,
   lastTurnCompletedAt,
   permissionMode,
   model,
@@ -258,7 +264,7 @@ export function StatusLine({
     status === "background"
       ? `Idle · ${backgroundTasks} running`
       : status === "working"
-      ? workingStatusLabel(turnElapsedSec)
+      ? workingStatusLabel(turnElapsedSec, { toolActive, resumingThought })
       : status.charAt(0).toUpperCase() + status.slice(1);
 
   const doneAt =

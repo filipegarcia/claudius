@@ -2068,6 +2068,10 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
           turnStartedAt={session.turnStartedAt}
           lastTurnCompletedAt={session.lastTurnCompletedAt}
           runningHook={session.runningHook}
+          // CC 2.1.271 — a real tool (not a thinking row) is executing; and the
+          // turn is resuming after the output-token limit.
+          toolActive={session.toolHistory.some((e) => !e.done && e.kind !== "thinking")}
+          resumingThought={session.apiRetry?.error === "max_output_tokens"}
           permissionMode={session.permissionMode}
           model={session.model}
           mainAgent={session.mainAgent}
