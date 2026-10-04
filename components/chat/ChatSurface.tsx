@@ -41,6 +41,7 @@ import { useSpellcheckEnabled } from "@/lib/client/useSpellcheckEnabled";
 import { useProseMaxWidth } from "@/lib/client/useProseMaxWidth";
 import { useClockOptions } from "@/lib/client/useClockOptions";
 import { ClockOptionsProvider } from "@/lib/client/clock-options-context";
+import { useReducedMotionSetting } from "@/lib/client/useReducedMotionSetting";
 import { HelpOverlay } from "@/components/overlays/HelpOverlay";
 import { SkillsOverlay } from "@/components/overlays/SkillsOverlay";
 import { CostOverlay } from "@/components/overlays/CostOverlay";
@@ -421,6 +422,9 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
   // context so every message-bubble timestamp and the StatusLine turn-end
   // clock honor the user's clock settings.
   const clockOptions = useClockOptions(session.cwd);
+  // CC 2.1.287 (F9) — force reduced motion when the setting is on (the OS
+  // media query is honored independently in globals.css).
+  useReducedMotionSetting(session.cwd);
 
   // Compute breach state. The override is keyed by `session:<id>:<today>` so
   // it lifts the cap only for the current calendar day, per the spec.

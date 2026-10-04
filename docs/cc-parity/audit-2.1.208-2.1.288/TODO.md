@@ -133,7 +133,7 @@ grep evidence): [`audit/chunk0.md`](audit/chunk0.md) (2.1.285–288) …
 - [x] **F6** [2.1.216] `/context` overlay: "over the window" callout with `/compact`/`/clear`
 - [x] **F7** [2.1.281] `attribution: false` settings row; mark `includeCoAuthoredBy` deprecated
 - [x] **F8** [2.1.288] Per-model `autoCompactWindow` overrides in Settings
-- [ ] **F9** [2.1.287 low F] Respect `prefers-reduced-motion` / `prefersReducedMotion`
+- [x] **F9** [2.1.287 low F] Respect `prefers-reduced-motion` / `prefersReducedMotion`
 - [ ] **F10** [2.1.247] SendFeedback draft card reads `title`/`details`
 - [ ] **F11** [2.1.261 low] `forceLoginMethod: "gateway"` option
 - [ ] **F12** [2.1.280 low] `effortLevel` settings description (ignored for new models)

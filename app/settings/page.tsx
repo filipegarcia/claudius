@@ -1331,6 +1331,15 @@ const SDK_SETTINGS_CATALOG: SettingMeta[] = [
     desc: "Maximum width, in columns, of the prose in Claude's responses (paragraphs, headings, lists, blockquotes). Minimum 40; tables and code blocks keep full width. Unset uses the full chat-column width. Applies in Claudius's browser UI (each column ≈ one character) and in the CLI's own TUI.",
   },
   {
+    // CC 2.1.287 (F9). The OS "Reduce motion" setting is honored automatically
+    // via a CSS media query; this forces it on regardless. See
+    // `lib/client/useReducedMotionSetting.ts` + the rules in app/globals.css.
+    key: "prefersReducedMotion",
+    type: "boolean",
+    section: "Display",
+    desc: "Reduce or disable animations for accessibility (spinner shimmer, the running-tool dot, flash effects). Your OS 'Reduce motion' setting is always honored; turning this on forces reduced motion even when the OS doesn't request it.",
+  },
+  {
     key: "forceLoginMethod",
     type: "enum",
     section: "Authentication",
