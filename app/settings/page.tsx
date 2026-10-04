@@ -1343,8 +1343,11 @@ const SDK_SETTINGS_CATALOG: SettingMeta[] = [
     key: "forceLoginMethod",
     type: "enum",
     section: "Authentication",
-    options: ["claudeai", "console"],
-    desc: 'Force a specific login method: "claudeai" for Claude Pro/Max, "console" for Console billing',
+    // CC 2.1.261 (F11) — SDK adds "gateway" (the Cloud gateway OIDC device
+    // flow, paired with forceLoginGatewayUrl below). sdk.d.ts: the type is
+    // 'claudeai' | 'console' | 'gateway'.
+    options: ["claudeai", "console", "gateway"],
+    desc: 'Force a specific login method: "claudeai" for Claude Pro/Max, "console" for Console billing, "gateway" for the Cloud gateway OIDC device flow (paired with forceLoginGatewayUrl).',
   },
   {
     key: "forceLoginGatewayUrl",
