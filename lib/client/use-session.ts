@@ -4485,6 +4485,23 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
         // subtype is stripped to `undefined` before it reaches us — without
         // this guard, a long loop floods the chat with `system/?` rows that
         // aren't even durable across a reload. See isSuppressedSystemEvent.
+        // CC 2.1.288 — an MCP server confirmed a URL-mode elicitation is
+        // complete. Surface a brief confirmation instead of the cryptic
+        // `system/elicitation_complete` catch-all pill.
+        if (sysAny.subtype === "elicitation_complete") {
+          const e = sysAny as { mcp_server_name?: string };
+          setSystemEntries((prev) => [
+            ...prev,
+            {
+              ...baseEntry,
+              kind: "info",
+              label: e.mcp_server_name
+                ? `${e.mcp_server_name}: link confirmed`
+                : "MCP link confirmed",
+            },
+          ]);
+          return;
+        }
         // CC 2.1.284 — a safeguards/refusal block. `model_refusal_fallback`
         // (a fallback model answered) and `model_refusal_no_fallback` (the
         // turn stopped with no retry) both carry `content`, an
