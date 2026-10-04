@@ -1,5 +1,12 @@
 import { NextResponse } from "next/server";
-import { listAll, setEnabled, setMarketplaces } from "@/lib/server/plugins";
+import {
+  addExtraMarketplace,
+  listAll,
+  removeExtraMarketplace,
+  removePolicyMarketplaceEntry,
+  setEnabled,
+} from "@/lib/server/plugins";
+import type { MarketplaceSource } from "@/lib/shared/marketplace-settings";
 import { sessionManager } from "@/lib/server/session-manager";
 import type { SettingsScope } from "@/lib/server/settings";
 import { resolveTrustedCwd } from "@/lib/server/trusted-cwd";
@@ -56,12 +63,16 @@ type PostBody =
       enabled: boolean;
     }
   | {
+      // G1 — structural marketplace ops (no full-list replacement, so a rich
+      // object/array settings.json config is never clobbered).
       kind: "marketplaces";
       scope: SettingsScope;
       cwd?: string;
-      extraKnownMarketplaces?: string[];
-      strictKnownMarketplaces?: boolean;
-      blockedMarketplaces?: string[];
+      op: "add-extra" | "remove-extra" | "remove-policy";
+      name?: string;
+      source?: MarketplaceSource;
+      list?: "strict" | "blocked";
+      index?: number;
     };
 
 export async function POST(req: Request) {
@@ -77,12 +88,26 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true });
   }
   if (body.kind === "marketplaces") {
-    await setMarketplaces(body.scope, cwd, {
-      extraKnownMarketplaces: body.extraKnownMarketplaces,
-      strictKnownMarketplaces: body.strictKnownMarketplaces,
-      blockedMarketplaces: body.blockedMarketplaces,
-    });
-    return NextResponse.json({ ok: true });
+    if (body.op === "add-extra") {
+      if (typeof body.name !== "string" || !body.source)
+        return NextResponse.json({ error: "name and source required" }, { status: 400 });
+      const res = await addExtraMarketplace(body.scope, cwd, body.name, body.source);
+      if (!res.ok) return NextResponse.json({ error: res.error }, { status: 400 });
+      return NextResponse.json({ ok: true });
+    }
+    if (body.op === "remove-extra") {
+      if (typeof body.name !== "string")
+        return NextResponse.json({ error: "name required" }, { status: 400 });
+      await removeExtraMarketplace(body.scope, cwd, body.name);
+      return NextResponse.json({ ok: true });
+    }
+    if (body.op === "remove-policy") {
+      if ((body.list !== "strict" && body.list !== "blocked") || typeof body.index !== "number")
+        return NextResponse.json({ error: "list and index required" }, { status: 400 });
+      await removePolicyMarketplaceEntry(body.scope, cwd, body.list, body.index);
+      return NextResponse.json({ ok: true });
+    }
+    return NextResponse.json({ error: "invalid op" }, { status: 400 });
   }
   return NextResponse.json({ error: "invalid kind" }, { status: 400 });
 }

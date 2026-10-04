@@ -25,6 +25,11 @@ import type { AvailablePlugin } from "@/lib/server/plugins";
 import type { SettingsScope } from "@/lib/server/settings";
 import type { PluginLoadError } from "@/lib/shared/parse-init";
 import { lintMarketplaceRef, lintPluginRef } from "@/lib/shared/plugin-ref-lint";
+import type {
+  ExtraMarketplaceView,
+  MarketplaceSource,
+  MarketplaceSourceView,
+} from "@/lib/shared/marketplace-settings";
 import { cn } from "@/lib/utils/cn";
 
 const SCOPE_LABELS: Record<SettingsScope, string> = {
@@ -195,7 +200,10 @@ export default function PluginsPage() {
                 extra={active.extraKnownMarketplaces}
                 strict={active.strictKnownMarketplaces}
                 blocked={active.blockedMarketplaces}
-                onChange={(patch) => plugins.setMarketplaces(scope, patch)}
+                legacyExtra={active.legacyExtra}
+                onAddExtra={(name, source) => plugins.addExtraMarketplace(scope, name, source)}
+                onRemoveExtra={(name) => plugins.removeExtraMarketplace(scope, name)}
+                onRemovePolicy={(list, index) => plugins.removePolicyMarketplace(scope, list, index)}
               />
             )}
           </div>
@@ -668,17 +676,22 @@ function MarketplacesSection({
   extra,
   strict,
   blocked,
-  onChange,
+  legacyExtra,
+  onAddExtra,
+  onRemoveExtra,
+  onRemovePolicy,
 }: {
   scope: SettingsScope;
-  extra: string[];
-  strict: boolean;
-  blocked: string[];
-  onChange: (patch: {
-    extraKnownMarketplaces?: string[];
-    strictKnownMarketplaces?: boolean;
-    blockedMarketplaces?: string[];
-  }) => void;
+  extra: ExtraMarketplaceView[];
+  strict: MarketplaceSourceView[];
+  blocked: MarketplaceSourceView[];
+  legacyExtra: boolean;
+  onAddExtra: (name: string, source: MarketplaceSource) => Promise<{ ok: boolean; error?: string }>;
+  onRemoveExtra: (name: string) => Promise<{ ok: boolean; error?: string }>;
+  onRemovePolicy: (
+    list: "strict" | "blocked",
+    index: number,
+  ) => Promise<{ ok: boolean; error?: string }>;
 }) {
   void scope;
   return (
@@ -687,62 +700,113 @@ function MarketplacesSection({
         <ShieldCheck className="h-4 w-4 text-[var(--accent)]" /> Marketplaces
       </h2>
       <p className="mb-3 text-[11px] text-[var(--muted)]">
-        Strict mode disallows installing plugins from any marketplace not explicitly known. Blocked
-        marketplaces are always rejected even when strict mode is off.
+        Pre-register named marketplaces so <code className="font-mono">plugin@name</code> refs
+        resolve. Rich source fields (auth headers, npm registries, monorepo paths) are preserved but
+        edited in settings.json directly.
       </p>
 
-      <label className="mb-3 flex items-center gap-2 text-xs">
-        <input
-          type="checkbox"
-          checked={strict}
-          onChange={(e) => onChange({ strictKnownMarketplaces: e.target.checked })}
-          className="h-3.5 w-3.5"
-        />
-        <span>strictKnownMarketplaces</span>
-      </label>
+      <ExtraList
+        extra={extra}
+        legacyExtra={legacyExtra}
+        onAdd={onAddExtra}
+        onRemove={onRemoveExtra}
+      />
 
-      <UrlList
-        title="Extra known marketplaces"
-        values={extra}
-        onChange={(next) => onChange({ extraKnownMarketplaces: next })}
-        placeholder="git+https://example.com/my-marketplace"
+      <PolicyList
+        title="Allowed sources (strictKnownMarketplaces)"
+        entries={strict}
+        onRemove={(i) => onRemovePolicy("strict", i)}
       />
-      <UrlList
-        title="Blocked marketplaces"
-        values={blocked}
-        onChange={(next) => onChange({ blockedMarketplaces: next })}
-        placeholder="https://malicious.example.com"
-        allowWildcard
+      <PolicyList
+        title="Blocked sources (blockedMarketplaces)"
+        entries={blocked}
+        onRemove={(i) => onRemovePolicy("blocked", i)}
       />
+      <p className="mt-2 text-[10px] text-[var(--muted)]">
+        The allowed/blocked lists are enterprise policy — honored only from managed settings. Shown
+        here read-only; remove clears a stale or legacy entry.
+      </p>
     </section>
   );
 }
 
-function UrlList({
-  title,
-  values,
-  onChange,
-  placeholder,
-  allowWildcard,
+/** One redacted source row: label + kind + header/helper/legacy indicators. */
+function SourceRow({ view }: { view: MarketplaceSourceView }) {
+  return (
+    <span className="flex min-w-0 flex-1 items-center gap-1.5">
+      <code className="truncate font-mono text-[11px]">{view.label || "(empty)"}</code>
+      <span className="shrink-0 rounded bg-[var(--panel)] px-1 text-[9px] uppercase tracking-wide text-[var(--muted)]">
+        {view.kind}
+      </span>
+      {view.legacy && (
+        <span className="shrink-0 rounded bg-amber-500/15 px-1 text-[9px] uppercase tracking-wide text-amber-400">
+          legacy
+        </span>
+      )}
+      {view.headerKeys.length > 0 && (
+        <span
+          className="shrink-0 text-[9px] text-[var(--muted)]"
+          title={`Auth headers: ${view.headerKeys.join(", ")} (values hidden)`}
+        >
+          🔑 {view.headerKeys.length}
+        </span>
+      )}
+      {view.hasHeadersHelper && (
+        <span className="shrink-0 text-[9px] text-[var(--muted)]" title="headersHelper command (hidden)">
+          ⚙
+        </span>
+      )}
+    </span>
+  );
+}
+
+/** `extraKnownMarketplaces` — named rows + an add form (github / url). */
+function ExtraList({
+  extra,
+  legacyExtra,
+  onAdd,
+  onRemove,
 }: {
-  title: string;
-  values: string[];
-  onChange: (next: string[]) => void;
-  placeholder: string;
-  allowWildcard?: boolean;
+  extra: ExtraMarketplaceView[];
+  legacyExtra: boolean;
+  onAdd: (name: string, source: MarketplaceSource) => Promise<{ ok: boolean; error?: string }>;
+  onRemove: (name: string) => Promise<{ ok: boolean; error?: string }>;
 }) {
-  const [draft, setDraft] = useState("");
-  const draftLint = lintMarketplaceRef(draft, { allowWildcard });
+  const [name, setName] = useState("");
+  const [kind, setKind] = useState<"github" | "url">("github");
+  const [ref, setRef] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const refLint = kind === "github" ? lintMarketplaceRef(ref, { allowWildcard: false }) : null;
+
+  const submit = async () => {
+    setError(null);
+    const source: MarketplaceSource =
+      kind === "github" ? { source: "github", repo: ref.trim() } : { source: "url", url: ref.trim() };
+    const res = await onAdd(name, source);
+    if (res.ok) {
+      setName("");
+      setRef("");
+    } else {
+      setError(res.error ?? "Failed to add");
+    }
+  };
+
   return (
     <div className="mt-3">
-      <div className="mb-1 text-[10px] uppercase tracking-wide text-[var(--muted)]">{title}</div>
+      <div className="mb-1 text-[10px] uppercase tracking-wide text-[var(--muted)]">
+        Extra known marketplaces
+      </div>
       <ul className="space-y-1">
-        {values.map((v) => (
-          <li key={v} className="flex items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--panel-2)]/40 px-2 py-1">
-            <code className="flex-1 truncate font-mono text-[11px]">{v}</code>
+        {extra.map((m) => (
+          <li
+            key={m.name}
+            className="flex items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--panel-2)]/40 px-2 py-1"
+          >
+            <span className="shrink-0 font-mono text-[11px] text-[var(--accent)]">{m.name}</span>
+            <SourceRow view={m} />
             <button
-              onClick={() => onChange(values.filter((x) => x !== v))}
-              className="rounded p-0.5 text-[var(--muted)] hover:bg-[var(--panel)] hover:text-red-400"
+              onClick={() => void onRemove(m.name)}
+              className="shrink-0 rounded p-0.5 text-[var(--muted)] hover:bg-[var(--panel)] hover:text-red-400"
               title="Remove"
             >
               <X className="h-3 w-3" />
@@ -750,39 +814,96 @@ function UrlList({
           </li>
         ))}
       </ul>
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          const v = draft.trim();
-          if (!v || values.includes(v)) return;
-          onChange([...values, v]);
-          setDraft("");
-        }}
-        className="mt-1 flex gap-1"
-      >
-        <input
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          placeholder={placeholder}
-          className="flex-1 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1 font-mono text-xs focus:outline-none"
-        />
-        <button
-          type="submit"
-          disabled={!draft.trim()}
-          className="rounded-md bg-[var(--accent)] p-1 text-white hover:opacity-90 disabled:opacity-40"
-          title="Add"
+      {legacyExtra ? (
+        <p className="mt-1 flex items-start gap-1 text-[10px] text-amber-400">
+          <AlertTriangle className="mt-px h-3 w-3 shrink-0" />
+          <span>Legacy string entries present — remove them above before adding named marketplaces.</span>
+        </p>
+      ) : (
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!name.trim() || !ref.trim() || refLint) return;
+            void submit();
+          }}
+          className="mt-1 flex flex-wrap gap-1"
         >
-          <Plus className="h-3 w-3" />
-        </button>
-      </form>
-      {draftLint && (
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="name"
+            className="w-28 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1 font-mono text-xs focus:outline-none"
+          />
+          <select
+            value={kind}
+            onChange={(e) => setKind(e.target.value as "github" | "url")}
+            className="rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-1.5 py-1 text-xs focus:outline-none"
+          >
+            <option value="github">github</option>
+            <option value="url">url</option>
+          </select>
+          <input
+            value={ref}
+            onChange={(e) => setRef(e.target.value)}
+            placeholder={kind === "github" ? "owner/repo" : "https://…/marketplace.json"}
+            className="min-w-0 flex-1 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1 font-mono text-xs focus:outline-none"
+          />
+          <button
+            type="submit"
+            disabled={!name.trim() || !ref.trim() || !!refLint}
+            className="rounded-md bg-[var(--accent)] p-1 text-white hover:opacity-90 disabled:opacity-40"
+            title="Add"
+          >
+            <Plus className="h-3 w-3" />
+          </button>
+        </form>
+      )}
+      {(refLint || error) && (
         <p
           data-testid="marketplace-ref-warning"
           className="mt-1 flex items-start gap-1 text-[10px] text-amber-400"
         >
           <AlertTriangle className="mt-px h-3 w-3 shrink-0" />
-          <span>{draftLint.message}</span>
+          <span>{error ?? refLint?.message}</span>
         </p>
+      )}
+    </div>
+  );
+}
+
+/** A read-only policy list (strict/blocked) with per-row remove. */
+function PolicyList({
+  title,
+  entries,
+  onRemove,
+}: {
+  title: string;
+  entries: MarketplaceSourceView[];
+  onRemove: (index: number) => Promise<{ ok: boolean; error?: string }>;
+}) {
+  return (
+    <div className="mt-3">
+      <div className="mb-1 text-[10px] uppercase tracking-wide text-[var(--muted)]">{title}</div>
+      {entries.length === 0 ? (
+        <p className="text-[10px] italic text-[var(--muted)]">None.</p>
+      ) : (
+        <ul className="space-y-1">
+          {entries.map((e, i) => (
+            <li
+              key={i}
+              className="flex items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--panel-2)]/40 px-2 py-1"
+            >
+              <SourceRow view={e} />
+              <button
+                onClick={() => void onRemove(i)}
+                className="shrink-0 rounded p-0.5 text-[var(--muted)] hover:bg-[var(--panel)] hover:text-red-400"
+                title="Remove"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   );

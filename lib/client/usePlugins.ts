@@ -97,24 +97,40 @@ export function usePlugins(cwd: string | null, sessionId: string | null) {
     [cwd, refresh],
   );
 
-  const setMarketplaces = useCallback(
-    async (
-      scope: SettingsScope,
-      patch: {
-        extraKnownMarketplaces?: string[];
-        strictKnownMarketplaces?: boolean;
-        blockedMarketplaces?: string[];
-      },
-    ) => {
+  // G1 — structural marketplace ops. Each POSTs one change; the server applies
+  // it to the raw settings.json value, so untouched (and unmodeled) entries are
+  // preserved. Returns the server error string (if any) so the UI can surface
+  // a validation failure (e.g. a wildcard repo in `extra`).
+  const marketplaceOp = useCallback(
+    async (body: Record<string, unknown>): Promise<{ ok: boolean; error?: string }> => {
       const res = await fetch("/api/plugins", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ kind: "marketplaces", scope, cwd, ...patch }),
+        body: JSON.stringify({ kind: "marketplaces", cwd, ...body }),
       });
-      if (res.ok) await refresh();
-      return res.ok;
+      if (res.ok) {
+        await refresh();
+        return { ok: true };
+      }
+      const err = (await res.json().catch(() => null)) as { error?: string } | null;
+      return { ok: false, error: err?.error ?? `HTTP ${res.status}` };
     },
     [cwd, refresh],
+  );
+
+  const addExtraMarketplace = useCallback(
+    (scope: SettingsScope, name: string, source: Record<string, unknown>) =>
+      marketplaceOp({ scope, op: "add-extra", name, source }),
+    [marketplaceOp],
+  );
+  const removeExtraMarketplace = useCallback(
+    (scope: SettingsScope, name: string) => marketplaceOp({ scope, op: "remove-extra", name }),
+    [marketplaceOp],
+  );
+  const removePolicyMarketplace = useCallback(
+    (scope: SettingsScope, list: "strict" | "blocked", index: number) =>
+      marketplaceOp({ scope, op: "remove-policy", list, index }),
+    [marketplaceOp],
   );
 
   const reload = useCallback(async () => {
@@ -166,7 +182,9 @@ export function usePlugins(cwd: string | null, sessionId: string | null) {
     refresh,
     refreshAvailable,
     toggle,
-    setMarketplaces,
+    addExtraMarketplace,
+    removeExtraMarketplace,
+    removePolicyMarketplace,
     reload,
     install,
   };

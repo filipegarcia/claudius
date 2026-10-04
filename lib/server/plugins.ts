@@ -8,14 +8,31 @@ import {
   type ClaudeSettings,
   type SettingsScope,
 } from "./settings";
+import {
+  addExtraMarketplace as addExtraEntry,
+  readExtraMarketplaces,
+  readPolicyMarketplaces,
+  removeExtraMarketplace as removeExtraEntry,
+  removePolicyMarketplace,
+  type ExtraMarketplaceView,
+  type MarketplaceSource,
+  type MarketplaceSourceView,
+} from "@/lib/shared/marketplace-settings";
 
 export type PluginsByScope = {
   scope: SettingsScope;
   path: string;
   enabledPlugins: Record<string, boolean>;
-  extraKnownMarketplaces: string[];
-  strictKnownMarketplaces: boolean;
-  blockedMarketplaces: string[];
+  /**
+   * G1 — redacted views of the three marketplace keys (SDK object/array
+   * shapes). Header values and headersHelper text are withheld; they never
+   * leave the server. `legacyExtra` flags a pre-G1 Claudius `string[]` that
+   * can't be migrated automatically (the user removes those entries).
+   */
+  extraKnownMarketplaces: ExtraMarketplaceView[];
+  strictKnownMarketplaces: MarketplaceSourceView[];
+  blockedMarketplaces: MarketplaceSourceView[];
+  legacyExtra: boolean;
 };
 
 export type AvailablePlugin = {
@@ -29,10 +46,6 @@ export type AvailablePlugin = {
   /** Public unique-install count from Anthropic's plugin counts cache, when known. */
   installs?: number;
 };
-
-function strArr(v: unknown): string[] {
-  return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [];
-}
 
 /**
  * Claude Code 2.1.232 added two settings aliases: `additionalMarketplaces`
@@ -52,17 +65,19 @@ export async function listAll(cwd: string): Promise<PluginsByScope[]> {
   for (const scope of scopes) {
     const settings = await readSettings(scope, cwd);
     const ep = settings.enabledPlugins;
+    const extraRaw = aliased(settings, "extraKnownMarketplaces", "additionalMarketplaces");
     out.push({
       scope,
       path: pathFor(scope, cwd),
       enabledPlugins: typeof ep === "object" && ep ? (ep as Record<string, boolean>) : {},
-      extraKnownMarketplaces: strArr(
-        aliased(settings, "extraKnownMarketplaces", "additionalMarketplaces"),
-      ),
-      strictKnownMarketplaces: Boolean(
+      extraKnownMarketplaces: readExtraMarketplaces(extraRaw),
+      strictKnownMarketplaces: readPolicyMarketplaces(
         aliased(settings, "strictKnownMarketplaces", "allowedMarketplaces"),
       ),
-      blockedMarketplaces: strArr((settings as { blockedMarketplaces?: unknown }).blockedMarketplaces),
+      blockedMarketplaces: readPolicyMarketplaces(
+        (settings as { blockedMarketplaces?: unknown }).blockedMarketplaces,
+      ),
+      legacyExtra: Array.isArray(extraRaw),
     });
   }
   return out;
@@ -179,33 +194,63 @@ export async function listAvailable(): Promise<AvailablePlugin[]> {
   return out;
 }
 
-export async function setMarketplaces(
+/**
+ * G1 — structural marketplace edits. Each op reads the raw stored value,
+ * applies one change via the pure helpers (which preserve every untouched
+ * entry and any source kind this code doesn't model), and writes under the
+ * canonical key, dropping the alias so the two spellings can't coexist. No
+ * full-list rewrite, so a rich object/array config is never clobbered.
+ */
+export async function addExtraMarketplace(
   scope: SettingsScope,
   cwd: string,
-  patch: {
-    extraKnownMarketplaces?: string[];
-    strictKnownMarketplaces?: boolean;
-    blockedMarketplaces?: string[];
-  },
+  name: string,
+  source: MarketplaceSource,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const settings = await readSettings(scope, cwd);
+  const raw = aliased(settings, "extraKnownMarketplaces", "additionalMarketplaces");
+  const res = addExtraEntry(raw, name, source);
+  if (!res.ok) return res;
+  const next = { ...settings } as Record<string, unknown>;
+  delete next.additionalMarketplaces;
+  next.extraKnownMarketplaces = res.value;
+  await writeSettings(scope, cwd, next as ClaudeSettings);
+  return { ok: true };
+}
+
+export async function removeExtraMarketplace(
+  scope: SettingsScope,
+  cwd: string,
+  name: string,
 ): Promise<void> {
   const settings = await readSettings(scope, cwd);
-  const next: ClaudeSettings = { ...settings };
-  if (patch.extraKnownMarketplaces !== undefined) {
-    // Persist under the canonical key and drop the `additionalMarketplaces`
-    // alias so the two spellings can't coexist (the CLI ignores the alias with
-    // a warning when both are present), matching Claude Code's file rewrite.
-    delete (next as Record<string, unknown>).additionalMarketplaces;
-    if (patch.extraKnownMarketplaces.length === 0) delete (next as Record<string, unknown>).extraKnownMarketplaces;
-    else (next as Record<string, unknown>).extraKnownMarketplaces = patch.extraKnownMarketplaces;
+  const raw = aliased(settings, "extraKnownMarketplaces", "additionalMarketplaces");
+  const value = removeExtraEntry(raw, name);
+  const next = { ...settings } as Record<string, unknown>;
+  delete next.additionalMarketplaces;
+  if (value === undefined) delete next.extraKnownMarketplaces;
+  else next.extraKnownMarketplaces = value;
+  await writeSettings(scope, cwd, next as ClaudeSettings);
+}
+
+export async function removePolicyMarketplaceEntry(
+  scope: SettingsScope,
+  cwd: string,
+  list: "strict" | "blocked",
+  index: number,
+): Promise<void> {
+  const settings = await readSettings(scope, cwd);
+  const next = { ...settings } as Record<string, unknown>;
+  if (list === "strict") {
+    const raw = aliased(settings, "strictKnownMarketplaces", "allowedMarketplaces");
+    const value = removePolicyMarketplace(raw, index);
+    delete next.allowedMarketplaces;
+    if (value === undefined) delete next.strictKnownMarketplaces;
+    else next.strictKnownMarketplaces = value;
+  } else {
+    const value = removePolicyMarketplace((settings as { blockedMarketplaces?: unknown }).blockedMarketplaces, index);
+    if (value === undefined) delete next.blockedMarketplaces;
+    else next.blockedMarketplaces = value;
   }
-  if (patch.strictKnownMarketplaces !== undefined) {
-    delete (next as Record<string, unknown>).allowedMarketplaces;
-    if (!patch.strictKnownMarketplaces) delete (next as Record<string, unknown>).strictKnownMarketplaces;
-    else (next as Record<string, unknown>).strictKnownMarketplaces = true;
-  }
-  if (patch.blockedMarketplaces !== undefined) {
-    if (patch.blockedMarketplaces.length === 0) delete (next as Record<string, unknown>).blockedMarketplaces;
-    else (next as Record<string, unknown>).blockedMarketplaces = patch.blockedMarketplaces;
-  }
-  await writeSettings(scope, cwd, next);
+  await writeSettings(scope, cwd, next as ClaudeSettings);
 }
