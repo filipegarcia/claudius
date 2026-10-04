@@ -920,7 +920,9 @@ type PendingPermission = {
 };
 
 /** The `addRules`/`allow` entries of a canUseTool `suggestions` set. */
-function allowRuleSuggestions(suggestions: PermissionUpdate[] | undefined): PermissionUpdate[] {
+function allowRuleSuggestions(
+  suggestions: PermissionUpdate[] | undefined,
+): Extract<PermissionUpdate, { type: "addRules" }>[] {
   return (suggestions ?? []).filter(
     (u): u is Extract<PermissionUpdate, { type: "addRules" }> =>
       u.type === "addRules" &&
