@@ -34,6 +34,7 @@ import { stripInvisibleUnicode } from "@/lib/shared/invisible-unicode";
 import { slashTokenBeforeCaret } from "@/lib/shared/slash-commands";
 import { canRestoreClearedDraft, shouldStashClearedDraft } from "@/lib/client/cleared-draft";
 import { inlinePastesInText, isLargePaste } from "@/lib/shared/large-paste";
+import { describeOversizedImages } from "@/lib/client/image-intake";
 
 type Props = {
   pending: boolean;
@@ -1265,8 +1266,15 @@ export function PromptInput({
     const droppedPaths: string[] = [];
     type Pending = { data: string; mediaType: string };
     const newImageBlobs: Pending[] = [];
+    // CC 2.1.265 — collect images rejected for being over the size limit so we
+    // can name the cause instead of silently dropping them.
+    const oversizedImages: string[] = [];
     for (const f of files) {
       if (f.type.startsWith("image/")) {
+        if (f.size > MAX_IMAGE_BYTES) {
+          oversizedImages.push(f.name);
+          continue;
+        }
         const b = await readFileAsBase64(f);
         if (b) newImageBlobs.push(b);
       } else {
@@ -1274,6 +1282,8 @@ export function PromptInput({
         droppedPaths.push(resolveDroppedPath(absPath, f.name, cwd));
       }
     }
+    const oversizedNotice = describeOversizedImages(oversizedImages, MAX_IMAGE_BYTES);
+    if (oversizedNotice) onNotice?.(oversizedNotice);
 
     if (newImageBlobs.length) {
       // Assign ordinals + ids in arrival order.
