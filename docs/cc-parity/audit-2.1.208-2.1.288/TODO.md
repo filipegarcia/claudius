@@ -72,7 +72,7 @@ grep evidence): [`audit/chunk0.md`](audit/chunk0.md) (2.1.285–288) …
 - [x] **B4** [2.1.288] MCP URL elicitation: "I'm done, continue" when there is no `elicitationId`; handle `elicitation_complete`
 - [x] **B5** [2.1.271] Hook-running feedback: `includeHookEvents`, "Running <event> hook · Ns" in the status line
 - [x] **B6** [2.1.212] "Needs input" session status when a turn is blocked on a prompt
-- [ ] **B7** [2.1.288 F] Don't fire "Claude finished" (`session_idle`) while background agents are still running
+- [x] **B7** [2.1.288 F] Don't fire "Claude finished" (`session_idle`) while background agents are still running
 - [ ] **B8** [2.1.216 F] Slash-command list goes stale after reload (update the init snapshot on `commands_changed`)
 - [ ] **B9** [2.1.273/2.1.288] MCP server drops mid-session / asks for more OAuth scope → re-show the disconnected / needs-auth notice
 - [ ] **B10** [2.1.275] Sent messages render dimmed until the model receives them

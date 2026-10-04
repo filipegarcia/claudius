@@ -265,6 +265,29 @@ describe("mapEventToKind", () => {
     expect(out?.body).toBe(SESSION_CTX.sessionTitle);
   });
 
+  // CC 2.1.288 (B7) — don't say "Claude finished" while background work runs.
+  test("sdk: result with active background work → suppressed", () => {
+    const idle = new Map<string, number>();
+    idle.set(SESSION_CTX.sessionId, Date.now() - 2_000);
+    const out = mapEventToKind(
+      { type: "sdk", message: { type: "result" } as never },
+      { ...SESSION_CTX, hasActiveBackgroundWork: true },
+      idle,
+    );
+    expect(out).toBeNull();
+  });
+
+  test("sdk: result with background work finished → session_idle fires", () => {
+    const idle = new Map<string, number>();
+    idle.set(SESSION_CTX.sessionId, Date.now() - 2_000);
+    const out = mapEventToKind(
+      { type: "sdk", message: { type: "result" } as never },
+      { ...SESSION_CTX, hasActiveBackgroundWork: false },
+      idle,
+    );
+    expect(out?.kind).toBe("session_idle");
+  });
+
   test("sdk: result with markUserInput recorded long ago → session_idle", () => {
     const idle = new Map<string, number>();
     idle.set(SESSION_CTX.sessionId, Date.now() - 60_000); // 60s ago

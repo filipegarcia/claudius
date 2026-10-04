@@ -7690,6 +7690,10 @@ export class Session {
       // Mirror `tabLabelFor`'s fallback so an untitled session still shows a
       // recognisable id-prefix instead of the raw cwd in the inbox.
       sessionTitle: this.title?.trim() || this.id.slice(0, 8),
+      // CC 2.1.288 — suppress the "Claude finished" idle ding while a subagent
+      // or backgrounded Task is still running (the parent `result` fired early).
+      hasActiveBackgroundWork:
+        this.hasActiveSubagents() || this.countActiveBackgroundTasks() > 0,
     });
   }
 
