@@ -29,6 +29,7 @@ import { classifyInformationalLevel } from "@/lib/shared/system-informational";
 import { parseInitSystemMessage } from "@/lib/shared/parse-init";
 import { hookEventGetsDurablePill } from "@/lib/shared/hook-events";
 import { commandNamesFromChanged } from "@/lib/shared/slash-commands";
+import { clearPendingMessages } from "./clear-pending";
 import { ADVISOR_ACTIVE_SENTINEL } from "@/lib/shared/advisor";
 import { matchesUsageLimitPrefix } from "@/lib/shared/rate-limit-prefixes";
 import {
@@ -2546,6 +2547,10 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
         setPendingTracked(ev.status === "running");
         // CC 2.1.212 — server-authoritative "blocked on a user prompt" signal.
         setNeedsInput(ev.status === "needs_input");
+        // CC 2.1.275 — any turn-status transition means the server has taken
+        // the message off our hands (it's running, needs input, or already
+        // finished), so clear the "sent, not yet received" dimming.
+        setMessages(clearPendingMessages);
         // Backgrounded work that runs while `status` reads "idle" (fire-and-
         // forget subagents / Workflows). Header uses it for the "Idle · N
         // running" cue. Absent on older payloads ⇒ 0.
@@ -5301,6 +5306,9 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
             blocks: [{ kind: "text", text }],
             ...(normalized ? { images: normalized } : {}),
             createdAt: sentAt,
+            // CC 2.1.275 — dimmed until the model receives it (turn_status
+            // running clears this).
+            pending: true,
           },
         ]);
       }

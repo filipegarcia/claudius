@@ -71,6 +71,13 @@ export type DisplayMessage = {
   blocks: DisplayBlock[];
   /** When true, the message is still being streamed (deltas may keep arriving). */
   streaming?: boolean;
+  /**
+   * CC 2.1.275 — an optimistically-rendered user message that the model hasn't
+   * received yet. The bubble renders dimmed until the turn starts (the server
+   * flips `turn_status` to running once it feeds the message to the SDK), at
+   * which point this clears. Only ever set on `role: "user"` bubbles.
+   */
+  pending?: boolean;
   /** Set when the message belongs to a subagent (Task tool_use_id). */
   parentToolUseId?: string | null;
   /**

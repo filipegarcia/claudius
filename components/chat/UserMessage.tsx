@@ -105,12 +105,15 @@ export function UserMessage({
   return (
     <div className="group flex justify-end">
       <div
+        data-pending={message.pending ? "true" : undefined}
         className={cn(
-          "max-w-[80%] rounded-2xl border border-[var(--border)] bg-[var(--panel-2)] px-4 py-2",
+          "max-w-[80%] rounded-2xl border border-[var(--border)] bg-[var(--panel-2)] px-4 py-2 transition-opacity",
           onJumpTo && "cursor-pointer transition-colors hover:border-[var(--accent)]/40",
+          // CC 2.1.275 — dim until the model has received the message.
+          message.pending && "opacity-50",
         )}
         onClick={onJumpTo ? handleJump : undefined}
-        title={onJumpTo ? "Scroll to this message" : undefined}
+        title={message.pending ? "Sending…" : onJumpTo ? "Scroll to this message" : undefined}
       >
         {showPeerCollapse && peer && (
           <PeerMessageHeader
