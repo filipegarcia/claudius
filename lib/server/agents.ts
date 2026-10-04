@@ -129,8 +129,13 @@ export async function deleteAgent(scope: AgentScope, projectCwd: string, name: s
 const FM_RE = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/;
 
 export function parseFrontmatter(raw: string): { frontmatter: Record<string, unknown>; body: string } {
-  const m = FM_RE.exec(raw);
-  if (!m) return { frontmatter: {}, body: raw };
+  // CC 2.1.239 (G4) — a file saved with a UTF-8 BOM keeps the leading `﻿`
+  // after `fs.readFile(…,"utf8")`, so the `^---` delimiter never matches and the
+  // frontmatter silently parses as `{}` (agents/skills then show no description/
+  // model/badges). Strip a single leading BOM before parsing.
+  const text = raw.charCodeAt(0) === 0xfeff ? raw.slice(1) : raw;
+  const m = FM_RE.exec(text);
+  if (!m) return { frontmatter: {}, body: text };
   let frontmatter: Record<string, unknown> = {};
   try {
     // YAML 1.2 core schema (the `yaml` default): booleans/numbers/null parse
