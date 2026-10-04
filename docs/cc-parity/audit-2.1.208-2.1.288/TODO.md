@@ -84,7 +84,7 @@ grep evidence): [`audit/chunk0.md`](audit/chunk0.md) (2.1.285–288) …
 - [x] **C2** [2.1.285] Fold Claude Code's own housekeeping tasks (`skip_transcript`) under a "System tasks" group
 - [x] **C3** [2.1.243 F] Error-tagged assistant replies (`server_error`, `billing_error`, …) get error styling
 - [x] **C4** [2.1.271] "Deep in thought" only while no tool is running; "Picking the thought back up" after `max_output_tokens`
-- [x] **C5** [2.1.243] Show each subagent's model / effort in the task block and Activity panel
+- [x] **C5** [2.1.243] Show each subagent's model / effort in the task block and Activity panel _(model only; effort has no SDK source — `AgentInput` carries only `model`, task messages carry neither)_
 - [x] **C6** [2.1.280 F] Strip the internal "[Subagent hand-back]" frame from subagent results
 - [x] **C7** [2.1.257 low] Coalesce hook-completion notices
 - [x] **C8** [2.1.243 low] Compaction stall hint

@@ -8,23 +8,31 @@ import { userCommandShadowsBuiltin, type SdkSlashCommandInfo } from "@/lib/share
  * same name signals the user has overridden it.
  */
 describe("userCommandShadowsBuiltin (CC 2.1.287 — D3)", () => {
-  const sdk: SdkSlashCommandInfo[] = [
-    { name: "usage", builtin: true }, // Claude Code's own
-    { name: "deploy", builtin: false }, // a user/project command
-    { name: "review" }, // no flag → treated as user-defined
-  ];
-
-  test("forwards when a non-builtin command of this name exists", () => {
-    expect(userCommandShadowsBuiltin("deploy", sdk)).toBe(true);
-    expect(userCommandShadowsBuiltin("review", sdk)).toBe(true);
+  test("forwards when an unmarked command shares a built-in dialog's name", () => {
+    // User defined their own /usage (unmarked) alongside CC's own (builtin).
+    const sdk: SdkSlashCommandInfo[] = [
+      { name: "usage", builtin: true },
+      { name: "usage" }, // the user's, unmarked
+    ];
+    expect(userCommandShadowsBuiltin("usage", sdk)).toBe(true);
   });
 
-  test("does NOT forward for a built-in-only command", () => {
+  test("does NOT forward when only the built-in dialog exists", () => {
+    const sdk: SdkSlashCommandInfo[] = [{ name: "usage", builtin: true }];
     expect(userCommandShadowsBuiltin("usage", sdk)).toBe(false);
   });
 
+  test("does NOT hijack a Claudius-native command that a bundled skill shares (the regression)", () => {
+    // Bundled skills/plugins/MCP are ALSO unmarked — a coincidental `schedule`
+    // or `review` skill must not steal Claudius's native handler.
+    const sdk: SdkSlashCommandInfo[] = [{ name: "schedule" }, { name: "review" }, { name: "goal" }];
+    expect(userCommandShadowsBuiltin("schedule", sdk)).toBe(false);
+    expect(userCommandShadowsBuiltin("review", sdk)).toBe(false);
+    expect(userCommandShadowsBuiltin("goal", sdk)).toBe(false);
+  });
+
   test("no SDK list / no match → no shadow", () => {
-    expect(userCommandShadowsBuiltin("deploy", undefined)).toBe(false);
-    expect(userCommandShadowsBuiltin("context", sdk)).toBe(false);
+    expect(userCommandShadowsBuiltin("usage", undefined)).toBe(false);
+    expect(userCommandShadowsBuiltin("context", [{ name: "context", builtin: true }])).toBe(false);
   });
 });

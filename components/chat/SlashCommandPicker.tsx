@@ -20,6 +20,14 @@ type Props = {
   sdkRichCommands?: SdkSlashCommandInfo[];
   onSelect: (cmd: string) => void;
   onClose: () => void;
+  /**
+   * CC 2.1.265 — whether Enter selects the highlighted command. True only when
+   * the slash token is at the start of the input (the composer is "in command
+   * mode"). For a `/word` typed mid-prompt the picker is an advisory match list
+   * — Tab/click insert, but Enter still submits the message — so this is false
+   * and the Enter branches below are skipped. Defaults to true.
+   */
+  captureEnter?: boolean;
 };
 
 const HANDLER_BADGE: Record<SlashSuggestion["handler"], { label: string; tone: string; icon: typeof Wrench }> = {
@@ -100,7 +108,15 @@ function HighlightedCommandName({ name, filter }: { name: string; filter: string
   return <>{nodes}</>;
 }
 
-export function SlashCommandPicker({ value, sdkSlashCommands, sdkSkills, sdkRichCommands, onSelect, onClose }: Props) {
+export function SlashCommandPicker({
+  value,
+  sdkSlashCommands,
+  sdkSkills,
+  sdkRichCommands,
+  onSelect,
+  onClose,
+  captureEnter = true,
+}: Props) {
   const all = useMemo(
     () => mergeSuggestions(sdkSlashCommands, sdkSkills, sdkRichCommands),
     [sdkSlashCommands, sdkSkills, sdkRichCommands],
@@ -163,7 +179,7 @@ export function SlashCommandPicker({ value, sdkSlashCommands, sdkSkills, sdkRich
         // composer on Enter. Tab keeps the looser fuzzy pick — it's an
         // explicit "insert the top suggestion" gesture, not an accidental
         // Enter with a typo underneath it.
-        (e.key === "Enter" && filter !== "" && isConfidentSlashMatch(visible[hi], filter))
+        (captureEnter && e.key === "Enter" && filter !== "" && isConfidentSlashMatch(visible[hi], filter))
       ) {
         e.preventDefault();
         // stopPropagation is load-bearing: without it, the same keydown can
@@ -175,7 +191,7 @@ export function SlashCommandPicker({ value, sdkSlashCommands, sdkSkills, sdkRich
         // 2.1.217 parity).
         e.stopPropagation();
         onSelect(visible[hi].name);
-      } else if (e.key === "Enter" && filter !== "") {
+      } else if (captureEnter && e.key === "Enter" && filter !== "") {
         // Enter with the picker open but no confident match. Without this
         // branch, the keydown falls through unhandled: PromptInput's own
         // Enter-submit is gated on `!pickerOpen` (still true here) so it
@@ -196,7 +212,7 @@ export function SlashCommandPicker({ value, sdkSlashCommands, sdkSkills, sdkRich
     }
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
-  }, [hi, visible, filter, onClose, onSelect]);
+  }, [hi, visible, filter, onClose, onSelect, captureEnter]);
 
   useEffect(() => {
     itemRefs.current[hi]?.scrollIntoView({ block: "nearest" });

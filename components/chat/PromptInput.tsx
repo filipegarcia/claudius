@@ -33,7 +33,7 @@ import {
 import { stripInvisibleUnicode } from "@/lib/shared/invisible-unicode";
 import { slashTokenBeforeCaret } from "@/lib/shared/slash-commands";
 import { canRestoreClearedDraft, shouldStashClearedDraft } from "@/lib/client/cleared-draft";
-import { isLargePaste } from "@/lib/shared/large-paste";
+import { inlinePastesInText, isLargePaste } from "@/lib/shared/large-paste";
 
 type Props = {
   pending: boolean;
@@ -253,6 +253,13 @@ export function PromptInput({
    * caret. The picker filters on this, and selecting splices it in place.
    */
   const [slashQuery, setSlashQuery] = useState<string | null>(null);
+  /**
+   * CC 2.1.265 — true when the slash token is at the start of the input (the
+   * composer is "in command mode"), vs a `/word` typed mid-prompt. Gates
+   * Enter-to-select: leading → Enter runs the command; mid-prompt → Enter
+   * submits the message and the picker is just an advisory list (Tab/click).
+   */
+  const [slashAtStart, setSlashAtStart] = useState(false);
   const [atQuery, setAtQuery] = useState<string | null>(null);
   /** Active `:shortcode` token (leading `:` stripped), or null. Same update-site model as atQuery above. */
   const [emojiQuery, setEmojiQuery] = useState<string | null>(null);
@@ -758,6 +765,7 @@ export function PromptInput({
     setImages([]);
     setPickerOpen(false);
     setSlashQuery(null);
+    setSlashAtStart(false);
     setAtQuery(null);
     setEmojiQuery(null);
     ordinalCounterRef.current = 0;
@@ -798,6 +806,7 @@ export function PromptInput({
     setImages([]);
     setPickerOpen(false);
     setSlashQuery(null);
+    setSlashAtStart(false);
     setAtQuery(null);
     setEmojiQuery(null);
     ordinalCounterRef.current = 0;
@@ -845,8 +854,8 @@ export function PromptInput({
     // what the user would have typed in any other markdown editor.
     const wire = bulletsToMarkdown(text);
     // CC 2.1.280 — forward the recorded large-paste segments that are still
-    // present in the outgoing text (the user may have edited/deleted some).
-    const inlinePastes = pastedSegmentsRef.current.filter((s) => wire.includes(s));
+    // present in the (trimmed) outgoing text (the user may have edited some).
+    const inlinePastes = inlinePastesInText(pastedSegmentsRef.current, wire);
     pastedSegmentsRef.current = [];
     onSend(wire, images.length ? images : undefined, inlinePastes.length ? inlinePastes : undefined);
     setValue("");
@@ -854,6 +863,7 @@ export function PromptInput({
     setImages([]);
     setPickerOpen(false);
     setSlashQuery(null);
+    setSlashAtStart(false);
     setAtQuery(null);
     setEmojiQuery(null);
     // Each prompt is its own ordinal namespace.
@@ -890,6 +900,10 @@ export function PromptInput({
     const slashTok = disableSlash ? null : slashTokenBeforeCaret(before);
     setSlashQuery(slashTok);
     setPickerOpen(slashTok != null);
+    // Leading slash = the whole input is a single `/word` (what used to be the
+    // only trigger). Only then does Enter run the command; mid-prompt Enter
+    // submits the message.
+    setSlashAtStart(slashTok != null && /^\s*\/\S*$/.test(nextValue));
     // @-mention: capture the active token if it starts with @
     const atMatch = /(^|\s)@([^\s@]*)$/.exec(before);
     setAtQuery(atMatch ? atMatch[2] : null);
@@ -1092,7 +1106,10 @@ export function PromptInput({
       return;
     }
 
-    if (e.key === "Enter" && !pickerOpen && atQuery == null && emojiQuery == null) {
+    // Mid-prompt slash picker (CC 2.1.265): the picker is open but Enter still
+    // submits — only a leading slash (`slashAtStart`) captures Enter to run the
+    // command, handled in SlashCommandPicker.
+    if (e.key === "Enter" && (!pickerOpen || !slashAtStart) && atQuery == null && emojiQuery == null) {
       const caret = e.currentTarget.selectionStart ?? 0;
       const lineStart = value.lastIndexOf("\n", caret - 1) + 1;
       const nlIdx = value.indexOf("\n", caret);
@@ -1190,6 +1207,7 @@ export function PromptInput({
     const next = replaced + after;
     setValue(next);
     setSlashQuery(null);
+    setSlashAtStart(false);
     setPickerOpen(false);
     requestAnimationFrame(() => {
       el?.focus();
@@ -1860,9 +1878,11 @@ export function PromptInput({
             sdkSkills={skills}
             sdkRichCommands={sdkRichCommands}
             onSelect={(cmd) => insertSlashCommand(cmd)}
+            captureEnter={slashAtStart}
             onClose={() => {
               setPickerOpen(false);
               setSlashQuery(null);
+              setSlashAtStart(false);
             }}
           />
         )}

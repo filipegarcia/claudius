@@ -308,18 +308,34 @@ export function slashTokenBeforeCaret(before: string): string | null {
 }
 
 /**
+ * The built-in *dialog* commands this precedence rule covers: Claudius renders
+ * each as a native overlay/dialog, and Claude Code renders each as a built-in
+ * dialog too. These are the names 2.1.287 is about (`/usage` and its `/cost`
+ * `/stats` aliases, `/context`).
+ *
+ * Deliberately NOT every native command: the SDK marks user commands by the
+ * *absence* of `builtin` — but bundled skills, plugins and MCP commands are
+ * also unmarked, so a blanket "any unmarked SDK row of this name" rule would
+ * let a coincidental skill named `schedule`/`goal`/`review` hijack Claudius's
+ * own native handler. Scoping to the built-in dialogs keeps the fix to exactly
+ * the commands the audit names.
+ */
+const SHADOWABLE_BUILTIN_DIALOGS = new Set(["usage", "cost", "stats", "context"]);
+
+/**
  * CC 2.1.287 (FIX) — a user/project/plugin command that shares a name with a
- * built-in (`/usage`, `/context`, `/cost`, `/stats`, …) must run the user's
- * command, not open Claudius's native dialog. The SDK's `supportedCommands()`
- * carries a `builtin` flag (SDK 0.3.277); when it lists a command of this name
- * that is NOT builtin, the user has defined their own, so the caller forwards
- * to the SDK instead of dispatching its native handler.
+ * built-in *dialog* (`/usage`, `/context`, `/cost`, `/stats`) must run the
+ * user's command, not open Claudius's native dialog. The SDK's
+ * `supportedCommands()` marks its own commands `builtin: true` (SDK 0.3.277)
+ * and leaves user/project/plugin/MCP commands unmarked; when it lists an
+ * unmarked command of one of these names, the user has defined their own, so
+ * the caller forwards to the SDK instead of dispatching the native handler.
  */
 export function userCommandShadowsBuiltin(
   head: string,
   sdkCommands: SdkSlashCommandInfo[] | undefined,
 ): boolean {
-  if (!sdkCommands) return false;
+  if (!sdkCommands || !SHADOWABLE_BUILTIN_DIALOGS.has(head)) return false;
   return sdkCommands.some((c) => c?.name === head && c.builtin !== true);
 }
 

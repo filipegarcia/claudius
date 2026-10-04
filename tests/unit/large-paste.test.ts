@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { isLargePaste, LARGE_PASTE_MIN_CHARS } from "@/lib/shared/large-paste";
+import { inlinePastesInText, isLargePaste, LARGE_PASTE_MIN_CHARS } from "@/lib/shared/large-paste";
 
 /**
  * CC 2.1.280 — a paste is "large" (and gets marked as inline_pastes) when it
@@ -20,5 +20,22 @@ describe("isLargePaste (CC 2.1.280 — D6)", () => {
     expect(isLargePaste("just a line")).toBe(false);
     expect(isLargePaste("line1\nline2")).toBe(false);
     expect(isLargePaste("")).toBe(false);
+  });
+});
+
+describe("inlinePastesInText (CC 2.1.280 — D6)", () => {
+  test("matches a trailing-newline paste against the trimmed, sent text", () => {
+    const seg = "a huge log\nwith lines\n"; // pasted with a trailing newline
+    const wire = "see:\na huge log\nwith lines"; // composer trimmed the tail
+    expect(inlinePastesInText([seg], wire)).toEqual(["a huge log\nwith lines"]);
+  });
+
+  test("drops a segment the user deleted before sending", () => {
+    expect(inlinePastesInText(["gone now"], "something else entirely")).toEqual([]);
+  });
+
+  test("keeps only the segments still present", () => {
+    const wire = "kept paste text and more";
+    expect(inlinePastesInText(["kept paste text", "removed"], wire)).toEqual(["kept paste text"]);
   });
 });
