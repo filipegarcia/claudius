@@ -799,26 +799,39 @@ export const TODO_TASK_TOOL_NAMES = ["TodoWrite", "TaskCreate", "TaskGet", "Task
  */
 export function buildQueryEnv(
   envOverride: Record<string, string | undefined> | null,
+  restrictedMode?: boolean,
 ): Record<string, string | undefined> {
   return {
     ...(envOverride ?? process.env),
     CLAUDE_CODE_ENABLE_TODO_TOOLS: "1",
     CLAUDE_CODE_STARTUP_FAILURE_RESULTS: "1",
+    // CC 2.1.248 — tell the engine itself this is a restricted session, so
+    // enforcement (refusing cmd/code tools, confining file tools to cwd,
+    // ignoring user/project/local settings files) happens inside the CLI and
+    // not only via our `disallowedTools` list. The bundled binary keys off
+    // this env var ("a restricted session: CLAUDE_CODE_RESTRICTED").
+    ...(restrictedMode ? { CLAUDE_CODE_RESTRICTED: "1" } : {}),
   };
 }
 
 /**
  * Tools blocked in restricted mode (Claude Code 2.1.248 `--restricted`):
- * the command/code-execution tools (`Bash` and its lifecycle companions
- * `BashOutput`/`KillBash`) and `WebFetch`. Passed as `Options.disallowedTools`
- * so the SDK blocks them entirely — not just at the `canUseTool` prompt.
- * File tools (Read/Write/Edit/Glob/Grep) stay available, confined to cwd as
- * usual. Exported for unit tests (see tests/unit/session-options.test.ts).
+ * every tool that runs a shell command or fetches the network. `Bash` and
+ * its background-output companion `BashOutput`; `Monitor`, which also runs a
+ * shell command (`MonitorInput.command`); `TaskStop`, which stops a running
+ * command/agent; and `WebFetch`. Passed as `Options.disallowedTools` so the
+ * SDK blocks them entirely — not just at the `canUseTool` prompt. File tools
+ * (Read/Write/Edit/Glob/Grep) stay available, confined to cwd as usual.
+ *
+ * CC 2.1.248 fix-up: dropped the stale `KillBash` (gone from the 0.3.288 tool
+ * union — its lifecycle role is now `TaskStop`) and added `Monitor`/`TaskStop`,
+ * which the original list missed. Exported for unit tests.
  */
 export const RESTRICTED_MODE_DISALLOWED_TOOLS = [
   "Bash",
   "BashOutput",
-  "KillBash",
+  "Monitor",
+  "TaskStop",
   "WebFetch",
 ];
 
@@ -2743,7 +2756,7 @@ export class Session {
       // because `Options.env` REPLACES the subprocess env wholesale when
       // set (SDK contract) — there's no way to inject a single var without
       // supplying the rest.
-      env: buildQueryEnv(envOverride),
+      env: buildQueryEnv(envOverride, this.restrictedMode),
       // In-process MCP server exposing a single tool the agent calls to
       // report that the session goal is done (see `/goal`, GoalBanner). The
       // tool runs in this process, so its handler can broadcast straight to
