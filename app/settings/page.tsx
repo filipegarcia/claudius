@@ -1301,16 +1301,15 @@ const SDK_SETTINGS_CATALOG: SettingMeta[] = [
     desc: 'IANA time zone for times the CLI shows in its own UI, e.g. "UTC" or "Europe/Dublin". Default: the system time zone. Does not affect Claudius\'s own message timestamps.',
   },
   {
-    // SDK 0.3.283 — config-passthrough only, same reasoning as `timeFormat`
-    // above: this caps prose width in the bundled CLI's terminal TUI.
-    // Claudius's browser UI wraps prose with CSS and isn't affected; the key
-    // is forwarded here for anyone who also runs the `claude` binary against
-    // this settings file.
+    // SDK 0.3.283 — honored in Claudius's browser UI (CC 2.1.282 / F3): the
+    // column count maps to the `ch` unit and caps prose blocks via the
+    // `--prose-max-width` CSS variable (see `lib/client/prose-width.ts`). The
+    // same key is still read by the bundled `claude` binary's TUI.
     key: "maxProseWidth",
     type: "number",
     section: "Display",
     placeholder: "(full width)",
-    desc: "Maximum width, in terminal columns, of the prose in Claude's responses (paragraphs, headings, lists, blockquotes) in the CLI's own TUI. Minimum 40; tables and code blocks keep full width, and only the display wraps — the response text gains no line breaks. Unset uses the full terminal width. Does not affect how Claudius wraps prose in the browser.",
+    desc: "Maximum width, in columns, of the prose in Claude's responses (paragraphs, headings, lists, blockquotes). Minimum 40; tables and code blocks keep full width. Unset uses the full chat-column width. Applies in Claudius's browser UI (each column ≈ one character) and in the CLI's own TUI.",
   },
   {
     key: "forceLoginMethod",

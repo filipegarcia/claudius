@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { SideNav } from "@/components/nav/SideNav";
 import { StatusLine } from "@/components/chat/StatusLine";
@@ -38,6 +38,7 @@ import { nextPermissionMode } from "@/components/chat/ModeSelector";
 import { useDisableAutoMode } from "@/lib/client/useDisableAutoMode";
 import { useEmojiCompletionEnabled } from "@/lib/client/useEmojiCompletionEnabled";
 import { useSpellcheckEnabled } from "@/lib/client/useSpellcheckEnabled";
+import { useProseMaxWidth } from "@/lib/client/useProseMaxWidth";
 import { HelpOverlay } from "@/components/overlays/HelpOverlay";
 import { SkillsOverlay } from "@/components/overlays/SkillsOverlay";
 import { CostOverlay } from "@/components/overlays/CostOverlay";
@@ -409,6 +410,11 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
   // Prompt-input spellcheck underline (Claude Code 2.1.235 parity), gated by
   // the user-scope `spellcheck` setting.
   const spellcheckEnabled = useSpellcheckEnabled(session.cwd);
+  // CC 2.1.282 (F3) — cap prose width to the user-scope `maxProseWidth`
+  // setting. Published as `--prose-max-width` on the chat area so the Markdown
+  // prose renderers inherit it; tables/code opt out and keep full width. Null
+  // when unset → the variable isn't set → prose fills the full chat column.
+  const proseMaxWidth = useProseMaxWidth(session.cwd);
 
   // Compute breach state. The override is keyed by `session:<id>:<today>` so
   // it lifts the cap only for the current calendar day, per the spec.
@@ -2041,7 +2047,11 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
           but keeps the workspace rail; zen hides the workspace rail too.
           SideNav handles the split internally. */}
       <SideNav running={session.pending} focusLevel={focusLevel} />
-      <main data-pane-name="chat-area" className="relative flex h-full min-w-0 flex-1 flex-col">
+      <main
+        data-pane-name="chat-area"
+        className="relative flex h-full min-w-0 flex-1 flex-col"
+        style={proseMaxWidth ? ({ "--prose-max-width": proseMaxWidth } as CSSProperties) : undefined}
+      >
         <SessionTabs
           tabs={openTabs.map((id) => {
             // Status resolution for the dot on each tab:

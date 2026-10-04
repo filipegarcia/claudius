@@ -17,6 +17,15 @@ import { LazyPreview } from "./LazyPreview";
 const INLINE_CODE_CLASS = "rounded bg-[var(--panel-2)] px-1 py-0.5 font-mono text-[0.85em]";
 
 /**
+ * CC 2.1.282 (F3) — the prose-width cap. `--prose-max-width` is set on the
+ * chat area from the `maxProseWidth` setting (see `useProseMaxWidth`); unset it
+ * computes to `none`, so default rendering is unchanged. `me-auto` keeps a
+ * capped block aligned to its own writing direction (RTL blocks sit on the
+ * right). Applied to prose blocks only — tables and code keep full width.
+ */
+const PROSE_CAP = "max-w-[var(--prose-max-width)] me-auto";
+
+/**
  * Inline single-backtick code. When the span looks like a project file path
  * and we have workspace context, render it as a link to the in-app Files
  * browser — displayed as the plain path, just clickable. Otherwise it's an
@@ -265,12 +274,22 @@ const baseComponents: Omit<Components, "code"> = {
   // its first strong character, and `ps-5`/`ps-…` (logical start-padding) keeps
   // the list marker padded on the correct side in RTL (plain `pl-5` would leave
   // an RTL marker flush against the unpadded right edge).
+  // CC 2.1.282 (F3) — `PROSE_CAP` caps each prose block's width to the
+  // `--prose-max-width` setting (unset → `none`, i.e. the full chat column).
+  // `me-auto` (logical margin-inline-end) keeps a capped block aligned to its
+  // own direction, so an RTL block (F2) sits on the right rather than being
+  // left-placed by the LTR parent. Tables and code blocks deliberately skip
+  // the cap and keep full width.
   p({ children }) {
-    return <p dir="auto">{children}</p>;
+    return (
+      <p dir="auto" className={PROSE_CAP}>
+        {children}
+      </p>
+    );
   },
   ul({ children }) {
     return (
-      <ul dir="auto" className="my-2 list-disc ps-5">
+      <ul dir="auto" className={cn("my-2 list-disc ps-5", PROSE_CAP)}>
         {children}
       </ul>
     );
@@ -281,7 +300,7 @@ const baseComponents: Omit<Components, "code"> = {
     // resuming after a code block keeps its number. Dropping `start` (the old
     // behavior) silently rewrote the user's own typed numbers.
     return (
-      <ol dir="auto" start={start} type={type} className="my-2 list-decimal ps-5">
+      <ol dir="auto" start={start} type={type} className={cn("my-2 list-decimal ps-5", PROSE_CAP)}>
         {children}
       </ol>
     );
@@ -293,9 +312,15 @@ const baseComponents: Omit<Components, "code"> = {
   // children at a fixed pixel size, which reads as "boxes that didn't
   // update". The ratios preserve the original look at the default chat-text
   // (14px / text-sm): 12/14, 16/14, 18/14, 20/14.
-  h1: ({ children }) => <h1 dir="auto" className="my-3 text-[1.43em] font-semibold">{children}</h1>,
-  h2: ({ children }) => <h2 dir="auto" className="my-3 text-[1.29em] font-semibold">{children}</h2>,
-  h3: ({ children }) => <h3 dir="auto" className="my-2 text-[1.14em] font-semibold">{children}</h3>,
+  h1: ({ children }) => <h1 dir="auto" className={cn("my-3 text-[1.43em] font-semibold", PROSE_CAP)}>{children}</h1>,
+  h2: ({ children }) => <h2 dir="auto" className={cn("my-3 text-[1.29em] font-semibold", PROSE_CAP)}>{children}</h2>,
+  h3: ({ children }) => <h3 dir="auto" className={cn("my-2 text-[1.14em] font-semibold", PROSE_CAP)}>{children}</h3>,
+  // CC 2.1.216 (F2) + 2.1.282 (F3) — h4–h6 had no renderer, so they missed
+  // both dir="auto" and the prose cap; give them the same treatment (sized at
+  // the body text, matching Markdown's default de-emphasis of deep headings).
+  h4: ({ children }) => <h4 dir="auto" className={cn("my-2 font-semibold", PROSE_CAP)}>{children}</h4>,
+  h5: ({ children }) => <h5 dir="auto" className={cn("my-2 font-semibold", PROSE_CAP)}>{children}</h5>,
+  h6: ({ children }) => <h6 dir="auto" className={cn("my-2 font-semibold text-[var(--muted)]", PROSE_CAP)}>{children}</h6>,
   table: ({ children }) => (
     <div className="my-2 overflow-x-auto rounded border border-[var(--border)] scroll-thin">
       <table className="w-full border-collapse text-[0.86em]">{children}</table>
@@ -304,7 +329,7 @@ const baseComponents: Omit<Components, "code"> = {
   th: ({ children }) => <th dir="auto" className="border-b border-[var(--border)] bg-[var(--panel-2)] px-2 py-1 text-start">{children}</th>,
   td: ({ children }) => <td dir="auto" className="border-b border-[var(--border)] px-2 py-1">{children}</td>,
   blockquote: ({ children }) => (
-    <blockquote dir="auto" className="my-2 border-s-2 border-[var(--accent)]/60 ps-3 text-[var(--muted)]">
+    <blockquote dir="auto" className={cn("my-2 border-s-2 border-[var(--accent)]/60 ps-3 text-[var(--muted)]", PROSE_CAP)}>
       {children}
     </blockquote>
   ),
