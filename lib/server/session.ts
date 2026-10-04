@@ -1,5 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { watch as watchFs, readFileSync, type FSWatcher, promises as fsp } from "node:fs";
+import { homedir } from "node:os";
+import { isAbsolute, join as pathJoin } from "node:path";
 import {
   createSdkMcpServer,
   getSessionInfo,
@@ -121,7 +123,7 @@ import {
   joinSystemPromptAppends,
 } from "@/lib/shared/system-prompt-append";
 import { loadDbAgentsForOptions } from "@/lib/server/db-agents";
-import { selectTips } from "@/lib/shared/tips";
+import { selectTips, type SpinnerTipOverrideEntry } from "@/lib/shared/tips";
 import { buildEffortFlagSettings } from "@/lib/shared/effort-flags";
 import { normalizeExtraUsage, type ExtraUsage } from "@/lib/shared/plan-usage";
 import type { SessionLoop } from "@/lib/shared/session-loops";
@@ -860,24 +862,96 @@ export const RESTRICTED_MODE_DISALLOWED_TOOLS = [
  */
 export function normalizeSpinnerTipsOverride(
   override: ClaudeSettings["spinnerTipsOverride"],
-): { excludeDefault?: boolean; tips?: string[] } | undefined {
+): {
+  excludeDefault?: boolean;
+  tips?: SpinnerTipOverrideEntry[];
+  label?: string;
+  tipsFile?: string;
+} | undefined {
   if (!override || typeof override !== "object" || Array.isArray(override)) {
     return undefined;
   }
+  // CC 2.1.247 (G6) — preserve each entry's shape (bare string, or the rich
+  // `{id,text,priority,cooldownSessions}` object) rather than flattening to
+  // text-only, so `selectTips` can honor `id`/`priority`/`cooldownSessions`.
+  // Malformed entries (no text / wrong type) are dropped without throwing.
+  const tips = Array.isArray(override.tips)
+    ? override.tips
+        .map((t): SpinnerTipOverrideEntry | null => {
+          if (typeof t === "string") return t.trim().length > 0 ? t.trim() : null;
+          if (t && typeof t === "object" && typeof t.text === "string" && t.text.trim().length > 0) {
+            const e = t as { id?: unknown; text: string; priority?: unknown; cooldownSessions?: unknown };
+            return {
+              text: e.text.trim(),
+              ...(typeof e.id === "string" ? { id: e.id } : {}),
+              ...(typeof e.priority === "number" ? { priority: e.priority } : {}),
+              ...(typeof e.cooldownSessions === "number" ? { cooldownSessions: e.cooldownSessions } : {}),
+            };
+          }
+          return null;
+        })
+        .filter((t): t is SpinnerTipOverrideEntry => t !== null)
+    : undefined;
   return {
     excludeDefault: override.excludeDefault === true,
-    tips: Array.isArray(override.tips)
-      ? override.tips
-          .map((t) =>
-            typeof t === "string"
-              ? t
-              : t && typeof t === "object" && typeof t.text === "string"
-                ? t.text
-                : null,
-          )
-          .filter((t): t is string => typeof t === "string" && t.length > 0)
-      : undefined,
+    tips,
+    label:
+      typeof override.label === "string" && override.label.trim() ? override.label.trim() : undefined,
+    tipsFile:
+      typeof override.tipsFile === "string" && override.tipsFile.trim()
+        ? override.tipsFile.trim()
+        : undefined,
   };
+}
+
+/** Max `tipsFile` size read into memory — a spinner-tips list is tiny. */
+const SPINNER_TIPS_FILE_MAX_BYTES = 256 * 1024;
+
+/**
+ * CC 2.1.247 (G6) — load a `spinnerTipsOverride.tipsFile` (an absolute or `~/`
+ * path to a JSON array of tip shapes), appending its entries to the inline
+ * `tips` and dropping the `tipsFile` field from the returned shape. Best-effort
+ * and defensive: a missing/oversized/malformed file, or a non-array JSON, is
+ * ignored (the inline tips still apply). Read once per session start.
+ */
+async function mergeSpinnerTipsFile(
+  override:
+    | { excludeDefault?: boolean; tips?: SpinnerTipOverrideEntry[]; label?: string; tipsFile?: string }
+    | undefined,
+): Promise<{ excludeDefault?: boolean; tips?: SpinnerTipOverrideEntry[]; label?: string } | undefined> {
+  if (!override) return undefined;
+  const { tipsFile, ...rest } = override;
+  if (!tipsFile) return rest;
+  const expanded = tipsFile.startsWith("~/") ? pathJoin(homedir(), tipsFile.slice(2)) : tipsFile;
+  // Only absolute paths are honored (matches the SDK: "absolute or ~/").
+  if (!isAbsolute(expanded)) return rest;
+  try {
+    const stat = await fsp.stat(expanded);
+    if (!stat.isFile() || stat.size > SPINNER_TIPS_FILE_MAX_BYTES) return rest;
+    const parsed = JSON.parse(await fsp.readFile(expanded, "utf8")) as unknown;
+    if (!Array.isArray(parsed)) return rest;
+    const fileTips = parsed
+      .map((t): SpinnerTipOverrideEntry | null => {
+        if (typeof t === "string") return t.trim().length > 0 ? t.trim() : null;
+        if (t && typeof t === "object" && typeof (t as { text?: unknown }).text === "string") {
+          const e = t as { id?: unknown; text: string; priority?: unknown; cooldownSessions?: unknown };
+          if (!e.text.trim()) return null;
+          return {
+            text: e.text.trim(),
+            ...(typeof e.id === "string" ? { id: e.id } : {}),
+            ...(typeof e.priority === "number" ? { priority: e.priority } : {}),
+            ...(typeof e.cooldownSessions === "number" ? { cooldownSessions: e.cooldownSessions } : {}),
+          };
+        }
+        return null;
+      })
+      .filter((t): t is SpinnerTipOverrideEntry => t !== null);
+    if (fileTips.length === 0) return rest;
+    return { ...rest, tips: [...(rest.tips ?? []), ...fileTips] };
+  } catch {
+    // Missing / unreadable / invalid JSON — ignore, keep inline tips.
+    return rest;
+  }
 }
 
 /**
@@ -2220,7 +2294,11 @@ export class Session {
    */
   private spinnerTipsConfig: {
     enabled?: boolean;
-    override?: { excludeDefault?: boolean; tips?: readonly string[] };
+    override?: {
+      excludeDefault?: boolean;
+      tips?: readonly SpinnerTipOverrideEntry[];
+      label?: string;
+    };
   } = {};
 
   /**
@@ -2654,7 +2732,11 @@ export class Session {
         typeof userSettings.spinnerTipsEnabled === "boolean"
           ? userSettings.spinnerTipsEnabled
           : undefined,
-      override: normalizeSpinnerTipsOverride(userSettings.spinnerTipsOverride),
+      // CC 2.1.247 (G6) — merge `tipsFile` entries (read once here, not on each
+      // attach) into the inline tips, then drop the path from the cached shape.
+      override: await mergeSpinnerTipsFile(
+        normalizeSpinnerTipsOverride(userSettings.spinnerTipsOverride),
+      ),
     };
     // Resolve the queue-dispatch mode from user settings (default "wait").
     // Cached for the lifetime of this Session; a settings change after

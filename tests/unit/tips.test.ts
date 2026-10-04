@@ -255,11 +255,11 @@ describe("selectTips", () => {
     // Defaults are preserved at the head, custom tips appended at the tail.
     expect(result.slice(0, DEFAULT_TIPS.length)).toEqual(DEFAULT_TIPS);
     expect(result[DEFAULT_TIPS.length]).toEqual({
-      id: "custom-tip-0",
+      id: "custom:0",
       text: "First custom",
     });
     expect(result[DEFAULT_TIPS.length + 1]).toEqual({
-      id: "custom-tip-1",
+      id: "custom:1",
       text: "Second custom",
     });
   });
@@ -268,7 +268,7 @@ describe("selectTips", () => {
     const result = selectTips({
       spinnerTipsOverride: { excludeDefault: true, tips: ["Only this"] },
     });
-    expect(result).toEqual([{ id: "custom-tip-0", text: "Only this" }]);
+    expect(result).toEqual([{ id: "custom:0", text: "Only this" }]);
   });
 
   test("spinnerTipsOverride with excludeDefault:true and no tips opts out of every built-in", () => {
@@ -286,7 +286,7 @@ describe("selectTips", () => {
     const result = selectTips({
       spinnerTipsOverride: { excludeDefault: true, tips: ["  padded  ", "", "   "] },
     });
-    expect(result).toEqual([{ id: "custom-tip-0", text: "padded" }]);
+    expect(result).toEqual([{ id: "custom:0", text: "padded" }]);
   });
 
   test("availableCommands gating composes with override append", () => {
@@ -297,6 +297,73 @@ describe("selectTips", () => {
     // No /skills tip (gated), /mcp tip present, custom tip at the tail.
     expect(result.some((t) => t.command === "skills")).toBe(false);
     expect(result.some((t) => t.command === "mcp")).toBe(true);
-    expect(result[result.length - 1]).toEqual({ id: "custom-tip-0", text: "Custom" });
+    expect(result[result.length - 1]).toEqual({ id: "custom:0", text: "Custom" });
+  });
+
+  // ── CC 2.1.247 (G6) — rich override entries ─────────────────────────────
+  test("object entries carry their id (namespaced) and sort by priority desc", () => {
+    const result = selectTips({
+      spinnerTipsOverride: {
+        excludeDefault: true,
+        tips: [
+          { id: "low", text: "Low", priority: 1 },
+          { id: "high", text: "High", priority: 10 },
+          { id: "mid", text: "Mid", priority: 5 },
+        ],
+      },
+    });
+    expect(result.map((t) => t.id)).toEqual(["custom:high", "custom:mid", "custom:low"]);
+  });
+
+  test("a user id can't collide with a built-in tip id (namespaced + keeps built-in)", () => {
+    const result = selectTips({
+      spinnerTipsOverride: { tips: [{ id: "skills", text: "My skills tip" }] },
+    });
+    expect(result.some((t) => t.id === "skills")).toBe(true);
+    expect(result.some((t) => t.id === "custom:skills")).toBe(true);
+  });
+
+  test("duplicate ids are de-duped (first wins)", () => {
+    const result = selectTips({
+      spinnerTipsOverride: {
+        excludeDefault: true,
+        tips: [
+          { id: "dup", text: "first" },
+          { id: "dup", text: "second" },
+        ],
+      },
+    });
+    expect(result).toEqual([{ id: "custom:dup", text: "first" }]);
+  });
+
+  test("the override label becomes each custom tip's prefix", () => {
+    const result = selectTips({
+      spinnerTipsOverride: { excludeDefault: true, label: "Team", tips: ["Hi"] },
+    });
+    expect(result[0].label).toBe("Team");
+  });
+});
+
+describe("selectClientTips cooldownSessions (G6)", () => {
+  const tip = (id: string, cooldownSessions?: number) => ({ id, text: id, cooldownSessions });
+
+  test("hides a tip still within its cooldown window", () => {
+    const tips = [tip("a", 3), tip("b")];
+    const out = selectClientTips(tips, 1, { startupCount: 5, lastShownAt: { a: 4 } });
+    // a last shown at launch 4, cooldown 3 → hidden until launch 7; now 5 → hidden.
+    expect(out.map((t) => t.id)).toEqual(["b"]);
+  });
+
+  test("shows the tip again once the cooldown has elapsed", () => {
+    const out = selectClientTips([tip("a", 3)], 1, { startupCount: 7, lastShownAt: { a: 4 } });
+    expect(out.map((t) => t.id)).toEqual(["a"]);
+  });
+
+  test("no cooldown / never shown / no data → always visible", () => {
+    const tips = [tip("a", 3), tip("b")];
+    expect(
+      selectClientTips(tips, 1, { startupCount: 5, lastShownAt: {} }).map((t) => t.id),
+    ).toEqual(["a", "b"]);
+    expect(selectClientTips(tips, 1).map((t) => t.id)).toEqual(["a", "b"]);
   });
 });

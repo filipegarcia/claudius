@@ -49,7 +49,29 @@ export type Tip = {
    * SSE event.
    */
   requiresNewUser?: boolean;
+  /**
+   * CC 2.1.247 (G6) — a prefix shown before this tip instead of the default
+   * "Tip" (from `spinnerTipsOverride.label`, org-custom tips only). Serialized
+   * as a plain string so it survives the `tips` SSE event.
+   */
+  label?: string;
+  /**
+   * CC 2.1.247 (G6) — ordering weight from `spinnerTipsOverride` entries;
+   * higher sorts earlier. Undefined (built-in tips) sorts as 0.
+   */
+  priority?: number;
+  /**
+   * CC 2.1.247 (G6) — hide this tip for N launches after it was last shown
+   * (from a `spinnerTipsOverride` entry). Enforced client-side in
+   * {@link selectClientTips} against the per-browser startup counter.
+   */
+  cooldownSessions?: number;
 };
+
+/** A `spinnerTipsOverride.tips` entry — a bare string or the rich object form. */
+export type SpinnerTipOverrideEntry =
+  | string
+  | { id?: string; text?: string; priority?: number; cooldownSessions?: number };
 
 // Each command below maps to a native, non-destructive handler in the chat
 // page's `runNative` dispatcher (navigation or an overlay) — safe to invoke
@@ -206,17 +228,40 @@ export const DEFAULT_TIPS: Tip[] = [
 export function selectTips(opts?: {
   availableCommands?: readonly string[];
   spinnerTipsEnabled?: boolean;
-  spinnerTipsOverride?: { excludeDefault?: boolean; tips?: readonly string[] };
+  spinnerTipsOverride?: {
+    excludeDefault?: boolean;
+    tips?: readonly SpinnerTipOverrideEntry[];
+    label?: string;
+  };
 }): Tip[] {
   if (opts?.spinnerTipsEnabled === false) return [];
   const override = opts?.spinnerTipsOverride;
-  // Normalize override into a stable list of custom Tip objects. Trims
-  // entries and drops empties so a stray `""` in the user's settings doesn't
-  // surface as a blank line under the spinner.
-  const customTips: Tip[] =
-    override?.tips
-      ?.map((t, i) => ({ id: `custom-tip-${i}`, text: typeof t === "string" ? t.trim() : "" }))
-      .filter((t) => t.text.length > 0) ?? [];
+  // CC 2.1.247 (G6) — build custom Tips from the override's entries, honoring
+  // each field: `id` (namespaced `custom:` so a user `id:"skills"` can't share
+  // dismiss state / the React key with a built-in tip; de-duped; falls back to
+  // the index), `priority` (stable sort, higher first), `cooldownSessions`
+  // (carried for the client-side cooldown filter), and the override-level
+  // `label` prefix. Blank text is dropped so a stray `""` isn't a blank line.
+  const label =
+    typeof override?.label === "string" && override.label.trim() ? override.label.trim() : undefined;
+  const seen = new Set<string>();
+  const customTips: Tip[] = [];
+  (override?.tips ?? []).forEach((t, i) => {
+    const text = (typeof t === "string" ? t : typeof t?.text === "string" ? t.text : "").trim();
+    if (!text) return;
+    const rawId =
+      typeof t === "object" && typeof t.id === "string" && t.id.trim() ? t.id.trim() : `${i}`;
+    const id = `custom:${rawId}`;
+    if (seen.has(id)) return;
+    seen.add(id);
+    const priority = typeof t === "object" && typeof t.priority === "number" ? t.priority : undefined;
+    const cooldownSessions =
+      typeof t === "object" && typeof t.cooldownSessions === "number" ? t.cooldownSessions : undefined;
+    customTips.push({ id, text, label, priority, cooldownSessions });
+  });
+  // Stable sort by priority (desc); undefined → 0. Array.prototype.sort is
+  // stable in modern engines, so equal-priority tips keep author order.
+  customTips.sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0));
   const avail = opts?.availableCommands;
   // Fast path — no availability gate, no override knobs touched. Preserves
   // the historical contract that `selectTips()` / `selectTips({})` return
@@ -252,14 +297,37 @@ export function selectTips(opts?: {
 export function selectClientTips(
   tips: readonly Tip[],
   activeSessionCount: number,
-  opts?: { planModeNudgeEligible?: boolean; newUser?: boolean },
+  opts?: {
+    planModeNudgeEligible?: boolean;
+    newUser?: boolean;
+    /**
+     * CC 2.1.247 (G6) — the per-browser launch counter (≈ the CLI's
+     * `numStartups`) and the map of `tip.id → startupCount when last shown`.
+     * A tip with `cooldownSessions` is hidden while
+     * `startupCount < lastShownAt[id] + cooldownSessions`.
+     */
+    startupCount?: number;
+    lastShownAt?: Readonly<Record<string, number>>;
+  },
 ): Tip[] {
   const planModeNudgeEligible = opts?.planModeNudgeEligible === true;
   const newUser = opts?.newUser === true;
+  const startupCount = opts?.startupCount;
+  const lastShownAt = opts?.lastShownAt;
   return tips.filter((t) => {
     if ((t.minSessions ?? 0) > activeSessionCount) return false;
     if (t.requiresPlanModeNudge && !planModeNudgeEligible) return false;
     if (t.requiresNewUser && !newUser) return false;
+    if (
+      t.cooldownSessions &&
+      t.cooldownSessions > 0 &&
+      typeof startupCount === "number" &&
+      lastShownAt &&
+      typeof lastShownAt[t.id] === "number" &&
+      startupCount < lastShownAt[t.id] + t.cooldownSessions
+    ) {
+      return false;
+    }
     return true;
   });
 }

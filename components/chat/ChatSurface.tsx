@@ -128,6 +128,7 @@ import { useWorkspaces } from "@/lib/client/useWorkspaces";
 import { useVerbose } from "@/lib/client/useVerbose";
 import { useFocusMode } from "@/lib/client/useFocusMode";
 import { useStartupCount } from "@/lib/client/useStartupCount";
+import { useTipLastShown } from "@/lib/client/useTipLastShown";
 
 type OverlayKind = "help" | "skills" | "cost" | "status" | "rename" | "context" | "worktrees" | "diff" | "output-style" | null;
 
@@ -388,6 +389,8 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
   // Claude Code TUI's `numStartups < 10` first-run gate on the `/powerup`
   // onboarding nudge — bumped once per chat-page load (see useStartupCount).
   const startupCount = useStartupCount();
+  // CC 2.1.247 (G6) — per-tip cooldown bookkeeping for spinner tips.
+  const { lastShownAt: tipLastShownAt } = useTipLastShown();
   const [draftInjection, setDraftInjection] = useState<
     {
       token: number;
@@ -2437,6 +2440,8 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
                 planModeNudgeEligible:
                   planModeUsed && !activeWorkspace?.defaults?.permissionMode,
                 newUser: startupCount < 10,
+                startupCount,
+                lastShownAt: tipLastShownAt,
               },
             )}
             apiRetry={session.apiRetry}
