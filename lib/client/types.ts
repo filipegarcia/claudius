@@ -757,6 +757,17 @@ export type PlanRateLimits = {
     currency: string | null;
   } | null;
   /**
+   * CC 2.1.236 — usage-credits ("extra usage") spend. Mirrors
+   * `PlanUsageEvent.extraUsage` in `lib/shared/events.ts`.
+   */
+  extraUsage?: {
+    isEnabled: boolean;
+    monthlyLimit: number | null;
+    usedCredits: number | null;
+    utilization: number | null;
+    currency: string | null;
+  } | null;
+  /**
    * Epoch ms when this data was fetched. See `PlanUsageEvent.fetchedAt` in
    * `lib/shared/events.ts` for the full rationale (CC parity 2.1.208).
    */

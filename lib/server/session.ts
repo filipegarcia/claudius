@@ -123,6 +123,7 @@ import {
 import { loadDbAgentsForOptions } from "@/lib/server/db-agents";
 import { selectTips } from "@/lib/shared/tips";
 import { buildEffortFlagSettings } from "@/lib/shared/effort-flags";
+import { normalizeExtraUsage, type ExtraUsage } from "@/lib/shared/plan-usage";
 import type { SessionLoop } from "@/lib/shared/session-loops";
 import { matchesUsageLimitPrefix } from "@/lib/shared/rate-limit-prefixes";
 import {
@@ -8851,6 +8852,13 @@ export class Session {
                       },
                     }
                   : {}),
+                // CC parity 2.1.236 — usage-credits ("extra usage") spend. A
+                // typed field on `rate_limits` (unlike the speculative
+                // spend_limit above), normalized by the shared helper.
+                ...((): { extraUsage?: ExtraUsage } => {
+                  const eu = normalizeExtraUsage(rl?.extra_usage);
+                  return eu ? { extraUsage: eu } : {};
+                })(),
                 // CC parity 2.1.208: a fresh successful fetch always implies
                 // "not stale" — the client clears any earlier staleness flag
                 // when it receives this event (see use-session.ts).

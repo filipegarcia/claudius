@@ -1069,6 +1069,19 @@ export type PlanUsageEvent = {
     currency: string | null;
   } | null;
   /**
+   * CC 2.1.236 — usage-credits ("extra usage") spend, from `get_usage`'s
+   * `rate_limits.extra_usage`. Present for Team/Enterprise (and others) once
+   * credits are enabled; `/usage` shows a spend row (capped at 0% before any
+   * spend). Mirrors the SDK shape 1:1.
+   */
+  extraUsage?: {
+    isEnabled: boolean;
+    monthlyLimit: number | null;
+    usedCredits: number | null;
+    utilization: number | null;
+    currency: string | null;
+  } | null;
+  /**
    * Epoch ms when this event's data was fetched (CC parity 2.1.208 — mirrors
    * the CLI's `/usage` "as of <time>" note shown when the usage endpoint is
    * rate-limited/unavailable). Stamped server-side on every *successful*

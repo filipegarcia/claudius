@@ -2286,6 +2286,8 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
           ...(ev.modelScoped ? { modelScoped: ev.modelScoped } : {}),
           // CC parity 2.1.251 — gateway spend limit, sibling of rateLimits.
           ...(ev.spendLimit ? { spendLimit: ev.spendLimit } : {}),
+          // CC parity 2.1.236 — usage-credits ("extra usage") spend.
+          ...(ev.extraUsage ? { extraUsage: ev.extraUsage } : {}),
           fetchedAt: ev.fetchedAt,
           stale: false,
         });
