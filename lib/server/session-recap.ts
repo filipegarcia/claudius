@@ -253,6 +253,11 @@ export async function generateRecap(
     // turn closes after one model response.
     maxTurns: 1,
     canUseTool: denyAllTools,
+    // CC 2.1.259 — this is an unattended side-query; `permissionPrompts:
+    // "none"` means the SDK never even raises a prompt (it denies immediately
+    // with a message), a cleaner statement of intent than relying on
+    // `denyAllTools` to field one.
+    permissionPrompts: "none",
     // No system-prompt customization — the SDK default keeps the model
     // unencumbered. The recap instruction is in the user prompt.
     permissionMode: "default",
