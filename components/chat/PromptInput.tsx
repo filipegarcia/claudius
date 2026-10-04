@@ -11,7 +11,7 @@ import {
   type KeyboardEvent,
 } from "react";
 import { createPortal } from "react-dom";
-import { ArrowUp, Hourglass, Image as ImageIcon, Mic, MicOff, Paperclip, Sparkles, Square, X } from "lucide-react";
+import { ArrowUp, Hourglass, Image as ImageIcon, Mic, MicOff, Paperclip, Square, X } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { SlashCommandPicker } from "./SlashCommandPicker";
 import { AtMentionPicker } from "./AtMentionPicker";
@@ -1928,7 +1928,7 @@ export function PromptInput({
               title="Dismiss this hint"
               className="flex items-center gap-1 rounded text-[var(--accent)] hover:text-[var(--foreground)]"
             >
-              <Sparkles className="h-3 w-3 shrink-0" />
+              {/* CC 2.1.282 — plain keyword hint, no Sparkles glimmer. */}
               <span>{detectedHint.label}</span>
               <span className="text-[var(--muted)]/70">· ignore</span>
             </button>
@@ -1946,7 +1946,6 @@ export function PromptInput({
               title="Restore this hint"
               className="flex items-center gap-1 rounded text-[var(--muted)] hover:text-[var(--foreground)]"
             >
-              <Sparkles className="h-3 w-3 shrink-0 opacity-50" />
               <span>{detectedHint.ignoredLabel}</span>
               <span className="text-[var(--muted)]/70">· undo</span>
             </button>

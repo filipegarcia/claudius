@@ -323,9 +323,9 @@ test.describe("model picker", () => {
     await expect(panel.locator('[data-effort="adaptive"]')).toBeVisible();
     await expect(panel.locator('[data-effort="low"]')).toBeVisible();
     await expect(panel.locator('[data-effort="xhigh"]')).toBeVisible();
-    // Ultracode is composite (xhigh effort + ultracode session flag) —
-    // rendered as a chip in the effort row to match the TUI's
-    // "✦ Ultracode effort" tier.
+    // Ultracode is an independent toggle (CC 2.1.284) shown as a plain chip in
+    // the effort row on xhigh-capable models — turning it on no longer forces
+    // effort=xhigh.
     await expect(panel.locator('[data-effort="ultracode"]')).toBeVisible();
 
     // Hovering a row that DOESN'T support effort must NOT collapse the

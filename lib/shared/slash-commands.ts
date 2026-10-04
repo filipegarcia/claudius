@@ -124,7 +124,9 @@ export const SLASH_COMMANDS: SlashCommand[] = [
 
   // ── Model ────────────────────────────────────────────────────────────
   { id: "model", name: "model", description: "Pick a model (e.g. claude-opus-4-7 / claude-sonnet-4-6).", category: "model", handler: "native", argsHint: "[model-id]" },
-  { id: "effort", name: "effort", description: "Set effort level (low/medium/high/xhigh/max/auto).", category: "model", handler: "sdk", argsHint: "[level]" },
+  // CC 2.1.284 — handled natively (the SDK rejects a forwarded `/effort`), so
+  // `/effort <level>` and `/effort ultracode on|off` both work.
+  { id: "effort", name: "effort", description: "Set effort level, or toggle ultracode.", category: "model", handler: "native", argsHint: "[level] | ultracode on|off" },
   { id: "fast", name: "fast", description: "Toggle fast mode.", category: "model", handler: "sdk", argsHint: "[on|off]" },
   // `/advisor` isn't an SDK-registered slash command (typing it raw would
   // return "/advisor isn't available in this environment.") — so we

@@ -1409,6 +1409,10 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
   // `effort` — no SDK event to replay, so we track the last toggle and
   // reset to off on a fresh session.
   const [ultracode, setUltracodeState] = useState<boolean>(false);
+  // CC 2.1.284 — mirror ultracode in a ref so `setEffort` (deps []) can send
+  // the current value and keep it on across a level change.
+  const ultracodeRef = useRef(ultracode);
+  ultracodeRef.current = ultracode;
   // Latest effort for callbacks that must compare against it without
   // re-creating themselves (see `setEffort`).
   const effortRef = useRef(effort);
@@ -6036,14 +6040,15 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     async (level: "low" | "medium" | "high" | "xhigh" | "max" | "auto") => {
       const id = sessionIdRef.current;
       if (!id) return;
-      // SDK 0.3.284: an effortLevel that moves the session to a different
-      // level (sent without an `ultracode` key) turns ultracode off.
-      if (level !== effortRef.current) setUltracodeState(false);
+      // CC 2.1.284: ultracode is independent of effort and stays on across a
+      // level change — send the current ultracode state so the server passes
+      // both keys to applyFlagSettings (an effortLevel sent alone would turn it
+      // off). The mirror is left untouched.
       setEffortState(level);
       await fetch(`/api/sessions/${id}/effort`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ level }),
+        body: JSON.stringify({ level, ultracode: ultracodeRef.current }),
       }).catch(() => {});
     },
     [],

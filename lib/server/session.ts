@@ -122,6 +122,7 @@ import {
 } from "@/lib/shared/system-prompt-append";
 import { loadDbAgentsForOptions } from "@/lib/server/db-agents";
 import { selectTips } from "@/lib/shared/tips";
+import { buildEffortFlagSettings } from "@/lib/shared/effort-flags";
 import type { SessionLoop } from "@/lib/shared/session-loops";
 import { matchesUsageLimitPrefix } from "@/lib/shared/rate-limit-prefixes";
 import {
@@ -5419,17 +5420,23 @@ export class Session {
    * so `"auto"`/clear skips the persist call entirely; the live clear via
    * `applyFlagSettings` below still takes effect for this session.
    */
-  async setEffort(level: EffortLevel | "auto"): Promise<void> {
+  async setEffort(level: EffortLevel | "auto", keepUltracode = false): Promise<void> {
     if (!this.query) return;
     // SDK 0.3.214: `applyFlagSettings`'s `effortLevel` param is typed as
     // `EffortLevel | null` (which includes `'max'`) independent of the
     // narrower `Settings['effortLevel']` shape, so `level` — already an
     // `EffortLevel` — passes straight through without a cast. Trust the SDK
     // to reject unsupported levels rather than narrowing here.
-    const value = level === "auto" ? null : level;
-    await this.query.applyFlagSettings({ effortLevel: value }).catch(() => {});
-    if (value !== null) {
-      await this.query.updateSettings("userSettings", { effortLevel: value }).catch(() => {});
+    //
+    // CC 2.1.284: an `effortLevel` sent alone turns ultracode off; send both
+    // keys when it's on so a level change keeps ultracode on (buildEffort-
+    // FlagSettings).
+    const settings = buildEffortFlagSettings(level, keepUltracode);
+    await this.query.applyFlagSettings(settings).catch(() => {});
+    if (settings.effortLevel !== null) {
+      await this.query
+        .updateSettings("userSettings", { effortLevel: settings.effortLevel })
+        .catch(() => {});
     }
   }
 

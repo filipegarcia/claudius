@@ -109,6 +109,7 @@ import { ContextWarningBanner } from "@/components/chat/ContextWarningBanner";
 import { useNotificationsContext } from "@/components/notifications/NotificationsProvider";
 import { findSlashCommand, isSlashCommandHead, userCommandShadowsBuiltin } from "@/lib/shared/slash-commands";
 import { useSdkCommands } from "@/lib/client/useSdkCommands";
+import { parseEffortArgs } from "@/lib/shared/effort-flags";
 import {
   PROMPT_COLOR_NAMES,
   PROMPT_COLOR_RESET_WORDS,
@@ -1503,6 +1504,23 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
           showToast("Configure Google Vertex AI under Usage → Provider");
           router.push("/usage");
           return true;
+        case "effort": {
+          // CC 2.1.284 — `/effort <level>` sets the level; `/effort ultracode
+          // on|off` toggles ultracode; bare `/effort` shows the current state.
+          const parsed = parseEffortArgs(args);
+          if (parsed.kind === "level") {
+            void session.setEffort(parsed.level);
+            showToast(`Effort set to ${parsed.level}`);
+          } else if (parsed.kind === "ultracode") {
+            void session.setUltracode(parsed.on);
+            showToast(`Ultracode ${parsed.on ? "on" : "off"}`);
+          } else if (parsed.kind === "show") {
+            showToast(`Effort: ${session.effort ?? "auto"}${session.ultracode ? " · ultracode on" : ""}`);
+          } else {
+            showToast(parsed.message);
+          }
+          return true;
+        }
         case "status":
           setOverlay("status");
           return true;

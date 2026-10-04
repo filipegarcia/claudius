@@ -588,32 +588,19 @@ export function ModelPicker({
                   tone={level}
                 />
               ))}
-              {/* Ultracode — composite "xhigh effort + ultracode session
-                  flag on" tier the TUI cycles through as a regular effort
-                  option. The SDK's typed `EffortLevel` union doesn't
-                  include it (it's a separate `ultracode: boolean` flag on
-                  top of `xhigh`), so we compose it at the chip layer:
-                  click sets effort=xhigh and toggles ultracode=true in
-                  one shot. Only meaningful on xhigh-capable models that
-                  also surface the ultracode toggle (i.e. a session with
-                  `onToggleUltracode` wired). The standalone Dynamic
-                  Workflows toggle below remains as the on/off indicator
-                  and as the way to turn ultracode back off without
-                  changing effort. */}
+              {/* Ultracode — CC 2.1.284 made it an INDEPENDENT toggle that
+                  stays on at any effort, no longer an xhigh effort tier. So
+                  this chip just turns ultracode on (it does NOT force
+                  effort=xhigh); the current effort is left as-is. Still gated
+                  on an xhigh-capable model (the SDK has no ultracode-support
+                  field, so xhigh-capability is the best proxy for "can run
+                  Dynamic Workflows"). The standalone toggle below is the
+                  on/off indicator and the way to turn it back off. */}
               {onToggleUltracode &&
                 activeModel.supportedEffortLevels.includes("xhigh") && (
                   <EffortChip
                     label="Ultracode"
-                    onClick={async () => {
-                      // Sequence matters: pick the effort first so the
-                      // server applies it under the same picker turn,
-                      // then flip the ultracode flag. Both are queued
-                      // behind any in-flight turn server-side, so the
-                      // user-visible order is "set ultracode" — the
-                      // single composite affordance the TUI presents.
-                      await pickEffort("xhigh");
-                      await onToggleUltracode(true);
-                    }}
+                    onClick={() => onToggleUltracode(true)}
                     tone="ultracode"
                   />
                 )}
@@ -661,7 +648,7 @@ export function ModelPicker({
                   Dynamic Workflows
                 </span>
                 <span className="block text-[9px] leading-tight text-[var(--muted)]">
-                  xhigh effort + parallel subagents. Needs a Workflows-enabled plan.
+                  Parallel subagents at any effort. Needs a Workflows-enabled plan.
                 </span>
               </span>
               <span
@@ -937,10 +924,10 @@ function EffortChip({
               ? "border-amber-500/30 bg-amber-500/10 text-amber-200 hover:bg-amber-500/20"
               : tone === "max"
                 ? "border-red-500/30 bg-red-500/10 text-red-200 hover:bg-red-500/20"
-                : // ultracode — mirror the TUI's ✦ amber + pink accent so the
-                  // composite tier reads as "more than xhigh" at a glance and
-                  // doesn't visually collide with the plain Very High chip.
-                  "border-fuchsia-500/40 bg-gradient-to-r from-amber-500/15 to-fuchsia-500/15 text-fuchsia-200 hover:from-amber-500/25 hover:to-fuchsia-500/25";
+                : // ultracode — CC 2.1.282 made the visuals plain (no gradient
+                  // border flourish / keyword glimmer). A flat fuchsia accent,
+                  // same shape as the other effort chips.
+                  "border-fuchsia-500/30 bg-fuchsia-500/10 text-fuchsia-200 hover:bg-fuchsia-500/20";
 
   return (
     <button
@@ -953,10 +940,8 @@ function EffortChip({
         toneClass,
       )}
     >
-      {/* Sparkle prefix mirrors the TUI's "✦ Ultracode effort" label so
-          the chip reads as the composite Ultracode tier rather than just
-          another effort row. Other tones get plain text. */}
-      {tone === "ultracode" ? `✦ ${label}` : label}
+      {/* CC 2.1.282 — plain label, no ✦ glimmer prefix. */}
+      {label}
     </button>
   );
 }
