@@ -121,7 +121,7 @@ grep evidence): [`audit/chunk0.md`](audit/chunk0.md) (2.1.285–288) …
 - [x] **E11** [2.1.234] `autoContinueAtUsageLimit` setting + "Continuing automatically at HH:MM · Cancel"
 - [x] **E12** [2.1.239 low] Cost page: 1.1× US-only `inference_geo` premium
 - [x] **E13** [2.1.283 low] `deniedModels` must hide always-shown aliases
-- [ ] **E14** [2.1.273 low F] Auth-failed copy for Bedrock / gateway (403)
+- [x] **E14** [2.1.273 low F] Auth-failed copy for Bedrock / gateway (403)
 
 ## F — Markdown, settings page & chrome
 

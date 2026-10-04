@@ -30,9 +30,11 @@ export function isAuthFailedErrorText(text: string): boolean {
   // synthetic body — match it directly so we trip even if the 401 isn't in
   // the substring (some surface variants drop the status code).
   if (t.includes("failed to authenticate")) return true;
-  // The combination form: a 401 mentioned alongside any authentication
-  // language. Keeps the false-positive radius small.
-  if (t.includes("401") && t.includes("authenticat")) return true;
+  // The combination form: a 401/403 mentioned alongside any authentication
+  // language. Keeps the false-positive radius small. CC 2.1.273 — a
+  // Bedrock/Vertex/Foundry or gateway credential failure surfaces as 403
+  // (forbidden), not just 401, so match both.
+  if ((t.includes("401") || t.includes("403")) && t.includes("authenticat")) return true;
   return false;
 }
 
@@ -78,8 +80,11 @@ export function isAuthFailedSignal(sdkMessage: unknown): boolean {
     message?: unknown;
   };
   if (m.type !== "assistant") return false;
-  // (1) Structured signal.
-  if (m.error === "authentication_failed") return true;
+  // (1) Structured signal. `cloud_credential_error` (SDK 0.3.267) is the
+  // Bedrock/Vertex/Foundry-gateway credential failure — same remediation
+  // (fix the credential / switch profile), so CC 2.1.273 fires the nudge for
+  // it too, not just the Anthropic-direct `authentication_failed`.
+  if (m.error === "authentication_failed" || m.error === "cloud_credential_error") return true;
   // (2) Text fallback.
   return isAuthFailedErrorText(extractAssistantText(m.message));
 }
