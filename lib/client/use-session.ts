@@ -352,6 +352,7 @@ function rateLimitHitFromBlocks(
   blocks: DisplayBlock[],
   last: SystemEntry["rateLimit"] | null,
   fallbackModel: string | null,
+  subscriptionType?: string | null,
 ): NonNullable<DisplayMessage["rateLimitHit"]> {
   const text = blocks.find((b) => b.kind === "text")?.text ?? "";
   const rateLimitType = last?.rateLimitType ?? rateLimitTypeFromText(text);
@@ -378,6 +379,8 @@ function rateLimitHitFromBlocks(
   // SDK 0.3.268 — forward a shared-pool denial so the panel can swap the
   // personal upgrade links for a contact-your-admin line.
   if (last?.limitScope) hit.limitScope = last.limitScope;
+  // CC 2.1.284 — carry the plan tier so the panel can tailor its CTA.
+  if (subscriptionType) hit.subscriptionType = subscriptionType;
   return hit;
 }
 
@@ -1048,6 +1051,10 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
   const [agentCwd, setAgentCwd] = useState<string | null>(null);
   const [usage, setUsage] = useState<SessionUsage | null>(null);
   const [planUsage, setPlanUsage] = useState<PlanRateLimits | null>(null);
+  // CC 2.1.284 — last-known subscription tier, mirrored in a ref so the
+  // rate-limit-hit builder (which runs in the message reducer) can tailor the
+  // panel's CTA for Team/Enterprise without re-subscribing to planUsage.
+  const subscriptionTypeRef = useRef<string | null>(null);
   const [tasks, setTasks] = useState<Record<string, TaskInfo>>({});
   // Authoritative set of live background-task ids from the SDK's
   // `background_tasks_changed` message (0.3.203). REPLACE semantics, ids-only —
@@ -2279,6 +2286,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
         return;
       }
       if (ev.type === "plan_usage") {
+        subscriptionTypeRef.current = ev.subscriptionType ?? null;
         setPlanUsage({
           subscriptionType: ev.subscriptionType,
           rateLimitsAvailable: ev.rateLimitsAvailable,
@@ -2757,7 +2765,12 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
         const assistantError = (msg as { error?: string }).error;
         const rateLimitHit =
           assistantError === "rate_limit" || isRateLimitHitText(blocks)
-            ? rateLimitHitFromBlocks(blocks, lastRateLimitInfoRef.current, fallbackModelRef.current)
+            ? rateLimitHitFromBlocks(
+                blocks,
+                lastRateLimitInfoRef.current,
+                fallbackModelRef.current,
+                subscriptionTypeRef.current,
+              )
             : undefined;
         // Opus-4 high-demand banner: backend emits the CTA as assistant prose
         // (no `error` field, no structured event), so it's prose-only on both

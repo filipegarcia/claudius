@@ -3,6 +3,7 @@
 import { AlertTriangle, Timer } from "lucide-react";
 import type { DisplayMessage } from "@/lib/client/types";
 import { formatResetClock, useCountdownSeconds } from "@/lib/client/use-countdown";
+import { rateLimitCtaKind } from "@/lib/client/rate-limit-cta";
 
 // Upgrade destinations, mirrored from the Claude Code CLI's `/rate-limit-options`
 // menu so the browser surfaces the same next steps when the user hits the wall:
@@ -76,6 +77,7 @@ export function RateLimitHitPanel({ hit }: { hit: RateLimitHit }) {
     ? RATE_LIMIT_TYPE_LABEL[hit.rateLimitType] ?? "usage limit"
     : "usage limit";
   const resetClock = hit.resetsAt ? formatResetClock(hit.resetsAt) : null;
+  const cta = rateLimitCtaKind(hit);
 
   // Per-model weekly-limit takeover toast — the Claude Code TUI prints a
   // "Now using <fallback>. Your <limit> resets <time>" ambient line so the
@@ -114,7 +116,7 @@ export function RateLimitHitPanel({ hit }: { hit: RateLimitHit }) {
           When canUserPurchaseCredits is explicitly false (org-managed seat) the
           user cannot act directly — show a contact-admin line instead.
           Falls back to the standard upgrade links for ordinary plan limits. */}
-      {hit.errorCode === "credits_required" && hit.canUserPurchaseCredits !== false ? (
+      {cta === "buy-credits" ? (
         <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-current/10 pt-1.5">
           <span className="opacity-70">Credits required to continue:</span>
           <a
@@ -127,13 +129,13 @@ export function RateLimitHitPanel({ hit }: { hit: RateLimitHit }) {
             {hit.hasChargeableSavedPaymentMethod ? "Buy credits" : "Add payment method"}
           </a>
         </div>
-      ) : hit.errorCode === "credits_required" ? (
+      ) : cta === "contact-admin-credits" ? (
         <div className="mt-1.5 border-t border-current/10 pt-1.5">
           <span className="opacity-70" data-testid="credits-contact-admin">
             Credits required to continue — contact your administrator.
           </span>
         </div>
-      ) : hit.limitScope === "group_pool" ? (
+      ) : cta === "contact-admin-pool" ? (
         // SDK 0.3.268 — the block is a pooled team/channel budget, not the
         // user's own plan tier. Upgrading a personal plan wouldn't refill a
         // shared pool, so point at an admin instead of the usual links.
@@ -141,6 +143,22 @@ export function RateLimitHitPanel({ hit }: { hit: RateLimitHit }) {
           <span className="opacity-70" data-testid="group-pool-contact-admin">
             This is a shared team limit — contact your administrator to increase it.
           </span>
+        </div>
+      ) : cta === "usage-credits" ? (
+        // CC 2.1.284 — a Team/Enterprise account is already on the top plan, so
+        // the personal "Upgrade your plan/Team" links don't apply. Point at
+        // usage credits (the actual way to keep going) instead.
+        <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-current/10 pt-1.5">
+          <span className="opacity-70">Out of usage?</span>
+          <a
+            href={PURCHASE_CREDITS_URL}
+            target="_blank"
+            rel="noreferrer"
+            data-testid="rate-limit-usage-credits-link"
+            className="font-medium underline underline-offset-2 hover:opacity-80"
+          >
+            Set up usage credits
+          </a>
         </div>
       ) : (
         <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-current/10 pt-1.5">

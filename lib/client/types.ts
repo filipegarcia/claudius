@@ -144,6 +144,13 @@ export type DisplayMessage = {
      * doesn't refill a shared pool.
      */
     limitScope?: "service" | "channel" | "group_pool";
+    /**
+     * CC 2.1.284 — the account's subscription tier (from the last `get_usage`),
+     * so the panel can drop the personal "Upgrade your plan/Team" links for a
+     * Team/Enterprise account (upgrading a personal plan wouldn't help) and
+     * point at usage credits instead.
+     */
+    subscriptionType?: "pro" | "max" | "team" | "enterprise" | (string & {});
   };
   /**
    * Present when this assistant message IS the Anthropic backend's

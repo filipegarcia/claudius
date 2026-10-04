@@ -116,7 +116,7 @@ grep evidence): [`audit/chunk0.md`](audit/chunk0.md) (2.1.285–288) …
 - [x] **E6** [2.1.261] Friendly model names in session/status pills
 - [x] **E7** [2.1.271] `modelPricing`: real keys (`multiplier`, `overrides`) and the managed source via `resolveSettings()`
 - [x] **E8** [2.1.236] `/usage` usage-credits row (`extra_usage`)
-- [ ] **E9** [2.1.284] Usage-limit panel: no "upgrade" for Team/Enterprise, usage-credits link
+- [x] **E9** [2.1.284] Usage-limit panel: no "upgrade" for Team/Enterprise, usage-credits link
 - [ ] **E10** [2.1.268] 1M-context credits notice: credits take effect after a restart + restart button
 - [ ] **E11** [2.1.234] `autoContinueAtUsageLimit` setting + "Continuing automatically at HH:MM · Cancel"
 - [ ] **E12** [2.1.239 low] Cost page: 1.1× US-only `inference_geo` premium
