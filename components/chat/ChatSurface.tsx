@@ -178,6 +178,7 @@ const SLASH_LINKS = {
   mobileApp: "https://claude.com/download",
   stickers: "https://www.stickermule.com/claudecode",
   webSetupDocs: "https://code.claude.com/docs/en/claude-code-on-the-web",
+  gitlabCiDocs: "https://code.claude.com/docs/en/gitlab-ci-cd",
 } as const;
 
 /** Open a URL in a new tab. Works in both the browser and Electron — the
@@ -1543,8 +1544,34 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
         // which was meaningless guidance — the install URL is the install URL
         // whether you're in a terminal, a browser, or Electron.
         case "install-github-app":
-          openExternalUrl(SLASH_LINKS.githubApp);
-          showToast("Opening the Claude GitHub App install page");
+          // CC 2.1.259 — the GitHub App is GitHub-only. In a GitLab repo,
+          // explain that and open the GitLab CI/CD setup docs instead. Host is
+          // read from the workspace's `origin` remote server-side; anything
+          // that isn't GitLab (GitHub, other, unknown, or no workspace context)
+          // keeps the existing GitHub App behavior.
+          if (activeWorkspaceId) {
+            void (async () => {
+              let host: string | null = null;
+              try {
+                const r = await fetch(
+                  `/api/workspaces/${encodeURIComponent(activeWorkspaceId)}/git/remote-host`,
+                );
+                if (r.ok) host = ((await r.json()) as { host?: string }).host ?? null;
+              } catch {
+                // best-effort — fall through to GitHub behavior
+              }
+              if (host === "gitlab") {
+                openExternalUrl(SLASH_LINKS.gitlabCiDocs);
+                showToast("The GitHub App is GitHub-only — opening GitLab CI/CD setup docs");
+              } else {
+                openExternalUrl(SLASH_LINKS.githubApp);
+                showToast("Opening the Claude GitHub App install page");
+              }
+            })();
+          } else {
+            openExternalUrl(SLASH_LINKS.githubApp);
+            showToast("Opening the Claude GitHub App install page");
+          }
           return true;
         case "install-slack-app":
           openExternalUrl(SLASH_LINKS.slackApp);
@@ -1698,7 +1725,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
     // (see lib/client/useElectron.ts), so listing it doesn't churn the
     // callback — but eslint-rule-of-hooks wants it spelled out so a future
     // bridge-identity change doesn't silently break the /desktop branch.
-    [router, session, showToast, claudiusBridge, activePromptColor, cycleFocus, setFocusLevel, isZen, clearedFromSessionId],
+    [router, session, showToast, claudiusBridge, activePromptColor, cycleFocus, setFocusLevel, isZen, clearedFromSessionId, activeWorkspaceId],
   );
 
   const handleSend = useCallback(
