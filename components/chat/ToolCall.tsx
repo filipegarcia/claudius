@@ -346,8 +346,11 @@ export function ToolCall({
               <div className="mb-1 text-[10px] uppercase tracking-wide text-[var(--muted)]">
                 drafted report
               </div>
-              <div className="max-h-96 overflow-y-auto scroll-thin whitespace-pre-wrap rounded bg-[var(--panel-2)] px-3 py-2 text-sm leading-6">
-                {feedbackDraftText}
+              <div className="max-h-96 overflow-y-auto scroll-thin rounded bg-[var(--panel-2)] px-3 py-2 text-sm leading-6">
+                {/* `details` is markdown-bulleted (**What happened:** …), and the
+                    extractor bolds the title — render it formatted. allowExecute
+                    is off: this is a report body, not model-proposed shell. */}
+                <Markdown allowExecute={false}>{feedbackDraftText}</Markdown>
               </div>
               <div className="mt-1 text-[10px] text-[var(--muted)]">
                 Review and send this report from <span className="font-mono">/feedback</span>.
