@@ -225,6 +225,13 @@ export type ClaudeSettings = {
   // is itself rendered with a "From <name>" badge (see `extractPeerOrigin` in
   // `lib/client/use-session.ts`).
   crossSessionInbound?: CrossSessionInbound;
+  // Claude Code 2.1.234 — "Continue automatically at usage limit". When true,
+  // a session that hits the claude.ai usage limit resumes on its own once the
+  // limit resets, instead of staying stopped. Mirrors the SDK's
+  // `Settings.autoContinueAtUsageLimit` key exactly; written to settings.json
+  // (the engine reads + honors it), and surfaced in the Settings catalog and
+  // the RateLimitHitPanel's "Continuing automatically at HH:MM" line.
+  autoContinueAtUsageLimit?: boolean;
   // Claude Code 2.1.232 — "/config rows: Dialog expiry". SDK settings key the
   // bundled `claude` binary reads from `~/.claude/settings.json` (the same file
   // the Settings page catalog edits), so surfacing it as a catalog row is all

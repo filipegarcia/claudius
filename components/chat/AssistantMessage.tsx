@@ -51,6 +51,10 @@ type Props = {
    * 0.3.214) — see the prop doc on `TaskBlock`.
    */
   toolProgress?: Record<string, ToolProgressInfo>;
+  /** CC 2.1.234 — the `autoContinueAtUsageLimit` setting is on (for the rate-limit panel). */
+  autoContinueAtUsageLimit?: boolean;
+  /** Turn auto-continue off (the panel's "Cancel"). */
+  onCancelAutoContinue?: () => void;
 };
 
 export function AssistantMessage({
@@ -61,6 +65,8 @@ export function AssistantMessage({
   onReopenAsk,
   verbose = DEFAULT_VERBOSE,
   toolProgress,
+  autoContinueAtUsageLimit,
+  onCancelAutoContinue,
 }: Props) {
   const taskByToolUseId = new Map<string, TaskInfo>();
   for (const t of Object.values(tasks)) {
@@ -251,7 +257,13 @@ export function AssistantMessage({
         {/* Hard rate-limit hit: render the actionable panel (countdown +
             upgrade links) right under the SDK's "You've hit your … limit"
             text, mirroring the Claude Code CLI's `/rate-limit-options` menu. */}
-        {message.rateLimitHit && <RateLimitHitPanel hit={message.rateLimitHit} />}
+        {message.rateLimitHit && (
+          <RateLimitHitPanel
+            hit={message.rateLimitHit}
+            autoContinue={autoContinueAtUsageLimit}
+            onCancelAutoContinue={onCancelAutoContinue}
+          />
+        )}
         {/* Opus-4 high-demand banner: render under the backend's
             "We are experiencing high demand for Opus 4." prose so the user
             sees the /model CTA inline (Claude Code TUI parity). */}

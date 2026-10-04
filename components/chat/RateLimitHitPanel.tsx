@@ -4,6 +4,7 @@ import { AlertTriangle, Timer } from "lucide-react";
 import type { DisplayMessage } from "@/lib/client/types";
 import { formatResetClock, useCountdownSeconds } from "@/lib/client/use-countdown";
 import { rateLimitCtaKind } from "@/lib/client/rate-limit-cta";
+import { autoContinueNotice } from "@/lib/client/auto-continue";
 
 // Upgrade destinations, mirrored from the Claude Code CLI's `/rate-limit-options`
 // menu so the browser surfaces the same next steps when the user hits the wall:
@@ -71,13 +72,24 @@ export function RateLimitUpgradeLinks() {
  * transcript path — live stream, resumed-session replay, and paginated
  * scrollback — each of which builds the bubble through a different code path.
  */
-export function RateLimitHitPanel({ hit }: { hit: RateLimitHit }) {
+export function RateLimitHitPanel({
+  hit,
+  autoContinue,
+  onCancelAutoContinue,
+}: {
+  hit: RateLimitHit;
+  /** CC 2.1.234 — the `autoContinueAtUsageLimit` setting is on for this session. */
+  autoContinue?: boolean;
+  /** Turn auto-continue off (the "Cancel" affordance). */
+  onCancelAutoContinue?: () => void;
+}) {
   const countdown = useCountdownSeconds(hit.resetsAt);
   const tierLabel = hit.rateLimitType
     ? RATE_LIMIT_TYPE_LABEL[hit.rateLimitType] ?? "usage limit"
     : "usage limit";
   const resetClock = hit.resetsAt ? formatResetClock(hit.resetsAt) : null;
   const cta = rateLimitCtaKind(hit);
+  const autoContinueText = autoContinueNotice(autoContinue, resetClock);
 
   // Per-model weekly-limit takeover toast — the Claude Code TUI prints a
   // "Now using <fallback>. Your <limit> resets <time>" ambient line so the
@@ -108,6 +120,28 @@ export function RateLimitHitPanel({ hit }: { hit: RateLimitHit }) {
       {showFallbackTakeover && (
         <div className="mt-1 opacity-90">
           Now using <span className="font-mono">{hit.fallbackModel}</span>.
+        </div>
+      )}
+
+      {/* CC 2.1.234 — when auto-continue is on, say so (with a Cancel) instead
+          of leaving the user to just wait. The engine resumes the turn once the
+          limit resets; Cancel turns the setting off. */}
+      {autoContinueText && (
+        <div
+          data-testid="auto-continue-notice"
+          className="mt-1 flex items-center gap-2 opacity-90"
+        >
+          <span>{autoContinueText}</span>
+          {onCancelAutoContinue && (
+            <button
+              type="button"
+              onClick={onCancelAutoContinue}
+              data-testid="auto-continue-cancel"
+              className="underline underline-offset-2 hover:opacity-80"
+            >
+              Cancel
+            </button>
+          )}
         </div>
       )}
 

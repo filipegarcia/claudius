@@ -989,6 +989,13 @@ const SDK_SETTINGS_CATALOG: SettingMeta[] = [
     desc: "When true, fast mode is enabled. When absent or false, fast mode is off.",
   },
   {
+    // CC 2.1.234 — resume automatically once the claude.ai usage limit resets.
+    key: "autoContinueAtUsageLimit",
+    type: "boolean",
+    section: "Model & behavior",
+    desc: "When true, a session paused at the usage limit continues automatically once the limit resets.",
+  },
+  {
     key: "workflowSizeGuideline",
     type: "enum",
     section: "Model & behavior",
