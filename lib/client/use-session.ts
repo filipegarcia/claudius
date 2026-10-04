@@ -293,11 +293,11 @@ export function isOpusHighDemandText(blocks: DisplayBlock[]): boolean {
 /**
  * Copy shown in place of the SDK's `model_not_found` prose when the selected
  * model can't be used (doesn't exist, or isn't enabled for this account /
- * region — e.g. Claude Fable 5 outside its rollout). The bare URL is
+ * region — e.g. Claude Fable 5.1 outside its rollout). The bare URL is
  * auto-linked by `remark-gfm` when the bubble renders through `<Markdown>`.
  */
 export const MODEL_UNAVAILABLE_MESSAGE =
-  "Claude Fable 5 is currently unavailable. Please use Opus 4.8 or another available model. Learn more: https://www.anthropic.com/news/fable-mythos-access";
+  "Claude Fable 5.1 is currently unavailable. Please use Opus 5.5 or another available model. Learn more: https://www.anthropic.com/news/fable-mythos-access";
 
 /**
  * Detect the Claude Code CLI's "selected model can't be used" prose. The

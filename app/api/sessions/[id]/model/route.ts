@@ -42,7 +42,7 @@ type ModelInfo = {
 const ALWAYS_SHOWN_ALIASES: ModelInfo[] = [
   {
     value: "fable",
-    displayName: "Fable 5",
+    displayName: "Fable 5.1",
     // Mirrors the Claude Code TUI's `/model` picker copy verbatim so the
     // two surfaces read the same. The "~2× faster than Opus" hint is the
     // SDK's own framing — Fable consumes plan limits roughly twice as fast
