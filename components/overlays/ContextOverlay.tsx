@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { AlertTriangle } from "lucide-react";
 import { Overlay } from "./Overlay";
+import { isContextWindowExceeded } from "@/lib/shared/context-overflow";
 
 type ContextResponse = {
   categories: {
@@ -152,6 +154,28 @@ export function ContextOverlay({ sessionId, onClose }: Props) {
       {error && <div className="px-4 py-6 text-center text-sm text-red-400">{error}</div>}
       {data && (
         <div className="space-y-5 px-4 py-4">
+          {/* CC 2.1.216 (F6) — the overlay warns when usage is over the
+              context window, mirroring the in-chat ContextWarningBanner
+              (shared `> 100` boundary). Without this the overlay showed a
+              bare "N%" with no indication the window had been exceeded. */}
+          {isContextWindowExceeded(data.percentage) && (
+            <div
+              data-testid="context-overlay-exceeded"
+              className="flex items-start gap-2 rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-[12px] text-red-100"
+            >
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-400" />
+              <span>
+                <span className="font-medium">
+                  Context window exceeded — {Math.round(data.percentage)}% full
+                </span>{" "}
+                <span className="opacity-80">
+                  — over the model&apos;s context limit. Run{" "}
+                  <span className="font-mono">/compact</span> to summarize, or{" "}
+                  <span className="font-mono">/clear</span> to start fresh, to continue.
+                </span>
+              </span>
+            </div>
+          )}
           <div>
             <div className="mb-2 flex items-baseline justify-between text-[11px] text-[var(--muted)]">
               <span>
