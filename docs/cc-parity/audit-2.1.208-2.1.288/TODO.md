@@ -100,7 +100,7 @@ grep evidence): [`audit/chunk0.md`](audit/chunk0.md) (2.1.285–288) …
 - [ ] **D7** [2.1.232] `@`-mention another live session _(BLOCKED — delivery is engine-gated: the `@`-mention's only purpose is to trigger the agent's `SendMessage` tool, but it can't be confirmed that outbound `SendMessage` is live in a Claudius SDK session (init `tools` isn't persisted to transcripts; not in `RESTRICTED_MODE_DISALLOWED_TOOLS`, so plausibly present but unverified) and the CLI's session-mention token contract isn't extractable from the native binary. Building the picker on an unconfirmed delivery path = phantom risk. Needs a live-session `GET /api/sessions/<id>/commands` (or init `tools`) check to confirm `SendMessage`, and the CC token format, before building.)_
 - [x] **D8** [2.1.259] `/install-github-app` in a GitLab repo → GitLab CI/CD docs
 - [x] **D9** [2.1.286 low] Slash picker: match descriptions by word prefix, not loose letter-sequence
-- [ ] **D10** [2.1.223 low] `/review` description is stale (now an alias of `/code-review`)
+- [x] **D10** [2.1.223 low] `/review` description is stale (now an alias of `/code-review`)
 - [ ] **D11** [2.1.265 low] Toast when an oversized image is dropped
 - [ ] **D12** [2.1.278 low] `@./src` — normalise the leading `./` in file mentions
 - [ ] **D13** [2.1.286 low] `/output-style` picker instead of a toast
