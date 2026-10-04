@@ -249,6 +249,12 @@ export type TaskInfo = {
    */
   ambient?: boolean;
   /**
+   * CC 2.1.243 — the model this subagent actually ran on, captured from the
+   * `message.model` of its first forwarded assistant message (the SDK's task
+   * messages don't carry it). Shown in the task block / Activity panel.
+   */
+  model?: string;
+  /**
    * CC 2.1.285 — `task_started.skip_transcript`: Claude Code's own
    * housekeeping work (compaction, title generation, …) that the CLI keeps
    * out of the transcript. The Background tasks panel folds every such task

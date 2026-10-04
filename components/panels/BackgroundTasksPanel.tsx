@@ -15,6 +15,7 @@ import type {
   ToolProgressInfo,
 } from "@/lib/client/types";
 import type { PermissionRequestEvent } from "@/lib/shared/events";
+import { prettyModelName } from "@/lib/shared/advisor";
 import {
   collectStoppableTaskIds,
   isActivityCountableTask,
@@ -693,6 +694,8 @@ export function BackgroundTasksPanel({
                     </div>
                   )}
                   <div className="mt-1 flex flex-wrap gap-2 text-[10px] opacity-70">
+                    {/* CC 2.1.243 — model the subagent ran on. */}
+                    {t.model && <span>{prettyModelName(t.model)}</span>}
                     {t.totalTokens != null && <span>{t.totalTokens.toLocaleString()} tok</span>}
                     {t.toolUses != null && <span>{t.toolUses} tools</span>}
                     {/* Live ticking wall-clock while running (parity with the

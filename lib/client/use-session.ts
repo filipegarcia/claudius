@@ -53,6 +53,7 @@ import {
   isBackgroundedToolUse,
   reconcileTasksOnToolResult,
   seedTaskStatus,
+  setTaskModelForToolUse,
   shouldRecoverOrphanTask,
   upsertProvisionalTask,
 } from "./task-status";
@@ -2723,6 +2724,13 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
               aborted,
             ),
           }));
+          // CC 2.1.243 — record the model this subagent actually ran on, from
+          // its forwarded assistant message (the task messages don't carry it).
+          // Keyed to the task by its tool_use_id; set once.
+          const subModel = (msg as { message?: { model?: string } }).message?.model;
+          if (subModel) {
+            setTasks((prev) => setTaskModelForToolUse(prev, parent, subModel));
+          }
           // Don't override the main lastAssistantUuid — deltas anchor to top-level.
           return;
         }

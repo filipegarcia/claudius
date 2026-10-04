@@ -38,6 +38,27 @@ export function isSystemTask(t: Pick<TaskInfo, "skipTranscript">): boolean {
 }
 
 /**
+ * CC 2.1.243 — stamp the model a subagent ran on onto the task(s) whose
+ * `toolUseId` matches, set-once (a later split doesn't overwrite it). Returns
+ * the same map reference when nothing changed so React can skip the re-render.
+ */
+export function setTaskModelForToolUse(
+  tasks: Record<string, TaskInfo>,
+  toolUseId: string,
+  model: string,
+): Record<string, TaskInfo> {
+  let changed = false;
+  const next: Record<string, TaskInfo> = { ...tasks };
+  for (const [id, t] of Object.entries(tasks)) {
+    if (t.toolUseId === toolUseId && !t.model) {
+      next[id] = { ...t, model };
+      changed = true;
+    }
+  }
+  return changed ? next : tasks;
+}
+
+/**
  * Liveness gate driven by the SDK's `background_tasks_changed` snapshot
  * (0.3.203). `liveIds` is the authoritative set of live background-task ids
  * from the latest snapshot, or `null` when none has been received yet.

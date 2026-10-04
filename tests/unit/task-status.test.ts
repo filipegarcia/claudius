@@ -10,6 +10,7 @@ import {
   isNonTerminalTaskStatus,
   isSystemTask,
   reconcileTasksOnToolResult,
+  setTaskModelForToolUse,
   seedTaskStatus,
   shouldRecoverOrphanTask,
   statusFromToolResult,
@@ -387,5 +388,29 @@ describe("isSystemTask (CC 2.1.285 — C2)", () => {
   test("false for ordinary tasks", () => {
     expect(isSystemTask({})).toBe(false);
     expect(isSystemTask({ skipTranscript: false })).toBe(false);
+  });
+});
+
+describe("setTaskModelForToolUse (CC 2.1.243 — C5)", () => {
+  const sub = (toolUseId: string, model?: string): TaskInfo => ({
+    ...task({ taskId: `t_${toolUseId}` }),
+    toolUseId,
+    ...(model ? { model } : {}),
+  });
+
+  test("stamps the model on the task matching the tool_use_id", () => {
+    const out = setTaskModelForToolUse({ a: sub("tu1"), b: sub("tu2") }, "tu1", "claude-opus-4-8");
+    expect(out.a.model).toBe("claude-opus-4-8");
+    expect(out.b.model).toBeUndefined();
+  });
+
+  test("set-once: doesn't overwrite an existing model, returns same ref", () => {
+    const input = { a: sub("tu1", "claude-sonnet-5-5") };
+    expect(setTaskModelForToolUse(input, "tu1", "claude-opus-4-8")).toBe(input);
+  });
+
+  test("no matching tool_use_id → same ref", () => {
+    const input = { a: sub("tu1") };
+    expect(setTaskModelForToolUse(input, "other", "m")).toBe(input);
   });
 });
