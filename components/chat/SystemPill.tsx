@@ -69,7 +69,18 @@ const KIND_META: Record<SystemEntry["kind"], { icon: typeof Info; tone: string }
   // transitions, but its own icon so the two are still distinguishable at a
   // glance.
   conversation_reset: { icon: Eraser, tone: "text-violet-400" },
+  // CC 2.1.267/2.1.274 — loop-side `system/notification`. Default tone is
+  // muted; the render overrides it from `entry.priority` (see NOTIFICATION_TONE).
+  notification: { icon: Bell, tone: "text-[var(--muted)]" },
   info: { icon: Info, tone: "text-[var(--muted)]" },
+};
+
+/** CC 2.1.267/2.1.274 — map a notification's priority to its pill tone. */
+const NOTIFICATION_TONE: Record<NonNullable<SystemEntry["priority"]>, string> = {
+  low: "text-[var(--muted)]",
+  medium: "text-[var(--muted)]",
+  high: "text-amber-400",
+  immediate: "text-red-400",
 };
 
 export function SystemPill({
@@ -81,6 +92,11 @@ export function SystemPill({
 }) {
   const meta = KIND_META[entry.kind];
   const Icon = meta.icon;
+  // CC 2.1.267/2.1.274 — a notification pill is toned by its priority.
+  const tone =
+    entry.kind === "notification" && entry.priority
+      ? NOTIFICATION_TONE[entry.priority]
+      : meta.tone;
   // Compact-boundary is a major thread-state transition (the SDK summarized
   // earlier turns into a single context block). Show it as a full-width
   // horizontal rule with the token-reduction stats and an expandable summary —
@@ -123,7 +139,7 @@ export function SystemPill({
   }
   return (
     <div className="my-1 flex items-center gap-2 text-[11px] text-[var(--muted)]">
-      <Icon className={`h-3 w-3 ${meta.tone}`} />
+      <Icon className={`h-3 w-3 ${tone}`} />
       <span>{entry.label}</span>
       {typeof entry.count === "number" && entry.count > 1 && (
         <span

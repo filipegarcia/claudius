@@ -4477,6 +4477,43 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
         // subtype is stripped to `undefined` before it reaches us — without
         // this guard, a long loop floods the chat with `system/?` rows that
         // aren't even durable across a reload. See isSuppressedSystemEvent.
+        // CC 2.1.267/2.1.274 — loop-side `system/notification` carries
+        // `{text, priority}`; render the text (priority-toned) instead of a
+        // text-less `system/notification` pill.
+        if (sysAny.subtype === "notification") {
+          const n = sysAny as {
+            text?: string;
+            priority?: "low" | "medium" | "high" | "immediate";
+          };
+          const text = typeof n.text === "string" ? n.text.trim() : "";
+          if (text) {
+            setSystemEntries((prev) => [
+              ...prev,
+              {
+                ...baseEntry,
+                kind: "notification",
+                label: text,
+                ...(n.priority ? { priority: n.priority } : {}),
+              },
+            ]);
+          }
+          return;
+        }
+        // CC 2.1.267 — `system/local_command_output` carries the rendered
+        // output of a local command (e.g. `/context`); show its `content`
+        // rather than dropping it behind a bare `system/local_command_output`
+        // label (the mobile-blank-output bug class).
+        if (sysAny.subtype === "local_command_output") {
+          const c = sysAny as { content?: string };
+          const content = typeof c.content === "string" ? c.content.trim() : "";
+          if (content) {
+            setSystemEntries((prev) => [
+              ...prev,
+              { ...baseEntry, kind: "info", label: content },
+            ]);
+          }
+          return;
+        }
         if (isSuppressedSystemEvent(sysAny.subtype)) return;
         setSystemEntries((prev) => [
           ...prev,

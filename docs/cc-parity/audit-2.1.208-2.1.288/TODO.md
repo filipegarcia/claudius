@@ -66,7 +66,7 @@ grep evidence): [`audit/chunk0.md`](audit/chunk0.md) (2.1.285–288) …
 
 ## B — SDK message plumbing (session.ts ↔ use-session.ts)
 
-- [ ] **B1** [2.1.267/2.1.274 F] Render `system/notification` text (priority-coloured) and `system/local_command_output` content instead of a bare label
+- [x] **B1** [2.1.267/2.1.274 F] Render `system/notification` text (priority-coloured) and `system/local_command_output` content instead of a bare label
 - [ ] **B2** [2.1.217] Map system message `level` to pill tone; hide `info`-level lines
 - [ ] **B3** [2.1.284] Safety-block notice: handle `model_refusal_fallback` / `model_refusal_no_fallback`, explanation + "Edit & retry"
 - [ ] **B4** [2.1.288] MCP URL elicitation: "I'm done, continue" when there is no `elicitationId`; handle `elicitation_complete`

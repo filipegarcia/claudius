@@ -268,10 +268,18 @@ export type SystemEntry = {
     | "model_fallback"
     | "system_reminder"
     | "conversation_reset"
+    | "notification"
     | "info";
   label: string;
   detail?: string;
   ts?: string;
+  /**
+   * CC 2.1.267/2.1.274 — only for `kind === "notification"` (SDK
+   * `system/notification`): the loop-side notice's priority, used to tone the
+   * pill (low/medium muted, high amber, immediate red) instead of showing a
+   * text-less `system/notification` label.
+   */
+  priority?: "low" | "medium" | "high" | "immediate";
   /**
    * Number of consecutive identical emissions collapsed onto this pill. Only
    * set (and rendered as a `×N` badge) for the transient `init` / `status`

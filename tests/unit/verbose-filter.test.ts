@@ -416,6 +416,9 @@ describe("isSystemEntryHiddenAtLevel", () => {
       // transition on par with compact_boundary, so it gets the same
       // always-visible treatment.
       "conversation_reset",
+      // CC 2.1.267/2.1.274 — loop-side notification pills carry user-facing
+      // text and are always shown.
+      "notification",
       "info",
     ];
     for (const kind of others) {
