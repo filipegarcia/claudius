@@ -131,7 +131,7 @@ grep evidence): [`audit/chunk0.md`](audit/chunk0.md) (2.1.285–288) …
 - [x] **F4** [2.1.257] `timeFormat` / `timeZone` drive Claudius's own clocks
 - [x] **F5** [2.1.239] Middle-truncate long paths on tool rows (keep the filename)
 - [x] **F6** [2.1.216] `/context` overlay: "over the window" callout with `/compact`/`/clear`
-- [ ] **F7** [2.1.281] `attribution: false` settings row; mark `includeCoAuthoredBy` deprecated
+- [x] **F7** [2.1.281] `attribution: false` settings row; mark `includeCoAuthoredBy` deprecated
 - [ ] **F8** [2.1.288] Per-model `autoCompactWindow` overrides in Settings
 - [ ] **F9** [2.1.287 low F] Respect `prefers-reduced-motion` / `prefersReducedMotion`
 - [ ] **F10** [2.1.247] SendFeedback draft card reads `title`/`details`

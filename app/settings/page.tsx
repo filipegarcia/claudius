@@ -34,6 +34,7 @@ import {
   normalizeAdvisorChoice,
 } from "@/lib/shared/advisor";
 import { useMediaPreferences } from "@/lib/client/useMediaPreferences";
+import { attributionFieldState } from "@/lib/shared/attribution-setting";
 import { cn } from "@/lib/utils/cn";
 import { setStatusLineCommand, setStatusLineRefreshInterval, type StatusLineConfig } from "@/lib/shared/status-line";
 import { nextWorktree, parseDirList } from "@/lib/shared/worktree-settings";
@@ -954,8 +955,10 @@ const KNOWN_KEYS = new Set([
 // curated, not exhaustive: managed/enterprise-only keys (allowManaged*Only,
 // strictKnownMarketplaces, modelOverrides, availableModels, *McpServers
 // allow/deny lists, etc.), keys already covered by their own UI sections,
-// and complex nested objects (worktree, attribution, hooks…) are omitted —
-// the latter fall through to the generic "Other" editor. When the SDK bumps,
+// and complex nested objects (worktree, hooks…) are omitted — the latter
+// fall through to the generic "Other" editor. (`attribution` is surfaced as a
+// hide-all toggle via a dedicated control; its object form still falls
+// through to "Other".) When the SDK bumps,
 // diff this table against the new sdk.d.ts.
 type CatalogType = "boolean" | "number" | "string" | "string[]" | "enum";
 type SettingMeta = {
@@ -1123,10 +1126,20 @@ const SDK_SETTINGS_CATALOG: SettingMeta[] = [
     desc: "Whether file picker should respect .gitignore files (default: true). Note: .ignore files are always respected.",
   },
   {
+    // CC 2.1.281 (F7) — hide-all attribution toggle. The full `boolean |
+    // object` shape is handled by the dedicated `AttributionCatalogField`
+    // (an object config stays editable via the "Other" JSON editor).
+    key: "attribution",
+    type: "boolean",
+    section: "Git",
+    desc: 'Attribution in commits and PRs. Default shows the standard Claude Code attribution; "Hidden" writes `attribution: false` to suppress all of it (same as empty commit/PR text and no session link). For per-field customization (custom commit/PR text, session URL), edit the object form as raw JSON in the "Other" section below. Supersedes the deprecated includeCoAuthoredBy.',
+  },
+  {
     key: "includeCoAuthoredBy",
     type: "boolean",
     section: "Git",
-    desc: "Include Claude's `Co-Authored-By: Claude <noreply@anthropic.com>` trailer in commits and PRs (default: true). Turn off to omit it.",
+    deprecated: true,
+    desc: "Deprecated — use `attribution` instead. Include Claude's `Co-Authored-By: Claude <noreply@anthropic.com>` trailer in commits and PRs (default: true). Turn off to omit it.",
   },
   {
     key: "includeGitInstructions",
@@ -1607,6 +1620,9 @@ function CatalogField({
   if (meta.key === "modelPricing") {
     return <ModelPricingCatalogField value={value} set={set} />;
   }
+  if (meta.key === "attribution") {
+    return <AttributionCatalogField value={value} set={set} />;
+  }
   const inputCls =
     "w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 font-mono text-xs focus:outline-none";
   const selectCls =
@@ -2055,6 +2071,44 @@ function ModelPricingCatalogField({
         <Plus className="h-3 w-3" /> Add model rate
       </button>
     </div>
+  );
+}
+
+/**
+ * CC 2.1.281 (F7) — the `attribution` catalog control. `attribution` is
+ * `boolean | object` in the SDK: the toggle covers the simple Default vs.
+ * `false` (hide-all) case, and when a custom object is configured it steps
+ * aside (showing a hint) so toggling can't clobber the per-field config —
+ * that stays editable as raw JSON in the "Other" section. "Default" writes
+ * `undefined` (omits the key) rather than `true`, since `true` is explicitly
+ * "same as leaving it out" and older Claude Code versions reject a bare
+ * `true`/`false` in shared settings files.
+ */
+function AttributionCatalogField({
+  value,
+  set,
+}: {
+  value: unknown;
+  set: (v: unknown) => void;
+}) {
+  const state = attributionFieldState(value);
+  if (state === "custom") {
+    return (
+      <p className="text-[11px] leading-4 text-[var(--muted)]">
+        A custom attribution object is set — edit it as raw JSON in the{" "}
+        <span className="font-mono">Other</span> section below.
+      </p>
+    );
+  }
+  return (
+    <select
+      value={state}
+      onChange={(e) => set(e.target.value === "hidden" ? false : undefined)}
+      className="w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 text-xs focus:outline-none"
+    >
+      <option value="default">Default (attribution shown)</option>
+      <option value="hidden">Hidden (attribution: false)</option>
+    </select>
   );
 }
 
