@@ -58,7 +58,7 @@ grep evidence): [`audit/chunk0.md`](audit/chunk0.md) (2.1.285–288) …
 - [x] **A2** [2.1.211 F] Permission prompt shows bidi-override / zero-width chars raw — render them as visible escapes
 - [x] **A3** [2.1.248] Restricted mode is partial: engine-level enforcement (verify `CLAUDE_CODE_RESTRICTED`), block `Monitor`/`TaskStop`, drop stale tool names
 - [x] **A4** [2.1.259] Pass `permissionPrompts: "none"` to unattended runs (scheduler, updater apply)
-- [ ] **A5** [2.1.280] Hooks editor: disallow/flag `agent`-type hooks on `PermissionRequest`
+- [x] **A5** [2.1.280] Hooks editor: disallow/flag `agent`-type hooks on `PermissionRequest`
 - [ ] **A6** [2.1.212] Auto-mode tab: "Reset to defaults" with confirmation
 - [ ] **A7** [2.1.219] Sandbox `network.allowedDomains` + `network.strictAllowlist` in the workspace sandbox settings
 - [x] **A8** [2.1.212] WebSearch/subagent per-session caps: forward the `CLAUDE_CODE_MAX_*_PER_SESSION` env, fix `Task`→`Agent` tool-name matching

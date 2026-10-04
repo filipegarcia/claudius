@@ -19,6 +19,7 @@ import { ScopeToggle, type Scope as IaScope } from "@/components/nav/ScopeToggle
 import { useActiveCwd } from "@/lib/client/useActiveCwd";
 import { useHooks } from "@/lib/client/useHooks";
 import {
+  agentHandlerAllowed,
   CATEGORY_LABELS,
   CATEGORY_ORDER,
   HOOK_EVENTS,
@@ -285,6 +286,16 @@ function EventRow({
                     {h.type === "http" && <span>{(h.method ?? "POST")} {h.url}</span>}
                     {h.type === "prompt" && <span>{h.prompt.slice(0, 80)}</span>}
                     {h.type === "agent" && <span>{h.agent}</span>}
+                    {/* CC 2.1.280 — an agent hook on PermissionRequest won't
+                        run; flag the stale config so the author fixes it. */}
+                    {h.type === "agent" && !agentHandlerAllowed(spec.name) && (
+                      <span
+                        title="The engine won't run an agent hook on this event — use command or http"
+                        className="ml-2 rounded border border-amber-500/40 bg-amber-500/10 px-1 py-0.5 text-[10px] text-amber-300"
+                      >
+                        won&apos;t run on {spec.name}
+                      </span>
+                    )}
                     {h.type === "mcp_tool" && <span>{h.tool}</span>}
                     {"timeout" in h && h.timeout != null && (
                       <span className="ml-2 text-[var(--muted)]">timeout={h.timeout}</span>
@@ -397,6 +408,9 @@ function AddHookForm({
       handler = { type: "prompt", prompt, ...(continueOnBlock ? { continueOnBlock: true } : {}), ...(once ? { once: true } : {}), ...(ifRule.trim() ? { if: ifRule.trim() } : {}) };
     } else if (type === "agent") {
       if (!agent.trim()) return setError("agent name required");
+      // CC 2.1.280 — the engine won't run an agent hook on these events.
+      if (!agentHandlerAllowed(event))
+        return setError(`agent hooks don't run on ${event} — use command or http`);
       handler = { type: "agent", agent: agent.trim(), ...(once ? { once: true } : {}), ...(ifRule.trim() ? { if: ifRule.trim() } : {}) };
     } else {
       if (!tool.trim()) return setError("tool required");
@@ -440,7 +454,13 @@ function AddHookForm({
         <Field label="Event">
           <select
             value={event}
-            onChange={(e) => setEvent(e.target.value as HookEvent)}
+            onChange={(e) => {
+              const next = e.target.value as HookEvent;
+              setEvent(next);
+              // CC 2.1.280 — if `agent` was selected, it's invalid on an
+              // agent-disallowed event; fall back to `command`.
+              if (type === "agent" && !agentHandlerAllowed(next)) setType("command");
+            }}
             className="w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 text-xs focus:outline-none"
           >
             {HOOK_EVENTS.map((e) => (
@@ -467,9 +487,18 @@ function AddHookForm({
             <option value="command">command</option>
             <option value="http">http</option>
             <option value="prompt">prompt</option>
-            <option value="agent">agent</option>
+            {/* CC 2.1.280 — `agent` hooks don't run on PermissionRequest; the
+                engine fails them. Don't offer it for those events. */}
+            {agentHandlerAllowed(event) && <option value="agent">agent</option>}
             <option value="mcp_tool">mcp_tool</option>
           </select>
+          {!agentHandlerAllowed(event) && (
+            <p className="mt-1 text-[11px] text-[var(--muted)]">
+              <code className="font-mono">agent</code> handlers can&apos;t run on{" "}
+              <code className="font-mono">{event}</code> — use <code className="font-mono">command</code>{" "}
+              or <code className="font-mono">http</code>.
+            </p>
+          )}
         </Field>
       </div>
 

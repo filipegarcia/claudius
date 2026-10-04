@@ -149,6 +149,20 @@ export type HookHandler =
   | { type: "agent"; agent: string; once?: boolean; if?: string }
   | { type: "mcp_tool"; tool: string; arguments?: Record<string, unknown>; once?: boolean; if?: string };
 
+/**
+ * CC 2.1.280 — the engine refuses to RUN an `agent`-type hook on these events
+ * (it fails the hook and points the author at `command`/`http` instead). The
+ * `PermissionRequest` case is a safety boundary: a sub-agent deciding whether
+ * to grant a permission is a privilege-escalation shape. The editor mirrors
+ * this — it neither offers nor saves an `agent` handler on such an event.
+ */
+export const AGENT_HANDLER_DISALLOWED_EVENTS: readonly HookEvent[] = ["PermissionRequest"];
+
+/** Whether an `agent`-type hook handler may be attached to `event`. */
+export function agentHandlerAllowed(event: HookEvent): boolean {
+  return !AGENT_HANDLER_DISALLOWED_EVENTS.includes(event);
+}
+
 /** Settings.json hooks shape: { [Event]: [{ matcher?, hooks: HookHandler[] }] } */
 export type HookGroup = {
   matcher?: string;
