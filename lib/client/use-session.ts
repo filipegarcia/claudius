@@ -4163,6 +4163,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
             is_backgrounded?: boolean;
             spawn_depth?: number;
             ambient?: boolean;
+            skip_transcript?: boolean;
           };
           // SSE ordering can deliver the Task's tool_result before this
           // task_started; seed the terminal status in that case so the pill
@@ -4200,6 +4201,9 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
                 // user work. Seeded here; kept current by task_notification
                 // and background_tasks_changed below.
                 ambient: t.ambient,
+                // CC 2.1.285 — Claude Code's own housekeeping tasks; folded
+                // under a single "System tasks" group instead of one row each.
+                skipTranscript: t.skip_transcript,
               },
             };
           });

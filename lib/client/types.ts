@@ -238,6 +238,13 @@ export type TaskInfo = {
    * `skip_transcript` (transcript).
    */
   ambient?: boolean;
+  /**
+   * CC 2.1.285 — `task_started.skip_transcript`: Claude Code's own
+   * housekeeping work (compaction, title generation, …) that the CLI keeps
+   * out of the transcript. The Background tasks panel folds every such task
+   * under a single "System tasks" group row instead of listing each one.
+   */
+  skipTranscript?: boolean;
   totalTokens?: number;
   toolUses?: number;
   durationMs?: number;

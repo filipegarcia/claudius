@@ -8,6 +8,7 @@ import {
   isBackgroundTaskLive,
   isBackgroundedToolUse,
   isNonTerminalTaskStatus,
+  isSystemTask,
   reconcileTasksOnToolResult,
   seedTaskStatus,
   shouldRecoverOrphanTask,
@@ -376,5 +377,15 @@ describe("isNonTerminalTaskStatus (CC 2.1.271 — C1)", () => {
     expect(isNonTerminalTaskStatus("failed")).toBe(false);
     expect(isNonTerminalTaskStatus("killed")).toBe(false);
     expect(isNonTerminalTaskStatus("stopped")).toBe(false);
+  });
+});
+
+describe("isSystemTask (CC 2.1.285 — C2)", () => {
+  test("true for skip_transcript housekeeping tasks", () => {
+    expect(isSystemTask({ skipTranscript: true })).toBe(true);
+  });
+  test("false for ordinary tasks", () => {
+    expect(isSystemTask({})).toBe(false);
+    expect(isSystemTask({ skipTranscript: false })).toBe(false);
   });
 });

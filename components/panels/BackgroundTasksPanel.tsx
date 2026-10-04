@@ -19,6 +19,7 @@ import {
   collectStoppableTaskIds,
   isActivityCountableTask,
   isBackgroundTaskLive,
+  isSystemTask,
 } from "@/lib/client/task-status";
 import type { ContextSummary } from "@/lib/client/useContextWatcher";
 import { isStaleWakeup } from "@/lib/shared/session-loops";
@@ -313,8 +314,18 @@ export function BackgroundTasksPanel({
         // list (and Stop-all) instead of letting it vanish.
         (t.status === "running" || t.status === "pending" || t.status === "paused") &&
         !PROCESS_TASK_TYPES.has(t.taskType ?? "") &&
+        // CC 2.1.285 — Claude Code's own housekeeping tasks fold under the
+        // "System tasks" group below rather than listing each as its own row.
+        !isSystemTask(t) &&
         isLive(t),
     )
+    .sort((a, b) => (b.durationMs ?? 0) - (a.durationMs ?? 0));
+
+  // CC 2.1.285 — Claude Code's own housekeeping tasks (`skip_transcript`),
+  // folded under a single "System tasks" group so they don't clutter the
+  // live Tasks list. Still live, still Stop-able from inside the group.
+  const systemTasks = Object.values(tasks)
+    .filter((t) => isSystemTask(t) && isLive(t))
     .sort((a, b) => (b.durationMs ?? 0) - (a.durationMs ?? 0));
 
   // Stop a single running task (B2.4). Self-contained fetch — the panel
@@ -695,6 +706,37 @@ export function BackgroundTasksPanel({
               })}
             </ul>
           </CollapsibleSection>
+          </div>
+        )}
+
+        {/* CC 2.1.285 — Claude Code's own housekeeping tasks, folded under one
+            collapsed group so they don't clutter the live Tasks list. */}
+        {systemTasks.length > 0 && (
+          <div data-pane-name="system-tasks">
+            <CollapsibleSection
+              storageKey="system-tasks"
+              label="System tasks"
+              badge={`(${systemTasks.length})`}
+            >
+              <ul className="space-y-1">
+                {systemTasks.map((t) => {
+                  const Icon = taskIcon(t.taskType);
+                  return (
+                    <li
+                      key={t.taskId}
+                      data-testid="system-task-row"
+                      className="flex items-center gap-1.5 rounded-md border border-[var(--border)] bg-[var(--panel-2)]/40 px-2 py-1 text-[10px] text-[var(--muted)]"
+                    >
+                      <Icon className="h-3 w-3 shrink-0" />
+                      <span className="truncate font-mono">
+                        {t.description ?? t.workflowName ?? t.taskType ?? "System task"}
+                      </span>
+                      <span className="ml-auto shrink-0">{taskStatusLabel(t)}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </CollapsibleSection>
           </div>
         )}
 

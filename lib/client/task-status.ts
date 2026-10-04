@@ -28,6 +28,16 @@ export function isNonTerminalTaskStatus(s: TaskStatus): boolean {
 }
 
 /**
+ * CC 2.1.285 — whether a task is Claude Code's own housekeeping work
+ * (`task_started.skip_transcript`): compaction, title generation, etc. These
+ * are folded under a single "System tasks" group in the Background tasks panel
+ * instead of each getting its own row in the live Tasks list.
+ */
+export function isSystemTask(t: Pick<TaskInfo, "skipTranscript">): boolean {
+  return t.skipTranscript === true;
+}
+
+/**
  * Liveness gate driven by the SDK's `background_tasks_changed` snapshot
  * (0.3.203). `liveIds` is the authoritative set of live background-task ids
  * from the latest snapshot, or `null` when none has been received yet.

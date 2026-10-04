@@ -81,7 +81,7 @@ grep evidence): [`audit/chunk0.md`](audit/chunk0.md) (2.1.285–288) …
 ## C — Tasks & transcript rendering
 
 - [x] **C1** [2.1.271] Task status `paused` (+ `total_paused_ms`) — keep paused workflow agents visible
-- [ ] **C2** [2.1.285] Fold Claude Code's own housekeeping tasks (`skip_transcript`) under a "System tasks" group
+- [x] **C2** [2.1.285] Fold Claude Code's own housekeeping tasks (`skip_transcript`) under a "System tasks" group
 - [ ] **C3** [2.1.243 F] Error-tagged assistant replies (`server_error`, `billing_error`, …) get error styling
 - [ ] **C4** [2.1.271] "Deep in thought" only while no tool is running; "Picking the thought back up" after `max_output_tokens`
 - [ ] **C5** [2.1.243] Show each subagent's model / effort in the task block and Activity panel
