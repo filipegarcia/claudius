@@ -6,6 +6,13 @@ import type { SettingsScope } from "@/lib/server/settings";
 import type { PluginLoadError } from "@/lib/shared/parse-init";
 import type { PluginConfigOption, PluginOptionValue } from "@/lib/shared/plugin-config";
 
+/**
+ * CC 2.1.268 (G7) — delays (ms) at which the plugin list auto-refreshes after
+ * an install is dispatched, covering a slow marketplace fetch without
+ * hammering. Bounded and increasing. Exported for unit testing.
+ */
+export const INSTALL_REFRESH_DELAYS_MS = [2000, 5000, 10000] as const;
+
 export type InstalledPlugin = {
   name: string;
   path: string;
@@ -190,9 +197,18 @@ export function usePlugins(cwd: string | null, sessionId: string | null) {
         const err = (await res.json().catch(() => null)) as { error?: string } | null;
         return { ok: false, error: err?.error ?? `HTTP ${res.status}` };
       }
+      // CC 2.1.268 (G7) — the SDK registers the plugin asynchronously during the
+      // chat turn this command kicks off, so an immediate refresh wouldn't see
+      // it yet. Poll the list a few times (bounded, increasing) so the newly
+      // installed plugin appears on its own — no manual Refresh needed.
+      for (const delay of INSTALL_REFRESH_DELAYS_MS) {
+        setTimeout(() => {
+          void refresh();
+        }, delay);
+      }
       return { ok: true };
     },
-    [sessionId],
+    [sessionId, refresh],
   );
 
   return {

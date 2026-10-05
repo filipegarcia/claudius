@@ -261,8 +261,8 @@ function InstallSection({
       <p className="mb-3 text-[11px] text-[var(--muted)]">
         Sends <code className="font-mono">/plugin install &lt;ref&gt;</code> to your active
         chat session. Watch progress in chat — the SDK handles the marketplace lookup,
-        download, and any prompts for trust or permissions. Refresh the list once it
-        finishes.
+        download, and any prompts for trust or permissions. The list refreshes itself once
+        the install finishes.
       </p>
 
       <form
@@ -277,7 +277,7 @@ function InstallSection({
           if (r.ok) {
             setStatus({
               ok: true,
-              msg: `Sent “/plugin install ${v}” to chat. Watch progress there, then refresh.`,
+              msg: `Sent “/plugin install ${v}” to chat. Watch progress there — the list refreshes automatically.`,
             });
             setDraft("");
             setMarketplaceSource("");
