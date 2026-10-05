@@ -34,10 +34,12 @@ describe("workspace creation defaults", () => {
     home.restore();
   });
 
-  test("the pinned default is bypassPermissions and nothing else", () => {
+  test("the pinned default is auto mode and nothing else (CC 2.1.284 / DEC2)", () => {
     // If this changes, the comment in workspaces-store.ts and the rationale
     // in the tests below need revisiting — hence an exact-match assertion.
-    expect(DEFAULT_WORKSPACE_DEFAULTS).toEqual({ permissionMode: "bypassPermissions" });
+    // New workspaces start in auto mode, matching Claude Code, rather than
+    // silently bypassing every permission prompt.
+    expect(DEFAULT_WORKSPACE_DEFAULTS).toEqual({ permissionMode: "auto" });
   });
 
   test("ensureBootstrap no longer auto-seeds a workspace on first run", async () => {
@@ -49,13 +51,13 @@ describe("workspace creation defaults", () => {
     expect(shape.activeId).toBeUndefined();
   });
 
-  test("createWorkspace with no defaults still gets bypassPermissions", async () => {
+  test("createWorkspace with no defaults gets auto mode", async () => {
     const ws = await createWorkspace({ name: "Proj", rootPath: "/tmp/proj-a" });
-    expect(ws.defaults?.permissionMode).toBe("bypassPermissions");
+    expect(ws.defaults?.permissionMode).toBe("auto");
 
     // …and it round-trips through the store, not just the return value.
     const fetched = await getWorkspace(ws.id);
-    expect(fetched?.defaults?.permissionMode).toBe("bypassPermissions");
+    expect(fetched?.defaults?.permissionMode).toBe("auto");
   });
 
   test("an explicit permissionMode wins over the default (default under caller)", async () => {
@@ -76,7 +78,7 @@ describe("workspace creation defaults", () => {
     // Caller field is kept…
     expect(ws.defaults?.model).toBe("claude-opus-4-7");
     // …and the gap is filled by the pinned default.
-    expect(ws.defaults?.permissionMode).toBe("bypassPermissions");
+    expect(ws.defaults?.permissionMode).toBe("auto");
   });
 
   test("notification prefs are NOT pinned, so the on/errors-muted fallback applies", async () => {
