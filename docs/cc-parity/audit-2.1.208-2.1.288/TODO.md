@@ -163,7 +163,7 @@ grep evidence): [`audit/chunk0.md`](audit/chunk0.md) (2.1.285–288) …
 - [x] **H9** [2.1.243 low F] Session list: load more than 200
 - [x] **H10** [2.1.273 low] Schedule form: "Discard unsaved changes?"
 - [x] **H11** [2.1.286 low] Schedule: late runs don't show a past "next run"
-- [ ] **H12** [2.1.271 low] `/mobile` QR code
+- [x] **H12** [2.1.271 low] `/mobile` QR code
 - [ ] **H13** [2.1.282 low] Doctor: telemetry env vars in project settings are ignored
 - [ ] **H14** [2.1.219 low] Workflow row shows the size guideline
 

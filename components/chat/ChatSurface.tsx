@@ -47,6 +47,7 @@ import { SkillsOverlay } from "@/components/overlays/SkillsOverlay";
 import { CostOverlay } from "@/components/overlays/CostOverlay";
 import { DiffOverlay } from "@/components/overlays/DiffOverlay";
 import { diffRefreshToken } from "@/lib/shared/diff-overlay";
+import { MobileQrOverlay } from "@/components/overlays/MobileQrOverlay";
 import { OutputStyleOverlay } from "@/components/overlays/OutputStyleOverlay";
 import { StatusOverlay } from "@/components/overlays/StatusOverlay";
 import { RenameOverlay } from "@/components/overlays/RenameOverlay";
@@ -131,7 +132,7 @@ import { useFocusMode } from "@/lib/client/useFocusMode";
 import { useStartupCount } from "@/lib/client/useStartupCount";
 import { useTipLastShown } from "@/lib/client/useTipLastShown";
 
-type OverlayKind = "help" | "skills" | "cost" | "status" | "rename" | "context" | "worktrees" | "diff" | "output-style" | null;
+type OverlayKind = "help" | "skills" | "cost" | "status" | "rename" | "context" | "worktrees" | "diff" | "output-style" | "mobile" | null;
 
 /**
  * Per-command toast for slash commands the registry classifies as `external`
@@ -1648,8 +1649,9 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
           }
           return true;
         case "mobile":
-          openExternalUrl(SLASH_LINKS.mobileApp);
-          showToast("Opening the Claude mobile app download page");
+          // CC 2.1.271 (H12) — show a scannable QR (desktop-browser analogue of
+          // the CLI's /mobile QR) rather than only opening the page here.
+          setOverlay("mobile");
           return true;
         case "passes":
           // CLI-only feature — the SDK does NOT advertise `/passes` in its
@@ -2698,6 +2700,9 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
           // CC 2.1.260 (H5) — refresh the diff live as Claude edits files.
           refreshToken={diffRefreshToken(session.recentEdits)}
         />
+      )}
+      {overlay === "mobile" && (
+        <MobileQrOverlay url={SLASH_LINKS.mobileApp} onClose={() => setOverlay(null)} />
       )}
       {overlay === "output-style" && session.sessionId && (
         <OutputStyleOverlay
