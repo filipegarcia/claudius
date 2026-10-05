@@ -41,6 +41,10 @@ type ContextResponse = {
     tokens: number;
     skillFrontmatter: { name: string; source: string; tokens: number }[];
   };
+  // CC 2.1.261 (H4) — names of skills invoked in the last 7 days (from the
+  // SDK's usage behaviors). `null`/absent = signal unavailable → no "unused"
+  // badge is shown (unknown ≠ unused).
+  weeklyUsedSkills?: string[] | null;
 };
 
 function fmtTokens(n: number): string {
@@ -258,22 +262,43 @@ export function ContextOverlay({ sessionId, onClose }: Props) {
             <Section title={`Skills (${data.skills.includedSkills}/${data.skills.totalSkills} loaded · ${fmtTokens(data.skills.tokens)})`}>
               <p className="mb-2 text-[10px] text-[var(--muted)]">
                 Sorted by context cost — the priciest, least-essential skills to prune are usually at the top.
+                {Array.isArray(data.weeklyUsedSkills) && (
+                  <> Skills unused in the last 7 days are flagged.</>
+                )}
               </p>
               <ul className="space-y-1 text-xs" data-testid="skill-cost-list">
                 {[...data.skills.skillFrontmatter]
                   .sort((a, b) => b.tokens - a.tokens)
-                  .map((s) => (
-                    <li
-                      key={`${s.source}/${s.name}`}
-                      data-testid="skill-cost-row"
-                      className="flex items-baseline justify-between gap-2 rounded-md bg-[var(--panel-2)]/40 px-2 py-1"
-                    >
-                      <span className="truncate font-mono">/{s.name}</span>
-                      <span className="text-[var(--muted)]">
-                        {s.source} · {fmtTokens(s.tokens)}
-                      </span>
-                    </li>
-                  ))}
+                  .map((s) => {
+                    // CC 2.1.261 (H4) — only flag "unused" when the weekly
+                    // signal is actually present (unknown ≠ unused).
+                    const unused =
+                      Array.isArray(data.weeklyUsedSkills) &&
+                      !data.weeklyUsedSkills.some((u) => u.toLowerCase() === s.name.toLowerCase());
+                    return (
+                      <li
+                        key={`${s.source}/${s.name}`}
+                        data-testid="skill-cost-row"
+                        className="flex items-baseline justify-between gap-2 rounded-md bg-[var(--panel-2)]/40 px-2 py-1"
+                      >
+                        <span className="flex min-w-0 items-center gap-1.5 truncate">
+                          <span className="truncate font-mono">/{s.name}</span>
+                          {unused && (
+                            <span
+                              data-testid="skill-unused-badge"
+                              className="shrink-0 rounded bg-amber-500/15 px-1 text-[9px] uppercase tracking-wide text-amber-400"
+                              title="Not invoked in the last 7 days — a prune candidate"
+                            >
+                              unused 7d
+                            </span>
+                          )}
+                        </span>
+                        <span className="text-[var(--muted)]">
+                          {s.source} · {fmtTokens(s.tokens)}
+                        </span>
+                      </li>
+                    );
+                  })}
               </ul>
             </Section>
           )}

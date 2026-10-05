@@ -124,6 +124,7 @@ import {
 } from "@/lib/shared/system-prompt-append";
 import { loadDbAgentsForOptions } from "@/lib/server/db-agents";
 import { selectTips, type SpinnerTipOverrideEntry } from "@/lib/shared/tips";
+import { extractWeeklyUsedSkills } from "@/lib/shared/skill-usage";
 import { buildEffortFlagSettings } from "@/lib/shared/effort-flags";
 import { normalizeExtraUsage, type ExtraUsage } from "@/lib/shared/plan-usage";
 import type { SessionLoop } from "@/lib/shared/session-loops";
@@ -5880,6 +5881,28 @@ export class Session {
       return { ok: true, data };
     } catch (err) {
       return { ok: false, error: err instanceof Error ? err.message : String(err) };
+    }
+  }
+
+  /**
+   * CC 2.1.261 (H4) — the names of skills invoked in the last 7 days, from the
+   * experimental usage API's `behaviors.week.skills`. Used by the `/context`
+   * overlay's skill-doctor section to flag "unused (7d)" skills. Fetched WITHOUT
+   * `skipBehaviors` (that scan reads a week of local transcripts, so it's run
+   * only on the user-initiated `/context` fetch, never the idle poll). Returns
+   * `null` when the signal is unavailable (experimental API absent/failed) so
+   * the UI can distinguish "unknown" from "unused" and show no badge.
+   */
+  async getWeeklyUsedSkills(): Promise<string[] | null> {
+    if (!this.query) return null;
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data = await (this.query as any).usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET(
+        { skipBehaviors: false },
+      );
+      return extractWeeklyUsedSkills(data);
+    } catch {
+      return null;
     }
   }
 
