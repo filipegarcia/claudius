@@ -22,6 +22,7 @@ import { CronEditor } from "@/components/schedule/CronEditor";
 import { fmtElapsedSec } from "@/components/panels/widgets/format";
 import { describeCron } from "@/lib/shared/cron";
 import { isScheduleFormDirty } from "@/lib/shared/schedule-form";
+import { isScheduleDue } from "@/lib/shared/schedule-due";
 import type { Job, Run, RunStatus } from "@/lib/server/scheduler-store";
 import {
   isStaleWakeup,
@@ -78,6 +79,14 @@ export default function SchedulePage() {
     setFormDirty(false);
     setCreating(false);
   }, [formDirty]);
+  // CC 2.1.286 (H11) — a ticking "now" (read in render, not Date.now(), which
+  // the React compiler forbids as impure) so a job's next-run flips to "Due"
+  // once its time passes.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(id);
+  }, []);
 
   const [jobsRefetchTrigger, setJobsRefetchTrigger] = useState(0);
   const [runsRefetchTrigger, setRunsRefetchTrigger] = useState(0);
@@ -365,7 +374,7 @@ export default function SchedulePage() {
                       </div>
                       <span className="font-mono text-[10px] text-[var(--muted)]">{j.cron}</span>
                       <span className="text-[10px] text-[var(--muted)]">
-                        next {j.nextRunAt ? new Date(j.nextRunAt).toLocaleTimeString() : "—"} · last {fmtRel(j.lastRunAt)}
+                        next {j.nextRunAt == null ? "—" : isScheduleDue(j.nextRunAt, now) ? "Due" : new Date(j.nextRunAt).toLocaleTimeString()} · last {fmtRel(j.lastRunAt)}
                       </span>
                     </button>
                   </li>
@@ -524,6 +533,13 @@ function JobDetail({
 }) {
   const [activeRunId, setActiveRunId] = useState<string | null>(null);
   const activeRun = useMemo(() => runs.find((r) => r.id === activeRunId) ?? null, [runs, activeRunId]);
+  // CC 2.1.286 (H11) — ticking "now" so the "Next" stat flips to "Due" when the
+  // scheduled time passes (Date.now() in render is rejected as impure).
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(id);
+  }, []);
 
   return (
     <div className="flex h-full w-full flex-col overflow-hidden">
@@ -560,7 +576,16 @@ function JobDetail({
           <Stat label="Cron" value={<code className="font-mono">{job.cron}</code>} />
           <Stat label="Schedule" value={describeCron(job.cron)} />
           <Stat label="Last" value={fmtRel(job.lastRunAt)} />
-          <Stat label="Next" value={job.nextRunAt ? new Date(job.nextRunAt).toLocaleString() : "—"} />
+          <Stat
+            label="Next"
+            value={
+              job.nextRunAt == null
+                ? "—"
+                : isScheduleDue(job.nextRunAt, now)
+                  ? "Due"
+                  : new Date(job.nextRunAt).toLocaleString()
+            }
+          />
           <Stat label="cwd" value={<code className="font-mono break-all">{job.cwd}</code>} />
           {job.model && <Stat label="Model" value={<code className="font-mono">{job.model}</code>} />}
         </div>
