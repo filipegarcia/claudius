@@ -158,7 +158,7 @@ grep evidence): [`audit/chunk0.md`](audit/chunk0.md) (2.1.285–288) …
 - [x] **H4** [2.1.261] `/skill-doctor`: "unused (7d)" skills
 - [x] **H5** [2.1.260/2.1.269] `/diff` beside the chat, refreshing as Claude edits
 - [ ] **H6** [2.1.265] Workflow per-agent detail (tool-call status, task list) _(BLOCKED — unverifiable on-disk contract: the per-agent breakdown must be parsed from the JSONL under the run's `transcriptDir`, but `WorkflowOutput` (sdk-tools.d.ts:4100) exposes only the directory path — not a structured per-agent array — and the directory's internal layout (per-agent file naming, agent→file mapping, message schema) is undocumented in the SDK and cannot be verified here (no local `local_workflow` runs exist on disk to inspect). Building a parser + per-agent UI against a guessed format is the "invent a format / phantom" trap. Needs a real workflow run's transcriptDir captured and its layout confirmed before building. The live aggregate task + declared phases are already surfaced in `components/chat/WorkflowBlock.tsx`.)_
-- [ ] **H7** [2.1.234] PR/MR badge (GitHub + GitLab)
+- [x] **H7** [2.1.234] PR/MR badge (GitHub + GitLab)
 - [ ] **H8** [2.1.236 low F] Cap session recaps at 400 chars
 - [ ] **H9** [2.1.243 low F] Session list: load more than 200
 - [ ] **H10** [2.1.273 low] Schedule form: "Discard unsaved changes?"
