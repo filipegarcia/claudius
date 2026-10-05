@@ -153,7 +153,7 @@ grep evidence): [`audit/chunk0.md`](audit/chunk0.md) (2.1.285–288) …
 ## H — Sessions, doctor, diff, workflows
 
 - [x] **H1** [2.1.287/2.1.288] Sessions page: ranked name search, Enter opens best match, rebindable "find session" shortcut
-- [ ] **H2** [2.1.281] Doctor: combined CLAUDE.md size incl. `@`-imports, local/user/rules
+- [x] **H2** [2.1.281] Doctor: combined CLAUDE.md size incl. `@`-imports, local/user/rules
 - [ ] **H3** [2.1.283] Prompt audit: stale `/command` references + contradicting instruction files
 - [ ] **H4** [2.1.261] `/skill-doctor`: "unused (7d)" skills
 - [ ] **H5** [2.1.260/2.1.269] `/diff` beside the chat, refreshing as Claude edits

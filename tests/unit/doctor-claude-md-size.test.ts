@@ -75,7 +75,7 @@ describe("GET /api/doctor — claude-md-size check", () => {
     expect(check?.status).toBe("warn");
     expect(check?.label).toContain("Big project");
     expect(check?.detail).toContain("400 lines");
-    expect(check?.detail).toContain("1 checked-in file");
+    expect(check?.detail).toContain("1 instruction file");
     expect(check?.link).toEqual({ href: `/${ws.id}/memory`, label: "Review in Memory" });
   });
 
@@ -89,7 +89,34 @@ describe("GET /api/doctor — claude-md-size check", () => {
     const checks = await runChecks();
     const check = checks.find((c) => c.id === `claude-md-size:${ws.id}`);
     expect(check).toBeDefined();
-    expect(check?.detail).toContain("2 checked-in files");
+    expect(check?.detail).toContain("2 instruction files");
+  });
+
+  // CC 2.1.281 (H2) — @-imports and .claude/rules now count toward the total.
+  test("counts an @-imported file's size toward the threshold", async () => {
+    // A tiny top-level CLAUDE.md that @-imports a large file: under the old
+    // raw-size check this stayed small; now the import is resolved and counted.
+    await fs.writeFile(join(projectDir, "CLAUDE.md"), "# Root\n\n@big-rules.md\n", "utf8");
+    const big = Array.from({ length: 400 }, (_, i) => `Imported line ${i}`).join("\n");
+    await fs.writeFile(join(projectDir, "big-rules.md"), big, "utf8");
+    const ws = await createWorkspace({ name: "Importer", rootPath: projectDir });
+
+    const check = (await runChecks()).find((c) => c.id === `claude-md-size:${ws.id}`);
+    expect(check).toBeDefined();
+    expect(check?.status).toBe("warn");
+    expect(check?.detail).toMatch(/@-imports/);
+  });
+
+  test("counts .claude/rules files toward the threshold", async () => {
+    await fs.writeFile(join(projectDir, "CLAUDE.md"), "# Small root\n", "utf8");
+    await fs.mkdir(join(projectDir, ".claude", "rules"), { recursive: true });
+    const big = Array.from({ length: 400 }, (_, i) => `Rule line ${i}`).join("\n");
+    await fs.writeFile(join(projectDir, ".claude", "rules", "style.md"), big, "utf8");
+    const ws = await createWorkspace({ name: "Rules project", rootPath: projectDir });
+
+    const check = (await runChecks()).find((c) => c.id === `claude-md-size:${ws.id}`);
+    expect(check).toBeDefined();
+    expect(check?.detail).toMatch(/\.claude\/rules/);
   });
 
   test("does not overcount a trailing newline (matches wc -l, not split('\\n').length)", async () => {

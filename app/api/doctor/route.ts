@@ -5,7 +5,8 @@ import { join } from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { listWorkspaces } from "@/lib/server/workspaces-store";
-import { readScope } from "@/lib/server/claudemd";
+import { resolveHierarchy } from "@/lib/server/claudemd";
+import { listRules, readRule } from "@/lib/server/rules";
 import {
   auditWorkspacePrompts,
   type PromptAuditFinding,
@@ -84,12 +85,35 @@ async function claudeMdSizeChecks(): Promise<Check[]> {
     // documented default).
     if ((ws.kind ?? "project") !== "project") continue;
 
-    const [project, projectClaude] = await Promise.all([
-      readScope("project", ws.rootPath),
-      readScope("project-claude", ws.rootPath),
-    ]);
-    const files = [project, projectClaude].filter((f) => f.exists);
-    if (files.length === 0) continue;
+    // CC 2.1.281 (H2) — count the COMBINED instruction context, not just the
+    // raw project CLAUDE.md files: resolve `@`-imports inline and include the
+    // user/project/project-claude/local scopes (via resolveHierarchy) plus the
+    // `.claude/rules` files (user + project). This matches the large-CLAUDE.md
+    // notice upstream, which sums all instruction files together.
+    const contents: string[] = [];
+    let sourceCount = 0;
+    const hierarchy = await resolveHierarchy(ws.rootPath);
+    for (const sc of hierarchy.scopes) {
+      if (!sc.exists) continue;
+      sourceCount += 1; // the scope file itself; its @-imports fold into it
+      for (const seg of sc.segments) contents.push(seg.content);
+    }
+    for (const scope of ["project", "user"] as const) {
+      let ruleFiles;
+      try {
+        ruleFiles = await listRules(scope, ws.rootPath);
+      } catch {
+        continue;
+      }
+      for (const rf of ruleFiles) {
+        const c = await readRule(scope, rf.name, ws.rootPath);
+        if (c != null) {
+          contents.push(c);
+          sourceCount += 1;
+        }
+      }
+    }
+    if (contents.length === 0) continue;
 
     // `.split("\n").length` overcounts by one for the (near-universal) case
     // of a trailing newline — subtract it so a file with exactly N lines
@@ -98,19 +122,20 @@ async function claudeMdSizeChecks(): Promise<Check[]> {
       const parts = content.split("\n").length;
       return content.endsWith("\n") ? parts - 1 : parts;
     };
-    const totalLines = files.reduce((n, f) => n + lineCount(f.content), 0);
+    const totalLines = contents.reduce((n, c) => n + lineCount(c), 0);
     if (totalLines <= CLAUDE_MD_TRIM_THRESHOLD_LINES) continue;
 
-    const totalBytes = files.reduce((n, f) => n + Buffer.byteLength(f.content, "utf8"), 0);
+    const totalBytes = contents.reduce((n, c) => n + Buffer.byteLength(c, "utf8"), 0);
     checks.push({
       id: `claude-md-size:${ws.id}`,
       label: `CLAUDE.md size — ${ws.name}`,
       status: "warn",
       detail:
-        `${totalLines} lines (~${Math.round(totalBytes / 1024)} KB) across ${files.length} ` +
-        `checked-in file${files.length > 1 ? "s" : ""} — Claude can usually re-derive routine ` +
-        `info (file layout, tech stack, build commands) from the codebase itself; consider ` +
-        `trimming content it doesn't need spelled out, or moving procedures into a skill.`,
+        `${totalLines} lines (~${Math.round(totalBytes / 1024)} KB) across ${sourceCount} ` +
+        `instruction file${sourceCount > 1 ? "s" : ""} (CLAUDE.md scopes incl. @-imports and ` +
+        `.claude/rules) — Claude can usually re-derive routine info (file layout, tech stack, ` +
+        `build commands) from the codebase itself; consider trimming content it doesn't need ` +
+        `spelled out, or moving procedures into a skill.`,
       link: { href: `/${ws.id}/memory`, label: "Review in Memory" },
     });
   }
