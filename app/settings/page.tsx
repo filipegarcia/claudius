@@ -34,6 +34,15 @@ import {
   normalizeAdvisorChoice,
 } from "@/lib/shared/advisor";
 import { useMediaPreferences } from "@/lib/client/useMediaPreferences";
+import { attributionFieldState } from "@/lib/shared/attribution-setting";
+import {
+  AUTO_COMPACT_WINDOW_MAX,
+  AUTO_COMPACT_WINDOW_MIN,
+  isAutoCompactWindowOutOfRange,
+  parseAutoCompactWindowInput,
+  readPerModelAutoCompact,
+  setModelAutoCompactWindow,
+} from "@/lib/shared/auto-compact-window";
 import { cn } from "@/lib/utils/cn";
 import { setStatusLineCommand, setStatusLineRefreshInterval, type StatusLineConfig } from "@/lib/shared/status-line";
 import { nextWorktree, parseDirList } from "@/lib/shared/worktree-settings";
@@ -954,8 +963,10 @@ const KNOWN_KEYS = new Set([
 // curated, not exhaustive: managed/enterprise-only keys (allowManaged*Only,
 // strictKnownMarketplaces, modelOverrides, availableModels, *McpServers
 // allow/deny lists, etc.), keys already covered by their own UI sections,
-// and complex nested objects (worktree, attribution, hooks…) are omitted —
-// the latter fall through to the generic "Other" editor. When the SDK bumps,
+// and complex nested objects (worktree, hooks…) are omitted — the latter
+// fall through to the generic "Other" editor. (`attribution` is surfaced as a
+// hide-all toggle via a dedicated control; its object form still falls
+// through to "Other".) When the SDK bumps,
 // diff this table against the new sdk.d.ts.
 type CatalogType = "boolean" | "number" | "string" | "string[]" | "enum";
 type SettingMeta = {
@@ -987,6 +998,13 @@ const SDK_SETTINGS_CATALOG: SettingMeta[] = [
     type: "boolean",
     section: "Model & behavior",
     desc: "When true, fast mode is enabled. When absent or false, fast mode is off.",
+  },
+  {
+    // CC 2.1.234 — resume automatically once the claude.ai usage limit resets.
+    key: "autoContinueAtUsageLimit",
+    type: "boolean",
+    section: "Model & behavior",
+    desc: "When true, a session paused at the usage limit continues automatically once the limit resets.",
   },
   {
     key: "workflowSizeGuideline",
@@ -1034,7 +1052,10 @@ const SDK_SETTINGS_CATALOG: SettingMeta[] = [
     type: "enum",
     section: "Thinking & effort",
     options: ["low", "medium", "high", "xhigh"],
-    desc: "Persisted effort level for supported models.",
+    // CC 2.1.280 (F12) — this top-level value is the legacy fallback; once you
+    // set effort per model (via /effort, saved to modelSettings.<model>.
+    // effortLevel), newer models read that instead and ignore this one.
+    desc: "Persisted effort level — the legacy fallback for supported models. A per-model effort set with /effort (stored under modelSettings.<model>.effortLevel) takes precedence, and newer models (e.g. Opus 5.5) use only the per-model value, ignoring this one.",
   },
   {
     // SDK 0.3.267 — org/user-level ceiling: an /effort or /model pick, a CLI
@@ -1116,10 +1137,20 @@ const SDK_SETTINGS_CATALOG: SettingMeta[] = [
     desc: "Whether file picker should respect .gitignore files (default: true). Note: .ignore files are always respected.",
   },
   {
+    // CC 2.1.281 (F7) — hide-all attribution toggle. The full `boolean |
+    // object` shape is handled by the dedicated `AttributionCatalogField`
+    // (an object config stays editable via the "Other" JSON editor).
+    key: "attribution",
+    type: "boolean",
+    section: "Git",
+    desc: 'Attribution in commits and PRs. Default shows the standard Claude Code attribution; "Hidden" writes `attribution: false` to suppress all of it (same as empty commit/PR text and no session link). For per-field customization (custom commit/PR text, session URL), edit the object form as raw JSON in the "Other" section below. Supersedes the deprecated includeCoAuthoredBy.',
+  },
+  {
     key: "includeCoAuthoredBy",
     type: "boolean",
     section: "Git",
-    desc: "Include Claude's `Co-Authored-By: Claude <noreply@anthropic.com>` trailer in commits and PRs (default: true). Turn off to omit it.",
+    deprecated: true,
+    desc: "Deprecated — use `attribution` instead. Include Claude's `Co-Authored-By: Claude <noreply@anthropic.com>` trailer in commits and PRs (default: true). Turn off to omit it.",
   },
   {
     key: "includeGitInstructions",
@@ -1275,42 +1306,51 @@ const SDK_SETTINGS_CATALOG: SettingMeta[] = [
     desc: 'Deprecated as of Claude Code 2.1.261 — no longer has any effect; the CLI\'s own prompt always follows Bash (readline) word-editing conventions now. Safe to remove; kept here only so an existing value in settings.json is visible and editable.',
   },
   {
-    // SDK 0.3.257 — clock format for the CLI's own TUI. Config-passthrough
-    // only, same reasoning as `keybindingFlavor` above: Claudius's browser
-    // UI renders its own message timestamps and isn't affected by this
-    // key either way — it's forwarded here purely for anyone who also runs
-    // the bundled `claude` binary in a terminal against this settings file.
+    // SDK 0.3.257 — drives the clock format in Claudius's browser UI (CC
+    // 2.1.257 / F4) and in the bundled CLI's TUI. See
+    // `lib/shared/time-format.ts`.
     key: "timeFormat",
     type: "string",
     section: "Display",
     placeholder: "auto",
-    desc: 'Clock format for times the CLI shows in its own UI: "auto" (default, follows the locale), "12-hour", "24-hour", "24-hour-utc", or a strftime pattern such as "%H:%M" (any value containing "%"). Does not affect Claudius\'s own message timestamps.',
+    desc: 'Clock format for Claudius\'s message timestamps and turn-end clock (and the CLI\'s own UI): "auto" (default, follows the locale), "12-hour", "24-hour", "24-hour-utc", or a strftime pattern such as "%H:%M" (any value containing "%"). A strftime pattern applies only in the CLI; in the browser it falls back to the locale clock, but "timeZone" below is still honored.',
   },
   {
     key: "timeZone",
     type: "string",
     section: "Display",
     placeholder: "UTC",
-    desc: 'IANA time zone for times the CLI shows in its own UI, e.g. "UTC" or "Europe/Dublin". Default: the system time zone. Does not affect Claudius\'s own message timestamps.',
+    desc: 'IANA time zone for Claudius\'s message timestamps and turn-end clock (and the CLI\'s own UI), e.g. "UTC" or "Europe/Dublin". Default: the system time zone. An unrecognized name is ignored.',
   },
   {
-    // SDK 0.3.283 — config-passthrough only, same reasoning as `timeFormat`
-    // above: this caps prose width in the bundled CLI's terminal TUI.
-    // Claudius's browser UI wraps prose with CSS and isn't affected; the key
-    // is forwarded here for anyone who also runs the `claude` binary against
-    // this settings file.
+    // SDK 0.3.283 — honored in Claudius's browser UI (CC 2.1.282 / F3): the
+    // column count maps to the `ch` unit and caps prose blocks via the
+    // `--prose-max-width` CSS variable (see `lib/client/prose-width.ts`). The
+    // same key is still read by the bundled `claude` binary's TUI.
     key: "maxProseWidth",
     type: "number",
     section: "Display",
     placeholder: "(full width)",
-    desc: "Maximum width, in terminal columns, of the prose in Claude's responses (paragraphs, headings, lists, blockquotes) in the CLI's own TUI. Minimum 40; tables and code blocks keep full width, and only the display wraps — the response text gains no line breaks. Unset uses the full terminal width. Does not affect how Claudius wraps prose in the browser.",
+    desc: "Maximum width, in columns, of the prose in Claude's responses (paragraphs, headings, lists, blockquotes). Minimum 40; tables and code blocks keep full width. Unset uses the full chat-column width. Applies in Claudius's browser UI (each column ≈ one character) and in the CLI's own TUI.",
+  },
+  {
+    // CC 2.1.287 (F9). The OS "Reduce motion" setting is honored automatically
+    // via a CSS media query; this forces it on regardless. See
+    // `lib/client/useReducedMotionSetting.ts` + the rules in app/globals.css.
+    key: "prefersReducedMotion",
+    type: "boolean",
+    section: "Display",
+    desc: "Reduce or disable animations for accessibility (spinner shimmer, the running-tool dot, flash effects). Your OS 'Reduce motion' setting is always honored; turning this on forces reduced motion even when the OS doesn't request it.",
   },
   {
     key: "forceLoginMethod",
     type: "enum",
     section: "Authentication",
-    options: ["claudeai", "console"],
-    desc: 'Force a specific login method: "claudeai" for Claude Pro/Max, "console" for Console billing',
+    // CC 2.1.261 (F11) — SDK adds "gateway" (the Cloud gateway OIDC device
+    // flow, paired with forceLoginGatewayUrl below). sdk.d.ts: the type is
+    // 'claudeai' | 'console' | 'gateway'.
+    options: ["claudeai", "console", "gateway"],
+    desc: 'Force a specific login method: "claudeai" for Claude Pro/Max, "console" for Console billing, "gateway" for the Cloud gateway OIDC device flow (paired with forceLoginGatewayUrl).',
   },
   {
     key: "forceLoginGatewayUrl",
@@ -1381,7 +1421,13 @@ function OtherEditor({
   update: (patch: Patch) => void;
 }) {
   const others = Object.entries(draft).filter(
-    ([k]) => !KNOWN_KEYS.has(k) && !CATALOG_KEYS.has(k),
+    ([k, v]) =>
+      (!KNOWN_KEYS.has(k) && !CATALOG_KEYS.has(k)) ||
+      // CC 2.1.281 (F7) — `attribution` is a catalog key, but only its simple
+      // boolean hide-all case is editable there. When it holds a custom object
+      // the catalog control steps aside and points here, so it must remain
+      // listed in Other (the filter would otherwise hide a configured object).
+      (k === "attribution" && v !== null && typeof v === "object"),
   );
   return (
     <div className="space-y-2">
@@ -1602,6 +1648,12 @@ function CatalogField({
   }
   if (meta.key === "modelPricing") {
     return <ModelPricingCatalogField value={value} set={set} />;
+  }
+  if (meta.key === "attribution") {
+    return <AttributionCatalogField value={value} set={set} />;
+  }
+  if (meta.key === "autoCompactWindow") {
+    return <AutoCompactWindowCatalogField draft={draft} update={update} />;
   }
   const inputCls =
     "w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 font-mono text-xs focus:outline-none";
@@ -2050,6 +2102,219 @@ function ModelPricingCatalogField({
       >
         <Plus className="h-3 w-3" /> Add model rate
       </button>
+    </div>
+  );
+}
+
+/**
+ * CC 2.1.288 (F8) — per-model `autoCompactWindow` overrides. Edits both the
+ * top-level `autoCompactWindow` (a number) and the per-model entries under
+ * `modelSettings.<model>.autoCompactWindow` ('auto' | number), where
+ * `/autocompact` saves. Keyed on `autoCompactWindow` (NOT `modelSettings`) so
+ * the per-model `effortLevel`/`maxEffortLevel` keys stay in the "Other" editor.
+ * Existing rows are read-only on the model id (they come from `/autocompact`,
+ * keyed by canonical model name) and edit/remove just the window; a separate
+ * add-form holds a new model id in local state until "Add", so an empty key
+ * never reaches settings.json.
+ */
+function AutoCompactWindowCatalogField({
+  draft,
+  update,
+}: {
+  draft: ClaudeSettings;
+  update: (patch: Patch) => void;
+}) {
+  const topLevel = (draft as Record<string, unknown>).autoCompactWindow;
+  const modelSettings = (draft as Record<string, unknown>).modelSettings;
+  const overrides = readPerModelAutoCompact(modelSettings);
+  const isSet = topLevel !== undefined || overrides.length > 0;
+
+  const [newModel, setNewModel] = useState("");
+  const [newWindow, setNewWindow] = useState("");
+
+  const commitModel = (model: string, value: "auto" | number | undefined) => {
+    update({ modelSettings: setModelAutoCompactWindow(modelSettings, model, value) } as Patch);
+  };
+
+  const inputCls =
+    "w-full min-w-0 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1 font-mono text-[11px] focus:outline-none";
+
+  return (
+    <div
+      data-testid="catalog-field-autoCompactWindow"
+      className="rounded-md border border-[var(--border)] bg-[var(--panel-2)]/40 p-2"
+    >
+      <div className="mb-1 flex items-center gap-2">
+        <span className="font-mono text-xs">autoCompactWindow</span>
+        <span
+          className={cn(
+            "ml-auto text-[9px] uppercase tracking-wide",
+            isSet ? "text-[var(--accent)]" : "text-[var(--muted)]",
+          )}
+        >
+          {isSet ? "overridden" : "default"}
+        </span>
+      </div>
+      <p className="mb-2 text-[11px] leading-4 text-[var(--muted)]">
+        Auto-compact window size, in tokens ({AUTO_COMPACT_WINDOW_MIN.toLocaleString()}–
+        {AUTO_COMPACT_WINDOW_MAX.toLocaleString()}). The top-level value applies to every model
+        without its own window below.
+      </p>
+      <input
+        data-testid="auto-compact-window-top"
+        type="number"
+        value={typeof topLevel === "number" ? topLevel : ""}
+        placeholder="(default)"
+        onChange={(e) => {
+          if (e.target.value === "") return update({ autoCompactWindow: undefined } as Patch);
+          const n = Number(e.target.value);
+          if (!Number.isNaN(n)) update({ autoCompactWindow: n } as Patch);
+        }}
+        className={inputCls}
+      />
+      {isAutoCompactWindowOutOfRange(topLevel) && (
+        <div
+          data-testid="auto-compact-window-top-warning"
+          className="mt-1 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[10px] text-amber-300"
+        >
+          Outside {AUTO_COMPACT_WINDOW_MIN.toLocaleString()}–
+          {AUTO_COMPACT_WINDOW_MAX.toLocaleString()} — the engine may reject it.
+        </div>
+      )}
+
+      {overrides.length > 0 && (
+        <p
+          data-testid="auto-compact-window-precedence"
+          className="mt-2 text-[10px] leading-4 text-amber-300/90"
+        >
+          Overridden for {overrides.length} model{overrides.length === 1 ? "" : "s"} below — those
+          windows replace the value above for those models (saved by /autocompact).
+        </p>
+      )}
+
+      <ul className="mt-2 space-y-1.5">
+        {overrides.map(({ model, window }) => (
+          <li key={model} className="flex items-center gap-1.5">
+            <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-[var(--muted)]" title={model}>
+              {model}
+            </span>
+            <input
+              data-testid="auto-compact-window-model-input"
+              defaultValue={typeof window === "number" || typeof window === "string" ? String(window) : ""}
+              placeholder="auto / 200000"
+              onChange={(e) => {
+                const parsed = parseAutoCompactWindowInput(e.target.value);
+                if (parsed.kind === "ignore") return;
+                commitModel(model, parsed.kind === "remove" ? undefined : parsed.value);
+              }}
+              className="w-28 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1 font-mono text-[11px] focus:outline-none"
+            />
+            <button
+              type="button"
+              data-testid="auto-compact-window-model-remove"
+              onClick={() => commitModel(model, undefined)}
+              className="shrink-0 rounded-md border border-[var(--border)] bg-[var(--panel-2)] p-1 text-[var(--muted)] hover:text-red-400"
+              title="Remove this model's window"
+            >
+              <Trash2 className="h-3 w-3" />
+            </button>
+          </li>
+        ))}
+      </ul>
+
+      <div className="mt-2 flex items-center gap-1.5 border-t border-[var(--border)] pt-2">
+        <input
+          data-testid="auto-compact-window-new-model"
+          value={newModel}
+          placeholder="claude-opus-4-8"
+          onChange={(e) => setNewModel(e.target.value)}
+          className="min-w-0 flex-1 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1 font-mono text-[11px] focus:outline-none"
+        />
+        <input
+          data-testid="auto-compact-window-new-window"
+          value={newWindow}
+          placeholder="auto / 200000"
+          onChange={(e) => setNewWindow(e.target.value)}
+          className="w-28 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1 font-mono text-[11px] focus:outline-none"
+        />
+        <button
+          type="button"
+          data-testid="auto-compact-window-add"
+          disabled={newModel.trim() === "" || parseAutoCompactWindowInput(newWindow).kind !== "set"}
+          onClick={() => {
+            const parsed = parseAutoCompactWindowInput(newWindow);
+            if (parsed.kind !== "set") return;
+            commitModel(newModel.trim(), parsed.value);
+            setNewModel("");
+            setNewWindow("");
+          }}
+          className="shrink-0 rounded-md border border-[var(--border)] bg-[var(--panel-2)] p-1 text-[var(--accent)] hover:bg-[var(--panel)] disabled:opacity-40"
+          title="Add a per-model window"
+        >
+          <Plus className="h-3 w-3" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * CC 2.1.281 (F7) — the `attribution` catalog control. `attribution` is
+ * `boolean | object` in the SDK: the toggle covers the simple Default vs.
+ * `false` (hide-all) case, and when a custom object is configured it steps
+ * aside (showing a hint) so toggling can't clobber the per-field config —
+ * that stays editable as raw JSON in the "Other" section. "Default" writes
+ * `undefined` (omits the key) rather than `true`, since `true` is explicitly
+ * "same as leaving it out" and older Claude Code versions reject a bare
+ * `true`/`false` in shared settings files.
+ */
+function AttributionCatalogField({
+  value,
+  set,
+}: {
+  value: unknown;
+  set: (v: unknown) => void;
+}) {
+  const state = attributionFieldState(value);
+  const isSet = value !== undefined;
+  return (
+    <div
+      data-testid="catalog-field-attribution"
+      className="rounded-md border border-[var(--border)] bg-[var(--panel-2)]/40 p-2"
+    >
+      <div className="mb-1 flex items-center gap-2">
+        <span className="font-mono text-xs">attribution</span>
+        <span
+          className={cn(
+            "ml-auto text-[9px] uppercase tracking-wide",
+            isSet ? "text-[var(--accent)]" : "text-[var(--muted)]",
+          )}
+        >
+          {isSet ? "overridden" : "default"}
+        </span>
+      </div>
+      <p className="mb-2 text-[11px] leading-4 text-[var(--muted)]">
+        Attribution in commits and PRs. Default shows the standard Claude Code attribution;{" "}
+        <span className="font-mono">Hidden</span> writes <span className="font-mono">attribution: false</span>{" "}
+        to suppress all of it. For per-field customization (custom commit/PR text, session URL),
+        edit the object form as raw JSON in the <span className="font-mono">Other</span> section
+        below. Supersedes the deprecated <span className="font-mono">includeCoAuthoredBy</span>.
+      </p>
+      {state === "custom" ? (
+        <p className="text-[11px] leading-4 text-[var(--muted)]">
+          A custom attribution object is set — edit it as raw JSON in the{" "}
+          <span className="font-mono">Other</span> section below.
+        </p>
+      ) : (
+        <select
+          value={state}
+          onChange={(e) => set(e.target.value === "hidden" ? false : undefined)}
+          className="w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 text-xs focus:outline-none"
+        >
+          <option value="default">Default (attribution shown)</option>
+          <option value="hidden">Hidden (attribution: false)</option>
+        </select>
+      )}
     </div>
   );
 }

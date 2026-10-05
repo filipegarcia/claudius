@@ -63,6 +63,22 @@ describe("appendCoalescedSystemEntry", () => {
     expect(list.every((e) => e.count === undefined)).toBe(true);
   });
 
+  // CC 2.1.257 (C7) — hook-completion notices fold the same way: a frequent
+  // hook firing repeatedly with the same name+outcome collapses to one ×N pill,
+  // but a failure (distinct label) still gets its own visible pill.
+  test("coalesces repeated identical hook-completion notices, keeps failures separate", () => {
+    const hook = (over: Partial<SystemEntry> = {}) =>
+      entry({ kind: "hook_response", label: "Hook format → ok", ...over });
+    let list = appendCoalescedSystemEntry([], hook());
+    list = appendCoalescedSystemEntry(list, hook());
+    list = appendCoalescedSystemEntry(list, hook());
+    expect(list).toHaveLength(1);
+    expect(list[0].count).toBe(3);
+    list = appendCoalescedSystemEntry(list, hook({ label: "Hook format → error", hookFailed: true }));
+    expect(list).toHaveLength(2);
+    expect(list[1].count).toBeUndefined();
+  });
+
   test("does not mutate the previous array (returns a new list)", () => {
     const prev = [entry()];
     const next = appendCoalescedSystemEntry(prev, entry({ uuid: "u2" }));

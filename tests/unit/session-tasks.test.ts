@@ -203,6 +203,26 @@ describe("session-tasks-db roundtrip", () => {
     expect(row!.reason).toBeUndefined();
   });
 
+  // CC 2.1.284 (B11) — round-trip the output_file path (migration 024).
+  test("round-trips output_file through session_tasks", async () => {
+    const entry: TaskSnapshotEntry = {
+      taskId: "task-output-1",
+      status: "completed",
+      outputFile: "/tmp/monitor-xyz.out",
+      innerMessages: [],
+    };
+    await saveSessionTask(CWD, "tasks-test", entry);
+    const rows = await listSessionTasks(CWD, "tasks-test");
+    expect(rows.find((r) => r.taskId === "task-output-1")!.outputFile).toBe("/tmp/monitor-xyz.out");
+  });
+
+  test("leaves output_file unset when never reported", async () => {
+    const entry: TaskSnapshotEntry = { taskId: "task-output-2", status: "completed", innerMessages: [] };
+    await saveSessionTask(CWD, "tasks-test", entry);
+    const rows = await listSessionTasks(CWD, "tasks-test");
+    expect(rows.find((r) => r.taskId === "task-output-2")!.outputFile).toBeUndefined();
+  });
+
   test("upserts by (session_id, task_id)", async () => {
     const base: TaskSnapshotEntry = { taskId: "task-1", status: "running", innerMessages: [] };
     await saveSessionTask(CWD, "tasks-test", base);

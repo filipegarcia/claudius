@@ -34,6 +34,16 @@ export type PermissionRequestEvent = {
    */
   suppressAlwaysAllowRule?: boolean;
   /**
+   * CC 2.1.235 — the narrow permission rules an "Always allow" click will
+   * write, derived from the SDK's `canUseTool` `suggestions` (e.g.
+   * `Bash(git status:*)` rather than a blanket `Bash` grant). Shown next to
+   * the standing-grant buttons so the user sees the exact scope they're
+   * granting; empty/absent means the SDK offered no narrow rule and the
+   * grant falls back to the whole tool. `toolName` + optional `ruleContent`
+   * mirror the SDK's `PermissionRuleValue`.
+   */
+  suggestedRules?: { toolName: string; ruleContent?: string }[];
+  /**
    * SDK 0.3.274 — for `mcp__*` tools, the MCP server serving this tool and
    * where its definition came from. `source: "sdk"` means one of the
    * in-process servers this host registered (name is a key we chose); any
@@ -142,6 +152,15 @@ export type ModelChangedEvent = {
    * become the sticky resume default); `"resume"`/`"sdk"` are persisted.
    */
   source?: "picker" | "chat_command" | "auto" | "resume" | "sdk";
+  /**
+   * CC 2.1.218 parity — set only when this switch changed fast-mode
+   * *capability* (the old and new model disagreed on `supportsFastMode` in
+   * the SDK's model catalog). `true` = fast mode just became available on
+   * `model`; `false` = it just became unavailable. Omitted (not `undefined`
+   * written to JSON, simply absent) when capability didn't change or
+   * couldn't be determined — see `Session.setModel`.
+   */
+  fastModeNowSupported?: boolean;
 };
 
 /**
@@ -173,7 +192,10 @@ export type ReplayDoneEvent = {
  */
 export type TurnStatusEvent = {
   type: "turn_status";
-  status: "running" | "idle";
+  // CC 2.1.212 — "needs_input": the turn is blocked on a user prompt
+  // (permission / ask / plan / elicitation). Distinct from "running" (agent is
+  // working) and "idle" so the tab strip / status line can say "Needs input".
+  status: "running" | "idle" | "needs_input";
   /**
    * Count of live *backgrounded* subagent/Task/Workflow runs
    * (`run_in_background: true`). These are deliberately excluded from `status`
@@ -802,6 +824,12 @@ export type TaskSnapshotEntry = {
   summary?: string;
   error?: string;
   /**
+   * CC 2.1.284 — `task_notification.output_file`: the path the task's full
+   * output was written to (a Monitor event's print, a background task's
+   * stdout). Persisted so it survives a reload. Absent on older SDKs.
+   */
+  outputFile?: string;
+  /**
    * SDK 0.3.257 — files an auto-backgrounded MCP tool call returned by
    * reference (the `resource_link` content blocks of its result), from
    * `task_notification.resource_links`. Absent when the task's result
@@ -1041,6 +1069,19 @@ export type PlanUsageEvent = {
     currency: string | null;
   } | null;
   /**
+   * CC 2.1.236 — usage-credits ("extra usage") spend, from `get_usage`'s
+   * `rate_limits.extra_usage`. Present for Team/Enterprise (and others) once
+   * credits are enabled; `/usage` shows a spend row (capped at 0% before any
+   * spend). Mirrors the SDK shape 1:1.
+   */
+  extraUsage?: {
+    isEnabled: boolean;
+    monthlyLimit: number | null;
+    usedCredits: number | null;
+    utilization: number | null;
+    currency: string | null;
+  } | null;
+  /**
    * Epoch ms when this event's data was fetched (CC parity 2.1.208 — mirrors
    * the CLI's `/usage` "as of <time>" note shown when the usage endpoint is
    * rate-limited/unavailable). Stamped server-side on every *successful*
@@ -1196,6 +1237,14 @@ export type CreateSessionRequest = {
    * Options.sandbox.filesystem.disabled. Only meaningful with sandboxEnabled.
    */
   sandboxFilesystemDisabled?: boolean;
+  /**
+   * CC 2.1.219 — sandbox network egress allow-list, forwarded as
+   * SDK Options.sandbox.network.{allowedDomains,strictAllowlist}. Only
+   * meaningful with sandboxEnabled; strictAllowlist makes allowedDomains
+   * exhaustive (deny everything else).
+   */
+  sandboxNetworkAllowedDomains?: string[];
+  sandboxNetworkStrictAllowlist?: boolean;
   /** Enable the 1M-token context beta — SDK Options.betas (Sonnet 4/4.5). */
   enable1mContext?: boolean;
   /** Persist this session to disk — SDK Options.persistSession (false = ephemeral). */
@@ -1293,6 +1342,15 @@ export type SendInputRequest = {
    * server decides: idle + empty queue → run now; otherwise enqueue.
    */
   forceQueue?: boolean;
+  /**
+   * CC 2.1.280 — substrings of `text` the user pasted (>800 chars or >2 line
+   * breaks) rather than typed. Forwarded to the SDK as
+   * `SDKUserMessage.inline_pastes`; the paste text stays inline in `text` where
+   * the user put it, and the CLI wraps each entry in `<pasted_content>` tags so
+   * the model treats that span as not user-authored (prompt-injection
+   * provenance).
+   */
+  inlinePastes?: string[];
 };
 
 /**

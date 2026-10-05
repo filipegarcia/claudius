@@ -1,5 +1,26 @@
 import { describe, expect, test } from "vitest";
-import { lintBashWildcardRule, lintPermissionRule, lintTrailingGarbageRule } from "@/lib/shared/permission-rule-lint";
+import {
+  lintBashWildcardRule,
+  lintPermissionRule,
+  lintTrailingGarbageRule,
+  lintWindowsPathParen,
+} from "@/lib/shared/permission-rule-lint";
+
+describe("lintWindowsPathParen (CC 2.1.260 — A9)", () => {
+  test("flags a backslash-escaped open paren in a Windows path", () => {
+    expect(lintWindowsPathParen("Edit(C:\\dir\\(name)\\**)")).toEqual({ sequence: "\\(" });
+  });
+
+  test("flags a backslash-escaped close paren", () => {
+    expect(lintWindowsPathParen("Read(C:\\a\\)b)")).toEqual({ sequence: "\\)" });
+  });
+
+  test("does not flag forward-slash Windows paths or POSIX paths", () => {
+    expect(lintWindowsPathParen("Edit(C:/dir/(name)/**)")).toBeNull();
+    expect(lintWindowsPathParen("Read(./src/**)")).toBeNull();
+    expect(lintWindowsPathParen("Bash(git commit *)")).toBeNull();
+  });
+});
 
 /**
  * CC 2.1.210 parity — "Added a startup warning for `Write(path)`,

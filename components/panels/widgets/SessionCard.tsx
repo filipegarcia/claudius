@@ -16,7 +16,8 @@ import type { SessionUsage } from "@/lib/client/types";
 import { cn } from "@/lib/utils/cn";
 import { fmtElapsedSec, fmtPath } from "./format";
 import { ModelPicker } from "./ModelPicker";
-import { type AdvisorChoice, badgeAdvisorLabel } from "@/lib/shared/advisor";
+import { type AdvisorChoice, badgeAdvisorLabel, prettyModelName } from "@/lib/shared/advisor";
+import { useMaxEffortLevel } from "@/lib/client/useMaxEffortLevel";
 
 type EffortLevel = "low" | "medium" | "high" | "xhigh" | "max" | "auto";
 
@@ -96,6 +97,9 @@ export function SessionCard({
   advisorModel = null,
   onChangeAdvisorModel,
 }: Props) {
+  // CC 2.1.267 — the user's effort cap, passed to the model picker so it hides
+  // tiers above it.
+  const maxEffortLevel = useMaxEffortLevel(cwd);
   // Use `usage.durationMs` when present (server-known); otherwise track
   // wall time from when we first saw a non-null sessionId. The "first
   // saw" is captured in `boundAt`, reset on unbind, refreshed on rebind.
@@ -237,6 +241,7 @@ export function SessionCard({
             await onChangeEffort?.(level);
             setPickerOpen(false);
           }}
+          maxEffortLevel={maxEffortLevel}
           ultracode={ultracode}
           onToggleUltracode={
             onChangeUltracode
@@ -445,6 +450,9 @@ function EffortPill({ effort }: { effort: EffortLevel }) {
 
 function shortModel(m: string | null): string {
   if (!m) return "—";
-  // trim "claude-" prefix and version suffixes for compactness
-  return m.replace(/^claude-/, "").replace(/-\d{8}$/, "");
+  // CC 2.1.261 — friendly name ("Sonnet 5.5"), which also unwraps raw
+  // Bedrock/Vertex/gateway ids (via canonicalModelId) instead of only trimming
+  // the `claude-` prefix. Falls back to the raw string for an alias it can't
+  // parse (e.g. "sonnet").
+  return prettyModelName(m);
 }

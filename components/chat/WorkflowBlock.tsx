@@ -12,6 +12,8 @@ import { cn } from "@/lib/utils/cn";
 import type { TaskInfo } from "@/lib/client/types";
 import { parseWorkflowMeta } from "@/lib/shared/workflow-meta";
 import { JsonBlock } from "@/components/chat/JsonBlock";
+import { useFileLink } from "@/lib/client/file-link-context";
+import { useWorkflowSizeGuideline } from "@/lib/client/useWorkflowSizeGuideline";
 
 type Props = {
   toolUseId: string;
@@ -39,6 +41,8 @@ const STATUS_CHIP: Record<string, string> = {
   failed: "border-red-400/30 bg-red-400/10 text-red-300",
   killed: "border-red-400/30 bg-red-400/10 text-red-300",
   stopped: "border-amber-400/30 bg-amber-400/10 text-amber-300",
+  // CC 2.1.271 — paused on a usage limit; amber, auto-resumes on reset.
+  paused: "border-amber-400/30 bg-amber-400/10 text-amber-300",
 };
 
 function fmtDuration(ms: number): string {
@@ -75,6 +79,12 @@ export function WorkflowBlock({ toolUseId, input, result, task, defaultOpen }: P
     setPrevDefaultOpen(defaultOpen);
     if (defaultOpen !== undefined) setOpen(defaultOpen);
   }
+
+  // CC 2.1.219 (H14) — the effective dynamic-workflow size guideline, shown on
+  // a live run (with a pointer to Settings). cwd comes from the chat's
+  // file-link context; absent → the SDK default ("medium").
+  const fileLink = useFileLink();
+  const sizeGuideline = useWorkflowSizeGuideline(fileLink?.cwd ?? null);
 
   const script = str(input.script);
   const partial = str(input.__partial);
@@ -135,6 +145,17 @@ export function WorkflowBlock({ toolUseId, input, result, task, defaultOpen }: P
             {meta.phases.length} {meta.phases.length === 1 ? "phase" : "phases"}
           </span>
         )}
+        {/* CC 2.1.219 (H14) — the effective size guideline on a live run; the
+            title points at where to change it (Settings → Model & behavior). */}
+        {!terminal && (
+          <span
+            data-testid="workflow-size"
+            title="Dynamic-workflow size guideline — change it in Settings → Model & behavior"
+            className="hidden shrink-0 rounded border border-[var(--border)] px-1 text-[9px] uppercase tracking-wide text-[var(--muted)] sm:inline"
+          >
+            size: {sizeGuideline}
+          </span>
+        )}
         <span className="ml-auto flex shrink-0 items-center gap-2 whitespace-nowrap">
           <span
             className={cn(
@@ -147,6 +168,10 @@ export function WorkflowBlock({ toolUseId, input, result, task, defaultOpen }: P
             )}
             {status === "completed" && <CheckCircle2 className="h-3 w-3" />}
             {(status === "failed" || status === "killed") && <AlertCircle className="h-3 w-3" />}
+            {/* CC 2.1.271 — paused (usage limit); a static dot, not the running pulse. */}
+            {status === "paused" && (
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-current" />
+            )}
             {streaming ? "preparing" : status}
           </span>
           {stats.length > 0 && (

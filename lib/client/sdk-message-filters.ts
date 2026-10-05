@@ -62,22 +62,44 @@ export function isSdkSlashUserMessage(
  * match to a small assistant-side system pill instead.
  */
 export type SyntheticCliWrapper =
-  | { kind: "command"; command: string; args: string }
-  | { kind: "stdout" | "stderr"; text: string };
+  | { kind: "command"; command: string; args: string; trailing: string }
+  | { kind: "stdout" | "stderr"; text: string; trailing: string };
 
 export function parseSyntheticCliWrapper(content: unknown): SyntheticCliWrapper | null {
   const trimmed = contentAsTrimmedText(content);
   if (!trimmed) return null;
+  // CC 2.1.285 — text AFTER the wrapper tags is the user's real prose, kept as
+  // `trailing` so a message that leads with a quoted CC/IDE tag doesn't lose
+  // it. But only when it's actually prose: residual plumbing (another tag, a
+  // skill body that opens with a tag) starts with `<`, so we drop that rather
+  // than render engine XML as a user bubble.
+  const userTrailing = (after: string): string => {
+    const t = after.trim();
+    return t.startsWith("<") ? "" : t;
+  };
   // <command-name>/X</command-name>... — capture the slash and trailing args.
   const cmdMatch = /^<command-name>\s*(\/[^\s<]+)\s*<\/command-name>/i.exec(trimmed);
   if (cmdMatch) {
+    const msgMatch = /<command-message>[\s\S]*?<\/command-message>/i.exec(trimmed);
     const argsMatch = /<command-args>([\s\S]*?)<\/command-args>/i.exec(trimmed);
-    return { kind: "command", command: cmdMatch[1], args: (argsMatch?.[1] ?? "").trim() };
+    let end = cmdMatch.index + cmdMatch[0].length;
+    if (msgMatch) end = Math.max(end, msgMatch.index + msgMatch[0].length);
+    if (argsMatch) end = Math.max(end, argsMatch.index + argsMatch[0].length);
+    return {
+      kind: "command",
+      command: cmdMatch[1],
+      args: (argsMatch?.[1] ?? "").trim(),
+      trailing: userTrailing(trimmed.slice(end)),
+    };
   }
   const stdoutMatch = /^<local-command-stdout>([\s\S]*?)<\/local-command-stdout>/i.exec(trimmed);
-  if (stdoutMatch) return { kind: "stdout", text: stdoutMatch[1].trim() };
+  if (stdoutMatch) {
+    return { kind: "stdout", text: stdoutMatch[1].trim(), trailing: userTrailing(trimmed.slice(stdoutMatch[0].length)) };
+  }
   const stderrMatch = /^<local-command-stderr>([\s\S]*?)<\/local-command-stderr>/i.exec(trimmed);
-  if (stderrMatch) return { kind: "stderr", text: stderrMatch[1].trim() };
+  if (stderrMatch) {
+    return { kind: "stderr", text: stderrMatch[1].trim(), trailing: userTrailing(trimmed.slice(stderrMatch[0].length)) };
+  }
   return null;
 }
 

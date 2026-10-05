@@ -133,7 +133,7 @@ describe("GET /api/sessions/[id]/model", () => {
     expect(body.models.slice(0, 2)).toEqual(models);
     expect(body.models.at(-1)).toMatchObject({
       value: "fable",
-      displayName: "Fable 5",
+      displayName: "Fable 5.1",
       supportsEffort: true,
     });
     expect(supportedModels).toHaveBeenCalledOnce();

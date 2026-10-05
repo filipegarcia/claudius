@@ -11,7 +11,7 @@ import {
   type KeyboardEvent,
 } from "react";
 import { createPortal } from "react-dom";
-import { ArrowUp, Hourglass, Image as ImageIcon, Mic, MicOff, Paperclip, Sparkles, Square, X } from "lucide-react";
+import { ArrowUp, Hourglass, Image as ImageIcon, Mic, MicOff, Paperclip, Square, X } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { SlashCommandPicker } from "./SlashCommandPicker";
 import { AtMentionPicker } from "./AtMentionPicker";
@@ -31,6 +31,10 @@ import {
   isListLine,
 } from "@/lib/shared/markdown-list";
 import { stripInvisibleUnicode } from "@/lib/shared/invisible-unicode";
+import { slashTokenBeforeCaret } from "@/lib/shared/slash-commands";
+import { canRestoreClearedDraft, shouldStashClearedDraft } from "@/lib/client/cleared-draft";
+import { inlinePastesInText, isLargePaste } from "@/lib/shared/large-paste";
+import { describeOversizedImages } from "@/lib/client/image-intake";
 
 type Props = {
   pending: boolean;
@@ -52,7 +56,7 @@ type Props = {
    * only (idle + focus) so each tab can be told apart at a glance.
    */
   promptColor?: string | null;
-  onSend: (text: string, images?: AttachedImage[]) => void;
+  onSend: (text: string, images?: AttachedImage[], inlinePastes?: string[]) => void;
   onInterrupt: () => void;
   /**
    * Set by the parent to inject text into the input (e.g. when the user lifts
@@ -140,6 +144,14 @@ type Props = {
    * wider drop zone; otherwise both instances would race for the same drop.
    */
   wideDropTarget?: boolean;
+  /**
+   * Fired with a short human-readable message when the composer intercepts
+   * something worth a passive notice — currently only the invisible-Unicode
+   * prompt-injection guard (Claude Code 2.1.277 parity). Optional: the
+   * goal-banner reuse of PromptInput leaves it off and the guard still
+   * holds the send, it just has no surface to announce why.
+   */
+  onNotice?: (message: string) => void;
 };
 
 const MAX_IMAGE_BYTES = 20 * 1024 * 1024; // 20MB
@@ -216,6 +228,7 @@ export function PromptInput({
   onSendQueuedNow,
   onSendAllQueuedNow,
   wideDropTarget = false,
+  onNotice,
 }: Props) {
   const [value, setValue] = useState("");
   // Keyword hints (see KEYWORD_HINTS) the user has dismissed for the current
@@ -234,6 +247,20 @@ export function PromptInput({
   // site that changes value" model is unambiguous and stays in sync with
   // the DOM caret on every write path.
   const [pickerOpen, setPickerOpen] = useState(false);
+  /**
+   * CC 2.1.265 — the active slash token (leading `/` stripped) when a command
+   * is typed mid-prompt, not just when the whole input is one `/word`. Same
+   * caret-token model as {@link atQuery}; null when no slash token is under the
+   * caret. The picker filters on this, and selecting splices it in place.
+   */
+  const [slashQuery, setSlashQuery] = useState<string | null>(null);
+  /**
+   * CC 2.1.265 — true when the slash token is at the start of the input (the
+   * composer is "in command mode"), vs a `/word` typed mid-prompt. Gates
+   * Enter-to-select: leading → Enter runs the command; mid-prompt → Enter
+   * submits the message and the picker is just an advisory list (Tab/click).
+   */
+  const [slashAtStart, setSlashAtStart] = useState(false);
   const [atQuery, setAtQuery] = useState<string | null>(null);
   /** Active `:shortcode` token (leading `:` stripped), or null. Same update-site model as atQuery above. */
   const [emojiQuery, setEmojiQuery] = useState<string | null>(null);
@@ -285,6 +312,14 @@ export function PromptInput({
   // when browsing began so Cmd/Ctrl+↓ past the newest entry restores it.
   const histIdxRef = useRef<number | null>(null);
   const stashedDraftRef = useRef("");
+  // CC 2.1.288 — the draft (text + pasted images) that Ctrl+C / double-Esc last
+  // wiped, so a plain ↑ on the empty composer can restore it. Null when nothing
+  // is stashed (a fresh session, or already restored).
+  const clearedDraftRef = useRef<{ text: string; images: AttachedImage[] } | null>(null);
+  // CC 2.1.280 — large paste segments recorded from onPaste, sent as the SDK's
+  // `inline_pastes` so the model can tell pasted spans from typed text. Reset
+  // on send and on clear.
+  const pastedSegmentsRef = useRef<string[]>([]);
   // Tracks the timestamp of the last Escape keydown for double-press detection.
   const lastEscapeRef = useRef<number>(0);
 
@@ -730,6 +765,8 @@ export function PromptInput({
     setDismissedHints(new Set());
     setImages([]);
     setPickerOpen(false);
+    setSlashQuery(null);
+    setSlashAtStart(false);
     setAtQuery(null);
     setEmojiQuery(null);
     ordinalCounterRef.current = 0;
@@ -761,9 +798,16 @@ export function PromptInput({
 
   /** Wipe the composer: text, attached images, picker state. */
   function clearInput() {
+    // CC 2.1.288 — stash a non-empty draft so plain ↑ can bring it back.
+    if (shouldStashClearedDraft(value, images.length)) {
+      clearedDraftRef.current = { text: value, images };
+    }
+    pastedSegmentsRef.current = [];
     setValue("");
     setImages([]);
     setPickerOpen(false);
+    setSlashQuery(null);
+    setSlashAtStart(false);
     setAtQuery(null);
     setEmojiQuery(null);
     ordinalCounterRef.current = 0;
@@ -780,17 +824,29 @@ export function PromptInput({
       submitBash();
       return;
     }
-    // Claude Code 2.1.280 [VSCode] parity: strip invisible Unicode
-    // formatting/tag characters "from anything else before it is sent" —
-    // catches invisible characters that arrived via typing, IME, or a paste
-    // that didn't go through the onPaste interceptor above (e.g. drag-drop
-    // text, or a browser that fires paste without a text/plain item). Runs
-    // before `trim()`/the empty-check below: `trim()` alone doesn't remove
-    // zero-width space, word joiner, or bidi controls, so a draft that's
-    // *only* invisible characters would otherwise read as non-empty and
-    // reach `onSend("")` once stripped.
+    // Strip invisible Unicode formatting/tag characters before anything is
+    // sent (Claude Code 2.1.280 [VSCode] parity) — catches characters that
+    // arrived via typing, IME, drag-drop, or a paste that bypassed the
+    // onPaste interceptor above. Runs before `trim()`: `trim()` doesn't
+    // remove zero-width space, word joiner or bidi controls, so a draft of
+    // *only* invisible characters would otherwise read as non-empty.
+    //
+    // Claude Code 2.1.277 parity: a prompt that needed cleaning is never
+    // forwarded silently-cleaned — the cleaned text is put back in the
+    // composer for review and the user presses Send again to confirm
+    // (steganographic prompt injection hides instructions the user never
+    // saw, so they get to see exactly what will be sent).
     const { cleaned: strippedValue, removedCount } = stripInvisibleUnicode(value);
-    if (removedCount > 0) noteInvisibleStrip(removedCount);
+    if (removedCount > 0) {
+      setValue(strippedValue);
+      onNotice?.(
+        `Removed ${removedCount} hidden character${removedCount === 1 ? "" : "s"} from your prompt — review and press Send again.`,
+      );
+      requestAnimationFrame(() => {
+        taRef.current?.focus();
+      });
+      return;
+    }
     const text = strippedValue.trim();
     if (!text && images.length === 0) return;
     // The composer renders bullets as `•` so the textarea has something
@@ -798,11 +854,17 @@ export function PromptInput({
     // expect standard markdown — convert back here so what Claude sees is
     // what the user would have typed in any other markdown editor.
     const wire = bulletsToMarkdown(text);
-    onSend(wire, images.length ? images : undefined);
+    // CC 2.1.280 — forward the recorded large-paste segments that are still
+    // present in the (trimmed) outgoing text (the user may have edited some).
+    const inlinePastes = inlinePastesInText(pastedSegmentsRef.current, wire);
+    pastedSegmentsRef.current = [];
+    onSend(wire, images.length ? images : undefined, inlinePastes.length ? inlinePastes : undefined);
     setValue("");
     setDismissedHints(new Set());
     setImages([]);
     setPickerOpen(false);
+    setSlashQuery(null);
+    setSlashAtStart(false);
     setAtQuery(null);
     setEmojiQuery(null);
     // Each prompt is its own ordinal namespace.
@@ -832,8 +894,17 @@ export function PromptInput({
   // `useEffect([value])` that tripped react-hooks/set-state-in-effect.
   function refreshPickerState(nextValue: string, caret: number) {
     const before = nextValue.slice(0, caret);
-    // First-line slash picker: line starts with / (skipped when disabled).
-    setPickerOpen(!disableSlash && /^\s*\/\S*$/.test(nextValue));
+    // Slash picker: a `/token` under the caret, preceded by start-or-whitespace
+    // — so it opens mid-prompt (CC 2.1.265), not only when the whole input is
+    // one `/word`. The boundary requirement means `https://x` and `a/b` don't
+    // trigger it. Skipped when slash is disabled.
+    const slashTok = disableSlash ? null : slashTokenBeforeCaret(before);
+    setSlashQuery(slashTok);
+    setPickerOpen(slashTok != null);
+    // Leading slash = the whole input is a single `/word` (what used to be the
+    // only trigger). Only then does Enter run the command; mid-prompt Enter
+    // submits the message.
+    setSlashAtStart(slashTok != null && /^\s*\/\S*$/.test(nextValue));
     // @-mention: capture the active token if it starts with @
     const atMatch = /(^|\s)@([^\s@]*)$/.exec(before);
     setAtQuery(atMatch ? atMatch[2] : null);
@@ -1002,7 +1073,44 @@ export function PromptInput({
       return;
     }
 
-    if (e.key === "Enter" && !pickerOpen && atQuery == null && emojiQuery == null) {
+    // ── Plain ↑ on an empty composer restores a cleared draft (CC 2.1.288) ──
+    // Text + pasted images that Ctrl+C / double-Esc wiped come back. Gated so
+    // ↑ stays ordinary caret movement whenever the composer isn't empty.
+    if (
+      e.key === "ArrowUp" &&
+      !e.metaKey &&
+      !e.ctrlKey &&
+      !e.altKey &&
+      !e.shiftKey &&
+      canRestoreClearedDraft({
+        value,
+        imageCount: images.length,
+        pickerOpen,
+        atActive: atQuery != null,
+        emojiActive: emojiQuery != null,
+        browsingHistory: histIdxRef.current !== null,
+        hasStash: clearedDraftRef.current != null,
+      })
+    ) {
+      e.preventDefault();
+      const d = clearedDraftRef.current!;
+      clearedDraftRef.current = null;
+      setValue(d.text);
+      setImages(d.images);
+      requestAnimationFrame(() => {
+        const el = taRef.current;
+        el?.focus();
+        const pos = d.text.length;
+        el?.setSelectionRange(pos, pos);
+        autosize();
+      });
+      return;
+    }
+
+    // Mid-prompt slash picker (CC 2.1.265): the picker is open but Enter still
+    // submits — only a leading slash (`slashAtStart`) captures Enter to run the
+    // command, handled in SlashCommandPicker.
+    if (e.key === "Enter" && (!pickerOpen || !slashAtStart) && atQuery == null && emojiQuery == null) {
       const caret = e.currentTarget.selectionStart ?? 0;
       const lineStart = value.lastIndexOf("\n", caret - 1) + 1;
       const nlIdx = value.indexOf("\n", caret);
@@ -1084,6 +1192,32 @@ export function PromptInput({
     });
   }
 
+  /**
+   * Picker-select path for a slash command (Tab/Enter/click). Splices the
+   * selected command in place of the `/token` under the caret — mirrors
+   * insertAtMention — so a command chosen mid-prompt (CC 2.1.265) doesn't wipe
+   * the rest of the composer. For a first-line `/foo` this still yields
+   * `/<cmd> `, exactly as the old whole-input replace did.
+   */
+  function insertSlashCommand(cmd: string) {
+    const el = taRef.current;
+    const caret = el?.selectionStart ?? value.length;
+    const before = value.slice(0, caret);
+    const after = value.slice(caret);
+    const replaced = before.replace(/(^|\s)\/(\S*)$/, (_m, pre) => `${pre}/${cmd} `);
+    const next = replaced + after;
+    setValue(next);
+    setSlashQuery(null);
+    setSlashAtStart(false);
+    setPickerOpen(false);
+    requestAnimationFrame(() => {
+      el?.focus();
+      const pos = replaced.length;
+      el?.setSelectionRange(pos, pos);
+      autosize();
+    });
+  }
+
   /** Picker-select path for the emoji shortcode (Tab/Enter/click) — mirrors insertAtMention. */
   function insertEmojiShortcode(name: string) {
     const emoji = lookupEmojiShortcode(name);
@@ -1132,8 +1266,15 @@ export function PromptInput({
     const droppedPaths: string[] = [];
     type Pending = { data: string; mediaType: string };
     const newImageBlobs: Pending[] = [];
+    // CC 2.1.265 — collect images rejected for being over the size limit so we
+    // can name the cause instead of silently dropping them.
+    const oversizedImages: string[] = [];
     for (const f of files) {
       if (f.type.startsWith("image/")) {
+        if (f.size > MAX_IMAGE_BYTES) {
+          oversizedImages.push(f.name);
+          continue;
+        }
         const b = await readFileAsBase64(f);
         if (b) newImageBlobs.push(b);
       } else {
@@ -1141,6 +1282,8 @@ export function PromptInput({
         droppedPaths.push(resolveDroppedPath(absPath, f.name, cwd));
       }
     }
+    const oversizedNotice = describeOversizedImages(oversizedImages, MAX_IMAGE_BYTES);
+    if (oversizedNotice) onNotice?.(oversizedNotice);
 
     if (newImageBlobs.length) {
       // Assign ordinals + ids in arrival order.
@@ -1292,6 +1435,9 @@ export function PromptInput({
     const pasted = e.clipboardData?.getData("text/plain") ?? "";
     if (pasted) {
       const { cleaned, removedCount } = stripInvisibleUnicode(pasted);
+      // CC 2.1.280 — record a large paste (the cleaned text that actually
+      // lands) so send() can mark it as `inline_pastes` for the model.
+      if (isLargePaste(cleaned)) pastedSegmentsRef.current.push(cleaned);
       if (removedCount > 0) {
         e.preventDefault();
         const el = taRef.current;
@@ -1547,6 +1693,9 @@ export function PromptInput({
           <textarea
             ref={taRef}
             data-testid={`${testIdPrefix}-input`}
+            // CC 2.1.216 (F2) — let the composer flip to RTL when the user
+            // types Arabic/Hebrew/Persian, while staying LTR for English/code.
+            dir="auto"
             spellCheck={spellcheckEnabled}
             value={value}
             onCompositionStart={() => {
@@ -1737,16 +1886,17 @@ export function PromptInput({
 
         {!disableSlash && pickerOpen && atQuery == null && emojiQuery == null && (
           <SlashCommandPicker
-            value={value.trimStart()}
+            value={`/${slashQuery ?? ""}`}
             sdkSlashCommands={slashCommands}
             sdkSkills={skills}
             sdkRichCommands={sdkRichCommands}
-            onSelect={(cmd) => {
-              setValue(`/${cmd} `);
+            onSelect={(cmd) => insertSlashCommand(cmd)}
+            captureEnter={slashAtStart}
+            onClose={() => {
               setPickerOpen(false);
-              requestAnimationFrame(() => taRef.current?.focus());
+              setSlashQuery(null);
+              setSlashAtStart(false);
             }}
-            onClose={() => setPickerOpen(false)}
           />
         )}
 
@@ -1781,7 +1931,7 @@ export function PromptInput({
               title="Dismiss this hint"
               className="flex items-center gap-1 rounded text-[var(--accent)] hover:text-[var(--foreground)]"
             >
-              <Sparkles className="h-3 w-3 shrink-0" />
+              {/* CC 2.1.282 — plain keyword hint, no Sparkles glimmer. */}
               <span>{detectedHint.label}</span>
               <span className="text-[var(--muted)]/70">· ignore</span>
             </button>
@@ -1799,7 +1949,6 @@ export function PromptInput({
               title="Restore this hint"
               className="flex items-center gap-1 rounded text-[var(--muted)] hover:text-[var(--foreground)]"
             >
-              <Sparkles className="h-3 w-3 shrink-0 opacity-50" />
               <span>{detectedHint.ignoredLabel}</span>
               <span className="text-[var(--muted)]/70">· undo</span>
             </button>

@@ -75,4 +75,12 @@ describe("buildQueryEnv (CC 2.1.268 parity — CLAUDE_CODE_ENABLE_TODO_TOOLS)", 
     const env = buildQueryEnv(null);
     expect(env.CLAUDE_CODE_STARTUP_FAILURE_RESULTS).toBe("1");
   });
+
+  // A3 (CC 2.1.248) — restricted mode must reach the engine itself via the
+  // env var, not only our disallowedTools list.
+  test("sets CLAUDE_CODE_RESTRICTED=1 only when restrictedMode is passed", () => {
+    expect(buildQueryEnv(null, true).CLAUDE_CODE_RESTRICTED).toBe("1");
+    expect(buildQueryEnv(null, false).CLAUDE_CODE_RESTRICTED).toBeUndefined();
+    expect(buildQueryEnv(null).CLAUDE_CODE_RESTRICTED).toBeUndefined();
+  });
 });

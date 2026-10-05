@@ -14,6 +14,9 @@ export type SessionDefaults = {
   fallbackModel?: string;
   sandboxEnabled?: boolean;
   sandboxFilesystemDisabled?: boolean;
+  /** CC 2.1.219 — sandbox network egress allow-list (only with `sandboxEnabled`). */
+  sandboxNetworkAllowedDomains?: string[];
+  sandboxNetworkStrictAllowlist?: boolean;
   enable1mContext?: boolean;
   persistSession?: boolean;
   additionalDirectories?: string[];
@@ -57,6 +60,10 @@ export function mergeSessionDefaults(
     sandboxEnabled: request.sandboxEnabled ?? defaults.sandboxEnabled,
     sandboxFilesystemDisabled:
       request.sandboxFilesystemDisabled ?? defaults.sandboxFilesystemDisabled,
+    sandboxNetworkAllowedDomains:
+      request.sandboxNetworkAllowedDomains ?? defaults.sandboxNetworkAllowedDomains,
+    sandboxNetworkStrictAllowlist:
+      request.sandboxNetworkStrictAllowlist ?? defaults.sandboxNetworkStrictAllowlist,
     enable1mContext: request.enable1mContext ?? defaults.enable1mContext,
     persistSession: request.persistSession ?? defaults.persistSession,
     additionalDirectories: request.additionalDirectories ?? defaults.additionalDirectories,

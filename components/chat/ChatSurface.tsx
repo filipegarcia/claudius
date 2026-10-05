@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { SideNav } from "@/components/nav/SideNav";
 import { StatusLine } from "@/components/chat/StatusLine";
@@ -38,10 +38,18 @@ import { nextPermissionMode } from "@/components/chat/ModeSelector";
 import { useDisableAutoMode } from "@/lib/client/useDisableAutoMode";
 import { useEmojiCompletionEnabled } from "@/lib/client/useEmojiCompletionEnabled";
 import { useSpellcheckEnabled } from "@/lib/client/useSpellcheckEnabled";
+import { useProseMaxWidth } from "@/lib/client/useProseMaxWidth";
+import { useClockOptions } from "@/lib/client/useClockOptions";
+import { ClockOptionsProvider } from "@/lib/client/clock-options-context";
+import { useReducedMotionSetting } from "@/lib/client/useReducedMotionSetting";
 import { HelpOverlay } from "@/components/overlays/HelpOverlay";
 import { SkillsOverlay } from "@/components/overlays/SkillsOverlay";
 import { CostOverlay } from "@/components/overlays/CostOverlay";
 import { DiffOverlay } from "@/components/overlays/DiffOverlay";
+import { diffRefreshToken } from "@/lib/shared/diff-overlay";
+import { MobileQrOverlay } from "@/components/overlays/MobileQrOverlay";
+import { forkConfirmation, type ForkWorktreeInfo } from "@/lib/shared/fork-worktree";
+import { OutputStyleOverlay } from "@/components/overlays/OutputStyleOverlay";
 import { StatusOverlay } from "@/components/overlays/StatusOverlay";
 import { RenameOverlay } from "@/components/overlays/RenameOverlay";
 import { ContextOverlay } from "@/components/overlays/ContextOverlay";
@@ -106,7 +114,9 @@ import {
 } from "@/lib/client/useContextWarning";
 import { ContextWarningBanner } from "@/components/chat/ContextWarningBanner";
 import { useNotificationsContext } from "@/components/notifications/NotificationsProvider";
-import { findSlashCommand } from "@/lib/shared/slash-commands";
+import { findSlashCommand, isSlashCommandHead, userCommandShadowsBuiltin } from "@/lib/shared/slash-commands";
+import { useSdkCommands } from "@/lib/client/useSdkCommands";
+import { parseEffortArgs } from "@/lib/shared/effort-flags";
 import {
   PROMPT_COLOR_NAMES,
   PROMPT_COLOR_RESET_WORDS,
@@ -121,8 +131,9 @@ import { useWorkspaces } from "@/lib/client/useWorkspaces";
 import { useVerbose } from "@/lib/client/useVerbose";
 import { useFocusMode } from "@/lib/client/useFocusMode";
 import { useStartupCount } from "@/lib/client/useStartupCount";
+import { useTipLastShown } from "@/lib/client/useTipLastShown";
 
-type OverlayKind = "help" | "skills" | "cost" | "status" | "rename" | "context" | "worktrees" | "diff" | null;
+type OverlayKind = "help" | "skills" | "cost" | "status" | "rename" | "context" | "worktrees" | "diff" | "output-style" | "mobile" | null;
 
 /**
  * Per-command toast for slash commands the registry classifies as `external`
@@ -177,6 +188,7 @@ const SLASH_LINKS = {
   mobileApp: "https://claude.com/download",
   stickers: "https://www.stickermule.com/claudecode",
   webSetupDocs: "https://code.claude.com/docs/en/claude-code-on-the-web",
+  gitlabCiDocs: "https://code.claude.com/docs/en/gitlab-ci-cd",
 } as const;
 
 /** Open a URL in a new tab. Works in both the browser and Electron — the
@@ -255,6 +267,9 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
   // of re-showing a stale, still-high percentage until the next idle poll.
   const [ctxRefreshSignal, setCtxRefreshSignal] = useState(0);
   const ctxSummary = useContextWatcher(session.sessionId, session.pending, ctxRefreshSignal);
+  // CC 2.1.287 — the SDK's rich command list (carries the `builtin` flag), used
+  // to let a user/project/plugin command shadow a same-named built-in dialog.
+  const sdkCommands = useSdkCommands(session.sessionId);
 
   // Load this session's saved prompt color on switch. `activePromptColor`
   // already shows the theme default for any session we haven't recorded, so no
@@ -377,6 +392,8 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
   // Claude Code TUI's `numStartups < 10` first-run gate on the `/powerup`
   // onboarding nudge — bumped once per chat-page load (see useStartupCount).
   const startupCount = useStartupCount();
+  // CC 2.1.247 (G6) — per-tip cooldown bookkeeping for spinner tips.
+  const { lastShownAt: tipLastShownAt } = useTipLastShown();
   const [draftInjection, setDraftInjection] = useState<
     {
       token: number;
@@ -402,6 +419,18 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
   // Prompt-input spellcheck underline (Claude Code 2.1.235 parity), gated by
   // the user-scope `spellcheck` setting.
   const spellcheckEnabled = useSpellcheckEnabled(session.cwd);
+  // CC 2.1.282 (F3) — cap prose width to the user-scope `maxProseWidth`
+  // setting. Published as `--prose-max-width` on the chat area so the Markdown
+  // prose renderers inherit it; tables/code opt out and keep full width. Null
+  // when unset → the variable isn't set → prose fills the full chat column.
+  const proseMaxWidth = useProseMaxWidth(session.cwd);
+  // CC 2.1.257 (F4) — resolve `timeFormat`/`timeZone` once and share via
+  // context so every message-bubble timestamp and the StatusLine turn-end
+  // clock honor the user's clock settings.
+  const clockOptions = useClockOptions(session.cwd);
+  // CC 2.1.287 (F9) — force reduced motion when the setting is on (the OS
+  // media query is honored independently in globals.css).
+  useReducedMotionSetting(session.cwd);
 
   // Compute breach state. The override is keyed by `session:<id>:<today>` so
   // it lifts the cap only for the current calendar day, per the spec.
@@ -1165,14 +1194,37 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
         case "fork": {
           const sid = session.sessionId;
           if (!sid) return true;
+          const forkTitle = args || undefined;
+          // CC 2.1.221 + 2.1.216 + 2.1.212 (DEC3) — the `/fork` slash path gives
+          // the fork its own git worktree (passes `worktree` + the source `cwd`)
+          // and shows a one-line confirmation. Per 2.1.212 the fork is a
+          // background copy: we stay in the current session (no navigation) and
+          // the confirmation names the fork so it can be opened from the session
+          // list. (The rewind-fork path above is separate and still navigates
+          // into its checkpoint on the shared checkout.)
           fetch("/api/sessions/fork", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ sessionId: sid, title: args || undefined }),
+            body: JSON.stringify({
+              sessionId: sid,
+              title: forkTitle,
+              worktree: true,
+              cwd: session.cwd,
+            }),
           })
             .then((r) => r.json())
-            .then((d: { sessionId?: string }) => {
-              if (d.sessionId) router.push(`/?session=${d.sessionId}`);
+            .then((d: { sessionId?: string; worktree?: ForkWorktreeInfo | null }) => {
+              if (!d.sessionId) {
+                showToast("Fork failed");
+                return;
+              }
+              showToast(
+                forkConfirmation({
+                  title: forkTitle,
+                  sessionId: d.sessionId,
+                  worktree: d.worktree ?? null,
+                }),
+              );
             })
             .catch(() => showToast("Fork failed"));
           return true;
@@ -1388,17 +1440,9 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
           }
           const raw = args.trim();
           if (!raw) {
-            fetch(`/api/sessions/${session.sessionId}/output-style`)
-              .then((r) => r.json())
-              .then((data: { current?: string; available?: string[] }) => {
-                const available = data.available ?? [];
-                showToast(
-                  `Output style: ${data.current ?? "default"}${
-                    available.length > 0 ? ` (try: ${available.join(", ")})` : ""
-                  }`,
-                );
-              })
-              .catch(() => showToast("Couldn't load output styles"));
+            // CC 2.1.286 — open a picker (lands on the current style, a
+            // description under each name) instead of a bare toast.
+            setOverlay("output-style");
             return true;
           }
           fetch(`/api/sessions/${session.sessionId}/output-style`, {
@@ -1481,6 +1525,10 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
         case "usage":
           router.push("/usage");
           return true;
+        case "rate-limit-options":
+          showToast("Rate-limit options: switch accounts, auto-rotate, or buy credits on the Usage page");
+          router.push("/usage");
+          return true;
         // The four auth/provider commands all land on the Usage page (the
         // single screen that owns the API-key + Bedrock + Vertex switches).
         // Per-command toast so the user knows what action to take once they
@@ -1501,6 +1549,25 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
           showToast("Configure Google Vertex AI under Usage → Provider");
           router.push("/usage");
           return true;
+        case "effort": {
+          // CC 2.1.284 — `/effort <level>` sets the level; `/effort ultracode
+          // on|off` toggles ultracode; bare `/effort` shows the current state.
+          const parsed = parseEffortArgs(args);
+          if (parsed.kind === "level") {
+            void session.setEffort(parsed.level, { sessionOnly: parsed.sessionOnly });
+            showToast(
+              `Effort set to ${parsed.level}${parsed.sessionOnly ? " (this session only)" : ""}`,
+            );
+          } else if (parsed.kind === "ultracode") {
+            void session.setUltracode(parsed.on);
+            showToast(`Ultracode ${parsed.on ? "on" : "off"}`);
+          } else if (parsed.kind === "show") {
+            showToast(`Effort: ${session.effort ?? "auto"}${session.ultracode ? " · ultracode on" : ""}`);
+          } else {
+            showToast(parsed.message);
+          }
+          return true;
+        }
         case "status":
           setOverlay("status");
           return true;
@@ -1516,7 +1583,9 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
           // (`app/doctor/page.tsx`) instead of just the top of the page.
           router.push(args.trim().toLowerCase() === "prompt-audit" ? "/doctor?section=prompt-audit" : "/doctor");
           return true;
-        case "loop":
+        // `/loop` is SDK-forwarded (CC 2.1.248) — handled by the `handler:"sdk"`
+        // path, not here — so its arguments reach the SDK's loop skill.
+        // `/schedule` stays native: it just opens the loops page.
         case "schedule":
           router.push("/schedule");
           return true;
@@ -1533,8 +1602,34 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
         // which was meaningless guidance — the install URL is the install URL
         // whether you're in a terminal, a browser, or Electron.
         case "install-github-app":
-          openExternalUrl(SLASH_LINKS.githubApp);
-          showToast("Opening the Claude GitHub App install page");
+          // CC 2.1.259 — the GitHub App is GitHub-only. In a GitLab repo,
+          // explain that and open the GitLab CI/CD setup docs instead. Host is
+          // read from the workspace's `origin` remote server-side; anything
+          // that isn't GitLab (GitHub, other, unknown, or no workspace context)
+          // keeps the existing GitHub App behavior.
+          if (activeWorkspaceId) {
+            void (async () => {
+              let host: string | null = null;
+              try {
+                const r = await fetch(
+                  `/api/workspaces/${encodeURIComponent(activeWorkspaceId)}/git/remote-host`,
+                );
+                if (r.ok) host = ((await r.json()) as { host?: string }).host ?? null;
+              } catch {
+                // best-effort — fall through to GitHub behavior
+              }
+              if (host === "gitlab") {
+                openExternalUrl(SLASH_LINKS.gitlabCiDocs);
+                showToast("The GitHub App is GitHub-only — opening GitLab CI/CD setup docs");
+              } else {
+                openExternalUrl(SLASH_LINKS.githubApp);
+                showToast("Opening the Claude GitHub App install page");
+              }
+            })();
+          } else {
+            openExternalUrl(SLASH_LINKS.githubApp);
+            showToast("Opening the Claude GitHub App install page");
+          }
           return true;
         case "install-slack-app":
           openExternalUrl(SLASH_LINKS.slackApp);
@@ -1578,8 +1673,9 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
           }
           return true;
         case "mobile":
-          openExternalUrl(SLASH_LINKS.mobileApp);
-          showToast("Opening the Claude mobile app download page");
+          // CC 2.1.271 (H12) — show a scannable QR (desktop-browser analogue of
+          // the CLI's /mobile QR) rather than only opening the page here.
+          setOverlay("mobile");
           return true;
         case "passes":
           // CLI-only feature — the SDK does NOT advertise `/passes` in its
@@ -1688,14 +1784,14 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
     // (see lib/client/useElectron.ts), so listing it doesn't churn the
     // callback — but eslint-rule-of-hooks wants it spelled out so a future
     // bridge-identity change doesn't silently break the /desktop branch.
-    [router, session, showToast, claudiusBridge, activePromptColor, cycleFocus, setFocusLevel, isZen, clearedFromSessionId],
+    [router, session, showToast, claudiusBridge, activePromptColor, cycleFocus, setFocusLevel, isZen, clearedFromSessionId, activeWorkspaceId],
   );
 
   const handleSend = useCallback(
     (
       text: string,
       images?: Array<{ id?: string; ordinal?: number; data: string; mediaType: string }>,
-      opts?: { fromSuggestion?: boolean },
+      opts?: { fromSuggestion?: boolean; inlinePastes?: string[] },
     ) => {
       // A live AskUserQuestion blocks the agent in `canUseTool`. If the user
       // sends a new message instead of answering, treat it as moving on:
@@ -1709,10 +1805,24 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
         void session.submitAskAnswer(session.pendingAsk.requestId, []);
       }
       const trimmed = text.trim();
-      // Slash dispatch only when there are no images attached.
-      if (trimmed.startsWith("/") && !images?.length) {
-        const head = trimmed.slice(1).split(/\s+/, 1)[0] ?? "";
+      // Slash dispatch only when there are no images attached AND the head
+      // actually looks like a command name. CC 2.1.246 — `/`-prefixed prose
+      // whose head isn't a command identifier (`/--flag`, `/usr/bin/x …`, a
+      // path) is ordinary text and must be sent to the model, not rejected as
+      // "Unknown command". A command-shaped-but-unknown head still dispatches
+      // (and toasts as a typo) via the branch below.
+      const slashHead = trimmed.startsWith("/") ? (trimmed.slice(1).split(/\s+/, 1)[0] ?? "") : "";
+      if (trimmed.startsWith("/") && !images?.length && isSlashCommandHead(slashHead)) {
+        const head = slashHead;
         const args = trimmed.slice(1 + head.length).trim();
+        // CC 2.1.287 — a user/project/plugin command that shares a name with a
+        // built-in (/usage, /context, /cost, /stats, …) must run the user's
+        // command, not Claudius's native dialog. When the SDK reports a
+        // non-builtin command of this name, forward to the SDK first.
+        if (userCommandShadowsBuiltin(head, sdkCommands)) {
+          void session.send(text, undefined, { asSlashCommand: true });
+          return;
+        }
         const cmd = findSlashCommand(head);
         if (cmd?.handler === "native") {
           if (runNative(cmd.id, args)) return;
@@ -1772,9 +1882,18 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
         showToast(`Unknown command: /${head} — type / to see what's available`);
         return;
       }
-      void session.send(text, images, opts?.fromSuggestion ? { fromSuggestion: true } : undefined);
+      void session.send(
+        text,
+        images,
+        opts?.fromSuggestion || opts?.inlinePastes?.length
+          ? {
+              ...(opts?.fromSuggestion ? { fromSuggestion: true } : {}),
+              ...(opts?.inlinePastes?.length ? { inlinePastes: opts.inlinePastes } : {}),
+            }
+          : undefined,
+      );
     },
-    [runNative, session, showToast],
+    [runNative, session, showToast, sdkCommands],
   );
 
   // Goal submit — set the tracked objective AND kick off Claude with the same
@@ -1963,12 +2082,17 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
   }, [session.sessions, openTabs, openTabTitles]);
 
   return (
+    <ClockOptionsProvider value={clockOptions}>
     <div className="flex h-full">
       {/* Focus hides the nav-icon rail (and the right activity panel below)
           but keeps the workspace rail; zen hides the workspace rail too.
           SideNav handles the split internally. */}
       <SideNav running={session.pending} focusLevel={focusLevel} />
-      <main data-pane-name="chat-area" className="relative flex h-full min-w-0 flex-1 flex-col">
+      <main
+        data-pane-name="chat-area"
+        className="relative flex h-full min-w-0 flex-1 flex-col"
+        style={proseMaxWidth ? ({ "--prose-max-width": proseMaxWidth } as CSSProperties) : undefined}
+      >
         <SessionTabs
           tabs={openTabs.map((id) => {
             // Status resolution for the dot on each tab:
@@ -1987,6 +2111,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
                 ready: session.ready,
                 pending: session.pending,
                 hasError: session.errors.length > 0,
+                needsInput: session.needsInput,
               });
             } else {
               const live = session.sessions.find((s) => s.id === id);
@@ -2062,6 +2187,11 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
           backgroundTasks={session.backgroundTasks}
           turnStartedAt={session.turnStartedAt}
           lastTurnCompletedAt={session.lastTurnCompletedAt}
+          runningHook={session.runningHook}
+          // CC 2.1.271 — a real tool (not a thinking row) is executing; and the
+          // turn is resuming after the output-token limit.
+          toolActive={session.toolHistory.some((e) => !e.done && e.kind !== "thinking")}
+          resumingThought={session.apiRetry?.error === "max_output_tokens"}
           permissionMode={session.permissionMode}
           model={session.model}
           mainAgent={session.mainAgent}
@@ -2337,6 +2467,8 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
                 planModeNudgeEligible:
                   planModeUsed && !activeWorkspace?.defaults?.permissionMode,
                 newUser: startupCount < 10,
+                startupCount,
+                lastShownAt: tipLastShownAt,
               },
             )}
             apiRetry={session.apiRetry}
@@ -2396,6 +2528,21 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
               onSwitchToSonnet: () =>
                 session.setModel(OPUS_OVERLOAD_NUDGE_SONNET_TARGET),
               onStepEffortDown: () => session.setEffort("medium"),
+              // CC 2.1.284 — "Edit & retry" on a refusal: reload the refused
+              // prompt's text into the composer so the user can reword it.
+              onEditAndRetry: (uuid: string) => {
+                const m = session.messages.find(
+                  (msg) => msg.uuid === uuid && msg.role === "user",
+                );
+                const text = (m?.blocks ?? [])
+                  .filter((b): b is { kind: "text"; text: string } => b.kind === "text")
+                  .map((b) => b.text)
+                  .join("")
+                  .trim();
+                if (!text) return;
+                draftTokenRef.current += 1;
+                setDraftInjection({ token: draftTokenRef.current, text, mode: "replace" });
+              },
             }}
           />
           {session.errors.length > 0 && (
@@ -2464,8 +2611,11 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
               cwd={session.cwd}
               sessionId={session.sessionId}
               promptColor={resolvePromptColor(activePromptColor)}
-              onSend={handleSend}
+              onSend={(text, images, inlinePastes) =>
+                handleSend(text, images, inlinePastes?.length ? { inlinePastes } : undefined)
+              }
               onInterrupt={session.interrupt}
+              onNotice={showToast}
               draftInjection={draftInjection}
               promptHistory={promptHistory}
               sendDisabled={capBreached || session.readOnly}
@@ -2568,7 +2718,22 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
         />
       )}
       {overlay === "diff" && (
-        <DiffOverlay workspaceId={activeWorkspaceId} onClose={() => setOverlay(null)} />
+        <DiffOverlay
+          workspaceId={activeWorkspaceId}
+          onClose={() => setOverlay(null)}
+          // CC 2.1.260 (H5) — refresh the diff live as Claude edits files.
+          refreshToken={diffRefreshToken(session.recentEdits)}
+        />
+      )}
+      {overlay === "mobile" && (
+        <MobileQrOverlay url={SLASH_LINKS.mobileApp} onClose={() => setOverlay(null)} />
+      )}
+      {overlay === "output-style" && session.sessionId && (
+        <OutputStyleOverlay
+          sessionId={session.sessionId}
+          onClose={() => setOverlay(null)}
+          onNotice={showToast}
+        />
       )}
       {overlay === "status" && (
         <StatusOverlay
@@ -2697,5 +2862,6 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
         </div>
       )}
     </div>
+    </ClockOptionsProvider>
   );
 }

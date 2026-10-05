@@ -15,6 +15,7 @@ import {
   ArrowUpFromLine,
   CloudDownload,
   Sparkles,
+  GitPullRequest,
 } from "lucide-react";
 import { SideNav } from "@/components/nav/SideNav";
 import {
@@ -31,6 +32,7 @@ import { GitConsole, type GitConsoleEntry } from "@/components/git/GitConsole";
 import { useWorkspaces } from "@/lib/client/useWorkspaces";
 import { useGitStatus } from "@/lib/client/useGitStatus";
 import { renderCommitPrefix } from "@/lib/shared/commit-prefix";
+import { prBadgeLabel, type PrBadge } from "@/lib/shared/pr-badge";
 import { cn } from "@/lib/utils/cn";
 
 type DiffPayload = { diff: string; binary: boolean };
@@ -103,6 +105,34 @@ export default function GitPage() {
   const router = useRouter();
 
   const { data, error: statusError, loading: statusLoading, refresh } = useGitStatus(wsId);
+
+  // CC 2.1.234 (H7) — the current branch's PR (GitHub) / MR (GitLab) badge, via
+  // `gh` / `glab`. Best-effort: null when there's no open PR/MR, the CLI is
+  // absent/unauthenticated, or the remote isn't GitHub/GitLab. Re-fetched when
+  // the branch changes.
+  const [prBadge, setPrBadge] = useState<PrBadge | null>(null);
+  // The repo/branch identity this badge is for. Empty when there's no repo.
+  const prKey = wsId && data?.isRepo ? `${wsId}|${data.branch ?? ""}` : "";
+  // Clear a stale badge the instant the branch/repo changes — render-phase
+  // "store previous props" (same pattern as `lastDraftWsId` below), so the
+  // effect never has to synchronously setState.
+  const [lastPrKey, setLastPrKey] = useState(prKey);
+  if (lastPrKey !== prKey) {
+    setLastPrKey(prKey);
+    setPrBadge(null);
+  }
+  useEffect(() => {
+    if (!prKey) return;
+    const controller = new AbortController();
+    fetch(`/api/workspaces/${wsId}/git/pr-status`, { signal: controller.signal })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j: { badge?: PrBadge | null } | null) => setPrBadge(j?.badge ?? null))
+      .catch((err: unknown) => {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        setPrBadge(null);
+      });
+    return () => controller.abort();
+  }, [prKey, wsId]);
 
   // IntelliJ-style: rows have checkboxes, not just radios. The selection set
   // is the "what will get committed" set; ChangesList drives this.
@@ -1548,6 +1578,34 @@ export default function GitPage() {
             <span className="rounded bg-[var(--panel-2)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--muted)]">
               {aheadBehind}
             </span>
+          )}
+          {prBadge && (
+            <a
+              href={prBadge.url || undefined}
+              target="_blank"
+              rel="noreferrer"
+              data-testid="pr-badge"
+              title={`${prBadgeLabel(prBadge)}${prBadge.title ? ` — ${prBadge.title}` : ""} · ${prBadge.state}${
+                prBadge.checks !== "none" ? ` · checks ${prBadge.checks}` : ""
+              }`}
+              className={cn(
+                "flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-medium",
+                prBadge.state === "merged"
+                  ? "border-purple-400/40 bg-purple-400/10 text-purple-300"
+                  : prBadge.state === "closed"
+                    ? "border-red-400/40 bg-red-400/10 text-red-300"
+                    : prBadge.state === "draft"
+                      ? "border-[var(--border)] bg-[var(--panel-2)] text-[var(--muted)]"
+                      : "border-emerald-400/40 bg-emerald-400/10 text-emerald-300",
+              )}
+            >
+              <GitPullRequest className="h-3 w-3" />
+              {prBadgeLabel(prBadge)}
+              {prBadge.state === "draft" && <span className="opacity-80">draft</span>}
+              {prBadge.checks === "passing" && <span className="text-emerald-400">✓</span>}
+              {prBadge.checks === "failing" && <span className="text-red-400">✗</span>}
+              {prBadge.checks === "pending" && <span className="text-amber-400">•</span>}
+            </a>
           )}
           <div className="ml-auto flex items-center gap-1">
             <button

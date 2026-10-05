@@ -5,6 +5,7 @@ import { Check, Copy, Sparkles, Target, Terminal, Undo2 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import type { AttachedImage, DisplayMessage } from "@/lib/client/types";
 import { formatMessageTime } from "@/lib/client/format-message-time";
+import { useClockOptionsContext } from "@/lib/client/clock-options-context";
 import { ImageLightbox } from "./ImageLightbox";
 import { PeerMessageHeader } from "./PeerMessageHeader";
 import { Markdown } from "./Markdown";
@@ -83,7 +84,8 @@ export function UserMessage({
   const isPureBashEcho = hasBash && segments.every((s) => s.kind === "bash");
   const showPeerCollapse = !!peerLabel && !isPureBashEcho;
   const showBody = !showPeerCollapse || peerExpanded;
-  const stamp = formatMessageTime(message.createdAt);
+  const clock = useClockOptionsContext();
+  const stamp = formatMessageTime(message.createdAt, clock);
   const [copied, setCopied] = useState(false);
   const copy = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -105,12 +107,15 @@ export function UserMessage({
   return (
     <div className="group flex justify-end">
       <div
+        data-pending={message.pending ? "true" : undefined}
         className={cn(
-          "max-w-[80%] rounded-2xl border border-[var(--border)] bg-[var(--panel-2)] px-4 py-2",
+          "max-w-[80%] rounded-2xl border border-[var(--border)] bg-[var(--panel-2)] px-4 py-2 transition-opacity",
           onJumpTo && "cursor-pointer transition-colors hover:border-[var(--accent)]/40",
+          // CC 2.1.275 — dim until the model has received the message.
+          message.pending && "opacity-50",
         )}
         onClick={onJumpTo ? handleJump : undefined}
-        title={onJumpTo ? "Scroll to this message" : undefined}
+        title={message.pending ? "Sending…" : onJumpTo ? "Scroll to this message" : undefined}
       >
         {showPeerCollapse && peer && (
           <PeerMessageHeader
@@ -281,7 +286,10 @@ function InlineUserText({ text, images }: { text: string; images: AttachedImage[
     );
   }
   const content = hasImageMatch ? (
-    <div className="text-[length:var(--chat-text)] leading-6 2xl:leading-7">{nodes}</div>
+    // CC 2.1.216 (F2) — the image-token branch bypasses <Markdown>, so it
+    // carries its own dir="auto" to render an RTL prompt correctly (the
+    // Markdown branch below gets per-block direction from the renderers).
+    <div dir="auto" className="text-[length:var(--chat-text)] leading-6 2xl:leading-7">{nodes}</div>
   ) : text === "" ? (
     <div className="whitespace-pre-wrap text-[length:var(--chat-text)] leading-6 2xl:leading-7">{text}</div>
   ) : (

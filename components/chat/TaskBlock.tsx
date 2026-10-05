@@ -5,6 +5,8 @@ import { Bot, ChevronDown, ChevronRight, AlertCircle, CheckCircle2 } from "lucid
 import { cn } from "@/lib/utils/cn";
 import type { DisplayBlock, DisplayMessage, TaskInfo, ToolProgressInfo } from "@/lib/client/types";
 import { findSubagentRetry } from "@/lib/client/task-status";
+import { prettyModelName } from "@/lib/shared/advisor";
+import { stripSubagentHandBackFrame } from "@/lib/shared/subagent-handback";
 import { Markdown } from "./Markdown";
 import { ThinkingBlock } from "./ThinkingBlock";
 import { ToolCall } from "./ToolCall";
@@ -94,6 +96,8 @@ export function TaskBlock({
   // so the digits don't jitter as they tick up during streaming. Each part is
   // omitted until the data exists.
   const stats: string[] = [];
+  // CC 2.1.243 — the model this subagent ran on.
+  if (task?.model) stats.push(prettyModelName(task.model));
   if (task?.totalTokens != null) stats.push(`${task.totalTokens.toLocaleString()} tok`);
   if (task?.toolUses != null && task.toolUses > 0) stats.push(`${task.toolUses} tools`);
   if (task?.durationMs != null) stats.push(formatDuration(task.durationMs));
@@ -200,7 +204,7 @@ export function TaskBlock({
                   result.isError && "text-red-300",
                 )}
               >
-                {result.content}
+                {stripSubagentHandBackFrame(result.content)}
               </pre>
             </details>
           )}

@@ -3,6 +3,8 @@ import type { Query } from "@anthropic-ai/claude-agent-sdk";
 import { sessionManager } from "@/lib/server/session-manager";
 import { applyModelPickerCuration } from "@/lib/server/model-picker-curation";
 import { readSettings } from "@/lib/server/settings";
+import { resolveManagedModelPolicy } from "@/lib/server/managed-model-policy";
+import { isModelDeniedByManaged } from "@/lib/shared/denied-models";
 
 export const runtime = "nodejs";
 
@@ -42,7 +44,7 @@ type ModelInfo = {
 const ALWAYS_SHOWN_ALIASES: ModelInfo[] = [
   {
     value: "fable",
-    displayName: "Fable 5",
+    displayName: "Fable 5.1",
     // Mirrors the Claude Code TUI's `/model` picker copy verbatim so the
     // two surfaces read the same. The "~2× faster than Opus" hint is the
     // SDK's own framing — Fable consumes plan limits roughly twice as fast
@@ -137,8 +139,14 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
     // ALWAYS_SHOWN_ALIASES rationale. Order: SDK entries first (so the
     // SDK's preferred ordering wins), augmented aliases appended at the
     // end so they don't hijack the default-pick row.
+    // CC 2.1.283 — don't re-add an alias the managed `deniedModels` policy
+    // blocks (the whole point of the policy is to hide it).
+    const policy = await resolveManagedModelPolicy(session.cwd);
     const augmented = [...sdkModels];
     for (const alias of ALWAYS_SHOWN_ALIASES) {
+      if (isModelDeniedByManaged(alias.value, policy.deniedModels, policy.availableModelsMatch)) {
+        continue;
+      }
       if (!listAlreadyCoversAlias(augmented, alias)) {
         augmented.push(alias);
       }

@@ -18,10 +18,44 @@ import type { DisplayBlock, DisplayMessage, TaskInfo, TaskStatus, ToolProgressIn
 
 type ToolUseBlock = Extract<DisplayBlock, { kind: "tool_use" }>;
 
-const NON_TERMINAL: ReadonlySet<TaskStatus> = new Set(["running", "pending"]);
+// CC 2.1.271 — "paused" (a usage-limit hold on a dynamic-workflow agent) is
+// non-terminal: the run auto-resumes when the limit resets, so it must stay in
+// the live/active set rather than reading as finished.
+const NON_TERMINAL: ReadonlySet<TaskStatus> = new Set(["running", "pending", "paused"]);
 
 export function isNonTerminalTaskStatus(s: TaskStatus): boolean {
   return NON_TERMINAL.has(s);
+}
+
+/**
+ * CC 2.1.285 — whether a task is Claude Code's own housekeeping work
+ * (`task_started.skip_transcript`): compaction, title generation, etc. These
+ * are folded under a single "System tasks" group in the Background tasks panel
+ * instead of each getting its own row in the live Tasks list.
+ */
+export function isSystemTask(t: Pick<TaskInfo, "skipTranscript">): boolean {
+  return t.skipTranscript === true;
+}
+
+/**
+ * CC 2.1.243 — stamp the model a subagent ran on onto the task(s) whose
+ * `toolUseId` matches, set-once (a later split doesn't overwrite it). Returns
+ * the same map reference when nothing changed so React can skip the re-render.
+ */
+export function setTaskModelForToolUse(
+  tasks: Record<string, TaskInfo>,
+  toolUseId: string,
+  model: string,
+): Record<string, TaskInfo> {
+  let changed = false;
+  const next: Record<string, TaskInfo> = { ...tasks };
+  for (const [id, t] of Object.entries(tasks)) {
+    if (t.toolUseId === toolUseId && !t.model) {
+      next[id] = { ...t, model };
+      changed = true;
+    }
+  }
+  return changed ? next : tasks;
 }
 
 /**

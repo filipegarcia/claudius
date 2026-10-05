@@ -1,6 +1,13 @@
 import { promises as fs } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { join, resolve, sep } from "node:path";
+import { mergePluginMeta, pluginSubdirFromSource, type PluginManifest } from "@/lib/shared/plugin-metadata";
+import {
+  parseUserConfig,
+  setPluginOption,
+  type PluginConfigOption,
+  type PluginOptionValue,
+} from "@/lib/shared/plugin-config";
 import {
   pathFor,
   readSettings,
@@ -8,20 +15,45 @@ import {
   type ClaudeSettings,
   type SettingsScope,
 } from "./settings";
+import {
+  addExtraMarketplace as addExtraEntry,
+  readExtraMarketplaces,
+  readPolicyMarketplaces,
+  removeExtraMarketplace as removeExtraEntry,
+  removePolicyMarketplace,
+  type ExtraMarketplaceView,
+  type MarketplaceSource,
+  type MarketplaceSourceView,
+} from "@/lib/shared/marketplace-settings";
 
 export type PluginsByScope = {
   scope: SettingsScope;
   path: string;
   enabledPlugins: Record<string, boolean>;
-  extraKnownMarketplaces: string[];
-  strictKnownMarketplaces: boolean;
-  blockedMarketplaces: string[];
+  /**
+   * G1 — redacted views of the three marketplace keys (SDK object/array
+   * shapes). Header values and headersHelper text are withheld; they never
+   * leave the server. `legacyExtra` flags a pre-G1 Claudius `string[]` that
+   * can't be migrated automatically (the user removes those entries).
+   */
+  extraKnownMarketplaces: ExtraMarketplaceView[];
+  strictKnownMarketplaces: MarketplaceSourceView[];
+  blockedMarketplaces: MarketplaceSourceView[];
+  legacyExtra: boolean;
+  /**
+   * G3 — current `pluginConfigs` values for this scope (keyed by plugin id).
+   * Holds the non-sensitive option values the options form reads back; sensitive
+   * values never land here (the CLI routes them to secure storage).
+   */
+  pluginConfigs: Record<string, unknown>;
 };
 
 export type AvailablePlugin = {
   /** The marketplace directory name (matches the install ref's `@…` part). */
   marketplace: string;
   name: string;
+  /** CC 2.1.265 (G2) — friendly name from the entry or the plugin's plugin.json. */
+  displayName?: string;
   description?: string;
   author?: { name?: string; email?: string } | string;
   category?: string;
@@ -30,8 +62,27 @@ export type AvailablePlugin = {
   installs?: number;
 };
 
-function strArr(v: unknown): string[] {
-  return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [];
+/**
+ * CC 2.1.265 (G2) — best-effort read of a plugin's own `.claude-plugin/
+ * plugin.json` (falling back to a bare `plugin.json`) under `dir`, used to
+ * recover a description / displayName the marketplace entry omitted. Returns
+ * `null` when absent or malformed. `dir` is inline-guarded to stay within
+ * `base` so a crafted marketplace.json `source.path` can't walk outside the
+ * marketplace checkout.
+ */
+async function readPluginManifest(base: string, dir: string): Promise<PluginManifest | null> {
+  const resolved = resolve(base, dir);
+  if (resolved !== base && !resolved.startsWith(base + sep)) return null;
+  for (const rel of [".claude-plugin/plugin.json", "plugin.json"]) {
+    try {
+      const raw = await fs.readFile(join(resolved, rel), "utf8");
+      const parsed = JSON.parse(raw) as PluginManifest;
+      if (parsed && typeof parsed === "object") return parsed;
+    } catch {
+      // Try the next candidate / give up silently.
+    }
+  }
+  return null;
 }
 
 /**
@@ -52,20 +103,98 @@ export async function listAll(cwd: string): Promise<PluginsByScope[]> {
   for (const scope of scopes) {
     const settings = await readSettings(scope, cwd);
     const ep = settings.enabledPlugins;
+    const extraRaw = aliased(settings, "extraKnownMarketplaces", "additionalMarketplaces");
     out.push({
       scope,
       path: pathFor(scope, cwd),
       enabledPlugins: typeof ep === "object" && ep ? (ep as Record<string, boolean>) : {},
-      extraKnownMarketplaces: strArr(
-        aliased(settings, "extraKnownMarketplaces", "additionalMarketplaces"),
-      ),
-      strictKnownMarketplaces: Boolean(
+      extraKnownMarketplaces: readExtraMarketplaces(extraRaw),
+      strictKnownMarketplaces: readPolicyMarketplaces(
         aliased(settings, "strictKnownMarketplaces", "allowedMarketplaces"),
       ),
-      blockedMarketplaces: strArr((settings as { blockedMarketplaces?: unknown }).blockedMarketplaces),
+      blockedMarketplaces: readPolicyMarketplaces(
+        (settings as { blockedMarketplaces?: unknown }).blockedMarketplaces,
+      ),
+      legacyExtra: Array.isArray(extraRaw),
+      pluginConfigs:
+        typeof (settings as { pluginConfigs?: unknown }).pluginConfigs === "object" &&
+        (settings as { pluginConfigs?: unknown }).pluginConfigs
+          ? ((settings as { pluginConfigs: Record<string, unknown> }).pluginConfigs)
+          : {},
     });
   }
   return out;
+}
+
+export type InstalledPluginInfo = {
+  name: string;
+  path?: string;
+  source?: string;
+  version?: string;
+  /** CC 2.1.265 (G2) — from the SDK object, else the plugin's own plugin.json. */
+  description?: string;
+  displayName?: string;
+  /** CC 2.1.285 (G3) — the plugin's `userConfig` option schema, when declared. */
+  userConfig?: PluginConfigOption[];
+};
+
+/**
+ * CC 2.1.265 (G2) — enrich the SDK's `reload_plugins` objects (name / path /
+ * source / version only) with a `description` / `displayName`, read from each
+ * installed plugin's own `plugin.json` at its on-disk `path` when the SDK
+ * didn't already provide them. `path` comes from the engine (not request
+ * input); the read is best-effort and never throws.
+ */
+export async function enrichInstalled(raw: unknown[]): Promise<InstalledPluginInfo[]> {
+  const str = (v: unknown): string | undefined => (typeof v === "string" && v ? v : undefined);
+  const out: InstalledPluginInfo[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const o = item as Record<string, unknown>;
+    const name = str(o.name);
+    if (!name) continue;
+    const path = str(o.path);
+    // G2/G3 — read the plugin's own manifest once for both the description/
+    // displayName fallback and the `userConfig` option schema (G3).
+    const manifest = path ? await readPluginManifest(path, ".") : null;
+    const meta = mergePluginMeta(o, manifest ?? undefined);
+    const userConfig = manifest ? parseUserConfig(manifest) : [];
+    out.push({
+      name,
+      path,
+      source: str(o.source),
+      version: str(o.version),
+      ...meta,
+      userConfig: userConfig.length > 0 ? userConfig : undefined,
+    });
+  }
+  return out;
+}
+
+/**
+ * G3 — set (or clear, when `value` is undefined) one plugin option under
+ * `pluginConfigs.<pluginId>.options.<name>` in the given scope, preserving the
+ * plugin's `mcpServers` config and every other plugin's entry. Only
+ * non-sensitive options reach here (the UI withholds sensitive ones).
+ */
+export async function setPluginOptionValue(
+  scope: SettingsScope,
+  cwd: string,
+  pluginId: string,
+  name: string,
+  value: PluginOptionValue | undefined,
+): Promise<void> {
+  const settings = await readSettings(scope, cwd);
+  const next = { ...settings } as Record<string, unknown>;
+  const updated = setPluginOption(
+    (settings as { pluginConfigs?: unknown }).pluginConfigs,
+    pluginId,
+    name,
+    value,
+  );
+  if (updated === undefined) delete next.pluginConfigs;
+  else next.pluginConfigs = updated;
+  await writeSettings(scope, cwd, next as ClaudeSettings);
 }
 
 export async function setEnabled(
@@ -140,20 +269,35 @@ export async function listAvailable(): Promise<AvailablePlugin[]> {
       const manifest = JSON.parse(raw) as {
         plugins?: Array<{
           name?: unknown;
+          displayName?: unknown;
           description?: unknown;
           author?: unknown;
           category?: unknown;
           homepage?: unknown;
+          source?: unknown;
         }>;
       };
       if (!Array.isArray(manifest.plugins)) continue;
+      const marketplaceDir = join(root, entry.name);
       for (const p of manifest.plugins) {
         if (typeof p?.name !== "string" || !p.name) continue;
         const ref = `${p.name}@${entry.name}`;
+        // CC 2.1.265 (G2) — when the marketplace entry omits description or
+        // displayName, fall back to the plugin's own plugin.json (its local
+        // checkout lives under the marketplace dir at `source`'s subdir).
+        let meta = mergePluginMeta(p, undefined);
+        if (!meta.description || !meta.displayName) {
+          const subdir = pluginSubdirFromSource(p.source);
+          if (subdir) {
+            const manifestJson = await readPluginManifest(marketplaceDir, subdir);
+            if (manifestJson) meta = mergePluginMeta(p, manifestJson);
+          }
+        }
         out.push({
           marketplace: entry.name,
           name: p.name,
-          description: typeof p.description === "string" ? p.description : undefined,
+          displayName: meta.displayName,
+          description: meta.description,
           author:
             typeof p.author === "string"
               ? p.author
@@ -179,33 +323,63 @@ export async function listAvailable(): Promise<AvailablePlugin[]> {
   return out;
 }
 
-export async function setMarketplaces(
+/**
+ * G1 — structural marketplace edits. Each op reads the raw stored value,
+ * applies one change via the pure helpers (which preserve every untouched
+ * entry and any source kind this code doesn't model), and writes under the
+ * canonical key, dropping the alias so the two spellings can't coexist. No
+ * full-list rewrite, so a rich object/array config is never clobbered.
+ */
+export async function addExtraMarketplace(
   scope: SettingsScope,
   cwd: string,
-  patch: {
-    extraKnownMarketplaces?: string[];
-    strictKnownMarketplaces?: boolean;
-    blockedMarketplaces?: string[];
-  },
+  name: string,
+  source: MarketplaceSource,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const settings = await readSettings(scope, cwd);
+  const raw = aliased(settings, "extraKnownMarketplaces", "additionalMarketplaces");
+  const res = addExtraEntry(raw, name, source);
+  if (!res.ok) return res;
+  const next = { ...settings } as Record<string, unknown>;
+  delete next.additionalMarketplaces;
+  next.extraKnownMarketplaces = res.value;
+  await writeSettings(scope, cwd, next as ClaudeSettings);
+  return { ok: true };
+}
+
+export async function removeExtraMarketplace(
+  scope: SettingsScope,
+  cwd: string,
+  name: string,
 ): Promise<void> {
   const settings = await readSettings(scope, cwd);
-  const next: ClaudeSettings = { ...settings };
-  if (patch.extraKnownMarketplaces !== undefined) {
-    // Persist under the canonical key and drop the `additionalMarketplaces`
-    // alias so the two spellings can't coexist (the CLI ignores the alias with
-    // a warning when both are present), matching Claude Code's file rewrite.
-    delete (next as Record<string, unknown>).additionalMarketplaces;
-    if (patch.extraKnownMarketplaces.length === 0) delete (next as Record<string, unknown>).extraKnownMarketplaces;
-    else (next as Record<string, unknown>).extraKnownMarketplaces = patch.extraKnownMarketplaces;
+  const raw = aliased(settings, "extraKnownMarketplaces", "additionalMarketplaces");
+  const value = removeExtraEntry(raw, name);
+  const next = { ...settings } as Record<string, unknown>;
+  delete next.additionalMarketplaces;
+  if (value === undefined) delete next.extraKnownMarketplaces;
+  else next.extraKnownMarketplaces = value;
+  await writeSettings(scope, cwd, next as ClaudeSettings);
+}
+
+export async function removePolicyMarketplaceEntry(
+  scope: SettingsScope,
+  cwd: string,
+  list: "strict" | "blocked",
+  index: number,
+): Promise<void> {
+  const settings = await readSettings(scope, cwd);
+  const next = { ...settings } as Record<string, unknown>;
+  if (list === "strict") {
+    const raw = aliased(settings, "strictKnownMarketplaces", "allowedMarketplaces");
+    const value = removePolicyMarketplace(raw, index);
+    delete next.allowedMarketplaces;
+    if (value === undefined) delete next.strictKnownMarketplaces;
+    else next.strictKnownMarketplaces = value;
+  } else {
+    const value = removePolicyMarketplace((settings as { blockedMarketplaces?: unknown }).blockedMarketplaces, index);
+    if (value === undefined) delete next.blockedMarketplaces;
+    else next.blockedMarketplaces = value;
   }
-  if (patch.strictKnownMarketplaces !== undefined) {
-    delete (next as Record<string, unknown>).allowedMarketplaces;
-    if (!patch.strictKnownMarketplaces) delete (next as Record<string, unknown>).strictKnownMarketplaces;
-    else (next as Record<string, unknown>).strictKnownMarketplaces = true;
-  }
-  if (patch.blockedMarketplaces !== undefined) {
-    if (patch.blockedMarketplaces.length === 0) delete (next as Record<string, unknown>).blockedMarketplaces;
-    else (next as Record<string, unknown>).blockedMarketplaces = patch.blockedMarketplaces;
-  }
-  await writeSettings(scope, cwd, next);
+  await writeSettings(scope, cwd, next as ClaudeSettings);
 }

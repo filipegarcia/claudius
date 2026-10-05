@@ -9,7 +9,7 @@ import { usePermissions, type RuleKind, type Scope } from "@/lib/client/usePermi
 import { useAutoMode } from "@/lib/client/useAutoMode";
 import { useActiveCwd } from "@/lib/client/useActiveCwd";
 import { useRecentDenials } from "@/lib/client/useRecentDenials";
-import { lintBashWildcardRule, lintPermissionRule, lintTrailingGarbageRule } from "@/lib/shared/permission-rule-lint";
+import { lintBashWildcardRule, lintPermissionRule, lintTrailingGarbageRule, lintWindowsPathParen } from "@/lib/shared/permission-rule-lint";
 import { cn } from "@/lib/utils/cn";
 
 const SCOPES: { id: Scope; label: string; path: string }[] = [
@@ -280,13 +280,33 @@ export default function PermissionsPage() {
  * alongside the user's own.
  */
 function AutoModeTab() {
-  const { config, loading, error, updateConfig } = useAutoMode();
+  const { config, loading, error, updateConfig, reset } = useAutoMode();
+  const hasConfig = (["environment", "allow", "soft_deny", "hard_deny"] as const).some(
+    (k) => (config[k]?.length ?? 0) > 0,
+  );
   return (
     <div className="space-y-4">
       <div className="rounded-lg border border-[var(--border)] bg-[var(--panel)]/40 p-3 text-xs text-[var(--muted)]">
         <div className="mb-1 flex items-center gap-1.5 font-medium text-[var(--foreground)]">
           <Info className="h-3.5 w-3.5" />
           Auto mode classifier configuration
+          {/* CC 2.1.212 — `claude auto-mode reset`. */}
+          <button
+            data-testid="auto-mode-reset"
+            disabled={!hasConfig}
+            onClick={() => {
+              if (
+                confirm(
+                  "Reset auto mode to defaults? This clears your Environment / Allow / Soft deny / Hard deny lists and reverts the classifier to its built-in configuration.",
+                )
+              )
+                void reset();
+            }}
+            className="ml-auto rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-0.5 text-[11px] text-[var(--muted)] hover:text-[var(--foreground)] disabled:opacity-40"
+            title={hasConfig ? "Restore the default auto-mode configuration" : "Already at defaults"}
+          >
+            Reset to defaults
+          </button>
         </div>
         Auto mode routes tool calls through a server-side classifier instead of asking you. These
         sections tell it what to trust — the classifier&apos;s own judgment isn&apos;t something
@@ -428,6 +448,10 @@ function RuleColumn({ kind, label, tone, rules, onAdd, onRemove }: ColumnProps) 
   // lints above. Applies to every kind (allow/ask/deny), not just allow —
   // trailing garbage is a shape problem, not a widen-what-auto-runs one.
   const draftTrailingLint = lintTrailingGarbageRule(draft);
+  // CC 2.1.260 parity: `\(` / `\)` in a rule (a Windows path like
+  // `Edit(C:\dir\(name)\**)`) is ambiguous against the scope parenthesis —
+  // warn and suggest forward slashes. Same non-blocking treatment.
+  const draftWinLint = lintWindowsPathParen(draft);
   return (
     <div className={cn("rounded-lg border bg-[var(--panel)]/40", tone)}>
       <div className="border-b border-current/30 px-3 py-2 text-xs font-medium uppercase tracking-wide">
@@ -441,6 +465,7 @@ function RuleColumn({ kind, label, tone, rules, onAdd, onRemove }: ColumnProps) 
           const lint = lintPermissionRule(r);
           const bashLint = kind === "allow" ? lintBashWildcardRule(r) : null;
           const trailingLint = lintTrailingGarbageRule(r);
+          const winLint = lintWindowsPathParen(r);
           return (
             <div
               key={r}
@@ -466,6 +491,14 @@ function RuleColumn({ kind, label, tone, rules, onAdd, onRemove }: ColumnProps) 
                 <span
                   data-testid="permission-rule-trailing-garbage-warning-icon"
                   title={`"${trailingLint.trailing}" after the closing parenthesis never matches anything — this rule is invalid`}
+                >
+                  <AlertTriangle className="h-3 w-3 shrink-0 text-amber-400" />
+                </span>
+              )}
+              {winLint && (
+                <span
+                  data-testid="permission-rule-windows-paren-warning-icon"
+                  title={`"${winLint.sequence}" is ambiguous against the rule's scope parenthesis — use forward slashes (C:/dir/...) in Windows paths`}
                 >
                   <AlertTriangle className="h-3 w-3 shrink-0 text-amber-400" />
                 </span>
@@ -539,6 +572,19 @@ function RuleColumn({ kind, label, tone, rules, onAdd, onRemove }: ColumnProps) 
               <code className="font-mono">{draftTrailingLint.trailing}</code> after the closing
               parenthesis never matches anything — this rule is invalid. The rule will still save as
               typed.
+            </span>
+          </p>
+        )}
+        {draftWinLint && (
+          <p
+            data-testid="permission-rule-windows-paren-warning"
+            className="flex items-start gap-1 text-[10px] text-amber-400"
+          >
+            <AlertTriangle className="mt-px h-3 w-3 shrink-0" />
+            <span>
+              <code className="font-mono">{draftWinLint.sequence}</code> is ambiguous against the
+              rule&apos;s scope parenthesis — in a Windows path use forward slashes (
+              <code className="font-mono">C:/dir/(name)/**</code>). The rule will still save as typed.
             </span>
           </p>
         )}

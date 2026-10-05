@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown, ChevronRight, Lightbulb, Shield } from "lucide-react";
 import type { PermissionDecision, PermissionRequestEvent } from "@/lib/shared/events";
+import { visualizeInvisibleUnicode } from "@/lib/shared/invisible-unicode";
 import { cn } from "@/lib/utils/cn";
 
 type Props = {
@@ -41,7 +42,16 @@ export function PermissionPrompt({ request, onResolve, autoModeAvailable, onSwit
   const [feedback, setFeedback] = useState("");
   const [showInput, setShowInput] = useState(false);
 
-  const summary = request.title ?? `Claude wants to use ${request.displayName ?? request.toolName}`;
+  // CC 2.1.211 — the title/description are untrusted text (a tool-authored
+  // prompt, an MCP server's label) the user reads first, so they get the same
+  // bidi/zero-width visualization as the tool input below.
+  const summaryVis = visualizeInvisibleUnicode(
+    request.title ?? `Claude wants to use ${request.displayName ?? request.toolName}`,
+  );
+  const summary = summaryVis.visualized;
+  const descriptionVis = request.description
+    ? visualizeInvisibleUnicode(request.description)
+    : null;
   // SDK 0.3.268 `suppressAlwaysAllowRule` — the rule an "Always allow" click
   // would write grants more than this ask's own action, so hide all three
   // standing-grant buttons. The auto-mode tip button is itself a one-click
@@ -49,6 +59,22 @@ export function PermissionPrompt({ request, onResolve, autoModeAvailable, onSwit
   // hidden under the same flag — and also under `defaultToNo`, since it's a
   // one-key approve shortcut that flag explicitly rules out.
   const hideAlwaysButtons = !!request.suppressAlwaysAllowRule;
+  // CC 2.1.235 — the narrow rule(s) an "Always allow" click will actually
+  // write, from the SDK's suggestions. Rendered as `Tool(ruleContent)` so the
+  // user sees they're granting `Bash(git status:*)`, not all of `Bash`.
+  const alwaysRuleLabels = (request.suggestedRules ?? []).map((r) =>
+    r.ruleContent ? `${r.toolName}(${r.ruleContent})` : r.toolName,
+  );
+  // CC 2.1.211 — the tool input is untrusted text the user is about to
+  // authorise; surface any bidi-override / zero-width characters as visible
+  // `‹U+XXXX›` tokens so a Trojan-Source command can't disguise what it runs.
+  const { visualized: inputText, count: inputHiddenCount } = visualizeInvisibleUnicode(
+    JSON.stringify(request.input, null, 2),
+  );
+  // Fire the banner if hidden/bidi chars appear anywhere the user reads: the
+  // title, the description, or the tool input.
+  const hiddenCharCount =
+    summaryVis.count + (descriptionVis?.count ?? 0) + inputHiddenCount;
   const hideAutoModeTip = !!request.suppressAlwaysAllowRule || !!request.defaultToNo;
   const denyButtonRef = useRef<HTMLButtonElement | null>(null);
 
@@ -120,8 +146,8 @@ export function PermissionPrompt({ request, onResolve, autoModeAvailable, onSwit
               )}
             </div>
             <div className="mt-0.5 text-sm font-medium">{summary}</div>
-            {request.description && (
-              <div className="mt-1 text-xs text-[var(--muted)]">{request.description}</div>
+            {descriptionVis && (
+              <div className="mt-1 text-xs text-[var(--muted)]">{descriptionVis.visualized}</div>
             )}
           </div>
         </div>
@@ -134,9 +160,19 @@ export function PermissionPrompt({ request, onResolve, autoModeAvailable, onSwit
             {showInput ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
             Tool input — {request.toolName}
           </button>
+          {hiddenCharCount > 0 && (
+            <div
+              data-testid="permission-hidden-chars"
+              className="mb-2 flex items-center gap-1.5 rounded border border-amber-500/40 bg-amber-500/10 px-2 py-1 text-[11px] text-amber-300"
+            >
+              <Shield className="h-3 w-3 shrink-0" />
+              Contains {hiddenCharCount} hidden/bidi character{hiddenCharCount === 1 ? "" : "s"}, shown
+              below as <code className="font-mono">‹U+…›</code> — read the command carefully.
+            </div>
+          )}
           {showInput && (
             <pre className="max-h-60 overflow-auto rounded bg-[var(--panel-2)] p-2 font-mono text-xs whitespace-pre-wrap scroll-thin">
-              {JSON.stringify(request.input, null, 2)}
+              {inputText}
             </pre>
           )}
         </div>
@@ -157,6 +193,37 @@ export function PermissionPrompt({ request, onResolve, autoModeAvailable, onSwit
             >
               Yes, and switch to auto mode
             </button>
+          </div>
+        )}
+
+        {!hideAlwaysButtons && (
+          <div
+            data-testid="permission-always-rule"
+            className="border-t border-[var(--border)] bg-[var(--panel-2)]/50 px-4 pt-2 text-[11px] text-[var(--muted)]"
+          >
+            {alwaysRuleLabels.length > 0 ? (
+              <>
+                “Always” saves{" "}
+                {alwaysRuleLabels.map((label, i) => (
+                  <span key={label}>
+                    {i > 0 && ", "}
+                    <code className="rounded bg-[var(--panel)] px-1 font-mono text-[var(--foreground)]">
+                      {label}
+                    </code>
+                  </span>
+                ))}
+                {" "}— not the whole tool.
+              </>
+            ) : (
+              // CC 2.1.235 — the SDK offered no narrow rule for this call, so
+              // "Always" can only grant the whole tool. Say so explicitly
+              // rather than letting the broad grant happen silently.
+              <span className="text-amber-400">
+                “Always” saves the whole{" "}
+                <code className="rounded bg-[var(--panel)] px-1 font-mono">{request.toolName}</code>{" "}
+                tool — every call it can make, not just this one.
+              </span>
+            )}
           </div>
         )}
 

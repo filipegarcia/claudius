@@ -10,6 +10,8 @@ import { RateLimitHitPanel } from "./RateLimitHitPanel";
 import { OpusHighDemandPanel } from "./OpusHighDemandPanel";
 import type { DisplayMessage, TaskInfo, ToolProgressInfo } from "@/lib/client/types";
 import { formatMessageTime } from "@/lib/client/format-message-time";
+import { useClockOptionsContext } from "@/lib/client/clock-options-context";
+import { cn } from "@/lib/utils/cn";
 import { isSubagentToolName } from "@/lib/shared/subagent-tool";
 import {
   DEFAULT_VERBOSE,
@@ -50,6 +52,10 @@ type Props = {
    * 0.3.214) — see the prop doc on `TaskBlock`.
    */
   toolProgress?: Record<string, ToolProgressInfo>;
+  /** CC 2.1.234 — the `autoContinueAtUsageLimit` setting is on (for the rate-limit panel). */
+  autoContinueAtUsageLimit?: boolean;
+  /** Turn auto-continue off (the panel's "Cancel"). */
+  onCancelAutoContinue?: () => void;
 };
 
 export function AssistantMessage({
@@ -60,13 +66,16 @@ export function AssistantMessage({
   onReopenAsk,
   verbose = DEFAULT_VERBOSE,
   toolProgress,
+  autoContinueAtUsageLimit,
+  onCancelAutoContinue,
 }: Props) {
+  const clock = useClockOptionsContext();
   const taskByToolUseId = new Map<string, TaskInfo>();
   for (const t of Object.values(tasks)) {
     if (t.toolUseId) taskByToolUseId.set(t.toolUseId, t);
   }
 
-  const stamp = formatMessageTime(message.createdAt);
+  const stamp = formatMessageTime(message.createdAt, clock);
 
   // `ultra-verbose` opts every collapsible card open by default. Threaded
   // into each card's `defaultOpen`; the cards re-apply this whenever the
@@ -95,6 +104,17 @@ export function AssistantMessage({
             Interrupted
           </span>
         )}
+        {/* CC 2.1.243 — an API/client error frame (server_error, billing_error,
+            …) is flagged so it doesn't read as ordinary model output. */}
+        {message.errorTag && (
+          <span
+            data-testid="assistant-error-badge"
+            className="rounded-md border border-red-500/40 bg-red-500/10 px-1.5 py-0.5 text-[10px] text-red-300"
+            title={`The model turn ended with an error: ${message.errorTag}`}
+          >
+            Error · {message.errorTag.replace(/_/g, " ")}
+          </span>
+        )}
         {stamp && (
           <span
             className={`ml-auto font-mono text-[10px] transition ${verbose === "ultra-verbose" ? "opacity-60" : "opacity-0 group-hover:opacity-100"}`}
@@ -105,7 +125,13 @@ export function AssistantMessage({
           </span>
         )}
       </div>
-      <div className="space-y-1 text-[length:var(--chat-text)] leading-7 2xl:leading-8">
+      <div
+        className={cn(
+          "space-y-1 text-[length:var(--chat-text)] leading-7 2xl:leading-8",
+          // CC 2.1.243 — error frames read as an error, not model prose.
+          message.errorTag && "rounded-md border-l-2 border-red-500/50 bg-red-500/5 pl-3",
+        )}
+      >
         {filterAssistantBlocks(message.blocks, verbose).map((b, i) => {
           if (b.kind === "text")
             return (
@@ -233,7 +259,13 @@ export function AssistantMessage({
         {/* Hard rate-limit hit: render the actionable panel (countdown +
             upgrade links) right under the SDK's "You've hit your … limit"
             text, mirroring the Claude Code CLI's `/rate-limit-options` menu. */}
-        {message.rateLimitHit && <RateLimitHitPanel hit={message.rateLimitHit} />}
+        {message.rateLimitHit && (
+          <RateLimitHitPanel
+            hit={message.rateLimitHit}
+            autoContinue={autoContinueAtUsageLimit}
+            onCancelAutoContinue={onCancelAutoContinue}
+          />
+        )}
         {/* Opus-4 high-demand banner: render under the backend's
             "We are experiencing high demand for Opus 4." prose so the user
             sees the /model CTA inline (Claude Code TUI parity). */}

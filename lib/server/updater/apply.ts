@@ -616,6 +616,12 @@ async function runClaudeAgent(
       options: {
         cwd: root,
         permissionMode: "bypassPermissions",
+        // CC 2.1.259 — the update-apply merge runs unattended (the process
+        // SIGTERMs itself ~1.5s after the HTTP response; there is no browser
+        // tab to answer a prompt). `bypassPermissions` already auto-allows,
+        // but state the no-approval-surface contract explicitly so a future
+        // change to a stricter mode can't silently start hanging the merge.
+        permissionPrompts: "none",
         allowedTools: ["Bash", "Read", "Edit", "Write", "Grep", "Glob"],
         maxTurns: 40,
       },

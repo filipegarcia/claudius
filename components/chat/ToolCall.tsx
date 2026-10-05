@@ -11,9 +11,28 @@ import { useMediaPreferences } from "@/lib/client/useMediaPreferences";
 import { formatElapsed, useElapsedSeconds } from "@/lib/client/use-elapsed";
 import { getPreviewType } from "@/lib/shared/file-types";
 import { extractFeedbackDraftText } from "@/lib/shared/feedback-draft";
+import { splitPathForTruncation } from "@/lib/shared/truncate-path";
 import type { TaskResourceLink } from "@/lib/shared/events";
 import { Markdown } from "./Markdown";
 import { FilePreview } from "./FilePreview";
+
+/**
+ * CC 2.1.239 (F5) — a tool-row file path that keeps its filename visible under
+ * truncation. The directory `head` CSS-truncates (end-ellipsis) while the
+ * `tail` (filename) stays whole and non-shrinking, so a long path reads
+ * `/very/long/dir…/file.ts` instead of cutting the filename off the end.
+ * Rendered as a fragment so the caller owns the clickable wrapper (Link/span);
+ * that wrapper must be `flex min-w-0`.
+ */
+function TruncatedPath({ path }: { path: string }) {
+  const { head, tail } = splitPathForTruncation(path);
+  return (
+    <>
+      {head && <span className="min-w-0 truncate">{head}</span>}
+      <span className="shrink-0 whitespace-pre">{tail}</span>
+    </>
+  );
+}
 
 /**
  * Readable labels for the cloud-routine tool's `action` (input schema
@@ -216,18 +235,21 @@ export function ToolCall({
           (filesUrl ? (
             <Link
               href={filesUrl}
-              title="Open in Files"
+              title={fileTarget.path}
               // `draggable={false}` so click-and-drag on the path text starts a
               // text selection instead of the browser's built-in drag-the-link
               // behavior. Clicking still navigates to the Files browser.
               draggable={false}
-              className="min-w-0 flex-1 truncate font-mono text-[10px] text-[var(--muted)] hover:text-[var(--accent)] hover:underline"
+              className="flex min-w-0 flex-1 font-mono text-[10px] text-[var(--muted)] hover:text-[var(--accent)] hover:underline"
             >
-              {fileTarget.path}
+              <TruncatedPath path={fileTarget.path} />
             </Link>
           ) : (
-            <span className="min-w-0 flex-1 truncate font-mono text-[10px] text-[var(--muted)]">
-              {fileTarget.path}
+            <span
+              title={fileTarget.path}
+              className="flex min-w-0 flex-1 font-mono text-[10px] text-[var(--muted)]"
+            >
+              <TruncatedPath path={fileTarget.path} />
             </span>
           ))}
         {showAnswerPill && (
@@ -324,8 +346,11 @@ export function ToolCall({
               <div className="mb-1 text-[10px] uppercase tracking-wide text-[var(--muted)]">
                 drafted report
               </div>
-              <div className="max-h-96 overflow-y-auto scroll-thin whitespace-pre-wrap rounded bg-[var(--panel-2)] px-3 py-2 text-sm leading-6">
-                {feedbackDraftText}
+              <div className="max-h-96 overflow-y-auto scroll-thin rounded bg-[var(--panel-2)] px-3 py-2 text-sm leading-6">
+                {/* `details` is markdown-bulleted (**What happened:** …), and the
+                    extractor bolds the title — render it formatted. allowExecute
+                    is off: this is a report body, not model-proposed shell. */}
+                <Markdown allowExecute={false}>{feedbackDraftText}</Markdown>
               </div>
               <div className="mt-1 text-[10px] text-[var(--muted)]">
                 Review and send this report from <span className="font-mono">/feedback</span>.

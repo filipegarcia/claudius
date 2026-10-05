@@ -113,6 +113,7 @@ export function CostOverlay({
       })
     : null;
   const spendLimit = planUsage?.spendLimit ?? null;
+  const extraUsage = planUsage?.extraUsage ?? null;
   const windows =
     planUsage?.rateLimitsAvailable && planUsage.rateLimits
       ? (
@@ -275,6 +276,27 @@ export function CostOverlay({
                 Enforced by your organization&apos;s Claude apps gateway — separate from Anthropic&apos;s own
                 rate-limit windows above and from Claudius&apos;s client-side caps under the Cost page&apos;s
                 Limits tab.
+              </p>
+            </div>
+          )}
+
+          {/* CC parity 2.1.236 — usage-credits ("extra usage") spend row.
+              Shown for Team/Enterprise (and anyone with credits enabled); the
+              bar reads 0% before any spend. `monthlyLimit`/`usedCredits` are
+              in `currency` (USD unless stated). */}
+          {extraUsage?.isEnabled && (
+            <div data-testid="extra-usage-bar" className="mt-3 border-t border-[var(--border)]/50 pt-3">
+              <div className="flex items-baseline justify-between text-[11px]">
+                <span className="text-[var(--muted)]">Usage credits</span>
+                <span className="font-mono text-[var(--foreground)]">
+                  {fmtUsd(extraUsage.usedCredits ?? 0)} /{" "}
+                  {extraUsage.monthlyLimit === null ? "—" : fmtUsd(extraUsage.monthlyLimit)}
+                  {extraUsage.currency && extraUsage.currency !== "USD" ? ` ${extraUsage.currency}` : ""}
+                </span>
+              </div>
+              <UsageBar utilization={extraUsage.utilization ?? 0} />
+              <p className="mt-1 text-[10px] text-[var(--muted)]">
+                Extra-usage credits spent this month beyond your plan&apos;s included limits.
               </p>
             </div>
           )}

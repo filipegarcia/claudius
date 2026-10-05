@@ -82,11 +82,7 @@ describe("parseSyntheticCliWrapper", () => {
   test("recognizes the `<command-name>` block emitted around /compact", () => {
     const content =
       "<command-name>/compact</command-name>\n<command-message>compact</command-message>\n<command-args></command-args>";
-    expect(parseSyntheticCliWrapper(content)).toEqual({
-      kind: "command",
-      command: "/compact",
-      args: "",
-    });
+    expect(parseSyntheticCliWrapper(content)).toEqual({ kind: "command", command: "/compact", args: "", trailing: "" });
   });
 
   test("captures non-empty <command-args>", () => {
@@ -96,6 +92,7 @@ describe("parseSyntheticCliWrapper", () => {
       kind: "command",
       command: "/recap",
       args: "last 3 turns",
+      trailing: "",
     });
   });
 
@@ -103,6 +100,7 @@ describe("parseSyntheticCliWrapper", () => {
     expect(parseSyntheticCliWrapper("<local-command-stdout>Compacted </local-command-stdout>")).toEqual({
       kind: "stdout",
       text: "Compacted",
+      trailing: "",
     });
   });
 
@@ -110,6 +108,7 @@ describe("parseSyntheticCliWrapper", () => {
     expect(parseSyntheticCliWrapper("<local-command-stderr>boom</local-command-stderr>")).toEqual({
       kind: "stderr",
       text: "boom",
+      trailing: "",
     });
   });
 
@@ -117,6 +116,7 @@ describe("parseSyntheticCliWrapper", () => {
     expect(parseSyntheticCliWrapper("<local-command-stdout></local-command-stdout>")).toEqual({
       kind: "stdout",
       text: "",
+      trailing: "",
     });
   });
 
@@ -126,7 +126,31 @@ describe("parseSyntheticCliWrapper", () => {
         { type: "text", text: "<command-name>/compact</command-name>" },
         { type: "text", text: "<command-args></command-args>" },
       ]),
-    ).toEqual({ kind: "command", command: "/compact", args: "" });
+    ).toEqual({ kind: "command", command: "/compact", args: "", trailing: "" });
+  });
+
+  // CC 2.1.285 (D14) — real user text after the wrapper tags is preserved.
+  test("captures trailing user text after a <command-name> block", () => {
+    const content = "<command-name>/compact</command-name>\n<command-args></command-args>\nactually, wait — hold on";
+    expect(parseSyntheticCliWrapper(content)).toEqual({
+      kind: "command",
+      command: "/compact",
+      args: "",
+      trailing: "actually, wait — hold on",
+    });
+  });
+
+  test("captures trailing user text after a stdout block", () => {
+    expect(
+      parseSyntheticCliWrapper("<local-command-stdout>ok</local-command-stdout>\nnow do the next thing"),
+    ).toEqual({ kind: "stdout", text: "ok", trailing: "now do the next thing" });
+  });
+
+  test("drops tag-like trailing (residual plumbing), not real user prose", () => {
+    const out = parseSyntheticCliWrapper(
+      "<command-name>/compact</command-name>\n<command-args></command-args>\n<local-command-stdout>x</local-command-stdout>",
+    );
+    expect(out).toEqual({ kind: "command", command: "/compact", args: "", trailing: "" });
   });
 
   test("returns null for plain user prose", () => {

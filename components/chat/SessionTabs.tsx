@@ -14,7 +14,7 @@ import { useKeydownBinding } from "@/lib/client/useKeydownBinding";
 import { useElectronAction, useIsElectron } from "@/lib/client/useElectron";
 import { cn } from "@/lib/utils/cn";
 
-export type TabStatus = "running" | "idle" | "starting" | "error" | "background";
+export type TabStatus = "running" | "idle" | "starting" | "error" | "background" | "needs_input";
 
 type Tab = {
   id: string;
@@ -1103,19 +1103,24 @@ function StatusDot({ status }: { status: TabStatus }) {
   const tone =
     status === "running"
       ? "bg-[var(--accent)] animate-pulse"
-      : status === "starting"
-        ? "bg-amber-400"
-        : status === "error"
-          ? "bg-red-500"
-          : status === "idle"
-            ? "bg-emerald-400"
-            : "bg-[var(--muted)]/60"; // background
+      : // CC 2.1.212 — a session blocked on a prompt needs the user; pulsing
+        // amber draws the eye (distinct from the static amber of "starting").
+        status === "needs_input"
+        ? "bg-amber-400 animate-pulse"
+        : status === "starting"
+          ? "bg-amber-400"
+          : status === "error"
+            ? "bg-red-500"
+            : status === "idle"
+              ? "bg-emerald-400"
+              : "bg-[var(--muted)]/60"; // background
   return (
     <span
       data-testid="session-tab-status-dot"
       data-status={status}
+      title={status === "needs_input" ? "Needs input" : undefined}
       className={cn("h-1.5 w-1.5 shrink-0 rounded-full", tone)}
-      aria-hidden
+      aria-hidden={status === "needs_input" ? undefined : true}
     />
   );
 }
@@ -1125,9 +1130,12 @@ export function activeTabStatus(opts: {
   ready: boolean;
   pending: boolean;
   hasError: boolean;
+  /** CC 2.1.212 — the active session is blocked on a user prompt. */
+  needsInput?: boolean;
 }): TabStatus {
   if (opts.hasError) return "error";
   if (!opts.ready) return "starting";
+  if (opts.needsInput) return "needs_input";
   if (opts.pending) return "running";
   return "idle";
 }

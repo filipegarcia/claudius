@@ -13,9 +13,14 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
   // requests 'summary'. Anything else (notably the /context overlay's full
   // category breakdown) omits the param and gets the default 'full'.
   const detail = new URL(req.url).searchParams.get("detail");
-  const result = await session.getContextUsage(
-    detail === "summary" ? { detail: "summary" } : undefined,
-  );
+  const summary = detail === "summary";
+  const result = await session.getContextUsage(summary ? { detail: "summary" } : undefined);
   if (!result.ok) return NextResponse.json({ error: result.error }, { status: 500 });
-  return NextResponse.json(result.data);
+  // CC 2.1.261 (H4) — on the full `/context` overlay fetch (not the idle
+  // summary poll), also fetch the week's used-skill names so the overlay can
+  // flag "unused (7d)" skills. `null` when the experimental signal is
+  // unavailable → the overlay shows no (potentially misleading) badge.
+  const weeklyUsedSkills = summary ? null : await session.getWeeklyUsedSkills();
+  const data = result.data as Record<string, unknown>;
+  return NextResponse.json(summary ? data : { ...data, weeklyUsedSkills });
 }

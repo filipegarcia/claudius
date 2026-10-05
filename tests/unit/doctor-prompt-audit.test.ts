@@ -172,4 +172,39 @@ describe("GET /api/doctor — prompt-audit check", () => {
     const checks = await runChecks();
     expect(checks.find((c) => c.id === `prompt-audit:${ws.id}`)).toBeUndefined();
   });
+
+  // CC 2.1.283 (H3) — stale `/command` references + contradicting files.
+  test("warns on a CLAUDE.md reference to an unknown /command", async () => {
+    await fs.writeFile(
+      join(projectDir, "CLAUDE.md"),
+      "Run `/totally-made-up` before committing. Also `/compact` is fine.\n",
+      "utf8",
+    );
+    const ws = await createWorkspace({ name: "Stale command project", rootPath: projectDir });
+
+    const checks = await runChecks();
+    const check = checks.find((c) => c.id === `prompt-audit:${ws.id}`);
+    expect(check?.status).toBe("warn");
+    expect(check?.detail).toContain("unknown /command");
+    expect(check?.detail).toContain("/totally-made-up");
+    // `/compact` is a real built-in — not flagged.
+    expect(check?.detail).not.toContain("/compact");
+  });
+
+  test("warns on contradicting directives across CLAUDE.md scopes", async () => {
+    await fs.writeFile(join(projectDir, "CLAUDE.md"), "Always use `bun` for scripts.\n", "utf8");
+    await fs.mkdir(join(projectDir, ".claude"), { recursive: true });
+    await fs.writeFile(
+      join(projectDir, ".claude", "CLAUDE.md"),
+      "Never use `bun`; it's banned here.\n",
+      "utf8",
+    );
+    const ws = await createWorkspace({ name: "Contradiction project", rootPath: projectDir });
+
+    const checks = await runChecks();
+    const check = checks.find((c) => c.id === `prompt-audit:${ws.id}`);
+    expect(check?.status).toBe("warn");
+    expect(check?.detail).toContain("contradicting instruction");
+    expect(check?.detail).toContain("`bun`");
+  });
 });

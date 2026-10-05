@@ -52,7 +52,39 @@ export type ConfiguredServer = {
   scope: McpScope;
   name: string;
   config: McpServerConfig;
+  /** Hidden leading/trailing whitespace found in this server's config values
+   * (CC 2.1.218 parity — a pasted URL/header/env value with a stray space or
+   * newline silently breaks the connection with no visual cue). Empty when
+   * clean; omitted from the JSON payload only when there's nothing to warn about. */
+  warnings?: string[];
 };
+
+const HAS_EDGE_WHITESPACE = /^\s|\s$/;
+
+/** Pure — used both by `listConfigured` and its own unit tests. Flags any
+ * string in the config (url, command, env/header keys+values) that carries
+ * leading or trailing whitespace, which json/yaml editors don't visually
+ * distinguish from a clean value. */
+export function findConfigWhitespaceWarnings(config: McpServerConfig): string[] {
+  const warnings: string[] = [];
+  const flag = (label: string, value: string | undefined) => {
+    if (value != null && HAS_EDGE_WHITESPACE.test(value)) warnings.push(`${label} has leading/trailing whitespace`);
+  };
+
+  if ("url" in config) flag("url", config.url);
+  if ("command" in config) flag("command", config.command);
+
+  const record = "env" in config ? config.env : "headers" in config ? config.headers : undefined;
+  const recordLabel = "env" in config ? "env" : "header";
+  if (record) {
+    for (const [key, value] of Object.entries(record)) {
+      flag(`${recordLabel} key "${key}"`, key);
+      flag(`${recordLabel} value for "${key}"`, value);
+    }
+  }
+
+  return warnings;
+}
 
 export function projectMcpJsonPath(cwd: string): string {
   // assertWithin acts as the path-injection barrier on the cwd → fs.*
@@ -113,6 +145,11 @@ export async function listConfigured(cwd: string): Promise<ConfiguredServer[]> {
   const localSettings = await readSettings("local", cwd);
   for (const [name, cfg] of Object.entries(localSettings.mcpServers ?? {})) {
     out.push({ scope: "local", name, config: cfg as McpServerConfig });
+  }
+
+  for (const server of out) {
+    const warnings = findConfigWhitespaceWarnings(server.config);
+    if (warnings.length > 0) server.warnings = warnings;
   }
 
   return out;

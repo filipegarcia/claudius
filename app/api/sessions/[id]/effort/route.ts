@@ -24,10 +24,16 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   const { id } = await ctx.params;
   const session = sessionManager.get(id);
   if (!session) return NextResponse.json({ error: "session not found" }, { status: 404 });
-  const body = (await req.json()) as { level?: string };
+  const body = (await req.json()) as { level?: string; ultracode?: boolean; sessionOnly?: boolean };
   if (!body?.level || !LEVELS.has(body.level)) {
     return NextResponse.json({ error: "invalid effort level" }, { status: 400 });
   }
-  await session.setEffort(body.level as "low" | "medium" | "high" | "xhigh" | "max" | "auto");
+  // CC 2.1.284 — keep ultracode on across an effort change (send both keys).
+  // CC 2.1.257 — `sessionOnly` applies the level live without persisting it.
+  await session.setEffort(
+    body.level as "low" | "medium" | "high" | "xhigh" | "max" | "auto",
+    body.ultracode === true,
+    body.sessionOnly === true,
+  );
   return NextResponse.json({ ok: true, level: body.level });
 }

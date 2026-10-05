@@ -9,6 +9,8 @@ export type ScopeFile = {
   path: string;
   exists: boolean;
   content: string;
+  /** Mirrors `lib/server/claudemd.ts` — set when "project" resolved to AGENTS.md. */
+  usingAgentsFallback?: boolean;
 };
 
 export type ResolvedSegment = {

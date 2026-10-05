@@ -83,6 +83,14 @@ type RecordContext = {
    * (which carry no sessionId) are unaffected.
    */
   hasSubscribers?: boolean;
+  /**
+   * CC 2.1.288 — whether the session still has live background work (running
+   * subagents or backgrounded Tasks/Workflows) at the moment its turn's
+   * `result` fired. Suppresses the `session_idle` "Claude finished a turn"
+   * row: the parent turn ended but work is still in flight, so telling the
+   * user it finished is wrong. Defaults to `false`/absent (no background work).
+   */
+  hasActiveBackgroundWork?: boolean;
 };
 
 type Subscriber = (env: NotificationStreamEvent) => void;
@@ -176,13 +184,14 @@ class NotificationBus {
     cwd: string,
     sessionId: string,
     event: ServerEvent,
-    opts: { hasSubscribers?: boolean; sessionTitle?: string } = {},
+    opts: { hasSubscribers?: boolean; sessionTitle?: string; hasActiveBackgroundWork?: boolean } = {},
   ): Promise<void> {
     await this.record(event, {
       cwd,
       sessionId,
       sessionTitle: opts.sessionTitle,
       hasSubscribers: opts.hasSubscribers,
+      hasActiveBackgroundWork: opts.hasActiveBackgroundWork,
     });
   }
 
@@ -735,6 +744,10 @@ export function mapEventToKind(
       if (m?.type !== "result") return null;
       // Idle heuristic only applies to live sessions, not scheduler runs.
       if (!ctx.sessionId) return null;
+      // CC 2.1.288 — the parent turn's `result` fired, but background work
+      // (subagents / backgrounded Tasks) is still running. Don't tell the user
+      // Claude finished; the real idle will land when that work completes.
+      if (ctx.hasActiveBackgroundWork) return null;
       const last = lastUserInputAt.get(ctx.sessionId) ?? 0;
       if (last === 0) return null; // never saw a user input; suppress
       // We used to gate this on `now - last >= IDLE_NOTIFY_MIN_MS` (a 5s

@@ -27,8 +27,28 @@ export const DEEP_IN_THOUGHT_THRESHOLD_SEC = 45;
  * is `null`/`undefined` before the ticker has a `turnStartedAt` to measure
  * from — treated the same as "not yet 45s in".
  */
-export function workingStatusLabel(turnElapsedSec: number | null | undefined): string {
-  if (typeof turnElapsedSec === "number" && turnElapsedSec >= DEEP_IN_THOUGHT_THRESHOLD_SEC) {
+export function workingStatusLabel(
+  turnElapsedSec: number | null | undefined,
+  opts?: {
+    /**
+     * CC 2.1.271 — a tool is currently executing. "Deep in thought" is for
+     * long *thinking*, not a long Bash/tool run, so it's suppressed here even
+     * past the 45s threshold (the label stays "Working").
+     */
+    toolActive?: boolean;
+    /**
+     * CC 2.1.271 — the turn is continuing after hitting the output-token
+     * limit; reads "Picking the thought back up" while it resumes.
+     */
+    resumingThought?: boolean;
+  },
+): string {
+  if (opts?.resumingThought) return "Picking the thought back up";
+  if (
+    !opts?.toolActive &&
+    typeof turnElapsedSec === "number" &&
+    turnElapsedSec >= DEEP_IN_THOUGHT_THRESHOLD_SEC
+  ) {
     return "Deep in thought";
   }
   return "Working";

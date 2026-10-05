@@ -27,4 +27,18 @@ describe("workingStatusLabel", () => {
   test("threshold constant matches upstream's 45s", () => {
     expect(DEEP_IN_THOUGHT_THRESHOLD_SEC).toBe(45);
   });
+
+  // CC 2.1.271 (C4) — gate "Deep in thought" on no tool running, and add the
+  // output-limit resume label.
+  test("stays 'Working' past the threshold while a tool is running", () => {
+    expect(workingStatusLabel(600, { toolActive: true })).toBe("Working");
+    expect(workingStatusLabel(600, { toolActive: false })).toBe("Deep in thought");
+  });
+
+  test("reads 'Picking the thought back up' while resuming after the output limit", () => {
+    expect(workingStatusLabel(10, { resumingThought: true })).toBe("Picking the thought back up");
+    expect(workingStatusLabel(600, { resumingThought: true, toolActive: true })).toBe(
+      "Picking the thought back up",
+    );
+  });
 });

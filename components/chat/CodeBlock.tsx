@@ -131,7 +131,9 @@ export function CodeBlock({ code, lang, allowExecute = true }: Props) {
   }
 
   return (
-    <div className="group relative my-2 overflow-hidden rounded-lg border border-[var(--border)] bg-[#0a0a0a]">
+    // CC 2.1.216 (F2) — code is LTR; pin direction so a fenced block nested in
+    // an RTL list/quote doesn't right-align or reorder its content.
+    <div dir="ltr" className="group relative my-2 overflow-hidden rounded-lg border border-[var(--border)] bg-[#0a0a0a]">
       <div className="flex h-7 items-center justify-between border-b border-[var(--border)] bg-[var(--panel-2)] px-2 text-[10px] uppercase tracking-wide text-[var(--muted)]">
         <span>{lang || "text"}</span>
         <div className="flex items-center gap-1">
