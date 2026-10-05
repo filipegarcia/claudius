@@ -255,6 +255,16 @@ export const SHORTCUT_ACTIONS: ShortcutAction[] = [
     default: { mod: true, code: "Slash" },
   },
   {
+    // CC 2.1.287/2.1.288 (H1) — focus the Sessions page search box (the
+    // browser analog of the agents-view Ctrl+F "find session"). Only the
+    // Sessions page listens for it; rebindable like every other action.
+    id: "nav.findSession",
+    label: "Find session",
+    description: "Focus the search box on the Sessions page.",
+    category: "navigation",
+    default: { mod: true, code: "KeyF" },
+  },
+  {
     id: "view.focusMode",
     label: "Cycle focus mode",
     description: "Cycle off → focus → zen (hide rails, then everything but chat).",
