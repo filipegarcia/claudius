@@ -12,6 +12,8 @@ import { cn } from "@/lib/utils/cn";
 import type { TaskInfo } from "@/lib/client/types";
 import { parseWorkflowMeta } from "@/lib/shared/workflow-meta";
 import { JsonBlock } from "@/components/chat/JsonBlock";
+import { useFileLink } from "@/lib/client/file-link-context";
+import { useWorkflowSizeGuideline } from "@/lib/client/useWorkflowSizeGuideline";
 
 type Props = {
   toolUseId: string;
@@ -78,6 +80,12 @@ export function WorkflowBlock({ toolUseId, input, result, task, defaultOpen }: P
     if (defaultOpen !== undefined) setOpen(defaultOpen);
   }
 
+  // CC 2.1.219 (H14) — the effective dynamic-workflow size guideline, shown on
+  // a live run (with a pointer to Settings). cwd comes from the chat's
+  // file-link context; absent → the SDK default ("medium").
+  const fileLink = useFileLink();
+  const sizeGuideline = useWorkflowSizeGuideline(fileLink?.cwd ?? null);
+
   const script = str(input.script);
   const partial = str(input.__partial);
   // `meta` streams first, so even the partial wire form usually yields a name.
@@ -135,6 +143,17 @@ export function WorkflowBlock({ toolUseId, input, result, task, defaultOpen }: P
         {meta.phases.length > 0 && (
           <span className="hidden shrink-0 text-[10px] text-[var(--muted)] sm:inline">
             {meta.phases.length} {meta.phases.length === 1 ? "phase" : "phases"}
+          </span>
+        )}
+        {/* CC 2.1.219 (H14) — the effective size guideline on a live run; the
+            title points at where to change it (Settings → Model & behavior). */}
+        {!terminal && (
+          <span
+            data-testid="workflow-size"
+            title="Dynamic-workflow size guideline — change it in Settings → Model & behavior"
+            className="hidden shrink-0 rounded border border-[var(--border)] px-1 text-[9px] uppercase tracking-wide text-[var(--muted)] sm:inline"
+          >
+            size: {sizeGuideline}
           </span>
         )}
         <span className="ml-auto flex shrink-0 items-center gap-2 whitespace-nowrap">
