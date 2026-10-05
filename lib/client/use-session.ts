@@ -6595,8 +6595,10 @@ function normalizeCompactStats(meta: unknown): SystemEntry["compactStats"] | und
  * uuid. We merge them into a single bubble keyed by `message.id`, matching
  * the live-stream identity so search hits and pagination heads round-trip
  * cleanly.
+ *
+ * Exported for unit testing.
  */
-function synthesizeOlder(raw: Array<Record<string, unknown>>): {
+export function synthesizeOlder(raw: Array<Record<string, unknown>>): {
   messages: DisplayMessage[];
 } {
   const out: DisplayMessage[] = [];

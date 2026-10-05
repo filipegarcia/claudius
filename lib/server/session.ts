@@ -1528,6 +1528,40 @@ export function orderSdkEventsChronologically(
 }
 
 /**
+ * Pick the events a newly-attached subscriber should replay: order the
+ * buffer chronologically FIRST, then cut the tail window from that order.
+ *
+ * The buffer is appended in broadcast order, which is normally chronological
+ * — but `resyncFromDisk` appends disk records the buffer is missing (their
+ * live copies were trimmed by the FIFO cap, or never had a matching uuid —
+ * e.g. a peer message delivered mid-turn exists only as the JSONL's
+ * `queued_command` record) at the END, carrying their original, older `at`.
+ * Cutting the window by buffer index and sorting afterwards (what
+ * `subscribe()` used to do) then left a hole: the anchor user prompt could be
+ * one of those late-appended old records, so every newer event that had been
+ * appended BEFORE it fell outside the slice even though it was newer than
+ * everything around it. On a real session that silently dropped a 124-event
+ * block — including a cross-session peer message — from every tab switch,
+ * and "load older" can't recover it because it pages from before the
+ * replayed head, which is already older than the hole.
+ *
+ * Windowing the chronological order guarantees the replay is contiguous in
+ * time: every sdk event at or after the window's first event is included.
+ * Non-sdk events keep their buffer slots (see
+ * `orderSdkEventsChronologically`), exactly as before.
+ *
+ * Exported for unit testing.
+ */
+export function selectReplayWindow(
+  buffer: ReadonlyArray<ServerEvent>,
+  tail: number | undefined,
+): { events: ServerEvent[]; startIdx: number; hasMoreAbove: boolean } {
+  const ordered = orderSdkEventsChronologically(buffer);
+  const { startIdx, hasMoreAbove } = computeReplayWindow(ordered, tail);
+  return { events: startIdx === 0 ? ordered : ordered.slice(startIdx), startIdx, hasMoreAbove };
+}
+
+/**
  * Gate for the noisy `[sess-load]` logs around session start / subscribe /
  * resync. Enabled via `CLAUDIUS_DEBUG_SESSIONS=1` so we can ask a user
  * who's hitting the "old session is empty until I refresh" bug to set
@@ -6974,22 +7008,11 @@ export class Session {
   }
 
   subscribe(fn: Subscriber, opts?: { tail?: number; tabId?: string }): () => void {
-    const replayWindow = computeReplayWindow(this.buffer, opts?.tail);
+    const replayWindow = selectReplayWindow(this.buffer, opts?.tail);
     const startIdx = replayWindow.startIdx;
     const hasMoreAbove = replayWindow.hasMoreAbove || this.bufferTrimmed;
-    const sliced: ReadonlyArray<ServerEvent> =
-      startIdx === 0 ? this.buffer : this.buffer.slice(startIdx);
-    // Belt-and-suspenders chronological order for the replay window. The
-    // buffer is APPENDED in broadcast order, and broadcast order is normally
-    // chronological — but a `resyncFromDisk` race that finds disk lines the
-    // live `consume()` loop hasn't pushed yet can append an older message
-    // after a newer one. The client also sorts defensively, but doing it
-    // here means even a session whose buffer drifted out of order
-    // self-corrects on every reconnect. Sort only `sdk` events among
-    // themselves and keep non-sdk events (ready / session_title / mode_changed
-    // pills) anchored to their original buffer position so control-plane
-    // ordering is preserved.
-    const toReplay = orderSdkEventsChronologically(sliced);
+    // Already in chronological order — see `selectReplayWindow`.
+    const toReplay = replayWindow.events;
     if (sessLoadDebug()) {
        
       console.log("[sess-load] subscribe", {
