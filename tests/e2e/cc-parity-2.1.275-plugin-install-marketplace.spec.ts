@@ -42,7 +42,7 @@ async function mockPluginsBackend(page: Page): Promise<void> {
             path: "~/.claude/settings.json",
             enabledPlugins: {},
             extraKnownMarketplaces: [],
-            strictKnownMarketplaces: false,
+            strictKnownMarketplaces: [],
             blockedMarketplaces: [],
           },
         ],

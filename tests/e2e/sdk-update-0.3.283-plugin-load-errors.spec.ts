@@ -38,7 +38,7 @@ async function mockPluginsBackend(page: Page): Promise<void> {
             path: "~/.claude/settings.json",
             enabledPlugins: {},
             extraKnownMarketplaces: [],
-            strictKnownMarketplaces: false,
+            strictKnownMarketplaces: [],
             blockedMarketplaces: [],
           },
           {
@@ -46,7 +46,7 @@ async function mockPluginsBackend(page: Page): Promise<void> {
             path: ".claude/settings.json",
             enabledPlugins: {},
             extraKnownMarketplaces: [],
-            strictKnownMarketplaces: false,
+            strictKnownMarketplaces: [],
             blockedMarketplaces: [],
           },
           {
@@ -54,7 +54,7 @@ async function mockPluginsBackend(page: Page): Promise<void> {
             path: ".claude/settings.local.json",
             enabledPlugins: {},
             extraKnownMarketplaces: [],
-            strictKnownMarketplaces: false,
+            strictKnownMarketplaces: [],
             blockedMarketplaces: [],
           },
         ],
