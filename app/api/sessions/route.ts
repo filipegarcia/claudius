@@ -10,6 +10,7 @@ import {
 } from "@/lib/server/customizations-store";
 import { getWorkspace, listWorkspaces, type Workspace } from "@/lib/server/workspaces-store";
 import { info as sessionFileInfo } from "@/lib/server/sessions-store";
+import { forkWorktreeCwd } from "@/lib/server/fork-worktrees";
 import { setPromptDraft } from "@/lib/server/prompt-drafts-db";
 import type { CreateSessionRequest } from "@/lib/shared/events";
 import { mergeSessionDefaults } from "@/lib/shared/session-defaults";
@@ -79,6 +80,20 @@ export async function POST(req: Request) {
     cwd = trusted;
   }
   let originWs: Workspace | null = null;
+  // DEC3 (CC 2.1.221) — a resumed `/fork` with a registered worktree opens in
+  // that worktree instead of the source cwd it inherited in its transcript.
+  // The worktree path is server-derived (never from the request), so it's
+  // trusted directly, exactly like the JSONL cwd below. Its workspace defaults
+  // come from the source repo's workspace, since a worktree path matches no
+  // `rootPath`.
+  if (!cwd && body.resume) {
+    const wt = await forkWorktreeCwd(body.resume).catch(() => null);
+    if (wt) {
+      cwd = wt.cwd;
+      const all = await listWorkspaces().catch(() => [] as Workspace[]);
+      originWs = all.find((w) => w.rootPath === wt.sourceCwd) ?? null;
+    }
+  }
   if (!cwd && body.resume) {
     try {
       const info = await sessionFileInfo(body.resume);

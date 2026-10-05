@@ -48,6 +48,7 @@ import { CostOverlay } from "@/components/overlays/CostOverlay";
 import { DiffOverlay } from "@/components/overlays/DiffOverlay";
 import { diffRefreshToken } from "@/lib/shared/diff-overlay";
 import { MobileQrOverlay } from "@/components/overlays/MobileQrOverlay";
+import { forkConfirmation, type ForkWorktreeInfo } from "@/lib/shared/fork-worktree";
 import { OutputStyleOverlay } from "@/components/overlays/OutputStyleOverlay";
 import { StatusOverlay } from "@/components/overlays/StatusOverlay";
 import { RenameOverlay } from "@/components/overlays/RenameOverlay";
@@ -1193,14 +1194,37 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
         case "fork": {
           const sid = session.sessionId;
           if (!sid) return true;
+          const forkTitle = args || undefined;
+          // CC 2.1.221 + 2.1.216 + 2.1.212 (DEC3) — the `/fork` slash path gives
+          // the fork its own git worktree (passes `worktree` + the source `cwd`)
+          // and shows a one-line confirmation. Per 2.1.212 the fork is a
+          // background copy: we stay in the current session (no navigation) and
+          // the confirmation names the fork so it can be opened from the session
+          // list. (The rewind-fork path above is separate and still navigates
+          // into its checkpoint on the shared checkout.)
           fetch("/api/sessions/fork", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ sessionId: sid, title: args || undefined }),
+            body: JSON.stringify({
+              sessionId: sid,
+              title: forkTitle,
+              worktree: true,
+              cwd: session.cwd,
+            }),
           })
             .then((r) => r.json())
-            .then((d: { sessionId?: string }) => {
-              if (d.sessionId) router.push(`/?session=${d.sessionId}`);
+            .then((d: { sessionId?: string; worktree?: ForkWorktreeInfo | null }) => {
+              if (!d.sessionId) {
+                showToast("Fork failed");
+                return;
+              }
+              showToast(
+                forkConfirmation({
+                  title: forkTitle,
+                  sessionId: d.sessionId,
+                  worktree: d.worktree ?? null,
+                }),
+              );
             })
             .catch(() => showToast("Fork failed"));
           return true;
