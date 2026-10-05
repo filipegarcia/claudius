@@ -65,6 +65,7 @@ import type {
   SDKUserMessage,
 } from "@anthropic-ai/claude-agent-sdk";
 import type { ServerEvent } from "@/lib/shared/events";
+import { capRecap } from "@/lib/shared/recap-cap";
 
 /**
  * The verbatim TUI prompt for the away-summary — extracted from the Claude
@@ -291,7 +292,9 @@ export async function generateRecap(
     if (!cleaned) {
       return { ok: false, reason: "empty_response" };
     }
-    return { ok: true, text: cleaned };
+    // CC 2.1.236 (H8) — cap a runaway recap at 400 chars on a word boundary so
+    // the "one-line summary" stays one line.
+    return { ok: true, text: capRecap(cleaned) };
   } catch (err) {
     if ((err as { name?: string } | null)?.name === "AbortError") {
       return { ok: false, reason: "aborted" };
