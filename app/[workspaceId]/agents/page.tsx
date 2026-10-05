@@ -44,6 +44,8 @@ model: claude-opus-4-7
 # permissionMode: default      # default | acceptEdits | bypassPermissions | plan | dontAsk
 # skills: [pdf, docx]          # preload these skills into the agent's context
 # disallowedTools: [Bash]      # explicitly remove tools from the inherited set
+# experimental:                # advanced/experimental options (object form)
+#   cacheTtl: 1h               # 5m | 1h — prompt-cache TTL for this agent's turns
 # mcpServers:                  # object form (or a flat list of server names)
 #   my-server:
 #     command: node
@@ -383,6 +385,9 @@ export default function AgentsPage() {
                         skills?: string[];
                         mcpServers?: string[] | Record<string, unknown>;
                         isolation?: string;
+                        // CC 2.1.248 (G8) — `experimental.cacheTtl` ("5m" | "1h")
+                        // sets the prompt-cache TTL for this agent's turns.
+                        experimental?: { cacheTtl?: unknown };
                       };
                       // Compact badges for the advanced AgentDefinition fields
                       // so the list conveys an agent's shape at a glance.
@@ -396,6 +401,10 @@ export default function AgentsPage() {
                       if (fm.memory) metaBadges.push(`mem:${fm.memory}`);
                       if (fm.isolation === "worktree") metaBadges.push("worktree");
                       if (typeof fm.maxTurns === "number") metaBadges.push(`≤${fm.maxTurns} turns`);
+                      // CC 2.1.248 (G8) — prompt-cache TTL badge (file agents only;
+                      // the programmatic AgentDefinition has no cacheTtl field).
+                      if (typeof fm.experimental?.cacheTtl === "string" && fm.experimental.cacheTtl)
+                        metaBadges.push(`cache ${fm.experimental.cacheTtl}`);
                       if (fm.permissionMode) metaBadges.push(fm.permissionMode);
                       if (Array.isArray(fm.skills) && fm.skills.length > 0)
                         metaBadges.push(`${fm.skills.length} skill${fm.skills.length === 1 ? "" : "s"}`);
