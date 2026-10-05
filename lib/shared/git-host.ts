@@ -23,8 +23,14 @@ export function detectGitRemoteHost(url: string | null | undefined): GitRemoteHo
     const scpMatch = /^(?:[^@]*@)?([^/:]+):/.exec(u);
     if (scpMatch) host = scpMatch[1];
   }
-  const hay = host || u;
-  if (hay.includes("github.com") || hay.includes("github")) return "github";
-  if (hay.includes("gitlab")) return "gitlab";
+  // Classify by the parsed host's dot-separated labels rather than a substring
+  // of the URL. Anchoring to a whole label avoids CodeQL's incomplete-URL-
+  // substring-sanitization footgun — a bare `.includes("github.com")` would
+  // also match a hostile URL where the string appears elsewhere (e.g.
+  // `evil.com/github.com` or `github.com.attacker.net`) — while still catching
+  // self-managed hosts like `github.mycorp.com` / `gitlab.example.com`.
+  const labels = host.split(".");
+  if (labels.includes("github")) return "github";
+  if (labels.includes("gitlab")) return "gitlab";
   return "other";
 }
