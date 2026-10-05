@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { computeReplayWindow } from "@/lib/server/session";
+import { computeReplayWindow, selectReplayWindow } from "@/lib/server/session";
 import type { ServerEvent } from "@/lib/shared/events";
 
 /**
@@ -395,5 +395,93 @@ describe("computeReplayWindow", () => {
     const out = computeReplayWindow(buffer, 2);
     // 4 turns, tail=2 → start at turnIdx[2] = idx 2. No user, no extension.
     expect(out).toEqual({ startIdx: 2, hasMoreAbove: true });
+  });
+});
+
+describe("selectReplayWindow", () => {
+  /**
+   * A cross-session peer message delivered while the agent was mid-turn.
+   * It exists in the JSONL only as a `queued_command` attachment, which
+   * `getSessionMessages` synthesizes into this user record — so it reaches
+   * the buffer via `resyncFromDisk`, not the live stream.
+   */
+  function sdkQueuedPeer(uuid: string, at: number): ServerEvent {
+    return {
+      type: "sdk",
+      at,
+      message: {
+        type: "user",
+        uuid,
+        isQueuedCommand: true,
+        origin: { kind: "peer", from: "uds:/tmp/cc-socks/4757.sock", name: "compliance-benchmark-7b" },
+        message: {
+          content:
+            '<cross-session-message from="uds:/tmp/cc-socks/4757.sock" from-name="compliance-benchmark-7b">\n' +
+            "FYI: new private lane cases/\n</cross-session-message>",
+        },
+      },
+    } as unknown as ServerEvent;
+  }
+
+  /**
+   * Real-session shape (2026-10-04, session 328eab29): the peer message and
+   * the live turn right after it sit EARLY in the buffer. A later
+   * `resyncFromDisk` appended an older block of records at the END with
+   * their original (older) timestamps, and then the user sent a new prompt.
+   * Cutting the last N turns by buffer index lands inside that appended old
+   * block, and the latest prompt is already inside the cut, so nothing pulls
+   * the start back — the newer peer message + its turn fall into a hole.
+   */
+  function driftedBuffer(): ServerEvent[] {
+    const buf: ServerEvent[] = [sdkUser("u-first", 100)];
+    for (let i = 1; i <= 3; i++) buf.push(sdkAssistant(`a${i}`, { at: 100 + i * 10 }));
+    buf.push(sdkQueuedPeer("peer", 300));
+    for (let i = 4; i <= 6; i++) buf.push(sdkAssistant(`a${i}`, { at: 300 + (i - 3) * 10 }));
+    // Appended by resyncFromDisk — older `at`, later buffer index.
+    for (let i = 1; i <= 25; i++) buf.push(sdkAssistant(`b${i}`, { at: 200 + i }));
+    // Then the user carried on.
+    buf.push(sdkUser("u-last", 400));
+    for (let i = 1; i <= 3; i++) buf.push(sdkAssistant(`c${i}`, { at: 400 + i * 10 }));
+    return buf;
+  }
+
+  const uuids = (evs: ReadonlyArray<ServerEvent>) =>
+    evs.map((e) => (e as { message?: { uuid?: string } }).message?.uuid);
+
+  test("old cut-by-buffer-index left a hole that dropped the peer message (documents the bug)", () => {
+    const buffer = driftedBuffer();
+    const { startIdx } = computeReplayWindow(buffer, 20);
+    expect(uuids(buffer.slice(startIdx))).not.toContain("peer");
+  });
+
+  test("replay is contiguous in time: the peer message and the turn after it survive a tab switch", () => {
+    const out = selectReplayWindow(driftedBuffer(), 20);
+    const ids = uuids(out.events);
+    expect(ids).toContain("peer");
+    expect(ids).toContain("a4");
+    expect(ids).toContain("a6");
+    expect(ids).toContain("u-last");
+    // Chronological, and nothing newer than the first replayed event is missing.
+    const ats = out.events.map((e) => (e as { at?: number }).at ?? 0);
+    expect(ats).toEqual([...ats].sort((a, b) => a - b));
+    const first = ats[0];
+    const expected = driftedBuffer().filter((e) => ((e as { at?: number }).at ?? 0) >= first).length;
+    expect(out.events).toHaveLength(expected);
+    expect(out.hasMoreAbove).toBe(true);
+  });
+
+  test("in-order buffers replay exactly what computeReplayWindow selects", () => {
+    const buffer: ServerEvent[] = [sdkUser("u1", 1)];
+    for (let i = 1; i <= 30; i++) buffer.push(sdkAssistant(`a${i}`, { at: 1 + i }));
+    const { startIdx, hasMoreAbove } = computeReplayWindow(buffer, 10);
+    const out = selectReplayWindow(buffer, 10);
+    expect(uuids(out.events)).toEqual(uuids(buffer.slice(startIdx)));
+    expect(out.hasMoreAbove).toBe(hasMoreAbove);
+  });
+
+  test("no tail → the whole buffer, chronologically ordered", () => {
+    const out = selectReplayWindow(driftedBuffer(), undefined);
+    expect(out.events).toHaveLength(driftedBuffer().length);
+    expect(out.hasMoreAbove).toBe(false);
   });
 });

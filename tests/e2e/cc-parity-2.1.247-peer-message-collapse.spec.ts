@@ -179,6 +179,86 @@ test.describe("Claude Code 2.1.247 — peer message collapse", () => {
     await expect(page.getByText("All 412 checks passed.")).not.toBeVisible();
   });
 
+  test("peer messages replayed from disk after a tab switch still render (both delivery shapes)", async ({ page }) => {
+    // What the server replays when you come back to a session: records read
+    // back via getSessionMessages, not the live events. Real shapes (CLI
+    // 2.1.285): an idle delivery is an `is_meta` user record with the
+    // "Another Claude session sent a message:" envelope; a mid-turn delivery
+    // is the synthesized `isQueuedCommand` record carrying the raw envelope.
+    const peerRecord = (opts: {
+      uuid: string;
+      at: number;
+      name: string;
+      sock: string;
+      body: string;
+      queued: boolean;
+    }): SdkEvent => {
+      const envelope = `<cross-session-message from="uds:${opts.sock}" from-name="${opts.name}" from-mode="bypass">\n${opts.body}\n</cross-session-message>`;
+      return {
+        type: "sdk",
+        at: opts.at,
+        message: {
+          type: "user",
+          uuid: opts.uuid,
+          session_id: FAKE_SESSION_ID,
+          parent_tool_use_id: null,
+          is_meta: true,
+          ...(opts.queued ? { isQueuedCommand: true } : {}),
+          timestamp: new Date(opts.at).toISOString(),
+          message: {
+            role: "user",
+            content: opts.queued ? envelope : `Another Claude session sent a message:\n${envelope}`,
+          },
+          origin: { kind: "peer", from: `uds:${opts.sock}`, name: opts.name, fromMode: "bypass", body: opts.body },
+        },
+      };
+    };
+    const reply = (uuid: string, at: number, text: string): SdkEvent => ({
+      type: "sdk",
+      at,
+      message: {
+        type: "assistant",
+        uuid,
+        parent_tool_use_id: null,
+        message: { id: `msg_${uuid}`, model: "claude-sonnet-4-6", content: [{ type: "text", text }], usage: { input_tokens: 1, output_tokens: 1 } },
+      },
+    });
+    await mockChatBackend(page, [
+      { type: "ready", sessionId: FAKE_SESSION_ID },
+      { type: "sdk", message: { type: "system", subtype: "init", uuid: "sys-init-replay", model: "claude-sonnet-4-6" } },
+      reply("r-1", 1_772_000_000_000, "Working on the bench harness."),
+      peerRecord({
+        uuid: "peer-queued",
+        at: 1_772_000_010_000,
+        name: "compliance-benchmark-7b",
+        sock: "/tmp/cc-socks/4757.sock",
+        body: "FYI: new private lane cases/.\nPlease stay out of it.",
+        queued: true,
+      }),
+      reply("r-2", 1_772_000_020_000, "Noted — staying out of cases/."),
+      peerRecord({
+        uuid: "peer-idle",
+        at: 1_772_000_030_000,
+        name: "compliance-benchmark-07",
+        sock: "/tmp/cc-socks/3974.sock",
+        body: "node@22 is fixed.",
+        queued: false,
+      }),
+      reply("r-3", 1_772_000_040_000, "Thanks, re-running with node@22."),
+      { type: "replay_done", hasMoreAbove: false },
+    ]);
+    await page.goto("/");
+    await expect(page.getByText("Thanks, re-running with node@22.")).toBeVisible({ timeout: 15_000 });
+
+    const rows = page.getByTestId("user-message-peer-badge");
+    await expect(rows).toHaveCount(2);
+    await expect(rows.nth(0)).toContainText("Message from compliance-benchmark-7b: FYI: new private lane cases/.");
+    await expect(rows.nth(1)).toContainText("Message from compliance-benchmark-07: node@22 is fixed.");
+    // The raw envelope never leaks into the transcript.
+    await expect(page.getByText("cross-session-message")).toHaveCount(0);
+    await expect(page.getByText("Another Claude session sent a message")).toHaveCount(0);
+  });
+
   test("hover explains the peer message; ↗ opens the sender session", async ({ page }, testInfo) => {
     const SENDER_ID = "d7cd522c-97aa-4af7-8e30-8cecd23aa78e";
     const QUEUED_PEER: SdkEvent = {
