@@ -30,6 +30,19 @@ export function statusChar(f: GitFileChange): GitStatusCode {
   return f.worktree !== " " ? f.worktree : f.index;
 }
 
+/**
+ * CC 2.1.260 (H5) — a cheap token that changes whenever Claude's edits
+ * advance, so the `/diff` overlay can re-fetch "live as Claude edits" without
+ * polling. It changes when a new edit starts (total count) and when one lands
+ * (done count), so both the appearance and the completion of an edit trigger a
+ * refresh. Pure so it's unit-testable.
+ */
+export function diffRefreshToken(edits: ReadonlyArray<{ done?: boolean }>): string {
+  let done = 0;
+  for (const e of edits) if (e.done) done++;
+  return `${edits.length}:${done}`;
+}
+
 /** Human-readable label for a porcelain status code, for row tooltips. */
 export function statusLabel(code: GitStatusCode): string {
   switch (code) {

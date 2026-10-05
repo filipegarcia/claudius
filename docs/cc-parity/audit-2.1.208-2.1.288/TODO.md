@@ -156,7 +156,7 @@ grep evidence): [`audit/chunk0.md`](audit/chunk0.md) (2.1.285–288) …
 - [x] **H2** [2.1.281] Doctor: combined CLAUDE.md size incl. `@`-imports, local/user/rules
 - [x] **H3** [2.1.283] Prompt audit: stale `/command` references + contradicting instruction files
 - [x] **H4** [2.1.261] `/skill-doctor`: "unused (7d)" skills
-- [ ] **H5** [2.1.260/2.1.269] `/diff` beside the chat, refreshing as Claude edits
+- [x] **H5** [2.1.260/2.1.269] `/diff` beside the chat, refreshing as Claude edits
 - [ ] **H6** [2.1.265] Workflow per-agent detail (tool-call status, task list)
 - [ ] **H7** [2.1.234] PR/MR badge (GitHub + GitLab)
 - [ ] **H8** [2.1.236 low F] Cap session recaps at 400 chars

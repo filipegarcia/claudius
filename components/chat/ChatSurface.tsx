@@ -46,6 +46,7 @@ import { HelpOverlay } from "@/components/overlays/HelpOverlay";
 import { SkillsOverlay } from "@/components/overlays/SkillsOverlay";
 import { CostOverlay } from "@/components/overlays/CostOverlay";
 import { DiffOverlay } from "@/components/overlays/DiffOverlay";
+import { diffRefreshToken } from "@/lib/shared/diff-overlay";
 import { OutputStyleOverlay } from "@/components/overlays/OutputStyleOverlay";
 import { StatusOverlay } from "@/components/overlays/StatusOverlay";
 import { RenameOverlay } from "@/components/overlays/RenameOverlay";
@@ -2691,7 +2692,12 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
         />
       )}
       {overlay === "diff" && (
-        <DiffOverlay workspaceId={activeWorkspaceId} onClose={() => setOverlay(null)} />
+        <DiffOverlay
+          workspaceId={activeWorkspaceId}
+          onClose={() => setOverlay(null)}
+          // CC 2.1.260 (H5) — refresh the diff live as Claude edits files.
+          refreshToken={diffRefreshToken(session.recentEdits)}
+        />
       )}
       {overlay === "output-style" && session.sessionId && (
         <OutputStyleOverlay
