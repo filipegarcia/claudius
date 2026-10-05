@@ -6,7 +6,9 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { listWorkspaces } from "@/lib/server/workspaces-store";
 import { resolveHierarchy } from "@/lib/server/claudemd";
+import { readSettings } from "@/lib/server/settings";
 import { listRules, readRule } from "@/lib/server/rules";
+import { ignoredTelemetryEnvKeys } from "@/lib/shared/telemetry-env";
 import {
   auditWorkspacePrompts,
   type PromptAuditFinding,
@@ -253,6 +255,50 @@ async function promptAuditChecks(): Promise<Check[]> {
   return checks;
 }
 
+/**
+ * CC 2.1.282 (H13) — flag OpenTelemetry env vars set in a workspace's project
+ * or local settings. The engine ignores telemetry export/content vars at those
+ * scopes (only user/managed are honored), so one set there is silently inert —
+ * the doctor says so, pointing at the user-scope env editor instead.
+ */
+async function telemetryEnvChecks(): Promise<Check[]> {
+  let workspaces: Awaited<ReturnType<typeof listWorkspaces>>;
+  try {
+    workspaces = await listWorkspaces();
+  } catch {
+    return [];
+  }
+  const checks: Check[] = [];
+  for (const ws of workspaces) {
+    if ((ws.kind ?? "project") !== "project") continue;
+    const ignored = new Set<string>();
+    for (const scope of ["project", "local"] as const) {
+      try {
+        const settings = await readSettings(scope, ws.rootPath);
+        for (const k of ignoredTelemetryEnvKeys(settings.env as Record<string, string> | undefined)) {
+          ignored.add(k);
+        }
+      } catch {
+        // best-effort — a settings read failure shouldn't block the doctor.
+      }
+    }
+    if (ignored.size === 0) continue;
+    const keys = [...ignored].sort();
+    checks.push({
+      id: `telemetry-env:${ws.id}`,
+      label: `Ignored telemetry env — ${ws.name}`,
+      status: "warn",
+      detail:
+        `${keys.length} telemetry env var${keys.length === 1 ? "" : "s"} (${keys.join(", ")}) ` +
+        `set in this workspace's project/local settings are IGNORED — Claude Code only honors ` +
+        `telemetry export/content vars from user or managed settings. Move them to your user-scope ` +
+        `env for them to take effect.`,
+      link: { href: `/settings`, label: "Open Settings → Environment" },
+    });
+  }
+  return checks;
+}
+
 async function exists(path: string): Promise<boolean> {
   try {
     await fs.access(path);
@@ -393,6 +439,9 @@ export async function GET() {
 
   // CC 2.1.283 parity — see `promptAuditChecks` above.
   checks.push(...(await promptAuditChecks()));
+
+  // CC 2.1.282 parity — see `telemetryEnvChecks` below.
+  checks.push(...(await telemetryEnvChecks()));
 
   return NextResponse.json({
     runtime: { node, platform: process.platform, arch: process.arch },
