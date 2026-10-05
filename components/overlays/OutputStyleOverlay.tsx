@@ -64,7 +64,7 @@ export function OutputStyleOverlay({ sessionId, onClose, onNotice }: Props) {
 
   return (
     <Overlay title="Output style" subtitle="/output-style" onClose={onClose} width={460}>
-      <div className="flex flex-col gap-1 px-2 py-2">
+      <div data-testid="output-style-overlay" className="flex flex-col gap-1 px-2 py-2">
         {loading ? (
           <div className="px-2 py-3 text-xs text-[var(--muted)]">Loading…</div>
         ) : available.length === 0 ? (

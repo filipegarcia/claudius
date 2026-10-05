@@ -212,7 +212,7 @@ test.describe("advisor picker", () => {
     // panel never opens (this is the same race that makes 4/6 tests
     // in `model-picker.spec.ts` flake on cold boot).
     const trigger = page.getByTestId("model-picker-trigger");
-    await expect(trigger).toContainText("sonnet-4-6", { timeout: 30_000 });
+    await expect(trigger).toContainText("Sonnet 4.6", { timeout: 30_000 });
     await trigger.click();
 
     const panel = page.getByTestId("model-picker-panel");
@@ -265,7 +265,7 @@ test.describe("advisor picker", () => {
     // on the pill, but this keeps the wait condition identical between
     // tests so a future copy change to the pill text doesn't break here.
     const trigger = page.getByTestId("model-picker-trigger");
-    await expect(trigger).toContainText("sonnet-4-6", { timeout: 30_000 });
+    await expect(trigger).toContainText("Sonnet 4.6", { timeout: 30_000 });
     await trigger.click();
     const panel = page.getByTestId("model-picker-panel");
     await expect(panel).toBeVisible({ timeout: 10_000 });
@@ -312,7 +312,7 @@ test.describe("advisor picker", () => {
 
     // Wait for the card to hydrate — same anchor as the other tests.
     const trigger = page.getByTestId("model-picker-trigger");
-    await expect(trigger).toContainText("sonnet-4-6", { timeout: 30_000 });
+    await expect(trigger).toContainText("Sonnet 4.6", { timeout: 30_000 });
 
     // Picker is closed initially.
     await expect(page.getByTestId("model-picker-panel")).toHaveCount(0);
@@ -353,7 +353,7 @@ test.describe("advisor picker", () => {
     await page.goto("/");
 
     const trigger = page.getByTestId("model-picker-trigger");
-    await expect(trigger).toContainText("sonnet-4-6", { timeout: 30_000 });
+    await expect(trigger).toContainText("Sonnet 4.6", { timeout: 30_000 });
     await trigger.click();
 
     const panel = page.getByTestId("model-picker-panel");
@@ -386,7 +386,7 @@ test.describe("advisor picker", () => {
 
     await page.goto("/");
     const trigger = page.getByTestId("model-picker-trigger");
-    await expect(trigger).toContainText("sonnet-4-6", { timeout: 30_000 });
+    await expect(trigger).toContainText("Sonnet 4.6", { timeout: 30_000 });
     await trigger.click();
     const panel = page.getByTestId("model-picker-panel");
     await expect(panel).toBeVisible({ timeout: 10_000 });
@@ -501,7 +501,7 @@ test.describe("advisor picker", () => {
     await page.goto("/");
 
     const trigger = page.getByTestId("model-picker-trigger");
-    await expect(trigger).toContainText("sonnet-4-6", { timeout: 30_000 });
+    await expect(trigger).toContainText("Sonnet 4.6", { timeout: 30_000 });
     await trigger.click();
     const panel = page.getByTestId("model-picker-panel");
     await expect(panel).toBeVisible({ timeout: 10_000 });
