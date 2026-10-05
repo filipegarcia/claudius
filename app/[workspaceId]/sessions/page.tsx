@@ -70,9 +70,10 @@ export default function SessionsPage() {
   // (same exact-match rule the server uses for `/api/sessions?workspaceId`),
   // which also keeps the brief pre-resolution window (workspaceRoot == null →
   // unscoped fetch) correct.
-  const { sessions, accountsConfigured, loading, error, refresh, remove } = useSessionsHistory({
-    dir: workspaceRoot ?? undefined,
-  });
+  const { sessions, accountsConfigured, loading, error, refresh, remove, hasMore, loadMore } =
+    useSessionsHistory({
+      dir: workspaceRoot ?? undefined,
+    });
   // Only worth a column when there's more than one identity in play.
   const showAccounts = accountsConfigured > 1;
   const scopedSessions = useMemo(
@@ -489,6 +490,20 @@ export default function SessionsPage() {
                 );
               })}
             </ul>
+          )}
+          {/* CC 2.1.243 (H9) — load older sessions beyond the first page. */}
+          {hasMore && (
+            <div className="mt-3 flex justify-center">
+              <button
+                type="button"
+                data-testid="sessions-load-more"
+                onClick={() => loadMore()}
+                disabled={loading}
+                className="rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-3 py-1 text-xs text-[var(--muted)] hover:bg-[var(--panel)] hover:text-[var(--foreground)] disabled:opacity-40"
+              >
+                {loading ? "Loading…" : "Load more sessions"}
+              </button>
+            </div>
           )}
         </div>
       </main>
