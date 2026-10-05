@@ -161,7 +161,7 @@ grep evidence): [`audit/chunk0.md`](audit/chunk0.md) (2.1.285–288) …
 - [x] **H7** [2.1.234] PR/MR badge (GitHub + GitLab)
 - [x] **H8** [2.1.236 low F] Cap session recaps at 400 chars
 - [x] **H9** [2.1.243 low F] Session list: load more than 200
-- [ ] **H10** [2.1.273 low] Schedule form: "Discard unsaved changes?"
+- [x] **H10** [2.1.273 low] Schedule form: "Discard unsaved changes?"
 - [ ] **H11** [2.1.286 low] Schedule: late runs don't show a past "next run"
 - [ ] **H12** [2.1.271 low] `/mobile` QR code
 - [ ] **H13** [2.1.282 low] Doctor: telemetry env vars in project settings are ignored
