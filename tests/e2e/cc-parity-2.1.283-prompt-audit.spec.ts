@@ -140,7 +140,7 @@ test.describe("CC 2.1.283 — Doctor prompt audit", () => {
       const clean = reportWith(ws.id);
       clean.checks = clean.checks.map((c) =>
         c.category === "prompt-audit"
-          ? { ...c, status: "ok" as const, detail: "No stale prompting patterns or broken path references found.", link: undefined }
+          ? { ...c, status: "ok" as const, detail: "No broken references, contradicting instructions, or stale prompting patterns found.", link: undefined }
           : c,
       );
       return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(clean) });
@@ -149,6 +149,6 @@ test.describe("CC 2.1.283 — Doctor prompt audit", () => {
     await page.goto("/doctor");
     const section = page.getByTestId("doctor-prompt-audit-section");
     await expect(section).toBeVisible({ timeout: 15_000 });
-    await expect(section.getByText(/No stale prompting patterns/)).toBeVisible();
+    await expect(section.getByText(/No broken references/)).toBeVisible();
   });
 });

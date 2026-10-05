@@ -11,6 +11,8 @@ import {
   auditWorkspacePrompts,
   type PromptAuditFinding,
   type PromptAuditStalePath,
+  type PromptAuditStaleCommand,
+  type PromptAuditContradiction,
 } from "@/lib/server/prompt-audit";
 
 const execFileP = promisify(execFile);
@@ -165,8 +167,15 @@ function pickPromptAuditLink(
   workspaceId: string,
   findings: PromptAuditFinding[],
   stalePaths: PromptAuditStalePath[],
+  staleCommands: PromptAuditStaleCommand[],
+  contradictions: PromptAuditContradiction[],
 ): { href: string; label: string } | undefined {
-  const kinds = new Set([...findings, ...stalePaths].map((x) => x.source.kind));
+  const kinds = new Set([
+    ...findings.map((x) => x.source.kind),
+    ...stalePaths.map((x) => x.source.kind),
+    ...staleCommands.map((x) => x.source.kind),
+    ...contradictions.flatMap((x) => x.sources.map((s) => s.kind)),
+  ]);
   if (kinds.has("claude-md")) return { href: `/${workspaceId}/memory`, label: "Review in Memory" };
   if (kinds.has("skill")) return { href: `/${workspaceId}/skills`, label: "Review in Skills" };
   if (kinds.has("agent")) return { href: `/${workspaceId}/agents`, label: "Review in Agents" };
@@ -193,31 +202,43 @@ async function promptAuditChecks(): Promise<Check[]> {
     }
     if (!report.hadSources) continue;
 
-    const { findings, stalePaths } = report;
-    if (findings.length === 0 && stalePaths.length === 0) {
+    const { findings, stalePaths, staleCommands, contradictions } = report;
+    if (
+      findings.length === 0 &&
+      stalePaths.length === 0 &&
+      staleCommands.length === 0 &&
+      contradictions.length === 0
+    ) {
       checks.push({
         id: `prompt-audit:${ws.id}`,
         label: `Prompt audit — ${ws.name}`,
         status: "ok",
-        detail: "No stale prompting patterns or broken path references found.",
+        detail: "No broken references, contradicting instructions, or stale prompting patterns found.",
         category: "prompt-audit",
       });
       continue;
     }
 
     // CC 2.1.283: "stale paths, stale commands and contradicting instruction
-    // files now lead the report" — stale paths (this release's build; stale
-    // commands and contradicting-file detection are deferred, see run-notes
-    // Risks) come first in both the summary and the examples.
+    // files now lead the report" — in that order, ahead of the older-model
+    // prompting patterns, in both the summary and the examples.
     const parts: string[] = [];
     if (stalePaths.length > 0) {
       parts.push(`${stalePaths.length} path reference${stalePaths.length === 1 ? "" : "s"} to a missing file`);
+    }
+    if (staleCommands.length > 0) {
+      parts.push(`${staleCommands.length} reference${staleCommands.length === 1 ? "" : "s"} to an unknown /command`);
+    }
+    if (contradictions.length > 0) {
+      parts.push(`${contradictions.length} contradicting instruction${contradictions.length === 1 ? "" : "s"}`);
     }
     if (findings.length > 0) {
       parts.push(`${findings.length} stale prompting pattern${findings.length === 1 ? "" : "s"}`);
     }
     const examples = [
       ...stalePaths.slice(0, 2).map((p) => `${p.source.kind}:${p.source.name} — references missing \`${p.path}\``),
+      ...staleCommands.slice(0, 2).map((c) => `${c.source.kind}:${c.source.name} — unknown command \`/${c.command}\``),
+      ...contradictions.slice(0, 2).map((c) => `\`${c.token}\` — contradicting directives across ${c.sources.map((s) => `${s.kind}:${s.name}`).join(" vs ")}`),
       ...findings.slice(0, 2).map((f) => `${f.source.kind}:${f.source.name} — ${f.note} ("${f.snippet}")`),
     ];
     checks.push({
@@ -225,7 +246,7 @@ async function promptAuditChecks(): Promise<Check[]> {
       label: `Prompt audit — ${ws.name}`,
       status: "warn",
       detail: `${parts.join(" · ")}. ${examples.join("; ")}`,
-      link: pickPromptAuditLink(ws.id, findings, stalePaths),
+      link: pickPromptAuditLink(ws.id, findings, stalePaths, staleCommands, contradictions),
       category: "prompt-audit",
     });
   }
