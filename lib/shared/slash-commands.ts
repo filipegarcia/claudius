@@ -124,7 +124,9 @@ export const SLASH_COMMANDS: SlashCommand[] = [
 
   // ── Model ────────────────────────────────────────────────────────────
   { id: "model", name: "model", description: "Pick a model (e.g. claude-opus-4-7 / claude-sonnet-4-6).", category: "model", handler: "native", argsHint: "[model-id]" },
-  { id: "effort", name: "effort", description: "Set effort level (low/medium/high/xhigh/max/auto).", category: "model", handler: "sdk", argsHint: "[level]" },
+  // CC 2.1.284 — handled natively (the SDK rejects a forwarded `/effort`), so
+  // `/effort <level>` and `/effort ultracode on|off` both work.
+  { id: "effort", name: "effort", description: "Set effort level, or toggle ultracode.", category: "model", handler: "native", argsHint: "[level] | ultracode on|off" },
   { id: "fast", name: "fast", description: "Toggle fast mode.", category: "model", handler: "sdk", argsHint: "[on|off]" },
   // `/advisor` isn't an SDK-registered slash command (typing it raw would
   // return "/advisor isn't available in this environment.") — so we
@@ -164,6 +166,11 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   { id: "cost", name: "cost", description: "Show session cost & usage as an overlay.", category: "cost", handler: "native" },
   { id: "usage", name: "usage", aliases: ["stats"], description: "Open the Usage & account page.", category: "cost", handler: "native" },
   { id: "extra-usage", name: "extra-usage", description: "Configure extra usage for rate-limit recovery.", category: "cost", handler: "sdk" },
+  // CC 2.1.284 — "/rate-limit-options" so a usage-limit notice that mentions
+  // it points at a findable command. Claudius already has the underlying
+  // controls (RateLimitPill's buy-credits CTA, autoRotateOnRateLimit,
+  // provider switching) on the Usage page — no separate screen needed.
+  { id: "rate-limit-options", name: "rate-limit-options", description: "Show options for handling a usage limit (Usage page).", category: "cost", handler: "native" },
 
   // ── Auth / providers ─────────────────────────────────────────────────
   { id: "login", name: "login", description: "Sign in to Anthropic.", category: "auth", handler: "native" },
@@ -236,10 +243,17 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   { id: "claude-api", name: "claude-api", description: "Claude API reference / migration helper.", category: "skill", handler: "sdk" },
   { id: "debug", name: "debug", description: "Enable debug logging and troubleshoot.", category: "skill", handler: "sdk" },
   { id: "fewer-permission-prompts", name: "fewer-permission-prompts", description: "Allowlist common read-only tools.", category: "skill", handler: "sdk" },
-  { id: "loop", name: "loop", description: "Run a prompt or slash command on an interval.", category: "skill", handler: "native", argsHint: "[interval] [prompt]" },
+  // CC 2.1.248 — `/loop` is SDK-forwarded (not native) so its arguments reach
+  // the SDK's `/loop` skill: `/loop <interval> <prompt>`, self-paced dynamic
+  // `/loop <prompt>`, and the bare autonomous `/loop` default. Routing it to
+  // the Schedule page (as `/schedule` still does) dropped the arguments.
+  { id: "loop", name: "loop", description: "Run a prompt or slash command on an interval, or self-paced.", category: "skill", handler: "sdk", argsHint: "[interval] [prompt]" },
   { id: "schedule", name: "schedule", aliases: ["routines"], description: "Manage scheduled routines.", category: "skill", handler: "native" },
   { id: "simplify", name: "simplify", description: "Review files, find issues, apply fixes.", category: "skill", handler: "sdk", argsHint: "[focus]" },
-  { id: "review", name: "review", description: "Review a pull request.", category: "skill", handler: "sdk", argsHint: "[PR]" },
+  // CC 2.1.223 — `/review` is now an alias of `/code-review`: it reviews the
+  // current branch (or a PR number), takes a severity level, and `ultra` runs
+  // the multi-agent cloud review. Old copy ("Review a pull request") was stale.
+  { id: "review", name: "review", aliases: ["code-review"], description: "Review the current branch or a PR (alias of /code-review).", category: "skill", handler: "sdk", argsHint: "[level] [PR] | ultra" },
   { id: "security-review", name: "security-review", description: "Security review of pending changes.", category: "skill", handler: "sdk" },
   // `ultraplan` was removed upstream in Claude Code 2.1.222 — the bundled SDK
   // no longer registers the skill, so surfacing `/ultraplan` here would forward
@@ -266,6 +280,94 @@ const ALIAS_INDEX: Map<string, SlashCommand> = (() => {
 
 export function findSlashCommand(nameOrAlias: string): SlashCommand | undefined {
   return ALIAS_INDEX.get(nameOrAlias);
+}
+
+/**
+ * CC 2.1.246 (FIX) — whether a `/`-prefixed head actually looks like a slash
+ * command name, as opposed to `/`-prefixed prose the user means to send to the
+ * model: `/--flag`, `/usr/bin/x …`, a leading file path. A command name is an
+ * identifier (letters/digits, with `-`, `_`, `:` for plugin/namespaced
+ * commands) starting with an alphanumeric. Anything else — a path separator, a
+ * leading dash, punctuation — isn't a command, so the caller sends it as text
+ * instead of rejecting it with "Unknown command". A command-shaped-but-unknown
+ * head (`/lkjasdf`) still passes here and is handled as a typo by the caller.
+ */
+const SLASH_COMMAND_HEAD = /^[a-zA-Z0-9][a-zA-Z0-9:_-]*$/;
+
+export function isSlashCommandHead(head: string): boolean {
+  return SLASH_COMMAND_HEAD.test(head);
+}
+
+/**
+ * CC 2.1.265 — the slash token under the caret for the mid-prompt command
+ * picker: the `\S*` after a `/` that is itself preceded by the start of input
+ * or whitespace. `before` is the text up to the caret. Returns the token with
+ * its leading `/` stripped, or null when no slash token is under the caret.
+ * The boundary requirement keeps it from firing inside `https://x` or `a/b`.
+ * `PromptInput.insertSlashCommand` splices with the same `(^|\s)\/(\S*)$`
+ * pattern — keep the two in sync.
+ */
+export function slashTokenBeforeCaret(before: string): string | null {
+  const m = /(^|\s)\/(\S*)$/.exec(before);
+  return m ? m[2] : null;
+}
+
+/**
+ * CC 2.1.286 — the slash picker matches a command's *description* by word
+ * prefix, not a loose letter-subsequence. A subsequence match on the whole
+ * description (name+aliases+description joined) surfaced unrelated commands for
+ * short queries (e.g. `/co` matching any description with a c…o somewhere).
+ * Returns a modest positive score when `filter` prefixes any word of the
+ * description, else 0 — kept below the name/alias scores so a name match still
+ * ranks first. Pure, for unit tests.
+ */
+export function descriptionWordPrefixScore(filter: string, description: string): number {
+  if (!filter) return 0;
+  const f = filter.toLowerCase();
+  for (const word of description.toLowerCase().split(/[^a-z0-9]+/)) {
+    if (word && word.startsWith(f)) return 10;
+  }
+  return 0;
+}
+
+/**
+ * The built-in *dialog* commands this precedence rule covers: Claudius renders
+ * each as a native overlay/dialog, and Claude Code renders each as a built-in
+ * dialog too. These are the names 2.1.287 is about (`/usage` and its `/cost`
+ * `/stats` aliases, `/context`).
+ *
+ * Deliberately NOT every native command: the SDK marks user commands by the
+ * *absence* of `builtin` — but bundled skills, plugins and MCP commands are
+ * also unmarked, so a blanket "any unmarked SDK row of this name" rule would
+ * let a coincidental skill named `schedule`/`goal`/`review` hijack Claudius's
+ * own native handler. Scoping to the built-in dialogs keeps the fix to exactly
+ * the commands the audit names.
+ */
+const SHADOWABLE_BUILTIN_DIALOGS = new Set(["usage", "cost", "stats", "context"]);
+
+/**
+ * CC 2.1.287 (FIX) — a user/project/plugin command that shares a name with a
+ * built-in *dialog* (`/usage`, `/context`, `/cost`, `/stats`) must run the
+ * user's command, not open Claudius's native dialog. The SDK's
+ * `supportedCommands()` marks its own commands `builtin: true` (SDK 0.3.277)
+ * and leaves user/project/plugin/MCP commands unmarked; when it lists an
+ * unmarked command of one of these names, the user has defined their own, so
+ * the caller forwards to the SDK instead of dispatching the native handler.
+ */
+export function userCommandShadowsBuiltin(
+  head: string,
+  sdkCommands: SdkSlashCommandInfo[] | undefined,
+): boolean {
+  if (!sdkCommands || !SHADOWABLE_BUILTIN_DIALOGS.has(head)) return false;
+  // Per the SDK `builtin` contract: when a marked (built-in) row of this name
+  // exists, `/name` runs THAT one — so an unmarked row only wins (and we should
+  // forward) when NO marked row shares the name, i.e. the user's command has
+  // fully replaced the built-in. Forwarding while a marked row still exists
+  // would just surface the built-in as CLI output, never the user's command.
+  const rows = sdkCommands.filter((c) => c?.name === head);
+  const hasUnmarked = rows.some((c) => c.builtin !== true);
+  const hasMarked = rows.some((c) => c.builtin === true);
+  return hasUnmarked && !hasMarked;
 }
 
 export type SlashSuggestion = SlashCommand & {
@@ -439,5 +541,27 @@ export function isConfidentSlashMatch(
 ): boolean {
   if (!filter) return false;
   if (cmd.name.startsWith(filter)) return true;
+  // CC 2.1.265 — a plugin/namespaced command (`plugin:skill`) is also a
+  // confident match by its bare name (the part after the last ':'), so typing
+  // the skill name without the plugin prefix still gets Enter-to-run.
+  if (cmd.name.includes(":")) {
+    const bare = cmd.name.slice(cmd.name.lastIndexOf(":") + 1);
+    if (bare.startsWith(filter)) return true;
+  }
   return (cmd.aliases ?? []).some((a) => a.startsWith(filter));
+}
+
+/**
+ * CC 2.1.216 — extract the slash-command NAMES from a `commands_changed`
+ * SDK message's `commands` array, dropping anything without a non-empty string
+ * name. Shared by the client (live palette update) and the server (keeping the
+ * cached init snapshot fresh so a reload / tab switch doesn't revert to the
+ * stale list). Pure, for unit tests.
+ */
+export function commandNamesFromChanged(
+  commands: ReadonlyArray<{ name?: unknown }> | undefined,
+): string[] {
+  return (commands ?? [])
+    .map((c) => c?.name)
+    .filter((n): n is string => typeof n === "string" && n.length > 0);
 }

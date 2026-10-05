@@ -52,7 +52,7 @@
     "electron:smoke": "bun run electron:rebuild-native-for-node && cross-env CLAUDIUS_PACKAGED=1 NODE_ENV=production next build && node scripts/electron-stage-standalone.mjs && node scripts/electron-stage-standalone.mjs && node scripts/electron-gen-cert.mjs && bun run electron:compile && node dist-electron/smoke.js"
   },
   "dependencies": {
-    "@anthropic-ai/claude-agent-sdk": "^0.3.288",
+    "@anthropic-ai/claude-agent-sdk": "^0.3.289",
     "better-sqlite3": "^12.11.1",
     "clsx": "^2.1.1",
     "cron-parser": "^5.5.0",
@@ -60,7 +60,8 @@
     "electron-updater": "^6.3.9",
     "image-size": "^2.0.2",
     "lucide-react": "^1.14.0",
-    "next": "16.3.3",
+    "next": "16.3.6",
+    "qrcode-generator": "^2.0.4",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-markdown": "^10.1.0",

@@ -1,10 +1,11 @@
 # Release builds for the Claudius desktop app (Electron).
 #
 # Targets, per the product decision:
-#   • macOS arm64 — NATIVE on the arm64 `macos-14` runner. Ships zip + dmg.
+#   • macOS arm64 — NATIVE on the arm64 `macos-15` runner. Ships zip + dmg.
 #                   Primary target (most current Macs).
-#   • macOS x64   — CROSS-COMPILED on the same arm64 `macos-14` runner
-#                   (Intel `macos-13` was retired by GitHub). Ships zip + dmg.
+#   • macOS x64   — CROSS-COMPILED on the same arm64 `macos-15` runner
+#                   (Intel `macos-13` was retired by GitHub; `macos-14` is
+#                   retired Nov 2026). Ships zip + dmg.
 #                   The cross-compile rebuilds better-sqlite3 for x64 and
 #                   stages `@next/swc-darwin-x64` before `next build`.
 #   • Linux x64   — AppImage + deb + rpm. Built on `ubuntu-latest`.
@@ -59,7 +60,7 @@ concurrency:
 jobs:
   macos-arm64:
     name: macOS (Apple Silicon arm64, native)
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 45
     permissions:
       contents: write
@@ -79,7 +80,7 @@ jobs:
       # better-sqlite3 has prebuilt binaries for node's arm64 ABI but NOT
       # for Electron's arm64 ABI — @electron/rebuild then drives node-gyp
       # to compile from source. node-gyp needs Python's `distutils`, which
-      # was REMOVED in Python 3.12 (the macos-14 default). Pin 3.11 so the
+      # was REMOVED in Python 3.12 (the runner default). Pin 3.11 so the
       # gyp build succeeds. Same dance the macos-x64 job does — I had the
       # wrong assumption in a previous revision ("arm64 has a prebuilt
       # Electron ABI binary, no python needed") and the macos-arm64 job
@@ -233,7 +234,7 @@ jobs:
     name: macOS (Intel x64, cross-compiled)
     # Intel `macos-13` hosted runners no longer schedule (Intel macOS runner
     # retirement), so we CROSS-build x64 on a current Apple Silicon runner.
-    runs-on: macos-14
+    runs-on: macos-15
     # Belt-and-braces ceiling. The per-step timeouts below (create-dmg's
     # spawnSync, the fallback step) cover the known hang at `hdiutil create`,
     # but the runner default is 6h — far too long for a build that takes ~15m
@@ -258,7 +259,7 @@ jobs:
 
       # node-gyp compiles better-sqlite3 from source for x64 (no prebuilt for
       # the x64 Electron ABI), and node-gyp needs Python's `distutils`, which
-      # was REMOVED in Python 3.12 (the macos-14 default). Pin 3.11, whose
+      # was REMOVED in Python 3.12 (the runner default). Pin 3.11, whose
       # stdlib still ships distutils, so the gyp build succeeds.
       - uses: actions/setup-python@v6
         with:
@@ -737,7 +738,7 @@ jobs:
   macos-arm64-smoke:
     name: macOS arm64 smoke (launch test)
     needs: macos-arm64
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
@@ -806,7 +807,7 @@ jobs:
           retention-days: 7
 
   # macOS x64 smoke. Same shape as macos-arm64-smoke, but launches the x64
-  # zip on the same arm64 macos-14 runner — macOS auto-uses Rosetta to
+  # zip on the same arm64 macos-15 runner — macOS auto-uses Rosetta to
   # translate the x64 Mach-O Electron container, so the whole process tree
   # (including the embedded server's ELECTRON_RUN_AS_NODE child and its
   # better-sqlite3 dlopen) runs as x64. That's a partial-fidelity check
@@ -816,7 +817,7 @@ jobs:
   macos-x64-smoke:
     name: macOS x64 smoke (launch test under Rosetta)
     needs: macos-x64
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
@@ -833,7 +834,7 @@ jobs:
         run: bun install --frozen-lockfile
 
       # Rosetta is required to translate x64 binaries on this arm64 runner.
-      # macos-14 hosted runners DO ship with Rosetta, but a softwareupdate
+      # Hosted arm64 macOS runners usually ship with Rosetta, but a softwareupdate
       # call is the only thing guaranteed to be a no-op on systems that have
       # it and an install on the rare host that doesn't. `|| true` because
       # the command exits non-zero on "Rosetta already installed" on some

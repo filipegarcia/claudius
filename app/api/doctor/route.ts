@@ -5,11 +5,16 @@ import { join } from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { listWorkspaces } from "@/lib/server/workspaces-store";
-import { readScope } from "@/lib/server/claudemd";
+import { resolveHierarchy } from "@/lib/server/claudemd";
+import { readSettings } from "@/lib/server/settings";
+import { listRules, readRule } from "@/lib/server/rules";
+import { ignoredTelemetryEnvKeys } from "@/lib/shared/telemetry-env";
 import {
   auditWorkspacePrompts,
   type PromptAuditFinding,
   type PromptAuditStalePath,
+  type PromptAuditStaleCommand,
+  type PromptAuditContradiction,
 } from "@/lib/server/prompt-audit";
 
 const execFileP = promisify(execFile);
@@ -84,12 +89,35 @@ async function claudeMdSizeChecks(): Promise<Check[]> {
     // documented default).
     if ((ws.kind ?? "project") !== "project") continue;
 
-    const [project, projectClaude] = await Promise.all([
-      readScope("project", ws.rootPath),
-      readScope("project-claude", ws.rootPath),
-    ]);
-    const files = [project, projectClaude].filter((f) => f.exists);
-    if (files.length === 0) continue;
+    // CC 2.1.281 (H2) — count the COMBINED instruction context, not just the
+    // raw project CLAUDE.md files: resolve `@`-imports inline and include the
+    // user/project/project-claude/local scopes (via resolveHierarchy) plus the
+    // `.claude/rules` files (user + project). This matches the large-CLAUDE.md
+    // notice upstream, which sums all instruction files together.
+    const contents: string[] = [];
+    let sourceCount = 0;
+    const hierarchy = await resolveHierarchy(ws.rootPath);
+    for (const sc of hierarchy.scopes) {
+      if (!sc.exists) continue;
+      sourceCount += 1; // the scope file itself; its @-imports fold into it
+      for (const seg of sc.segments) contents.push(seg.content);
+    }
+    for (const scope of ["project", "user"] as const) {
+      let ruleFiles;
+      try {
+        ruleFiles = await listRules(scope, ws.rootPath);
+      } catch {
+        continue;
+      }
+      for (const rf of ruleFiles) {
+        const c = await readRule(scope, rf.name, ws.rootPath);
+        if (c != null) {
+          contents.push(c);
+          sourceCount += 1;
+        }
+      }
+    }
+    if (contents.length === 0) continue;
 
     // `.split("\n").length` overcounts by one for the (near-universal) case
     // of a trailing newline — subtract it so a file with exactly N lines
@@ -98,19 +126,20 @@ async function claudeMdSizeChecks(): Promise<Check[]> {
       const parts = content.split("\n").length;
       return content.endsWith("\n") ? parts - 1 : parts;
     };
-    const totalLines = files.reduce((n, f) => n + lineCount(f.content), 0);
+    const totalLines = contents.reduce((n, c) => n + lineCount(c), 0);
     if (totalLines <= CLAUDE_MD_TRIM_THRESHOLD_LINES) continue;
 
-    const totalBytes = files.reduce((n, f) => n + Buffer.byteLength(f.content, "utf8"), 0);
+    const totalBytes = contents.reduce((n, c) => n + Buffer.byteLength(c, "utf8"), 0);
     checks.push({
       id: `claude-md-size:${ws.id}`,
       label: `CLAUDE.md size — ${ws.name}`,
       status: "warn",
       detail:
-        `${totalLines} lines (~${Math.round(totalBytes / 1024)} KB) across ${files.length} ` +
-        `checked-in file${files.length > 1 ? "s" : ""} — Claude can usually re-derive routine ` +
-        `info (file layout, tech stack, build commands) from the codebase itself; consider ` +
-        `trimming content it doesn't need spelled out, or moving procedures into a skill.`,
+        `${totalLines} lines (~${Math.round(totalBytes / 1024)} KB) across ${sourceCount} ` +
+        `instruction file${sourceCount > 1 ? "s" : ""} (CLAUDE.md scopes incl. @-imports and ` +
+        `.claude/rules) — Claude can usually re-derive routine info (file layout, tech stack, ` +
+        `build commands) from the codebase itself; consider trimming content it doesn't need ` +
+        `spelled out, or moving procedures into a skill.`,
       link: { href: `/${ws.id}/memory`, label: "Review in Memory" },
     });
   }
@@ -140,8 +169,15 @@ function pickPromptAuditLink(
   workspaceId: string,
   findings: PromptAuditFinding[],
   stalePaths: PromptAuditStalePath[],
+  staleCommands: PromptAuditStaleCommand[],
+  contradictions: PromptAuditContradiction[],
 ): { href: string; label: string } | undefined {
-  const kinds = new Set([...findings, ...stalePaths].map((x) => x.source.kind));
+  const kinds = new Set([
+    ...findings.map((x) => x.source.kind),
+    ...stalePaths.map((x) => x.source.kind),
+    ...staleCommands.map((x) => x.source.kind),
+    ...contradictions.flatMap((x) => x.sources.map((s) => s.kind)),
+  ]);
   if (kinds.has("claude-md")) return { href: `/${workspaceId}/memory`, label: "Review in Memory" };
   if (kinds.has("skill")) return { href: `/${workspaceId}/skills`, label: "Review in Skills" };
   if (kinds.has("agent")) return { href: `/${workspaceId}/agents`, label: "Review in Agents" };
@@ -168,31 +204,43 @@ async function promptAuditChecks(): Promise<Check[]> {
     }
     if (!report.hadSources) continue;
 
-    const { findings, stalePaths } = report;
-    if (findings.length === 0 && stalePaths.length === 0) {
+    const { findings, stalePaths, staleCommands, contradictions } = report;
+    if (
+      findings.length === 0 &&
+      stalePaths.length === 0 &&
+      staleCommands.length === 0 &&
+      contradictions.length === 0
+    ) {
       checks.push({
         id: `prompt-audit:${ws.id}`,
         label: `Prompt audit — ${ws.name}`,
         status: "ok",
-        detail: "No stale prompting patterns or broken path references found.",
+        detail: "No broken references, contradicting instructions, or stale prompting patterns found.",
         category: "prompt-audit",
       });
       continue;
     }
 
     // CC 2.1.283: "stale paths, stale commands and contradicting instruction
-    // files now lead the report" — stale paths (this release's build; stale
-    // commands and contradicting-file detection are deferred, see run-notes
-    // Risks) come first in both the summary and the examples.
+    // files now lead the report" — in that order, ahead of the older-model
+    // prompting patterns, in both the summary and the examples.
     const parts: string[] = [];
     if (stalePaths.length > 0) {
       parts.push(`${stalePaths.length} path reference${stalePaths.length === 1 ? "" : "s"} to a missing file`);
+    }
+    if (staleCommands.length > 0) {
+      parts.push(`${staleCommands.length} reference${staleCommands.length === 1 ? "" : "s"} to an unknown /command`);
+    }
+    if (contradictions.length > 0) {
+      parts.push(`${contradictions.length} contradicting instruction${contradictions.length === 1 ? "" : "s"}`);
     }
     if (findings.length > 0) {
       parts.push(`${findings.length} stale prompting pattern${findings.length === 1 ? "" : "s"}`);
     }
     const examples = [
       ...stalePaths.slice(0, 2).map((p) => `${p.source.kind}:${p.source.name} — references missing \`${p.path}\``),
+      ...staleCommands.slice(0, 2).map((c) => `${c.source.kind}:${c.source.name} — unknown command \`/${c.command}\``),
+      ...contradictions.slice(0, 2).map((c) => `\`${c.token}\` — contradicting directives across ${c.sources.map((s) => `${s.kind}:${s.name}`).join(" vs ")}`),
       ...findings.slice(0, 2).map((f) => `${f.source.kind}:${f.source.name} — ${f.note} ("${f.snippet}")`),
     ];
     checks.push({
@@ -200,8 +248,52 @@ async function promptAuditChecks(): Promise<Check[]> {
       label: `Prompt audit — ${ws.name}`,
       status: "warn",
       detail: `${parts.join(" · ")}. ${examples.join("; ")}`,
-      link: pickPromptAuditLink(ws.id, findings, stalePaths),
+      link: pickPromptAuditLink(ws.id, findings, stalePaths, staleCommands, contradictions),
       category: "prompt-audit",
+    });
+  }
+  return checks;
+}
+
+/**
+ * CC 2.1.282 (H13) — flag OpenTelemetry env vars set in a workspace's project
+ * or local settings. The engine ignores telemetry export/content vars at those
+ * scopes (only user/managed are honored), so one set there is silently inert —
+ * the doctor says so, pointing at the user-scope env editor instead.
+ */
+async function telemetryEnvChecks(): Promise<Check[]> {
+  let workspaces: Awaited<ReturnType<typeof listWorkspaces>>;
+  try {
+    workspaces = await listWorkspaces();
+  } catch {
+    return [];
+  }
+  const checks: Check[] = [];
+  for (const ws of workspaces) {
+    if ((ws.kind ?? "project") !== "project") continue;
+    const ignored = new Set<string>();
+    for (const scope of ["project", "local"] as const) {
+      try {
+        const settings = await readSettings(scope, ws.rootPath);
+        for (const k of ignoredTelemetryEnvKeys(settings.env as Record<string, string> | undefined)) {
+          ignored.add(k);
+        }
+      } catch {
+        // best-effort — a settings read failure shouldn't block the doctor.
+      }
+    }
+    if (ignored.size === 0) continue;
+    const keys = [...ignored].sort();
+    checks.push({
+      id: `telemetry-env:${ws.id}`,
+      label: `Ignored telemetry env — ${ws.name}`,
+      status: "warn",
+      detail:
+        `${keys.length} telemetry env var${keys.length === 1 ? "" : "s"} (${keys.join(", ")}) ` +
+        `set in this workspace's project/local settings are IGNORED — Claude Code only honors ` +
+        `telemetry export/content vars from user or managed settings. Move them to your user-scope ` +
+        `env for them to take effect.`,
+      link: { href: `/settings`, label: "Open Settings → Environment" },
     });
   }
   return checks;
@@ -347,6 +439,9 @@ export async function GET() {
 
   // CC 2.1.283 parity — see `promptAuditChecks` above.
   checks.push(...(await promptAuditChecks()));
+
+  // CC 2.1.282 parity — see `telemetryEnvChecks` below.
+  checks.push(...(await telemetryEnvChecks()));
 
   return NextResponse.json({
     runtime: { node, platform: process.platform, arch: process.arch },

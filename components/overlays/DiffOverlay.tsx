@@ -11,6 +11,13 @@ type Props = {
   /** Workspace id to fetch git status/diff for. `null` disables the fetch (e.g. a customization with no git-backed workspace). */
   workspaceId: string | null;
   onClose: () => void;
+  /**
+   * CC 2.1.260 (H5) — a value that changes whenever Claude's edits advance
+   * (see `diffRefreshToken`). When it changes, the overlay re-fetches the
+   * status and the open file's diff in place — the "live as Claude edits"
+   * behavior — without resetting the user's current file selection.
+   */
+  refreshToken?: string | number;
 };
 
 type Selection = { path: string; mode: DiffOverlayMode };
@@ -32,8 +39,14 @@ type DiffPayload = { diff: string; binary: boolean; error?: string };
  * Deliberately read-only — no stage/commit/discard actions. Those live on
  * the full Git page; this is a quick "what's changed right now" glance
  * without leaving the conversation.
+ *
+ * CC 2.1.260 (H5) — the overlay now refreshes live: the parent passes a
+ * `refreshToken` derived from the session's edit stream (`diffRefreshToken`),
+ * so the file list and the open diff re-fetch as Claude writes files, without
+ * disturbing the user's current selection. (The Activity rail's `RecentEdits`
+ * is the always-beside-chat live view of the same edit stream.)
  */
-export function DiffOverlay({ workspaceId, onClose }: Props) {
+export function DiffOverlay({ workspaceId, onClose, refreshToken }: Props) {
   const [status, setStatus] = useState<StatusPayload | null>(null);
   const [statusError, setStatusError] = useState<string | null>(null);
   const [loadingStatus, setLoadingStatus] = useState(true);
@@ -67,9 +80,11 @@ export function DiffOverlay({ workspaceId, onClose }: Props) {
       .then((p) => {
         setStatus(p);
         // Auto-select the first changed file so the overlay isn't empty on
-        // open — mirrors opening the full Git page with changes present.
+        // open — mirrors opening the full Git page with changes present. Only
+        // when nothing is selected yet, so a live refresh (CC 2.1.260 / H5)
+        // never yanks the user off the file they're reading.
         if (p.files.length > 0) {
-          setSelected({ path: p.files[0].path, mode: modeFor(p.files[0]) });
+          setSelected((cur) => cur ?? { path: p.files[0].path, mode: modeFor(p.files[0]) });
         }
       })
       .catch((err: unknown) => {
@@ -80,7 +95,8 @@ export function DiffOverlay({ workspaceId, onClose }: Props) {
         if (!ac.signal.aborted) setLoadingStatus(false);
       });
     return () => ac.abort();
-  }, [workspaceId]);
+    // `refreshToken` re-runs this to refresh the file list as Claude edits.
+  }, [workspaceId, refreshToken]);
 
   const diffKey = workspaceId && selected ? `${workspaceId}|${selected.path}|${selected.mode}` : "";
   const [lastDiffKey, setLastDiffKey] = useState(diffKey);
@@ -113,7 +129,8 @@ export function DiffOverlay({ workspaceId, onClose }: Props) {
         if (!ac.signal.aborted) setDiffLoading(false);
       });
     return () => ac.abort();
-  }, [workspaceId, selected]);
+    // `refreshToken` re-fetches the open file's diff as its contents change.
+  }, [workspaceId, selected, refreshToken]);
 
   const files = useMemo(() => status?.files ?? [], [status]);
 

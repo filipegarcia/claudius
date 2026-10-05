@@ -22,6 +22,8 @@ import { SessionNotifyMenu } from "./SessionNotifyMenu";
 import { WorkspaceIcon } from "@/components/workspaces/WorkspaceIcon";
 import { useWorkspaces } from "@/lib/client/useWorkspaces";
 import { formatElapsed, useElapsedSeconds } from "@/lib/client/use-elapsed";
+import { formatClockTime } from "@/lib/client/format-message-time";
+import { useClockOptionsContext } from "@/lib/client/clock-options-context";
 import { workingStatusLabel } from "@/lib/shared/turn-status-label";
 import type { FocusLevel } from "@/lib/client/useFocusMode";
 import { cn } from "@/lib/utils/cn";
@@ -29,6 +31,7 @@ import { worktreeBadge } from "@/lib/client/worktree";
 import type { SessionInfo, StreamStatus } from "@/lib/client/types";
 import type { Workspace } from "@/lib/server/workspaces-store";
 import { modelDeprecationDate } from "@/lib/shared/model-deprecations";
+import { prettyModelName } from "@/lib/shared/advisor";
 import { fastModeDisabledReasonLabel } from "@/lib/shared/fast-mode";
 import {
   VERBOSE_LEVELS,
@@ -61,6 +64,16 @@ type Props = {
    * ticker while `pending`), or `null` when idle.
    */
   turnStartedAt?: number | null;
+  /**
+   * CC 2.1.271 — the hook currently running (PreToolUse, UserPromptSubmit, …),
+   * shown as "Running <event> hook · Ns" while it blocks the turn. Null when no
+   * hook is running.
+   */
+  runningHook?: { event: string; startedAt: number } | null;
+  /** CC 2.1.271 — a tool is currently executing (gates the "Deep in thought" label). */
+  toolActive?: boolean;
+  /** CC 2.1.271 — the turn is resuming after the output-token limit ("Picking the thought back up"). */
+  resumingThought?: boolean;
   /** Epoch ms the most recently completed turn ended, or `null`/`undefined` before any turn has finished. Renders as "done H:MM AM/PM" once idle. */
   lastTurnCompletedAt?: number | null;
   permissionMode: PermissionMode;
@@ -174,6 +187,9 @@ export function StatusLine({
   streamStatus = "live",
   backgroundTasks = 0,
   turnStartedAt,
+  runningHook,
+  toolActive,
+  resumingThought,
   lastTurnCompletedAt,
   permissionMode,
   model,
@@ -238,7 +254,11 @@ export function StatusLine({
   // turn ended. Both render as siblings of `status-line-text`, never inside
   // it — the turn-status e2e specs assert exact text on that span (see
   // `tests/e2e/turn-status.spec.ts`).
+  // CC 2.1.257 (F4) — the turn-end clock honors timeFormat/timeZone.
+  const clock = useClockOptionsContext();
   const turnElapsedSec = useElapsedSeconds(turnStartedAt ?? undefined, status === "working");
+  // CC 2.1.271 — live "Ns" for the running hook.
+  const hookElapsedSec = useElapsedSeconds(runningHook?.startedAt, !!runningHook);
 
   // Rendered label. Kept out of CSS `capitalize` so `textContent` matches what
   // the user sees (the turn-status e2e specs assert on exact text).
@@ -249,12 +269,12 @@ export function StatusLine({
     status === "background"
       ? `Idle · ${backgroundTasks} running`
       : status === "working"
-      ? workingStatusLabel(turnElapsedSec)
+      ? workingStatusLabel(turnElapsedSec, { toolActive, resumingThought })
       : status.charAt(0).toUpperCase() + status.slice(1);
 
   const doneAt =
     status !== "working" && typeof lastTurnCompletedAt === "number"
-      ? new Date(lastTurnCompletedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
+      ? formatClockTime(lastTurnCompletedAt, clock)
       : null;
 
   const ctx = typeof contextPercent === "number" ? Math.round(contextPercent) : null;
@@ -410,7 +430,8 @@ export function StatusLine({
                   className="flex items-center gap-1 rounded border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 font-mono text-[10px] text-amber-200"
                 >
                   <AlertTriangle className="h-3 w-3" />
-                  <span className="max-w-[14rem] truncate">{model}</span>
+                  {/* CC 2.1.261 — friendly name; raw id stays in data-model/title. */}
+                  <span className="max-w-[14rem] truncate">{prettyModelName(model)}</span>
                 </span>
               );
             }
@@ -426,7 +447,8 @@ export function StatusLine({
                 title={model}
                 className="max-w-[10rem] truncate font-mono opacity-80 sm:max-w-[14rem]"
               >
-                {model}
+                {/* CC 2.1.261 — friendly name, not the raw Bedrock/Vertex id. */}
+                {prettyModelName(model)}
               </span>
             );
           })()}
@@ -669,6 +691,17 @@ export function StatusLine({
             title="Elapsed time for the current turn"
           >
             {formatElapsed(turnElapsedSec)}
+          </span>
+        )}
+        {/* CC 2.1.271 — a hook is blocking the turn; show which and for how long. */}
+        {!zen && runningHook && (
+          <span
+            data-testid="status-line-hook"
+            className="whitespace-nowrap text-sky-400"
+            title={`A ${runningHook.event} hook is running`}
+          >
+            Running {runningHook.event} hook
+            {typeof hookElapsedSec === "number" ? ` · ${formatElapsed(hookElapsedSec)}` : ""}
           </span>
         )}
         {!zen && doneAt && (

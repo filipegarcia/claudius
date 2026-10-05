@@ -52,8 +52,11 @@ export function AuthFailedPanel({
           </span>
         ) : (
           <span className="min-w-0 flex-1">
-            Failed to authenticate — Anthropic rejected the active credential
-            (HTTP 401). Add a new one or switch profile to keep going.
+            {/* CC 2.1.273 — provider-neutral: the active credential may be an
+                Anthropic 401 OR a Bedrock/Vertex/Foundry-gateway 403, so don't
+                hardcode "Anthropic"/"HTTP 401". */}
+            Failed to authenticate — the active credential was rejected. Add a new
+            one or switch profile to keep going.
           </span>
         )}
         <Link

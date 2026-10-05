@@ -44,6 +44,14 @@ export type WorkspaceDefaults = {
    */
   sandboxFilesystemDisabled?: boolean;
   /**
+   * CC 2.1.219 — sandbox network egress allow-list, forwarded as
+   * `Options.sandbox.network.{allowedDomains,strictAllowlist}`. Only
+   * meaningful with `sandboxEnabled`; `strictAllowlist` makes `allowedDomains`
+   * exhaustive (deny everything else) rather than additive.
+   */
+  sandboxNetworkAllowedDomains?: string[];
+  sandboxNetworkStrictAllowlist?: boolean;
+  /**
    * Enable the 1M-token context window beta (SDK `Options.betas` →
    * `context-1m-2025-08-07`). Only meaningful for Sonnet 4/4.5 — newer models
    * (Fable, Opus 4.6+, Sonnet 4.6+/5) ship a 1M window by default, so the
@@ -165,9 +173,17 @@ export type WorkspaceDefaults = {
  * `lib/shared/notifications.ts` (and `isKindEnabled` in `notification-bus.ts`),
  * so there's nothing to pin for them — writing an explicit `enabledKinds` would
  * only freeze new workspaces to today's set if that list ever changes.
+ *
+ * CC 2.1.284 (DEC2) — the default is `"auto"`, matching Claude Code: an
+ * interactive session with no configured permission mode starts in auto mode
+ * (the model decides per call whether a tool needs a prompt) rather than
+ * silently bypassing every prompt. Because this is a data-layer default
+ * stamped at creation, only workspaces created from now on get `"auto"` —
+ * existing records keep whatever `permissionMode` they were stamped with, so
+ * no one is silently moved off `bypassPermissions`.
  */
 export const DEFAULT_WORKSPACE_DEFAULTS: WorkspaceDefaults = {
-  permissionMode: "bypassPermissions",
+  permissionMode: "auto",
 };
 
 /**

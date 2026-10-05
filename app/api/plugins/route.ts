@@ -1,5 +1,15 @@
 import { NextResponse } from "next/server";
-import { listAll, setEnabled, setMarketplaces } from "@/lib/server/plugins";
+import {
+  addExtraMarketplace,
+  enrichInstalled,
+  listAll,
+  removeExtraMarketplace,
+  removePolicyMarketplaceEntry,
+  setEnabled,
+  setPluginOptionValue,
+} from "@/lib/server/plugins";
+import type { MarketplaceSource } from "@/lib/shared/marketplace-settings";
+import type { PluginOptionValue } from "@/lib/shared/plugin-config";
 import { sessionManager } from "@/lib/server/session-manager";
 import type { SettingsScope } from "@/lib/server/settings";
 import { resolveTrustedCwd } from "@/lib/server/trusted-cwd";
@@ -30,7 +40,8 @@ export async function GET(req: Request) {
       const r = await session.reloadPlugins();
       if (r.ok) {
         const d = r.data as { plugins?: unknown[]; error_count?: number };
-        installed = Array.isArray(d.plugins) ? d.plugins : [];
+        // G2 — enrich with description/displayName from each plugin's plugin.json.
+        installed = await enrichInstalled(Array.isArray(d.plugins) ? d.plugins : []);
         // The detailed `plugin_errors` array is captured once at init; a live
         // `reload_plugins` only reports a coarse `error_count`. If that count
         // is now zero, the user has fixed whatever failed (edited config, then
@@ -56,12 +67,25 @@ type PostBody =
       enabled: boolean;
     }
   | {
+      // G1 — structural marketplace ops (no full-list replacement, so a rich
+      // object/array settings.json config is never clobbered).
       kind: "marketplaces";
       scope: SettingsScope;
       cwd?: string;
-      extraKnownMarketplaces?: string[];
-      strictKnownMarketplaces?: boolean;
-      blockedMarketplaces?: string[];
+      op: "add-extra" | "remove-extra" | "remove-policy";
+      name?: string;
+      source?: MarketplaceSource;
+      list?: "strict" | "blocked";
+      index?: number;
+    }
+  | {
+      // G3 — set/clear one plugin option value (value omitted = clear).
+      kind: "plugin-config";
+      scope: SettingsScope;
+      cwd?: string;
+      pluginId: string;
+      name: string;
+      value?: PluginOptionValue;
     };
 
 export async function POST(req: Request) {
@@ -77,11 +101,31 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true });
   }
   if (body.kind === "marketplaces") {
-    await setMarketplaces(body.scope, cwd, {
-      extraKnownMarketplaces: body.extraKnownMarketplaces,
-      strictKnownMarketplaces: body.strictKnownMarketplaces,
-      blockedMarketplaces: body.blockedMarketplaces,
-    });
+    if (body.op === "add-extra") {
+      if (typeof body.name !== "string" || !body.source)
+        return NextResponse.json({ error: "name and source required" }, { status: 400 });
+      const res = await addExtraMarketplace(body.scope, cwd, body.name, body.source);
+      if (!res.ok) return NextResponse.json({ error: res.error }, { status: 400 });
+      return NextResponse.json({ ok: true });
+    }
+    if (body.op === "remove-extra") {
+      if (typeof body.name !== "string")
+        return NextResponse.json({ error: "name required" }, { status: 400 });
+      await removeExtraMarketplace(body.scope, cwd, body.name);
+      return NextResponse.json({ ok: true });
+    }
+    if (body.op === "remove-policy") {
+      if ((body.list !== "strict" && body.list !== "blocked") || typeof body.index !== "number")
+        return NextResponse.json({ error: "list and index required" }, { status: 400 });
+      await removePolicyMarketplaceEntry(body.scope, cwd, body.list, body.index);
+      return NextResponse.json({ ok: true });
+    }
+    return NextResponse.json({ error: "invalid op" }, { status: 400 });
+  }
+  if (body.kind === "plugin-config") {
+    if (typeof body.pluginId !== "string" || typeof body.name !== "string")
+      return NextResponse.json({ error: "pluginId and name required" }, { status: 400 });
+    await setPluginOptionValue(body.scope, cwd, body.pluginId, body.name, body.value);
     return NextResponse.json({ ok: true });
   }
   return NextResponse.json({ error: "invalid kind" }, { status: 400 });

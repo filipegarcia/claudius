@@ -282,7 +282,7 @@ export function priceForModel(
   }
 
   const lower = m.toLowerCase();
-  for (const family of ["opus", "sonnet", "haiku"] as const) {
+  for (const family of ["opus", "sonnet", "haiku", "fable"] as const) {
     if (!lower.includes(family)) continue;
     // Prefer a canonical `claude-<family>-…` key; fall back to any match.
     let fallback: LiteLlmPricing | undefined;

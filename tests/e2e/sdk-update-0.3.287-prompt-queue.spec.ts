@@ -181,6 +181,42 @@ test.describe("MCP elicitation (SDK onElicitation)", () => {
     expect(posted.map((p) => p.body)).toEqual([{ requestId: "eli-url", decision: { action: "accept" } }]);
   });
 
+  // CC 2.1.288 — a URL elicitation with NO elicitationId can't be reported
+  // complete by the server, so opening the link must NOT accept immediately;
+  // the prompt waits for the user's "I'm done, continue".
+  test("URL prompt with no elicitationId waits for 'I'm done, continue'", async ({ page }) => {
+    const posted = await mockChatBackend(page, [
+      ...PRELUDE,
+      {
+        type: "mcp_elicitation_request",
+        requestId: "eli-nocomplete",
+        serverName: "linear",
+        message: "Finish signing in, then come back.",
+        mode: "url",
+        url: "https://linear.app/oauth/authorize?client_id=abc",
+        // no elicitationId
+      },
+    ]);
+    await page.goto("/");
+
+    const modal = page.getByTestId("mcp-elicitation-modal");
+    await expect(modal).toBeVisible({ timeout: 15_000 });
+
+    const popup = page.waitForEvent("popup");
+    await page.getByTestId("mcp-elicitation-open").click();
+    await popup;
+    // Opening the link must NOT have resolved the prompt yet.
+    expect(posted.map((p) => p.body)).toEqual([]);
+    await expect(modal).toBeVisible();
+
+    // The "I'm done, continue" button is now shown; clicking it accepts.
+    await page.getByTestId("mcp-elicitation-done").click();
+    await expect(modal).toHaveCount(0);
+    expect(posted.map((p) => p.body)).toEqual([
+      { requestId: "eli-nocomplete", decision: { action: "accept" } },
+    ]);
+  });
+
   test("a non-http URL can't be opened — only declined", async ({ page }) => {
     const posted = await mockChatBackend(page, [
       ...PRELUDE,

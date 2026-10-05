@@ -91,12 +91,9 @@ export function lintBashWildcardRule(rule: string): BashWildcardWarning | null {
  * boundary to reject at — warning at the point of typing is the
  * equivalent moment here).
  *
- * Deliberately does NOT attempt CC 2.1.260's third permission-rule item —
- * suggesting an unambiguous spelling for Windows paths where `\(` reads as
- * an escaped parenthesis (e.g. `Edit(C:\dir\(name)\**)`) — see the doc
- * comment on `lintTrailingGarbageRule`'s last-`)`-wins search below for why
- * that's a deliberately separate, harder problem this function avoids
- * getting wrong.
+ * CC 2.1.260's third permission-rule item — the ambiguous Windows-path
+ * parenthesis (`\(` / `\)`) — is handled separately by `lintWindowsPathParen`
+ * below, not here.
  */
 export type TrailingGarbageWarning = { trailing: string };
 
@@ -123,4 +120,25 @@ export function lintTrailingGarbageRule(rule: string): TrailingGarbageWarning | 
   const trailing = trimmed.slice(lastClose + 1).trim();
   if (!trailing) return null;
   return { trailing };
+}
+
+/**
+ * CC 2.1.260 parity — a permission rule containing `\(` or `\)` (a backslash
+ * immediately before a parenthesis) is ambiguous: in a Windows path like
+ * `Edit(C:\dir\(name)\**)` the `\(` reads as a literal path segment, but the
+ * rule parser can't tell it from the scope-closing parenthesis, so the rule
+ * matches something other than the author intended. Upstream suggests an
+ * unambiguous spelling; Claudius surfaces the same non-blocking inline
+ * warning as the other lints — the rule still saves as typed.
+ *
+ * Forward-slash Windows paths (`C:/dir/(name)/**`) and POSIX paths don't trip
+ * this; only the backslash-before-paren sequence is flagged. Pure (no React)
+ * so it's unit-testable without a DOM.
+ */
+export type WindowsPathParenWarning = { sequence: "\\(" | "\\)" };
+
+export function lintWindowsPathParen(rule: string): WindowsPathParenWarning | null {
+  if (rule.includes("\\(")) return { sequence: "\\(" };
+  if (rule.includes("\\)")) return { sequence: "\\)" };
+  return null;
 }

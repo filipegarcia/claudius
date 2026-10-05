@@ -7,6 +7,7 @@ import {
   type PickerItem,
   filterAgents,
   itemToken,
+  normalizeFileMentionQuery,
   parseAtMentionQuery,
 } from "./at-mention";
 
@@ -57,7 +58,9 @@ export function AtMentionPicker({ query, cwd, sessionId, onSelect, onClose }: Pr
     // /api/fs/list round-trip per keystroke.
     if (agentMode) return;
     const controller = new AbortController();
-    const params = new URLSearchParams({ q: query, limit: "50" });
+    // CC 2.1.275/2.1.278 — strip a leading `./` so `@./src` matches relPaths
+    // (which carry no `./`) instead of substring-missing.
+    const params = new URLSearchParams({ q: normalizeFileMentionQuery(query), limit: "50" });
     if (cwd) params.set("cwd", cwd);
     fetch(`/api/fs/list?${params}`, { signal: controller.signal })
       .then((r) => r.json())

@@ -1,12 +1,16 @@
 import { promises as fs } from "node:fs";
 import { join } from "node:path";
+import { homedir } from "node:os";
 import { readScope, type ClaudeMdScope } from "./claudemd";
 import { listSkills } from "./skills";
 import { listDbAgents } from "./db-agents";
 import { assertWithin, PathInjectionError } from "./safe-path";
+import { findSlashCommand } from "@/lib/shared/slash-commands";
 import {
   findStalePromptPatterns,
   extractReferencedPaths,
+  extractReferencedCommands,
+  findInstructionContradictions,
   type PromptAuditMatch,
 } from "@/lib/shared/prompt-audit";
 
@@ -38,10 +42,16 @@ export type PromptAuditSource = {
 
 export type PromptAuditFinding = PromptAuditMatch & { source: PromptAuditSource };
 export type PromptAuditStalePath = { source: PromptAuditSource; path: string };
+/** CC 2.1.283 (H3) — a `/command` reference that resolves to no known command. */
+export type PromptAuditStaleCommand = { source: PromptAuditSource; command: string };
+/** CC 2.1.283 (H3) — a token given opposite directives across instruction files. */
+export type PromptAuditContradiction = { token: string; sources: PromptAuditSource[] };
 
 export type PromptAuditReport = {
   findings: PromptAuditFinding[];
   stalePaths: PromptAuditStalePath[];
+  staleCommands: PromptAuditStaleCommand[];
+  contradictions: PromptAuditContradiction[];
   /** True once at least one CLAUDE.md/skill/agent/command source was found. */
   hadSources: boolean;
 };
@@ -88,6 +98,19 @@ async function listCommandFiles(cwd: string): Promise<{ name: string; body: stri
   return out;
 }
 
+/** Basenames (without `.md`) of command files under `<dir>`; `[]` if absent. */
+async function commandBasenames(dir: string): Promise<string[]> {
+  let entries: string[];
+  try {
+    entries = await fs.readdir(dir);
+  } catch {
+    return [];
+  }
+  return entries
+    .filter((n) => n.toLowerCase().endsWith(".md"))
+    .map((n) => n.slice(0, -3));
+}
+
 export async function auditWorkspacePrompts(cwd: string): Promise<PromptAuditReport> {
   const sources: { source: PromptAuditSource; text: string }[] = [];
 
@@ -124,10 +147,32 @@ export async function auditWorkspacePrompts(cwd: string): Promise<PromptAuditRep
 
   const findings: PromptAuditFinding[] = [];
   const stalePaths: PromptAuditStalePath[] = [];
+  const staleCommands: PromptAuditStaleCommand[] = [];
+
+  // CC 2.1.283 (H3) — the known-command set for stale-command detection:
+  // the built-in registry (+ aliases, via findSlashCommand), file-based
+  // commands (project + user `.claude/commands/*.md`), and skills (project +
+  // user), which are invocable as `/name`. Case-insensitive membership.
+  const validCommands = new Set<string>();
+  for (const dir of [join(cwd, ".claude", "commands"), join(homedir(), ".claude", "commands")]) {
+    for (const n of await commandBasenames(dir)) validCommands.add(n.toLowerCase());
+  }
+  for (const scope of ["project", "user"] as const) {
+    try {
+      for (const s of await listSkills(scope, cwd)) validCommands.add(s.name.toLowerCase());
+    } catch {
+      // best-effort
+    }
+  }
+  const isKnownCommand = (name: string): boolean =>
+    !!findSlashCommand(name) || validCommands.has(name.toLowerCase());
 
   for (const { source, text } of sources) {
     for (const match of findStalePromptPatterns(text)) {
       findings.push({ ...match, source });
+    }
+    for (const cmd of extractReferencedCommands(text)) {
+      if (!isKnownCommand(cmd)) staleCommands.push({ source, command: cmd });
     }
     if (source.kind === "claude-md") {
       for (const p of extractReferencedPaths(text)) {
@@ -136,5 +181,28 @@ export async function auditWorkspacePrompts(cwd: string): Promise<PromptAuditRep
     }
   }
 
-  return { findings, stalePaths, hadSources: sources.length > 0 };
+  // CC 2.1.283 (H3) — contradicting instruction files. User-vs-project is the
+  // most common real conflict, so the user CLAUDE.md joins this pass only (NOT
+  // the stale-path pass, whose paths resolve against the workspace root).
+  const contradictionSources = [...sources];
+  const userClaude = await readScope("user", cwd);
+  if (userClaude.exists && userClaude.content.trim()) {
+    contradictionSources.push({ source: { kind: "claude-md", name: "user" }, text: userClaude.content });
+  }
+  const sourceById = new Map<string, PromptAuditSource>();
+  for (const { source } of contradictionSources) sourceById.set(`${source.kind}:${source.name}`, source);
+  const contradictions: PromptAuditContradiction[] = findInstructionContradictions(
+    contradictionSources.map(({ source, text }) => ({ id: `${source.kind}:${source.name}`, text })),
+  ).map((c) => ({
+    token: c.token,
+    sources: c.sources.map((id) => sourceById.get(id)).filter((s): s is PromptAuditSource => !!s),
+  }));
+
+  return {
+    findings,
+    stalePaths,
+    staleCommands,
+    contradictions,
+    hadSources: sources.length > 0,
+  };
 }

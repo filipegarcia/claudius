@@ -1,5 +1,28 @@
 import { describe, expect, it } from "vitest";
-import { stripInvisibleUnicode } from "@/lib/shared/invisible-unicode";
+import { stripInvisibleUnicode, visualizeInvisibleUnicode } from "@/lib/shared/invisible-unicode";
+
+describe("visualizeInvisibleUnicode (CC 2.1.211)", () => {
+  it("renders a bidi override (U+202E) as a visible token instead of acting on it", () => {
+    const payload = `rm -rf ‮doc.txt`;
+    const { visualized, count } = visualizeInvisibleUnicode(payload);
+    expect(count).toBe(1);
+    expect(visualized).toBe("rm -rf ‹U+202E›doc.txt");
+    expect(visualized).not.toContain("‮");
+  });
+
+  it("counts and surfaces zero-width and bidi-isolate characters", () => {
+    const { visualized, count } = visualizeInvisibleUnicode("a​b⁦c");
+    expect(count).toBe(2);
+    expect(visualized).toBe("a‹U+200B›b‹U+2066›c");
+  });
+
+  it("leaves ordinary text (and legitimate ZWJ emoji) untouched", () => {
+    const emoji = String.fromCodePoint(0x1f469, 0x200d, 0x1f4bb);
+    const { visualized, count } = visualizeInvisibleUnicode(`plain ${emoji}`);
+    expect(count).toBe(0);
+    expect(visualized).toBe(`plain ${emoji}`);
+  });
+});
 
 describe("stripInvisibleUnicode", () => {
   it("removes zero-width space, word joiner, and BOM", () => {

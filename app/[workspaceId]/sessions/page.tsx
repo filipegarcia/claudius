@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { useParams } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Bell, FolderTree, Search, X } from "lucide-react";
 import { SideNav } from "@/components/nav/SideNav";
@@ -10,6 +10,9 @@ import { useSessionsHistory } from "@/lib/client/useSessionsHistory";
 import { useWorkspaces } from "@/lib/client/useWorkspaces";
 import { cn } from "@/lib/utils/cn";
 import { readableSessionLabel } from "@/components/chat/SessionTabs";
+import { parseSessionQuery, scoreSession } from "@/lib/shared/session-search";
+import { useKeydownBinding } from "@/lib/client/useKeydownBinding";
+import { matchBinding } from "@/lib/client/shortcuts";
 
 function fmtRelative(ms: number): string {
   const diff = Date.now() - ms;
@@ -67,9 +70,10 @@ export default function SessionsPage() {
   // (same exact-match rule the server uses for `/api/sessions?workspaceId`),
   // which also keeps the brief pre-resolution window (workspaceRoot == null →
   // unscoped fetch) correct.
-  const { sessions, accountsConfigured, loading, error, refresh, remove } = useSessionsHistory({
-    dir: workspaceRoot ?? undefined,
-  });
+  const { sessions, accountsConfigured, loading, error, refresh, remove, hasMore, loadMore } =
+    useSessionsHistory({
+      dir: workspaceRoot ?? undefined,
+    });
   // Only worth a column when there's more than one identity in play.
   const showAccounts = accountsConfigured > 1;
   const scopedSessions = useMemo(
@@ -161,27 +165,64 @@ export default function SessionsPage() {
   const filterUnread = unreadOnly && newSessions > 0;
 
   const filtered = useMemo(() => {
-    const q = filter.trim().toLowerCase();
-    return scopedSessions.filter((s) => {
+    // CC 2.1.287/2.1.288 (H1) — rank matches so the best hit sorts first (and
+    // is what Enter opens). A leading `n:` restricts to names (title + first
+    // prompt). Title matches beat first-prompt/id matches; exact beats prefix
+    // beats substring; a transcript-body match ranks below any field match.
+    const { text, namesOnly } = parseSessionQuery(filter);
+    const q = text.toLowerCase();
+    const base = scopedSessions.filter((s) => {
       if (branchFilter && s.gitBranch !== branchFilter) return false;
       if (filterUnread && !(unreadBySession[s.sessionId] > 0)) return false;
-      if (!q) return true;
-      // Primary search: the session title. We match the same fields that feed
-      // the displayed title (claudiusTitle / customTitle), plus the firstPrompt
-      // since that's the effective title for sessions the user never renamed.
-      if (
-        (s.claudiusTitle ?? "").toLowerCase().includes(q) ||
-        (s.customTitle ?? "").toLowerCase().includes(q) ||
-        (s.firstPrompt ?? "").toLowerCase().includes(q) ||
-        s.sessionId.toLowerCase().includes(q)
-      ) {
-        return true;
-      }
-      // Opt-in: also surface sessions matched inside the transcript body
-      // (server-side content search).
-      return searchTranscripts && contentMatches.has(s.sessionId);
+      return true;
     });
+    if (!q) return base;
+    const scored: { s: (typeof base)[number]; score: number }[] = [];
+    for (const s of base) {
+      let score = scoreSession(
+        {
+          customTitle: s.customTitle,
+          claudiusTitle: s.claudiusTitle,
+          firstPrompt: s.firstPrompt,
+          sessionId: s.sessionId,
+        },
+        q,
+        namesOnly,
+      );
+      // Opt-in transcript-body match (server-side content search); not in
+      // names-only mode. Ranked below any direct field match.
+      if (score == null && !namesOnly && searchTranscripts && contentMatches.has(s.sessionId)) {
+        score = 10;
+      }
+      if (score != null) scored.push({ s, score });
+    }
+    // Stable sort by score desc keeps insertion order within a tier.
+    scored.sort((a, b) => b.score - a.score);
+    return scored.map((x) => x.s);
   }, [filter, branchFilter, scopedSessions, contentMatches, searchTranscripts, filterUnread, unreadBySession]);
+
+  // CC 2.1.287/2.1.288 (H1) — the href the row's Link uses, reused by the
+  // Enter-opens-best-match handler.
+  const sessionHref = (s: { sessionId: string; cwd?: string | null }): string =>
+    `/sessions/${s.sessionId}${s.cwd ? `?dir=${encodeURIComponent(s.cwd)}` : ""}`;
+
+  // CC 2.1.287/2.1.288 (H1) — the rebindable "find session" shortcut focuses
+  // the search box. Only this page listens for it; preventDefault stops the
+  // browser's native find when the (default) Cmd/Ctrl+F binding is used.
+  const router = useRouter();
+  const searchRef = useRef<HTMLInputElement>(null);
+  const findBinding = useKeydownBinding("nav.findSession");
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (matchBinding(findBinding, e)) {
+        e.preventDefault();
+        searchRef.current?.focus();
+        searchRef.current?.select();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [findBinding]);
 
   return (
     <div className="flex h-full">
@@ -231,9 +272,17 @@ export default function SessionsPage() {
             <div className="relative w-full max-w-md">
               <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--muted)]" />
               <input
+                ref={searchRef}
                 value={filter}
                 onChange={(e) => setFilter(e.target.value)}
-                placeholder="Search titles…"
+                onKeyDown={(e) => {
+                  // CC 2.1.287/2.1.288 (H1) — Enter opens the top-ranked match.
+                  if (e.key === "Enter" && filtered.length > 0) {
+                    e.preventDefault();
+                    router.push(sessionHref(filtered[0]));
+                  }
+                }}
+                placeholder="Search titles… (n: names only)"
                 aria-label="Search sessions"
                 className="w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] py-1 pl-8 pr-7 text-xs focus:outline-none"
               />
@@ -441,6 +490,20 @@ export default function SessionsPage() {
                 );
               })}
             </ul>
+          )}
+          {/* CC 2.1.243 (H9) — load older sessions beyond the first page. */}
+          {hasMore && (
+            <div className="mt-3 flex justify-center">
+              <button
+                type="button"
+                data-testid="sessions-load-more"
+                onClick={() => loadMore()}
+                disabled={loading}
+                className="rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-3 py-1 text-xs text-[var(--muted)] hover:bg-[var(--panel)] hover:text-[var(--foreground)] disabled:opacity-40"
+              >
+                {loading ? "Loading…" : "Load more sessions"}
+              </button>
+            </div>
           )}
         </div>
       </main>

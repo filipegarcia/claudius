@@ -17,3 +17,20 @@ export const STATIC_OUTPUT_STYLES: readonly string[] = [
   "concise",
   "developer",
 ];
+
+/**
+ * CC 2.1.286 — the `/output-style` picker shows a description under each name.
+ * The SDK's `available_output_styles` is names-only, so these come from here
+ * for the known built-ins; a plugin/custom style not in this map falls back to
+ * a generic line via {@link outputStyleDescription}.
+ */
+const OUTPUT_STYLE_DESCRIPTIONS: Record<string, string> = {
+  default: "Claude's standard responses.",
+  explanatory: "Adds educational insights about the choices it makes while working.",
+  concise: "Shorter responses that get to the point.",
+  developer: "Tuned for software engineering — direct, code-first.",
+};
+
+export function outputStyleDescription(name: string): string {
+  return OUTPUT_STYLE_DESCRIPTIONS[name] ?? "Custom output style.";
+}

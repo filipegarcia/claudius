@@ -83,6 +83,15 @@ export async function writeAgent(
   raw: string,
 ): Promise<void> {
   if (!/^[\w.\-]+$/.test(name)) throw new Error("invalid agent name");
+  // CC 2.1.218 parity: ':' is reserved for plugin namespacing (e.g.
+  // `plugin-name:agent-name`), so a hand-authored agent may not claim one.
+  // The on-disk filename above is already `\w`-restricted (no ':' can reach
+  // it), but the frontmatter `name:` field is free-text in the raw textarea
+  // and was never checked — validate it too so the two can't diverge.
+  const { frontmatter } = parseFrontmatter(raw);
+  if (typeof frontmatter.name === "string" && frontmatter.name.includes(":")) {
+    throw new Error("agent name cannot contain ':' — reserved for plugin namespacing");
+  }
   // Inline path-injection barrier: resolve both sides and assert the
   // child path stays inside the scoped agents directory. CodeQL's
   // js/path-injection query only recognizes the sanitizer when it
@@ -120,8 +129,13 @@ export async function deleteAgent(scope: AgentScope, projectCwd: string, name: s
 const FM_RE = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/;
 
 export function parseFrontmatter(raw: string): { frontmatter: Record<string, unknown>; body: string } {
-  const m = FM_RE.exec(raw);
-  if (!m) return { frontmatter: {}, body: raw };
+  // CC 2.1.239 (G4) — a file saved with a UTF-8 BOM keeps the leading `﻿`
+  // after `fs.readFile(…,"utf8")`, so the `^---` delimiter never matches and the
+  // frontmatter silently parses as `{}` (agents/skills then show no description/
+  // model/badges). Strip a single leading BOM before parsing.
+  const text = raw.charCodeAt(0) === 0xfeff ? raw.slice(1) : raw;
+  const m = FM_RE.exec(text);
+  if (!m) return { frontmatter: {}, body: text };
   let frontmatter: Record<string, unknown> = {};
   try {
     // YAML 1.2 core schema (the `yaml` default): booleans/numbers/null parse

@@ -1,5 +1,10 @@
 import { describe, expect, test } from "vitest";
-import { extractReferencedPaths, findStalePromptPatterns } from "@/lib/shared/prompt-audit";
+import {
+  extractReferencedPaths,
+  extractReferencedCommands,
+  findInstructionContradictions,
+  findStalePromptPatterns,
+} from "@/lib/shared/prompt-audit";
 
 /**
  * Coverage for CC 2.1.283 parity ("Added `/doctor prompt-audit` ... to
@@ -96,5 +101,61 @@ describe("extractReferencedPaths", () => {
 
   test("returns [] for empty input", () => {
     expect(extractReferencedPaths("")).toEqual([]);
+  });
+});
+
+// CC 2.1.283 (H3) — stale `/command` references.
+describe("extractReferencedCommands", () => {
+  test("matches a backtick `/command` and one with args, de-duped", () => {
+    expect(
+      extractReferencedCommands("Run `/deploy` then `/deploy now` and `/review`."),
+    ).toEqual(["deploy", "review"]);
+  });
+
+  test("does not match a path, URL, namespaced, or mcp__ ref", () => {
+    expect(extractReferencedCommands("see `/api/sessions` and `/usr/bin/x`")).toEqual([]);
+    expect(extractReferencedCommands("visit https://x/deploy now")).toEqual([]);
+    expect(extractReferencedCommands("run `/dir:sub` please")).toEqual([]);
+    expect(extractReferencedCommands("call `/mcp__server__tool`")).toEqual([]);
+  });
+
+  test("ignores unquoted slash words (prose)", () => {
+    expect(extractReferencedCommands("use the /deploy command")).toEqual([]);
+  });
+});
+
+// CC 2.1.283 (H3) — contradicting instruction files.
+describe("findInstructionContradictions", () => {
+  test("flags a cross-source polarity conflict on the same token", () => {
+    const out = findInstructionContradictions([
+      { id: "claude-md:user", text: "Always use `npm` for installs." },
+      { id: "claude-md:project", text: "Never use `npm`; use bun." },
+    ]);
+    expect(out).toEqual([{ token: "npm", sources: ["claude-md:project", "claude-md:user"] }]);
+  });
+
+  test("does not flag a same-source conflict", () => {
+    const out = findInstructionContradictions([
+      { id: "a", text: "Always use `npm`.\nNever use `npm`." },
+    ]);
+    expect(out).toEqual([]);
+  });
+
+  test("skips a sentence with mixed polarity (ambiguous)", () => {
+    const out = findInstructionContradictions([
+      { id: "a", text: "Always prefer bun but never `npm`." },
+      { id: "b", text: "Always use `npm`." },
+    ]);
+    // Source a's sentence has both always+never → ambiguous → skipped; so only
+    // one source carries a `npm` polarity → no cross-source conflict.
+    expect(out).toEqual([]);
+  });
+
+  test("ignores unquoted prose directives", () => {
+    const out = findInstructionContradictions([
+      { id: "a", text: "Always use npm." },
+      { id: "b", text: "Never use npm." },
+    ]);
+    expect(out).toEqual([]);
   });
 });

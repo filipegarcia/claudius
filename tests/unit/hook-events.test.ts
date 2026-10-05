@@ -1,5 +1,51 @@
 import { describe, expect, test } from "vitest";
-import { HOOK_EVENT_NAMES, HOOK_EVENTS, CATEGORY_ORDER, CATEGORY_LABELS } from "@/lib/shared/hook-events";
+import {
+  HOOK_EVENT_NAMES,
+  HOOK_EVENTS,
+  CATEGORY_ORDER,
+  CATEGORY_LABELS,
+  agentHandlerAllowed,
+  AGENT_HANDLER_DISALLOWED_EVENTS,
+  hookEventGetsDurablePill,
+} from "@/lib/shared/hook-events";
+
+describe("hookEventGetsDurablePill (CC 2.1.271 — B5)", () => {
+  test("one-time lifecycle hooks get a durable pill", () => {
+    expect(hookEventGetsDurablePill("SessionStart", false)).toBe(true);
+    expect(hookEventGetsDurablePill("Setup", false)).toBe(true);
+    expect(hookEventGetsDurablePill("SessionEnd", false)).toBe(true);
+  });
+
+  test("frequent hooks get no pill on success (shown as a transient status instead)", () => {
+    expect(hookEventGetsDurablePill("PreToolUse", false)).toBe(false);
+    expect(hookEventGetsDurablePill("UserPromptSubmit", false)).toBe(false);
+    expect(hookEventGetsDurablePill("PostToolUse", false)).toBe(false);
+  });
+
+  test("ANY failed hook keeps a pill so the error stays visible", () => {
+    expect(hookEventGetsDurablePill("PreToolUse", true)).toBe(true);
+    expect(hookEventGetsDurablePill("UserPromptSubmit", true)).toBe(true);
+  });
+});
+
+describe("agentHandlerAllowed (CC 2.1.280)", () => {
+  test("agent hooks are disallowed on PermissionRequest", () => {
+    expect(agentHandlerAllowed("PermissionRequest")).toBe(false);
+    expect(AGENT_HANDLER_DISALLOWED_EVENTS).toContain("PermissionRequest");
+  });
+
+  test("agent hooks are allowed on ordinary events", () => {
+    expect(agentHandlerAllowed("PreToolUse")).toBe(true);
+    expect(agentHandlerAllowed("SessionStart")).toBe(true);
+    expect(agentHandlerAllowed("Stop")).toBe(true);
+  });
+
+  test("every disallowed event is a real hook event", () => {
+    for (const e of AGENT_HANDLER_DISALLOWED_EVENTS) {
+      expect(HOOK_EVENT_NAMES).toContain(e);
+    }
+  });
+});
 
 /**
  * `lib/shared/hook-events.ts` mirrors the SDK's `HOOK_EVENTS` const

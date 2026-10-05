@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
+import { useAutoContinueAtUsageLimit } from "@/lib/client/useAutoContinueAtUsageLimit";
+import type { ClaudeSettings } from "@/lib/server/settings";
 import { AssistantMessage } from "./AssistantMessage";
 import { UserMessage } from "./UserMessage";
 import { AskUserQuestionPrompt } from "./AskUserQuestionPrompt";
@@ -205,6 +207,27 @@ export function MessageList({
     if (!ws) return null;
     return { workspaceId: ws.id, cwd: ws.rootPath };
   }, [workspaceItems, activeWorkspaceId]);
+
+  // CC 2.1.234 — whether the usage-limit panel should say "Continuing
+  // automatically at HH:MM". Read once here (shared by every rate-limit bubble)
+  // from the user-scope setting; Cancel disables it (read-merge-write so other
+  // keys are preserved).
+  const autoContinueAtUsageLimit = useAutoContinueAtUsageLimit(fileLink?.cwd ?? null);
+  const onCancelAutoContinue = useCallback(async () => {
+    const cwd = fileLink?.cwd;
+    if (!cwd) return;
+    try {
+      const r = await fetch(`/api/settings?scope=user&cwd=${encodeURIComponent(cwd)}`);
+      const cur = r.ok ? (((await r.json()) as { settings?: ClaudeSettings }).settings ?? {}) : {};
+      await fetch("/api/settings/full", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ scope: "user", cwd, settings: { ...cur, autoContinueAtUsageLimit: false } }),
+      });
+    } catch {
+      // best-effort — leave the setting as-is on a transient failure.
+    }
+  }, [fileLink?.cwd]);
 
   // For scroll-anchor preservation on prepend.
   const prevHeadUuidRef = useRef<string>("");
@@ -620,6 +643,8 @@ export function MessageList({
                           onReopenAsk={onReopenAsk}
                           verbose={verbose}
                           toolProgress={toolProgress}
+                          autoContinueAtUsageLimit={autoContinueAtUsageLimit}
+                          onCancelAutoContinue={onCancelAutoContinue}
                         />
                       )}
                       {(grouped.get(m.uuid) ?? []).map((e) => (

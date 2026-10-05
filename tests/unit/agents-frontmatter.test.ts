@@ -15,6 +15,23 @@ describe("parseFrontmatter", () => {
     expect(parseFrontmatter(raw)).toEqual({ frontmatter: {}, body: raw });
   });
 
+  test("a leading UTF-8 BOM doesn't swallow the frontmatter (CC 2.1.239 — G4)", () => {
+    // A file saved with a BOM keeps the leading ﻿ after utf8 read; without
+    // stripping it, `^---` never matches and the frontmatter parses as {}.
+    const raw = "﻿---\nname: my-agent\ndescription: Hi\n---\nBody.\n";
+    const { frontmatter, body } = parseFrontmatter(raw);
+    expect(frontmatter.name).toBe("my-agent");
+    expect(frontmatter.description).toBe("Hi");
+    expect(body).toBe("Body.\n");
+  });
+
+  test("a BOM on a no-frontmatter file is stripped from the body", () => {
+    expect(parseFrontmatter("﻿just a body\n")).toEqual({
+      frontmatter: {},
+      body: "just a body\n",
+    });
+  });
+
   test("parses scalars to their JS types (string / number / boolean)", () => {
     const raw = [
       "---",

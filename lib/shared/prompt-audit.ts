@@ -105,3 +105,84 @@ export function extractReferencedPaths(text: string): string[] {
   }
   return [...out];
 }
+
+// CC 2.1.283 (H3) — backtick-quoted slash-command references (`/name` or
+// `/name args`). Matching only the backtick form is what keeps `/api/...`
+// paths and `/usr/...` prose from false-flagging: after the command name the
+// next char must be a space or the closing backtick, so `/api/x` (next char
+// `/`) and `/dir:x` (next char `:`) never match. Names are lowercase-led.
+const COMMAND_REF_RE = /`\/([a-z][\w-]*)(?: [^`]*)?`/g;
+
+/**
+ * Extract backtick-quoted `/command` references from prose (without the
+ * leading slash). Namespaced (`/dir:x`), MCP (`/mcp__…`) and path-shaped refs
+ * are intentionally excluded — they can't be validated without a live session.
+ * The caller validates the rest against the known-command set.
+ */
+export function extractReferencedCommands(text: string): string[] {
+  if (!text) return [];
+  const out = new Set<string>();
+  COMMAND_REF_RE.lastIndex = 0;
+  let m: RegExpExecArray | null;
+  while ((m = COMMAND_REF_RE.exec(text))) {
+    const name = m[1];
+    if (name.startsWith("mcp__")) continue; // MCP prompt, not a slash command
+    out.add(name);
+  }
+  return [...out];
+}
+
+// CC 2.1.283 (H3) — directive polarity. `must` is positive only when not
+// "must not". Each class is matched per sentence; a sentence carrying both
+// classes is ambiguous and skipped.
+const POSITIVE_DIRECTIVE_RE = /\balways\b|\bmust\b(?! not)|\bonly use\b/i;
+const NEGATIVE_DIRECTIVE_RE = /\bnever\b|\bdon'?t\b|\bdo not\b|\bmust not\b|\bavoid\b/i;
+const BACKTICK_TOKEN_RE = /`([^`]+)`/g;
+
+export type InstructionContradiction = {
+  /** The backtick token given opposite directives across files. */
+  token: string;
+  /** The conflicting source ids (opaque to this module; the caller supplies them). */
+  sources: string[];
+};
+
+/**
+ * CC 2.1.283 (H3) — detect instruction files that give a backtick-quoted token
+ * directly opposite directives. Deliberately conservative to avoid prose
+ * noise: only backtick tokens count; polarity is scoped per sentence (split on
+ * `.`, `;`, newline); a sentence with BOTH polarities is skipped as ambiguous;
+ * and only *cross-source* conflicts are flagged (the same token with opposite
+ * polarity in two different files), matching upstream's "contradicting
+ * instruction *files*". Pure so it's unit-testable without disk.
+ */
+export function findInstructionContradictions(
+  sources: { id: string; text: string }[],
+): InstructionContradiction[] {
+  const byToken = new Map<string, { pos: Set<string>; neg: Set<string> }>();
+  for (const { id, text } of sources) {
+    if (!text) continue;
+    for (const sentence of text.split(/[.;\n]/)) {
+      const pos = POSITIVE_DIRECTIVE_RE.test(sentence);
+      const neg = NEGATIVE_DIRECTIVE_RE.test(sentence);
+      if (pos === neg) continue; // neither, or both (ambiguous)
+      BACKTICK_TOKEN_RE.lastIndex = 0;
+      let m: RegExpExecArray | null;
+      while ((m = BACKTICK_TOKEN_RE.exec(sentence))) {
+        const token = m[1].trim();
+        if (!token) continue;
+        const entry = byToken.get(token) ?? { pos: new Set<string>(), neg: new Set<string>() };
+        (pos ? entry.pos : entry.neg).add(id);
+        byToken.set(token, entry);
+      }
+    }
+  }
+  const out: InstructionContradiction[] = [];
+  for (const [token, { pos, neg }] of byToken) {
+    // Cross-file: at least one positive source and one DIFFERENT negative source.
+    const conflict = [...pos].some((p) => [...neg].some((n) => n !== p));
+    if (conflict) {
+      out.push({ token, sources: [...new Set([...pos, ...neg])].sort() });
+    }
+  }
+  return out;
+}

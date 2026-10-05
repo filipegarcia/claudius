@@ -155,6 +155,25 @@ export async function getRepoRoot(cwd: string): Promise<string | undefined> {
 }
 
 /**
+ * CC 2.1.259 — the `origin` remote URL, used to tell a GitHub repo from a
+ * GitLab one so `/install-github-app` can branch. Returns null when cwd isn't
+ * a repo, git is missing, or there's no `origin` remote. `execFile` (not a
+ * shell) so `cwd` can't inject.
+ */
+export async function getOriginRemoteUrl(cwd: string): Promise<string | null> {
+  if (!(await isGitInstalled())) return null;
+  try {
+    const { stdout } = await execFileP("git", ["config", "--get", "remote.origin.url"], {
+      cwd,
+      timeout: TIMEOUT_MS,
+    });
+    return stdout.trim() || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Parse `git status --porcelain=v1 -z`. Records are NUL-terminated; renames
  * (`R` or `C`) emit a second NUL-terminated record for the original path.
  */

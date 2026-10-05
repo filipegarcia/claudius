@@ -34,6 +34,17 @@ export function parseAtMentionQuery(query: string): { agentMode: boolean; filter
 }
 
 /**
+ * CC 2.1.275/2.1.278 — normalise a file-mention query's leading `./` before it
+ * reaches `/api/fs/list`. `@./src` carried the `./` into the query, and the fs
+ * scorer ranks against relPaths with no leading `./` (so it substring-missed /
+ * needed a `.`-before-`/` subsequence → near-empty results). Strip a single
+ * leading `./`; a bare `@.` (no slash) is left alone.
+ */
+export function normalizeFileMentionQuery(query: string): string {
+  return query.replace(/^\.\//, "");
+}
+
+/**
  * The token body passed to `onSelect` (no leading `@`): files keep their
  * relative path; agents become `agent-<name>` so the parent's `insertAtMention`
  * wraps them to `@agent-<name> ` unchanged — matching the SDK `@agent-name`

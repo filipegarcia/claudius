@@ -35,4 +35,15 @@ describe("isConfidentSlashMatch", () => {
   test("a filter that matches neither the name nor an alias is not confident", () => {
     expect(isConfidentSlashMatch({ name: "cost", aliases: ["usage"] }, "xyz")).toBe(false);
   });
+
+  // CC 2.1.265 (D4) — a plugin/namespaced command is a confident match by its
+  // bare name (after the last ':'), so the plugin prefix is optional.
+  test("a plugin skill is a confident match by its bare name", () => {
+    expect(isConfidentSlashMatch({ name: "my-plugin:deploy" }, "deploy")).toBe(true);
+    expect(isConfidentSlashMatch({ name: "my-plugin:deploy" }, "dep")).toBe(true);
+    // still confident by the full prefixed name
+    expect(isConfidentSlashMatch({ name: "my-plugin:deploy" }, "my-plugin")).toBe(true);
+    // a bare name that doesn't prefix-match is not confident
+    expect(isConfidentSlashMatch({ name: "my-plugin:deploy" }, "ploy")).toBe(false);
+  });
 });

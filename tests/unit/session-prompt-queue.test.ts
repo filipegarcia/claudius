@@ -37,7 +37,7 @@ type Internals = {
   drainPendingDecisions: (reason: string) => void;
   resolvePermission: Session["resolvePermission"];
   resolveElicitation: Session["resolveElicitation"];
-  getStatus: () => "running" | "idle";
+  getStatus: () => "running" | "idle" | "needs_input";
   hasPendingUserPrompts: () => boolean;
 };
 
@@ -82,6 +82,69 @@ describe("permission queue — server side", () => {
     expect(s.hasPendingUserPrompts()).toBe(false);
   });
 
+  // CC 2.1.235 — "Always allow" must write the SDK's narrow rule suggestion
+  // (e.g. `Bash(git status:*)`), not a blanket whole-tool grant.
+  test("allow_always writes the narrow rule suggestion, not the whole tool", async () => {
+    const { s, events } = makeSession();
+    const narrowCtx = {
+      signal: new AbortController().signal,
+      toolUseID: "tuN",
+      suggestions: [
+        {
+          type: "addRules",
+          behavior: "allow",
+          rules: [{ toolName: "Bash", ruleContent: "git status:*" }],
+          destination: "session",
+        },
+      ],
+    };
+    const p = s.canUseTool("Bash", { command: "git status" }, narrowCtx);
+    const [r] = requests(events);
+    // The prompt carries the display form so the user sees the scope.
+    expect(r.suggestedRules).toEqual([{ toolName: "Bash", ruleContent: "git status:*" }]);
+
+    expect(s.resolvePermission(r.requestId, { kind: "allow_always_save", destination: "projectSettings" })).toBe(true);
+    const res = await p;
+    expect(res).toMatchObject({
+      behavior: "allow",
+      updatedPermissions: [
+        {
+          type: "addRules",
+          behavior: "allow",
+          rules: [{ toolName: "Bash", ruleContent: "git status:*" }],
+          destination: "projectSettings", // user's chosen scope wins over the suggestion's
+        },
+      ],
+    });
+  });
+
+  test("allow_always falls back to the whole tool when the SDK offers no suggestion", async () => {
+    const { s, events } = makeSession();
+    const p = s.canUseTool("Bash", { command: "ls" }, ctx("tuF"));
+    const [r] = requests(events);
+    expect(r.suggestedRules).toEqual([]);
+    expect(s.resolvePermission(r.requestId, { kind: "allow_always_session" })).toBe(true);
+    const res = await p;
+    expect(res).toMatchObject({
+      updatedPermissions: [
+        { type: "addRules", behavior: "allow", rules: [{ toolName: "Bash" }], destination: "session" },
+      ],
+    });
+  });
+
+  // CC 2.1.212 (B6) — a turn blocked on a prompt reports "needs_input", and
+  // returns to idle once answered.
+  test("getStatus() is 'needs_input' while a prompt is pending, then idle", async () => {
+    const { s, events } = makeSession();
+    expect(s.getStatus()).toBe("idle");
+    const p = s.canUseTool("Bash", { command: "ls" }, ctx("tu-ni"));
+    const [r] = requests(events);
+    expect(s.getStatus()).toBe("needs_input");
+    s.resolvePermission(r.requestId, { kind: "deny" });
+    await p;
+    expect(s.getStatus()).toBe("idle");
+  });
+
   test("an aborted tool call settles its prompt", async () => {
     const { s, events } = makeSession();
     const ac = new AbortController();
@@ -106,7 +169,8 @@ describe("MCP elicitation", () => {
     const p = s.onElicitation(formReq, { signal: new AbortController().signal, requestId: "sdk-1" });
     const req = events.find((e) => e.type === "mcp_elicitation_request");
     expect(req).toMatchObject({ serverName: "acme", message: "Which project?", mode: "form" });
-    expect(s.getStatus()).toBe("running");
+    // CC 2.1.212 (B6) — a pending prompt is "needs_input", not "running".
+    expect(s.getStatus()).toBe("needs_input");
     expect(s.hasPendingUserPrompts()).toBe(true);
 
     const requestId = (req as { requestId: string }).requestId;

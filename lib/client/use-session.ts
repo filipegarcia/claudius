@@ -25,7 +25,11 @@ import type {
 import type { Tip } from "@/lib/shared/tips";
 import type { ApiRetryState } from "@/lib/client/api-retry";
 import { costFromTokens } from "@/lib/shared/cost-pricing";
+import { classifyInformationalLevel } from "@/lib/shared/system-informational";
 import { parseInitSystemMessage } from "@/lib/shared/parse-init";
+import { hookEventGetsDurablePill } from "@/lib/shared/hook-events";
+import { commandNamesFromChanged } from "@/lib/shared/slash-commands";
+import { clearPendingMessages } from "./clear-pending";
 import { ADVISOR_ACTIVE_SENTINEL } from "@/lib/shared/advisor";
 import { matchesUsageLimitPrefix } from "@/lib/shared/rate-limit-prefixes";
 import {
@@ -49,6 +53,7 @@ import {
   isBackgroundedToolUse,
   reconcileTasksOnToolResult,
   seedTaskStatus,
+  setTaskModelForToolUse,
   shouldRecoverOrphanTask,
   upsertProvisionalTask,
 } from "./task-status";
@@ -288,11 +293,11 @@ export function isOpusHighDemandText(blocks: DisplayBlock[]): boolean {
 /**
  * Copy shown in place of the SDK's `model_not_found` prose when the selected
  * model can't be used (doesn't exist, or isn't enabled for this account /
- * region — e.g. Claude Fable 5 outside its rollout). The bare URL is
+ * region — e.g. Claude Fable 5.1 outside its rollout). The bare URL is
  * auto-linked by `remark-gfm` when the bubble renders through `<Markdown>`.
  */
 export const MODEL_UNAVAILABLE_MESSAGE =
-  "Claude Fable 5 is currently unavailable. Please use Opus 4.8 or another available model. Learn more: https://www.anthropic.com/news/fable-mythos-access";
+  "Claude Fable 5.1 is currently unavailable. Please use Opus 5.5 or another available model. Learn more: https://www.anthropic.com/news/fable-mythos-access";
 
 /**
  * Detect the Claude Code CLI's "selected model can't be used" prose. The
@@ -347,6 +352,7 @@ function rateLimitHitFromBlocks(
   blocks: DisplayBlock[],
   last: SystemEntry["rateLimit"] | null,
   fallbackModel: string | null,
+  subscriptionType?: string | null,
 ): NonNullable<DisplayMessage["rateLimitHit"]> {
   const text = blocks.find((b) => b.kind === "text")?.text ?? "";
   const rateLimitType = last?.rateLimitType ?? rateLimitTypeFromText(text);
@@ -373,6 +379,8 @@ function rateLimitHitFromBlocks(
   // SDK 0.3.268 — forward a shared-pool denial so the panel can swap the
   // personal upgrade links for a contact-your-admin line.
   if (last?.limitScope) hit.limitScope = last.limitScope;
+  // CC 2.1.284 — carry the plan tier so the panel can tailor its CTA.
+  if (subscriptionType) hit.subscriptionType = subscriptionType;
   return hit;
 }
 
@@ -949,6 +957,13 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
   const [holderTabId, setHolderTabId] = useState<string | null>(null);
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
   const [systemEntries, setSystemEntries] = useState<SystemEntry[]>([]);
+  // CC 2.1.271 — the hook currently running (for the "Running <event> hook · Ns"
+  // status line). Set on hook_started, cleared on the matching hook_response.
+  const [runningHook, setRunningHook] = useState<{ event: string; startedAt: number } | null>(null);
+  const runningHookIdRef = useRef<string | null>(null);
+  // CC 2.1.212 — true while the turn is blocked on a user prompt (the server's
+  // getStatus() returns "needs_input"); drives the tab strip's "Needs input".
+  const [needsInput, setNeedsInput] = useState(false);
   const [toolProgress, setToolProgress] = useState<Record<string, ToolProgressInfo>>({});
   const [queue, setQueue] = useState<QueuedMessage[]>([]);
   // FIFO queues (oldest first) — several prompts can be pending at once when
@@ -1036,6 +1051,10 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
   const [agentCwd, setAgentCwd] = useState<string | null>(null);
   const [usage, setUsage] = useState<SessionUsage | null>(null);
   const [planUsage, setPlanUsage] = useState<PlanRateLimits | null>(null);
+  // CC 2.1.284 — last-known subscription tier, mirrored in a ref so the
+  // rate-limit-hit builder (which runs in the message reducer) can tailor the
+  // panel's CTA for Team/Enterprise without re-subscribing to planUsage.
+  const subscriptionTypeRef = useRef<string | null>(null);
   const [tasks, setTasks] = useState<Record<string, TaskInfo>>({});
   // Authoritative set of live background-task ids from the SDK's
   // `background_tasks_changed` message (0.3.203). REPLACE semantics, ids-only —
@@ -1064,7 +1083,13 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
   // the moment of the cooldown edge, so the toast can say *why* — see
   // FastModeNoticePanel.
   const [fastModeNotice, setFastModeNotice] = useState<
-    { uuid: string; kind: "cooldown" | "recovered"; reason?: string } | null
+    | { uuid: string; kind: "cooldown" | "recovered"; reason?: string }
+    // CC 2.1.218 parity: fired from the `model_changed` handler below when
+    // the server attributes a fast-mode capability change to this specific
+    // switch (see `Session.setModel`'s `fastModeNowSupported`), not from the
+    // SDK's bare `fast_mode_state` edge — that field carries no "why".
+    | { uuid: string; kind: "model-switch"; model: string; nowSupported: boolean }
+    | null
   >(null);
   // Transient toast for a rejected `/model` switch — the local analogue of the
   // TUI's "Remote session couldn't switch to <model>" notice. Fires when the
@@ -1391,6 +1416,10 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
   // `effort` — no SDK event to replay, so we track the last toggle and
   // reset to off on a fresh session.
   const [ultracode, setUltracodeState] = useState<boolean>(false);
+  // CC 2.1.284 — mirror ultracode in a ref so `setEffort` (deps []) can send
+  // the current value and keep it on across a level change.
+  const ultracodeRef = useRef(ultracode);
+  ultracodeRef.current = ultracode;
   // Latest effort for callbacks that must compare against it without
   // re-creating themselves (see `setEffort`).
   const effortRef = useRef(effort);
@@ -2257,6 +2286,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
         return;
       }
       if (ev.type === "plan_usage") {
+        subscriptionTypeRef.current = ev.subscriptionType ?? null;
         setPlanUsage({
           subscriptionType: ev.subscriptionType,
           rateLimitsAvailable: ev.rateLimitsAvailable,
@@ -2264,6 +2294,8 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
           ...(ev.modelScoped ? { modelScoped: ev.modelScoped } : {}),
           // CC parity 2.1.251 — gateway spend limit, sibling of rateLimits.
           ...(ev.spendLimit ? { spendLimit: ev.spendLimit } : {}),
+          // CC parity 2.1.236 — usage-credits ("extra usage") spend.
+          ...(ev.extraUsage ? { extraUsage: ev.extraUsage } : {}),
           fetchedAt: ev.fetchedAt,
           stale: false,
         });
@@ -2306,6 +2338,16 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
         // above) without a toast — resume happens before the user is looking
         // at a live turn, and an external sdk/IDE caller setting the model
         // isn't a Claudius-initiated action worth interrupting the chat for.
+        // CC 2.1.218 parity: announce a fast-mode capability change caused by
+        // this switch (see `fastModeNowSupported`'s doc in lib/shared/events.ts).
+        if (ev.fastModeNowSupported !== undefined && ev.model) {
+          setFastModeNotice({
+            uuid: crypto.randomUUID(),
+            kind: "model-switch",
+            model: ev.model,
+            nowSupported: ev.fastModeNowSupported,
+          });
+        }
         return;
       }
       if (ev.type === "advisor_disabled_on_model_change") {
@@ -2466,6 +2508,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
               error: t.error,
               resourceLinks: t.resourceLinks,
               reason: t.reason,
+              outputFile: t.outputFile,
             };
             changed = true;
           }
@@ -2518,6 +2561,12 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
         // (long Bash, slow tool) paints the StatusLine / tab dot correctly
         // even when no further assistant chunks arrive.
         setPendingTracked(ev.status === "running");
+        // CC 2.1.212 — server-authoritative "blocked on a user prompt" signal.
+        setNeedsInput(ev.status === "needs_input");
+        // CC 2.1.275 — any turn-status transition means the server has taken
+        // the message off our hands (it's running, needs input, or already
+        // finished), so clear the "sent, not yet received" dimming.
+        setMessages(clearPendingMessages);
         // Backgrounded work that runs while `status` reads "idle" (fire-and-
         // forget subagents / Workflows). Header uses it for the "Idle · N
         // running" cue. Absent on older payloads ⇒ 0.
@@ -2689,6 +2738,13 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
               aborted,
             ),
           }));
+          // CC 2.1.243 — record the model this subagent actually ran on, from
+          // its forwarded assistant message (the task messages don't carry it).
+          // Keyed to the task by its tool_use_id; set once.
+          const subModel = (msg as { message?: { model?: string } }).message?.model;
+          if (subModel) {
+            setTasks((prev) => setTaskModelForToolUse(prev, parent, subModel));
+          }
           // Don't override the main lastAssistantUuid — deltas anchor to top-level.
           return;
         }
@@ -2709,7 +2765,12 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
         const assistantError = (msg as { error?: string }).error;
         const rateLimitHit =
           assistantError === "rate_limit" || isRateLimitHitText(blocks)
-            ? rateLimitHitFromBlocks(blocks, lastRateLimitInfoRef.current, fallbackModelRef.current)
+            ? rateLimitHitFromBlocks(
+                blocks,
+                lastRateLimitInfoRef.current,
+                fallbackModelRef.current,
+                subscriptionTypeRef.current,
+              )
             : undefined;
         // Opus-4 high-demand banner: backend emits the CTA as assistant prose
         // (no `error` field, no structured event), so it's prose-only on both
@@ -2720,6 +2781,12 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
         // model" prose with our actionable copy (use a different model + learn
         // more). The selected model isn't enabled for this account/region.
         const displayBlocks = rewriteModelUnavailableBlocks(blocks, assistantError);
+        // CC 2.1.243 — a generic SDKAssistantMessageError frame (server_error,
+        // billing_error, invalid_request, …) that isn't already handled by the
+        // rate-limit panel gets error styling instead of rendering as plain
+        // model prose.
+        const errorTag =
+          assistantError && assistantError !== "rate_limit" ? assistantError : undefined;
         lastAssistantUuidRef.current = messageId;
         setMessages((prev) =>
           upsertAssistantSplit(
@@ -2733,6 +2800,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
             rateLimitHit,
             opusHighDemand,
             aborted,
+            errorTag,
           ),
         );
         setPendingTracked(true);
@@ -3664,6 +3732,19 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
               if (prev.some((e) => e.uuid === uuid)) return prev;
               return [...prev, { uuid, afterMessageUuid: anchor, kind: "info", label }];
             });
+            // CC 2.1.285 — a user message that leads with a quoted CC/IDE tag
+            // still has its real text after the wrapper. Render that as a normal
+            // user bubble instead of dropping it with the pill.
+            if (cli.trailing) {
+              const trailUuid = `${uuid}:trailing`;
+              setMessages((prev) => {
+                if (prev.some((m) => m.uuid === trailUuid)) return prev;
+                return [
+                  ...prev,
+                  { uuid: trailUuid, role: "user", blocks: [{ kind: "text", text: cli.trailing }] },
+                ];
+              });
+            }
             return;
           }
           // Rebuild text + image attachments together (see extractUserContent
@@ -4004,11 +4085,21 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
           return;
         }
         if (sysAny.subtype === "hook_started") {
-          const h = sysAny as { hook_name?: string; hook_event?: string };
-          setSystemEntries((prev) => [
-            ...prev,
-            { ...baseEntry, kind: "hook_started", label: `Hook ${h.hook_name ?? h.hook_event ?? ""}` },
-          ]);
+          const h = sysAny as { hook_id?: string; hook_name?: string; hook_event?: string };
+          const event = h.hook_event ?? h.hook_name ?? "";
+          // CC 2.1.271 — with includeHookEvents every PreToolUse/UserPromptSubmit
+          // hook now streams; show the frequent ones as a transient status-line
+          // indicator rather than flooding the transcript with a pill each.
+          // The one-time lifecycle hooks keep their durable pill.
+          if (hookEventGetsDurablePill(event, false)) {
+            setSystemEntries((prev) => [
+              ...prev,
+              { ...baseEntry, kind: "hook_started", label: `Hook ${h.hook_name ?? event}` },
+            ]);
+          } else {
+            runningHookIdRef.current = h.hook_id ?? null;
+            setRunningHook({ event, startedAt: Date.now() });
+          }
           return;
         }
         if (sysAny.subtype === "hook_response") {
@@ -4019,24 +4110,38 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
           // whenever the hook didn't succeed so the failure reason is
           // visible instead of just a bare "→ error" pill.
           const h = sysAny as {
+            hook_id?: string;
             hook_name?: string;
+            hook_event?: string;
             exit_code?: number;
             outcome?: string;
             stderr?: string;
           };
+          // CC 2.1.271 — clear the transient "Running <event> hook" indicator.
+          if (h.hook_id && h.hook_id === runningHookIdRef.current) {
+            runningHookIdRef.current = null;
+            setRunningHook(null);
+          }
           const failed = h.outcome === "error" || h.outcome === "cancelled";
           const stderr = failed && h.stderr?.trim() ? h.stderr.trim() : undefined;
-          setSystemEntries((prev) => [
-            ...prev,
-            {
-              ...baseEntry,
-              kind: "hook_response",
-              label: `Hook ${h.hook_name ?? ""} → ${h.outcome ?? "ok"}`,
-              detail: typeof h.exit_code === "number" ? `exit ${h.exit_code}` : undefined,
-              hookFailed: failed,
-              hookStderr: stderr,
-            },
-          ]);
+          // Keep a durable pill for the one-time lifecycle hooks and for ANY
+          // hook that failed (so the error is visible); a routine success of a
+          // frequent hook just clears the indicator above with no pill.
+          if (hookEventGetsDurablePill(h.hook_event ?? "", failed)) {
+            // CC 2.1.257 — coalesce repeated identical hook-completion notices
+            // onto one `×N` line (keyed on kind+label+anchor) instead of
+            // stacking a pill per response, the same way init/status bursts fold.
+            setSystemEntries((prev) =>
+              appendCoalescedSystemEntry(prev, {
+                ...baseEntry,
+                kind: "hook_response",
+                label: `Hook ${h.hook_name ?? ""} → ${h.outcome ?? "ok"}`,
+                detail: typeof h.exit_code === "number" ? `exit ${h.exit_code}` : undefined,
+                hookFailed: failed,
+                hookStderr: stderr,
+              }),
+            );
+          }
           return;
         }
         if (sysAny.subtype === "status") {
@@ -4107,6 +4212,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
             is_backgrounded?: boolean;
             spawn_depth?: number;
             ambient?: boolean;
+            skip_transcript?: boolean;
           };
           // SSE ordering can deliver the Task's tool_result before this
           // task_started; seed the terminal status in that case so the pill
@@ -4144,6 +4250,9 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
                 // user work. Seeded here; kept current by task_notification
                 // and background_tasks_changed below.
                 ambient: t.ambient,
+                // CC 2.1.285 — Claude Code's own housekeeping tasks; folded
+                // under a single "System tasks" group instead of one row each.
+                skipTranscript: t.skip_transcript,
               },
             };
           });
@@ -4152,7 +4261,15 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
         if (sysAny.subtype === "task_updated") {
           const t = sysAny as unknown as {
             task_id: string;
-            patch: { status?: TaskStatus; description?: string; error?: string; is_backgrounded?: boolean };
+            patch: {
+              status?: TaskStatus;
+              description?: string;
+              error?: string;
+              is_backgrounded?: boolean;
+              // CC 2.1.271 — cumulative paused time for a usage-limit-paused
+              // dynamic-workflow agent.
+              total_paused_ms?: number;
+            };
           };
           setTasks((prev) => {
             const existing = prev[t.task_id];
@@ -4165,6 +4282,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
                 description: t.patch.description ?? existing.description,
                 error: t.patch.error ?? existing.error,
                 isBackgrounded: t.patch.is_backgrounded ?? existing.isBackgrounded,
+                totalPausedMs: t.patch.total_paused_ms ?? existing.totalPausedMs,
               },
             };
           });
@@ -4202,6 +4320,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
             tool_use_id?: string;
             status: "completed" | "failed" | "stopped";
             summary?: string;
+            output_file?: string;
             usage?: { total_tokens?: number; tool_uses?: number; duration_ms?: number };
             ambient?: boolean;
             // SDK 0.3.257 — files an auto-backgrounded MCP tool call returned
@@ -4240,6 +4359,8 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
                 // task_started already seeded when this notification omits it.
                 ambient: t.ambient ?? base.ambient,
                 resourceLinks: t.resource_links ?? base.resourceLinks,
+                // CC 2.1.284 — the file holding what this task/Monitor printed.
+                outputFile: t.output_file ?? base.outputFile,
                 reason: t.reason ?? base.reason,
               },
             };
@@ -4409,6 +4530,12 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
         if (sysAny.subtype === "informational") {
           const inf = sysAny as { content?: string; level?: string; prevent_continuation?: boolean };
           const content = typeof inf.content === "string" ? inf.content.trim() : "";
+          // CC 2.1.217 — `level: 'info'` is transcript-mode-only; don't surface
+          // it in the chat. Other levels tone the pill (notice gray, suggestion
+          // sky, warning amber) so a data-loss warning stops looking like
+          // routine info.
+          const { hidden, infoLevel } = classifyInformationalLevel(inf.level);
+          if (hidden) return;
           if (content) {
             setSystemEntries((prev) => [
               ...prev,
@@ -4417,6 +4544,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
                 kind: "info",
                 label: content,
                 detail: inf.prevent_continuation ? "blocked" : undefined,
+                ...(infoLevel ? { infoLevel } : {}),
               },
             ]);
           }
@@ -4450,8 +4578,8 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
         // list rehydrates from the stale system:init snapshot (see run-notes
         // 0.3.195 Risks/follow-ups for the full-fix approach).
         if (sysAny.subtype === "commands_changed") {
-          const cc = sysAny as { commands?: Array<{ name: string }> };
-          const names = (cc.commands ?? []).map((c: { name: string }) => c.name);
+          const cc = sysAny as { commands?: Array<{ name?: unknown }> };
+          const names = commandNamesFromChanged(cc.commands);
           if (names.length > 0) setSlashCommands(names);
           return;
         }
@@ -4461,6 +4589,96 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
         // subtype is stripped to `undefined` before it reaches us — without
         // this guard, a long loop floods the chat with `system/?` rows that
         // aren't even durable across a reload. See isSuppressedSystemEvent.
+        // CC 2.1.288 — an MCP server confirmed a URL-mode elicitation is
+        // complete. Surface a brief confirmation instead of the cryptic
+        // `system/elicitation_complete` catch-all pill.
+        if (sysAny.subtype === "elicitation_complete") {
+          const e = sysAny as { mcp_server_name?: string };
+          setSystemEntries((prev) => [
+            ...prev,
+            {
+              ...baseEntry,
+              kind: "info",
+              label: e.mcp_server_name
+                ? `${e.mcp_server_name}: link confirmed`
+                : "MCP link confirmed",
+            },
+          ]);
+          return;
+        }
+        // CC 2.1.284 — a safeguards/refusal block. `model_refusal_fallback`
+        // (a fallback model answered) and `model_refusal_no_fallback` (the
+        // turn stopped with no retry) both carry `content`, an
+        // `api_refusal_explanation`, and the refused user message's uuid for
+        // edit-and-retry. Surface it prominently instead of dropping it.
+        if (
+          sysAny.subtype === "model_refusal_fallback" ||
+          sysAny.subtype === "model_refusal_no_fallback"
+        ) {
+          const r = sysAny as {
+            content?: string;
+            api_refusal_explanation?: string | null;
+            refused_user_message_uuid?: string | null;
+          };
+          const label =
+            typeof r.content === "string" && r.content.trim()
+              ? r.content.trim()
+              : "The model declined this request for safety reasons.";
+          const detail =
+            typeof r.api_refusal_explanation === "string" && r.api_refusal_explanation.trim()
+              ? r.api_refusal_explanation.trim()
+              : undefined;
+          setSystemEntries((prev) => [
+            ...prev,
+            {
+              ...baseEntry,
+              kind: "model_refusal",
+              label,
+              ...(detail ? { detail } : {}),
+              ...(typeof r.refused_user_message_uuid === "string" && r.refused_user_message_uuid
+                ? { refusedUserMessageUuid: r.refused_user_message_uuid }
+                : {}),
+            },
+          ]);
+          return;
+        }
+        // CC 2.1.267/2.1.274 — loop-side `system/notification` carries
+        // `{text, priority}`; render the text (priority-toned) instead of a
+        // text-less `system/notification` pill.
+        if (sysAny.subtype === "notification") {
+          const n = sysAny as {
+            text?: string;
+            priority?: "low" | "medium" | "high" | "immediate";
+          };
+          const text = typeof n.text === "string" ? n.text.trim() : "";
+          if (text) {
+            setSystemEntries((prev) => [
+              ...prev,
+              {
+                ...baseEntry,
+                kind: "notification",
+                label: text,
+                ...(n.priority ? { priority: n.priority } : {}),
+              },
+            ]);
+          }
+          return;
+        }
+        // CC 2.1.267 — `system/local_command_output` carries the rendered
+        // output of a local command (e.g. `/context`); show its `content`
+        // rather than dropping it behind a bare `system/local_command_output`
+        // label (the mobile-blank-output bug class).
+        if (sysAny.subtype === "local_command_output") {
+          const c = sysAny as { content?: string };
+          const content = typeof c.content === "string" ? c.content.trim() : "";
+          if (content) {
+            setSystemEntries((prev) => [
+              ...prev,
+              { ...baseEntry, kind: "info", label: content },
+            ]);
+          }
+          return;
+        }
         if (isSuppressedSystemEvent(sysAny.subtype)) return;
         setSystemEntries((prev) => [
           ...prev,
@@ -5106,7 +5324,12 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     async (
       text: string,
       images?: Array<{ id?: string; ordinal?: number; data: string; mediaType: string }>,
-      opts?: { asSlashCommand?: boolean; fromSuggestion?: boolean; fromGoal?: boolean },
+      opts?: {
+        asSlashCommand?: boolean;
+        fromSuggestion?: boolean;
+        fromGoal?: boolean;
+        inlinePastes?: string[];
+      },
     ) => {
       const id = sessionIdRef.current;
       const trimmedText = text.trim();
@@ -5154,6 +5377,9 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
             blocks: [{ kind: "text", text }],
             ...(normalized ? { images: normalized } : {}),
             createdAt: sentAt,
+            // CC 2.1.275 — dimmed until the model receives it (turn_status
+            // running clears this).
+            pending: true,
           },
         ]);
       }
@@ -5182,6 +5408,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
           ...(isSlash ? { slash: true } : {}),
           ...(fromSuggestion ? { fromSuggestion: true } : {}),
           ...(fromGoal ? { fromGoal: true } : {}),
+          ...(opts?.inlinePastes?.length ? { inlinePastes: opts.inlinePastes } : {}),
         }),
       });
       if (!res.ok) {
@@ -5825,17 +6052,25 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
    * picker.
    */
   const setEffort = useCallback(
-    async (level: "low" | "medium" | "high" | "xhigh" | "max" | "auto") => {
+    async (
+      level: "low" | "medium" | "high" | "xhigh" | "max" | "auto",
+      opts?: { sessionOnly?: boolean },
+    ) => {
       const id = sessionIdRef.current;
       if (!id) return;
-      // SDK 0.3.284: an effortLevel that moves the session to a different
-      // level (sent without an `ultracode` key) turns ultracode off.
-      if (level !== effortRef.current) setUltracodeState(false);
+      // CC 2.1.284: ultracode is independent of effort and stays on across a
+      // level change — send the current ultracode state so the server passes
+      // both keys to applyFlagSettings (an effortLevel sent alone would turn it
+      // off). The mirror is left untouched.
       setEffortState(level);
       await fetch(`/api/sessions/${id}/effort`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ level }),
+        body: JSON.stringify({
+          level,
+          ultracode: ultracodeRef.current,
+          ...(opts?.sessionOnly ? { sessionOnly: true } : {}),
+        }),
       }).catch(() => {});
     },
     [],
@@ -6138,6 +6373,8 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     takeOver,
     messages: sortedMessages,
     systemEntries,
+    runningHook,
+    needsInput,
     toolProgress,
     queue,
     pendingPermission,
@@ -6489,7 +6726,21 @@ function synthesizeOlder(raw: Array<Record<string, unknown>>): {
     // pagination path would also double-count after a subsequent
     // resyncFromDisk.
     if (isSdkSlashUserMessage(content)) continue;
-    if (parseSyntheticCliWrapper(content)) continue;
+    {
+      const cliWrap = parseSyntheticCliWrapper(content);
+      if (cliWrap) {
+        // CC 2.1.285 — the wrapper pill isn't reproduced on this path (no
+        // SystemEntry channel), but real user text after the tag must survive.
+        if (cliWrap.trailing) {
+          out.push({
+            uuid: `${uuid}:trailing`,
+            role: "user",
+            blocks: [{ kind: "text", text: cliWrap.trailing }],
+          });
+        }
+        continue;
+      }
+    }
 
     // Plain user message — text or array content. The SDK stamps user
     // records in the JSONL with an ISO `timestamp`; parse it so paginated
@@ -6624,6 +6875,14 @@ export function upsertAssistantSplit(
    * terminal event) omits it.
    */
   aborted?: boolean,
+  /**
+   * CC 2.1.243 — the `SDKAssistantMessageError` tag (`server_error`,
+   * `billing_error`, `invalid_request`, …) when this split is an error frame
+   * whose dedicated handler (rate-limit panel, model-unavailable rewrite)
+   * didn't already claim it. Sticky like `opusHighDemand`; drives the error
+   * styling in `AssistantMessage`.
+   */
+  errorTag?: string,
 ): DisplayMessage[] {
   const idx = prev.findIndex((m) => m.uuid === messageId);
   if (idx === -1) {
@@ -6640,6 +6899,7 @@ export function upsertAssistantSplit(
         ...(rateLimitHit ? { rateLimitHit } : {}),
         ...(opusHighDemand ? { opusHighDemand } : {}),
         ...(aborted ? { aborted } : {}),
+        ...(errorTag ? { errorTag } : {}),
       },
     ];
   }
@@ -6700,6 +6960,7 @@ export function upsertAssistantSplit(
   const stickyHit = existing.rateLimitHit ?? rateLimitHit;
   const stickyOpus = existing.opusHighDemand || opusHighDemand;
   const stickyAborted = existing.aborted || aborted;
+  const stickyErrorTag = existing.errorTag ?? errorTag;
   const copy = prev.slice();
   copy[idx] = {
     ...existing,
@@ -6710,6 +6971,7 @@ export function upsertAssistantSplit(
     ...(stickyHit ? { rateLimitHit: stickyHit } : {}),
     ...(stickyOpus ? { opusHighDemand: true } : {}),
     ...(stickyAborted ? { aborted: true } : {}),
+    ...(stickyErrorTag ? { errorTag: stickyErrorTag } : {}),
   };
   return copy;
 }

@@ -19,6 +19,7 @@ import { useState } from "react";
 import { useParams } from "next/navigation";
 import type { SystemEntry } from "@/lib/client/types";
 import { formatMessageTime } from "@/lib/client/format-message-time";
+import { useClockOptionsContext } from "@/lib/client/clock-options-context";
 import {
   shouldShowRateLimitPill,
   useRateLimitWarningPct,
@@ -41,6 +42,11 @@ export type SystemPillLevers = {
   effort?: "low" | "medium" | "high" | "xhigh" | "max" | "auto";
   onSwitchToSonnet?: () => void | Promise<void>;
   onStepEffortDown?: () => void | Promise<void>;
+  /**
+   * CC 2.1.284 — "Edit & retry" on a model-refusal pill: prefill the composer
+   * with the refused user message's text so the user can reword and resend.
+   */
+  onEditAndRetry?: (refusedUserMessageUuid: string) => void;
 };
 
 const KIND_META: Record<SystemEntry["kind"], { icon: typeof Info; tone: string }> = {
@@ -69,7 +75,28 @@ const KIND_META: Record<SystemEntry["kind"], { icon: typeof Info; tone: string }
   // transitions, but its own icon so the two are still distinguishable at a
   // glance.
   conversation_reset: { icon: Eraser, tone: "text-violet-400" },
+  // CC 2.1.267/2.1.274 — loop-side `system/notification`. Default tone is
+  // muted; the render overrides it from `entry.priority` (see NOTIFICATION_TONE).
+  notification: { icon: Bell, tone: "text-[var(--muted)]" },
+  // CC 2.1.284 — a model safeguards/refusal block. Red like permission_denied
+  // since both are "the request did not run as asked".
+  model_refusal: { icon: ShieldAlert, tone: "text-red-400" },
   info: { icon: Info, tone: "text-[var(--muted)]" },
+};
+
+/** CC 2.1.267/2.1.274 — map a notification's priority to its pill tone. */
+const NOTIFICATION_TONE: Record<NonNullable<SystemEntry["priority"]>, string> = {
+  low: "text-[var(--muted)]",
+  medium: "text-[var(--muted)]",
+  high: "text-amber-400",
+  immediate: "text-red-400",
+};
+
+/** CC 2.1.217 — map a system/informational level to its pill tone. */
+const INFO_LEVEL_TONE: Record<NonNullable<SystemEntry["infoLevel"]>, string> = {
+  notice: "text-[var(--muted)]",
+  suggestion: "text-sky-400",
+  warning: "text-amber-400",
 };
 
 export function SystemPill({
@@ -81,6 +108,14 @@ export function SystemPill({
 }) {
   const meta = KIND_META[entry.kind];
   const Icon = meta.icon;
+  // CC 2.1.267/2.1.274 — a notification pill is toned by its priority;
+  // CC 2.1.217 — an informational pill is toned by its level.
+  const tone =
+    entry.kind === "notification" && entry.priority
+      ? NOTIFICATION_TONE[entry.priority]
+      : entry.kind === "info" && entry.infoLevel
+        ? INFO_LEVEL_TONE[entry.infoLevel]
+        : meta.tone;
   // Compact-boundary is a major thread-state transition (the SDK summarized
   // earlier turns into a single context block). Show it as a full-width
   // horizontal rule with the token-reduction stats and an expandable summary —
@@ -121,9 +156,33 @@ export function SystemPill({
   if (entry.kind === "hook_response" && entry.hookFailed) {
     return <HookFailurePill entry={entry} />;
   }
+  // CC 2.1.284 — a model safeguards/refusal block: show why (content +
+  // explanation) and, when the refused turn was human-authored, an
+  // "Edit & retry" that reloads the refused prompt into the composer.
+  if (entry.kind === "model_refusal") {
+    const retryUuid = entry.refusedUserMessageUuid;
+    return (
+      <div className="my-1 flex items-start gap-2 rounded-md border border-red-500/30 bg-red-500/5 px-2 py-1.5 text-[11px]">
+        <ShieldAlert className="mt-px h-3.5 w-3.5 shrink-0 text-red-400" />
+        <div className="min-w-0 flex-1">
+          <div className="text-[var(--foreground)]">{entry.label}</div>
+          {entry.detail && <div className="mt-0.5 text-[var(--muted)]">{entry.detail}</div>}
+        </div>
+        {retryUuid && levers?.onEditAndRetry && (
+          <button
+            data-testid="model-refusal-edit-retry"
+            onClick={() => levers.onEditAndRetry?.(retryUuid)}
+            className="shrink-0 rounded-md border border-red-500/40 bg-red-500/10 px-2 py-0.5 font-medium text-red-300 hover:bg-red-500/20"
+          >
+            Edit &amp; retry
+          </button>
+        )}
+      </div>
+    );
+  }
   return (
     <div className="my-1 flex items-center gap-2 text-[11px] text-[var(--muted)]">
-      <Icon className={`h-3 w-3 ${meta.tone}`} />
+      <Icon className={`h-3 w-3 ${tone}`} />
       <span>{entry.label}</span>
       {typeof entry.count === "number" && entry.count > 1 && (
         <span
@@ -276,9 +335,12 @@ function CompactBoundaryDivider({ entry }: { entry: SystemEntry }) {
 // ---------------------------------------------------------------------------
 
 function ConversationResetDivider({ entry }: { entry: SystemEntry }) {
+  const clock = useClockOptionsContext();
   const parsedTs = entry.ts ? new Date(entry.ts) : null;
   const formatted =
-    parsedTs && !Number.isNaN(parsedTs.getTime()) ? formatMessageTime(parsedTs.getTime()) : null;
+    parsedTs && !Number.isNaN(parsedTs.getTime())
+      ? formatMessageTime(parsedTs.getTime(), clock)
+      : null;
   return (
     <div
       className="my-4 w-full text-[11px] text-[var(--muted)]"

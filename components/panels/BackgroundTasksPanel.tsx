@@ -15,10 +15,12 @@ import type {
   ToolProgressInfo,
 } from "@/lib/client/types";
 import type { PermissionRequestEvent } from "@/lib/shared/events";
+import { prettyModelName } from "@/lib/shared/advisor";
 import {
   collectStoppableTaskIds,
   isActivityCountableTask,
   isBackgroundTaskLive,
+  isSystemTask,
 } from "@/lib/client/task-status";
 import type { ContextSummary } from "@/lib/client/useContextWatcher";
 import { isStaleWakeup } from "@/lib/shared/session-loops";
@@ -166,6 +168,8 @@ const TASK_TONES: Record<string, string> = {
   failed: "border-red-500/30 bg-red-500/10 text-red-200",
   killed: "border-red-500/30 bg-red-500/10 text-red-200",
   stopped: "border-amber-500/30 bg-amber-500/10 text-amber-200",
+  // CC 2.1.271 — a usage-limit hold; amber like "stopped" but it auto-resumes.
+  paused: "border-amber-500/30 bg-amber-500/10 text-amber-200",
 };
 
 /**
@@ -307,10 +311,22 @@ export function BackgroundTasksPanel({
   const subagents = Object.values(tasks)
     .filter(
       (t) =>
-        (t.status === "running" || t.status === "pending") &&
+        // CC 2.1.271 — keep a usage-limit-paused workflow agent in the live
+        // list (and Stop-all) instead of letting it vanish.
+        (t.status === "running" || t.status === "pending" || t.status === "paused") &&
         !PROCESS_TASK_TYPES.has(t.taskType ?? "") &&
+        // CC 2.1.285 — Claude Code's own housekeeping tasks fold under the
+        // "System tasks" group below rather than listing each as its own row.
+        !isSystemTask(t) &&
         isLive(t),
     )
+    .sort((a, b) => (b.durationMs ?? 0) - (a.durationMs ?? 0));
+
+  // CC 2.1.285 — Claude Code's own housekeeping tasks (`skip_transcript`),
+  // folded under a single "System tasks" group so they don't clutter the
+  // live Tasks list. Still live, still Stop-able from inside the group.
+  const systemTasks = Object.values(tasks)
+    .filter((t) => isSystemTask(t) && isLive(t))
     .sort((a, b) => (b.durationMs ?? 0) - (a.durationMs ?? 0));
 
   // Stop a single running task (B2.4). Self-contained fetch — the panel
@@ -326,7 +342,7 @@ export function BackgroundTasksPanel({
     }).catch(() => {});
   };
   const recent = Object.values(tasks)
-    .filter((t) => t.status !== "running" && t.status !== "pending")
+    .filter((t) => t.status !== "running" && t.status !== "pending" && t.status !== "paused")
     .slice(-3)
     .reverse();
   // Live background shells. Beyond the explicit `killed` flag (set when the
@@ -666,7 +682,20 @@ export function BackgroundTasksPanel({
                       {t.summary}
                     </div>
                   )}
+                  {/* CC 2.1.284 — the file holding what this task/Monitor
+                      printed, instead of dropping its per-event output. */}
+                  {t.outputFile && (
+                    <div
+                      data-testid="task-output-file"
+                      title={t.outputFile}
+                      className="mt-0.5 truncate font-mono text-[10px] opacity-60"
+                    >
+                      output: {t.outputFile}
+                    </div>
+                  )}
                   <div className="mt-1 flex flex-wrap gap-2 text-[10px] opacity-70">
+                    {/* CC 2.1.243 — model the subagent ran on. */}
+                    {t.model && <span>{prettyModelName(t.model)}</span>}
                     {t.totalTokens != null && <span>{t.totalTokens.toLocaleString()} tok</span>}
                     {t.toolUses != null && <span>{t.toolUses} tools</span>}
                     {/* Live ticking wall-clock while running (parity with the
@@ -680,6 +709,37 @@ export function BackgroundTasksPanel({
               })}
             </ul>
           </CollapsibleSection>
+          </div>
+        )}
+
+        {/* CC 2.1.285 — Claude Code's own housekeeping tasks, folded under one
+            collapsed group so they don't clutter the live Tasks list. */}
+        {systemTasks.length > 0 && (
+          <div data-pane-name="system-tasks">
+            <CollapsibleSection
+              storageKey="system-tasks"
+              label="System tasks"
+              badge={`(${systemTasks.length})`}
+            >
+              <ul className="space-y-1">
+                {systemTasks.map((t) => {
+                  const Icon = taskIcon(t.taskType);
+                  return (
+                    <li
+                      key={t.taskId}
+                      data-testid="system-task-row"
+                      className="flex items-center gap-1.5 rounded-md border border-[var(--border)] bg-[var(--panel-2)]/40 px-2 py-1 text-[10px] text-[var(--muted)]"
+                    >
+                      <Icon className="h-3 w-3 shrink-0" />
+                      <span className="truncate font-mono">
+                        {t.description ?? t.workflowName ?? t.taskType ?? "System task"}
+                      </span>
+                      <span className="ml-auto shrink-0">{taskStatusLabel(t)}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </CollapsibleSection>
           </div>
         )}
 

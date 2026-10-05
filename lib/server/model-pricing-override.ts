@@ -25,6 +25,7 @@
  * override there would flicker and then get silently overwritten.
  */
 
+import { resolveSettings } from "@anthropic-ai/claude-agent-sdk";
 import { MODEL_PRICING_MULTIPLIER_MAX } from "@/lib/shared/cost-pricing";
 
 /** $/MT (per-million-token) rate overrides for one model. Any subset. */
@@ -36,19 +37,64 @@ export type ModelPricingRate = {
   cacheWrite1h?: number;
 };
 
+/**
+ * The SDK's real per-model override shape (CC 2.1.271, `sdk.d.ts` `modelPricing
+ * .overrides`): all four $/MT rates required, and a single `cacheWrite` that
+ * prices BOTH the 5-minute and 1-hour cache writes.
+ */
+export type ModelPricingOverrideRate = {
+  input: number;
+  output: number;
+  cacheRead: number;
+  cacheWrite: number;
+};
+
 export type ModelPricingSettings = {
   /**
-   * Multiplier applied to every computed cost figure, matched or not (e.g.
-   * 0.9 for a 10% contracted discount). Applied last, after per-model rates.
+   * CC 2.1.271 — the SDK's `modelPricing.multiplier` (0,10]: scales every
+   * computed cost, matched or not. Takes precedence over the legacy
+   * `discountMultiplier` below.
    */
-  discountMultiplier?: number;
+  multiplier?: number;
   /**
-   * Per-model $/MT overrides, keyed by a model id/alias substring — matched
-   * the same permissive way `litellm-pricing.ts#priceForModel` matches
-   * (exact key first, then substring-of-model-id).
+   * CC 2.1.271 — the SDK's `modelPricing.overrides`: per-model $/MT rates keyed
+   * by model id/alias (matched exact-first, then substring). Takes precedence
+   * over the legacy `rates` below.
    */
+  overrides?: Record<string, ModelPricingOverrideRate>;
+
+  // ── Legacy Claudius keys, still read for back-compat with existing
+  // settings.json. New configs should use `multiplier`/`overrides` (the keys
+  // the engine itself honors). ──
+  /** @deprecated use {@link multiplier}. */
+  discountMultiplier?: number;
+  /** @deprecated use {@link overrides}. */
   rates?: Record<string, ModelPricingRate>;
 };
+
+/**
+ * Collapse the SDK `overrides` and the legacy `rates` into the internal
+ * `ModelPricingRate` shape `costFromOverrideRate` consumes. The SDK's single
+ * `cacheWrite` maps to the internal `cacheWrite5m` slot (cost-aggregate carries
+ * one `cacheWrite` token bucket). `overrides` wins over legacy `rates`.
+ */
+export function effectiveOverrideRates(
+  pricing: ModelPricingSettings,
+): Record<string, ModelPricingRate> | undefined {
+  if (pricing.overrides && Object.keys(pricing.overrides).length > 0) {
+    const out: Record<string, ModelPricingRate> = {};
+    for (const [key, r] of Object.entries(pricing.overrides)) {
+      out[key] = { input: r.input, output: r.output, cacheRead: r.cacheRead, cacheWrite5m: r.cacheWrite };
+    }
+    return out;
+  }
+  return pricing.rates;
+}
+
+/** The effective multiplier — SDK `multiplier` preferred over legacy `discountMultiplier`. */
+export function effectiveMultiplier(pricing: ModelPricingSettings): number | undefined {
+  return pricing.multiplier ?? pricing.discountMultiplier;
+}
 
 /** Token counts for one turn, in the same shape `cost-aggregate.ts` already carries. */
 export type OverrideTokens = {
@@ -105,18 +151,48 @@ export function applyModelPricing(
   pricing: ModelPricingSettings | undefined,
 ): number {
   if (!pricing) return baseUsd;
-  const rate = matchModelPricingRate(model, pricing.rates);
+  const rate = matchModelPricingRate(model, effectiveOverrideRates(pricing));
   const usd = rate ? costFromOverrideRate(rate, tokens) : baseUsd;
-  const mult = pricing.discountMultiplier;
+  const mult = effectiveMultiplier(pricing);
   if (typeof mult !== "number" || !Number.isFinite(mult) || mult <= 0) return usd;
   return usd * Math.min(mult, MODEL_PRICING_MULTIPLIER_MAX);
+}
+
+/**
+ * CC 2.1.271 — the engine honors `modelPricing` ONLY from managed/policy tiers
+ * (managed-settings.json, MDM, `--settings`), ignoring user/project/local. The
+ * Cost page previously read only user scope, so an MDM/gateway-pushed rate was
+ * ignored. Resolve the effective settings cascade (`resolveSettings`, alpha)
+ * and return `modelPricing` from the highest-precedence managed/flag source
+ * that sets it — or undefined when none does (caller falls back to Claudius's
+ * own user-scope setting). Best-effort: a resolution error yields undefined.
+ */
+export async function resolveManagedModelPricing(
+  cwd: string,
+): Promise<ModelPricingSettings | undefined> {
+  try {
+    const resolved = await resolveSettings({ cwd });
+    // sources are low→high precedence; walk from the top so the winning
+    // managed tier is taken first.
+    for (let i = resolved.sources.length - 1; i >= 0; i--) {
+      const src = resolved.sources[i];
+      const mp = (src?.settings as { modelPricing?: ModelPricingSettings } | undefined)?.modelPricing;
+      if ((src?.source === "managed" || src?.source === "flag") && mp) {
+        return mp;
+      }
+    }
+  } catch {
+    // resolveSettings is alpha / may be unavailable — treat as no managed override.
+  }
+  return undefined;
 }
 
 /** True when `modelPricing` has anything configured worth noting in the UI. */
 export function hasModelPricingOverride(pricing: ModelPricingSettings | undefined): boolean {
   if (!pricing) return false;
+  const mult = effectiveMultiplier(pricing);
+  const rates = effectiveOverrideRates(pricing);
   return (
-    (typeof pricing.discountMultiplier === "number" && pricing.discountMultiplier > 0) ||
-    Boolean(pricing.rates && Object.keys(pricing.rates).length > 0)
+    (typeof mult === "number" && mult > 0) || Boolean(rates && Object.keys(rates).length > 0)
   );
 }

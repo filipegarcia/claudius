@@ -37,6 +37,7 @@ type RawRow = {
   ambient: number | null;
   resource_links: string | null;
   reason: string | null;
+  output_file: string | null;
 };
 
 function parseResourceLinks(raw: string | null): TaskSnapshotEntry["resourceLinks"] {
@@ -82,6 +83,7 @@ function rowToEntry(row: RawRow): TaskSnapshotEntry {
     ambient: row.ambient == null ? undefined : row.ambient !== 0,
     resourceLinks: parseResourceLinks(row.resource_links),
     reason: row.reason === "worker_restart" ? "worker_restart" : undefined,
+    outputFile: row.output_file ?? undefined,
     innerMessages: parseInnerMessages(row.inner_messages),
   };
 }
@@ -98,8 +100,8 @@ export async function saveSessionTask(
        session_id, task_id, tool_use_id, subagent_type, description,
        task_type, workflow_name, status, total_tokens, tool_uses,
        duration_ms, summary, error, inner_messages, is_backgrounded,
-       spawn_depth, ambient, resource_links, reason, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       spawn_depth, ambient, resource_links, reason, output_file, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(session_id, task_id) DO UPDATE SET
        tool_use_id     = excluded.tool_use_id,
        subagent_type   = excluded.subagent_type,
@@ -118,6 +120,7 @@ export async function saveSessionTask(
        ambient         = excluded.ambient,
        resource_links  = excluded.resource_links,
        reason          = excluded.reason,
+       output_file     = excluded.output_file,
        updated_at      = excluded.updated_at`,
   ).run(
     sessionId,
@@ -139,6 +142,7 @@ export async function saveSessionTask(
     task.ambient == null ? null : task.ambient ? 1 : 0,
     task.resourceLinks ? JSON.stringify(task.resourceLinks) : null,
     task.reason ?? null,
+    task.outputFile ?? null,
     Date.now(),
   );
 }
@@ -154,7 +158,7 @@ export async function listSessionTasks(
       `SELECT task_id, tool_use_id, subagent_type, description, task_type,
               workflow_name, status, total_tokens, tool_uses, duration_ms,
               summary, error, inner_messages, is_backgrounded, spawn_depth,
-              ambient, resource_links, reason
+              ambient, resource_links, reason, output_file
          FROM session_tasks
         WHERE session_id = ?
         ORDER BY updated_at ASC`,

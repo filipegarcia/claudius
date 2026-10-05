@@ -10,14 +10,38 @@
  * unit-testable without spinning up a full `Session` + mocked SDK `query()`.
  */
 
+import { SUBAGENT_TOOL_NAMES } from "./subagent-tool";
+
 export type ToolBudgetKind = "webSearches" | "subagents";
 
 /** Maps an SDK tool name to the budget it counts against, or `null` if the
  * tool isn't budget-gated. */
 export function toolBudgetKindFor(toolName: string): ToolBudgetKind | null {
   if (toolName === "WebSearch") return "webSearches";
-  if (toolName === "Task") return "subagents";
+  // CC 2.1.212/parity-fix — the subagent tool was renamed Task → Agent; match
+  // BOTH wire names or the cap silently stops counting spawns under the new
+  // "Agent" name (the only name current CLIs emit).
+  if ((SUBAGENT_TOOL_NAMES as readonly string[]).includes(toolName)) return "subagents";
   return null;
+}
+
+/** Parse a `CLAUDE_CODE_MAX_*_PER_SESSION` env value into a positive integer
+ * cap, or `undefined` when unset / non-positive / non-numeric. */
+export function parseEnvCap(raw: string | undefined): number | undefined {
+  if (raw == null) return undefined;
+  const n = Number(raw.trim());
+  return Number.isInteger(n) && n > 0 ? n : undefined;
+}
+
+/**
+ * The effective cap for a budget: the per-cwd Limits value when the user set
+ * a positive one, otherwise the upstream `CLAUDE_CODE_MAX_*_PER_SESSION` env
+ * fallback (CC's own knob). `undefined` means no cap. The UI setting wins over
+ * the env so a user's explicit choice is never overridden by the environment.
+ */
+export function resolveCap(configured: number | undefined, envRaw: string | undefined): number | undefined {
+  if (typeof configured === "number" && configured > 0) return configured;
+  return parseEnvCap(envRaw);
 }
 
 export type ToolBudgetDecision = { allowed: true } | { allowed: false; message: string };

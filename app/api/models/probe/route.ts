@@ -34,7 +34,7 @@ type ProbeResult = ProbeCandidate & {
  *  already surfaced in the main picker via `supportedModels()`. These
  *  pinned IDs let users target a specific generation without going
  *  through alias resolution. */
-const PROBE_CANDIDATES: ProbeCandidate[] = [
+export const PROBE_CANDIDATES: ProbeCandidate[] = [
   {
     // Claude Code 2.1.257 made Fable 5.1 the default Fable model (1M context).
     // Probing tests availability, so listing it is safe on accounts without
@@ -60,6 +60,14 @@ const PROBE_CANDIDATES: ProbeCandidate[] = [
       "Pinned to Opus 5.5. Deepest reasoning on complex, long-horizon tasks; 1M context.",
   },
   {
+    // Claude Code 2.1.219 — Opus 5 (prior generation to 5.5). Pinned so users
+    // can target it directly without alias resolution.
+    value: "claude-opus-5",
+    displayName: "Opus 5",
+    description:
+      "Pinned to Opus 5 (prior generation). Deep reasoning on complex, long-horizon tasks.",
+  },
+  {
     value: "claude-opus-4-8",
     displayName: "Opus 4.8",
     description:
@@ -76,10 +84,17 @@ const PROBE_CANDIDATES: ProbeCandidate[] = [
     description: "Pinned to Opus 4.6.",
   },
   {
+    // Claude Code 2.1.284 made Sonnet 5.5 the default Sonnet ($2/$10 per Mtok).
+    value: "claude-sonnet-5-5",
+    displayName: "Sonnet 5.5",
+    description:
+      "Pinned to Sonnet 5.5. Balanced speed and quality; supports adaptive thinking + xhigh effort.",
+  },
+  {
     value: "claude-sonnet-5",
     displayName: "Sonnet 5",
     description:
-      "Pinned to Sonnet 5. Balanced speed and quality; supports adaptive thinking + xhigh effort.",
+      "Pinned to Sonnet 5 (prior generation). Balanced speed and quality; adaptive thinking + xhigh effort.",
   },
   {
     value: "claude-sonnet-4-6",

@@ -15,10 +15,13 @@ import { mergeSessionDefaults } from "@/lib/shared/session-defaults";
  * without exercising the heavier `start()` plumbing.
  */
 describe("restricted mode", () => {
-  test("disallowed-tools set is exactly the command/code tools + WebFetch", () => {
+  test("disallowed-tools set is exactly the shell/network tools (no stale names)", () => {
+    // A3 — dropped stale `KillBash` (gone from the 0.3.288 union), added
+    // `Monitor` (runs a shell command) and `TaskStop`.
     expect([...RESTRICTED_MODE_DISALLOWED_TOOLS].sort()).toEqual(
-      ["Bash", "BashOutput", "KillBash", "WebFetch"].sort(),
+      ["Bash", "BashOutput", "Monitor", "TaskStop", "WebFetch"].sort(),
     );
+    expect(RESTRICTED_MODE_DISALLOWED_TOOLS).not.toContain("KillBash");
   });
 
   test("mergeSessionDefaults threads restrictedMode (request wins, else default)", () => {

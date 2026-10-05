@@ -71,6 +71,13 @@ export type DisplayMessage = {
   blocks: DisplayBlock[];
   /** When true, the message is still being streamed (deltas may keep arriving). */
   streaming?: boolean;
+  /**
+   * CC 2.1.275 — an optimistically-rendered user message that the model hasn't
+   * received yet. The bubble renders dimmed until the turn starts (the server
+   * flips `turn_status` to running once it feeds the message to the SDK), at
+   * which point this clears. Only ever set on `role: "user"` bubbles.
+   */
+  pending?: boolean;
   /** Set when the message belongs to a subagent (Task tool_use_id). */
   parentToolUseId?: string | null;
   /**
@@ -137,6 +144,13 @@ export type DisplayMessage = {
      * doesn't refill a shared pool.
      */
     limitScope?: "service" | "channel" | "group_pool";
+    /**
+     * CC 2.1.284 — the account's subscription tier (from the last `get_usage`),
+     * so the panel can drop the personal "Upgrade your plan/Team" links for a
+     * Team/Enterprise account (upgrading a personal plan wouldn't help) and
+     * point at usage credits instead.
+     */
+    subscriptionType?: "pro" | "max" | "team" | "enterprise" | (string & {});
   };
   /**
    * Present when this assistant message IS the Anthropic backend's
@@ -165,6 +179,16 @@ export type DisplayMessage = {
    */
   aborted?: boolean;
   /**
+   * CC 2.1.243 — the `SDKAssistantMessageError` tag (`server_error`,
+   * `billing_error`, `invalid_request`, `overloaded`, `cloud_credential_error`,
+   * …) for an assistant frame that's actually an API/client error, when no
+   * dedicated handler (rate-limit panel) already claimed it. Sticky across
+   * splits like `opusHighDemand`; drives error styling in `AssistantMessage`
+   * so an error frame stops looking like ordinary model output. Excludes
+   * `rate_limit`, which has its own `rateLimitHit` panel.
+   */
+  errorTag?: string;
+  /**
    * SDK 0.3.205 — present when this user turn's `SDKMessageOrigin` is
    * `kind: "peer"` (sent by another Claude Code session, e.g. via the
    * `SendMessage` tool) rather than typed by the local user. `from` is the
@@ -180,7 +204,10 @@ export type DisplayMessage = {
   peer?: { from: string; name?: string; pid?: number; msgId?: string };
 };
 
-export type TaskStatus = "pending" | "running" | "completed" | "failed" | "killed" | "stopped";
+// CC 2.1.271 — "paused": a dynamic-workflow agent paused on a usage limit,
+// auto-continuing when it resets. Kept visible (and Stop-able) rather than
+// vanishing from the live list.
+export type TaskStatus = "pending" | "running" | "completed" | "failed" | "killed" | "stopped" | "paused";
 
 export type TaskInfo = {
   taskId: string;
@@ -228,11 +255,33 @@ export type TaskInfo = {
    * `skip_transcript` (transcript).
    */
   ambient?: boolean;
+  /**
+   * CC 2.1.243 — the model this subagent actually ran on, captured from the
+   * `message.model` of its first forwarded assistant message (the SDK's task
+   * messages don't carry it). Shown in the task block / Activity panel.
+   */
+  model?: string;
+  /**
+   * CC 2.1.285 — `task_started.skip_transcript`: Claude Code's own
+   * housekeeping work (compaction, title generation, …) that the CLI keeps
+   * out of the transcript. The Background tasks panel folds every such task
+   * under a single "System tasks" group row instead of listing each one.
+   */
+  skipTranscript?: boolean;
   totalTokens?: number;
   toolUses?: number;
   durationMs?: number;
+  /** CC 2.1.271 — cumulative ms this task spent paused (usage-limit waits). */
+  totalPausedMs?: number;
   lastToolName?: string;
   summary?: string;
+  /**
+   * CC 2.1.284 — `task_notification.output_file`: the path the task's full
+   * output was written to (what a Monitor event printed, a background task's
+   * stdout, …). Surfaced so the user can open it rather than having the
+   * per-event output silently dropped.
+   */
+  outputFile?: string;
   error?: string;
   /**
    * SDK 0.3.257 — files an auto-backgrounded MCP tool call returned by
@@ -268,10 +317,33 @@ export type SystemEntry = {
     | "model_fallback"
     | "system_reminder"
     | "conversation_reset"
+    | "notification"
+    | "model_refusal"
     | "info";
   label: string;
   detail?: string;
   ts?: string;
+  /**
+   * CC 2.1.267/2.1.274 — only for `kind === "notification"` (SDK
+   * `system/notification`): the loop-side notice's priority, used to tone the
+   * pill (low/medium muted, high amber, immediate red) instead of showing a
+   * text-less `system/notification` label.
+   */
+  priority?: "low" | "medium" | "high" | "immediate";
+  /**
+   * CC 2.1.217 — only for `kind === "info"` carrying an SDK
+   * `system/informational` message: its render level, used to tone the pill
+   * (notice gray, suggestion sky, warning amber). `info`-level lines are
+   * transcript-mode-only and never create an entry.
+   */
+  infoLevel?: "notice" | "suggestion" | "warning";
+  /**
+   * CC 2.1.284 — only for `kind === "model_refusal"` (SDK
+   * `model_refusal_fallback` / `model_refusal_no_fallback`): the uuid of the
+   * refused user message, the "Edit & retry" target. Absent when the refused
+   * turn wasn't human-authored (nothing to edit-and-retry).
+   */
+  refusedUserMessageUuid?: string;
   /**
    * Number of consecutive identical emissions collapsed onto this pill. Only
    * set (and rendered as a `×N` badge) for the transient `init` / `status`
@@ -692,6 +764,17 @@ export type PlanRateLimits = {
     currency: string | null;
   } | null;
   /**
+   * CC 2.1.236 — usage-credits ("extra usage") spend. Mirrors
+   * `PlanUsageEvent.extraUsage` in `lib/shared/events.ts`.
+   */
+  extraUsage?: {
+    isEnabled: boolean;
+    monthlyLimit: number | null;
+    usedCredits: number | null;
+    utilization: number | null;
+    currency: string | null;
+  } | null;
+  /**
    * Epoch ms when this data was fetched. See `PlanUsageEvent.fetchedAt` in
    * `lib/shared/events.ts` for the full rationale (CC parity 2.1.208).
    */
@@ -732,6 +815,14 @@ export type ChatState = {
   readOnly: boolean;
   messages: DisplayMessage[];
   systemEntries: SystemEntry[];
+  /**
+   * CC 2.1.271 — the hook currently running (non-lifecycle events, with
+   * `includeHookEvents`), for the "Running <event> hook · Ns" status line.
+   * Null when no hook is running.
+   */
+  runningHook: { event: string; startedAt: number } | null;
+  /** CC 2.1.212 — true while the turn is blocked on a user prompt ("Needs input"). */
+  needsInput: boolean;
   toolProgress: Record<string, ToolProgressInfo>;
   queue: QueuedMessage[];
   /** Oldest pending permission request — the one to show. Null when none. */
@@ -856,8 +947,15 @@ export type ChatState = {
    * omitted — the SDK exposes no fast-mode reset timestamp, only the
    * overall subscription `resetsAt` (a different signal — see
    * FastModeNoticePanel).
+   *
+   * A third variant, "model-switch" (CC 2.1.218 parity), fires when a model
+   * switch changes fast-mode *capability* — see `FastModeNoticePanel`'s doc
+   * and `Session.setModel`'s `fastModeNowSupported`.
    */
-  fastModeNotice: { uuid: string; kind: "cooldown" | "recovered"; reason?: string } | null;
+  fastModeNotice:
+    | { uuid: string; kind: "cooldown" | "recovered"; reason?: string }
+    | { uuid: string; kind: "model-switch"; model: string; nowSupported: boolean }
+    | null;
   /**
    * Transient toast for a rejected `/model` switch. Mirrors the Claude Code
    * TUI's "Remote session couldn't switch to <model>" notice (PARTIAL — no
@@ -1190,7 +1288,10 @@ export type ChatActions = {
    * slash command so the change matches the CLI exactly. `auto` re-enables
    * adaptive thinking; the numeric levels lock to a specific budget.
    */
-  setEffort(level: "low" | "medium" | "high" | "xhigh" | "max" | "auto"): Promise<void>;
+  setEffort(
+    level: "low" | "medium" | "high" | "xhigh" | "max" | "auto",
+    opts?: { sessionOnly?: boolean },
+  ): Promise<void>;
   /**
    * Toggle "ultracode" (Dynamic Workflows) — Opus 4.8's xhigh + parallel-
    * subagent orchestration. Routed through `applyFlagSettings({ ultracode })`

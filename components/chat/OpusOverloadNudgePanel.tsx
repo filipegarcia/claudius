@@ -17,7 +17,10 @@ import type { OpusOverloadNudgeEvent } from "@/lib/shared/events";
  * `claude-sonnet-4-6` as a still-valid, just-not-newest id — they aren't
  * "current Sonnet" assertions, so they weren't bumped.
  */
-export const OPUS_OVERLOAD_NUDGE_SONNET_TARGET = "claude-sonnet-5";
+// CC 2.1.284 — target the `sonnet` ALIAS, not a pinned generation, so the nudge
+// always lands the user on the current default Sonnet (5.5 now, whatever next)
+// instead of a specific id that goes stale each release.
+export const OPUS_OVERLOAD_NUDGE_SONNET_TARGET = "sonnet";
 
 /**
  * Manual-switch nudge banner mirroring the Claude Code TUI line "Opus is

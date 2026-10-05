@@ -14,7 +14,7 @@ import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
 
-import { readSettings, updateAutoMode, writeSettings } from "@/lib/server/settings";
+import { readSettings, resetAutoMode, updateAutoMode, writeSettings } from "@/lib/server/settings";
 
 let home: string;
 let cwd: string;
@@ -73,5 +73,22 @@ describe("updateAutoMode", () => {
       disableAutoMode: "disable",
       autoMode: { hard_deny: ["$defaults"] },
     });
+  });
+
+  // A6 (CC 2.1.212) — `claude auto-mode reset` drops the whole autoMode key.
+  test("resetAutoMode deletes the autoMode key but keeps other settings", async () => {
+    await writeSettings("user", cwd, { model: "claude-opus-5" });
+    await updateAutoMode(cwd, { soft_deny: ["$defaults", "x"], allow: ["y"] });
+    await resetAutoMode(cwd);
+    const after = await readSettings("user", cwd);
+    expect(after.autoMode).toBeUndefined();
+    expect("autoMode" in after).toBe(false);
+    expect(after.model).toBe("claude-opus-5");
+  });
+
+  test("resetAutoMode is a no-op when autoMode was never set", async () => {
+    await writeSettings("user", cwd, { model: "claude-opus-5" });
+    await resetAutoMode(cwd);
+    expect(await readSettings("user", cwd)).toEqual({ model: "claude-opus-5" });
   });
 });

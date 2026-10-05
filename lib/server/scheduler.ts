@@ -163,6 +163,12 @@ class Scheduler {
         // The session inherits user/project allow rules; deny anything not
         // pre-approved by setting permissionMode.
         permissionMode: "auto",
+        // CC 2.1.259 — this run is unattended (no browser tab to answer a
+        // prompt). `permissionPrompts: "none"` makes the SDK deny anything
+        // the mode/rules/hooks don't pre-approve *immediately*, with a
+        // message telling Claude the session has no approval surface, instead
+        // of leaving the turn to hang on a prompt nobody can see.
+        permissionPrompts: "none",
       };
       const q = query({ prompt: job.prompt, options });
       for await (const msg of q as AsyncIterable<SDKMessage>) {

@@ -21,6 +21,8 @@ import { SideNav } from "@/components/nav/SideNav";
 import { CronEditor } from "@/components/schedule/CronEditor";
 import { fmtElapsedSec } from "@/components/panels/widgets/format";
 import { describeCron } from "@/lib/shared/cron";
+import { isScheduleFormDirty } from "@/lib/shared/schedule-form";
+import { isScheduleDue } from "@/lib/shared/schedule-due";
 import type { Job, Run, RunStatus } from "@/lib/server/scheduler-store";
 import {
   isStaleWakeup,
@@ -68,6 +70,23 @@ export default function SchedulePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  // CC 2.1.273 (H10) — JobForm reports whether it has unsaved input, so both
+  // discard paths (the form's Cancel and the header New/Cancel toggle) can
+  // confirm before throwing it away.
+  const [formDirty, setFormDirty] = useState(false);
+  const discardCreate = useCallback(() => {
+    if (formDirty && !window.confirm("Discard unsaved changes?")) return;
+    setFormDirty(false);
+    setCreating(false);
+  }, [formDirty]);
+  // CC 2.1.286 (H11) — a ticking "now" (read in render, not Date.now(), which
+  // the React compiler forbids as impure) so a job's next-run flips to "Due"
+  // once its time passes.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(id);
+  }, []);
 
   const [jobsRefetchTrigger, setJobsRefetchTrigger] = useState(0);
   const [runsRefetchTrigger, setRunsRefetchTrigger] = useState(0);
@@ -239,6 +258,8 @@ export default function SchedulePage() {
     const job = (await res.json()) as Job;
     await refresh();
     setActiveId(job.id);
+    // Saved → the form is no longer dirty; close without a discard prompt.
+    setFormDirty(false);
     setCreating(false);
     return true;
   };
@@ -293,7 +314,7 @@ export default function SchedulePage() {
             <RefreshCw className="h-3 w-3" /> Refresh
           </button>
           <button
-            onClick={() => setCreating((c) => !c)}
+            onClick={() => (creating ? discardCreate() : setCreating(true))}
             className="flex items-center gap-1 rounded-md bg-[var(--accent)] px-2 py-0.5 text-white hover:opacity-90"
           >
             {creating ? <X className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
@@ -353,7 +374,7 @@ export default function SchedulePage() {
                       </div>
                       <span className="font-mono text-[10px] text-[var(--muted)]">{j.cron}</span>
                       <span className="text-[10px] text-[var(--muted)]">
-                        next {j.nextRunAt ? new Date(j.nextRunAt).toLocaleTimeString() : "—"} · last {fmtRel(j.lastRunAt)}
+                        next {j.nextRunAt == null ? "—" : isScheduleDue(j.nextRunAt, now) ? "Due" : new Date(j.nextRunAt).toLocaleTimeString()} · last {fmtRel(j.lastRunAt)}
                       </span>
                     </button>
                   </li>
@@ -364,7 +385,7 @@ export default function SchedulePage() {
 
           <section className="flex flex-1 overflow-hidden">
             {creating ? (
-              <JobForm onSubmit={onCreate} onCancel={() => setCreating(false)} />
+              <JobForm onSubmit={onCreate} onCancel={discardCreate} onDirtyChange={setFormDirty} />
             ) : active ? (
               <JobDetail
                 key={active.id}
@@ -390,18 +411,37 @@ export default function SchedulePage() {
 function JobForm({
   onSubmit,
   onCancel,
+  onDirtyChange,
   initial,
 }: {
   onSubmit: (input: Pick<Job, "name" | "cron" | "prompt" | "cwd"> & { model?: string }) => Promise<boolean>;
   onCancel: () => void;
+  /** CC 2.1.273 (H10) — report unsaved-input state up so the parent's discard paths can confirm. */
+  onDirtyChange?: (dirty: boolean) => void;
   initial?: Job;
 }) {
-  const [name, setName] = useState(initial?.name ?? "");
-  const [cron, setCron] = useState(initial?.cron ?? "*/5 * * * *");
-  const [prompt, setPrompt] = useState(initial?.prompt ?? "");
-  const [cwd, setCwd] = useState(initial?.cwd ?? "");
-  const [model, setModel] = useState(initial?.model ?? "");
+  const initialFields = useMemo(
+    () => ({
+      name: initial?.name ?? "",
+      cron: initial?.cron ?? "*/5 * * * *",
+      prompt: initial?.prompt ?? "",
+      cwd: initial?.cwd ?? "",
+      model: initial?.model ?? "",
+    }),
+    [initial],
+  );
+  const [name, setName] = useState(initialFields.name);
+  const [cron, setCron] = useState(initialFields.cron);
+  const [prompt, setPrompt] = useState(initialFields.prompt);
+  const [cwd, setCwd] = useState(initialFields.cwd);
+  const [model, setModel] = useState(initialFields.model);
   const [submitting, setSubmitting] = useState(false);
+
+  // CC 2.1.273 (H10) — surface unsaved-input state to the parent.
+  const dirty = isScheduleFormDirty({ name, cron, prompt, cwd, model }, initialFields);
+  useEffect(() => {
+    onDirtyChange?.(dirty);
+  }, [dirty, onDirtyChange]);
 
   const canSubmit = name.trim() && cron.trim() && prompt.trim() && !submitting;
 
@@ -493,6 +533,13 @@ function JobDetail({
 }) {
   const [activeRunId, setActiveRunId] = useState<string | null>(null);
   const activeRun = useMemo(() => runs.find((r) => r.id === activeRunId) ?? null, [runs, activeRunId]);
+  // CC 2.1.286 (H11) — ticking "now" so the "Next" stat flips to "Due" when the
+  // scheduled time passes (Date.now() in render is rejected as impure).
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(id);
+  }, []);
 
   return (
     <div className="flex h-full w-full flex-col overflow-hidden">
@@ -529,7 +576,16 @@ function JobDetail({
           <Stat label="Cron" value={<code className="font-mono">{job.cron}</code>} />
           <Stat label="Schedule" value={describeCron(job.cron)} />
           <Stat label="Last" value={fmtRel(job.lastRunAt)} />
-          <Stat label="Next" value={job.nextRunAt ? new Date(job.nextRunAt).toLocaleString() : "—"} />
+          <Stat
+            label="Next"
+            value={
+              job.nextRunAt == null
+                ? "—"
+                : isScheduleDue(job.nextRunAt, now)
+                  ? "Due"
+                  : new Date(job.nextRunAt).toLocaleString()
+            }
+          />
           <Stat label="cwd" value={<code className="font-mono break-all">{job.cwd}</code>} />
           {job.model && <Stat label="Model" value={<code className="font-mono">{job.model}</code>} />}
         </div>

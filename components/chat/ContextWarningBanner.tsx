@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { AlertTriangle, Loader2, Shrink } from "lucide-react";
+import { compactionStallHint } from "@/lib/shared/compaction-stall";
+import { isContextWindowExceeded } from "@/lib/shared/context-overflow";
 
 type Props = {
   /** Context-window usage as a 0–100 percentage. */
@@ -52,8 +54,9 @@ export function ContextWarningBanner({ percentage, compacting, pending, onCompac
   // rounding first would flip a genuine 99.5% ("nearly full") into a
   // displayed "100%" and mislabel it "exceeded", and would also mislabel an
   // exact 100.0% (at the limit, not over it) as exceeded. Must match the
-  // `> 100` boundary in `shouldShowContextWarning` (useContextWarning.ts).
-  const exceeded = percentage > 100;
+  // `> 100` boundary in `shouldShowContextWarning` (useContextWarning.ts);
+  // shared with the `/context` overlay via `isContextWindowExceeded` (F6).
+  const exceeded = isContextWindowExceeded(percentage);
   const tone =
     pct >= 95
       ? "border-red-500/30 bg-red-500/10 text-red-200"
@@ -81,6 +84,7 @@ export function ContextWarningBanner({ percentage, compacting, pending, onCompac
   }, [compacting]);
 
   const elapsedSec = Math.floor(elapsed / 1000);
+  const stallHint = compactionStallHint(elapsedSec);
   const headPos = Math.floor(elapsed / 150) % SEGMENTS;
   const marquee = Array.from({ length: SEGMENTS }, (_, i) =>
     (i - headPos + SEGMENTS) % SEGMENTS < WINDOW ? "▰" : "▱",
@@ -148,6 +152,16 @@ export function ContextWarningBanner({ percentage, compacting, pending, onCompac
             <span className="whitespace-pre tracking-[0.08em]" aria-hidden="true">
               {marquee}
             </span>
+            {/* CC 2.1.228 — stall hint once compaction runs past the threshold,
+                so a long summarization doesn't read as a hang. */}
+            {stallHint && (
+              <div
+                data-testid="compaction-stall-hint"
+                className="mt-1 font-sans font-normal normal-case opacity-70"
+              >
+                {stallHint}
+              </div>
+            )}
           </div>
         )}
       </div>

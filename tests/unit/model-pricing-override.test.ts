@@ -114,3 +114,42 @@ describe("hasModelPricingOverride", () => {
     expect(hasModelPricingOverride({ discountMultiplier: 0 })).toBe(false);
   });
 });
+
+// CC 2.1.271 (E7) — the real SDK keys `multiplier` + `overrides{input,output,
+// cacheRead,cacheWrite}` are honored (and win over the legacy keys).
+describe("SDK modelPricing keys (E7)", () => {
+  const tokens = { input: 1_000_000, output: 0, cacheRead: 0, cacheWrite: 0 };
+
+  test("`overrides` is applied like legacy `rates`", () => {
+    const usd = applyModelPricing(1.23, "claude-opus-4-8", tokens, {
+      overrides: { opus: { input: 9, output: 0, cacheRead: 0, cacheWrite: 0 } },
+    });
+    expect(usd).toBeCloseTo(9, 10);
+  });
+
+  test("`multiplier` scales cost (and is clamped at 10)", () => {
+    expect(applyModelPricing(10, "x", tokens, { multiplier: 2 })).toBe(20);
+    expect(applyModelPricing(10, "x", tokens, { multiplier: 25 })).toBe(100);
+  });
+
+  test("`cacheWrite` prices the single cacheWrite bucket", () => {
+    const usd = applyModelPricing(
+      0,
+      "opus",
+      { input: 0, output: 0, cacheRead: 0, cacheWrite: 1_000_000 },
+      { overrides: { opus: { input: 0, output: 0, cacheRead: 0, cacheWrite: 7 } } },
+    );
+    expect(usd).toBeCloseTo(7, 10);
+  });
+
+  test("new keys win over legacy keys when both present", () => {
+    expect(applyModelPricing(10, "x", tokens, { multiplier: 2, discountMultiplier: 5 })).toBe(20);
+  });
+
+  test("hasModelPricingOverride recognises the new keys", () => {
+    expect(hasModelPricingOverride({ multiplier: 1.2 })).toBe(true);
+    expect(
+      hasModelPricingOverride({ overrides: { opus: { input: 1, output: 1, cacheRead: 1, cacheWrite: 1 } } }),
+    ).toBe(true);
+  });
+});

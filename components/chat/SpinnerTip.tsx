@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { AlertTriangle, Lightbulb, X } from "lucide-react";
 import { DEFAULT_TIPS, nextTipIndexWithDismissals, type Tip } from "@/lib/shared/tips";
 import { useTipDismissals } from "@/lib/client/useTipDismissals";
+import { useTipLastShown } from "@/lib/client/useTipLastShown";
+import { useStartupCount } from "@/lib/client/useStartupCount";
 import {
   ANTHROPIC_STATUS_URL,
   describeApiRetry,
@@ -55,6 +57,10 @@ export function SpinnerTip({ onRunCommand, tips, intervalMs = 9000, apiRetry }: 
   // it's empty (initial state before the `tips` event lands).
   const list = tips && tips.length > 0 ? tips : DEFAULT_TIPS;
   const { dismissed, dismiss } = useTipDismissals();
+  // CC 2.1.247 (G6) — record the launch count when a cooldown-carrying tip is
+  // shown, so `selectClientTips` can hide it for `cooldownSessions` launches.
+  const { recordShown } = useTipLastShown();
+  const startupCount = useStartupCount();
 
   // Pick a random starting tip once (lazy initializer — never re-rolls on
   // re-render). Rotation from there is deterministic via `nextTipIndex`.
@@ -71,6 +77,15 @@ export function SpinnerTip({ onRunCommand, tips, intervalMs = 9000, apiRetry }: 
     }, intervalMs);
     return () => clearInterval(t);
   }, [list, dismissed, intervalMs]);
+
+  // CC 2.1.247 (G6) — stamp the current launch count on a cooldown-carrying tip
+  // whenever it's the one on screen (no-ops once recorded for this launch).
+  const shown = list.length > 0 ? list[index % list.length] : undefined;
+  useEffect(() => {
+    if (shown?.cooldownSessions && shown.cooldownSessions > 0) {
+      recordShown(shown.id, startupCount);
+    }
+  }, [shown, startupCount, recordShown]);
 
   // A retry in flight preempts the ordinary tip rotation — the CLI's
   // "improved API retry UX" replaces the spinner tip with the retry's
@@ -125,7 +140,9 @@ export function SpinnerTip({ onRunCommand, tips, intervalMs = 9000, apiRetry }: 
       {/* Text truncates; the command stays pinned and fully visible so the
           affordance never gets clipped by a long tip. */}
       <span className="min-w-0 truncate">
-        <span className="font-medium opacity-80">Tip:</span> {tip.text}
+        {/* CC 2.1.247 (G6) — the prefix is the override's `label` (default
+            "Tip") on org-custom tips; built-in tips have no label → "Tip". */}
+        <span className="font-medium opacity-80">{tip.label ?? "Tip"}:</span> {tip.text}
       </span>
       {tip.command && onRunCommand && (
         <button

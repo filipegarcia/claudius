@@ -45,6 +45,13 @@ export function McpElicitationPrompt({ request, onResolve, queueTotal }: Props) 
   const fields = useMemo(() => (isUrl ? [] : parseElicitationSchema(request.requestedSchema)), [isUrl, request.requestedSchema]);
   const [values, setValues] = useState<ElicitationFormValues>(() => initialFormValues(fields));
   const [errors, setErrors] = useState<Record<string, string>>({});
+  // CC 2.1.288 — a URL elicitation with no `elicitationId` can't be reported
+  // complete by the server, so the tool must wait for the user to confirm in
+  // the browser ("I'm done, continue"). With an `elicitationId`, the server
+  // closes it via a `system/elicitation_complete` message, so opening the link
+  // can accept right away. `userConfirmsCompletion` gates that difference.
+  const userConfirmsCompletion = isUrl && !request.elicitationId;
+  const [linkOpened, setLinkOpened] = useState(false);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -72,6 +79,13 @@ export function McpElicitationPrompt({ request, onResolve, queueTotal }: Props) 
   function openLink() {
     if (!url) return;
     window.open(url.href, "_blank", "noopener,noreferrer");
+    // CC 2.1.288 — when the server can't confirm completion (no elicitationId),
+    // don't accept yet: keep the prompt open with an "I'm done, continue"
+    // button so the tool waits until the user finishes in the browser.
+    if (userConfirmsCompletion) {
+      setLinkOpened(true);
+      return;
+    }
     onResolve({ action: "accept" });
   }
 
@@ -160,15 +174,25 @@ export function McpElicitationPrompt({ request, onResolve, queueTotal }: Props) 
 
         <div className="flex flex-wrap items-center gap-2 border-t border-[var(--border)] bg-[var(--panel-2)]/50 px-4 py-3">
           {isUrl ? (
-            <button
-              data-testid="mcp-elicitation-open"
-              onClick={openLink}
-              disabled={!url}
-              className="inline-flex items-center gap-1.5 rounded-md bg-[var(--accent)] px-3 py-1.5 text-sm text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              <ExternalLink className="h-3.5 w-3.5" />
-              Open link
-            </button>
+            userConfirmsCompletion && linkOpened ? (
+              <button
+                data-testid="mcp-elicitation-done"
+                onClick={() => onResolve({ action: "accept" })}
+                className="inline-flex items-center gap-1.5 rounded-md bg-[var(--accent)] px-3 py-1.5 text-sm text-white hover:opacity-90"
+              >
+                I&apos;m done, continue
+              </button>
+            ) : (
+              <button
+                data-testid="mcp-elicitation-open"
+                onClick={openLink}
+                disabled={!url}
+                className="inline-flex items-center gap-1.5 rounded-md bg-[var(--accent)] px-3 py-1.5 text-sm text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+                Open link
+              </button>
+            )
           ) : (
             <button
               data-testid="mcp-elicitation-submit"

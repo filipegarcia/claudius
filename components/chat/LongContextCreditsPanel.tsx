@@ -52,8 +52,22 @@ export function LongContextCreditsPanel({
           >
             usage credits
           </a>{" "}
-          to keep the 1M window, or switch to a standard-context model.
+          to keep the 1M window, or switch to a standard-context model.{" "}
+          {/* CC 2.1.268 — credits enabled mid-session only take effect after a
+              restart (the SDK reads them once, at session start). */}
+          <span className="opacity-90">
+            Credits enabled now take effect after restarting the session.
+          </span>
         </span>
+        <button
+          type="button"
+          onClick={() => window.location.reload()}
+          data-testid="long-context-restart"
+          className="shrink-0 rounded-md border border-amber-500/40 bg-amber-500/20 px-2 py-0.5 text-[11px] font-medium hover:bg-amber-500/30"
+          title="Reload to restart the session and pick up newly-enabled usage credits"
+        >
+          Restart
+        </button>
         <button
           type="button"
           onClick={onOpenModelPicker}

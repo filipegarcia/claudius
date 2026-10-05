@@ -271,3 +271,28 @@ samp,
   background-color: #ff9632;
   color: #111;
 }
+
+/* CC 2.1.287 (F9) — respect reduced motion. Honors both the OS
+ * `prefers-reduced-motion: reduce` media query and the explicit
+ * `prefersReducedMotion` setting (applied as `data-reduced-motion="1"` on
+ * <html> by `useReducedMotionSetting`). Near-instant animations/transitions
+ * stop the running-tool dot, spinner shimmer and flash effects from moving
+ * while leaving their end state intact (so nothing disappears). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+:root[data-reduced-motion="1"] *,
+:root[data-reduced-motion="1"] *::before,
+:root[data-reduced-motion="1"] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}

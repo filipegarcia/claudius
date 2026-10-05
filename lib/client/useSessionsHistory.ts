@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { SDKSessionInfo } from "@anthropic-ai/claude-agent-sdk";
+import { hasMoreSessions, SESSION_PAGE_SIZE } from "@/lib/shared/session-pagination";
 
 /**
  * The shape returned from `/api/sessions/all`: the SDK's session info
@@ -47,13 +48,18 @@ export function useSessionsHistory(opts: { dir?: string } = {}) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refetchTrigger, setRefetchTrigger] = useState(0);
+  // CC 2.1.243 (H9) — the requested page size, grown by `loadMore` so the list
+  // can go past the default 200. Re-fetches a larger page (the route caps by
+  // recency), simpler than cursor paging and matching the route's `limit`.
+  const [limit, setLimit] = useState(SESSION_PAGE_SIZE);
 
   useEffect(() => {
     const controller = new AbortController();
 
-    const url = dir
-      ? `/api/sessions/all?dir=${encodeURIComponent(dir)}`
-      : "/api/sessions/all";
+    const params = new URLSearchParams();
+    if (dir) params.set("dir", dir);
+    params.set("limit", String(limit));
+    const url = `/api/sessions/all?${params.toString()}`;
     fetch(url, { signal: controller.signal })
       .then(async (res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -78,12 +84,26 @@ export function useSessionsHistory(opts: { dir?: string } = {}) {
       });
 
     return () => controller.abort();
-  }, [refetchTrigger, dir]);
+  }, [refetchTrigger, dir, limit]);
 
   const refresh = useCallback(() => {
     setLoading(true);
     setRefetchTrigger((n) => n + 1);
   }, []);
+
+  // CC 2.1.243 (H9) — bump the page size; the effect re-fetches a bigger page.
+  const loadMore = useCallback(() => {
+    setLoading(true);
+    setLimit((l) => l + SESSION_PAGE_SIZE);
+  }, []);
+  // Reset the page size when the scope changes so switching workspaces doesn't
+  // keep an inflated limit from a previous, larger listing.
+  const [lastDir, setLastDir] = useState(dir);
+  if (lastDir !== dir) {
+    setLastDir(dir);
+    setLimit(SESSION_PAGE_SIZE);
+  }
+  const hasMore = hasMoreSessions(sessions.length, limit);
 
   const rename = useCallback(
     async (sessionId: string, title: string, dir?: string) => {
@@ -125,5 +145,5 @@ export function useSessionsHistory(opts: { dir?: string } = {}) {
     [refresh],
   );
 
-  return { sessions, accountsConfigured, loading, error, refresh, rename, fork, remove };
+  return { sessions, accountsConfigured, loading, error, refresh, rename, fork, remove, hasMore, loadMore };
 }

@@ -86,6 +86,24 @@ describe("mergeSessionDefaults", () => {
     ]);
   });
 
+  // A7 (CC 2.1.219) — sandbox network allow-list threads through with the same
+  // request-wins precedence.
+  test("sandbox network allow-list: request wins, else workspace default", () => {
+    expect(
+      mergeSessionDefaults({}, { sandboxNetworkAllowedDomains: ["api.github.com"] })
+        .sandboxNetworkAllowedDomains,
+    ).toEqual(["api.github.com"]);
+    expect(
+      mergeSessionDefaults(
+        { sandboxNetworkAllowedDomains: ["r.npmjs.org"] },
+        { sandboxNetworkAllowedDomains: ["api.github.com"] },
+      ).sandboxNetworkAllowedDomains,
+    ).toEqual(["r.npmjs.org"]);
+    expect(
+      mergeSessionDefaults({}, { sandboxNetworkStrictAllowlist: true }).sandboxNetworkStrictAllowlist,
+    ).toBe(true);
+  });
+
   test("planModeInstructions follows the same precedence (request wins, default fills)", () => {
     expect(
       mergeSessionDefaults({ planModeInstructions: "req" }, { planModeInstructions: "def" })

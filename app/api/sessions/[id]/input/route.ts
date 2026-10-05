@@ -101,8 +101,14 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   // add used, and so the SDK writes that same uuid to the on-disk JSONL.
   // `slash` opts in to the no-echo dispatch for SDK-handled slash commands
   // (/compact, /init, etc.).
-  const sendOpts: { uuid: string; slash?: boolean } = { uuid };
+  // CC 2.1.280 — forward large-paste provenance on the immediate path. (The
+  // queued path persists to the queued_messages table and doesn't carry it, so
+  // a paste that's queued-then-drained loses only the marker, not the text.)
+  const sendOpts: { uuid: string; slash?: boolean; inlinePastes?: string[] } = { uuid };
   if (body.slash) sendOpts.slash = true;
+  if (Array.isArray(body.inlinePastes) && body.inlinePastes.length > 0) {
+    sendOpts.inlinePastes = body.inlinePastes;
+  }
   session.sendInput(text, body.images, sendOpts);
 
   const res: SendInputResponse = { ok: true, queued: false, uuid };

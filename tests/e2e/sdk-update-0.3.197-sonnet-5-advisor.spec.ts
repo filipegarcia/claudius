@@ -180,7 +180,7 @@ test.describe("SDK 0.3.197 — Sonnet 5 advisor rename", () => {
     // Same hydration-race anchor as advisor-picker.spec.ts: wait for the
     // trigger's *content* (not just presence) before clicking it.
     const trigger = page.getByTestId("model-picker-trigger");
-    await expect(trigger).toContainText("sonnet-5", { timeout: 30_000 });
+    await expect(trigger).toContainText("Sonnet 5", { timeout: 30_000 });
     await trigger.click();
 
     const panel = page.getByTestId("model-picker-panel");

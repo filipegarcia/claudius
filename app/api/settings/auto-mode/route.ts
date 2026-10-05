@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { readSettings, updateAutoMode, type AutoModeConfig } from "@/lib/server/settings";
+import { readSettings, resetAutoMode, updateAutoMode, type AutoModeConfig } from "@/lib/server/settings";
 import { resolveTrustedCwd } from "@/lib/server/trusted-cwd";
 
 export const runtime = "nodejs";
@@ -34,4 +34,17 @@ export async function GET(req: Request) {
   if (!cwd) return NextResponse.json({ error: "unknown cwd" }, { status: 400 });
   const settings = await readSettings("user", cwd);
   return NextResponse.json({ autoMode: settings.autoMode ?? {} });
+}
+
+/**
+ * CC 2.1.212 — `claude auto-mode reset`: drop the whole `autoMode` key so the
+ * classifier falls back to the engine defaults. `cwd` comes via query string
+ * (DELETE bodies aren't reliably delivered).
+ */
+export async function DELETE(req: Request) {
+  const url = new URL(req.url);
+  const cwd = await resolveTrustedCwd(url.searchParams.get("cwd"));
+  if (!cwd) return NextResponse.json({ error: "unknown cwd" }, { status: 400 });
+  await resetAutoMode(cwd);
+  return NextResponse.json({ ok: true, autoMode: {} });
 }

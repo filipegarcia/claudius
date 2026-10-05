@@ -1,6 +1,23 @@
 import { describe, expect, test } from "vitest";
-import { modeFor, statusChar, statusLabel } from "@/lib/shared/diff-overlay";
+import { diffRefreshToken, modeFor, statusChar, statusLabel } from "@/lib/shared/diff-overlay";
 import type { GitFileChange } from "@/lib/server/git";
+
+// CC 2.1.260 (H5) — the live-refresh token advances as Claude's edits do.
+describe("diffRefreshToken", () => {
+  test("changes when a new edit starts and when one completes", () => {
+    expect(diffRefreshToken([])).toBe("0:0");
+    const started = [{ done: false }];
+    expect(diffRefreshToken(started)).toBe("1:0");
+    const done = [{ done: true }];
+    expect(diffRefreshToken(done)).toBe("1:1");
+    expect(diffRefreshToken([{ done: true }, { done: false }])).toBe("2:1");
+  });
+
+  test("a stable edit list yields a stable token (no needless refetch)", () => {
+    const edits = [{ done: true }, { done: true }];
+    expect(diffRefreshToken(edits)).toBe(diffRefreshToken(edits));
+  });
+});
 
 /**
  * Unit tests for `DiffOverlay`'s data-mapping helpers — CC 2.1.260 `/diff`

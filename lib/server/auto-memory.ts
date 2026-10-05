@@ -82,6 +82,25 @@ export type WriteMemoryResult =
   | { ok: false; status: 400 | 409 | 413 | 500; error: string };
 
 /**
+ * CC 2.1.214 (G5) — emit a frontmatter value as a YAML-safe scalar. The writer
+ * used to interpolate values raw (`description: ${v}`), so a value containing
+ * ` #` was truncated by the engine's YAML parse at the inline comment, and a
+ * value with a newline could inject further frontmatter keys. When the value
+ * is a plain safe scalar it's emitted as-is (keeping existing files' diff and
+ * roundtrip identity); otherwise it's emitted double-quoted via
+ * `JSON.stringify`, which is a valid YAML double-quoted scalar (same escapes,
+ * always single-line) and is reversed by `parseMemoryFrontmatter`.
+ */
+export function yamlScalar(value: string): string {
+  const risky =
+    value === "" ||
+    /[:#\n\r"'\\]/.test(value) ||
+    value !== value.trim() ||
+    /^[-?&*!|>%@`[\]{},]/.test(value);
+  return risky ? JSON.stringify(value) : value;
+}
+
+/**
  * Writes a new auto-memory file with the canonical frontmatter shape and
  * appends a one-line index entry to MEMORY.md (creating it if missing). Uses
  * O_EXCL on write so attempts to overwrite an existing file return 409.
@@ -111,9 +130,9 @@ export async function writeMemoryFile(
   // below so it always reflects the file's actual last-edit time.
   const content =
     `---\n` +
-    `name: ${input.name}\n` +
-    `description: ${input.description}\n` +
-    `type: ${input.type}\n` +
+    `name: ${yamlScalar(input.name)}\n` +
+    `description: ${yamlScalar(input.description)}\n` +
+    `type: ${yamlScalar(input.type)}\n` +
     `modified: ${new Date().toISOString()}\n` +
     `---\n\n` +
     input.body;
@@ -156,9 +175,10 @@ export type ParsedMemory = {
 
 /**
  * Loose frontmatter parse — pulls `name`/`description`/`type`/`modified` from
- * the first `--- … ---` block. Tolerates extra keys; values may be quoted but
- * quotes are preserved verbatim (the writer doesn't quote, so a roundtrip is
- * identity).
+ * the first `--- … ---` block. Tolerates extra keys. A value written as a
+ * double-quoted scalar (CC 2.1.214 / G5 — the writer quotes values containing
+ * YAML-significant characters via `JSON.stringify`) is unquoted back to its
+ * literal; a plain value is returned verbatim, so a roundtrip is identity.
  */
 export function parseMemoryFrontmatter(raw: string): ParsedMemory | null {
   const m = raw.match(/^---\n([\s\S]*?)\n---\n?\n?([\s\S]*)$/);
@@ -168,7 +188,19 @@ export function parseMemoryFrontmatter(raw: string): ParsedMemory | null {
   const get = (key: string): string | null => {
     const re = new RegExp(`^${key}:\\s*(.*)$`, "m");
     const r = fm.match(re);
-    return r ? r[1].trim() : null;
+    if (!r) return null;
+    const v = r[1].trim();
+    // Reverse the writer's double-quoting. A JSON.stringify'd scalar is a valid
+    // YAML double-quoted scalar, so JSON.parse recovers the literal exactly.
+    if (v.length >= 2 && v.startsWith('"') && v.endsWith('"')) {
+      try {
+        const parsed = JSON.parse(v);
+        if (typeof parsed === "string") return parsed;
+      } catch {
+        // Not JSON-parseable — fall through and return the raw text.
+      }
+    }
+    return v;
   };
   const name = get("name") ?? "";
   const description = get("description") ?? "";
@@ -228,9 +260,9 @@ export async function patchMemoryFile(
   };
   const content =
     `---\n` +
-    `name: ${next.name}\n` +
-    `description: ${next.description}\n` +
-    `type: ${next.type}\n` +
+    `name: ${yamlScalar(next.name)}\n` +
+    `description: ${yamlScalar(next.description)}\n` +
+    `type: ${yamlScalar(String(next.type))}\n` +
     `modified: ${modified}\n` +
     `---\n\n` +
     next.body;

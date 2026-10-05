@@ -1,5 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { watch as watchFs, readFileSync, type FSWatcher, promises as fsp } from "node:fs";
+import { homedir } from "node:os";
+import { isAbsolute, join as pathJoin } from "node:path";
 import {
   createSdkMcpServer,
   getSessionInfo,
@@ -17,6 +19,7 @@ import {
   type Options,
   type PermissionMode,
   type PermissionResult,
+  type PermissionUpdate,
   type PostModelSwitchHookInput,
   type PostToolUseHookInput,
   type PreToolUseHookInput,
@@ -92,6 +95,7 @@ import {
 import { getSessionUsage, saveSessionUsage } from "./session-usage-db";
 import { costFromTokens } from "@/lib/shared/cost-pricing";
 import { parseInitSystemMessage, type PluginLoadError } from "@/lib/shared/parse-init";
+import { commandNamesFromChanged } from "@/lib/shared/slash-commands";
 import { listSessionTasks, saveSessionTask } from "./session-tasks-db";
 import { attachLoopTickTokens, recordLoopTick } from "./loop-ticks-db";
 import { syncNeedsAuthNotifications } from "./mcp-needs-auth-db";
@@ -119,7 +123,10 @@ import {
   joinSystemPromptAppends,
 } from "@/lib/shared/system-prompt-append";
 import { loadDbAgentsForOptions } from "@/lib/server/db-agents";
-import { selectTips } from "@/lib/shared/tips";
+import { selectTips, type SpinnerTipOverrideEntry } from "@/lib/shared/tips";
+import { extractWeeklyUsedSkills } from "@/lib/shared/skill-usage";
+import { buildEffortFlagSettings } from "@/lib/shared/effort-flags";
+import { normalizeExtraUsage, type ExtraUsage } from "@/lib/shared/plan-usage";
 import type { SessionLoop } from "@/lib/shared/session-loops";
 import { matchesUsageLimitPrefix } from "@/lib/shared/rate-limit-prefixes";
 import {
@@ -130,7 +137,7 @@ import {
   isCrossSessionInbound,
 } from "./settings";
 import { readLimits, type Limits } from "./limits-store";
-import { checkToolBudget, toolBudgetKindFor } from "@/lib/shared/tool-budget";
+import { checkToolBudget, resolveCap, toolBudgetKindFor } from "@/lib/shared/tool-budget";
 import {
   extractTranscriptTail,
   generateRecap,
@@ -796,28 +803,50 @@ export const TODO_TASK_TOOL_NAMES = ["TodoWrite", "TaskCreate", "TaskGet", "Task
  * stream-json `query()` run, so this is reachable and worth the friendlier
  * error surface.
  */
+/**
+ * CC 2.1.273/2.1.288 — whether a mid-session MCP status re-check is due: at
+ * most once per `intervalMs` (default 30s) so a busy session doesn't issue an
+ * `mcpServerStatus()` control call on every turn. Pure, for unit tests.
+ */
+export function mcpRecheckDue(now: number, lastAt: number, intervalMs = 30_000): boolean {
+  return now - lastAt >= intervalMs;
+}
+
 export function buildQueryEnv(
   envOverride: Record<string, string | undefined> | null,
+  restrictedMode?: boolean,
 ): Record<string, string | undefined> {
   return {
     ...(envOverride ?? process.env),
     CLAUDE_CODE_ENABLE_TODO_TOOLS: "1",
     CLAUDE_CODE_STARTUP_FAILURE_RESULTS: "1",
+    // CC 2.1.248 — tell the engine itself this is a restricted session, so
+    // enforcement (refusing cmd/code tools, confining file tools to cwd,
+    // ignoring user/project/local settings files) happens inside the CLI and
+    // not only via our `disallowedTools` list. The bundled binary keys off
+    // this env var ("a restricted session: CLAUDE_CODE_RESTRICTED").
+    ...(restrictedMode ? { CLAUDE_CODE_RESTRICTED: "1" } : {}),
   };
 }
 
 /**
  * Tools blocked in restricted mode (Claude Code 2.1.248 `--restricted`):
- * the command/code-execution tools (`Bash` and its lifecycle companions
- * `BashOutput`/`KillBash`) and `WebFetch`. Passed as `Options.disallowedTools`
- * so the SDK blocks them entirely — not just at the `canUseTool` prompt.
- * File tools (Read/Write/Edit/Glob/Grep) stay available, confined to cwd as
- * usual. Exported for unit tests (see tests/unit/session-options.test.ts).
+ * every tool that runs a shell command or fetches the network. `Bash` and
+ * its background-output companion `BashOutput`; `Monitor`, which also runs a
+ * shell command (`MonitorInput.command`); `TaskStop`, which stops a running
+ * command/agent; and `WebFetch`. Passed as `Options.disallowedTools` so the
+ * SDK blocks them entirely — not just at the `canUseTool` prompt. File tools
+ * (Read/Write/Edit/Glob/Grep) stay available, confined to cwd as usual.
+ *
+ * CC 2.1.248 fix-up: dropped the stale `KillBash` (gone from the 0.3.288 tool
+ * union — its lifecycle role is now `TaskStop`) and added `Monitor`/`TaskStop`,
+ * which the original list missed. Exported for unit tests.
  */
 export const RESTRICTED_MODE_DISALLOWED_TOOLS = [
   "Bash",
   "BashOutput",
-  "KillBash",
+  "Monitor",
+  "TaskStop",
   "WebFetch",
 ];
 
@@ -834,24 +863,96 @@ export const RESTRICTED_MODE_DISALLOWED_TOOLS = [
  */
 export function normalizeSpinnerTipsOverride(
   override: ClaudeSettings["spinnerTipsOverride"],
-): { excludeDefault?: boolean; tips?: string[] } | undefined {
+): {
+  excludeDefault?: boolean;
+  tips?: SpinnerTipOverrideEntry[];
+  label?: string;
+  tipsFile?: string;
+} | undefined {
   if (!override || typeof override !== "object" || Array.isArray(override)) {
     return undefined;
   }
+  // CC 2.1.247 (G6) — preserve each entry's shape (bare string, or the rich
+  // `{id,text,priority,cooldownSessions}` object) rather than flattening to
+  // text-only, so `selectTips` can honor `id`/`priority`/`cooldownSessions`.
+  // Malformed entries (no text / wrong type) are dropped without throwing.
+  const tips = Array.isArray(override.tips)
+    ? override.tips
+        .map((t): SpinnerTipOverrideEntry | null => {
+          if (typeof t === "string") return t.trim().length > 0 ? t.trim() : null;
+          if (t && typeof t === "object" && typeof t.text === "string" && t.text.trim().length > 0) {
+            const e = t as { id?: unknown; text: string; priority?: unknown; cooldownSessions?: unknown };
+            return {
+              text: e.text.trim(),
+              ...(typeof e.id === "string" ? { id: e.id } : {}),
+              ...(typeof e.priority === "number" ? { priority: e.priority } : {}),
+              ...(typeof e.cooldownSessions === "number" ? { cooldownSessions: e.cooldownSessions } : {}),
+            };
+          }
+          return null;
+        })
+        .filter((t): t is SpinnerTipOverrideEntry => t !== null)
+    : undefined;
   return {
     excludeDefault: override.excludeDefault === true,
-    tips: Array.isArray(override.tips)
-      ? override.tips
-          .map((t) =>
-            typeof t === "string"
-              ? t
-              : t && typeof t === "object" && typeof t.text === "string"
-                ? t.text
-                : null,
-          )
-          .filter((t): t is string => typeof t === "string" && t.length > 0)
-      : undefined,
+    tips,
+    label:
+      typeof override.label === "string" && override.label.trim() ? override.label.trim() : undefined,
+    tipsFile:
+      typeof override.tipsFile === "string" && override.tipsFile.trim()
+        ? override.tipsFile.trim()
+        : undefined,
   };
+}
+
+/** Max `tipsFile` size read into memory — a spinner-tips list is tiny. */
+const SPINNER_TIPS_FILE_MAX_BYTES = 256 * 1024;
+
+/**
+ * CC 2.1.247 (G6) — load a `spinnerTipsOverride.tipsFile` (an absolute or `~/`
+ * path to a JSON array of tip shapes), appending its entries to the inline
+ * `tips` and dropping the `tipsFile` field from the returned shape. Best-effort
+ * and defensive: a missing/oversized/malformed file, or a non-array JSON, is
+ * ignored (the inline tips still apply). Read once per session start.
+ */
+async function mergeSpinnerTipsFile(
+  override:
+    | { excludeDefault?: boolean; tips?: SpinnerTipOverrideEntry[]; label?: string; tipsFile?: string }
+    | undefined,
+): Promise<{ excludeDefault?: boolean; tips?: SpinnerTipOverrideEntry[]; label?: string } | undefined> {
+  if (!override) return undefined;
+  const { tipsFile, ...rest } = override;
+  if (!tipsFile) return rest;
+  const expanded = tipsFile.startsWith("~/") ? pathJoin(homedir(), tipsFile.slice(2)) : tipsFile;
+  // Only absolute paths are honored (matches the SDK: "absolute or ~/").
+  if (!isAbsolute(expanded)) return rest;
+  try {
+    const stat = await fsp.stat(expanded);
+    if (!stat.isFile() || stat.size > SPINNER_TIPS_FILE_MAX_BYTES) return rest;
+    const parsed = JSON.parse(await fsp.readFile(expanded, "utf8")) as unknown;
+    if (!Array.isArray(parsed)) return rest;
+    const fileTips = parsed
+      .map((t): SpinnerTipOverrideEntry | null => {
+        if (typeof t === "string") return t.trim().length > 0 ? t.trim() : null;
+        if (t && typeof t === "object" && typeof (t as { text?: unknown }).text === "string") {
+          const e = t as { id?: unknown; text: string; priority?: unknown; cooldownSessions?: unknown };
+          if (!e.text.trim()) return null;
+          return {
+            text: e.text.trim(),
+            ...(typeof e.id === "string" ? { id: e.id } : {}),
+            ...(typeof e.priority === "number" ? { priority: e.priority } : {}),
+            ...(typeof e.cooldownSessions === "number" ? { cooldownSessions: e.cooldownSessions } : {}),
+          };
+        }
+        return null;
+      })
+      .filter((t): t is SpinnerTipOverrideEntry => t !== null);
+    if (fileTips.length === 0) return rest;
+    return { ...rest, tips: [...(rest.tips ?? []), ...fileTips] };
+  } catch {
+    // Missing / unreadable / invalid JSON — ignore, keep inline tips.
+    return rest;
+  }
 }
 
 /**
@@ -908,7 +1009,28 @@ type PendingPermission = {
   requestId: string;
   resolve: (result: PermissionResult) => void;
   meta: PermissionRequestEvent;
+  /**
+   * CC 2.1.235 — the SDK's narrow rule suggestions for this exact call
+   * (e.g. `Bash(git status:*)` rather than the whole `Bash` tool). Captured
+   * from `ctx.suggestions` so an "Always allow" click writes the narrow rule
+   * instead of a blanket tool grant. Server-only (raw SDK shape); the display
+   * form rides on `meta.suggestedRules`.
+   */
+  suggestions?: PermissionUpdate[];
 };
+
+/** The `addRules`/`allow` entries of a canUseTool `suggestions` set. */
+function allowRuleSuggestions(
+  suggestions: PermissionUpdate[] | undefined,
+): Extract<PermissionUpdate, { type: "addRules" }>[] {
+  return (suggestions ?? []).filter(
+    (u): u is Extract<PermissionUpdate, { type: "addRules" }> =>
+      u.type === "addRules" &&
+      u.behavior === "allow" &&
+      Array.isArray(u.rules) &&
+      u.rules.length > 0,
+  );
+}
 
 type PendingAskQuestion = {
   requestId: string;
@@ -1631,6 +1753,14 @@ export class Session {
    */
   readonly sandboxFilesystemDisabled?: boolean;
   /**
+   * CC 2.1.219 — sandbox network egress allow-list, forwarded as
+   * `Options.sandbox.network.{allowedDomains,strictAllowlist}`. Only meaningful
+   * when `sandboxEnabled` is true. `strictAllowlist` makes `allowedDomains`
+   * exhaustive (deny everything else) instead of additive.
+   */
+  readonly sandboxNetworkAllowedDomains?: string[];
+  readonly sandboxNetworkStrictAllowlist?: boolean;
+  /**
    * Enable the 1M-token context window beta — when true the Options.betas
    * array carries `context-1m-2025-08-07`. Only meaningful for Sonnet 4/4.5;
    * newer models (Fable, Opus 4.6+, Sonnet 4.6+/5) include a 1M window by
@@ -1721,7 +1851,7 @@ export class Session {
   // compares `getStatus()` against this and emits only on transitions so we
   // don't flood the wire with redundant events (every pending-map mutation
   // calls into the helper).
-  private lastBroadcastStatus: "running" | "idle" | null = null;
+  private lastBroadcastStatus: "running" | "idle" | "needs_input" | null = null;
   // Last backgrounded-task count broadcast alongside `turn_status`. Tracked
   // separately from `lastBroadcastStatus` so a change in background work (which
   // does NOT flip `getStatus()`) still re-emits `turn_status` and the header
@@ -2165,7 +2295,11 @@ export class Session {
    */
   private spinnerTipsConfig: {
     enabled?: boolean;
-    override?: { excludeDefault?: boolean; tips?: readonly string[] };
+    override?: {
+      excludeDefault?: boolean;
+      tips?: readonly SpinnerTipOverrideEntry[];
+      label?: string;
+    };
   } = {};
 
   /**
@@ -2215,6 +2349,8 @@ export class Session {
     fallbackModel?: string;
     sandboxEnabled?: boolean;
     sandboxFilesystemDisabled?: boolean;
+    sandboxNetworkAllowedDomains?: string[];
+    sandboxNetworkStrictAllowlist?: boolean;
     enable1mContext?: boolean;
     persistSession?: boolean;
     additionalDirectories?: string[];
@@ -2247,6 +2383,8 @@ export class Session {
     this.fallbackModel = opts.fallbackModel;
     this.sandboxEnabled = opts.sandboxEnabled;
     this.sandboxFilesystemDisabled = opts.sandboxFilesystemDisabled;
+    this.sandboxNetworkAllowedDomains = opts.sandboxNetworkAllowedDomains;
+    this.sandboxNetworkStrictAllowlist = opts.sandboxNetworkStrictAllowlist;
     this.enable1mContext = opts.enable1mContext;
     this.persistSession = opts.persistSession;
     this.additionalDirectories = opts.additionalDirectories;
@@ -2595,7 +2733,11 @@ export class Session {
         typeof userSettings.spinnerTipsEnabled === "boolean"
           ? userSettings.spinnerTipsEnabled
           : undefined,
-      override: normalizeSpinnerTipsOverride(userSettings.spinnerTipsOverride),
+      // CC 2.1.247 (G6) — merge `tipsFile` entries (read once here, not on each
+      // attach) into the inline tips, then drop the path from the cached shape.
+      override: await mergeSpinnerTipsFile(
+        normalizeSpinnerTipsOverride(userSettings.spinnerTipsOverride),
+      ),
     };
     // Resolve the queue-dispatch mode from user settings (default "wait").
     // Cached for the lifetime of this Session; a settings change after
@@ -2721,7 +2863,7 @@ export class Session {
       // because `Options.env` REPLACES the subprocess env wholesale when
       // set (SDK contract) — there's no way to inject a single var without
       // supplying the rest.
-      env: buildQueryEnv(envOverride),
+      env: buildQueryEnv(envOverride, this.restrictedMode),
       // In-process MCP server exposing a single tool the agent calls to
       // report that the session goal is done (see `/goal`, GoalBanner). The
       // tool runs in this process, so its handler can broadcast straight to
@@ -2781,6 +2923,24 @@ export class Session {
               ...(this.sandboxFilesystemDisabled
                 ? { filesystem: { disabled: true } }
                 : {}),
+              // CC 2.1.219 — network egress allow-list. `allowedDomains`
+              // names the hosts the sandboxed process may reach;
+              // `strictAllowlist` makes that list exhaustive (deny everything
+              // else) rather than additive. Only nested when at least one is
+              // set, and only under an enabled sandbox.
+              ...((this.sandboxNetworkAllowedDomains?.length ?? 0) > 0 ||
+              this.sandboxNetworkStrictAllowlist
+                ? {
+                    network: {
+                      ...(this.sandboxNetworkAllowedDomains?.length
+                        ? { allowedDomains: this.sandboxNetworkAllowedDomains }
+                        : {}),
+                      ...(this.sandboxNetworkStrictAllowlist
+                        ? { strictAllowlist: true }
+                        : {}),
+                    },
+                  }
+                : {}),
             },
           }
         : {}),
@@ -2826,6 +2986,10 @@ export class Session {
       // just fails. See `onElicitation`.
       onElicitation: this.onElicitation,
       includePartialMessages: true,
+      // CC 2.1.271 — emit hook_started/hook_progress/hook_response for ALL
+      // hook events (PreToolUse, UserPromptSubmit, SessionEnd, …), not just
+      // SessionStart/Setup, so the status line can show "Running <event> hook".
+      includeHookEvents: true,
       // SDK 0.3.246: declare that this consumer renders its own per-task
       // stop control. Claudius already ships exactly that affordance —
       // `stopTask()` below (wired to `POST /api/sessions/[id]/stop-task`)
@@ -3301,8 +3465,12 @@ export class Session {
       // permission decision.
       const budgetKind = toolBudgetKindFor(toolName);
       if (budgetKind) {
+        // CC 2.1.212 — the per-cwd Limits setting wins, but fall back to
+        // upstream's own `CLAUDE_CODE_MAX_*_PER_SESSION` env when it's unset.
         const cap =
-          budgetKind === "webSearches" ? this.toolBudgetLimits.maxWebSearches : this.toolBudgetLimits.maxSubagents;
+          budgetKind === "webSearches"
+            ? resolveCap(this.toolBudgetLimits.maxWebSearches, process.env.CLAUDE_CODE_MAX_WEB_SEARCHES_PER_SESSION)
+            : resolveCap(this.toolBudgetLimits.maxSubagents, process.env.CLAUDE_CODE_MAX_SUBAGENTS_PER_SESSION);
         const decision = checkToolBudget(budgetKind, cap, this.toolBudgetUsed[budgetKind]);
         if (!decision.allowed) {
           resolve({ behavior: "deny", message: decision.message });
@@ -3420,8 +3588,22 @@ export class Session {
         // the prompt below since only the well-known internal tool prefix
         // (above) is auto-allowed today.
         mcpServer: ctx.mcpServer,
+        // CC 2.1.235 — show the narrow rule(s) an "Always allow" will write.
+        suggestedRules: allowRuleSuggestions(ctx.suggestions).flatMap((u) =>
+          u.rules.map((r) => ({
+            toolName: r.toolName,
+            ...(r.ruleContent ? { ruleContent: r.ruleContent } : {}),
+          })),
+        ),
       };
-      this.pendingPermissions.set(requestId, { requestId, resolve, meta });
+      this.pendingPermissions.set(requestId, {
+        requestId,
+        resolve,
+        meta,
+        // CC 2.1.235 — keep the raw suggestions so resolvePermission can echo
+        // them back as the standing grant instead of a whole-tool rule.
+        suggestions: ctx.suggestions,
+      });
       this.broadcast(meta);
       this.broadcastTurnStatusIfChanged();
 
@@ -3541,24 +3723,31 @@ export class Session {
         ? (pending.meta.input as Record<string, unknown>)
         : {};
     const result: PermissionResult = { behavior: "allow", updatedInput: inputRecord };
-    if (decision.kind === "allow_always_session") {
-      result.updatedPermissions = [
-        {
-          type: "addRules",
-          behavior: "allow",
-          rules: [{ toolName: pending.meta.toolName }],
-          destination: "session",
-        },
-      ];
-    } else if (decision.kind === "allow_always_save") {
-      result.updatedPermissions = [
-        {
-          type: "addRules",
-          behavior: "allow",
-          rules: [{ toolName: pending.meta.toolName }],
-          destination: decision.destination,
-        },
-      ];
+    if (decision.kind === "allow_always_session" || decision.kind === "allow_always_save") {
+      const destination =
+        decision.kind === "allow_always_session" ? "session" : decision.destination;
+      // CC 2.1.235 — prefer the SDK's narrow rule suggestions (e.g.
+      // `Bash(git status:*)`) over a blanket whole-tool grant. Only fall back
+      // to `{ toolName }` when the SDK offered no allow-rule suggestion for
+      // this call. The user's chosen scope (session vs a settings file) wins
+      // over the suggestion's own destination.
+      const narrow = allowRuleSuggestions(pending.suggestions);
+      result.updatedPermissions =
+        narrow.length > 0
+          ? narrow.map((u) => ({
+              type: "addRules" as const,
+              behavior: "allow" as const,
+              rules: u.rules,
+              destination,
+            }))
+          : [
+              {
+                type: "addRules",
+                behavior: "allow",
+                rules: [{ toolName: pending.meta.toolName }],
+                destination,
+              },
+            ];
     }
     pending.resolve(result);
     this.broadcastTurnStatusIfChanged();
@@ -3719,7 +3908,7 @@ export class Session {
   sendInput(
     text: string,
     images?: Array<{ data: string; mediaType: string; ordinal?: number }>,
-    opts?: { uuid?: string; slash?: boolean; priority?: "now" },
+    opts?: { uuid?: string; slash?: boolean; priority?: "now"; inlinePastes?: string[] },
   ): void {
     if (this.done) return;
     type ContentBlock =
@@ -3733,6 +3922,15 @@ export class Session {
     const sendNowFields =
       opts?.priority === "now"
         ? ({ priority: "now", origin: { kind: "human" } } as const)
+        : {};
+
+    // CC 2.1.280 — mark large pasted spans so the SDK can wrap them in
+    // `<pasted_content>` and the model treats them as not user-authored. The
+    // paste text itself stays inline in `text`; this is just the provenance
+    // marker. Non-slash user turns only (slash commands carry no paste).
+    const inlinePastesField =
+      opts?.inlinePastes && opts.inlinePastes.length > 0
+        ? { inline_pastes: opts.inlinePastes }
         : {};
 
     // Pin a uuid for this user turn. The SDK's iterator never echoes user
@@ -3941,6 +4139,7 @@ export class Session {
         session_id: this.id,
         uuid,
         ...sendNowFields,
+        ...inlinePastesField,
       });
       return;
     }
@@ -4019,6 +4218,7 @@ export class Session {
       session_id: this.id,
       uuid,
       ...sendNowFields,
+      ...inlinePastesField,
     });
   }
 
@@ -5118,6 +5318,7 @@ export class Session {
     //
     // No remote/teleport concept exists in Claudius; this is the local
     // analogue of the TUI's host-rejected model switch.
+    const previousModel = this.model;
     if (this.query) {
       try {
         await this.query.setModel(model);
@@ -5151,7 +5352,38 @@ export class Session {
     // session in any workspace inherits this pick. Mirrors Claude Code's
     // `/model` persistence (see `persistModelToUserSettings` doc).
     await this.persistModelToUserSettings(model);
-    this.broadcast({ type: "model_changed", model, source });
+
+    // CC 2.1.218 parity: "Added an announcement when fast mode changes as a
+    // result of switching models". The SDK has no field correlating a
+    // `fast_mode_state` change back to a model switch (it's just a bare
+    // 'off'|'cooldown'|'on' on result messages — see FastModeNoticePanel's
+    // scope note), so watching for a state edge right after this switch
+    // could just as easily be a coincidental cooldown/recovery. Instead we
+    // derive the signal ourselves from the same `supportsFastMode` capability
+    // catalog the picker already reads (`ModelPicker.tsx`'s `ModelInfo`):
+    // if the old and new model disagree on fast-mode support, that's a real,
+    // attributable capability change. Best-effort — a catalog-fetch failure
+    // or an unresolvable model id just means no notice, not a broken switch.
+    let fastModeNowSupported: boolean | undefined;
+    if (this.query && model && previousModel && model !== previousModel) {
+      try {
+        const models = await this.query.supportedModels();
+        const find = (id: string) => models.find((m) => m.value === id || m.resolvedModel === id);
+        const prevInfo = find(previousModel);
+        const nextInfo = find(model);
+        if (prevInfo && nextInfo && Boolean(prevInfo.supportsFastMode) !== Boolean(nextInfo.supportsFastMode)) {
+          fastModeNowSupported = Boolean(nextInfo.supportsFastMode);
+        }
+      } catch {
+        // Non-fatal — the model switch itself already succeeded above.
+      }
+    }
+    this.broadcast({
+      type: "model_changed",
+      model,
+      source,
+      ...(fastModeNowSupported !== undefined ? { fastModeNowSupported } : {}),
+    });
 
     // Auto-disable the advisor when the model changes. The advisor tool
     // carries a `model` field in the API request; not all model combinations
@@ -5272,17 +5504,26 @@ export class Session {
    * so `"auto"`/clear skips the persist call entirely; the live clear via
    * `applyFlagSettings` below still takes effect for this session.
    */
-  async setEffort(level: EffortLevel | "auto"): Promise<void> {
+  async setEffort(level: EffortLevel | "auto", keepUltracode = false, sessionOnly = false): Promise<void> {
     if (!this.query) return;
     // SDK 0.3.214: `applyFlagSettings`'s `effortLevel` param is typed as
     // `EffortLevel | null` (which includes `'max'`) independent of the
     // narrower `Settings['effortLevel']` shape, so `level` — already an
     // `EffortLevel` — passes straight through without a cast. Trust the SDK
     // to reject unsupported levels rather than narrowing here.
-    const value = level === "auto" ? null : level;
-    await this.query.applyFlagSettings({ effortLevel: value }).catch(() => {});
-    if (value !== null) {
-      await this.query.updateSettings("userSettings", { effortLevel: value }).catch(() => {});
+    //
+    // CC 2.1.284: an `effortLevel` sent alone turns ultracode off; send both
+    // keys when it's on so a level change keeps ultracode on (buildEffort-
+    // FlagSettings).
+    const settings = buildEffortFlagSettings(level, keepUltracode);
+    await this.query.applyFlagSettings(settings).catch(() => {});
+    // CC 2.1.257 — `/effort <level> s` applies to this session only: the live
+    // applyFlagSettings above takes effect, but we skip persisting it to
+    // userSettings (which would make it the saved default for the model).
+    if (settings.effortLevel !== null && !sessionOnly) {
+      await this.query
+        .updateSettings("userSettings", { effortLevel: settings.effortLevel })
+        .catch(() => {});
     }
   }
 
@@ -5643,6 +5884,28 @@ export class Session {
     }
   }
 
+  /**
+   * CC 2.1.261 (H4) — the names of skills invoked in the last 7 days, from the
+   * experimental usage API's `behaviors.week.skills`. Used by the `/context`
+   * overlay's skill-doctor section to flag "unused (7d)" skills. Fetched WITHOUT
+   * `skipBehaviors` (that scan reads a week of local transcripts, so it's run
+   * only on the user-initiated `/context` fetch, never the idle poll). Returns
+   * `null` when the signal is unavailable (experimental API absent/failed) so
+   * the UI can distinguish "unknown" from "unused" and show no badge.
+   */
+  async getWeeklyUsedSkills(): Promise<string[] | null> {
+    if (!this.query) return null;
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data = await (this.query as any).usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET(
+        { skipBehaviors: false },
+      );
+      return extractWeeklyUsedSkills(data);
+    } catch {
+      return null;
+    }
+  }
+
   async mcpServerStatus(): Promise<{ ok: true; data: unknown } | { ok: false; error: string }> {
     if (!this.query) return { ok: false, error: "no active query" };
     try {
@@ -5914,6 +6177,8 @@ export class Session {
     fallbackModel?: string;
     sandboxEnabled?: boolean;
     sandboxFilesystemDisabled?: boolean;
+    sandboxNetworkAllowedDomains?: string[];
+    sandboxNetworkStrictAllowlist?: boolean;
     enable1mContext?: boolean;
     persistSession?: boolean;
     additionalDirectories?: string[];
@@ -5935,6 +6200,8 @@ export class Session {
       fallbackModel: this.fallbackModel,
       sandboxEnabled: this.sandboxEnabled,
       sandboxFilesystemDisabled: this.sandboxFilesystemDisabled,
+      sandboxNetworkAllowedDomains: this.sandboxNetworkAllowedDomains,
+      sandboxNetworkStrictAllowlist: this.sandboxNetworkStrictAllowlist,
       enable1mContext: this.enable1mContext,
       persistSession: this.persistSession,
       additionalDirectories: this.additionalDirectories,
@@ -6063,6 +6330,17 @@ export class Session {
   private async noteMcpNeedsAuthAtStartup(): Promise<void> {
     if (this.mcpNeedsAuthNoticeFired) return;
     this.mcpNeedsAuthNoticeFired = true;
+    await this.runMcpNeedsAuthCheck();
+  }
+
+  /**
+   * Core of the needs-auth check (no fire-once guard). Run at startup via
+   * `noteMcpNeedsAuthAtStartup`, and again mid-session via
+   * `recheckMcpStatusMidSession` (CC 2.1.288 — a server can ask for more
+   * OAuth scope mid tool-call). `syncNeedsAuthNotifications` dedups per server,
+   * so a re-run only announces a server newly in `needs-auth`.
+   */
+  private async runMcpNeedsAuthCheck(): Promise<void> {
     try {
       const result = await this.mcpServerStatus();
       if (!result.ok) return;
@@ -6123,6 +6401,11 @@ export class Session {
   private async noteMcpDisconnectedAtStartup(): Promise<void> {
     if (this.mcpDisconnectedNoticeFired) return;
     this.mcpDisconnectedNoticeFired = true;
+    await this.runMcpDisconnectedCheck();
+  }
+
+  /** Core of the disconnected check (no fire-once guard); see `runMcpNeedsAuthCheck`. */
+  private async runMcpDisconnectedCheck(): Promise<void> {
     try {
       const result = await this.mcpServerStatus();
       if (!result.ok) return;
@@ -6139,6 +6422,25 @@ export class Session {
     } catch {
       // best-effort — a status-check failure must never disrupt the session
     }
+  }
+
+  /**
+   * CC 2.1.273/2.1.288 — mid-session MCP re-check. The startup notices only
+   * fire on the first `system:init`; a server that drops (gives up
+   * reconnecting) or asks for more OAuth scope DURING the session is otherwise
+   * never surfaced (the CLI's own notice is Ink-only, off the SDK channel).
+   * Re-run both checks at turn boundaries, throttled so a busy session doesn't
+   * issue an `mcpServerStatus()` control call every turn; the per-server DB
+   * dedup keeps it from re-announcing a server already flagged.
+   */
+  private lastMcpRecheckAt = 0;
+  private async recheckMcpStatusMidSession(): Promise<void> {
+    if (this.isReplayingTranscript) return;
+    const now = Date.now();
+    if (!mcpRecheckDue(now, this.lastMcpRecheckAt)) return;
+    this.lastMcpRecheckAt = now;
+    await this.runMcpNeedsAuthCheck();
+    await this.runMcpDisconnectedCheck();
   }
 
   /**
@@ -7298,12 +7600,13 @@ export class Session {
    *   - `"idle"`     → in memory, last result has been received, no pending
    *                    decisions. The session is ready to accept new input.
    */
-  getStatus(): "running" | "idle" {
+  getStatus(): "running" | "idle" | "needs_input" {
+    // CC 2.1.212 — a turn blocked on a user prompt (permission / ask / plan /
+    // elicitation) is "needs_input", not "running": the agent can't progress
+    // until the user answers. Checked first so it wins over `turnInFlight`,
+    // which stays true while the turn is parked on the prompt.
+    if (this.hasPendingUserPrompts()) return "needs_input";
     if (this.turnInFlight) return "running";
-    if (this.pendingPermissions.size > 0) return "running";
-    if (this.pendingAskQuestions.size > 0) return "running";
-    if (this.pendingPlans.size > 0) return "running";
-    if (this.pendingElicitations.size > 0) return "running";
     if (this.hasActiveSubagents()) return "running";
     return "idle";
   }
@@ -7510,6 +7813,19 @@ export class Session {
           // stale error set (newest frame wins).
           this.pluginLoadErrors = init.pluginErrors;
         }
+        // CC 2.1.216 — keep the cached init chrome's slash-command list fresh
+        // when the SDK pushes a `commands_changed` mid-session (skills/commands
+        // discovered as the agent works, a plugin reload). Without this, the
+        // `session_snapshot` re-emitted on a reload / tab switch reverts the
+        // palette to the stale init list even though the live path already
+        // applied the change (see use-session.ts `commands_changed`).
+        if (sdkMsg.subtype === "commands_changed" && this.latestInitSnapshot) {
+          const cc = sdkMsg as { commands?: Array<{ name?: unknown }> };
+          const names = commandNamesFromChanged(cc.commands);
+          if (names.length > 0) {
+            this.latestInitSnapshot = { ...this.latestInitSnapshot, slashCommands: names };
+          }
+        }
         // Fire the one-shot MCP needs-auth notice on the first live system:init.
         if (sdkMsg.subtype === "init" && !this.isReplayingTranscript) {
           void this.noteMcpNeedsAuthAtStartup();
@@ -7559,6 +7875,10 @@ export class Session {
       // Mirror `tabLabelFor`'s fallback so an untitled session still shows a
       // recognisable id-prefix instead of the raw cwd in the inbox.
       sessionTitle: this.title?.trim() || this.id.slice(0, 8),
+      // CC 2.1.288 — suppress the "Claude finished" idle ding while a subagent
+      // or backgrounded Task is still running (the parent `result` fired early).
+      hasActiveBackgroundWork:
+        this.hasActiveSubagents() || this.countActiveBackgroundTasks() > 0,
     });
   }
 
@@ -8197,6 +8517,9 @@ export class Session {
       // task (always alongside status: "stopped"); absent on an ordinary
       // completion, failure, or user-initiated stop.
       reason?: "worker_restart";
+      // CC 2.1.284 — the file the task's full output was written to (a
+      // Monitor event's print, a background task's stdout).
+      output_file?: string;
     };
 
     // Subagent inner message — accumulate the raw envelope under its parent
@@ -8307,6 +8630,8 @@ export class Session {
         if (msg.resource_links != null) meta.resourceLinks = msg.resource_links;
         // SDK 0.3.273 — worker-restart orphan cause, surfaced verbatim.
         if (msg.reason != null) meta.reason = msg.reason;
+        // CC 2.1.284 — path to what this task/Monitor printed.
+        if (msg.output_file != null) meta.outputFile = msg.output_file;
         this.taskMetaById.set(taskId, meta);
         this.persistTask(meta);
         // Terminal subagent event — if this was the last non-backgrounded
@@ -8487,6 +8812,10 @@ export class Session {
           sawResult = true;
           this.turnInFlight = false;
           this.broadcastTurnStatusIfChanged();
+          // CC 2.1.273/2.1.288 — turn boundary is our mid-session poll point:
+          // re-check MCP status so a server that dropped or now needs more
+          // OAuth scope during the turn surfaces a notice (throttled inside).
+          void this.recheckMcpStatusMidSession();
           // Fold the result's running cost/usage totals into the durable
           // per-session accumulator, persist, and broadcast the fresh
           // `usage_snapshot` (see foldResultIntoSessionUsage for semantics).
@@ -8628,6 +8957,13 @@ export class Session {
                       },
                     }
                   : {}),
+                // CC parity 2.1.236 — usage-credits ("extra usage") spend. A
+                // typed field on `rate_limits` (unlike the speculative
+                // spend_limit above), normalized by the shared helper.
+                ...((): { extraUsage?: ExtraUsage } => {
+                  const eu = normalizeExtraUsage(rl?.extra_usage);
+                  return eu ? { extraUsage: eu } : {};
+                })(),
                 // CC parity 2.1.208: a fresh successful fetch always implies
                 // "not stale" — the client clears any earlier staleness flag
                 // when it receives this event (see use-session.ts).

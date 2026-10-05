@@ -7,7 +7,10 @@ import {
   isActivityCountableTask,
   isBackgroundTaskLive,
   isBackgroundedToolUse,
+  isNonTerminalTaskStatus,
+  isSystemTask,
   reconcileTasksOnToolResult,
+  setTaskModelForToolUse,
   seedTaskStatus,
   shouldRecoverOrphanTask,
   statusFromToolResult,
@@ -359,5 +362,55 @@ describe("isActivityCountableTask (SDK 0.3.247 ambient exclusion)", () => {
 
   test("an ambient-less (older SDK / not reported) task counts by default", () => {
     expect(isActivityCountableTask({})).toBe(true);
+  });
+});
+
+describe("isNonTerminalTaskStatus (CC 2.1.271 — C1)", () => {
+  test("running, pending and paused are non-terminal", () => {
+    expect(isNonTerminalTaskStatus("running")).toBe(true);
+    expect(isNonTerminalTaskStatus("pending")).toBe(true);
+    // paused auto-resumes when the usage limit resets — stays live.
+    expect(isNonTerminalTaskStatus("paused")).toBe(true);
+  });
+
+  test("completed / failed / killed / stopped are terminal", () => {
+    expect(isNonTerminalTaskStatus("completed")).toBe(false);
+    expect(isNonTerminalTaskStatus("failed")).toBe(false);
+    expect(isNonTerminalTaskStatus("killed")).toBe(false);
+    expect(isNonTerminalTaskStatus("stopped")).toBe(false);
+  });
+});
+
+describe("isSystemTask (CC 2.1.285 — C2)", () => {
+  test("true for skip_transcript housekeeping tasks", () => {
+    expect(isSystemTask({ skipTranscript: true })).toBe(true);
+  });
+  test("false for ordinary tasks", () => {
+    expect(isSystemTask({})).toBe(false);
+    expect(isSystemTask({ skipTranscript: false })).toBe(false);
+  });
+});
+
+describe("setTaskModelForToolUse (CC 2.1.243 — C5)", () => {
+  const sub = (toolUseId: string, model?: string): TaskInfo => ({
+    ...task({ taskId: `t_${toolUseId}` }),
+    toolUseId,
+    ...(model ? { model } : {}),
+  });
+
+  test("stamps the model on the task matching the tool_use_id", () => {
+    const out = setTaskModelForToolUse({ a: sub("tu1"), b: sub("tu2") }, "tu1", "claude-opus-4-8");
+    expect(out.a.model).toBe("claude-opus-4-8");
+    expect(out.b.model).toBeUndefined();
+  });
+
+  test("set-once: doesn't overwrite an existing model, returns same ref", () => {
+    const input = { a: sub("tu1", "claude-sonnet-5-5") };
+    expect(setTaskModelForToolUse(input, "tu1", "claude-opus-4-8")).toBe(input);
+  });
+
+  test("no matching tool_use_id → same ref", () => {
+    const input = { a: sub("tu1") };
+    expect(setTaskModelForToolUse(input, "other", "m")).toBe(input);
   });
 });

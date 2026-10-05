@@ -74,7 +74,7 @@ const STATIC_FALLBACK: ModelInfo[] = [
   },
   {
     value: "fable",
-    displayName: "Fable 5",
+    displayName: "Fable 5.1",
     // Mirrors the Claude Code TUI's `/model` picker copy verbatim so the
     // sessionless picker (workspace-create form) reads the same as a live
     // session. The "~2× faster than Opus" hint is the SDK's framing of

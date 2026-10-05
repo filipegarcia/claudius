@@ -91,7 +91,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test.describe("/output-style command (CC 2.1.269 parity)", () => {
-  test("no args lists the current and available styles via toast", async ({ page }) => {
+  test("no args opens the picker listing the current and available styles", async ({ page }) => {
     await mockChatBackend(page, PRELUDE);
     await page.goto("/");
 
@@ -105,12 +105,15 @@ test.describe("/output-style command (CC 2.1.269 parity)", () => {
     await page.getByTestId("prompt-send").click();
     await listGet;
 
-    const toast = page.getByTestId("chat-toast");
-    await expect(toast).toBeVisible({ timeout: 5_000 });
-    await expect(toast).toContainText("Output style: default");
-    await expect(toast).toContainText("explanatory, concise, developer");
+    // CC 2.1.286 — no args opens a picker overlay (lands on the current style,
+    // with a description under each name), rather than a bare toast.
+    const picker = page.getByTestId("output-style-overlay");
+    await expect(picker).toBeVisible({ timeout: 5_000 });
+    for (const style of ["default", "explanatory", "concise", "developer"]) {
+      await expect(picker).toContainText(style);
+    }
 
-    // Screenshot in context — chat surface + composer + toast, all visible.
+    // Screenshot in context — chat surface + composer + the open picker.
     await page.waitForTimeout(150);
     await page.screenshot({ path: resolve(SHOTS_DIR, "output-style-command.png"), fullPage: false });
   });
