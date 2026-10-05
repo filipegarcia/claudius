@@ -433,3 +433,65 @@ describe("detectPostQuitSwapFailure", () => {
     ).toBeNull();
   });
 });
+
+describe("detectPostQuitSwapFailure — same-version re-releases", () => {
+  // A re-release (0.3.289.0 → 0.3.289.1) keeps the semver, so the swap check
+  // also compares the release counter, with the bundle inode as tie-breaker.
+  const NOW = 1_700_000_000_000;
+  const RECENT = NOW - 1000;
+  const pending = { targetVersion: "0.3.289", targetRelease: 1, targetTag: "v0.3.289.1", attemptedAt: RECENT };
+
+  test("same semver but the old counter is still running → blocked-app-management", async () => {
+    const { detectPostQuitSwapFailure } = await import("@/electron/ipc/updater");
+    const result = detectPostQuitSwapFailure({
+      platform: "darwin",
+      currentVersion: "0.3.289",
+      currentRelease: 0,
+      now: NOW,
+      consume: () => ({ ...pending, bundleIno: 42 }),
+      currentBundleIno: 42,
+    });
+    expect(result?.kind).toBe("blocked-app-management");
+    expect(result?.kind === "blocked-app-management" && result.message).toMatch(/0\.3\.289\.1.*0\.3\.289\.0/);
+  });
+
+  test("counter advanced → swap succeeded", async () => {
+    const { detectPostQuitSwapFailure } = await import("@/electron/ipc/updater");
+    expect(
+      detectPostQuitSwapFailure({
+        platform: "darwin",
+        currentVersion: "0.3.289",
+        currentRelease: 1,
+        now: NOW,
+        consume: () => pending,
+      }),
+    ).toBeNull();
+  });
+
+  test("counter disagrees but the bundle was replaced → swap succeeded (no false banner)", async () => {
+    const { detectPostQuitSwapFailure } = await import("@/electron/ipc/updater");
+    expect(
+      detectPostQuitSwapFailure({
+        platform: "darwin",
+        currentVersion: "0.3.289",
+        currentRelease: 0,
+        currentBundleIno: 99,
+        now: NOW,
+        consume: () => ({ ...pending, bundleIno: 42 }),
+      }),
+    ).toBeNull();
+  });
+
+  test("unknown running counter falls back to the semver check", async () => {
+    const { detectPostQuitSwapFailure } = await import("@/electron/ipc/updater");
+    expect(
+      detectPostQuitSwapFailure({
+        platform: "darwin",
+        currentVersion: "0.3.289",
+        currentRelease: null,
+        now: NOW,
+        consume: () => pending,
+      }),
+    ).toBeNull();
+  });
+});

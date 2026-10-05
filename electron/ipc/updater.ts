@@ -45,6 +45,14 @@ import {
   sha512Base64,
   type ReleaseFile,
 } from "./self-replace-mac";
+import {
+  buildLabel,
+  detectSameVersionRerelease,
+  parseReleaseTag,
+  releaseCounterFromServerFiles,
+  releaseLabel,
+  type Rerelease,
+} from "./release-counter";
 
 /**
  * Where we send macOS users when the in-place self-update is disabled (see
@@ -64,13 +72,55 @@ const RELEASE_REPO = "claudius";
  * unsigned builds, where Squirrel.Mac refuses the swap). When set, `updater:apply`
  * runs the detached swap helper + relaunch instead of `quitAndInstall()`.
  */
-let customStaged: { version: string; newAppPath: string } | null = null;
+let customStaged: (MacUpdateTarget & { newAppPath: string }) | null = null;
 /**
  * The update announced by the last `available` status, parked until the user
  * consents. Downloads are no longer fire-and-forget: the mac zip is ~370 MB,
  * so we hold the release info here and only fetch once TOPIC_DOWNLOAD arrives.
  */
-let pendingMacUpdate: { version: string; tag?: string; files?: ReleaseFile[] } | null = null;
+let pendingMacUpdate: (MacUpdateTarget & { files?: ReleaseFile[] }) | null = null;
+
+/**
+ * What a macOS self-replace is installing. `label` is display-only
+ * ("0.3.289.1"); `targetVersion` + `targetRelease` are the build identity the
+ * post-quit swap check compares against the relaunched app — a same-version
+ * re-release differs from the running build ONLY in `targetRelease`.
+ */
+type MacUpdateTarget = {
+  label: string;
+  tag?: string;
+  targetVersion: string;
+  targetRelease: number | null;
+};
+
+/**
+ * The running build's release counter (the `.N` of its `vX.Y.Z.N` tag), read
+ * once from the bundled Next config — see `release-counter.ts`. Null for dev
+ * and local builds that never set `NEXT_PUBLIC_CLAUDIUS_RELEASE`.
+ */
+let runningReleaseCache: number | null | undefined;
+function runningRelease(): number | null {
+  if (runningReleaseCache !== undefined) return runningReleaseCache;
+  let release: number | null = null;
+  try {
+    const file = path.join(process.resourcesPath, "standalone", ".next", "required-server-files.json");
+    release = releaseCounterFromServerFiles(fs.readFileSync(file, "utf8"));
+  } catch {
+    release = null;
+  }
+  runningReleaseCache = release;
+  return release;
+}
+
+/** Inode of the running `.app` bundle — changes when the swap script replaces it. */
+function runningBundleIno(): number | null {
+  try {
+    const bundle = appBundleFromExecPath(app.getPath("exe"));
+    return bundle ? fs.statSync(bundle).ino : null;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * `electron-updater` reads its publish/feed config from `app-update.yml`,
@@ -352,17 +402,40 @@ type PendingUpdate = {
   targetVersion: string;
   /** When `update-downloaded` fired. */
   attemptedAt: number;
+  /**
+   * Release counter of the build we installed, when known. The only thing
+   * that tells a same-version re-release (0.3.289.0 → 0.3.289.1) apart from
+   * a swap that silently didn't happen.
+   */
+  targetRelease?: number;
+  /** The release tag we installed (`v0.3.289.1`), when known. */
+  targetTag?: string;
+  /**
+   * Inode of the `.app` bundle before our own swap script ran. The script
+   * `rm -rf`s the bundle and `mv`s the new one in, so a different inode on
+   * relaunch is hard evidence the swap happened — independent of what
+   * counter the new build baked in.
+   */
+  bundleIno?: number;
 };
 
 function pendingUpdatePath(): string {
   return path.join(app.getPath("userData"), "claudius-pending-update.json");
 }
 
-function persistPendingUpdate(version: string): void {
+function persistPendingUpdate(target: {
+  version: string;
+  release?: number | null;
+  tag?: string;
+  bundleIno?: number | null;
+}): void {
   try {
     const data: PendingUpdate = {
-      targetVersion: version,
+      targetVersion: target.version,
       attemptedAt: Date.now(),
+      ...(target.release != null ? { targetRelease: target.release } : {}),
+      ...(target.tag ? { targetTag: target.tag } : {}),
+      ...(target.bundleIno != null ? { bundleIno: target.bundleIno } : {}),
     };
     fs.writeFileSync(pendingUpdatePath(), JSON.stringify(data), "utf8");
   } catch (err) {
@@ -402,7 +475,13 @@ function consumePendingUpdate(): PendingUpdate | null {
     ) {
       return null;
     }
-    return { targetVersion: parsed.targetVersion, attemptedAt: parsed.attemptedAt };
+    return {
+      targetVersion: parsed.targetVersion,
+      attemptedAt: parsed.attemptedAt,
+      ...(typeof parsed.targetRelease === "number" ? { targetRelease: parsed.targetRelease } : {}),
+      ...(typeof parsed.targetTag === "string" ? { targetTag: parsed.targetTag } : {}),
+      ...(typeof parsed.bundleIno === "number" ? { bundleIno: parsed.bundleIno } : {}),
+    };
   } catch {
     return null;
   }
@@ -430,6 +509,10 @@ function consumePendingUpdate(): PendingUpdate | null {
 export function detectPostQuitSwapFailure(deps: {
   platform: NodeJS.Platform;
   currentVersion: string;
+  /** Running build's release counter, when known. */
+  currentRelease?: number | null;
+  /** Inode of the running `.app` bundle, when known. */
+  currentBundleIno?: number | null;
   now: number;
   consume: () => PendingUpdate | null;
 }): Status | null {
@@ -437,15 +520,57 @@ export function detectPostQuitSwapFailure(deps: {
   const pending = deps.consume();
   if (!pending) return null;
   if (pending.targetVersion === deps.currentVersion) {
-    // Swap succeeded — marker already consumed.
-    return null;
+    // Same semver. For an ordinary update that means the swap succeeded. For a
+    // same-version re-release the semver can't tell — the counter can.
+    const releaseDiffers =
+      pending.targetRelease != null &&
+      deps.currentRelease != null &&
+      pending.targetRelease !== deps.currentRelease;
+    if (!releaseDiffers) return null;
+    // The counter disagrees, but if the bundle was replaced the swap did
+    // happen (the new build just baked a different counter than its tag).
+    const bundleReplaced =
+      pending.bundleIno != null && deps.currentBundleIno != null && pending.bundleIno !== deps.currentBundleIno;
+    if (bundleReplaced) return null;
   }
   const STALE_MS = 14 * 24 * 60 * 60 * 1000;
   if (deps.now - pending.attemptedAt > STALE_MS) return null;
+  const target = buildLabel(pending.targetVersion, pending.targetRelease);
+  const current = buildLabel(deps.currentVersion, pending.targetRelease != null ? deps.currentRelease : null);
   return {
     kind: "blocked-app-management",
-    message: `Attempted to install Claudius ${pending.targetVersion} but the running version is still ${deps.currentVersion}. The most common cause on macOS is App Management blocking the bundle replacement.`,
+    message: `Attempted to install Claudius ${target} but the running version is still ${current}. The most common cause on macOS is App Management blocking the bundle replacement.`,
   };
+}
+
+/**
+ * The last same-version re-release this machine verifiably installed. Fed to
+ * `detectSameVersionRerelease` so a build whose baked counter ever disagreed
+ * with its tag can't be re-offered in a loop.
+ */
+type InstalledRelease = { tag: string; version: string };
+
+function installedReleasePath(): string {
+  return path.join(app.getPath("userData"), "claudius-installed-release.json");
+}
+
+function readInstalledRelease(): InstalledRelease | null {
+  try {
+    const parsed = JSON.parse(fs.readFileSync(installedReleasePath(), "utf8")) as Partial<InstalledRelease>;
+    return typeof parsed.tag === "string" && typeof parsed.version === "string"
+      ? { tag: parsed.tag, version: parsed.version }
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeInstalledRelease(rec: InstalledRelease): void {
+  try {
+    fs.writeFileSync(installedReleasePath(), JSON.stringify(rec), "utf8");
+  } catch (err) {
+    console.warn("[updater] failed to record installed release", err);
+  }
 }
 
 /**
@@ -517,15 +642,24 @@ export function registerUpdaterHandlers(): void {
     // straight into the normal check flow below.
     if (!postQuitSwapChecked) {
       postQuitSwapChecked = true;
+      let consumed: PendingUpdate | null = null;
       const failure = detectPostQuitSwapFailure({
         platform: process.platform,
         currentVersion: app.getVersion(),
+        currentRelease: runningRelease(),
+        currentBundleIno: runningBundleIno(),
         now: Date.now(),
-        consume: consumePendingUpdate,
+        consume: () => (consumed = consumePendingUpdate()),
       });
       if (failure) {
         broadcast(failure);
         return;
+      }
+      // The swap we kicked off last time took. Remember which release it was
+      // so the same-version re-release check never offers it again.
+      const done = consumed as PendingUpdate | null;
+      if (done?.targetTag && done.targetVersion === app.getVersion()) {
+        writeInstalledRelease({ tag: done.targetTag, version: done.targetVersion });
       }
     }
     bootstrap();
@@ -666,10 +800,12 @@ function bootstrap(): void {
 
   u.on("checking-for-update", () => broadcast({ kind: "checking" }));
   u.on("update-available", (info) => {
+    const tag = (info as { tag?: string }).tag;
+    const label = releaseLabel({ version: info.version, tag });
     if (isUnsupportedLinuxPackage()) {
       // Linux deb/rpm — electron-updater can't swap a system package in place.
       // Point the user at Releases to install the new .deb/.rpm themselves.
-      broadcast({ kind: "manual-download", version: info.version, url: RELEASES_URL });
+      broadcast({ kind: "manual-download", version: label, url: RELEASES_URL });
       return;
     }
     if (!autoUpdateIsSafe()) {
@@ -681,33 +817,55 @@ function bootstrap(): void {
       if (process.platform === "darwin") {
         // Park it — the renderer's update modal drives the actual fetch via
         // TOPIC_DOWNLOAD once the user says go.
+        const parsed = parseReleaseTag(tag);
         pendingMacUpdate = {
-          version: info.version,
+          label,
           // electron-updater's GitHub provider resolves the REAL tag and
           // exposes it as `GithubUpdateInfo.tag`; it is not always `v<version>`
           // (our auto-tag adds a fourth rebuild component). Use it verbatim.
-          tag: (info as { tag?: string }).tag,
+          tag,
+          targetVersion: info.version,
+          targetRelease: parsed && parsed.version === info.version ? parsed.release : null,
           files: info.files as ReleaseFile[],
         };
-        broadcast({ kind: "available", version: info.version });
+        broadcast({ kind: "available", version: label });
         return;
       }
-      broadcast({ kind: "manual-download", version: info.version, url: RELEASES_URL });
+      broadcast({ kind: "manual-download", version: label, url: RELEASES_URL });
       return;
     }
-    broadcast({ kind: "available", version: info.version });
+    broadcast({ kind: "available", version: label });
   });
-  u.on("update-not-available", () =>
-    broadcast({ kind: "up-to-date", version: app.getVersion() }),
-  );
+  u.on("update-not-available", (info) => {
+    // electron-updater compares semver only, so `v0.3.289.1` looks identical
+    // to a running `v0.3.289.0`. Check the release counter ourselves.
+    const rerelease = detectSameVersionRerelease({
+      currentVersion: app.getVersion(),
+      currentRelease: runningRelease(),
+      latestVersion: info?.version,
+      latestTag: (info as { tag?: string } | undefined)?.tag,
+      installed: readInstalledRelease(),
+    });
+    if (rerelease) {
+      offerRerelease(rerelease, (info?.files ?? []) as ReleaseFile[]);
+      return;
+    }
+    broadcast({ kind: "up-to-date", version: buildLabel(app.getVersion(), runningRelease()) });
+  });
   u.on("download-progress", (p) =>
     broadcast({ kind: "downloading", percent: Math.round(p.percent) }),
   );
   u.on("update-downloaded", (info) => {
     // Persist FIRST so a synchronous broadcast → "Restart now" click
     // can't race the disk write and let a swap failure go undetected.
-    persistPendingUpdate(info.version);
-    broadcast({ kind: "downloaded", version: info.version });
+    const tag = (info as { tag?: string }).tag;
+    const parsed = parseReleaseTag(tag);
+    persistPendingUpdate({
+      version: info.version,
+      release: parsed && parsed.version === info.version ? parsed.release : null,
+      tag,
+    });
+    broadcast({ kind: "downloaded", version: releaseLabel({ version: info.version, tag }) });
   });
   u.on("error", (err) => {
     const msg = errorMessage(err);
@@ -727,6 +885,30 @@ function bootstrap(): void {
 }
 
 /**
+ * Surface a same-version re-release that electron-updater filtered out.
+ *
+ * macOS installs it through our own download + swap (`startMacSelfReplace`),
+ * which doesn't care about semver and works for ad-hoc and signed builds
+ * alike. electron-updater itself can't: it only remembers the release for
+ * `downloadUpdate()` when its own check said "available". Everywhere else
+ * (Linux AppImage/deb/rpm, Windows) points at the Releases page.
+ */
+function offerRerelease(r: Rerelease, files: ReleaseFile[]): void {
+  if (process.platform === "darwin") {
+    pendingMacUpdate = {
+      label: r.label,
+      tag: r.tag,
+      targetVersion: r.version,
+      targetRelease: r.release,
+      files,
+    };
+    broadcast({ kind: "available", version: r.label });
+    return;
+  }
+  broadcast({ kind: "manual-download", version: r.label, url: RELEASES_URL });
+}
+
+/**
  * macOS custom self-replace, step 1: download the new build's zip and stage it.
  *
  * Runs on ad-hoc/unsigned darwin builds where Squirrel.Mac can't swap. Drives
@@ -734,20 +916,16 @@ function bootstrap(): void {
  * the banner and settings card need no special case. Any failure falls back to
  * the manual-download prompt — the user can still grab the DMG.
  */
-async function startMacSelfReplace(info: {
-  version: string;
-  tag?: string;
-  files?: ReleaseFile[];
-}): Promise<void> {
+async function startMacSelfReplace(info: MacUpdateTarget & { files?: ReleaseFile[] }): Promise<void> {
   const asset = pickMacZip(info.files ?? [], process.arch);
   if (!asset) {
-    broadcast({ kind: "manual-download", version: info.version, url: RELEASES_URL });
+    broadcast({ kind: "manual-download", version: info.label, url: RELEASES_URL });
     return;
   }
-  const url = releaseAssetUrl(RELEASE_OWNER, RELEASE_REPO, info.tag ?? info.version, asset.url);
+  const url = releaseAssetUrl(RELEASE_OWNER, RELEASE_REPO, info.tag ?? info.targetVersion, asset.url);
   const tmp = app.getPath("temp");
-  const zipPath = path.join(tmp, `claudius-update-${info.version}.zip`);
-  const extractDir = path.join(tmp, `claudius-update-${info.version}`);
+  const zipPath = path.join(tmp, `claudius-update-${info.label}.zip`);
+  const extractDir = path.join(tmp, `claudius-update-${info.label}`);
   try {
     broadcast({ kind: "downloading", percent: 0 });
     await downloadFile(url, zipPath, asset.size, (pct) =>
@@ -764,7 +942,7 @@ async function startMacSelfReplace(info: {
     // Unpack + stage. Surfaced as its own `installing` status because ditto on
     // a ~370 MB bundle runs for a while, and a progress bar frozen at 100%
     // looks like a hang.
-    broadcast({ kind: "installing", version: info.version });
+    broadcast({ kind: "installing", version: info.label });
 
     // `ditto -x -k` is the macOS-correct unzip — preserves the .app bundle
     // (symlinks, perms, signature structure) which `unzip` mangles.
@@ -779,12 +957,18 @@ async function startMacSelfReplace(info: {
     // Strip any quarantine now so the post-quit relaunch isn't Gatekeeper-blocked.
     spawnSync("/usr/bin/xattr", ["-cr", newAppPath]);
 
-    customStaged = { version: info.version, newAppPath };
-    broadcast({ kind: "downloaded", version: info.version });
+    customStaged = {
+      label: info.label,
+      tag: info.tag,
+      targetVersion: info.targetVersion,
+      targetRelease: info.targetRelease,
+      newAppPath,
+    };
+    broadcast({ kind: "downloaded", version: info.label });
   } catch (err) {
     customStaged = null;
     console.warn("[updater] mac self-replace download failed:", errorMessage(err));
-    broadcast({ kind: "manual-download", version: info.version, url: RELEASES_URL });
+    broadcast({ kind: "manual-download", version: info.label, url: RELEASES_URL });
   }
 }
 
@@ -842,7 +1026,7 @@ function applyCustomStaged(): void {
   if (!target) {
     // Not running from a .app bundle (shouldn't happen in a packaged build) —
     // fall back to the Releases page.
-    broadcast({ kind: "manual-download", version: customStaged.version, url: RELEASES_URL });
+    broadcast({ kind: "manual-download", version: customStaged.label, url: RELEASES_URL });
     return;
   }
   try {
@@ -853,11 +1037,24 @@ function applyCustomStaged(): void {
       targetApp: target,
       logPath,
     });
-    const scriptPath = path.join(app.getPath("temp"), `claudius-swap-${customStaged.version}.sh`);
+    const scriptPath = path.join(app.getPath("temp"), `claudius-swap-${customStaged.label}.sh`);
     fs.writeFileSync(scriptPath, script, { mode: 0o755 });
     // Reuse the post-quit-swap-failure detector: if the swap is blocked (App
-    // Management), next launch is still on the old version and we surface it.
-    persistPendingUpdate(customStaged.version);
+    // Management), next launch is still on the old build and we surface it.
+    // The release counter + bundle inode let it judge same-version
+    // re-releases too, where the semver alone can't tell.
+    let bundleIno: number | null = null;
+    try {
+      bundleIno = fs.statSync(target).ino;
+    } catch {
+      bundleIno = null;
+    }
+    persistPendingUpdate({
+      version: customStaged.targetVersion,
+      release: customStaged.targetRelease,
+      tag: customStaged.tag,
+      bundleIno,
+    });
     const child = spawn("/bin/bash", [scriptPath], { detached: true, stdio: "ignore" });
     child.unref();
     // Give the helper a beat to start its wait loop, then quit so it can swap.
