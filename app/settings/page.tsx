@@ -736,6 +736,12 @@ export default function SettingsPage() {
                     description="Underline misspelled words as you type in the message composer, using the browser's native spellcheck. On by default."
                   />
                   <ToggleRow
+                    label="showMessageTimestamps"
+                    checked={draft.showMessageTimestamps !== false}
+                    onChange={(b) => update({ showMessageTimestamps: b ? undefined : false })}
+                    description="Show the time each chat message was sent. On by default; turn it off to show times only when you hover over a message."
+                  />
+                  <ToggleRow
                     label="sessionRecapEnabled"
                     checked={draft.sessionRecapEnabled !== false}
                     onChange={(b) => update({ sessionRecapEnabled: b ? undefined : false })}
@@ -948,6 +954,7 @@ const KNOWN_KEYS = new Set([
   "promptSuggestionEnabled",
   "emojiCompletionEnabled",
   "spellcheckEnabled",
+  "showMessageTimestamps",
   "sessionRecapEnabled",
   "queueDispatchMode",
   "claudeMdExcludes",

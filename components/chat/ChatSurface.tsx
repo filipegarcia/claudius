@@ -40,6 +40,8 @@ import { useEmojiCompletionEnabled } from "@/lib/client/useEmojiCompletionEnable
 import { useSpellcheckEnabled } from "@/lib/client/useSpellcheckEnabled";
 import { useProseMaxWidth } from "@/lib/client/useProseMaxWidth";
 import { useClockOptions } from "@/lib/client/useClockOptions";
+import { useShowMessageTimestamps } from "@/lib/client/useShowMessageTimestamps";
+import { MessageTimestampsProvider } from "@/lib/client/message-timestamps-context";
 import { ClockOptionsProvider } from "@/lib/client/clock-options-context";
 import { useReducedMotionSetting } from "@/lib/client/useReducedMotionSetting";
 import { HelpOverlay } from "@/components/overlays/HelpOverlay";
@@ -428,6 +430,8 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
   // context so every message-bubble timestamp and the StatusLine turn-end
   // clock honor the user's clock settings.
   const clockOptions = useClockOptions(session.cwd);
+  // CC 2.1.290 — user-scope `showMessageTimestamps` (default on).
+  const showMessageTimestamps = useShowMessageTimestamps(session.cwd);
   // CC 2.1.287 (F9) — force reduced motion when the setting is on (the OS
   // media query is honored independently in globals.css).
   useReducedMotionSetting(session.cwd);
@@ -2083,6 +2087,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
 
   return (
     <ClockOptionsProvider value={clockOptions}>
+    <MessageTimestampsProvider value={showMessageTimestamps}>
     <div className="flex h-full">
       {/* Focus hides the nav-icon rail (and the right activity panel below)
           but keeps the workspace rail; zen hides the workspace rail too.
@@ -2862,6 +2867,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
         </div>
       )}
     </div>
+    </MessageTimestampsProvider>
     </ClockOptionsProvider>
   );
 }

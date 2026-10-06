@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils/cn";
 import type { AttachedImage, DisplayMessage } from "@/lib/client/types";
 import { formatMessageTime } from "@/lib/client/format-message-time";
 import { useClockOptionsContext } from "@/lib/client/clock-options-context";
+import { useShowMessageTimestampsContext } from "@/lib/client/message-timestamps-context";
 import { ImageLightbox } from "./ImageLightbox";
 import { PeerMessageHeader } from "./PeerMessageHeader";
 import { Markdown } from "./Markdown";
@@ -86,6 +87,8 @@ export function UserMessage({
   const showBody = !showPeerCollapse || peerExpanded;
   const clock = useClockOptionsContext();
   const stamp = formatMessageTime(message.createdAt, clock);
+  // CC 2.1.290 — times show by default (`showMessageTimestamps`); off = hover only.
+  const alwaysShowStamp = useShowMessageTimestampsContext() || verbose === "ultra-verbose";
   const [copied, setCopied] = useState(false);
   const copy = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -175,7 +178,7 @@ export function UserMessage({
               <span
                 className={cn(
                   "font-mono text-[10px] text-[var(--muted)] transition",
-                  verbose === "ultra-verbose" ? "opacity-60" : "opacity-0 group-hover:opacity-100",
+                  alwaysShowStamp ? "opacity-60" : "opacity-0 group-hover:opacity-100",
                 )}
                 title={stamp.full}
                 aria-label={`Sent ${stamp.full}`}
