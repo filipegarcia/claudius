@@ -15,6 +15,9 @@ export type AgentFile = {
   raw: string;
 };
 
+/** CC 2.1.292: agent names allow at most 256 characters. */
+export const MAX_AGENT_NAME_LENGTH = 256;
+
 export function agentsDir(scope: AgentScope, projectCwd: string): string {
   if (scope === "user") return join(homedir(), ".claude", "agents");
   return join(projectCwd, ".claude", "agents");
@@ -91,6 +94,14 @@ export async function writeAgent(
   const { frontmatter } = parseFrontmatter(raw);
   if (typeof frontmatter.name === "string" && frontmatter.name.includes(":")) {
     throw new Error("agent name cannot contain ':' — reserved for plugin namespacing");
+  }
+  // CC 2.1.292 parity: agent names are capped at 256 characters; a longer
+  // one is rejected (filename and frontmatter `name:` alike).
+  if (name.length > MAX_AGENT_NAME_LENGTH) {
+    throw new Error(`agent name too long (max ${MAX_AGENT_NAME_LENGTH} characters)`);
+  }
+  if (typeof frontmatter.name === "string" && frontmatter.name.length > MAX_AGENT_NAME_LENGTH) {
+    throw new Error(`agent name too long (max ${MAX_AGENT_NAME_LENGTH} characters)`);
   }
   // Inline path-injection barrier: resolve both sides and assert the
   // child path stays inside the scoped agents directory. CodeQL's
