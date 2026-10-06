@@ -8,7 +8,7 @@ import { listWorkspaces } from "@/lib/server/workspaces-store";
 import { resolveHierarchy } from "@/lib/server/claudemd";
 import { readSettings } from "@/lib/server/settings";
 import { listRules, readRule } from "@/lib/server/rules";
-import { ignoredTelemetryEnvKeys } from "@/lib/shared/telemetry-env";
+import { ignoredAttachmentsEnvKeys, ignoredTelemetryEnvKeys } from "@/lib/shared/telemetry-env";
 import {
   auditWorkspacePrompts,
   type PromptAuditFinding,
@@ -260,8 +260,13 @@ async function promptAuditChecks(): Promise<Check[]> {
  * or local settings. The engine ignores telemetry export/content vars at those
  * scopes (only user/managed are honored), so one set there is silently inert —
  * the doctor says so, pointing at the user-scope env editor instead.
+ *
+ * CC 2.1.290 — same for `CLAUDE_CODE_DISABLE_ATTACHMENTS`, which a
+ * repository's settings can no longer set. Claudius passes only its own
+ * process env to the CLI (`buildQueryEnv`), so a project-scope value reaches
+ * the engine solely through settings.json — where it is now ignored.
  */
-async function telemetryEnvChecks(): Promise<Check[]> {
+async function ignoredProjectEnvChecks(): Promise<Check[]> {
   let workspaces: Awaited<ReturnType<typeof listWorkspaces>>;
   try {
     workspaces = await listWorkspaces();
@@ -272,29 +277,43 @@ async function telemetryEnvChecks(): Promise<Check[]> {
   for (const ws of workspaces) {
     if ((ws.kind ?? "project") !== "project") continue;
     const ignored = new Set<string>();
+    const attachments = new Set<string>();
     for (const scope of ["project", "local"] as const) {
       try {
         const settings = await readSettings(scope, ws.rootPath);
-        for (const k of ignoredTelemetryEnvKeys(settings.env as Record<string, string> | undefined)) {
-          ignored.add(k);
-        }
+        const env = settings.env as Record<string, string> | undefined;
+        for (const k of ignoredTelemetryEnvKeys(env)) ignored.add(k);
+        for (const k of ignoredAttachmentsEnvKeys(env)) attachments.add(k);
       } catch {
         // best-effort — a settings read failure shouldn't block the doctor.
       }
     }
-    if (ignored.size === 0) continue;
-    const keys = [...ignored].sort();
-    checks.push({
-      id: `telemetry-env:${ws.id}`,
-      label: `Ignored telemetry env — ${ws.name}`,
-      status: "warn",
-      detail:
-        `${keys.length} telemetry env var${keys.length === 1 ? "" : "s"} (${keys.join(", ")}) ` +
-        `set in this workspace's project/local settings are IGNORED — Claude Code only honors ` +
-        `telemetry export/content vars from user or managed settings. Move them to your user-scope ` +
-        `env for them to take effect.`,
-      link: { href: `/settings`, label: "Open Settings → Environment" },
-    });
+    if (ignored.size > 0) {
+      const keys = [...ignored].sort();
+      checks.push({
+        id: `telemetry-env:${ws.id}`,
+        label: `Ignored telemetry env — ${ws.name}`,
+        status: "warn",
+        detail:
+          `${keys.length} telemetry env var${keys.length === 1 ? "" : "s"} (${keys.join(", ")}) ` +
+          `set in this workspace's project/local settings are IGNORED — Claude Code only honors ` +
+          `telemetry export/content vars from user or managed settings. Move them to your user-scope ` +
+          `env for them to take effect.`,
+        link: { href: `/settings`, label: "Open Settings → Environment" },
+      });
+    }
+    if (attachments.size > 0) {
+      checks.push({
+        id: `attachments-env:${ws.id}`,
+        label: `Ignored attachments env — ${ws.name}`,
+        status: "warn",
+        detail:
+          `${[...attachments].sort().join(", ")} is set in this workspace's project/local settings, ` +
+          `which Claude Code ignores since 2.1.290 — a repository's settings can no longer turn ` +
+          `attachments off. Set it in your user-scope env (or your shell) for it to take effect.`,
+        link: { href: `/settings`, label: "Open Settings → Environment" },
+      });
+    }
   }
   return checks;
 }
@@ -440,8 +459,8 @@ export async function GET() {
   // CC 2.1.283 parity — see `promptAuditChecks` above.
   checks.push(...(await promptAuditChecks()));
 
-  // CC 2.1.282 parity — see `telemetryEnvChecks` below.
-  checks.push(...(await telemetryEnvChecks()));
+  // CC 2.1.282 + 2.1.290 parity — see `ignoredProjectEnvChecks` above.
+  checks.push(...(await ignoredProjectEnvChecks()));
 
   return NextResponse.json({
     runtime: { node, platform: process.platform, arch: process.arch },
