@@ -7,6 +7,7 @@ import { SideNav } from "@/components/nav/SideNav";
 import { ScopeToggle, type Scope as IaScope } from "@/components/nav/ScopeToggle";
 import { useActiveCwd } from "@/lib/client/useActiveCwd";
 import type { SkillFile, SkillScope } from "@/lib/server/skills";
+import { skillMdName } from "@/lib/shared/skill-names";
 import { cn } from "@/lib/utils/cn";
 
 const SCOPE_LABELS: Record<SkillScope, string> = {
@@ -223,7 +224,8 @@ export default function SkillsPage() {
                 ? files.filter((f) => {
                     const fm = f.frontmatter as { description?: string; "allowed-tools"?: string[] };
                     const tools = Array.isArray(fm["allowed-tools"]) ? fm["allowed-tools"] : [];
-                    return `${f.name} ${fm.description ?? ""} ${tools.join(" ")}`.toLowerCase().includes(q);
+                    const mdName = skillMdName(f.frontmatter, f.name) ?? "";
+                    return `${f.name} ${mdName} ${fm.description ?? ""} ${tools.join(" ")}`.toLowerCase().includes(q);
                   })
                 : files;
               return (
@@ -252,6 +254,7 @@ export default function SkillsPage() {
                         "allowed-tools"?: string[];
                       };
                       const tools = Array.isArray(fm["allowed-tools"]) ? fm["allowed-tools"] : [];
+                      const mdName = skillMdName(f.frontmatter, f.name);
                       return (
                         <li key={f.name}>
                           <button
@@ -262,7 +265,20 @@ export default function SkillsPage() {
                               isActive && "bg-[var(--panel-2)]",
                             )}
                           >
-                            <div className="font-mono text-xs">{f.name}</div>
+                            <div className="font-mono text-xs">
+                              {f.name}
+                              {/* CC 2.1.290 — show the SKILL.md name too when it differs from the folder. */}
+                              {mdName && (
+                                <span
+                                  data-testid="skill-md-name"
+                                  className="text-[var(--muted)]"
+                                  title="Name in SKILL.md — Claude finds the skill by either name"
+                                >
+                                  {" · "}
+                                  {mdName}
+                                </span>
+                              )}
+                            </div>
                             {fm.description && (
                               <div className="mt-0.5 line-clamp-2 text-[10px] text-[var(--muted)]">
                                 {fm.description}
@@ -333,10 +349,16 @@ function SkillEditor({
   const [draft, setDraft] = useState(file.raw);
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
+  const mdName = skillMdName(file.frontmatter, file.name);
   return (
     <>
       <div className="flex items-center gap-2 border-b border-[var(--border)] bg-[var(--panel)]/40 px-3 py-2">
         <span className="text-xs font-medium">{file.name}</span>
+        {mdName && (
+          <span className="text-xs text-[var(--muted)]" title="Name in SKILL.md — Claude finds the skill by either name">
+            name: {mdName}
+          </span>
+        )}
         <span className="text-[10px] text-[var(--muted)]">{SCOPE_LABELS[file.scope]}</span>
         <span className="ml-2 truncate font-mono text-[10px] text-[var(--muted)]">{file.path}</span>
         <button
