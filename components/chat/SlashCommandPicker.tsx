@@ -259,6 +259,15 @@ export function SlashCommandPicker({
                 i === hi ? "bg-[var(--panel-2)]" : "",
               )}
             >
+              {/* CC 2.1.290 — a ❯ pointer marks the selected row, so the
+                  selection is visible without relying on the tint's color. */}
+              <span
+                aria-hidden
+                data-testid={i === hi ? "picker-selected-pointer" : undefined}
+                className="mt-0.5 w-2.5 shrink-0 text-center text-[11px] leading-4 text-[var(--accent)]"
+              >
+                {i === hi ? "❯" : ""}
+              </span>
               <span className={cn("mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded text-[10px]", badge.tone)}>
                 <Icon className="h-2.5 w-2.5" />
               </span>

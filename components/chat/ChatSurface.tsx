@@ -1791,6 +1791,27 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
     [router, session, showToast, claudiusBridge, activePromptColor, cycleFocus, setFocusLevel, isZen, clearedFromSessionId, activeWorkspaceId],
   );
 
+  // CC 2.1.290 parity ("[VSCode] Added a screen reader announcement, "Message
+  // queued.", when you send a message while Claude is working"). A polite
+  // live region below; cleared before each announcement so a second queued
+  // message is read out again, and emptied a few seconds later.
+  const [liveAnnouncement, setLiveAnnouncement] = useState("");
+  const announceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const announce = useCallback((message: string) => {
+    if (announceTimer.current) clearTimeout(announceTimer.current);
+    setLiveAnnouncement("");
+    announceTimer.current = setTimeout(() => {
+      setLiveAnnouncement(message);
+      announceTimer.current = setTimeout(() => setLiveAnnouncement(""), 5000);
+    }, 100);
+  }, []);
+  useEffect(
+    () => () => {
+      if (announceTimer.current) clearTimeout(announceTimer.current);
+    },
+    [],
+  );
+
   const handleSend = useCallback(
     (
       text: string,
@@ -1886,6 +1907,11 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
         showToast(`Unknown command: /${head} — type / to see what's available`);
         return;
       }
+      // Sent mid-turn, the message waits behind the running turn — say so.
+      // Checked from the send itself (not the queue's length), because under
+      // `queueDispatchMode: "asap"` the message skips Claudius's queue and
+      // goes straight into the SDK's.
+      if (session.pending) announce("Message queued.");
       void session.send(
         text,
         images,
@@ -1897,7 +1923,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
           : undefined,
       );
     },
-    [runNative, session, showToast, sdkCommands],
+    [runNative, session, showToast, sdkCommands, announce],
   );
 
   // Goal submit — set the tracked objective AND kick off Claude with the same
@@ -2089,6 +2115,9 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
     <ClockOptionsProvider value={clockOptions}>
     <MessageTimestampsProvider value={showMessageTimestamps}>
     <div className="flex h-full">
+      <div role="status" aria-live="polite" className="sr-only" data-testid="chat-live-announcer">
+        {liveAnnouncement}
+      </div>
       {/* Focus hides the nav-icon rail (and the right activity panel below)
           but keeps the workspace rail; zen hides the workspace rail too.
           SideNav handles the split internally. */}
