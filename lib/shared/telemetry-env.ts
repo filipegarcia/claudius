@@ -20,3 +20,16 @@ export function ignoredTelemetryEnvKeys(env: Record<string, string> | undefined 
     (k) => /^otel_/i.test(k) || k.toUpperCase() === "CLAUDE_CODE_ENABLE_TELEMETRY",
   );
 }
+
+/**
+ * CC 2.1.290 — "Changed `CLAUDE_CODE_DISABLE_ATTACHMENTS` so a repository's
+ * `.claude/settings.json` or `.claude/settings.local.json` can no longer set
+ * it; shell, user and managed settings still can." Same shape as the
+ * telemetry keys above: Claudius's project-scope env editor can still write
+ * it, so the doctor flags it as ineffective. Returns the matching keys from
+ * `env` (preserving their spelling), or `[]` for none.
+ */
+export function ignoredAttachmentsEnvKeys(env: Record<string, string> | undefined | null): string[] {
+  if (!env || typeof env !== "object") return [];
+  return Object.keys(env).filter((k) => k.toUpperCase() === "CLAUDE_CODE_DISABLE_ATTACHMENTS");
+}

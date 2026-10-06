@@ -113,6 +113,14 @@ export type ClaudeSettings = {
   // composer preference, same reasoning as `emojiCompletionEnabled`); purely
   // a browser-native attribute toggle, no server/SDK forwarding involved.
   spellcheckEnabled?: boolean;
+  // Always show each chat message's time (CC 2.1.290 parity: "[VSCode]
+  // Changed message timestamps to show by default"). The SDK's own
+  // `showMessageTimestamps` key ("Stamp each message with its arrival time"),
+  // shared with the CLI. Claudius follows the VS Code default — absent/true =
+  // always shown, false = shown on hover only (the pre-2.1.290 look). Read
+  // client-side by `useShowMessageTimestamps` (user scope only, same reasoning
+  // as `emojiCompletionEnabled`).
+  showMessageTimestamps?: boolean;
   // Session recap — the "where were we?" one-liner the client shows when the
   // user returns to a tab after being blurred for ≥5 min. Mirrors the
   // (internal) Claude Code TUI key `awaySummaryEnabled`: `false` disables the

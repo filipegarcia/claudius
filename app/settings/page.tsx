@@ -736,6 +736,12 @@ export default function SettingsPage() {
                     description="Underline misspelled words as you type in the message composer, using the browser's native spellcheck. On by default."
                   />
                   <ToggleRow
+                    label="showMessageTimestamps"
+                    checked={draft.showMessageTimestamps !== false}
+                    onChange={(b) => update({ showMessageTimestamps: b ? undefined : false })}
+                    description="Show the time each chat message was sent. On by default; turn it off to show times only when you hover over a message."
+                  />
+                  <ToggleRow
                     label="sessionRecapEnabled"
                     checked={draft.sessionRecapEnabled !== false}
                     onChange={(b) => update({ sessionRecapEnabled: b ? undefined : false })}
@@ -948,6 +954,7 @@ const KNOWN_KEYS = new Set([
   "promptSuggestionEnabled",
   "emojiCompletionEnabled",
   "spellcheckEnabled",
+  "showMessageTimestamps",
   "sessionRecapEnabled",
   "queueDispatchMode",
   "claudeMdExcludes",
@@ -1081,6 +1088,14 @@ const SDK_SETTINGS_CATALOG: SettingMeta[] = [
     type: "number",
     section: "Context & compaction",
     desc: "Auto-compact window size",
+  },
+  {
+    // SDK 0.3.290 — only `false` has an effect: true does not turn idle
+    // compaction on, so the toggle is documented as an opt-out.
+    key: "idleCompaction",
+    type: "boolean",
+    section: "Context & compaction",
+    desc: "Set to false to stop Claude Code from compacting a long conversation while the session is idle. Setting it to true does not turn idle compaction on.",
   },
   {
     key: "promptCacheTtl",

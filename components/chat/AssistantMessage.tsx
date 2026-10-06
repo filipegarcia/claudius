@@ -11,6 +11,7 @@ import { OpusHighDemandPanel } from "./OpusHighDemandPanel";
 import type { DisplayMessage, TaskInfo, ToolProgressInfo } from "@/lib/client/types";
 import { formatMessageTime } from "@/lib/client/format-message-time";
 import { useClockOptionsContext } from "@/lib/client/clock-options-context";
+import { useShowMessageTimestampsContext } from "@/lib/client/message-timestamps-context";
 import { cn } from "@/lib/utils/cn";
 import { isSubagentToolName } from "@/lib/shared/subagent-tool";
 import {
@@ -76,6 +77,8 @@ export function AssistantMessage({
   }
 
   const stamp = formatMessageTime(message.createdAt, clock);
+  // CC 2.1.290 — times show by default (`showMessageTimestamps`); off = hover only.
+  const alwaysShowStamp = useShowMessageTimestampsContext() || verbose === "ultra-verbose";
 
   // `ultra-verbose` opts every collapsible card open by default. Threaded
   // into each card's `defaultOpen`; the cards re-apply this whenever the
@@ -117,7 +120,7 @@ export function AssistantMessage({
         )}
         {stamp && (
           <span
-            className={`ml-auto font-mono text-[10px] transition ${verbose === "ultra-verbose" ? "opacity-60" : "opacity-0 group-hover:opacity-100"}`}
+            className={`ml-auto font-mono text-[10px] transition ${alwaysShowStamp ? "opacity-60" : "opacity-0 group-hover:opacity-100"}`}
             title={stamp.full}
             aria-label={`Sent ${stamp.full}`}
           >

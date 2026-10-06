@@ -199,6 +199,14 @@ export function AtMentionPicker({ query, cwd, sessionId, onSelect, onClose }: Pr
               i === hi ? "bg-[var(--panel-2)]" : ""
             }`}
           >
+            {/* CC 2.1.290 — ❯ marks the selected row without relying on color. */}
+            <span
+              aria-hidden
+              data-testid={i === hi ? "picker-selected-pointer" : undefined}
+              className="w-2.5 shrink-0 text-center text-[11px] text-[var(--accent)]"
+            >
+              {i === hi ? "❯" : ""}
+            </span>
             <Icon className="h-3 w-3 shrink-0 text-[var(--muted)]" />
             <span className="truncate font-mono">{label}</span>
             {aside && (

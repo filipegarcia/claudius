@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { ignoredTelemetryEnvKeys } from "@/lib/shared/telemetry-env";
+import { ignoredAttachmentsEnvKeys, ignoredTelemetryEnvKeys } from "@/lib/shared/telemetry-env";
 
 /**
  * CC 2.1.282 (H13) — OTEL/telemetry env vars the engine ignores in
@@ -29,5 +29,26 @@ describe("ignoredTelemetryEnvKeys (H13)", () => {
     expect(ignoredTelemetryEnvKeys({ PATH: "/bin", FOO: "bar" })).toEqual([]);
     expect(ignoredTelemetryEnvKeys(undefined)).toEqual([]);
     expect(ignoredTelemetryEnvKeys(null)).toEqual([]);
+  });
+});
+
+/**
+ * CC 2.1.290 — a repository's settings can no longer set
+ * CLAUDE_CODE_DISABLE_ATTACHMENTS.
+ */
+describe("ignoredAttachmentsEnvKeys (CC 2.1.290)", () => {
+  test("flags CLAUDE_CODE_DISABLE_ATTACHMENTS, preserving spelling", () => {
+    expect(ignoredAttachmentsEnvKeys({ CLAUDE_CODE_DISABLE_ATTACHMENTS: "1", PATH: "/bin" })).toEqual([
+      "CLAUDE_CODE_DISABLE_ATTACHMENTS",
+    ]);
+    expect(ignoredAttachmentsEnvKeys({ claude_code_disable_attachments: "1" })).toEqual([
+      "claude_code_disable_attachments",
+    ]);
+  });
+
+  test("ignores everything else, including the telemetry keys", () => {
+    expect(ignoredAttachmentsEnvKeys({ OTEL_METRICS_EXPORTER: "otlp", CLAUDE_CODE_DISABLE_ATTACHMENTS_X: "1" })).toEqual([]);
+    expect(ignoredAttachmentsEnvKeys(undefined)).toEqual([]);
+    expect(ignoredAttachmentsEnvKeys(null)).toEqual([]);
   });
 });

@@ -1,6 +1,6 @@
 import { promises as fs } from "node:fs";
 import { homedir } from "node:os";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { parseFrontmatter } from "./agents";
 import { assertWithin } from "./safe-path";
 
@@ -35,13 +35,28 @@ export type SkillFile = {
   raw: string;
 };
 
+/**
+ * A skill folder name: letters, marks and digits in any script, plus `_ . -`,
+ * and not starting with a dot (so never `.`, `..` or a dotfile, and never a
+ * path separator). CC 2.1.290 fixed skills in folders with non-English names
+ * not being found; the old ASCII-only `[\w.\-]` rule hid those folders from
+ * the Skills page entirely even though the engine loads them. One rule for
+ * listing, reading/writing and deleting, so every skill the page lists can
+ * also be opened and deleted.
+ */
+const SKILL_DIR_NAME = /^(?!\.)[\p{L}\p{M}\p{N}_.\-]+$/u;
+
+export function isValidSkillDirName(name: string): boolean {
+  return SKILL_DIR_NAME.test(name);
+}
+
 export function skillsDir(scope: SkillScope, projectCwd: string): string {
   if (scope === "user") return join(homedir(), ".claude", "skills");
   return join(projectCwd, ".claude", "skills");
 }
 
 export function skillPath(scope: SkillScope, projectCwd: string, name: string): string {
-  if (!/^[\w.\-]+$/.test(name)) throw new Error("invalid skill name");
+  if (!isValidSkillDirName(name)) throw new Error("invalid skill name");
   // assertWithin is the path-injection barrier — guarantees the resolved
   // path stays inside the scoped skills directory even if `name` somehow
   // got past the regex (defence-in-depth) and gives CodeQL a recognized
@@ -63,7 +78,7 @@ export async function listSkills(scope: SkillScope, projectCwd: string): Promise
   for (const entry of entries) {
     if (!entry.isDirectory()) continue;
     const filename = entry.name;
-    if (!/^[\w.\-]+$/.test(filename)) continue; // skip dotfiles, weird names
+    if (!isValidSkillDirName(filename)) continue; // skip dotfiles, weird names
     const skillFile = join(dir, filename, "SKILL.md");
     try {
       const raw = await fs.readFile(skillFile, "utf8");
@@ -122,8 +137,12 @@ export async function deleteSkill(
   projectCwd: string,
   name: string,
 ): Promise<boolean> {
-  if (!/^[\w.\-]+$/.test(name)) throw new Error("invalid skill name");
-  const dir = join(skillsDir(scope, projectCwd), name);
+  if (!isValidSkillDirName(name)) throw new Error("invalid skill name");
+  // Same barrier as `skillPath`, plus a refusal to resolve to the skills
+  // directory itself — `rm -r` on that would delete every skill in the scope.
+  const base = skillsDir(scope, projectCwd);
+  const dir = assertWithin(base, name);
+  if (dir === resolve(base)) throw new Error("invalid skill name");
   try {
     await fs.rm(dir, { recursive: true, force: false });
     return true;

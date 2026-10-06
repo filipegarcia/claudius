@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { Component, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkBreaks from "remark-breaks";
@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils/cn";
 import { useFileLink } from "@/lib/client/file-link-context";
 import { filesHref, looksLikeFilePath, stripLineSuffix, toWorkspaceRelative } from "@/lib/client/file-paths";
 import { IMAGE_EXTS, HTML_EXTS } from "@/lib/shared/file-types";
+import { isMarkdownTooDeep } from "@/lib/shared/markdown-nesting";
 import { CodeBlock } from "./CodeBlock";
 import { ImageLightbox } from "./ImageLightbox";
 import { LazyPreview } from "./LazyPreview";
@@ -335,6 +336,52 @@ const baseComponents: Omit<Components, "code"> = {
   ),
 };
 
+/**
+ * The text a bubble shows when it can't go through `react-markdown`: the raw
+ * markdown, line breaks kept, plus a one-line note saying why it isn't
+ * formatted. Nothing is dropped — only the formatting.
+ */
+function PlainMarkdownFallback({ text, note }: { text: string; note: string }) {
+  return (
+    <div data-testid="markdown-plain-fallback" className={PROSE_CAP}>
+      <div dir="auto" className="whitespace-pre-wrap break-words">
+        {text}
+      </div>
+      <div className="mt-1 text-[0.79em] italic text-[var(--muted)]">{note}</div>
+    </div>
+  );
+}
+
+type BoundaryProps = { text: string; children: ReactNode };
+type BoundaryState = { failed: boolean; text: string };
+
+/**
+ * CC 2.1.290 parity — the depth pre-scan in `Markdown` catches the known
+ * crash (deeply nested lists/quotes), and this boundary catches anything else
+ * that throws inside `react-markdown`. Without it a single bad bubble
+ * unmounts the whole chat up to `app/global-error.tsx`. It resets when the
+ * text changes, so a streaming reply that briefly fails to parse formats
+ * again on the next delta.
+ */
+class MarkdownErrorBoundary extends Component<BoundaryProps, BoundaryState> {
+  state: BoundaryState = { failed: false, text: this.props.text };
+
+  static getDerivedStateFromProps(props: BoundaryProps, state: BoundaryState): Partial<BoundaryState> | null {
+    return props.text === state.text ? null : { failed: false, text: props.text };
+  }
+
+  static getDerivedStateFromError(): Partial<BoundaryState> {
+    return { failed: true };
+  }
+
+  render() {
+    if (this.state.failed) {
+      return <PlainMarkdownFallback text={this.props.text} note="Shown as plain text: this message couldn't be formatted." />;
+    }
+    return this.props.children;
+  }
+}
+
 export function Markdown({
   children,
   breaks,
@@ -375,12 +422,26 @@ export function Markdown({
     () => ({ ...baseComponents, code: makeCodeComponent(allowExecute) }),
     [allowExecute],
   );
+  // CC 2.1.290 — a linear pre-scan, memoized on the text because a streaming
+  // bubble re-renders on every delta. Past the cap, the parser would overflow
+  // the stack (quotes) or stall the tab (lists), so render plain text instead.
+  const tooDeep = useMemo(() => isMarkdownTooDeep(children), [children]);
+  if (tooDeep) {
+    return (
+      <PlainMarkdownFallback
+        text={children}
+        note="Shown as plain text: this message nests lists or quotes too deeply to format."
+      />
+    );
+  }
   return (
-    <ReactMarkdown
-      remarkPlugins={breaks ? [remarkGfm, remarkBreaks] : [remarkGfm]}
-      components={componentsForRender}
-    >
-      {children}
-    </ReactMarkdown>
+    <MarkdownErrorBoundary text={children}>
+      <ReactMarkdown
+        remarkPlugins={breaks ? [remarkGfm, remarkBreaks] : [remarkGfm]}
+        components={componentsForRender}
+      >
+        {children}
+      </ReactMarkdown>
+    </MarkdownErrorBoundary>
   );
 }
