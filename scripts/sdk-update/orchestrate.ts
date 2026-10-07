@@ -205,6 +205,39 @@ function escapeRegExp(s: string): string {
 }
 
 /**
+ * Fill `{{KEY}}` placeholders in a prompt / PR-body template in ONE pass,
+ * with a function replacer so every value is inserted verbatim.
+ *
+ * Never `tpl.replace(/\{\{KEY\}\}/g, value)` with a string `value`: the
+ * replacement string expands `$&`, `$\``, `$'` and `$1`. The CC 2.1.292
+ * changelog mentions a plugin's `` `$` `` method, and its `` $` `` ("text
+ * before the match") pasted the whole template back into the changelog
+ * block 3× — the parity agent got a scrambled 2,114-line prompt and the
+ * PR #292 body blew GitHub's 65,536-char limit mid-classification.
+ * One pass also means a placeholder that happens to appear inside an
+ * inserted value (changelog, run-notes prose) is left alone.
+ * Placeholders with no entry in `vars` are kept as-is.
+ */
+export function fillTemplate(tpl: string, vars: Record<string, string>): string {
+  return tpl.replace(/\{\{([A-Z0-9_]+)\}\}/g, (match, key: string) =>
+    Object.prototype.hasOwnProperty.call(vars, key) ? vars[key] : match,
+  );
+}
+
+/**
+ * Drop a PR template's leading `<!-- … -->` maintainer doc-comment before
+ * filling it. The comment lists every placeholder by name, so filling it
+ * in place pasted each full changelog into an invisible comment — dead
+ * weight against GitHub's 65,536-char body cap (PR #292 spent ~20 KB of it
+ * there and got truncated mid-classification).
+ */
+export function stripTemplateDocComment(tpl: string): string {
+  if (!tpl.startsWith("<!--")) return tpl;
+  const end = tpl.indexOf("-->");
+  return end === -1 ? tpl : tpl.slice(end + 3).replace(/^\s+/, "");
+}
+
+/**
  * Collapse whitespace to single spaces and clip to `n` chars (with an
  * ellipsis). Used to keep community-channel announcements and prompt
  * context blocks within the chat-server's 2000-char body limit and
@@ -1588,11 +1621,12 @@ function renderPrompt(
   typeSurface: string,
 ): string {
   const tpl = readFileSync(resolve(SCRIPT_DIR, "prompt.md"), "utf8");
-  return tpl
-    .replace(/\{\{PREVIOUS_VERSION\}\}/g, prevVersion)
-    .replace(/\{\{NEW_VERSION\}\}/g, newVersion)
-    .replace(/\{\{CHANGELOG_BLOCK\}\}/g, changelog)
-    .replace(/\{\{TYPE_SURFACE_BLOCK\}\}/g, typeSurface);
+  return fillTemplate(tpl, {
+    PREVIOUS_VERSION: prevVersion,
+    NEW_VERSION: newVersion,
+    CHANGELOG_BLOCK: changelog,
+    TYPE_SURFACE_BLOCK: typeSurface,
+  });
 }
 
 // ── Claude run ────────────────────────────────────────────────────────
@@ -3187,36 +3221,32 @@ export function renderPrBody(args: {
 }): string {
   const notesFile = runNotesPath(args.newVersion);
   const notes = existsSync(notesFile) ? readFileSync(notesFile, "utf8") : "";
-  const tpl =
-    args.template ?? readFileSync(resolve(SCRIPT_DIR, "pr-template.md"), "utf8");
+  const tpl = stripTemplateDocComment(
+    args.template ?? readFileSync(resolve(SCRIPT_DIR, "pr-template.md"), "utf8"),
+  );
   const ccChangelog =
     args.ccChangelog ??
     "_(Claude Code changelog not resolved this run — see https://github.com/anthropics/claude-code/releases)_";
   const ccChangelogUrl =
     args.ccChangelogUrl ?? "https://github.com/anthropics/claude-code/releases";
 
-  return tpl
-    .replace(/\{\{NEW_VERSION\}\}/g, args.newVersion)
-    .replace(/\{\{PREVIOUS_VERSION\}\}/g, args.prevVersion)
-    .replace(
-      /\{\{CHANGELOG_URL\}\}/g,
-      `https://github.com/${UPSTREAM_GH}/compare/v${args.prevVersion}...v${args.newVersion}`,
-    )
-    .replace(/\{\{CHANGELOG_BODY\}\}/g, clampChangelogForPr(args.changelog))
-    .replace(/\{\{CC_CHANGELOG_URL\}\}/g, ccChangelogUrl)
-    .replace(/\{\{CC_CHANGELOG_BODY\}\}/g, clampChangelogForPr(ccChangelog))
-    .replace(/\{\{NOTES_SUMMARY\}\}/g, extractSection(notes, "Summary"))
-    .replace(/\{\{NOTES_SDK\}\}/g, extractSection(notes, "SDK changelog highlights"))
-    .replace(/\{\{NOTES_CODE\}\}/g, extractSection(notes, "Code changes"))
-    .replace(/\{\{NOTES_UI\}\}/g, extractSection(notes, "New UI surfaces"))
-    .replace(/\{\{NOTES_TESTS\}\}/g, extractSection(notes, "Tests"))
-    .replace(/\{\{NOTES_RISKS\}\}/g, extractSection(notes, "Risks / follow-ups"))
-    .replace(
-      /\{\{SCREENSHOTS_BLOCK\}\}/g,
-      args.screenshotsBlock ??
-        buildScreenshotsBlock(args.branch, args.newVersion),
-    )
-    .replace(/\{\{BUDGET_STATUS\}\}/g, args.budgetWarning);
+  return fillTemplate(tpl, {
+    NEW_VERSION: args.newVersion,
+    PREVIOUS_VERSION: args.prevVersion,
+    CHANGELOG_URL: `https://github.com/${UPSTREAM_GH}/compare/v${args.prevVersion}...v${args.newVersion}`,
+    CHANGELOG_BODY: clampChangelogForPr(args.changelog),
+    CC_CHANGELOG_URL: ccChangelogUrl,
+    CC_CHANGELOG_BODY: clampChangelogForPr(ccChangelog),
+    NOTES_SUMMARY: extractSection(notes, "Summary"),
+    NOTES_SDK: extractSection(notes, "SDK changelog highlights"),
+    NOTES_CODE: extractSection(notes, "Code changes"),
+    NOTES_UI: extractSection(notes, "New UI surfaces"),
+    NOTES_TESTS: extractSection(notes, "Tests"),
+    NOTES_RISKS: extractSection(notes, "Risks / follow-ups"),
+    SCREENSHOTS_BLOCK:
+      args.screenshotsBlock ?? buildScreenshotsBlock(args.branch, args.newVersion),
+    BUDGET_STATUS: args.budgetWarning,
+  });
 }
 
 /**
@@ -3400,9 +3430,10 @@ export function renderCombinedPrBody(args: {
   /** Override for tests — production reads dirs under docs/. */
   screenshotsBlock?: string;
 }): string {
-  const tpl =
+  const tpl = stripTemplateDocComment(
     args.template ??
-    readFileSync(resolve(SCRIPT_DIR, "pr-template-combined.md"), "utf8");
+      readFileSync(resolve(SCRIPT_DIR, "pr-template-combined.md"), "utf8"),
+  );
 
   // Pull each half's sections.
   const sdkSummary = extractSection(args.sdkRunNotes, "Summary");
@@ -3441,32 +3472,27 @@ export function renderCombinedPrBody(args: {
       ccVersion: args.newCcVersion,
     });
 
-  return tpl
-    .replace(/\{\{NEW_SDK_VERSION\}\}/g, args.newSdkVersion)
-    .replace(/\{\{PREVIOUS_SDK_VERSION\}\}/g, args.prevSdkVersion)
-    .replace(
-      /\{\{SDK_CHANGELOG_URL\}\}/g,
-      `https://github.com/${UPSTREAM_GH}/compare/v${args.prevSdkVersion}...v${args.newSdkVersion}`,
-    )
-    .replace(/\{\{SDK_CHANGELOG_BODY\}\}/g, clampChangelogForPr(args.sdkChangelog))
-    .replace(/\{\{NEW_CC_VERSION\}\}/g, args.newCcVersion)
-    .replace(/\{\{PREVIOUS_CC_VERSION\}\}/g, args.prevCcVersion)
-    .replace(
-      /\{\{CC_CHANGELOG_URL\}\}/g,
-      `https://github.com/anthropics/claude-code/compare/v${args.prevCcVersion}...v${args.newCcVersion}`,
-    )
-    .replace(/\{\{CC_CHANGELOG_BODY\}\}/g, clampChangelogForPr(args.ccChangelog))
-    .replace(/\{\{SDK_NOTES_SUMMARY\}\}/g, sdkSummary)
-    .replace(/\{\{SDK_NOTES_SDK\}\}/g, sdkSdkSection)
-    .replace(/\{\{SDK_NOTES_CODE\}\}/g, sdkCode)
-    .replace(/\{\{CC_NOTES_SUMMARY\}\}/g, ccSummary)
-    .replace(/\{\{CC_NOTES_CLASSIFICATION\}\}/g, ccClassification)
-    .replace(/\{\{CC_NOTES_IMPLEMENTED\}\}/g, ccImplemented)
-    .replace(/\{\{COMBINED_NOTES_UI\}\}/g, combinedUi)
-    .replace(/\{\{COMBINED_NOTES_TESTS\}\}/g, combinedTests)
-    .replace(/\{\{COMBINED_NOTES_RISKS\}\}/g, combinedRisks)
-    .replace(/\{\{COMBINED_SCREENSHOTS_BLOCK\}\}/g, screenshots)
-    .replace(/\{\{BUDGET_STATUS\}\}/g, args.budgetWarning);
+  return fillTemplate(tpl, {
+    NEW_SDK_VERSION: args.newSdkVersion,
+    PREVIOUS_SDK_VERSION: args.prevSdkVersion,
+    SDK_CHANGELOG_URL: `https://github.com/${UPSTREAM_GH}/compare/v${args.prevSdkVersion}...v${args.newSdkVersion}`,
+    SDK_CHANGELOG_BODY: clampChangelogForPr(args.sdkChangelog),
+    NEW_CC_VERSION: args.newCcVersion,
+    PREVIOUS_CC_VERSION: args.prevCcVersion,
+    CC_CHANGELOG_URL: `https://github.com/anthropics/claude-code/compare/v${args.prevCcVersion}...v${args.newCcVersion}`,
+    CC_CHANGELOG_BODY: clampChangelogForPr(args.ccChangelog),
+    SDK_NOTES_SUMMARY: sdkSummary,
+    SDK_NOTES_SDK: sdkSdkSection,
+    SDK_NOTES_CODE: sdkCode,
+    CC_NOTES_SUMMARY: ccSummary,
+    CC_NOTES_CLASSIFICATION: ccClassification,
+    CC_NOTES_IMPLEMENTED: ccImplemented,
+    COMBINED_NOTES_UI: combinedUi,
+    COMBINED_NOTES_TESTS: combinedTests,
+    COMBINED_NOTES_RISKS: combinedRisks,
+    COMBINED_SCREENSHOTS_BLOCK: screenshots,
+    BUDGET_STATUS: args.budgetWarning,
+  });
 }
 
 // ── Combined-mode announcement builders ───────────────────────────────
@@ -5436,14 +5462,15 @@ function renderFixPrompt(args: {
   const instructionBlock = args.instruction.trim()
     ? args.instruction.trim()
     : "_(No extra instruction supplied — infer the fix from the failing checks and review comments below.)_";
-  return tpl
-    .replace(/\{\{PR_NUMBER\}\}/g, args.prNumber)
-    .replace(/\{\{PR_TITLE\}\}/g, args.meta.title)
-    .replace(/\{\{PR_URL\}\}/g, args.meta.url)
-    .replace(/\{\{BRANCH\}\}/g, args.meta.headRefName)
-    .replace(/\{\{INSTRUCTION_BLOCK\}\}/g, instructionBlock)
-    .replace(/\{\{CI_CHECKS\}\}/g, args.checks)
-    .replace(/\{\{REVIEW_COMMENTS\}\}/g, args.reviews);
+  return fillTemplate(tpl, {
+    PR_NUMBER: args.prNumber,
+    PR_TITLE: args.meta.title,
+    PR_URL: args.meta.url,
+    BRANCH: args.meta.headRefName,
+    INSTRUCTION_BLOCK: instructionBlock,
+    CI_CHECKS: args.checks,
+    REVIEW_COMMENTS: args.reviews,
+  });
 }
 
 /**

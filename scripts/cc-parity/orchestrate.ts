@@ -53,6 +53,7 @@ import {
   clampGitHubBody,
   collectChecks,
   collectReviews,
+  fillTemplate,
   findOpenSdkUpdatePr,
   openPr,
   parseSkipGates,
@@ -63,6 +64,7 @@ import {
   runClaude,
   runGate,
   sliceChangelog,
+  stripTemplateDocComment,
   summarizeSdkMessage,
   watchCi,
   type GateResult,
@@ -403,11 +405,12 @@ function renderPrompt(
   combinedWith?: { sdkPrev: string; sdkNew: string },
 ): string {
   const tpl = readFileSync(resolve(SCRIPT_DIR, "prompt.md"), "utf8");
-  return tpl
-    .replace(/\{\{PREVIOUS_VERSION\}\}/g, prevVersion)
-    .replace(/\{\{NEW_VERSION\}\}/g, newVersion)
-    .replace(/\{\{CHANGELOG_BLOCK\}\}/g, changelog)
-    .replace(/\{\{COMBINED_PREAMBLE\}\}/g, buildCombinedPreamble(combinedWith));
+  return fillTemplate(tpl, {
+    PREVIOUS_VERSION: prevVersion,
+    NEW_VERSION: newVersion,
+    CHANGELOG_BLOCK: changelog,
+    COMBINED_PREAMBLE: buildCombinedPreamble(combinedWith),
+  });
 }
 
 // ── Run-notes & PR body ───────────────────────────────────────────────
@@ -469,7 +472,7 @@ function runNotesStub(prevVersion: string, newVersion: string): string {
     ``,
     `## Changelog classification`,
     ``,
-    `_(TODO: every non-bug-fix entry from the upstream changelog, tagged`,
+    `_(TODO: every entry from the upstream changelog (bug fixes too), tagged`,
     `[A — via SDK updater], [B — reimplement in Claudius], or`,
     `[C — CLI/terminal only], each with a one-line justification.)_`,
     ``,
@@ -741,21 +744,22 @@ function renderPrBody(args: {
 }): string {
   const notesFile = runNotesPath(args.newVersion);
   const notes = existsSync(notesFile) ? readFileSync(notesFile, "utf8") : "";
-  const tpl = readFileSync(resolve(SCRIPT_DIR, "pr-template.md"), "utf8");
+  const tpl = stripTemplateDocComment(readFileSync(resolve(SCRIPT_DIR, "pr-template.md"), "utf8"));
 
-  return tpl
-    .replace(/\{\{NEW_VERSION\}\}/g, args.newVersion)
-    .replace(/\{\{PREVIOUS_VERSION\}\}/g, args.prevVersion)
-    .replace(/\{\{CHANGELOG_URL\}\}/g, ccCompareUrl(args.prevVersion, args.newVersion))
-    .replace(/\{\{CHANGELOG_BODY\}\}/g, args.changelog)
-    .replace(/\{\{NOTES_SUMMARY\}\}/g, extractCcSection(notes, "Summary"))
-    .replace(/\{\{NOTES_CLASSIFICATION\}\}/g, extractCcSection(notes, "Changelog classification"))
-    .replace(/\{\{NOTES_IMPLEMENTED\}\}/g, extractCcSection(notes, "Implemented (bucket B)"))
-    .replace(/\{\{NOTES_UI\}\}/g, extractCcSection(notes, "New UI surfaces"))
-    .replace(/\{\{NOTES_TESTS\}\}/g, extractCcSection(notes, "Tests"))
-    .replace(/\{\{NOTES_RISKS\}\}/g, extractCcSection(notes, "Risks / follow-ups"))
-    .replace(/\{\{SCREENSHOTS_BLOCK\}\}/g, buildScreenshotsBlock(args.branch, args.newVersion))
-    .replace(/\{\{BUDGET_STATUS\}\}/g, args.budgetWarning);
+  return fillTemplate(tpl, {
+    NEW_VERSION: args.newVersion,
+    PREVIOUS_VERSION: args.prevVersion,
+    CHANGELOG_URL: ccCompareUrl(args.prevVersion, args.newVersion),
+    CHANGELOG_BODY: args.changelog,
+    NOTES_SUMMARY: extractCcSection(notes, "Summary"),
+    NOTES_CLASSIFICATION: extractCcSection(notes, "Changelog classification"),
+    NOTES_IMPLEMENTED: extractCcSection(notes, "Implemented (bucket B)"),
+    NOTES_UI: extractCcSection(notes, "New UI surfaces"),
+    NOTES_TESTS: extractCcSection(notes, "Tests"),
+    NOTES_RISKS: extractCcSection(notes, "Risks / follow-ups"),
+    SCREENSHOTS_BLOCK: buildScreenshotsBlock(args.branch, args.newVersion),
+    BUDGET_STATUS: args.budgetWarning,
+  });
 }
 
 // ── Announcement builders ─────────────────────────────────────────────
@@ -1234,14 +1238,15 @@ function renderFixPrompt(args: {
   const instructionBlock = args.instruction.trim()
     ? args.instruction.trim()
     : "_(No extra instruction supplied — infer the fix from the failing checks and review comments below.)_";
-  return tpl
-    .replace(/\{\{PR_NUMBER\}\}/g, args.prNumber)
-    .replace(/\{\{PR_TITLE\}\}/g, args.meta.title)
-    .replace(/\{\{PR_URL\}\}/g, args.meta.url)
-    .replace(/\{\{BRANCH\}\}/g, args.meta.headRefName)
-    .replace(/\{\{INSTRUCTION_BLOCK\}\}/g, instructionBlock)
-    .replace(/\{\{CI_CHECKS\}\}/g, args.checks)
-    .replace(/\{\{REVIEW_COMMENTS\}\}/g, args.reviews);
+  return fillTemplate(tpl, {
+    PR_NUMBER: args.prNumber,
+    PR_TITLE: args.meta.title,
+    PR_URL: args.meta.url,
+    BRANCH: args.meta.headRefName,
+    INSTRUCTION_BLOCK: instructionBlock,
+    CI_CHECKS: args.checks,
+    REVIEW_COMMENTS: args.reviews,
+  });
 }
 
 async function runFixPass(
