@@ -28,6 +28,7 @@ type StubSession = {
   endCalls: number;
   subscribers: number;
   pendingPrompts: boolean;
+  armedLoops: boolean;
   subscriberListeners: Set<(count: number) => void>;
 };
 
@@ -37,6 +38,7 @@ function makeStub(id: string): StubSession {
     endCalls: 0,
     subscribers: 0,
     pendingPrompts: false,
+    armedLoops: false,
     subscriberListeners: new Set(),
   };
 }
@@ -52,6 +54,7 @@ function asSession(stub: StubSession): Session {
     id: stub.id,
     subscriberCount: () => stub.subscribers,
     hasPendingUserPrompts: () => stub.pendingPrompts,
+    hasArmedLoops: () => stub.armedLoops,
     end: vi.fn(async () => {
       stub.endCalls += 1;
     }),
@@ -106,6 +109,25 @@ describe("SessionManager idle-reap policy", () => {
     // Cross the window: timer fires, hasPendingUserPrompts() returns
     // false, so manager calls `end()`.
     await vi.advanceTimersByTimeAsync(2);
+    expect(stub.endCalls).toBe(1);
+  });
+
+  test("session with an armed /loop is NOT reaped until the loop stops (CC 2.1.292)", async () => {
+    const manager = new SessionManager();
+    const stub = makeStub("loop-armed");
+    stub.armedLoops = true;
+    inject(manager, stub);
+
+    // The wake-up timer lives in the SDK process — reaping it would
+    // silently stop the loop, so the window keeps re-arming.
+    for (let i = 0; i < 3; i++) {
+      await vi.advanceTimersByTimeAsync(5_001);
+      expect(stub.endCalls).toBe(0);
+    }
+
+    // Loop ended (last wake-up fired, none re-armed): reaped next window.
+    stub.armedLoops = false;
+    await vi.advanceTimersByTimeAsync(5_001);
     expect(stub.endCalls).toBe(1);
   });
 

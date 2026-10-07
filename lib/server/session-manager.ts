@@ -318,6 +318,14 @@ export class SessionManager {
         this.scheduleReap(id);
         return;
       }
+      // Likewise a session with an armed `/loop` wake-up or session cron:
+      // the timer lives in the SDK process, so reaping it would silently
+      // stop the loop (CC 2.1.292 parity). Re-checked every window, and
+      // only a loop that will still fire counts — see `loop-keepalive.ts`.
+      if (s.hasArmedLoops()) {
+        this.scheduleReap(id);
+        return;
+      }
       void this.remove(id).catch(() => {});
     }, reapMs());
     // Don't keep the event loop alive solely for this timer.

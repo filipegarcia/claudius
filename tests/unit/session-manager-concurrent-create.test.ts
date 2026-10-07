@@ -70,6 +70,9 @@ class StubSession {
   hasPendingUserPrompts(): boolean {
     return false;
   }
+  hasArmedLoops(): boolean {
+    return false;
+  }
   onSubscriberCountChange(): () => void {
     return () => {};
   }

@@ -97,6 +97,7 @@ import { costFromTokens } from "@/lib/shared/cost-pricing";
 import { parseInitSystemMessage, type PluginLoadError } from "@/lib/shared/parse-init";
 import { commandNamesFromChanged } from "@/lib/shared/slash-commands";
 import { listSessionTasks, saveSessionTask } from "./session-tasks-db";
+import { hasArmedLoop } from "./loop-keepalive";
 import { attachLoopTickTokens, recordLoopTick } from "./loop-ticks-db";
 import { syncNeedsAuthNotifications } from "./mcp-needs-auth-db";
 import { syncDisconnectedNotifications } from "./mcp-disconnected-db";
@@ -5067,6 +5068,15 @@ export class Session {
    */
   getScheduledLoops(): SessionLoop[] {
     return [...this.scheduledLoops.values()];
+  }
+
+  /**
+   * True while a `/loop` wake-up or session cron armed in this session is
+   * still going to fire — the idle reaper must keep the SDK process (which
+   * holds the timer) alive. See `loop-keepalive.ts`.
+   */
+  hasArmedLoops(now: number = Date.now()): boolean {
+    return hasArmedLoop(this.scheduledLoops.values(), now, this.turnInFlight);
   }
 
   /**
