@@ -1,4 +1,5 @@
 import type { AgentDefinition } from "@anthropic-ai/claude-agent-sdk";
+import { MAX_AGENT_NAME_LENGTH } from "./agents";
 import { openDb } from "./db";
 
 /**
@@ -36,9 +37,22 @@ const NAME_RE = /^[\w.\-]+$/;
  */
 const SKILL_NAME_RE = /^[\w][\w.-]*(?::[\w][\w.-]*)?$/;
 
+/**
+ * Valid DB-agent name: the file-agent charset, capped at 256 characters
+ * (CC 2.1.292 — "agent names allow at most 256 characters: a longer one is
+ * rejected"). Pure, so the read path can skip a row the write path would
+ * have refused.
+ */
+export function isValidAgentName(name: unknown): name is string {
+  return typeof name === "string" && name.length <= MAX_AGENT_NAME_LENGTH && NAME_RE.test(name);
+}
+
 /** Throws on an invalid agent name (mirrors the file-agent name rule). */
 export function assertValidAgentName(name: unknown): asserts name is string {
-  if (typeof name !== "string" || !NAME_RE.test(name)) {
+  if (typeof name === "string" && name.length > MAX_AGENT_NAME_LENGTH) {
+    throw new Error(`agent name too long (max ${MAX_AGENT_NAME_LENGTH} characters)`);
+  }
+  if (!isValidAgentName(name)) {
     throw new Error("invalid agent name");
   }
 }
@@ -111,6 +125,9 @@ export async function listDbAgents(cwd: string): Promise<DbAgentRow[]> {
   }
   const out: DbAgentRow[] = [];
   for (const r of rows) {
+    // A row stored before the 256-char cap would now be refused by the
+    // engine — and `Options.agents` carries every row into every session.
+    if (!isValidAgentName(r.name)) continue;
     let parsed: unknown;
     try {
       parsed = JSON.parse(r.definition_json);

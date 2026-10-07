@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { coerceAgentDefinition, assertValidAgentName } from "@/lib/server/db-agents";
+import { coerceAgentDefinition, assertValidAgentName, isValidAgentName } from "@/lib/server/db-agents";
 
 /**
  * Pin the pure validation/coercion for DB-backed programmatic agents (A-P3.8).
@@ -124,5 +124,19 @@ describe("assertValidAgentName", () => {
     expect(() => assertValidAgentName("")).toThrow();
     expect(() => assertValidAgentName("has space")).toThrow();
     expect(() => assertValidAgentName(42 as unknown)).toThrow();
+  });
+});
+
+describe("agent name length cap (CC 2.1.292)", () => {
+  test("accepts exactly 256 characters, rejects 257", () => {
+    expect(() => assertValidAgentName("a".repeat(256))).not.toThrow();
+    expect(() => assertValidAgentName("a".repeat(257))).toThrow(/too long/);
+    expect(isValidAgentName("a".repeat(256))).toBe(true);
+    expect(isValidAgentName("a".repeat(257))).toBe(false);
+  });
+
+  test("still rejects bad characters", () => {
+    expect(isValidAgentName("bad name")).toBe(false);
+    expect(isValidAgentName(42)).toBe(false);
   });
 });
