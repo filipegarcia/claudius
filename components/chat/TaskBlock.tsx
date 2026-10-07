@@ -98,6 +98,10 @@ export function TaskBlock({
   const stats: string[] = [];
   // CC 2.1.243 — the model this subagent ran on.
   if (task?.model) stats.push(prettyModelName(task.model));
+  // CC 2.1.292 — the Agent tool's `effort` input: the effort level the user
+  // asked this subagent to run at. Absent means its usual effort.
+  const effort = (input as { effort?: unknown }).effort;
+  if (typeof effort === "string" && effort) stats.push(`${effort} effort`);
   if (task?.totalTokens != null) stats.push(`${task.totalTokens.toLocaleString()} tok`);
   if (task?.toolUses != null && task.toolUses > 0) stats.push(`${task.toolUses} tools`);
   if (task?.durationMs != null) stats.push(formatDuration(task.durationMs));

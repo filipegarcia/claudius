@@ -70,6 +70,20 @@ should be able to do in the browser. Examples:
   thinking budget) → update Claudius's defaults in `lib/server/` /
   `lib/client/` to match, with a settings escape hatch if the user
   wants the old behaviour.
+- **bug fixes whose bug also lives in Claudius's own code.** Claudius
+  reimplements many CLI surfaces itself — session resume
+  (`lib/server/session-resume.ts`), the idle reaper
+  (`lib/server/session-manager.ts`), scheduled jobs
+  (`lib/server/scheduler*.ts`), the composer (`components/chat/PromptInput.tsx`),
+  agent/skill/plugin writers (`lib/server/agents.ts`, `db-agents.ts`,
+  `skills.ts`, `plugins.ts`), tool rendering (`components/chat/`). When a
+  "Fixed …" entry describes a symptom on a surface Claudius owns, the
+  engine fix does NOT reach Claudius's copy — grep the Claudius code path,
+  and if the same bug is there, it is bucket B: mirror the fix.
+- **every write path for the same entity.** A new validation/cap/limit
+  (e.g. "agent names at most N characters") applies to every Claudius
+  path that creates that entity — file-backed AND DB-backed agents, not
+  just the first writer you find.
 
 **Action:** ship it — the *real* product surface, not a behind-the-scenes
 stub. Wire it through end-to-end — server-side handling, SSE events if
@@ -189,8 +203,8 @@ flag for review (most often: "is this the right UX shape").
 
 ## Changelog classification
 
-Bulleted list. Every non-bug-fix entry from the upstream changelog,
-classified A / B / C with a one-line justification:
+Bulleted list. Every entry from the upstream changelog — "Fixed …"
+entries included — classified A / B / C with a one-line justification:
 
 - `[A — already via SDK updater] <entry>` — <why this is engine-side>
 - `[B — reimplement in Claudius] <entry>` — <why this is product-side
@@ -199,7 +213,14 @@ classified A / B / C with a one-line justification:
 - `[skip — ambiguous, see Risks] <entry>` — only when even a `gh api`
   + `WebFetch` couldn't disambiguate.
 
-Cover EVERY substantive entry. Pure bug-fix entries can be elided.
+Cover EVERY entry. Bug fixes may NOT be elided wholesale: a "Fixed …"
+entry is bucket B when its bug also lives in a Claudius-owned surface
+(see Bucket B). Engine-internal, terminal-only, mod-runtime and
+cloud/Slack fixes may be grouped into one `[A]`/`[C]`/`[skip]` line each,
+but every fix on a surface Claudius reimplements gets its own line
+citing the Claudius file you checked (e.g. "`[A]` … — Claudius forwards
+`priority: "now"` to the engine, `lib/server/session.ts:3956`, no own
+copy of the bug").
 
 ## Implemented (bucket B)
 
@@ -323,8 +344,11 @@ wall-clock, and idle ceilings):
 
 - Read the "## Changelog block" section at the bottom of this prompt
   fully.
-- For every entry that's not a pure bug-fix:
-  - If the intent is obvious, classify it A/B/C immediately.
+- For every entry (bug fixes included — see "Bucket B" for when a
+  "Fixed …" entry is ours to mirror):
+  - If the intent is obvious, classify it A/B/C immediately. For a
+    "Fixed …" entry on a surface Claudius reimplements, "obvious" still
+    means you grepped that Claudius code path first.
   - If the entry is thin ("Added `--foo`" / "Now respects `BAR`"),
     run a quick `gh api repos/anthropics/claude-code/commits?path=...&sha=v{{NEW_VERSION}}`
     to find the introducing commit, or `WebFetch` against

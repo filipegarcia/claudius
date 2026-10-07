@@ -295,6 +295,12 @@ export type ClaudeSettings = {
   // per-session SDK forwarding to add here either) — was the tracked
   // follow-up from the 0.3.246 run notes, now surfaced.
   syncClaudeAiSkills?: boolean;
+  // SDK 0.3.292 — set to false to stop Claude Code compacting a long
+  // conversation while the session is idle. Mirrors `Settings.idleCompaction`
+  // ("setting it to true does not turn idle compaction on", i.e. only
+  // false is honored). Config-passthrough: read by the bundled binary from
+  // `~/.claude/settings.json`; the catalog row is all Claudius needs.
+  idleCompaction?: boolean;
   // Claude Code 2.1.238 — set to "readline" to make Ctrl+W in the CLI's own
   // prompt delete back to the previous whitespace, as in Bash; the default
   // ("classic") is unchanged. Config-passthrough only: it's read by the

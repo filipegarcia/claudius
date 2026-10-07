@@ -2,6 +2,7 @@
 
 import {
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
   useSyncExternalStore,
@@ -33,7 +34,14 @@ import {
 import { stripInvisibleUnicode } from "@/lib/shared/invisible-unicode";
 import { slashTokenBeforeCaret } from "@/lib/shared/slash-commands";
 import { canRestoreClearedDraft, shouldStashClearedDraft } from "@/lib/client/cleared-draft";
-import { inlinePastesInText, isLargePaste } from "@/lib/shared/large-paste";
+import {
+  applyEditToRanges,
+  diffEdit,
+  inlinePastesInText,
+  isLargePaste,
+  pastedSpans,
+  type PasteRange,
+} from "@/lib/shared/large-paste";
 import { describeOversizedImages } from "@/lib/client/image-intake";
 
 type Props = {
@@ -316,10 +324,35 @@ export function PromptInput({
   // wiped, so a plain ↑ on the empty composer can restore it. Null when nothing
   // is stashed (a fresh session, or already restored).
   const clearedDraftRef = useRef<{ text: string; images: AttachedImage[] } | null>(null);
-  // CC 2.1.280 — large paste segments recorded from onPaste, sent as the SDK's
-  // `inline_pastes` so the model can tell pasted spans from typed text. Reset
-  // on send and on clear.
-  const pastedSegmentsRef = useRef<string[]>([]);
+  // CC 2.1.280 — where each large paste sits in the composer, sent as the
+  // SDK's `inline_pastes` so the model can tell pasted spans from typed text.
+  // Ranges, not strings (CC 2.1.292): a paste dropped inside an earlier one
+  // splits it, and string matching then sent the earlier paste as typed
+  // text. Kept current by the layout effect below; reset on send and clear.
+  const pasteRangesRef = useRef<PasteRange[]>([]);
+  // The large paste onPaste just saw (and the selection it replaces), placed
+  // once the text change lands.
+  const pendingPasteRef = useRef<{ text: string; start: number; end: number } | null>(null);
+  const prevValueRef = useRef(value);
+  useLayoutEffect(() => {
+    const prev = prevValueRef.current;
+    prevValueRef.current = value;
+    if (prev === value) return;
+    const pending = pendingPasteRef.current;
+    pendingPasteRef.current = null;
+    // The paste's own edit is known exactly. Anything else is diffed, with
+    // the caret settling which repeat a typed or deleted character was.
+    const exact =
+      pending != null &&
+      value === prev.slice(0, pending.start) + pending.text + prev.slice(pending.end);
+    const edit = exact
+      ? { at: pending.start, removed: pending.end - pending.start, inserted: pending.text.length }
+      : diffEdit(prev, value, taRef.current?.selectionStart ?? undefined);
+    const ranges = applyEditToRanges(pasteRangesRef.current, edit);
+    const start = exact ? pending.start : pending ? value.indexOf(pending.text) : -1;
+    if (pending && start !== -1) ranges.push({ start, end: start + pending.text.length });
+    pasteRangesRef.current = ranges;
+  }, [value]);
   // Tracks the timestamp of the last Escape keydown for double-press detection.
   const lastEscapeRef = useRef<number>(0);
 
@@ -802,7 +835,8 @@ export function PromptInput({
     if (shouldStashClearedDraft(value, images.length)) {
       clearedDraftRef.current = { text: value, images };
     }
-    pastedSegmentsRef.current = [];
+    pasteRangesRef.current = [];
+    pendingPasteRef.current = null;
     setValue("");
     setImages([]);
     setPickerOpen(false);
@@ -854,10 +888,19 @@ export function PromptInput({
     // expect standard markdown — convert back here so what Claude sees is
     // what the user would have typed in any other markdown editor.
     const wire = bulletsToMarkdown(text);
-    // CC 2.1.280 — forward the recorded large-paste segments that are still
-    // present in the (trimmed) outgoing text (the user may have edited some).
-    const inlinePastes = inlinePastesInText(pastedSegmentsRef.current, wire);
-    pastedSegmentsRef.current = [];
+    // CC 2.1.280 — forward the large pastes still in the outgoing text, as
+    // merged spans (CC 2.1.292: overlapping pastes stay one pasted block).
+    // Spans get the same bullet conversion as the wire text when that's how
+    // they appear in it.
+    const inlinePastes = inlinePastesInText(
+      pastedSpans(pasteRangesRef.current, value).map((span) => {
+        const md = bulletsToMarkdown(span);
+        return wire.includes(md.trim()) ? md : span;
+      }),
+      wire,
+    );
+    pasteRangesRef.current = [];
+    pendingPasteRef.current = null;
     onSend(wire, images.length ? images : undefined, inlinePastes.length ? inlinePastes : undefined);
     setValue("");
     setDismissedHints(new Set());
@@ -1436,8 +1479,17 @@ export function PromptInput({
     if (pasted) {
       const { cleaned, removedCount } = stripInvisibleUnicode(pasted);
       // CC 2.1.280 — record a large paste (the cleaned text that actually
-      // lands) so send() can mark it as `inline_pastes` for the model.
-      if (isLargePaste(cleaned)) pastedSegmentsRef.current.push(cleaned);
+      // lands) so send() can mark it as `inline_pastes` for the model. The
+      // range is placed by the layout effect once the text change lands; a
+      // textarea stores CRLF as LF, so measure the normalized text.
+      if (isLargePaste(cleaned)) {
+        const start = e.currentTarget.selectionStart ?? value.length;
+        pendingPasteRef.current = {
+          text: cleaned.replace(/\r\n?/g, "\n"),
+          start,
+          end: e.currentTarget.selectionEnd ?? start,
+        };
+      }
       if (removedCount > 0) {
         e.preventDefault();
         const el = taRef.current;

@@ -8,6 +8,7 @@ import {
   getJob,
   listJobs,
   listRuns,
+  patchJob,
   saveJob,
   updateRun,
   type Job,
@@ -82,18 +83,32 @@ class Scheduler {
     if (!job.enabled) return;
     const fireAt = nextFireMs(job.cron);
     if (fireAt == null) return;
-    const updated: Job = { ...job, nextRunAt: fireAt };
-    await saveJob(updated);
+    // Patch only the field arming owns. Writing the caller's `job` back whole
+    // would revert an edit (or resurrect a delete) made since it was read.
+    const stored = await patchJob(job.id, { nextRunAt: fireAt });
+    if (!stored?.enabled) return; // deleted or disabled while we awaited
+    // A concurrent arm() may have set a timer during the await — replace it
+    // rather than leaving two timers for one job.
+    this.disarm(job.id);
     const delay = Math.max(0, Math.min(MAX_TIMEOUT_MS, fireAt - Date.now()));
     const t = setTimeout(() => {
       // If the actual fire time is still in the future (we capped delay), rearm.
       if (fireAt > Date.now() + 250) {
-        void this.arm(updated);
+        void this.arm(stored);
         return;
       }
-      void this.fire(updated);
+      // Fire the job as stored now, not the snapshot taken at arm time.
+      void getJob(job.id)
+        .then((current) => (current?.enabled ? this.fire(current) : undefined))
+        .catch((err) => console.error("[scheduler] fire failed", job.id, err));
     }, delay);
     this.timers.set(job.id, t);
+  }
+
+  /** Re-arm from the stored job; a job deleted or disabled meanwhile stays put. */
+  private async rearmFromStore(jobId: string): Promise<void> {
+    const current = await getJob(jobId);
+    if (current?.enabled) await this.arm(current);
   }
 
   disarm(jobId: string): void {
@@ -126,7 +141,7 @@ class Scheduler {
         note: "previous_run_in_progress",
       };
       await appendRun(skipped);
-      if (reArm) await this.arm(job);
+      if (reArm) await this.rearmFromStore(job.id);
       return { runId };
     }
 
@@ -140,7 +155,7 @@ class Scheduler {
       transcript: [],
     };
     await appendRun(initial);
-    await saveJob({ ...job, lastRunAt: startedAt, lastStatus: "running" });
+    await patchJob(job.id, { lastRunAt: startedAt, lastStatus: "running" });
 
     // Open the live bus before any SDK output so subscribers that connect
     // immediately see the full transcript from the start.
@@ -218,7 +233,10 @@ class Scheduler {
       transcript,
     };
     await updateRun(finished);
-    await saveJob({ ...job, lastRunAt: startedAt, lastStatus: finalStatus });
+    // Patch, don't save the start-of-run `job`: if the user deleted or edited
+    // the job mid-run, that must stick (CC 2.1.292 — saved tasks ignoring
+    // later deletes).
+    await patchJob(job.id, { lastRunAt: startedAt, lastStatus: finalStatus });
 
     // Surface the run finish to the workspace notification inbox. The bus
     // filters per workspace prefs; "skipped" runs (the in-flight collision)
@@ -230,14 +248,8 @@ class Scheduler {
       ...(note ? { note } : {}),
     });
 
-    if (reArm) await this.arm(await this.refreshJob(job.id));
+    if (reArm) await this.rearmFromStore(job.id);
     return { runId };
-  }
-
-  private async refreshJob(jobId: string): Promise<Job> {
-    const j = await getJob(jobId);
-    if (!j) throw new Error(`job ${jobId} disappeared`);
-    return j;
   }
 
   isRunLive(runId: string): boolean {

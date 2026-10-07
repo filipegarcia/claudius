@@ -40,6 +40,18 @@ describe("writeAgent — frontmatter name colon rejection", () => {
     await expect(writeAgent("project", cwd, "bad:name", raw)).rejects.toThrow(/invalid agent name/);
   });
 
+  test("CC 2.1.292: rejects a frontmatter name over 256 characters, accepts exactly 256", async () => {
+    const long = ["---", `name: ${"a".repeat(257)}`, "---", "Body.", ""].join("\n");
+    await expect(writeAgent("project", cwd, "long-fm", long)).rejects.toThrow(/too long/);
+    const ok = ["---", `name: ${"a".repeat(256)}`, "---", "Body.", ""].join("\n");
+    await expect(writeAgent("project", cwd, "ok-fm", ok)).resolves.toBeUndefined();
+  });
+
+  test("CC 2.1.292: rejects an on-disk name over 256 characters", async () => {
+    const raw = ["---", "name: fine", "---", "Body.", ""].join("\n");
+    await expect(writeAgent("project", cwd, "b".repeat(257), raw)).rejects.toThrow(/too long/);
+  });
+
   test("agents with no name field in frontmatter are unaffected", async () => {
     const raw = ["---", "description: no name field here", "---", "Prompt body.", ""].join("\n");
     await expect(writeAgent("project", cwd, "nameless", raw)).resolves.toBeUndefined();

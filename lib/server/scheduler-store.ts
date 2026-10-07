@@ -57,9 +57,34 @@ export async function listJobs(): Promise<Job[]> {
   }
 }
 
+/**
+ * Write via temp file + rename so a concurrent `listJobs()` reads either the
+ * old or the new file, never a half-written one (a torn read throws on
+ * `JSON.parse` and the caller sees every job vanish).
+ */
 async function writeJobs(jobs: Job[]): Promise<void> {
   await ensureRoot();
-  await fs.writeFile(JOBS_FILE, JSON.stringify({ jobs }, null, 2) + "\n", "utf8");
+  const tmp = `${JOBS_FILE}.${process.pid}.${Date.now()}.tmp`;
+  await fs.writeFile(tmp, JSON.stringify({ jobs }, null, 2) + "\n", "utf8");
+  await fs.rename(tmp, JOBS_FILE);
+}
+
+declare global {
+  var __claudiusJobsLock: Promise<unknown> | undefined;
+}
+
+/**
+ * Serialize every read-modify-write of `jobs.json`. Without it, two writes
+ * milliseconds apart (a run finishing while the user creates or deletes a
+ * job) each read the same file and the later write silently drops the
+ * earlier one — CC 2.1.292's "saved tasks ignoring later creates and
+ * deletes" in Claudius's own scheduler. Kept on `globalThis` so every route
+ * bundle shares one queue (same reason the Scheduler instance is).
+ */
+function withJobsLock<T>(fn: () => Promise<T>): Promise<T> {
+  const run = (globalThis.__claudiusJobsLock ?? Promise.resolve()).then(fn, fn);
+  globalThis.__claudiusJobsLock = run.catch(() => {});
+  return run;
 }
 
 export async function getJob(id: string): Promise<Job | null> {
@@ -67,19 +92,44 @@ export async function getJob(id: string): Promise<Job | null> {
   return all.find((j) => j.id === id) ?? null;
 }
 
+/** Insert or replace a whole job (create path). */
 export async function saveJob(job: Job): Promise<void> {
-  const all = await listJobs();
-  const idx = all.findIndex((j) => j.id === job.id);
-  if (idx === -1) all.push(job);
-  else all[idx] = job;
-  await writeJobs(all);
+  await withJobsLock(async () => {
+    const all = await listJobs();
+    const idx = all.findIndex((j) => j.id === job.id);
+    if (idx === -1) all.push(job);
+    else all[idx] = job;
+    await writeJobs(all);
+  });
+}
+
+/**
+ * Merge `patch` into the job as it is stored NOW and return the result.
+ * Returns null — writing nothing — when the job no longer exists: a run that
+ * finishes after its job was deleted must not bring it back, and a field the
+ * user changed mid-run must not be reverted by a stale snapshot.
+ */
+export async function patchJob(id: string, patch: Partial<Omit<Job, "id">>): Promise<Job | null> {
+  return withJobsLock(async () => {
+    const all = await listJobs();
+    const idx = all.findIndex((j) => j.id === id);
+    if (idx === -1) return null;
+    const next: Job = { ...all[idx], ...patch, id };
+    all[idx] = next;
+    await writeJobs(all);
+    return next;
+  });
 }
 
 export async function deleteJob(id: string): Promise<boolean> {
-  const all = await listJobs();
-  const next = all.filter((j) => j.id !== id);
-  if (next.length === all.length) return false;
-  await writeJobs(next);
+  const removed = await withJobsLock(async () => {
+    const all = await listJobs();
+    const next = all.filter((j) => j.id !== id);
+    if (next.length === all.length) return false;
+    await writeJobs(next);
+    return true;
+  });
+  if (!removed) return false;
   // Best-effort: clear runs file too.
   try {
     await fs.rm(runsFile(id));

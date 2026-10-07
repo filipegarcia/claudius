@@ -30,6 +30,7 @@ import {
   looksLikeDeferredFinish,
   compareUrl,
   extractSection,
+  fillTemplate,
   findBodyPlaceholders,
   parseSkipGates,
   pickContinuationPr,
@@ -38,6 +39,7 @@ import {
   type OpenPrSummary,
   sliceChangelog,
   sliceSingleSection,
+  stripTemplateDocComment,
   summarizeSdkMessage,
   validateRunNotesContent,
 } from "@/scripts/sdk-update/orchestrate";
@@ -293,6 +295,62 @@ describe("renderPrBody — Claude Code changelog section", () => {
     } while (rendered !== prev);
     const leftovers = rendered.match(/\{\{[^}]+\}\}/g);
     expect(leftovers).toBeNull();
+  });
+});
+
+// ── fillTemplate / stripTemplateDocComment ───────────────────────────
+
+describe("fillTemplate", () => {
+  test("inserts values verbatim — `$` replacement patterns are not expanded", () => {
+    // CC 2.1.292's changelog says "a plugin's served `$` method"; with a
+    // string replacement, `` $` `` pasted the template prefix into the prompt.
+    const value = "served `$` method, $' tail, $& match, $1 group, $$ dollars";
+    const out = fillTemplate("HEAD\n{{CHANGELOG_BLOCK}}\nTAIL", { CHANGELOG_BLOCK: value });
+    expect(out).toBe(`HEAD\n${value}\nTAIL`);
+  });
+
+  test("fills every occurrence and leaves unknown placeholders alone", () => {
+    const out = fillTemplate("{{A}} {{A}} {{B}} {{...}}", { A: "x" });
+    expect(out).toBe("x x {{B}} {{...}}");
+  });
+
+  test("single pass — a placeholder inside an inserted value is not re-filled", () => {
+    const out = fillTemplate("{{NOTES}} / {{NEW_VERSION}}", {
+      NOTES: "literal {{NEW_VERSION}}",
+      NEW_VERSION: "1.2.3",
+    });
+    expect(out).toBe("literal {{NEW_VERSION}} / 1.2.3");
+  });
+});
+
+describe("stripTemplateDocComment", () => {
+  test("drops a leading maintainer comment", () => {
+    expect(stripTemplateDocComment("<!--\n {{X}} docs\n-->\n\n# Body {{X}}")).toBe("# Body {{X}}");
+  });
+
+  test("leaves templates without a leading comment untouched", () => {
+    const tpl = "# Body\n<!-- inline -->";
+    expect(stripTemplateDocComment(tpl)).toBe(tpl);
+  });
+});
+
+describe("renderPrBody — real template with `$` in the changelog", () => {
+  test("the changelog lands once, verbatim, with no template text pasted in", () => {
+    const cc = "## 2.1.292\n- Fixed a plugin's served `$` method restarting the hook origin";
+    const out = renderPrBody({
+      branch: "sdk-update/0.3.292",
+      prevVersion: "0.3.289",
+      newVersion: "0.3.292",
+      changelog: "- sdk entry with $' and $&",
+      ccChangelog: cc,
+      ccChangelogUrl: "https://example.test/cc",
+      budgetWarning: "",
+      screenshotsBlock: "NO_SHOTS",
+    });
+    expect(out).toContain(cc);
+    expect(out).toContain("- sdk entry with $' and $&");
+    expect(out.split(cc).length - 1).toBe(1);
+    expect(out).not.toContain("PR body template for");
   });
 });
 

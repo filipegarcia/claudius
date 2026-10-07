@@ -1007,6 +1007,14 @@ const SDK_SETTINGS_CATALOG: SettingMeta[] = [
     desc: "When true, fast mode is enabled. When absent or false, fast mode is off.",
   },
   {
+    // SDK 0.3.292 — only `false` is honored upstream ("true does not turn
+    // idle compaction on"); the bundled binary reads it from settings.json.
+    key: "idleCompaction",
+    type: "boolean",
+    section: "Model & behavior",
+    desc: "Set to false to stop Claude Code from compacting a long conversation while the session is idle. Setting it to true does not turn idle compaction on.",
+  },
+  {
     // CC 2.1.234 — resume automatically once the claude.ai usage limit resets.
     key: "autoContinueAtUsageLimit",
     type: "boolean",

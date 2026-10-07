@@ -10,6 +10,7 @@ import {
 } from "@/lib/server/customizations-store";
 import { getWorkspace, listWorkspaces, type Workspace } from "@/lib/server/workspaces-store";
 import { info as sessionFileInfo } from "@/lib/server/sessions-store";
+import { resumePermissionMode } from "@/lib/server/session-resume";
 import { forkWorktreeCwd } from "@/lib/server/fork-worktrees";
 import { setPromptDraft } from "@/lib/server/prompt-drafts-db";
 import type { CreateSessionRequest } from "@/lib/shared/events";
@@ -150,6 +151,14 @@ export async function POST(req: Request) {
     planModeInstructions,
     restrictedMode,
   } = mergeSessionDefaults(body, defaults);
+  // CC 2.1.292 — a resume keeps plan mode (live, or recorded in the
+  // transcript) unless the request names a mode itself. Without this the
+  // workspace default — or "default" — replaced it on every resume,
+  // including a tab switch's wake POST on a live session.
+  const effectivePermissionMode =
+    typeof body.resume === "string" && body.permissionMode === undefined && cwd
+      ? await resumePermissionMode(body.resume, cwd, permissionMode)
+      : permissionMode;
 
   // Surface the underlying error to the renderer. Without this, an
   // unhandled throw in Session construction / start (DB, SDK spawn,
@@ -177,7 +186,7 @@ export async function POST(req: Request) {
       additionalDirectories,
       systemPromptAppend,
       planModeInstructions,
-      permissionMode,
+      permissionMode: effectivePermissionMode,
       restrictedMode,
       resume: body.resume,
       resumeSessionAt: body.resumeSessionAt,
@@ -194,8 +203,8 @@ export async function POST(req: Request) {
   // relative to a freshly-changed workspace default. Reconcile so the
   // session honours the current effective `permissionMode` regardless of
   // when the underlying SDK process was originally spawned.
-  if (permissionMode && session.getPermissionMode() !== permissionMode) {
-    await session.setPermissionMode(permissionMode);
+  if (effectivePermissionMode && session.getPermissionMode() !== effectivePermissionMode) {
+    await session.setPermissionMode(effectivePermissionMode);
   }
 
   // Seed the composer draft, if requested. Written here (BEFORE the
