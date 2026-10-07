@@ -42,6 +42,12 @@ export function FileTree({ workspaceId, root, onPick, selectedPath, query }: Pro
   // matching the API param.
   const [rootEntries, setRootEntries] = useState<Entry[]>([]);
   const [expanded, setExpanded] = useState<Record<string, Entry[]>>({});
+  // Per-directory listing metadata, keyed like `expanded` ("" = the root):
+  // how many entries the server filtered out (dotfiles, node_modules, …), and
+  // any error from listing a sub-folder. A sub-folder failure is shown inline
+  // under that folder rather than replacing the whole tree.
+  const [hiddenIn, setHiddenIn] = useState<Record<string, number>>({});
+  const [dirErrors, setDirErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(selectedPath ?? null);
@@ -117,7 +123,12 @@ export function FileTree({ workspaceId, root, onPick, selectedPath, query }: Pro
       const e = (await res.json().catch(() => ({}))) as { error?: string };
       throw new Error(e.error ?? `HTTP ${res.status}`);
     }
-    const d = (await res.json()) as { entries: Entry[] };
+    const d = (await res.json()) as { entries: Entry[]; hiddenCount?: number };
+    const hidden = typeof d.hiddenCount === "number" ? d.hiddenCount : 0;
+    // Same key shape as `expanded` / `Entry.relPath`: dirs carry a trailing
+    // slash (the deep-link walk calls `load("src")`, a click `load("src/")`).
+    const key = !path || path.endsWith("/") ? path : `${path}/`;
+    setHiddenIn((p) => (p[key] === hidden ? p : { ...p, [key]: hidden }));
     return d.entries;
   }, [workspaceId, root]);
 
@@ -191,13 +202,22 @@ export function FileTree({ workspaceId, root, onPick, selectedPath, query }: Pro
           delete n[key];
           return n;
         });
+        setDirErrors((p) => {
+          if (!(key in p)) return p;
+          const n = { ...p };
+          delete n[key];
+          return n;
+        });
         return;
       }
       try {
         const children = await load(key);
         setExpanded((p) => ({ ...p, [key]: children }));
       } catch (err) {
-        setError(err instanceof Error ? err.message : String(err));
+        // Open the folder with no children and the reason inline, so one
+        // unreadable sub-folder doesn't blank the rest of the tree.
+        setDirErrors((p) => ({ ...p, [key]: err instanceof Error ? err.message : String(err) }));
+        setExpanded((p) => ({ ...p, [key]: [] }));
       }
     },
     [expanded, load],
@@ -262,6 +282,20 @@ export function FileTree({ workspaceId, root, onPick, selectedPath, query }: Pro
     return (
       <div className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-300">{error}</div>
     );
+  if (rootEntries.length === 0) {
+    const hidden = hiddenIn[""] ?? 0;
+    return (
+      <div data-testid="file-tree-empty" className="px-3 py-3 text-xs text-[var(--muted)]">
+        {hidden > 0 ? (
+          <span title={HIDDEN_HINT}>
+            No visible files — {hidden} hidden item{hidden === 1 ? "" : "s"}.
+          </span>
+        ) : (
+          "This folder is empty."
+        )}
+      </div>
+    );
+  }
 
   return (
     <>
@@ -272,6 +306,8 @@ export function FileTree({ workspaceId, root, onPick, selectedPath, query }: Pro
             entry={e}
             depth={0}
             expanded={expanded}
+            hiddenIn={hiddenIn}
+            dirErrors={dirErrors}
             toggle={toggle}
             selected={selected}
             setSelected={(rel) => {
@@ -300,6 +336,8 @@ function Row({
   entry,
   depth,
   expanded,
+  hiddenIn,
+  dirErrors,
   toggle,
   selected,
   setSelected,
@@ -308,6 +346,8 @@ function Row({
   entry: Entry;
   depth: number;
   expanded: Record<string, Entry[]>;
+  hiddenIn: Record<string, number>;
+  dirErrors: Record<string, string>;
   toggle: (e: Entry) => Promise<void>;
   selected: string | null;
   setSelected: (rel: string) => void;
@@ -358,6 +398,13 @@ function Row({
           )}
         </button>
       </li>
+      {isOpen && expanded[entry.relPath].length === 0 && (
+        <EmptyDirRow
+          depth={depth + 1}
+          error={dirErrors[entry.relPath]}
+          hidden={hiddenIn[entry.relPath] ?? 0}
+        />
+      )}
       {isOpen &&
         expanded[entry.relPath].map((child) => (
           <Row
@@ -365,6 +412,8 @@ function Row({
             entry={child}
             depth={depth + 1}
             expanded={expanded}
+            hiddenIn={hiddenIn}
+            dirErrors={dirErrors}
             toggle={toggle}
             selected={selected}
             setSelected={setSelected}
@@ -372,6 +421,31 @@ function Row({
           />
         ))}
     </>
+  );
+}
+
+const HIDDEN_HINT = "Dotfiles and folders like .git, node_modules, dist and build aren't shown in the tree.";
+
+/** Placeholder under an expanded folder with nothing to list (or that failed to list). */
+function EmptyDirRow({ depth, error, hidden }: { depth: number; error?: string; hidden: number }) {
+  // Indent to line up with the children's names (chevron + icon + gaps).
+  const style = { paddingLeft: 8 + depth * 12 + 32 };
+  if (error)
+    return (
+      <li className="py-0.5 pr-2 text-[11px] text-red-300" style={style}>
+        {error}
+      </li>
+    );
+  return (
+    <li className="py-0.5 pr-2 text-[11px] italic text-[var(--muted)]" style={style}>
+      {hidden > 0 ? (
+        <span title={HIDDEN_HINT}>
+          {hidden} hidden item{hidden === 1 ? "" : "s"}
+        </span>
+      ) : (
+        "Empty"
+      )}
+    </li>
   );
 }
 

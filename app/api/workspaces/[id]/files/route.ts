@@ -193,12 +193,29 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     });
   }
 
-  const entries = await listDir(root, target, depth);
+  let listing: Awaited<ReturnType<typeof listDir>>;
+  try {
+    listing = await listDir(root, target, depth);
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException).code;
+    const denied = code === "EACCES" || code === "EPERM";
+    return NextResponse.json(
+      {
+        error: denied
+          ? `Permission denied — can't read this folder (${code})`
+          : err instanceof Error
+            ? err.message
+            : String(err),
+      },
+      { status: denied ? 403 : 500 },
+    );
+  }
   return NextResponse.json({
     rootId: resolved.root.id,
     rootPath: root,
     relPath: relative(root, target).split(sep).join("/"),
-    entries,
+    entries: listing.entries,
+    hiddenCount: listing.hiddenCount,
   });
 }
 
@@ -549,17 +566,29 @@ async function searchFileContents(
   return { matches, truncated, scanned: filesScanned };
 }
 
-async function listDir(root: string, dir: string, depth: number): Promise<FileEntry[]> {
-  let names: import("node:fs").Dirent[];
-  try {
-    names = await fs.readdir(dir, { withFileTypes: true });
-  } catch {
-    return [];
-  }
+/**
+ * One level of `dir`, minus the HIDDEN / dotfile names. `hiddenCount` is how
+ * many entries those filters dropped, so the tree can tell "this folder is
+ * empty" apart from "everything in it is hidden".
+ *
+ * A `readdir` failure (EACCES, EPERM — e.g. a macOS privacy-protected folder
+ * the app has no access to) is thrown, not swallowed: returning `[]` used to
+ * render an unreadable folder as a blank tree, indistinguishable from an
+ * empty one.
+ */
+async function listDir(
+  root: string,
+  dir: string,
+  depth: number,
+): Promise<{ entries: FileEntry[]; hiddenCount: number }> {
+  const names = await fs.readdir(dir, { withFileTypes: true });
   const out: FileEntry[] = [];
+  let hiddenCount = 0;
   for (const ent of names) {
-    if (HIDDEN.has(ent.name)) continue;
-    if (ent.name.startsWith(".")) continue;
+    if (HIDDEN.has(ent.name) || ent.name.startsWith(".")) {
+      hiddenCount++;
+      continue;
+    }
     const abs = join(dir, ent.name);
     if (!inside(root, abs)) continue;
     let stat: import("node:fs").Stats | null = null;
@@ -592,5 +621,5 @@ async function listDir(root: string, dir: string, depth: number): Promise<FileEn
   });
   // depth>1 expansion is left to the caller for now (lazy load on click).
   void depth;
-  return out;
+  return { entries: out, hiddenCount };
 }
