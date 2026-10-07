@@ -46,41 +46,45 @@ function cron(over: Partial<SessionLoop> = {}): SessionLoop {
 }
 
 describe("isLoopArmed — wake-ups", () => {
+  const fired = T0 + 1_200_000;
+
   test("armed until its fire time", () => {
-    expect(isLoopArmed(wakeup(), T0 + 1_199_000, false)).toBe(true);
-    expect(isLoopArmed(wakeup(), T0 + 1_200_001, false)).toBe(false);
+    expect(isLoopArmed(wakeup(), fired - 1_000)).toBe(true);
   });
 
-  test("a fired wake-up whose turn is still running stays armed, within the grace", () => {
-    const fired = T0 + 1_200_000;
-    expect(isLoopArmed(wakeup(), fired + 60_000, true)).toBe(true);
-    expect(isLoopArmed(wakeup(), fired + LOOP_TICK_GRACE_MS + 1, true)).toBe(false);
+  test("stays armed through the tick's turn — no turnInFlight needed", () => {
+    // The engine starts a wake-up's turn itself; Claudius's turnInFlight
+    // never sees it, so a reaper check mid-tick must still keep the session.
+    expect(isLoopArmed(wakeup(), fired + 60_000)).toBe(true);
+    expect(isLoopArmed(wakeup(), fired + LOOP_TICK_GRACE_MS - 1)).toBe(true);
+    expect(isLoopArmed(wakeup(), fired + LOOP_TICK_GRACE_MS + 1)).toBe(false);
   });
 
   test("cancelled or stop (no delay) never pins the session", () => {
-    expect(isLoopArmed(wakeup({ cancelled: true }), T0, false)).toBe(false);
-    expect(isLoopArmed(wakeup({ delaySeconds: null }), T0, false)).toBe(false);
+    expect(isLoopArmed(wakeup({ cancelled: true }), T0)).toBe(false);
+    expect(isLoopArmed(wakeup({ delaySeconds: null }), T0)).toBe(false);
   });
 });
 
 describe("isLoopArmed — crons", () => {
   test("a recurring cron is armed, bounded by the keep-alive cap", () => {
-    expect(isLoopArmed(cron(), T0 + 3_600_000, false)).toBe(true);
-    expect(isLoopArmed(cron(), T0 + LOOP_KEEPALIVE_MAX_MS + 1, false)).toBe(false);
-    expect(isLoopArmed(cron({ cancelled: true }), T0, false)).toBe(false);
+    expect(isLoopArmed(cron(), T0 + 3_600_000)).toBe(true);
+    expect(isLoopArmed(cron(), T0 + LOOP_KEEPALIVE_MAX_MS + 1)).toBe(false);
+    expect(isLoopArmed(cron({ cancelled: true }), T0)).toBe(false);
   });
 
-  test("a one-shot cron is armed until its first fire", () => {
+  test("a one-shot cron is armed until its first fire, plus the tick's grace", () => {
     const once = cron({ recurring: false }); // next */10 after 12:00:00 is 12:10
-    expect(isLoopArmed(once, T0 + 9 * 60_000, false)).toBe(true);
-    expect(isLoopArmed(once, T0 + 11 * 60_000, false)).toBe(false);
+    const fires = T0 + 10 * 60_000;
+    expect(isLoopArmed(once, fires + 60_000)).toBe(true);
+    expect(isLoopArmed(once, fires + LOOP_TICK_GRACE_MS + 1)).toBe(false);
   });
 });
 
 describe("hasArmedLoop", () => {
   test("a stale fired wake-up alone does not keep the session", () => {
-    expect(hasArmedLoop([wakeup()], T0 + 2 * 3_600_000, false)).toBe(false);
-    expect(hasArmedLoop([wakeup(), cron()], T0 + 2 * 3_600_000, false)).toBe(true);
-    expect(hasArmedLoop([], T0, true)).toBe(false);
+    expect(hasArmedLoop([wakeup()], T0 + 2 * 3_600_000)).toBe(false);
+    expect(hasArmedLoop([wakeup(), cron()], T0 + 2 * 3_600_000)).toBe(true);
+    expect(hasArmedLoop([], T0)).toBe(false);
   });
 });

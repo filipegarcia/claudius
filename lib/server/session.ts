@@ -5076,7 +5076,7 @@ export class Session {
    * holds the timer) alive. See `loop-keepalive.ts`.
    */
   hasArmedLoops(now: number = Date.now()): boolean {
-    return hasArmedLoop(this.scheduledLoops.values(), now, this.turnInFlight);
+    return hasArmedLoop(this.scheduledLoops.values(), now);
   }
 
   /**

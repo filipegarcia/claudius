@@ -18,8 +18,13 @@ import type { SessionLoop } from "@/lib/shared/session-loops";
  * going to fire counts.
  */
 
-/** How long after a wake-up's fire time its turn may still be running. */
-export const LOOP_TICK_GRACE_MS = 60 * 60 * 1000;
+/**
+ * How long after a tick's fire time the loop still counts as armed: the
+ * tick's turn runs, and the model arms the next wake-up at its end. A fixed
+ * window rather than `turnInFlight`, which only Claudius's own sends set —
+ * a turn the engine starts for a wake-up never does.
+ */
+export const LOOP_TICK_GRACE_MS = 30 * 60 * 1000;
 
 /**
  * Upper bound on how long an unwatched recurring session cron keeps its
@@ -27,28 +32,24 @@ export const LOOP_TICK_GRACE_MS = 60 * 60 * 1000;
  */
 export const LOOP_KEEPALIVE_MAX_MS = 7 * 24 * 60 * 60 * 1000;
 
-/** True when `loop` will still fire (or, mid-tick, is still running). */
-export function isLoopArmed(loop: SessionLoop, now: number, turnInFlight: boolean): boolean {
+/** True when `loop` will still fire, or its tick may still be running. */
+export function isLoopArmed(loop: SessionLoop, now: number): boolean {
   if (loop.cancelled) return false;
   if (loop.kind === "wakeup") {
     // A `stop: true` call carries no delay — nothing is pending.
     if (loop.delaySeconds == null) return false;
-    const fireAt = loop.startedAt + loop.delaySeconds * 1000;
-    if (fireAt > now) return true;
-    // The tick fired and its turn is still going; the model arms the next
-    // wake-up at the end of that turn.
-    return turnInFlight && now - fireAt < LOOP_TICK_GRACE_MS;
+    return loop.startedAt + loop.delaySeconds * 1000 + LOOP_TICK_GRACE_MS > now;
   }
   if (now - loop.startedAt > LOOP_KEEPALIVE_MAX_MS) return false;
   if (loop.recurring) return true;
   if (!loop.cron) return false;
   const firstFire = nextFireMs(loop.cron, new Date(loop.startedAt));
-  return firstFire != null && (firstFire > now || turnInFlight);
+  return firstFire != null && firstFire + LOOP_TICK_GRACE_MS > now;
 }
 
-export function hasArmedLoop(loops: Iterable<SessionLoop>, now: number, turnInFlight: boolean): boolean {
+export function hasArmedLoop(loops: Iterable<SessionLoop>, now: number): boolean {
   for (const loop of loops) {
-    if (isLoopArmed(loop, now, turnInFlight)) return true;
+    if (isLoopArmed(loop, now)) return true;
   }
   return false;
 }
