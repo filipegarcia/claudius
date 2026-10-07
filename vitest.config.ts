@@ -29,5 +29,8 @@ export default defineConfig({
     // notification-bus singleton on globalThis — without this, two files
     // sharing the same worker would see each other's bus state.
     isolate: true,
+    // Drops GIT_INDEX_FILE & co. inherited from `git commit`'s pre-commit
+    // hook so scratch-repo tests never touch the outer repo's index.
+    setupFiles: ["tests/unit/helpers/scrub-git-env.ts"],
   },
 });
