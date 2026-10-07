@@ -29,6 +29,8 @@ describe("STARTUP_FAILURE_REASON_LABELS", () => {
     "worktree_unverified",
     "cli_version_too_old",
     "bypass_root",
+    "org_config_required_unavailable",
+    "org_config_refused",
   ];
 
   test("covers every reason value the SDK documents", () => {

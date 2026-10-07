@@ -269,6 +269,10 @@ export const STARTUP_FAILURE_REASON_LABELS: Record<string, string> = {
   worktree_unverified: "the session's worktree could not be verified right now — retrying may succeed",
   cli_version_too_old: "this Claude Code version is below the minimum Anthropic requires",
   bypass_root: "bypass-permissions mode was requested while running as root",
+  org_config_required_unavailable:
+    "your organization requires its policy limits and managed settings, and they could not be loaded — retrying may succeed",
+  org_config_refused:
+    "your organization requires its policy limits and managed settings, and Anthropic refused them for this sign-in — sign in again",
 };
 
 /**
