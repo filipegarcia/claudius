@@ -151,6 +151,26 @@ export async function openDb(cwd: string, mode: "readwrite" | "readonly" = "read
   return db;
 }
 
+/**
+ * Close and evict every cached handle (both modes) for one cwd. Needed
+ * before the DB file is moved/deleted out from under the cache — e.g. the
+ * workspace-root relocation in `workspace-relocate.ts` — otherwise the next
+ * `openDb(cwd)` would hand back a connection to an unlinked inode.
+ */
+export function closeDb(cwd: string): void {
+  for (const mode of ["readwrite", "readonly"] as const) {
+    const key = `${mode}:${cwd}`;
+    const db = handles.get(key);
+    if (!db) continue;
+    try {
+      db.close();
+    } catch {
+      // ignore
+    }
+    handles.delete(key);
+  }
+}
+
 export function closeAll(): void {
   for (const db of handles.values()) {
     try {

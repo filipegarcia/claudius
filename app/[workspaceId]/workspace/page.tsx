@@ -11,6 +11,10 @@ import {
   PERMISSION_MODE_ORDER,
 } from "@/components/chat/ModeSelector";
 import { DirectoryPicker } from "@/components/workspaces/DirectoryPicker";
+import {
+  MoveSessionsPrompt,
+  type MoveSessionsPreview,
+} from "@/components/workspaces/MoveSessionsPrompt";
 import { useWorkspaces } from "@/lib/client/useWorkspaces";
 import { cn } from "@/lib/utils/cn";
 import type { Icon } from "@/lib/server/workspaces-store";
@@ -73,6 +77,9 @@ export default function WorkspacePage() {
   const [saving, setSaving] = useState(false);
   const [savedTick, setSavedTick] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  // Set when Save found sessions under the old root after a root change —
+  // renders the "move them along?" prompt, whose answer re-enters onSave.
+  const [movePrompt, setMovePrompt] = useState<MoveSessionsPreview | null>(null);
   // Settings search — Chrome/Firefox-style filter over the page's sections.
   const [query, setQuery] = useState("");
 
@@ -153,7 +160,12 @@ export default function WorkspacePage() {
     [sampleBranch, previewConfig],
   );
 
-  async function onSave() {
+  /**
+   * `moveSessions` is the answer to the move-sessions prompt: undefined on a
+   * plain Save click (ask first if the root changed and has sessions), true
+   * to carry the sessions to the new root, false to leave them behind.
+   */
+  async function onSave(moveSessions?: boolean) {
     if (!active) return;
     if (!name.trim()) {
       setError("Name is required.");
@@ -163,9 +175,58 @@ export default function WorkspacePage() {
       setError("Root folder is required.");
       return;
     }
+    const nextRoot = rootPath.trim();
+    const rootChanged = nextRoot !== active.rootPath;
     setSaving(true);
     setError(null);
+    // Partial-move problems are reported after the rest of the save lands,
+    // so they don't get wiped by the success path.
+    let moveWarning: string | null = null;
     try {
+      if (rootChanged && moveSessions === undefined) {
+        // Sessions live under ~/.claude/projects/<encoded-root>/, so a new
+        // root starts with an empty list. Ask before orphaning them.
+        const preview = await fetch(`/api/workspaces/${active.id}/move-sessions`)
+          .then((r) => (r.ok ? (r.json() as Promise<Omit<MoveSessionsPreview, "from" | "to">>) : null))
+          .catch(() => null);
+        if (!preview || preview.count === null || preview.count > 0) {
+          setMovePrompt({
+            count: preview?.count ?? null,
+            busy: preview?.busy ?? 0,
+            sharedWith: preview?.sharedWith ?? [],
+            from: active.rootPath,
+            to: nextRoot,
+          });
+          return;
+        }
+      }
+      if (rootChanged && moveSessions) {
+        // Moves the sessions AND re-points the root in one server call, so
+        // they never sit under a root the workspace doesn't point at.
+        const res = await fetch(`/api/workspaces/${active.id}/move-sessions`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ to: nextRoot }),
+        });
+        const data = (await res.json().catch(() => ({}))) as {
+          error?: string;
+          failed?: { sessionId: string; error: string }[];
+          dataError?: string;
+        };
+        if (!res.ok) {
+          setError(data.error ?? `Moving sessions failed (HTTP ${res.status}).`);
+          return;
+        }
+        const problems: string[] = [];
+        if (data.failed && data.failed.length > 0) {
+          const n = data.failed.length;
+          problems.push(
+            `${n} session${n === 1 ? "" : "s"} couldn't be moved (${data.failed[0].error})`,
+          );
+        }
+        if (data.dataError) problems.push(data.dataError);
+        if (problems.length > 0) moveWarning = `Saved, but ${problems.join("; ")}.`;
+      }
       const defaults = { ...(active.defaults ?? {}) };
       if (model.trim()) defaults.model = model.trim();
       else delete defaults.model;
@@ -243,6 +304,7 @@ export default function WorkspacePage() {
         setPendingImage(null);
       }
       setSavedTick((t) => t + 1);
+      if (moveWarning) setError(moveWarning);
     } finally {
       setSaving(false);
     }
@@ -375,6 +437,8 @@ export default function WorkspacePage() {
                   <p className="mt-1 text-[11px] text-[var(--muted)]">
                     Name, root folder, and icon. Renaming or moving the root only
                     affects this Claudius workspace — files on disk are untouched.
+                    When the root changes you&rsquo;ll be asked whether to bring this
+                    workspace&rsquo;s sessions along.
                   </p>
                 </header>
                 <div className="rounded-lg border border-[var(--border)] bg-[var(--panel)]/40 p-4">
@@ -392,6 +456,7 @@ export default function WorkspacePage() {
                     <div className="mb-1 text-[11px] font-medium">Root folder (absolute path)</div>
                     <div className="flex gap-2">
                       <input
+                        data-testid="workspace-root-input"
                         value={rootPath}
                         onChange={(e) => setRootPath(e.target.value)}
                         placeholder="/Users/you/projects/claudius"
@@ -834,7 +899,8 @@ export default function WorkspacePage() {
                   <span className="text-[11px] text-red-300">{error}</span>
                 )}
                 <button
-                  onClick={onSave}
+                  data-testid="workspace-save"
+                  onClick={() => void onSave()}
                   disabled={!dirty || saving}
                   className="flex items-center gap-1 rounded-md bg-[var(--accent)] px-3 py-1.5 text-xs text-white hover:opacity-90 disabled:opacity-40"
                 >
@@ -845,6 +911,20 @@ export default function WorkspacePage() {
           )}
         </div>
       </main>
+      {movePrompt && (
+        <MoveSessionsPrompt
+          preview={movePrompt}
+          onCancel={() => setMovePrompt(null)}
+          onKeep={() => {
+            setMovePrompt(null);
+            void onSave(false);
+          }}
+          onMove={() => {
+            setMovePrompt(null);
+            void onSave(true);
+          }}
+        />
+      )}
       {showPicker && (
         <DirectoryPicker
           initialPath={rootPath || undefined}
