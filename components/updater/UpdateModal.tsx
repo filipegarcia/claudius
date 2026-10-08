@@ -103,8 +103,13 @@ export function UpdateModal({
       title={version ? `Claudius ${version}` : "Update Claudius"}
       subtitle="Update"
       width={520}
-      // A backdrop click mid-download would look like it cancelled the update
-      // (it doesn't — the main process keeps going), so make dismissal explicit
+      // A floating, movable window rather than a blocking modal: no dimmed /
+      // blurred backdrop, the app underneath stays usable, and the header
+      // drags it out of the way while the download runs.
+      backdrop={false}
+      draggable
+      // Escape mid-download would look like it cancelled the update (it
+      // doesn't — the main process keeps going), so make dismissal explicit
       // while work is in flight.
       dismissOnBackdrop={!busy}
       onClose={onClose}
