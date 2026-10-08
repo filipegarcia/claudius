@@ -1496,7 +1496,8 @@ export async function runCcParityOnExistingBranch(args: {
     before: dirtyBefore,
     ownDocsDir: `docs/cc-parity/${newCcVersion}/`,
     notesRel: relative(ROOT, runNotesPath(newCcVersion)),
-    label: `cc-parity ${newCcVersion}`,
+    scope: "cc-parity",
+    version: newCcVersion,
   });
   if (leftoverIssue) {
     log(`gate: uncommitted work FOUND — ${leftoverIssue}`);

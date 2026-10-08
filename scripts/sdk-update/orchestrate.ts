@@ -303,19 +303,19 @@ export function parsePorcelainZ(out: string): Array<{ xy: string; path: string }
   return entries;
 }
 
-function workingTreeHash(rel: string): string {
+function workingTreeHash(rel: string, cwd: string): string {
   try {
-    return createHash("sha1").update(readFileSync(resolve(ROOT, rel))).digest("hex");
+    return createHash("sha1").update(readFileSync(resolve(cwd, rel))).digest("hex");
   } catch {
     return "gone";
   }
 }
 
-export function snapshotDirtyTree(): DirtySnapshot {
+export function snapshotDirtyTree(cwd: string = ROOT): DirtySnapshot {
   // Not `sh()`: it trims stdout, and a porcelain line's leading space is part
   // of its status.
   const res = spawnSync("git", ["status", "--porcelain=v1", "-z", "--untracked-files=all"], {
-    cwd: ROOT,
+    cwd,
     encoding: "utf8",
   });
   if (res.status !== 0) {
@@ -323,7 +323,7 @@ export function snapshotDirtyTree(): DirtySnapshot {
   }
   const snapshot: DirtySnapshot = new Map();
   for (const { xy, path } of parsePorcelainZ(res.stdout ?? "")) {
-    snapshot.set(path, `${xy}:${workingTreeHash(path)}`);
+    snapshot.set(path, `${xy}:${workingTreeHash(path, cwd)}`);
   }
   return snapshot;
 }
@@ -353,40 +353,55 @@ export function uncommittedWorkPaths(
 }
 
 /** The run-notes live under gitignored `.claudius/`, so porcelain never lists them — ask git directly. */
-function runNotesUncommitted(notesRel: string): boolean {
-  if (!existsSync(resolve(ROOT, notesRel))) return false;
-  if (spawnSync("git", ["ls-files", "--error-unmatch", "--", notesRel], { cwd: ROOT }).status !== 0) {
+function runNotesUncommitted(notesRel: string, cwd: string): boolean {
+  if (!existsSync(resolve(cwd, notesRel))) return false;
+  if (spawnSync("git", ["ls-files", "--error-unmatch", "--", notesRel], { cwd }).status !== 0) {
     return true;
   }
-  return spawnSync("git", ["diff", "--quiet", "HEAD", "--", notesRel], { cwd: ROOT }).status !== 0;
+  return spawnSync("git", ["diff", "--quiet", "HEAD", "--", notesRel], { cwd }).status !== 0;
 }
 
 /**
- * Commit whatever a Claude run left uncommitted as a WIP snapshot, and return
- * a gate issue naming it — or null when the run committed everything. The
- * snapshot means nothing is lost (not to the next firing's autostash, nor to
- * combined mode's `reset --hard` peel), and the issue fails the run into the
- * existing draft + needs-human path instead of shipping as a clean success.
+ * Commit whatever a Claude run left uncommitted, and return a gate issue when
+ * that included product work — or null when it didn't.
  *
- * `--no-verify` for the same reason as the crash-recovery snapshot: this
- * preserves work the gates already ran over; it is not a clean ship.
+ * - Run-notes the agent didn't commit are committed as a plain docs commit
+ *   and do NOT fail the run: they're the orchestrator's own bookkeeping (the
+ *   PR body is rendered from the on-disk copy either way).
+ * - Product files left uncommitted go into a WIP snapshot, so neither the
+ *   next firing's autostash nor combined mode's `reset --hard` peel can lose
+ *   them, and the returned issue fails the run into the existing draft +
+ *   needs-human path instead of shipping as a clean success.
+ *
+ * `--no-verify` for the same reason as the crash-recovery snapshot: these
+ * preserve work the gates already ran over; they are not a clean ship.
  */
 export function rescueUncommittedWork(args: {
   before: DirtySnapshot;
   ownDocsDir: string;
   notesRel: string;
-  label: string;
+  /** Conventional-commit scope, e.g. "cc-parity". */
+  scope: string;
+  version: string;
+  /** Repo to act on; the orchestrator's own checkout unless a test says otherwise. */
+  cwd?: string;
 }): string | null {
-  const paths = uncommittedWorkPaths(args.before, snapshotDirtyTree(), args.ownDocsDir);
-  const notes = runNotesUncommitted(args.notesRel);
-  if (paths.length === 0 && !notes) return null;
-  if (paths.length > 0) sh("git", ["add", "-A", "--", ...paths]);
-  if (notes) sh("git", ["add", "-f", "--", args.notesRel]);
-  sh("git", ["commit", "--no-verify", "-m", `wip(${args.label}): commit work the agent left uncommitted`]);
-  const all = notes ? [...paths, args.notesRel] : paths;
-  const shown = all.slice(0, 8).join(", ") + (all.length > 8 ? `, +${all.length - 8} more` : "");
+  const cwd = args.cwd ?? ROOT;
+  if (runNotesUncommitted(args.notesRel, cwd)) {
+    sh("git", ["add", "-f", "--", args.notesRel], { cwd });
+    sh("git", ["commit", "--no-verify", "-m", `docs(${args.scope}): notes for ${args.version}`], { cwd });
+  }
+  const paths = uncommittedWorkPaths(args.before, snapshotDirtyTree(cwd), args.ownDocsDir);
+  if (paths.length === 0) return null;
+  sh("git", ["add", "-A", "--", ...paths], { cwd });
+  sh(
+    "git",
+    ["commit", "--no-verify", "-m", `wip(${args.scope}): commit work the agent left uncommitted for ${args.version}`],
+    { cwd },
+  );
+  const shown = paths.slice(0, 8).join(", ") + (paths.length > 8 ? `, +${paths.length - 8} more` : "");
   return (
-    `Claude left ${all.length} file(s) uncommitted (${shown}); the orchestrator committed ` +
+    `Claude left ${paths.length} file(s) uncommitted (${shown}); the orchestrator committed ` +
     `them as a WIP snapshot so nothing is lost — review before merging`
   );
 }
@@ -6109,7 +6124,8 @@ async function main(): Promise<void> {
       before: dirtyBefore,
       ownDocsDir: `docs/sdk-updates/${newVersion}/`,
       notesRel: relative(ROOT, runNotesPath(newVersion)),
-      label: `sdk-update ${newVersion}`,
+      scope: "sdk-update",
+      version: newVersion,
     });
     if (leftoverIssue) {
       log(`gate: uncommitted work FOUND — ${leftoverIssue}`);

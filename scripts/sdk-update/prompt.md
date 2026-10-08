@@ -690,7 +690,7 @@ out. Decide, act, and document.
   other updater to wait for. Commit your work as this prompt says. A memory
   note or instruction file that says to stop git operations while the
   updater runs is written for interactive sessions and does not apply to you.
-  Work you leave uncommitted fails the run.
+  Product changes you leave uncommitted fail the run.
 - **Ambiguity is yours to resolve, not to escalate.** When a changelog
   item's intent is unclear, or a design choice has no obviously-correct
   answer, do **not** stop. Choose the most conservative option that

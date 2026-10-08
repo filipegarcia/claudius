@@ -1,10 +1,16 @@
-import { describe, expect, test } from "vitest";
+import { execFileSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, beforeEach, describe, expect, test } from "vitest";
 import {
   branchContextNote,
   isScreenshotChurn,
   parseEffort,
   parsePorcelainZ,
   renderPrompt as renderSdkPrompt,
+  rescueUncommittedWork,
+  snapshotDirtyTree,
   uncommittedWorkPaths,
   type DirtySnapshot,
 } from "../../scripts/sdk-update/orchestrate";
@@ -121,5 +127,108 @@ describe("branch named in the run prompts", () => {
 
     const own = renderSdkPrompt("0.3.292", "0.3.293", "- Parity", "_(no diff)_", "sdk-update/0.3.293");
     expect(own).toContain("Checked out `sdk-update/0.3.293`, created from `origin/main`");
+  });
+});
+
+describe("rescueUncommittedWork (real git repo)", () => {
+  let repo: string;
+  let savedEnv: NodeJS.ProcessEnv;
+  const git = (...args: string[]) => execFileSync("git", args, { cwd: repo, encoding: "utf8" }).trim();
+  const write = (rel: string, body: string) => {
+    mkdirSync(join(repo, rel, ".."), { recursive: true });
+    writeFileSync(join(repo, rel), body);
+  };
+  const notesRel = ".claudius/cc-parity/run-notes/2.1.293.md";
+  const args = (before: Map<string, string>) => ({
+    before,
+    ownDocsDir: "docs/cc-parity/2.1.293/",
+    notesRel,
+    scope: "cc-parity",
+    version: "2.1.293",
+    cwd: repo,
+  });
+
+  beforeEach(() => {
+    // Strip every GIT_* var from THIS process's env — not just the helper's —
+    // because `rescueUncommittedWork` spawns git itself. This repo runs unit
+    // tests from pre-commit, and git exports GIT_DIR / GIT_INDEX_FILE to
+    // hooks: inherited, they point every git call here at the OUTER repo
+    // (an earlier draft of this test committed into it and set core.bare).
+    // Identity comes from env, and config is pinned to /dev/null, so nothing
+    // is ever written outside the throwaway repo.
+    savedEnv = { ...process.env };
+    for (const k of Object.keys(process.env)) {
+      if (k.startsWith("GIT_")) delete process.env[k];
+    }
+    Object.assign(process.env, {
+      GIT_AUTHOR_NAME: "test",
+      GIT_AUTHOR_EMAIL: "test@example.com",
+      GIT_COMMITTER_NAME: "test",
+      GIT_COMMITTER_EMAIL: "test@example.com",
+      GIT_CONFIG_GLOBAL: "/dev/null",
+      GIT_CONFIG_SYSTEM: "/dev/null",
+      GIT_TERMINAL_PROMPT: "0",
+    });
+    expect(["GIT_DIR", "GIT_INDEX_FILE", "GIT_WORK_TREE", "GIT_COMMON_DIR"].filter((k) => k in process.env)).toEqual([]);
+
+    repo = realpathSync(mkdtempSync(join(tmpdir(), "claudius-rescue-")));
+    git("init", "-q");
+    expect(realpathSync(git("rev-parse", "--show-toplevel"))).toBe(repo);
+    write(".gitignore", ".claudius/\n");
+    write("lib/cost.ts", "export const a = 1;\n");
+    write("docs/cc-parity/2.1.205/old.png", "old");
+    git("add", "-A");
+    git("commit", "-q", "-m", "init");
+  });
+  afterEach(() => {
+    rmSync(repo, { recursive: true, force: true });
+    for (const k of Object.keys(process.env)) {
+      if (!(k in savedEnv)) delete process.env[k];
+    }
+    Object.assign(process.env, savedEnv);
+  });
+
+  test("commits the run's leftovers as a WIP snapshot, commits the notes, and reports the issue", () => {
+    write("scratch.txt", "dirty before the run");
+    const before = snapshotDirtyTree(repo);
+    // what the "run" leaves behind
+    write("lib/cost.ts", "export const a = 2;\n");
+    write("tests/cost.test.ts", "test");
+    write("docs/cc-parity/2.1.293/shot.png", "new");
+    write("docs/cc-parity/2.1.205/old.png", "churn");
+    write(notesRel, "# notes");
+
+    const issue = rescueUncommittedWork(args(before));
+    expect(issue).toContain("Claude left 3 file(s) uncommitted");
+    expect(git("log", "--format=%s", "-3").split("\n")).toEqual([
+      "wip(cc-parity): commit work the agent left uncommitted for 2.1.293",
+      "docs(cc-parity): notes for 2.1.293",
+      "init",
+    ]);
+    expect(git("show", "--name-only", "--format=", "HEAD").split("\n").sort()).toEqual([
+      "docs/cc-parity/2.1.293/shot.png",
+      "lib/cost.ts",
+      "tests/cost.test.ts",
+    ]);
+    // pre-existing dirt and other versions' screenshot churn are left alone
+    expect(git("status", "--porcelain")).toBe("M docs/cc-parity/2.1.205/old.png\n?? scratch.txt");
+  });
+
+  test("uncommitted notes alone are committed without failing the run", () => {
+    const before = snapshotDirtyTree(repo);
+    write(notesRel, "# notes");
+    expect(rescueUncommittedWork(args(before))).toBeNull();
+    expect(git("log", "--format=%s", "-1")).toBe("docs(cc-parity): notes for 2.1.293");
+  });
+
+  test("a run that committed everything is left untouched", () => {
+    const before = snapshotDirtyTree(repo);
+    write("lib/cost.ts", "export const a = 3;\n");
+    write(notesRel, "# notes");
+    git("add", "-A");
+    git("add", "-f", notesRel);
+    git("commit", "-q", "-m", "feat: the run's own commit");
+    expect(rescueUncommittedWork(args(before))).toBeNull();
+    expect(git("log", "--format=%s", "-1")).toBe("feat: the run's own commit");
   });
 });
