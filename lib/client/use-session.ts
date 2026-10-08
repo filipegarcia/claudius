@@ -1587,6 +1587,11 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
   // dedup) can't re-arm `pendingCompactRef` a second time with no live result
   // ever coming to clear it again.
   const seenCompactSlashUuidsRef = useRef<Set<string>>(new Set());
+  // CC 2.1.295 parity — `ScheduleWakeup { stop: true }` tool_use ids already
+  // applied to the loop rail. A replayed stop (SSE reconnect tail, no
+  // resetState) is skipped so it can't cancel a wake-up armed after it.
+  // Cleared in resetState alongside `scheduledLoops`.
+  const appliedWakeupStopsRef = useRef<Set<string>>(new Set());
   // Per-scope (parent_tool_use_id, "" for top-level) → Anthropic message.id
   // currently being streamed. Captured from the inner `message_start` event
   // so subsequent content_block_* partials in the same scope can be anchored
@@ -1708,6 +1713,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     setRecentEdits([]);
     setBackgroundBashes({});
     setScheduledLoops({});
+    appliedWakeupStopsRef.current = new Set();
     setToolHistory([]);
     setSessionTitle(null);
     setGoalState(null);
@@ -3058,8 +3064,15 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
             // same notice a CronDelete gives a cron chip) instead of letting
             // the supersede step below drop it silently and insert a blank
             // ghost chip in its place.
+            // Idempotent on replay: a stop is applied once (by tool_use id),
+            // and only to wake-ups armed at or before it — a tail replayed on
+            // SSE reconnect must not cancel a newer, still-live wake-up.
             if (isScheduleWakeupStop(b.input)) {
-              setScheduledLoops(markWakeupsStopped);
+              if (!appliedWakeupStopsRef.current.has(b.id)) {
+                appliedWakeupStopsRef.current.add(b.id);
+                const stopAt = ev.at ?? Date.now();
+                setScheduledLoops((prev) => markWakeupsStopped(prev, stopAt));
+              }
               continue;
             }
             const inp = b.input as {

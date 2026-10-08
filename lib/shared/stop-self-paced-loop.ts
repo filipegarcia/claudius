@@ -52,13 +52,18 @@ export function isScheduleWakeupStop(input: unknown): boolean {
  * is displayed) so the chip reads "cancelled" instead of disappearing.
  * Returns `prev` unchanged when nothing was live, so React state setters can
  * bail out of a re-render on replays.
+ *
+ * `stopAt` is when the stop was issued: only wake-ups armed at or before it
+ * are cancelled, so a stop replayed later (e.g. an SSE reconnect's tail)
+ * can't end a newer loop the agent armed after it.
  */
 export function markWakeupsStopped<
-  T extends { kind: "cron" | "wakeup"; cancelled?: boolean },
->(prev: Record<string, T>): Record<string, T> {
+  T extends { kind: "cron" | "wakeup"; cancelled?: boolean; startedAt?: number },
+>(prev: Record<string, T>, stopAt?: number): Record<string, T> {
   let next: Record<string, T> | null = null;
   for (const [k, v] of Object.entries(prev)) {
     if (v.kind !== "wakeup" || v.cancelled) continue;
+    if (stopAt != null && v.startedAt != null && v.startedAt > stopAt) continue;
     next ??= { ...prev };
     next[k] = { ...v, cancelled: true };
   }

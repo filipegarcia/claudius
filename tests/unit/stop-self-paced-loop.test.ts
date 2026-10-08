@@ -11,7 +11,7 @@ import {
  * than silently dropping the pending wake-up.
  */
 
-type Loop = { kind: "cron" | "wakeup"; cancelled: boolean; prompt: string };
+type Loop = { kind: "cron" | "wakeup"; cancelled: boolean; prompt: string; startedAt?: number };
 
 describe("scheduledLoopCancelPrompt", () => {
   test("cron loops are cancelled by id via CronDelete", () => {
@@ -79,5 +79,30 @@ describe("markWakeupsStopped", () => {
     };
     expect(markWakeupsStopped(prev)).toBe(prev);
     expect(markWakeupsStopped({})).toEqual({});
+  });
+
+  test("only cancels wake-ups armed at or before the stop", () => {
+    const prev: Record<string, Loop> = {
+      w1: { kind: "wakeup", cancelled: false, prompt: "a", startedAt: 1000 },
+      w2: { kind: "wakeup", cancelled: false, prompt: "b", startedAt: 3000 },
+    };
+    const next = markWakeupsStopped(prev, 2000);
+    expect(next.w1.cancelled).toBe(true);
+    expect(next.w2).toBe(prev.w2);
+  });
+
+  test("[w1, stop, w2, replayed stop] leaves w2 live", () => {
+    const stopAt = 2000;
+    let loops: Record<string, Loop> = {
+      w1: { kind: "wakeup", cancelled: false, prompt: "tick 1", startedAt: 1000 },
+    };
+    loops = markWakeupsStopped(loops, stopAt);
+    expect(loops.w1.cancelled).toBe(true);
+    // The agent re-arms after the stop (w1 is kept as the cancelled notice).
+    loops = { ...loops, w2: { kind: "wakeup", cancelled: false, prompt: "tick 2", startedAt: 3000 } };
+    // The SSE reconnect tail replays the stop with its original timestamp.
+    const replayed = markWakeupsStopped(loops, stopAt);
+    expect(replayed).toBe(loops);
+    expect(replayed.w2.cancelled).toBe(false);
   });
 });

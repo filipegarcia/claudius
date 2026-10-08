@@ -79,6 +79,21 @@ describe("Session.trackScheduledLoops — ScheduleWakeup stop", () => {
     expect(rows[0].runCount).toBe(1);
   });
 
+  test("[w1, stop, w2, replayed stop] leaves w2 live", () => {
+    const session = makeSession();
+    session.trackScheduledLoops(wakeup("toolu-w1", { delaySeconds: 600, prompt: "tick 1" }), 1000);
+    session.trackScheduledLoops(wakeup("toolu-stop", { stop: true }), 2000);
+    session.trackScheduledLoops(wakeup("toolu-w2", { delaySeconds: 600, prompt: "tick 2" }), 3000);
+    // Same stop observed again — once with its original timestamp (JSONL
+    // replay) and once with none (falls back to now).
+    session.trackScheduledLoops(wakeup("toolu-stop", { stop: true }), 2000);
+    session.trackScheduledLoops(wakeup("toolu-stop", { stop: true }));
+
+    const loops = session.getScheduledLoops();
+    expect(loops.find((l) => l.id === "toolu-w1")).toMatchObject({ cancelled: true });
+    expect(loops.find((l) => l.id === "toolu-w2")).toMatchObject({ cancelled: false });
+  });
+
   test("a stop with no pending wake-up creates nothing", () => {
     const session = makeSession();
     session.trackScheduledLoops(wakeup("toolu-stop", { stop: true }), 2000);
