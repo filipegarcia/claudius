@@ -200,7 +200,7 @@ export function handlerSupportsOnFailure(type: HandlerType): type is "command" |
 
 /** Whether a saved handler is configured fail-closed (`onFailure: "block"`). */
 export function handlerBlocksOnFailure(h: HookHandler): boolean {
-  return (h.type === "command" || h.type === "http") && h.onFailure === "block";
+  return handlerSupportsOnFailure(h.type) && "onFailure" in h && h.onFailure === "block";
 }
 
 /**

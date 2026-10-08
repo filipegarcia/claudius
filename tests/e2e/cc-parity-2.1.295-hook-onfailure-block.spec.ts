@@ -6,7 +6,8 @@
  * Claudius's Hooks editor gains a "block on failure" toggle for command/http
  * handlers (saved as `onFailure: "block"`; absent when unchecked), an amber
  * hint when it's combined with `async` (a background hook can't block), and an
- * "onFailure: block" badge in the handler list.
+ * "onFailure=block" badge in the handler list (an amber "onFailure ignored"
+ * pill instead when the saved handler runs in the background).
  *
  * The form writes to Project scope by default, and the e2e "claudius"
  * workspace may point at this repo — so `/api/hooks` is mocked: the POST
@@ -68,18 +69,21 @@ test("Hooks editor saves onFailure: \"block\" and badges the handler", async ({ 
   await page.goto(`/${ws!.id}/hooks`);
   await expect(page.getByText("(0 configured)")).toBeVisible({ timeout: 20_000 });
   await expect(page.getByText("loading…")).toHaveCount(0);
-  // Let a first-visit dev-server remount settle before typing into the form.
-  await page.waitForTimeout(1_500);
-
   // ── Add a fail-closed command hook on PreToolUse ──
-  await page.getByRole("button", { name: "Add", exact: true }).click();
+  // A first-visit dev-server remount can wipe the form mid-fill, so (re)open
+  // and fill it until every field reads back what was typed.
   const form = page.locator("form").filter({ hasText: "Add hook to Project scope" });
-  await expect(form).toBeVisible();
-  await form.locator("select").first().selectOption("PreToolUse");
-  await form.getByPlaceholder("/path/to/script.sh").fill("./scripts/guard.sh");
   const toggle = page.getByTestId("hook-onfailure-block-toggle");
-  await toggle.check();
-  await expect(toggle).toBeChecked();
+  await expect(async () => {
+    if (!(await form.isVisible())) await page.getByRole("button", { name: "Add", exact: true }).click();
+    await expect(form).toBeVisible({ timeout: 2_000 });
+    await form.locator("select").first().selectOption("PreToolUse");
+    await form.getByPlaceholder("/path/to/script.sh").fill("./scripts/guard.sh");
+    await toggle.check();
+    await expect(form.locator("select").first()).toHaveValue("PreToolUse", { timeout: 1_000 });
+    await expect(form.getByPlaceholder("/path/to/script.sh")).toHaveValue("./scripts/guard.sh", { timeout: 1_000 });
+    await expect(toggle).toBeChecked({ timeout: 1_000 });
+  }).toPass({ timeout: 20_000 });
   await expect(page.getByTestId("hook-onfailure-async-hint")).toHaveCount(0);
   await form.getByRole("button", { name: "Save" }).click();
   await expect(form).toHaveCount(0);
@@ -98,7 +102,8 @@ test("Hooks editor saves onFailure: \"block\" and badges the handler", async ({ 
   await page.getByRole("button", { name: /^PreToolUse\b/ }).click();
   const badge = page.getByTestId("hook-onfailure-badge");
   await expect(badge).toHaveCount(1);
-  await expect(badge).toHaveText("onFailure: block");
+  await expect(badge).toHaveText("onFailure=block");
+  await expect(page.getByTestId("hook-onfailure-ignored")).toHaveCount(0);
 
   // ── Re-open the form: block + async shows the "can't block" hint ──
   await page.getByRole("button", { name: "Add", exact: true }).click();
@@ -109,7 +114,10 @@ test("Hooks editor saves onFailure: \"block\" and badges the handler", async ({ 
   await form.locator("label").filter({ hasText: /^async$/ }).locator("input").check();
   const hint = page.getByTestId("hook-onfailure-async-hint");
   await expect(hint).toBeVisible();
-  await expect(hint).toContainText("can't block the action");
+  await expect(hint).toContainText("can't block the action — it has already proceeded by the time the hook fails");
+  await expect(page.locator("label").filter({ has: page.getByTestId("hook-onfailure-block-toggle") })).toContainText(
+    "onFailure: block",
+  );
 
   await page.screenshot({ path: resolve(SHOTS_DIR, "hook-onfailure-block.png"), fullPage: false });
 
@@ -120,4 +128,25 @@ test("Hooks editor saves onFailure: \"block\" and badges the handler", async ({ 
   await expect(form).toHaveCount(0);
   expect(posted).toHaveLength(2);
   expect(posted[1].group.hooks[0]).toEqual({ type: "command", command: "./scripts/audit.sh", async: true });
+
+  // A saved block + background hook can't block — the list says so in amber
+  // instead of claiming it's fail-closed.
+  await page.getByRole("button", { name: "Add", exact: true }).click();
+  await expect(form).toBeVisible();
+  await form.locator("select").first().selectOption("PreToolUse");
+  await form.getByPlaceholder("/path/to/script.sh").fill("./scripts/bg.sh");
+  await page.getByTestId("hook-onfailure-block-toggle").check();
+  await form.locator("label").filter({ hasText: /^asyncRewake$/ }).locator("input").check();
+  await form.getByRole("button", { name: "Save" }).click();
+  await expect(form).toHaveCount(0);
+  expect(posted).toHaveLength(3);
+  expect(posted[2].group.hooks[0]).toEqual({
+    type: "command",
+    command: "./scripts/bg.sh",
+    asyncRewake: true,
+    onFailure: "block",
+  });
+  await expect(page.getByText("(3 configured)")).toBeVisible();
+  await expect(page.getByTestId("hook-onfailure-ignored")).toHaveText("onFailure ignored (asyncRewake)");
+  await expect(badge).toHaveCount(1);
 });

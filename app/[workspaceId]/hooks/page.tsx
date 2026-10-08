@@ -23,6 +23,7 @@ import {
   CATEGORY_LABELS,
   CATEGORY_ORDER,
   handlerBlocksOnFailure,
+  handlerSupportsOnFailure,
   HOOK_EVENTS,
   type HookCategory,
   type HookEvent,
@@ -305,15 +306,27 @@ function EventRow({
                     {"async" in h && h.async && <span className="ml-2 text-[var(--muted)]">async</span>}
                     {"once" in h && h.once && <span className="ml-2 text-[var(--muted)]">once</span>}
                     {/* CC 2.1.295 parity — fail-closed hook: a crash/timeout/
-                        unexpected exit blocks the action. */}
-                    {handlerBlocksOnFailure(h) && (
-                      <span
-                        data-testid="hook-onfailure-badge"
-                        title="If this hook can't start, times out, or exits with an unexpected code, the action is blocked"
-                        className="ml-2 text-[var(--muted)]"
-                      >
-                        onFailure: block
-                      </span>
+                        unexpected exit blocks the action. A background
+                        (async/asyncRewake) hook can't block, so flag that
+                        combo instead of claiming it's fail-closed. */}
+                    {handlerBlocksOnFailure(h) && "onFailure" in h && (
+                      onFailureBlockIneffective(h) ? (
+                        <span
+                          data-testid="hook-onfailure-ignored"
+                          title="A background hook can't block the action — it has already proceeded by the time the hook fails"
+                          className="ml-2 rounded border border-amber-500/40 bg-amber-500/10 px-1 py-0.5 text-[10px] text-amber-300"
+                        >
+                          onFailure ignored ({h.async ? "async" : "asyncRewake"})
+                        </span>
+                      ) : (
+                        <span
+                          data-testid="hook-onfailure-badge"
+                          title="If this hook can't start, times out, or exits with an unexpected code, the action is blocked"
+                          className="ml-2 text-[var(--muted)]"
+                        >
+                          onFailure=block
+                        </span>
+                      )
                     )}
                     {"continueOnBlock" in h && h.continueOnBlock && <span className="ml-2 text-[var(--muted)]">continueOnBlock</span>}
                     {"if" in h && h.if && <span className="ml-2 text-[var(--muted)]">if={h.if}</span>}
@@ -611,7 +624,7 @@ function AddHookForm({
         </div>
       )}
 
-      {(type === "command" || type === "http") && (
+      {handlerSupportsOnFailure(type) && (
         <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-5">
           <Field label="Timeout (ms)">
             <input
@@ -627,11 +640,11 @@ function AddHookForm({
           <ToggleField label="asyncRewake" checked={asyncRewake} onChange={setAsyncRewake} />
           <ToggleField label="once" checked={once} onChange={setOnce} />
           <ToggleField
-            label="block on failure"
+            label="onFailure: block"
             checked={blockOnFailure}
             onChange={setBlockOnFailure}
             testId="hook-onfailure-block-toggle"
-            title="If the hook can't start, times out, or exits with an unexpected code, block the action instead of letting it through"
+            title="If the hook can't start, times out, or exits with an unexpected code, block the action instead of letting it through. Needs Claude Code 2.1.295 or later; older engines ignore it."
           />
           {onFailureBlockIneffective({ onFailure: blockOnFailure ? "block" : undefined, async, asyncRewake }) && (
             <p
@@ -639,7 +652,7 @@ function AddHookForm({
               className="text-[11px] text-amber-300 sm:col-span-5"
             >
               A background (<code className="font-mono">async</code> / <code className="font-mono">asyncRewake</code>)
-              hook can&apos;t block the action — the tool call has already proceeded when it fails.
+              hook can&apos;t block the action — it has already proceeded by the time the hook fails.
             </p>
           )}
         </div>
