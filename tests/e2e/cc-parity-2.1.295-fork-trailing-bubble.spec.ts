@@ -9,12 +9,14 @@
  * CC 2.1.285 trailing-text bubble under the display-only id `${uuid}:trailing`.
  * "Rewind here" used to POST that synthetic id as `upToMessageId`, which the
  * SDK can't find in the JSONL. Now:
- *   - the fork targets the backing record uuid (`forkableUuid`);
+ *   - the fork (and "Restore files" rewind) targets the backing record uuid
+ *     (`forkableUuid`);
  *   - a failed fork surfaces the server's reason in the chat toast instead of
  *     only reaching the console.
  *
  * Mocks the chat backend with a fixed SSE fixture (same shape as the
- * 2.1.295 queue-lift spec) and intercepts POST /api/sessions/fork.
+ * 2.1.295 queue-lift spec) and intercepts POST /api/sessions/fork and
+ * POST /api/sessions/<id>/rewind.
  *
  * Screenshot target: docs/cc-parity/2.1.295/fork-trailing-bubble.png
  */
@@ -177,6 +179,32 @@ test.describe("Fork from a trailing-text bubble (CC 2.1.295)", () => {
     expect(forkBodies[0].sessionId).toBe(FAKE_SESSION_ID);
     expect(forkBodies[0].upToMessageId).toBe(WRAPPER_UUID);
     await expect(page.getByTestId("chat-toast")).toHaveCount(0);
+  });
+
+  test("Restore files rewinds at the backing JSONL record, not the :trailing display id", async ({ page }) => {
+    await mockChatBackend(page, { status: 200, body: {} });
+    const rewindBodies: Array<Record<string, unknown>> = [];
+    await page.route(`**/api/sessions/${FAKE_SESSION_ID}/rewind`, async (route: Route) => {
+      if (route.request().method() !== "POST") return route.fallback();
+      rewindBodies.push(route.request().postDataJSON() as Record<string, unknown>);
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ result: { canRewind: false, error: "No file checkpoint at this message." } }),
+      });
+    });
+    await page.goto("/");
+
+    const bubble = page.locator(`[data-message-uuid="${WRAPPER_UUID}:trailing"]`);
+    await expect(bubble).toBeVisible({ timeout: 15_000 });
+    await bubble.hover();
+    const restore = bubble.getByTestId("restore-files-button");
+    await expect(restore).toBeVisible();
+    await restore.click();
+
+    await expect.poll(() => rewindBodies.length).toBe(1);
+    expect(rewindBodies[0].userMessageId).toBe(WRAPPER_UUID);
+    expect(rewindBodies[0].dryRun).toBe(true);
   });
 
   test("a failed fork surfaces the server's reason in the chat toast", async ({ page }) => {
