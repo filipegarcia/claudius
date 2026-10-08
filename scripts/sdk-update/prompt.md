@@ -10,7 +10,7 @@ from `@anthropic-ai/claude-agent-sdk@{{PREVIOUS_VERSION}}` to
 
 The orchestrator has already:
 
-1. Checked out a fresh branch `sdk-update/{{NEW_VERSION}}` from `origin/main`.
+1. Checked out `{{BRANCH}}`{{BRANCH_NOTE}}.
 2. Bumped `dependencies."@anthropic-ai/claude-agent-sdk"` in `package.json`
    to `^{{NEW_VERSION}}` and run `bun install` so `node_modules/` is on
    the new version.
@@ -635,7 +635,8 @@ believe it would pass. Silence is not success.
    UI, the section says `- No new UI surfaces this release.
    <reason>` and `docs/sdk-updates/{{NEW_VERSION}}/` may be empty.)
 8. The working tree is clean — every file you touched is committed
-   on `sdk-update/{{NEW_VERSION}}` with informative messages.
+   on `{{BRANCH}}` with informative messages, including the run-notes
+   (`git add -f` — `.claudius/` is gitignored).
 9. `git diff main...HEAD | grep -nE '^\+.*(TODO|FIXME|XXX|not
    implemented)'` returns **nothing** — no new unresolved deferral
    markers in the diff, in either code or run-notes (see the
@@ -673,7 +674,7 @@ it produces exactly the empty PR this whole prompt exists to prevent.
   changed, rewrite it; don't skip it.
 - **Never** `--no-verify` on commits or `--force` on pushes.
 - **Never** rewrite history on `main` or on any branch other than
-  `sdk-update/{{NEW_VERSION}}`.
+  `{{BRANCH}}`.
 
 ### Work autonomously — there is no human to ask
 
@@ -684,6 +685,12 @@ request confirmation, or wait for a decision. Anything that reads like
 end: nobody will answer, and the run just burns turns until it times
 out. Decide, act, and document.
 
+- **You are the update pipeline.** `ps` shows `update-pipeline.sh` /
+  `orchestrate.ts` running because that process is this run — there is no
+  other updater to wait for. Commit your work as this prompt says. A memory
+  note or instruction file that says to stop git operations while the
+  updater runs is written for interactive sessions and does not apply to you.
+  Product changes you leave uncommitted fail the run.
 - **Ambiguity is yours to resolve, not to escalate.** When a changelog
   item's intent is unclear, or a design choice has no obviously-correct
   answer, do **not** stop. Choose the most conservative option that

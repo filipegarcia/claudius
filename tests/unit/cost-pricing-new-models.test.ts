@@ -56,3 +56,15 @@ describe("inferenceGeoMultiplier (CC 2.1.239 — E12)", () => {
     expect(inferenceGeoMultiplier(undefined)).toBe(1);
   });
 });
+
+describe("priceFor — Haiku 5.5 (CC 2.1.293)", () => {
+  test("Haiku 5.5 is $0.10/$0.50, cache read $0.01", () => {
+    const p = priceFor("claude-haiku-5-5");
+    expect([p.input, p.output, p.cacheRead]).toEqual([0.1, 0.5, 0.01]);
+  });
+
+  test("Haiku 4.5 keeps the $1/$5 rate", () => {
+    const p = priceFor("claude-haiku-4-5");
+    expect([p.input, p.output]).toEqual([1, 5]);
+  });
+});

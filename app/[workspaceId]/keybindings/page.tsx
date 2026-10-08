@@ -2,9 +2,10 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Keyboard, Plus, Save, Trash2 } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Keyboard, Plus, Save, Trash2 } from "lucide-react";
 import { SideNav } from "@/components/nav/SideNav";
 import type { Keybinding, KeybindingsFile } from "@/lib/server/keybindings";
+import { keybindingKeyWarning } from "@/lib/shared/keybinding-keys";
 
 export default function KeybindingsPage() {
   const [path, setPath] = useState<string>("");
@@ -191,6 +192,19 @@ export default function KeybindingsPage() {
                         <Trash2 className="h-3 w-3" />
                       </button>
                     </div>
+                    {/* CC 2.1.293 — the CLI now warns on keys like "ctrl+ k"; say so here too. */}
+                    {[keybindingKeyWarning(b.chord), keybindingKeyWarning(b.key)]
+                      .filter((w): w is string => w !== null)
+                      .map((warning) => (
+                        <p
+                          key={warning}
+                          data-testid="keybinding-key-warning"
+                          className="mt-1.5 flex items-center gap-1.5 text-[11px] text-amber-300"
+                        >
+                          <AlertTriangle className="h-3 w-3 shrink-0" />
+                          {warning}
+                        </p>
+                      ))}
                     <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
                       <input
                         value={b.when ?? ""}

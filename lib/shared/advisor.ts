@@ -353,17 +353,25 @@ const GEN5_ADVISORS = [
  * instead of silently dropping the advisor — notably Sonnet 5.5 refuses the
  * Opus 4.8 and Sonnet 5 advisors, and Sonnet 5.5 can now advise Opus
  * 4.7/4.8. Source: the Claude API advisor-tool pairing table.
+ *
+ * CC 2.1.293 added Claude Haiku 5.5: as an executor it takes the same
+ * advisors as Sonnet 5 plus itself, and it is a valid advisor for Haiku 4.5,
+ * Sonnet 4.6, Sonnet 5 and Opus 4.6 executors. Without its rows, a Haiku 5.5
+ * advisor was flagged as refused for those executors, and a Haiku 5.5
+ * executor's refused pairs (e.g. an Opus 4.6 advisor) went unflagged.
  */
 const ADVISOR_PAIRS: Record<string, readonly string[]> = (() => {
-  const upTo46 = [...GEN5_ADVISORS, "claude-opus-4-8", "claude-opus-4-7", "claude-opus-4-6", "claude-sonnet-5-5", "claude-sonnet-5", "claude-sonnet-4-6"];
+  const upTo46 = [...GEN5_ADVISORS, "claude-opus-4-8", "claude-opus-4-7", "claude-opus-4-6", "claude-sonnet-5-5", "claude-sonnet-5", "claude-haiku-5-5", "claude-sonnet-4-6"];
+  const sonnet5 = [...GEN5_ADVISORS, "claude-opus-4-8", "claude-opus-4-7", "claude-sonnet-5-5", "claude-sonnet-5", "claude-haiku-5-5"];
   const opus47 = [...GEN5_ADVISORS, "claude-opus-4-8", "claude-opus-4-7", "claude-sonnet-5-5"];
   const gen5 = GEN5_ADVISORS;
   const gen51 = ["claude-mythos-5-1", "claude-fable-5-1"];
   return {
     "claude-haiku-4-5": upTo46,
     "claude-sonnet-4-6": upTo46,
-    "claude-sonnet-5": [...GEN5_ADVISORS, "claude-opus-4-8", "claude-opus-4-7", "claude-sonnet-5-5", "claude-sonnet-5"],
-    "claude-opus-4-6": [...GEN5_ADVISORS, "claude-opus-4-8", "claude-opus-4-7", "claude-opus-4-6", "claude-sonnet-5-5", "claude-sonnet-5"],
+    "claude-sonnet-5": sonnet5,
+    "claude-haiku-5-5": sonnet5,
+    "claude-opus-4-6": [...GEN5_ADVISORS, "claude-opus-4-8", "claude-opus-4-7", "claude-opus-4-6", "claude-sonnet-5-5", "claude-sonnet-5", "claude-haiku-5-5"],
     "claude-opus-4-7": opus47,
     "claude-opus-4-8": opus47,
     "claude-opus-5-5": gen5,

@@ -48,6 +48,7 @@ import {
   addNeedsHumanLabel,
   ALL_GATE_STEPS,
   announceSafe,
+  branchContextNote,
   branchShipBlocker,
   buildGateFailureBanner,
   clampGitHubBody,
@@ -56,14 +57,17 @@ import {
   fillTemplate,
   findOpenSdkUpdatePr,
   openPr,
+  parseEffort,
   parseSkipGates,
   preflight,
   pushBranch,
   readPrMeta,
+  rescueUncommittedWork,
   returnToMainBestEffort,
   runClaude,
   runGate,
   sliceChangelog,
+  snapshotDirtyTree,
   stripTemplateDocComment,
   summarizeSdkMessage,
   watchCi,
@@ -78,6 +82,14 @@ const ROOT = repoRoot();
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 
 const UPSTREAM_GH = "anthropics/claude-code";
+
+// The parity half is judgment work — deciding which changelog entries touch a
+// surface Claudius reimplements — so it runs on Opus at high effort, set
+// explicitly because Opus 5.5 defaults to medium. Since the floating
+// `sonnet` alias moved to Sonnet 5.5 at medium effort (CLI 2.1.285), parity
+// runs finished in under a minute without reading Claudius's code.
+const CC_MODEL = process.env.CC_PARITY_MODEL || "claude-opus-5-5";
+const CC_EFFORT = parseEffort(process.env.CC_PARITY_EFFORT, "high");
 
 process.env.GIT_TERMINAL_PROMPT = "0";
 
@@ -398,10 +410,11 @@ export function buildCombinedPreamble(
   ].join("\n");
 }
 
-function renderPrompt(
+export function renderPrompt(
   prevVersion: string,
   newVersion: string,
   changelog: string,
+  branch: string,
   combinedWith?: { sdkPrev: string; sdkNew: string },
 ): string {
   const tpl = readFileSync(resolve(SCRIPT_DIR, "prompt.md"), "utf8");
@@ -410,6 +423,8 @@ function renderPrompt(
     NEW_VERSION: newVersion,
     CHANGELOG_BLOCK: changelog,
     COMBINED_PREAMBLE: buildCombinedPreamble(combinedWith),
+    BRANCH: branch,
+    BRANCH_NOTE: branchContextNote(branch, branchName(newVersion)),
   });
 }
 
@@ -687,23 +702,18 @@ function validateImplementationClaims(
 }
 
 /**
- * All paths changed by the cc-parity half of the run, relative to the
- * work-anchor sha — union of committed-since-anchor, uncommitted-tracked,
- * and untracked. Used by the anti-phantom gate; scoped to the anchor (not
- * main) so a combined run's SDK changes are excluded.
+ * All paths the cc-parity half COMMITTED since the work-anchor sha. Used by
+ * the anti-phantom gate; scoped to the anchor (not main) so a combined run's
+ * SDK changes are excluded. Committed only: counting dirty files let 2.1.293
+ * pass with its only fix uncommitted (it then never reached the PR). Work
+ * left uncommitted is caught and snapshotted by `rescueUncommittedWork`
+ * before this runs.
  */
 function ccChangedFilesSince(anchorSha: string): string[] {
-  const committed = sh("git", ["diff", "--name-only", anchorSha, "HEAD"])
+  return sh("git", ["diff", "--name-only", anchorSha, "HEAD"])
     .split("\n")
     .map((s) => s.trim())
     .filter(Boolean);
-  // `--porcelain` covers staged, unstaged, and untracked in one shot; the
-  // path starts at column 3 (2 status chars + a space).
-  const dirty = sh("git", ["status", "--porcelain"])
-    .split("\n")
-    .map((l) => l.slice(3).trim())
-    .filter(Boolean);
-  return [...new Set([...committed, ...dirty])];
 }
 
 function listScreenshots(version: string): string[] {
@@ -1264,7 +1274,7 @@ async function runFixPass(
   writeFileSync(fixPromptArchivePath(prNumber), prompt, "utf8");
   log(`fix prompt archived (${prompt.length} bytes)`);
 
-  const claudeResult = await runClaude(prompt, txPath);
+  const claudeResult = await runClaude(prompt, txPath, { model: CC_MODEL, effort: CC_EFFORT });
   log(
     `Claude (fix) exited: completed=${claudeResult.completed} turns=${claudeResult.turnCount}` +
       ` wall=${Math.round(claudeResult.wallMs / 1000)}s attempts=${claudeResult.attempts}`,
@@ -1461,19 +1471,38 @@ export async function runCcParityOnExistingBranch(args: {
   }
 
   // 4. Render + archive the prompt.
-  const prompt = renderPrompt(prevCcVersion, newCcVersion, changelog, combinedWith);
+  const prompt = renderPrompt(prevCcVersion, newCcVersion, changelog, branch, combinedWith);
   writeFileSync(promptArchivePath(newCcVersion), prompt, "utf8");
   log(
     `prompt archived to ${relative(ROOT, promptArchivePath(newCcVersion))} (${prompt.length} bytes)`,
   );
 
   // 5. Run Claude.
-  const claudeResult = await runClaude(prompt, transcriptPath(newCcVersion));
+  const dirtyBefore = snapshotDirtyTree();
+  const claudeResult = await runClaude(prompt, transcriptPath(newCcVersion), {
+    model: CC_MODEL,
+    effort: CC_EFFORT,
+  });
   log(
     `Claude exited: completed=${claudeResult.completed} turns=${claudeResult.turnCount}` +
       ` wall=${Math.round(claudeResult.wallMs / 1000)}s attempts=${claudeResult.attempts}`,
   );
   let budgetReason: string | null = claudeResult.budgetReason;
+
+  // 5b. Commit anything Claude left uncommitted — so it reaches the PR and
+  //     survives both the next firing's autostash and combined mode's
+  //     `reset --hard` peel — and fail the run if it did.
+  const leftoverIssue = rescueUncommittedWork({
+    before: dirtyBefore,
+    ownDocsDir: `docs/cc-parity/${newCcVersion}/`,
+    notesRel: relative(ROOT, runNotesPath(newCcVersion)),
+    scope: "cc-parity",
+    version: newCcVersion,
+  });
+  if (leftoverIssue) {
+    log(`gate: uncommitted work FOUND — ${leftoverIssue}`);
+    budgetReason = budgetReason ? `${budgetReason}; also: ${leftoverIssue}` : leftoverIssue;
+  }
 
   // 6. Pull the Summary section for the announce.
   let summary = "";
@@ -1560,7 +1589,7 @@ export async function runCcParityOnExistingBranch(args: {
   }
 
   const failedSteps = gate.filter((g: GateResult) => !g.ok).map((g: GateResult) => g.step);
-  const ok = allGreen && !runNotesIssue && !claimsIssue;
+  const ok = allGreen && !runNotesIssue && !claimsIssue && !leftoverIssue;
 
   if (dryRun) {
     log("DRY RUN — runCcParityOnExistingBranch returning without push/PR/announce");
