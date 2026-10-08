@@ -32,6 +32,7 @@ import type {
   MarketplaceSourceView,
 } from "@/lib/shared/marketplace-settings";
 import {
+  currentOptionValue,
   readPluginOptions,
   type PluginConfigOption,
   type PluginOptionValue,
@@ -805,8 +806,6 @@ function PluginOptionsForm({
   scope: SettingsScope;
   onSetOption: (name: string, value: PluginOptionValue | undefined) => Promise<boolean>;
 }) {
-  const current = (o: PluginConfigOption): PluginOptionValue | undefined =>
-    o.name in values ? values[o.name] : o.default;
   return (
     <div className="mt-2 border-t border-[var(--border)] pt-2">
       <div className="mb-1 flex items-center gap-1.5 text-[var(--muted)]">
@@ -815,7 +814,9 @@ function PluginOptionsForm({
       </div>
       <div className="space-y-2">
         {options.map((o) => {
-          const val = current(o);
+          // CC 2.1.295 parity — own-key lookup, so an option named
+          // `constructor` / `toString` / … reads its own value or default.
+          const val = currentOptionValue(values, o);
           const label = (
             <div className="min-w-0">
               <div className="font-mono text-[11px]">{o.title ?? o.name}</div>
@@ -836,6 +837,7 @@ function PluginOptionsForm({
           if (o.type === "boolean") {
             control = (
               <input
+                data-testid={`plugin-option-${o.name}`}
                 type="checkbox"
                 checked={val === true}
                 onChange={(e) => void onSetOption(o.name, e.target.checked)}
@@ -845,6 +847,7 @@ function PluginOptionsForm({
           } else if (o.type === "enum") {
             control = (
               <select
+                data-testid={`plugin-option-${o.name}`}
                 value={typeof val === "string" ? val : ""}
                 onChange={(e) => void onSetOption(o.name, e.target.value || undefined)}
                 className="w-40 shrink-0 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-1.5 py-1 text-[11px] focus:outline-none"
@@ -860,6 +863,7 @@ function PluginOptionsForm({
           } else if (o.type === "number") {
             control = (
               <input
+                data-testid={`plugin-option-${o.name}`}
                 type="number"
                 defaultValue={typeof val === "number" ? val : ""}
                 onBlur={(e) =>
@@ -871,6 +875,7 @@ function PluginOptionsForm({
           } else {
             control = (
               <input
+                data-testid={`plugin-option-${o.name}`}
                 defaultValue={typeof val === "string" ? val : ""}
                 placeholder="(default)"
                 onBlur={(e) => void onSetOption(o.name, e.target.value === "" ? undefined : e.target.value)}

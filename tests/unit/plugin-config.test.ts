@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 import {
+  currentOptionValue,
   parseUserConfig,
   readPluginOptions,
   setPluginOption,
@@ -79,5 +80,45 @@ describe("setPluginOption (G3)", () => {
     const pc = { "foo@mp": { options: { a: 1 } } };
     setPluginOption(pc, "foo@mp", "b", 2);
     expect(pc).toEqual({ "foo@mp": { options: { a: 1 } } });
+  });
+});
+
+/**
+ * CC 2.1.295 parity — options named like `Object.prototype` members
+ * (`constructor`, `toString`, …) read their own value or their default, never
+ * the inherited function.
+ */
+describe("currentOptionValue (CC 2.1.295 parity)", () => {
+  test("unset boolean `constructor` option reads its default, not Object.prototype.constructor", () => {
+    expect(currentOptionValue({}, { name: "constructor", default: true })).toBe(true);
+  });
+
+  test("a stored `constructor` value wins over the default", () => {
+    expect(currentOptionValue({ constructor: false }, { name: "constructor", default: true })).toBe(false);
+  });
+
+  test("unset string `toString` option reads its default", () => {
+    expect(currentOptionValue({}, { name: "toString", default: "x" })).toBe("x");
+  });
+
+  test("valueOf / hasOwnProperty / __proto__ with no default read undefined", () => {
+    for (const name of ["valueOf", "hasOwnProperty", "__proto__", "isPrototypeOf"]) {
+      expect(currentOptionValue({}, { name })).toBeUndefined();
+    }
+  });
+
+  test("ordinary options are unchanged: stored value, else default", () => {
+    expect(currentOptionValue({ track: "transform" }, { name: "track", default: "auto" })).toBe("transform");
+    expect(currentOptionValue({}, { name: "track", default: "auto" })).toBe("auto");
+  });
+
+  test("round-trips through setPluginOption + readPluginOptions (JSON-parsed)", () => {
+    const id = "optbot@test-mkt";
+    const opt = { name: "constructor", default: true } as const;
+    const set = JSON.parse(JSON.stringify(setPluginOption({}, id, "constructor", false)));
+    expect(currentOptionValue(readPluginOptions(set, id), opt)).toBe(false);
+    const cleared = setPluginOption(set, id, "constructor", undefined);
+    expect(cleared).toBeUndefined();
+    expect(currentOptionValue(readPluginOptions(cleared, id), opt)).toBe(true);
   });
 });

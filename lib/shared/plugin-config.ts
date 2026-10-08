@@ -86,6 +86,25 @@ export function readPluginOptions(
 }
 
 /**
+ * The value an option form control shows: the stored value when this plugin's
+ * `options` map has one, else the manifest default.
+ *
+ * CC 2.1.295 parity — "Fixed plugin options named constructor or prototype
+ * always reading as their default and never reloading the plugin when
+ * edited". `values` is a plain JSON-parsed object, so `name in values` also
+ * sees `Object.prototype` keys: an unset `constructor` (or `toString`,
+ * `valueOf`, `hasOwnProperty`, …) option resolved to the inherited function
+ * instead of its default — a boolean defaulting to true rendered unchecked
+ * and a string rendered blank. Own keys only.
+ */
+export function currentOptionValue(
+  values: Record<string, PluginOptionValue>,
+  option: Pick<PluginConfigOption, "name" | "default">,
+): PluginOptionValue | undefined {
+  return Object.hasOwn(values, option.name) ? values[option.name] : option.default;
+}
+
+/**
  * Set (or, with `value === undefined`, clear) one option for a plugin,
  * preserving every other plugin entry, this plugin's `mcpServers` sub-key and
  * any other fields, and pruning emptied containers. Returns the next
