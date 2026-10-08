@@ -39,7 +39,17 @@ describe("extraUsageState (CC 2.1.295)", () => {
     expect(extraUsageState({ overageStatus: "allowed", overageDisabledReason: "out_of_credits" })).toBe(
       "off",
     );
-    expect(extraUsageState({ overageInUse: true, overageDisabledReason: "unknown" })).toBe("off");
+    expect(extraUsageState({ overageInUse: true, overageDisabledReason: "org_level_disabled" })).toBe(
+      "off",
+    );
+  });
+
+  test("an unreadable status (fetch_error / unknown) isn't an off signal", () => {
+    expect(extraUsageState({ overageDisabledReason: "fetch_error" })).toBeNull();
+    expect(extraUsageState({ overageDisabledReason: "unknown" })).toBeNull();
+    expect(extraUsageState({ overageInUse: true, overageDisabledReason: "unknown" })).toBe("on");
+    expect(extraUsageState({ overageStatus: "allowed", overageDisabledReason: "fetch_error" })).toBe("on");
+    expect(extraUsageState({ overageStatus: "rejected", overageDisabledReason: "fetch_error" })).toBe("off");
   });
 
   test("a warning about the extra-usage limit itself → null", () => {

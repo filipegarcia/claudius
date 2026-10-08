@@ -17,6 +17,8 @@
  * keep going after this limit?", and an exhausted overage bucket
  * (`overageStatus: 'rejected'`) or an explicit `overageDisabledReason` means
  * no — even if `isUsingOverage` is still true from earlier in the window.
+ * The `fetch_error` / `unknown` reasons are the exception: they say the status
+ * couldn't be read, so they fall through to the other fields.
  *
  * A warning about the extra-usage limit itself (`rateLimitType: 'overage'`)
  * returns null: "you'll keep going on extra usage after this limit" would be
@@ -34,10 +36,19 @@ export interface ExtraUsageInfo {
   overageInUse?: boolean;
 }
 
+/**
+ * `overageDisabledReason` values that mean the overage status couldn't be
+ * read — not that extra usage is disabled. They don't count as an "off"
+ * signal; the remaining fields decide (or nothing is said).
+ */
+const UNREADABLE_DISABLED_REASONS: ReadonlySet<string> = new Set(["fetch_error", "unknown"]);
+
 export function extraUsageState(info: ExtraUsageInfo | null | undefined): ExtraUsageState | null {
   if (!info) return null;
   if (info.rateLimitType === "overage") return null;
-  if (info.overageDisabledReason) return "off";
+  if (info.overageDisabledReason && !UNREADABLE_DISABLED_REASONS.has(info.overageDisabledReason)) {
+    return "off";
+  }
   if (info.overageStatus === "rejected") return "off";
   if (
     info.isUsingOverage === true ||
