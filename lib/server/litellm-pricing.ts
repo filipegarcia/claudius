@@ -33,6 +33,14 @@ export type LiteLlmPricing = {
   output_cost_per_token?: number;
   cache_creation_input_token_cost?: number;
   cache_read_input_token_cost?: number;
+  /**
+   * Long-context (>100k input tokens) tier — Haiku 5.5 bills a whole request
+   * over 100K at $0.50/$2.50 instead of $0.10/$0.50 (CC 2.1.293).
+   */
+  input_cost_per_token_above_100k_tokens?: number;
+  output_cost_per_token_above_100k_tokens?: number;
+  cache_creation_input_token_cost_above_100k_tokens?: number;
+  cache_read_input_token_cost_above_100k_tokens?: number;
   /** Long-context (>200k input tokens) tiers, present for some models. */
   input_cost_per_token_above_200k_tokens?: number;
   output_cost_per_token_above_200k_tokens?: number;
@@ -55,13 +63,19 @@ const LITELLM_URL =
 const DISK_CACHE = join(homedir(), ".claude", ".claudius-litellm-prices.json");
 const REFRESH_TTL_MS = 24 * 60 * 60 * 1000; // 24h
 const FETCH_TIMEOUT_MS = 5_000;
-/** Anthropic's long-context premium kicks in above 200k input tokens. */
+/** Anthropic's long-context premium kicks in above 200k input tokens… */
 const LONG_CONTEXT_THRESHOLD = 200_000;
+/** …or above 100k for models that publish a 100k tier (Haiku 5.5). */
+const LONG_CONTEXT_THRESHOLD_100K = 100_000;
 const PRICE_FIELDS = [
   "input_cost_per_token",
   "output_cost_per_token",
   "cache_creation_input_token_cost",
   "cache_read_input_token_cost",
+  "input_cost_per_token_above_100k_tokens",
+  "output_cost_per_token_above_100k_tokens",
+  "cache_creation_input_token_cost_above_100k_tokens",
+  "cache_read_input_token_cost_above_100k_tokens",
   "input_cost_per_token_above_200k_tokens",
   "output_cost_per_token_above_200k_tokens",
   "cache_creation_input_token_cost_above_200k_tokens",
@@ -282,6 +296,19 @@ export function priceForModel(
   }
 
   const lower = m.toLowerCase();
+  // A provider-wrapped or suffixed id (`us.anthropic.claude-haiku-5-5-v1:0`)
+  // contains its canonical key: take the longest one. Without this the family
+  // fallback below returned the FIRST `claude-haiku…` key — Haiku 4.5, ten
+  // times Haiku 5.5's price (CC 2.1.293).
+  let canonical: string | undefined;
+  for (const key of Object.keys(table)) {
+    const k = key.toLowerCase();
+    if (k.startsWith("claude-") && lower.includes(k) && (!canonical || k.length > canonical.length)) {
+      canonical = key;
+    }
+  }
+  if (canonical) return table[canonical];
+
   for (const family of ["opus", "sonnet", "haiku", "fable"] as const) {
     if (!lower.includes(family)) continue;
     // Prefer a canonical `claude-<family>-…` key; fall back to any match.
@@ -298,32 +325,40 @@ export function priceForModel(
 }
 
 /**
- * Cost (USD) for one turn's token usage given its model's pricing. Applies the
- * long-context (>200k) tier when the entry's input footprint crosses the
- * threshold and the model publishes premium rates. Returns 0 when the model is
- * unpriced.
+ * Cost (USD) for one turn's token usage given its model's pricing. Applies a
+ * long-context tier when the turn's input footprint crosses it and the model
+ * publishes premium rates: the >200k tier, else the >100k tier (Haiku 5.5,
+ * whose 100k rate also covers everything above 200k). Returns 0 when the
+ * model is unpriced.
  */
 export function costFromUsage(pricing: LiteLlmPricing | undefined, usage: Usage): number {
   if (!pricing) return 0;
-  const longContext =
-    usage.input + usage.cacheRead + usage.cacheCreation > LONG_CONTEXT_THRESHOLD;
+  const footprint = usage.input + usage.cacheRead + usage.cacheCreation;
+  const above200k = footprint > LONG_CONTEXT_THRESHOLD;
+  const above100k = footprint > LONG_CONTEXT_THRESHOLD_100K;
+  const rate = (base?: number, tier100k?: number, tier200k?: number): number =>
+    (above200k ? tier200k : undefined) ?? (above100k ? tier100k : undefined) ?? base ?? 0;
 
-  const inputRate =
-    (longContext ? pricing.input_cost_per_token_above_200k_tokens : undefined) ??
-    pricing.input_cost_per_token ??
-    0;
-  const outputRate =
-    (longContext ? pricing.output_cost_per_token_above_200k_tokens : undefined) ??
-    pricing.output_cost_per_token ??
-    0;
-  const cacheReadRate =
-    (longContext ? pricing.cache_read_input_token_cost_above_200k_tokens : undefined) ??
-    pricing.cache_read_input_token_cost ??
-    0;
-  const cacheWriteRate =
-    (longContext ? pricing.cache_creation_input_token_cost_above_200k_tokens : undefined) ??
-    pricing.cache_creation_input_token_cost ??
-    0;
+  const inputRate = rate(
+    pricing.input_cost_per_token,
+    pricing.input_cost_per_token_above_100k_tokens,
+    pricing.input_cost_per_token_above_200k_tokens,
+  );
+  const outputRate = rate(
+    pricing.output_cost_per_token,
+    pricing.output_cost_per_token_above_100k_tokens,
+    pricing.output_cost_per_token_above_200k_tokens,
+  );
+  const cacheReadRate = rate(
+    pricing.cache_read_input_token_cost,
+    pricing.cache_read_input_token_cost_above_100k_tokens,
+    pricing.cache_read_input_token_cost_above_200k_tokens,
+  );
+  const cacheWriteRate = rate(
+    pricing.cache_creation_input_token_cost,
+    pricing.cache_creation_input_token_cost_above_100k_tokens,
+    pricing.cache_creation_input_token_cost_above_200k_tokens,
+  );
 
   return (
     usage.input * inputRate +
