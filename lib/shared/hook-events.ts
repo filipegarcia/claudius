@@ -163,9 +163,18 @@ export function hookEventGetsDurablePill(event: string, failed: boolean): boolea
   return failed || HOOK_PILL_EVENTS.has(event);
 }
 
+/**
+ * CC 2.1.295 parity — `onFailure: "block"` on `command` and `http` hooks makes
+ * the hook fail-closed: if it can't start, times out, or exits with an
+ * unexpected code, the engine BLOCKS the action instead of letting it through.
+ * Absent (the default) keeps the historical fail-open behaviour. Only these two
+ * handler types accept it.
+ */
+export type HookOnFailure = "block";
+
 export type HookHandler =
-  | { type: "command"; command: string; timeout?: number; async?: boolean; asyncRewake?: boolean; once?: boolean; if?: string }
-  | { type: "http"; url: string; method?: "POST" | "GET"; headers?: Record<string, string>; timeout?: number; async?: boolean; asyncRewake?: boolean; once?: boolean; if?: string }
+  | { type: "command"; command: string; timeout?: number; async?: boolean; asyncRewake?: boolean; once?: boolean; if?: string; onFailure?: HookOnFailure }
+  | { type: "http"; url: string; method?: "POST" | "GET"; headers?: Record<string, string>; timeout?: number; async?: boolean; asyncRewake?: boolean; once?: boolean; if?: string; onFailure?: HookOnFailure }
   | { type: "prompt"; prompt: string; continueOnBlock?: boolean; once?: boolean; if?: string }
   | { type: "agent"; agent: string; once?: boolean; if?: string }
   | { type: "mcp_tool"; tool: string; arguments?: Record<string, unknown>; once?: boolean; if?: string };
@@ -182,6 +191,30 @@ export const AGENT_HANDLER_DISALLOWED_EVENTS: readonly HookEvent[] = ["Permissio
 /** Whether an `agent`-type hook handler may be attached to `event`. */
 export function agentHandlerAllowed(event: HookEvent): boolean {
   return !AGENT_HANDLER_DISALLOWED_EVENTS.includes(event);
+}
+
+/** CC 2.1.295 parity — handler types that accept `onFailure: "block"`. */
+export function handlerSupportsOnFailure(type: HandlerType): type is "command" | "http" {
+  return type === "command" || type === "http";
+}
+
+/** Whether a saved handler is configured fail-closed (`onFailure: "block"`). */
+export function handlerBlocksOnFailure(h: HookHandler): boolean {
+  return (h.type === "command" || h.type === "http") && h.onFailure === "block";
+}
+
+/**
+ * CC 2.1.295 parity — `onFailure: "block"` has nothing to block when the hook
+ * runs in the background (`async` / `asyncRewake`): the action has already
+ * proceeded by the time the hook fails. The editor shows a hint for this combo
+ * but still lets it save.
+ */
+export function onFailureBlockIneffective(opts: {
+  onFailure?: HookOnFailure;
+  async?: boolean;
+  asyncRewake?: boolean;
+}): boolean {
+  return opts.onFailure === "block" && !!(opts.async || opts.asyncRewake);
 }
 
 /** Settings.json hooks shape: { [Event]: [{ matcher?, hooks: HookHandler[] }] } */
