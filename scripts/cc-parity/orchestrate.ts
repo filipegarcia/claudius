@@ -68,6 +68,7 @@ import {
   runGate,
   sliceChangelog,
   snapshotDirtyTree,
+  uncommittedWorkPaths,
   stripTemplateDocComment,
   summarizeSdkMessage,
   watchCi,
@@ -1132,10 +1133,13 @@ async function draftStrandedWorkSafe(args: {
   try {
     // Snapshot any uncommitted work so it rides along in the draft rather
     // than being autostashed-and-forgotten next firing. `.claudius/` is
-    // gitignored, so transcripts/run-notes never get swept in here.
-    const dirty = sh("git", ["status", "--porcelain"]).trim();
-    if (dirty) {
-      sh("git", ["add", "-A"]);
+    // gitignored, so transcripts/run-notes never get swept in here. Screenshot
+    // churn — PNGs e2e runs regenerate for OTHER versions, and the marketing
+    // gallery — is left out: on 2.1.295 a blind `git add -A` here swept 133 of
+    // them into the draft (reverted in 047b38b7).
+    const paths = uncommittedWorkPaths(new Map(), snapshotDirtyTree(), `docs/cc-parity/${args.newVersion}/`);
+    if (paths.length > 0) {
+      sh("git", ["add", "-A", "--", ...paths]);
       // `--no-verify` is deliberate here (and ONLY here): this is a
       // best-effort snapshot of a half-finished, already-crashed run whose
       // whole point is to preserve work for a human on a DRAFT PR. A
@@ -1148,7 +1152,7 @@ async function draftStrandedWorkSafe(args: {
         "-m",
         `wip(cc-parity): crash-recovery snapshot for ${args.newVersion}`,
       ]);
-      log(`${label}: snapshotted dirty tree into a WIP commit`);
+      log(`${label}: snapshotted ${paths.length} dirty file(s) into a WIP commit (screenshot churn left out)`);
     }
     const ahead = sh("git", ["log", "origin/main..HEAD", "--oneline"]).trim();
     if (!ahead) {

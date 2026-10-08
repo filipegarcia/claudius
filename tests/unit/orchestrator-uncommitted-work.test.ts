@@ -83,6 +83,21 @@ describe("uncommittedWorkPaths", () => {
   test("a clean run reports nothing", () => {
     expect(uncommittedWorkPaths(new Map(), new Map(), own)).toEqual([]);
   });
+
+  test("the crash-recovery snapshot (empty before) keeps real work and drops churn", () => {
+    // 2.1.295: a blind `git add -A` swept 133 regenerated PNGs into the draft.
+    const dirty: DirtySnapshot = new Map([
+      ["lib/plugins.ts", " M:1"],
+      ["docs/cc-parity/2.1.293/new-shot.png", "??:2"],
+      ["docs/cc-parity/2.1.260/old.png", " M:3"],
+      ["docs/sdk-updates/0.3.271/omit-claude-md-badge.png", "??:4"],
+      ["site/screenshots/goal-set.png", " M:5"],
+    ]);
+    expect(uncommittedWorkPaths(new Map(), dirty, own)).toEqual([
+      "docs/cc-parity/2.1.293/new-shot.png",
+      "lib/plugins.ts",
+    ]);
+  });
 });
 
 describe("parseEffort", () => {
