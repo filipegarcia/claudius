@@ -25,7 +25,7 @@ import { usePlugins, type InstalledPlugin } from "@/lib/client/usePlugins";
 import type { AvailablePlugin } from "@/lib/server/plugins";
 import type { SettingsScope } from "@/lib/server/settings";
 import type { PluginLoadError } from "@/lib/shared/parse-init";
-import { lintMarketplaceRef, lintPluginRef } from "@/lib/shared/plugin-ref-lint";
+import { lintMarketplaceName, lintMarketplaceRef, lintPluginRef } from "@/lib/shared/plugin-ref-lint";
 import type {
   ExtraMarketplaceView,
   MarketplaceSource,
@@ -996,12 +996,16 @@ function ExtraList({
   const [ref, setRef] = useState("");
   const [error, setError] = useState<string | null>(null);
   const refLint = kind === "github" ? lintMarketplaceRef(ref, { allowWildcard: false }) : null;
+  const draftSource: MarketplaceSource =
+    kind === "github" ? { source: "github", repo: ref.trim() } : { source: "url", url: ref.trim() };
+  // CC 2.1.295 parity — refuse a name no plugin can be installed under
+  // (`<plugin>@<marketplace>`) or a reserved Anthropic name from a
+  // non-`anthropics/` source, as the user types (the server refuses it too).
+  const nameLint = lintMarketplaceName(name, draftSource);
 
   const submit = async () => {
     setError(null);
-    const source: MarketplaceSource =
-      kind === "github" ? { source: "github", repo: ref.trim() } : { source: "url", url: ref.trim() };
-    const res = await onAdd(name, source);
+    const res = await onAdd(name, draftSource);
     if (res.ok) {
       setName("");
       setRef("");
@@ -1049,7 +1053,7 @@ function ExtraList({
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            if (!name.trim() || !ref.trim() || refLint) return;
+            if (!name.trim() || !ref.trim() || refLint || nameLint) return;
             void submit();
           }}
           className="mt-1 flex flex-wrap gap-1"
@@ -1058,6 +1062,8 @@ function ExtraList({
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="name"
+            data-testid="marketplace-name-input"
+            aria-invalid={!!nameLint}
             className="w-28 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1 font-mono text-xs focus:outline-none"
           />
           <select
@@ -1072,17 +1078,28 @@ function ExtraList({
             value={ref}
             onChange={(e) => setRef(e.target.value)}
             placeholder={kind === "github" ? "owner/repo" : "https://…/marketplace.json"}
+            data-testid="marketplace-source-input"
             className="min-w-0 flex-1 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1 font-mono text-xs focus:outline-none"
           />
           <button
             type="submit"
-            disabled={!name.trim() || !ref.trim() || !!refLint}
+            disabled={!name.trim() || !ref.trim() || !!refLint || !!nameLint}
+            data-testid="marketplace-add-button"
             className="rounded-md bg-[var(--accent)] p-1 text-white hover:opacity-90 disabled:opacity-40"
             title="Add"
           >
             <Plus className="h-3 w-3" />
           </button>
         </form>
+      )}
+      {nameLint && (
+        <p
+          data-testid="marketplace-name-warning"
+          className="mt-1 flex items-start gap-1 text-[10px] text-amber-400"
+        >
+          <AlertTriangle className="mt-px h-3 w-3 shrink-0" />
+          <span>{nameLint.message}</span>
+        </p>
       )}
       {(refLint || error) && (
         <p

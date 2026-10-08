@@ -114,3 +114,69 @@ export function lintMarketplaceRef(
   }
   return null;
 }
+
+/**
+ * Names the bundled CLI reserves for Anthropic's own marketplaces (2.1.294
+ * bundle: the official set, the community/directory names, and `healthcare`).
+ * Compared case-insensitively. A marketplace may only be registered under one
+ * of these when its source is a GitHub repo in the `anthropics/` org.
+ */
+const RESERVED_MARKETPLACE_NAMES: ReadonlySet<string> = new Set([
+  "claude-code-marketplace",
+  "claude-code-plugins",
+  "claude-plugins-official",
+  "anthropic-marketplace",
+  "anthropic-plugins",
+  "agent-skills",
+  "anthropic-agent-skills",
+  "life-sciences",
+  "knowledge-work-plugins",
+  "claude-for-legal",
+  "claude-for-financial-services",
+  "financial-services-plugins",
+  "first-party-plugins",
+  "claude-tag-plugins",
+  "healthcare",
+  "claude-community",
+  "claude-plugins-community",
+  "anthropic-plugin-directory",
+  "claude-plugin-directory",
+]);
+
+/** True when `source` is a GitHub `anthropics/<repo>` source. */
+function isAnthropicsGithubSource(source: unknown): boolean {
+  if (!source || typeof source !== "object") return false;
+  const s = source as { source?: unknown; repo?: unknown };
+  return (
+    s.source === "github" &&
+    typeof s.repo === "string" &&
+    /^anthropics\/[^/\s:]+$/i.test(s.repo.trim())
+  );
+}
+
+/**
+ * CC 2.1.295 parity — "Fixed claude plugin marketplace add reporting success
+ * for a marketplace whose name no plugin can be installed under; such an add
+ * is now refused". Plugins are installed as `<plugin>@<marketplace>`, so a
+ * marketplace name with spaces, `@`, `/`, or a leading `.`/`-` can never be
+ * the target of an install ref. The CLI also refuses Anthropic's reserved
+ * marketplace names unless the source is a GitHub repo under `anthropics/`.
+ *
+ * `source` is the source the name will be registered with (pass the one being
+ * typed so the reserved-name warning clears for an `anthropics/…` repo; when
+ * it's absent the reserved check assumes a non-Anthropic source). Only the
+ * ADD path calls this — existing entries keep working untouched.
+ */
+export function lintMarketplaceName(name: string, source?: unknown): PluginLintWarning | null {
+  const trimmed = name.trim();
+  if (!trimmed) return null;
+  if (!NAME_RE.test(trimmed) || trimmed.includes("..")) {
+    return {
+      message: `“${trimmed}” can't be used as a marketplace name — plugins are installed as <plugin>@<marketplace>, so use letters, digits, “.”, “-”, or “_” (starting with a letter or digit).`,
+    };
+  }
+  if (RESERVED_MARKETPLACE_NAMES.has(trimmed.toLowerCase()) && !isAnthropicsGithubSource(source)) {
+    return { message: `“${trimmed}” is reserved for Anthropic's official marketplace.` };
+  }
+  return null;
+}
