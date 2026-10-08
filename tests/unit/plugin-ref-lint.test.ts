@@ -159,6 +159,15 @@ describe("lintMarketplaceName", () => {
     ).not.toBeNull();
   });
 
+  test("refuses install-routing suffix names regardless of source", () => {
+    for (const bad of ["npm", "GitHub", "gh", "pip", "uv", "cargo"]) {
+      expect(lintMarketplaceName(bad, someone)?.message, bad).toContain("reserved for plugins installed");
+    }
+    expect(lintMarketplaceName("npm", { source: "github", repo: "anthropics/npm" })).not.toBeNull();
+    // Only the exact suffix — names that merely contain one are fine.
+    expect(lintMarketplaceName("npm-tools", someone)).toBeNull();
+  });
+
   test("allows a reserved name from an anthropics/ GitHub source", () => {
     expect(lintMarketplaceName("claude-plugins-official", anthropics)).toBeNull();
     expect(lintMarketplaceName("healthcare", { source: "github", repo: "Anthropics/hc" })).toBeNull();

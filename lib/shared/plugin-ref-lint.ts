@@ -143,6 +143,21 @@ const RESERVED_MARKETPLACE_NAMES: ReadonlySet<string> = new Set([
   "claude-plugin-directory",
 ]);
 
+/**
+ * Install-routing suffixes: `<plugin>@npm` (and the reserved `@pip`, `@uv`,
+ * `@cargo`, `@github`, `@gh`) route to a package registry instead of a
+ * marketplace, so a marketplace under one of these names can never be
+ * installed from — refused regardless of source (case-insensitive).
+ */
+const ROUTING_SUFFIX_NAMES: Readonly<Record<string, string>> = {
+  npm: "plugins installed from an npm registry (<package>@npm)",
+  pip: "plugins installed from a Python package index",
+  uv: "plugins installed from a Python package index through uv",
+  cargo: "plugins installed from a Rust crate registry",
+  github: "plugins installed straight from a GitHub repository (<owner>/<repo>@github)",
+  gh: "plugins installed straight from a GitHub repository",
+};
+
 /** True when `source` is a GitHub `anthropics/<repo>` source. */
 function isAnthropicsGithubSource(source: unknown): boolean {
   if (!source || typeof source !== "object") return false;
@@ -159,7 +174,8 @@ function isAnthropicsGithubSource(source: unknown): boolean {
  * for a marketplace whose name no plugin can be installed under; such an add
  * is now refused". Plugins are installed as `<plugin>@<marketplace>`, so a
  * marketplace name with spaces, `@`, `/`, or a leading `.`/`-` can never be
- * the target of an install ref. The CLI also refuses Anthropic's reserved
+ * the target of an install ref, nor can one named after an install-routing
+ * suffix (`npm`, `gh`, …). The CLI also refuses Anthropic's reserved
  * marketplace names unless the source is a GitHub repo under `anthropics/`.
  *
  * `source` is the source the name will be registered with (pass the one being
@@ -175,7 +191,13 @@ export function lintMarketplaceName(name: string, source?: unknown): PluginLintW
       message: `“${trimmed}” can't be used as a marketplace name — plugins are installed as <plugin>@<marketplace>, so use letters, digits, “.”, “-”, or “_” (starting with a letter or digit).`,
     };
   }
-  if (RESERVED_MARKETPLACE_NAMES.has(trimmed.toLowerCase()) && !isAnthropicsGithubSource(source)) {
+  const lower = trimmed.toLowerCase();
+  if (Object.hasOwn(ROUTING_SUFFIX_NAMES, lower)) {
+    return {
+      message: `“${trimmed}” is reserved for ${ROUTING_SUFFIX_NAMES[lower]} — use another name.`,
+    };
+  }
+  if (RESERVED_MARKETPLACE_NAMES.has(lower) && !isAnthropicsGithubSource(source)) {
     return { message: `“${trimmed}” is reserved for Anthropic's official marketplace.` };
   }
   return null;

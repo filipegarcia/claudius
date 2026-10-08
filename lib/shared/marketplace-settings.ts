@@ -20,7 +20,8 @@
  *     entries — and any source kind this code doesn't recognize — survive
  *     byte-for-byte.
  *
- * Pure + dependency-free so every operation is unit-testable.
+ * Pure (no I/O; only other `lib/shared` helpers) so every operation is
+ * unit-testable.
  */
 
 import { lintMarketplaceName } from "./plugin-ref-lint";
