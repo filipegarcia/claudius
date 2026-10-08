@@ -86,6 +86,8 @@ export function QueueIndicator({
       {queue.map((q, i) => (
         <div
           key={q.id}
+          data-testid="queue-item"
+          data-queue-id={q.id}
           className="flex items-center gap-1 rounded-md border border-dashed border-[var(--border)] bg-[var(--panel)]/40 px-2 py-1 text-xs"
         >
           <button
@@ -131,6 +133,7 @@ export function QueueIndicator({
           {onEdit && (
             <button
               onClick={() => onEdit(q.id)}
+              data-testid="queue-item-edit"
               className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-[var(--muted)] hover:bg-[var(--panel-2)] hover:text-[var(--foreground)]"
               title="Edit — pull the text back into the composer"
             >

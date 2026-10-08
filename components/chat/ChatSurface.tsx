@@ -129,6 +129,11 @@ import {
 import { DEFAULT_TIPS, selectClientTips } from "@/lib/shared/tips";
 import { badgeAdvisorLabel, resolveAdvisorCommandArg } from "@/lib/shared/advisor";
 import { describeReloadPluginsResult } from "@/lib/shared/reload-plugins";
+import {
+  buildPromptHistory,
+  type LiftedPromptEntry,
+  type SentPromptEntry,
+} from "@/lib/shared/prompt-history";
 import { useWorkspaces } from "@/lib/client/useWorkspaces";
 import { useVerbose } from "@/lib/client/useVerbose";
 import { useFocusMode } from "@/lib/client/useFocusMode";
@@ -1054,12 +1059,25 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
     [session],
   );
 
+  // CC 2.1.295 parity — queued messages pulled back into the composer via
+  // QueueIndicator Edit, keyed by session id (ChatSurface stays mounted across
+  // tab switches). Merged into `promptHistory` below so Cmd/Ctrl+↑ can recall
+  // a lifted message that a later lift overwrote.
+  const [liftedHistory, setLiftedHistory] = useState<Record<string, LiftedPromptEntry[]>>({});
   const liftQueued = useCallback(
     async (id: string) => {
       // `editQueued` round-trips to the server (DELETE-and-return), so it's
       // async now — await before pre-filling the composer.
       const item = await session.editQueued(id);
       if (item == null) return;
+      // CC 2.1.295 parity — the row is gone server-side and the composer is
+      // about to be replaced, so remember the text in this session's prompt
+      // history; otherwise lifting A then B loses A for good.
+      const sid = session.sessionId;
+      if (sid && item.text.trim()) {
+        const entry = { text: item.text, at: Date.now() };
+        setLiftedHistory((prev) => ({ ...prev, [sid]: [...(prev[sid] ?? []), entry] }));
+      }
       draftTokenRef.current += 1;
       setDraftInjection({ token: draftTokenRef.current, text: item.text, images: item.images });
     },
@@ -1944,26 +1962,21 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
 
   // ── Prompt history (shell-style recall) ─────────────────────────────────
   // The previously sent user prompts, oldest → newest, for the composer's
-  // Cmd/Ctrl+↑/↓ recall. We flatten each user message's text blocks, strip
-  // the `[Image #N]` attachment tokens (the images themselves aren't recalled,
-  // so leaving the tokens would send dangling references), drop empties, and
-  // collapse consecutive duplicates so repeated re-runs don't pad the history.
+  // Cmd/Ctrl+↑/↓ recall. We flatten each user message's text blocks and hand
+  // them to `buildPromptHistory`, which strips the `[Image #N]` attachment
+  // tokens, drops empties, and collapses consecutive duplicates so repeated
+  // re-runs don't pad the history. CC 2.1.295 parity — queued messages lifted
+  // back into the composer this session are merged in chronologically too.
+  const liftedForSession = session.sessionId ? liftedHistory[session.sessionId] : undefined;
   const promptHistory = useMemo(() => {
-    const out: string[] = [];
+    const sent: SentPromptEntry[] = [];
     for (const m of session.messages) {
       if (m.role !== "user") continue;
-      const text = m.blocks
-        .map((b) => (b.kind === "text" ? b.text : ""))
-        .join("")
-        .replace(/\[Image #\d+\]/g, "")
-        .replace(/ {2,}/g, " ")
-        .trim();
-      if (!text) continue;
-      if (out.length > 0 && out[out.length - 1] === text) continue;
-      out.push(text);
+      const text = m.blocks.map((b) => (b.kind === "text" ? b.text : "")).join("");
+      sent.push({ text, at: m.createdAt });
     }
-    return out;
-  }, [session.messages]);
+    return buildPromptHistory(sent, liftedForSession);
+  }, [session.messages, liftedForSession]);
 
   // ── Context-warning Compact action ──────────────────────────────────────
   // Count of compaction dividers in the transcript. A successful /compact
