@@ -4749,6 +4749,8 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
             overageResetsAt?: number;
             overageDisabledReason?: string;
             isUsingOverage?: boolean;
+            // CC 2.1.295 parity — drives the pill's "extra usage is on/off" line.
+            overageInUse?: boolean;
             surpassedThreshold?: number;
             // SDK 0.3.181 — credits-required rate-limit signal.
             errorCode?: "credits_required";
