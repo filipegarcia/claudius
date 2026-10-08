@@ -20,8 +20,11 @@
  *     entries — and any source kind this code doesn't recognize — survive
  *     byte-for-byte.
  *
- * Pure + dependency-free so every operation is unit-testable.
+ * Pure (no I/O; only other `lib/shared` helpers) so every operation is
+ * unit-testable.
  */
+
+import { lintMarketplaceName } from "./plugin-ref-lint";
 
 /** A source object; kept loose because the SDK union is wide and extensible. */
 export type MarketplaceSource = Record<string, unknown> & { source?: unknown };
@@ -189,6 +192,11 @@ export function validateAddSource(source: unknown): { ok: true } | { ok: false; 
 export function addExtraMarketplace(raw: unknown, name: string, source: MarketplaceSource): AddResult {
   const trimmed = name.trim();
   if (!trimmed) return { ok: false, error: "A marketplace name is required." };
+  // CC 2.1.295 parity — refuse a name no plugin can be installed under (or a
+  // reserved Anthropic name from a non-Anthropic source) instead of
+  // "succeeding". Add path only; already-stored entries are left alone.
+  const nameLint = lintMarketplaceName(trimmed, source);
+  if (nameLint) return { ok: false, error: nameLint.message };
   if (isLegacyExtra(raw)) {
     return { ok: false, error: "Legacy string entries are present — remove them before adding named marketplaces." };
   }
@@ -197,7 +205,9 @@ export function addExtraMarketplace(raw: unknown, name: string, source: Marketpl
   const base = isObject(raw) ? (raw as Record<string, { source: MarketplaceSource }>) : {};
   // Refuse to overwrite an existing entry — silently replacing it would drop
   // its `headers`/`headersHelper`/ref, the exact corruption G1 set out to fix.
-  if (trimmed in base) {
+  // `Object.hasOwn`, not `in` — `in` sees inherited keys, so a (valid) name
+  // like "constructor" would be refused as "already exists".
+  if (Object.hasOwn(base, trimmed)) {
     return { ok: false, error: `A marketplace named "${trimmed}" already exists — remove it first.` };
   }
   return { ok: true, value: { ...base, [trimmed]: { source } } };

@@ -27,6 +27,7 @@ import {
 import { formatResetClock, useCountdownSeconds } from "@/lib/client/use-countdown";
 import { PURCHASE_CREDITS_URL, RateLimitUpgradeLinks } from "./RateLimitHitPanel";
 import { OPUS_OVERLOAD_NUDGE_SONNET_TARGET } from "./OpusOverloadNudgePanel";
+import { extraUsageState } from "@/lib/shared/rate-limit-extra-usage";
 
 /**
  * Remediation-lever context for the soft `allowed_warning` branch of
@@ -395,6 +396,12 @@ const OVERAGE_DISABLED_COPY: Record<string, string> = {
   unknown: "Extra usage unavailable.",
 };
 
+// CC 2.1.295 parity — soft-warning line saying whether extra usage will
+// carry the session past this limit. "Off" prefers the specific
+// OVERAGE_DISABLED_COPY reason when the event carries one.
+const EXTRA_USAGE_ON_COPY = "Extra usage is on — you'll keep going on extra usage after this limit.";
+const EXTRA_USAGE_OFF_COPY = "Extra usage is off — you'll be paused when this limit is reached.";
+
 // Effort levels considered "high" for the step-down chip. The CLI's soft
 // warning specifically calls out `/effort medium` as the burn-down lever when
 // the user is on `high` or `xhigh` — we extend that to `max` (strictly higher
@@ -475,6 +482,20 @@ function RateLimitPill({
     ? OVERAGE_DISABLED_COPY[info.overageDisabledReason] ?? null
     : null;
 
+  // CC 2.1.295 parity — a soft warning says whether the account has extra
+  // usage turned on, i.e. what happens when this limit is actually reached.
+  // `null` (no overage signal on the event) renders nothing rather than
+  // guessing. On "off" the specific disabled-reason copy wins over the
+  // generic line, and the standalone reason span below is suppressed so it
+  // isn't printed twice.
+  const extraUsage = status === "allowed_warning" ? extraUsageState(info) : null;
+  const extraUsageCopy =
+    extraUsage === "on"
+      ? EXTRA_USAGE_ON_COPY
+      : extraUsage === "off"
+        ? overageBlockedCopy ?? EXTRA_USAGE_OFF_COPY
+        : null;
+
   // Compute reset wall-clock label once per render. Intl will pick the
   // user's locale + timezone automatically — matches the CLI's "6:30pm
   // (Europe/Berlin)" wording in spirit even though we don't append the TZ
@@ -527,7 +548,7 @@ function RateLimitPill({
         </div>
       )}
 
-      {(canSwitchToOverage || overageBlockedCopy) && (
+      {(canSwitchToOverage || overageBlockedCopy || extraUsageCopy) && (
         <div className="mt-1.5 border-t border-current/10 pt-1.5 opacity-90">
           {canSwitchToOverage && (
             <span>
@@ -538,7 +559,12 @@ function RateLimitPill({
               .
             </span>
           )}
-          {overageBlockedCopy && <span>{overageBlockedCopy}</span>}
+          {overageBlockedCopy && !extraUsageCopy && <span>{overageBlockedCopy}</span>}
+          {extraUsageCopy && (
+            <span data-testid="rate-limit-extra-usage-state" data-state={extraUsage}>
+              {extraUsageCopy}
+            </span>
+          )}
         </div>
       )}
 

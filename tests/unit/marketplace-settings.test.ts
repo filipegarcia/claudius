@@ -109,6 +109,41 @@ describe("addExtraMarketplace (G1)", () => {
     expect(addExtraMarketplace({}, "x", { source: "url", url: "ftp://x" }).ok).toBe(false);
     expect(validateAddSource({ source: "github", repo: "owner/repo" }).ok).toBe(true);
   });
+
+  // CC 2.1.295 parity — a name no plugin can be installed under is refused.
+  test("refuses a name no plugin can be installed under", () => {
+    const src = { source: "github", repo: "o/r" };
+    for (const bad of ["my market", "x@y", "-dash", ".dot"]) {
+      const res = addExtraMarketplace({}, bad, src);
+      expect(res.ok, bad).toBe(false);
+      if (!res.ok) expect(res.error).toContain("<plugin>@<marketplace>");
+    }
+  });
+
+  test("refuses a reserved name unless the source is an anthropics/ repo", () => {
+    const res = addExtraMarketplace({}, "claude-plugins-official", { source: "github", repo: "someone/repo" });
+    expect(res.ok).toBe(false);
+    if (!res.ok) expect(res.error).toContain("reserved");
+    expect(
+      addExtraMarketplace({}, "claude-plugins-official", {
+        source: "github",
+        repo: "anthropics/claude-plugins-official",
+      }).ok,
+    ).toBe(true);
+  });
+
+  test("accepts “constructor” (own-key check, not `in`)", () => {
+    const res = addExtraMarketplace({}, "constructor", { source: "github", repo: "o/r" });
+    expect(res.ok).toBe(true);
+    if (res.ok) expect(Object.hasOwn(res.value, "constructor")).toBe(true);
+  });
+
+  test("leaves already-stored invalid names alone when adding another", () => {
+    const raw = { "legacy name": { source: { source: "github", repo: "a/b" } } };
+    const res = addExtraMarketplace(raw, "fresh", { source: "github", repo: "o/r" });
+    expect(res.ok).toBe(true);
+    if (res.ok) expect(res.value["legacy name"]).toEqual(raw["legacy name"]);
+  });
 });
 
 describe("removeExtraMarketplace (G1)", () => {

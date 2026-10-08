@@ -11,6 +11,7 @@ import {
 import {
   pathFor,
   readSettings,
+  SettingsParseError,
   writeSettings,
   type ClaudeSettings,
   type SettingsScope,
@@ -46,6 +47,12 @@ export type PluginsByScope = {
    * values never land here (the CLI routes them to secure storage).
    */
   pluginConfigs: Record<string, unknown>;
+  /**
+   * CC 2.1.295 parity — set when this scope's settings file exists but doesn't
+   * parse (sanitized reason, no file content). The scope is returned empty so
+   * the other scopes still render; writes to it are refused with a 422.
+   */
+  parseError?: string;
 };
 
 export type AvailablePlugin = {
@@ -101,7 +108,27 @@ export async function listAll(cwd: string): Promise<PluginsByScope[]> {
   const scopes: SettingsScope[] = ["user", "project", "local"];
   const out: PluginsByScope[] = [];
   for (const scope of scopes) {
-    const settings = await readSettings(scope, cwd);
+    let settings: ClaudeSettings;
+    try {
+      settings = await readSettings(scope, cwd);
+    } catch (err) {
+      // CC 2.1.295 parity — one malformed file used to 500 the whole list.
+      // Report it on its own scope and keep going; anything that isn't a
+      // parse failure (EACCES, …) still propagates.
+      if (!(err instanceof SettingsParseError)) throw err;
+      out.push({
+        scope,
+        path: err.path,
+        enabledPlugins: {},
+        extraKnownMarketplaces: [],
+        strictKnownMarketplaces: [],
+        blockedMarketplaces: [],
+        legacyExtra: false,
+        pluginConfigs: {},
+        parseError: err.reason,
+      });
+      continue;
+    }
     const ep = settings.enabledPlugins;
     const extraRaw = aliased(settings, "extraKnownMarketplaces", "additionalMarketplaces");
     out.push({

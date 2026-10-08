@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { lintMarketplaceRef, lintPluginRef } from "@/lib/shared/plugin-ref-lint";
+import { lintMarketplaceName, lintMarketplaceRef, lintPluginRef } from "@/lib/shared/plugin-ref-lint";
 
 /**
  * CC 2.1.221 parity — "Plugin validation warns on marketplace/name
@@ -109,5 +109,84 @@ describe("lintMarketplaceRef", () => {
   test("ignores empty / whitespace-only input", () => {
     expect(lintMarketplaceRef("")).toBeNull();
     expect(lintMarketplaceRef("   ")).toBeNull();
+  });
+});
+
+/**
+ * CC 2.1.295 parity — "Fixed claude plugin marketplace add reporting success
+ * for a marketplace whose name no plugin can be installed under; such an add
+ * is now refused".
+ */
+describe("lintMarketplaceName", () => {
+  const someone = { source: "github", repo: "someone/repo" };
+  const anthropics = { source: "github", repo: "anthropics/claude-plugins-official" };
+
+  test("accepts normal names", () => {
+    expect(lintMarketplaceName("my-market", someone)).toBeNull();
+    expect(lintMarketplaceName("acme.tools_v2", someone)).toBeNull();
+    expect(lintMarketplaceName("Team1", { source: "url", url: "https://x/m.json" })).toBeNull();
+  });
+
+  test("accepts a prototype-key name like “constructor”", () => {
+    expect(lintMarketplaceName("constructor", someone)).toBeNull();
+  });
+
+  test("ignores empty / whitespace-only input", () => {
+    expect(lintMarketplaceName("")).toBeNull();
+    expect(lintMarketplaceName("   ")).toBeNull();
+  });
+
+  test("refuses names no plugin can be installed under", () => {
+    for (const bad of ["my market", "mkt@v1", "-leading", ".hidden", "a/b", "a..b", "bad!name"]) {
+      const w = lintMarketplaceName(bad, someone);
+      expect(w, bad).not.toBeNull();
+      expect(w?.message).toContain("<plugin>@<marketplace>");
+    }
+  });
+
+  test("refuses a reserved name from a non-Anthropic source", () => {
+    const w = lintMarketplaceName("claude-plugins-official", someone);
+    expect(w?.message).toContain("reserved for Anthropic");
+    expect(lintMarketplaceName("Healthcare", someone)).not.toBeNull();
+    expect(
+      lintMarketplaceName("agent-skills", { source: "url", url: "https://anthropics/x.json" }),
+    ).not.toBeNull();
+    // No source yet → can't be an anthropics/ repo, so still refused.
+    expect(lintMarketplaceName("claude-plugins-official")).not.toBeNull();
+    // Look-alike org prefix isn't the anthropics org.
+    expect(
+      lintMarketplaceName("claude-plugins-official", { source: "github", repo: "anthropics-fake/x" }),
+    ).not.toBeNull();
+  });
+
+  test("refuses install-routing suffix names regardless of source", () => {
+    for (const bad of ["npm", "GitHub", "gh", "pip", "uv", "cargo"]) {
+      expect(lintMarketplaceName(bad, someone)?.message, bad).toContain("reserved for plugins installed");
+    }
+    expect(lintMarketplaceName("npm", { source: "github", repo: "anthropics/npm" })).not.toBeNull();
+    // Only the exact suffix — names that merely contain one are fine.
+    expect(lintMarketplaceName("npm-tools", someone)).toBeNull();
+  });
+
+  test("refuses built-in plugin source names regardless of source", () => {
+    const cases: Array<[string, string]> = [
+      ["inline", "reserved for --plugin-dir session plugins"],
+      ["builtin", "reserved for built-in plugins"],
+      ["Skills-Dir", "reserved for plugins auto-loaded from .claude/skills/"],
+      ["synced", "reserved for plugins synced from your claude.ai account"],
+      ["claude-plugin-test", "reserved for plugins loaded by claude plugin test"],
+    ];
+    for (const [bad, msg] of cases) {
+      expect(lintMarketplaceName(bad, someone)?.message, bad).toContain(msg);
+    }
+    expect(
+      lintMarketplaceName("builtin", { source: "github", repo: "anthropics/builtin" }),
+    ).not.toBeNull();
+    expect(lintMarketplaceName("builtin-extras", someone)).toBeNull();
+  });
+
+  test("allows a reserved name from an anthropics/ GitHub source", () => {
+    expect(lintMarketplaceName("claude-plugins-official", anthropics)).toBeNull();
+    expect(lintMarketplaceName("healthcare", { source: "github", repo: "Anthropics/hc" })).toBeNull();
   });
 });

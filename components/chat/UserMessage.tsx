@@ -13,6 +13,7 @@ import { Markdown } from "./Markdown";
 import { RewindFilesButton } from "./RewindFilesButton";
 import { parseUserTextWithBashIO } from "@/lib/shared/bash-io";
 import { peerMessagePreview } from "@/lib/shared/peer-message-preview";
+import { forkableUuid } from "@/lib/shared/forkable-uuid";
 import { type VerboseLevel, DEFAULT_VERBOSE } from "@/lib/shared/verbose";
 
 type Props = {
@@ -186,12 +187,20 @@ export function UserMessage({
                 {verbose === "ultra-verbose" ? stamp.shortWithSeconds : stamp.short}
               </span>
             )}
-            {sessionId && !isPureBashEcho && <RewindFilesButton sessionId={sessionId} messageUuid={message.uuid} />}
-            {onRewind && !isPureBashEcho && (
+            {/* CC 2.1.295 parity — fork / file-rewind target the JSONL record
+                backing this bubble, not a display-only id (e.g. the 2.1.285
+                `:trailing` bubble), else the SDK answers "Message not found
+                in session". A still-pending optimistic bubble has no record
+                yet, so it gets neither action. */}
+            {sessionId && !isPureBashEcho && !message.pending && (
+              <RewindFilesButton sessionId={sessionId} messageUuid={forkableUuid(message.uuid)} />
+            )}
+            {onRewind && !isPureBashEcho && !message.pending && (
               <button
+                data-testid="user-message-rewind"
                 onClick={(e) => {
                   e.stopPropagation();
-                  onRewind(message.uuid);
+                  onRewind(forkableUuid(message.uuid));
                 }}
                 disabled={rewinding}
                 className="flex items-center gap-1 text-[10px] text-[var(--muted)] opacity-0 transition group-hover:opacity-100 hover:text-[var(--foreground)] disabled:opacity-40"

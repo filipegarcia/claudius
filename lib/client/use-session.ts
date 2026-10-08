@@ -82,6 +82,8 @@ import type {
   ToolProgressInfo,
 } from "./types";
 import { appendCoalescedSystemEntry } from "./system-entries";
+import { trailingBubbleUuid } from "@/lib/shared/forkable-uuid";
+import { isScheduleWakeupStop, markWakeupsStopped } from "@/lib/shared/stop-self-paced-loop";
 import {
   STREAM_BADGE_AFTER_MS,
   shouldRebuildTranscript,
@@ -1585,6 +1587,11 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
   // dedup) can't re-arm `pendingCompactRef` a second time with no live result
   // ever coming to clear it again.
   const seenCompactSlashUuidsRef = useRef<Set<string>>(new Set());
+  // CC 2.1.295 parity — `ScheduleWakeup { stop: true }` tool_use ids already
+  // applied to the loop rail. A replayed stop (SSE reconnect tail, no
+  // resetState) is skipped so it can't cancel a wake-up armed after it.
+  // Cleared in resetState alongside `scheduledLoops`.
+  const appliedWakeupStopsRef = useRef<Set<string>>(new Set());
   // Per-scope (parent_tool_use_id, "" for top-level) → Anthropic message.id
   // currently being streamed. Captured from the inner `message_start` event
   // so subsequent content_block_* partials in the same scope can be anchored
@@ -1706,6 +1713,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     setRecentEdits([]);
     setBackgroundBashes({});
     setScheduledLoops({});
+    appliedWakeupStopsRef.current = new Set();
     setToolHistory([]);
     setSessionTitle(null);
     setGoalState(null);
@@ -3051,6 +3059,22 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
           // tool_use_id itself. Lives in the rail until either replaced by
           // the next ScheduleWakeup or the session ends.
           if (b.name === "ScheduleWakeup") {
+            // CC 2.1.295 parity — `stop: true` ends the self-paced loop; it
+            // is not a new arm. Flip the pending wake-up to "cancelled" (the
+            // same notice a CronDelete gives a cron chip) instead of letting
+            // the supersede step below drop it silently and insert a blank
+            // ghost chip in its place.
+            // Idempotent on replay: a stop is applied once (by tool_use id),
+            // and only to wake-ups armed at or before it — a tail replayed on
+            // SSE reconnect must not cancel a newer, still-live wake-up.
+            if (isScheduleWakeupStop(b.input)) {
+              if (!appliedWakeupStopsRef.current.has(b.id)) {
+                appliedWakeupStopsRef.current.add(b.id);
+                const stopAt = ev.at ?? Date.now();
+                setScheduledLoops((prev) => markWakeupsStopped(prev, stopAt));
+              }
+              continue;
+            }
             const inp = b.input as {
               delaySeconds?: unknown;
               reason?: unknown;
@@ -3740,7 +3764,9 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
             // still has its real text after the wrapper. Render that as a normal
             // user bubble instead of dropping it with the pill.
             if (cli.trailing) {
-              const trailUuid = `${uuid}:trailing`;
+              // CC 2.1.295 — display-only id; Rewind maps it back to `uuid`
+              // (the JSONL record) via forkableUuid before forking.
+              const trailUuid = trailingBubbleUuid(uuid);
               setMessages((prev) => {
                 if (prev.some((m) => m.uuid === trailUuid)) return prev;
                 return [
@@ -4746,6 +4772,8 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
             overageResetsAt?: number;
             overageDisabledReason?: string;
             isUsingOverage?: boolean;
+            // CC 2.1.295 parity — drives the pill's "extra usage is on/off" line.
+            overageInUse?: boolean;
             surpassedThreshold?: number;
             // SDK 0.3.181 — credits-required rate-limit signal.
             errorCode?: "credits_required";
@@ -6739,7 +6767,7 @@ export function synthesizeOlder(raw: Array<Record<string, unknown>>): {
         // SystemEntry channel), but real user text after the tag must survive.
         if (cliWrap.trailing) {
           out.push({
-            uuid: `${uuid}:trailing`,
+            uuid: trailingBubbleUuid(uuid),
             role: "user",
             blocks: [{ kind: "text", text: cliWrap.trailing }],
           });

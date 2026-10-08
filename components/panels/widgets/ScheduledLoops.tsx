@@ -61,6 +61,8 @@ export function ScheduledLoops({
         // and we fall back to the raw cron expression.
         const cadence = (() => {
           if (loop.kind === "wakeup") {
+            // A stopped wake-up will never fire — no countdown / "due now".
+            if (loop.cancelled) return "stopped";
             if (loop.delaySeconds == null) return "scheduled";
             const remaining = loop.delaySeconds - elapsed;
             if (remaining <= 0) return "due now";
@@ -104,13 +106,18 @@ export function ScheduledLoops({
                   {(loop.noopStreak ?? 0) > 1 && ` ×${loop.noopStreak}`}
                 </span>
               )}
-              {onCancel && !loop.cancelled && !cancelling && loop.kind === "cron" && (
+              {/* CC 2.1.295 parity — self-paced (wakeup) loops get the X
+                  too; it asks the agent for `ScheduleWakeup { stop: true }`
+                  instead of CronDelete. */}
+              {onCancel && !loop.cancelled && !cancelling && (
                 <button
                   type="button"
+                  data-testid="scheduled-loop-cancel"
                   onClick={async () => {
                     // Flip to "cancelling…" immediately so the click feels
                     // instant — the upstream `cancelled` flag lands once
-                    // the agent actually runs CronDelete (its tool_use
+                    // the agent actually runs CronDelete / a stopping
+                    // ScheduleWakeup (its tool_use
                     // event will arrive through the same reducer that set
                     // up this loop in the first place).
                     setCancellingIds((prev) => {
@@ -131,14 +138,25 @@ export function ScheduledLoops({
                     }
                   }}
                   className="ml-auto rounded p-0.5 text-[var(--muted)] hover:bg-[var(--panel)]/60 hover:text-[var(--foreground)]"
-                  aria-label="Ask the agent to cancel this loop"
-                  title="Ask the agent to cancel (sends a CronDelete request)"
+                  aria-label={
+                    loop.kind === "wakeup"
+                      ? "Ask the agent to stop this self-paced loop"
+                      : "Ask the agent to cancel this loop"
+                  }
+                  title={
+                    loop.kind === "wakeup"
+                      ? "Ask the agent to stop the loop (sends a ScheduleWakeup stop request)"
+                      : "Ask the agent to cancel (sends a CronDelete request)"
+                  }
                 >
                   <X className="h-3 w-3" />
                 </button>
               )}
               {(loop.cancelled || cancelling) && (
-                <span className="ml-auto text-[9px] uppercase tracking-wide opacity-60">
+                <span
+                  data-testid="scheduled-loop-cancelled"
+                  className="ml-auto text-[9px] uppercase tracking-wide opacity-60"
+                >
                   {loop.cancelled ? "cancelled" : "cancelling…"}
                 </span>
               )}

@@ -51,6 +51,7 @@ import { DiffOverlay } from "@/components/overlays/DiffOverlay";
 import { diffRefreshToken } from "@/lib/shared/diff-overlay";
 import { MobileQrOverlay } from "@/components/overlays/MobileQrOverlay";
 import { forkConfirmation, type ForkWorktreeInfo } from "@/lib/shared/fork-worktree";
+import { forkFailedMessage } from "@/lib/shared/forkable-uuid";
 import { OutputStyleOverlay } from "@/components/overlays/OutputStyleOverlay";
 import { StatusOverlay } from "@/components/overlays/StatusOverlay";
 import { RenameOverlay } from "@/components/overlays/RenameOverlay";
@@ -129,6 +130,12 @@ import {
 import { DEFAULT_TIPS, selectClientTips } from "@/lib/shared/tips";
 import { badgeAdvisorLabel, resolveAdvisorCommandArg } from "@/lib/shared/advisor";
 import { describeReloadPluginsResult } from "@/lib/shared/reload-plugins";
+import { scheduledLoopCancelPrompt } from "@/lib/shared/stop-self-paced-loop";
+import {
+  buildPromptHistory,
+  type LiftedPromptEntry,
+  type SentPromptEntry,
+} from "@/lib/shared/prompt-history";
 import { useWorkspaces } from "@/lib/client/useWorkspaces";
 import { useVerbose } from "@/lib/client/useVerbose";
 import { useFocusMode } from "@/lib/client/useFocusMode";
@@ -1039,27 +1046,39 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
   );
 
   // "X" button on a scheduled-loop chip. The browser can't call CronDelete
-  // directly (the tool only exists inside the agent runtime, not as a
-  // Claudius API), so we send a short prompt asking the agent to do it.
-  // The agent re-runs the loop reducer when it issues the CronDelete tool
-  // call, so the chip flips to "cancelled" naturally — but we don't wait
-  // for that here; the user clicked X expecting immediate feedback.
+  // / ScheduleWakeup directly (the tools only exist inside the agent
+  // runtime, not as a Claudius API), so we send a short prompt asking the
+  // agent to do it. The agent re-runs the loop reducer when it issues the
+  // tool call, so the chip flips to "cancelled" naturally — but we don't
+  // wait for that here; the user clicked X expecting immediate feedback.
+  // CC 2.1.295 parity — self-paced (wakeup) loops are stoppable too, via
+  // `ScheduleWakeup { stop: true }`; this used to return early for them.
   const onCancelScheduledLoop = useCallback(
     async (loop: { id: string; kind: "cron" | "wakeup" }) => {
-      if (loop.kind !== "cron") return;
-      await session.send(
-        `Please cancel the scheduled loop with id \`${loop.id}\` by calling \`CronDelete\` on it. Reply with one short line confirming it's cancelled — don't run any other tools.`,
-      );
+      await session.send(scheduledLoopCancelPrompt(loop));
     },
     [session],
   );
 
+  // CC 2.1.295 parity — queued messages pulled back into the composer via
+  // QueueIndicator Edit, keyed by session id (ChatSurface stays mounted across
+  // tab switches). Merged into `promptHistory` below so Cmd/Ctrl+↑ can recall
+  // a lifted message that a later lift overwrote.
+  const [liftedHistory, setLiftedHistory] = useState<Record<string, LiftedPromptEntry[]>>({});
   const liftQueued = useCallback(
     async (id: string) => {
       // `editQueued` round-trips to the server (DELETE-and-return), so it's
       // async now — await before pre-filling the composer.
       const item = await session.editQueued(id);
       if (item == null) return;
+      // CC 2.1.295 parity — the row is gone server-side and the composer is
+      // about to be replaced, so remember the text in this session's prompt
+      // history; otherwise lifting A then B loses A for good.
+      const sid = session.sessionId;
+      if (sid && item.text.trim()) {
+        const entry = { text: item.text, at: Date.now() };
+        setLiftedHistory((prev) => ({ ...prev, [sid]: [...(prev[sid] ?? []), entry] }));
+      }
       draftTokenRef.current += 1;
       setDraftInjection({ token: draftTokenRef.current, text: item.text, images: item.images });
     },
@@ -1117,16 +1136,24 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ sessionId: id, upToMessageId: messageUuid }),
         });
-        if (!res.ok) throw new Error(`fork failed: ${res.status}`);
+        // CC 2.1.295 parity — a failed fork ("Message not found in session",
+        // …) used to only reach the console, so the click looked like a no-op.
+        // Surface the server's reason in the chat toast instead.
+        if (!res.ok) {
+          const body = (await res.json().catch(() => ({}))) as { error?: string };
+          showToast(forkFailedMessage(body.error ?? `HTTP ${res.status}`));
+          return;
+        }
         const data = (await res.json()) as { sessionId?: string };
         if (data.sessionId) router.push(`/?session=${data.sessionId}`);
       } catch (err) {
         console.error("rewind failed", err);
+        showToast(forkFailedMessage(err instanceof Error ? err.message : String(err)));
       } finally {
         setRewindingUuid(null);
       }
     },
-    [session.sessionId, router],
+    [session.sessionId, router, showToast],
   );
 
   // Shift+Tab cycles permission mode (mirrors Claude Code).
@@ -1944,26 +1971,21 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
 
   // ── Prompt history (shell-style recall) ─────────────────────────────────
   // The previously sent user prompts, oldest → newest, for the composer's
-  // Cmd/Ctrl+↑/↓ recall. We flatten each user message's text blocks, strip
-  // the `[Image #N]` attachment tokens (the images themselves aren't recalled,
-  // so leaving the tokens would send dangling references), drop empties, and
-  // collapse consecutive duplicates so repeated re-runs don't pad the history.
+  // Cmd/Ctrl+↑/↓ recall. We flatten each user message's text blocks and hand
+  // them to `buildPromptHistory`, which strips the `[Image #N]` attachment
+  // tokens, drops empties, and collapses consecutive duplicates so repeated
+  // re-runs don't pad the history. CC 2.1.295 parity — queued messages lifted
+  // back into the composer this session are merged in chronologically too.
+  const liftedForSession = session.sessionId ? liftedHistory[session.sessionId] : undefined;
   const promptHistory = useMemo(() => {
-    const out: string[] = [];
+    const sent: SentPromptEntry[] = [];
     for (const m of session.messages) {
       if (m.role !== "user") continue;
-      const text = m.blocks
-        .map((b) => (b.kind === "text" ? b.text : ""))
-        .join("")
-        .replace(/\[Image #\d+\]/g, "")
-        .replace(/ {2,}/g, " ")
-        .trim();
-      if (!text) continue;
-      if (out.length > 0 && out[out.length - 1] === text) continue;
-      out.push(text);
+      const text = m.blocks.map((b) => (b.kind === "text" ? b.text : "")).join("");
+      sent.push({ text, at: m.createdAt });
     }
-    return out;
-  }, [session.messages]);
+    return buildPromptHistory(sent, liftedForSession);
+  }, [session.messages, liftedForSession]);
 
   // ── Context-warning Compact action ──────────────────────────────────────
   // Count of compaction dividers in the transcript. A successful /compact

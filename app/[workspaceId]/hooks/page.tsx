@@ -22,12 +22,15 @@ import {
   agentHandlerAllowed,
   CATEGORY_LABELS,
   CATEGORY_ORDER,
+  handlerBlocksOnFailure,
+  handlerSupportsOnFailure,
   HOOK_EVENTS,
   type HookCategory,
   type HookEvent,
   type HookEventSpec,
   type HookGroup,
   type HookHandler,
+  onFailureBlockIneffective,
 } from "@/lib/shared/hook-events";
 import type { SettingsScope } from "@/lib/server/settings";
 import { cn } from "@/lib/utils/cn";
@@ -302,6 +305,29 @@ function EventRow({
                     )}
                     {"async" in h && h.async && <span className="ml-2 text-[var(--muted)]">async</span>}
                     {"once" in h && h.once && <span className="ml-2 text-[var(--muted)]">once</span>}
+                    {/* CC 2.1.295 parity — fail-closed hook: a crash/timeout/
+                        unexpected exit blocks the action. A background
+                        (async/asyncRewake) hook can't block, so flag that
+                        combo instead of claiming it's fail-closed. */}
+                    {handlerBlocksOnFailure(h) && "onFailure" in h && (
+                      onFailureBlockIneffective(h) ? (
+                        <span
+                          data-testid="hook-onfailure-ignored"
+                          title="A background hook can't block the action — it has already proceeded by the time the hook fails"
+                          className="ml-2 rounded border border-amber-500/40 bg-amber-500/10 px-1 py-0.5 text-[10px] text-amber-300"
+                        >
+                          onFailure ignored ({h.async ? "async" : "asyncRewake"})
+                        </span>
+                      ) : (
+                        <span
+                          data-testid="hook-onfailure-badge"
+                          title="If this hook can't start, times out, or exits with an unexpected code, the action is blocked"
+                          className="ml-2 text-[var(--muted)]"
+                        >
+                          onFailure=block
+                        </span>
+                      )
+                    )}
                     {"continueOnBlock" in h && h.continueOnBlock && <span className="ml-2 text-[var(--muted)]">continueOnBlock</span>}
                     {"if" in h && h.if && <span className="ml-2 text-[var(--muted)]">if={h.if}</span>}
                   </li>
@@ -344,6 +370,8 @@ function AddHookForm({
   const [async, setAsync] = useState(false);
   const [asyncRewake, setAsyncRewake] = useState(false);
   const [once, setOnce] = useState(false);
+  // CC 2.1.295 parity — fail-closed (`onFailure: "block"`); unchecked = key absent.
+  const [blockOnFailure, setBlockOnFailure] = useState(false);
   const [continueOnBlock, setContinueOnBlock] = useState(false);
   const [ifRule, setIfRule] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -386,6 +414,7 @@ function AddHookForm({
         ...(async ? { async: true } : {}),
         ...(asyncRewake ? { asyncRewake: true } : {}),
         ...(once ? { once: true } : {}),
+        ...(blockOnFailure ? { onFailure: "block" as const } : {}),
         ...(ifRule.trim() ? { if: ifRule.trim() } : {}),
       };
     } else if (type === "http") {
@@ -401,6 +430,7 @@ function AddHookForm({
         ...(async ? { async: true } : {}),
         ...(asyncRewake ? { asyncRewake: true } : {}),
         ...(once ? { once: true } : {}),
+        ...(blockOnFailure ? { onFailure: "block" as const } : {}),
         ...(ifRule.trim() ? { if: ifRule.trim() } : {}),
       };
     } else if (type === "prompt") {
@@ -594,8 +624,8 @@ function AddHookForm({
         </div>
       )}
 
-      {(type === "command" || type === "http") && (
-        <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-4">
+      {handlerSupportsOnFailure(type) && (
+        <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-5">
           <Field label="Timeout (ms)">
             <input
               type="number"
@@ -609,6 +639,22 @@ function AddHookForm({
           <ToggleField label="async" checked={async} onChange={setAsync} />
           <ToggleField label="asyncRewake" checked={asyncRewake} onChange={setAsyncRewake} />
           <ToggleField label="once" checked={once} onChange={setOnce} />
+          <ToggleField
+            label="onFailure: block"
+            checked={blockOnFailure}
+            onChange={setBlockOnFailure}
+            testId="hook-onfailure-block-toggle"
+            title="If the hook can't start, times out, or exits with an unexpected code, block the action instead of letting it through. Needs Claude Code 2.1.295 or later; older engines ignore it."
+          />
+          {onFailureBlockIneffective({ onFailure: blockOnFailure ? "block" : undefined, async, asyncRewake }) && (
+            <p
+              data-testid="hook-onfailure-async-hint"
+              className="text-[11px] text-amber-300 sm:col-span-5"
+            >
+              A background (<code className="font-mono">async</code> / <code className="font-mono">asyncRewake</code>)
+              hook can&apos;t block the action — it has already proceeded by the time the hook fails.
+            </p>
+          )}
         </div>
       )}
       {(type === "prompt" || type === "agent" || type === "mcp_tool") && (
@@ -669,14 +715,27 @@ function ToggleField({
   label,
   checked,
   onChange,
+  testId,
+  title,
 }: {
   label: string;
   checked: boolean;
   onChange: (b: boolean) => void;
+  testId?: string;
+  title?: string;
 }) {
   return (
-    <label className="flex items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 text-xs">
-      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="h-3 w-3" />
+    <label
+      title={title}
+      className="flex items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 text-xs"
+    >
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        data-testid={testId}
+        className="h-3 w-3"
+      />
       <span>{label}</span>
     </label>
   );

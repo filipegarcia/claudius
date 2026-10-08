@@ -27,8 +27,8 @@ import { ChatSizeSection } from "@/components/settings/ChatSizeSection";
 import { FilePermissionsSection } from "@/components/settings/FilePermissionsSection";
 import {
   ADVISOR_COPY,
-  ADVISOR_FABLE_VALUE,
   advisorOptions,
+  advisorPickerState,
   type AdvisorChoice,
   hasFableModel,
   normalizeAdvisorChoice,
@@ -2367,10 +2367,10 @@ function AdvisorCatalogField({
   // collapses to "no advisor" in the UI — but we preserve the raw value
   // until the user clicks a different row, so an accidental load of this
   // page can't silently nuke a power-user override.
-  const current = normalizeAdvisorChoice(value);
+  const saved = normalizeAdvisorChoice(value);
   const isSet = typeof value === "string" && value.length > 0;
   const customValue =
-    isSet && current === null ? (value as string) : null;
+    isSet && saved === null ? (value as string) : null;
 
   // Fable 5 is only offered as an advisor to orgs that have access. This
   // page is session-less, so we probe `/api/models` — which opportunistically
@@ -2378,8 +2378,11 @@ function AdvisorCatalogField({
   // signal when the response came from a real session (`source: "session"`);
   // the static fallback lists Fable unconditionally and must NOT be read as
   // proof of access. Also keep the row when the persisted advisor already is
-  // Fable, so a configured value still checks its own row.
+  // Fable and we have no live list to contradict it (see `advisorPickerState`).
   const [fableAccess, setFableAccess] = useState(false);
+  // CC 2.1.295 parity — whether the probe returned a live session's list,
+  // i.e. whether a *missing* Fable row is proof the account lacks it.
+  const [authoritative, setAuthoritative] = useState(false);
   useEffect(() => {
     let cancelled = false;
     fetch("/api/models")
@@ -2392,7 +2395,9 @@ function AdvisorCatalogField({
           } | null,
         ) => {
           if (cancelled || !data) return;
-          setFableAccess(data.source === "session" && hasFableModel(data.models));
+          const live = data.source === "session";
+          setAuthoritative(live);
+          setFableAccess(live && hasFableModel(data.models));
         },
       )
       .catch(() => {
@@ -2404,7 +2409,14 @@ function AdvisorCatalogField({
     };
   }, []);
 
-  const includeFable = fableAccess || current === ADVISOR_FABLE_VALUE;
+  // CC 2.1.295 parity — a saved Fable advisor that the live model list says
+  // this account can't use opens on "No advisor" (with a note) instead of
+  // force-adding and checking a Fable row. Rendering only: the saved value
+  // stays put until the user clicks a row.
+  const { current, includeFable, unavailable } = advisorPickerState(value, {
+    fableAccess,
+    authoritative,
+  });
   const options = advisorOptions(includeFable);
 
   const pick = (choice: AdvisorChoice) => {
@@ -2413,7 +2425,10 @@ function AdvisorCatalogField({
     set(choice ?? undefined);
   };
   return (
-    <div className="rounded-md border border-[var(--border)] bg-[var(--panel-2)]/40 p-3">
+    <div
+      data-testid="catalog-field-advisorModel"
+      className="rounded-md border border-[var(--border)] bg-[var(--panel-2)]/40 p-3"
+    >
       <div className="mb-1 flex items-center gap-2">
         <span className="font-mono text-xs">advisorModel</span>
         <span className="rounded bg-amber-500/15 px-1.5 py-0.5 text-[9px] uppercase tracking-wide text-amber-400">
@@ -2493,6 +2508,14 @@ function AdvisorCatalogField({
           </li>
         )}
       </ul>
+      {unavailable && (
+        <p
+          data-testid="advisor-setting-unavailable"
+          className="mt-2 rounded border border-amber-500/30 bg-amber-500/5 px-2 py-1.5 text-[11px] leading-snug text-amber-200"
+        >
+          Saved advisor {unavailable} isn&apos;t available to this account — pick another, or keep No advisor.
+        </p>
+      )}
       <p className="mt-3 text-[11px] leading-snug text-[var(--muted)]">
         {ADVISOR_COPY.recommended}
       </p>

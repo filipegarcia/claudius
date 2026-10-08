@@ -2,6 +2,7 @@ import { promises as fs } from "node:fs";
 import { homedir } from "node:os";
 import { basename, dirname, join } from "node:path";
 import type { WorktreeSettings } from "@/lib/shared/worktree-settings";
+import { sanitizeJsonParseReason } from "@/lib/shared/settings-load-error";
 
 import { assertWithin } from "./safe-path";
 
@@ -521,15 +522,44 @@ export function pathFor(scope: SettingsScope, projectCwd: string): string {
   return assertWithin(projectCwd, join(".claude", "settings.local.json"));
 }
 
+/**
+ * CC 2.1.295 parity — thrown by `readSettings` when the file exists but isn't
+ * valid JSON. Typed so callers (the Plugins API) can tell "your settings file
+ * doesn't load" apart from an I/O failure and warn instead of 500-ing.
+ * `reason` is sanitized (no echoed file content) and safe to send to the
+ * browser. Extends `SyntaxError` so existing callers see the same error kind
+ * `JSON.parse` used to throw.
+ */
+export class SettingsParseError extends SyntaxError {
+  readonly path: string;
+  readonly reason: string;
+  constructor(path: string, reason: string) {
+    super(`${path} doesn't load: ${reason}`);
+    this.name = "SettingsParseError";
+    this.path = path;
+    this.reason = reason;
+  }
+}
+
 export async function readSettings(scope: SettingsScope, projectCwd: string): Promise<ClaudeSettings> {
   const path = pathFor(scope, projectCwd);
+  let buf: string;
   try {
-    const buf = await fs.readFile(path, "utf8");
-    return JSON.parse(buf) as ClaudeSettings;
+    buf = await fs.readFile(path, "utf8");
   } catch (err) {
     const e = err as NodeJS.ErrnoException;
     if (e.code === "ENOENT") return {};
     throw err;
+  }
+  // Rethrow (never fall back to `{}`) so a malformed file is never
+  // overwritten by a write that started from an empty object.
+  try {
+    return JSON.parse(buf) as ClaudeSettings;
+  } catch (err) {
+    throw new SettingsParseError(
+      path,
+      sanitizeJsonParseReason(err instanceof Error ? err.message : String(err)),
+    );
   }
 }
 

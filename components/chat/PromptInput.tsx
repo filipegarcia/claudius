@@ -34,6 +34,7 @@ import {
 import { stripInvisibleUnicode } from "@/lib/shared/invisible-unicode";
 import { slashTokenBeforeCaret } from "@/lib/shared/slash-commands";
 import { canRestoreClearedDraft, shouldStashClearedDraft } from "@/lib/client/cleared-draft";
+import { historyEntryIndex } from "@/lib/shared/prompt-history";
 import {
   applyEditToRanges,
   diffEdit,
@@ -513,6 +514,16 @@ export function PromptInput({
       // ON the same session — sessionId hasn't changed, so that effect
       // doesn't refire.
     } else {
+      // CC 2.1.295 parity — a replace-mode injection (e.g. lifting a queued
+      // message via QueueIndicator Edit) would otherwise silently discard the
+      // draft it overwrites. Stash it in the cleared-draft slot so a plain ↑
+      // on the emptied composer brings it back, text + images.
+      if (
+        shouldStashClearedDraft(value, images.length) &&
+        value !== draftInjection.text
+      ) {
+        clearedDraftRef.current = { text: value, images };
+      }
       setValue(draftInjection.text);
       refreshPickerState(draftInjection.text, draftInjection.text.length);
       if (draftInjection.images && draftInjection.images.length > 0) {
@@ -577,6 +588,9 @@ export function PromptInput({
     // Switching sessions means a different history — abandon any in-progress
     // recall so the next Cmd/Ctrl+↑ starts fresh from the new session's tail.
     histIdxRef.current = null;
+    // A cleared/replaced draft stashed for ↑-restore belongs to the old
+    // session's composer — don't let it surface in this session's tab.
+    clearedDraftRef.current = null;
   }
   // Guard: if a draft injection was applied but the first seed fetch hasn't
   // resolved yet (seededForSessionRef is null), treat the composer as
@@ -1031,8 +1045,11 @@ export function PromptInput({
     if (dir === -1) {
       if (idx === null) {
         // Entering history — stash the live draft so ↓ can bring it back.
+        // CC 2.1.295 parity — skip the newest entry when the composer already
+        // holds it (a just-lifted queued message), so the first press recalls
+        // the message that lift displaced.
         stashedDraftRef.current = value;
-        idx = history.length - 1;
+        idx = historyEntryIndex(history, value) ?? history.length - 1;
       } else if (idx > 0) {
         idx -= 1;
       } else {

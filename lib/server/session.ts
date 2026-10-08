@@ -129,6 +129,7 @@ import { extractWeeklyUsedSkills } from "@/lib/shared/skill-usage";
 import { buildEffortFlagSettings } from "@/lib/shared/effort-flags";
 import { normalizeExtraUsage, type ExtraUsage } from "@/lib/shared/plan-usage";
 import type { SessionLoop } from "@/lib/shared/session-loops";
+import { isScheduleWakeupStop } from "@/lib/shared/stop-self-paced-loop";
 import { matchesUsageLimitPrefix } from "@/lib/shared/rate-limit-prefixes";
 import {
   readSettings,
@@ -1959,6 +1960,8 @@ export class Session {
    */
   private scheduledLoops = new Map<string, SessionLoop>();
   private pendingScheduledLoops = new Map<string, SessionLoop>();
+  /** `ScheduleWakeup { stop: true }` tool_use ids already applied (replay dedup). */
+  private appliedWakeupStops = new Set<string>();
   /**
    * `tool_use_id`s of `ScheduleWakeup` ticks recorded into the `loop_ticks`
    * table this turn, awaiting the turn's `result` message so their token
@@ -5211,6 +5214,22 @@ export class Session {
         }
 
         if (tu.name === "ScheduleWakeup") {
+          // CC 2.1.295 parity — `stop: true` ends the self-paced loop rather
+          // than arming another tick. Mark the pending wake-up cancelled
+          // (mirrors the client reducer and the CronDelete branch above) and
+          // skip the arm path entirely — in particular `recordLoopTick`, or
+          // every stop would land as a phantom tick in the loops breakdown.
+          // Idempotent on replay: applied once per tool_use id, and only to
+          // wake-ups armed at or before the stop, so a re-observed stop
+          // (JSONL replay / resync) can't cancel a newer live wake-up.
+          if (isScheduleWakeupStop(tu.input)) {
+            if (this.appliedWakeupStops.has(tu.id)) continue;
+            this.appliedWakeupStops.add(tu.id);
+            for (const v of this.scheduledLoops.values()) {
+              if (v.kind === "wakeup" && !v.cancelled && v.startedAt <= observedAt) v.cancelled = true;
+            }
+            continue;
+          }
           const inp = tu.input as {
             delaySeconds?: unknown;
             reason?: unknown;
@@ -6842,6 +6861,7 @@ export class Session {
     // loops or pending entries that will never resolve.
     this.scheduledLoops.clear();
     this.pendingScheduledLoops.clear();
+    this.appliedWakeupStops.clear();
     this.pendingLoopTickAttribution = [];
     // `!` bash-mode: kill the persistent shell + group so a long-running
     // background command can't outlive the session. The map entry is

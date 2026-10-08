@@ -11,7 +11,8 @@ import {
 import type { MarketplaceSource } from "@/lib/shared/marketplace-settings";
 import type { PluginOptionValue } from "@/lib/shared/plugin-config";
 import { sessionManager } from "@/lib/server/session-manager";
-import type { SettingsScope } from "@/lib/server/settings";
+import { SettingsParseError, type SettingsScope } from "@/lib/server/settings";
+import { pluginSettingsWriteBlockedMessage } from "@/lib/shared/settings-load-error";
 import { resolveTrustedCwd } from "@/lib/server/trusted-cwd";
 
 export const runtime = "nodejs";
@@ -94,6 +95,24 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "invalid scope" }, { status: 400 });
   const cwd = await resolveTrustedCwd(body.cwd);
   if (!cwd) return NextResponse.json({ error: "unknown cwd" }, { status: 400 });
+  try {
+    return await applyPost(body, cwd);
+  } catch (err) {
+    // CC 2.1.295 parity — enable/disable, marketplace add/remove and plugin
+    // options all read-modify-write the scope's settings file. When it doesn't
+    // parse, `readSettings` throws before anything is written; say so (naming
+    // the file) instead of an opaque 500.
+    if (err instanceof SettingsParseError) {
+      return NextResponse.json(
+        { error: pluginSettingsWriteBlockedMessage(err.path, err.reason) },
+        { status: 422 },
+      );
+    }
+    throw err;
+  }
+}
+
+async function applyPost(body: PostBody, cwd: string): Promise<NextResponse> {
   if (body.kind === "toggle") {
     if (!body.pluginId)
       return NextResponse.json({ error: "pluginId required" }, { status: 400 });
