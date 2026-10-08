@@ -372,6 +372,8 @@ export type SystemEntry = {
     isUsingOverage?: boolean;
     /** CC 2.1.295 parity — true while the account is drawing from extra usage. */
     overageInUse?: boolean;
+    /** SDK 0.3.295 — whether the account has extra usage turned on. */
+    overageEnabled?: boolean;
     surpassedThreshold?: number;
     /**
      * SDK 0.3.181 — present when the rejection is specifically because the

@@ -13,6 +13,8 @@
  *   "off" — extra usage is disabled, unavailable, or exhausted
  *   null  — the event carries no overage signal; say nothing rather than guess
  *
+ * SDK 0.3.295 adds `overageEnabled`, the direct answer to "is extra usage on?".
+ *
  * Precedence: "off" signals win over "on" signals. The line answers "will I
  * keep going after this limit?", and an exhausted overage bucket
  * (`overageStatus: 'rejected'`) or an explicit `overageDisabledReason` means
@@ -34,6 +36,8 @@ export interface ExtraUsageInfo {
   overageDisabledReason?: string;
   isUsingOverage?: boolean;
   overageInUse?: boolean;
+  /** SDK 0.3.295 — whether the account has extra usage turned on. */
+  overageEnabled?: boolean;
 }
 
 /**
@@ -50,7 +54,11 @@ export function extraUsageState(info: ExtraUsageInfo | null | undefined): ExtraU
     return "off";
   }
   if (info.overageStatus === "rejected") return "off";
+  // SDK 0.3.295 — the explicit "extra usage turned on?" flag. `false` is an
+  // off signal (wins over the weaker on-signals below); `true` is an on signal.
+  if (info.overageEnabled === false) return "off";
   if (
+    info.overageEnabled === true ||
     info.isUsingOverage === true ||
     info.overageInUse === true ||
     info.overageStatus === "allowed" ||
