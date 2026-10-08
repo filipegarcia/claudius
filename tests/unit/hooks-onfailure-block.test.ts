@@ -7,7 +7,8 @@ import { addGroup, listAll } from "@/lib/server/hooks";
 import {
   handlerBlocksOnFailure,
   handlerSupportsOnFailure,
-  onFailureBlockIneffective,
+  ON_FAILURE_IGNORED_EVENTS,
+  onFailureBlockIgnoredReason,
 } from "@/lib/shared/hook-events";
 import { makeTempHome, type TmpHome } from "./helpers/tmp-home";
 
@@ -44,12 +45,34 @@ describe("onFailure helpers", () => {
     expect(handlerBlocksOnFailure(stray)).toBe(false);
   });
 
-  test("onFailureBlockIneffective flags block + background (async / asyncRewake)", () => {
-    expect(onFailureBlockIneffective({ onFailure: "block", async: true })).toBe(true);
-    expect(onFailureBlockIneffective({ onFailure: "block", asyncRewake: true })).toBe(true);
-    expect(onFailureBlockIneffective({ onFailure: "block" })).toBe(false);
-    expect(onFailureBlockIneffective({ async: true })).toBe(false);
-    expect(onFailureBlockIneffective({})).toBe(false);
+  test("onFailureBlockIgnoredReason flags a background command hook", () => {
+    const r = onFailureBlockIgnoredReason;
+    expect(r({ type: "command", onFailure: "block", async: true })).toBe("async");
+    expect(r({ type: "command", onFailure: "block", asyncRewake: true })).toBe("asyncRewake");
+    expect(r({ type: "command", onFailure: "block" })).toBeNull();
+    expect(r({ type: "command", async: true })).toBeNull();
+    expect(r({ type: "command" })).toBeNull();
+  });
+
+  test("an http hook's block holds even with async set (engine only drops it for command)", () => {
+    expect(onFailureBlockIgnoredReason({ type: "http", onFailure: "block", async: true })).toBeNull();
+    expect(onFailureBlockIgnoredReason({ type: "http", onFailure: "block", asyncRewake: true })).toBeNull();
+  });
+
+  test("onFailure is ignored on Stop, SubagentStop, TaskCompleted and TeammateIdle", () => {
+    expect([...ON_FAILURE_IGNORED_EVENTS]).toEqual(["Stop", "SubagentStop", "TaskCompleted", "TeammateIdle"]);
+    for (const event of ON_FAILURE_IGNORED_EVENTS) {
+      expect(onFailureBlockIgnoredReason({ type: "command", event, onFailure: "block" })).toBe("event");
+      expect(onFailureBlockIgnoredReason({ type: "http", event, onFailure: "block" })).toBe("event");
+      expect(onFailureBlockIgnoredReason({ type: "command", event })).toBeNull();
+    }
+    expect(onFailureBlockIgnoredReason({ type: "command", event: "PreToolUse", onFailure: "block" })).toBeNull();
+    // A background command hook reports its async reason first.
+    expect(onFailureBlockIgnoredReason({ type: "command", event: "Stop", onFailure: "block", async: true })).toBe("async");
+  });
+
+  test("handler types without onFailure never report a reason", () => {
+    expect(onFailureBlockIgnoredReason({ type: "prompt", event: "Stop", onFailure: "block" })).toBeNull();
   });
 });
 

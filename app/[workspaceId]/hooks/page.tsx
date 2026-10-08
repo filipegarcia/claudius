@@ -30,7 +30,7 @@ import {
   type HookEventSpec,
   type HookGroup,
   type HookHandler,
-  onFailureBlockIneffective,
+  onFailureBlockIgnoredReason,
 } from "@/lib/shared/hook-events";
 import type { SettingsScope } from "@/lib/server/settings";
 import { cn } from "@/lib/utils/cn";
@@ -306,17 +306,28 @@ function EventRow({
                     {"async" in h && h.async && <span className="ml-2 text-[var(--muted)]">async</span>}
                     {"once" in h && h.once && <span className="ml-2 text-[var(--muted)]">once</span>}
                     {/* CC 2.1.295 parity — fail-closed hook: a crash/timeout/
-                        unexpected exit blocks the action. A background
-                        (async/asyncRewake) hook can't block, so flag that
-                        combo instead of claiming it's fail-closed. */}
-                    {handlerBlocksOnFailure(h) && "onFailure" in h && (
-                      onFailureBlockIneffective(h) ? (
+                        unexpected exit blocks the action. The engine ignores
+                        it on a background command hook and on Stop-like
+                        events, so flag those instead of claiming fail-closed. */}
+                    {handlerBlocksOnFailure(h) && "onFailure" in h && (() => {
+                      const ignored = onFailureBlockIgnoredReason({
+                        type: h.type,
+                        event: spec.name,
+                        onFailure: h.onFailure,
+                        async: h.async,
+                        asyncRewake: h.asyncRewake,
+                      });
+                      return ignored ? (
                         <span
                           data-testid="hook-onfailure-ignored"
-                          title="A background hook can't block the action — it has already proceeded by the time the hook fails"
+                          title={
+                            ignored === "event"
+                              ? `Claude Code ignores onFailure: "block" on ${spec.name} — a failure here never blocks`
+                              : "A background hook can't block the action — it has already proceeded by the time the hook fails"
+                          }
                           className="ml-2 rounded border border-amber-500/40 bg-amber-500/10 px-1 py-0.5 text-[10px] text-amber-300"
                         >
-                          onFailure ignored ({h.async ? "async" : "asyncRewake"})
+                          {ignored === "event" ? `onFailure ignored on ${spec.name}` : `onFailure ignored (${ignored})`}
                         </span>
                       ) : (
                         <span
@@ -326,8 +337,8 @@ function EventRow({
                         >
                           onFailure=block
                         </span>
-                      )
-                    )}
+                      );
+                    })()}
                     {"continueOnBlock" in h && h.continueOnBlock && <span className="ml-2 text-[var(--muted)]">continueOnBlock</span>}
                     {"if" in h && h.if && <span className="ml-2 text-[var(--muted)]">if={h.if}</span>}
                   </li>
@@ -372,6 +383,13 @@ function AddHookForm({
   const [once, setOnce] = useState(false);
   // CC 2.1.295 parity — fail-closed (`onFailure: "block"`); unchecked = key absent.
   const [blockOnFailure, setBlockOnFailure] = useState(false);
+  const onFailureIgnored = onFailureBlockIgnoredReason({
+    type,
+    event,
+    onFailure: blockOnFailure ? "block" : undefined,
+    async,
+    asyncRewake,
+  });
   const [continueOnBlock, setContinueOnBlock] = useState(false);
   const [ifRule, setIfRule] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -646,7 +664,7 @@ function AddHookForm({
             testId="hook-onfailure-block-toggle"
             title="If the hook can't start, times out, or exits with an unexpected code, block the action instead of letting it through. Needs Claude Code 2.1.295 or later; older engines ignore it."
           />
-          {onFailureBlockIneffective({ onFailure: blockOnFailure ? "block" : undefined, async, asyncRewake }) && (
+          {onFailureIgnored === "async" || onFailureIgnored === "asyncRewake" ? (
             <p
               data-testid="hook-onfailure-async-hint"
               className="text-[11px] text-amber-300 sm:col-span-5"
@@ -654,7 +672,15 @@ function AddHookForm({
               A background (<code className="font-mono">async</code> / <code className="font-mono">asyncRewake</code>)
               hook can&apos;t block the action — it has already proceeded by the time the hook fails.
             </p>
-          )}
+          ) : onFailureIgnored === "event" ? (
+            <p
+              data-testid="hook-onfailure-event-hint"
+              className="text-[11px] text-amber-300 sm:col-span-5"
+            >
+              Claude Code ignores <code className="font-mono">onFailure: block</code> on{" "}
+              <code className="font-mono">{event}</code> — a failure here is reported but never blocks.
+            </p>
+          ) : null}
         </div>
       )}
       {(type === "prompt" || type === "agent" || type === "mcp_tool") && (

@@ -204,17 +204,47 @@ export function handlerBlocksOnFailure(h: HookHandler): boolean {
 }
 
 /**
- * CC 2.1.295 parity — `onFailure: "block"` has nothing to block when the hook
- * runs in the background (`async` / `asyncRewake`): the action has already
- * proceeded by the time the hook fails. The editor shows a hint for this combo
- * but still lets it save.
+ * CC 2.1.295 parity — events on which the engine ignores `onFailure: "block"`
+ * (it logs `not blocking (onFailure: "block" is ignored on <event>)` and lets
+ * the action through). Mirrors the bundled 2.1.295 CLI and the SDK's
+ * `onFailure` JSDoc: "Ignored for async hooks and on Stop, SubagentStop,
+ * TaskCompleted and TeammateIdle".
  */
-export function onFailureBlockIneffective(opts: {
+export const ON_FAILURE_IGNORED_EVENTS: readonly HookEvent[] = [
+  "Stop",
+  "SubagentStop",
+  "TaskCompleted",
+  "TeammateIdle",
+];
+
+/** Why a saved/drafted `onFailure: "block"` has no effect. */
+export type OnFailureIgnoredReason = "async" | "asyncRewake" | "event";
+
+/**
+ * CC 2.1.295 parity — why `onFailure: "block"` would be ignored by the engine,
+ * or `null` when it takes effect (or isn't set). Two cases, both read from the
+ * bundled 2.1.295 CLI:
+ * - a background **command** hook (`async` / `asyncRewake`): the action has
+ *   already proceeded by the time the hook fails. The engine only applies this
+ *   to `command` handlers — an `http` handler's block holds regardless.
+ * - an event in {@link ON_FAILURE_IGNORED_EVENTS}.
+ * The editor shows a hint for these combos but still lets them save (the engine
+ * ignores the key rather than rejecting the hook).
+ */
+export function onFailureBlockIgnoredReason(opts: {
+  type: HandlerType;
+  event?: HookEvent;
   onFailure?: HookOnFailure;
   async?: boolean;
   asyncRewake?: boolean;
-}): boolean {
-  return opts.onFailure === "block" && !!(opts.async || opts.asyncRewake);
+}): OnFailureIgnoredReason | null {
+  if (opts.onFailure !== "block" || !handlerSupportsOnFailure(opts.type)) return null;
+  if (opts.type === "command") {
+    if (opts.async) return "async";
+    if (opts.asyncRewake) return "asyncRewake";
+  }
+  if (opts.event && ON_FAILURE_IGNORED_EVENTS.includes(opts.event)) return "event";
+  return null;
 }
 
 /** Settings.json hooks shape: { [Event]: [{ matcher?, hooks: HookHandler[] }] } */
