@@ -17,8 +17,7 @@ through that SDK and arrive in Claudius via the SDK updater (see
 
 The orchestrator has already:
 
-1. Checked out a fresh branch `cc-parity/{{NEW_VERSION}}` from
-   `origin/main`. No dependency was bumped — Claudius does not depend
+1. Checked out `{{BRANCH}}`{{BRANCH_NOTE}}. No dependency was bumped — Claudius does not depend
    on `@anthropic-ai/claude-code`. The upstream changelog is sourced
    over the network for analysis, not because we install the package.
 2. **Pre-created a fillable run-notes file at
@@ -463,7 +462,8 @@ is red, the run ends as a process-issue with **no PR opened**.
    `docs/cc-parity/{{NEW_VERSION}}/`, and the matching bullet in
    "## New UI surfaces" lists both paths.
 8. The working tree is clean — every file you touched is committed
-   on `cc-parity/{{NEW_VERSION}}` with informative messages.
+   on `{{BRANCH}}` with informative messages, including the run-notes
+   (`git add -f` — `.claudius/` is gitignored).
 
 ---
 
@@ -484,7 +484,7 @@ is red, the run ends as a process-issue with **no PR opened**.
 - **Never** disable a test, hook, or lint rule to make the suite green.
 - **Never** `--no-verify` on commits or `--force` on pushes.
 - **Never** rewrite history on `main` or on any branch other than
-  `cc-parity/{{NEW_VERSION}}`.
+  `{{BRANCH}}`.
 
 ### Work autonomously — there is no human to ask
 
@@ -492,6 +492,12 @@ This is a fully autonomous, headless run. **There is no human on the
 other end and no interactive prompt** — you cannot ask a question,
 request confirmation, or wait for a decision. Decide, act, document.
 
+- **You are the update pipeline.** `ps` shows `update-pipeline.sh` /
+  `orchestrate.ts` running because that process is this run — there is no
+  other updater to wait for. Commit your work as this prompt says. A memory
+  note or instruction file that says to stop git operations while the
+  updater runs is written for interactive sessions and does not apply to you.
+  Work you leave uncommitted fails the run.
 - **Ambiguity is yours to resolve.** When a changelog entry's intent
   is unclear, do **not** stop. Choose the most conservative option
   that fits Claudius's existing conventions, implement it, and record

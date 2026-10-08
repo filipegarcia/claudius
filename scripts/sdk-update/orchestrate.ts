@@ -73,6 +73,7 @@
  */
 
 import { spawn, spawnSync, type SpawnOptions } from "node:child_process";
+import { createHash } from "node:crypto";
 import {
   appendFileSync,
   existsSync,
@@ -129,7 +130,24 @@ const ROOM_SLUG = process.env.SDK_UPDATE_ROOM_SLUG ?? "sdk-update";
 // non-zero exit surfaces our actionable message instead.
 process.env.GIT_TERMINAL_PROMPT = "0";
 
-const MODEL = process.env.SDK_UPDATE_MODEL ?? "sonnet";
+const EFFORT_LEVELS = ["low", "medium", "high", "xhigh", "max"] as const;
+export type Effort = (typeof EFFORT_LEVELS)[number];
+
+/**
+ * An effort override from the environment, or `fallback` when it is unset
+ * or not one of the SDK's levels. Exported for tests.
+ */
+export function parseEffort(raw: string | undefined, fallback: Effort): Effort {
+  return raw && (EFFORT_LEVELS as readonly string[]).includes(raw) ? (raw as Effort) : fallback;
+}
+
+// Pinned model id and effort, not the floating `sonnet` alias with the CLI's
+// default effort. CLI 2.1.285 moved `sonnet` to Sonnet 5.5 AND dropped the
+// default effort from high to medium in one release, and both pipelines
+// silently got shallower (parity runs fell from ~100-300 tool calls to under
+// 20) with no change here. A CLI update can no longer change either.
+const MODEL = process.env.SDK_UPDATE_MODEL || "claude-sonnet-5-5";
+const EFFORT = parseEffort(process.env.SDK_UPDATE_EFFORT, "high");
 const MAX_TURNS = Number(process.env.SDK_UPDATE_MAX_TURNS ?? "400");
 const MAX_WALL_MS = Number(process.env.SDK_UPDATE_MAX_WALL_MIN ?? "360") * 60_000;
 // Idle watchdog: maximum gap between consecutive SDK messages before we
@@ -235,6 +253,142 @@ export function stripTemplateDocComment(tpl: string): string {
   if (!tpl.startsWith("<!--")) return tpl;
   const end = tpl.indexOf("-->");
   return end === -1 ? tpl : tpl.slice(end + 3).replace(/^\s+/, "");
+}
+
+/**
+ * The `{{BRANCH_NOTE}}` that follows "Checked out `{{BRANCH}}`" in both run
+ * prompts. Runs used to be told "a fresh branch `<pipeline>/<version>` from
+ * origin/main" even when stacked onto an open update PR's branch; on 2.1.293
+ * the agent noticed the mismatch and left its finished work uncommitted
+ * rather than commit to what it took for the wrong branch. Exported for tests.
+ */
+export function branchContextNote(branch: string, ownBranch: string): string {
+  if (branch === ownBranch) {
+    return ", created from `origin/main` (or, when earlier work on it exists, resumed with `origin/main` merged in)";
+  }
+  return (
+    " — the branch of an open update PR this run is stacked onto, so it already carries " +
+    "other commits (an SDK bump, earlier parity work). Commit your work here, on top of " +
+    "them. Do not create or switch to another branch"
+  );
+}
+
+// ── Work the agent left uncommitted ───────────────────────────────────
+
+/**
+ * Every dirty path in the working tree → a fingerprint of its state
+ * (porcelain status + content hash), taken before and after a Claude run so
+ * `uncommittedWorkPaths` can tell what the run left behind from what was
+ * already dirty.
+ *
+ * Why: the 2.1.293 parity run built a real fix and never committed it. The
+ * gates ran over the dirty tree and passed, the branch was pushed without
+ * the fix, and the release was recorded as done. Uncommitted work must never
+ * ride a "success".
+ */
+export type DirtySnapshot = Map<string, string>;
+
+/** Parse `git status --porcelain=v1 -z` into `{ xy, path }` entries. Exported for tests. */
+export function parsePorcelainZ(out: string): Array<{ xy: string; path: string }> {
+  const tokens = out.split("\0");
+  const entries: Array<{ xy: string; path: string }> = [];
+  for (let i = 0; i < tokens.length; i++) {
+    const token = tokens[i];
+    if (!token || token.length < 4) continue;
+    const xy = token.slice(0, 2);
+    entries.push({ xy, path: token.slice(3) });
+    // A rename or copy carries its source path as the next token.
+    if (xy[0] === "R" || xy[0] === "C") i++;
+  }
+  return entries;
+}
+
+function workingTreeHash(rel: string): string {
+  try {
+    return createHash("sha1").update(readFileSync(resolve(ROOT, rel))).digest("hex");
+  } catch {
+    return "gone";
+  }
+}
+
+export function snapshotDirtyTree(): DirtySnapshot {
+  // Not `sh()`: it trims stdout, and a porcelain line's leading space is part
+  // of its status.
+  const res = spawnSync("git", ["status", "--porcelain=v1", "-z", "--untracked-files=all"], {
+    cwd: ROOT,
+    encoding: "utf8",
+  });
+  if (res.status !== 0) {
+    throw new Error(`git status failed (${res.status}): ${res.stderr ?? ""}`);
+  }
+  const snapshot: DirtySnapshot = new Map();
+  for (const { xy, path } of parsePorcelainZ(res.stdout ?? "")) {
+    snapshot.set(path, `${xy}:${workingTreeHash(path)}`);
+  }
+  return snapshot;
+}
+
+/**
+ * Screenshot churn e2e runs leave behind: specs for OTHER versions rewrite
+ * their committed PNGs under `docs/` (or create their folder), and the
+ * marketing gallery lives in `site/screenshots/`. Never the run's own work —
+ * except its own docs folder, which counts. Exported for tests.
+ */
+export function isScreenshotChurn(path: string, ownDocsDir: string): boolean {
+  const own = ownDocsDir.endsWith("/") ? ownDocsDir : `${ownDocsDir}/`;
+  if (path.startsWith(own)) return false;
+  return /^docs\/(cc-parity|sdk-updates)\//.test(path) || path.startsWith("site/screenshots/");
+}
+
+/** Paths the run itself left dirty: changed since `before`, minus screenshot churn. Exported for tests. */
+export function uncommittedWorkPaths(
+  before: DirtySnapshot,
+  after: DirtySnapshot,
+  ownDocsDir: string,
+): string[] {
+  return [...after]
+    .filter(([path, fingerprint]) => before.get(path) !== fingerprint && !isScreenshotChurn(path, ownDocsDir))
+    .map(([path]) => path)
+    .sort();
+}
+
+/** The run-notes live under gitignored `.claudius/`, so porcelain never lists them — ask git directly. */
+function runNotesUncommitted(notesRel: string): boolean {
+  if (!existsSync(resolve(ROOT, notesRel))) return false;
+  if (spawnSync("git", ["ls-files", "--error-unmatch", "--", notesRel], { cwd: ROOT }).status !== 0) {
+    return true;
+  }
+  return spawnSync("git", ["diff", "--quiet", "HEAD", "--", notesRel], { cwd: ROOT }).status !== 0;
+}
+
+/**
+ * Commit whatever a Claude run left uncommitted as a WIP snapshot, and return
+ * a gate issue naming it — or null when the run committed everything. The
+ * snapshot means nothing is lost (not to the next firing's autostash, nor to
+ * combined mode's `reset --hard` peel), and the issue fails the run into the
+ * existing draft + needs-human path instead of shipping as a clean success.
+ *
+ * `--no-verify` for the same reason as the crash-recovery snapshot: this
+ * preserves work the gates already ran over; it is not a clean ship.
+ */
+export function rescueUncommittedWork(args: {
+  before: DirtySnapshot;
+  ownDocsDir: string;
+  notesRel: string;
+  label: string;
+}): string | null {
+  const paths = uncommittedWorkPaths(args.before, snapshotDirtyTree(), args.ownDocsDir);
+  const notes = runNotesUncommitted(args.notesRel);
+  if (paths.length === 0 && !notes) return null;
+  if (paths.length > 0) sh("git", ["add", "-A", "--", ...paths]);
+  if (notes) sh("git", ["add", "-f", "--", args.notesRel]);
+  sh("git", ["commit", "--no-verify", "-m", `wip(${args.label}): commit work the agent left uncommitted`]);
+  const all = notes ? [...paths, args.notesRel] : paths;
+  const shown = all.slice(0, 8).join(", ") + (all.length > 8 ? `, +${all.length - 8} more` : "");
+  return (
+    `Claude left ${all.length} file(s) uncommitted (${shown}); the orchestrator committed ` +
+    `them as a WIP snapshot so nothing is lost — review before merging`
+  );
 }
 
 /**
@@ -1614,11 +1768,12 @@ function fetchTypeSurfaceDiff(
 
 // ── Prompt rendering ──────────────────────────────────────────────────
 
-function renderPrompt(
+export function renderPrompt(
   prevVersion: string,
   newVersion: string,
   changelog: string,
   typeSurface: string,
+  branch: string,
 ): string {
   const tpl = readFileSync(resolve(SCRIPT_DIR, "prompt.md"), "utf8");
   return fillTemplate(tpl, {
@@ -1626,6 +1781,8 @@ function renderPrompt(
     NEW_VERSION: newVersion,
     CHANGELOG_BLOCK: changelog,
     TYPE_SURFACE_BLOCK: typeSurface,
+    BRANCH: branch,
+    BRANCH_NOTE: branchContextNote(branch, branchName(newVersion)),
   });
 }
 
@@ -1976,7 +2133,13 @@ export type ClaudeRunResult = {
 async function runClaudeOnce(
   prompt: string,
   transcriptFile: string | undefined,
-  opts: { deadline?: number; append?: boolean; resumeSessionId?: string | null } = {},
+  opts: {
+    deadline?: number;
+    append?: boolean;
+    resumeSessionId?: string | null;
+    model?: string;
+    effort?: Effort;
+  } = {},
 ): Promise<ClaudeRunResult> {
   // Importable check ahead of any orchestration. If the freshly-
   // installed SDK fails to load, throw a useful error instead of a
@@ -2109,7 +2272,10 @@ async function runClaudeOnce(
     prompt: turnPrompt,
     options: {
       cwd: ROOT,
-      model: MODEL,
+      model: opts.model ?? MODEL,
+      // Explicit: Opus 5.5 and Haiku 5.5 default to medium, and the CLI's own
+      // default has moved before (see MODEL).
+      effort: opts.effort ?? EFFORT,
       // Set only on a retry. The bundled CLI reads the session from its
       // own store under ~/.claude/projects/<cwd-hash>/; if it can't find
       // it the run yields 0 messages, which runClaude's ladder treats as
@@ -2143,6 +2309,12 @@ async function runClaudeOnce(
       // budget caps intact.
       settings: {
         enableWorkflows: true,
+        // Keep the operator's auto-memory (~/.claude/projects/<repo>/memory/)
+        // out of these runs. It's loaded as instructions and is written for
+        // interactive sessions: on 2.1.293 a note saying "stop git ops while
+        // update-pipeline runs" made the agent hold off committing because
+        // of the pipeline running it.
+        autoMemoryEnabled: false,
       },
       // SDK 0.2.x onwards accepts a `stderr` callback that receives
       // each chunk written by the bundled CLI subprocess. Without
@@ -2358,10 +2530,12 @@ async function runClaudeOnce(
 export async function runClaude(
   prompt: string,
   transcriptFile?: string,
+  opts: { model?: string; effort?: Effort } = {},
 ): Promise<ClaudeRunResult> {
   const startedAt = Date.now();
   const deadline = startedAt + MAX_WALL_MS;
   const maxAttempts = Math.max(1, MAX_API_RETRIES + 1);
+  log(`claude run: model=${opts.model ?? MODEL} effort=${opts.effort ?? EFFORT}`);
   let last: ClaudeRunResult | null = null;
   let cumulativeTurns = 0;
   // Latched across attempts — a retry that dies before its init message
@@ -2406,6 +2580,8 @@ export async function runClaude(
       deadline,
       append: attempt > 1,
       resumeSessionId,
+      model: opts.model,
+      effort: opts.effort,
     });
 
     // A resume that yielded nothing means the session couldn't be picked
@@ -5909,6 +6085,7 @@ async function main(): Promise<void> {
       newVersion,
       changelog,
       typeSurface.markdown,
+      branch,
     );
     // Archive the exact prompt Claude sees, for post-mortem inspection
     // when a run produces a surprising PR (or fails to write the
@@ -5918,12 +6095,26 @@ async function main(): Promise<void> {
     writeFileSync(promptArchivePath(newVersion), prompt, "utf8");
     log(`prompt archived to ${relative(ROOT, promptArchivePath(newVersion))} (${prompt.length} bytes)`);
 
+    const dirtyBefore = snapshotDirtyTree();
     const claudeResult = await runClaude(prompt, transcriptPath(newVersion));
     log(
       `Claude exited: completed=${claudeResult.completed} turns=${claudeResult.turnCount}` +
         ` wall=${Math.round(claudeResult.wallMs / 1000)}s attempts=${claudeResult.attempts}`,
     );
     budgetReason = claudeResult.budgetReason;
+
+    // Commit anything Claude left uncommitted (so it reaches the PR and
+    // survives the next firing's autostash) and fail the run if it did.
+    const leftoverIssue = rescueUncommittedWork({
+      before: dirtyBefore,
+      ownDocsDir: `docs/sdk-updates/${newVersion}/`,
+      notesRel: relative(ROOT, runNotesPath(newVersion)),
+      label: `sdk-update ${newVersion}`,
+    });
+    if (leftoverIssue) {
+      log(`gate: uncommitted work FOUND — ${leftoverIssue}`);
+      budgetReason = budgetReason ? `${budgetReason}; also: ${leftoverIssue}` : leftoverIssue;
+    }
 
     // 3rd progress post: the Summary section Claude wrote into the
     // run-notes file. The prompt instructs Claude to write run-notes
@@ -6065,7 +6256,7 @@ async function main(): Promise<void> {
     //    `gh pr create` fails, etc.): we log + fall through to the
     //    issue-only behavior so an operator still hears about the
     //    underlying gate failure.
-    const localGreen = allGreen && !runNotesIssue;
+    const localGreen = allGreen && !runNotesIssue && !leftoverIssue;
     if (!localGreen) {
       const reason = budgetReason ?? "local gate not green";
       const gateBanner = buildGateFailureBanner(gate);
