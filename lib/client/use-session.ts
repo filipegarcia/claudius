@@ -83,6 +83,7 @@ import type {
 } from "./types";
 import { appendCoalescedSystemEntry } from "./system-entries";
 import { trailingBubbleUuid } from "@/lib/shared/forkable-uuid";
+import { isScheduleWakeupStop, markWakeupsStopped } from "@/lib/shared/stop-self-paced-loop";
 import {
   STREAM_BADGE_AFTER_MS,
   shouldRebuildTranscript,
@@ -3052,6 +3053,15 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
           // tool_use_id itself. Lives in the rail until either replaced by
           // the next ScheduleWakeup or the session ends.
           if (b.name === "ScheduleWakeup") {
+            // CC 2.1.295 parity — `stop: true` ends the self-paced loop; it
+            // is not a new arm. Flip the pending wake-up to "cancelled" (the
+            // same notice a CronDelete gives a cron chip) instead of letting
+            // the supersede step below drop it silently and insert a blank
+            // ghost chip in its place.
+            if (isScheduleWakeupStop(b.input)) {
+              setScheduledLoops(markWakeupsStopped);
+              continue;
+            }
             const inp = b.input as {
               delaySeconds?: unknown;
               reason?: unknown;

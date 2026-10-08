@@ -4,24 +4,26 @@ import type {
   CancelSessionLoopRequest,
   CancelSessionLoopResponse,
 } from "@/lib/shared/session-loops";
+import { scheduledLoopCancelPrompt } from "@/lib/shared/stop-self-paced-loop";
 
 export const runtime = "nodejs";
 
 /**
  * POST /api/schedule/session-loops/cancel
  *
- * Ask the agent owning `sessionId` to cancel a loop with id `loopId` by
- * calling `CronDelete` on it. Same trick the Activity-rail chip uses —
- * the cron tools are inside the agent runtime, not the Claudius server,
- * so we can't kill the loop directly. We compose a short prompt asking
- * the agent to do it and pipe it through `session.sendInput`.
+ * Ask the agent owning `sessionId` to cancel a loop with id `loopId` —
+ * `CronDelete` for a cron, `ScheduleWakeup { stop: true }` for a
+ * self-paced wake-up (CC 2.1.295 parity). Same trick the Activity-rail
+ * chip uses — the scheduling tools are inside the agent runtime, not the
+ * Claudius server, so we can't kill the loop directly. We compose a short
+ * prompt asking the agent to do it and pipe it through `session.sendInput`.
  *
  * If the session is gone (already evicted), we 404 — the loop is dead
  * anyway in that case, but the caller should drop the chip and tell the
  * user the host session is no longer running.
  *
  * The store flips `cancelled: true` when the agent actually runs the
- * `CronDelete` tool_use (observed by `trackScheduledLoops` in
+ * `CronDelete` / stopping `ScheduleWakeup` tool_use (observed by `trackScheduledLoops` in
  * `lib/server/session.ts`). We don't optimistically flip it here — if
  * the prompt fails to dispatch, the chip should stay clickable.
  */
@@ -81,11 +83,9 @@ export async function POST(req: Request): Promise<NextResponse<CancelSessionLoop
     return NextResponse.json({ ok: true });
   }
 
-  // Same prompt body the rail chip's Cancel button sends — keep aligned
+  // Same prompt body the rail chip's Cancel button sends (shared helper)
   // so the agent's reply is consistent regardless of where the user
-  // clicked.
-  session.sendInput(
-    `Please cancel the scheduled loop with id \`${known.id}\` by calling \`CronDelete\` on it. Reply with one short line confirming it's cancelled — don't run any other tools.`,
-  );
+  // clicked. Branches on kind: a wake-up has no id the agent can delete.
+  session.sendInput(scheduledLoopCancelPrompt(known));
   return NextResponse.json({ ok: true });
 }

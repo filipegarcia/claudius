@@ -130,6 +130,7 @@ import {
 import { DEFAULT_TIPS, selectClientTips } from "@/lib/shared/tips";
 import { badgeAdvisorLabel, resolveAdvisorCommandArg } from "@/lib/shared/advisor";
 import { describeReloadPluginsResult } from "@/lib/shared/reload-plugins";
+import { scheduledLoopCancelPrompt } from "@/lib/shared/stop-self-paced-loop";
 import {
   buildPromptHistory,
   type LiftedPromptEntry,
@@ -1045,17 +1046,16 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
   );
 
   // "X" button on a scheduled-loop chip. The browser can't call CronDelete
-  // directly (the tool only exists inside the agent runtime, not as a
-  // Claudius API), so we send a short prompt asking the agent to do it.
-  // The agent re-runs the loop reducer when it issues the CronDelete tool
-  // call, so the chip flips to "cancelled" naturally — but we don't wait
-  // for that here; the user clicked X expecting immediate feedback.
+  // / ScheduleWakeup directly (the tools only exist inside the agent
+  // runtime, not as a Claudius API), so we send a short prompt asking the
+  // agent to do it. The agent re-runs the loop reducer when it issues the
+  // tool call, so the chip flips to "cancelled" naturally — but we don't
+  // wait for that here; the user clicked X expecting immediate feedback.
+  // CC 2.1.295 parity — self-paced (wakeup) loops are stoppable too, via
+  // `ScheduleWakeup { stop: true }`; this used to return early for them.
   const onCancelScheduledLoop = useCallback(
     async (loop: { id: string; kind: "cron" | "wakeup" }) => {
-      if (loop.kind !== "cron") return;
-      await session.send(
-        `Please cancel the scheduled loop with id \`${loop.id}\` by calling \`CronDelete\` on it. Reply with one short line confirming it's cancelled — don't run any other tools.`,
-      );
+      await session.send(scheduledLoopCancelPrompt(loop));
     },
     [session],
   );

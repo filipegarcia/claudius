@@ -914,19 +914,33 @@ function SessionLoopsGroup({
                       {(loop.noopStreak ?? 0) > 1 && ` ×${loop.noopStreak}`}
                     </span>
                   )}
-                  {!muted && loop.kind === "cron" && (
+                  {/* CC 2.1.295 parity — wake-ups are cancellable too (the
+                      route asks for `ScheduleWakeup { stop: true }`). */}
+                  {!muted && (
                     <button
                       type="button"
+                      data-testid="scheduled-loop-cancel"
                       onClick={() => void onCancel(loop)}
                       className="ml-auto rounded p-0.5 text-[var(--muted)] hover:bg-[var(--panel-2)] hover:text-[var(--foreground)]"
-                      aria-label="Ask the agent to cancel this loop"
-                      title="Ask the agent to cancel (sends a CronDelete request into the owning session)"
+                      aria-label={
+                        loop.kind === "wakeup"
+                          ? "Ask the agent to stop this self-paced loop"
+                          : "Ask the agent to cancel this loop"
+                      }
+                      title={
+                        loop.kind === "wakeup"
+                          ? "Ask the agent to stop the loop (sends a ScheduleWakeup stop request into the owning session)"
+                          : "Ask the agent to cancel (sends a CronDelete request into the owning session)"
+                      }
                     >
                       <X className="h-3 w-3" />
                     </button>
                   )}
                   {muted && (
-                    <span className="ml-auto text-[9px] uppercase tracking-wide opacity-70">
+                    <span
+                      data-testid="scheduled-loop-cancelled"
+                      className="ml-auto text-[9px] uppercase tracking-wide opacity-70"
+                    >
                       {loop.cancelled ? "cancelled" : "cancelling…"}
                     </span>
                   )}
