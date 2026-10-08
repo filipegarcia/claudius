@@ -144,12 +144,23 @@ const RESERVED_MARKETPLACE_NAMES: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * Install-routing suffixes: `<plugin>@npm` (and the reserved `@pip`, `@uv`,
- * `@cargo`, `@github`, `@gh`) route to a package registry instead of a
- * marketplace, so a marketplace under one of these names can never be
- * installed from — refused regardless of source (case-insensitive).
+ * Marketplace names the CLI reserves for a plugin source of its own, refused
+ * regardless of source (case-insensitive). Two kinds, both copied from the
+ * bundled CLI's reserved-name map:
+ * - built-in sources (`inline`, `builtin`, `skills-dir`, `synced`,
+ *   `claude-plugin-test`) — plugins loaded by Claude Code itself, which would
+ *   collide with a marketplace of the same name;
+ * - install-routing suffixes: `<plugin>@npm` (and the reserved `@pip`, `@uv`,
+ *   `@cargo`, `@github`, `@gh`) route to a package registry instead of a
+ *   marketplace, so a marketplace under one of these names can never be
+ *   installed from.
  */
-const ROUTING_SUFFIX_NAMES: Readonly<Record<string, string>> = {
+const RESERVED_SOURCE_NAMES: Readonly<Record<string, string>> = {
+  inline: "--plugin-dir session plugins",
+  builtin: "built-in plugins",
+  "skills-dir": "plugins auto-loaded from .claude/skills/",
+  synced: "plugins synced from your claude.ai account",
+  "claude-plugin-test": "plugins loaded by claude plugin test",
   npm: "plugins installed from an npm registry (<package>@npm)",
   pip: "plugins installed from a Python package index",
   uv: "plugins installed from a Python package index through uv",
@@ -175,7 +186,8 @@ function isAnthropicsGithubSource(source: unknown): boolean {
  * is now refused". Plugins are installed as `<plugin>@<marketplace>`, so a
  * marketplace name with spaces, `@`, `/`, or a leading `.`/`-` can never be
  * the target of an install ref, nor can one named after an install-routing
- * suffix (`npm`, `gh`, …). The CLI also refuses Anthropic's reserved
+ * suffix (`npm`, `gh`, …) or a built-in plugin source (`builtin`, `inline`,
+ * …). The CLI also refuses Anthropic's reserved
  * marketplace names unless the source is a GitHub repo under `anthropics/`.
  *
  * `source` is the source the name will be registered with (pass the one being
@@ -192,9 +204,9 @@ export function lintMarketplaceName(name: string, source?: unknown): PluginLintW
     };
   }
   const lower = trimmed.toLowerCase();
-  if (Object.hasOwn(ROUTING_SUFFIX_NAMES, lower)) {
+  if (Object.hasOwn(RESERVED_SOURCE_NAMES, lower)) {
     return {
-      message: `“${trimmed}” is reserved for ${ROUTING_SUFFIX_NAMES[lower]} — use another name.`,
+      message: `“${trimmed}” is reserved for ${RESERVED_SOURCE_NAMES[lower]} — use another name.`,
     };
   }
   if (RESERVED_MARKETPLACE_NAMES.has(lower) && !isAnthropicsGithubSource(source)) {

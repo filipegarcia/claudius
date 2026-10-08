@@ -168,6 +168,23 @@ describe("lintMarketplaceName", () => {
     expect(lintMarketplaceName("npm-tools", someone)).toBeNull();
   });
 
+  test("refuses built-in plugin source names regardless of source", () => {
+    const cases: Array<[string, string]> = [
+      ["inline", "reserved for --plugin-dir session plugins"],
+      ["builtin", "reserved for built-in plugins"],
+      ["Skills-Dir", "reserved for plugins auto-loaded from .claude/skills/"],
+      ["synced", "reserved for plugins synced from your claude.ai account"],
+      ["claude-plugin-test", "reserved for plugins loaded by claude plugin test"],
+    ];
+    for (const [bad, msg] of cases) {
+      expect(lintMarketplaceName(bad, someone)?.message, bad).toContain(msg);
+    }
+    expect(
+      lintMarketplaceName("builtin", { source: "github", repo: "anthropics/builtin" }),
+    ).not.toBeNull();
+    expect(lintMarketplaceName("builtin-extras", someone)).toBeNull();
+  });
+
   test("allows a reserved name from an anthropics/ GitHub source", () => {
     expect(lintMarketplaceName("claude-plugins-official", anthropics)).toBeNull();
     expect(lintMarketplaceName("healthcare", { source: "github", repo: "Anthropics/hc" })).toBeNull();
