@@ -100,6 +100,14 @@ export default function PluginsPage() {
   }, [plugins.installed, plugins.scopes]);
 
   const active = plugins.scopes.find((s) => s.scope === scope);
+  // A refused toggle belongs to this workspace's settings file: drop it when
+  // the workspace changes or once that file loads again.
+  const parseError = active?.parseError ?? null;
+  const [toggleErrorCtx, setToggleErrorCtx] = useState({ cwd, parseError });
+  if (toggleErrorCtx.cwd !== cwd || toggleErrorCtx.parseError !== parseError) {
+    setToggleErrorCtx({ cwd, parseError });
+    if (toggleErrorCtx.cwd !== cwd || !parseError) setToggleError(null);
+  }
   // `/plugin install` records the plugin in user settings by default.
   const userScope = plugins.scopes.find((s) => s.scope === "user");
 
@@ -609,16 +617,6 @@ function formatInstalls(n: number): string {
 }
 
 /**
- * Plugin load-time errors from the session's `system:init` (SDK 0.3.283
- * `plugin_errors`). A plugin that failed to load entirely is otherwise just
- * *absent* from the installed list — a silent gap. Surfacing the error here,
- * above the list, turns "it's not there" into "it's not there, and here's
- * why". Renders nothing when the load was clean.
- *
- * `type` is an open set — we show it verbatim as a label rather than mapping
- * to friendly copy, so a category the SDK adds later still reads sensibly.
- */
-/**
  * CC 2.1.295 parity — "Added a warning to claude plugin install, enable,
  * disable and marketplace add when the settings file they write to does not
  * load". The active scope's settings file exists but isn't valid JSON, so
@@ -646,14 +644,24 @@ function SettingsInvalidBanner({
       </div>
       <code className="mt-1 block break-all font-mono text-[10px] text-amber-200/80">{path}</code>
       <p className="mt-1 leading-relaxed text-amber-100/90">
-        {reason}. Plugins and marketplaces in this scope are shown empty, and enabling, disabling
-        or adding a marketplace here is refused until the file is fixed — Claudius won&apos;t
-        overwrite it.
+        {reason}. Plugins and marketplaces in this scope are shown empty, and enabling, disabling,
+        adding a marketplace or changing plugin options here is refused until the file is fixed —
+        Claudius won&apos;t overwrite it.
       </p>
     </section>
   );
 }
 
+/**
+ * Plugin load-time errors from the session's `system:init` (SDK 0.3.283
+ * `plugin_errors`). A plugin that failed to load entirely is otherwise just
+ * *absent* from the installed list — a silent gap. Surfacing the error here,
+ * above the list, turns "it's not there" into "it's not there, and here's
+ * why". Renders nothing when the load was clean.
+ *
+ * `type` is an open set — we show it verbatim as a label rather than mapping
+ * to friendly copy, so a category the SDK adds later still reads sensibly.
+ */
 function PluginErrorsSection({ errors }: { errors: PluginLoadError[] }) {
   if (errors.length === 0) return null;
   return (
@@ -709,7 +717,10 @@ function PluginRow({
   onToggle: (enabled: boolean) => Promise<void> | void;
   scope: SettingsScope;
   optionValues: Record<string, PluginOptionValue>;
-  onSetOption: (name: string, value: PluginOptionValue | undefined) => Promise<boolean>;
+  onSetOption: (
+    name: string,
+    value: PluginOptionValue | undefined,
+  ) => Promise<{ ok: boolean; error?: string }>;
 }) {
   const [open, setOpen] = useState(false);
   return (
@@ -804,14 +815,34 @@ function PluginOptionsForm({
   options: PluginConfigOption[];
   values: Record<string, PluginOptionValue>;
   scope: SettingsScope;
-  onSetOption: (name: string, value: PluginOptionValue | undefined) => Promise<boolean>;
+  onSetOption: (
+    name: string,
+    value: PluginOptionValue | undefined,
+  ) => Promise<{ ok: boolean; error?: string }>;
 }) {
+  // CC 2.1.295 parity — a refused write (e.g. the 422 for a settings file
+  // that doesn't load) is shown here instead of the edit silently reverting.
+  const [error, setError] = useState<string | null>(null);
+  const setOption = async (name: string, value: PluginOptionValue | undefined) => {
+    const r = await onSetOption(name, value);
+    setError(r.ok ? null : (r.error ?? "Failed to update plugin option."));
+  };
   return (
     <div className="mt-2 border-t border-[var(--border)] pt-2">
       <div className="mb-1 flex items-center gap-1.5 text-[var(--muted)]">
         <Settings2 className="h-3 w-3" /> Options
         <span className="font-mono text-[10px]">({scope})</span>
       </div>
+      {error && (
+        <p
+          data-testid="plugin-option-error"
+          role="alert"
+          className="mb-2 flex items-start gap-1.5 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-100"
+        >
+          <AlertTriangle className="mt-px h-3.5 w-3.5 shrink-0 text-amber-400" />
+          <span className="min-w-0 [overflow-wrap:anywhere]">{error}</span>
+        </p>
+      )}
       <div className="space-y-2">
         {options.map((o) => {
           // CC 2.1.295 parity — own-key lookup, so an option named
@@ -840,7 +871,7 @@ function PluginOptionsForm({
                 data-testid={`plugin-option-${o.name}`}
                 type="checkbox"
                 checked={val === true}
-                onChange={(e) => void onSetOption(o.name, e.target.checked)}
+                onChange={(e) => void setOption(o.name, e.target.checked)}
                 className="h-3.5 w-3.5 shrink-0"
               />
             );
@@ -849,7 +880,7 @@ function PluginOptionsForm({
               <select
                 data-testid={`plugin-option-${o.name}`}
                 value={typeof val === "string" ? val : ""}
-                onChange={(e) => void onSetOption(o.name, e.target.value || undefined)}
+                onChange={(e) => void setOption(o.name, e.target.value || undefined)}
                 className="w-40 shrink-0 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-1.5 py-1 text-[11px] focus:outline-none"
               >
                 <option value="">(default)</option>
@@ -867,7 +898,7 @@ function PluginOptionsForm({
                 type="number"
                 defaultValue={typeof val === "number" ? val : ""}
                 onBlur={(e) =>
-                  void onSetOption(o.name, e.target.value === "" ? undefined : Number(e.target.value))
+                  void setOption(o.name, e.target.value === "" ? undefined : Number(e.target.value))
                 }
                 className="w-40 shrink-0 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1 font-mono text-[11px] focus:outline-none"
               />
@@ -878,7 +909,7 @@ function PluginOptionsForm({
                 data-testid={`plugin-option-${o.name}`}
                 defaultValue={typeof val === "string" ? val : ""}
                 placeholder="(default)"
-                onBlur={(e) => void onSetOption(o.name, e.target.value === "" ? undefined : e.target.value)}
+                onBlur={(e) => void setOption(o.name, e.target.value === "" ? undefined : e.target.value)}
                 className="w-40 shrink-0 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1 font-mono text-[11px] focus:outline-none"
               />
             );

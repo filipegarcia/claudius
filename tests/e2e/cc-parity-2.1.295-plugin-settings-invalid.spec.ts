@@ -182,3 +182,72 @@ test("Install form warns when user settings (where installs land) don't load", a
   await expect(page.getByTestId("plugin-settings-invalid")).toHaveCount(0);
   await expect(warn).toBeVisible();
 });
+
+test("Plugin options panel surfaces a refused option write instead of silently reverting", async ({ page }) => {
+  const PLUGIN_ID = "optbot@test-mkt";
+  const posts: Array<Record<string, unknown>> = [];
+  await page.route(
+    (url) => url.pathname === "/api/plugins",
+    async (route: Route) => {
+      const req = route.request();
+      if (req.method() === "POST") {
+        posts.push(req.postDataJSON() as Record<string, unknown>);
+        return route.fulfill({
+          status: 422,
+          contentType: "application/json",
+          body: JSON.stringify({ error: BLOCKED }),
+        });
+      }
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          cwd: process.cwd(),
+          scopes: [
+            emptyScope("user", "/home/user/.claude/settings.json"),
+            { ...emptyScope("project", PROJECT_PATH), parseError: PARSE_REASON },
+            emptyScope("local", "/home/user/acme/.claude/settings.local.json"),
+          ],
+          installed: [
+            {
+              name: "optbot",
+              source: PLUGIN_ID,
+              path: "/home/user/.claude/plugins/cache/test-mkt/optbot",
+              userConfig: [{ name: "verbose", type: "boolean", title: "verbose", default: false }],
+            },
+          ],
+          installedError: null,
+          pluginErrors: [],
+        }),
+      });
+    },
+  );
+  await page.route("**/api/plugins/available", async (route: Route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ plugins: [] }) }),
+  );
+  await page.route("**/api/sessions", async (route: Route) => {
+    if (route.request().method() !== "GET") return route.fallback();
+    return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify([]) });
+  });
+
+  await page.goto("/plugins");
+  await page.getByTestId("plugin-scope-tab-project").click();
+  await expect(page.getByTestId("plugin-settings-invalid")).toContainText("changing plugin options");
+  await page.getByRole("button", { name: /optbot/ }).click();
+  const opt = page.getByTestId("plugin-option-verbose");
+  await expect(opt).toBeVisible();
+  await opt.click();
+
+  const err = page.getByTestId("plugin-option-error");
+  await expect(err).toBeVisible();
+  await expect(err).toContainText("The file was not changed.");
+  await expect(opt).not.toBeChecked();
+  expect(posts).toHaveLength(1);
+  expect(posts[0]).toMatchObject({
+    kind: "plugin-config",
+    scope: "project",
+    pluginId: PLUGIN_ID,
+    name: "verbose",
+    value: true,
+  });
+});
