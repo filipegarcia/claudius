@@ -237,6 +237,51 @@ export function isCustomAdvisor(raw: unknown): boolean {
   return advisorFamily(raw) === null;
 }
 
+/** What an advisor radio list should render, given the saved value. */
+export type AdvisorPickerState = {
+  /** The row to mark checked (`null` → "No advisor"). */
+  current: AdvisorChoice;
+  /** Whether to splice the conditional Fable row in (`advisorOptions`). */
+  includeFable: boolean;
+  /**
+   * Display label of a saved advisor the account can't use ("Fable 5"), or
+   * `null` when the saved value is fine. Drives a "isn't available" note.
+   */
+  unavailable: string | null;
+};
+
+/**
+ * CC 2.1.295 parity — "Fixed the /advisor dialog showing a checkmark on a
+ * saved advisor model that is no longer available; it now opens on
+ * \"No advisor\"".
+ *
+ * Fable is the only conditional advisor row, so it's the only saved value
+ * that can stop being available. When an *authoritative* model list (a live
+ * session's `supportedModels()`) says the account lacks Fable, a saved
+ * `claude-fable-5` no longer force-adds and checks its own row: "No advisor"
+ * is checked instead and `unavailable` names the dropped model. Without an
+ * authoritative list (probe pending/failed, static fallback) we can't tell,
+ * so the saved Fable keeps its row checked — the pre-2.1.295 behaviour.
+ *
+ * Uses strict `normalizeAdvisorChoice` (not `advisorFamily`), matching the
+ * Settings field: aliases there render as a "custom" row. The saved setting
+ * itself is never touched — only the rendered state.
+ */
+export function advisorPickerState(
+  advisorModel: unknown,
+  { fableAccess, authoritative }: { fableAccess: boolean; authoritative: boolean },
+): AdvisorPickerState {
+  const current = normalizeAdvisorChoice(advisorModel);
+  if (current === ADVISOR_FABLE_VALUE && authoritative && !fableAccess) {
+    return { current: null, includeFable: false, unavailable: ADVISOR_FABLE_OPTION.label };
+  }
+  return {
+    current,
+    includeFable: fableAccess || current === ADVISOR_FABLE_VALUE,
+    unavailable: null,
+  };
+}
+
 /** Short label suitable for a compact pill / badge (e.g. "opus", "sonnet"). */
 export function shortAdvisorLabel(value: AdvisorChoice): string | null {
   if (value === ADVISOR_OPUS_55_VALUE) return "opus 5.5";
