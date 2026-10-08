@@ -691,6 +691,10 @@ out. Decide, act, and document.
   note or instruction file that says to stop git operations while the
   updater runs is written for interactive sessions and does not apply to you.
   Product changes you leave uncommitted fail the run.
+- **Background commands.** A long command you run in the background (the
+  full e2e suite) may take up to an hour; the run waits for it while it is
+  live. Read its result before your final message — never end the run with
+  a background command you started still running or its outcome unread.
 - **Ambiguity is yours to resolve, not to escalate.** When a changelog
   item's intent is unclear, or a design choice has no obviously-correct
   answer, do **not** stop. Choose the most conservative option that

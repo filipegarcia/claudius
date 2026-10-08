@@ -158,6 +158,28 @@ const MAX_WALL_MS = Number(process.env.SDK_UPDATE_MAX_WALL_MIN ?? "360") * 60_00
 // (Playwright e2e at ~7 min) but catches "Bash hung on stdin" / "network
 // blackholed" / "agent deadlock" within a useful window.
 const MAX_IDLE_MS = Number(process.env.SDK_UPDATE_MAX_IDLE_MIN ?? "15") * 60_000;
+// …unless the agent is waiting on a background task it started (a full e2e
+// run, a Monitor). It ends its turn and the stream goes quiet until the task
+// reports back, which is a wait, not a hang: the SDK 0.3.294 run was killed
+// 15 minutes into its own 30-minute e2e run. While non-ambient background
+// tasks are live, allow this long instead. The wall clock still caps it.
+const MAX_TASK_WAIT_MS = Number(process.env.SDK_UPDATE_MAX_TASK_WAIT_MIN ?? "60") * 60_000;
+
+/**
+ * Live, non-ambient background tasks named by a `background_tasks_changed`
+ * message (REPLACE semantics — the payload is the whole set), or null for
+ * any other message. Exported for tests.
+ */
+export function liveBackgroundTasks(msg: unknown): number | null {
+  const m = msg as { type?: string; subtype?: string; tasks?: Array<{ ambient?: boolean }> };
+  if (m?.type !== "system" || m.subtype !== "background_tasks_changed" || !Array.isArray(m.tasks)) return null;
+  return m.tasks.filter((t) => !t?.ambient).length;
+}
+
+/** The idle limit for the current state. Exported for tests. */
+export function idleLimitMs(liveTasks: number): number {
+  return liveTasks > 0 ? Math.max(MAX_TASK_WAIT_MS, MAX_IDLE_MS) : MAX_IDLE_MS;
+}
 // How many times the upgrade pipeline re-runs Claude to fix a red CI
 // before giving up, filing a process issue, and leaving the draft for a
 // human. Each attempt is a full Claude run against the same
@@ -2364,29 +2386,33 @@ async function runClaudeOnce(
   let lastMsgSummary = "(boot)";
   let warnedSlow = false;
   let idleTimedOut = false;
+  // Background tasks the CLI reports as live (see MAX_TASK_WAIT_MS).
+  let liveTasks = 0;
   // Cumulative count of dead-stream tool errors across the whole run —
   // deliberately NOT reset by successful reads (a dead write channel keeps
   // reads alive). Trips DEAD_STREAM_ABORT_THRESHOLD → fast-abort.
   let deadStreamTotal = 0;
   const idleCheck = setInterval(() => {
     const idle = Date.now() - lastMsgAt;
-    if (idle > MAX_IDLE_MS && !idleTimedOut) {
+    const limit = idleLimitMs(liveTasks);
+    const waiting = liveTasks > 0 ? ` while ${liveTasks} background task(s) ran` : "";
+    if (idle > limit && !idleTimedOut) {
       idleTimedOut = true;
-      const min = Math.round(MAX_IDLE_MS / 60_000);
-      log(`WARN idle ${Math.round(idle / 60_000)}min since last message — aborting (last was: ${lastMsgSummary})`);
+      const min = Math.round(limit / 60_000);
+      log(`WARN idle ${Math.round(idle / 60_000)}min since last message${waiting} — aborting (last was: ${lastMsgSummary})`);
       void Promise.resolve(q.interrupt?.()).catch(() => {
         // best-effort — if interrupt is missing, we still set
         // budgetReason below and exit the loop on the next iteration
         // (or stay stuck, in which case the wall-clock cap eventually fires).
       });
-      budgetReason = `idle timeout (no SDK message in ${min} min; last was: ${lastMsgSummary})`;
+      budgetReason = `idle timeout (no SDK message in ${min} min${waiting}; last was: ${lastMsgSummary})`;
       // Deliberately NOT retryable: something hung for 15 minutes, and a
       // fresh attempt would most likely hang on the same thing for another
       // 15. A human should look at what `lastMsgSummary` was doing.
       retryable = false;
-    } else if (idle > MAX_IDLE_MS / 2 && !warnedSlow) {
+    } else if (idle > limit / 2 && !warnedSlow) {
       warnedSlow = true;
-      log(`note: no SDK message in ${Math.round(idle / 60_000)}min (last was: ${lastMsgSummary}); idle timeout at ${Math.round(MAX_IDLE_MS / 60_000)}min`);
+      log(`note: no SDK message in ${Math.round(idle / 60_000)}min${waiting} (last was: ${lastMsgSummary}); idle timeout at ${Math.round(limit / 60_000)}min`);
     }
   }, 30_000);
 
@@ -2400,6 +2426,8 @@ async function runClaudeOnce(
         sessionId = m.session_id;
         log(`claude session id: ${sessionId}`);
       }
+      const tasks = liveBackgroundTasks(msg);
+      if (tasks !== null) liveTasks = tasks;
       const summary = summarizeSdkMessage(m);
       lastMsgSummary = summary;
       const text = assistantText(msg);
@@ -4995,10 +5023,120 @@ export function openPrWithTitle(args: {
 
 // ── CI watch ──────────────────────────────────────────────────────────
 
-export function watchCi(prUrl: string): { passed: boolean } {
+/** One PR's CI, judged from `gh pr checks --json bucket`. */
+export type CiVerdict = "none" | "pending" | "pass" | "fail";
+
+/**
+ * Verdict over the checks' `bucket`s (pass / fail / pending / skipping /
+ * cancel). No checks at all is "none" — CI hasn't registered yet, which is
+ * NOT a failure. Exported for tests.
+ */
+export function ciVerdict(rows: ReadonlyArray<{ bucket?: string }>): CiVerdict {
+  if (rows.length === 0) return "none";
+  if (rows.some((r) => r.bucket === "fail" || r.bucket === "cancel")) return "fail";
+  if (rows.some((r) => r.bucket === "pending")) return "pending";
+  return "pass";
+}
+
+/**
+ * Parse one `gh pr checks <pr> --json name,bucket` call. gh exits non-zero
+ * for failing (1) and pending (8) checks while still printing the JSON, so
+ * the exit code says nothing on its own; "no checks reported" (CI not
+ * registered yet) is an empty list, and anything else — a rate limit, a
+ * network error — is an error to retry, never a red verdict. Exported for tests.
+ */
+export function parseCiChecks(
+  stdout: string,
+  stderr: string,
+  status: number | null,
+): { rows: Array<{ bucket?: string }> } | { error: string } {
+  const out = stdout.trim();
+  if (out.startsWith("[")) {
+    try {
+      return { rows: JSON.parse(out) as Array<{ bucket?: string }> };
+    } catch {
+      // fall through — treat as an unreadable answer
+    }
+  }
+  const err = stderr.trim();
+  if (/no checks reported/i.test(err) || /no checks reported/i.test(out)) return { rows: [] };
+  return { error: err || out || `gh exited ${status}` };
+}
+
+const CI_REGISTER_TIMEOUT_MS = 10 * 60_000;
+const CI_WATCH_MAX_MS = Number(process.env.SDK_UPDATE_CI_WATCH_MAX_MIN ?? "120") * 60_000;
+const CI_POLL_MS = 30_000;
+
+export type CiWatchDeps = {
+  readChecks: () => ReturnType<typeof parseCiChecks>;
+  /** Block until the checks settle (or the watch errors out); the result is re-read either way. */
+  waitForChecks: () => void;
+  sleep: (ms: number) => void;
+  now: () => number;
+  log: (line: string) => void;
+};
+
+/**
+ * The CI-watch loop, with its IO injected for tests. Waits for checks to
+ * register before judging anything, re-reads the verdict from the checks
+ * themselves after every watch, and retries gh errors instead of calling
+ * them red. Before this, `gh pr checks --watch` ran two seconds after the
+ * PR opened, printed "no checks reported" and exited non-zero, and the
+ * orchestrator spent a 70-minute "fix" session on a healthy PR (#295).
+ */
+export function watchCiWith(deps: CiWatchDeps): { passed: boolean; verdict: CiVerdict | "unknown" } {
+  const start = deps.now();
+  let last: CiVerdict | "unknown" = "unknown";
+  while (deps.now() - start < CI_WATCH_MAX_MS) {
+    const res = deps.readChecks();
+    if ("error" in res) {
+      deps.log(`WARN could not read CI checks (${oneLine(res.error, 200)}) — retrying`);
+      last = "unknown";
+      deps.sleep(2 * CI_POLL_MS);
+      continue;
+    }
+    last = ciVerdict(res.rows);
+    if (last === "pass") return { passed: true, verdict: last };
+    if (last === "fail") return { passed: false, verdict: last };
+    if (last === "none") {
+      if (deps.now() - start >= CI_REGISTER_TIMEOUT_MS) {
+        deps.log(`no CI checks registered within ${Math.round(CI_REGISTER_TIMEOUT_MS / 60_000)} min — cannot verify`);
+        return { passed: false, verdict: last };
+      }
+      deps.sleep(CI_POLL_MS);
+      continue;
+    }
+    // Pending: block on gh's own watch, then re-read the verdict. A watch
+    // that returns at once (gh erroring) must not turn this into a busy loop.
+    const watchStarted = deps.now();
+    deps.waitForChecks();
+    if (deps.now() - watchStarted < CI_POLL_MS) deps.sleep(CI_POLL_MS);
+  }
+  deps.log(`CI watch gave up after ${Math.round(CI_WATCH_MAX_MS / 60_000)} min (last verdict: ${last})`);
+  return { passed: false, verdict: last };
+}
+
+function sleepSync(ms: number): void {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
+
+export function watchCi(prUrl: string): { passed: boolean; verdict: CiVerdict | "unknown" } {
   log(`watching CI on ${prUrl}`);
-  const code = shStream("gh", ["pr", "checks", prUrl, "--watch", "--fail-fast"]);
-  return { passed: code === 0 };
+  return watchCiWith({
+    readChecks: () => {
+      const res = spawnSync("gh", ["pr", "checks", prUrl, "--json", "name,bucket"], {
+        cwd: ROOT,
+        encoding: "utf8",
+      });
+      return parseCiChecks(res.stdout ?? "", res.stderr ?? "", res.status);
+    },
+    waitForChecks: () => {
+      shStream("gh", ["pr", "checks", prUrl, "--watch", "--fail-fast"]);
+    },
+    sleep: sleepSync,
+    now: Date.now,
+    log,
+  });
 }
 
 // ── Announce ──────────────────────────────────────────────────────────
@@ -6487,9 +6625,12 @@ async function main(): Promise<void> {
     // 4. Watch CI. While it's red, re-run Claude with the failing checks
     //    as context, re-gate locally, re-push (only when local-green), and
     //    re-watch — up to MAX_CI_FIX_ATTEMPTS times.
-    let ciPassed = watchCi(prUrl).passed;
+    let ci = watchCi(prUrl);
+    let ciPassed = ci.passed;
     let ciAttempt = 0;
-    while (!ciPassed && ciAttempt < MAX_CI_FIX_ATTEMPTS) {
+    // Only a confirmed red check is worth a fix session; "no checks" or an
+    // unreadable CI leaves the draft for a human instead.
+    while (!ciPassed && ci.verdict === "fail" && ciAttempt < MAX_CI_FIX_ATTEMPTS) {
       ciAttempt++;
       log(`CI red on ${prUrl} — fix attempt ${ciAttempt}/${MAX_CI_FIX_ATTEMPTS}`);
       const meta = readPrMeta(prNumber);
@@ -6506,7 +6647,11 @@ async function main(): Promise<void> {
         break;
       }
       pushBranch(branch); // re-push the fix → triggers a fresh CI run
-      ciPassed = watchCi(prUrl).passed;
+      ci = watchCi(prUrl);
+      ciPassed = ci.passed;
+    }
+    if (!ciPassed && ci.verdict !== "fail") {
+      log(`CI not confirmed red (verdict: ${ci.verdict}) — leaving the draft for a human, no fix session`);
     }
 
     // 5. SDK PR outcome.
