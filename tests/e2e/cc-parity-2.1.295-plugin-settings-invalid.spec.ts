@@ -138,3 +138,47 @@ test("Plugins page warns when a scope's settings file doesn't load", async ({ pa
   await expect(page.getByTestId("plugin-settings-invalid")).toHaveCount(0);
   await expect(page.getByTestId("plugin-toggle-error")).toHaveCount(0);
 });
+
+test("Install form warns when user settings (where installs land) don't load", async ({ page }) => {
+  const USER_PATH = "/home/user/.claude/settings.json";
+  await page.route(
+    (url) => url.pathname === "/api/plugins",
+    async (route: Route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          cwd: process.cwd(),
+          scopes: [
+            { ...emptyScope("user", USER_PATH), parseError: "Unexpected end of JSON input" },
+            emptyScope("project", PROJECT_PATH),
+            emptyScope("local", "/home/user/acme/.claude/settings.local.json"),
+          ],
+          installed: [],
+          installedError: null,
+          pluginErrors: [],
+        }),
+      }),
+  );
+  await page.route("**/api/plugins/available", async (route: Route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ plugins: [] }) }),
+  );
+  await page.route("**/api/sessions", async (route: Route) => {
+    if (route.request().method() !== "GET") return route.fallback();
+    return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify([]) });
+  });
+
+  await page.goto("/plugins");
+  const warn = page.getByTestId("plugin-install-settings-invalid");
+  await expect(warn).toBeVisible({ timeout: 15_000 });
+  await expect(warn).toContainText(USER_PATH);
+  await expect(warn).toContainText("Unexpected end of JSON input");
+  // User is the default scope, so its banner shows too.
+  await expect(page.getByTestId("plugin-settings-invalid")).toContainText(USER_PATH);
+
+  // A healthy scope drops the banner but keeps the install warning (installs
+  // still land in user settings).
+  await page.getByTestId("plugin-scope-tab-project").click();
+  await expect(page.getByTestId("plugin-settings-invalid")).toHaveCount(0);
+  await expect(warn).toBeVisible();
+});
