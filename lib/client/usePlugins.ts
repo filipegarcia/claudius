@@ -97,15 +97,26 @@ export function usePlugins(cwd: string | null, sessionId: string | null) {
     void refreshAvailable();
   }, [refreshAvailable]);
 
+  // CC 2.1.295 parity — returns the server's error (e.g. the 422 "<path>
+  // doesn't load … The file was not changed.") so a refused enable/disable is
+  // surfaced instead of the checkbox silently snapping back.
   const toggle = useCallback(
-    async (scope: SettingsScope, pluginId: string, enabled: boolean) => {
+    async (
+      scope: SettingsScope,
+      pluginId: string,
+      enabled: boolean,
+    ): Promise<{ ok: boolean; error?: string }> => {
       const res = await fetch("/api/plugins", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ kind: "toggle", scope, cwd, pluginId, enabled }),
       });
-      if (res.ok) await refresh();
-      return res.ok;
+      if (res.ok) {
+        await refresh();
+        return { ok: true };
+      }
+      const err = (await res.json().catch(() => null)) as { error?: string } | null;
+      return { ok: false, error: err?.error ?? `HTTP ${res.status}` };
     },
     [cwd, refresh],
   );

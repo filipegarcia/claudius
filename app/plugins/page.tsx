@@ -75,6 +75,9 @@ export default function PluginsPage() {
 
   const plugins = usePlugins(cwd, sessionId);
   const [scope, setScope] = useState<SettingsScope>("user");
+  // CC 2.1.295 parity — the last refused enable/disable (e.g. the 422 for a
+  // settings file that doesn't load). Cleared on scope switch / next success.
+  const [toggleError, setToggleError] = useState<string | null>(null);
 
   const merged = useMemo(() => {
     // Map: pluginId → installed entry + which scopes have it enabled
@@ -96,6 +99,8 @@ export default function PluginsPage() {
   }, [plugins.installed, plugins.scopes]);
 
   const active = plugins.scopes.find((s) => s.scope === scope);
+  // `/plugin install` records the plugin in user settings by default.
+  const userScope = plugins.scopes.find((s) => s.scope === "user");
 
   return (
     <div className="flex h-full">
@@ -137,16 +142,22 @@ export default function PluginsPage() {
             return (
               <button
                 key={s}
-                onClick={() => setScope(s)}
+                data-testid={`plugin-scope-tab-${s}`}
+                onClick={() => {
+                  setScope(s);
+                  setToggleError(null);
+                }}
                 className={cn(
-                  "rounded-md border border-[var(--border)] px-3 py-1 text-xs",
+                  "flex items-center rounded-md border border-[var(--border)] px-3 py-1 text-xs",
                   scope === s
                     ? "bg-[var(--panel-2)]"
                     : "bg-[var(--panel)] text-[var(--muted)] hover:text-[var(--foreground)]",
+                  sc?.parseError && "border-amber-500/40",
                 )}
-                title={sc?.path}
+                title={sc?.parseError ? `${sc.path} doesn't load (${sc.parseError})` : sc?.path}
               >
                 {SCOPE_LABELS[s]} <span className="ml-1 text-[10px] text-[var(--muted)]">{total}</span>
+                {sc?.parseError && <AlertTriangle className="ml-1 h-3 w-3 text-amber-400" />}
               </button>
             );
           })}
@@ -157,10 +168,21 @@ export default function PluginsPage() {
 
         <div className="flex-1 overflow-y-auto scroll-thin">
           <div className="mx-auto max-w-4xl space-y-5 px-6 py-6">
+            {active?.parseError && (
+              <SettingsInvalidBanner
+                scope={scope}
+                path={active.path}
+                reason={active.parseError}
+              />
+            )}
+
             <InstallSection
               sessionId={sessionId}
               onInstall={(ref) => plugins.install(ref)}
               onRefresh={() => plugins.refresh()}
+              userSettingsError={
+                userScope?.parseError ? { path: userScope.path, reason: userScope.parseError } : null
+              }
             />
 
             <AvailableSection
@@ -180,6 +202,16 @@ export default function PluginsPage() {
               <h2 className="mb-2 text-[11px] font-medium uppercase tracking-wide text-[var(--muted)]">
                 Installed plugins {!sessionId && "(open a session for live data)"}
               </h2>
+              {toggleError && (
+                <p
+                  data-testid="plugin-toggle-error"
+                  role="alert"
+                  className="mb-2 flex items-start gap-1.5 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-100"
+                >
+                  <AlertTriangle className="mt-px h-3.5 w-3.5 shrink-0 text-amber-400" />
+                  <span className="min-w-0 [overflow-wrap:anywhere]">{toggleError}</span>
+                </p>
+              )}
               {merged.length === 0 ? (
                 <div className="rounded-md border border-[var(--border)] bg-[var(--panel)]/40 px-4 py-8 text-center text-sm text-[var(--muted)]">
                   No plugins installed.
@@ -193,7 +225,10 @@ export default function PluginsPage() {
                       installed={row.installed}
                       enabledInScope={Boolean(active?.enabledPlugins?.[row.id])}
                       enabledInAnyScope={row.enabledIn}
-                      onToggle={(enabled) => plugins.toggle(scope, row.id, enabled)}
+                      onToggle={async (enabled) => {
+                        const r = await plugins.toggle(scope, row.id, enabled);
+                        setToggleError(r.ok ? null : (r.error ?? "Failed to update plugin."));
+                      }}
                       scope={scope}
                       optionValues={readPluginOptions(active?.pluginConfigs, row.id)}
                       onSetOption={(name, value) => plugins.setPluginOption(scope, row.id, name, value)}
@@ -235,10 +270,13 @@ function InstallSection({
   sessionId,
   onInstall,
   onRefresh,
+  userSettingsError,
 }: {
   sessionId: string | null;
   onInstall: (ref: string) => Promise<{ ok: boolean; error?: string }>;
   onRefresh: () => Promise<void> | void;
+  /** CC 2.1.295 parity — user settings (where installs are recorded) don't load. */
+  userSettingsError: { path: string; reason: string } | null;
 }) {
   const [draft, setDraft] = useState("");
   // Claude Code 2.1.275 — `/plugin install <plugin> --marketplace <source>`:
@@ -328,6 +366,20 @@ function InstallSection({
         >
           <AlertTriangle className="mt-px h-3 w-3 shrink-0" />
           <span>{draftLint.message} It will still send as typed.</span>
+        </p>
+      )}
+
+      {userSettingsError && (
+        <p
+          data-testid="plugin-install-settings-invalid"
+          className="mt-2 flex items-start gap-1 text-[11px] text-amber-400"
+        >
+          <AlertTriangle className="mt-px h-3 w-3 shrink-0" />
+          <span>
+            Installs are recorded in{" "}
+            <code className="break-all font-mono">{userSettingsError.path}</code>, which doesn&apos;t
+            load ({userSettingsError.reason}). Fix it first, or the plugin won&apos;t be enabled.
+          </span>
         </p>
       )}
 
@@ -565,6 +617,42 @@ function formatInstalls(n: number): string {
  * `type` is an open set — we show it verbatim as a label rather than mapping
  * to friendly copy, so a category the SDK adds later still reads sensibly.
  */
+/**
+ * CC 2.1.295 parity — "Added a warning to claude plugin install, enable,
+ * disable and marketplace add when the settings file they write to does not
+ * load". The active scope's settings file exists but isn't valid JSON, so
+ * the scope is shown empty and every write to it is refused (422) rather than
+ * overwriting the user's file.
+ */
+function SettingsInvalidBanner({
+  scope,
+  path,
+  reason,
+}: {
+  scope: SettingsScope;
+  path: string;
+  reason: string;
+}) {
+  return (
+    <section
+      data-testid="plugin-settings-invalid"
+      role="alert"
+      className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[11px]"
+    >
+      <div className="flex items-center gap-1.5 font-medium text-amber-300">
+        <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+        {SCOPE_LABELS[scope]} settings file doesn&apos;t load
+      </div>
+      <code className="mt-1 block break-all font-mono text-[10px] text-amber-200/80">{path}</code>
+      <p className="mt-1 leading-relaxed text-amber-100/90">
+        {reason}. Plugins and marketplaces in this scope are shown empty, and enabling, disabling
+        or adding a marketplace here is refused until the file is fixed — Claudius won&apos;t
+        overwrite it.
+      </p>
+    </section>
+  );
+}
+
 function PluginErrorsSection({ errors }: { errors: PluginLoadError[] }) {
   if (errors.length === 0) return null;
   return (
@@ -617,7 +705,7 @@ function PluginRow({
   installed?: InstalledPlugin;
   enabledInScope: boolean;
   enabledInAnyScope: SettingsScope[];
-  onToggle: (enabled: boolean) => void;
+  onToggle: (enabled: boolean) => Promise<void> | void;
   scope: SettingsScope;
   optionValues: Record<string, PluginOptionValue>;
   onSetOption: (name: string, value: PluginOptionValue | undefined) => Promise<boolean>;
@@ -664,7 +752,7 @@ function PluginRow({
           <input
             type="checkbox"
             checked={enabledInScope}
-            onChange={(e) => onToggle(e.target.checked)}
+            onChange={(e) => void onToggle(e.target.checked)}
             className="h-3.5 w-3.5"
           />
           <span>enabled here</span>
@@ -936,7 +1024,14 @@ function ExtraList({
             <span className="shrink-0 font-mono text-[11px] text-[var(--accent)]">{m.name}</span>
             <SourceRow view={m} />
             <button
-              onClick={() => void onRemove(m.name)}
+              onClick={() => {
+                // CC 2.1.295 parity — surface a refused write (settings file
+                // doesn't load) instead of dropping the result.
+                setError(null);
+                void onRemove(m.name).then((r) => {
+                  if (!r.ok) setError(r.error ?? "Failed to remove");
+                });
+              }}
               className="shrink-0 rounded p-0.5 text-[var(--muted)] hover:bg-[var(--panel)] hover:text-red-400"
               title="Remove"
             >
@@ -1012,6 +1107,7 @@ function PolicyList({
   entries: MarketplaceSourceView[];
   onRemove: (index: number) => Promise<{ ok: boolean; error?: string }>;
 }) {
+  const [error, setError] = useState<string | null>(null);
   return (
     <div className="mt-3">
       <div className="mb-1 text-[10px] uppercase tracking-wide text-[var(--muted)]">{title}</div>
@@ -1026,7 +1122,12 @@ function PolicyList({
             >
               <SourceRow view={e} />
               <button
-                onClick={() => void onRemove(i)}
+                onClick={() => {
+                  setError(null);
+                  void onRemove(i).then((r) => {
+                    if (!r.ok) setError(r.error ?? "Failed to remove");
+                  });
+                }}
                 className="shrink-0 rounded p-0.5 text-[var(--muted)] hover:bg-[var(--panel)] hover:text-red-400"
                 title="Remove"
               >
@@ -1035,6 +1136,15 @@ function PolicyList({
             </li>
           ))}
         </ul>
+      )}
+      {error && (
+        <p
+          data-testid="marketplace-policy-error"
+          className="mt-1 flex items-start gap-1 text-[10px] text-amber-400"
+        >
+          <AlertTriangle className="mt-px h-3 w-3 shrink-0" />
+          <span>{error}</span>
+        </p>
       )}
     </div>
   );
