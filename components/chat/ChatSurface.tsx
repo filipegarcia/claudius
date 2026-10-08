@@ -51,6 +51,7 @@ import { DiffOverlay } from "@/components/overlays/DiffOverlay";
 import { diffRefreshToken } from "@/lib/shared/diff-overlay";
 import { MobileQrOverlay } from "@/components/overlays/MobileQrOverlay";
 import { forkConfirmation, type ForkWorktreeInfo } from "@/lib/shared/fork-worktree";
+import { forkFailedMessage } from "@/lib/shared/forkable-uuid";
 import { OutputStyleOverlay } from "@/components/overlays/OutputStyleOverlay";
 import { StatusOverlay } from "@/components/overlays/StatusOverlay";
 import { RenameOverlay } from "@/components/overlays/RenameOverlay";
@@ -1135,16 +1136,24 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ sessionId: id, upToMessageId: messageUuid }),
         });
-        if (!res.ok) throw new Error(`fork failed: ${res.status}`);
+        // CC 2.1.295 parity — a failed fork ("Message not found in session",
+        // …) used to only reach the console, so the click looked like a no-op.
+        // Surface the server's reason in the chat toast instead.
+        if (!res.ok) {
+          const body = (await res.json().catch(() => ({}))) as { error?: string };
+          showToast(forkFailedMessage(body.error ?? `HTTP ${res.status}`));
+          return;
+        }
         const data = (await res.json()) as { sessionId?: string };
         if (data.sessionId) router.push(`/?session=${data.sessionId}`);
       } catch (err) {
         console.error("rewind failed", err);
+        showToast(forkFailedMessage(err instanceof Error ? err.message : String(err)));
       } finally {
         setRewindingUuid(null);
       }
     },
-    [session.sessionId, router],
+    [session.sessionId, router, showToast],
   );
 
   // Shift+Tab cycles permission mode (mirrors Claude Code).

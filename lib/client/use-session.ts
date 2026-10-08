@@ -82,6 +82,7 @@ import type {
   ToolProgressInfo,
 } from "./types";
 import { appendCoalescedSystemEntry } from "./system-entries";
+import { trailingBubbleUuid } from "@/lib/shared/forkable-uuid";
 import {
   STREAM_BADGE_AFTER_MS,
   shouldRebuildTranscript,
@@ -3740,7 +3741,9 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
             // still has its real text after the wrapper. Render that as a normal
             // user bubble instead of dropping it with the pill.
             if (cli.trailing) {
-              const trailUuid = `${uuid}:trailing`;
+              // CC 2.1.295 — display-only id; Rewind maps it back to `uuid`
+              // (the JSONL record) via forkableUuid before forking.
+              const trailUuid = trailingBubbleUuid(uuid);
               setMessages((prev) => {
                 if (prev.some((m) => m.uuid === trailUuid)) return prev;
                 return [
@@ -6739,7 +6742,7 @@ export function synthesizeOlder(raw: Array<Record<string, unknown>>): {
         // SystemEntry channel), but real user text after the tag must survive.
         if (cliWrap.trailing) {
           out.push({
-            uuid: `${uuid}:trailing`,
+            uuid: trailingBubbleUuid(uuid),
             role: "user",
             blocks: [{ kind: "text", text: cliWrap.trailing }],
           });

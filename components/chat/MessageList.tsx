@@ -15,6 +15,7 @@ import type { Tip } from "@/lib/shared/tips";
 import { SplashScreen } from "./SplashScreen";
 import { isRealUserDisplayMessage } from "@/lib/client/sdk-message-filters";
 import { nextPinGate } from "@/lib/client/scroll-gate";
+import { forkableUuid } from "@/lib/shared/forkable-uuid";
 import type { DisplayMessage, SystemEntry, TaskInfo, ToolProgressInfo } from "@/lib/client/types";
 import type { ApiRetryState } from "@/lib/client/api-retry";
 import {
@@ -627,7 +628,9 @@ export function MessageList({
                         <UserMessage
                           message={m}
                           onRewind={onRewind}
-                          rewinding={rewindingUuid === m.uuid}
+                          // onRewind receives the forkable (record) uuid —
+                          // CC 2.1.295, see lib/shared/forkable-uuid.ts.
+                          rewinding={rewindingUuid != null && rewindingUuid === forkableUuid(m.uuid)}
                           sessionId={sessionId}
                           onJumpTo={() => jumpToMessageTop(m.uuid)}
                           suggested={!!suggestedUuids?.has(m.uuid)}
