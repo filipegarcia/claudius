@@ -116,3 +116,42 @@ describe("advisor options — Opus 5.5 recommended", () => {
     expect(badgeAdvisorLabel(ADVISOR_OPUS_VALUE)).toBe("opus 4.8");
   });
 });
+
+/**
+ * CC 2.1.293 — Claude Haiku 5.5. Rows from the Claude API advisor pairing
+ * table: as an executor it takes Sonnet 5's advisors plus itself; as an
+ * advisor it is accepted by Haiku 4.5, Sonnet 4.6, Sonnet 5 and Opus 4.6.
+ */
+describe("advisorPairingRejected — Haiku 5.5 (CC 2.1.293)", () => {
+  test("a Haiku 5.5 executor accepts Sonnet 5's advisors and itself", () => {
+    for (const advisor of [
+      "claude-opus-5-5",
+      "claude-fable-5-1",
+      "claude-opus-4-8",
+      "claude-opus-4-7",
+      "claude-sonnet-5-5",
+      "claude-sonnet-5",
+      "claude-haiku-5-5",
+    ]) {
+      expect(advisorPairingRejected("claude-haiku-5-5", advisor)).toBe(false);
+    }
+  });
+
+  test("a Haiku 5.5 executor refuses the advisors below it", () => {
+    for (const advisor of ["claude-opus-4-6", "claude-sonnet-4-6", "claude-haiku-4-5"]) {
+      expect(advisorPairingRejected("claude-haiku-5-5", advisor)).toBe(true);
+    }
+  });
+
+  test("Haiku 5.5 is a valid advisor for Haiku 4.5, Sonnet 4.6, Sonnet 5 and Opus 4.6", () => {
+    for (const executor of ["claude-haiku-4-5", "claude-sonnet-4-6", "claude-sonnet-5", "claude-opus-4-6"]) {
+      expect(advisorPairingRejected(executor, "claude-haiku-5-5")).toBe(false);
+    }
+  });
+
+  test("…and refused by the executors above it", () => {
+    for (const executor of ["claude-sonnet-5-5", "claude-opus-4-7", "claude-opus-4-8", "claude-opus-5-5", "claude-fable-5-1"]) {
+      expect(advisorPairingRejected(executor, "claude-haiku-5-5")).toBe(true);
+    }
+  });
+});

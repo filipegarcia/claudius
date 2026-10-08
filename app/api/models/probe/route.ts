@@ -103,10 +103,18 @@ export const PROBE_CANDIDATES: ProbeCandidate[] = [
       "Pinned to Sonnet 4.6. Balanced speed and quality; supports adaptive thinking.",
   },
   {
+    // Claude Code 2.1.293 made Haiku 5.5 the default Haiku ($0.10/$0.50 per
+    // Mtok, 1M context).
+    value: "claude-haiku-5-5",
+    displayName: "Haiku 5.5",
+    description:
+      "Pinned to Haiku 5.5. Fastest responses for lightweight tasks; 1M context.",
+  },
+  {
     value: "claude-haiku-4-5",
     displayName: "Haiku 4.5",
     description:
-      "Pinned to Haiku 4.5. Fastest responses for lightweight tasks.",
+      "Pinned to Haiku 4.5 (prior generation). Fast responses for lightweight tasks.",
   },
 ];
 
