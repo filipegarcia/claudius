@@ -196,5 +196,9 @@ test.describe("CC 2.1.295 — stopping a self-paced /loop", () => {
     await expect(rail.locator("li")).toHaveCount(1);
     await expect(rail).toContainText("waiting on the CI run for the release branch");
     await expect(rail.getByTestId("scheduled-loop-cancel")).toHaveCount(0);
+    // A stopped wake-up never fires — no countdown left ticking toward "due now".
+    await expect(rail).not.toContainText(/fires in/);
+    await expect(rail).not.toContainText(/due now/);
+    await expect(rail).toContainText("stopped");
   });
 });

@@ -61,6 +61,8 @@ export function ScheduledLoops({
         // and we fall back to the raw cron expression.
         const cadence = (() => {
           if (loop.kind === "wakeup") {
+            // A stopped wake-up will never fire — no countdown / "due now".
+            if (loop.cancelled) return "stopped";
             if (loop.delaySeconds == null) return "scheduled";
             const remaining = loop.delaySeconds - elapsed;
             if (remaining <= 0) return "due now";

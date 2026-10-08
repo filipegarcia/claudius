@@ -873,6 +873,8 @@ function SessionLoopsGroup({
             // implied the wake-up was recurring.
             const cadence = (() => {
               if (loop.kind === "wakeup") {
+                // A stopped wake-up will never fire — no countdown / "due now".
+                if (loop.cancelled) return "stopped";
                 if (loop.delaySeconds == null) return "self-paced";
                 const elapsedSec = Math.max(0, (now - loop.startedAt) / 1000);
                 const remaining = loop.delaySeconds - elapsedSec;
