@@ -165,11 +165,11 @@ test.describe("SDK 0.3.190 — seven_day_overage_included rate-limit tier", () =
     // The pill renders the tier label in the headline text.
     // For a rejected pill with seven_day_overage_included, the headline is:
     //   "You've hit your Weekly limit (overage incl.)"
-    const pill = page.getByText(/Weekly limit \(overage incl\.\)/);
+    // Match the full headline: the Activity rail's plan-usage card now shows
+    // the bare "Weekly limit (overage incl.)" label too, so the label alone
+    // matches two elements.
+    const pill = page.getByText(/You've hit your Weekly limit \(overage incl\.\)/);
     await expect(pill).toBeVisible({ timeout: 15_000 });
-
-    // Also confirm the full headline.
-    await expect(page.getByText(/You've hit your Weekly limit \(overage incl\.\)/)).toBeVisible();
 
     // Capture pill in context.
     await pill.scrollIntoViewIfNeeded();
