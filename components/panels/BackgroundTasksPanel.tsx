@@ -23,12 +23,14 @@ import {
   isSystemTask,
 } from "@/lib/client/task-status";
 import type { ContextSummary } from "@/lib/client/useContextWatcher";
+import type { RateLimitInfo } from "@/lib/client/usage-windows";
 import { isStaleWakeup } from "@/lib/shared/session-loops";
 import { CostOverlay } from "@/components/overlays/CostOverlay";
 import { NotificationsDrawer } from "@/components/nav/NotificationsDrawer";
 import { CollapsibleSection } from "./widgets/CollapsibleSection";
 import { SessionCard } from "./widgets/SessionCard";
 import { ContextBar } from "./widgets/ContextBar";
+import { PlanUsageCard } from "./widgets/PlanUsageCard";
 import { TokenMeter } from "./widgets/TokenMeter";
 import { PermissionPending } from "./widgets/PermissionPending";
 import { TodoList } from "./widgets/TodoList";
@@ -59,6 +61,12 @@ type Props = {
   usage: SessionUsage | null;
   /** Plan-level rate-limit utilization from the experimental SDK usage API. */
   planUsage?: PlanRateLimits | null;
+  /**
+   * Latest SDK `rate_limit_event` payload per limit type — the data behind the
+   * chat's "You've used X% of your Weekly limit" pill. Merged with `planUsage`
+   * in the rail's usage card (it's the only source of the hard-stop status).
+   */
+  rateLimitEvents?: readonly RateLimitInfo[];
   /** Account the session is billed to; forwarded to the cost overlay. */
   account?: { id: string; label: string; driftFromActive?: { id: string; label: string } } | null;
   accountsConfigured?: number;
@@ -271,6 +279,7 @@ export function BackgroundTasksPanel({
   advisorModel = null,
   onChangeAdvisorModel,
   planUsage,
+  rateLimitEvents,
   account,
   accountsConfigured,
 }: Props) {
@@ -515,6 +524,19 @@ export function BackgroundTasksPanel({
           half of it would render behind the chat area (see screenshot
           regression). Kept above the scrollable model/session card so the
           bar stays pinned under the Activity header. */}
+      {/* Plan usage — pinned with the notifications bar (outside the scroll
+          container) so how much of the 5-hour / weekly limit is left stays in
+          view however long the rail gets. Renders nothing without plan data. */}
+      <PlanUsageCard
+        className="mx-2 mt-2"
+        planUsage={planUsage}
+        rateLimitEvents={rateLimitEvents}
+        model={model}
+        effort={effort}
+        onChangeModel={onChangeModel}
+        onChangeEffort={onChangeEffort}
+        onOpenDetails={usage ? () => setShowCost(true) : undefined}
+      />
       <div data-pane-name="notifications" className="px-2 pt-2">
         <NotificationsDrawer />
       </div>

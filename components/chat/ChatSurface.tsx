@@ -1970,6 +1970,12 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
   // (manual or summary-derived) increments this; we use the edge as the
   // "compaction finished" signal rather than `pending` alone, since /compact
   // is fired as a slash command and the boundary is the event we care about.
+  // Latest SDK rate-limit payload per limit type (use-session de-dupes the
+  // entries by `rateLimitType`) — fed to the Activity rail's usage card.
+  const rateLimitEvents = useMemo(
+    () => session.systemEntries.flatMap((e) => (e.kind === "rate_limit" && e.rateLimit ? [e.rateLimit] : [])),
+    [session.systemEntries],
+  );
   const compactBoundaryCount = session.systemEntries.filter(
     (e) => e.kind === "compact_boundary",
   ).length;
@@ -2683,6 +2689,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
         cwd={session.cwd}
         usage={session.usage}
         planUsage={session.planUsage}
+        rateLimitEvents={rateLimitEvents}
         historicalTurnCount={session.messages.filter((m) => m.role === "assistant").length}
         ready={session.ready}
         pending={session.pending}
