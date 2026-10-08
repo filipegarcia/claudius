@@ -786,6 +786,9 @@ function PluginRow({
           )}
           {installed?.userConfig && installed.userConfig.length > 0 && (
             <PluginOptionsForm
+              // Remount per scope so a refused write's error doesn't follow
+              // the user onto another scope's settings file.
+              key={scope}
               options={installed.userConfig}
               values={optionValues}
               scope={scope}
