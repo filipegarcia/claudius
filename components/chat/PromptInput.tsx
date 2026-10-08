@@ -588,6 +588,9 @@ export function PromptInput({
     // Switching sessions means a different history — abandon any in-progress
     // recall so the next Cmd/Ctrl+↑ starts fresh from the new session's tail.
     histIdxRef.current = null;
+    // A cleared/replaced draft stashed for ↑-restore belongs to the old
+    // session's composer — don't let it surface in this session's tab.
+    clearedDraftRef.current = null;
   }
   // Guard: if a draft injection was applied but the first seed fetch hasn't
   // resolved yet (seededForSessionRef is null), treat the composer as

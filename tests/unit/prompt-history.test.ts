@@ -82,6 +82,9 @@ describe("historyEntryIndex (CC 2.1.295)", () => {
     expect(historyEntryIndex(["A", "B"], "B")).toBe(0);
     expect(historyEntryIndex(["A", "B"], "B  ")).toBe(0);
   });
+  test("matches a draft carrying image markers against the normalized entry", () => {
+    expect(historyEntryIndex(["A", "fix this"], "[Image #1] fix this")).toBe(0);
+  });
   test("a single entry equal to the draft is still returned", () => {
     expect(historyEntryIndex(["B"], "B")).toBe(0);
   });

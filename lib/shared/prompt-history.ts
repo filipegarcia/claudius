@@ -79,6 +79,8 @@ export function buildPromptHistory(
 export function historyEntryIndex(history: readonly string[], draft: string): number | null {
   if (history.length === 0) return null;
   const last = history.length - 1;
-  if (history[last] === draft.trim() && last > 0) return last - 1;
+  // Compare like-for-like: entries are stored normalized (image markers
+  // stripped), so a lifted "[Image #1] fix this" matches "fix this".
+  if (history[last] === normalizeHistoryText(draft) && last > 0) return last - 1;
   return last;
 }
