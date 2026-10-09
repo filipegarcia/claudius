@@ -52,6 +52,15 @@ describe("extraUsageState (CC 2.1.295)", () => {
     expect(extraUsageState({ overageStatus: "rejected", overageDisabledReason: "fetch_error" })).toBe("off");
   });
 
+  test("SDK 0.3.295 overageEnabled: false → off, true → on", () => {
+    expect(extraUsageState({ overageEnabled: false })).toBe("off");
+    expect(extraUsageState({ overageEnabled: true })).toBe("on");
+    expect(extraUsageState({ overageEnabled: false, isUsingOverage: true })).toBe("off");
+    expect(extraUsageState({ overageEnabled: true, overageStatus: "rejected" })).toBe("off");
+    expect(extraUsageState({ overageEnabled: true, overageDisabledReason: "out_of_credits" })).toBe("off");
+    expect(extraUsageState({ rateLimitType: "overage", overageEnabled: true })).toBeNull();
+  });
+
   test("a warning about the extra-usage limit itself → null", () => {
     expect(extraUsageState({ rateLimitType: "overage", overageStatus: "allowed" })).toBeNull();
     expect(

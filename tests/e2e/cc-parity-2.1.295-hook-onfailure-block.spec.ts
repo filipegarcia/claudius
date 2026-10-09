@@ -5,7 +5,8 @@
  *
  * Claudius's Hooks editor gains a "block on failure" toggle for command/http
  * handlers (saved as `onFailure: "block"`; absent when unchecked), an amber
- * hint when it's combined with `async` (a background hook can't block), and an
+ * hint when it's combined with `async` on a command hook (a background hook
+ * can't block) or set on an event the engine ignores it on (Stop, …), and an
  * "onFailure=block" badge in the handler list (an amber "onFailure ignored"
  * pill instead when the saved handler runs in the background).
  *
@@ -149,4 +150,26 @@ test("Hooks editor saves onFailure: \"block\" and badges the handler", async ({ 
   await expect(page.getByText("(3 configured)")).toBeVisible();
   await expect(page.getByTestId("hook-onfailure-ignored")).toHaveText("onFailure ignored (asyncRewake)");
   await expect(badge).toHaveCount(1);
+
+  // The 2.1.295 engine also ignores the key on Stop / SubagentStop /
+  // TaskCompleted / TeammateIdle — the form hints it, and the list says so.
+  await page.getByRole("button", { name: "Add", exact: true }).click();
+  await expect(form).toBeVisible();
+  await form.locator("select").first().selectOption("Stop");
+  await form.getByPlaceholder("/path/to/script.sh").fill("./scripts/on-stop.sh");
+  await page.getByTestId("hook-onfailure-block-toggle").check();
+  const eventHint = page.getByTestId("hook-onfailure-event-hint");
+  await expect(eventHint).toBeVisible();
+  await expect(eventHint).toContainText("ignores onFailure: block on Stop");
+  await expect(page.getByTestId("hook-onfailure-async-hint")).toHaveCount(0);
+  await form.getByRole("button", { name: "Save" }).click();
+  await expect(form).toHaveCount(0);
+  expect(posted).toHaveLength(4);
+  expect(posted[3].event).toBe("Stop");
+  expect(posted[3].group.hooks[0]).toEqual({ type: "command", command: "./scripts/on-stop.sh", onFailure: "block" });
+  await expect(page.getByText("(4 configured)")).toBeVisible();
+  await page.getByRole("button", { name: /^Stop\b/ }).click();
+  await expect(page.getByTestId("hook-onfailure-ignored").filter({ hasText: "on Stop" })).toHaveText(
+    "onFailure ignored on Stop",
+  );
 });
