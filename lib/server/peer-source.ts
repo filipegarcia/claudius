@@ -1,8 +1,8 @@
 import { createReadStream, promises as fs } from "node:fs";
 import { homedir } from "node:os";
 import { resolve, sep } from "node:path";
-import { createInterface } from "node:readline";
 import { accountsDir } from "./accounts-store";
+import { jsonlLines } from "./jsonl-lines";
 
 /**
  * Resolve a cross-session peer message (`SDKMessageOrigin.kind === "peer"`)
@@ -237,39 +237,38 @@ async function findSenderInFile(
   file: string,
   match: { msgId?: string; snippet?: string },
 ): Promise<PeerSource | null> {
-  const rl = createInterface({ input: createReadStream(file, { encoding: "utf8" }), crlfDelay: Infinity });
+  // `jsonlLines`, not readline: readline splits a record at U+2028/U+2029
+  // and the fragments fail to parse (CC 2.1.296). It destroys the stream
+  // when the loop exits, including the early `return` on a match.
+  const lines = jsonlLines(createReadStream(file, { encoding: "utf8" }));
   // The session's START cwd (first record) — later records track the
   // agent's shell cwd, which may be a subdirectory of the project.
   let startCwd: string | null = null;
-  try {
-    for await (const line of rl) {
-      if (startCwd === null && line.includes('"cwd":"')) {
-        try {
-          const c = (JSON.parse(line) as TranscriptLine).cwd;
-          if (typeof c === "string" && c) startCwd = c;
-        } catch {
-          // ignore
-        }
-      }
-      const byId = match.msgId ? line.includes(match.msgId) : false;
-      const byBody = !byId && match.snippet ? line.includes('"SendMessage"') : false;
-      if (!byId && !byBody) continue;
-      let rec: TranscriptLine;
+  for await (const line of lines) {
+    if (startCwd === null && line.includes('"cwd":"')) {
       try {
-        rec = JSON.parse(line) as TranscriptLine;
+        const c = (JSON.parse(line) as TranscriptLine).cwd;
+        if (typeof c === "string" && c) startCwd = c;
       } catch {
-        continue;
+        // ignore
       }
-      // Structural matches only: the receiver's own transcript (and any
-      // transcript that merely quotes the id or text) carries them elsewhere.
-      const hit = byId ? rec.toolUseResult?.msg_id === match.msgId : isSendMessageFor(rec, match.snippet!);
-      if (!hit) continue;
-      if (typeof rec.sessionId !== "string" || !SESSION_ID_RE.test(rec.sessionId)) continue;
-      const cwd = startCwd ?? (typeof rec.cwd === "string" && rec.cwd ? rec.cwd : null);
-      return { sessionId: rec.sessionId, cwd, name: null, live: false, via: "transcript" };
     }
-  } finally {
-    rl.close();
+    const byId = match.msgId ? line.includes(match.msgId) : false;
+    const byBody = !byId && match.snippet ? line.includes('"SendMessage"') : false;
+    if (!byId && !byBody) continue;
+    let rec: TranscriptLine;
+    try {
+      rec = JSON.parse(line) as TranscriptLine;
+    } catch {
+      continue;
+    }
+    // Structural matches only: the receiver's own transcript (and any
+    // transcript that merely quotes the id or text) carries them elsewhere.
+    const hit = byId ? rec.toolUseResult?.msg_id === match.msgId : isSendMessageFor(rec, match.snippet!);
+    if (!hit) continue;
+    if (typeof rec.sessionId !== "string" || !SESSION_ID_RE.test(rec.sessionId)) continue;
+    const cwd = startCwd ?? (typeof rec.cwd === "string" && rec.cwd ? rec.cwd : null);
+    return { sessionId: rec.sessionId, cwd, name: null, live: false, via: "transcript" };
   }
   return null;
 }

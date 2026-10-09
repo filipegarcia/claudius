@@ -50,6 +50,16 @@ describe("lastRecordedPermissionMode", () => {
     expect(await lastRecordedPermissionMode("s-prompts", CWD)).toBe("plan");
   });
 
+  test("a prompt whose text holds U+2028/U+2029 is still read (CC 2.1.296)", async () => {
+    // JSON.stringify leaves U+2028/U+2029 unescaped; node:readline split the
+    // record there and the fragments failed to parse, so plan was lost.
+    writeTranscript("s-u2028", [
+      prompt("acceptEdits"),
+      prompt("plan", { message: { role: "user", content: "line one\u2028line two\u2029end" } }),
+    ]);
+    expect(await lastRecordedPermissionMode("s-u2028", CWD)).toBe("plan");
+  });
+
   test("a later permission-mode entry overrides the last prompt", async () => {
     writeTranscript("s-switch", [
       prompt("plan"),
