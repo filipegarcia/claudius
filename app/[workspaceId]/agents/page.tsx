@@ -37,6 +37,7 @@ model: claude-opus-4-7
 # Optional advanced fields (uncomment as needed):
 # effort: high                 # low | medium | high | xhigh | max
 # maxTurns: 20                 # cap agentic round-trips before stopping
+# autoCompactWindow: 100000    # token count at which this subagent auto-compacts (can only lower the inherited window)
 # background: false            # run as a non-blocking background task when invoked
 # omitClaudeMd: false          # run without user/project/local CLAUDE.md files (managed policy files still load)
 # memory: project              # user | project | local — auto-load agent memory
@@ -381,6 +382,7 @@ export default function AgentsPage() {
                         omitClaudeMd?: boolean;
                         memory?: string;
                         maxTurns?: number;
+                        autoCompactWindow?: number;
                         permissionMode?: string;
                         skills?: string[];
                         mcpServers?: string[] | Record<string, unknown>;
@@ -401,6 +403,10 @@ export default function AgentsPage() {
                       if (fm.memory) metaBadges.push(`mem:${fm.memory}`);
                       if (fm.isolation === "worktree") metaBadges.push("worktree");
                       if (typeof fm.maxTurns === "number") metaBadges.push(`≤${fm.maxTurns} turns`);
+                      // SDK 0.3.296 — `autoCompactWindow` frontmatter key: the token
+                      // count at which this subagent compacts its own conversation.
+                      if (typeof fm.autoCompactWindow === "number" && fm.autoCompactWindow > 0)
+                        metaBadges.push(`compact@${fm.autoCompactWindow >= 1000 ? `${Math.round(fm.autoCompactWindow / 1000)}k` : fm.autoCompactWindow}`);
                       // CC 2.1.248 (G8) — prompt-cache TTL badge (file agents only;
                       // the programmatic AgentDefinition has no cacheTtl field).
                       if (typeof fm.experimental?.cacheTtl === "string" && fm.experimental.cacheTtl)
