@@ -3,7 +3,7 @@
     "source": "https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json",
     "fetched": "2026-05-28",
     "note": "Claude-model pricing snapshot (USD per token) pruned from LiteLLM. Regenerate with scripts or let runtime refresh overlay a newer copy. Keys starting with _ are ignored by the pricer.",
-    "manualAdditions": "claude-{sonnet-5,sonnet-5-5,opus-5,opus-5-5,fable-5-1} added for CC 2.1.257/284/219/280 parity (snapshot predates them)"
+    "manualAdditions": "claude-{sonnet-5,sonnet-5-5,opus-5,opus-5-5,fable-5-1} added for CC 2.1.257/284/219/280 parity (snapshot predates them); claude-sonnet-5-5 cache read lowered to $0.10/MT for CC 2.1.296"
   },
   "anthropic.claude-3-5-haiku-20241022-v1:0": {
     "input_cost_per_token": 8e-7,
@@ -1294,7 +1294,7 @@
     "input_cost_per_token": 0.000002,
     "output_cost_per_token": 0.00001,
     "cache_creation_input_token_cost": 0.0000025,
-    "cache_read_input_token_cost": 2e-7
+    "cache_read_input_token_cost": 1e-7
   },
   "claude-opus-5": {
     "input_cost_per_token": 0.000005,

@@ -17,10 +17,15 @@ describe("priceFor — current-generation models (E1)", () => {
     expect([p.input, p.output, p.cacheRead]).toEqual([5, 25, 0.5]);
   });
 
-  test("Sonnet 5 and 5.5 are $2/$10, cache read $0.20", () => {
-    for (const id of ["claude-sonnet-5", "claude-sonnet-5-5"]) {
+  test("Sonnet 5 is $2/$10, cache read $0.20", () => {
+    const p = priceFor("claude-sonnet-5");
+    expect([p.input, p.output, p.cacheRead]).toEqual([2, 10, 0.2]);
+  });
+
+  test("Sonnet 5.5 is $2/$10, cache read $0.10 (CC 2.1.296, was $0.20)", () => {
+    for (const id of ["claude-sonnet-5-5", "us.anthropic.claude-sonnet-5-5-v1:0", "claude-sonnet-5.5"]) {
       const p = priceFor(id);
-      expect([p.input, p.output, p.cacheRead]).toEqual([2, 10, 0.2]);
+      expect([p.input, p.output, p.cacheRead, p.cacheWrite5m, p.cacheWrite1h]).toEqual([2, 10, 0.1, 2.5, 4]);
     }
   });
 
