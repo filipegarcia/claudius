@@ -189,6 +189,8 @@ function isAnthropicsGithubSource(source: unknown): boolean {
  * suffix (`npm`, `gh`, …) or a built-in plugin source (`builtin`, `inline`,
  * …). The CLI also refuses Anthropic's reserved
  * marketplace names unless the source is a GitHub repo under `anthropics/`.
+ * Since CC 2.1.296 it also refuses a name that is an own key of
+ * `Object.prototype` (`constructor`, `toString`, …).
  *
  * `source` is the source the name will be registered with (pass the one being
  * typed so the reserved-name warning clears for an `anthropics/…` repo; when

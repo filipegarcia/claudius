@@ -3461,7 +3461,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
             const idx = prev.findIndex((r) => r.toolUseId === result.tool_use_id);
             if (idx === -1) return prev;
             const copy = prev.slice();
-            copy[idx] = { ...copy[idx], done: true, isError: result.isError };
+            copy[idx] = { ...copy[idx], done: true, isError: result.isError, ...(result.notRun ? { notRun: true } : {}) };
             return copy;
           });
           // Reconcile subagent (Task) status off its tool_result. The SDK's

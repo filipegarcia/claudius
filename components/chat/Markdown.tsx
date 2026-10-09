@@ -8,7 +8,7 @@ import remarkGfm from "remark-gfm";
 import { ChevronDown, ChevronRight, ExternalLink, Globe, ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useFileLink } from "@/lib/client/file-link-context";
-import { filesHref, isLocalFileRef, looksLikeFilePath, stripLineSuffix, toWorkspaceRelative } from "@/lib/client/file-paths";
+import { filesHref, isLocalFileRef, looksLikeFilePath, normalizeLocalPath, stripLineSuffix, toWorkspaceRelative } from "@/lib/client/file-paths";
 import { IMAGE_EXTS, HTML_EXTS } from "@/lib/shared/file-types";
 import { isMarkdownTooDeep } from "@/lib/shared/markdown-nesting";
 import { CodeBlock } from "./CodeBlock";
@@ -110,7 +110,7 @@ function MarkdownLink({
   // to "" anyway — see `chatUrlTransform`).
   if (isLocalFileRef(raw)) {
     return (
-      <span data-testid="markdown-local-link-outside" title={`${raw} — outside this workspace, not linked`}>
+      <span data-testid="markdown-local-link-outside" title={`${normalizeLocalPath(raw)} — outside this workspace, not linked`}>
         {children}
       </span>
     );

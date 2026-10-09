@@ -25,6 +25,8 @@ describe("normalizeLocalPath", () => {
     expect(normalizeLocalPath("file:///C:/repo/src/a.ts")).toBe("C:/repo/src/a.ts");
     expect(normalizeLocalPath("file:///C:/my%20repo/a.ts")).toBe("C:/my repo/a.ts");
     expect(normalizeLocalPath("file:///home/me/repo/a.ts")).toBe("/home/me/repo/a.ts");
+    // Decoded exactly once: a literal "%41" in the file name stays "%41".
+    expect(normalizeLocalPath("file:///C:/repo/a%2541.ts")).toBe("C:/repo/a%41.ts");
   });
 
   test("UNC file URLs, malformed escapes and ordinary text are left alone", () => {

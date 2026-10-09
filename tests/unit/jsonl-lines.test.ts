@@ -29,6 +29,21 @@ describe("jsonlLines", () => {
     expect(await collect(["x\ny"])).toEqual(["x", "y"]);
   });
 
+  test("a multi-byte UTF-8 character split across Buffer chunks survives", async () => {
+    const bytes = Buffer.from('{"t":"é\u2028"}\n', "utf8");
+    const out: string[] = [];
+    // Split inside the 2-byte "é" and inside the 3-byte U+2028.
+    const parts = [bytes.subarray(0, 7), bytes.subarray(7, 10), bytes.subarray(10)];
+    for await (const line of jsonlLines(Readable.from(parts))) out.push(line);
+    expect(out).toEqual(['{"t":"é\u2028"}']);
+  });
+
+  test("a long line spread over many chunks is reassembled (linear, not rescanned)", async () => {
+    const big = "x".repeat(4_000_000);
+    const chunks = big.match(/.{1,65536}/g)!.concat(["\n", "tail"]);
+    expect(await collect(chunks)).toEqual([big, "tail"]);
+  });
+
   test("destroys the stream when the consumer stops early", async () => {
     const stream = Readable.from(["a\nb\nc\n"]);
     for await (const line of jsonlLines(stream)) {

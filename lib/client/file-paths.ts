@@ -62,7 +62,9 @@ export function normalizeLocalPath(raw: string): string {
     }
     if (/^\/[A-Za-z]:[\\/]/.test(rest)) rest = rest.slice(1); // /C:/… → C:/…
     else if (!rest.startsWith("/")) return p; // file://host/share — UNC, not handled
-    p = rest;
+    // Already decoded once — don't fall into the drive branch's decode below
+    // (a literal `%41` in the name must stay `%41`).
+    return DRIVE_REF_RE.test(rest) ? rest.replace(/\\/g, "/") : rest;
   }
   if (DRIVE_REF_RE.test(p)) {
     // A markdown href is percent-encoded (`C:%5Crepo%5Ca.ts`); decode it.

@@ -580,6 +580,8 @@ export type RecentEdit = {
   /** When set, the tool_result has landed. */
   done?: boolean;
   isError?: boolean;
+  /** CC 2.1.296 — auto mode's check had no usable answer; the edit never ran. */
+  notRun?: boolean;
 };
 
 /**
