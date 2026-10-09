@@ -2,13 +2,13 @@
 
 import { Component, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
-import ReactMarkdown, { type Components } from "react-markdown";
+import ReactMarkdown, { defaultUrlTransform, type Components, type UrlTransform } from "react-markdown";
 import remarkBreaks from "remark-breaks";
 import remarkGfm from "remark-gfm";
 import { ChevronDown, ChevronRight, ExternalLink, Globe, ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useFileLink } from "@/lib/client/file-link-context";
-import { filesHref, looksLikeFilePath, stripLineSuffix, toWorkspaceRelative } from "@/lib/client/file-paths";
+import { filesHref, isLocalFileRef, looksLikeFilePath, stripLineSuffix, toWorkspaceRelative } from "@/lib/client/file-paths";
 import { IMAGE_EXTS, HTML_EXTS } from "@/lib/shared/file-types";
 import { isMarkdownTooDeep } from "@/lib/shared/markdown-nesting";
 import { CodeBlock } from "./CodeBlock";
@@ -103,12 +103,37 @@ function MarkdownLink({
       </Link>
     );
   }
+  // CC 2.1.296 — a `file://` / `C:\…` href that does NOT resolve inside the
+  // workspace is never handed to the OS: Electron's window-open handler
+  // would pass it to `shell.openExternal`, which launches the file. Render
+  // the link text plainly instead (react-markdown used to strip these hrefs
+  // to "" anyway — see `chatUrlTransform`).
+  if (isLocalFileRef(raw)) {
+    return (
+      <span data-testid="markdown-local-link-outside" title={`${raw} — outside this workspace, not linked`}>
+        {children}
+      </span>
+    );
+  }
   return (
     <a href={href} target="_blank" rel="noreferrer" className={LINK_CLASS}>
       {children}
     </a>
   );
 }
+
+/**
+ * CC 2.1.296 ([VSCode] "chat links written as a full Windows path, such as
+ * C:\repo\file.ts or file:///C:/repo/file.ts, not opening the file") —
+ * react-markdown's default transform reads `C:` and `file:` as unsafe
+ * protocols and empties the href, so `MarkdownLink` never saw the path.
+ * Keep those two local-file forms on `<a href>` only — `MarkdownLink` then
+ * routes in-workspace ones to the Files browser and renders the rest as plain
+ * text. Every other URL (incl. `javascript:`) still goes through the default
+ * sanitiser, and image `src`s are untouched.
+ */
+const chatUrlTransform: UrlTransform = (url, key, node) =>
+  key === "href" && node.tagName === "a" && isLocalFileRef(url) ? url : defaultUrlTransform(url);
 
 /**
  * Card-style file preview renderer for Markdown `![alt](src)` nodes.
@@ -439,6 +464,7 @@ export function Markdown({
       <ReactMarkdown
         remarkPlugins={breaks ? [remarkGfm, remarkBreaks] : [remarkGfm]}
         components={componentsForRender}
+        urlTransform={chatUrlTransform}
       >
         {children}
       </ReactMarkdown>
