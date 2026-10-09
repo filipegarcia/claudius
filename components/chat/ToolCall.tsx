@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ChevronDown, ChevronRight, Wrench, AlertCircle, CheckCircle2, Clock, ExternalLink, MessageCircleQuestion, MessageSquareHeart, Paperclip } from "lucide-react";
+import { ChevronDown, ChevronRight, Wrench, AlertCircle, CheckCircle2, Clock, ExternalLink, MessageCircleQuestion, MessageSquareHeart, MinusCircle, Paperclip } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { buildEditorUrl, pathFromToolInput, useEditor } from "@/lib/client/ide";
 import { useFileLink } from "@/lib/client/file-link-context";
@@ -54,7 +54,7 @@ const SCHEDULE_ACTION_LABELS: Record<string, string> = {
 type Props = {
   name: string;
   input: Record<string, unknown>;
-  result?: { content: string; isError?: boolean; staged?: boolean; detached?: boolean };
+  result?: { content: string; isError?: boolean; staged?: boolean; detached?: boolean; notRun?: boolean };
   /**
    * Client-stamped wall-clock start (epoch ms) for this tool_use, from
    * `DisplayBlock`'s `startedAt`. Drives the live "Xs" / "Xm Ys" elapsed
@@ -136,7 +136,11 @@ export function ToolCall({
         : !result
           ? "running"
           : result.isError
-            ? "error"
+            ? // CC 2.1.296 — auto mode's check had no usable answer, so the
+              // call never ran: a dim "Not run" row, not a red error.
+              result.notRun
+              ? "notrun"
+              : "error"
             : "ok";
   // SDK 0.3.272 — `FileEditOutput`/`FileWriteOutput` gained `staged`: true
   // when the edit/write was held for the machine owner to review instead of
@@ -201,7 +205,11 @@ export function ToolCall({
       data-testid="tool-call"
       data-tool-name={name}
       data-open={open ? "1" : "0"}
-      className="my-2 rounded-lg border border-[var(--border)] bg-[var(--panel)]/40"
+      data-not-run={status === "notrun" ? "1" : undefined}
+      className={cn(
+        "my-2 rounded-lg border border-[var(--border)] bg-[var(--panel)]/40",
+        status === "notrun" && "opacity-60",
+      )}
     >
       {/* The header row is a flex container — the toggle button covers the
           left/center, the Answer pill (if present) and status icon sit on the
@@ -319,6 +327,16 @@ export function ToolCall({
           )}
           {status === "ok" && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />}
           {status === "error" && <AlertCircle className="h-3.5 w-3.5 text-red-500" />}
+          {status === "notrun" && (
+            <span
+              data-testid="tool-call-not-run"
+              className="inline-flex items-center gap-1 text-[10px] text-[var(--muted)]"
+              title="Not run — auto mode's check had no usable answer, so this tool call was skipped"
+            >
+              <MinusCircle className="h-3.5 w-3.5" />
+              Not run
+            </span>
+          )}
         </span>
       </div>
       {/* Inline file preview — shown OUTSIDE the JSON expander so it's visible
@@ -378,12 +396,13 @@ export function ToolCall({
           {result && (
             <div className="px-3 pb-2">
               <div className="mb-1 text-[10px] uppercase tracking-wide text-[var(--muted)]">
-                {result.isError ? "error" : "result"}
+                {status === "notrun" ? "not run" : result.isError ? "error" : "result"}
               </div>
               <pre
                 className={cn(
                   "max-h-80 overflow-auto rounded bg-[var(--panel-2)] p-2 font-mono text-xs scroll-thin",
-                  result.isError && "text-red-400",
+                  result.isError && status !== "notrun" && "text-red-400",
+                  status === "notrun" && "text-[var(--muted)]",
                 )}
               >
                 {result.content}

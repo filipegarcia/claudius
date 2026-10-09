@@ -706,6 +706,27 @@ function summarizeEventForDebug(ev: unknown): string {
 }
 
 /**
+ * CC 2.1.296 — "a tool call that wasn't run because auto mode's check had no
+ * usable answer now shows as a dim 'Not run' row instead of a red error".
+ * The engine tags such results on the wrapper `SDKUserMessage` with
+ * `tool_result_meta: [{ id, non_execution_kind: "automode-unavailable", … }]`
+ * (an @internal field — absent from the public `sdk.d.ts`, present in the
+ * bundled CLI's output schema), so it is read defensively here. Only
+ * `automode-unavailable` is dimmed, like the CLI: a blocked call
+ * (`automode-blocked`), a user rejection or an interrupt stays an error.
+ */
+function isAutoModeUnavailable(toolResultMeta: unknown, toolUseId: string): boolean {
+  if (!Array.isArray(toolResultMeta)) return false;
+  return toolResultMeta.some(
+    (m) =>
+      !!m &&
+      typeof m === "object" &&
+      (m as { id?: unknown }).id === toolUseId &&
+      (m as { non_execution_kind?: unknown }).non_execution_kind === "automode-unavailable",
+  );
+}
+
+/**
  * @param toolUseResult The wrapper `SDKUserMessage`'s `tool_use_result` —
  *   "Structured tool output — the tool's full Output object, not the string
  *   content sent to the model" (sdk.d.ts). SDK 0.3.272 added `staged` to
@@ -724,7 +745,8 @@ function summarizeEventForDebug(ev: unknown): string {
 export function extractToolResult(
   content: unknown,
   toolUseResult?: unknown,
-): { tool_use_id: string; text: string; isError?: boolean; staged?: boolean; detached?: boolean } | null {
+  toolResultMeta?: unknown,
+): { tool_use_id: string; text: string; isError?: boolean; staged?: boolean; detached?: boolean; notRun?: boolean } | null {
   if (!Array.isArray(content)) return null;
   for (const raw of content as SDKContentBlock[]) {
     if (raw.type === "tool_result") {
@@ -738,12 +760,14 @@ export function extractToolResult(
       const tur = toolUseResult && typeof toolUseResult === "object" ? (toolUseResult as Record<string, unknown>) : null;
       const staged = tur?.staged === true;
       const detached = tur?.detachedToolCall === true;
+      const notRun = tr.is_error === true && isAutoModeUnavailable(toolResultMeta, tr.tool_use_id);
       return {
         tool_use_id: tr.tool_use_id,
         text,
         isError: tr.is_error,
         ...(staged ? { staged } : {}),
         ...(detached ? { detached } : {}),
+        ...(notRun ? { notRun } : {}),
       };
     }
   }
@@ -3381,7 +3405,11 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
         const inner = (msg as { message: { content?: unknown } }).message;
         const isSynthetic = (msg as { isSynthetic?: boolean }).isSynthetic === true;
         const parent = (msg as { parent_tool_use_id?: string | null }).parent_tool_use_id ?? null;
-        const result = extractToolResult(inner?.content, (msg as { tool_use_result?: unknown }).tool_use_result);
+        const result = extractToolResult(
+          inner?.content,
+          (msg as { tool_use_result?: unknown }).tool_use_result,
+          (msg as { tool_result_meta?: unknown }).tool_result_meta,
+        );
         if (result) {
           // Tool results land on whichever tool_use carries that id, in main or subagent.
           setMessages((prev) =>
@@ -3389,7 +3417,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
               ...m,
               blocks: m.blocks.map((b) =>
                 b.kind === "tool_use" && b.id === result.tool_use_id
-                  ? { ...b, result: { content: result.text, isError: result.isError, staged: result.staged, detached: result.detached } }
+                  ? { ...b, result: { content: result.text, isError: result.isError, staged: result.staged, detached: result.detached, notRun: result.notRun } }
                   : b,
               ),
             })),
@@ -3401,7 +3429,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
                 ...m,
                 blocks: m.blocks.map((b) =>
                   b.kind === "tool_use" && b.id === result.tool_use_id
-                    ? { ...b, result: { content: result.text, isError: result.isError, staged: result.staged, detached: result.detached } }
+                    ? { ...b, result: { content: result.text, isError: result.isError, staged: result.staged, detached: result.detached, notRun: result.notRun } }
                     : b,
                 ),
               }));
@@ -3424,6 +3452,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
               done: true,
               endedAt: Date.now(),
               isError: result.isError,
+              ...(result.notRun ? { notRun: true } : {}),
             };
             return copy;
           });
@@ -6717,7 +6746,11 @@ export function synthesizeOlder(raw: Array<Record<string, unknown>>): {
     }
 
     // user — could be plain text input, or a tool_result envelope.
-    const tr = extractToolResult(content, (r as { tool_use_result?: unknown }).tool_use_result);
+    const tr = extractToolResult(
+      content,
+      (r as { tool_use_result?: unknown }).tool_use_result,
+      (r as { tool_result_meta?: unknown }).tool_result_meta,
+    );
     if (tr) {
       // Walk back through `out` and patch the matching tool_use block.
       for (let i = out.length - 1; i >= 0; i--) {
@@ -6727,7 +6760,7 @@ export function synthesizeOlder(raw: Array<Record<string, unknown>>): {
         if (idx === -1) continue;
         const blk = m.blocks[idx];
         if (blk.kind !== "tool_use") break;
-        const patched = { ...blk, result: { content: tr.text, isError: tr.isError, staged: tr.staged, detached: tr.detached } };
+        const patched = { ...blk, result: { content: tr.text, isError: tr.isError, staged: tr.staged, detached: tr.detached, notRun: tr.notRun } };
         const blocks = m.blocks.slice();
         blocks[idx] = patched;
         out[i] = { ...m, blocks };

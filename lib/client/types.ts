@@ -44,9 +44,11 @@ export type DisplayBlock =
       /**
        * `detached`: SDK 0.3.287 — a WebFetch/WebSearch moved to the
        * background for a priority "now" message; its real result lands in a
-       * later turn.
+       * later turn. `notRun`: CC 2.1.296 — an error result the engine tagged
+       * `automode-unavailable` (auto mode's check had no usable answer, so the
+       * call never ran); rendered as a dim "Not run" row, not a red error.
        */
-      result?: { content: string; isError?: boolean; staged?: boolean; detached?: boolean };
+      result?: { content: string; isError?: boolean; staged?: boolean; detached?: boolean; notRun?: boolean };
       /**
        * Client-stamped wall-clock start (epoch ms), set the first time this
        * tool_use block is built and preserved across scratch-buffer rebuilds
@@ -595,6 +597,12 @@ export type ToolHistoryEntry = {
   endedAt?: number;
   done?: boolean;
   isError?: boolean;
+  /**
+   * CC 2.1.296 — the error result was auto mode's "no usable answer"
+   * (`automode-unavailable`): the call never ran. The Tools rail shows it
+   * dim and neutral instead of red, like the chat row.
+   */
+  notRun?: boolean;
   /** Set when the tool was invoked by a subagent. */
   parentToolUseId?: string | null;
   /**
