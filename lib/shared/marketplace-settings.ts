@@ -205,8 +205,9 @@ export function addExtraMarketplace(raw: unknown, name: string, source: Marketpl
   const base = isObject(raw) ? (raw as Record<string, { source: MarketplaceSource }>) : {};
   // Refuse to overwrite an existing entry — silently replacing it would drop
   // its `headers`/`headersHelper`/ref, the exact corruption G1 set out to fix.
-  // `Object.hasOwn`, not `in` — `in` sees inherited keys, so a (valid) name
-  // like "constructor" would be refused as "already exists".
+  // `Object.hasOwn`, not `in` — `in` sees inherited keys. (Exact
+  // `Object.prototype` keys like "constructor" are refused by
+  // `lintMarketplaceName` since CC 2.1.296; this guards everything else.)
   if (Object.hasOwn(base, trimmed)) {
     return { ok: false, error: `A marketplace named "${trimmed}" already exists — remove it first.` };
   }
