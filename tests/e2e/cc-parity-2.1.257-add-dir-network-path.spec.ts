@@ -37,6 +37,10 @@ test.describe("CC 2.1.257 — /add-dir refuses network paths", () => {
     await expect(composer).toBeEnabled({ timeout: 30_000 });
     await page.waitForTimeout(500);
 
+    // Clear any draft a prior spec left in the shared session's composer
+    // (e.g. the slash-picker-typo spec leaves "/cs"), which would otherwise
+    // be prepended to the command and turn it into "/cs/add-dir ...".
+    await composer.fill("");
     await composer.click();
     await composer.pressSequentially("/add-dir \\\\fileserver\\share\\project", { delay: 20 });
     await page.waitForTimeout(150);
