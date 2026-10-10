@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { promises as fs } from "node:fs";
+import { createReadStream, promises as fs } from "node:fs";
 import { join, relative, sep } from "node:path";
 
 /**
@@ -29,9 +29,14 @@ export const TREE_SKIP_DIRS = new Set([
 const TREE_SKIP_FILES = new Set([".DS_Store"]);
 
 export async function hashFile(absPath: string): Promise<string> {
-  const buf = await fs.readFile(absPath);
+  // Stream rather than `fs.readFile`: readFile throws ERR_FS_FILE_TOO_LARGE
+  // above 2 GiB, and the live-source walk can meet a huge log/artifact that
+  // isn't in the skip lists (it failed customization bootstrap with an ~11 GB
+  // dev-server log under `.claudius/`).
   const h = createHash("sha1");
-  h.update(buf);
+  for await (const chunk of createReadStream(absPath)) {
+    h.update(chunk as Buffer);
+  }
   return h.digest("hex");
 }
 
