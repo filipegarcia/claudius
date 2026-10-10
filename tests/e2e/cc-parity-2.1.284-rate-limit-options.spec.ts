@@ -52,7 +52,6 @@ test.describe("CC 2.1.284 — /rate-limit-options slash command", () => {
       fullPage: false,
     });
 
-    // Generous: the first visit to /usage cold-compiles the route in `next dev`.
-    await expect(page).toHaveURL(/\/usage$/, { timeout: 30_000 });
+    await expect(page).toHaveURL(/\/usage$/, { timeout: 5_000 });
   });
 });

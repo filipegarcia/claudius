@@ -65,6 +65,14 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
+// The dev-emitted permission_request lives in the shared notification bus for
+// the whole run. Left unread it leaks into later specs (it broke
+// cc-parity-2.1.284-rate-limit-options' router.push("/usage") in full-suite
+// order), so mark everything read once the test is done.
+test.afterEach(async ({ request, baseURL }) => {
+  await clearAllWorkspacesUnread(request, baseURL);
+});
+
 test.describe("CC 2.1.283 — blocked-session peek click-to-expand", () => {
   test("a long blocked question truncates with an expand toggle that reveals the full text", async ({
     page,
