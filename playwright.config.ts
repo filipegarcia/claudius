@@ -57,7 +57,11 @@ export default defineConfig({
 
   use: {
     baseURL: BASE_URL,
-    trace: "on",
+    // "retain-on-failure" rather than "on": with "on", finalizing the trace zip
+    // stalls ~50s for some specs (e.g. cc-parity-2.1.207-disable-auto-mode — body
+    // passes in 7s, then teardown blows the 60s test timeout). Failing tests
+    // still keep their trace.
+    trace: "retain-on-failure",
     screenshot: "only-on-failure",
     video: "retain-on-failure",
     headless: !!process.env.CI,

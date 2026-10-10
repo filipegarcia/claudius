@@ -82,6 +82,10 @@ export function coerceAgentDefinition(input: unknown): AgentDefinition | null {
   if (typeof o.model === "string") def.model = o.model;
   if (typeof o.initialPrompt === "string") def.initialPrompt = o.initialPrompt;
   if (typeof o.maxTurns === "number") def.maxTurns = o.maxTurns;
+  // SDK 0.3.296 — token count at which this agent compacts its own
+  // conversation when it runs as a subagent (only lowers the inherited window).
+  if (typeof o.autoCompactWindow === "number" && Number.isFinite(o.autoCompactWindow) && o.autoCompactWindow > 0)
+    def.autoCompactWindow = o.autoCompactWindow;
   if (typeof o.background === "boolean") def.background = o.background;
   // SDK 0.3.271 — run this agent without the user/project/local CLAUDE.md
   // instruction files when it runs as a subagent (managed policy files still

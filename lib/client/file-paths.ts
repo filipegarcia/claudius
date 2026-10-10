@@ -18,6 +18,68 @@ function stripTrailingSlash(s: string): string {
 
 const URL_SCHEME_RE = /^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//;
 
+/** `C:/…` — a Windows drive-letter absolute path, after normalisation. */
+const DRIVE_PATH_RE = /^[A-Za-z]:\//;
+/**
+ * A raw local-file reference: `file://…` or `C:\…` / `C:/…`. Markdown link
+ * destinations arrive percent-encoded (micromark's `normalizeUri` turns `\`
+ * into `%5C`), so `C:%5C…` counts too.
+ */
+const LOCAL_FILE_REF_RE = /^(?:file:\/\/|[A-Za-z]:(?:[\\/]|%5C))/i;
+/** Drive-letter path, raw or percent-encoded (`C:\`, `C:/`, `C:%5C`). */
+const DRIVE_REF_RE = /^[A-Za-z]:(?:[\\/]|%5C)/i;
+
+/**
+ * True when `href` is a local-file reference — a `file://` URL or a Windows
+ * drive-letter path. The chat routes these to the Files browser when they
+ * resolve inside the workspace and never hands them to the OS otherwise.
+ */
+export function isLocalFileRef(href: string): boolean {
+  return LOCAL_FILE_REF_RE.test(href.trim());
+}
+
+/**
+ * CC 2.1.296 ([VSCode] "chat links written as a full Windows path, such as
+ * C:\repo\file.ts or file:///C:/repo/file.ts, not opening the file") —
+ * normalise the local-file spellings to one forward-slash form so the
+ * workspace-prefix check below can match them:
+ *
+ *  - `file:///C:/repo/a.ts` → `C:/repo/a.ts`; `file:///home/u/a.ts` →
+ *    `/home/u/a.ts` (percent-escapes decoded). A `file://host/…` UNC URL is
+ *    returned unchanged (still a URL — never linkified).
+ *  - `C:\repo\a.ts` (or a markdown href's `C:%5Crepo%5Ca.ts`) → `C:/repo/a.ts`.
+ *
+ * Anything else is returned trimmed but otherwise untouched.
+ */
+export function normalizeLocalPath(raw: string): string {
+  let p = raw.trim();
+  if (/^file:\/\//i.test(p)) {
+    let rest = p.slice("file://".length);
+    try {
+      rest = decodeURIComponent(rest);
+    } catch {
+      return p; // malformed escape — leave it as an (unlinkable) URL
+    }
+    if (/^\/[A-Za-z]:[\\/]/.test(rest)) rest = rest.slice(1); // /C:/… → C:/…
+    else if (!rest.startsWith("/")) return p; // file://host/share — UNC, not handled
+    // Already decoded once — don't fall into the drive branch's decode below
+    // (a literal `%41` in the name must stay `%41`).
+    return DRIVE_REF_RE.test(rest) ? rest.replace(/\\/g, "/") : rest;
+  }
+  if (DRIVE_REF_RE.test(p)) {
+    // A markdown href is percent-encoded (`C:%5Crepo%5Ca.ts`); decode it.
+    if (p.includes("%")) {
+      try {
+        p = decodeURIComponent(p);
+      } catch {
+        return p;
+      }
+    }
+    p = p.replace(/\\/g, "/");
+  }
+  return p;
+}
+
 /**
  * Resolve `raw` to a workspace-root-relative path (forward-slash), or null
  * when it isn't a file inside the workspace. `cwd` is the workspace root
@@ -25,18 +87,22 @@ const URL_SCHEME_RE = /^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//;
  */
 export function toWorkspaceRelative(raw: string, cwd: string): string | null {
   if (!raw || typeof raw !== "string") return null;
-  let p = raw.trim();
+  let p = normalizeLocalPath(raw);
   if (!p) return null;
-  if (URL_SCHEME_RE.test(p)) return null; // http://, file://, vscode://, …
+  if (URL_SCHEME_RE.test(p)) return null; // http://, file://host/…, vscode://, …
   if (p.startsWith("@")) return null; // npm scope specifier
   if (p.startsWith("~")) return null; // home shorthand — not workspace-relative
 
-  const root = stripTrailingSlash(cwd ?? "");
-  if (p.startsWith("/")) {
+  const root = stripTrailingSlash(normalizeLocalPath(cwd ?? ""));
+  const isDrive = DRIVE_PATH_RE.test(p);
+  if (p.startsWith("/") || isDrive) {
     // Absolute path — linkable only when it lives under the workspace root.
     if (!root) return null;
-    if (p === root) return null; // the root dir itself: nothing to open
-    if (!p.startsWith(root + "/")) return null;
+    // Windows paths compare case-insensitively (C:\Repo ≡ c:\repo).
+    const cmp = isDrive ? p.toLowerCase() : p;
+    const cmpRoot = isDrive ? root.toLowerCase() : root;
+    if (cmp === cmpRoot) return null; // the root dir itself: nothing to open
+    if (!cmp.startsWith(cmpRoot + "/")) return null;
     p = p.slice(root.length + 1);
   } else {
     p = p.replace(/^\.\/+/, ""); // drop a leading ./
@@ -67,7 +133,7 @@ export function stripLineSuffix(s: string): string {
  */
 export function looksLikeFilePath(s: string): boolean {
   if (!s) return false;
-  const t = stripLineSuffix(s.trim());
+  const t = stripLineSuffix(normalizeLocalPath(s));
   if (!t || t.length > 200) return false;
   if (PATH_PUNCT_RE.test(t)) return false; // spaces / code-ish punctuation
   if (t.startsWith("@") || t.startsWith("~")) return false;

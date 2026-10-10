@@ -210,7 +210,12 @@ test.describe("MCP elicitation (SDK onElicitation)", () => {
     await expect(modal).toBeVisible();
 
     // The "I'm done, continue" button is now shown; clicking it accepts.
-    await page.getByTestId("mcp-elicitation-done").click();
+    // The mocked SSE stream ends and reconnects, replaying the pending
+    // prompt, so the modal can remount under the click on a loaded machine —
+    // retry the click until it lands instead of failing on "detached".
+    await expect(async () => {
+      await page.getByTestId("mcp-elicitation-done").click({ timeout: 3_000 });
+    }).toPass({ timeout: 30_000 });
     await expect(modal).toHaveCount(0);
     expect(posted.map((p) => p.body)).toEqual([
       { requestId: "eli-nocomplete", decision: { action: "accept" } },

@@ -189,6 +189,8 @@ function isAnthropicsGithubSource(source: unknown): boolean {
  * suffix (`npm`, `gh`, …) or a built-in plugin source (`builtin`, `inline`,
  * …). The CLI also refuses Anthropic's reserved
  * marketplace names unless the source is a GitHub repo under `anthropics/`.
+ * Since CC 2.1.296 it also refuses a name that is an own key of
+ * `Object.prototype` (`constructor`, `toString`, …).
  *
  * `source` is the source the name will be registered with (pass the one being
  * typed so the reserved-name warning clears for an `anthropics/…` repo; when
@@ -201,6 +203,17 @@ export function lintMarketplaceName(name: string, source?: unknown): PluginLintW
   if (!NAME_RE.test(trimmed) || trimmed.includes("..")) {
     return {
       message: `“${trimmed}” can't be used as a marketplace name — plugins are installed as <plugin>@<marketplace>, so use letters, digits, “.”, “-”, or “_” (starting with a letter or digit).`,
+    };
+  }
+  // CC 2.1.296 — `marketplace add` refuses a name that is an own key of
+  // `Object.prototype` (`constructor`, `toString`, `valueOf`, …): the engine's
+  // marketplace maps are plain objects, so such a name made `marketplace
+  // update` / `plugin install` fail with an internal error. Exact,
+  // case-sensitive own-key lookup — the CLI's check (`prototype` is not an own
+  // key, so it stays allowed; `__proto__` already fails NAME_RE).
+  if (Object.hasOwn(Object.prototype, trimmed)) {
+    return {
+      message: `“${trimmed}” is reserved by Claude Code and can't be used as a marketplace name — use another name.`,
     };
   }
   const lower = trimmed.toLowerCase();

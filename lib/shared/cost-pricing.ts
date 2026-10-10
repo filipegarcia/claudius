@@ -60,8 +60,10 @@ const OPUS_5: Pricing = { input: 5, output: 25, cacheRead: 0.5, cacheWrite5m: 6.
 // rates aren't published in the changelog: read at the usual 0.1x of input,
 // write at the standard 1.25x (5m) / 2x (1h).
 const HAIKU_5_5: Pricing = { input: 0.1, output: 0.5, cacheRead: 0.01, cacheWrite5m: 0.125, cacheWrite1h: 0.2 };
-// Sonnet 5 / 5.5 share a price point.
+// Sonnet 5 / 5.5 share input/output/cache-write rates. CC 2.1.296 repriced
+// Sonnet 5.5 cache reads to $0.10/MT (was $0.20); Sonnet 5 keeps $0.20.
 const SONNET_5: Pricing = { input: 2, output: 10, cacheRead: 0.2, cacheWrite5m: 2.5, cacheWrite1h: 4 };
+const SONNET_5_5: Pricing = { ...SONNET_5, cacheRead: 0.1 };
 // Fable 5.1 (current). Fable 5 differs only in cache-read ($1.00); prior gen.
 const FABLE_5_1: Pricing = { input: 10, output: 50, cacheRead: 0.25, cacheWrite5m: 12.5, cacheWrite1h: 20 };
 const FABLE_5: Pricing = { input: 10, output: 50, cacheRead: 1, cacheWrite5m: 12.5, cacheWrite1h: 20 };
@@ -77,7 +79,8 @@ export function priceFor(model: string | undefined): Pricing {
   if (m.includes("haiku")) return HAIKU;
   if (m.includes("fable-5-1") || m.includes("fable-5.1")) return FABLE_5_1;
   if (m.includes("fable")) return FABLE_5;
-  if (m.includes("sonnet-5")) return SONNET_5; // sonnet-5 and sonnet-5-5
+  if (m.includes("sonnet-5-5") || m.includes("sonnet-5.5")) return SONNET_5_5; // CC 2.1.296
+  if (m.includes("sonnet-5")) return SONNET_5;
   return SONNET; // sonnet covers most defaults including unknown
 }
 

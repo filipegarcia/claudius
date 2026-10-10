@@ -66,6 +66,18 @@ describe("coerceAgentDefinition", () => {
     ).toBeUndefined();
   });
 
+  // SDK 0.3.296 — `autoCompactWindow` on AgentDefinition.
+  test("carries autoCompactWindow and drops it when not a positive finite number", () => {
+    expect(
+      coerceAgentDefinition({ description: "d", prompt: "p", autoCompactWindow: 120000 })!.autoCompactWindow,
+    ).toBe(120000);
+    for (const bad of ["120000", 0, -5, Number.NaN, Infinity, null]) {
+      expect(
+        coerceAgentDefinition({ description: "d", prompt: "p", autoCompactWindow: bad })!.autoCompactWindow,
+      ).toBeUndefined();
+    }
+  });
+
   test("drops unknown keys and malformed field types (no smuggling into Options)", () => {
     const def = coerceAgentDefinition({
       description: "d",

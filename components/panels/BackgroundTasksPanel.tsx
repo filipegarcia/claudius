@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Activity, AlertTriangle, Bot, Brain, Check, CircleStop, Eraser, Loader2, Plus, Terminal, Wrench } from "lucide-react";
+import { Activity, AlertTriangle, Bot, Brain, Check, CircleStop, Eraser, Loader2, MinusCircle, Plus, Terminal, Wrench } from "lucide-react";
 import type { PermissionMode } from "@anthropic-ai/claude-agent-sdk";
 import type {
   AgentTodo,
@@ -794,17 +794,24 @@ export function BackgroundTasksPanel({
                   : live
                     ? live.elapsedSeconds
                     : null;
-                const tone = e.isError
-                  ? "border-red-500/30 bg-red-500/5"
-                  : e.done
-                    ? "border-[var(--border)] bg-[var(--panel-2)]/40"
-                    : "border-sky-500/30 bg-sky-500/5";
-                const StatusIcon = e.isError ? AlertTriangle : e.done ? Check : Loader2;
-                const iconClass = e.isError
-                  ? "text-red-400"
-                  : e.done
-                    ? "text-emerald-400"
-                    : "animate-spin text-sky-400";
+                // CC 2.1.296 — a call auto mode couldn't check never ran:
+                // dim + neutral, not the red error treatment.
+                const notRun = e.isError && e.notRun === true;
+                const tone = notRun
+                  ? "border-[var(--border)] bg-[var(--panel-2)]/40 opacity-60"
+                  : e.isError
+                    ? "border-red-500/30 bg-red-500/5"
+                    : e.done
+                      ? "border-[var(--border)] bg-[var(--panel-2)]/40"
+                      : "border-sky-500/30 bg-sky-500/5";
+                const StatusIcon = notRun ? MinusCircle : e.isError ? AlertTriangle : e.done ? Check : Loader2;
+                const iconClass = notRun
+                  ? "text-[var(--muted)]"
+                  : e.isError
+                    ? "text-red-400"
+                    : e.done
+                      ? "text-emerald-400"
+                      : "animate-spin text-sky-400";
                 // Synthetic thinking rows have no `primaryArg` (no tool
                 // input to summarize) and use the brain glyph rather than
                 // the wrench — they're a phase of the model's turn, not a
@@ -818,7 +825,8 @@ export function BackgroundTasksPanel({
                   <li
                     key={e.toolUseId}
                     className={cn("rounded-md border px-2 py-1.5", tone)}
-                    title={isThinking ? undefined : e.primaryArg}
+                    title={isThinking ? undefined : notRun ? `Not run — auto mode's check had no usable answer${e.primaryArg ? ` · ${e.primaryArg}` : ""}` : e.primaryArg}
+                    data-not-run={notRun ? "1" : undefined}
                   >
                     <div className="flex items-center gap-1.5 text-xs">
                       <StatusIcon className={cn("h-3 w-3 shrink-0", iconClass)} />

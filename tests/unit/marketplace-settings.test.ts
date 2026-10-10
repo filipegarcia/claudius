@@ -132,10 +132,16 @@ describe("addExtraMarketplace (G1)", () => {
     ).toBe(true);
   });
 
-  test("accepts “constructor” (own-key check, not `in`)", () => {
+  test("refuses “constructor” — reserved by Claude Code (CC 2.1.296)", () => {
     const res = addExtraMarketplace({}, "constructor", { source: "github", repo: "o/r" });
+    expect(res.ok).toBe(false);
+    if (!res.ok) expect(res.error).toContain("reserved by Claude Code");
+  });
+
+  test("a prototype-like but non-reserved name is not seen as “already exists” (own-key check, not `in`)", () => {
+    const res = addExtraMarketplace({}, "Constructor", { source: "github", repo: "o/r" });
     expect(res.ok).toBe(true);
-    if (res.ok) expect(Object.hasOwn(res.value, "constructor")).toBe(true);
+    if (res.ok) expect(Object.hasOwn(res.value, "Constructor")).toBe(true);
   });
 
   test("leaves already-stored invalid names alone when adding another", () => {

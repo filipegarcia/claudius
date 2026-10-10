@@ -1,8 +1,8 @@
 import { promises as fs, createReadStream } from "node:fs";
 import { resolve, sep } from "node:path";
-import { createInterface } from "node:readline";
 import type { PermissionMode } from "@anthropic-ai/claude-agent-sdk";
 import { projectRoot } from "./db";
+import { jsonlLines } from "./jsonl-lines";
 import { sessionManager } from "./session-manager";
 import { info as sessionFileInfo } from "./sessions-store";
 import { listWorkspaces, type Workspace } from "./workspaces-store";
@@ -31,8 +31,9 @@ export async function lastRecordedPermissionMode(id: string, cwd: string): Promi
   }
   let last: string | null = null;
   try {
-    const lines = createInterface({ input: createReadStream(file, "utf8"), crlfDelay: Infinity });
-    for await (const line of lines) {
+    // `jsonlLines`, not readline: readline splits a record at U+2028/U+2029
+    // and the fragments fail to parse (CC 2.1.296).
+    for await (const line of jsonlLines(createReadStream(file, "utf8"))) {
       if (!line.includes('"permissionMode"')) continue;
       let entry: { type?: unknown; permissionMode?: unknown; isSidechain?: unknown };
       try {

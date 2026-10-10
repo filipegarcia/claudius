@@ -127,8 +127,18 @@ describe("lintMarketplaceName", () => {
     expect(lintMarketplaceName("Team1", { source: "url", url: "https://x/m.json" })).toBeNull();
   });
 
-  test("accepts a prototype-key name like “constructor”", () => {
-    expect(lintMarketplaceName("constructor", someone)).toBeNull();
+  test("refuses Object.prototype own-key names like “constructor” (CC 2.1.296)", () => {
+    for (const bad of ["constructor", "toString", "valueOf", "hasOwnProperty", "isPrototypeOf"]) {
+      const w = lintMarketplaceName(bad, someone);
+      expect(w, bad).not.toBeNull();
+      expect(w?.message).toContain("reserved by Claude Code");
+    }
+  });
+
+  test("the prototype-key check is exact and case-sensitive, like the CLI's", () => {
+    expect(lintMarketplaceName("Constructor", someone)).toBeNull();
+    expect(lintMarketplaceName("prototype", someone)).toBeNull();
+    expect(lintMarketplaceName("constructor-tools", someone)).toBeNull();
   });
 
   test("ignores empty / whitespace-only input", () => {
