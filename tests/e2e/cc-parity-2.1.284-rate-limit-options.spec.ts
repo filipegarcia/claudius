@@ -26,6 +26,16 @@ mkdirSync(SHOTS_DIR, { recursive: true });
 
 test.beforeEach(async ({ page }) => {
   await activateClaudiusWorkspace(page);
+  // Every spec that opens "/" persists a tab into the shared per-cwd open-tabs
+  // store; once enough have piled up in a full-suite run, the restored tabs
+  // fight `router.push("/usage")` and the URL never changes. Stub the PUT so
+  // this spec doesn't depend on (or add to) that shared state.
+  await page.route("**/api/sessions/open-tabs", async (route) => {
+    if (route.request().method() === "PUT") {
+      return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ok: true }) });
+    }
+    return route.fallback();
+  });
 });
 
 test.describe("CC 2.1.284 — /rate-limit-options slash command", () => {
