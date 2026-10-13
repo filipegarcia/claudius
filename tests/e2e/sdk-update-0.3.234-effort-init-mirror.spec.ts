@@ -85,7 +85,12 @@ async function mockChatBackend(page: Page, events: SdkEvent[]): Promise<void> {
   });
 }
 
-function events(effort: "low" | "medium" | "high" | "xhigh" | "max" | null): SdkEvent[] {
+type Level = "low" | "medium" | "high" | "xhigh" | "max";
+
+function events(
+  effort: Level | null | undefined,
+  applied?: Level | null,
+): SdkEvent[] {
   return [
     { type: "ready", sessionId: FAKE_SESSION_ID },
     {
@@ -95,10 +100,13 @@ function events(effort: "low" | "medium" | "high" | "xhigh" | "max" | null): Sdk
         subtype: "init",
         uuid: "sys-init-0",
         model: "claude-opus-4-7",
-        effort,
+        ...(effort !== undefined ? { effort } : {}),
       },
     },
     { type: "replay_done", hasMoreAbove: false },
+    // Server-side `get_settings` → `applied.effort` echo (see
+    // `refreshAppliedEffort()` in lib/server/session.ts).
+    ...(applied !== undefined ? [{ type: "effort_applied", effort: applied }] : []),
     {
       type: "sdk",
       message: {
@@ -142,6 +150,35 @@ test.describe("effort mirror seeded from system:init (SDK 0.3.234)", () => {
 
   test("effort=null on init leaves the 'auto' default untouched", async ({ page }) => {
     await mockChatBackend(page, events(null));
+    await page.goto("/");
+
+    const pill = page.getByTestId("session-card-effort-pill");
+    await expect(pill).toBeVisible({ timeout: 15_000 });
+    await expect(pill).toHaveAttribute("data-effort", "auto");
+  });
+});
+
+/**
+ * Most SDK hosts (including Claudius's `query()`) never get `effort` on
+ * `system:init`. Without a pick the pill used to say "auto" and nothing
+ * else. The server now reads `get_settings` → `applied.effort` and
+ * broadcasts `effort_applied`, so the pill shows the level actually in effect.
+ */
+test.describe("effort pill shows the applied level (effort_applied)", () => {
+  test("no pick + applied xhigh → pill reads 'very high (default)', not 'auto'", async ({ page }) => {
+    await mockChatBackend(page, events(undefined, "xhigh"));
+    await page.goto("/");
+
+    const pill = page.getByTestId("session-card-effort-pill");
+    await expect(pill).toBeVisible({ timeout: 15_000 });
+    await expect(pill).toHaveAttribute("data-effort", "xhigh");
+    await expect(pill).toHaveAttribute("data-effort-picked", "auto");
+    await expect(pill).toHaveAttribute("title", "Reasoning effort: very high (default)");
+    await expect(pill).toContainText("very high");
+  });
+
+  test("applied null (model without effort) keeps the 'auto' label", async ({ page }) => {
+    await mockChatBackend(page, events(undefined, null));
     await page.goto("/");
 
     const pill = page.getByTestId("session-card-effort-pill");

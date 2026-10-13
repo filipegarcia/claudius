@@ -130,6 +130,25 @@ export type ModeChangedEvent = {
   mode: PermissionMode;
 };
 
+/**
+ * The reasoning effort the session will *actually* send on its next request,
+ * read from the SDK's `get_settings` control response (`applied.effort`).
+ * The client's `effort` state only mirrors the user's last picker pick, which
+ * is `"auto"` until they choose a level, so the SessionCard pill used to say
+ * "auto" without showing the real level (the model default, or the level
+ * saved in settings.json). This event carries that real level.
+ *
+ * `null` = no effort parameter will be sent (a model without effort support,
+ * `CLAUDE_CODE_EFFORT_LEVEL=unset`). Refreshed server-side on live init and
+ * after every effort / ultracode / model change. It's a snapshot, not a log
+ * entry, so it isn't buffered: `subscribe()` re-emits the latest value
+ * to each new subscriber, the same way it handles `mode_changed`.
+ */
+export type EffortAppliedEvent = {
+  type: "effort_applied";
+  effort: "low" | "medium" | "high" | "xhigh" | "max" | null;
+};
+
 export type ModelChangedEvent = {
   type: "model_changed";
   model?: string;
@@ -1146,6 +1165,7 @@ export type ServerEvent =
   | SessionAccountChangedEvent
   | SessionErrorEvent
   | ModeChangedEvent
+  | EffortAppliedEvent
   | ModelChangedEvent
   | AdvisorDisabledOnModelChangeEvent
   | AgentChangedEvent

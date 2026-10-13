@@ -873,6 +873,14 @@ export type ChatState = {
    */
   effort: "low" | "medium" | "high" | "xhigh" | "max" | "auto";
   /**
+   * The effort the SDK will actually send on the next request, from the
+   * server's `effort_applied` event (`get_settings` → `applied.effort`). This
+   * is how an `"auto"` pick resolves to a real level (model default or saved
+   * level), and it also shows when an explicit pick got capped. `undefined` =
+   * not known yet (fall back to `effort`); `null` = no effort parameter.
+   */
+  appliedEffort: "low" | "medium" | "high" | "xhigh" | "max" | null | undefined;
+  /**
    * Whether "ultracode" (Dynamic Workflows) is enabled for the session —
    * Opus 4.8's xhigh-effort + parallel-subagent orchestration mode.
    * Optimistic, same as `effort`: the SDK emits no event for it, so this

@@ -1416,6 +1416,14 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
   // explicit level via the picker or init reports one.
   const [effort, setEffortState] =
     useState<"low" | "medium" | "high" | "xhigh" | "max" | "auto">("auto");
+  // The effort the SDK will actually send (server `effort_applied`, read from
+  // `get_settings` → `applied.effort`). Kept separate from `effort` above,
+  // which stays the user's pick: the picker needs "auto" to show as selected,
+  // while the SessionCard pill needs the real level ("auto" → model default).
+  // `undefined` = not known yet; `null` = no effort parameter is sent.
+  const [appliedEffort, setAppliedEffort] = useState<
+    "low" | "medium" | "high" | "xhigh" | "max" | null | undefined
+  >(undefined);
   // "Ultracode" (Dynamic Workflows). Same optimistic-mirror story as
   // `effort` — no SDK event to replay, so we track the last toggle and
   // reset to off on a fresh session.
@@ -1712,6 +1720,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     setPermissionModeState("default");
     setModelState(null);
     setEffortState("auto");
+    setAppliedEffort(undefined);
     setUltracodeState(false);
     setFastEnabled(false);
     setAdvisorModelState(null);
@@ -2325,6 +2334,10 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
       }
       if (ev.type === "mode_changed") {
         setPermissionModeState(ev.mode);
+        return;
+      }
+      if (ev.type === "effort_applied") {
+        setAppliedEffort(ev.effort);
         return;
       }
       if (ev.type === "model_changed") {
@@ -6067,6 +6080,10 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
       // both keys to applyFlagSettings (an effortLevel sent alone would turn it
       // off). The mirror is left untouched.
       setEffortState(level);
+      // Drop the old applied level so the pill shows the new pick right away
+      // instead of the previous level. The server sends a fresh
+      // `effort_applied` once the SDK has applied the change.
+      setAppliedEffort(undefined);
       await fetch(`/api/sessions/${id}/effort`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -6405,6 +6422,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     permissionMode,
     model,
     effort,
+    appliedEffort,
     ultracode,
     fastMode,
     advisorModel,

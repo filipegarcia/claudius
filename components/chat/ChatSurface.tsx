@@ -1566,7 +1566,14 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
             void session.setUltracode(parsed.on);
             showToast(`Ultracode ${parsed.on ? "on" : "off"}`);
           } else if (parsed.kind === "show") {
-            showToast(`Effort: ${session.effort ?? "auto"}${session.ultracode ? " · ultracode on" : ""}`);
+            // Prefer the level the SDK actually applies: "auto" alone doesn't
+            // say which level is running.
+            const shownEffort = session.appliedEffort ?? session.effort ?? "auto";
+            const effortNote =
+              session.appliedEffort && session.effort === "auto" ? " (default)" : "";
+            showToast(
+              `Effort: ${shownEffort}${effortNote}${session.ultracode ? " · ultracode on" : ""}`,
+            );
           } else {
             showToast(parsed.message);
           }
@@ -2685,6 +2692,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
         sessionId={session.sessionId}
         model={session.model}
         effort={session.effort}
+        appliedEffort={session.appliedEffort}
         permissionMode={session.permissionMode}
         cwd={session.cwd}
         usage={session.usage}

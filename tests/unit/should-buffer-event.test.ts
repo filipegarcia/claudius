@@ -27,6 +27,11 @@ describe("shouldBufferEvent", () => {
     expect(shouldBufferEvent(event)).toBe(false);
   });
 
+  test("excludes effort_applied snapshots (re-emitted fresh in subscribe())", () => {
+    const event: ServerEvent = { type: "effort_applied", effort: "high" };
+    expect(shouldBufferEvent(event)).toBe(false);
+  });
+
   test("excludes SDK command_lifecycle frames (new in 0.3.206)", () => {
     const event = {
       type: "sdk",
