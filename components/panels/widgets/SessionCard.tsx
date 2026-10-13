@@ -30,6 +30,13 @@ type Props = {
    * an explicit pick yet (adaptive thinking).
    */
   effort: EffortLevel;
+  /**
+   * The effort the SDK actually applies (server `effort_applied`). When set, the
+   * pill shows it instead of `effort`, so an "auto" pick shows the real level
+   * (model default or saved level) and a capped pick shows the cap. `null` /
+   * `undefined` fall back to `effort`.
+   */
+  appliedEffort?: Exclude<EffortLevel, "auto"> | null;
   permissionMode: PermissionMode;
   cwd: string | null;
   usage: SessionUsage | null;
@@ -83,6 +90,7 @@ export function SessionCard({
   sessionId,
   model,
   effort,
+  appliedEffort = null,
   permissionMode,
   cwd,
   usage,
@@ -181,6 +189,7 @@ export function SessionCard({
           <CardHead
             model={model}
             effort={effort}
+            appliedEffort={appliedEffort}
             permissionMode={permissionMode}
             ultracode={ultracode}
             fastMode={fastMode}
@@ -193,6 +202,7 @@ export function SessionCard({
           <CardHead
             model={model}
             effort={effort}
+            appliedEffort={appliedEffort}
             permissionMode={permissionMode}
             ultracode={ultracode}
             fastMode={fastMode}
@@ -287,6 +297,7 @@ export function SessionCard({
 function CardHead({
   model,
   effort,
+  appliedEffort,
   permissionMode,
   ultracode,
   fastMode,
@@ -295,6 +306,7 @@ function CardHead({
 }: {
   model: string | null;
   effort: EffortLevel;
+  appliedEffort: Exclude<EffortLevel, "auto"> | null;
   permissionMode: PermissionMode;
   ultracode: boolean;
   fastMode: boolean;
@@ -327,7 +339,7 @@ function CardHead({
         )}
       </div>
       <div className="mt-1.5 flex flex-wrap items-center gap-1">
-        <EffortPill effort={effort} />
+        <EffortPill effort={effort} applied={appliedEffort} />
         {ultracode && <UltracodeBadge />}
         {fastMode && <FastBadge />}
         {advisorBadge && <AdvisorBadge label={advisorBadge} raw={advisorModel} />}
@@ -433,17 +445,37 @@ const EFFORT_LABEL: Record<EffortLevel, string> = {
  * ("very high", "max", …) still carries the level at a glance. Always
  * renders — even on models that don't support effort, "auto" is the honest
  * answer.
+ *
+ * Shows the *applied* level when the server has reported one, falling back
+ * to the user's pick. Without this, an "auto" pick showed "auto" and never
+ * said which level was actually running. The tooltip says where the level
+ * came from: "(default)" when nothing was picked, "(<pick> requested)" when
+ * the SDK capped an explicit pick.
  */
-function EffortPill({ effort }: { effort: EffortLevel }) {
+function EffortPill({
+  effort,
+  applied,
+}: {
+  effort: EffortLevel;
+  applied: Exclude<EffortLevel, "auto"> | null;
+}) {
+  const shown: EffortLevel = applied ?? effort;
+  const note =
+    applied && effort === "auto"
+      ? " (default)"
+      : applied && applied !== effort
+        ? ` (${EFFORT_LABEL[effort]} requested)`
+        : "";
   return (
     <span
       data-testid="session-card-effort-pill"
-      data-effort={effort}
-      title={`Reasoning effort: ${EFFORT_LABEL[effort]}`}
+      data-effort={shown}
+      data-effort-picked={effort}
+      title={`Reasoning effort: ${EFFORT_LABEL[shown]}${note}`}
       className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded border border-[var(--border)] bg-[var(--panel)] px-1.5 py-px text-[9px] text-[var(--muted)]"
     >
       <Gauge className="h-2.5 w-2.5" />
-      {EFFORT_LABEL[effort]}
+      {EFFORT_LABEL[shown]}
     </span>
   );
 }

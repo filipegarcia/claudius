@@ -1,5 +1,11 @@
 import { describe, expect, test } from "vitest";
-import { buildEffortFlagSettings, capEffortLevels, parseEffortArgs, type EffortTier } from "@/lib/shared/effort-flags";
+import {
+  buildEffortFlagSettings,
+  capEffortLevels,
+  parseAppliedEffort,
+  parseEffortArgs,
+  type EffortTier,
+} from "@/lib/shared/effort-flags";
 
 /**
  * CC 2.1.284 (E3a) — an effort change keeps ultracode on by sending both keys;
@@ -76,5 +82,39 @@ describe("capEffortLevels (CC 2.1.267 — E5)", () => {
 
   test("preserves the model's own subset ordering", () => {
     expect(capEffortLevels(["low", "high", "xhigh"], "high")).toEqual(["low", "high"]);
+  });
+});
+
+/**
+ * `get_settings` → `applied.effort` is the level the session will really send.
+ * The SessionCard pill shows it instead of "auto", so the parser must accept
+ * every real tier, keep `null` (no effort param) distinct, and return
+ * `undefined` for anything it can't trust so the client keeps its own mirror.
+ */
+describe("parseAppliedEffort", () => {
+  test("returns the applied tier", () => {
+    for (const level of ["low", "medium", "high", "xhigh", "max"] as const) {
+      expect(parseAppliedEffort({ effective: {}, applied: { model: "claude-opus-5-5", effort: level } })).toBe(level);
+    }
+  });
+
+  test("null applied effort (no effort parameter sent) stays null", () => {
+    expect(parseAppliedEffort({ applied: { model: "claude-haiku-4-5", effort: null } })).toBeNull();
+  });
+
+  test("missing / malformed payloads are undefined (leave state untouched)", () => {
+    expect(parseAppliedEffort(undefined)).toBeUndefined();
+    expect(parseAppliedEffort(null)).toBeUndefined();
+    expect(parseAppliedEffort("high")).toBeUndefined();
+    expect(parseAppliedEffort({})).toBeUndefined();
+    expect(parseAppliedEffort({ applied: null })).toBeUndefined();
+    expect(parseAppliedEffort({ applied: { model: "x" } })).toBeUndefined();
+  });
+
+  test("an unknown level is undefined, not passed through", () => {
+    expect(parseAppliedEffort({ applied: { effort: "turbo" } })).toBeUndefined();
+    expect(parseAppliedEffort({ applied: { effort: 32000 } })).toBeUndefined();
+    // "auto" is a picker concept, never an applied level.
+    expect(parseAppliedEffort({ applied: { effort: "auto" } })).toBeUndefined();
   });
 });

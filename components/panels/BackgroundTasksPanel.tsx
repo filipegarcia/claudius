@@ -56,6 +56,8 @@ type Props = {
   model: string | null;
   /** Current reasoning effort, surfaced on the SessionCard as a pill. */
   effort: "low" | "medium" | "high" | "xhigh" | "max" | "auto";
+  /** Effort the SDK actually applies (resolves "auto"); see ChatState.appliedEffort. */
+  appliedEffort?: "low" | "medium" | "high" | "xhigh" | "max" | null;
   permissionMode: PermissionMode;
   cwd: string | null;
   usage: SessionUsage | null;
@@ -251,6 +253,7 @@ export function BackgroundTasksPanel({
   sessionId,
   model,
   effort,
+  appliedEffort,
   permissionMode,
   cwd,
   usage,
@@ -547,6 +550,7 @@ export function BackgroundTasksPanel({
           sessionId={sessionId}
           model={model}
           effort={effort}
+          appliedEffort={appliedEffort}
           permissionMode={permissionMode}
           cwd={cwd}
           usage={usage}

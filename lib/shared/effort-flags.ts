@@ -75,3 +75,29 @@ export function parseEffortArgs(args: string): EffortCommand {
   }
   return { kind: "invalid", message: EFFORT_USAGE };
 }
+
+/**
+ * Pull the session's *applied* effort out of a `get_settings` control
+ * response (`Query.getSettings()` — present at runtime but not on the SDK's
+ * typed `Query` interface). The CLI answers with
+ * `{ …effectiveSettings, applied: { model, effort, advisor, ultracode, … } }`,
+ * where `applied.effort` is the level the next request will actually send —
+ * after env overrides, session flags, saved settings, org caps and model-
+ * support downgrades. That's the honest value for the SessionCard pill when
+ * the user hasn't picked a level ("auto"), which otherwise says nothing about
+ * what's really in effect.
+ *
+ * Returns a tier, `null` (no effort parameter will be sent — model without
+ * effort support, `CLAUDE_CODE_EFFORT_LEVEL=unset`, numeric budget), or
+ * `undefined` when the response doesn't carry a usable value (older CLI,
+ * malformed payload, an unknown future level) so callers leave their state
+ * untouched. Pure, for unit tests.
+ */
+export function parseAppliedEffort(response: unknown): EffortTier | null | undefined {
+  if (!response || typeof response !== "object") return undefined;
+  const applied = (response as { applied?: unknown }).applied;
+  if (!applied || typeof applied !== "object" || !("effort" in applied)) return undefined;
+  const effort = (applied as { effort?: unknown }).effort;
+  if (effort === null) return null;
+  return EFFORT_TIER_ORDER.includes(effort as EffortTier) ? (effort as EffortTier) : undefined;
+}

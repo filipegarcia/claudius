@@ -126,7 +126,7 @@ import {
 import { loadDbAgentsForOptions } from "@/lib/server/db-agents";
 import { selectTips, type SpinnerTipOverrideEntry } from "@/lib/shared/tips";
 import { extractWeeklyUsedSkills } from "@/lib/shared/skill-usage";
-import { buildEffortFlagSettings } from "@/lib/shared/effort-flags";
+import { buildEffortFlagSettings, parseAppliedEffort, type EffortTier } from "@/lib/shared/effort-flags";
 import { normalizeExtraUsage, type ExtraUsage } from "@/lib/shared/plan-usage";
 import type { SessionLoop } from "@/lib/shared/session-loops";
 import { isScheduleWakeupStop } from "@/lib/shared/stop-self-paced-loop";
@@ -1118,6 +1118,10 @@ export function shouldBufferEvent(event: ServerEvent): boolean {
   // set from `subscribe()`'s re-emit, so replaying settles would only burn
   // buffer capacity.
   if (event.type === "prompt_settled") return false;
+  // `effort_applied` is a snapshot of the current applied effort. `subscribe()`
+  // re-emits the latest value per subscriber, so buffered stale copies would
+  // only take up buffer space.
+  if (event.type === "effort_applied") return false;
   if (event.type === "sdk" && (event.message as { type?: string })?.type === "command_lifecycle") {
     return false;
   }
@@ -1682,6 +1686,20 @@ export class Session {
    * so the pill survives reload/tab-switch on long sessions.
    */
   private sdkModel?: string;
+  /**
+   * The effort the session will actually send on its next request, as last
+   * reported by the SDK's `get_settings` (`applied.effort`). `undefined` = not
+   * read yet (or the CLI doesn't answer `get_settings`); `null` = no effort
+   * parameter. Cached so `subscribe()` can re-emit it as `effort_applied`.
+   * See `refreshAppliedEffort()`.
+   */
+  private appliedEffort: EffortTier | null | undefined = undefined;
+  /**
+   * Bumped by every `refreshAppliedEffort()` call so an older, slower
+   * `get_settings` response can't overwrite a newer one (e.g. two quick
+   * picker clicks).
+   */
+  private appliedEffortSeq = 0;
   /**
    * Init-derived chrome (slash commands, subagents, skills, cwd) cached for
    * `subscribe()` to re-emit on the `session_snapshot`.
@@ -5588,6 +5606,42 @@ export class Session {
         .updateSettings("userSettings", { effortLevel: settings.effortLevel })
         .catch(() => {});
     }
+    // Report what the SDK actually settled on: "auto" resolves to the model
+    // default or the saved level, and an explicit pick can be capped.
+    void this.refreshAppliedEffort();
+  }
+
+  /**
+   * Read the session's applied effort from the SDK (`get_settings` →
+   * `applied.effort`) and broadcast it as `effort_applied`.
+   *
+   * `getSettings()` is implemented on the runtime Query but missing from the
+   * SDK's typed `Query` interface (SDK 0.3.293), so it's feature-detected:
+   * an older CLI, or a Query without it, leaves `appliedEffort` undefined and
+   * the client keeps showing its own mirror. Best-effort and non-blocking:
+   * callers `void` it, and a rejection is swallowed.
+   */
+  private async refreshAppliedEffort(): Promise<void> {
+    const q = this.query as unknown as { getSettings?: () => Promise<unknown> } | null;
+    if (!q || typeof q.getSettings !== "function") return;
+    const seq = ++this.appliedEffortSeq;
+    let response: unknown;
+    try {
+      response = await q.getSettings();
+    } catch {
+      return;
+    }
+    // A newer refresh was started while this one was in flight. Drop this
+    // result so it can't overwrite the newer value.
+    if (seq !== this.appliedEffortSeq) return;
+    const effort = parseAppliedEffort(response);
+    if (effort === undefined) return;
+    this.appliedEffort = effort;
+    // Broadcast even when the value didn't change: the client's `setEffort`
+    // clears its applied mirror optimistically and waits for this event to
+    // fill it back in (re-picking "auto" while "high" is already applied must
+    // still land on "high"). The event is unbuffered, so repeats cost nothing.
+    this.broadcast({ type: "effort_applied", effort });
   }
 
   /**
@@ -5609,6 +5663,7 @@ export class Session {
   async setUltracode(enabled: boolean): Promise<void> {
     if (!this.query) return;
     await this.query.applyFlagSettings({ ultracode: enabled }).catch(() => {});
+    void this.refreshAppliedEffort();
   }
 
   /**
@@ -7173,6 +7228,11 @@ export class Session {
     if (effectiveModel) {
       fn({ type: "model_changed", model: effectiveModel, source: "sdk" });
     }
+    // Re-emit the applied effort (unbuffered, see shouldBufferEvent) so a
+    // reload / tab switch shows the real level, not the client's "auto" default.
+    if (this.appliedEffort !== undefined) {
+      fn({ type: "effort_applied", effort: this.appliedEffort });
+    }
     // Echo the current turn status. The buffer replay only carries
     // streaming assistant chunks; on `replay_done` the client unconditionally
     // clears `pending`, which would leave the StatusLine / tab dot stuck on
@@ -7840,6 +7900,9 @@ export class Session {
     // the inner conversation — and persist it on completion so it survives a
     // disk-rebuild of this session. See captureTaskState() + session-tasks-db.
     this.captureTaskState(event);
+    // A model switch (picker, `/model`, auto-fallback, resume) can change the
+    // applied effort: each model has its own default and supported levels.
+    if (event.type === "model_changed") void this.refreshAppliedEffort();
     // CC 2.1.193 — MCP needs-auth startup notice and permission-denial ring buffer.
     if (event.type === "sdk") {
       const sdkMsg = event.message as { type?: string; subtype?: string; model?: string; tool_name?: string; decision_reason_type?: string; decision_reason?: string };
@@ -7892,6 +7955,9 @@ export class Session {
           // `PostModelSwitch` hook, which doesn't fire when the resumed
           // model equals the one we passed in.
           void this.enforceAdvisorModelCompatibility(sdkMsg.model);
+          // Seed the SessionCard effort pill with the level actually in force
+          // (model default / saved level) rather than leaving it on "auto".
+          void this.refreshAppliedEffort();
         }
         // Capture permission_denied events into the in-memory ring buffer.
         if (sdkMsg.subtype === "permission_denied") {
