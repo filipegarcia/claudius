@@ -50,6 +50,53 @@ describe("litellm pricer", () => {
     expect(big).toBeCloseTo(300_000 * 6e-6, 9);
   });
 
+  // CC 2.1.300 — mirrors the engine's split pricer: the 1h slice of cache
+  // writes bills at 2x input, the rest at the 5m (1.25x) cache-write rate.
+  describe("1h cache writes", () => {
+    const OPUS: LiteLlmPricing = {
+      input_cost_per_token: 5e-6,
+      output_cost_per_token: 25e-6,
+      cache_read_input_token_cost: 0.5e-6,
+      cache_creation_input_token_cost: 6.25e-6,
+    };
+    const writes = (total: number, oneHour?: number) => ({
+      input: 0,
+      output: 0,
+      cacheRead: 0,
+      cacheCreation: total,
+      ...(oneHour != null ? { cacheCreation1h: oneHour } : {}),
+    });
+
+    test("a 1h-only write prices at 2x input ($10/MTok), not the 5m rate", () => {
+      expect(costFromUsage(OPUS, writes(100_000, 100_000))).toBeCloseTo(1.0, 10);
+    });
+
+    test("a mixed 5m/1h write splits across both rates", () => {
+      // 60k × $10/MTok + 40k × $6.25/MTok
+      expect(costFromUsage(OPUS, writes(100_000, 60_000))).toBeCloseTo(0.6 + 0.25, 10);
+    });
+
+    test("a 5m-only write is unchanged", () => {
+      expect(costFromUsage(OPUS, writes(100_000))).toBeCloseTo(0.625, 10);
+      expect(costFromUsage(OPUS, writes(100_000, 0))).toBeCloseTo(0.625, 10);
+    });
+
+    test("the 1h slice is clamped to the total cache-write count", () => {
+      expect(costFromUsage(OPUS, writes(100_000, 500_000))).toBeCloseTo(1.0, 10);
+    });
+
+    test("long-context tiers double the tiered input rate", () => {
+      const haiku55: LiteLlmPricing = {
+        input_cost_per_token: 1e-7,
+        cache_creation_input_token_cost: 1.25e-7,
+        input_cost_per_token_above_100k_tokens: 5e-7,
+        cache_creation_input_token_cost_above_100k_tokens: 6.25e-7,
+      };
+      // 150k 1h writes cross the 100k tier → 2 × $0.50/MTok = $1/MTok.
+      expect(costFromUsage(haiku55, writes(150_000, 150_000))).toBeCloseTo(150_000 * 1e-6, 10);
+    });
+  });
+
   test("unpriced model contributes nothing", () => {
     expect(costFromUsage(undefined, { input: 9e9, output: 9e9, cacheRead: 0, cacheCreation: 0 })).toBe(0);
   });
@@ -116,7 +163,11 @@ describe("aggregate dedup", () => {
     input?: number;
     output?: number;
     costUSD?: number;
+    cacheWrite5m?: number;
+    cacheWrite1h?: number;
   }): string {
+    const cw5m = opts.cacheWrite5m ?? 0;
+    const cw1h = opts.cacheWrite1h ?? 0;
     return JSON.stringify({
       type: "assistant",
       requestId: opts.reqId,
@@ -129,7 +180,10 @@ describe("aggregate dedup", () => {
           input_tokens: opts.input ?? 1000,
           output_tokens: opts.output ?? 1000,
           cache_read_input_tokens: 0,
-          cache_creation_input_tokens: 0,
+          cache_creation_input_tokens: cw5m + cw1h,
+          ...(cw5m || cw1h
+            ? { cache_creation: { ephemeral_5m_input_tokens: cw5m, ephemeral_1h_input_tokens: cw1h } }
+            : {}),
         },
       },
     });
@@ -187,6 +241,32 @@ describe("aggregate dedup", () => {
     const r = await aggregate(cwd);
     expect(r.totalUsd).toBeCloseTo(0.123, 10); // synthetic dropped, costUSD trusted
     expect(r.bySession[0].numTurns).toBe(1);
+  });
+
+  test("prices 1h cache writes from the transcript at the 1h rate (CC 2.1.300)", async () => {
+    const table = await getPricingTable();
+    const p = priceForModel("claude-opus-4-7", table)!;
+    const input = p.input_cost_per_token!;
+    const write5m = p.cache_creation_input_token_cost!;
+    const base = { ts: "2026-05-04T10:00:00.000Z", input: 0, output: 0 };
+    await fs.writeFile(
+      join(projDir, "dddddddd-0000-0000-0000-000000000004.jsonl"),
+      [
+        assistant({ ...base, msgId: "msg_1h", reqId: "req_1h", cacheWrite1h: 100_000 }),
+        assistant({ ...base, msgId: "msg_mx", reqId: "req_mx", cacheWrite5m: 40_000, cacheWrite1h: 60_000 }),
+        assistant({ ...base, msgId: "msg_5m", reqId: "req_5m", cacheWrite5m: 100_000 }),
+      ].join("\n") + "\n",
+    );
+
+    const r = await aggregate(cwd);
+
+    const expected =
+      100_000 * 2 * input + // 1h-only
+      (60_000 * 2 * input + 40_000 * write5m) + // mixed
+      100_000 * write5m; // 5m-only, unchanged
+    expect(r.totalUsd).toBeCloseTo(expected, 10);
+    // claude-opus-4-7 lists at $5/MTok input: 100k 1h writes = $1.00, not $0.625.
+    expect(100_000 * 2 * input).toBeCloseTo(1.0, 10);
   });
 });
 

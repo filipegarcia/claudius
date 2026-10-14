@@ -55,7 +55,14 @@ export type Usage = {
   input: number;
   output: number;
   cacheRead: number;
+  /** Total cache-creation tokens (5m + 1h). */
   cacheCreation: number;
+  /**
+   * CC 2.1.300 — the 1-hour slice of {@link cacheCreation}
+   * (`cache_creation.ephemeral_1h_input_tokens`). Priced at 2x the (tiered)
+   * input rate; the remainder stays at the 5m cache-write rate.
+   */
+  cacheCreation1h?: number;
 };
 
 const LITELLM_URL =
@@ -325,11 +332,23 @@ export function priceForModel(
 }
 
 /**
+ * 1-hour cache writes cost 2x the input rate (5m writes are 1.25x). Verified
+ * against the Claude Code engine's model catalog: every tier, including Haiku
+ * 5.5's >100k long-prompt tier, lists `cache_write_1h` = 2 × `input`.
+ */
+const CACHE_WRITE_1H_INPUT_MULTIPLIER = 2;
+
+/**
  * Cost (USD) for one turn's token usage given its model's pricing. Applies a
  * long-context tier when the turn's input footprint crosses it and the model
  * publishes premium rates: the >200k tier, else the >100k tier (Haiku 5.5,
  * whose 100k rate also covers everything above 200k). Returns 0 when the
  * model is unpriced.
+ *
+ * Cache writes follow the engine's split pricer (CC 2.1.300): the 1h slice,
+ * `min(cacheCreation1h, cacheCreation)`, is billed at the 1h rate (2x the
+ * applicable — possibly long-context — input rate; LiteLLM's data carries no
+ * 1h key) and the remainder at the 5m `cache_creation_input_token_cost`.
  */
 export function costFromUsage(pricing: LiteLlmPricing | undefined, usage: Usage): number {
   if (!pricing) return 0;
@@ -360,11 +379,18 @@ export function costFromUsage(pricing: LiteLlmPricing | undefined, usage: Usage)
     pricing.cache_creation_input_token_cost_above_200k_tokens,
   );
 
+  const cw1h = Math.min(usage.cacheCreation1h ?? 0, usage.cacheCreation);
+  const cacheWriteUsd =
+    cw1h > 0
+      ? cw1h * inputRate * CACHE_WRITE_1H_INPUT_MULTIPLIER +
+        (usage.cacheCreation - cw1h) * cacheWriteRate
+      : usage.cacheCreation * cacheWriteRate;
+
   return (
     usage.input * inputRate +
     usage.output * outputRate +
     usage.cacheRead * cacheReadRate +
-    usage.cacheCreation * cacheWriteRate
+    cacheWriteUsd
   );
 }
 
