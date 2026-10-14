@@ -1,9 +1,18 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Overlay } from "./Overlay";
 import type { PlanRateLimits, SessionUsage } from "@/lib/client/types";
 import { computePromptCacheStats } from "@/lib/shared/prompt-cache";
+import { clampPct } from "@/lib/shared/usage-pct";
+import {
+  USAGE_FLAG_THRESHOLD_PCT,
+  filterUsageFlags,
+  usageFlagCopy,
+  type UsageBehaviors,
+  type UsageBehaviorsResponse,
+} from "@/lib/shared/usage-behaviors";
 
 type Props = {
   usage: SessionUsage | null;
@@ -23,6 +32,11 @@ type Props = {
    * line would be noise on the one panel people scan for numbers.
    */
   accountsConfigured?: number;
+  /**
+   * Session to read the `/usage` behaviour warnings for (CC 2.1.299 parity).
+   * Omit/null to hide that section.
+   */
+  sessionId?: string | null;
   onClose: () => void;
 };
 
@@ -47,7 +61,9 @@ function fmtTokens(n: number): string {
 
 function fmtUtilization(pct: number | null): string {
   if (pct === null) return "—";
-  return `${Math.round(pct)}%`;
+  // CC 2.1.299 parity — "Fixed /usage … sometimes showing more than 100%
+  // used": the text clamps like the bar below already did.
+  return `${clampPct(Math.round(pct))}%`;
 }
 
 function fmtResetsAt(iso: string | null): string {
@@ -91,6 +107,7 @@ export function CostOverlay({
   planUsage,
   account,
   accountsConfigured = 0,
+  sessionId,
   onClose,
 }: Props) {
   // CC parity 2.1.208: the CLI's `/usage` shows last-known bars with an
@@ -303,6 +320,10 @@ export function CostOverlay({
         </div>
       )}
 
+      {/* Keyed on the session so a different session never flashes the
+          previous one's behaviours while its own fetch is in flight. */}
+      {sessionId && <UsageBehaviorsSection key={sessionId} sessionId={sessionId} />}
+
       {/* Cost attribution. These totals are billed to the account the session
           is PINNED to, which is not necessarily the one currently selected in
           the switcher — sessions keep their identity across an account switch
@@ -347,6 +368,107 @@ function Stat({ label, value }: { label: string; value: string }) {
     <div className="rounded-md border border-[var(--border)] bg-[var(--panel)]/40 px-3 py-2">
       <div className="text-[10px] uppercase tracking-wide text-[var(--muted)]">{label}</div>
       <div className="mt-0.5 font-mono text-sm">{value}</div>
+    </div>
+  );
+}
+
+type UsagePeriod = "day" | "week";
+
+/**
+ * CC 2.1.299 parity — "Added /usage warnings for max effort, workflows,
+ * always-on context and large tool results". The CLI `/usage` dialog's
+ * "What's contributing to your limits usage?" section: one warning per
+ * behaviour (cache misses, long context, max effort, workflows, …) that
+ * accounts for >= 10% of local usage in the last 24h / 7d, with the CLI's
+ * copy (lib/shared/usage-behaviors.ts). Fetched once when the overlay opens —
+ * the server-side call scans local transcripts, so it is never polled.
+ * Renders nothing when the SDK has no behaviours (non-subscriber session,
+ * failed scan) or neither window has anything over the threshold; like the
+ * CLI it starts on Day and says so when only the other window has flags.
+ */
+function UsageBehaviorsSection({ sessionId }: { sessionId: string }) {
+  const [behaviors, setBehaviors] = useState<UsageBehaviors | null>(null);
+  const [period, setPeriod] = useState<UsagePeriod>("day");
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch(`/api/sessions/${encodeURIComponent(sessionId)}/usage-behaviors`, { signal: controller.signal })
+      .then(async (r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return (await r.json()) as UsageBehaviorsResponse;
+      })
+      .then((d) => setBehaviors(d.behaviors ?? null))
+      .catch(() => {
+        // Experimental signal — on any failure the section just stays hidden.
+      });
+    return () => controller.abort();
+  }, [sessionId]);
+
+  if (!behaviors) return null;
+  const dayFlags = filterUsageFlags(behaviors.day.behaviors);
+  const weekFlags = filterUsageFlags(behaviors.week.behaviors);
+  if (dayFlags.length === 0 && weekFlags.length === 0) return null;
+  const flags = period === "day" ? dayFlags : weekFlags;
+
+  return (
+    <div
+      data-testid="usage-behaviors-section"
+      data-period={period}
+      className="border-t border-[var(--border)] px-4 py-3"
+    >
+      <div className="mb-1 flex items-start gap-2">
+        <div className="min-w-0">
+          <div className="text-[11px] font-medium uppercase tracking-wide text-[var(--muted)]">
+            {"What's contributing to your limits usage?"}
+          </div>
+          <div className="mt-0.5 text-[10px] text-[var(--muted)]">
+            Approximate, based on local sessions on this machine — does not include other devices or claude.ai
+          </div>
+        </div>
+        <div
+          role="group"
+          aria-label="Usage period"
+          className="ml-auto flex shrink-0 overflow-hidden rounded-md border border-[var(--border)] text-[10px]"
+        >
+          {(["day", "week"] as const).map((p) => (
+            <button
+              key={p}
+              type="button"
+              data-testid={`usage-behaviors-period-${p}`}
+              aria-pressed={period === p}
+              onClick={() => setPeriod(p)}
+              className={
+                period === p
+                  ? "bg-[var(--panel-2)] px-2 py-0.5 font-medium text-[var(--foreground)]"
+                  : "px-2 py-0.5 text-[var(--muted)] hover:bg-[var(--panel-2)]/60"
+              }
+            >
+              {p === "day" ? "Day" : "Week"}
+            </button>
+          ))}
+        </div>
+      </div>
+      <p className="mb-2 text-[10px] text-[var(--muted)]">
+        Last {period === "day" ? "24h" : "7d"} · these are independent characteristics of your usage, not a
+        breakdown
+      </p>
+      {flags.length === 0 ? (
+        <p data-testid="usage-behaviors-empty" className="text-[11px] text-[var(--muted)]">
+          Nothing over {USAGE_FLAG_THRESHOLD_PCT}% in this period — try the other window.
+        </p>
+      ) : (
+        <ul className="space-y-2">
+          {flags.map((f) => {
+            const copy = usageFlagCopy(f);
+            return (
+              <li key={f.key} data-testid="usage-behavior-flag" data-key={f.key} className="text-[11px]">
+                <div className="text-[var(--foreground)]">{copy.headline}</div>
+                <div className="mt-0.5 pl-2 text-[10px] leading-4 text-[var(--muted)]">{copy.body}</div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </div>
   );
 }

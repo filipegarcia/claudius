@@ -126,6 +126,7 @@ import {
 import { loadDbAgentsForOptions } from "@/lib/server/db-agents";
 import { selectTips, type SpinnerTipOverrideEntry } from "@/lib/shared/tips";
 import { extractWeeklyUsedSkills } from "@/lib/shared/skill-usage";
+import { extractUsageBehaviors, type UsageBehaviors } from "@/lib/shared/usage-behaviors";
 import { buildEffortFlagSettings, parseAppliedEffort, type EffortTier } from "@/lib/shared/effort-flags";
 import { normalizeExtraUsage, type ExtraUsage } from "@/lib/shared/plan-usage";
 import type { SessionLoop } from "@/lib/shared/session-loops";
@@ -2009,6 +2010,15 @@ export class Session {
    * `opus-overload-detector.ts` for the signal definition.
    */
   private opusOverloadStreak = 0;
+  /**
+   * CC 2.1.299 parity — memo for the full (`skipBehaviors: false`) usage call,
+   * which scans a week of local transcripts. Both the `/context` overlay's
+   * skill doctor and the Cost overlay's "What's contributing" section read
+   * its `behaviors` slice, so opening them back to back shares one scan.
+   * Keyed on the query object so a restarted/resumed query never serves the
+   * previous one's answer; a rejection clears it so failures aren't cached.
+   */
+  private fullUsageMemo: { query: object; at: number; promise: Promise<unknown> } | null = null;
   /** True once the threshold has fired this session — fire-once per session. */
   private opusOverloadNudgeFired = false;
   /**
@@ -6014,14 +6024,57 @@ export class Session {
   async getWeeklyUsedSkills(): Promise<string[] | null> {
     if (!this.query) return null;
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const data = await (this.query as any).usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET(
-        { skipBehaviors: false },
-      );
+      const data = await this.fetchFullUsage();
       return extractWeeklyUsedSkills(data);
     } catch {
       return null;
     }
+  }
+
+  /**
+   * CC 2.1.299 parity — "Added /usage warnings for max effort, workflows,
+   * always-on context and large tool results". The day/week behavioural
+   * characteristics behind the CLI's `/usage` "What's contributing to your
+   * limits usage?" section (`behaviors.{day,week}.behaviors`). `null` when
+   * the SDK has none — non-claude.ai-subscriber sessions, a failed scan, or
+   * the experimental API being absent — so the Cost overlay hides the section.
+   * Like `getWeeklyUsedSkills`, only ever called on a user-initiated fetch.
+   */
+  async getUsageBehaviors(): Promise<UsageBehaviors | null> {
+    if (!this.query) return null;
+    try {
+      return extractUsageBehaviors(await this.fetchFullUsage());
+    } catch {
+      return null;
+    }
+  }
+
+  /** Memo window for {@link fetchFullUsage} — long enough to share one scan across overlays. */
+  private static readonly FULL_USAGE_TTL_MS = 30_000;
+
+  /**
+   * The experimental usage call WITH the local-transcript behaviours scan,
+   * memoized for {@link FULL_USAGE_TTL_MS} per query (concurrent callers share
+   * the in-flight promise). The idle plan-usage poll deliberately bypasses
+   * this and keeps `skipBehaviors: true`.
+   */
+  private fetchFullUsage(): Promise<unknown> {
+    const query = this.query;
+    if (!query) return Promise.reject(new Error("no active query"));
+    const memo = this.fullUsageMemo;
+    if (memo && memo.query === query && Date.now() - memo.at < Session.FULL_USAGE_TTL_MS) {
+      return memo.promise;
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const promise: Promise<unknown> = (query as any).usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET({
+      skipBehaviors: false,
+    });
+    const entry = { query, at: Date.now(), promise };
+    this.fullUsageMemo = entry;
+    promise.catch(() => {
+      if (this.fullUsageMemo === entry) this.fullUsageMemo = null;
+    });
+    return promise;
   }
 
   async mcpServerStatus(): Promise<{ ok: true; data: unknown } | { ok: false; error: string }> {

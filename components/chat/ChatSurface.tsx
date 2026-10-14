@@ -2818,6 +2818,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
           planUsage={session.planUsage}
           account={costAccount}
           accountsConfigured={session.accountsConfigured}
+          sessionId={session.sessionId}
           onClose={() => setOverlay(null)}
         />
       )}
