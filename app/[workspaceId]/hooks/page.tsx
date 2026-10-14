@@ -25,6 +25,8 @@ import {
   handlerBlocksOnFailure,
   handlerSupportsOnFailure,
   HOOK_EVENTS,
+  isLegacyAgentHook,
+  legacyAgentHookName,
   type HookCategory,
   type HookEvent,
   type HookEventSpec,
@@ -288,7 +290,26 @@ function EventRow({
                     {h.type === "command" && <span>{h.command}</span>}
                     {h.type === "http" && <span>{(h.method ?? "POST")} {h.url}</span>}
                     {h.type === "prompt" && <span>{h.prompt.slice(0, 80)}</span>}
-                    {h.type === "agent" && <span>{h.agent}</span>}
+                    {h.type === "agent" && !isLegacyAgentHook(h) && <span>{h.prompt.slice(0, 80)}</span>}
+                    {/* CC 2.1.300 — the old `{agent: "<name>"}` shape has no
+                        `prompt`, so the engine skips it at load. */}
+                    {isLegacyAgentHook(h) && (
+                      <>
+                        {legacyAgentHookName(h) && <span>{legacyAgentHookName(h)}</span>}
+                        <span
+                          data-testid="hook-agent-legacy"
+                          title="Saved in an old shape ({agent: name}) with no prompt — Claude Code skips it when loading settings, so it never runs. Remove it and add it again with a prompt."
+                          className="ml-2 rounded border border-amber-500/40 bg-amber-500/10 px-1 py-0.5 text-[10px] text-amber-300"
+                        >
+                          ignored by Claude Code — re-create with a prompt
+                        </span>
+                      </>
+                    )}
+                    {(h.type === "agent" || h.type === "prompt") && typeof h.model === "string" && h.model && (
+                      <span data-testid="hook-model-badge" className="ml-2 text-[var(--muted)]">
+                        model={h.model}
+                      </span>
+                    )}
                     {/* CC 2.1.280 — an agent hook on PermissionRequest won't
                         run; flag the stale config so the author fixes it. */}
                     {h.type === "agent" && !agentHandlerAllowed(spec.name) && (
@@ -374,7 +395,7 @@ function AddHookForm({
   const [method, setMethod] = useState<"POST" | "GET">("POST");
   const [headersText, setHeadersText] = useState("");
   const [prompt, setPrompt] = useState("");
-  const [agent, setAgent] = useState("");
+  const [model, setModel] = useState("");
   const [tool, setTool] = useState("");
   const [argsText, setArgsText] = useState("");
   const [timeout, setTimeout] = useState<number | "">("");
@@ -453,13 +474,29 @@ function AddHookForm({
       };
     } else if (type === "prompt") {
       if (!prompt.trim()) return setError("prompt required");
-      handler = { type: "prompt", prompt, ...(continueOnBlock ? { continueOnBlock: true } : {}), ...(once ? { once: true } : {}), ...(ifRule.trim() ? { if: ifRule.trim() } : {}) };
+      handler = {
+        type: "prompt",
+        prompt,
+        ...(model.trim() ? { model: model.trim() } : {}),
+        ...(continueOnBlock ? { continueOnBlock: true } : {}),
+        ...(once ? { once: true } : {}),
+        ...(ifRule.trim() ? { if: ifRule.trim() } : {}),
+      };
     } else if (type === "agent") {
-      if (!agent.trim()) return setError("agent name required");
+      // CC 2.1.300 — an agent hook is `{prompt, model?}`: a verifier prompt
+      // the engine runs on `model` (Haiku when unset; aliases like `haiku`
+      // resolve). The old `{agent: name}` shape was skipped by the engine.
+      if (!prompt.trim()) return setError("prompt required");
       // CC 2.1.280 — the engine won't run an agent hook on these events.
       if (!agentHandlerAllowed(event))
         return setError(`agent hooks don't run on ${event} — use command or http`);
-      handler = { type: "agent", agent: agent.trim(), ...(once ? { once: true } : {}), ...(ifRule.trim() ? { if: ifRule.trim() } : {}) };
+      handler = {
+        type: "agent",
+        prompt,
+        ...(model.trim() ? { model: model.trim() } : {}),
+        ...(once ? { once: true } : {}),
+        ...(ifRule.trim() ? { if: ifRule.trim() } : {}),
+      };
     } else {
       if (!tool.trim()) return setError("tool required");
       const args = parseArgs(argsText);
@@ -595,28 +632,37 @@ function AddHookForm({
           </div>
         </div>
       )}
-      {type === "prompt" && (
-        <div className="mt-2">
-          <Field label="Prompt">
+      {(type === "prompt" || type === "agent") && (
+        <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-[1fr_14rem]">
+          <Field label={type === "agent" ? "What to verify" : "Prompt"}>
             <textarea
               rows={3}
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
-              placeholder="System-style instruction injected when this event fires"
+              data-testid="hook-prompt-input"
+              placeholder={
+                type === "agent"
+                  ? "Verify that unit tests ran and passed. $ARGUMENTS is the hook input JSON."
+                  : "System-style instruction injected when this event fires"
+              }
               className="w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 text-xs focus:outline-none"
             />
           </Field>
-        </div>
-      )}
-      {type === "agent" && (
-        <div className="mt-2">
-          <Field label="Agent name">
+          {/* CC 2.1.300 — the model the hook runs on. Aliases (haiku, sonnet,
+              opus) resolve; unset means the engine default (Haiku for agent
+              hooks, the small fast model for prompt hooks), and an
+              unavailable model falls back to the session's. */}
+          <Field label="Model (optional)">
             <input
-              value={agent}
-              onChange={(e) => setAgent(e.target.value)}
-              placeholder="my-subagent"
+              value={model}
+              onChange={(e) => setModel(e.target.value)}
+              data-testid="hook-model-input"
+              placeholder={type === "agent" ? "haiku (default)" : "small fast model (default)"}
               className="w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 font-mono text-xs focus:outline-none"
             />
+            <p className="mt-1 text-[11px] text-[var(--muted)]">
+              An alias like <code className="font-mono">haiku</code> or a full model id.
+            </p>
           </Field>
         </div>
       )}
