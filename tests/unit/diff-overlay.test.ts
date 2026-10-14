@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { diffRefreshToken, modeFor, statusChar, statusLabel } from "@/lib/shared/diff-overlay";
+import { diffRefreshToken, displayPath, modeFor, statusChar, statusLabel } from "@/lib/shared/diff-overlay";
 import type { GitFileChange } from "@/lib/server/git";
 
 // CC 2.1.260 (H5) — the live-refresh token advances as Claude's edits do.
@@ -58,6 +58,36 @@ describe("statusChar", () => {
 
   test("falls back to the index code when worktree is clean", () => {
     expect(statusChar(file({ index: "A", worktree: " " }))).toBe("A");
+  });
+
+  // CC 2.1.300 — a staged rename that was then edited (`RM`) is a rename,
+  // not a modification.
+  test("keeps a staged rename's R when the worktree only says modified", () => {
+    const f = file({ index: "R", worktree: "M", oldPath: "a.ts", path: "b.ts" });
+    expect(statusChar(f)).toBe("R");
+    expect(statusLabel(statusChar(f))).toBe("Renamed");
+    expect(statusChar(file({ index: "C", worktree: "M", oldPath: "a.ts", path: "b.ts" }))).toBe("C");
+  });
+
+  test("a worktree deletion of a renamed file still reads as deleted", () => {
+    expect(statusChar(file({ index: "R", worktree: "D", oldPath: "a.ts", path: "b.ts" }))).toBe("D");
+  });
+
+  test("deletes read as deleted from either slot", () => {
+    expect(statusChar(file({ index: "D", worktree: " " }))).toBe("D");
+    expect(statusChar(file({ index: " ", worktree: "D" }))).toBe("D");
+  });
+});
+
+describe("displayPath", () => {
+  test("renders old → new for renames and copies", () => {
+    expect(displayPath(file({ index: "R", worktree: "M", oldPath: "a.ts", path: "b.ts" }))).toBe("a.ts → b.ts");
+    expect(displayPath(file({ index: "C", worktree: " ", oldPath: "a.ts", path: "b.ts" }))).toBe("a.ts → b.ts");
+  });
+
+  test("plain path otherwise", () => {
+    expect(displayPath(file({ index: "M", worktree: " ", path: "b.ts" }))).toBe("b.ts");
+    expect(displayPath(file({ untracked: true, index: "?", worktree: "?", path: "n.ts" }))).toBe("n.ts");
   });
 });
 
