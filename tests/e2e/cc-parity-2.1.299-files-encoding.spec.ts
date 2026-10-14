@@ -80,11 +80,13 @@ test("a Windows-1252 file opens read-only; a UTF-16LE file decodes and stays edi
     await expect(editor).toHaveValue("café au lait\n");
     await expect(editor).toHaveAttribute("readonly", "");
 
-    // Typing can't make it dirty / saveable.
+    // Neither typing nor the editor's own Enter/Backspace handling edits it.
     await editor.click();
     await page.keyboard.type("x");
+    await page.keyboard.press("Enter");
+    await page.keyboard.press("Backspace");
     await expect(editor).toHaveValue("café au lait\n");
-    await expect(page.getByTestId("files-save")).toBeDisabled();
+    await expect(page.getByTestId("files-dirty")).toHaveCount(0);
 
     await page.waitForTimeout(200);
     await page.screenshot({ path: resolve(SHOTS_DIR, "files-encoding-readonly.png"), fullPage: true });

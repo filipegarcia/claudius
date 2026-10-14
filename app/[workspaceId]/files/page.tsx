@@ -486,7 +486,11 @@ export default function FilesPage() {
                     </span>
                   )}
                   <span className="truncate font-mono">{open.relPath}</span>
-                  {dirty && <span className="text-amber-400">●</span>}
+                  {dirty && (
+                    <span data-testid="files-dirty" className="text-amber-400">
+                      ●
+                    </span>
+                  )}
                   {open.encoding && open.encoding !== "utf-8" && open.encodingLabel && (
                     <span
                       data-testid="files-encoding-badge"
