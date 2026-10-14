@@ -2020,7 +2020,7 @@ export class Session {
    * Keyed on the query object so a restarted/resumed query never serves the
    * previous one's answer; a rejection clears it so failures aren't cached.
    */
-  private fullUsageMemo: { query: object; at: number; promise: Promise<unknown> } | null = null;
+  private fullUsageMemo: { query: object; at: number | null; promise: Promise<unknown> } | null = null;
   /** True once the threshold has fired this session — fire-once per session. */
   private opusOverloadNudgeFired = false;
   /**
@@ -3421,15 +3421,18 @@ export class Session {
     // engine drops to `default` on its side; without this our mode pill and
     // `getRebuildOpts()` would keep claiming auto. Fire-and-forget — the
     // catalog resolves with the CLI's initialization handshake, which
-    // `start()` doesn't wait for — and re-read `this.model` at resolution so
+    // `start()` doesn't wait for — and re-read the model at resolution so
     // a switch in the meantime is checked against the model actually set.
+    // With no explicit pick, check the model the SDK resolved (`sdkModel`).
     // No notice: nothing changed under the user, `subscribe()`'s
     // `mode_changed` re-emit just paints the right pill.
     if (this.permissionMode === "auto") {
       const q = this.query;
       void q
         .supportedModels()
-        .then((models) => (this.query === q ? this.leaveAutoIfModelUnsupported(this.model, models) : undefined))
+        .then((models) =>
+          this.query === q ? this.leaveAutoIfModelUnsupported(this.model ?? this.sdkModel, models) : undefined,
+        )
         .catch(() => {});
     }
     // Start watching the on-disk JSONL so external writers (CLI `claude
@@ -5089,8 +5092,10 @@ export class Session {
     // workspace default (which may be `auto`) to a live session. Unknown
     // capability (no query yet, model not in the catalog, fetch stalled)
     // leaves the request alone — see `shouldLeaveAutoForModel`.
+    let autoCheckedModel: string | undefined;
     if (mode === "auto") {
-      const info = await this.modelCatalogInfo(this.model ?? this.sdkModel);
+      autoCheckedModel = this.model ?? this.sdkModel;
+      const info = await this.modelCatalogInfo(autoCheckedModel);
       if (shouldLeaveAutoForModel(mode, info)) mode = "default";
     }
     // Plan-mode re-entry reminder (Claude Code TUI parity, feature 33). When
@@ -5131,6 +5136,13 @@ export class Session {
       type: "mode_changed",
       mode,
     });
+    // A `setModel` that landed during the awaits above ran its auto check
+    // while the mode wasn't `auto` yet, so nothing re-checked the new model
+    // against the `auto` just written — do it now (after our own
+    // `mode_changed`, so the `default` one broadcasts last).
+    if (mode === "auto" && (this.model ?? this.sdkModel) !== autoCheckedModel) {
+      await this.leaveAutoIfModelUnsupported(this.model ?? this.sdkModel);
+    }
   }
 
   getPermissionMode(): PermissionMode {
@@ -5562,10 +5574,11 @@ export class Session {
     // or an unresolvable model id just means no notice, not a broken switch.
     //
     // One catalog fetch serves both this diff and the auto-mode check below,
-    // which (unlike the diff) runs on any switch to a named model — the
-    // session may have entered auto after an earlier switch to this model.
+    // which (unlike the diff) runs on any switch — the session may have
+    // entered auto after an earlier switch to this model, and a reset to the
+    // default (`model` undefined) is checked against the SDK-resolved model.
     let models: ModelInfo[] | undefined;
-    if (this.query && model) {
+    if (this.query) {
       try {
         models = await this.query.supportedModels();
       } catch {
@@ -5586,7 +5599,7 @@ export class Session {
     // already reads "default" when the notice lands. Needs the catalog, so a
     // failed fetch (no `models`) leaves the mode as is.
     const autoModeOffFor = models
-      ? await this.leaveAutoIfModelUnsupported(model, models)
+      ? await this.leaveAutoIfModelUnsupported(model ?? this.sdkModel, models)
       : undefined;
     this.broadcast({
       type: "model_changed",
@@ -6182,18 +6195,30 @@ export class Session {
     const query = this.query;
     if (!query) return Promise.reject(new Error("no active query"));
     const memo = this.fullUsageMemo;
-    if (memo && memo.query === query && Date.now() - memo.at < Session.FULL_USAGE_TTL_MS) {
+    // The TTL runs from when the scan SETTLED (`at` stays null until then):
+    // a scan slower than the window is still the one to share, not a reason
+    // to start a duplicate concurrent one.
+    if (
+      memo &&
+      memo.query === query &&
+      (memo.at === null || Date.now() - memo.at < Session.FULL_USAGE_TTL_MS)
+    ) {
       return memo.promise;
     }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const promise: Promise<unknown> = (query as any).usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET({
       skipBehaviors: false,
     });
-    const entry = { query, at: Date.now(), promise };
+    const entry: { query: object; at: number | null; promise: Promise<unknown> } = { query, at: null, promise };
     this.fullUsageMemo = entry;
-    promise.catch(() => {
-      if (this.fullUsageMemo === entry) this.fullUsageMemo = null;
-    });
+    promise.then(
+      () => {
+        entry.at = Date.now();
+      },
+      () => {
+        if (this.fullUsageMemo === entry) this.fullUsageMemo = null;
+      },
+    );
     return promise;
   }
 

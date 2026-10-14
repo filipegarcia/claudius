@@ -30,6 +30,14 @@ describe("rateLimitEventPct — the approaching-limit pill", () => {
   test("floors the 0–1 fraction like the CLI", () => {
     expect(rateLimitEventPct(0.95)).toBe(95);
     expect(rateLimitEventPct(0.879)).toBe(87);
+    expect(rateLimitEventPct(0.995)).toBe(99);
+  });
+
+  test("float error in the product doesn't floor a whole figure down a point", () => {
+    expect(0.57 * 100).toBeLessThan(57); // the trap
+    expect(rateLimitEventPct(0.57)).toBe(57);
+    expect(rateLimitEventPct(0.29)).toBe(29);
+    expect(rateLimitEventPct(0.58)).toBe(58);
   });
 
   test("never reads above 100", () => {

@@ -148,15 +148,25 @@ export async function writeSkill(
 ): Promise<void> {
   // CC 2.1.299 parity — the engine won't offer a skill under a name with
   // hidden, direction-changing or blank-like characters, < or >, so don't
-  // create (or keep saving into) one. Checked here rather than in
-  // `skillPath`, which `readSkill` shares: an existing such folder must stay
-  // readable so the Skills page can show it and the user can delete it.
-  if (isValidSkillDirName(name) && !isEngineOfferableName(name)) {
-    throw new Error(
-      `${visualizeHiddenNameUnicode(name).visualized} is not offered: ${ENGINE_NAME_RULE_MESSAGE}`,
-    );
-  }
+  // create one. Checked here rather than in `skillPath`, which `readSkill`
+  // shares: an existing such folder must stay readable — and editable — so
+  // the Skills page can show it and the user can fix or delete it. Only a
+  // folder that doesn't exist yet is refused.
   const p = skillPath(scope, projectCwd, name); // also validates name
+  if (!isEngineOfferableName(name)) {
+    let exists = true;
+    try {
+      await fs.stat(dirname(p));
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
+      exists = false;
+    }
+    if (!exists) {
+      throw new Error(
+        `${visualizeHiddenNameUnicode(name).visualized} is not offered: ${ENGINE_NAME_RULE_MESSAGE}`,
+      );
+    }
+  }
   await fs.mkdir(dirname(p), { recursive: true });
   await fs.writeFile(p, raw, "utf8");
 }

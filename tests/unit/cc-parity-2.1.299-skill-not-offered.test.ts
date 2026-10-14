@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
@@ -185,16 +185,18 @@ describe("skills on disk the engine won't offer (CC 2.1.299)", () => {
     expect(existsSync(join(skillsRoot(), "release-notes"))).toBe(true);
   });
 
-  test("writeSkill refuses a name the engine won't offer, with the engine's message", async () => {
+  test("writeSkill refuses to create a folder the engine won't offer, with the engine's message", async () => {
     await expect(writeSkill("project", cwd, filler, "---\nname: deploy\n---\n")).rejects.toThrow(
       `deploy\u{2039}U+3164\u{203A} is not offered: ${ENGINE_NAME_RULE_MESSAGE}`,
     );
     await expect(writeSkill("project", cwd, "\u{301}abc", "x")).rejects.toThrow(ENGINE_NAME_RULE_MESSAGE);
     expect(existsSync(join(skillsRoot(), filler))).toBe(false);
 
-    // An existing such folder can't be saved into either…
+    // An existing such folder can still be saved into (the user may be
+    // editing it before renaming or deleting it)…
     addSkill(selector, "ship");
-    await expect(writeSkill("project", cwd, selector, "changed")).rejects.toThrow("is not offered");
+    await writeSkill("project", cwd, selector, "changed");
+    expect(readFileSync(join(skillsRoot(), selector, "SKILL.md"), "utf8")).toBe("changed");
 
     // …while ordinary names still write, and path-shaped ones still fail the folder rule.
     await writeSkill("project", cwd, "caf\u{E9}", "---\nname: cafe\n---\n");

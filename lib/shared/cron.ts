@@ -103,8 +103,14 @@ export function nextFireAfter(
       currentDate: new Date(start),
       ...(tz ? { tz } : {}),
     });
+    let prev = -Infinity;
     for (let i = 0; i < MAX_ANCHOR_STEPS; i++) {
       const t = it.next().getTime();
+      // cron-parser can stall, handing back the same slot on every call
+      // (seen around Australia/Lord_Howe's 30-minute DST shift) — each call
+      // slow, so spinning to MAX_ANCHOR_STEPS would wedge the event loop.
+      if (t <= prev) break;
+      prev = t;
       if (t <= nowMs) continue;
       if (anchored && t - anchorMs < ANCHOR_SLOT_TOLERANCE_MS) continue;
       return t;
@@ -112,7 +118,8 @@ export function nextFireAfter(
   } catch {
     return null;
   }
-  // Unreachable for any real 5-field cron within the anchor window; stay safe.
+  // A stalled iterator (above), or — unreachable for any real 5-field cron
+  // within the anchor window — running out of steps; stay safe.
   return nextFireMs(cron, new Date(nowMs));
 }
 

@@ -21,8 +21,10 @@ export function clampPct(pct: number): number {
 /**
  * A rate-limit event's 0–1 `utilization` fraction as the whole percentage the
  * approaching-limit pill prints: floored like the CLI
- * (`Math.floor(utilization*100)`), then clamped to 100.
+ * (`Math.floor(utilization*100)`), then clamped to 100. The product is first
+ * rounded to two decimals so float error can't floor a whole figure down a
+ * point (`0.57 * 100` is `56.99999999999999`).
  */
 export function rateLimitEventPct(utilization: number): number {
-  return clampPct(Math.floor(utilization * 100));
+  return clampPct(Math.floor(Math.round(utilization * 1e4) / 100));
 }

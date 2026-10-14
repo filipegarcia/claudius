@@ -78,6 +78,27 @@ describe("Session.getUsageBehaviors", () => {
     expect(fn2).toHaveBeenCalledTimes(1);
   });
 
+  test("a scan slower than the memo window is still shared, and the window runs from when it settled", async () => {
+    vi.useFakeTimers();
+    let release: (v: unknown) => void = () => {};
+    let calls = 0;
+    const { s, fn } = makeSession(() => (++calls === 1 ? new Promise((r) => (release = r)) : Promise.resolve(USAGE)));
+    const first = s.getUsageBehaviors();
+    vi.advanceTimersByTime(45_000);
+    const second = s.getUsageBehaviors();
+    expect(fn).toHaveBeenCalledTimes(1);
+    release(USAGE);
+    expect(await first).not.toBeNull();
+    expect(await second).not.toBeNull();
+
+    vi.advanceTimersByTime(20_000);
+    await s.getUsageBehaviors();
+    expect(fn).toHaveBeenCalledTimes(1);
+    vi.advanceTimersByTime(11_000);
+    await s.getUsageBehaviors();
+    expect(fn).toHaveBeenCalledTimes(2);
+  });
+
   test("null for a non-subscriber (behaviors: null), and failures aren't cached", async () => {
     const { s: nonSub } = makeSession(async () => ({ behaviors: null }));
     expect(await nonSub.getUsageBehaviors()).toBeNull();

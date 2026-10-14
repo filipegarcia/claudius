@@ -5,6 +5,7 @@
 process.env.TZ = "America/New_York";
 
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { CronExpressionParser } from "cron-parser";
 import { nextFireAfter, nextFireMs, FIRE_ANCHOR_MAX_AGE_MS } from "@/lib/shared/cron";
 import type { Job } from "@/lib/server/scheduler-store";
 
@@ -44,6 +45,28 @@ vi.mock("@/lib/server/scheduler-store", () => ({
     return next;
   }),
 }));
+
+describe("nextFireAfter — a stalled cron-parser iterator", () => {
+  test("stops stepping when the iterator stops advancing (Australia/Lord_Howe 30-min shift)", () => {
+    // Around Lord Howe's fall-back, cron-parser's iterator for `0 * * * *`
+    // returns the same slot on every (slow) call. Mocked: the real calls take
+    // hundreds of ms each, so spinning to the step cap took ~20 minutes.
+    const stuck = ms("2026-04-04T14:00:00Z");
+    const next = vi.fn(() => new Date(stuck));
+    const spy = vi
+      .spyOn(CronExpressionParser, "parse")
+      .mockImplementationOnce(() => ({ next }) as unknown as ReturnType<typeof CronExpressionParser.parse>);
+    try {
+      const now = ms("2026-04-04T14:10:00Z");
+      const got = nextFireAfter("0 * * * *", ms("2026-04-04T13:00:00.200Z"), now, "Australia/Lord_Howe");
+      expect(next.mock.calls.length).toBeGreaterThan(0);
+      expect(next.mock.calls.length).toBeLessThanOrEqual(2);
+      expect(got).toBe(nextFireMs("0 * * * *", new Date(now)));
+    } finally {
+      spy.mockRestore();
+    }
+  });
+});
 
 describe("nextFireAfter — DST fall-back (explicit tz)", () => {
   test("reproduces the bug: computing from now re-fires the repeated 01:30", () => {

@@ -93,6 +93,7 @@ type FakeQuery = {
 // spell out the public surface under test plus the internals we poke.
 type SessionInternals = Pick<Session, "id" | "setModel" | "setPermissionMode" | "getPermissionMode" | "getRebuildOpts"> & {
   model?: string;
+  sdkModel?: string;
   query: FakeQuery | null;
   buffer: ServerEvent[];
 };
@@ -164,6 +165,16 @@ describe("Session.setModel — leaves auto on a model without auto-mode support"
     expect(events(session, "model_changed").at(-1)).not.toHaveProperty("autoModeOffFor");
   });
 
+  test("a reset to the default model is checked against the SDK-resolved model", async () => {
+    const { session, sdkModes } = makeSession("auto");
+    session.model = undefined;
+    session.sdkModel = "claude-haiku-4-5";
+    await session.setModel(undefined, "picker");
+    expect(session.getPermissionMode()).toBe("default");
+    expect(sdkModes).toEqual(["default"]);
+    expect(events(session, "model_changed").at(-1)?.autoModeOffFor).toBe("Haiku 4.5");
+  });
+
   test("a failed catalog fetch leaves the mode alone and doesn't fail the switch", async () => {
     const { session } = makeSession("auto");
     session.query!.supportedModels = async () => {
@@ -189,6 +200,37 @@ describe("Session.setPermissionMode — can't re-enter auto on an unsupported mo
       await session.setPermissionMode("auto");
       expect(session.getPermissionMode()).toBe("auto");
     }
+  });
+
+  test("with no explicit model, the SDK-resolved model is checked", async () => {
+    const { session } = makeSession("default");
+    session.model = undefined;
+    session.sdkModel = "claude-haiku-4-5";
+    await session.setPermissionMode("auto");
+    expect(session.getPermissionMode()).toBe("default");
+  });
+
+  test("a switch to an unsupported model while the auto request awaits the catalog still leaves auto", async () => {
+    const { session, sdkModes } = makeSession("default", "claude-sonnet-5");
+    let release: () => void = () => {};
+    let fetched: () => void = () => {};
+    const firstFetch = new Promise<void>((r) => (fetched = r));
+    let calls = 0;
+    session.query!.supportedModels = () => {
+      calls += 1;
+      if (calls > 1) return Promise.resolve(CATALOG);
+      fetched();
+      return new Promise((r) => (release = () => r(CATALOG)));
+    };
+    const pending = session.setPermissionMode("auto");
+    await firstFetch; // the auto check is now looking up claude-sonnet-5
+    await session.setModel("claude-haiku-4-5", "picker"); // mode isn't auto yet: no-op
+    expect(session.getPermissionMode()).toBe("default");
+    release();
+    await pending;
+    expect(session.getPermissionMode()).toBe("default");
+    expect(sdkModes).toEqual(["auto", "default"]);
+    expect(events(session, "mode_changed").at(-1)?.mode).toBe("default");
   });
 
   test("a user-initiated exit from auto still queues the reminder", async () => {

@@ -39,6 +39,11 @@ function NotOfferedBadge({ testId }: { testId: string }) {
 
 /** CC 2.1.299 — a SKILL.md `name:` the engine ignores ("such a name: is ignored"). */
 function IgnoredMdName({ name, testId }: { name: string; testId: string }) {
+  // A quoted `name: "foo "` is refused for its edge (or doubled) spaces,
+  // which would otherwise render invisibly — show those as tokens too.
+  const shown = visualizeHiddenNameUnicode(name).visualized.replace(/^ +| +$| {2,}/g, (m) =>
+    "‹U+0020›".repeat(m.length),
+  );
   return (
     <span
       data-testid={testId}
@@ -46,7 +51,7 @@ function IgnoredMdName({ name, testId }: { name: string; testId: string }) {
       title={`Claude Code ignores this SKILL.md name and uses the folder name: ${ENGINE_NAME_RULE_MESSAGE}`}
     >
       {" · name: "}
-      <span className="line-through opacity-70">{visualizeHiddenNameUnicode(name).visualized}</span>
+      <span className="line-through opacity-70">{shown}</span>
       {" ignored"}
     </span>
   );
