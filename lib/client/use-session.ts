@@ -1156,6 +1156,15 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     previousAdvisor: string;
     newModel: string | undefined;
   } | null>(null);
+  /**
+   * CC 2.1.299 parity — transient notice for a model switch that took the
+   * session out of auto mode ("Auto mode is off: <model> doesn't support
+   * auto mode."). Set from the `model_changed` handler on `autoModeOffFor`.
+   */
+  const [autoModeOffNotice, setAutoModeOffNotice] = useState<{
+    uuid: string;
+    model: string;
+  } | null>(null);
   // Prior fast_mode_state observed on a result event. Used to detect edges
   // without depending on the (stale-in-closure) `fastModeState` state value.
   const prevFastModeStateRef = useRef<"off" | "cooldown" | "on" | null>(null);
@@ -1733,6 +1742,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     setFastModeState(null);
     setFastModeDisabledReason(null);
     setFastModeNotice(null);
+    setAutoModeOffNotice(null);
     prevFastModeStateRef.current = null;
     setPromptSuggestions([]);
     setReplaying(true);
@@ -2397,6 +2407,13 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
             model: ev.model,
             nowSupported: ev.fastModeNowSupported,
           });
+        }
+        // CC 2.1.299 parity: the switch took the session out of auto mode
+        // (the `mode_changed` that flips the pill arrived just before this).
+        // Gated on `!replayingRef` — `model_changed` is buffered, and a
+        // reload replaying a switch from an hour ago shouldn't re-announce it.
+        if (ev.autoModeOffFor && !replayingRef.current) {
+          setAutoModeOffNotice({ uuid: crypto.randomUUID(), model: ev.autoModeOffFor });
         }
         return;
       }
@@ -5202,8 +5219,12 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
         bindToSession(id);
         // Apply the server's authoritative cwd immediately. Without this,
         // `cwd` stays null until the SDK's `init` system message arrives via
-        // SSE — but for a brand-new session the SDK doesn't spawn until the
-        // first prompt, so init never fires beforehand. That left the page-
+        // SSE — and for a brand-new session that message doesn't arrive until
+        // the first prompt. (The CLI process itself is NOT lazy: this POST
+        // ran `Session.start()`, which calls `query()` and spawns it before
+        // responding; `system:init` is just emitted at the start of each
+        // turn, so an unused blank chat holds a live CLI child until the
+        // idle reaper in `session-manager.ts` ends it.) That left the page-
         // level auto-add-tab logic (which gates on `cwd === workspaceRoot`)
         // stalled until the user typed something, so the new tab only popped
         // into the strip after the first prompt. The init handler will
@@ -5773,6 +5794,10 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
 
   const dismissAdvisorDisabledNotice = useCallback(() => {
     setAdvisorDisabledNotice(null);
+  }, []);
+
+  const dismissAutoModeOffNotice = useCallback(() => {
+    setAutoModeOffNotice(null);
   }, []);
 
   /**
@@ -6529,6 +6554,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     modelSwitchNotice,
     chatCommandModelNotice,
     advisorDisabledNotice,
+    autoModeOffNotice,
     promptSuggestions,
     suggestedUuids,
     goalUuids,
@@ -6565,6 +6591,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     dismissModelSwitchNotice,
     dismissChatCommandModelNotice,
     dismissAdvisorDisabledNotice,
+    dismissAutoModeOffNotice,
     reEnableAdvisor,
     requestRecap,
     dismissRecap,
