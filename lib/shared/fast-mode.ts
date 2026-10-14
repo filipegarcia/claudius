@@ -62,7 +62,9 @@ export function fastModeDisabledReasonLabel(raw: string | null | undefined): str
  * CC 2.1.300 — the `system/notification` key the engine emits when fast mode
  * is refused because usage credits ran out (`out_of_credits`,
  * `org_spend_cap_reached`, `org_level_disabled_until`). Verbatim from the
- * bundled 2.1.300 engine.
+ * engine bundled with SDK 0.3.300 (Claude Code 2.1.300); the notice shape
+ * `{type, subtype, key, text, priority, color}` is `SDKNotificationMessage`
+ * in sdk.d.ts. Older engines never send it, so this is a no-op there.
  */
 export const FAST_MODE_CREDITS_REJECTED_KEY = "fast-mode-overage-rejected";
 

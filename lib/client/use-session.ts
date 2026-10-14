@@ -1602,6 +1602,12 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
   // guard: the authoritative `usage_snapshot` the server emits alongside
   // each result carries absolute totals and is idempotent by construction.
   const seenResultUuidsRef = useRef<Set<string>>(new Set());
+  // CC 2.1.300 — uuids of `fast-mode-overage-rejected` notices already acted
+  // on. A short SSE blip reconnects on the merge path (no `resetState`, so
+  // `replayingRef` stays false) and replays the buffer tail; without this an
+  // old notice would flip the toggle Off again after the user re-enabled
+  // fast. Not cleared on reset — uuids are unique per notice.
+  const handledFastCreditsNoticeUuidsRef = useRef<Set<string>>(new Set());
   // True while a server-dispatched `/compact` slash command — sent while
   // idle — is awaiting its outcome. Set on the `slash_invoked` breadcrumb,
   // cleared either by a successful `compact_boundary` (compaction worked) or,
@@ -4746,8 +4752,12 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
           // The server has already turned it off (`session.ts`); flip the
           // picker toggle / FastBadge mirror to match without POSTing again.
           // The notice itself renders below as an `immediate` (red) pill.
-          if (isFastModeCreditsRejectedNotice(sysAny) && !replayingRef.current) {
-            setFastEnabled(false);
+          if (isFastModeCreditsRejectedNotice(sysAny)) {
+            const nUuid = (sysAny as { uuid?: unknown }).uuid;
+            const firstSight =
+              typeof nUuid !== "string" || !handledFastCreditsNoticeUuidsRef.current.has(nUuid);
+            if (typeof nUuid === "string") handledFastCreditsNoticeUuidsRef.current.add(nUuid);
+            if (firstSight && !replayingRef.current) setFastEnabled(false);
           }
           if (text) {
             setSystemEntries((prev) => [

@@ -74,7 +74,7 @@ const CREDITS_NOTICE: SdkEvent = {
 };
 
 async function mockChatBackend(page: Page) {
-  const state = { noticeArmed: false, fastPosts: [] as boolean[] };
+  const state = { noticeArmed: false, fastPosts: [] as boolean[], streamHits: 0 };
 
   await page.route("**/api/sessions", async (route: Route) => {
     if (route.request().method() !== "POST") return route.fallback();
@@ -83,6 +83,7 @@ async function mockChatBackend(page: Page) {
   // Every (re)connect replays the prelude; once armed, the engine's notice
   // follows `replay_done` as a live frame.
   await page.route(`**/api/sessions/${FAKE_SESSION_ID}/stream*`, async (route: Route) => {
+    state.streamHits += 1;
     return route.fulfill({
       status: 200,
       headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive" },
@@ -152,4 +153,14 @@ test("fast mode turns off, with an error notice, when usage credits run out", as
   await (await fastToggle()).scrollIntoViewIfNeeded();
   await page.waitForTimeout(200);
   await page.screenshot({ path: resolve(SHOTS_DIR, "fast-credits-off.png"), fullPage: false });
+
+  // Turned back on, it stays on: the same (already handled) notice replayed
+  // by a later stream reconnect must not flip the toggle off again.
+  await (await fastToggle()).click();
+  await expect.poll(() => state.fastPosts).toEqual([true, true]);
+  await expect(await fastToggle()).toHaveAttribute("data-enabled", "1");
+  const hits = state.streamHits;
+  await expect.poll(() => state.streamHits, { timeout: 30_000 }).toBeGreaterThan(hits);
+  await page.waitForTimeout(1_000);
+  await expect(await fastToggle()).toHaveAttribute("data-enabled", "1");
 });
