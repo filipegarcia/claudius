@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
+import { killProcessGroup } from "./process-group";
 
 /**
  * Per-session persistent bash for the `!` input-box mode (Claude Code parity).
@@ -40,9 +41,10 @@ import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
  *
  * Timeout:
  *   Per-command. On expiry we SIGTERM the whole process group (the child
- *   is the group leader via `detached: true`, mirroring `shell.ts`) and
- *   respawn a fresh bash so a runaway loop can't poison the session. The
- *   call resolves with `timedOut: true`.
+ *   is the group leader via `detached: true`, mirroring `shell.ts`),
+ *   escalating to SIGKILL after 1.5 s (CC 2.1.300), and respawn a fresh
+ *   bash so a runaway loop can't poison the session. The call resolves
+ *   with `timedOut: true`. `dispose()` uses the same TERM→KILL escalation.
  *
  * Output cap:
  *   Same `MAX_OUTPUT_BYTES` soft cap as `shell.ts` — we stop appending
@@ -323,14 +325,12 @@ export class BashSession {
     };
     this.resetPerCommand();
     // Kill the process group (group leader = bash, set up by `detached: true`)
-    // so any descendants (sleep, build subprocesses) die too. Same SIGTERM
-    // model as `shell.ts`.
-    try {
-      if (this.child?.pid != null) process.kill(-this.child.pid, "SIGTERM");
-    } catch {
-      // Already gone — fine.
-    }
+    // so any descendants (sleep, build subprocesses, `&` jobs) die too.
+    // SIGTERM, then SIGKILL after 1.5 s for anything that ignored it —
+    // CC 2.1.300 parity, same model as `shell.ts`.
+    const pid = this.child?.pid;
     this.child = null;
+    if (pid != null) killProcessGroup(pid);
     p.resolve(result);
     // Drain — next run will respawn via ensureChild.
     const next = this.queue.shift();
@@ -349,12 +349,13 @@ export class BashSession {
   /** Tear down the child for good. Subsequent execs reject fast. */
   dispose() {
     this.destroyed = true;
-    try {
-      if (this.child?.pid != null) process.kill(-this.child.pid, "SIGTERM");
-    } catch {
-      // ignore
-    }
+    // SIGTERM the whole group, force-kill survivors (e.g. a background job
+    // that traps TERM) after 1.5 s so nothing outlives the session.
+    // CC 2.1.300: "force-kill background commands still running 1.5 seconds
+    // after being asked to stop".
+    const pid = this.child?.pid;
     this.child = null;
+    if (pid != null) killProcessGroup(pid);
     this.queue = [];
     if (this.pending) {
       const p = this.pending;

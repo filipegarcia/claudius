@@ -93,6 +93,83 @@ d("BashSession", () => {
     expect(r.stdout).toContain("alive");
   });
 
+  // CC 2.1.300 parity: a background job that ignores SIGTERM must be
+  // force-killed (SIGKILL) ~1.5 s after we ask the shell to stop, instead
+  // of outliving the session.
+  const TERM_IGNORING_BG_JOB = "( trap '' TERM; exec sleep 377 ) & echo $!";
+
+  function isAlive(pid: number): boolean {
+    try {
+      process.kill(pid, 0);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  function forceKill(pid: number | undefined) {
+    if (pid == null) return;
+    try {
+      process.kill(pid, "SIGKILL");
+    } catch {
+      // already gone
+    }
+  }
+
+  async function startTermIgnoringJob(): Promise<number> {
+    const r = await bash.exec(TERM_IGNORING_BG_JOB);
+    expect(r.exitCode).toBe(0);
+    const pid = Number(r.stdout.trim());
+    expect(Number.isInteger(pid) && pid > 0).toBe(true);
+    return pid;
+  }
+
+  test(
+    "dispose force-kills a TERM-ignoring background job after the grace period",
+    async () => {
+      let pid: number | undefined;
+      try {
+        pid = await startTermIgnoringJob();
+        // Give the subshell time to install the trap and exec sleep.
+        await new Promise((r) => setTimeout(r, 100));
+        expect(isAlive(pid)).toBe(true);
+        bash.dispose();
+        // Still alive right after SIGTERM (it ignores TERM)...
+        await new Promise((r) => setTimeout(r, 300));
+        expect(isAlive(pid)).toBe(true);
+        // ...but gone once the 1.5 s SIGKILL escalation fires.
+        await new Promise((r) => setTimeout(r, 1900));
+        expect(() => process.kill(pid!, 0)).toThrow(
+          expect.objectContaining({ code: "ESRCH" }),
+        );
+      } finally {
+        forceKill(pid);
+      }
+    },
+    10_000,
+  );
+
+  test(
+    "timeout force-kills a TERM-ignoring background job after the grace period",
+    async () => {
+      let pid: number | undefined;
+      try {
+        pid = await startTermIgnoringJob();
+        await new Promise((r) => setTimeout(r, 100));
+        expect(isAlive(pid)).toBe(true);
+        const r = await bash.exec("sleep 5", { timeoutMs: 200 });
+        expect(r.timedOut).toBe(true);
+        await new Promise((r) => setTimeout(r, 2200));
+        expect(() => process.kill(pid!, 0)).toThrow(
+          expect.objectContaining({ code: "ESRCH" }),
+        );
+      } finally {
+        forceKill(pid);
+      }
+    },
+    10_000,
+  );
+
   test("heredoc wrapper isolates a password from bash's own stdin reader", async () => {
     // The sudo flow (Session.runBashCommand) injects the password through
     // a per-call heredoc inside the command, NOT via the raw `stdin` opt
