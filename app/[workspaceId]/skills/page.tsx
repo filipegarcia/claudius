@@ -2,18 +2,55 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, FilePlus, RefreshCw, Save, Search, Sparkles, Trash2, X } from "lucide-react";
+import { ArrowLeft, EyeOff, FilePlus, RefreshCw, Save, Search, Sparkles, Trash2, X } from "lucide-react";
 import { SideNav } from "@/components/nav/SideNav";
 import { ScopeToggle, type Scope as IaScope } from "@/components/nav/ScopeToggle";
 import { useActiveCwd } from "@/lib/client/useActiveCwd";
 import type { SkillFile, SkillScope } from "@/lib/server/skills";
-import { skillMdName } from "@/lib/shared/skill-names";
+import { visualizeHiddenNameUnicode } from "@/lib/shared/invisible-unicode";
+import { ENGINE_NAME_RULE_MESSAGE, ignoredSkillMdName, skillMdName } from "@/lib/shared/skill-names";
 import { cn } from "@/lib/utils/cn";
 
 const SCOPE_LABELS: Record<SkillScope, string> = {
   user: "User (~/.claude/skills)",
   project: "Project (.claude/skills)",
 };
+
+/**
+ * CC 2.1.299 parity — "one whose file or folder name has hidden,
+ * direction-changing or blank-like characters, < or >, is no longer offered
+ * until renamed". Shown on rows (and the editor header) whose folder name the
+ * engine refuses; the name itself is rendered with those characters as
+ * visible `‹U+XXXX›` tokens so it's legible.
+ */
+const NOT_OFFERED_TITLE = `Claude Code won't offer this skill until its folder is renamed: ${ENGINE_NAME_RULE_MESSAGE}.`;
+
+function NotOfferedBadge({ testId }: { testId: string }) {
+  return (
+    <span
+      data-testid={testId}
+      title={NOT_OFFERED_TITLE}
+      className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md border border-amber-500/30 bg-amber-500/10 px-1 py-0.5 font-sans text-[9px] text-amber-300"
+    >
+      <EyeOff className="h-2.5 w-2.5" /> Not offered to Claude until renamed
+    </span>
+  );
+}
+
+/** CC 2.1.299 — a SKILL.md `name:` the engine ignores ("such a name: is ignored"). */
+function IgnoredMdName({ name, testId }: { name: string; testId: string }) {
+  return (
+    <span
+      data-testid={testId}
+      className="text-amber-300"
+      title={`Claude Code ignores this SKILL.md name and uses the folder name: ${ENGINE_NAME_RULE_MESSAGE}`}
+    >
+      {" · name: "}
+      <span className="line-through opacity-70">{visualizeHiddenNameUnicode(name).visualized}</span>
+      {" ignored"}
+    </span>
+  );
+}
 
 const TEMPLATE = `---
 name: my-skill
@@ -123,7 +160,8 @@ export default function SkillsPage() {
 
   const onDelete = async (scope: SkillScope, name: string) => {
     if (!cwd) return;
-    if (!confirm(`Delete skill "${name}" and its directory from ${SCOPE_LABELS[scope]}?`)) return;
+    const shown = visualizeHiddenNameUnicode(name).visualized;
+    if (!confirm(`Delete skill "${shown}" and its directory from ${SCOPE_LABELS[scope]}?`)) return;
     const params = new URLSearchParams({ scope, cwd });
     const res = await fetch(`/api/skills/${encodeURIComponent(name)}?${params}`, {
       method: "DELETE",
@@ -254,10 +292,16 @@ export default function SkillsPage() {
                         "allowed-tools"?: string[];
                       };
                       const tools = Array.isArray(fm["allowed-tools"]) ? fm["allowed-tools"] : [];
-                      const mdName = skillMdName(f.frontmatter, f.name);
+                      // CC 2.1.299 — a not-offered skill can't be found by either
+                      // name, so don't present its SKILL.md name as an alias.
+                      const mdName = f.notOffered ? null : skillMdName(f.frontmatter, f.name);
+                      const ignoredName = ignoredSkillMdName(f.frontmatter);
                       return (
                         <li key={f.name}>
                           <button
+                            data-testid="skill-row"
+                            data-skill-name={f.name}
+                            data-not-offered={f.notOffered ? "true" : undefined}
                             onClick={() => setActive({ scope: f.scope, name: f.name })}
                             className={cn(
                               "block w-full px-3 py-2 text-left",
@@ -266,7 +310,9 @@ export default function SkillsPage() {
                             )}
                           >
                             <div className="font-mono text-xs">
-                              {f.name}
+                              <span data-testid="skill-row-name">
+                                {visualizeHiddenNameUnicode(f.name).visualized}
+                              </span>
                               {/* CC 2.1.290 — show the SKILL.md name too when it differs from the folder. */}
                               {mdName && (
                                 <span
@@ -278,7 +324,15 @@ export default function SkillsPage() {
                                   {mdName}
                                 </span>
                               )}
+                              {ignoredName && (
+                                <IgnoredMdName name={ignoredName} testId="skill-md-name-ignored" />
+                              )}
                             </div>
+                            {f.notOffered && (
+                              <div className="mt-1">
+                                <NotOfferedBadge testId="skill-row-not-offered-badge" />
+                              </div>
+                            )}
                             {fm.description && (
                               <div className="mt-0.5 line-clamp-2 text-[10px] text-[var(--muted)]">
                                 {fm.description}
@@ -349,11 +403,15 @@ function SkillEditor({
   const [draft, setDraft] = useState(file.raw);
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
-  const mdName = skillMdName(file.frontmatter, file.name);
+  const mdName = file.notOffered ? null : skillMdName(file.frontmatter, file.name);
+  const ignoredName = ignoredSkillMdName(file.frontmatter);
   return (
     <>
       <div className="flex items-center gap-2 border-b border-[var(--border)] bg-[var(--panel)]/40 px-3 py-2">
-        <span className="shrink-0 whitespace-nowrap text-xs font-medium">{file.name}</span>
+        <span data-testid="skill-editor-name" className="shrink-0 whitespace-nowrap text-xs font-medium">
+          {visualizeHiddenNameUnicode(file.name).visualized}
+        </span>
+        {file.notOffered && <NotOfferedBadge testId="skill-editor-not-offered-badge" />}
         {mdName && (
           <span
             className="shrink-0 whitespace-nowrap text-xs text-[var(--muted)]"
@@ -362,9 +420,15 @@ function SkillEditor({
             name: {mdName}
           </span>
         )}
+        {ignoredName && (
+          <span className="shrink-0 whitespace-nowrap text-xs">
+            <IgnoredMdName name={ignoredName} testId="skill-editor-md-name-ignored" />
+          </span>
+        )}
         <span className="text-[10px] text-[var(--muted)]">{SCOPE_LABELS[file.scope]}</span>
         <span className="ml-2 truncate font-mono text-[10px] text-[var(--muted)]">{file.path}</span>
         <button
+          data-testid="skill-delete-button"
           onClick={() => void onDelete()}
           title="Delete skill"
           className="ml-auto flex items-center gap-1 rounded-md border border-red-500/30 bg-red-500/10 px-2 py-0.5 text-[11px] text-red-300 hover:bg-red-500/20"

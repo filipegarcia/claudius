@@ -159,7 +159,13 @@ export async function auditWorkspacePrompts(cwd: string): Promise<PromptAuditRep
   }
   for (const scope of ["project", "user"] as const) {
     try {
-      for (const s of await listSkills(scope, cwd)) validCommands.add(s.name.toLowerCase());
+      for (const s of await listSkills(scope, cwd)) {
+        // CC 2.1.299 parity — a skill the engine no longer offers (hidden,
+        // direction-changing or blank-like characters in its folder name)
+        // can't be invoked as `/name`, so a reference to it is stale.
+        if (s.notOffered) continue;
+        validCommands.add(s.name.toLowerCase());
+      }
     } catch {
       // best-effort
     }
