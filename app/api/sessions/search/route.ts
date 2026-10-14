@@ -12,6 +12,15 @@ const SNIPPET_RADIUS = 60;
 // the event loop on a single keystroke. The newest files are scanned first.
 const MAX_FILES = 600;
 const CONCURRENCY = 8;
+// CC 2.1.300 writes engine-internal request-capture entries into every
+// transcript: `api-request-shape` (full system prompt + tools JSON, up to
+// 2 MB), `api-request-blob` and `api-request` (params incl. max_tokens).
+// Those lines are not conversation content — any word from the system prompt
+// or tool descriptions would otherwise match every session. In raw JSONL an
+// UNESCAPED `"type":"api-request` can only be a real top-level JSON key (a
+// quote inside a string value is written `\"`), and the prefix covers all
+// three variants. This is a constant — never derived from user input.
+const API_REQUEST_LINE_MARKER = '"type":"api-request';
 
 export type SessionContentMatch = {
   sessionId: string;
@@ -28,7 +37,7 @@ export type SessionContentMatch = {
  *
  * Why scan the raw JSONL instead of the SDK's parsed `getSessionMessages`:
  * parsing every transcript in a busy workspace (hundreds of multi-MB files)
- * per keystroke is far too slow. A single `readFile` + one regex `.exec`
+ * per keystroke is far too slow. A single `readFile` + a regex `.exec` scan
  * over the raw text is an order of magnitude cheaper and good enough — the
  * query text we're matching lives verbatim in the JSON string values. The
  * snippet is extracted from the raw text (whitespace-collapsed); it's a
@@ -124,11 +133,33 @@ export async function GET(req: Request) {
       } catch {
         continue;
       }
+      // Walk the matches and take the first one that isn't inside an
+      // engine-internal `api-request*` line; when a match lands in one, jump
+      // past the whole line so a 2 MB system-prompt dump costs one skip.
       re.lastIndex = 0;
-      const m = re.exec(text);
-      if (!m) continue;
-      const start = Math.max(0, m.index - SNIPPET_RADIUS);
-      const end = Math.min(text.length, m.index + m[0].length + SNIPPET_RADIUS);
+      let hit: RegExpExecArray | null = null;
+      let lineStart = 0;
+      let lineEnd = text.length;
+      for (let m = re.exec(text); m; m = re.exec(text)) {
+        // Zero-length guard: always advance past this match position so the
+        // scan can't spin (the escaped non-empty query can't match empty
+        // today, but the loop must not depend on that).
+        if (m[0].length === 0) re.lastIndex = m.index + 1;
+        lineStart = text.lastIndexOf("\n", m.index) + 1;
+        const nl = text.indexOf("\n", m.index);
+        lineEnd = nl === -1 ? text.length : nl;
+        if (text.slice(lineStart, lineEnd).includes(API_REQUEST_LINE_MARKER)) {
+          re.lastIndex = lineEnd + 1;
+          continue;
+        }
+        hit = m;
+        break;
+      }
+      if (!hit) continue;
+      // Clamp the snippet window to the matched line so it never bleeds into
+      // a neighbouring JSONL entry (e.g. an adjacent api-request dump).
+      const start = Math.max(lineStart, hit.index - SNIPPET_RADIUS);
+      const end = Math.max(start, Math.min(lineEnd, hit.index + hit[0].length + SNIPPET_RADIUS));
       // The slice is raw JSONL, so it carries JSON string escapes. Decode the
       // common ones so the preview reads like prose instead of `\n`/`\"` noise.
       const cleaned = text
@@ -138,7 +169,7 @@ export async function GET(req: Request) {
         .replace(/\\\\/g, "\\")
         .replace(/\s+/g, " ")
         .trim();
-      const snippet = (start > 0 ? "…" : "") + cleaned + (end < text.length ? "…" : "");
+      const snippet = (start > lineStart ? "…" : "") + cleaned + (end < lineEnd ? "…" : "");
       matches.push({ sessionId, snippet });
     }
   }
