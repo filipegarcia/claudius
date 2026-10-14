@@ -24,7 +24,8 @@ export type ShellExecResult = {
   exitCode: number;
   /**
    * Termination signal, if any. Non-null typically means we tripped the
-   * timeout and sent SIGTERM ourselves. Surfacing this lets the UI render
+   * timeout and stopped the group ourselves: SIGTERM, or SIGKILL when the
+   * command ignored TERM for the 1.5 s grace. Surfacing this lets the UI render
    * "timed out" distinctly from a real non-zero exit.
    */
   signal: NodeJS.Signals | null;

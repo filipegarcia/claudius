@@ -22,6 +22,10 @@ export const KILL_GRACE_MS = 1500;
  * parity. The escalation timer is `unref()`'d so it never holds the Node
  * process open on its own; both signals swallow ESRCH (group already gone),
  * and no SIGKILL is scheduled when the SIGTERM finds no group at all.
+ *
+ * Scope: session close and per-command timeouts. It does NOT cover the Next
+ * server or the Electron app shutting down — nothing disposes bash sessions on
+ * process exit, and an unref'd timer wouldn't fire then anyway.
  */
 export function killProcessGroup(pid: number, graceMs: number = KILL_GRACE_MS): void {
   try {
