@@ -58,7 +58,11 @@ function assistantEvent(uuid: string, text: string): SdkEvent {
   };
 }
 
-async function mockChatBackend(page: Page, events: SdkEvent[]): Promise<{ inputs: string[] }> {
+async function mockChatBackend(
+  page: Page,
+  events: SdkEvent[],
+  opts: { failFirstInput?: boolean } = {},
+): Promise<{ inputs: string[] }> {
   const inputs: string[] = [];
   await page.route("**/api/sessions", async (route: Route) => {
     if (route.request().method() !== "POST") return route.fallback();
@@ -78,6 +82,9 @@ async function mockChatBackend(page: Page, events: SdkEvent[]): Promise<{ inputs
   await page.route(`**/api/sessions/${FAKE_SESSION_ID}/input`, async (route: Route) => {
     const body = route.request().postDataJSON() as { text?: string };
     inputs.push(body?.text ?? "");
+    // The machine "can't be reached" for the first send — it comes back into
+    // the box through the failed-send restore.
+    if (opts.failFirstInput && inputs.length === 1) return route.abort("connectionrefused");
     return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ok: true }) });
   });
   // The @-file menu would have plenty to offer — so if it opened, Enter would
@@ -208,4 +215,32 @@ test("Edit & retry on a refused prompt restores it with no menu open", async ({ 
   await composer.press("Enter");
   await expect.poll(() => inputs.length).toBeGreaterThan(0);
   expect(inputs[0]).toBe(MENTION_PROMPT);
+});
+
+test("a slash command restored after a failed send opens no menu, and Enter re-sends it", async ({ page }) => {
+  const { inputs } = await mockChatBackend(
+    page,
+    [...PRELUDE, { type: "replay_done", hasMoreAbove: false }],
+    { failFirstInput: true },
+  );
+  await page.goto("/");
+
+  const composer = page.getByTestId("prompt-input");
+  await expect(composer).toBeEnabled({ timeout: 15_000 });
+  await composer.fill("/compact");
+  await page.getByTestId("prompt-send").click();
+
+  // Refused at the network layer → restored as written, with no slash menu.
+  await expect.poll(() => inputs.length).toBe(1);
+  await expect(page.getByTestId("prompt-send-failed-notice")).toBeVisible();
+  await expect(composer).toHaveValue("/compact");
+  await page.waitForTimeout(300);
+  await expect(page.getByTestId("picker-selected-pointer")).toHaveCount(0);
+
+  // Enter re-sends exactly that, instead of completing to "/compact ".
+  await composer.focus();
+  await composer.press("End");
+  await composer.press("Enter");
+  await expect.poll(() => inputs.length).toBe(2);
+  expect(inputs[1]).toBe("/compact");
 });
