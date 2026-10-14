@@ -17,8 +17,11 @@
  * back in the composer, the hint is visible, no user bubble is left in the
  * transcript, and the draft was re-saved for the session.
  *
- * Send-gating on stream reconnect was deliberately NOT shipped — see the
- * commit notes; this spec only covers the "text stays in the box" half.
+ * Send-gating on stream reconnect was deliberately NOT shipped: the
+ * "reconnecting" status arms 4s after ANY EventSource `onerror`, and finite
+ * mocked SSE bodies like this spec's error on every end-of-body — gating
+ * would disable Send across the mocked e2e suite. This spec only covers the
+ * "text stays in the box" half.
  *
  * Screenshot target: docs/cc-parity/2.1.299/send-failed-restore.png
  */
@@ -150,6 +153,9 @@ test("a send that can't reach the server keeps the text in the box", async ({ pa
   await expect(composer).toBeEnabled({ timeout: 15_000 });
 
   await composer.fill(MESSAGE);
+  // The pre-submit debounced save may already have PUT this text; only PUTs
+  // after Enter prove the restore re-saved it.
+  const putsBeforeSend = draftPuts.length;
   await composer.press("Enter");
 
   // The send really was attempted (and refused at the network layer) — so
@@ -172,7 +178,9 @@ test("a send that can't reach the server keeps the text in the box", async ({ pa
 
   // The restored message is re-saved as the session's draft (the submit had
   // already DELETEd it), so it survives a tab switch or reload.
-  await expect.poll(() => draftPuts.at(-1), { timeout: 5_000 }).toBe(MESSAGE);
+  await expect
+    .poll(() => draftPuts.slice(putsBeforeSend).includes(MESSAGE), { timeout: 5_000 })
+    .toBe(true);
 
   await page.waitForTimeout(200);
   await page.screenshot({ path: resolve(SHOTS_DIR, "send-failed-restore.png"), fullPage: false });

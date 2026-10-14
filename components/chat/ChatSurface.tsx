@@ -1040,7 +1040,10 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
         "Items to add:",
         bullets,
       ].join("\n");
-      await session.send(prompt);
+      const res = await session.send(prompt);
+      // send() reports delivery instead of throwing (CC 2.1.299 parity);
+      // keep rejecting on failure so the add form stays open with the items.
+      if (!res.ok) throw new Error(`couldn't add todos: ${res.error}`);
     },
     [session],
   );

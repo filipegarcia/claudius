@@ -327,9 +327,12 @@ export function PromptInput({
    * CC 2.1.299 parity — footer hint shown after an undelivered message was
    * put back in the box (see `restoreUndelivered`). Sticky until the next
    * edit or send, so it can't vanish before the user notices why their
-   * message is still there.
+   * message is still there. Pinned to the session it was raised in and only
+   * rendered there — PromptInput stays mounted across tab switches, and the
+   * hint must not claim another session's draft is "your message".
    */
-  const [sendFailedNotice, setSendFailedNotice] = useState<string | null>(null);
+  const [sendFailed, setSendFailed] = useState<{ sessionId: string | null; text: string } | null>(null);
+  const sendFailedNotice = sendFailed && sendFailed.sessionId === sessionId ? sendFailed.text : null;
   const invisibleNoticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
   /** Per-prompt monotonic counter — increments on each insert, never decrements. */
@@ -986,7 +989,7 @@ export function PromptInput({
     );
     pasteRangesRef.current = [];
     pendingPasteRef.current = null;
-    setSendFailedNotice(null);
+    setSendFailed(null);
     // Snapshot what's leaving, in the composer's own representation (`•`
     // bullets, `[Image #N]` tokens), so an undelivered send can be put back
     // exactly as typed.
@@ -996,7 +999,7 @@ export function PromptInput({
     );
     if (outcome === false) {
       // Synchronous refusal — nothing was cleared yet; just say why.
-      setSendFailedNotice(SEND_FAILED_RESTORED_NOTICE);
+      setSendFailed({ sessionId, text: SEND_FAILED_RESTORED_NOTICE });
       return;
     }
     if (outcome !== true) {
@@ -1063,7 +1066,7 @@ export function PromptInput({
     }
     if (placement === "stash") {
       clearedDraftRef.current = { text: sent.text, images: sent.images };
-      setSendFailedNotice(SEND_FAILED_STASHED_NOTICE);
+      setSendFailed({ sessionId: live.sessionId, text: SEND_FAILED_STASHED_NOTICE });
       return;
     }
     userTypedRef.current = true;
@@ -1074,7 +1077,7 @@ export function PromptInput({
       const maxOrd = sent.images.reduce((m, im) => Math.max(m, im.ordinal), 0);
       ordinalCounterRef.current = Math.max(ordinalCounterRef.current, maxOrd);
     }
-    setSendFailedNotice(SEND_FAILED_RESTORED_NOTICE);
+    setSendFailed({ sessionId: live.sessionId, text: SEND_FAILED_RESTORED_NOTICE });
     requestAnimationFrame(() => {
       autosize();
       const el = taRef.current;
@@ -1920,7 +1923,7 @@ export function PromptInput({
               // overwriting the user's input if the GET resolves late.
               userTypedRef.current = true;
               // The user is acting on the restored message — the hint did its job.
-              if (sendFailedNotice) setSendFailedNotice(null);
+              if (sendFailed) setSendFailed(null);
               // Editing the text exits history-browse mode: the next Cmd/Ctrl+↑
               // should re-stash this edited draft and start again from the tail.
               histIdxRef.current = null;
