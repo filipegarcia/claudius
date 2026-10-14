@@ -5,7 +5,11 @@ import { join, resolve, sep } from "node:path";
 import { promisify } from "node:util";
 
 import { getRepoRoot } from "./git";
-import { forkWorktreeIds, type ForkWorktreeInfo } from "@/lib/shared/fork-worktree";
+import {
+  forkWorktreeIds,
+  worktreeFailureReason,
+  type ForkWorktreeInfo,
+} from "@/lib/shared/fork-worktree";
 
 const execFileP = promisify(execFile);
 
@@ -51,17 +55,47 @@ async function writeIndex(idx: IndexShape): Promise<void> {
 }
 
 /**
+ * Outcome of `createForkWorktree`. `reason` is set when the source IS a git
+ * repo (or a bare one) but the worktree couldn't be made — the caller shows
+ * it instead of the plain non-git "shares your checkout" line. A non-git
+ * source fails without a reason: sharing the checkout is the expected path.
+ */
+export type ForkWorktreeResult =
+  | { ok: true; worktree: ForkWorktreeInfo }
+  | { ok: false; reason?: string };
+
+async function isBareRepository(cwd: string): Promise<boolean> {
+  try {
+    const { stdout } = await execFileP("git", ["-C", cwd, "rev-parse", "--is-bare-repository"], {
+      timeout: 5_000,
+    });
+    return stdout.trim() === "true";
+  } catch {
+    return false; // not a repo at all
+  }
+}
+
+/**
  * Create a git worktree for a forked session off the source repo's HEAD, and
- * record the association. Returns the worktree info, or `null` when the source
- * isn't a git repo or the worktree couldn't be created (e.g. the branch already
- * exists) — in which case the caller falls back to the shared checkout.
+ * record the association. Fails (`ok: false`) when the source isn't a git
+ * repo or the worktree couldn't be created (e.g. the branch already exists)
+ * — in which case the caller falls back to the shared checkout.
  */
 export async function createForkWorktree(
   sourceCwd: string,
   forkId: string,
-): Promise<ForkWorktreeInfo | null> {
+): Promise<ForkWorktreeResult> {
   const repoRoot = await getRepoRoot(sourceCwd);
-  if (!repoRoot) return null;
+  if (!repoRoot) {
+    // CC 2.1.299 parity — "Improved the error for creating a worktree at a
+    // bare-repository layout's root". `--show-toplevel` fails there just as
+    // it does outside a repo, so tell the two apart rather than implying the
+    // source isn't under git.
+    if (await isBareRepository(sourceCwd)) {
+      return { ok: false, reason: "this is a bare repository's root, which has no working tree" };
+    }
+    return { ok: false };
+  }
 
   const { branch, dirName } = forkWorktreeIds(forkId);
 
@@ -70,7 +104,19 @@ export async function createForkWorktree(
   // hex slug, but the check is kept visible right above the git/fs calls.
   const root = forkWorktreesRoot();
   const target = resolve(root, dirName);
-  if (!target.startsWith(root + sep)) return null;
+  if (!target.startsWith(root + sep)) return { ok: false };
+
+  // CC 2.1.299 parity — "Improved the error shown when a worktree cannot be
+  // created because its base commit does not resolve". In a fresh `git init`
+  // HEAD names an unborn branch, and `worktree add … HEAD` only says
+  // "invalid reference: HEAD".
+  try {
+    await execFileP("git", ["-C", repoRoot, "rev-parse", "--verify", "--quiet", "HEAD^{commit}"], {
+      timeout: 5_000,
+    });
+  } catch {
+    return { ok: false, reason: "the repository has no commits yet" };
+  }
 
   let dirty = false;
   try {
@@ -87,17 +133,18 @@ export async function createForkWorktree(
     await execFileP("git", ["-C", repoRoot, "worktree", "add", "-b", branch, target, "HEAD"], {
       timeout: 20_000,
     });
-  } catch {
-    // Branch already exists, path taken, detached HEAD, etc. — fork still
-    // succeeds on the shared checkout.
-    return null;
+  } catch (err) {
+    // Branch already exists, path taken, etc. — the fork still succeeds on
+    // the shared checkout, now saying why.
+    const stderr = (err as { stderr?: unknown }).stderr;
+    return { ok: false, reason: worktreeFailureReason(typeof stderr === "string" ? stderr : "") };
   }
 
   const idx = await readIndex();
   idx.forks[forkId] = { cwd: target, branch, sourceCwd: repoRoot };
   await writeIndex(idx);
 
-  return { path: target, branch, dirty };
+  return { ok: true, worktree: { path: target, branch, dirty } };
 }
 
 /**
