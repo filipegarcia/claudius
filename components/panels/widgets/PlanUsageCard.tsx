@@ -8,6 +8,7 @@ import { useCountdownSeconds } from "@/lib/client/use-countdown";
 import { useRateLimitWarningPct } from "@/lib/client/useRateLimitWarning";
 import {
   collectUsageWindows,
+  displayUsagePct,
   shortUsageLabel,
   usageTone,
   type RateLimitInfo,
@@ -121,7 +122,9 @@ function useNowMs(intervalMs: number): number {
 
 function UsageRow({ window: w, tone }: { window: UsageWindow; tone: UsageTone }) {
   const countdown = useCountdownSeconds(w.resetsAtSec);
-  const pct = Math.round(w.pct);
+  // CC 2.1.299 parity — the printed % and aria value clamp at 100; the bar
+  // width and tone keep reading the raw `w.pct`.
+  const pct = displayUsagePct(w);
   return (
     <div data-testid="plan-usage-window" data-window={w.key} data-tone={tone}>
       <div className="flex items-baseline justify-between gap-2">
@@ -200,7 +203,7 @@ export function PlanUsageCard({
     const summary = windows
       .map(
         (w) =>
-          `${w.label}: ${w.rejected ? "limit hit" : `${Math.round(w.pct)}% used`}` +
+          `${w.label}: ${w.rejected ? "limit hit" : `${displayUsagePct(w)}% used`}` +
           (w.resetsAtSec ? ` · resets ${formatReset(w.resetsAtSec)}` : ""),
       )
       .join("\n");
@@ -237,7 +240,7 @@ export function PlanUsageCard({
             <span key={w.key} data-testid="plan-usage-mini-window" data-window={w.key} className="flex items-baseline gap-1 whitespace-nowrap">
               <span className="opacity-70">{shortUsageLabel(w)}</span>
               <span className={cn("font-mono font-medium", PCT_TONES[tones[i]])}>
-                {w.rejected ? "hit" : `${Math.round(w.pct)}%`}
+                {w.rejected ? "hit" : `${displayUsagePct(w)}%`}
               </span>
             </span>
           ))}
