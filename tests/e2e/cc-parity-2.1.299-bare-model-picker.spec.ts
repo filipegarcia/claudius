@@ -151,12 +151,18 @@ const PRELUDE: SdkEvent[] = [
 /**
  * Type a bare slash command and run it with the keyboard: the first Enter
  * accepts the slash-picker's (confident) match, completing the composer to
- * `/<name> `; the second Enter submits it.
+ * `/<name> `; the second Enter submits it. Waits for the slash picker to have
+ * the command highlighted first, so the Enter can't race the picker's keydown
+ * listener mounting.
  */
 async function runBareCommand(page: Page, name: string): Promise<void> {
   const composer = page.getByTestId("prompt-input");
+  await expect(composer).toBeEnabled({ timeout: 15_000 });
   await composer.click();
-  await composer.fill(`/${name}`);
+  await composer.pressSequentially(`/${name}`, { delay: 20 });
+  const pointer = page.getByTestId("picker-selected-pointer");
+  await expect(pointer).toHaveCount(1, { timeout: 10_000 });
+  await expect(pointer.locator("xpath=ancestor::button[1]")).toContainText(`/${name}`);
   await composer.press("Enter");
   await expect(composer).toHaveValue(`/${name} `);
   await composer.press("Enter");
@@ -183,10 +189,9 @@ test("a bare /model or /effort opens the model picker with its effort and fast r
   await expect(panel).toBeVisible({ timeout: 5_000 });
   await expect(trigger).toHaveAttribute("aria-expanded", "true");
   await expect(panel.getByTestId("model-picker-option")).toHaveCount(MODELS.length);
-  // Effort row: one chip per supported level (+ Auto, since the model
-  // supports adaptive thinking).
+  // Effort row (the chip count depends on the user's `maxEffortLevel` cap,
+  // read from the real settings route, so only assert the row is there).
   await expect(panel.getByTestId("model-picker-effort").first()).toBeVisible();
-  await expect(panel.getByTestId("model-picker-effort")).toHaveCount(4);
   // Fast-mode row.
   await expect(panel.getByTestId("model-picker-fast")).toBeVisible();
   // The old dead-end hint is gone, and nothing was forwarded to the SDK.
