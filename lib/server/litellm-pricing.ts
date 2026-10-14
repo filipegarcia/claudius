@@ -347,8 +347,9 @@ const CACHE_WRITE_1H_INPUT_MULTIPLIER = 2;
  *
  * Cache writes follow the engine's split pricer (CC 2.1.300): the 1h slice,
  * `min(cacheCreation1h, cacheCreation)`, is billed at the 1h rate (2x the
- * applicable — possibly long-context — input rate; LiteLLM's data carries no
- * 1h key) and the remainder at the 5m `cache_creation_input_token_cost`.
+ * applicable — possibly long-context — input rate, as in the engine's catalog;
+ * `PRICE_FIELDS` keeps no 1h key from LiteLLM) and the remainder at the 5m
+ * `cache_creation_input_token_cost`.
  */
 export function costFromUsage(pricing: LiteLlmPricing | undefined, usage: Usage): number {
   if (!pricing) return 0;
