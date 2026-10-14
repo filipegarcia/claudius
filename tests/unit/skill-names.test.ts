@@ -14,8 +14,10 @@ import { skillMdName } from "@/lib/shared/skill-names";
 describe("skillMdName (CC 2.1.290)", () => {
   test("returns the SKILL.md name only when it differs from the folder", () => {
     expect(skillMdName({ name: "code-review" }, "レビュー")).toBe("code-review");
-    expect(skillMdName({ name: "  padded  " }, "folder")).toBe("padded");
     expect(skillMdName({ name: "same" }, "same")).toBeNull();
+    // CC 2.1.299: the engine checks the name as written — a leading/trailing
+    // space makes it ignored, so it's no longer shown as a second name.
+    expect(skillMdName({ name: "  padded  " }, "folder")).toBeNull();
   });
 
   test("treats composed and decomposed spellings as the same name", () => {
