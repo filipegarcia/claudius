@@ -23,6 +23,7 @@ import { AuthFailedPanel } from "@/components/chat/AuthFailedPanel";
 import { TokenExpiringPanel } from "@/components/chat/TokenExpiringPanel";
 import { FastModeNoticePanel } from "@/components/chat/FastModeNoticePanel";
 import { ModelSwitchNoticePanel } from "@/components/chat/ModelSwitchNoticePanel";
+import { AutoModeOffNoticePanel } from "@/components/chat/AutoModeOffNoticePanel";
 import { ModelChatCommandNoticePanel } from "@/components/chat/ModelChatCommandNoticePanel";
 import { AdvisorDisabledNoticePanel } from "@/components/chat/AdvisorDisabledNoticePanel";
 import { ClearedFromBanner } from "@/components/chat/ClearedFromBanner";
@@ -2469,6 +2470,10 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
           notice={session.advisorDisabledNotice}
           onDismiss={session.dismissAdvisorDisabledNotice}
           onReEnable={session.reEnableAdvisor}
+        />
+        <AutoModeOffNoticePanel
+          notice={session.autoModeOffNotice}
+          onDismiss={session.dismissAutoModeOffNotice}
         />
         {/* CC 2.1.191: "/rewind after /clear" — shows only in a fresh session
             that was created by /clear or the header Clear button. The user

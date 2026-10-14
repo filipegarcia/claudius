@@ -1007,6 +1007,18 @@ export type ChatState = {
     reason: "chat_command" | "auto";
   } | null;
   /**
+   * CC 2.1.299 parity — transient notice shown when a model switch took the
+   * session out of auto mode because the new model doesn't support it
+   * ("Auto mode is off: <model> doesn't support auto mode."). Fired from the
+   * `model_changed` handler on `autoModeOffFor`; see `AutoModeOffNoticePanel`.
+   */
+  autoModeOffNotice: {
+    /** Stable across re-renders of the same notice; bumped per kick-out. */
+    uuid: string;
+    /** Display name of the model that doesn't support auto mode. */
+    model: string;
+  } | null;
+  /**
    * Transient toast shown when the server automatically disabled the advisor
    * because the user switched to a model incompatible with the active advisor
    * tool. Carries the previous advisor id so the "Re-enable" button can
@@ -1468,6 +1480,8 @@ export type ChatActions = {
   dismissModelSwitchNotice(): void;
   /** Dismiss the transient /model chat-command notice. Client-side only. */
   dismissChatCommandModelNotice(): void;
+  /** Dismiss the auto-mode-off-on-model-switch notice. Client-side only. */
+  dismissAutoModeOffNotice(): void;
   /** Dismiss the advisor-auto-disabled notice. Client-side only. */
   dismissAdvisorDisabledNotice(): void;
   /**

@@ -14,6 +14,7 @@ import {
   type EffortLevel,
   type McpSdkServerConfigWithInstance,
   type McpServerConfig,
+  type ModelInfo,
   type ElicitationRequest,
   type ElicitationResult,
   type Options,
@@ -131,6 +132,7 @@ import { normalizeExtraUsage, type ExtraUsage } from "@/lib/shared/plan-usage";
 import type { SessionLoop } from "@/lib/shared/session-loops";
 import { isScheduleWakeupStop } from "@/lib/shared/stop-self-paced-loop";
 import { matchesUsageLimitPrefix } from "@/lib/shared/rate-limit-prefixes";
+import { findModelInfo, shouldLeaveAutoForModel } from "@/lib/shared/permission-modes";
 import {
   readSettings,
   writeSettings,
@@ -3329,10 +3331,15 @@ export class Session {
                 );
                 if (!action) return { continue: true };
                 this.model = action.model;
+                // CC 2.1.299 parity — a fallback / resume / out-of-band
+                // switch can land on a model without auto-mode support just
+                // as a picker switch can; same check as `setModel`.
+                const autoModeOffFor = await this.leaveAutoIfModelUnsupported(action.model);
                 this.broadcast({
                   type: "model_changed",
                   model: action.model,
                   source: action.source,
+                  ...(autoModeOffFor ? { autoModeOffFor } : {}),
                 });
                 // The model just moved underneath us without going through
                 // `setModel()` — most importantly on `source: "resume"`,
@@ -3397,6 +3404,24 @@ export class Session {
       });
     }
     void this.consume();
+    // CC 2.1.299 parity — a session can also START in auto on a model that
+    // doesn't support it: a reap → resume (or a fresh create) takes the
+    // workspace default mode, which may be `auto`, not the `default` that
+    // `leaveAutoIfModelUnsupported` left the previous instance in. The
+    // engine drops to `default` on its side; without this our mode pill and
+    // `getRebuildOpts()` would keep claiming auto. Fire-and-forget — the
+    // catalog resolves with the CLI's initialization handshake, which
+    // `start()` doesn't wait for — and re-read `this.model` at resolution so
+    // a switch in the meantime is checked against the model actually set.
+    // No notice: nothing changed under the user, `subscribe()`'s
+    // `mode_changed` re-emit just paints the right pill.
+    if (this.permissionMode === "auto") {
+      const q = this.query;
+      void q
+        .supportedModels()
+        .then((models) => (this.query === q ? this.leaveAutoIfModelUnsupported(this.model, models) : undefined))
+        .catch(() => {});
+    }
     // Start watching the on-disk JSONL so external writers (CLI `claude
     // --resume <id>`) trigger a resync that broadcasts new turns to all
     // open browser tabs without a manual refresh.
@@ -5020,7 +5045,18 @@ export class Session {
     return this.restrictedMode && mode === "bypassPermissions" ? "default" : mode;
   }
 
-  async setPermissionMode(mode: PermissionMode): Promise<void> {
+  /**
+   * `opts.skipAutoExitReminder` — set by `leaveAutoIfModelUnsupported` when
+   * the HOST (not the user) takes the session out of auto because the model
+   * can't run there. The `## Exited Auto Mode` reminder is the CLI's response
+   * to a user Shift+Tab ("the user may now want to interact more directly"),
+   * which would misdescribe a capability kick-out; the engine already tells
+   * the model on its side ("<model> doesn't support auto mode").
+   */
+  async setPermissionMode(
+    mode: PermissionMode,
+    opts: { skipAutoExitReminder?: boolean } = {},
+  ): Promise<void> {
     // Restricted mode refuses bypassPermissions — coerce before anything else
     // so the lockdown holds regardless of what the client requested.
     mode = this.coerceRestrictedMode(mode);
@@ -5034,6 +5070,18 @@ export class Session {
     if (mode === "auto") {
       const gate = await readSettings("user", this.cwd).catch(() => ({}) as ClaudeSettings);
       if (gate.disableAutoMode === "disable") mode = "default";
+    }
+    // CC 2.1.299 parity — "Fixed SDK and headless sessions staying in auto
+    // mode after the host switched to a model that doesn't support auto
+    // mode". `setModel` leaves auto on the switch itself; this gate keeps a
+    // later request from putting the session straight back in — most
+    // importantly the tab-switch wake POST, whose reconciler re-applies the
+    // workspace default (which may be `auto`) to a live session. Unknown
+    // capability (no query yet, model not in the catalog, fetch stalled)
+    // leaves the request alone — see `shouldLeaveAutoForModel`.
+    if (mode === "auto") {
+      const info = await this.modelCatalogInfo(this.model ?? this.sdkModel);
+      if (shouldLeaveAutoForModel(mode, info)) mode = "default";
     }
     // Plan-mode re-entry reminder (Claude Code TUI parity, feature 33). When
     // the user flips back into plan mode after a prior planning round in
@@ -5065,7 +5113,7 @@ export class Session {
         queueReminder(this, "plan-mode-reentry", planModeReentryReminderBody(priorPlan));
       }
     }
-    if (wasAuto && mode !== "auto") {
+    if (wasAuto && mode !== "auto" && !opts.skipAutoExitReminder) {
       queueReminder(this, "auto-mode-exit", autoModeExitReminderBody());
     }
     if (this.query) await this.query.setPermissionMode(mode).catch(() => {});
@@ -5077,6 +5125,63 @@ export class Session {
 
   getPermissionMode(): PermissionMode {
     return this.permissionMode;
+  }
+
+  /**
+   * The SDK catalog row (`supportedModels()`) for `model`, or `undefined`
+   * when it can't be determined: no live query, no model id, an id the
+   * catalog doesn't list, or a failed fetch. `supportedModels()` resolves
+   * from the query's initialization handshake, so on a just-started session
+   * it waits for the CLI to come up — bounded here so a slow or wedged
+   * spawn can't hang `setPermissionMode` (and the session-create reconciler
+   * awaiting it). A timeout is "unknown", same as a failure.
+   */
+  private async modelCatalogInfo(
+    model: string | undefined,
+    timeoutMs = 3_000,
+  ): Promise<ModelInfo | undefined> {
+    if (!this.query || !model) return undefined;
+    let timer: NodeJS.Timeout | undefined;
+    try {
+      const models = await Promise.race([
+        this.query.supportedModels(),
+        new Promise<undefined>((resolve) => {
+          timer = setTimeout(() => resolve(undefined), timeoutMs);
+          timer.unref?.();
+        }),
+      ]);
+      return models ? findModelInfo(models, model) : undefined;
+    } catch {
+      return undefined;
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+  }
+
+  /**
+   * CC 2.1.299 parity — "Fixed SDK and headless sessions staying in auto
+   * mode after the host switched to a model that doesn't support auto mode".
+   * Claudius is the host: `this.permissionMode` is what the mode pill shows,
+   * what `getRebuildOpts()` carries into a restart/recovery, and what the
+   * next `setPermissionMode` transition is measured against. When the model
+   * moves to one whose catalog row says `supportsAutoMode: false`, drop to
+   * `default` through the normal `setPermissionMode` path (so `mode_changed`
+   * broadcasts and the SDK is told — harmless if the engine already kicked
+   * itself out), minus the user-Shift+Tab exit reminder.
+   *
+   * Returns the model's display name when it left auto (the caller surfaces
+   * the notice), `undefined` otherwise. `models` lets a caller that already
+   * fetched the catalog reuse it.
+   */
+  private async leaveAutoIfModelUnsupported(
+    model: string | undefined,
+    models?: readonly ModelInfo[],
+  ): Promise<string | undefined> {
+    if (this.permissionMode !== "auto" || !model) return undefined;
+    const info = models ? findModelInfo(models, model) : await this.modelCatalogInfo(model);
+    if (!shouldLeaveAutoForModel(this.permissionMode, info)) return undefined;
+    await this.setPermissionMode("default", { skipAutoExitReminder: true });
+    return info?.displayName || model;
   }
 
   /**
@@ -5445,25 +5550,40 @@ export class Session {
     // if the old and new model disagree on fast-mode support, that's a real,
     // attributable capability change. Best-effort — a catalog-fetch failure
     // or an unresolvable model id just means no notice, not a broken switch.
-    let fastModeNowSupported: boolean | undefined;
-    if (this.query && model && previousModel && model !== previousModel) {
+    //
+    // One catalog fetch serves both this diff and the auto-mode check below,
+    // which (unlike the diff) runs on any switch to a named model — the
+    // session may have entered auto after an earlier switch to this model.
+    let models: ModelInfo[] | undefined;
+    if (this.query && model) {
       try {
-        const models = await this.query.supportedModels();
-        const find = (id: string) => models.find((m) => m.value === id || m.resolvedModel === id);
-        const prevInfo = find(previousModel);
-        const nextInfo = find(model);
-        if (prevInfo && nextInfo && Boolean(prevInfo.supportsFastMode) !== Boolean(nextInfo.supportsFastMode)) {
-          fastModeNowSupported = Boolean(nextInfo.supportsFastMode);
-        }
+        models = await this.query.supportedModels();
       } catch {
         // Non-fatal — the model switch itself already succeeded above.
       }
     }
+    let fastModeNowSupported: boolean | undefined;
+    if (models && model && previousModel && model !== previousModel) {
+      const prevInfo = findModelInfo(models, previousModel);
+      const nextInfo = findModelInfo(models, model);
+      if (prevInfo && nextInfo && Boolean(prevInfo.supportsFastMode) !== Boolean(nextInfo.supportsFastMode)) {
+        fastModeNowSupported = Boolean(nextInfo.supportsFastMode);
+      }
+    }
+    // CC 2.1.299 parity — "Fixed SDK and headless sessions staying in auto
+    // mode after the host switched to a model that doesn't support auto
+    // mode". Leave auto BEFORE the `model_changed` broadcast so the mode pill
+    // already reads "default" when the notice lands. Needs the catalog, so a
+    // failed fetch (no `models`) leaves the mode as is.
+    const autoModeOffFor = models
+      ? await this.leaveAutoIfModelUnsupported(model, models)
+      : undefined;
     this.broadcast({
       type: "model_changed",
       model,
       source,
       ...(fastModeNowSupported !== undefined ? { fastModeNowSupported } : {}),
+      ...(autoModeOffFor ? { autoModeOffFor } : {}),
     });
 
     // Auto-disable the advisor when the model changes. The advisor tool
@@ -8910,7 +9030,16 @@ export class Session {
             const newModel = modelMatch[1];
             if (newModel !== this.model) {
               this.model = newModel;
-              this.broadcast({ type: "model_changed", model: newModel, source: "chat_command" });
+              // CC 2.1.299 parity — this switch bypasses setModel(), so run
+              // the same auto-mode capability check here (see
+              // `leaveAutoIfModelUnsupported`).
+              const autoModeOffFor = await this.leaveAutoIfModelUnsupported(newModel);
+              this.broadcast({
+                type: "model_changed",
+                model: newModel,
+                source: "chat_command",
+                ...(autoModeOffFor ? { autoModeOffFor } : {}),
+              });
               try {
                 await upsertSession({ id: this.id, cwd: this.cwd, model: newModel, title: this.title });
               } catch {
