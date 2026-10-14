@@ -3,8 +3,9 @@ import type { GitFileChange, GitStatusCode } from "@/lib/server/git";
 /**
  * Pure data-mapping helpers for `DiffOverlay` (CC 2.1.260 `/diff` parity),
  * split out of the component so they're unit-testable without mounting
- * React. Mirrors the worktree-first status convention the rest of
- * Claudius's git UI (`ChangesList.tsx`, the full Git page) already uses.
+ * React. Mostly worktree-first, like the rest of Claudius's git UI
+ * (`ChangesList.tsx`, the full Git page) — except that a staged rename/copy
+ * keeps its index badge while the fetched diff stays the worktree delta.
  */
 
 export type DiffOverlayMode = "staged" | "worktree" | "untracked";
@@ -25,8 +26,8 @@ export function modeFor(f: GitFileChange): DiffOverlayMode {
 }
 
 /**
- * The single status character to badge a row with, following the same
- * worktree-first preference as `modeFor` — except for a staged rename/copy
+ * The single status character to badge a row with. Worktree-first like
+ * `modeFor` (which picks the diff to fetch) — except for a staged rename/copy
  * that was then edited (porcelain `RM` / `CM` / `RT`). There the worktree
  * slot only says "the content changed again", and preferring it badged a
  * rename as "Modified" (CC 2.1.300: "Fixed the diff view … showing deleted
