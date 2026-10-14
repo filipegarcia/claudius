@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
+  AlertTriangle,
   ArrowLeft,
   ChevronDown,
   ChevronRight,
@@ -28,6 +29,15 @@ type FileContent = {
   content: string;
   sizeBytes: number;
   modifiedMs: number;
+  /**
+   * CC 2.1.299 parity — the encoding the server sniffed (`utf-8`, `utf-8-bom`,
+   * `utf-16le` or `unsupported`) plus whether it can be saved back without
+   * converting it. Optional so an older server response still opens editable.
+   */
+  encoding?: string;
+  encodingLabel?: string;
+  editable?: boolean;
+  readOnlyReason?: string;
 };
 
 type WorkspaceRoot = {
@@ -132,6 +142,10 @@ export default function FilesPage() {
           content: d.content,
           sizeBytes: d.sizeBytes,
           modifiedMs: d.modifiedMs,
+          encoding: d.encoding,
+          encodingLabel: d.encodingLabel,
+          editable: d.editable,
+          readOnlyReason: d.readOnlyReason,
         };
         setOpen(ref);
         setDraft(ref.content);
@@ -175,8 +189,13 @@ export default function FilesPage() {
     }
   }, [wsId, searchParams, onPick]);
 
+  // A file whose encoding can't be written back losslessly opens read-only
+  // (CC 2.1.299 parity). Missing `editable` = older server → editable.
+  const readOnly = open?.editable === false;
+
   async function onSave() {
-    if (!wsId || !open) return;
+    // Guard here too, not just on the button — ⌘S calls this directly.
+    if (!wsId || !open || readOnly) return;
     setBusy("save");
     setError(null);
     try {
@@ -357,7 +376,10 @@ export default function FilesPage() {
           </div>
         </header>
         {error && (
-          <div className="border-b border-red-500/30 bg-red-500/10 px-3 py-1 text-[11px] text-red-300">
+          <div
+            data-testid="files-error"
+            className="border-b border-red-500/30 bg-red-500/10 px-3 py-1 text-[11px] text-red-300"
+          >
             {error}
           </div>
         )}
@@ -464,7 +486,20 @@ export default function FilesPage() {
                     </span>
                   )}
                   <span className="truncate font-mono">{open.relPath}</span>
-                  {dirty && <span className="text-amber-400">●</span>}
+                  {dirty && (
+                    <span data-testid="files-dirty" className="text-amber-400">
+                      ●
+                    </span>
+                  )}
+                  {open.encoding && open.encoding !== "utf-8" && open.encodingLabel && (
+                    <span
+                      data-testid="files-encoding-badge"
+                      title="Saved back in this encoding"
+                      className="shrink-0 rounded bg-[var(--panel-2)] px-1 py-px font-mono text-[9px] uppercase tracking-wide text-[var(--muted)]"
+                    >
+                      {open.encodingLabel}
+                    </span>
+                  )}
                   <button
                     type="button"
                     onClick={onRename}
@@ -486,15 +521,31 @@ export default function FilesPage() {
                   <button
                     type="button"
                     onClick={onSave}
-                    disabled={!dirty || busy != null}
+                    disabled={!dirty || busy != null || readOnly}
+                    title={readOnly ? "Read-only — saving would convert this file's encoding" : undefined}
+                    data-testid="files-save"
                     className="flex items-center gap-1 rounded-md bg-[var(--accent)] px-2 py-0.5 text-[11px] text-white hover:opacity-90 disabled:opacity-40"
                   >
                     <Save className="h-3 w-3" /> {busy === "save" ? "Saving…" : "Save"}
                   </button>
                 </div>
+                {readOnly && (
+                  <div
+                    data-testid="files-encoding-readonly"
+                    role="status"
+                    className="flex shrink-0 items-center gap-1.5 border-b border-amber-500/30 bg-amber-500/10 px-3 py-1 text-[11px] text-amber-200"
+                  >
+                    <AlertTriangle className="h-3 w-3 shrink-0" />
+                    <span>
+                      {open.readOnlyReason ??
+                        "Read-only: this file's encoding isn't UTF-8, and saving would convert it."}
+                    </span>
+                  </div>
+                )}
                 <div className="flex-1 overflow-hidden">
                   <HighlightedEditor
                     path={open.relPath}
+                    readOnly={readOnly}
                     value={draft}
                     onChange={(next) => {
                       setDraft(next);
